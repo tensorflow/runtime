@@ -217,7 +217,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "g3doc/Dialects/AVX512/AVX512.md",
+            "documents/Dialects/AVX512/AVX512.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -789,7 +789,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "g3doc/Dialects/LLVMIR/LLVMAVX512.md",
+            "documents/Dialects/LLVMIR/LLVMAVX512.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -1466,7 +1466,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "g3doc/Dialects/SPIRV/SPIRVOps.md",
+            "documents/Dialects/SPIRV/SPIRVOps.md",
         ),
         (
             "-gen-enum-decls",
@@ -2698,7 +2698,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "g3doc/Dialects/OpenMP/OpenMPOps.md",
+            "documents/Dialects/OpenMP/OpenMPOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -2756,7 +2756,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "g3doc/Dialects/QuantOps/QuantOps.md",
+            "documents/Dialects/QuantOps/QuantOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -2904,7 +2904,7 @@ gentbl(
     tbl_outs = [
         (
             "-gen-op-doc",
-            "g3doc/Dialects/Linalg/LinalgOps.md",
+            "documents/Dialects/Linalg/LinalgOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -3107,7 +3107,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "g3doc/Dialects/Vector/VectorOps.md",
+            "documents/Dialects/Vector/VectorOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",

@@ -184,7 +184,7 @@ it easier to exercise failure cases, and speeds iteration time. We'll still need
 real hardware tests of course.
 
 See
-[MLIR Testing doc](https://github.com/tensorflow/mlir/blob/master/g3doc/TestingGuide.md)
+[MLIR Testing doc](https://github.com/tensorflow/mlir/blob/master/documents/TestingGuide.md)
 for relevant discussion.
 
 ### Performance

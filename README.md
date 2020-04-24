@@ -44,13 +44,13 @@ Recall from our Dev Summit presentation that for graph execution, a TensorFlow
 user passes into TFRT a TensorFlow graph created via high-level TensorFlow APIs,
 and TFRT then calls the [MLIR](https://www.tensorflow.org/mlir)-based graph
 compiler to optimize and lower the graph into
-[BEF](g3doc/binary_executable_format.md), a Binary Executable Format for TFRT
-graph execution (MLIR is the compiler infrastructure that we use to represent
-TFRT host programs). The blue arrows in the simplified TensorFlow training stack
-diagram below show this flow.
+[BEF](documents/binary_executable_format.md), a Binary Executable Format for
+TFRT graph execution (MLIR is the compiler infrastructure that we use to
+represent TFRT host programs). The blue arrows in the simplified TensorFlow
+training stack diagram below show this flow.
 
 <div align="center">
-<img src="g3doc/img/TFRT_overview.svg" alt="TFRT Overview" width="800">
+<img src="documents/img/TFRT_overview.svg" alt="TFRT Overview" width="800">
 </div>
 
 The two binaries introduced next focus on the backend of the graph execution
@@ -63,7 +63,7 @@ below. Note that the blue arrow between TFRT Host Program and `BEF` file
 represents `tfrt_translate`. Both programs are built in the `tools` directory.
 
 <div align="center">
-<img src="g3doc/img/BEF_conversion.svg" alt="BEF Conversion" width="480">
+<img src="documents/img/BEF_conversion.svg" alt="BEF Conversion" width="480">
 </div>
 
 #### tfrt_translate

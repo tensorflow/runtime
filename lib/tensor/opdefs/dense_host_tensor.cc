@@ -54,16 +54,6 @@ static Type getTensorType(mlir::MLIRContext *context) {
   return OpaqueType::get(tDialect, "tensor", context);
 }
 
-static Type getHostBufferType(mlir::MLIRContext *context) {
-  auto htDialect = Identifier::get("ht", context);
-  return OpaqueType::get(htDialect, "host_buffer", context);
-}
-
-static Type getShapeType(mlir::MLIRContext *context) {
-  auto tsDialect = Identifier::get("ts", context);
-  return OpaqueType::get(tsDialect, "shape", context);
-}
-
 //===----------------------------------------------------------------------===//
 // CreateUnitializedTensorOp
 //===----------------------------------------------------------------------===//

@@ -1,0 +1,37 @@
+/*
+ * Copyright 2020 The TensorFlow Runtime Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//===- metadata_functions.h - Metadata functions for TF ops -----*- C++ -*-===//
+//
+// This file exports device agnostic metadata functions for test ops.
+//
+//===----------------------------------------------------------------------===//
+
+#ifndef TFRT_BACKENDS_COMMON_OPS_TF_METADATA_FUNCTIONS_H_
+#define TFRT_BACKENDS_COMMON_OPS_TF_METADATA_FUNCTIONS_H_
+
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/StringRef.h"
+#include "tfrt/core_runtime/op_metadata_function.h"
+
+namespace tfrt {
+// This function returns op names and corresponding metadata functions that
+// are used by TF Python API.
+llvm::ArrayRef<std::pair<llvm::StringRef, OpMetadataFn>>
+GetAllTFMetadataFunctions();
+}  // namespace tfrt
+
+#endif  // TFRT_BACKENDS_COMMON_OPS_TF_METADATA_FUNCTIONS_H_

@@ -1,0 +1,51 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Clang 9 is required.
+build --client_env=CC=clang
+
+# Remove -Wc++14-compat once C++17 is allowed.
+build --copt=-Wc++14-compat
+
+# Disable warnings we don't care about.
+build --copt=-Wno-unused-local-typedef
+
+# C++14 standard version is required.
+build --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
+
+# Necessary linker options.
+build --linkopt=-pthread
+build --linkopt=-ldl
+build --linkopt=-lm
+
+# Default to an optimized build.
+# Override via: "-c dbg" or --compilation_mode=dbg
+build --compilation_mode=opt
+
+# Build Event Service
+build:bes --bes_backend=buildeventservice.googleapis.com
+build:bes --bes_results_url=http://source.cloud.google.com/results/invocations/
+build:bes --bes_timeout=1m
+build:bes --project_id=tensorflow-testing  # TODO(chuanhao): use tf-runtime
+build:bes --google_default_credentials
+
+# Remote Build and Execution
+# Note: at the moment, this only uses remote caching.
+build:rbe --remote_cache=grpcs://remotebuildexecution.googleapis.com
+build:rbe --remote_instance_name=projects/tf-runtime/instances/tf-runtime-rbe-instance
+build:rbe --host_platform_remote_properties_override='properties:{name:"cache-silo-key" value:"FirstCachedBuild"}'
+build:rbe --google_default_credentials
+
+# Put user-specific options in .bazelrc.user
+try-import %workspace%/.bazelrc.user

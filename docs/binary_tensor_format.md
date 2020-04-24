@@ -1,0 +1,79 @@
+# Binary Tensor Format
+
+<!--* freshness: {
+  owner: 'doak'
+  reviewed: '2019-10-22'
+} *-->
+
+[TOC]
+
+WARNING: This format is experimental.
+
+This document describes the file format for storing tensors, known as the Binary
+Tensor Format, "BTF".
+
+A BTF file is a self-describing file format that stores arbitrary number of
+Tensors. It is formed as a byte stream whose top-level structure is a "File
+Header" followed by a list of "Tensor Record"s.
+
+<!-- TODO(doak): Make a diagram for the format -->
+
+```none
+FILE                 ::= FILE_HEADER TENSOR_RECORD*
+FILE_HEADER          ::= NUM_TENSORS TENSOR_RECORD_OFFSET* TENSOR_RECORD*
+TENSOR_RECORD        ::= TENSOR_HEADER | TENSOR_PAYLOAD
+TENSOR_HEADER        ::= RANK DTYPE LAYOUT RESERVED_SPACE
+
+NUM_TENSORS          ::= uint64_t
+TENSOR_RECORD_OFFSET ::= uint64_t
+RANK                 ::= uint64_t
+DTYPE                ::= uint8_t
+RESERVED_SPACE       ::= 0 (6 byte wide)
+```
+
+A well-formed BTF file should have `NUM_TENSOR` of `TENSOR_RECORD_OFFSET`s and
+`TENSOR_RECORD`s, where each `TENSOR_RECORD_OFFSET` points to the byte offset of
+the corresponding `TENSOR_RECORD`.
+
+`DIMS` should consist of `RANK` number of `uint64_t`. The number of bytes in
+`TENSOR_DATA` should be the same as specified by `DIMS` and `DTYPE`.
+
+The currently supported `DTYPE` and their encoded numeric values are:
+
+```none
+int8: 0
+int16: 1
+int32: 2
+int64: 3
+float32: 4
+float64: 5
+```
+
+Each tensor header contains an 8-bit "magic" number identifying the layout used
+to represent the tensor. The magic numbers currently reserved are:
+
+<!-- TODO(doak): It's better to have these magic numbers and their names defined
+     centrally and import it here and in the languages that parse it to ensure
+     they're kept in sync -->
+
+```none
+LAYOUT := RMD (uint8_t)
+RMD := 0 (Row-Major Dense tensor)
+COO := 2 (COrdinate-Order sparse tensor)
+```
+
+Specific tensor payload are implemented for different tensor layouts. The
+payloads currently implemented are:
+
+```none
+TENSOR_PAYLOAD       ::= DENSE_TENSOR_PAYLOAD | COO_TENSOR_PAYLOAD
+
+DENSE_TENSOR_PAYLOAD ::= DIMS DENSE_TENSOR_DATA
+DENSE_TENSOR_DATA    ::= uint8_t*
+
+COO_TENSOR_PAYLOAD   ::= DIMS INDICES VALUES
+INDICES              ::= DENSE_TENSOR_PAYLOAD
+VAUES                ::= DENSE_TENSOR_PAYLOAD
+
+DIMS                 ::= uint64_t*
+```

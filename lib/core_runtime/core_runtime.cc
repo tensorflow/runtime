@@ -216,6 +216,8 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
     llvm::SmallVector<string_view, 2> op_handler_names;
     op_handler_chain.split(op_handler_names, '|');
 
+    // OpHandler chain should be created in reverse order. The OpHandler at the
+    // end of the chain (e.g., fallbacks) should be created first.
     OpHandler* fallback = null_op_handler;
     for (auto name : llvm::reverse(op_handler_names)) {
       if (auto error_or_create_fn = factory.Get(name)) {

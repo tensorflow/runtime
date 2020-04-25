@@ -34,6 +34,7 @@
 #include <type_traits>
 
 #include "llvm/ADT/PointerIntPair.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_context_ptr.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/compiler_annotations.h"
@@ -49,19 +50,6 @@ class ConcreteAsyncValue;
 }
 class HostContext;
 class NotifierListNode;
-
-// This is a simple representation of a decoded diagnostic.
-struct DecodedDiagnostic {
-  explicit DecodedDiagnostic(const Error& error);
-  explicit DecodedDiagnostic(string_view message) : message(message) {}
-  DecodedDiagnostic(DecodedLocation location, string_view message)
-      : location(std::move(location)), message(message) {}
-
-  llvm::Optional<DecodedLocation> location;
-  std::string message;
-};
-
-raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diagnostic);
 
 namespace internal {
 

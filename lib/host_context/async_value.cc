@@ -29,19 +29,6 @@
 
 namespace tfrt {
 
-DecodedDiagnostic::DecodedDiagnostic(const Error& error)
-    : message(StrCat(error)) {}
-
-raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diag) {
-  if (diag.location) {
-    os << diag.location->filename << ":" << diag.location->line << ":"
-       << diag.location->column << ": ";
-  } else {
-    os << "UnknownLocation: ";
-  }
-  return os << diag.message;
-}
-
 // This is a singly linked list of nodes waiting for notification, hanging off
 // of AsyncValue.  When the value becomes available or if an error occurs, the
 // callbacks are informed.

@@ -31,6 +31,7 @@ tfrt_cc_library(
     srcs = [
         "lib/host_context/async_value.cc",
         "lib/host_context/concurrent_work_queue.cc",
+        "lib/host_context/diagnostic.cc",
         "lib/host_context/host_allocator.cc",
         "lib/host_context/host_buffer.cc",
         "lib/host_context/host_context.cc",
@@ -50,6 +51,7 @@ tfrt_cc_library(
         "include/tfrt/host_context/attribute_utils.h",
         "include/tfrt/host_context/chain.h",
         "include/tfrt/host_context/concurrent_work_queue.h",
+        "include/tfrt/host_context/diagnostic.h",
         "include/tfrt/host_context/function.h",
         "include/tfrt/host_context/host_allocator.h",
         "include/tfrt/host_context/host_buffer.h",

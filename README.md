@@ -32,7 +32,7 @@ Note: TFRT is an early stage project and is not yet ready for general use.
 ## Getting started
 
 TLDR: This section describes how to set up a development environment for TFRT,
-also instructions to build and test TFRT components.
+as well as instructions to build and test TFRT components.
 
 TFRT currently supports Ubuntu-16.04. Future supported platforms include MacOS,
 Windows, etc. Bazel and clang are required to build and test TFRT.
@@ -202,7 +202,7 @@ func @basic_tensor() {
 To run a test, simply invoke `bazel test`:
 
 ```shell
-$ bazel test //mlir_tests/bef_executor:basics.mlir.test
+$ bazel test -c opt //mlir_tests/bef_executor:basics.mlir.test
 ```
 
 Suites of MLIR tests are placed under three directories:
@@ -215,7 +215,7 @@ Suites of MLIR tests are placed under three directories:
 To run the test suites, run the following command:
 
 ```shell
-$ bazel test <path/to/test/suite>:all
+$ bazel test -c opt <path/to/test/suite>:all
 ```
 
 where the path to the test suite is one of the above.
@@ -223,8 +223,11 @@ where the path to the test suite is one of the above.
 To run all CPU tests:
 
 ```shell
-$ bazel test //... -- -//third_party/...
+$ bazel test -c opt //... -- -//third_party/...
 ```
+
+where `-//third_party/...` excludes tests specified in build files for
+third_party repositories.
 
 ## Repository Overview
 
@@ -485,7 +488,7 @@ Once we are ready, we will update this page.
 
 Build Type    | Status
 ------------- | ------
-**Linux CPU** | [![Status](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-cpu-and-gpu.svg)](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-cpu-and-gpu.html)
+**Linux CPU** | [![Status](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-cpu.svg)](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-cpu.html)
 
 ## Contact
 

@@ -35,7 +35,7 @@ We have the following goals:
 
 -   We should follow normal best practices for binary encodings, e.g. having
     tools to round trip them to a textual form (MLIR in our case), support
-    arbitrary sized files (not limited to 4G), be efficient to read, make
+    arbitrary sized files (not limited to 4GB), be efficient to read, make
     reasonable attempts to be dense, etc.
 
 In addition to describing the format, this document describes some of the

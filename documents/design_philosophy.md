@@ -13,7 +13,7 @@ project, provides a place to capture the rationale for various decisions, and
 aims to be a good reference for new contributors as well as users of the
 libraries.
 
-## What is `tfrt`?
+## What is `TFRT`?
 
 This is a low level runtime for TensorFlow, with many goals:
 
@@ -136,12 +136,12 @@ Implementation in a library. Optional for header-only libraries.
 -   Specific ops can depend on Eigen, but the core should not.
 -   Mobile and small footprint
 
-#### Correctness and performance tests
+#### Correctness and Performance Tests
 
 -   Run at scale
     -   Point to testing section below.
 -   Linking lots of libraries in a unit test target is not a great thing
-    ($$N^2$$ disk space size, lots of link time, etc)
+    (**N^2** disk space size, lots of link time, etc)
 -   xref MLIR testing guide.
 
 #### Documentation
@@ -201,7 +201,7 @@ Error handling needs to be considered from the beginning, both from the runtime
 the compiler stack. Error messages from both the compiler and runtime should
 relay problems back to the user’s source code by default.
 
-### Debuggability / introspection
+### Debuggability / Introspection
 
 Large scale distributed systems are complicated, and we take care in making the
 system debuggable.

@@ -5,7 +5,7 @@
   reviewed: '2020-03-31'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 The goal of this test is to demonstrate that the TFRT can run a simple MNIST
 model in inference mode (forward-pass only). This is a "hello-world" integration
@@ -16,20 +16,20 @@ integration test and walks through the instructions to run it.
 
 This test has the following components:
 
-*   [mnist.mlir](https://cs.opensource.google/tensorflow/tensorflow/+/master:integrationtest/mnist/mnist.mlir)
+*   [mnist.mlir](https://cs.opensource.google/tensorflow/runtime/+/master:integrationtest/mnist/mnist.mlir)
     describes the MNIST model.
 
-*   [test_data/mnist_tensors.btf](https://cs.opensource.google/tensorflow/tensorflow/+/master:integrationtest/mnist/test_data/mnist_tensors.btf)
+*   [test_data/mnist_tensors.btf](https://cs.opensource.google/tensorflow/runtime/+/master:integrationtest/mnist/test_data/mnist_tensors.btf)
     Test data, test label, and trained MNIST model weights stored in the custom
     [Binary Tensor Format](binary_tensor_format.md) (BTF).
 
-*   [mnist_tensor_kernels.cc](https://cs.opensource.google/tensorflow/tensorflow/+/master:backends/cpu/lib/ops/test/mnist_tensor_kernels.cc)
+*   [mnist_tensor_kernels.cc](https://cs.opensource.google/tensorflow/runtime/+/master:backends/cpu/lib/ops/test/mnist_tensor_kernels.cc)
     is a set of kernel implementations in C++.
 
 ### MNIST model in MLIR
 
 The MNIST model is also written in
-[mnist.mlir](https://cs.opensource.google/tensorflow/tensorflow/+/master:integrationtest/mnist/mnist.mlir).
+[mnist.mlir](https://cs.opensource.google/tensorflow/runtime/+/master:integrationtest/mnist/mnist.mlir).
 Today this model file has to be written by hand and the tensor shapes hard-coded
 in. As the MLIR graph compiler gets built, we can generate this MLIR model file
 from a Tensorflow GraphDef or SavedModel, and the Tensor shapes should be done
@@ -39,7 +39,7 @@ as a shape inference compiler pass.
 
 All kernels invoked in the MNIST model file, e.g., `mnist.matmul.f32.2`,
 `mnist.broadcast.f32.1` are implemented in
-[mnist_tensor_kernels.cc](https://cs.opensource.google/tensorflow/tensorflow/+/master:backends/cpu/lib/ops/test/mnist_tensor_kernels.cc).
+[mnist_tensor_kernels.cc](https://cs.opensource.google/tensorflow/runtime/+/master:backends/cpu/lib/ops/test/mnist_tensor_kernels.cc).
 
 ## Test Instructions
 

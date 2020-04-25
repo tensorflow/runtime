@@ -5,7 +5,7 @@
   reviewed: '2019-08-27'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 The goal of this test app is to track the binary size of a potential app built
 on top of TFRT. Such apps need to link the core components of TFRT libraries
@@ -34,7 +34,7 @@ $ bazel test //third_party/tf_runtime/mlir_tests/code_size_test_app:fib.mlir.tes
 ```
 
 What really happens can be inferred from the first line of
-[`fib.mlir`](https://cs.opensource.google/tensorflow/tensorflow/+/master:mlir_tests/code_size_test_app/fib.mlir):
+[`fib.mlir`](https://cs.opensource.google/tensorflow/runtime/+/master:mlir_tests/code_size_test_app/fib.mlir):
 
 ```c++
 // RUN: tfrt_translate -mlir-to-bef %s | code_size_test_driver | FileCheck %s

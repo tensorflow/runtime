@@ -5,7 +5,7 @@
   reviewed: '2019-08-19'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 This document explains some of the concepts behind `AsyncValue`.
 

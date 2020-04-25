@@ -5,7 +5,7 @@
   reviewed: '2020-04-14'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 ## Objective
 
@@ -107,7 +107,7 @@ API in the current TF eager runtime.
 
 ## Op Execution API
 
-[Core Runtime](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/core_runtime/core_runtime.h)
+[Core Runtime](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/core_runtime/core_runtime.h)
 provides follow API for op-by-op execution:
 
 ```c++
@@ -127,7 +127,7 @@ This section discusses the abstractions used in this API.
 
 ### `TensorHandle`
 
-[`TensorHandle`](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/core_runtime/tensor_handle.h)
+[`TensorHandle`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/core_runtime/tensor_handle.h)
 is a future semantic data abstraction used in Core Runtime. It is a type erased
 type which can represent tensors that live in any `op_handler` (e.g. locally or
 remotely; on GPU or CPU), has different dtype, layout (dense format or sparse
@@ -177,7 +177,7 @@ the op and propagates the error as the op's output.
 
 Since all ops are executed asynchronously, there could be multiple pending ops
 enqueued at any moment. TFRT provides a cancellation API
-[`HostContext::CancelExecution()`](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/host_context/host_context.h)
+[`HostContext::CancelExecution()`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/host_context.h)
 to cancel pending ops and upcoming ops. After calling cancellation API, the
 output `TensorHandle`s of all pending ops will be set to Error `TensorHandle`
 with cancellation error and `Execute()` API will return immediately with Error
@@ -186,7 +186,7 @@ with cancellation error and `Execute()` API will return immediately with Error
 
 ### `OpHandler`
 
-[**`OpHandler`**](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/core_runtime/op_handler.h)
+[**`OpHandler`**](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/core_runtime/op_handler.h)
 is a flexible abstraction which determines how core runtime handles the op.
 After calling `Execute()` API in core runtime, it will basically invoke
 `OpHandler::Execute()` for the given `op_handler`:
@@ -225,16 +225,16 @@ different behavior.
 
 This doc only focuses on **Device `OpHandler`** which allows us to execute an op
 eagerly on a specific CPU/accelerator device. For example,
-[`CpuOpHandler`](https://cs.opensource.google/tensorflow/tensorflow/+/master:backends/cpu/lib/core_runtime/cpu_op_handler.h)
+[`CpuOpHandler`](https://cs.opensource.google/tensorflow/runtime/+/master:backends/cpu/lib/core_runtime/cpu_op_handler.h)
 and
-[`GpuOpHandler`](https://cs.opensource.google/tensorflow/tensorflow/+/master:backends/gpu/lib/core_runtime/gpu_op_handler.h).
+[`GpuOpHandler`](https://cs.opensource.google/tensorflow/runtime/+/master:backends/gpu/lib/core_runtime/gpu_op_handler.h).
 
 There are also many other pseudo `op_handler`s for different purposes:
 
-*   [**Sync Logging `OpHandler`**](https://cs.opensource.google/tensorflow/tensorflow/+/master:lib/core_runtime/logging_op_handler.h):
+*   [**Sync Logging `OpHandler`**](https://cs.opensource.google/tensorflow/runtime/+/master:lib/core_runtime/logging_op_handler.h):
     This `op_handler` can print the inputs and outputs of every ops. We used it
     for debugging.
-*   [**Composite `OpHandler`**](https://cs.opensource.google/tensorflow/tensorflow/+/master:lib/core_runtime/composite_op_handler.h):
+*   [**Composite `OpHandler`**](https://cs.opensource.google/tensorflow/runtime/+/master:lib/core_runtime/composite_op_handler.h):
     This `op_handler` can execute a composite op. (_Experimental_)
 
 These pseudo `op_handler`s are out of scope for this document.
@@ -242,7 +242,7 @@ These pseudo `op_handler`s are out of scope for this document.
 ### `OpAttrs`
 
 The client can send attributes to an op via
-[**`OpAttrs`**](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/core_runtime/op_attrs.h).
+[**`OpAttrs`**](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/core_runtime/op_attrs.h).
 An `OpAttrs` maps from the name of an attribute to its value. It supports
 multiple data types including trivial types like `int32`, array types of any
 trivial types, string and so on.
@@ -310,7 +310,7 @@ contain many attributes.
 ### `Location`
 
 A
-[**`Location`**](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/host_context/location.h)
+[**`Location`**](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/location.h)
 is an opaque token representing location information, e.g. python source code
 file name and line number, provided by the client. The client needs to provide a
 diagnostic handler to construct core runtime.
@@ -367,9 +367,9 @@ To calculate metadata and tensor in `TensorHandle` respectively, a TFRT native
 
 Ops are registered on a **Device `OpHandler`**. We have different device
 `op_handler`s for different physical devices: CPU
-([`CpuOpHandler`](https://cs.opensource.google/tensorflow/tensorflow/+/master:backends/cpu/lib/core_runtime/cpu_op_handler.h))
+([`CpuOpHandler`](https://cs.opensource.google/tensorflow/runtime/+/master:backends/cpu/lib/core_runtime/cpu_op_handler.h))
 and GPU
-([`GpuOpHandler`](https://cs.opensource.google/tensorflow/tensorflow/+/master:backends/gpu/lib/core_runtime/gpu_op_handler.h)).
+([`GpuOpHandler`](https://cs.opensource.google/tensorflow/runtime/+/master:backends/gpu/lib/core_runtime/gpu_op_handler.h)).
 Using `CpuOpHandler` as example, the registration API it provide is like:
 
 ```c++
@@ -587,7 +587,7 @@ dispatch function of CPU Add op can support all following combinations:
 
 There are multiple ops to allow users to convert tensor from one type to another
 **explicitly**. For example,
-[`gpu_tensor_to_host_tensor`](https://cs.opensource.google/tensorflow/tensorflow/+/master:backends/gpu/lib/ops/test/test_ops.cc)
+[`gpu_tensor_to_host_tensor`](https://cs.opensource.google/tensorflow/runtime/+/master:backends/gpu/lib/ops/test/test_ops.cc)
 op can convert an tensor from `GpuTensor` to `DenseHostTensor` by transferring
 the data from GPU to CPU. These tensor conversion ops are registered on the
 device `op_handler` that supports input type. For example, the input type

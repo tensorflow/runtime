@@ -4,7 +4,7 @@
   owner: 'hongm'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 Describe `mlir_to_bef`, `bef_executor`, etc.
 

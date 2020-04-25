@@ -8,7 +8,7 @@
   reviewed: '2020-03-27'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 ## Objective
 

@@ -6,7 +6,7 @@
   reviewed: '2019-11-22'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 This document describes the goals and rationale for the in-memory representation
 the executor uses to run host kernels, known as the Binary Executable Format
@@ -80,12 +80,12 @@ A BEF file is formed as a byte stream whose top-level structure is a list of
 
 BEF files can be created by an arbitrary producer, but the standard ways is to
 use the
-[MLIRToBEF](https://cs.opensource.google/tensorflow/tensorflow/+/master:lib/bef_converter/mlir_to_bef/mlir_to_bef.cc)
+[MLIRToBEF](https://cs.opensource.google/tensorflow/runtime/+/master:lib/bef_converter/mlir_to_bef/mlir_to_bef.cc)
 translation library (or standalone tool), which turns an MLIR representation of
 a host program into a BEF file.
 
 A
-[BEFToMLIR](https://cs.opensource.google/tensorflow/tensorflow/+/master:lib/bef_converter/bef_to_mlir/bef_to_mlir.cc)
+[BEFToMLIR](https://cs.opensource.google/tensorflow/runtime/+/master:lib/bef_converter/bef_to_mlir/bef_to_mlir.cc)
 translation library performs the reverse translation from BEF file to MLIR
 representation of a host program. It is useful for writing BEF encoder testcases
 and for dealing with that "random file someone sent you".
@@ -107,10 +107,10 @@ over entirely by the reader) and an optional alignment for the contents of the
 section.
 
 Section IDs and other fundamental constants are defined in
-[`bef_encoding.h`](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/support/bef_encoding.h),
+[`bef_encoding.h`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/support/bef_encoding.h),
 and utilities for decoding the basic file structures like VBR integers are
 defined in
-[`bef_reader.h`](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/support/bef_reader.h).
+[`bef_reader.h`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/support/bef_reader.h).
 
 ## Top Level Structure
 
@@ -419,7 +419,7 @@ kernel.
 
 The FunctionIndex section defines a table of functions in the BEF file, one for
 each function, including the kind of this function (defined in
-[`bef_encoding.h`](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/support/bef_encoding.h)),
+[`bef_encoding.h`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/support/bef_encoding.h)),
 an Offset into the [Functions Section](#functions-section), a name (an Offset
 into the [Strings section](#strings-section), which may be an empty string), and
 a list of argument and result types.

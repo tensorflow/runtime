@@ -5,7 +5,7 @@
   reviewed: '2019-10-22'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 WARNING: This format is experimental.
 

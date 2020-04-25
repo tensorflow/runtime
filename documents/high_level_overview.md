@@ -5,7 +5,7 @@
   reviewed: '2020-03-31'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 TFRT is a new TensorFlow runtime. Leveraging MLIR, it aims to provide a unified,
 extensible infrastructure layer with best-in-class performance across a wide

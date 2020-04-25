@@ -6,7 +6,7 @@
   reviewed: '2019-12-12'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 TFRT follows the
 [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
@@ -21,7 +21,7 @@ definition).
 
 For example:
 
-[`include/tfrt/bef_executor/bef_file.h`](https://cs.opensource.google/tensorflow/tensorflow/+/master:include/tfrt/bef_executor/bef_file.h)
+[`include/tfrt/bef_executor/bef_file.h`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/bef_executor/bef_file.h)
 
 should be included as:
 

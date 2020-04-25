@@ -5,7 +5,7 @@
   reviewed: '2020-03-27'
 } *-->
 
-[TOC]
+<!-- TOC -->
 
 This document is a reference that describes the various libraries in the TFRT
 project, as well as any important design notes and rationale for the

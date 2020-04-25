@@ -75,7 +75,8 @@ struct CpuOpHandlerTraits {
                                  const Tensor& arg_tensor, Location loc,
                                  RCReference<AsyncValue>* converted) {
     if (auto allowed_formats = TensorNeedsConversion(arg_tensor, op_entry)) {
-      *converted = arg_tensor.ConvertToHostTensor(loc, allowed_formats);
+      *converted =
+          arg_tensor.ConvertToHostTensor(loc.GetHost(), allowed_formats);
       return true;
     }
     return false;

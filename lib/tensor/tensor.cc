@@ -28,11 +28,6 @@ namespace tfrt {
 
 Tensor::~Tensor() {}
 
-AsyncValueRef<HostTensor> Tensor::ConvertToHostTensor(
-    Location loc, uint32_t allowed_formats) const {
-  return ConvertToHostTensor(loc.GetHost(), allowed_formats);
-}
-
 raw_ostream& operator<<(raw_ostream& os, const TensorMetadata& metadata) {
   if (metadata.dtype.kind() == DType::Invalid) {
     os << "<invalid tensor metadata>";

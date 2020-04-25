@@ -75,11 +75,6 @@ class Tensor {
   virtual AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, uint32_t allowed_formats) const = 0;
 
-  // TODO(jingdong): Remove this overload once we remove GetHost() from
-  // Location.
-  AsyncValueRef<HostTensor> ConvertToHostTensor(Location loc,
-                                                uint32_t allowed_formats) const;
-
   virtual bool IsHostTensor() const { return false; }
 
   // Note: subclass() exists for implementations of classof(..), which allows

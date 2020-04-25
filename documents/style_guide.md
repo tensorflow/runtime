@@ -110,6 +110,60 @@ See below for example tag usages.
 // IDEA: We can optimize performance by reducing memory copy here.
 ```
 
+## Write small CLs
+
+Note: CLs refer to changelists, and are also known as \"patches\" or \"pull
+requests\".
+
+Small CLs (measured by both # of lines and files changed) usually lead to
+productive and high quality code reviews. The amount of review work tends to
+increase "quadratically" with the size of the CL, because a larger CL will
+likely involve more rounds of CL reviews, where each round takes longer.
+
+Small CLs are also less likely to cause merge conflicts, and are simpler to roll
+back when needed. They also make code archeology study (code reading after
+submission) more productive.
+
+Fundamentally, engineer's attention is a scarce resource, and smaller CLs tend
+to leverage this resource more effectively.
+
+Tip: To write smaller CLs, consider focusing on one change in each CL.
+
+For example, separate refactoring from new feature development. The general
+implementation strategy of sending NFCs (No Functionality Change) followed by
+separate changes to add new features tend to make code writing, testing and code
+review more productive. For example, NFCs in general do not require adding new
+tests (unless test coverage is inadequate, in which case testing should be
+enhanced before refactoring work). For more context on NFCs,
+[see](https://twitter.com/clattner_llvm/status/1045715652537868289)
+[these](https://twitter.com/clattner_llvm/status/1045548372134846464)
+[tweets](https://twitter.com/clattner_llvm/status/964206793885798400) by Chris
+Lattner.
+
+Question: What to do when a newly introduced function has a large number of
+call-sites?
+
+Consider the following possibilities:
+
+1.  Only introduce the new function, and then integrate it into call-sites in a
+    follow-up CL.
+
+1.  In some cases people may want to assess the API design of the new feature in
+    the context of call-sites. One option is to integrate with a few call-sites
+    first and have it reviewed. If doing so does not make the codebase compile,
+    consider still sending a preliminary/prototype CL (that might not compile)
+    for early feedback. Once the key design points/risks are discussed and
+    addressed, the author can then "mass migrate" other call-sites with less
+    scrutiny required.
+
+More generally, when a CL contains say 100 chunks of changes, where 10 out of
+them are worth scrutiny, and the rest more mundane, it's in everyone's best
+interest to trying to separate these 2 classes of changes, so that different
+amounts of attention can be applied to reviewing them.
+
+Please use your judgement. For example, lumping a few unrelated but tiny changes
+into a single CL can be fine and productive.
+
 ## CL Descriptions
 
 ### Start with WHY

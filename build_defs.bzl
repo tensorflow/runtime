@@ -111,3 +111,12 @@ def tfrt_cc_test(
         features = TFRT_FEATURES + features,
         **kwargs
     )
+
+def tfrt_py_binary(
+        tags = [],
+        **kwargs):
+    """A py_binary with tfrt-specific options."""
+    native.py_binary(
+        tags = tags + ["do_not_disable_rtti"],
+        **kwargs
+    )

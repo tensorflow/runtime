@@ -126,8 +126,7 @@ void RegisterCooTensorReaders(KernelRegistry* registry) {
 
 static CooHostTensor CreateCooTensorOp(const DenseHostTensor& indices,
                                        const DenseHostTensor& values,
-                                       const TensorMetadata& dest_md,
-                                       HostContext* host) {
+                                       const TensorMetadata& dest_md) {
   return CooHostTensor(dest_md.shape, dest_md.dtype, indices.CopyRef(),
                        values.CopyRef());
 }

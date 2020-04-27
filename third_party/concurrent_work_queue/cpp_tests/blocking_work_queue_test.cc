@@ -35,7 +35,7 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
   std::atomic<int> num_overflow = 0;
 
   for (auto _ : state) {
-    ::tfrt::latch latch(num_producers);
+    ::tfrt::latch latch(2 * num_producers);
 
     std::atomic<int>* counters = new std::atomic<int>[num_producers];
     for (int i = 0; i < num_producers; ++i) counters[i] = num_tasks;
@@ -54,6 +54,7 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
             num_overflow++;
           }
         }
+        latch.count_down();
       }));
       if (producer_overflow) (*producer_overflow)();
     }
@@ -70,14 +71,14 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
   state.SetItemsProcessed(num_producers * num_tasks * state.iterations());
 }
 
-#define BM_Run(FN, producer_threads, worker_threads)                       \
-  static void BM_##FN##_tpool_##producer_threads##x##worker_threads(       \
-      benchmark::State& state) {                                           \
-    BenchmarkUseRealTime();                                                \
-    WorkQueue producer(producer_threads, 1024, std::chrono::seconds(1));   \
-    WorkQueue worker(worker_threads, 100 * 1024, std::chrono::seconds(1)); \
-    FN(producer, worker, state);                                           \
-  }                                                                        \
+#define BM_Run(FN, producer_threads, worker_threads)                 \
+  static void BM_##FN##_tpool_##producer_threads##x##worker_threads( \
+      benchmark::State& state) {                                     \
+    BenchmarkUseRealTime();                                          \
+    WorkQueue producer(producer_threads);                            \
+    WorkQueue worker(worker_threads);                                \
+    FN(producer, worker, state);                                     \
+  }                                                                  \
   BENCHMARK(BM_##FN##_tpool_##producer_threads##x##worker_threads)
 
 #define BM_NoOp(producer_threads, worker_threads) \

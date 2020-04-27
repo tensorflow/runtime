@@ -32,7 +32,7 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
   const int num_tasks = state.range(1);
 
   for (auto _ : state) {
-    ::tfrt::latch latch(num_producers);
+    ::tfrt::latch latch(2 * num_producers);
 
     std::atomic<int>* counters = new std::atomic<int>[num_producers];
     for (int i = 0; i < num_producers; ++i) counters[i] = num_tasks;
@@ -46,6 +46,7 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
             if (counters[i].fetch_sub(1) == 1) latch.count_down();
           }));
         }
+        latch.count_down();
       }));
     }
 

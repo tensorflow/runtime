@@ -127,12 +127,12 @@ std::unique_ptr<ConcurrentWorkQueue> CreateSingleThreadedWorkQueue();
 // num_threads: Number of pre-allocated threads used in non-blocking concurrent
 // work queue, in addition to the host donor threads.
 //
-// max_num_pending_blocking_tasks: Max number of pending blocking tasks accepted
-// by the blocking concurrent work queue.
+// num_blocking_threads: Number of pre-allocated threads used in blocking
+// work queue.
 //
-// Requires `num_threads` > 0 and `max_num_pending_block_tasks` > 0.
+// Requires `num_threads` > 0 and `num_blocking_threads` > 0.
 std::unique_ptr<ConcurrentWorkQueue> CreateMultiThreadedWorkQueue(
-    int num_threads, int max_blocking_work_queue_threads);
+    int num_threads, int num_blocking_threads);
 
 // A factory function for creating ConcurrentWorkQueue objects. The factory
 // function defines the semantics of the argument string.

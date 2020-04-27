@@ -155,6 +155,9 @@ class WorkQueueBase {
 
  private:
   template <typename ThreadingEnvironment>
+  friend class BlockingWorkQueue;
+
+  template <typename ThreadingEnvironment>
   friend class NonBlockingWorkQueue;
 
   struct PerThread {
@@ -404,7 +407,8 @@ LLVM_NODISCARD llvm::Optional<TaskFunction> WorkQueueBase<Derived>::Steal() {
   unsigned inc = coprimes_[FastReduce(r, coprimes_.size())];
 
   for (unsigned i = 0; i < num_threads_; i++) {
-    llvm::Optional<TaskFunction> t = thread_data_[victim].queue.PopBack();
+    llvm::Optional<TaskFunction> t =
+        derived_.Steal(&(thread_data_[victim].queue));
     if (t.hasValue()) return t;
 
     victim += inc;

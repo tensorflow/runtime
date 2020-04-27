@@ -28,6 +28,9 @@ namespace tfrt {
 
 namespace {
 
+static constexpr int kMaxNumThreads = 256;
+static constexpr int kDefaultNumThreads = 8;
+
 // Factory function for a single-threaded thread pool. The argument must be
 // empty.
 std::unique_ptr<ConcurrentWorkQueue> SingleThreadedWorkQueueFactory(
@@ -42,8 +45,10 @@ std::unique_ptr<ConcurrentWorkQueue> SingleThreadedWorkQueueFactory(
 
 struct MakeMultiThreadedWorkQueue {
   static std::unique_ptr<ConcurrentWorkQueue> make(int num_threads,
-                                                   int num_blocking) {
-    return CreateMultiThreadedWorkQueue(num_threads, num_blocking);
+                                                   int num_blocking_threads) {
+    return CreateMultiThreadedWorkQueue(
+        std::min(kMaxNumThreads, num_threads),
+        std::min(kMaxNumThreads, num_blocking_threads));
   }
 };
 
@@ -52,8 +57,8 @@ struct MakeMultiThreadedWorkQueue {
 // "X,Y", where X and Y are integers. X will determine the number of threads to
 // use for blocking work, and Y will determine the number of threads for
 // nonblocking work. If X is not specified, the pool will use a number of
-// threads based on the number of CPUs in the system. Y is not specified, an
-// unlimited number of threads will be used for blocking work.
+// threads based on the number of CPUs in the system. Y is not specified, a
+// `kDefaultNumThreads` number of threads will be used for blocking work.
 template <typename MakeWorkQueue>
 std::unique_ptr<ConcurrentWorkQueue> MultiThreadedWorkQueueFactory(
     string_view arg) {
@@ -65,12 +70,11 @@ std::unique_ptr<ConcurrentWorkQueue> MultiThreadedWorkQueueFactory(
     int num_blocking =
         std::max(static_cast<int>(num_cpus * kBlockingCpuFraction), 1);
     int num_nonblocking = std::max(num_cpus - num_blocking, 1);
-    return MakeWorkQueue::make(num_nonblocking,
-                               std::numeric_limits<int>::max());
+    return MakeWorkQueue::make(num_nonblocking, num_blocking);
   } else {
     size_t comma = arg.find(',');
     int num_threads;
-    int num_blocking = std::numeric_limits<int>::max();
+    int num_blocking = kDefaultNumThreads;
     if (comma == std::string::npos) {
       size_t pos;
       num_threads = std::stoi(std::string(arg), &pos);

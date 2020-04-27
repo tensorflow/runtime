@@ -54,8 +54,7 @@ MultiThreadedWorkQueue::MultiThreadedWorkQueue(
     int num_threads, int max_blocking_work_queue_threads)
     : num_threads_(num_threads),
       non_blocking_work_queue_(num_threads),
-      blocking_work_queue_(max_blocking_work_queue_threads,
-                           /*idle_wait_time=*/std::chrono::seconds(1)) {}
+      blocking_work_queue_(max_blocking_work_queue_threads) {}
 
 MultiThreadedWorkQueue::~MultiThreadedWorkQueue() {
   // Pending tasks in the underlying queues might submit new tasks to each other
@@ -73,11 +72,23 @@ Optional<TaskFunction> MultiThreadedWorkQueue::AddBlockingTask(
 }
 
 void MultiThreadedWorkQueue::Quiesce() {
+  // Turn on pending tasks counter inside blocking work queue.
+  auto quiescing = blocking_work_queue_.StartQuiescing();
+
   // We call NonBlockingWorkQueue::Quiesce() first because we prefer to keep
   // caller thread busy with compute intensive tasks.
   non_blocking_work_queue_.Quiesce();
 
-  while (!blocking_work_queue_.Empty()) {
+  // Wait for completion of all blocking tasks.
+  blocking_work_queue_.Quiesce();
+
+  // Check if tasks inside blocking queue added new non-blocking tasks.
+  non_blocking_work_queue_.Quiesce();
+
+  // At this point we might still have tasks in the blocking work queue, but
+  // because we enabled quiescing mode earlier, we can rely on empty check as a
+  // loop condition.
+  while (!quiescing.Empty()) {
     // Wait for completion of all blocking tasks.
     blocking_work_queue_.Quiesce();
 
@@ -86,8 +97,8 @@ void MultiThreadedWorkQueue::Quiesce() {
     non_blocking_work_queue_.Quiesce();
 
     // At this point non blocking tasks potentially could submit new tasks to
-    // the blocking queue, but because `blocking_work_queue_.Empty()` provides a
-    // strong emptiness guarantee, it's safe to rely on it as a loop condition.
+    // the blocking queue, but because `quiescing.Empty()` provides a strong
+    // emptiness guarantee, it's safe to rely on it in a loop condition.
   }
 }
 
@@ -121,10 +132,10 @@ void MultiThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
 }
 
 std::unique_ptr<ConcurrentWorkQueue> CreateMultiThreadedWorkQueue(
-    int num_threads, int max_blocking_work_queue_threads) {
-  assert(num_threads > 0 && max_blocking_work_queue_threads > 0);
-  return std::make_unique<MultiThreadedWorkQueue>(
-      num_threads, max_blocking_work_queue_threads);
+    int num_threads, int num_blocking_threads) {
+  assert(num_threads > 0 && num_blocking_threads > 0);
+  return std::make_unique<MultiThreadedWorkQueue>(num_threads,
+                                                  num_blocking_threads);
 }
 
 }  // namespace tfrt

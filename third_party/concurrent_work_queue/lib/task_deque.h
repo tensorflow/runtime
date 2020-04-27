@@ -41,6 +41,7 @@
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_
 
 #include <array>
+#include <atomic>
 #include <cstdint>
 
 #include "llvm/ADT/FunctionExtras.h"

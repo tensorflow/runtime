@@ -17,6 +17,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "non_blocking_work_queue.h"
 #include "tfrt/host_context/async_value.h"
+#include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/support/latch.h"
 #include "tfrt/support/ref_count.h"
@@ -111,7 +112,7 @@ void MultiThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
   // Alternative is to immediately block on the latch.
   llvm::Optional<TaskFunction> task = non_blocking_work_queue_.Steal();
   while (task.hasValue() || !values_remaining.try_wait()) {
-    if (task.hasValue()) internal::Execute(task);
+    if (task.hasValue()) (*task)();
     task = non_blocking_work_queue_.Steal();
   }
 

@@ -16,6 +16,7 @@ filegroup(
         "lib/non_blocking_work_queue.h",
         "lib/task_deque.h",
         "lib/task_queue.h",
+        "lib/work_queue_base.h",
     ],
 )
 

@@ -62,9 +62,11 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
     delete[] counters;
   }
 
-  std::string label = llvm::formatv("overflow: {0} / {1}", num_overflow,
-                                    num_producers * num_tasks);
-  state.SetLabel(label);
+  // WARN: Unique run-to-run labels breaks benchy.
+  // std::string label =
+  //     llvm::formatv("overflow: {0} / {1}", num_overflow,
+  //                   num_producers * num_tasks * state.iterations());
+  // state.SetLabel(label);
   state.SetItemsProcessed(num_producers * num_tasks * state.iterations());
 }
 

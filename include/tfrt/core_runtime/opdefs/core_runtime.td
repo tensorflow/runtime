@@ -117,7 +117,9 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect]> {
   }];
 
   let builders = [OpBuilder<
-    "Builder *builder, OperationState &state, ArrayRef<Type> results, Value device, ValueRange operands, ArrayRef<std::pair<StringRef, Attribute>> op_attrs, StringRef op_name"
+    "OpBuilder &builder, OperationState &state, ArrayRef<Type> results, "
+    "Value device, ValueRange operands, "
+    "ArrayRef<std::pair<StringRef, Attribute>> op_attrs, StringRef op_name"
   >];
 }
 

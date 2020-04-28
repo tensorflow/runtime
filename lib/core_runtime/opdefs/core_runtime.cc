@@ -156,17 +156,17 @@ LogicalResult VerifyExecuteOpImpl(OpTy op) {
   return success();
 }
 
-void ExecuteOp::build(Builder *builder, OperationState &state,
+void ExecuteOp::build(OpBuilder &builder, OperationState &state,
                       ArrayRef<Type> results, Value device, ValueRange operands,
                       ArrayRef<std::pair<StringRef, Attribute>> op_attrs,
                       StringRef op_name) {
   SmallVector<Attribute, 4> attrs;
   for (const auto &named_attr : op_attrs) {
-    auto name = builder->getStringAttr(named_attr.first);
+    auto name = builder.getStringAttr(named_attr.first);
     SmallVector<Attribute, 2> key_value{name, named_attr.second};
-    attrs.push_back(ArrayAttr::get(key_value, builder->getContext()));
+    attrs.push_back(ArrayAttr::get(key_value, builder.getContext()));
   }
-  auto attr = ArrayAttr::get(attrs, builder->getContext());
+  auto attr = ArrayAttr::get(attrs, builder.getContext());
   build(builder, state, results, device, operands, attr, op_name);
 }
 

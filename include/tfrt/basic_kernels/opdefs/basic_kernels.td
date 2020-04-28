@@ -202,7 +202,7 @@ def ReturnOp : Hex_Op<"return", [Terminator]> {
   let arguments = (ins Variadic<AnyType>:$operands);
 
   let builders = [OpBuilder<
-    "Builder *b, OperationState &result", [{ build(b, result, llvm::None); }]
+    "OpBuilder &b, OperationState &result", [{ build(b, result, llvm::None); }]
   >];
 }
 

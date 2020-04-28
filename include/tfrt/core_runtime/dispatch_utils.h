@@ -270,6 +270,9 @@ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunction() {
 
     // If we need an argument conversion, then do that now.
     if (MaybeConvertTensor(arg_tensor, &arg)) {
+      // If any tensor conversion ended up being an error, then propagate it and
+      // bail out.
+      if (arg->IsError()) return PropagateError(arg.get());
       // If the argument conversion was async, then we have to wait for it.
       if (arg->IsUnavailable()) async_args.push_back(arg.get());
     }
@@ -445,13 +448,27 @@ void ExecuteWithResultMetadataResolved(
       continue;
     }
 
-    // If the argument is already available, then we can check to see if it is
-    // a supported format, and issue a data copy eagerly if not.
+    // If the argument is already available, then we can check to see if it is a
+    // supported format, and issue a data copy eagerly if not.
     auto& arg_tensor = async_tensor->get<Tensor>();
 
     RCReference<AsyncValue> copy;
     if (OpHandlerTraits::MaybeConvertTensor(op_entry, op_handler_info,
                                             arg_tensor, exec_ctx, &copy)) {
+      if (copy->IsError()) {
+        // If any tensor conversion fails, set results to error.
+        result_tensor_avs->reserve(num_results);
+        for (size_t i = 0; i != num_results; ++i) {
+          (*result_md_avs)[i].SetError(copy->GetError());
+          auto diag_copy = copy->GetError();
+          result_tensor_avs->push_back(
+              exec_ctx.host()->MakeErrorAsyncValueRef(std::move(diag_copy)));
+        }
+        if (chain && *chain && update_chain) {
+          chain->SetError(copy->GetError());
+        }
+        return;
+      }
       // If the copy itself was async, then remember to "and then" it.
       if (copy->IsUnavailable()) async_args.push_back(copy.get());
 

@@ -27,12 +27,12 @@ ResNet 50, and our
 where we provided a detailed overview of TFRT’s core components, low-level
 abstractions, and general design principles.
 
-Note: TFRT is an early stage project and is not yet ready for general use.
+**Note:** TFRT is an early stage project and is not yet ready for general use.
 
 ## Getting started
 
-TLDR: This section describes how to set up a development environment for TFRT,
-as well as instructions to build and test TFRT components.
+**TLDR:** This section describes how to set up a development environment for
+TFRT, as well as instructions to build and test TFRT components.
 
 TFRT currently supports Ubuntu-16.04. Future supported platforms include MacOS,
 Windows, etc. Bazel and clang are required to build and test TFRT.
@@ -82,9 +82,9 @@ file.
 #### Install Bazel
 
 To build TFRT, you need to install Bazel. TFRT is built and verified with Bazel
-2.0.0 to 3.1.0. Follow the
-[instructions](https://docs.bazel.build/versions/master/install-ubuntu.html) to
-install Bazel. Verify the installation with
+2.0.0 to 3.1.0. Follow
+[the Bazel installation instructions](https://docs.bazel.build/versions/master/install-ubuntu.html)
+to install Bazel. Verify the installation with
 
 ```shell
 $ bazel --version
@@ -93,8 +93,8 @@ bazel 3.1.0
 
 #### Install clang
 
-Follow the [instructions](https://apt.llvm.org/) here to install clang. The
-automatic installation script that installs clang, lldb, and lld, is
+Follow [the clang installation instructions](https://apt.llvm.org/) to install
+clang. The automatic installation script that installs clang, lldb, and lld, is
 recommended. TFRT is built and verified with 9.0.0 and above.
 
 If you have multiple versions of clang installed, ensure that the correct
@@ -145,26 +145,26 @@ create a `user.bazelrc` in the repository root with extra bazel configs that may
 be useful. Build `tfrt_translate` and `bef_executor` with the following
 commands:
 
-```
+```shell
 $ bazel build -c opt //tools:bef_executor
 $ bazel build -c opt //tools:tfrt_translate
 ```
 
 The above commands build the binaries with `opt` compilation mode. Check
-[Bazel documentation](https://docs.bazel.build/versions/master/command-line-reference.html#build-options)
+[Bazel's documentation](https://docs.bazel.build/versions/master/command-line-reference.html#build-options)
 for more build options. Bazel will notify the output location at the end of a
 successful build (default is `bazel-bin`).
 
 After `tfrt_translate` and `bef_executor` are built, run an `.mlir` program with
 the following command:
 
-```
+```shell
 $ bazel-bin/tools/tfrt_translate -mlir-to-bef path/to/program.mlir | bazel-bin/tools/bef_executor
 ```
 
 TFRT provides a series of .mlir test programs. For example:
 
-```
+```shell
 $ bazel-bin/tools/tfrt_translate -mlir-to-bef mlir_tests/bef_executor/async.mlir | bazel-bin/tools/bef_executor
 ```
 
@@ -480,9 +480,9 @@ If you want to contribute to TFRT, be sure to review the
 [code of conduct](https://github.com/tensorflow/tensorflow/blob/master/CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code of conduct.
 
-Note: TFRT is currently not open to contributions. TFRT developers are currently
-developing workflows and continuous integration for accepting contributions.
-Once we are ready, we will update this page.
+**Note:** TFRT is currently not open to contributions. TFRT developers are
+currently developing workflows and continuous integration for accepting
+contributions. Once we are ready, we will update this page.
 
 ## Continuous build status
 
@@ -496,7 +496,8 @@ Subscribe to the
 [TFRT mailing list](https://groups.google.com/a/tensorflow.org/d/forum/tfrt) for
 general discussions about the runtime.
 
-We use GitHub issues (link to be available) to track bugs and feature requests.
+We use GitHub [issues](https://github.com/tensorflow/runtime/issues) to track
+bugs and feature requests.
 
 ## License
 

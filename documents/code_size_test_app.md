@@ -31,7 +31,7 @@ C++ API directly without going through MLIR to BEF conversion.
 To run the test:
 
 ```shell
-$ bazel test //third_party/tf_runtime/mlir_tests/code_size_test_app:fib.mlir.test
+$ bazel test //mlir_tests/code_size_test_app:fib.mlir.test
 ```
 
 What really happens can be inferred from the first line of

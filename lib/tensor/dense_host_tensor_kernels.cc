@@ -161,47 +161,6 @@ static void PrintBuffer(Argument<RCReference<HostBuffer>> buffer,
 }
 
 template <typename T, size_t Rank>
-static void SliceInPlaceHelper(DHTIndexableView<T, Rank> input,
-                               const int64_t* begin,
-                               MutableDHTIndexableView<T, Rank> output,
-                               std::array<size_t, Rank>& input_coord,
-                               std::array<size_t, Rank>& output_coord,
-                               int cur_coord_idx) {
-  const FixedRankShape<Rank>& output_shape = output.FixedShape();
-  if (cur_coord_idx == Rank) {
-    output[output_coord] = input[input_coord];
-    return;
-  }
-
-  for (int64_t i = 0, e = output_shape[cur_coord_idx]; i < e; i++) {
-    input_coord[cur_coord_idx] = begin[cur_coord_idx] + i;
-    output_coord[cur_coord_idx] = i;
-    SliceInPlaceHelper<T, Rank>(input, begin, output, input_coord, output_coord,
-                                cur_coord_idx + 1);
-  }
-}
-
-// TODO(donglin): optimize this kernel by using Eigen library APIs.
-// Sets output = tf.slice(input, begin, output.shape()) where both input and
-// output are tensors with 'Rank' dimensions. 'begin' should be a vector of size
-// 'Rank'.
-template <typename T, size_t Rank>
-static llvm::Expected<Chain> SliceInPlace(
-    DHTIndexableView<T, Rank> input, DHTIndexableView<int64_t, 1> begin,
-    const Chain& chain_in, MutableDHTIndexableView<T, Rank> output) {
-  if (begin.NumElements() != Rank) {
-    return MakeStringError(
-        "the size of 'begin_index' should match the input tensor rank");
-  }
-  const int64_t* begin_data = static_cast<const int64_t*>(begin.data());
-  std::array<size_t, Rank> input_coord, output_coord;
-  SliceInPlaceHelper<T, Rank>(input, begin_data, output, input_coord,
-                              output_coord, 0);
-
-  return Chain();
-}
-
-template <typename T, size_t Rank>
 static void RegisterDenseHostTensorKernelsForTypeAndRank(
     KernelRegistry* registry, const std::string& t_name) {
   std::string suffix = t_name + "." + std::to_string(Rank);
@@ -234,8 +193,6 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(DenseTensorAllClose<T, 2000>));
   registry->AddKernel("dht.tensor_allclose.100000ulp." + suffix,
                       TFRT_KERNEL(DenseTensorAllClose<T, 100000>));
-  registry->AddKernel("dht.slice_inplace." + suffix + ".3",
-                      TFRT_KERNEL(SliceInPlace<T, 3>));
   RegisterDenseHostTensorKernelsForTypeAndRank<T, 0>(registry, t_name);
   RegisterDenseHostTensorKernelsForTypeAndRank<T, 1>(registry, t_name);
   RegisterDenseHostTensorKernelsForTypeAndRank<T, 2>(registry, t_name);

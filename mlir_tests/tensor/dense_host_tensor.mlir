@@ -123,7 +123,7 @@ func @slice_tensor() {
     : (!t.tensor, !hex.chain) -> !hex.chain
 
   %output = "dht.create_uninitialized_tensor.i32.3"() { shape = [2 : i64, 2 : i64, 1 : i64] } : () -> !t.tensor
-  %ch3 = "dht.slice_inplace.i32.3"(%input, %slice_begin, %ch2, %output)
+  %ch3 = "tfrt_test.slice_inplace.i32.3"(%input, %slice_begin, %ch2, %output)
     : (!t.tensor, !t.tensor, !hex.chain, !t.tensor) -> !hex.chain
 
   // CHECK: shape = [2, 2, 1], values = [4, 6, 10, 12]

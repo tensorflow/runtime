@@ -56,11 +56,11 @@ def tfrt_dependencies():
         name = "eigen_archive",
         repo_rule = http_archive,
         build_file = "@tf_runtime//third_party:eigen/BUILD",
-        sha256 = "71905cca5553804beee85e9ab8b254931d3cbeda8df1a40e5af3773f5b657179",  # SHARED_EIGEN_SHA
-        strip_prefix = "eigen-3fda850c46e5e589668a85d89299433e0686eec9",
+        sha256 = "924c7f85d5e2e40beb663489bf3f6908bb4c328dc81ab845c27bb6ce199b8698",  # SHARED_EIGEN_SHA
+        strip_prefix = "eigen-3c02fefec53f21d9fad537ff0d62d8dcc8162466",
         urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/3fda850c46e5e589668a85d89299433e0686eec9/eigen-3fda850c46e5e589668a85d89299433e0686eec9.tar.gz",
-            "https://gitlab.com/libeigen/eigen/-/archive/3fda850c46e5e589668a85d89299433e0686eec9/eigen-3fda850c46e5e589668a85d89299433e0686eec9.tar.gz",
+            "https://storage.googleapis.com/mirror.tensorflow.org/gitlab.com/libeigen/eigen/-/archive/3c02fefec53f21d9fad537ff0d62d8dcc8162466/eigen-3c02fefec53f21d9fad537ff0d62d8dcc8162466.tar.gz",
+            "https://gitlab.com/libeigen/eigen/-/archive/3c02fefec53f21d9fad537ff0d62d8dcc8162466/eigen-3c02fefec53f21d9fad537ff0d62d8dcc8162466.tar.gz",
         ],
     )
 

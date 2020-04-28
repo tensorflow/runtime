@@ -739,11 +739,22 @@ case. An abbreviated API for `ConcurrentWorkQueue` is as follows:
 ```c++
 class ConcurrentWorkQueue {
  public:
-  // Enqueue non-blocking task.
+  // Enqueue a block of work.
+  //
+  // If the work queue implementation has a fixed-size internal queue of pending
+  // work items, and it is full, it can choose to execute `work` in the caller
+  // thread.
   virtual void AddTask(TaskFunction work) = 0;
-  // Enqueue blocking task. Returns true iff the task was successfully
-  // enqueued.
-  LLVM_NODISCARD virtual bool AddBlockingTask(TaskFunction work) = 0;
+  // Enqueue a blocking task.
+  //
+  // If `allow_queuing` is false, implementation must guarantee that work will
+  // start executing within a finite amount of time, even if all other blocking
+  // work currently executing will block infinitely.
+  //
+  // Return empty optional if the work is enqueued successfully, otherwise,
+  // returns the argument wrapped in an optional.
+  LLVM_NODISCARD virtual Optional<TaskFunction> AddBlockingTask(
+      TaskFunction work, bool allow_queuing) = 0;
   // Block until the specified values are available (either with a value
   // or an error result).
   // This should not be called by a thread managed by the work queue.

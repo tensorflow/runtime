@@ -38,7 +38,8 @@ class SingleThreadedWorkQueue : public ConcurrentWorkQueue {
   std::string name() const override { return "single-threaded"; }
 
   void AddTask(TaskFunction work) override;
-  Optional<TaskFunction> AddBlockingTask(TaskFunction work) override;
+  Optional<TaskFunction> AddBlockingTask(TaskFunction work,
+                                         bool allow_queuing) override;
   void Quiesce() override;
   void Await(ArrayRef<RCReference<AsyncValue>> values) override;
   int GetParallelismLevel() const override { return 1; }
@@ -62,8 +63,12 @@ void SingleThreadedWorkQueue::AddTask(TaskFunction work) {
 // SingleThreadedWorkQueue. Note that this may cause deadlock when the blocking
 // task is used to model inter-kernel dependency, e.g. one kernel is blocked
 // waiting for a queue to be pushed by another kernel.
+//
+// Because this work queue implementation does not spawn new threads, it
+// can't accept tasks that do not allow queuing.
 Optional<TaskFunction> SingleThreadedWorkQueue::AddBlockingTask(
-    TaskFunction work) {
+    TaskFunction work, bool allow_queuing) {
+  assert(allow_queuing == true);
   work_items_.push_back(std::move(work));
   return llvm::None;
 }

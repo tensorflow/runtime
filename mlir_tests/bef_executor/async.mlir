@@ -118,3 +118,12 @@ func @test_async_copy() -> i32 {
   hex.return %copy : i32
 }
 // CHECK: 'test_async_copy' returned 42
+
+// CHECK-LABEL: --- Running 'test_async_copy_2'
+func @test_async_copy_2() -> i32 {
+  %c43 = hex.constant.i32 43
+  %copy = "hex.async_copy_2.i32"(%c43) : (i32) -> i32
+
+  hex.return %copy : i32
+}
+// CHECK: 'test_async_copy_2' returned 43

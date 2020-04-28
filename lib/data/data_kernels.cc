@@ -303,6 +303,8 @@ void RegisterDataKernels(KernelRegistry* registry) {
   RegisterIteratorKernelsForType<DenseHostTensor>(registry, "tensor");
   RegisterIteratorKernelsForType<DenseHostTensor, DenseHostTensor>(
       registry, "tensor_and_tensor");
+  RegisterIteratorKernelsForType<DenseHostTensor, int64_t>(registry,
+                                                           "tensor_and_i64");
   RegisterIteratorKernelsForType<float, int32_t>(registry, "f32_and_i32");
   registry->AddKernel("data.enumerate.iterator",
                       TFRT_KERNEL(EnumerateIterator));
@@ -364,6 +366,9 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel(
       "data.prefetch_dataset.tensor_and_tensor",
       TFRT_KERNEL(MakePrefetchDataset<DenseHostTensor, DenseHostTensor>));
+  registry->AddKernel(
+      "data.prefetch_dataset.tensor_and_i64",
+      TFRT_KERNEL(MakePrefetchDataset<DenseHostTensor, int64_t>));
 }
 
 }  // namespace data

@@ -58,6 +58,7 @@
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_WORK_QUEUE_BASE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_WORK_QUEUE_BASE_H_
 
+#include <atomic>
 #include <memory>
 #include <string>
 #include <thread>
@@ -132,6 +133,46 @@ class WorkQueueBase {
 
   // ------------------------------------------------------------------------ //
 
+  class Quiescing {
+   public:
+    explicit Quiescing(Derived* parent) : parent_(parent) {
+      parent_->num_quiescing_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    ~Quiescing() {
+      if (parent_ == nullptr) return;  // in moved-out state
+      parent_->num_quiescing_.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    Quiescing(Quiescing&& other) : parent_(other.parent_) {
+      other.parent_ = nullptr;
+    }
+
+    Quiescing& operator=(Quiescing&& other) {
+      parent_ = other.parent_;
+      other.parent_ = nullptr;
+    }
+
+    Quiescing(const Quiescing&) = delete;
+    Quiescing& operator=(const Quiescing&) = delete;
+
+    // HasPendingTasks() returns true if some of the tasks added to the owning
+    // queue after `*this` was created are not completed.
+    bool HasPendingTasks() const {
+      return parent_->num_pending_tasks_.load(std::memory_order_relaxed) != 0;
+    }
+
+   private:
+    Derived* parent_;
+  };
+
+  // Enable pending task counter via acquiring Quiescing object.
+  Quiescing StartQuiescing() { return Quiescing(&derived_); }
+
+  bool IsQuiescing() const {
+    return num_quiescing_.load(std::memory_order_relaxed) > 0;
+  }
+
   // Quiesce blocks caller thread until all submitted tasks are completed and
   // all worker threads are in the parked state.
   void Quiesce();
@@ -172,6 +213,42 @@ class WorkQueueBase {
     std::unique_ptr<Thread> thread;
     Queue queue;
   };
+
+  // RAII helper for keeping track of the number of pending tasks.
+  class PendingTask {
+   public:
+    explicit PendingTask(Derived* parent) : parent_(parent) {
+      assert(parent != nullptr);
+      parent_->num_pending_tasks_.fetch_add(1, std::memory_order_relaxed);
+    }
+
+    ~PendingTask() {
+      if (parent_ == nullptr) return;  // in moved-out state
+      parent_->num_pending_tasks_.fetch_sub(1, std::memory_order_relaxed);
+    }
+
+    PendingTask(PendingTask&& other) : parent_(other.parent_) {
+      other.parent_ = nullptr;
+    }
+
+    PendingTask& operator=(PendingTask&& other) {
+      parent_ = other.parent_;
+      other.parent_ = nullptr;
+    }
+
+    PendingTask(const PendingTask&) = delete;
+    PendingTask& operator=(const PendingTask&) = delete;
+
+   private:
+    Derived* parent_;
+  };
+
+  // Returns a TaskFunction with an attached pending tasks counter, if the
+  // quiescing mode is on.
+  TaskFunction WithPendingTaskCounter(TaskFunction task) {
+    return TaskFunction([task = std::move(task),
+                         p = PendingTask(&derived_)]() mutable { task(); });
+  }
 
   // TODO(ezhulenev): Make this a runtime parameter? More spinning threads help
   // to reduce latency at the cost of wasted CPU cycles.
@@ -257,6 +334,12 @@ class WorkQueueBase {
   mutex all_blocked_mu_;
   condition_variable all_blocked_cv_;
 
+  // MultithreadedWorkQueue::Quiesce() requires strong guarantees for queue
+  // emptyness check. If quiescing mode is enabled, work queue tracks the number
+  // of pending tasks (see Quiescing class above).
+  std::atomic<int64_t> num_quiescing_;
+  std::atomic<int64_t> num_pending_tasks_;
+
   // Spinning state layout:
   // - Low 32 bits encode the number of threads that are spinning in steal loop.
   //
@@ -331,6 +414,8 @@ WorkQueueBase<Derived>::WorkQueueBase(int num_threads)
       blocked_(0),
       done_(false),
       cancelled_(false),
+      num_quiescing_(0),
+      num_pending_tasks_(0),
       spinning_state_(0),
       event_count_(num_threads),
       derived_(static_cast<Derived&>(*this)) {

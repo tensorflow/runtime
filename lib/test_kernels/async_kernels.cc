@@ -45,8 +45,19 @@ static AsyncValueRef<int32_t> HexAsyncConstantI32(Attribute<int32_t> arg,
   return host->EnqueueWork([arg = *arg] { return arg; });
 }
 
-static AsyncValueRef<int32_t> TestAsyncCopy(int32_t in, HostContext* host) {
-  return host->EnqueueWork([in] { return in; });
+// This implementation of TestAsyncCopy returns results directly.
+static AsyncValueRef<int32_t> TestAsyncCopy(Argument<int32_t> in,
+                                            HostContext* host) {
+  return host->EnqueueWork([in_ref = in.ValueRef()] { return in_ref.get(); });
+}
+
+// This implementation of TestAsyncCopy returns results via a 'Result'
+// parameter.
+static void TestAsyncCopy2(Argument<int32_t> in, Result<int32_t> out,
+                           HostContext* host) {
+  host->EnqueueWork([in_ref = in.ValueRef(), out_ref = out.Allocate()] {
+    out_ref.emplace(in_ref.get());
+  });
 }
 
 // Install some async kernels for use by the test driver.
@@ -56,5 +67,6 @@ void RegisterAsyncKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(HexAsyncConstantI32));
   registry->AddKernel("hex.async_add.i32", TFRT_KERNEL(HexAsyncAddI32));
   registry->AddKernel("hex.async_copy.i32", TFRT_KERNEL(TestAsyncCopy));
+  registry->AddKernel("hex.async_copy_2.i32", TFRT_KERNEL(TestAsyncCopy2));
 }
 }  // namespace tfrt

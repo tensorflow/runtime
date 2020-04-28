@@ -1,5 +1,6 @@
 .bazelrc
 WORKSPACE
+dependencies.bzl
 mlir_tests/lit.bzl
 third_party/BUILD
 third_party/clang_toolchain/BUILD

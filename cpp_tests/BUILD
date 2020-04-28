@@ -105,3 +105,14 @@ tfrt_cc_test(
         "@tf_runtime//:tensor",
     ],
 )
+
+tfrt_cc_test(
+    name = "host_runtime/async_value_ref_test",
+    srcs = ["host_runtime/async_value_ref_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)

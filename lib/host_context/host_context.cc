@@ -183,8 +183,8 @@ void HostContext::EnqueueWork(llvm::unique_function<void()> work) {
 
 // Add some work to the workqueue managed by this CPU device.
 bool HostContext::EnqueueBlockingWork(llvm::unique_function<void()> work) {
-  Optional<TaskFunction> task =
-      work_queue_->AddBlockingTask(TaskFunction(std::move(work)));
+  Optional<TaskFunction> task = work_queue_->AddBlockingTask(
+      TaskFunction(std::move(work)), /*allow_queuing=*/true);
   return !task.hasValue();
 }
 

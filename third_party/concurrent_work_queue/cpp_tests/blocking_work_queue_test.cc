@@ -12,6 +12,7 @@
 
 #include "benchmark/benchmark.h"
 #include "environment.h"
+#include "gtest/gtest.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/support/latch.h"
@@ -21,6 +22,79 @@ namespace {
 
 using ThreadingEnvironment = ::tfrt::internal::StdThreadingEnvironment;
 using WorkQueue = ::tfrt::internal::BlockingWorkQueue<ThreadingEnvironment>;
+
+TEST(BlockingWorkQueueTest, RejectRunBlockingTask) {
+  WorkQueue work_queue(2, 0);
+  auto rejected = work_queue.RunBlockingTask({});
+  ASSERT_TRUE(rejected.hasValue());
+}
+
+TEST(BlockingWorkQueueTest, RunBlockingTask) {
+  WorkQueue work_queue(2, 2);
+
+  latch barrier(1);
+  latch executed(2);
+
+  auto task = [&]() -> TaskFunction {
+    return TaskFunction([&]() {
+      barrier.wait();
+      executed.count_down();
+    });
+  };
+
+  auto t1 = work_queue.RunBlockingTask(task());
+  ASSERT_FALSE(t1.hasValue());
+  auto t2 = work_queue.RunBlockingTask(task());
+  ASSERT_FALSE(t2.hasValue());
+  auto t3 = work_queue.RunBlockingTask(task());
+  ASSERT_TRUE(t3.hasValue());  // rejected
+
+  // Let the tasks start.
+  barrier.count_down();
+  // Wait for completion.
+  executed.wait();
+}
+
+TEST(BlockingWorkQueueTest, Quiescing) {
+  WorkQueue work_queue(2, 2);
+
+  auto quiescing = work_queue.StartQuiescing();
+
+  latch barrier(1);
+  latch executed(4);
+
+  auto task = [&]() -> TaskFunction {
+    return TaskFunction([&]() {
+      barrier.wait();
+      executed.count_down();
+    });
+  };
+
+  auto t1 = work_queue.EnqueueBlockingTask(task());
+  ASSERT_FALSE(t1.hasValue());
+  auto t2 = work_queue.EnqueueBlockingTask(task());
+  ASSERT_FALSE(t2.hasValue());
+  auto t3 = work_queue.RunBlockingTask(task());
+  ASSERT_FALSE(t3.hasValue());
+  auto t4 = work_queue.RunBlockingTask(task());
+  ASSERT_FALSE(t4.hasValue());
+  auto t5 = work_queue.RunBlockingTask(task());
+  ASSERT_TRUE(t5.hasValue());  // rejected
+
+  ASSERT_TRUE(quiescing.HasPendingTasks());
+
+  // Let the tasks start.
+  barrier.count_down();
+  // Wait for completion.
+  executed.wait();
+
+  // Verify that pending task counter was not attached to rejected 't5'.
+  ASSERT_FALSE(quiescing.HasPendingTasks());
+}
+
+// -------------------------------------------------------------------------- //
+// Performance benchmarks.
+// -------------------------------------------------------------------------- //
 
 // Benchmark work queue throughput.
 //
@@ -43,19 +117,21 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
     // Submit `num_producers` tasks to `producer` queue, each submitting
     // `num_tasks` to `worker` queue.
     for (int i = 0; i < num_producers; ++i) {
-      auto producer_overflow = producer.AddBlockingTask(TaskFunction([&, i] {
-        for (int j = 0; j < num_tasks; ++j) {
-          auto worker_overflow = worker.AddBlockingTask(TaskFunction([&, i]() {
-            if (counters[i].fetch_sub(1) == 1) latch.count_down();
-          }));
+      auto producer_overflow =
+          producer.EnqueueBlockingTask(TaskFunction([&, i] {
+            for (int j = 0; j < num_tasks; ++j) {
+              auto worker_overflow =
+                  worker.EnqueueBlockingTask(TaskFunction([&, i]() {
+                    if (counters[i].fetch_sub(1) == 1) latch.count_down();
+                  }));
 
-          if (worker_overflow) {
-            (*worker_overflow)();
-            num_overflow++;
-          }
-        }
-        latch.count_down();
-      }));
+              if (worker_overflow) {
+                (*worker_overflow)();
+                num_overflow++;
+              }
+            }
+            latch.count_down();
+          }));
       if (producer_overflow) (*producer_overflow)();
     }
 

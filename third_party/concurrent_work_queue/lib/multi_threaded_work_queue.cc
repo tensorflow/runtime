@@ -39,7 +39,8 @@ class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
   int GetParallelismLevel() const final { return num_threads_; }
 
   void AddTask(TaskFunction task) final;
-  Optional<TaskFunction> AddBlockingTask(TaskFunction task) final;
+  Optional<TaskFunction> AddBlockingTask(TaskFunction task,
+                                         bool allow_queuing) final;
   void Quiesce() final;
   void Await(ArrayRef<RCReference<AsyncValue>> values) final;
 
@@ -67,13 +68,18 @@ void MultiThreadedWorkQueue::AddTask(TaskFunction task) {
 }
 
 Optional<TaskFunction> MultiThreadedWorkQueue::AddBlockingTask(
-    TaskFunction task) {
-  return blocking_work_queue_.AddBlockingTask(std::move(task));
+    TaskFunction task, bool allow_queuing) {
+  if (allow_queuing) {
+    return blocking_work_queue_.EnqueueBlockingTask(std::move(task));
+  } else {
+    return blocking_work_queue_.RunBlockingTask(std::move(task));
+  }
 }
 
 void MultiThreadedWorkQueue::Quiesce() {
-  // Turn on pending tasks counter inside blocking work queue.
-  auto quiescing = blocking_work_queue_.StartQuiescing();
+  // Turn on pending tasks counter inside both work queues.
+  auto quiescing_non_blocking = non_blocking_work_queue_.StartQuiescing();
+  auto quiescing_blocking = blocking_work_queue_.StartQuiescing();
 
   // We call NonBlockingWorkQueue::Quiesce() first because we prefer to keep
   // caller thread busy with compute intensive tasks.
@@ -82,23 +88,13 @@ void MultiThreadedWorkQueue::Quiesce() {
   // Wait for completion of all blocking tasks.
   blocking_work_queue_.Quiesce();
 
-  // Check if tasks inside blocking queue added new non-blocking tasks.
-  non_blocking_work_queue_.Quiesce();
-
-  // At this point we might still have tasks in the blocking work queue, but
-  // because we enabled quiescing mode earlier, we can rely on empty check as a
-  // loop condition.
-  while (!quiescing.Empty()) {
-    // Wait for completion of all blocking tasks.
-    blocking_work_queue_.Quiesce();
-
-    // Wait for completion of all non-blocking tasks in case any new tasks
-    // were submitted from the blocking queue.
+  // At this point we might still have tasks in the work queues, but because we
+  // enabled quiescing mode earlier, we can rely on empty check as a loop
+  // condition.
+  while (quiescing_non_blocking.HasPendingTasks() ||
+         quiescing_blocking.HasPendingTasks()) {
     non_blocking_work_queue_.Quiesce();
-
-    // At this point non blocking tasks potentially could submit new tasks to
-    // the blocking queue, but because `quiescing.Empty()` provides a strong
-    // emptiness guarantee, it's safe to rely on it in a loop condition.
+    blocking_work_queue_.Quiesce();
   }
 }
 

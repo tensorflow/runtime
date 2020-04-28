@@ -2,6 +2,7 @@
 
 <!--* freshness: {
   owner: 'zhangqiaorjc'
+  owner: 'chuanhao'
   reviewed: '2020-03-31'
 } *-->
 
@@ -37,8 +38,8 @@ as a shape inference compiler pass.
 
 ### Kernel Implementations
 
-All kernels invoked in the MNIST model file, e.g., `mnist.matmul.f32.2`,
-`mnist.broadcast.f32.1` are implemented in
+All kernels invoked in the MNIST model file, e.g., `tfrt_test.matmul.f32.2`,
+`tfrt_test.broadcast.f32.1` are implemented in
 [mnist_tensor_kernels.cc](https://cs.opensource.google/tensorflow/runtime/+/master:backends/cpu/lib/ops/test/mnist_tensor_kernels.cc).
 
 ## Test Instructions
@@ -49,7 +50,7 @@ file.
 Use TFRT to run the MNIST model in inference mode.
 
 ```shell
-$ bazel test //third_party/tf_runtime/integrationtest/mnist:mnist.mlir.test
+$ bazel test //integrationtest/mnist:mnist.mlir.test
 ```
 
 The test runs MNIST inference and checks that we get the expected average

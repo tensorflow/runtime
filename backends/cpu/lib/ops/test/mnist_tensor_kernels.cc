@@ -38,6 +38,8 @@
 using ::tfrt::compat::AsEigenConstTensor;
 using ::tfrt::compat::AsEigenTensor;
 using ::tfrt::compat::BinaryEigenKernelAsync;
+using ::tfrt::compat::EigenHostContext;
+using ::tfrt::compat::KeepBuffers;
 using ::tfrt::compat::NullaryEigenKernelAsync;
 using ::tfrt::compat::UnaryEigenKernelAsync;
 
@@ -661,6 +663,42 @@ static AsyncValueRef<Chain> ReluGradInplace(const DenseHostTensor& activation,
 }
 
 //===----------------------------------------------------------------------===//
+// tfrt_test.slice_inplace kernel
+//===----------------------------------------------------------------------===//
+
+// Computes output = tf.slice(input, begin, output.shape()) where both input and
+// output are tensors with 'Rank' dimensions. 'begin' should be a vector of size
+// 'Rank'.
+template <typename T, size_t Rank>
+static AsyncValueRef<Chain> SliceInPlace(const DenseHostTensor& input,
+                                         DHTIndexableView<int64_t, 1> begin,
+                                         const Chain& chain_in,
+                                         DenseHostTensor* output,
+                                         HostContext* host, Location loc) {
+  auto input_view = DHTIndexableView<T, Rank>(&input);
+  auto output_view = MutableDHTIndexableView<T, Rank>(output);
+
+  if (begin.NumElements() != Rank) {
+    return loc.EmitErrorAsync(
+        "the size of 'begin_index' should match the input tensor rank");
+  }
+
+  auto output_shape = output_view.FixedShape();
+  Eigen::DSizes<Eigen::Index, Rank> indices;
+  Eigen::DSizes<Eigen::Index, Rank> sizes;
+  for (int i = 0; i < Rank; ++i) {
+    indices[i] = begin.ElementAt(i);
+    sizes[i] = output_shape[i];
+  }
+  auto input_t = AsEigenConstTensor(input_view);
+  auto output_t = AsEigenTensor(output_view);
+  auto expr = input_t.slice(indices, sizes);
+  return AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
+                     std::move(output_t), std::move(expr),
+                     KeepBuffers::alive(&input, output));
+}
+
+//===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//
 
@@ -692,6 +730,8 @@ static void RegisterMNISTTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(Argmax<T, 2>));
   registry->AddKernel("tfrt_test.relu_grad_inplace." + suffix,
                       TFRT_KERNEL(ReluGradInplace<T>));
+  registry->AddKernel("tfrt_test.slice_inplace." + suffix + ".3",
+                      TFRT_KERNEL(SliceInPlace<T, 3>));
 }
 
 void RegisterMNISTTensorKernels(KernelRegistry* registry) {

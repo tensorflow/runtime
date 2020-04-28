@@ -15,8 +15,11 @@
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_BLOCKING_WORK_QUEUE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_BLOCKING_WORK_QUEUE_H_
 
-#include <atomic>
+#include <limits>
+#include <queue>
+#include <ratio>
 
+#include "llvm/ADT/None.h"
 #include "llvm/Support/Compiler.h"
 #include "task_queue.h"
 #include "tfrt/host_context/task_function.h"
@@ -44,19 +47,24 @@ class BlockingWorkQueue
   using Thread = typename Base::Thread;
   using PerThread = typename Base::PerThread;
   using ThreadData = typename Base::ThreadData;
+  using PendingTask = typename Base::PendingTask;
 
  public:
-  explicit BlockingWorkQueue(int num_threads);
+  explicit BlockingWorkQueue(
+      int num_threads,
+      int max_num_dynamic_threads = std::numeric_limits<int>::max(),
+      std::chrono::nanoseconds idle_wait_time = std::chrono::seconds(1));
   ~BlockingWorkQueue() = default;
 
-  Optional<TaskFunction> AddBlockingTask(TaskFunction task);
+  // Enqueues `task` for execution by one of the statically allocated thread.
+  // Return task wrapped in optional if all per-thread queues are full.
+  Optional<TaskFunction> EnqueueBlockingTask(TaskFunction task);
 
-  // Following two functions are required to correctly implement
-  // MultiThreadedWorkQueue::Quiesce().
+  // Runs `task` in one of the dynamically started threads. Returns task
+  // wrapped in optional if can't assign it to a worker thread.
+  Optional<TaskFunction> RunBlockingTask(TaskFunction task);
 
-  // Enable pending task counter via acquiring Quiescing object.
-  class Quiescing;
-  Quiescing StartQuiescing() { return Quiescing(this); }
+  void Quiesce();
 
  private:
   template <typename WorkQueue>
@@ -64,84 +72,72 @@ class BlockingWorkQueue
 
   using Base::GetPerThread;
   using Base::IsNotifyParkedThreadRequired;
+  using Base::IsQuiescing;
+  using Base::WithPendingTaskCounter;
 
   using Base::coprimes_;
   using Base::event_count_;
   using Base::num_threads_;
   using Base::thread_data_;
-
-  // If we are in quiescing mode, we can always execute submitted task in the
-  // caller thread, because the system is anyway going to shutdown soon, and
-  // even if we are running inside a non-blocking work queue, potential
-  // context switch can't negatively impact system performance.
-  void AddBlockingTaskWhileQuiescing(TaskFunction task);
+  using Base::threading_environment_;
 
   LLVM_NODISCARD Optional<TaskFunction> NextTask(Queue* queue);
   LLVM_NODISCARD Optional<TaskFunction> Steal(Queue* queue);
   LLVM_NODISCARD bool Empty(Queue* queue);
 
-  // Blocking work queue requires strong guarantees for the Empty() method to
-  // implement Quiesce() correctly in MultiThreadedWorkQueue, so we keep track
-  // of the number of pending tasks that were submitted to this queue.
-  //
-  // We do this only if there is an active thread inside a
-  // MultiThreadedWorkQueue::Quiesce() because the overhead of atomic
-  // read-modify-write operation is too high for the regular workload.
-  std::atomic<int64_t> num_quiescing_;
-  std::atomic<int64_t> num_tasks_;
+  // If the blocking task does not allow queuing, it is executed in one of the
+  // dynamically spawned threads. These threads have 1-to-1 task-to-thread
+  // relationship, and can guarantee that tasks with inter-dependencies
+  // will all make progress together.
 
- public:
-  class Quiescing {
-   public:
-    explicit Quiescing(BlockingWorkQueue* parent) : parent_(parent) {
-      parent_->num_quiescing_.fetch_add(1, std::memory_order_relaxed);
-    }
+  // Waits for the next available task. Returns empty optional if the task was
+  // not found.
+  Optional<TaskFunction> WaitNextTask(mutex_lock* lock) TFRT_REQUIRES(mutex_);
 
-    ~Quiescing() {
-      if (parent_ == nullptr) return;  // in moved-out state
-      parent_->num_quiescing_.fetch_sub(1, std::memory_order_relaxed);
-    }
+  // Maximum number of dynamically started threads.
+  const int max_num_dynamic_threads_;
 
-    Quiescing(Quiescing&& other) : parent_(other.parent_) {
-      other.parent_ = nullptr;
-    }
+  // For how long dynamically started thread waits for the next task before
+  // stopping.
+  const std::chrono::nanoseconds idle_wait_time_;
 
-    Quiescing& operator=(Quiescing&& other) {
-      parent_ = other.parent_;
-      other.parent_ = nullptr;
-    }
+  // All operations with dynamic threads are done holding this mutex.
+  mutex mutex_;
+  condition_variable wake_do_work_cv_;
+  condition_variable thread_exited_cv_;
 
-    Quiescing(const Quiescing&) = delete;
-    Quiescing& operator=(const Quiescing&) = delete;
+  // Number of started dynamic threads.
+  int num_dynamic_threads_ TFRT_GUARDED_BY(mutex_) = 0;
 
-    // Empty() returns true if all tasks added to the parent queue after
-    // `*this` was created are completed.
-    bool Empty() const {
-      return parent_->num_tasks_.load(std::memory_order_relaxed) == 0;
-    }
+  // Number of dynamic threads waiting for the next task.
+  int num_idle_dynamic_threads_ TFRT_GUARDED_BY(mutex_) = 0;
 
-   private:
-    BlockingWorkQueue* parent_;
-  };
+  // This queue is a temporary storage to transfer task ownership to one of the
+  // idle threads. It does not keep more tasks than there are idle threads.
+  std::queue<TaskFunction> idle_task_queue_ TFRT_GUARDED_BY(mutex_);
+
+  // Idle threads must stop waiting for the next task in the `idle_task_queue_`.
+  bool stop_waiting_ = false;
 };
 
 template <typename ThreadingEnvironment>
-BlockingWorkQueue<ThreadingEnvironment>::BlockingWorkQueue(int num_threads)
+BlockingWorkQueue<ThreadingEnvironment>::BlockingWorkQueue(
+    int num_threads, int max_num_dynamic_threads,
+    std::chrono::nanoseconds idle_wait_time)
     : WorkQueueBase<BlockingWorkQueue>(num_threads),
-      num_quiescing_(0),
-      num_tasks_(0) {}
+      max_num_dynamic_threads_(max_num_dynamic_threads),
+      idle_wait_time_(idle_wait_time) {}
 
 template <typename ThreadingEnvironment>
-Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::AddBlockingTask(
+Optional<TaskFunction>
+BlockingWorkQueue<ThreadingEnvironment>::EnqueueBlockingTask(
     TaskFunction task) {
   // In quiescing mode we count the number of pending tasks, and are allowed to
   // execute tasks in the caller thread.
-  if (num_quiescing_.load(std::memory_order_relaxed) > 0) {
-    AddBlockingTaskWhileQuiescing(std::move(task));
-    return llvm::None;
-  }
+  const bool is_quiescing = IsQuiescing();
+  if (is_quiescing) task = WithPendingTaskCounter(std::move(task));
 
-  // If the worker queue is full, we will return task to the caller thread.
+  // If the worker queue is full, we will return `task` to the caller.
   llvm::Optional<TaskFunction> inline_task = {std::move(task)};
 
   PerThread* pt = GetPerThread();
@@ -162,7 +158,19 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::AddBlockingTask(
     }
   }
 
-  if (inline_task.hasValue()) return inline_task;
+  // Failed to push task into one of the worker threads queues.
+  if (inline_task.hasValue()) {
+    // If we are in quiescing mode, we can always execute the submitted task in
+    // the caller thread, because the system is anyway going to shutdown soon,
+    // and even if we are running inside a non-blocking work queue, a single
+    // potential context switch won't negatively impact system performance.
+    if (is_quiescing) {
+      (*inline_task)();
+      return llvm::None;
+    } else {
+      return inline_task;
+    }
+  }
 
   // Note: below we touch `*this` after making `task` available to worker
   // threads. Strictly speaking, this can lead to a racy-use-after-free.
@@ -178,30 +186,119 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::AddBlockingTask(
 }
 
 template <typename ThreadingEnvironment>
-void BlockingWorkQueue<ThreadingEnvironment>::AddBlockingTaskWhileQuiescing(
+Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
     TaskFunction task) {
-  // Prepare to add new pending task.
-  num_tasks_.fetch_add(1, std::memory_order_relaxed);
+  mutex_lock lock(mutex_);
 
-  // Insert task into the random queue.
-  PerThread* pt = GetPerThread();
-  unsigned rnd = FastReduce(pt->rng(), num_threads_);
-  Queue& q = thread_data_[rnd].queue;
+  // Attach a PendingTask counter only if we were able to submit the task
+  // to one of the worker threads. It's unsafe to return the task with
+  // a counter to the caller, because we don't know when/if it will be
+  // destructed and the counter decremented.
+  auto wrap = [&](TaskFunction task) -> TaskFunction {
+    return IsQuiescing() ? WithPendingTaskCounter(std::move(task))
+                         : std::move(task);
+  };
 
-  // Decrement the number of pending tasks after executing the original task.
-  llvm::Optional<TaskFunction> inline_task =
-      q.PushFront(TaskFunction([this, task = std::move(task)]() mutable {
-        task();
-        this->num_tasks_.fetch_sub(1, std::memory_order_relaxed);
-      }));
+  // There are idle threads. We enqueue the task to the queue and then notify
+  // one of the idle threads.
+  if (idle_task_queue_.size() < num_idle_dynamic_threads_) {
+    idle_task_queue_.emplace(wrap(std::move(task)));
+    wake_do_work_cv_.notify_one();
 
-  // We are allowed to execute tasks in the caller threads, because Quiesce
-  // means that the system is going to shutdown soon.
-  if (inline_task.hasValue()) {
-    (*inline_task)();
-  } else {
-    if (IsNotifyParkedThreadRequired()) event_count_.Notify(false);
+    return llvm::None;
   }
+
+  // There are no idle threads and we are not at the thread limit. We
+  // start a new thread to run the task.
+  if (num_dynamic_threads_ < max_num_dynamic_threads_) {
+    auto do_work = [this, task = wrap(std::move(task))]() mutable {
+      task();
+      // Reset executed task to call destructor without holding the lock,
+      // because it might be expensive. Also we want to call it before
+      // notifying quiescing thread, because destructor potentially could
+      // drop the last references on captured async values.
+      task.reset();
+
+      mutex_lock lock(mutex_);
+
+      // Try to get the next task. If one is found, run it. If there is no
+      // task to execute, GetNextTask will return None that converts to
+      // false.
+      while (llvm::Optional<TaskFunction> task = WaitNextTask(&lock)) {
+        mutex_.unlock();
+        // Do not hold the lock while executing and destructing the task.
+        (*task)();
+        task.reset();
+        mutex_.lock();
+      }
+
+      // No more work to do or shutdown occurred. Exit the thread.
+      --num_dynamic_threads_;
+      if (stop_waiting_) thread_exited_cv_.notify_one();
+    };
+
+    std::unique_ptr<Thread> thread =
+        threading_environment_.StartThread(std::move(do_work));
+
+    // Detach the thread. We rely on num_threads_ to detect thread exiting.
+    ThreadingEnvironment::Detatch(thread.get());
+    ++num_dynamic_threads_;
+
+    return llvm::None;
+  }
+
+  // There are no idle threads and we are at the thread limit. Return task
+  // to the caller.
+  return {std::move(task)};
+}
+
+template <typename ThreadingEnvironment>
+Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::WaitNextTask(
+    mutex_lock* lock) {
+  ++num_idle_dynamic_threads_;
+
+  const auto timeout = std::chrono::system_clock::now() + idle_wait_time_;
+  wake_do_work_cv_.wait_until(*lock, timeout, [this]() TFRT_REQUIRES(mutex_) {
+    return !idle_task_queue_.empty() || stop_waiting_;
+  });
+  --num_idle_dynamic_threads_;
+
+  // Found something in the queue. Return the task.
+  if (!idle_task_queue_.empty()) {
+    TaskFunction task = std::move(idle_task_queue_.front());
+    idle_task_queue_.pop();
+    return {std::move(task)};
+  }
+
+  // Shutdown occurred. Return empty optional.
+  return llvm::None;
+}
+
+template <typename ThreadingEnvironment>
+void BlockingWorkQueue<ThreadingEnvironment>::Quiesce() {
+  Base::Quiesce();
+
+  // WARN: This function provides only best-effort work queue emptyness
+  // guarantees. Tasks running inside a dynamically allocated threads
+  // potentially could submit new tasks to statically allocated threads, and
+  // current implementaton will miss them. Clients must rely on
+  // MultiThreadedWorkQueue::Quiesce() for strong emptyness guarantees.
+
+  // Wait for the completion of all tasks in the dynamicly part of a queue.
+  mutex_lock lock(mutex_);
+
+  // Wake up all idle threads.
+  stop_waiting_ = true;
+  wake_do_work_cv_.notify_all();
+
+  // Wait until all dynamicaly started threads stopped.
+  thread_exited_cv_.wait(lock, [this]() TFRT_REQUIRES(mutex_) {
+    return num_dynamic_threads_ == 0;
+  });
+  assert(idle_task_queue_.empty());
+
+  // Prepare for the next call to Quiesce.
+  stop_waiting_ = false;
 }
 
 template <typename ThreadingEnvironment>

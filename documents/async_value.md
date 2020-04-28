@@ -2,18 +2,19 @@
 
 <!--* freshness: {
   owner: 'lauj'
-  reviewed: '2019-08-19'
+  reviewed: '2020-04-27'
 } *-->
 
 <!-- TOC -->
 
 This document explains some of the concepts behind `AsyncValue`.
 
-## AsyncValue
+## `AsyncValue`
 
-`AsyncValue` is an abstract future data type. It's conceptually similar to
+[`AsyncValue`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/async_value.h)
+is an abstract future data type. It's conceptually similar to
 [std::future](https://en.cppreference.com/w/cpp/thread/future), except that
-`AsyncValue` does not let caller wait until the value becomes available.
+`AsyncValue` does not let callers wait until the value becomes available.
 Instead, the caller enqueues a closure that uses the value with
 `AsyncValue::AndThen`. `AsyncValue::emplace` will run any enqueued closures when
 the value becomes available. This approach is similar to
@@ -26,11 +27,95 @@ the value becomes available. This approach is similar to
 and `DropRef`, and any `AsyncValue` with a refcount of 0 is immediately
 destroyed.
 
-Kernels typically use `RCReference` to manage refcounts. It's a smart pointer
-class that calls `DropRef` when it is destroyed. It's conceptually similar to
-[std::shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr).
+[`RCReference`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/support/ref_count.h)
+is a smart pointer class that calls `DropRef` when it is destroyed. It's
+conceptually similar to
+[std::shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr). Kernel
+implementations typically use
+[`AsyncValueRef`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/async_value_ref.h)
+described [below](#asyncvalueref) rather than `RCReference`, unless type erasure
+is needed.
 
-TODO(b/147013581): Discuss `AsyncValueRef`.
+### Type Erasure
+
+`AsyncValue` is type-erased: users can manipulate an `AsyncValue` without
+knowing its contained type. For example, given an `AsyncValue`, a user can check
+its availability with `AsyncValue::IsAvailable()` or enqueue a closure with
+`AsyncValue::AndThen()`, without knowing the actual type contained in the
+`AsyncValue`. Type information is only needed when *accessing* the contained
+data, for example with `AsyncValue::get<T>()` or `AsyncValue::emplace<T>()`.
+
+`AsyncValue`'s type erasure simplifies code that does not need to access the
+contained data. For example, `BEFExecutor` uses one generic code path based on
+`AsyncValue`s to forward results from one kernel to arguments to another kernel.
+
+#### `AsyncValueRef`
+
+`AsyncValueRef` improves type safety when type erasure is not needed.
+
+`AsyncValueRef` is functionally equivalent to `RCReference<AsyncValue>`, except
+that it carries type information for the contained data. For example these two
+code blocks are equivalent:
+
+```c++
+// AsyncValueRef version. Note how int32_t is specified in AsyncValueRef's
+// template parameter. Prefer this version when type erasure is not needed.
+AsyncValueRef<int32_t> int_value = ...;
+int_value.emplace(42);
+```
+
+```c++
+// RCReference<AsyncValue> version. Note how int32_t is specified in emplace's
+// template parameter. Use this pattern when type erasure is needed.
+RCReference<AsyncValue> int_value = ...;
+int_value->emplace<int32_t>(42);
+```
+
+For example,
+[`TensorHandle`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/core_runtime/tensor_handle.h)
+is constructed from two `AsyncValues`, one which must contain `TensorMetadata`
+and another which must contain `Tensor`.
+
+Because these two `AsyncValues` must contain specific types, prefer defining
+`TensorHandle`s constructor like this:
+
+```c++ {.good}
+// Prefer AsyncValueRef for TensorHandle's constructor because the AsyncValues
+// must contain specific types.
+TensorHandle(AsyncValueRef<TensorMetadata> async_metadata,
+             AsyncValueRef<Tensor> tensor);
+```
+
+instead of like this:
+
+```c++ {.bad}
+// Type erasure is not useful here because the AsyncValues must contain specific
+// types.
+TensorHandle(RCReference<AsyncValue> async_metadata,
+             RCReference<AsyncValue> tensor);
+```
+
+In this example, type erasure is not useful because `TensorHandle`'s constructor
+expects `AsyncValue`s that contain specific types. `TensorHandle`'s constructor
+does not accept `AsyncValue`s containing arbitrary types.
+
+##### `AsyncValueRef` conversions
+
+`AsyncValueRef` and `RCReference<AsyncValue>` are functionally equivalent so we
+often convert between the two as needed. For example:
+
+```c++
+// Convert RCReference<AsyncValue> to AsyncValueRef. This is an explicit
+// conversion because the contained type must be specified.
+RCReference<AsyncValue> generic_value = ...;
+AsyncValueRef<int32_t> typed_value(std::move(generic_value));
+```
+
+```c++
+// AsyncValueRef is implicitly convertible to RCReference<AsyncValue>.
+AsyncValueRef<int32_t> typed_value = ...;
+RCReference<AsyncValue> generic_value = std::move(typed_value);
+```
 
 ## Calling convention
 
@@ -76,14 +161,14 @@ Return Values
     references to keep the argument alive.
 
     For example, if a kernel wants to do some deferred work that needs an
-    argument, the kernel should call `FormRef` to create a new `RCReference` for
-    the argument, and transfer ownership of the `RCReference` to the deferred
-    work function:
+    argument, the kernel should call `Argument::ValueRef()` to create a new
+    `AsyncValueRef` for the argument, and transfer ownership of the
+    `AsyncValueRef` to the deferred work function:
 
     ```c++
      static void MyKernel(Argument<int32_t> in, HostContext* host) {
-       host->EnqueueWork([ref = FormRef(in.value())] {
-         // Use ref->get<int32_t>()
+       host->EnqueueWork([in_ref = in.ValueRef()] {
+         // Retrieve the int32_t value with in_ref.get().
        });
      }
     ```
@@ -93,24 +178,36 @@ Return Values
 For synchronous kernels, the `TFRT_KERNEL` macro manages all calling convention
 responsibilities. For asynchronous kernels, keep the following in mind:
 
-Arguments are "+0" values, so use `RCReference` to keep argument reference
+Arguments are "+0" values, so use `AsyncValueRef` to keep argument reference
 counts balanced.
 
 Return values are "+1" values, so each return value must have one reference that
-transfers to the caller. Newly constructed AsyncValues start with one reference,
-and this reference typically transfers to the caller. `RCReference` is still
-used to keep any additional references balanced.
+transfers to the caller. Newly constructed `AsyncValue`s start with one
+reference, and this reference typically transfers to the caller. `AsyncValueRef`
+is still used to keep any additional references balanced.
 
 Asynchronous kernels must add an additional reference on any argument or return
-value that they will use asynchronously. These additional refs are added and
-maintained with `FormRef`. For example:
+value that they will use asynchronously. For arguments, these additional refs
+are typically added and maintained with `Argument::ValueRef()`. For example:
 
 ```c++
-static void AsyncCopy(Argument<int32_t> in, Result<int32_t> out,
-                      HostContext* host) {
-  host->EnqueueWork([in_ref = FormRef(in.value()),
-                     out_ref = FormRef(out.Allocate())] {
-    out_ref->emplace(in_ref->get<int32_t>());
+static AsyncValueRef<int32_t> AsyncCopy(Argument<int32_t> in,
+                                        HostContext* host) {
+  return host->EnqueueWork(
+      [in_ref = in.ValueRef()] { return in_ref.get(); });
+}
+```
+
+For kernels that directly return `AsyncValueRef` like the example above, these
+additional refs are automatically added by the `TFRT_KERNEL` macro. For kernels
+that use the `Result` template, the additional ref is added by
+`Result::Allocate()`. For example:
+
+```c++
+static void TestAsyncCopy(Argument<int32_t> in, Result<int32_t> out,
+                          HostContext* host) {
+  host->EnqueueWork([in_ref = in.ValueRef(), out_ref = out.Allocate()] {
+    out_ref.emplace(in_ref.get());
   });
 }
 ```
@@ -134,12 +231,12 @@ static void CopyToTwo(Argument<int32_t> in, Result<int32_t> out_1,
 
 The following sections describe some `BEFExecutor` internals.
 
-### ConcreteAsyncValue and IndirectAsyncValue
+### `ConcreteAsyncValue` and `IndirectAsyncValue`
 
-`internal::ConcreteAsyncValue` (referred to as ConcreteAsyncValue with the
-internal:: prefix omitted below for brevity) and `IndirectAsyncValue` are the
-two key `AsyncValue` implementations in the executor. Clients generally use
-abstract `AsyncValue`s and don't need to understand the implementations.
+`internal::ConcreteAsyncValue` (with the `internal::` prefix omitted below for
+brevity) and `IndirectAsyncValue` are the two key `AsyncValue` implementations
+in the executor. Clients generally use abstract `AsyncValue`s and don't need to
+understand the implementations.
 
 Most instances of `AsyncValue` are `ConcreteAsyncValue`s.
 `ConcreteAsyncValue<T>` is an `AsyncValue` with inline storage for an instance
@@ -147,7 +244,7 @@ of `T`, so we create `ConcreteAsyncValue`s whenever the value's type is known.
 
 `IndirectAsyncValue`s are used when an `AsyncValue` is needed, but the C++ type
 is not yet known. As such, these are pretty uncommon, and mostly used for
-control flow kernels and in the internals of BEFExecutor.
+control flow kernels and in the internals of `BEFExecutor`.
 
 We generally try to avoid creating `IndirectAsyncValue`s for efficiency. The
 following sections show some examples of how `ConcreteAsyncValue` and
@@ -158,19 +255,20 @@ following sections show some examples of how `ConcreteAsyncValue` and
 Returning a new result value from a kernel is the most common way new
 `AsyncValues` are constructed. When a kernel returns a value, the kernel usually
 knows the return type, so most kernels construct and return a new
-`ConcreteAsyncValue` via `HostContext::ConstructAsyncValue`.
+`ConcreteAsyncValue` via `HostContext::MakeConcreteAsyncValueRef`.
 
 Some kernels do not know their return types when they return. Examples include
 non-strict control flow kernels like `hex.if` and `hex.repeat`. When the return
-types are unknown, these kernels return `IndirectAsyncValue`.
+types are unknown, these kernels return `IndirectAsyncValue` via
+`HostContext::MakeIndirectAsyncValue()`.
 
-#### Returning a result from an asynchronous BEF function may require an IndirectAsyncValue
+#### Returning a result from an asynchronous BEF function may require an `IndirectAsyncValue`
 
 When executing an asynchronous BEF function, there are two possibilities:
 
 1.  The asynchronous BEF function completes execution before
-    BEFExecutor::Execute returns.
-2.  The asynchronous BEF function is still running when BEFExecutor::Execute
+    `BEFExecutor::Execute` returns.
+2.  The asynchronous BEF function is still running when `BEFExecutor::Execute`
     returns.
 
 Case (1) is simple: the kernel that produced the BEF function's return value has
@@ -201,7 +299,7 @@ func @indirect_async_return(%c1: i32) -> i32 {
 }
 ```
 
-#### Passing an argument to a non-strict kernel may require an IndirectAsyncValue
+#### Passing an argument to a non-strict kernel may require an `IndirectAsyncValue`
 
 Non-strict kernels can start executing before all their arguments are ready. So
 when passing an argument to a non-strict kernel, there are two possibilities:
@@ -234,15 +332,15 @@ func @indirect_async_arg() {
   %v3 = "hex.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
 
   // BEFExecutor allocates an IndirectAsyncValue for %v3 because it must provide
-  // an AsyncValue for return_first_arg's second argument. This call is ready to
-  // run because it is nonstrict.
+  // an AsyncValue for return_first_arg's second argument. Note: all hex.call
+  // invocations are nonstrict by default.
   %x = hex.call @return_first_arg(%c1, %v3) : (i32, i32) -> i32
 
   hex.return
 }
 ```
 
-### BEFExecutor::Execute
+### `BEFExecutor::Execute`
 
 These basic principles of "+0" arguments and "+1" return values can compose in
 complex ways.
@@ -262,10 +360,10 @@ func @caller() -> (i32, i32) {
 ```
 
 In this example, `BEFExecutor::Execute` first executes `caller`, which contains
-a `hex.call`, which invokes a BEF function. `hex.call` creates a new BEFExecutor
-and recursively invokes Execute on `share`. `hex.call`'s kernel arguments and
-results (`%c1`, `%c2`) become the inner BEFExecutor's BEF function arguments and
-returns (`%x`).
+a `hex.call`, which invokes a BEF function. `hex.call` creates a new
+`BEFExecutor` and recursively invokes Execute on `share`. `hex.call`'s kernel
+arguments and results (`%c1`, `%c2`) become the inner `BEFExecutor`'s BEF
+function arguments and returns (`%x`).
 
 In this example, only one `AsyncValue` is created. The system does not copy
 `AsyncValue`s: `%x`, `%c1`, `%c2`, and `%c3` are all just pointers to the same
@@ -290,10 +388,10 @@ func @foo() -> () {
 `async_kernel` returns, and those `DropRef`s may destroy the values. But
 `async_kernel` is asynchronous, and `async_kernel` may still be running in the
 background when it returns control to `BEFExecutor`. If `async_kernel` needs to
-use its arguments or result values asynchronously, `async_kernel` must maintain
-its own `RCReferences` on those values to ensure that they remain live.
+use its arguments or result values asynchronously, `async_kernel` *must maintain
+its own `AsyncValueRef`s on those values* to ensure that they remain live.
 
-### Returning an IndirectAsyncValue
+### Returning an `IndirectAsyncValue`
 
 When a kernel generates a BEF function's return value, the executor may have
 already allocated an `IndirectAsyncValue` for the return value. If so, the
@@ -304,7 +402,7 @@ The underlying `AsyncValue` is typically a `ConcreteAsyncValue` with refcount 1,
 and so the underlying return value typically gets destroyed by
 `IndirectAsyncValue::DestructPayload`.
 
-### RegisterInfo::user_count
+### `RegisterInfo::user_count`
 
 The executor tracks `AsyncValues` in `RegisterInfo`s. These registers are used
 to forward results from one kernel to arguments to another kernel. Registers are
@@ -314,11 +412,11 @@ same `AsyncValue`.
 BEF files store [`NumUses`](binary_executable_format.md#function-definition) for
 each register. This is kept in `RegisterInfo::user_count`. `user_count` is
 function scoped: it does not track users across BEF function boundaries. When
-the register is set, we set the AsyncValue's refcount to `user_count`, and the
-executor drops one ref every time the register is used. In this example, the
-`user_count` for `%x` is 4:
+the register is set, we set the `AsyncValue`'s initial refcount to `user_count`.
+In this example, the `user_count` for `%x` is 4:
 
 ```c++
+// Initial refcount for %x is 4 (1 + 2 + 1).
 func @foo() -> (i32, i32) {
   // 1 use of %x here: setting %x counts as a use (see next section).
   %x = hex.constant.i32 42
@@ -334,27 +432,34 @@ func @foo() -> (i32, i32) {
 BEF files also store
 [`UsedBy` records](binary_executable_format.md#kernel-definition) for each
 kernel's result. These records direct the executor to downstream kernels that
-depend on the produced value. In the example above, `%x` has a `UsedBy` record
-for `hex.add.i32`, because `hex.add.i32` depends on `%x`.
+depend on the produced value. In the example above, `%x` has one `UsedBy` record
+for `hex.add.i32`, because `hex.add.i32` depends on `%x`. After running a
+kernel, the executor drops one ref every time a register is used. So in the
+example above, after executing `hex.constant.i32`, `%x`'s refcount drops to 3.
+And after executing `hex.add.i32`, `%x`'s refcount drops to 1.
 
-Note: *`hex.return` is not a kernel*. In the example above, `%x` does not have a
-`UsedBy` record for `hex.return`. Registers passed to `hex.return` are counted
-in `user_count`, but do not have `UsedBy` records for `hex.return`. This
-effectively gives each return value an extra ref, because `user_count` always
-adds a ref for `hex.return`, but there is no corresponding `DropRef`, because
-there is no kernel for `hex.return`. The executor uses this trick to transfer
-"+1" return values to the executor's caller.
+Note: *`hex.return` is not a kernel*. In the example above, `%x` does *not* have
+a `UsedBy` record for `hex.return`. Registers passed to `hex.return` are counted
+in `user_count`, but do not have `UsedBy` records. This effectively gives each
+return value an extra ref, because `user_count` always adds a ref for
+`hex.return`, but there is no corresponding `DropRef`, because there is no
+kernel to execute for `hex.return`. The executor uses this trick to transfer
+"+1" return values to the executor's caller: in the example above, note how `%x`
+conveniently has a refcount of 1 after `hex.add.i32` executes, so the executor
+does not need to adjust the returned value's refcount.
 
 #### Setting a register counts as a use
 
 Setting a register must count as a use to properly handle unused
-IndirectAsyncValues. Consider this example:
+`IndirectAsyncValue`s. Consider this example:
 
 ```c++
 // BEFExecutor allocates an IndirectAsyncValue for this function's return.
 func @make_indirect() -> i32 {
   %c1 = hex.constant.i32 1
   %v2 = "hex.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
+  // Executor can not execute this hex.async_add.i32 because %v2 is not
+  // available.
   %v3 = "hex.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
   hex.return %v3 : i32
 }
@@ -370,21 +475,33 @@ func @caller() {
 }
 ```
 
-In this example, the executor must allocate an IndirectAsyncValue for
+In this example, the executor must allocate an `IndirectAsyncValue` for
 `make_indirect`'s return value, because `%v3` is empty when `make_indirect`
 returns control back to `caller`.
 
-But `caller` does not use this return value. If we count users naively,
-`%unused` has no users, and so the executor would immediately destroy the
-IndirectAsyncValue, before `make_indirect` has a chance to forward it.
+But `caller` does not use this return value. If we counted users naively, `%v3`
+would be returned to `caller` with only 1 ref (returning `%v3` would be the only
+use). After control returns from `hex.call`, the executor would drop the only
+ref because `%unused` has no users. This would prematurely destroy the
+IndirectAsyncValue, before `make_indirect`'s `hex.async_add.i32` can
+asynchronously forward it.
 
-We fix this by always counting register assignment as an additional use, and
-increasing `RegisterInfo::user_count` by 1 to account for this additional use.
-In this example, `%v3` has a `user_count` of 2, and the second
-`hex.async_add.i32` will drop a ref after it asynchronously assigns `%v3`.
+We fix this by always counting register assignment as an additional use. This
+increases every register's `RegisterInfo::user_count` by 1. In this example,
+`%v3` has a `user_count` of 2 (setting `%v3` counts as one use and returning
+`%v3` counts as another), so `%v3` has an initial refcount of 2. Note that the
+second `hex.async_add.i32` only drops its ref on `%v3` *after* it asynchronously
+assigns `%v3`.
 
-So when control returns to `caller`, the `IndirectAsyncValue` has a refcount of
-2, and `caller` drops the +1 ref it received from `make_indirect` because
-`%unused` has no users. The `IndirectAsyncValue` still has one ref at this
-point, so it remains alive until `hex.async_add.i32` forwards the
-`IndirectAsyncValue`.
+So when control returns to `caller`, the `IndirectAsyncValue` still has its
+initial refcount of 2, and `caller` drops the +1 ref it received from
+`make_indirect` because `%unused` has no users. At this point the
+`IndirectAsyncValue` still has one ref, and so it remains alive until
+`hex.async_add.i32` finishes forwarding the `IndirectAsyncValue`.
+
+Note: as described in the [Implementing a kernel](#implementing-a-kernel)
+section, `hex.async_add.i32` will add a ref before it calls `EnqueueWork` to
+keep its output value alive. But in this example, the executor *can not execute*
+the second `hex.async_add.i32` kernel because the kernel's input `%v2` values
+are not available, so `hex.async_add.i32` does not get an opportunity to add a
+ref.

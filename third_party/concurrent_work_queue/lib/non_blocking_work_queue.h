@@ -55,6 +55,7 @@ class NonBlockingWorkQueue
   using Thread = typename Base::Thread;
   using PerThread = typename Base::PerThread;
   using ThreadData = typename Base::ThreadData;
+  using PendingTask = typename Base::PendingTask;
 
  public:
   explicit NonBlockingWorkQueue(int num_threads);
@@ -70,6 +71,8 @@ class NonBlockingWorkQueue
 
   using Base::GetPerThread;
   using Base::IsNotifyParkedThreadRequired;
+  using Base::IsQuiescing;
+  using Base::WithPendingTaskCounter;
 
   using Base::coprimes_;
   using Base::event_count_;
@@ -88,6 +91,9 @@ NonBlockingWorkQueue<ThreadingEnvironment>::NonBlockingWorkQueue(
 
 template <typename ThreadingEnvironment>
 void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {
+  // Keep track of the number of pending tasks.
+  if (IsQuiescing()) task = WithPendingTaskCounter(std::move(task));
+
   // If the worker queue is full, we will execute `task` in the current thread.
   llvm::Optional<TaskFunction> inline_task;
 
@@ -111,15 +117,17 @@ void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {
     Queue& q = thread_data_[rnd].queue;
     inline_task = q.PushBack(std::move(task));
   }
-  // Note: below we touch this after making w available to worker threads.
-  // Strictly speaking, this can lead to a racy-use-after-free. Consider that
-  // Schedule is called from a thread that is neither main thread nor a worker
-  // thread of this pool. Then, execution of w directly or indirectly
-  // completes overall computations, which in turn leads to destruction of
-  // this. We expect that such scenario is prevented by program, that is,
-  // this is kept alive while any threads can potentially be in Schedule.
+  // Note: below we touch `*this` after making `task` available to worker
+  // threads. Strictly speaking, this can lead to a racy-use-after-free.
+  // Consider that Schedule is called from a thread that is neither main thread
+  // nor a worker thread of this pool. Then, execution of `task` directly or
+  // indirectly completes overall computations, which in turn leads to
+  // destruction of this. We expect that such a scenario is prevented by the
+  // program, that is, this is kept alive while any threads can potentially be
+  // in Schedule.
   if (!inline_task.hasValue()) {
-    if (IsNotifyParkedThreadRequired()) event_count_.Notify(false);
+    if (IsNotifyParkedThreadRequired())
+      event_count_.Notify(/*notify_all=*/false);
   } else {
     (*inline_task)();  // Push failed, execute directly.
   }

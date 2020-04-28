@@ -37,8 +37,9 @@ class AsyncValue;
 
 // This is a pure virtual base class for concurrent work queue implementations.
 // This provides an abstraction for adding work items to a queue to be executed
-// later. Items are executed in a generally FIFO order, but can also be executed
-// in parallel across multiple worker threads.
+// later. Implementation is allowed to execute work items in any order,
+// potentially across multiple worker threads. Clients must not rely on any
+// specific execution order or the execution thread for correctness.
 //
 // Note that this is not a generic "thread pool" - it is intentionally limited.
 // It accepts two types of tasks, blocking tasks and non-blocking
@@ -48,7 +49,7 @@ class AsyncValue;
 //  * The items are implicitly parallel and require no locking or other
 //    synchronization between them.
 //  * The items never call blocking APIs that block the kernel thread they are
-//    running on.  They may perform arbitrary computation and enqueue other
+//    running on. They may perform arbitrary computation and enqueue other
 //    work though.
 //  * The workitems *are* allowed to take mutexes guarding short regions, even
 //    though they can technically block when under contention.
@@ -77,13 +78,22 @@ class ConcurrentWorkQueue {
 
  protected:
   // Enqueue a block of work. Thread-safe.
+  //
+  // If the work queue implementation has a fixed-size internal queue of pending
+  // work items, and it is full, it can choose to execute `work` in the caller
+  // thread.
   virtual void AddTask(TaskFunction work) = 0;
 
-  // Enqueue a blocking task. Thread-safe
+  // Enqueue a blocking task. Thread-safe.
+  //
+  // If `allow_queuing` is false, implementation must guarantee that work will
+  // start executing within a finite amount of time, even if all other blocking
+  // work currently executing will block infinitely.
+  //
   // Return empty optional if the work is enqueued successfully, otherwise,
   // returns the argument wrapped in an optional.
   LLVM_NODISCARD virtual Optional<TaskFunction> AddBlockingTask(
-      TaskFunction work) = 0;
+      TaskFunction work, bool allow_queuing) = 0;
 
   // Block until the specified values are available (either with a value or an
   // error result).

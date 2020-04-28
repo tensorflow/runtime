@@ -49,6 +49,9 @@ void RegisterSimpleTestKernels(KernelRegistry* registry);
 // Install some test native functions.
 void RegisterTestNativeFunctions(NativeFunctionRegistry* registry);
 
+// Install some kernels defined in tutorial.md.
+void RegisterTutorialKernels(KernelRegistry* registry);
+
 }  // namespace tfrt
 
 #endif  // TFRT_TEST_KERNELS_H_

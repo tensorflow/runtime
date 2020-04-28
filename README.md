@@ -229,6 +229,14 @@ $ bazel test -c opt //... -- -//third_party/...
 where `-//third_party/...` excludes tests specified in build files for
 third_party repositories.
 
+### Next Steps
+
+Try our [tutorial](documents/tutorial.md) for some hands-on experience with
+TFRT.
+
+See [host runtime design](documents/tfrt_host_runtime_design.md) for more
+details on TFRT's design.
+
 ## Repository Overview
 
 The three key directories under the TFRT root directory are

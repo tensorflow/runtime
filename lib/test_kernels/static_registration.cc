@@ -34,6 +34,7 @@ static void RegisterExampleKernels(KernelRegistry* registry) {
   RegisterAtomicTestKernels(registry);
   RegisterAsyncTestKernels(registry);
   RegisterSimpleTestKernels(registry);
+  RegisterTutorialKernels(registry);
 }
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterExampleKernels);

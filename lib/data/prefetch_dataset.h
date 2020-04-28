@@ -78,9 +78,10 @@ class PrefetchDatasetIterator : public Iterator<T...> {
   PrefetchDatasetIterator(const PrefetchDatasetIterator&) = delete;
   PrefetchDatasetIterator& operator=(const PrefetchDatasetIterator&) = delete;
 
-  AsyncValueRef<std::tuple<T...>> GetNext(Location loc) override {
+  AsyncValueRef<std::tuple<T...>> GetNext(
+      const ExecutionContext& exec_ctx) override {
     while (buffer_.size() < parent_dataset_->prefetch_num_) {
-      buffer_.push(input_iterator_->GetNext(loc));
+      buffer_.push(input_iterator_->GetNext(exec_ctx));
     }
     auto result = std::move(buffer_.front());
     buffer_.pop();

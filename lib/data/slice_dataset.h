@@ -71,7 +71,8 @@ class SliceDatasetIterator : public Iterator<T> {
         iterator_(std::move(iterator)),
         end_(std::move(end)) {}
 
-  AsyncValueRef<std::tuple<T>> GetNext(Location loc) override {
+  AsyncValueRef<std::tuple<T>> GetNext(
+      const ExecutionContext& exec_ctx) override {
     auto* host = IteratorBase::host_;
     if (iterator_ == end_) {
       return AsyncValueRef<std::tuple<T>>();
@@ -98,7 +99,8 @@ class SliceDatasetIterator : public Iterator<T> {
 // reference.
 template <>
 inline AsyncValueRef<std::tuple<DenseHostTensor>>
-SliceDatasetIterator<DenseHostTensor>::GetNext(Location loc) {
+SliceDatasetIterator<DenseHostTensor>::GetNext(
+    const ExecutionContext& exec_ctx) {
   auto* host = parent_dataset_->host_;
   if (iterator_ == end_) {
     return AsyncValueRef<std::tuple<DenseHostTensor>>();

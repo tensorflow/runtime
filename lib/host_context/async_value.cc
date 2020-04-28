@@ -21,7 +21,6 @@
 #include "tfrt/host_context/async_value.h"
 
 #include "llvm/ADT/FunctionExtras.h"
-#include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/concurrent_vector.h"

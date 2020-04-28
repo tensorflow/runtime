@@ -251,27 +251,27 @@ static void SoftMaxInPlace(ArgumentView<MutableDHTArrayView<float>> A,
 static AsyncValueRef<Chain> GradientDescent(
     Argument<DenseHostTensor> gradient,
     ArgumentView<MutableDHTArrayView<float>> lr,
-    Argument<DenseHostTensor> output, Location loc) {
+    Argument<DenseHostTensor> output, const ExecutionContext& exec_ctx) {
   if (lr->NumElements() != 1) {
-    return AsyncValueRef<Chain>(
-        loc.EmitErrorAsync("GradientDescent lr should have only one element"));
+    return EmitErrorAsync(exec_ctx,
+                          "GradientDescent lr should have only one element");
   }
 
   float learning_rate = lr->Elements()[0];
 
   auto fn = [learning_rate](auto& a, auto& b) { return b - a * learning_rate; };
   return UnaryEigenKernelAsync<float, float>(gradient.get(), &output.get(),
-                                             std::move(fn), loc);
+                                             std::move(fn), exec_ctx);
 }
 
 // Computes output -= input.
 template <typename T>
 static AsyncValueRef<Chain> ElementwiseSubtractInPlace(
     Argument<DenseHostTensor> input, Argument<DenseHostTensor> output,
-    Location loc) {
+    const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) { return b - a; };
   return UnaryEigenKernelAsync<T, T>(input.get(), &output.get(), std::move(fn),
-                                     loc);
+                                     exec_ctx);
 }
 
 template <typename T>

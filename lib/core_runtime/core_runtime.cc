@@ -29,6 +29,7 @@
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
@@ -65,15 +66,6 @@ class OpHandlerRegistry {
   std::vector<std::unique_ptr<OpHandler>> all_op_handlers_;
 };
 
-class DefaultLocationHandler final : public LocationHandler {
- public:
-  explicit DefaultLocationHandler(HostContext* host) : LocationHandler{host} {}
-
-  DecodedLocation DecodeLocation(Location loc) const override {
-    return DecodedLocation{};
-  }
-};
-
 }  // namespace
 
 OpHandlerFactory& OpHandlerFactory::GetGlobalOpHandlerFactory() {
@@ -89,8 +81,7 @@ class CoreRuntime::Impl {
        std::unique_ptr<HostAllocator> allocator,
        std::unique_ptr<ConcurrentWorkQueue> work_queue)
       : context_(std::move(diag_handler), std::move(allocator),
-                 std::move(work_queue)),
-        default_location_handler_{&context_} {}
+                 std::move(work_queue)) {}
 
   HostContext* GetHostContext() { return &context_; }
 
@@ -114,7 +105,6 @@ class CoreRuntime::Impl {
   HostContext context_;
 
   OpHandlerRegistry op_handler_registry_;
-  const DefaultLocationHandler default_location_handler_;
 };
 
 void CoreRuntime::Impl::Execute(string_view op_name, OpHandler* op_handler,
@@ -123,22 +113,22 @@ void CoreRuntime::Impl::Execute(string_view op_name, OpHandler* op_handler,
                                 const OpAttrsRef& attrs,
                                 MutableArrayRef<TensorHandle> results,
                                 AsyncValueRef<Chain>* chain) {
-  if (!loc) {
-    loc = Location(&default_location_handler_, 0);
-  }
-
   TFRT_TRACE_KERNEL_SCOPE(
       StrCat(op_name, "#op_handler=", op_handler->GetName()));
+
+  ExecutionContext exec_ctx{GetHostContext()};
+  exec_ctx.set_location(loc);
 
   // Ask the op_handler to execute the op.  If successful, we're done.
   auto op_handle = op_handler->MakeOp(op_name);
   if (op_handle) {
-    op_handle.get()(loc, arguments, attrs, results, chain);
+    op_handle.get()(exec_ctx, arguments, attrs, results, chain);
     return;
   }
 
   // Otherwise, we fail with an 'unknown op' error.
-  auto err = loc.EmitErrorAsync("op '" + op_name.str() + "' is not supported");
+  auto err =
+      EmitErrorAsync(exec_ctx, "op '" + op_name.str() + "' is not supported");
   for (auto& result : results)
     result = TensorHandle(err.CopyRef(), err.CopyRef());
 

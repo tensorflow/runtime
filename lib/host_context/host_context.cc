@@ -122,36 +122,6 @@ void HostContext::Restart() {
   }
 }
 
-DecodedDiagnostic Location::EmitError(string_view message) const {
-  assert(handler_ && "Cannot emit an error to a null Location!");
-  return handler_->EmitError(*this, message);
-}
-
-DecodedDiagnostic LocationHandler::EmitError(Location loc,
-                                             string_view message) const {
-  auto decoded_loc = DecodeLocation(loc);
-  auto diag = DecodedDiagnostic(decoded_loc, message);
-
-  host_->EmitError(diag);
-  return diag;
-}
-
-// Emit an error due to a dynamic condition that didn't work out right,
-// such as a shape error, and return an AsyncValue corresponding to the
-// result.
-//
-// For consistency, the error message should start with a lower case letter
-// and not end with a period.
-RCReference<ErrorAsyncValue> Location::EmitErrorAsync(
-    string_view message) const {
-  assert(handler_ && "Cannot emit an error to a null Location!");
-  return handler_->GetHost()->MakeErrorAsyncValueRef(EmitError(message));
-}
-
-RCReference<ErrorAsyncValue> Location::EmitErrorAsync(llvm::Error error) const {
-  return EmitErrorAsync(StrCat(error));
-}
-
 //===----------------------------------------------------------------------===//
 // Memory Management
 //===----------------------------------------------------------------------===//

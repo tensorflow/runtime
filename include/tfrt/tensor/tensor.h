@@ -28,7 +28,6 @@
 namespace tfrt {
 class HostContext;
 class HostTensor;
-class Location;
 
 // A Tensor is a hyper-rectangular array of values, and the Tensor class is the
 // common base class for all tensor implementations in TFRT.

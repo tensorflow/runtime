@@ -111,10 +111,11 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
-  AsyncValueRef<std::tuple<OutputTypes...>> GetNext(Location loc) override {
+  AsyncValueRef<std::tuple<OutputTypes...>> GetNext(
+      const ExecutionContext& exec_ctx) override {
     auto* host = IteratorBase::host_;
     const Function* map_fn = parent_dataset_->map_fn_.get();
-    auto args = input_iterator_->GetNext(loc);
+    auto args = input_iterator_->GetNext(exec_ctx);
     if (!args) {
       return AsyncValueRef<std::tuple<OutputTypes...>>();
     }

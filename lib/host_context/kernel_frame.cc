@@ -26,45 +26,23 @@
 namespace tfrt {
 
 void KernelFrame::ReportError(string_view msg) {
-  auto diag = location_.EmitError(msg);
-
   bool has_set_error = false;
 
-  RCReference<AsyncValue> error_value;
+  RCReference<ErrorAsyncValue> error_value = EmitErrorAsync(exec_ctx_, msg);
 
   // Set any unavailable ConcreteAsyncValue to error and use that as error_value
-  // for other results. We prefer reusing ConcreteAsyncValue instead of
-  // allocating a new AsyncValue in error state for unset results or indirect
-  // results.
-  for (auto& result : GetResults()) {
-    if (result && result->IsUnavailable()) {
-      result->SetError(diag);
-      has_set_error = true;
-
-      if (!error_value) {
-        result->AddRef();
-        error_value.reset(result);
-      }
-    }
-  }
-
-  // If no error_value is set, create one.
-  if (!error_value) {
-    auto diag_copy = diag;
-    error_value = host_->MakeErrorAsyncValueRef(std::move(diag_copy));
-  }
-
-  // Set unset results to error AsyncValue.
+  // for other results.
   for (auto& result : GetResults()) {
     if (!result) {
       // Must AddRef on each iteration.
       result = error_value.CopyRef().release();
       has_set_error = true;
     } else if (result->IsUnavailable()) {
-      result->SetError(diag);
+      result->SetError(error_value->GetError());
       has_set_error = true;
     }
   }
+
   assert(has_set_error && "ReportError must set at least one error");
 }
 

@@ -82,12 +82,13 @@ static AsyncValueRef<HostTensor> TfAddOp(const HostTensor& lhs,
 
 static void TfMatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
                        const OpAttrsRef& attrs, const TensorMetadata& dest_md,
-                       RCReference<AsyncValue>* dest, Location loc) {
-  auto* host = loc.GetHost();
+                       RCReference<AsyncValue>* dest,
+                       const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
-    *dest = loc.EmitErrorAsync("out of memory allocating result");
+    *dest = EmitErrorAsync(exec_ctx, "out of memory allocating result");
     return;
   }
 
@@ -100,7 +101,7 @@ static void TfMatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
   // Computes C = A @ B.
   switch (lhs.dtype().kind()) {
     default:
-      *dest = loc.EmitErrorAsync("unsupported dtype for matmul");
+      *dest = EmitErrorAsync(exec_ctx, "unsupported dtype for matmul");
       return;
 #define DTYPE_NUMERIC(ENUM)                                    \
   case DType::ENUM:                                            \
@@ -118,25 +119,25 @@ static void TfMatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
 // tf.Relu op
 //===----------------------------------------------------------------------===//
 
-static AsyncValueRef<DenseHostTensor> TfReluOp(const DenseHostTensor& A,
-                                               const TensorMetadata& B_md,
-                                               Location loc) {
-  auto* host = loc.GetHost();
+static AsyncValueRef<DenseHostTensor> TfReluOp(
+    const DenseHostTensor& A, const TensorMetadata& B_md,
+    const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   auto dest = DenseHostTensor::CreateUninitialized(B_md, host);
   if (!dest) {
-    return loc.EmitErrorAsync("out of memory allocating result");
+    return EmitErrorAsync(exec_ctx, "out of memory allocating result");
   }
 
   AsyncValueRef<Chain> chain;
   switch (A.dtype().kind()) {
     default:
-      chain.EmitError(loc, "unsupported dtype for relu");
+      chain = EmitErrorAsync(exec_ctx, "unsupported dtype for relu");
       break;
 #define DTYPE_NUMERIC(ENUM)                                \
   case DType::ENUM:                                        \
     chain = cpu::Relu<EigenTypeForDTypeKind<DType::ENUM>>( \
-        A, dest.getPointer(), loc);                        \
+        A, dest.getPointer(), exec_ctx);                   \
     break;
 #include "tfrt/tensor/dtype.def"  // NOLINT
   }

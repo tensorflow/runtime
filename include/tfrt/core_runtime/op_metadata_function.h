@@ -29,7 +29,7 @@
 
 namespace tfrt {
 class AsyncValue;
-class Location;
+class ExecutionContext;
 class OpAttrsRef;
 class TensorMetadata;
 
@@ -42,7 +42,7 @@ class TensorMetadata;
 
 using OpMetadataFn = RCReference<AsyncValue> (*)(
     ArrayRef<TensorMetadata> inputs, const OpAttrsRef& attrs,
-    MutableArrayRef<TensorMetadata> results, Location loc);
+    MutableArrayRef<TensorMetadata> results, const ExecutionContext& exec_ctx);
 }  // namespace tfrt
 
 #endif  // TFRT_CORE_RUNTIME_OP_METADATA_FUNCTION_H_

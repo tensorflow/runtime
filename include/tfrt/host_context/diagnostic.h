@@ -25,8 +25,11 @@
 
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/string_util.h"
 
 namespace tfrt {
+
+class ExecutionContext;
 
 // This is a simple representation of a decoded diagnostic.
 struct DecodedDiagnostic {
@@ -40,6 +43,13 @@ struct DecodedDiagnostic {
 };
 
 raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diagnostic);
+
+DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
+                            string_view message);
+template <typename... Args>
+DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx, Args&&... args) {
+  return EmitError(exec_ctx, string_view{StrCat(std::forward<Args>(args)...)});
+}
 
 }  // namespace tfrt
 

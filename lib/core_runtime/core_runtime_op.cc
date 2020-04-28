@@ -34,14 +34,14 @@ CoreRuntimeOp::CoreRuntimeOp(
     llvm::unique_function<void(const OpInvocation&)>&& fn, bool is_fallback)
     : fn_(std::move(fn)), is_fallback_(is_fallback) {}
 
-void CoreRuntimeOp::operator()(Location loc,
+void CoreRuntimeOp::operator()(const ExecutionContext& exec_ctx,
                                MutableArrayRef<TensorHandle> arguments,
                                const OpAttrsRef& attrs,
                                MutableArrayRef<TensorHandle> results,
                                AsyncValueRef<Chain>* chain) {
   // TODO(fishx): Consider removing op_name from OpInvocation after migrating
   // all clients to Prepare API.
-  OpInvocation invocation{.loc = loc,
+  OpInvocation invocation{.exec_ctx = exec_ctx,
                           .arguments = arguments,
                           .attrs = attrs,
                           .results = results,

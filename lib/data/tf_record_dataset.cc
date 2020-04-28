@@ -72,7 +72,7 @@ std::unique_ptr<Iterator<std::string>> TFRecordDataset::MakeIterator() {
 // Implementation for TFRecordDatasetIterator member functions
 //===----------------------------------------------------------------------===//
 AsyncValueRef<std::tuple<std::string>> TFRecordDatasetIterator::GetNext(
-    Location loc) {
+    const ExecutionContext& exec_ctx) {
   auto* host = IteratorBase::host_;
   bool eof = false;
   auto result = ReadRecord(&eof);
@@ -80,7 +80,7 @@ AsyncValueRef<std::tuple<std::string>> TFRecordDatasetIterator::GetNext(
     return AsyncValueRef<std::tuple<std::string>>();
   }
   if (!result) {
-    return loc.EmitErrorAsync(result.takeError());
+    return EmitErrorAsync(exec_ctx, result.takeError());
   }
   return host->MakeConcreteAsyncValueRef<std::tuple<std::string>>(
       std::move(*result));

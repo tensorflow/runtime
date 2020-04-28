@@ -24,7 +24,7 @@
 #define TFRT_CORE_RUNTIME_OP_INVOCATION_H_
 
 #include "llvm/ADT/ArrayRef.h"
-#include "tfrt/host_context/location.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -44,12 +44,13 @@ struct OpInvocation {
   // This is the name of the op to invoke, e.g. "tf.Add".
   string_view op_name;
 
-  // Source location of the op invocation.
-  Location loc;
+  // The ExecutionContext of the op invocation.
+  ExecutionContext exec_ctx;
 
   // This is the input arguments to an op invocation.  Note that this is a
-  // MutableArrayRef because invocation of the op will generally take (and null
-  // out) the input TensorHandles in order to implement in-place optimizations.
+  // MutableArrayRef because invocation of the op will generally take (and
+  // null out) the input TensorHandles in order to implement in-place
+  // optimizations.
   MutableArrayRef<TensorHandle> arguments;
 
   // The attributes for the op invocation.

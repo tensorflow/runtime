@@ -75,7 +75,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
   // dispatch performance.
   TFRT_TRACE_SCOPE("RunMetadataFunction");
   if (auto error = metadata_fn(argument_mds, invocation.attrs, result_mds,
-                               invocation.loc)) {
+                               invocation.exec_ctx)) {
     // If the metadata function produced an error, propagate it.
     propagate_error(std::move(error));
     return MDFunctionExecResult::kError;
@@ -84,8 +84,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
   return MDFunctionExecResult::kSuccess;
 }
 
-void ExecuteWhenMetadataIsReady(HostContext* host,
-                                const OpInvocation& invocation,
+void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
                                 const OpMetadataFn& metadata_fn,
                                 bool update_chain,
                                 MetadataIsReadyCallback callback) {
@@ -111,6 +110,8 @@ void ExecuteWhenMetadataIsReady(HostContext* host,
   // is the metadata result, and one is the tensor result.
   SmallVector<RCReference<AsyncValue>, 8> result_th_avs;
   result_th_avs.reserve(results.size() * 2);
+
+  auto host = invocation.exec_ctx.host();
 
   // Prepopulate result_th_avs's.
   for (auto& result : results) {
@@ -142,9 +143,9 @@ void ExecuteWhenMetadataIsReady(HostContext* host,
 
   host->RunWhenReady(
       async_mds,
-      [metadata_fn, callback = std::move(callback), loc = invocation.loc,
-       frozen_attrs = invocation.attrs.freeze(), chain = std::move(chain_ref),
-       result_th_avs = std::move(result_th_avs),
+      [metadata_fn, callback = std::move(callback),
+       exec_ctx = invocation.exec_ctx, frozen_attrs = invocation.attrs.freeze(),
+       chain = std::move(chain_ref), result_th_avs = std::move(result_th_avs),
        arguments = std::move(arguments_copy)]() mutable {
         auto num_results = result_th_avs.size() / 2;
 
@@ -178,7 +179,7 @@ void ExecuteWhenMetadataIsReady(HostContext* host,
         // function to get the result shapes.
         SmallVector<TensorMetadata, 4> result_mds(num_results);
         if (auto error =
-                metadata_fn(argument_mds, frozen_attrs, result_mds, loc)) {
+                metadata_fn(argument_mds, frozen_attrs, result_mds, exec_ctx)) {
           // If the metadata function produced an error, propagate it.
           return propagate_error(error.get());
         }
@@ -191,8 +192,8 @@ void ExecuteWhenMetadataIsReady(HostContext* host,
 
         // Now that we have the result shapes, we can run/enqueue the kernel.
         SmallVector<AsyncValueRef<Tensor>, 8> result_tensor_avs;
-        callback(loc, arguments, frozen_attrs, result_mds.size(), result_mds,
-                 &result_tensor_avs, &chain);
+        callback(exec_ctx, arguments, frozen_attrs, result_mds.size(),
+                 result_mds, &result_tensor_avs, &chain);
 
         // Now that we have the AsyncValue's for the result tensors, we can fill
         // in the IndirectAsyncValue's for the TensorHandle results.

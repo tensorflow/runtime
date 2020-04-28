@@ -31,7 +31,8 @@ namespace tfrt {
 // TODO(fishx): Let it take CompositeOpHandler* as input.
 static Chain RegisterCompositeOp(Argument<OpHandler *> op_handler,
                                  StringAttribute name,
-                                 Attribute<Function> fn_const, Location loc) {
+                                 Attribute<Function> fn_const,
+                                 const ExecutionContext &exec_ctx) {
   auto *fn_op_handler = static_cast<CompositeOpHandler *>(op_handler.get());
   RCReference<Function> fn = FormRef(const_cast<Function *>(&(*fn_const)));
 

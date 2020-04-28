@@ -55,8 +55,7 @@ CoreRuntimeDriver::CoreRuntimeDriver(const std::string& op_handler)
 
 CoreRuntimeDriver::CoreRuntimeDriver(std::unique_ptr<CoreRuntime> corert,
                                      const std::string& op_handler)
-    : LocationHandler(corert->GetHostContext()),
-      corert_(std::move(corert)),
+    : corert_(std::move(corert)),
       op_handler_(corert_->GetOpHandler(op_handler)),
       chain_(corert_->GetHostContext()->MakeConcreteAsyncValueRef<Chain>()) {
   assert(op_handler_);

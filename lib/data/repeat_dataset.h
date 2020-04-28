@@ -76,12 +76,13 @@ class RepeatDatasetIterator : public Iterator<T...> {
   RepeatDatasetIterator(const RepeatDatasetIterator&) = delete;
   RepeatDatasetIterator& operator=(const RepeatDatasetIterator&) = delete;
 
-  AsyncValueRef<std::tuple<T...>> GetNext(Location loc) override {
-    auto value = input_iterator_->GetNext(loc);
+  AsyncValueRef<std::tuple<T...>> GetNext(
+      const ExecutionContext& exec_ctx) override {
+    auto value = input_iterator_->GetNext(exec_ctx);
     if (!value && epoch_ + 1 < parent_dataset_->epochs_) {
       epoch_++;
       input_iterator_ = parent_dataset_->input_dataset_->MakeIterator();
-      return input_iterator_->GetNext(loc);
+      return input_iterator_->GetNext(exec_ctx);
     }
 
     return value;

@@ -47,6 +47,7 @@ class CoreRuntimeDriver final : public LocationHandler {
                MutableArrayRef<TensorHandle> results);
 
   CoreRuntimeOp MakeOp(string_view op_name);
+  HostContext* GetHostContext() const { return corert_->GetHostContext(); }
 
   // Create a encoded Location object.
   Location CreateLocation(const char* filename, int line_number);

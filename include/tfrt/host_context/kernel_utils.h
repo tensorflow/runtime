@@ -401,7 +401,7 @@ class KernelErrorHandler {
     return frame_->EmitError(std::forward<Args>(args)...);
   }
 
-  const Location& GetLocation() const { return frame_->GetLocation(); }
+  Location GetLocation() const { return frame_->GetLocation(); }
 
  private:
   KernelFrame* frame_;
@@ -834,13 +834,13 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // If this kernel requires the location for some reason, pass it as an
   // argument.
   template <typename... Tail>
-  struct SyncKernelCallHelper<Location, Tail...> {
+  struct SyncKernelCallHelper<const ExecutionContext&, Tail...> {
     template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
               bool has_in_chain, typename... PreviousArgs>
     static void Invoke(KernelFrame* frame, const PreviousArgs&... pargs) {
       SyncKernelCallHelper<Tail...>::template Invoke<
           in_idx, out_idx, const_idx, has_kernel_error, has_in_chain>(
-          frame, pargs..., frame->GetLocation());
+          frame, pargs..., frame->GetExecutionContext());
     }
   };
 

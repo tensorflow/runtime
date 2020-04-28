@@ -36,6 +36,8 @@
 
 namespace tfrt {
 
+class ExecutionContext;
+
 template <typename T>
 class AsyncValueRef {
  public:
@@ -127,10 +129,6 @@ class AsyncValueRef {
     value_->SetError(DecodedDiagnostic(error));
   }
 
-  void EmitError(Location loc, string_view message) const {
-    value_->SetError(loc.EmitError(message));
-  }
-
   explicit operator bool() const { return value_.get() != nullptr; }
 
   // Return a raw pointer to the AsyncValue.
@@ -161,6 +159,16 @@ class AsyncValueRef {
  private:
   RCReference<AsyncValue> value_;
 };
+
+// For consistency, the error message should start with a lower case letter
+// and not end with a period.
+// TODO(b/154971298): Add the error message convention to
+// documents/error_handling.md.
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            string_view message);
+
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            llvm::Error error);
 
 }  // namespace tfrt
 

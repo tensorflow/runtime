@@ -32,10 +32,7 @@
 
 namespace tfrt {
 
-class DecodedDiagnostic;
-class HostContext;
 class LocationHandler;
-class ErrorAsyncValue;
 
 // This is a simple representation of a source location. The
 // filename/line/column are all optional.
@@ -57,29 +54,7 @@ class Location {
   // false.
   explicit operator bool() const { return handler_ != nullptr; }
 
-  // Return the host for a location.  This will return null if the Location is
-  // default constructed or otherwise null.
-  HostContext *GetHost() const;
-
   DecodedLocation Decode() const;
-
-  // Emit an error due to a dynamic condition that didn't work out right, such
-  // as a shape error.
-  //
-  // For consistency, the error message should start with a lower case letter
-  // and not end with a period.
-  DecodedDiagnostic EmitError(string_view message) const;
-
-  // Emit an error due to a dynamic condition that didn't work out right,
-  // such as a shape error, and return an AsyncValue corresponding to the
-  // result.
-  //
-  // For consistency, the error message should start with a lower case letter
-  // and not end with a period.
-  //
-  RCReference<ErrorAsyncValue> EmitErrorAsync(string_view message) const;
-
-  RCReference<ErrorAsyncValue> EmitErrorAsync(llvm::Error error) const;
 
   // Opaque implementation details of this location, only interpretable by the
   // location handler.
@@ -93,34 +68,19 @@ class Location {
 // This is a virtual base class used by things that create locations.
 class LocationHandler {
  public:
-  HostContext *GetHost() const { return host_; }
-
   virtual DecodedLocation DecodeLocation(Location loc) const = 0;
 
-  virtual DecodedDiagnostic EmitError(Location loc, string_view message) const;
-
  protected:
-  explicit LocationHandler(HostContext *host) : host_(host) {}
-
   // This intentionally does not have a virtual destructor, since the object
   // should never be destroyed through this.
   ~LocationHandler() {}
 
  private:
   virtual void VtableAnchor();
-
-  /// This is the host context that owns this LocationHandler.
-  HostContext *host_;
 };
 
-// Return the host for a location.  This will return null if the Location is
-// default constructed or otherwise null.
-inline HostContext *Location::GetHost() const {
-  return handler_ ? handler_->GetHost() : nullptr;
-}
-
 inline DecodedLocation Location::Decode() const {
-  assert(handler_);
+  if (!handler_) return DecodedLocation();
   return handler_->DecodeLocation(*this);
 }
 

@@ -31,6 +31,7 @@
 
 #include "dataset.h"
 #include "llvm/ADT/SmallVector.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/string_util.h"
@@ -177,7 +178,8 @@ class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
   BatchDatasetIterator(const BatchDatasetIterator&) = delete;
   BatchDatasetIterator& operator=(const BatchDatasetIterator&) = delete;
 
-  AsyncValueRef<DHTTuple<sizeof...(T)>> GetNext(Location loc) override;
+  AsyncValueRef<DHTTuple<sizeof...(T)>> GetNext(
+      const ExecutionContext& exec_ctx) override;
 
  private:
   RCReference<BatchDataset<T...>> parent_dataset_;
@@ -191,12 +193,12 @@ std::unique_ptr<DHTIterator<sizeof...(T)>> BatchDataset<T...>::MakeIterator() {
 
 template <typename... T>
 AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
-    Location loc) {
+    const ExecutionContext& exec_ctx) {
   auto* host = IteratorBase::host_;
   llvm::SmallVector<RCReference<AsyncValue>, 4> async_values;
   // Get up to batch_size values from the underlying iterator.
   for (int i = 0; i < parent_dataset_->batch_size_; i++) {
-    auto async_value = input_iterator_->GetNext(loc);
+    auto async_value = input_iterator_->GetNext(exec_ctx);
     if (!async_value) {
       break;
     }
@@ -209,15 +211,15 @@ AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
     return AsyncValueRef<DHTTuple<sizeof...(T)>>();
   }
 
-  auto async_result =
-      host->template MakeUnconstructedAsyncValueRef<DHTTuple<sizeof...(T)>>();
   SmallVector<AsyncValue*, 4> async_value_ptrs;
   // Translate RCReference<AsyncValue> to AsyncValue*.
   for (auto& async_value : async_values) {
     async_value_ptrs.push_back(async_value.get());
   }
+  auto async_result =
+      host->template MakeUnconstructedAsyncValueRef<DHTTuple<sizeof...(T)>>();
   host->RunWhenReady(
-      async_value_ptrs, [loc, async_values = std::move(async_values),
+      async_value_ptrs, [exec_ctx, async_values = std::move(async_values),
                          async_result = async_result.CopyRef(),
                          parent_dataset = parent_dataset_.CopyRef()] {
         std::vector<std::tuple<T...>> values;
@@ -232,7 +234,7 @@ AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
         }
         auto result = TuplesToDHTs<T...>(values, parent_dataset->allocator_);
         if (!result) {
-          async_result.SetError(loc.EmitError(StrCat(result.takeError())));
+          async_result.SetError(EmitError(exec_ctx, result.takeError()));
           return;
         }
         async_result.emplace(std::move(*result));

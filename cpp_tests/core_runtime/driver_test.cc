@@ -256,8 +256,11 @@ void BM_CpuMakeOpDriverTest(benchmark::State& state) {
 
     tfrt::TensorHandle matmul_args[2] = {a1.CopyRef(), a1.CopyRef()};
     tfrt::TensorHandle a4;
-    matmul_op(driver.CreateLocation(__FILE__, __LINE__), matmul_args,
-              matmul_attrs_ref, a4, /*chain=*/nullptr);
+
+    ExecutionContext exec_ctx{driver.GetHostContext()};
+    exec_ctx.set_location(driver.CreateLocation(__FILE__, __LINE__));
+
+    matmul_op(exec_ctx, matmul_args, matmul_attrs_ref, a4, /*chain=*/nullptr);
   }
 }
 BENCHMARK(BM_CpuMakeOpDriverTest);

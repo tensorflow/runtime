@@ -75,7 +75,8 @@ struct FunctionOpHandlerTraits {
   using OpEntryTy = FunctionOpEntry;
 
   static bool MaybeConvertTensor(const FunctionOpEntry& op_entry,
-                                 const Tensor& arg_tensor, Location loc,
+                                 const Tensor& arg_tensor,
+                                 const ExecutionContext& exec_ctx,
                                  RCReference<AsyncValue>* converted) {
     return false;
   }
@@ -84,9 +85,9 @@ struct FunctionOpHandlerTraits {
                        ArrayRef<AsyncValue*> inputs, const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host) {
-    op_entry.dispatch_fn->Execute(inputs, results, host);
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx) {
+    op_entry.dispatch_fn->Execute(inputs, results, exec_ctx.host());
   }
 };
 
@@ -111,7 +112,6 @@ Expected<CoreRuntimeOp> CompositeOpHandler::MakeOp(string_view op_name) {
         FunctionOpEntry op_entry{.metadata_fn = metadata_fn,
                                  .dispatch_fn = dispatch_fn.CopyRef()};
         return ExecuteOnOpHandler<FunctionOpHandlerTraits>(
-            host,
             /*update_chain=*/false, invocation, std::move(op_entry));
       });
 }

@@ -185,11 +185,11 @@ std::unique_ptr<Iterator<T...>> MakeIteratorFromDataset(
 // end prior to the method invocation.
 template <typename... T>
 AsyncValueRef<std::tuple<T...>> IteratorGetNext(
-    RCReference<Iterator<T...>>* iterator, Chain chain, HostContext* host,
-    Location loc) {
-  auto value = (*iterator)->GetNext(loc);
+    RCReference<Iterator<T...>>* iterator, Chain chain,
+    const ExecutionContext& exec_ctx) {
+  auto value = (*iterator)->GetNext(exec_ctx);
   if (!value) {
-    return loc.EmitErrorAsync("iterator reached end");
+    return EmitErrorAsync(exec_ctx, "iterator reached end");
   }
 
   return value;
@@ -213,8 +213,8 @@ AsyncValueRef<std::tuple<T...>> IteratorGetNext(
 // 3) The outputs of the 'body_fn' of the last iteration will be used as the
 // outputs of the kernel.
 static void EnumerateIterator(RemainingArguments args, RemainingResults results,
-                              Attribute<Function> body_fn, Location loc,
-                              HostContext* host) {
+                              Attribute<Function> body_fn,
+                              const ExecutionContext& exec_ctx) {
   assert(args.size() - 1 == results.size() &&
          "argument count should be one larger than the results count");
 
@@ -236,7 +236,7 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
   // available.
   while (true) {
     SmallVector<RCReference<AsyncValue>, 4> values_and_bool =
-        iterator->GetNextUntyped(loc);
+        iterator->GetNextUntyped(exec_ctx);
     auto& has_next = values_and_bool[values_and_bool.size() - 1];
     if (has_next->IsAvailable() && !has_next->get<bool>()) {
       break;
@@ -251,12 +251,12 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
       fn_args[values_and_bool.size() - 1 + i] = fn_results[i].release();
     }
 
-    body_fn_ptr->Execute(fn_args, fn_results, host);
+    body_fn_ptr->Execute(fn_args, fn_results, exec_ctx.host());
     for (int i = 0; i < fn_args.size(); i++) {
       fn_args[i]->DropRef();
     }
 
-    if (auto cancel_av = host->GetCancelAsyncValue()) {
+    if (auto cancel_av = exec_ctx.host()->GetCancelAsyncValue()) {
       // Cancellation detected. Set results to the cancel async value and
       // return.
       for (int i = 0; i < num_results; i++) {

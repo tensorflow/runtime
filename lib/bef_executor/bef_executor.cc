@@ -152,18 +152,21 @@ AsyncValue* SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
 class BEFLocationHandler final : public LocationHandler,
                                  public ReferenceCounted<BEFLocationHandler> {
  public:
-  BEFLocationHandler(HostContext* context, BEFFileImpl* bef_file)
-      : LocationHandler(context), bef_file_(FormRef(bef_file)) {}
+  BEFLocationHandler(HostContext* host, BEFFileImpl* bef_file)
+      : host_{host}, bef_file_(FormRef(bef_file)) {}
 
-  void Destroy() { GetHost()->Destruct(this); }
+  void Destroy() { host_->Destruct(this); }
 
   DecodedLocation DecodeLocation(Location loc) const override {
     return bef_file_->DecodeLocation(loc.data);
   }
 
+  HostContext* GetHost() const { return host_; }
+
  private:
   friend class ReferenceCounted<BEFLocationHandler>;
 
+  HostContext* const host_;
   RCReference<BEFFileImpl> bef_file_;
 };
 
@@ -365,8 +368,7 @@ void BEFExecutor::MaybeAddRefForResult(AsyncValue* result) {
 /// from the end of the vector to the start - worklist style.
 void BEFExecutor::DecrementArgumentsNotReadyCounts(
     SmallVectorImpl<unsigned>* kernel_ids) {
-  KernelFrameBuilder kernel_frame((Location()));
-  kernel_frame.SetHost(GetHost());
+  KernelFrameBuilder kernel_frame(GetHost());
   kernel_frame.SetAttributeSection(bef_file_->attribute_section_);
 
   MutableArrayRef<BEFFileImpl::KernelInfo>& kernel_infos =

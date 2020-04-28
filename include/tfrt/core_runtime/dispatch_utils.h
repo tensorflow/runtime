@@ -65,7 +65,7 @@ namespace tfrt {
 //   static bool MaybeConvertTensor(const OpEntryTy& op_entry,
 //                                  [const OpHandlerInfoTy& op_handler_info,]
 //                                  const Tensor& arg_tensor,
-//                                  Location loc,
+//                                  const ExecutionContext& exec_ctx,
 //                                  RCReference<AsyncValue>* converted);
 //
 //   // Executes the op_handler specific dispatch function for the op
@@ -81,20 +81,20 @@ namespace tfrt {
 //                        const OpAttrsRef& attrs,
 //                        ArrayRef<TensorMetadata> result_mds,
 //                        MutableArrayRef<RCReference<AsyncValue>> results,
-//                        AsyncValueRef<Chain>* chain, Location loc);
+//                        AsyncValueRef<Chain>* chain,
+//                        const ExecutionContext& exec_ctx);
 // };
 //
 // This overload will be SFINAE'ed out if OpHandlerTraits::OpHandlerInfoTy
 // doesn't exist.
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandler(
-    HostContext* host, bool update_chain, const OpInvocation& invocation,
+    bool update_chain, const OpInvocation& invocation,
     typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info);
 
 template <typename OpHandlerTraits>
-bool ExecuteOnOpHandler(HostContext* host, bool update_chain,
-                        const OpInvocation& invocation,
+bool ExecuteOnOpHandler(bool update_chain, const OpInvocation& invocation,
                         typename OpHandlerTraits::OpEntryTy op_entry);
 
 namespace internal {
@@ -128,7 +128,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
     SmallVectorImpl<TensorMetadata>& result_mds);
 
 using MetadataIsReadyCallback = llvm::unique_function<void(
-    Location loc, MutableArrayRef<TensorHandle> arguments,
+    const ExecutionContext& exec_ctx, MutableArrayRef<TensorHandle> arguments,
     const OpAttrsRef& attrs, size_t num_results,
     const SmallVector<TensorMetadata, 4>& result_mds,
     SmallVectorImpl<AsyncValueRef<Tensor>>* result_tensor_avs,
@@ -144,8 +144,7 @@ using MetadataIsReadyCallback = llvm::unique_function<void(
 // If `update_chain` is true then the op is expected to return an out chain and
 // `invocation.chain` will be updated to it. Otherwise this only reads
 // `invocation.chain`.
-void ExecuteWhenMetadataIsReady(HostContext* host,
-                                const OpInvocation& invocation,
+void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
                                 const OpMetadataFn& metadata_fn,
                                 bool update_chain,
                                 MetadataIsReadyCallback callback);
@@ -156,14 +155,13 @@ class AsyncOpDispatcher {
   using InputTensorTy = typename OpHandlerTraits::InputTensorTy;
 
   explicit AsyncOpDispatcher(
-      HostContext* host, Location loc, OpAttrsRef frozen_attrs,
+      const ExecutionContext& exec_ctx, OpAttrsRef frozen_attrs,
       SmallVectorImpl<RCReference<AsyncValue>>&& arguments,
       AsyncValueRef<Chain> chain,
       const SmallVectorImpl<TensorMetadata>& result_mds,
       typename OpHandlerTraits::OpEntryTy op_entry,
       typename OpHandlerTraits::OpHandlerInfoTy op_handler_info)
-      : host_(host),
-        loc_(loc),
+      : exec_ctx_(exec_ctx),
         frozen_attrs_(std::move(frozen_attrs)),
         chain_(std::move(chain)),
         arguments_(std::move(arguments)),
@@ -174,9 +172,6 @@ class AsyncOpDispatcher {
   }
 
   void RunDispatchFunction();
-
-  HostContext* host() const { return host_; }
-  Location loc() const { return loc_; }
 
   const OpAttrsRef& frozen_attrs() const { return frozen_attrs_; }
 
@@ -202,14 +197,14 @@ class AsyncOpDispatcher {
       size_t num_results, ArrayRef<TensorMetadata> result_mds,
       MutableArrayRef<AsyncValueRef<TensorMetadata>> result_missing_md_avs,
       SmallVectorImpl<RCReference<AsyncValue>>* results,
-      AsyncValueRef<Chain>* chain, Location loc, HostContext* host);
+      AsyncValueRef<Chain>* chain, const ExecutionContext& exec_ctx);
 
  private:
   void PropagateError(AsyncValue* error);
 
   bool MaybeConvertTensor(const Tensor& t, RCReference<AsyncValue>* converted) {
     return OpHandlerTraits::MaybeConvertTensor(op_entry_, op_handler_info_, t,
-                                               loc_, converted);
+                                               exec_ctx_, converted);
   }
 
   template <typename InputTensorTy>
@@ -222,8 +217,7 @@ class AsyncOpDispatcher {
     return arg.get();
   }
 
-  HostContext* host_;
-  Location loc_;
+  ExecutionContext exec_ctx_;
   OpAttrsRef frozen_attrs_;
   SmallVector<TensorMetadata, 4> result_mds_;
 
@@ -284,10 +278,10 @@ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunction() {
   // If any arguments required async conversions (e.g. copy off a op_handler),
   // then we have to wait for those arguments to complete.
   if (!async_args.empty()) {
-    host_->RunWhenReady(async_args,
-                        [dispatch_info = std::move(*this)]() mutable {
-                          dispatch_info.RunDispatchFunction();
-                        });
+    exec_ctx_.host()->RunWhenReady(
+        async_args, [dispatch_info = std::move(*this)]() mutable {
+          dispatch_info.RunDispatchFunction();
+        });
     return;
   }
 
@@ -296,7 +290,7 @@ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunction() {
   RunDispatchFunctionSync(op_entry_, op_handler_info_, arguments_,
                           frozen_attrs_, result_ind_avs_.size(), result_mds_,
                           result_missing_md_avs_, &result_tensors,
-                          chain_ ? &chain_ : nullptr, loc_, host_);
+                          chain_ ? &chain_ : nullptr, exec_ctx_);
 
   // Fulfill the result async values with the results of the op.
   for (size_t i = 0, e = result_ind_avs_.size(); i != e; ++i) {
@@ -319,7 +313,7 @@ template <typename OpHandlerTraits>
     size_t num_results, ArrayRef<TensorMetadata> result_mds,
     MutableArrayRef<AsyncValueRef<TensorMetadata>> result_missing_md_avs,
     SmallVectorImpl<RCReference<AsyncValue>>* results,
-    AsyncValueRef<Chain>* chain, Location loc, HostContext* host) {
+    AsyncValueRef<Chain>* chain, const ExecutionContext& exec_ctx) {
   SmallVector<InputTensorTy*, 4> arg_tensors;
   arg_tensors.reserve(inputs.size());
   for (auto& arg : inputs) {
@@ -328,7 +322,7 @@ template <typename OpHandlerTraits>
 
   results->resize(num_results);
   // Check if the host has been cancelled.
-  auto* cancel_error = host->GetCancelAsyncValue();
+  auto* cancel_error = exec_ctx.host()->GetCancelAsyncValue();
   if (cancel_error) {
     // Any unresolved tensor results become the error.
     for (auto& result : *results) result = FormRef(cancel_error);
@@ -350,7 +344,7 @@ template <typename OpHandlerTraits>
     // dispatch performance.
     TFRT_TRACE_SCOPE("RunDispatchFunction");
     OpHandlerTraits::Dispatch(op_entry, op_handler_info, arg_tensors, attrs,
-                              result_mds, *results, &op_chain, loc, host);
+                              result_mds, *results, &op_chain, exec_ctx);
   }
   if (chain && *chain) {
     assert(op_chain && "the op does not produce a required out chain.");
@@ -405,7 +399,7 @@ template <typename OpHandlerTraits>
 // results of the tensor op.
 template <typename OpHandlerTraits>
 void ExecuteWithResultMetadataResolved(
-    HostContext* host, Location loc, MutableArrayRef<TensorHandle> arguments,
+    const ExecutionContext& exec_ctx, MutableArrayRef<TensorHandle> arguments,
     const OpAttrsRef& attrs, size_t num_results,
     const SmallVector<TensorMetadata, 4>& result_mds,
     SmallVectorImpl<AsyncValueRef<TensorMetadata>>* result_md_avs,
@@ -419,7 +413,7 @@ void ExecuteWithResultMetadataResolved(
     result_md_avs->reserve(num_results);
     for (size_t i = 0; i != num_results; ++i) {
       result_md_avs->push_back(
-          host->MakeUnconstructedAsyncValueRef<TensorMetadata>());
+          exec_ctx.host()->MakeUnconstructedAsyncValueRef<TensorMetadata>());
     }
   }
 
@@ -436,7 +430,7 @@ void ExecuteWithResultMetadataResolved(
     if (!chain->IsAvailable()) async_args.push_back(chain->GetAsyncValue());
     if (update_chain) {
       // TODO(fishx): Avoid this heap allocation.
-      *chain = host->MakeUnconstructedAsyncValueRef<Chain>();
+      *chain = exec_ctx.host()->MakeUnconstructedAsyncValueRef<Chain>();
     }
   }
 
@@ -457,7 +451,7 @@ void ExecuteWithResultMetadataResolved(
 
     RCReference<AsyncValue> copy;
     if (OpHandlerTraits::MaybeConvertTensor(op_entry, op_handler_info,
-                                            arg_tensor, loc, &copy)) {
+                                            arg_tensor, exec_ctx, &copy)) {
       // If the copy itself was async, then remember to "and then" it.
       if (copy->IsUnavailable()) async_args.push_back(copy.get());
 
@@ -475,7 +469,7 @@ void ExecuteWithResultMetadataResolved(
     internal::AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunctionSync(
         op_entry, op_handler_info, arg_tensors, attrs, num_results, result_mds,
         result_md_avs ? *result_md_avs : empty_md_avs, &result_tensors,
-        update_chain ? chain : nullptr, loc, host);
+        update_chain ? chain : nullptr, exec_ctx);
     result_tensor_avs->reserve(num_results);
     // Fulfill the result async values with the results of the op.
     for (size_t i = 0; i != num_results; ++i) {
@@ -488,7 +482,7 @@ void ExecuteWithResultMetadataResolved(
   // We have at least one async tensor input, so we need to run the
   // kernel when it resolves.
   internal::AsyncOpDispatcher<OpHandlerTraits> op_dispatcher(
-      host, loc, attrs.freeze(), std::move(arg_tensors),
+      exec_ctx, attrs.freeze(), std::move(arg_tensors),
       update_chain ? chain->CopyRef() : AsyncValueRef<Chain>(), result_mds,
       std::move(op_entry), std::move(op_handler_info));
 
@@ -498,7 +492,7 @@ void ExecuteWithResultMetadataResolved(
   result_tensor_avs->reserve(num_results);
   op_dispatcher.result_ind_avs_ref().reserve(num_results);
   for (size_t i = 0; i != num_results; ++i) {
-    auto tensor = host->MakeIndirectAsyncValue();
+    auto tensor = exec_ctx.host()->MakeIndirectAsyncValue();
     op_dispatcher.result_ind_avs_ref().push_back(tensor.CopyRef());
     result_tensor_avs->push_back(AsyncValueRef<Tensor>(std::move(tensor)));
     if (result_md_avs) {
@@ -507,10 +501,10 @@ void ExecuteWithResultMetadataResolved(
     }
   }
 
-  host->RunWhenReady(async_args,
-                     [op_dispatcher = std::move(op_dispatcher)]() mutable {
-                       op_dispatcher.RunDispatchFunction();
-                     });
+  exec_ctx.host()->RunWhenReady(
+      async_args, [op_dispatcher = std::move(op_dispatcher)]() mutable {
+        op_dispatcher.RunDispatchFunction();
+      });
 }
 
 // This is the slow-path that is run when it turns out that an input
@@ -521,20 +515,20 @@ void ExecuteWithResultMetadataResolved(
 // Because this is a very slow path, we want it out of line.
 template <typename OpHandlerTraits>
 LLVM_ATTRIBUTE_NOINLINE void ExecuteWithMetadataAsync(
-    HostContext* host, const OpInvocation& invocation, bool update_chain,
+    const OpInvocation& invocation, bool update_chain,
     typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   ExecuteWhenMetadataIsReady(
-      host, invocation, op_entry.metadata_fn, update_chain,
+      invocation, op_entry.metadata_fn, update_chain,
       [op_entry = std::move(op_entry),
-       op_handler_info = std::move(op_handler_info), host,
-       update_chain](Location loc, MutableArrayRef<TensorHandle> arguments,
-                     const OpAttrsRef& attrs, size_t num_results,
-                     const SmallVector<TensorMetadata, 4>& result_mds,
-                     SmallVectorImpl<AsyncValueRef<Tensor>>* result_tensor_avs,
-                     AsyncValueRef<Chain>* chain) mutable {
+       op_handler_info = std::move(op_handler_info), update_chain](
+          const ExecutionContext& exec_ctx,
+          MutableArrayRef<TensorHandle> arguments, const OpAttrsRef& attrs,
+          size_t num_results, const SmallVector<TensorMetadata, 4>& result_mds,
+          SmallVectorImpl<AsyncValueRef<Tensor>>* result_tensor_avs,
+          AsyncValueRef<Chain>* chain) mutable {
         ExecuteWithResultMetadataResolved<OpHandlerTraits>(
-            host, loc, arguments, attrs, num_results, result_mds,
+            exec_ctx, arguments, attrs, num_results, result_mds,
             /*result_md_avs=*/nullptr, result_tensor_avs, chain, update_chain,
             std::move(op_entry), std::move(op_handler_info));
       });
@@ -542,7 +536,7 @@ LLVM_ATTRIBUTE_NOINLINE void ExecuteWithMetadataAsync(
 
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandlerImpl(
-    HostContext* host, bool update_chain, const OpInvocation& invocation,
+    bool update_chain, const OpInvocation& invocation,
     typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   using internal::ExecuteMetadataFunction;
@@ -569,7 +563,7 @@ bool ExecuteOnOpHandlerImpl(
 
     if (md_exec_result == MDFunctionExecResult::kMetadataUnavailable) {
       internal::ExecuteWithMetadataAsync<OpHandlerTraits>(
-          host, invocation, update_chain, std::move(op_entry),
+          invocation, update_chain, std::move(op_entry),
           std::move(op_handler_info));
       return true;
     }
@@ -586,7 +580,7 @@ bool ExecuteOnOpHandlerImpl(
   auto results = invocation.results;
 
   internal::ExecuteWithResultMetadataResolved<OpHandlerTraits>(
-      host, invocation.loc, invocation.arguments, invocation.attrs,
+      invocation.exec_ctx, invocation.arguments, invocation.attrs,
       results.size(), result_mds, result_md_avs_ptr, &result_tensor_avs,
       invocation.chain, update_chain, std::move(op_entry),
       std::move(op_handler_info));
@@ -606,16 +600,15 @@ bool ExecuteOnOpHandlerImpl(
 
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandler(
-    HostContext* host, bool update_chain, const OpInvocation& invocation,
+    bool update_chain, const OpInvocation& invocation,
     typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   return internal::ExecuteOnOpHandlerImpl<OpHandlerTraits>(
-      host, update_chain, invocation, op_entry, op_handler_info);
+      update_chain, invocation, op_entry, op_handler_info);
 }
 
 template <typename OpHandlerTraits>
-bool ExecuteOnOpHandler(HostContext* host, bool update_chain,
-                        const OpInvocation& invocation,
+bool ExecuteOnOpHandler(bool update_chain, const OpInvocation& invocation,
                         typename OpHandlerTraits::OpEntryTy op_entry) {
   // For now implement the non-OpHandlerInfoTy overload by faking a
   // OpHandlerInfoTy using an `int`.
@@ -625,9 +618,10 @@ bool ExecuteOnOpHandler(HostContext* host, bool update_chain,
     using OpHandlerInfoTy = int;
 
     static bool MaybeConvertTensor(const OpEntryTy& op_entry, OpHandlerInfoTy,
-                                   const Tensor& arg_tensor, Location loc,
+                                   const Tensor& arg_tensor,
+                                   const ExecutionContext& exec_ctx,
                                    RCReference<AsyncValue>* converted) {
-      return OpHandlerTraits::MaybeConvertTensor(op_entry, arg_tensor, loc,
+      return OpHandlerTraits::MaybeConvertTensor(op_entry, arg_tensor, exec_ctx,
                                                  converted);
     }
 
@@ -636,15 +630,15 @@ bool ExecuteOnOpHandler(HostContext* host, bool update_chain,
                          const OpAttrsRef& attrs,
                          ArrayRef<TensorMetadata> result_mds,
                          MutableArrayRef<RCReference<AsyncValue>> results,
-                         AsyncValueRef<Chain>* chain, Location loc,
-                         HostContext* host) {
+                         AsyncValueRef<Chain>* chain,
+                         const ExecutionContext& exec_ctx) {
       OpHandlerTraits::Dispatch(op_entry, inputs, attrs, result_mds, results,
-                                chain, loc, host);
+                                chain, exec_ctx);
     }
   };
 
   return internal::ExecuteOnOpHandlerImpl<InnerOpHandlerTraits>(
-      host, update_chain, invocation, std::move(op_entry),
+      update_chain, invocation, std::move(op_entry),
       /*op_handler_info=*/0);
 }
 

@@ -77,7 +77,8 @@ class RangeDatasetIterator : public Iterator<T> {
   RangeDatasetIterator(const RangeDatasetIterator&) = delete;
   RangeDatasetIterator& operator=(const RangeDatasetIterator&) = delete;
 
-  AsyncValueRef<std::tuple<T>> GetNext(Location loc) override {
+  AsyncValueRef<std::tuple<T>> GetNext(
+      const ExecutionContext& exec_ctx) override {
     auto* host = IteratorBase::host_;
     bool has_next = (dataset_->step_ > 0 && next_ < dataset_->stop_) ||
                     (dataset_->step_ < 0 && next_ > dataset_->stop_);

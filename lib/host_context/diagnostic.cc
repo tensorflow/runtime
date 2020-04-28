@@ -22,7 +22,8 @@
 
 #include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
-#include "tfrt/support/string_util.h"
+#include "tfrt/host_context/execution_context.h"
+#include "tfrt/host_context/host_context.h"
 
 namespace tfrt {
 
@@ -37,6 +38,17 @@ raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diag) {
     os << "UnknownLocation: ";
   }
   return os << diag.message;
+}
+
+DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
+                            string_view message) {
+  auto decoded_loc = exec_ctx.location().Decode();
+  auto diag = DecodedDiagnostic(decoded_loc, message);
+
+  auto* host = exec_ctx.host();
+  host->EmitError(diag);
+
+  return diag;
 }
 
 }  // namespace tfrt

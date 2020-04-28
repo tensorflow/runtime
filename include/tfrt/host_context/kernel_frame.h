@@ -32,6 +32,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/attribute_utils.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/forward_decls.h"
@@ -51,12 +52,13 @@ namespace tfrt {
 // setting the result AsyncValue pointers.
 class KernelFrame {
  public:
-  KernelFrame() = default;
+  explicit KernelFrame(HostContext* host) : exec_ctx_{host} {}
 
-  HostContext* GetHostContext() const { return host_; }
+  const ExecutionContext& GetExecutionContext() const { return exec_ctx_; }
+  HostContext* GetHostContext() const { return exec_ctx_.host(); }
 
   // Get the location.
-  const Location& GetLocation() const { return location_; }
+  Location GetLocation() const { return exec_ctx_.location(); }
 
   ArrayRef<uint8_t> GetAttributeSection() const { return attribute_section_; }
 
@@ -133,7 +135,7 @@ class KernelFrame {
   // Emplace construct the result at given index.
   template <typename T, typename... Args>
   void EmplaceResultAt(int index, Args&&... args) {
-    SetResultAt(index, host_->MakeConcreteAsyncValueRef<T>(
+    SetResultAt(index, GetHostContext()->MakeConcreteAsyncValueRef<T>(
                            std::forward<Args>(args)...));
   }
 
@@ -148,7 +150,7 @@ class KernelFrame {
   // given index and return the allocated AsyncValue.
   template <typename T>
   AsyncValueRef<T> AllocateResultAt(int index) {
-    auto result = host_->MakeUnconstructedAsyncValueRef<T>();
+    auto result = GetHostContext()->MakeUnconstructedAsyncValueRef<T>();
     SetResultAt(index, result.CopyRef());
     return result;
   }
@@ -170,7 +172,7 @@ class KernelFrame {
   // Allocate an AsyncValue with uninitialized payload as the result at the
   // given index and return the allocated AsyncValue.
   RCReference<IndirectAsyncValue> AllocateIndirectResultAt(int index) {
-    auto result = host_->MakeIndirectAsyncValue();
+    auto result = GetHostContext()->MakeIndirectAsyncValue();
     SetResultAt(index, result.CopyRef());
     return result;
   }
@@ -207,7 +209,7 @@ class KernelFrame {
   // For consistency, the error message should start with a lower case letter
   // and not end with a period.
   RCReference<AsyncValue> EmitError(string_view msg) {
-    return location_.EmitErrorAsync(msg);
+    return EmitErrorAsync(exec_ctx_, msg);
   }
 
   // Assert the size of arguments, attributes, and results are as expected.
@@ -247,8 +249,7 @@ class KernelFrame {
   // after SetNumResults.
   int num_results_ = -1;
   ArrayRef<uint8_t> attribute_section_;
-  Location location_;
-  HostContext* host_ = nullptr;
+  ExecutionContext exec_ctx_;
 };
 
 // KernelFrameBuilder is used by the kernel caller to construct a KernelFrame
@@ -262,16 +263,10 @@ class KernelFrame {
 // 3. Add the attributes (using AddAttribute())
 class KernelFrameBuilder : public KernelFrame {
  public:
-  explicit KernelFrameBuilder(Location location) {
-    location_ = location;
-    host_ = location.GetHost();
-  }
+  explicit KernelFrameBuilder(HostContext* host) : KernelFrame{host} {}
 
   // Get result AsyncValue at the given index.
   AsyncValue* GetResultAt(int index) const { return GetResults()[index]; }
-
-  // Set the host.
-  void SetHost(HostContext* host) { host_ = host; }
 
   void SetAttributeSection(ArrayRef<uint8_t> attribute_section) {
     attribute_section_ = attribute_section;
@@ -305,7 +300,9 @@ class KernelFrameBuilder : public KernelFrame {
   }
 
   // Set the location.
-  void SetLocation(const Location& location) { location_ = location; }
+  void SetLocation(const Location& location) {
+    exec_ctx_.set_location(location);
+  }
 
   // Clear all fields.
   void Reset() {

@@ -71,7 +71,8 @@ class TFRecordDatasetIterator : public Iterator<std::string> {
   TFRecordDatasetIterator(const TFRecordDatasetIterator&) = delete;
   TFRecordDatasetIterator& operator=(const TFRecordDatasetIterator&) = delete;
 
-  AsyncValueRef<std::tuple<std::string>> GetNext(Location loc) override;
+  AsyncValueRef<std::tuple<std::string>> GetNext(
+      const ExecutionContext& exec_ctx) override;
 
  private:
   // Reads n + 4 bytes from the input stream and verifies that the checksum of

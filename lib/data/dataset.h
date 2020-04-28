@@ -84,9 +84,11 @@ class IteratorBase {
   // GetNext(...). The last AsyncValue has a bool value which is true iff
   // the iterator has not reached end prior to this call.
   virtual SmallVector<RCReference<AsyncValue>, 4> GetNextUntyped(
-      Location loc) = 0;
+      const ExecutionContext& exec_ctx) = 0;
 
  protected:
+  // TODO(b/154971099): Remove this after the ExecutionContext change is
+  // submitted.
   HostContext* host_;
 };
 
@@ -97,9 +99,11 @@ class Iterator : public IteratorBase {
 
   // If the iterator has reached end, returns an empty AsyncValueRef. Otherwise,
   // returns the AsyncValueRef of the next element and advances the iterator.
-  virtual AsyncValueRef<std::tuple<T...>> GetNext(Location loc) = 0;
+  virtual AsyncValueRef<std::tuple<T...>> GetNext(
+      const ExecutionContext& exec_ctx) = 0;
 
-  SmallVector<RCReference<AsyncValue>, 4> GetNextUntyped(Location loc) override;
+  SmallVector<RCReference<AsyncValue>, 4> GetNextUntyped(
+      const ExecutionContext& exec_ctx) override;
 };
 
 // TODO(rachelim): Define `DatasetContext` and `IteratorContext` as a container
@@ -122,8 +126,8 @@ class Dataset : public ReferenceCounted<Dataset<T...>> {
 
 template <typename... T>
 SmallVector<RCReference<AsyncValue>, 4> Iterator<T...>::GetNextUntyped(
-    Location loc) {
-  auto input = GetNext(loc);
+    const ExecutionContext& exec_ctx) {
+  auto input = GetNext(exec_ctx);
   SmallVector<RCReference<AsyncValue>, 4> results;
   results.resize(sizeof...(T) + 1);
 

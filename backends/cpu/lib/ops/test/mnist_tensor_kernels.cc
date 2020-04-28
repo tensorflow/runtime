@@ -51,12 +51,13 @@ namespace tfrt {
 
 static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
                      const OpAttrsRef& attrs, const TensorMetadata& dest_md,
-                     RCReference<AsyncValue>* dest, Location loc) {
-  auto* host = loc.GetHost();
+                     RCReference<AsyncValue>* dest,
+                     const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
-    *dest = loc.EmitErrorAsync("out of memory allocating result");
+    *dest = EmitErrorAsync(exec_ctx, "out of memory allocating result");
     return;
   }
 
@@ -69,7 +70,7 @@ static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
   // Computes C = A @ B.
   switch (lhs.dtype().kind()) {
     default:
-      *dest = loc.EmitErrorAsync("unsupported dtype for matmul");
+      *dest = EmitErrorAsync(exec_ctx, "unsupported dtype for matmul");
       return;
 #define DTYPE_TRIVIAL(ENUM)                                \
   case DType::ENUM:                                        \
@@ -104,54 +105,55 @@ static AsyncValueRef<T> WaitForChain(T&& t, AsyncValueRef<Chain> chain,
 }
 
 static AsyncValueRef<Chain> ReluHelper(const DenseHostTensor& A,
-                                       DenseHostTensor* dest, Location loc,
-                                       HostContext* host) {
+                                       DenseHostTensor* dest,
+                                       const ExecutionContext& exec_ctx) {
   switch (A.dtype().kind()) {
     default:
-      return host->MakeErrorAsyncValueRef("unsupported dtype for relu");
+      return EmitErrorAsync(exec_ctx, "unsupported dtype for relu");
 #define DTYPE_NUMERIC(ENUM) \
   case DType::ENUM:         \
-    return cpu::Relu<EigenTypeForDTypeKind<DType::ENUM>>(A, dest, loc);
+    return cpu::Relu<EigenTypeForDTypeKind<DType::ENUM>>(A, dest, exec_ctx);
 #include "tfrt/tensor/dtype.def"
   }
 }
 
 // Computes A = Relu(A).
 template <typename T>
-static AsyncValueRef<Chain> ReluInPlace(DenseHostTensor* A, Location loc) {
+static AsyncValueRef<Chain> ReluInPlace(DenseHostTensor* A,
+                                        const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a) { return a.cwiseMax(static_cast<T>(0)); };
-  return NullaryEigenKernelAsync<T>(A, std::move(fn), loc);
+  return NullaryEigenKernelAsync<T>(A, std::move(fn), exec_ctx);
 }
 
-static AsyncValueRef<Chain> ReluInPlaceHelper(DenseHostTensor* A, Location loc,
-                                              HostContext* host) {
+static AsyncValueRef<Chain> ReluInPlaceHelper(
+    DenseHostTensor* A, const ExecutionContext& exec_ctx) {
   switch (A->dtype().kind()) {
     default:
-      return host->MakeErrorAsyncValueRef("unsupported dtype for relu");
+      return EmitErrorAsync(exec_ctx, "unsupported dtype for relu");
 #define DTYPE_NUMERIC(ENUM) \
   case DType::ENUM:         \
-    return ReluInPlace<EigenTypeForDTypeKind<DType::ENUM>>(A, loc);
+    return ReluInPlace<EigenTypeForDTypeKind<DType::ENUM>>(A, exec_ctx);
 #include "tfrt/tensor/dtype.def"
   }
 }
 
 static AsyncValueRef<DenseHostTensor> ReluOp(Argument<DenseHostTensor> A,
                                              const TensorMetadata& B_md,
-                                             Location loc) {
-  auto* host = loc.GetHost();
+                                             const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   if (A.value()->IsUnique() && A->buffer()->IsUnique()) {
     DenseHostTensor dest(B_md, A->buffer().CopyRef());
-    AsyncValueRef<Chain> chain = ReluInPlaceHelper(&dest, loc, host);
+    AsyncValueRef<Chain> chain = ReluInPlaceHelper(&dest, exec_ctx);
     return WaitForChain(std::move(dest), std::move(chain), host);
   } else {
     auto dest = DenseHostTensor::CreateUninitialized(B_md, host);
     if (!dest) {
-      return loc.EmitErrorAsync("out of memory allocating result");
+      return EmitErrorAsync(exec_ctx, "out of memory allocating result");
     }
 
     AsyncValueRef<Chain> chain =
-        ReluHelper(A.get(), dest.getPointer(), loc, host);
+        ReluHelper(A.get(), dest.getPointer(), exec_ctx);
 
     return WaitForChain(std::move(dest).getValue(), std::move(chain), host);
   }
@@ -166,11 +168,11 @@ template <typename T>
 static AsyncValueRef<Chain> ElementwiseAdd(
     const DenseHostTensor& A, const DenseHostTensor& B,
     // `C` supplies the buffer for writing the output
-    DenseHostTensor* C, Location loc) {
+    DenseHostTensor* C, const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b, auto& c) { return a + b; };
   return AsyncValueRef<Chain>(
       BinaryEigenKernelAsync<DHTArrayView<T>, MutableDHTArrayView<T>>(
-          A, B, C, std::move(fn), loc));
+          A, B, C, std::move(fn), exec_ctx));
 }
 
 // Computes B += A.
@@ -180,9 +182,10 @@ template <typename T>
 static AsyncValueRef<Chain> ElementwiseAddInPlace(
     Argument<DenseHostTensor> A,
     // `B` supplies the buffer for writing the output
-    Argument<DenseHostTensor> B, Location loc) {
+    Argument<DenseHostTensor> B, const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) { return a + b; };
-  return UnaryEigenKernelAsync<T, T>(A.get(), &B.get(), std::move(fn), loc);
+  return UnaryEigenKernelAsync<T, T>(A.get(), &B.get(), std::move(fn),
+                                     exec_ctx);
 }
 
 // Computes B -= A.
@@ -192,9 +195,10 @@ template <typename T>
 static AsyncValueRef<Chain> ElementwiseSubstractInPlace(
     Argument<DenseHostTensor> A,
     // `B` supplies the buffer for writing the output
-    Argument<DenseHostTensor> B, Location loc) {
+    Argument<DenseHostTensor> B, const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) { return b - a; };
-  return UnaryEigenKernelAsync<T, T>(A.get(), &B.get(), std::move(fn), loc);
+  return UnaryEigenKernelAsync<T, T>(A.get(), &B.get(), std::move(fn),
+                                     exec_ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -205,12 +209,12 @@ template <typename T>
 static AsyncValueRef<Chain> ElementwiseEqual(
     const DenseHostTensor& A, const DenseHostTensor& B,
     // `C` supplies the buffer for writing the output
-    DenseHostTensor* C, Location loc) {
+    DenseHostTensor* C, const ExecutionContext& exec_ctx) {
   auto fn = [](auto& A, auto& B, auto& C) {
     return (A == B).template cast<T>();
   };
   return BinaryEigenKernelAsync<DHTArrayView<T>, MutableDHTArrayView<T>>(
-      A, B, C, std::move(fn), loc);
+      A, B, C, std::move(fn), exec_ctx);
 }
 
 // Computes B = (A == B).
@@ -218,35 +222,36 @@ template <typename T>
 static AsyncValueRef<Chain> ElementwiseEqualInPlace(
     Argument<DenseHostTensor> A,
     // `B` supplies the buffer for writing the output
-    Argument<DenseHostTensor> B, Location loc) {
+    Argument<DenseHostTensor> B, const ExecutionContext& exec_ctx) {
   auto fn = [](auto& A, auto& B) { return (A == B).template cast<T>(); };
-  return UnaryEigenKernelAsync<T, T>(A.get(), &B.get(), std::move(fn), loc);
+  return UnaryEigenKernelAsync<T, T>(A.get(), &B.get(), std::move(fn),
+                                     exec_ctx);
 }
 
 static void ElementwiseEqualOp(const DenseHostTensor& lhs,
                                const DenseHostTensor& rhs,
                                RCReference<AsyncValue>* dest_tensor,
-                               Location loc) {
-  auto* host = loc.GetHost();
-  *dest_tensor =
-      host->MakeUnconstructedAsyncValueRef<DenseHostTensor>().ReleaseRCRef();
-
+                               const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
   auto dest = DenseHostTensor::CreateUninitialized(lhs.metadata(), host);
   if (!dest) {
-    (*dest_tensor)->SetError(loc.EmitError("out of memory allocating result"));
+    *dest_tensor = EmitErrorAsync(exec_ctx, "out of memory allocating result");
     return;
   }
+
+  *dest_tensor =
+      host->MakeUnconstructedAsyncValueRef<DenseHostTensor>().ReleaseRCRef();
 
   AsyncValueRef<Chain> chain;
   auto* dest_dht = dest.getPointer();
   switch (lhs.dtype().kind()) {
     default:
-      chain.EmitError(loc, "unsupported dtype for equal");
+      chain = EmitErrorAsync(exec_ctx, "unsupported dtype for equal");
       break;
 #define DTYPE_NUMERIC(ENUM)                                       \
   case DType::ENUM:                                               \
     chain = ElementwiseEqual<EigenTypeForDTypeKind<DType::ENUM>>( \
-        lhs, rhs, dest_dht, loc);                                 \
+        lhs, rhs, dest_dht, exec_ctx);                            \
     break;
 #include "tfrt/tensor/dtype.def"
   }
@@ -269,46 +274,48 @@ static void ElementwiseEqualOp(const DenseHostTensor& lhs,
 
 template <typename Tin, typename Tout>
 static AsyncValueRef<Chain> Cast(const DenseHostTensor& A, DenseHostTensor* B,
-                                 Location loc) {
+                                 const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) { return a.template cast<Tout>(); };
-  return UnaryEigenKernelAsync<Tin, Tout>(A, B, std::move(fn), loc);
+  return UnaryEigenKernelAsync<Tin, Tout>(A, B, std::move(fn), exec_ctx);
 }
 
 template <typename Tout>
 static AsyncValueRef<Chain> CastForOutType(const DenseHostTensor& A,
-                                           DenseHostTensor* B, Location loc) {
+                                           DenseHostTensor* B,
+                                           const ExecutionContext& exec_ctx) {
   switch (A.dtype().kind()) {
     default:
-      return loc.EmitErrorAsync("unsupported dtype for cast");
+      return EmitErrorAsync(exec_ctx, "unsupported dtype for cast");
 #define DTYPE_NUMERIC(ENUM) \
   case DType::ENUM:         \
-    return Cast<EigenTypeForDTypeKind<DType::ENUM>, Tout>(A, B, loc);
+    return Cast<EigenTypeForDTypeKind<DType::ENUM>, Tout>(A, B, exec_ctx);
 #include "tfrt/tensor/dtype.def"
   }
 }
 
 static void CastOp(const DenseHostTensor& A, const TensorMetadata& B_md,
-                   RCReference<AsyncValue>* B_tensor, Location loc) {
-  auto* host = loc.GetHost();
+                   RCReference<AsyncValue>* B_tensor,
+                   const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+
+  auto dest = DenseHostTensor::CreateUninitialized(B_md, host);
+  if (!dest) {
+    *B_tensor = EmitErrorAsync(exec_ctx, "out of memory allocating result");
+    return;
+  }
 
   *B_tensor =
       host->MakeUnconstructedAsyncValueRef<DenseHostTensor>().ReleaseRCRef();
 
-  auto dest = DenseHostTensor::CreateUninitialized(B_md, host);
-  if (!dest) {
-    (*B_tensor)->SetError(loc.EmitError("out of memory allocating result"));
-    return;
-  }
-
   AsyncValueRef<Chain> chain;
   switch (B_md.dtype.kind()) {
     default:
-      (*B_tensor)->SetError(loc.EmitError("unsupported dtype for cast"));
+      *B_tensor = EmitErrorAsync(exec_ctx, "unsupported dtype for cast");
       return;
 #define DTYPE_NUMERIC(ENUM)                                     \
   case DType::ENUM:                                             \
     chain = CastForOutType<EigenTypeForDTypeKind<DType::ENUM>>( \
-        A, dest.getPointer(), loc);                             \
+        A, dest.getPointer(), exec_ctx);                        \
     break;
 #include "tfrt/tensor/dtype.def"
   }
@@ -392,12 +399,13 @@ static Expected<DenseHostTensor> Broadcast1D(const DenseHostTensor& A,
 // dimension should have same size as src.
 static void Broadcast1DOp(const DenseHostTensor& src,
                           const TensorMetadata& dest_md,
-                          RCReference<AsyncValue>* dest, Location loc) {
-  auto* host = loc.GetHost();
+                          RCReference<AsyncValue>* dest,
+                          const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
-    *dest = loc.EmitErrorAsync("out of memory allocating result");
+    *dest = EmitErrorAsync(exec_ctx, "out of memory allocating result");
     return;
   }
 
@@ -405,7 +413,7 @@ static void Broadcast1DOp(const DenseHostTensor& src,
 
   switch (src.dtype().kind()) {
     default:
-      *dest = loc.EmitErrorAsync("unsupported dtype for broadcast");
+      *dest = EmitErrorAsync(exec_ctx, "unsupported dtype for broadcast");
       return;
 #define DTYPE_NUMERIC(ENUM)                                                 \
   case DType::ENUM:                                                         \
@@ -487,12 +495,13 @@ static void ArgmaxForAxis(const DenseHostTensor& A, DenseHostTensor* B) {
 
 static void ArgmaxOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
                      const TensorMetadata& dest_md,
-                     RCReference<AsyncValue>* dest, Location loc) {
-  auto* host = loc.GetHost();
+                     RCReference<AsyncValue>* dest,
+                     const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
-    *dest = loc.EmitErrorAsync("out of memory allocating result");
+    *dest = EmitErrorAsync(exec_ctx, "out of memory allocating result");
     return;
   }
 
@@ -503,7 +512,7 @@ static void ArgmaxOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
       ArgmaxForAxis<1>(src, &dest_tensor);
       break;
     default:
-      *dest = loc.EmitErrorAsync("unsupported axis for argmax");
+      *dest = EmitErrorAsync(exec_ctx, "unsupported axis for argmax");
       return;
   }
 
@@ -579,12 +588,13 @@ static void ReduceMeanForAxis(const DenseHostTensor& A, DenseHostTensor* B) {
 
 static void ReduceMeanOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
                          const TensorMetadata& dest_md,
-                         RCReference<AsyncValue>* dest, Location loc) {
-  auto* host = loc.GetHost();
+                         RCReference<AsyncValue>* dest,
+                         const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
-    *dest = loc.EmitErrorAsync("out of memory allocating result");
+    *dest = EmitErrorAsync(exec_ctx, "out of memory allocating result");
     return;
   }
 
@@ -595,7 +605,7 @@ static void ReduceMeanOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
       ReduceMeanForAxis<0>(src, &dest_tensor);
       break;
     default:
-      *dest = loc.EmitErrorAsync("unsupported axis for reduce_mean");
+      *dest = EmitErrorAsync(exec_ctx, "unsupported axis for reduce_mean");
       return;
   }
 
@@ -622,12 +632,13 @@ static void CreateDenseTensorForType(const OpAttrsRef& attrs,
 
 static void CreateDenseTensorOp(const OpAttrsRef& attrs,
                                 const TensorMetadata& dest_md,
-                                RCReference<AsyncValue>* dest, Location loc) {
-  auto* host = loc.GetHost();
+                                RCReference<AsyncValue>* dest,
+                                const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
-    *dest = loc.EmitErrorAsync("out of memory allocating result");
+    *dest = EmitErrorAsync(exec_ctx, "out of memory allocating result");
     return;
   }
 
@@ -655,11 +666,12 @@ static void CreateDenseTensorOp(const OpAttrsRef& attrs,
 template <typename T>
 static AsyncValueRef<Chain> ReluGradInplace(const DenseHostTensor& activation,
                                             DenseHostTensor* gradient,
-                                            Location loc) {
+                                            const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) {
     return b * (a > static_cast<T>(0)).template cast<T>();
   };
-  return UnaryEigenKernelAsync<T, T>(activation, gradient, std::move(fn), loc);
+  return UnaryEigenKernelAsync<T, T>(activation, gradient, std::move(fn),
+                                     exec_ctx);
 }
 
 //===----------------------------------------------------------------------===//
@@ -674,12 +686,13 @@ static AsyncValueRef<Chain> SliceInPlace(const DenseHostTensor& input,
                                          DHTIndexableView<int64_t, 1> begin,
                                          const Chain& chain_in,
                                          DenseHostTensor* output,
-                                         HostContext* host, Location loc) {
+                                         const ExecutionContext& exec_ctx) {
   auto input_view = DHTIndexableView<T, Rank>(&input);
   auto output_view = MutableDHTIndexableView<T, Rank>(output);
 
   if (begin.NumElements() != Rank) {
-    return loc.EmitErrorAsync(
+    return EmitErrorAsync(
+        exec_ctx,
         "the size of 'begin_index' should match the input tensor rank");
   }
 
@@ -693,9 +706,9 @@ static AsyncValueRef<Chain> SliceInPlace(const DenseHostTensor& input,
   auto input_t = AsEigenConstTensor(input_view);
   auto output_t = AsEigenTensor(output_view);
   auto expr = input_t.slice(indices, sizes);
-  return AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
-                     std::move(output_t), std::move(expr),
-                     KeepBuffers::alive(&input, output));
+  return AsyncAssign(
+      exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
+      std::move(output_t), std::move(expr), KeepBuffers::alive(&input, output));
 }
 
 //===----------------------------------------------------------------------===//

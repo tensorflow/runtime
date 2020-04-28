@@ -67,8 +67,8 @@ void NullaryEigenKernel(
 template <typename T, typename Fn>
 AsyncValueRef<Chain> NullaryEigenKernelAsync(
     // `argument` supplies the buffer for both input and output.
-    DenseHostTensor* argument, Fn fn, Location loc) {
-  auto* host = loc.GetHost();
+    DenseHostTensor* argument, Fn fn, const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
   auto argument_view = MutableDHTArrayView<T>(argument);
   auto inout = AsEigenTensor(argument_view);
   auto expr = fn(inout);
@@ -108,18 +108,17 @@ template <typename Tin, typename Tout, typename Fn>
 AsyncValueRef<Chain> UnaryEigenKernelAsync(
     const DenseHostTensor& input,
     // `output` supplies the buffer in which to write the output.
-    DenseHostTensor* output, Fn fn, Location loc) {
-  HostContext* host = loc.GetHost();
+    DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
   auto input_view = DHTArrayView<Tin>(&input);
   auto output_view = MutableDHTArrayView<Tout>(output);
   const auto& shape_input = input_view.Shape();
   const auto& shape_output = output_view.Shape();
 
   if (shape_input != shape_output) {
-    auto chain = host->MakeUnconstructedAsyncValueRef<Chain>();
-    chain.EmitError(loc, StrCat("tensor shape mismatch: ", shape_input, " vs. ",
-                                shape_output));
-    return chain;
+    return EmitErrorAsync(
+        exec_ctx,
+        StrCat("tensor shape mismatch: ", shape_input, " vs. ", shape_output));
   }
 
   auto in = AsEigenConstTensor(input_view);
@@ -162,8 +161,8 @@ template <typename DHTViewTin, typename MutableDHTViewTout, typename Fn>
 AsyncValueRef<Chain> BinaryEigenKernelAsync(
     const DenseHostTensor& left, const DenseHostTensor& right,
     // `output` supplies the buffer in which to write the output.
-    DenseHostTensor* output, Fn fn, Location loc) {
-  auto* host = loc.GetHost();
+    DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
 
   auto left_view = DHTViewTin(&left);
   auto right_view = DHTViewTin(&right);
@@ -173,10 +172,9 @@ AsyncValueRef<Chain> BinaryEigenKernelAsync(
   const auto& shape_output = output_view.Shape();
 
   if (shape_left != shape_right || shape_left != shape_output) {
-    auto chain = host->MakeUnconstructedAsyncValueRef<Chain>();
-    chain.EmitError(loc, StrCat("tensor shape mismatch: ", shape_left, " vs. ",
-                                shape_right, " vs. ", shape_output));
-    return chain;
+    return EmitErrorAsync(exec_ctx,
+                          StrCat("tensor shape mismatch: ", shape_left, " vs. ",
+                                 shape_right, " vs. ", shape_output));
   }
   auto lhs = AsEigenConstTensor(left_view);
   auto rhs = AsEigenConstTensor(right_view);

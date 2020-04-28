@@ -113,7 +113,8 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
       delete;
 
   // Interleaves keeps cycle_length iterators open at once.
-  AsyncValueRef<std::tuple<OutputTypes...>> GetNext(Location loc) override;
+  AsyncValueRef<std::tuple<OutputTypes...>> GetNext(
+      const ExecutionContext& exec_ctx) override;
 
  private:
   RCReference<
@@ -154,16 +155,16 @@ std::unique_ptr<Iterator<OutputTypes...>> InterleaveDataset<
 }
 
 template <typename... InputTypes, typename... OutputTypes>
-AsyncValueRef<std::tuple<OutputTypes...>>
-InterleaveDatasetIterator<std::tuple<InputTypes...>,
-                          std::tuple<OutputTypes...>>::GetNext(Location loc) {
+AsyncValueRef<std::tuple<OutputTypes...>> InterleaveDatasetIterator<
+    std::tuple<InputTypes...>,
+    std::tuple<OutputTypes...>>::GetNext(const ExecutionContext& exec_ctx) {
   while (!end_of_input_ || num_open_) {  // Not at end of input
 
     // Case 1: cycle_index_ has an open iterator. Get the next element from
     // that iterator and advance to the next block index.
     if (cycle_iterators_[cycle_index_]) {
       // Get the next element from the iterator opened at cycle_index_.
-      auto value = cycle_iterators_[cycle_index_]->GetNext(loc);
+      auto value = cycle_iterators_[cycle_index_]->GetNext(exec_ctx);
 
       // If we're at the end of this current iterator, advance to the next
       // iterator in the cycle.
@@ -188,7 +189,7 @@ InterleaveDatasetIterator<std::tuple<InputTypes...>,
     // Case 3: This iterator at the current cycle_index_ has not been created.
     // Get the next element from the input dataset and create an iterator
     // from it.
-    auto input_element = input_iterator_->GetNext(loc);
+    auto input_element = input_iterator_->GetNext(exec_ctx);
 
     // The input iterator has been exhausted.
     if (!input_element) {
@@ -203,7 +204,8 @@ InterleaveDatasetIterator<std::tuple<InputTypes...>,
       // on what iterators are already open. We need to support this use case,
       // e.g. if a user has MapDataset or asynchronous I/O upstream of an
       // interleave transformation.
-      return loc.EmitErrorAsync(
+      return EmitErrorAsync(
+          exec_ctx,
           "interleave expects its inputs to be available synchronously");
     }
     if (input_element.IsError()) {

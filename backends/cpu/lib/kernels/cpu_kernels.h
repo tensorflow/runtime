@@ -219,9 +219,10 @@ Expected<Chain> MatMul2D(T alpha, DHTIndexableView<T, 2> A,
 // Computes B = Relu(A).
 template <typename T>
 static AsyncValueRef<Chain> Relu(const DenseHostTensor& A, DenseHostTensor* B,
-                                 Location loc) {
+                                 const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) { return a.cwiseMax(static_cast<T>(0)); };
-  return ::tfrt::compat::UnaryEigenKernelAsync<T, T>(A, B, std::move(fn), loc);
+  return ::tfrt::compat::UnaryEigenKernelAsync<T, T>(A, B, std::move(fn),
+                                                     exec_ctx);
 }
 
 }  // namespace cpu

@@ -72,11 +72,12 @@ struct CpuOpHandlerTraits {
   using OpEntryTy = CpuOpEntry;
 
   static bool MaybeConvertTensor(const CpuOpEntry& op_entry,
-                                 const Tensor& arg_tensor, Location loc,
+                                 const Tensor& arg_tensor,
+                                 const ExecutionContext& exec_ctx,
                                  RCReference<AsyncValue>* converted) {
     if (auto allowed_formats = TensorNeedsConversion(arg_tensor, op_entry)) {
       *converted =
-          arg_tensor.ConvertToHostTensor(loc.GetHost(), allowed_formats);
+          arg_tensor.ConvertToHostTensor(exec_ctx.host(), allowed_formats);
       return true;
     }
     return false;
@@ -86,10 +87,10 @@ struct CpuOpHandlerTraits {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host) {
-    op_entry.dispatch_fn(host, inputs, attrs, result_mds, results, chain, loc,
-                         host);
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx) {
+    op_entry.dispatch_fn(exec_ctx.host(), inputs, attrs, result_mds, results,
+                         chain, exec_ctx);
   }
 };
 
@@ -149,15 +150,12 @@ Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
   // fallback device.
   if (op_entry->dispatch_fn == nullptr) return GetFallback()->MakeOp(op_name);
 
-  auto* host = GetRuntime()->GetHostContext();
-
   // NOTE(fishx): To avoid introducing an extra heap allocation, we need to
   // ensure that the size of captured variable is smaller than 3 pointers.
-  return CoreRuntimeOp([op_entry, host](const OpInvocation& invocation) {
+  return CoreRuntimeOp([op_entry](const OpInvocation& invocation) {
     bool update_chain = !(op_entry->flags & CpuOpFlags::NoSideEffects);
     // TODO(fishx): ExecuteOnOpHandler should return void.
-    ExecuteOnOpHandler<CpuOpHandlerTraits>(host, update_chain, invocation,
-                                           *op_entry);
+    ExecuteOnOpHandler<CpuOpHandlerTraits>(update_chain, invocation, *op_entry);
   });
 }
 

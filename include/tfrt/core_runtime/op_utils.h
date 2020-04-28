@@ -55,9 +55,9 @@ class TensorMetadata;
 //   RCReference<AsyncValue> AddMetadataFn(const TensorMetadata& a,
 //                                         const TensorMetadata& b,
 //                                         TensorMetadata* c,
-//                                         Location loc) {
+//                                         const ExecutionContext& exec_ctx) {
 //     // Check argument metadata.
-//     if (error) return loc.EmitErrorAsync("error");
+//     if (error) return EmitErrorAsync(exec_ctx, "error");
 //     *result = TensorMetadata(a.dtype, a.shape);
 //     return {};
 //   }
@@ -67,7 +67,7 @@ class TensorMetadata;
 //   void ExampleMetadataFn(const TensorMetadata argument,
 //                          const OpAttrsRef& attrs,
 //                          TensorMetadata* result,
-//                          Location loc) { ... }
+//                          const ExecutionContext& exec_ctx) { ... }
 //
 #define TFRT_METADATA(...) \
   ::tfrt::MetadataFnImpl<decltype(&__VA_ARGS__), &__VA_ARGS__>::Invoke
@@ -83,7 +83,7 @@ class TensorMetadata;
 //                      const HostTensor& b,
 //                      const TensorMetadata& c_md,
 //                      HostTensor* c,
-//                      Location loc) { ... }
+//                      const ExecutionContext& exec_ctx) { ... }
 //
 // Example for dispatch function that needs OpAttrs:
 //
@@ -92,7 +92,7 @@ class TensorMetadata;
 //                          const OpAttrsRef& attrs,
 //                          const TensorMetadata& c_md,
 //                          HostTensor* c,
-//                          Location loc) { ... }
+//                          const ExecutionContext& exec_ctx) { ... }
 //
 // TODO(fishx): Move it to backends/cpu.
 #define TFRT_CPU_OP(...)                                      \
@@ -108,34 +108,34 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
   static RCReference<AsyncValue> Invoke(ArrayRef<TensorMetadata> arguments,
                                         const OpAttrsRef& attrs,
                                         MutableArrayRef<TensorMetadata> results,
-                                        Location loc) {
+                                        const ExecutionContext& exec_ctx) {
     return HandleReturn(
         MetadataFnCallHelper<Args...>::template Invoke<0, 0, false>(
-            arguments, attrs, results, loc),
-        results, loc);
+            arguments, attrs, results, exec_ctx),
+        results, exec_ctx);
   }
 
  private:
   static RCReference<AsyncValue> HandleReturn(
       RCReference<AsyncValue> v, MutableArrayRef<TensorMetadata> results,
-      Location loc) {
+      const ExecutionContext& exec_ctx) {
     return v;
   }
 
   template <typename T>
   static RCReference<AsyncValue> HandleReturn(
       llvm::Expected<T>&& v, MutableArrayRef<TensorMetadata> results,
-      Location loc) {
+      const ExecutionContext& exec_ctx) {
     if (v) {
-      return HandleReturn(std::move(*v), results, loc);
+      return HandleReturn(std::move(*v), results, exec_ctx);
     } else {
-      return loc.EmitErrorAsync(v.takeError());
+      return EmitErrorAsync(exec_ctx, v.takeError());
     }
   }
 
   static RCReference<AsyncValue> HandleReturn(
       TensorMetadata&& v, MutableArrayRef<TensorMetadata> results,
-      Location loc) {
+      const ExecutionContext& exec_ctx) {
     assert(results.size() == 1 && "Incorrect number of return values");
     results[0] = std::move(v);
     return {};
@@ -144,7 +144,7 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
   template <typename... T>
   static RCReference<AsyncValue> HandleReturn(
       std::tuple<T...>&& t, MutableArrayRef<TensorMetadata> results,
-      Location loc) {
+      const ExecutionContext& exec_ctx) {
     assert(results.size() == sizeof...(T) &&
            "Incorrect number of return values");
     EmplaceTupleResult(results, std::move(t),
@@ -175,7 +175,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
                           const OpAttrsRef& attrs,
-                          MutableArrayRef<TensorMetadata> results, Location loc,
+                          MutableArrayRef<TensorMetadata> results,
+                          const ExecutionContext& exec_ctx,
                           const PreviousArgs&... pargs) {
       static_assert(arg_idx != -1,
                     "Do not place argument TensorMetadata after OptionalOpArg "
@@ -188,8 +189,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
       assert(arg_idx < arguments.size());
       const TensorMetadata& argument = arguments[arg_idx];
       return MetadataFnCallHelper<RemainingArgs...>::template Invoke<
-          arg_idx + 1, result_idx, has_attrs>(arguments, attrs, results, loc,
-                                              pargs..., argument);
+          arg_idx + 1, result_idx, has_attrs>(arguments, attrs, results,
+                                              exec_ctx, pargs..., argument);
     }
   };
 
@@ -200,7 +201,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
                           const OpAttrsRef& attrs,
-                          MutableArrayRef<TensorMetadata> results, Location loc,
+                          MutableArrayRef<TensorMetadata> results,
+                          const ExecutionContext& exec_ctx,
                           const PreviousArgs&... pargs) {
       static_assert(arg_idx != -1,
                     "Do not use more than one OptionalOpArg, or more than one "
@@ -215,12 +217,12 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
       if (arg_idx < arguments.size()) {
         const TensorMetadata& argument = arguments[arg_idx];
         return MetadataFnCallHelper<RemainingArgs...>::template Invoke<
-            -1, result_idx, has_attrs>(arguments, attrs, results, loc, pargs...,
-                                       &argument);
+            -1, result_idx, has_attrs>(arguments, attrs, results, exec_ctx,
+                                       pargs..., &argument);
       } else {
         return MetadataFnCallHelper<RemainingArgs...>::template Invoke<
-            -1, result_idx, has_attrs>(arguments, attrs, results, loc, pargs...,
-                                       OptionalOpArg<Head>());
+            -1, result_idx, has_attrs>(arguments, attrs, results, exec_ctx,
+                                       pargs..., OptionalOpArg<Head>());
       }
     }
   };
@@ -232,7 +234,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
                           const OpAttrsRef& attrs,
-                          MutableArrayRef<TensorMetadata> results, Location loc,
+                          MutableArrayRef<TensorMetadata> results,
+                          const ExecutionContext& exec_ctx,
                           const PreviousArgs&... pargs) {
       static_assert(arg_idx != -1,
                     "Do not use more than one OptionalOpArg, or more than one "
@@ -246,7 +249,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
       assert(arg_idx <= arguments.size());
       auto var_args = arguments.drop_front(arg_idx);
       return MetadataFnCallHelper<RemainingArgs...>::template Invoke<
-          -1, result_idx, has_attrs>(arguments, attrs, results, loc, pargs...,
+          -1, result_idx, has_attrs>(arguments, attrs, results, exec_ctx,
+                                     pargs...,
                                      VariadicOpArg<TensorMetadata>(var_args));
     }
   };
@@ -258,15 +262,16 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
                           const OpAttrsRef& attrs,
-                          MutableArrayRef<TensorMetadata> results, Location loc,
+                          MutableArrayRef<TensorMetadata> results,
+                          const ExecutionContext& exec_ctx,
                           const PreviousArgs&... pargs) {
       static_assert(!has_attrs, "Do not place more than one OpAttrsRef");
       static_assert(
           result_idx == 0,
           "Do not place argument OpAttrsRef after result TensorMetadata");
       return MetadataFnCallHelper<RemainingArgs...>::template Invoke<
-          arg_idx, result_idx, true>(arguments, attrs, results, loc, pargs...,
-                                     attrs);
+          arg_idx, result_idx, true>(arguments, attrs, results, exec_ctx,
+                                     pargs..., attrs);
     }
   };
 
@@ -277,28 +282,30 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
                           const OpAttrsRef& attrs,
-                          MutableArrayRef<TensorMetadata> results, Location loc,
+                          MutableArrayRef<TensorMetadata> results,
+                          const ExecutionContext& exec_ctx,
                           const PreviousArgs&... pargs) {
       assert(result_idx < results.size());
       TensorMetadata* result = &results[result_idx];
       return MetadataFnCallHelper<RemainingArgs...>::template Invoke<
-          arg_idx, result_idx + 1, has_attrs>(arguments, attrs, results, loc,
-                                              pargs..., result);
+          arg_idx, result_idx + 1, has_attrs>(arguments, attrs, results,
+                                              exec_ctx, pargs..., result);
     }
   };
 
-  // Specialization for passing a Location.
+  // Specialization for passing a const ExecutionContext&.
   template <typename... RemainingArgs>
-  struct MetadataFnCallHelper<Location, RemainingArgs...> {
+  struct MetadataFnCallHelper<const ExecutionContext&, RemainingArgs...> {
     template <int arg_idx, int result_idx, bool has_attrs,
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
                           const OpAttrsRef& attrs,
-                          MutableArrayRef<TensorMetadata> results, Location loc,
+                          MutableArrayRef<TensorMetadata> results,
+                          const ExecutionContext& exec_ctx,
                           const PreviousArgs&... pargs) {
       return MetadataFnCallHelper<RemainingArgs...>::template Invoke<
-          arg_idx, result_idx, has_attrs>(arguments, attrs, results, loc,
-                                          pargs..., loc);
+          arg_idx, result_idx, has_attrs>(arguments, attrs, results, exec_ctx,
+                                          pargs..., exec_ctx);
     }
   };
 
@@ -309,7 +316,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
                           const OpAttrsRef& attrs,
-                          MutableArrayRef<TensorMetadata> results, Location loc,
+                          MutableArrayRef<TensorMetadata> results,
+                          const ExecutionContext& exec_ctx,
                           const PreviousArgs&... args) {
       assert((arg_idx == arguments.size() || arg_idx == -1) &&
              "Extra arguments passed to metadata function.");
@@ -331,10 +339,10 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                      const OpAttrsRef& attrs,
                      ArrayRef<TensorMetadata> result_mds,
                      MutableArrayRef<RCReference<AsyncValue>> results,
-                     AsyncValueRef<Chain>* chain, Location loc,
-                     HostContext* host) {
+                     AsyncValueRef<Chain>* chain,
+                     const ExecutionContext& exec_ctx) {
     DispatchFnCallHelper<true, Args...>::template Invoke<0, 0, 0, false, false>(
-        ctx, arguments, attrs, result_mds, results, chain, loc, host);
+        ctx, arguments, attrs, result_mds, results, chain, exec_ctx);
   }
 
  protected:
@@ -352,9 +360,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   template <int result_idx, bool has_chain, typename T>
   struct DispatchReturnHelper {
     static void Invoke(MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const Args&... args) {
-      HandleReturn<result_idx, has_chain>(results, chain, loc, host,
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx, const Args&... args) {
+      HandleReturn<result_idx, has_chain>(results, chain, exec_ctx,
                                           impl_fn(args...));
     }
   };
@@ -363,8 +371,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   template <int result_idx, bool has_chain>
   struct DispatchReturnHelper<result_idx, has_chain, void> {
     static void Invoke(MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const Args&... args) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx, const Args&... args) {
       assert(result_idx == results.size() &&
              "Extra results passed to dispatch function.");
       impl_fn(args...);
@@ -374,20 +382,21 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   // For ops functions that return T.
   template <int result_idx, bool has_chain, typename T>
   static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,
-                           AsyncValueRef<Chain>* chain, Location loc,
-                           HostContext* host, T&& t) {
+                           AsyncValueRef<Chain>* chain,
+                           const ExecutionContext& exec_ctx, T&& t) {
     static_assert(result_idx == 0,
                   "Do not both have result argument and return result");
     assert(results.size() == 1 && "Incorrect number of return value");
     results[0] =
-        loc.GetHost()->MakeConcreteAsyncValueRef<T>(std::forward<T>(t));
+        exec_ctx.host()->MakeConcreteAsyncValueRef<T>(std::forward<T>(t));
   }
 
   // For ops functions that return AsyncValueRef<Chain>.
   template <int result_idx, bool has_chain>
   static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,
-                           AsyncValueRef<Chain>* chain, Location loc,
-                           HostContext* host, AsyncValueRef<Chain>&& t) {
+                           AsyncValueRef<Chain>* chain,
+                           const ExecutionContext& exec_ctx,
+                           AsyncValueRef<Chain>&& t) {
     static_assert(!has_chain,
                   "Do not both have chain argument and return chain");
     assert(result_idx == results.size() &&
@@ -398,8 +407,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   // For ops functions that return AsyncValueRef<T>.
   template <int result_idx, bool has_chain, typename T>
   static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,
-                           AsyncValueRef<Chain>* chain, Location loc,
-                           HostContext* host, AsyncValueRef<T> t) {
+                           AsyncValueRef<Chain>* chain,
+                           const ExecutionContext& exec_ctx,
+                           AsyncValueRef<T> t) {
     static_assert(result_idx == 0,
                   "Do not both have result argument and return result");
     assert(results.size() == 1 && "Incorrect number of return value");
@@ -409,16 +419,17 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   // For ops functions that return RCReference<AsyncValue>.
   template <int result_idx, bool has_chain>
   static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,
-                           AsyncValueRef<Chain>* chain, Location loc,
-                           HostContext* host, RCReference<AsyncValue> t) {
+                           AsyncValueRef<Chain>* chain,
+                           const ExecutionContext& exec_ctx,
+                           RCReference<AsyncValue> t) {
     static_assert(result_idx == 0,
                   "Do not both have result argument and return result");
     assert(results.size() == 1 && "Incorrect number of return value");
     // Add location information to error result if necessary.
-    t->AndThen([t = t.get(), loc] {
+    t->AndThen([t = t.get(), exec_ctx] {
       if (t->IsError()) {
-        t->SetErrorLocationIfUnset(loc.Decode());
-        loc.GetHost()->EmitError(t->GetError());
+        t->SetErrorLocationIfUnset(exec_ctx.location().Decode());
+        exec_ctx.host()->EmitError(t->GetError());
       }
     });
     results[0] = std::move(t);
@@ -427,15 +438,15 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   // For ops functions that return Expected<T>.
   template <int result_idx, bool has_chain, typename T>
   static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,
-                           AsyncValueRef<Chain>* chain, Location loc,
-                           HostContext* host, Expected<T>&& t) {
+                           AsyncValueRef<Chain>* chain,
+                           const ExecutionContext& exec_ctx, Expected<T>&& t) {
     static_assert(result_idx == 0,
                   "Do not both have result argument and return result");
     if (t) {
-      HandleReturn<result_idx, has_chain>(results, chain, loc, host,
+      HandleReturn<result_idx, has_chain>(results, chain, exec_ctx,
                                           std::move(*t));
     } else {
-      results[0] = loc.EmitErrorAsync(t.takeError());
+      results[0] = EmitErrorAsync(exec_ctx, t.takeError());
       for (size_t i = 1, e = results.size(); i != e; ++i) {
         results[i] = results[0].CopyRef();
       }
@@ -446,11 +457,12 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   // as the output AsyncValues in the KernelFrame.
   template <int result_idx, bool has_chain, typename... T>
   static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,
-                           AsyncValueRef<Chain>* chain, Location loc,
-                           HostContext* host, std::tuple<T...>&& t) {
+                           AsyncValueRef<Chain>* chain,
+                           const ExecutionContext& exec_ctx,
+                           std::tuple<T...>&& t) {
     assert(results.size() == sizeof...(T) &&
            "Incorrect number of results passed to op.");
-    EmplaceTupleResult(results, host, std::move(t),
+    EmplaceTupleResult(results, exec_ctx, std::move(t),
                        std::make_index_sequence<sizeof...(T)>{});
   }
 
@@ -458,13 +470,15 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   // output AsyncValue in KernelFrame.
   template <typename TupleT, size_t... I>
   static void EmplaceTupleResult(
-      MutableArrayRef<RCReference<AsyncValue>> results, HostContext* host,
-      TupleT&& result, std::index_sequence<I...>) {
+      MutableArrayRef<RCReference<AsyncValue>> results,
+      const ExecutionContext& exec_ctx, TupleT&& result,
+      std::index_sequence<I...>) {
     // Use braced-init-list to retrieve the results in the tuple in sequence.
     std::ignore = std::initializer_list<int>{
         (results[I] =
-             host->MakeConcreteAsyncValueRef<std::tuple_element_t<I, TupleT>>(
-                 std::get<I>(std::forward<TupleT>(result))),
+             exec_ctx.host()
+                 ->MakeConcreteAsyncValueRef<std::tuple_element_t<I, TupleT>>(
+                     std::get<I>(std::forward<TupleT>(result))),
          0)...};
   }
 
@@ -477,8 +491,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       static_assert(!has_attrs, "Do not place more than one OpAttrsRef");
       static_assert(!has_chain, "Do not place argument OpAttrsRef after chain");
       static_assert(result_idx == 0,
@@ -487,8 +502,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                     "Do not place OpAttrsRef after result Metadata");
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, true, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., attrs);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          attrs);
     }
   };
 
@@ -501,8 +516,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       static_assert(result_idx == 0,
                     "Do not place result Metadata after result Tensor");
       static_assert(!has_chain, "Do not place result Metadata after chain");
@@ -510,8 +526,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
       const TensorMetadata& md = result_mds[md_idx];
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx + 1, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., md);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          md);
     }
   };
 
@@ -525,15 +541,16 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       static_assert(!has_chain, "Do not place result Tensor after chain");
       assert(result_idx < results.size());
       RCReference<AsyncValue>* arg = &results[result_idx];
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx, result_idx + 1, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., arg);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          arg);
     }
   };
 
@@ -546,31 +563,33 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       static_assert(!has_chain, "Do not place more than one chain");
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, has_attrs, true>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., chain);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          chain);
     }
   };
 
-  // Specialization for passing Location.
+  // Specialization for passing const ExecutionContext&.
   template <typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, Location, RemainingArgs...> {
+  struct DispatchFnCallHelper<true, const ExecutionContext&, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., loc);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          exec_ctx);
     }
   };
 
@@ -583,12 +602,13 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., host);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          exec_ctx.host());
     }
   };
 
@@ -602,12 +622,13 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., ctx);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          ctx);
     }
   };
 
@@ -620,8 +641,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       static_assert(std::is_base_of<Tensor, Head>::value,
                     "Only support Tensor argument");
       static_assert(!has_chain, "Do not place argument Tensor after chain");
@@ -637,8 +659,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
       Head& arg = arguments[arg_idx]->get<Head>();
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx + 1, result_idx, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., &arg);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          &arg);
     }
   };
 
@@ -651,8 +673,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       static_assert(std::is_base_of<Tensor, Head>::value,
                     "Only support Tensor argument");
       static_assert(!has_chain, "Do not place argument Tensor after chain");
@@ -668,8 +691,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
       Head& arg = arguments[arg_idx]->get<Head>();
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx + 1, result_idx, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., arg);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          arg);
     }
   };
 
@@ -682,8 +705,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       static_assert(std::is_base_of<Tensor, Head>::value,
                     "Only support Tensor argument");
       static_assert(!has_chain, "Do not place argument Tensor after chain");
@@ -699,8 +723,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
       Argument<Head> arg(arguments[arg_idx]);
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           arg_idx + 1, result_idx, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., arg);
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          arg);
     }
   };
 
@@ -713,8 +737,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       // TODO(jingdong): Deduplicate static_assert checks across other template
       // specializations.
       static_assert(std::is_base_of<Tensor, Head>::value,
@@ -741,12 +766,12 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
         assert(arg && "requires Tensor input");
         DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
             -1, result_idx, md_idx, has_attrs, has_chain>(
-            ctx, arguments, attrs, result_mds, results, chain, loc, host,
+            ctx, arguments, attrs, result_mds, results, chain, exec_ctx,
             pargs..., arg);
       } else {
         DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
             -1, result_idx, md_idx, has_attrs, has_chain>(
-            ctx, arguments, attrs, result_mds, results, chain, loc, host,
+            ctx, arguments, attrs, result_mds, results, chain, exec_ctx,
             pargs..., OptionalOpArg<Head>());
       }
     }
@@ -761,8 +786,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... pargs) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... pargs) {
       // TODO(jingdong): Deduplicate static_assert checks across other template
       // specializations.
       static_assert(std::is_base_of<Tensor, Head>::value,
@@ -785,8 +811,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
       ArrayRef<AsyncValue*> var_tensor_args = arguments.drop_front(arg_idx);
       DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
           -1, result_idx, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, loc, host,
-          pargs..., RepeatedArguments<Head>(var_tensor_args));
+          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
+          RepeatedArguments<Head>(var_tensor_args));
     }
   };
 
@@ -799,15 +825,16 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain, Location loc,
-                       HostContext* host, const PreviousArgs&... args) {
+                       AsyncValueRef<Chain>* chain,
+                       const ExecutionContext& exec_ctx,
+                       const PreviousArgs&... args) {
       // TODO(b/146386166): Emit error instead of assert().
       assert((arg_idx == arguments.size() || arg_idx == -1) &&
              "Extra arguments passed to dispatch function.");
       assert((md_idx == result_mds.size() || md_idx == 0) &&
              "Extra result Metadatas passed to dispatch function.");
       DispatchReturnHelper<result_idx, has_chain, Return>::Invoke(
-          results, chain, loc, host, args...);
+          results, chain, exec_ctx, args...);
     }
   };
 };

@@ -31,7 +31,7 @@ namespace tfrt {
 class TensorHandle;
 class OpAttrsRef;
 class Chain;
-class Location;
+class ExecutionContext;
 
 // A callable op handle prepared by a specific OpHandler.
 class CoreRuntimeOp {
@@ -43,7 +43,8 @@ class CoreRuntimeOp {
                 bool is_fallback);
 
   // Execute the prepared op.
-  void operator()(Location loc, MutableArrayRef<TensorHandle> arguments,
+  void operator()(const ExecutionContext& exec_ctx,
+                  MutableArrayRef<TensorHandle> arguments,
                   const OpAttrsRef& attrs,
                   MutableArrayRef<TensorHandle> results,
                   AsyncValueRef<Chain>* chain);

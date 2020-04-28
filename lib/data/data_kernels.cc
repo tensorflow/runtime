@@ -88,15 +88,16 @@ RCReference<RangeDataset<T>> MakeRangeDataset(T start, T stop, T step,
 // TODO(rachelim): Support variable number of arguments.
 template <typename T, typename... U>
 RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
-    RCReference<Dataset<T>>* dataset, Attribute<Function> fn,
-    HostContext* host) {
-  assert(fn->argument_types().size() == 1 &&
-         "Map only supports functions with unary inputs.");
+    RCReference<Dataset<T>>* dataset, RemainingArguments args,
+    Attribute<Function> fn, HostContext* host) {
+  assert((args.size() + 1 == fn->argument_types().size()) &&
+         "MapDataset only supports input dataset with unary output.");
   assert(fn->result_types().size() == sizeof...(U) &&
          "Map function output size does not match expexcted.");
 
   return TakeRef(host->Construct<MapDataset<std::tuple<T>, std::tuple<U...>>>(
-      (*dataset).CopyRef(), FormRef(&fn.get()), host));
+      (*dataset).CopyRef(), RCArray<AsyncValue>(args.values()),
+      FormRef(&fn.get()), host));
 }
 
 //===----------------------------------------------------------------------===//

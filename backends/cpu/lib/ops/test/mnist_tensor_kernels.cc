@@ -188,19 +188,6 @@ static AsyncValueRef<Chain> ElementwiseAddInPlace(
                                      exec_ctx);
 }
 
-// Computes B -= A.
-// TODO(rmlarsen): Should we prefer B += A over C = A + B? Should we implement
-// both?
-template <typename T>
-static AsyncValueRef<Chain> ElementwiseSubstractInPlace(
-    Argument<DenseHostTensor> A,
-    // `B` supplies the buffer for writing the output
-    Argument<DenseHostTensor> B, const ExecutionContext& exec_ctx) {
-  auto fn = [](auto& a, auto& b) { return b - a; };
-  return UnaryEigenKernelAsync<T, T>(A.get(), &B.get(), std::move(fn),
-                                     exec_ctx);
-}
-
 //===----------------------------------------------------------------------===//
 // mnist.equal op and kernels
 //===----------------------------------------------------------------------===//
@@ -725,8 +712,6 @@ static void RegisterMNISTTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(ElementwiseAdd<T>));
   registry->AddKernel("tfrt_test.add_inplace." + suffix,
                       TFRT_KERNEL(ElementwiseAddInPlace<T>));
-  registry->AddKernel("tfrt_test.substract_inplace." + suffix,
-                      TFRT_KERNEL(ElementwiseSubstractInPlace<T>));
   registry->AddKernel("tfrt_test.equal." + suffix,
                       TFRT_KERNEL(ElementwiseEqual<T>));
   registry->AddKernel("tfrt_test.equal_inplace." + suffix,

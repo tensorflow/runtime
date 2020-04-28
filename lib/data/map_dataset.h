@@ -70,10 +70,12 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
     : public Dataset<OutputTypes...> {
  public:
   explicit MapDataset(RCReference<Dataset<InputTypes...>> input_dataset,
+                      RCArray<AsyncValue> additional_fn_args,
                       RCReference<const Function> map_fn, HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         host_(host),
         allocator_(host->allocator()),
+        additional_fn_args_(std::move(additional_fn_args)),
         map_fn_(std::move(map_fn)) {}
 
   // This class is not copyable or movable.
@@ -96,6 +98,7 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
   RCReference<Dataset<InputTypes...>> input_dataset_;
   HostContext* host_;
   HostAllocator* allocator_;
+  RCArray<AsyncValue> additional_fn_args_;
   RCReference<const Function> map_fn_;
 };
 
@@ -115,6 +118,9 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
       const ExecutionContext& exec_ctx) override {
     auto* host = IteratorBase::host_;
     const Function* map_fn = parent_dataset_->map_fn_.get();
+    // IDEA(donglin): consider extending RCArray to support CopyRef() without
+    // doing shallow copy.
+    auto additional_fn_args = parent_dataset_->additional_fn_args_.CopyRef();
     auto args = input_iterator_->GetNext(exec_ctx);
     if (!args) {
       return AsyncValueRef<std::tuple<OutputTypes...>>();
@@ -133,21 +139,30 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
     // parallelism is to compose map function with async kernels. This
     // alternative approach likely incurs higher thread context switch overhead
     // because different async kernels may be run by different threads.
-    host->EnqueueWork([host, map_fn = FormRef(map_fn), args = std::move(args),
-                       async_result = async_result.CopyRef()]() {
+    host->EnqueueWork([host, map_fn = FormRef(map_fn),
+                       additional_fn_args = std::move(additional_fn_args),
+                       args = std::move(args),
+                       async_result = async_result.CopyRef()]() mutable {
       // IDEA(donglin): We can optimize performance by constructing a view of
       // AsyncValue<T> from AsyncValue<std::tuple<T>> without moving data.
-      args.AndThen([host, args = args.CopyRef(), map_fn = map_fn.CopyRef(),
-                    async_result = async_result.CopyRef()] {
+      args.AndThen([host, map_fn = map_fn.CopyRef(),
+                    additional_fn_args = std::move(additional_fn_args),
+                    args = args.CopyRef(),
+                    async_result = async_result.CopyRef()]() {
         if (args.IsError()) {
           async_result.SetError(args.GetError());
         }
-        // Wrap input argument in AsyncValue for function execution.
+        // Construct arguments for function execution. The arguments consist of
+        // the 'additional_fn_args' from the MapDataset constructor, followed by
+        // the values from the underlying iterator.
         SmallVector<AsyncValue*, 4> arguments;
+        for (auto* additional_arg : additional_fn_args.values()) {
+          arguments.push_back(additional_arg);
+        }
         auto arg = host->template MakeConcreteAsyncValueRef<InputTypes...>(
             std::move(std::get<0>(args.get())));
-
         arguments.push_back(arg.GetAsyncValue());
+
         SmallVector<RCReference<AsyncValue>, sizeof...(OutputTypes)> results;
         results.resize(map_fn->result_types().size());
         map_fn->Execute(arguments, results, host);

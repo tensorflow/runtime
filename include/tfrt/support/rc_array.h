@@ -50,6 +50,7 @@ class RCArray {
   }
 
   RCArray(RCArray&& other) : values_(std::move(other.values_)) {}
+
   RCArray& operator=(RCArray&& other) {
     for (auto* v : values_) v->DropRef();
     values_ = std::move(other.values_);
@@ -66,6 +67,10 @@ class RCArray {
     assert(i < values_.size());
     return values_[i];
   }
+
+  // Make an explicit copy of this RCArray, increasing the refcount of every
+  // element in the array by one.
+  RCArray CopyRef() const { return RCArray(values()); }
 
   llvm::ArrayRef<T*> values() const { return values_; }
 

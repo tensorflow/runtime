@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | hexdump -C | FileCheck %s --dump-input=fail
+// RUN: tfrt_translate -mlir-to-bef %s | od -t x1 | FileCheck %s --dump-input=fail
 
 // Empty file.  Check to make sure the magic number is right.
 
-// CHECK: 00000000  0b ef
+// CHECK: 0000000 0b ef

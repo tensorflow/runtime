@@ -116,3 +116,12 @@ tfrt_cc_test(
         "@tf_runtime//:support",
     ],
 )
+
+tfrt_cc_test(
+    name = "support/aligned_buffer_test",
+    srcs = ["support/aligned_buffer_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)

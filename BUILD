@@ -79,6 +79,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "support",
     srcs = [
+        "lib/support/alloc.cc",
         "lib/support/hash_util.cc",
         "lib/support/logging.cc",
         "lib/support/ref_count.cc",
@@ -86,6 +87,8 @@ tfrt_cc_library(
         "lib/support/string_util.cc",
     ],
     hdrs = [
+        "include/tfrt/support/aligned_buffer.h",
+        "include/tfrt/support/alloc.h",
         "include/tfrt/support/bef_encoding.h",
         "include/tfrt/support/bef_reader.h",
         "include/tfrt/support/byte_order.h",

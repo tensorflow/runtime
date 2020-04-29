@@ -25,25 +25,7 @@
 #include <cstdint>
 
 #include "llvm/Support/MathExtras.h"
-
-namespace {
-void* tfrt_aligned_alloc(size_t alignment, size_t size) {
-#if defined(__ANDROID__) || defined(OS_ANDROID)
-  return memalign(alignment, size);
-#else  // !__ANDROID__ && !OS_ANDROID
-  void* ptr = nullptr;
-  // posix_memalign requires that the requested alignment be at least
-  // sizeof(void*). In this case, fall back on malloc which should return memory
-  // aligned to at least the size of a pointer.
-  const int required_alignment = sizeof(void*);
-  if (alignment < required_alignment) return malloc(size);
-  if (posix_memalign(&ptr, alignment, size) != 0)
-    return nullptr;
-  else
-    return ptr;
-#endif
-}
-}  // namespace
+#include "tfrt/support/alloc.h"
 
 namespace tfrt {
 
@@ -54,7 +36,7 @@ class MallocAllocator : public HostAllocator {
 
     // aligned_alloc requires the size to be a multiple of the alignment.
     size = llvm::alignTo(size, alignment, /*skew=*/0);
-    return tfrt_aligned_alloc(alignment, size);
+    return AlignedAlloc(alignment, size);
   }
 
   // Deallocate the specified pointer that has the specified size.

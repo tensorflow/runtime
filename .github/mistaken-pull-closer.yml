@@ -1,0 +1,17 @@
+# The JSONPath filter expression used to identify which PRs to close.
+# The data filtered is the pull request data along with other metadata passed in
+# by probot.
+# See http://goessner.net/articles/JsonPath/
+# `true` will close all PRs.
+filters:
+  - true
+
+# The message to post to the closed PR.
+commentBody: |
+  Thanks for your contribution! Unfortunately, tensorflow/runtime is currently
+  not accepting contributions. Please see the
+  [Contribution Guidelines](../blob/master/README.md#contribution-guidelines)
+  for more information.
+
+# Whether to add a label to the closed PR.
+addLabel: false

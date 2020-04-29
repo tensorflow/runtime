@@ -1,4 +1,6 @@
 .bazelrc
+.github/mistaken-pull-closer.yml
+.github/pull_request_template.md
 CODEOWNERS
 WORKSPACE
 dependencies.bzl

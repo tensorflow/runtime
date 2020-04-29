@@ -112,48 +112,6 @@ enum : size_t {
   kKernelEntryAlignment = 4,
 };
 
-// AttributeTypeID is used to differentiate the type of the attribute in a
-// AttributeTypeEntry. These codes are emitted in the low kAttributeTypeIDShift
-// bits of an integer byte stream.
-enum class AttributeTypeID : size_t {
-  // StandardAttribute is an attribute with standard types (eg. i32, i1). This
-  // entry holds the index to types section.
-  kStandardAttribute = 0,
-
-  // BoolAttribute indicates the corresponding attribute is a bool.
-  kBoolAttribute = 1,
-
-  // StringAttribute indicates the corresponding attribute is a string.
-  kStringAttribute = 2,
-
-  // TypeAttribute indicates the attribute is a type.
-  kTypeAttribute = 3,
-
-  // DenseElementsAttribute indicates the corresponding attribute is a dense
-  // elements attribute. A dense elements attribute is an elements attribute
-  // where the storage for the constant vector or tensor value has been packed
-  // to the element bitwidth. The element type of the vector or tensor constant
-  // must be of integer, index, or floating point type.
-  kDenseElementsAttribute = 4,
-
-  // FlatArrayAttribute indicates the corresponding attribute is a flat array.
-  // Its elements have the same type and width.
-  kFlatArrayAttribute = 5,
-
-  // OffsetArrayAttribute indicates the corresponding attribute is an offset
-  // array. It contains offsets to other attributes in Attributes section. And
-  // these attributes can have different types including FlatArrayAttribute and
-  // OffsetArrayAttribute.
-  kOffsetArrayAttribute = 6,
-};
-
-enum : size_t {
-  // AttributeTypeID is encoded into the low bits of an integer in the stream.
-  kAttributeTypeIDShift = 4,
-  kAttributeTypeIDMask = (1 << kAttributeTypeIDShift) - 1,
-  kMaxAttributeTypeID = kAttributeTypeIDMask,
-};
-
 // SpecialAttribute describes the special BEF attributes of a kernel. It is a
 // bitfield, each bit of which represent one kind of such attribute.
 enum class SpecialAttribute : uint8_t {
@@ -173,8 +131,23 @@ enum class FunctionKind : uint8_t {
   kNativeFunction = 1,
 };
 
-// This enum defines the attribute kind.
-enum class AttributeKind : uint8_t {
+enum : uint8_t {
+  kScalarAttributeTypeSize = 7,
+  kArrayAttributeTypeSize = 1,
+
+  kScalarAttributeTypeShift = 0,
+  kArrayAttributeTypeShift = kScalarAttributeTypeSize,
+
+  kScalarAttributeTypeMask = ((1 << kScalarAttributeTypeSize) - 1)
+                             << kScalarAttributeTypeShift,
+  kArrayAttributeTypeMask = ((1 << kArrayAttributeTypeSize) - 1)
+                            << kArrayAttributeTypeShift,
+
+  kArrayAttributeType = 1 << kArrayAttributeTypeShift,
+};
+
+// This enum defines the attribute type.
+enum class BEFAttributeType : uint8_t {
   kUnsupported,
 
   kBool,
@@ -186,96 +159,113 @@ enum class AttributeKind : uint8_t {
   kF32,
   kF64,
 
-  kFirstDTypeKind = kI1,
-  kLastDTypeKind = kF64,
-
   kType,
-  kDenseElements,
 
-  // Scalar attributes are attributes with no indirect values (ie. trivially
-  // copyable).
-  kFirstScalarKind = kBool,
-  kLastScalarKind = kDenseElements,
+  kFirstFixedType = kBool,
+  kLastFixedType = kType,
 
   kString,
-  kFlatArray,
-  kOffsetArray,
+  kDenseElements,
+
+  kFirstScalarType = kBool,
+  kLastScalarType = kDenseElements,
+
+  kAggregate = 0x7f,
+
+  kEmptyArray = kI32 | kArrayAttributeType,
+  kI1Array = kI1 | kArrayAttributeType,
+  kI32Array = kI32 | kArrayAttributeType,
+  kI64Array = kI64 | kArrayAttributeType,
+  kF16Array = kF16 | kArrayAttributeType,
+  kF32Array = kF32 | kArrayAttributeType,
+  kF64Array = kF64 | kArrayAttributeType,
+
+  kTypeArray = kType | kArrayAttributeType,
 };
 
-inline bool IsScalarAttribute(AttributeKind kind) {
-  return kind >= AttributeKind::kFirstScalarKind &&
-         kind <= AttributeKind::kLastScalarKind;
+inline bool IsArrayAttribute(BEFAttributeType type) {
+  return static_cast<uint8_t>(type) & kArrayAttributeType;
 }
 
-inline bool IsDTypeAttribute(AttributeKind kind) {
-  return kind >= AttributeKind::kFirstDTypeKind &&
-         kind <= AttributeKind::kLastDTypeKind;
+inline bool IsScalarAttribute(BEFAttributeType type) {
+  return type >= BEFAttributeType::kFirstScalarType &&
+         type <= BEFAttributeType::kLastScalarType;
+}
+
+inline bool IsFixedAttribute(BEFAttributeType type) {
+  return type >= BEFAttributeType::kFirstFixedType &&
+         type <= BEFAttributeType::kLastFixedType;
+}
+
+inline BEFAttributeType GetArrayAttributeType(BEFAttributeType element_type) {
+  assert(IsFixedAttribute(element_type));
+  return static_cast<BEFAttributeType>(static_cast<uint8_t>(element_type) |
+                                       kArrayAttributeType);
+}
+
+inline BEFAttributeType GetArrayAttributeElementType(
+    BEFAttributeType array_type) {
+  auto r = static_cast<BEFAttributeType>(static_cast<uint8_t>(array_type) &
+                                         kScalarAttributeTypeMask);
+  assert(IsFixedAttribute(r));
+  return r;
 }
 
 // Return the byte size of attributes in BEF. It will return 0 if the size is
 // not fixed.
-inline size_t GetBEFAttributeSize(AttributeKind kind) {
-  switch (kind) {
-    case AttributeKind::kType:
-    case AttributeKind::kBool:
-    case AttributeKind::kI1:
+inline size_t GetBEFAttributeSize(BEFAttributeType type) {
+  switch (type) {
+    case BEFAttributeType::kType:
+    case BEFAttributeType::kBool:
+    case BEFAttributeType::kI1:
       return 1;
-    case AttributeKind::kI32:
-    case AttributeKind::kF32:
+    case BEFAttributeType::kI32:
+    case BEFAttributeType::kF32:
       return 4;
-    case AttributeKind::kI64:
-    case AttributeKind::kF64:
+    case BEFAttributeType::kI64:
+    case BEFAttributeType::kF64:
       return 8;
     default:
       return 0;
   }
 }
 
-// Belows are helper functions for retrieving AttributeKind for scalar types.
+// Belows are helper functions for retrieving BEFAttributeType for scalar types.
 template <typename T>
-AttributeKind GetAttributeKind();
+BEFAttributeType GetBEFAttributeType();
 
 template <>
-inline AttributeKind GetAttributeKind<uint8_t>() {
-  return AttributeKind::kI1;
+inline BEFAttributeType GetBEFAttributeType<uint8_t>() {
+  return BEFAttributeType::kI1;
 }
 
 template <>
-inline AttributeKind GetAttributeKind<int32_t>() {
-  return AttributeKind::kI32;
+inline BEFAttributeType GetBEFAttributeType<int32_t>() {
+  return BEFAttributeType::kI32;
 }
 
 template <>
-inline AttributeKind GetAttributeKind<int64_t>() {
-  return AttributeKind::kI64;
+inline BEFAttributeType GetBEFAttributeType<int64_t>() {
+  return BEFAttributeType::kI64;
 }
 
 template <>
-inline AttributeKind GetAttributeKind<float>() {
-  return AttributeKind::kF32;
+inline BEFAttributeType GetBEFAttributeType<float>() {
+  return BEFAttributeType::kF32;
 }
 
 template <>
-inline AttributeKind GetAttributeKind<double>() {
-  return AttributeKind::kF64;
+inline BEFAttributeType GetBEFAttributeType<double>() {
+  return BEFAttributeType::kF64;
 }
-
-// AttributeKindDescriptor specifies the kind of an attribute in BEF.
-struct AttributeKindDescriptor {
-  AttributeKind kind;
-
-  // array_element_kind indicates the element kind if `kind` is FlatArray. It is
-  // kUnsupported otherwise.
-  AttributeKind array_element_kind = AttributeKind::kUnsupported;
-};
 
 // AttributeDescriptor describes the attribute location and type information. It
-// is currently only used in OffsetArrayAttribute.
+// is currently only used in AggregateAttribute.
 struct AttributeDescriptor {
   // `offset` is the offset to the attribute in BEF Attributes section.
   uint32_t offset;
-  AttributeKindDescriptor kind_descriptor;
-  uint8_t padding[2];
+  BEFAttributeType type;
+  uint8_t padding[3];
 };
 static_assert(sizeof(AttributeDescriptor) == 8,
               "AttributeDescriptor should have a size of 8 bytes.");
@@ -368,8 +358,8 @@ class DenseAttr {
 
   explicit operator bool() const { return bef_dense_attr_ != nullptr; }
 
-  AttributeKind dtype() const {
-    return static_cast<AttributeKind>(header().dtype);
+  BEFAttributeType dtype() const {
+    return static_cast<BEFAttributeType>(header().dtype);
   }
 
   ArrayRef<int64_t> shape() const {

@@ -28,7 +28,7 @@ namespace tfrt {
 namespace {
 
 llvm::Expected<StringHostTensor> CreateStringTensor(
-    FlatArrayAttribute<ssize_t> shape, OffsetArrayAttribute values,
+    ArrayAttribute<ssize_t> shape, AggregateAttribute values,
     HostContext* host) {
   auto result = StringHostTensor::CreateUninitialized(
       TensorMetadata(DType(DType::String), shape.data()), host);

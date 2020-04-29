@@ -104,20 +104,20 @@ class KernelFrame {
     return Attribute<T>(GetAttributes()[index]);
   }
 
-  OffsetArrayAttribute GetOffsetArrayAttributeAt(int index) const {
+  AggregateAttribute GetAggregateAttributeAt(int index) const {
     assert(index < GetNumAttributes());
-    return OffsetArrayAttribute(attribute_section_, GetAttributes()[index]);
+    return AggregateAttribute(attribute_section_, GetAttributes()[index]);
   }
 
   // Get the array attribute at the given index as type T.
   template <typename T>
-  FlatArrayAttribute<T> GetFlatArrayAttributeAt(int index) const {
+  ArrayAttribute<T> GetArrayAttributeAt(int index) const {
     assert(index < GetNumAttributes());
-    return FlatArrayAttribute<T>(GetAttributes()[index]);
+    return ArrayAttribute<T>(GetAttributes()[index]);
   }
 
   // Get array attribute as a string. Equivalent to
-  // GetFlatArrayAttributeAt<char>, except that this returns StringRef instead
+  // GetArrayAttributeAt<char>, except that this returns StringRef instead
   // of ArrayRef<char>.
   StringAttribute GetStringAttribute(int index) const {
     return StringAttribute(GetAttributes()[index]);

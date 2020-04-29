@@ -34,8 +34,8 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
                       ArgumentView<MutableDHTIndexableView<T, 4>> output,
                       Argument<Chain> chain_in, Result<Chain> chain_out,
                       StringAttribute padding,
-                      FlatArrayAttribute<ssize_t> pool_size,
-                      FlatArrayAttribute<ssize_t> strides,
+                      ArrayAttribute<ssize_t> pool_size,
+                      ArrayAttribute<ssize_t> strides,
                       KernelErrorHandler handler, HostContext* host,
                       KernelFrame* frame) {
   // TODO(ezhulenev): Move shape computation into support library and share with

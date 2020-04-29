@@ -69,8 +69,8 @@ func @string.constant() -> f32 {
   hex.return %x : f32
 }
 
-// CHECK-LABEL: func @flat_array.constant() -> i32
-func @flat_array.constant() -> i32 {
+// CHECK-LABEL: func @array.constant() -> i32
+func @array.constant() -> i32 {
   // CHECK: {value = [1 : i32, 2 : i32]} : () -> i32
   // CHECK: {value = [i32, f32]} : () -> i32
   // CHECK: {value = [true, false]} : () -> i32
@@ -83,8 +83,8 @@ func @flat_array.constant() -> i32 {
   hex.return %d : i32
 }
 
-// CHECK-LABEL: func @offset_array.constant() -> i32
-func @offset_array.constant() -> i32 {
+// CHECK-LABEL: func @aggregate.constant() -> i32
+func @aggregate.constant() -> i32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"()
   // CHECK-SAME: {value = [1 : i32, [2 : i32, "string"]]} : () -> i32
   // CHECK-NEXT: hex.return [[REG]] : i32

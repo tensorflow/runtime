@@ -436,8 +436,8 @@ class OpAttrsRef {
   llvm::PointerUnion<const OpAttrs*, ImmutableOpAttrs*> attrs_;
 };
 
-// Return the OpAttrType converted from AttributeKind in BEF.
-OpAttrType GetOpAttrTypeFromAttributeKind(AttributeKind kind);
+// Return the OpAttrType converted from BEFAttributeType in BEF.
+OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind);
 
 }  // namespace tfrt
 

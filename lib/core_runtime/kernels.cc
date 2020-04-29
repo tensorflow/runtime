@@ -103,8 +103,8 @@ static Chain OpAttrsSet(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static Chain OpAttrsSetDType(Argument<OpAttrs> attrs, StringAttribute key,
-                             Attribute<AttributeKind> value) {
-  attrs->Set(key, GetOpAttrTypeFromAttributeKind(*value));
+                             Attribute<BEFAttributeType> value) {
+  attrs->Set(key, GetOpAttrTypeFromBEFAttributeType(*value));
   return Chain();
 }
 
@@ -116,7 +116,7 @@ static Chain OpAttrsSetDense(Argument<OpAttrs> attrs, StringAttribute key,
 
 template <typename T>
 static Chain OpAttrsSetArray(Argument<OpAttrs> attrs, StringAttribute key,
-                             FlatArrayAttribute<T> value) {
+                             ArrayAttribute<T> value) {
   attrs->SetArray(key, value.data());
   return Chain();
 }
@@ -128,7 +128,7 @@ static Chain OpAttrsSetString(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static llvm::Expected<TensorHandle> ConstStringTensor(
-    FlatArrayAttribute<ssize_t> shape, OffsetArrayAttribute value,
+    ArrayAttribute<ssize_t> shape, AggregateAttribute value,
     HostContext *host) {
   TensorMetadata metadata(DType(DType::String), shape.data());
 
@@ -153,7 +153,7 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
                           ArrayRef<AsyncValue *> args,
                           AsyncValueRef<Chain> *op_chain,
                           MutableArrayRef<RCReference<AsyncValue>> results,
-                          OffsetArrayAttribute op_attr_array,
+                          AggregateAttribute op_attr_array,
                           StringAttribute op_name, Location loc) {
   SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
@@ -169,7 +169,7 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
   // Set up OpAttrs.
   OpAttrs op_attrs;
   for (size_t i = 0, e = op_attr_array.size(); i != e; ++i) {
-    auto pair = op_attr_array.GetOffsetArrayAttribute(i);
+    auto pair = op_attr_array.GetAggregateAttribute(i);
     assert(pair.size() == 2);
 
     string_view key = pair.GetStringAttribute(0).get();
@@ -177,29 +177,29 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
     auto value_and_kind = pair.GetRawAttribute(1);
 
     const void *value = value_and_kind.first;
-    AttributeKindDescriptor kind_descriptor = value_and_kind.second;
+    BEFAttributeType attribute_type = value_and_kind.second;
 
-    if (kind_descriptor.kind == AttributeKind::kFlatArray) {
-      auto type =
-          GetOpAttrTypeFromAttributeKind(kind_descriptor.array_element_kind);
+    if (IsArrayAttribute(attribute_type)) {
+      auto type = GetOpAttrTypeFromBEFAttributeType(
+          GetArrayAttributeElementType(attribute_type));
 
       op_attrs.SetRaw(key, value, DecodeArraySizeFromBEFAttributes(value),
                       type);
-    } else if (kind_descriptor.kind == AttributeKind::kString) {
+    } else if (attribute_type == BEFAttributeType::kString) {
       op_attrs.SetRaw(key, value, DecodeArraySizeFromBEFAttributes(value),
                       OpAttrType::CHAR);
-    } else if (kind_descriptor.kind == AttributeKind::kType) {
-      AttributeKind kind = *static_cast<const AttributeKind *>(value);
-      assert(IsDTypeAttribute(kind));
-      op_attrs.Set(key, GetOpAttrTypeFromAttributeKind(kind));
-    } else if (kind_descriptor.kind == AttributeKind::kDenseElements) {
+    } else if (attribute_type == BEFAttributeType::kType) {
+      BEFAttributeType type = *static_cast<const BEFAttributeType *>(value);
+      assert(IsFixedAttribute(type));
+      op_attrs.Set(key, GetOpAttrTypeFromBEFAttributeType(type));
+    } else if (attribute_type == BEFAttributeType::kDenseElements) {
       DenseAttr dense_attr(value);
       auto r = op_attrs.Set(key, dense_attr);
       assert(r);
       (void)r;
     } else {
-      assert(IsScalarAttribute(kind_descriptor.kind));
-      auto type = GetOpAttrTypeFromAttributeKind(kind_descriptor.kind);
+      assert(IsScalarAttribute(attribute_type));
+      auto type = GetOpAttrTypeFromBEFAttributeType(attribute_type);
       op_attrs.SetRaw(key, value, OpAttrsRawEntry::kScalarSentinel, type);
     }
   }
@@ -217,9 +217,8 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
 static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
                       RemainingResults results,
-                      OffsetArrayAttribute op_attr_array,
-                      StringAttribute op_name, KernelErrorHandler handler,
-                      KernelFrame *frame) {
+                      AggregateAttribute op_attr_array, StringAttribute op_name,
+                      KernelErrorHandler handler, KernelFrame *frame) {
   auto *host = frame->GetHostContext();
   auto *core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return handler.ReportError("no CoreRuntime available");
@@ -239,7 +238,7 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
 static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
                          Argument<Chain> in_op_chain, RemainingArguments args,
                          Result<Chain> out_op_chain, RemainingResults results,
-                         OffsetArrayAttribute op_attr_array,
+                         AggregateAttribute op_attr_array,
                          StringAttribute op_name, KernelErrorHandler handler,
                          KernelFrame *frame) {
   auto *host = frame->GetHostContext();

@@ -77,7 +77,7 @@ inline void Conv2DImpl(const DHTIndexableView<T, 4>& input,
                        const DHTIndexableView<T, 4>& kernel,
                        const MutableDHTIndexableView<T, 4>& output,
                        Result<Chain> chain_out, StringAttribute padding,
-                       FlatArrayAttribute<ssize_t> strides,
+                       ArrayAttribute<ssize_t> strides,
                        OutputKernelBuilder output_kernel_builder,
                        KernelErrorHandler handler, HostContext* host,
                        KernelFrame* frame) {
@@ -146,7 +146,7 @@ static void Conv2D(ArgumentView<DHTIndexableView<T, 4>> input,
                    ArgumentView<DHTIndexableView<T, 4>> kernel,
                    ArgumentView<MutableDHTIndexableView<T, 4>> output,
                    Argument<Chain> chain_in, Result<Chain> chain_out,
-                   StringAttribute padding, FlatArrayAttribute<ssize_t> strides,
+                   StringAttribute padding, ArrayAttribute<ssize_t> strides,
                    KernelErrorHandler handler, HostContext* host,
                    KernelFrame* frame) {
   using OutputKernel = llvm::Expected<Eigen::NoOpOutputKernel>;
@@ -169,7 +169,7 @@ void Conv2DBatchNorm(ArgumentView<DHTIndexableView<T, 4>> input,
                      ArgumentView<MutableDHTIndexableView<T, 4>> output,
                      Argument<Chain> chain_in, Result<Chain> chain_out,
                      Attribute<float> epsilon, StringAttribute padding,
-                     FlatArrayAttribute<ssize_t> strides,
+                     ArrayAttribute<ssize_t> strides,
                      KernelErrorHandler handler, HostContext* host,
                      KernelFrame* frame) {
   using OutputKernel = llvm::Expected<BatchNormOutputKernel<T, Activation>>;
@@ -199,7 +199,7 @@ void Conv2DBias(ArgumentView<DHTIndexableView<T, 4>> input,
                 ArgumentView<DHTIndexableView<T, 1>> bias,
                 ArgumentView<MutableDHTIndexableView<T, 4>> output,
                 Argument<Chain> chain_in, Result<Chain> chain_out,
-                StringAttribute padding, FlatArrayAttribute<ssize_t> strides,
+                StringAttribute padding, ArrayAttribute<ssize_t> strides,
                 KernelErrorHandler handler, HostContext* host,
                 KernelFrame* frame) {
   using OutputKernel = llvm::Expected<BiasAddOutputKernel<T, Activation>>;

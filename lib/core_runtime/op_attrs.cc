@@ -31,30 +31,30 @@
 
 namespace tfrt {
 
-// Return the OpAttrType converted from AttributeKind in BEF.
-OpAttrType GetOpAttrTypeFromAttributeKind(AttributeKind kind) {
+// Return the OpAttrType converted from BEFAttributeType in BEF.
+OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind) {
   switch (kind) {
-    case AttributeKind::kBool:
+    case BEFAttributeType::kBool:
       return OpAttrType::BOOL;
-    case AttributeKind::kI1:
+    case BEFAttributeType::kI1:
       return OpAttrType::BOOL;
-    case AttributeKind::kI32:
+    case BEFAttributeType::kI32:
       return OpAttrType::I32;
-    case AttributeKind::kI64:
+    case BEFAttributeType::kI64:
       return OpAttrType::I64;
-    case AttributeKind::kF16:
+    case BEFAttributeType::kF16:
       return OpAttrType::F16;
-    case AttributeKind::kF32:
+    case BEFAttributeType::kF32:
       return OpAttrType::F32;
-    case AttributeKind::kF64:
+    case BEFAttributeType::kF64:
       return OpAttrType::F64;
-    case AttributeKind::kType:
+    case BEFAttributeType::kType:
       return OpAttrType::DTYPE;
     default:
       break;
   }
 
-  llvm_unreachable("unsupported AttributeKind in Core Runtime.");
+  llvm_unreachable("unsupported BEFAttributeType in Core Runtime.");
 }
 
 // This class is an immutable copy of OpAttrs, designed for Op implementations
@@ -590,8 +590,8 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
     case OpAttrType::DENSE: {
       DenseAttr dense_attr(ptr);
       os << "dtype="
-         << GetNameString(GetOpAttrTypeFromAttributeKind(
-                static_cast<AttributeKind>(dense_attr.dtype())))
+         << GetNameString(GetOpAttrTypeFromBEFAttributeType(
+                static_cast<BEFAttributeType>(dense_attr.dtype())))
          << ", rank=" << dense_attr.shape().size()
          << ", elt_count=" << dense_attr.size();
       break;

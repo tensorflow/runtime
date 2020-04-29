@@ -38,7 +38,7 @@ namespace tfrt {
 
 template <typename T, size_t Rank>
 static void CreateUninitializedDenseTensor(Result<DenseHostTensor> out,
-                                           FlatArrayAttribute<ssize_t> shape_in,
+                                           ArrayAttribute<ssize_t> shape_in,
                                            KernelErrorHandler handler,
                                            KernelFrame* frame) {
   auto result = DenseHostTensor::CreateUninitialized<T>(
@@ -79,7 +79,7 @@ static Chain FillDenseTensorWithConstantValue(
 template <typename T>
 static void SetDenseTensorWithConstantValues(
     ArgumentView<MutableDHTArrayView<T>> in, Argument<Chain> chain_in,
-    Result<Chain> chain_out, FlatArrayAttribute<T> values,
+    Result<Chain> chain_out, ArrayAttribute<T> values,
     KernelErrorHandler handler) {
   if (in->NumElements() != values.size()) {
     handler.ReportError("Incorrect number of values for the tensor: ",

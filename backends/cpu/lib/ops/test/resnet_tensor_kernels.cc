@@ -35,8 +35,8 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
                       ArgumentView<MutableDHTIndexableView<T, 4>> output,
                       Argument<Chain> chain_in, Result<Chain> chain_out,
                       StringAttribute padding,
-                      FlatArrayAttribute<uint32_t> pool_size,
-                      FlatArrayAttribute<uint32_t> strides,
+                      ArrayAttribute<uint32_t> pool_size,
+                      ArrayAttribute<uint32_t> strides,
                       KernelErrorHandler handler, HostContext* host) {
   // shape_input has format (batch_size, height, width, channel_num)
   const auto& shape_input = input->FixedShape();
@@ -183,7 +183,7 @@ template <typename T>
 static void ZeroPadding(ArgumentView<MutableDHTIndexableView<T, 4>> input,
                         ArgumentView<MutableDHTIndexableView<T, 4>> output,
                         Argument<Chain> chain_in, Result<Chain> chain_out,
-                        FlatArrayAttribute<uint32_t> padding,
+                        ArrayAttribute<uint32_t> padding,
                         KernelErrorHandler handler, HostContext* host) {
   // shape_input has format (batch_size, height, width, in_channel_num)
   const auto& shape_input = input->FixedShape();

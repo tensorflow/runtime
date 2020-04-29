@@ -71,34 +71,34 @@ static SpecialAttribute ClassifyAttribute(string_view attr_name) {
       .Default(SpecialAttribute::kUnknown);
 }
 
-static AttributeKind EncodeIntegerTypeAttribute(
+static BEFAttributeType EncodeIntegerTypeAttribute(
     mlir::IntegerType integer_type) {
   switch (integer_type.getWidth()) {
     case 1:
-      return AttributeKind::kI1;
+      return BEFAttributeType::kI1;
     case 32:
-      return AttributeKind::kI32;
+      return BEFAttributeType::kI32;
     case 64:
-      return AttributeKind::kI64;
+      return BEFAttributeType::kI64;
   }
 
   llvm_unreachable("unknown integer type width.");
 }
 
-static AttributeKind EncodeFloatTypeAttribute(mlir::FloatType float_type) {
+static BEFAttributeType EncodeFloatTypeAttribute(mlir::FloatType float_type) {
   switch (float_type.getWidth()) {
     case 16:
-      return AttributeKind::kF16;
+      return BEFAttributeType::kF16;
     case 32:
-      return AttributeKind::kF32;
+      return BEFAttributeType::kF32;
     case 64:
-      return AttributeKind::kF64;
+      return BEFAttributeType::kF64;
   }
 
   llvm_unreachable("unknown float type width.");
 }
 
-static AttributeKind EncodeTypeAttribute(mlir::Type type) {
+static BEFAttributeType EncodeTypeAttribute(mlir::Type type) {
   if (auto integer_type = type.dyn_cast<mlir::IntegerType>()) {
     return EncodeIntegerTypeAttribute(integer_type);
   }
@@ -110,134 +110,94 @@ static AttributeKind EncodeTypeAttribute(mlir::Type type) {
   llvm_unreachable("unknown type attribute");
 }
 
-class AttrInfo {
- public:
-  explicit AttrInfo(AttributeKind kind, size_t size = 0)
-      : kind_descriptor_{kind}, size_(size) {
-    assert(IsScalar() || size_ == 0);
-  }
-  explicit AttrInfo(AttributeKind kind, AttributeKind element_kind)
-      : kind_descriptor_{kind, element_kind} {
-    assert(IsScalar() || size_ == 0);
-  }
-
-  const AttributeKindDescriptor& kind_descriptor() const {
-    return kind_descriptor_;
-  }
-
-  // Return the byte size of this attribute. If it is not a scalar attribute,
-  // return 0.
-  size_t size() const { return size_; }
-
-  bool IsSupported() const {
-    return kind_descriptor().kind != AttributeKind::kUnsupported;
-  }
-
-  bool IsScalar() const { return IsScalarAttribute(kind_descriptor().kind); }
-
- private:
-  AttributeKindDescriptor kind_descriptor_;
-  size_t size_ = 0;
-};
-
 // Return the kind of this attribute. If it is an array attribute, elements of
 // it are checked recursively, and if any element is unsupported,
-// AttributeKind::Unsupported will be returned.
-static AttrInfo GetAttrInfo(mlir::Attribute attr) {
+// BEFAttributeType::Unsupported will be returned.
+static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
   // We support bool attributes (stored as 1 byte in BEF).
-  if (attr.isa<mlir::BoolAttr>()) return AttrInfo{AttributeKind::kBool, 1};
+  if (attr.isa<mlir::BoolAttr>()) return BEFAttributeType::kBool;
 
   // We support 1-bit (stored as 1 byte in BEF), 32-bit, and 64-bit
   // integers.
   if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {
     switch (int_attr.getValue().getBitWidth()) {
       case 1:
-        return AttrInfo{AttributeKind::kI1, 1};
+        return BEFAttributeType::kI1;
       case 32:
-        return AttrInfo{AttributeKind::kI32, 4};
+        return BEFAttributeType::kI32;
       case 64:
-        return AttrInfo{AttributeKind::kI64, 8};
+        return BEFAttributeType::kI64;
     }
   }
 
   // We support F16, F32 and F64 floats.
   if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>()) {
-    if (float_attr.getType().isF16()) return AttrInfo{AttributeKind::kF16, 2};
-    if (float_attr.getType().isF32()) return AttrInfo{AttributeKind::kF32, 4};
-    if (float_attr.getType().isF64()) return AttrInfo{AttributeKind::kF64, 8};
+    if (float_attr.getType().isF16()) return BEFAttributeType::kF16;
+    if (float_attr.getType().isF32()) return BEFAttributeType::kF32;
+    if (float_attr.getType().isF64()) return BEFAttributeType::kF64;
   }
 
   // We support string attributes.
-  if (attr.isa<mlir::StringAttr>()) return AttrInfo{AttributeKind::kString};
+  if (attr.isa<mlir::StringAttr>()) return BEFAttributeType::kString;
 
   // We support i1, i32, i64, f16, f32 and f64 type attributes.
   if (auto type_attr = attr.dyn_cast<mlir::TypeAttr>()) {
     auto type = type_attr.getValue();
     if (type.isInteger(1) || type.isInteger(32) || type.isInteger(64) ||
         type.isF16() || type.isF32() || type.isF64())
-      return AttrInfo{AttributeKind::kType, 1};
+      return BEFAttributeType::kType;
   }
 
   // We support dense attributes.
   if (auto dense_elements_attr = attr.dyn_cast<mlir::DenseElementsAttr>()) {
-    size_t size = 16;  // The dense attr header contains two uint64_t.
-
-    auto num_elements = dense_elements_attr.getNumElements();
-    if (num_elements == 0) return AttrInfo{AttributeKind::kDenseElements, size};
-
-    auto element_size = GetBEFAttributeSize(
-        EncodeTypeAttribute(dense_elements_attr.getType().getElementType()));
-    assert(element_size != 0);
-    size += num_elements * element_size;
-
-    auto first_attr_info = GetAttrInfo(*dense_elements_attr.attr_value_begin());
-    // If dense element type is unsupported, then this attribute is unsupported.
-    if (!first_attr_info.IsSupported())
-      return AttrInfo{AttributeKind::kUnsupported};
+    if (dense_elements_attr.getNumElements() > 0) {
+      auto first_attr_type =
+          GetBEFAttributeType(*dense_elements_attr.attr_value_begin());
+      // If dense element type is unsupported, then this attribute is
+      // unsupported.
+      if (first_attr_type == BEFAttributeType::kUnsupported)
+        return BEFAttributeType::kUnsupported;
+    }
 
     // MLIR guarantees that all dense elements have the same type.
-    return AttrInfo{AttributeKind::kDenseElements, size};
+    return BEFAttributeType::kDenseElements;
   }
 
   // We support arrays of supported attribute values.
   if (auto array_attr = attr.dyn_cast<mlir::ArrayAttr>()) {
     if (array_attr.size() == 0) {
-      // `array_element_kind` kI32 and is used as a dummy.
-      return AttrInfo{AttributeKind::kFlatArray, AttributeKind::kI32};
+      return BEFAttributeType::kEmptyArray;
     }
 
-    auto first_attr_info = GetAttrInfo(*array_attr.begin());
+    auto first_attr_type = GetBEFAttributeType(*array_attr.begin());
 
-    // Only scalar attributes can be included in a flat array.
-    bool is_flat = first_attr_info.IsScalar();
+    // Only scalar attributes can be included in an array.
+    bool is_array = IsFixedAttribute(first_attr_type);
 
     for (auto elt : array_attr) {
-      auto attr_info = GetAttrInfo(elt);
-      if (!attr_info.IsSupported())
-        return AttrInfo{AttributeKind::kUnsupported};
+      auto attr_type = GetBEFAttributeType(elt);
+      if (attr_type == BEFAttributeType::kUnsupported)
+        return BEFAttributeType::kUnsupported;
 
-      // Flat arrays requires all elements have the same type and the size.
-      if (attr_info.kind_descriptor().kind !=
-              first_attr_info.kind_descriptor().kind ||
-          attr_info.size() != first_attr_info.size()) {
-        is_flat = false;
+      // Arrays requires all elements have the same type and the size.
+      if (attr_type != first_attr_type) {
+        is_array = false;
         break;
       }
     }
-    if (is_flat)
-      return AttrInfo{AttributeKind::kFlatArray,
-                      first_attr_info.kind_descriptor().kind};
 
-    return AttrInfo{AttributeKind::kOffsetArray, 0};
+    if (is_array) return GetArrayAttributeType(first_attr_type);
+
+    return BEFAttributeType::kAggregate;
   }
 
-  return AttrInfo{AttributeKind::kUnsupported};
+  return BEFAttributeType::kUnsupported;
 }
 
 // Return true if this is a supported attribute that can be emitted as a
 // attribute reference in a kernel, even in recursive positions.
 static bool IsSupportedAttributeValue(mlir::Attribute attr) {
-  return GetAttrInfo(attr).IsSupported();
+  return GetBEFAttributeType(attr) != BEFAttributeType::kUnsupported;
 }
 
 // Return true if this is a supported attribute that can be emitted as a
@@ -951,7 +911,7 @@ void BEFModuleEmitter::EmitStrings() {
 
 struct OffsetAndType {
   size_t offset;
-  size_t attribute_type;
+  BEFAttributeType attribute_type;
 };
 
 // This is the emitter that builds the attributes section of a BEF.
@@ -971,17 +931,9 @@ class BEFAttributesEmitter : public BEFEmitter {
  private:
   OffsetAndType EmitAttributeInternal(mlir::Attribute attr);
 
-  size_t EncodeAttributeType(AttributeTypeID attribute_type_id,
-                             size_t payload) {
-    assert(static_cast<size_t>(attribute_type_id) <= kMaxAttributeTypeID &&
-           "AttributeTypeID overflow");
-    return static_cast<size_t>(attribute_type_id) |
-           (payload << kAttributeTypeIDShift);
-  }
-
-  void EmitAttributeType(size_t offset, size_t attribute_type) {
+  void EmitAttributeType(size_t offset, BEFAttributeType attribute_type) {
     attribute_type_emitter_.EmitInt(offset);
-    attribute_type_emitter_.EmitInt(attribute_type);
+    attribute_type_emitter_.EmitByte(static_cast<uint8_t>(attribute_type));
   }
 
   // Return {offset, attribute_type} for each type of attribute.
@@ -993,8 +945,8 @@ class BEFAttributesEmitter : public BEFEmitter {
   OffsetAndType EmitTypeAttribute(mlir::TypeAttr type_attr);
   OffsetAndType EmitArrayAttribute(mlir::ArrayAttr array_attr);
 
-  size_t EmitIntegerAttribute(const llvm::APInt& value);
-  size_t EmitFloatAttribute(const llvm::APFloat& value);
+  OffsetAndType EmitIntegerAttribute(const llvm::APInt& value);
+  OffsetAndType EmitFloatAttribute(mlir::FloatAttr attr);
 
   const EntityTable& entities_;
   EntityIndex& entity_index_;
@@ -1042,13 +994,13 @@ OffsetAndType BEFAttributesEmitter::EmitAttributeInternal(
     return EmitDenseElementsAttribute(dense_elements_attr);
   }
 
+  if (auto string_attr = attr.dyn_cast<mlir::StringAttr>()) {
+    return EmitStringAttribute(string_attr.getValue());
+  }
+
   // We support arrays of attributes.
   if (auto array_attr = attr.dyn_cast<mlir::ArrayAttr>()) {
     return EmitArrayAttribute(array_attr);
-  }
-
-  if (auto string_attr = attr.dyn_cast<mlir::StringAttr>()) {
-    return EmitStringAttribute(string_attr.getValue());
   }
 
   llvm_unreachable("Unknown attribute");
@@ -1056,38 +1008,38 @@ OffsetAndType BEFAttributesEmitter::EmitAttributeInternal(
 
 OffsetAndType BEFAttributesEmitter::EmitStandardAttribute(
     mlir::Attribute attr) {
-  auto attribute_type =
-      EncodeAttributeType(AttributeTypeID::kStandardAttribute,
-                          entities_.GetOptionalTypeIndex(attr.getType()));
   if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>())
-    return {EmitIntegerAttribute(int_attr.getValue()), attribute_type};
+    return EmitIntegerAttribute(int_attr.getValue());
 
   if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>())
-    return {EmitFloatAttribute(float_attr.getValue()), attribute_type};
+    return EmitFloatAttribute(float_attr);
 
   llvm_unreachable("Unknown standard attribute");
 }
 
 OffsetAndType BEFAttributesEmitter::EmitBoolAttribute(bool value) {
   auto offset = size();
-  auto attribute_type = EncodeAttributeType(AttributeTypeID::kBoolAttribute, 0);
   EmitByte(static_cast<uint8_t>(value));
-  return {offset, attribute_type};
+  return {offset, BEFAttributeType::kBool};
 }
 
-size_t BEFAttributesEmitter::EmitIntegerAttribute(const llvm::APInt& value) {
+OffsetAndType BEFAttributesEmitter::EmitIntegerAttribute(
+    const llvm::APInt& value) {
   if (value.getBitWidth() == 1) {
     auto offset = size();
     EmitByte(static_cast<uint8_t>(value.getLimitedValue()));
-    return offset;
+    return {offset, BEFAttributeType::kI1};
   }
 
+  BEFAttributeType attribute_type;
   int bytes;
   if (value.getBitWidth() == 32) {
     bytes = 4;
+    attribute_type = BEFAttributeType::kI32;
   } else {
     assert(value.getBitWidth() == 64);
     bytes = 8;
+    attribute_type = BEFAttributeType::kI64;
   }
 
   EmitAlignment(bytes);
@@ -1099,12 +1051,20 @@ size_t BEFAttributesEmitter::EmitIntegerAttribute(const llvm::APInt& value) {
     EmitByte(static_cast<uint8_t>(v & 255));
     v >>= 8;
   }
-  return offset;
+  return {offset, attribute_type};
 }
 
-size_t BEFAttributesEmitter::EmitFloatAttribute(const llvm::APFloat& value) {
-  llvm::APInt int_val = value.bitcastToAPInt();
-  return EmitIntegerAttribute(int_val);
+OffsetAndType BEFAttributesEmitter::EmitFloatAttribute(
+    mlir::FloatAttr float_attr) {
+  llvm::APInt int_val = float_attr.getValue().bitcastToAPInt();
+  auto offset_and_type = EmitIntegerAttribute(int_val);
+
+  // TODO(chky): add support for other float types.
+  auto type = float_attr.getType();
+  if (type.isF32()) return {offset_and_type.offset, BEFAttributeType::kF32};
+  if (type.isF64()) return {offset_and_type.offset, BEFAttributeType::kF64};
+
+  llvm_unreachable("unknown type for float attributes.");
 }
 
 OffsetAndType BEFAttributesEmitter::EmitStringAttribute(string_view value) {
@@ -1119,40 +1079,32 @@ OffsetAndType BEFAttributesEmitter::EmitStringAttribute(string_view value) {
   EmitBytes(llvm::ArrayRef<uint8_t>(
       reinterpret_cast<const uint8_t*>(value.data()), value.size()));
 
-  auto attribute_type =
-      EncodeAttributeType(AttributeTypeID::kStringAttribute, 0);
-
-  return {offset, attribute_type};
+  return {offset, BEFAttributeType::kString};
 }
 
 OffsetAndType BEFAttributesEmitter::EmitTypeAttribute(
     mlir::TypeAttr type_attr) {
   size_t offset = size();
-  auto attribute_type = EncodeAttributeType(AttributeTypeID::kTypeAttribute, 0);
 
   EmitByte(static_cast<uint8_t>(EncodeTypeAttribute(type_attr.getValue())));
-  return {offset, attribute_type};
+  return {offset, BEFAttributeType::kType};
 }
 
 OffsetAndType BEFAttributesEmitter::EmitArrayAttribute(
     mlir::ArrayAttr array_attr) {
-  bool is_flat = GetAttrInfo(array_attr).kind_descriptor().kind ==
-                 AttributeKind::kFlatArray;
+  bool is_array = IsArrayAttribute(GetBEFAttributeType(array_attr));
 
   auto elts = array_attr.getValue();
 
-  BEFEmitter offset_array_element_emitter;
-  if (!is_flat) {
-    // If it is not a flat array, we first recursively emit its elements.
+  BEFEmitter aggregate_element_emitter;
+  if (!is_array) {
+    // If it is not an array, we first recursively emit its elements.
     for (auto elt : elts) {
       size_t element_offset = EmitAttribute(elt);
-      offset_array_element_emitter.EmitInt4(element_offset);
-      auto kind_descriptor = GetAttrInfo(elt).kind_descriptor();
-      offset_array_element_emitter.EmitByte(
-          static_cast<uint8_t>(kind_descriptor.kind));
-      offset_array_element_emitter.EmitByte(
-          static_cast<uint8_t>(kind_descriptor.array_element_kind));
-      offset_array_element_emitter.EmitAlignment(4);
+      aggregate_element_emitter.EmitInt4(element_offset);
+      auto type = GetBEFAttributeType(elt);
+      aggregate_element_emitter.EmitByte(static_cast<uint8_t>(type));
+      aggregate_element_emitter.EmitAlignment(4);
     }
   }
 
@@ -1165,34 +1117,30 @@ OffsetAndType BEFAttributesEmitter::EmitArrayAttribute(
 
   size_t size_end = size();
 
-  size_t attribute_type = 0;
-
   // The attribute array is empty. We just return the offset past the size.
   // The payload of attribute_type will be ignored.
   if (elts.empty()) {
-    attribute_type =
-        EncodeAttributeType(AttributeTypeID::kFlatArrayAttribute, 0);
-    return {size_end, attribute_type};
+    return {size_end, BEFAttributeType::kEmptyArray};
   }
 
+  BEFAttributeType attribute_type;
   size_t array_attribute_offset;
-  if (is_flat) {
-    // For flat array attributes, its offset is the offset of the first
+  if (is_array) {
+    // For array attributes, its offset is the offset of the first
     // element.
     auto offset_and_type = EmitAttributeInternal(elts.front());
     array_attribute_offset = offset_and_type.offset;
-    attribute_type = EncodeAttributeType(AttributeTypeID::kFlatArrayAttribute,
-                                         offset_and_type.attribute_type);
+
+    attribute_type = GetArrayAttributeType(offset_and_type.attribute_type);
 
     for (auto elt : elts.drop_front()) (void)EmitAttributeInternal(elt);
   } else {
     // Emit alignment paddings to the correct offset of this array attribute.
-    EmitAlignment(offset_array_element_emitter.GetRequiredAlignment());
+    EmitAlignment(aggregate_element_emitter.GetRequiredAlignment());
     array_attribute_offset = size();
-    attribute_type =
-        EncodeAttributeType(AttributeTypeID::kOffsetArrayAttribute, 0);
+    attribute_type = BEFAttributeType::kAggregate;
 
-    EmitEmitter(offset_array_element_emitter);
+    EmitEmitter(aggregate_element_emitter);
   }
 
   // If there is a gap between the size and the first attribute value, we
@@ -1243,10 +1191,7 @@ OffsetAndType BEFAttributesEmitter::EmitDenseElementsAttribute(
     ++elts_iter;
   }
 
-  size_t attribute_type =
-      EncodeAttributeType(AttributeTypeID::kDenseElementsAttribute, 0);
-
-  return {start_offset, attribute_type};
+  return {start_offset, BEFAttributeType::kDenseElements};
 }
 
 void BEFModuleEmitter::EmitAttributes(BEFEmitter* attribute_types) {

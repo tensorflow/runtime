@@ -33,7 +33,7 @@ template <typename T>
 static void ZeroPadding(ArgumentView<DHTIndexableView<T, 4>> input,
                         ArgumentView<MutableDHTIndexableView<T, 4>> output,
                         Argument<Chain> chain_in, Result<Chain> chain_out,
-                        FlatArrayAttribute<ssize_t> padding,
+                        ArrayAttribute<ssize_t> padding,
                         KernelErrorHandler handler, HostContext* host,
                         KernelFrame* frame) {
   // input_shape has format (batch_size, height, width, in_channel_num).

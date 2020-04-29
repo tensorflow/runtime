@@ -31,8 +31,7 @@ namespace tfrt {
 static void TsBuildShape(KernelFrame* frame) {
   frame->AssertArity(/*nargs*/ 0, /*nattributes*/ 1, /*nresults*/ 1);
 
-  ArrayRef<ssize_t> elements =
-      frame->GetFlatArrayAttributeAt<ssize_t>(0).data();
+  ArrayRef<ssize_t> elements = frame->GetArrayAttributeAt<ssize_t>(0).data();
   frame->EmplaceResult<TensorShape>(elements);
 }
 

@@ -33,15 +33,15 @@ namespace tfrt {
 
 class StringAttribute;
 template <typename T>
-class FlatArrayAttribute;
-class OffsetArrayAttribute;
+class ArrayAttribute;
+class AggregateAttribute;
 
 namespace internal {
 
 template <typename>
-struct is_flat_array_attribute : std::false_type {};
+struct is_array_attribute : std::false_type {};
 template <typename T>
-struct is_flat_array_attribute<FlatArrayAttribute<T>> : std::true_type {};
+struct is_array_attribute<ArrayAttribute<T>> : std::true_type {};
 
 }  // namespace internal
 
@@ -64,12 +64,12 @@ class Attribute {
   static_assert(
       !std::is_same<T, StringAttribute>(),
       "Use StringAttribute directly instead of Attribute<StringAttribute>");
-  static_assert(!std::is_same<T, OffsetArrayAttribute>(),
-                "Use OffsetArrayAttribute directly instead of "
-                "Attribute<OffsetArrayAttribute>");
-  static_assert(!internal::is_flat_array_attribute<T>(),
-                "Use FlatArrayAttribute directly instead of "
-                "Attribute<FlatArrayAttribute<T>>");
+  static_assert(!std::is_same<T, AggregateAttribute>(),
+                "Use AggregateAttribute directly instead of "
+                "Attribute<AggregateAttribute>");
+  static_assert(!internal::is_array_attribute<T>(),
+                "Use ArrayAttribute directly instead of "
+                "Attribute<ArrayAttribute<T>>");
 
   const T& value_;
 };
@@ -78,8 +78,8 @@ class Attribute {
 // Attribute<std::string> because strings are stored as character arrays and we
 // don't want unnecessary deep copies.
 //
-// StringAttribute is equivalent to FlatArrayAttribute<char>, but
-// StringAttribute provides a string_view, while FlatArrayAttribute<char>
+// StringAttribute is equivalent to ArrayAttribute<char>, but
+// StringAttribute provides a string_view, while ArrayAttribute<char>
 // provides an ArrayRef<char>.
 class StringAttribute {
  public:
@@ -97,11 +97,11 @@ class StringAttribute {
   string_view value_;
 };
 
-// Kernels should use this so we know it has an attribute flat array.
+// Kernels should use this so we know it has an array attribute.
 template <typename T>
-class FlatArrayAttribute {
+class ArrayAttribute {
  public:
-  explicit FlatArrayAttribute(const void* data)
+  explicit ArrayAttribute(const void* data)
       : data_(DecodeArrayFromBEFAttributes<T>(data)) {
     ASSERT_LITTLE_ENDIAN();
   }
@@ -114,11 +114,11 @@ class FlatArrayAttribute {
   ArrayRef<T> data_;
 };
 
-// OffsetArrayAttribute is an array of pointers/offsets to its elements. Kernels
+// AggregateAttribute is an array of pointers/offsets to its elements. Kernels
 // should use this so we know they have an attribute array input.
-class OffsetArrayAttribute {
+class AggregateAttribute {
  public:
-  OffsetArrayAttribute(ArrayRef<uint8_t> attribute_section, const void* value)
+  AggregateAttribute(ArrayRef<uint8_t> attribute_section, const void* value)
       : attribute_section_(attribute_section),
         element_descriptors_(
             DecodeArrayFromBEFAttributes<AttributeDescriptor>(value)) {
@@ -128,45 +128,42 @@ class OffsetArrayAttribute {
   template <typename T>
   Attribute<T> GetAttribute(int index) const {
     const auto& descriptor = GetDescriptor(index);
-    assert(descriptor.second.kind == GetAttributeKind<T>());
+    assert(descriptor.second == GetBEFAttributeType<T>());
     return Attribute<T>(descriptor.first);
   }
 
   StringAttribute GetStringAttribute(int index) const {
     const auto& descriptor = GetDescriptor(index);
-    assert(descriptor.second.kind == AttributeKind::kString);
+    assert(descriptor.second == BEFAttributeType::kString);
     return StringAttribute(descriptor.first);
   }
 
   template <typename T>
-  FlatArrayAttribute<T> GetFlatArrayAttribute(int index) const {
+  ArrayAttribute<T> GetArrayAttribute(int index) const {
     const auto& descriptor = GetDescriptor(index);
-    assert(descriptor.second.kind == AttributeKind::kFlatArray);
-    assert(descriptor.second.array_element_kind == GetAttributeKind<T>());
-    return FlatArrayAttribute<T>(descriptor.first);
+    assert(IsArrayAttribute(descriptor.second));
+    return ArrayAttribute<T>(descriptor.first);
   }
 
-  OffsetArrayAttribute GetOffsetArrayAttribute(int index) const {
+  AggregateAttribute GetAggregateAttribute(int index) const {
     const auto& descriptor = GetDescriptor(index);
-    assert(descriptor.second.kind == AttributeKind::kOffsetArray);
-    return OffsetArrayAttribute(attribute_section_, descriptor.first);
+    assert(descriptor.second == BEFAttributeType::kAggregate);
+    return AggregateAttribute(attribute_section_, descriptor.first);
   }
 
-  std::pair<const void*, AttributeKindDescriptor> GetRawAttribute(
-      int index) const {
+  std::pair<const void*, BEFAttributeType> GetRawAttribute(int index) const {
     return GetDescriptor(index);
   }
 
   size_t size() const { return element_descriptors_.size(); }
 
  private:
-  std::pair<const void*, AttributeKindDescriptor> GetDescriptor(
-      int index) const {
+  std::pair<const void*, BEFAttributeType> GetDescriptor(int index) const {
     assert(index < element_descriptors_.size());
     const auto& descriptor = element_descriptors_[index];
     assert(descriptor.offset < attribute_section_.size());
     return {static_cast<const void*>(&attribute_section_[descriptor.offset]),
-            descriptor.kind_descriptor};
+            descriptor.type};
   }
 
   ArrayRef<uint8_t> attribute_section_;

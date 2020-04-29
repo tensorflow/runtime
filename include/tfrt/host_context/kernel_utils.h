@@ -92,8 +92,8 @@ namespace tfrt {
 //     return *value;
 //   }
 //
-// Similarly StringAttribute, FlatArrayAttribute<T> and OffsetArrayAttribute are
-// also provided. They work the same way as attribute but for flat arrays of T
+// Similarly StringAttribute, ArrayAttribute<T> and AggregateAttribute are
+// also provided. They work the same way as attribute but for arrays of T
 // or characters or nested arrays of heterogeneous types.
 //
 // For kernels that may fail at runtime, for sync kernels the preferred way is
@@ -366,12 +366,12 @@ class RemainingAttributes {
   }
 
   template <typename T>
-  FlatArrayAttribute<T> GetFlatArrayAttribute(size_t i) const {
-    return FlatArrayAttribute<T>(remaining_attributes_[i]);
+  ArrayAttribute<T> GetArrayAttribute(size_t i) const {
+    return ArrayAttribute<T>(remaining_attributes_[i]);
   }
 
-  OffsetArrayAttribute GetOffsetArrayAttribute(size_t i) const {
-    return OffsetArrayAttribute(attribute_section_, remaining_attributes_[i]);
+  AggregateAttribute GetAggregateAttribute(size_t i) const {
+    return AggregateAttribute(attribute_section_, remaining_attributes_[i]);
   }
 
  private:
@@ -740,17 +740,15 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
-  // Like the above, but for flat arrays.
+  // Like the above, but for arrays.
   template <typename Head, typename... Tail>
-  struct SyncKernelCallHelper<FlatArrayAttribute<Head>, Tail...> {
+  struct SyncKernelCallHelper<ArrayAttribute<Head>, Tail...> {
     template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
               bool has_in_chain, typename... PreviousArgs>
     static void Invoke(KernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(
-          const_idx != -1,
-          "Do not place FlatArrayAttribute after RemainingAttributes");
-      FlatArrayAttribute<Head> arg =
-          frame->GetFlatArrayAttributeAt<Head>(const_idx);
+      static_assert(const_idx != -1,
+                    "Do not place ArrayAttribute after RemainingAttributes");
+      ArrayAttribute<Head> arg = frame->GetArrayAttributeAt<Head>(const_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
           in_idx, out_idx, const_idx + 1, has_kernel_error, has_in_chain>(
           frame, pargs..., arg);
@@ -789,14 +787,14 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
 
   // Like the above, but for arrays.
   template <typename... Tail>
-  struct SyncKernelCallHelper<OffsetArrayAttribute, Tail...> {
+  struct SyncKernelCallHelper<AggregateAttribute, Tail...> {
     template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
               bool has_in_chain, typename... PreviousArgs>
     static void Invoke(KernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(
           const_idx != -1,
-          "Do not place OffsetArrayAttribute after RemainingAttributes");
-      OffsetArrayAttribute arg = frame->GetOffsetArrayAttributeAt(const_idx);
+          "Do not place AggregateAttribute after RemainingAttributes");
+      AggregateAttribute arg = frame->GetAggregateAttributeAt(const_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
           in_idx, out_idx, const_idx + 1, has_kernel_error, has_in_chain>(
           frame, pargs..., arg);

@@ -232,17 +232,16 @@ BEF files only support a subset of MLIR attributes, currently including:
 *   f64 floats, stored as IEEE double precision floats.
 *   type enums, stored as 1-byte integers. Currently supported type enums are
     i1, i32, i64, f32 and f64.
-*   flat arrays, elements of which are all in one of the above formats, and are
-    densely laid out in memory. Empty arrays are always stored as flat arrays.
-*   strings, stored as flat arrays of bytes, not necessarily NULL terminated.
-*   offset arrays, stored as flat array of offsets to other constants in
-    Attributes Section. These offsets are encoded as fixed32 integers unlike
-    other offsets in BEF that are encoded using VBR. These nested constants can
-    be of any supported attribute type including offset arrays. Unlike flat
-    arrays, an offset array can contain a mix of different attribute types.
+*   strings, stored as arrays of bytes, not necessarily NULL terminated.
 *   dense elements, stored as shape dtype, shape rank, elements count, followed
     by shape elements and elements themselves. Each element can be any of the
     integer and float format above.
+*   arrays, all elements of which are of the same type and fixed in width (eg.
+    i32, f32, type).
+*   aggregates, stored as array of i32 integers, which are offsets to other
+    constants in Attributes Section. These nested constants can be of any
+    supported attribute type including aggregates. Unlike arrays, an aggregate
+    can contain a mix of different attribute types.
 
 TODO: Support 8/16-bit integers and floating point constants.
 
@@ -439,34 +438,15 @@ of any individual function until it is needed.
 
 ```none
   ATTRIBUTE_TYPES_SECTION   ::= INTEGER<"NumAttributes"> ATTRIBUTE_TYPE_ENTRY*
-  ATTRIBUTE_TYPE_ENTRY      ::= OFFSET<"Attributes"> ATTRIBUTE_TYPE
-
-  // A ATTRIBUTE_TYPE is a 4-bit discriminator code along with an integer
-  // payload.
-  ATTRIBUTE_TYPE            ::= INTEGER << 4 | CODE
-
-  STANDARD_ATTRIBUTE        ::= ATTRIBUTE_TYPE<0>
-  BOOL_ATTRIBUTE            ::= ATTRIBUTE_TYPE<1>
-  STRING_ATTRIBUTE          ::= ATTRIBUTE_TYPE<2>
-  TYPE_ATTRIBUTE            ::= ATTRIBUTE_TYPE<3>
-  DENSE_ELEMENTS_ATTRIBUTE  ::= ATTRIBUTE_TYPE<4>
-  FLAT_ARRAY_ATTRIBUTE      ::= ATTRIBUTE_TYPE<5>
-  OFFSET_ARRAY_ATTRIBUTE    ::= ATTRIBUTE_TYPE<6>
+  ATTRIBUTE_TYPE_ENTRY      ::= OFFSET<"Attributes"> BYTE<"AttributeType">
 ```
 
 The AttributeTypes section is an optional section which is not needed for BEF
 execution, but this section is necessary for bef-to-mlir conversion. This
 section describes the type information for each attribute (specified by an
-Offset into [Attributes section](#attributes-section)). Each attribute can be
-one of StandardAttribute, BoolAttribute, StringAttribute, TypeAttribute,
-FlatArrayAttribute, OffsetArrayAttribute or DenseElementsAttribute. The integer
-payload of a StandardAttribute is the index into
-[Types section](#types-section). For BoolAttribute, StringAttribute and
-TypeAttribute, the payloads are `0x00`. For non-empty FlatArrayAttribute, the
-payload is another attribute type (currently it can only be scalar attributes,
-ie. StandardAttribute, BoolAttribute, TypeAttribute, and
-DenseElementsAttribute). For non-empty OffsetArrayAttribute, the payload is
-`0x00`.
+Offset into [Attributes section](#attributes-section)). An attribute type is an
+one-byte enum described in [Attributes section](#attributes-section) and defined
+in bef_encoding.h.
 
 ### AttributeNames Section
 

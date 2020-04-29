@@ -77,7 +77,7 @@ static void Conv2DGradInput(ArgumentView<DHTIndexableView<T, 4>> output_grad,
                             ArgumentView<DHTIndexableView<T, 4>> input_grad,
                             Argument<Chain> chain_in, Result<Chain> chain_out,
                             StringAttribute padding,
-                            FlatArrayAttribute<ssize_t> strides,
+                            ArrayAttribute<ssize_t> strides,
                             KernelErrorHandler handler, HostContext* host,
                             KernelFrame* frame) {
   const FixedRankShape<4> input_shape = input_grad->FixedShape();

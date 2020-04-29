@@ -32,34 +32,34 @@
 namespace tfrt {
 namespace {
 
-AttributeKind ConvertTensorDTypeToAttributeKind(DType dtype) {
+BEFAttributeType ConvertTensorDTypeToBEFAttributeType(DType dtype) {
   switch (dtype.kind()) {
     case DType::I32:
-      return AttributeKind::kI32;
+      return BEFAttributeType::kI32;
     case DType::I64:
-      return AttributeKind::kI64;
+      return BEFAttributeType::kI64;
     case DType::F16:
-      return AttributeKind::kF16;
+      return BEFAttributeType::kF16;
     case DType::F32:
-      return AttributeKind::kF32;
+      return BEFAttributeType::kF32;
     case DType::F64:
-      return AttributeKind::kF64;
+      return BEFAttributeType::kF64;
     default:
       llvm_unreachable("unsupported dtype.");
   }
 }
 
-DType ConvertAttributeKindToTensorDType(AttributeKind kind) {
+DType ConvertBEFAttributeTypeToTensorDType(BEFAttributeType kind) {
   switch (kind) {
-    case AttributeKind::kI32:
+    case BEFAttributeType::kI32:
       return DType(DType::I32);
-    case AttributeKind::kI64:
+    case BEFAttributeType::kI64:
       return DType(DType::I64);
-    case AttributeKind::kF16:
+    case BEFAttributeType::kF16:
       return DType(DType::F16);
-    case AttributeKind::kF32:
+    case BEFAttributeType::kF32:
       return DType(DType::F32);
-    case AttributeKind::kF64:
+    case BEFAttributeType::kF64:
       return DType(DType::F64);
     default:
       llvm_unreachable("unsupported dtype.");
@@ -72,7 +72,7 @@ void SerializeTensorMetadata(const TensorMetadata& md,
                              std::vector<uint64_t>* res) {
   BEFDenseAttrHeader header;
   header.dtype =
-      static_cast<uint8_t>(ConvertTensorDTypeToAttributeKind(md.dtype));
+      static_cast<uint8_t>(ConvertTensorDTypeToBEFAttributeType(md.dtype));
   header.rank = md.shape.GetRank();
   header.size = md.shape.GetNumElements();
 
@@ -107,7 +107,7 @@ std::vector<uint64_t> SerializeDenseHostTensorToDenseAttr(
 
 llvm::Expected<DenseHostTensor> DeserializeDenseHostTensorFromDenseAttr(
     DenseAttr attr, HostContext* host) {
-  DType dtype = ConvertAttributeKindToTensorDType(attr.dtype());
+  DType dtype = ConvertBEFAttributeTypeToTensorDType(attr.dtype());
   TensorMetadata md(dtype, attr.shape());
 
   auto result_alloc = DenseHostTensor::CreateUninitialized(md, host);
@@ -125,7 +125,7 @@ TensorMetadata CreateTensorMetadata(const DenseAttr& attr) {
 }
 
 DenseView CreateDenseView(const DenseAttr& attr) {
-  auto dtype = ConvertAttributeKindToTensorDType(attr.dtype());
+  auto dtype = ConvertBEFAttributeTypeToTensorDType(attr.dtype());
   return DenseView(dtype, attr.shape(), attr.elements());
 }
 

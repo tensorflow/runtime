@@ -1,4 +1,5 @@
 .bazelrc
+CODEOWNERS
 WORKSPACE
 dependencies.bzl
 mlir_tests/lit.bzl

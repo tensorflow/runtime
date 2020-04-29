@@ -29,6 +29,7 @@
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
@@ -176,7 +177,7 @@ RCReference<PrefetchDataset<T...>> MakePrefetchDataset(
 
 // Create an iterator that points to the first element in the dataset.
 template <typename... T>
-std::unique_ptr<Iterator<T...>> MakeIteratorFromDataset(
+RCReference<Iterator<T...>> MakeIteratorFromDataset(
     RCReference<Dataset<T...>>* dataset) {
   return (*dataset)->MakeIterator();
 }

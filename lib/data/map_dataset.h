@@ -82,7 +82,7 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
   MapDataset(const MapDataset&) = delete;
   MapDataset& operator=(const MapDataset&) = delete;
 
-  std::unique_ptr<Iterator<OutputTypes...>> MakeIterator() override;
+  RCReference<Iterator<OutputTypes...>> MakeIterator() override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -199,17 +199,23 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
   MapDatasetIterator(const MapDatasetIterator&) = delete;
   MapDatasetIterator& operator=(const MapDatasetIterator&) = delete;
 
+  void Destroy() override {
+    internal::DestroyImpl<MapDatasetIterator>(this,
+                                              parent_dataset_->allocator_);
+  }
+
   RCReference<MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
       parent_dataset_;
-  std::unique_ptr<Iterator<InputTypes...>> input_iterator_;
+  RCReference<Iterator<InputTypes...>> input_iterator_;
 };
 
 template <typename... InputTypes, typename... OutputTypes>
-std::unique_ptr<Iterator<OutputTypes...>> MapDataset<
+RCReference<Iterator<OutputTypes...>> MapDataset<
     std::tuple<InputTypes...>, std::tuple<OutputTypes...>>::MakeIterator() {
-  return std::make_unique<MapDatasetIterator<std::tuple<InputTypes...>,
-                                             std::tuple<OutputTypes...>>>(
-      FormRef(this));
+  return TakeRef(
+      host_->Construct<MapDatasetIterator<std::tuple<InputTypes...>,
+                                          std::tuple<OutputTypes...>>>(
+          FormRef(this)));
 }
 
 }  // namespace data

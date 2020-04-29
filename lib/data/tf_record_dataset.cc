@@ -64,8 +64,8 @@ inline uint64_t DecodeFixed64(const char* ptr) {
 // Implementation for TFRecordDataset member functions
 //===----------------------------------------------------------------------===//
 
-std::unique_ptr<Iterator<std::string>> TFRecordDataset::MakeIterator() {
-  return std::make_unique<TFRecordDatasetIterator>(FormRef(this));
+RCReference<Iterator<std::string>> TFRecordDataset::MakeIterator() {
+  return TakeRef(host_->Construct<TFRecordDatasetIterator>(FormRef(this)));
 }
 
 //===----------------------------------------------------------------------===//

@@ -46,7 +46,7 @@ class TFRecordDataset : public Dataset<std::string> {
   TFRecordDataset(const TFRecordDataset&) = delete;
   TFRecordDataset& operator=(const TFRecordDataset&) = delete;
 
-  std::unique_ptr<Iterator<std::string>> MakeIterator() override;
+  RCReference<Iterator<std::string>> MakeIterator() override;
 
  private:
   friend class TFRecordDatasetIterator;
@@ -75,6 +75,11 @@ class TFRecordDatasetIterator : public Iterator<std::string> {
       const ExecutionContext& exec_ctx) override;
 
  private:
+  void Destroy() override {
+    internal::DestroyImpl<TFRecordDatasetIterator>(this,
+                                                   parent_dataset_->allocator_);
+  }
+
   // Reads n + 4 bytes from the input stream and verifies that the checksum of
   // the first n bytes is stored in the last 4 bytes. Updates *eof to true
   // iff stream_ is already at eof and no bytes are read. Returns an error if

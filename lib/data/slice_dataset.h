@@ -46,7 +46,7 @@ class SliceDataset : public Dataset<T> {
   SliceDataset(const SliceDataset&) = delete;
   SliceDataset& operator=(const SliceDataset&) = delete;
 
-  std::unique_ptr<Iterator<T>> MakeIterator() override;
+  RCReference<Iterator<T>> MakeIterator() override;
 
  private:
   friend class SliceDatasetIterator<T>;
@@ -89,6 +89,11 @@ class SliceDatasetIterator : public Iterator<T> {
   SliceDatasetIterator(const SliceDatasetIterator&) = delete;
   SliceDatasetIterator& operator=(const SliceDatasetIterator&) = delete;
 
+  void Destroy() override {
+    internal::DestroyImpl<SliceDatasetIterator>(this,
+                                                parent_dataset_->allocator_);
+  }
+
   RCReference<SliceDataset<T>> parent_dataset_;
   typename std::vector<T>::iterator iterator_;
   typename std::vector<T>::iterator end_;
@@ -113,9 +118,9 @@ SliceDatasetIterator<DenseHostTensor>::GetNext(
 }
 
 template <typename T>
-std::unique_ptr<Iterator<T>> SliceDataset<T>::MakeIterator() {
-  return std::make_unique<SliceDatasetIterator<T>>(FormRef(this), data_.begin(),
-                                                   data_.end());
+RCReference<Iterator<T>> SliceDataset<T>::MakeIterator() {
+  return TakeRef(host_->Construct<SliceDatasetIterator<T>>(
+      FormRef(this), data_.begin(), data_.end()));
 }
 
 }  // namespace data

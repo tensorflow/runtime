@@ -72,7 +72,7 @@ class InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
   InterleaveDataset(const InterleaveDataset&) = delete;
   InterleaveDataset& operator=(const InterleaveDataset&) = delete;
 
-  std::unique_ptr<Iterator<OutputTypes...>> MakeIterator() override;
+  RCReference<Iterator<OutputTypes...>> MakeIterator() override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -117,12 +117,17 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
       const ExecutionContext& exec_ctx) override;
 
  private:
+  void Destroy() override {
+    internal::DestroyImpl<InterleaveDatasetIterator>(
+        this, parent_dataset_->allocator_);
+  }
+
   RCReference<
       InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
       parent_dataset_;
-  std::unique_ptr<Iterator<InputTypes...>> input_iterator_;
+  RCReference<Iterator<InputTypes...>> input_iterator_;
 
-  std::vector<std::unique_ptr<Iterator<OutputTypes...>>> cycle_iterators_;
+  std::vector<RCReference<Iterator<OutputTypes...>>> cycle_iterators_;
   size_t cycle_index_ = 0;
   size_t block_index_ = 0;
   bool end_of_input_ = false;
@@ -143,15 +148,17 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
     cycle_index_ = (cycle_index_ + 1) % parent_dataset_->cycle_length_;
   }
 
-  std::unique_ptr<Iterator<OutputTypes...>> MakeIteratorFromInputElement(
+  RCReference<Iterator<OutputTypes...>> MakeIteratorFromInputElement(
       AsyncValueRef<std::tuple<InputTypes...>> input_element);
 };
 
 template <typename... InputTypes, typename... OutputTypes>
-std::unique_ptr<Iterator<OutputTypes...>> InterleaveDataset<
+RCReference<Iterator<OutputTypes...>> InterleaveDataset<
     std::tuple<InputTypes...>, std::tuple<OutputTypes...>>::MakeIterator() {
-  return std::make_unique<InterleaveDatasetIterator<
-      std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>(FormRef(this));
+  return TakeRef(
+      host_->Construct<InterleaveDatasetIterator<std::tuple<InputTypes...>,
+                                                 std::tuple<OutputTypes...>>>(
+          FormRef(this)));
 }
 
 template <typename... InputTypes, typename... OutputTypes>
@@ -223,7 +230,7 @@ AsyncValueRef<std::tuple<OutputTypes...>> InterleaveDatasetIterator<
 }
 
 template <typename... InputTypes, typename... OutputTypes>
-std::unique_ptr<Iterator<OutputTypes...>> InterleaveDatasetIterator<
+RCReference<Iterator<OutputTypes...>> InterleaveDatasetIterator<
     std::tuple<InputTypes...>, std::tuple<OutputTypes...>>::
     MakeIteratorFromInputElement(
         AsyncValueRef<std::tuple<InputTypes...>> input_element) {

@@ -49,7 +49,7 @@ class PrefetchDataset : public Dataset<T...> {
   PrefetchDataset(const PrefetchDataset&) = delete;
   PrefetchDataset& operator=(const PrefetchDataset&) = delete;
 
-  std::unique_ptr<Iterator<T...>> MakeIterator() override;
+  RCReference<Iterator<T...>> MakeIterator() override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -69,7 +69,7 @@ class PrefetchDatasetIterator : public Iterator<T...> {
  public:
   explicit PrefetchDatasetIterator(
       RCReference<PrefetchDataset<T...>> parent_dataset,
-      std::unique_ptr<Iterator<T...>> input_iterator)
+      RCReference<Iterator<T...>> input_iterator)
       : Iterator<T...>(parent_dataset->host_),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(std::move(input_iterator)) {}
@@ -89,16 +89,21 @@ class PrefetchDatasetIterator : public Iterator<T...> {
   }
 
  private:
+  void Destroy() override {
+    internal::DestroyImpl<PrefetchDatasetIterator>(
+        this, parent_dataset_->host_->allocator());
+  }
+
   RCReference<PrefetchDataset<T...>> parent_dataset_;
-  std::unique_ptr<Iterator<T...>> input_iterator_;
+  RCReference<Iterator<T...>> input_iterator_;
   std::queue<AsyncValueRef<std::tuple<T...>>> buffer_;
 };
 
 template <typename... T>
-std::unique_ptr<Iterator<T...>> PrefetchDataset<T...>::MakeIterator() {
+RCReference<Iterator<T...>> PrefetchDataset<T...>::MakeIterator() {
   auto input_iterator = input_dataset_->MakeIterator();
-  return std::make_unique<PrefetchDatasetIterator<T...>>(
-      FormRef(this), std::move(input_iterator));
+  return TakeRef(host_->Construct<PrefetchDatasetIterator<T...>>(
+      FormRef(this), std::move(input_iterator)));
 }
 
 }  // namespace data

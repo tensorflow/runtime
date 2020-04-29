@@ -49,7 +49,7 @@ class RepeatDataset : public Dataset<T...> {
   RepeatDataset(const RepeatDataset&) = delete;
   RepeatDataset& operator=(const RepeatDataset&) = delete;
 
-  std::unique_ptr<Iterator<T...>> MakeIterator() override;
+  RCReference<Iterator<T...>> MakeIterator() override;
 
  private:
   friend class RepeatDatasetIterator<T...>;
@@ -89,16 +89,21 @@ class RepeatDatasetIterator : public Iterator<T...> {
   }
 
  private:
+  void Destroy() override {
+    internal::DestroyImpl<RepeatDatasetIterator>(this,
+                                                 parent_dataset_->allocator_);
+  }
+
   RCReference<RepeatDataset<T...>> parent_dataset_;
-  std::unique_ptr<Iterator<T...>> input_iterator_;
+  RCReference<Iterator<T...>> input_iterator_;
 
   // The current epoch number.
   int32_t epoch_ = 0;
 };
 
 template <typename... T>
-std::unique_ptr<Iterator<T...>> RepeatDataset<T...>::MakeIterator() {
-  return std::make_unique<RepeatDatasetIterator<T...>>(FormRef(this));
+RCReference<Iterator<T...>> RepeatDataset<T...>::MakeIterator() {
+  return TakeRef(host_->Construct<RepeatDatasetIterator<T...>>(FormRef(this)));
 }
 
 }  // namespace data

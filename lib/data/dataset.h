@@ -72,7 +72,7 @@ static void EmplaceTupleResult(ArrayRef<AsyncValue*> results,
 // We separate the IteratorBase from the templatized Iterator so that
 // kernels can use IteratorBase::GetNextUntyped without being specialized for
 // the output type.
-class IteratorBase {
+class IteratorBase : public ReferenceCounted<IteratorBase> {
  public:
   explicit IteratorBase(HostContext* host) : host_(host) {}
 
@@ -87,6 +87,10 @@ class IteratorBase {
       const ExecutionContext& exec_ctx) = 0;
 
  protected:
+  // For access to Destroy().
+  friend class ReferenceCounted<IteratorBase>;
+  virtual void Destroy() = 0;
+
   // TODO(b/154971099): Remove this after the ExecutionContext change is
   // submitted.
   HostContext* host_;
@@ -115,7 +119,7 @@ class Dataset : public ReferenceCounted<Dataset<T...>> {
 
   // Creates an iterator that points to the first element of the dataset.
   // The iterator should keep +1 reference to the parent_dataset.
-  virtual std::unique_ptr<Iterator<T...>> MakeIterator() = 0;
+  virtual RCReference<Iterator<T...>> MakeIterator() = 0;
 
  private:
   // For access to Destroy().

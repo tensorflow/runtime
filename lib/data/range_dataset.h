@@ -49,7 +49,7 @@ class RangeDataset : public Dataset<T> {
   RangeDataset(const RangeDataset&) = delete;
   RangeDataset& operator=(const RangeDataset&) = delete;
 
-  std::unique_ptr<Iterator<T>> MakeIterator() override;
+  RCReference<Iterator<T>> MakeIterator() override;
 
  private:
   friend class RangeDatasetIterator<T>;
@@ -92,13 +92,17 @@ class RangeDatasetIterator : public Iterator<T> {
   }
 
  private:
+  void Destroy() override {
+    internal::DestroyImpl<RangeDatasetIterator>(this, dataset_->allocator_);
+  }
+
   RCReference<RangeDataset<T>> dataset_;
   T next_;
 };
 
 template <typename T>
-std::unique_ptr<Iterator<T>> RangeDataset<T>::MakeIterator() {
-  return std::make_unique<RangeDatasetIterator<T>>(FormRef(this));
+RCReference<Iterator<T>> RangeDataset<T>::MakeIterator() {
+  return TakeRef(host_->Construct<RangeDatasetIterator<T>>(FormRef(this)));
 }
 
 }  // namespace data

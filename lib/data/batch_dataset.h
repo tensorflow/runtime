@@ -34,6 +34,7 @@
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/ref_count.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/support/template_util.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
@@ -150,7 +151,7 @@ class BatchDataset : public DHTDataset<sizeof...(T)> {
   BatchDataset(const BatchDataset&) = delete;
   BatchDataset& operator=(const BatchDataset&) = delete;
 
-  std::unique_ptr<DHTIterator<sizeof...(T)>> MakeIterator() override;
+  RCReference<DHTIterator<sizeof...(T)>> MakeIterator() override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -182,13 +183,18 @@ class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
       const ExecutionContext& exec_ctx) override;
 
  private:
+  void Destroy() override {
+    internal::DestroyImpl<BatchDatasetIterator>(this,
+                                                parent_dataset_->allocator_);
+  }
+
   RCReference<BatchDataset<T...>> parent_dataset_;
-  std::unique_ptr<Iterator<T...>> input_iterator_;
+  RCReference<Iterator<T...>> input_iterator_;
 };
 
 template <typename... T>
-std::unique_ptr<DHTIterator<sizeof...(T)>> BatchDataset<T...>::MakeIterator() {
-  return std::make_unique<BatchDatasetIterator<T...>>(FormRef(this));
+RCReference<DHTIterator<sizeof...(T)>> BatchDataset<T...>::MakeIterator() {
+  return TakeRef(host_->Construct<BatchDatasetIterator<T...>>(FormRef(this)));
 }
 
 template <typename... T>

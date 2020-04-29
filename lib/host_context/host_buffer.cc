@@ -37,9 +37,26 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
   return TakeRef(new (buf) HostBuffer(size, allocator));
 }
 
+RCReference<HostBuffer> HostBuffer::CreateFromExternal(
+    void *ptr, size_t size, Deallocator deallocator) {
+  // Not allocated via HostAllocator as HostBuffer::CreateUninitialized.
+  return TakeRef(new HostBuffer(ptr, size, std::move(deallocator)));
+}
+
+HostBuffer::~HostBuffer() {
+  if (!is_inlined_) {
+    out_of_line_.deallocator(out_of_line_.ptr, size_);
+    out_of_line_.deallocator.~Deallocator();
+  }
+}
+
 void HostBuffer::Destroy() {
-  this->~HostBuffer();
-  allocator_->DeallocateBytes(this, sizeof(HostBuffer) + size_);
+  if (is_inlined_) {
+    this->~HostBuffer();
+    inlined_.allocator->DeallocateBytes(this, sizeof(HostBuffer) + size_);
+  } else {
+    delete this;
+  }
 }
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const HostBuffer &buffer) {

@@ -16,14 +16,14 @@
 
 // CHECK: --- Running 'dense_array'
 func @dense_array() {
-  // CHECK: Allocating 160 bytes
+  // CHECK: Allocating 192 bytes
   %x0 = dht.create_uninitialized_tensor.f32.1 [32 : i64]
 
-  // CHECK: Attempted to allocate 4128 bytes.
+  // CHECK: Attempted to allocate 4160 bytes.
   // expected-error @+1 {{runtime error: Cannot allocate tensor}}
   %x1 = dht.create_uninitialized_tensor.f32.1 [1024 : i64]
 
-  // CHECK: Allocating 160 bytes
+  // CHECK: Allocating 192 bytes
   %x2 = dht.create_uninitialized_tensor.f32.1 [32 : i64]
 
   hex.return

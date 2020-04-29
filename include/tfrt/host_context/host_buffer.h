@@ -23,6 +23,7 @@
 #ifndef TFRT_HOST_CONTEXT_HOST_BUFFER_H_
 #define TFRT_HOST_CONTEXT_HOST_BUFFER_H_
 
+#include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/support/ref_count.h"
 
@@ -40,8 +41,23 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   static RCReference<HostBuffer> CreateUninitialized(size_t size,
                                                      size_t alignment,
                                                      HostAllocator *allocator);
-  void *data() { return &data_[0]; }
-  const void *data() const { return &data_[0]; }
+
+  using Deallocator = llvm::unique_function<void(void *ptr, size_t size)>;
+  // Create a HostBuffer by taking ownership of an externally allocated buffer.
+  // `deallocator` is called with `ptr` and `size` as arguments when we destroy
+  // this buffer.
+  static RCReference<HostBuffer> CreateFromExternal(void *ptr, size_t size,
+                                                    Deallocator deallocator);
+
+  void *data() {
+    if (is_inlined_) return &inlined_.data[0];
+    return out_of_line_.ptr;
+  }
+
+  const void *data() const {
+    if (is_inlined_) return &inlined_.data[0];
+    return out_of_line_.ptr;
+  }
   size_t size() const { return size_; }
 
  private:
@@ -49,15 +65,32 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   friend class ReferenceCounted<HostBuffer>;
 
   HostBuffer(size_t size, HostAllocator *allocator)
-      : size_(size), allocator_(allocator) {}
+      : size_(size), is_inlined_(true), inlined_{.allocator = allocator} {}
+
+  HostBuffer(void *ptr, size_t size, Deallocator deallocator)
+      : size_(size),
+        is_inlined_(false),
+        out_of_line_{.ptr = ptr, .deallocator = std::move(deallocator)} {}
+
+  ~HostBuffer();
 
   void Destroy();
 
-  size_t size_;
-  HostAllocator *allocator_;
+  size_t size_ : 63;
+  bool is_inlined_ : 1;
+  // TODO(zhangqiaorjc): Use variant instead of union.
+  union {
+    struct {
+      HostAllocator *allocator;
+      // The data is allocated in the flexible memory array.
+      alignas(alignof(std::max_align_t)) char data[];
+    } inlined_;
 
-  // The data is allocated in the flexible memory array.
-  alignas(alignof(std::max_align_t)) char data_[];
+    struct {
+      void *ptr;
+      Deallocator deallocator;
+    } out_of_line_;
+  };
 };
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const HostBuffer &buffer);

@@ -35,13 +35,16 @@ The `@hello` function above shows how to create and print a string. The text
 after each `:` specifies the types involved:
 
 -   `() -> !hex.string` means that `tfrt_test.get_string` takes no arguments and
-    returns a `!hex.string`.
+    returns a `!hex.string`. `hex` stands for "host executor", a name which we
+    might revisit in future design.
 -   `(!hex.string, !hex.chain) -> !hex.chain` means that
     `tfrt_test.print_string` takes two arguments (`!hex.string` and
-    `!hex.chain`) and returns a `!hex.chain`.
+    `!hex.chain`) and returns a `!hex.chain`. `chain` is a TFRT abstraction to
+    manage dependencies; see [explicit_dependency.md](explicit_dependency.md).
 
 `tfrt_test.get_string`'s `value` is an *attribute*, not an argument. Attributes
-are compile-time constants that are available at runtime.
+are compile-time constants, while arguments are only available at runtime upon
+kernel/function invocation.
 
 This example code ignores the `!hex.chain` returned by `tfrt_test.print_string`.
 
@@ -117,8 +120,8 @@ See MLIR's
 [Operation Definition Specification (ODS)](https://mlir.llvm.org/docs/OpDefinitions/)
 for more information on how this works.
 
-If we `tfrt_translate` and run `hello.mlir` again, we see that the executor
-calls our second function in addition to the first:
+If we run `tfrt_translate` and `bef_executor` over `hello.mlir` again, we see
+that the executor calls our second function in addition to the first:
 
 ```shell
 $ bazel-bin/third_party/tf_runtime/tools/tfrt_translate --mlir-to-bef hello.mlir > hello.bef
@@ -255,3 +258,13 @@ like:
 -   Asynchronous execution
 -   Control flow
 -   Non-strict execution
+
+## What's Next
+
+Note in order to use TFRT, we do not expect TensorFlow end users to hand-write
+the MLIR programs as shown above. Instead, we are building a graph compiler that
+will generate such MLIR programs from TensorFlow functions created from
+TensorFlow model code.
+
+Also, see [TFRT Op-by-op Execution Design](tfrt_op_by_op_execution_design.md) on
+how TFRT will support eagerly executing TensorFlow ops.

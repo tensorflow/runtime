@@ -84,9 +84,9 @@ string = hello world
 
 The first two `Choosing` lines are `bef_executor` explaining which
 implementations of
-[HostAllocator](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/host_allocator.h)
+[HostAllocator](https://github.com/tensorflow/runtime/blob/master/include/tfrt/host_context/host_allocator.h)
 and
-[ConcurrentWorkQueue](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/concurrent_work_queue.h)
+[ConcurrentWorkQueue](https://github.com/tensorflow/runtime/blob/master/include/tfrt/host_context/concurrent_work_queue.h)
 it's using. The third `--- Running 'hello':` line is printed by `bef_executor`
 to show which MLIR function is currently executing (`@hello` in this case). The
 fourth `string = hello world` line is printed by `tfrt_test.print_string`, as
@@ -115,7 +115,7 @@ func @hello_integers() {
 `@hello_integers` shows how to create and print integers. This example does not
 have the verbose type information we saw in `@hello` because we've defined
 custom parsers for the `hex.constant.i32` and `hex.print.32` kernels in
-[basic_kernels.td](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/basic_kernels/opdefs/basic_kernels.td).
+[basic_kernels.td](https://github.com/tensorflow/runtime/blob/master/include/tfrt/basic_kernels/opdefs/basic_kernels.td).
 See MLIR's
 [Operation Definition Specification (ODS)](https://mlir.llvm.org/docs/OpDefinitions/)
 for more information on how this works.

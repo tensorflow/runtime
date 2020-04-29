@@ -11,7 +11,7 @@ This document explains some of the concepts behind `AsyncValue`.
 
 ## `AsyncValue`
 
-[`AsyncValue`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/async_value.h)
+[`AsyncValue`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/host_context/async_value.h)
 is an abstract future data type. It's conceptually similar to
 [std::future](https://en.cppreference.com/w/cpp/thread/future), except that
 `AsyncValue` does not let callers wait until the value becomes available.
@@ -27,12 +27,12 @@ the value becomes available. This approach is similar to
 and `DropRef`, and any `AsyncValue` with a refcount of 0 is immediately
 destroyed.
 
-[`RCReference`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/support/ref_count.h)
+[`RCReference`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/support/ref_count.h)
 is a smart pointer class that calls `DropRef` when it is destroyed. It's
 conceptually similar to
 [std::shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr). Kernel
 implementations typically use
-[`AsyncValueRef`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/async_value_ref.h)
+[`AsyncValueRef`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/host_context/async_value_ref.h)
 described [below](#asyncvalueref) rather than `RCReference`, unless type erasure
 is needed.
 
@@ -72,7 +72,7 @@ int_value->emplace<int32_t>(42);
 ```
 
 For example,
-[`TensorHandle`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/core_runtime/tensor_handle.h)
+[`TensorHandle`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/core_runtime/tensor_handle.h)
 is constructed from two `AsyncValues`, one which must contain `TensorMetadata`
 and another which must contain `Tensor`.
 

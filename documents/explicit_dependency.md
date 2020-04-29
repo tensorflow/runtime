@@ -33,7 +33,7 @@ control dependencies between these kinds of kernels in a host runtime program.
 
 To inject explicit control dependency between kernels, we introduce the concept
 of `Chain`. `Chain` is an empty struct defined in
-[chain.h](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/host_context/chain.h)
+[chain.h](https://github.com/tensorflow/runtime/blob/master/include/tfrt/host_context/chain.h)
 as follows:
 
 ```c++
@@ -149,9 +149,9 @@ Manually managing the `Chain` argument and return value in MLIR can be tedious
 and error-prone. Fortunately, managing dependencies between kernels is a natural
 fit for compilers, which can inject the right use of `Chain`s in the code. To
 assist the compiler on this task, we define a tablegen entry (e.g.
-[basic_kernels.td](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/basic_kernels/opdefs/basic_kernels.td)
+[basic_kernels.td](https://github.com/tensorflow/runtime/blob/master/include/tfrt/basic_kernels/opdefs/basic_kernels.td)
 and
-[dense_host_tensor.td](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/tensor/opdefs/dense_host_tensor.td))
+[dense_host_tensor.td](https://github.com/tensorflow/runtime/blob/master/include/tfrt/tensor/opdefs/dense_host_tensor.td))
 in ODS for each kernel in TFRT which describes the kernel meta data, such as
 whether the kernel is side-effecting and which of its input arguments may be
 mutated.

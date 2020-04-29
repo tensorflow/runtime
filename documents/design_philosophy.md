@@ -114,9 +114,9 @@ This has several implications:
 
 -   The API for a library should either directly map to a directory of header
     files (e.g.
-    [`include/tfrt/support`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/support/))
+    [`include/tfrt/support`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/support/))
     or be exactly one header file for very simple libraries (e.g.
-    [`include/tfrt/bef_converter/mlir_to_bef.h`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/bef_converter/mlir_to_bef.h)).
+    [`include/tfrt/bef_converter/mlir_to_bef.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/bef_converter/mlir_to_bef.h)).
 
 -   If a library contains no public API (e.g. because its functionality is
     provided by a static constructor registration system) then it may have no

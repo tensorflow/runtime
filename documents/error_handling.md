@@ -153,7 +153,7 @@ effectively makes the executor skip all remaining kernel invocations.
 implementors of potentially long-running kernels to periodically check
 `HostContext::GetCancelAsyncValue` and return early when CancelAsyncValue is
 not-null. For example,
-[`HexRepeatI32`](https://cs.opensource.google/tensorflow/runtime/+/master:lib/basic_kernels/control_flow_kernels.cc)
+[`HexRepeatI32`](https://github.com/tensorflow/runtime/blob/master/lib/basic_kernels/control_flow_kernels.cc)
 checks CancelAsyncValue once per loop iteration.
 
 ## Managing Resource Lifetimes In The Presence Of Errors

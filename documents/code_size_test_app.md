@@ -35,7 +35,7 @@ $ bazel test //mlir_tests/code_size_test_app:fib.mlir.test
 ```
 
 What really happens can be inferred from the first line of
-[`fib.mlir`](https://cs.opensource.google/tensorflow/runtime/+/master:mlir_tests/code_size_test_app/fib.mlir):
+[`fib.mlir`](https://github.com/tensorflow/runtime/blob/master/mlir_tests/code_size_test_app/fib.mlir):
 
 ```c++
 // RUN: tfrt_translate -mlir-to-bef %s | code_size_test_driver | FileCheck %s

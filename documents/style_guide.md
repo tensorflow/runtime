@@ -21,7 +21,7 @@ definition).
 
 For example:
 
-[`include/tfrt/bef_executor/bef_file.h`](https://cs.opensource.google/tensorflow/runtime/+/master:include/tfrt/bef_executor/bef_file.h)
+[`include/tfrt/bef_executor/bef_file.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/bef_executor/bef_file.h)
 
 should be included as:
 

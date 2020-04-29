@@ -150,7 +150,7 @@ class AsyncValue {
 
   // Construct the payload of the AsyncValue in place and change its state to
   // kConcrete. Requires that this AsyncValue previously have state
-  // kUnconstructed or kConstructed.
+  // kUnconstructed.
   template <typename T, typename... Args>
   void emplace(Args&&... args);
 

@@ -27,12 +27,14 @@
 #include <fstream>
 
 #include "dataset.h"
+#include "io.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 namespace data {
 
 // TFRecordDataset reads TFRecord bytes from a file.
+//
 // TODO(rachelim): Consider using a custom data type to represent the
 // bytes read from a TFRecord file. This will make the code more type safe
 // and allow for future optimizations to use mmap instead of copying bytes
@@ -60,10 +62,10 @@ class TFRecordDataset : public Dataset<std::string> {
   HostAllocator* allocator_;
 };
 
-class TFRecordDatasetIterator : public Iterator<std::string> {
+class TFRecordDatasetIterator : public io::PrefetchingIterator<std::string> {
  public:
   explicit TFRecordDatasetIterator(RCReference<TFRecordDataset> parent_dataset)
-      : Iterator<std::string>(),
+      : io::PrefetchingIterator<std::string>(256, 64),
         parent_dataset_(std::move(parent_dataset)),
         stream_(parent_dataset_->path_.c_str(), std::ios_base::binary) {}
 
@@ -71,8 +73,12 @@ class TFRecordDatasetIterator : public Iterator<std::string> {
   TFRecordDatasetIterator(const TFRecordDatasetIterator&) = delete;
   TFRecordDatasetIterator& operator=(const TFRecordDatasetIterator&) = delete;
 
-  AsyncValueRef<std::tuple<std::string>> GetNext(
-      const ExecutionContext& exec_ctx) override;
+ protected:
+  // Reads the next record from the input file. Returns empty AsyncValueRef if
+  // input file is exhausted. Returns error async value if failed to read
+  // the next record.
+  AsyncValueRef<std::tuple<std::string>> GetNextElement(
+      const ExecutionContext& exec_ctx) final;
 
  private:
   void Destroy() override {

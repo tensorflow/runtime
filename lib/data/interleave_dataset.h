@@ -102,7 +102,7 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
       RCReference<InterleaveDataset<std::tuple<InputTypes...>,
                                     std::tuple<OutputTypes...>>>
           parent_dataset)
-      : Iterator<OutputTypes...>(parent_dataset->host_),
+      : Iterator<OutputTypes...>(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()),
         cycle_iterators_(parent_dataset_->cycle_length_) {}
@@ -149,7 +149,8 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
   }
 
   RCReference<Iterator<OutputTypes...>> MakeIteratorFromInputElement(
-      AsyncValueRef<std::tuple<InputTypes...>> input_element);
+      AsyncValueRef<std::tuple<InputTypes...>> input_element,
+      const ExecutionContext& exec_ctx);
 };
 
 template <typename... InputTypes, typename... OutputTypes>
@@ -221,7 +222,7 @@ AsyncValueRef<std::tuple<OutputTypes...>> InterleaveDatasetIterator<
     }
 
     cycle_iterators_[cycle_index_] =
-        MakeIteratorFromInputElement(std::move(input_element));
+        MakeIteratorFromInputElement(std::move(input_element), exec_ctx);
     ++num_open_;
   }
 
@@ -233,19 +234,18 @@ template <typename... InputTypes, typename... OutputTypes>
 RCReference<Iterator<OutputTypes...>> InterleaveDatasetIterator<
     std::tuple<InputTypes...>, std::tuple<OutputTypes...>>::
     MakeIteratorFromInputElement(
-        AsyncValueRef<std::tuple<InputTypes...>> input_element) {
-  auto host = IteratorBase::host_;
-
+        AsyncValueRef<std::tuple<InputTypes...>> input_element,
+        const ExecutionContext& exec_ctx) {
   // Translate from AsyncValue<std::tuple<T...>> to
   // SmallVector<AsyncValue<T...>*, 4>
   // TODO(rachelim): Support inputs of arbitrary arity.
   SmallVector<AsyncValue*, 4> fn_args;
-  auto arg = host->template MakeConcreteAsyncValueRef<InputTypes...>(
+  auto arg = exec_ctx.host()->template MakeConcreteAsyncValueRef<InputTypes...>(
       std::move(std::get<0>(input_element.get())));
   fn_args.push_back(arg.GetAsyncValue());
   SmallVector<RCReference<AsyncValue>, 1> fn_results;
   fn_results.resize(1);
-  parent_dataset_->map_fn_->Execute(fn_args, fn_results, host);
+  parent_dataset_->map_fn_->Execute(fn_args, fn_results, exec_ctx.host());
 
   // NOTE: If the inputs to this function are async, or the function is
   // executed asynchronously, this will fail.

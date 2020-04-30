@@ -66,21 +66,20 @@ class SliceDatasetIterator : public Iterator<T> {
   explicit SliceDatasetIterator(RCReference<SliceDataset<T>> parent_dataset,
                                 typename std::vector<T>::iterator iterator,
                                 typename std::vector<T>::iterator end)
-      : Iterator<T>(parent_dataset->host_),
+      : Iterator<T>(),
         parent_dataset_(std::move(parent_dataset)),
         iterator_(std::move(iterator)),
         end_(std::move(end)) {}
 
   AsyncValueRef<std::tuple<T>> GetNext(
       const ExecutionContext& exec_ctx) override {
-    auto* host = IteratorBase::host_;
     if (iterator_ == end_) {
       return AsyncValueRef<std::tuple<T>>();
     }
 
     T& element = *iterator_;
     iterator_++;
-    return host->template MakeConcreteAsyncValueRef<std::tuple<T>>(
+    return exec_ctx.host()->template MakeConcreteAsyncValueRef<std::tuple<T>>(
         std::make_tuple(element));
   }
 
@@ -106,15 +105,15 @@ template <>
 inline AsyncValueRef<std::tuple<DenseHostTensor>>
 SliceDatasetIterator<DenseHostTensor>::GetNext(
     const ExecutionContext& exec_ctx) {
-  auto* host = parent_dataset_->host_;
   if (iterator_ == end_) {
     return AsyncValueRef<std::tuple<DenseHostTensor>>();
   }
 
   DenseHostTensor& element = *iterator_;
   iterator_++;
-  return host->template MakeConcreteAsyncValueRef<std::tuple<DenseHostTensor>>(
-      std::make_tuple(element.CopyRef()));
+  return exec_ctx.host()
+      ->template MakeConcreteAsyncValueRef<std::tuple<DenseHostTensor>>(
+          std::make_tuple(element.CopyRef()));
 }
 
 template <typename T>

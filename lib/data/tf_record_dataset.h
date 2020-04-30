@@ -63,7 +63,7 @@ class TFRecordDataset : public Dataset<std::string> {
 class TFRecordDatasetIterator : public Iterator<std::string> {
  public:
   explicit TFRecordDatasetIterator(RCReference<TFRecordDataset> parent_dataset)
-      : Iterator<std::string>(parent_dataset->host_),
+      : Iterator<std::string>(),
         parent_dataset_(std::move(parent_dataset)),
         stream_(parent_dataset_->path_.c_str(), std::ios_base::binary) {}
 

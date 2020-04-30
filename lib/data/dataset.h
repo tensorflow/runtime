@@ -25,6 +25,7 @@
 
 #include <memory>
 
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/forward_decls.h"
@@ -74,7 +75,7 @@ static void EmplaceTupleResult(ArrayRef<AsyncValue*> results,
 // the output type.
 class IteratorBase : public ReferenceCounted<IteratorBase> {
  public:
-  explicit IteratorBase(HostContext* host) : host_(host) {}
+  explicit IteratorBase() {}
 
   virtual ~IteratorBase() {}
 
@@ -90,16 +91,12 @@ class IteratorBase : public ReferenceCounted<IteratorBase> {
   // For access to Destroy().
   friend class ReferenceCounted<IteratorBase>;
   virtual void Destroy() = 0;
-
-  // TODO(b/154971099): Remove this after the ExecutionContext change is
-  // submitted.
-  HostContext* host_;
 };
 
 template <typename... T>
 class Iterator : public IteratorBase {
  public:
-  explicit Iterator(HostContext* host) : IteratorBase(host) {}
+  explicit Iterator() {}
 
   // If the iterator has reached end, returns an empty AsyncValueRef. Otherwise,
   // returns the AsyncValueRef of the next element and advances the iterator.
@@ -135,9 +132,10 @@ SmallVector<RCReference<AsyncValue>, 4> Iterator<T...>::GetNextUntyped(
   SmallVector<RCReference<AsyncValue>, 4> results;
   results.resize(sizeof...(T) + 1);
 
-  internal::AllocateTupleResult(results, input, host_,
+  internal::AllocateTupleResult(results, input, exec_ctx.host(),
                                 std::make_index_sequence<sizeof...(T)>{});
-  results[sizeof...(T)] = host_->MakeUnconstructedAsyncValueRef<bool>();
+  results[sizeof...(T)] =
+      exec_ctx.host()->MakeUnconstructedAsyncValueRef<bool>();
 
   if (!input) {
     for (int i = 0; i < sizeof...(T); i++) {

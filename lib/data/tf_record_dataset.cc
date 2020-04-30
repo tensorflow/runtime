@@ -73,7 +73,6 @@ RCReference<Iterator<std::string>> TFRecordDataset::MakeIterator() {
 //===----------------------------------------------------------------------===//
 AsyncValueRef<std::tuple<std::string>> TFRecordDatasetIterator::GetNext(
     const ExecutionContext& exec_ctx) {
-  auto* host = IteratorBase::host_;
   bool eof = false;
   auto result = ReadRecord(&eof);
   if (eof) {
@@ -82,7 +81,7 @@ AsyncValueRef<std::tuple<std::string>> TFRecordDatasetIterator::GetNext(
   if (!result) {
     return EmitErrorAsync(exec_ctx, result.takeError());
   }
-  return host->MakeConcreteAsyncValueRef<std::tuple<std::string>>(
+  return exec_ctx.host()->MakeConcreteAsyncValueRef<std::tuple<std::string>>(
       std::move(*result));
 }
 

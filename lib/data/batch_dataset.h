@@ -171,7 +171,7 @@ template <typename... T>
 class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
  public:
   explicit BatchDatasetIterator(RCReference<BatchDataset<T...>> parent_dataset)
-      : DHTIterator<sizeof...(T)>(parent_dataset->host_),
+      : DHTIterator<sizeof...(T)>(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
@@ -200,7 +200,6 @@ RCReference<DHTIterator<sizeof...(T)>> BatchDataset<T...>::MakeIterator() {
 template <typename... T>
 AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
     const ExecutionContext& exec_ctx) {
-  auto* host = IteratorBase::host_;
   llvm::SmallVector<RCReference<AsyncValue>, 4> async_values;
   // Get up to batch_size values from the underlying iterator.
   for (int i = 0; i < parent_dataset_->batch_size_; i++) {
@@ -223,8 +222,9 @@ AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
     async_value_ptrs.push_back(async_value.get());
   }
   auto async_result =
-      host->template MakeUnconstructedAsyncValueRef<DHTTuple<sizeof...(T)>>();
-  host->RunWhenReady(
+      exec_ctx.host()
+          ->template MakeUnconstructedAsyncValueRef<DHTTuple<sizeof...(T)>>();
+  exec_ctx.host()->RunWhenReady(
       async_value_ptrs, [exec_ctx, async_values = std::move(async_values),
                          async_result = async_result.CopyRef(),
                          parent_dataset = parent_dataset_.CopyRef()] {

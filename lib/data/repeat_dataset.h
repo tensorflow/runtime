@@ -68,7 +68,7 @@ template <typename... T>
 class RepeatDatasetIterator : public Iterator<T...> {
  public:
   explicit RepeatDatasetIterator(RCReference<RepeatDataset<T...>> dataset)
-      : Iterator<T...>(dataset->host_),
+      : Iterator<T...>(),
         parent_dataset_(std::move(dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 

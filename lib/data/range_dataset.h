@@ -69,9 +69,7 @@ template <typename T>
 class RangeDatasetIterator : public Iterator<T> {
  public:
   explicit RangeDatasetIterator(RCReference<RangeDataset<T>> dataset)
-      : Iterator<T>(dataset->host_),
-        dataset_(std::move(dataset)),
-        next_(dataset_->start_) {}
+      : Iterator<T>(), dataset_(std::move(dataset)), next_(dataset_->start_) {}
 
   // This class is not copyable or movable.
   RangeDatasetIterator(const RangeDatasetIterator&) = delete;
@@ -79,7 +77,6 @@ class RangeDatasetIterator : public Iterator<T> {
 
   AsyncValueRef<std::tuple<T>> GetNext(
       const ExecutionContext& exec_ctx) override {
-    auto* host = IteratorBase::host_;
     bool has_next = (dataset_->step_ > 0 && next_ < dataset_->stop_) ||
                     (dataset_->step_ < 0 && next_ > dataset_->stop_);
     if (!has_next) {
@@ -87,7 +84,7 @@ class RangeDatasetIterator : public Iterator<T> {
     }
     auto result = next_;
     next_ += dataset_->step_;
-    return host->template MakeConcreteAsyncValueRef<std::tuple<T>>(
+    return exec_ctx.host()->template MakeConcreteAsyncValueRef<std::tuple<T>>(
         std::make_tuple(result));
   }
 

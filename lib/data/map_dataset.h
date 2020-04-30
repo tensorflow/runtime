@@ -110,13 +110,12 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
       RCReference<
           MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
           parent_dataset)
-      : Iterator<OutputTypes...>(parent_dataset->host_),
+      : Iterator<OutputTypes...>(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
   AsyncValueRef<std::tuple<OutputTypes...>> GetNext(
       const ExecutionContext& exec_ctx) override {
-    auto* host = IteratorBase::host_;
     const Function* map_fn = parent_dataset_->map_fn_.get();
     // IDEA(donglin): consider extending RCArray to support CopyRef() without
     // doing shallow copy.
@@ -128,8 +127,9 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
     if (args.IsError()) {
       return AsyncValueRef<std::tuple<OutputTypes...>>(args.ReleaseRCRef());
     }
-    auto async_result = host->template MakeUnconstructedAsyncValueRef<
-        std::tuple<OutputTypes...>>();
+    auto async_result = exec_ctx.host()
+                            ->template MakeUnconstructedAsyncValueRef<
+                                std::tuple<OutputTypes...>>();
     // IDEA(donglin): We can optimize performance for small tasks by not
     // enqueueing small tasks to the threadpool. We need a way to identify small
     // tasks.
@@ -139,10 +139,13 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
     // parallelism is to compose map function with async kernels. This
     // alternative approach likely incurs higher thread context switch overhead
     // because different async kernels may be run by different threads.
-    host->EnqueueWork([host, map_fn = FormRef(map_fn),
-                       additional_fn_args = std::move(additional_fn_args),
-                       args = std::move(args),
-                       async_result = async_result.CopyRef()]() mutable {
+    exec_ctx.host()->EnqueueWork([host = exec_ctx.host(),
+                                  map_fn = FormRef(map_fn),
+                                  additional_fn_args =
+                                      std::move(additional_fn_args),
+                                  args = std::move(args),
+                                  async_result =
+                                      async_result.CopyRef()]() mutable {
       // IDEA(donglin): We can optimize performance by constructing a view of
       // AsyncValue<T> from AsyncValue<std::tuple<T>> without moving data.
       args.AndThen([host, map_fn = map_fn.CopyRef(),

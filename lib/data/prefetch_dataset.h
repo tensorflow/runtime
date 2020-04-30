@@ -70,7 +70,7 @@ class PrefetchDatasetIterator : public Iterator<T...> {
   explicit PrefetchDatasetIterator(
       RCReference<PrefetchDataset<T...>> parent_dataset,
       RCReference<Iterator<T...>> input_iterator)
-      : Iterator<T...>(parent_dataset->host_),
+      : Iterator<T...>(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(std::move(input_iterator)) {}
 

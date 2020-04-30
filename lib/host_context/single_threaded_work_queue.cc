@@ -24,6 +24,8 @@
 #include "llvm/ADT/None.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/support/mutex.h"
+#include "tfrt/support/thread_annotations.h"
 
 namespace tfrt {
 namespace {
@@ -45,18 +47,24 @@ class SingleThreadedWorkQueue : public ConcurrentWorkQueue {
   int GetParallelismLevel() const override { return 1; }
 
  private:
-  void DoWork(std::function<bool()> stop_predicate);
-
-  std::vector<TaskFunction> work_items_;
+  // Current implementation uses a single mutex and condition_variable
+  // for all calls to Await(). This is sub-optimal when there are many
+  // outstanding calls to Await(). A more efficient, but more complex,
+  // implementation can create a condition variable per call to Await()
+  // and AddTask() can notify_one() on all of these condition variables.
+  mutable mutex mu_;
+  condition_variable cv_;
+  std::vector<TaskFunction> work_items_ TFRT_GUARDED_BY(mu_);
 };
 }  // namespace
 
-// Enqueue a block of work. Currently thread-unsafe since std::vector::push_back
-// is not thread-safe, but ConcurrentWorkQueue is intended to be used in
-// non-threaded environment so synchronization is not needed.
-// TODO(b/137227366): Revisit this design.
+// Enqueue a block of work.
 void SingleThreadedWorkQueue::AddTask(TaskFunction work) {
-  work_items_.push_back(std::move(work));
+  {
+    mutex_lock l(mu_);
+    work_items_.push_back(std::move(work));
+  }
+  cv_.notify_all();
 }
 
 // We put blocking tasks and non-blocking tasks in the same queue for
@@ -69,7 +77,11 @@ void SingleThreadedWorkQueue::AddTask(TaskFunction work) {
 Optional<TaskFunction> SingleThreadedWorkQueue::AddBlockingTask(
     TaskFunction work, bool allow_queuing) {
   assert(allow_queuing == true);
-  work_items_.push_back(std::move(work));
+  {
+    mutex_lock l(mu_);
+    work_items_.push_back(std::move(work));
+  }
+  cv_.notify_all();
   return llvm::None;
 }
 
@@ -78,11 +90,15 @@ Optional<TaskFunction> SingleThreadedWorkQueue::AddBlockingTask(
 // work - there is no one else to do it.
 void SingleThreadedWorkQueue::Quiesce() {
   std::vector<TaskFunction> local_work_items;
-  while (!work_items_.empty()) {
+  while (true) {
     // Work items can add new items to the vector, and we generally want to run
     // things in order, so make sure we explicitly pop the item off before a new
     // one is added.
-    std::swap(local_work_items, work_items_);
+    {
+      mutex_lock l(mu_);
+      if (work_items_.empty()) break;
+      std::swap(local_work_items, work_items_);
+    }
     for (auto& item : local_work_items) {
       item();
     }
@@ -92,17 +108,32 @@ void SingleThreadedWorkQueue::Quiesce() {
 
 void SingleThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
   // We are done when values_remaining drops to zero.
+  // Must be accessed while holding mu_. TFRT_GUARDED_BY does not work on local
+  // variables at this point.
   int values_remaining = values.size();
 
   // As each value becomes available, we can decrement our counts.
-  for (auto& value : values)
-    value->AndThen([&values_remaining]() { --values_remaining; });
+  for (auto& value : values) {
+    value->AndThen([this, &values_remaining]() mutable {
+      {
+        mutex_lock l(mu_);
+        --values_remaining;
+      }
+      cv_.notify_all();
+    });
+  }
 
   // Run work items until values_remaining drops to zero.
-  DoWork([&values_remaining]() -> bool { return values_remaining == 0; });
-}
+  auto has_values = [this, &values_remaining]() mutable -> bool {
+    mutex_lock l(mu_);
+    return values_remaining != 0;
+  };
 
-void SingleThreadedWorkQueue::DoWork(std::function<bool()> stop_predicate) {
+  auto no_items_and_values_remaining = [this, &values_remaining]()
+                                           TFRT_REQUIRES(mu_) -> bool {
+    return values_remaining != 0 && work_items_.empty();
+  };
+
   // Work items can add new items to the vector, and we generally want to run
   // things in order, so make sure we explicitly pop the item off before a new
   // one is added.
@@ -110,15 +141,23 @@ void SingleThreadedWorkQueue::DoWork(std::function<bool()> stop_predicate) {
   int next_work_item_index = 0;
 
   // Run until the values get resolved.
-  while (!stop_predicate()) {
+  while (has_values()) {
     // If we've processed everything in local_work_items, then grab another
     // batch of stuff to do.  We're not done, so there must be more to do.
     if (next_work_item_index == local_work_items.size()) {
       local_work_items.clear();
-      std::swap(local_work_items, work_items_);
+
+      {
+        mutex_lock l(mu_);
+        while (no_items_and_values_remaining()) {
+          cv_.wait(l);
+        }
+        if (values_remaining == 0) {
+          break;
+        }
+        std::swap(local_work_items, work_items_);
+      }
       next_work_item_index = 0;
-      assert(!local_work_items.empty() &&
-             "ran out of work to do, but unresolved values remain!");
     }
 
     // Run the next work item.
@@ -129,10 +168,11 @@ void SingleThreadedWorkQueue::DoWork(std::function<bool()> stop_predicate) {
   }
 
   // When we resolve all the async values, we're done.  However, we could have
-  // one or more elements left in the local_work_items list.  If so, reconstruct
-  // the worklist in the right order (inserting local work items at the head
-  // of the remaining work to do).
+  // one or more elements left in the local_work_items list.  If so,
+  // reconstruct the worklist in the right order (inserting local work items
+  // at the head of the remaining work to do).
   if (next_work_item_index != local_work_items.size()) {
+    mutex_lock l(mu_);
     work_items_.insert(work_items_.begin(),
                        std::make_move_iterator(local_work_items.begin() +
                                                next_work_item_index),

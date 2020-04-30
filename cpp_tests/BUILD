@@ -125,3 +125,14 @@ tfrt_cc_test(
         "@tf_runtime//:support",
     ],
 )
+
+tfrt_cc_test(
+    name = "host_runtime/concurrent_work_queue_test",
+    srcs = ["host_runtime/concurrent_work_queue_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)

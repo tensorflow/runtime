@@ -52,7 +52,7 @@ Translate `hello.mlir` to [BEF](binary_executable_format.md) by running
 `tfrt_translate --mlir_to_bef`:
 
 ```shell
-$ bazel-bin/third_party/tf_runtime/tools/tfrt_translate --mlir-to-bef hello.mlir > hello.bef
+$ bazel-bin/tools/tfrt_translate --mlir-to-bef hello.mlir > hello.bef
 ```
 
 You can dump the encoded BEF file, and see that it contains the `hello world`
@@ -75,7 +75,7 @@ $ hexdump -C hello.bef
 Run `hello.bef` with `bef_executor` to see it print `hello world`:
 
 ```shell
-$ bazel-bin/third_party/tf_runtime/tools/bef_executor hello.bef
+$ bazel-bin/tools/bef_executor hello.bef
 Choosing memory leak check allocator.
 Choosing single-threaded work queue.
 --- Running 'hello':
@@ -124,8 +124,8 @@ If we run `tfrt_translate` and `bef_executor` over `hello.mlir` again, we see
 that the executor calls our second function in addition to the first:
 
 ```shell
-$ bazel-bin/third_party/tf_runtime/tools/tfrt_translate --mlir-to-bef hello.mlir > hello.bef
-$ bazel-bin/third_party/tf_runtime/tools/bef_executor hello.bef
+$ bazel-bin/tools/tfrt_translate --mlir-to-bef hello.mlir > hello.bef
+$ bazel-bin/tools/bef_executor hello.bef
 Choosing memory leak check allocator.
 Choosing single-threaded work queue.
 --- Running 'hello':
@@ -235,8 +235,8 @@ registered with TFRT, so we do not need to rebuild `tfrt_translate`:
 So now we can compile and run `coordinate.mlir`:
 
 ```shell
-$ bazel-bin/third_party/tf_runtime/tools/tfrt_translate --mlir-to-bef coordinate.mlir > coordinate.bef
-$ bazel-bin/third_party/tf_runtime/tools/bef_executor coordinate.bef
+$ bazel-bin/tools/tfrt_translate --mlir-to-bef coordinate.mlir > coordinate.bef
+$ bazel-bin/tools/bef_executor coordinate.bef
 Choosing memory leak check allocator.
 Choosing single-threaded work queue.
 --- Running 'print_coordinate':

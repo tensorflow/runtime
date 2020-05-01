@@ -76,7 +76,7 @@ void SingleThreadedWorkQueue::AddTask(TaskFunction work) {
 // can't accept tasks that do not allow queuing.
 Optional<TaskFunction> SingleThreadedWorkQueue::AddBlockingTask(
     TaskFunction work, bool allow_queuing) {
-  assert(allow_queuing == true);
+  if (!allow_queuing) return {std::move(work)};
   {
     mutex_lock l(mu_);
     work_items_.push_back(std::move(work));

@@ -1070,6 +1070,11 @@ void BEFAttributeEmitter::EmitArrayAttribute(mlir::ArrayAttr array_attr) {
 // higher level than BEF.
 class BEFTypedAttributeEmitter : public BEFEmitter {
  public:
+  BEFTypedAttributeEmitter() {
+    // Typed attributes should be at least aligned to alignof(BEFAttrBase).
+    EmitAlignment(alignof(BEFAttrBase));
+  }
+
   void EmitAttribute(mlir::Attribute attr);
 
  private:
@@ -1147,7 +1152,7 @@ void BEFTypedAttributeEmitter::EmitAggregateAttribute(
     BEFTypedAttributeEmitter element_emitter;
     element_emitter.EmitAttribute(element);
     EmitAlignment(element_emitter.GetRequiredAlignment());
-    offsets.push_back(static_cast<uint16_t>(size()));
+    offsets.push_back(AssertAttrFieldSize(size()));
     EmitEmitter(element_emitter);
   }
 

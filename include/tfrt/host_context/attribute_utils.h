@@ -282,6 +282,23 @@ class StringAttr : public internal::AttrHeaderBase<StringAttr, BEFStringAttr> {
   }
 };
 
+class ShapeAttr : public internal::AttrHeaderBase<ShapeAttr, BEFShapeAttr> {
+ public:
+  using Base::Base;
+
+  static constexpr size_t Alignment() { return alignof(int64_t); }
+
+  int GetRank() const { return header().rank; }
+
+  ArrayRef<int64_t> GetShape() const {
+    return llvm::makeArrayRef(header().dims, GetRank());
+  }
+
+  static bool classof(TypedAttrBase base) {
+    return base.type() == BEFAttributeType::kShape;
+  }
+};
+
 class DenseAttr : public internal::AttrHeaderBase<DenseAttr, BEFDenseAttr> {
  public:
   using Base::Base;

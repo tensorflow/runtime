@@ -54,6 +54,8 @@ OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind) {
       return OpAttrType::DTYPE;
     case BEFAttributeType::kAggregate:
       return OpAttrType::AGGREGATE;
+    case BEFAttributeType::kShape:
+      return OpAttrType::SHAPE;
     default:
       break;
   }
@@ -106,6 +108,10 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       DenseAttr dense_attr(data);
       return {dense_attr.size(), DenseAttr::Alignment()};
     }
+    case OpAttrType::SHAPE: {
+      ShapeAttr shape_attr(data);
+      return {shape_attr.size(), ShapeAttr::Alignment()};
+    }
     case OpAttrType::F16:
       return {sizeof(fp16), alignof(fp16)};
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
@@ -124,6 +130,8 @@ const char *GetNameString(OpAttrType type) {
       return "AGGREGATE";
     case OpAttrType::DENSE:
       return "DENSE";
+    case OpAttrType::SHAPE:
+      return "SHAPE";
     case OpAttrType::F16:
       return "F16";
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
@@ -625,6 +633,13 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
                 static_cast<BEFAttributeType>(dense_attr.dtype())))
          << ", rank=" << dense_attr.shape().size()
          << ", elt_count=" << dense_attr.GetNumElements();
+      break;
+    }
+    case OpAttrType::SHAPE: {
+      ShapeAttr shape_attr(ptr);
+      os << "<";
+      llvm::interleave(shape_attr.GetShape(), os, "x");
+      os << ">";
       break;
     }
     case OpAttrType::F16:

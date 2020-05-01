@@ -220,3 +220,21 @@ func @aggregate_attr_test() -> !hex.chain {
 
   hex.return %ch2 : !hex.chain
 }
+
+// CHECK-LABEL: --- Running 'shape_attr_test'
+func @shape_attr_test() -> !hex.chain {
+  %ch0 = hex.new.chain
+
+  %attrs = "corert.create_op_attrs"() : () -> !corert.opattrs
+
+  %ch1 = "corert.op_attrs_set.shape"(%attrs, %ch0)
+    {key="shape", value=#corert.shape<1x2x3>}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+
+  // CHECK: OpAttrs contains 1 entries:
+  // CHECK-NEXT: 'shape' type=SHAPE value=<1x2x3>
+  %ch2 = "tfrt_test.corert.op_attrs_print"(%attrs, %ch1)
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+
+  hex.return %ch2 : !hex.chain
+}

@@ -120,6 +120,11 @@ static Chain OpAttrsSetAggregate(Argument<OpAttrs> attrs, StringAttribute key,
   attrs->Set(key, value);
   return Chain();
 }
+static Chain OpAttrsSetShape(Argument<OpAttrs> attrs, StringAttribute key,
+                             ShapeAttr value) {  // NOLINT
+  attrs->Set(key, value);
+  return Chain();
+}
 
 template <typename T>
 static Chain OpAttrsSetArray(Argument<OpAttrs> attrs, StringAttribute key,
@@ -379,6 +384,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(OpAttrsSetDense));
   registry->AddKernel("corert.op_attrs_set.aggregate",
                       TFRT_KERNEL(OpAttrsSetAggregate));
+  registry->AddKernel("corert.op_attrs_set.shape",
+                      TFRT_KERNEL(OpAttrsSetShape));
   registry->AddKernel("corert.op_attrs_set.str", TFRT_KERNEL(OpAttrsSetString));
   registry->AddKernel("corert.executeop", TFRT_KERNEL(ExecuteOp));
   registry->AddKernel("corert.executeop.seq", TFRT_KERNEL(ExecuteOpSeq));

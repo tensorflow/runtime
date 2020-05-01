@@ -134,6 +134,12 @@ class OpAttrs final {
                   OpAttrType::DENSE);
   }
 
+  // Overload for ShapeAttr.
+  bool Set(string_view attr_name, ShapeAttr value) {
+    return SetRaw(attr_name, value.data(), OpAttrsRawEntry::kScalarSentinel,
+                  OpAttrType::SHAPE);
+  }
+
   // Overload for AggregateAttr.
   bool Set(string_view attr_name, AggregateAttr value) {
     return SetRaw(attr_name, value.data(), OpAttrsRawEntry::kScalarSentinel,
@@ -157,6 +163,15 @@ class OpAttrs final {
     if (!result || result->IsArray() || result->type != OpAttrType::DENSE)
       return false;
     *value = DenseAttr(result->data);
+    return true;
+  }
+
+  // Overload for ShapeAttr.
+  bool Get(string_view attr_name, ShapeAttr* value) const {
+    const OpAttrsRawEntry* result = GetRaw(attr_name);
+    if (!result || result->IsArray() || result->type != OpAttrType::SHAPE)
+      return false;
+    *value = ShapeAttr(result->data);
     return true;
   }
 
@@ -345,6 +360,15 @@ class OpAttrsRef {
     if (!result || result->IsArray() || result->type != OpAttrType::DENSE)
       return false;
     *value = DenseAttr(result->data);
+    return true;
+  }
+
+  // Overload for ShapeAttr.
+  bool Get(string_view attr_name, ShapeAttr* value) const {
+    const OpAttrsRawEntry* result = GetRaw(attr_name);
+    if (!result || result->IsArray() || result->type != OpAttrType::SHAPE)
+      return false;
+    *value = ShapeAttr(result->data);
     return true;
   }
 

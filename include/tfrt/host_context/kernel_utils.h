@@ -770,49 +770,42 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
-  template <typename... Tail>
-  struct SyncKernelCallHelper<StringAttr, Tail...> {
+  // Like the above, but for typed attributes.
+  template <typename TypedAttrT, typename... Tail>
+  struct SyncKernelCallTypedAttrHelper {
+    static_assert(std::is_base_of<TypedAttrBase, TypedAttrT>::value,
+                  "TypedAttrT must be derived from class TypedAttrBase");
     template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
               bool has_in_chain, typename... PreviousArgs>
     static void Invoke(KernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(const_idx != -1,
-                    "Do not place StringAttribute after RemainingAttributes");
-      StringAttr arg(frame->GetAttributes()[const_idx]);
+                    "Do not place typed attributes after RemainingAttributes");
+      TypedAttrT arg(frame->GetAttributes()[const_idx]);
       SyncKernelCallHelper<Tail...>::template Invoke<
           in_idx, out_idx, const_idx + 1, has_kernel_error, has_in_chain>(
           frame, pargs..., arg);
     }
   };
+
+  // Like the above, but for StringAttr.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<StringAttr, Tail...>
+      : SyncKernelCallTypedAttrHelper<StringAttr, Tail...> {};
 
   // Like the above, but for DenseAttr.
   template <typename... Tail>
-  struct SyncKernelCallHelper<DenseAttr, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
-              bool has_in_chain, typename... PreviousArgs>
-    static void Invoke(KernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx != -1,
-                    "Do not place DenseAttr after RemainingAttributes");
-      DenseAttr arg(frame->GetAttributes()[const_idx]);
-      SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx + 1, has_kernel_error, has_in_chain>(
-          frame, pargs..., arg);
-    }
-  };
+  struct SyncKernelCallHelper<DenseAttr, Tail...>
+      : SyncKernelCallTypedAttrHelper<DenseAttr, Tail...> {};
 
-  // Like the above, but for arrays.
+  // Like the above, but for ShapeAttr.
   template <typename... Tail>
-  struct SyncKernelCallHelper<AggregateAttr, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
-              bool has_in_chain, typename... PreviousArgs>
-    static void Invoke(KernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx != -1,
-                    "Do not place AggregateAttr after RemainingAttributes");
-      auto arg = frame->GetAggregateAttr(const_idx);
-      SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx + 1, has_kernel_error, has_in_chain>(
-          frame, pargs..., arg);
-    }
-  };
+  struct SyncKernelCallHelper<ShapeAttr, Tail...>
+      : SyncKernelCallTypedAttrHelper<ShapeAttr, Tail...> {};
+
+  // Like the above, but for AggregateAttr.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<AggregateAttr, Tail...>
+      : SyncKernelCallTypedAttrHelper<AggregateAttr, Tail...> {};
 
   template <typename... Tail>
   struct SyncKernelCallHelper<RemainingAttributes, Tail...> {

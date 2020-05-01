@@ -41,6 +41,7 @@
 #include "mlir/IR/Module.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/StandardTypes.h"
+#include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -146,6 +147,11 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
     if (type.isInteger(1) || type.isInteger(32) || type.isInteger(64) ||
         type.isF16() || type.isF32() || type.isF64())
       return BEFAttributeType::kType;
+  }
+
+  // We support corert.shape attributes
+  if (attr.isa<tfrt::corert::ShapeAttr>()) {
+    return BEFAttributeType::kShape;
   }
 
   // We support dense attributes.
@@ -746,6 +752,14 @@ class BEFEmitter {
     required_alignment_ = std::max(required_alignment_, alignment);
   }
 
+  // Emit a guaranteed 2-byte integer aligned to 2 bytes, allowing this to be
+  // directly mapped into the target process in little-endian form.
+  void EmitInt2(uint16_t value) {
+    EmitAlignment(2);
+    uint8_t data[] = {uint8_t(value & 0xFF), uint8_t((value >> 8) & 0xFF)};
+    EmitBytes(data);
+  }
+
   // Emit a guaranteed 4-byte integer aligned to 4 bytes, allowing this to be
   // directly mapped into the target process in little-endian form.
   void EmitInt4(uint32_t value) {
@@ -1062,6 +1076,7 @@ class BEFTypedAttributeEmitter : public BEFEmitter {
   void EmitAggregateAttribute(mlir::ArrayAttr aggregate_attr);
   void EmitArrayAttribute(mlir::ArrayAttr array_attr);
   void EmitDenseElementsAttribute(mlir::DenseElementsAttr dense_elements_attr);
+  void EmitShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
 };
 
 void BEFTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
@@ -1069,6 +1084,11 @@ void BEFTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
 
   if (attribute_type == BEFAttributeType::kAggregate) {
     EmitAggregateAttribute(attr.cast<mlir::ArrayAttr>());
+    return;
+  }
+
+  if (attribute_type == BEFAttributeType::kShape) {
+    EmitShapeAttribute(attr.cast<tfrt::corert::ShapeAttr>());
     return;
   }
 
@@ -1197,6 +1217,31 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
   OverwriteBytes(start_offset, &header, sizeof(header));
 }
 
+void BEFTypedAttributeEmitter::EmitShapeAttribute(
+    tfrt::corert::ShapeAttr shape_attr) {
+  assert(shape_attr.hasRank());
+
+  ArrayRef<int64_t> shape = shape_attr.getShape();
+
+  uint16_t rank = AssertAttrFieldSize(shape.size());
+  uint16_t byte_count = AssertAttrFieldSize(sizeof(BEFShapeAttr));
+  if (rank > 0) {
+    byte_count = AssertAttrFieldSize(sizeof(int64_t) * (rank - 1) + byte_count);
+  }
+
+  EmitAlignment(alignof(BEFShapeAttr));
+
+  EmitInt2(static_cast<uint16_t>(BEFAttributeType::kShape));
+  EmitInt2(byte_count);
+  EmitInt2(rank);
+  EmitByte(kDummyByte);
+  EmitByte(kDummyByte);
+
+  for (int64_t dim : shape) {
+    EmitInt8(dim);
+  }
+}
+
 // This is the emitter that builds the attributes section of a BEF.
 class BEFAttributesEmitter : public BEFEmitter {
  public:
@@ -1232,7 +1277,8 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
   auto attribute_type = GetBEFAttributeType(attr);
 
   if (typed || IsDenseAttribute(attribute_type) ||
-      attribute_type == BEFAttributeType::kAggregate) {
+      attribute_type == BEFAttributeType::kAggregate ||
+      attribute_type == BEFAttributeType::kShape) {
     // Currently DenseAttr and AggregateAttr are always typed.
     //
     // TODO(chky): clean up usage DenseAttr and AggregateAttr in native kernels

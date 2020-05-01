@@ -122,3 +122,10 @@ func @dense_elements.constant() -> i32 {
   // CHECK-NEXT: hex.return [[REG2]] : i32
   hex.return %x2 : i32
 }
+
+// CHECK-LABEL: @shape_attr
+func @shape_attr() {
+  // CHECK: #corert.shape<2x?x3>
+  "simple.op"() {shape = #corert.shape<2x?x3>} : () -> ()
+  hex.return
+}

@@ -264,6 +264,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/bef_converter/mlir_to_bef/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":core_runtime_opdefs",
         ":support",
         "@llvm-project//llvm:support",
         "@llvm-project//mlir:IR",
@@ -277,6 +278,7 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/bef_converter/bef_to_mlir.h"],
     alwayslink_static_registration_src = "lib/bef_converter/bef_to_mlir/static_registration.cc",
     deps = [
+        ":core_runtime_opdefs",
         ":support",
         "@llvm-project//llvm:support",
         "@llvm-project//mlir:IR",

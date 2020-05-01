@@ -42,6 +42,7 @@
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/Parser.h"
 #include "mlir/Support/LogicalResult.h"
+#include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/bef_reader.h"
 #include "tfrt/support/byte_order.h"
@@ -430,8 +431,10 @@ class BEFTypedAttributeReader {
       case BEFAttributeType::kString:
         return ReadStringAttribute(
             reinterpret_cast<const BEFStringAttr*>(base));
+      case BEFAttributeType::kShape:
+        return ReadShapeAttribute(reinterpret_cast<const BEFShapeAttr*>(base));
       default:
-        llvm_unreachable("unknown array element type");
+        llvm_unreachable("unknown attribute type");
     }
   }
 
@@ -449,6 +452,12 @@ class BEFTypedAttributeReader {
 
     return builder_.getArrayAttr(
         CreateAttrsFromDenseArray(element_type, header->num_elements, data));
+  }
+
+  tfrt::corert::ShapeAttr ReadShapeAttribute(const BEFShapeAttr* header) {
+    ArrayRef<int64_t> shape = llvm::makeArrayRef(header->dims, header->rank);
+
+    return tfrt::corert::ShapeAttr::get(builder_.getContext(), shape);
   }
 
   mlir::DenseElementsAttr ReadDenseAttribute(const BEFDenseAttr* header) {
@@ -958,6 +967,7 @@ mlir::Attribute BEFAttributeReader::ReadAttribute(
   // TODO(chky): This is custom reader logic and it should be injected instead
   // of hardcoding here.
   if (typed || attribute_type == BEFAttributeType::kAggregate ||
+      attribute_type == BEFAttributeType::kShape ||
       IsDenseAttribute(attribute_type)) {
     BEFTypedAttributeReader typed_reader(attributes_, &context_);
     return typed_reader.ReadAttribute(offset);

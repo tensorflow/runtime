@@ -179,9 +179,10 @@ enum class BEFAttributeType : uint16_t {
   kLastFixedType = kType,
 
   kString,
+  kShape,
 
   kFirstScalarType = kBool,
-  kLastScalarType = kString,
+  kLastScalarType = kShape,
 
   kEmptyArray = kI32 | kArrayAttributeType,
 
@@ -375,6 +376,14 @@ struct BEFArrayAttr {
   uint16_t num_elements;
   // `offset` is byte offset from &base for the elements.
   uint16_t element_offset;
+};
+
+// Shape attributes in TFRT must be ranked.
+struct BEFShapeAttr {
+  BEFAttrBase base;
+  uint16_t rank;
+  uint8_t paddings[2];
+  int64_t dims[1];
 };
 
 struct BEFDenseAttr {

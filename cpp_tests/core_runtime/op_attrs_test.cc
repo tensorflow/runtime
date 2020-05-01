@@ -45,7 +45,7 @@ TEST(CpuDriverTest, DenseAttr) {
   tensor_view.Fill(1.0f);
 
   // `dense_attr_buffer` owns the underlying bytes.
-  std::vector<uint64_t> dense_attr_buffer =
+  std::vector<uint8_t> dense_attr_buffer =
       SerializeDenseHostTensorToDenseAttr(dht);
   DenseAttr dense_attr(dense_attr_buffer.data());
 

@@ -52,7 +52,7 @@ static Expected<DenseHostTensor> TfConstOp(const OpAttrsRef& attrs,
 
   // Copy data from `value` attribute to dht.
   DenseAttr dense_attr = attrs.GetAsserting<DenseAttr>("value");
-  std::memcpy(dest_tensor.data(), dense_attr.elements(),
+  std::memcpy(dest_tensor.data(), dense_attr.GetElements(),
               dest_md.GetHostSizeInBytes());
 
   return std::move(dest_tensor);

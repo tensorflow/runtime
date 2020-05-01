@@ -103,8 +103,9 @@ static Chain OpAttrsSet(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static Chain OpAttrsSetDType(Argument<OpAttrs> attrs, StringAttribute key,
-                             Attribute<BEFAttributeType> value) {
-  attrs->Set(key, GetOpAttrTypeFromBEFAttributeType(*value));
+                             Attribute<uint8_t> value) {
+  attrs->Set(key, GetOpAttrTypeFromBEFAttributeType(
+                      static_cast<BEFAttributeType>(*value)));
   return Chain();
 }
 
@@ -128,8 +129,7 @@ static Chain OpAttrsSetString(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static llvm::Expected<TensorHandle> ConstStringTensor(
-    ArrayAttribute<ssize_t> shape, AggregateAttribute value,
-    HostContext *host) {
+    ArrayAttribute<ssize_t> shape, AggregateAttr value, HostContext *host) {
   TensorMetadata metadata(DType(DType::String), shape.data());
 
   auto tensor_ref =
@@ -138,10 +138,10 @@ static llvm::Expected<TensorHandle> ConstStringTensor(
     return MakeStringError("failed to allocate string host tensor");
 
   auto strings = tensor_ref.get().strings();
-  assert(strings.size() == value.size());
+  assert(strings.size() == value.GetNumElements());
 
   for (int i = 0, e = strings.size(); i != e; ++i) {
-    strings[i] = value.GetStringAttribute(i).str();
+    strings[i] = value.GetAttributeOfType<StringAttr>(i).GetValue().str();
   }
 
   tensor_ref.SetStateConcrete();
@@ -153,8 +153,8 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
                           ArrayRef<AsyncValue *> args,
                           AsyncValueRef<Chain> *op_chain,
                           MutableArrayRef<RCReference<AsyncValue>> results,
-                          AggregateAttribute op_attr_array,
-                          StringAttribute op_name, Location loc) {
+                          AggregateAttr op_attr_array, string_view op_name,
+                          Location loc) {
   SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
 
@@ -168,39 +168,53 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
 
   // Set up OpAttrs.
   OpAttrs op_attrs;
-  for (size_t i = 0, e = op_attr_array.size(); i != e; ++i) {
-    auto pair = op_attr_array.GetAggregateAttribute(i);
-    assert(pair.size() == 2);
+  for (size_t i = 0, e = op_attr_array.GetNumElements(); i != e; ++i) {
+    auto pair = op_attr_array.GetAttributeOfType<AggregateAttr>(i);
+    assert(pair.GetNumElements() == 2);
+    string_view key = pair.GetAttributeOfType<StringAttr>(0).GetValue();
+    TypedAttrBase attr = pair.GetAttribute(1);
 
-    string_view key = pair.GetStringAttribute(0).get();
-
-    auto value_and_kind = pair.GetRawAttribute(1);
-
-    const void *value = value_and_kind.first;
-    BEFAttributeType attribute_type = value_and_kind.second;
-
+    BEFAttributeType attribute_type = attr.type();
     if (IsArrayAttribute(attribute_type)) {
       auto type = GetOpAttrTypeFromBEFAttributeType(
-          GetArrayAttributeElementType(attribute_type));
-
-      op_attrs.SetRaw(key, value, DecodeArraySizeFromBEFAttributes(value),
-                      type);
-    } else if (attribute_type == BEFAttributeType::kString) {
-      op_attrs.SetRaw(key, value, DecodeArraySizeFromBEFAttributes(value),
-                      OpAttrType::CHAR);
-    } else if (attribute_type == BEFAttributeType::kType) {
-      BEFAttributeType type = *static_cast<const BEFAttributeType *>(value);
-      assert(IsFixedAttribute(type));
-      op_attrs.Set(key, GetOpAttrTypeFromBEFAttributeType(type));
-    } else if (attribute_type == BEFAttributeType::kDenseElements) {
-      DenseAttr dense_attr(value);
-      auto r = op_attrs.Set(key, dense_attr);
+          GetElementAttributeType(attribute_type));
+      auto array_attr = attr.cast<ArrayAttr>();
+      op_attrs.SetRaw(key, array_attr.GetElements(),
+                      array_attr.GetNumElements(), type);
+    } else if (IsDenseAttribute(attribute_type)) {
+      auto r = op_attrs.Set(key, attr.cast<DenseAttr>());
       assert(r);
       (void)r;
     } else {
-      assert(IsScalarAttribute(attribute_type));
-      auto type = GetOpAttrTypeFromBEFAttributeType(attribute_type);
-      op_attrs.SetRaw(key, value, OpAttrsRawEntry::kScalarSentinel, type);
+      switch (attribute_type) {
+        case BEFAttributeType::kBool:
+          op_attrs.Set(key, attr.cast<BoolAttr>().GetValue());
+          break;
+        case BEFAttributeType::kI32:
+          op_attrs.Set(key, attr.cast<I32Attr>().GetValue());
+          break;
+        case BEFAttributeType::kI64:
+          op_attrs.Set(key, attr.cast<I64Attr>().GetValue());
+          break;
+        case BEFAttributeType::kF32:
+          op_attrs.Set(key, attr.cast<F32Attr>().GetValue());
+          break;
+        case BEFAttributeType::kF64:
+          op_attrs.Set(key, attr.cast<F64Attr>().GetValue());
+          break;
+        case BEFAttributeType::kType: {
+          auto type_attr = attr.cast<TypeAttr>();
+          BEFAttributeType type = type_attr.GetValue();
+          assert(IsFixedAttribute(type));
+          op_attrs.Set(key, GetOpAttrTypeFromBEFAttributeType(type));
+          break;
+        }
+        case BEFAttributeType::kString:
+          op_attrs.SetString(key, attr.cast<StringAttr>().GetValue());
+          break;
+        default:
+          llvm_unreachable("unknown attribute type");
+      }
     }
   }
 
@@ -216,9 +230,9 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
 
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
 static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
-                      RemainingResults results,
-                      AggregateAttribute op_attr_array, StringAttribute op_name,
-                      KernelErrorHandler handler, KernelFrame *frame) {
+                      RemainingResults results, AggregateAttr op_attr_array,
+                      StringAttr op_name, KernelErrorHandler handler,
+                      KernelFrame *frame) {
   auto *host = frame->GetHostContext();
   auto *core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return handler.ReportError("no CoreRuntime available");
@@ -227,8 +241,8 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
     results.AllocateAt<TensorHandle>(b);
 
   ExecuteOpImpl(core_rt, op_handler.get(), args.values(),
-                /*op_chain =*/nullptr, results.values(), op_attr_array, op_name,
-                frame->GetLocation());
+                /*op_chain =*/nullptr, results.values(), op_attr_array,
+                op_name.GetValue(), frame->GetLocation());
 }
 
 // ExecuteOpSeq executes the `op_name` operation on the `op_handler`. It takes
@@ -238,9 +252,8 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
 static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
                          Argument<Chain> in_op_chain, RemainingArguments args,
                          Result<Chain> out_op_chain, RemainingResults results,
-                         AggregateAttribute op_attr_array,
-                         StringAttribute op_name, KernelErrorHandler handler,
-                         KernelFrame *frame) {
+                         AggregateAttr op_attr_array, StringAttr op_name,
+                         KernelErrorHandler handler, KernelFrame *frame) {
   auto *host = frame->GetHostContext();
   auto *core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return handler.ReportError("no CoreRuntime available");
@@ -258,7 +271,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
   if (async_args.empty()) {
     auto op_chain = in_op_chain.ValueRef();
     ExecuteOpImpl(core_rt, op_handler.get(), args.values(), &op_chain,
-                  results.values(), op_attr_array, op_name,
+                  results.values(), op_attr_array, op_name.GetValue(),
                   frame->GetLocation());
     out_op_chain.Set(std::move(op_chain));
     return;
@@ -282,8 +295,8 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
       [core_rt, op_handler = op_handler.ValueRef(),
        op_chain = in_op_chain.ValueRef(), arg_refs = std::move(arg_refs),
        result_refs = std::move(result_refs),
-       out_op_chain = out_op_chain.Allocate(), op_name, op_attr_array,
-       loc = frame->GetLocation()]() mutable {
+       out_op_chain = out_op_chain.Allocate(), op_name = op_name.GetValue(),
+       op_attr_array, loc = frame->GetLocation()]() mutable {
         auto propgate_error = [&](const DecodedDiagnostic &diag) {
           out_op_chain.SetError(diag);
           for (auto &result_ref : result_refs) result_ref->SetError(diag);

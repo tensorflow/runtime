@@ -31,6 +31,8 @@
 
 namespace tfrt {
 
+class DenseAttr;
+
 enum class OpAttrType : uint8_t {
   DTYPE,
   DENSE,

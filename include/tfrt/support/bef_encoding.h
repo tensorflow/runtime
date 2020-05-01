@@ -131,23 +131,37 @@ enum class FunctionKind : uint8_t {
   kNativeFunction = 1,
 };
 
-enum : uint8_t {
-  kScalarAttributeTypeSize = 7,
+// Below constants defines bit positions and bit sizes for different category of
+// attributes.
+enum {
+  kScalarAttributeTypeSize = 8,
   kArrayAttributeTypeSize = 1,
+  kDenseAttributeTypeSize = 1,
+  kAggregateAttributeTypeSize = 1,
 
   kScalarAttributeTypeShift = 0,
   kArrayAttributeTypeShift = kScalarAttributeTypeSize,
+  kDenseAttributeTypeShift = kScalarAttributeTypeSize + kArrayAttributeTypeSize,
+  kAggregateAttributeTypeShift = kScalarAttributeTypeSize +
+                                 kArrayAttributeTypeSize +
+                                 kDenseAttributeTypeSize,
 
   kScalarAttributeTypeMask = ((1 << kScalarAttributeTypeSize) - 1)
                              << kScalarAttributeTypeShift,
   kArrayAttributeTypeMask = ((1 << kArrayAttributeTypeSize) - 1)
                             << kArrayAttributeTypeShift,
+  kDenseAttributeTypeMask = ((1 << kDenseAttributeTypeSize) - 1)
+                            << kDenseAttributeTypeShift,
+  kAggregateAttributeTypeMask = ((1 << kAggregateAttributeTypeSize) - 1)
+                                << kAggregateAttributeTypeShift,
 
   kArrayAttributeType = 1 << kArrayAttributeTypeShift,
+  kDenseAttributeType = 1 << kDenseAttributeTypeShift,
+  kAggregateAttributeType = 1 << kAggregateAttributeTypeShift,
 };
 
 // This enum defines the attribute type.
-enum class BEFAttributeType : uint8_t {
+enum class BEFAttributeType : uint16_t {
   kUnsupported,
 
   kBool,
@@ -165,14 +179,12 @@ enum class BEFAttributeType : uint8_t {
   kLastFixedType = kType,
 
   kString,
-  kDenseElements,
 
   kFirstScalarType = kBool,
-  kLastScalarType = kDenseElements,
-
-  kAggregate = 0x7f,
+  kLastScalarType = kString,
 
   kEmptyArray = kI32 | kArrayAttributeType,
+
   kI1Array = kI1 | kArrayAttributeType,
   kI32Array = kI32 | kArrayAttributeType,
   kI64Array = kI64 | kArrayAttributeType,
@@ -181,10 +193,23 @@ enum class BEFAttributeType : uint8_t {
   kF64Array = kF64 | kArrayAttributeType,
 
   kTypeArray = kType | kArrayAttributeType,
+
+  kI1Dense = kI1 | kDenseAttributeType,
+  kI32Dense = kI32 | kDenseAttributeType,
+  kI64Dense = kI64 | kDenseAttributeType,
+  kF16Dense = kF16 | kDenseAttributeType,
+  kF32Dense = kF32 | kDenseAttributeType,
+  kF64Dense = kF64 | kDenseAttributeType,
+
+  kAggregate = kAggregateAttributeType,
 };
 
 inline bool IsArrayAttribute(BEFAttributeType type) {
-  return static_cast<uint8_t>(type) & kArrayAttributeType;
+  return static_cast<uint16_t>(type) & kArrayAttributeType;
+}
+
+inline bool IsDenseAttribute(BEFAttributeType type) {
+  return static_cast<uint16_t>(type) & kDenseAttributeType;
 }
 
 inline bool IsScalarAttribute(BEFAttributeType type) {
@@ -199,15 +224,19 @@ inline bool IsFixedAttribute(BEFAttributeType type) {
 
 inline BEFAttributeType GetArrayAttributeType(BEFAttributeType element_type) {
   assert(IsFixedAttribute(element_type));
-  return static_cast<BEFAttributeType>(static_cast<uint8_t>(element_type) |
+  return static_cast<BEFAttributeType>(static_cast<uint16_t>(element_type) |
                                        kArrayAttributeType);
 }
 
-inline BEFAttributeType GetArrayAttributeElementType(
-    BEFAttributeType array_type) {
-  auto r = static_cast<BEFAttributeType>(static_cast<uint8_t>(array_type) &
+inline BEFAttributeType GetDenseAttributeType(BEFAttributeType element_type) {
+  assert(IsFixedAttribute(element_type));
+  return static_cast<BEFAttributeType>(static_cast<uint16_t>(element_type) |
+                                       kDenseAttributeType);
+}
+
+inline BEFAttributeType GetElementAttributeType(BEFAttributeType type) {
+  auto r = static_cast<BEFAttributeType>(static_cast<uint16_t>(type) &
                                          kScalarAttributeTypeMask);
-  assert(IsFixedAttribute(r));
   return r;
 }
 
@@ -259,19 +288,6 @@ inline BEFAttributeType GetBEFAttributeType<double>() {
   return BEFAttributeType::kF64;
 }
 
-// AttributeDescriptor describes the attribute location and type information. It
-// is currently only used in AggregateAttribute.
-struct AttributeDescriptor {
-  // `offset` is the offset to the attribute in BEF Attributes section.
-  uint32_t offset;
-  BEFAttributeType type;
-  uint8_t padding[3];
-};
-static_assert(sizeof(AttributeDescriptor) == 8,
-              "AttributeDescriptor should have a size of 8 bytes.");
-static_assert(alignof(AttributeDescriptor) == 4,
-              "AttributeDescriptor should be 4-byte aligned.");
-
 // Given a pointer to the start of an array of BEF attributes, decode the
 // size information that is stored in reverse order immediately preceding it.
 static inline size_t DecodeArraySizeFromBEFAttributes(const void* data) {
@@ -320,82 +336,88 @@ static inline void EmitBEFArrayLength(size_t value, VectorType* byte_vector) {
   }
 }
 
-struct BEFDenseAttrHeader {
-  uint64_t rank : 56;
-  uint64_t dtype : 8;
-  uint64_t size;
+struct BEFAttrBase {
+  BEFAttributeType type;
+  // The byte count for the entire content including `BEFAttrBase` and necessary
+  // alignment paddings.
+  uint16_t byte_count;
 };
-static_assert(sizeof(BEFDenseAttrHeader) == 16,
-              "unexpected size of DenseAttrHeader");
+
+struct BEFFixed8Attr {
+  BEFAttrBase base;
+  uint8_t data;
+};
+
+struct BEFFixed16Attr {
+  BEFAttrBase base;
+  uint16_t data;
+};
+
+struct BEFFixed32Attr {
+  BEFAttrBase base;
+  uint32_t data;
+};
+
+struct BEFFixed64Attr {
+  BEFAttrBase base;
+  uint8_t paddings[4];
+  uint64_t data;
+};
+
+struct BEFStringAttr {
+  BEFAttrBase base;
+  // `data` is the start of the string.
+  uint8_t data[1];
+};
+
+struct BEFArrayAttr {
+  BEFAttrBase base;
+  uint16_t num_elements;
+  // `offset` is byte offset from &base for the elements.
+  uint16_t element_offset;
+};
 
 struct BEFDenseAttr {
-  BEFDenseAttrHeader header;
-
-  // payload indicates the start of shape and elements. It is 8-byte aligned.
-  uint64_t payload[1];
+  BEFAttrBase base;
+  uint16_t rank;
+  uint16_t num_elements;
+  // `shape_offset` is the offset from &base for the shape dimensions. It is
+  // aligned to 8-byte as dimensions are always signed 64bit integers in TFRT.
+  uint16_t shape_offset;
+  // `element_offset` is the byte offset from &base for the elements. It should
+  // be sufficiently aligned according to data type, though it cannot be more
+  // than 8-byte aligned.
+  uint16_t element_offset;
 };
 
-// DenseAttr is used to represent dense elements (tensor) attribute for handling
-// op and kernel attributes. Attribute types are first-class in host runtime but
-// DenseHostTensor isn't, so we need some first-class c++ class to represent a
-// dense elements attribute type rather using DenseHostTensor directly to avoid
-// introducing a dependency from host_runtime lib on tensor lib. To avoid
-// unnecessary copying, DenseAttr can either own or not own the underlying data.
-// If a BEF kernel has a DenseElementsAttribute, the underlying bytes are in BEF
-// file and thus DenseAttr doesn't need to own the bytes, and only points to the
-// BEF attribute bytes.
-class DenseAttr {
- public:
-  static size_t Alignment() { return alignof(uint64_t); }
+struct BEFAggregateAttr {
+  BEFAttrBase base;
+  uint16_t num_elements;
+  // `offsets` is the start of `num_elements` 16bit integers offsets, which are
+  // immediately followed by the corresponding elements. These elements are also
+  // typed (ie. start with BEFAttrBase).
+  uint16_t offsets[1];
+};
 
-  DenseAttr() : bef_dense_attr_(nullptr) {}
-  explicit DenseAttr(const void* data)
-      : bef_dense_attr_(static_cast<const BEFDenseAttr*>(data)) {}
-  ~DenseAttr() = default;
+inline uint16_t AssertAttrFieldSize(size_t size) {
+  assert(size <= ((1ul << 16) - 1));
+  return static_cast<uint16_t>(size);
+}
 
-  DenseAttr(const DenseAttr&) = default;
-  DenseAttr& operator=(const DenseAttr&) = default;
-
-  explicit operator bool() const { return bef_dense_attr_ != nullptr; }
-
-  BEFAttributeType dtype() const {
-    return static_cast<BEFAttributeType>(header().dtype);
+// AttributeTag is used in optional attribute types section to indicate the
+// encoding (currently typed or untyped) of this attribute.
+struct AttributeTag {
+  AttributeTag() = default;
+  AttributeTag(BEFAttributeType attribute_type, bool typed) {
+    data = static_cast<size_t>(attribute_type) << 1;
+    if (typed) data = data | 1;
+  }
+  bool IsTyped() const { return data & 1; }
+  BEFAttributeType GetAttributeType() const {
+    return static_cast<BEFAttributeType>(data >> 1);
   }
 
-  ArrayRef<int64_t> shape() const {
-    assert(bef_dense_attr_ != nullptr);
-    return llvm::makeArrayRef(
-        reinterpret_cast<const int64_t*>(bef_dense_attr_->payload),
-        header().rank);
-  }
-
-  size_t size() const { return header().size; }
-
-  const void* data() const { return static_cast<const void*>(bef_dense_attr_); }
-
-  const void* elements() const {
-    assert(bef_dense_attr_ != nullptr);
-    return static_cast<const void*>(bef_dense_attr_->payload + header().rank);
-  }
-
-  size_t SizeInBytes() {
-    return sizeof(BEFDenseAttrHeader) + header().rank * sizeof(uint64_t) +
-           DataSizeInBytes();
-  }
-
-  size_t DataSizeInBytes() const {
-    auto element_size = GetBEFAttributeSize(dtype());
-    assert(element_size != 0);
-    return size() * element_size;
-  }
-
- private:
-  const BEFDenseAttrHeader& header() const {
-    assert(bef_dense_attr_ != nullptr);
-    return bef_dense_attr_->header;
-  }
-
-  const BEFDenseAttr* bef_dense_attr_;
+  size_t data = 0;
 };
 
 }  // namespace tfrt

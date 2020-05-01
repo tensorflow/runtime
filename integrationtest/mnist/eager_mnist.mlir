@@ -30,7 +30,7 @@ func @mnist_compute(%cpu: !corert.device,
 
   // a1 = test.matmul(test_input_feature, w1)
   %a1 = corert.executeop(%cpu) "tfrt_test.matmul"(%test_input_features, %w1)
-    {transpose_a = 0 : i1, transpose_b = 0 : i1}: 1
+    {transpose_a = false, transpose_b = false}: 1
 
   // z1 = test.add(a1, broadcast_b1)
   %z1 = corert.executeop(%cpu) "tfrt_test.add"(%a1, %broadcast_b1) : 1
@@ -44,7 +44,7 @@ func @mnist_compute(%cpu: !corert.device,
 
   // a2 = test.matmul(activation1, w2)
   %a2 = corert.executeop(%cpu) "tfrt_test.matmul"(%activation1, %w2)
-    {transpose_a = 0 : i1, transpose_b = 0 : i1}: 1
+    {transpose_a = false, transpose_b = false}: 1
 
   // z2 = test.add(a2, broadcast_b2)
   %z2 = corert.executeop(%cpu) "tfrt_test.add"(%a2, %broadcast_b2) : 1

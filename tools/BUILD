@@ -49,7 +49,6 @@ tfrt_cc_library(
     deps = [
         "@tf_runtime//:basic_kernels_opdefs_alwayslink",
         "@tf_runtime//:beftomlir_alwayslink",
-        "@tf_runtime//:core_runtime_alwayslink",
         "@tf_runtime//:core_runtime_opdefs_alwayslink",
         "@tf_runtime//:data_opdefs_alwayslink",
         "@tf_runtime//:mlirtobef_alwayslink",

@@ -35,7 +35,7 @@ func @BM_corert.matmul() {
   tfrt_test.benchmark "BM_corert.matmul"(%cpu : !corert.device, %a_handle : !corert.tensorhandle, %ch0 : !hex.chain) duration_secs = 1, max_count = 1000
   {
     %result = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %a_handle)
-    {transpose_a = 0 : i1, transpose_b = 0 : i1}: 1
+    {transpose_a = false, transpose_b = false}: 1
     hex.return %result : !corert.tensorhandle
   }
 

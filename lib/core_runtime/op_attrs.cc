@@ -96,7 +96,7 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       return {sizeof(OpAttrType), alignof(OpAttrType)};
     case OpAttrType::DENSE: {
       DenseAttr dense_attr(data);
-      return {dense_attr.SizeInBytes(), DenseAttr::Alignment()};
+      return {dense_attr.size(), DenseAttr::Alignment()};
     }
     case OpAttrType::F16:
       return {sizeof(fp16), alignof(fp16)};
@@ -593,7 +593,7 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
          << GetNameString(GetOpAttrTypeFromBEFAttributeType(
                 static_cast<BEFAttributeType>(dense_attr.dtype())))
          << ", rank=" << dense_attr.shape().size()
-         << ", elt_count=" << dense_attr.size();
+         << ", elt_count=" << dense_attr.GetNumElements();
       break;
     }
     case OpAttrType::F16:

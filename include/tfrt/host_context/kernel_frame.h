@@ -104,9 +104,9 @@ class KernelFrame {
     return Attribute<T>(GetAttributes()[index]);
   }
 
-  AggregateAttribute GetAggregateAttributeAt(int index) const {
+  AggregateAttr GetAggregateAttr(int index) const {
     assert(index < GetNumAttributes());
-    return AggregateAttribute(attribute_section_, GetAttributes()[index]);
+    return AggregateAttr(GetAttributes()[index]);
   }
 
   // Get the array attribute at the given index as type T.

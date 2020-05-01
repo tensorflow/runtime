@@ -28,8 +28,7 @@ namespace tfrt {
 namespace {
 
 llvm::Expected<StringHostTensor> CreateStringTensor(
-    ArrayAttribute<ssize_t> shape, AggregateAttribute values,
-    HostContext* host) {
+    ArrayAttribute<ssize_t> shape, AggregateAttr values, HostContext* host) {
   auto result = StringHostTensor::CreateUninitialized(
       TensorMetadata(DType(DType::String), shape.data()), host);
   if (!result) {
@@ -37,11 +36,11 @@ llvm::Expected<StringHostTensor> CreateStringTensor(
   }
 
   auto strings = result->strings();
-  if (strings.size() != values.size()) {
+  if (strings.size() != values.GetNumElements()) {
     return MakeStringError("Shape mismatch");
   }
-  for (int i = 0, e = values.size(); i != e; ++i) {
-    strings[i] = values.GetStringAttribute(i).str();
+  for (int i = 0, e = values.GetNumElements(); i != e; ++i) {
+    strings[i] = values.GetAttributeOfType<StringAttr>(i).GetValue().str();
   }
 
   return std::move(result).getValue();

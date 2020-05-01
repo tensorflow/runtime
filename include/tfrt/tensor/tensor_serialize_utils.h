@@ -37,9 +37,10 @@ namespace tfrt {
 
 class DenseHostTensor;
 class HostContext;
+class DenseAttr;
 
 // DenseHostTensor to DenseAttr.
-std::vector<uint64_t> SerializeDenseHostTensorToDenseAttr(
+std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
     const DenseHostTensor& dht);
 
 // DenseAttr to DenseHostTensor.

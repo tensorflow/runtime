@@ -21,6 +21,7 @@
 
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
+#include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/support/byte_order.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -66,42 +67,47 @@ DType ConvertBEFAttributeTypeToTensorDType(BEFAttributeType kind) {
   }
 }
 
-// TODO(tf-runtime-team): Consider creating a custom buffer with 8-byte
-// alignment for the tensor data instead of using std::vector<uint64_t>.
-void SerializeTensorMetadata(const TensorMetadata& md,
-                             std::vector<uint64_t>* res) {
-  BEFDenseAttrHeader header;
-  header.dtype =
-      static_cast<uint8_t>(ConvertTensorDTypeToBEFAttributeType(md.dtype));
-  header.rank = md.shape.GetRank();
-  header.size = md.shape.GetNumElements();
-
-  const uint64_t* raw_header = reinterpret_cast<const uint64_t*>(&header);
-  res->push_back(raw_header[0]);
-  res->push_back(raw_header[1]);
-
-  SmallVector<int64_t, 4> shape;
-  md.shape.GetDimensions(&shape);
-
-  for (auto dim : shape) {
-    res->push_back(static_cast<uint64_t>(dim));
-  }
-}
-
-void SerializeHostBuffer(const HostBuffer& buf, std::vector<uint64_t>* res) {
-  auto prev_size = res->size();
-  res->resize(prev_size + (buf.size() + 7) / 8, 0);
-  std::memcpy(&res->at(prev_size), buf.data(), buf.size());
-}
-
 }  // namespace
 
-std::vector<uint64_t> SerializeDenseHostTensorToDenseAttr(
+// TODO(tf-runtime-team): Consider creating a custom buffer with 8-byte
+// alignment for the tensor data instead of using std::vector<uint64_t>.
+std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
     const DenseHostTensor& dht) {
-  std::vector<uint64_t> data;
-  data.reserve(512);
-  SerializeTensorMetadata(dht.metadata(), &data);
-  SerializeHostBuffer(*dht.buffer(), &data);
+  std::vector<uint8_t> data;
+
+  const auto& md = dht.metadata();
+  const auto& buf = *dht.buffer();
+
+  BEFDenseAttr header;
+  header.base.type =
+      GetDenseAttributeType(ConvertTensorDTypeToBEFAttributeType(md.dtype));
+  header.rank = md.shape.GetRank();
+  header.num_elements = md.shape.GetNumElements();
+
+  header.shape_offset = llvm::alignTo(sizeof(BEFDenseAttr), alignof(int64_t));
+  data.resize(header.shape_offset, 0xCC);
+
+  SmallVector<int64_t, 4> shape;
+  for (int i = 0; i < header.rank; ++i) {
+    shape.push_back(md.shape.GetDimensionSize(i));
+  }
+
+  auto shape_buffer =
+      llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(shape.data()),
+                         shape.size() * sizeof(int64_t));
+  data.insert(data.end(), shape_buffer.begin(), shape_buffer.end());
+
+  // Always align element data to 8-byte boundary.
+  header.element_offset = llvm::alignTo(data.size(), 8);
+  data.resize(header.element_offset);
+
+  auto elements = llvm::makeArrayRef(
+      reinterpret_cast<const uint8_t*>(buf.data()), buf.size());
+  data.insert(data.end(), elements.begin(), elements.end());
+  header.base.byte_count = AssertAttrFieldSize(data.size());
+
+  std::memcpy(data.data(), &header, sizeof(BEFDenseAttr));
+
   return data;
 }
 
@@ -116,7 +122,8 @@ llvm::Expected<DenseHostTensor> DeserializeDenseHostTensorFromDenseAttr(
   }
 
   auto& result_tensor = result_alloc.getValue();
-  std::memcpy(result_tensor.data(), attr.elements(), attr.DataSizeInBytes());
+  std::memcpy(result_tensor.data(), attr.GetElements(),
+              result_tensor.DataSizeInBytes());
   return std::move(result_tensor);
 }
 
@@ -126,7 +133,7 @@ TensorMetadata CreateTensorMetadata(const DenseAttr& attr) {
 
 DenseView CreateDenseView(const DenseAttr& attr) {
   auto dtype = ConvertBEFAttributeTypeToTensorDType(attr.dtype());
-  return DenseView(dtype, attr.shape(), attr.elements());
+  return DenseView(dtype, attr.shape(), attr.GetElements());
 }
 
 }  // namespace tfrt

@@ -57,15 +57,15 @@ static void HexTestCancel(Argument<Chain> chain_in, Result<int> int_out,
 // , and return a result for each leaf value.
 static void HexTestFlat(Result<std::string> str_out, Result<int32_t> int_out_0,
                         Result<int32_t> int_out_1, Result<float> float_out,
-                        AggregateAttribute array) {
-  auto a0 = array.GetAggregateAttribute(0);
-  str_out.Emplace(a0.GetStringAttribute(0).str());
+                        AggregateAttr array) {
+  auto a0 = array.GetAttributeOfType<AggregateAttr>(0);
+  str_out.Emplace(a0.GetAttributeOfType<StringAttr>(0).GetValue().str());
 
-  auto a01 = a0.GetArrayAttribute<int32_t>(1);
+  auto a01 = a0.GetAttributeOfType<ArrayAttr>(1).GetValue<int32_t>();
   int_out_0.Emplace(a01[0]);
   int_out_1.Emplace(a01[1]);
 
-  auto a1 = array.GetArrayAttribute<float>(1);
+  auto a1 = array.GetAttributeOfType<ArrayAttr>(1).GetValue<float>();
   float_out.Emplace(a1[0]);
 }
 

@@ -134,6 +134,12 @@ class OpAttrs final {
                   OpAttrType::DENSE);
   }
 
+  // Overload for AggregateAttr.
+  bool Set(string_view attr_name, AggregateAttr value) {
+    return SetRaw(attr_name, value.data(), OpAttrsRawEntry::kScalarSentinel,
+                  OpAttrType::AGGREGATE);
+  }
+
   // Read an attribute with the specified value, returning false on failure or
   // true on success.
   template <typename T>
@@ -151,6 +157,15 @@ class OpAttrs final {
     if (!result || result->IsArray() || result->type != OpAttrType::DENSE)
       return false;
     *value = DenseAttr(result->data);
+    return true;
+  }
+
+  // Overload for AggregateAttr.
+  bool Get(string_view attr_name, AggregateAttr* value) const {
+    const OpAttrsRawEntry* result = GetRaw(attr_name);
+    if (!result || result->IsArray() || result->type != OpAttrType::AGGREGATE)
+      return false;
+    *value = AggregateAttr(result->data);
     return true;
   }
 
@@ -330,6 +345,15 @@ class OpAttrsRef {
     if (!result || result->IsArray() || result->type != OpAttrType::DENSE)
       return false;
     *value = DenseAttr(result->data);
+    return true;
+  }
+
+  // Overload for AggregateAttr.
+  bool Get(string_view attr_name, AggregateAttr* value) const {
+    const OpAttrsRawEntry* result = GetRaw(attr_name);
+    if (!result || result->IsArray() || result->type != OpAttrType::AGGREGATE)
+      return false;
+    *value = AggregateAttr(result->data);
     return true;
   }
 

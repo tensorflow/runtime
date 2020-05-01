@@ -33,6 +33,8 @@ namespace tfrt {
 
 // Return the OpAttrType converted from BEFAttributeType in BEF.
 OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind) {
+  if (IsDenseAttribute(kind)) return OpAttrType::DENSE;
+
   switch (kind) {
     case BEFAttributeType::kBool:
       return OpAttrType::BOOL;
@@ -50,6 +52,8 @@ OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind) {
       return OpAttrType::F64;
     case BEFAttributeType::kType:
       return OpAttrType::DTYPE;
+    case BEFAttributeType::kAggregate:
+      return OpAttrType::AGGREGATE;
     default:
       break;
   }
@@ -94,6 +98,10 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
   switch (type) {
     case OpAttrType::DTYPE:
       return {sizeof(OpAttrType), alignof(OpAttrType)};
+    case OpAttrType::AGGREGATE: {
+      AggregateAttr aggregate_attr(data);
+      return {aggregate_attr.size(), sizeof(void *)};
+    }
     case OpAttrType::DENSE: {
       DenseAttr dense_attr(data);
       return {dense_attr.size(), DenseAttr::Alignment()};
@@ -112,6 +120,8 @@ const char *GetNameString(OpAttrType type) {
   switch (type) {
     case OpAttrType::DTYPE:
       return "DTYPE";
+    case OpAttrType::AGGREGATE:
+      return "AGGREGATE";
     case OpAttrType::DENSE:
       return "DENSE";
     case OpAttrType::F16:
@@ -585,6 +595,27 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
       auto dtype = *static_cast<const OpAttrType *>(ptr);
       assert(dtype != OpAttrType::DTYPE);
       os << GetNameString(dtype);
+      break;
+    }
+    case OpAttrType::AGGREGATE: {
+      AggregateAttr aggregate_attr(ptr);
+      size_t num_elements = aggregate_attr.GetNumElements();
+      os << "elt_count=" << num_elements << " [";
+      for (int i = 0; i < num_elements; ++i) {
+        auto base = aggregate_attr.GetAttribute(i);
+        os << "{";
+        if (IsDenseAttribute(base.type()) ||
+            base.type() == BEFAttributeType::kAggregate) {
+          PrintElement(base.data(),
+                       GetOpAttrTypeFromBEFAttributeType(base.type()), os);
+        } else {
+          // TODO(chky): Support other types.
+          os << "unknown";
+        }
+        os << "}";
+        if (i < num_elements - 1) os << ", ";
+      }
+      os << "]";
       break;
     }
     case OpAttrType::DENSE: {

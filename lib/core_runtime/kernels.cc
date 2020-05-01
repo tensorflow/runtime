@@ -115,6 +115,12 @@ static Chain OpAttrsSetDense(Argument<OpAttrs> attrs, StringAttribute key,
   return Chain();
 }
 
+static Chain OpAttrsSetAggregate(Argument<OpAttrs> attrs, StringAttribute key,
+                                 AggregateAttr value) {  // NOLINT
+  attrs->Set(key, value);
+  return Chain();
+}
+
 template <typename T>
 static Chain OpAttrsSetArray(Argument<OpAttrs> attrs, StringAttribute key,
                              ArrayAttribute<T> value) {
@@ -211,6 +217,9 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
         }
         case BEFAttributeType::kString:
           op_attrs.SetString(key, attr.cast<StringAttr>().GetValue());
+          break;
+        case BEFAttributeType::kAggregate:
+          op_attrs.Set(key, attr.cast<AggregateAttr>());
           break;
         default:
           llvm_unreachable("unknown attribute type");
@@ -368,6 +377,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(OpAttrsSetDType));
   registry->AddKernel("corert.op_attrs_set.dense",
                       TFRT_KERNEL(OpAttrsSetDense));
+  registry->AddKernel("corert.op_attrs_set.aggregate",
+                      TFRT_KERNEL(OpAttrsSetAggregate));
   registry->AddKernel("corert.op_attrs_set.str", TFRT_KERNEL(OpAttrsSetString));
   registry->AddKernel("corert.executeop", TFRT_KERNEL(ExecuteOp));
   registry->AddKernel("corert.executeop.seq", TFRT_KERNEL(ExecuteOpSeq));

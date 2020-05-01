@@ -202,3 +202,21 @@ func @freezing() -> !hex.chain {
 
   hex.return %ch13 : !hex.chain
 }
+
+// CHECK-LABEL: --- Running 'aggregate_attr_test'
+func @aggregate_attr_test() -> !hex.chain {
+  %ch0 = hex.new.chain
+
+  %attrs = "corert.create_op_attrs"() : () -> !corert.opattrs
+
+  %ch1 = "corert.op_attrs_set.aggregate"(%attrs, %ch0)
+    {key="aggregate", value=[dense<[[1,2],[3,4]]> : tensor<2x2xi32>, dense<1> : tensor<i64>]}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+
+  // CHECK: OpAttrs contains 1 entries:
+  // CHECK-NEXT: 'aggregate' type=AGGREGATE value=elt_count=2 [{dtype=I32, rank=2, elt_count=4}, {dtype=I64, rank=0, elt_count=1}]
+  %ch2 = "tfrt_test.corert.op_attrs_print"(%attrs, %ch1)
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+
+  hex.return %ch2 : !hex.chain
+}

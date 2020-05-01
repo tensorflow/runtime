@@ -32,9 +32,11 @@
 namespace tfrt {
 
 class DenseAttr;
+class AggregateAttr;
 
 enum class OpAttrType : uint8_t {
   DTYPE,
+  AGGREGATE,
   DENSE,
   F16,
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) ENUM,
@@ -49,6 +51,11 @@ constexpr OpAttrType GetOpAttrType();
 template <>
 constexpr OpAttrType GetOpAttrType<OpAttrType>() {
   return OpAttrType::DTYPE;
+}
+
+template <>
+constexpr OpAttrType GetOpAttrType<AggregateAttr>() {
+  return OpAttrType::AGGREGATE;
 }
 
 template <>

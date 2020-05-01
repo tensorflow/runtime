@@ -37,6 +37,17 @@
   ASSERT_FALSE(!expected) << expected.takeError();       \
   lhs = std::move(*expected)
 
+// Same as above, but uses TFRT_LOG(FATAL) instead of ASSERT_FALSE.
+// The macro above should be preferred. This can be used in constructors, or
+// functions that return a value. ASSERT_FALSE expands to a return statement
+// on error.
+#define TFRT_ASSIGN_OR_DIE(lhs, expr) \
+  TFRT_ASSIGN_OR_DIE_IMPL(TFRT_CONCAT(_expected_, __COUNTER__), lhs, expr)
+#define TFRT_ASSIGN_OR_DIE_IMPL(expected, lhs, expr)      \
+  auto expected = expr;                                   \
+  if (!expected) TFRT_LOG(FATAL) << expected.takeError(); \
+  lhs = std::move(*expected)
+
 namespace llvm {
 
 // Google Test outputs to std::ostream. Provide ADL'able overload.

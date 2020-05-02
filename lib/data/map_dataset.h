@@ -131,7 +131,7 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
                             ->template MakeUnconstructedAsyncValueRef<
                                 std::tuple<OutputTypes...>>();
     // IDEA(donglin): We can optimize performance for small tasks by not
-    // enqueueing small tasks to the threadpool. We need a way to identify small
+    // enqueuing small tasks to the threadpool. We need a way to identify small
     // tasks.
     //
     // Enqueue the map function to the threadpool to improve performance by

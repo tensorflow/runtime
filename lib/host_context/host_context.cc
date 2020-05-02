@@ -222,7 +222,7 @@ class ParallelForExecutionContext {
 
   // EvalBlocks() recursively splits the assigned block range and enqueues work
   // to the HostContext. This improves latency, by removing a sequential step
-  // from the caller thread. After enqueueing work to the host context, it
+  // from the caller thread. After enqueuing work to the host context, it
   // evaluates a single block in the caller thread.
   void EvalBlocks(size_t start_block, size_t end_block) {
     while (end_block - start_block > 1) {

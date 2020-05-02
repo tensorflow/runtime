@@ -133,7 +133,7 @@ struct KeepBuffers {
 // `done` callback from the thread that computed the last task.
 //
 // It is possible that small expressions will be evaluated in a caller thread,
-// without enqueueing work into the HostContext. In this case callbacks will be
+// without enqueuing work into the HostContext. In this case callbacks will be
 // called from the caller thread, after completing expression evaluation.
 //
 // WARNING: All values that must be alive for the duration of Eigen expression

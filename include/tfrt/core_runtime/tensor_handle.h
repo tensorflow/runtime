@@ -139,7 +139,9 @@ class TensorHandle final {
   };
 };
 
-static_assert(sizeof(TensorHandle) == 32, "unexpected size for TensorHandle");
+static_assert(sizeof(TensorHandle) == 32 || sizeof(void*) != 8,
+              "Unexpected size for TensorHandle. TensorHandle should be 32 "
+              "bytes on 64-bit architecture.");
 
 inline TensorHandle::~TensorHandle() {
   if (IsMetadataInline()) {

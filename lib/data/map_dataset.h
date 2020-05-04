@@ -62,7 +62,6 @@ static std::tuple<T...> ArrayToTuple(
                                   std::make_index_sequence<sizeof...(T)>());
 }
 
-// Partial specialization of MapDataset to support multiple parameter packs.
 // MapDataset maps a user-defined function over the elements in its input
 // dataset.
 template <typename... InputTypes, typename... OutputTypes>

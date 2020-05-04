@@ -38,11 +38,9 @@ class InterleaveDataset;
 template <typename... T>
 class InterleaveDatasetIterator;
 
-// Partial specialization of InterleaveDataset to support multiple parameter
-// packs. InterleaveDataset maps a user-defined function over the
-// elements in its input dataset and interleaves the results. The user-
-// defined function is expected to have a single return value of type
-// Dataset<OutputTypes...>
+// InterleaveDataset maps a user-defined function over the elements in its input
+// dataset and interleaves the results. The user-defined function is expected to
+// have a single return value of type Dataset<OutputTypes...>.
 //
 // The `cycle_length` and `block_length` arguments control the order in which
 // elements are produced. `cycle_length` controls the number of input elements

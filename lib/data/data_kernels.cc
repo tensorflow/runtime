@@ -138,11 +138,10 @@ RCReference<TFRecordDataset> MakeTFRecordDataset(std::string path,
 
 template <typename... T>
 RCReference<RepeatDataset<T...>> MakeRepeatDataset(
-    RCReference<Dataset<T...>>* dataset, ArrayAttribute<int32_t> count,
+    RCReference<Dataset<T...>>* dataset, Attribute<int32_t> count,
     HostContext* host) {
-  assert(count.size() == 1);
   return TakeRef(host->Construct<RepeatDataset<T...>>((*dataset).CopyRef(),
-                                                      count[0], host));
+                                                      count.get(), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -153,11 +152,10 @@ RCReference<RepeatDataset<T...>> MakeRepeatDataset(
 // it.
 template <typename... T>
 RCReference<BatchDataset<T...>> MakeBatchDataset(
-    RCReference<Dataset<T...>>* dataset, ArrayAttribute<int32_t> batch_size,
+    RCReference<Dataset<T...>>* dataset, Attribute<int32_t> batch_size,
     HostContext* host) {
-  assert(batch_size.size() == 1);
   return TakeRef(host->Construct<BatchDataset<T...>>((*dataset).CopyRef(),
-                                                     batch_size[0], host));
+                                                     batch_size.get(), host));
 }
 
 //===----------------------------------------------------------------------===//

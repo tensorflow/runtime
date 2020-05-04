@@ -32,6 +32,8 @@ namespace data {
 template <typename... T>
 class RepeatDatasetIterator;
 
+// RepeatDataset wraps around another Dataset instance and repeats it for a
+// specified number of times.
 template <typename... T>
 class RepeatDataset : public Dataset<T...> {
  public:

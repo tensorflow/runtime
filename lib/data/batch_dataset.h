@@ -20,10 +20,6 @@
 // instance and batches the underlying elements before returning them via
 // GetNext().
 //
-// If the underlying dataset element type is a tensor, GetNext() should return a
-// tensor with +1 dimension. If the underlying dataset element type is a scalar,
-// GetNext() should return a 1-D tensor of the same scalar type.
-//
 //===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_BATCH_DATASET_H_
@@ -137,6 +133,12 @@ static llvm::Expected<DHTTuple<sizeof...(T)>> TuplesToDHTs(
   return TuplesToDHTsHelper<sizeof...(T), 0, T...>::Convert(tuples, allocator);
 }
 
+// BatchDataset wraps around another Dataset instance and batches the underlying
+// elements before returning them via GetNext().
+//
+// If the underlying dataset element type is a tensor, GetNext() should return a
+// tensor with +1 dimension. If the underlying dataset element type is a scalar,
+// GetNext() should return a 1-D tensor of the same scalar type.
 template <typename... T>
 class BatchDataset : public DHTDataset<sizeof...(T)> {
  public:

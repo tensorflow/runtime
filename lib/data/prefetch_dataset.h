@@ -36,6 +36,8 @@ namespace data {
 template <typename... T>
 class PrefetchDatasetIterator;
 
+// PrefetchDataset class which wraps around another dataset instance and
+// prefetches elements from the underlying dataset in an internal buffer.
 template <typename... T>
 class PrefetchDataset : public Dataset<T...> {
  public:
@@ -68,11 +70,10 @@ template <typename... T>
 class PrefetchDatasetIterator : public Iterator<T...> {
  public:
   explicit PrefetchDatasetIterator(
-      RCReference<PrefetchDataset<T...>> parent_dataset,
-      RCReference<Iterator<T...>> input_iterator)
+      RCReference<PrefetchDataset<T...>> parent_dataset)
       : Iterator<T...>(),
         parent_dataset_(std::move(parent_dataset)),
-        input_iterator_(std::move(input_iterator)) {}
+        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
   // This class is not copyable or movable.
   PrefetchDatasetIterator(const PrefetchDatasetIterator&) = delete;
@@ -101,9 +102,8 @@ class PrefetchDatasetIterator : public Iterator<T...> {
 
 template <typename... T>
 RCReference<Iterator<T...>> PrefetchDataset<T...>::MakeIterator() {
-  auto input_iterator = input_dataset_->MakeIterator();
-  return TakeRef(host_->Construct<PrefetchDatasetIterator<T...>>(
-      FormRef(this), std::move(input_iterator)));
+  return TakeRef(
+      host_->Construct<PrefetchDatasetIterator<T...>>(FormRef(this)));
 }
 
 }  // namespace data

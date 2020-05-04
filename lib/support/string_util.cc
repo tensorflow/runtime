@@ -65,7 +65,7 @@ std::string HumanReadableNumBytes(int64_t num_bytes) {
   if (num_bytes < 1024) {
     // No fractions for bytes.
     char buf[8];  // Longest possible string is '-XXXXB'
-    snprintf(buf, sizeof(buf), "%s%ldB", neg_str,
+    snprintf(buf, sizeof(buf), "%s%" PRId64, neg_str,
              static_cast<int64_t>(num_bytes));
     return std::string(buf);
   }

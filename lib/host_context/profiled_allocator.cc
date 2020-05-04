@@ -72,13 +72,15 @@ class ProfiledAllocator : public HostAllocator {
  protected:
   void PrintStats() const {
     printf("HostAllocator profile:\n");
-    printf("Current number of allocations = %ld\n",
+    printf("Current number of allocations = %" PRId64 "\n",
            curr_num_allocations_.load());
-    printf("Max number of allocations = %ld\n", max_num_allocations_.load());
-    printf("Total number of allocations = %ld\n", cum_num_allocations_.load());
-    printf("Current number of bytes allocated = %ld\n",
+    printf("Max number of allocations = %" PRId64 "\n",
+           max_num_allocations_.load());
+    printf("Total number of allocations = %" PRId64 "\n",
+           cum_num_allocations_.load());
+    printf("Current number of bytes allocated = %" PRId64 "\n",
            curr_num_bytes_allocated_.load());
-    printf("Max number of bytes allocated = %ld\n",
+    printf("Max number of bytes allocated = %" PRId64 "\n",
            max_num_bytes_allocated_.load());
     fflush(stdout);
   }
@@ -105,7 +107,8 @@ class LeakCheckAllocator : public ProfiledAllocator {
   ~LeakCheckAllocator() override {
     if (curr_num_bytes_allocated_.load() != 0) {
       PrintStats();
-      printf("Memory leak detected: %ld alive allocations, %ld alive bytes\n",
+      printf("Memory leak detected: %" PRId64 " alive allocations, %" PRId64
+             " alive bytes\n",
              curr_num_allocations_.load(), curr_num_bytes_allocated_.load());
       fflush(stdout);
       exit(1);

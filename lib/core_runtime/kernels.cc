@@ -139,9 +139,10 @@ static Chain OpAttrsSetString(Argument<OpAttrs> attrs, StringAttribute key,
   return Chain();
 }
 
-static llvm::Expected<TensorHandle> ConstStringTensor(
-    ArrayAttribute<ssize_t> shape, AggregateAttr value, HostContext *host) {
-  TensorMetadata metadata(DType(DType::String), shape.data());
+static llvm::Expected<TensorHandle> ConstStringTensor(ArrayAttr shape,
+                                                      AggregateAttr value,
+                                                      HostContext *host) {
+  TensorMetadata metadata(DType(DType::String), shape.GetValue<int64_t>());
 
   auto tensor_ref =
       StringHostTensor::MakeConstructedAsyncValueRef(metadata, host);

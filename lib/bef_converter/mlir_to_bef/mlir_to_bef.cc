@@ -241,7 +241,8 @@ static bool IsOpAttrsTyped(mlir::Operation* op) {
   // TODO(chky): Whether an op attribute is typed should be decided from
   // OpTraits instead of hardcoding dialect name or op name here.
   return op->getName().getStringRef() == "corert.executeop" ||
-         op->getName().getStringRef() == "corert.executeop.seq";
+         op->getName().getStringRef() == "corert.executeop.seq" ||
+         op->getName().getStringRef() == "corert.const_string_tensor";
 }
 
 //===----------------------------------------------------------------------===//

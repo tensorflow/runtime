@@ -2,94 +2,96 @@
 
 <!--* freshness: {
   owner: 'lauj'
-  reviewed: '2020-03-27'
+  reviewed: '2020-05-04'
 } *-->
 
 <!-- TOC -->
 
-## Reporting Errors From Kernels
+## Reporting Errors From Synchronous Kernels
 
-Kernels may report error in a few ways, but most use
-`KernelErrorHandler::ReportError`, which notifies HostContext of the error, sets
-results that are concrete but unavailable to error, and fills in any unset
-result values with `AsyncValue`s that contain errors. For example:
-
-```c++
-static void HexTestFail(Result<int32_t> error_out, KernelErrorHandler handler) {
-  // Sets error_out to an AsyncValue with an error message.
-  handler.ReportError("something bad happened");
-}
-```
-
-Note that `ReportError` only sets the kernel's *unavailable* concrete results to
-error state and the kernel's *unset* results to an `AsyncValue` with error. For
+Synchronous kernels typically return `llvm::Expected<T>` to report an error, for
 example:
 
 ```c++
-static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
-                               KernelErrorHandler handler) {
-  one.Emplace(1);
-  error_out.Allocate<int32_t>();
-  // Only sets error_out, which is an unavailable ConcreteAsyncValue, to error
-  // state. `one` is untouched.
-  handler.ReportError("something bad happened");
+static llvm::Expected<int32_t> HexTestFail() {
+  // Returns an error.
+  return MakeStringError("something bad happened");
 }
 ```
+
+### Partial Failures
+
+Kernels may return a mix of error values and non-error values with
+`KernelFrame::ReportError`:
 
 ```c++
 static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
-                               KernelErrorHandler handler) {
+                               KernelFrame* frame) {
   one.Emplace(1);
   // Only sets error_out to an error AsyncValue. `one` is untouched.
-  handler.ReportError("something bad happened");
+  frame->ReportError("something bad happened");
 }
 ```
 
-`HexTestPartialFail` returns two values: `1` and an `AsyncValue` with error.
-This allows for fine-grained error handling: a kernel may partially succeed by
+The kernel above returns two values: `1` and an `AsyncValue` with error. This
+allows for fine-grained error handling: a kernel may partially succeed by
 returning a mix of valid values and error values.
 
-`ReportError` can only report an error when there are unset results or
-unavailable concrete results. For example this kernel triggers an assertion
+`KernelFrame::ReportError` also sets the kernel's *unavailable* concrete results
+to error state:
+
+```c++
+static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
+                               KernelFrame* frame) {
+  one.Emplace(1);
+  error_out.Allocate();
+  // Only sets error_out, which is an unavailable ConcreteAsyncValue, to error
+  // state. `one` is untouched.
+  frame->ReportError("something bad happened");
+}
+```
+
+These two `HexTestPartialFail` implementations are equivalent: both return two
+values: `1` and an `AsyncValue` with error.
+
+Note that `ReportError` can only report an error when there are unset results or
+unavailable concrete results. For example this kernel will trigger an assertion
 failure:
 
 ```c++ {.bad}
-static void HexNoErrorReported(Result<int32_t> out, KernelErrorHandler handler) {
+static void HexNoErrorReported(Result<int32_t> out, KernelFrame* frame)
+{
   out.Emplace(1);
-  // No unset results at this point. ReportError can't report an error.
-  handler.ReportError("something bad happened");
+  // No unset results or unavailable concrete results at this point. ReportError
+  // can't report an error.
+  frame->ReportError("something bad happened");
 }
 ```
 
-Asynchronous kernels must synchronously allocate their results. Asynchronous
-kernels may report errors through unavailable results, like this:
+## Reporting Errors From Asynchronous Kernels
 
-```c++ {.good}
-static void HexNoErrorReportedAsync(Result<int32_t> out, HostContext* host,
-                                    KernelFrame* frame) {
-  host->EnqueueWork(
-    [out_ref = FormRef(out.Allocate()), frame = *frame]() mutable {
-      if (/*error condition*/) {
-          frame.ReportError("something bad happened");
-      } else {
-          // No error: Set the unavailable value to 1.
-          out_ref->emplace(1);
-      }
-    });
+Asynchronous kernels typically use `KernelFrame::ReportError` to report an
+error:
+
+```c++
+static void TestReportErrorAsync(Result<int32_t> out, HostContext* host,
+                                 KernelFrame* frame) {
+  host->EnqueueWork([out_ref = out.Allocate(), frame_copy = *frame]() mutable {
+    // Set unavailable concrete out_ref to error.
+    frame_copy.ReportError("something bad happened asynchronously");
+  });
 }
 ```
 
 Note: In this example, it is not possible to asynchronously allocate `out`.
 Kernels must synchronously allocate values for all their results.
 
-Note: [Asynchronous kernels](async_value.md#asynchronous-kernels) explains why
-we need `FormRef`.
+Note: In this example, we must copy the `KernelFrame` because the original
+`frame` is destroyed when the kernel returns. If `TestReportErrorAsync` tried to
+use `frame` asynchronously, it would dereference an invalid pointer.
 
-Note: In this example, it is currently necessary to use `KernelFrame` instead of
-`KernelErrorHandler` because `KernelErrorHandler` holds a pointer to the
-`KernelFrame`, but the `KernelFrame` is destroyed when the kernel returns. So if
-`HexNoErrorReportedAsync` tried to use `KernelErrorHandler` asynchronously, it
-would dereference an invalid pointer.
+Asynchronous kernels may also produce a mix of error and non-error values as
+described in the [Partial Failures section](#partial-failures).
 
 ## BEFExecutor Error Handling
 
@@ -151,21 +153,21 @@ effectively makes the executor skip all remaining kernel invocations.
 
 `CancelExecution` does not interrupt currently running kernels. It is up to
 implementors of potentially long-running kernels to periodically check
-`HostContext::GetCancelAsyncValue` and return early when CancelAsyncValue is
+`HostContext::GetCancelAsyncValue` and return early when `CancelAsyncValue` is
 not-null. For example,
 [`HexRepeatI32`](https://github.com/tensorflow/runtime/blob/master/lib/basic_kernels/control_flow_kernels.cc)
-checks CancelAsyncValue once per loop iteration.
+checks `CancelAsyncValue` once per loop iteration.
 
 ## Managing Resource Lifetimes In The Presence Of Errors
 
-It's best to use AsyncValue's reference counts to keep resources alive for as
-long as they're needed. The executor extends an AsyncValue's lifetime until
-there are no more users for the value. AsyncValue will invoke the resource's
+It's best to use `AsyncValue`'s reference counts to keep resources alive for as
+long as they're needed. The executor extends an `AsyncValue`'s lifetime until
+there are no more users for the value. `AsyncValue` will invoke the resource's
 destructor when the resource is no longer needed.
 
 Some users may want more control over resource lifetime. As an example, suppose
 we're managing an accelerator's memory. We could define an `AllocateAccelMemory`
-kernel that returns `AccelMemory`. `AccelMemory` is wrapped in AsyncValue, and
+kernel that returns `AccelMemory`. `AccelMemory` is wrapped in `AsyncValue`, and
 `AccelMemory`'s destructor deallocates the memory:
 
 ```c++

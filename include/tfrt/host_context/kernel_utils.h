@@ -108,7 +108,7 @@ namespace tfrt {
 //     return bytes;
 //   }
 //
-// For async kernels, KernelErrorHandler may be used:
+// For sync kernels, KernelErrorHandler may be used:
 //
 //   void ReadFile(Argument<std::string> path, Result<std::string> bytes,
 //                 KernelErrorHandler handler) {
@@ -119,6 +119,9 @@ namespace tfrt {
 //     }
 //     <Read file here>
 //   }
+//
+// WARNING: KernelErrorHandler can't be used asynchronously because it holds a
+// pointer to the KernelFrame, which is destroyed when the kernel returns.
 //
 // Kernels can also take the KernelFrame if they need access to the HostContext
 // or anything else the above wrapper types don't provide.

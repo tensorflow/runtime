@@ -21,6 +21,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/shared_context.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/ostream.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -30,15 +31,23 @@
 namespace tfrt {
 
 // This kernel produces an error.
-static void HexTestFail(Result<int32_t> error_out, KernelErrorHandler handler) {
-  handler.ReportError("something bad happened");
+static llvm::Expected<int32_t> HexTestFail() {
+  return MakeStringError("something bad happened");
 }
 
 // This kernel produces a normal output and an error output.
 static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
-                               KernelErrorHandler handler) {
+                               KernelFrame* frame) {
   one.Emplace(1);
-  handler.ReportError("something bad happened");
+  frame->ReportError("something bad happened");
+}
+
+// This kernel produces an error asynchronously.
+static void TestReportErrorAsync(Result<int32_t> out, HostContext* host,
+                                 KernelFrame* frame) {
+  host->EnqueueWork([out_ref = out.Allocate(), frame_copy = *frame]() mutable {
+    frame_copy.ReportError("something bad happened asynchronously");
+  });
 }
 
 // This kernel cancels execution.
@@ -266,14 +275,6 @@ static void TestUseSampleSharedContext(Argument<Chain> chain,
   auto& shared_ctx = host->GetOrCreateSharedContext<SampleSharedContext>();
   name.Emplace(shared_ctx.name());
   out_chain.Set(chain);
-}
-
-static void TestReportErrorAsync(Result<int32_t> out, HostContext* host,
-                                 KernelFrame* frame) {
-  AsyncValueRef<int32_t> result = out.Allocate();
-  host->EnqueueWork([result_ref = result.CopyRef(), frame = *frame]() mutable {
-    frame.ReportError("something bad happened asynchronously");
-  });
 }
 
 static DenseHostTensor TestConstDenseAttr(DenseAttr dense_attr,

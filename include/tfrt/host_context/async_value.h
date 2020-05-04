@@ -162,9 +162,6 @@ class AsyncValue {
   template <typename WaiterT>
   void AndThen(WaiterT&& waiter);
 
-  HostContext* GetHostContext() const { return host_context_.get(); }
-  HostContextPtr GetHostContextPtr() const { return host_context_; }
-
   /// Return the total number of async values that are currently live in the
   /// process. This is intended for debugging/assertions only, and shouldn't be
   /// used for mainline logic in the runtime.
@@ -279,6 +276,9 @@ class AsyncValue {
 
   AsyncValue(const AsyncValue&) = delete;
   AsyncValue& operator=(const AsyncValue&) = delete;
+
+  HostContext* GetHostContext() const { return host_context_.get(); }
+  HostContextPtr GetHostContextPtr() const { return host_context_; }
 
   void NotifyAvailable(State available_state);
   void Destroy();

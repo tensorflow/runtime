@@ -52,7 +52,7 @@ static AsyncValueRef<DenseHostTensor> DecodeJpeg(
           result = EmitErrorAsync(exec_ctx, "cannot allocate tensor");
           return nullptr;
         }
-        result = exec_ctx.host()->MakeConcreteAsyncValueRef<DenseHostTensor>(
+        result = exec_ctx.host()->MakeAvailableAsyncValueRef<DenseHostTensor>(
             std::move(*tensor));
         return static_cast<uint8_t*>(result.get().data());
       });

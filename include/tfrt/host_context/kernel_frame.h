@@ -135,7 +135,7 @@ class KernelFrame {
   // Emplace construct the result at given index.
   template <typename T, typename... Args>
   void EmplaceResultAt(int index, Args&&... args) {
-    SetResultAt(index, GetHostContext()->MakeConcreteAsyncValueRef<T>(
+    SetResultAt(index, GetHostContext()->MakeAvailableAsyncValueRef<T>(
                            std::forward<Args>(args)...));
   }
 

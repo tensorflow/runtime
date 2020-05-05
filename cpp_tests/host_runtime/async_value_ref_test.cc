@@ -32,7 +32,7 @@ TEST(AsyncValueRef, Conversions) {
   std::unique_ptr<HostContext> host = CreateHostContext();
 
   AsyncValueRef<int32_t> int_value =
-      host->MakeConcreteAsyncValueRef<int32_t>(42);
+      host->MakeAvailableAsyncValueRef<int32_t>(42);
   EXPECT_EQ(int_value.get(), 42);
 
   RCReference<AsyncValue> generic_value = std::move(int_value);

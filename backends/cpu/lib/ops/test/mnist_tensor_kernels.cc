@@ -81,7 +81,7 @@ static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
   }
 
   *dest =
-      host->MakeConcreteAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -410,7 +410,7 @@ static void Broadcast1DOp(const DenseHostTensor& src,
 #include "tfrt/tensor/dtype.def"
   }
   *dest =
-      host->MakeConcreteAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -504,7 +504,7 @@ static void ArgmaxOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
   }
 
   *dest =
-      host->MakeConcreteAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -597,7 +597,7 @@ static void ReduceMeanOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
   }
 
   *dest =
-      host->MakeConcreteAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -642,7 +642,7 @@ static void CreateDenseTensorOp(const OpAttrsRef& attrs,
   }
 
   *dest =
-      host->MakeConcreteAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//

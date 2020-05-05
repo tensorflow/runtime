@@ -76,7 +76,7 @@ static Expected<DenseHostTensor> OddCollectorOp(const DenseHostTensor& input,
 template <typename T>
 static AsyncValueRef<HostTensor> DoCreateFromScalar(
     const TensorMetadata& dest_md, T value, HostContext* host) {
-  return host->MakeConcreteAsyncValueRef<ScalarHostTensor<T>>(dest_md, value);
+  return host->MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(dest_md, value);
 }
 
 // result = test.create_from_scalar(value=V, shape=Shape)

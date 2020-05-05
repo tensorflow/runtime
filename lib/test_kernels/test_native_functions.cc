@@ -33,7 +33,7 @@ void NativeAdd(AsyncValue* const* arguments, int num_arguments,
   int32_t b = arguments[1]->get<int32_t>();
 
   assert(num_results == 1);
-  results[0] = host->MakeConcreteAsyncValueRef<int32_t>(a + b);
+  results[0] = host->MakeAvailableAsyncValueRef<int32_t>(a + b);
 }
 
 void NativeAsyncAdd(AsyncValue* const* arguments, int num_arguments,

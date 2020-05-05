@@ -161,7 +161,7 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
         for (auto* additional_arg : additional_fn_args.values()) {
           arguments.push_back(additional_arg);
         }
-        auto arg = host->template MakeConcreteAsyncValueRef<InputTypes...>(
+        auto arg = host->template MakeAvailableAsyncValueRef<InputTypes...>(
             std::move(std::get<0>(args.get())));
         arguments.push_back(arg.GetAsyncValue());
 

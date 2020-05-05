@@ -388,7 +388,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                   "Do not both have result argument and return result");
     assert(results.size() == 1 && "Incorrect number of return value");
     results[0] =
-        exec_ctx.host()->MakeConcreteAsyncValueRef<T>(std::forward<T>(t));
+        exec_ctx.host()->MakeAvailableAsyncValueRef<T>(std::forward<T>(t));
   }
 
   // For ops functions that return AsyncValueRef<Chain>.
@@ -477,7 +477,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
     std::ignore = std::initializer_list<int>{
         (results[I] =
              exec_ctx.host()
-                 ->MakeConcreteAsyncValueRef<std::tuple_element_t<I, TupleT>>(
+                 ->MakeAvailableAsyncValueRef<std::tuple_element_t<I, TupleT>>(
                      std::get<I>(std::forward<TupleT>(result))),
          0)...};
   }

@@ -65,15 +65,15 @@ AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
 #define DTYPE_NUMERIC(ENUM)                                             \
   case DType::ENUM:                                                     \
     if (NumElements() == 0) {                                           \
-      return host->MakeConcreteAsyncValueRef<                           \
+      return host->MakeAvailableAsyncValueRef<                          \
           ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(metadata()); \
     } else if (NumElements() == 1) {                                    \
-      return host->MakeConcreteAsyncValueRef<                           \
+      return host->MakeAvailableAsyncValueRef<                          \
           ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(             \
           metadata(),                                                   \
           DHTArrayView<TypeForDTypeKind<DType::ENUM>>(Values())[0]);    \
     } else if (Indices()->NumElements() == 0) {                         \
-      return host->MakeConcreteAsyncValueRef<                           \
+      return host->MakeAvailableAsyncValueRef<                          \
           ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(             \
           metadata(), TypeForDTypeKind<DType::ENUM>(0));                \
     }

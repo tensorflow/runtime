@@ -238,8 +238,9 @@ RCReference<Iterator<OutputTypes...>> InterleaveDatasetIterator<
   // SmallVector<AsyncValue<T...>*, 4>
   // TODO(rachelim): Support inputs of arbitrary arity.
   SmallVector<AsyncValue*, 4> fn_args;
-  auto arg = exec_ctx.host()->template MakeConcreteAsyncValueRef<InputTypes...>(
-      std::move(std::get<0>(input_element.get())));
+  auto arg =
+      exec_ctx.host()->template MakeAvailableAsyncValueRef<InputTypes...>(
+          std::move(std::get<0>(input_element.get())));
   fn_args.push_back(arg.GetAsyncValue());
   SmallVector<RCReference<AsyncValue>, 1> fn_results;
   fn_results.resize(1);

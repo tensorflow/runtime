@@ -79,7 +79,7 @@ class SliceDatasetIterator : public Iterator<T> {
 
     T& element = *iterator_;
     iterator_++;
-    return exec_ctx.host()->template MakeConcreteAsyncValueRef<std::tuple<T>>(
+    return exec_ctx.host()->template MakeAvailableAsyncValueRef<std::tuple<T>>(
         std::make_tuple(element));
   }
 
@@ -112,7 +112,7 @@ SliceDatasetIterator<DenseHostTensor>::GetNext(
   DenseHostTensor& element = *iterator_;
   iterator_++;
   return exec_ctx.host()
-      ->template MakeConcreteAsyncValueRef<std::tuple<DenseHostTensor>>(
+      ->template MakeAvailableAsyncValueRef<std::tuple<DenseHostTensor>>(
           std::make_tuple(element.CopyRef()));
 }
 

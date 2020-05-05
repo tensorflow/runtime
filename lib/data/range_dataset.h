@@ -84,7 +84,7 @@ class RangeDatasetIterator : public Iterator<T> {
     }
     auto result = next_;
     next_ += dataset_->step_;
-    return exec_ctx.host()->template MakeConcreteAsyncValueRef<std::tuple<T>>(
+    return exec_ctx.host()->template MakeAvailableAsyncValueRef<std::tuple<T>>(
         std::make_tuple(result));
   }
 

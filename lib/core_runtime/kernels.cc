@@ -73,7 +73,7 @@ static void TensorHandleToShape(Argument<TensorHandle> arg,
     }
     auto shape = metadata_ref.get().shape;
     value_ref->ForwardTo(
-        host->MakeConcreteAsyncValueRef<TensorShape>(std::move(shape)));
+        host->MakeAvailableAsyncValueRef<TensorShape>(std::move(shape)));
   });
 }
 

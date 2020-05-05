@@ -150,22 +150,22 @@ static std::string HexTestAsyncValueGet(HostContext* host) {
   std::string return_value;
   llvm::raw_string_ostream sstr(return_value);
 
-  auto child1_av_ref = host->MakeConcreteAsyncValueRef<TestChild1>();
+  auto child1_av_ref = host->MakeAvailableAsyncValueRef<TestChild1>();
   AsyncValue* child1_av = child1_av_ref.GetAsyncValue();
   auto& base1 = child1_av->get<TestBase1>();
   sstr << base1.base1;
 
-  auto child2_av_ref = host->MakeConcreteAsyncValueRef<TestChild2>();
+  auto child2_av_ref = host->MakeAvailableAsyncValueRef<TestChild2>();
   AsyncValue* child2_av = child2_av_ref.GetAsyncValue();
   auto& base2 = child2_av->get<TestBase2>();
   sstr << ":" << base2.base2;
 
-  auto final_class_av_ref = host->MakeConcreteAsyncValueRef<TestFinalClass>();
+  auto final_class_av_ref = host->MakeAvailableAsyncValueRef<TestFinalClass>();
   AsyncValue* final_class_av = final_class_av_ref.GetAsyncValue();
   auto& final_class_val = final_class_av->get<TestFinalClass>();
   sstr << ":" << final_class_val.name;
 
-  auto int_av_ref = host->MakeConcreteAsyncValueRef<int>(3);
+  auto int_av_ref = host->MakeAvailableAsyncValueRef<int>(3);
   AsyncValue* int_av = int_av_ref.GetAsyncValue();
   auto& int_val = int_av->get<int>();
   sstr << ":" << int_val;
@@ -190,7 +190,7 @@ static std::string HexTestAsyncValueRef(HostContext* host) {
   // Sync usage.
   //
   // Construct an available int with value 2.
-  AsyncValueRef<int> two = host->MakeConcreteAsyncValueRef<int>(2);
+  AsyncValueRef<int> two = host->MakeAvailableAsyncValueRef<int>(2);
 
   std::string return_value;
   llvm::raw_string_ostream sstr(return_value);

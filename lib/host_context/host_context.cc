@@ -50,7 +50,7 @@ HostContext::HostContext(
   assert(instance_index() < HostContextPtr::kDummyIndex &&
          "Created too many HostContext instances");
   all_host_contexts_[instance_index()] = this;
-  ready_chain_ = MakeConcreteAsyncValueRef<Chain>();
+  ready_chain_ = MakeAvailableAsyncValueRef<Chain>();
 }
 
 HostContext::~HostContext() {

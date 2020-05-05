@@ -56,7 +56,7 @@ AsyncValueRef<HostTensor> Add(const HostTensor& lhs_ref,
   if (auto* srhs = dyn_cast<ScalarHostTensor<T>>(rhs)) {
     auto* slhs = cast<ScalarHostTensor<T>>(lhs);
     auto result = slhs->GetValue() + srhs->GetValue();
-    return host->template MakeConcreteAsyncValueRef<ScalarHostTensor<T>>(
+    return host->template MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(
         slhs->metadata(), result);
   }
 
@@ -79,7 +79,7 @@ AsyncValueRef<HostTensor> Add(const HostTensor& lhs_ref,
     for (size_t i = 0, e = dest_view.NumElements(); i != e; ++i)
       dest_view[i] = lhs_view[i] + rhs_view[i];
   }
-  return host->MakeConcreteAsyncValueRef<DenseHostTensor>(
+  return host->MakeAvailableAsyncValueRef<DenseHostTensor>(
       std::move(dest.getValue()));
 }
 

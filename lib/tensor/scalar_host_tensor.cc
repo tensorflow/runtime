@@ -43,8 +43,8 @@ void* AnyScalarHostTensor::data() {
 template <typename T>
 static AsyncValueRef<HostTensor> CopyScalar(const ScalarHostTensor<T>& src,
                                             HostContext* host) {
-  return host->MakeConcreteAsyncValueRef<ScalarHostTensor<T>>(src.metadata(),
-                                                              src.GetValue());
+  return host->MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(src.metadata(),
+                                                               src.GetValue());
 }
 
 AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(

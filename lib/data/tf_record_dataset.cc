@@ -79,7 +79,7 @@ AsyncValueRef<std::tuple<std::string>> TFRecordDatasetIterator::GetNextElement(
   if (eof) return AsyncValueRef<std::tuple<std::string>>();
   if (!result) return EmitErrorAsync(exec_ctx, result.takeError());
 
-  return exec_ctx.host()->MakeConcreteAsyncValueRef<std::tuple<std::string>>(
+  return exec_ctx.host()->MakeAvailableAsyncValueRef<std::tuple<std::string>>(
       std::move(*result));
 }
 

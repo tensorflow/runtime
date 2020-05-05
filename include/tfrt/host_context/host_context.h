@@ -156,7 +156,7 @@ class HostContext {
   // AsyncValueRef::SetError.
   //
   // TODO(lauj, jingdong) Move MakeUnconstructedAsyncValueRef and
-  // MakeConcreteAsyncValueRef to async_value_ref.h. These methods should not
+  // MakeAvailableAsyncValueRef to async_value_ref.h. These methods should not
   // depend on HostContext.
   template <typename T>
   AsyncValueRef<T> MakeUnconstructedAsyncValueRef();
@@ -169,7 +169,7 @@ class HostContext {
 
   // Allocate and construct an available AsyncValueRef.
   template <typename T, typename... Args>
-  AsyncValueRef<T> MakeConcreteAsyncValueRef(Args&&... args);
+  AsyncValueRef<T> MakeAvailableAsyncValueRef(Args&&... args);
 
   // Construct an empty IndirectAsyncValue, not forwarding to anything.
   RCReference<IndirectAsyncValue> MakeIndirectAsyncValue();
@@ -291,7 +291,7 @@ AsyncValueRef<T> HostContext::MakeConstructedAsyncValueRef(Args&&... args) {
 }
 
 template <typename T, typename... Args>
-AsyncValueRef<T> HostContext::MakeConcreteAsyncValueRef(Args&&... args) {
+AsyncValueRef<T> HostContext::MakeAvailableAsyncValueRef(Args&&... args) {
   return AsyncValueRef<T>(TakeRef(Construct<internal::ConcreteAsyncValue<T>>(
       instance_ptr_,
       typename internal::ConcreteAsyncValue<T>::ConcretePayload{},

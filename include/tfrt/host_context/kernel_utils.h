@@ -267,7 +267,7 @@ class Result {
   // Construct the result in place.
   template <typename... Args>
   void Emplace(Args&&... args) {
-    Set(host_->MakeConcreteAsyncValueRef<T>(std::forward<Args>(args)...));
+    Set(host_->MakeAvailableAsyncValueRef<T>(std::forward<Args>(args)...));
   }
 
   // Use this argument as a result without a deep copy.

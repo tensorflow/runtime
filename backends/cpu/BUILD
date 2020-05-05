@@ -8,14 +8,6 @@ licenses(["notice"])
 
 exports_files(["LICENSE"])
 
-# To build tf_runtime without RTTI/exceptions, use:
-# bazel build --define=disable_rtti_and_exceptions=true
-config_setting(
-    name = "disable_rtti_and_exceptions",
-    define_values = {"disable_rtti_and_exceptions": "true"},
-    visibility = ["//visibility:public"],
-)
-
 tfrt_cc_library(
     name = "core_runtime",
     srcs = [

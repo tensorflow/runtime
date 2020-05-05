@@ -160,8 +160,29 @@ enum {
   kAggregateAttributeType = 1 << kAggregateAttributeTypeShift,
 };
 
+// BEFDataType defines the data types supported in BEF. Note that the enum
+// values here should be kept consistent with BEFAttributeType.
+//
+// TODO(tf-runtime-team): Consider having a single centralized definition for
+// all data types supported by TFRT.
+enum class BEFDataType : uint8_t {
+  kUnsupported,
+
+  kBool,
+
+  kI1,
+  kI32,
+  kI64,
+  kF16,
+  kF32,
+  kF64,
+};
+
 // This enum defines the attribute type.
 enum class BEFAttributeType : uint16_t {
+  // TODO(tf-runtime-team): The data types here should be consistent with
+  // BEFDataType. We need to figure out a way to keep this consistency
+  // automatically.
   kUnsupported,
 
   kBool,
@@ -173,12 +194,17 @@ enum class BEFAttributeType : uint16_t {
   kF32,
   kF64,
 
+  // TODO(tf-runtime-team): kString should be also data types.
+  kFirstDataType = kBool,
+  kLastDataType = kF64,
+
   kType,
 
   kFirstFixedType = kBool,
   kLastFixedType = kType,
 
   kString,
+
   kShape,
 
   kFirstScalarType = kBool,
@@ -218,6 +244,11 @@ inline bool IsScalarAttribute(BEFAttributeType type) {
          type <= BEFAttributeType::kLastScalarType;
 }
 
+inline bool IsDataTypeAttribute(BEFAttributeType type) {
+  return type >= BEFAttributeType::kFirstDataType &&
+         type <= BEFAttributeType::kLastDataType;
+}
+
 inline bool IsFixedAttribute(BEFAttributeType type) {
   return type >= BEFAttributeType::kFirstFixedType &&
          type <= BEFAttributeType::kLastFixedType;
@@ -230,7 +261,7 @@ inline BEFAttributeType GetArrayAttributeType(BEFAttributeType element_type) {
 }
 
 inline BEFAttributeType GetDenseAttributeType(BEFAttributeType element_type) {
-  assert(IsFixedAttribute(element_type));
+  assert(IsDataTypeAttribute(element_type));
   return static_cast<BEFAttributeType>(static_cast<uint16_t>(element_type) |
                                        kDenseAttributeType);
 }
@@ -287,6 +318,11 @@ inline BEFAttributeType GetBEFAttributeType<float>() {
 template <>
 inline BEFAttributeType GetBEFAttributeType<double>() {
   return BEFAttributeType::kF64;
+}
+
+template <>
+inline BEFAttributeType GetBEFAttributeType<BEFDataType>() {
+  return BEFAttributeType::kType;
 }
 
 // Given a pointer to the start of an array of BEF attributes, decode the

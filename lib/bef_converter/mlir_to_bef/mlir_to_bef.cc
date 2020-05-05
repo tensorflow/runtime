@@ -172,7 +172,7 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
 
     auto first_attr_type = GetBEFAttributeType(*array_attr.begin());
 
-    // Only scalar attributes can be included in an array.
+    // Only fixed attributes can be included in an array.
     bool is_array = IsFixedAttribute(first_attr_type);
 
     for (auto elt : array_attr) {
@@ -1053,8 +1053,8 @@ void BEFAttributeEmitter::EmitStringAttribute(string_view value) {
 void BEFAttributeEmitter::EmitTypeAttribute(mlir::TypeAttr type_attr) {
   auto attribute_type = ConvertMLIRTypeToBEFAttributeType(type_attr.getValue());
 
-  assert(IsScalarAttribute(attribute_type) &&
-         "only scalar attribute type can be used as attribute");
+  assert(IsDataTypeAttribute(attribute_type) &&
+         "only data type can be used as type attribute");
 
   // Scalar attribute is the lower 8 bits of BEFAttributeType.
   EmitByte(static_cast<uint8_t>(attribute_type));

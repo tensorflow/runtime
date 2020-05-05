@@ -249,6 +249,10 @@ class ArrayAttr : public internal::AttrHeaderBase<ArrayAttr, BEFArrayAttr> {
  public:
   using Base::Base;
 
+  BEFAttributeType GetElementType() const {
+    return GetElementAttributeType(type());
+  }
+
   const void* GetElements() const {
     const auto* bytes = static_cast<const uint8_t*>(data());
     return bytes + header().element_offset;
@@ -256,7 +260,7 @@ class ArrayAttr : public internal::AttrHeaderBase<ArrayAttr, BEFArrayAttr> {
 
   template <typename T>
   ArrayRef<T> GetValue() const {
-    assert(GetBEFAttributeType<T>() == GetElementAttributeType(type()));
+    assert(GetBEFAttributeType<T>() == GetElementType());
     return llvm::makeArrayRef(static_cast<const T*>(GetElements()),
                               GetNumElements());
   }

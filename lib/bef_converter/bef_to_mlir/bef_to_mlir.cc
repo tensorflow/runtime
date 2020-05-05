@@ -1035,21 +1035,24 @@ mlir::StringAttr BEFAttributeReader::ReadStringAttribute(BEFReader* reader) {
 mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
   uint8_t byte;
   if (reader->ReadByte(&byte)) return {};
-  auto kind = static_cast<BEFAttributeType>(byte);
+  auto kind = static_cast<BEFDataType>(byte);
 
   switch (kind) {
-    case BEFAttributeType::kI1:
+    case BEFDataType::kI1:
       return mlir::TypeAttr::get(mlir::IntegerType::get(1, &context_));
-    case BEFAttributeType::kI32:
+    case BEFDataType::kI32:
       return mlir::TypeAttr::get(mlir::IntegerType::get(32, &context_));
-    case BEFAttributeType::kI64:
+    case BEFDataType::kI64:
       return mlir::TypeAttr::get(mlir::IntegerType::get(64, &context_));
-    case BEFAttributeType::kF16:
+    case BEFDataType::kF16:
       return mlir::TypeAttr::get(mlir::FloatType::getF16(&context_));
-    case BEFAttributeType::kF32:
+    case BEFDataType::kF32:
       return mlir::TypeAttr::get(mlir::FloatType::getF32(&context_));
-    case BEFAttributeType::kF64:
+    case BEFDataType::kF64:
       return mlir::TypeAttr::get(mlir::FloatType::getF64(&context_));
+    // TODO(chky): Add missing data type cases (eg. bool) here. Currently we
+    // don't have bool type in standard MLIR. Consider defining custom MLIR
+    // types for these in TFRT dialect and add the cases here.
     default:
       llvm_unreachable("unsupported type attribute.");
   }

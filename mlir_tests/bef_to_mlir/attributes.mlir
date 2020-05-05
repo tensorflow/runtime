@@ -93,15 +93,17 @@ func @aggregate.constant() -> i32 {
   hex.return %x : i32
 }
 
-// CHECK-LABEL: func @type.attribute() -> (i32, i32)
-func @type.attribute() -> (i32, i32) {
+// CHECK-LABEL: func @type.attribute() -> (i32, i32, i32)
+func @type.attribute() -> (i32, i32, i32) {
   // CHECK-NEXT: [[REG0:%.*]] = "get_width"() {value = i32} : () -> i32
   // CHECK-NEXT: [[REG1:%.*]] = "get_width"() {value = f64} : () -> i32
-  // CHECK-NEXT: hex.return [[REG0]], [[REG1]] : i32, i32
+  // CHECK-NEXT: [[REG2:%.*]] = "get_widths"() {value = [f64, f32]} : () -> i32
+  // CHECK-NEXT: hex.return [[REG0]], [[REG1]], [[REG2]] : i32, i32, i32
 
   %x = "get_width"() {value = i32} : () -> i32
   %y = "get_width"() {value = f64} : () -> i32
-  hex.return %x, %y : i32, i32
+  %z = "get_widths"() {value = [f64, f32]} : () -> i32
+  hex.return %x, %y, %z: i32, i32, i32
 }
 
 // CHECK-LABEL: func @dense_elements.constant() -> i32

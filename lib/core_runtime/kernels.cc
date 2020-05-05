@@ -217,7 +217,7 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
         case BEFAttributeType::kType: {
           auto type_attr = attr.cast<TypeAttr>();
           BEFAttributeType type = type_attr.GetValue();
-          assert(IsFixedAttribute(type));
+          assert(IsDataTypeAttribute(type));
           op_attrs.Set(key, GetOpAttrTypeFromBEFAttributeType(type));
           break;
         }

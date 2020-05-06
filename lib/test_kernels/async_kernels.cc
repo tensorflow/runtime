@@ -75,7 +75,7 @@ static void TestAsyncCopy2(Argument<int32_t> in, Result<int32_t> out,
 template <typename T>
 static AsyncValueRef<T> TestAsyncCopyWithDelay(Argument<T> in,
                                                HostContext* host) {
-  return host->EnqueueWork([in_ref = in.CopyRef()] {
+  return host->EnqueueWork([in_ref = in.ValueRef()] {
     SleepForRandomDuration();
     return in_ref.get();
   });
@@ -92,9 +92,9 @@ void RegisterAsyncKernels(KernelRegistry* registry) {
   registry->AddKernel("hex.async_copy.i32",
                       TFRT_KERNEL(TestAsyncCopy<int32_t>));
   registry->AddKernel("hex.async_copy.with_delay.i32",
-                      TFRT_KERNEL(TestAsyncCopy<int32_t>));
+                      TFRT_KERNEL(TestAsyncCopyWithDelay<int32_t>));
   registry->AddKernel("hex.async_copy.with_delay.i64",
-                      TFRT_KERNEL(TestAsyncCopy<int64_t>));
+                      TFRT_KERNEL(TestAsyncCopyWithDelay<int64_t>));
   registry->AddKernel("hex.async_copy_2.i32", TFRT_KERNEL(TestAsyncCopy2));
 }
 }  // namespace tfrt

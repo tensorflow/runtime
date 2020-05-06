@@ -55,10 +55,10 @@ class NonBlockingWorkQueue
   using Thread = typename Base::Thread;
   using PerThread = typename Base::PerThread;
   using ThreadData = typename Base::ThreadData;
-  using PendingTask = typename Base::PendingTask;
 
  public:
-  explicit NonBlockingWorkQueue(int num_threads);
+  explicit NonBlockingWorkQueue(QuiescingState* quiescing_state,
+                                int num_threads);
   ~NonBlockingWorkQueue() = default;
 
   void AddTask(TaskFunction task);
@@ -86,8 +86,8 @@ class NonBlockingWorkQueue
 
 template <typename ThreadingEnvironment>
 NonBlockingWorkQueue<ThreadingEnvironment>::NonBlockingWorkQueue(
-    int num_threads)
-    : WorkQueueBase<NonBlockingWorkQueue>(num_threads) {}
+    QuiescingState* quiescing_state, int num_threads)
+    : WorkQueueBase<NonBlockingWorkQueue>(quiescing_state, num_threads) {}
 
 template <typename ThreadingEnvironment>
 void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {

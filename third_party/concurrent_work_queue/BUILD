@@ -47,6 +47,21 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "cpp_tests/multi_threaded_work_queue_test",
+    srcs = [
+        "cpp_tests/multi_threaded_work_queue_test.cc",
+    ],
+    includes = ["lib"],
+    deps = [
+        ":concurrent_work_queue",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:support",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "cpp_tests/non_blocking_work_queue_test",
     srcs = ["cpp_tests/non_blocking_work_queue_test.cc"],
     includes = ["lib"],

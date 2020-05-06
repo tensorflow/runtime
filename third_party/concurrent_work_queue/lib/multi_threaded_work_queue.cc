@@ -47,6 +47,7 @@ class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
  private:
   const int num_threads_;
 
+  std::unique_ptr<internal::QuiescingState> quiescing_state_;
   internal::NonBlockingWorkQueue<ThreadingEnvironment> non_blocking_work_queue_;
   internal::BlockingWorkQueue<ThreadingEnvironment> blocking_work_queue_;
 };
@@ -54,8 +55,10 @@ class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
 MultiThreadedWorkQueue::MultiThreadedWorkQueue(
     int num_threads, int max_blocking_work_queue_threads)
     : num_threads_(num_threads),
-      non_blocking_work_queue_(num_threads),
-      blocking_work_queue_(max_blocking_work_queue_threads) {}
+      quiescing_state_(std::make_unique<internal::QuiescingState>()),
+      non_blocking_work_queue_(quiescing_state_.get(), num_threads),
+      blocking_work_queue_(quiescing_state_.get(),
+                           max_blocking_work_queue_threads) {}
 
 MultiThreadedWorkQueue::~MultiThreadedWorkQueue() {
   // Pending tasks in the underlying queues might submit new tasks to each other
@@ -78,8 +81,7 @@ Optional<TaskFunction> MultiThreadedWorkQueue::AddBlockingTask(
 
 void MultiThreadedWorkQueue::Quiesce() {
   // Turn on pending tasks counter inside both work queues.
-  auto quiescing_non_blocking = non_blocking_work_queue_.StartQuiescing();
-  auto quiescing_blocking = blocking_work_queue_.StartQuiescing();
+  auto quiescing = internal::Quiescing::Start(quiescing_state_.get());
 
   // We call NonBlockingWorkQueue::Quiesce() first because we prefer to keep
   // caller thread busy with compute intensive tasks.
@@ -91,8 +93,7 @@ void MultiThreadedWorkQueue::Quiesce() {
   // At this point we might still have tasks in the work queues, but because we
   // enabled quiescing mode earlier, we can rely on empty check as a loop
   // condition.
-  while (quiescing_non_blocking.HasPendingTasks() ||
-         quiescing_blocking.HasPendingTasks()) {
+  while (quiescing.HasPendingTasks()) {
     non_blocking_work_queue_.Quiesce();
     blocking_work_queue_.Quiesce();
   }

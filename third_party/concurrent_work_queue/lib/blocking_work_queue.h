@@ -47,11 +47,10 @@ class BlockingWorkQueue
   using Thread = typename Base::Thread;
   using PerThread = typename Base::PerThread;
   using ThreadData = typename Base::ThreadData;
-  using PendingTask = typename Base::PendingTask;
 
  public:
   explicit BlockingWorkQueue(
-      int num_threads,
+      QuiescingState* quiescing_state, int num_threads,
       int max_num_dynamic_threads = std::numeric_limits<int>::max(),
       std::chrono::nanoseconds idle_wait_time = std::chrono::seconds(1));
   ~BlockingWorkQueue() = default;
@@ -122,9 +121,9 @@ class BlockingWorkQueue
 
 template <typename ThreadingEnvironment>
 BlockingWorkQueue<ThreadingEnvironment>::BlockingWorkQueue(
-    int num_threads, int max_num_dynamic_threads,
-    std::chrono::nanoseconds idle_wait_time)
-    : WorkQueueBase<BlockingWorkQueue>(num_threads),
+    QuiescingState* quiescing_state, int num_threads,
+    int max_num_dynamic_threads, std::chrono::nanoseconds idle_wait_time)
+    : WorkQueueBase<BlockingWorkQueue>(quiescing_state, num_threads),
       max_num_dynamic_threads_(max_num_dynamic_threads),
       idle_wait_time_(idle_wait_time) {}
 

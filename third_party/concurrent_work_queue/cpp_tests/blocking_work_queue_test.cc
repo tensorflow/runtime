@@ -24,13 +24,15 @@ using ThreadingEnvironment = ::tfrt::internal::StdThreadingEnvironment;
 using WorkQueue = ::tfrt::internal::BlockingWorkQueue<ThreadingEnvironment>;
 
 TEST(BlockingWorkQueueTest, RejectRunBlockingTask) {
-  WorkQueue work_queue(2, 0);
+  auto quiescing_state = std::make_unique<internal::QuiescingState>();
+  WorkQueue work_queue(quiescing_state.get(), 2, 0);
   auto rejected = work_queue.RunBlockingTask({});
   ASSERT_TRUE(rejected.hasValue());
 }
 
 TEST(BlockingWorkQueueTest, RunBlockingTask) {
-  WorkQueue work_queue(2, 2);
+  auto quiescing_state = std::make_unique<internal::QuiescingState>();
+  WorkQueue work_queue(quiescing_state.get(), 2, 2);
 
   latch barrier(1);
   latch executed(2);
@@ -56,9 +58,10 @@ TEST(BlockingWorkQueueTest, RunBlockingTask) {
 }
 
 TEST(BlockingWorkQueueTest, Quiescing) {
-  WorkQueue work_queue(2, 2);
+  auto quiescing_state = std::make_unique<internal::QuiescingState>();
+  WorkQueue work_queue(quiescing_state.get(), 2, 2);
 
-  auto quiescing = work_queue.StartQuiescing();
+  auto quiescing = internal::Quiescing::Start(quiescing_state.get());
 
   latch barrier(1);
   latch executed(4);
@@ -151,8 +154,9 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
   static void BM_##FN##_tpool_##producer_threads##x##worker_threads( \
       benchmark::State& state) {                                     \
     BenchmarkUseRealTime();                                          \
-    WorkQueue producer(producer_threads);                            \
-    WorkQueue worker(worker_threads);                                \
+    auto qstate = std::make_unique<internal::QuiescingState>();      \
+    WorkQueue producer(qstate.get(), producer_threads);              \
+    WorkQueue worker(qstate.get(), worker_threads);                  \
     FN(producer, worker, state);                                     \
   }                                                                  \
   BENCHMARK(BM_##FN##_tpool_##producer_threads##x##worker_threads)

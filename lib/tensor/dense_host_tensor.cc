@@ -78,7 +78,7 @@ AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
 }
 
 void DenseHostTensor::Print(raw_ostream& os) const {
-  os << "DenseHostTensor dtype = " << dtype() << " shape = " << shape();
+  os << "DenseHostTensor dtype = " << dtype() << ", shape = " << shape();
 
   auto element_size = dtype().GetHostSize();
   auto* data_ptr = static_cast<const char*>(data());

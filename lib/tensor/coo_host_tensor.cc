@@ -108,7 +108,7 @@ AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
 
 void CooHostTensor::Print(raw_ostream &os) const {
   // Just dumps the flat values for now.
-  os << "CooHostTensor dtype = " << dtype() << " shape = " << shape();
+  os << "CooHostTensor dtype = " << dtype() << ", shape = " << shape();
   os << ", indices = [";
 
   llvm::interleaveComma(DHTIndexableView<int64_t, 2>(Indices()).Elements(), os);

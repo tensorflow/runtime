@@ -114,7 +114,7 @@ AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
 }
 
 void AnyScalarHostTensor::Print(raw_ostream& os) const {
-  os << "ScalarHostTensor dtype = " << dtype() << " shape = " << shape()
+  os << "ScalarHostTensor dtype = " << dtype() << ", shape = " << shape()
      << ", value = ";
   dtype().Print(data(), os);
 }

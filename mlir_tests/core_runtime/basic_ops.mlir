@@ -239,7 +239,7 @@ func @basic_executeop() -> !hex.chain {
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 3], values = [1 : i32] } : 1
 
-  // CHECK: DenseHostTensor dtype = I32 shape = [1, 3], values = [1, 1, 1]
+  // CHECK: DenseHostTensor dtype = I32, shape = [1, 3], values = [1, 1, 1]
   %ch3 = "corert.print_tensorhandle"(%a_handle, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
 
   %ch4, %b_handle = corert.executeop.seq(%cpu, %ch3)
@@ -264,7 +264,7 @@ func @test_async() -> !hex.chain {
   // CHECK: future TensorHandle with metadata I32 [2, 2]
   %ch3 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
 
-  // CHECK: ScalarHostTensor dtype = I32 shape = [2, 2], value = 1
+  // CHECK: ScalarHostTensor dtype = I32, shape = [2, 2], value = 1
   %op_ch4 = corert.executeop.seq(%cpu, %ch3) "tfrt_test.print"(%b_handle) : 0
 
   hex.return %op_ch4 : !hex.chain
@@ -324,8 +324,8 @@ func @test_side_effect() -> !hex.chain {
   // Print in the opposite order from resolving to make sure the prints get
   // sequenced correctly.
 
-  // CHECK: ScalarHostTensor dtype = I32 shape = [2, 2], value = 2
-  // CHECK: ScalarHostTensor dtype = I32 shape = [2, 2], value = 1
+  // CHECK: ScalarHostTensor dtype = I32, shape = [2, 2], value = 2
+  // CHECK: ScalarHostTensor dtype = I32, shape = [2, 2], value = 1
 
   %op_ch5 = corert.executeop.seq(%cpu, %ch4) "tfrt_test.print"(%c_handle) : 0
 

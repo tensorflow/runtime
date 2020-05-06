@@ -47,7 +47,7 @@ size_t ParallelFor::BlockSizes::GetBlockSize(size_t num_worker_threads,
   static constexpr size_t kMaxOversharding = 4;
 
   // Split input range to assign `kMaxOversharding` tasks to each worker thread.
-  assert(total_size >= 0 && "Illegal total size");
+  assert(total_size > 0 && "Illegal total size");
   size_t block_size = total_size / (kMaxOversharding * num_worker_threads);
 
   // Compute final block sizes using implementation function if it is specified.
@@ -139,11 +139,14 @@ class ParallelForExecutionContext {
 void ParallelFor::Execute(size_t total_size, const BlockSizes& block_sizes,
                           llvm::unique_function<void(size_t, size_t)> compute,
                           llvm::unique_function<void()> on_done) const {
+  // Immediately call `on_done` if nothing to execute.
+  if (total_size == 0) return on_done();
+
+  // Compute a parallel block size for the non-empty range [0, total_size).
   const size_t block_size =
       block_sizes.GetBlockSize(host_->GetNumWorkerThreads(), total_size);
-
-  assert(block_size >= 0 && "Illegal block size");
-  assert(block_size < total_size && "Illegal block size");
+  assert(block_size > 0 && "Illegal block size");
+  assert(block_size <= total_size && "Illegal block size");
 
   // Execute single block in the caller thread.
   if (total_size <= block_size) {

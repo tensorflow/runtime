@@ -222,13 +222,6 @@ class HostContext {
   void RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
                     llvm::unique_function<void()> callee);
 
-  // Calls `compute` in parallel for non-overlapping subranges [start, end) in
-  // the [0, n) range. When all subtasks completed, calls `on_done` callback.
-  void ParallelFor(size_t n,
-                   llvm::unique_function<void(size_t, size_t)> compute,
-                   llvm::unique_function<void()> on_done,
-                   size_t min_block_size = 1);
-
   //===--------------------------------------------------------------------===//
   // Shared context
   //===--------------------------------------------------------------------===//

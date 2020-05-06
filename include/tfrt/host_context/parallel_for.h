@@ -101,6 +101,9 @@ AsyncValueRef<R> ParallelFor::Execute(
     size_t total_size, const BlockSizes& block_sizes,
     llvm::unique_function<AsyncValueRef<T>(size_t, size_t)> compute,
     llvm::unique_function<R(ArrayRef<AsyncValueRef<T>>)> on_done) const {
+  // Immediately return the result of `on_done` if nothing to execute.
+  if (total_size == 0) return host_->MakeAvailableAsyncValueRef<R>(on_done({}));
+
   AsyncValueRef<R> result = host_->MakeUnconstructedAsyncValueRef<R>();
 
   using ComputeFn = llvm::unique_function<AsyncValueRef<T>(size_t, size_t)>;

@@ -24,6 +24,7 @@
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/parallel_for.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 
 namespace tfrt {
@@ -216,12 +217,12 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
   const size_t min_block_size =
       std::max(static_cast<size_t>(1), kMinPatchSize / image_patch_size);
 
-  host->ParallelFor(
-      num_outputs, std::move(compute),
+  ParallelFor(host).Execute(
+      num_outputs, ParallelFor::BlockSizes::Min(min_block_size),
+      std::move(compute),
       [chain = chain_out.Allocate(), frame = RAIIKernelFrame(*frame)]() {
         chain.emplace();
-      },
-      min_block_size);
+      });
 }
 
 }  // namespace compat

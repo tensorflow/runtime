@@ -27,6 +27,7 @@
 #include "tfrt/cpu/ops/test/cpu_ops_and_kernels.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/parallel_for.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ostream.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
@@ -214,12 +215,10 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly3Op(
     }
   };
 
-  // Add two dense tensors in parallel.
-  // TODO(tf-runtime-team): This just allows ParallelFor to pick a chunking
-  // strategy based on the parallelism level of the current workqueue.  It would
-  // be better to size this based on L1/L2 cache size or something like that.
-  host->ParallelFor(
-      lhs.NumElements(), std::move(add_impl),
+  // Add two dense tensors in parallel. This one is intentionally using min
+  // block size of 1 to trigger parallel block execution.
+  ParallelFor(host).Execute(
+      lhs.NumElements(), ParallelFor::BlockSizes::Min(1), std::move(add_impl),
       [dht = dht.CopyRef()]() mutable { dht.SetStateConcrete(); });
 
   return dht;

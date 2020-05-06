@@ -119,6 +119,15 @@ func @test_async_copy() -> i32 {
 }
 // CHECK: 'test_async_copy' returned 42
 
+// CHECK-LABEL: --- Running 'test_async_copy.with_delay'
+func @test_async_copy.with_delay() -> i32 {
+  %c42 = hex.constant.i32 42
+  %copy = "hex.async_copy.with_delay.i32"(%c42) : (i32) -> i32
+
+  hex.return %copy : i32
+}
+// CHECK: 'test_async_copy.with_delay' returned 42
+
 // CHECK-LABEL: --- Running 'test_async_copy_2'
 func @test_async_copy_2() -> i32 {
   %c43 = hex.constant.i32 43

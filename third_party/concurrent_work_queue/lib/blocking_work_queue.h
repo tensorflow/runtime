@@ -53,7 +53,7 @@ class BlockingWorkQueue
       QuiescingState* quiescing_state, int num_threads,
       int max_num_dynamic_threads = std::numeric_limits<int>::max(),
       std::chrono::nanoseconds idle_wait_time = std::chrono::seconds(1));
-  ~BlockingWorkQueue() = default;
+  ~BlockingWorkQueue() { Quiesce(); }
 
   // Enqueues `task` for execution by one of the statically allocated thread.
   // Return task wrapped in optional if all per-thread queues are full.

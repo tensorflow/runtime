@@ -218,7 +218,9 @@ class HostContext {
   // Run the specified function when the specified set of AsyncValue's are all
   // resolved.  This is a set-version of "AndThen".
   void RunWhenReady(ArrayRef<AsyncValue*> values,
-                    llvm::unique_function<void()>&& callee);
+                    llvm::unique_function<void()> callee);
+  void RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
+                    llvm::unique_function<void()> callee);
 
   // Calls `compute` in parallel for non-overlapping subranges [start, end) in
   // the [0, n) range. When all subtasks completed, calls `on_done` callback.

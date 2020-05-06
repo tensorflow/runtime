@@ -165,7 +165,7 @@ int HostContext::GetNumWorkerThreads() const {
 // Run the specified function when the specified set of AsyncValue's are all
 // resolved.  This is a set-version of "AndThen".
 void HostContext::RunWhenReady(ArrayRef<AsyncValue*> values,
-                               llvm::unique_function<void()>&& callee) {
+                               llvm::unique_function<void()> callee) {
   // Perform a quick scan of the arguments.  If they are all available, or if
   // any is already an error, then we can run the callee synchronously.
   SmallVector<AsyncValue*, 4> unavailable_values;
@@ -203,6 +203,16 @@ void HostContext::RunWhenReady(ArrayRef<AsyncValue*> values,
       delete data;
     });
   }
+}
+
+void HostContext::RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
+                               llvm::unique_function<void()> callee) {
+  auto mapped = llvm::map_range(
+      values, [](const RCReference<AsyncValue>& ref) -> AsyncValue* {
+        return ref.get();
+      });
+  SmallVector<AsyncValue*, 8> values_ptr(mapped.begin(), mapped.end());
+  RunWhenReady(values_ptr, std::move(callee));
 }
 
 namespace {

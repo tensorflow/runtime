@@ -103,12 +103,10 @@ Expected<CoreRuntimeOp> CompositeOpHandler::MakeOp(string_view op_name) {
   if (composite_op_it == composite_op_mappings_.end())
     return MakeStringError(op_name, " was not found in CompositeOpHandler");
 
-  auto* host = GetRuntime()->GetHostContext();
-
   return CoreRuntimeOp(
       [metadata_fn = composite_op_it->second.metadata_fn,
-       dispatch_fn = composite_op_it->second.dispatch_fn.CopyRef(),
-       host](const OpInvocation& invocation) {
+       dispatch_fn = composite_op_it->second.dispatch_fn.CopyRef()](
+          const OpInvocation& invocation) {
         FunctionOpEntry op_entry{.metadata_fn = metadata_fn,
                                  .dispatch_fn = dispatch_fn.CopyRef()};
         return ExecuteOnOpHandler<FunctionOpHandlerTraits>(

@@ -41,8 +41,8 @@ class TensorMetadata;
 // by emitting a diagnostic in the error case.
 
 using OpMetadataFn = RCReference<AsyncValue> (*)(
-    ArrayRef<TensorMetadata> inputs, const OpAttrsRef& attrs,
-    MutableArrayRef<TensorMetadata> results, const ExecutionContext& exec_ctx);
+    const ExecutionContext& exec_ctx, ArrayRef<TensorMetadata> inputs,
+    const OpAttrsRef& attrs, MutableArrayRef<TensorMetadata> results);
 }  // namespace tfrt
 
 #endif  // TFRT_CORE_RUNTIME_OP_METADATA_FUNCTION_H_

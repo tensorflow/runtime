@@ -74,8 +74,8 @@ MDFunctionExecResult ExecuteMetadataFunction(
   // TODO(tf-runtime-team): Remove this tracing tag when finished debugging
   // dispatch performance.
   TFRT_TRACE_SCOPE("RunMetadataFunction");
-  if (auto error = metadata_fn(argument_mds, invocation.attrs, result_mds,
-                               invocation.exec_ctx)) {
+  if (auto error = metadata_fn(invocation.exec_ctx, argument_mds,
+                               invocation.attrs, result_mds)) {
     // If the metadata function produced an error, propagate it.
     propagate_error(std::move(error));
     return MDFunctionExecResult::kError;
@@ -179,7 +179,7 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
         // function to get the result shapes.
         SmallVector<TensorMetadata, 4> result_mds(num_results);
         if (auto error =
-                metadata_fn(argument_mds, frozen_attrs, result_mds, exec_ctx)) {
+                metadata_fn(exec_ctx, argument_mds, frozen_attrs, result_mds)) {
           // If the metadata function produced an error, propagate it.
           return propagate_error(error.get());
         }

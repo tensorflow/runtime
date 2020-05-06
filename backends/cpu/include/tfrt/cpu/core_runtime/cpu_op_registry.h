@@ -56,12 +56,12 @@ class TensorMetadata;
 // TODO(b/154970304): Move ExecutionContext to be the first argument to keep all
 // input arguments before output arguments. We also want to establish a
 // convention of placing ExecutionContext as the first argument.
-using CpuDispatchFn = void (*)(HostContext* ctx, ArrayRef<AsyncValue*> inputs,
+using CpuDispatchFn = void (*)(const ExecutionContext& exec_ctx,
+                               HostContext* ctx, ArrayRef<AsyncValue*> inputs,
                                const OpAttrsRef& attrs,
                                ArrayRef<TensorMetadata> result_mds,
                                MutableArrayRef<RCReference<AsyncValue>> results,
-                               AsyncValueRef<Chain>* chain,
-                               const ExecutionContext& exec_ctx);
+                               AsyncValueRef<Chain>* chain);
 
 // CpuOpFlags allows customization points for ops that want to support
 // more exotic features.  The defaults are set to conservatively correct

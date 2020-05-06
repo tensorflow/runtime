@@ -105,10 +105,9 @@ struct MetadataFnImpl;
 
 template <typename ReturnT, typename... Args, ReturnT (*impl_fn)(Args...)>
 struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
-  static RCReference<AsyncValue> Invoke(ArrayRef<TensorMetadata> arguments,
-                                        const OpAttrsRef& attrs,
-                                        MutableArrayRef<TensorMetadata> results,
-                                        const ExecutionContext& exec_ctx) {
+  static RCReference<AsyncValue> Invoke(
+      const ExecutionContext& exec_ctx, ArrayRef<TensorMetadata> arguments,
+      const OpAttrsRef& attrs, MutableArrayRef<TensorMetadata> results) {
     return HandleReturn(
         MetadataFnCallHelper<Args...>::template Invoke<0, 0, false>(
             arguments, attrs, results, exec_ctx),
@@ -335,12 +334,11 @@ struct DispatchFnImpl;
 template <typename DeviceContext, typename Return, typename... Args,
           Return (*impl_fn)(Args...)>
 struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
-  static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
-                     const OpAttrsRef& attrs,
+  static void Invoke(const ExecutionContext& exec_ctx, DeviceContext* ctx,
+                     ArrayRef<AsyncValue*> arguments, const OpAttrsRef& attrs,
                      ArrayRef<TensorMetadata> result_mds,
                      MutableArrayRef<RCReference<AsyncValue>> results,
-                     AsyncValueRef<Chain>* chain,
-                     const ExecutionContext& exec_ctx) {
+                     AsyncValueRef<Chain>* chain) {
     DispatchFnCallHelper<true, Args...>::template Invoke<0, 0, 0, false, false>(
         ctx, arguments, attrs, result_mds, results, chain, exec_ctx);
   }

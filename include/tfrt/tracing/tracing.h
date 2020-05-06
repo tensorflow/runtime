@@ -121,16 +121,16 @@ class TracingApi {
     ::tfrt::internal::tracing::TracingApi::RecordActivity(__tracing_activity); \
   }
 
-#define TFRT_TRACE_KERNEL_SCOPE(id)                                           \
-  Optional<::tfrt::internal::tracing::TracingScope> __TFRT_TRACE_UNIQUE_NAME( \
-      __tracing_point){                                                       \
-      [&]() -> Optional<::tfrt::internal::tracing::TracingScope> {            \
-        if (::tfrt::internal::tracing::TracingApi::IsTracingOn()) {           \
-          return ::tfrt::internal::tracing::TracingScope(id);                 \
-        } else {                                                              \
-          return llvm::None;                                                  \
-        }                                                                     \
-      }()};
+#define TFRT_TRACE_KERNEL_SCOPE(id)                                            \
+  ::tfrt::Optional<::tfrt::internal::tracing::TracingScope>                    \
+      __TFRT_TRACE_UNIQUE_NAME(__tracing_point){                               \
+          [&]() -> ::tfrt::Optional<::tfrt::internal::tracing::TracingScope> { \
+            if (::tfrt::internal::tracing::TracingApi::IsTracingOn()) {        \
+              return ::tfrt::internal::tracing::TracingScope(id);              \
+            } else {                                                           \
+              return llvm::None;                                               \
+            }                                                                  \
+          }()};
 
 #define TFRT_TRACE_EVENT(id) TFRT_TRACE_KERNEL_EVENT(id)
 

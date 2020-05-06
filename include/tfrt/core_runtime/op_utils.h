@@ -334,6 +334,10 @@ struct DispatchFnImpl;
 template <typename DeviceContext, typename Return, typename... Args,
           Return (*impl_fn)(Args...)>
 struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
+  // Only add DeviceContext* in the dispatch function if DeviceContext is not
+  // HostContext.
+  template <typename T = DeviceContext,
+            std::enable_if_t<!std::is_same<T, HostContext>::value, int> = 0>
   static void Invoke(const ExecutionContext& exec_ctx, DeviceContext* ctx,
                      ArrayRef<AsyncValue*> arguments, const OpAttrsRef& attrs,
                      ArrayRef<TensorMetadata> result_mds,
@@ -341,6 +345,21 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                      AsyncValueRef<Chain>* chain) {
     DispatchFnCallHelper<true, Args...>::template Invoke<0, 0, 0, false, false>(
         ctx, arguments, attrs, result_mds, results, chain, exec_ctx);
+  }
+
+  // If DeviceContext is HostContext, avoid adding HostContext as an
+  // argument for the dispatch function, as HostContext is already available in
+  // ExecutionContext.
+  template <typename T = DeviceContext,
+            std::enable_if_t<std::is_same<T, HostContext>::value, int> = 0>
+  static void Invoke(const ExecutionContext& exec_ctx,
+                     ArrayRef<AsyncValue*> arguments, const OpAttrsRef& attrs,
+                     ArrayRef<TensorMetadata> result_mds,
+                     MutableArrayRef<RCReference<AsyncValue>> results,
+                     AsyncValueRef<Chain>* chain) {
+    DispatchFnCallHelper<true, Args...>::template Invoke<0, 0, 0, false, false>(
+        exec_ctx.host(), arguments, attrs, result_mds, results, chain,
+        exec_ctx);
   }
 
  protected:

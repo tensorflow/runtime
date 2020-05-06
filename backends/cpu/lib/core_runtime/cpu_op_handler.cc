@@ -89,8 +89,7 @@ struct CpuOpHandlerTraits {
                        MutableArrayRef<RCReference<AsyncValue>> results,
                        AsyncValueRef<Chain>* chain,
                        const ExecutionContext& exec_ctx) {
-    op_entry.dispatch_fn(exec_ctx, exec_ctx.host(), inputs, attrs, result_mds,
-                         results, chain);
+    op_entry.dispatch_fn(exec_ctx, inputs, attrs, result_mds, results, chain);
   }
 };
 

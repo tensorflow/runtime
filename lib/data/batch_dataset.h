@@ -33,7 +33,9 @@
 #include "tfrt/support/ref_count.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/support/template_util.h"
+#include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
+#include "tfrt/tensor/tensor_metadata.h"
 
 namespace tfrt {
 namespace data {
@@ -56,81 +58,203 @@ using DHTDataset = RepeatTypeHelperT<Dataset, N, DenseHostTensor>;
 template <size_t N>
 using DHTTuple = RepeatTypeHelperT<std::tuple, N, DenseHostTensor>;
 
-// Template for BatchDatasetHelper<T> where T is a scalar type. GetNext()
-// should return a 1-D DenseHostTensor of the batched scalar values.
-template <typename T>
-llvm::Expected<DenseHostTensor> BatchValues(ArrayRef<T> values,
-                                            HostAllocator* allocator) {
-  static_assert(std::is_scalar<T>::value, "T needs to be a scalar type");
-  // Construct a 1-D tensor as output.
-  ssize_t size = values.size();
-  TensorMetadata output_metadata(GetDType<T>(), {size});
+// Convert a vector of values into a tuple of the same values.
+template <std::size_t N>
+DHTTuple<N> MakeTuple(SmallVector<DenseHostTensor, 4>& values) {
+  assert(values.size() >= N);
 
-  auto output_dht =
-      DenseHostTensor::CreateUninitialized(output_metadata, allocator);
-  if (!output_dht) {
-    return MakeStringError("failed to create uninitialized tensor");
-  }
-  // Copy scalar values into the output tensor.
-  MutableDHTArrayView<T> output_dht_view(output_dht.getPointer());
-  std::copy(values.begin(), values.end(), output_dht_view.Elements().begin());
-
-  return std::move(*output_dht);
+  auto head_tuple = std::make_tuple(std::move(values[values.size() - N]));
+  auto tail_tuple = MakeTuple<N - 1U>(values);
+  return std::tuple_cat(std::move(head_tuple), std::move(tail_tuple));
 }
 
-// Template specialization for BatchDataset<DenseHostTensor>. GetNext() returns
-// a DenseHostTensor with +1 dimension. The current implementation copies data
-// of the batched tensors to construct a new tensor.
 template <>
-llvm::Expected<DenseHostTensor> BatchValues<DenseHostTensor>(
-    ArrayRef<DenseHostTensor> values, HostAllocator* allocator);
+inline std::tuple<> MakeTuple<0>(SmallVector<DenseHostTensor, 4>& values) {
+  return std::make_tuple();
+}
 
-template <std::size_t N, std::size_t Index, typename... T>
-struct TuplesToDHTsHelper {
-  // This method converts std::vector<std::tuple<T...>> into
-  // std::tuple<DenseHostTensor...>. The i'th element of the output tuple is a
-  // DenseHostTensor presenting batched value of i'th values of every input
-  // tuple.
-  static llvm::Expected<DHTTuple<N - Index>> Convert(
-      std::vector<std::tuple<T...>>& tuples, HostAllocator* allocator) {
-    using ElementT = typename std::tuple_element<Index, std::tuple<T...>>::type;
-    // Move 'Index'th value of every tuple into a vector.
-    std::vector<ElementT> values;
-    for (int i = 0, e = tuples.size(); i < e; i++) {
-      values.push_back(std::move(std::get<Index>(tuples[i])));
-    }
-    // Batch the vector of values into std::tuple<DenseHostTensor>.
-    auto dht = BatchValues<ElementT>(ArrayRef<ElementT>(values), allocator);
-    if (!dht) {
-      return dht.takeError();
-    }
-    auto head_tuple = std::make_tuple(std::move(*dht));
-    // Recursively convert the remaining values of tuples into
-    // std::tuple<DenseHostTensor...>.
-    auto tail_tuple =
-        TuplesToDHTsHelper<N, Index + 1U, T...>::Convert(tuples, allocator);
-    if (!tail_tuple) {
-      return tail_tuple.takeError();
-    }
-    // Concatenate the first_tuple with the tail_tuple.
-    return std::tuple_cat(std::move(head_tuple), std::move(*tail_tuple));
-  }
-};
+template <typename T>
+TensorMetadata GetMetadataFromValue(T& value) {
+  return TensorMetadata(GetDType<T>(), {});
+}
 
-// Base case for TuplesToDHTsHelper<N, Index, T...> where Index == N.
-template <std::size_t N, typename... T>
-struct TuplesToDHTsHelper<N, N, T...> {
-  static llvm::Expected<std::tuple<>> Convert(
-      std::vector<std::tuple<T...>>& tuples, HostAllocator* allocator) {
-    return std::make_tuple();
-  }
-};
+template <>
+inline TensorMetadata GetMetadataFromValue<DenseHostTensor>(
+    DenseHostTensor& value) {
+  return value.metadata();
+}
 
-// Convert std::vector<std::tuple<T...>> to std::tuple<DenseHostTensor...>
+// Given a tuple of values, return an array where the i-th element in the array
+// is the TensorMetadata of i-th element in the tuple.
+template <typename... T, size_t... I>
+static std::array<TensorMetadata, sizeof...(T)> GetMetadatasFromValuesHelper(
+    std::tuple<T...>& values, std::index_sequence<I...>) {
+  std::array<TensorMetadata, sizeof...(T)> tensor_metadatas;
+  // Use std::initializer_list to call GetMetadataFromValue(...) for every
+  // element in the tuple.
+  std::ignore = std::initializer_list<int>{
+      (tensor_metadatas[I] = GetMetadataFromValue(std::get<I>(values)), 0)...};
+
+  return tensor_metadatas;
+}
+
+// Once `value` is available, update `metadata` so that its i-th element
+// will be the TensorMetadata of the i-th element of `value`.
 template <typename... T>
-static llvm::Expected<DHTTuple<sizeof...(T)>> TuplesToDHTs(
-    std::vector<std::tuple<T...>>& tuples, HostAllocator* allocator) {
-  return TuplesToDHTsHelper<sizeof...(T), 0, T...>::Convert(tuples, allocator);
+void UpdateMetadataFromValue(
+    AsyncValueRef<std::tuple<T...>> value,
+    AsyncValueRef<std::array<TensorMetadata, sizeof...(T)>> metadata) {
+  value.AndThen([value = value.CopyRef(), metadata = metadata.CopyRef()] {
+    if (value.IsError()) {
+      metadata.SetError(value.GetError());
+      return;
+    }
+    auto metadata_value = GetMetadatasFromValuesHelper(
+        value.get(), std::make_index_sequence<sizeof...(T)>{});
+    metadata.emplace(std::move(metadata_value));
+  });
+}
+
+// Copy bytes of `src` to the index-th element of `dst`. This is useful to batch
+// multiple scalar values into a DenseHostTenor.
+template <typename T>
+void CopyDataHelper(T* src, DenseHostTensor* dst, int index) {
+  int data_size = sizeof(*src);
+  char* dst_ptr = static_cast<char*>(dst->data()) + index * data_size;
+  std::memcpy(dst_ptr, src, data_size);
+}
+
+// Copy bytes of `src` to the index-th element of `dst`. This is useful to batch
+// multiple DenseHostTensors into a DenseHostTenor.
+template <>
+inline void CopyDataHelper<DenseHostTensor>(DenseHostTensor* src,
+                                            DenseHostTensor* dst, int index) {
+  int data_size = src->DataSizeInBytes();
+  char* dst_ptr = static_cast<char*>(dst->data()) + index * data_size;
+  std::memcpy(dst_ptr, src->data(), data_size);
+}
+
+// Given two tuples `src` and `dst` of the same length, for every offset `i` in
+// the tuple, copy bytes of i-th element of `src` to the index-th element of
+// the i-th element of `dst`.
+template <typename... T, size_t... I>
+void CopyData(AsyncValueRef<std::tuple<T...>> src,
+              AsyncValueRef<DHTTuple<sizeof...(T)>> dst, int index,
+              std::index_sequence<I...>) {
+  // Use std::initializer_list to call CopyDataHelper(...) for every element
+  // in the tuples.
+  std::ignore = std::initializer_list<int>{
+      (CopyDataHelper(&std::get<I>(src.get()), &std::get<I>(dst.get()), index),
+       0)...};
+}
+
+struct CounterAndError {
+  explicit CounterAndError(uint32_t value) : counter(value) {}
+
+  std::atomic<uint32_t> counter;
+  std::atomic<AsyncValue*> error{nullptr};
+};
+
+// Given two tuples `value` and `temp_batched_value` of the same length,
+// once the `value` is available, for every offset `i` in the tuple, copy
+// bytes of i-th element of `value` to the `input_index`-th element of the
+// i-th element of `temp_batched_value`.
+// Decrement the counter in `counter_and_error` after the copy completes. If the
+// counter reaches zero, move `temp_batched_value` into `batched_value`.
+//
+// The metadata of `value` should equal `expected_metadata`.
+template <typename... T>
+void CopyInputToOutputBuffer(
+    AsyncValueRef<std::tuple<T...>> value,
+    AsyncValueRef<std::array<TensorMetadata, sizeof...(T)>> expected_metadata,
+    AsyncValueRef<DHTTuple<sizeof...(T)>> temp_batched_value,
+    AsyncValueRef<DHTTuple<sizeof...(T)>> batched_value, int input_index,
+    CounterAndError* counter_and_error, HostContext* host) {
+  assert(temp_batched_value.IsAvailable());
+  value.AndThen([value = value.CopyRef(),
+                 expected_metadata = std::move(expected_metadata),
+                 temp_batched_value = std::move(temp_batched_value),
+                 batched_value = std::move(batched_value), input_index,
+                 counter_and_error, host]() mutable {
+    if (value.IsError()) {
+      AsyncValue* expected_value = nullptr;
+      AsyncValue* error_value =
+          value.IsError() ? value.release() : temp_batched_value.release();
+      // Use memory_order_release for the success case so that error_value is
+      // visible to other threads when they load with memory_order_acquire. For
+      // the failure case, we do not care about expected_value, so we can use
+      // memory_order_relaxed.
+      if (!counter_and_error->error.compare_exchange_strong(
+              expected_value, error_value, std::memory_order_release,
+              std::memory_order_relaxed)) {
+        error_value->DropRef();
+      }
+    } else {
+      // Verify that the value's metadata equals the expected_metadata.
+      // IDEA(donglin): Do this check only in DEBUG mode.
+      auto metadata = host->template MakeUnconstructedAsyncValueRef<
+          std::array<TensorMetadata, sizeof...(T)>>();
+      UpdateMetadataFromValue<T...>(value.CopyRef(), metadata.CopyRef());
+      for (int i = 0; i < sizeof...(T); i++) {
+        assert(metadata.get()[i] == expected_metadata.get()[i] &&
+               "value's metadata should equal the expected metadata");
+      }
+      CopyData(std::move(value), temp_batched_value.CopyRef(), input_index,
+               std::make_index_sequence<sizeof...(T)>{});
+    }
+    if (counter_and_error->counter.fetch_sub(1) == 1) {
+      // Use memory_order_consume so that writes to this atomic variable from
+      // other threads are visible to this thread.
+      auto* error_value =
+          counter_and_error->error.load(std::memory_order_consume);
+      if (error_value != nullptr) {
+        batched_value.SetError(error_value->GetError());
+        error_value->DropRef();
+      } else {
+        batched_value.emplace(std::move(temp_batched_value.get()));
+      }
+      delete counter_and_error;
+    }
+  });
+}
+
+// Allocate a std::tuple<DenseHotTensor, ...>. The DType of the i-th element of
+// the tuple should be same as the i-th element of `metadata`. The shape of the
+// i-th element of the tuple should
+// be `batch_size` X `shape_of_i_th_element_of_metadatas`.
+template <typename... T>
+AsyncValueRef<DHTTuple<sizeof...(T)>> AllocateOutputBuffer(
+    AsyncValueRef<std::array<TensorMetadata, sizeof...(T)>> metadata,
+    int32_t batch_size, const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  auto result =
+      host->template MakeUnconstructedAsyncValueRef<DHTTuple<sizeof...(T)>>();
+  metadata.AndThen([metadata = metadata.CopyRef(), result = result.CopyRef(),
+                    batch_size, host, exec_ctx]() mutable {
+    if (metadata.IsError()) {
+      result.SetError(metadata.GetError());
+      return;
+    }
+    SmallVector<DenseHostTensor, 4> tensors;
+    for (auto& element_metadata : metadata.get()) {
+      SmallVector<ssize_t, 4> output_dims;
+      output_dims.resize(element_metadata.shape.GetRank() + 1);
+      output_dims[0] = batch_size;
+      for (int i = 1; i < output_dims.size(); ++i) {
+        output_dims[i] = element_metadata.shape.GetDimensionSize(i - 1);
+      }
+      TensorMetadata batched_metadata(element_metadata.dtype, output_dims);
+      auto dht = DenseHostTensor::CreateUninitialized(batched_metadata, host);
+      if (!dht) {
+        result.SetError(
+            EmitError(exec_ctx, "failed to create uninitialized tensor"));
+        return;
+      }
+      tensors.push_back(std::move(*dht));
+    }
+    result.emplace(MakeTuple<sizeof...(T)>(tensors));
+  });
+  return result;
 }
 
 // BatchDataset wraps around another Dataset instance and batches the underlying
@@ -199,56 +323,65 @@ RCReference<DHTIterator<sizeof...(T)>> BatchDataset<T...>::MakeIterator() {
   return TakeRef(host_->Construct<BatchDatasetIterator<T...>>(FormRef(this)));
 }
 
+// IDEA(donglin): Consider scheduling the batch operation to the background
+// threadpool explicitly. This can prevent GetNext() from doing memory copy
+// synchronously regardless of whether the input values are available.
 template <typename... T>
 AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
     const ExecutionContext& exec_ctx) {
-  llvm::SmallVector<RCReference<AsyncValue>, 4> async_values;
+  auto* host = exec_ctx.host();
+  llvm::SmallVector<AsyncValueRef<std::tuple<T...>>, 4> values;
   // Get up to batch_size values from the underlying iterator.
-  for (int i = 0; i < parent_dataset_->batch_size_; i++) {
-    auto async_value = input_iterator_->GetNext(exec_ctx);
-    if (!async_value) {
+  for (int i = 0; i < parent_dataset_->batch_size_; ++i) {
+    auto value = input_iterator_->GetNext(exec_ctx);
+    if (!value) {
       break;
     }
-    if (async_value.IsError()) {
-      return AsyncValueRef<DHTTuple<sizeof...(T)>>(async_value.ReleaseRCRef());
+    if (value.IsError()) {
+      return AsyncValueRef<DHTTuple<sizeof...(T)>>(value.ReleaseRCRef());
     }
-    async_values.push_back(async_value.ReleaseRCRef());
+    values.push_back(std::move(value));
   }
-  if (async_values.empty()) {
+  if (values.empty()) {
     return AsyncValueRef<DHTTuple<sizeof...(T)>>();
   }
+  // Metadata of the values of the same batch must be the same. We verify this
+  // at runtime in CopyInputToOutputBuffer(...). But metadata may be different
+  // between different batches. So we have to re-compute metadata for every
+  // batch to support all use-cases.
+  auto metadata = host->template MakeUnconstructedAsyncValueRef<
+      std::array<TensorMetadata, sizeof...(T)>>();
+  UpdateMetadataFromValue<T...>(values[0].CopyRef(), metadata.CopyRef());
 
-  SmallVector<AsyncValue*, 4> async_value_ptrs;
-  // Translate RCReference<AsyncValue> to AsyncValue*.
-  for (auto& async_value : async_values) {
-    async_value_ptrs.push_back(async_value.get());
-  }
-  auto async_result =
-      exec_ctx.host()
-          ->template MakeUnconstructedAsyncValueRef<DHTTuple<sizeof...(T)>>();
-  exec_ctx.host()->RunWhenReady(
-      async_value_ptrs, [exec_ctx, async_values = std::move(async_values),
-                         async_result = async_result.CopyRef(),
-                         parent_dataset = parent_dataset_.CopyRef()] {
-        std::vector<std::tuple<T...>> values;
-        values.reserve(parent_dataset->batch_size_);
-        for (auto& async_value : async_values) {
-          if (async_value->IsError()) {
-            async_result.SetError(async_value->GetError());
-            return;
-          }
-          auto& value = async_value->get<std::tuple<T...>>();
-          values.push_back(std::move(value));
-        }
-        auto result = TuplesToDHTs<T...>(values, parent_dataset->allocator_);
-        if (!result) {
-          async_result.SetError(EmitError(exec_ctx, result.takeError()));
+  // Schedule tasks to run map function for each input tensor and copy the
+  // function output to the temp_batched_value. After all data is copied to
+  // temp_batched_value, move temp_batched_value to batched_value into
+  // batched_value and make batched_value available.
+  auto temp_batched_value =
+      AllocateOutputBuffer<T...>(metadata.CopyRef(), values.size(), exec_ctx);
+  auto batched_value =
+      host->template MakeUnconstructedAsyncValueRef<DHTTuple<sizeof...(T)>>();
+
+  // Schedule a task to copy data from values to the temp_batched_value.
+  temp_batched_value.AndThen(
+      [values = std::move(values), metadata = std::move(metadata),
+       temp_batched_value = temp_batched_value.CopyRef(),
+       batched_value = batched_value.CopyRef(), host]() mutable {
+        if (temp_batched_value.IsError()) {
+          batched_value.SetError(temp_batched_value.GetError());
           return;
         }
-        async_result.emplace(std::move(*result));
+        // counter_and_error is used to keep track of 1) the count of remaining
+        // values that have not been computed and 2) first error from any value.
+        auto* counter_and_error = new CounterAndError(values.size());
+        for (int idx = 0; idx < values.size(); ++idx) {
+          CopyInputToOutputBuffer(std::move(values[idx]), metadata.CopyRef(),
+                                  temp_batched_value.CopyRef(),
+                                  batched_value.CopyRef(), idx,
+                                  counter_and_error, host);
+        }
       });
-
-  return std::move(async_result);
+  return batched_value;
 }
 
 }  // namespace data

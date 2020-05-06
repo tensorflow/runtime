@@ -600,7 +600,6 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "data",
     srcs = [
-        "lib/data/batch_dataset.cc",
         "lib/data/batch_dataset.h",
         "lib/data/data_kernels.cc",
         "lib/data/dataset.h",

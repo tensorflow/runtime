@@ -113,9 +113,6 @@ void CoreRuntime::Impl::Execute(string_view op_name, OpHandler* op_handler,
                                 const OpAttrsRef& attrs,
                                 MutableArrayRef<TensorHandle> results,
                                 AsyncValueRef<Chain>* chain) {
-  TFRT_TRACE_KERNEL_SCOPE(
-      StrCat(op_name, "#op_handler=", op_handler->GetName()));
-
   ExecutionContext exec_ctx{GetHostContext()};
   exec_ctx.set_location(loc);
 
@@ -281,7 +278,22 @@ void CoreRuntime::Execute(string_view op_name, OpHandler* op_handler,
 
 Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
                                             OpHandler* op_handler) {
+#ifdef NO_TFRT_TRACING
   return op_handler->MakeOp(op_name);
+#else  // NO_TFRT_TRACING is not set.
+  auto op = op_handler->MakeOp(op_name);
+  if (!op) return op;
+  bool is_fallback = op->IsFallback();
+  // TODO(b/155801998): Avoid this string copy.
+  return CoreRuntimeOp(
+      [op_name = op_name.str(), op = std::move(op.get()),
+       op_handler](const OpInvocation& invocation) mutable {
+        TFRT_TRACE_KERNEL_SCOPE(
+            StrCat(op_name, "#op_handler=", op_handler->GetName()));
+        op(invocation);
+      },
+      is_fallback);
+#endif
 }
 
 }  // namespace tfrt

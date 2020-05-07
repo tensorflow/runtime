@@ -128,8 +128,6 @@ TEST(ParallelForTest, ExecuteNestedParallelism) {
 
   ASSERT_EQ(ranges.size(), 4);
   ASSERT_EQ(ranges, expected);
-
-  host->Quiesce();
 }
 
 }  // namespace tfrt

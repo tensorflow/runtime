@@ -54,6 +54,8 @@ HostContext::HostContext(
 }
 
 HostContext::~HostContext() {
+  // Wait for the completion of all async tasks managed by this host context.
+  Quiesce();
   // We need to free the ready chain AsyncValue first, as the destructor of the
   // AsyncValue calls the HostContext to free its memory.
   ready_chain_.reset();

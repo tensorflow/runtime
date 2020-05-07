@@ -129,31 +129,36 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
     auto async_result = exec_ctx.host()
                             ->template MakeUnconstructedAsyncValueRef<
                                 std::tuple<OutputTypes...>>();
-    // IDEA(donglin): We can optimize performance for small tasks by not
-    // enqueuing small tasks to the threadpool. We need a way to identify small
-    // tasks.
-    //
-    // Enqueue the map function to the threadpool to improve performance by
-    // running the map function in parallel. An alternative approach to increase
-    // parallelism is to compose map function with async kernels. This
-    // alternative approach likely incurs higher thread context switch overhead
-    // because different async kernels may be run by different threads.
-    exec_ctx.host()->EnqueueWork([host = exec_ctx.host(),
-                                  map_fn = FormRef(map_fn),
-                                  additional_fn_args =
-                                      std::move(additional_fn_args),
-                                  args = std::move(args),
-                                  async_result =
-                                      async_result.CopyRef()]() mutable {
-      // IDEA(donglin): We can optimize performance by constructing a view of
-      // AsyncValue<T> from AsyncValue<std::tuple<T>> without moving data.
-      args.AndThen([host, map_fn = map_fn.CopyRef(),
-                    additional_fn_args = std::move(additional_fn_args),
-                    args = args.CopyRef(),
-                    async_result = async_result.CopyRef()]() {
-        if (args.IsError()) {
-          async_result.SetError(args.GetError());
-        }
+    // IDEA(donglin): We can optimize performance by constructing a view of
+    // AsyncValue<T> from AsyncValue<std::tuple<T>> without moving data.
+    args.AndThen([host = exec_ctx.host(), map_fn = FormRef(map_fn),
+                  additional_fn_args = std::move(additional_fn_args),
+                  args = args.CopyRef(),
+                  async_result = async_result.CopyRef()]() mutable {
+      if (args.IsError()) {
+        async_result.SetError(args.GetError());
+        return;
+      }
+      // IDEA(donglin): We can optimize performance for small tasks by not
+      // enqueuing small tasks to the threadpool. We need a way to identify
+      // small tasks.
+      //
+      // Enqueue the map function to the threadpool to improve performance by
+      // running the map function in parallel. An alternative approach to
+      // increase parallelism is to compose map function with async kernels.
+      // This alternative approach likely incurs higher thread context switch
+      // overhead because different async kernels may be run by different
+      // threads.
+      //
+      // NOTE: We need to enqueue work after the args are available. If we
+      // enqueue work before the args is available, according to the
+      // AndThen(...) API semantics, a thread from the blocking threadpool might
+      // run the map function if the args is computed by a thread in the
+      // blocking threadpool.
+      host->EnqueueWork([host, map_fn = map_fn.CopyRef(),
+                         additional_fn_args = std::move(additional_fn_args),
+                         args = std::move(args),
+                         async_result = async_result.CopyRef()]() {
         // Construct arguments for function execution. The arguments consist of
         // the 'additional_fn_args' from the MapDataset constructor, followed by
         // the values from the underlying iterator.

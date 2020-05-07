@@ -30,7 +30,7 @@ namespace {
 TEST(ConcurrentVectorTest, SingleThreaded) {
   tfrt::ConcurrentVector<int> vec(1);
 
-  constexpr int kCount = 100;
+  constexpr int kCount = 1000;
 
   for (int i = 0; i < kCount; ++i) {
     ASSERT_EQ(i, vec.emplace_back(i));
@@ -44,19 +44,17 @@ TEST(ConcurrentVectorTest, SingleThreaded) {
 TEST(ConcurrentVectorTest, OneWriterOneReader) {
   tfrt::ConcurrentVector<int> vec(1);
 
-  std::atomic<int> cur_count{0};
-  constexpr int kCount = 100;
+  constexpr int kCount = 1000;
 
   std::thread writer([&] {
     for (int i = 0; i < kCount; ++i) {
       ASSERT_EQ(i, vec.emplace_back(i));
-      ++cur_count;
     }
   });
 
   std::thread reader([&] {
     for (int i = 0; i < kCount; ++i) {
-      while (i >= cur_count)
+      while (i >= vec.size())
         ;
       EXPECT_EQ(i, vec[i]);
     }
@@ -69,14 +67,12 @@ TEST(ConcurrentVectorTest, OneWriterOneReader) {
 TEST(ConcurrentVectorTest, TwoWritersTwoReaders) {
   tfrt::ConcurrentVector<int> vec(1);
 
-  std::atomic<int> cur_count{0};
-  constexpr int kCount = 100;
+  constexpr int kCount = 1000;
 
   // Each writer stores from 0 to kCount/2 - 1 to the vector.
   auto writer = [&] {
     for (int i = 0; i < kCount / 2; ++i) {
       vec.emplace_back(i);
-      ++cur_count;
     }
   };
 
@@ -87,7 +83,7 @@ TEST(ConcurrentVectorTest, TwoWritersTwoReaders) {
   auto reader = [&] {
     std::vector<int> stored;
     for (int i = 0; i < kCount; ++i) {
-      while (i >= cur_count)
+      while (i >= vec.size())
         ;
       stored.emplace_back(vec[i]);
     }

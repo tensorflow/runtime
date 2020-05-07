@@ -26,8 +26,10 @@
 #include <atomic>
 #include <cassert>
 #include <memory>
-#include <mutex>
 #include <vector>
+
+#include "mutex.h"
+#include "thread_annotations.h"
 
 namespace tfrt {
 
@@ -60,39 +62,33 @@ template <typename T>
 class ConcurrentVector {
  public:
   // Initialize the vector with the given initial_capapcity
-  explicit ConcurrentVector(size_t initial_capacity) {
+  explicit ConcurrentVector(size_t initial_capacity) : state_(0ull) {
+    // ConcurrentVector does not support inserting more than 2^64 elements,
+    // which should be more than enough for any reasonable use case.
+    all_allocated_elements_.reserve(65);
     all_allocated_elements_.emplace_back();
     auto& v = all_allocated_elements_.back();
-    v.reserve(initial_capacity);
-    elements_ = v.data();
+    v.reserve(std::max(static_cast<size_t>(1), initial_capacity));
   }
 
   T& operator[](size_t index) {
-    assert(index < size() && "invalid ConcurrentVector index");
-    // This acquire fence synchronizes with the release fence in emplace_back to
-    // ensure the reader sees consistent data.
-    T* elements = elements_.load(std::memory_order_relaxed);
-
-    std::atomic_thread_fence(std::memory_order_acquire);
-
-    return elements[index];
+    auto state = State::Decode(state_.load(std::memory_order_acquire));
+    assert(index < state.size);
+    return all_allocated_elements_[state.last_allocated][index];
   }
 
   const T& operator[](size_t index) const {
-    assert(index < size() && "invalid ConcurrentVector index");
-    T* elements = elements_.load(std::memory_order_relaxed);
-
-    // This acquire fence synchronizes with the release fence in emplace_back to
-    // ensure the reader sees consistent data.
-    std::atomic_thread_fence(std::memory_order_acquire);
-
-    return elements[index];
+    auto state = State::Decode(state_.load(std::memory_order_acquire));
+    assert(index < state.size);
+    return all_allocated_elements_[state.last_allocated][index];
   }
 
   // Return the number of elements currently valid in this vector.  The vector
   // only grows, so this is conservative w.r.t. the execution of the current
   // thread.
-  size_t size() const { return num_elements_; }
+  size_t size() const {
+    return State::Decode(state_.load(std::memory_order_relaxed)).size;
+  }
 
   // Insert a new element at the end. If the current buffer is full, we allocate
   // a new buffer with twice as much capacity and copy the items in the
@@ -101,7 +97,7 @@ class ConcurrentVector {
   // Returns the index of the newly inserted item.
   template <typename... Args>
   size_t emplace_back(Args&&... args) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    mutex_lock lock(mutex_);
 
     auto& last = all_allocated_elements_.back();
 
@@ -110,21 +106,13 @@ class ConcurrentVector {
       // add the new element there.
       last.emplace_back(std::forward<Args>(args)...);
 
-      // Increment the number of elements.
-      num_elements_.fetch_add(1);
+      // Increment the size of the concurrent vector.
+      auto state = State::Decode(state_.load(std::memory_order_relaxed));
+      state.size += 1;
+      state_.store(state.Encode(), std::memory_order_release);
 
-      // This release fence synchronizes with the acquire fence in operator[] to
-      // ensure the reader sees consistent data.
-      //
-      // We assume that the index returned here will be propagated to the
-      // reading thread using a relaxed atomic store/load or stronger.  This
-      // relaxed atomic load/store pair along with the the release/acquire fence
-      // will establish a synchronizes with relationship.
-      std::atomic_thread_fence(std::memory_order_release);
-
-      return last.size() - 1;
+      return state.size - 1;  // return insertion index
     }
-
     // There is no more room in the current vector without reallocation.
     // Allocate a new vector with twice as much capacity, copy the elements
     // from the previous vector, and set elements_ to point to the data of the
@@ -137,34 +125,44 @@ class ConcurrentVector {
 
     // Copy over the previous vector to the new vector.
     new_last.insert(new_last.begin(), prev.begin(), prev.end());
-
     new_last.emplace_back(std::forward<Args>(args)...);
 
-    // This release fence synchronizes with the acquire fence in operator[] to
-    // ensure the reader sees consistent data.
-    //
-    // The release fence should be before elements_.store() line below to ensure
-    // that if the reader sees the new value for elements_, they also see the
-    // store operations for the data.
-    std::atomic_thread_fence(std::memory_order_release);
+    // Increment the size of the concurrent vector and index of the last
+    // allocated vector.
+    auto state = State::Decode(state_.load(std::memory_order_relaxed));
+    state.last_allocated += 1;
+    state.size += 1;
+    state_.store(state.Encode(), std::memory_order_release);
 
-    elements_.store(new_last.data(), std::memory_order_relaxed);
-
-    // Increment the number of elements.
-    num_elements_.fetch_add(1);
-
-    return new_last.size() - 1;
+    return state.size - 1;  // return insertion index
   }
 
  private:
-  // pointing to the data of the last vector allocated.
-  std::atomic<T*> elements_{nullptr};
+  // Concurrent vector state layout:
+  // - Low 32 bits encode the index of the last allocated vector.
+  // - High 32 bits encode the size of the concurrent vector.
+  static constexpr uint64_t kLastAllocatedMask = (1ull << 32) - 1;
+  static constexpr uint64_t kSizeMask = ((1ull << 32) - 1) << 32;
 
-  // Return the current number of valid elements.
-  std::atomic<size_t> num_elements_{0};
+  struct State {
+    uint64_t last_allocated;  // index of last allocated vector
+    uint64_t size;            // size of the concurrent vector
 
-  std::mutex mutex_;
-  std::vector<std::vector<T>> all_allocated_elements_;
+    static State Decode(uint64_t state) {
+      uint64_t last_allocated = (state & kLastAllocatedMask);
+      uint64_t size = (state & kSizeMask) >> 32;
+      return {last_allocated, size};
+    }
+
+    uint64_t Encode() const { return (size << 32) | last_allocated; }
+  };
+
+  // Stores/loads to/from this atomic used to enforce happens-before
+  // relationship between emplace_back and operator[].
+  std::atomic<uint64_t> state_;
+
+  mutex mutex_;
+  std::vector<std::vector<T>> all_allocated_elements_ TFRT_GUARDED_BY(mutex_);
 };
 
 }  // namespace tfrt

@@ -142,13 +142,7 @@ class TaskQueue {
         continue;
       }
 
-      // Check if front index wrapped around.
-      if (front >= back) {
-        return std::min(kCapacity, front - back);
-      } else {
-        return std::min(kCapacity,
-                        (std::numeric_limits<unsigned>::max() - back) + front);
-      }
+      return std::min(kCapacity, front - back);
     }
   }
 

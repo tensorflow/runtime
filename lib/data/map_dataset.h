@@ -101,37 +101,23 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
   RCReference<const Function> map_fn_;
 };
 
-template <typename... InputTypes, typename... OutputTypes>
-class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
-    : public Iterator<OutputTypes...> {
- public:
-  explicit MapDatasetIterator(
-      RCReference<
-          MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
-          parent_dataset)
-      : Iterator<OutputTypes...>(),
-        parent_dataset_(std::move(parent_dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
-
-  AsyncValueRef<std::tuple<OutputTypes...>> GetNext(
-      const ExecutionContext& exec_ctx) override {
-    const Function* map_fn = parent_dataset_->map_fn_.get();
-    // IDEA(donglin): consider extending RCArray to support CopyRef() without
-    // doing shallow copy.
-    auto additional_fn_args = parent_dataset_->additional_fn_args_.CopyRef();
-    auto args = input_iterator_->GetNext(exec_ctx);
+// Computes and returns map_fn(additional_fn_args, args).
+template <typename... InputTypes>
+struct FunctionWrapper {
+  template <typename... OutputTypes>
+  static AsyncValueRef<std::tuple<OutputTypes...>> GetOutput(
+      const Function* map_fn, RCArray<AsyncValue> additional_fn_args,
+      AsyncValueRef<std::tuple<InputTypes...>> args,
+      const ExecutionContext& exec_ctx) {
     if (!args) {
       return AsyncValueRef<std::tuple<OutputTypes...>>();
     }
-    if (args.IsError()) {
-      return AsyncValueRef<std::tuple<OutputTypes...>>(args.ReleaseRCRef());
-    }
-    auto async_result = exec_ctx.host()
-                            ->template MakeUnconstructedAsyncValueRef<
-                                std::tuple<OutputTypes...>>();
+    auto* host = exec_ctx.host();
+    auto async_result = host->template MakeUnconstructedAsyncValueRef<
+        std::tuple<OutputTypes...>>();
     // IDEA(donglin): We can optimize performance by constructing a view of
     // AsyncValue<T> from AsyncValue<std::tuple<T>> without moving data.
-    args.AndThen([host = exec_ctx.host(), map_fn = FormRef(map_fn),
+    args.AndThen([host, map_fn = FormRef(map_fn),
                   additional_fn_args = std::move(additional_fn_args),
                   args = args.CopyRef(),
                   async_result = async_result.CopyRef()]() mutable {
@@ -155,10 +141,10 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
       // AndThen(...) API semantics, a thread from the blocking threadpool might
       // run the map function if the args is computed by a thread in the
       // blocking threadpool.
-      host->EnqueueWork([host, map_fn = map_fn.CopyRef(),
+      host->EnqueueWork([host, map_fn = std::move(map_fn),
                          additional_fn_args = std::move(additional_fn_args),
                          args = std::move(args),
-                         async_result = async_result.CopyRef()]() {
+                         async_result = std::move(async_result)]() {
         // Construct arguments for function execution. The arguments consist of
         // the 'additional_fn_args' from the MapDataset constructor, followed by
         // the values from the underlying iterator.
@@ -169,7 +155,6 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
         auto arg = host->template MakeAvailableAsyncValueRef<InputTypes...>(
             std::move(std::get<0>(args.get())));
         arguments.push_back(arg.GetAsyncValue());
-
         SmallVector<RCReference<AsyncValue>, sizeof...(OutputTypes)> results;
         results.resize(map_fn->result_types().size());
         map_fn->Execute(arguments, results, host);
@@ -199,6 +184,30 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
       });
     });
     return async_result;
+  }
+};
+
+template <typename... InputTypes, typename... OutputTypes>
+class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
+    : public Iterator<OutputTypes...> {
+ public:
+  explicit MapDatasetIterator(
+      RCReference<
+          MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
+          parent_dataset)
+      : Iterator<OutputTypes...>(),
+        parent_dataset_(std::move(parent_dataset)),
+        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
+
+  AsyncValueRef<std::tuple<OutputTypes...>> GetNext(
+      const ExecutionContext& exec_ctx) override {
+    auto input = input_iterator_->GetNext(exec_ctx);
+    const Function* map_fn = parent_dataset_->map_fn_.get();
+    // IDEA(donglin): consider extending RCArray to support CopyRef() without
+    // doing shallow copy.
+    auto additional_fn_args = parent_dataset_->additional_fn_args_.CopyRef();
+    return FunctionWrapper<InputTypes...>::template GetOutput<OutputTypes...>(
+        map_fn, std::move(additional_fn_args), std::move(input), exec_ctx);
   }
 
  private:

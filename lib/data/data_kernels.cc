@@ -92,9 +92,9 @@ RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
     RCReference<Dataset<T>>* dataset, RemainingArguments args,
     Attribute<Function> fn, HostContext* host) {
   assert((args.size() + 1 == fn->argument_types().size()) &&
-         "MapDataset only supports input dataset with unary output.");
+         "The function inputs do not match the dataset input types.");
   assert(fn->result_types().size() == sizeof...(U) &&
-         "Map function output size does not match expexcted.");
+         "The function outputs do not match the dataset output types.");
 
   return TakeRef(host->Construct<MapDataset<std::tuple<T>, std::tuple<U...>>>(
       (*dataset).CopyRef(), RCArray<AsyncValue>(args.values()),
@@ -148,14 +148,12 @@ RCReference<RepeatDataset<T...>> MakeRepeatDataset(
 // BatchDataset
 //===----------------------------------------------------------------------===//
 
-// IDEA(donglin): Specify batch_size as Int32Attribute when TFRT infra supports
-// it.
 template <typename... T>
 RCReference<BatchDataset<T...>> MakeBatchDataset(
     RCReference<Dataset<T...>>* dataset, Attribute<int32_t> batch_size,
-    HostContext* host) {
-  return TakeRef(host->Construct<BatchDataset<T...>>((*dataset).CopyRef(),
-                                                     batch_size.get(), host));
+    Attribute<bool> same_input_metadata, HostContext* host) {
+  return TakeRef(host->Construct<BatchDataset<T...>>(
+      (*dataset).CopyRef(), batch_size.get(), same_input_metadata.get(), host));
 }
 
 //===----------------------------------------------------------------------===//

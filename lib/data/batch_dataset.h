@@ -102,8 +102,8 @@ static std::array<TensorMetadata, sizeof...(T)> GetMetadatasFromValuesHelper(
 // will be the TensorMetadata of the i-th element of `value`.
 template <typename... T>
 void UpdateMetadataFromValue(
-    AsyncValueRef<std::tuple<T...>> value,
-    AsyncValueRef<std::array<TensorMetadata, sizeof...(T)>> metadata) {
+    const AsyncValueRef<std::tuple<T...>>& value,
+    const AsyncValueRef<std::array<TensorMetadata, sizeof...(T)>>& metadata) {
   value.AndThen([value = value.CopyRef(), metadata = metadata.CopyRef()] {
     if (value.IsError()) {
       metadata.SetError(value.GetError());
@@ -194,7 +194,7 @@ void CopyInputToOutputBuffer(
       // IDEA(donglin): Do this check only in DEBUG mode.
       auto metadata = host->template MakeUnconstructedAsyncValueRef<
           std::array<TensorMetadata, sizeof...(T)>>();
-      UpdateMetadataFromValue<T...>(value.CopyRef(), metadata.CopyRef());
+      UpdateMetadataFromValue<T...>(value, metadata);
       for (int i = 0; i < sizeof...(T); i++) {
         assert(metadata.get()[i] == expected_metadata.get()[i] &&
                "value's metadata should equal the expected metadata");
@@ -266,10 +266,14 @@ AsyncValueRef<DHTTuple<sizeof...(T)>> AllocateOutputBuffer(
 template <typename... T>
 class BatchDataset : public DHTDataset<sizeof...(T)> {
  public:
+  // If `same_input_metadata` is true, all values from the `input_dataset`
+  // must have the DType and TensorShape.
   explicit BatchDataset(RCReference<Dataset<T...>> input_dataset,
-                        int32_t batch_size, HostContext* host)
+                        int32_t batch_size, bool same_input_metadata,
+                        HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         batch_size_(batch_size),
+        same_input_metadata_(same_input_metadata),
         host_(host),
         allocator_(host->allocator()) {}
 
@@ -288,7 +292,8 @@ class BatchDataset : public DHTDataset<sizeof...(T)> {
   }
 
   RCReference<Dataset<T...>> input_dataset_;
-  int32_t batch_size_;
+  const int32_t batch_size_;
+  const bool same_input_metadata_;
   HostContext* host_;
   HostAllocator* allocator_;
 };
@@ -316,6 +321,10 @@ class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
 
   RCReference<BatchDataset<T...>> parent_dataset_;
   RCReference<Iterator<T...>> input_iterator_;
+  // input_metadata_ is the TensorMetadata of the first value from the
+  // input_iterator_. When same_input_metadata_ is true, we can use
+  // input_metadata_ to allocate output tensors before inputs are available.
+  AsyncValueRef<std::array<TensorMetadata, sizeof...(T)>> input_metadata_;
 };
 
 template <typename... T>
@@ -345,13 +354,28 @@ AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
   if (values.empty()) {
     return AsyncValueRef<DHTTuple<sizeof...(T)>>();
   }
-  // Metadata of the values of the same batch must be the same. We verify this
-  // at runtime in CopyInputToOutputBuffer(...). But metadata may be different
-  // between different batches. So we have to re-compute metadata for every
-  // batch to support all use-cases.
-  auto metadata = host->template MakeUnconstructedAsyncValueRef<
-      std::array<TensorMetadata, sizeof...(T)>>();
-  UpdateMetadataFromValue<T...>(values[0].CopyRef(), metadata.CopyRef());
+
+  AsyncValueRef<std::array<TensorMetadata, sizeof...(T)>> metadata;
+  if (parent_dataset_->same_input_metadata_) {
+    // If all input values have the same metadata, record the metadata of the
+    // the first input and re-use it to allocate output tensor for every batch.
+    // This allows us to allocate output tensor before input values are
+    // available except for the first input.
+    //
+    // This improves L1/L2 cache affinity of the data copying from the input
+    // values to the output tensor because the same thread that computes the
+    // input value can copy this value to the output tensor.
+    if (!input_metadata_) {
+      input_metadata_ = host->template MakeUnconstructedAsyncValueRef<
+          std::array<TensorMetadata, sizeof...(T)>>();
+      UpdateMetadataFromValue<T...>(values[0], input_metadata_);
+    }
+    metadata = input_metadata_.CopyRef();
+  } else {
+    metadata = host->template MakeUnconstructedAsyncValueRef<
+        std::array<TensorMetadata, sizeof...(T)>>();
+    UpdateMetadataFromValue<T...>(values[0], metadata);
+  }
 
   // Schedule tasks to run map function for each input tensor and copy the
   // function output to the temp_batched_value. After all data is copied to

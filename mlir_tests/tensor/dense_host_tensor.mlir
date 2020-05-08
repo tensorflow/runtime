@@ -113,16 +113,14 @@ func @slice_tensor() {
   %zero = hex.constant.i64 0
   %one = hex.constant.i64 1
 
-  %slice_begin = "dht.create_uninitialized_tensor.i64.1"() { shape = [3 : i64] } : () -> !t.tensor
+  %slice_begin = dht.create_uninitialized_tensor.i64.1 [3 : i64]
   %ch1 = "dht.set_tensor_with_values.i64"(%slice_begin, %ch0, %zero, %one, %one)
     : (!t.tensor, !hex.chain, i64, i64, i64) -> !hex.chain
 
-  %input = "dht.create_uninitialized_tensor.i32.3"() { shape = [2 : i64, 3 : i64, 2 : i64] } : () -> !t.tensor
-  %ch2 = "dht.set_tensor_with_constant_values.i32"(%input, %ch1)
-    { values = [1 : i32, 2 : i32, 3 : i32, 4 : i32, 5 : i32, 6 : i32, 7 : i32, 8 : i32, 9 : i32, 10 : i32, 11 : i32, 12 : i32] }
-    : (!t.tensor, !hex.chain) -> !hex.chain
+  %input = dht.create_uninitialized_tensor.i32.3 [2 : i64, 3 : i64, 2 : i64]
+  %ch2 = dht.set_tensor_with_constant_values.i32 %input, %ch1 [1 : i32, 2 : i32, 3 : i32, 4 : i32, 5 : i32, 6 : i32, 7 : i32, 8 : i32, 9 : i32, 10 : i32, 11 : i32, 12 : i32]
 
-  %output = "dht.create_uninitialized_tensor.i32.3"() { shape = [2 : i64, 2 : i64, 1 : i64] } : () -> !t.tensor
+  %output = dht.create_uninitialized_tensor.i32.3 [2 : i64, 2 : i64, 1 : i64]
   %ch3 = "tfrt_test.slice_inplace.i32.3"(%input, %slice_begin, %ch2, %output)
     : (!t.tensor, !t.tensor, !hex.chain, !t.tensor) -> !hex.chain
 
@@ -135,9 +133,8 @@ func @slice_tensor() {
 func @bool_tensor() {
   %ch0 = hex.new.chain
 
-  %value = "dht.create_uninitialized_tensor.bool.1"() { shape = [2 : i64] } : () -> !t.tensor
-  %ch1 = "dht.set_tensor_with_constant_values.bool"(%value, %ch0)
-    { values = [false, true] } : (!t.tensor, !hex.chain) -> !hex.chain
+  %value = dht.create_uninitialized_tensor.bool.1 [2 : i64]
+  %ch1 = dht.set_tensor_with_constant_values.bool %value, %ch0 [false, true]
 
   // CHECK: shape = [2], values = [0, 1]
   %ch2 = dht.print_tensor %value, %ch1

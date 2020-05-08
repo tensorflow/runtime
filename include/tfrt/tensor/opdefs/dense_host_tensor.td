@@ -199,7 +199,7 @@ def PrintBufferOp : DHT_Op<"print_buffer"> {
 }
 
 // Instantiate for each dtype and rank pair.
-foreach dtype = ["i32", "f32"] in {
+foreach dtype = ["ui8", "i32", "f32", "i64", "bool", "complex64"] in {
   foreach rank = [0, 1, 2, 3, 4] in {
     def DHT_CreateUninitializedTensorOp_#dtype#_#rank
       : CreateUninitializedTensorOp<dtype, rank>;

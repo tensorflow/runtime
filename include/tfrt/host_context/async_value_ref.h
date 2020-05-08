@@ -82,6 +82,10 @@ class AsyncValueRef {
     return value_->get<SubclassT>();
   }
 
+  T* operator->() const { return &get(); }
+
+  T& operator*() const { return get(); }
+
   // Make the AsyncValueRef available.
   void SetStateConcrete() const { value_->SetStateConcrete(); }
 

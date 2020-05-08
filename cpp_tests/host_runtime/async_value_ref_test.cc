@@ -31,15 +31,28 @@ namespace {
 TEST(AsyncValueRef, Conversions) {
   std::unique_ptr<HostContext> host = CreateHostContext();
 
-  AsyncValueRef<int32_t> int_value =
-      host->MakeAvailableAsyncValueRef<int32_t>(42);
-  EXPECT_EQ(int_value.get(), 42);
+  class WrappedInt32 {
+   public:
+    explicit WrappedInt32(int32_t value) : value_(value) {}
+    int32_t value() const { return value_; }
 
-  RCReference<AsyncValue> generic_value = std::move(int_value);
-  EXPECT_EQ(generic_value->get<int32_t>(), 42);
+   private:
+    int32_t value_;
+  };
 
-  AsyncValueRef<int32_t> aliased_int_value(std::move(generic_value));
-  EXPECT_EQ(aliased_int_value.get(), 42);
+  AsyncValueRef<WrappedInt32> wrapped_int_value =
+      host->MakeAvailableAsyncValueRef<WrappedInt32>(42);
+  EXPECT_EQ(wrapped_int_value.get().value(), 42);
+  EXPECT_EQ(wrapped_int_value->value(), 42);
+  EXPECT_EQ((*wrapped_int_value).value(), 42);
+
+  RCReference<AsyncValue> generic_value = std::move(wrapped_int_value);
+  EXPECT_EQ(generic_value->get<WrappedInt32>().value(), 42);
+
+  AsyncValueRef<WrappedInt32> aliased_int_value(std::move(generic_value));
+  EXPECT_EQ(aliased_int_value.get().value(), 42);
+  EXPECT_EQ(aliased_int_value->value(), 42);
+  EXPECT_EQ((*aliased_int_value).value(), 42);
 }
 
 }  // namespace

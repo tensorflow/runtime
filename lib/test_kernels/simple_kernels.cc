@@ -20,7 +20,9 @@
 
 #include <fstream>
 #include <iterator>
+#include <random>
 #include <string>
+#include <thread>
 
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
@@ -28,6 +30,14 @@
 #include "tfrt/test_kernels.h"
 
 namespace tfrt {
+namespace {
+
+void SleepForRandomDuration() {
+  std::random_device dev;
+  std::mt19937 rng(dev());
+  std::uniform_int_distribution<std::mt19937::result_type> dist(1, 10);
+  std::this_thread::sleep_for(std::chrono::milliseconds(dist(rng)));
+}
 
 //===----------------------------------------------------------------------===//
 // String kernels
@@ -157,6 +167,15 @@ static void TestMemoryLeakOneInt32(HostContext* host_context) {
   host_context->Allocate<int32_t>();
 }
 
+// An example of bad behaving kernel, that does expensive work (sleep to emulate
+// that) in the caller thread. Intended for testing system behavior in the
+// presence of bad actors (kernels).
+template <typename T>
+static AsyncValueRef<T> TestCopyWithDelay(Argument<T> in, HostContext* host) {
+  SleepForRandomDuration();
+  return host->MakeAvailableAsyncValueRef<T>(in.get());
+}
+
 //===----------------------------------------------------------------------===//
 // hex count3 kernels. For input x, returns x+1, x+2, x+3
 // For demonstrating using std::tuple to return multiple outputs
@@ -166,6 +185,8 @@ std::tuple<T, T, T> TestCount3(T x) {
   return {x + 1, x + 2, x + 3};
 }
 
+}  // namespace
+
 void RegisterSimpleKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.print_hello", TFRT_KERNEL(TestPrintHello));
   registry->AddKernel("tfrt_test.sum", TFRT_KERNEL(TestSum));
@@ -174,6 +195,10 @@ void RegisterSimpleKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestMemoryLeakOneInt32));
   registry->AddKernel("tfrt_test.count3.i32", TFRT_KERNEL(TestCount3<int32_t>));
   registry->AddKernel("tfrt_test.count3.i64", TFRT_KERNEL(TestCount3<int64_t>));
+  registry->AddKernel("tfrt_test.copy.with_delay.i32",
+                      TFRT_KERNEL(TestCopyWithDelay<int32_t>));
+  registry->AddKernel("tfrt_test.copy.with_delay.i64",
+                      TFRT_KERNEL(TestCopyWithDelay<int64_t>));
 
   SetupStringRegistry(registry);
   SetupValueTrackingRegistry(registry);

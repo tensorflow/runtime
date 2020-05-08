@@ -87,6 +87,10 @@ func @basic.i32() -> i32 {
   // CHECK: int32 = 46
   hex.print.i32 %y3, %ch0
 
+  %y4 = "tfrt_test.copy.with_delay.i32"(%y3) : (i32) -> i32
+  // CHECK: int32 = 46
+  hex.print.i32 %y4, %ch0
+
   // CHECK: 'basic.i32' returned 43
   hex.return %y : i32
 }
@@ -119,8 +123,12 @@ func @basic.i64() -> i64 {
   // CHECK: int64 = 43
   hex.print.i64 %y, %ch0
 
+  %z = "tfrt_test.copy.with_delay.i64"(%y) : (i64) -> i64
+  // CHECK: int64 = 43
+  hex.print.i64 %z, %ch0
+
   // CHECK: 'basic.i64' returned 43
-  hex.return %y : i64
+  hex.return %z : i64
 }
 
 // CHECK-LABEL: --- Running 'basic.f32'

@@ -111,7 +111,7 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
       delete;
 
   // Interleaves keeps cycle_length iterators open at once.
-  AsyncValueRef<std::tuple<OutputTypes...>> GetNext(
+  IterationResult<OutputTypes...> GetNext(
       const ExecutionContext& exec_ctx) override;
 
  private:
@@ -160,8 +160,9 @@ RCReference<Iterator<OutputTypes...>> InterleaveDataset<
           FormRef(this)));
 }
 
+// TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
 template <typename... InputTypes, typename... OutputTypes>
-AsyncValueRef<std::tuple<OutputTypes...>> InterleaveDatasetIterator<
+IterationResult<OutputTypes...> InterleaveDatasetIterator<
     std::tuple<InputTypes...>,
     std::tuple<OutputTypes...>>::GetNext(const ExecutionContext& exec_ctx) {
   while (!end_of_input_ || num_open_) {  // Not at end of input
@@ -170,18 +171,18 @@ AsyncValueRef<std::tuple<OutputTypes...>> InterleaveDatasetIterator<
     // that iterator and advance to the next block index.
     if (cycle_iterators_[cycle_index_]) {
       // Get the next element from the iterator opened at cycle_index_.
-      auto value = cycle_iterators_[cycle_index_]->GetNext(exec_ctx);
+      auto input = cycle_iterators_[cycle_index_]->GetNext(exec_ctx);
 
       // If we're at the end of this current iterator, advance to the next
       // iterator in the cycle.
-      if (!value) {
+      if (internal::IsConcreteAndEmpty(input)) {
         cycle_iterators_[cycle_index_].reset();
         --num_open_;
         AdvanceCycleIndex();
         continue;
       }
       AdvanceBlockIndex();
-      return value;
+      return input;
     }
 
     // Case 2: cycle_index_ does not have an open iterator, and we've reached
@@ -196,36 +197,36 @@ AsyncValueRef<std::tuple<OutputTypes...>> InterleaveDatasetIterator<
     // Get the next element from the input dataset and create an iterator
     // from it.
     auto input_element = input_iterator_->GetNext(exec_ctx);
-
     // The input iterator has been exhausted.
-    if (!input_element) {
+    if (internal::IsConcreteAndEmpty(input_element)) {
       end_of_input_ = true;
       continue;
     }
 
-    if (!input_element.IsAvailable()) {
+    auto values = std::move(input_element.values);
+    if (!values.IsAvailable()) {
       // TODO(rachelim): Currently, we don't have a good way to support
       // asynchronous transformations upstream of interleave, since
       // synchronous decisions such as whether to open a new iterator depend
       // on what iterators are already open. We need to support this use case,
       // e.g. if a user has MapDataset or asynchronous I/O upstream of an
       // interleave transformation.
-      return EmitErrorAsync(
+      auto error = EmitErrorAsync(
           exec_ctx,
           "interleave expects its inputs to be available synchronously");
+      return IterationResult<OutputTypes...>::Error(std::move(error));
     }
-    if (input_element.IsError()) {
-      return AsyncValueRef<std::tuple<OutputTypes...>>(
-          input_element.ReleaseRCRef());
+    if (values.IsError()) {
+      return IterationResult<OutputTypes...>::Error(values.ReleaseRCRef());
     }
 
     cycle_iterators_[cycle_index_] =
-        MakeIteratorFromInputElement(std::move(input_element), exec_ctx);
+        MakeIteratorFromInputElement(std::move(values), exec_ctx);
     ++num_open_;
   }
 
   // End of iteration.
-  return AsyncValueRef<std::tuple<OutputTypes...>>();
+  return IterationResult<OutputTypes...>::Eof(exec_ctx.host());
 }
 
 template <typename... InputTypes, typename... OutputTypes>

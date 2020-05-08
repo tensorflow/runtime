@@ -43,6 +43,12 @@ namespace data {
 template <typename... T>
 class BatchDatasetIterator;
 
+// Return typename IterationResult<DenseHostTensor, ...> where DenseHostTensor
+// is repeated N times in the parameter pack.
+template <size_t N>
+using DHTIterationResult =
+    RepeatTypeHelperT<IterationResult, N, DenseHostTensor>;
+
 // Return typename Iterator<DenseHostTensor, ...> where DenseHostTensor is
 // repeated sizeof...(T) times in the parameter pack.
 template <size_t N>
@@ -310,7 +316,7 @@ class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
   BatchDatasetIterator(const BatchDatasetIterator&) = delete;
   BatchDatasetIterator& operator=(const BatchDatasetIterator&) = delete;
 
-  AsyncValueRef<DHTTuple<sizeof...(T)>> GetNext(
+  DHTIterationResult<sizeof...(T)> GetNext(
       const ExecutionContext& exec_ctx) override;
 
  private:
@@ -332,27 +338,29 @@ RCReference<DHTIterator<sizeof...(T)>> BatchDataset<T...>::MakeIterator() {
   return TakeRef(host_->Construct<BatchDatasetIterator<T...>>(FormRef(this)));
 }
 
+// TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
 // IDEA(donglin): Consider scheduling the batch operation to the background
 // threadpool explicitly. This can prevent GetNext() from doing memory copy
 // synchronously regardless of whether the input values are available.
 template <typename... T>
-AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
+DHTIterationResult<sizeof...(T)> BatchDatasetIterator<T...>::GetNext(
     const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
   llvm::SmallVector<AsyncValueRef<std::tuple<T...>>, 4> values;
   // Get up to batch_size values from the underlying iterator.
   for (int i = 0; i < parent_dataset_->batch_size_; ++i) {
-    auto value = input_iterator_->GetNext(exec_ctx);
-    if (!value) {
+    auto input = input_iterator_->GetNext(exec_ctx);
+    if (internal::IsConcreteAndEmpty(input)) {
       break;
     }
+    auto value = std::move(input.values);
     if (value.IsError()) {
-      return AsyncValueRef<DHTTuple<sizeof...(T)>>(value.ReleaseRCRef());
+      return DHTIterationResult<sizeof...(T)>::Error(value.ReleaseRCRef());
     }
     values.push_back(std::move(value));
   }
   if (values.empty()) {
-    return AsyncValueRef<DHTTuple<sizeof...(T)>>();
+    return DHTIterationResult<sizeof...(T)>::Eof(host);
   }
 
   AsyncValueRef<std::array<TensorMetadata, sizeof...(T)>> metadata;
@@ -405,7 +413,8 @@ AsyncValueRef<DHTTuple<sizeof...(T)>> BatchDatasetIterator<T...>::GetNext(
                                   counter_and_error, host);
         }
       });
-  return batched_value;
+  return DHTIterationResult<sizeof...(T)>::Pending(
+      std::move(batched_value), host->MakeAvailableAsyncValueRef<bool>(false));
 }
 
 }  // namespace data

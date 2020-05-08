@@ -97,7 +97,7 @@ RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
          "The function outputs do not match the dataset output types.");
 
   return TakeRef(host->Construct<MapDataset<std::tuple<T>, std::tuple<U...>>>(
-      (*dataset).CopyRef(), RCArray<AsyncValue>(args.values()),
+      dataset->CopyRef(), RCArray<AsyncValue>(args.values()),
       FormRef(&fn.get()), host));
 }
 
@@ -119,7 +119,7 @@ MakeInterleaveDataset(RCReference<Dataset<T>>* dataset, int64_t cycle_length,
 
   return TakeRef(
       host->Construct<InterleaveDataset<std::tuple<T>, std::tuple<U...>>>(
-          (*dataset).CopyRef(), cycle_length, block_length, FormRef(&fn.get()),
+          dataset->CopyRef(), cycle_length, block_length, FormRef(&fn.get()),
           host));
 }
 
@@ -140,7 +140,7 @@ template <typename... T>
 RCReference<RepeatDataset<T...>> MakeRepeatDataset(
     RCReference<Dataset<T...>>* dataset, Attribute<int32_t> count,
     HostContext* host) {
-  return TakeRef(host->Construct<RepeatDataset<T...>>((*dataset).CopyRef(),
+  return TakeRef(host->Construct<RepeatDataset<T...>>(dataset->CopyRef(),
                                                       count.get(), host));
 }
 
@@ -153,7 +153,7 @@ RCReference<BatchDataset<T...>> MakeBatchDataset(
     RCReference<Dataset<T...>>* dataset, Attribute<int32_t> batch_size,
     Attribute<bool> same_input_metadata, HostContext* host) {
   return TakeRef(host->Construct<BatchDataset<T...>>(
-      (*dataset).CopyRef(), batch_size.get(), same_input_metadata.get(), host));
+      dataset->CopyRef(), batch_size.get(), same_input_metadata.get(), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -164,7 +164,7 @@ template <typename... T>
 RCReference<PrefetchDataset<T...>> MakePrefetchDataset(
     RCReference<Dataset<T...>>* dataset, HostContext* host) {
   return TakeRef(host->Construct<PrefetchDataset<T...>>(
-      (*dataset).CopyRef(), host->GetNumWorkerThreads(), host));
+      dataset->CopyRef(), host->GetNumWorkerThreads(), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -181,16 +181,19 @@ RCReference<Iterator<T...>> MakeIteratorFromDataset(
 // Get the next element from the iterator and advance iterator.
 // The returned AsyncValueRef will contain error if the iterator has reached
 // end prior to the method invocation.
+// IDEA(tf_runtime_team): it may be useful to return optional value and let
+// caller handle EOF properly.
+// TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
 template <typename... T>
 AsyncValueRef<std::tuple<T...>> IteratorGetNext(
     RCReference<Iterator<T...>>* iterator, Chain chain,
     const ExecutionContext& exec_ctx) {
-  auto value = (*iterator)->GetNext(exec_ctx);
-  if (!value) {
-    return EmitErrorAsync(exec_ctx, "iterator reached end");
+  auto input = (*iterator)->GetNext(exec_ctx);
+  if (internal::IsConcreteAndEmpty(input)) {
+    EmitErrorAsync(exec_ctx, "iterator reached end");
   }
 
-  return value;
+  return std::move(input.values);
 }
 
 // Executes body_fn repeatedly until the iterator reaches end.
@@ -235,8 +238,8 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
   while (true) {
     SmallVector<RCReference<AsyncValue>, 4> values_and_bool =
         iterator->GetNextUntyped(exec_ctx);
-    auto& has_next = values_and_bool[values_and_bool.size() - 1];
-    if (has_next->IsAvailable() && !has_next->get<bool>()) {
+    auto& is_eof = values_and_bool[values_and_bool.size() - 1];
+    if (is_eof->IsAvailable() && is_eof->get<bool>()) {
       break;
     }
     fn_args.resize(values_and_bool.size() - 1 + num_results);

@@ -65,8 +65,6 @@ namespace io {
 // of prefetched records, but also on the memory consumption.
 template <typename ValueType>
 class PrefetchingIterator : public Iterator<ValueType> {
-  using AsyncValueType = AsyncValueRef<std::tuple<ValueType>>;
-
  public:
   PrefetchingIterator(int32_t max_num_prefetch_elements,
                       int32_t prefetch_threshold)
@@ -82,15 +80,13 @@ class PrefetchingIterator : public Iterator<ValueType> {
   // Gets the next element from a prefetch buffer, and maybe launches an
   // asyncrhonous prefetch task to fill up the buffer. If the buffer is
   // empty, reads next element from the derived iterator.
-  AsyncValueType GetNext(const ExecutionContext& exec_ctx) final;
+  IterationResult<ValueType> GetNext(const ExecutionContext& exec_ctx) final;
 
  protected:
   // Reads the next element from the underlying IO source. Prefetching iterator
   // guarantees that all calls to this function will be properly synchronized.
-  //
-  // If input is exhausted must return empty AsyncValueRef.
-  virtual AsyncValueType GetNextElement(const ExecutionContext& exec_cxt)
-      TFRT_REQUIRES(input_mu_) = 0;
+  virtual IterationResult<ValueType> GetNextElement(
+      const ExecutionContext& exec_cxt) TFRT_REQUIRES(input_mu_) = 0;
 
  private:
   // Cancels all outstanding asynchonous prefetch tasks.
@@ -108,7 +104,7 @@ class PrefetchingIterator : public Iterator<ValueType> {
   // of contention.
   mutex input_mu_;
 
-  std::queue<AsyncValueType> buffer_ TFRT_GUARDED_BY(state_mu_);
+  std::queue<IterationResult<ValueType>> buffer_ TFRT_GUARDED_BY(state_mu_);
 
   const int32_t max_num_prefetch_elements_;
   const int32_t prefetch_threshold_;
@@ -121,7 +117,7 @@ class PrefetchingIterator : public Iterator<ValueType> {
 };
 
 template <typename ValueType>
-AsyncValueRef<std::tuple<ValueType>> PrefetchingIterator<ValueType>::GetNext(
+IterationResult<ValueType> PrefetchingIterator<ValueType>::GetNext(
     const ExecutionContext& exec_ctx) {
   // Code that needs to hold both locks (input and state) must do the
   // locking in the same order to avoid deadlocks:
@@ -157,7 +153,8 @@ AsyncValueRef<std::tuple<ValueType>> PrefetchingIterator<ValueType>::GetNext(
         //     time.
         for (int32_t i = 0; i < prefetch; ++i) {
           auto next = iterator->GetNextElement(exec_ctx);
-          bool cancel = (static_cast<bool>(next) == false) || next.IsError();
+          bool cancel =
+              internal::IsConcreteAndEmpty(next) || next.eof.IsError();
           {
             mutex_lock state_lock(iterator->state_mu_);
             iterator->buffer_.push(std::move(next));
@@ -196,7 +193,7 @@ AsyncValueRef<std::tuple<ValueType>> PrefetchingIterator<ValueType>::GetNext(
   }
 
   auto next = GetNextElement(exec_ctx);
-  if ((static_cast<bool>(next) == false) || next.IsError()) Cancel();
+  if (internal::IsConcreteAndEmpty(next) || next.eof.IsError()) Cancel();
 
   return next;
 }

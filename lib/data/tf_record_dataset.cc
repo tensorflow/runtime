@@ -71,16 +71,21 @@ RCReference<Iterator<std::string>> TFRecordDataset::MakeIterator() {
 //===----------------------------------------------------------------------===//
 // Implementation for TFRecordDatasetIterator member functions
 //===----------------------------------------------------------------------===//
-AsyncValueRef<std::tuple<std::string>> TFRecordDatasetIterator::GetNextElement(
+IterationResult<std::string> TFRecordDatasetIterator::GetNextElement(
     const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
   bool eof = false;
   auto result = ReadRecord(&eof);
 
-  if (eof) return AsyncValueRef<std::tuple<std::string>>();
-  if (!result) return EmitErrorAsync(exec_ctx, result.takeError());
+  if (eof) {
+    return IterationResult<std::string>::Eof(host);
+  }
+  if (!result) {
+    auto error = EmitErrorAsync(exec_ctx, result.takeError());
+    return IterationResult<std::string>::Error(std::move(error));
+  }
 
-  return exec_ctx.host()->MakeAvailableAsyncValueRef<std::tuple<std::string>>(
-      std::move(*result));
+  return IterationResult<std::string>::Values(std::move(*result), host);
 }
 
 // Logic based on tensorflow/core/io/record_reader.*

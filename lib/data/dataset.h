@@ -35,6 +35,47 @@
 namespace tfrt {
 namespace data {
 
+template <typename... T>
+struct IterationResult {
+  // Construct IterationResult with valid values and eof = false.
+  static IterationResult Values(std::tuple<T...> v, HostContext* host) {
+    return IterationResult<T...>(
+        host->MakeAvailableAsyncValueRef<std::tuple<T...>>(std::move(v)),
+        host->MakeAvailableAsyncValueRef<bool>(false));
+  }
+
+  // Construct IterationResult with eof = true. `values` will have error.
+  static IterationResult Eof(HostContext* host) {
+    return IterationResult<T...>(
+        host->MakeErrorAsyncValueRef("iterator reached end"),
+        host->MakeAvailableAsyncValueRef<bool>(true));
+  }
+
+  // Construct IterationResult with error in both `values` and `eof`.
+  static IterationResult Error(RCReference<AsyncValue> error) {
+    return IterationResult<T...>(
+        AsyncValueRef<std::tuple<T...>>(error.CopyRef()),
+        AsyncValueRef<bool>(error.CopyRef()));
+  }
+
+  // Construct IterationResult with possibly unavailable `values` and `eof`.
+  static IterationResult Pending(AsyncValueRef<std::tuple<T...>> v,
+                                 AsyncValueRef<bool> e) {
+    return IterationResult<T...>(std::move(v), std::move(e));
+  }
+
+  IterationResult(AsyncValueRef<std::tuple<T...>> v, AsyncValueRef<bool> e)
+      : values(std::move(v)), eof(std::move(e)) {}
+
+  // If GetNext(...) failed to fetch values due to error, both `values` and
+  // `eof` should have the error.
+  // If GetNext(...) failed to fetch values due to end of iterator, `eof` should
+  // be true and `values` should have error.
+  // If GetNext(...) successfully fetched values, `eof` should be false.
+  AsyncValueRef<std::tuple<T...>> values;
+  AsyncValueRef<bool> eof;
+};
+
 namespace internal {
 
 template <typename SubClass>
@@ -44,14 +85,14 @@ void DestroyImpl(SubClass* ptr, HostAllocator* allocator) {
 }
 
 template <typename... T>
-bool IsEmpty(AsyncValueRef<llvm::Optional<std::tuple<T...>>> value) {
-  return value.IsAvailable() && !value.hasValue();
+bool IsConcreteAndEmpty(const IterationResult<T...>& result) {
+  return result.eof.IsConcrete() && result.eof.get();
 }
 
 template <typename... T, size_t... I>
 static void AllocateTupleResult(
     MutableArrayRef<RCReference<AsyncValue>> results,
-    AsyncValueRef<std::tuple<T...>>& t, HostContext* host,
+    const AsyncValueRef<std::tuple<T...>>& input, HostContext* host,
     std::index_sequence<I...>) {
   std::ignore = std::initializer_list<int>{
       (results[I] = host->MakeUnconstructedAsyncValueRef<T>().ReleaseRCRef(),
@@ -60,7 +101,7 @@ static void AllocateTupleResult(
 
 template <typename... T, size_t... I>
 static void EmplaceTupleResult(ArrayRef<AsyncValue*> results,
-                               std::tuple<T...>& input,
+                               std::tuple<T...> input,
                                std::index_sequence<I...>) {
   // Use braced-init-list to retrieve the results in the tuple in sequence.
   std::ignore = std::initializer_list<int>{
@@ -82,8 +123,9 @@ class IteratorBase : public ReferenceCounted<IteratorBase> {
   // Returns a vector of (N + 1) AsyncValues where N represents the number of
   // output value types of the child Iterator class. The first N AsyncValues
   // represent the decoupled values of the std::tuple<...> returned by the
-  // GetNext(...). The last AsyncValue has a bool value which is true iff
-  // the iterator has not reached end prior to this call.
+  // GetNext(...). The last AsyncValue has a bool value which is true if and
+  // only if the iterator was exhausted. When the last AsyncValue is true, the
+  // first N AsyncValues will be ErrorAsyncValue.
   virtual SmallVector<RCReference<AsyncValue>, 4> GetNextUntyped(
       const ExecutionContext& exec_ctx) = 0;
 
@@ -100,8 +142,7 @@ class Iterator : public IteratorBase {
 
   // If the iterator has reached end, returns an empty AsyncValueRef. Otherwise,
   // returns the AsyncValueRef of the next element and advances the iterator.
-  virtual AsyncValueRef<std::tuple<T...>> GetNext(
-      const ExecutionContext& exec_ctx) = 0;
+  virtual IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) = 0;
 
   SmallVector<RCReference<AsyncValue>, 4> GetNextUntyped(
       const ExecutionContext& exec_ctx) override;
@@ -129,38 +170,45 @@ template <typename... T>
 SmallVector<RCReference<AsyncValue>, 4> Iterator<T...>::GetNextUntyped(
     const ExecutionContext& exec_ctx) {
   auto input = GetNext(exec_ctx);
+  auto values = std::move(input.values);
+  auto eof = std::move(input.eof);
+
+  // Initialize results.
   SmallVector<RCReference<AsyncValue>, 4> results;
   results.resize(sizeof...(T) + 1);
-
-  internal::AllocateTupleResult(results, input, exec_ctx.host(),
+  internal::AllocateTupleResult(results, values, exec_ctx.host(),
                                 std::make_index_sequence<sizeof...(T)>{});
   results[sizeof...(T)] =
       exec_ctx.host()->MakeUnconstructedAsyncValueRef<bool>();
 
-  if (!input) {
-    for (int i = 0; i < sizeof...(T); i++) {
-      results[i]->SetError(DecodedDiagnostic{"iterator reached end"});
-    }
-    results[sizeof...(T)]->emplace<bool>(false);
-    return results;
-  }
-
-  input.AndThen([results = RCArray<AsyncValue>(results),
-                 input = input.CopyRef()]() mutable {
-    if (input.IsError()) {
-      for (int i = 0; i < sizeof...(T); i++) {
-        results[i]->SetError(input.GetError());
-      }
-      results[sizeof...(T)]->emplace<bool>(true);
-      return;
-    }
-    // IDEA(donglin): We can optimize performance by constructing a list of
-    // views of AsyncValue from AsyncValueRef<std::tuple<T...>> without moving
-    // data.
-    internal::EmplaceTupleResult(results.values(), input.get(),
-                                 std::make_index_sequence<sizeof...(T)>{});
-    results[sizeof...(T)]->emplace<bool>(true);
-  });
+  SmallVector<AsyncValue*, 4> async_value_ptrs;
+  async_value_ptrs.push_back(values.GetAsyncValue());
+  async_value_ptrs.push_back(eof.GetAsyncValue());
+  exec_ctx.host()->RunWhenReady(
+      async_value_ptrs,
+      [results = RCArray<AsyncValue>(results), eof = std::move(eof),
+       values = std::move(values)]() mutable {
+        if (eof.IsError()) {
+          for (int i = 0; i < sizeof...(T); i++) {
+            results[i]->SetError(eof.GetError());
+          }
+          results[sizeof...(T)]->emplace<bool>(false);
+          return;
+        }
+        if (eof.get()) {
+          for (int i = 0; i < sizeof...(T); i++) {
+            results[i]->SetError(DecodedDiagnostic{"iterator reached end"});
+          }
+          results[sizeof...(T)]->emplace<bool>(true);
+          return;
+        }
+        // IDEA(donglin): We can optimize performance by constructing a list of
+        // views of AsyncValue from AsyncValueRef<std::tuple<T...>> without
+        // moving data.
+        internal::EmplaceTupleResult(results.values(), std::move(values.get()),
+                                     std::make_index_sequence<sizeof...(T)>{});
+        results[sizeof...(T)]->emplace<bool>(false);
+      });
 
   return results;
 }

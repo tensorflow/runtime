@@ -79,8 +79,7 @@ class PrefetchDatasetIterator : public Iterator<T...> {
   PrefetchDatasetIterator(const PrefetchDatasetIterator&) = delete;
   PrefetchDatasetIterator& operator=(const PrefetchDatasetIterator&) = delete;
 
-  AsyncValueRef<std::tuple<T...>> GetNext(
-      const ExecutionContext& exec_ctx) override {
+  IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
     while (buffer_.size() < parent_dataset_->prefetch_num_) {
       buffer_.push(input_iterator_->GetNext(exec_ctx));
     }
@@ -97,7 +96,7 @@ class PrefetchDatasetIterator : public Iterator<T...> {
 
   RCReference<PrefetchDataset<T...>> parent_dataset_;
   RCReference<Iterator<T...>> input_iterator_;
-  std::queue<AsyncValueRef<std::tuple<T...>>> buffer_;
+  std::queue<IterationResult<T...>> buffer_;
 };
 
 template <typename... T>

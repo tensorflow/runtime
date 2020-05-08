@@ -105,18 +105,18 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
 template <typename... InputTypes>
 struct FunctionWrapper {
   template <typename... OutputTypes>
-  static AsyncValueRef<std::tuple<OutputTypes...>> GetOutput(
+  static IterationResult<OutputTypes...> GetOutput(
       const Function* map_fn, RCArray<AsyncValue> additional_fn_args,
-      AsyncValueRef<std::tuple<InputTypes...>> args,
-      const ExecutionContext& exec_ctx) {
-    if (!args) {
-      return AsyncValueRef<std::tuple<OutputTypes...>>();
-    }
+      IterationResult<InputTypes...> input, const ExecutionContext& exec_ctx) {
     auto* host = exec_ctx.host();
+    if (internal::IsConcreteAndEmpty(input)) {
+      return IterationResult<OutputTypes...>::Eof(host);
+    }
     auto async_result = host->template MakeUnconstructedAsyncValueRef<
         std::tuple<OutputTypes...>>();
-    // IDEA(donglin): We can optimize performance by constructing a view of
-    // AsyncValue<T> from AsyncValue<std::tuple<T>> without moving data.
+    auto args = std::move(input.values);
+    auto eof = std::move(input.eof);
+
     args.AndThen([host, map_fn = FormRef(map_fn),
                   additional_fn_args = std::move(additional_fn_args),
                   args = args.CopyRef(),
@@ -144,7 +144,7 @@ struct FunctionWrapper {
       host->EnqueueWork([host, map_fn = std::move(map_fn),
                          additional_fn_args = std::move(additional_fn_args),
                          args = std::move(args),
-                         async_result = std::move(async_result)]() {
+                         async_result = std::move(async_result)]() mutable {
         // Construct arguments for function execution. The arguments consist of
         // the 'additional_fn_args' from the MapDataset constructor, followed by
         // the values from the underlying iterator.
@@ -171,7 +171,7 @@ struct FunctionWrapper {
         }
         host->RunWhenReady(async_value_ptrs,
                            [results = std::move(results),
-                            async_result = async_result.CopyRef()]() mutable {
+                            async_result = std::move(async_result)]() mutable {
                              for (auto& result : results) {
                                if (result->IsError()) {
                                  async_result.SetError(result->GetError());
@@ -183,7 +183,8 @@ struct FunctionWrapper {
                            });
       });
     });
-    return async_result;
+    return IterationResult<OutputTypes...>::Pending(std::move(async_result),
+                                                    std::move(eof));
   }
 };
 
@@ -199,7 +200,7 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
-  AsyncValueRef<std::tuple<OutputTypes...>> GetNext(
+  IterationResult<OutputTypes...> GetNext(
       const ExecutionContext& exec_ctx) override {
     auto input = input_iterator_->GetNext(exec_ctx);
     const Function* map_fn = parent_dataset_->map_fn_.get();

@@ -25,6 +25,7 @@
 #include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
@@ -183,7 +184,7 @@ static ParseResult ParseExecuteOpImpl(OpAsmParser &parser,
   StringAttr op_name;
   SmallVector<OpAsmParser::OperandType, 4> device_and_in_chains;
   SmallVector<OpAsmParser::OperandType, 4> operands;
-  SmallVector<NamedAttribute, 4> op_attrs;
+  NamedAttrList op_attrs;
   auto loc = parser.getNameLoc();
   if (parser.parseOperandList(device_and_in_chains,
                               /*requiredOperandCount=*/num_chains + 1,
@@ -196,7 +197,7 @@ static ParseResult ParseExecuteOpImpl(OpAsmParser &parser,
   int64_t num_results = 0;
   if (succeeded(parser.parseOptionalColon())) {
     IntegerAttr attr;
-    llvm::SmallVector<NamedAttribute, 1> attrs;
+    mlir::NamedAttrList attrs;
     if (failed(parser.parseAttribute(attr, "num_results", attrs)))
       return failure();
     num_results = attr.getValue().getSExtValue();

@@ -236,20 +236,23 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
   // values before the output async values from the current iteration are
   // available.
   while (true) {
-    SmallVector<RCReference<AsyncValue>, 4> values_and_bool =
-        iterator->GetNextUntyped(exec_ctx);
-    auto& is_eof = values_and_bool[values_and_bool.size() - 1];
-    if (is_eof->IsAvailable() && is_eof->get<bool>()) {
+    auto iteration_result = iterator->GetNextUntyped(exec_ctx);
+
+    // TODO((b/155918211): Handle async eof.
+    if (internal::IsConcreteAndEmpty(iteration_result)) {
       break;
     }
-    fn_args.resize(values_and_bool.size() - 1 + num_results);
 
-    for (int i = 0; i < values_and_bool.size() - 1; i++) {
-      fn_args[i] = values_and_bool[i].release();
+    auto values = std::move(iteration_result.values);
+
+    fn_args.resize(values.size() + num_results);
+
+    for (int i = 0; i < values.size(); i++) {
+      fn_args[i] = values[i].release();
     }
     // Move the results from the last iteration to the args of this iteration.
     for (int i = 0; i < num_results; i++) {
-      fn_args[values_and_bool.size() - 1 + i] = fn_results[i].release();
+      fn_args[values.size() + i] = fn_results[i].release();
     }
 
     body_fn_ptr->Execute(fn_args, fn_results, exec_ctx.host());

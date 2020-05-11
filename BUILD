@@ -604,6 +604,7 @@ tfrt_cc_library(
     srcs = [
         "lib/data/batch_dataset.h",
         "lib/data/data_kernels.cc",
+        "lib/data/dataset.cc",
         "lib/data/dataset.h",
         "lib/data/interleave_dataset.h",
         "lib/data/io.h",

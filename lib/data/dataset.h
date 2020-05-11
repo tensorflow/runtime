@@ -16,7 +16,7 @@
 
 //===- dataset.h ------------------------------------------------*- C++ -*-===//
 //
-// This file declares abstract classes needed by the data pipline library.
+// This file declares abstract classes needed by the data pipeline library.
 //
 //===----------------------------------------------------------------------===//
 
@@ -76,6 +76,24 @@ struct IterationResult {
   AsyncValueRef<bool> eof;
 };
 
+// TODO(b/155892156): This class shadows IterationResult as part of the
+// transition into type-erased iteration results. Eventually, this will replace
+// IterationResult.
+struct IterationResultUntyped {
+  IterationResultUntyped(llvm::SmallVector<RCReference<AsyncValue>, 4> v,
+                         AsyncValueRef<bool> e)
+      : values(std::move(v)), eof(std::move(e)) {}
+
+  // When these AsyncValues resolve, there are three possible states:
+  //  (A) End of iteration: `eof` will be true, `values` will contain error
+  //      values.
+  //  (B) Error: both `eof` and `values` will contain error values.
+  //  (C) Success: `eof` should be false; `values` will contain the values from
+  //      iteration.
+  llvm::SmallVector<RCReference<AsyncValue>, 4> values;
+  AsyncValueRef<bool> eof;
+};
+
 namespace internal {
 
 template <typename SubClass>
@@ -88,6 +106,8 @@ template <typename... T>
 bool IsConcreteAndEmpty(const IterationResult<T...>& result) {
   return result.eof.IsConcrete() && result.eof.get();
 }
+
+bool IsConcreteAndEmpty(const IterationResultUntyped& result);
 
 template <typename... T, size_t... I>
 static void AllocateTupleResult(
@@ -120,13 +140,7 @@ class IteratorBase : public ReferenceCounted<IteratorBase> {
 
   virtual ~IteratorBase() {}
 
-  // Returns a vector of (N + 1) AsyncValues where N represents the number of
-  // output value types of the child Iterator class. The first N AsyncValues
-  // represent the decoupled values of the std::tuple<...> returned by the
-  // GetNext(...). The last AsyncValue has a bool value which is true if and
-  // only if the iterator was exhausted. When the last AsyncValue is true, the
-  // first N AsyncValues will be ErrorAsyncValue.
-  virtual SmallVector<RCReference<AsyncValue>, 4> GetNextUntyped(
+  virtual IterationResultUntyped GetNextUntyped(
       const ExecutionContext& exec_ctx) = 0;
 
  protected:
@@ -140,11 +154,9 @@ class Iterator : public IteratorBase {
  public:
   explicit Iterator() {}
 
-  // If the iterator has reached end, returns an empty AsyncValueRef. Otherwise,
-  // returns the AsyncValueRef of the next element and advances the iterator.
   virtual IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) = 0;
 
-  SmallVector<RCReference<AsyncValue>, 4> GetNextUntyped(
+  IterationResultUntyped GetNextUntyped(
       const ExecutionContext& exec_ctx) override;
 };
 
@@ -167,50 +179,58 @@ class Dataset : public ReferenceCounted<Dataset<T...>> {
 };
 
 template <typename... T>
-SmallVector<RCReference<AsyncValue>, 4> Iterator<T...>::GetNextUntyped(
+IterationResultUntyped Iterator<T...>::GetNextUntyped(
     const ExecutionContext& exec_ctx) {
   auto input = GetNext(exec_ctx);
   auto values = std::move(input.values);
   auto eof = std::move(input.eof);
 
-  // Initialize results.
-  SmallVector<RCReference<AsyncValue>, 4> results;
-  results.resize(sizeof...(T) + 1);
-  internal::AllocateTupleResult(results, values, exec_ctx.host(),
+  // Convert `values` to a vector of untyped RCReference<AsyncValue>s when
+  // they are available.
+  SmallVector<RCReference<AsyncValue>, 4> untyped_values;
+  untyped_values.resize(sizeof...(T));
+  internal::AllocateTupleResult(untyped_values, values, exec_ctx.host(),
                                 std::make_index_sequence<sizeof...(T)>{});
-  results[sizeof...(T)] =
-      exec_ctx.host()->MakeUnconstructedAsyncValueRef<bool>();
 
   SmallVector<AsyncValue*, 4> async_value_ptrs;
   async_value_ptrs.push_back(values.GetAsyncValue());
   async_value_ptrs.push_back(eof.GetAsyncValue());
   exec_ctx.host()->RunWhenReady(
       async_value_ptrs,
-      [results = RCArray<AsyncValue>(results), eof = std::move(eof),
-       values = std::move(values)]() mutable {
+      [untyped_values_ref = RCArray<AsyncValue>(untyped_values),
+       values = values.CopyRef(), eof = eof.CopyRef()]() {
+        // We can only unpack values if we know that eof is false and there is
+        // no error.
         if (eof.IsError()) {
-          for (int i = 0; i < sizeof...(T); i++) {
-            results[i]->SetError(eof.GetError());
+          for (size_t i = 0; i < sizeof...(T); ++i) {
+            untyped_values_ref[i]->SetError(eof.GetError());
           }
-          results[sizeof...(T)]->emplace<bool>(false);
           return;
         }
         if (eof.get()) {
-          for (int i = 0; i < sizeof...(T); i++) {
-            results[i]->SetError(DecodedDiagnostic{"iterator reached end"});
+          for (size_t i = 0; i < sizeof...(T); ++i) {
+            untyped_values_ref[i]->SetError(
+                DecodedDiagnostic{"iterator reached end"});
           }
-          results[sizeof...(T)]->emplace<bool>(true);
           return;
         }
-        // IDEA(donglin): We can optimize performance by constructing a list of
-        // views of AsyncValue from AsyncValueRef<std::tuple<T...>> without
-        // moving data.
-        internal::EmplaceTupleResult(results.values(), std::move(values.get()),
+        // TODO(b/155918211): Currently, there's an issue in BatchDataset
+        // where EOF is set to false, instead of error, when there is an error
+        // in batching. Fixing that involves having batch dataset's EOF be
+        // available only asynchronously, but that will break all downstream
+        // datasets (for now) until we support async EOF everywhere.
+        if (values.IsError()) {
+          for (size_t i = 0; i < sizeof...(T); ++i) {
+            untyped_values_ref[i]->SetError(values.GetError());
+          }
+          return;
+        }
+        internal::EmplaceTupleResult(untyped_values_ref.values(),
+                                     std::move(values.get()),
                                      std::make_index_sequence<sizeof...(T)>{});
-        results[sizeof...(T)]->emplace<bool>(false);
       });
 
-  return results;
+  return {std::move(untyped_values), std::move(eof)};
 }
 
 }  // namespace data

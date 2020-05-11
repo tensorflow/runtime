@@ -399,6 +399,11 @@ DHTIterationResult<sizeof...(T)> BatchDatasetIterator<T...>::GetNext(
       [values = std::move(values), metadata = std::move(metadata),
        temp_batched_value = temp_batched_value.CopyRef(),
        batched_value = batched_value.CopyRef(), host]() mutable {
+        // TODO(b/155918211): When there's an error, the EOF bit of
+        // the IterationResult returns true, instead of error. Fixing this
+        // involves updating the EOF bit to be known asynchronously; however,
+        // that breaks downstream functionality until we support async EOF
+        // everywhere.
         if (temp_batched_value.IsError()) {
           batched_value.SetError(temp_batched_value.GetError());
           return;

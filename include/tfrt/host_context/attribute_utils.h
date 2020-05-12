@@ -311,9 +311,13 @@ class DenseAttr : public internal::AttrHeaderBase<DenseAttr, BEFDenseAttr> {
 
   BEFAttributeType dtype() const { return GetElementAttributeType(type()); }
 
-  llvm::ArrayRef<int64_t> shape() const {
+  llvm::ArrayRef<ssize_t> shape() const {
     const auto* bytes = static_cast<const uint8_t*>(data());
     const auto& header = this->header();
+
+    // BEF currently stores shapes in int64_t. In the long term, since BEF is
+    // designed to be target specific, we plan to use int32_t to store shape
+    // dimensions in BEF for 32-bit architecture.
     return llvm::makeArrayRef(
         reinterpret_cast<const int64_t*>(bytes + header.shape_offset),
         header.rank);

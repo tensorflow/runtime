@@ -112,12 +112,23 @@ tfrt_cc_library(
         "include/tfrt/support/template_util.h",
         "include/tfrt/support/thread_annotations.h",
         "include/tfrt/support/type_traits.h",
-    ],
+    ] + select({
+        "//conditions:default": ["include/tfrt/support/std_mutex.h"],
+    }),
     visibility = [":friends"],
     deps = [
         "@llvm-project//llvm:support",
         "@tf_runtime//third_party/llvm_derived:ostream",
-    ],
+    ] + select({
+        "//conditions:default": [],
+    }),
+)
+
+tfrt_cc_library(
+    name = "mutex",
+    hdrs = select({
+        "//conditions:default": ["include/tfrt/support/std_mutex.h"],
+    }),
 )
 
 tfrt_cc_library(

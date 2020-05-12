@@ -104,15 +104,13 @@ tfrt_cc_binary(
 )
 
 # bazel build -c opt --copt=-Os --define=disable_rtti_and_exceptions=true
-#   --linkopt=-Wl,--strip-all --linkopt=-Wl,--icf=safe
-"#   //code_size_test_driver"
-
+#   --linkopt=-Wl,--strip-all --linkopt=-Wl,--icf=safe, --define=use_std_mutex=1, --copt=-DSTD_MUTEX
+#   //code_size_test_driver
 # Android
 # bazel build --config=android_arm64 -c opt --copt=-Os
 #   --define=disable_rtti_and_exceptions=true --linkopt=-Wl,--strip-all
-#   --linkopt=-Wl,--icf=safe
-"#   //code_size_test_driver"
-
+#   --linkopt=-Wl,--icf=safe, --define=use_std_mutex=1, --copt=-DSTD_MUTEX
+#   //code_size_test_driver
 tfrt_cc_binary(
     name = "code_size_test_driver",
     srcs = [

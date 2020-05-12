@@ -37,7 +37,6 @@
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_context_ptr.h"
 #include "tfrt/host_context/location.h"
-#include "tfrt/support/compiler_annotations.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/support/type_traits.h"
@@ -394,7 +393,7 @@ class AsyncValue {
                 "addressing modes can address into TypeInfoTable");
 
   // Get the TypeInfo instance for this AsyncValue.
-  TFRT_ALWAYS_INLINE const TypeInfo& GetTypeInfo() const;
+  const TypeInfo& GetTypeInfo() const;
 
   using TypeInfoTable = ConcurrentVector<TypeInfo>;
 

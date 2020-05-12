@@ -185,15 +185,22 @@ RCReference<Iterator<T...>> MakeIteratorFromDataset(
 // caller handle EOF properly.
 // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
 template <typename... T>
-AsyncValueRef<std::tuple<T...>> IteratorGetNext(
-    RCReference<Iterator<T...>>* iterator, Chain chain,
-    const ExecutionContext& exec_ctx) {
-  auto input = (*iterator)->GetNext(exec_ctx);
+static void IteratorGetNext(RCReference<Iterator<T...>>* iterator, Chain chain,
+                            RemainingResults results,
+                            const ExecutionContext& exec_ctx) {
+  auto input = (*iterator)->GetNextUntyped(exec_ctx);
   if (internal::IsConcreteAndEmpty(input)) {
-    EmitErrorAsync(exec_ctx, "iterator reached end");
+    auto err = EmitErrorAsync(exec_ctx, "iterator reached end");
+    for (size_t i = 0; i < sizeof...(T); ++i) {
+      results[i] = err.CopyRef();
+    }
+    return;
   }
 
-  return std::move(input.values);
+  auto values = std::move(input.values);
+  for (size_t i = 0; i < sizeof...(T); ++i) {
+    results[i] = std::move(values[i]);
+  }
 }
 
 namespace {

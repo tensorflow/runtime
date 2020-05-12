@@ -18,11 +18,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/async_value.h"
 
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/test_util.h"
-#include "tfrt/host_context/async_value.h"
+#include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
@@ -53,6 +53,13 @@ TEST(AsyncValueRef, Conversions) {
   EXPECT_EQ(aliased_int_value.get().value(), 42);
   EXPECT_EQ(aliased_int_value->value(), 42);
   EXPECT_EQ((*aliased_int_value).value(), 42);
+}
+
+TEST(AsyncValue, ConstructedToError) {
+  std::unique_ptr<HostContext> host = CreateHostContext();
+  AsyncValue* value = host->MakeConstructedAsyncValueRef<int32_t>(0).release();
+  value->SetError(DecodedDiagnostic("test error"));
+  value->DropRef();
 }
 
 }  // namespace

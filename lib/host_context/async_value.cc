@@ -161,7 +161,11 @@ void AsyncValue::SetError(DecodedDiagnostic diag_in) {
 
   if (kind() == Kind::kConcrete) {
     if (s == State::kConstructed) {
+      // ~ConcreteAsyncValue erases type_id_, but we need it restored as this
+      // AsyncValue is still alive.
+      uint16_t type_id = type_id_;
       GetTypeInfo().destructor(this);
+      type_id_ = type_id;
     }
     char* this_ptr = reinterpret_cast<char*>(this);
     auto& error = *reinterpret_cast<DecodedDiagnostic**>(

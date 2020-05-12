@@ -119,8 +119,8 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
-    name = "host_runtime/async_value_ref_test",
-    srcs = ["host_runtime/async_value_ref_test.cc"],
+    name = "host_runtime/async_value_test",
+    srcs = ["host_runtime/async_value_test.cc"],
     deps = [
         ":common",
         "@com_google_googletest//:gtest_main",

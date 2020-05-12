@@ -354,9 +354,6 @@ DHTIterationResult<sizeof...(T)> BatchDatasetIterator<T...>::GetNext(
       break;
     }
     auto value = std::move(input.values);
-    if (value.IsError()) {
-      return DHTIterationResult<sizeof...(T)>::Error(value.ReleaseRCRef());
-    }
     values.push_back(std::move(value));
   }
   if (values.empty()) {

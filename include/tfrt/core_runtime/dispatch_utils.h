@@ -361,29 +361,25 @@ template <typename OpHandlerTraits>
         });
   }
 
+  // result_missing_md_avs will be empty if there was a metadata function
+  // which already computed these results.
+  if (result_missing_md_avs.empty()) {
+    return;
+  }
+  assert(result_missing_md_avs.size() == results->size());
+
   // Fulfill the result metadata async values with the results of the op.
   for (size_t i = 0, e = results->size(); i != e; ++i) {
     auto& result_tensor = (*results)[i];
-    // Fulfill the metadata async_value.
-    if (!result_tensor->IsError()) {
-      // result_missing_md_avs will be empty if there was a metadata function
-      // which already computed these results.
-      if (!result_missing_md_avs.empty()) {
-        if (result_tensor->IsAvailable()) {
-          result_missing_md_avs[i].emplace(
-              result_tensor->get<Tensor>().metadata());
-        } else {
-          result_tensor->AndThen(
-              [md = result_missing_md_avs[i].CopyRef(),
-               result_tensor = result_tensor.get()]() mutable {
-                md.emplace(result_tensor->get<Tensor>().metadata());
-              });
-        }
+    result_tensor->AndThen([md = result_missing_md_avs[i].CopyRef(),
+                            result_tensor = result_tensor.get()]() mutable {
+      if (result_tensor->IsError()) {
+        md.SetError(result_tensor->GetError());
+      } else {
+        // Fulfill the metadata async_value.
+        md.emplace(result_tensor->get<Tensor>().metadata());
       }
-    } else {
-      if (!result_missing_md_avs.empty())
-        result_missing_md_avs[i].SetError(result_tensor->GetError());
-    }
+    });
   }
 }
 

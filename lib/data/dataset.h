@@ -84,6 +84,23 @@ struct IterationResultUntyped {
                          AsyncValueRef<bool> e)
       : values(std::move(v)), eof(std::move(e)) {}
 
+  IterationResultUntyped(IterationResultUntyped&) = delete;
+  IterationResultUntyped& operator=(IterationResultUntyped&) = delete;
+  IterationResultUntyped(IterationResultUntyped&&) = default;
+  IterationResultUntyped& operator=(IterationResultUntyped&&) = default;
+
+  IterationResultUntyped CopyRef() const {
+    auto copy = llvm::map_range(values, [](auto& v) { return v.CopyRef(); });
+    return {{copy.begin(), copy.end()}, eof.CopyRef()};
+  }
+
+  llvm::SmallVector<AsyncValue*, 8> AsyncValues() const {
+    auto av = llvm::map_range(values, [](auto& v) { return v.get(); });
+    llvm::SmallVector<AsyncValue*, 8> result(av.begin(), av.end());
+    result.push_back(eof.GetAsyncValue());
+    return result;
+  }
+
   // When these AsyncValues resolve, there are three possible states:
   //  (A) End of iteration: `eof` will be true, `values` will contain error
   //      values.

@@ -196,6 +196,139 @@ AsyncValueRef<std::tuple<T...>> IteratorGetNext(
   return std::move(input.values);
 }
 
+namespace {
+// EnumerateContext orchestrates asynchronous iterator enumeration. It is
+// allocated on the heap, and captures the enumeration state that has to
+// be alive while the input iterator enumeration is in progress.
+struct EnumerateContext {
+  EnumerateContext(const ExecutionContext& exec_ctx,
+                   RCReference<const Function> body_fn,
+                   RCReference<IteratorBase> iterator, RemainingArguments* args,
+                   RemainingResults* results)
+      : exec_ctx(exec_ctx),
+        body_fn(std::move(body_fn)),
+        iterator(std::move(iterator)),
+        num_results(results->size()) {
+    // Initialize function result with enumerate arguments.
+    for (int i = 0; i < num_results; i++) {
+      fn_results.push_back(FormRef((*args)[i + 1]));
+    }
+    // Allocate indirect results for enumerate outputs.
+    for (int i = 0; i < num_results; ++i) {
+      enumerate_results.push_back(results->AllocateIndirectResultAt(i));
+    }
+  }
+
+  void ProcessInputs(std::unique_ptr<EnumerateContext> ctx,
+                     IterationResultUntyped iteration_result) {
+    // Forward error in the EOF flag to all results.
+    if (iteration_result.eof.IsError()) {
+      ForwardEofError(iteration_result.eof);
+      return;
+    }
+
+    // Forward EOF singal to all results.
+    if (*iteration_result.eof) {
+      ForwardResults();
+      return;
+    }
+
+    // If any of the iteration values has an error, it will be propagated to
+    // enumerate function outputs, and will be forwarded to the results.
+
+    const size_t num_iterator_values = iteration_result.values.size();
+
+    // Invoke the enumerator function.
+    SmallVector<AsyncValue*, 8> fn_args;
+    fn_args.resize(num_iterator_values + num_results);
+
+    // Function arguments corresponding to iterator values.
+    for (int i = 0; i < num_iterator_values; i++) {
+      fn_args[i] = iteration_result.values[i].get();
+    }
+
+    // Function arguments that passed from last iteration results.
+    for (int i = 0; i < num_results; i++) {
+      fn_args[num_iterator_values + i] = fn_results[i].release();
+    }
+
+    body_fn->Execute(fn_args, fn_results, exec_ctx.host());
+
+    // DropRef only on arguments from the previous iteration.
+    for (int i = 0; i < num_results; i++) {
+      fn_args[num_iterator_values + i]->DropRef();
+    }
+
+    // Stop enumeration if receive cancellation.
+    if (Cancelled()) return;
+
+    // If there is an error, propagate it to the results and return.
+    if (ForwardedErrorResults()) return;
+
+    // Get next input values.
+    auto next = iterator->GetNextUntyped(exec_ctx);
+    exec_ctx.host()->RunWhenReady(
+        next.AsyncValues(),
+        [ctx = std::move(ctx), next = std::move(next)]() mutable {
+          auto* ctx_ptr = ctx.get();
+          ctx_ptr->ProcessInputs(std::move(ctx), std::move(next));
+        });
+  }
+
+  // Forward EOF flag error to all enumerate results.
+  void ForwardEofError(const AsyncValueRef<bool>& eof) {
+    assert(eof.IsError());
+    for (int i = 0; i < num_results; ++i) {
+      enumerate_results[i]->ForwardTo(eof.CopyRef());
+    }
+  }
+
+  bool Cancelled() {
+    auto cancel_av = exec_ctx.host()->GetCancelAsyncValue();
+    if (!cancel_av) return false;
+
+    // Cancellation detected. Set results to the cancel async value.
+    for (int i = 0; i < num_results; i++)
+      enumerate_results[i]->ForwardTo(FormRef(cancel_av));
+    return true;
+  }
+
+  // If there is an error in any of the enumerator function results, propagate
+  // it to results and return.
+  bool ForwardedErrorResults() {
+    for (int i = 0; i < num_results; i++) {
+      if (fn_results[i]->IsError()) {
+        for (int j = 0; j < num_results; j++) {
+          enumerate_results[j]->ForwardTo(fn_results[i].CopyRef());
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Forward the last function results to the enumerate results.
+  void ForwardResults() {
+    for (int i = 0; i < num_results; i++) {
+      enumerate_results[i]->ForwardTo(std::move(fn_results[i]));
+    }
+  }
+
+  ExecutionContext exec_ctx;
+  RCReference<const Function> body_fn;
+  RCReference<IteratorBase> iterator;
+
+  const size_t num_results;
+
+  // Last successfull function invocation results (or the enumerate arguments,
+  // if the function was never invoked).
+  SmallVector<RCReference<AsyncValue>, 4> fn_results;
+  // Enumerate results that will be forwared to the last function invocation
+  // results, when iterator will be exhausted.
+  SmallVector<RCReference<IndirectAsyncValue>, 4> enumerate_results;
+};
+}  // namespace
+
 // Executes body_fn repeatedly until the iterator reaches end.
 //
 // Requirements:
@@ -219,70 +352,18 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
   assert(args.size() - 1 == results.size() &&
          "argument count should be one larger than the results count");
 
-  const Function* body_fn_ptr = &body_fn.get();
-  auto& iterator = args[0]->get<std::unique_ptr<IteratorBase>>();
-  auto num_results = results.size();
+  auto& iterator = args[0]->get<RCReference<IteratorBase>>();
+  auto ctx = std::make_unique<EnumerateContext>(
+      exec_ctx, FormRef(&body_fn.get()), iterator.CopyRef(), &args, &results);
 
-  SmallVector<AsyncValue*, 8> fn_args;
-  SmallVector<RCReference<AsyncValue>, 4> fn_results;
-  fn_results.resize(num_results);
-
-  for (int i = 0; i < num_results; i++) {
-    fn_results[i] = FormRef(args[i + 1]);
-  }
-
-  // IDEA(donglin): We can optimize performance by avoiding making the chain of
-  // AndThen() too long as we keep constructing the next iteration's async
-  // values before the output async values from the current iteration are
-  // available.
-  while (true) {
-    auto iteration_result = iterator->GetNextUntyped(exec_ctx);
-
-    // TODO((b/155918211): Handle async eof.
-    if (internal::IsConcreteAndEmpty(iteration_result)) {
-      break;
-    }
-
-    auto values = std::move(iteration_result.values);
-
-    fn_args.resize(values.size() + num_results);
-
-    for (int i = 0; i < values.size(); i++) {
-      fn_args[i] = values[i].release();
-    }
-    // Move the results from the last iteration to the args of this iteration.
-    for (int i = 0; i < num_results; i++) {
-      fn_args[values.size() + i] = fn_results[i].release();
-    }
-
-    body_fn_ptr->Execute(fn_args, fn_results, exec_ctx.host());
-    for (int i = 0; i < fn_args.size(); i++) {
-      fn_args[i]->DropRef();
-    }
-
-    if (auto cancel_av = exec_ctx.host()->GetCancelAsyncValue()) {
-      // Cancellation detected. Set results to the cancel async value and
-      // return.
-      for (int i = 0; i < num_results; i++) {
-        results[i] = FormRef(cancel_av);
-      }
-      return;
-    }
-
-    // If there is error, propagate it to results and return.
-    for (int i = 0; i < num_results; i++) {
-      if (fn_results[i]->IsError()) {
-        for (int j = 0; j < num_results; j++) {
-          results[j] = fn_results[i].CopyRef();
-        }
-        return;
-      }
-    }
-  }
-
-  for (int i = 0; i < num_results; i++) {
-    results[i] = std::move(fn_results[i]);
-  }
+  // Request the first input from the iterator.
+  auto next = iterator->GetNextUntyped(exec_ctx);
+  exec_ctx.host()->RunWhenReady(
+      next.AsyncValues(),
+      [ctx = std::move(ctx), next = next.CopyRef()]() mutable {
+        auto* ctx_ptr = ctx.get();
+        ctx_ptr->ProcessInputs(std::move(ctx), std::move(next));
+      });
 }
 
 //===----------------------------------------------------------------------===//

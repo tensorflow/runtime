@@ -81,11 +81,11 @@ class PrefetchDatasetIterator : public Iterator<T...> {
 
   IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
     while (buffer_.size() < parent_dataset_->prefetch_num_) {
-      buffer_.push(input_iterator_->GetNext(exec_ctx));
+      buffer_.push(input_iterator_->GetNextUntyped(exec_ctx));
     }
     auto result = std::move(buffer_.front());
     buffer_.pop();
-    return result;
+    return internal::UntypedToTyped<T...>(std::move(result), exec_ctx.host());
   }
 
  private:
@@ -96,7 +96,7 @@ class PrefetchDatasetIterator : public Iterator<T...> {
 
   RCReference<PrefetchDataset<T...>> parent_dataset_;
   RCReference<Iterator<T...>> input_iterator_;
-  std::queue<IterationResult<T...>> buffer_;
+  std::queue<IterationResultUntyped> buffer_;
 };
 
 template <typename... T>

@@ -37,31 +37,6 @@ class MapDataset;
 template <typename... T>
 class MapDatasetIterator;
 
-// This helper function takes SmallVector instead of ArrayRef to explicitly
-// indicate the ownership of the input AsyncValue so that it can safely use
-// std::move(...) to instantiate the return value.
-template <typename... T, std::size_t... Indices>
-static std::tuple<T...> ArrayToTupleHelper(
-    SmallVector<RCReference<AsyncValue>, sizeof...(T)> results,
-    std::index_sequence<Indices...>) {
-  // IDEA(donglin): we currently change the input AsyncValue in order to
-  // generate the return value. This will not work if the input AsyncValue needs
-  // to be accessed later. A better solution is to generate an AsyncValue that
-  // wraps around the input AsyncValue<std::tuple<...>>.
-  return std::make_tuple(std::move(results[Indices]->template get<T>())...);
-}
-
-// This helper function takes SmallVector instead of ArrayRef to explicitly
-// indicate the ownership of the input AsyncValue so that it can safely use
-// std::move(...) to instantiate the return value.
-template <typename... T>
-static std::tuple<T...> ArrayToTuple(
-    SmallVector<RCReference<AsyncValue>, sizeof...(T)> results) {
-  assert(results.size() == sizeof...(T));
-  return ArrayToTupleHelper<T...>(std::move(results),
-                                  std::make_index_sequence<sizeof...(T)>());
-}
-
 // MapDataset maps a user-defined function over the elements in its input
 // dataset.
 template <typename... InputTypes, typename... OutputTypes>
@@ -155,32 +130,11 @@ struct FunctionWrapper {
         auto arg = host->template MakeAvailableAsyncValueRef<InputTypes...>(
             std::move(std::get<0>(args.get())));
         arguments.push_back(arg.GetAsyncValue());
-        SmallVector<RCReference<AsyncValue>, sizeof...(OutputTypes)> results;
+        SmallVector<RCReference<AsyncValue>, 4> results;
         results.resize(map_fn->result_types().size());
         map_fn->Execute(arguments, results, host);
-        for (size_t i = 0; i < sizeof...(OutputTypes); ++i) {
-          if (results[i]->IsError()) {
-            async_result.SetError(results[i]->GetError());
-            return;
-          }
-        }
-        // Translate RCReference<AsyncValue> to AsyncValue*.
-        SmallVector<AsyncValue*, 4> async_value_ptrs;
-        for (size_t i = 0; i < sizeof...(OutputTypes); ++i) {
-          async_value_ptrs.push_back(results[i].get());
-        }
-        host->RunWhenReady(async_value_ptrs,
-                           [results = std::move(results),
-                            async_result = std::move(async_result)]() mutable {
-                             for (auto& result : results) {
-                               if (result->IsError()) {
-                                 async_result.SetError(result->GetError());
-                                 return;
-                               }
-                             }
-                             async_result.emplace(ArrayToTuple<OutputTypes...>(
-                                 std::move(results)));
-                           });
+        internal::VectorToTuple(std::move(results), async_result.CopyRef(),
+                                host);
       });
     });
     return IterationResult<OutputTypes...>::Pending(std::move(async_result),

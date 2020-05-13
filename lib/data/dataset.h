@@ -146,6 +146,59 @@ static void EmplaceTupleResult(ArrayRef<AsyncValue*> results,
        0)...};
 }
 
+// Creates a tuple of known types by retrieving the values from a vector
+// of available AsyncValues.
+//
+// This helper function takes SmallVector instead of ArrayRef to explicitly
+// indicate the ownership of the input AsyncValue so that it can safely use
+// std::move(...) to instantiate the return value.
+template <typename... T, std::size_t... Indices>
+static std::tuple<T...> VectorToTupleHelper(
+    SmallVector<RCReference<AsyncValue>, 4> results,
+    std::index_sequence<Indices...>) {
+  // IDEA(donglin): we currently change the input AsyncValue in order to
+  // generate the return value. This will not work if the input AsyncValue needs
+  // to be accessed later. A better solution is to generate an AsyncValue that
+  // wraps around the input AsyncValue<std::tuple<...>>.
+  return std::make_tuple(std::move(results[Indices]->template get<T>())...);
+}
+
+// Helper function to convert a SmallVector of untyped AsyncValues to a
+// AsyncValueRef<std::tuple<T...>> of the same values.
+template <typename... T>
+static void VectorToTuple(SmallVector<RCReference<AsyncValue>, 4> untyped,
+                          AsyncValueRef<std::tuple<T...>> result,
+                          HostContext* host) {
+  assert(untyped.size() == sizeof...(T));
+  SmallVector<AsyncValue*, 4> untyped_ptrs;
+  for (size_t i = 0; i < untyped.size(); ++i) {
+    untyped_ptrs.push_back(untyped[i].get());
+  }
+  host->RunWhenReady(untyped_ptrs, [untyped = std::move(untyped),
+                                    result = std::move(result)]() mutable {
+    for (auto& value : untyped) {
+      if (value->IsError()) {
+        result.SetError(value->GetError());
+        return;
+      }
+    }
+    result.emplace(VectorToTupleHelper<T...>(
+        std::move(untyped), std::make_index_sequence<sizeof...(T)>()));
+  });
+}
+
+// Helper function that converts IterationResultUntyped to IterationResult.
+// TODO(b/155892156): When iterators are untyped, this will no longer be
+// necessary.
+template <typename... T>
+static IterationResult<T...> UntypedToTyped(IterationResultUntyped untyped,
+                                            HostContext* host) {
+  auto values =
+      host->template MakeUnconstructedAsyncValueRef<std::tuple<T...>>();
+  VectorToTuple(std::move(untyped.values), values.CopyRef(), host);
+  return IterationResult<T...>::Pending(std::move(values),
+                                        std::move(untyped.eof));
+}
 }  // namespace internal
 
 // We separate the IteratorBase from the templatized Iterator so that

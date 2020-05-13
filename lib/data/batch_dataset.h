@@ -349,11 +349,14 @@ DHTIterationResult<sizeof...(T)> BatchDatasetIterator<T...>::GetNext(
   llvm::SmallVector<AsyncValueRef<std::tuple<T...>>, 4> values;
   // Get up to batch_size values from the underlying iterator.
   for (int i = 0; i < parent_dataset_->batch_size_; ++i) {
-    auto input = input_iterator_->GetNext(exec_ctx);
+    auto input = input_iterator_->GetNextUntyped(exec_ctx);
     if (internal::IsConcreteAndEmpty(input)) {
       break;
     }
-    auto value = std::move(input.values);
+    auto value =
+        exec_ctx.host()->MakeUnconstructedAsyncValueRef<std::tuple<T...>>();
+    internal::VectorToTuple(std::move(input.values), value.CopyRef(),
+                            exec_ctx.host());
     values.push_back(std::move(value));
   }
   if (values.empty()) {

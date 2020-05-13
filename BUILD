@@ -124,13 +124,6 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "mutex",
-    hdrs = select({
-        "//conditions:default": ["include/tfrt/support/std_mutex.h"],
-    }),
-)
-
-tfrt_cc_library(
     name = "tracing",
     srcs = [
         "lib/tracing/tracing.cc",

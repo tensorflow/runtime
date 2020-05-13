@@ -23,7 +23,7 @@
 #define TEST_OPS
 
 include "tfrt/tfrt_op_base.td"
-include "mlir/Interfaces/SideEffects.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // "tfrt_test. dialect
 def Test_Dialect : Dialect {

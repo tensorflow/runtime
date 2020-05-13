@@ -17,7 +17,7 @@
 #define CORERT_OPS
 
 include "tfrt/tfrt_op_base.td"
-include "mlir/Interfaces/SideEffects.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def CoreRT_Dialect : Dialect {
   let name = "corert";

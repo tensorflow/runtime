@@ -24,7 +24,7 @@
 
 include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
-include "mlir/Interfaces/SideEffects.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // Dense host tensor dialect.
 def DHT_Dialect : Dialect {

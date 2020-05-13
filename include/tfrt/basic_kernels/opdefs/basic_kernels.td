@@ -23,7 +23,7 @@
 #define BASIC_OPS
 
 include "tfrt/tfrt_op_base.td"
-include "mlir/Interfaces/SideEffects.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // "hex" Host Executor dialect.
 def Hex_Dialect : Dialect {

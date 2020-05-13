@@ -1,4 +1,4 @@
-//===- raw_ostream.cpp - Lightweight raw output stream --------------------===//
+//===- ostream.cc - Implement a lightweight raw output stream ---*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -8,14 +8,14 @@
 //
 // This file implements support for lightweight stream output to file.
 // The implementation is derived from llvm::raw_fd_ostream. It has mostly
-// identical functionalities with the following changes:
-// 1. Terminal color related functionalities are removed
-// 2. Does not report_fatal_error() in its destructor. Removing such
-//    functionalities helps us achieve smaller binary size.
+// identical functionalities with the following changes: 1. Terminal color
+// related functionalities are removed; 2. Does not report_fatal_error() in
+// its destructor. Removing such functionalities unecessary to our use case
+// helps us achieve smaller binary size.
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm_derived/Support/raw_ostream.h"
+#include "llvm_derived/ostream.h"
 
 #include <sys/stat.h>
 #include <unistd.h>

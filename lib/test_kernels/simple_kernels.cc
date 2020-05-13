@@ -24,9 +24,9 @@
 #include <string>
 #include <thread>
 
-#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/ostream.h"
 #include "tfrt/test_kernels.h"
 
 namespace tfrt {

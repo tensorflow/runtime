@@ -24,10 +24,10 @@
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/support/ostream.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/test_kernels.h"
 

@@ -24,9 +24,9 @@
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/raw_ostream.h"
-#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/ostream.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"

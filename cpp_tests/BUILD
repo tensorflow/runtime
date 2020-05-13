@@ -100,7 +100,6 @@ tfrt_cc_test(
         "@tf_runtime//:tensor_alwayslink",
         "@tf_runtime//backends/cpu:core_runtime_alwayslink",
         "@tf_runtime//backends/cpu:test_ops_alwayslink",
-        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 

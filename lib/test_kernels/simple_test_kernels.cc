@@ -18,12 +18,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/shared_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
+#include "tfrt/support/ostream.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
 #include "tfrt/test_kernels.h"

@@ -23,11 +23,11 @@
 
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
-#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/core_runtime/core_runtime_op.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/location.h"
+#include "tfrt/support/ostream.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/tensor_metadata.h"

@@ -18,11 +18,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/core_runtime/kernels.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/support/ostream.h"
 #include "tfrt/tensor/tensor.h"
 
 namespace tfrt {

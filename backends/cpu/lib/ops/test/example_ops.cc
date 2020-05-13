@@ -43,8 +43,8 @@ namespace tfrt {
 // and returns a 1d output containing only the odd values of the input.
 //
 // This is a test op for dynamic output results.
-static Expected<DenseHostTensor> OddCollectorOp(const DenseHostTensor& input,
-                                                HostContext* host) {
+static Expected<DenseHostTensor> OddCollectorOp(
+    const DenseHostTensor& input, const ExecutionContext& exec_ctx) {
   if (input.shape().GetRank() != 1)
     return MakeStringError("expected a 1D tensor input");
   if (input.dtype().kind() != DType::I32)
@@ -58,7 +58,7 @@ static Expected<DenseHostTensor> OddCollectorOp(const DenseHostTensor& input,
 
   // Allocate the result.
   auto result = DenseHostTensor::CreateUninitialized<int32_t>(
-      TensorShape{result_size}, host);
+      TensorShape{result_size}, exec_ctx.host());
   if (!result.hasValue()) return MakeStringError("cannot allocate tensor");
 
   // Fill in the result.
@@ -76,14 +76,16 @@ static Expected<DenseHostTensor> OddCollectorOp(const DenseHostTensor& input,
 
 template <typename T>
 static AsyncValueRef<HostTensor> DoCreateFromScalar(
-    const TensorMetadata& dest_md, T value, HostContext* host) {
-  return host->MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(dest_md, value);
+    const TensorMetadata& dest_md, T value, const ExecutionContext& exec_ctx) {
+  return exec_ctx.host()->MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(
+      dest_md, value);
 }
 
 // result = test.create_from_scalar(value=V, shape=Shape)
 //
 static AsyncValueRef<HostTensor> TestCreateFromScalarOp(
-    const OpAttrsRef& attrs, const TensorMetadata& dest_md, HostContext* host) {
+    const OpAttrsRef& attrs, const TensorMetadata& dest_md,
+    const ExecutionContext& exec_ctx) {
   auto& value = attrs.GetRawAsserting("value");
   assert(!value.IsArray() && "shape function failure");
 
@@ -91,9 +93,10 @@ static AsyncValueRef<HostTensor> TestCreateFromScalarOp(
     default:
       assert(0 && "shape function failure");
       return {};
-#define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
-  case OpAttrType::ENUM:             \
-    return DoCreateFromScalar(dest_md, value.GetScalarData<CPP_TYPE>(), host);
+#define OP_ATTR_TYPE(ENUM, CPP_TYPE)                                    \
+  case OpAttrType::ENUM:                                                \
+    return DoCreateFromScalar(dest_md, value.GetScalarData<CPP_TYPE>(), \
+                              exec_ctx);
 #include "tfrt/core_runtime/op_attr_type.def"
   }
 }
@@ -106,14 +109,14 @@ static AsyncValueRef<HostTensor> TestCreateFromScalarOp(
 //
 static AsyncValueRef<HostTensor> TestAddOp(const HostTensor& lhs,
                                            const HostTensor& rhs,
-                                           HostContext* host) {
+                                           const ExecutionContext& exec_ctx) {
   switch (lhs.dtype().kind()) {
     default:
       assert(0 && "shape function failure");
       return {};
 #define DTYPE_TRIVIAL(ENUM) \
   case DType::ENUM:         \
-    return cpu::Add<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, host);
+    return cpu::Add<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx.host());
 #include "tfrt/tensor/dtype.def"
   }
 }
@@ -135,10 +138,11 @@ static void TestAddDenseOnlyImpl(DHTArrayView<T> lhs_view,
 // This implements the test.add.denseonly op, which is a simple add operation,
 // but whose implementation intentionally only supports dense tensors.  This is
 // used to test type conversion by the CPU device.
-static Expected<DenseHostTensor> TestAddDenseOnlyOp(const DenseHostTensor& lhs,
-                                                    const DenseHostTensor& rhs,
-                                                    HostContext* host) {
-  auto dest = DenseHostTensor::CreateUninitialized(lhs.metadata(), host);
+static Expected<DenseHostTensor> TestAddDenseOnlyOp(
+    const DenseHostTensor& lhs, const DenseHostTensor& rhs,
+    const ExecutionContext& exec_ctx) {
+  auto dest =
+      DenseHostTensor::CreateUninitialized(lhs.metadata(), exec_ctx.host());
   if (!dest) {
     return MakeStringError("out of memory allocating result");
   }
@@ -163,12 +167,14 @@ static Expected<DenseHostTensor> TestAddDenseOnlyOp(const DenseHostTensor& lhs,
 // but whose implementation intentionally only supports dense tensors.  This is
 // used to test type conversion by the CPU device.
 static AsyncValueRef<DenseHostTensor> TestAddDenseOnly2Op(
-    const DenseHostTensor& lhs, const DenseHostTensor& rhs, HostContext* host) {
+    const DenseHostTensor& lhs, const DenseHostTensor& rhs,
+    const ExecutionContext& exec_ctx) {
   // Allocate the result buffer, and exit if an error occurred.
-  auto dht =
-      DenseHostTensor::MakeConstructedAsyncValueRef(lhs.metadata(), host);
+  auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(lhs.metadata(),
+                                                           exec_ctx.host());
   if (!dht) {
-    return host->MakeErrorAsyncValueRef("out of memory allocating result");
+    return exec_ctx.host()->MakeErrorAsyncValueRef(
+        "out of memory allocating result");
   }
 
   switch (lhs.dtype().kind()) {
@@ -190,7 +196,9 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly2Op(
 // but whose implementation intentionally only supports dense tensors.  This is
 // used to test type conversion by the CPU device.
 static AsyncValueRef<DenseHostTensor> TestAddDenseOnly3Op(
-    const DenseHostTensor& lhs, const DenseHostTensor& rhs, HostContext* host) {
+    const DenseHostTensor& lhs, const DenseHostTensor& rhs,
+    const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
   // Allocate the result buffer, and exit if an error occurred.
   auto dht =
       DenseHostTensor::MakeConstructedAsyncValueRef(lhs.metadata(), host);
@@ -229,11 +237,11 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly3Op(
 //===----------------------------------------------------------------------===//
 
 static AsyncValueRef<Chain> PrintOp(const HostTensor& input,
-                                    HostContext* host) {
+                                    const ExecutionContext& exec_ctx) {
   input.Print(tfrt::outs());
   tfrt::outs() << '\n';
   tfrt::outs().flush();
-  return host->GetReadyChain();
+  return exec_ctx.host()->GetReadyChain();
 }
 
 //===----------------------------------------------------------------------===//
@@ -251,7 +259,8 @@ static DenseHostTensor IdentityOp(const HostTensor& input) {
 // Copy the input to the output and force it to happen asynchronously, for
 // testing.
 static RCReference<AsyncValue> AsyncNoopOp(const HostTensor& src,
-                                           HostContext* host) {
+                                           const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
   auto dest_ind = host->MakeIndirectAsyncValue();
 
   auto copy = src.ConvertToHostTensor(host, ~uint32_t(0));
@@ -272,8 +281,8 @@ static RCReference<AsyncValue> AsyncNoopOp(const HostTensor& src,
 // produces an error for the tensor result.  This allows us to test handling of
 // TensorHandle's that have a valid metadata but an error tensor value.
 static RCReference<AsyncValue> ErrorTensorOp(const HostTensor& src,
-                                             HostContext* host) {
-  return host->MakeErrorAsyncValueRef(
+                                             const ExecutionContext& exec_ctx) {
+  return exec_ctx.host()->MakeErrorAsyncValueRef(
       "error from test.error.tensor implementation");
 }
 

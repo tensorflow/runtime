@@ -610,25 +610,6 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
     }
   };
 
-  // Specialization for passing HostContext*.
-  template <typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, HostContext*, RemainingArgs...> {
-    template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
-              bool has_chain, typename... PreviousArgs>
-    static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
-                       const OpAttrsRef& attrs,
-                       ArrayRef<TensorMetadata> result_mds,
-                       MutableArrayRef<RCReference<AsyncValue>> results,
-                       AsyncValueRef<Chain>* chain,
-                       const ExecutionContext& exec_ctx,
-                       const PreviousArgs&... pargs) {
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
-          arg_idx, result_idx, md_idx, has_attrs, has_chain>(
-          ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
-          exec_ctx.host());
-    }
-  };
-
   // Specialization for passing DeviceContext*.
   template <typename... RemainingArgs>
   struct DispatchFnCallHelper<!std::is_same<DeviceContext, HostContext>::value,

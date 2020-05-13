@@ -42,8 +42,9 @@ namespace {
 
 static Expected<DenseHostTensor> TfConstOp(const OpAttrsRef& attrs,
                                            const TensorMetadata& dest_md,
-                                           HostContext* host) {
-  auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
+                                           const ExecutionContext& exec_ctx) {
+  auto dest_alloc =
+      DenseHostTensor::CreateUninitialized(dest_md, exec_ctx.host());
   if (!dest_alloc) {
     return MakeStringError("out of memory allocating dht tensor");
   }
@@ -64,14 +65,15 @@ static Expected<DenseHostTensor> TfConstOp(const OpAttrsRef& attrs,
 
 static AsyncValueRef<HostTensor> TfAddOp(const HostTensor& lhs,
                                          const HostTensor& rhs,
-                                         HostContext* host) {
+                                         const ExecutionContext& exec_ctx) {
   switch (lhs.dtype().kind()) {
     default:
       assert(0 && "shape function failure");
       return {};
-#define DTYPE_NUMERIC(ENUM) \
-  case DType::ENUM:         \
-    return cpu::Add<EigenTypeForDTypeKind<DType::ENUM>>(lhs, rhs, host);
+#define DTYPE_NUMERIC(ENUM)                                       \
+  case DType::ENUM:                                               \
+    return cpu::Add<EigenTypeForDTypeKind<DType::ENUM>>(lhs, rhs, \
+                                                        exec_ctx.host());
 #include "tfrt/tensor/dtype.def"
   }
 }

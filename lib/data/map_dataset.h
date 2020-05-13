@@ -77,70 +77,62 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
 };
 
 // Computes and returns map_fn(additional_fn_args, args).
-template <typename... InputTypes>
-struct FunctionWrapper {
-  template <typename... OutputTypes>
-  static IterationResult<OutputTypes...> GetOutput(
-      const Function* map_fn, RCArray<AsyncValue> additional_fn_args,
-      IterationResult<InputTypes...> input, const ExecutionContext& exec_ctx) {
-    auto* host = exec_ctx.host();
-    if (internal::IsConcreteAndEmpty(input)) {
-      return IterationResult<OutputTypes...>::Eof(host);
-    }
-    auto async_result = host->template MakeUnconstructedAsyncValueRef<
-        std::tuple<OutputTypes...>>();
-    auto args = std::move(input.values);
-    auto eof = std::move(input.eof);
-
-    args.AndThen([host, map_fn = FormRef(map_fn),
-                  additional_fn_args = std::move(additional_fn_args),
-                  args = args.CopyRef(),
-                  async_result = async_result.CopyRef()]() mutable {
-      if (args.IsError()) {
-        async_result.SetError(args.GetError());
-        return;
-      }
-      // IDEA(donglin): We can optimize performance for small tasks by not
-      // enqueuing small tasks to the threadpool. We need a way to identify
-      // small tasks.
-      //
-      // Enqueue the map function to the threadpool to improve performance by
-      // running the map function in parallel. An alternative approach to
-      // increase parallelism is to compose map function with async kernels.
-      // This alternative approach likely incurs higher thread context switch
-      // overhead because different async kernels may be run by different
-      // threads.
-      //
-      // NOTE: We need to enqueue work after the args are available. If we
-      // enqueue work before the args is available, according to the
-      // AndThen(...) API semantics, a thread from the blocking threadpool might
-      // run the map function if the args is computed by a thread in the
-      // blocking threadpool.
-      host->EnqueueWork([host, map_fn = std::move(map_fn),
-                         additional_fn_args = std::move(additional_fn_args),
-                         args = std::move(args),
-                         async_result = std::move(async_result)]() mutable {
-        // Construct arguments for function execution. The arguments consist of
-        // the 'additional_fn_args' from the MapDataset constructor, followed by
-        // the values from the underlying iterator.
-        SmallVector<AsyncValue*, 4> arguments;
-        for (auto* additional_arg : additional_fn_args.values()) {
-          arguments.push_back(additional_arg);
-        }
-        auto arg = host->template MakeAvailableAsyncValueRef<InputTypes...>(
-            std::move(std::get<0>(args.get())));
-        arguments.push_back(arg.GetAsyncValue());
-        SmallVector<RCReference<AsyncValue>, 4> results;
-        results.resize(map_fn->result_types().size());
-        map_fn->Execute(arguments, results, host);
-        internal::VectorToTuple(std::move(results), async_result.CopyRef(),
-                                host);
-      });
-    });
-    return IterationResult<OutputTypes...>::Pending(std::move(async_result),
-                                                    std::move(eof));
+template <typename... OutputTypes>
+static IterationResult<OutputTypes...> RunFunction(
+    const Function* map_fn, RCArray<AsyncValue> additional_fn_args,
+    IterationResultUntyped input, const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  if (internal::IsConcreteAndEmpty(input)) {
+    return IterationResult<OutputTypes...>::Eof(host);
   }
-};
+  auto async_result = host->template MakeUnconstructedAsyncValueRef<
+      std::tuple<OutputTypes...>>();
+
+  host->RunWhenReady(
+      input.values, [host, map_fn = std::move(map_fn),
+                     additional_fn_args = std::move(additional_fn_args),
+                     input = input.CopyRef(),
+                     async_result = async_result.CopyRef()]() mutable {
+        // IDEA(donglin): We can optimize performance for small tasks by not
+        // enqueuing small tasks to the threadpool. We need a way to identify
+        // small tasks.
+        //
+        // Enqueue the map function to the threadpool to improve performance by
+        // running the map function in parallel. An alternative approach to
+        // increase parallelism is to compose map function with async kernels.
+        // This alternative approach likely incurs higher thread context switch
+        // overhead because different async kernels may be run by different
+        // threads.
+        //
+        // NOTE: We enqueue work after the args are available. If we
+        // enqueue work before the args are available, a thread from the
+        // blocking threadpool might run the map function if the args is
+        // computed by a thread in the blocking threadpool.
+        host->EnqueueWork([host, map_fn = std::move(map_fn),
+                           additional_fn_args = std::move(additional_fn_args),
+                           args = std::move(input.values),
+                           async_result = std::move(async_result)]() mutable {
+          // Construct arguments for function execution. The arguments consist
+          // of the 'additional_fn_args' from the MapDataset constructor,
+          // followed by the values from the underlying iterator.
+          SmallVector<AsyncValue*, 4> arguments;
+          for (auto* additional_arg : additional_fn_args.values()) {
+            arguments.push_back(additional_arg);
+          }
+          for (const auto& arg : args) {
+            arguments.push_back(arg.get());
+          }
+          SmallVector<RCReference<AsyncValue>, sizeof...(OutputTypes)> results;
+          results.resize(map_fn->result_types().size());
+          map_fn->Execute(arguments, results, host);
+          internal::VectorToTuple(std::move(results), async_result.CopyRef(),
+                                  host);
+        });
+      });
+
+  return IterationResult<OutputTypes...>::Pending(std::move(async_result),
+                                                  std::move(input.eof));
+}
 
 template <typename... InputTypes, typename... OutputTypes>
 class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
@@ -156,13 +148,13 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
 
   IterationResult<OutputTypes...> GetNext(
       const ExecutionContext& exec_ctx) override {
-    auto input = input_iterator_->GetNext(exec_ctx);
+    auto input = input_iterator_->GetNextUntyped(exec_ctx);
     const Function* map_fn = parent_dataset_->map_fn_.get();
     // IDEA(donglin): consider extending RCArray to support CopyRef() without
     // doing shallow copy.
     auto additional_fn_args = parent_dataset_->additional_fn_args_.CopyRef();
-    return FunctionWrapper<InputTypes...>::template GetOutput<OutputTypes...>(
-        map_fn, std::move(additional_fn_args), std::move(input), exec_ctx);
+    return RunFunction<OutputTypes...>(map_fn, std::move(additional_fn_args),
+                                       std::move(input), exec_ctx);
   }
 
  private:

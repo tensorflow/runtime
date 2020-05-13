@@ -80,14 +80,14 @@ class RepeatDatasetIterator : public Iterator<T...> {
 
   // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
   IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
-    auto value = input_iterator_->GetNext(exec_ctx);
-    if (internal::IsConcreteAndEmpty(value) &&
+    auto result = input_iterator_->GetNextUntyped(exec_ctx);
+    if (internal::IsConcreteAndEmpty(result) &&
         epoch_ + 1 < parent_dataset_->epochs_) {
       epoch_++;
       input_iterator_ = parent_dataset_->input_dataset_->MakeIterator();
-      return input_iterator_->GetNext(exec_ctx);
+      result = input_iterator_->GetNextUntyped(exec_ctx);
     }
-    return value;
+    return internal::UntypedToTyped<T...>(std::move(result), exec_ctx.host());
   }
 
  private:

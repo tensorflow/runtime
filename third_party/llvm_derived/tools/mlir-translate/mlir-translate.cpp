@@ -1,4 +1,4 @@
-//===- main.cc - MLIR Translate Driver ---------------------- ---*- C++ -*-===//
+//===- mlir-translate.cpp - MLIR Translate Driver -------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 //
 // This is a command line utility that translates a file from/to MLIR for
-// TFRT's dialect. It doesn't registrate any other dialects, in order to speed
+// TFRT's dialect. It doesn't register any other dialects, in order to speed
 // up build time. This utility is derived from MLIR's Translate Driver.
 //
 //===----------------------------------------------------------------------===//

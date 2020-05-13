@@ -1,10 +1,10 @@
-//===- ostream.h - Lightweight raw output stream ----------------*- C++ -*-===//
+//===- raw_ostream.h - Lightweight raw output stream ------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-//===----------------------------------------------------------------------===/
+//===----------------------------------------------------------------------===//
 //
 // This file defines a lightweight output stream and methods.
 // The definition is derived from llvm::raw_fd_ostream. It has mostly
@@ -12,8 +12,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_THIRD_PARTY_LLVM_DERIVED_OSTREAM_H_
-#define TFRT_THIRD_PARTY_LLVM_DERIVED_OSTREAM_H_
+#ifndef TFRT_LLVM_DERIVED_OSTREAM_H_
+#define TFRT_LLVM_DERIVED_OSTREAM_H_
 
 #include <cassert>
 #include <cstddef>
@@ -41,8 +41,8 @@ using raw_fd_ostream = llvm::raw_fd_ostream;
 //===----------------------------------------------------------------------===//
 class raw_fd_ostream : public llvm::raw_pwrite_stream {
   int FD;
-  bool SupportsSeeking = false;
   bool ShouldClose;
+  bool SupportsSeeking = false;
 
   std::error_code EC;
 
@@ -74,7 +74,6 @@ class raw_fd_ostream : public llvm::raw_pwrite_stream {
   // As a special case, if Filename is "-", then the stream will use
   // STDOUT_FILENO instead of opening a file. This will not close the stdout
   // descriptor.
-
   raw_fd_ostream(llvm::StringRef Filename, std::error_code &EC,
                  llvm::sys::fs::OpenFlags Flags);
   raw_fd_ostream(llvm::StringRef Filename, std::error_code &EC,
@@ -133,4 +132,4 @@ llvm::raw_ostream &errs();
 
 }  // namespace tfrt
 
-#endif  // TFRT_THIRD_PARTY_LLVM_DERIVED_OSTREAM_H_
+#endif  // TFRT_LLVM_DERIVED_OSTREAM_H_

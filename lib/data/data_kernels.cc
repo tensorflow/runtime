@@ -21,6 +21,7 @@
 #include "batch_dataset.h"
 #include "interleave_dataset.h"
 #include "map_dataset.h"
+#include "memory_dataset.h"
 #include "prefetch_dataset.h"
 #include "range_dataset.h"
 #include "repeat_dataset.h"
@@ -142,6 +143,17 @@ RCReference<RepeatDataset<T...>> MakeRepeatDataset(
     HostContext* host) {
   return TakeRef(host->Construct<RepeatDataset<T...>>(dataset->CopyRef(),
                                                       count.get(), host));
+}
+
+//===----------------------------------------------------------------------===//
+// MemoryDataset
+//===----------------------------------------------------------------------===//
+
+template <typename... T>
+RCReference<MemoryDataset<T...>> MakeMemoryDataset(
+    RCReference<Dataset<T...>>* dataset, HostContext* host) {
+  return TakeRef(
+      host->Construct<MemoryDataset<T...>>(dataset->CopyRef(), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -454,6 +466,11 @@ void RegisterDataKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(MakeRepeatDataset<int64_t>));
   registry->AddKernel("data.repeat_dataset.str",
                       TFRT_KERNEL(MakeRepeatDataset<std::string>));
+
+  registry->AddKernel("data.memory_dataset.i64",
+                      TFRT_KERNEL(MakeMemoryDataset<int64_t>));
+  registry->AddKernel("data.memory_dataset.str",
+                      TFRT_KERNEL(MakeMemoryDataset<std::string>));
 
   registry->AddKernel(
       "data.prefetch_dataset.tensor_and_tensor",

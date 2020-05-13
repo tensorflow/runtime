@@ -11,7 +11,6 @@ tfrt_cc_library(
     ],
     visibility = [
         ":__subpackages__",
-        "//third_party/tf_runtime_google/cpp_tests:__subpackages__",
         "@tf_runtime//backends/gpu/cpp_tests:__subpackages__",
     ],
     deps = [

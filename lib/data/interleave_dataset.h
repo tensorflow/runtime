@@ -147,7 +147,7 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
   }
 
   RCReference<Iterator<OutputTypes...>> MakeIteratorFromInputElement(
-      AsyncValueRef<std::tuple<InputTypes...>> input_element,
+      llvm::SmallVector<RCReference<AsyncValue>, 4> input_element,
       const ExecutionContext& exec_ctx);
 };
 
@@ -171,18 +171,19 @@ IterationResult<OutputTypes...> InterleaveDatasetIterator<
     // that iterator and advance to the next block index.
     if (cycle_iterators_[cycle_index_]) {
       // Get the next element from the iterator opened at cycle_index_.
-      auto input = cycle_iterators_[cycle_index_]->GetNext(exec_ctx);
+      auto result = cycle_iterators_[cycle_index_]->GetNextUntyped(exec_ctx);
 
       // If we're at the end of this current iterator, advance to the next
       // iterator in the cycle.
-      if (internal::IsConcreteAndEmpty(input)) {
+      if (internal::IsConcreteAndEmpty(result)) {
         cycle_iterators_[cycle_index_].reset();
         --num_open_;
         AdvanceCycleIndex();
         continue;
       }
       AdvanceBlockIndex();
-      return input;
+      return internal::UntypedToTyped<OutputTypes...>(std::move(result),
+                                                      exec_ctx.host());
     }
 
     // Case 2: cycle_index_ does not have an open iterator, and we've reached
@@ -196,7 +197,7 @@ IterationResult<OutputTypes...> InterleaveDatasetIterator<
     // Case 3: This iterator at the current cycle_index_ has not been created.
     // Get the next element from the input dataset and create an iterator
     // from it.
-    auto input_element = input_iterator_->GetNext(exec_ctx);
+    auto input_element = input_iterator_->GetNextUntyped(exec_ctx);
     // The input iterator has been exhausted.
     if (internal::IsConcreteAndEmpty(input_element)) {
       end_of_input_ = true;
@@ -204,20 +205,22 @@ IterationResult<OutputTypes...> InterleaveDatasetIterator<
     }
 
     auto values = std::move(input_element.values);
-    if (!values.IsAvailable()) {
-      // TODO(rachelim): Currently, we don't have a good way to support
-      // asynchronous transformations upstream of interleave, since
-      // synchronous decisions such as whether to open a new iterator depend
-      // on what iterators are already open. We need to support this use case,
-      // e.g. if a user has MapDataset or asynchronous I/O upstream of an
-      // interleave transformation.
-      auto error = EmitErrorAsync(
-          exec_ctx,
-          "interleave expects its inputs to be available synchronously");
-      return IterationResult<OutputTypes...>::Error(std::move(error));
-    }
-    if (values.IsError()) {
-      return IterationResult<OutputTypes...>::Error(values.ReleaseRCRef());
+    for (const auto& value : values) {
+      if (!value->IsAvailable()) {
+        // TODO(rachelim): Currently, we don't have a good way to support
+        // asynchronous transformations upstream of interleave, since
+        // synchronous decisions such as whether to open a new iterator depend
+        // on what iterators are already open. We need to support this use case,
+        // e.g. if a user has MapDataset or asynchronous I/O upstream of an
+        // interleave transformation.
+        auto error = EmitErrorAsync(
+            exec_ctx,
+            "interleave expects its inputs to be available synchronously");
+        return IterationResult<OutputTypes...>::Error(std::move(error));
+      }
+      if (value->IsError()) {
+        return IterationResult<OutputTypes...>::Error(value.CopyRef());
+      }
     }
 
     cycle_iterators_[cycle_index_] =
@@ -233,16 +236,12 @@ template <typename... InputTypes, typename... OutputTypes>
 RCReference<Iterator<OutputTypes...>> InterleaveDatasetIterator<
     std::tuple<InputTypes...>, std::tuple<OutputTypes...>>::
     MakeIteratorFromInputElement(
-        AsyncValueRef<std::tuple<InputTypes...>> input_element,
+        llvm::SmallVector<RCReference<AsyncValue>, 4> input_element,
         const ExecutionContext& exec_ctx) {
-  // Translate from AsyncValue<std::tuple<T...>> to
-  // SmallVector<AsyncValue<T...>*, 4>
-  // TODO(rachelim): Support inputs of arbitrary arity.
   SmallVector<AsyncValue*, 4> fn_args;
-  auto arg =
-      exec_ctx.host()->template MakeAvailableAsyncValueRef<InputTypes...>(
-          std::move(std::get<0>(input_element.get())));
-  fn_args.push_back(arg.GetAsyncValue());
+  for (const auto& value : input_element) {
+    fn_args.push_back(value.get());
+  }
   SmallVector<RCReference<AsyncValue>, 1> fn_results;
   fn_results.resize(1);
   parent_dataset_->map_fn_->Execute(fn_args, fn_results, exec_ctx.host());

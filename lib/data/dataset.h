@@ -224,10 +224,11 @@ class Iterator : public IteratorBase {
  public:
   explicit Iterator() {}
 
-  virtual IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) = 0;
-
   IterationResultUntyped GetNextUntyped(
       const ExecutionContext& exec_ctx) override;
+
+ private:
+  virtual IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) = 0;
 };
 
 // TODO(rachelim): Define `DatasetContext` and `IteratorContext` as a container

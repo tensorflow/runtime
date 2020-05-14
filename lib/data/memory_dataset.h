@@ -77,10 +77,14 @@ class MemoryDatasetIterator : public Iterator<T...> {
   IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
     auto* host = exec_ctx.host();
     if (!buffer_completed_) {
-      auto input = input_iterator_->GetNext(exec_ctx);
-      if (internal::IsConcreteAndEmpty(input) && buffer_.empty()) return input;
+      auto input = input_iterator_->GetNextUntyped(exec_ctx);
+      if (internal::IsConcreteAndEmpty(input) && buffer_.empty()) {
+        return internal::UntypedToTyped<T...>(std::move(input),
+                                              exec_ctx.host());
+      }
       if (!internal::IsConcreteAndEmpty(input)) {
-        buffer_.push_back(std::move(input));
+        buffer_.push_back(
+            internal::UntypedToTyped<T...>(std::move(input), exec_ctx.host()));
         return CopyByValue(buffer_.back(), host);
       }
       // buffer is not empty and the input_iterator has reached end.

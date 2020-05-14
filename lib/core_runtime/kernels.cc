@@ -221,6 +221,9 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
           op_attrs.Set(key, GetOpAttrTypeFromBEFAttributeType(type));
           break;
         }
+        case BEFAttributeType::kShape:
+          op_attrs.Set(key, attr.cast<ShapeAttr>());
+          break;
         case BEFAttributeType::kString:
           op_attrs.SetString(key, attr.cast<StringAttr>().GetValue());
           break;

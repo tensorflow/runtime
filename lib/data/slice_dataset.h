@@ -71,15 +71,17 @@ class SliceDatasetIterator : public Iterator<T> {
         iterator_(std::move(iterator)),
         end_(std::move(end)) {}
 
-  IterationResult<T> GetNext(const ExecutionContext& exec_ctx) override {
+  IterationResultUntyped GetNextUntyped(
+      const ExecutionContext& exec_ctx) override {
     auto* host = exec_ctx.host();
     if (iterator_ == end_) {
-      return IterationResult<T>::Eof(host);
+      return IterationResultUntyped::Eof(host, 1);
     }
 
-    T& value = *iterator_;
+    SmallVector<RCReference<AsyncValue>, 4> values;
+    values.push_back(host->MakeAvailableAsyncValueRef<T>(*iterator_));
     iterator_++;
-    return IterationResult<T>::Values(value, host);
+    return IterationResultUntyped::Values(std::move(values), host);
   }
 
  private:
@@ -101,17 +103,19 @@ class SliceDatasetIterator : public Iterator<T> {
 // not have copy constructor. This implementation passes DenseHostTensor by
 // reference.
 template <>
-inline IterationResult<DenseHostTensor>
-SliceDatasetIterator<DenseHostTensor>::GetNext(
+inline IterationResultUntyped
+SliceDatasetIterator<DenseHostTensor>::GetNextUntyped(
     const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
   if (iterator_ == end_) {
-    return IterationResult<DenseHostTensor>::Eof(host);
+    return IterationResultUntyped::Eof(host, 1);
   }
 
-  DenseHostTensor& element = *iterator_;
+  SmallVector<RCReference<AsyncValue>, 4> values;
+  values.push_back(
+      host->MakeAvailableAsyncValueRef<DenseHostTensor>(iterator_->CopyRef()));
   iterator_++;
-  return IterationResult<DenseHostTensor>::Values(element.CopyRef(), host);
+  return IterationResultUntyped::Values(std::move(values), host);
 }
 
 template <typename T>

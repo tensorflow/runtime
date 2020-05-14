@@ -97,12 +97,6 @@ class RepeatDatasetIterator : public Iterator<T...> {
                                                  parent_dataset_->allocator_);
   }
 
-  IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
-    // This is not used anywhere since we override GetNextUntyped directly.
-    return IterationResult<T...>::Error(
-        EmitErrorAsync(exec_ctx, "internal error"));
-  }
-
   RCReference<RepeatDataset<T...>> parent_dataset_;
   RCReference<Iterator<T...>> input_iterator_;
 

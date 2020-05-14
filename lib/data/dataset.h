@@ -80,6 +80,13 @@ struct IterationResult {
 // transition into type-erased iteration results. Eventually, this will replace
 // IterationResult.
 struct IterationResultUntyped {
+  // Construct IterationResult with valid values and eof = false.
+  static IterationResultUntyped Values(
+      SmallVector<RCReference<AsyncValue>, 4> values, HostContext* host) {
+    return IterationResultUntyped(
+        std::move(values), host->MakeAvailableAsyncValueRef<bool>(false));
+  }
+
   // Construct IterationResult with eof = true. `values` will have error.
   static IterationResultUntyped Eof(HostContext* host, size_t num_values) {
     SmallVector<RCReference<AsyncValue>, 4> values;
@@ -252,7 +259,12 @@ class Iterator : public IteratorBase {
       const ExecutionContext& exec_ctx) override;
 
  private:
-  virtual IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) = 0;
+  // NOTE: The only caller of this method is the default GetNextUntyped(). As
+  // such, every iterator must override either GetNext() or GetNextUntyped().
+  virtual IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) {
+    return IterationResult<T...>::Error(
+        EmitErrorAsync(exec_ctx, "internal error"));
+  }
 };
 
 // TODO(rachelim): Define `DatasetContext` and `IteratorContext` as a container

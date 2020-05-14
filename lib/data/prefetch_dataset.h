@@ -95,12 +95,6 @@ class PrefetchDatasetIterator : public Iterator<T...> {
         this, parent_dataset_->host_->allocator());
   }
 
-  IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
-    // This is not used anywhere since we override GetNextUntyped directly.
-    return IterationResult<T...>::Error(
-        EmitErrorAsync(exec_ctx, "internal error"));
-  }
-
   RCReference<PrefetchDataset<T...>> parent_dataset_;
   RCReference<Iterator<T...>> input_iterator_;
   std::queue<IterationResultUntyped> buffer_;

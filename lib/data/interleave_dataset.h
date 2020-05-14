@@ -119,14 +119,6 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
         this, parent_dataset_->allocator_);
   }
 
-  // Interleaves keeps cycle_length iterators open at once.
-  IterationResult<OutputTypes...> GetNext(
-      const ExecutionContext& exec_ctx) override {
-    // This is not used anywhere since we override GetNextUntyped directly.
-    return IterationResult<OutputTypes...>::Error(
-        EmitErrorAsync(exec_ctx, "internal error"));
-  }
-
   // Advance the next block index. If the next block index exceeds the block
   // length, advance to the next iterator in the cycle.
   void AdvanceBlockIndex() {
@@ -155,7 +147,7 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
   size_t cycle_index_ = 0;
   size_t block_index_ = 0;
   bool end_of_input_ = false;
-  size_t num_open_ = 0;  // Number of open iterators
+  size_t num_open_ = 0;  // Number of open iterators.
 };
 
 template <typename... InputTypes, typename... OutputTypes>

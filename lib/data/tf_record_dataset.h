@@ -77,8 +77,7 @@ class TFRecordDatasetIterator : public io::PrefetchingIterator<std::string> {
   // Reads the next record from the input file. Returns empty AsyncValueRef if
   // input file is exhausted. Returns error async value if failed to read
   // the next record.
-  IterationResult<std::string> GetNextElement(
-      const ExecutionContext& exec_ctx) final;
+  IterationResultUntyped GetNextElement(const ExecutionContext& exec_ctx) final;
 
  private:
   void Destroy() override {

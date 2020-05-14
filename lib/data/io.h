@@ -78,14 +78,14 @@ class PrefetchingIterator : public Iterator<ValueType> {
   }
 
   // Gets the next element from a prefetch buffer, and maybe launches an
-  // asyncrhonous prefetch task to fill up the buffer. If the buffer is
+  // asynchronous prefetch task to fill up the buffer. If the buffer is
   // empty, reads next element from the derived iterator.
-  IterationResult<ValueType> GetNext(const ExecutionContext& exec_ctx) final;
+  IterationResultUntyped GetNextUntyped(const ExecutionContext& exec_ctx) final;
 
  protected:
   // Reads the next element from the underlying IO source. Prefetching iterator
   // guarantees that all calls to this function will be properly synchronized.
-  virtual IterationResult<ValueType> GetNextElement(
+  virtual IterationResultUntyped GetNextElement(
       const ExecutionContext& exec_cxt) TFRT_REQUIRES(input_mu_) = 0;
 
  private:
@@ -104,7 +104,7 @@ class PrefetchingIterator : public Iterator<ValueType> {
   // of contention.
   mutex input_mu_;
 
-  std::queue<IterationResult<ValueType>> buffer_ TFRT_GUARDED_BY(state_mu_);
+  std::queue<IterationResultUntyped> buffer_ TFRT_GUARDED_BY(state_mu_);
 
   const int32_t max_num_prefetch_elements_;
   const int32_t prefetch_threshold_;
@@ -117,7 +117,7 @@ class PrefetchingIterator : public Iterator<ValueType> {
 };
 
 template <typename ValueType>
-IterationResult<ValueType> PrefetchingIterator<ValueType>::GetNext(
+IterationResultUntyped PrefetchingIterator<ValueType>::GetNextUntyped(
     const ExecutionContext& exec_ctx) {
   // Code that needs to hold both locks (input and state) must do the
   // locking in the same order to avoid deadlocks:

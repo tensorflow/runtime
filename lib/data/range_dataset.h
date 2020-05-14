@@ -75,16 +75,21 @@ class RangeDatasetIterator : public Iterator<T> {
   RangeDatasetIterator(const RangeDatasetIterator&) = delete;
   RangeDatasetIterator& operator=(const RangeDatasetIterator&) = delete;
 
-  IterationResult<T> GetNext(const ExecutionContext& exec_ctx) override {
+  IterationResultUntyped GetNextUntyped(
+      const ExecutionContext& exec_ctx) override {
     auto* host = exec_ctx.host();
     bool has_next = (dataset_->step_ > 0 && next_ < dataset_->stop_) ||
                     (dataset_->step_ < 0 && next_ > dataset_->stop_);
     if (!has_next) {
-      return IterationResult<T>::Eof(host);
+      return IterationResultUntyped::Eof(host, 1);
     }
-    auto value = next_;
+
+    SmallVector<RCReference<AsyncValue>, 4> values;
+    values.push_back(host->MakeAvailableAsyncValueRef<T>(next_));
+
     next_ += dataset_->step_;
-    return IterationResult<T>::Values(value, host);
+
+    return IterationResultUntyped::Values(std::move(values), host);
   }
 
  private:

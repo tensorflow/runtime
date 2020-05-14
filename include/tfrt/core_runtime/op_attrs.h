@@ -213,7 +213,7 @@ class OpAttrs final {
   template <typename T>
   ArrayRef<T> GetArrayAsserting(string_view attr_name) const {
     ArrayRef<T> values;
-    bool success = Get(attr_name, &values);
+    bool success = GetArray(attr_name, &values);
     assert(success);
     (void)success;
     return values;

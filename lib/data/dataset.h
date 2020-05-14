@@ -80,6 +80,30 @@ struct IterationResult {
 // transition into type-erased iteration results. Eventually, this will replace
 // IterationResult.
 struct IterationResultUntyped {
+  // Construct IterationResult with eof = true. `values` will have error.
+  static IterationResultUntyped Eof(HostContext* host, size_t num_values) {
+    SmallVector<RCReference<AsyncValue>, 4> values;
+    values.resize(num_values);
+    auto error = host->MakeErrorAsyncValueRef("iterator reached end");
+    for (size_t i = 0; i < num_values; ++i) {
+      values[i] = error.CopyRef();
+    }
+    return IterationResultUntyped(std::move(values),
+                                  host->MakeAvailableAsyncValueRef<bool>(true));
+  }
+
+  // Construct IterationResult with error in both `values` and `eof`.
+  static IterationResultUntyped Error(RCReference<AsyncValue> error,
+                                      size_t num_values) {
+    SmallVector<RCReference<AsyncValue>, 4> values;
+    values.resize(num_values);
+    for (size_t i = 0; i < num_values; ++i) {
+      values[i] = error.CopyRef();
+    }
+    return IterationResultUntyped(std::move(values),
+                                  AsyncValueRef<bool>(error.CopyRef()));
+  }
+
   IterationResultUntyped(llvm::SmallVector<RCReference<AsyncValue>, 4> v,
                          AsyncValueRef<bool> e)
       : values(std::move(v)), eof(std::move(e)) {}

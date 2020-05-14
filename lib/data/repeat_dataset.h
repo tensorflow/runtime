@@ -79,7 +79,8 @@ class RepeatDatasetIterator : public Iterator<T...> {
   RepeatDatasetIterator& operator=(const RepeatDatasetIterator&) = delete;
 
   // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
-  IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
+  IterationResultUntyped GetNextUntyped(
+      const ExecutionContext& exec_ctx) override {
     auto result = input_iterator_->GetNextUntyped(exec_ctx);
     if (internal::IsConcreteAndEmpty(result) &&
         epoch_ + 1 < parent_dataset_->epochs_) {
@@ -87,13 +88,19 @@ class RepeatDatasetIterator : public Iterator<T...> {
       input_iterator_ = parent_dataset_->input_dataset_->MakeIterator();
       result = input_iterator_->GetNextUntyped(exec_ctx);
     }
-    return internal::UntypedToTyped<T...>(std::move(result), exec_ctx.host());
+    return std::move(result);
   }
 
  private:
   void Destroy() override {
     internal::DestroyImpl<RepeatDatasetIterator>(this,
                                                  parent_dataset_->allocator_);
+  }
+
+  IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
+    // This is not used anywhere since we override GetNextUntyped directly.
+    return IterationResult<T...>::Error(
+        EmitErrorAsync(exec_ctx, "internal error"));
   }
 
   RCReference<RepeatDataset<T...>> parent_dataset_;

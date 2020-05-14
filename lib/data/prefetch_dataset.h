@@ -79,19 +79,26 @@ class PrefetchDatasetIterator : public Iterator<T...> {
   PrefetchDatasetIterator(const PrefetchDatasetIterator&) = delete;
   PrefetchDatasetIterator& operator=(const PrefetchDatasetIterator&) = delete;
 
-  IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
+  IterationResultUntyped GetNextUntyped(
+      const ExecutionContext& exec_ctx) override {
     while (buffer_.size() < parent_dataset_->prefetch_num_) {
       buffer_.push(input_iterator_->GetNextUntyped(exec_ctx));
     }
     auto result = std::move(buffer_.front());
     buffer_.pop();
-    return internal::UntypedToTyped<T...>(std::move(result), exec_ctx.host());
+    return result;
   }
 
  private:
   void Destroy() override {
     internal::DestroyImpl<PrefetchDatasetIterator>(
         this, parent_dataset_->host_->allocator());
+  }
+
+  IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
+    // This is not used anywhere since we override GetNextUntyped directly.
+    return IterationResult<T...>::Error(
+        EmitErrorAsync(exec_ctx, "internal error"));
   }
 
   RCReference<PrefetchDataset<T...>> parent_dataset_;

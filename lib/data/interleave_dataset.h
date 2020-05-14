@@ -110,8 +110,7 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
   InterleaveDatasetIterator& operator=(const InterleaveDatasetIterator&) =
       delete;
 
-  // Interleaves keeps cycle_length iterators open at once.
-  IterationResult<OutputTypes...> GetNext(
+  IterationResultUntyped GetNextUntyped(
       const ExecutionContext& exec_ctx) override;
 
  private:
@@ -120,16 +119,13 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
         this, parent_dataset_->allocator_);
   }
 
-  RCReference<
-      InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
-      parent_dataset_;
-  RCReference<Iterator<InputTypes...>> input_iterator_;
-
-  std::vector<RCReference<Iterator<OutputTypes...>>> cycle_iterators_;
-  size_t cycle_index_ = 0;
-  size_t block_index_ = 0;
-  bool end_of_input_ = false;
-  size_t num_open_ = 0;  // Number of open iterators
+  // Interleaves keeps cycle_length iterators open at once.
+  IterationResult<OutputTypes...> GetNext(
+      const ExecutionContext& exec_ctx) override {
+    // This is not used anywhere since we override GetNextUntyped directly.
+    return IterationResult<OutputTypes...>::Error(
+        EmitErrorAsync(exec_ctx, "internal error"));
+  }
 
   // Advance the next block index. If the next block index exceeds the block
   // length, advance to the next iterator in the cycle.
@@ -149,6 +145,17 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
   RCReference<Iterator<OutputTypes...>> MakeIteratorFromInputElement(
       llvm::SmallVector<RCReference<AsyncValue>, 4> input_element,
       const ExecutionContext& exec_ctx);
+
+  RCReference<
+      InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
+      parent_dataset_;
+  RCReference<Iterator<InputTypes...>> input_iterator_;
+
+  std::vector<RCReference<Iterator<OutputTypes...>>> cycle_iterators_;
+  size_t cycle_index_ = 0;
+  size_t block_index_ = 0;
+  bool end_of_input_ = false;
+  size_t num_open_ = 0;  // Number of open iterators
 };
 
 template <typename... InputTypes, typename... OutputTypes>
@@ -162,9 +169,9 @@ RCReference<Iterator<OutputTypes...>> InterleaveDataset<
 
 // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
 template <typename... InputTypes, typename... OutputTypes>
-IterationResult<OutputTypes...> InterleaveDatasetIterator<
-    std::tuple<InputTypes...>,
-    std::tuple<OutputTypes...>>::GetNext(const ExecutionContext& exec_ctx) {
+IterationResultUntyped InterleaveDatasetIterator<std::tuple<InputTypes...>,
+                                                 std::tuple<OutputTypes...>>::
+    GetNextUntyped(const ExecutionContext& exec_ctx) {
   while (!end_of_input_ || num_open_) {  // Not at end of input
 
     // Case 1: cycle_index_ has an open iterator. Get the next element from
@@ -182,8 +189,7 @@ IterationResult<OutputTypes...> InterleaveDatasetIterator<
         continue;
       }
       AdvanceBlockIndex();
-      return internal::UntypedToTyped<OutputTypes...>(std::move(result),
-                                                      exec_ctx.host());
+      return result;
     }
 
     // Case 2: cycle_index_ does not have an open iterator, and we've reached
@@ -216,10 +222,12 @@ IterationResult<OutputTypes...> InterleaveDatasetIterator<
         auto error = EmitErrorAsync(
             exec_ctx,
             "interleave expects its inputs to be available synchronously");
-        return IterationResult<OutputTypes...>::Error(std::move(error));
+        return IterationResultUntyped::Error(std::move(error),
+                                             sizeof...(OutputTypes));
       }
       if (value->IsError()) {
-        return IterationResult<OutputTypes...>::Error(value.CopyRef());
+        return IterationResultUntyped::Error(value.CopyRef(),
+                                             sizeof...(OutputTypes));
       }
     }
 
@@ -229,7 +237,7 @@ IterationResult<OutputTypes...> InterleaveDatasetIterator<
   }
 
   // End of iteration.
-  return IterationResult<OutputTypes...>::Eof(exec_ctx.host());
+  return IterationResultUntyped::Eof(exec_ctx.host(), sizeof...(OutputTypes));
 }
 
 template <typename... InputTypes, typename... OutputTypes>

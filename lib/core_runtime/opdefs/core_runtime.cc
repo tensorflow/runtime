@@ -124,7 +124,7 @@ Operation *CoreRTDialect::materializeConstant(OpBuilder &builder,
                                               Attribute value, Type type,
                                               Location loc) {
   if (auto dense_attr = value.dyn_cast<DenseElementsAttr>())
-    return builder.create<ConstOp>(loc, type, dense_attr);
+    return builder.create<ConstDenseTensorOp>(loc, type, dense_attr);
 
   return nullptr;
 }
@@ -303,7 +303,9 @@ LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
   return failure();
 }
 
-OpFoldResult ConstOp::fold(ArrayRef<Attribute> operands) { return value(); }
+OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
+  return value();
+}
 
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions

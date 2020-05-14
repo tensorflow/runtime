@@ -41,13 +41,13 @@ class CoreRT_Op<string mnemonic, list<OpTrait> traits = []> :
   let parser = [{ return tfrt::corert::parse$cppClass(parser, result); }];
 }
 
-def ConstOp : CoreRT_Op<"const", [ConstantLike, NoSideEffect]> {
+def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor", [ConstantLike, NoSideEffect]> {
   let summary = "Create a constant host tensor.";
   let description = [{
-    ConstOp creates a constant host tensor.
+    ConstDenseTensorOp creates a constant dense host tensor.
 
     Example:
-      %tensor_handle = corert.const dense<[0, 1, 2]>: tensor<3xi32>
+      %tensor_handle = corert.const_dense_tensor dense<[0, 1, 2]>: tensor<3xi32>
   }];
 
   let arguments = (ins

@@ -14,8 +14,20 @@
 
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor | FileCheck %s --dump-input=fail
 
-// CHECK-LABEL: --- Running 'basic'
-func @basic() {
+// CHECK-LABEL: --- Running 'const_dense_tensor'
+func @const_dense_tensor() {
+  %ch0 = hex.new.chain
+
+  %a = corert.const_dense_tensor dense<[0, 1, 2]>: tensor<3xi32>
+
+  // CHECK: shape = [3], values = [0, 1, 2]
+  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+
+  hex.return
+}
+
+// CHECK-LABEL: --- Running 'const_string_tensor'
+func @const_string_tensor() {
   %ch0 = hex.new.chain
 
   %a = corert.const_string_tensor {shape = [2], value = ["string", "tensor"]}

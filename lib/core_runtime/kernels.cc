@@ -33,8 +33,10 @@
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
+#include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/host_tensor.h"
 #include "tfrt/tensor/string_host_tensor.h"
+#include "tfrt/tensor/tensor_serialize_utils.h"
 
 namespace tfrt {
 
@@ -157,6 +159,21 @@ static llvm::Expected<TensorHandle> ConstStringTensor(ArrayAttr shape,
   }
 
   tensor_ref.SetStateConcrete();
+
+  return TensorHandle(metadata, std::move(tensor_ref));
+}
+
+static llvm::Expected<TensorHandle> ConstDenseTensor(
+    DenseAttr value, const ExecutionContext &context) {
+  auto *host = context.host();
+  auto dht = DeserializeDenseHostTensorFromDenseAttr(value, host);
+  if (!dht) return dht.takeError();
+
+  auto metadata = dht->metadata();
+  auto tensor_ref =
+      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(*dht));
+  if (!tensor_ref)
+    return MakeStringError("failed to allocate dense host tensor");
 
   return TensorHandle(metadata, std::move(tensor_ref));
 }
@@ -395,6 +412,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.executeop.seq", TFRT_KERNEL(ExecuteOpSeq));
   // TODO(fishx): Rename it to corert.get_op_handler.
   registry->AddKernel("corert.get_device", TFRT_KERNEL(GetOpHandler));
+  registry->AddKernel("corert.const_dense_tensor",
+                      TFRT_KERNEL(ConstDenseTensor));
   registry->AddKernel("corert.const_string_tensor",
                       TFRT_KERNEL(ConstStringTensor));
 }

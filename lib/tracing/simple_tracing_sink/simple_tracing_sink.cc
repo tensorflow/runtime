@@ -18,68 +18,116 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef NO_TFRT_TRACING
-#include <vector>
+#include "tfrt/tracing/simple_tracing_sink/simple_tracing_sink.h"
 
+#include <chrono>
+#include <string>
+
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Error.h"
 #include "tfrt/support/logging.h"
-#include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
-namespace internal {
 namespace tracing {
 
-static auto process_start = CurrentSteadyClockTime();
-constexpr int kMAX_ACTIVITY_PER_THREAD = 100;
+namespace {
+class TracingStorage {
+  using Time = std::chrono::steady_clock::time_point;
 
-class ActivityStorage {
+  struct Activity {
+    std::string name;
+    Time start;
+    Time end;
+  };
+
+  static const int kMaxEntries = 100;
+
  public:
-  ~ActivityStorage() {
-    for (const auto& activity : activities_) {
-      auto start_time = activity.start_time - process_start;
+  ~TracingStorage() {
+    using microseconds = std::chrono::microseconds;
+    using nanoseconds = std::chrono::nanoseconds;
 
-      if (activity.end_time.hasValue()) {
-        auto end_time = activity.end_time.getValue() - process_start;
-        auto duration = end_time - start_time;
-        TFRT_LOG_INFO
-            << "::: [" << activity.title << "]: "
-            << std::chrono::duration_cast<std::chrono::microseconds>(start_time)
-                   .count()
-            << " us -- "
-            << std::chrono::duration_cast<std::chrono::microseconds>(end_time)
-                   .count()
-            << " ("
-            << std::chrono::duration_cast<std::chrono::nanoseconds>(duration)
-                   .count()
-            << " ns)";
-      } else {
-        TFRT_LOG_INFO << "::: [" << activity.title << "]: "
-                      << std::chrono::duration_cast<std::chrono::microseconds>(
-                             start_time)
-                             .count()
-                      << " us";
+    for (const auto& activity : activities_) {
+      auto start_us = std::chrono::duration_cast<microseconds>(activity.start -
+                                                               kProcessStart);
+
+      if (activity.start == activity.end) {
+        TFRT_LOG(INFO) << "::: [" << activity.name << "]: " << start_us.count()
+                       << " us";
+        continue;
       }
+
+      auto end_us = std::chrono::duration_cast<microseconds>(activity.end -
+                                                             kProcessStart);
+      auto duration_ns = std::chrono::duration_cast<nanoseconds>(
+          activity.end - activity.start);
+
+      TFRT_LOG(INFO) << "::: [" << activity.name << "]: " << start_us.count()
+                     << " us -- " << end_us.count() << " ("
+                     << duration_ns.count() << " ns)";
     }
-    TFRT_LOG_INFO << "Total activities collected: " << counter_;
+    TFRT_LOG(INFO) << "Total activities collected: " << activities_.size();
   }
-  void AddTracingActivity(TracingActivity activity) {
-    if (counter_++ < kMAX_ACTIVITY_PER_THREAD) {
-      activities_.push_back(std::move(activity));
-    } else {
-      TFRT_TRACE_OFF();
-    }
+
+  void RecordEvent(std::string&& name) {
+    if (activities_.size() >= kMaxEntries) return;
+    auto now = Now();
+    activities_.push_back(Activity{std::move(name), now, now});
+  }
+
+  void PushScope(std::string&& name) {
+    if (activities_.size() >= kMaxEntries) return;
+    stack_.emplace_back(std::move(name), Now());
+  }
+
+  void PopScope() {
+    if (activities_.size() >= kMaxEntries) return;
+    if (stack_.empty()) return;
+    activities_.push_back({std::move(std::get<std::string>(stack_.back())),
+                           std::get<Time>(stack_.back()), Now()});
+    stack_.pop_back();
   }
 
  private:
-  std::vector<TracingActivity> activities_;
-  size_t counter_;
-};
+  static Time Now() { return std::chrono::steady_clock::now(); }
 
-void SimpleRecordActivity(TracingActivity& activity) {
-  static thread_local ActivityStorage storage;
-  storage.AddTracingActivity(std::move(activity));
+  static const Time kProcessStart;
+
+  llvm::SmallVector<std::tuple<std::string, Time>, 16> stack_;
+  llvm::SmallVector<Activity, kMaxEntries> activities_;
+};
+}  // namespace
+
+const auto TracingStorage::kProcessStart = TracingStorage::Now();
+
+static TracingStorage& GetTracingStorage() {
+  static thread_local TracingStorage tracing_storage;
+  return tracing_storage;
 }
 
+Error SimpleTracingSink::RequestTracing(bool enable) {
+  return Error::success();
+}
+
+void SimpleTracingSink::RecordTracingEvent(const char* /*category*/,
+                                           string_view name) {
+  GetTracingStorage().RecordEvent(std::string(name));
+}
+void SimpleTracingSink::RecordTracingEvent(const char* /*category*/,
+                                           std::string&& name) {
+  GetTracingStorage().RecordEvent(std::move(name));
+}
+
+void SimpleTracingSink::PushTracingScope(const char* /*category*/,
+                                         string_view name) {
+  GetTracingStorage().PushScope(std::string(name));
+}
+void SimpleTracingSink::PushTracingScope(const char* /*category*/,
+                                         std::string&& name) {
+  GetTracingStorage().PushScope(std::move(name));
+}
+
+void SimpleTracingSink::PopTracingScope() { GetTracingStorage().PopScope(); }
+
 }  // namespace tracing
-}  // namespace internal
 }  // namespace tfrt
-#endif  // NO_TFRT_TRACING

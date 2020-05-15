@@ -31,6 +31,9 @@ size_t DType::GetHostSize() const {
     case Invalid:
       assert(0 && "invalid dtype has no size");
       return ~size_t(0);
+    case Unsupported:
+      assert(0 && "unsupported dtype has no size");
+      return ~size_t(0);
     case String:
       assert(0 &&
              "GetHostSize() is not expected to be called with string type");
@@ -52,6 +55,9 @@ size_t DType::GetHostAlignment() const {
     case Invalid:
       assert(0 && "invalid dtype has no alignment");
       return ~size_t(0);
+    case Unsupported:
+      assert(0 && "unspupported dtype has no alignment");
+      return ~size_t(0);
     case String:
       assert(
           0 &&
@@ -72,6 +78,7 @@ size_t DType::GetHostAlignment() const {
 void DType::Print(const void *data, raw_ostream &os) const {
   switch (kind()) {
     case DType::Invalid:
+    case DType::Unsupported:
       llvm_unreachable("can't happen");
     case DType::F16:
       os << "Does not support printing fp16.";
@@ -99,6 +106,7 @@ void DType::Print(const void *data, raw_ostream &os) const {
 void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
   switch (kind()) {
     case DType::Invalid:
+    case DType::Unsupported:
       llvm_unreachable("can't happen");
     case DType::F16:
       os << "Does not support printing fp16.";
@@ -138,6 +146,9 @@ raw_ostream &operator<<(raw_ostream &os, DType dtype) {
   switch (dtype.kind()) {
     case DType::Invalid:
       os << "<invalid dtype>";
+      break;
+    case DType::Unsupported:
+      os << "<unsupported dtype>";
       break;
 #define DTYPE(ENUM) \
   case DType::ENUM: \

@@ -35,7 +35,11 @@ namespace tfrt {
 class DType {
  public:
   enum Kind {
+    // Invalid type that is used by default constructor. A Tensor should never
+    // use this type.
     Invalid,
+    // Valid types that are not natively supported by TFRT.
+    Unsupported,
 #define DTYPE(ENUM) ENUM,
 #include "tfrt/tensor/dtype.def"
   };

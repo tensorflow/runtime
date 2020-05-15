@@ -164,8 +164,7 @@ bool IsConcreteAndEmpty(const IterationResultUntyped& result);
 
 template <typename... T, size_t... I>
 static void AllocateTupleResult(
-    MutableArrayRef<RCReference<AsyncValue>> results,
-    const AsyncValueRef<std::tuple<T...>>& input, HostContext* host,
+    MutableArrayRef<RCReference<AsyncValue>> results, HostContext* host,
     std::index_sequence<I...>) {
   std::ignore = std::initializer_list<int>{
       (results[I] = host->MakeUnconstructedAsyncValueRef<T>().ReleaseRCRef(),
@@ -301,8 +300,8 @@ IterationResultUntyped Iterator<T...>::GetNextUntyped(
   // they are available.
   SmallVector<RCReference<AsyncValue>, 4> untyped_values;
   untyped_values.resize(sizeof...(T));
-  internal::AllocateTupleResult(untyped_values, values, exec_ctx.host(),
-                                std::make_index_sequence<sizeof...(T)>{});
+  internal::AllocateTupleResult<T...>(untyped_values, exec_ctx.host(),
+                                      std::make_index_sequence<sizeof...(T)>{});
 
   SmallVector<AsyncValue*, 4> async_value_ptrs;
   async_value_ptrs.push_back(values.GetAsyncValue());

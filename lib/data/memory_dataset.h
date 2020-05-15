@@ -28,6 +28,41 @@
 namespace tfrt {
 namespace data {
 
+namespace internal {
+
+// Recursive base case
+template <size_t N>
+static void CopyByValueHelper(
+    const llvm::SmallVector<RCReference<AsyncValue>, 4>& from,
+    RCArray<AsyncValue> to) {}
+
+// Helper to recursively copy elements from `from` to `to`.
+template <size_t N, typename T, typename... RemainingT>
+static void CopyByValueHelper(
+    const llvm::SmallVector<RCReference<AsyncValue>, 4>& from,
+    RCArray<AsyncValue> to) {
+  // Copy the element at Index or forward the error.
+  auto Index = N - (sizeof...(RemainingT) + 1);
+  auto& val = from[Index];
+  if (val->IsError()) {
+    to.values()[Index]->SetError(val->GetError());
+  } else {
+    to.values()[Index]->emplace<T>(val->get<T>());
+  }
+
+  // Recursively copy remaining elements.
+  CopyByValueHelper<N, RemainingT...>(from, to.CopyRef());
+}
+
+template <typename... T>
+static void CopyByValue(
+    const llvm::SmallVector<RCReference<AsyncValue>, 4>& from,
+    RCArray<AsyncValue> to) {
+  CopyByValueHelper<sizeof...(T), T...>(from, to.CopyRef());
+}
+
+}  // namespace internal
+
 template <typename... T>
 class MemoryDatasetIterator;
 
@@ -74,17 +109,19 @@ class MemoryDatasetIterator : public Iterator<T...> {
   MemoryDatasetIterator(const MemoryDatasetIterator&) = delete;
   MemoryDatasetIterator& operator=(const MemoryDatasetIterator&) = delete;
 
-  IterationResult<T...> GetNext(const ExecutionContext& exec_ctx) override {
+  // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
+  IterationResultUntyped GetNextUntyped(
+      const ExecutionContext& exec_ctx) override {
     auto* host = exec_ctx.host();
     if (!buffer_completed_) {
       auto input = input_iterator_->GetNextUntyped(exec_ctx);
       if (internal::IsConcreteAndEmpty(input) && buffer_.empty()) {
-        return internal::UntypedToTyped<T...>(std::move(input),
-                                              exec_ctx.host());
+        // EOF and buffer empty; forward EOF to caller.
+        return std::move(input);
       }
       if (!internal::IsConcreteAndEmpty(input)) {
-        buffer_.push_back(
-            internal::UntypedToTyped<T...>(std::move(input), exec_ctx.host()));
+        // Cache is not completed and not EOF, store the value in the cache.
+        buffer_.push_back(std::move(input));
         return CopyByValue(buffer_.back(), host);
       }
       // buffer is not empty and the input_iterator has reached end.
@@ -101,29 +138,27 @@ class MemoryDatasetIterator : public Iterator<T...> {
                                                  parent_dataset_->allocator_);
   }
 
-  // Copy data by value so that the output result can be mutated.
-  IterationResult<T...> CopyByValue(const IterationResult<T...>& input,
-                                    HostContext* host) {
-    auto values = input.values.CopyRef();
-    auto values_copy = host->MakeUnconstructedAsyncValueRef<std::tuple<T...>>();
+  IterationResultUntyped CopyByValue(const IterationResultUntyped& input,
+                                     HostContext* host) {
+    // Copy data by value so that the output result can be mutated.
+    SmallVector<RCReference<AsyncValue>, 4> values_copy;
+    values_copy.resize(sizeof...(T));
+    internal::AllocateTupleResult<T...>(
+        values_copy, host, std::make_index_sequence<sizeof...(T)>{});
 
-    values.AndThen(
-        [values = values.CopyRef(), values_copy = values_copy.CopyRef()] {
-          if (values.IsError()) {
-            values_copy.SetError(values.GetError());
-            return;
-          }
-          // This involves value copy.
-          values_copy.emplace(values.get());
+    host->RunWhenReady(
+        input.values, [input = input.CopyRef(),
+                       values_copy = RCArray<AsyncValue>(values_copy)]() {
+          internal::CopyByValue<T...>(input.values, values_copy.CopyRef());
         });
 
-    return IterationResult<T...>::Pending(std::move(values_copy),
-                                          input.eof.CopyRef());
+    return IterationResultUntyped::Pending(std::move(values_copy),
+                                           input.eof.CopyRef());
   }
 
   RCReference<MemoryDataset<T...>> parent_dataset_;
   RCReference<Iterator<T...>> input_iterator_;
-  std::vector<IterationResult<T...>> buffer_;
+  std::vector<IterationResultUntyped> buffer_;
   int next_buffer_index_ = 0;
   bool buffer_completed_ = false;
 };

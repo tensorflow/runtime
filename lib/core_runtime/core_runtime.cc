@@ -278,9 +278,9 @@ void CoreRuntime::Execute(string_view op_name, OpHandler* op_handler,
 
 Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
                                             OpHandler* op_handler) {
-#ifdef TFRT_DISABLE_TRACING
+#ifdef NO_TFRT_TRACING
   return op_handler->MakeOp(op_name);
-#else   // TFRT_DISABLE_TRACING
+#else  // NO_TFRT_TRACING is not set.
   auto op = op_handler->MakeOp(op_name);
   if (!op) return op;
   bool is_fallback = op->IsFallback();
@@ -293,7 +293,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
         op(invocation);
       },
       is_fallback);
-#endif  // TFRT_DISABLE_TRACING
+#endif
 }
 
 }  // namespace tfrt

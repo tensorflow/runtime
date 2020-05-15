@@ -22,11 +22,5 @@
 #include "tfrt/tracing/simple_tracing_sink/simple_tracing_sink.h"
 #include "tfrt/tracing/tracing.h"
 
-namespace tfrt {
-namespace tracing {
-static const bool kRegisterTracingSink = [] {
-  RegisterTracingSink(new SimpleTracingSink);
-  return true;
-}();
-}  // namespace tracing
-}  // namespace tfrt
+TFRT_TRACE_REGISTER_SINK("simple",
+                         tfrt::internal::tracing::SimpleRecordActivity);

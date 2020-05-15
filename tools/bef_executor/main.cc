@@ -82,8 +82,11 @@ int main(int argc, char** argv) {
   run_config.work_queue_type = cl_work_queue_type;
   run_config.host_allocator_type = cl_host_allocator_type;
 
-  llvm::Optional<tfrt::tracing::TracingRequester> tracing;
-  if (cl_enable_tracing) tracing.emplace();
+  if (cl_enable_tracing) {
+    TFRT_TRACE_ON();
+  } else {
+    TFRT_TRACE_OFF();
+  }
 
   return RunBefExecutor(run_config);
 }

@@ -76,23 +76,30 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
   RCReference<const Function> map_fn_;
 };
 
-// Computes and returns map_fn(additional_fn_args, args).
-template <typename... OutputTypes>
-static IterationResult<OutputTypes...> RunFunction(
+// Enqueues map_fn(additional_fn_args, args) on the work queue and returns
+// the result AsyncValues.
+static llvm::SmallVector<RCReference<AsyncValue>, 4> EnqueueFunction(
     const Function* map_fn, RCArray<AsyncValue> additional_fn_args,
-    IterationResultUntyped input, const ExecutionContext& exec_ctx) {
+    RCArray<AsyncValue> args, const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
-  if (internal::IsConcreteAndEmpty(input)) {
-    return IterationResult<OutputTypes...>::Eof(host);
+  auto num_results = map_fn->result_types().size();
+
+  // Placeholder for results.
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> results;
+  results.resize(num_results);
+  for (size_t i = 0; i < num_results; ++i) {
+    results[i] = host->MakeIndirectAsyncValue();
   }
-  auto async_result = host->template MakeUnconstructedAsyncValueRef<
-      std::tuple<OutputTypes...>>();
+  llvm::SmallVector<RCReference<AsyncValue>, 4> results_ref;
+  for (const auto& result : results) {
+    results_ref.push_back(result.CopyRef());
+  }
 
   host->RunWhenReady(
-      input.values, [host, map_fn = std::move(map_fn),
-                     additional_fn_args = std::move(additional_fn_args),
-                     input = input.CopyRef(),
-                     async_result = async_result.CopyRef()]() mutable {
+      args.values(),
+      [host, num_results, map_fn = std::move(map_fn),
+       additional_fn_args = std::move(additional_fn_args),
+       args = args.CopyRef(), results = std::move(results)]() mutable {
         // IDEA(donglin): We can optimize performance for small tasks by not
         // enqueuing small tasks to the threadpool. We need a way to identify
         // small tasks.
@@ -108,10 +115,10 @@ static IterationResult<OutputTypes...> RunFunction(
         // enqueue work before the args are available, a thread from the
         // blocking threadpool might run the map function if the args is
         // computed by a thread in the blocking threadpool.
-        host->EnqueueWork([host, map_fn = std::move(map_fn),
+        host->EnqueueWork([host, num_results, map_fn = std::move(map_fn),
                            additional_fn_args = std::move(additional_fn_args),
-                           args = std::move(input.values),
-                           async_result = std::move(async_result)]() mutable {
+                           args = std::move(args),
+                           results = std::move(results)]() mutable {
           // Construct arguments for function execution. The arguments consist
           // of the 'additional_fn_args' from the MapDataset constructor,
           // followed by the values from the underlying iterator.
@@ -119,19 +126,19 @@ static IterationResult<OutputTypes...> RunFunction(
           for (auto* additional_arg : additional_fn_args.values()) {
             arguments.push_back(additional_arg);
           }
-          for (const auto& arg : args) {
-            arguments.push_back(arg.get());
+          for (const auto& arg : args.values()) {
+            arguments.push_back(arg);
           }
-          SmallVector<RCReference<AsyncValue>, sizeof...(OutputTypes)> results;
-          results.resize(map_fn->result_types().size());
-          map_fn->Execute(arguments, results, host);
-          internal::VectorToTuple(std::move(results), async_result.CopyRef(),
-                                  host);
+          SmallVector<RCReference<AsyncValue>, 4> fn_results;
+          fn_results.resize(num_results);
+          map_fn->Execute(arguments, fn_results, host);
+          for (size_t i = 0; i < num_results; ++i) {
+            results[i]->ForwardTo(std::move(fn_results[i]));
+          }
         });
       });
 
-  return IterationResult<OutputTypes...>::Pending(std::move(async_result),
-                                                  std::move(input.eof));
+  return results_ref;
 }
 
 template <typename... InputTypes, typename... OutputTypes>
@@ -146,15 +153,21 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
-  IterationResult<OutputTypes...> GetNext(
+  IterationResultUntyped GetNextUntyped(
       const ExecutionContext& exec_ctx) override {
     auto input = input_iterator_->GetNextUntyped(exec_ctx);
     const Function* map_fn = parent_dataset_->map_fn_.get();
+
+    auto values = std::move(input.values);
+    auto eof = std::move(input.eof);
+
     // IDEA(donglin): consider extending RCArray to support CopyRef() without
     // doing shallow copy.
     auto additional_fn_args = parent_dataset_->additional_fn_args_.CopyRef();
-    return RunFunction<OutputTypes...>(map_fn, std::move(additional_fn_args),
-                                       std::move(input), exec_ctx);
+    auto result =
+        EnqueueFunction(map_fn, std::move(additional_fn_args),
+                        RCArray<AsyncValue>(std::move(values)), exec_ctx);
+    return IterationResultUntyped::Pending(std::move(result), std::move(eof));
   }
 
  private:

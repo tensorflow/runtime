@@ -111,6 +111,11 @@ struct IterationResultUntyped {
                                   AsyncValueRef<bool>(error.CopyRef()));
   }
 
+  static IterationResultUntyped Pending(
+      SmallVector<RCReference<AsyncValue>, 4> values, AsyncValueRef<bool> eof) {
+    return IterationResultUntyped(std::move(values), std::move(eof));
+  }
+
   IterationResultUntyped(llvm::SmallVector<RCReference<AsyncValue>, 4> v,
                          AsyncValueRef<bool> e)
       : values(std::move(v)), eof(std::move(e)) {}

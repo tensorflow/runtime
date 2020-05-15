@@ -21,8 +21,8 @@ def tfrt_dependencies():
     """Loads TFRT external dependencies into WORKSPACE."""
 
     # LLVM and MLIR from llvm-project.
-    LLVM_COMMIT = "897d8ee5cd693e17f95a7e84194bca4c089a520b"
-    LLVM_SHA256 = "994677daedf23bc93ce04f1a527c07c09b7fbbd0986d867b60bd6710057a40de"
+    LLVM_COMMIT = "9d4b4f344d8ea917e082cf58d66b71c0171e1650"
+    LLVM_SHA256 = "36e4470b5656cea3e0afb218edbdd96376fcb51dc2c5ed887b21237068baee41"
     LLVM_URLS = [
         "https://storage.googleapis.com/mirror.tensorflow.org/github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),
         "https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),

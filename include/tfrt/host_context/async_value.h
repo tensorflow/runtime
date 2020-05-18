@@ -250,7 +250,9 @@ class AsyncValue {
   friend class HostContext;
   friend class IndirectAsyncValue;
   // Destructor returns the size of the derived AsyncValue to be deallocated.
-  using Destructor = size_t (*)(AsyncValue*);
+  // The second bool argument indicates whether to destruct the AsyncValue
+  // object or simply destroy the payloads.
+  using Destructor = size_t (*)(AsyncValue*, bool);
 
   template <typename T>
   AsyncValue(HostContextPtr host, Kind kind, State state, TypeTag<T>)
@@ -376,10 +378,16 @@ class AsyncValue {
   template <typename T>
   const T& GetConcreteValue() const;
 
-  // The destructor function for a derived AsyncValue.
+  // The destructor function for a derived AsyncValue. The `destroys_object`
+  // argument indicates whether to destruct the AsyncValue object or simply
+  // destroy the payloads.
   template <typename Derived>
-  static size_t DestructorFn(AsyncValue* v) {
-    static_cast<Derived*>(v)->~Derived();
+  static size_t DestructorFn(AsyncValue* v, bool destroys_object) {
+    if (destroys_object) {
+      static_cast<Derived*>(v)->~Derived();
+    } else {
+      static_cast<Derived*>(v)->Destroy();
+    }
     return sizeof(Derived);
   }
 
@@ -460,14 +468,7 @@ class ConcreteAsyncValue : public AsyncValue {
     new (&data_) T(std::forward<Args>(args)...);
   }
 
-  ~ConcreteAsyncValue() {
-    auto s = state();
-    if (s == State::kError) {
-      delete error_;
-    } else if (s == State::kConstructed || s == State::kConcrete) {
-      data_.~T();
-    }
-  }
+  ~ConcreteAsyncValue() { Destroy(); }
 
   // Return the underlying error. IsError() must return true.
   const DecodedDiagnostic& GetError() const {
@@ -514,6 +515,15 @@ class ConcreteAsyncValue : public AsyncValue {
     DecodedDiagnostic* error_;
     T data_;
   };
+
+  void Destroy() {
+    auto s = state();
+    if (s == State::kError) {
+      delete error_;
+    } else if (s == State::kConstructed || s == State::kConcrete) {
+      data_.~T();
+    }
+  }
 
   static void VerifyOffsets() {
     static_assert(offsetof(ConcreteAsyncValue<T>, data_) ==
@@ -570,7 +580,9 @@ class IndirectAsyncValue : public AsyncValue {
   }
 
  private:
-  ~IndirectAsyncValue() {
+  ~IndirectAsyncValue() { Destroy(); }
+
+  void Destroy() {
     if (value_) {
       value_->DropRef();
       value_ = nullptr;

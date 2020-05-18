@@ -80,7 +80,7 @@ void AsyncValue::Destroy() {
     return;
   }
 
-  auto size = GetTypeInfo().destructor(this);
+  auto size = GetTypeInfo().destructor(this, /*destroys_object=*/true);
   GetHostContext()->DeallocateBytes(this, size);
 }
 
@@ -161,11 +161,9 @@ void AsyncValue::SetError(DecodedDiagnostic diag_in) {
 
   if (kind() == Kind::kConcrete) {
     if (s == State::kConstructed) {
-      // ~ConcreteAsyncValue erases type_id_, but we need it restored as this
-      // AsyncValue is still alive.
-      uint16_t type_id = type_id_;
-      GetTypeInfo().destructor(this);
-      type_id_ = type_id;
+      // ~AsyncValue erases type_id_ and makes a few assertion on real
+      // destruction, but this AsyncValue is still alive.
+      GetTypeInfo().destructor(this, /*destroys_object=*/false);
     }
     char* this_ptr = reinterpret_cast<char*>(this);
     auto& error = *reinterpret_cast<DecodedDiagnostic**>(

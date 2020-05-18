@@ -58,6 +58,7 @@ TEST(AsyncValueRef, Conversions) {
 TEST(AsyncValue, ConstructedToError) {
   std::unique_ptr<HostContext> host = CreateHostContext();
   AsyncValue* value = host->MakeConstructedAsyncValueRef<int32_t>(0).release();
+  value->AndThen([] {});
   value->SetError(DecodedDiagnostic("test error"));
   value->DropRef();
 }

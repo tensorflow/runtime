@@ -19,6 +19,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "batch_dataset.h"
+#include "filter_dataset.h"
 #include "interleave_dataset.h"
 #include "map_dataset.h"
 #include "memory_dataset.h"
@@ -100,6 +101,17 @@ RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
   return TakeRef(host->Construct<MapDataset<std::tuple<T>, std::tuple<U...>>>(
       dataset->CopyRef(), RCArray<AsyncValue>(args.values()),
       FormRef(&fn.get()), host));
+}
+
+//===----------------------------------------------------------------------===//
+// FilterDataset
+//===----------------------------------------------------------------------===//
+
+template <typename... T>
+RCReference<FilterDataset<T...>> MakeFilterDataset(
+    RCReference<Dataset>* dataset, Attribute<Function> fn, HostContext* host) {
+  return TakeRef(host->Construct<FilterDataset<T...>>(
+      (*dataset).CopyRef(), FormRef(&fn.get()), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -473,12 +485,16 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("data.memory_dataset.str",
                       TFRT_KERNEL(MakeMemoryDataset<std::string>));
 
+  registry->AddKernel("data.prefetch_dataset.i64",
+                      TFRT_KERNEL(MakePrefetchDataset<int64_t>));
   registry->AddKernel(
       "data.prefetch_dataset.tensor_and_tensor",
       TFRT_KERNEL(MakePrefetchDataset<DenseHostTensor, DenseHostTensor>));
   registry->AddKernel(
       "data.prefetch_dataset.tensor_and_i64",
       TFRT_KERNEL(MakePrefetchDataset<DenseHostTensor, int64_t>));
+  registry->AddKernel("data.filter_dataset.i64",
+                      TFRT_KERNEL(MakeFilterDataset<int64_t>));
 }
 
 }  // namespace data

@@ -609,6 +609,7 @@ tfrt_cc_library(
         "lib/data/data_kernels.cc",
         "lib/data/dataset.cc",
         "lib/data/dataset.h",
+        "lib/data/filter_dataset.h",
         "lib/data/interleave_dataset.h",
         "lib/data/io.cc",
         "lib/data/io.h",

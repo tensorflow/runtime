@@ -32,6 +32,9 @@
 #include "tfrt/support/rc_array.h"
 #include "tfrt/support/ref_count.h"
 
+// TODO(b/156791937): Consider moving this logic into AsyncValue implementation.
+#define MAX_RECURSIVE_CALLS 100
+
 namespace tfrt {
 namespace data {
 
@@ -76,10 +79,12 @@ struct IterationResult {
                   AsyncValueRef<bool> e)
       : values(std::move(v)), eof(std::move(e)) {}
 
-  IterationResult(IterationResult&) = delete;
-  IterationResult& operator=(IterationResult&) = delete;
+  // Move operations are supported.
   IterationResult(IterationResult&&) = default;
   IterationResult& operator=(IterationResult&&) = default;
+  // This class is not copyable or assignable.
+  IterationResult(const IterationResult&) = delete;
+  IterationResult& operator=(const IterationResult&) = delete;
 
   IterationResult CopyRef() const {
     auto copy = llvm::map_range(values, [](auto& v) { return v.CopyRef(); });

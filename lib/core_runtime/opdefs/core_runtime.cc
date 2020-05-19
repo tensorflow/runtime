@@ -29,6 +29,7 @@
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
+#include "tfrt/core_runtime/opdefs/types.h"
 
 namespace tfrt {
 namespace corert {
@@ -43,6 +44,8 @@ CoreRTDialect::CoreRTDialect(MLIRContext *context)
   allowUnknownOperations();
 
   addAttributes<ShapeAttr>();
+
+  addTypes<StringType>();
 
   addOperations<
 #define GET_OP_LIST
@@ -98,6 +101,33 @@ void PrintShapeAttr(ShapeAttr attr, mlir::DialectAsmPrinter &os) {  // NOLINT
 }
 
 }  // namespace
+
+mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser &parser) const {
+  StringRef data;
+  if (parser.parseKeyword(&data)) return Type();
+
+  if (data == "string") return StringType::get(getContext());
+
+  // TODO(tf-runtime-team): Every type should be properly defined. Remove
+  // OpaqueType here once all types are defined in corerrt.
+  return mlir::OpaqueType::get(mlir::Identifier::get("corert", getContext()),
+                               data, getContext());
+}
+
+void CoreRTDialect::printType(mlir::Type type,
+                              mlir::DialectAsmPrinter &os) const {
+  if (type.isa<StringType>()) {
+    os << "string";
+    return;
+  }
+
+  if (auto opaque_type = type.dyn_cast<mlir::OpaqueType>()) {
+    os << opaque_type.getTypeData();
+    return;
+  }
+
+  llvm_unreachable("unexpected corert type kind");
+}
 
 mlir::Attribute CoreRTDialect::parseAttribute(mlir::DialectAsmParser &parser,
                                               mlir::Type type) const {

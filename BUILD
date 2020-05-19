@@ -462,6 +462,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/core_runtime/opdefs/attributes.h",
         "include/tfrt/core_runtime/opdefs/core_runtime.h",
+        "include/tfrt/core_runtime/opdefs/types.h",
     ],
     alwayslink_static_registration_src = "lib/core_runtime/opdefs/static_registration.cc",
     visibility = [":friends"],

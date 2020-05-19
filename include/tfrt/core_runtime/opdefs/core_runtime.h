@@ -46,6 +46,10 @@ class CoreRTDialect : public Dialect {
   void printAttribute(mlir::Attribute attr,
                       mlir::DialectAsmPrinter &os) const override;
 
+  mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+
+  void printType(mlir::Type type, mlir::DialectAsmPrinter &os) const override;
+
   Operation *materializeConstant(OpBuilder &builder, Attribute value, Type type,
                                  Location loc) override;
 };

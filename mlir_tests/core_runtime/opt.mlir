@@ -52,3 +52,10 @@ func @corert_shape_attr() {
   "corert.test"() {shape = #corert.shape<1x?x3>} : () -> ()
   hex.return
 }
+
+// CHECK-LABEL: func @corert_string_type_attr
+func @corert_string_type_attr() {
+  // CHECK: !corert.string
+  "corert.test"() {type = !corert.string} : () -> ()
+  hex.return
+}

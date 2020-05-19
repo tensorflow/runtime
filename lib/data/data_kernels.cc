@@ -90,7 +90,7 @@ RCReference<RangeDataset<T>> MakeRangeDataset(T start, T stop, T step,
 // TODO(rachelim): Support variable number of arguments.
 template <typename T, typename... U>
 RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
-    RCReference<Dataset<T>>* dataset, RemainingArguments args,
+    RCReference<Dataset>* dataset, RemainingArguments args,
     Attribute<Function> fn, HostContext* host) {
   assert((args.size() + 1 == fn->argument_types().size()) &&
          "The function inputs do not match the dataset input types.");
@@ -109,7 +109,7 @@ RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
 // TODO(rachelim): Support variable number of arguments.
 template <typename T, typename... U>
 RCReference<InterleaveDataset<std::tuple<T>, std::tuple<U...>>>
-MakeInterleaveDataset(RCReference<Dataset<T>>* dataset, int64_t cycle_length,
+MakeInterleaveDataset(RCReference<Dataset>* dataset, int64_t cycle_length,
                       int64_t block_length, Attribute<Function> fn,
                       HostContext* host) {
   assert(fn->argument_types().size() == 1 &&
@@ -139,7 +139,7 @@ RCReference<TFRecordDataset> MakeTFRecordDataset(std::string path,
 
 template <typename... T>
 RCReference<RepeatDataset<T...>> MakeRepeatDataset(
-    RCReference<Dataset<T...>>* dataset, Attribute<int32_t> count,
+    RCReference<Dataset>* dataset, Attribute<int32_t> count,
     HostContext* host) {
   return TakeRef(host->Construct<RepeatDataset<T...>>(dataset->CopyRef(),
                                                       count.get(), host));
@@ -151,7 +151,7 @@ RCReference<RepeatDataset<T...>> MakeRepeatDataset(
 
 template <typename... T>
 RCReference<MemoryDataset<T...>> MakeMemoryDataset(
-    RCReference<Dataset<T...>>* dataset, HostContext* host) {
+    RCReference<Dataset>* dataset, HostContext* host) {
   return TakeRef(
       host->Construct<MemoryDataset<T...>>(dataset->CopyRef(), host));
 }
@@ -162,7 +162,7 @@ RCReference<MemoryDataset<T...>> MakeMemoryDataset(
 
 template <typename... T>
 RCReference<BatchDataset<T...>> MakeBatchDataset(
-    RCReference<Dataset<T...>>* dataset, Attribute<int32_t> batch_size,
+    RCReference<Dataset>* dataset, Attribute<int32_t> batch_size,
     Attribute<bool> same_input_metadata, HostContext* host) {
   return TakeRef(host->Construct<BatchDataset<T...>>(
       dataset->CopyRef(), batch_size.get(), same_input_metadata.get(), host));
@@ -174,7 +174,7 @@ RCReference<BatchDataset<T...>> MakeBatchDataset(
 
 template <typename... T>
 RCReference<PrefetchDataset<T...>> MakePrefetchDataset(
-    RCReference<Dataset<T...>>* dataset, HostContext* host) {
+    RCReference<Dataset>* dataset, HostContext* host) {
   return TakeRef(host->Construct<PrefetchDataset<T...>>(
       dataset->CopyRef(), host->GetNumWorkerThreads(), host));
 }
@@ -185,8 +185,7 @@ RCReference<PrefetchDataset<T...>> MakePrefetchDataset(
 
 // Create an iterator that points to the first element in the dataset.
 template <typename... T>
-RCReference<Iterator<T...>> MakeIteratorFromDataset(
-    RCReference<Dataset<T...>>* dataset) {
+RCReference<Iterator> MakeIteratorFromDataset(RCReference<Dataset>* dataset) {
   return (*dataset)->MakeIterator();
 }
 
@@ -197,10 +196,10 @@ RCReference<Iterator<T...>> MakeIteratorFromDataset(
 // caller handle EOF properly.
 // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
 template <typename... T>
-static void IteratorGetNext(RCReference<Iterator<T...>>* iterator, Chain chain,
+static void IteratorGetNext(RCReference<Iterator>* iterator, Chain chain,
                             RemainingResults results,
                             const ExecutionContext& exec_ctx) {
-  auto input = (*iterator)->GetNextUntyped(exec_ctx);
+  auto input = (*iterator)->GetNext(exec_ctx);
   if (internal::IsConcreteAndEmpty(input)) {
     auto err = EmitErrorAsync(exec_ctx, "iterator reached end");
     for (size_t i = 0; i < sizeof...(T); ++i) {
@@ -222,7 +221,7 @@ namespace {
 struct EnumerateContext {
   EnumerateContext(const ExecutionContext& exec_ctx,
                    RCReference<const Function> body_fn,
-                   RCReference<IteratorBase> iterator, RemainingArguments* args,
+                   RCReference<Iterator> iterator, RemainingArguments* args,
                    RemainingResults* results)
       : exec_ctx(exec_ctx),
         body_fn(std::move(body_fn)),
@@ -239,7 +238,7 @@ struct EnumerateContext {
   }
 
   void ProcessInputs(std::unique_ptr<EnumerateContext> ctx,
-                     IterationResultUntyped iteration_result) {
+                     IterationResult iteration_result) {
     // Forward error in the EOF flag to all results.
     if (iteration_result.eof.IsError()) {
       ForwardEofError(iteration_result.eof);
@@ -285,7 +284,7 @@ struct EnumerateContext {
     if (ForwardedErrorResults()) return;
 
     // Get next input values.
-    auto next = iterator->GetNextUntyped(exec_ctx);
+    auto next = iterator->GetNext(exec_ctx);
     exec_ctx.host()->RunWhenReady(
         next.AsyncValues(),
         [ctx = std::move(ctx), next = std::move(next)]() mutable {
@@ -335,7 +334,7 @@ struct EnumerateContext {
 
   ExecutionContext exec_ctx;
   RCReference<const Function> body_fn;
-  RCReference<IteratorBase> iterator;
+  RCReference<Iterator> iterator;
 
   const size_t num_results;
 
@@ -357,10 +356,10 @@ struct EnumerateContext {
 // the values of 'args' (except the first value).
 //
 // How to determine the inputs/outputs of the 'body_fn' and the kernel:
-// 1) The outputs of Iterator::GetNextUntyped(), combined with the values of
+// 1) The outputs of Iterator::GetNext(), combined with the values of
 // 'args' (except the first value), will be filled in as the arguments of the
 // 'body_fn' for the first iteration.
-// 2) The outputs of Iterator::GetNextUntyped(), combined with the outputs of
+// 2) The outputs of Iterator::GetNext(), combined with the outputs of
 // the 'body_fn', will be filled in as the arguments of the 'body_fn' for the
 // next iteration.
 // 3) The outputs of the 'body_fn' of the last iteration will be used as the
@@ -371,12 +370,12 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
   assert(args.size() - 1 == results.size() &&
          "argument count should be one larger than the results count");
 
-  auto& iterator = args[0]->get<RCReference<IteratorBase>>();
+  auto& iterator = args[0]->get<RCReference<Iterator>>();
   auto ctx = std::make_unique<EnumerateContext>(
       exec_ctx, FormRef(&body_fn.get()), iterator.CopyRef(), &args, &results);
 
   // Request the first input from the iterator.
-  auto next = iterator->GetNextUntyped(exec_ctx);
+  auto next = iterator->GetNext(exec_ctx);
   exec_ctx.host()->RunWhenReady(
       next.AsyncValues(),
       [ctx = std::move(ctx), next = next.CopyRef()]() mutable {

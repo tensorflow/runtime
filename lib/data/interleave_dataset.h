@@ -40,7 +40,7 @@ class InterleaveDatasetIterator;
 
 // InterleaveDataset maps a user-defined function over the elements in its input
 // dataset and interleaves the results. The user-defined function is expected to
-// have a single return value of type Dataset<OutputTypes...>.
+// have a single return value of type Dataset.
 //
 // The `cycle_length` and `block_length` arguments control the order in which
 // elements are produced. `cycle_length` controls the number of input elements
@@ -53,9 +53,9 @@ class InterleaveDatasetIterator;
 // element each time it reaches the end of an iterator.
 template <typename... InputTypes, typename... OutputTypes>
 class InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
-    : public Dataset<OutputTypes...> {
+    : public Dataset {
  public:
-  explicit InterleaveDataset(RCReference<Dataset<InputTypes...>> input_dataset,
+  explicit InterleaveDataset(RCReference<Dataset> input_dataset,
                              int64_t cycle_length, int64_t block_length,
                              RCReference<const Function> map_fn,
                              HostContext* host)
@@ -70,7 +70,7 @@ class InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
   InterleaveDataset(const InterleaveDataset&) = delete;
   InterleaveDataset& operator=(const InterleaveDataset&) = delete;
 
-  RCReference<Iterator<OutputTypes...>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -83,7 +83,7 @@ class InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
         this, allocator_);
   }
 
-  RCReference<Dataset<InputTypes...>> input_dataset_;
+  RCReference<Dataset> input_dataset_;
   int64_t cycle_length_;
   int64_t block_length_;
   HostContext* host_;
@@ -93,14 +93,13 @@ class InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
 
 template <typename... InputTypes, typename... OutputTypes>
 class InterleaveDatasetIterator<std::tuple<InputTypes...>,
-                                std::tuple<OutputTypes...>>
-    : public Iterator<OutputTypes...> {
+                                std::tuple<OutputTypes...>> : public Iterator {
  public:
   explicit InterleaveDatasetIterator(
       RCReference<InterleaveDataset<std::tuple<InputTypes...>,
                                     std::tuple<OutputTypes...>>>
           parent_dataset)
-      : Iterator<OutputTypes...>(),
+      : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()),
         cycle_iterators_(parent_dataset_->cycle_length_) {}
@@ -110,8 +109,7 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
   InterleaveDatasetIterator& operator=(const InterleaveDatasetIterator&) =
       delete;
 
-  IterationResultUntyped GetNextUntyped(
-      const ExecutionContext& exec_ctx) override;
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override;
 
  private:
   void Destroy() override {
@@ -134,16 +132,16 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
     cycle_index_ = (cycle_index_ + 1) % parent_dataset_->cycle_length_;
   }
 
-  RCReference<Iterator<OutputTypes...>> MakeIteratorFromInputElement(
+  RCReference<Iterator> MakeIteratorFromInputElement(
       llvm::SmallVector<RCReference<AsyncValue>, 4> input_element,
       const ExecutionContext& exec_ctx);
 
   RCReference<
       InterleaveDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
       parent_dataset_;
-  RCReference<Iterator<InputTypes...>> input_iterator_;
+  RCReference<Iterator> input_iterator_;
 
-  std::vector<RCReference<Iterator<OutputTypes...>>> cycle_iterators_;
+  std::vector<RCReference<Iterator>> cycle_iterators_;
   size_t cycle_index_ = 0;
   size_t block_index_ = 0;
   bool end_of_input_ = false;
@@ -151,7 +149,7 @@ class InterleaveDatasetIterator<std::tuple<InputTypes...>,
 };
 
 template <typename... InputTypes, typename... OutputTypes>
-RCReference<Iterator<OutputTypes...>> InterleaveDataset<
+RCReference<Iterator> InterleaveDataset<
     std::tuple<InputTypes...>, std::tuple<OutputTypes...>>::MakeIterator() {
   return TakeRef(
       host_->Construct<InterleaveDatasetIterator<std::tuple<InputTypes...>,
@@ -161,16 +159,16 @@ RCReference<Iterator<OutputTypes...>> InterleaveDataset<
 
 // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
 template <typename... InputTypes, typename... OutputTypes>
-IterationResultUntyped InterleaveDatasetIterator<std::tuple<InputTypes...>,
-                                                 std::tuple<OutputTypes...>>::
-    GetNextUntyped(const ExecutionContext& exec_ctx) {
+IterationResult InterleaveDatasetIterator<
+    std::tuple<InputTypes...>,
+    std::tuple<OutputTypes...>>::GetNext(const ExecutionContext& exec_ctx) {
   while (!end_of_input_ || num_open_) {  // Not at end of input
 
     // Case 1: cycle_index_ has an open iterator. Get the next element from
     // that iterator and advance to the next block index.
     if (cycle_iterators_[cycle_index_]) {
       // Get the next element from the iterator opened at cycle_index_.
-      auto result = cycle_iterators_[cycle_index_]->GetNextUntyped(exec_ctx);
+      auto result = cycle_iterators_[cycle_index_]->GetNext(exec_ctx);
 
       // If we're at the end of this current iterator, advance to the next
       // iterator in the cycle.
@@ -195,7 +193,7 @@ IterationResultUntyped InterleaveDatasetIterator<std::tuple<InputTypes...>,
     // Case 3: This iterator at the current cycle_index_ has not been created.
     // Get the next element from the input dataset and create an iterator
     // from it.
-    auto input_element = input_iterator_->GetNextUntyped(exec_ctx);
+    auto input_element = input_iterator_->GetNext(exec_ctx);
     // The input iterator has been exhausted.
     if (internal::IsConcreteAndEmpty(input_element)) {
       end_of_input_ = true;
@@ -214,12 +212,10 @@ IterationResultUntyped InterleaveDatasetIterator<std::tuple<InputTypes...>,
         auto error = EmitErrorAsync(
             exec_ctx,
             "interleave expects its inputs to be available synchronously");
-        return IterationResultUntyped::Error(std::move(error),
-                                             sizeof...(OutputTypes));
+        return IterationResult::Error(std::move(error), sizeof...(OutputTypes));
       }
       if (value->IsError()) {
-        return IterationResultUntyped::Error(value.CopyRef(),
-                                             sizeof...(OutputTypes));
+        return IterationResult::Error(value.CopyRef(), sizeof...(OutputTypes));
       }
     }
 
@@ -229,12 +225,12 @@ IterationResultUntyped InterleaveDatasetIterator<std::tuple<InputTypes...>,
   }
 
   // End of iteration.
-  return IterationResultUntyped::Eof(exec_ctx.host(), sizeof...(OutputTypes));
+  return IterationResult::Eof(exec_ctx.host(), sizeof...(OutputTypes));
 }
 
 template <typename... InputTypes, typename... OutputTypes>
-RCReference<Iterator<OutputTypes...>> InterleaveDatasetIterator<
-    std::tuple<InputTypes...>, std::tuple<OutputTypes...>>::
+RCReference<Iterator> InterleaveDatasetIterator<std::tuple<InputTypes...>,
+                                                std::tuple<OutputTypes...>>::
     MakeIteratorFromInputElement(
         llvm::SmallVector<RCReference<AsyncValue>, 4> input_element,
         const ExecutionContext& exec_ctx) {
@@ -251,8 +247,7 @@ RCReference<Iterator<OutputTypes...>> InterleaveDatasetIterator<
   // TODO(rachelim): Try to support asynchronously created iterators.
   assert(fn_results[0]->IsAvailable());
 
-  const auto& dataset =
-      fn_results[0]->template get<RCReference<Dataset<OutputTypes...>>>();
+  const auto& dataset = fn_results[0]->template get<RCReference<Dataset>>();
   return dataset->MakeIterator();
 }
 

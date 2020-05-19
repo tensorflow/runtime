@@ -39,9 +39,9 @@ class PrefetchDatasetIterator;
 // PrefetchDataset class which wraps around another dataset instance and
 // prefetches elements from the underlying dataset in an internal buffer.
 template <typename... T>
-class PrefetchDataset : public Dataset<T...> {
+class PrefetchDataset : public Dataset {
  public:
-  explicit PrefetchDataset(RCReference<Dataset<T...>> input_dataset,
+  explicit PrefetchDataset(RCReference<Dataset> input_dataset,
                            int32_t prefetch_num, HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         prefetch_num_(prefetch_num),
@@ -51,7 +51,7 @@ class PrefetchDataset : public Dataset<T...> {
   PrefetchDataset(const PrefetchDataset&) = delete;
   PrefetchDataset& operator=(const PrefetchDataset&) = delete;
 
-  RCReference<Iterator<T...>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -61,17 +61,17 @@ class PrefetchDataset : public Dataset<T...> {
     internal::DestroyImpl<PrefetchDataset<T...>>(this, host_->allocator());
   }
 
-  RCReference<Dataset<T...>> input_dataset_;
+  RCReference<Dataset> input_dataset_;
   int32_t prefetch_num_;
   HostContext* host_;
 };
 
 template <typename... T>
-class PrefetchDatasetIterator : public Iterator<T...> {
+class PrefetchDatasetIterator : public Iterator {
  public:
   explicit PrefetchDatasetIterator(
       RCReference<PrefetchDataset<T...>> parent_dataset)
-      : Iterator<T...>(),
+      : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
@@ -79,10 +79,9 @@ class PrefetchDatasetIterator : public Iterator<T...> {
   PrefetchDatasetIterator(const PrefetchDatasetIterator&) = delete;
   PrefetchDatasetIterator& operator=(const PrefetchDatasetIterator&) = delete;
 
-  IterationResultUntyped GetNextUntyped(
-      const ExecutionContext& exec_ctx) override {
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
     while (buffer_.size() < parent_dataset_->prefetch_num_) {
-      buffer_.push(input_iterator_->GetNextUntyped(exec_ctx));
+      buffer_.push(input_iterator_->GetNext(exec_ctx));
     }
     auto result = std::move(buffer_.front());
     buffer_.pop();
@@ -96,12 +95,12 @@ class PrefetchDatasetIterator : public Iterator<T...> {
   }
 
   RCReference<PrefetchDataset<T...>> parent_dataset_;
-  RCReference<Iterator<T...>> input_iterator_;
-  std::queue<IterationResultUntyped> buffer_;
+  RCReference<Iterator> input_iterator_;
+  std::queue<IterationResult> buffer_;
 };
 
 template <typename... T>
-RCReference<Iterator<T...>> PrefetchDataset<T...>::MakeIterator() {
+RCReference<Iterator> PrefetchDataset<T...>::MakeIterator() {
   return TakeRef(
       host_->Construct<PrefetchDatasetIterator<T...>>(FormRef(this)));
 }

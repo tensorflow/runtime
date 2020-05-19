@@ -36,7 +36,7 @@ class RangeDatasetIterator;
 // RangeDataset yields a step-separated range of values from start (inclusive)
 // to stop (exclusive).
 template <typename T>
-class RangeDataset : public Dataset<T> {
+class RangeDataset : public Dataset {
  public:
   explicit RangeDataset(T start, T stop, T step, HostContext* host)
       : start_(start),
@@ -49,7 +49,7 @@ class RangeDataset : public Dataset<T> {
   RangeDataset(const RangeDataset&) = delete;
   RangeDataset& operator=(const RangeDataset&) = delete;
 
-  RCReference<Iterator<T>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   friend class RangeDatasetIterator<T>;
@@ -66,22 +66,21 @@ class RangeDataset : public Dataset<T> {
 };
 
 template <typename T>
-class RangeDatasetIterator : public Iterator<T> {
+class RangeDatasetIterator : public Iterator {
  public:
   explicit RangeDatasetIterator(RCReference<RangeDataset<T>> dataset)
-      : Iterator<T>(), dataset_(std::move(dataset)), next_(dataset_->start_) {}
+      : Iterator(), dataset_(std::move(dataset)), next_(dataset_->start_) {}
 
   // This class is not copyable or movable.
   RangeDatasetIterator(const RangeDatasetIterator&) = delete;
   RangeDatasetIterator& operator=(const RangeDatasetIterator&) = delete;
 
-  IterationResultUntyped GetNextUntyped(
-      const ExecutionContext& exec_ctx) override {
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
     auto* host = exec_ctx.host();
     bool has_next = (dataset_->step_ > 0 && next_ < dataset_->stop_) ||
                     (dataset_->step_ < 0 && next_ > dataset_->stop_);
     if (!has_next) {
-      return IterationResultUntyped::Eof(host, 1);
+      return IterationResult::Eof(host, 1);
     }
 
     SmallVector<RCReference<AsyncValue>, 4> values;
@@ -89,7 +88,7 @@ class RangeDatasetIterator : public Iterator<T> {
 
     next_ += dataset_->step_;
 
-    return IterationResultUntyped::Values(std::move(values), host);
+    return IterationResult::Values(std::move(values), host);
   }
 
  private:
@@ -102,7 +101,7 @@ class RangeDatasetIterator : public Iterator<T> {
 };
 
 template <typename T>
-RCReference<Iterator<T>> RangeDataset<T>::MakeIterator() {
+RCReference<Iterator> RangeDataset<T>::MakeIterator() {
   return TakeRef(host_->Construct<RangeDatasetIterator<T>>(FormRef(this)));
 }
 

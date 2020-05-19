@@ -37,7 +37,7 @@ class SliceDatasetIterator;
 // SliceDataset allows caller to access elements in the underlying std::vector.
 // TODO(rachelim): Support variadic parameters for SliceDataset.
 template <typename T>
-class SliceDataset : public Dataset<T> {
+class SliceDataset : public Dataset {
  public:
   explicit SliceDataset(std::vector<T> data, HostContext* host)
       : data_(std::move(data)), host_(host), allocator_(host->allocator()) {}
@@ -46,7 +46,7 @@ class SliceDataset : public Dataset<T> {
   SliceDataset(const SliceDataset&) = delete;
   SliceDataset& operator=(const SliceDataset&) = delete;
 
-  RCReference<Iterator<T>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   friend class SliceDatasetIterator<T>;
@@ -61,27 +61,26 @@ class SliceDataset : public Dataset<T> {
 };
 
 template <typename T>
-class SliceDatasetIterator : public Iterator<T> {
+class SliceDatasetIterator : public Iterator {
  public:
   explicit SliceDatasetIterator(RCReference<SliceDataset<T>> parent_dataset,
                                 typename std::vector<T>::iterator iterator,
                                 typename std::vector<T>::iterator end)
-      : Iterator<T>(),
+      : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
         iterator_(std::move(iterator)),
         end_(std::move(end)) {}
 
-  IterationResultUntyped GetNextUntyped(
-      const ExecutionContext& exec_ctx) override {
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
     auto* host = exec_ctx.host();
     if (iterator_ == end_) {
-      return IterationResultUntyped::Eof(host, 1);
+      return IterationResult::Eof(host, 1);
     }
 
     SmallVector<RCReference<AsyncValue>, 4> values;
     values.push_back(host->MakeAvailableAsyncValueRef<T>(*iterator_));
     iterator_++;
-    return IterationResultUntyped::Values(std::move(values), host);
+    return IterationResult::Values(std::move(values), host);
   }
 
  private:
@@ -103,23 +102,22 @@ class SliceDatasetIterator : public Iterator<T> {
 // not have copy constructor. This implementation passes DenseHostTensor by
 // reference.
 template <>
-inline IterationResultUntyped
-SliceDatasetIterator<DenseHostTensor>::GetNextUntyped(
+inline IterationResult SliceDatasetIterator<DenseHostTensor>::GetNext(
     const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
   if (iterator_ == end_) {
-    return IterationResultUntyped::Eof(host, 1);
+    return IterationResult::Eof(host, 1);
   }
 
   SmallVector<RCReference<AsyncValue>, 4> values;
   values.push_back(
       host->MakeAvailableAsyncValueRef<DenseHostTensor>(iterator_->CopyRef()));
   iterator_++;
-  return IterationResultUntyped::Values(std::move(values), host);
+  return IterationResult::Values(std::move(values), host);
 }
 
 template <typename T>
-RCReference<Iterator<T>> SliceDataset<T>::MakeIterator() {
+RCReference<Iterator> SliceDataset<T>::MakeIterator() {
   return TakeRef(host_->Construct<SliceDatasetIterator<T>>(
       FormRef(this), data_.begin(), data_.end()));
 }

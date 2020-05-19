@@ -71,10 +71,9 @@ class MemoryDatasetIterator;
 // will be put in an in-memory buffer until all data in the underlying dataset
 // are enumerated. After that it just enumerates data in the in-memory buffer.
 template <typename... T>
-class MemoryDataset : public Dataset<T...> {
+class MemoryDataset : public Dataset {
  public:
-  explicit MemoryDataset(RCReference<Dataset<T...>> input_dataset,
-                         HostContext* host)
+  explicit MemoryDataset(RCReference<Dataset> input_dataset, HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         host_(host),
         allocator_(host->allocator()) {}
@@ -83,7 +82,7 @@ class MemoryDataset : public Dataset<T...> {
   MemoryDataset(const MemoryDataset&) = delete;
   MemoryDataset& operator=(const MemoryDataset&) = delete;
 
-  RCReference<Iterator<T...>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   friend class MemoryDatasetIterator<T...>;
@@ -92,16 +91,16 @@ class MemoryDataset : public Dataset<T...> {
     internal::DestroyImpl<MemoryDataset<T...>>(this, allocator_);
   }
 
-  RCReference<Dataset<T...>> input_dataset_;
+  RCReference<Dataset> input_dataset_;
   HostContext* host_;
   HostAllocator* allocator_;
 };
 
 template <typename... T>
-class MemoryDatasetIterator : public Iterator<T...> {
+class MemoryDatasetIterator : public Iterator {
  public:
   explicit MemoryDatasetIterator(RCReference<MemoryDataset<T...>> dataset)
-      : Iterator<T...>(),
+      : Iterator(),
         parent_dataset_(std::move(dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
@@ -110,14 +109,13 @@ class MemoryDatasetIterator : public Iterator<T...> {
   MemoryDatasetIterator& operator=(const MemoryDatasetIterator&) = delete;
 
   // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
-  IterationResultUntyped GetNextUntyped(
-      const ExecutionContext& exec_ctx) override {
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
     auto* host = exec_ctx.host();
     if (!buffer_completed_) {
-      auto input = input_iterator_->GetNextUntyped(exec_ctx);
+      auto input = input_iterator_->GetNext(exec_ctx);
       if (internal::IsConcreteAndEmpty(input) && buffer_.empty()) {
         // EOF and buffer empty; forward EOF to caller.
-        return std::move(input);
+        return input;
       }
       if (!internal::IsConcreteAndEmpty(input)) {
         // Cache is not completed and not EOF, store the value in the cache.
@@ -138,8 +136,7 @@ class MemoryDatasetIterator : public Iterator<T...> {
                                                  parent_dataset_->allocator_);
   }
 
-  IterationResultUntyped CopyByValue(const IterationResultUntyped& input,
-                                     HostContext* host) {
+  IterationResult CopyByValue(const IterationResult& input, HostContext* host) {
     // Copy data by value so that the output result can be mutated.
     SmallVector<RCReference<AsyncValue>, 4> values_copy;
     values_copy.resize(sizeof...(T));
@@ -152,19 +149,19 @@ class MemoryDatasetIterator : public Iterator<T...> {
           internal::CopyByValue<T...>(input.values, values_copy.CopyRef());
         });
 
-    return IterationResultUntyped::Pending(std::move(values_copy),
-                                           input.eof.CopyRef());
+    return IterationResult::Pending(std::move(values_copy),
+                                    input.eof.CopyRef());
   }
 
   RCReference<MemoryDataset<T...>> parent_dataset_;
-  RCReference<Iterator<T...>> input_iterator_;
-  std::vector<IterationResultUntyped> buffer_;
+  RCReference<Iterator> input_iterator_;
+  std::vector<IterationResult> buffer_;
   int next_buffer_index_ = 0;
   bool buffer_completed_ = false;
 };
 
 template <typename... T>
-RCReference<Iterator<T...>> MemoryDataset<T...>::MakeIterator() {
+RCReference<Iterator> MemoryDataset<T...>::MakeIterator() {
   return TakeRef(host_->Construct<MemoryDatasetIterator<T...>>(FormRef(this)));
 }
 

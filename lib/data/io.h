@@ -63,12 +63,11 @@ namespace io {
 //
 // TODO(ezhulenev): Add flexible prefetching policy based not only on the number
 // of prefetched records, but also on the memory consumption.
-template <typename ValueType>
-class PrefetchingIterator : public Iterator<ValueType> {
+class PrefetchingIterator : public Iterator {
  public:
   PrefetchingIterator(int32_t max_num_prefetch_elements,
                       int32_t prefetch_threshold)
-      : Iterator<ValueType>(),
+      : Iterator(),
         max_num_prefetch_elements_(max_num_prefetch_elements),
         prefetch_threshold_(prefetch_threshold),
         prefetch_enqueued_(0),
@@ -80,13 +79,13 @@ class PrefetchingIterator : public Iterator<ValueType> {
   // Gets the next element from a prefetch buffer, and maybe launches an
   // asynchronous prefetch task to fill up the buffer. If the buffer is
   // empty, reads next element from the derived iterator.
-  IterationResultUntyped GetNextUntyped(const ExecutionContext& exec_ctx) final;
+  IterationResult GetNext(const ExecutionContext& exec_ctx) final;
 
  protected:
   // Reads the next element from the underlying IO source. Prefetching iterator
   // guarantees that all calls to this function will be properly synchronized.
-  virtual IterationResultUntyped GetNextElement(
-      const ExecutionContext& exec_cxt) TFRT_REQUIRES(input_mu_) = 0;
+  virtual IterationResult GetNextElement(const ExecutionContext& exec_cxt)
+      TFRT_REQUIRES(input_mu_) = 0;
 
  private:
   // Cancels all outstanding asynchonous prefetch tasks.
@@ -104,7 +103,7 @@ class PrefetchingIterator : public Iterator<ValueType> {
   // of contention.
   mutex input_mu_;
 
-  std::queue<IterationResultUntyped> buffer_ TFRT_GUARDED_BY(state_mu_);
+  std::queue<IterationResult> buffer_ TFRT_GUARDED_BY(state_mu_);
 
   const int32_t max_num_prefetch_elements_;
   const int32_t prefetch_threshold_;
@@ -115,88 +114,6 @@ class PrefetchingIterator : public Iterator<ValueType> {
   // A flag to cancel all pending async prefetch tasks.
   std::atomic<bool> cancel_;
 };
-
-template <typename ValueType>
-IterationResultUntyped PrefetchingIterator<ValueType>::GetNextUntyped(
-    const ExecutionContext& exec_ctx) {
-  // Code that needs to hold both locks (input and state) must do the
-  // locking in the same order to avoid deadlocks:
-  //
-  //   1. input_mu_
-  //   2. state_mu_
-  //
-  // Asynchronous prefetch tasks and this function follow this rule.
-  const int32_t max_prefetch = max_num_prefetch_elements_;
-  const int32_t threshold = prefetch_threshold_;
-
-  {
-    mutex_lock state_lock(state_mu_);
-
-    // Number of prefetched elements + pending prefetches.
-    const int32_t prefetched = buffer_.size() + prefetch_enqueued_;
-
-    // Enqueue a prefetch task if the number of outstanding prefetches falls
-    // below a threshold.
-    if (prefetched <= threshold && !IsCancelled()) {
-      const int32_t prefetch = max_prefetch - prefetched;
-
-      auto task = [iterator = FormRef(this), exec_ctx, prefetch]() {
-        mutex_lock input_lock(iterator->input_mu_);
-        if (iterator->IsCancelled()) return;
-
-        // IDEA(ezhulenev): Verify these ideas in benchmarks:
-        // (1) Instead of grabbing the input lock to read all `prefetch`
-        //     elements, we can grab it to read mini-batches, so we would
-        //     allow concurrent GetNext() caller to make progress sooner in
-        //     case it also reaches GetNextLocked().
-        // (2) Grab state lock to push multiple prefetched elements at a
-        //     time.
-        for (int32_t i = 0; i < prefetch; ++i) {
-          auto next = iterator->GetNextElement(exec_ctx);
-          bool cancel =
-              internal::IsConcreteAndEmpty(next) || next.eof.IsError();
-          {
-            mutex_lock state_lock(iterator->state_mu_);
-            iterator->buffer_.push(std::move(next));
-            iterator->prefetch_enqueued_--;
-          }
-          if (cancel) {
-            iterator->Cancel();
-            break;
-          }
-        }
-      };
-
-      if (exec_ctx.host()->EnqueueBlockingWork(std::move(task)))
-        prefetch_enqueued_ += prefetch;
-    }
-
-    // Check if the prefetch buffer is not empty.
-    if (!buffer_.empty()) {
-      auto result = std::move(buffer_.front());
-      buffer_.pop();
-      return result;
-    }
-  }
-
-  // If prefetch buffer is empty, read the next element from the parent.
-  mutex_lock input_lock_(input_mu_);
-  {
-    mutex_lock state_lock(state_mu_);
-    // Check if a prefetch task completed and pushed anything into the
-    // buffer. Otherwise we might accidentally produce elements out of order.
-    if (!buffer_.empty()) {
-      auto result = std::move(buffer_.front());
-      buffer_.pop();
-      return result;
-    }
-  }
-
-  auto next = GetNextElement(exec_ctx);
-  if (internal::IsConcreteAndEmpty(next) || next.eof.IsError()) Cancel();
-
-  return next;
-}
 
 }  // namespace io
 }  // namespace data

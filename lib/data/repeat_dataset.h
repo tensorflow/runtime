@@ -35,10 +35,10 @@ class RepeatDatasetIterator;
 // RepeatDataset wraps around another Dataset instance and repeats it for a
 // specified number of times.
 template <typename... T>
-class RepeatDataset : public Dataset<T...> {
+class RepeatDataset : public Dataset {
  public:
-  explicit RepeatDataset(RCReference<Dataset<T...>> input_dataset,
-                         int32_t epochs, HostContext* host)
+  explicit RepeatDataset(RCReference<Dataset> input_dataset, int32_t epochs,
+                         HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         epochs_(epochs),
         host_(host),
@@ -51,7 +51,7 @@ class RepeatDataset : public Dataset<T...> {
   RepeatDataset(const RepeatDataset&) = delete;
   RepeatDataset& operator=(const RepeatDataset&) = delete;
 
-  RCReference<Iterator<T...>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   friend class RepeatDatasetIterator<T...>;
@@ -60,17 +60,17 @@ class RepeatDataset : public Dataset<T...> {
     internal::DestroyImpl<RepeatDataset<T...>>(this, allocator_);
   }
 
-  RCReference<Dataset<T...>> input_dataset_;
+  RCReference<Dataset> input_dataset_;
   int32_t epochs_;
   HostContext* host_;
   HostAllocator* allocator_;
 };
 
 template <typename... T>
-class RepeatDatasetIterator : public Iterator<T...> {
+class RepeatDatasetIterator : public Iterator {
  public:
   explicit RepeatDatasetIterator(RCReference<RepeatDataset<T...>> dataset)
-      : Iterator<T...>(),
+      : Iterator(),
         parent_dataset_(std::move(dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
@@ -79,16 +79,15 @@ class RepeatDatasetIterator : public Iterator<T...> {
   RepeatDatasetIterator& operator=(const RepeatDatasetIterator&) = delete;
 
   // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
-  IterationResultUntyped GetNextUntyped(
-      const ExecutionContext& exec_ctx) override {
-    auto result = input_iterator_->GetNextUntyped(exec_ctx);
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
+    auto result = input_iterator_->GetNext(exec_ctx);
     if (internal::IsConcreteAndEmpty(result) &&
         epoch_ + 1 < parent_dataset_->epochs_) {
       epoch_++;
       input_iterator_ = parent_dataset_->input_dataset_->MakeIterator();
-      result = input_iterator_->GetNextUntyped(exec_ctx);
+      result = input_iterator_->GetNext(exec_ctx);
     }
-    return std::move(result);
+    return result;
   }
 
  private:
@@ -98,14 +97,14 @@ class RepeatDatasetIterator : public Iterator<T...> {
   }
 
   RCReference<RepeatDataset<T...>> parent_dataset_;
-  RCReference<Iterator<T...>> input_iterator_;
+  RCReference<Iterator> input_iterator_;
 
   // The current epoch number.
   int32_t epoch_ = 0;
 };
 
 template <typename... T>
-RCReference<Iterator<T...>> RepeatDataset<T...>::MakeIterator() {
+RCReference<Iterator> RepeatDataset<T...>::MakeIterator() {
   return TakeRef(host_->Construct<RepeatDatasetIterator<T...>>(FormRef(this)));
 }
 

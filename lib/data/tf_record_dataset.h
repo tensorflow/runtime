@@ -39,7 +39,7 @@ namespace data {
 // bytes read from a TFRecord file. This will make the code more type safe
 // and allow for future optimizations to use mmap instead of copying bytes
 // from the file onto the heap.
-class TFRecordDataset : public Dataset<std::string> {
+class TFRecordDataset : public Dataset {
  public:
   explicit TFRecordDataset(std::string path, HostContext* host)
       : path_(std::move(path)), host_(host), allocator_(host->allocator()) {}
@@ -48,7 +48,7 @@ class TFRecordDataset : public Dataset<std::string> {
   TFRecordDataset(const TFRecordDataset&) = delete;
   TFRecordDataset& operator=(const TFRecordDataset&) = delete;
 
-  RCReference<Iterator<std::string>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   friend class TFRecordDatasetIterator;
@@ -62,10 +62,10 @@ class TFRecordDataset : public Dataset<std::string> {
   HostAllocator* allocator_;
 };
 
-class TFRecordDatasetIterator : public io::PrefetchingIterator<std::string> {
+class TFRecordDatasetIterator : public io::PrefetchingIterator {
  public:
   explicit TFRecordDatasetIterator(RCReference<TFRecordDataset> parent_dataset)
-      : io::PrefetchingIterator<std::string>(256, 64),
+      : io::PrefetchingIterator(256, 64),
         parent_dataset_(std::move(parent_dataset)),
         stream_(parent_dataset_->path_.c_str(), std::ios_base::binary) {}
 
@@ -77,7 +77,7 @@ class TFRecordDatasetIterator : public io::PrefetchingIterator<std::string> {
   // Reads the next record from the input file. Returns empty AsyncValueRef if
   // input file is exhausted. Returns error async value if failed to read
   // the next record.
-  IterationResultUntyped GetNextElement(const ExecutionContext& exec_ctx) final;
+  IterationResult GetNextElement(const ExecutionContext& exec_ctx) final;
 
  private:
   void Destroy() override {

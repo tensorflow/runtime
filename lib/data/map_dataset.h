@@ -41,9 +41,9 @@ class MapDatasetIterator;
 // dataset.
 template <typename... InputTypes, typename... OutputTypes>
 class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
-    : public Dataset<OutputTypes...> {
+    : public Dataset {
  public:
-  explicit MapDataset(RCReference<Dataset<InputTypes...>> input_dataset,
+  explicit MapDataset(RCReference<Dataset> input_dataset,
                       RCArray<AsyncValue> additional_fn_args,
                       RCReference<const Function> map_fn, HostContext* host)
       : input_dataset_(std::move(input_dataset)),
@@ -56,7 +56,7 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
   MapDataset(const MapDataset&) = delete;
   MapDataset& operator=(const MapDataset&) = delete;
 
-  RCReference<Iterator<OutputTypes...>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -69,7 +69,7 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
         this, allocator_);
   }
 
-  RCReference<Dataset<InputTypes...>> input_dataset_;
+  RCReference<Dataset> input_dataset_;
   HostContext* host_;
   HostAllocator* allocator_;
   RCArray<AsyncValue> additional_fn_args_;
@@ -143,19 +143,18 @@ static llvm::SmallVector<RCReference<AsyncValue>, 4> EnqueueFunction(
 
 template <typename... InputTypes, typename... OutputTypes>
 class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
-    : public Iterator<OutputTypes...> {
+    : public Iterator {
  public:
   explicit MapDatasetIterator(
       RCReference<
           MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
           parent_dataset)
-      : Iterator<OutputTypes...>(),
+      : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
-  IterationResultUntyped GetNextUntyped(
-      const ExecutionContext& exec_ctx) override {
-    auto input = input_iterator_->GetNextUntyped(exec_ctx);
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
+    auto input = input_iterator_->GetNext(exec_ctx);
     const Function* map_fn = parent_dataset_->map_fn_.get();
 
     auto values = std::move(input.values);
@@ -167,7 +166,7 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
     auto result =
         EnqueueFunction(map_fn, std::move(additional_fn_args),
                         RCArray<AsyncValue>(std::move(values)), exec_ctx);
-    return IterationResultUntyped::Pending(std::move(result), std::move(eof));
+    return IterationResult::Pending(std::move(result), std::move(eof));
   }
 
  private:
@@ -182,12 +181,12 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
 
   RCReference<MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
       parent_dataset_;
-  RCReference<Iterator<InputTypes...>> input_iterator_;
+  RCReference<Iterator> input_iterator_;
 };
 
 template <typename... InputTypes, typename... OutputTypes>
-RCReference<Iterator<OutputTypes...>> MapDataset<
-    std::tuple<InputTypes...>, std::tuple<OutputTypes...>>::MakeIterator() {
+RCReference<Iterator> MapDataset<std::tuple<InputTypes...>,
+                                 std::tuple<OutputTypes...>>::MakeIterator() {
   return TakeRef(
       host_->Construct<MapDatasetIterator<std::tuple<InputTypes...>,
                                           std::tuple<OutputTypes...>>>(

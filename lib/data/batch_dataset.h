@@ -43,22 +43,6 @@ namespace data {
 template <typename... T>
 class BatchDatasetIterator;
 
-// Return typename IterationResult<DenseHostTensor, ...> where DenseHostTensor
-// is repeated N times in the parameter pack.
-template <size_t N>
-using DHTIterationResult =
-    RepeatTypeHelperT<IterationResult, N, DenseHostTensor>;
-
-// Return typename Iterator<DenseHostTensor, ...> where DenseHostTensor is
-// repeated sizeof...(T) times in the parameter pack.
-template <size_t N>
-using DHTIterator = RepeatTypeHelperT<Iterator, N, DenseHostTensor>;
-
-// Return typename Dataset<DenseHostTensor, ...> where DenseHostTensor is
-// repeated sizeof...(T) times in the parameter pack.
-template <size_t N>
-using DHTDataset = RepeatTypeHelperT<Dataset, N, DenseHostTensor>;
-
 template <typename T>
 TensorMetadata GetMetadataFromValue(T& value) {
   return TensorMetadata(GetDType<T>(), {});
@@ -300,13 +284,12 @@ static SmallVector<AsyncValueRef<DenseHostTensor>, 4> AllocateOutputTensors(
 // tensor with +1 dimension. If the underlying dataset element type is a scalar,
 // GetNext() should return a 1-D tensor of the same scalar type.
 template <typename... T>
-class BatchDataset : public DHTDataset<sizeof...(T)> {
+class BatchDataset : public Dataset {
  public:
   // If `same_input_metadata` is true, all values from the `input_dataset`
   // must have the DType and TensorShape.
-  explicit BatchDataset(RCReference<Dataset<T...>> input_dataset,
-                        int32_t batch_size, bool same_input_metadata,
-                        HostContext* host)
+  explicit BatchDataset(RCReference<Dataset> input_dataset, int32_t batch_size,
+                        bool same_input_metadata, HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         batch_size_(batch_size),
         same_input_metadata_(same_input_metadata),
@@ -317,17 +300,17 @@ class BatchDataset : public DHTDataset<sizeof...(T)> {
   BatchDataset(const BatchDataset&) = delete;
   BatchDataset& operator=(const BatchDataset&) = delete;
 
-  RCReference<DHTIterator<sizeof...(T)>> MakeIterator() override;
+  RCReference<Iterator> MakeIterator() override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
   friend class BatchDatasetIterator<T...>;
 
   void Destroy() override {
-    internal::DestroyImpl<BatchDataset<T...>>(this, allocator_);
+    internal::DestroyImpl<BatchDataset>(this, allocator_);
   }
 
-  RCReference<Dataset<T...>> input_dataset_;
+  RCReference<Dataset> input_dataset_;
   const int32_t batch_size_;
   const bool same_input_metadata_;
   HostContext* host_;
@@ -335,10 +318,10 @@ class BatchDataset : public DHTDataset<sizeof...(T)> {
 };
 
 template <typename... T>
-class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
+class BatchDatasetIterator : public Iterator {
  public:
   explicit BatchDatasetIterator(RCReference<BatchDataset<T...>> parent_dataset)
-      : DHTIterator<sizeof...(T)>(),
+      : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()),
         is_initialized_(false) {}
@@ -347,8 +330,7 @@ class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
   BatchDatasetIterator(const BatchDatasetIterator&) = delete;
   BatchDatasetIterator& operator=(const BatchDatasetIterator&) = delete;
 
-  IterationResultUntyped GetNextUntyped(
-      const ExecutionContext& exec_ctx) override;
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override;
 
  private:
   void Destroy() override {
@@ -357,7 +339,7 @@ class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
   }
 
   RCReference<BatchDataset<T...>> parent_dataset_;
-  RCReference<Iterator<T...>> input_iterator_;
+  RCReference<Iterator> input_iterator_;
   // input_metadata_ contains TensorMetadata from each of the components of the
   // first element from input_iterator_. When same_input_metadata_ is true, we
   // can use input_metadata_ to allocate output tensors before inputs are
@@ -367,7 +349,7 @@ class BatchDatasetIterator : public DHTIterator<sizeof...(T)> {
 };
 
 template <typename... T>
-RCReference<DHTIterator<sizeof...(T)>> BatchDataset<T...>::MakeIterator() {
+RCReference<Iterator> BatchDataset<T...>::MakeIterator() {
   return TakeRef(host_->Construct<BatchDatasetIterator<T...>>(FormRef(this)));
 }
 
@@ -376,20 +358,20 @@ RCReference<DHTIterator<sizeof...(T)>> BatchDataset<T...>::MakeIterator() {
 // threadpool explicitly. This can prevent GetNext() from doing memory copy
 // synchronously regardless of whether the input values are available.
 template <typename... T>
-IterationResultUntyped BatchDatasetIterator<T...>::GetNextUntyped(
+IterationResult BatchDatasetIterator<T...>::GetNext(
     const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
   SmallVector<SmallVector<RCReference<AsyncValue>, 4>, 4> inputs;
   // Get up to batch_size values from the underlying iterator.
   for (int i = 0; i < parent_dataset_->batch_size_; ++i) {
-    auto input = input_iterator_->GetNextUntyped(exec_ctx);
+    auto input = input_iterator_->GetNext(exec_ctx);
     if (internal::IsConcreteAndEmpty(input)) {
       break;
     }
     inputs.push_back(std::move(input.values));
   }
   if (inputs.empty()) {
-    return IterationResultUntyped::Eof(host, sizeof...(T));
+    return IterationResult::Eof(host, sizeof...(T));
   }
 
   SmallVector<AsyncValueRef<TensorMetadata>, 4> metadata;
@@ -425,7 +407,7 @@ IterationResultUntyped BatchDatasetIterator<T...>::GetNextUntyped(
 
   CopyToBatch<T...>(std::move(inputs), std::move(metadata),
                     std::move(temp_batched_values), results);
-  return IterationResultUntyped::Values(std::move(results), host);
+  return IterationResult::Values(std::move(results), host);
 }
 
 }  // namespace data

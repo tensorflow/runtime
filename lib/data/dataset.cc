@@ -24,7 +24,7 @@ namespace tfrt {
 namespace data {
 namespace internal {
 
-bool IsConcreteAndEmpty(const IterationResultUntyped& result) {
+bool IsConcreteAndEmpty(const IterationResult& result) {
   return result.eof.IsConcrete() && result.eof.get();
 }
 

@@ -64,31 +64,31 @@ inline uint64_t DecodeFixed64(const char* ptr) {
 // Implementation for TFRecordDataset member functions
 //===----------------------------------------------------------------------===//
 
-RCReference<Iterator<std::string>> TFRecordDataset::MakeIterator() {
+RCReference<Iterator> TFRecordDataset::MakeIterator() {
   return TakeRef(host_->Construct<TFRecordDatasetIterator>(FormRef(this)));
 }
 
 //===----------------------------------------------------------------------===//
 // Implementation for TFRecordDatasetIterator member functions
 //===----------------------------------------------------------------------===//
-IterationResultUntyped TFRecordDatasetIterator::GetNextElement(
+IterationResult TFRecordDatasetIterator::GetNextElement(
     const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
   bool eof = false;
   auto result = ReadRecord(&eof);
 
   if (eof) {
-    return IterationResultUntyped::Eof(host, 1);
+    return IterationResult::Eof(host, 1);
   }
   if (!result) {
     auto error = EmitErrorAsync(exec_ctx, result.takeError());
-    return IterationResultUntyped::Error(std::move(error), 1);
+    return IterationResult::Error(std::move(error), 1);
   }
 
   llvm::SmallVector<RCReference<AsyncValue>, 4> values;
   values.push_back(
       host->MakeAvailableAsyncValueRef<std::string>(std::move(*result)));
-  return IterationResultUntyped::Values(std::move(values), host);
+  return IterationResult::Values(std::move(values), host);
 }
 
 // Logic based on tensorflow/core/io/record_reader.*

@@ -23,18 +23,21 @@
 #ifndef TFRT_TRACING_SIMPLE_TRACING_SINK_H_
 #define TFRT_TRACING_SIMPLE_TRACING_SINK_H_
 
-#ifndef NO_TFRT_TRACING
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
-namespace internal {
 namespace tracing {
 
-void SimpleRecordActivity(TracingActivity&);
-
+class SimpleTracingSink : public TracingSink {
+ public:
+  Error RequestTracing(bool enable) override;
+  void RecordTracingEvent(const char* category, string_view name) override;
+  void RecordTracingEvent(const char* category, std::string&& name) override;
+  void PushTracingScope(const char* category, string_view name) override;
+  void PushTracingScope(const char* category, std::string&& name) override;
+  void PopTracingScope() override;
+};
 }  // namespace tracing
-}  // namespace internal
 }  // namespace tfrt
 
-#endif  // NO_TFRT_TRACING
 #endif  // TFRT_TRACING_SIMPLE_TRACING_SINK_H_

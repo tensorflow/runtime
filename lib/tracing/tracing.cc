@@ -17,54 +17,61 @@
 // This file implements the tracing library.
 //
 //===----------------------------------------------------------------------===//
-
-// This ifdef guard allows the user to compile the tracing support out.
-#ifndef NO_TFRT_TRACING
 #include "tfrt/tracing/tracing.h"
 
+#include <cassert>
+#include <mutex>
+
+#include "llvm/Support/Error.h"
+
 namespace tfrt {
-namespace internal {
 namespace tracing {
+TracingSink::~TracingSink() = default;
 
-SteadyTimePoint CurrentSteadyClockTime() {
-  return std::chrono::steady_clock::now();
+void TracingSink::RecordTracingEvent(const char* category, const char* name) {
+  RecordTracingEvent(category, string_view(name));
 }
 
-TracingScope::TracingScope(tfrt::string_view title)
-    : tracing_activity_({std::string(title), CurrentSteadyClockTime(), {}}) {}
+void TracingSink::RecordTracingEvent(const char* category, std::string&& name) {
+  RecordTracingEvent(category, string_view(name));
+}
 
-TracingScope::~TracingScope() {
-  // Record the activity if it is not moved already.
-  if (tracing_activity_.start_time != SteadyTimePoint()) {
-    tracing_activity_.end_time = CurrentSteadyClockTime();
-    TracingApi::RecordActivity(tracing_activity_);
+void TracingSink::PushTracingScope(const char* category, const char* name) {
+  PushTracingScope(category, string_view(name));
+}
+
+void TracingSink::PushTracingScope(const char* category, std::string&& name) {
+  PushTracingScope(category, string_view(name));
+}
+
+TracingSink* internal::kTracingSink = nullptr;
+std::atomic<int> internal::kIsTracingEnabled(0);
+
+static std::mutex& GetTracingMutex() {
+  static auto mutex = new std::mutex;
+  return *mutex;
+}
+
+void RegisterTracingSink(TracingSink* tracing_sink) {
+  std::unique_lock<std::mutex> lock(GetTracingMutex());
+  assert(tracing_sink);
+  assert(internal::kIsTracingEnabled.load(std::memory_order_acquire) == 0);
+  internal::kTracingSink = tracing_sink;
+}
+
+void RequestTracing(bool enable) {
+  std::unique_lock<std::mutex> lock(GetTracingMutex());
+  if (internal::kTracingSink == nullptr) return;
+  auto value = internal::kIsTracingEnabled.load(std::memory_order_acquire);
+  if (enable) {
+    if (value++ > 0) return;
+  } else {
+    if (value == 0 || --value > 0) return;
   }
+  internal::kIsTracingEnabled.store(value, std::memory_order_release);
+  // Don't log error to avoid binary size bloat.
+  consumeError(internal::kTracingSink->RequestTracing(enable));
 }
-
-TracingScope::TracingScope(TracingScope&& t) noexcept
-    : tracing_activity_(std::move(t.tracing_activity_)) {
-  t.tracing_activity_.start_time =
-      SteadyTimePoint();  // Marks the tracing_activity as moved.
-}
-
-void TracingApi::TurnTracingOn() {
-  is_tracing_on_.store(record_activity_function_ != nullptr);
-}
-
-void TracingApi::TurnTracingOff() { is_tracing_on_.store(false); }
-
-void TracingApi::RegisterTracingSink(
-    const std::string& sink_name,
-    TracingSinkFunction record_activity_function) {
-  record_activity_function_ = record_activity_function;
-}
-
-std::atomic<bool> TracingApi::is_tracing_on_{false};
-
-TracingSinkFunction* TracingApi::record_activity_function_{nullptr};
 
 }  // namespace tracing
-}  // namespace internal
 }  // namespace tfrt
-
-#endif  // NO_TFRT_TRACING

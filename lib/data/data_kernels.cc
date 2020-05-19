@@ -459,6 +459,8 @@ void RegisterDataKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(MakeBatchDataset<int64_t>));
   registry->AddKernel("data.batch_dataset.tensor_and_i64",
                       TFRT_KERNEL(MakeBatchDataset<DenseHostTensor, int64_t>));
+  registry->AddKernel("data.batch_dataset.i64_and_i64",
+                      TFRT_KERNEL(MakeBatchDataset<int64_t, int64_t>));
 
   registry->AddKernel("data.repeat_dataset.i32",
                       TFRT_KERNEL(MakeRepeatDataset<int32_t>));

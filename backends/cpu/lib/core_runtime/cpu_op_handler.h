@@ -48,9 +48,9 @@ class CpuOpHandler : public OpHandler {
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
 
   // For CpuOpHandler, the argument `tensor` needs to be a HostTensor. This
-  // function returns a DenseHostTensor that contains a copy of the underlying
-  // buffer.
-  AsyncValueRef<DenseHostTensor> CopyDeviceTensorToHost(
+  // function returns a HostTensor (DenseHostTensor or StringHostTensor), which
+  // contains a copy of the underlying data.
+  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
       const Tensor& tensor) override;
 
   // This function returns a DenseHostTensor that contains a copy of the

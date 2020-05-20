@@ -110,7 +110,7 @@ CpuOpHandler::CpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
 
 CpuOpHandler::~CpuOpHandler() {}
 
-AsyncValueRef<DenseHostTensor> CpuOpHandler::CopyDeviceTensorToHost(
+AsyncValueRef<HostTensor> CpuOpHandler::CopyDeviceTensorToHost(
     const Tensor& tensor) {
   if (tensor.IsHostTensor()) {
     // If tensor is a host tensor, we call Tensor::ConvertToHostTensor
@@ -118,7 +118,8 @@ AsyncValueRef<DenseHostTensor> CpuOpHandler::CopyDeviceTensorToHost(
     // are logically independent.
     auto host = GetRuntime()->GetHostContext();
     uint32_t allowed_formats =
-        1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost);
+        1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost) |
+        1 << static_cast<uint32_t>(Tensor::Subclass::StringHost);
     auto host_tensor = tensor.ConvertToHostTensor(host, allowed_formats);
     return AsyncValueRef<DenseHostTensor>(host_tensor.ReleaseRCRef());
   }

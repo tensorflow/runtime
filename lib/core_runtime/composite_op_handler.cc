@@ -49,7 +49,7 @@ llvm::Expected<std::unique_ptr<CompositeOpHandler>> CompositeOpHandler::Create(
 CompositeOpHandler::CompositeOpHandler(CoreRuntime* runtime)
     : OpHandler("composite_op", runtime, nullptr) {}
 
-AsyncValueRef<DenseHostTensor> CompositeOpHandler::CopyDeviceTensorToHost(
+AsyncValueRef<HostTensor> CompositeOpHandler::CopyDeviceTensorToHost(
     const Tensor& tensor) {
   return GetFallback()->CopyDeviceTensorToHost(tensor);
 }

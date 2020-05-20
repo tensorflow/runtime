@@ -39,7 +39,7 @@ NullOpHandler::NullOpHandler(CoreRuntime* runtime)
 
 NullOpHandler::~NullOpHandler() {}
 
-AsyncValueRef<DenseHostTensor> NullOpHandler::CopyDeviceTensorToHost(
+AsyncValueRef<HostTensor> NullOpHandler::CopyDeviceTensorToHost(
     const Tensor& tensor) {
   assert(false && "NullOpHandler::CopyDeviceTensorToHost should not be called");
   abort();

@@ -61,7 +61,7 @@ class CompositeOpHandler : public OpHandler {
 
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
 
-  AsyncValueRef<DenseHostTensor> CopyDeviceTensorToHost(
+  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
       const Tensor& tensor) override;
 
   AsyncValueRef<Tensor> CopyHostTensorToDevice(

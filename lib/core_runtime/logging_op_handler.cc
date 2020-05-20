@@ -38,11 +38,39 @@
 #include "tfrt/support/thread_annotations.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/host_tensor.h"
+#include "tfrt/tensor/string_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
 
 namespace tfrt {
 
 namespace {
+
+void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
+                                   llvm::raw_ostream &os) {
+  auto element_size = dht.dtype().GetHostSize();
+  auto *data_ptr = static_cast<const char *>(dht.data());
+
+  // TODO(tf-runtime-team): Dump to BTF format once we have BTF reader/writer
+  // implemented in C++.
+  // This tensor dump can be loaded into numpy and reshaped.
+  // t = np.genfromtxt(tensor_filename, delimiter=",")
+  // t = t.reshape(original_shape)
+  for (ssize_t i = 0, e = dht.NumElements(); i != e; ++i) {
+    if (i != 0) os << ", ";
+    // TODO(tf-runtime-team): llvm::raw_stream only prints to 6 decimal
+    // places. Need to print full-precision.
+    dht.dtype().Print(data_ptr + i * element_size, os);
+  }
+}
+
+void FlattenTensorAndDumpToOStream(const StringHostTensor &sht,
+                                   llvm::raw_ostream &os) {
+  auto strings = sht.strings();
+  for (ssize_t i = 0, e = sht.NumElements(); i != e; ++i) {
+    if (i != 0) os << ", ";
+    os << strings[i];
+  }
+}
 
 // TODO(tf-runtime-team): Rename it.
 class LoggingOpHandler : public OpHandler {
@@ -92,7 +120,7 @@ class LoggingOpHandler : public OpHandler {
 
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
 
-  AsyncValueRef<DenseHostTensor> CopyDeviceTensorToHost(
+  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
       const Tensor &tensor) override {
     return GetFallback()->CopyDeviceTensorToHost(tensor);
   }
@@ -117,24 +145,24 @@ class LoggingOpHandler : public OpHandler {
     // Wait for all tensors to be ready.
     host->Await(async_tensors);
 
-    // Convert all tensors to DHT.
-    SmallVector<RCReference<AsyncValue>, 4> async_dhts;
+    // Convert all tensors to HostTensor.
+    SmallVector<RCReference<AsyncValue>, 4> async_hts;
     for (auto &async_tensor : async_tensors) {
       auto &tensor = async_tensor->get<Tensor>();
-      auto *dht = llvm::dyn_cast<DenseHostTensor>(&tensor);
-      if (dht != nullptr) {
-        async_dhts.emplace_back(async_tensor.CopyRef());
+      if (llvm::isa<DenseHostTensor>(&tensor) ||
+          llvm::isa<StringHostTensor>(&tensor)) {
+        async_hts.emplace_back(async_tensor.CopyRef());
       } else {
-        AsyncValueRef<DenseHostTensor> async_host_tensor =
+        AsyncValueRef<HostTensor> async_host_tensor =
             CopyDeviceTensorToHost(tensor);
-        async_dhts.emplace_back(async_host_tensor.ReleaseRCRef());
+        async_hts.emplace_back(async_host_tensor.ReleaseRCRef());
       }
     }
 
     // Wait for the conversion to complete.
-    host->Await(async_dhts);
+    host->Await(async_hts);
 
-    return async_dhts;
+    return async_hts;
   }
 
   void PrintAsyncHostTensors(
@@ -154,8 +182,7 @@ class LoggingOpHandler : public OpHandler {
       auto &tensor = async_host_tensor->get<HostTensor>();
       tensor.Print(os);
       if (ShouldDumpTensorToFile()) {
-        auto *dht = llvm::dyn_cast<DenseHostTensor>(&tensor);
-        PrintTensorToFile(*dht, id_number, op_name,
+        PrintTensorToFile(tensor, id_number, op_name,
                           is_input ? "input" : "output", index);
       }
       os << "\n";
@@ -171,25 +198,7 @@ class LoggingOpHandler : public OpHandler {
     *metadata_ostream_ << contents;
   }
 
-  void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
-                                     llvm::raw_ostream &os) {
-    auto element_size = dht.dtype().GetHostSize();
-    auto *data_ptr = static_cast<const char *>(dht.data());
-
-    // TODO(tf-runtime-team): Dump to BTF format once we have BTF reader/writer
-    // implemented in C++.
-    // This tensor dump can be loaded into numpy and reshaped.
-    // t = np.genfromtxt(tensor_filename, delimiter=",")
-    // t = t.reshape(original_shape)
-    for (ssize_t i = 0, e = dht.NumElements(); i != e; ++i) {
-      if (i != 0) os << ", ";
-      // TODO(tf-runtime-team): llvm::raw_stream only prints to 6 decimal
-      // places. Need to print full-precision.
-      dht.dtype().Print(data_ptr + i * element_size, os);
-    }
-  }
-
-  void PrintTensorToFile(const DenseHostTensor &dht, int log_counter,
+  void PrintTensorToFile(const HostTensor &tensor, int log_counter,
                          string_view op_name, string_view input_or_output,
                          int input_or_output_index) {
     std::string tensor_dump_filename =
@@ -204,7 +213,16 @@ class LoggingOpHandler : public OpHandler {
               error_code.message().c_str());
       abort();
     }
-    FlattenTensorAndDumpToOStream(dht, fostream);
+
+    if (auto *dht = llvm::dyn_cast<DenseHostTensor>(&tensor)) {
+      FlattenTensorAndDumpToOStream(*dht, fostream);
+    } else if (auto *sht = llvm::dyn_cast<StringHostTensor>(&tensor)) {
+      FlattenTensorAndDumpToOStream(*sht, fostream);
+    } else {
+      fprintf(stderr,
+              "Only support printing DenseHostTensor and StringHostTensor");
+      abort();
+    }
   }
 
   // Synchronously log the op results
@@ -254,7 +272,7 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
     {
       auto *host = GetRuntime()->GetHostContext();
 
-      // Collect all input tensors, convert them to DHT and await.
+      // Collect all input tensors, convert them to HostTensor's and await.
       SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
           CollectAsyncHostTensors(invocation.arguments, host);
 

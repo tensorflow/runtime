@@ -42,6 +42,7 @@
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
+#include "tfrt/core_runtime/opdefs/types.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -108,6 +109,10 @@ static BEFAttributeType ConvertMLIRTypeToBEFAttributeType(mlir::Type type) {
     return EncodeFloatTypeAttribute(float_type);
   }
 
+  if (auto string_type = type.dyn_cast<corert::StringType>()) {
+    return BEFAttributeType::kString;
+  }
+
   llvm_unreachable("unknown type attribute");
 }
 
@@ -141,11 +146,12 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
   // We support string attributes.
   if (attr.isa<mlir::StringAttr>()) return BEFAttributeType::kString;
 
-  // We support i1, i32, i64, f16, f32 and f64 type attributes.
+  // We support i1, i32, i64, f16, f32, f64 and string type attributes.
   if (auto type_attr = attr.dyn_cast<mlir::TypeAttr>()) {
     auto type = type_attr.getValue();
     if (type.isInteger(1) || type.isInteger(32) || type.isInteger(64) ||
-        type.isF16() || type.isF32() || type.isF64())
+        type.isF16() || type.isF32() || type.isF64() ||
+        type.isa<corert::StringType>())
       return BEFAttributeType::kType;
   }
 

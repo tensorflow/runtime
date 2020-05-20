@@ -176,6 +176,7 @@ enum class BEFDataType : uint8_t {
   kF16,
   kF32,
   kF64,
+  kString,
 };
 
 // This enum defines the attribute type.
@@ -193,17 +194,13 @@ enum class BEFAttributeType : uint16_t {
   kF16,
   kF32,
   kF64,
+  kString,
 
   // TODO(tf-runtime-team): kString should be also data types.
   kFirstDataType = kBool,
-  kLastDataType = kF64,
+  kLastDataType = kString,
 
   kType,
-
-  kFirstFixedType = kBool,
-  kLastFixedType = kType,
-
-  kString,
 
   kShape,
 
@@ -250,8 +247,8 @@ inline bool IsDataTypeAttribute(BEFAttributeType type) {
 }
 
 inline bool IsFixedAttribute(BEFAttributeType type) {
-  return type >= BEFAttributeType::kFirstFixedType &&
-         type <= BEFAttributeType::kLastFixedType;
+  return (type == BEFAttributeType::kType) ||
+         (type != BEFAttributeType::kString && IsDataTypeAttribute(type));
 }
 
 inline BEFAttributeType GetArrayAttributeType(BEFAttributeType element_type) {

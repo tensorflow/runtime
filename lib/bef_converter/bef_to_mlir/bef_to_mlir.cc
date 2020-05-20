@@ -43,6 +43,7 @@
 #include "mlir/Parser.h"
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
+#include "tfrt/core_runtime/opdefs/types.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/bef_reader.h"
 #include "tfrt/support/byte_order.h"
@@ -265,6 +266,8 @@ mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
       return builder->getF32Type();
     case BEFAttributeType::kF64:
       return builder->getF64Type();
+    case BEFAttributeType::kString:
+      return tfrt::corert::StringType::get(builder->getContext());
     default:
       llvm_unreachable("unknown type attribute.");
   }
@@ -1050,6 +1053,8 @@ mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
       return mlir::TypeAttr::get(mlir::FloatType::getF32(&context_));
     case BEFDataType::kF64:
       return mlir::TypeAttr::get(mlir::FloatType::getF64(&context_));
+    case BEFDataType::kString:
+      return mlir::TypeAttr::get(tfrt::corert::StringType::get(&context_));
     // TODO(chky): Add missing data type cases (eg. bool) here. Currently we
     // don't have bool type in standard MLIR. Consider defining custom MLIR
     // types for these in TFRT dialect and add the cases here.

@@ -131,3 +131,10 @@ func @shape_attr() {
   "simple.op"() {shape = #corert.shape<2x?x3>} : () -> ()
   hex.return
 }
+
+// CHECK-LABEL: @string_type_attr
+func @string_type_attr() {
+  // CHECK: !corert.string
+  "simple.op"() {type = !corert.string} : () -> ()
+  hex.return
+}

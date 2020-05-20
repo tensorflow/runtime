@@ -72,7 +72,7 @@ class SliceDatasetIterator : public Iterator {
         end_(std::move(end)) {}
 
   IterationResult GetNext(const ExecutionContext& exec_ctx) override {
-    auto* host = exec_ctx.host();
+    HostContext* host = exec_ctx.host();
     if (iterator_ == end_) {
       return IterationResult::Eof(host, 1);
     }
@@ -104,7 +104,7 @@ class SliceDatasetIterator : public Iterator {
 template <>
 inline IterationResult SliceDatasetIterator<DenseHostTensor>::GetNext(
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   if (iterator_ == end_) {
     return IterationResult::Eof(host, 1);
   }

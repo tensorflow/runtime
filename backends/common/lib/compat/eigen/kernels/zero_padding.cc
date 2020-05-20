@@ -34,8 +34,8 @@ static void ZeroPadding(ArgumentView<DHTIndexableView<T, 4>> input,
                         ArgumentView<MutableDHTIndexableView<T, 4>> output,
                         Argument<Chain> chain_in, Result<Chain> chain_out,
                         ArrayAttribute<ssize_t> padding,
-                        KernelErrorHandler handler, HostContext* host,
-                        KernelFrame* frame) {
+                        KernelErrorHandler handler,
+                        const ExecutionContext& exec_ctx, KernelFrame* frame) {
   // input_shape has format (batch_size, height, width, in_channel_num).
   const auto& input_shape = input->FixedShape();
   const auto& output_shape = output->FixedShape();
@@ -66,7 +66,7 @@ static void ZeroPadding(ArgumentView<DHTIndexableView<T, 4>> input,
   const Eigen::array<std::pair<Index, Index>, 4> paddings = {
       {0, 0}, pad_height, pad_width, {0, 0}};
 
-  AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
+  AsyncAssign(exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
               std::move(output_t), input_t.pad(paddings),
               [chain = chain_out.Allocate(),
                frame = RAIIKernelFrame(*frame)]() { chain.emplace(); });

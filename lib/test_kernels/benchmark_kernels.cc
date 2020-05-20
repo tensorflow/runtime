@@ -222,7 +222,8 @@ static void TestBenchmark(RemainingArguments args, Result<Chain> chain,
                           Attribute<int32_t> max_count, StringAttribute name,
                           Attribute<int32_t> num_warmup_runs,
                           Attribute<Function> fn_const,
-                          KernelErrorHandler handler, HostContext* host) {
+                          KernelErrorHandler handler,
+                          const ExecutionContext& exec_ctx) {
   const Function* fn = &(*fn_const);
 
   if (fn->result_types().size() != 1) {
@@ -234,7 +235,7 @@ static void TestBenchmark(RemainingArguments args, Result<Chain> chain,
 
   auto benchmark_runner = new BenchmarkRunner(
       name.str(), fn, args.values(), *num_warmup_runs, *max_count,
-      std::chrono::seconds(*duration_secs), host);
+      std::chrono::seconds(*duration_secs), exec_ctx.host());
 
   benchmark_runner->Start([benchmark_runner, chain = chain.Allocate()] {
     chain.emplace();

@@ -37,8 +37,8 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
                       StringAttribute padding,
                       ArrayAttribute<ssize_t> pool_size,
                       ArrayAttribute<ssize_t> strides,
-                      KernelErrorHandler handler, HostContext* host,
-                      KernelFrame* frame) {
+                      KernelErrorHandler handler,
+                      const ExecutionContext& exec_ctx, KernelFrame* frame) {
   // TODO(ezhulenev): Move shape computation into support library and share with
   // shape computations in convolution.
 
@@ -217,12 +217,11 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
   const size_t min_block_size =
       std::max(static_cast<size_t>(1), kMinPatchSize / image_patch_size);
 
-  ParallelFor(host).Execute(
-      num_outputs, ParallelFor::BlockSizes::Min(min_block_size),
-      std::move(compute),
-      [chain = chain_out.Allocate(), frame = RAIIKernelFrame(*frame)]() {
-        chain.emplace();
-      });
+  ParallelFor(exec_ctx.host())
+      .Execute(num_outputs, ParallelFor::BlockSizes::Min(min_block_size),
+               std::move(compute),
+               [chain = chain_out.Allocate(),
+                frame = RAIIKernelFrame(*frame)]() { chain.emplace(); });
 }
 
 }  // namespace compat

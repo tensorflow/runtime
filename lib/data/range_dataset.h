@@ -76,7 +76,7 @@ class RangeDatasetIterator : public Iterator {
   RangeDatasetIterator& operator=(const RangeDatasetIterator&) = delete;
 
   IterationResult GetNext(const ExecutionContext& exec_ctx) override {
-    auto* host = exec_ctx.host();
+    HostContext* host = exec_ctx.host();
     bool has_next = (dataset_->step_ > 0 && next_ < dataset_->stop_) ||
                     (dataset_->step_ < 0 && next_ > dataset_->stop_);
     if (!has_next) {

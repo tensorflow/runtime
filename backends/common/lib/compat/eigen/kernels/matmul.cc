@@ -39,7 +39,8 @@ void MatMul(Argument<T> alpha, ArgumentView<DHTIndexableView<T, 2>> a,
             ArgumentView<DHTIndexableView<T, 2>> b, Argument<T> beta,
             ArgumentView<MutableDHTIndexableView<T, 2>> c,
             Argument<Chain> chain_in, Result<Chain> chain_out,
-            KernelErrorHandler handler, HostContext* host, KernelFrame* frame) {
+            KernelErrorHandler handler, const ExecutionContext& exec_ctx,
+            KernelFrame* frame) {
   const auto& shape_a = a->FixedShape();
   const auto& shape_b = b->FixedShape();
   const auto& shape_c = c->FixedShape();
@@ -66,7 +67,7 @@ void MatMul(Argument<T> alpha, ArgumentView<DHTIndexableView<T, 2>> a,
   auto out = AsEigenTensor(c.get());
 
   const EigenHostContext& cpu =
-      host->GetOrCreateSharedContext<EigenHostContext>();
+      exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>();
 
   if (alpha.get() == 1.0 && beta.get() == 0.0) {
     auto expr = in0.contract(in1, contract_dim);

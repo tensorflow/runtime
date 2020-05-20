@@ -37,13 +37,13 @@ static void HexMergeChains(Argument<Chain> chain_in,
 }
 
 static void HexCall(RemainingArguments args, RemainingResults results,
-                    Attribute<Function> fn, HostContext* host) {
+                    Attribute<Function> fn, const ExecutionContext& exec_ctx) {
   assert(fn->argument_types().size() == args.size() &&
          "argument count mismatch");
   assert(fn->result_types().size() == results.size() &&
          "result count mismatch");
 
-  fn->Execute(args.values(), results.values(), host);
+  fn->Execute(args.values(), results.values(), exec_ctx.host());
 }
 
 // hex.if dispatches to a 'true' or 'false' function based on a condition.
@@ -61,7 +61,8 @@ static void HexCall(RemainingArguments args, RemainingResults results,
 // hex.if to make an invocation non-strict.
 static void HexIf(RemainingArguments args, RemainingResults results,
                   Attribute<Function> true_fn_const,
-                  Attribute<Function> false_fn_const, HostContext* host) {
+                  Attribute<Function> false_fn_const,
+                  const ExecutionContext& exec_ctx) {
   assert(args.size() > 0);
 
   const Function* true_fn = &(*true_fn_const);
@@ -75,6 +76,7 @@ static void HexIf(RemainingArguments args, RemainingResults results,
          true_fn->result_types() == false_fn->result_types() &&
          "true and false function types need to line up");
 
+  HostContext* host = exec_ctx.host();
   auto if_impl = [host](const Function* true_fn, const Function* false_fn,
                         ArrayRef<AsyncValue*> args,
                         MutableArrayRef<RCReference<AsyncValue>> results) {
@@ -211,7 +213,9 @@ static void HexRepeatI32Block(
 // This takes a single i32 iteration count, plus arguments that are passed to
 // the body_fn and eventually returned.
 static void HexRepeatI32(RemainingArguments args, RemainingResults results,
-                         Attribute<Function> body_fn_const, HostContext* host) {
+                         Attribute<Function> body_fn_const,
+                         const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
   assert(args.size() > 0 && args.size() - 1 == results.size());
 
   const Function* body_fn = &(*body_fn_const);

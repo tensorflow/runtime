@@ -40,42 +40,45 @@ void SleepForRandomDuration() {
 }
 
 static AsyncValueRef<int32_t> HexAsyncAddI32(int32_t arg0, int32_t arg1,
-                                             HostContext* host) {
+                                             const ExecutionContext& exec_ctx) {
   // Even though a single scalar add is trivial, we can do it on a background
   // thread if we'd like!
-  return host->EnqueueWork([arg0, arg1] { return arg0 + arg1; });
+  return exec_ctx.host()->EnqueueWork([arg0, arg1] { return arg0 + arg1; });
 }
 
-static AsyncValueRef<bool> HexAsyncConstantI1(Attribute<int8_t> arg,
-                                              HostContext* host) {
-  return host->EnqueueWork([arg = *arg] { return arg != 0; });
+static AsyncValueRef<bool> HexAsyncConstantI1(
+    Attribute<int8_t> arg, const ExecutionContext& exec_ctx) {
+  return exec_ctx.host()->EnqueueWork([arg = *arg] { return arg != 0; });
 }
 
-static AsyncValueRef<int32_t> HexAsyncConstantI32(Attribute<int32_t> arg,
-                                                  HostContext* host) {
-  return host->EnqueueWork([arg = *arg] { return arg; });
+static AsyncValueRef<int32_t> HexAsyncConstantI32(
+    Attribute<int32_t> arg, const ExecutionContext& exec_ctx) {
+  return exec_ctx.host()->EnqueueWork([arg = *arg] { return arg; });
 }
 
 // This implementation of TestAsyncCopy returns results directly.
 template <typename T>
-static AsyncValueRef<T> TestAsyncCopy(Argument<T> in, HostContext* host) {
-  return host->EnqueueWork([in_ref = in.ValueRef()] { return in_ref.get(); });
+static AsyncValueRef<T> TestAsyncCopy(Argument<T> in,
+                                      const ExecutionContext& exec_ctx) {
+  return exec_ctx.host()->EnqueueWork(
+      [in_ref = in.ValueRef()] { return in_ref.get(); });
 }
 
 // This implementation of TestAsyncCopy returns results via a 'Result'
 // parameter.
 static void TestAsyncCopy2(Argument<int32_t> in, Result<int32_t> out,
-                           HostContext* host) {
-  host->EnqueueWork([in_ref = in.ValueRef(), out_ref = out.Allocate()] {
-    out_ref.emplace(in_ref.get());
-  });
+                           const ExecutionContext& exec_ctx) {
+  exec_ctx.host()->EnqueueWork(
+      [in_ref = in.ValueRef(), out_ref = out.Allocate()] {
+        out_ref.emplace(in_ref.get());
+      });
 }
 
 // Returns a copy of an argument after a random delay.
 template <typename T>
-static AsyncValueRef<T> TestAsyncCopyWithDelay(Argument<T> in,
-                                               HostContext* host) {
-  return host->EnqueueWork([in_ref = in.ValueRef()] {
+static AsyncValueRef<T> TestAsyncCopyWithDelay(
+    Argument<T> in, const ExecutionContext& exec_ctx) {
+  return exec_ctx.host()->EnqueueWork([in_ref = in.ValueRef()] {
     SleepForRandomDuration();
     return in_ref.get();
   });

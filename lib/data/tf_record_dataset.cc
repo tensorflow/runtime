@@ -73,7 +73,7 @@ RCReference<Iterator> TFRecordDataset::MakeIterator() {
 //===----------------------------------------------------------------------===//
 IterationResult TFRecordDatasetIterator::GetNextElement(
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   bool eof = false;
   auto result = ReadRecord(&eof);
 

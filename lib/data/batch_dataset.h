@@ -360,7 +360,7 @@ RCReference<Iterator> BatchDataset<T...>::MakeIterator() {
 template <typename... T>
 IterationResult BatchDatasetIterator<T...>::GetNext(
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   SmallVector<SmallVector<RCReference<AsyncValue>, 4>, 4> inputs;
   // Get up to batch_size values from the underlying iterator.
   for (int i = 0; i < parent_dataset_->batch_size_; ++i) {

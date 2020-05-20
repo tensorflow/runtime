@@ -37,7 +37,7 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
                       StringAttribute padding,
                       ArrayAttribute<uint32_t> pool_size,
                       ArrayAttribute<uint32_t> strides,
-                      KernelErrorHandler handler, HostContext* host) {
+                      KernelErrorHandler handler) {
   // shape_input has format (batch_size, height, width, channel_num)
   const auto& shape_input = input->FixedShape();
   // shape_output has format (batch_size, height, width, channel_num)
@@ -124,7 +124,7 @@ static void GlobalAveragePool(
     ArgumentView<MutableDHTIndexableView<T, 4>> input,
     ArgumentView<MutableDHTIndexableView<T, 2>> output,
     Argument<Chain> chain_in, Result<Chain> chain_out,
-    KernelErrorHandler handler, HostContext* host) {
+    KernelErrorHandler handler) {
   // shape_input has format (batch_size, height, width, in_channel_num)
   const auto& shape_input = input->FixedShape();
   // shape_output has format (batch_size, in_channel_num)
@@ -161,7 +161,8 @@ template <typename T>
 static void Flatten(ArgumentView<MutableDHTArrayView<T>> input,
                     ArgumentView<MutableDHTArrayView<T>> output,
                     Argument<Chain> chain_in, Result<Chain> chain_out,
-                    KernelErrorHandler handler, HostContext* host) {
+                    KernelErrorHandler handler,
+                    const ExecutionContext& exec_ctx) {
   // shape_input has format (batch_size, height, width, in_channel_num)
   const auto& shape_input = input->Shape();
   // shape_output has format (batch_size, length)
@@ -184,7 +185,8 @@ static void ZeroPadding(ArgumentView<MutableDHTIndexableView<T, 4>> input,
                         ArgumentView<MutableDHTIndexableView<T, 4>> output,
                         Argument<Chain> chain_in, Result<Chain> chain_out,
                         ArrayAttribute<uint32_t> padding,
-                        KernelErrorHandler handler, HostContext* host) {
+                        KernelErrorHandler handler,
+                        const ExecutionContext& exec_ctx) {
   // shape_input has format (batch_size, height, width, in_channel_num)
   const auto& shape_input = input->FixedShape();
   const auto& shape_output = output->FixedShape();
@@ -228,7 +230,8 @@ static void ZeroPadding(ArgumentView<MutableDHTIndexableView<T, 4>> input,
 
 static void SoftMaxInPlace(ArgumentView<MutableDHTArrayView<float>> A,
                            Argument<Chain> in_chain, Result<Chain> out_chain,
-                           KernelErrorHandler handler, HostContext* host) {
+                           KernelErrorHandler handler,
+                           const ExecutionContext& exec_ctx) {
   float max_value = std::numeric_limits<float>::min();
   for (const auto value : A->Elements()) {
     max_value = std::max(max_value, value);
@@ -278,7 +281,8 @@ template <typename T>
 static void TensorTranspose(ArgumentView<MutableDHTIndexableView<T, 2>> input,
                             ArgumentView<MutableDHTIndexableView<T, 2>> output,
                             Argument<Chain> in_chain, Result<Chain> out_chain,
-                            KernelErrorHandler handler, HostContext* host) {
+                            KernelErrorHandler handler,
+                            const ExecutionContext& exec_ctx) {
   const auto& shape_output = output->FixedShape();
   const auto& shape_input = input->FixedShape();
 
@@ -300,7 +304,8 @@ static void TensorTranspose(ArgumentView<MutableDHTIndexableView<T, 2>> input,
 static void MeanAxisZero(ArgumentView<MutableDHTIndexableView<float, 2>> input,
                          ArgumentView<MutableDHTIndexableView<float, 1>> output,
                          Argument<Chain> chain_in, Result<Chain> chain_out,
-                         KernelErrorHandler handler, HostContext* host) {
+                         KernelErrorHandler handler,
+                         const ExecutionContext& exec_ctx) {
   const auto& shape_input = input->FixedShape();
   const auto& shape_output = output->FixedShape();
 
@@ -324,7 +329,8 @@ static void MeanAxisZero(ArgumentView<MutableDHTIndexableView<float, 2>> input,
 static void Broadcast2D(ArgumentView<MutableDHTIndexableView<float, 2>> input,
                         ArgumentView<MutableDHTIndexableView<float, 4>> output,
                         Argument<Chain> chain_in, Result<Chain> chain_out,
-                        KernelErrorHandler handler, HostContext* host) {
+                        KernelErrorHandler handler,
+                        const ExecutionContext& exec_ctx) {
   const auto& shape_input = input->FixedShape();
   const auto& shape_output = output->FixedShape();
 

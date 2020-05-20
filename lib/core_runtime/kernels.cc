@@ -43,21 +43,20 @@ namespace tfrt {
 // Convert a HostTensor (or subclass) into a TensorHandle for use by
 // Core Runtime.
 static void HTToTensorHandle(Argument<HostTensor> arg,
-                             Result<TensorHandle> tensorhandle_output,
-                             HostContext *host) {
+                             Result<TensorHandle> tensorhandle_output) {
   // Since we know the Tensor is present, we can access its metadata.
   tensorhandle_output.Emplace(arg->metadata(), arg.ValueRef());
 }
 
 static void TensorHandleToHT(Argument<TensorHandle> arg,
-                             Result<HostTensor> ht_output, HostContext *host) {
+                             Result<HostTensor> ht_output) {
   ht_output.Set(FormRef(arg->GetAsyncTensor()));
 }
 
 // Get TensorShape of a TensorHandle for use by Core Runtime.
 static void TensorHandleToShape(Argument<TensorHandle> arg,
                                 Result<TensorShape> tensorshape_result,
-                                HostContext *host) {
+                                const ExecutionContext &exec_ctx) {
   if (arg->IsMetadataAvailable()) {
     auto shape = arg->GetAvailableMetadata().shape;
     tensorshape_result.Emplace(std::move(shape));
@@ -68,7 +67,8 @@ static void TensorHandleToShape(Argument<TensorHandle> arg,
 
   auto value = tensorshape_result.AllocateIndirect();
   metadata.AndThen([value_ref = std::move(value),
-                    metadata_ref = metadata.CopyRef(), host]() mutable {
+                    metadata_ref = metadata.CopyRef(),
+                    host = exec_ctx.host()]() mutable {
     if (metadata_ref.IsError()) {
       value_ref->ForwardTo(metadata_ref.ReleaseRCRef());
       return;
@@ -141,13 +141,12 @@ static Chain OpAttrsSetString(Argument<OpAttrs> attrs, StringAttribute key,
   return Chain();
 }
 
-static llvm::Expected<TensorHandle> ConstStringTensor(ArrayAttr shape,
-                                                      AggregateAttr value,
-                                                      HostContext *host) {
+static llvm::Expected<TensorHandle> ConstStringTensor(
+    ArrayAttr shape, AggregateAttr value, const ExecutionContext &exec_ctx) {
   TensorMetadata metadata(DType(DType::String), shape.GetValue<int64_t>());
 
   auto tensor_ref =
-      StringHostTensor::MakeConstructedAsyncValueRef(metadata, host);
+      StringHostTensor::MakeConstructedAsyncValueRef(metadata, exec_ctx.host());
   if (!tensor_ref)
     return MakeStringError("failed to allocate string host tensor");
 
@@ -267,8 +266,8 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
 static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
                       RemainingResults results, AggregateAttr op_attr_array,
                       StringAttr op_name, KernelErrorHandler handler,
-                      KernelFrame *frame) {
-  auto *host = frame->GetHostContext();
+                      const ExecutionContext &exec_ctx) {
+  auto *host = exec_ctx.host();
   auto *core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return handler.ReportError("no CoreRuntime available");
 
@@ -277,7 +276,7 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
 
   ExecuteOpImpl(core_rt, op_handler.get(), args.values(),
                 /*op_chain =*/nullptr, results.values(), op_attr_array,
-                op_name.GetValue(), frame->GetLocation());
+                op_name.GetValue(), exec_ctx.location());
 }
 
 // ExecuteOpSeq executes the `op_name` operation on the `op_handler`. It takes
@@ -288,8 +287,9 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
                          Argument<Chain> in_op_chain, RemainingArguments args,
                          Result<Chain> out_op_chain, RemainingResults results,
                          AggregateAttr op_attr_array, StringAttr op_name,
-                         KernelErrorHandler handler, KernelFrame *frame) {
-  auto *host = frame->GetHostContext();
+                         KernelErrorHandler handler,
+                         const ExecutionContext &exec_ctx) {
+  auto *host = exec_ctx.host();
   auto *core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return handler.ReportError("no CoreRuntime available");
 
@@ -307,7 +307,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
     auto op_chain = in_op_chain.ValueRef();
     ExecuteOpImpl(core_rt, op_handler.get(), args.values(), &op_chain,
                   results.values(), op_attr_array, op_name.GetValue(),
-                  frame->GetLocation());
+                  exec_ctx.location());
     out_op_chain.Set(std::move(op_chain));
     return;
   }
@@ -331,7 +331,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
        op_chain = in_op_chain.ValueRef(), arg_refs = std::move(arg_refs),
        result_refs = std::move(result_refs),
        out_op_chain = out_op_chain.Allocate(), op_name = op_name.GetValue(),
-       op_attr_array, loc = frame->GetLocation()]() mutable {
+       op_attr_array, loc = exec_ctx.location()]() mutable {
         auto propgate_error = [&](const DecodedDiagnostic &diag) {
           out_op_chain.SetError(diag);
           for (auto &result_ref : result_refs) result_ref->SetError(diag);
@@ -363,9 +363,9 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
       });
 }
 
-static tfrt::Expected<OpHandler *> GetOpHandler(StringAttribute op_handler_name,
-                                                HostContext *host) {
-  auto *runtime = CoreRuntime::GetFromHostContext(host);
+static tfrt::Expected<OpHandler *> GetOpHandler(
+    StringAttribute op_handler_name, const ExecutionContext &exec_ctx) {
+  auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
   if (auto *op_handler = runtime->GetOpHandler(op_handler_name.get())) {

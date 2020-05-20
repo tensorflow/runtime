@@ -110,7 +110,7 @@ class MemoryDatasetIterator : public Iterator {
 
   // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
   IterationResult GetNext(const ExecutionContext& exec_ctx) override {
-    auto* host = exec_ctx.host();
+    HostContext* host = exec_ctx.host();
     if (!buffer_completed_) {
       auto input = input_iterator_->GetNext(exec_ctx);
       if (internal::IsConcreteAndEmpty(input) && buffer_.empty()) {

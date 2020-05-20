@@ -843,8 +843,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
-  // If this kernel requires the location for some reason, pass it as an
-  // argument.
+  // If this kernel requires ExecutionContext, pass it as an argument.
   template <typename... Tail>
   struct SyncKernelCallHelper<const ExecutionContext&, Tail...> {
     template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
@@ -868,22 +867,13 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
-  // If this kernel requires the host context for some reason, pass it as an
-  // argument.
-  template <typename... Tail>
-  struct SyncKernelCallHelper<HostContext*, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
-              bool has_in_chain, typename... PreviousArgs>
-    static void Invoke(KernelFrame* frame, const PreviousArgs&... pargs) {
-      SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx, has_kernel_error, has_in_chain>(
-          frame, pargs..., frame->GetHostContext());
-    }
-  };
-
   // Treat other pointer as an Argument.
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<Head*, Tail...> {
+    static_assert(!std::is_same<Head, HostContext>::value,
+                  "HostContext* is not allowed as a kernel argument. Use const "
+                  "ExecutionContext& instead.");
+
     template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
               bool has_in_chain, typename... PreviousArgs>
     static void Invoke(KernelFrame* frame, const PreviousArgs&... pargs) {

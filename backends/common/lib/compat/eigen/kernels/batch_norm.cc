@@ -40,7 +40,7 @@ static void BatchNorm(ArgumentView<MutableDHTIndexableView<T, 4>> input,
                       ArgumentView<MutableDHTArrayView<T>> moving_variance,
                       Argument<Chain> chain_in, Result<Chain> chain_out,
                       Attribute<float> epsilon, KernelErrorHandler handler,
-                      HostContext* host, KernelFrame* frame) {
+                      const ExecutionContext& exec_ctx, KernelFrame* frame) {
   // shape_input has format (batch_size, height, width, channel_num).
   const auto& shape_input = input->FixedShape();
 
@@ -85,7 +85,7 @@ static void BatchNorm(ArgumentView<MutableDHTIndexableView<T, 4>> input,
 
   auto out = input_t.reshape(rest_by_depth);
 
-  AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
+  AsyncAssign(exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
               std::move(out), std::move(expr),
               [chain = chain_out.Allocate(),
                frame = RAIIKernelFrame(*frame)]() { chain.emplace(); });

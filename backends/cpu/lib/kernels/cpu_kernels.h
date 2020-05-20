@@ -43,7 +43,10 @@ namespace cpu {
 // TODO(fishx): Let this kernel support fp16.
 template <typename T>
 AsyncValueRef<HostTensor> Add(const HostTensor& lhs_ref,
-                              const HostTensor& rhs_ref, HostContext* host) {
+                              const HostTensor& rhs_ref,
+                              const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+
   auto* lhs = &lhs_ref;
   auto* rhs = &rhs_ref;
 

@@ -64,7 +64,7 @@ static AsyncValueRef<DenseHostTensor> DecodeJpeg(
 static llvm::Expected<DenseHostTensor> ResizeBilinear(
     const DenseHostTensor& input, int64_t height, int64_t width,
     const ExecutionContext& exec_ctx) {
-  auto host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   const TensorShape& shape = input.shape();
   if (shape.GetRank() != 3) {
     return MakeStringError("input tensor shape must be 3");

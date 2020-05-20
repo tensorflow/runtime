@@ -43,14 +43,14 @@ namespace data {
 
 // Create a dataset with the values specified in the args.
 template <typename T>
-RCReference<SliceDataset<T>> MakeDatasetFromValues(Chain chain,
-                                                   RemainingArguments args,
-                                                   HostContext* host) {
+RCReference<SliceDataset<T>> MakeDatasetFromValues(
+    Chain chain, RemainingArguments args, const ExecutionContext& exec_ctx) {
   std::vector<T> vector;
   for (int i = 0, e = args.size(); i < e; i++) {
     vector.push_back(args[i]->get<T>());
   }
-  return TakeRef(host->Construct<SliceDataset<T>>(std::move(vector), host));
+  return TakeRef(exec_ctx.host()->Construct<SliceDataset<T>>(std::move(vector),
+                                                             exec_ctx.host()));
 }
 
 // Add template specialization for DenseHostTensor because DenseHostTensor does
@@ -63,13 +63,13 @@ RCReference<SliceDataset<T>> MakeDatasetFromValues(Chain chain,
 // can pass values as attribute when we support e.g. TensorAttribute in TFRT.
 template <>
 RCReference<SliceDataset<DenseHostTensor>> MakeDatasetFromValues(
-    Chain chain, RemainingArguments args, HostContext* host) {
+    Chain chain, RemainingArguments args, const ExecutionContext& exec_ctx) {
   std::vector<DenseHostTensor> vector;
   for (int i = 0, e = args.size(); i < e; i++) {
     vector.push_back(args[i]->get<DenseHostTensor>().CopyRef());
   }
-  return TakeRef(
-      host->Construct<SliceDataset<DenseHostTensor>>(std::move(vector), host));
+  return TakeRef(exec_ctx.host()->Construct<SliceDataset<DenseHostTensor>>(
+      std::move(vector), exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -78,10 +78,11 @@ RCReference<SliceDataset<DenseHostTensor>> MakeDatasetFromValues(
 
 // Create a dataset that yields the specified range.
 template <typename T>
-RCReference<RangeDataset<T>> MakeRangeDataset(T start, T stop, T step,
-                                              HostContext* host) {
+RCReference<RangeDataset<T>> MakeRangeDataset(
+    T start, T stop, T step, const ExecutionContext& exec_ctx) {
   assert(step != 0 && "step size cannot be 0");
-  return TakeRef(host->Construct<RangeDataset<T>>(start, stop, step, host));
+  return TakeRef(exec_ctx.host()->Construct<RangeDataset<T>>(start, stop, step,
+                                                             exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -92,15 +93,16 @@ RCReference<RangeDataset<T>> MakeRangeDataset(T start, T stop, T step,
 template <typename T, typename... U>
 RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
     RCReference<Dataset>* dataset, RemainingArguments args,
-    Attribute<Function> fn, HostContext* host) {
+    Attribute<Function> fn, const ExecutionContext& exec_ctx) {
   assert((args.size() + 1 == fn->argument_types().size()) &&
          "The function inputs do not match the dataset input types.");
   assert(fn->result_types().size() == sizeof...(U) &&
          "The function outputs do not match the dataset output types.");
 
-  return TakeRef(host->Construct<MapDataset<std::tuple<T>, std::tuple<U...>>>(
-      dataset->CopyRef(), RCArray<AsyncValue>(args.values()),
-      FormRef(&fn.get()), host));
+  return TakeRef(
+      exec_ctx.host()->Construct<MapDataset<std::tuple<T>, std::tuple<U...>>>(
+          dataset->CopyRef(), RCArray<AsyncValue>(args.values()),
+          FormRef(&fn.get()), exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -109,7 +111,9 @@ RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
 
 template <typename... T>
 RCReference<FilterDataset<T...>> MakeFilterDataset(
-    RCReference<Dataset>* dataset, Attribute<Function> fn, HostContext* host) {
+    RCReference<Dataset>* dataset, Attribute<Function> fn,
+    const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
   return TakeRef(host->Construct<FilterDataset<T...>>(
       (*dataset).CopyRef(), FormRef(&fn.get()), host));
 }
@@ -123,7 +127,7 @@ template <typename T, typename... U>
 RCReference<InterleaveDataset<std::tuple<T>, std::tuple<U...>>>
 MakeInterleaveDataset(RCReference<Dataset>* dataset, int64_t cycle_length,
                       int64_t block_length, Attribute<Function> fn,
-                      HostContext* host) {
+                      const ExecutionContext& exec_ctx) {
   assert(fn->argument_types().size() == 1 &&
          "Interleave only supports functions with unary inputs.");
   assert(
@@ -131,18 +135,20 @@ MakeInterleaveDataset(RCReference<Dataset>* dataset, int64_t cycle_length,
       "Interleave expects only one function output, which must be a dataset.");
 
   return TakeRef(
-      host->Construct<InterleaveDataset<std::tuple<T>, std::tuple<U...>>>(
-          dataset->CopyRef(), cycle_length, block_length, FormRef(&fn.get()),
-          host));
+      exec_ctx.host()
+          ->Construct<InterleaveDataset<std::tuple<T>, std::tuple<U...>>>(
+              dataset->CopyRef(), cycle_length, block_length,
+              FormRef(&fn.get()), exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
 // TFRecordDataset
 //===----------------------------------------------------------------------===//
 
-RCReference<TFRecordDataset> MakeTFRecordDataset(std::string path,
-                                                 HostContext* host) {
-  return TakeRef(host->Construct<TFRecordDataset>(std::move(path), host));
+RCReference<TFRecordDataset> MakeTFRecordDataset(
+    std::string path, const ExecutionContext& exec_ctx) {
+  return TakeRef(exec_ctx.host()->Construct<TFRecordDataset>(std::move(path),
+                                                             exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -152,7 +158,8 @@ RCReference<TFRecordDataset> MakeTFRecordDataset(std::string path,
 template <typename... T>
 RCReference<RepeatDataset<T...>> MakeRepeatDataset(
     RCReference<Dataset>* dataset, Attribute<int32_t> count,
-    HostContext* host) {
+    const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
   return TakeRef(host->Construct<RepeatDataset<T...>>(dataset->CopyRef(),
                                                       count.get(), host));
 }
@@ -163,7 +170,8 @@ RCReference<RepeatDataset<T...>> MakeRepeatDataset(
 
 template <typename... T>
 RCReference<MemoryDataset<T...>> MakeMemoryDataset(
-    RCReference<Dataset>* dataset, HostContext* host) {
+    RCReference<Dataset>* dataset, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
   return TakeRef(
       host->Construct<MemoryDataset<T...>>(dataset->CopyRef(), host));
 }
@@ -175,7 +183,8 @@ RCReference<MemoryDataset<T...>> MakeMemoryDataset(
 template <typename... T>
 RCReference<BatchDataset<T...>> MakeBatchDataset(
     RCReference<Dataset>* dataset, Attribute<int32_t> batch_size,
-    Attribute<bool> same_input_metadata, HostContext* host) {
+    Attribute<bool> same_input_metadata, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
   return TakeRef(host->Construct<BatchDataset<T...>>(
       dataset->CopyRef(), batch_size.get(), same_input_metadata.get(), host));
 }
@@ -186,7 +195,8 @@ RCReference<BatchDataset<T...>> MakeBatchDataset(
 
 template <typename... T>
 RCReference<PrefetchDataset<T...>> MakePrefetchDataset(
-    RCReference<Dataset>* dataset, HostContext* host) {
+    RCReference<Dataset>* dataset, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
   return TakeRef(host->Construct<PrefetchDataset<T...>>(
       dataset->CopyRef(), host->GetNumWorkerThreads(), host));
 }

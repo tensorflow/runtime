@@ -43,20 +43,23 @@ static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
 }
 
 // This kernel produces an error asynchronously.
-static void TestReportErrorAsync(Result<int32_t> out, HostContext* host,
+static void TestReportErrorAsync(Result<int32_t> out,
+                                 const ExecutionContext& exec_ctx,
                                  KernelFrame* frame) {
-  host->EnqueueWork([out_ref = out.Allocate(), frame_copy = *frame]() mutable {
-    frame_copy.ReportError("something bad happened asynchronously");
-  });
+  exec_ctx.host()->EnqueueWork(
+      [out_ref = out.Allocate(), frame_copy = *frame]() mutable {
+        frame_copy.ReportError("something bad happened asynchronously");
+      });
 }
 
 // This kernel cancels execution.
 static void HexTestCancel(Argument<Chain> chain_in, Result<int> int_out,
-                          Result<Chain> chain_out, HostContext* host_context) {
+                          Result<Chain> chain_out,
+                          const ExecutionContext& exec_ctx) {
   // Calling HostContext::CancelExecution() for testing the cancel behavior.
   // Do NOT do this in a normal kernel. HostContext::CancelExecution() should be
   // called by a client external to the BEFExecutor.
-  host_context->CancelExecution("Canceled by test.cancel");
+  exec_ctx.host()->CancelExecution("Canceled by test.cancel");
   int_out.Emplace(0);
   chain_out.Set(chain_in);
 }
@@ -146,9 +149,10 @@ struct TestFinalClass final {
 };
 }  // namespace
 
-static std::string HexTestAsyncValueGet(HostContext* host) {
+static std::string HexTestAsyncValueGet(const ExecutionContext& exec_ctx) {
   std::string return_value;
   llvm::raw_string_ostream sstr(return_value);
+  HostContext* host = exec_ctx.host();
 
   auto child1_av_ref = host->MakeAvailableAsyncValueRef<TestChild1>();
   AsyncValue* child1_av = child1_av_ref.GetAsyncValue();
@@ -185,10 +189,12 @@ static std::string AsyncValueRefToString(const AsyncValueRef<int>& ref) {
   return sstr.str();
 }
 
-static std::string HexTestAsyncValueRef(HostContext* host) {
+static std::string HexTestAsyncValueRef(const ExecutionContext& exec_ctx) {
   //////////////////////////////////////////////////////////////////////
   // Sync usage.
-  //
+
+  HostContext* host = exec_ctx.host();
+
   // Construct an available int with value 2.
   AsyncValueRef<int> two = host->MakeAvailableAsyncValueRef<int>(2);
 
@@ -271,15 +277,17 @@ std::atomic<int> SampleSharedContext::instance_count_{0};
 static void TestUseSampleSharedContext(Argument<Chain> chain,
                                        Result<std::string> name,
                                        Result<Chain> out_chain,
-                                       HostContext* host) {
-  auto& shared_ctx = host->GetOrCreateSharedContext<SampleSharedContext>();
+                                       const ExecutionContext& exec_ctx) {
+  auto& shared_ctx =
+      exec_ctx.host()->GetOrCreateSharedContext<SampleSharedContext>();
   name.Emplace(shared_ctx.name());
   out_chain.Set(chain);
 }
 
 static DenseHostTensor TestConstDenseAttr(DenseAttr dense_attr,
-                                          HostContext* host) {
-  auto result = DeserializeDenseHostTensorFromDenseAttr(dense_attr, host);
+                                          const ExecutionContext& exec_ctx) {
+  auto result =
+      DeserializeDenseHostTensorFromDenseAttr(dense_attr, exec_ctx.host());
   assert(result);
 
   return std::move(*result);

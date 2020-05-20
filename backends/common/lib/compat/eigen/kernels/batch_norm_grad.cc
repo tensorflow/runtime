@@ -50,7 +50,8 @@ static void BatchNormGrad(
     // Attributes ----------------------------------------------------------- //
     Attribute<float> epsilon,
     // Execution context ---------------------------------------------------- //
-    KernelErrorHandler handler, HostContext* host, KernelFrame* frame) {
+    KernelErrorHandler handler, const ExecutionContext& exec_ctx,
+    KernelFrame* frame) {
   // clang-format on
 
   // Note: the following formulas are used to compute the gradients for
@@ -107,7 +108,7 @@ static void BatchNormGrad(
   // Broadcast 1d vectors to the input/output shape.
   Eigen::DSizes<int, 2> bcast_spec(rest_size, 1);
 
-  auto& ctx = host->GetOrCreateSharedContext<EigenHostContext>();
+  auto& ctx = exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>();
 
   // Reshape input/output arguments into [rest_size, depth] tensors.
   const FixedRankShape<2> rest_by_depth_s = AsShape(rest_by_depth);

@@ -45,7 +45,7 @@ DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
   auto decoded_loc = exec_ctx.location().Decode();
   auto diag = DecodedDiagnostic(decoded_loc, message);
 
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   host->EmitError(diag);
 
   return diag;

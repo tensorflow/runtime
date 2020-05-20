@@ -79,8 +79,10 @@ inline void Conv2DImpl(const DHTIndexableView<T, 4>& input,
                        Result<Chain> chain_out, StringAttribute padding,
                        ArrayAttribute<ssize_t> strides,
                        OutputKernelBuilder output_kernel_builder,
-                       KernelErrorHandler handler, HostContext* host,
-                       KernelFrame* frame) {
+                       KernelErrorHandler handler,
+                       const ExecutionContext& exec_ctx, KernelFrame* frame) {
+  HostContext* host = exec_ctx.host();
+
   // Validate convolution parameters.
   auto params = ComputeConv2DParams(input.FixedShape(), kernel.FixedShape(),
                                     padding.get(), {strides[0], strides[1]});
@@ -147,7 +149,7 @@ static void Conv2D(ArgumentView<DHTIndexableView<T, 4>> input,
                    ArgumentView<MutableDHTIndexableView<T, 4>> output,
                    Argument<Chain> chain_in, Result<Chain> chain_out,
                    StringAttribute padding, ArrayAttribute<ssize_t> strides,
-                   KernelErrorHandler handler, HostContext* host,
+                   KernelErrorHandler handler, const ExecutionContext& exec_ctx,
                    KernelFrame* frame) {
   using OutputKernel = llvm::Expected<Eigen::NoOpOutputKernel>;
 
@@ -156,7 +158,7 @@ static void Conv2D(ArgumentView<DHTIndexableView<T, 4>> input,
   };
 
   Conv2DImpl<T>(input.get(), kernel.get(), output.get(), chain_out, padding,
-                strides, std::move(output_kernel), handler, host, frame);
+                strides, std::move(output_kernel), handler, exec_ctx, frame);
 }
 
 template <typename T, typename Activation = Identity>
@@ -170,8 +172,8 @@ void Conv2DBatchNorm(ArgumentView<DHTIndexableView<T, 4>> input,
                      Argument<Chain> chain_in, Result<Chain> chain_out,
                      Attribute<float> epsilon, StringAttribute padding,
                      ArrayAttribute<ssize_t> strides,
-                     KernelErrorHandler handler, HostContext* host,
-                     KernelFrame* frame) {
+                     KernelErrorHandler handler,
+                     const ExecutionContext& exec_ctx, KernelFrame* frame) {
   using OutputKernel = llvm::Expected<BatchNormOutputKernel<T, Activation>>;
 
   auto output_kernel = [&](Conv2DParams params) -> OutputKernel {
@@ -190,7 +192,7 @@ void Conv2DBatchNorm(ArgumentView<DHTIndexableView<T, 4>> input,
   };
 
   Conv2DImpl<T>(input.get(), kernel.get(), output.get(), chain_out, padding,
-                strides, std::move(output_kernel), handler, host, frame);
+                strides, std::move(output_kernel), handler, exec_ctx, frame);
 }
 
 template <typename T, typename Activation = Identity>
@@ -200,7 +202,7 @@ void Conv2DBias(ArgumentView<DHTIndexableView<T, 4>> input,
                 ArgumentView<MutableDHTIndexableView<T, 4>> output,
                 Argument<Chain> chain_in, Result<Chain> chain_out,
                 StringAttribute padding, ArrayAttribute<ssize_t> strides,
-                KernelErrorHandler handler, HostContext* host,
+                KernelErrorHandler handler, const ExecutionContext& exec_ctx,
                 KernelFrame* frame) {
   using OutputKernel = llvm::Expected<BiasAddOutputKernel<T, Activation>>;
 
@@ -212,7 +214,7 @@ void Conv2DBias(ArgumentView<DHTIndexableView<T, 4>> input,
   };
 
   Conv2DImpl<T>(input.get(), kernel.get(), output.get(), chain_out, padding,
-                strides, std::move(output_kernel), handler, host, frame);
+                strides, std::move(output_kernel), handler, exec_ctx, frame);
 }
 
 }  // namespace internal

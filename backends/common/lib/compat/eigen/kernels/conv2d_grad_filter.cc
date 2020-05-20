@@ -78,7 +78,8 @@ static void Conv2DGradFilter(ArgumentView<DHTIndexableView<T, 4>> output_grad,
                              Argument<Chain> chain_in, Result<Chain> chain_out,
                              StringAttribute padding,
                              ArrayAttribute<ssize_t> strides,
-                             KernelErrorHandler handler, HostContext* host,
+                             KernelErrorHandler handler,
+                             const ExecutionContext& exec_ctx,
                              KernelFrame* frame) {
   const FixedRankShape<4> input_shape = input->FixedShape();
   const FixedRankShape<4> kernel_shape = kernel_grad->FixedShape();
@@ -134,7 +135,7 @@ static void Conv2DGradFilter(ArgumentView<DHTIndexableView<T, 4>> output_grad,
   auto on_done = [chain = chain_out.Allocate(),
                   frame = RAIIKernelFrame(*frame)]() { chain.emplace(); };
 
-  AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
+  AsyncAssign(exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
               std::move(filter_grad_t), std::move(convolution_shuffled),
               std::move(on_done));
 }

@@ -162,18 +162,19 @@ static void TestShareToTwo(Argument<VTValue> in, Result<VTValue> out_0,
   out_1.Set(in);
 }
 
-static void TestMemoryLeakOneInt32(HostContext* host_context) {
+static void TestMemoryLeakOneInt32(const ExecutionContext& exec_ctx) {
   // We allocate an integer to intentionally cause a memory leak.
-  host_context->Allocate<int32_t>();
+  exec_ctx.host()->Allocate<int32_t>();
 }
 
 // An example of bad behaving kernel, that does expensive work (sleep to emulate
 // that) in the caller thread. Intended for testing system behavior in the
 // presence of bad actors (kernels).
 template <typename T>
-static AsyncValueRef<T> TestCopyWithDelay(Argument<T> in, HostContext* host) {
+static AsyncValueRef<T> TestCopyWithDelay(Argument<T> in,
+                                          const ExecutionContext& exec_ctx) {
   SleepForRandomDuration();
-  return host->MakeAvailableAsyncValueRef<T>(in.get());
+  return exec_ctx.host()->MakeAvailableAsyncValueRef<T>(in.get());
 }
 
 //===----------------------------------------------------------------------===//
@@ -184,7 +185,6 @@ template <typename T>
 std::tuple<T, T, T> TestCount3(T x) {
   return {x + 1, x + 2, x + 3};
 }
-
 }  // namespace
 
 void RegisterSimpleKernels(KernelRegistry* registry) {

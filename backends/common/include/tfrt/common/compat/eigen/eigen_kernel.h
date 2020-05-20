@@ -68,7 +68,7 @@ template <typename T, typename Fn>
 AsyncValueRef<Chain> NullaryEigenKernelAsync(
     // `argument` supplies the buffer for both input and output.
     DenseHostTensor* argument, Fn fn, const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   auto argument_view = MutableDHTArrayView<T>(argument);
   auto inout = AsEigenTensor(argument_view);
   auto expr = fn(inout);
@@ -162,7 +162,7 @@ AsyncValueRef<Chain> BinaryEigenKernelAsync(
     const DenseHostTensor& left, const DenseHostTensor& right,
     // `output` supplies the buffer in which to write the output.
     DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto left_view = DHTViewTin(&left);
   auto right_view = DHTViewTin(&right);

@@ -53,7 +53,7 @@ static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
                      const OpAttrsRef& attrs, const TensorMetadata& dest_md,
                      RCReference<AsyncValue>* dest,
                      const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
@@ -90,8 +90,9 @@ static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
 
 template <typename T>
 static AsyncValueRef<T> WaitForChain(T&& t, AsyncValueRef<Chain> chain,
-                                     HostContext* host) {
-  auto result = host->MakeConstructedAsyncValueRef<T>(std::forward<T>(t));
+                                     const ExecutionContext& exec_ctx) {
+  auto result =
+      exec_ctx.host()->MakeConstructedAsyncValueRef<T>(std::forward<T>(t));
   auto* chain_av = chain.GetAsyncValue();
   chain_av->AndThen(
       [chain = std::move(chain), result = result.CopyRef()]() mutable {
@@ -140,12 +141,12 @@ static AsyncValueRef<Chain> ReluInPlaceHelper(
 static AsyncValueRef<DenseHostTensor> ReluOp(Argument<DenseHostTensor> A,
                                              const TensorMetadata& B_md,
                                              const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   if (A.value()->IsUnique() && A->buffer()->IsUnique()) {
     DenseHostTensor dest(B_md, A->buffer().CopyRef());
     AsyncValueRef<Chain> chain = ReluInPlaceHelper(&dest, exec_ctx);
-    return WaitForChain(std::move(dest), std::move(chain), host);
+    return WaitForChain(std::move(dest), std::move(chain), exec_ctx);
   } else {
     auto dest = DenseHostTensor::CreateUninitialized(B_md, host);
     if (!dest) {
@@ -155,7 +156,7 @@ static AsyncValueRef<DenseHostTensor> ReluOp(Argument<DenseHostTensor> A,
     AsyncValueRef<Chain> chain =
         ReluHelper(A.get(), dest.getPointer(), exec_ctx);
 
-    return WaitForChain(std::move(dest).getValue(), std::move(chain), host);
+    return WaitForChain(std::move(dest).getValue(), std::move(chain), exec_ctx);
   }
 }
 
@@ -219,7 +220,7 @@ static void ElementwiseEqualOp(const DenseHostTensor& lhs,
                                const DenseHostTensor& rhs,
                                RCReference<AsyncValue>* dest_tensor,
                                const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   auto dest = DenseHostTensor::CreateUninitialized(lhs.metadata(), host);
   if (!dest) {
     *dest_tensor = EmitErrorAsync(exec_ctx, "out of memory allocating result");
@@ -283,7 +284,7 @@ static AsyncValueRef<Chain> CastForOutType(const DenseHostTensor& A,
 static void CastOp(const DenseHostTensor& A, const TensorMetadata& B_md,
                    RCReference<AsyncValue>* B_tensor,
                    const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto dest = DenseHostTensor::CreateUninitialized(B_md, host);
   if (!dest) {
@@ -359,7 +360,7 @@ void Broadcast1DKernel(const DenseHostTensor& A, DenseHostTensor* B) {
 template <typename T, int N>
 static Expected<DenseHostTensor> Broadcast1D(const DenseHostTensor& A,
                                              const TensorShape& target_shape,
-                                             HostContext* host) {
+                                             const ExecutionContext& exec_ctx) {
   // TODO(fishx): Try to reuse Metadata fn.
   // This broadcast specializes for MNIST bias.
   DHTIndexableView<T, 1> A_view(&A);
@@ -372,7 +373,8 @@ static Expected<DenseHostTensor> Broadcast1D(const DenseHostTensor& A,
         " vs. ", target_shape);
   }
 
-  auto tensor = DenseHostTensor::CreateUninitialized<T>(target_shape, host);
+  auto tensor =
+      DenseHostTensor::CreateUninitialized<T>(target_shape, exec_ctx.host());
   if (!tensor.hasValue())
     return MakeStringError("cannot allocate result tensor");
 
@@ -388,7 +390,7 @@ static void Broadcast1DOp(const DenseHostTensor& src,
                           const TensorMetadata& dest_md,
                           RCReference<AsyncValue>* dest,
                           const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
@@ -431,7 +433,7 @@ static void ArgmaxKernel(const DenseHostTensor& A, DenseHostTensor* B) {
 
 template <typename T, size_t Rank, size_t Axis = 1>
 static Expected<DenseHostTensor> Argmax(const DenseHostTensor& A,
-                                        HostContext* host) {
+                                        const ExecutionContext& exec_ctx) {
   // TODO(fishx): Try to reuse Metadata fn.
   static_assert(Axis < Rank, "Axis < Rank");
   DHTIndexableView<T, Rank> A_view(&A);
@@ -445,7 +447,7 @@ static Expected<DenseHostTensor> Argmax(const DenseHostTensor& A,
   }
 
   auto tensor = DenseHostTensor::CreateUninitialized<int32_t>(
-      TensorShape(result_dims), host);
+      TensorShape(result_dims), exec_ctx.host());
   if (!tensor.hasValue()) {
     return MakeStringError("Cannot allocate result tensor.");
   }
@@ -484,7 +486,7 @@ static void ArgmaxOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
                      const TensorMetadata& dest_md,
                      RCReference<AsyncValue>* dest,
                      const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
@@ -524,7 +526,7 @@ static void ReduceMeanKernel(const DenseHostTensor& A, DenseHostTensor* B) {
 
 template <typename T, size_t Rank, size_t Axis = 0>
 static Expected<DenseHostTensor> ReduceMean(const DenseHostTensor& A,
-                                            HostContext* host) {
+                                            const ExecutionContext& exec_ctx) {
   // TODO(fishx): Try to reuse Metadata fn.
   static_assert(Axis < Rank, "Axis < Rank");
   DHTIndexableView<T, Rank> A_view(&A);
@@ -537,8 +539,8 @@ static Expected<DenseHostTensor> ReduceMean(const DenseHostTensor& A,
     }
   }
 
-  auto tensor =
-      DenseHostTensor::CreateUninitialized<T>(TensorShape(result_dims), host);
+  auto tensor = DenseHostTensor::CreateUninitialized<T>(
+      TensorShape(result_dims), exec_ctx.host());
   if (!tensor.hasValue())
     return MakeStringError("cannot allocate result tensor");
 
@@ -577,7 +579,7 @@ static void ReduceMeanOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
                          const TensorMetadata& dest_md,
                          RCReference<AsyncValue>* dest,
                          const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
@@ -621,7 +623,7 @@ static void CreateDenseTensorOp(const OpAttrsRef& attrs,
                                 const TensorMetadata& dest_md,
                                 RCReference<AsyncValue>* dest,
                                 const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {

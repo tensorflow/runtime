@@ -70,10 +70,9 @@ static AsyncValueRef<HostTensor> TfAddOp(const HostTensor& lhs,
     default:
       assert(0 && "shape function failure");
       return {};
-#define DTYPE_NUMERIC(ENUM)                                       \
-  case DType::ENUM:                                               \
-    return cpu::Add<EigenTypeForDTypeKind<DType::ENUM>>(lhs, rhs, \
-                                                        exec_ctx.host());
+#define DTYPE_NUMERIC(ENUM) \
+  case DType::ENUM:         \
+    return cpu::Add<EigenTypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
 #include "tfrt/tensor/dtype.def"
   }
 }
@@ -86,7 +85,7 @@ static void TfMatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
                        const OpAttrsRef& attrs, const TensorMetadata& dest_md,
                        RCReference<AsyncValue>* dest,
                        const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
   if (!dest_alloc) {
@@ -124,7 +123,7 @@ static void TfMatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
 static AsyncValueRef<DenseHostTensor> TfReluOp(
     const DenseHostTensor& A, const TensorMetadata& B_md,
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
 
   auto dest = DenseHostTensor::CreateUninitialized(B_md, host);
   if (!dest) {

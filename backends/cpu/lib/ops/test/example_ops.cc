@@ -116,7 +116,7 @@ static AsyncValueRef<HostTensor> TestAddOp(const HostTensor& lhs,
       return {};
 #define DTYPE_TRIVIAL(ENUM) \
   case DType::ENUM:         \
-    return cpu::Add<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx.host());
+    return cpu::Add<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
 #include "tfrt/tensor/dtype.def"
   }
 }
@@ -198,7 +198,7 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly2Op(
 static AsyncValueRef<DenseHostTensor> TestAddDenseOnly3Op(
     const DenseHostTensor& lhs, const DenseHostTensor& rhs,
     const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   // Allocate the result buffer, and exit if an error occurred.
   auto dht =
       DenseHostTensor::MakeConstructedAsyncValueRef(lhs.metadata(), host);
@@ -260,7 +260,7 @@ static DenseHostTensor IdentityOp(const HostTensor& input) {
 // testing.
 static RCReference<AsyncValue> AsyncNoopOp(const HostTensor& src,
                                            const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   auto dest_ind = host->MakeIndirectAsyncValue();
 
   auto copy = src.ConvertToHostTensor(host, ~uint32_t(0));

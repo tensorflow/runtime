@@ -81,7 +81,7 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
 static llvm::SmallVector<RCReference<AsyncValue>, 4> EnqueueFunction(
     const Function* map_fn, RCArray<AsyncValue> additional_fn_args,
     RCArray<AsyncValue> args, const ExecutionContext& exec_ctx) {
-  auto* host = exec_ctx.host();
+  HostContext* host = exec_ctx.host();
   auto num_results = map_fn->result_types().size();
 
   // Placeholder for results.

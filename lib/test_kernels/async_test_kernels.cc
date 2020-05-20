@@ -31,7 +31,8 @@ namespace tfrt {
 /// The tfrt_test.do.async kernel runs an arbitrary function on a background
 /// task.
 static void TestDoAsync(RemainingArguments args, RemainingResults results,
-                        Attribute<Function> body_fn, HostContext* host) {
+                        Attribute<Function> body_fn,
+                        const ExecutionContext& exec_ctx) {
   assert(body_fn->argument_types().size() == args.size() &&
          "argument count mismatch");
   assert(body_fn->result_types().size() == results.size() &&
@@ -54,6 +55,7 @@ static void TestDoAsync(RemainingArguments args, RemainingResults results,
     result_refs.push_back(std::move(result));
   }
 
+  HostContext* host = exec_ctx.host();
   host->EnqueueWork([host, body = FormRef(&body_fn.get()),
                      arg_refs = std::move(arg_refs),
                      result_refs = std::move(result_refs)]() {
@@ -70,9 +72,10 @@ static void TestDoAsync(RemainingArguments args, RemainingResults results,
   });
 }
 
-static void TestUSleep(Argument<int32_t> sleep_time_us_arg, HostContext* host) {
+static void TestUSleep(Argument<int32_t> sleep_time_us_arg,
+                       const ExecutionContext& exec_ctx) {
   int32_t sleep_time_us = *sleep_time_us_arg;
-  bool work_enqueued = host->EnqueueBlockingWork([sleep_time_us] {
+  bool work_enqueued = exec_ctx.host()->EnqueueBlockingWork([sleep_time_us] {
     std::this_thread::sleep_for(std::chrono::microseconds(sleep_time_us));
     printf("Slept for %d microseconds\n", sleep_time_us);
     fflush(stdout);
@@ -86,13 +89,16 @@ static void TestUSleep(Argument<int32_t> sleep_time_us_arg, HostContext* host) {
 }
 
 // Test-only.
-static void TestQuiesce(HostContext* host) { host->Quiesce(); }
+static void TestQuiesce(const ExecutionContext& exec_ctx) {
+  exec_ctx.host()->Quiesce();
+}
 
 static void TestReportErrorConcreteAsync(Argument<int32_t> in,
-                                         Result<int32_t> out, HostContext* host,
+                                         Result<int32_t> out,
+                                         const ExecutionContext& exec_ctx,
                                          KernelFrame* frame) {
   AsyncValueRef<int32_t> result_ref = out.Allocate();
-  host->EnqueueWork(
+  exec_ctx.host()->EnqueueWork(
       [in = *in, result_ref = std::move(result_ref), frame = *frame]() mutable {
         if (in == 0) {
           result_ref.emplace(in);
@@ -104,8 +110,10 @@ static void TestReportErrorConcreteAsync(Argument<int32_t> in,
 }
 
 static void TestReportIndirectErrorAsync(Argument<int32_t> in,
-                                         Result<int32_t> out, HostContext* host,
+                                         Result<int32_t> out,
+                                         const ExecutionContext& exec_ctx,
                                          KernelFrame* frame) {
+  HostContext* host = exec_ctx.host();
   auto result_ref = out.AllocateIndirect();
   host->EnqueueWork([in = *in, result_ref = std::move(result_ref),
                      frame = *frame, host]() mutable {

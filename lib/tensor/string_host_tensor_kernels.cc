@@ -28,9 +28,10 @@ namespace tfrt {
 namespace {
 
 llvm::Expected<StringHostTensor> CreateStringTensor(
-    ArrayAttribute<ssize_t> shape, AggregateAttr values, HostContext* host) {
+    ArrayAttribute<ssize_t> shape, AggregateAttr values,
+    const ExecutionContext& exec_ctx) {
   auto result = StringHostTensor::CreateUninitialized(
-      TensorMetadata(DType(DType::String), shape.data()), host);
+      TensorMetadata(DType(DType::String), shape.data()), exec_ctx.host());
   if (!result) {
     return MakeStringError("Failed to create SHT");
   }

@@ -238,3 +238,21 @@ func @shape_attr_test() -> !hex.chain {
 
   hex.return %ch2 : !hex.chain
 }
+
+// CHECK-LABEL: --- Running 'string_type_attr_test'
+func @string_type_attr_test() -> !hex.chain {
+  %ch0 = hex.new.chain
+
+  %attrs = "corert.create_op_attrs"() : () -> !corert.opattrs
+
+  %ch1 = "corert.op_attrs_set.dtype"(%attrs, %ch0)
+    {key="type", value=!corert.string}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+
+  // CHECK: OpAttrs contains 1 entries:
+  // CHECK-NEXT: 'type' type=DTYPE value=CHAR
+  %ch2 = "tfrt_test.corert.op_attrs_print"(%attrs, %ch1)
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+
+  hex.return %ch2 : !hex.chain
+}

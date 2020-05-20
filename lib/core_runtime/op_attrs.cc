@@ -52,6 +52,8 @@ OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind) {
       return OpAttrType::F64;
     case BEFAttributeType::kType:
       return OpAttrType::DTYPE;
+    case BEFAttributeType::kString:
+      return OpAttrType::CHAR;
     case BEFAttributeType::kAggregate:
       return OpAttrType::AGGREGATE;
     case BEFAttributeType::kShape:

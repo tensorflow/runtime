@@ -260,6 +260,8 @@ class ArrayAttr : public internal::AttrHeaderBase<ArrayAttr, BEFArrayAttr> {
 
   template <typename T>
   ArrayRef<T> GetValue() const {
+    // For empty arrays, we don't care the element type.
+    if (GetNumElements() == 0) return {};
     assert(GetBEFAttributeType<T>() == GetElementType());
     return llvm::makeArrayRef(static_cast<const T*>(GetElements()),
                               GetNumElements());

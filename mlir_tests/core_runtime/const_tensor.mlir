@@ -37,3 +37,15 @@ func @const_string_tensor() {
 
   hex.return
 }
+
+// CHECK-LABEL: --- Running 'scalar_string_tensor'
+func @scalar_string_tensor() {
+  %ch0 = hex.new.chain
+
+  %a = corert.const_string_tensor {shape = [], value = ["string"]}
+
+  // CHECK: shape = [], values = ["string"]
+  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+
+  hex.return
+}

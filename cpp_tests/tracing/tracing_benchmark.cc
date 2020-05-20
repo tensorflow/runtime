@@ -66,15 +66,16 @@ class BenchmarkTracingSink : TracingSink {
   uint64_t num_ranges_ = 0;
   uint64_t num_completed_ = 0;
 };
-BenchmarkTracingSink kTracingSink;
 
 void BM_EmptyLoop(benchmark::State& state) {
+  BenchmarkTracingSink sink;
   for (auto _ : state) {
   }
 }
 BENCHMARK(BM_EmptyLoop);
 
 void BM_TracingEvents(benchmark::State& state) {
+  BenchmarkTracingSink sink;
   for (auto _ : state) {
     RecordTracingEvent("event");
   }
@@ -82,6 +83,7 @@ void BM_TracingEvents(benchmark::State& state) {
 BENCHMARK(BM_TracingEvents);
 
 void BM_StrCatTracingEvents(benchmark::State& state) {
+  BenchmarkTracingSink sink;
   for (auto _ : state) {
     RecordTracingEvent([&] { return StrCat("event", ""); });
   }
@@ -89,6 +91,7 @@ void BM_StrCatTracingEvents(benchmark::State& state) {
 BENCHMARK(BM_StrCatTracingEvents);
 
 void BM_TracingScopes(benchmark::State& state) {
+  BenchmarkTracingSink sink;
   for (auto _ : state) {
     TracingScope("scope");
   }
@@ -96,6 +99,7 @@ void BM_TracingScopes(benchmark::State& state) {
 BENCHMARK(BM_TracingScopes);
 
 void BM_StrCatTracingScopes(benchmark::State& state) {
+  BenchmarkTracingSink sink;
   for (auto _ : state) {
     TracingScope([&] { return StrCat("scope", ""); });
   }

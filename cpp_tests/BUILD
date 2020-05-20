@@ -154,12 +154,16 @@ tfrt_cc_test(
 # --copt=-DTFRT_DISABLE_TRACING:            strip tracing code.
 # --copt=-DTFRT_BM_DISABLE_TRACING_REQUEST: do not request tracing.
 tfrt_cc_test(
-    name = "tracing/tracing_benchmark",
-    srcs = ["tracing/tracing_benchmark.cc"],
+    name = "tracing",
+    srcs = [
+        "tracing/tracing_benchmark.cc",
+        "tracing/tracing_test.cc",
+    ],
     deps = [
         ":common",
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:support",
         "@tf_runtime//:support",
         "@tf_runtime//:tracing",
     ],

@@ -144,17 +144,17 @@ class FilterDatasetIterator : public Iterator {
   RCReference<FilterDataset<T...>> parent_dataset_;
   RCReference<Iterator> input_iterator_;
   mutex mu_;
-  // A queue of AsyncValue pairs. The first value of each pair is a value from
-  // the `input_iterator_`. The second value of each pair is the result of
+  // A queue of IterationResult pairs. The first value of each pair is a value
+  // from the `input_iterator_`. The second value of each pair is the result of
   // applying `filter_fn_` to the first value.
   std::queue<std::pair<IterationResult, IterationResult>>
       input_and_predicate_buffer_;
-  // A queue of AsyncValues that have already been returned to the GetNext(...)
-  // caller.
+  // A queue of IterationResult that have already been returned to the
+  // GetNext(...) caller.
   std::queue<IterationResult> output_buffer_ TFRT_GUARDED_BY(mu_);
-  // The number of AsyncValues in the predicate_buffer_ whose predicate value is
-  // false. `num_false_predicate_` might be negative if fetch_sub(...) is
-  // invoked before fetch_add(...).
+  // The number of IterationResult in the input_and_predicate_buffer_ whose
+  // predicate value is false. `num_false_predicate_` might be negative if
+  // fetch_sub(...) is invoked before fetch_add(...).
   std::atomic<int32_t> num_false_predicate_;
   // This is a unique logical token for this iterator instance. It effectively
   // acts as a lock to ensure in-order delivery of results by guaranteeing that
@@ -281,13 +281,6 @@ void FilterDatasetIterator<T...>::MaybeScheduleBackgroundTask(
     } else {
       iterator->num_false_predicate_.fetch_sub(1);
     }
-    // If there are too many recursive calls, the stack size limit will be
-    // exceeded and it will cause segmentation fault. The maximum number of
-    // recursive calls depend on the OS level stack size and the size of the
-    // recursive function, which is hard to know for sure.
-    // We need to balance between threadpool scheduling overhead and the risk of
-    // hitting stack size limit when choosing the frequency of scheduling the
-    // callback in the threadpool.
     if (callback_count >= MAX_RECURSIVE_CALLS) {
       host->EnqueueWork([exec_ctx, iterator = std::move(iterator)] {
         iterator->MaybeScheduleBackgroundTask(exec_ctx, true, 0);

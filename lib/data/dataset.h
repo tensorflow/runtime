@@ -32,6 +32,12 @@
 #include "tfrt/support/rc_array.h"
 #include "tfrt/support/ref_count.h"
 
+// If there are too many recursive calls, the stack size limit will be exceeded
+// and it will cause segmentation fault. The maximum number of recursive calls
+// depend on the OS level stack size and the size of the recursive function,
+// which is hard to know for sure. We need to balance between threadpool
+// scheduling overhead and the risk of hitting stack size limit when choosing
+// the frequency of scheduling the callback in the threadpool.
 // TODO(b/156791937): Consider moving this logic into AsyncValue implementation.
 #define MAX_RECURSIVE_CALLS 100
 

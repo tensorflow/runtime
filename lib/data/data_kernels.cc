@@ -148,13 +148,12 @@ RCReference<TFRecordDataset> MakeTFRecordDataset(
 // RepeatDataset
 //===----------------------------------------------------------------------===//
 
-template <typename... T>
-RCReference<RepeatDataset<T...>> MakeRepeatDataset(
-    RCReference<Dataset>* dataset, Attribute<int32_t> count,
-    const ExecutionContext& exec_ctx) {
+RCReference<RepeatDataset> MakeRepeatDataset(RCReference<Dataset>* dataset,
+                                             Attribute<int32_t> count,
+                                             const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(host->Construct<RepeatDataset<T...>>(dataset->CopyRef(),
-                                                      count.get(), host));
+  return TakeRef(
+      host->Construct<RepeatDataset>(dataset->CopyRef(), count.get(), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -438,13 +437,6 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("data.batch_dataset.i64_and_i64",
                       TFRT_KERNEL(MakeBatchDataset<int64_t, int64_t>));
 
-  registry->AddKernel("data.repeat_dataset.i32",
-                      TFRT_KERNEL(MakeRepeatDataset<int32_t>));
-  registry->AddKernel("data.repeat_dataset.i64",
-                      TFRT_KERNEL(MakeRepeatDataset<int64_t>));
-  registry->AddKernel("data.repeat_dataset.str",
-                      TFRT_KERNEL(MakeRepeatDataset<std::string>));
-
   registry->AddKernel("data.memory_dataset.i64",
                       TFRT_KERNEL(MakeMemoryDataset<int64_t>));
   registry->AddKernel("data.memory_dataset.str",
@@ -458,6 +450,7 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("data.map_dataset", TFRT_KERNEL(MakeMapDataset));
   registry->AddKernel("data.prefetch_dataset",
                       TFRT_KERNEL(MakePrefetchDataset));
+  registry->AddKernel("data.repeat_dataset", TFRT_KERNEL(MakeRepeatDataset));
 }
 
 }  // namespace data

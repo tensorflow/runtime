@@ -29,12 +29,10 @@
 namespace tfrt {
 namespace data {
 
-template <typename... T>
 class RepeatDatasetIterator;
 
 // RepeatDataset wraps around another Dataset instance and repeats it for a
 // specified number of times.
-template <typename... T>
 class RepeatDataset : public Dataset {
  public:
   explicit RepeatDataset(RCReference<Dataset> input_dataset, int32_t epochs,
@@ -54,10 +52,10 @@ class RepeatDataset : public Dataset {
   RCReference<Iterator> MakeIterator() override;
 
  private:
-  friend class RepeatDatasetIterator<T...>;
+  friend class RepeatDatasetIterator;
 
   void Destroy() override {
-    internal::DestroyImpl<RepeatDataset<T...>>(this, allocator_);
+    internal::DestroyImpl<RepeatDataset>(this, allocator_);
   }
 
   RCReference<Dataset> input_dataset_;
@@ -66,10 +64,9 @@ class RepeatDataset : public Dataset {
   HostAllocator* allocator_;
 };
 
-template <typename... T>
 class RepeatDatasetIterator : public Iterator {
  public:
-  explicit RepeatDatasetIterator(RCReference<RepeatDataset<T...>> dataset)
+  explicit RepeatDatasetIterator(RCReference<RepeatDataset> dataset)
       : Iterator(),
         parent_dataset_(std::move(dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
@@ -96,17 +93,12 @@ class RepeatDatasetIterator : public Iterator {
                                                  parent_dataset_->allocator_);
   }
 
-  RCReference<RepeatDataset<T...>> parent_dataset_;
+  RCReference<RepeatDataset> parent_dataset_;
   RCReference<Iterator> input_iterator_;
 
   // The current epoch number.
   int32_t epoch_ = 0;
 };
-
-template <typename... T>
-RCReference<Iterator> RepeatDataset<T...>::MakeIterator() {
-  return TakeRef(host_->Construct<RepeatDatasetIterator<T...>>(FormRef(this)));
-}
 
 }  // namespace data
 }  // namespace tfrt

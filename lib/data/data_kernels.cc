@@ -206,7 +206,6 @@ RCReference<PrefetchDataset<T...>> MakePrefetchDataset(
 //===----------------------------------------------------------------------===//
 
 // Create an iterator that points to the first element in the dataset.
-template <typename... T>
 RCReference<Iterator> MakeIteratorFromDataset(RCReference<Dataset>* dataset) {
   return (*dataset)->MakeIterator();
 }
@@ -217,21 +216,21 @@ RCReference<Iterator> MakeIteratorFromDataset(RCReference<Dataset>* dataset) {
 // IDEA(tf_runtime_team): it may be useful to return optional value and let
 // caller handle EOF properly.
 // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
-template <typename... T>
 static void IteratorGetNext(RCReference<Iterator>* iterator, Chain chain,
                             RemainingResults results,
                             const ExecutionContext& exec_ctx) {
   auto input = (*iterator)->GetNext(exec_ctx);
   if (internal::IsConcreteAndEmpty(input)) {
     auto err = EmitErrorAsync(exec_ctx, "iterator reached end");
-    for (size_t i = 0; i < sizeof...(T); ++i) {
+    for (size_t i = 0; i < results.size(); ++i) {
       results[i] = err.CopyRef();
     }
     return;
   }
 
   auto values = std::move(input.values);
-  for (size_t i = 0; i < sizeof...(T); ++i) {
+  assert(results.size() == values.size());
+  for (size_t i = 0; i < results.size(); ++i) {
     results[i] = std::move(values[i]);
   }
 }
@@ -410,30 +409,15 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
 // Kernel registrations
 //===----------------------------------------------------------------------===//
 
-template <typename... T>
-static void RegisterIteratorKernelsForType(KernelRegistry* registry,
-                                           const std::string& suffix) {
-  registry->AddKernel("data.make_iterator_from_dataset." + suffix,
-                      TFRT_KERNEL(MakeIteratorFromDataset<T...>));
-  registry->AddKernel("data.iterator_get_next." + suffix,
-                      TFRT_KERNEL(IteratorGetNext<T...>));
-}
-
 // This is the entrypoint to the library.
 void RegisterDataKernels(KernelRegistry* registry) {
-  RegisterIteratorKernelsForType<std::string>(registry, "str");
-  RegisterIteratorKernelsForType<int32_t>(registry, "i32");
-  RegisterIteratorKernelsForType<int64_t>(registry, "i64");
-  RegisterIteratorKernelsForType<float>(registry, "f32");
-  RegisterIteratorKernelsForType<DenseHostTensor>(registry, "tensor");
-  RegisterIteratorKernelsForType<DenseHostTensor, DenseHostTensor>(
-      registry, "tensor_and_tensor");
-  RegisterIteratorKernelsForType<DenseHostTensor, int64_t>(registry,
-                                                           "tensor_and_i64");
-  RegisterIteratorKernelsForType<float, int32_t>(registry, "f32_and_i32");
+  registry->AddKernel("data.make_iterator_from_dataset",
+                      TFRT_KERNEL(MakeIteratorFromDataset));
+  registry->AddKernel("data.iterator_get_next", TFRT_KERNEL(IteratorGetNext));
   registry->AddKernel("data.enumerate.iterator",
                       TFRT_KERNEL(EnumerateIterator));
 
+  // TODO(b/155892156): Remove type specialization on dataset kernels.
   registry->AddKernel("data.make_dataset_from_values.i32",
                       TFRT_KERNEL(MakeDatasetFromValues<int32_t>));
   registry->AddKernel("data.make_dataset_from_values.i64",

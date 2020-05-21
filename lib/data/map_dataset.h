@@ -31,17 +31,11 @@
 namespace tfrt {
 namespace data {
 
-template <typename... T>
-class MapDataset;
-
-template <typename... T>
 class MapDatasetIterator;
 
 // MapDataset maps a user-defined function over the elements in its input
 // dataset.
-template <typename... InputTypes, typename... OutputTypes>
-class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
-    : public Dataset {
+class MapDataset : public Dataset {
  public:
   explicit MapDataset(RCReference<Dataset> input_dataset,
                       RCArray<AsyncValue> additional_fn_args,
@@ -60,13 +54,10 @@ class MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
 
  private:
   // Allow iterator to rely on private data members of this dataset.
-  friend class MapDatasetIterator<std::tuple<InputTypes...>,
-                                  std::tuple<OutputTypes...>>;
+  friend class MapDatasetIterator;
 
   void Destroy() override {
-    internal::DestroyImpl<
-        MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>(
-        this, allocator_);
+    internal::DestroyImpl<MapDataset>(this, allocator_);
   }
 
   RCReference<Dataset> input_dataset_;
@@ -141,33 +132,14 @@ static llvm::SmallVector<RCReference<AsyncValue>, 4> EnqueueFunction(
   return results_ref;
 }
 
-template <typename... InputTypes, typename... OutputTypes>
-class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
-    : public Iterator {
+class MapDatasetIterator : public Iterator {
  public:
-  explicit MapDatasetIterator(
-      RCReference<
-          MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
-          parent_dataset)
+  explicit MapDatasetIterator(RCReference<MapDataset> parent_dataset)
       : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
 
-  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
-    auto input = input_iterator_->GetNext(exec_ctx);
-    const Function* map_fn = parent_dataset_->map_fn_.get();
-
-    auto values = std::move(input.values);
-    auto eof = std::move(input.eof);
-
-    // IDEA(donglin): consider extending RCArray to support CopyRef() without
-    // doing shallow copy.
-    auto additional_fn_args = parent_dataset_->additional_fn_args_.CopyRef();
-    auto result =
-        EnqueueFunction(map_fn, std::move(additional_fn_args),
-                        RCArray<AsyncValue>(std::move(values)), exec_ctx);
-    return IterationResult::Pending(std::move(result), std::move(eof));
-  }
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override;
 
  private:
   // This class is not copyable or movable.
@@ -179,19 +151,9 @@ class MapDatasetIterator<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>
                                               parent_dataset_->allocator_);
   }
 
-  RCReference<MapDataset<std::tuple<InputTypes...>, std::tuple<OutputTypes...>>>
-      parent_dataset_;
+  RCReference<MapDataset> parent_dataset_;
   RCReference<Iterator> input_iterator_;
 };
-
-template <typename... InputTypes, typename... OutputTypes>
-RCReference<Iterator> MapDataset<std::tuple<InputTypes...>,
-                                 std::tuple<OutputTypes...>>::MakeIterator() {
-  return TakeRef(
-      host_->Construct<MapDatasetIterator<std::tuple<InputTypes...>,
-                                          std::tuple<OutputTypes...>>>(
-          FormRef(this)));
-}
 
 }  // namespace data
 }  // namespace tfrt

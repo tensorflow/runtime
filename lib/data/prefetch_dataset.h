@@ -33,12 +33,10 @@
 namespace tfrt {
 namespace data {
 
-template <typename... T>
 class PrefetchDatasetIterator;
 
 // PrefetchDataset class which wraps around another dataset instance and
 // prefetches elements from the underlying dataset in an internal buffer.
-template <typename... T>
 class PrefetchDataset : public Dataset {
  public:
   explicit PrefetchDataset(RCReference<Dataset> input_dataset,
@@ -55,10 +53,10 @@ class PrefetchDataset : public Dataset {
 
  private:
   // Allow iterator to rely on private data members of this dataset.
-  friend class PrefetchDatasetIterator<T...>;
+  friend class PrefetchDatasetIterator;
 
   void Destroy() override {
-    internal::DestroyImpl<PrefetchDataset<T...>>(this, host_->allocator());
+    internal::DestroyImpl<PrefetchDataset>(this, host_->allocator());
   }
 
   RCReference<Dataset> input_dataset_;
@@ -66,11 +64,9 @@ class PrefetchDataset : public Dataset {
   HostContext* host_;
 };
 
-template <typename... T>
 class PrefetchDatasetIterator : public Iterator {
  public:
-  explicit PrefetchDatasetIterator(
-      RCReference<PrefetchDataset<T...>> parent_dataset)
+  explicit PrefetchDatasetIterator(RCReference<PrefetchDataset> parent_dataset)
       : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
         input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
@@ -79,14 +75,7 @@ class PrefetchDatasetIterator : public Iterator {
   PrefetchDatasetIterator(const PrefetchDatasetIterator&) = delete;
   PrefetchDatasetIterator& operator=(const PrefetchDatasetIterator&) = delete;
 
-  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
-    while (buffer_.size() < parent_dataset_->prefetch_num_) {
-      buffer_.push(input_iterator_->GetNext(exec_ctx));
-    }
-    auto result = std::move(buffer_.front());
-    buffer_.pop();
-    return result;
-  }
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override;
 
  private:
   void Destroy() override {
@@ -94,16 +83,10 @@ class PrefetchDatasetIterator : public Iterator {
         this, parent_dataset_->host_->allocator());
   }
 
-  RCReference<PrefetchDataset<T...>> parent_dataset_;
+  RCReference<PrefetchDataset> parent_dataset_;
   RCReference<Iterator> input_iterator_;
   std::queue<IterationResult> buffer_;
 };
-
-template <typename... T>
-RCReference<Iterator> PrefetchDataset<T...>::MakeIterator() {
-  return TakeRef(
-      host_->Construct<PrefetchDatasetIterator<T...>>(FormRef(this)));
-}
 
 }  // namespace data
 }  // namespace tfrt

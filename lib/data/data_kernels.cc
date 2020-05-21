@@ -89,20 +89,13 @@ RCReference<RangeDataset<T>> MakeRangeDataset(
 // MapDataset
 //===----------------------------------------------------------------------===//
 
-// TODO(rachelim): Support variable number of arguments.
-template <typename T, typename... U>
-RCReference<MapDataset<std::tuple<T>, std::tuple<U...>>> MakeMapDataset(
-    RCReference<Dataset>* dataset, RemainingArguments args,
-    Attribute<Function> fn, const ExecutionContext& exec_ctx) {
-  assert((args.size() + 1 == fn->argument_types().size()) &&
-         "The function inputs do not match the dataset input types.");
-  assert(fn->result_types().size() == sizeof...(U) &&
-         "The function outputs do not match the dataset output types.");
-
-  return TakeRef(
-      exec_ctx.host()->Construct<MapDataset<std::tuple<T>, std::tuple<U...>>>(
-          dataset->CopyRef(), RCArray<AsyncValue>(args.values()),
-          FormRef(&fn.get()), exec_ctx.host()));
+RCReference<MapDataset> MakeMapDataset(RCReference<Dataset>* dataset,
+                                       RemainingArguments args,
+                                       Attribute<Function> fn,
+                                       const ExecutionContext& exec_ctx) {
+  return TakeRef(exec_ctx.host()->Construct<MapDataset>(
+      dataset->CopyRef(), RCArray<AsyncValue>(args.values()),
+      FormRef(&fn.get()), exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -193,11 +186,10 @@ RCReference<BatchDataset<T...>> MakeBatchDataset(
 // PrefetchDataset
 //===----------------------------------------------------------------------===//
 
-template <typename... T>
-RCReference<PrefetchDataset<T...>> MakePrefetchDataset(
+RCReference<PrefetchDataset> MakePrefetchDataset(
     RCReference<Dataset>* dataset, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(host->Construct<PrefetchDataset<T...>>(
+  return TakeRef(host->Construct<PrefetchDataset>(
       dataset->CopyRef(), host->GetNumWorkerThreads(), host));
 }
 
@@ -432,27 +424,6 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("data.range_dataset.i32",
                       TFRT_KERNEL(MakeRangeDataset<int32_t>));
 
-  registry->AddKernel("data.tf_record_dataset",
-                      TFRT_KERNEL(MakeTFRecordDataset));
-
-  registry->AddKernel("data.map_dataset.i32.i32",
-                      TFRT_KERNEL(MakeMapDataset<int32_t, int32_t>));
-  registry->AddKernel("data.map_dataset.i32.f32",
-                      TFRT_KERNEL(MakeMapDataset<int32_t, float>));
-  registry->AddKernel("data.map_dataset.i64.i64",
-                      TFRT_KERNEL(MakeMapDataset<int64_t, int64_t>));
-  registry->AddKernel(
-      "data.map_dataset.str.tensor",
-      TFRT_KERNEL(MakeMapDataset<std::string, DenseHostTensor>));
-  registry->AddKernel(
-      "data.map_dataset.i64.tensor_and_i64",
-      TFRT_KERNEL(MakeMapDataset<int64_t, DenseHostTensor, int64_t>));
-  registry->AddKernel(
-      "data.map_dataset.str.tensor_and_i64",
-      TFRT_KERNEL(MakeMapDataset<std::string, DenseHostTensor, int64_t>));
-  registry->AddKernel("data.map_dataset.i32.f32_and_i32",
-                      TFRT_KERNEL(MakeMapDataset<int32_t, float, int32_t>));
-
   registry->AddKernel("data.interleave_dataset.i32.i32",
                       TFRT_KERNEL(MakeInterleaveDataset<int32_t, int32_t>));
 
@@ -479,16 +450,14 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("data.memory_dataset.str",
                       TFRT_KERNEL(MakeMemoryDataset<std::string>));
 
-  registry->AddKernel("data.prefetch_dataset.i64",
-                      TFRT_KERNEL(MakePrefetchDataset<int64_t>));
-  registry->AddKernel(
-      "data.prefetch_dataset.tensor_and_tensor",
-      TFRT_KERNEL(MakePrefetchDataset<DenseHostTensor, DenseHostTensor>));
-  registry->AddKernel(
-      "data.prefetch_dataset.tensor_and_i64",
-      TFRT_KERNEL(MakePrefetchDataset<DenseHostTensor, int64_t>));
   registry->AddKernel("data.filter_dataset.i64",
                       TFRT_KERNEL(MakeFilterDataset<int64_t>));
+
+  registry->AddKernel("data.tf_record_dataset",
+                      TFRT_KERNEL(MakeTFRecordDataset));
+  registry->AddKernel("data.map_dataset", TFRT_KERNEL(MakeMapDataset));
+  registry->AddKernel("data.prefetch_dataset",
+                      TFRT_KERNEL(MakePrefetchDataset));
 }
 
 }  // namespace data

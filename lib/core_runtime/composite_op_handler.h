@@ -46,8 +46,8 @@ using DispatchFn = llvm::unique_function<void(
 
 struct FunctionOpEntry {
   OpMetadataFn metadata_fn = nullptr;
-
   RCReference<Function> dispatch_fn;
+  string_view op_name;
 };
 
 class CompositeOpHandler : public OpHandler {

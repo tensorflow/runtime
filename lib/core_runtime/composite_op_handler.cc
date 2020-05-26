@@ -105,10 +105,12 @@ Expected<CoreRuntimeOp> CompositeOpHandler::MakeOp(string_view op_name) {
 
   return CoreRuntimeOp(
       [metadata_fn = composite_op_it->second.metadata_fn,
-       dispatch_fn = composite_op_it->second.dispatch_fn.CopyRef()](
-          const OpInvocation& invocation) {
+       dispatch_fn = composite_op_it->second.dispatch_fn.CopyRef(),
+       op_name_view =
+           composite_op_it->first()](const OpInvocation& invocation) {
         FunctionOpEntry op_entry{.metadata_fn = metadata_fn,
-                                 .dispatch_fn = dispatch_fn.CopyRef()};
+                                 .dispatch_fn = dispatch_fn.CopyRef(),
+                                 .op_name = op_name_view};
         return ExecuteOnOpHandler<FunctionOpHandlerTraits>(
             /*update_chain=*/false, invocation, std::move(op_entry));
       });

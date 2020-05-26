@@ -37,6 +37,7 @@ class OpRegistryImpl {
     OpMetadataFnTy metadata_fn = nullptr;
     DispatchFnTy dispatch_fn = nullptr;
     OpFlagsTy flags;
+    string_view op_name;
 
     SmallVector<std::string, 4> attr_names;
   };
@@ -49,6 +50,7 @@ class OpRegistryImpl {
     entry.flags = flags;
     entry.attr_names.reserve(attr_names.size());
     for (auto name : attr_names) entry.attr_names.emplace_back(name);
+    entry.op_name = op_mappings_.find(op_name)->first();
   }
 
   void AddMetadataFn(string_view op_name, OpMetadataFnTy metadata_fn) {

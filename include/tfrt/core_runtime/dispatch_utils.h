@@ -23,7 +23,10 @@
 #ifndef TFRT_CORE_RUNTIME_DISPATCH_UTILS_H_
 #define TFRT_CORE_RUNTIME_DISPATCH_UTILS_H_
 
+#include <tfrt/core_runtime/op_handler.h>
+
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/raw_ostream.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/core_runtime/op_metadata_function.h"
@@ -31,6 +34,7 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/tensor/tensor.h"
+#include "tfrt/tensor/tensor_metadata.h"
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
@@ -308,6 +312,11 @@ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunction() {
   }
 }
 
+std::string GetOpDebugString(string_view op_name,
+                             ArrayRef<RCReference<AsyncValue>>& inputs,
+                             const OpAttrsRef& attrs,
+                             ArrayRef<TensorMetadata>& result_mds);
+
 template <typename OpHandlerTraits>
 /*static*/ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunctionSync(
     typename OpHandlerTraits::OpEntryTy& op_entry,
@@ -343,9 +352,9 @@ template <typename OpHandlerTraits>
   // Finally, run the dispatch function.
   AsyncValueRef<Chain> op_chain;
   {
-    // TODO(tf-runtime-team): Remove this tracing tag when finished debugging
-    // dispatch performance.
-    TFRT_TRACE_SCOPE("RunDispatchFunction");
+    TFRT_TRACE_SCOPE(
+        GetOpDebugString(op_entry.op_name, inputs, attrs, result_mds));
+
     OpHandlerTraits::Dispatch(op_entry, op_handler_info, arg_tensors, attrs,
                               result_mds, *results, &op_chain, exec_ctx);
   }

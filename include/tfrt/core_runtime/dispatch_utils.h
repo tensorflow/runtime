@@ -632,7 +632,7 @@ bool ExecuteOnOpHandler(
     typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   return internal::ExecuteOnOpHandlerImpl<OpHandlerTraits>(
-      update_chain, invocation, op_entry, op_handler_info);
+      update_chain, invocation, std::move(op_entry), op_handler_info);
 }
 
 template <typename OpHandlerTraits>

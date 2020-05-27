@@ -109,7 +109,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
       const ExecutionContext& exec_ctx, ArrayRef<TensorMetadata> arguments,
       const OpAttrsRef& attrs, MutableArrayRef<TensorMetadata> results) {
     return HandleReturn(
-        MetadataFnCallHelper<Args...>::template Invoke<0, 0, false>(
+        MetadataFnCallHelper<Args..., TypeTag<int>>::template Invoke<0, 0,
+                                                                     false>(
             arguments, attrs, results, exec_ctx),
         results, exec_ctx);
   }
@@ -309,8 +310,10 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
   };
 
   // Base case: No arguments left.
-  template <>
-  struct MetadataFnCallHelper<> {
+  // TypeTag<T> is a dummy template parameter to work around the restriction
+  // of GCC that fully specialized template is not allowed in a template class.
+  template <typename T>
+  struct MetadataFnCallHelper<TypeTag<T>> {
     template <int arg_idx, int result_idx, bool has_attrs,
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
@@ -343,8 +346,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                      ArrayRef<TensorMetadata> result_mds,
                      MutableArrayRef<RCReference<AsyncValue>> results,
                      AsyncValueRef<Chain>* chain) {
-    DispatchFnCallHelper<true, Args...>::template Invoke<0, 0, 0, false, false>(
-        ctx, arguments, attrs, result_mds, results, chain, exec_ctx);
+    DispatchFnCallHelper<true, Args..., TypeTag<int>>::template Invoke<
+        0, 0, 0, false, false>(ctx, arguments, attrs, result_mds, results,
+                               chain, exec_ctx);
   }
 
   // If DeviceContext is HostContext, avoid adding HostContext as an
@@ -357,9 +361,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                      ArrayRef<TensorMetadata> result_mds,
                      MutableArrayRef<RCReference<AsyncValue>> results,
                      AsyncValueRef<Chain>* chain) {
-    DispatchFnCallHelper<true, Args...>::template Invoke<0, 0, 0, false, false>(
-        exec_ctx.host(), arguments, attrs, result_mds, results, chain,
-        exec_ctx);
+    DispatchFnCallHelper<true, Args..., TypeTag<int>>::template Invoke<
+        0, 0, 0, false, false>(exec_ctx.host(), arguments, attrs, result_mds,
+                               results, chain, exec_ctx);
   }
 
  protected:
@@ -815,8 +819,10 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   };
 
   // Base case: No arguments left.
-  template <>
-  struct DispatchFnCallHelper<true> {
+  // TypeTag<T> is a dummy template parameter to work around the restriction
+  // of GCC that fully specialized template is not allowed in a template class.
+  template <typename T>
+  struct DispatchFnCallHelper<true, TypeTag<T>> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,

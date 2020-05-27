@@ -72,28 +72,32 @@ using StackTrace =
 // not supported.
 StackTrace CreateStackTrace(int skip_count = 0);
 
+namespace internal {
+// TMP to prevent elements of temporary reference types (i.e. llvm::ArrayRef,
+// llvm::StringRef) because the underlying data is likely to go away before
+// the Error is printed.
+template <typename T>
+struct IsTempRef : public std::integral_constant<bool, false> {};
+template <typename T>
+struct IsTempRef<llvm::ArrayRef<T>>
+    : public std::integral_constant<bool, true> {};
+template <>
+struct IsTempRef<llvm::StringRef> : public std::integral_constant<bool, true> {
+};
+}  // namespace internal
+
 // ErrorInfo with a pack of elements that are logged to llvm::raw_ostream.
 template <typename... Args>
 class TupleErrorInfo : public llvm::ErrorInfo<TupleErrorInfo<Args...>> {
   using Tuple = decltype(std::make_tuple(std::declval<Args>()...));
 
-  // TMP to prevent elements of temporary reference types (i.e. llvm::ArrayRef,
-  // llvm::StringRef) because the underlying data is likely to go away before
-  // the Error is printed.
-  template <typename T>
-  struct IsTempRef : public std::integral_constant<bool, false> {};
-  template <typename T>
-  struct IsTempRef<llvm::ArrayRef<T>>
-      : public std::integral_constant<bool, true> {};
-  template <>
-  struct IsTempRef<llvm::StringRef>
-      : public std::integral_constant<bool, true> {};
   template <bool...>
   struct BoolPack;
   template <bool... Bs>
   using AllFalse = std::is_same<BoolPack<Bs..., false>, BoolPack<false, Bs...>>;
-  static_assert(AllFalse<IsTempRef<std::decay_t<Args>>::value...>::value,
-                "Argument types should not be temporary references.");
+  static_assert(
+      AllFalse<internal::IsTempRef<std::decay_t<Args>>::value...>::value,
+      "Argument types should not be temporary references.");
 
  public:
   // Required field for all ErrorInfo derivatives.

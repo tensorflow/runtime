@@ -105,7 +105,7 @@ class LoggingOpHandler : public OpHandler {
     auto op_handler = std::make_unique<LoggingOpHandler>(
         runtime, fallback, sync_log_results, std::move(tensor_dump_prefix_str),
         std::move(metadata_ostream));
-    return op_handler;
+    return std::move(op_handler);
   }
 
   explicit LoggingOpHandler(

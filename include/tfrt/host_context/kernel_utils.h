@@ -418,8 +418,8 @@ template <typename Return, typename... Args, Return (*impl_fn)(Args...)>
 struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // This is the main entry point that gets registered as a kernel.
   static void Invoke(KernelFrame* frame) {
-    SyncKernelCallHelper<Args...>::template Invoke<0, 0, 0, false, false>(
-        frame);
+    SyncKernelCallHelper<Args..., TypeTag<int>>::template Invoke<0, 0, 0, false,
+                                                                 false>(frame);
   }
 
  private:
@@ -924,8 +924,10 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   };
 
   // Base case: No arguments left.
-  template <>
-  struct SyncKernelCallHelper<> {
+  // TypeTag<T> is a dummy template parameter to work around the restriction
+  // of GCC that fully specialized template is not allowed in a template class.
+  template <typename T>
+  struct SyncKernelCallHelper<TypeTag<T>> {
     // Verify the result index for non-void Return type
     template <typename ReturnT, int out_idx>
     struct AssertIndex {

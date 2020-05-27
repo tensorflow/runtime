@@ -213,12 +213,18 @@ class AsyncOpDispatcher {
 
   template <typename InputTensorTy>
   static InputTensorTy* GetInputTensor(const RCReference<AsyncValue>& arg) {
-    return &arg->get<InputTensorTy>();
+    return GetInputTensorHelper(arg, TypeTag<InputTensorTy>());
   }
 
-  template <>
-  static AsyncValue* GetInputTensor(const RCReference<AsyncValue>& arg) {
+  static AsyncValue* GetInputTensorHelper(const RCReference<AsyncValue>& arg,
+                                          TypeTag<AsyncValue>) {
     return arg.get();
+  }
+
+  template <typename InputTensorTy>
+  static InputTensorTy* GetInputTensorHelper(const RCReference<AsyncValue>& arg,
+                                             TypeTag<InputTensorTy>) {
+    return &arg->get<InputTensorTy>();
   }
 
   ExecutionContext exec_ctx_;

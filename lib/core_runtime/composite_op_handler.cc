@@ -111,7 +111,7 @@ Expected<CoreRuntimeOp> CompositeOpHandler::MakeOp(string_view op_name) {
         FunctionOpEntry op_entry{.metadata_fn = metadata_fn,
                                  .dispatch_fn = dispatch_fn.CopyRef(),
                                  .op_name = op_name_view};
-        return ExecuteOnOpHandler<FunctionOpHandlerTraits>(
+        ExecuteOnOpHandler<FunctionOpHandlerTraits>(
             /*update_chain=*/false, invocation, std::move(op_entry));
       });
 }

@@ -31,6 +31,9 @@ namespace tfrt {
 namespace tracing {
 
 namespace {
+
+const auto kProcessStart = std::chrono::steady_clock::now();
+
 class TracingStorage {
   using Time = std::chrono::steady_clock::time_point;
 
@@ -91,14 +94,10 @@ class TracingStorage {
  private:
   static Time Now() { return std::chrono::steady_clock::now(); }
 
-  static const Time kProcessStart;
-
   llvm::SmallVector<std::tuple<std::string, Time>, 16> stack_;
   llvm::SmallVector<Activity, kMaxEntries> activities_;
 };
 }  // namespace
-
-const auto TracingStorage::kProcessStart = TracingStorage::Now();
 
 static TracingStorage& GetTracingStorage() {
   static thread_local TracingStorage tracing_storage;

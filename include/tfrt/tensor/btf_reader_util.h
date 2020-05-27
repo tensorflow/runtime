@@ -127,7 +127,10 @@ Expected<typename ParseTensorTraits::TensorTy> ReadTensorFromBTFHelper(
   }
 
   if (tensor_header.rank != ParseTensorTraits::kRank) {
-    return MakeStringError("unexpected tensor rank ", tensor_header.rank,
+    // statically casting to uint64_t to work around GCC complaint of not able
+    // to bind packed field 'btf::TensorHeader::rank' to 'long unsigned int&'
+    return MakeStringError("unexpected tensor rank ",
+                           static_cast<uint64_t>(tensor_header.rank),
                            ". Expected rank is ", ParseTensorTraits::kRank);
   }
 

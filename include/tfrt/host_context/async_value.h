@@ -669,7 +669,7 @@ template <typename T>
 const T& AsyncValue::GetConcreteValue() const {
   // Make sure both T (the stored type) and BaseT have vtable_ptr or
   // neither have the vtable_ptr.
-  assert(std::is_polymorphic_v<T> == has_vtable_);
+  assert(std::is_polymorphic<T>::value == has_vtable_);
   assert(IsTypeIdCompatible<T>() && "Incorrect accessor");
 
   const char* this_ptr = reinterpret_cast<const char*>(this);

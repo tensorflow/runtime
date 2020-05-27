@@ -41,11 +41,8 @@ void CoreRuntimeOp::operator()(const ExecutionContext& exec_ctx,
                                AsyncValueRef<Chain>* chain) {
   // TODO(fishx): Consider removing op_name from OpInvocation after migrating
   // all clients to Prepare API.
-  OpInvocation invocation{.exec_ctx = exec_ctx,
-                          .arguments = arguments,
-                          .attrs = attrs,
-                          .results = results,
-                          .chain = chain};
+  OpInvocation invocation{string_view{}, exec_ctx, arguments,
+                          attrs,         results,  chain};
   fn_(invocation);
 }
 

@@ -158,7 +158,7 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
   // with our registry.
   RegisterStaticKernels(runtime->GetHostContext()->GetRegistry());
 
-  if (op_handler_chains.empty()) return runtime;
+  if (op_handler_chains.empty()) std::move(runtime);
 
   OpHandlerRegistry op_handler_registry;
   const auto& factory = OpHandlerFactory::GetGlobalOpHandlerFactory();
@@ -232,7 +232,7 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
 
   runtime->impl_->SetOpHandlerRegistry(std::move(op_handler_registry));
 
-  return runtime;
+  return std::move(runtime);
 }
 
 CoreRuntime::CoreRuntime(

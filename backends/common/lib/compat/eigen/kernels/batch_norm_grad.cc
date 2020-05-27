@@ -77,7 +77,7 @@ static void BatchNormGrad(
   const FixedRankShape<4>& input_grad_shape = input_grad->FixedShape();
 
   const auto depth = input_grad_shape[3];  // num channels
-  const auto channels_shape = TensorShape({depth});
+  const auto channels_shape = TensorShape{depth};
 
   TFRT_RETURN_IF_ERROR(
       handler, CheckShapeMatch("channels dimension size", channels_shape,

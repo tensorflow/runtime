@@ -47,6 +47,7 @@ class Tensor {
 
     DenseGpu,           // This is a DenseGpuTensor
     TFRuntimeFallback,  // This is a TFRuntimeFallbackTensor
+    TFKernelFallback,   // This is a TFKernelFallbackTensor
     TFLiteHost,         // This is a TfLiteHostTensor
     DenseTpu,           // This is a DenseTpuTensor
   };

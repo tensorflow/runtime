@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- data_kernels.cc ----------------------------------------------------===//
+//===- data_ops.cc --------------------------------------------------------===//
 //
 // This file implements MLIR operation functions for the data library.
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/data/opdefs/data_kernels.h"
+#include "tfrt/data/opdefs/data_ops.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Function.h"
@@ -41,29 +41,8 @@ DataDialect::DataDialect(MLIRContext *context)
 
   addOperations<
 #define GET_OP_LIST
-#include "tfrt/data/opdefs/data_kernels_opdefs.cpp.inc"
+#include "tfrt/data/opdefs/data_ops_opdefs.cpp.inc"
       >();
-}
-
-// Verify that the specified region contains a hex.return operation with the
-// specified type list and emit an error if not.
-template <typename ResultTypeContainer>
-static LogicalResult checkHexReturn(Operation *op, Region *region,
-                                    ResultTypeContainer result_types) {
-  assert(std::distance(region->begin(), region->end()) == 1 &&
-         "verifier should already check region size");
-  auto *block = &region->front();
-
-  if (block->empty() || block->back().getName().getStringRef() != "hex.return")
-    return op->emitOpError("expected hex.return in body");
-
-  if (!std::equal(block->back().getOperandTypes().begin(),
-                  block->back().getOperandTypes().end(), result_types.begin(),
-                  result_types.end()))
-    return block->back().emitOpError()
-           << "operand types don't match '" << op->getName() << "' result";
-
-  return success();
 }
 
 //===----------------------------------------------------------------------===//
@@ -71,7 +50,7 @@ static LogicalResult checkHexReturn(Operation *op, Region *region,
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "tfrt/data/opdefs/data_kernels_opdefs.cpp.inc"
+#include "tfrt/data/opdefs/data_ops_opdefs.cpp.inc"
 
 }  // namespace data
 }  // namespace tfrt

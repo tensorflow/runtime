@@ -641,15 +641,15 @@ gentbl(
     tbl_outs = [
         (
             "-gen-op-decls",
-            "include/tfrt/data/opdefs/data_kernels.h.inc",
+            "include/tfrt/data/opdefs/data_ops.h.inc",
         ),
         (
             "-gen-op-defs",
-            "include/tfrt/data/opdefs/data_kernels_opdefs.cpp.inc",
+            "include/tfrt/data/opdefs/data_ops_opdefs.cpp.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/data/opdefs/data_kernels.td",
+    td_file = "include/tfrt/data/opdefs/data_ops.td",
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
@@ -659,10 +659,10 @@ gentbl(
 tfrt_cc_library(
     name = "data_opdefs",
     srcs = [
-        "lib/data/opdefs/data_kernels.cc",
+        "lib/data/opdefs/data_ops.cc",
     ],
     hdrs = [
-        "include/tfrt/data/opdefs/data_kernels.h",
+        "include/tfrt/data/opdefs/data_ops.h",
     ],
     alwayslink_static_registration_src = "lib/data/opdefs/static_registration.cc",
     deps = [

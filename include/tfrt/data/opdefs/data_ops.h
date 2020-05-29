@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//===- data_kernels.h -------------------------------------------*- C++ -*-===//
+//===- data_ops.h -----------------------------------------------*- C++ -*-===//
 //
 // MLIR opdefs for data library.
 //
@@ -23,8 +23,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_DATA_OPDEFS_DATA_KERNELS_H_
-#define TFRT_DATA_OPDEFS_DATA_KERNELS_H_
+#ifndef TFRT_DATA_OPDEFS_DATA_OPS_H_
+#define TFRT_DATA_OPDEFS_DATA_OPS_H_
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
@@ -42,9 +42,9 @@ class DataDialect : public Dialect {
 };
 
 #define GET_OP_CLASSES
-#include "tfrt/data/opdefs/data_kernels.h.inc"
+#include "tfrt/data/opdefs/data_ops.h.inc"
 
 }  // namespace data
 }  // namespace tfrt
 
-#endif  // TFRT_DATA_OPDEFS_DATA_KERNELS_H_
+#endif  // TFRT_DATA_OPDEFS_DATA_OPS_H_

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- data_kernels.td ----------------------------------------------------===//
+//===- data_ops.td --------------------------------------------------------===//
 //
-// Operation definitions for data_kernels.
+// Operation definitions for data_ops.
 //
 //===----------------------------------------------------------------------===//
 
@@ -37,6 +37,9 @@ def Data_Dialect : Dialect {
   let cppNamespace = "data";
 }
 
+// Type definition.
+def DatasetType: OpaqueType<"hex", "dataset", "!hex.dataset type">;
+
 // Base class for Data dialect ops.
 class Data_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<Data_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
@@ -44,9 +47,51 @@ class Data_Op<string mnemonic, list<OpTrait> traits = []> :
   // Each registered op in the Data namespace needs to provide all of a printer,
   // parser and verifier.
   let printer = [{ return tfrt::data::print(p, *this); }];
-  let verifier = [{ return tfrt::data::verify(*this); }];
   let parser = [{ return tfrt::data::parse$cppClass(parser, result); }];
 }
 
+def RangeDatasetI32Op : Data_Op<"range_dataset.i32"> {
+  let summary = "data range_dataset.i32 operation";
+  let description = [{
+    data.range_dataset.i32 yields a step-separated range of i32 values from
+    start (inclusive) to stop (exclusive).
+
+    Example:
+      %dataset = data.range_dataset.i32 %start, %stop, %step
+  }];
+
+  let arguments = (ins
+     I32:$start,
+     I32:$stop,
+     I32:$step
+  );
+  let results = (outs
+     DatasetType:$handle
+  );
+
+  let assemblyFormat = "operands attr-dict";
+}
+
+def RangeDatasetI64Op : Data_Op<"range_dataset.i64"> {
+  let summary = "data range_dataset.i64 operation";
+  let description = [{
+    data.range_dataset.i64 yields a step-separated range of i64 values from
+    start (inclusive) to stop (exclusive).
+
+    Example:
+      %dataset = data.range_dataset.i64 %start, %stop, %step
+  }];
+
+  let arguments = (ins
+     I64:$start,
+     I64:$stop,
+     I64:$step
+  );
+  let results = (outs
+     DatasetType:$handle
+  );
+
+  let assemblyFormat = "operands attr-dict";
+}
 
 #endif  // DATA_OPS

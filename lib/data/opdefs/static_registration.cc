@@ -20,7 +20,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/data/opdefs/data_kernels.h"
+#include "tfrt/data/opdefs/data_ops.h"
 
 namespace tfrt {
 namespace data {

@@ -79,7 +79,8 @@ RCReference<SliceDataset<DenseHostTensor>> MakeDatasetFromValues(
 // Create a dataset that yields the specified range.
 template <typename T>
 RCReference<RangeDataset<T>> MakeRangeDataset(
-    T start, T stop, T step, const ExecutionContext& exec_ctx) {
+    int64_t start, int64_t stop, int64_t step,
+    const ExecutionContext& exec_ctx) {
   assert(step != 0 && "step size cannot be 0");
   return TakeRef(exec_ctx.host()->Construct<RangeDataset<T>>(start, stop, step,
                                                              exec_ctx.host()));

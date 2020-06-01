@@ -38,7 +38,8 @@ class RangeDatasetIterator;
 template <typename T>
 class RangeDataset : public Dataset {
  public:
-  explicit RangeDataset(T start, T stop, T step, HostContext* host)
+  explicit RangeDataset(int64_t start, int64_t stop, int64_t step,
+                        HostContext* host)
       : start_(start),
         stop_(stop),
         step_(step),
@@ -58,9 +59,9 @@ class RangeDataset : public Dataset {
     internal::DestroyImpl<RangeDataset<T>>(this, allocator_);
   }
 
-  const T start_;
-  const T stop_;
-  const T step_;
+  const int64_t start_;
+  const int64_t stop_;
+  const int64_t step_;
   HostContext* host_;
   HostAllocator* allocator_;
 };
@@ -84,7 +85,8 @@ class RangeDatasetIterator : public Iterator {
     }
 
     SmallVector<RCReference<AsyncValue>, 4> values;
-    values.push_back(host->MakeAvailableAsyncValueRef<T>(next_));
+    values.push_back(
+        host->MakeAvailableAsyncValueRef<T>(static_cast<T>(next_)));
 
     next_ += dataset_->step_;
 
@@ -97,7 +99,7 @@ class RangeDatasetIterator : public Iterator {
   }
 
   RCReference<RangeDataset<T>> dataset_;
-  T next_;
+  int64_t next_;
 };
 
 template <typename T>

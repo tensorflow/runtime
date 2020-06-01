@@ -50,36 +50,15 @@ class Data_Op<string mnemonic, list<OpTrait> traits = []> :
   let parser = [{ return tfrt::data::parse$cppClass(parser, result); }];
 }
 
-def RangeDatasetI32Op : Data_Op<"range_dataset.i32"> {
-  let summary = "data range_dataset.i32 operation";
+class RangeDatasetOp<string suffix>
+  : Data_Op<"range_dataset." # suffix> {
+  let summary = "data range_dataset operation";
   let description = [{
-    data.range_dataset.i32 yields a step-separated range of i32 values from
+    data.range_dataset yields a step-separated range of values from
     start (inclusive) to stop (exclusive).
 
     Example:
       %dataset = data.range_dataset.i32 %start, %stop, %step
-  }];
-
-  let arguments = (ins
-     I32:$start,
-     I32:$stop,
-     I32:$step
-  );
-  let results = (outs
-     DatasetType:$handle
-  );
-
-  let assemblyFormat = "operands attr-dict";
-}
-
-def RangeDatasetI64Op : Data_Op<"range_dataset.i64"> {
-  let summary = "data range_dataset.i64 operation";
-  let description = [{
-    data.range_dataset.i64 yields a step-separated range of i64 values from
-    start (inclusive) to stop (exclusive).
-
-    Example:
-      %dataset = data.range_dataset.i64 %start, %stop, %step
   }];
 
   let arguments = (ins
@@ -93,5 +72,8 @@ def RangeDatasetI64Op : Data_Op<"range_dataset.i64"> {
 
   let assemblyFormat = "operands attr-dict";
 }
+
+def RangeDatasetI32Op : RangeDatasetOp<"i32">;
+def RangeDatasetI64Op : RangeDatasetOp<"i64">;
 
 #endif  // DATA_OPS

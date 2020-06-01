@@ -241,6 +241,12 @@ class WorkQueueBase {
   // from a thread managed by the current worker queue.
   void CheckCallerThread(const char* function_name) const;
 
+  // Returns true if the caller thread is managed by this work queue.
+  bool IsInWorkerThread() const {
+    PerThread* per_thread = GetPerThread();
+    return per_thread->parent == &derived_;
+  }
+
   // Stop all threads managed by this work queue.
   void Cancel();
 

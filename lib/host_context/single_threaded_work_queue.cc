@@ -18,6 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include <atomic>
 #include <vector>
 
 #include "llvm/ADT/ArrayRef.h"
@@ -35,7 +36,7 @@ namespace {
 // thread when it gets donated.
 class SingleThreadedWorkQueue : public ConcurrentWorkQueue {
  public:
-  SingleThreadedWorkQueue() {}
+  SingleThreadedWorkQueue() : is_in_task_(false) {}
 
   std::string name() const override { return "single-threaded"; }
 
@@ -46,7 +47,22 @@ class SingleThreadedWorkQueue : public ConcurrentWorkQueue {
   void Await(ArrayRef<RCReference<AsyncValue>> values) override;
   int GetParallelismLevel() const override { return 1; }
 
+  // Given that this implementation does not spawn any threads to execute the
+  // tasks it makes sense to always return `false`. However if the client uses
+  // this function to check if the submitted work runs on a separate thread, to
+  // decide if it is safe to do a blocking wait (e.g. on a latch), then by
+  // returning false we are at risk of a dead lock.
+  bool IsInWorkerThread() const override {
+    return is_in_task_.load(std::memory_order_relaxed);
+  }
+
  private:
+  void Execute(TaskFunction work) {
+    is_in_task_ = true;
+    work();
+    is_in_task_ = false;
+  }
+
   // Current implementation uses a single mutex and condition_variable
   // for all calls to Await(). This is sub-optimal when there are many
   // outstanding calls to Await(). A more efficient, but more complex,
@@ -55,6 +71,7 @@ class SingleThreadedWorkQueue : public ConcurrentWorkQueue {
   mutable mutex mu_;
   condition_variable cv_;
   std::vector<TaskFunction> work_items_ TFRT_GUARDED_BY(mu_);
+  std::atomic<bool> is_in_task_;
 };
 }  // namespace
 
@@ -100,7 +117,7 @@ void SingleThreadedWorkQueue::Quiesce() {
       std::swap(local_work_items, work_items_);
     }
     for (auto& item : local_work_items) {
-      item();
+      Execute(std::move(item));
     }
     local_work_items.clear();
   }
@@ -161,7 +178,7 @@ void SingleThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
     }
 
     // Run the next work item.
-    local_work_items[next_work_item_index]();
+    Execute(std::move(local_work_items[next_work_item_index]));
 
     // Move on to the next item.
     ++next_work_item_index;

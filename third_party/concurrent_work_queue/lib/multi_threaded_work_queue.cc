@@ -44,6 +44,8 @@ class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
   void Quiesce() final;
   void Await(ArrayRef<RCReference<AsyncValue>> values) final;
 
+  bool IsInWorkerThread() const final;
+
  private:
   const int num_threads_;
 
@@ -126,6 +128,10 @@ void MultiThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
 
   // Wait until all values are resolved.
   values_remaining.wait();
+}
+
+bool MultiThreadedWorkQueue::IsInWorkerThread() const {
+  return non_blocking_work_queue_.IsInWorkerThread();
 }
 
 std::unique_ptr<ConcurrentWorkQueue> CreateMultiThreadedWorkQueue(

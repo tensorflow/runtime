@@ -113,6 +113,10 @@ class ConcurrentWorkQueue {
   // TODO(clattner): this is a terrible name.
   virtual int GetParallelismLevel() const = 0;
 
+  // Returns true if the caller thread is one of the worker threads managed by
+  // this work queue. Returns true only for threads executing compute tasks.
+  virtual bool IsInWorkerThread() const = 0;
+
   ConcurrentWorkQueue() = default;
 
  private:

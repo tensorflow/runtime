@@ -203,12 +203,33 @@ class HostContext {
   LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(F&& work);
 
   // Add some blocking work to the work_queue managed by this CPU device.
+  //
+  // Work is allowed to be added to the queue and executed later on any thread
+  // managed by the work queue. If the work depends on the completion of other
+  // work enqueued into the same work_queue, it can lead to a dead lock. For
+  // this type of work RunBlockingWork should be used.
+  //
+  // Returns false if the work queue is full and can't accept new work.
   LLVM_NODISCARD bool EnqueueBlockingWork(llvm::unique_function<void()> work);
+
+  // Runs blocking work on a work_queue managed by this CPU device.
+  //
+  // Work is guaranteed to be started immediately on one of the threads managed
+  // by the work queue without queuing.
+  //
+  // Returns false if the work queue can't assign a thread to a work item, thus
+  // can't guarantee that it will start executing.
+  LLVM_NODISCARD bool RunBlockingWork(llvm::unique_function<void()> work);
 
   // Add some blocking work to the work_queue managed by this CPU device.
   template <typename F, typename R = ResultTypeT<F>,
             std::enable_if_t<!std::is_void<R>(), int> = 0>
   LLVM_NODISCARD AsyncValueRef<R> EnqueueBlockingWork(F&& work);
+
+  // Runs blocking work on a work_queue managed by this CPU device.
+  template <typename F, typename R = ResultTypeT<F>,
+            std::enable_if_t<!std::is_void<R>(), int> = 0>
+  LLVM_NODISCARD AsyncValueRef<R> RunBlockingWork(F&& work);
 
   // Returns the number of worker threads in the work_queue managed by this CPU
   // device. This does not include any additional threads that might have been
@@ -338,6 +359,20 @@ AsyncValueRef<R> HostContext::EnqueueBlockingWork(F&& work) {
   }
   return result;
 }
+
+template <typename F, typename R, std::enable_if_t<!std::is_void<R>(), int>>
+AsyncValueRef<R> HostContext::RunBlockingWork(F&& work) {
+  auto result = this->MakeUnconstructedAsyncValueRef<R>();
+  bool enqueued = this->RunBlockingWork(
+      [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
+        result.emplace(work());
+      });
+  if (!enqueued) {
+    result.SetError("Failed to run blocking work.");
+  }
+  return result;
+}
+
 }  // namespace tfrt
 
 #endif  // TFRT_HOST_CONTEXT_HOST_CONTEXT_H_

@@ -160,6 +160,13 @@ bool HostContext::EnqueueBlockingWork(llvm::unique_function<void()> work) {
   return !task.hasValue();
 }
 
+// Runs blocking work on a work_queue managed by this CPU device.
+bool HostContext::RunBlockingWork(llvm::unique_function<void()> work) {
+  Optional<TaskFunction> task = work_queue_->AddBlockingTask(
+      TaskFunction(std::move(work)), /*allow_queuing=*/false);
+  return !task.hasValue();
+}
+
 int HostContext::GetNumWorkerThreads() const {
   return work_queue_->GetParallelismLevel();
 }

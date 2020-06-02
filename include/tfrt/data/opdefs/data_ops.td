@@ -58,7 +58,7 @@ class RangeDatasetOp<string suffix>
     start (inclusive) to stop (exclusive).
 
     Example:
-      %dataset = data.range_dataset.i32 %start, %stop, %step
+      %dataset = data.range_dataset.i32 (%start, %stop, %step)
   }];
 
   let arguments = (ins
@@ -70,10 +70,39 @@ class RangeDatasetOp<string suffix>
      DatasetType:$handle
   );
 
-  let assemblyFormat = "operands attr-dict";
+  let assemblyFormat = "`(`operands`)` attr-dict";
 }
 
 def RangeDatasetI32Op : RangeDatasetOp<"i32">;
 def RangeDatasetI64Op : RangeDatasetOp<"i64">;
+
+// TODO(rachelim): Add verification to map functions.
+def MapDatasetOp : Data_Op<"map_dataset"> {
+  let summary = "data make_dataset operation";
+  let description = [{
+    data.map_dataset maps a user-defined function over the elements in its
+    input dataset.
+
+    Example:
+      %dataset1 = data.range_dataset.i32 (%start, %stop, %step)
+      %dataset2 = data.map_dataset (%dataset1) {function = @times_two}
+  }];
+
+  let arguments = (ins
+    DatasetType:$input_dataset,
+    Variadic<AnyType>:$other_arguments,
+
+    FlatSymbolRefAttr:$function
+  );
+
+  let results = (outs
+    DatasetType:$handle
+  );
+
+  let assemblyFormat = [{
+    `(`$input_dataset (`,` $other_arguments^ `:` type($other_arguments))?`)`
+    attr-dict
+  }];
+}
 
 #endif  // DATA_OPS

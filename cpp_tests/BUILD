@@ -95,6 +95,17 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "support/thread_local_test",
+    srcs = [
+        "support/thread_local_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "core_runtime/driver_test",
     srcs = [
         "core_runtime/driver.cc",

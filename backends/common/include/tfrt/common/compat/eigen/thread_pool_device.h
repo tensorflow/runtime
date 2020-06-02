@@ -31,6 +31,7 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/shared_context.h"
+#include "tfrt/support/thread_local.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
 
@@ -66,7 +67,8 @@ class EigenHostContext : public SharedContext {
   class EigenHostContextThreadPool : public Eigen::ThreadPoolInterface {
    public:
     explicit EigenHostContextThreadPool(HostContext* host_context)
-        : host_context_(host_context) {}
+        : host_context_(host_context),
+          thread_id_(ThreadId::Capacity(host_context->GetNumWorkerThreads())) {}
 
     // Submits a closure to be run by a thread in the pool.
     void Schedule(std::function<void()> fn) override {
@@ -78,15 +80,23 @@ class EigenHostContext : public SharedContext {
       return host_context_->GetNumWorkerThreads();
     }
 
-    // Eigen expressions that are using this thread pool must not rely on
-    // CurrentThreadId(), and should use Eigen::ThreadLocal instead.
     int CurrentThreadId() const override {
-      assert(false && "CurrentThreadId is not supported by HostContext");
-      return -1;
+      if (!host_context_->IsInWorkerThread()) return -1;
+      return thread_id_.Local();
     }
 
    private:
+    struct ThreadIdGenerator {
+      int Construct() { return thread_id.fetch_add(1); }
+      std::atomic<int> thread_id{0};
+    };
+
+    // ThreadId assigns unique sequential id to each thread that accesses this
+    // thread pool (worker thread rank).
+    using ThreadId = ThreadLocal<int, ThreadIdGenerator>;
+
     HostContext* const host_context_;  // Must outlive *this.
+    mutable ThreadId thread_id_;
   };
 
   HostContext* host_context_;

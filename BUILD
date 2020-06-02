@@ -110,6 +110,7 @@ tfrt_cc_library(
         "include/tfrt/support/string_util.h",
         "include/tfrt/support/template_util.h",
         "include/tfrt/support/thread_annotations.h",
+        "include/tfrt/support/thread_local.h",
         "include/tfrt/support/type_traits.h",
     ] + select({
         "//conditions:default": ["include/tfrt/support/std_mutex.h"],

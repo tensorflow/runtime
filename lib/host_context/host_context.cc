@@ -171,6 +171,10 @@ int HostContext::GetNumWorkerThreads() const {
   return work_queue_->GetParallelismLevel();
 }
 
+bool HostContext::IsInWorkerThread() const {
+  return work_queue_->IsInWorkerThread();
+}
+
 // Run the specified function when the specified set of AsyncValue's are all
 // resolved.  This is a set-version of "AndThen".
 void HostContext::RunWhenReady(ArrayRef<AsyncValue*> values,

@@ -236,6 +236,10 @@ class HostContext {
   // created to handle blocking work (enqueued by EnqueueBlockingWork).
   int GetNumWorkerThreads() const;
 
+  // Returns true if the caller thread is one of the work queue threads managed
+  // by this context. Returns true only for threads executing non-blocking work.
+  bool IsInWorkerThread() const;
+
   // Run the specified function when the specified set of AsyncValue's are all
   // resolved.  This is a set-version of "AndThen".
   void RunWhenReady(ArrayRef<AsyncValue*> values,

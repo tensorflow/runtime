@@ -55,8 +55,10 @@ TEST(HostContextTest, RunBlockingWork) {
   for (int i = 0; i < 10; ++i) {
     bool submitted = host->RunBlockingWork([&]() {
       start.wait();
-      mutex_lock lock(mu);
-      threads.insert(std::this_thread::get_id());
+      {
+        mutex_lock lock(mu);
+        threads.insert(std::this_thread::get_id());
+      }
       done.count_down();
     });
     ASSERT_TRUE(submitted);

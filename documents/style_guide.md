@@ -94,6 +94,80 @@ GPUOpHandler
 
 TODO(pgavin): incorporate contents from pgavin@ Google doc.
 
+## Pass efficiently movable types by value
+
+When a function needs to sink a parameter (e.g. storing the parameter in an
+object, as opposed to just using the parameter), we prefer using pass by value
+over pass by rvalue reference for the parameter, if the parameter is an
+efficiently movable type.
+
+``` {.good}
+class Foo {
+ public:
+  // The parameter `bar` is stored internally in the constructor and is
+  // efficiently movable, so we pass `bar` by value.
+  explicit Foo(std::string bar) : bar_{std::move(bar)} {}
+
+ private:
+  std::string bar_;
+};
+```
+
+instead of,
+
+``` {.bad}
+class Foo {
+ public:
+  // Bad exmample. We prefer not to pass `bar` using rvalue reference.
+  explicit Foo(std::string&& bar) : bar_{std::move(bar)} {}
+
+ private:
+  std::string bar_;
+};
+
+class Bar {
+ public:
+  // Bad exmample. std::array<int, 100000> is a movable type, but it is
+  // inefficient to move, so we should not pass it by value. We should pass it
+  // by const reference instead.
+  explicit Bar(std::array<int, 100000> arr) : arr_{arr} {}
+
+ private:
+  std::array<int, 100000> arr_;
+};
+```
+
+Pass-by-value is preferred because:
+
+*   The code is less cluttered.
+*   For copyable types, it handles both lvalue and rvalue as the argument value.
+
+``` {.bad}
+class Foo {
+ public:
+  explicit Foo(std::string&& bar) : bar_{std::move(bar)} {}
+
+ private:
+  std::string bar_;
+};
+
+void ClientCode(const std::string& s) {
+  // This will not work as the constructor for foo only takes an
+  // rvalue reference.
+  Foo foo(s);
+  // ...
+}
+```
+
+Note that using the rvalue reference sometimes gives better performance, but as
+always, make sure you have evidence that it helps before writing more
+complicated code for the sake of performance.
+
+Please see
+[Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html#Rvalue_references)
+for a detailed discussion on using pass-by-value vs rvalue reference for
+function parameters.
+
 ## Tags for the future work
 
 Use `TODO` to tag code that is temporary or a short-term solution. Tasks marked

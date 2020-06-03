@@ -459,8 +459,8 @@ in bef_encoding.h.
   SPECIAL_ATTRIBUTE       ::= BYTE
 ```
 
-TODO(tf-runtime-team): Remove the special_attribute byte and update
-`tfrt_translate` since we record special attributes in non-optional sections.
+TODO(tfrt-devs): Remove the special_attribute byte and update `tfrt_translate`
+since we record special attributes in non-optional sections.
 
 The AttributeNames sections is an optional secton which is not needed for BEF
 execution, but this section is necessary for bef-to-mlir conversion. This

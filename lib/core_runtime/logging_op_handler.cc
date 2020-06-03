@@ -50,14 +50,14 @@ void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
   auto element_size = dht.dtype().GetHostSize();
   auto *data_ptr = static_cast<const char *>(dht.data());
 
-  // TODO(tf-runtime-team): Dump to BTF format once we have BTF reader/writer
+  // TODO(tfrt-devs): Dump to BTF format once we have BTF reader/writer
   // implemented in C++.
   // This tensor dump can be loaded into numpy and reshaped.
   // t = np.genfromtxt(tensor_filename, delimiter=",")
   // t = t.reshape(original_shape)
   for (ssize_t i = 0, e = dht.NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";
-    // TODO(tf-runtime-team): llvm::raw_stream only prints to 6 decimal
+    // TODO(tfrt-devs): llvm::raw_stream only prints to 6 decimal
     // places. Need to print full-precision.
     dht.dtype().Print(data_ptr + i * element_size, os);
   }
@@ -72,7 +72,7 @@ void FlattenTensorAndDumpToOStream(const StringHostTensor &sht,
   }
 }
 
-// TODO(tf-runtime-team): Rename it.
+// TODO(tfrt-devs): Rename it.
 class LoggingOpHandler : public OpHandler {
  public:
   static llvm::Expected<std::unique_ptr<LoggingOpHandler>> Create(
@@ -241,7 +241,7 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
   return CoreRuntimeOp([this, op_name = op_name.str(),
                         fallback_handle = std::move(fallback_handle.get())](
                            const OpInvocation &invocation) mutable {
-    // TODO(tf-runtime-team): Make this class thread safe.
+    // TODO(tfrt-devs): Make this class thread safe.
     auto id_number = log_counter_.fetch_add(1);
 
     // Used to make logging messages more grammatical.

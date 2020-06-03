@@ -384,7 +384,7 @@ bool BEFFileReader::ReadFunctionIndexSection() {
     if (*name)
       bef_file_->function_symbol_table_[name] = bef_file_->functions_.size();
 
-    // TODO(tf-runtime-team): Consider adding a factory for functions.
+    // TODO(tfrt-devs): Consider adding a factory for functions.
     switch (function_index.kind) {
       case FunctionKind::kBEFFunction: {
         if (function_index.function_offset >=

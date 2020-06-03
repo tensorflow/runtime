@@ -69,7 +69,7 @@ DType ConvertBEFAttributeTypeToTensorDType(BEFAttributeType kind) {
 
 }  // namespace
 
-// TODO(tf-runtime-team): Consider creating a custom buffer with 8-byte
+// TODO(tfrt-devs): Consider creating a custom buffer with 8-byte
 // alignment for the tensor data instead of using std::vector<uint64_t>.
 std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
     const DenseHostTensor& dht) {

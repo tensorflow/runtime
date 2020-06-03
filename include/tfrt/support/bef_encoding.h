@@ -163,7 +163,7 @@ enum {
 // BEFDataType defines the data types supported in BEF. Note that the enum
 // values here should be kept consistent with BEFAttributeType.
 //
-// TODO(tf-runtime-team): Consider having a single centralized definition for
+// TODO(tfrt-devs): Consider having a single centralized definition for
 // all data types supported by TFRT.
 enum class BEFDataType : uint8_t {
   kUnsupported,
@@ -181,7 +181,7 @@ enum class BEFDataType : uint8_t {
 
 // This enum defines the attribute type.
 enum class BEFAttributeType : uint16_t {
-  // TODO(tf-runtime-team): The data types here should be consistent with
+  // TODO(tfrt-devs): The data types here should be consistent with
   // BEFDataType. We need to figure out a way to keep this consistency
   // automatically.
   kUnsupported,
@@ -196,7 +196,7 @@ enum class BEFAttributeType : uint16_t {
   kF64,
   kString,
 
-  // TODO(tf-runtime-team): kString should be also data types.
+  // TODO(tfrt-devs): kString should be also data types.
   kFirstDataType = kBool,
   kLastDataType = kString,
 

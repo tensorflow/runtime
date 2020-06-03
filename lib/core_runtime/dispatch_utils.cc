@@ -71,7 +71,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
   // Okay, the shapes are available as we expect, get the result metadata.
   result_mds.resize(invocation.results.size());
 
-  // TODO(tf-runtime-team): Remove this tracing tag when finished debugging
+  // TODO(tfrt-devs): Remove this tracing tag when finished debugging
   // dispatch performance.
   TFRT_TRACE_SCOPE("RunMetadataFunction");
   if (auto error = metadata_fn(invocation.exec_ctx, argument_mds,

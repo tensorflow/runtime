@@ -148,7 +148,7 @@ class BEFKernel {
     uint32_t num_functions;
     uint32_t num_results;
     // 1 << SpecialAttribute::kNonStrict for non-strict kernel.
-    // TODO(tf-runtime-team): Pack the special_metadata to other fields in
+    // TODO(tfrt-devs): Pack the special_metadata to other fields in
     // kernel header.
     uint32_t special_metadata = 0x0;
   };

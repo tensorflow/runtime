@@ -93,7 +93,7 @@ Expected<TensorMetadata> TfPadOutputShape(
 }
 
 // Guess channel order from two dimensions being the same.
-// TODO(tf-runtime-team): Fix call sites and remove.
+// TODO(tfrt-devs): Fix call sites and remove.
 llvm::Optional<ChannelOrder> GuessChannelOrder(const TensorShape& shape);
 
 }  // namespace tfrt

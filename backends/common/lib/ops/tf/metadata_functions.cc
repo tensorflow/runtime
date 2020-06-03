@@ -260,7 +260,7 @@ TfBatchNormOpMd(const TensorMetadata& input, const TensorMetadata& mean,
       bias.shape != scale.shape)
     return MakeStringError(
         "Mean, variance, bias, and scale are expected to have the same shape");
-  // TODO(tf-runtime-team): Return correct metadata.
+  // TODO(tfrt-devs): Return correct metadata.
   return std::make_tuple(input, TensorMetadata(), TensorMetadata(),
                          TensorMetadata(), TensorMetadata(), TensorMetadata());
 }
@@ -282,7 +282,7 @@ TfFusedBatchNormExOpMd(const TensorMetadata& input, const TensorMetadata& mean,
       bias.shape != scale.shape)
     return MakeStringError(
         "Mean, variance, bias, and scale are expected to have the same shape");
-  // TODO(tf-runtime-team): Return correct metadata.
+  // TODO(tfrt-devs): Return correct metadata.
   return std::make_tuple(input, TensorMetadata(), TensorMetadata(),
                          TensorMetadata(), TensorMetadata(), TensorMetadata());
 }
@@ -338,7 +338,7 @@ static Expected<TensorMetadata> TfPadOpMd(
     const TensorMetadata& input,
     const TensorMetadata& /* paddings input is ignored */,
     const OpAttrsRef& attrs) {
-  // TODO(tf-runtime-team): read paddings from dense host tensor.
+  // TODO(tfrt-devs): read paddings from dense host tensor.
   llvm::SmallVector<int32_t, 8> default_paddings(8, 0);
   auto channel_order = GuessChannelOrder(input.shape);
   if (!channel_order) return MakeStringError("Could not guess channel order.");
@@ -456,7 +456,7 @@ static Expected<TensorMetadata> TfMeanOpMdImpl(
 static Expected<TensorMetadata> TfMeanOpMd(
     const TensorMetadata& input, const TensorMetadata& /* reduction_indices */,
     const OpAttrsRef& attrs) {
-  // TODO(tf-runtime-team): Read reduction_indices from the tensor argument.
+  // TODO(tfrt-devs): Read reduction_indices from the tensor argument.
   auto channel_order = GuessChannelOrder(input.shape);
   if (!channel_order) return MakeStringError("Could not guess channel order.");
   auto spatial_offset = *channel_order == ChannelOrder::ChannelLast ? 1 : 2;

@@ -108,7 +108,7 @@ mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser &parser) const {
 
   if (data == "string") return StringType::get(getContext());
 
-  // TODO(tf-runtime-team): Every type should be properly defined. Remove
+  // TODO(tfrt-devs): Every type should be properly defined. Remove
   // OpaqueType here once all types are defined in corerrt.
   return mlir::OpaqueType::get(mlir::Identifier::get("corert", getContext()),
                                data, getContext());

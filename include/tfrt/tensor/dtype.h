@@ -124,7 +124,7 @@ TFRT_DEFINE_DTYPE_INTERNAL(F16, fp16)
 TFRT_DEFINE_DTYPE_INTERNAL(F32, float)
 TFRT_DEFINE_DTYPE_INTERNAL(F64, double)
 TFRT_DEFINE_DTYPE_INTERNAL(BOOL, bool)
-// TODO(tf-runtime-team): Consider creating a special CPP string type for TFRT.
+// TODO(tfrt-devs): Consider creating a special CPP string type for TFRT.
 TFRT_DEFINE_DTYPE_INTERNAL(String, std::string)
 TFRT_DEFINE_DTYPE_INTERNAL(COMPLEX64,
                            std::complex<float>)  // Single precision complex.

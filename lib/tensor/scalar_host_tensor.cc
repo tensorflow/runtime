@@ -79,7 +79,7 @@ AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
 
   // Fill the DenseHostTensor with the scalar value.  We specialize for a few
   // common sizes here to allow the compiler to specialize for us.
-  // TODO(tf-runtime-team): This could be done in parallel in the background for
+  // TODO(tfrt-devs): This could be done in parallel in the background for
   // large tensors.
   switch (element_size) {
     default:

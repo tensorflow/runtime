@@ -66,7 +66,7 @@ AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
 
   auto& result_tensor = result_alloc.getValue();
 
-  // TODO(tf-runtime-team): This could be done in parallel in the background for
+  // TODO(tfrt-devs): This could be done in parallel in the background for
   // large tensors.  We could also detect when the tensor is full of broadcasted
   // data and convert to ScalarHostTensor.
 

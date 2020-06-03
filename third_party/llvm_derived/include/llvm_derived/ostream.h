@@ -28,7 +28,7 @@
 
 namespace tfrt {
 
-// TODO(tf-runtime-team): Port support for Windows from llvm.
+// TODO(tfrt-devs): Port support for Windows from llvm.
 #ifdef _WIN32
 using raw_fd_ostream = llvm::raw_fd_ostream;
 #else   // !_WIN32

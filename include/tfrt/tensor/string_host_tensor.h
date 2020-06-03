@@ -67,7 +67,7 @@ class StringHostTensor final : public HostTensor {
   }
 
  private:
-  // TODO(tf-runtime-team): Consider making it reference counted.
+  // TODO(tfrt-devs): Consider making it reference counted.
   HostArray<std::string> strings_;
 };
 

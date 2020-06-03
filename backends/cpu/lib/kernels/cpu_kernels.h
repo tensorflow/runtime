@@ -39,7 +39,7 @@ namespace cpu {
 // CPU Add kernels
 //===----------------------------------------------------------------------===//
 
-// TODO(tf-runtime-team): Add should be implemented using eigen kernels.
+// TODO(tfrt-devs): Add should be implemented using eigen kernels.
 // TODO(fishx): Let this kernel support fp16.
 template <typename T>
 AsyncValueRef<HostTensor> Add(const HostTensor& lhs_ref,
@@ -187,7 +187,7 @@ inline void MatMul2DKernel<float>(float alpha, DHTIndexableView<float, 2> A,
   TFRT_MSAN_MEMORY_IS_INITIALIZED(C.data(), C.NumElements() * sizeof(float));
 }
 
-// TODO(tf-runtime-team): Merge this into the matmul kernel interface layer, or
+// TODO(tfrt-devs): Merge this into the matmul kernel interface layer, or
 // expose alpha/beta as attributes.  Either this extensibility is important or
 // it is not, we should pick :-).
 template <typename T>

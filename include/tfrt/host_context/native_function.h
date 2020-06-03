@@ -33,7 +33,7 @@ namespace tfrt {
 // callee is responsible for allocating results if there are any. All results
 // should be set to errors to signal that an error occurred.
 //
-// TODO(tf-runtime-team): Consider removing AsyncValue from this signature so
+// TODO(tfrt-devs): Consider removing AsyncValue from this signature so
 // that external functions do not have to depend on AsyncValue.
 using NativeCallable = void (*)(AsyncValue* const* arguments, int num_arguments,
                                 RCReference<AsyncValue>* results,

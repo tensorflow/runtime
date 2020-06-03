@@ -818,7 +818,7 @@ class BEFEmitter {
     // present.
     EmitInt((section_data.size() << 1) | (has_alignment ? 1 : 0));
 
-    // TODO(tf-runtime-team): In the case where we already happen to be aligned,
+    // TODO(tfrt-devs): In the case where we already happen to be aligned,
     // we could save N bytes of output by noticing that we're already aligned,
     // propagating the alignment to our container, but not emitting the
     // alignment marker or the fill bytes.

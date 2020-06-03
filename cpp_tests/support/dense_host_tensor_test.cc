@@ -55,5 +55,27 @@ TEST(DenseHostTensorTest, FillWithComplex64Type) {
                                DHTArrayView<std::complex<float>>(&dht_b)));
 }
 
+TEST(DenseHostTensorTest, FillWithComplex128Type) {
+  auto host = CreateHostContext();
+
+  auto dht_create_res_a =
+      tfrt::DenseHostTensor::CreateUninitialized<std::complex<double>>(
+          TensorShape({1, 2}), host.get());
+  ASSERT_TRUE(dht_create_res_a.hasValue());
+  DenseHostTensor dht_a(std::move(*dht_create_res_a));
+  MutableDHTArrayView<std::complex<double>> tensor_view_a(&dht_a);
+  tensor_view_a.Fill({1.0, -2.0});
+
+  auto dht_create_res_b =
+      tfrt::DenseHostTensor::CreateUninitialized<std::complex<double>>(
+          TensorShape({1, 2}), host.get());
+  ASSERT_TRUE(dht_create_res_b.hasValue());
+  DenseHostTensor dht_b(std::move(*dht_create_res_b));
+  MutableDHTArrayView<std::complex<double>> tensor_view_b(&dht_b);
+  tensor_view_b.Fill({1.0, -2.0});
+  EXPECT_TRUE(AllElementsClose(DHTArrayView<std::complex<double>>(&dht_a),
+                               DHTArrayView<std::complex<double>>(&dht_b)));
+}
+
 }  // namespace
 }  // namespace tfrt

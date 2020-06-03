@@ -113,6 +113,9 @@ using TypeForDTypeKind = typename TypeForDTypeKindInternal<K>::Type;
 
 // LINT.IfChange
 TFRT_DEFINE_DTYPE_INTERNAL(UI8, uint8_t)
+TFRT_DEFINE_DTYPE_INTERNAL(UI16, uint16_t)
+TFRT_DEFINE_DTYPE_INTERNAL(UI32, uint32_t)
+TFRT_DEFINE_DTYPE_INTERNAL(UI64, uint64_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I8, int8_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I16, int16_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I32, int32_t)
@@ -125,6 +128,8 @@ TFRT_DEFINE_DTYPE_INTERNAL(BOOL, bool)
 TFRT_DEFINE_DTYPE_INTERNAL(String, std::string)
 TFRT_DEFINE_DTYPE_INTERNAL(COMPLEX64,
                            std::complex<float>)  // Single precision complex.
+TFRT_DEFINE_DTYPE_INTERNAL(COMPLEX128,
+                           std::complex<double>)  // Double precision complex.
 // LINT.ThenChange(//depot/tf_runtime/include/tfrt/tensor/dtype.def)
 
 #undef TFRT_DEFINE_DTYPE_INTERNAL

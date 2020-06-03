@@ -208,6 +208,8 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   RegisterDenseHostTensorKernelsForType<bool>(registry, "bool");
   RegisterDenseHostTensorKernelsForType<std::complex<float>>(registry,
                                                              "complex64");
+  RegisterDenseHostTensorKernelsForType<std::complex<double>>(registry,
+                                                              "complex128");
   registry->AddKernel("dht.print_tensor", TFRT_KERNEL(PrintTensor));
   registry->AddKernel("dht.print_tensor_shape",
                       TFRT_KERNEL(PrintDenseTensorShape));

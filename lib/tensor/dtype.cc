@@ -42,6 +42,8 @@ size_t DType::GetHostSize() const {
       return sizeof(TypeForDTypeKind<DType::BOOL>);
     case COMPLEX64:
       return sizeof(TypeForDTypeKind<DType::COMPLEX64>);
+    case COMPLEX128:
+      return sizeof(TypeForDTypeKind<DType::COMPLEX128>);
 #define DTYPE_NUMERIC(ENUM) \
   case ENUM:                \
     return sizeof(TypeForDTypeKind<DType::ENUM>);
@@ -67,6 +69,8 @@ size_t DType::GetHostAlignment() const {
       return alignof(TypeForDTypeKind<DType::BOOL>);
     case COMPLEX64:
       return alignof(TypeForDTypeKind<DType::COMPLEX64>);
+    case COMPLEX128:
+      return alignof(TypeForDTypeKind<DType::COMPLEX128>);
 #define DTYPE_NUMERIC(ENUM) \
   case ENUM:                \
     return alignof(TypeForDTypeKind<DType::ENUM>);
@@ -92,6 +96,15 @@ void DType::Print(const void *data, raw_ostream &os) const {
                 ->real()
          << ","
          << static_cast<const TypeForDTypeKind<DType::COMPLEX64> *>(data)
+                ->imag()
+         << ")";
+      break;
+    case DType::COMPLEX128:
+      os << "("
+         << static_cast<const TypeForDTypeKind<DType::COMPLEX128> *>(data)
+                ->real()
+         << ","
+         << static_cast<const TypeForDTypeKind<DType::COMPLEX128> *>(data)
                 ->imag()
          << ")";
       break;
@@ -123,6 +136,15 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
                 ->real()
          << ","
          << static_cast<const TypeForDTypeKind<DType::COMPLEX64> *>(data)
+                ->imag()
+         << ")";
+      break;
+    case DType::COMPLEX128:
+      os << "("
+         << static_cast<const TypeForDTypeKind<DType::COMPLEX128> *>(data)
+                ->real()
+         << ","
+         << static_cast<const TypeForDTypeKind<DType::COMPLEX128> *>(data)
                 ->imag()
          << ")";
       break;

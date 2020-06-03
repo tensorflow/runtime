@@ -41,6 +41,9 @@ enum class TensorDType : uint8_t {
   kFloat32 = 4,
   kFloat64 = 5,
   kUInt8 = 6,
+  kUInt16 = 7,
+  kUInt32 = 8,
+  kUInt64 = 9,
 };
 
 raw_ostream& operator<<(raw_ostream& os, const TensorDType& dtype);
@@ -53,6 +56,9 @@ constexpr TensorDType GetTensorDType(int64_t) { return TensorDType::kInt64; }
 constexpr TensorDType GetTensorDType(float) { return TensorDType::kFloat32; }
 constexpr TensorDType GetTensorDType(double) { return TensorDType::kFloat64; }
 constexpr TensorDType GetTensorDType(uint8_t) { return TensorDType::kUInt8; }
+constexpr TensorDType GetTensorDType(uint16_t) { return TensorDType::kUInt16; }
+constexpr TensorDType GetTensorDType(uint32_t) { return TensorDType::kUInt32; }
+constexpr TensorDType GetTensorDType(uint64_t) { return TensorDType::kUInt64; }
 
 // This class should be kept in sync with the TensorLayout enum in
 // utils/mnist/btf_writer.py.

@@ -41,6 +41,12 @@ raw_ostream& operator<<(raw_ostream& os, const TensorDType& dtype) {
       return os << "f64";
     case TensorDType::kUInt8:
       return os << "ui8";
+    case TensorDType::kUInt16:
+      return os << "ui16";
+    case TensorDType::kUInt32:
+      return os << "ui32";
+    case TensorDType::kUInt64:
+      return os << "ui64";
   }
   return os << "BadDtype(" << static_cast<uint64_t>(dtype) << ')';
 }

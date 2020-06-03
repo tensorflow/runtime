@@ -668,6 +668,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/data/opdefs/static_registration.cc",
     deps = [
         ":data_opdefs_inc_gen",
+        "@llvm-project//llvm:support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
     ],

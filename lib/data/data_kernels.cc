@@ -403,7 +403,7 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
 
 // This is the entrypoint to the library.
 void RegisterDataKernels(KernelRegistry* registry) {
-  registry->AddKernel("data.make_iterator_from_dataset",
+  registry->AddKernel("data.make_iterator",
                       TFRT_KERNEL(MakeIteratorFromDataset));
   registry->AddKernel("data.iterator_get_next", TFRT_KERNEL(IteratorGetNext));
   registry->AddKernel("data.enumerate.iterator",

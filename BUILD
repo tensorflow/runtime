@@ -677,3 +677,20 @@ tfrt_cc_library(
         "@llvm-project//mlir:Support",
     ],
 )
+
+tfrt_cc_library(
+    name = "distributed_runtime",
+    srcs = [
+        "lib/distributed_runtime/distributed_context.cc",
+    ],
+    hdrs = [
+        "include/tfrt/distributed_runtime/distributed_context.h",
+        "include/tfrt/distributed_runtime/fabric_communicator.h",
+    ],
+    deps = [
+        "@llvm-project//llvm:support",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)

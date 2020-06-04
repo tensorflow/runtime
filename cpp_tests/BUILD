@@ -192,3 +192,16 @@ tfrt_cc_test(
         "@tf_runtime//:tracing",
     ],
 )
+
+tfrt_cc_test(
+    name = "distributed_runtime/distributed_context_test",
+    srcs = [
+        "distributed_runtime/distributed_context_test.cc",
+    ],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:distributed_runtime",
+        "@tf_runtime//:hostcontext",
+    ],
+)

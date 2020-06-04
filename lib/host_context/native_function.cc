@@ -20,13 +20,16 @@
 
 #include "tfrt/host_context/native_function.h"
 
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 
 namespace tfrt {
 
-void NativeFunction::Execute(ArrayRef<AsyncValue*> arguments,
-                             MutableArrayRef<RCReference<AsyncValue>> results,
-                             HostContext* host) const {
+void NativeFunction::Execute(
+    const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+    MutableArrayRef<RCReference<AsyncValue>> results) const {
+  HostContext* host = exec_ctx.host();
+
   SmallVector<AsyncValue*, 4> unavailable_args;
   for (auto* av : arguments)
     if (!av->IsAvailable()) unavailable_args.push_back(av);

@@ -161,12 +161,9 @@ class BEFLocationHandler final : public LocationHandler,
     return bef_file_->DecodeLocation(loc.data);
   }
 
-  HostContext* GetHost() const { return host_; }
-
  private:
   friend class ReferenceCounted<BEFLocationHandler>;
-
-  HostContext* const host_;
+  HostContext* host_;
   RCReference<BEFFileImpl> bef_file_;
 };
 
@@ -175,9 +172,9 @@ class BEFLocationHandler final : public LocationHandler,
 /// concurrent control flow constructs.
 class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
  public:
-  static void Execute(const BEFFunction& fn, ArrayRef<AsyncValue*> arguments,
-                      MutableArrayRef<RCReference<AsyncValue>> results,
-                      HostContext* host);
+  static void Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
+                      ArrayRef<AsyncValue*> arguments,
+                      MutableArrayRef<RCReference<AsyncValue>> results);
 
   /// When the last reference to the BEFExecutor is dropped, we deallocate
   /// ourself.  The memory for this class is managed through the HostAllocator
@@ -189,7 +186,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   }
 
  private:
-  BEFExecutor(BEFFileImpl* bef_file, HostContext* host,
+  BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file,
               ArrayRef<uint32_t> kernels,
               HostArray<BEFFileImpl::KernelInfo> kernel_infos,
               HostArray<BEFFileImpl::RegisterInfo> register_infos,
@@ -199,14 +196,17 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
  private:
   void DecrementArgumentsNotReadyCounts(SmallVectorImpl<unsigned>* kernel_ids);
   void ProcessArgumentsPseudoKernel(SmallVectorImpl<unsigned>* kernel_ids);
-  void ProcessUsedBys(const BEFKernel& kernel, signed kernel_id,
-                      int result_number, AsyncValue* result, int* entry_offset,
+  void ProcessUsedBys(const BEFKernel& kernel, int result_number,
+                      AsyncValue* result, int* entry_offset,
                       SmallVectorImpl<unsigned>* kernel_ids);
   void MaybeAddRefForResult(AsyncValue* result);
-  HostContext* GetHost() const { return location_handler_->GetHost(); }
+  HostContext* GetHost() const { return exec_ctx_.host(); }
 
  private:
   friend class ReferenceCounted<BEFExecutor>;
+
+  /// The execution context for this BEFExecutor.
+  ExecutionContext exec_ctx_;
 
   /// Make sure the BEF file doesn't get deallocated while we're asynchronously
   /// running stuff.
@@ -235,9 +235,8 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 // users, it will be skipped. If the kernel immediately completed a result, then
 // we can mark all kernels using it as ready to go, otherwise we need to enqueue
 // them on their unavailable operands.
-void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, signed kernel_id,
-                                 int result_number, AsyncValue* result,
-                                 int* entry_offset,
+void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int result_number,
+                                 AsyncValue* result, int* entry_offset,
                                  SmallVectorImpl<unsigned>* kernel_ids) {
   // Find used_by entries for this result.
   auto num_used_bys = kernel.num_used_bys(result_number);
@@ -261,16 +260,6 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, signed kernel_id,
   // This check is done intentionally after checking for IsConcrete()
   // so that in the normal path we call AsyncValue::state() only once.
   if (state.IsError()) {
-#ifdef DEBUG_BEF_EXECUTOR
-    if (kernel_id >= 0) {
-      std::string error_message;
-      llvm::raw_string_ostream os(error_message);
-      os << result->GetError();
-      DEBUG_PRINT("Kernel %d %s got error: %s\n", kernel_id,
-                  bef_file_->GetKernelName(kernel.kernel_code()),
-                  os.str().c_str());
-    }
-#endif
     SetKernelsWithErrorInputReady(kernel_infos_.mutable_array(), used_bys);
   }
 
@@ -360,8 +349,7 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
     assert(result && "Argument AsyncValue is not set.");
 
     // Process users of this result.
-    ProcessUsedBys(kernel, /*kernel_id=*/-1, result_number, result,
-                   &used_by_offset, kernel_ids);
+    ProcessUsedBys(kernel, result_number, result, &used_by_offset, kernel_ids);
   }
 }
 
@@ -380,7 +368,7 @@ void BEFExecutor::MaybeAddRefForResult(AsyncValue* result) {
 /// from the end of the vector to the start - worklist style.
 void BEFExecutor::DecrementArgumentsNotReadyCounts(
     SmallVectorImpl<unsigned>* kernel_ids) {
-  KernelFrameBuilder kernel_frame(GetHost());
+  KernelFrameBuilder kernel_frame(exec_ctx_);
   kernel_frame.SetAttributeSection(bef_file_->attribute_section_);
 
   MutableArrayRef<BEFFileImpl::KernelInfo>& kernel_infos =
@@ -519,8 +507,8 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
       auto* register_value =
           SetRegisterValue(&result_register, result, &register_already_set);
       // Process users of this result.
-      ProcessUsedBys(kernel, kernel_id, result_number, register_value,
-                     &entry_offset, kernel_ids);
+      ProcessUsedBys(kernel, result_number, register_value, &entry_offset,
+                     kernel_ids);
 
       // DropRef since we no longer need the IndirectAsyncValue in the register.
       if (register_already_set) register_value->DropRef();
@@ -532,17 +520,18 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
 // Executor Setup
 //===----------------------------------------------------------------------===//
 
-BEFExecutor::BEFExecutor(BEFFileImpl* bef_file, HostContext* host,
+BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file,
                          ArrayRef<uint32_t> kernels,
                          HostArray<BEFFileImpl::KernelInfo> kernel_infos,
                          HostArray<BEFFileImpl::RegisterInfo> register_infos,
                          bool has_arguments_pseudo_kernel)
-    : bef_file_(FormRef(bef_file)),
+    : exec_ctx_(std::move(exec_ctx)),
+      bef_file_(FormRef(bef_file)),
       kernels_(kernels),
       kernel_infos_(std::move(kernel_infos)),
       register_infos_(std::move(register_infos)),
-      location_handler_(
-          TakeRef(host->Construct<BEFLocationHandler>(host, bef_file))) {
+      location_handler_(TakeRef(exec_ctx_.host()->Construct<BEFLocationHandler>(
+          exec_ctx_.host(), bef_file))) {
   // Now that the executor object is all set up and ready to go, kick off the
   // instructions that are ready.
 
@@ -592,10 +581,9 @@ static void InitializeArgumentRegisters(
   }
 }
 
-void BEFExecutor::Execute(const BEFFunction& fn,
+void BEFExecutor::Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
                           ArrayRef<AsyncValue*> arguments,
-                          MutableArrayRef<RCReference<AsyncValue>> results,
-                          HostContext* host) {
+                          MutableArrayRef<RCReference<AsyncValue>> results) {
   DEBUG_PRINT("Execute function %s start\n",
               fn.name().empty() ? "(unknown)" : fn.name().str().c_str());
 
@@ -610,6 +598,8 @@ void BEFExecutor::Execute(const BEFFunction& fn,
   HostArray<BEFFileImpl::KernelInfo> kernel_infos;
   SmallVector<size_t, 4> result_regs;
 
+  HostContext* host = exec_ctx.host();
+
   auto kernels = bef_file->ReadFunction(
       fn.function_offset(), fn.result_types(), &location_offset,
       &register_infos, &kernel_infos, &result_regs, host->allocator());
@@ -620,9 +610,9 @@ void BEFExecutor::Execute(const BEFFunction& fn,
       register_infos.mutable_array();
   InitializeArgumentRegisters(arguments, register_array);
   auto* exec_ptr = host->Allocate<BEFExecutor>();
-  auto* exec = new (exec_ptr)
-      BEFExecutor(bef_file, host, kernels, std::move(kernel_infos),
-                  std::move(register_infos), !arguments.empty());
+  auto* exec = new (exec_ptr) BEFExecutor(
+      std::move(exec_ctx), bef_file, kernels, std::move(kernel_infos),
+      std::move(register_infos), !arguments.empty());
 
   // Populate the function result AsyncValues (results).
   //
@@ -653,10 +643,10 @@ void BEFExecutor::Execute(const BEFFunction& fn,
 //===----------------------------------------------------------------------===//
 
 /// Execute a function with the specified CPU context.
-void BEFFunction::Execute(ArrayRef<AsyncValue*> arguments,
-                          MutableArrayRef<RCReference<AsyncValue>> results,
-                          HostContext* host) const {
-  BEFExecutor::Execute(*this, arguments, results, host);
+void BEFFunction::Execute(
+    const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+    MutableArrayRef<RCReference<AsyncValue>> results) const {
+  BEFExecutor::Execute(exec_ctx, *this, arguments, results);
 }
 
 // To keep this function alive, we have to keep the underlying BEF file alive.

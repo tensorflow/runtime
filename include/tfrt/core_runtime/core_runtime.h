@@ -34,7 +34,7 @@ class AsyncValueRef;
 class Chain;
 class ConcurrentWorkQueue;
 class DecodedDiagnostic;
-class Location;
+class ExecutionContext;
 class HostAllocator;
 class HostContext;
 class OpAttrsRef;
@@ -90,9 +90,9 @@ class CoreRuntime final {
   //
   // If the client does not need the location information in error messages, the
   // client can set `loc` to a default constructed Location, Loation().
-  void Execute(string_view op_name, OpHandler* op_handler, Location loc,
-               MutableArrayRef<TensorHandle> arguments, const OpAttrsRef& attrs,
-               MutableArrayRef<TensorHandle> results,
+  void Execute(const ExecutionContext& exec_ctx, string_view op_name,
+               OpHandler* op_handler, MutableArrayRef<TensorHandle> arguments,
+               const OpAttrsRef& attrs, MutableArrayRef<TensorHandle> results,
                AsyncValueRef<Chain>* chain);
 
   // [Experimental]

@@ -87,7 +87,7 @@ struct FunctionOpHandlerTraits {
                        MutableArrayRef<RCReference<AsyncValue>> results,
                        AsyncValueRef<Chain>* chain,
                        const ExecutionContext& exec_ctx) {
-    op_entry.dispatch_fn->Execute(inputs, results, exec_ctx.host());
+    op_entry.dispatch_fn->Execute(exec_ctx, inputs, results);
   }
 };
 

@@ -29,6 +29,8 @@
 
 namespace tfrt {
 
+class HostContext;
+
 // Use C-style arrays to pass arugments and results for ABI compatiblity. The
 // callee is responsible for allocating results if there are any. All results
 // should be set to errors to signal that an error occurred.
@@ -71,9 +73,9 @@ class NativeFunction : public Function {
                  ArrayRef<TypeName> result_types, NativeCallable callable)
       : Function(name, argument_types, result_types), callable_(callable) {}
 
-  void Execute(ArrayRef<AsyncValue*> arguments,
-               MutableArrayRef<RCReference<AsyncValue>> results,
-               HostContext* host) const final;
+  void Execute(const ExecutionContext& exec_ctx,
+               ArrayRef<AsyncValue*> arguments,
+               MutableArrayRef<RCReference<AsyncValue>> results) const final;
 
   // Do nothing with reference counting as a native function should be always
   // available.

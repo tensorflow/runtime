@@ -45,9 +45,8 @@ TEST_F(CpuDriverTest, MatmulTest) {
   attrs.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 2});
   attrs.SetArray("values", tfrt::ArrayRef<float>{2.0});
   tfrt::TensorHandle a1;
-  driver_.Execute("tfrt_test.create_dense_tensor",
-                  driver_.CreateLocation(__FILE__, __LINE__), {},
-                  attrs.freeze(), a1);
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.create_dense_tensor", {}, attrs.freeze(), a1);
 
   tfrt::OpAttrs matmul_attrs;
   matmul_attrs.Set<bool>("transpose_a", false);
@@ -55,16 +54,15 @@ TEST_F(CpuDriverTest, MatmulTest) {
   tfrt::OpAttrsRef matmul_attrs_ref = matmul_attrs.freeze();
   tfrt::TensorHandle matmul_args[2] = {a1.CopyRef(), a1.CopyRef()};
   tfrt::TensorHandle a2;
-  driver_.Execute("tfrt_test.matmul",
-                  driver_.CreateLocation(__FILE__, __LINE__), matmul_args,
-                  matmul_attrs_ref, a2);
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.matmul", matmul_args, matmul_attrs_ref, a2);
 
   tfrt::OpAttrs empty_attrs;
   tfrt::OpAttrsRef empty_attrs_ref = empty_attrs.freeze();
   // This op will print the shape and the value of the result.
   tfrt::TensorHandle a2_ref = a2.CopyRef();
-  driver_.Execute("tfrt_test.print", driver_.CreateLocation(__FILE__, __LINE__),
-                  a2_ref, empty_attrs_ref, {});
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.print", a2_ref, empty_attrs_ref, {});
 
   // Check the output tensor.
   auto a2_metadata = a2.GetAvailableMetadata();
@@ -85,16 +83,15 @@ TEST_F(CpuDriverTest, ReluTest_InputForward) {
   attrs.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 2});
   attrs.SetArray("values", tfrt::ArrayRef<float>{2.0});
   tfrt::TensorHandle a1;
-  driver_.Execute("tfrt_test.create_dense_tensor",
-                  driver_.CreateLocation(__FILE__, __LINE__), {},
-                  attrs.freeze(), a1);
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.create_dense_tensor", {}, attrs.freeze(), a1);
   auto buffer_pointer =
       a1.GetAsyncTensor()->get<DenseHostTensor>().buffer().get();
 
   tfrt::OpAttrs empty_attrs;
   tfrt::TensorHandle a2;
-  driver_.Execute("tfrt_test.relu", driver_.CreateLocation(__FILE__, __LINE__),
-                  a1, empty_attrs.freeze(), a2);
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.relu", a1, empty_attrs.freeze(), a2);
 
   ASSERT_EQ(a2.GetAsyncTensor()->get<DenseHostTensor>().buffer().get(),
             buffer_pointer);
@@ -105,17 +102,15 @@ TEST_F(CpuDriverTest, MatmulWithError) {
   tfrt::TensorHandle a1;
   attrs1.SetArray("shape", tfrt::ArrayRef<ssize_t>{1, 1});
   attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  driver_.Execute("tfrt_test.create_dense_tensor",
-                  driver_.CreateLocation(__FILE__, __LINE__), {},
-                  attrs1.freeze(), a1);
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
 
   tfrt::OpAttrs attrs2;
   tfrt::TensorHandle a2;
   attrs2.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 1});
   attrs2.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  driver_.Execute("tfrt_test.create_dense_tensor",
-                  driver_.CreateLocation(__FILE__, __LINE__), {},
-                  attrs2.freeze(), a2);
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.create_dense_tensor", {}, attrs2.freeze(), a2);
 
   tfrt::OpAttrs matmul_attrs;
   matmul_attrs.Set<bool>("transpose_a", false);
@@ -125,23 +120,21 @@ TEST_F(CpuDriverTest, MatmulWithError) {
   tfrt::TensorHandle matmul_args1[2] = {a1.CopyRef(), a2.CopyRef()};
   tfrt::TensorHandle a3;
   // Point to the CreateLocation() call below.
-  const int failed_line_num = __LINE__ + 2;
-  driver_.Execute("tfrt_test.matmul",
-                  driver_.CreateLocation(__FILE__, __LINE__), matmul_args1,
-                  matmul_attrs_ref, a3);
+  const int failed_line_num = __LINE__ + 1;
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.matmul", matmul_args1, matmul_attrs_ref, a3);
 
   // This op will finish successfully.
   tfrt::TensorHandle matmul_args2[2] = {a1.CopyRef(), a1.CopyRef()};
   tfrt::TensorHandle a4;
-  driver_.Execute("tfrt_test.matmul",
-                  driver_.CreateLocation(__FILE__, __LINE__), matmul_args2,
-                  matmul_attrs_ref, a4);
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.matmul", matmul_args2, matmul_attrs_ref, a4);
 
   tfrt::OpAttrs empty_attrs;
   tfrt::OpAttrsRef empty_attrs_ref = empty_attrs.freeze();
   tfrt::TensorHandle a4_ref = a4.CopyRef();
-  driver_.Execute("tfrt_test.print", driver_.CreateLocation(__FILE__, __LINE__),
-                  a4_ref, empty_attrs_ref, {});
+  driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
+                  "tfrt_test.print", a4_ref, empty_attrs_ref, {});
 
   auto a4_view =
       DHTArrayView<float>(&a4.GetAsyncTensor()->get<DenseHostTensor>());
@@ -163,15 +156,13 @@ TEST_F(CpuDriverTest, NoLocation) {
   tfrt::TensorHandle a1;
   attrs1.SetArray("shape", tfrt::ArrayRef<ssize_t>{1, 1});
   attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  driver_.Execute("tfrt_test.create_dense_tensor", Location(), {},
-                  attrs1.freeze(), a1);
+  driver_.Execute("tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
 
   tfrt::OpAttrs attrs2;
   tfrt::TensorHandle a2;
   attrs2.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 1});
   attrs2.SetArray("values", tfrt::ArrayRef<float>{2.0});
-  driver_.Execute("tfrt_test.create_dense_tensor", Location(), {},
-                  attrs2.freeze(), a2);
+  driver_.Execute("tfrt_test.create_dense_tensor", {}, attrs2.freeze(), a2);
 
   tfrt::OpAttrs matmul_attrs;
   matmul_attrs.Set<bool>("transpose_a", false);
@@ -180,19 +171,17 @@ TEST_F(CpuDriverTest, NoLocation) {
   // Since the two arguments do not have compatible shapes, this op will fail.
   tfrt::TensorHandle matmul_args1[2] = {a1.CopyRef(), a2.CopyRef()};
   tfrt::TensorHandle a3;
-  driver_.Execute("tfrt_test.matmul", Location(), matmul_args1,
-                  matmul_attrs_ref, a3);
+  driver_.Execute("tfrt_test.matmul", matmul_args1, matmul_attrs_ref, a3);
 
   // This op will finish successfully.
   tfrt::TensorHandle matmul_args2[2] = {a1.CopyRef(), a1.CopyRef()};
   tfrt::TensorHandle a4;
-  driver_.Execute("tfrt_test.matmul", Location(), matmul_args2,
-                  matmul_attrs_ref, a4);
+  driver_.Execute("tfrt_test.matmul", matmul_args2, matmul_attrs_ref, a4);
 
   tfrt::OpAttrs empty_attrs;
   tfrt::OpAttrsRef empty_attrs_ref = empty_attrs.freeze();
   tfrt::TensorHandle a4_ref = a4.CopyRef();
-  driver_.Execute("tfrt_test.print", Location(), a4_ref, empty_attrs_ref, {});
+  driver_.Execute("tfrt_test.print", a4_ref, empty_attrs_ref, {});
 
   auto a4_view =
       DHTArrayView<float>(&a4.GetAsyncTensor()->get<DenseHostTensor>());
@@ -216,9 +205,8 @@ void BM_CpuDriverTest(benchmark::State& state) {
   tfrt::TensorHandle a1;
   attrs1.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 2});
   attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0, 2.0, 2.0, 2.0});
-  driver.Execute("tfrt_test.create_dense_tensor",
-                 driver.CreateLocation(__FILE__, __LINE__), {}, attrs1.freeze(),
-                 a1);
+  driver.Execute(driver.CreateExecutionContext(__FILE__, __LINE__),
+                 "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
 
   for (auto _ : state) {
     tfrt::OpAttrs matmul_attrs;
@@ -228,9 +216,8 @@ void BM_CpuDriverTest(benchmark::State& state) {
 
     tfrt::TensorHandle matmul_args[2] = {a1.CopyRef(), a1.CopyRef()};
     tfrt::TensorHandle a4;
-    driver.Execute("tfrt_test.matmul",
-                   driver.CreateLocation(__FILE__, __LINE__), matmul_args,
-                   matmul_attrs_ref, a4);
+    driver.Execute(driver.CreateExecutionContext(__FILE__, __LINE__),
+                   "tfrt_test.matmul", matmul_args, matmul_attrs_ref, a4);
   }
 }
 BENCHMARK(BM_CpuDriverTest);
@@ -242,9 +229,8 @@ void BM_CpuMakeOpDriverTest(benchmark::State& state) {
   tfrt::TensorHandle a1;
   attrs1.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 2});
   attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0, 2.0, 2.0, 2.0});
-  driver.Execute("tfrt_test.create_dense_tensor",
-                 driver.CreateLocation(__FILE__, __LINE__), {}, attrs1.freeze(),
-                 a1);
+  driver.Execute(driver.CreateExecutionContext(__FILE__, __LINE__),
+                 "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
 
   auto matmul_op = driver.MakeOp("tfrt_test.matmul");
 
@@ -257,10 +243,8 @@ void BM_CpuMakeOpDriverTest(benchmark::State& state) {
     tfrt::TensorHandle matmul_args[2] = {a1.CopyRef(), a1.CopyRef()};
     tfrt::TensorHandle a4;
 
-    ExecutionContext exec_ctx{driver.GetHostContext()};
-    exec_ctx.set_location(driver.CreateLocation(__FILE__, __LINE__));
-
-    matmul_op(exec_ctx, matmul_args, matmul_attrs_ref, a4, /*chain=*/nullptr);
+    matmul_op(driver.CreateExecutionContext(__FILE__, __LINE__), matmul_args,
+              matmul_attrs_ref, a4, /*chain=*/nullptr);
   }
 }
 BENCHMARK(BM_CpuMakeOpDriverTest);

@@ -283,7 +283,7 @@ struct EnumerateContext {
       fn_args[num_iterator_values + i] = fn_results[i].release();
     }
 
-    body_fn->Execute(fn_args, fn_results, exec_ctx.host());
+    body_fn->Execute(exec_ctx, fn_args, fn_results);
 
     // DropRef only on arguments from the previous iteration.
     for (int i = 0; i < num_results; i++) {

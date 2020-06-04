@@ -26,6 +26,7 @@
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
@@ -96,7 +97,8 @@ int main(int argc, char** argv) {
     // Kick off an execution of the function body.
     llvm::SmallVector<tfrt::RCReference<tfrt::AsyncValue>, 4> results;
     results.resize(fn->result_types().size());
-    fn->Execute(/*arguments=*/{}, results, &host);
+    tfrt::ExecutionContext exec_ctx{tfrt::RequestContext::Create(&host)};
+    fn->Execute(exec_ctx, /*arguments=*/{}, results);
 
     // Block until the function results are fully resolved.
     host.Await(results);

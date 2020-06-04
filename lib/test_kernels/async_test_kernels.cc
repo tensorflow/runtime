@@ -56,13 +56,13 @@ static void TestDoAsync(RemainingArguments args, RemainingResults results,
   }
 
   HostContext* host = exec_ctx.host();
-  host->EnqueueWork([host, body = FormRef(&body_fn.get()),
+  host->EnqueueWork([exec_ctx, body = FormRef(&body_fn.get()),
                      arg_refs = std::move(arg_refs),
                      result_refs = std::move(result_refs)]() {
     SmallVector<RCReference<AsyncValue>, 8> results;
     results.resize(result_refs.size());
 
-    body->Execute(arg_refs.values(), results, host);
+    body->Execute(exec_ctx, arg_refs.values(), results);
 
     // Resolve our temporary result values into the call results.  This
     // transfers the +1 results returned by Execute to the ForwardTo call.

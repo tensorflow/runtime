@@ -43,7 +43,7 @@ static void HexCall(RemainingArguments args, RemainingResults results,
   assert(fn->result_types().size() == results.size() &&
          "result count mismatch");
 
-  fn->Execute(args.values(), results.values(), exec_ctx.host());
+  fn->Execute(exec_ctx, args.values(), results.values());
 }
 
 // hex.if dispatches to a 'true' or 'false' function based on a condition.
@@ -76,10 +76,9 @@ static void HexIf(RemainingArguments args, RemainingResults results,
          true_fn->result_types() == false_fn->result_types() &&
          "true and false function types need to line up");
 
-  HostContext* host = exec_ctx.host();
-  auto if_impl = [host](const Function* true_fn, const Function* false_fn,
-                        ArrayRef<AsyncValue*> args,
-                        MutableArrayRef<RCReference<AsyncValue>> results) {
+  auto if_impl = [exec_ctx](const Function* true_fn, const Function* false_fn,
+                            ArrayRef<AsyncValue*> args,
+                            MutableArrayRef<RCReference<AsyncValue>> results) {
     AsyncValue* condition = args[0];
     // If we have an error, then we can force propagate errors to all the
     // results.
@@ -90,7 +89,7 @@ static void HexIf(RemainingArguments args, RemainingResults results,
 
     // Otherwise, we know which way to go.
     const Function* fn = condition->get<bool>() ? true_fn : false_fn;
-    fn->Execute(args.drop_front(), results, host);
+    fn->Execute(exec_ctx, args.drop_front(), results);
   };
 
   // If the condition is already available, we can immediately dispatch the
@@ -143,8 +142,9 @@ static void HexIf(RemainingArguments args, RemainingResults results,
 // This is a helper function that runs a block of iterations and sets up a
 // callback to run the next block at the end.
 static void HexRepeatI32Block(
-    int32_t start, int32_t block_size, int32_t count_value, HostContext* host,
-    RCReference<const Function> body_fn_ref, RCArray<AsyncValue> args,
+    int32_t start, int32_t block_size, int32_t count_value,
+    const ExecutionContext& exec_ctx, RCReference<const Function> body_fn_ref,
+    RCArray<AsyncValue> args,
     SmallVector<RCReference<IndirectAsyncValue>, 4>&& result_refs) {
   // Temporary buffers to store intermediate arguments and results.
   SmallVector<AsyncValue*, 8> passed_args(args.values().begin(),
@@ -156,6 +156,7 @@ static void HexRepeatI32Block(
 
   auto end = std::min(start + block_size, count_value);
 
+  HostContext* host = exec_ctx.host();
   for (int i = start; i < end; ++i) {
     if (auto cancel_av = host->GetCancelAsyncValue()) {
       // Cancellation detected. DropRef on args if needed, set results to
@@ -173,7 +174,7 @@ static void HexRepeatI32Block(
       return;
     }
 
-    body_fn_ref->Execute(passed_args, results, host);
+    body_fn_ref->Execute(exec_ctx, passed_args, results);
 
     for (int arg = 0; arg != num_fn_args; ++arg) {
       // If this is not the first iteration, destroy the loop-carried
@@ -199,11 +200,11 @@ static void HexRepeatI32Block(
   } else {
     assert(num_fn_args > 0);
     passed_args[0]->AndThen(
-        [end, block_size, count_value, host,
+        [end, block_size, count_value, exec_ctx,
          body_fn_ref = std::move(body_fn_ref),
          arg_refs = RCArray<AsyncValue>(llvm::makeArrayRef(passed_args)),
          result_refs = std::move(result_refs)]() mutable {
-          HexRepeatI32Block(end, block_size, count_value, host,
+          HexRepeatI32Block(end, block_size, count_value, exec_ctx,
                             std::move(body_fn_ref), std::move(arg_refs),
                             std::move(result_refs));
         });
@@ -215,7 +216,6 @@ static void HexRepeatI32Block(
 static void HexRepeatI32(RemainingArguments args, RemainingResults results,
                          Attribute<Function> body_fn_const,
                          const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
   assert(args.size() > 0 && args.size() - 1 == results.size());
 
   const Function* body_fn = &(*body_fn_const);
@@ -225,7 +225,7 @@ static void HexRepeatI32(RemainingArguments args, RemainingResults results,
          "Argument and result types of repeat body_fn must match");
 
   auto while_impl =
-      [host](
+      [exec_ctx](
           RCReference<const Function> body_fn_ref, RCArray<AsyncValue> arg_refs,
           SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) mutable {
         // TODO(xldrx,jingdong): Get the block_size from an optional attribute.
@@ -263,7 +263,7 @@ static void HexRepeatI32(RemainingArguments args, RemainingResults results,
         // Run 'body_fn' at least once.
         assert(count_value > 0);
 
-        HexRepeatI32Block(0, block_size, count_value, host,
+        HexRepeatI32Block(0, block_size, count_value, exec_ctx,
                           std::move(body_fn_ref), RCArray<AsyncValue>(args),
                           std::move(result_refs));
       };

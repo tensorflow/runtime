@@ -89,9 +89,9 @@ class CoreRuntime::Impl {
     return op_handler_registry_.GetOrNull(name);
   }
 
-  void Execute(string_view op_name, OpHandler* op_handler, Location loc,
-               MutableArrayRef<TensorHandle> arguments, const OpAttrsRef& attrs,
-               MutableArrayRef<TensorHandle> results,
+  void Execute(const ExecutionContext& exec_ctx, string_view op_name,
+               OpHandler* op_handler, MutableArrayRef<TensorHandle> arguments,
+               const OpAttrsRef& attrs, MutableArrayRef<TensorHandle> results,
                AsyncValueRef<Chain>* chain);
 
  private:
@@ -107,15 +107,12 @@ class CoreRuntime::Impl {
   OpHandlerRegistry op_handler_registry_;
 };
 
-void CoreRuntime::Impl::Execute(string_view op_name, OpHandler* op_handler,
-                                Location loc,
+void CoreRuntime::Impl::Execute(const ExecutionContext& exec_ctx,
+                                string_view op_name, OpHandler* op_handler,
                                 MutableArrayRef<TensorHandle> arguments,
                                 const OpAttrsRef& attrs,
                                 MutableArrayRef<TensorHandle> results,
                                 AsyncValueRef<Chain>* chain) {
-  ExecutionContext exec_ctx{GetHostContext()};
-  exec_ctx.set_location(loc);
-
   // Ask the op_handler to execute the op.  If successful, we're done.
   auto op_handle = op_handler->MakeOp(op_name);
   if (op_handle) {
@@ -268,12 +265,14 @@ OpHandler* CoreRuntime::GetOpHandler(string_view name) const {
   return impl_->GetOpHandler(name);
 }
 
-void CoreRuntime::Execute(string_view op_name, OpHandler* op_handler,
-                          Location loc, MutableArrayRef<TensorHandle> arguments,
+void CoreRuntime::Execute(const ExecutionContext& exec_ctx, string_view op_name,
+                          OpHandler* op_handler,
+                          MutableArrayRef<TensorHandle> arguments,
                           const OpAttrsRef& attrs,
                           MutableArrayRef<TensorHandle> results,
                           AsyncValueRef<Chain>* chain) {
-  impl_->Execute(op_name, op_handler, loc, arguments, attrs, results, chain);
+  impl_->Execute(exec_ctx, op_name, op_handler, arguments, attrs, results,
+                 chain);
 }
 
 Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,

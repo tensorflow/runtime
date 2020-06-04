@@ -24,10 +24,37 @@
 #define TFRT_HOST_CONTEXT_EXECUTION_CONTEXT_H_
 
 #include "tfrt/host_context/location.h"
+#include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 
 class HostContext;
+
+// A request refers to either a BEFFunction execution or an op execution.
+// RequestContext holds per request information, such as the cancellation status
+// and request priority. A RequestContext object is reference counted and is
+// passed around during the execution of a request. This allows us to support
+// per-request actions, such as canceling all pending ops for a request and
+// assigning all tasks of a request to a particular priority.
+
+class RequestContext : public ReferenceCounted<RequestContext> {
+ public:
+  static RCReference<RequestContext> Create(HostContext* host) {
+    return TakeRef(new RequestContext(host));
+  }
+
+  bool IsCancelled() const {
+    return is_cancelled_.load(std::memory_order_acquire);
+  }
+  void Cancel() { is_cancelled_.store(true, std::memory_order_release); }
+  HostContext* host() const { return host_; }
+
+ private:
+  explicit RequestContext(HostContext* host) : host_{host} {}
+
+  std::atomic<bool> is_cancelled_{false};
+  HostContext* const host_ = nullptr;
+};
 
 // ExecutionContext holds the context information for kernel and op execution,
 // which currently includes the memory allocator, thread pool (memory allocator
@@ -42,16 +69,27 @@ class HostContext;
 
 class ExecutionContext {
  public:
-  explicit ExecutionContext(HostContext* host) : host_{host} {}
+  explicit ExecutionContext(RCReference<RequestContext> req_ctx,
+                            Location location = {})
+      : request_ctx_{std::move(req_ctx)}, location_{location} {}
+
+  ExecutionContext(const ExecutionContext& exec_ctx)
+      : request_ctx_{exec_ctx.request_ctx_.CopyRef()},
+        location_{exec_ctx.location()} {}
+
+  ExecutionContext(ExecutionContext&& exec_ctx)
+      : request_ctx_{std::move(exec_ctx.request_ctx_)},
+        location_{exec_ctx.location()} {}
 
   Location location() const { return location_; }
-  HostContext* host() const { return host_; }
+  HostContext* host() const { return request_ctx_->host(); }
+  bool IsCancelled() const { return request_ctx_->IsCancelled(); }
 
   void set_location(Location location) { location_ = location; }
 
  private:
+  RCReference<RequestContext> request_ctx_;
   Location location_;
-  HostContext* host_ = nullptr;
 };
 
 }  // namespace tfrt

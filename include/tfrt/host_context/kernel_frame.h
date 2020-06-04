@@ -52,7 +52,8 @@ namespace tfrt {
 // setting the result AsyncValue pointers.
 class KernelFrame {
  public:
-  explicit KernelFrame(HostContext* host) : exec_ctx_{host} {}
+  explicit KernelFrame(ExecutionContext exec_ctx)
+      : exec_ctx_{std::move(exec_ctx)} {}
 
   const ExecutionContext& GetExecutionContext() const { return exec_ctx_; }
   HostContext* GetHostContext() const { return exec_ctx_.host(); }
@@ -263,7 +264,8 @@ class KernelFrame {
 // 3. Add the attributes (using AddAttribute())
 class KernelFrameBuilder : public KernelFrame {
  public:
-  explicit KernelFrameBuilder(HostContext* host) : KernelFrame{host} {}
+  explicit KernelFrameBuilder(ExecutionContext exec_ctx)
+      : KernelFrame{std::move(exec_ctx)} {}
 
   // Get result AsyncValue at the given index.
   AsyncValue* GetResultAt(int index) const { return GetResults()[index]; }

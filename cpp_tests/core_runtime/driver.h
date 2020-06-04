@@ -42,15 +42,18 @@ class CoreRuntimeDriver final : public LocationHandler {
   explicit CoreRuntimeDriver(const std::string& op_handlers);
 
   // Eagerly execute the op.
-  void Execute(string_view op_name, Location loc,
+  void Execute(const ExecutionContext& exec_ctx, string_view op_name,
                MutableArrayRef<TensorHandle> args, const OpAttrsRef& attrs,
                MutableArrayRef<TensorHandle> results);
+  // Use a default ExecutionContext to execute this op.
+  void Execute(string_view op_name, MutableArrayRef<TensorHandle> args,
+               const OpAttrsRef& attrs, MutableArrayRef<TensorHandle> results);
 
   CoreRuntimeOp MakeOp(string_view op_name);
   HostContext* GetHostContext() const { return corert_->GetHostContext(); }
 
-  // Create a encoded Location object.
-  Location CreateLocation(const char* filename, int line_number);
+  ExecutionContext CreateExecutionContext(const char* filename,
+                                          int line_number);
 
   void WaitForHostContextQuiesce();
 

@@ -61,11 +61,22 @@ CoreRuntimeDriver::CoreRuntimeDriver(std::unique_ptr<CoreRuntime> corert,
   assert(op_handler_);
 }
 
-void CoreRuntimeDriver::Execute(string_view op_name, Location loc,
+void CoreRuntimeDriver::Execute(string_view op_name,
                                 MutableArrayRef<TensorHandle> args,
                                 const OpAttrsRef& attrs,
                                 MutableArrayRef<TensorHandle> results) {
-  corert_->Execute(op_name, op_handler_, loc, args, attrs, results, &chain_);
+  RCReference<RequestContext> req_ctx =
+      RequestContext::Create(GetHostContext());
+  Execute(ExecutionContext(std::move(req_ctx)), op_name, args, attrs, results);
+}
+
+void CoreRuntimeDriver::Execute(const ExecutionContext& exec_ctx,
+                                string_view op_name,
+                                MutableArrayRef<TensorHandle> args,
+                                const OpAttrsRef& attrs,
+                                MutableArrayRef<TensorHandle> results) {
+  corert_->Execute(exec_ctx, op_name, op_handler_, args, attrs, results,
+                   &chain_);
 }
 
 CoreRuntimeOp CoreRuntimeDriver::MakeOp(string_view op_name) {
@@ -78,10 +89,15 @@ void CoreRuntimeDriver::WaitForHostContextQuiesce() {
   corert_->GetHostContext()->Quiesce();
 }
 
-Location CoreRuntimeDriver::CreateLocation(const char* filename,
-                                           int line_number) {
+ExecutionContext CoreRuntimeDriver::CreateExecutionContext(const char* filename,
+                                                           int line_number) {
   locations_.push_back({filename, line_number});
-  return Location(this, /*data=*/locations_.size() - 1);
+
+  RCReference<RequestContext> req_ctx =
+      RequestContext::Create(GetHostContext());
+  Location location(this, /*data=*/locations_.size() - 1);
+
+  return ExecutionContext{std::move(req_ctx), location};
 }
 
 DecodedLocation CoreRuntimeDriver::DecodeLocation(Location loc) const {

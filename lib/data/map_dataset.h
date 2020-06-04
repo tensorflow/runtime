@@ -88,7 +88,7 @@ static llvm::SmallVector<RCReference<AsyncValue>, 4> EnqueueFunction(
 
   host->RunWhenReady(
       args.values(),
-      [host, num_results, map_fn = std::move(map_fn),
+      [exec_ctx, num_results, map_fn = std::move(map_fn),
        additional_fn_args = std::move(additional_fn_args),
        args = args.CopyRef(), results = std::move(results)]() mutable {
         // IDEA(donglin): We can optimize performance for small tasks by not
@@ -106,27 +106,28 @@ static llvm::SmallVector<RCReference<AsyncValue>, 4> EnqueueFunction(
         // enqueue work before the args are available, a thread from the
         // blocking threadpool might run the map function if the args is
         // computed by a thread in the blocking threadpool.
-        host->EnqueueWork([host, num_results, map_fn = std::move(map_fn),
-                           additional_fn_args = std::move(additional_fn_args),
-                           args = std::move(args),
-                           results = std::move(results)]() mutable {
-          // Construct arguments for function execution. The arguments consist
-          // of the 'additional_fn_args' from the MapDataset constructor,
-          // followed by the values from the underlying iterator.
-          SmallVector<AsyncValue*, 4> arguments;
-          for (auto* additional_arg : additional_fn_args.values()) {
-            arguments.push_back(additional_arg);
-          }
-          for (const auto& arg : args.values()) {
-            arguments.push_back(arg);
-          }
-          SmallVector<RCReference<AsyncValue>, 4> fn_results;
-          fn_results.resize(num_results);
-          map_fn->Execute(arguments, fn_results, host);
-          for (size_t i = 0; i < num_results; ++i) {
-            results[i]->ForwardTo(std::move(fn_results[i]));
-          }
-        });
+        exec_ctx.host()->EnqueueWork(
+            [exec_ctx, num_results, map_fn = std::move(map_fn),
+             additional_fn_args = std::move(additional_fn_args),
+             args = std::move(args), results = std::move(results)]() mutable {
+              // Construct arguments for function execution. The arguments
+              // consist of the 'additional_fn_args' from the MapDataset
+              // constructor, followed by the values from the underlying
+              // iterator.
+              SmallVector<AsyncValue*, 4> arguments;
+              for (auto* additional_arg : additional_fn_args.values()) {
+                arguments.push_back(additional_arg);
+              }
+              for (const auto& arg : args.values()) {
+                arguments.push_back(arg);
+              }
+              SmallVector<RCReference<AsyncValue>, 4> fn_results;
+              fn_results.resize(num_results);
+              map_fn->Execute(exec_ctx, arguments, fn_results);
+              for (size_t i = 0; i < num_results; ++i) {
+                results[i]->ForwardTo(std::move(fn_results[i]));
+              }
+            });
       });
 
   return results_ref;

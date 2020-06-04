@@ -32,7 +32,7 @@
 namespace tfrt {
 
 class AsyncValue;
-class HostContext;
+class ExecutionContext;
 
 class Function {
  public:
@@ -50,11 +50,11 @@ class Function {
     return ArrayRef<TypeName>(argument_result_types_).drop_front(num_argument_);
   }
 
-  // Execute this function on the specified HostContext, passing the specified
-  // arguments. This returns one AsyncValue for each result.
-  virtual void Execute(ArrayRef<AsyncValue*> arguments,
-                       MutableArrayRef<RCReference<AsyncValue>> results,
-                       HostContext* host) const = 0;
+  // Execute this function on the specified ExecutionContext, passing the
+  // specified arguments. This returns one AsyncValue for each result.
+  virtual void Execute(
+      const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+      MutableArrayRef<RCReference<AsyncValue>> results) const = 0;
 
   // Reference counting operations, used by async kernels to keep the underlying
   // storage for a function alive.

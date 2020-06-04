@@ -240,7 +240,7 @@ RCReference<Iterator> InterleaveDatasetIterator<std::tuple<InputTypes...>,
   }
   SmallVector<RCReference<AsyncValue>, 1> fn_results;
   fn_results.resize(1);
-  parent_dataset_->map_fn_->Execute(fn_args, fn_results, exec_ctx.host());
+  parent_dataset_->map_fn_->Execute(exec_ctx, fn_args, fn_results);
 
   // NOTE: If the inputs to this function are async, or the function is
   // executed asynchronously, this will fail.

@@ -182,7 +182,7 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
                           AsyncValueRef<Chain> *op_chain,
                           MutableArrayRef<RCReference<AsyncValue>> results,
                           AggregateAttr op_attr_array, string_view op_name,
-                          Location loc) {
+                          const ExecutionContext &exec_ctx) {
   SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
 
@@ -252,7 +252,7 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
     }
   }
 
-  core_rt->Execute(op_name, op_handler, loc, th_args, OpAttrsRef(op_attrs),
+  core_rt->Execute(exec_ctx, op_name, op_handler, th_args, OpAttrsRef(op_attrs),
                    result_ths, op_chain);
 
   // Return all of the TensorHandles in AsyncValue's.
@@ -276,7 +276,7 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
 
   ExecuteOpImpl(core_rt, op_handler.get(), args.values(),
                 /*op_chain =*/nullptr, results.values(), op_attr_array,
-                op_name.GetValue(), exec_ctx.location());
+                op_name.GetValue(), exec_ctx);
 }
 
 // ExecuteOpSeq executes the `op_name` operation on the `op_handler`. It takes
@@ -307,7 +307,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
     auto op_chain = in_op_chain.ValueRef();
     ExecuteOpImpl(core_rt, op_handler.get(), args.values(), &op_chain,
                   results.values(), op_attr_array, op_name.GetValue(),
-                  exec_ctx.location());
+                  exec_ctx);
     out_op_chain.Set(std::move(op_chain));
     return;
   }
@@ -331,7 +331,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
        op_chain = in_op_chain.ValueRef(), arg_refs = std::move(arg_refs),
        result_refs = std::move(result_refs),
        out_op_chain = out_op_chain.Allocate(), op_name = op_name.GetValue(),
-       op_attr_array, loc = exec_ctx.location()]() mutable {
+       op_attr_array, exec_ctx]() mutable {
         auto propgate_error = [&](const DecodedDiagnostic &diag) {
           out_op_chain.SetError(diag);
           for (auto &result_ref : result_refs) result_ref->SetError(diag);
@@ -347,7 +347,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
         }
 
         ExecuteOpImpl(core_rt, op_handler.get(), arg_avs, &op_chain,
-                      result_refs, op_attr_array, op_name, loc);
+                      result_refs, op_attr_array, op_name, exec_ctx);
 
         auto *op_chain_av = op_chain.GetAsyncValue();
         op_chain_av->AndThen([op_chain = std::move(op_chain),

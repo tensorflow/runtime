@@ -45,7 +45,7 @@ class BenchmarkRunner {
         num_warmup_runs_{num_warmup_runs},
         max_count_{max_count},
         benchmark_duration_{benchmark_duration},
-        host_{host} {
+        exec_ctx_{RequestContext::Create(host)} {
     // AddRef on the arg AsyncValue to take an ownership ref.
     for (auto& arg : args_) {
       arg->AddRef();
@@ -70,12 +70,13 @@ class BenchmarkRunner {
   }
 
  private:
+  HostContext* GetHostContext() const { return exec_ctx_.host(); }
   // Start benchmarking a new function execution.
   void StartNewRun() {
     // We need to run the actual work in the work queue to avoid exhausting the
     // stack space, otherwise, we will have very deep recursion of
     // Function::Execute -> AsyncValue::AndThen -> Function::Execute -> ...
-    host_->EnqueueWork([this] {
+    GetHostContext()->EnqueueWork([this] {
       ++cur_count_;
 
       // Start recording CPU time.
@@ -87,7 +88,7 @@ class BenchmarkRunner {
       assert(func_->result_types().size() == 1);
 
       RCReference<AsyncValue> result;
-      func_->Execute(/*arguments=*/args_, /*results=*/result, host_);
+      func_->Execute(exec_ctx_, /*arguments=*/args_, /*results=*/result);
 
       // AndThen() is called when the function execution finishes. We record the
       // execution time and start the next run in the AndThen() callback.
@@ -202,7 +203,7 @@ class BenchmarkRunner {
   std::vector<std::chrono::microseconds> run_times_walltime_;
   // CPU run times in microseconds.
   std::vector<std::chrono::microseconds> run_times_cpu_;
-  HostContext* const host_;
+  ExecutionContext exec_ctx_;
 
   // Clean up function to run after the end of the benchmark.
   llvm::unique_function<void()> clean_up_;

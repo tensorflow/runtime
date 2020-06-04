@@ -56,9 +56,9 @@ class BEFFunction final : public Function {
   size_t function_offset() const { return function_offset_; }
   BEFFileImpl* bef_file() const { return bef_file_; }
 
-  void Execute(ArrayRef<AsyncValue*> arguments,
-               MutableArrayRef<RCReference<AsyncValue>> results,
-               HostContext* host) const override;
+  void Execute(const ExecutionContext& exec_ctx,
+               ArrayRef<AsyncValue*> arguments,
+               MutableArrayRef<RCReference<AsyncValue>> results) const override;
   void AddRef() const override;
   void DropRef() const override;
 

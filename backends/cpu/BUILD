@@ -57,6 +57,7 @@ tfrt_cc_library(
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:test_metadata_functions",
         "@tf_runtime//backends/common:tf_metadata_functions",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 

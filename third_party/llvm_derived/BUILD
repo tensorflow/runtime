@@ -3,27 +3,24 @@ load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
 licenses(["notice"])
 
 package(
-    default_visibility = ["@tf_runtime//:__subpackages__"],
+    default_visibility = ["@tf_runtime//:friends"],
 )
 
-exports_files([
-    "LICENSE",
-])
+exports_files(["LICENSE"])
 
 tfrt_cc_library(
-    name = "ostream",
-    srcs = ["lib/ostream.cc"],
-    hdrs = ["include/llvm_derived/ostream.h"],
-    visibility = ["@tf_runtime//:friends"],
+    name = "raw_ostream",
+    srcs = ["lib/Support/raw_ostream.cpp"],
+    hdrs = ["include/llvm_derived/Support/raw_ostream.h"],
     deps = [
+        "@llvm-project//llvm:config",
         "@llvm-project//llvm:support",
     ],
 )
 
 tfrt_cc_library(
     name = "tfrt_translate_main",
-    srcs = ["tools/tfrt_translate/main.cc"],
-    visibility = ["@tf_runtime//:friends"],
+    srcs = ["tools/mlir-translate/mlir-translate.cpp"],
     deps = [
         "@llvm-project//llvm:support",
         "@llvm-project//mlir:IR",

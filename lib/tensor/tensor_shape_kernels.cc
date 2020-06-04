@@ -21,8 +21,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/Support/raw_ostream.h"
+#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
-#include "tfrt/support/ostream.h"
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {

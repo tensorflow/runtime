@@ -21,6 +21,7 @@
 
 #include "../../kernels/cpu_kernels.h"
 #include "llvm/Support/Casting.h"
+#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_utils.h"
 #include "tfrt/cpu/core_runtime/cpu_op_registry.h"
@@ -29,7 +30,6 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/parallel_for.h"
 #include "tfrt/support/error_util.h"
-#include "tfrt/support/ostream.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/scalar_host_tensor.h"
 

@@ -26,6 +26,7 @@
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/Support/SourceMgr.h"
+#include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/FileUtilities.h"
@@ -41,7 +42,6 @@
 #include "tfrt/host_context/location.h"
 #include "tfrt/metrics/metrics_api.h"
 #include "tfrt/support/mutex.h"
-#include "tfrt/support/ostream.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tracing/tracing.h"
 

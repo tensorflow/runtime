@@ -104,7 +104,6 @@ tfrt_cc_library(
         "include/tfrt/support/msan.h",
         "include/tfrt/support/mutex.h",
         "include/tfrt/support/op_registry_impl.h",
-        "include/tfrt/support/ostream.h",
         "include/tfrt/support/rc_array.h",
         "include/tfrt/support/ref_count.h",
         "include/tfrt/support/string_util.h",
@@ -118,7 +117,6 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         "@llvm-project//llvm:support",
-        "@tf_runtime//third_party/llvm_derived:ostream",
     ] + select({
         "//conditions:default": [],
     }),
@@ -236,6 +234,7 @@ tfrt_cc_library(
         ":support",
         "@llvm-project//llvm:support",
         "@llvm-project//mlir:Support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 
@@ -256,6 +255,7 @@ tfrt_cc_library(
         ":hostcontext",
         ":support",
         "@llvm-project//llvm:support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 
@@ -495,6 +495,7 @@ tfrt_cc_library(
         "@llvm-project//llvm:support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 
@@ -538,6 +539,7 @@ tfrt_cc_library(
         ":tensor",
         ":tracing",
         "@llvm-project//llvm:support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 
@@ -563,6 +565,7 @@ tfrt_cc_library(
         ":support",
         ":tensor",
         "@llvm-project//llvm:support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 
@@ -601,6 +604,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
         "@llvm-project//mlir:Support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 

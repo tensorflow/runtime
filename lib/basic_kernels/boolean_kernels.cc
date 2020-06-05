@@ -45,7 +45,6 @@ bool HexAnd(bool arg0, bool arg1) { return arg0 && arg1; }
 
 void RegisterBooleanKernels(KernelRegistry* registry) {
   registry->AddKernel("hex.constant.i1", TFRT_KERNEL(HexConstantI1));
-  registry->AddKernel("hex.constant.bool", TFRT_KERNEL(HexConstantI1));
 
   registry->AddKernel("hex.and.i1", TFRT_KERNEL(HexAnd));
 }

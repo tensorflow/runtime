@@ -14,15 +14,6 @@
 
 // RUN: tfrt_translate -mlir-to-bef %s | tfrt_translate -bef-to-mlir | tfrt_opt -allow-unregistered-dialect | FileCheck %s --dump-input=fail
 
-// CHECK-LABEL: func @bool.constant() -> i1
-func @bool.constant() -> i1 {
-  // CHECK-NEXT: [[REG:%.*]] = hex.constant.bool true
-  // CHECK-NEXT: hex.return [[REG]] : i1
-
-  %x = hex.constant.bool true
-  hex.return %x : i1
-}
-
 // CHECK-LABEL: func @integer1.constant() -> i1
 func @integer1.constant() -> i1 {
   // CHECK-NEXT: [[REG:%.*]] = hex.constant.i1 1

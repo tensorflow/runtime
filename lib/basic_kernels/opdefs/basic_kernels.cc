@@ -134,8 +134,6 @@ static void printConstant(OpAsmPrinter &p, mlir::Operation *op) {
     bool is_signed = int_attr.getType().isIndex() ||
                      int_attr.getType().getIntOrFloatBitWidth() != 1;
     int_attr.getValue().print(p.getStream(), is_signed);
-  } else if (auto bool_attr = attr.dyn_cast<BoolAttr>()) {
-    p << bool_attr.getValue();
   } else if (auto float_attr = attr.dyn_cast<FloatAttr>()) {
     p << float_attr.getValue().convertToFloat();
   } else {
@@ -205,18 +203,6 @@ static LogicalResult verifyFloatConstant(Operation *op) {
   if (floatAttr.getType() != type)
     return op->emitOpError("attribute 'value' does not match type") << value;
   return success();
-}
-
-static ParseResult parseConstantBoolOp(OpAsmParser &parser,
-                                       OperationState &result) {
-  return parseConstantOp(IntegerType::get(1, result.getContext()), parser,
-                         result);
-}
-
-static void print(OpAsmPrinter &p, ConstantBoolOp op) { printConstant(p, op); }
-
-static LogicalResult verify(ConstantBoolOp op) {
-  return verifyBoolConstant(op);
 }
 
 static ParseResult parseConstantI1Op(OpAsmParser &parser,

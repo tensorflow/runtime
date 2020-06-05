@@ -76,7 +76,6 @@ class ConstantOp<string suffix, Type baseType, Attr attr>
   let results = (outs baseType);
 }
 
-def ConstantBoolOp  : ConstantOp<"bool", I1, BoolAttr>;
 def ConstantI1Op  : ConstantOp<"i1", I1, I1Attr>;
 def ConstantI32Op : ConstantOp<"i32", I32, I32Attr>;
 def ConstantI64Op : ConstantOp<"i64", I64, I64Attr>;

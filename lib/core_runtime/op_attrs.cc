@@ -31,31 +31,48 @@
 
 namespace tfrt {
 
+OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
+  // TODO(tf-runtime-team): Unify BEFDataType, OpAttrType and tfrt::DType.
+  switch (kind) {
+    case BEFDataType::kBool:
+      return OpAttrType::BOOL;
+    case BEFDataType::kI8:
+      return OpAttrType::I8;
+    case BEFDataType::kI16:
+      return OpAttrType::I16;
+    case BEFDataType::kI32:
+      return OpAttrType::I32;
+    case BEFDataType::kI64:
+      return OpAttrType::I64;
+    case BEFDataType::kUI8:
+      return OpAttrType::UI8;
+    case BEFDataType::kF16:
+      return OpAttrType::F16;
+    case BEFDataType::kF32:
+      return OpAttrType::F32;
+    case BEFDataType::kF64:
+      return OpAttrType::F64;
+    case BEFDataType::kString:
+      return OpAttrType::CHAR;
+    default:
+      break;
+  }
+
+  llvm_unreachable("unsupported BEFDataType in Core Runtime.");
+}
+
 // Return the OpAttrType converted from BEFAttributeType in BEF.
 OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind) {
   if (IsDenseAttribute(kind)) return OpAttrType::DENSE;
 
+  if (IsDataTypeAttribute(kind))
+    return GetOpAttrTypeFromBEFDataType(GetDataType(kind));
+
   switch (kind) {
-    case BEFAttributeType::kBool:
-      return OpAttrType::BOOL;
-    case BEFAttributeType::kI1:
-      return OpAttrType::BOOL;
-    case BEFAttributeType::kI32:
-      return OpAttrType::I32;
-    case BEFAttributeType::kI64:
-      return OpAttrType::I64;
-    case BEFAttributeType::kF16:
-      return OpAttrType::F16;
-    case BEFAttributeType::kF32:
-      return OpAttrType::F32;
-    case BEFAttributeType::kF64:
-      return OpAttrType::F64;
-    case BEFAttributeType::kType:
-      return OpAttrType::DTYPE;
-    case BEFAttributeType::kString:
-      return OpAttrType::CHAR;
     case BEFAttributeType::kAggregate:
       return OpAttrType::AGGREGATE;
+    case BEFAttributeType::kType:
+      return OpAttrType::DTYPE;
     case BEFAttributeType::kShape:
       return OpAttrType::SHAPE;
     default:

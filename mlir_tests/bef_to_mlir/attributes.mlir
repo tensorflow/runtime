@@ -123,9 +123,32 @@ func @shape_attr() {
   hex.return
 }
 
-// CHECK-LABEL: @string_type_attr
-func @string_type_attr() {
+// CHECK-LABEL: @data_type_attr
+func @data_type_attr() {
+  // CHECK: i8
+  // CHECK: i16
+  // CHECK: i32
+  // CHECK: i64
+  // CHECK: ui8
+  // CHECK: ui16
+  // CHECK: ui32
+  // CHECK: ui64
+  // CHECK: complex<f32>
+  // CHECK: complex<f64>
   // CHECK: !corert.string
+  "simple.op"() {type = i8} : () -> ()
+  "simple.op"() {type = i16} : () -> ()
+  "simple.op"() {type = i32} : () -> ()
+  "simple.op"() {type = i64} : () -> ()
+  "simple.op"() {type = ui8} : () -> ()
+  "simple.op"() {type = ui16} : () -> ()
+  "simple.op"() {type = ui32} : () -> ()
+  "simple.op"() {type = ui64} : () -> ()
+  "simple.op"() {type = f16} : () -> ()
+  "simple.op"() {type = f32} : () -> ()
+  "simple.op"() {type = f64} : () -> ()
+  "simple.op"() {type = complex<f32>} : () -> ()
+  "simple.op"() {type = complex<f64>} : () -> ()
   "simple.op"() {type = !corert.string} : () -> ()
   hex.return
 }

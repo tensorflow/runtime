@@ -73,34 +73,54 @@ static SpecialAttribute ClassifyAttribute(string_view attr_name) {
       .Default(SpecialAttribute::kUnknown);
 }
 
-static BEFAttributeType EncodeIntegerTypeAttribute(
-    mlir::IntegerType integer_type) {
-  switch (integer_type.getWidth()) {
-    case 1:
-      return BEFAttributeType::kI1;
-    case 32:
-      return BEFAttributeType::kI32;
-    case 64:
-      return BEFAttributeType::kI64;
+static BEFDataType EncodeIntegerTypeAttribute(mlir::IntegerType integer_type) {
+  if (integer_type.isUnsigned()) {
+    switch (integer_type.getWidth()) {
+      case 8:
+        return BEFDataType::kUI8;
+      case 16:
+        return BEFDataType::kUI16;
+      case 32:
+        return BEFDataType::kUI32;
+      case 64:
+        return BEFDataType::kUI64;
+    }
+  } else {
+    switch (integer_type.getWidth()) {
+      case 1:
+        return BEFDataType::kI1;
+      case 8:
+        return BEFDataType::kI8;
+      case 16:
+        return BEFDataType::kI16;
+      case 32:
+        return BEFDataType::kI32;
+      case 64:
+        return BEFDataType::kI64;
+    }
   }
 
   llvm_unreachable("unknown integer type width.");
 }
 
-static BEFAttributeType EncodeFloatTypeAttribute(mlir::FloatType float_type) {
-  switch (float_type.getWidth()) {
-    case 16:
-      return BEFAttributeType::kF16;
-    case 32:
-      return BEFAttributeType::kF32;
-    case 64:
-      return BEFAttributeType::kF64;
-  }
+static BEFDataType EncodeFloatTypeAttribute(mlir::FloatType float_type) {
+  if (float_type.isF16()) return BEFDataType::kF16;
+  if (float_type.isF32()) return BEFDataType::kF32;
+  if (float_type.isF64()) return BEFDataType::kF64;
 
   llvm_unreachable("unknown float type width.");
 }
 
-static BEFAttributeType ConvertMLIRTypeToBEFAttributeType(mlir::Type type) {
+static BEFDataType EncodeComplexTypeAttribute(mlir::ComplexType complex_type) {
+  auto element_type = complex_type.getElementType();
+
+  if (element_type.isF32()) return BEFDataType::kComplex64;
+  if (element_type.isF64()) return BEFDataType::kComplex128;
+
+  llvm_unreachable("unknown complex type width.");
+}
+
+static BEFDataType ConvertMLIRDataTypeToBEFDataType(mlir::Type type) {
   if (auto integer_type = type.dyn_cast<mlir::IntegerType>()) {
     return EncodeIntegerTypeAttribute(integer_type);
   }
@@ -110,7 +130,11 @@ static BEFAttributeType ConvertMLIRTypeToBEFAttributeType(mlir::Type type) {
   }
 
   if (auto string_type = type.dyn_cast<corert::StringType>()) {
-    return BEFAttributeType::kString;
+    return BEFDataType::kString;
+  }
+
+  if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {
+    return EncodeComplexTypeAttribute(complex_type);
   }
 
   llvm_unreachable("unknown type attribute");
@@ -121,38 +145,68 @@ static BEFAttributeType ConvertMLIRTypeToBEFAttributeType(mlir::Type type) {
 // BEFAttributeType::Unsupported will be returned.
 static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
   // We support bool attributes (stored as 1 byte in BEF).
-  if (attr.isa<mlir::BoolAttr>()) return BEFAttributeType::kBool;
+  if (attr.isa<mlir::BoolAttr>())
+    return static_cast<BEFAttributeType>(BEFDataType::kBool);
 
   // We support 1-bit (stored as 1 byte in BEF), 32-bit, and 64-bit
   // integers.
   if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {
-    switch (int_attr.getValue().getBitWidth()) {
-      case 1:
-        return BEFAttributeType::kI1;
-      case 32:
-        return BEFAttributeType::kI32;
-      case 64:
-        return BEFAttributeType::kI64;
+    auto int_type = int_attr.getType().cast<mlir::IntegerType>();
+    if (int_type.isUnsigned()) {
+      switch (int_type.getWidth()) {
+        case 8:
+          return static_cast<BEFAttributeType>(BEFDataType::kUI8);
+        case 16:
+          return static_cast<BEFAttributeType>(BEFDataType::kUI16);
+        case 32:
+          return static_cast<BEFAttributeType>(BEFDataType::kUI32);
+        case 64:
+          return static_cast<BEFAttributeType>(BEFDataType::kUI64);
+      }
+    } else {
+      switch (int_type.getWidth()) {
+        case 1:
+          return static_cast<BEFAttributeType>(BEFDataType::kI1);
+        case 8:
+          return static_cast<BEFAttributeType>(BEFDataType::kI8);
+        case 16:
+          return static_cast<BEFAttributeType>(BEFDataType::kI16);
+        case 32:
+          return static_cast<BEFAttributeType>(BEFDataType::kI32);
+        case 64:
+          return static_cast<BEFAttributeType>(BEFDataType::kI64);
+      }
     }
   }
 
   // We support F16, F32 and F64 floats.
   if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>()) {
-    if (float_attr.getType().isF16()) return BEFAttributeType::kF16;
-    if (float_attr.getType().isF32()) return BEFAttributeType::kF32;
-    if (float_attr.getType().isF64()) return BEFAttributeType::kF64;
+    if (float_attr.getType().isF16())
+      return static_cast<BEFAttributeType>(BEFDataType::kF16);
+    if (float_attr.getType().isF32())
+      return static_cast<BEFAttributeType>(BEFDataType::kF32);
+    if (float_attr.getType().isF64())
+      return static_cast<BEFAttributeType>(BEFDataType::kF64);
   }
 
   // We support string attributes.
-  if (attr.isa<mlir::StringAttr>()) return BEFAttributeType::kString;
+  if (attr.isa<mlir::StringAttr>())
+    return static_cast<BEFAttributeType>(BEFDataType::kString);
 
-  // We support i1, i32, i64, f16, f32, f64 and string type attributes.
+  // We support i8, i16, i32, i64, ui8, ui16, ui32, ui64, f16, f32, f64,
+  // complex64, complex128 and string type attributes.
   if (auto type_attr = attr.dyn_cast<mlir::TypeAttr>()) {
     auto type = type_attr.getValue();
-    if (type.isInteger(1) || type.isInteger(32) || type.isInteger(64) ||
-        type.isF16() || type.isF32() || type.isF64() ||
+    if (type.isInteger(8) || type.isInteger(16) || type.isInteger(32) ||
+        type.isInteger(64) || type.isF16() || type.isF32() || type.isF64() ||
         type.isa<corert::StringType>())
       return BEFAttributeType::kType;
+
+    if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {
+      auto element_type = complex_type.getElementType();
+      if (element_type.isF32() || element_type.isF64())
+        return BEFAttributeType::kType;
+    }
   }
 
   // We support corert.shape attributes
@@ -162,9 +216,9 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
 
   // We support dense attributes.
   if (auto dense_elements_attr = attr.dyn_cast<mlir::DenseElementsAttr>()) {
-    auto element_type = ConvertMLIRTypeToBEFAttributeType(
+    auto element_type = ConvertMLIRDataTypeToBEFDataType(
         dense_elements_attr.getType().getElementType());
-    if (element_type == BEFAttributeType::kUnsupported)
+    if (element_type == BEFDataType::kUnsupported)
       return BEFAttributeType::kUnsupported;
 
     return GetDenseAttributeType(element_type);
@@ -1057,12 +1111,8 @@ void BEFAttributeEmitter::EmitStringAttribute(string_view value) {
 }
 
 void BEFAttributeEmitter::EmitTypeAttribute(mlir::TypeAttr type_attr) {
-  auto attribute_type = ConvertMLIRTypeToBEFAttributeType(type_attr.getValue());
+  auto attribute_type = ConvertMLIRDataTypeToBEFDataType(type_attr.getValue());
 
-  assert(IsDataTypeAttribute(attribute_type) &&
-         "only data type can be used as type attribute");
-
-  // Scalar attribute is the lower 8 bits of BEFAttributeType.
   EmitByte(static_cast<uint8_t>(attribute_type));
 }
 
@@ -1174,7 +1224,8 @@ void BEFTypedAttributeEmitter::EmitAggregateAttribute(
 void BEFTypedAttributeEmitter::EmitArrayAttribute(mlir::ArrayAttr array_attr) {
   size_t start_offset = size();
 
-  BEFAttributeType element_type = BEFAttributeType::kI32;
+  BEFAttributeType element_type =
+      static_cast<BEFAttributeType>(BEFDataType::kI32);
   if (array_attr.size() > 0) element_type = GetBEFAttributeType(array_attr[0]);
 
   BEFArrayAttr header;
@@ -1205,7 +1256,7 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
 
   BEFDenseAttr header;
   header.base.type = GetDenseAttributeType(
-      ConvertMLIRTypeToBEFAttributeType(shaped_type.getElementType()));
+      ConvertMLIRDataTypeToBEFDataType(shaped_type.getElementType()));
   header.rank = shape.size();
   header.num_elements = AssertAttrFieldSize(shaped_type.getNumElements());
 
@@ -1315,7 +1366,8 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
     // Emit size information in reversed VBR form for untyped array and string
     // attributes.
     if (IsArrayAttribute(attribute_type) ||
-        attribute_type == BEFAttributeType::kString) {
+        (IsDataTypeAttribute(attribute_type) &&
+         GetDataType(attribute_type) == BEFDataType::kString)) {
       size_t len = 0;
 
       if (IsArrayAttribute(attribute_type)) {

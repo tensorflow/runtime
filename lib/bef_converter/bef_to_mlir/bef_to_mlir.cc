@@ -252,21 +252,33 @@ class BEFToMLIRConverter {
 };
 
 mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
-                               BEFAttributeType attribute_type) {
+                               BEFDataType attribute_type) {
   switch (attribute_type) {
-    case BEFAttributeType::kI1:
+    case BEFDataType::kI1:
       return builder->getIntegerType(1);
-    case BEFAttributeType::kI32:
+    case BEFDataType::kI8:
+      return builder->getIntegerType(8);
+    case BEFDataType::kI16:
+      return builder->getIntegerType(16);
+    case BEFDataType::kI32:
       return builder->getIntegerType(32);
-    case BEFAttributeType::kI64:
+    case BEFDataType::kI64:
       return builder->getIntegerType(64);
-    case BEFAttributeType::kF16:
+    case BEFDataType::kUI8:
+      return builder->getIntegerType(8, /*isSigned=*/false);
+    case BEFDataType::kUI16:
+      return builder->getIntegerType(16, /*isSigned=*/false);
+    case BEFDataType::kUI32:
+      return builder->getIntegerType(32, /*isSigned=*/false);
+    case BEFDataType::kUI64:
+      return builder->getIntegerType(64, /*isSigned=*/false);
+    case BEFDataType::kF16:
       return builder->getF16Type();
-    case BEFAttributeType::kF32:
+    case BEFDataType::kF32:
       return builder->getF32Type();
-    case BEFAttributeType::kF64:
+    case BEFDataType::kF64:
       return builder->getF64Type();
-    case BEFAttributeType::kString:
+    case BEFDataType::kString:
       return tfrt::corert::StringType::get(builder->getContext());
     default:
       llvm_unreachable("unknown type attribute.");
@@ -292,6 +304,10 @@ class BEFAttributeReader {
                                 BEFAttributeType attribute_type);
 
   // Reads a standard attribute of `type`.
+  mlir::Attribute ReadDataTypeAttribute(BEFReader* reader,
+                                        BEFDataType data_type);
+
+  // Reads a standard attribute of `type`.
   mlir::Attribute ReadFixedAttribute(BEFReader* reader,
                                      BEFAttributeType attribute_type);
 
@@ -309,7 +325,8 @@ class BEFAttributeReader {
                                      BEFAttributeType element_type);
 
   // Reads a integer value of `bit_width` from `reader`.
-  mlir::IntegerAttr ReadIntegerAttribute(BEFReader* reader, int bit_width);
+  mlir::IntegerAttr ReadIntegerAttribute(BEFReader* reader, int bit_width,
+                                         bool is_unsigned = false);
 
   // Reads a float value of `bit_width` from `reader`.
   mlir::FloatAttr ReadFloatAttribute(BEFReader* reader, int bit_width);
@@ -381,59 +398,63 @@ class BEFTypedAttributeReader {
   }
 
   uint8_t ReadFixed8Attribute(const BEFFixed8Attr* header) {
-    assert(header->base.type == BEFAttributeType::kI1 ||
-           header->base.type == BEFAttributeType::kBool ||
-           header->base.type == BEFAttributeType::kType);
     return header->data;
   }
 
   llvm::APInt ReadFixed32Attribute(const BEFFixed32Attr* header) {
-    assert(header->base.type == BEFAttributeType::kI32 ||
-           header->base.type == BEFAttributeType::kF32);
     return llvm::APInt(32, header->data);
   }
 
   llvm::APInt ReadFixed64Attribute(const BEFFixed64Attr* header) {
-    assert(header->base.type == BEFAttributeType::kI64 ||
-           header->base.type == BEFAttributeType::kF64);
     return llvm::APInt(64, header->data);
   }
 
-  mlir::Attribute ReadScalarAttribute(const BEFAttrBase* base) {
-    switch (base->type) {
-      case BEFAttributeType::kBool:
+  mlir::Attribute ReadDataTypeAttribute(const BEFAttrBase* base) {
+    assert(IsDataTypeAttribute(base->type));
+    auto dtype = static_cast<BEFDataType>(base->type);
+    switch (dtype) {
+      case BEFDataType::kBool:
         return builder_.getBoolAttr(static_cast<bool>(
             ReadFixed8Attribute(reinterpret_cast<const BEFFixed8Attr*>(base))));
-      case BEFAttributeType::kI32:
+      case BEFDataType::kI32:
         return builder_.getIntegerAttr(
             builder_.getIntegerType(32),
             ReadFixed32Attribute(
                 reinterpret_cast<const BEFFixed32Attr*>(base)));
-      case BEFAttributeType::kI64:
+      case BEFDataType::kI64:
         return builder_.getIntegerAttr(
             builder_.getIntegerType(64),
             ReadFixed64Attribute(
                 reinterpret_cast<const BEFFixed64Attr*>(base)));
-      case BEFAttributeType::kF32: {
+      case BEFDataType::kF32: {
         auto int_val =
             ReadFixed32Attribute(reinterpret_cast<const BEFFixed32Attr*>(base));
         auto float_value = llvm::APFloat(int_val.bitsToFloat());
         return builder_.getFloatAttr(builder_.getF32Type(), float_value);
       }
-      case BEFAttributeType::kF64: {
+      case BEFDataType::kF64: {
         auto int_val =
             ReadFixed64Attribute(reinterpret_cast<const BEFFixed64Attr*>(base));
         auto float_value = llvm::APFloat(int_val.bitsToFloat());
         return builder_.getFloatAttr(builder_.getF64Type(), float_value);
       }
-      case BEFAttributeType::kType: {
-        return mlir::TypeAttr::get(DecodeTypeAttribute(
-            &builder_, static_cast<BEFAttributeType>(ReadFixed8Attribute(
-                           reinterpret_cast<const BEFFixed8Attr*>(base)))));
-      }
-      case BEFAttributeType::kString:
+      case BEFDataType::kString:
         return ReadStringAttribute(
             reinterpret_cast<const BEFStringAttr*>(base));
+      default:
+        llvm_unreachable("unknown data type attribute");
+    }
+  }
+
+  mlir::Attribute ReadScalarAttribute(const BEFAttrBase* base) {
+    if (IsDataTypeAttribute(base->type)) return ReadDataTypeAttribute(base);
+
+    switch (base->type) {
+      case BEFAttributeType::kType: {
+        return mlir::TypeAttr::get(DecodeTypeAttribute(
+            &builder_, static_cast<BEFDataType>(ReadFixed8Attribute(
+                           reinterpret_cast<const BEFFixed8Attr*>(base)))));
+      }
       case BEFAttributeType::kShape:
         return ReadShapeAttribute(reinterpret_cast<const BEFShapeAttr*>(base));
       default:
@@ -464,7 +485,7 @@ class BEFTypedAttributeReader {
   }
 
   mlir::DenseElementsAttr ReadDenseAttribute(const BEFDenseAttr* header) {
-    auto element_type = GetElementAttributeType(header->base.type);
+    auto element_type = GetDataType(header->base.type);
 
     const auto* data = reinterpret_cast<const uint8_t*>(header);
 
@@ -473,7 +494,8 @@ class BEFTypedAttributeReader {
         header->rank);
 
     auto elements = CreateAttrsFromDenseArray(
-        element_type, header->num_elements, data + header->element_offset);
+        static_cast<BEFAttributeType>(element_type), header->num_elements,
+        data + header->element_offset);
 
     auto type = mlir::RankedTensorType::get(
         shape, DecodeTypeAttribute(&builder_, element_type));
@@ -513,15 +535,26 @@ BEFTypedAttributeReader::CreateAttrsFromDenseArray(
   SmallVector<mlir::Attribute, 8> elements;
   elements.reserve(num_elements);
 
+  if (element_type == BEFAttributeType::kType) {
+    ArrayRef<uint8_t> array = llvm::makeArrayRef(data, num_elements);
+
+    // Only data types can be used as type attributes.
+    for (auto elt : array)
+      elements.push_back(mlir::TypeAttr::get(
+          DecodeTypeAttribute(&builder_, static_cast<BEFDataType>(elt))));
+
+    return elements;
+  }
+
   // TODO(chky): Consider simplying the following code to avoid code duplicate.
-  switch (element_type) {
-    case BEFAttributeType::kBool: {
+  switch (GetDataType(element_type)) {
+    case BEFDataType::kBool: {
       auto array = llvm::makeArrayRef(data, num_elements);
       for (auto elt : array)
         elements.push_back(builder_.getBoolAttr(static_cast<bool>(elt)));
       break;
     }
-    case BEFAttributeType::kI32: {
+    case BEFDataType::kI32: {
       auto array = llvm::makeArrayRef(reinterpret_cast<const int32_t*>(data),
                                       num_elements);
       for (auto elt : array)
@@ -529,7 +562,7 @@ BEFTypedAttributeReader::CreateAttrsFromDenseArray(
             builder_.getIntegerAttr(builder_.getIntegerType(32), elt));
       break;
     }
-    case BEFAttributeType::kI64: {
+    case BEFDataType::kI64: {
       auto array = llvm::makeArrayRef(reinterpret_cast<const int64_t*>(data),
                                       num_elements);
       for (auto elt : array)
@@ -537,30 +570,18 @@ BEFTypedAttributeReader::CreateAttrsFromDenseArray(
             builder_.getIntegerAttr(builder_.getIntegerType(64), elt));
       break;
     }
-    case BEFAttributeType::kF32: {
+    case BEFDataType::kF32: {
       auto array = llvm::makeArrayRef(reinterpret_cast<const float*>(data),
                                       num_elements);
       for (auto elt : array)
         elements.push_back(builder_.getFloatAttr(builder_.getF32Type(), elt));
       break;
     }
-    case BEFAttributeType::kF64: {
+    case BEFDataType::kF64: {
       auto array = llvm::makeArrayRef(reinterpret_cast<const double*>(data),
                                       num_elements);
       for (auto elt : array)
         elements.push_back(builder_.getFloatAttr(builder_.getF64Type(), elt));
-      break;
-    }
-    case BEFAttributeType::kType: {
-      ArrayRef<uint8_t> array = llvm::makeArrayRef(data, num_elements);
-
-      // Only data types (scalar types) can be used as attributes.
-      // BEFAttributeType is two bytes and data type is the lease significant
-      // byte of BEFAttributeType. So we need static_cast here to convert the
-      // byte to BEFAttributeType.
-      for (auto elt : array)
-        elements.push_back(mlir::TypeAttr::get(DecodeTypeAttribute(
-            &builder_, static_cast<BEFAttributeType>(elt))));
       break;
     }
     default:
@@ -985,37 +1006,61 @@ mlir::Attribute BEFAttributeReader::ReadAttribute(
   if (IsArrayAttribute(attribute_type))
     return ReadArrayAttribute(reader, GetElementAttributeType(attribute_type));
 
-  if (IsFixedAttribute(attribute_type))
-    return ReadFixedAttribute(reader, attribute_type);
+  if (IsDataTypeAttribute(attribute_type))
+    return ReadDataTypeAttribute(reader, GetDataType(attribute_type));
 
-  if (attribute_type == BEFAttributeType::kString)
-    return ReadStringAttribute(reader);
+  if (attribute_type == BEFAttributeType::kType)
+    return ReadTypeAttribute(reader);
 
   EmitError(bef_file_.location, "Unknown attribute type");
   return {};
 }
 
-mlir::Attribute BEFAttributeReader::ReadFixedAttribute(
-    BEFReader* reader, BEFAttributeType attribute_type) {
-  switch (attribute_type) {
-    case BEFAttributeType::kBool:
+mlir::Attribute BEFAttributeReader::ReadDataTypeAttribute(
+    BEFReader* reader, BEFDataType data_type) {
+  switch (data_type) {
+    case BEFDataType::kBool:
       return ReadBoolAttribute(reader);
-    case BEFAttributeType::kI1:
+    case BEFDataType::kI1:
       return ReadIntegerAttribute(reader, 1);
-    case BEFAttributeType::kI32:
+    case BEFDataType::kI8:
+      return ReadIntegerAttribute(reader, 8);
+    case BEFDataType::kI16:
+      return ReadIntegerAttribute(reader, 16);
+    case BEFDataType::kI32:
       return ReadIntegerAttribute(reader, 32);
-    case BEFAttributeType::kI64:
+    case BEFDataType::kI64:
       return ReadIntegerAttribute(reader, 64);
-    case BEFAttributeType::kF32:
+    case BEFDataType::kUI8:
+      return ReadIntegerAttribute(reader, 8, /*is_unsigned=*/true);
+    case BEFDataType::kUI16:
+      return ReadIntegerAttribute(reader, 16, /*is_unsigned=*/true);
+    case BEFDataType::kUI32:
+      return ReadIntegerAttribute(reader, 32, /*is_unsigned=*/true);
+    case BEFDataType::kUI64:
+      return ReadIntegerAttribute(reader, 64, /*is_unsigned=*/true);
+    case BEFDataType::kF32:
       return ReadFloatAttribute(reader, 32);
-    case BEFAttributeType::kF64:
+    case BEFDataType::kF64:
       return ReadFloatAttribute(reader, 64);
-    case BEFAttributeType::kType:
-      return ReadTypeAttribute(reader);
+    case BEFDataType::kString:
+      return ReadStringAttribute(reader);
     default:
       EmitError(bef_file_.location, "Unknown standard attribute type");
       return {};
   }
+}
+
+mlir::Attribute BEFAttributeReader::ReadFixedAttribute(
+    BEFReader* reader, BEFAttributeType attribute_type) {
+  if (IsDataTypeAttribute(attribute_type))
+    return ReadDataTypeAttribute(reader, GetDataType(attribute_type));
+
+  if (attribute_type == BEFAttributeType::kType)
+    return ReadTypeAttribute(reader);
+
+  EmitError(bef_file_.location, "Unknown attribute type");
+  return {};
 }
 
 mlir::Attribute BEFAttributeReader::ReadBoolAttribute(BEFReader* reader) {
@@ -1040,19 +1085,40 @@ mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
   if (reader->ReadByte(&byte)) return {};
   auto kind = static_cast<BEFDataType>(byte);
 
+  mlir::Builder builder(&context_);
+
   switch (kind) {
     case BEFDataType::kI1:
-      return mlir::TypeAttr::get(mlir::IntegerType::get(1, &context_));
+      return mlir::TypeAttr::get(builder.getIntegerType(1));
+    case BEFDataType::kI8:
+      return mlir::TypeAttr::get(builder.getIntegerType(8));
+    case BEFDataType::kI16:
+      return mlir::TypeAttr::get(builder.getIntegerType(16));
     case BEFDataType::kI32:
-      return mlir::TypeAttr::get(mlir::IntegerType::get(32, &context_));
+      return mlir::TypeAttr::get(builder.getIntegerType(32));
     case BEFDataType::kI64:
-      return mlir::TypeAttr::get(mlir::IntegerType::get(64, &context_));
+      return mlir::TypeAttr::get(builder.getIntegerType(64));
+    case BEFDataType::kUI8:
+      return mlir::TypeAttr::get(builder.getIntegerType(8, /*isSigned=*/false));
+    case BEFDataType::kUI16:
+      return mlir::TypeAttr::get(
+          builder.getIntegerType(16, /*isSigned=*/false));
+    case BEFDataType::kUI32:
+      return mlir::TypeAttr::get(
+          builder.getIntegerType(32, /*isSigned=*/false));
+    case BEFDataType::kUI64:
+      return mlir::TypeAttr::get(
+          builder.getIntegerType(64, /*isSigned=*/false));
     case BEFDataType::kF16:
-      return mlir::TypeAttr::get(mlir::FloatType::getF16(&context_));
+      return mlir::TypeAttr::get(builder.getF16Type());
     case BEFDataType::kF32:
-      return mlir::TypeAttr::get(mlir::FloatType::getF32(&context_));
+      return mlir::TypeAttr::get(builder.getF32Type());
     case BEFDataType::kF64:
-      return mlir::TypeAttr::get(mlir::FloatType::getF64(&context_));
+      return mlir::TypeAttr::get(builder.getF64Type());
+    case BEFDataType::kComplex64:
+      return mlir::TypeAttr::get(mlir::ComplexType::get(builder.getF32Type()));
+    case BEFDataType::kComplex128:
+      return mlir::TypeAttr::get(mlir::ComplexType::get(builder.getF64Type()));
     case BEFDataType::kString:
       return mlir::TypeAttr::get(tfrt::corert::StringType::get(&context_));
     // TODO(chky): Add missing data type cases (eg. bool) here. Currently we
@@ -1081,7 +1147,8 @@ mlir::ArrayAttr BEFAttributeReader::ReadArrayAttribute(
 }
 
 mlir::IntegerAttr BEFAttributeReader::ReadIntegerAttribute(BEFReader* reader,
-                                                           int bit_width) {
+                                                           int bit_width,
+                                                           bool is_unsigned) {
   int num_bytes = 0;
   switch (bit_width) {
     default:
@@ -1105,8 +1172,12 @@ mlir::IntegerAttr BEFAttributeReader::ReadIntegerAttribute(BEFReader* reader,
     if (reader->ReadByte(&byte)) return {};
     value = value | (static_cast<uint64_t>(byte) << (8 * i));
   }
-  return mlir::IntegerAttr::get(mlir::IntegerType::get(bit_width, &context_),
-                                value);
+  return mlir::IntegerAttr::get(
+      mlir::IntegerType::get(bit_width,
+                             is_unsigned ? mlir::IntegerType::Unsigned
+                                         : mlir::IntegerType::Signless,
+                             &context_),
+      value);
 }
 
 mlir::FloatAttr BEFAttributeReader::ReadFloatAttribute(BEFReader* reader,

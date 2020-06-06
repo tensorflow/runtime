@@ -171,62 +171,66 @@ enum class BEFDataType : uint8_t {
   kBool,
 
   kI1,
+  kI8,
+  kI16,
   kI32,
   kI64,
+  kUI8,
+  kUI16,
+  kUI32,
+  kUI64,
   kF16,
   kF32,
   kF64,
+  kComplex64,
+  kComplex128,
   kString,
+
+  // TODO(tf-runtime-team): Consider adding support for BF16, resource, variant
+  // and quantized integers.
+
+  kFirstDataType = kBool,
+  kLastDataType = kString,
 };
 
 // This enum defines the attribute type.
 enum class BEFAttributeType : uint16_t {
-  // TODO(tfrt-devs): The data types here should be consistent with
-  // BEFDataType. We need to figure out a way to keep this consistency
-  // automatically.
   kUnsupported,
 
-  kBool,
-
-  kI1,
-  kI32,
-  kI64,
-  kF16,
-  kF32,
-  kF64,
-  kString,
-
-  // TODO(tfrt-devs): kString should be also data types.
-  kFirstDataType = kBool,
-  kLastDataType = kString,
+  // Reserve entries for data types.
+  kFirstDataType = static_cast<uint8_t>(BEFDataType::kFirstDataType),
+  kLastDataType = static_cast<uint8_t>(BEFDataType::kLastDataType),
 
   kType,
 
   kShape,
 
-  kFirstScalarType = kBool,
+  kFirstScalarType = kFirstDataType,
   kLastScalarType = kShape,
 
-  kEmptyArray = kI32 | kArrayAttributeType,
+  kEmptyArray = static_cast<uint8_t>(BEFDataType::kI32) | kArrayAttributeType,
 
-  kI1Array = kI1 | kArrayAttributeType,
-  kI32Array = kI32 | kArrayAttributeType,
-  kI64Array = kI64 | kArrayAttributeType,
-  kF16Array = kF16 | kArrayAttributeType,
-  kF32Array = kF32 | kArrayAttributeType,
-  kF64Array = kF64 | kArrayAttributeType,
+  kI8Array = static_cast<uint8_t>(BEFDataType::kI8) | kArrayAttributeType,
+  kI32Array = static_cast<uint8_t>(BEFDataType::kI32) | kArrayAttributeType,
+  kI64Array = static_cast<uint8_t>(BEFDataType::kI64) | kArrayAttributeType,
+  kF16Array = static_cast<uint8_t>(BEFDataType::kF16) | kArrayAttributeType,
+  kF32Array = static_cast<uint8_t>(BEFDataType::kF32) | kArrayAttributeType,
+  kF64Array = static_cast<uint8_t>(BEFDataType::kF64) | kArrayAttributeType,
 
   kTypeArray = kType | kArrayAttributeType,
 
-  kI1Dense = kI1 | kDenseAttributeType,
-  kI32Dense = kI32 | kDenseAttributeType,
-  kI64Dense = kI64 | kDenseAttributeType,
-  kF16Dense = kF16 | kDenseAttributeType,
-  kF32Dense = kF32 | kDenseAttributeType,
-  kF64Dense = kF64 | kDenseAttributeType,
+  kI8Dense = static_cast<uint8_t>(BEFDataType::kI8) | kDenseAttributeType,
+  kI32Dense = static_cast<uint8_t>(BEFDataType::kI32) | kDenseAttributeType,
+  kI64Dense = static_cast<uint8_t>(BEFDataType::kI64) | kDenseAttributeType,
+  kF16Dense = static_cast<uint8_t>(BEFDataType::kF16) | kDenseAttributeType,
+  kF32Dense = static_cast<uint8_t>(BEFDataType::kF32) | kDenseAttributeType,
+  kF64Dense = static_cast<uint8_t>(BEFDataType::kF64) | kDenseAttributeType,
 
   kAggregate = kAggregateAttributeType,
 };
+static_assert(static_cast<uint16_t>(BEFAttributeType::kLastScalarType) <=
+                  kScalarAttributeTypeMask,
+              "Scalar attributes can only use one byte.");
 
 inline bool IsArrayAttribute(BEFAttributeType type) {
   return static_cast<uint16_t>(type) & kArrayAttributeType;
@@ -246,19 +250,7 @@ inline bool IsDataTypeAttribute(BEFAttributeType type) {
          type <= BEFAttributeType::kLastDataType;
 }
 
-inline bool IsFixedAttribute(BEFAttributeType type) {
-  return (type == BEFAttributeType::kType) ||
-         (type != BEFAttributeType::kString && IsDataTypeAttribute(type));
-}
-
-inline BEFAttributeType GetArrayAttributeType(BEFAttributeType element_type) {
-  assert(IsFixedAttribute(element_type));
-  return static_cast<BEFAttributeType>(static_cast<uint16_t>(element_type) |
-                                       kArrayAttributeType);
-}
-
-inline BEFAttributeType GetDenseAttributeType(BEFAttributeType element_type) {
-  assert(IsDataTypeAttribute(element_type));
+inline BEFAttributeType GetDenseAttributeType(BEFDataType element_type) {
   return static_cast<BEFAttributeType>(static_cast<uint16_t>(element_type) |
                                        kDenseAttributeType);
 }
@@ -269,23 +261,22 @@ inline BEFAttributeType GetElementAttributeType(BEFAttributeType type) {
   return r;
 }
 
-// Return the byte size of attributes in BEF. It will return 0 if the size is
-// not fixed.
-inline size_t GetBEFAttributeSize(BEFAttributeType type) {
-  switch (type) {
-    case BEFAttributeType::kType:
-    case BEFAttributeType::kBool:
-    case BEFAttributeType::kI1:
-      return 1;
-    case BEFAttributeType::kI32:
-    case BEFAttributeType::kF32:
-      return 4;
-    case BEFAttributeType::kI64:
-    case BEFAttributeType::kF64:
-      return 8;
-    default:
-      return 0;
-  }
+inline BEFDataType GetDataType(BEFAttributeType type) {
+  auto r = GetElementAttributeType(type);
+  assert(IsDataTypeAttribute(r));
+  return static_cast<BEFDataType>(r);
+}
+
+inline bool IsFixedAttribute(BEFAttributeType type) {
+  return (type == BEFAttributeType::kType) ||
+         (IsDataTypeAttribute(type) &&
+          GetDataType(type) != BEFDataType::kString);
+}
+
+inline BEFAttributeType GetArrayAttributeType(BEFAttributeType element_type) {
+  assert(IsFixedAttribute(element_type));
+  return static_cast<BEFAttributeType>(static_cast<uint16_t>(element_type) |
+                                       kArrayAttributeType);
 }
 
 // Belows are helper functions for retrieving BEFAttributeType for scalar types.
@@ -293,28 +284,53 @@ template <typename T>
 BEFAttributeType GetBEFAttributeType();
 
 template <>
-inline BEFAttributeType GetBEFAttributeType<uint8_t>() {
-  return BEFAttributeType::kI1;
+inline BEFAttributeType GetBEFAttributeType<int8_t>() {
+  return static_cast<BEFAttributeType>(BEFDataType::kI8);
+}
+
+template <>
+inline BEFAttributeType GetBEFAttributeType<int16_t>() {
+  return static_cast<BEFAttributeType>(BEFDataType::kI16);
 }
 
 template <>
 inline BEFAttributeType GetBEFAttributeType<int32_t>() {
-  return BEFAttributeType::kI32;
+  return static_cast<BEFAttributeType>(BEFDataType::kI32);
 }
 
 template <>
 inline BEFAttributeType GetBEFAttributeType<int64_t>() {
-  return BEFAttributeType::kI64;
+  return static_cast<BEFAttributeType>(BEFDataType::kI64);
+}
+
+template <>
+inline BEFAttributeType GetBEFAttributeType<uint8_t>() {
+  return static_cast<BEFAttributeType>(BEFDataType::kUI8);
+}
+
+template <>
+inline BEFAttributeType GetBEFAttributeType<uint16_t>() {
+  return static_cast<BEFAttributeType>(BEFDataType::kUI16);
+}
+
+template <>
+inline BEFAttributeType GetBEFAttributeType<uint32_t>() {
+  return static_cast<BEFAttributeType>(BEFDataType::kUI32);
+}
+
+template <>
+inline BEFAttributeType GetBEFAttributeType<uint64_t>() {
+  return static_cast<BEFAttributeType>(BEFDataType::kUI64);
 }
 
 template <>
 inline BEFAttributeType GetBEFAttributeType<float>() {
-  return BEFAttributeType::kF32;
+  return static_cast<BEFAttributeType>(BEFDataType::kF32);
 }
 
 template <>
 inline BEFAttributeType GetBEFAttributeType<double>() {
-  return BEFAttributeType::kF64;
+  return static_cast<BEFAttributeType>(BEFDataType::kF64);
 }
 
 template <>

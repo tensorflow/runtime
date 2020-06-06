@@ -105,9 +105,8 @@ static Chain OpAttrsSet(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static Chain OpAttrsSetDType(Argument<OpAttrs> attrs, StringAttribute key,
-                             Attribute<uint8_t> value) {
-  attrs->Set(key, GetOpAttrTypeFromBEFAttributeType(
-                      static_cast<BEFAttributeType>(*value)));
+                             Attribute<BEFDataType> value) {
+  attrs->Set(key, GetOpAttrTypeFromBEFDataType(*value));
   return Chain();
 }
 
@@ -213,35 +212,39 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
       auto r = op_attrs.Set(key, attr.cast<DenseAttr>());
       assert(r);
       (void)r;
-    } else {
-      switch (attribute_type) {
-        case BEFAttributeType::kBool:
+    } else if (IsDataTypeAttribute(attribute_type)) {
+      switch (GetDataType(attribute_type)) {
+        case BEFDataType::kBool:
           op_attrs.Set(key, attr.cast<BoolAttr>().GetValue());
           break;
-        case BEFAttributeType::kI32:
+        case BEFDataType::kI32:
           op_attrs.Set(key, attr.cast<I32Attr>().GetValue());
           break;
-        case BEFAttributeType::kI64:
+        case BEFDataType::kI64:
           op_attrs.Set(key, attr.cast<I64Attr>().GetValue());
           break;
-        case BEFAttributeType::kF32:
+        case BEFDataType::kF32:
           op_attrs.Set(key, attr.cast<F32Attr>().GetValue());
           break;
-        case BEFAttributeType::kF64:
+        case BEFDataType::kF64:
           op_attrs.Set(key, attr.cast<F64Attr>().GetValue());
           break;
+        case BEFDataType::kString:
+          op_attrs.SetString(key, attr.cast<StringAttr>().GetValue());
+          break;
+        default:
+          llvm_unreachable("unknown attribute type");
+      }
+    } else {
+      switch (attribute_type) {
         case BEFAttributeType::kType: {
           auto type_attr = attr.cast<TypeAttr>();
-          BEFAttributeType type = type_attr.GetValue();
-          assert(IsDataTypeAttribute(type));
-          op_attrs.Set(key, GetOpAttrTypeFromBEFAttributeType(type));
+          BEFDataType type = type_attr.GetValue();
+          op_attrs.Set(key, GetOpAttrTypeFromBEFDataType(type));
           break;
         }
         case BEFAttributeType::kShape:
           op_attrs.Set(key, attr.cast<ShapeAttr>());
-          break;
-        case BEFAttributeType::kString:
-          op_attrs.SetString(key, attr.cast<StringAttr>().GetValue());
           break;
         case BEFAttributeType::kAggregate:
           op_attrs.Set(key, attr.cast<AggregateAttr>());

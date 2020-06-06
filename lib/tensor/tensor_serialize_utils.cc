@@ -33,35 +33,60 @@
 namespace tfrt {
 namespace {
 
-BEFAttributeType ConvertTensorDTypeToBEFAttributeType(DType dtype) {
+BEFDataType ConvertTensorDTypeToBEFDataType(DType dtype) {
   switch (dtype.kind()) {
+    case DType::BOOL:
+      return BEFDataType::kBool;
+    case DType::UI8:
+      return BEFDataType::kUI8;
+    case DType::I8:
+      return BEFDataType::kI8;
+    case DType::I16:
+      return BEFDataType::kI16;
     case DType::I32:
-      return BEFAttributeType::kI32;
+      return BEFDataType::kI32;
     case DType::I64:
-      return BEFAttributeType::kI64;
+      return BEFDataType::kI64;
     case DType::F16:
-      return BEFAttributeType::kF16;
+      return BEFDataType::kF16;
     case DType::F32:
-      return BEFAttributeType::kF32;
+      return BEFDataType::kF32;
     case DType::F64:
-      return BEFAttributeType::kF64;
+      return BEFDataType::kF64;
+    case DType::COMPLEX64:
+      return BEFDataType::kComplex64;
     default:
       llvm_unreachable("unsupported dtype.");
   }
 }
 
-DType ConvertBEFAttributeTypeToTensorDType(BEFAttributeType kind) {
+DType ConvertBEFDataTypeToTensorDType(BEFDataType kind) {
   switch (kind) {
-    case BEFAttributeType::kI32:
+    case BEFDataType::kBool:
+      return DType(DType::BOOL);
+    case BEFDataType::kI8:
+      return DType(DType::I8);
+    case BEFDataType::kI16:
+      return DType(DType::I16);
+    case BEFDataType::kI32:
       return DType(DType::I32);
-    case BEFAttributeType::kI64:
+    case BEFDataType::kI64:
       return DType(DType::I64);
-    case BEFAttributeType::kF16:
+    case BEFDataType::kUI8:
+      return DType(DType::UI8);
+    case BEFDataType::kF16:
       return DType(DType::F16);
-    case BEFAttributeType::kF32:
+    case BEFDataType::kF32:
       return DType(DType::F32);
-    case BEFAttributeType::kF64:
+    case BEFDataType::kF64:
       return DType(DType::F64);
+    case BEFDataType::kComplex64:
+      return DType(DType::COMPLEX64);
+    // TODO(tf-runtime-team): Support the missing dtypes in tensor.
+    case BEFDataType::kUI16:
+    case BEFDataType::kUI32:
+    case BEFDataType::kUI64:
+    case BEFDataType::kComplex128:
     default:
       llvm_unreachable("unsupported dtype.");
   }
@@ -80,7 +105,7 @@ std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
 
   BEFDenseAttr header;
   header.base.type =
-      GetDenseAttributeType(ConvertTensorDTypeToBEFAttributeType(md.dtype));
+      GetDenseAttributeType(ConvertTensorDTypeToBEFDataType(md.dtype));
   header.rank = md.shape.GetRank();
   header.num_elements = md.shape.GetNumElements();
 
@@ -113,7 +138,7 @@ std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
 
 llvm::Expected<DenseHostTensor> DeserializeDenseHostTensorFromDenseAttr(
     DenseAttr attr, HostContext* host) {
-  DType dtype = ConvertBEFAttributeTypeToTensorDType(attr.dtype());
+  DType dtype = ConvertBEFDataTypeToTensorDType(attr.dtype());
   TensorMetadata md(dtype, attr.shape());
 
   auto result_alloc = DenseHostTensor::CreateUninitialized(md, host);
@@ -132,7 +157,7 @@ TensorMetadata CreateTensorMetadata(const DenseAttr& attr) {
 }
 
 DenseView CreateDenseView(const DenseAttr& attr) {
-  auto dtype = ConvertBEFAttributeTypeToTensorDType(attr.dtype());
+  auto dtype = ConvertBEFDataTypeToTensorDType(attr.dtype());
   return DenseView(dtype, attr.shape(), attr.GetElements());
 }
 

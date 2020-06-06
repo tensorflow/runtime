@@ -239,20 +239,52 @@ func @shape_attr_test() -> !hex.chain {
   hex.return %ch2 : !hex.chain
 }
 
-// CHECK-LABEL: --- Running 'string_type_attr_test'
-func @string_type_attr_test() -> !hex.chain {
+// CHECK-LABEL: --- Running 'type_attr_test'
+func @type_attr_test() -> !hex.chain {
   %ch0 = hex.new.chain
 
   %attrs = "corert.create_op_attrs"() : () -> !corert.opattrs
 
   %ch1 = "corert.op_attrs_set.dtype"(%attrs, %ch0)
-    {key="type", value=!corert.string}
+    {key="f16", value=f16}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+  %ch2 = "corert.op_attrs_set.dtype"(%attrs, %ch1)
+    {key="f32", value=f32}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+  %ch3 = "corert.op_attrs_set.dtype"(%attrs, %ch2)
+    {key="f64", value=f64}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+  %ch4 = "corert.op_attrs_set.dtype"(%attrs, %ch3)
+    {key="i8", value=i8}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+  %ch5 = "corert.op_attrs_set.dtype"(%attrs, %ch4)
+    {key="i16", value=i16}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+  %ch6 = "corert.op_attrs_set.dtype"(%attrs, %ch5)
+    {key="i32", value=i32}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+  %ch7 = "corert.op_attrs_set.dtype"(%attrs, %ch6)
+    {key="i64", value=i64}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+  %ch8 = "corert.op_attrs_set.dtype"(%attrs, %ch7)
+    {key="string", value=!corert.string}
+    : (!corert.opattrs, !hex.chain) -> (!hex.chain)
+  %ch9 = "corert.op_attrs_set.dtype"(%attrs, %ch8)
+    {key="ui8", value=ui8}
     : (!corert.opattrs, !hex.chain) -> (!hex.chain)
 
-  // CHECK: OpAttrs contains 1 entries:
-  // CHECK-NEXT: 'type' type=DTYPE value=CHAR
-  %ch2 = "tfrt_test.corert.op_attrs_print"(%attrs, %ch1)
+  // CHECK: OpAttrs contains 9 entries:
+  // CHECK-NEXT: 'f16' type=DTYPE value=F16
+  // CHECK-NEXT: 'f32' type=DTYPE value=F32
+  // CHECK-NEXT: 'f64' type=DTYPE value=F64
+  // CHECK-NEXT: 'i16' type=DTYPE value=I16
+  // CHECK-NEXT: 'i32' type=DTYPE value=I32
+  // CHECK-NEXT: 'i64' type=DTYPE value=I64
+  // CHECK-NEXT: 'i8' type=DTYPE value=I8
+  // CHECK-NEXT: 'string' type=DTYPE value=CHAR
+  // CHECK-NEXT: 'ui8' type=DTYPE value=UI8
+  %ch10 = "tfrt_test.corert.op_attrs_print"(%attrs, %ch9)
     : (!corert.opattrs, !hex.chain) -> (!hex.chain)
 
-  hex.return %ch2 : !hex.chain
+  hex.return %ch10 : !hex.chain
 }

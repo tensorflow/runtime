@@ -43,6 +43,24 @@ class CoreRuntimeOp {
                 bool is_fallback);
 
   // Execute the prepared op.
+  //
+  // Executing an op is generally an asynchronous operation that will produce
+  // TensorHandle's for the results of executing the operation (which can be
+  // asynchronous errors), but op dispatch can also synchronously fail.  This
+  // happens when the specified operation is not known, or when synchronously
+  // executed logic (e.g. metadata functions) detect an error.  When this
+  // happens, this method emits the corresponding error using the normal
+  // diagnostic machinery and fills the `results` TensorHandle's and result
+  // chain with the error value.
+  //
+  // Note that this takes the input argument TensorHandle's and is allowed to
+  // destructively mutate them.  This is useful in the common case of expression
+  // trees like (x+y)*z, but there are cases where the caller will need to
+  // duplicate the TensorHandle (using CopyRef()) method if it needs the
+  // TensorHandle to be valid after the execute call.
+  //
+  // If the client does not need the location information in error messages, the
+  // client can set `loc` to a default constructed Location, Loation().
   void operator()(const ExecutionContext& exec_ctx,
                   MutableArrayRef<TensorHandle> arguments,
                   const OpAttrsRef& attrs,

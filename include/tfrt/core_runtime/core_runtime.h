@@ -35,6 +35,7 @@ class Chain;
 class ConcurrentWorkQueue;
 class DecodedDiagnostic;
 class ExecutionContext;
+class Function;
 class HostAllocator;
 class HostContext;
 class OpAttrsRef;
@@ -99,6 +100,14 @@ class CoreRuntime final {
   // Return an CoreRuntimeOp (a callable) that clients can use to execute an op
   // directly, or an error if it cannot find the op in the op registry.
   Expected<CoreRuntimeOp> MakeOp(string_view op_name, OpHandler* op_handler);
+
+  // [Experimental]
+  // Construct and return a CoreRuntimeOp (a callable) from a Function. This
+  // Function must only take TensorHandle as inputs and produce TensorHandle
+  // as output. Right now the Function cannot have side effect since it cannot
+  // handle chain properly.
+  // TODO(b/157526882): Add test for this API.
+  Expected<CoreRuntimeOp> MakeCompositeOp(const Function* fn);
 
  private:
   friend class OpHandler;

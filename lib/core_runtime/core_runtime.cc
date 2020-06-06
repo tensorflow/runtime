@@ -30,12 +30,14 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/execution_context.h"
+#include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/shared_context.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/logging.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/tracing/tracing.h"
 
@@ -293,6 +295,92 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
       },
       is_fallback);
 #endif  // TFRT_DISABLE_TRACING
+}
+
+Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
+  // TODO(fishx): Avoid hard-coded type string.
+  static constexpr const char* kTensorHandleType = "!corert.tensorhandle";
+
+  for (size_t i = 0, e = fn->argument_types().size(); i != e; ++i) {
+    auto& type = fn->argument_types()[i];
+    if (type.GetName() != kTensorHandleType) {
+      return MakeStringError("The function should only takes type [",
+                             kTensorHandleType, "] as input. But the ", i,
+                             "-th argument is type [", type.GetName(), "].");
+    }
+  }
+  for (size_t i = 0, e = fn->result_types().size(); i != e; ++i) {
+    auto& type = fn->result_types()[i];
+    if (type.GetName() != kTensorHandleType) {
+      return MakeStringError("The function should only returns type [",
+                             kTensorHandleType, "]. But the ", i,
+                             "-th results is type [", type.GetName(), "].");
+    }
+  }
+  auto execute_fn = [fn = fn](const OpInvocation& invocation) {
+    auto* host = invocation.exec_ctx.host();
+
+    // TODO(fishx): Return an error to the client instead of asserting.
+    assert(invocation.arguments.size() == fn->argument_types().size());
+    assert(invocation.results.size() == fn->result_types().size());
+
+    SmallVector<AsyncValue*, 4> arguments;
+    arguments.reserve(invocation.arguments.size());
+    for (size_t i = 0, e = invocation.arguments.size(); i != e; ++i) {
+      arguments.push_back(host->MakeAvailableAsyncValueRef<TensorHandle>(
+                                  invocation.arguments[i].CopyRef())
+                              .release());
+
+      // Clean up the argument to enable input forwarding.
+      invocation.arguments[i] = TensorHandle();
+    }
+
+    SmallVector<RCReference<AsyncValue>, 4> results;
+    results.resize(invocation.results.size());
+
+    fn->Execute(invocation.exec_ctx, arguments, results);
+
+    for (size_t i = 0, e = results.size(); i != e; ++i) {
+      auto& result_th = results[i];
+      if (result_th->IsAvailable()) {
+        if (result_th->IsError()) {
+          invocation.results[i] =
+              TensorHandle(AsyncValueRef<TensorMetadata>(results[i].CopyRef()),
+                           AsyncValueRef<Tensor>(results[i].CopyRef()));
+        } else {
+          assert(result_th->IsType<TensorHandle>());
+          invocation.results[i] = std::move(result_th->get<TensorHandle>());
+        }
+      } else {
+        auto md_av = host->MakeUnconstructedAsyncValueRef<TensorMetadata>();
+        auto tensor_av = host->MakeIndirectAsyncValue();
+        invocation.results[i] = TensorHandle(
+            md_av.CopyRef(), AsyncValueRef<Tensor>(tensor_av.CopyRef()));
+        result_th->AndThen([md_av = std::move(md_av),
+                            tensor_av = std::move(tensor_av),
+                            result_th = result_th.CopyRef()]() mutable {
+          if (result_th->IsError()) {
+            md_av.SetError(result_th->GetError());
+            tensor_av->SetError(result_th->GetError());
+            return;
+          }
+          assert(result_th->IsType<TensorHandle>());
+          auto& th = result_th->get<TensorHandle>();
+          tensor_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+          if (th.IsMetadataAvailable()) {
+            md_av.emplace(th.GetAvailableMetadata());
+            return;
+          }
+          auto result_md = th.GetAsyncMetadata().CopyRef();
+          result_md.AndThen([md_av = std::move(md_av),
+                             result_md = std::move(result_md)]() mutable {
+            md_av.emplace(result_md.get<TensorMetadata>());
+          });
+        });
+      }
+    }
+  };
+  return CoreRuntimeOp(std::move(execute_fn), false);
 }
 
 }  // namespace tfrt

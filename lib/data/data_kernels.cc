@@ -208,8 +208,8 @@ RCReference<Iterator> MakeIteratorFromDataset(RCReference<Dataset>* dataset) {
 // IDEA(tf_runtime_team): it may be useful to return optional value and let
 // caller handle EOF properly.
 // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
-static void IteratorGetNext(RCReference<Iterator>* iterator, Chain chain,
-                            RemainingResults results,
+static void IteratorGetNext(RCReference<Iterator>* iterator, Chain chain_in,
+                            Result<Chain> chain_out, RemainingResults results,
                             const ExecutionContext& exec_ctx) {
   auto input = (*iterator)->GetNext(exec_ctx);
   if (internal::IsConcreteAndEmpty(input)) {
@@ -217,6 +217,7 @@ static void IteratorGetNext(RCReference<Iterator>* iterator, Chain chain,
     for (size_t i = 0; i < results.size(); ++i) {
       results[i] = err.CopyRef();
     }
+    chain_out.Set(RCReference<AsyncValue>(std::move(err)));
     return;
   }
 
@@ -225,6 +226,7 @@ static void IteratorGetNext(RCReference<Iterator>* iterator, Chain chain,
   for (size_t i = 0; i < results.size(); ++i) {
     results[i] = std::move(values[i]);
   }
+  chain_out.Emplace();
 }
 
 namespace {

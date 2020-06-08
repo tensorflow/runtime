@@ -46,14 +46,49 @@ DataDialect::DataDialect(MLIRContext *context)
       >();
 }
 
+namespace {
+
 static Type GetIteratorType(Builder *builder) {
   return OpaqueType::get(builder->getIdentifier("hex"), "iterator",
                          builder->getContext());
 }
 
+static Type GetChainType(Builder *builder) {
+  return OpaqueType::get(builder->getIdentifier("hex"), "chain",
+                         builder->getContext());
+}
+
+}  // namespace
+
 //===----------------------------------------------------------------------===//
-// TableGen'd op method definitions
+// IteratorGetNextOp
 //===----------------------------------------------------------------------===//
+
+static ParseResult parseIteratorGetNextOp(OpAsmParser &parser,
+                                          OperationState &result) {
+  auto &builder = parser.getBuilder();
+  auto iterator_type = GetIteratorType(&builder);
+  auto chain_type = GetChainType(&builder);
+
+  SmallVector<OpAsmParser::OperandType, 4> operands;
+  if (parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren) ||
+      parser.parseOptionalAttrDict(result.attributes))
+    return failure();
+
+  SmallVector<Type, 4> operand_types;
+  SmallVector<Type, 4> result_types;
+  operand_types.push_back(iterator_type);
+  operand_types.push_back(chain_type);
+  auto loc = parser.getNameLoc();
+
+  if (parser.resolveOperands(operands, operand_types, loc, result.operands) ||
+      parser.parseColonTypeList(result_types) ||
+      parser.addTypeToList(chain_type, result.types) ||
+      parser.addTypesToList(result_types, result.types))
+    return failure();
+
+  return success();
+}
 
 //===----------------------------------------------------------------------===//
 // EnumerateIteratorOp
@@ -79,8 +114,6 @@ static ParseResult parseEnumerateIteratorOp(OpAsmParser &parser,
   result.addTypes({types.begin() + 1, types.end()});
   return success();
 }
-
-static void print(OpAsmPrinter &p, EnumerateIteratorOp op) {}
 
 // Verify that the signature of the functino matches the operands and results.
 static LogicalResult verify(EnumerateIteratorOp op) {
@@ -144,6 +177,10 @@ static LogicalResult verify(EnumerateIteratorOp op) {
 
   return success();
 }
+
+//===----------------------------------------------------------------------===//
+// TableGen'd op method definitions
+//===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/data/opdefs/data_ops_opdefs.cpp.inc"

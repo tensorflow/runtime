@@ -47,7 +47,6 @@ class Data_Op<string mnemonic, list<OpTrait> traits = []> :
 
   // Each registered op in the Data namespace needs to provide all of a printer,
   // parser and verifier.
-  let printer = [{ return tfrt::data::print(p, *this); }];
   let parser = [{ return tfrt::data::parse$cppClass(parser, result); }];
 }
 
@@ -69,17 +68,15 @@ def MakeIteratorOp : Data_Op<"make_iterator"> {
 def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
   let summary = "data iterator_get_next operation";
   let description = [{
-    data.iterator_get_next yields the next element from an iterator.
+    data.iterator_get_next yields a chain and an element from the iterator.
 
     Example:
       %iterator = data.make_iterator (%dataset)
-      %image, %label = data.iterator_get_next (%iterator) : !t.tensor, !t.tensor
+      %chain_out, %value = data.iterator_get_next (%iterator, %chain_in) : !t.tensor
   }];
 
-  let arguments = (ins IteratorType:$iterator, ChainType:$chain);
-  let results = (outs Variadic<AnyType>:$components);
-
-  let assemblyFormat = "`(`operands`)` attr-dict `:` type($components)";
+  let arguments = (ins IteratorType:$iterator, ChainType:$chain_in);
+  let results = (outs Variadic<AnyType>:$results);
 }
 
 def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {

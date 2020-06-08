@@ -142,5 +142,36 @@ class Count3Op<string suffix, Type type>
 def Count3I32Op : Count3Op<"i32", I32>;
 def Count3I64Op : Count3Op<"i64", I64>;
 
+def DecodeJpegOp : Test_Op<"decode_jpeg"> {
+  let summary = "tfrt_test.decode_jpeg operation";
+  let description = [{
+    The "tfrt_test.decode_jpeg" operation decodes Jpeg-formatted binary and
+    returns a tensor with the same semantics as tf.image.decode_jpeg(image_encoded, channels=3).
+
+    Example:
+      %image_decoded =  tfrt_test.decode_jpeg %image_encoded
+  }];
+  let arguments = (ins StringType);
+  let results = (outs TensorType);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
+def ResizeBilinearOp : Test_Op<"resize_bilinear"> {
+  let summary = "tfrt_test.resize_bilinear operation";
+  let description = [{
+    The tfrt_test.resize_bilinear operation resizes the input tensor based on
+    the given height and width. It returns a tensor with the same semantics as
+    tf.compat.v1.image.resize(input, [height, width]).
+
+    Example:
+      %image_resized = tfrt_test.resize_bilinear %image_decoded, %new_height, %new_width
+  }];
+  let arguments = (ins TensorType, I64, I64);
+  let results = (outs TensorType);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
 
 #endif  // TEST_OPS

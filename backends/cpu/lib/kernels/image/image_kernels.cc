@@ -59,7 +59,7 @@ static AsyncValueRef<DenseHostTensor> DecodeJpeg(
   return result;
 }
 
-// TODO(donglin): allocate tensor buffer outside this kernel
+// IDEA(donglin): allocate tensor buffer outside this kernel
 // Returns tf.compat.v1.image.resize(input, [height, width])
 static llvm::Expected<DenseHostTensor> ResizeBilinear(
     const DenseHostTensor& input, int64_t height, int64_t width,
@@ -98,8 +98,8 @@ static llvm::Expected<DenseHostTensor> ResizeBilinear(
 
 // This is the entrypoint to the library.
 void RegisterImageKernels(KernelRegistry* registry) {
-  registry->AddKernel("image.decode_jpeg", TFRT_KERNEL(DecodeJpeg));
-  registry->AddKernel("image.resize_bilinear", TFRT_KERNEL(ResizeBilinear));
+  registry->AddKernel("tfrt_test.decode_jpeg", TFRT_KERNEL(DecodeJpeg));
+  registry->AddKernel("tfrt_test.resize_bilinear", TFRT_KERNEL(ResizeBilinear));
 }
 
 }  // namespace image

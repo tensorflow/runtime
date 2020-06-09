@@ -119,8 +119,8 @@ class BatchDatasetOp<string suffix>
 
   let arguments = (ins
      DatasetType:$input_dataset,
+     I64:$batch_size,
 
-     I32Attr:$batch_size,
      I1Attr:$same_input_metadata
   );
   let results = (outs DatasetType:$handle);

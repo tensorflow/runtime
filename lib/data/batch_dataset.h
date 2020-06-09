@@ -288,7 +288,7 @@ class BatchDataset : public Dataset {
  public:
   // If `same_input_metadata` is true, all values from the `input_dataset`
   // must have the DType and TensorShape.
-  explicit BatchDataset(RCReference<Dataset> input_dataset, int32_t batch_size,
+  explicit BatchDataset(RCReference<Dataset> input_dataset, int64_t batch_size,
                         bool same_input_metadata, HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         batch_size_(batch_size),
@@ -311,7 +311,7 @@ class BatchDataset : public Dataset {
   }
 
   RCReference<Dataset> input_dataset_;
-  const int32_t batch_size_;
+  const int64_t batch_size_;
   const bool same_input_metadata_;
   HostContext* host_;
   HostAllocator* allocator_;

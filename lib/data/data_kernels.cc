@@ -175,11 +175,11 @@ RCReference<MemoryDataset<T...>> MakeMemoryDataset(
 
 template <typename... T>
 RCReference<BatchDataset<T...>> MakeBatchDataset(
-    RCReference<Dataset>* dataset, Attribute<int32_t> batch_size,
+    RCReference<Dataset>* dataset, int64_t batch_size,
     Attribute<bool> same_input_metadata, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
   return TakeRef(host->Construct<BatchDataset<T...>>(
-      dataset->CopyRef(), batch_size.get(), same_input_metadata.get(), host));
+      dataset->CopyRef(), batch_size, same_input_metadata.get(), host));
 }
 
 //===----------------------------------------------------------------------===//

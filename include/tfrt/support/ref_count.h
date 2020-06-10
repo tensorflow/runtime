@@ -31,6 +31,7 @@
 
 namespace tfrt {
 
+#ifndef NDEBUG
 extern std::atomic<size_t> total_reference_counted_objects;
 
 // Return the total number of reference-counted objects that are currently
@@ -39,6 +40,16 @@ extern std::atomic<size_t> total_reference_counted_objects;
 inline size_t GetNumReferenceCountedObjects() {
   return total_reference_counted_objects.load(std::memory_order_relaxed);
 }
+inline void AddNumReferenceCountedObjects() {
+  total_reference_counted_objects.fetch_add(1, std::memory_order_relaxed);
+}
+inline void DropNumReferenceCountedObjects() {
+  total_reference_counted_objects.fetch_sub(1, std::memory_order_relaxed);
+}
+#else
+inline void AddNumReferenceCountedObjects() {}
+inline void DropNumReferenceCountedObjects() {}
+#endif
 
 // This class is a common base class for things that need an atomic reference
 // count for ownership management.
@@ -51,13 +62,11 @@ inline size_t GetNumReferenceCountedObjects() {
 template <typename SubClass>
 class ReferenceCounted {
  public:
-  ReferenceCounted() : ref_count_(1) {
-    total_reference_counted_objects.fetch_add(1, std::memory_order_relaxed);
-  }
+  ReferenceCounted() : ref_count_(1) { AddNumReferenceCountedObjects(); }
   ~ReferenceCounted() {
     assert(ref_count_.load() == 0 &&
            "Shouldn't destroy a reference counted object with references!");
-    total_reference_counted_objects.fetch_sub(1, std::memory_order_relaxed);
+    DropNumReferenceCountedObjects();
   }
 
   // Not copyable or movable.

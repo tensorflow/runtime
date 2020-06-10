@@ -24,6 +24,7 @@
 #include <atomic>
 
 namespace tfrt {
-
+#ifndef NDEBUG
 std::atomic<size_t> total_reference_counted_objects{0};
-}
+#endif
+}  // namespace tfrt

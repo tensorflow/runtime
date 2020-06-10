@@ -161,6 +161,8 @@ class BEFLocationHandler final : public LocationHandler,
     return bef_file_->DecodeLocation(loc.data);
   }
 
+  BEFFileImpl* BefFile() const { return bef_file_.get(); }
+
  private:
   friend class ReferenceCounted<BEFLocationHandler>;
   HostContext* host_;
@@ -201,6 +203,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
                       SmallVectorImpl<unsigned>* kernel_ids);
   void MaybeAddRefForResult(AsyncValue* result);
   HostContext* GetHost() const { return exec_ctx_.host(); }
+  BEFFileImpl* BefFile() const { return location_handler_->BefFile(); }
 
  private:
   friend class ReferenceCounted<BEFExecutor>;
@@ -208,11 +211,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   /// The execution context for this BEFExecutor.
   ExecutionContext exec_ctx_;
 
-  /// Make sure the BEF file doesn't get deallocated while we're asynchronously
-  /// running stuff.
-  RCReference<BEFFileImpl> bef_file_;
-
-  // This ArrayRef contains kernel entries of all kernels of this function.
+  /// This ArrayRef contains kernel entries of all kernels of this function.
   ArrayRef<uint32_t> kernels_;
 
   /// This is an array of descriptors for all of the kernels in this function,
@@ -223,7 +222,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   /// register number.
   HostArray<BEFFileImpl::RegisterInfo> register_infos_;
 
-  // Make sure location handler is alive as long as there is pending execution.
+  /// Make sure location handler is alive as long as there is pending execution.
   RCReference<BEFLocationHandler> location_handler_;
 };
 
@@ -369,7 +368,7 @@ void BEFExecutor::MaybeAddRefForResult(AsyncValue* result) {
 void BEFExecutor::DecrementArgumentsNotReadyCounts(
     SmallVectorImpl<unsigned>* kernel_ids) {
   KernelFrameBuilder kernel_frame(exec_ctx_);
-  kernel_frame.SetAttributeSection(bef_file_->attribute_section_);
+  kernel_frame.SetAttributeSection(BefFile()->attribute_section_);
 
   MutableArrayRef<BEFFileImpl::KernelInfo>& kernel_infos =
       kernel_infos_.mutable_array();
@@ -396,7 +395,7 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
     kernel_frame.Reset();
 
     // Find the kernel implementation of this kernel.
-    KernelImplementation kernel_fn = bef_file_->kernels_[kernel.kernel_code()];
+    KernelImplementation kernel_fn = BefFile()->kernels_[kernel.kernel_code()];
     assert(kernel_fn != nullptr);
 
     // Check the low bit of special_metadata, which indicates if the kernel
@@ -406,7 +405,7 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
                           static_cast<uint32_t>(SpecialAttribute::kNonStrict));
     DEBUG_PRINT("Run %skernel %u %s\n",
                 is_nonstrict_kernel ? "non-strict " : "", kernel_id,
-                bef_file_->GetKernelName(kernel.kernel_code()));
+                BefFile()->GetKernelName(kernel.kernel_code()));
 
     // Set up operands.
     int entry_offset = 0;
@@ -434,7 +433,7 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
     for (auto attribute_offset : attributes) {
       // We pass the pointer here because this attribute could be an array of
       // size 0.
-      kernel_frame.AddAttribute(bef_file_->attribute_section_.data() +
+      kernel_frame.AddAttribute(BefFile()->attribute_section_.data() +
                                 attribute_offset);
     }
 
@@ -444,7 +443,7 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
         kernel.GetKernelEntries(entry_offset, kernel.num_functions());
     for (auto fn_idx : functions) {
       // Functions are passed as their corresponding `Function`.
-      kernel_frame.AddAttribute(bef_file_->functions_[fn_idx].get());
+      kernel_frame.AddAttribute(BefFile()->functions_[fn_idx].get());
     }
 
     // If all arguments are good or if the kernel is non-strict, run the
@@ -458,7 +457,7 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
       // kernel_fn should populate results in kernel_frame with pointers to
       // AsyncValue before it returns.
       {
-        TFRT_TRACE_KERNEL_SCOPE(bef_file_->GetKernelName(kernel.kernel_code()));
+        TFRT_TRACE_KERNEL_SCOPE(BefFile()->GetKernelName(kernel.kernel_code()));
         kernel_fn(&kernel_frame);
       }
     } else {
@@ -526,7 +525,6 @@ BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file,
                          HostArray<BEFFileImpl::RegisterInfo> register_infos,
                          bool has_arguments_pseudo_kernel)
     : exec_ctx_(std::move(exec_ctx)),
-      bef_file_(FormRef(bef_file)),
       kernels_(kernels),
       kernel_infos_(std::move(kernel_infos)),
       register_infos_(std::move(register_infos)),

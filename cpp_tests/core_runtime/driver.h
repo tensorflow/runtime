@@ -31,6 +31,7 @@
 namespace tfrt {
 
 class CoreRuntimeOp;
+class Function;
 class OpHandler;
 class OpAttrsRef;
 class TensorHandle;
@@ -50,6 +51,8 @@ class CoreRuntimeDriver final : public LocationHandler {
                const OpAttrsRef& attrs, MutableArrayRef<TensorHandle> results);
 
   CoreRuntimeOp MakeOp(string_view op_name);
+  CoreRuntimeOp MakeCompositeOp(const Function* fn);
+
   HostContext* GetHostContext() const { return corert_->GetHostContext(); }
 
   ExecutionContext CreateExecutionContext(const char* filename,

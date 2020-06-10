@@ -45,6 +45,9 @@ class TensorHandle;
 
 class CoreRuntime final {
  public:
+  // TODO(fishx): Avoid hard-coded type string.
+  static const char* kTensorHandleType;
+
   // Create a CoreRuntime object. `op_handler_chains` is an array of strings
   // that specifies devices to register including their fallback op handlers.
   // For example, if we need a cpu device that falls back to tf device, we can

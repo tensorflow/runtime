@@ -42,6 +42,9 @@
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
+
+const char* CoreRuntime::kTensorHandleType = "!corert.tensorhandle";
+
 namespace {
 
 class OpHandlerRegistry {
@@ -298,9 +301,6 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
 }
 
 Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
-  // TODO(fishx): Avoid hard-coded type string.
-  static constexpr const char* kTensorHandleType = "!corert.tensorhandle";
-
   for (size_t i = 0, e = fn->argument_types().size(); i != e; ++i) {
     auto& type = fn->argument_types()[i];
     if (type.GetName() != kTensorHandleType) {

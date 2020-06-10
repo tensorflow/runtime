@@ -58,9 +58,6 @@ class CoreRuntimeOp {
   // trees like (x+y)*z, but there are cases where the caller will need to
   // duplicate the TensorHandle (using CopyRef()) method if it needs the
   // TensorHandle to be valid after the execute call.
-  //
-  // If the client does not need the location information in error messages, the
-  // client can set `loc` to a default constructed Location, Loation().
   void operator()(const ExecutionContext& exec_ctx,
                   MutableArrayRef<TensorHandle> arguments,
                   const OpAttrsRef& attrs,

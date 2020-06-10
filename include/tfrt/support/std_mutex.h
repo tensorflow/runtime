@@ -91,6 +91,16 @@ class condition_variable {
                   Predicate pred) {
     return cv_.wait_until(mu.unique_lock_, timeout_time, pred);
   }
+
+  template <class Clock, class Duration>
+  // NOLINTNEXTLINE(google-runtime-references)
+  bool wait_until(
+      mutex_lock& mu,
+      const std::chrono::time_point<Clock, Duration>& timeout_time) {
+    return cv_.wait_until(mu.unique_lock_, timeout_time) ==
+           std::cv_status::timeout;
+  }
+
   void notify_one() { cv_.notify_one(); }
   void notify_all() { cv_.notify_all(); }
 

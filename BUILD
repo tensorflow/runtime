@@ -45,6 +45,7 @@ tfrt_cc_library(
         "lib/host_context/shared_context.cc",
         "lib/host_context/single_threaded_work_queue.cc",
         "lib/host_context/test_fixed_size_allocator.cc",
+        "lib/host_context/timer_queue.cc",
         "@tf_runtime//third_party/concurrent_work_queue:concurrent_work_queue_srcs",
     ],
     hdrs = [
@@ -68,6 +69,7 @@ tfrt_cc_library(
         "include/tfrt/host_context/parallel_for.h",
         "include/tfrt/host_context/shared_context.h",
         "include/tfrt/host_context/task_function.h",
+        "include/tfrt/host_context/timer_queue.h",
         "include/tfrt/host_context/type_name.h",
     ],
     alwayslink_static_registration_src = "lib/host_context/static_registration.cc",

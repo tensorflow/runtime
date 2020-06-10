@@ -104,6 +104,18 @@ class condition_variable {
     }
     return true;
   }
+
+  template <class Clock, class Duration>
+  // NOLINTNEXTLINE(google-runtime-references)
+  bool wait_until(mutex_lock& mu,
+                  const std::chrono::time_point<Clock, Duration>& timeout_time)
+      TFRT_NO_THREAD_SAFETY_ANALYSIS {
+    auto timeout_time_converted =
+        std::chrono::time_point_cast<std::chrono::microseconds>(timeout_time);
+    absl::Time deadline = absl::FromChrono(timeout_time_converted);
+    return cv_.WaitWithDeadline(mu.mu_, deadline);
+  }
+
   void notify_one() { cv_.Signal(); }
   void notify_all() { cv_.SignalAll(); }
 

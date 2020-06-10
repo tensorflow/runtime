@@ -17,7 +17,7 @@
 //===- test_kernels.h - MLIR op definitions for test_kernels ----*- C++ -*-===//
 //
 // This file declares the 'test' dialect as well as the operators in the
-// example_kernels library.
+// test_kernels library.
 //
 //===----------------------------------------------------------------------===//
 

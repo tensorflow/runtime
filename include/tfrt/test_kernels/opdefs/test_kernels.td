@@ -38,6 +38,8 @@ def Test_Dialect : Dialect {
   let cppNamespace = "test";
 }
 
+def ProtoExampleType : OpaqueType<"proto", "example", "!proto.example type">;
+
 // Base class for Test dialect ops.
 class Test_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<Test_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
@@ -169,6 +171,54 @@ def ResizeBilinearOp : Test_Op<"resize_bilinear"> {
   }];
   let arguments = (ins TensorType, I64, I64);
   let results = (outs TensorType);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
+def ParseExampleFromBytesOp : Test_Op<"parse_example_from_bytes"> {
+  let summary = "tfrt_test.parse_example_from_bytes operation";
+  let description = [{
+    The proto.parse_example_from_bytes parses a string into a protobuf object
+    whose format follows example.proto.
+
+    Example:
+      %example = tfrt_test.parse_example_from_bytes" %bytes
+  }];
+
+  let arguments = (ins StringType);
+  let results = (outs ProtoExampleType);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
+def GetBytesFieldFromExampleOp : Test_Op<"get_bytes_field_from_example"> {
+  let summary = "tfrt_test.get_bytes_field_from_example operation";
+  let description = [{
+    The tfrt_test.get_bytes_field_from_example extracts the bytes field of the
+    given `key` name from a protobuf object whose format follows example.proto.
+
+    Example:
+      %value = tfrt_test.get_bytes_field_from_example %example, %key
+  }];
+
+  let arguments = (ins ProtoExampleType, StringType);
+  let results = (outs StringType);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
+def GetInt64FieldFromExampleOp : Test_Op<"get_int64_field_from_example"> {
+  let summary = "tfrt_test.get_int64_field_from_example operation";
+  let description = [{
+    The tfrt_test.get_int64_field_from_example extracts the int64 field of the
+    given `key` name from a protobuf object whose format follows example.proto.
+
+    Example:
+      %value = tfrt_test.get_int64_field_from_example %example, %key
+  }];
+
+  let arguments = (ins ProtoExampleType, StringType);
+  let results = (outs I64);
   let assemblyFormat = "operands attr-dict";
   let verifier = ?;
 }

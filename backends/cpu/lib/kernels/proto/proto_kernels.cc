@@ -63,11 +63,11 @@ static llvm::Expected<int64_t> GetInt64FieldFromExample(
 
 // This is the entrypoint to the library.
 void RegisterProtoKernels(KernelRegistry* registry) {
-  registry->AddKernel("proto.parse_example_from_bytes",
+  registry->AddKernel("tfrt_test.parse_example_from_bytes",
                       TFRT_KERNEL(ParseExampleFromBytes));
-  registry->AddKernel("proto.get_bytes_field_from_example",
+  registry->AddKernel("tfrt_test.get_bytes_field_from_example",
                       TFRT_KERNEL(GetBytesFieldFromExample));
-  registry->AddKernel("proto.get_int64_field_from_example",
+  registry->AddKernel("tfrt_test.get_int64_field_from_example",
                       TFRT_KERNEL(GetInt64FieldFromExample));
 }
 

@@ -113,8 +113,9 @@ class BatchDatasetOp<string suffix>
 
     Example:
       %dataset1 = data.range_dataset.i32 (%start, %stop, %step)
-      %dataset2 = data.batch_dataset.i32 (%dataset1)
-        { batch_size = 3: i32, same_input_metadata = 1 : i1 }
+      %batch_size = hex.constant.i64 32
+      %dataset2 = data.batch_dataset.i32 (%dataset1, %batch_size)
+        { same_input_metadata = 1 : i1 }
   }];
 
   let arguments = (ins
@@ -163,7 +164,7 @@ def RangeDatasetI64Op : RangeDatasetOp<"i64">;
 
 // TODO(rachelim): Add verification to map functions.
 def MapDatasetOp : Data_Op<"map_dataset"> {
-  let summary = "data make_dataset operation";
+  let summary = "data map_dataset operation";
   let description = [{
     data.map_dataset maps a user-defined function over the elements in its
     input dataset.
@@ -186,6 +187,29 @@ def MapDatasetOp : Data_Op<"map_dataset"> {
     `(`$input_dataset (`,` $other_arguments^ `:` type($other_arguments))?`)`
     attr-dict
   }];
+}
+
+def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
+  let summary = "data prefetch_dataset operation";
+  let description = [{
+    data.prefetch_dataset wraps around another dataset instance and prefetches
+    elements from the underlying dataset in an internal buffer.
+
+    Example:
+      %dataset1 = data.range_dataset.i32 (%start, %stop, %step)
+      %dataset2 = data.map_dataset (%dataset1) {function = @times_two}
+      %prefetch_num = hex.constant.i64 8
+      %dataset3 = data.prefetch_dataset (%dataset2, %prefetch_num)
+  }];
+
+  let arguments = (ins
+    DatasetType:$input_dataset,
+    I64:$prefetch_num
+  );
+
+  let results = (outs DatasetType:$handle);
+
+  let assemblyFormat = "`(`operands`)` attr-dict";
 }
 
 #endif  // DATA_OPS

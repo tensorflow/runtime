@@ -40,7 +40,7 @@ class PrefetchDatasetIterator;
 class PrefetchDataset : public Dataset {
  public:
   explicit PrefetchDataset(RCReference<Dataset> input_dataset,
-                           int32_t prefetch_num, HostContext* host)
+                           int64_t prefetch_num, HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         prefetch_num_(prefetch_num),
         host_(host) {}
@@ -60,7 +60,7 @@ class PrefetchDataset : public Dataset {
   }
 
   RCReference<Dataset> input_dataset_;
-  int32_t prefetch_num_;
+  int64_t prefetch_num_;
   HostContext* host_;
 };
 

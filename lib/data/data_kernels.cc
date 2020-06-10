@@ -187,10 +187,14 @@ RCReference<BatchDataset<T...>> MakeBatchDataset(
 //===----------------------------------------------------------------------===//
 
 RCReference<PrefetchDataset> MakePrefetchDataset(
-    RCReference<Dataset>* dataset, const ExecutionContext& exec_ctx) {
+    RCReference<Dataset>* dataset, int64_t prefetch_num,
+    const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(host->Construct<PrefetchDataset>(
-      dataset->CopyRef(), host->GetNumWorkerThreads(), host));
+  if (prefetch_num == -1) {
+    prefetch_num = host->GetNumWorkerThreads();
+  }
+  return TakeRef(
+      host->Construct<PrefetchDataset>(dataset->CopyRef(), prefetch_num, host));
 }
 
 //===----------------------------------------------------------------------===//

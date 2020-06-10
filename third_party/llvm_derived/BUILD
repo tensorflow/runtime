@@ -13,8 +13,8 @@ tfrt_cc_library(
     srcs = ["lib/Support/raw_ostream.cpp"],
     hdrs = ["include/llvm_derived/Support/raw_ostream.h"],
     deps = [
+        "@llvm-project//llvm:Support",
         "@llvm-project//llvm:config",
-        "@llvm-project//llvm:support",
     ],
 )
 
@@ -22,7 +22,7 @@ tfrt_cc_library(
     name = "tfrt_translate_main",
     srcs = ["tools/mlir-translate/mlir-translate.cpp"],
     deps = [
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Support",

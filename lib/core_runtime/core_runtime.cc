@@ -50,7 +50,7 @@ namespace {
 class OpHandlerRegistry {
  public:
   OpHandler* GetOrNull(string_view name) const {
-    return named_op_handlers_.lookup(name);
+    return all_chains_.lookup(name);
   }
 
   void AddOpHandler(std::unique_ptr<OpHandler> op_handler) {
@@ -58,16 +58,16 @@ class OpHandlerRegistry {
     all_op_handlers_.emplace_back(std::move(op_handler));
   }
 
-  bool AddNamedOpHandler(string_view name, OpHandler* op_handler) {
-    assert(op_handler);
-    auto r = named_op_handlers_.try_emplace(name, op_handler);
+  bool AddOpHandlerChain(string_view name, OpHandler* root) {
+    assert(root);
+    auto r = all_chains_.try_emplace(name, root);
     (void)r;
     return r.second;
   }
 
  private:
-  // named_op_handlers_ can be looked up via GetOrNull() function.
-  llvm::StringMap<OpHandler*> named_op_handlers_;
+  // all_chains_ can be looked up via GetOrNull() function.
+  llvm::StringMap<OpHandler*> all_chains_;
   std::vector<std::unique_ptr<OpHandler>> all_op_handlers_;
 };
 
@@ -98,6 +98,14 @@ class CoreRuntime::Impl {
                OpHandler* op_handler, MutableArrayRef<TensorHandle> arguments,
                const OpAttrsRef& attrs, MutableArrayRef<TensorHandle> results,
                AsyncValueRef<Chain>* chain);
+
+  void TakeOpHandler(std::unique_ptr<OpHandler> op_handler) {
+    op_handler_registry_.AddOpHandler(std::move(op_handler));
+  }
+
+  void RegisterOpHandlerChain(string_view chain_name, OpHandler* chain_root) {
+    op_handler_registry_.AddOpHandlerChain(chain_name, chain_root);
+  }
 
  private:
   friend class CoreRuntime;
@@ -224,7 +232,7 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
     if (op_handler_chain_name.empty())
       op_handler_chain_name = fallback->GetName();
 
-    if (!op_handler_registry.AddNamedOpHandler(op_handler_chain_name,
+    if (!op_handler_registry.AddOpHandlerChain(op_handler_chain_name,
                                                fallback)) {
       return MakeStringError("OpHandler ",
                              std::string(op_handler_chain_name).c_str(),
@@ -381,6 +389,15 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
     }
   };
   return CoreRuntimeOp(std::move(execute_fn), false);
+}
+
+void CoreRuntime::TakeOpHandler(std::unique_ptr<OpHandler> op_handler) {
+  impl_->TakeOpHandler(std::move(op_handler));
+}
+
+void CoreRuntime::RegisterOpHandlerChain(string_view chain_name,
+                                         OpHandler* chain_root) {
+  impl_->RegisterOpHandlerChain(chain_name, chain_root);
 }
 
 }  // namespace tfrt

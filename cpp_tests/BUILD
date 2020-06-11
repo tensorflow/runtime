@@ -156,6 +156,19 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "core_runtime/op_handler_test",
+    srcs = ["core_runtime/op_handler_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:core_runtime",
+        "@tf_runtime//:support",
+        "@tf_runtime//backends/cpu:core_runtime_alwayslink",
+        "@tf_runtime//backends/cpu:test_ops_alwayslink",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_runtime/async_value_test",
     srcs = ["host_runtime/async_value_test.cc"],
     deps = [

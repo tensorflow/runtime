@@ -166,4 +166,22 @@ def CoreRT_GetDeviceOp : CoreRT_Op<"get_device"> {
   let verifier = ?;
 }
 
+def CoreRT_RegisterOpHandlerChainOp : CoreRT_Op<"register_op_handler_chain"> {
+  let summary = "Register a name for a Chain of OpHandlers.";
+  let description = [{
+    Register a name for the given Chain of OpHandlers and make the chain
+    accessible through corert.get_device.
+
+    Example:
+      %chain = corert.register_op_handler_chain %root_op_handler, "my_chain0"
+  }];
+
+  let arguments = (ins
+    DeviceType:$device,
+    StrAttr:$device_name
+  );
+  let results = (outs ChainType:$out_op_chain);
+  let assemblyFormat = "$device $device_name attr-dict";
+  let verifier = ?;
+}
 #endif

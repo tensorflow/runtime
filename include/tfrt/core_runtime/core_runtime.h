@@ -112,6 +112,17 @@ class CoreRuntime final {
   // TODO(b/157526882): Add test for this API.
   Expected<CoreRuntimeOp> MakeCompositeOp(const Function* fn);
 
+  // [Experimental]
+  // Transfer the ownership of an OpHandler to this core runtime object.
+  // This function is intended to be called by OpHandler factory functions.
+  void TakeOpHandler(std::unique_ptr<OpHandler> op_handler);
+
+  // [Experimental]
+  // Assign a name to a given OpHandler chain and make the chain accessible
+  // through GetOpHandler. All OpHandlers in the chain should owned by the
+  // core runtime object or stay alive during the execution.
+  void RegisterOpHandlerChain(string_view chain_name, OpHandler* chain_root);
+
  private:
   friend class OpHandler;
   class Impl;

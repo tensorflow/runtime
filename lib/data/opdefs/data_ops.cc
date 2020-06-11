@@ -71,7 +71,7 @@ static ParseResult parseIteratorGetNextOp(OpAsmParser &parser,
   auto chain_type = GetChainType(&builder);
 
   SmallVector<OpAsmParser::OperandType, 4> operands;
-  if (parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren) ||
+  if (parser.parseOperandList(operands) ||
       parser.parseOptionalAttrDict(result.attributes))
     return failure();
 
@@ -97,8 +97,8 @@ static ParseResult parseIteratorGetNextOp(OpAsmParser &parser,
 static ParseResult parseEnumerateIteratorOp(OpAsmParser &parser,
                                             OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 4> operands;
-  if (parser.parseLParen() || parser.parseOperandList(operands) ||
-      parser.parseRParen() || parser.parseOptionalAttrDict(result.attributes))
+  if (parser.parseOperandList(operands) ||
+      parser.parseOptionalAttrDict(result.attributes))
     return failure();
 
   SmallVector<Type, 4> types;

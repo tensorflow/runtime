@@ -56,13 +56,13 @@ def MakeIteratorOp : Data_Op<"make_iterator"> {
     data.make_iterator creates an iterator from a dataset.
 
     Example:
-      %iterator = data.make_iterator (%dataset)
+      %iterator = data.make_iterator %dataset
   }];
 
   let arguments = (ins DatasetType:$dataset);
   let results = (outs IteratorType:$iterator);
 
-  let assemblyFormat = "`(`operands`)` attr-dict";
+  let assemblyFormat = "operands attr-dict";
 }
 
 def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
@@ -71,7 +71,7 @@ def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
     data.iterator_get_next yields a chain and an element from the iterator.
 
     Example:
-      %iterator = data.make_iterator (%dataset)
+      %iterator = data.make_iterator %dataset
       %chain_out, %value = data.iterator_get_next (%iterator, %chain_in) : !t.tensor
   }];
 
@@ -112,9 +112,9 @@ class BatchDatasetOp<string suffix>
     underlying elements.
 
     Example:
-      %dataset1 = data.range_dataset.i32 (%start, %stop, %step)
+      %dataset1 = data.range_dataset.i32 %start, %stop, %step
       %batch_size = hex.constant.i64 32
-      %dataset2 = data.batch_dataset.i32 (%dataset1, %batch_size)
+      %dataset2 = data.batch_dataset.i32 %dataset1, %batch_size
         { same_input_metadata = 1 : i1 }
   }];
 
@@ -126,7 +126,7 @@ class BatchDatasetOp<string suffix>
   );
   let results = (outs DatasetType:$handle);
 
-  let assemblyFormat = "`(`operands`)` attr-dict";
+  let assemblyFormat = "operands attr-dict";
 }
 
 // TODO(b/155892156): In the long term, dataset ops will not be specialized
@@ -144,7 +144,7 @@ class RangeDatasetOp<string suffix>
     start (inclusive) to stop (exclusive).
 
     Example:
-      %dataset = data.range_dataset.i32 (%start, %stop, %step)
+      %dataset = data.range_dataset.i32 %start, %stop, %step
   }];
 
   let arguments = (ins
@@ -154,7 +154,7 @@ class RangeDatasetOp<string suffix>
   );
   let results = (outs DatasetType:$handle);
 
-  let assemblyFormat = "`(`operands`)` attr-dict";
+  let assemblyFormat = "operands attr-dict";
 }
 
 // TODO(b/155892156): In the long term, dataset ops will not be specialized
@@ -170,8 +170,8 @@ def MapDatasetOp : Data_Op<"map_dataset"> {
     input dataset.
 
     Example:
-      %dataset1 = data.range_dataset.i32 (%start, %stop, %step)
-      %dataset2 = data.map_dataset (%dataset1) {function = @times_two}
+      %dataset1 = data.range_dataset.i32 %start, %stop, %step
+      %dataset2 = data.map_dataset %dataset1 {function = @times_two}
   }];
 
   let arguments = (ins
@@ -184,7 +184,7 @@ def MapDatasetOp : Data_Op<"map_dataset"> {
   let results = (outs DatasetType:$handle);
 
   let assemblyFormat = [{
-    `(`$input_dataset (`,` $other_arguments^ `:` type($other_arguments))?`)`
+    $input_dataset (`,` $other_arguments^ `:` type($other_arguments))?
     attr-dict
   }];
 }
@@ -196,10 +196,10 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
     elements from the underlying dataset in an internal buffer.
 
     Example:
-      %dataset1 = data.range_dataset.i32 (%start, %stop, %step)
-      %dataset2 = data.map_dataset (%dataset1) {function = @times_two}
+      %dataset1 = data.range_dataset.i32 %start, %stop, %step
+      %dataset2 = data.map_dataset %dataset1 {function = @times_two}
       %prefetch_num = hex.constant.i64 8
-      %dataset3 = data.prefetch_dataset (%dataset2, %prefetch_num)
+      %dataset3 = data.prefetch_dataset %dataset2, %prefetch_num
   }];
 
   let arguments = (ins
@@ -209,7 +209,7 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
 
   let results = (outs DatasetType:$handle);
 
-  let assemblyFormat = "`(`operands`)` attr-dict";
+  let assemblyFormat = "operands attr-dict";
 }
 
 #endif  // DATA_OPS

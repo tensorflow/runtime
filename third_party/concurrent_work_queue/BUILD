@@ -25,7 +25,7 @@ tfrt_cc_library(
     hdrs = [":concurrent_work_queue_srcs"],
     visibility = ["//visibility:private"],
     deps = [
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
     ],
@@ -40,7 +40,7 @@ tfrt_cc_test(
     deps = [
         ":concurrent_work_queue",
         "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
     ],
@@ -55,7 +55,7 @@ tfrt_cc_test(
     deps = [
         ":concurrent_work_queue",
         "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
     ],
@@ -80,7 +80,7 @@ tfrt_cc_test(
     deps = [
         ":concurrent_work_queue",
         "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
     ],
 )
@@ -92,7 +92,7 @@ tfrt_cc_test(
     deps = [
         ":concurrent_work_queue",
         "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
     ],
 )

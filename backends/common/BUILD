@@ -32,7 +32,7 @@ tfrt_cc_library(
     deps = [
         ":eigencompat",
         ":tf_dnn_ops_util",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -51,7 +51,7 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":eigencompat",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -65,7 +65,7 @@ tfrt_cc_library(
     hdrs = ["include/tfrt/common/ops/tf/dnn_ops_util.h"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -124,7 +124,7 @@ tfrt_cc_library(
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
         "@eigen_archive//:eigen3",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
     ] +
     # Custom contraction kernel dependencies.
     select({
@@ -161,7 +161,7 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":eigencompat",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",

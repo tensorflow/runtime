@@ -15,7 +15,7 @@ tfrt_cc_library(
     ],
     deps = [
         "@com_google_googletest//:gtest",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
     ],
@@ -90,7 +90,7 @@ tfrt_cc_test(
         ":common",
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
     ],
 )
@@ -147,7 +147,7 @@ tfrt_cc_test(
     deps = [
         ":common",
         "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -212,7 +212,7 @@ tfrt_cc_test(
         ":common",
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
         "@tf_runtime//:tracing",
     ],

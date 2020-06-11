@@ -27,7 +27,7 @@ tfrt_cc_library(
         "@tf_runtime//:data_opdefs_alwayslink",
         "@tf_runtime//:tensor_opdefs_alwayslink",
         "@tf_runtime//:test_kernels_opdefs_alwayslink",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AllPassesAndDialectsNoRegistration",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:MlirOptMain",
@@ -54,7 +54,7 @@ tfrt_cc_library(
         "@tf_runtime//:mlirtobef_alwayslink",
         "@tf_runtime//:tensor_opdefs_alwayslink",
         "@tf_runtime//:test_kernels_opdefs_alwayslink",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:tfrt_translate_main",
     ] + select({
         "//conditions:default": [],
@@ -76,7 +76,7 @@ tfrt_cc_library(
     ],
     visibility = [":friends"],
     deps = [
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:bef_executor_driver",
         "@tf_runtime//:hostcontext_alwayslink",
         "@tf_runtime//:tracing",

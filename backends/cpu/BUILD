@@ -24,7 +24,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/core_runtime/static_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -49,7 +49,7 @@ tfrt_cc_library(
     deps = [
         ":core_runtime",
         ":cpu_kernels",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -74,7 +74,7 @@ tfrt_cc_library(
     deps = [
         ":core_runtime",
         ":cpu_kernels",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

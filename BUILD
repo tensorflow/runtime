@@ -76,7 +76,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":support",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -118,7 +118,7 @@ tfrt_cc_library(
     }),
     visibility = [":friends"],
     deps = [
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
     ] + select({
         "//conditions:default": [],
     }),
@@ -135,7 +135,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":support",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -153,7 +153,7 @@ tfrt_cc_library(
     deps = [
         ":support",
         ":tracing",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -173,7 +173,7 @@ tfrt_cc_library(
         ":hostcontext",
         ":support",
         ":tracing",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -188,7 +188,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":support",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -234,7 +234,7 @@ tfrt_cc_library(
     deps = [
         ":hostcontext",
         ":support",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:Support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
@@ -256,7 +256,7 @@ tfrt_cc_library(
     deps = [
         ":hostcontext",
         ":support",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
@@ -274,7 +274,7 @@ tfrt_cc_library(
     deps = [
         ":core_runtime_opdefs",
         ":support",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Translation",
     ],
@@ -288,7 +288,7 @@ tfrt_cc_library(
     deps = [
         ":core_runtime_opdefs",
         ":support",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Support",
@@ -344,7 +344,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs_inc_gen",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
         "@llvm-project//mlir:Support",
@@ -471,7 +471,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":core_runtime_opdefs_inc_gen",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
         "@llvm-project//mlir:Support",
@@ -494,7 +494,7 @@ tfrt_cc_library(
         ":metrics_api",
         ":support",
         ":tracing",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
@@ -540,7 +540,7 @@ tfrt_cc_library(
         ":support",
         ":tensor",
         ":tracing",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
@@ -566,7 +566,7 @@ tfrt_cc_library(
         ":hostcontext",
         ":support",
         ":tensor",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
@@ -641,7 +641,7 @@ tfrt_cc_library(
         ":hostcontext",
         ":support",
         ":tensor",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
     ],
 )
 
@@ -676,7 +676,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/data/opdefs/static_registration.cc",
     deps = [
         ":data_opdefs_inc_gen",
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
     ],
@@ -692,7 +692,7 @@ tfrt_cc_library(
         "include/tfrt/distributed_runtime/fabric_communicator.h",
     ],
     deps = [
-        "@llvm-project//llvm:support",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",

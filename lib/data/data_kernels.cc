@@ -144,11 +144,11 @@ RCReference<TFRecordDataset> MakeTFRecordDataset(
 //===----------------------------------------------------------------------===//
 
 RCReference<RepeatDataset> MakeRepeatDataset(RCReference<Dataset>* dataset,
-                                             Attribute<int32_t> count,
+                                             int64_t count,
                                              const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
   return TakeRef(
-      host->Construct<RepeatDataset>(dataset->CopyRef(), count.get(), host));
+      host->Construct<RepeatDataset>(dataset->CopyRef(), count, host));
 }
 
 //===----------------------------------------------------------------------===//

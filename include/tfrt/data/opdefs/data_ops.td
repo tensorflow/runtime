@@ -271,4 +271,44 @@ class RangeDatasetOp<string suffix>
 def RangeDatasetI32Op : RangeDatasetOp<"i32">;
 def RangeDatasetI64Op : RangeDatasetOp<"i64">;
 
+def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
+  let summary = "data repeat_dataset operation";
+  let description = [{
+    data.repeat_dataset wraps around another dataset instance and repeats
+    it a specified number of times.
+
+    Example:
+      %dataset1 = data.range_dataset.i32 %start, %stop, %step
+      %count = hex.constant.i64 8
+      %dataset2 = data.repeat_dataset %dataset1, %count
+  }];
+
+  let arguments = (ins
+    DatasetType:$input_dataset,
+    I64:$count
+  );
+
+  let results = (outs DatasetType:$output_dataset);
+
+  let assemblyFormat = "operands attr-dict";
+}
+
+def TFRecordDatasetOp : Data_Op<"tf_record_dataset"> {
+  let summary = "data tf_record_dataset operation";
+  let description = [{
+    data.tf_record_dataset reads TFRecord bytes from a file.
+
+    Example:
+      %dataset = data.tf_record_dataset %path
+  }];
+
+  let arguments = (ins
+    StringType:$path
+  );
+
+  let results = (outs DatasetType:$output_dataset);
+
+  let assemblyFormat = "operands attr-dict";
+}
+
 #endif  // DATA_OPS

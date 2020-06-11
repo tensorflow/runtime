@@ -39,7 +39,7 @@ class RepeatDatasetIterator;
 // specified number of times.
 class RepeatDataset : public Dataset {
  public:
-  explicit RepeatDataset(RCReference<Dataset> input_dataset, int32_t epochs,
+  explicit RepeatDataset(RCReference<Dataset> input_dataset, int64_t epochs,
                          HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         epochs_(epochs),
@@ -63,7 +63,7 @@ class RepeatDataset : public Dataset {
   }
 
   RCReference<Dataset> input_dataset_;
-  int32_t epochs_;
+  int64_t epochs_;
   HostContext* host_;
   HostAllocator* allocator_;
 };
@@ -155,7 +155,7 @@ class RepeatDatasetIterator : public Iterator {
   // GetNext(...) caller.
   std::queue<IterationResult> output_buffer_ TFRT_GUARDED_BY(mu_);
   // The current epoch number.
-  int32_t epoch_ = 0;
+  int64_t epoch_ = 0;
 
   // This is a unique logical token for this iterator instance. It effectively
   // acts as a lock to ensure in-order delivery of results by guaranteeing that

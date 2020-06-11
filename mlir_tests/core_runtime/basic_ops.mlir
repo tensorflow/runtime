@@ -207,7 +207,7 @@ func @badop_error() {
   %ch0 = hex.new.chain
   %cpu = corert.get_device "cpu"
 
-  // expected-error @+1 {{'tf.invalidop' is not supported}}
+  // expected-error @+1 {{tf.invalidop was not supported by NullOpHandler}}
   %op_ch = corert.executeop.seq(%cpu, %ch0) "tf.invalidop"()
 
   hex.return

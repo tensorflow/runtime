@@ -504,8 +504,6 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "core_runtime",
     srcs = [
-        "lib/core_runtime/composite_op_handler.cc",
-        "lib/core_runtime/composite_op_kernels.cc",
         "lib/core_runtime/core_runtime.cc",
         "lib/core_runtime/core_runtime_op.cc",
         "lib/core_runtime/dispatch_utils.cc",
@@ -530,7 +528,6 @@ tfrt_cc_library(
         "include/tfrt/core_runtime/op_metadata_function.h",
         "include/tfrt/core_runtime/op_utils.h",
         "include/tfrt/core_runtime/tensor_handle.h",
-        "lib/core_runtime/composite_op_handler.h",
         "lib/core_runtime/logging_op_handler.h",
     ],
     alwayslink_static_registration_src = "lib/core_runtime/static_registration.cc",

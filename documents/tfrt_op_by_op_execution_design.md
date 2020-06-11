@@ -234,8 +234,6 @@ There are also many other pseudo `op_handler`s for different purposes:
 *   [**Sync Logging `OpHandler`**](https://github.com/tensorflow/runtime/blob/master/lib/core_runtime/logging_op_handler.h):
     This `op_handler` can print the inputs and outputs of every ops. We used it
     for debugging.
-*   [**Composite `OpHandler`**](https://github.com/tensorflow/runtime/blob/master/lib/core_runtime/composite_op_handler.h):
-    This `op_handler` can execute a composite op. (_Experimental_)
 
 These pseudo `op_handler`s are out of scope for this document.
 

@@ -302,6 +302,7 @@ static bool IsOpAttrsTyped(mlir::Operation* op) {
   // OpTraits instead of hardcoding dialect name or op name here.
   return op->getName().getStringRef() == "corert.executeop" ||
          op->getName().getStringRef() == "corert.executeop.seq" ||
+         op->getName().getStringRef() == "corert.execute_crt_op" ||
          op->getName().getStringRef() == "corert.const_string_tensor";
 }
 

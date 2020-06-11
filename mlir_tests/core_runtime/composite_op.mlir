@@ -12,21 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices='cpu,composite_op' | FileCheck %s --dump-input=fail
+// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices='cpu' | FileCheck %s --dump-input=fail
 
-func @matmul_fn(%arg : !dht.dense_host_tensor.f32.2) -> !dht.dense_host_tensor.f32.2 {
+func @matmul_fn(%arg : !corert.tensorhandle) -> !corert.tensorhandle {
   %cpu = corert.get_device "cpu"
-  %t = "corert.ht_to_tensorhandle" (%arg) : (!dht.dense_host_tensor.f32.2) -> !corert.tensorhandle
-  %t1 = corert.executeop(%cpu) "tfrt_test.matmul"(%t, %t)
+  %t1 = corert.executeop(%cpu) "tfrt_test.matmul"(%arg, %arg)
     {transpose_a = false, transpose_b = false}: 1
-  %result = "corert.tensorhandle_to_ht" (%t1) : (!corert.tensorhandle) -> !dht.dense_host_tensor.f32.2
-  hex.return %result : !dht.dense_host_tensor.f32.2
+  hex.return %t1 : !corert.tensorhandle
 }
 
 // CHECK-LABEL: --- Running 'corert.simple_composite_op'
 func @corert.simple_composite_op() -> !hex.chain {
-
-  %fn_device = corert.get_device "composite_op"
   %cpu = corert.get_device "cpu"
 
   // Prepare input.
@@ -34,19 +30,19 @@ func @corert.simple_composite_op() -> !hex.chain {
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
 
-  %ch1 = "corert.register_composite_op"(%fn_device) {name="matmul_fn", fn=@matmul_fn} : (!corert.device) -> !hex.chain
+  %matmul_fn_op = "corert.make_composite_op" () {fn=@matmul_fn} : () -> !corert.op
 
-  %result = corert.executeop(%fn_device) "matmul_fn"(%a_handle) : 1
+  %result = "corert.execute_crt_op" (%matmul_fn_op, %a_handle) {op_attrs =[]} : (!corert.op, !corert.tensorhandle) -> !corert.tensorhandle
 
   // CHECK: shape = [1, 1], values = [4.000000e+00]
-  %ch2 = "corert.print_tensorhandle"(%result, %ch1) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
 
   %result1 = corert.executeop(%cpu) "tfrt_test.matmul"(%result, %result)
     {transpose_a = false, transpose_b = false}: 1
 
   // CHECK: shape = [1, 1], values = [1.600000e+01]
-  %ch3 = "corert.print_tensorhandle"(%result1, %ch2) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch2 = "corert.print_tensorhandle"(%result1, %ch1) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
 
-  hex.return %ch3 : !hex.chain
+  hex.return %ch2 : !hex.chain
 }
 

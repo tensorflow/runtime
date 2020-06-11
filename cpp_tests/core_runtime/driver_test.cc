@@ -242,9 +242,6 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
             a.GetAvailableMetadata(), std::move(result));
         TFRT_DLOG(INFO) << "result is " << results[0]->get<TensorHandle>()
                         << " with state " << results[0]->IsAvailable();
-        // TODO(b/158615432): Remove these DropRef() calls after fixing the bug.
-        arguments[0]->DropRef();
-        arguments[1]->DropRef();
       };
 
   TypeName tensor_handle_type =

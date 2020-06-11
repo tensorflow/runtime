@@ -20,7 +20,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "./composite_op_handler.h"
 #include "./logging_op_handler.h"
 #include "tfrt/core_runtime/kernels.h"
 #include "tfrt/core_runtime/op_handler.h"
@@ -33,7 +32,6 @@ namespace tfrt {
 static void RegisterKernels(KernelRegistry *registry) {
   RegisterCoreRuntimeKernels(registry);
   RegisterCoreRuntimeTestKernels(registry);
-  RegisterCompositeOpHandlerKernels(registry);
 }
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterKernels);
@@ -43,7 +41,5 @@ static OpHandlerRegistration logging_registration("logging",
 
 static OpHandlerRegistration sync_logging_registration(
     "sync_logging", CreateSyncLoggingOpHandler);
-static OpHandlerRegistration composite_op_registration(
-    "composite_op", CompositeOpHandler::Create);
 
 }  // namespace tfrt

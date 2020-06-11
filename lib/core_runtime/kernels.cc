@@ -176,11 +176,10 @@ static llvm::Expected<TensorHandle> ConstDenseTensor(
   return TensorHandle(metadata, std::move(tensor_ref));
 }
 
-static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
-                          ArrayRef<AsyncValue *> args,
+static void ExecuteOpImpl(CoreRuntimeOp *op, ArrayRef<AsyncValue *> args,
                           AsyncValueRef<Chain> *op_chain,
                           MutableArrayRef<RCReference<AsyncValue>> results,
-                          AggregateAttr op_attr_array, string_view op_name,
+                          AggregateAttr op_attr_array,
                           const ExecutionContext &exec_ctx) {
   SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
@@ -255,8 +254,7 @@ static void ExecuteOpImpl(CoreRuntime *core_rt, OpHandler *op_handler,
     }
   }
 
-  core_rt->Execute(exec_ctx, op_name, op_handler, th_args, OpAttrsRef(op_attrs),
-                   result_ths, op_chain);
+  (*op)(exec_ctx, th_args, OpAttrsRef(op_attrs), result_ths, op_chain);
 
   // Return all of the TensorHandles in AsyncValue's.
   for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
@@ -274,12 +272,15 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
   auto *core_rt = CoreRuntime::GetFromHostContext(host);
   if (!core_rt) return handler.ReportError("no CoreRuntime available");
 
+  auto expected_op = core_rt->MakeOp(op_name.GetValue(), op_handler.get());
+  if (!expected_op) return handler.ReportError(StrCat(expected_op.takeError()));
+
   for (int b = 0, e = results.size(); b < e; ++b)
     results.AllocateAt<TensorHandle>(b);
 
-  ExecuteOpImpl(core_rt, op_handler.get(), args.values(),
+  ExecuteOpImpl(&expected_op.get(), args.values(),
                 /*op_chain =*/nullptr, results.values(), op_attr_array,
-                op_name.GetValue(), exec_ctx);
+                exec_ctx);
 }
 
 // ExecuteOpSeq executes the `op_name` operation on the `op_handler`. It takes
@@ -307,10 +308,13 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
 
   // If all arguments except in_op_chain are ready, we can just execute the op.
   if (async_args.empty()) {
+    auto expected_op = core_rt->MakeOp(op_name.GetValue(), op_handler.get());
+    if (!expected_op)
+      return handler.ReportError(StrCat(expected_op.takeError()));
+
     auto op_chain = in_op_chain.ValueRef();
-    ExecuteOpImpl(core_rt, op_handler.get(), args.values(), &op_chain,
-                  results.values(), op_attr_array, op_name.GetValue(),
-                  exec_ctx);
+    ExecuteOpImpl(&expected_op.get(), args.values(), &op_chain,
+                  results.values(), op_attr_array, exec_ctx);
     out_op_chain.Set(std::move(op_chain));
     return;
   }
@@ -343,14 +347,19 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
         if (op_handler.IsError()) return propgate_error(op_handler.GetError());
         if (op_chain.IsError()) return propgate_error(op_chain.GetError());
 
+        auto expected_op = core_rt->MakeOp(op_name, op_handler.get());
+        if (!expected_op)
+          return propgate_error(
+              EmitError(exec_ctx, StrCat(expected_op.takeError())));
+
         SmallVector<AsyncValue *, 4> arg_avs;
         for (const auto &arg_ref : arg_refs) {
           if (arg_ref.IsError()) return propgate_error(arg_ref.GetError());
           arg_avs.push_back(arg_ref.GetAsyncValue());
         }
 
-        ExecuteOpImpl(core_rt, op_handler.get(), arg_avs, &op_chain,
-                      result_refs, op_attr_array, op_name, exec_ctx);
+        ExecuteOpImpl(&expected_op.get(), arg_avs, &op_chain, result_refs,
+                      op_attr_array, exec_ctx);
 
         auto *op_chain_av = op_chain.GetAsyncValue();
         op_chain_av->AndThen([op_chain = std::move(op_chain),
@@ -364,6 +373,34 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
           }
         });
       });
+}
+
+// ExecuteOp executes the `op_name` operation on the `op_handler`.
+static void ExecuteCoreRuntimeOp(Argument<CoreRuntimeOp> op,
+                                 RemainingArguments args,
+                                 RemainingResults results,
+                                 AggregateAttr op_attrs,
+                                 KernelErrorHandler handler,
+                                 const ExecutionContext &exec_ctx) {
+  auto *host = exec_ctx.host();
+  auto *core_rt = CoreRuntime::GetFromHostContext(host);
+  if (!core_rt) return handler.ReportError("no CoreRuntime available");
+
+  for (int b = 0, e = results.size(); b < e; ++b)
+    results.AllocateAt<TensorHandle>(b);
+
+  ExecuteOpImpl(&op.get(), args.values(),
+                /*op_chain =*/nullptr, results.values(), op_attrs, exec_ctx);
+}
+
+static tfrt::Expected<CoreRuntimeOp> MakeCompositeOp(
+    Attribute<Function> fn_const, const ExecutionContext &exec_ctx) {
+  auto *host = exec_ctx.host();
+  auto *core_rt = CoreRuntime::GetFromHostContext(host);
+  if (!core_rt) return MakeStringError("no CoreRuntime available");
+
+  Function *fn = const_cast<Function *>(&(*fn_const));
+  return core_rt->MakeCompositeOp(fn);
 }
 
 static tfrt::Expected<OpHandler *> GetOpHandler(
@@ -424,6 +461,9 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.op_attrs_set.str", TFRT_KERNEL(OpAttrsSetString));
   registry->AddKernel("corert.executeop", TFRT_KERNEL(ExecuteOp));
   registry->AddKernel("corert.executeop.seq", TFRT_KERNEL(ExecuteOpSeq));
+  registry->AddKernel("corert.execute_crt_op",
+                      TFRT_KERNEL(ExecuteCoreRuntimeOp));
+  registry->AddKernel("corert.make_composite_op", TFRT_KERNEL(MakeCompositeOp));
   // TODO(fishx): Rename it to corert.get_op_handler.
   registry->AddKernel("corert.get_device", TFRT_KERNEL(GetOpHandler));
   registry->AddKernel("corert.register_op_handler_chain",

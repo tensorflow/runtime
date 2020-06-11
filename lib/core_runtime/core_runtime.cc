@@ -334,10 +334,12 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
 
     SmallVector<AsyncValue*, 4> arguments;
     arguments.reserve(invocation.arguments.size());
+    SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
+    arguments_ref.reserve(invocation.arguments.size());
     for (size_t i = 0, e = invocation.arguments.size(); i != e; ++i) {
-      arguments.push_back(host->MakeAvailableAsyncValueRef<TensorHandle>(
-                                  invocation.arguments[i].CopyRef())
-                              .release());
+      arguments_ref.push_back(host->MakeAvailableAsyncValueRef<TensorHandle>(
+          invocation.arguments[i].CopyRef()));
+      arguments.push_back(arguments_ref.back().get());
 
       // Clean up the argument to enable input forwarding.
       invocation.arguments[i] = TensorHandle();

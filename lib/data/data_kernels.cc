@@ -103,36 +103,30 @@ RCReference<MapDataset> MakeMapDataset(RCReference<Dataset>* dataset,
 // FilterDataset
 //===----------------------------------------------------------------------===//
 
-template <typename... T>
-RCReference<FilterDataset<T...>> MakeFilterDataset(
-    RCReference<Dataset>* dataset, Attribute<Function> fn,
-    const ExecutionContext& exec_ctx) {
+RCReference<FilterDataset> MakeFilterDataset(RCReference<Dataset>* dataset,
+                                             Attribute<int64_t> arity,
+                                             Attribute<Function> fn,
+                                             const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(host->Construct<FilterDataset<T...>>(
-      (*dataset).CopyRef(), FormRef(&fn.get()), host));
+  return TakeRef(host->Construct<FilterDataset>(
+      (*dataset).CopyRef(), FormRef(&fn.get()), arity.get(), host));
 }
 
 //===----------------------------------------------------------------------===//
 // InterleaveDataset
 //===----------------------------------------------------------------------===//
 
-// TODO(rachelim): Support variable number of arguments.
-template <typename T, typename... U>
-RCReference<InterleaveDataset<std::tuple<T>, std::tuple<U...>>>
-MakeInterleaveDataset(RCReference<Dataset>* dataset, int64_t cycle_length,
-                      int64_t block_length, Attribute<Function> fn,
-                      const ExecutionContext& exec_ctx) {
-  assert(fn->argument_types().size() == 1 &&
-         "Interleave only supports functions with unary inputs.");
+RCReference<InterleaveDataset> MakeInterleaveDataset(
+    RCReference<Dataset>* dataset, int64_t cycle_length, int64_t block_length,
+    Attribute<int64_t> arity, Attribute<Function> fn,
+    const ExecutionContext& exec_ctx) {
   assert(
       fn->result_types().size() == 1 &&
       "Interleave expects only one function output, which must be a dataset.");
 
-  return TakeRef(
-      exec_ctx.host()
-          ->Construct<InterleaveDataset<std::tuple<T>, std::tuple<U...>>>(
-              dataset->CopyRef(), cycle_length, block_length,
-              FormRef(&fn.get()), exec_ctx.host()));
+  return TakeRef(exec_ctx.host()->Construct<InterleaveDataset>(
+      dataset->CopyRef(), cycle_length, block_length, FormRef(&fn.get()),
+      arity.get(), exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -430,9 +424,6 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("data.range_dataset.i32",
                       TFRT_KERNEL(MakeRangeDataset<int32_t>));
 
-  registry->AddKernel("data.interleave_dataset.i32.i32",
-                      TFRT_KERNEL(MakeInterleaveDataset<int32_t, int32_t>));
-
   registry->AddKernel("data.batch_dataset.tensor",
                       TFRT_KERNEL(MakeBatchDataset<DenseHostTensor>));
   registry->AddKernel("data.batch_dataset.i32",
@@ -449,15 +440,15 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("data.memory_dataset.str",
                       TFRT_KERNEL(MakeMemoryDataset<std::string>));
 
-  registry->AddKernel("data.filter_dataset.i64",
-                      TFRT_KERNEL(MakeFilterDataset<int64_t>));
-
-  registry->AddKernel("data.tf_record_dataset",
-                      TFRT_KERNEL(MakeTFRecordDataset));
+  registry->AddKernel("data.filter_dataset", TFRT_KERNEL(MakeFilterDataset));
+  registry->AddKernel("data.interleave_dataset",
+                      TFRT_KERNEL(MakeInterleaveDataset));
   registry->AddKernel("data.map_dataset", TFRT_KERNEL(MakeMapDataset));
   registry->AddKernel("data.prefetch_dataset",
                       TFRT_KERNEL(MakePrefetchDataset));
   registry->AddKernel("data.repeat_dataset", TFRT_KERNEL(MakeRepeatDataset));
+  registry->AddKernel("data.tf_record_dataset",
+                      TFRT_KERNEL(MakeTFRecordDataset));
 }
 
 }  // namespace data

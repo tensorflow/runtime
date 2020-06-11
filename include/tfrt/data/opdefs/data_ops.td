@@ -50,6 +50,10 @@ class Data_Op<string mnemonic, list<OpTrait> traits = []> :
   let parser = [{ return tfrt::data::parse$cppClass(parser, result); }];
 }
 
+//===----------------------------------------------------------------------===//
+// Iterator ops
+//===----------------------------------------------------------------------===//
+
 def MakeIteratorOp : Data_Op<"make_iterator"> {
   let summary = "data make_iterator operation";
   let description = [{
@@ -104,6 +108,10 @@ def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {
   let verifier = [{ return tfrt::data::verify(*this); }];
 }
 
+//===----------------------------------------------------------------------===//
+// Dataset ops
+//===----------------------------------------------------------------------===//
+
 class BatchDatasetOp<string suffix>
   : Data_Op<"batch_dataset." # suffix> {
   let summary = "data batch_dataset operation";
@@ -124,7 +132,7 @@ class BatchDatasetOp<string suffix>
 
      I1Attr:$same_input_metadata
   );
-  let results = (outs DatasetType:$handle);
+  let results = (outs DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -136,31 +144,56 @@ def BatchDatasetI64Op : BatchDatasetOp<"i64">;
 def BatchDatasetTensorOp : BatchDatasetOp<"tensor">;
 def BatchDatasetTensorAndI64Op : BatchDatasetOp<"tensor_and_i64">;
 
-class RangeDatasetOp<string suffix>
-  : Data_Op<"range_dataset." # suffix> {
-  let summary = "data range_dataset operation";
+// TODO(rachelim): Add verification to filter functions.
+def FilterDatasetOp : Data_Op<"filter_dataset"> {
+  let summary = "data filter_dataset operation";
   let description = [{
-    data.range_dataset yields a step-separated range of values from
-    start (inclusive) to stop (exclusive).
+    data.filter_dataset takes elements from the input dataset and yields the
+    elements which satisfy a user-defined filter function.
 
     Example:
-      %dataset = data.range_dataset.i32 %start, %stop, %step
+      %dataset1 = data.range_dataset.i32 (%start, %stop, %step)
+      %dataset2 = data.filter_dataset (%dataset1)
+        {function = @filter_even, arity = 1: i64}
   }];
 
   let arguments = (ins
-     I64:$start,
-     I64:$stop,
-     I64:$step
+    DatasetType:$input_dataset,
+
+    I64Attr:$arity,
+    FlatSymbolRefAttr:$function
   );
-  let results = (outs DatasetType:$handle);
+
+  let results = (outs DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
 
-// TODO(b/155892156): In the long term, dataset ops will not be specialized
-// for types. Instead, type information will be passed in via attributes.
-def RangeDatasetI32Op : RangeDatasetOp<"i32">;
-def RangeDatasetI64Op : RangeDatasetOp<"i64">;
+// TODO(rachelim): Add verification to interleave functions.
+def InterleaveDatasetOp : Data_Op<"interleave_dataset"> {
+  let summary = "data interleave_dataset operation";
+  let description = [{
+    data.interleave_dataset applies a function to its input to create a dataset
+    per input elements and interleaves the results of these datasets.
+
+    Example:
+      %dataset = data.interleave_dataset (%filenames)
+        {function = @read_tf_record_files, arity = 1: i64}
+  }];
+
+  let arguments = (ins
+    DatasetType:$input_dataset,
+    I64:$cycle_length,
+    I64:$block_length,
+
+    I64Attr:$arity,
+    FlatSymbolRefAttr:$function
+  );
+
+  let results = (outs DatasetType:$output_dataset);
+
+  let assemblyFormat = "operands attr-dict";
+}
 
 // TODO(rachelim): Add verification to map functions.
 def MapDatasetOp : Data_Op<"map_dataset"> {
@@ -181,7 +214,7 @@ def MapDatasetOp : Data_Op<"map_dataset"> {
     FlatSymbolRefAttr:$function
   );
 
-  let results = (outs DatasetType:$handle);
+  let results = (outs DatasetType:$output_dataset);
 
   let assemblyFormat = [{
     $input_dataset (`,` $other_arguments^ `:` type($other_arguments))?
@@ -207,9 +240,35 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
     I64:$prefetch_num
   );
 
-  let results = (outs DatasetType:$handle);
+  let results = (outs DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
+
+class RangeDatasetOp<string suffix>
+  : Data_Op<"range_dataset." # suffix> {
+  let summary = "data range_dataset operation";
+  let description = [{
+    data.range_dataset yields a step-separated range of values from
+    start (inclusive) to stop (exclusive).
+
+    Example:
+      %dataset = data.range_dataset.i32 %start, %stop, %step
+  }];
+
+  let arguments = (ins
+     I64:$start,
+     I64:$stop,
+     I64:$step
+  );
+  let results = (outs DatasetType:$output_dataset);
+
+  let assemblyFormat = "operands attr-dict";
+}
+
+// TODO(b/155892156): In the long term, dataset ops will not be specialized
+// for types. Instead, type information will be passed in via attributes.
+def RangeDatasetI32Op : RangeDatasetOp<"i32">;
+def RangeDatasetI64Op : RangeDatasetOp<"i64">;
 
 #endif  // DATA_OPS

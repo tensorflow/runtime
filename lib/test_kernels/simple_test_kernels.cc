@@ -56,10 +56,10 @@ static void TestReportErrorAsync(Result<int32_t> out,
 static void HexTestCancel(Argument<Chain> chain_in, Result<int> int_out,
                           Result<Chain> chain_out,
                           const ExecutionContext& exec_ctx) {
-  // Calling HostContext::CancelExecution() for testing the cancel behavior.
-  // Do NOT do this in a normal kernel. HostContext::CancelExecution() should be
+  // Calling RequestContext::Cancel() for testing the cancel behavior.
+  // Do NOT do this in a normal kernel. RequestContext::Cancel() should be
   // called by a client external to the BEFExecutor.
-  exec_ctx.host()->CancelExecution("Canceled by test.cancel");
+  exec_ctx.request_ctx()->Cancel();
   int_out.Emplace(0);
   chain_out.Set(chain_in);
 }

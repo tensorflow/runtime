@@ -298,7 +298,7 @@ func @test_cancel() -> !hex.chain {
   hex.return %ch2 : !hex.chain
 }
 
-// CHECK-NEXT: 'test_cancel' returned <<error: Canceled by test.cancel>>
+// CHECK-NEXT: 'test_cancel' returned <<error: Cancelled>>
 
 // CHECK-LABEL: --- Running 'test_async_value_get'
 func @test_async_value_get() -> () {
@@ -367,7 +367,7 @@ func @test_explicit_resource_management_with_cancellation() -> !hex.chain {
   %c3 = "tfrt_test.deallocate_resource" (%res, %c2) : (!hex.test.resource, !hex.chain) -> (!hex.chain)
   hex.return %c3 : !hex.chain
 }
-// CHECK-NEXT: 'test_explicit_resource_management_with_cancellation' returned <<error: Canceled by test.cancel>>
+// CHECK-NEXT: 'test_explicit_resource_management_with_cancellation' returned <<error: Cancelled>>
 
 // CHECK-LABEL: --- Running 'test_shared_context'
 func @test_shared_context() {

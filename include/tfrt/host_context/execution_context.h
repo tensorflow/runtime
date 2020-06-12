@@ -29,6 +29,7 @@
 namespace tfrt {
 
 class HostContext;
+class ErrorAsyncValue;
 
 // A request refers to either a BEFFunction execution or an op execution.
 // RequestContext holds per request information, such as the cancellation status
@@ -42,18 +43,23 @@ class RequestContext : public ReferenceCounted<RequestContext> {
   static RCReference<RequestContext> Create(HostContext* host) {
     return TakeRef(new RequestContext(host));
   }
+  ~RequestContext();
 
-  bool IsCancelled() const {
-    return is_cancelled_.load(std::memory_order_acquire);
-  }
-  void Cancel() { is_cancelled_.store(true, std::memory_order_release); }
+  bool IsCancelled() const { return GetCancelAsyncValue(); }
+  void Cancel();
   HostContext* host() const { return host_; }
+
+  // If the request has been canceled, return an ErrorAsyncValue for
+  // the cancellation. Otherwise, return nullptr.
+  ErrorAsyncValue* GetCancelAsyncValue() const {
+    return cancel_value_.load(std::memory_order_acquire);
+  }
 
  private:
   explicit RequestContext(HostContext* host) : host_{host} {}
 
-  std::atomic<bool> is_cancelled_{false};
   HostContext* const host_ = nullptr;
+  std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
 };
 
 // ExecutionContext holds the context information for kernel and op execution,
@@ -84,8 +90,13 @@ class ExecutionContext {
   Location location() const { return location_; }
   HostContext* host() const { return request_ctx_->host(); }
   bool IsCancelled() const { return request_ctx_->IsCancelled(); }
+  ErrorAsyncValue* GetCancelAsyncValue() const {
+    return request_ctx_->GetCancelAsyncValue();
+  }
 
   void set_location(Location location) { location_ = location; }
+
+  RequestContext* request_ctx() const { return request_ctx_.get(); }
 
  private:
   RCReference<RequestContext> request_ctx_;

@@ -304,7 +304,7 @@ func @test_cancel() -> !t.tensor{
 
   hex.return %c_ht : !t.tensor
 }
-// CHECK-NEXT: returned <<error: Canceled by test.cancel>>
+// CHECK-NEXT: returned <<error: Cancelled>>
 
 // CHECK-LABEL: --- Running 'test_side_effect'
 func @test_side_effect() -> !hex.chain {

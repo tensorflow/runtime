@@ -340,8 +340,7 @@ template <typename OpHandlerTraits>
 
   results->resize(num_results);
   // Check if the host has been cancelled.
-  auto* cancel_error = exec_ctx.host()->GetCancelAsyncValue();
-  if (cancel_error) {
+  if (auto* cancel_error = exec_ctx.GetCancelAsyncValue()) {
     // Any unresolved tensor results become the error.
     for (auto& result : *results) result = FormRef(cancel_error);
 

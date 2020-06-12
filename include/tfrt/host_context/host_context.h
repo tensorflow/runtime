@@ -92,25 +92,6 @@ class HostContext {
     return diag_handler_;
   }
 
-  //===--------------------------------------------------------------------===//
-  // Cancel the current execution
-  //===--------------------------------------------------------------------===//
-
-  // Cancel the current BEF Execution. This transitions HostContext to the
-  // canceled state, which causes all asynchronously executing threads to be
-  // canceled when they check the cancellation state (e.g. in BEFExecutor).
-  void CancelExecution(string_view msg);
-
-  // Restart() transitions HostContext from the canceled state to the normal
-  // execution state.
-  void Restart();
-
-  // When HostContext is in the canceled state, GetCancelAsyncValue
-  // returns an non-null AsyncValue containing the message for the
-  // cancellation. Otherwise, it returns nullptr.
-  AsyncValue* GetCancelAsyncValue() const {
-    return cancel_value_.load(std::memory_order_acquire);
-  }
   AsyncValueRef<Chain> GetReadyChain() const { return ready_chain_.CopyRef(); }
 
   //===--------------------------------------------------------------------===//
@@ -289,7 +270,6 @@ class HostContext {
   SharedContext& GetOrCreateSharedContext(int shared_context_id,
                                           SharedContextFactory factory);
 
-  std::atomic<AsyncValue*> cancel_value_{nullptr};
   // Store a ready chain in HostContext to avoid repeated creations of ready
   // chains on the heap.
   AsyncValueRef<Chain> ready_chain_;

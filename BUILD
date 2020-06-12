@@ -33,6 +33,7 @@ tfrt_cc_library(
         "lib/host_context/async_value_ref.cc",
         "lib/host_context/concurrent_work_queue.cc",
         "lib/host_context/diagnostic.cc",
+        "lib/host_context/execution_context.cc",
         "lib/host_context/host_allocator.cc",
         "lib/host_context/host_buffer.cc",
         "lib/host_context/host_context.cc",

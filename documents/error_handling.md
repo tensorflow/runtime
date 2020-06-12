@@ -147,14 +147,14 @@ place.
 
 ### Cancellation
 
-To cancel execution, call `HostContext::CancelExecution`. This makes the
-executor pass an `AsyncValue` with error as every kernel's argument. This
-effectively makes the executor skip all remaining kernel invocations.
+To cancel execution, call `RequestContext::Cancel`. This makes the executor pass
+an `AsyncValue` with error as every kernel's argument. This effectively makes
+the executor skip all remaining kernel invocations.
 
-`CancelExecution` does not interrupt currently running kernels. It is up to
-implementors of potentially long-running kernels to periodically check
-`HostContext::GetCancelAsyncValue` and return early when `CancelAsyncValue` is
-not-null. For example,
+`RequestContext::Cancel` does not interrupt currently running kernels. It is up
+to implementors of potentially long-running kernels to periodically check
+`RequestContext::GetCancelAsyncValue` or `RequestContext::IsCancelled` and
+return early when the cancellation is detected. For example,
 [`HexRepeatI32`](https://github.com/tensorflow/runtime/blob/master/lib/basic_kernels/control_flow_kernels.cc)
 checks `CancelAsyncValue` once per loop iteration.
 

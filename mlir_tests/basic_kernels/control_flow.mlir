@@ -170,7 +170,7 @@ func @controlflow_repeat_cancel() -> i32 {
 
   hex.return %repeat_result : i32
 }
-// CHECK: 'controlflow_repeat_cancel' returned <<error: Canceled by test.cancel>>
+// CHECK: 'controlflow_repeat_cancel' returned <<error: Cancelled>>
 
 // BEFExecutor will allocate an IndirectAsyncValue for this function's return
 // value.

@@ -98,32 +98,6 @@ RCReference<ErrorAsyncValue> HostContext::MakeErrorAsyncValueRef(
   return MakeErrorAsyncValueRef(DecodedDiagnostic(message));
 }
 
-void HostContext::CancelExecution(string_view msg) {
-  // Create an AsyncValue in error state for cancel.
-  auto* error_value = MakeErrorAsyncValueRef(msg).release();
-
-  AsyncValue* expected_value = nullptr;
-  // Use memory_order_release for the success case so that error_value is
-  // visible to other threads when they load with memory_order_acquire. For the
-  // failure case, we do not care about expected_value, so we can use
-  // memory_order_relaxed.
-  if (!cancel_value_.compare_exchange_strong(expected_value, error_value,
-                                             std::memory_order_release,
-                                             std::memory_order_relaxed)) {
-    error_value->DropRef();
-  }
-}
-
-void HostContext::Restart() {
-  // Use memory_order_acq_rel so that previous writes on this thread are visible
-  // to other threads and previous writes from other threads (e.g. the return
-  // 'value') are visible to this thread.
-  auto value = cancel_value_.exchange(nullptr, std::memory_order_acq_rel);
-  if (value) {
-    value->DropRef();
-  }
-}
-
 //===----------------------------------------------------------------------===//
 // Memory Management
 //===----------------------------------------------------------------------===//

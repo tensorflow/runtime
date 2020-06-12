@@ -156,9 +156,8 @@ static void HexRepeatI32Block(
 
   auto end = std::min(start + block_size, count_value);
 
-  HostContext* host = exec_ctx.host();
   for (int i = start; i < end; ++i) {
-    if (auto cancel_av = host->GetCancelAsyncValue()) {
+    if (auto cancel_av = exec_ctx.GetCancelAsyncValue()) {
       // Cancellation detected. DropRef on args if needed, set results to
       // the cancel async value, and break out.
       for (int arg = 0; arg != num_fn_args; ++arg) {

@@ -221,8 +221,8 @@ int RunBefExecutor(const RunBefConfig& run_config) {
     // Kick off an execution of the function body.
     llvm::SmallVector<RCReference<AsyncValue>, 4> results;
     results.resize(fn->result_types().size());
-    ExecutionContext exec_ctx{tfrt::RequestContext::Create(host)};
-    fn->Execute(exec_ctx, /*arguments=*/{}, results);
+    fn->Execute(ExecutionContext{tfrt::RequestContext::Create(host)},
+                /*arguments=*/{}, results);
 
     // Block until the function results are fully resolved.
     host->Await(results);
@@ -265,10 +265,6 @@ int RunBefExecutor(const RunBefConfig& run_config) {
     // checker work better in the face of side effecting kernels that aren't
     // properly chained together (which is useful for testing).
     host->Quiesce();
-
-    // Always call Restart() to clear the cancel async value. The execution of
-    // a BEF function may cause HostContext to enter the canceled state.
-    host->Restart();
 
     // Drop any result references before doing the leak check.
     results.clear();

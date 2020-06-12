@@ -315,7 +315,7 @@ struct EnumerateContext {
   }
 
   bool Cancelled() {
-    auto cancel_av = exec_ctx.host()->GetCancelAsyncValue();
+    auto cancel_av = exec_ctx.GetCancelAsyncValue();
     if (!cancel_av) return false;
 
     // Cancellation detected. Set results to the cancel async value.

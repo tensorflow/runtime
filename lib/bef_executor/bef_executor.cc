@@ -388,7 +388,7 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
     // Keep track of whether we saw any error arguments. If so, we propagate the
     // error to the results automatically. Initialize it with the cancel async
     // value if the execution has been canceled.
-    AsyncValue* any_error_argument = GetHost()->GetCancelAsyncValue();
+    AsyncValue* any_error_argument = exec_ctx_.GetCancelAsyncValue();
 
     // Process the kernel record to get information about what argument
     // registers, result registers, and attributes should be passed.

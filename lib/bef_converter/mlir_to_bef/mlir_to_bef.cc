@@ -193,13 +193,13 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
   if (attr.isa<mlir::StringAttr>())
     return static_cast<BEFAttributeType>(BEFDataType::kString);
 
-  // We support i8, i16, i32, i64, ui8, ui16, ui32, ui64, f16, f32, f64,
+  // We support i1, i8, i16, i32, i64, ui8, ui16, ui32, ui64, f16, f32, f64,
   // complex64, complex128 and string type attributes.
   if (auto type_attr = attr.dyn_cast<mlir::TypeAttr>()) {
     auto type = type_attr.getValue();
-    if (type.isInteger(8) || type.isInteger(16) || type.isInteger(32) ||
-        type.isInteger(64) || type.isF16() || type.isF32() || type.isF64() ||
-        type.isa<corert::StringType>())
+    if (type.isInteger(1) || type.isInteger(8) || type.isInteger(16) ||
+        type.isInteger(32) || type.isInteger(64) || type.isF16() ||
+        type.isF32() || type.isF64() || type.isa<corert::StringType>())
       return BEFAttributeType::kType;
 
     if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {

@@ -125,6 +125,7 @@ func @shape_attr() {
 
 // CHECK-LABEL: @data_type_attr
 func @data_type_attr() {
+  // CHECK: i1
   // CHECK: i8
   // CHECK: i16
   // CHECK: i32
@@ -136,6 +137,7 @@ func @data_type_attr() {
   // CHECK: complex<f32>
   // CHECK: complex<f64>
   // CHECK: !corert.string
+  "simple.op"() {type = i1} : () -> ()
   "simple.op"() {type = i8} : () -> ()
   "simple.op"() {type = i16} : () -> ()
   "simple.op"() {type = i32} : () -> ()

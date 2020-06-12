@@ -247,6 +247,7 @@ tfrt_cc_library(
         "lib/basic_kernels/control_flow_kernels.cc",
         "lib/basic_kernels/float_kernels.cc",
         "lib/basic_kernels/integer_kernels.cc",
+        "lib/basic_kernels/parallel_kernels.cc",
     ],
     hdrs = [
         "include/tfrt/basic_kernels/basic_kernels.h",

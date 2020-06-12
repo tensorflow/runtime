@@ -458,6 +458,97 @@ static LogicalResult verify(RepeatI32Op op) {
 }
 
 //===----------------------------------------------------------------------===//
+// ParallelForI32Op
+//===----------------------------------------------------------------------===//
+
+// Parse hex.parallel_for.i32 operation.
+//
+// Expected format:
+//
+//   %ch = hex.parallel_for.i32 %start to %end fixed %block_size,
+//                              %loop_arg0 : !my.type {
+//     ... parallel block compute function ...
+//     hex.return ... : !hex.chain
+//   }
+static ParseResult parseParallelForI32Op(OpAsmParser &parser,
+                                         OperationState &result) {
+  OpAsmParser::OperandType start;
+  OpAsmParser::OperandType end;
+  OpAsmParser::OperandType block_size;
+
+  // Parse parallel for bounds: %start to %end fixed %block_size
+  if (parser.parseOperand(start) || parser.parseKeyword("to") ||
+      parser.parseOperand(end) || parser.parseKeyword("fixed") ||
+      parser.parseOperand(block_size)) {
+    return failure();
+  }
+
+  // Parse additional parallel for operands.
+  SmallVector<OpAsmParser::OperandType, 4> operands;
+  if (succeeded(parser.parseOptionalComma())) {
+    if (parser.parseOperandList(operands)) return failure();
+  }
+
+  // Parse types for additional operands.
+  SmallVector<Type, 4> types;
+  llvm::SMLoc type_loc = parser.getCurrentLocation();
+  if (parser.parseOptionalColonTypeList(types)) return failure();
+
+  // Resolve parsed parallel for bounds operands ...
+  auto i32_type = IntegerType::get(32, result.getContext());
+  if (parser.resolveOperand(start, i32_type, result.operands) ||
+      parser.resolveOperand(end, i32_type, result.operands) ||
+      parser.resolveOperand(block_size, i32_type, result.operands)) {
+    return failure();
+  }
+
+  // ... and additional body operands.
+  parser.resolveOperands(operands, types, type_loc, result.operands);
+
+  // Parallel for returns chain when all parallel blocks are completed.
+  auto hex = Identifier::get("hex", result.getContext());
+  auto chain_type = OpaqueType::get(hex, "chain", result.getContext());
+  parser.addTypesToList(chain_type, result.types);
+
+  // Parallel for body operands and types.
+  SmallVector<OpAsmParser::OperandType, 6> body_operands = {start, end};
+  for (auto &operand : operands) body_operands.push_back(operand);
+  SmallVector<Type, 6> body_operands_types = {i32_type, i32_type};
+  for (auto &type : types) body_operands_types.push_back(type);
+
+  Region *body = result.addRegion();
+  return parser.parseRegion(*body, body_operands, body_operands_types,
+                            /*enableNameShadowing=*/true);
+}
+
+static void print(OpAsmPrinter &p, ParallelForI32Op op) {
+  p << "hex.parallel_for.i32 ";
+
+  p.printOperand(op.getOperand(0));
+  p << " to ";
+  p.printOperand(op.getOperand(1));
+  p << " fixed ";
+  p.printOperand(op.getOperand(2));
+
+  if (op.getNumOperands() > 3) {
+    p << ", ";
+    p.printOperands(llvm::drop_begin(op.getOperands(), 3));
+    p << " : ";
+    interleaveComma(llvm::drop_begin(op.getOperandTypes(), 3), p);
+  }
+
+  // Reuse the argument names provided to the op for the bbarg names within
+  // the region.
+  SmallVector<Value, 4> arg_name_values(llvm::drop_begin(op.getOperands(), 3));
+  p.shadowRegionArgs(op.region(), arg_name_values);
+  p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
+}
+
+static LogicalResult verify(ParallelForI32Op op) {
+  return checkHexReturn(op, &op.region(), op.getResultTypes());
+}
+
+//===----------------------------------------------------------------------===//
 // ReturnOp
 //===----------------------------------------------------------------------===//
 

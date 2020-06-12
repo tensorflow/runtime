@@ -31,6 +31,7 @@ static void RegisterKernels(KernelRegistry* registry) {
   RegisterIntegerKernels(registry);
   RegisterFloatKernels(registry);
   RegisterControlFlowKernels(registry);
+  RegisterParallelKernels(registry);
 }
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterKernels);

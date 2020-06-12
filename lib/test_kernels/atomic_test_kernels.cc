@@ -39,6 +39,12 @@ static Chain TestAtomicIncI32(Argument<std::atomic<int32_t>> in) {
   return Chain();
 }
 
+static Chain TestAtomicAddI32(Argument<std::atomic<int32_t>> in,
+                              Argument<int32_t> value) {
+  in->fetch_add(*value);
+  return Chain();
+}
+
 static std::pair<int32_t, Chain> TestAtomicGetI32(
     Argument<std::atomic<int32_t>> in) {
   return {in->load(), Chain()};
@@ -50,6 +56,8 @@ void RegisterAtomicTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestAtomicCreateI32));
   registry->AddKernel("tfrt_test.atomic.inc.i32",
                       TFRT_KERNEL(TestAtomicIncI32));
+  registry->AddKernel("tfrt_test.atomic.add.i32",
+                      TFRT_KERNEL(TestAtomicAddI32));
   registry->AddKernel("tfrt_test.atomic.get.i32",
                       TFRT_KERNEL(TestAtomicGetI32));
 }

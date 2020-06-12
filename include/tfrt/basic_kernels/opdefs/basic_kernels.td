@@ -185,6 +185,46 @@ def RepeatI32Op : Hex_Op<"repeat.i32"> {
   let regions = (region SizedRegion<1>:$region);
 }
 
+def ParallelForI32Op : Hex_Op<"parallel_for.i32"> {
+  let summary = "parallel_for.i32 operation";
+  let description = [{
+    The "hex.parallel_for.i32" operation is a parallel for loop that executes
+    its body function for non overlapping sub ranges. It has one region which
+    represents the loop body function (see host_context/parallel_for.h C++
+    equivalent).
+
+    The body region takes an arbitrary number of arguments and must return a
+    single chain value using a 'hex.return' operation at the end of the region.
+
+    Inside the loop region `%start` and `%end` values are bound to the parallel
+    block start and end offsets (see example below).
+
+    This is a HEX counterpart of the native C++ ParallelFor operation defined
+    in: `host_context/parallel_for.h`.
+
+    Example:
+
+      %from       = hex.constant.i32 0
+      %to         = hex.constant.i32 100
+      %block_size = hex.constant.i32 10
+
+      %val = ... : !my.type
+
+      %done = hex.parallel_for.i32 %from to %to fixed %block, %val : !my.type {
+        ...
+        // Possible values for [%start, %end) are: [0, 10), [10, 20), ...
+        "use"(%start, %end, %val) : (i32, i32, !my.type) -> ()
+        ...
+        %ch = hex.new.chain
+        hex.return %ch : !hex.chain
+      }
+  }];
+  let arguments = (ins I32:$start, I32:$end, I32:$block_size,
+                   Variadic<AnyType>);
+  let results = (outs Variadic<AnyType>);
+  let regions = (region SizedRegion<1>:$region);
+}
+
 def ReturnOp : Hex_Op<"return", [Terminator]> {
   let summary = "host executor return operation";
   let description = [{

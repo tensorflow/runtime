@@ -225,7 +225,7 @@ different behavior.
 
 This doc only focuses on **Device `OpHandler`** which allows us to execute an op
 eagerly on a specific CPU/accelerator device. For example,
-[`CpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/cpu/lib/core_runtime/cpu_op_handler.h)
+[`CpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/cpu/lib/core_runtime/cpu_op_handler.cc)
 and
 [`GpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/gpu/lib/core_runtime/gpu_op_handler.h).
 
@@ -365,7 +365,7 @@ To calculate metadata and tensor in `TensorHandle` respectively, a TFRT native
 
 Ops are registered on a **Device `OpHandler`**. We have different device
 `op_handler`s for different physical devices: CPU
-([`CpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/cpu/lib/core_runtime/cpu_op_handler.h))
+([`CpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/cpu/lib/core_runtime/cpu_op_handler.cc))
 and GPU
 ([`GpuOpHandler`](https://github.com/tensorflow/runtime/blob/master/backends/gpu/lib/core_runtime/gpu_op_handler.h)).
 Using `CpuOpHandler` as example, the registration API it provide is like:

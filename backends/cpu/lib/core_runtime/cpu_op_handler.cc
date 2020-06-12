@@ -18,28 +18,54 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "cpu_op_handler.h"  // NOLINT
+#include "tfrt/cpu/core_runtime/cpu_op_handler.h"
 
 #include "cpu_op_registry_impl.h"
-#include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/Compiler.h"
-#include "llvm/Support/Debug.h"
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/core_runtime/dispatch_utils.h"
 #include "tfrt/core_runtime/op_attrs.h"
-#include "tfrt/core_runtime/op_handler_factory.h"
 #include "tfrt/core_runtime/op_invocation.h"
-#include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
-#include "tfrt/host_context/host_context.h"
-#include "tfrt/host_context/location.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/host_tensor.h"
 
 #define DEBUG_TYPE "tfrt-cpu-op-op_handler"
 
 namespace tfrt {
+class CpuOpHandler : public OpHandler {
+ public:
+  ~CpuOpHandler() override {}
+
+  Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
+
+  // For CpuOpHandler, the argument `tensor` needs to be a HostTensor. This
+  // function returns a HostTensor (DenseHostTensor or StringHostTensor), which
+  // contains a copy of the underlying data.
+  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
+      const Tensor& tensor) override;
+
+  // This function returns a DenseHostTensor that contains a copy of the
+  // underlying buffer of the argument `tensor`.
+  AsyncValueRef<Tensor> CopyHostTensorToDevice(
+      const DenseHostTensor& tensor) override;
+
+ private:
+  const CpuOpRegistry op_registry_;
+
+  friend llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
+                                                       OpHandler* fallback);
+
+  // TODO(b/157120084): Remove after op_handler DSL is deprecated.
+  friend llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
+      CoreRuntime* runtime, OpHandler* fallback);
+
+  explicit CpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
+                        CpuOpRegistry op_registry)
+      : OpHandler("cpu", runtime, fallback),
+        op_registry_(std::move(op_registry)) {}
+};
 
 namespace {
 
@@ -95,20 +121,28 @@ struct CpuOpHandlerTraits {
 
 }  // namespace
 
-llvm::Expected<std::unique_ptr<CpuOpHandler>> CpuOpHandler::Create(
+// TODO(b/157120084): Remove after op_handler DSL is deprecated.
+llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
     CoreRuntime* runtime, OpHandler* fallback) {
   CpuOpRegistry op_registry;
   tfrt::RegisterStaticCpuOps(&op_registry);
-  return std::make_unique<CpuOpHandler>(runtime, fallback,
-                                        std::move(op_registry));
+  return std::unique_ptr<OpHandler>(
+      new CpuOpHandler(runtime, fallback, std::move(op_registry)));
 }
 
-CpuOpHandler::CpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
-                           CpuOpRegistry op_registry)
-    : OpHandler("cpu", runtime, fallback),
-      op_registry_(std::move(op_registry)) {}
-
-CpuOpHandler::~CpuOpHandler() {}
+llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
+                                              OpHandler* fallback) {
+  if (!runtime) {
+    return MakeStringError("Invalid Runtime");
+  }
+  CpuOpRegistry op_registry;
+  tfrt::RegisterStaticCpuOps(&op_registry);
+  auto cpu_op_handler = std::unique_ptr<CpuOpHandler>(
+      new CpuOpHandler(runtime, fallback, std::move(op_registry)));
+  auto cpu_op_handler_ptr = cpu_op_handler.get();
+  runtime->TakeOpHandler(std::move(cpu_op_handler));
+  return cpu_op_handler_ptr;
+}
 
 AsyncValueRef<HostTensor> CpuOpHandler::CopyDeviceTensorToHost(
     const Tensor& tensor) {

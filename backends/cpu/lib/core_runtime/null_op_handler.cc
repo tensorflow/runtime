@@ -19,40 +19,64 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "null_op_handler.h"  // NOLINT
+#include "tfrt/cpu/core_runtime/null_op_handler.h"
+
+#include <memory>
 
 #include "tfrt/core_runtime/core_runtime.h"
-#include "tfrt/core_runtime/op_handler_factory.h"
-#include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
 
-llvm::Expected<std::unique_ptr<NullOpHandler>> NullOpHandler::Create(
+class NullOpHandler : public OpHandler {
+ public:
+  ~NullOpHandler() override {}
+
+  Expected<CoreRuntimeOp> MakeOp(string_view op_name) override {
+    return MakeStringError(op_name, " was not supported by NullOpHandler.");
+  }
+
+  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
+      const Tensor& tensor) override {
+    assert(false &&
+           "NullOpHandler::CopyDeviceTensorToHost should not be called");
+    abort();
+  }
+
+  AsyncValueRef<Tensor> CopyHostTensorToDevice(
+      const DenseHostTensor& tensor) override {
+    assert(false &&
+           "NullOpHandler::CopyHostTensorToDevice should not be called");
+    abort();
+  }
+
+  friend llvm::Expected<OpHandler*> CreateNullOpHandler(CoreRuntime* runtime);
+
+  // TODO(b/157120084): Remove after op_handler DSL is deprecated.
+  friend llvm::Expected<std::unique_ptr<OpHandler>> NullOpHandlerFactory(
+      CoreRuntime* runtime, OpHandler* fallback);
+
+ private:
+  explicit NullOpHandler(CoreRuntime* runtime)
+      : OpHandler("null", runtime, nullptr) {}
+};
+
+llvm::Expected<OpHandler*> CreateNullOpHandler(CoreRuntime* runtime) {
+  if (!runtime) {
+    return MakeStringError("Invalid Runtime");
+  }
+  auto null_op_handler =
+      std::unique_ptr<NullOpHandler>(new NullOpHandler(runtime));
+  auto null_op_handler_ptr = null_op_handler.get();
+  runtime->TakeOpHandler(std::move(null_op_handler));
+  return null_op_handler_ptr;
+}
+
+// TODO(b/157120084): Remove after op_handler DSL is deprecated.
+llvm::Expected<std::unique_ptr<OpHandler>> NullOpHandlerFactory(
     CoreRuntime* runtime, OpHandler* fallback) {
-  return std::unique_ptr<NullOpHandler>(new NullOpHandler(runtime));
-}
-
-NullOpHandler::NullOpHandler(CoreRuntime* runtime)
-    : OpHandler("null", runtime, nullptr) {}
-
-NullOpHandler::~NullOpHandler() {}
-
-AsyncValueRef<HostTensor> NullOpHandler::CopyDeviceTensorToHost(
-    const Tensor& tensor) {
-  assert(false && "NullOpHandler::CopyDeviceTensorToHost should not be called");
-  abort();
-}
-
-AsyncValueRef<Tensor> NullOpHandler::CopyHostTensorToDevice(
-    const DenseHostTensor& tensor) {
-  assert(false && "NullOpHandler::CopyHostTensorToDevice should not be called");
-  abort();
-}
-
-Expected<CoreRuntimeOp> NullOpHandler::MakeOp(string_view op_name) {
-  return MakeStringError(op_name, " was not supported by NullOpHandler.");
+  return std::unique_ptr<OpHandler>(new NullOpHandler(runtime));
 }
 
 }  // namespace tfrt

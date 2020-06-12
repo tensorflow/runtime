@@ -32,7 +32,6 @@ namespace tfrt {
 
 class OpInvocation;
 class CoreRuntime;
-class OpHandlerCreationToken;
 
 template <typename T>
 class AsyncValueRef;

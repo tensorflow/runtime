@@ -22,6 +22,7 @@
 
 #include "tfrt/distributed_runtime/distributed_context.h"
 
+#include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/mutex.h"
@@ -30,7 +31,9 @@ namespace tfrt {
 
 DistributedContext::DistributedContext(
     HostContext* host_context, DistributedContextConfiguration configuration)
-    : host_context_{host_context}, configuration_{std::move(configuration)} {
+    : host_context_{host_context},
+      configuration_{std::move(configuration)},
+      callback_registry_(new CallbackRegistry()) {
   InitializeAllFabricCommunicators();
 }
 

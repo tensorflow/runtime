@@ -40,7 +40,7 @@ class FabricCommunicator {
   virtual ~FabricCommunicator() = default;
 
   virtual void Send(InstanceKey instance_key, Rank destination,
-                    llvm::ArrayRef<uint8_t> payload) = 0;
+                    llvm::StringRef payload) = 0;
 
   const std::string& GetFabricCommunicatorName() const { return name_; }
 

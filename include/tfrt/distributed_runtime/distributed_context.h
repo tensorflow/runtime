@@ -35,7 +35,20 @@
 
 namespace tfrt {
 
+#define __TFRT_DIST_UNIQUE_NAME(base_name) \
+  __TFRT_DIST_NAME_MERGE(base_name, __COUNTER__)
+#define __TFRT_DIST_NAME_MERGE(name1, name2) name1##name2
+
+#define TFRT_STATIC_FABRIC_COMMUNICATOR_REGISTRATION(communicator_type_name, \
+                                                     factory_function)       \
+  static bool __TFRT_DIST_UNIQUE_NAME(__tfrt_static_communicator_) = []() {  \
+    ::tfrt::DistributedContext::RegisterFabricCommunicatorType(              \
+        communicator_type_name, std::move(factory_function));                \
+    return true;                                                             \
+  }()
+
 class FabricCommunicator;
+class CallbackRegistry;
 
 using InstanceKey = std::string;
 using Rank = int32_t;
@@ -71,6 +84,7 @@ class DistributedContext {
       const std::string& communicator_name) TFRT_EXCLUDES(communicators_mutex_);
 
   HostContext* GetHostContext() { return host_context_; }
+  CallbackRegistry* GetCallbackRegistry() { return callback_registry_.get(); }
 
   static void RegisterFabricCommunicatorType(
       const std::string& communicator_type_name,
@@ -85,6 +99,7 @@ class DistributedContext {
 
   HostContext* const host_context_;
   const DistributedContextConfiguration configuration_;
+  std::unique_ptr<CallbackRegistry> callback_registry_;
   mutex communicators_mutex_;
   llvm::StringMap<std::unique_ptr<FabricCommunicator>> fabric_communicators_
       TFRT_GUARDED_BY(communicators_mutex_);

@@ -684,12 +684,15 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "distributed_runtime",
     srcs = [
+        "lib/distributed_runtime/callback_registry.cc",
         "lib/distributed_runtime/distributed_context.cc",
     ],
     hdrs = [
+        "include/tfrt/distributed_runtime/callback_registry.h",
         "include/tfrt/distributed_runtime/distributed_context.h",
         "include/tfrt/distributed_runtime/fabric_communicator.h",
     ],
+    visibility = [":friends"],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",

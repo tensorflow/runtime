@@ -28,6 +28,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/test_util.h"
+#include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_allocator.h"
@@ -49,7 +50,7 @@ class MockCommunicator : public FabricCommunicator {
                            /*distributed_context=*/nullptr) {}
   MOCK_METHOD(void, Send,
               (InstanceKey instance_key, Rank destination,
-               llvm::ArrayRef<uint8_t> payload),
+               llvm::StringRef payload),
               (override));
 };
 

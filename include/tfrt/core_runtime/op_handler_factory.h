@@ -58,7 +58,8 @@ class OpHandlerFactory {
     auto iter = create_fns_.find(name);
     if (iter == create_fns_.end()) {
       return MakeStringError("Factory method for ", std::string(name).c_str(),
-                             " not found.\n");
+                             " not found. Available op handlers: ",
+                             Join(create_fns_.keys(), ", "), ".\n");
     }
     return iter->second;
   }

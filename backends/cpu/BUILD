@@ -21,7 +21,7 @@ tfrt_cc_library(
         "include/tfrt/cpu/core_runtime/cpu_op_handler.h",
         "include/tfrt/cpu/core_runtime/cpu_op_registry.h",
         "include/tfrt/cpu/core_runtime/null_op_handler.h",
-        "include/tfrt/cpu/core_runtime/op_handler_kernels.h",
+        "lib/core_runtime/op_handler_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/core_runtime/static_registration.cc",
     visibility = ["@tf_runtime//:friends"],

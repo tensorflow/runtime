@@ -18,7 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/cpu/core_runtime/op_handler_kernels.h"
+#include "op_handler_kernels.h"
 
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/cpu/core_runtime/cpu_op_handler.h"
@@ -49,7 +49,7 @@ static void CreateCpuOpHandlerKernel(Argument<OpHandler *> fallback,
 // Registration
 //===----------------------------------------------------------------------===//
 
-void RegisterOpHandlerKernels(KernelRegistry *registry) {
+void RegisterCpuOpHandlerKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.create_null_op_handler",
                       TFRT_KERNEL(CreateNullOpHandlerKernel));
   registry->AddKernel("corert.create_cpu_op_handler",

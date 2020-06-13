@@ -20,14 +20,14 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "op_handler_kernels.h"
 #include "tfrt/core_runtime/op_handler_factory.h"
 #include "tfrt/cpu/core_runtime/cpu_op_handler.h"
 #include "tfrt/cpu/core_runtime/null_op_handler.h"
-#include "tfrt/cpu/core_runtime/op_handler_kernels.h"
 
 namespace tfrt {
 
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterOpHandlerKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterCpuOpHandlerKernels);
 
 // TODO(b/157120084): Remove after op_handler DSL is deprecated.
 static OpHandlerRegistration register_null("null", NullOpHandlerFactory);

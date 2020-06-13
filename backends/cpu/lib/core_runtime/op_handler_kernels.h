@@ -16,20 +16,20 @@
 
 //===- op_handler_kernels.h - Kernel interface to OpHandlers ----*- C++ -*-===//
 //
-// This file contains helpers that register CPU and Null OpHandler TFRT
-// kernels.
+// This file contains helpers that register TFRT Kernels for creating CPU and
+// Null OpHandler.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_BACKENDS_CPU_CORE_RUNTIME_OP_HANDLER_KERNELS_H_
-#define TFRT_BACKENDS_CPU_CORE_RUNTIME_OP_HANDLER_KERNELS_H_
+#ifndef TFRT_BACKENDS_CPU_LIB_CORE_RUNTIME_OP_HANDLER_KERNELS_H_
+#define TFRT_BACKENDS_CPU_LIB_CORE_RUNTIME_OP_HANDLER_KERNELS_H_
 #include "tfrt/host_context/kernel_registry.h"
 
 namespace tfrt {
 class KernelRegistry;
 
-void RegisterOpHandlerKernels(KernelRegistry* registry);
+void RegisterCpuOpHandlerKernels(KernelRegistry* registry);
 
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_CPU_CORE_RUNTIME_OP_HANDLER_KERNELS_H_
+#endif  // TFRT_BACKENDS_CPU_LIB_CORE_RUNTIME_OP_HANDLER_KERNELS_H_

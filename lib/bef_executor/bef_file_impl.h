@@ -23,6 +23,8 @@
 #ifndef TFRT_LIB_BEF_EXECUTOR_BEF_FILE_IMPL_H_
 #define TFRT_LIB_BEF_EXECUTOR_BEF_FILE_IMPL_H_
 
+#include <type_traits>
+
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
@@ -37,6 +39,66 @@ namespace tfrt {
 
 class BEFFileImpl;
 class DecodedLocation;
+
+// Inlined array to keep registers and kernels info together with a BEF executor
+// if their size is small. Default constructed as empty, and must be resized
+// before use. If the number of records is larger than `n` it allocates
+// HostArray for storage.
+template <typename InfoT, size_t n>
+class BEFInfoArray {
+ public:
+  BEFInfoArray() : inlined_size_(0) {}
+
+  ~BEFInfoArray() {
+    for (size_t i = 0; i < inlined_size_; ++i) {
+      (inlined_data() + i)->~InfoT();
+    }
+  }
+
+  void resize(size_t num_objects, HostAllocator* allocator) {
+    assert(inlined_size_ == 0 && host_array_.size() == 0 && num_objects >= 0);
+    if (num_objects > n) {
+      host_array_ = HostArray<InfoT>(num_objects, allocator);
+    } else {
+      inlined_size_ = num_objects;
+    }
+  }
+
+  MutableArrayRef<InfoT> mutable_array() {
+    if (host_array_.size() > 0) {
+      return host_array_.mutable_array();
+    }
+    return {inlined_data(), inlined_size_};
+  }
+
+  size_t size() const {
+    if (host_array_.size() > 0) {
+      return host_array_.size();
+    }
+    return inlined_size_;
+  }
+
+  InfoT& operator[](size_t index) {
+    assert(index < size());
+    if (host_array_.size() > 0) {
+      return host_array_[index];
+    }
+    return *(inlined_data() + index);
+  }
+
+ private:
+  BEFInfoArray(const BEFInfoArray&) = delete;
+  BEFInfoArray(BEFInfoArray&&) = delete;
+  BEFInfoArray& operator=(const BEFInfoArray&) = delete;
+  BEFInfoArray& operator=(BEFInfoArray&&) = delete;
+
+  InfoT* inlined_data() { return reinterpret_cast<InfoT*>(&inlined_array_[0]); }
+
+  size_t inlined_size_;
+  typename std::aligned_storage<sizeof(InfoT), alignof(InfoT)>::type
+      inlined_array_[n];
+  HostArray<InfoT> host_array_;
+};
 
 // This class implements Function for BEF files.
 class BEFFunction final : public Function {
@@ -110,20 +172,29 @@ class BEFFileImpl : public BEFFile {
         : offset(offset), arguments_not_ready(num_operands + 1) {}
   };
 
-  // Decode the specified BEFFunction, returning an ArrayRef of kernel entries
-  // for all kernels, decoded information about the registers used by the
-  // function, and a table of offsets to each kernel within the function.
-  // `host_allocator` is used for the heap-allocated buffer that backs
-  // `kernel_infos`.
+  using RegisterInfoArray = BEFInfoArray<BEFFileImpl::RegisterInfo, 24>;
+  using KernelInfoArray = BEFInfoArray<BEFFileImpl::KernelInfo, 8>;
+
+  // Decoded BEFFunction information.
+  struct FunctionInfo {
+    // This ArrayRef contains kernel entries of all kernels of this function.
+    ArrayRef<uint32_t> kernels;
+    // This is an array of descriptors for all of the kernels in this function,
+    // indexed by the kernel number.
+    RegisterInfoArray register_infos;
+    // This is an array of descriptors for all of our registers, indexed by
+    // their register number.
+    KernelInfoArray kernel_infos;
+  };
+
+  // Decode the specified BEFFunction into the FunctionInfo. `host_allocator` is
+  // used for the heap-allocated buffer that backs info arrays in FunctionInfo.
   //
-  // On error, an error is emitted and a null pointer is returned.
-  ArrayRef<uint32_t> ReadFunction(size_t function_offset,
-                                  ArrayRef<TypeName> results,
-                                  size_t* location_offset,
-                                  HostArray<RegisterInfo>* register_infos,
-                                  HostArray<KernelInfo>* kernel_infos,
-                                  SmallVectorImpl<size_t>* result_regs,
-                                  HostAllocator* host_allocator);
+  // On error, an error is emitted and false is returned.
+  bool ReadFunction(size_t function_offset, ArrayRef<TypeName> results,
+                    size_t* location_offset, FunctionInfo* function_info,
+                    SmallVectorImpl<size_t>* result_regs,
+                    HostAllocator* host_allocator);
 
   // Given an offset into the LocationPositions section, decode it and return
   // a DecodedDiagnostic.

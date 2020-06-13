@@ -194,22 +194,21 @@ bool BEFFileReader::DiagnoseUnknownKernel(size_t kernel_idx,
   for (const auto& function_index : function_indices) {
     if (function_index.kind != FunctionKind::kBEFFunction) continue;
 
-    HostArray<BEFFileImpl::RegisterInfo> register_infos;
-    HostArray<BEFFileImpl::KernelInfo> kernel_infos;
+    BEFFileImpl::FunctionInfo function_info;
+
     result_regs.clear();
     size_t location_offset;
-    auto kernels = bef_file_->ReadFunction(
+    bool success = bef_file_->ReadFunction(
         function_index.function_offset, function_index.results,
-        &location_offset, &register_infos, &kernel_infos, &result_regs,
-        host_allocator);
-    if (kernels.empty()) continue;
+        &location_offset, &function_info, &result_regs, host_allocator);
+    if (!success) continue;
 
     // Decode all of the kernels to see if any refers to our unknown kernel.
-    MutableArrayRef<BEFFileImpl::KernelInfo>& kernel_infos_array =
-        kernel_infos.mutable_array();
+    MutableArrayRef<BEFFileImpl::KernelInfo> kernel_infos_array =
+        function_info.kernel_infos.mutable_array();
     for (const auto& kernel_info : kernel_infos_array) {
       assert(kernel_info.offset % kKernelEntryAlignment == 0);
-      BEFKernel kernel(kernels.data() +
+      BEFKernel kernel(function_info.kernels.data() +
                        kernel_info.offset / kKernelEntryAlignment);
 
       // Okay, we decoded the kernel.  See if this is referring to the
@@ -458,14 +457,15 @@ void BEFFileImpl::EmitFormatError(const char* message) {
   error_handler_(DecodedDiagnostic(message));
 }
 
-ArrayRef<uint32_t> BEFFileImpl::ReadFunction(
-    size_t function_offset, ArrayRef<TypeName> results, size_t* location_offset,
-    HostArray<RegisterInfo>* register_infos,
-    HostArray<KernelInfo>* kernel_infos, SmallVectorImpl<size_t>* result_regs,
-    HostAllocator* host_allocator) {
-  auto format_error = [&]() -> ArrayRef<uint32_t> {
+bool BEFFileImpl::ReadFunction(size_t function_offset,
+                               ArrayRef<TypeName> results,
+                               size_t* location_offset,
+                               FunctionInfo* function_info,
+                               SmallVectorImpl<size_t>* result_regs,
+                               HostAllocator* host_allocator) {
+  auto format_error = [&]() -> bool {
     EmitFormatError("invalid Function section in BEF file");
-    return {};
+    return false;
   };
 
   if (function_offset >= function_section_.size()) return format_error();
@@ -477,8 +477,9 @@ ArrayRef<uint32_t> BEFFileImpl::ReadFunction(
   if (reader.ReadInt(location_offset) || reader.ReadInt(&num_registers))
     return format_error();
 
-  *register_infos = HostArray<RegisterInfo>(num_registers, host_allocator);
-  auto* register_info_ptr = register_infos->mutable_array().data();
+  function_info->register_infos.resize(num_registers, host_allocator);
+  auto* register_info_ptr =
+      function_info->register_infos.mutable_array().data();
   unsigned register_idx = 0;
   while (num_registers--) {
     size_t user_count;
@@ -491,8 +492,8 @@ ArrayRef<uint32_t> BEFFileImpl::ReadFunction(
   size_t num_kernels;
   if (reader.ReadInt(&num_kernels)) return format_error();
 
-  *kernel_infos = HostArray<KernelInfo>(num_kernels, host_allocator);
-  auto* kernel_info_ptr = kernel_infos->mutable_array().data();
+  function_info->kernel_infos.resize(num_kernels, host_allocator);
+  auto* kernel_info_ptr = function_info->kernel_infos.mutable_array().data();
   unsigned kernel_idx = 0;
   while (num_kernels--) {
     size_t offset, num_operands;
@@ -507,7 +508,7 @@ ArrayRef<uint32_t> BEFFileImpl::ReadFunction(
   result_regs->reserve(results.size());
   for (unsigned i = 0, e = results.size(); i != e; ++i) {
     size_t result_reg;
-    if (reader.ReadInt(&result_reg) || result_reg >= register_infos->size())
+    if (reader.ReadInt(&result_reg) || result_reg >= num_registers)
       return format_error();
     result_regs->push_back(result_reg);
   }
@@ -516,9 +517,11 @@ ArrayRef<uint32_t> BEFFileImpl::ReadFunction(
   if (reader.ReadAlignment(kKernelEntryAlignment)) return format_error();
 
   // We found the start of our kernel section.
-  return llvm::makeArrayRef(
+  function_info->kernels = llvm::makeArrayRef(
       reinterpret_cast<const uint32_t*>(reader.file().begin()),
       reader.file().size() / kKernelEntryAlignment);
+
+  return true;
 }
 
 // Given an offset into location_positions_section_, decode it and return

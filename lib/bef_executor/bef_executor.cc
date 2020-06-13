@@ -19,6 +19,7 @@
 //===----------------------------------------------------------------------===//
 
 #include <atomic>
+#include <cstdint>
 #include <cstdio>
 
 #include "bef_file_impl.h"
@@ -31,6 +32,7 @@
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/bef_reader.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tracing/tracing.h"
 
@@ -188,12 +190,10 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   }
 
  private:
-  BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file,
-              ArrayRef<uint32_t> kernels,
-              HostArray<BEFFileImpl::KernelInfo> kernel_infos,
-              HostArray<BEFFileImpl::RegisterInfo> register_infos,
-              bool has_arguments_pseudo_kernel);
+  BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file);
   ~BEFExecutor();
+
+  void Execute(bool has_arguments_pseudo_kernel);
 
  private:
   void DecrementArgumentsNotReadyCounts(SmallVectorImpl<unsigned>* kernel_ids);
@@ -205,22 +205,24 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   HostContext* GetHost() const { return exec_ctx_.host(); }
   BEFFileImpl* BefFile() const { return location_handler_->BefFile(); }
 
+  ArrayRef<uint32_t> kernels() { return function_info_.kernels; }
+
+  MutableArrayRef<BEFFileImpl::RegisterInfo> register_infos() {
+    return function_info_.register_infos.mutable_array();
+  }
+
+  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_infos() {
+    return function_info_.kernel_infos.mutable_array();
+  }
+
  private:
   friend class ReferenceCounted<BEFExecutor>;
 
   /// The execution context for this BEFExecutor.
   ExecutionContext exec_ctx_;
 
-  /// This ArrayRef contains kernel entries of all kernels of this function.
-  ArrayRef<uint32_t> kernels_;
-
-  /// This is an array of descriptors for all of the kernels in this function,
-  /// indexed by the kernel number.
-  HostArray<BEFFileImpl::KernelInfo> kernel_infos_;
-
-  /// This is an array of descriptors for all of our registers, indexed by their
-  /// register number.
-  HostArray<BEFFileImpl::RegisterInfo> register_infos_;
+  /// Decoded BEFFunction
+  BEFFileImpl::FunctionInfo function_info_;
 
   /// Make sure location handler is alive as long as there is pending execution.
   RCReference<BEFLocationHandler> location_handler_;
@@ -259,7 +261,7 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int result_number,
   // This check is done intentionally after checking for IsConcrete()
   // so that in the normal path we call AsyncValue::state() only once.
   if (state.IsError()) {
-    SetKernelsWithErrorInputReady(kernel_infos_.mutable_array(), used_bys);
+    SetKernelsWithErrorInputReady(kernel_infos(), used_bys);
   }
 
   // If this result is already available (because the kernel produced its
@@ -327,12 +329,14 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
   // Remove the first kernel that is argument pseudo kernel.
   kernel_ids->pop_back();
 
-  BEFKernel kernel(kernels_.data());
+  BEFKernel kernel(kernels().data());
 
   assert(kernel.num_arguments() == 0);
   assert(kernel.num_attributes() == 0);
   assert(kernel.num_functions() == 0);
   assert(kernel.num_results() != 0);
+
+  MutableArrayRef<BEFFileImpl::RegisterInfo> register_array = register_infos();
 
   // The kernel body of argument pseudo kernel contains only results and
   // used_bys.
@@ -340,7 +344,7 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
   // Move offset to the start of used_bys.
   int used_by_offset = results.size();
   for (int result_number = 0; result_number < results.size(); ++result_number) {
-    auto& result_register = register_infos_[results[result_number]];
+    auto& result_register = register_array[results[result_number]];
     // TODO(chky): mlir_to_bef should not emit used args.
     if (result_register.user_count == 0) continue;
 
@@ -370,20 +374,20 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
   KernelFrameBuilder kernel_frame(exec_ctx_);
   kernel_frame.SetAttributeSection(BefFile()->attribute_section_);
 
-  MutableArrayRef<BEFFileImpl::KernelInfo>& kernel_infos =
-      kernel_infos_.mutable_array();
+  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array = kernel_infos();
+  MutableArrayRef<BEFFileImpl::RegisterInfo> register_array = register_infos();
 
   while (!kernel_ids->empty()) {
     auto kernel_id = kernel_ids->pop_back_val();
-    assert(kernel_id < kernel_infos.size() && "invalid kernel ID");
+    assert(kernel_id < kernel_array.size() && "invalid kernel ID");
 
     // Decrement the count and see if we're ready to run.  If not, then we're
     // done with the kernel.
-    if (kernel_infos[kernel_id].arguments_not_ready.fetch_sub(1) != 1) continue;
+    if (kernel_array[kernel_id].arguments_not_ready.fetch_sub(1) != 1) continue;
 
-    assert(kernel_infos[kernel_id].offset % kKernelEntryAlignment == 0);
-    BEFKernel kernel(kernels_.data() +
-                     kernel_infos[kernel_id].offset / kKernelEntryAlignment);
+    assert(kernel_array[kernel_id].offset % kKernelEntryAlignment == 0);
+    BEFKernel kernel(kernels().data() +
+                     kernel_array[kernel_id].offset / kKernelEntryAlignment);
 
     // Keep track of whether we saw any error arguments. If so, we propagate the
     // error to the results automatically. Initialize it with the cancel async
@@ -412,7 +416,7 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
     auto arguments =
         kernel.GetKernelEntries(entry_offset, kernel.num_arguments());
     for (auto reg_idx : arguments) {
-      BEFFileImpl::RegisterInfo& reg = register_infos_[reg_idx];
+      BEFFileImpl::RegisterInfo& reg = register_array[reg_idx];
 
       // The argument register may not be available if this is a non-strict
       // kernel that is starting before all operands are available. In that
@@ -484,7 +488,7 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
     entry_offset += results.size();
     for (int result_number = 0; result_number < results.size();
          ++result_number) {
-      auto& result_register = register_infos_[results[result_number]];
+      auto& result_register = register_array[results[result_number]];
 
       // This kernel is not a pesudo kernel, assert the result register is
       // either unset or an IndirectAsyncValue.
@@ -519,19 +523,15 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
 // Executor Setup
 //===----------------------------------------------------------------------===//
 
-BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file,
-                         ArrayRef<uint32_t> kernels,
-                         HostArray<BEFFileImpl::KernelInfo> kernel_infos,
-                         HostArray<BEFFileImpl::RegisterInfo> register_infos,
-                         bool has_arguments_pseudo_kernel)
+BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file)
     : exec_ctx_(std::move(exec_ctx)),
-      kernels_(kernels),
-      kernel_infos_(std::move(kernel_infos)),
-      register_infos_(std::move(register_infos)),
       location_handler_(TakeRef(exec_ctx_.host()->Construct<BEFLocationHandler>(
-          exec_ctx_.host(), bef_file))) {
-  // Now that the executor object is all set up and ready to go, kick off the
-  // instructions that are ready.
+          exec_ctx_.host(), bef_file))) {}
+
+BEFExecutor::~BEFExecutor() {}
+
+void BEFExecutor::Execute(bool has_arguments_pseudo_kernel) {
+  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array = kernel_infos();
 
   // InitializeKernels initialized each KernelInfo::arguments_not_ready to one
   // plus the number of arguments. This means that as we walk the list to drop
@@ -546,10 +546,10 @@ BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file,
   // pops one kernel_id and pushes multiple user kernel_ids, increasing the size
   // of kernel_ids_to_visit. We reserve some extra space to accommodate this
   // growth.
-  kernel_ids_to_visit.reserve(kernel_infos_.size() + 4);
+  kernel_ids_to_visit.reserve(kernel_array.size() + 4);
   // Reverse indices in kernel_ids_to_visit because
   // DecrementArgumentsNotReadyCounts processes its argument from back to front.
-  for (unsigned i = 0, e = kernel_infos_.size(); i != e; ++i) {
+  for (unsigned i = 0, e = kernel_array.size(); i != e; ++i) {
     kernel_ids_to_visit.push_back(e - i - 1);
   }
 
@@ -561,8 +561,6 @@ BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file,
 
   DecrementArgumentsNotReadyCounts(&kernel_ids_to_visit);
 }
-
-BEFExecutor::~BEFExecutor() {}
 
 // Set RegisterInfo::value for argument registers.
 static void InitializeArgumentRegisters(
@@ -591,26 +589,24 @@ void BEFExecutor::Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
   assert(results.size() == fn.result_types().size() &&
          "incorrect number of results passed to function call");
 
-  size_t location_offset;
-  HostArray<BEFFileImpl::RegisterInfo> register_infos;
-  HostArray<BEFFileImpl::KernelInfo> kernel_infos;
-  SmallVector<size_t, 4> result_regs;
-
   HostContext* host = exec_ctx.host();
+  auto* exec_ptr = host->Allocate<BEFExecutor>();
+  auto* exec = new (exec_ptr) BEFExecutor(std::move(exec_ctx), bef_file);
 
-  auto kernels = bef_file->ReadFunction(
-      fn.function_offset(), fn.result_types(), &location_offset,
-      &register_infos, &kernel_infos, &result_regs, host->allocator());
-  if (kernels.empty()) return;
+  size_t location_offset;
+  SmallVector<size_t, 4> result_regs;
+  bool success = bef_file->ReadFunction(fn.function_offset(), fn.result_types(),
+                                        &location_offset, &exec->function_info_,
+                                        &result_regs, host->allocator());
+  if (!success) return;
   assert(result_regs.size() == fn.result_types().size());
 
   MutableArrayRef<BEFFileImpl::RegisterInfo> register_array =
-      register_infos.mutable_array();
+      exec->register_infos();
   InitializeArgumentRegisters(arguments, register_array);
-  auto* exec_ptr = host->Allocate<BEFExecutor>();
-  auto* exec = new (exec_ptr) BEFExecutor(
-      std::move(exec_ctx), bef_file, kernels, std::move(kernel_infos),
-      std::move(register_infos), !arguments.empty());
+
+  // Kick off BEF execution starting from ready kernels.
+  exec->Execute(!arguments.empty());
 
   // Populate the function result AsyncValues (results).
   //

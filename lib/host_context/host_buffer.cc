@@ -43,19 +43,39 @@ RCReference<HostBuffer> HostBuffer::CreateFromExternal(
   return TakeRef(new HostBuffer(ptr, size, std::move(deallocator)));
 }
 
+RCReference<HostBuffer> HostBuffer::CreateFromExternal(
+    RCReference<HostBuffer> parent_buffer, size_t offset, size_t size) {
+  if (!parent_buffer) return {};
+  if (parent_buffer->size() < offset + size) return {};
+
+  auto ptr = static_cast<char *>(parent_buffer->data()) + offset;
+  return TakeRef(new HostBuffer(ptr, size, std::move(parent_buffer)));
+}
+
 HostBuffer::~HostBuffer() {
-  if (!is_inlined_) {
-    out_of_line_.deallocator(out_of_line_.ptr, size_);
-    out_of_line_.deallocator.~Deallocator();
+  switch (mode_) {
+    case Mode::kInlined:
+      break;
+    case Mode::kOutOfLine:
+      out_of_line_.deallocator(out_of_line_.ptr, size_);
+      out_of_line_.deallocator.~Deallocator();
+      break;
+    case Mode::kSliced:
+      sliced_.parent_buffer.~RCReference<HostBuffer>();
+      break;
   }
 }
 
 void HostBuffer::Destroy() {
-  if (is_inlined_) {
-    this->~HostBuffer();
-    inlined_.allocator->DeallocateBytes(this, sizeof(HostBuffer) + size_);
-  } else {
-    delete this;
+  switch (mode_) {
+    case Mode::kInlined:
+      this->~HostBuffer();
+      inlined_.allocator->DeallocateBytes(this, sizeof(HostBuffer) + size_);
+      break;
+    case Mode::kOutOfLine:
+    case Mode::kSliced:
+      delete this;
+      break;
   }
 }
 

@@ -77,5 +77,112 @@ TEST(DenseHostTensorTest, FillWithComplex128Type) {
                                DHTArrayView<std::complex<double>>(&dht_b)));
 }
 
+TEST(DenseHostTensorSharedTest, FillWithComplex64Type) {
+  // Creates a HostBuffer that is shared between 2 distinct DenseHostTensors.
+  // Validates the DenseHostTensor values against the parent HostBuffer.
+  auto host = CreateHostContext();
+  auto parent_buffer = tfrt::HostBuffer::CreateUninitialized(
+      /*size=*/16,
+      /*alignment=*/sizeof(std::complex<float>), host->allocator());
+
+  // Create dht_a from 0 bytes to 7 bytes in the buffer.
+  auto host_buffer_a =
+      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
+                                           /*offset=*/0,
+                                           /*size=*/8);
+  auto dht_a = tfrt::DenseHostTensor(
+      TensorMetadata(GetDType<std::complex<float>>(), TensorShape({1, 1})),
+      std::move(host_buffer_a));
+  MutableDHTArrayView<std::complex<float>> tensor_view_a(&dht_a);
+  tensor_view_a.Fill({1.0, -2.0});
+
+  // Create dht_b from 8 bytes to 15 bytes in the buffer.
+  auto host_buffer_b =
+      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
+                                           /*offset=*/8,
+                                           /*size=*/8);
+  auto dht_b = tfrt::DenseHostTensor(
+      TensorMetadata(GetDType<std::complex<float>>(), TensorShape({1, 1})),
+      std::move(host_buffer_b));
+  MutableDHTArrayView<std::complex<float>> tensor_view_b(&dht_b);
+  tensor_view_b.Fill({3.0, -4.0});
+
+  // Compare the values of the parent buffer with the slices.
+  ASSERT_EQ(parent_buffer->size(), 16);
+  ASSERT_EQ(dht_a.DataSizeInBytes(), 8);
+  ASSERT_EQ(dht_b.DataSizeInBytes(), 8);
+
+  auto parent_data = static_cast<std::complex<float> *>(parent_buffer->data());
+  auto dht_a_data = static_cast<std::complex<float> *>(dht_a.data());
+  auto dht_b_data = static_cast<std::complex<float> *>(dht_b.data());
+  ASSERT_EQ(parent_data[0], dht_a_data[0]);
+  ASSERT_EQ(parent_data[1], dht_b_data[0]);
+}
+
+TEST(DenseHostTensorSharedTest, FillWithInt32Type) {
+  // Creates a HostBuffer that is shared between 3 overlapping DenseHostTensors.
+  // A is 0-7 bytes, B is 8-15 bytes, C is 8-11 bytes.
+  auto host = CreateHostContext();
+  auto parent_buffer = tfrt::HostBuffer::CreateUninitialized(
+      /*size=*/16,
+      /*alignment=*/sizeof(int), host->allocator());
+
+  // Create dht_a from 0 bytes to 7 bytes in the buffer.
+  auto host_buffer_a =
+      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
+                                           /*offset=*/0,
+                                           /*size=*/8);
+  auto dht_a = tfrt::DenseHostTensor(
+      TensorMetadata(GetDType<int>(), TensorShape({1, 2})),
+      std::move(host_buffer_a));
+  MutableDHTArrayView<int> tensor_view_a(&dht_a);
+  tensor_view_a.Fill(1.0);
+
+  auto dht_a_data = static_cast<int *>(dht_a.data());
+  ASSERT_EQ(dht_a_data[0], 1.0);
+  ASSERT_EQ(dht_a_data[1], 1.0);
+
+  // Create dht_b from 8 bytes to 15 bytes in the buffer.
+  auto host_buffer_b =
+      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
+                                           /*offset=*/8,
+                                           /*size=*/8);
+  auto dht_b = tfrt::DenseHostTensor(
+      TensorMetadata(GetDType<int>(), TensorShape({1, 2})),
+      std::move(host_buffer_b));
+  MutableDHTArrayView<int> tensor_view_b(&dht_b);
+  tensor_view_b.Fill(3.0);
+
+  auto dht_b_data = static_cast<int *>(dht_b.data());
+  ASSERT_EQ(dht_b_data[0], 3.0);
+  ASSERT_EQ(dht_b_data[1], 3.0);
+
+  // Create dht_c from 8 bytes to 11 bytes.
+  auto host_buffer_c =
+      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
+                                           /*offset=*/8,
+                                           /*size=*/4);
+  auto dht_c = tfrt::DenseHostTensor(
+      TensorMetadata(GetDType<int>(), TensorShape({1, 1})),
+      std::move(host_buffer_c));
+  MutableDHTArrayView<int> tensor_view_c(&dht_c);
+  tensor_view_c.Fill(-1.0);
+
+  // Check the values of all of the buffers.
+  ASSERT_EQ(parent_buffer->size(), 16);
+  ASSERT_EQ(dht_a.DataSizeInBytes(), 8);
+  ASSERT_EQ(dht_b.DataSizeInBytes(), 8);
+  ASSERT_EQ(dht_c.DataSizeInBytes(), 4);
+
+  dht_a_data = static_cast<int *>(dht_a.data());
+  dht_b_data = static_cast<int *>(dht_b.data());
+  auto dht_c_data = static_cast<int *>(dht_c.data());
+  ASSERT_EQ(dht_a_data[0], 1.0);
+  ASSERT_EQ(dht_a_data[1], 1.0);
+  ASSERT_EQ(dht_c_data[0], -1.0);
+  ASSERT_EQ(dht_b_data[0], -1.0);
+  ASSERT_EQ(dht_b_data[1], 3.0);
+}
+
 }  // namespace
 }  // namespace tfrt

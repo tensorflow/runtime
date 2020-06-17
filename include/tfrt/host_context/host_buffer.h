@@ -49,14 +49,32 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   static RCReference<HostBuffer> CreateFromExternal(void *ptr, size_t size,
                                                     Deallocator deallocator);
 
+  // Create a HostBuffer by creating a reference to an externally allocated
+  // HostBuffer. Manages the data in the original buffer from `offset` to
+  // `offset + size`.
+  static RCReference<HostBuffer> CreateFromExternal(
+      RCReference<HostBuffer> parent_buffer, size_t offset, size_t size);
+
   void *data() {
-    if (is_inlined_) return &inlined_.data[0];
-    return out_of_line_.ptr;
+    switch (mode_) {
+      case Mode::kInlined:
+        return &inlined_.data[0];
+      case Mode::kOutOfLine:
+        return out_of_line_.ptr;
+      case Mode::kSliced:
+        return sliced_.ptr;
+    }
   }
 
   const void *data() const {
-    if (is_inlined_) return &inlined_.data[0];
-    return out_of_line_.ptr;
+    switch (mode_) {
+      case Mode::kInlined:
+        return &inlined_.data[0];
+      case Mode::kOutOfLine:
+        return out_of_line_.ptr;
+      case Mode::kSliced:
+        return sliced_.ptr;
+    }
   }
   size_t size() const { return size_; }
 
@@ -65,19 +83,35 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   friend class ReferenceCounted<HostBuffer>;
 
   HostBuffer(size_t size, HostAllocator *allocator)
-      : size_(size), is_inlined_(true), inlined_{.allocator = allocator} {}
+      : size_(size), mode_{Mode::kInlined}, inlined_{.allocator = allocator} {}
 
   HostBuffer(void *ptr, size_t size, Deallocator deallocator)
       : size_(size),
-        is_inlined_(false),
+        mode_{Mode::kOutOfLine},
         out_of_line_{.ptr = ptr, .deallocator = std::move(deallocator)} {}
+
+  HostBuffer(void *ptr, size_t size, RCReference<HostBuffer> parent_buffer)
+      : size_(size),
+        mode_{Mode::kSliced},
+        sliced_{.ptr = ptr, .parent_buffer = std::move(parent_buffer)} {}
 
   ~HostBuffer();
 
   void Destroy();
 
-  size_t size_ : 63;
-  bool is_inlined_ : 1;
+  size_t size_ : 62;
+
+  enum class Mode : uint8_t {
+    kInlined,
+    kOutOfLine,
+    kSliced,
+  };
+
+  // The number of bits in `mode_` should be adjusted to represent the number of
+  // enum values in `Mode`. The total number of bits for `mode_` and `size_`
+  // should be 64 bits.
+  Mode mode_ : 2;
+
   // TODO(zhangqiaorjc): Use variant instead of union.
   union {
     struct {
@@ -90,6 +124,11 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
       void *ptr;
       Deallocator deallocator;
     } out_of_line_;
+
+    struct {
+      void *ptr;
+      RCReference<HostBuffer> parent_buffer;
+    } sliced_;
   };
 };
 

@@ -538,8 +538,10 @@ static void print(OpAsmPrinter &p, ParallelForI32Op op) {
   }
 
   // Reuse the argument names provided to the op for the bbarg names within
-  // the region.
-  SmallVector<Value, 4> arg_name_values(llvm::drop_begin(op.getOperands(), 3));
+  // the region (except block_size argument).
+  SmallVector<Value, 4> arg_name_values(op.getOperands());
+  arg_name_values.erase(arg_name_values.begin() + 2);
+
   p.shadowRegionArgs(op.region(), arg_name_values);
   p.printRegion(op.region(), /*printEntryBlockArgs=*/false);
 }
@@ -556,6 +558,129 @@ static LogicalResult verify(ParallelForI32Op op) {
   // Otherwise parallel region must return a chain (same result type as
   // hex.parallel_for itself).
   return checkHexReturn(op, &op.region(), op.getResultTypes());
+}
+
+//===----------------------------------------------------------------------===//
+// ParallelCallI32Op
+//===----------------------------------------------------------------------===//
+
+// Parse hex.parallel_call.i32 operation.
+//
+// Expected format:
+//
+//   %ch = hex.parallel_call.i32 %start to %end fixed %block_size
+//         @callee(%loop_arg0) : !my.type
+static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
+                                          OperationState &result) {
+  OpAsmParser::OperandType start;
+  OpAsmParser::OperandType end;
+  OpAsmParser::OperandType block_size;
+
+  // Parse parallel for bounds: %start to %end fixed %block_size
+  if (parser.parseOperand(start) || parser.parseKeyword("to") ||
+      parser.parseOperand(end) || parser.parseKeyword("fixed") ||
+      parser.parseOperand(block_size)) {
+    return failure();
+  }
+
+  // Parse callee attribute.
+  SymbolRefAttr callee_attr;
+  if (parser.parseAttribute(callee_attr, "callee", result.attributes))
+    return failure();
+
+  // Parse additional parallel call operands.
+  SmallVector<OpAsmParser::OperandType, 4> operands;
+  if (parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren))
+    return failure();
+
+  // Parse types for additional operands.
+  SmallVector<Type, 4> types;
+  llvm::SMLoc type_loc = parser.getCurrentLocation();
+  if (parser.parseOptionalColonTypeList(types)) return failure();
+
+  // Resolve parsed parallel call bounds operands ...
+  auto i32_type = IntegerType::get(32, result.getContext());
+  if (parser.resolveOperand(start, i32_type, result.operands) ||
+      parser.resolveOperand(end, i32_type, result.operands) ||
+      parser.resolveOperand(block_size, i32_type, result.operands)) {
+    return failure();
+  }
+
+  // ... and additional body operands.
+  parser.resolveOperands(operands, types, type_loc, result.operands);
+
+  // Parallel for returns chain when all parallel blocks are completed.
+  auto hex = Identifier::get("hex", result.getContext());
+  auto chain_type = OpaqueType::get(hex, "chain", result.getContext());
+  parser.addTypesToList(chain_type, result.types);
+
+  return success();
+}
+
+static void print(OpAsmPrinter &p, ParallelCallI32Op op) {
+  p << "hex.parallel_call.i32 ";
+
+  p.printOperand(op.getOperand(0));
+  p << " to ";
+  p.printOperand(op.getOperand(1));
+  p << " fixed ";
+  p.printOperand(op.getOperand(2));
+  p << " ";
+
+  p << op.getAttr("callee");
+  p << '(';
+  p.printOperands(llvm::drop_begin(op.getOperands(), 3));
+  p << ')';
+
+  if (op.getNumOperands() > 3) {
+    p << " : ";
+    interleaveComma(llvm::drop_begin(op.getOperandTypes(), 3), p);
+  }
+}
+
+static LogicalResult verify(ParallelCallI32Op op) {
+  // Check that the callee attribute was specified.
+  auto fnAttr = op.getAttrOfType<FlatSymbolRefAttr>("callee");
+  if (!fnAttr)
+    return op.emitOpError("requires a 'callee' symbol reference attribute");
+  auto fn =
+      op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
+  if (!fn)
+    return op.emitOpError() << "'" << fnAttr.getValue()
+                            << "' does not reference a valid function";
+
+  // Verify that the operand and result types match the callee.
+  auto fnType = fn.getType();
+
+  // Callee must take start and end indices followed by parallel call operands.
+  if (fnType.getNumInputs() != op.getNumOperands() - 1)
+    return op.emitOpError("incorrect number of callee operands");
+
+  auto i32_type = IntegerType::get(32, op.getContext());
+  for (unsigned i = 0; i != 2; ++i) {
+    if (fnType.getInput(i) != i32_type)
+      return op.emitOpError("callee must take stard and end indices first");
+  }
+
+  for (unsigned i = 2, e = fnType.getNumInputs(); i != e; ++i) {
+    if (op.getOperand(i + 1).getType() != fnType.getInput(i))
+      return op.emitOpError("operand type mismatch");
+  }
+
+  // Callee must have empty results for synchronous body function, or a single
+  // chain for an asynchronous body function.
+  if (fnType.getNumResults() > 1)
+    return op.emitOpError("invalid callee result type");
+
+  if (fnType.getNumResults() == 1) {
+    auto hex = Identifier::get("hex", op.getContext());
+    auto chain_type = OpaqueType::get(hex, "chain", op.getContext());
+
+    if (fnType.getResult(0) != chain_type)
+      return op.emitOpError("async callee must return a chain");
+  }
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//

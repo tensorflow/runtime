@@ -212,7 +212,8 @@ def ParallelForI32Op : Hex_Op<"parallel_for.i32"> {
 
       %val = ... : !my.type
 
-      %done = hex.parallel_for.i32 %from to %to fixed %block, %val : !my.type {
+      %done = hex.parallel_for.i32 %from to %to fixed %block_size,
+                                   %val : !my.type {
         // Possible values for [%start, %end) are: [0, 10), [10, 20), ...
         "use"(%start, %end, %val) : (i32, i32, !my.type) -> ()
 
@@ -227,6 +228,34 @@ def ParallelForI32Op : Hex_Op<"parallel_for.i32"> {
                    Variadic<AnyType>);
   let results = (outs Variadic<AnyType>);
   let regions = (region SizedRegion<1>:$region);
+}
+
+def ParallelCallI32Op : Hex_Op<"parallel_call.i32"> {
+  let summary = "parallel_call.i32 operation";
+  let description = [{
+    The "hex.parallel_call.i32" is an alternative to "hex.parallel_for.i32" with
+    a parallel region defined as a standalone function.
+
+    Example:
+
+      func @compute(%start : i32, %end : i32, %val : !my_type) -> !hex.chain {
+        ...
+      }
+
+      %from       = hex.constant.i32 0
+      %to         = hex.constant.i32 100
+      %block_size = hex.constant.i32 10
+
+      %val = ... : !my.type
+
+      %done = hex.parallel_call.i32 %from to %to fixed %block_size
+              @compute(%val) : !my.type
+  }];
+
+  let arguments = (ins FlatSymbolRefAttr:$callee,
+                   I32:$start, I32:$end, I32:$block_size,
+                   Variadic<AnyType>:$operands);
+  let results = (outs Variadic<AnyType>);
 }
 
 def ReturnOp : Hex_Op<"return", [Terminator]> {

@@ -140,7 +140,7 @@ static AsyncValueRef<Chain> HexParallelFor(const ExecutionContext& exec_ctx,
 
   } else {
     return exec_ctx.host()->MakeErrorAsyncValueRef(
-        "Invalid hex.parallel_for body function result types");
+        "Invalid parallel body function result types");
   }
 }
 
@@ -148,6 +148,7 @@ static AsyncValueRef<Chain> HexParallelFor(const ExecutionContext& exec_ctx,
 
 void RegisterParallelKernels(KernelRegistry* registry) {
   registry->AddKernel("hex.parallel_for.i32", TFRT_KERNEL(HexParallelFor));
+  registry->AddKernel("hex.parallel_call.i32", TFRT_KERNEL(HexParallelFor));
 }
 
 }  // namespace tfrt

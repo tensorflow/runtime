@@ -86,3 +86,83 @@ func @parallel_for.fixed_block_size.sync() -> !hex.chain {
 
   hex.return %ch3 : !hex.chain
 }
+
+// Asynchronous function signals its completion using result chain.
+func @async_fn(%start : i32, %end : i32,
+               %cnt0 : !test.atomic.i32,
+               %cnt1 : !test.atomic.i32) -> !hex.chain {
+    %ch0 = hex.new.chain
+
+    %ch1 = "tfrt_test.atomic.add.i32"(%cnt0, %start, %ch0)
+           : (!test.atomic.i32, i32, !hex.chain) -> !hex.chain
+
+    %ch2 = "tfrt_test.atomic.add.i32"(%cnt1, %end, %ch1)
+           : (!test.atomic.i32, i32, !hex.chain) -> !hex.chain
+
+    hex.return %ch2 : !hex.chain
+}
+
+// CHECK-LABEL: --- Running 'parallel_call.fixed_block_size.async'
+func @parallel_call.fixed_block_size.async() -> !hex.chain {
+  %start      = hex.constant.i32 0
+  %end        = hex.constant.i32 10
+  %block_size = hex.constant.i32 1
+
+  %cnt0 = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
+  %cnt1 = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
+
+  %done = hex.parallel_call.i32 %start to %end fixed %block_size
+          @async_fn(%cnt0, %cnt1) : !test.atomic.i32, !test.atomic.i32
+
+  %v0, %ch0 = "tfrt_test.atomic.get.i32"(%cnt0, %done)
+     : (!test.atomic.i32, !hex.chain) -> (i32, !hex.chain)
+  %v1, %ch1 = "tfrt_test.atomic.get.i32"(%cnt1, %ch0)
+     : (!test.atomic.i32, !hex.chain) -> (i32, !hex.chain)
+
+  // CHECK: int32 = 45
+  %ch2 = hex.print.i32 %v0, %ch1
+  // CHECK: int32 = 55
+  %ch3 = hex.print.i32 %v1, %ch2
+
+  hex.return %ch3 : !hex.chain
+}
+
+// Synchronous function completes in the caller thread and has an empty result.
+func @sync_fn(%start : i32, %end : i32,
+              %cnt0 : !test.atomic.i32,
+              %cnt1 : !test.atomic.i32) {
+    %ch0 = hex.new.chain
+
+    %ch1 = "tfrt_test.atomic.add.i32"(%cnt0, %start, %ch0)
+           : (!test.atomic.i32, i32, !hex.chain) -> !hex.chain
+
+    %ch2 = "tfrt_test.atomic.add.i32"(%cnt1, %end, %ch1)
+           : (!test.atomic.i32, i32, !hex.chain) -> !hex.chain
+
+    hex.return
+}
+
+// CHECK-LABEL: --- Running 'parallel_call.fixed_block_size.sync'
+func @parallel_call.fixed_block_size.sync() -> !hex.chain {
+  %start      = hex.constant.i32 0
+  %end        = hex.constant.i32 10
+  %block_size = hex.constant.i32 1
+
+  %cnt0 = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
+  %cnt1 = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
+
+  %done = hex.parallel_call.i32 %start to %end fixed %block_size
+          @sync_fn(%cnt0, %cnt1) : !test.atomic.i32, !test.atomic.i32
+
+  %v0, %ch0 = "tfrt_test.atomic.get.i32"(%cnt0, %done)
+     : (!test.atomic.i32, !hex.chain) -> (i32, !hex.chain)
+  %v1, %ch1 = "tfrt_test.atomic.get.i32"(%cnt1, %ch0)
+     : (!test.atomic.i32, !hex.chain) -> (i32, !hex.chain)
+
+  // CHECK: int32 = 45
+  %ch2 = hex.print.i32 %v0, %ch1
+  // CHECK: int32 = 55
+  %ch3 = hex.print.i32 %v1, %ch2
+
+  hex.return %ch3 : !hex.chain
+}

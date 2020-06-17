@@ -18,12 +18,29 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/native_function.h"
 #include "tfrt/test_kernels.h"
 
 namespace tfrt {
 namespace {
+
+// A native function that can be used as a sink for any number of arguments.
+void NativeSink(AsyncValue* const* arguments, int num_arguments,
+                RCReference<AsyncValue>* results, int num_results,
+                HostContext* host) {
+  assert(num_results == 0);
+}
+
+// A native function that can be used as a sink for any number of arguments, and
+// returns a single chain.
+void NativeAsyncSink(AsyncValue* const* arguments, int num_arguments,
+                     RCReference<AsyncValue>* results, int num_results,
+                     HostContext* host) {
+  assert(num_results == 1);
+  results[0] = host->MakeAvailableAsyncValueRef<Chain>();
+}
 
 void NativeAdd(AsyncValue* const* arguments, int num_arguments,
                RCReference<AsyncValue>* results, int num_results,
@@ -57,6 +74,8 @@ void NativeError(AsyncValue* const* arguments, int num_arguments,
 }  // namespace
 
 void RegisterTestNativeFunctions(NativeFunctionRegistry* registry) {
+  registry->Add("native_sink", NativeSink);
+  registry->Add("native_async_sink", NativeAsyncSink);
   registry->Add("native_add", NativeAdd);
   registry->Add("native_async_add", NativeAsyncAdd);
   registry->Add("native_error", NativeError);

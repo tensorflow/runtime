@@ -84,24 +84,7 @@ class FilterDatasetIterator : public Iterator {
         num_false_predicate_(0),
         token_owned_(false) {}
 
-  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
-    auto* host = exec_ctx.host();
-
-    llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
-    result_values.resize(parent_dataset_->arity_);
-    for (size_t i = 0; i < parent_dataset_->arity_; ++i) {
-      result_values[i] = host->MakeIndirectAsyncValue();
-    }
-    auto result_eof = host->MakeUnconstructedAsyncValueRef<bool>();
-    auto result = IterationResult::Pending(std::move(result_values),
-                                           std::move(result_eof));
-    {
-      mutex_lock lock(mu_);
-      output_buffer_.push(result.CopyRef());
-    }
-    MaybeScheduleBackgroundTask(exec_ctx, false, 0);
-    return result;
-  }
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override;
 
  private:
   // This class is not copyable or movable.
@@ -134,6 +117,7 @@ class FilterDatasetIterator : public Iterator {
 
   IterationResult DequeueOutputBuffer() TFRT_EXCLUDES(mu_) {
     mutex_lock lock(mu_);
+    assert(!output_buffer_.empty());
     auto value = std::move(output_buffer_.front());
     output_buffer_.pop();
     return value;

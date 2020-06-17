@@ -31,6 +31,7 @@
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/rc_array.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
@@ -205,25 +206,43 @@ RCReference<Iterator> MakeIteratorFromDataset(RCReference<Dataset>* dataset) {
 // end prior to the method invocation.
 // IDEA(tf_runtime_team): it may be useful to return optional value and let
 // caller handle EOF properly.
-// TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
 static void IteratorGetNext(RCReference<Iterator>* iterator, Chain chain_in,
                             Result<Chain> chain_out, RemainingResults results,
                             const ExecutionContext& exec_ctx) {
   auto input = (*iterator)->GetNext(exec_ctx);
-  if (internal::IsConcreteAndEmpty(input)) {
-    auto err = EmitErrorAsync(exec_ctx, "iterator reached end");
-    for (size_t i = 0; i < results.size(); ++i) {
-      results[i] = err.CopyRef();
+  auto* eof = input.eof.GetAsyncValue();
+  assert(results.size() == input.values.size());
+  // Provide a fast path for the case where EOF=false is known synchronously.
+  // We don't provide fast path for the case where EOF=true is known
+  // synchronously since it is uncommon for caller to keep getting next after
+  // the iterator has reached end.
+  if (eof->IsConcrete() && !eof->get<bool>()) {
+    for (size_t i = 0, e = results.size(); i < e; ++i) {
+      results[i] = std::move(input.values[i]);
     }
-    chain_out.Set(RCReference<AsyncValue>(std::move(err)));
+    chain_out.Emplace();
     return;
   }
-
-  auto values = std::move(input.values);
-  assert(results.size() == values.size());
-  for (size_t i = 0; i < results.size(); ++i) {
-    results[i] = std::move(values[i]);
+  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  result_refs.reserve(results.size());
+  for (size_t i = 0, e = results.size(); i < e; ++i) {
+    auto result = results.AllocateIndirectResultAt(i);
+    result_refs.push_back(std::move(result));
   }
+  eof->AndThen([exec_ctx, result_refs = std::move(result_refs),
+                input = std::move(input)]() mutable {
+    if (!input.eof.IsError() && input.eof.get()) {
+      auto err = EmitErrorAsync(exec_ctx, "iterator reached end");
+      for (size_t i = 0, e = result_refs.size(); i < e; ++i) {
+        result_refs[i]->SetError(err->GetError());
+      }
+      return;
+    }
+
+    for (size_t i = 0, e = result_refs.size(); i < e; ++i) {
+      result_refs[i]->ForwardTo(std::move(input.values[i]));
+    }
+  });
   chain_out.Emplace();
 }
 

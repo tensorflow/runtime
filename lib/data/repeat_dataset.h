@@ -80,35 +80,7 @@ class RepeatDatasetIterator : public Iterator {
   RepeatDatasetIterator(const RepeatDatasetIterator&) = delete;
   RepeatDatasetIterator& operator=(const RepeatDatasetIterator&) = delete;
 
-  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
-    auto* host = exec_ctx.host();
-
-    // Initialize value_count using the first value from the input_iterator_.
-    if (value_count_ < 0) {
-      mutex_lock lock(mu_);
-      assert(value_count_ < 0);
-      assert(!token_owned_);
-      auto input = input_iterator_->GetNext(exec_ctx);
-      value_count_ = input.values.size();
-      input_buffer_.push(std::move(input));
-    }
-
-    llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
-    result_values.resize(value_count_);
-    for (size_t i = 0; i < value_count_; ++i) {
-      result_values[i] = host->MakeIndirectAsyncValue();
-    }
-    auto result_eof = host->MakeUnconstructedAsyncValueRef<bool>();
-    auto result = IterationResult::Pending(std::move(result_values),
-                                           std::move(result_eof));
-    {
-      mutex_lock lock(mu_);
-      output_buffer_.push(result.CopyRef());
-    }
-
-    MaybeScheduleBackgroundTask(exec_ctx, false, 0);
-    return result;
-  }
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override;
 
  private:
   void Destroy() override {
@@ -139,6 +111,7 @@ class RepeatDatasetIterator : public Iterator {
 
   IterationResult DequeueOutputBuffer() TFRT_EXCLUDES(mu_) {
     mutex_lock lock(mu_);
+    assert(!output_buffer_.empty());
     auto value = std::move(output_buffer_.front());
     output_buffer_.pop();
     return value;

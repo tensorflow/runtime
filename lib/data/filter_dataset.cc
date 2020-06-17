@@ -37,6 +37,27 @@ RCReference<Iterator> FilterDataset::MakeIterator() {
 //===----------------------------------------------------------------------===//
 // FilterDatasetIterator methods
 //===----------------------------------------------------------------------===//
+
+IterationResult FilterDatasetIterator::GetNext(
+    const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+
+  llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
+  result_values.resize(parent_dataset_->arity_);
+  for (size_t i = 0; i < parent_dataset_->arity_; ++i) {
+    result_values[i] = host->MakeIndirectAsyncValue();
+  }
+  auto result_eof = host->MakeUnconstructedAsyncValueRef<bool>();
+  auto result =
+      IterationResult::Pending(std::move(result_values), std::move(result_eof));
+  {
+    mutex_lock lock(mu_);
+    output_buffer_.push(result.CopyRef());
+  }
+  MaybeScheduleBackgroundTask(exec_ctx, false, 0);
+  return result;
+}
+
 void FilterDatasetIterator::MaybeScheduleBackgroundTask(
     const ExecutionContext& exec_ctx, bool is_token_owner, int callback_count) {
   {

@@ -24,6 +24,7 @@
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/SmallString.h"
 #include "tfrt/core_runtime/core_runtime.h"
+#include "tfrt/core_runtime/execute_op_impl.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_handler.h"
 #include "tfrt/core_runtime/tensor_handle.h"
@@ -176,93 +177,6 @@ static llvm::Expected<TensorHandle> ConstDenseTensor(
   return TensorHandle(metadata, std::move(tensor_ref));
 }
 
-static void ExecuteOpImpl(CoreRuntimeOp *op, ArrayRef<AsyncValue *> args,
-                          AsyncValueRef<Chain> *op_chain,
-                          MutableArrayRef<RCReference<AsyncValue>> results,
-                          AggregateAttr op_attr_array,
-                          const ExecutionContext &exec_ctx) {
-  SmallVector<TensorHandle, 8> th_args;
-  th_args.reserve(args.size());
-
-  // TODO(clattner): This copies the input TensorHandle's.  While this is
-  // correct, it would be better to *move* out of the input async value when
-  // we know that we're the last user of the async value.
-  for (auto *arg : args) th_args.push_back(arg->get<TensorHandle>().CopyRef());
-
-  SmallVector<TensorHandle, 8> result_ths;
-  result_ths.resize(results.size());
-
-  // Set up OpAttrs.
-  OpAttrs op_attrs;
-  for (size_t i = 0, e = op_attr_array.GetNumElements(); i != e; ++i) {
-    auto pair = op_attr_array.GetAttributeOfType<AggregateAttr>(i);
-    assert(pair.GetNumElements() == 2);
-    string_view key = pair.GetAttributeOfType<StringAttr>(0).GetValue();
-    TypedAttrBase attr = pair.GetAttribute(1);
-
-    BEFAttributeType attribute_type = attr.type();
-    if (IsArrayAttribute(attribute_type)) {
-      auto type = GetOpAttrTypeFromBEFAttributeType(
-          GetElementAttributeType(attribute_type));
-      auto array_attr = attr.cast<ArrayAttr>();
-      op_attrs.SetRaw(key, array_attr.GetElements(),
-                      array_attr.GetNumElements(), type);
-    } else if (IsDenseAttribute(attribute_type)) {
-      auto r = op_attrs.Set(key, attr.cast<DenseAttr>());
-      assert(r);
-      (void)r;
-    } else if (IsDataTypeAttribute(attribute_type)) {
-      switch (GetDataType(attribute_type)) {
-        case BEFDataType::kBool:
-          op_attrs.Set(key, attr.cast<BoolAttr>().GetValue());
-          break;
-        case BEFDataType::kI32:
-          op_attrs.Set(key, attr.cast<I32Attr>().GetValue());
-          break;
-        case BEFDataType::kI64:
-          op_attrs.Set(key, attr.cast<I64Attr>().GetValue());
-          break;
-        case BEFDataType::kF32:
-          op_attrs.Set(key, attr.cast<F32Attr>().GetValue());
-          break;
-        case BEFDataType::kF64:
-          op_attrs.Set(key, attr.cast<F64Attr>().GetValue());
-          break;
-        case BEFDataType::kString:
-          op_attrs.SetString(key, attr.cast<StringAttr>().GetValue());
-          break;
-        default:
-          llvm_unreachable("unknown attribute type");
-      }
-    } else {
-      switch (attribute_type) {
-        case BEFAttributeType::kType: {
-          auto type_attr = attr.cast<TypeAttr>();
-          BEFDataType type = type_attr.GetValue();
-          op_attrs.Set(key, GetOpAttrTypeFromBEFDataType(type));
-          break;
-        }
-        case BEFAttributeType::kShape:
-          op_attrs.Set(key, attr.cast<ShapeAttr>());
-          break;
-        case BEFAttributeType::kAggregate:
-          op_attrs.Set(key, attr.cast<AggregateAttr>());
-          break;
-        default:
-          llvm_unreachable("unknown attribute type");
-      }
-    }
-  }
-
-  (*op)(exec_ctx, th_args, OpAttrsRef(op_attrs), result_ths, op_chain);
-
-  // Return all of the TensorHandles in AsyncValue's.
-  for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
-    auto &th_ref = result_ths[i];
-    results[i]->emplace<TensorHandle>(std::move(th_ref));
-  }
-}
-
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
 static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
                       RemainingResults results, AggregateAttr op_attr_array,
@@ -278,7 +192,7 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
   for (int b = 0, e = results.size(); b < e; ++b)
     results.AllocateAt<TensorHandle>(b);
 
-  ExecuteOpImpl(&expected_op.get(), args.values(),
+  ExecuteOpImpl(std::move(expected_op.get()), args.values(),
                 /*op_chain =*/nullptr, results.values(), op_attr_array,
                 exec_ctx);
 }
@@ -313,7 +227,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
       return handler.ReportError(StrCat(expected_op.takeError()));
 
     auto op_chain = in_op_chain.ValueRef();
-    ExecuteOpImpl(&expected_op.get(), args.values(), &op_chain,
+    ExecuteOpImpl(std::move(expected_op.get()), args.values(), &op_chain,
                   results.values(), op_attr_array, exec_ctx);
     out_op_chain.Set(std::move(op_chain));
     return;
@@ -358,8 +272,8 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
           arg_avs.push_back(arg_ref.GetAsyncValue());
         }
 
-        ExecuteOpImpl(&expected_op.get(), arg_avs, &op_chain, result_refs,
-                      op_attr_array, exec_ctx);
+        ExecuteOpImpl(std::move(expected_op.get()), arg_avs, &op_chain,
+                      result_refs, op_attr_array, exec_ctx);
 
         auto *op_chain_av = op_chain.GetAsyncValue();
         op_chain_av->AndThen([op_chain = std::move(op_chain),
@@ -389,7 +303,7 @@ static void ExecuteCoreRuntimeOp(Argument<CoreRuntimeOp> op,
   for (int b = 0, e = results.size(); b < e; ++b)
     results.AllocateAt<TensorHandle>(b);
 
-  ExecuteOpImpl(&op.get(), args.values(),
+  ExecuteOpImpl(std::move(op.get()), args.values(),
                 /*op_chain =*/nullptr, results.values(), op_attrs, exec_ctx);
 }
 

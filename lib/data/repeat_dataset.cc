@@ -39,20 +39,21 @@ RCReference<Iterator> RepeatDataset::MakeIterator() {
 IterationResult RepeatDatasetIterator::GetNext(
     const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
-
   // Initialize value_count using the first value from the input_iterator_.
-  if (value_count_ < 0) {
+  if (arity_ < 0) {
     mutex_lock lock(mu_);
-    assert(value_count_ < 0);
     assert(!token_owned_);
     auto input = input_iterator_->GetNext(exec_ctx);
-    value_count_ = input.values.size();
+    arity_ = input.values.size();
     input_buffer_.push(std::move(input));
+  }
+  if (parent_dataset_->count_ == 0) {
+    return IterationResult::Eof(host, arity_);
   }
 
   llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
-  result_values.resize(value_count_);
-  for (size_t i = 0; i < value_count_; ++i) {
+  result_values.resize(arity_);
+  for (size_t i = 0; i < arity_; ++i) {
     result_values[i] = host->MakeIndirectAsyncValue();
   }
   auto result_eof = host->MakeUnconstructedAsyncValueRef<bool>();
@@ -95,9 +96,21 @@ void RepeatDatasetIterator::MaybeScheduleBackgroundTask(
   // false. And schedule tasks to run the filter_fn for newly fetched values in
   // parallel.
   auto host = exec_ctx.host();
+  auto callback = [exec_ctx, host, callback_count,
+                   iterator = FormRef(this)]() mutable {
+    if (callback_count >= MAX_RECURSIVE_CALLS) {
+      host->EnqueueWork([exec_ctx, iterator = std::move(iterator)] {
+        iterator->MaybeScheduleBackgroundTask(exec_ctx, true, 0);
+      });
+    } else {
+      iterator->MaybeScheduleBackgroundTask(exec_ctx, true, callback_count + 1);
+    }
+  };
+
   int input_fetch_num = OutputBufferSize() - input_buffer_.size();
   for (int i = 0; i < input_fetch_num; i++) {
     auto input = input_iterator_->GetNext(exec_ctx);
+    assert(arity_ == input.values.size());
     input_buffer_.push(std::move(input));
   }
   // If there are multiple available values, handle them immediately to reduce
@@ -110,27 +123,15 @@ void RepeatDatasetIterator::MaybeScheduleBackgroundTask(
   if (input_buffer_.empty()) {
     // Recursively call the function again because the output_buffer_ might have
     // more values. Tail recursion is enabled here.
-    MaybeScheduleBackgroundTask(exec_ctx, true, callback_count);
+    callback();
     return;
   }
   // After the first value in the `input_buffer_` becomes available, the token
   // owner should update `output_buffer` as appropriate, then call
   // MaybeScheduleBackgroundTask() again to schedule more tasks if there are
   // still unfilled outputs.
-  auto input = std::move(input_buffer_.front());
-  input_buffer_.pop();
-  auto input_eof = input.eof.CopyRef();
-  input_eof.AndThen([exec_ctx, host, callback_count, input = std::move(input),
-                     iterator = FormRef(this)]() mutable {
-    iterator->HandleEofAvailableInput(std::move(input), host);
-    if (callback_count >= MAX_RECURSIVE_CALLS) {
-      host->EnqueueWork([exec_ctx, iterator = std::move(iterator)] {
-        iterator->MaybeScheduleBackgroundTask(exec_ctx, true, 0);
-      });
-    } else {
-      iterator->MaybeScheduleBackgroundTask(exec_ctx, true, callback_count + 1);
-    }
-  });
+  auto* input_eof_ptr = input_buffer_.front().eof.GetAsyncValue();
+  input_eof_ptr->AndThen(std::move(callback));
 }
 
 void RepeatDatasetIterator::HandleEofAvailableInput(IterationResult input,
@@ -139,7 +140,7 @@ void RepeatDatasetIterator::HandleEofAvailableInput(IterationResult input,
   auto input_values = std::move(input.values);
   if (input_eof.IsError() || !input_eof.get()) {
     auto output = DequeueOutputBuffer();
-    for (int i = 0; i < value_count_; ++i) {
+    for (int i = 0; i < arity_; ++i) {
       auto* output_value = cast<IndirectAsyncValue>(output.values[i].get());
       output_value->ForwardTo(std::move(input_values[i]));
     }
@@ -148,27 +149,33 @@ void RepeatDatasetIterator::HandleEofAvailableInput(IterationResult input,
     } else {
       output.eof.emplace(false);
     }
-  } else if (epoch_ + 1 >= parent_dataset_->epochs_) {
-    // The input_iterator_ has been exhausted and there is no remaining epoch.
-    auto error = host->MakeErrorAsyncValueRef("iterator reached end");
-    while (OutputBufferSize() > 0) {
-      auto output = DequeueOutputBuffer();
-      for (auto& value : output.values) {
-        value->SetError(error->GetError());
-      }
-      output.eof.emplace(true);
-    }
-    // All the remaining elements in the buffer must be EOF because they come
-    // from the exhausted iterator. Therefore we can clear the buffer.
-    input_buffer_ = {};
-  } else {
-    // The input_iterator_ has been exhausted and there is remaining epoch.
-    epoch_++;
+    return;
+  }
+  bool can_repeat = (parent_dataset_->count_ > 0 &&
+                     current_count_ + 1 < parent_dataset_->count_) ||
+                    parent_dataset_->count_ < 0;
+  if (can_repeat) {
+    // The input_iterator_ has been exhausted and there is remaining count.
+    current_count_++;
     input_iterator_ = parent_dataset_->input_dataset_->MakeIterator();
     // All the remaining elements in the buffer must be EOF because they come
     // from the exhausted iterator. Therefore we can clear the buffer.
     input_buffer_ = {};
+    return;
   }
+  // The input_iterator_ has been exhausted and there is no remaining count.
+  auto error = host->MakeErrorAsyncValueRef("iterator reached end");
+  auto output_buffer_size = OutputBufferSize();
+  for (; output_buffer_size > 0; --output_buffer_size) {
+    auto output = DequeueOutputBuffer();
+    for (auto& value : output.values) {
+      value->SetError(error->GetError());
+    }
+    output.eof.emplace(true);
+  }
+  // All the remaining elements in the buffer must be EOF because they come
+  // from the exhausted iterator. Therefore we can clear the buffer.
+  input_buffer_ = {};
 }
 
 }  // namespace data

@@ -194,7 +194,9 @@ def ParallelForI32Op : Hex_Op<"parallel_for.i32"> {
     equivalent).
 
     The body region takes an arbitrary number of arguments and must return a
-    single chain value using a 'hex.return' operation at the end of the region.
+    single chain value using a 'hex.return' operation at the end of the region
+    if it completes asynchronously. If the body region completes synchronously
+    it must have empty returns (`hex.return` without operands).
 
     Inside the loop region `%start` and `%end` values are bound to the parallel
     block start and end offsets (see example below).
@@ -211,12 +213,14 @@ def ParallelForI32Op : Hex_Op<"parallel_for.i32"> {
       %val = ... : !my.type
 
       %done = hex.parallel_for.i32 %from to %to fixed %block, %val : !my.type {
-        ...
         // Possible values for [%start, %end) are: [0, 10), [10, 20), ...
         "use"(%start, %end, %val) : (i32, i32, !my.type) -> ()
-        ...
-        %ch = hex.new.chain
-        hex.return %ch : !hex.chain
+
+        // Async regions must return a chain to signal completion.
+        hex.return %chain : !hex.chain
+
+        // Sync regions must have an empty return.
+        hex.return
       }
   }];
   let arguments = (ins I32:$start, I32:$end, I32:$block_size,

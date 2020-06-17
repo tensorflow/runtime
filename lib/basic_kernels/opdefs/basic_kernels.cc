@@ -545,6 +545,16 @@ static void print(OpAsmPrinter &p, ParallelForI32Op op) {
 }
 
 static LogicalResult verify(ParallelForI32Op op) {
+  auto *block = &op.getRegion().front();
+  if (block->empty() || !isa<ReturnOp>(block->back()))
+    return op.emitOpError("expected hex.return in body");
+
+  // Synchronous parallel region can have a return op without operands.
+  auto return_op = cast<ReturnOp>(block->back());
+  if (return_op.getNumOperands() == 0) return success();
+
+  // Otherwise parallel region must return a chain (same result type as
+  // hex.parallel_for itself).
   return checkHexReturn(op, &op.region(), op.getResultTypes());
 }
 

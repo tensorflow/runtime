@@ -31,19 +31,14 @@
 namespace tfrt {
 namespace {
 
-static AsyncValueRef<Chain> HexParallelFor(const ExecutionContext& exec_ctx,
-                                           Argument<int32_t> start,
-                                           Argument<int32_t> end,
-                                           Argument<int32_t> block_size,
-                                           RemainingArguments args,
-                                           Attribute<Function> body_fn_const) {
-  const Function* body_fn = &(*body_fn_const);
-
-  const size_t total_size = *end - *start;
-  const size_t fixed_block_size = *block_size;
-  const size_t offset = *start;
-
-  //------------------------------------------------------------------------- //
+//--------------------------------------------------------------------------- //
+// Executes parallel for operation with an asynchronous body function: body
+// function returns a chain to signal its completion.
+//--------------------------------------------------------------------------- //
+static AsyncValueRef<Chain> ExecuteAsyncParallelForBody(
+    const ExecutionContext& exec_ctx, size_t total_size, size_t offset,
+    ParallelFor::BlockSizes& block_sizes, RemainingArguments args,
+    const Function* body_fn) {
   // Parallel for block function.
   auto compute = [exec_ctx, offset, body_fn,
                   args = RCArray<AsyncValue>(args.values())](size_t start,
@@ -61,26 +56,92 @@ static AsyncValueRef<Chain> HexParallelFor(const ExecutionContext& exec_ctx,
     // Function returns single AsyncValueRef<Chain>.
     SmallVector<RCReference<AsyncValue>, 1> fn_results;
     fn_results.resize(1);
-
-    // Call parallel for body.
     body_fn->Execute(exec_ctx, fn_args, fn_results);
     assert(fn_results.size() == 1);
 
     return AsyncValueRef<Chain>(std::move(fn_results[0]));
   };
 
-  //------------------------------------------------------------------------- //
   // Return ready chain when all parallel for blocks are completed.
   auto on_done = [](ArrayRef<AsyncValueRef<Chain>> _) -> Chain {
     return Chain();
   };
 
-  //------------------------------------------------------------------------- //
   // Launch parallel for operation.
   ParallelFor parallel_for(exec_ctx.host());
   return parallel_for.Execute<Chain, Chain>(
-      total_size, ParallelFor::BlockSizes::Fixed(fixed_block_size),
-      std::move(compute), std::move(on_done));
+      total_size, block_sizes, std::move(compute), std::move(on_done));
+}
+
+//--------------------------------------------------------------------------- //
+// Executes parallel for operation with a synchronous body function: body
+// function has empty results, and all kernels are completed synchronously
+// in the caller thread.
+//--------------------------------------------------------------------------- //
+static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
+    const ExecutionContext& exec_ctx, size_t total_size, size_t offset,
+    ParallelFor::BlockSizes& block_sizes, RemainingArguments args,
+    const Function* body_fn) {
+  // Parallel for block function.
+  auto compute = [exec_ctx, offset, body_fn,
+                  args = RCArray<AsyncValue>(args.values())](size_t start,
+                                                             size_t end) {
+    HostContext* host = exec_ctx.host();
+
+    // Pack parallel block arguments into async values.
+    auto start_arg = host->MakeAvailableAsyncValueRef<int32_t>(start + offset);
+    auto end_arg = host->MakeAvailableAsyncValueRef<int32_t>(end + offset);
+
+    SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
+                                           end_arg.GetAsyncValue()};
+    for (AsyncValue* arg : args.values()) fn_args.push_back(arg);
+
+    // Function must have empty results.
+    SmallVector<RCReference<AsyncValue>, 0> fn_results;
+    body_fn->Execute(exec_ctx, fn_args, fn_results);
+    assert(fn_results.empty());
+  };
+
+  // Mark result chain completed when all parallel for blocks are completed.
+  auto done = exec_ctx.host()->MakeConstructedAsyncValueRef<Chain>();
+  auto on_done = [done = done.CopyRef()]() { done.SetStateConcrete(); };
+
+  // Launch parallel for operation.
+  ParallelFor parallel_for(exec_ctx.host());
+  parallel_for.Execute(total_size, block_sizes, std::move(compute),
+                       std::move(on_done));
+
+  return done;
+}
+
+//--------------------------------------------------------------------------- //
+
+static AsyncValueRef<Chain> HexParallelFor(const ExecutionContext& exec_ctx,
+                                           Argument<int32_t> start,
+                                           Argument<int32_t> end,
+                                           Argument<int32_t> block_size,
+                                           RemainingArguments args,
+                                           Attribute<Function> body_fn_const) {
+  const Function* body_fn = &(*body_fn_const);
+
+  const size_t total_size = *end - *start;
+  const size_t offset = *start;
+
+  auto fixed_block_sizes = ParallelFor::BlockSizes::Fixed(*block_size);
+
+  if (body_fn->result_types().empty()) {
+    return ExecuteSyncParallelForBody(exec_ctx, total_size, offset,
+                                      fixed_block_sizes, args, body_fn);
+
+  } else if (body_fn->result_types().size() == 1) {
+    assert(body_fn->result_types()[0].GetName() == "!hex.chain");
+    return ExecuteAsyncParallelForBody(exec_ctx, total_size, offset,
+                                       fixed_block_sizes, args, body_fn);
+
+  } else {
+    return exec_ctx.host()->MakeErrorAsyncValueRef(
+        "Invalid hex.parallel_for body function result types");
+  }
 }
 
 }  // namespace

@@ -28,6 +28,7 @@
 #include "llvm/Support/Compiler.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/kernel_registry.h"
+#include "tfrt/host_context/timer_queue.h"
 
 namespace tfrt {
 
@@ -243,6 +244,7 @@ class HostContext {
 
  private:
   friend class HostContextPtr;
+  friend class RequestDeadlineTracker;
 
   // Factory function for creating a SharedContext.
   using SharedContextFactory = std::unique_ptr<SharedContext> (*)(HostContext*);
@@ -270,6 +272,11 @@ class HostContext {
   SharedContext& GetOrCreateSharedContext(int shared_context_id,
                                           SharedContextFactory factory);
 
+  //===--------------------------------------------------------------------===//
+  // TimerQueue
+  //===--------------------------------------------------------------------===//
+  TimerQueue* GetTimerQueue() { return &timer_queue_; }
+
   // Store a ready chain in HostContext to avoid repeated creations of ready
   // chains on the heap.
   AsyncValueRef<Chain> ready_chain_;
@@ -279,6 +286,7 @@ class HostContext {
   std::unique_ptr<ConcurrentWorkQueue> work_queue_;
 
   std::unique_ptr<SharedContextManager> shared_context_mgr_;
+  TimerQueue timer_queue_;
   const HostContextPtr instance_ptr_;
 };
 

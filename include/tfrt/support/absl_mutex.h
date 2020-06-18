@@ -30,6 +30,11 @@
 #include "third_party/absl/synchronization/mutex.h"
 #include "third_party/absl/time/time.h"
 
+// Avoid conflict with @org_tensorflow/core/platform/mutex.h:181
+// TODO(tfrt-devs): remove the macro in @org_tensorflow/core/platform/mutex.h
+// and replace it with the [nodiscard] attribute when c++17 is allowed.
+#undef mutex_lock
+
 namespace tfrt {
 
 // Wrap absl::mutex with support for thread annotations.

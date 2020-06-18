@@ -68,6 +68,7 @@ tfrt_cc_library(
         "include/tfrt/host_context/location.h",
         "include/tfrt/host_context/native_function.h",
         "include/tfrt/host_context/parallel_for.h",
+        "include/tfrt/host_context/request_deadline_tracker.h",
         "include/tfrt/host_context/shared_context.h",
         "include/tfrt/host_context/task_function.h",
         "include/tfrt/host_context/timer_queue.h",

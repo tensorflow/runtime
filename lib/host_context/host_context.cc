@@ -205,7 +205,7 @@ void HostContext::RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
 //===----------------------------------------------------------------------===//
 // SharedContext management
 //===----------------------------------------------------------------------===//
-//
+
 class HostContext::SharedContextManager {
  public:
   explicit SharedContextManager(HostContext* host) : host_{host} {}

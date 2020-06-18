@@ -3,7 +3,10 @@ load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
 licenses(["notice"])
 
 package(
-    default_visibility = ["@tf_runtime//:friends"],
+    default_visibility = [
+        "@tf_runtime//:friends",
+        "@tf_runtime//third_party/llvm_derived/cpp_tests:__subpackages__",
+    ],
 )
 
 exports_files(["LICENSE"])
@@ -15,6 +18,19 @@ tfrt_cc_library(
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//llvm:config",
+    ],
+)
+
+tfrt_cc_library(
+    name = "in_place",
+    hdrs = ["include/llvm_derived/Support/in_place.h"],
+)
+
+tfrt_cc_library(
+    name = "unique_any",
+    hdrs = ["include/llvm_derived/Support/unique_any.h"],
+    deps = [
+        ":in_place",
     ],
 )
 

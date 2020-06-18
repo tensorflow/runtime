@@ -630,6 +630,7 @@ tfrt_cc_library(
         "lib/data/memory_dataset.h",
         "lib/data/prefetch_dataset.cc",
         "lib/data/prefetch_dataset.h",
+        "lib/data/range_dataset.cc",
         "lib/data/range_dataset.h",
         "lib/data/repeat_dataset.cc",
         "lib/data/repeat_dataset.h",

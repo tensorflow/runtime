@@ -179,6 +179,16 @@ static LogicalResult verify(EnumerateIteratorOp op) {
 }
 
 //===----------------------------------------------------------------------===//
+// RangeDatasetOp
+//===----------------------------------------------------------------------===//
+
+static LogicalResult verify(RangeDatasetOp op) {
+  // Only integer or float types are supported.
+  if (!op.element_type().isIntOrFloat()) return failure();
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 

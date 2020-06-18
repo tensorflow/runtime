@@ -45,8 +45,7 @@ def IteratorType: OpaqueType<"hex", "iterator", "!hex.iterator type">;
 class Data_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<Data_Dialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
 
-  // Each registered op in the Data namespace needs to provide all of a printer,
-  // parser and verifier.
+  // Each registered op in the Data namespace needs to provide a parser.
   let parser = [{ return tfrt::data::parse$cppClass(parser, result); }];
 }
 
@@ -120,7 +119,7 @@ class BatchDatasetOp<string suffix>
     underlying elements.
 
     Example:
-      %dataset1 = data.range_dataset.i32 %start, %stop, %step
+      %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
       %batch_size = hex.constant.i64 32
       %dataset2 = data.batch_dataset.i32 %dataset1, %batch_size
         { same_input_metadata = 1 : i1 }
@@ -203,7 +202,7 @@ def MapDatasetOp : Data_Op<"map_dataset"> {
     input dataset.
 
     Example:
-      %dataset1 = data.range_dataset.i32 %start, %stop, %step
+      %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
       %dataset2 = data.map_dataset %dataset1 {function = @times_two}
   }];
 
@@ -229,7 +228,7 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
     elements from the underlying dataset in an internal buffer.
 
     Example:
-      %dataset1 = data.range_dataset.i32 %start, %stop, %step
+      %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
       %dataset2 = data.map_dataset %dataset1 {function = @times_two}
       %prefetch_num = hex.constant.i64 8
       %dataset3 = data.prefetch_dataset %dataset2, %prefetch_num
@@ -245,31 +244,27 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
   let assemblyFormat = "operands attr-dict";
 }
 
-class RangeDatasetOp<string suffix>
-  : Data_Op<"range_dataset." # suffix> {
+def RangeDatasetOp : Data_Op<"range_dataset" > {
   let summary = "data range_dataset operation";
   let description = [{
     data.range_dataset yields a step-separated range of values from
     start (inclusive) to stop (exclusive).
 
     Example:
-      %dataset = data.range_dataset.i32 %start, %stop, %step
+      %dataset = data.range_dataset %start, %stop, %step {element_type = i32}
   }];
 
   let arguments = (ins
      I64:$start,
      I64:$stop,
-     I64:$step
+     I64:$step,
+
+     TypeAttr:$element_type
   );
   let results = (outs DatasetType:$output_dataset);
-
+  let verifier = [{ return tfrt::data::verify(*this); }];
   let assemblyFormat = "operands attr-dict";
 }
-
-// TODO(b/155892156): In the long term, dataset ops will not be specialized
-// for types. Instead, type information will be passed in via attributes.
-def RangeDatasetI32Op : RangeDatasetOp<"i32">;
-def RangeDatasetI64Op : RangeDatasetOp<"i64">;
 
 def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
   let summary = "data repeat_dataset operation";
@@ -278,7 +273,7 @@ def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
     it a specified number of times.
 
     Example:
-      %dataset1 = data.range_dataset.i32 %start, %stop, %step
+      %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
       %count = hex.constant.i64 8
       %dataset2 = data.repeat_dataset %dataset1, %count
   }];

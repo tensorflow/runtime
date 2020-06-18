@@ -60,6 +60,8 @@ BEFDataType ConvertTensorDTypeToBEFDataType(DType dtype) {
   }
 }
 
+}  // namespace
+
 DType ConvertBEFDataTypeToTensorDType(BEFDataType kind) {
   switch (kind) {
     case BEFDataType::kBool:
@@ -91,8 +93,6 @@ DType ConvertBEFDataTypeToTensorDType(BEFDataType kind) {
       llvm_unreachable("unsupported dtype.");
   }
 }
-
-}  // namespace
 
 // TODO(tfrt-devs): Consider creating a custom buffer with 8-byte
 // alignment for the tensor data instead of using std::vector<uint64_t>.

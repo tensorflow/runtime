@@ -34,6 +34,7 @@
 #include "tfrt/support/rc_array.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/tensor_serialize_utils.h"
 
 namespace tfrt {
 namespace data {
@@ -78,13 +79,15 @@ RCReference<SliceDataset<DenseHostTensor>> MakeDatasetFromValues(
 //===----------------------------------------------------------------------===//
 
 // Create a dataset that yields the specified range.
-template <typename T>
-RCReference<RangeDataset<T>> MakeRangeDataset(
-    int64_t start, int64_t stop, int64_t step,
-    const ExecutionContext& exec_ctx) {
+RCReference<RangeDataset> MakeRangeDataset(int64_t start, int64_t stop,
+                                           int64_t step,
+                                           Attribute<uint8_t> element_type,
+                                           const ExecutionContext& exec_ctx) {
   assert(step != 0 && "step size cannot be 0");
-  return TakeRef(exec_ctx.host()->Construct<RangeDataset<T>>(start, stop, step,
-                                                             exec_ctx.host()));
+  auto dtype = ConvertBEFDataTypeToTensorDType(
+      static_cast<BEFDataType>(element_type.get()));
+  return TakeRef(exec_ctx.host()->Construct<RangeDataset>(
+      start, stop, step, dtype, exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -438,10 +441,7 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("data.make_dataset_from_values.tensor",
                       TFRT_KERNEL(MakeDatasetFromValues<DenseHostTensor>));
 
-  registry->AddKernel("data.range_dataset.i64",
-                      TFRT_KERNEL(MakeRangeDataset<int64_t>));
-  registry->AddKernel("data.range_dataset.i32",
-                      TFRT_KERNEL(MakeRangeDataset<int32_t>));
+  registry->AddKernel("data.range_dataset", TFRT_KERNEL(MakeRangeDataset));
 
   registry->AddKernel("data.batch_dataset.tensor",
                       TFRT_KERNEL(MakeBatchDataset<DenseHostTensor>));

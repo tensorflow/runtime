@@ -26,23 +26,23 @@
 
 #include "dataset.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/tensor/dtype.h"
 
 namespace tfrt {
 namespace data {
 
-template <typename T>
 class RangeDatasetIterator;
 
 // RangeDataset yields a step-separated range of values from start (inclusive)
 // to stop (exclusive).
-template <typename T>
 class RangeDataset : public Dataset {
  public:
   explicit RangeDataset(int64_t start, int64_t stop, int64_t step,
-                        HostContext* host)
+                        DType element_type, HostContext* host)
       : start_(start),
         stop_(stop),
         step_(step),
+        element_type_(element_type),
         host_(host),
         allocator_(host->allocator()) {}
 
@@ -53,59 +53,39 @@ class RangeDataset : public Dataset {
   RCReference<Iterator> MakeIterator() override;
 
  private:
-  friend class RangeDatasetIterator<T>;
+  friend class RangeDatasetIterator;
 
   void Destroy() override {
-    internal::DestroyImpl<RangeDataset<T>>(this, allocator_);
+    internal::DestroyImpl<RangeDataset>(this, allocator_);
   }
 
   const int64_t start_;
   const int64_t stop_;
   const int64_t step_;
+  const DType element_type_;
   HostContext* host_;
   HostAllocator* allocator_;
 };
 
-template <typename T>
 class RangeDatasetIterator : public Iterator {
  public:
-  explicit RangeDatasetIterator(RCReference<RangeDataset<T>> dataset)
+  explicit RangeDatasetIterator(RCReference<RangeDataset> dataset)
       : Iterator(), dataset_(std::move(dataset)), next_(dataset_->start_) {}
 
   // This class is not copyable or movable.
   RangeDatasetIterator(const RangeDatasetIterator&) = delete;
   RangeDatasetIterator& operator=(const RangeDatasetIterator&) = delete;
 
-  IterationResult GetNext(const ExecutionContext& exec_ctx) override {
-    HostContext* host = exec_ctx.host();
-    bool has_next = (dataset_->step_ > 0 && next_ < dataset_->stop_) ||
-                    (dataset_->step_ < 0 && next_ > dataset_->stop_);
-    if (!has_next) {
-      return IterationResult::Eof(host, 1);
-    }
-
-    SmallVector<RCReference<AsyncValue>, 4> values;
-    values.push_back(
-        host->MakeAvailableAsyncValueRef<T>(static_cast<T>(next_)));
-
-    next_ += dataset_->step_;
-
-    return IterationResult::Values(std::move(values), host);
-  }
+  IterationResult GetNext(const ExecutionContext& exec_ctx) override;
 
  private:
   void Destroy() override {
     internal::DestroyImpl<RangeDatasetIterator>(this, dataset_->allocator_);
   }
 
-  RCReference<RangeDataset<T>> dataset_;
+  RCReference<RangeDataset> dataset_;
   int64_t next_;
 };
-
-template <typename T>
-RCReference<Iterator> RangeDataset<T>::MakeIterator() {
-  return TakeRef(host_->Construct<RangeDatasetIterator<T>>(FormRef(this)));
-}
 
 }  // namespace data
 }  // namespace tfrt

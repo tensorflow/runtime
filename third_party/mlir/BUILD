@@ -2889,8 +2889,8 @@ cc_library(
         ":StandardOps",
         ":Support",
         "//third_party/vulkan_headers",
-        "//third_party/vulkan_loader",
         "@llvm-project//llvm:Support",
+        "@vulkan_sdk//:sdk",
     ],
 )
 

@@ -2,7 +2,9 @@ load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library", "tfrt_cc_test")
 
 licenses(["reciprocal"])
 
-package(default_visibility = ["//visibility:public"])
+package(
+    default_visibility = ["@tf_runtime//:friends"],
+)
 
 exports_files(["LICENSE"])
 

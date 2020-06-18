@@ -69,6 +69,7 @@ tfrt_cc_library(
         "include/tfrt/host_context/native_function.h",
         "include/tfrt/host_context/parallel_for.h",
         "include/tfrt/host_context/request_deadline_tracker.h",
+        "include/tfrt/host_context/resource_context.h",
         "include/tfrt/host_context/shared_context.h",
         "include/tfrt/host_context/task_function.h",
         "include/tfrt/host_context/timer_queue.h",
@@ -79,6 +80,7 @@ tfrt_cc_library(
     deps = [
         ":support",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//third_party/llvm_derived:unique_any",
     ],
 )
 

@@ -70,6 +70,18 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "host_context/resource_context_test",
+    srcs = [
+        "host_context/resource_context_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "support/concurrent_vector_test",
     srcs = [
         "support/concurrent_vector_test.cc",

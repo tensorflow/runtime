@@ -28,11 +28,46 @@
 
 namespace tfrt {
 
+class UniqueAny;
+
+//===----------------------------------------------------------------------===//
+// any_isa and any_cast.
+//===----------------------------------------------------------------------===//
+
+// Returns whether UniqueAny contains an instance of the specified class.
+template <typename T>
+bool any_isa(const UniqueAny& Value);
+
+// Statically cast to a given type. T has to be a reference type.
+//   e.g., int& i = any_cast<int&>(any_val);
+template <class T>
+T any_cast(const UniqueAny& Value);
+
+// Overload of any_cast to statically cast non-const UniqueAny type to the given
+// type. T has to be a reference type. This function will assert fail or crash
+// (optimized build) if the stored value type does not match the cast.
+template <class T>
+T any_cast(UniqueAny& Value);
+
+// Overload of any_cast to statically cast rvalue UniqueAny type to the given
+// type. This function will assert fail or crash (optimized build) if the stored
+// value type does not match the cast.
+template <class T>
+T any_cast(UniqueAny&& Value);
+
+// Overload of any_cast to statically cast a const pointer UniqueAny type to the
+// given type or nullptr if the stored value type does not match the cast.
+template <class T>
+const T* any_cast(const UniqueAny* Value);
+
+// Overload of any_cast to statically cast a pointer UniqueAny type to the
+// given type or nullptr if the stored value type does not match the cast.
+template <class T>
+T* any_cast(UniqueAny* Value);
+
 //===----------------------------------------------------------------------===//
 // UniqueAny and make_unique_any.
 //===----------------------------------------------------------------------===//
-
-class UniqueAny;
 
 // Construct a tfrt::UniqueAny of type T with the given arguments.
 template <typename T, typename... Args>
@@ -167,8 +202,6 @@ bool any_isa(const UniqueAny& Value) {
   return Value.Storage->id() ==
          &UniqueAny::TypeId<std::remove_cv_t<std::remove_reference_t<T>>>::Id;
 }
-
-// any_cast to reference type, e.g., int& i = any_cast<int&>(any_val);
 
 template <class T>
 T any_cast(const UniqueAny& Value) {

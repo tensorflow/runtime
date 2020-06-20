@@ -79,6 +79,23 @@ TEST(UniqueAnyTest, Vector) {
   ASSERT_EQ(*vec, std::vector<int>({1, 2, 3}));
 }
 
+TEST(UniqueAnyTest, VectorRef) {
+  std::vector<int> x{1, 2, 3};
+  UniqueAny any = x;
+  ASSERT_TRUE(tfrt::any_isa<std::vector<int>>(any));
+  std::vector<int>& vec = tfrt::any_cast<std::vector<int>&>(any);
+  vec.push_back(4);
+  ASSERT_EQ(vec, std::vector<int>({1, 2, 3, 4}));
+}
+
+TEST(UniqueAnyTest, RValueAnyCast) {
+  std::vector<int> x{1, 2, 3};
+  UniqueAny any = x;
+  ASSERT_TRUE(tfrt::any_isa<std::vector<int>>(any));
+  std::vector<int> vec = tfrt::any_cast<std::vector<int>>(std::move(any));
+  ASSERT_EQ(vec, std::vector<int>({1, 2, 3}));
+}
+
 TEST(UniqueAnyTest, VectorFromInitializerList) {
   UniqueAny any(tfrt::in_place_type<std::vector<int>>, {1, 2, 3});
   ASSERT_TRUE(tfrt::any_isa<std::vector<int>>(any));

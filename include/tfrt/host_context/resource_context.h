@@ -16,7 +16,8 @@
 
 //===- resource_context.h ---------------------------------------*- C++ -*-===//
 //
-// This file declares ResourceContext.
+// This file declares ResourceContext - a type-erased container for storing and
+// retrieving resources.
 //
 //===----------------------------------------------------------------------===//
 
@@ -31,6 +32,7 @@
 #include "llvm_derived/Support/unique_any.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/mutex.h"
+#include "tfrt/support/thread_annotations.h"
 
 namespace tfrt {
 
@@ -38,8 +40,9 @@ namespace tfrt {
 class ResourceContext {
  public:
   // Get a resource T with a `resource_name`.
+  // Thread-safe.
   template <typename T>
-  T* GetResource(tfrt::string_view resource_name) {
+  T* GetResource(tfrt::string_view resource_name) TFRT_EXCLUDES(mu_) {
     tfrt::mutex_lock lock(mu_);
     auto it = resources_.find(resource_name);
     assert(it != resources_.end());
@@ -48,8 +51,10 @@ class ResourceContext {
   }
 
   // Create a resource T with a `resource_name`.
+  // Thread-safe.
   template <typename T, typename... Args>
-  T* CreateResource(tfrt::string_view resource_name, Args&&... args) {
+  T* CreateResource(tfrt::string_view resource_name, Args&&... args)
+      TFRT_EXCLUDES(mu_) {
     tfrt::mutex_lock lock(mu_);
     auto res = resources_.try_emplace(resource_name, tfrt::in_place_type<T>,
                                       std::forward<Args>(args)...);
@@ -61,8 +66,10 @@ class ResourceContext {
   // GetResource and CreateResource are the preferred API. GetOrCreateResource
   // is useful when callers want to lazily initialize some resources. Since it
   // requires constructor arguments, it is more awkward to use.
+  // Thread-safe.
   template <typename T, typename... Args>
-  T* GetOrCreateResource(tfrt::string_view resource_name, Args&&... args) {
+  T* GetOrCreateResource(tfrt::string_view resource_name, Args&&... args)
+      TFRT_EXCLUDES(mu_) {
     tfrt::mutex_lock lock(mu_);
     auto res = resources_.try_emplace(resource_name, tfrt::in_place_type<T>,
                                       std::forward<Args>(args)...);
@@ -71,7 +78,7 @@ class ResourceContext {
 
  private:
   tfrt::mutex mu_;
-  llvm::StringMap<tfrt::UniqueAny> resources_;
+  llvm::StringMap<tfrt::UniqueAny> resources_ TFRT_GUARDED_BY(mu_);
 };
 
 }  // namespace tfrt

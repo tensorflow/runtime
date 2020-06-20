@@ -47,6 +47,7 @@
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
+static void RunBefFunction(HostContext* host, const Function* function);
 
 int RunBefExecutor(const RunBefConfig& run_config) {
   TFRT_TRACE_SCOPE("Bef Executor");
@@ -195,89 +196,17 @@ int RunBefExecutor(const RunBefConfig& run_config) {
     }
   }
 
+  // Run the init function first if exists.
+  auto init_function = bef->GetFunction(run_config.init_function);
+
+  if (init_function) {
+    RunBefFunction(host, init_function);
+  }
+
   // Loop over each of the functions, running each as a standalone testcase.
   for (auto* fn : function_list) {
-    TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", fn->name()));
-    // If the function takes arguments, then we can't run it from this driver.
-    if (!fn->argument_types().empty()) {
-      tfrt::outs() << "--- Not running '" << fn->name()
-                   << "' because it has arguments.\n";
-      tfrt::outs().flush();
-      continue;
-    }
-
-    // Skip anonymous functions.
-    if (fn->name().empty()) {
-      continue;
-    }
-
-    size_t before_num_values;
-    if (AsyncValue::AsyncValueAllocationTrackingEnabled())
-      before_num_values = AsyncValue::GetNumAsyncValueInstances();
-
-    tfrt::outs() << "--- Running '" << fn->name() << "':\n";
-    tfrt::outs().flush();
-
-    // Kick off an execution of the function body.
-    llvm::SmallVector<RCReference<AsyncValue>, 4> results;
-    results.resize(fn->result_types().size());
-    fn->Execute(ExecutionContext{tfrt::RequestContext::Create(host)},
-                /*arguments=*/{}, results);
-
-    // Block until the function results are fully resolved.
-    host->Await(results);
-
-    // Go ahead and print out the function results that we know about.
-    if (!results.empty()) {
-      tfrt::outs() << "'" << fn->name() << "' returned ";
-      auto result_types = fn->result_types();
-
-      for (int i = 0, e = results.size(); i != e; ++i) {
-        auto type_name = result_types[i];
-        if (auto* error = results[i]->GetErrorIfPresent()) {
-          tfrt::outs() << "<<error: " << error->message << ">>";
-        } else if (type_name.GetName() == "i1") {
-          tfrt::outs() << results[i]->get<bool>();
-        } else if (type_name.GetName() == "i32") {
-          tfrt::outs() << results[i]->get<int32_t>();
-        } else if (type_name.GetName() == "i64") {
-          tfrt::outs() << results[i]->get<int64_t>();
-        } else if (type_name.GetName() == "f32") {
-          tfrt::outs() << results[i]->get<float>();
-        } else if (type_name.GetName() == "f64") {
-          tfrt::outs() << results[i]->get<double>();
-        } else {
-          tfrt::outs() << type_name.GetName() << " value";
-        }
-
-        // Print comma except for the last one.
-        if (i != results.size() - 1) {
-          tfrt::outs() << ',';
-        }
-      }
-
-      tfrt::outs() << '\n';
-      tfrt::outs().flush();
-    }
-
-    // In this test driver, we want to make sure that every function completes
-    // all execution before moving on to the next one.  This makes the leak
-    // checker work better in the face of side effecting kernels that aren't
-    // properly chained together (which is useful for testing).
-    host->Quiesce();
-
-    // Drop any result references before doing the leak check.
-    results.clear();
-
-    if (AsyncValue::AsyncValueAllocationTrackingEnabled()) {
-      auto after_num_values = AsyncValue::GetNumAsyncValueInstances();
-      if (before_num_values != after_num_values) {
-        llvm::errs() << "Evaluation of function '" << fn->name() << "' leaked "
-                     << (after_num_values - before_num_values)
-                     << " async values (before: " << before_num_values
-                     << ", after: " << after_num_values << ")!\n";
-        abort();
-      }
+    if (fn != init_function) {
+      RunBefFunction(host, fn);
     }
   }
 
@@ -285,6 +214,91 @@ int RunBefExecutor(const RunBefConfig& run_config) {
   // Verify the diagnostic handler to make sure that each of the diagnostics
   // matched.
   return mlir::failed(source_mgr_handler.verify());
+}
+
+static void RunBefFunction(HostContext* host, const Function* function) {
+  TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", function->name()));
+  // If the function takes arguments, then we can't run it from this driver.
+  if (!function->argument_types().empty()) {
+    tfrt::outs() << "--- Not running '" << function->name()
+                 << "' because it has arguments.\n";
+    tfrt::outs().flush();
+    return;
+  }
+
+  // Skip anonymous functions.
+  if (function->name().empty()) {
+    return;
+  }
+
+  size_t before_num_values;
+  if (AsyncValue::AsyncValueAllocationTrackingEnabled())
+    before_num_values = AsyncValue::GetNumAsyncValueInstances();
+
+  tfrt::outs() << "--- Running '" << function->name() << "':\n";
+  tfrt::outs().flush();
+
+  // Kick off an execution of the function body.
+  llvm::SmallVector<RCReference<AsyncValue>, 4> results;
+  results.resize(function->result_types().size());
+  function->Execute(ExecutionContext{tfrt::RequestContext::Create(host)},
+                    /*arguments=*/{}, results);
+
+  // Block until the function results are fully resolved.
+  host->Await(results);
+
+  // Go ahead and print out the function results that we know about.
+  if (!results.empty()) {
+    tfrt::outs() << "'" << function->name() << "' returned ";
+    auto result_types = function->result_types();
+
+    for (int i = 0, e = results.size(); i != e; ++i) {
+      auto type_name = result_types[i];
+      if (auto* error = results[i]->GetErrorIfPresent()) {
+        tfrt::outs() << "<<error: " << error->message << ">>";
+      } else if (type_name.GetName() == "i1") {
+        tfrt::outs() << results[i]->get<bool>();
+      } else if (type_name.GetName() == "i32") {
+        tfrt::outs() << results[i]->get<int32_t>();
+      } else if (type_name.GetName() == "i64") {
+        tfrt::outs() << results[i]->get<int64_t>();
+      } else if (type_name.GetName() == "f32") {
+        tfrt::outs() << results[i]->get<float>();
+      } else if (type_name.GetName() == "f64") {
+        tfrt::outs() << results[i]->get<double>();
+      } else {
+        tfrt::outs() << type_name.GetName() << " value";
+      }
+
+      // Print comma except for the last one.
+      if (i != results.size() - 1) {
+        tfrt::outs() << ',';
+      }
+    }
+
+    tfrt::outs() << '\n';
+    tfrt::outs().flush();
+  }
+
+  // In this test driver, we want to make sure that every function completes
+  // all execution before moving on to the next one.  This makes the leak
+  // checker work better in the face of side effecting kernels that aren't
+  // properly chained together (which is useful for testing).
+  host->Quiesce();
+
+  // Drop any result references before doing the leak check.
+  results.clear();
+
+  if (AsyncValue::AsyncValueAllocationTrackingEnabled()) {
+    auto after_num_values = AsyncValue::GetNumAsyncValueInstances();
+    if (before_num_values != after_num_values) {
+      llvm::errs() << "Evaluation of function '" << function->name()
+                   << "' leaked " << (after_num_values - before_num_values)
+                   << " async values (before: " << before_num_values
+                   << ", after: " << after_num_values << ")!\n";
+      abort();
+    }
+  }
 }
 
 }  // namespace tfrt

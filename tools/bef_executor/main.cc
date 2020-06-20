@@ -37,6 +37,14 @@ static llvm::cl::list<std::string> cl_functions(  // NOLINT
     "functions", llvm::cl::desc("Specify MLIR functions to run"),
     llvm::cl::ZeroOrMore, llvm::cl::MiscFlags::CommaSeparated);
 
+static llvm::cl::opt<std::string> cl_init_function(  // NOLINT
+    "init_function",
+    llvm::cl::desc(
+        "Specify an init function that will be invoked as "
+        "part of initialization, before invoking any other MLIR "
+        "functions even if it is not specified in --functions flag."),
+    llvm::cl::init(""));
+
 static llvm::cl::list<std::string> cl_devices(  // NOLINT
     "devices", llvm::cl::desc("Specify devices to register"),
     llvm::cl::ZeroOrMore, llvm::cl::MiscFlags::CommaSeparated);
@@ -78,6 +86,7 @@ int main(int argc, char** argv) {
   run_config.input_filename = cl_input_filename;
   run_config.shared_libs = cl_shared_libs;
   run_config.functions = cl_functions;
+  run_config.init_function = cl_init_function;
   run_config.devices = cl_devices;
   run_config.work_queue_type = cl_work_queue_type;
   run_config.host_allocator_type = cl_host_allocator_type;

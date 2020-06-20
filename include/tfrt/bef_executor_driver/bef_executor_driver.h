@@ -55,6 +55,7 @@ struct RunBefConfig {
   ArrayRef<std::string> devices;
   ArrayRef<std::string> shared_libs;
   ArrayRef<std::string> functions;
+  std::string init_function;
   std::string work_queue_type;
   tfrt::HostAllocatorType host_allocator_type;
 };

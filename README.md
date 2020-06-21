@@ -488,10 +488,6 @@ If you want to contribute to TFRT, be sure to review the
 [code of conduct](https://github.com/tensorflow/tensorflow/blob/master/CODE_OF_CONDUCT.md).
 By participating, you are expected to uphold this code of conduct.
 
-**Note:** TFRT is currently not open to contributions. TFRT developers are
-currently developing workflows and continuous integration for accepting
-contributions. Once we are ready, we will update this page.
-
 ## Continuous build status
 
 Build Type          | Status

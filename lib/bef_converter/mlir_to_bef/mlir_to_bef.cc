@@ -29,6 +29,7 @@
 
 #include <cstring>
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
@@ -279,16 +280,16 @@ static bool IsNativeFunc(mlir::FuncOp op) { return !!op.getAttr("hex.native"); }
 
 static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   // Emit information about the type of the function.
-  auto* block = &region->getBlocks().front();
+  auto& block = region->front();
 
   // Arguments.
   SmallVector<mlir::Type, 4> inputs;
-  for (auto arg : block->getArguments()) inputs.push_back(arg.getType());
+  for (auto arg : block.getArguments()) inputs.push_back(arg.getType());
 
   // Results.
   // MLIR Regions don't have an easy way to identify results in regions, so
   // we just hard code the "hex.return" instruction.
-  auto& last_op = block->back();
+  auto& last_op = block.back();
   assert(IsReturn(&last_op));
 
   SmallVector<mlir::Type, 4> results;
@@ -436,7 +437,7 @@ void EntityTable::AddNativeFunction(mlir::FuncOp op) {
 
 LogicalResult EntityTable::AddFunction(mlir::Region* region, string_view name) {
   // Check to see if we support this region kind.
-  if (region->getBlocks().size() != 1) {
+  if (!llvm::hasSingleElement(*region)) {
     mlir::emitError(region->getLoc())
         << "multi-block regions cannot be emitted to BEF files";
     return LogicalResult::Failure;
@@ -572,7 +573,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
         }
 
         // Verify that all functions end with a return to catch a common error.
-        auto& last_op = fn.getBlocks().front().back();
+        auto& last_op = fn.front().back();
         if (!IsReturn(&last_op)) {
           last_op.emitError() << "all functions need to have a hex.return";
           result = LogicalResult::Failure;
@@ -1502,8 +1503,8 @@ class BEFFunctionEmitter : public BEFEmitter {
 void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
                                       BEFEmitter* attribute_names,
                                       BEFEmitter* register_types) {
-  assert(region->getBlocks().size() == 1 && "should have a single block");
-  auto& block = region->getBlocks().front();
+  assert(llvm::hasSingleElement(*region) && "should have a single block");
+  auto& block = region->front();
 
   auto location_offset =
       entity_index_.GetLocationPositionOffset(region->getLoc(), entities_);

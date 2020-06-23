@@ -43,7 +43,7 @@ namespace tfrt {
 
 // Convert a HostTensor (or subclass) into a TensorHandle for use by
 // Core Runtime.
-static void HTToTensorHandle(Argument<HostTensor> arg,
+static void HTToTensorHandle(Argument<HostTensor> arg, Argument<Chain> in_chain,
                              Result<TensorHandle> tensorhandle_output) {
   // Since we know the Tensor is present, we can access its metadata.
   tensorhandle_output.Emplace(arg->metadata(), arg.ValueRef());

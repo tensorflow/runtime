@@ -224,6 +224,13 @@ class I64Attr : public internal::DataTypeAttrBase<I64Attr, BEFFixed64Attr,
   using Base::Base;
 };
 
+class BF16Attr
+    : public internal::DataTypeAttrBase<BF16Attr, BEFFixed16Attr,
+                                        BEFDataType::kBF16, uint16_t> {
+ public:
+  using Base::Base;
+};
+
 class F64Attr : public internal::DataTypeAttrBase<F64Attr, BEFFixed64Attr,
                                                   BEFDataType::kF64, double> {
  public:

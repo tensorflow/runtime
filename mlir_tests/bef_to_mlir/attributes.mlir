@@ -134,6 +134,7 @@ func @data_type_attr() {
   // CHECK: ui16
   // CHECK: ui32
   // CHECK: ui64
+  // CHECK: bf16
   // CHECK: complex<f32>
   // CHECK: complex<f64>
   // CHECK: !corert.string
@@ -146,6 +147,7 @@ func @data_type_attr() {
   "simple.op"() {type = ui16} : () -> ()
   "simple.op"() {type = ui32} : () -> ()
   "simple.op"() {type = ui64} : () -> ()
+  "simple.op"() {type = bf16} : () -> ()
   "simple.op"() {type = f16} : () -> ()
   "simple.op"() {type = f32} : () -> ()
   "simple.op"() {type = f64} : () -> ()

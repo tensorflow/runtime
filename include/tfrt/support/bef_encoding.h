@@ -179,6 +179,7 @@ enum class BEFDataType : uint8_t {
   kUI16,
   kUI32,
   kUI64,
+  kBF16,
   kF16,
   kF32,
   kF64,
@@ -186,7 +187,7 @@ enum class BEFDataType : uint8_t {
   kComplex128,
   kString,
 
-  // TODO(tf-runtime-team): Consider adding support for BF16, resource, variant
+  // TODO(tfrt-devs): Consider adding support for resource, variant
   // and quantized integers.
 
   kFirstDataType = kBool,
@@ -213,6 +214,7 @@ enum class BEFAttributeType : uint16_t {
   kI8Array = static_cast<uint8_t>(BEFDataType::kI8) | kArrayAttributeType,
   kI32Array = static_cast<uint8_t>(BEFDataType::kI32) | kArrayAttributeType,
   kI64Array = static_cast<uint8_t>(BEFDataType::kI64) | kArrayAttributeType,
+  kBF16Array = static_cast<uint8_t>(BEFDataType::kBF16) | kArrayAttributeType,
   kF16Array = static_cast<uint8_t>(BEFDataType::kF16) | kArrayAttributeType,
   kF32Array = static_cast<uint8_t>(BEFDataType::kF32) | kArrayAttributeType,
   kF64Array = static_cast<uint8_t>(BEFDataType::kF64) | kArrayAttributeType,
@@ -222,6 +224,7 @@ enum class BEFAttributeType : uint16_t {
   kI8Dense = static_cast<uint8_t>(BEFDataType::kI8) | kDenseAttributeType,
   kI32Dense = static_cast<uint8_t>(BEFDataType::kI32) | kDenseAttributeType,
   kI64Dense = static_cast<uint8_t>(BEFDataType::kI64) | kDenseAttributeType,
+  kBF16Dense = static_cast<uint8_t>(BEFDataType::kBF16) | kDenseAttributeType,
   kF16Dense = static_cast<uint8_t>(BEFDataType::kF16) | kDenseAttributeType,
   kF32Dense = static_cast<uint8_t>(BEFDataType::kF32) | kDenseAttributeType,
   kF64Dense = static_cast<uint8_t>(BEFDataType::kF64) | kDenseAttributeType,

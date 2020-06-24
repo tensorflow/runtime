@@ -105,6 +105,7 @@ static BEFDataType EncodeIntegerTypeAttribute(mlir::IntegerType integer_type) {
 }
 
 static BEFDataType EncodeFloatTypeAttribute(mlir::FloatType float_type) {
+  if (float_type.isBF16()) return BEFDataType::kBF16;
   if (float_type.isF16()) return BEFDataType::kF16;
   if (float_type.isF32()) return BEFDataType::kF32;
   if (float_type.isF64()) return BEFDataType::kF64;
@@ -180,8 +181,10 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
     }
   }
 
-  // We support F16, F32 and F64 floats.
+  // We support BF16, F16, F32 and F64 floats.
   if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>()) {
+    if (float_attr.getType().isBF16())
+      return static_cast<BEFAttributeType>(BEFDataType::kBF16);
     if (float_attr.getType().isF16())
       return static_cast<BEFAttributeType>(BEFDataType::kF16);
     if (float_attr.getType().isF32())
@@ -194,13 +197,14 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
   if (attr.isa<mlir::StringAttr>())
     return static_cast<BEFAttributeType>(BEFDataType::kString);
 
-  // We support i1, i8, i16, i32, i64, ui8, ui16, ui32, ui64, f16, f32, f64,
-  // complex64, complex128 and string type attributes.
+  // We support i1, i8, i16, i32, i64, ui8, ui16, ui32, ui64, bf16, f16, f32,
+  //  f64, complex64, complex128 and string type attributes.
   if (auto type_attr = attr.dyn_cast<mlir::TypeAttr>()) {
     auto type = type_attr.getValue();
     if (type.isInteger(1) || type.isInteger(8) || type.isInteger(16) ||
-        type.isInteger(32) || type.isInteger(64) || type.isF16() ||
-        type.isF32() || type.isF64() || type.isa<corert::StringType>())
+        type.isInteger(32) || type.isInteger(64) || type.isBF16() ||
+        type.isF16() || type.isF32() || type.isF64() ||
+        type.isa<corert::StringType>())
       return BEFAttributeType::kType;
 
     if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {
@@ -227,7 +231,7 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
 
   // We support arrays of supported attribute values.
   if (auto array_attr = attr.dyn_cast<mlir::ArrayAttr>()) {
-    if (array_attr.size() == 0) {
+    if (array_attr.empty()) {
       return BEFAttributeType::kEmptyArray;
     }
 
@@ -1230,7 +1234,7 @@ void BEFTypedAttributeEmitter::EmitArrayAttribute(mlir::ArrayAttr array_attr) {
 
   BEFAttributeType element_type =
       static_cast<BEFAttributeType>(BEFDataType::kI32);
-  if (array_attr.size() > 0) element_type = GetBEFAttributeType(array_attr[0]);
+  if (!array_attr.empty()) element_type = GetBEFAttributeType(array_attr[0]);
 
   BEFArrayAttr header;
   header.base.type = GetArrayAttributeType(element_type);

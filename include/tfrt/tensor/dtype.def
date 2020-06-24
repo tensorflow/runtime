@@ -53,6 +53,9 @@ DTYPE(COMPLEX128)
 // Compact 16-bit encoding of floating point numbers.
 DTYPE(F16)
 
+// Compact 16-bit encoding bfloat16 brain floating point numbers.
+DTYPE(BF16)
+
 //===----------------------------------------------------------------------===//
 // Non-POD types
 //===----------------------------------------------------------------------===//

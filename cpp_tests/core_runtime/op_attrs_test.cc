@@ -125,6 +125,25 @@ TEST(OpAttrsTest, Array) {
   ASSERT_FALSE(opattrs.GetArray<float>("baz", &out3));
 }
 
+TEST(OpAttrsTest, ArrayBF16) {
+  std::vector<bf16> values_bf16 = {bf16{static_cast<uint16_t>(1.0)},
+                                   bf16{static_cast<uint16_t>(2.0)}};
+  ArrayRef<bf16> values_bf16_ref(values_bf16);
+
+  tfrt::OpAttrs opattrs;
+  ASSERT_TRUE(opattrs.SetArray<bf16>("foo", values_bf16));
+  tfrt::OpAttrsRef opattrs_ref(opattrs);
+
+  tfrt::ArrayRef<bf16> out1, out2;
+  ASSERT_TRUE(opattrs.GetArray<bf16>("foo", &out1));
+  ASSERT_TRUE(opattrs_ref.GetArray<bf16>("foo", &out2));
+  for (int i = 0; i < 2; ++i) {
+    // Specifically check value since we don't have operator== for bf16.
+    ASSERT_EQ(out1[i].value, values_bf16[i].value);
+    ASSERT_EQ(out2[i].value, values_bf16_ref[i].value);
+  }
+}
+
 TEST(OpAttrsTest, ArrayAsserting) {
   std::vector<int32_t> values = {34, 45};
   ArrayRef<int32_t> values_ref(values);

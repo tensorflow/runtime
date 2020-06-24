@@ -272,6 +272,8 @@ mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
       return builder->getIntegerType(32, /*isSigned=*/false);
     case BEFDataType::kUI64:
       return builder->getIntegerType(64, /*isSigned=*/false);
+    case BEFDataType::kBF16:
+      return builder->getBF16Type();
     case BEFDataType::kF16:
       return builder->getF16Type();
     case BEFDataType::kF32:
@@ -1109,6 +1111,8 @@ mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
     case BEFDataType::kUI64:
       return mlir::TypeAttr::get(
           builder.getIntegerType(64, /*isSigned=*/false));
+    case BEFDataType::kBF16:
+      return mlir::TypeAttr::get(builder.getBF16Type());
     case BEFDataType::kF16:
       return mlir::TypeAttr::get(builder.getF16Type());
     case BEFDataType::kF32:

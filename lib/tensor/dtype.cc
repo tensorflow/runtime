@@ -38,6 +38,8 @@ size_t DType::GetHostSize() const {
       assert(0 &&
              "GetHostSize() is not expected to be called with string type");
       return ~size_t(0);
+    case BF16:
+      return sizeof(TypeForDTypeKind<DType::BF16>);
     case BOOL:
       return sizeof(TypeForDTypeKind<DType::BOOL>);
     case COMPLEX64:
@@ -65,6 +67,8 @@ size_t DType::GetHostAlignment() const {
           0 &&
           "GetHostAlignment() is not expected to be called with string type");
       return ~size_t(0);
+    case BF16:
+      return alignof(TypeForDTypeKind<DType::BF16>);
     case BOOL:
       return alignof(TypeForDTypeKind<DType::BOOL>);
     case COMPLEX64:
@@ -84,6 +88,9 @@ void DType::Print(const void *data, raw_ostream &os) const {
     case DType::Invalid:
     case DType::Unsupported:
       llvm_unreachable("can't happen");
+    case DType::BF16:
+      os << "Does not support printing bf16.";
+      break;
     case DType::F16:
       os << "Does not support printing fp16.";
       break;
@@ -121,6 +128,9 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
     case DType::Invalid:
     case DType::Unsupported:
       llvm_unreachable("can't happen");
+    case DType::BF16:
+      os << "Does not support printing bf16.";
+      break;
     case DType::F16:
       os << "Does not support printing fp16.";
       break;

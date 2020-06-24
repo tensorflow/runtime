@@ -99,6 +99,7 @@ tfrt_cc_library(
         "include/tfrt/support/alloc.h",
         "include/tfrt/support/bef_encoding.h",
         "include/tfrt/support/bef_reader.h",
+        "include/tfrt/support/bf16.h",
         "include/tfrt/support/byte_order.h",
         "include/tfrt/support/concurrent_vector.h",
         "include/tfrt/support/error_util.h",

@@ -32,7 +32,7 @@
 namespace tfrt {
 
 OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
-  // TODO(tf-runtime-team): Unify BEFDataType, OpAttrType and tfrt::DType.
+  // TODO(tfrt-devs): Unify BEFDataType, OpAttrType and tfrt::DType.
   switch (kind) {
     case BEFDataType::kBool:
       return OpAttrType::BOOL;
@@ -46,6 +46,8 @@ OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
       return OpAttrType::I64;
     case BEFDataType::kUI8:
       return OpAttrType::UI8;
+    case BEFDataType::kBF16:
+      return OpAttrType::BF16;
     case BEFDataType::kF16:
       return OpAttrType::F16;
     case BEFDataType::kF32:
@@ -131,6 +133,8 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       ShapeAttr shape_attr(data);
       return {shape_attr.size(), ShapeAttr::Alignment()};
     }
+    case OpAttrType::BF16:
+      return {sizeof(bf16), alignof(bf16)};
     case OpAttrType::F16:
       return {sizeof(fp16), alignof(fp16)};
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
@@ -151,6 +155,8 @@ const char *GetNameString(OpAttrType type) {
       return "DENSE";
     case OpAttrType::SHAPE:
       return "SHAPE";
+    case OpAttrType::BF16:
+      return "BF16";
     case OpAttrType::F16:
       return "F16";
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
@@ -661,6 +667,9 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
       os << ">";
       break;
     }
+    case OpAttrType::BF16:
+      assert(0 && "cannot print bf16 yet.");
+      break;
     case OpAttrType::F16:
       // TODO(b/149063226): Support FP16.
       assert(0 && "cannot print fp16 yet.");

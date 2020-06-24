@@ -47,6 +47,8 @@ BEFDataType ConvertTensorDTypeToBEFDataType(DType dtype) {
       return BEFDataType::kI32;
     case DType::I64:
       return BEFDataType::kI64;
+    case DType::BF16:
+      return BEFDataType::kBF16;
     case DType::F16:
       return BEFDataType::kF16;
     case DType::F32:
@@ -76,6 +78,8 @@ DType ConvertBEFDataTypeToTensorDType(BEFDataType kind) {
       return DType(DType::I64);
     case BEFDataType::kUI8:
       return DType(DType::UI8);
+    case BEFDataType::kBF16:
+      return DType(DType::BF16);
     case BEFDataType::kF16:
       return DType(DType::F16);
     case BEFDataType::kF32:

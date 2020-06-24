@@ -27,6 +27,7 @@
 #include <utility>
 
 #include "tfrt/support/bef_encoding.h"
+#include "tfrt/support/bf16.h"
 #include "tfrt/support/fp16.h"
 
 namespace tfrt {
@@ -40,6 +41,7 @@ enum class OpAttrType : uint8_t {
   AGGREGATE,
   DENSE,
   SHAPE,
+  BF16,
   F16,
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) ENUM,
 #include "tfrt/core_runtime/op_attr_type.def"
@@ -68,6 +70,11 @@ constexpr OpAttrType GetOpAttrType<DenseAttr>() {
 template <>
 constexpr OpAttrType GetOpAttrType<ShapeAttr>() {
   return OpAttrType::SHAPE;
+}
+
+template <>
+constexpr OpAttrType GetOpAttrType<bf16>() {
+  return OpAttrType::BF16;
 }
 
 template <>

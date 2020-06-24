@@ -77,6 +77,29 @@ TEST(DenseHostTensorTest, FillWithComplex128Type) {
                                DHTArrayView<std::complex<double>>(&dht_b)));
 }
 
+TEST(DenseHostTensorTest, FillWithBF16Type) {
+  // Test DType::BF16. The bf16 is a placeholder but not the actual
+  // implementation of brain float 16.
+  auto host = CreateHostContext();
+
+  auto dht_create_res_a = tfrt::DenseHostTensor::CreateUninitialized<bf16>(
+      TensorShape({1, 1}), host.get());
+  ASSERT_TRUE(dht_create_res_a.hasValue());
+  DenseHostTensor dht_a(std::move(*dht_create_res_a));
+  MutableDHTArrayView<bf16> tensor_view_a(&dht_a);
+  tensor_view_a.Fill(bf16{static_cast<uint16_t>(1.0)});
+
+  auto dht_create_res_b = tfrt::DenseHostTensor::CreateUninitialized<bf16>(
+      TensorShape({1, 1}), host.get());
+  ASSERT_TRUE(dht_create_res_b.hasValue());
+  DenseHostTensor dht_b(std::move(*dht_create_res_b));
+  MutableDHTArrayView<bf16> tensor_view_b(&dht_b);
+  tensor_view_b.Fill(bf16{static_cast<uint16_t>(1.0)});
+
+  // Compare the buffer value, which is uint_16.
+  EXPECT_TRUE(tensor_view_a[0].value == tensor_view_b[0].value);
+}
+
 TEST(DenseHostTensorSharedTest, FillWithComplex64Type) {
   // Creates a HostBuffer that is shared between 2 distinct DenseHostTensors.
   // Validates the DenseHostTensor values against the parent HostBuffer.

@@ -27,6 +27,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "tfrt/support/bf16.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/fp16.h"
 
@@ -120,6 +121,7 @@ TFRT_DEFINE_DTYPE_INTERNAL(I8, int8_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I16, int16_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I32, int32_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I64, int64_t)
+TFRT_DEFINE_DTYPE_INTERNAL(BF16, bf16)
 TFRT_DEFINE_DTYPE_INTERNAL(F16, fp16)
 TFRT_DEFINE_DTYPE_INTERNAL(F32, float)
 TFRT_DEFINE_DTYPE_INTERNAL(F64, double)

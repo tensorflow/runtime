@@ -109,6 +109,15 @@ static llvm::Expected<Chain> SetDenseTensorWithValues(
 
 static Chain NoOpHostTensor(Argument<DenseHostTensor> in) { return Chain(); }
 
+static llvm::Expected<RCReference<HostBuffer>> AllocateBuffer(
+    int64_t size, int64_t alignment, KernelFrame* frame) {
+  auto data = HostBuffer::CreateUninitialized(
+      static_cast<size_t>(size), static_cast<size_t>(alignment),
+      frame->GetHostContext()->allocator());
+  if (!data) return MakeStringError("Cannot allocate host buffer");
+  return std::move(data);
+}
+
 static Chain PrintTensor(const Tensor& t) {
   tfrt::outs() << t << "\n";
   tfrt::outs().flush();
@@ -151,6 +160,16 @@ static void GetBuffer(Argument<DenseHostTensor> t, Argument<Chain> chain_in,
                       Result<Chain> chain_out) {
   buffer.Emplace(t->buffer().CopyRef());
   chain_out.Set(chain_in);
+}
+
+static llvm::Expected<RCReference<HostBuffer>> GetBufferSlice(
+    const RCReference<HostBuffer>& parent_buffer, int64_t offset,
+    int64_t size) {
+  auto data = tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
+                                                   static_cast<size_t>(offset),
+                                                   static_cast<size_t>(size));
+  if (!data) return MakeStringError("Cannot allocate host buffer.");
+  return std::move(data);
 }
 
 static void PrintBuffer(Argument<RCReference<HostBuffer>> buffer,
@@ -210,12 +229,14 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
                                                              "complex64");
   RegisterDenseHostTensorKernelsForType<std::complex<double>>(registry,
                                                               "complex128");
+  registry->AddKernel("dht.allocate_buffer", TFRT_KERNEL(AllocateBuffer));
   registry->AddKernel("dht.print_tensor", TFRT_KERNEL(PrintTensor));
   registry->AddKernel("dht.print_tensor_shape",
                       TFRT_KERNEL(PrintDenseTensorShape));
   registry->AddKernel("dht.get_tensor_shape", TFRT_KERNEL(GetDenseTensorShape));
   registry->AddKernel("dht.no_op_ht", TFRT_KERNEL(NoOpHostTensor));
   registry->AddKernel("dht.get_buffer", TFRT_KERNEL(GetBuffer));
+  registry->AddKernel("dht.get_buffer_slice", TFRT_KERNEL(GetBufferSlice));
   registry->AddKernel("dht.print_buffer", TFRT_KERNEL(PrintBuffer));
 }
 

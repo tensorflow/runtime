@@ -165,6 +165,25 @@ class TensorEqualOp<string dtype>
   let assemblyFormat = "operands attr-dict";
 }
 
+def AllocateBuffer : DHT_Op<"allocate_buffer"> {
+  let summary = "dht.allocate_buffer operation";
+
+  let description = [{
+    An operation that creates an buffer.
+    It takes in the size of the buffer in bytes and the alignment in bytes and
+    outputs a buffer of that size.
+
+    Example:
+      %size = hex.constant.i64 164
+      %alignment = hex.constant.i64 8
+      %buf = dht.allocate %size, %alignment
+  }];
+
+  let arguments = (ins I64, I64);
+  let results = (outs HostBufferType);
+  let assemblyFormat = "operands attr-dict";
+}
+
 def GetBufferOp : DHT_Op<"get_buffer"> {
   let summary = "dht.get_buffer operation";
 
@@ -180,6 +199,26 @@ def GetBufferOp : DHT_Op<"get_buffer"> {
 
   let arguments = (ins TensorType, ChainType);
   let results = (outs HostBufferType, ChainType);
+  let assemblyFormat = "operands attr-dict";
+}
+
+def GetBufferSliceOp : DHT_Op<"get_buffer_slice"> {
+  let summary = "dht.get_buffer_slice operation";
+
+  let description = [{
+    An operation that gets a slice of a buffer.
+    It takes in the parent buffer and the size and offset of the new buffer. It
+    returns a buffer that points to the data allocated by the parent buffer.
+
+    Example:
+      %parent_buf = dht.allocate %parent_size, %alignment
+      %offset = hex.constant.i64 0
+      %size = hex.constant.i64 64
+      %buf_a = dht.get_buffer_slice %parent_buf, %offset, %size
+  }];
+
+  let arguments = (ins HostBufferType, I64, I64);
+  let results = (outs HostBufferType);
   let assemblyFormat = "operands attr-dict";
 }
 

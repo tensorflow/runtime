@@ -107,6 +107,50 @@ func @tensor_from_buffer() {
   hex.return
 }
 
+// CHECK-LABEL: --- Running 'tensor_from_slices'
+func @tensor_from_slices() {
+  %c0 = hex.new.chain
+
+  %buf_size = hex.constant.i64 16
+  %buf_alignment = hex.constant.i64 4
+  %buf = dht.allocate_buffer %buf_size, %buf_alignment
+
+  %shape = ts.build_shape [2 : i64, 1 : i64]
+  %size = hex.constant.i64 8
+
+  %buf_a_offset = hex.constant.i64 0
+  %buf_a = dht.get_buffer_slice %buf, %buf_a_offset, %size
+  %a, %c1 = dht.make_tensor.f32 %buf_a, %shape, %c0
+  %c2 = dht.fill_tensor_with_constant.f32 %a, %c1 1.0 : f32
+
+  // CHECK: shape = [2, 1], values = [1.000000e+00, 1.000000e+00]
+  %c3 = dht.print_tensor %a, %c2
+
+  %buf_b_offset = hex.constant.i64 8
+  %buf_b = dht.get_buffer_slice %buf, %buf_b_offset, %size
+  %b, %c4 = dht.make_tensor.f32 %buf_b, %shape, %c3
+  %c5 = dht.fill_tensor_with_constant.f32 %b, %c4 2.0 : f32
+
+  // CHECK: shape = [2, 1], values = [2.000000e+00, 2.000000e+00]
+  %c6 = dht.print_tensor %b, %c5
+
+  %buf_c_shape = ts.build_shape [1 : i64, 1 : i64]
+  %buf_c_size = hex.constant.i64 4
+  %buf_c_offset = hex.constant.i64 4
+  %buf_c = dht.get_buffer_slice %buf, %buf_c_offset, %buf_c_size
+  %c, %c7 = dht.make_tensor.f32 %buf_c, %buf_c_shape, %c6
+  %c8 = dht.fill_tensor_with_constant.f32 %c, %c7 3.0 : f32
+
+  // CHECK: shape = [2, 1], values = [1.000000e+00, 3.000000e+00]
+  %c9 = dht.print_tensor %a, %c8
+  // CHECK: shape = [2, 1], values = [2.000000e+00, 2.000000e+00]
+  %c10 = dht.print_tensor %b, %c9
+  // CHECK: shape = [1, 1], values = [3.000000e+00]
+  %c11 = dht.print_tensor %c, %c10
+
+  hex.return
+}
+
 // CHECK-LABEL: --- Running 'slice_tensor'
 func @slice_tensor() {
   %ch0 = hex.new.chain

@@ -52,6 +52,8 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   // Create a HostBuffer by creating a reference to an externally allocated
   // HostBuffer. Manages the data in the original buffer from `offset` to
   // `offset + size`.
+  // This returns a null RCReference if `parent_buffer` is null. Asserts that
+  // `offset + size` is within the `parent_buffer`.
   static RCReference<HostBuffer> CreateFromExternal(
       RCReference<HostBuffer> parent_buffer, size_t offset, size_t size);
 

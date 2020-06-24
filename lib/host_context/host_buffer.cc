@@ -46,7 +46,8 @@ RCReference<HostBuffer> HostBuffer::CreateFromExternal(
 RCReference<HostBuffer> HostBuffer::CreateFromExternal(
     RCReference<HostBuffer> parent_buffer, size_t offset, size_t size) {
   if (!parent_buffer) return {};
-  if (parent_buffer->size() < offset + size) return {};
+  assert(parent_buffer->size() >= offset + size &&
+         "Invalid `offset` and `size` for given buffer.");
 
   auto ptr = static_cast<char *>(parent_buffer->data()) + offset;
   return TakeRef(new HostBuffer(ptr, size, std::move(parent_buffer)));

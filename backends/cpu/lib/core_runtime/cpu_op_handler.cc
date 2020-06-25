@@ -28,6 +28,7 @@
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/device.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/host_tensor.h"
 
@@ -53,6 +54,7 @@ class CpuOpHandler : public OpHandler {
 
  private:
   const CpuOpRegistry op_registry_;
+  RCReference<Device> device_;
 
   friend llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
                                                        OpHandler* fallback);
@@ -62,9 +64,10 @@ class CpuOpHandler : public OpHandler {
       CoreRuntime* runtime, OpHandler* fallback);
 
   explicit CpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
-                        CpuOpRegistry op_registry)
+                        CpuOpRegistry op_registry, RCReference<Device> device)
       : OpHandler("cpu", runtime, fallback),
-        op_registry_(std::move(op_registry)) {}
+        op_registry_(std::move(op_registry)),
+        device_(std::move(device)) {}
 };
 
 namespace {
@@ -126,8 +129,11 @@ llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
     CoreRuntime* runtime, OpHandler* fallback) {
   CpuOpRegistry op_registry;
   tfrt::RegisterStaticCpuOps(&op_registry);
-  return std::unique_ptr<OpHandler>(
-      new CpuOpHandler(runtime, fallback, std::move(op_registry)));
+  // TODO(b/158775215): Save device in a central place to avoid creating
+  // duplicate devices.
+  auto device = TakeRef(new Device(GetStaticDeviceType("cpu"), "CPU:0"));
+  return std::unique_ptr<OpHandler>(new CpuOpHandler(
+      runtime, fallback, std::move(op_registry), std::move(device)));
 }
 
 llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
@@ -137,8 +143,11 @@ llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
   }
   CpuOpRegistry op_registry;
   tfrt::RegisterStaticCpuOps(&op_registry);
-  auto cpu_op_handler = std::unique_ptr<CpuOpHandler>(
-      new CpuOpHandler(runtime, fallback, std::move(op_registry)));
+  // TODO(b/158775215): Save device in a central place to avoid creating
+  // duplicate devices.
+  auto device = TakeRef(new Device(GetStaticDeviceType("cpu"), "CPU:0"));
+  auto cpu_op_handler = std::unique_ptr<CpuOpHandler>(new CpuOpHandler(
+      runtime, fallback, std::move(op_registry), std::move(device)));
   auto cpu_op_handler_ptr = cpu_op_handler.get();
   runtime->TakeOpHandler(std::move(cpu_op_handler));
   return cpu_op_handler_ptr;
@@ -186,11 +195,13 @@ Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
 
   // NOTE(fishx): To avoid introducing an extra heap allocation, we need to
   // ensure that the size of captured variable is smaller than 3 pointers.
-  return CoreRuntimeOp([op_entry](const OpInvocation& invocation) {
-    bool update_chain = !(op_entry->flags & CpuOpFlags::NoSideEffects);
-    // TODO(fishx): ExecuteOnOpHandler should return void.
-    ExecuteOnOpHandler<CpuOpHandlerTraits>(update_chain, invocation, *op_entry);
-  });
+  return CoreRuntimeOp(
+      [op_entry, this](const OpInvocation& invocation) mutable {
+        bool update_chain = !(op_entry->flags & CpuOpFlags::NoSideEffects);
+        // TODO(fishx): ExecuteOnOpHandler should return void.
+        ExecuteOnOpHandler<CpuOpHandlerTraits>(
+            update_chain, invocation, this->device_.CopyRef(), *op_entry);
+      });
 }
 
 }  // namespace tfrt

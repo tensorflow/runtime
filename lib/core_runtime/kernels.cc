@@ -46,7 +46,10 @@ namespace tfrt {
 static void HTToTensorHandle(Argument<HostTensor> arg, Argument<Chain> in_chain,
                              Result<TensorHandle> tensorhandle_output) {
   // Since we know the Tensor is present, we can access its metadata.
-  tensorhandle_output.Emplace(arg->metadata(), arg.ValueRef());
+  // TODO(b/158775215): Replace the placeholder device with the device from
+  // HostTensor.
+  tensorhandle_output.Emplace(RCReference<Device>(), arg->metadata(),
+                              arg.ValueRef());
 }
 
 static void TensorHandleToHT(Argument<TensorHandle> arg,
@@ -159,7 +162,9 @@ static llvm::Expected<TensorHandle> ConstStringTensor(
 
   tensor_ref.SetStateConcrete();
 
-  return TensorHandle(metadata, std::move(tensor_ref));
+  // TODO(b/158775215): Replace the placeholder device with the device from
+  // HostContext.
+  return TensorHandle(/*device=*/{}, metadata, std::move(tensor_ref));
 }
 
 static llvm::Expected<TensorHandle> ConstDenseTensor(
@@ -174,7 +179,9 @@ static llvm::Expected<TensorHandle> ConstDenseTensor(
   if (!tensor_ref)
     return MakeStringError("failed to allocate dense host tensor");
 
-  return TensorHandle(metadata, std::move(tensor_ref));
+  // TODO(b/158775215): Replace the placeholder device with the device from
+  // HostContext.
+  return TensorHandle(/*device=*/{}, metadata, std::move(tensor_ref));
 }
 
 // ExecuteOp executes the `op_name` operation on the `op_handler`.

@@ -136,8 +136,7 @@ void CoreRuntime::Impl::Execute(const ExecutionContext& exec_ctx,
   // Otherwise, we fail with an 'unknown op' error.
   auto err =
       EmitErrorAsync(exec_ctx, "op '" + op_name.str() + "' is not supported");
-  for (auto& result : results)
-    result = TensorHandle(err.CopyRef(), err.CopyRef());
+  for (auto& result : results) result = TensorHandle(err.CopyRef());
 
   if (chain) *chain = std::move(err);
 }
@@ -355,8 +354,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
       if (result_th->IsAvailable()) {
         if (result_th->IsError()) {
           invocation.results[i] =
-              TensorHandle(AsyncValueRef<TensorMetadata>(results[i].CopyRef()),
-                           AsyncValueRef<Tensor>(results[i].CopyRef()));
+              TensorHandle(AsyncValueRef<TensorHandle>(results[i].CopyRef()));
         } else {
           assert(result_th->IsType<TensorHandle>());
           invocation.results[i] = std::move(result_th->get<TensorHandle>());
@@ -364,8 +362,13 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
       } else {
         auto md_av = host->MakeUnconstructedAsyncValueRef<TensorMetadata>();
         auto tensor_av = host->MakeIndirectAsyncValue();
+
+        // NOTE(fishx): In this case, device information is not ready
+        // synchronously. Righ now I put an empty device as placeholder. But
+        // se should support async device OR delete this branch and do an
+        // assert check.
         invocation.results[i] = TensorHandle(
-            md_av.CopyRef(), AsyncValueRef<Tensor>(tensor_av.CopyRef()));
+            {}, md_av.CopyRef(), AsyncValueRef<Tensor>(tensor_av.CopyRef()));
         result_th->AndThen([md_av = std::move(md_av),
                             tensor_av = std::move(tensor_av),
                             result_th = result_th.CopyRef()]() mutable {

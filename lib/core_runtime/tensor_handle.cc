@@ -26,8 +26,13 @@
 
 namespace tfrt {
 
-TensorHandle::TensorHandle(AsyncValueRef<TensorMetadata> async_metadata,
-                           AsyncValueRef<Tensor> tensor) {
+TensorHandle::TensorHandle(RCReference<Device> device,
+                           AsyncValueRef<TensorMetadata> async_metadata,
+                           AsyncValueRef<Tensor> tensor)
+    : device_(std::move(device)) {
+  // TODO(b/158775215): Assert the device is valid. We cannot do it now because
+  // there is still some callers in TF side that create TensorHandle with
+  // absent device.
   assert(async_metadata.GetAsyncValue());
   assert(tensor.GetAsyncValue());
   tensor_and_is_metadata_inline_.setPointerAndInt(tensor.release(), false);
@@ -35,18 +40,34 @@ TensorHandle::TensorHandle(AsyncValueRef<TensorMetadata> async_metadata,
       AsyncValueRef<TensorMetadata>(std::move(async_metadata));
 }
 
-TensorHandle::TensorHandle(const TensorMetadata& metadata,
-                           AsyncValueRef<Tensor> tensor) {
+TensorHandle::TensorHandle(RCReference<Device> device,
+                           const TensorMetadata& metadata,
+                           AsyncValueRef<Tensor> tensor)
+    : device_(std::move(device)) {
+  // TODO(b/158775215): Assert the device is valid.
   assert(tensor.GetAsyncValue());
   tensor_and_is_metadata_inline_.setPointerAndInt(tensor.release(), true);
   new (&inlined_metadata_) TensorMetadata(metadata);
 }
 
+TensorHandle::TensorHandle(AsyncValueRef<TensorHandle> error)
+    : TensorHandle({}, AsyncValueRef<TensorMetadata>(error.CopyRef()),
+                   AsyncValueRef<Tensor>(error.CopyRef())) {
+  assert(error.IsError());
+}
+
+TensorHandle::TensorHandle(AsyncValueRef<TensorMetadata> async_metadata,
+                           AsyncValueRef<Tensor> tensor)
+    : TensorHandle({}, std::move(async_metadata), std::move(tensor)) {}
+TensorHandle::TensorHandle(const TensorMetadata& metadata,
+                           AsyncValueRef<Tensor> tensor)
+    : TensorHandle({}, metadata, std::move(tensor)) {}
+
 TensorHandle TensorHandle::CreateError(RCReference<AsyncValue> error) {
   assert(error->IsError());
   auto tensor_md = AsyncValueRef<TensorMetadata>(error.CopyRef());
   auto tensor = AsyncValueRef<Tensor>(std::move(error));
-  return TensorHandle(std::move(tensor_md), std::move(tensor));
+  return TensorHandle({}, std::move(tensor_md), std::move(tensor));
 }
 
 raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle) {

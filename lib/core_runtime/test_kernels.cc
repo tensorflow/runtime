@@ -31,8 +31,9 @@ static void TensorToTensorHandleWithErrorMetadata(
     Argument<Tensor> arg, Result<TensorHandle> tensorhandle_output,
     KernelErrorHandler handler) {
   auto metadata = handler.EmitError("invalid tensor metadata");
+  // TODO(b/158775215): TensorHandle should take device from Tensor argument.
   tensorhandle_output.Emplace(
-      AsyncValueRef<TensorMetadata>(std::move(metadata)),
+      RCReference<Device>(), AsyncValueRef<TensorMetadata>(std::move(metadata)),
       AsyncValueRef<Tensor>(FormRef(arg.value())));
 }
 

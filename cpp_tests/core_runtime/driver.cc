@@ -25,6 +25,7 @@
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/host_context/device.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/logging.h"
@@ -113,6 +114,5 @@ DecodedLocation CoreRuntimeDriver::DecodeLocation(Location loc) const {
   return DecodedLocation{locations_[loc.data].first,
                          locations_[loc.data].second};
 }
-
 }  // namespace example
 }  // namespace tfrt

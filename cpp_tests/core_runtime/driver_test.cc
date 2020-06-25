@@ -238,8 +238,9 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
         result.SetStateConcrete();
 
         assert(num_results == 1);
+        // TODO(b/158775215): Use Test device as the result's device
         results[0] = host->MakeAvailableAsyncValueRef<TensorHandle>(
-            a.GetAvailableMetadata(), std::move(result));
+            RCReference<Device>(), a.GetAvailableMetadata(), std::move(result));
         TFRT_DLOG(INFO) << "result is " << results[0]->get<TensorHandle>()
                         << " with state " << results[0]->IsAvailable();
       };

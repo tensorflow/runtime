@@ -27,6 +27,7 @@
 
 #include "llvm/ADT/PointerIntPair.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/device.h"
 #include "tfrt/tensor/tensor_metadata.h"
 
 namespace tfrt {
@@ -45,9 +46,21 @@ class TensorHandle final {
 
   // A TensorHandle owns a `async_metadata` and `tensor`, neither input pointer
   // is allowed to be NULL.
-  TensorHandle(AsyncValueRef<TensorMetadata> async_metadata,
+  TensorHandle(RCReference<Device> device,
+               AsyncValueRef<TensorMetadata> async_metadata,
                AsyncValueRef<Tensor> tensor);
 
+  TensorHandle(RCReference<Device> device, const TensorMetadata& metadata,
+               AsyncValueRef<Tensor> tensor);
+
+  // TODO(fishx): Change the argument to RCReference<ErrorAsyncValue> since
+  // right now we cannot convert an AsyncValueRef to
+  // RCReference<ErrorAsyncValue> easily.
+  explicit TensorHandle(AsyncValueRef<TensorHandle> error);
+
+  // TODO(b/158775215): Remove following two constructor.
+  TensorHandle(AsyncValueRef<TensorMetadata> async_metadata,
+               AsyncValueRef<Tensor> tensor);
   TensorHandle(const TensorMetadata& metadata, AsyncValueRef<Tensor> tensor);
 
   ~TensorHandle();
@@ -97,6 +110,8 @@ class TensorHandle final {
   // invalid after it's moved.
   bool IsValid() const { return GetAsyncTensor() != nullptr; }
 
+  const Device& device() { return *device_.get(); }
+
  private:
   friend raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle);
 
@@ -137,10 +152,13 @@ class TensorHandle final {
     AsyncValueRef<TensorMetadata> async_metadata_;
     TensorMetadata inlined_metadata_;
   };
+
+  // TODO(b/159161872): Consider support async device.
+  RCReference<Device> device_;
 };
 
-static_assert(sizeof(TensorHandle) == 32 || sizeof(void*) != 8,
-              "Unexpected size for TensorHandle. TensorHandle should be 32 "
+static_assert(sizeof(TensorHandle) == 40 || sizeof(void*) != 8,
+              "Unexpected size for TensorHandle. TensorHandle should be 40 "
               "bytes on 64-bit architecture.");
 
 inline TensorHandle::~TensorHandle() {
@@ -199,8 +217,10 @@ inline const AsyncValueRef<TensorMetadata>& TensorHandle::GetAsyncMetadata()
 inline TensorHandle TensorHandle::CopyRef() const {
   auto tensor = AsyncValueRef<Tensor>(FormRef(GetAsyncTensor()));
   if (IsMetadataInline())
-    return TensorHandle(inlined_metadata_, std::move(tensor));
-  return TensorHandle(async_metadata_.CopyRef(), std::move(tensor));
+    return TensorHandle(device_.CopyRef(), inlined_metadata_,
+                        std::move(tensor));
+  return TensorHandle(device_.CopyRef(), async_metadata_.CopyRef(),
+                      std::move(tensor));
 }
 
 // Release the tensor and put the handle in a default-constructed state.

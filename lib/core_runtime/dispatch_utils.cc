@@ -87,6 +87,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
 void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
                                 const OpMetadataFn& metadata_fn,
                                 bool update_chain,
+                                RCReference<Device> retval_device,
                                 MetadataIsReadyCallback callback) {
   auto arguments = invocation.arguments;
   auto results = invocation.results;
@@ -123,8 +124,8 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
     auto tensor = host->MakeIndirectAsyncValue();
     result_th_avs.push_back(md.CopyRCRef());
     result_th_avs.push_back(tensor.CopyRef());
-    result =
-        TensorHandle(std::move(md), AsyncValueRef<Tensor>(std::move(tensor)));
+    result = TensorHandle(retval_device.CopyRef(), std::move(md),
+                          AsyncValueRef<Tensor>(std::move(tensor)));
   }
 
   // If the op implementation has side effects, we must fulfill the chain result

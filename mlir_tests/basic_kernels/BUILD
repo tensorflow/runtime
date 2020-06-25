@@ -5,6 +5,9 @@ licenses(["notice"])
 glob_lit_tests(
     data = [":test_utilities"],
     #=== GOOGLE_PIPER: tf_runtime/mlir_tests:run_lit.sh ===#
+    size_override = {
+        "parallel.mlir": "medium",
+    },
     test_file_exts = [
         "mlir",
     ],

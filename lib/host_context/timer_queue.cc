@@ -34,16 +34,16 @@ TimerQueue::~TimerQueue() {
     timers_.pop();
   }
   stop_.store(true, std::memory_order_release);
-  mu_.unlock();
   // Notify the timer thread we are done cleaning up.
   cv_.notify_one();
+  mu_.unlock();
   assert(timer_thread_.joinable());
   timer_thread_.join();
 }
 
 void TimerQueue::TimerThreadRun() {
+  mutex_lock lock(mu_);
   while (!stop_.load(std::memory_order_acquire)) {
-    mutex_lock lock(mu_);
     const TimerEntry* top_entry = getTopTimer();
     if (!top_entry) {
       cv_.wait(lock);

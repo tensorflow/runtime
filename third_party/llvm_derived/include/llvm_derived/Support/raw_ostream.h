@@ -31,7 +31,7 @@ namespace tfrt {
 // TODO(tfrt-devs): Port support for Windows from llvm.
 #ifdef _WIN32
 using raw_fd_ostream = llvm::raw_fd_ostream;
-#else   // !_WIN32
+#else  // !_WIN32
 //===----------------------------------------------------------------------===//
 // Lightweight File Output Streams
 //

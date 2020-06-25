@@ -291,7 +291,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
                                             OpHandler* op_handler) {
 #ifdef TFRT_DISABLE_TRACING
   return op_handler->MakeOp(op_name);
-#else   // TFRT_DISABLE_TRACING
+#else  // TFRT_DISABLE_TRACING
   auto op = op_handler->MakeOp(op_name);
   if (!op) return op;
   bool is_fallback = op->IsFallback();

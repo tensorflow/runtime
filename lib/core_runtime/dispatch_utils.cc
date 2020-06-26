@@ -99,8 +99,11 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
   for (size_t i = 0, e = arguments.size(); i != e; ++i) {
     // Collect the unavailable async metadata values that caused us to get into
     // this slow path.  We hand these off to RunWhenReady.
-    const AsyncValueRef<TensorMetadata>& md = arguments[i].GetAsyncMetadata();
-    if (md.IsUnavailable()) async_mds.push_back(md.GetAsyncValue());
+    if (!arguments[i].IsMetadataAvailable()) {
+      // If metadata is not available, metadata must be async, and not inline.
+      const AsyncValueRef<TensorMetadata>& md = arguments[i].GetAsyncMetadata();
+      async_mds.push_back(md.GetAsyncValue());
+    }
 
     // We need to take the arguments so they are guaranteed to live for the
     // duration of the RunWhenReady closure.
@@ -164,16 +167,15 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
         SmallVector<TensorMetadata, 4> argument_mds;
         argument_mds.reserve(arguments.size());
         for (size_t i = 0, e = arguments.size(); i != e; ++i) {
-          const AsyncValueRef<TensorMetadata>& arg_md_av =
-              arguments[i].GetAsyncMetadata();
-
           // If any input is an error, then propagate the error to all outputs
           // and we are done.
-          if (arg_md_av.IsError())
-            return propagate_error(arg_md_av.GetAsyncValue());
+          if (arguments[i].IsMetadataError()) {
+            return propagate_error(
+                arguments[i].GetAsyncMetadata().GetAsyncValue());
+          }
 
           // Otherwise, we have the metadata for the input.
-          argument_mds.push_back(arg_md_av.get());
+          argument_mds.push_back(arguments[i].GetAvailableMetadata());
         }
 
         // Okay, the shapes are available as we expect, run the metadata

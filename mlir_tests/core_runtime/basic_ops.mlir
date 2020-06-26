@@ -356,3 +356,22 @@ func @test_error_propagation() -> !hex.chain {
   hex.return %ch4 : !hex.chain
 }
 
+// CHECK-LABEL: --- Running 'test_async_dispatch_async_metadata_error'
+func @test_async_dispatch_async_metadata_error() -> !hex.chain {
+  %ch0 = hex.new.chain
+  %cpu = corert.get_device "cpu"
+
+  %a_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1.0 : f32] } : 1
+
+  %b_handle = corert.executeop(%cpu) "tfrt_test.async.noop_no_md"(%a_handle) : 1
+
+  // CHECK: fully future TensorHandle with unresolved metadata
+  %ch1 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+
+  %res_handle = corert.executeop(%cpu) "tfrt_test.matmul" (%a_handle, %b_handle) {transpose_a = false, transpose_b = false} : 1
+
+  hex.return %ch1 : !hex.chain
+}
+
+

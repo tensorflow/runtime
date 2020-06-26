@@ -83,6 +83,10 @@ class TensorHandle final {
     return IsMetadataInline() || async_metadata_.IsConcrete();
   }
 
+  bool IsMetadataError() const {
+    return !IsMetadataInline() && async_metadata_.IsError();
+  }
+
   const AsyncValueRef<TensorMetadata>& GetAsyncMetadata() const;
 
   // Return reference of the TensorMetadata.

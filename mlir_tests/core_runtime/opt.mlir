@@ -59,3 +59,10 @@ func @corert_string_type_attr() {
   "corert.test"() {type = !corert.string} : () -> ()
   hex.return
 }
+
+// CHECK-LABEL: func @corert_create_dense_tensor
+func @corert_create_dense_tensor() {
+  // CHECK: corert.create_dense_tensor.ui64 {shape = [1, 1], value = [1 : ui64]}
+  %0 = corert.create_dense_tensor.ui64 {shape = [1, 1], value = [1 : ui64]}
+  hex.return
+}

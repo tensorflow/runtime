@@ -49,3 +49,15 @@ func @scalar_string_tensor() {
 
   hex.return
 }
+
+// CHECK-LABEL: --- Running 'create_dense_tensor'
+func @create_dense_tensor() {
+  %ch0 = hex.new.chain
+
+  %a = corert.create_dense_tensor.ui64 {shape = [1], value = [2 : ui64]}
+
+  // CHECK: shape = [1], values = [2]
+  %ch1 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+
+  hex.return
+}

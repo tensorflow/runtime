@@ -184,6 +184,23 @@ static llvm::Expected<TensorHandle> ConstDenseTensor(
   return TensorHandle(/*device=*/{}, metadata, std::move(tensor_ref));
 }
 
+template <typename DType>
+static llvm::Expected<TensorHandle> CreateDenseTensor(
+    ArrayAttribute<int64_t> shape, ArrayAttribute<DType> value,
+    const ExecutionContext &context) {
+  auto *host = context.host();
+
+  TensorMetadata metadata(GetDType<DType>(), shape.data());
+  auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(metadata, host);
+  if (!dht) return MakeStringError("failed to allocate dense host tensor");
+
+  std::memcpy(dht->data(), value.data().data(), dht->DataSizeInBytes());
+
+  dht.SetStateConcrete();
+
+  return TensorHandle(metadata, std::move(dht));
+}
+
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
 static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
                       RemainingResults results, AggregateAttr op_attr_array,
@@ -350,6 +367,24 @@ static Chain RegisterOpHandlerChain(Argument<OpHandler *> root,
 // Registration
 //===----------------------------------------------------------------------===//
 
+void RegisterCreateDenseTensor(KernelRegistry *registry) {
+#define REGISTER_CREATE_DENSE_TENSOR(CPP_TYPE, TYPE_NAME)       \
+  registry->AddKernel("corert.create_dense_tensor." #TYPE_NAME, \
+                      TFRT_KERNEL(CreateDenseTensor<CPP_TYPE>))
+  REGISTER_CREATE_DENSE_TENSOR(uint8_t, ui8);
+  REGISTER_CREATE_DENSE_TENSOR(uint16_t, ui16);
+  REGISTER_CREATE_DENSE_TENSOR(uint32_t, ui32);
+  REGISTER_CREATE_DENSE_TENSOR(uint64_t, ui64);
+  REGISTER_CREATE_DENSE_TENSOR(int8_t, i1);
+  REGISTER_CREATE_DENSE_TENSOR(int8_t, i8);
+  REGISTER_CREATE_DENSE_TENSOR(int16_t, i16);
+  REGISTER_CREATE_DENSE_TENSOR(int32_t, i32);
+  REGISTER_CREATE_DENSE_TENSOR(int64_t, i64);
+  REGISTER_CREATE_DENSE_TENSOR(float, f32);
+  REGISTER_CREATE_DENSE_TENSOR(double, f64);
+#undef REGISTER_CREATE_DENSE_TENSOR
+}
+
 void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.tensorhandle_to_shape",
                       TFRT_KERNEL(TensorHandleToShape));
@@ -393,6 +428,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(ConstDenseTensor));
   registry->AddKernel("corert.const_string_tensor",
                       TFRT_KERNEL(ConstStringTensor));
+
+  RegisterCreateDenseTensor(registry);
 }
 
 }  // namespace tfrt

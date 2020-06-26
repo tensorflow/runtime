@@ -41,6 +41,34 @@ class CoreRT_Op<string mnemonic, list<OpTrait> traits = []> :
   let parser = [{ return tfrt::corert::parse$cppClass(parser, result); }];
 }
 
+class CreateDenseTensorOp<string dtype>
+  : CoreRT_Op<"create_dense_tensor." # dtype, [NoSideEffect]> {
+  let summary = "Create a constant dense host tensor with explicit dtype and rank.";
+  let description = [{}];
+
+  let arguments = (ins
+    I64ArrayAttr:$shape,
+    ArrayAttr:$value
+  );
+
+  let results = (outs
+    TensorHandleType:$result
+  );
+
+  let assemblyFormat = "attr-dict";
+
+  let verifier = ?;
+}
+
+// Instantiate for each dtype and rank pair.
+foreach dtype = ["ui8", "ui16", "ui32", "ui64",
+                 "i1", "i8", "i16", "i32", "i64",
+                 "bf16", "f16", "f32", "f64",
+                 "complex64", "complex128"] in {
+  def CoreRT_CreateDenseTensorOp_#dtype
+    : CreateDenseTensorOp<dtype>;
+}
+
 def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor", [ConstantLike, NoSideEffect]> {
   let summary = "Create a constant host tensor.";
   let description = [{

@@ -25,10 +25,10 @@
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_utils.h"
-#include "tfrt/host_context/resource_context.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/test_kernels.h"
 
@@ -39,14 +39,14 @@ class BenchmarkRunner {
   BenchmarkRunner(std::string name, const Function* func,
                   ArrayRef<AsyncValue*> args, int num_warmup_runs,
                   int max_count, std::chrono::microseconds benchmark_duration,
-                  HostContext* host)
+                  const ExecutionContext& exec_ctx)
       : name_{std::move(name)},
         func_{FormRef(func)},
         args_{args.begin(), args.end()},
         num_warmup_runs_{num_warmup_runs},
         max_count_{max_count},
         benchmark_duration_{benchmark_duration},
-        exec_ctx_{RequestContext::Create(host, &resource_context_)} {
+        exec_ctx_(exec_ctx) {
     // AddRef on the arg AsyncValue to take an ownership ref.
     for (auto& arg : args_) {
       arg->AddRef();
@@ -204,7 +204,6 @@ class BenchmarkRunner {
   std::vector<std::chrono::microseconds> run_times_walltime_;
   // CPU run times in microseconds.
   std::vector<std::chrono::microseconds> run_times_cpu_;
-  ResourceContext resource_context_;
   ExecutionContext exec_ctx_;
 
   // Clean up function to run after the end of the benchmark.
@@ -238,7 +237,7 @@ static void TestBenchmark(RemainingArguments args, Result<Chain> chain,
 
   auto benchmark_runner = new BenchmarkRunner(
       name.str(), fn, args.values(), *num_warmup_runs, *max_count,
-      std::chrono::seconds(*duration_secs), exec_ctx.host());
+      std::chrono::seconds(*duration_secs), exec_ctx);
 
   benchmark_runner->Start([benchmark_runner, chain = chain.Allocate()] {
     chain.emplace();

@@ -217,7 +217,7 @@ int RunBefExecutor(const RunBefConfig& run_config) {
   return mlir::failed(source_mgr_handler.verify());
 }
 
-static void RunBefFunction(HostContext* host, const Function* function) {
+static void RunBefFunctionHelper(HostContext* host, const Function* function) {
   TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", function->name()));
   // If the function takes arguments, then we can't run it from this driver.
   if (!function->argument_types().empty()) {
@@ -232,10 +232,6 @@ static void RunBefFunction(HostContext* host, const Function* function) {
     return;
   }
 
-  size_t before_num_values;
-  if (AsyncValue::AsyncValueAllocationTrackingEnabled())
-    before_num_values = AsyncValue::GetNumAsyncValueInstances();
-
   tfrt::outs() << "--- Running '" << function->name() << "':\n";
   tfrt::outs().flush();
 
@@ -243,19 +239,17 @@ static void RunBefFunction(HostContext* host, const Function* function) {
   llvm::SmallVector<RCReference<AsyncValue>, 4> results;
   results.resize(function->result_types().size());
 
-  {
-    // Add a ResourceContext ops/kernels to access resources. Shared across
-    // kernels in this function, but not across functions.
-    tfrt::ResourceContext resource_context;
-    // RequestContext has to be destroyed per function invocation to ensure its
-    // error async value is destroyed after RequestContext::Cancel. Since we do
-    // async value leak check per function invocation, this ensures no leak.
-    RCReference<RequestContext> req_ctx =
-        tfrt::RequestContext::Create(host, &resource_context);
-    ExecutionContext exec_ctx{std::move(req_ctx)};
+  // Add a ResourceContext ops/kernels to access resources. Shared across
+  // kernels in this function, but not across functions.
+  tfrt::ResourceContext resource_context;
+  // If any kernel calls RequestContext::Cancel, it will create an extra async
+  // value that's stored inside RequestContext which is destroyed only when
+  // RequestContext is destroyed.
+  RCReference<RequestContext> req_ctx =
+      tfrt::RequestContext::Create(host, &resource_context);
+  ExecutionContext exec_ctx{std::move(req_ctx)};
 
-    function->Execute(exec_ctx, /*arguments=*/{}, results);
-  }
+  function->Execute(exec_ctx, /*arguments=*/{}, results);
 
   // Block until the function results are fully resolved.
   host->Await(results);
@@ -301,6 +295,16 @@ static void RunBefFunction(HostContext* host, const Function* function) {
 
   // Drop any result references before doing the leak check.
   results.clear();
+}
+
+static void RunBefFunction(HostContext* host, const Function* function) {
+  // Async value leak check before and after running the function.
+  size_t before_num_values;
+  if (AsyncValue::AsyncValueAllocationTrackingEnabled())
+    before_num_values = AsyncValue::GetNumAsyncValueInstances();
+
+  // Actually run the function.
+  RunBefFunctionHelper(host, function);
 
   if (AsyncValue::AsyncValueAllocationTrackingEnabled()) {
     auto after_num_values = AsyncValue::GetNumAsyncValueInstances();

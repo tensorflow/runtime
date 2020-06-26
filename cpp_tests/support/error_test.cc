@@ -25,6 +25,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/cpp_tests/error_util.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/msan.h"
 
 namespace tfrt {
 StackTrace CreateStackTrace0() { return CreateStackTrace(/*skip_count=*/1); }
@@ -81,7 +82,9 @@ TEST(Test, StackTrace) {
   std::string buffer;
   llvm::raw_string_ostream(buffer) << stack_trace;
   // TODO(csigg): MSAN adds __interceptor_backtrace, breaking the check below.
+#ifdef MEMORY_SANITIZER
   GTEST_SKIP() << "Fails in MSAN builds";
+#endif
   EXPECT_FALSE(Contains(buffer, "tfrt::CreateStackTrace0()"));
   // TODO(csigg): figure out how to prevent functions from being inlined.
   GTEST_SKIP() << "Fails in optimized builds";

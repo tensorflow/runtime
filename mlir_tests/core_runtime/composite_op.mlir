@@ -14,11 +14,11 @@
 
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices='cpu' | FileCheck %s --dump-input=fail
 
-func @matmul_fn(%arg : !corert.tensorhandle) -> !corert.tensorhandle {
+func @matmul_fn(%ch: !hex.chain, %arg : !corert.tensorhandle) -> (!hex.chain, !corert.tensorhandle) {
   %cpu = corert.get_device "cpu"
   %t1 = corert.executeop(%cpu) "tfrt_test.matmul"(%arg, %arg)
     {transpose_a = false, transpose_b = false}: 1
-  hex.return %t1 : !corert.tensorhandle
+  hex.return %ch, %t1 : !hex.chain, !corert.tensorhandle
 }
 
 // CHECK-LABEL: --- Running 'corert.simple_composite_op'

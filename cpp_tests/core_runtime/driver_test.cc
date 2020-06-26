@@ -218,9 +218,9 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
   tfrt::NativeCallable add_callable =
       [](AsyncValue* const* arguments, int num_arguments,
          RCReference<AsyncValue>* results, int num_results, HostContext* host) {
-        assert(num_arguments == 2);
-        auto& a = arguments[0]->get<TensorHandle>();
-        auto& b = arguments[1]->get<TensorHandle>();
+        assert(num_arguments == 3);
+        auto& a = arguments[1]->get<TensorHandle>();
+        auto& b = arguments[2]->get<TensorHandle>();
         TFRT_DLOG(INFO) << "a is " << a;
         TFRT_DLOG(INFO) << "b is " << b;
         const auto& a_tensor = a.GetAsyncTensor()->get<DenseHostTensor>();
@@ -237,20 +237,24 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
         TFRT_DLOG(INFO) << "Result value is " << result_value;
         result.SetStateConcrete();
 
-        assert(num_results == 1);
+        assert(num_results == 2);
+        results[0] = host->GetReadyChain().CopyRef();
         // TODO(b/158775215): Use Test device as the result's device
-        results[0] = host->MakeAvailableAsyncValueRef<TensorHandle>(
+        results[1] = host->MakeAvailableAsyncValueRef<TensorHandle>(
             RCReference<Device>(), a.GetAvailableMetadata(), std::move(result));
-        TFRT_DLOG(INFO) << "result is " << results[0]->get<TensorHandle>()
-                        << " with state " << results[0]->IsAvailable();
+        TFRT_DLOG(INFO) << "result is " << results[1]->get<TensorHandle>()
+                        << " with state " << results[1]->IsAvailable();
       };
 
+  TypeName chain_type =
+      driver_.GetHostContext()->GetKernelRegistry().GetType("!hex.chain");
   TypeName tensor_handle_type =
       driver_.GetHostContext()->GetKernelRegistry().GetType(
           CoreRuntime::kTensorHandleType);
-  NativeFunction fn("test_fn",
-                    /*argument_types=*/{tensor_handle_type, tensor_handle_type},
-                    /*result_types=*/{tensor_handle_type}, add_callable);
+  NativeFunction fn(
+      "test_fn",
+      /*argument_types=*/{chain_type, tensor_handle_type, tensor_handle_type},
+      /*result_types=*/{chain_type, tensor_handle_type}, add_callable);
   driver_.WaitForHostContextQuiesce();
 
   auto op = driver_.MakeCompositeOp(&fn);

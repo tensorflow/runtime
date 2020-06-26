@@ -308,16 +308,18 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
 }
 
 Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
-  for (size_t i = 0, e = fn->argument_types().size(); i != e; ++i) {
-    auto& type = fn->argument_types()[i];
+  for (auto iter : llvm::enumerate(fn->argument_types().drop_front())) {
+    size_t i = iter.index();
+    auto& type = iter.value();
     if (type.GetName() != kTensorHandleType) {
       return MakeStringError("The function should only takes type [",
                              kTensorHandleType, "] as input. But the ", i,
                              "-th argument is type [", type.GetName(), "].");
     }
   }
-  for (size_t i = 0, e = fn->result_types().size(); i != e; ++i) {
-    auto& type = fn->result_types()[i];
+  for (auto iter : llvm::enumerate(fn->result_types().drop_front())) {
+    size_t i = iter.index();
+    auto& type = iter.value();
     if (type.GetName() != kTensorHandleType) {
       return MakeStringError("The function should only returns type [",
                              kTensorHandleType, "]. But the ", i,
@@ -328,13 +330,22 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
     auto* host = invocation.exec_ctx.host();
 
     // TODO(fishx): Return an error to the client instead of asserting.
-    assert(invocation.arguments.size() == fn->argument_types().size());
-    assert(invocation.results.size() == fn->result_types().size());
+    assert(invocation.arguments.size() + 1 == fn->argument_types().size());
+    assert(invocation.results.size() + 1 == fn->result_types().size());
 
     SmallVector<AsyncValue*, 4> arguments;
-    arguments.reserve(invocation.arguments.size());
     SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
-    arguments_ref.reserve(invocation.arguments.size());
+    arguments.reserve(fn->argument_types().size());
+    arguments_ref.reserve(fn->argument_types().size());
+
+    // The first argument is a chain for side-effects.
+    if (invocation.chain && *invocation.chain) {
+      arguments.push_back(invocation.chain->GetAsyncValue());
+    } else {
+      arguments_ref.push_back(host->GetReadyChain());
+      arguments.push_back(arguments_ref.back().get());
+    }
+
     for (size_t i = 0, e = invocation.arguments.size(); i != e; ++i) {
       arguments_ref.push_back(host->MakeAvailableAsyncValueRef<TensorHandle>(
           invocation.arguments[i].CopyRef()));
@@ -345,16 +356,21 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
     }
 
     SmallVector<RCReference<AsyncValue>, 4> results;
-    results.resize(invocation.results.size());
+    results.resize(fn->result_types().size());
 
     fn->Execute(invocation.exec_ctx, arguments, results);
 
-    for (size_t i = 0, e = results.size(); i != e; ++i) {
-      auto& result_th = results[i];
+    // The first result is the a chain for side-effects.
+    if (invocation.chain)
+      *invocation.chain = AsyncValueRef<Chain>(std::move(results[0]));
+
+    for (auto iter : llvm::enumerate(llvm::drop_begin(results, 1))) {
+      size_t i = iter.index();
+      auto& result_th = iter.value();
       if (result_th->IsAvailable()) {
         if (result_th->IsError()) {
           invocation.results[i] =
-              TensorHandle(AsyncValueRef<TensorHandle>(results[i].CopyRef()));
+              TensorHandle(AsyncValueRef<TensorHandle>(result_th.CopyRef()));
         } else {
           assert(result_th->IsType<TensorHandle>());
           invocation.results[i] = std::move(result_th->get<TensorHandle>());

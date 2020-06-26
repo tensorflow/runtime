@@ -29,6 +29,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/host_tensor.h"
 
@@ -45,7 +46,7 @@ class CpuOpHandler : public OpHandler {
   // function returns a HostTensor (DenseHostTensor or StringHostTensor), which
   // contains a copy of the underlying data.
   AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const Tensor& tensor) override;
+      const ExecutionContext& exec_ctx, const Tensor& tensor) override;
 
   // This function returns a DenseHostTensor that contains a copy of the
   // underlying buffer of the argument `tensor`.
@@ -154,7 +155,7 @@ llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
 }
 
 AsyncValueRef<HostTensor> CpuOpHandler::CopyDeviceTensorToHost(
-    const Tensor& tensor) {
+    const ExecutionContext& exec_ctx, const Tensor& tensor) {
   if (tensor.IsHostTensor()) {
     // If tensor is a host tensor, we call Tensor::ConvertToHostTensor
     // to make a copy of the tensor here, because the source and result buffers
@@ -168,7 +169,7 @@ AsyncValueRef<HostTensor> CpuOpHandler::CopyDeviceTensorToHost(
   }
 
   // Otherwise, this copy is meant for the fallback device.
-  return GetFallback()->CopyDeviceTensorToHost(tensor);
+  return GetFallback()->CopyDeviceTensorToHost(exec_ctx, tensor);
 }
 
 AsyncValueRef<Tensor> CpuOpHandler::CopyHostTensorToDevice(

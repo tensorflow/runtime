@@ -25,6 +25,7 @@
 
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
@@ -38,7 +39,7 @@ class NullOpHandler : public OpHandler {
   }
 
   AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const Tensor& tensor) override {
+      const ExecutionContext& exec_ctx, const Tensor& tensor) override {
     assert(false &&
            "NullOpHandler::CopyDeviceTensorToHost should not be called");
     abort();

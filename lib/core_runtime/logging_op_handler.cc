@@ -32,6 +32,7 @@
 #include "tfrt/core_runtime/op_handler_factory.h"
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/core_runtime/tensor_handle.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/mutex.h"
@@ -121,8 +122,8 @@ class LoggingOpHandler : public OpHandler {
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
 
   AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const Tensor &tensor) override {
-    return GetFallback()->CopyDeviceTensorToHost(tensor);
+      const ExecutionContext &exec_ctx, const Tensor &tensor) override {
+    return GetFallback()->CopyDeviceTensorToHost(exec_ctx, tensor);
   }
 
   AsyncValueRef<Tensor> CopyHostTensorToDevice(
@@ -134,7 +135,8 @@ class LoggingOpHandler : public OpHandler {
   bool ShouldDumpTensorToFile() const { return !tensor_dump_prefix_.empty(); }
 
   SmallVector<RCReference<AsyncValue>, 4> CollectAsyncHostTensors(
-      ArrayRef<TensorHandle> tensor_handles, HostContext *host) {
+      const ExecutionContext &exec_ctx, ArrayRef<TensorHandle> tensor_handles) {
+    auto *host = exec_ctx.host();
     SmallVector<RCReference<AsyncValue>, 4> async_tensors;
     for (auto &tensor_handle : tensor_handles) {
       auto async_tensor = tensor_handle.GetAsyncTensor();
@@ -154,7 +156,7 @@ class LoggingOpHandler : public OpHandler {
         async_hts.emplace_back(async_tensor.CopyRef());
       } else {
         AsyncValueRef<HostTensor> async_host_tensor =
-            CopyDeviceTensorToHost(tensor);
+            CopyDeviceTensorToHost(exec_ctx, tensor);
         async_hts.emplace_back(async_host_tensor.ReleaseRCRef());
       }
     }
@@ -270,11 +272,9 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
     }
 
     {
-      auto *host = GetRuntime()->GetHostContext();
-
       // Collect all input tensors, convert them to HostTensor's and await.
       SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
-          CollectAsyncHostTensors(invocation.arguments, host);
+          CollectAsyncHostTensors(invocation.exec_ctx, invocation.arguments);
 
       PrintAsyncHostTensors(async_host_tensors, /*is_input=*/true, id_number,
                             op_name);
@@ -283,11 +283,9 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
     // Delegate to the op_handler we wrap.
     fallback_handle(invocation);
     if (sync_log_results_ && !invocation.results.empty()) {
-      auto *host = GetRuntime()->GetHostContext();
-
       // Collect all output tensors, convert them to DHT and await.
       SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
-          CollectAsyncHostTensors(invocation.results, host);
+          CollectAsyncHostTensors(invocation.exec_ctx, invocation.results);
 
       PrintAsyncHostTensors(async_host_tensors, /*is_input=*/false, id_number,
                             op_name);

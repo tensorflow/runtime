@@ -36,6 +36,7 @@ class CoreRuntime;
 template <typename T>
 class AsyncValueRef;
 class DenseHostTensor;
+class ExecutionContext;
 class HostTensor;
 class Tensor;
 class TensorHandle;
@@ -61,7 +62,7 @@ class OpHandler {
   // The argument `tensor` needs to be the device tensor.
   // TODO(b/152437241): Move these two function out from OpHandler.
   virtual AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const Tensor &tensor) = 0;
+      const ExecutionContext &exec_ctx, const Tensor &tensor) = 0;
   // Copy host tensor to device.
   virtual AsyncValueRef<Tensor> CopyHostTensorToDevice(
       const DenseHostTensor &tensor) = 0;

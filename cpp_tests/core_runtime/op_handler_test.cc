@@ -25,6 +25,7 @@
 #include "gtest/gtest.h"
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/cpp_tests/test_util.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
@@ -39,7 +40,7 @@ class DummyOpHandler : public OpHandler {
     return MakeStringError(op_name, " is not supported.");
   }
   AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const Tensor& tensor) override {
+      const ExecutionContext& exec_ctx, const Tensor& tensor) override {
     llvm_unreachable("not implemented");
   }
   AsyncValueRef<Tensor> CopyHostTensorToDevice(

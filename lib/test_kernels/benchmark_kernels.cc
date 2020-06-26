@@ -28,6 +28,7 @@
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/resource_context.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/test_kernels.h"
 
@@ -45,7 +46,7 @@ class BenchmarkRunner {
         num_warmup_runs_{num_warmup_runs},
         max_count_{max_count},
         benchmark_duration_{benchmark_duration},
-        exec_ctx_{RequestContext::Create(host)} {
+        exec_ctx_{RequestContext::Create(host, &resource_context_)} {
     // AddRef on the arg AsyncValue to take an ownership ref.
     for (auto& arg : args_) {
       arg->AddRef();
@@ -203,6 +204,7 @@ class BenchmarkRunner {
   std::vector<std::chrono::microseconds> run_times_walltime_;
   // CPU run times in microseconds.
   std::vector<std::chrono::microseconds> run_times_cpu_;
+  ResourceContext resource_context_;
   ExecutionContext exec_ctx_;
 
   // Clean up function to run after the end of the benchmark.

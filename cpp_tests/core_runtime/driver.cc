@@ -67,7 +67,7 @@ void CoreRuntimeDriver::Execute(string_view op_name,
                                 const OpAttrsRef& attrs,
                                 MutableArrayRef<TensorHandle> results) {
   RCReference<RequestContext> req_ctx =
-      RequestContext::Create(GetHostContext());
+      RequestContext::Create(GetHostContext(), &resource_context_);
   Execute(ExecutionContext(std::move(req_ctx)), op_name, args, attrs, results);
 }
 
@@ -103,7 +103,7 @@ ExecutionContext CoreRuntimeDriver::CreateExecutionContext(const char* filename,
   locations_.push_back({filename, line_number});
 
   RCReference<RequestContext> req_ctx =
-      RequestContext::Create(GetHostContext());
+      RequestContext::Create(GetHostContext(), &resource_context_);
   Location location(this, /*data=*/locations_.size() - 1);
 
   return ExecutionContext{std::move(req_ctx), location};

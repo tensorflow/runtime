@@ -44,7 +44,8 @@ std::unique_ptr<HostContext> CreateTestHostContext(int num_threads) {
 TEST(RequestDeadlineTrackerTest, CancelRequest) {
   std::unique_ptr<HostContext> host = CreateTestHostContext(1);
   RequestDeadlineTracker req_deadline_tracker{host.get()};
-  RCReference<RequestContext> req_ctx = RequestContext::Create(host.get());
+  RCReference<RequestContext> req_ctx =
+      RequestContext::Create(host.get(), /*resource_context=*/nullptr);
 
   std::chrono::system_clock::time_point deadline =
       std::chrono::system_clock::now() + 1s;

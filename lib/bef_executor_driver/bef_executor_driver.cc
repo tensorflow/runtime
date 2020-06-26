@@ -41,6 +41,7 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/location.h"
+#include "tfrt/host_context/resource_context.h"
 #include "tfrt/metrics/metrics_api.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/string_util.h"
@@ -241,8 +242,20 @@ static void RunBefFunction(HostContext* host, const Function* function) {
   // Kick off an execution of the function body.
   llvm::SmallVector<RCReference<AsyncValue>, 4> results;
   results.resize(function->result_types().size());
-  function->Execute(ExecutionContext{tfrt::RequestContext::Create(host)},
-                    /*arguments=*/{}, results);
+
+  {
+    // Add a ResourceContext ops/kernels to access resources. Shared across
+    // kernels in this function, but not across functions.
+    tfrt::ResourceContext resource_context;
+    // RequestContext has to be destroyed per function invocation to ensure its
+    // error async value is destroyed after RequestContext::Cancel. Since we do
+    // async value leak check per function invocation, this ensures no leak.
+    RCReference<RequestContext> req_ctx =
+        tfrt::RequestContext::Create(host, &resource_context);
+    ExecutionContext exec_ctx{std::move(req_ctx)};
+
+    function->Execute(exec_ctx, /*arguments=*/{}, results);
+  }
 
   // Block until the function results are fully resolved.
   host->Await(results);

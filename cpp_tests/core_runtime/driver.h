@@ -27,6 +27,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/location.h"
+#include "tfrt/host_context/resource_context.h"
 
 namespace tfrt {
 
@@ -69,6 +70,7 @@ class CoreRuntimeDriver final : public LocationHandler {
   DecodedLocation DecodeLocation(Location loc) const override;
 
   std::unique_ptr<CoreRuntime> corert_;
+  ResourceContext resource_context_;
   OpHandler* op_handler_;
   AsyncValueRef<Chain> chain_;
 

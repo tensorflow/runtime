@@ -186,6 +186,7 @@ tfrt_cc_test(
         ":common",
         "@com_google_googletest//:gtest_main",
         "@tf_runtime//:core_runtime",
+        "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//backends/cpu:core_runtime_alwayslink",
         "@tf_runtime//backends/cpu:test_ops_alwayslink",

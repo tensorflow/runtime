@@ -97,7 +97,9 @@ int main(int argc, char** argv) {
     // Kick off an execution of the function body.
     llvm::SmallVector<tfrt::RCReference<tfrt::AsyncValue>, 4> results;
     results.resize(fn->result_types().size());
-    tfrt::ExecutionContext exec_ctx{tfrt::RequestContext::Create(&host)};
+
+    tfrt::ExecutionContext exec_ctx{
+        tfrt::RequestContext::Create(&host, /*resource_context=*/nullptr)};
     fn->Execute(exec_ctx, /*arguments=*/{}, results);
 
     // Block until the function results are fully resolved.

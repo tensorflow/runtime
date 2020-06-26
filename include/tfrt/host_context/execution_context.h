@@ -24,6 +24,7 @@
 #define TFRT_HOST_CONTEXT_EXECUTION_CONTEXT_H_
 
 #include "tfrt/host_context/location.h"
+#include "tfrt/host_context/resource_context.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
@@ -40,14 +41,16 @@ class ErrorAsyncValue;
 
 class RequestContext : public ReferenceCounted<RequestContext> {
  public:
-  static RCReference<RequestContext> Create(HostContext* host) {
-    return TakeRef(new RequestContext(host));
+  static RCReference<RequestContext> Create(HostContext* host,
+                                            ResourceContext* resource_context) {
+    return TakeRef(new RequestContext(host, resource_context));
   }
   ~RequestContext();
 
   bool IsCancelled() const { return GetCancelAsyncValue(); }
   void Cancel();
   HostContext* host() const { return host_; }
+  ResourceContext* resource_context() const { return resource_context_; }
 
   // If the request has been canceled, return an ErrorAsyncValue for
   // the cancellation. Otherwise, return nullptr.
@@ -56,9 +59,11 @@ class RequestContext : public ReferenceCounted<RequestContext> {
   }
 
  private:
-  explicit RequestContext(HostContext* host) : host_{host} {}
+  explicit RequestContext(HostContext* host, ResourceContext* resource_context)
+      : host_{host}, resource_context_{resource_context} {}
 
   HostContext* const host_ = nullptr;
+  ResourceContext* const resource_context_ = nullptr;
   std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
 };
 
@@ -95,8 +100,11 @@ class ExecutionContext {
   }
 
   void set_location(Location location) { location_ = location; }
-
   RequestContext* request_ctx() const { return request_ctx_.get(); }
+
+  ResourceContext* resource_context() const {
+    return request_ctx_->resource_context();
+  }
 
  private:
   RCReference<RequestContext> request_ctx_;

@@ -76,6 +76,8 @@ struct IterationResult {
                            AsyncValueRef<bool>(error.CopyRef()));
   }
 
+  // Construct IterationResult with the given `values` and `eof`. This is useful
+  // when eof may be unavailable.
   static IterationResult Pending(SmallVector<RCReference<AsyncValue>, 4> values,
                                  AsyncValueRef<bool> eof) {
     return IterationResult(std::move(values), std::move(eof));

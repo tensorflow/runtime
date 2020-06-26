@@ -36,6 +36,8 @@ OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
   switch (kind) {
     case BEFDataType::kBool:
       return OpAttrType::BOOL;
+    case BEFDataType::kI1:
+      return OpAttrType::BOOL;
     case BEFDataType::kI8:
       return OpAttrType::I8;
     case BEFDataType::kI16:

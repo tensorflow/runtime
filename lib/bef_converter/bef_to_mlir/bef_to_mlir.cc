@@ -293,7 +293,10 @@ class BEFAttributeReader {
  public:
   BEFAttributeReader(ArrayRef<uint8_t> attributes, const BEFFile& bef_file,
                      mlir::MLIRContext* context)
-      : attributes_(attributes), bef_file_(bef_file), context_(*context) {}
+      : attributes_(attributes),
+        bef_file_(bef_file),
+        context_(*context),
+        builder_(context) {}
 
   // Reads an attribute at `offset` into attributes section. On error, it
   // returns a null attribute.
@@ -330,8 +333,8 @@ class BEFAttributeReader {
   mlir::IntegerAttr ReadIntegerAttribute(BEFReader* reader, int bit_width,
                                          bool is_unsigned = false);
 
-  // Reads a float value of `bit_width` from `reader`.
-  mlir::FloatAttr ReadFloatAttribute(BEFReader* reader, int bit_width);
+  // Reads a float value from `reader`.
+  mlir::FloatAttr ReadFloatAttribute(BEFReader* reader, mlir::FloatType type);
 
   // Reads the length of a string attribute or an array attribute. The
   // length is encoded using a modified VBR encoding and placed right before
@@ -354,6 +357,7 @@ class BEFAttributeReader {
   ArrayRef<uint8_t> attributes_;
   const BEFFile& bef_file_;
   mlir::MLIRContext& context_;
+  mlir::Builder builder_;
 };
 
 // This reads typed attributes that have BEFAttrBase in the head.
@@ -531,6 +535,19 @@ class BEFTypedAttributeReader {
   mlir::Builder builder_;
 };
 
+template <typename T, size_t NumBits = sizeof(T) * 8>
+void CreateIntegerAttrArray(mlir::Builder* builder, const void* data,
+                            size_t num_elements,
+                            SmallVectorImpl<mlir::Attribute>* elements) {
+  auto array =
+      llvm::makeArrayRef(reinterpret_cast<const T*>(data), num_elements);
+  auto type = std::is_signed<T>::value
+                  ? builder->getIntegerType(NumBits)
+                  : builder->getIntegerType(NumBits, /*isSigned=*/false);
+  for (auto elt : array)
+    elements->push_back(builder->getIntegerAttr(type, elt));
+}
+
 SmallVector<mlir::Attribute, 8>
 BEFTypedAttributeReader::CreateAttrsFromDenseArray(
     BEFAttributeType element_type, size_t num_elements, const uint8_t* data) {
@@ -556,20 +573,66 @@ BEFTypedAttributeReader::CreateAttrsFromDenseArray(
         elements.push_back(builder_.getBoolAttr(static_cast<bool>(elt)));
       break;
     }
+    case BEFDataType::kI1: {
+      CreateIntegerAttrArray<int8_t, 1>(&builder_, data, num_elements,
+                                        &elements);
+      break;
+    }
+    case BEFDataType::kI8: {
+      CreateIntegerAttrArray<int8_t>(&builder_, data, num_elements, &elements);
+      break;
+    }
+    case BEFDataType::kI16: {
+      CreateIntegerAttrArray<int16_t>(&builder_, data, num_elements, &elements);
+      break;
+    }
     case BEFDataType::kI32: {
-      auto array = llvm::makeArrayRef(reinterpret_cast<const int32_t*>(data),
-                                      num_elements);
-      for (auto elt : array)
-        elements.push_back(
-            builder_.getIntegerAttr(builder_.getIntegerType(32), elt));
+      CreateIntegerAttrArray<int32_t>(&builder_, data, num_elements, &elements);
       break;
     }
     case BEFDataType::kI64: {
-      auto array = llvm::makeArrayRef(reinterpret_cast<const int64_t*>(data),
+      CreateIntegerAttrArray<int64_t>(&builder_, data, num_elements, &elements);
+      break;
+    }
+    case BEFDataType::kUI8: {
+      CreateIntegerAttrArray<uint8_t>(&builder_, data, num_elements, &elements);
+      break;
+    }
+    case BEFDataType::kUI16: {
+      CreateIntegerAttrArray<uint16_t>(&builder_, data, num_elements,
+                                       &elements);
+      break;
+    }
+    case BEFDataType::kUI32: {
+      CreateIntegerAttrArray<uint32_t>(&builder_, data, num_elements,
+                                       &elements);
+      break;
+    }
+    case BEFDataType::kUI64: {
+      CreateIntegerAttrArray<uint64_t>(&builder_, data, num_elements,
+                                       &elements);
+      break;
+    }
+    case BEFDataType::kBF16: {
+      auto array = llvm::makeArrayRef(reinterpret_cast<const uint16_t*>(data),
                                       num_elements);
-      for (auto elt : array)
-        elements.push_back(
-            builder_.getIntegerAttr(builder_.getIntegerType(64), elt));
+      for (auto elt : array) {
+        auto type = builder_.getBF16Type();
+        elements.push_back(builder_.getFloatAttr(
+            type,
+            llvm::APFloat(type.getFloatSemantics(), llvm::APInt(16, elt))));
+      }
+      break;
+    }
+    case BEFDataType::kF16: {
+      auto array = llvm::makeArrayRef(reinterpret_cast<const uint16_t*>(data),
+                                      num_elements);
+      for (auto elt : array) {
+        auto type = builder_.getF16Type();
+        elements.push_back(builder_.getFloatAttr(
+            type,
+            llvm::APFloat(type.getFloatSemantics(), llvm::APInt(16, elt))));
+      }
       break;
     }
     case BEFDataType::kF32: {
@@ -586,6 +649,8 @@ BEFTypedAttributeReader::CreateAttrsFromDenseArray(
         elements.push_back(builder_.getFloatAttr(builder_.getF64Type(), elt));
       break;
     }
+    // TODO(b/159948739): Add support for more data types (eg. complex64,
+    // complex128).
     default:
       llvm_unreachable("unknown array element type");
   }
@@ -1041,12 +1106,18 @@ mlir::Attribute BEFAttributeReader::ReadDataTypeAttribute(
       return ReadIntegerAttribute(reader, 32, /*is_unsigned=*/true);
     case BEFDataType::kUI64:
       return ReadIntegerAttribute(reader, 64, /*is_unsigned=*/true);
+    case BEFDataType::kBF16:
+      return ReadFloatAttribute(reader, builder_.getBF16Type());
+    case BEFDataType::kF16:
+      return ReadFloatAttribute(reader, builder_.getF16Type());
     case BEFDataType::kF32:
-      return ReadFloatAttribute(reader, 32);
+      return ReadFloatAttribute(reader, builder_.getF32Type());
     case BEFDataType::kF64:
-      return ReadFloatAttribute(reader, 64);
+      return ReadFloatAttribute(reader, builder_.getF64Type());
     case BEFDataType::kString:
       return ReadStringAttribute(reader);
+    // TODO(b/159948739): Add support for more data types (eg. complex64,
+    // complex128).
     default:
       EmitError(bef_file_.location, "Unknown standard attribute type");
       return {};
@@ -1153,21 +1224,11 @@ mlir::ArrayAttr BEFAttributeReader::ReadArrayAttribute(
 mlir::IntegerAttr BEFAttributeReader::ReadIntegerAttribute(BEFReader* reader,
                                                            int bit_width,
                                                            bool is_unsigned) {
-  int num_bytes = 0;
-  switch (bit_width) {
-    default:
-      EmitError(bef_file_.location, "Unknown integer attribute width");
-      return {};
-    case 1:
-      num_bytes = 1;
-      break;
-    case 32:
-      num_bytes = 4;
-      break;
-    case 64:
-      num_bytes = 8;
-      break;
-  }
+  assert((bit_width == 1 || bit_width == 8 || bit_width == 16 ||
+          bit_width == 32 || bit_width == 64) &&
+         "Unknown integer attribute width");
+
+  int num_bytes = bit_width == 1 ? 1 : bit_width / 8;
 
   // TODO(chky): Check alignment
   uint64_t value = 0;
@@ -1185,23 +1246,15 @@ mlir::IntegerAttr BEFAttributeReader::ReadIntegerAttribute(BEFReader* reader,
 }
 
 mlir::FloatAttr BEFAttributeReader::ReadFloatAttribute(BEFReader* reader,
-                                                       int bit_width) {
-  mlir::Type float_type;
+                                                       mlir::FloatType type) {
+  assert(type.isBF16() || type.isF16() || type.isF32() || type.isF64());
 
-  if (bit_width == 32) {
-    float_type = mlir::FloatType::getF32(&context_);
-  } else if (bit_width == 64) {
-    float_type = mlir::FloatType::getF64(&context_);
-  } else {
-    EmitError(bef_file_.location, "Unknown float attribute width");
-    return {};
-  }
-
-  auto int_attr = ReadIntegerAttribute(reader, bit_width);
+  auto int_attr = ReadIntegerAttribute(reader, type.getWidth());
   if (!int_attr) return {};
-  auto float_value = llvm::APFloat(int_attr.getValue().bitsToFloat());
+  auto float_value =
+      llvm::APFloat(type.getFloatSemantics(), int_attr.getValue());
 
-  return mlir::FloatAttr::get(float_type, float_value);
+  return mlir::FloatAttr::get(type, float_value);
 }
 
 llvm::Optional<std::pair<mlir::Location, std::unique_ptr<mlir::Region>>>

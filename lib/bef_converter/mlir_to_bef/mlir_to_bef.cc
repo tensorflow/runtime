@@ -1089,13 +1089,10 @@ void BEFAttributeEmitter::EmitIntegerAttribute(const llvm::APInt& value) {
     return;
   }
 
-  int bytes;
-  if (value.getBitWidth() == 32) {
-    bytes = 4;
-  } else {
-    assert(value.getBitWidth() == 64);
-    bytes = 8;
-  }
+  assert(value.getBitWidth() == 8 || value.getBitWidth() == 16 ||
+         value.getBitWidth() == 32 || value.getBitWidth() == 64);
+
+  int bytes = value.getBitWidth() / 8;
 
   EmitAlignment(bytes);
 
@@ -1107,8 +1104,8 @@ void BEFAttributeEmitter::EmitIntegerAttribute(const llvm::APInt& value) {
 }
 
 void BEFAttributeEmitter::EmitFloatAttribute(mlir::FloatAttr float_attr) {
-  // TODO(chky): add support for other float types.
-  assert(float_attr.getType().isF32() || float_attr.getType().isF64());
+  assert(float_attr.getType().isBF16() || float_attr.getType().isF16() ||
+         float_attr.getType().isF32() || float_attr.getType().isF64());
 
   EmitIntegerAttribute(float_attr.getValue().bitcastToAPInt());
 }

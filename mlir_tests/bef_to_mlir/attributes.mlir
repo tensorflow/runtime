@@ -62,14 +62,34 @@ func @string.constant() -> f32 {
 
 // CHECK-LABEL: func @array.constant() -> i32
 func @array.constant() -> i32 {
-  // CHECK: {value = [1 : i32, 2 : i32]} : () -> i32
-  // CHECK: {value = [i32, f32]} : () -> i32
-  // CHECK: {value = [true, false]} : () -> i32
-  // CHECK: {value = [dense<0> : tensor<4xi64>, dense<1> : tensor<4xi64>]} : () -> i32
+  // CHECK: [true]
+  // CHECK: [1 : i8]
+  // CHECK: [1 : i16]
+  // CHECK: [1 : i32]
+  // CHECK: [1]
+  // CHECK: [1 : ui8]
+  // CHECK: [1 : ui16]
+  // CHECK: [1 : ui32]
+  // CHECK: [1 : ui64]
+  // CHECK: [1.000000e+00 : bf16]
+  // CHECK: [1.000000e+00 : f16]
+  // CHECK: [1.000000e+00 : f32]
+  // CHECK: [1.000000e+00]
+  %0 = "simple.op"() {value = [true]} : () -> i32
+  %1 = "simple.op"() {value = [1 : i8]} : () -> i32
+  %2 = "simple.op"() {value = [1 : i16]} : () -> i32
+  %3 = "simple.op"() {value = [1 : i32]} : () -> i32
+  %4 = "simple.op"() {value = [1 : i64]} : () -> i32
+  %5 = "simple.op"() {value = [1 : ui8]} : () -> i32
+  %6 = "simple.op"() {value = [1 : ui16]} : () -> i32
+  %7 = "simple.op"() {value = [1 : ui32]} : () -> i32
+  %8 = "simple.op"() {value = [1 : ui64]} : () -> i32
+  %9 = "simple.op"() {value = [1.0 : bf16]} : () -> i32
+  %10 = "simple.op"() {value = [1.0 : f16]} : () -> i32
+  %11 = "simple.op"() {value = [1.0 : f32]} : () -> i32
+  %12 = "simple.op"() {value = [1.0 : f64]} : () -> i32
 
-  %a = "simple.op"() {value = [1 : i32, 2 : i32]} : () -> i32
-  %b = "simple.op"() {value = [i32, f32]} : () -> i32
-  %c = "simple.op"() {value = [true, false]} : () -> i32
+  // CHECK: {value = [dense<0> : tensor<4xi64>, dense<1> : tensor<4xi64>]} : () -> i32
   %d = "simple.op"() {value = [dense<0> : tensor<4xi64>, dense<1> : tensor<4xi64>]} : () -> i32
   hex.return %d : i32
 }
@@ -97,23 +117,37 @@ func @type.attribute() -> (i32, i32, i32) {
   hex.return %x, %y, %z: i32, i32, i32
 }
 
-// CHECK-LABEL: func @dense_elements.constant() -> i32
-func @dense_elements.constant() -> i32 {
 
-  // CHECK-NEXT: [[REG0:%.*]] = "simple.op"()
-  // CHECK-SAME:   {value = dense<[]> : tensor<0xf32>} : () -> i32
-  %x0 = "simple.op"() {value = dense<[]> : tensor<0xf32>} : () -> i32
+// CHECK-LABEL: func @dense_elements.constant()
+func @dense_elements.constant() {
+  // CHECK: dense<true> : tensor<1xi1>
+  // CHECK: dense<1> : tensor<1xi8>
+  // CHECK: dense<1> : tensor<1xi16>
+  // CHECK: dense<1> : tensor<1xi32>
+  // CHECK: dense<1> : tensor<1xi64>
+  // CHECK: dense<1> : tensor<1xui8>
+  // CHECK: dense<1> : tensor<1xui16>
+  // CHECK: dense<1> : tensor<1xui32>
+  // CHECK: dense<1> : tensor<1xui64>
+  // CHECK: dense<1.000000e+00> : tensor<1xbf16>
+  // CHECK: dense<1.000000e+00> : tensor<1xf16>
+  // CHECK: dense<1.000000e+00> : tensor<1xf32>
+  // CHECK: dense<1.000000e+00> : tensor<1xf64>
+  %0 = "simple.op"() {value = dense<true> : tensor<1xi1>} : () -> i32
+  %1 = "simple.op"() {value = dense<1> : tensor<1xi8>} : () -> i32
+  %2 = "simple.op"() {value = dense<1> : tensor<1xi16>} : () -> i32
+  %3 = "simple.op"() {value = dense<1> : tensor<1xi32>} : () -> i32
+  %4 = "simple.op"() {value = dense<1> : tensor<1xi64>} : () -> i32
+  %5 = "simple.op"() {value = dense<1> : tensor<1xui8>} : () -> i32
+  %6 = "simple.op"() {value = dense<1> : tensor<1xui16>} : () -> i32
+  %7 = "simple.op"() {value = dense<1> : tensor<1xui32>} : () -> i32
+  %8 = "simple.op"() {value = dense<1> : tensor<1xui64>} : () -> i32
+  %9 = "simple.op"() {value = dense<1.0> : tensor<1xbf16>} : () -> i32
+  %10 = "simple.op"() {value = dense<1.0> : tensor<1xf16>} : () -> i32
+  %11 = "simple.op"() {value = dense<1.0> : tensor<1xf32>} : () -> i32
+  %12 = "simple.op"() {value = dense<1.0> : tensor<1xf64>} : () -> i32
 
-  // CHECK-NEXT: [[REG1:%.*]] = "simple.op"()
-  // CHECK-SAME: {value = dense<1> : tensor<2x3xi64>} : () -> i32
-  %x1 = "simple.op"() {value = dense<1> : tensor<2x3xi64>} : () -> i32
-
-  // CHECK-NEXT: [[REG2:%.*]] = "simple.op"()
-  // CHECK-SAME: {value = dense<[0, 1, 2]> : tensor<3xi32>} : () -> i32
-  %x2 = "simple.op"() {value = dense<[0, 1, 2]> : tensor<3xi32>} : () -> i32
-
-  // CHECK-NEXT: hex.return [[REG2]] : i32
-  hex.return %x2 : i32
+  hex.return
 }
 
 // CHECK-LABEL: @shape_attr

@@ -17,6 +17,7 @@
 #define CORERT_OPS
 
 include "tfrt/tfrt_op_base.td"
+include "tfrt/core_runtime/opdefs/corert_traits.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def CoreRT_Dialect : Dialect {
@@ -69,7 +70,8 @@ foreach dtype = ["ui8", "ui16", "ui32", "ui64",
     : CreateDenseTensorOp<dtype>;
 }
 
-def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor", [ConstantLike, NoSideEffect]> {
+def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor",
+    [ConstantLike, NoSideEffect, CoreRT_TypedAttributeTrait]> {
   let summary = "Create a constant host tensor.";
   let description = [{
     ConstDenseTensorOp creates a constant dense host tensor.
@@ -93,7 +95,8 @@ def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor", [ConstantLike, NoSideEf
   let hasFolder = 1;
 }
 
-def ConstStringTensorOp : CoreRT_Op<"const_string_tensor", [NoSideEffect]> {
+def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
+    [NoSideEffect, CoreRT_TypedAttributeTrait]> {
   let summary = "Create a constant string host tensor.";
   let description = [{
     ConstStringTensorOp creates a constant string host tensor.
@@ -116,7 +119,7 @@ def ConstStringTensorOp : CoreRT_Op<"const_string_tensor", [NoSideEffect]> {
   let verifier = ?;
 }
 
-def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect]> {
+def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait]> {
   let summary = "The CoreRuntime ExecuteOp";
   let description = [{
     The ExecuteOp executes an operation on the specified device.
@@ -151,7 +154,7 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect]> {
   >];
 }
 
-def ExecuteOpSeq : CoreRT_Op<"executeop.seq"> {
+def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
   let summary = "The sequenced version of CoreRuntime ExecuteOp";
   let description = [{
     The ExecuteOpSeq executes an operation on the specified device, similar to

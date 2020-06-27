@@ -43,6 +43,7 @@
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
+#include "tfrt/core_runtime/opdefs/traits.h"
 #include "tfrt/core_runtime/opdefs/types.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
@@ -303,14 +304,10 @@ static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
 }
 
 static bool IsOpAttrsTyped(mlir::Operation* op) {
-  // TODO(chky): Whether an op attribute is typed should be decided from
-  // OpTraits instead of hardcoding dialect name or op name here.
-  return op->getName().getStringRef() == "corert.executeop" ||
-         op->getName().getStringRef() == "corert.executeop.seq" ||
-         op->getName().getStringRef() == "tfrt_fallback.executeop" ||
-         op->getName().getStringRef() == "tfrt_fallback.executeop.seq" ||
-         op->getName().getStringRef() == "corert.execute_crt_op" ||
-         op->getName().getStringRef() == "corert.const_string_tensor";
+  // TODO(tf-runtime-team): Define corert.execute_crt_op in ODS with
+  // TypedAttributeTrait.
+  return op->hasTrait<mlir::OpTrait::tfrt::corert::TypedAttributeTrait>() ||
+         op->getName().getStringRef() == "corert.execute_crt_op";
 }
 
 //===----------------------------------------------------------------------===//

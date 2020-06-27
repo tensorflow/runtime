@@ -81,7 +81,13 @@ TEST(Test, StackTrace) {
   if (!stack_trace) GTEST_SKIP() << "Stack traces unavailable";
   std::string buffer;
   llvm::raw_string_ostream(buffer) << stack_trace;
-  // TODO(csigg): MSAN adds __interceptor_backtrace, breaking the check below.
+  // TODO(csigg): MSAN and ASAN add __interceptor_backtrace, breaking the check
+  // below.
+#if defined(__has_feature)
+#if __has_feature(address_sanitizer)
+  GTEST_SKIP() << "Fails in ASAN builds";
+#endif
+#endif
 #ifdef MEMORY_SANITIZER
   GTEST_SKIP() << "Fails in MSAN builds";
 #endif

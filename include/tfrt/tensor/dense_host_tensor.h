@@ -24,6 +24,7 @@
 #define TFRT_TENSOR_DENSE_HOST_TENSOR_H_
 
 #include "tfrt/host_context/host_buffer.h"
+#include "tfrt/host_context/value.h"
 #include "tfrt/tensor/host_tensor.h"
 
 namespace tfrt {
@@ -102,6 +103,11 @@ class DenseHostTensor final : public HostTensor {
 
   RCReference<HostBuffer> data_;
 };
+
+// This is to ensure that Value can store DenseHostTensor without heap
+// allocation. This limits the size of DenseHostTensor to at most 56 bytes.
+static_assert(Value::IsInPlace<DenseHostTensor>(),
+              "DenseHostTensor should not cause a heap allocation in Value.");
 
 }  // namespace tfrt
 

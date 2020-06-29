@@ -76,6 +76,7 @@ tfrt_cc_library(
         "include/tfrt/host_context/task_function.h",
         "include/tfrt/host_context/timer_queue.h",
         "include/tfrt/host_context/type_name.h",
+        "include/tfrt/host_context/value.h",
     ],
     alwayslink_static_registration_src = "lib/host_context/static_registration.cc",
     visibility = [":friends"],

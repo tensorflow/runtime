@@ -34,6 +34,7 @@
 #include "tfrt/support/mutex.h"
 
 namespace tfrt {
+namespace {
 
 std::unique_ptr<HostContext> CreateTestHostContext(int num_threads) {
   return std::make_unique<HostContext>(
@@ -82,4 +83,5 @@ TEST(HostContextTest, RunBlockingWorkWithResult) {
   ASSERT_EQ(result.get(), 42);
 }
 
+}  // namespace
 }  // namespace tfrt

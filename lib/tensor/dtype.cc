@@ -115,9 +115,9 @@ void DType::Print(const void *data, raw_ostream &os) const {
                 ->imag()
          << ")";
       break;
-#define DTYPE_TRIVIAL(ENUM)                                          \
-  case ENUM:                                                         \
-    os << *static_cast<const TypeForDTypeKind<DType::ENUM> *>(data); \
+#define DTYPE_TRIVIAL(ENUM)                                           \
+  case ENUM:                                                          \
+    os << +*static_cast<const TypeForDTypeKind<DType::ENUM> *>(data); \
     break;
 #include "tfrt/tensor/dtype.def"  // NOLINT
   }
@@ -165,9 +165,9 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
         std::numeric_limits<TypeForDTypeKind<DType::ENUM>>::max_digits10, \
         *static_cast<const TypeForDTypeKind<DType::ENUM> *>(data));       \
     break;
-#define DTYPE_INT(ENUM)                                              \
-  case ENUM:                                                         \
-    os << *static_cast<const TypeForDTypeKind<DType::ENUM> *>(data); \
+#define DTYPE_INT(ENUM)                                               \
+  case ENUM:                                                          \
+    os << +*static_cast<const TypeForDTypeKind<DType::ENUM> *>(data); \
     break;
 #include "tfrt/tensor/dtype.def"  // NOLINT
   }

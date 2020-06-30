@@ -12,11 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- max_pooling.cc --------------------------------------------*- C++-*-===//
+//===- max_pooling.h --------------------------------------------*- C++ -*-===//
 //
 // Max Pooling 2D implemented with Eigen.
 //
 //===----------------------------------------------------------------------===//
+
+#ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_MAX_POOLING_H_
+#define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_MAX_POOLING_H_
 
 #include <cstdint>
 
@@ -31,72 +34,61 @@ namespace tfrt {
 namespace compat {
 
 template <typename T>
-static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
-                      ArgumentView<MutableDHTIndexableView<T, 4>> output,
-                      Argument<Chain> chain_in, Result<Chain> chain_out,
-                      StringAttribute padding,
-                      ArrayAttribute<ssize_t> pool_size,
-                      ArrayAttribute<ssize_t> strides,
-                      KernelErrorHandler handler,
-                      const ExecutionContext& exec_ctx, KernelFrame* frame) {
+static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
+                                        DenseHostTensor* output,
+                                        string_view padding,
+                                        ArrayRef<ssize_t> strides,
+                                        ArrayRef<ssize_t> ksize,
+                                        const ExecutionContext& exec_ctx) {
   // TODO(ezhulenev): Move shape computation into support library and share with
   // shape computations in convolution.
+  DHTIndexableView<T, 4> input_view(&input);
+  MutableDHTIndexableView<T, 4> output_view(output);
 
-  // shape_input has format (batch_size, height, width, channel_num).
-  const auto& shape_input = input->FixedShape();
-  // shape_output has format (batch_size, height, width, channel_num).
-  const auto& shape_output = output->FixedShape();
-
-  if (pool_size.size() != 2) {
-    handler.ReportError("MaxPool2D expects pool_size to have 2 elements");
-    return;
-  }
+  const auto& shape_input = input_view.FixedShape();
+  const auto& shape_output = output_view.FixedShape();
 
   if (strides.size() != 2) {
-    handler.ReportError("MaxPool2D expects strides to have 2 elements");
-    return;
+    return EmitErrorAsync(exec_ctx, "strides should have 2 elements");
+  }
+  if (ksize.size() != 2) {
+    return EmitErrorAsync(exec_ctx, "ksize should have 2 elements");
   }
 
   // Padding for upper, bottom, left and right.
   int padding_numbers[4] = {0, 0, 0, 0};
 
-  if (padding.str() == "same") {
-    int total_padding_height = pool_size[0] - strides[0];
+  if (padding.str() == "SAME" || padding.str() == "same") {
+    int total_padding_height = ksize[0] - strides[0];
     if (shape_input[1] % strides[0] != 0) {
-      total_padding_height = pool_size[0] - (shape_input[1] % strides[0]);
+      total_padding_height = ksize[0] - (shape_input[1] % strides[0]);
     }
-    int total_padding_width = pool_size[1] - strides[1];
+    int total_padding_width = ksize[1] - strides[1];
     if (shape_input[2] % strides[1] != 0) {
-      total_padding_width = pool_size[1] - (shape_input[2] % strides[1]);
+      total_padding_width = ksize[1] - (shape_input[2] % strides[1]);
     }
 
     padding_numbers[0] = static_cast<int>(total_padding_height / 2.0);
     padding_numbers[1] = static_cast<int>(total_padding_height / 2.0 + 0.5);
     padding_numbers[2] = static_cast<int>(total_padding_width / 2.0);
     padding_numbers[3] = static_cast<int>(total_padding_width / 2.0 + 0.5);
-  } else if (padding.str() != "valid") {
-    handler.ReportError("MaxPool2D padding '", padding.str(),
-                        "' is not recognized");
-    return;
+  } else if (padding.str() != "VALID" && padding.str() != "valid") {
+    return EmitErrorAsync(exec_ctx, "padding type is not supported");
   }
 
-  typename MutableDHTIndexableView<T, 4>::FixedShapeType expected_output_shape(
-      {shape_input[0],
-       (shape_input[1] + padding_numbers[0] + padding_numbers[1] -
-        pool_size[0]) /
-               strides[0] +
-           1,
-       (shape_input[2] + padding_numbers[2] + padding_numbers[3] -
-        pool_size[1]) /
-               strides[1] +
-           1,
-       shape_input[3]});
+  auto height =
+      (shape_input[1] + padding_numbers[0] + padding_numbers[1] - ksize[0]) /
+          strides[0] +
+      1;
+  auto width =
+      (shape_input[2] + padding_numbers[2] + padding_numbers[3] - ksize[1]) /
+          strides[1] +
+      1;
+  const FixedRankShape<4> expected_output_shape(
+      {shape_input[0], height, width, shape_input[3]});
 
   if (shape_output != expected_output_shape) {
-    handler.ReportError("MaxPool2D output shape ", shape_output,
-                        " does not match the expected output shape ",
-                        expected_output_shape);
-    return;
+    return EmitErrorAsync(exec_ctx, "output tensor has the wrong shape");
   }
 
   // In the following code we treat every channels vector (innermost dimension)
@@ -113,14 +105,18 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
   using Coords = std::array<ssize_t, 3>;
 
   // Returns OutputChannels for 3 dimensional coordinates.
-  const auto output_channels = [output, num_channels](const Coords& coords) {
-    T* data = &output->ElementAt(coords[0], coords[1], coords[2], 0);
+  auto output_channels = [output = output->CopyRef(),
+                          num_channels](const Coords& coords) mutable {
+    MutableDHTIndexableView<T, 4> output_view(&output);
+    T* data = &output_view.ElementAt(coords[0], coords[1], coords[2], 0);
     return OutputChannels(data, num_channels);
   };
 
   // Returns InputChannels for 3 dimensional coordinates.
-  const auto input_channels = [input, num_channels](const Coords& coords) {
-    const T* data = &input->ElementAt(coords[0], coords[1], coords[2], 0);
+  auto input_channels = [input = input.CopyRef(),
+                         num_channels](const Coords& coords) mutable {
+    DHTIndexableView<T, 4> input_view(&input);
+    const T* data = &input_view.ElementAt(coords[0], coords[1], coords[2], 0);
     return InputChannels(data, num_channels);
   };
 
@@ -151,12 +147,15 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
 
   // Computes MaxPool outputs in the [start, end) range. All the state captured
   // by value explicitly, because this function will be executed asynchonously.
-  auto compute = [pool_size, strides, padding_numbers, shape_input,
-                  input_channels, output_channels,
-                  output_coords](size_t start, size_t end) -> void {
+  std::array<ssize_t, 2> strides_t{strides[0], strides[1]};
+  std::array<ssize_t, 2> ksize_t{ksize[0], ksize[1]};
+  auto compute = [strides = strides_t, ksize = ksize_t, padding_numbers,
+                  shape_input, input_channels = std::move(input_channels),
+                  output_channels = std::move(output_channels),
+                  output_coords](size_t start, size_t end) mutable -> void {
     // Image patch input channels.
     std::vector<InputChannels> input_channels_pool;
-    input_channels_pool.reserve(pool_size[0] * pool_size[1]);
+    input_channels_pool.reserve(ksize[0] * ksize[1]);
 
     // Iterate over all outputs in the [start, end) range.
     for (ssize_t index = start; index < end; ++index) {
@@ -164,8 +163,8 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
       input_channels_pool.clear();
 
       // Iterate over the spatial pooling patch.
-      for (ssize_t x = 0; x < pool_size[0]; ++x) {
-        for (ssize_t y = 0; y < pool_size[1]; ++y) {
+      for (ssize_t x = 0; x < ksize[0]; ++x) {
+        for (ssize_t y = 0; y < ksize[1]; ++y) {
           // Coordinates in the input tensor.
           const Coords input_coords = {
               coords[0],                                        // batch
@@ -213,22 +212,22 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
   // too many small tasks if extracted image patches are tiny.
   // TODO(ezhulenev): Use Eigen expression cost model? Or add TFRT cost model?
   static constexpr size_t kMinPatchSize = 1000;
-  const size_t image_patch_size = num_channels * pool_size[0] * pool_size[1];
+  const size_t image_patch_size = num_channels * ksize[0] * ksize[1];
   const size_t min_block_size =
       std::max(static_cast<size_t>(1), kMinPatchSize / image_patch_size);
+  auto chain = exec_ctx.host()->MakeUnconstructedAsyncValueRef<Chain>();
+  auto args = KeepBuffers::alive(&input, output);
 
   ParallelFor(exec_ctx.host())
       .Execute(num_outputs, ParallelFor::BlockSizes::Min(min_block_size),
                std::move(compute),
-               [chain = chain_out.Allocate(),
-                frame = RAIIKernelFrame(*frame)]() { chain.emplace(); });
+               [chain = chain.CopyRef(), args = std::move(args)]() {
+                 chain.emplace();
+               });
+  return chain;
 }
 
 }  // namespace compat
-
-void RegisterMaxPoolingKernels(KernelRegistry* registry) {
-  registry->AddKernel("eigen.max_pooling_2d.f32",
-                      TFRT_KERNEL(compat::MaxPool2D<float>));
-}
-
 }  // namespace tfrt
+
+#endif  // TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_MAX_POOLING_H_

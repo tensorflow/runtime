@@ -22,6 +22,8 @@
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_DTYPE_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_DTYPE_H_
 
+#define EIGEN_USE_THREADS
+
 #include "tfrt/support/fp16.h"
 #include "tfrt/tensor/dtype.h"
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive

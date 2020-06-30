@@ -24,28 +24,16 @@
 
 namespace tfrt {
 
-void RegisterBatchNormKernels(KernelRegistry* registry);
+void RegisterEigenKernels(KernelRegistry* registry);
 void RegisterBatchNormGradKernels(KernelRegistry* registry);
-void RegisterConv2DKernels(KernelRegistry* registry);
-void RegisterConv2DBatchNormKernels(KernelRegistry* registry);
-void RegisterConv2DBatchNormReluKernels(KernelRegistry* registry);
-void RegisterConv2DBiasKernels(KernelRegistry* registry);
 void RegisterConv2DGradFilterKernels(KernelRegistry* registry);
 void RegisterConv2DGradInputKernels(KernelRegistry* registry);
 void RegisterMatMulKernels(KernelRegistry* registry);
-void RegisterMaxPoolingKernels(KernelRegistry* registry);
-void RegisterZeroPaddingKernels(KernelRegistry* registry);
 
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterBatchNormKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterEigenKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterBatchNormGradKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterConv2DKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterConv2DBatchNormKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterConv2DBatchNormReluKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterConv2DBiasKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterConv2DGradFilterKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterConv2DGradInputKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterMatMulKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterMaxPoolingKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterZeroPaddingKernels);
 
 }  // namespace tfrt

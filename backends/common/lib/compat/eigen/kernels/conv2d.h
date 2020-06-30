@@ -73,33 +73,39 @@ inline llvm::Error CheckBatchNormArgs(const Conv2DParams& params,
 }
 
 template <typename T, typename OutputKernelBuilder>
-inline void Conv2DImpl(const DHTIndexableView<T, 4>& input,
-                       const DHTIndexableView<T, 4>& kernel,
-                       const MutableDHTIndexableView<T, 4>& output,
-                       Result<Chain> chain_out, StringAttribute padding,
-                       ArrayAttribute<ssize_t> strides,
-                       OutputKernelBuilder output_kernel_builder,
-                       KernelErrorHandler handler,
-                       const ExecutionContext& exec_ctx, KernelFrame* frame) {
-  HostContext* host = exec_ctx.host();
+inline AsyncValueRef<Chain> Conv2DImpl(
+    const DenseHostTensor& input, const DenseHostTensor& filter,
+    DenseHostTensor* output, string_view padding, ArrayRef<ssize_t> strides,
+    OutputKernelBuilder output_kernel_builder,
+    const ExecutionContext& exec_ctx) {
+  DHTIndexableView<T, 4> input_view(&input);
+  DHTIndexableView<T, 4> filter_view(&filter);
+  MutableDHTIndexableView<T, 4> output_view(output);
+
+  if (strides.size() != 2) {
+    return EmitErrorAsync(exec_ctx, "strides should have 2 elements");
+  }
 
   // Validate convolution parameters.
-  auto params = ComputeConv2DParams(input.FixedShape(), kernel.FixedShape(),
-                                    padding.get(), {strides[0], strides[1]});
-
-  TFRT_RETURN_IF_ERROR(handler, params.takeError());
-  TFRT_RETURN_IF_ERROR(
-      handler, CheckShapeMatch("output tensor shape", output.FixedShape(),
-                               "computed output shape", params->output_shape));
+  auto params =
+      ComputeConv2DParams(input_view.FixedShape(), filter_view.FixedShape(),
+                          padding, {strides[0], strides[1]});
+  if (auto error = params.takeError()) {
+    return EmitErrorAsync(exec_ctx, StrCat(error));
+  }
+  if (auto error =
+          CheckShapeMatch("output tensor shape", output_view.FixedShape(),
+                          "computed output shape", params->output_shape)) {
+    return EmitErrorAsync(exec_ctx, StrCat(error));
+  }
 
   // Construct an output kernel from convolution parameters.
   auto output_kernel = output_kernel_builder(params.get());
-  TFRT_RETURN_IF_ERROR(handler, output_kernel.takeError());
+  if (auto error = output_kernel.takeError()) {
+    return EmitErrorAsync(exec_ctx, StrCat(error));
+  }
 
-  auto on_done = [chain = chain_out.Allocate(),
-                  frame = RAIIKernelFrame(*frame)]() { chain.emplace(); };
-
-  const FixedRankShape<4>& kernel_shape = kernel.FixedShape();
+  const FixedRankShape<4>& kernel_shape = filter_view.FixedShape();
 
   // 1x1 convolution can be computed as a simple Tensor contraction.
   if (kernel_shape[0] == 1 && kernel_shape[1] == 1 &&  // 1x1 kernel
@@ -113,108 +119,96 @@ inline void Conv2DImpl(const DHTIndexableView<T, 4>& input,
     auto reshaped_kern = FixedRankShape<2>({kernel_shape[2], kernel_shape[3]});
     auto reshaped_out = FixedRankShape<2>({rest_size, kernel_shape[3]});
 
-    auto input_t = AsEigenConstTensor(input, reshaped_in);
-    auto kernel_t = AsEigenConstTensor(kernel, reshaped_kern);
-    auto output_t = AsEigenTensor(output, reshaped_out);
+    auto input_t = AsEigenConstTensor(input_view, reshaped_in);
+    auto kernel_t = AsEigenConstTensor(filter_view, reshaped_kern);
+    auto output_t = AsEigenTensor(output_view, reshaped_out);
 
     Eigen::array<Eigen::IndexPair<Eigen::DenseIndex>, 1> contract_dim({1, 0});
     auto expr = input_t.contract(kernel_t, contract_dim, output_kernel.get());
 
-    AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
-                std::move(output_t), std::move(expr), std::move(on_done));
-
+    return AsyncAssign(
+        exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
+        std::move(output_t), std::move(expr),
+        KeepBuffers::alive(&input, &filter, output));
   } else {
-    auto input_t = AsEigenConstTensor(input);
-    auto filter_t = AsEigenConstTensor(kernel);
-    auto output_t = AsEigenTensor(output);
+    auto input_t = AsEigenConstTensor(input_view);
+    auto filter_t = AsEigenConstTensor(filter_view);
+    auto output_t = AsEigenTensor(output_view);
 
     // clang-format off
-    auto expr = SpatialConvolution(input_t, input.FixedShape(),
-                                   filter_t, kernel.FixedShape(),
+    auto expr = SpatialConvolution(input_t, input_view.FixedShape(),
+                                   filter_t, filter_view.FixedShape(),
                                    /*strides=*/{strides[0], strides[1]},
                                    /*paddings=*/params->paddings,
                                    /*dilations=*/params->dilations,
                                    /*inflations=*/{1, 1},
                                    /*output_kernel=*/output_kernel.get());
     // clang-format on
-
-    AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
-                std::move(output_t), std::move(expr), std::move(on_done));
+    return AsyncAssign(
+        exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
+        std::move(output_t), std::move(expr),
+        KeepBuffers::alive(&input, &filter, output));
   }
 }
 
-template <typename T>
-static void Conv2D(ArgumentView<DHTIndexableView<T, 4>> input,
-                   ArgumentView<DHTIndexableView<T, 4>> kernel,
-                   ArgumentView<MutableDHTIndexableView<T, 4>> output,
-                   Argument<Chain> chain_in, Result<Chain> chain_out,
-                   StringAttribute padding, ArrayAttribute<ssize_t> strides,
-                   KernelErrorHandler handler, const ExecutionContext& exec_ctx,
-                   KernelFrame* frame) {
-  using OutputKernel = llvm::Expected<Eigen::NoOpOutputKernel>;
-
-  auto output_kernel = [](Conv2DParams) -> OutputKernel {
-    return Eigen::NoOpOutputKernel();
-  };
-
-  Conv2DImpl<T>(input.get(), kernel.get(), output.get(), chain_out, padding,
-                strides, std::move(output_kernel), handler, exec_ctx, frame);
-}
-
 template <typename T, typename Activation = Identity>
-void Conv2DBatchNorm(ArgumentView<DHTIndexableView<T, 4>> input,
-                     ArgumentView<DHTIndexableView<T, 4>> kernel,
-                     ArgumentView<DHTIndexableView<T, 1>> scale,   // aka gamma
-                     ArgumentView<DHTIndexableView<T, 1>> offset,  // aka beta
-                     ArgumentView<DHTIndexableView<T, 1>> estimated_mean,
-                     ArgumentView<DHTIndexableView<T, 1>> estimated_variance,
-                     ArgumentView<MutableDHTIndexableView<T, 4>> output,
-                     Argument<Chain> chain_in, Result<Chain> chain_out,
-                     Attribute<float> epsilon, StringAttribute padding,
-                     ArrayAttribute<ssize_t> strides,
-                     KernelErrorHandler handler,
-                     const ExecutionContext& exec_ctx, KernelFrame* frame) {
+AsyncValueRef<Chain> Conv2DBatchNorm(
+    const DenseHostTensor& input, const DenseHostTensor& filter,
+    const DenseHostTensor& scale,   // aka gamma
+    const DenseHostTensor& offset,  // aka beta
+    const DenseHostTensor& mean, const DenseHostTensor& variance,
+    DenseHostTensor* output, Chain chain_in, Attribute<float> epsilon,
+    StringAttribute padding, ArrayAttribute<ssize_t> strides,
+    const ExecutionContext& exec_ctx) {
   using OutputKernel = llvm::Expected<BatchNormOutputKernel<T, Activation>>;
 
-  auto output_kernel = [&](Conv2DParams params) -> OutputKernel {
+  auto output_kernel =
+      [scale = scale.CopyRef(), offset = offset.CopyRef(),
+       mean = mean.CopyRef(), variance = variance.CopyRef(),
+       epsilon = epsilon.get()](Conv2DParams params) -> OutputKernel {
+    DHTIndexableView<T, 1> scale_view(&scale);
+    DHTIndexableView<T, 1> offset_view(&offset);
+    DHTIndexableView<T, 1> mean_view(&mean);
+    DHTIndexableView<T, 1> variance_view(&variance);
     if (auto err = CheckBatchNormArgs(
-            params, scale->FixedShape(), offset->FixedShape(),
-            estimated_mean->FixedShape(), estimated_variance->FixedShape())) {
+            params, scale_view.FixedShape(), offset_view.FixedShape(),
+            mean_view.FixedShape(), variance_view.FixedShape())) {
       return std::move(err);
     }
 
     return BatchNormOutputKernel<T, Activation>(
-        AsEigenConstTensor(scale.get()),               // gamma
-        AsEigenConstTensor(offset.get()),              // beta
-        AsEigenConstTensor(estimated_mean.get()),      // mean
-        AsEigenConstTensor(estimated_variance.get()),  // variance
-        epsilon.get());
+        AsEigenConstTensor(scale_view),     // gamma
+        AsEigenConstTensor(offset_view),    // beta
+        AsEigenConstTensor(mean_view),      // mean
+        AsEigenConstTensor(variance_view),  // variance
+        epsilon);
   };
 
-  Conv2DImpl<T>(input.get(), kernel.get(), output.get(), chain_out, padding,
-                strides, std::move(output_kernel), handler, exec_ctx, frame);
+  return Conv2DImpl<T>(input, filter, output, padding.get(), strides.data(),
+                       std::move(output_kernel), exec_ctx);
 }
 
 template <typename T, typename Activation = Identity>
-void Conv2DBias(ArgumentView<DHTIndexableView<T, 4>> input,
-                ArgumentView<DHTIndexableView<T, 4>> kernel,
-                ArgumentView<DHTIndexableView<T, 1>> bias,
-                ArgumentView<MutableDHTIndexableView<T, 4>> output,
-                Argument<Chain> chain_in, Result<Chain> chain_out,
-                StringAttribute padding, ArrayAttribute<ssize_t> strides,
-                KernelErrorHandler handler, const ExecutionContext& exec_ctx,
-                KernelFrame* frame) {
+AsyncValueRef<Chain> Conv2DBias(const DenseHostTensor& input,
+                                const DenseHostTensor& filter,
+                                const DenseHostTensor& bias,
+                                DenseHostTensor* output, Chain chain_in,
+                                StringAttribute padding,
+                                ArrayAttribute<ssize_t> strides,
+                                const ExecutionContext& exec_ctx) {
   using OutputKernel = llvm::Expected<BiasAddOutputKernel<T, Activation>>;
 
-  auto output_kernel = [bias](Conv2DParams params) -> OutputKernel {
-    if (auto err = internal::CheckBias(params, bias->FixedShape())) {
+  auto output_kernel =
+      [bias = bias.CopyRef()](Conv2DParams params) -> OutputKernel {
+    DHTIndexableView<T, 1> bias_view(&bias);
+    if (auto err = internal::CheckBias(params, bias_view.FixedShape())) {
       return std::move(err);
     }
-    return BiasAddOutputKernel<T, Activation>(AsEigenConstTensor(bias.get()));
+    return BiasAddOutputKernel<T, Activation>(AsEigenConstTensor(bias_view));
   };
 
-  Conv2DImpl<T>(input.get(), kernel.get(), output.get(), chain_out, padding,
-                strides, std::move(output_kernel), handler, exec_ctx, frame);
+  return Conv2DImpl<T>(input, filter, output, padding.get(), strides.data(),
+                       std::move(output_kernel), exec_ctx);
 }
 
 }  // namespace internal

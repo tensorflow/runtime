@@ -36,7 +36,8 @@ enum Kind {
 
 }  // namespace CoreRTTypes
 
-class StringType : public mlir::Type::TypeBase<StringType, mlir::Type> {
+class StringType
+    : public mlir::Type::TypeBase<StringType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
 

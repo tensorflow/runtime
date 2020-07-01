@@ -53,14 +53,13 @@ TEST(ParallelForTest, FixedBlockSize) {
   mutex mu;
   std::vector<Range> ranges;
 
-  pfor.Execute(
-      100, BlockSizes::Fixed(25),
-      [&](size_t begin, size_t end) {
+  AsyncValueRef<Chain> done =
+      pfor.Execute(100, BlockSizes::Fixed(25), [&](size_t begin, size_t end) {
         mutex_lock lock(mu);
         ranges.push_back({begin, end});
         barrier.count_down();
-      },
-      [&]() { barrier.count_down(); });
+      });
+  done.AndThen([&]() { barrier.count_down(); });
 
   barrier.wait();
 
@@ -79,14 +78,13 @@ TEST(ParallelForTest, MinBlockSize) {
   mutex mu;
   std::vector<Range> ranges;
 
-  pfor.Execute(
-      100, BlockSizes::Min(75),
-      [&](size_t begin, size_t end) {
+  AsyncValueRef<Chain> done =
+      pfor.Execute(100, BlockSizes::Min(75), [&](size_t begin, size_t end) {
         mutex_lock lock(mu);
         ranges.push_back({begin, end});
         barrier.count_down();
-      },
-      [&]() { barrier.count_down(); });
+      });
+  done.AndThen([&]() { barrier.count_down(); });
 
   barrier.wait();
 
@@ -95,6 +93,26 @@ TEST(ParallelForTest, MinBlockSize) {
 
   ASSERT_EQ(ranges.size(), 2);
   ASSERT_EQ(ranges, expected);
+}
+
+TEST(ParallelForTest, BlockTasksCompletion) {
+  auto host = CreateTestHostContext(4);
+  ParallelFor pfor(host.get());
+
+  latch barrier(1);
+  std::atomic<int32_t> completed_tasks{0};
+
+  AsyncValueRef<Chain> done =
+      pfor.Execute(100, BlockSizes::Fixed(1),
+                   [&](size_t begin, size_t end) { completed_tasks++; });
+
+  done.AndThen([&]() {
+    // All tasks should have completed when AndThen is called.
+    ASSERT_EQ(completed_tasks.load(), 100);
+    barrier.count_down();
+  });
+
+  barrier.wait();
 }
 
 TEST(ParallelForTest, ExecuteNestedParallelism) {

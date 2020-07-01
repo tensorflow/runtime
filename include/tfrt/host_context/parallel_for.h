@@ -74,9 +74,43 @@ class ParallelFor {
   // in the [0, total_size) range. When all subtasks have completed, the
   // `on_done` callback will be called. Uses `block_sizes` to compute the
   // parallel block size.
+  //
+  // Example:
+  //
+  //   AsyncValueRef<Chain> chain = ... allocate chain value ...
+  //
+  //   parallel_for.Execute(
+  //       total_size, block_sizes,
+  //       [](size_t start, size_t end) {
+  //          Compute(start, end);
+  //       },
+  //       [chain = chain.CopyRef()]() { chain.emplace(); }
+  //   );
+  //
+  // Chain will become ready when parallel for will call `on_done` callback.
   void Execute(size_t total_size, const BlockSizes& block_sizes,
                llvm::unique_function<void(size_t, size_t)> compute,
                llvm::unique_function<void()> on_done) const;
+
+  // Execute implementation that instead of taking an `on_done` callback returns
+  // an async Chain that will become ready when all subtasks are completed.
+  //
+  // Example:
+  //
+  //   AsyncValueRef<Chain> done = parallel_for.Execute(
+  //       total_size, block_sizes,
+  //       [](size_t start, size_t end) {
+  //          Compute(start, end);
+  //       }
+  //   );
+  //
+  //  done.AndThen([]() { ... continuation ... });
+  //
+  // If multiple parallel for operations must be chained together, it is easier
+  // to do it with an explicit async chain returned as a result.
+  AsyncValueRef<Chain> Execute(
+      size_t total_size, const BlockSizes& block_sizes,
+      llvm::unique_function<void(size_t, size_t)> compute) const;
 
   // Execute implementation with a support for asynchronous compute function
   // completion. When all async values returned from subtasks are available,
@@ -86,6 +120,21 @@ class ParallelFor {
   // unsafe to do a blocking wait (e.g. using latch) for their completion,
   // because it might lead to a thread pool exhaustion and dead locks. All tasks
   // completions must be communicated with async values.
+  //
+  // Example: compute sum of random numbers generated asynchronously.
+  //
+  //   AsyncValueRef<int32_t> async_sum = parallel_for.Execute(
+  //       total_size, block_sizes,
+  //       [](size_t start, size_t end) -> AsyncValueRef<int32_t> {
+  //         // This operation returns random number asynchronously.
+  //         return AsyncRandomNumberGeneratorInstance().Next();
+  //       },
+  //       [](ArrayRef<AsyncValueRef<int32_t>> values) -> int32_t {
+  //         int32_t sum;
+  //         for (auto& av : values) sum += av.get();
+  //         return sum;
+  //       }
+  //   );
   template <typename T, typename R>
   AsyncValueRef<R> Execute(
       size_t total_size, const BlockSizes& block_sizes,

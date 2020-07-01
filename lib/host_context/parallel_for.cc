@@ -22,6 +22,7 @@
 
 #include "tfrt/host_context/parallel_for.h"
 
+#include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
 
 namespace tfrt {
@@ -159,6 +160,15 @@ void ParallelFor::Execute(size_t total_size, const BlockSizes& block_sizes,
   ParallelForExecutionContext* ctx = ParallelForExecutionContext::Allocate(
       host_, total_size, block_size, std::move(compute), std::move(on_done));
   ctx->EvalBlocks(0, ctx->PendingBlocks());
+}
+
+AsyncValueRef<Chain> ParallelFor::Execute(
+    size_t total_size, const BlockSizes& block_sizes,
+    llvm::unique_function<void(size_t, size_t)> compute) const {
+  auto chain = host_->MakeConstructedAsyncValueRef<Chain>();
+  Execute(total_size, block_sizes, std::move(compute),
+          [chain = chain.CopyRef()]() { chain.SetStateConcrete(); });
+  return chain;
 }
 
 }  // namespace tfrt

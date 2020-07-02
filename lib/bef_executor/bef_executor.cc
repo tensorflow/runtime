@@ -198,7 +198,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
  private:
   void DecrementArgumentsNotReadyCounts(SmallVectorImpl<unsigned>* kernel_ids);
   void ProcessArgumentsPseudoKernel(SmallVectorImpl<unsigned>* kernel_ids);
-  void ProcessUsedBys(const BEFKernel& kernel, int result_number,
+  void ProcessUsedBys(const BEFKernel& kernel, int kernel_id, int result_number,
                       AsyncValue* result, int* entry_offset,
                       SmallVectorImpl<unsigned>* kernel_ids);
   void MaybeAddRefForResult(AsyncValue* result);
@@ -236,8 +236,9 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 // users, it will be skipped. If the kernel immediately completed a result, then
 // we can mark all kernels using it as ready to go, otherwise we need to enqueue
 // them on their unavailable operands.
-void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int result_number,
-                                 AsyncValue* result, int* entry_offset,
+void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
+                                 int result_number, AsyncValue* result,
+                                 int* entry_offset,
                                  SmallVectorImpl<unsigned>* kernel_ids) {
   // Find used_by entries for this result.
   auto num_used_bys = kernel.num_used_bys(result_number);
@@ -261,6 +262,17 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int result_number,
   // This check is done intentionally after checking for IsConcrete()
   // so that in the normal path we call AsyncValue::state() only once.
   if (state.IsError()) {
+#ifdef DEBUG_BEF_EXECUTOR
+    if (kernel_id >= 0) {
+      std::string error_message;
+      llvm::raw_string_ostream os(error_message);
+      os << result->GetError();
+      DEBUG_PRINT(
+          "Kernel %d %s got error: %s\n", kernel_id,
+          location_handler_->BefFile()->GetKernelName(kernel.kernel_code()),
+          os.str().c_str());
+    }
+#endif
     SetKernelsWithErrorInputReady(kernel_infos(), used_bys);
   }
 
@@ -352,7 +364,8 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
     assert(result && "Argument AsyncValue is not set.");
 
     // Process users of this result.
-    ProcessUsedBys(kernel, result_number, result, &used_by_offset, kernel_ids);
+    ProcessUsedBys(kernel, /*kernel_id=*/-1, result_number, result,
+                   &used_by_offset, kernel_ids);
   }
 }
 
@@ -510,8 +523,8 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
       auto* register_value =
           SetRegisterValue(&result_register, result, &register_already_set);
       // Process users of this result.
-      ProcessUsedBys(kernel, result_number, register_value, &entry_offset,
-                     kernel_ids);
+      ProcessUsedBys(kernel, kernel_id, result_number, register_value,
+                     &entry_offset, kernel_ids);
 
       // DropRef since we no longer need the IndirectAsyncValue in the register.
       if (register_already_set) register_value->DropRef();

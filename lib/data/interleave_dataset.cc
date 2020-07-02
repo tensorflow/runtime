@@ -59,10 +59,6 @@ IterationResult InterleaveDatasetIterator::GetNext(
   return result;
 }
 
-// TODO(donglin): Support fetching multiple values in the input iterator without
-// waiting for the first value to be available. This can help improve
-// performance when each intermeidate iterator only emits a small constant
-// number of values.
 AsyncValue* InterleaveDatasetIterator::FetchInputValues(
     const ExecutionContext& exec_ctx) {
   auto output_buffer_size = OutputBufferSize();

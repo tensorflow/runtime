@@ -42,6 +42,22 @@
 
 namespace tfrt {
 
+template <typename T>
+AsyncValueRef<T> ForwardValue(T& value, AsyncValueRef<Chain> chain,
+                              HostContext* host) {
+  auto result = host->MakeUnconstructedAsyncValueRef<T>();
+  auto* chain_av = chain.GetAsyncValue();
+  chain_av->AndThen([result = result.CopyRef(), value = std::move(value),
+                     chain = std::move(chain)]() mutable {
+    if (chain.IsError()) {
+      result.SetError(chain.GetError());
+    } else {
+      result.emplace(std::move(value));
+    }
+  });
+  return result;
+}
+
 //===----------------------------------------------------------------------===//
 // Registration helpers used to make sync kernels easier to define.
 //===----------------------------------------------------------------------===//

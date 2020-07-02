@@ -108,7 +108,6 @@ class MemoryDatasetIterator : public Iterator {
   MemoryDatasetIterator(const MemoryDatasetIterator&) = delete;
   MemoryDatasetIterator& operator=(const MemoryDatasetIterator&) = delete;
 
-  // TODO(b/155918211): Handle asynchrous EOF from the input_iterator_
   IterationResult GetNext(const ExecutionContext& exec_ctx) override {
     HostContext* host = exec_ctx.host();
     if (!buffer_completed_) {

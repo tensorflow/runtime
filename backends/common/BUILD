@@ -138,21 +138,23 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "eigen_kernels",
     srcs = [
-        "lib/compat/eigen/kernels/batch_norm.h",
         "lib/compat/eigen/kernels/batch_norm_grad.cc",
-        "lib/compat/eigen/kernels/conv2d.h",
         "lib/compat/eigen/kernels/conv2d_grad_filter.cc",
         "lib/compat/eigen/kernels/conv2d_grad_input.cc",
         "lib/compat/eigen/kernels/conv2d_shape_functions.cc",
-        "lib/compat/eigen/kernels/conv2d_shape_functions.h",
         "lib/compat/eigen/kernels/cpu_kernels.cc",
         "lib/compat/eigen/kernels/matmul.cc",
-        "lib/compat/eigen/kernels/max_pooling.h",
         "lib/compat/eigen/kernels/shape_functions.cc",
-        "lib/compat/eigen/kernels/zero_padding.h",
     ],
     hdrs = [
         "include/tfrt/common/compat/eigen/kernels/shape_functions.h",
+        # These headers are needed by the `eigen_ops` bazel target. Move them
+        # to include/ if they are needed by other bazel targets.
+        "lib/compat/eigen/kernels/conv2d_shape_functions.h",
+        "lib/compat/eigen/kernels/batch_norm.h",
+        "lib/compat/eigen/kernels/conv2d.h",
+        "lib/compat/eigen/kernels/max_pooling.h",
+        "lib/compat/eigen/kernels/zero_padding.h",
     ],
     alwayslink_static_registration_src = "lib/compat/eigen/kernels/static_registration.cc",
     visibility = ["@tf_runtime//:friends"],
@@ -162,5 +164,21 @@ tfrt_cc_library(
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_library(
+    name = "eigen_ops",
+    srcs = [
+        "lib/compat/eigen/ops/cpu_ops.cc",
+    ],
+    alwayslink_static_registration_src = "lib/compat/eigen/ops/static_registration.cc",
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":eigen_kernels",
+        ":eigencompat",
+        "@tf_runtime//:core_runtime",
+        "@tf_runtime//:tensor",
+        "@tf_runtime//backends/cpu:core_runtime",
     ],
 )

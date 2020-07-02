@@ -456,6 +456,20 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
     results[0] = std::move(t);
   }
 
+  // For ops functions that return std::array<AsyncValueRef<T>, N>.
+  template <int result_idx, bool has_chain, typename T, size_t N>
+  static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,
+                           AsyncValueRef<Chain>* chain,
+                           const ExecutionContext& exec_ctx,
+                           std::array<AsyncValueRef<T>, N> t) {
+    static_assert(result_idx == 0,
+                  "Do not both have result argument and return result");
+    assert(results.size() == t.size() && "Incorrect number of return values");
+    for (int i = 0, e = t.size(); i < e; ++i) {
+      results[i] = t[i].ReleaseRCRef();
+    }
+  }
+
   // For ops functions that return Expected<T>.
   template <int result_idx, bool has_chain, typename T>
   static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,

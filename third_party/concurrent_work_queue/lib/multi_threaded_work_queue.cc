@@ -114,18 +114,6 @@ void MultiThreadedWorkQueue::Await(ArrayRef<RCReference<AsyncValue>> values) {
     value->AndThen([&values_remaining]() { values_remaining.count_down(); });
   }
 
-  // Keep stealing tasks from non-blocking workers until we reach a point when
-  // all async values are resolved or we could not steal any task.
-  //
-  // We steal pending tasks globally and potentially can steal a very expensive
-  // task, that will unnecessarily delay the completion of this function.
-  // Alternative is to immediately block on the latch.
-  llvm::Optional<TaskFunction> task = non_blocking_work_queue_.Steal();
-  while (task.hasValue() || !values_remaining.try_wait()) {
-    if (task.hasValue()) (*task)();
-    task = non_blocking_work_queue_.Steal();
-  }
-
   // Wait until all values are resolved.
   values_remaining.wait();
 }

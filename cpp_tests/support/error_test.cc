@@ -27,10 +27,27 @@
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/msan.h"
 
+#ifndef __has_attribute
+#define __has_attribute(x) 0
+#endif
+
+#if __has_attribute(noinline)
+#define NOINLINE __attribute__((noinline))
+#define HAS_ATTRIBUTE_NOINLINE 1
+#else
+#define NOINLINE
+#endif
+
 namespace tfrt {
-StackTrace CreateStackTrace0() { return CreateStackTrace(/*skip_count=*/1); }
-StackTrace CreateStackTrace1() { return CreateStackTrace0(); }
-StackTrace CreateStackTrace2() { return CreateStackTrace1(); }
+NOINLINE StackTrace CreateStackTrace0() {
+  int skip_count = 1;
+#if __has_feature(address_sanitizer) || defined MEMORY_SANITIZER
+  ++skip_count;  // Skip __interceptor_backtrace added by MSAN and ASAN.
+#endif
+  return CreateStackTrace(skip_count);
+}
+NOINLINE StackTrace CreateStackTrace1() { return CreateStackTrace0(); }
+NOINLINE StackTrace CreateStackTrace2() { return CreateStackTrace1(); }
 
 namespace {
 llvm::Error SuccessError() { return llvm::Error::success(); }
@@ -81,19 +98,10 @@ TEST(Test, StackTrace) {
   if (!stack_trace) GTEST_SKIP() << "Stack traces unavailable";
   std::string buffer;
   llvm::raw_string_ostream(buffer) << stack_trace;
-  // TODO(csigg): MSAN and ASAN add __interceptor_backtrace, breaking the check
-  // below.
-#if defined(__has_feature)
-#if __has_feature(address_sanitizer)
-  GTEST_SKIP() << "Fails in ASAN builds";
-#endif
-#endif
-#ifdef MEMORY_SANITIZER
-  GTEST_SKIP() << "Fails in MSAN builds";
-#endif
   EXPECT_FALSE(Contains(buffer, "tfrt::CreateStackTrace0()"));
-  // TODO(csigg): figure out how to prevent functions from being inlined.
-  GTEST_SKIP() << "Fails in optimized builds";
+#ifndef HAS_ATTRIBUTE_NOINLINE
+  GTEST_SKIP() << "Couldn't specify 'noinline' attribute.";
+#endif
   EXPECT_TRUE(Contains(buffer, "tfrt::CreateStackTrace1()"));
   EXPECT_TRUE(Contains(buffer, "tfrt::CreateStackTrace2()"));
   // File and line info requires `--strip=never` or `-c dbg`.

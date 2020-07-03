@@ -145,7 +145,7 @@ static llvm::Expected<DenseHostTensor> TruncateTensor(
   auto output_tensor = std::move(dht.getValue());
   std::memcpy(output_tensor.data(), input_tensor.data(),
               output_tensor.DataSizeInBytes());
-  return output_tensor;
+  return std::move(output_tensor);
 }
 
 // Copies buffer from `input_value` (which is a DenseHostTensor) into

@@ -93,7 +93,7 @@ static llvm::Expected<DenseHostTensor> ResizeBilinear(
   TensorMetadata output_metadata(GetDType<float>(), {height, width, channels});
   DenseHostTensor output(output_metadata, dht->ReleaseBuffer());
 
-  return output;
+  return std::move(output);
 }
 
 // This is the entrypoint to the library.

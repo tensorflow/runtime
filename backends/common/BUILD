@@ -145,6 +145,8 @@ tfrt_cc_library(
         "lib/compat/eigen/kernels/cpu_kernels.cc",
         "lib/compat/eigen/kernels/matmul.cc",
         "lib/compat/eigen/kernels/shape_functions.cc",
+        "lib/compat/eigen/kernels/softmax.h",
+        "lib/compat/eigen/kernels/zero_padding.h",
     ],
     hdrs = [
         "include/tfrt/common/compat/eigen/kernels/shape_functions.h",

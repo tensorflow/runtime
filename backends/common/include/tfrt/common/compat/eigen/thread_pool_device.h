@@ -151,6 +151,24 @@ struct KeepBuffers {
 // `AsyncAssign`. Also all reference counted types must be moved into the
 // callback, to prevent accidental call to a DropRef() (and maybe deallocation)
 // when kernel function finishes its execution.
+//
+// Example:
+//
+//   // Build an expression from the input tensor.
+//   auto input = AsEigenConstTensor(...);
+//   auto expr = input.log().sqrt();
+//
+//   auto output = AsEigenTensor(...);
+//
+//   // Return a chain to the caller to signal completion.
+//   AsyncValueRef<Chain> done = ... allocate chain ...
+//
+//   // Evaluate: output = expr;
+//   AsyncAssign(ctx, output, std::move(expr),
+//       [done = done.CopyRef()]() { done.emplace(); });
+//
+// `done` chain will be emplaced by a thread that completes the last expression
+// assignment task.
 template <
     typename Output, typename Expr, typename DoneCallback,
     typename = std::enable_if_t<internal::is_invocable<DoneCallback>::value>>
@@ -167,6 +185,20 @@ void AsyncAssign(const EigenHostContext& ctx, Output out, Expr expr,
 // required for the duration of Eigen expression evaluation (lifetime extension)
 // into an instance of `ArgLifetimeExtension` (see `KeepBuffers` or
 // `RAIIKernelFrame`).
+//
+// Example:
+//
+//   // Build an expression from the input tensor.
+//   auto input = AsEigenConstTensor(...);
+//   auto expr = input.log().sqrt();
+//
+//   auto output = AsEigenTensor(...);
+//
+//   // Evaluate: output = expr;
+//   AsyncValueRef<Chain> = AsyncAssign(ctx, output, std::move(expr));
+//
+// Async chain result allows to compose multiple dependent expression
+// assignments without nested `on_done` callbacks (see examples below).
 template <typename Output, typename Expr, typename ArgLifetimeExtension,
           typename = std::enable_if_t<
               !internal::is_invocable<ArgLifetimeExtension>::value>>
@@ -178,6 +210,74 @@ AsyncValueRef<Chain> AsyncAssign(const EigenHostContext& ctx, Output out,
   };
   out.device(ctx.Device(), std::move(callback)) = expr;
   return chain;
+}
+
+// Syntactic sugar for `AsyncAssign` expression that must be executed only after
+// all async dependencies (expressed as chains) become ready.
+//
+// Example:
+//
+//   // Tensors for the intermediate results.
+//   auto lhs = AsEigenTensor(...);
+//   auto rhs = AsEigenTensor(...);
+//
+//   // Tensor for a final result.
+//   auto out = AsEigenTensor(...);
+//
+//   // Compute intermediate results in parallel.
+//   AsyncValueRef<Chain> lhs_ready = AsyncAssign(ctx, lhs, ...);
+//   AsyncValueRef<Chain> rhs_ready = AsyncAssign(ctx, rhs...);
+//
+//   // Execute final assignment after intermediate results become ready.
+//   auto dependencies = {lhs_ready.GetAsyncValue(), rhs_ready.GetAsyncValue()};
+//   AsyncValueRef<Chain> done = AsyncAssign(ctx, dependencies, out, ...);
+template <typename Output, typename Expr, typename ArgLifetimeExtension,
+          typename = std::enable_if_t<
+              !internal::is_invocable<ArgLifetimeExtension>::value>>
+AsyncValueRef<Chain> AsyncAssign(const EigenHostContext& ctx,
+                                 ArrayRef<AsyncValue*> dependencies, Output out,
+                                 Expr expr, ArgLifetimeExtension args) {
+  auto chain = ctx.host()->MakeUnconstructedAsyncValueRef<Chain>();
+
+  ctx.host()->RunWhenReady(
+      dependencies,
+      [&ctx, out = std::move(out), expr = std::move(expr),
+       chain = chain.CopyRef(), args = std::move(args)]() mutable {
+        auto done = [args = std::move(args), chain = std::move(chain)]() {
+          chain.emplace();
+        };
+        out.device(ctx.Device(), std::move(done)) = expr;
+      });
+
+  return chain;
+}
+
+// Syntactic sugar for `AsyncAssign` defined above accepting a single chain
+// dependency.
+//
+// Example:
+//
+//    auto t0 = AsEigenTensor(...);
+//    auto t1 = AsEigenTensor(...);
+//
+//    // Evaluate intermediate result.
+//    AsyncValueRef<Chain> t0_ready = AsyncAssign(ctx, t0, ...);
+//
+//    // Execute assignment after t0 assignment completed.
+//    AsyncValueRef<Chain> t1_ready = AsyncAssign(ctx, t0_ready, t1, ...);
+//
+// This is a helper function to write multiple asynchronous assignments with
+// a sequential dependency.
+template <typename Output, typename Expr, typename ArgLifetimeExtension,
+          typename = std::enable_if_t<
+              !internal::is_invocable<ArgLifetimeExtension>::value>>
+AsyncValueRef<Chain> AsyncAssign(const EigenHostContext& ctx,
+                                 const AsyncValueRef<Chain>& chain, Output out,
+                                 Expr expr, ArgLifetimeExtension args) {
+  SmallVector<AsyncValue*, 1> dependencies;
+  dependencies.push_back(chain.GetAsyncValue());
+  return AsyncAssign(ctx, dependencies, std::move(out), std::move(expr),
+                     std::move(args));
 }
 
 }  // namespace compat

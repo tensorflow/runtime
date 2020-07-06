@@ -29,11 +29,12 @@ class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
   using ThreadingEnvironment = ::tfrt::internal::StdThreadingEnvironment;
 
  public:
-  MultiThreadedWorkQueue(int num_threads, int max_blocking_work_queue_threads);
+  MultiThreadedWorkQueue(int num_threads, int num_blocking_threads);
   ~MultiThreadedWorkQueue() override;
 
   std::string name() const override {
-    return StrCat("Multi-threaded C++ work queue (", num_threads_, " threads)");
+    return StrCat("Multi-threaded C++ work queue (", num_threads_, " threads, ",
+                  num_blocking_threads_, " blocking threads)");
   }
 
   int GetParallelismLevel() const final { return num_threads_; }
@@ -48,19 +49,20 @@ class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
 
  private:
   const int num_threads_;
+  const int num_blocking_threads_;
 
   std::unique_ptr<internal::QuiescingState> quiescing_state_;
   internal::NonBlockingWorkQueue<ThreadingEnvironment> non_blocking_work_queue_;
   internal::BlockingWorkQueue<ThreadingEnvironment> blocking_work_queue_;
 };
 
-MultiThreadedWorkQueue::MultiThreadedWorkQueue(
-    int num_threads, int max_blocking_work_queue_threads)
+MultiThreadedWorkQueue::MultiThreadedWorkQueue(int num_threads,
+                                               int num_blocking_threads)
     : num_threads_(num_threads),
+      num_blocking_threads_(num_blocking_threads),
       quiescing_state_(std::make_unique<internal::QuiescingState>()),
       non_blocking_work_queue_(quiescing_state_.get(), num_threads),
-      blocking_work_queue_(quiescing_state_.get(),
-                           max_blocking_work_queue_threads) {}
+      blocking_work_queue_(quiescing_state_.get(), num_blocking_threads) {}
 
 MultiThreadedWorkQueue::~MultiThreadedWorkQueue() {
   // Pending tasks in the underlying queues might submit new tasks to each other

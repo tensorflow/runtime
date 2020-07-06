@@ -89,6 +89,7 @@ struct BEFFunction {
   bool IsNativeFunction() const {
     return kind == FunctionKind::kNativeFunction;
   }
+  bool IsSyncFunction() const { return kind == FunctionKind::kSyncBEFFunction; }
 };
 
 // This struct keeps the information of a BEF file.
@@ -993,6 +994,9 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
       mlir::FuncOp::create(location, bef_function.name, function_type);
   func_op.getBody().takeBody(*region);
 
+  if (bef_function.IsSyncFunction()) {
+    func_op.setAttr("hex.sync", mlir::UnitAttr::get(&context_));
+  }
   return func_op;
 }
 

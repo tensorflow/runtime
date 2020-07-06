@@ -129,6 +129,9 @@ enum class FunctionKind : uint8_t {
 
   // This is the native function that invokes executable code directly.
   kNativeFunction = 1,
+
+  // This is the sync BEF function that defines registers and kernels in BEF.
+  kSyncBEFFunction = 2,
 };
 
 // Below constants defines bit positions and bit sizes for different category of

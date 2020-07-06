@@ -283,6 +283,8 @@ static bool IsReturn(mlir::Operation* op) {
 
 static bool IsNativeFunc(mlir::FuncOp op) { return !!op.getAttr("hex.native"); }
 
+static bool IsSyncFunc(mlir::FuncOp op) { return !!op.getAttr("hex.sync"); }
+
 static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   // Emit information about the type of the function.
   auto& block = region->front();
@@ -342,6 +344,8 @@ struct EntityTable {
     mlir::Region* region = nullptr;
 
     bool IsNative() const { return kind == FunctionKind::kNativeFunction; }
+
+    bool IsSync() const { return kind == FunctionKind::kSyncBEFFunction; }
   };
 
   // List of functions that we need to emit, along with a name if they came
@@ -380,7 +384,8 @@ struct EntityTable {
   unsigned GetTypeIndex(mlir::Type type) const;
 
   void AddNativeFunction(mlir::FuncOp op);
-  LogicalResult AddFunction(mlir::Region* region, string_view name);
+  LogicalResult AddFunction(mlir::Region* region, string_view name,
+                            FunctionKind func_kind);
   unsigned GetFunctionID(const mlir::Region& region) const;
 
   void AddKernel(mlir::Operation* kernel);
@@ -436,7 +441,8 @@ void EntityTable::AddNativeFunction(mlir::FuncOp op) {
       FunctionEntry(name, function_type, FunctionKind::kNativeFunction));
 }
 
-LogicalResult EntityTable::AddFunction(mlir::Region* region, string_view name) {
+LogicalResult EntityTable::AddFunction(mlir::Region* region, string_view name,
+                                       FunctionKind func_kind) {
   // Check to see if we support this region kind.
   if (!llvm::hasSingleElement(*region)) {
     mlir::emitError(region->getLoc())
@@ -450,8 +456,8 @@ LogicalResult EntityTable::AddFunction(mlir::Region* region, string_view name) {
   AddString(name);
   region_function_ids[region] = functions.size();
   named_function_ids[name] = functions.size();
-  functions.push_back(FunctionEntry(name, GetRegionFunctionType(region),
-                                    FunctionKind::kBEFFunction, region));
+  functions.push_back(
+      FunctionEntry(name, GetRegionFunctionType(region), func_kind, region));
   return LogicalResult::Success;
 }
 
@@ -581,7 +587,9 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
           return;
         }
 
-        if (AddFunction(&fn.getBody(), fn.getName()) ==
+        auto func_kind = IsSyncFunc(fn) ? FunctionKind::kSyncBEFFunction
+                                        : FunctionKind::kBEFFunction;
+        if (AddFunction(&fn.getBody(), fn.getName(), func_kind) ==
             LogicalResult::Failure) {
           result = LogicalResult::Failure;
           return;
@@ -633,7 +641,8 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
 
       // Keep add any regions used by this op as BEF functions.
       for (auto& region : op->getRegions()) {
-        if (AddFunction(&region, "") == LogicalResult::Failure) {
+        if (AddFunction(&region, "", FunctionKind::kBEFFunction) ==
+            LogicalResult::Failure) {
           result = LogicalResult::Failure;
           return;
         }

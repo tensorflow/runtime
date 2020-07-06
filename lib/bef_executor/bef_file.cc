@@ -395,6 +395,11 @@ bool BEFFileReader::ReadFunctionIndexSection() {
         bef_file_->functions_.push_back(std::move(bef_function));
         break;
       }
+      case FunctionKind::kSyncBEFFunction: {
+        bef_file_->error_handler_(
+            DecodedDiagnostic("does not yet handle sync bef function"));
+        return true;
+      }
       case FunctionKind::kNativeFunction: {
         auto callable = NativeFunctionRegistry::GetGlobalRegistry().Get(name);
         if (callable == nullptr) {

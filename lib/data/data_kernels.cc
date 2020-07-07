@@ -139,8 +139,9 @@ RCReference<InterleaveDataset> MakeInterleaveDataset(
 
 RCReference<TFRecordDataset> MakeTFRecordDataset(
     std::string path, const ExecutionContext& exec_ctx) {
-  return TakeRef(exec_ctx.host()->Construct<TFRecordDataset>(std::move(path),
-                                                             exec_ctx.host()));
+  auto num_worker_threads = exec_ctx.host()->GetNumWorkerThreads();
+  return TakeRef(exec_ctx.host()->Construct<TFRecordDataset>(
+      std::move(path), num_worker_threads, exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//

@@ -41,8 +41,12 @@ namespace data {
 // from the file onto the heap.
 class TFRecordDataset : public Dataset {
  public:
-  explicit TFRecordDataset(std::string path, HostContext* host)
-      : path_(std::move(path)), host_(host), allocator_(host->allocator()) {}
+  explicit TFRecordDataset(std::string path, int32_t num_worker_threads,
+                           HostContext* host)
+      : path_(std::move(path)),
+        num_worker_threads_(num_worker_threads),
+        host_(host),
+        allocator_(host->allocator()) {}
 
   // This class is not copyable or movable.
   TFRecordDataset(const TFRecordDataset&) = delete;
@@ -58,6 +62,7 @@ class TFRecordDataset : public Dataset {
   }
 
   const std::string path_;
+  const int32_t num_worker_threads_;
   HostContext* host_;
   HostAllocator* allocator_;
 };
@@ -65,7 +70,7 @@ class TFRecordDataset : public Dataset {
 class TFRecordDatasetIterator : public io::PrefetchingIterator {
  public:
   explicit TFRecordDatasetIterator(RCReference<TFRecordDataset> parent_dataset)
-      : io::PrefetchingIterator(256, 64),
+      : io::PrefetchingIterator(parent_dataset->num_worker_threads_),
         parent_dataset_(std::move(parent_dataset)),
         stream_(parent_dataset_->path_.c_str(), std::ios_base::binary) {}
 

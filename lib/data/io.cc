@@ -28,83 +28,133 @@ namespace data {
 namespace io {
 
 IterationResult PrefetchingIterator::GetNext(const ExecutionContext& exec_ctx) {
-  // Code that needs to hold both locks (input and state) must do the
-  // locking in the same order to avoid deadlocks:
-  //
-  //   1. input_mu_
-  //   2. state_mu_
-  //
-  // Asynchronous prefetch tasks and this function follow this rule.
-  const int32_t max_prefetch = max_num_prefetch_elements_;
-  const int32_t threshold = prefetch_threshold_;
-
+  auto* host = exec_ctx.host();
+  llvm::SmallVector<RCReference<AsyncValue>, 1> result_values;
+  result_values.resize(1);
+  // The IndirectAsyncValue might be filled later by the background blocking
+  // thread.
+  result_values[0] = host->MakeIndirectAsyncValue();
+  auto result_eof = host->MakeUnconstructedAsyncValueRef<bool>();
+  auto result =
+      IterationResult::Pending(std::move(result_values), std::move(result_eof));
   {
-    mutex_lock state_lock(state_mu_);
+    mutex_lock lock(mu_);
+    output_buffer_.push(result.CopyRef());
 
-    // Number of prefetched elements + pending prefetches.
-    const int32_t prefetched = buffer_.size() + prefetch_enqueued_;
+    // Return since another thread is already actively reading data and updating
+    // the output_buffer_.
+    if (token_owned_) {
+      return result;
+    }
 
-    // Enqueue a prefetch task if the number of outstanding prefetches falls
-    // below a threshold.
-    if (prefetched <= threshold && !IsCancelled()) {
-      const int32_t prefetch = max_prefetch - prefetched;
-
-      auto task = [iterator = FormRef(this), exec_ctx, prefetch]() {
-        mutex_lock input_lock(iterator->input_mu_);
-        if (iterator->IsCancelled()) return;
-
-        // IDEA(ezhulenev): Verify these ideas in benchmarks:
-        // (1) Instead of grabbing the input lock to read all `prefetch`
-        //     elements, we can grab it to read mini-batches, so we would
-        //     allow concurrent GetNext() caller to make progress sooner in
-        //     case it also reaches GetNextLocked().
-        // (2) Grab state lock to push multiple prefetched elements at a
-        //     time.
-        for (int32_t i = 0; i < prefetch; ++i) {
-          auto next = iterator->GetNextElement(exec_ctx);
-          bool cancel =
-              internal::IsConcreteAndEmpty(next) || next.eof.IsError();
-          {
-            mutex_lock state_lock(iterator->state_mu_);
-            iterator->buffer_.push(std::move(next));
-            iterator->prefetch_enqueued_--;
-          }
-          if (cancel) {
-            iterator->Cancel();
-            break;
-          }
-        }
+    // The caller is a non-blocking thread, there is no token owner and there
+    // are more values to prefetch. Schedule a blocking task to fetch values.
+    if (!reached_eof_ &&
+        prefetch_buffer_.size() < prefetch_threshold_ + output_buffer_.size()) {
+      auto task = [iterator = FormRef(this), exec_ctx]() {
+        iterator->ReadIOSource(exec_ctx);
       };
-
-      if (exec_ctx.host()->EnqueueBlockingWork(std::move(task)))
-        prefetch_enqueued_ += prefetch;
-    }
-
-    // Check if the prefetch buffer is not empty.
-    if (!buffer_.empty()) {
-      auto result = std::move(buffer_.front());
-      buffer_.pop();
-      return result;
+      if (exec_ctx.host()->EnqueueBlockingWork(std::move(task))) {
+        // The task that is successfully scheduled in the blocking threadpool
+        // owns the token.
+        token_owned_ = true;
+        return result;
+      }
+      // Caller thread has to read data from the underlying IO source because it
+      // fails to schedule a blocking task to read the data.
+      assert(output_buffer_.size() == 1);
+      auto input = GetNextElement(exec_ctx);
+      prefetch_buffer_.push(std::move(input));
     }
   }
 
-  // If prefetch buffer is empty, read the next element from the parent.
-  mutex_lock input_lock_(input_mu_);
+  MaterializeOutputs(exec_ctx);
+  return result;
+}
+
+void PrefetchingIterator::ReadIOSource(const ExecutionContext& exec_ctx) {
   {
-    mutex_lock state_lock(state_mu_);
-    // Check if a prefetch task completed and pushed anything into the
-    // buffer. Otherwise we might accidentally produce elements out of order.
-    if (!buffer_.empty()) {
-      auto result = std::move(buffer_.front());
-      buffer_.pop();
-      return result;
+    mutex_lock lock(mu_);
+    assert(token_owned_);
+    // The caller is the token owner, there are enough prefetched values and
+    // there is no output value to update. Release the token and return.
+    if (output_buffer_.empty() &&
+        (prefetch_buffer_.size() >= prefetch_threshold_ || reached_eof_)) {
+      token_owned_ = false;
+      return;
     }
   }
+  MaterializeOutputs(exec_ctx);
 
-  auto next = GetNextElement(exec_ctx);
-  if (internal::IsConcreteAndEmpty(next) || next.eof.IsError()) Cancel();
+  // There is no other thread that owns the token. So we are free to access the
+  // prefetch_buffer_ and the underlying IO source without having a lock.
+  auto prefetch_num =
+      max_prefetch_num_ + OutputBufferSize() - prefetch_buffer_.size();
+  for (int32_t i = 0; i < prefetch_num; ++i) {
+    if (exec_ctx.IsCancelled()) return;
+    auto input = GetNextElement(exec_ctx);
+    if (input.eof.IsConcrete() && input.eof.get()) {
+      reached_eof_ = true;
+      break;
+    }
+    auto output = DequeueOutputBuffer();
+    if (!output) {
+      prefetch_buffer_.push(std::move(input));
+    } else {
+      // It is guaranteed that no other thread will attempt to dequeue value
+      // from the output buffer.
+      ForwardInputToOutput(std::move(input), std::move(output.getValue()),
+                           exec_ctx);
+    }
+  }
+  ReadIOSource(exec_ctx);
+}
 
-  return next;
+void PrefetchingIterator::ForwardInputToOutput(
+    IterationResult input, IterationResult output,
+    const ExecutionContext& exec_ctx) {
+  assert(input.values.size() == output.values.size());
+  for (int i = 0, e = output.values.size(); i < e; ++i) {
+    auto* output_value = cast<IndirectAsyncValue>(output.values[i].get());
+    output_value->ForwardTo(std::move(input.values[i]));
+  }
+  auto* input_eof = input.eof.GetAsyncValue();
+  input_eof->AndThen([input_eof = std::move(input.eof),
+                      output_eof = std::move(output.eof), exec_ctx] {
+    if (input_eof.IsError()) {
+      // Set error location and emit error before forwarding the error to
+      // the output_eof.
+      // TODO(donglin): If the error happens after the BEF executor has finished
+      // its tasks, the LocationHandler might have been de-allocated at this
+      // moment and this line can throw SIGSEGV. Fix it.
+      input_eof.GetAsyncValue()->SetErrorLocationIfUnset(
+          exec_ctx.location().Decode());
+      exec_ctx.host()->EmitError(input_eof.GetError());
+      output_eof.SetError(input_eof.GetError());
+    } else {
+      output_eof.emplace(input_eof.get());
+    }
+  });
+}
+
+void PrefetchingIterator::MaterializeOutputs(const ExecutionContext& exec_ctx) {
+  // It is guaranteed that no other thread will attempt to dequeue value from
+  // the output buffer concurrently.
+  while (!prefetch_buffer_.empty()) {
+    auto output = DequeueOutputBuffer();
+    if (!output) break;
+    auto input = std::move(prefetch_buffer_.front());
+    prefetch_buffer_.pop();
+    ForwardInputToOutput(std::move(input), std::move(output.getValue()),
+                         exec_ctx);
+  }
+  if (reached_eof_) {
+    IterationResult eof_result = IterationResult::Eof(exec_ctx.host(), 1);
+    while (auto output = DequeueOutputBuffer()) {
+      ForwardInputToOutput(eof_result.CopyRef(), std::move(output.getValue()),
+                           exec_ctx);
+    }
+  }
 }
 
 }  // namespace io

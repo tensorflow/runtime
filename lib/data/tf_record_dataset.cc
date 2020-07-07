@@ -81,7 +81,9 @@ IterationResult TFRecordDatasetIterator::GetNextElement(
     return IterationResult::Eof(host, 1);
   }
   if (!result) {
-    auto error = EmitErrorAsync(exec_ctx, result.takeError());
+    // Do not decode location or emit error because the local handler might have
+    // been freed.
+    auto error = host->MakeErrorAsyncValueRef(StrCat(result.takeError()));
     return IterationResult::Error(std::move(error), 1);
   }
 

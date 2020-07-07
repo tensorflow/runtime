@@ -47,10 +47,6 @@ namespace io {
 // launches asynchronous tasks, that read elements into the memory buffer ahead
 // of the calls to GetNext().
 //
-// PrefetchingIterator::GetNext() will try to return the next element from the
-// prefetch buffer. If the buffer is empty, it will read directly from the
-// underlying IO source.
-//
 // Prefetching iterator uses locks to guarantee that access to the IO source
 // is properly synchronized. Derived iterators do not need any additional
 // synchronization.
@@ -65,15 +61,13 @@ namespace io {
 // of prefetched records, but also on the memory consumption.
 class PrefetchingIterator : public Iterator {
  public:
-  PrefetchingIterator(int32_t max_num_prefetch_elements,
-                      int32_t prefetch_threshold)
+  explicit PrefetchingIterator(int32_t num_worker_threads)
       : Iterator(),
-        max_num_prefetch_elements_(max_num_prefetch_elements),
-        prefetch_threshold_(prefetch_threshold),
-        prefetch_enqueued_(0),
-        cancel_(false) {
-    assert(prefetch_threshold >= 0);
-    assert(prefetch_threshold <= max_num_prefetch_elements);
+        max_prefetch_num_(num_worker_threads * 8),
+        prefetch_threshold_(num_worker_threads * 2),
+        token_owned_(false),
+        reached_eof_(false) {
+    assert(num_worker_threads > 0);
   }
 
   // Gets the next element from a prefetch buffer, and maybe launches an
@@ -84,35 +78,65 @@ class PrefetchingIterator : public Iterator {
  protected:
   // Reads the next element from the underlying IO source. Prefetching iterator
   // guarantees that all calls to this function will be properly synchronized.
-  virtual IterationResult GetNextElement(const ExecutionContext& exec_cxt)
-      TFRT_REQUIRES(input_mu_) = 0;
+  //
+  // GetNextElement() should avoid decoding error location. This is because the
+  // location handler might have already been freed when this method is called
+  // by a blocking thread. PrefetchingIterator should set error location and
+  // emit the error when it forwards the error to an output value.
+  virtual IterationResult GetNextElement(const ExecutionContext& exec_cxt) = 0;
 
  private:
-  // Cancels all outstanding asynchonous prefetch tasks.
-  void Cancel() { cancel_.store(true, std::memory_order_relaxed); }
-  bool IsCancelled() const { return cancel_.load(std::memory_order_relaxed); }
+  // Read data from IO source if there is more data to fetch. And it forwards
+  // values from the prefetch_buffer_ to those values in the output_buffer_.
+  void ReadIOSource(const ExecutionContext& exec_ctx) TFRT_EXCLUDES(mu_);
 
-  // State mutext guards access to prefetch buffer and prefetch state. It
-  // synchronizes concurrent access between PrefetchingIterator::GetNext()
-  // and asynchronous prefetch tasks.
-  mutex state_mu_;
+  // Forward eof and values from the given input to the given output.
+  void ForwardInputToOutput(IterationResult input, IterationResult output,
+                            const ExecutionContext& exec_ctx);
 
-  // Input mutex guards non thread safe IO operations implemented by the
-  // derived iterator. In practice if asynchronous prefetch tasks are running
-  // ahead of PrefetchingIterator::GetNext(), it almost never will be a point
-  // of contention.
-  mutex input_mu_;
+  // Forward values from the prefetch_buffer_ to those values in the
+  // output_buffer_.
+  void MaterializeOutputs(const ExecutionContext& exec_ctx);
 
-  std::queue<IterationResult> buffer_ TFRT_GUARDED_BY(state_mu_);
+  int OutputBufferSize() TFRT_EXCLUDES(mu_) {
+    mutex_lock lock(mu_);
+    return output_buffer_.size();
+  }
 
-  const int32_t max_num_prefetch_elements_;
-  const int32_t prefetch_threshold_;
+  llvm::Optional<IterationResult> DequeueOutputBuffer() TFRT_EXCLUDES(mu_) {
+    mutex_lock lock(mu_);
+    if (output_buffer_.empty()) return llvm::None;
+    auto value = std::move(output_buffer_.front());
+    output_buffer_.pop();
+    return value;
+  }
 
-  // Number of pending async prefetched elements.
-  int32_t prefetch_enqueued_ TFRT_GUARDED_BY(state_mu_);
+  mutex mu_;
+  // A queue of IterationResult returned by GetNextElement(...). This queue
+  // does not need to be explicitly protected by lock because the implementation
+  // ensures that only token owner can access it.
+  std::queue<IterationResult> prefetch_buffer_;
+  // A queue of IterationResult that have already been returned to the
+  // GetNext(...) caller.
+  std::queue<IterationResult> output_buffer_ TFRT_GUARDED_BY(mu_);
 
-  // A flag to cancel all pending async prefetch tasks.
-  std::atomic<bool> cancel_;
+  // Maximum number of values to prefetch from the underlying IO source
+  // in addition to meeting the number of output values already requested in the
+  // output_buffer_. The total number of values in the queues of the open
+  // iterators is upper bounded by max_prefetch_num_ + output_buffer_size.
+  const size_t max_prefetch_num_;
+  // Schedule background blocking thread to prefetch from the underlying IO
+  // source if the number of prefetched values dropped below this threadhold.
+  const size_t prefetch_threshold_;
+
+  // This is a unique logical token for this iterator instance. It effectively
+  // acts as a lock to ensure in-order delivery of results by guaranteeing that
+  // at most one thread can take the next value from the input_iterator_ and
+  // update values in prefetch_buffer_.
+  bool token_owned_ TFRT_GUARDED_BY(mu_);
+  // Whether the iterator has reached eof. If there exits a thread that owns the
+  // token, then only that thread should access this flag.
+  bool reached_eof_;
 };
 
 }  // namespace io

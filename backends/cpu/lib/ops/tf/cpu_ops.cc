@@ -143,18 +143,67 @@ static AsyncValueRef<DenseHostTensor> TfReluOp(
 #include "tfrt/tensor/dtype.def"  // NOLINT
   }
 
-  auto B_tensor = host->MakeUnconstructedAsyncValueRef<DenseHostTensor>();
-  auto* chain_av = chain.GetAsyncValue();
-  chain_av->AndThen([dest = std::move(dest).getValue(),
-                     chain = std::move(chain),
-                     B_tensor = B_tensor.CopyRef()]() mutable {
-    if (chain.IsError()) {
-      B_tensor.SetError(chain.GetError());
-    } else {
-      B_tensor.emplace<DenseHostTensor>(std::move(dest));
-    }
-  });
-  return B_tensor;
+  return ForwardValue(dest.getValue(), std::move(chain), host);
+}
+
+//===----------------------------------------------------------------------===//
+// tf.Mean op
+//===----------------------------------------------------------------------===//
+
+static AsyncValueRef<DenseHostTensor> TfMeanOp(
+    const DenseHostTensor& input, const DenseHostTensor& reduction_indices,
+    const TensorMetadata& output_md, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  auto output = DenseHostTensor::CreateUninitialized(output_md, host);
+  if (!output) {
+    return EmitErrorAsync(exec_ctx, "out of memory allocating tensor");
+  }
+  DHTArrayView<int32_t> reduction_indices_view(&reduction_indices);
+
+  AsyncValueRef<Chain> chain;
+  switch (input.dtype().kind()) {
+    default:
+      chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfMeanOp");
+      break;
+#define DTYPE_FLOAT(ENUM)                                              \
+  case DType::ENUM:                                                    \
+    chain = cpu::Mean<EigenTypeForDTypeKind<DType::ENUM>>(             \
+        input, reduction_indices_view.Elements(), output.getPointer(), \
+        exec_ctx);                                                     \
+    break;
+#include "tfrt/tensor/dtype.def"  // NOLINT
+  }
+
+  return ForwardValue(output.getValue(), std::move(chain), host);
+}
+
+//===----------------------------------------------------------------------===//
+// tf.BiadAdd op
+//===----------------------------------------------------------------------===//
+
+static AsyncValueRef<DenseHostTensor> TfBiasAddOp(
+    const DenseHostTensor& input, const DenseHostTensor& bias,
+    const TensorMetadata& output_md, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  auto output = DenseHostTensor::CreateUninitialized(output_md, host);
+  if (!output) {
+    return EmitErrorAsync(exec_ctx, "out of memory allocating tensor");
+  }
+
+  AsyncValueRef<Chain> chain;
+  switch (input.dtype().kind()) {
+    default:
+      chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfBiasAddOp");
+      break;
+#define DTYPE_NUMERIC(ENUM)                                   \
+  case DType::ENUM:                                           \
+    chain = cpu::BiasAdd<EigenTypeForDTypeKind<DType::ENUM>>( \
+        input, bias, output.getPointer(), exec_ctx);          \
+    break;
+#include "tfrt/tensor/dtype.def"  // NOLINT
+  }
+
+  return ForwardValue(output.getValue(), std::move(chain), host);
 }
 
 }  // namespace
@@ -171,6 +220,10 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
   op_registry->AddOp("tf.MatMul", TFRT_CPU_OP(TfMatMulOp),
                      CpuOpFlags::NoSideEffects, {"transpose_a", "transpose_b"});
   op_registry->AddOp("tf.Relu", TFRT_CPU_OP(TfReluOp),
+                     CpuOpFlags::NoSideEffects);
+  op_registry->AddOp("tf.Mean", TFRT_CPU_OP(TfMeanOp),
+                     CpuOpFlags::NoSideEffects);
+  op_registry->AddOp("tf.BiasAdd", TFRT_CPU_OP(TfBiasAddOp),
                      CpuOpFlags::NoSideEffects);
 }
 

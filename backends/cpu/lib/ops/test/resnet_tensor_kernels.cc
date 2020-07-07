@@ -20,12 +20,14 @@
 
 #include <cmath>
 
+#include "../../kernels/cpu_kernels.h"
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/cpu/ops/test/cpu_ops_and_kernels.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 
+using ::Eigen::Index;
 using ::tfrt::compat::UnaryEigenKernelAsync;
 
 namespace tfrt {
@@ -120,41 +122,12 @@ static void MaxPool2D(ArgumentView<MutableDHTIndexableView<T, 4>> input,
 }
 
 template <typename T>
-static void GlobalAveragePool(
-    ArgumentView<MutableDHTIndexableView<T, 4>> input,
-    ArgumentView<MutableDHTIndexableView<T, 2>> output,
-    Argument<Chain> chain_in, Result<Chain> chain_out,
-    KernelErrorHandler handler) {
-  // shape_input has format (batch_size, height, width, in_channel_num)
-  const auto& shape_input = input->FixedShape();
-  // shape_output has format (batch_size, in_channel_num)
-  const auto& shape_output = output->FixedShape();
+static AsyncValueRef<Chain> GlobalAveragePool(
+    const DenseHostTensor& input, DenseHostTensor* output, Chain chain_in,
+    const ExecutionContext& exec_ctx) {
+  std::array<int32_t, 2> reduction_indices({1, 2});
 
-  typename MutableDHTIndexableView<T, 2>::FixedShapeType expected_output_shape(
-      {shape_input[0], shape_input[3]});
-
-  if (shape_output != expected_output_shape) {
-    handler.ReportError("GlobalAveragePool output shape ", shape_output,
-                        " does not match the expected output shape ",
-                        expected_output_shape);
-    return;
-  }
-
-  for (int i = 0, e = shape_input[0]; i < e; i++) {
-    for (int j = 0, e = shape_input[3]; j < e; j++) {
-      T sum(0);
-      int count = 0;
-      for (int k = 0, e = shape_input[1]; k < e; k++) {
-        for (int l = 0, e = shape_input[2]; l < e; l++) {
-          sum += input->ElementAt(i, k, l, j);
-          count++;
-        }
-      }
-      output->ElementAt(i, j) = sum / count;
-    }
-  }
-
-  chain_out.Set(chain_in);
+  return cpu::Mean<T>(input, reduction_indices, output, exec_ctx);
 }
 
 template <typename T>

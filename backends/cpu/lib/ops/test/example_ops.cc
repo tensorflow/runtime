@@ -116,7 +116,7 @@ static AsyncValueRef<HostTensor> TestAddOp(const HostTensor& lhs,
       return {};
 #define DTYPE_TRIVIAL(ENUM) \
   case DType::ENUM:         \
-    return cpu::Add<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
+    return cpu::AddSlow<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
 #include "tfrt/tensor/dtype.def"
   }
 }

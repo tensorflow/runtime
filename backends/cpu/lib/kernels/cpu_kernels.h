@@ -29,22 +29,30 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/msan.h"
+#include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/scalar_host_tensor.h"
 
 namespace tfrt {
 namespace cpu {
 
+using ::Eigen::Index;
+using ::tfrt::compat::AsEigenConstTensor;
+using ::tfrt::compat::AsEigenTensor;
+using ::tfrt::compat::EigenHostContext;
+using ::tfrt::compat::KeepBuffers;
+
 //===----------------------------------------------------------------------===//
 // CPU Add kernels
 //===----------------------------------------------------------------------===//
 
-// TODO(tfrt-devs): Add should be implemented using eigen kernels.
-// TODO(fishx): Let this kernel support fp16.
+// This implementation is kept in order to support addition of two tensors with
+// shapes [1, 3] and [3] as needed by cpp_tests/tpu_model:simple_model_test.
+// TODO(b/160701946): Remove this non-Eigen based implementation.
 template <typename T>
-AsyncValueRef<HostTensor> Add(const HostTensor& lhs_ref,
-                              const HostTensor& rhs_ref,
-                              const ExecutionContext& exec_ctx) {
+AsyncValueRef<HostTensor> AddSlow(const HostTensor& lhs_ref,
+                                  const HostTensor& rhs_ref,
+                                  const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
   auto* lhs = &lhs_ref;
@@ -84,6 +92,88 @@ AsyncValueRef<HostTensor> Add(const HostTensor& lhs_ref,
   }
   return host->MakeAvailableAsyncValueRef<DenseHostTensor>(
       std::move(dest.getValue()));
+}
+
+// TODO(fishx): Let this kernel support fp16.
+// TODO(b/160701946): Update this kernel to support broadcasting.
+template <typename T>
+AsyncValueRef<HostTensor> Add(const HostTensor& lhs_ref,
+                              const HostTensor& rhs_ref,
+                              const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  auto* lhs = &lhs_ref;
+  auto* rhs = &rhs_ref;
+
+  if (lhs->shape() != rhs->shape() && lhs->dtype() == rhs->dtype() &&
+      lhs->NumElements() == rhs->NumElements()) {
+    // Fallback to the legacy AddSlow() to do broadcasting add.
+    return AddSlow<T>(lhs_ref, rhs_ref, exec_ctx);
+  }
+
+  if (lhs->metadata() != rhs->metadata()) {
+    return EmitErrorAsync(exec_ctx, "lhs metadata does not match rhs metadata");
+  }
+
+  // Handle scalar+scalar, scalar+dense, dense+dense below. Swap
+  // Dense+Scalar to simplify the logic since add is commutative.
+  if (isa<DenseHostTensor>(lhs) && isa<AnyScalarHostTensor>(rhs))
+    std::swap(lhs, rhs);
+
+  // Handle scalar+scalar.
+  if (auto* rhs_scalar = dyn_cast<ScalarHostTensor<T>>(rhs)) {
+    auto* lhs_scalar = cast<ScalarHostTensor<T>>(lhs);
+    auto result = lhs_scalar->GetValue() + rhs_scalar->GetValue();
+    return host->template MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(
+        lhs_scalar->metadata(), result);
+  }
+
+  auto output = DenseHostTensor::CreateUninitialized(rhs->metadata(), host);
+  if (!output)
+    return host->MakeErrorAsyncValueRef("out of memory allocating result");
+
+  MutableDHTArrayView<T> output_view(output.getPointer());
+  auto output_t = AsEigenTensor(output_view);
+  auto result = host->MakeUnconstructedAsyncValueRef<DenseHostTensor>();
+
+  AsyncValueRef<Chain> chain;
+  auto* rhs_dht = cast<DenseHostTensor>(rhs);
+  DHTArrayView<T> rhs_view(rhs_dht);
+  auto rhs_t = AsEigenConstTensor(rhs_view);
+
+  if (auto* lhs_scalar = dyn_cast<ScalarHostTensor<T>>(lhs)) {
+    // Handle scalar+dense.
+    auto lhs = lhs_scalar->GetValue();
+    auto expr = rhs_t + lhs;
+
+    chain = AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
+                        std::move(output_t), std::move(expr),
+                        KeepBuffers::alive(rhs_dht, output.getPointer()));
+  } else {
+    // Handle dense+dense.
+    auto* lhs_dht = cast<DenseHostTensor>(lhs);
+    DHTArrayView<T> lhs_view(lhs_dht);
+    auto lhs_t = AsEigenConstTensor(lhs_view);
+
+    auto fn = [](auto& a, auto& b, auto& c) { return a + b; };
+    auto expr = fn(lhs_t, rhs_t, output_t);
+
+    chain =
+        AsyncAssign(host->GetOrCreateSharedContext<EigenHostContext>(),
+                    std::move(output_t), std::move(expr),
+                    KeepBuffers::alive(lhs_dht, rhs_dht, output.getPointer()));
+  }
+
+  auto* chain_av = chain.GetAsyncValue();
+  chain_av->AndThen([output = std::move(output).getValue(),
+                     chain = std::move(chain),
+                     result = result.CopyRef()]() mutable {
+    if (chain.IsError()) {
+      result.SetError(chain.GetError());
+    } else {
+      result.emplace(std::move(output));
+    }
+  });
+  return result;
 }
 
 //===----------------------------------------------------------------------===//
@@ -226,6 +316,89 @@ static AsyncValueRef<Chain> Relu(const DenseHostTensor& A, DenseHostTensor* B,
   auto fn = [](auto& a, auto& b) { return a.cwiseMax(static_cast<T>(0)); };
   return ::tfrt::compat::UnaryEigenKernelAsync<T, T>(A, B, std::move(fn),
                                                      exec_ctx);
+}
+
+//===----------------------------------------------------------------------===//
+// CPU Mean kernels
+//===----------------------------------------------------------------------===//
+
+template <typename T>
+static AsyncValueRef<Chain> Mean(const DenseHostTensor& input,
+                                 ArrayRef<int32_t> reduction_indices,
+                                 DenseHostTensor* output,
+                                 const ExecutionContext& exec_ctx) {
+  // shape_input has format (batch_size, height, width, in_channel_num)
+  DHTIndexableView<T, 4> input_view(&input);
+  MutableDHTIndexableView<T, 2> output_view(output);
+  const auto& shape_input = input_view.FixedShape();
+  // shape_output has format (batch_size, in_channel_num)
+  const auto& shape_output = output_view.FixedShape();
+
+  const FixedRankShape<2> expected_output_shape(
+      {shape_input[0], shape_input[3]});
+
+  if (shape_output != expected_output_shape) {
+    return EmitErrorAsync(exec_ctx, "unexpected output shape");
+  }
+
+  if (reduction_indices.size() != 2) {
+    return EmitErrorAsync(exec_ctx,
+                          "Only reduction indices with size 2 is supported");
+  }
+
+  Eigen::DSizes<Eigen::Index, 2> reduction_indices_t;
+  reduction_indices_t[0] = reduction_indices[0];
+  reduction_indices_t[1] = reduction_indices[1];
+  auto input_t = AsEigenConstTensor(input_view);
+  auto output_t = AsEigenTensor(output_view);
+  auto expr = input_t.mean(reduction_indices_t);
+
+  return AsyncAssign(
+      exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
+      std::move(output_t), std::move(expr), KeepBuffers::alive(&input, output));
+}
+
+//===----------------------------------------------------------------------===//
+// CPU BiasAdd kernels
+//===----------------------------------------------------------------------===//
+
+template <typename T>
+static AsyncValueRef<Chain> BiasAdd(const DenseHostTensor& input,
+                                    const DenseHostTensor& bias,
+                                    DenseHostTensor* output,
+                                    const ExecutionContext& exec_ctx) {
+  DHTIndexableView<T, 2> input_view(&input);
+  DHTIndexableView<T, 1> bias_view(&bias);
+  MutableDHTIndexableView<T, 2> output_view(output);
+  const auto& shape_input = input_view.FixedShape();
+  const auto& shape_bias = bias_view.FixedShape();
+  const auto& shape_output = output_view.FixedShape();
+
+  if (shape_input != shape_output) {
+    return EmitErrorAsync(exec_ctx, "unexpected output shape");
+  }
+
+  if (shape_bias[0] != shape_input[1]) {
+    return EmitErrorAsync(exec_ctx, "bias shape does not match input shape");
+  }
+
+  Eigen::array<Eigen::Index, 2> reshape_dims;
+  reshape_dims[0] = static_cast<Eigen::Index>(1);
+  reshape_dims[1] = static_cast<Eigen::Index>(shape_bias[0]);
+
+  Eigen::array<Eigen::Index, 2> broadcast_dims;
+  broadcast_dims[0] = static_cast<Eigen::Index>(shape_input[0]);
+  broadcast_dims[1] = static_cast<Eigen::Index>(1);
+
+  auto input_t = AsEigenConstTensor(input_view);
+  auto bias_t = AsEigenConstTensor(bias_view);
+  auto output_t = AsEigenTensor(output_view);
+  auto expr = input_t + bias_t.reshape(reshape_dims).broadcast(broadcast_dims);
+
+  return AsyncAssign(
+      exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
+      std::move(output_t), std::move(expr),
+      KeepBuffers::alive(&input, &bias, output));
 }
 
 }  // namespace cpu

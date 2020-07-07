@@ -208,40 +208,5 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
       });
 }
 
-std::string GetOpDebugString(string_view op_name,
-                             ArrayRef<RCReference<AsyncValue>>& inputs,
-                             const OpAttrsRef& attrs,
-                             ArrayRef<TensorMetadata>& result_mds) {
-  std::string message;
-  llvm::raw_string_ostream trace_message(message);
-  trace_message << "RunDispatchFunction: " << op_name << "#";
-  trace_message << "op_name=" << op_name;
-
-  trace_message << ",Inputs=";
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    if (i > 0) {
-      trace_message << ";";
-    }
-    const auto& tensor = inputs[i]->get<Tensor>();
-    trace_message << tensor.metadata();
-  }
-
-  trace_message << ",Results=";
-  for (size_t i = 0; i < result_mds.size(); ++i) {
-    if (i > 0) {
-      trace_message << ";";
-    }
-    const auto& result_md = result_mds[i];
-    trace_message << result_md;
-  }
-
-  trace_message << ",Attributes=";
-  attrs.Print(trace_message);
-  trace_message << "#";
-
-  llvm::errs() << trace_message.str();
-  return trace_message.str();
-}
-
 }  // namespace internal
 }  // namespace tfrt

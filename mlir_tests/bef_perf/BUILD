@@ -1,0 +1,60 @@
+load("@tf_runtime//:build_defs.bzl", "tfrt_py_binary")
+load("@tf_runtime//mlir_tests/bef_perf:gen_benchmark.bzl", "gen_benchmark")
+
+licenses(["notice"])
+
+package(default_visibility = [
+    "@tf_runtime//:__subpackages__",
+])
+
+py_library(
+    name = "benchmark_utils_lib",
+    srcs = ["benchmark_utils.py"],
+    srcs_version = "PY3",
+    deps = ["@py-cpuinfo//:cpuinfo"],
+)
+
+tfrt_py_binary(
+    name = "bef_perf",
+    srcs = ["bef_perf.py"],
+    data = [
+        "@tf_runtime//tools:bef_executor",
+        "@tf_runtime//tools:tfrt_translate",
+    ],
+    python_version = "PY3",
+    deps = [
+        ":benchmark_utils_lib",
+    ],
+)
+
+sh_test(
+    name = "bef_perf_test",
+    size = "small",
+    srcs = ["bef_perf_test.sh"],
+    data = [
+        ":bef_perf",
+        ":fully_parallel.mlir",
+        ":fully_serial.mlir",
+        ":star.mlir",
+    ],
+)
+
+py_library(
+    name = "gen_benchmark_mlir_lib",
+    srcs = ["gen_benchmark_mlir_lib.py"],
+    srcs_version = "PY3",
+)
+
+tfrt_py_binary(
+    name = "gen_benchmark_mlir",
+    srcs = ["gen_benchmark_mlir.py"],
+    main = "gen_benchmark_mlir.py",
+    python_version = "PY3",
+    deps = [":gen_benchmark_mlir_lib"],
+)
+
+gen_benchmark(benchmark_name = "fully_serial")
+
+gen_benchmark(benchmark_name = "fully_parallel")
+
+gen_benchmark(benchmark_name = "star")

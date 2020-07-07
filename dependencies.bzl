@@ -143,3 +143,15 @@ def tfrt_dependencies():
             "https://zlib.net/zlib-1.2.11.tar.gz",
         ],
     )
+
+    maybe(
+        name = "py-cpuinfo",
+        repo_rule = tfrt_http_archive,
+        strip_prefix = "py-cpuinfo-0.2.3",
+        sha256 = "f6a016fdbc4e7fadf2d519090fcb4fa9d0831bad4e85245d938e5c2fe7623ca6",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/pypi.python.org/packages/source/p/py-cpuinfo/py-cpuinfo-0.2.3.tar.gz",
+            "https://pypi.python.org/packages/source/p/py-cpuinfo/py-cpuinfo-0.2.3.tar.gz",
+        ],
+        build_file = "//third_party:py-cpuinfo.BUILD",
+    )

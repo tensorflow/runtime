@@ -72,7 +72,7 @@ Eigen::DSizes<IndexType, Rank> AsEigenDSizes(
 template <size_t Rank, typename IndexType = Eigen::Index>
 Eigen::DSizes<IndexType, Rank> AsEigenDSizes(const TensorShape& shape) {
   Eigen::DSizes<IndexType, Rank> dims;
-  if (Rank == 1 && Rank < shape.GetRank()) {
+  if (Rank == 1) {
     dims[0] = shape.GetNumElements();
   } else if (Rank > 0) {
     shape.GetDimensions(llvm::makeMutableArrayRef(&dims.front(), Rank));

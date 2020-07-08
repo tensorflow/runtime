@@ -73,7 +73,7 @@ static AsyncValueRef<HostTensor> TfAddOp(const HostTensor& lhs,
 #define DTYPE_NUMERIC(ENUM) \
   case DType::ENUM:         \
     return cpu::Add<EigenTypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -109,7 +109,7 @@ static void TfMatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
     cpu::CallMatMulKernel<EigenTypeForDTypeKind<DType::ENUM>>( \
         lhs, rhs, &dest_tensor, transpose_a, transpose_b);     \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   *dest =
@@ -140,7 +140,7 @@ static AsyncValueRef<DenseHostTensor> TfReluOp(
     chain = cpu::Relu<EigenTypeForDTypeKind<DType::ENUM>>( \
         A, dest.getPointer(), exec_ctx);                   \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   return ForwardValue(dest.getValue(), std::move(chain), host);
@@ -171,7 +171,7 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
         input, reduction_indices_view.Elements(), output.getPointer(), \
         exec_ctx);                                                     \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   return ForwardValue(output.getValue(), std::move(chain), host);
@@ -200,7 +200,7 @@ static AsyncValueRef<DenseHostTensor> TfBiasAddOp(
     chain = cpu::BiasAdd<EigenTypeForDTypeKind<DType::ENUM>>( \
         input, bias, output.getPointer(), exec_ctx);          \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   return ForwardValue(output.getValue(), std::move(chain), host);

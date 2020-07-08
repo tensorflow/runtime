@@ -18,7 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/tensor/dtype.h"
+#include "tfrt/dtype/dtype.h"
 
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
@@ -49,7 +49,7 @@ size_t DType::GetHostSize() const {
 #define DTYPE_NUMERIC(ENUM) \
   case ENUM:                \
     return sizeof(TypeForDTypeKind<DType::ENUM>);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -78,7 +78,7 @@ size_t DType::GetHostAlignment() const {
 #define DTYPE_NUMERIC(ENUM) \
   case ENUM:                \
     return alignof(TypeForDTypeKind<DType::ENUM>);
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 }
 
@@ -119,7 +119,7 @@ void DType::Print(const void *data, raw_ostream &os) const {
   case ENUM:                                                          \
     os << +*static_cast<const TypeForDTypeKind<DType::ENUM> *>(data); \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 }
 
@@ -169,7 +169,7 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
   case ENUM:                                                          \
     os << +*static_cast<const TypeForDTypeKind<DType::ENUM> *>(data); \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 }
 
@@ -186,7 +186,7 @@ raw_ostream &operator<<(raw_ostream &os, DType dtype) {
   case DType::ENUM: \
     os << #ENUM;    \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
   return os;
 }

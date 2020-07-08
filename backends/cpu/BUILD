@@ -28,6 +28,7 @@ tfrt_cc_library(
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
@@ -53,6 +54,7 @@ tfrt_cc_library(
         ":cpu_kernels",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
@@ -78,6 +80,7 @@ tfrt_cc_library(
         ":cpu_kernels",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
@@ -91,6 +94,7 @@ tfrt_cc_library(
     hdrs = ["lib/kernels/cpu_kernels.h"],
     deps = [
         "@mkl_dnn//:mkldnn_single_threaded",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",

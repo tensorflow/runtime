@@ -25,8 +25,8 @@
 #define TFRT_LIB_DATA_RANGE_DATASET_H_
 
 #include "dataset.h"
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/support/forward_decls.h"
-#include "tfrt/tensor/dtype.h"
 
 namespace tfrt {
 namespace data {

@@ -40,7 +40,7 @@ static DType OpAttrTypeToDType(OpAttrType type) {
 #define DTYPE_NUMERIC(ENUM) \
   case OpAttrType::ENUM:    \
     return DType(DType::ENUM);
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 }
 

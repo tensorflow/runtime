@@ -58,7 +58,7 @@ static AsyncValueRef<DenseHostTensor> TfPadOp(
         padding_view[{2, 0}], padding_view[{2, 1}], output.getPointer(), \
         exec_ctx);                                                       \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   return ForwardValue(output.getValue(), std::move(chain), host);
@@ -102,7 +102,7 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
     chain = MaxPoolImpl<EigenTypeForDTypeKind<DType::ENUM>>(                \
         input, output.getPointer(), padding, strides_t, ksize_t, exec_ctx); \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   return ForwardValue(output.getValue(), std::move(chain), host);
@@ -148,7 +148,7 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
         input, filter, output.getPointer(), padding, strides_t,       \
         std::move(output_kernel), exec_ctx);                          \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   return ForwardValue(output.getValue(), std::move(chain), host);
@@ -206,7 +206,7 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
         input, scale, bias, mean, variance, output.getPointer(), epsilon, \
         exec_ctx);                                                        \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   result = ForwardValue(output.getValue(), std::move(chain), host);

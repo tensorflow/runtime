@@ -91,6 +91,7 @@ tfrt_cc_binary(
         ":bef_executor_lib",
         "@tf_runtime//:core_runtime_alwayslink",
         "@tf_runtime//:data_alwayslink",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:simple_tracing_sink_alwayslink",
         "@tf_runtime//:tensor_alwayslink",
         "@tf_runtime//:test_kernels_alwayslink",

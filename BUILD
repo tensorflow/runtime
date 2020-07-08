@@ -88,6 +88,24 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "dtype",
+    srcs = [
+        "lib/dtype/dtype.cc",
+    ],
+    hdrs = [
+        "include/tfrt/dtype/dtype.def",
+        "include/tfrt/dtype/dtype.h",
+        "include/tfrt/support/bf16.h",
+        "include/tfrt/support/forward_decls.h",
+        "include/tfrt/support/fp16.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+tfrt_cc_library(
     name = "support",
     srcs = [
         "lib/support/alloc.cc",
@@ -208,7 +226,6 @@ tfrt_cc_library(
         "lib/tensor/coo_host_tensor_kernels.cc",
         "lib/tensor/dense_host_tensor.cc",
         "lib/tensor/dense_host_tensor_kernels.cc",
-        "lib/tensor/dtype.cc",
         "lib/tensor/scalar_host_tensor.cc",
         "lib/tensor/string_host_tensor.cc",
         "lib/tensor/string_host_tensor_kernels.cc",
@@ -226,8 +243,6 @@ tfrt_cc_library(
         "include/tfrt/tensor/dense_host_tensor_view.h",
         "include/tfrt/tensor/dense_tensor_utils.h",
         "include/tfrt/tensor/dense_view.h",
-        "include/tfrt/tensor/dtype.def",
-        "include/tfrt/tensor/dtype.h",
         "include/tfrt/tensor/host_tensor.h",
         "include/tfrt/tensor/scalar_host_tensor.h",
         "include/tfrt/tensor/string_host_tensor.h",
@@ -240,6 +255,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/tensor/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":dtype",
         ":hostcontext",
         ":support",
         "@llvm-project//llvm:Support",
@@ -661,6 +677,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/data/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":dtype",
         ":hostcontext",
         ":support",
         ":tensor",

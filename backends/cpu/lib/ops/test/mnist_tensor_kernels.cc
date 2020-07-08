@@ -77,7 +77,7 @@ static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
     cpu::CallMatMulKernel<TypeForDTypeKind<DType::ENUM>>(  \
         lhs, rhs, &dest_tensor, transpose_a, transpose_b); \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 
   *dest =
@@ -114,7 +114,7 @@ static AsyncValueRef<Chain> ReluHelper(const DenseHostTensor& A,
 #define DTYPE_NUMERIC(ENUM) \
   case DType::ENUM:         \
     return cpu::Relu<EigenTypeForDTypeKind<DType::ENUM>>(A, dest, exec_ctx);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -134,7 +134,7 @@ static AsyncValueRef<Chain> ReluInPlaceHelper(
 #define DTYPE_NUMERIC(ENUM) \
   case DType::ENUM:         \
     return ReluInPlace<EigenTypeForDTypeKind<DType::ENUM>>(A, exec_ctx);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -241,7 +241,7 @@ static void ElementwiseEqualOp(const DenseHostTensor& lhs,
     chain = ElementwiseEqual<EigenTypeForDTypeKind<DType::ENUM>>( \
         lhs, rhs, dest_dht, exec_ctx);                            \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 
   auto* chain_av = chain.GetAsyncValue();
@@ -277,7 +277,7 @@ static AsyncValueRef<Chain> CastForOutType(const DenseHostTensor& A,
 #define DTYPE_NUMERIC(ENUM) \
   case DType::ENUM:         \
     return Cast<EigenTypeForDTypeKind<DType::ENUM>, Tout>(A, B, exec_ctx);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -305,7 +305,7 @@ static void CastOp(const DenseHostTensor& A, const TensorMetadata& B_md,
     chain = CastForOutType<EigenTypeForDTypeKind<DType::ENUM>>( \
         A, dest.getPointer(), exec_ctx);                        \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 
   auto* chain_av = chain.GetAsyncValue();
@@ -409,7 +409,7 @@ static void Broadcast1DOp(const DenseHostTensor& src,
     Broadcast1DKernel<EigenTypeForDTypeKind<DType::ENUM>, 2>(src,           \
                                                              &dest_tensor); \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
   *dest =
       host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
@@ -466,7 +466,7 @@ static void ArgmaxForAxisRank(const DenseHostTensor& A, DenseHostTensor* B) {
   case DType::ENUM:                                                     \
     ArgmaxKernel<EigenTypeForDTypeKind<DType::ENUM>, Rank, Axis>(A, B); \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -559,7 +559,7 @@ static void ReduceMeanForAxisRank(const DenseHostTensor& A,
   case DType::ENUM:                                                          \
     return ReduceMeanKernel<EigenTypeForDTypeKind<DType::ENUM>, Rank, Axis>( \
         A, B);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -638,7 +638,7 @@ static void CreateDenseTensorOp(const OpAttrsRef& attrs,
     CreateDenseTensorForType<EigenTypeForDTypeKind<DType::ENUM>>( \
         attrs, &dest_tensor);                                     \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
     default:
       llvm_unreachable("Tensors cannot have unknown dtype");
   }

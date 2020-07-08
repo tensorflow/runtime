@@ -36,7 +36,7 @@ void* AnyScalarHostTensor::data() {
   case DType::ENUM:                                                     \
     return &cast<ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(this) \
                 ->GetValue();
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 }
 
@@ -60,7 +60,7 @@ AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
   case DType::ENUM:         \
     return CopyScalar(      \
         *cast<ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(this), host);
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
     }
   }
 

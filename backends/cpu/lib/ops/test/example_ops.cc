@@ -117,7 +117,7 @@ static AsyncValueRef<HostTensor> TestAddOp(const HostTensor& lhs,
 #define DTYPE_TRIVIAL(ENUM) \
   case DType::ENUM:         \
     return cpu::AddSlow<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -157,7 +157,7 @@ static Expected<DenseHostTensor> TestAddDenseOnlyOp(
     TestAddDenseOnlyImpl<TypeForDTypeKind<DType::ENUM>>(&lhs, &rhs, dest_ptr,  \
                                                         0, lhs.NumElements()); \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 
   return std::move(dest.getValue());
@@ -186,7 +186,7 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly2Op(
     TestAddDenseOnlyImpl<TypeForDTypeKind<DType::ENUM>>( \
         &lhs, &rhs, &dht.get(), 0, lhs.NumElements());   \
     break;
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
   dht.SetStateConcrete();
   return dht;
@@ -219,7 +219,7 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly3Op(
   case DType::ENUM:                                             \
     return TestAddDenseOnlyImpl<TypeForDTypeKind<DType::ENUM>>( \
         &lhs, &rhs, dht, begin_elt, end_elt);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
     }
   };
 

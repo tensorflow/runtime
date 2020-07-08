@@ -47,7 +47,7 @@ IterationResult RangeDatasetIterator::GetNext(
             static_cast<TypeForDTypeKind<DType::ENUM>>(next_)));         \
     break;
 
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
 #undef DTYPE_NUMERIC
     default:
       return IterationResult::Error(

@@ -165,6 +165,7 @@ tfrt_cc_test(
         "@com_google_googletest//:gtest_main",
         "@tf_runtime//:basic_kernels_alwayslink",
         "@tf_runtime//:core_runtime",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",

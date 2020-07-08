@@ -24,8 +24,8 @@
 
 #define EIGEN_USE_THREADS
 
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/support/fp16.h"
-#include "tfrt/tensor/dtype.h"
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
 
 namespace tfrt {

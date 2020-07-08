@@ -64,7 +64,7 @@ DTYPE(String)
 
 #undef DTYPE
 #endif
-// LINT.ThenChange(//depot/tf_runtime/include/tfrt/tensor/dtype.h)
+// LINT.ThenChange(//depot/tf_runtime/include/tfrt/dtype/dtype.h)
 
 // Trivial types supported by C++.
 #ifdef DTYPE_TRIVIAL

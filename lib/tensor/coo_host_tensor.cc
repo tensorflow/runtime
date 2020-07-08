@@ -77,7 +77,7 @@ AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
           ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(             \
           metadata(), TypeForDTypeKind<DType::ENUM>(0));                \
     }
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
     }
   }
 
@@ -99,7 +99,7 @@ AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
     ConvertToDHTTensorHelper<TypeForDTypeKind<DType::ENUM>>(indices_, values_, \
                                                             &result_tensor);   \
     break;
-#include "tfrt/tensor/dtype.def"  // NOLINT
+#include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
   result.emplace(std::move(result_tensor));

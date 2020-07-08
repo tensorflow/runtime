@@ -28,13 +28,13 @@
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/Error.h"
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/btf.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
-#include "tfrt/tensor/dtype.h"
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {

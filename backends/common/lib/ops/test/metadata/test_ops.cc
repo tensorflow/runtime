@@ -43,7 +43,7 @@ static Expected<TensorMetadata> CreateFromScalarMD(const OpAttrsRef& attrs) {
 #define DTYPE_TRIVIAL(ENUM) \
   case OpAttrType::ENUM:    \
     return TensorMetadata(DType(DType::ENUM), shape);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 
@@ -179,7 +179,7 @@ static Expected<TensorMetadata> CreateDenseTensorMD(const OpAttrsRef& attrs) {
 #define DTYPE_TRIVIAL(ENUM) \
   case OpAttrType::ENUM:    \
     return TensorMetadata(DType(DType::ENUM), tensor_shape);
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   }
 }
 

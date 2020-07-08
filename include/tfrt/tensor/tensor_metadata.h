@@ -23,7 +23,7 @@
 #ifndef TFRT_TENSOR_TENSORMETADATA_H_
 #define TFRT_TENSOR_TENSORMETADATA_H_
 
-#include "tfrt/tensor/dtype.h"
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {

@@ -21,12 +21,12 @@
 
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/support/byte_order.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_view.h"
-#include "tfrt/tensor/dtype.h"
 #include "tfrt/tensor/tensor_metadata.h"
 #include "tfrt/tensor/tensor_shape.h"
 

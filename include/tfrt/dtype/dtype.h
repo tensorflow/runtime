@@ -20,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_TENSOR_DTYPE_H_
-#define TFRT_TENSOR_DTYPE_H_
+#ifndef TFRT_DTYPE_DTYPE_H_
+#define TFRT_DTYPE_DTYPE_H_
 
 #include <complex>
 #include <cstddef>
@@ -42,7 +42,7 @@ class DType {
     // Valid types that are not natively supported by TFRT.
     Unsupported,
 #define DTYPE(ENUM) ENUM,
-#include "tfrt/tensor/dtype.def"
+#include "tfrt/dtype/dtype.def"
   };
 
   explicit DType() : kind_(Invalid) {}
@@ -132,10 +132,10 @@ TFRT_DEFINE_DTYPE_INTERNAL(COMPLEX64,
                            std::complex<float>)  // Single precision complex.
 TFRT_DEFINE_DTYPE_INTERNAL(COMPLEX128,
                            std::complex<double>)  // Double precision complex.
-// LINT.ThenChange(//depot/tf_runtime/include/tfrt/tensor/dtype.def)
+// LINT.ThenChange(//depot/tf_runtime/include/tfrt/dtype/dtype.def)
 
 #undef TFRT_DEFINE_DTYPE_INTERNAL
 
 }  // namespace tfrt
 
-#endif  // TFRT_TENSOR_DTYPE_H_
+#endif  // TFRT_DTYPE_DTYPE_H_

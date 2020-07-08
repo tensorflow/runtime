@@ -25,7 +25,10 @@
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/cpp_tests/error_util.h"
 #include "tfrt/support/error_util.h"
-#include "tfrt/support/msan.h"
+
+#ifndef __has_feature
+#define __has_feature(x) 0
+#endif
 
 #ifndef __has_attribute
 #define __has_attribute(x) 0
@@ -40,9 +43,10 @@
 
 namespace tfrt {
 NOINLINE StackTrace CreateStackTrace0() {
-  int skip_count = 1;
-#if __has_feature(address_sanitizer) || defined MEMORY_SANITIZER
-  ++skip_count;  // Skip __interceptor_backtrace added by MSAN and ASAN.
+  int skip_count = 1;  // Do not include this function in the stack trace.
+#if __has_feature(address_sanitizer) || __has_feature(memory_sanitizer) || \
+    __has_feature(thread_sanitizer)
+  ++skip_count;  // Skip __interceptor_backtrace added by ASAN/MSAN/TSAN.
 #endif
   return CreateStackTrace(skip_count);
 }

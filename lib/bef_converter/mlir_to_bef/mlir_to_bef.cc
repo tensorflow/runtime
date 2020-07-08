@@ -1047,7 +1047,7 @@ void BEFAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
     return;
   }
 
-  if (attr.isa<mlir::IntegerAttr>() || attr.isa<mlir::FloatAttr>()) {
+  if (attr.isa<mlir::IntegerAttr, mlir::FloatAttr>()) {
     EmitStandardAttribute(attr);
     return;
   }

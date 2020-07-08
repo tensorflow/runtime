@@ -170,14 +170,14 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
 
   let arguments = (ins
     DeviceType:$device,
-    ChainType:$in_op_chain,
+    Hex_ChainType:$in_op_chain,
     Variadic<TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
     StrAttr:$op_name
   );
 
   let results = (outs
-    ChainType:$out_op_chain,
+    Hex_ChainType:$out_op_chain,
     Variadic<TensorHandleType>:$results
   );
 }
@@ -211,7 +211,7 @@ def CoreRT_RegisterOpHandlerChainOp : CoreRT_Op<"register_op_handler_chain"> {
     DeviceType:$device,
     StrAttr:$device_name
   );
-  let results = (outs ChainType:$out_op_chain);
+  let results = (outs Hex_ChainType:$out_op_chain);
   let assemblyFormat = "$device $device_name attr-dict";
   let verifier = ?;
 }

@@ -24,21 +24,14 @@
 #ifndef TFRT_BASIC_OPS_OPDEFS_BASIC_OPS_H_
 #define TFRT_BASIC_OPS_OPDEFS_BASIC_OPS_H_
 
-#include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include "tfrt/basic_kernels/opdefs/hex_base.h"
 
 using namespace mlir;
 
 namespace tfrt {
 namespace hex {
-
-// Dialect for basic operations.
-class HexDialect : public Dialect {
- public:
-  explicit HexDialect(MLIRContext *context);
-  static StringRef getDialectNamespace() { return "hex"; }
-};
 
 #define GET_OP_CLASSES
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h.inc"

@@ -78,7 +78,7 @@ def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
       %chain_out, %value = data.iterator_get_next (%iterator, %chain_in) : !t.tensor
   }];
 
-  let arguments = (ins IteratorType:$iterator, ChainType:$chain_in);
+  let arguments = (ins IteratorType:$iterator, Hex_ChainType:$chain_in);
   let results = (outs Variadic<AnyType>:$results);
 }
 

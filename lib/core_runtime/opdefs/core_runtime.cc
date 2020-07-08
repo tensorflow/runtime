@@ -28,6 +28,7 @@
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/types.h"
 
@@ -165,8 +166,7 @@ static Type GetDeviceType(Builder *builder) {
 }
 
 static Type GetChainType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("hex"), "chain",
-                         builder->getContext());
+  return builder->getType<hex::ChainType>();
 }
 
 static Type GetTensorHandleType(Builder *builder) {

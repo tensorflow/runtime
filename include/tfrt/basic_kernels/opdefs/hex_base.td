@@ -12,30 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===-- tfrt_op_base.td - Base op definition file ----------*- tablegen -*-===//
+//===- hex_base.td --------------------------------------------------------===//
 //
-// This is the base operation definition file for TFRT ops.
+// This file defines Hex dialect and its types.
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef TFRT_OP_BASE
+#ifdef HEX_BASE
 #else
-#define TFRT_OP_BASE
+#define HEX_BASE
 
 include "mlir/IR/OpBase.td"
-include "tfrt/basic_kernels/opdefs/hex_base.td"
 
-//===----------------------------------------------------------------------===//
-// Type definitions
-//===----------------------------------------------------------------------===//
-def StringType : OpaqueType<"hex", "string", "!hex.string type">;
+// "hex" Host Executor dialect.
+def Hex_Dialect : Dialect {
+  let name = "hex";
 
-def TensorType
-  : OpaqueType<"t", "tensor", "tensor">;
+  let description = [{
+    The Host Executor dialect.
 
-def HostBufferType
-  : OpaqueType<"ht", "host_buffer", "host_buffer">;
-def TensorHandleType
-  : OpaqueType<"corert", "tensorhandle", "!corert.tensorhandle type">;
+    This dialect contains common host operations.
+  }];
 
-#endif  // TFRT_OP_BASE
+  let cppNamespace = "hex";
+}
+
+def Hex_ChainType :
+    Type<CPred<"$_self.isa<tfrt::hex::ChainType>()">, "!hex.chain type">,
+    BuildableType<"$_builder.getType<tfrt::hex::ChainType>()">;
+
+#endif  // HEX_BASE

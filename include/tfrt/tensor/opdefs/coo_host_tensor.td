@@ -55,8 +55,8 @@ class ConvertToDHTOp<string dtype, int rank>
       %5, %6 = coo.convert_coo_to_dht.i32.2 %2, %0
   }];
 
-  let arguments = (ins TensorType, ChainType);
-  let results = (outs TensorType, ChainType);
+  let arguments = (ins TensorType, Hex_ChainType);
+  let results = (outs TensorType, Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -73,8 +73,8 @@ class ConvertFromDHTOp<string dtype, int rank>
       %5, %6 = coo.convert_dht_to_coo.i32.2 %2, %0
   }];
 
-  let arguments = (ins TensorType, ChainType);
-  let results = (outs TensorType, ChainType);
+  let arguments = (ins TensorType, Hex_ChainType);
+  let results = (outs TensorType, Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -89,8 +89,8 @@ class PrintSparseTensorOp : COO_Op<"print_tensor"> {
       %3 = coo.print_tensor %1, %2
   }];
 
-  let arguments = (ins TensorType, ChainType);
-  let results = (outs ChainType);
+  let arguments = (ins TensorType, Hex_ChainType);
+  let results = (outs Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -109,8 +109,8 @@ class SparseTensorEqualOp<string dtype, int rank>
       %4, %5 = "coo.tensor_equal.i32.2 %1, %2, %3
   }];
 
-  let arguments = (ins TensorType, TensorType, ChainType);
-  let results = (outs I1, ChainType);
+  let arguments = (ins TensorType, TensorType, Hex_ChainType);
+  let results = (outs I1, Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 

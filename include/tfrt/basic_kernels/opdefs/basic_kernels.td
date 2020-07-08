@@ -22,21 +22,8 @@
 #else
 #define BASIC_OPS
 
-include "tfrt/tfrt_op_base.td"
+include "tfrt/basic_kernels/opdefs/hex_base.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
-
-// "hex" Host Executor dialect.
-def Hex_Dialect : Dialect {
-  let name = "hex";
-
-  let description = [{
-    The Host Executor dialect.
-
-    This dialect contains common host operations.
-  }];
-
-  let cppNamespace = "hex";
-}
 
 // Base class for Hex dialect ops.
 class Hex_Op<string mnemonic, list<OpTrait> traits = []> :
@@ -131,7 +118,7 @@ def NewChainOp : Hex_Op<"new.chain", [NoSideEffect]> {
   }];
 
   let arguments = (ins);
-  let results = (outs ChainType);
+  let results = (outs Hex_ChainType);
   let assemblyFormat = "attr-dict";
   let verifier = ?;
 }
@@ -150,8 +137,8 @@ def MergeChainsOp : Hex_Op<"merge.chains", [NoSideEffect]> {
         %merged_c = hex.merge.chains %c1, %c2, %c3
   }];
 
-  let arguments = (ins Variadic<ChainType>:$chains);
-  let results = (outs ChainType);
+  let arguments = (ins Variadic<Hex_ChainType>:$chains);
+  let results = (outs Hex_ChainType);
   let assemblyFormat = "$chains attr-dict";
   let verifier = ?;
 }
@@ -364,8 +351,8 @@ class PrintOp<string suffix, Type type> : Hex_Op<"print." # suffix> {
      Example:
        %2 = hex.print.i32 %0, %1
   }];
-  let arguments = (ins type, ChainType);
-  let results = (outs ChainType);
+  let arguments = (ins type, Hex_ChainType);
+  let results = (outs Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
   let verifier = ?;
 }

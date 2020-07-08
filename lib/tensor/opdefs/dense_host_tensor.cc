@@ -26,6 +26,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
 namespace dht {
@@ -45,8 +46,7 @@ DenseHostTensorDialect::DenseHostTensorDialect(MLIRContext *context)
 }
 
 static Type getChainType(mlir::MLIRContext *context) {
-  auto hexDialect = Identifier::get("hex", context);
-  return OpaqueType::get(hexDialect, "chain", context);
+  return hex::ChainType::get(context);
 }
 
 static Type getTensorType(mlir::MLIRContext *context) {

@@ -308,9 +308,11 @@ tfrt_cc_library(
 filegroup(
     name = "OpBaseTdFiles",
     srcs = [
+        "include/tfrt/basic_kernels/opdefs/hex_base.td",
         "include/tfrt/tensor/opdefs/tensor_shape_base.td",
         "include/tfrt/tfrt_op_base.td",
         "@llvm-project//mlir:include/mlir/IR/OpBase.td",
+        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
     ],
     visibility = [":friends"],
 )
@@ -318,6 +320,7 @@ filegroup(
 exports_files(
     [
         "include/tfrt/tfrt_op_base.td",
+        "include/tfrt/basic_kernels/opdefs/hex_base.td",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
     ],
     visibility = [":friends"],
@@ -348,9 +351,12 @@ tfrt_cc_library(
     name = "basic_kernels_opdefs",
     srcs = [
         "lib/basic_kernels/opdefs/basic_kernels.cc",
+        "lib/basic_kernels/opdefs/hex_base.cc",
     ],
     hdrs = [
         "include/tfrt/basic_kernels/opdefs/basic_kernels.h",
+        "include/tfrt/basic_kernels/opdefs/hex_base.h",
+        "include/tfrt/basic_kernels/opdefs/types.h",
     ],
     alwayslink_static_registration_src = "lib/basic_kernels/opdefs/static_registration.cc",
     visibility = [":friends"],
@@ -440,6 +446,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/tensor/opdefs/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":basic_kernels_opdefs",
         ":coo_host_tensor_opdefs_inc_gen",
         ":dense_host_tensor_opdefs_inc_gen",
         ":tensor_opdefs_inc_gen",
@@ -484,6 +491,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/core_runtime/opdefs/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":basic_kernels_opdefs",
         ":core_runtime_opdefs_inc_gen",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -615,6 +623,7 @@ tfrt_cc_library(
     ],
     alwayslink_static_registration_src = "lib/test_kernels/opdefs/static_registration.cc",
     deps = [
+        ":basic_kernels_opdefs",
         ":test_kernels_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
@@ -689,6 +698,7 @@ tfrt_cc_library(
     ],
     alwayslink_static_registration_src = "lib/data/opdefs/static_registration.cc",
     deps = [
+        ":basic_kernels_opdefs",
         ":data_opdefs_inc_gen",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",

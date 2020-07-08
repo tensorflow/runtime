@@ -26,6 +26,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
 namespace test {
@@ -159,8 +160,7 @@ static ParseResult parseBenchmarkOp(OpAsmParser &parser,
   if (parser.resolveOperands(operands, types, type_loc, result.operands))
     return failure();
 
-  auto dialect = Identifier::get("hex", result.getContext());
-  auto chainType = OpaqueType::get(dialect, "chain", result.getContext());
+  auto chainType = hex::ChainType::get(result.getContext());
   if (parser.addTypeToList(chainType, result.types)) return failure();
 
   auto parseIntegerKeywordAttr = [&]() -> ParseResult {

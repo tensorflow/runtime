@@ -81,8 +81,8 @@ class MakeTensorOp<string dtype>
       %tensor, %ch2 = dht.make_tensor.f32 %cuda_host_buf, %shape, %ch0
   }];
 
-  let arguments = (ins HostBufferType, TS_Shape, ChainType);
-  let results = (outs TensorType, ChainType);
+  let arguments = (ins HostBufferType, TS_Shape, Hex_ChainType);
+  let results = (outs TensorType, Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -101,8 +101,8 @@ class FillTensorOp<string dtype>
       %3 = dht.fill_tensor_with_constant.i32 %2, %1 0 : i32
   }];
 
-  let arguments = (ins TensorType, ChainType);
-  let results = (outs ChainType);
+  let arguments = (ins TensorType, Hex_ChainType);
+  let results = (outs Hex_ChainType);
 
   let printer = [{ return tfrt::dht::printFillTensorOp(p, *this); }];
   let parser = " return tfrt::dht::parseFillTensorOp(parser, result);";
@@ -119,8 +119,8 @@ def PrintTensorOp : DHT_Op<"print_tensor"> {
       %3 = dht.print_tensor %1, %2
   }];
 
-  let arguments = (ins TensorType, ChainType);
-  let results = (outs ChainType);
+  let arguments = (ins TensorType, Hex_ChainType);
+  let results = (outs Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -139,8 +139,8 @@ class SetTensorOp<string dtype>
       %3 = dht.set_tensor_with_constant_values.i32 %2, %1 [0 : i32, 1 : i32]
   }];
 
-  let arguments = (ins TensorType, ChainType);
-  let results = (outs ChainType);
+  let arguments = (ins TensorType, Hex_ChainType);
+  let results = (outs Hex_ChainType);
 
   let printer = [{ return tfrt::dht::printSetTensorOp(p, *this); }];
   let parser = " return tfrt::dht::parseSetTensorOp(parser, result);";
@@ -160,8 +160,8 @@ class TensorEqualOp<string dtype>
       %4, %5 = dht.tensor_equal.i32 %1, %2, %3
   }];
 
-  let arguments = (ins TensorType, TensorType, ChainType);
-  let results = (outs I1, ChainType);
+  let arguments = (ins TensorType, TensorType, Hex_ChainType);
+  let results = (outs I1, Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -197,8 +197,8 @@ def GetBufferOp : DHT_Op<"get_buffer"> {
       %buf, %ch2 = dht.get_buffer %t, %ch1
   }];
 
-  let arguments = (ins TensorType, ChainType);
-  let results = (outs HostBufferType, ChainType);
+  let arguments = (ins TensorType, Hex_ChainType);
+  let results = (outs HostBufferType, Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -232,8 +232,8 @@ def PrintBufferOp : DHT_Op<"print_buffer"> {
       %chain1 = dht.print_buffer %buffer, %chain0
   }];
 
-  let arguments = (ins HostBufferType, ChainType);
-  let results = (outs ChainType);
+  let arguments = (ins HostBufferType, Hex_ChainType);
+  let results = (outs Hex_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 

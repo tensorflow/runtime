@@ -122,7 +122,7 @@ def BenchmarkOp : Test_Op<"benchmark"> {
     DefaultValuedAttr<I32Attr, "1">:$num_warmup_runs
   );
 
-  let results = (outs ChainType);
+  let results = (outs Hex_ChainType);
 }
 
 class Count3Op<string suffix, Type type>

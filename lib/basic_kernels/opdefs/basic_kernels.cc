@@ -30,26 +30,10 @@
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "mlir/Support/LogicalResult.h"
+#include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
 namespace hex {
-
-//===----------------------------------------------------------------------===//
-// HexDialect Dialect
-//===----------------------------------------------------------------------===//
-
-HexDialect::HexDialect(MLIRContext *context)
-    : Dialect(/*name=*/"hex", context) {
-  allowUnknownTypes();
-
-  // TODO(clattner): Eventually specify all of the operations.
-  allowUnknownOperations();
-
-  addOperations<
-#define GET_OP_LIST
-#include "tfrt/basic_kernels/opdefs/basic_kernels_opdefs.cpp.inc"
-      >();
-}
 
 //===----------------------------------------------------------------------===//
 // CallOp
@@ -506,8 +490,7 @@ static ParseResult parseParallelForI32Op(OpAsmParser &parser,
   parser.resolveOperands(operands, types, type_loc, result.operands);
 
   // Parallel for returns chain when all parallel blocks are completed.
-  auto hex = Identifier::get("hex", result.getContext());
-  auto chain_type = OpaqueType::get(hex, "chain", result.getContext());
+  auto chain_type = ChainType::get(result.getContext());
   parser.addTypesToList(chain_type, result.types);
 
   // Parallel for body operands and types.
@@ -610,8 +593,7 @@ static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
   parser.resolveOperands(operands, types, type_loc, result.operands);
 
   // Parallel for returns chain when all parallel blocks are completed.
-  auto hex = Identifier::get("hex", result.getContext());
-  auto chain_type = OpaqueType::get(hex, "chain", result.getContext());
+  auto chain_type = ChainType::get(result.getContext());
   parser.addTypesToList(chain_type, result.types);
 
   return success();
@@ -673,8 +655,7 @@ static LogicalResult verify(ParallelCallI32Op op) {
     return op.emitOpError("invalid callee result type");
 
   if (fnType.getNumResults() == 1) {
-    auto hex = Identifier::get("hex", op.getContext());
-    auto chain_type = OpaqueType::get(hex, "chain", op.getContext());
+    auto chain_type = ChainType::get(op.getContext());
 
     if (fnType.getResult(0) != chain_type)
       return op.emitOpError("async callee must return a chain");

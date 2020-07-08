@@ -14,38 +14,32 @@
  * limitations under the License.
  */
 
-//===- data_ops.h -----------------------------------------------*- C++ -*-===//
+//===- hex_base.h - MLIR opdefs for hex dialect -----------------*- C++ -*-===//
 //
-// MLIR opdefs for data library.
-//
-// This file declares the 'data' dialect as well as the operators that make up
-// the data library.
+// This file declares the 'hex' dialect.
 //
 //===----------------------------------------------------------------------===//
-
-#ifndef TFRT_DATA_OPDEFS_DATA_OPS_H_
-#define TFRT_DATA_OPDEFS_DATA_OPS_H_
+#ifndef TFRT_BASIC_KERNELS_OPDEFS_HEX_BASE_H_
+#define TFRT_BASIC_KERNELS_OPDEFS_HEX_BASE_H_
 
 #include "mlir/IR/Dialect.h"
-#include "mlir/IR/OpDefinition.h"
-#include "tfrt/basic_kernels/opdefs/hex_base.h"
-
-using namespace mlir;
+#include "mlir/IR/DialectImplementation.h"
 
 namespace tfrt {
-namespace data {
+namespace hex {
 
-// Dialect for data operations.
-class DataDialect : public Dialect {
+// Dialect for basic operations.
+class HexDialect : public mlir::Dialect {
  public:
-  explicit DataDialect(MLIRContext *context);
-  static StringRef getDialectNamespace() { return "data"; }
+  explicit HexDialect(mlir::MLIRContext *context);
+  static llvm::StringRef getDialectNamespace() { return "hex"; }
+
+  mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+  void printType(mlir::Type type,
+                 mlir::DialectAsmPrinter &printer) const override;
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/data/opdefs/data_ops.h.inc"
-
-}  // namespace data
+}  // namespace hex
 }  // namespace tfrt
 
-#endif  // TFRT_DATA_OPDEFS_DATA_OPS_H_
+#endif  // TFRT_BASIC_KERNELS_OPDEFS_HEX_BASE_H_

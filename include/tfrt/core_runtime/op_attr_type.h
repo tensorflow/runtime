@@ -43,6 +43,7 @@ enum class OpAttrType : uint8_t {
   SHAPE,
   BF16,
   F16,
+  I1,
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) ENUM,
 #include "tfrt/core_runtime/op_attr_type.def"
 };

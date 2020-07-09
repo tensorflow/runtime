@@ -27,6 +27,9 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "llvm/Support/Format.h"
+#include "llvm/Support/raw_ostream.h"
+#include "tfrt/dtype/i1.h"
 #include "tfrt/support/bf16.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/fp16.h"
@@ -117,6 +120,7 @@ TFRT_DEFINE_DTYPE_INTERNAL(UI8, uint8_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI16, uint16_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI32, uint32_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI64, uint64_t)
+TFRT_DEFINE_DTYPE_INTERNAL(I1, i1)
 TFRT_DEFINE_DTYPE_INTERNAL(I8, int8_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I16, int16_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I32, int32_t)

@@ -139,6 +139,8 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       return {sizeof(bf16), alignof(bf16)};
     case OpAttrType::F16:
       return {sizeof(fp16), alignof(fp16)};
+    case OpAttrType::I1:
+      return {sizeof(i1), alignof(i1)};
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
     return {sizeof(CPP_TYPE), alignof(CPP_TYPE)};
@@ -161,6 +163,8 @@ const char *GetNameString(OpAttrType type) {
       return "BF16";
     case OpAttrType::F16:
       return "F16";
+    case OpAttrType::I1:
+      return "I1";
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
     return #ENUM;
@@ -675,6 +679,9 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
     case OpAttrType::F16:
       // TODO(b/149063226): Support FP16.
       assert(0 && "cannot print fp16 yet.");
+      break;
+    case OpAttrType::I1:
+      os << *static_cast<const uint8_t *>(ptr);
       break;
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE)           \
   case OpAttrType::ENUM:                       \

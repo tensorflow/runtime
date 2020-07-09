@@ -40,6 +40,8 @@ size_t DType::GetHostSize() const {
       return ~size_t(0);
     case BF16:
       return sizeof(TypeForDTypeKind<DType::BF16>);
+    case I1:
+      return sizeof(TypeForDTypeKind<DType::I1>);
     case BOOL:
       return sizeof(TypeForDTypeKind<DType::BOOL>);
     case COMPLEX64:
@@ -69,6 +71,8 @@ size_t DType::GetHostAlignment() const {
       return ~size_t(0);
     case BF16:
       return alignof(TypeForDTypeKind<DType::BF16>);
+    case I1:
+      return alignof(TypeForDTypeKind<DType::I1>);
     case BOOL:
       return alignof(TypeForDTypeKind<DType::BOOL>);
     case COMPLEX64:
@@ -93,6 +97,9 @@ void DType::Print(const void *data, raw_ostream &os) const {
       break;
     case DType::F16:
       os << "Does not support printing fp16.";
+      break;
+    case DType::I1:
+      os << *static_cast<const i1 *>(data);
       break;
     case DType::String:
       os << *static_cast<const TypeForDTypeKind<DType::String> *>(data);
@@ -133,6 +140,9 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
       break;
     case DType::F16:
       os << "Does not support printing fp16.";
+      break;
+    case DType::I1:
+      os << *static_cast<const i1 *>(data);
       break;
     case DType::String:
       os << *static_cast<const TypeForDTypeKind<DType::String> *>(data);

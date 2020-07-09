@@ -24,13 +24,8 @@
 #include "tfrt/core_runtime/op_handler_factory.h"
 #include "tfrt/cpu/core_runtime/cpu_op_handler.h"
 #include "tfrt/cpu/core_runtime/null_op_handler.h"
-#include "tfrt/host_context/device.h"
 
 namespace tfrt {
-
-// TODO(b/159161860): Move it to a lowered level library since core_runtime
-// library should only be used in op-by-op execution.
-static DeviceTypeRegistration register_device_type_cpu("cpu");
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCpuOpHandlerKernels);
 

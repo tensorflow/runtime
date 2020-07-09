@@ -27,6 +27,7 @@
 
 #include "llvm/Support/Compiler.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/device.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/timer_queue.h"
 
@@ -69,8 +70,6 @@ class HostContext {
   HostContext(const HostContext&) = delete;
   HostContext& operator=(const HostContext&) = delete;
   ~HostContext();
-
-  KernelRegistry* GetRegistry() { return &registry_; }
 
   //===--------------------------------------------------------------------===//
   // Error Reporting
@@ -242,6 +241,15 @@ class HostContext {
   //===--------------------------------------------------------------------===//
   const KernelRegistry& GetKernelRegistry() { return registry_; }
 
+  KernelRegistry* GetRegistry() { return &registry_; }
+
+  //===--------------------------------------------------------------------===//
+  // Device Manager
+  //===--------------------------------------------------------------------===//
+  DeviceManager* GetDeviceManager() { return &device_mgr_; }
+
+  RCReference<Device> GetHostDeviceRef();
+
  private:
   friend class HostContextPtr;
   friend class RequestDeadlineTracker;
@@ -281,6 +289,8 @@ class HostContext {
   // chains on the heap.
   AsyncValueRef<Chain> ready_chain_;
   KernelRegistry registry_;
+  DeviceManager device_mgr_;
+  RCReference<Device> host_device_;
   std::function<void(const DecodedDiagnostic&)> diag_handler_;
   std::unique_ptr<HostAllocator> allocator_;
   std::unique_ptr<ConcurrentWorkQueue> work_queue_;

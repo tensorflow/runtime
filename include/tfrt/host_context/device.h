@@ -25,12 +25,16 @@
 #include <string>
 
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/mutex.h"
 #include "tfrt/support/ref_count.h"
+#include "tfrt/support/thread_annotations.h"
 
 namespace tfrt {
 
+class HostContext;
 class DeviceTypeRegistry;
 
 // A thin wrapper of device type string like "gpu", "cpu", etc. We don't use
@@ -84,11 +88,33 @@ class Device : public ReferenceCounted<Device> {
   std::string name_;
 };
 
+// A central place to manage all active devices.
+class DeviceManager {
+ public:
+  ~DeviceManager() = default;
+  DeviceManager(const DeviceManager&) = delete;
+  DeviceManager& operator=(const DeviceManager&) = delete;
+
+  // Add a new device if it doesn't exist. If it doesn't exist, return the newly
+  // added device, otherwise, return the existing device.
+  RCReference<Device> MaybeAddDevice(RCReference<Device> device);
+
+  // Lookup a device by its name. Return an empty RCReference if not found.
+  RCReference<Device> GetDeviceRef(string_view device_name) const;
+
+ private:
+  DeviceManager() = default;
+  friend class HostContext;
+
+  mutable mutex mu_;
+  llvm::StringMap<RCReference<Device>> device_map_ TFRT_GUARDED_BY(mu_);
+};
+
 // Contains all the DeviceType that are supported.
 class DeviceTypeRegistry {
  public:
   // Each process should only have one DeviceTypeRegistry;
-  static DeviceTypeRegistry* GetStaticDeviceFactory();
+  static DeviceTypeRegistry* GetStaticDeviceTypeRegistry();
 
   ~DeviceTypeRegistry();
 

@@ -51,6 +51,11 @@ HostContext::HostContext(
          "Created too many HostContext instances");
   all_host_contexts_[instance_index()] = this;
   ready_chain_ = MakeAvailableAsyncValueRef<Chain>();
+  // Add a CPU:0 device by default.
+  static DeviceTypeRegistration cpu_type("cpu");
+  // TODO(b/160264760): Pick a better device name than "CPU:0".
+  host_device_ = device_mgr_.MaybeAddDevice(
+      TakeRef(new Device(GetStaticDeviceType("cpu"), "CPU:0")));
 }
 
 HostContext::~HostContext() {
@@ -237,6 +242,13 @@ SharedContext& HostContext::GetOrCreateSharedContext(
     int shared_context_id, SharedContextFactory factory) {
   return shared_context_mgr_->GetOrCreateSharedContext(shared_context_id,
                                                        factory);
+}
+
+//===----------------------------------------------------------------------===//
+// Device Manager
+//===----------------------------------------------------------------------===//
+RCReference<Device> HostContext::GetHostDeviceRef() {
+  return host_device_.CopyRef();
 }
 
 }  // namespace tfrt

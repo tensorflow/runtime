@@ -130,11 +130,9 @@ llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
     CoreRuntime* runtime, OpHandler* fallback) {
   CpuOpRegistry op_registry;
   tfrt::RegisterStaticCpuOps(&op_registry);
-  // TODO(b/158775215): Save device in a central place to avoid creating
-  // duplicate devices.
-  auto device = TakeRef(new Device(GetStaticDeviceType("cpu"), "CPU:0"));
   return std::unique_ptr<OpHandler>(new CpuOpHandler(
-      runtime, fallback, std::move(op_registry), std::move(device)));
+      runtime, fallback, std::move(op_registry),
+      runtime->GetHostContext()->GetDeviceManager()->GetDeviceRef("CPU:0")));
 }
 
 llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
@@ -144,11 +142,9 @@ llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
   }
   CpuOpRegistry op_registry;
   tfrt::RegisterStaticCpuOps(&op_registry);
-  // TODO(b/158775215): Save device in a central place to avoid creating
-  // duplicate devices.
-  auto device = TakeRef(new Device(GetStaticDeviceType("cpu"), "CPU:0"));
-  auto cpu_op_handler = std::unique_ptr<CpuOpHandler>(new CpuOpHandler(
-      runtime, fallback, std::move(op_registry), std::move(device)));
+  auto cpu_op_handler = std::unique_ptr<CpuOpHandler>(
+      new CpuOpHandler(runtime, fallback, std::move(op_registry),
+                       runtime->GetHostContext()->GetHostDeviceRef()));
   auto cpu_op_handler_ptr = cpu_op_handler.get();
   runtime->TakeOpHandler(std::move(cpu_op_handler));
   return cpu_op_handler_ptr;

@@ -20,14 +20,14 @@
 
 #include "tfrt/host_context/device.h"
 
-#include "tfrt/support/logging.h"
+#include "llvm/ADT/FunctionExtras.h"
 
 namespace tfrt {
 
 void DeviceTypeRegistry::RegisterDeviceType(string_view type) {
   for (auto& dt : types_) {
     if (dt.name() == type) {
-      TFRT_LOG(WARNING) << "Re-registered existing device type: " << type.str();
+      assert(false && "re-registered existing device type.");
     }
   }
   types_.push_back(DeviceType(type));
@@ -42,17 +42,34 @@ const DeviceType& DeviceTypeRegistry::GetDeviceType(string_view type) const {
   return invalid_type_;
 }
 
-/*static*/ DeviceTypeRegistry* DeviceTypeRegistry::GetStaticDeviceFactory() {
+/*static*/ DeviceTypeRegistry*
+DeviceTypeRegistry::GetStaticDeviceTypeRegistry() {
   static DeviceTypeRegistry* ret = new DeviceTypeRegistry();
   return ret;
 }
 
 DeviceTypeRegistration::DeviceTypeRegistration(string_view name) {
-  DeviceTypeRegistry::GetStaticDeviceFactory()->RegisterDeviceType(name);
+  DeviceTypeRegistry::GetStaticDeviceTypeRegistry()->RegisterDeviceType(name);
 }
 
 const DeviceType& GetStaticDeviceType(string_view type) {
-  return DeviceTypeRegistry::GetStaticDeviceFactory()->GetDeviceType(type);
+  return DeviceTypeRegistry::GetStaticDeviceTypeRegistry()->GetDeviceType(type);
+}
+
+RCReference<Device> DeviceManager::MaybeAddDevice(RCReference<Device> device) {
+  mutex_lock l(mu_);
+  auto it = device_map_.find(device->name());
+  if (it != device_map_.end()) return it->second.CopyRef();
+  bool added = device_map_.try_emplace(device->name(), device.CopyRef()).second;
+  (void)added;
+  assert(added && "Re-registered existing Device");
+  return device;
+}
+
+RCReference<Device> DeviceManager::GetDeviceRef(string_view device_name) const {
+  mutex_lock l(mu_);
+  auto it = device_map_.find(device_name);
+  return it == device_map_.end() ? RCReference<Device>() : it->second.CopyRef();
 }
 
 }  // namespace tfrt

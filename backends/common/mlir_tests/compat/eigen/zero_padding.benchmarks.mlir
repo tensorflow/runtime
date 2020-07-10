@@ -22,13 +22,13 @@ func @BM_ZeroPadding_in_1x224x224x3_p_3x3() {
   %one = hex.constant.f32 1.0
 
   // in: [1, 224, 224, 3].
-  %in = "dht.create_uninitialized_tensor.f32.4"()
+  %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 224 : i64, 224 : i64, 3 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %in, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %in, %ch0 1.0 : f32
 
   // out: [1, 230, 230, 3].
-  %out = "dht.create_uninitialized_tensor.f32.4"()
+  %out = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 230 : i64, 230 : i64, 3 : i64] }
     : () -> !t.tensor
 

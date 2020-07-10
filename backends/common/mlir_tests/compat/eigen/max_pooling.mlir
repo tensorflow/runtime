@@ -37,7 +37,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -47,7 +47,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x2() {
        strides = [2 : i64, 2 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -73,7 +73,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_2x3_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -83,7 +83,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_2x3_s_2x2() {
        strides = [2 : i64, 2 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -109,7 +109,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x2_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -119,7 +119,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x2_s_2x2() {
        strides = [2 : i64, 2 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -145,7 +145,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_3x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -155,7 +155,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_3x2() {
        strides = [3 : i64, 2 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -181,7 +181,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x3() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -191,7 +191,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_valid_p_3x3_s_2x3() {
        strides = [2 : i64, 3 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -217,7 +217,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -227,7 +227,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x2() {
        strides = [2 : i64, 2 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -253,7 +253,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_2x3_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -263,7 +263,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_2x3_s_2x2() {
        strides = [2 : i64, 2 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -289,7 +289,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x2_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -299,7 +299,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x2_s_2x2() {
        strides = [2 : i64, 2 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -325,7 +325,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_3x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -335,7 +335,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_3x2() {
        strides = [3 : i64, 2 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -361,7 +361,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x3() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -371,7 +371,7 @@ func @test_max_pooling2d_in_1x9x9x8_padding_same_p_3x3_s_2x3() {
        strides = [2 : i64, 3 : i64] }
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1

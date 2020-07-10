@@ -22,15 +22,15 @@ func @BM_MatMul_512x512x512_f32() {
   %one = hex.constant.f32 1.0
 
   // Shape: [512, 512].
-  %a = dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
-  %ch1 = dht.fill_tensor_with_constant.f32 %a, %ch0 1.0 : f32
+  %a = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %a, %ch0 1.0 : f32
 
   // Shape: [512, 512].
-  %b = dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
-  %ch2 = dht.fill_tensor_with_constant.f32 %b, %ch0 1.0 : f32
+  %b = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %b, %ch0 1.0 : f32
 
   // Shape: [512, 512].
-  %c = dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
+  %c = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
   %ch3 = hex.merge.chains %ch1, %ch2
 
   tfrt_test.benchmark "BM_MatMul_512x512x512_f32"(
@@ -60,15 +60,15 @@ func @BM_MatMul_1024x1024x1024_f32() {
   %one = hex.constant.f32 1.0
 
   // Shape: [1024, 1024].
-  %a = dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
-  %ch1 = dht.fill_tensor_with_constant.f32 %a, %ch0 1.0 : f32
+  %a = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %a, %ch0 1.0 : f32
 
   // Shape: [1024, 1024].
-  %b = dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
-  %ch2 = dht.fill_tensor_with_constant.f32 %b, %ch0 1.0 : f32
+  %b = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %b, %ch0 1.0 : f32
 
   // Shape: [1024, 1024].
-  %c = dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
+  %c = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
   %ch3 = hex.merge.chains %ch1, %ch2
 
   tfrt_test.benchmark "BM_MatMul_1024x1024x1024_f32"(

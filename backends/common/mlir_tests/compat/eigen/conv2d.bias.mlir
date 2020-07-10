@@ -41,7 +41,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -50,7 +50,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -84,7 +84,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -93,7 +93,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -127,7 +127,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -136,7 +136,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -170,7 +170,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -179,7 +179,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -213,7 +213,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -222,7 +222,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -256,7 +256,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -265,7 +265,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -299,7 +299,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -308,7 +308,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -342,7 +342,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -351,7 +351,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -385,7 +385,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -394,7 +394,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -428,7 +428,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -437,7 +437,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -471,7 +471,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -480,7 +480,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -514,7 +514,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -523,7 +523,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -557,7 +557,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -566,7 +566,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -600,7 +600,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -609,7 +609,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -643,7 +643,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -652,7 +652,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -686,7 +686,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -695,7 +695,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -729,7 +729,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -738,7 +738,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -772,7 +772,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -781,7 +781,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -815,7 +815,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -824,7 +824,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -858,7 +858,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -867,7 +867,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -901,7 +901,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -910,7 +910,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -944,7 +944,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -953,7 +953,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -987,7 +987,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -996,7 +996,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1030,7 +1030,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -1039,7 +1039,7 @@ func @test_conv2d_in_1x9x9x8_f_1x1_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1073,7 +1073,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -1082,7 +1082,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1116,7 +1116,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -1125,7 +1125,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1159,7 +1159,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -1168,7 +1168,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1202,7 +1202,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -1211,7 +1211,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1245,7 +1245,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -1254,7 +1254,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1288,7 +1288,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -1297,7 +1297,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1331,7 +1331,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -1340,7 +1340,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1374,7 +1374,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -1383,7 +1383,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1417,7 +1417,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -1426,7 +1426,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1460,7 +1460,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -1469,7 +1469,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1503,7 +1503,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -1512,7 +1512,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1546,7 +1546,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -1555,7 +1555,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1589,7 +1589,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -1598,7 +1598,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1632,7 +1632,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -1641,7 +1641,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1675,7 +1675,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -1684,7 +1684,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1718,7 +1718,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -1727,7 +1727,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1761,7 +1761,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -1770,7 +1770,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1804,7 +1804,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -1813,7 +1813,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1847,7 +1847,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -1856,7 +1856,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1890,7 +1890,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -1899,7 +1899,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1933,7 +1933,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -1942,7 +1942,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -1976,7 +1976,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -1985,7 +1985,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2019,7 +2019,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -2028,7 +2028,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2062,7 +2062,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -2071,7 +2071,7 @@ func @test_conv2d_in_1x9x9x8_f_3x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2105,7 +2105,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -2114,7 +2114,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2148,7 +2148,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -2157,7 +2157,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2191,7 +2191,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -2200,7 +2200,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2234,7 +2234,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -2243,7 +2243,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2277,7 +2277,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -2286,7 +2286,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2320,7 +2320,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -2329,7 +2329,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2363,7 +2363,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -2372,7 +2372,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2406,7 +2406,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -2415,7 +2415,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2449,7 +2449,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -2458,7 +2458,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2492,7 +2492,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -2501,7 +2501,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2535,7 +2535,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -2544,7 +2544,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2578,7 +2578,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -2587,7 +2587,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2621,7 +2621,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -2630,7 +2630,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2664,7 +2664,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -2673,7 +2673,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2707,7 +2707,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -2716,7 +2716,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2750,7 +2750,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -2759,7 +2759,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2793,7 +2793,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -2802,7 +2802,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2836,7 +2836,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -2845,7 +2845,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2879,7 +2879,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -2888,7 +2888,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2922,7 +2922,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -2931,7 +2931,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -2965,7 +2965,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -2974,7 +2974,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3008,7 +3008,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -3017,7 +3017,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3051,7 +3051,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -3060,7 +3060,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3094,7 +3094,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -3103,7 +3103,7 @@ func @test_conv2d_in_1x9x9x8_f_2x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3137,7 +3137,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 8 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -3146,7 +3146,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3180,7 +3180,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -3189,7 +3189,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3223,7 +3223,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 8 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -3232,7 +3232,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3266,7 +3266,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -3275,7 +3275,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3309,7 +3309,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -3318,7 +3318,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3352,7 +3352,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -3361,7 +3361,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3395,7 +3395,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -3404,7 +3404,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3438,7 +3438,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -3447,7 +3447,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3481,7 +3481,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 8 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -3490,7 +3490,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3524,7 +3524,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -3533,7 +3533,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3567,7 +3567,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 8 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -3576,7 +3576,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3610,7 +3610,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -3619,7 +3619,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3653,7 +3653,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -3662,7 +3662,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3696,7 +3696,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -3705,7 +3705,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3739,7 +3739,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -3748,7 +3748,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3782,7 +3782,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -3791,7 +3791,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3825,7 +3825,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 8 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -3834,7 +3834,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3868,7 +3868,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -3877,7 +3877,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3911,7 +3911,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 8 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -3920,7 +3920,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3954,7 +3954,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -3963,7 +3963,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -3997,7 +3997,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -4006,7 +4006,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4040,7 +4040,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -4049,7 +4049,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4083,7 +4083,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -4092,7 +4092,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4126,7 +4126,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -4135,7 +4135,7 @@ func @test_conv2d_in_1x9x9x8_f_3x2_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4169,7 +4169,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -4178,7 +4178,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4212,7 +4212,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -4221,7 +4221,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4255,7 +4255,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -4264,7 +4264,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4298,7 +4298,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -4307,7 +4307,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4341,7 +4341,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -4350,7 +4350,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4384,7 +4384,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -4393,7 +4393,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4427,7 +4427,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -4436,7 +4436,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4470,7 +4470,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -4479,7 +4479,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4513,7 +4513,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -4522,7 +4522,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4556,7 +4556,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -4565,7 +4565,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4599,7 +4599,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -4608,7 +4608,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4642,7 +4642,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -4651,7 +4651,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4685,7 +4685,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -4694,7 +4694,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4728,7 +4728,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -4737,7 +4737,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4771,7 +4771,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -4780,7 +4780,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4814,7 +4814,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -4823,7 +4823,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4857,7 +4857,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -4866,7 +4866,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4900,7 +4900,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -4909,7 +4909,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4943,7 +4943,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -4952,7 +4952,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -4986,7 +4986,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -4995,7 +4995,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5029,7 +5029,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -5038,7 +5038,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5072,7 +5072,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -5081,7 +5081,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5115,7 +5115,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -5124,7 +5124,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5158,7 +5158,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -5167,7 +5167,7 @@ func @test_conv2d_in_1x9x7x8_f_1x1_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5201,7 +5201,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -5210,7 +5210,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5244,7 +5244,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -5253,7 +5253,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5287,7 +5287,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -5296,7 +5296,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5330,7 +5330,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -5339,7 +5339,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5373,7 +5373,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -5382,7 +5382,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5416,7 +5416,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -5425,7 +5425,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5459,7 +5459,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -5468,7 +5468,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5502,7 +5502,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -5511,7 +5511,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5545,7 +5545,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -5554,7 +5554,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5588,7 +5588,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -5597,7 +5597,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5631,7 +5631,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -5640,7 +5640,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5674,7 +5674,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -5683,7 +5683,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5717,7 +5717,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -5726,7 +5726,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5760,7 +5760,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -5769,7 +5769,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5803,7 +5803,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -5812,7 +5812,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5846,7 +5846,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -5855,7 +5855,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5889,7 +5889,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -5898,7 +5898,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5932,7 +5932,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -5941,7 +5941,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -5975,7 +5975,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -5984,7 +5984,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6018,7 +6018,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -6027,7 +6027,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6061,7 +6061,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -6070,7 +6070,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6104,7 +6104,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -6113,7 +6113,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6147,7 +6147,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -6156,7 +6156,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6190,7 +6190,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -6199,7 +6199,7 @@ func @test_conv2d_in_1x9x7x8_f_3x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6233,7 +6233,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -6242,7 +6242,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6276,7 +6276,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -6285,7 +6285,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6319,7 +6319,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -6328,7 +6328,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6362,7 +6362,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -6371,7 +6371,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6405,7 +6405,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -6414,7 +6414,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6448,7 +6448,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -6457,7 +6457,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6491,7 +6491,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -6500,7 +6500,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6534,7 +6534,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -6543,7 +6543,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6577,7 +6577,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -6586,7 +6586,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6620,7 +6620,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -6629,7 +6629,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6663,7 +6663,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -6672,7 +6672,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6706,7 +6706,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -6715,7 +6715,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6749,7 +6749,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -6758,7 +6758,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6792,7 +6792,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -6801,7 +6801,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6835,7 +6835,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -6844,7 +6844,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6878,7 +6878,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -6887,7 +6887,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6921,7 +6921,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -6930,7 +6930,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -6964,7 +6964,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -6973,7 +6973,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7007,7 +7007,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -7016,7 +7016,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7050,7 +7050,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -7059,7 +7059,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7093,7 +7093,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -7102,7 +7102,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7136,7 +7136,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -7145,7 +7145,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7179,7 +7179,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -7188,7 +7188,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7222,7 +7222,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -7231,7 +7231,7 @@ func @test_conv2d_in_1x9x7x8_f_2x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7265,7 +7265,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 6 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -7274,7 +7274,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7308,7 +7308,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -7317,7 +7317,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7351,7 +7351,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 6 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -7360,7 +7360,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7394,7 +7394,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -7403,7 +7403,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7437,7 +7437,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -7446,7 +7446,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7480,7 +7480,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -7489,7 +7489,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7523,7 +7523,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -7532,7 +7532,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7566,7 +7566,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -7575,7 +7575,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7609,7 +7609,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 6 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -7618,7 +7618,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7652,7 +7652,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -7661,7 +7661,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7695,7 +7695,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 6 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -7704,7 +7704,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7738,7 +7738,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -7747,7 +7747,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7781,7 +7781,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -7790,7 +7790,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7824,7 +7824,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -7833,7 +7833,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7867,7 +7867,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -7876,7 +7876,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7910,7 +7910,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -7919,7 +7919,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7953,7 +7953,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 6 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -7962,7 +7962,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -7996,7 +7996,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -8005,7 +8005,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8039,7 +8039,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 6 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -8048,7 +8048,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8082,7 +8082,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -8091,7 +8091,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8125,7 +8125,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -8134,7 +8134,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8168,7 +8168,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -8177,7 +8177,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8211,7 +8211,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -8220,7 +8220,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8254,7 +8254,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -8263,7 +8263,7 @@ func @test_conv2d_in_1x9x7x8_f_3x2_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8297,7 +8297,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -8306,7 +8306,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8340,7 +8340,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -8349,7 +8349,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8383,7 +8383,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -8392,7 +8392,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8426,7 +8426,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -8435,7 +8435,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8469,7 +8469,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -8478,7 +8478,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8512,7 +8512,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -8521,7 +8521,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8555,7 +8555,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -8564,7 +8564,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8598,7 +8598,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -8607,7 +8607,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8641,7 +8641,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -8650,7 +8650,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8684,7 +8684,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -8693,7 +8693,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8727,7 +8727,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -8736,7 +8736,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8770,7 +8770,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -8779,7 +8779,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8813,7 +8813,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -8822,7 +8822,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8856,7 +8856,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -8865,7 +8865,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8899,7 +8899,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -8908,7 +8908,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8942,7 +8942,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -8951,7 +8951,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -8985,7 +8985,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -8994,7 +8994,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9028,7 +9028,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -9037,7 +9037,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9071,7 +9071,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -9080,7 +9080,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9114,7 +9114,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -9123,7 +9123,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9157,7 +9157,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -9166,7 +9166,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9200,7 +9200,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -9209,7 +9209,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9243,7 +9243,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -9252,7 +9252,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9286,7 +9286,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -9295,7 +9295,7 @@ func @test_conv2d_in_1x7x9x8_f_1x1_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9329,7 +9329,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -9338,7 +9338,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9372,7 +9372,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -9381,7 +9381,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9415,7 +9415,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -9424,7 +9424,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9458,7 +9458,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -9467,7 +9467,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9501,7 +9501,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -9510,7 +9510,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9544,7 +9544,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -9553,7 +9553,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9587,7 +9587,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -9596,7 +9596,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9630,7 +9630,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -9639,7 +9639,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9673,7 +9673,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -9682,7 +9682,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9716,7 +9716,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -9725,7 +9725,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9759,7 +9759,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -9768,7 +9768,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9802,7 +9802,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -9811,7 +9811,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9845,7 +9845,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -9854,7 +9854,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9888,7 +9888,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -9897,7 +9897,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9931,7 +9931,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -9940,7 +9940,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -9974,7 +9974,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -9983,7 +9983,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10017,7 +10017,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -10026,7 +10026,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10060,7 +10060,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -10069,7 +10069,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10103,7 +10103,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -10112,7 +10112,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10146,7 +10146,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -10155,7 +10155,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10189,7 +10189,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -10198,7 +10198,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10232,7 +10232,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -10241,7 +10241,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10275,7 +10275,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -10284,7 +10284,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10318,7 +10318,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -10327,7 +10327,7 @@ func @test_conv2d_in_1x7x9x8_f_3x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10361,7 +10361,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -10370,7 +10370,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10404,7 +10404,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -10413,7 +10413,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10447,7 +10447,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -10456,7 +10456,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10490,7 +10490,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -10499,7 +10499,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10533,7 +10533,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -10542,7 +10542,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10576,7 +10576,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -10585,7 +10585,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10619,7 +10619,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -10628,7 +10628,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10662,7 +10662,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -10671,7 +10671,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10705,7 +10705,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -10714,7 +10714,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10748,7 +10748,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -10757,7 +10757,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10791,7 +10791,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -10800,7 +10800,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10834,7 +10834,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -10843,7 +10843,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10877,7 +10877,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -10886,7 +10886,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10920,7 +10920,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -10929,7 +10929,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -10963,7 +10963,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -10972,7 +10972,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11006,7 +11006,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -11015,7 +11015,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11049,7 +11049,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -11058,7 +11058,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11092,7 +11092,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -11101,7 +11101,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11135,7 +11135,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -11144,7 +11144,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11178,7 +11178,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -11187,7 +11187,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11221,7 +11221,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -11230,7 +11230,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11264,7 +11264,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -11273,7 +11273,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11307,7 +11307,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -11316,7 +11316,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11350,7 +11350,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -11359,7 +11359,7 @@ func @test_conv2d_in_1x7x9x8_f_2x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11393,7 +11393,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 8 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -11402,7 +11402,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11436,7 +11436,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -11445,7 +11445,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11479,7 +11479,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 8 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -11488,7 +11488,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11522,7 +11522,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -11531,7 +11531,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11565,7 +11565,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -11574,7 +11574,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11608,7 +11608,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -11617,7 +11617,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11651,7 +11651,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -11660,7 +11660,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11694,7 +11694,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -11703,7 +11703,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11737,7 +11737,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 8 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -11746,7 +11746,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11780,7 +11780,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -11789,7 +11789,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11823,7 +11823,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 8 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -11832,7 +11832,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11866,7 +11866,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -11875,7 +11875,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11909,7 +11909,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -11918,7 +11918,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11952,7 +11952,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -11961,7 +11961,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -11995,7 +11995,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -12004,7 +12004,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12038,7 +12038,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -12047,7 +12047,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12081,7 +12081,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 8 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -12090,7 +12090,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12124,7 +12124,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -12133,7 +12133,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12167,7 +12167,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 8 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -12176,7 +12176,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12210,7 +12210,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -12219,7 +12219,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12253,7 +12253,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -12262,7 +12262,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12296,7 +12296,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -12305,7 +12305,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12339,7 +12339,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -12348,7 +12348,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12382,7 +12382,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -12391,7 +12391,7 @@ func @test_conv2d_in_1x7x9x8_f_3x2_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12425,7 +12425,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -12434,7 +12434,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12468,7 +12468,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -12477,7 +12477,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12511,7 +12511,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -12520,7 +12520,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12554,7 +12554,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -12563,7 +12563,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12597,7 +12597,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -12606,7 +12606,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12640,7 +12640,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -12649,7 +12649,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12683,7 +12683,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -12692,7 +12692,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12726,7 +12726,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -12735,7 +12735,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12769,7 +12769,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -12778,7 +12778,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12812,7 +12812,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -12821,7 +12821,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12855,7 +12855,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -12864,7 +12864,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12898,7 +12898,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -12907,7 +12907,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12941,7 +12941,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -12950,7 +12950,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -12984,7 +12984,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -12993,7 +12993,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13027,7 +13027,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -13036,7 +13036,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13070,7 +13070,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -13079,7 +13079,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13113,7 +13113,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -13122,7 +13122,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13156,7 +13156,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -13165,7 +13165,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13199,7 +13199,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -13208,7 +13208,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13242,7 +13242,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -13251,7 +13251,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13285,7 +13285,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -13294,7 +13294,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13328,7 +13328,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -13337,7 +13337,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13371,7 +13371,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -13380,7 +13380,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13414,7 +13414,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -13423,7 +13423,7 @@ func @test_conv2d_in_1x9x9x10_f_1x1_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13457,7 +13457,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -13466,7 +13466,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13500,7 +13500,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -13509,7 +13509,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13543,7 +13543,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -13552,7 +13552,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13586,7 +13586,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -13595,7 +13595,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13629,7 +13629,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -13638,7 +13638,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13672,7 +13672,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -13681,7 +13681,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13715,7 +13715,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -13724,7 +13724,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13758,7 +13758,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -13767,7 +13767,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13801,7 +13801,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -13810,7 +13810,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13844,7 +13844,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -13853,7 +13853,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13887,7 +13887,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -13896,7 +13896,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13930,7 +13930,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -13939,7 +13939,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -13973,7 +13973,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -13982,7 +13982,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14016,7 +14016,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -14025,7 +14025,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14059,7 +14059,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -14068,7 +14068,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14102,7 +14102,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -14111,7 +14111,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14145,7 +14145,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -14154,7 +14154,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14188,7 +14188,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -14197,7 +14197,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14231,7 +14231,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -14240,7 +14240,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14274,7 +14274,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -14283,7 +14283,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14317,7 +14317,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -14326,7 +14326,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14360,7 +14360,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -14369,7 +14369,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14403,7 +14403,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -14412,7 +14412,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14446,7 +14446,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -14455,7 +14455,7 @@ func @test_conv2d_in_1x9x9x10_f_3x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14489,7 +14489,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -14498,7 +14498,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14532,7 +14532,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -14541,7 +14541,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14575,7 +14575,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -14584,7 +14584,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14618,7 +14618,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -14627,7 +14627,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14661,7 +14661,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -14670,7 +14670,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14704,7 +14704,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -14713,7 +14713,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14747,7 +14747,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -14756,7 +14756,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14790,7 +14790,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -14799,7 +14799,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14833,7 +14833,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -14842,7 +14842,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14876,7 +14876,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -14885,7 +14885,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14919,7 +14919,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -14928,7 +14928,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -14962,7 +14962,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -14971,7 +14971,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15005,7 +15005,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -15014,7 +15014,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15048,7 +15048,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -15057,7 +15057,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15091,7 +15091,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -15100,7 +15100,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15134,7 +15134,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -15143,7 +15143,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15177,7 +15177,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -15186,7 +15186,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15220,7 +15220,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -15229,7 +15229,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15263,7 +15263,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -15272,7 +15272,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15306,7 +15306,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -15315,7 +15315,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15349,7 +15349,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -15358,7 +15358,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15392,7 +15392,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -15401,7 +15401,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15435,7 +15435,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -15444,7 +15444,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15478,7 +15478,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -15487,7 +15487,7 @@ func @test_conv2d_in_1x9x9x10_f_2x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15521,7 +15521,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 8 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -15530,7 +15530,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15564,7 +15564,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -15573,7 +15573,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15607,7 +15607,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 8 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -15616,7 +15616,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15650,7 +15650,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -15659,7 +15659,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15693,7 +15693,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -15702,7 +15702,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15736,7 +15736,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -15745,7 +15745,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15779,7 +15779,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -15788,7 +15788,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15822,7 +15822,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -15831,7 +15831,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15865,7 +15865,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 8 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -15874,7 +15874,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15908,7 +15908,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -15917,7 +15917,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15951,7 +15951,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 8 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -15960,7 +15960,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -15994,7 +15994,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -16003,7 +16003,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16037,7 +16037,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -16046,7 +16046,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16080,7 +16080,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -16089,7 +16089,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16123,7 +16123,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -16132,7 +16132,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16166,7 +16166,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -16175,7 +16175,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16209,7 +16209,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 8 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -16218,7 +16218,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16252,7 +16252,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -16261,7 +16261,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16295,7 +16295,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 8 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -16304,7 +16304,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16338,7 +16338,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -16347,7 +16347,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16381,7 +16381,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -16390,7 +16390,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16424,7 +16424,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -16433,7 +16433,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16467,7 +16467,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -16476,7 +16476,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16510,7 +16510,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -16519,7 +16519,7 @@ func @test_conv2d_in_1x9x9x10_f_3x2_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16553,7 +16553,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -16562,7 +16562,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16596,7 +16596,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -16605,7 +16605,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16639,7 +16639,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -16648,7 +16648,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16682,7 +16682,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -16691,7 +16691,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16725,7 +16725,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -16734,7 +16734,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16768,7 +16768,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -16777,7 +16777,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16811,7 +16811,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -16820,7 +16820,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16854,7 +16854,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -16863,7 +16863,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16897,7 +16897,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -16906,7 +16906,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16940,7 +16940,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -16949,7 +16949,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -16983,7 +16983,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -16992,7 +16992,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17026,7 +17026,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -17035,7 +17035,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17069,7 +17069,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -17078,7 +17078,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17112,7 +17112,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -17121,7 +17121,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17155,7 +17155,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -17164,7 +17164,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17198,7 +17198,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -17207,7 +17207,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17241,7 +17241,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -17250,7 +17250,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17284,7 +17284,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -17293,7 +17293,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17327,7 +17327,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -17336,7 +17336,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17370,7 +17370,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -17379,7 +17379,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17413,7 +17413,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -17422,7 +17422,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17456,7 +17456,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -17465,7 +17465,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17499,7 +17499,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -17508,7 +17508,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17542,7 +17542,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -17551,7 +17551,7 @@ func @test_conv2d_in_1x9x7x10_f_1x1_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17585,7 +17585,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -17594,7 +17594,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17628,7 +17628,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -17637,7 +17637,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17671,7 +17671,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -17680,7 +17680,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17714,7 +17714,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -17723,7 +17723,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17757,7 +17757,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -17766,7 +17766,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17800,7 +17800,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -17809,7 +17809,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17843,7 +17843,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -17852,7 +17852,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17886,7 +17886,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -17895,7 +17895,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17929,7 +17929,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -17938,7 +17938,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -17972,7 +17972,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -17981,7 +17981,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18015,7 +18015,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -18024,7 +18024,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18058,7 +18058,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -18067,7 +18067,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18101,7 +18101,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -18110,7 +18110,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18144,7 +18144,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -18153,7 +18153,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18187,7 +18187,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -18196,7 +18196,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18230,7 +18230,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -18239,7 +18239,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18273,7 +18273,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -18282,7 +18282,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18316,7 +18316,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -18325,7 +18325,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18359,7 +18359,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -18368,7 +18368,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18402,7 +18402,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -18411,7 +18411,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18445,7 +18445,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -18454,7 +18454,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18488,7 +18488,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -18497,7 +18497,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18531,7 +18531,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -18540,7 +18540,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18574,7 +18574,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -18583,7 +18583,7 @@ func @test_conv2d_in_1x9x7x10_f_3x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18617,7 +18617,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -18626,7 +18626,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18660,7 +18660,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -18669,7 +18669,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18703,7 +18703,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -18712,7 +18712,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18746,7 +18746,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -18755,7 +18755,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18789,7 +18789,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -18798,7 +18798,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18832,7 +18832,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -18841,7 +18841,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18875,7 +18875,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -18884,7 +18884,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18918,7 +18918,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -18927,7 +18927,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -18961,7 +18961,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -18970,7 +18970,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19004,7 +19004,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -19013,7 +19013,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19047,7 +19047,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -19056,7 +19056,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19090,7 +19090,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -19099,7 +19099,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19133,7 +19133,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -19142,7 +19142,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19176,7 +19176,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -19185,7 +19185,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19219,7 +19219,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -19228,7 +19228,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19262,7 +19262,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -19271,7 +19271,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19305,7 +19305,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -19314,7 +19314,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19348,7 +19348,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 8 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -19357,7 +19357,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19391,7 +19391,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -19400,7 +19400,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19434,7 +19434,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -19443,7 +19443,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19477,7 +19477,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -19486,7 +19486,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19520,7 +19520,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -19529,7 +19529,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19563,7 +19563,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -19572,7 +19572,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19606,7 +19606,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -19615,7 +19615,7 @@ func @test_conv2d_in_1x9x7x10_f_2x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19649,7 +19649,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 6 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -19658,7 +19658,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19692,7 +19692,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -19701,7 +19701,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19735,7 +19735,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 6 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -19744,7 +19744,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19778,7 +19778,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -19787,7 +19787,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19821,7 +19821,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -19830,7 +19830,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19864,7 +19864,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -19873,7 +19873,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19907,7 +19907,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -19916,7 +19916,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19950,7 +19950,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -19959,7 +19959,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -19993,7 +19993,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 6 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -20002,7 +20002,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20036,7 +20036,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -20045,7 +20045,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20079,7 +20079,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 6 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -20088,7 +20088,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20122,7 +20122,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -20131,7 +20131,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20165,7 +20165,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -20174,7 +20174,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20208,7 +20208,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -20217,7 +20217,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20251,7 +20251,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -20260,7 +20260,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20294,7 +20294,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -20303,7 +20303,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20337,7 +20337,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 6 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -20346,7 +20346,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20380,7 +20380,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -20389,7 +20389,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20423,7 +20423,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 6 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -20432,7 +20432,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20466,7 +20466,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 3 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -20475,7 +20475,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20509,7 +20509,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -20518,7 +20518,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20552,7 +20552,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 9 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -20561,7 +20561,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20595,7 +20595,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -20604,7 +20604,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20638,7 +20638,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -20647,7 +20647,7 @@ func @test_conv2d_in_1x9x7x10_f_3x2_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20681,7 +20681,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -20690,7 +20690,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20724,7 +20724,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -20733,7 +20733,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20767,7 +20767,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -20776,7 +20776,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20810,7 +20810,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -20819,7 +20819,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20853,7 +20853,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -20862,7 +20862,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20896,7 +20896,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -20905,7 +20905,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20939,7 +20939,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -20948,7 +20948,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -20982,7 +20982,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -20991,7 +20991,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21025,7 +21025,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -21034,7 +21034,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21068,7 +21068,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -21077,7 +21077,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21111,7 +21111,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -21120,7 +21120,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21154,7 +21154,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -21163,7 +21163,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21197,7 +21197,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -21206,7 +21206,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21240,7 +21240,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -21249,7 +21249,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21283,7 +21283,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -21292,7 +21292,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21326,7 +21326,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -21335,7 +21335,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21369,7 +21369,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -21378,7 +21378,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21412,7 +21412,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -21421,7 +21421,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21455,7 +21455,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -21464,7 +21464,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21498,7 +21498,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -21507,7 +21507,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21541,7 +21541,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -21550,7 +21550,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21584,7 +21584,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -21593,7 +21593,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21627,7 +21627,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -21636,7 +21636,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21670,7 +21670,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -21679,7 +21679,7 @@ func @test_conv2d_in_1x7x9x10_f_1x1_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21713,7 +21713,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -21722,7 +21722,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21756,7 +21756,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -21765,7 +21765,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21799,7 +21799,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -21808,7 +21808,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21842,7 +21842,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -21851,7 +21851,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21885,7 +21885,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -21894,7 +21894,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21928,7 +21928,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -21937,7 +21937,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -21971,7 +21971,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -21980,7 +21980,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22014,7 +22014,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -22023,7 +22023,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22057,7 +22057,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -22066,7 +22066,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22100,7 +22100,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -22109,7 +22109,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22143,7 +22143,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -22152,7 +22152,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22186,7 +22186,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -22195,7 +22195,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22229,7 +22229,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -22238,7 +22238,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22272,7 +22272,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -22281,7 +22281,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22315,7 +22315,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -22324,7 +22324,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22358,7 +22358,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -22367,7 +22367,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22401,7 +22401,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -22410,7 +22410,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22444,7 +22444,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -22453,7 +22453,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22487,7 +22487,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -22496,7 +22496,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22530,7 +22530,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -22539,7 +22539,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22573,7 +22573,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -22582,7 +22582,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22616,7 +22616,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -22625,7 +22625,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22659,7 +22659,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -22668,7 +22668,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22702,7 +22702,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -22711,7 +22711,7 @@ func @test_conv2d_in_1x7x9x10_f_3x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22745,7 +22745,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -22754,7 +22754,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22788,7 +22788,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -22797,7 +22797,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22831,7 +22831,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -22840,7 +22840,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22874,7 +22874,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -22883,7 +22883,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22917,7 +22917,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -22926,7 +22926,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -22960,7 +22960,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -22969,7 +22969,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23003,7 +23003,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -23012,7 +23012,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23046,7 +23046,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -23055,7 +23055,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23089,7 +23089,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -23098,7 +23098,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23132,7 +23132,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -23141,7 +23141,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23175,7 +23175,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -23184,7 +23184,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23218,7 +23218,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -23227,7 +23227,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23261,7 +23261,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -23270,7 +23270,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23304,7 +23304,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -23313,7 +23313,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23347,7 +23347,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -23356,7 +23356,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23390,7 +23390,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -23399,7 +23399,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23433,7 +23433,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -23442,7 +23442,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23476,7 +23476,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 6 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -23485,7 +23485,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23519,7 +23519,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 7 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -23528,7 +23528,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23562,7 +23562,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -23571,7 +23571,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23605,7 +23605,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -23614,7 +23614,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23648,7 +23648,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -23657,7 +23657,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23691,7 +23691,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -23700,7 +23700,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23734,7 +23734,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -23743,7 +23743,7 @@ func @test_conv2d_in_1x7x9x10_f_2x3_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23777,7 +23777,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 8 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -23786,7 +23786,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23820,7 +23820,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -23829,7 +23829,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23863,7 +23863,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 8 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -23872,7 +23872,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23906,7 +23906,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -23915,7 +23915,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23949,7 +23949,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -23958,7 +23958,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -23992,7 +23992,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -24001,7 +24001,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24035,7 +24035,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -24044,7 +24044,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24078,7 +24078,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 4 : i64] }
     : () -> !t.tensor
 
@@ -24087,7 +24087,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c4_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24121,7 +24121,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 8 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -24130,7 +24130,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24164,7 +24164,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -24173,7 +24173,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24207,7 +24207,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 8 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -24216,7 +24216,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24250,7 +24250,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -24259,7 +24259,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24293,7 +24293,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -24302,7 +24302,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24336,7 +24336,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -24345,7 +24345,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24379,7 +24379,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -24388,7 +24388,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24422,7 +24422,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 8 : i64] }
     : () -> !t.tensor
 
@@ -24431,7 +24431,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c8_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24465,7 +24465,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_valid_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 8 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -24474,7 +24474,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_valid_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24508,7 +24508,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_valid_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 5 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -24517,7 +24517,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_valid_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24551,7 +24551,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_valid_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 8 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -24560,7 +24560,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_valid_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24594,7 +24594,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_valid_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 3 : i64, 4 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -24603,7 +24603,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_valid_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24637,7 +24637,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_same_s_1x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -24646,7 +24646,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_same_s_1x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24680,7 +24680,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_same_s_1x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 7 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -24689,7 +24689,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_same_s_1x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24723,7 +24723,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_same_s_2x1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 9 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -24732,7 +24732,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_same_s_2x1() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -24766,7 +24766,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_same_s_2x2() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 4 : i64, 5 : i64, 10 : i64] }
     : () -> !t.tensor
 
@@ -24775,7 +24775,7 @@ func @test_conv2d_in_1x7x9x10_f_3x2_c10_padding_same_s_2x2() {
     : (!t.tensor, !t.tensor, !t.tensor,
        !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.3ulp.f32"(%expected, %output, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1

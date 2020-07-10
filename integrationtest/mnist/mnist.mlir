@@ -42,7 +42,7 @@ func @mnist_compute(%w1 : !t.tensor,
   %argmax_h2 = "tfrt_test.argmax.f32.2"(%activation2, %ch2) : (!t.tensor, !hex.chain) ->  !t.tensor
   // Shape: [100].
   %equal_ch = "tfrt_test.equal_inplace.i32"(%test_input_labels, %argmax_h2, %ch2): (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
-  %equal_f32 = "dht.create_uninitialized_tensor.f32.1"() { shape = [100 : i64] } :
+  %equal_f32 = "tfrt_dht.create_uninitialized_tensor.f32.1"() { shape = [100 : i64] } :
     () -> !t.tensor
   %cast_ch = "tfrt_test.cast.i32_to_f32"(%argmax_h2, %equal_f32, %equal_ch): (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
   // Shape: [].
@@ -80,7 +80,7 @@ func @mnist() -> !hex.chain {
        -> !t.tensor
 
   // CHECK: shape = [], values = [9.800000e-01]
-  %c1 = dht.print_tensor %avg_accuracy, %c
+  %c1 = tfrt_dht.print_tensor %avg_accuracy, %c
 
   hex.return %c1 : !hex.chain
 }
@@ -88,18 +88,18 @@ func @mnist() -> !hex.chain {
 // CHECK-LABEL: --- Running 'bm_mnist'
 func @bm_mnist() {
   %ch0 = hex.new.chain
-  %w1 = dht.create_uninitialized_tensor.f32.2 [784 : i64, 512 : i64]
-  %ch1 = dht.fill_tensor_with_constant.f32 %w1, %ch0 1.0 : f32
-  %b1 = dht.create_uninitialized_tensor.f32.1 [512 : i64]
-  %ch2 = dht.fill_tensor_with_constant.f32 %b1, %ch0 1.0 : f32
-  %w2 = dht.create_uninitialized_tensor.f32.2 [512 : i64, 10 : i64]
-  %ch3 = dht.fill_tensor_with_constant.f32 %w2, %ch0 1.0 : f32
-  %b2 = dht.create_uninitialized_tensor.f32.1 [10 : i64]
-  %ch4 = dht.fill_tensor_with_constant.f32 %b2, %ch0 1.0 : f32
-  %test_input_features = dht.create_uninitialized_tensor.f32.2 [100 : i64, 784 : i64]
-  %ch5 = dht.fill_tensor_with_constant.f32 %test_input_features, %ch0 1.0 : f32
-  %test_input_labels = dht.create_uninitialized_tensor.i32.1 [100 : i64]
-  %ch6 = dht.fill_tensor_with_constant.i32 %test_input_labels, %ch0 7 : i32
+  %w1 = tfrt_dht.create_uninitialized_tensor.f32.2 [784 : i64, 512 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %w1, %ch0 1.0 : f32
+  %b1 = tfrt_dht.create_uninitialized_tensor.f32.1 [512 : i64]
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %b1, %ch0 1.0 : f32
+  %w2 = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 10 : i64]
+  %ch3 = tfrt_dht.fill_tensor_with_constant.f32 %w2, %ch0 1.0 : f32
+  %b2 = tfrt_dht.create_uninitialized_tensor.f32.1 [10 : i64]
+  %ch4 = tfrt_dht.fill_tensor_with_constant.f32 %b2, %ch0 1.0 : f32
+  %test_input_features = tfrt_dht.create_uninitialized_tensor.f32.2 [100 : i64, 784 : i64]
+  %ch5 = tfrt_dht.fill_tensor_with_constant.f32 %test_input_features, %ch0 1.0 : f32
+  %test_input_labels = tfrt_dht.create_uninitialized_tensor.i32.1 [100 : i64]
+  %ch6 = tfrt_dht.fill_tensor_with_constant.i32 %test_input_labels, %ch0 7 : i32
   %ch7 = hex.merge.chains %ch1, %ch2, %ch3, %ch4, %ch5, %ch6
 
   tfrt_test.benchmark "bm_mnist"(
@@ -126,16 +126,16 @@ func @bm_mnist() {
 // CHECK-LABEL: --- Running 'test_broadcast'
 func @test_broadcast() {
   %ch0 = hex.new.chain
-  %tensor_1 = "dht.create_uninitialized_tensor.f32.2"()
+  %tensor_1 = "tfrt_dht.create_uninitialized_tensor.f32.2"()
     { shape = [2 : i64] } : () -> !t.tensor
-  %ch1 = "dht.set_tensor_with_constant_values.f32"(%tensor_1, %ch0)
+  %ch1 = "tfrt_dht.set_tensor_with_constant_values.f32"(%tensor_1, %ch0)
     { values = [1.0 : f32, 2.0 : f32] } : (!t.tensor, !hex.chain) -> !hex.chain
   %target_shape = ts.build_shape [3: i64, 1 : i64, 2 : i64]
   %tensor_2 = "tfrt_test.broadcast.f32.3"(%tensor_1, %target_shape, %ch1)
     : (!t.tensor, !ts.shape, !hex.chain) -> !t.tensor
 
   // CHECK-NEXT: DenseHostTensor dtype = F32, shape = [3, 1, 2], values = [1.000000e+00, 2.000000e+00, 1.000000e+00, 2.000000e+00, 1.000000e+00, 2.000000e+00]
-  %ch2 = dht.print_tensor %tensor_2, %ch0
+  %ch2 = tfrt_dht.print_tensor %tensor_2, %ch0
 
   hex.return
 }

@@ -28,7 +28,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // Dense host tensor dialect.
 def DHT_Dialect : Dialect {
-  let name = "dht";
+  let name = "tfrt_dht";
 
   let description = [{
     The DenseHostTensor dialect.
@@ -46,15 +46,15 @@ class DHT_Op<string mnemonic, list<OpTrait> traits = []> :
 class CreateUninitializedTensorOp<string dtype, int rank>
   : DHT_Op<"create_uninitialized_tensor." # dtype # "." # rank,
           [NoSideEffect]> {
-  let summary = "dht.create_uninitialized_tensor operation";
+  let summary = "tfrt_dht.create_uninitialized_tensor operation";
 
   let description = [{
     An operation that creates an uninitialized tensor.
     It takes a shape attribute and outputs a tensor as output.
 
     Example:
-      %2 = dht.create_uninitialized_tensor.i32.0 []
-      %3 = dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
+      %2 = tfrt_dht.create_uninitialized_tensor.i32.0 []
+      %3 = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   }];
 
   let arguments = (ins);
@@ -66,7 +66,7 @@ class CreateUninitializedTensorOp<string dtype, int rank>
 
 class MakeTensorOp<string dtype>
   : DHT_Op<"make_tensor." # dtype> {
-  let summary = "dht.make_tensor operation";
+  let summary = "tfrt_dht.make_tensor operation";
 
   let description = [{
     An operation that creates a tensor from the given shape and buffer.
@@ -78,7 +78,7 @@ class MakeTensorOp<string dtype>
     Example:
       %ch0 = hex.new.chain
       %cuda_host_buf, %ch1 = cuda.mem.allocate_host %size, %alignment, %ch0
-      %tensor, %ch2 = dht.make_tensor.f32 %cuda_host_buf, %shape, %ch0
+      %tensor, %ch2 = tfrt_dht.make_tensor.f32 %cuda_host_buf, %shape, %ch0
   }];
 
   let arguments = (ins HostBufferType, TS_Shape, Hex_ChainType);
@@ -88,7 +88,7 @@ class MakeTensorOp<string dtype>
 
 class FillTensorOp<string dtype>
   : DHT_Op<"fill_tensor_with_constant." # dtype> {
-  let summary = "dht.fill_tensor_with_constant operation";
+  let summary = "tfrt_dht.fill_tensor_with_constant operation";
 
   let description = [{
     An operation that fills an input tensor with a value. It takes an input
@@ -97,8 +97,8 @@ class FillTensorOp<string dtype>
 
     Example:
       %1 = hex.new.chain
-      %2 = dht.create_uninitialized_tensor.i32.2 [3 : i32, 2 : i32]
-      %3 = dht.fill_tensor_with_constant.i32 %2, %1 0 : i32
+      %2 = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i32, 2 : i32]
+      %3 = tfrt_dht.fill_tensor_with_constant.i32 %2, %1 0 : i32
   }];
 
   let arguments = (ins TensorType, Hex_ChainType);
@@ -109,14 +109,14 @@ class FillTensorOp<string dtype>
 }
 
 def PrintTensorOp : DHT_Op<"print_tensor"> {
-  let summary = "dht.print_tensor operation";
+  let summary = "tfrt_dht.print_tensor operation";
 
   let description = [{
     An operation that prints a tensor. It takes a tensor and chain as input and
     outputs a chain.
 
     Example:
-      %3 = dht.print_tensor %1, %2
+      %3 = tfrt_dht.print_tensor %1, %2
   }];
 
   let arguments = (ins TensorType, Hex_ChainType);
@@ -126,7 +126,7 @@ def PrintTensorOp : DHT_Op<"print_tensor"> {
 
 class SetTensorOp<string dtype>
   : DHT_Op<"set_tensor_with_constant_values." # dtype> {
-  let summary = "dht.set_tensor_with_constant_values operation";
+  let summary = "tfrt_dht.set_tensor_with_constant_values operation";
 
   let description = [{
     An operation that sets an input tensor with given values. It takes an input
@@ -135,8 +135,8 @@ class SetTensorOp<string dtype>
 
     Example:
       %1 = hex.new.chain
-      %2 = dht.create_uninitialized_tensor.i32.2 [1 : i32, 2 : i32]
-      %3 = dht.set_tensor_with_constant_values.i32 %2, %1 [0 : i32, 1 : i32]
+      %2 = tfrt_dht.create_uninitialized_tensor.i32.2 [1 : i32, 2 : i32]
+      %3 = tfrt_dht.set_tensor_with_constant_values.i32 %2, %1 [0 : i32, 1 : i32]
   }];
 
   let arguments = (ins TensorType, Hex_ChainType);
@@ -148,7 +148,7 @@ class SetTensorOp<string dtype>
 
 class TensorEqualOp<string dtype>
   : DHT_Op<"tensor_equal." # dtype> {
-  let summary = "dht.tensor_equal operation";
+  let summary = "tfrt_dht.tensor_equal operation";
 
   let description = [{
     An operation that checks if two input tensors are equal. It takes two input
@@ -157,7 +157,7 @@ class TensorEqualOp<string dtype>
     The chain output value is needed to prevent write-after-read hazard.
 
     Example:
-      %4, %5 = dht.tensor_equal.i32 %1, %2, %3
+      %4, %5 = tfrt_dht.tensor_equal.i32 %1, %2, %3
   }];
 
   let arguments = (ins TensorType, TensorType, Hex_ChainType);
@@ -166,7 +166,7 @@ class TensorEqualOp<string dtype>
 }
 
 def AllocateBuffer : DHT_Op<"allocate_buffer"> {
-  let summary = "dht.allocate_buffer operation";
+  let summary = "tfrt_dht.allocate_buffer operation";
 
   let description = [{
     An operation that creates an buffer.
@@ -176,7 +176,7 @@ def AllocateBuffer : DHT_Op<"allocate_buffer"> {
     Example:
       %size = hex.constant.i64 164
       %alignment = hex.constant.i64 8
-      %buf = dht.allocate %size, %alignment
+      %buf = tfrt_dht.allocate %size, %alignment
   }];
 
   let arguments = (ins I64, I64);
@@ -185,16 +185,16 @@ def AllocateBuffer : DHT_Op<"allocate_buffer"> {
 }
 
 def GetBufferOp : DHT_Op<"get_buffer"> {
-  let summary = "dht.get_buffer operation";
+  let summary = "tfrt_dht.get_buffer operation";
 
   let description = [{
-    dht.get_buffer returns the HostBuffer that backs the given dense host
+    tfrt_dht.get_buffer returns the HostBuffer that backs the given dense host
     tensor.
 
     Example:
-      %t = dht.create_uninitialized_tensor.i32.2 [3 : i32, 2 : i32]
+      %t = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i32, 2 : i32]
       %ch1 = hex.new.chain
-      %buf, %ch2 = dht.get_buffer %t, %ch1
+      %buf, %ch2 = tfrt_dht.get_buffer %t, %ch1
   }];
 
   let arguments = (ins TensorType, Hex_ChainType);
@@ -203,7 +203,7 @@ def GetBufferOp : DHT_Op<"get_buffer"> {
 }
 
 def GetBufferSliceOp : DHT_Op<"get_buffer_slice"> {
-  let summary = "dht.get_buffer_slice operation";
+  let summary = "tfrt_dht.get_buffer_slice operation";
 
   let description = [{
     An operation that gets a slice of a buffer.
@@ -211,10 +211,10 @@ def GetBufferSliceOp : DHT_Op<"get_buffer_slice"> {
     returns a buffer that points to the data allocated by the parent buffer.
 
     Example:
-      %parent_buf = dht.allocate %parent_size, %alignment
+      %parent_buf = tfrt_dht.allocate %parent_size, %alignment
       %offset = hex.constant.i64 0
       %size = hex.constant.i64 64
-      %buf_a = dht.get_buffer_slice %parent_buf, %offset, %size
+      %buf_a = tfrt_dht.get_buffer_slice %parent_buf, %offset, %size
   }];
 
   let arguments = (ins HostBufferType, I64, I64);
@@ -223,13 +223,13 @@ def GetBufferSliceOp : DHT_Op<"get_buffer_slice"> {
 }
 
 def PrintBufferOp : DHT_Op<"print_buffer"> {
-  let summary = "dht.print_buffer operation";
+  let summary = "tfrt_dht.print_buffer operation";
 
   let description = [{
     An operation that prints a buffer.
 
     Example:
-      %chain1 = dht.print_buffer %buffer, %chain0
+      %chain1 = tfrt_dht.print_buffer %buffer, %chain0
   }];
 
   let arguments = (ins HostBufferType, Hex_ChainType);

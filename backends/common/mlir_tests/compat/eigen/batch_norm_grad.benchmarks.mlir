@@ -22,47 +22,47 @@ func @BM_BatchNormGrad_8x32x32x128() {
   %one = hex.constant.f32 1.0
 
   // output_grad: [8, 32, 32, 128]
-  %output_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %output_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %output_grad, %ch0 3.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %output_grad, %ch0 3.0 : f32
 
   // input: [8, 32, 32, 128]
-  %input = "dht.create_uninitialized_tensor.f32.4"()
+  %input = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch2 = dht.fill_tensor_with_constant.f32 %input, %ch0 2.0 : f32
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 2.0 : f32
 
   // gamma: [128]
-  %gamma = "dht.create_uninitialized_tensor.f32.1"()
+  %gamma = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
-  %ch3 = dht.fill_tensor_with_constant.f32 %gamma, %ch0 0.25 : f32
+  %ch3 = tfrt_dht.fill_tensor_with_constant.f32 %gamma, %ch0 0.25 : f32
 
   // mean: [128]
-  %mean = "dht.create_uninitialized_tensor.f32.1"()
+  %mean = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
-  %ch4 = dht.fill_tensor_with_constant.f32 %mean, %ch0 0.25 : f32
+  %ch4 = tfrt_dht.fill_tensor_with_constant.f32 %mean, %ch0 0.25 : f32
 
   // variance: [128]
-  %variance = "dht.create_uninitialized_tensor.f32.1"()
+  %variance = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
-  %ch5 = dht.fill_tensor_with_constant.f32 %variance, %ch0 0.25 : f32
+  %ch5 = tfrt_dht.fill_tensor_with_constant.f32 %variance, %ch0 0.25 : f32
 
   // input_grad: [8, 32, 32, 128]
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
 
   // gamma_grad: [128]
-  %gamma_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %gamma_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
 
   // beta_grad: [128]
-  %beta_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %beta_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
 

@@ -22,43 +22,43 @@ func @BM_Conv2D_in_8x32x32x128_f_1x1x128() {
   %one = hex.constant.f32 1.0
 
   // in: [8, 32, 32, 128].
-  %in = "dht.create_uninitialized_tensor.f32.4"()
+  %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %in, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %in, %ch0 1.0 : f32
 
   // kern: [1, 1, 128, 128].
-  %kern = "dht.create_uninitialized_tensor.f32.4"()
+  %kern = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 1 : i64, 128 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch2 = dht.fill_tensor_with_constant.f32 %kern, %ch1 1.0 : f32
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %kern, %ch1 1.0 : f32
 
   // scale: [128].
-  %scale = "dht.create_uninitialized_tensor.f32.1"()
+  %scale = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
-  %ch3 = dht.fill_tensor_with_constant.f32 %scale, %ch2 1.0 : f32
+  %ch3 = tfrt_dht.fill_tensor_with_constant.f32 %scale, %ch2 1.0 : f32
 
   // offset: [128].
-  %offset = "dht.create_uninitialized_tensor.f32.1"()
+  %offset = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
-  %ch4 = dht.fill_tensor_with_constant.f32 %offset, %ch2 1.0 : f32
+  %ch4 = tfrt_dht.fill_tensor_with_constant.f32 %offset, %ch2 1.0 : f32
 
   // mean: [128].
-  %mean = "dht.create_uninitialized_tensor.f32.1"()
+  %mean = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
-  %ch5 = dht.fill_tensor_with_constant.f32 %mean, %ch2 1.0 : f32
+  %ch5 = tfrt_dht.fill_tensor_with_constant.f32 %mean, %ch2 1.0 : f32
 
   // var: [128].
-  %var = "dht.create_uninitialized_tensor.f32.1"()
+  %var = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [128 : i64] }
     : () -> !t.tensor
-  %ch6 = dht.fill_tensor_with_constant.f32 %var, %ch2 1.0 : f32
+  %ch6 = tfrt_dht.fill_tensor_with_constant.f32 %var, %ch2 1.0 : f32
 
   // out: [8, 32, 32, 128].
-  %out = "dht.create_uninitialized_tensor.f32.4"()
+  %out = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
 

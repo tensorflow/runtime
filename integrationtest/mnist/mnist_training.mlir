@@ -55,20 +55,20 @@ func @mnist_training() {
   %step_num = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
   %max_step_num = hex.constant.i32 11
   // Learning rate: 0.01
-  %lr = "dht.create_uninitialized_tensor.f32.1"() { shape = [1: i64] } : () -> !t.tensor
-  %c1 = dht.fill_tensor_with_constant.f32 %lr, %c0 0.01 : f32
+  %lr = "tfrt_dht.create_uninitialized_tensor.f32.1"() { shape = [1: i64] } : () -> !t.tensor
+  %c1 = tfrt_dht.fill_tensor_with_constant.f32 %lr, %c0 0.01 : f32
   // Used in updating W.
   %minus_lr_constant = hex.constant.f32 -0.01
 
   // Gradient buffers
-  %gradient = "dht.create_uninitialized_tensor.f32.2"() { shape = [1: i64, 10 : i64] } : () -> !t.tensor
-  %gradient_a0 = "dht.create_uninitialized_tensor.f32.2"() { shape = [1: i64, 512 : i64] } : () -> !t.tensor
-  %gradient_b1 = "dht.create_uninitialized_tensor.f32.1"() { shape = [10 : i64] } : () -> !t.tensor
-  %gradient_b0 = "dht.create_uninitialized_tensor.f32.1"() { shape = [512 : i64] } : () -> !t.tensor
+  %gradient = "tfrt_dht.create_uninitialized_tensor.f32.2"() { shape = [1: i64, 10 : i64] } : () -> !t.tensor
+  %gradient_a0 = "tfrt_dht.create_uninitialized_tensor.f32.2"() { shape = [1: i64, 512 : i64] } : () -> !t.tensor
+  %gradient_b1 = "tfrt_dht.create_uninitialized_tensor.f32.1"() { shape = [10 : i64] } : () -> !t.tensor
+  %gradient_b0 = "tfrt_dht.create_uninitialized_tensor.f32.1"() { shape = [512 : i64] } : () -> !t.tensor
 
-  %transposed_activation_0 = "dht.create_uninitialized_tensor.f32.2"() { shape = [512 : i64, 1 : i64] } : () -> !t.tensor
-  %transposed_w_1 = "dht.create_uninitialized_tensor.f32.2"() { shape = [10 : i64, 512 :i64] } : () -> !t.tensor
-  %transposed_input_image = "dht.create_uninitialized_tensor.f32.2"() { shape = [784 : i64, 1 : i64] } : () -> !t.tensor
+  %transposed_activation_0 = "tfrt_dht.create_uninitialized_tensor.f32.2"() { shape = [512 : i64, 1 : i64] } : () -> !t.tensor
+  %transposed_w_1 = "tfrt_dht.create_uninitialized_tensor.f32.2"() { shape = [10 : i64, 512 :i64] } : () -> !t.tensor
+  %transposed_input_image = "tfrt_dht.create_uninitialized_tensor.f32.2"() { shape = [784 : i64, 1 : i64] } : () -> !t.tensor
 
   // Other constants
   %one = hex.constant.f32 1.0
@@ -136,11 +136,11 @@ func @mnist_training() {
     // Check prediction result matching the one generated from current
     // TensorFlow, after training for 10 steps.
     hex.if %cond, %activation_1, %expected_result, %c6 : (!t.tensor, !t.tensor, !hex.chain) -> () {
-      %cmp, %c28 = "dht.tensor_allclose.1000ulp.f32"(%expected_result, %activation_1, %c6) : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
+      %cmp, %c28 = "tfrt_dht.tensor_allclose.1000ulp.f32"(%expected_result, %activation_1, %c6) : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
       // CHECK: int1 = 1
       %c29 = "hex.print.i1"(%cmp, %c6) : (i1, !hex.chain) -> !hex.chain
-      %c30 = dht.print_tensor %activation_1, %c6
-      %c31 = dht.print_tensor %expected_result, %c6
+      %c30 = tfrt_dht.print_tensor %activation_1, %c6
+      %c31 = tfrt_dht.print_tensor %expected_result, %c6
       hex.return
     }
 

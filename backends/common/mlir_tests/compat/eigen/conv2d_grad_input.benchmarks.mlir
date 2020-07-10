@@ -22,19 +22,19 @@ func @BM_Conv2DGradInput_in_8x32x32x128_f1x1x128_s1x1_SAME() {
   %one = hex.constant.f32 1.0
 
   // filter: [1, 1, 128, 128].
-  %filter = "dht.create_uninitialized_tensor.f32.4"()
+  %filter = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 1 : i64, 128 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
 
   // output gradient: [8, 32, 32, 128].
-  %out_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %out_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch2 = dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
 
   // input gradient: [8, 32, 32, 128].
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
 
@@ -65,19 +65,19 @@ func @BM_Conv2DGradInput_in_8x56x56x256_f1x1x64_s1x1_SAME() {
   %one = hex.constant.f32 1.0
 
   // filter: [1, 1, 256, 64].
-  %filter = "dht.create_uninitialized_tensor.f32.4"()
+  %filter = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 1 : i64, 256 : i64, 64 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
 
   // output gradient: [8, 56, 56, 64].
-  %out_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %out_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 56 : i64, 56 : i64, 64 : i64] }
     : () -> !t.tensor
-  %ch2 = dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
 
   // input gradient: [8, 56, 56, 256].
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 56 : i64, 56 : i64, 256 : i64] }
     : () -> !t.tensor
 
@@ -108,19 +108,19 @@ func @BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_SAME() {
   %one = hex.constant.f32 1.0
 
   // filter: [2, 2, 64, 64].
-  %filter = "dht.create_uninitialized_tensor.f32.4"()
+  %filter = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 2 : i64, 64 : i64, 64 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
 
   // output gradient: [8, 56, 56, 64].
-  %out_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %out_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 56 : i64, 56 : i64, 64 : i64] }
     : () -> !t.tensor
-  %ch2 = dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
 
   // input gradient: [8, 112, 112, 64].
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 112 : i64, 112 : i64, 64 : i64] }
     : () -> !t.tensor
 
@@ -151,19 +151,19 @@ func @BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_SAME() {
   %one = hex.constant.f32 1.0
 
   // filter: [2, 2, 64, 64].
-  %filter = "dht.create_uninitialized_tensor.f32.4"()
+  %filter = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 2 : i64, 128 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
 
   // output gradient: [8, 28, 28, 128].
-  %out_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %out_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 28 : i64, 28 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch2 = dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
 
   // input gradient: [8, 56, 56, 128].
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 56 : i64, 56 : i64, 128 : i64] }
     : () -> !t.tensor
 
@@ -194,19 +194,19 @@ func @BM_Conv2DGradInput_in_8x112x112x64_f2x2x64_s2x2_VALID() {
   %one = hex.constant.f32 1.0
 
   // filter: [2, 2, 64, 64].
-  %filter = "dht.create_uninitialized_tensor.f32.4"()
+  %filter = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 2 : i64, 64 : i64, 64 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
 
   // output gradient: [8, 56, 56, 64].
-  %out_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %out_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 56 : i64, 56 : i64, 64 : i64] }
     : () -> !t.tensor
-  %ch2 = dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
 
   // input gradient: [8, 112, 112, 64].
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 112 : i64, 112 : i64, 64 : i64] }
     : () -> !t.tensor
 
@@ -237,19 +237,19 @@ func @BM_Conv2DGradInput_in_8x56x56x128_f2x2x128_s2x2_VALID() {
   %one = hex.constant.f32 1.0
 
   // filter: [2, 2, 128, 128].
-  %filter = "dht.create_uninitialized_tensor.f32.4"()
+  %filter = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 2 : i64, 128 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %filter, %ch0 1.0 : f32
 
   // output gradient: [8, 28, 28, 128].
-  %out_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %out_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 28 : i64, 28 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch2 = dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %out_grad, %ch1 1.0 : f32
 
   // input gradient: [8, 56, 56, 128].
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 56 : i64, 56 : i64, 128 : i64] }
     : () -> !t.tensor
 

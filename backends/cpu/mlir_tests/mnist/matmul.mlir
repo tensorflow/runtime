@@ -37,14 +37,14 @@ func @test_i32() {
   // Shape: [8, 7].
   %b = "btf.read_dense_tensor.i32.2"(%path, %b_index) :
     (!hex.string, i32) -> (!t.tensor)
-  %c = dht.create_uninitialized_tensor.i32.2 [6 : i64, 7 : i64]
+  %c = tfrt_dht.create_uninitialized_tensor.i32.2 [6 : i64, 7 : i64]
   // Shape: [6, 7].
   %sol = "btf.read_dense_tensor.i32.2"(%path, %sol_index) :
     (!hex.string, i32) -> (!t.tensor)
   %ch1 = "tfrt_test.matmul.i32.2"(%one, %a, %b, %zero, %c, %ch0) :
     (i32, !t.tensor, !t.tensor, i32,
     !t.tensor, !hex.chain) -> !hex.chain
-  %cmp, %ch2 = dht.tensor_equal.i32 %sol, %c, %ch1
+  %cmp, %ch2 = tfrt_dht.tensor_equal.i32 %sol, %c, %ch1
 
   // CHECK: int1 = 1
   hex.print.i1 %cmp, %ch2
@@ -69,14 +69,14 @@ func @test_f32() {
   // Shape: [8, 7].
   %b = "btf.read_dense_tensor.f32.2"(%path, %b_index) :
     (!hex.string, i32) -> (!t.tensor)
-  %c = dht.create_uninitialized_tensor.f32.2 [6 : i64, 7 : i64]
+  %c = tfrt_dht.create_uninitialized_tensor.f32.2 [6 : i64, 7 : i64]
   // Shape: [6, 7].
   %sol = "btf.read_dense_tensor.f32.2"(%path, %sol_index) :
     (!hex.string, i32) -> (!t.tensor)
   %ch1 = "tfrt_test.matmul.f32.2"(%one, %a, %b, %zero, %c, %ch0) :
     (f32, !t.tensor, !t.tensor, f32,
     !t.tensor, !hex.chain) -> !hex.chain
-  %cmp, %ch2 = "dht.tensor_allclose.f32"(%sol, %c, %ch1) :
+  %cmp, %ch2 = "tfrt_dht.tensor_allclose.f32"(%sol, %c, %ch1) :
     (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -91,11 +91,11 @@ func @BM_test_matmul_f32() {
   %zero = hex.constant.f32 0.0
   %one = hex.constant.f32 1.0
   // Shape: [512, 512].
-  %a = dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
-  %ch1 = dht.fill_tensor_with_constant.f32 %a, %ch0 1.0 : f32
-  %b = dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
-  %ch2 = dht.fill_tensor_with_constant.f32 %b, %ch0 1.0 : f32
-  %c = dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
+  %a = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %a, %ch0 1.0 : f32
+  %b = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %b, %ch0 1.0 : f32
+  %c = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
   %ch3 = hex.merge.chains %ch1, %ch2
 
   tfrt_test.benchmark "BM_test_matmul_f32"(

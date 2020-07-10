@@ -32,13 +32,13 @@ func @test_max_pool_2d_f32_0() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"() { shape = [2 : i64, 1 : i64, 1 : i64, 6 : i64] }
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"() { shape = [2 : i64, 1 : i64, 1 : i64, 6 : i64] }
     : () -> !t.tensor
   %ch1 = "tfrt_test.max_pooling_2d.f32"(%input, %output, %ch0)
     { padding = "valid", pool_size = [3 : i32, 3 : i32], strides = [3 : i32, 3 : i32] }
     :  (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch2 = "dht.tensor_allclose.f32"(%expected, %output, %ch1)
+  %cmp, %ch2 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch1)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -63,13 +63,13 @@ func @test_max_pool_2d_f32_1() {
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %output = "dht.create_uninitialized_tensor.f32.4"() { shape = [2 : i64, 3 : i64, 3 : i64, 6 : i64] }
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"() { shape = [2 : i64, 3 : i64, 3 : i64, 6 : i64] }
     : () -> !t.tensor
   %ch1 = "tfrt_test.max_pooling_2d.f32"(%input, %output, %ch0)
     { padding = "same", pool_size = [3 : i32, 3 : i32], strides = [2 : i32, 2 : i32] }
     :  (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch2 = "dht.tensor_allclose.f32"(%expected, %output, %ch1)
+  %cmp, %ch2 = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %ch1)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1

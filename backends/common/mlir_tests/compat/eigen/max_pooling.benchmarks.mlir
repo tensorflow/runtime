@@ -22,13 +22,13 @@ func @BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2() {
   %one = hex.constant.f32 1.0
 
   // in: [8, 32, 32, 128].
-  %in = "dht.create_uninitialized_tensor.f32.4"()
+  %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
-  %ch1 = dht.fill_tensor_with_constant.f32 %in, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %in, %ch0 1.0 : f32
 
   // out: [8, 15, 15, 128].
-  %out = "dht.create_uninitialized_tensor.f32.4"()
+  %out = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 15 : i64, 15 : i64, 128 : i64] }
     : () -> !t.tensor
 

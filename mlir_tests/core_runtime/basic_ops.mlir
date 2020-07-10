@@ -184,8 +184,8 @@ func @tensorhandle_error_test() -> i32 {
   %one = hex.constant.i32 1
   %cpu = corert.get_device "cpu"
 
-  %tensor = dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
-  %ch1 = dht.fill_tensor_with_constant.i32 %tensor, %ch0 1 : i32
+  %tensor = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %tensor, %ch0 1 : i32
 
   // expected-error @+1 {{invalid tensor metadata}}
   %handle = "tfrt_test.tensorhandle_with_error_metadata"(%tensor, %ch1)
@@ -196,7 +196,7 @@ func @tensorhandle_error_test() -> i32 {
 
   // This line should not be executed because its input %shape has error.
   // It is validated by the CHECK-NEXT below.
-  %ch2 = "dht.print_tensor_shape"(%shape, %ch1) : (!ts.shape, !hex.chain) -> !hex.chain
+  %ch2 = "tfrt_dht.print_tensor_shape"(%shape, %ch1) : (!ts.shape, !hex.chain) -> !hex.chain
 
   // CHECK-NEXT: 'tensorhandle_error_test' returned 1
   hex.return %one : i32

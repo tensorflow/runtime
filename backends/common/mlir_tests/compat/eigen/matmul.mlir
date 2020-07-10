@@ -37,7 +37,7 @@ func @test_matmul_i32() {
     (!hex.string, i32) -> (!t.tensor)
 
   // Shape: [6, 7].
-  %c = dht.create_uninitialized_tensor.i32.2 [6 : i64, 7 : i64]
+  %c = tfrt_dht.create_uninitialized_tensor.i32.2 [6 : i64, 7 : i64]
 
   // Shape: [6, 7].
   %sol = "btf.read_dense_tensor.i32.2"(%path, %sol_index) :
@@ -46,7 +46,7 @@ func @test_matmul_i32() {
   %ch1 = "eigen.matmul.i32"(%one, %a, %b, %zero, %c, %ch0) :
     (i32, !t.tensor, !t.tensor, i32,
     !t.tensor, !hex.chain) -> !hex.chain
-  %cmp, %ch2 = dht.tensor_equal.i32 %sol, %c, %ch1
+  %cmp, %ch2 = tfrt_dht.tensor_equal.i32 %sol, %c, %ch1
 
   // CHECK: int1 = 1
   hex.print.i1 %cmp, %ch2
@@ -77,7 +77,7 @@ func @test_matmul_f32() {
     (!hex.string, i32) -> (!t.tensor)
 
   // Shape: [6, 7].
-  %c = dht.create_uninitialized_tensor.f32.2 [6 : i64, 7 : i64]
+  %c = tfrt_dht.create_uninitialized_tensor.f32.2 [6 : i64, 7 : i64]
 
   // Shape: [6, 7].
   %sol = "btf.read_dense_tensor.f32.2"(%path, %sol_index) :
@@ -87,7 +87,7 @@ func @test_matmul_f32() {
     (f32, !t.tensor, !t.tensor, f32,
     !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch2 = "dht.tensor_allclose.f32"(%sol, %c, %ch1) :
+  %cmp, %ch2 = "tfrt_dht.tensor_allclose.f32"(%sol, %c, %ch1) :
     (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1

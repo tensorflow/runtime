@@ -66,15 +66,15 @@ func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() {
   %expected_beta_grad = "btf.read_dense_tensor.f32.1"(%path, %beta_grad_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 1 : i64, 1 : i64, 8 : i64] }
     : () -> !t.tensor
 
-  %gamma_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %gamma_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [8 : i64] }
     : () -> !t.tensor
 
-  %beta_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %beta_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [8 : i64] }
     : () -> !t.tensor
 
@@ -89,13 +89,13 @@ func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() {
 
   %ch2 = hex.merge.chains %ch_in, %ch_gamma, %ch_beta
 
-  %cmp0, %ch3 = "dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
+  %cmp0, %ch3 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
-  %cmp1, %ch4 = "dht.tensor_allclose.100000ulp.f32"(%expected_gamma_grad, %gamma_grad, %ch2)
+  %cmp1, %ch4 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_gamma_grad, %gamma_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
-  %cmp2, %ch5 = "dht.tensor_allclose.100000ulp.f32"(%expected_beta_grad, %beta_grad, %ch2)
+  %cmp2, %ch5 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_beta_grad, %beta_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -156,15 +156,15 @@ func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() {
   %expected_beta_grad = "btf.read_dense_tensor.f32.1"(%path, %beta_grad_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 2 : i64, 2 : i64, 4 : i64] }
     : () -> !t.tensor
 
-  %gamma_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %gamma_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [4 : i64] }
     : () -> !t.tensor
 
-  %beta_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %beta_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [4 : i64] }
     : () -> !t.tensor
 
@@ -179,13 +179,13 @@ func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() {
 
   %ch2 = hex.merge.chains %ch_in, %ch_gamma, %ch_beta
 
-  %cmp0, %ch3 = "dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
+  %cmp0, %ch3 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
-  %cmp1, %ch4 = "dht.tensor_allclose.100000ulp.f32"(%expected_gamma_grad, %gamma_grad, %ch2)
+  %cmp1, %ch4 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_gamma_grad, %gamma_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
-  %cmp2, %ch5 = "dht.tensor_allclose.100000ulp.f32"(%expected_beta_grad, %beta_grad, %ch2)
+  %cmp2, %ch5 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_beta_grad, %beta_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -246,15 +246,15 @@ func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() {
   %expected_beta_grad = "btf.read_dense_tensor.f32.1"(%path, %beta_grad_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [4 : i64, 4 : i64, 4 : i64, 32 : i64] }
     : () -> !t.tensor
 
-  %gamma_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %gamma_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [32 : i64] }
     : () -> !t.tensor
 
-  %beta_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %beta_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [32 : i64] }
     : () -> !t.tensor
 
@@ -269,13 +269,13 @@ func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() {
 
   %ch2 = hex.merge.chains %ch_in, %ch_gamma, %ch_beta
 
-  %cmp0, %ch3 = "dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
+  %cmp0, %ch3 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
-  %cmp1, %ch4 = "dht.tensor_allclose.100000ulp.f32"(%expected_gamma_grad, %gamma_grad, %ch2)
+  %cmp1, %ch4 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_gamma_grad, %gamma_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
-  %cmp2, %ch5 = "dht.tensor_allclose.100000ulp.f32"(%expected_beta_grad, %beta_grad, %ch2)
+  %cmp2, %ch5 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_beta_grad, %beta_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -336,15 +336,15 @@ func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() {
   %expected_beta_grad = "btf.read_dense_tensor.f32.1"(%path, %beta_grad_index)
     : (!hex.string, i32) -> (!t.tensor)
 
-  %input_grad = "dht.create_uninitialized_tensor.f32.4"()
+  %input_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 4 : i64, 4 : i64, 64 : i64] }
     : () -> !t.tensor
 
-  %gamma_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %gamma_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [64 : i64] }
     : () -> !t.tensor
 
-  %beta_grad = "dht.create_uninitialized_tensor.f32.1"()
+  %beta_grad = "tfrt_dht.create_uninitialized_tensor.f32.1"()
     { shape = [64 : i64] }
     : () -> !t.tensor
 
@@ -359,13 +359,13 @@ func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() {
 
   %ch2 = hex.merge.chains %ch_in, %ch_gamma, %ch_beta
 
-  %cmp0, %ch3 = "dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
+  %cmp0, %ch3 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
-  %cmp1, %ch4 = "dht.tensor_allclose.100000ulp.f32"(%expected_gamma_grad, %gamma_grad, %ch2)
+  %cmp1, %ch4 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_gamma_grad, %gamma_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
-  %cmp2, %ch5 = "dht.tensor_allclose.100000ulp.f32"(%expected_beta_grad, %beta_grad, %ch2)
+  %cmp2, %ch5 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_beta_grad, %beta_grad, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1

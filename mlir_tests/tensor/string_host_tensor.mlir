@@ -22,7 +22,7 @@ func @basic() {
     {shape = [2], values = ["string", "tensor"]} : () -> !t.tensor
 
   // CHECK: shape = [2], values = ["string", "tensor"]
-  %c1 = dht.print_tensor %a, %c0
+  %c1 = tfrt_dht.print_tensor %a, %c0
 
   hex.return
 }

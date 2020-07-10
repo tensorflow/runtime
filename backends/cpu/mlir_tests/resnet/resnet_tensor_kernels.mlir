@@ -18,21 +18,21 @@
 func @test_flatten_f32() {
   %ch0 = hex.new.chain
 
-  %t1 = "dht.create_uninitialized_tensor.f32.4"()
+  %t1 = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [1 : i64, 2 : i64, 2 : i64, 1 : i64] }
     : () -> !t.tensor
-  %ch1 = "dht.set_tensor_with_constant_values.f32"(%t1, %ch0)
+  %ch1 = "tfrt_dht.set_tensor_with_constant_values.f32"(%t1, %ch0)
     { values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32] }
     : (!t.tensor, !hex.chain) -> !hex.chain
 
-  %t2 = "dht.create_uninitialized_tensor.f32.2"()
+  %t2 = "tfrt_dht.create_uninitialized_tensor.f32.2"()
     { shape = [1 : i64, 4 : i64] }
     : () -> !t.tensor
   %ch2 = "tfrt_test.flatten.f32"(%t1, %t2, %ch1)
     : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
   // CHECK: shape = [1, 4], values = [1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00]
-  dht.print_tensor %t2, %ch2
+  tfrt_dht.print_tensor %t2, %ch2
   hex.return
 }
 
@@ -41,10 +41,10 @@ func @test_flatten_f32() {
 func @test_max_pool_2d_f32_padding_error() {
   %ch0 = hex.new.chain
 
-  %input = "dht.create_uninitialized_tensor.f32.4"()
+  %input = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 3 : i64, 3 : i64, 6 : i64] }
     : () -> !t.tensor
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 1 : i64, 1 : i64, 6 : i64] }
     : () -> !t.tensor
 
@@ -60,10 +60,10 @@ func @test_max_pool_2d_f32_padding_error() {
 func @test_max_pool_2d_f32_shape_error() {
   %ch0 = hex.new.chain
 
-  %input = "dht.create_uninitialized_tensor.f32.4"()
+  %input = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 3 : i64, 3 : i64, 6 : i64] }
     : () -> !t.tensor
-  %output = "dht.create_uninitialized_tensor.f32.4"()
+  %output = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 2 : i64, 1 : i64, 6 : i64] }
     : () -> !t.tensor
 

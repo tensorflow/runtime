@@ -21,20 +21,20 @@ func @test_tensor_kernels() {
   %zero = "hex.constant.i32"() { value = 0 : i32 } : () -> i32
   %one = "hex.constant.i32"() { value = 1 : i32 } : () -> i32
 
-  %a = "dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 3 : i64] } :
+  %a = "tfrt_dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 3 : i64] } :
     () -> !t.tensor
-  %ch1_0 = "dht.set_tensor_with_constant_values.i32"(%a, %ch0)
+  %ch1_0 = "tfrt_dht.set_tensor_with_constant_values.i32"(%a, %ch0)
     { values = [1 : i32, -1 : i32, 1 : i32, -1 : i32, 1 : i32, -1 : i32] } :
     (!t.tensor, !hex.chain) -> !hex.chain
 
-  %b = "dht.create_uninitialized_tensor.i32.2"() { shape = [3 : i64, 2 : i64] } :
+  %b = "tfrt_dht.create_uninitialized_tensor.i32.2"() { shape = [3 : i64, 2 : i64] } :
     () -> !t.tensor
-  %ch1_1 = "dht.set_tensor_with_constant_values.i32"(%b, %ch0)
+  %ch1_1 = "tfrt_dht.set_tensor_with_constant_values.i32"(%b, %ch0)
     { values = [1 : i32, -1 : i32, 1 : i32, -1 : i32, 1 : i32, -1 : i32] } :
     (!t.tensor, !hex.chain) -> !hex.chain
   %ch2 = hex.merge.chains %ch1_0, %ch1_1
 
-  %c = "dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 2 : i64] } :
+  %c = "tfrt_dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 2 : i64] } :
     () -> !t.tensor
 
   %ch3 = "tfrt_test.matmul.i32.2"(%one, %a, %b, %zero, %c, %ch2) :
@@ -42,51 +42,51 @@ func @test_tensor_kernels() {
        !t.tensor, !hex.chain) -> !hex.chain
 
   // CHECK: shape = [2, 2], values = [1, -1, -1, 1]
-  %ch4 = dht.print_tensor %c, %ch3
+  %ch4 = tfrt_dht.print_tensor %c, %ch3
 
-  %d = "dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 2 : i64] } :
+  %d = "tfrt_dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 2 : i64] } :
     () -> !t.tensor
 
   %ch_relu = "tfrt_test.relu.i32"(%c, %d, %ch4) : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
   // CHECK: shape = [2, 2], values = [1, 0, 0, 1]
-  %ch5 = dht.print_tensor %d, %ch_relu
+  %ch5 = tfrt_dht.print_tensor %d, %ch_relu
 
-  %e = "dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 2 : i64] } :
+  %e = "tfrt_dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 2 : i64] } :
     () -> !t.tensor
 
   %ch5_1 = "tfrt_test.add.i32"(%c, %d, %e, %ch5) : (!t.tensor,
     !t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
   // CHECK: shape = [2, 2], values = [2, -1, -1, 2]
-  %ch6 = dht.print_tensor %e, %ch5_1
+  %ch6 = tfrt_dht.print_tensor %e, %ch5_1
 
   %ch7 = "tfrt_test.equal.i32"(%c, %d, %e, %ch6) : (!t.tensor,
     !t.tensor, !t.tensor, !hex.chain) -> !hex.chain
 
   // CHECK: shape = [2, 2], values = [1, 0, 0, 1]
-  %ch8 = dht.print_tensor %e, %ch7
+  %ch8 = tfrt_dht.print_tensor %e, %ch7
 
   %argmax_c = "tfrt_test.argmax.i32.2"(%c, %ch8) : (!t.tensor, !hex.chain) ->
     !t.tensor
 
   // CHECK: shape = [2], values = [0, 1]
-  %ch9 = dht.print_tensor %argmax_c, %ch8
+  %ch9 = tfrt_dht.print_tensor %argmax_c, %ch8
 
-  %f = "dht.create_uninitialized_tensor.f32.1"() { shape = [2 : i64] } : () ->
+  %f = "tfrt_dht.create_uninitialized_tensor.f32.1"() { shape = [2 : i64] } : () ->
      !t.tensor
-  %ch10 = "dht.set_tensor_with_constant_values.f32"(%f, %ch9)
+  %ch10 = "tfrt_dht.set_tensor_with_constant_values.f32"(%f, %ch9)
     { values = [1. : f32, 3. : f32] } :
     (!t.tensor, !hex.chain) -> !hex.chain
 
   // CHECK: shape = [2], values = [1.000000e+00, 3.000000e+00]
-  %ch11 = dht.print_tensor %f, %ch10
+  %ch11 = tfrt_dht.print_tensor %f, %ch10
 
   %reduce_mean_f = "tfrt_test.reduce_mean.f32.1"(%f, %ch11) : (!t.tensor,
     !hex.chain) -> !t.tensor
 
   // CHECK: shape = [], values = [2.000000e+00]
-  %c12 = dht.print_tensor %reduce_mean_f, %ch11
+  %c12 = tfrt_dht.print_tensor %reduce_mean_f, %ch11
 
   hex.return
 }

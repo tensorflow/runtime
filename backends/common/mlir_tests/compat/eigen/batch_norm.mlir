@@ -54,7 +54,7 @@ func @test_batch_norm_in_1x1x1x8_epsilon_0.0001() {
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
         !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %input, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %input, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1
@@ -101,7 +101,7 @@ func @test_batch_norm_in_1x1x2x4_epsilon_0.0001() {
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
         !t.tensor, !hex.chain) -> !hex.chain
 
-  %cmp, %ch3 = "dht.tensor_allclose.f32"(%expected, %input, %ch2)
+  %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %input, %ch2)
     : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
 
   // CHECK: int1 = 1

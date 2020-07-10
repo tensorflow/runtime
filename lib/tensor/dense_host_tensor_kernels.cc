@@ -183,7 +183,7 @@ template <typename T, size_t Rank>
 static void RegisterDenseHostTensorKernelsForTypeAndRank(
     KernelRegistry* registry, const std::string& t_name) {
   std::string suffix = t_name + "." + std::to_string(Rank);
-  registry->AddKernel("dht.create_uninitialized_tensor." + suffix,
+  registry->AddKernel("tfrt_dht.create_uninitialized_tensor." + suffix,
                       TFRT_KERNEL(CreateUninitializedDenseTensor<T, Rank>));
 }
 
@@ -193,24 +193,25 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
   std::string suffix = t_name;
   // Constant is in the name because we will presumably want a version that uses
   // a variable.
-  registry->AddKernel("dht.fill_tensor_with_constant." + suffix,
+  registry->AddKernel("tfrt_dht.fill_tensor_with_constant." + suffix,
                       TFRT_KERNEL(FillDenseTensorWithConstantValue<T>));
-  registry->AddKernel("dht.make_tensor." + suffix, TFRT_KERNEL(MakeTensor<T>));
-  registry->AddKernel("dht.set_tensor_with_constant_values." + suffix,
+  registry->AddKernel("tfrt_dht.make_tensor." + suffix,
+                      TFRT_KERNEL(MakeTensor<T>));
+  registry->AddKernel("tfrt_dht.set_tensor_with_constant_values." + suffix,
                       TFRT_KERNEL(SetDenseTensorWithConstantValues<T>));
-  registry->AddKernel("dht.set_tensor_with_values." + suffix,
+  registry->AddKernel("tfrt_dht.set_tensor_with_values." + suffix,
                       TFRT_KERNEL(SetDenseTensorWithValues<T>));
-  registry->AddKernel("dht.tensor_equal." + suffix,
+  registry->AddKernel("tfrt_dht.tensor_equal." + suffix,
                       TFRT_KERNEL(DenseTensorEqual<T>));
-  registry->AddKernel("dht.tensor_allclose." + suffix,
+  registry->AddKernel("tfrt_dht.tensor_allclose." + suffix,
                       TFRT_KERNEL(DenseTensorAllClose<T>));
-  registry->AddKernel("dht.tensor_allclose.3ulp." + suffix,
+  registry->AddKernel("tfrt_dht.tensor_allclose.3ulp." + suffix,
                       TFRT_KERNEL(DenseTensorAllClose<T, 3>));
-  registry->AddKernel("dht.tensor_allclose.1000ulp." + suffix,
+  registry->AddKernel("tfrt_dht.tensor_allclose.1000ulp." + suffix,
                       TFRT_KERNEL(DenseTensorAllClose<T, 1000>));
-  registry->AddKernel("dht.tensor_allclose.2000ulp." + suffix,
+  registry->AddKernel("tfrt_dht.tensor_allclose.2000ulp." + suffix,
                       TFRT_KERNEL(DenseTensorAllClose<T, 2000>));
-  registry->AddKernel("dht.tensor_allclose.100000ulp." + suffix,
+  registry->AddKernel("tfrt_dht.tensor_allclose.100000ulp." + suffix,
                       TFRT_KERNEL(DenseTensorAllClose<T, 100000>));
   RegisterDenseHostTensorKernelsForTypeAndRank<T, 0>(registry, t_name);
   RegisterDenseHostTensorKernelsForTypeAndRank<T, 1>(registry, t_name);
@@ -229,15 +230,16 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
                                                              "complex64");
   RegisterDenseHostTensorKernelsForType<std::complex<double>>(registry,
                                                               "complex128");
-  registry->AddKernel("dht.allocate_buffer", TFRT_KERNEL(AllocateBuffer));
-  registry->AddKernel("dht.print_tensor", TFRT_KERNEL(PrintTensor));
-  registry->AddKernel("dht.print_tensor_shape",
+  registry->AddKernel("tfrt_dht.allocate_buffer", TFRT_KERNEL(AllocateBuffer));
+  registry->AddKernel("tfrt_dht.print_tensor", TFRT_KERNEL(PrintTensor));
+  registry->AddKernel("tfrt_dht.print_tensor_shape",
                       TFRT_KERNEL(PrintDenseTensorShape));
-  registry->AddKernel("dht.get_tensor_shape", TFRT_KERNEL(GetDenseTensorShape));
-  registry->AddKernel("dht.no_op_ht", TFRT_KERNEL(NoOpHostTensor));
-  registry->AddKernel("dht.get_buffer", TFRT_KERNEL(GetBuffer));
-  registry->AddKernel("dht.get_buffer_slice", TFRT_KERNEL(GetBufferSlice));
-  registry->AddKernel("dht.print_buffer", TFRT_KERNEL(PrintBuffer));
+  registry->AddKernel("tfrt_dht.get_tensor_shape",
+                      TFRT_KERNEL(GetDenseTensorShape));
+  registry->AddKernel("tfrt_dht.no_op_ht", TFRT_KERNEL(NoOpHostTensor));
+  registry->AddKernel("tfrt_dht.get_buffer", TFRT_KERNEL(GetBuffer));
+  registry->AddKernel("tfrt_dht.get_buffer_slice", TFRT_KERNEL(GetBufferSlice));
+  registry->AddKernel("tfrt_dht.print_buffer", TFRT_KERNEL(PrintBuffer));
 }
 
 }  // namespace tfrt

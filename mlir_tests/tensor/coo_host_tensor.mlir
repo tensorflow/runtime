@@ -19,19 +19,19 @@
 func @basic_tensor() {
   %c0 = hex.new.chain
 
-  %a = dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
-  %c1 = dht.fill_tensor_with_constant.i32 %a, %c0 4 : i32
+  %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
+  %c1 = tfrt_dht.fill_tensor_with_constant.i32 %a, %c0 4 : i32
   %s1, %c2 = coo.convert_dht_to_coo.i32.2 %a, %c1
 
   // CHECK: dtype = I32, shape = [3, 2], indices = [0, 0, 0, 1, 0, 2, 1, 0, 1, 1, 1, 2], values = [4, 4, 4, 4, 4, 4]
-  %c3 = dht.print_tensor %s1, %c2
+  %c3 = tfrt_dht.print_tensor %s1, %c2
 
-  %z = dht.create_uninitialized_tensor.i32.2 [2 : i64, 3 : i64]
-  %c4 = dht.fill_tensor_with_constant.i32 %z, %c3 0 : i32
+  %z = tfrt_dht.create_uninitialized_tensor.i32.2 [2 : i64, 3 : i64]
+  %c4 = tfrt_dht.fill_tensor_with_constant.i32 %z, %c3 0 : i32
   %s2, %c5 = coo.convert_dht_to_coo.i32.2 %z, %c4
 
   // CHECK: CooHostTensor dtype = I32, shape = [2, 3], indices = [], values = []
-  %c6 = dht.print_tensor %s2, %c5
+  %c6 = tfrt_dht.print_tensor %s2, %c5
 
   hex.return
 }
@@ -42,12 +42,12 @@ func @tensor_roundtrip() {
 
   // Keep tensor uninitialized. This means we'll be getting random values in
   // there.
-  %a = dht.create_uninitialized_tensor.i32.2 [10 : i64, 10 : i64]
+  %a = tfrt_dht.create_uninitialized_tensor.i32.2 [10 : i64, 10 : i64]
   %s, %c2 = coo.convert_dht_to_coo.i32.2 %a, %c1
   %d, %c3 = coo.convert_coo_to_dht.i32.2 %s, %c2
   %f, %c4 = coo.convert_dht_to_coo.i32.2 %d, %c3
 
-  %cmp, %c5 = dht.tensor_equal.i32 %a, %d, %c3
+  %cmp, %c5 = tfrt_dht.tensor_equal.i32 %a, %d, %c3
   %cmp2, %c6 = coo.tensor_equal.i32.2 %s, %f, %c4
 
   // CHECK: int1 = 1
@@ -64,8 +64,8 @@ func @tensor_roundtrip() {
 func @tensor_equal() {
   %c0 = hex.new.chain
 
-  %a = dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
-  %c1 = dht.fill_tensor_with_constant.i32 %a, %c0 4 : i32
+  %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
+  %c1 = tfrt_dht.fill_tensor_with_constant.i32 %a, %c0 4 : i32
   %s1, %c2 = coo.convert_dht_to_coo.i32.2 %a, %c1
 
   %cmp, %c3 = coo.tensor_equal.i32.2 %s1, %s1, %c2
@@ -73,8 +73,8 @@ func @tensor_equal() {
   // CHECK: int1 = 1
   "hex.print.i1"(%cmp, %c3) : (i1, !hex.chain) -> (!hex.chain)
 
-  %z = dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
-  %c4 = dht.fill_tensor_with_constant.i32 %z, %c0 1 : i32
+  %z = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
+  %c4 = tfrt_dht.fill_tensor_with_constant.i32 %z, %c0 1 : i32
   %s2, %c5 = coo.convert_dht_to_coo.i32.2 %z, %c4
 
   %cmp2, %c6 = coo.tensor_equal.i32.2 %s1, %s2, %c5
@@ -89,12 +89,12 @@ func @tensor_equal() {
 func @basic_f32_tensor() {
   %c0 = hex.new.chain
 
-  %a = dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]
-  %c1 = dht.fill_tensor_with_constant.f32 %a, %c0 1.0 : f32
+  %a = tfrt_dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]
+  %c1 = tfrt_dht.fill_tensor_with_constant.f32 %a, %c0 1.0 : f32
   %s1, %c2 = coo.convert_dht_to_coo.f32.2 %a, %c1
 
   // CHECK: CooHostTensor dtype = F32, shape = [2, 2], indices = [0, 0, 0, 1, 1, 0, 1, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
-  %c3 = dht.print_tensor %s1, %c2
+  %c3 = tfrt_dht.print_tensor %s1, %c2
 
   hex.return
 }

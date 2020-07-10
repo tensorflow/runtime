@@ -204,6 +204,12 @@ class BEFFileImpl : public BEFFile {
   // slow.
   const char* GetKernelName(size_t kernel_id);
 
+  AsyncKernelImplementation GetAsyncKernel(uint32_t kernel_code) {
+    KernelImplementation kernel_impl = kernels_[kernel_code];
+    assert(kernel_impl.is<AsyncKernelImplementation>());
+    return kernel_impl.get<AsyncKernelImplementation>();
+  }
+
   ErrorHandler error_handler_;
 
   ArrayRef<uint8_t> location_filenames_section_;

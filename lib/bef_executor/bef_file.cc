@@ -256,8 +256,8 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
     const char* kernel_name = reinterpret_cast<const char*>(
         &bef_file_->string_section_[kernel_name_offset]);
 
-    auto* kernel = registry_->GetKernel(kernel_name);
-    if (!kernel) {
+    auto kernel = registry_->GetKernel(kernel_name);
+    if (kernel.isNull()) {
       return DiagnoseUnknownKernel(bef_file_->kernels_.size(), kernel_name,
                                    host_allocator);
     }

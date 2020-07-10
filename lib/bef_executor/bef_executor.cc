@@ -412,8 +412,8 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
     kernel_frame.Reset();
 
     // Find the kernel implementation of this kernel.
-    KernelImplementation kernel_fn = BefFile()->kernels_[kernel.kernel_code()];
-    assert(kernel_fn != nullptr);
+    AsyncKernelImplementation kernel_fn =
+        BefFile()->GetAsyncKernel(kernel.kernel_code());
 
     // Check the low bit of special_metadata, which indicates if the kernel
     // is non-strict.

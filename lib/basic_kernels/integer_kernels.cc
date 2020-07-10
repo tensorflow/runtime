@@ -21,6 +21,7 @@
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/basic_kernels/basic_kernels.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
@@ -142,6 +143,15 @@ void RegisterIntegerKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(HexCast<int64_t, double>));
   registry->AddKernel("hex.cast.f64_to_i64",
                       TFRT_KERNEL(HexCast<double, int64_t>));
+
+  // Register synchronous kernels.
+  registry->AddSyncKernel("hex.constant_s.i32",
+                          TFRT_SYNC_KERNEL(HexConstant<int32_t>));
+  registry->AddSyncKernel("hex.constant_s.i64",
+                          TFRT_SYNC_KERNEL(HexConstant<int64_t>));
+
+  registry->AddSyncKernel("hex.add_s.i32", TFRT_SYNC_KERNEL(HexAdd<int32_t>));
+  registry->AddSyncKernel("hex.add_s.i64", TFRT_SYNC_KERNEL(HexAdd<int64_t>));
 }
 
 }  // namespace tfrt

@@ -25,6 +25,7 @@
 
 #include <memory>
 
+#include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -32,16 +33,23 @@ namespace tfrt {
 
 class TypeName;
 class KernelFrame;
+class SyncKernelFrame;
 class HostContext;
 
 // Kernel implementations use this signature, synchronously or asynchronously
 // performing some computation and updating results.
-using KernelImplementation = void (*)(KernelFrame* frame);
+//
+// TODO(b/160478052): Rename KernelFrame to AsyncKernelFrame.
+using AsyncKernelImplementation = void (*)(KernelFrame* frame);
+using SyncKernelImplementation = void (*)(SyncKernelFrame* frame);
+
+using KernelImplementation =
+    llvm::PointerUnion<AsyncKernelImplementation, SyncKernelImplementation>;
 
 namespace internal {
 
 template <typename TraitT>
-KernelImplementation AsBEFKernel();
+AsyncKernelImplementation AsBEFKernel();
 
 }  // namespace internal
 
@@ -53,7 +61,11 @@ class KernelRegistry {
   KernelRegistry(const KernelRegistry&) = delete;
   KernelRegistry& operator=(const KernelRegistry&) = delete;
 
-  void AddKernel(string_view name, KernelImplementation fn);
+  // TODO: Rename AddKernel to AddAsyncKernel. This will involve touching a
+  // large number of files, so it is better to do this in a separate CL.
+  void AddKernel(string_view name, AsyncKernelImplementation fn);
+  void AddSyncKernel(string_view name, SyncKernelImplementation fn);
+
   template <typename KernelTraitT>
   void AddKernel(string_view name) {
     AddKernel(name, internal::AsBEFKernel<KernelTraitT>());

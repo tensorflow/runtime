@@ -43,10 +43,21 @@ KernelRegistry::KernelRegistry() : impl_(std::make_unique<Impl>()) {}
 KernelRegistry::~KernelRegistry() {}
 
 void KernelRegistry::AddKernel(string_view kernel_name,
-                               KernelImplementation fn) {
-  bool added = impl_->implementations.try_emplace(kernel_name, fn).second;
+                               AsyncKernelImplementation fn) {
+  bool added =
+      impl_->implementations.try_emplace(kernel_name, KernelImplementation{fn})
+          .second;
   (void)added;
-  assert(added && "Re-registered existing kernel_name");
+  assert(added && "Re-registered existing kernel_name for async kernel");
+}
+
+void KernelRegistry::AddSyncKernel(string_view kernel_name,
+                                   SyncKernelImplementation fn) {
+  bool added =
+      impl_->implementations.try_emplace(kernel_name, KernelImplementation{fn})
+          .second;
+  (void)added;
+  assert(added && "Re-registered existing kernel_name for sync kernel");
 }
 
 KernelImplementation KernelRegistry::GetKernel(string_view kernel_name) const {

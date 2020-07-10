@@ -35,7 +35,5 @@ def TensorType
 
 def HostBufferType
   : OpaqueType<"ht", "host_buffer", "host_buffer">;
-def TensorHandleType
-  : OpaqueType<"corert", "tensorhandle", "!corert.tensorhandle type">;
 
 #endif  // TFRT_OP_BASE

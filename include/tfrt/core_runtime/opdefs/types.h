@@ -32,10 +32,13 @@ namespace CoreRTTypes {
 
 enum Kind {
   kString = mlir::Type::FIRST_PRIVATE_EXPERIMENTAL_1_TYPE,
+  kTensorHandle,
+  kDevice,
 };
 
 }  // namespace CoreRTTypes
 
+// TODO(tfrt-dev): Move StringType to Hex dialect.
 class StringType
     : public mlir::Type::TypeBase<StringType, mlir::Type, mlir::TypeStorage> {
  public:
@@ -46,6 +49,33 @@ class StringType
   }
 
   static bool kindof(unsigned kind) { return kind == CoreRTTypes::kString; }
+};
+
+class TensorHandleType
+    : public mlir::Type::TypeBase<TensorHandleType, mlir::Type,
+                                  mlir::TypeStorage> {
+ public:
+  using Base::Base;
+
+  static TensorHandleType get(mlir::MLIRContext *context) {
+    return Base::get(context, CoreRTTypes::kTensorHandle);
+  }
+
+  static bool kindof(unsigned kind) {
+    return kind == CoreRTTypes::kTensorHandle;
+  }
+};
+
+class DeviceType
+    : public mlir::Type::TypeBase<DeviceType, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+
+  static DeviceType get(mlir::MLIRContext *context) {
+    return Base::get(context, CoreRTTypes::kDevice);
+  }
+
+  static bool kindof(unsigned kind) { return kind == CoreRTTypes::kDevice; }
 };
 
 }  // namespace corert

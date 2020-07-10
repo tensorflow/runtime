@@ -341,6 +341,7 @@ exports_files(
         "include/tfrt/tfrt_op_base.td",
         "include/tfrt/basic_kernels/opdefs/hex_base.td",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
+        "include/tfrt/core_runtime/opdefs/corert_base.td",
     ],
     visibility = [":friends"],
 )
@@ -491,6 +492,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
+        "include/tfrt/core_runtime/opdefs/corert_base.td",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
         "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
     ],

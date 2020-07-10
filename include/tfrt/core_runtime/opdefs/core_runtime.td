@@ -17,20 +17,9 @@
 #define CORERT_OPS
 
 include "tfrt/tfrt_op_base.td"
+include "tfrt/core_runtime/opdefs/corert_base.td"
 include "tfrt/core_runtime/opdefs/corert_traits.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
-
-def CoreRT_Dialect : Dialect {
-  let name = "corert";
-
-  let description = [{
-    The Core Runtime Dialect.
-  }];
-
-  let cppNamespace = "corert";
-}
-
-def DeviceType : OpaqueType<"corert", "device", "!corert.device type">;
 
 // Base class for corert dialect ops.
 class CoreRT_Op<string mnemonic, list<OpTrait> traits = []> :
@@ -53,7 +42,7 @@ class CreateDenseTensorOp<string dtype>
   );
 
   let results = (outs
-    TensorHandleType:$result
+    CoreRT_TensorHandleType:$result
   );
 
   let assemblyFormat = "attr-dict";
@@ -85,7 +74,7 @@ def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor",
   );
 
   let results = (outs
-    TensorHandleType:$result
+    CoreRT_TensorHandleType:$result
   );
 
   let assemblyFormat = "$value attr-dict";
@@ -111,7 +100,7 @@ def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
   );
 
   let results = (outs
-    TensorHandleType:$result
+    CoreRT_TensorHandleType:$result
   );
 
   let assemblyFormat = "attr-dict";
@@ -131,14 +120,14 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait
   }];
 
   let arguments = (ins
-    DeviceType:$device,
-    Variadic<TensorHandleType>:$operands,
+    CoreRT_DeviceType:$device,
+    Variadic<CoreRT_TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
     StrAttr:$op_name
   );
 
   let results = (outs
-    Variadic<TensorHandleType>:$results
+    Variadic<CoreRT_TensorHandleType>:$results
   );
 
   let hasFolder = 1;
@@ -169,16 +158,16 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
   }];
 
   let arguments = (ins
-    DeviceType:$device,
+    CoreRT_DeviceType:$device,
     Hex_ChainType:$in_op_chain,
-    Variadic<TensorHandleType>:$operands,
+    Variadic<CoreRT_TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
     StrAttr:$op_name
   );
 
   let results = (outs
     Hex_ChainType:$out_op_chain,
-    Variadic<TensorHandleType>:$results
+    Variadic<CoreRT_TensorHandleType>:$results
   );
 }
 
@@ -197,7 +186,7 @@ def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler"> {
     StrAttr:$device_name
   );
   let results = (outs
-    DeviceType:$device
+    CoreRT_DeviceType:$device
   );
   let assemblyFormat = "$in_op_chain $device_name attr-dict";
   let verifier = ?;
@@ -214,7 +203,7 @@ def CoreRT_RegisterOpHandlerChainOp : CoreRT_Op<"register_op_handler_chain"> {
   }];
 
   let arguments = (ins
-    DeviceType:$device,
+    CoreRT_DeviceType:$device,
     StrAttr:$device_name
   );
   let results = (outs Hex_ChainType:$out_op_chain);

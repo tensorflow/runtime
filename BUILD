@@ -73,6 +73,8 @@ tfrt_cc_library(
         "include/tfrt/host_context/request_deadline_tracker.h",
         "include/tfrt/host_context/resource_context.h",
         "include/tfrt/host_context/shared_context.h",
+        "include/tfrt/host_context/sync_kernel_frame.h",
+        "include/tfrt/host_context/sync_kernel_utils.h",
         "include/tfrt/host_context/task_function.h",
         "include/tfrt/host_context/timer_queue.h",
         "include/tfrt/host_context/type_name.h",

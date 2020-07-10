@@ -17,7 +17,7 @@
 // CHECK: --- Running 'maxpool_valid_padding'
 func @maxpool_valid_padding() -> !hex.chain {
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %cpu_handle_input = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
     { shape = [1, 3, 3, 1], values = [0.0 : f32, 1.0 : f32, 2.0 : f32,  3.0 : f32,  4.0 : f32,  5.0 : f32,  6.0 : f32,  7.0 : f32,  8.0 : f32] } : 1
@@ -33,7 +33,7 @@ func @maxpool_valid_padding() -> !hex.chain {
 // CHECK: --- Running 'maxpool_same_padding'
 func @maxpool_same_padding() -> !hex.chain {
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %maxpool_in_th = corert.executeop(%cpu) "tf.Const"()
     { dtype = f32, value = dense<1.0> : tensor<1x3x3x1xf32> } : 1

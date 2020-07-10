@@ -24,10 +24,9 @@ func @BM_corert.matmul() {
   // CHECK: BM:BM_corert.matmul:Time 95%(us):
   // CHECK: BM:BM_corert.matmul:Time 99%(us):
 
-  %cpu = corert.get_device "cpu"
-
   // Prepare input.
   %ch0 = hex.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
 

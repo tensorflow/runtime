@@ -16,14 +16,14 @@
 
 // CHECK-LABEL: --- Not running 'register_op_handler_chain' because it has arguments.
 func @register_op_handler_chain(%ch0: !hex.chain) -> !hex.chain {
-  %null = corert.get_device "null"
+  %null = corert.get_op_handler %ch0 "null"
   %ch1 = corert.register_op_handler_chain %null "custom0"
   hex.return %ch1 : !hex.chain
 }
 
 // CHECK-LABEL: --- Not running 'get_op_handler' because it has arguments.
 func @get_op_handler(%ch0: !hex.chain) -> !hex.chain {
-  %null = corert.get_device "custom0"
+  %null = corert.get_op_handler %ch0 "custom0"
   %ch1 = hex.new.chain
   hex.return %ch1 : !hex.chain
 }
@@ -31,7 +31,7 @@ func @get_op_handler(%ch0: !hex.chain) -> !hex.chain {
 // CHECK-LABEL: --- Not running 'failed_get_op_handler' because it has arguments.
 func @failed_get_op_handler(%ch0: !hex.chain) -> !hex.chain {
   // expected-error @+1 {{runtime error: op_handler not found}}
-  %null = corert.get_device "custom0"
+  %null = corert.get_op_handler %ch0 "custom0"
   %ch1 = hex.new.chain
   hex.return %ch1 : !hex.chain
 }

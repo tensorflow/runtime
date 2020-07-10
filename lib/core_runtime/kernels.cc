@@ -341,8 +341,11 @@ static tfrt::Expected<CoreRuntimeOp> MakeCompositeOp(
   return core_rt->MakeCompositeOp(fn);
 }
 
+// GetOpHandler accepts chains because the op_handlers now can be registered
+// dynamically as well.
 static tfrt::Expected<OpHandler *> GetOpHandler(
-    StringAttribute op_handler_name, const ExecutionContext &exec_ctx) {
+    Argument<Chain> in_op_chain, StringAttribute op_handler_name,
+    const ExecutionContext &exec_ctx) {
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
@@ -420,8 +423,7 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.execute_crt_op",
                       TFRT_KERNEL(ExecuteCoreRuntimeOp));
   registry->AddKernel("corert.make_composite_op", TFRT_KERNEL(MakeCompositeOp));
-  // TODO(fishx): Rename it to corert.get_op_handler.
-  registry->AddKernel("corert.get_device", TFRT_KERNEL(GetOpHandler));
+  registry->AddKernel("corert.get_op_handler", TFRT_KERNEL(GetOpHandler));
   registry->AddKernel("corert.register_op_handler_chain",
                       TFRT_KERNEL(RegisterOpHandlerChain));
   registry->AddKernel("corert.const_dense_tensor",

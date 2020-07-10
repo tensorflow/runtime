@@ -17,7 +17,7 @@
 // CHECK-LABEL: --- Running 'cast_f16'
 func @cast_f16() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // Create tensor whose shape is represented using RepKind::kRep32.
   %float_handle = corert.executeop(%cpu)

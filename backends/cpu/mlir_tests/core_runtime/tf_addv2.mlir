@@ -17,7 +17,7 @@
 // CHECK: --- Running 'addV2_dense_dense_f32'
 func @addV2_dense_dense_f32() -> !hex.chain{
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %operand_0 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
     { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : 1
@@ -33,7 +33,7 @@ func @addV2_dense_dense_f32() -> !hex.chain{
 // CHECK: --- Running 'addV2_dense_scalar_f32'
 func @addV2_dense_scalar_f32() -> !hex.chain{
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %operand_0 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
     { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : 1
@@ -49,7 +49,7 @@ func @addV2_dense_scalar_f32() -> !hex.chain{
 // CHECK: --- Running 'addV2_scalar_dense_f32'
 func @addV2_scalar_dense_f32() -> !hex.chain{
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %operand_0 = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
     { shape = [2, 3], value = 1.0: f32 } : 1
@@ -65,7 +65,7 @@ func @addV2_scalar_dense_f32() -> !hex.chain{
 // CHECK: --- Running 'addV2_scalar_scalar_f32'
 func @addV2_scalar_scalar_f32() -> !hex.chain{
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %operand_0 = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
     { shape = [2, 3], value = 1.0: f32 } : 1

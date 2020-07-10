@@ -182,18 +182,24 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
   );
 }
 
-def CoreRT_GetDeviceOp : CoreRT_Op<"get_device"> {
-  let summary = "return the registered device";
+def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler"> {
+  let summary = "return the registered op handler";
   let description = [{
-    GetDeviceOp returns a registered device, which can be used by ExecuteOp.
+    GetOpHandler returns a registered device, which can be used by ExecuteOp.
 
     Example:
-      %cpu = corert.get_device "cpu"
+      %ch0 = hex.new.chain
+      %cpu = corert.get_op_handler %ch0 "cpu"
   }];
 
-  let arguments = (ins StrAttr:$device_name);
-  let results = (outs DeviceType:$device);
-  let assemblyFormat = "$device_name attr-dict";
+  let arguments = (ins
+    Hex_ChainType:$in_op_chain,
+    StrAttr:$device_name
+  );
+  let results = (outs
+    DeviceType:$device
+  );
+  let assemblyFormat = "$in_op_chain $device_name attr-dict";
   let verifier = ?;
 }
 
@@ -201,7 +207,7 @@ def CoreRT_RegisterOpHandlerChainOp : CoreRT_Op<"register_op_handler_chain"> {
   let summary = "Register a name for a Chain of OpHandlers.";
   let description = [{
     Register a name for the given Chain of OpHandlers and make the chain
-    accessible through corert.get_device.
+    accessible through corert.get_op_handler.
 
     Example:
       %chain = corert.register_op_handler_chain %root_op_handler, "my_chain0"

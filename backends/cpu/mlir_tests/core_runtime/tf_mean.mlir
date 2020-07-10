@@ -17,7 +17,7 @@
 // CHECK: --- Running 'mean'
 func @mean() -> !hex.chain {
   %ch_1 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_1 "cpu"
 
   %input_1 = corert.executeop(%cpu) "tf.Const"()
     { dtype = f32, value = dense<[[[[1.0], [2.0]], [[3.0], [4.0]]]]> : tensor<1x2x2x1xf32> } : 1

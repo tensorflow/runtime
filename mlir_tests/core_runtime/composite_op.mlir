@@ -15,7 +15,7 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices='cpu' | FileCheck %s --dump-input=fail
 
 func @matmul_fn(%ch: !hex.chain, %arg : !corert.tensorhandle) -> (!hex.chain, !corert.tensorhandle) {
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch "cpu"
   %t1 = corert.executeop(%cpu) "tfrt_test.matmul"(%arg, %arg)
     {transpose_a = false, transpose_b = false}: 1
   hex.return %ch, %t1 : !hex.chain, !corert.tensorhandle
@@ -23,10 +23,9 @@ func @matmul_fn(%ch: !hex.chain, %arg : !corert.tensorhandle) -> (!hex.chain, !c
 
 // CHECK-LABEL: --- Running 'corert.simple_composite_op'
 func @corert.simple_composite_op() -> !hex.chain {
-  %cpu = corert.get_device "cpu"
-
   // Prepare input.
   %ch0 = hex.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
 
@@ -45,4 +44,3 @@ func @corert.simple_composite_op() -> !hex.chain {
 
   hex.return %ch2 : !hex.chain
 }
-

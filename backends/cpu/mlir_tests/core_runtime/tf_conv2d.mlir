@@ -17,7 +17,7 @@
 // CHECK: --- Running 'conv2d_valid'
 func @conv2d_valid() -> !hex.chain {
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %conv2d_in_th1 = corert.executeop(%cpu) "tf.Const"()
       { dtype = f32, value = dense<1.0> : tensor<4x4x4x4xf32> } : 1
@@ -34,7 +34,7 @@ func @conv2d_valid() -> !hex.chain {
 // CHECK: --- Running 'conv2d_valid_strides'
 func @conv2d_valid_strides() -> !hex.chain {
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %conv2d_in_th1 = corert.executeop(%cpu) "tf.Const"()
       { dtype = f32, value = dense<1.0> : tensor<4x4x4x4xf32> } : 1
@@ -51,7 +51,7 @@ func @conv2d_valid_strides() -> !hex.chain {
 // CHECK: --- Running 'conv2d_same'
 func @conv2d_same() -> !hex.chain {
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %conv2d_in_th1 = corert.executeop(%cpu) "tf.Const"()
     { dtype = f32, value = dense<1.0> : tensor<4x4x4x4xf32> } : 1
@@ -68,7 +68,7 @@ func @conv2d_same() -> !hex.chain {
 // CHECK: --- Running 'conv2d_same_strides'
 func @conv2d_same_strides() -> !hex.chain {
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %conv2d_in_th1 = corert.executeop(%cpu) "tf.Const"()
     { dtype = f32, value = dense<1.0> : tensor<4x4x4x4xf32> } : 1

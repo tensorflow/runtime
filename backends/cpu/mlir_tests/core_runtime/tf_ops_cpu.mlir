@@ -16,8 +16,8 @@
 
 // CHECK: --- Running 'const_f32'
 func @const_f32() -> !hex.chain {
- %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %ch0 = hex.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %cpu_handle_result = corert.executeop(%cpu)
     "tf.Const"() {value = dense<[-1.0, -0.5, 0.0, 0.5, 1.0]> : tensor<5xf32>, dtype = f32} : 1

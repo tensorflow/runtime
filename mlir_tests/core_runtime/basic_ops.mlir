@@ -17,7 +17,7 @@
 // CHECK-LABEL: --- Running 'basic_test_matmul_f32'
 func @basic_test_matmul_f32() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // Create tensor whose shape is represented using RepKind::kRep32.
   %a_handle = corert.executeop(%cpu)
@@ -52,7 +52,7 @@ func @basic_test_matmul_f32() -> !hex.chain {
 // CHECK-LABEL: --- Running 'basic_test_matmul_transpose_f32'
 func @basic_test_matmul_transpose_f32() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32] } : 1
@@ -90,7 +90,7 @@ func @basic_test_matmul_transpose_f32() -> !hex.chain {
 // CHECK-LABEL: --- Running 'basic_test_matmul_i32'
 func @basic_test_matmul_i32() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // Create tensor whose shape is represented using RepKind::kRep32.
   %a_handle = corert.executeop(%cpu)
@@ -125,7 +125,7 @@ func @basic_test_matmul_i32() -> !hex.chain {
 // CHECK-LABEL: --- Running 'basic_test_ops'
 func @basic_test_ops() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // Create tensor whose shape is represented using RepKind::kRep32.
   %a_handle = corert.executeop(%cpu)
@@ -163,7 +163,7 @@ func @basic_test_ops() -> !hex.chain {
 // CHECK-LABEL: --- Running 'tensorhandle_to_shape_test'
 func @tensorhandle_to_shape_test() {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // Create tensor whose shape is represented using RepKind::kRep32.
   %a_handle = corert.executeop(%cpu)
@@ -182,7 +182,7 @@ func @tensorhandle_to_shape_test() {
 func @tensorhandle_error_test() -> i32 {
   %ch0 = hex.new.chain
   %one = hex.constant.i32 1
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %tensor = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %tensor, %ch0 1 : i32
@@ -205,7 +205,7 @@ func @tensorhandle_error_test() -> i32 {
 // CHECK-LABEL: --- Running 'badop_error'
 func @badop_error() {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // expected-error @+1 {{tf.invalidop was not supported by NullOpHandler}}
   %op_ch = corert.executeop.seq(%cpu, %ch0) "tf.invalidop"()
@@ -216,7 +216,7 @@ func @badop_error() {
 // CHECK-LABEL: --- Running 'shape_error'
 func @shape_error() {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
@@ -234,7 +234,7 @@ func @shape_error() {
 // CHECK-LABEL: --- Running 'basic_executeop'
 func @basic_executeop() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 3], values = [1 : i32] } : 1
@@ -254,7 +254,7 @@ func @basic_executeop() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_async'
 func @test_async() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
    {shape = [2: i64, 2: i64], value = 1: i32} : 1
@@ -273,7 +273,7 @@ func @test_async() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_async_no_md'
 func @test_async_no_md() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
    {shape = [2: i64, 2: i64], value = 1: i32} : 1
@@ -289,7 +289,7 @@ func @test_async_no_md() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_cancel'
 func @test_cancel() -> !t.tensor{
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
    {shape = [2: i64, 2: i64], value = 1: i32} : 1
@@ -309,7 +309,7 @@ func @test_cancel() -> !t.tensor{
 // CHECK-LABEL: --- Running 'test_side_effect'
 func @test_side_effect() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
    {shape = [2: i64, 2: i64], value = 1: i32} : 1
@@ -337,7 +337,7 @@ func @test_side_effect() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_error_propagation'
 func @test_error_propagation() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
    {shape = [1: i64, 1: i64], value = 1: i32} : 1
@@ -359,7 +359,7 @@ func @test_error_propagation() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_async_dispatch_async_metadata_error'
 func @test_async_dispatch_async_metadata_error() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1.0 : f32] } : 1

@@ -17,10 +17,11 @@
 // CHECK-LABEL: func @basic
 // CHECK-SAME: ([[arg:%.*]]: !corert.tensorhandle) -> !corert.tensorhandle
 func @basic(%arg : !corert.tensorhandle) -> !corert.tensorhandle {
-  // CHECK: [[device:%.*]] = corert.get_device "cpu"
-  %cpu = corert.get_device "cpu"
   // CHECK: [[chain:%.*]] = hex.new.chain
   %ch = hex.new.chain
+
+  // CHECK: [[device:%.*]] = corert.get_op_handler %0 "cpu"
+   %cpu = corert.get_op_handler %ch "cpu"
 
   // CHECK: [[r0:%.*]] = corert.executeop([[device]]) "some.op"([[arg]])
   // CHECK-SAME: {shape = [1, 65536], values = [1.000000e+00 : f32]} : 1

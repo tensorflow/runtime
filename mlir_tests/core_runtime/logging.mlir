@@ -17,7 +17,7 @@
 // CHECK-LABEL: --- Running 'test_logger'
 func @test_logger() -> !hex.chain {
   %ch0 = hex.new.chain
-  %log = corert.get_device "sync_logging"
+  %log = corert.get_op_handler %ch0 "sync_logging"
 
   // CHECK: [0] dispatch 'tfrt_test.create_dense_tensor' 0 arguments, 1 result, OpAttrs contains 2 entries:
   // CHECK:  'shape' type=I64 value=[5]

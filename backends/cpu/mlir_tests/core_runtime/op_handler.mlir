@@ -24,7 +24,7 @@ func @register_cpu_op_handler_chain(%ch0: !hex.chain) -> !hex.chain {
 
 // CHECK-LABEL: --- Not running 'get_cpu_op_handler' because it has arguments.
 func @get_cpu_op_handler(%ch0: !hex.chain) -> !hex.chain {
-  %cpu0 = corert.get_device "cpu0"
+  %cpu0 = corert.get_op_handler %ch0 "cpu0"
   %cpu_handle_result = corert.executeop(%cpu0)
     "tf.Const"() {value = dense<[42, 314]> : tensor<2xi32>, dtype = i32} : 1
 
@@ -35,7 +35,7 @@ func @get_cpu_op_handler(%ch0: !hex.chain) -> !hex.chain {
 // CHECK-LABEL: --- Not running 'failed_cpu_get_op_handler' because it has arguments.
 func @failed_cpu_get_op_handler(%ch0: !hex.chain) -> !hex.chain {
   // expected-error @+1 {{runtime error: op_handler not found}}
-  %cpu0 = corert.get_device "cpu0"
+  %cpu0 = corert.get_op_handler %ch0 "cpu0"
   %ch1 = hex.new.chain
   hex.return %ch1 : !hex.chain
 }

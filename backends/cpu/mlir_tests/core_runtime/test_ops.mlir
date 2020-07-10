@@ -17,7 +17,7 @@
 // CHECK-LABEL: --- Running 'test_tensor_policy'
 func @test_tensor_policy() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu)
       "tfrt_test.create_dense_tensor"() { shape = [5], values = [1 : i32, 2 : i32, 3 : i32, 4 : i32, 5 : i32] } : 1
@@ -33,7 +33,7 @@ func @test_tensor_policy() -> !hex.chain {
 // CHECK-LABEL: --- Running 'create_from_scalar_error'
 func @create_from_scalar_error() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // expected-error @+1 {{test.create_from_scalar must have 'value' attribute}}
   %a_handle = "corert.executeop"(%cpu) {op_attrs = [["shape", [2 : i64, 3 : i64]]], op_name = "tfrt_test.create_from_scalar"}
@@ -45,7 +45,7 @@ func @create_from_scalar_error() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_scalar_tensor_ops'
 func @test_scalar_tensor_ops() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_from_scalar"() { shape = [2, 3], value = 1 : i32 } : 1
@@ -65,7 +65,7 @@ func @test_scalar_tensor_ops() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_scalar_dense_mixed'
 func @test_scalar_dense_mixed() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
     { shape = [2, 3], value = 1 : i32 } : 1
@@ -90,7 +90,7 @@ func @test_scalar_dense_mixed() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_scalar_denseonly_mixed'
 func @test_scalar_denseonly_mixed() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
     {shape = [2, 3], value = 1: i32} : 1
@@ -109,7 +109,7 @@ func @test_scalar_denseonly_mixed() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_scalar_denseonly2_mixed'
 func @test_scalar_denseonly2_mixed() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
     {shape = [2, 3], value = 1: i32} : 1
@@ -128,7 +128,7 @@ func @test_scalar_denseonly2_mixed() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_scalar_denseonly3_mixed'
 func @test_scalar_denseonly3_mixed() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
     {shape = [2, 3], value = 1: i32} : 1
@@ -150,7 +150,7 @@ func @test_scalar_denseonly3_mixed() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_coo_tensor'
 func @test_coo_tensor() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
     {shape = [2, 2], values = [0 : i64, 0 : i64, 1 : i64, 2 : i64] } : 1
@@ -178,7 +178,7 @@ func @test_coo_tensor() -> !hex.chain {
 // CHECK-LABEL: --- Running 'test_coo_scalar_mixed'
 func @test_coo_scalar_mixed() -> !hex.chain {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   %a_handle = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
     {shape = [1, 2], values = [0 : i64, 0 : i64] } : 1

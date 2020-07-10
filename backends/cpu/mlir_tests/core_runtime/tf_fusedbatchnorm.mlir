@@ -17,7 +17,7 @@
 // CHECK: --- Running 'fused_batch_norm_v3'
 func @fused_batch_norm_v3() -> !hex.chain {
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   // Test tf.FusedBatchNormV3.
   %input = corert.executeop(%cpu) "tf.Const"()

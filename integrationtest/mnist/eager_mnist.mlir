@@ -71,7 +71,7 @@ func @mnist_compute(%cpu: !corert.device,
 // CHECK-LABEL: --- Running 'bm_mnist'
 func @bm_mnist() {
   %ch0 = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // w1
   %w1 = corert.executeop(%cpu)

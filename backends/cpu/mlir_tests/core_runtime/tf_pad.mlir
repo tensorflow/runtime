@@ -17,7 +17,7 @@
 // CHECK: --- Running 'pad_with_hardcoded_attr_f32'
 func @pad_with_hardcoded_attr_f32() -> !hex.chain {
   %ch_epoch = hex.new.chain
-  %cpu = corert.get_device "cpu"
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %a = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
     { shape = [1, 2, 2, 1], values = [0.5 : f32] } : 1

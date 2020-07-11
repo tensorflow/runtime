@@ -28,6 +28,9 @@ build --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
 build --linkopt=-pthread
 build --linkopt=-ldl
 build --linkopt=-lm
+build --host_linkopt=-pthread
+build --host_linkopt=-ldl
+build --host_linkopt=-lm
 
 # Default to an optimized build.
 # Override via: "-c dbg" or --compilation_mode=dbg

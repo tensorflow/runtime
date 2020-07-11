@@ -125,3 +125,8 @@ tfrt_cc_binary(
         "@tf_runtime//:support",
     ],
 )
+
+cc_binary(
+    name = "bef_name",
+    srcs = ["bef_name.cc"],
+)

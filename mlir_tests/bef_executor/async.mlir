@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -work_queue_type=s | FileCheck %s --dump-input=fail
+// RUN: bef_executor -work_queue_type=s $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // NOTE: This test is intentionally not using chains to sequence side effecting
 // kernels according to common sense.  This is to make sure the executor is

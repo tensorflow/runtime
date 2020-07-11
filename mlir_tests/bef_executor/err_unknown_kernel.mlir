@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor
+// RUN: bef_executor $(bef_name %s)
 
 func @unsupported_kernel_function() {
   // expected-error @+1 {{unknown kernel name 'unsupported_kernel'}}

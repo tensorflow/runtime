@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate --mlir-to-bef %s | bef_executor --host_allocator_type test_fixed_size_1k 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor --host_allocator_type test_fixed_size_1k $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'dense_array'
 func @dense_array() {

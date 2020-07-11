@@ -46,7 +46,8 @@ llvm_config.config.substitutions.append(
 tool_dirs = config.tfrt_tools_dirs + [config.llvm_tools_dir]
 
 tool_names = [
-    'bef_executor', 'tfrt_translate', 'tfrt_opt', 'code_size_test_driver'
+    'bef_executor', 'bef_name', 'tfrt_translate', 'tfrt_opt',
+    'code_size_test_driver'
 ]
 tools = [ToolSubst(s, unresolved='ignore') for s in tool_names]
 llvm_config.add_tool_substitutions(tools, tool_dirs)

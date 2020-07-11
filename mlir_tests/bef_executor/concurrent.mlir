@@ -14,8 +14,8 @@
 
 // Test both serial and concurrent workqueues: all tests should be determinstic.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor | FileCheck %s --dump-input=fail
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -work_queue_type=mstd | FileCheck %s --dump-input=fail
+// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor -work_queue_type=mstd $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // Asynchronously increment %counter once.
 func @async_incs(%counter : !test.atomic.i32, %ch : !hex.chain) -> !hex.chain {

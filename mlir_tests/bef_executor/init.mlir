@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor --init_function __init__ --functions print_hello,print_bye 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor --init_function __init__ --functions print_hello,print_bye $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running '__init__'
 // CHECK: string = initializing!

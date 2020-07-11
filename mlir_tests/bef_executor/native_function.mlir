@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
 func @native_add(%a: i32, %b: i32) -> i32 attributes {hex.native}
 func @native_async_add(%a: i32, %b: i32) -> i32 attributes {hex.native}

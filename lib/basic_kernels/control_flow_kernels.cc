@@ -27,17 +27,17 @@
 
 namespace tfrt {
 
-static Chain HexNewChain() { return Chain(); }
+static Chain TFRTNewChain() { return Chain(); }
 
-static void HexMergeChains(Argument<Chain> chain_in,
-                           RemainingArguments remaining_arguments,
-                           Result<Chain> chain_out) {
+static void TFRTMergeChains(Argument<Chain> chain_in,
+                            RemainingArguments remaining_arguments,
+                            Result<Chain> chain_out) {
   // We can return an arbitrary chain argument - we know that all are ready.
   chain_out.Set(chain_in);
 }
 
-static void HexCall(RemainingArguments args, RemainingResults results,
-                    Attribute<Function> fn, const ExecutionContext& exec_ctx) {
+static void TFRTCall(RemainingArguments args, RemainingResults results,
+                     Attribute<Function> fn, const ExecutionContext& exec_ctx) {
   assert(fn->argument_types().size() == args.size() &&
          "argument count mismatch");
   assert(fn->result_types().size() == results.size() &&
@@ -46,23 +46,23 @@ static void HexCall(RemainingArguments args, RemainingResults results,
   fn->Execute(exec_ctx, args.values(), results.values());
 }
 
-// hex.if dispatches to a 'true' or 'false' function based on a condition.
+// tfrt.if dispatches to a 'true' or 'false' function based on a condition.
 //
 // Arguments: The first argument is the condition, with type i1, and any
 // additional arguments are passed to the selected function.
 //
 // Attributes: The first attribute is the true_fn, and the second attribute is
 // the false_fn. The functions must have matching signatures, and their
-// signatures must match hex.if's signature, exempting the extra i1 for the
+// signatures must match tfrt.if's signature, exempting the extra i1 for the
 // condition.
 //
-// hex.if supports "non-strict" invocation: it is safe to invoke before all its
+// tfrt.if supports "non-strict" invocation: it is safe to invoke before all its
 // arguments are ready. The caller must set the bef.nonstrict attribute on
-// hex.if to make an invocation non-strict.
-static void HexIf(RemainingArguments args, RemainingResults results,
-                  Attribute<Function> true_fn_const,
-                  Attribute<Function> false_fn_const,
-                  const ExecutionContext& exec_ctx) {
+// tfrt.if to make an invocation non-strict.
+static void TFRTIf(RemainingArguments args, RemainingResults results,
+                   Attribute<Function> true_fn_const,
+                   Attribute<Function> false_fn_const,
+                   const ExecutionContext& exec_ctx) {
   assert(args.size() > 0);
 
   const Function* true_fn = &(*true_fn_const);
@@ -109,7 +109,7 @@ static void HexIf(RemainingArguments args, RemainingResults results,
   RCArray<AsyncValue> arg_refs(args.values());
 
   // We need to create all the result values eagerly so we can return them
-  // from the HexIf function, even though we don't know their types.  Use
+  // from the TFRTIf function, even though we don't know their types.  Use
   // an IndirectAsyncValue for this, because it can lazily get resolved.
   SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
   result_refs.reserve(results.size());
@@ -141,7 +141,7 @@ static void HexIf(RemainingArguments args, RemainingResults results,
 
 // This is a helper function that runs a block of iterations and sets up a
 // callback to run the next block at the end.
-static void HexRepeatI32Block(
+static void TFRTRepeatI32Block(
     int32_t start, int32_t block_size, int32_t count_value,
     const ExecutionContext& exec_ctx, RCReference<const Function> body_fn_ref,
     RCArray<AsyncValue> args,
@@ -162,7 +162,7 @@ static void HexRepeatI32Block(
       // the cancel async value, and break out.
       for (int arg = 0; arg != num_fn_args; ++arg) {
         // If this is not the first iteration, destroy the loop-carried
-        // args. The first iteration uses HexRepeatI32's args, which we
+        // args. The first iteration uses TFRTRepeatI32's args, which we
         // can't destroy.
         if (i > 0) passed_args[arg]->DropRef();
       }
@@ -177,7 +177,7 @@ static void HexRepeatI32Block(
 
     for (int arg = 0; arg != num_fn_args; ++arg) {
       // If this is not the first iteration, destroy the loop-carried
-      // args. The first iteration uses HexRepeatI32's args, which we
+      // args. The first iteration uses TFRTRepeatI32's args, which we
       // can't destroy.
       if (i > 0) passed_args[arg]->DropRef();
 
@@ -203,18 +203,18 @@ static void HexRepeatI32Block(
          body_fn_ref = std::move(body_fn_ref),
          arg_refs = RCArray<AsyncValue>(llvm::makeArrayRef(passed_args)),
          result_refs = std::move(result_refs)]() mutable {
-          HexRepeatI32Block(end, block_size, count_value, exec_ctx,
-                            std::move(body_fn_ref), std::move(arg_refs),
-                            std::move(result_refs));
+          TFRTRepeatI32Block(end, block_size, count_value, exec_ctx,
+                             std::move(body_fn_ref), std::move(arg_refs),
+                             std::move(result_refs));
         });
   }
 }
 
 // This takes a single i32 iteration count, plus arguments that are passed to
 // the body_fn and eventually returned.
-static void HexRepeatI32(RemainingArguments args, RemainingResults results,
-                         Attribute<Function> body_fn_const,
-                         const ExecutionContext& exec_ctx) {
+static void TFRTRepeatI32(RemainingArguments args, RemainingResults results,
+                          Attribute<Function> body_fn_const,
+                          const ExecutionContext& exec_ctx) {
   assert(args.size() > 0 && args.size() - 1 == results.size());
 
   const Function* body_fn = &(*body_fn_const);
@@ -262,9 +262,9 @@ static void HexRepeatI32(RemainingArguments args, RemainingResults results,
         // Run 'body_fn' at least once.
         assert(count_value > 0);
 
-        HexRepeatI32Block(0, block_size, count_value, exec_ctx,
-                          std::move(body_fn_ref), RCArray<AsyncValue>(args),
-                          std::move(result_refs));
+        TFRTRepeatI32Block(0, block_size, count_value, exec_ctx,
+                           std::move(body_fn_ref), RCArray<AsyncValue>(args),
+                           std::move(result_refs));
       };
 
   // If the count is already available, we can immediately dispatch the bodies.
@@ -305,8 +305,8 @@ static void HexRepeatI32(RemainingArguments args, RemainingResults results,
 // This kernel takes a Chain and an AsyncValue. Then it returns the same
 // AsyncValue. A function can use this kernel to return a value that depends on
 // a given chain.
-static void HexAliasValue(Chain chain, RemainingArguments args,
-                          RemainingResults results) {
+static void TFRTAliasValue(Chain chain, RemainingArguments args,
+                           RemainingResults results) {
   assert((args.size() == 1) && "args should contain one AsyncValue");
   assert((results.size() == 1) && "results should contain one AsyncValue");
   results[0] = FormRef(args.values()[0]);
@@ -314,13 +314,13 @@ static void HexAliasValue(Chain chain, RemainingArguments args,
 
 // This is the entrypoint to the library.
 void RegisterControlFlowKernels(KernelRegistry* registry) {
-  registry->AddKernel("hex.new.chain", TFRT_KERNEL(HexNewChain));
-  registry->AddKernel("hex.merge.chains", TFRT_KERNEL(HexMergeChains));
-  registry->AddKernel("hex.alias.value", TFRT_KERNEL(HexAliasValue));
-  registry->AddKernel("hex.repeat.i32", TFRT_KERNEL(HexRepeatI32));
-  registry->AddKernel("hex.call", TFRT_KERNEL(HexCall));
-  registry->AddKernel("hex.if", TFRT_KERNEL(HexIf));
-  registry->AddKernel("hex.cond", TFRT_KERNEL(HexIf));
+  registry->AddKernel("tfrt.new.chain", TFRT_KERNEL(TFRTNewChain));
+  registry->AddKernel("tfrt.merge.chains", TFRT_KERNEL(TFRTMergeChains));
+  registry->AddKernel("tfrt.alias.value", TFRT_KERNEL(TFRTAliasValue));
+  registry->AddKernel("tfrt.repeat.i32", TFRT_KERNEL(TFRTRepeatI32));
+  registry->AddKernel("tfrt.call", TFRT_KERNEL(TFRTCall));
+  registry->AddKernel("tfrt.if", TFRT_KERNEL(TFRTIf));
+  registry->AddKernel("tfrt.cond", TFRT_KERNEL(TFRTIf));
 }
 
 }  // namespace tfrt

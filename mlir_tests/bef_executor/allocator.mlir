@@ -26,5 +26,5 @@ func @dense_array() {
   // CHECK: Allocating 192 bytes
   %x2 = tfrt_dht.create_uninitialized_tensor.f32.1 [32 : i64]
 
-  hex.return
+  tfrt.return
 }

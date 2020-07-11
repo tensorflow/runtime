@@ -16,10 +16,10 @@
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradFilter_in_8x32x32x128_f_1x1x128_s1x1_SAME'
 func @BM_Conv2DGradFilter_in_8x32x32x128_f_1x1x128_s1x1_SAME() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // in: [8, 32, 32, 128].
   %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -42,27 +42,27 @@ func @BM_Conv2DGradFilter_in_8x32x32x128_f_1x1x128_s1x1_SAME() {
       %in          : !t.tensor,
       %out_grad    : !t.tensor,
       %filter_grad : !t.tensor,
-      %ch2         : !hex.chain
+      %ch2         : !tfrt.chain
   )
   duration_secs = 5, max_count = 250, num_warmup_runs = 50
   {
       %ch_out = "eigen.conv2d.grad.filter.f32"(%out_grad, %in, %filter_grad, %ch2)
        { padding = "same",  strides = [1 : i64, 1 : i64] }
        : (!t.tensor, !t.tensor, !t.tensor,
-          !hex.chain) -> !hex.chain
+          !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradFilter_in_8x56x56x128_f_2x2x128_s2x2_SAME'
 func @BM_Conv2DGradFilter_in_8x56x56x128_f_2x2x128_s2x2_SAME() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // in: [8, 56, 56, 128].
   %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -85,27 +85,27 @@ func @BM_Conv2DGradFilter_in_8x56x56x128_f_2x2x128_s2x2_SAME() {
       %in          : !t.tensor,
       %out_grad    : !t.tensor,
       %filter_grad : !t.tensor,
-      %ch2         : !hex.chain
+      %ch2         : !tfrt.chain
   )
   duration_secs = 5, max_count = 250, num_warmup_runs = 50
   {
       %ch_out = "eigen.conv2d.grad.filter.f32"(%out_grad, %in, %filter_grad, %ch2)
        { padding = "same",  strides = [2 : i64, 2 : i64] }
        : (!t.tensor, !t.tensor, !t.tensor,
-          !hex.chain) -> !hex.chain
+          !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradFilter_in_8x28x28x256_f_2x2x256_s2x2_SAME'
 func @BM_Conv2DGradFilter_in_8x28x28x256_f_2x2x256_s2x2_SAME() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // in: [8, 28, 28, 256].
   %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -128,17 +128,17 @@ func @BM_Conv2DGradFilter_in_8x28x28x256_f_2x2x256_s2x2_SAME() {
       %in          : !t.tensor,
       %out_grad    : !t.tensor,
       %filter_grad : !t.tensor,
-      %ch2         : !hex.chain
+      %ch2         : !tfrt.chain
   )
   duration_secs = 5, max_count = 250, num_warmup_runs = 50
   {
       %ch_out = "eigen.conv2d.grad.filter.f32"(%out_grad, %in, %filter_grad, %ch2)
        { padding = "same",  strides = [2 : i64, 2 : i64] }
        : (!t.tensor, !t.tensor, !t.tensor,
-          !hex.chain) -> !hex.chain
+          !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }

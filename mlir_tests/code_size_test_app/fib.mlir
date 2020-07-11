@@ -16,49 +16,49 @@
 
 // CHECK-LABEL: --- Not running 'fib' because it has arguments
 func @fib(%arg: i32) -> i32 {
-  %one = hex.constant.i32 1
-  %cond = "hex.lessequal.i32"(%arg, %one) : (i32, i32) -> (i1)
-  %res = hex.if %cond, %arg : (i32) -> i32 {
-    hex.return %arg : i32
+  %one = tfrt.constant.i32 1
+  %cond = "tfrt.lessequal.i32"(%arg, %one) : (i32, i32) -> (i1)
+  %res = tfrt.if %cond, %arg : (i32) -> i32 {
+    tfrt.return %arg : i32
   } else {
-    %min_one = hex.constant.i32 -1
-    %n_min_one = hex.add.i32 %arg, %min_one
-    %n_min_two = hex.add.i32 %n_min_one, %min_one
-    %fib_n_min_one = hex.call @fib(%n_min_one) : (i32) -> (i32)
-    %fib_n_min_two = hex.call @fib(%n_min_two) : (i32) -> (i32)
-    %sum = hex.add.i32 %fib_n_min_one, %fib_n_min_two
-    hex.return %sum : i32
+    %min_one = tfrt.constant.i32 -1
+    %n_min_one = tfrt.add.i32 %arg, %min_one
+    %n_min_two = tfrt.add.i32 %n_min_one, %min_one
+    %fib_n_min_one = tfrt.call @fib(%n_min_one) : (i32) -> (i32)
+    %fib_n_min_two = tfrt.call @fib(%n_min_two) : (i32) -> (i32)
+    %sum = tfrt.add.i32 %fib_n_min_one, %fib_n_min_two
+    tfrt.return %sum : i32
   }
 
-  hex.return %res : i32
+  tfrt.return %res : i32
 }
 
 // CHECK-LABEL: --- Running 'fib_driver'
 func @fib_driver() {
-  %zero = hex.constant.i32 0
-  %fib0 = hex.call @fib(%zero) : (i32) -> (i32)
+  %zero = tfrt.constant.i32 0
+  %fib0 = tfrt.call @fib(%zero) : (i32) -> (i32)
 
-  %four = hex.constant.i32 4
-  %fib4 = hex.call @fib(%four) : (i32) -> (i32)
+  %four = tfrt.constant.i32 4
+  %fib4 = tfrt.call @fib(%four) : (i32) -> (i32)
 
-  %eight = hex.constant.i32 8
-  %fib8 = hex.call @fib(%eight) : (i32) -> (i32)
+  %eight = tfrt.constant.i32 8
+  %fib8 = tfrt.call @fib(%eight) : (i32) -> (i32)
 
-  %sixteen = hex.constant.i32 16
-  %fib16 = hex.call @fib(%sixteen) : (i32) -> (i32)
+  %sixteen = tfrt.constant.i32 16
+  %fib16 = tfrt.call @fib(%sixteen) : (i32) -> (i32)
 
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
   // CHECK: int32 = 0
-  %ch1= hex.print.i32 %fib0, %ch0
+  %ch1= tfrt.print.i32 %fib0, %ch0
 
   // CHECK: int32 = 3
-  %ch2= hex.print.i32 %fib4, %ch1
+  %ch2= tfrt.print.i32 %fib4, %ch1
 
   // CHECK: int32 = 21
-  %ch3= hex.print.i32 %fib8, %ch2
+  %ch3= tfrt.print.i32 %fib8, %ch2
 
   // CHECK: int32 = 987
-  %ch4= hex.print.i32 %fib16, %ch3
+  %ch4= tfrt.print.i32 %fib16, %ch3
 
-  hex.return
+  tfrt.return
 }

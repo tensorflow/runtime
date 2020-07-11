@@ -16,10 +16,10 @@
 
 // CHECK-LABEL: --- Running 'BM_MatMul_512x512x512_f32'
 func @BM_MatMul_512x512x512_f32() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // Shape: [512, 512].
   %a = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
@@ -31,7 +31,7 @@ func @BM_MatMul_512x512x512_f32() {
 
   // Shape: [512, 512].
   %c = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
-  %ch3 = hex.merge.chains %ch1, %ch2
+  %ch3 = tfrt.merge.chains %ch1, %ch2
 
   tfrt_test.benchmark "BM_MatMul_512x512x512_f32"(
       %zero : f32,
@@ -39,25 +39,25 @@ func @BM_MatMul_512x512x512_f32() {
       %a : !t.tensor,
       %b : !t.tensor,
       %c : !t.tensor,
-      %ch3 : !hex.chain)
+      %ch3 : !tfrt.chain)
   duration_secs = 5, max_count = 1000, num_warmup_runs = 50
   {
       %ch_out = "eigen.matmul.f32"(%one, %a, %b, %zero, %c, %ch3)
        : (f32, !t.tensor, !t.tensor, f32,
-          !t.tensor, !hex.chain) -> !hex.chain
+          !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'BM_MatMul_1024x1024x1024_f32'
 func @BM_MatMul_1024x1024x1024_f32() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // Shape: [1024, 1024].
   %a = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
@@ -69,7 +69,7 @@ func @BM_MatMul_1024x1024x1024_f32() {
 
   // Shape: [1024, 1024].
   %c = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
-  %ch3 = hex.merge.chains %ch1, %ch2
+  %ch3 = tfrt.merge.chains %ch1, %ch2
 
   tfrt_test.benchmark "BM_MatMul_1024x1024x1024_f32"(
       %zero : f32,
@@ -77,15 +77,15 @@ func @BM_MatMul_1024x1024x1024_f32() {
       %a : !t.tensor,
       %b : !t.tensor,
       %c : !t.tensor,
-      %ch3 : !hex.chain)
+      %ch3 : !tfrt.chain)
   duration_secs = 5, max_count = 1000, num_warmup_runs = 50
   {
       %ch_out = "eigen.matmul.f32"(%one, %a, %b, %zero, %c, %ch3)
        : (f32, !t.tensor, !t.tensor, f32,
-          !t.tensor, !hex.chain) -> !hex.chain
+          !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }

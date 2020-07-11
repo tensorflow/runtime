@@ -25,18 +25,18 @@ func @BM_corert.matmul() {
   // CHECK: BM:BM_corert.matmul:Time 99%(us):
 
   // Prepare input.
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
 
 
-  tfrt_test.benchmark "BM_corert.matmul"(%cpu : !corert.device, %a_handle : !corert.tensorhandle, %ch0 : !hex.chain) duration_secs = 1, max_count = 1000
+  tfrt_test.benchmark "BM_corert.matmul"(%cpu : !corert.device, %a_handle : !corert.tensorhandle, %ch0 : !tfrt.chain) duration_secs = 1, max_count = 1000
   {
     %result = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %a_handle)
     {transpose_a = false, transpose_b = false}: 1
-    hex.return %result : !corert.tensorhandle
+    tfrt.return %result : !corert.tensorhandle
   }
 
-  hex.return
+  tfrt.return
 }

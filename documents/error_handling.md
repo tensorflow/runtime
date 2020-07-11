@@ -13,7 +13,7 @@ Synchronous kernels typically return `llvm::Expected<T>` to report an error, for
 example:
 
 ```c++
-static llvm::Expected<int32_t> HexTestFail() {
+static llvm::Expected<int32_t> TFRTTestFail() {
   // Returns an error.
   return MakeStringError("something bad happened");
 }
@@ -25,7 +25,7 @@ Kernels may return a mix of error values and non-error values with
 `KernelFrame::ReportError`:
 
 ```c++
-static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
+static void TFRTTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
                                KernelFrame* frame) {
   one.Emplace(1);
   // Only sets error_out to an error AsyncValue. `one` is untouched.
@@ -41,7 +41,7 @@ returning a mix of valid values and error values.
 to error state:
 
 ```c++
-static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
+static void TFRTTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
                                KernelFrame* frame) {
   one.Emplace(1);
   error_out.Allocate();
@@ -51,7 +51,7 @@ static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
 }
 ```
 
-These two `HexTestPartialFail` implementations are equivalent: both return two
+These two `TFRTTestPartialFail` implementations are equivalent: both return two
 values: `1` and an `AsyncValue` with error.
 
 Note that `ReportError` can only report an error when there are unset results or
@@ -59,7 +59,7 @@ unavailable concrete results. For example this kernel will trigger an assertion
 failure:
 
 ```c++ {.bad}
-static void HexNoErrorReported(Result<int32_t> out, KernelFrame* frame)
+static void TFRTNoErrorReported(Result<int32_t> out, KernelFrame* frame)
 {
   out.Emplace(1);
   // No unset results or unavailable concrete results at this point. ReportError
@@ -103,27 +103,27 @@ errors to all of the kernel's results. This lets the executor quickly skip the
 parts of the dataflow graph that are invalidated by errors. Example:
 
 ```c++
-func @test_partial_fail() -> !hex.chain {
+func @test_partial_fail() -> !tfrt.chain {
   // Sets %x to 1 and %y to an error.
   %x, %y = "tfrt_test.partial_fail"() : () -> (i32, i32)
 
-  %ch0 = hex.new.chain
-  // This hex.print will run.
-  hex.print.i32 %x, %ch0
-  // This hex.print won't run. The executor propagates the error in %y to %ch1.
-  %ch1 = hex.print.i32 %y, %ch0
+  %ch0 = tfrt.new.chain
+  // This tfrt.print will run.
+  tfrt.print.i32 %x, %ch0
+  // This tfrt.print won't run. The executor propagates the error in %y to %ch1.
+  %ch1 = tfrt.print.i32 %y, %ch0
 
   // Returns an error.
-  hex.return %ch1 : !hex.chain
+  tfrt.return %ch1 : !tfrt.chain
 }
 ```
 
-In this example, we call the `HexTestPartialFail` kernel we defined earlier. The
-results are bound to `%x` and `%y`. The first print runs as usual, because all
-its arguments are valid. But the executor does not run the second print, because
-`%y` is an `AsyncValue` with error. Instead, the executor automatically
+In this example, we call the `TFRTTestPartialFail` kernel we defined earlier.
+The results are bound to `%x` and `%y`. The first print runs as usual, because
+all its arguments are valid. But the executor does not run the second print,
+because `%y` is an `AsyncValue` with error. Instead, the executor automatically
 propagates the error in `%y` to `%ch1`, and so this function returns an error
-instead of a `!hex.chain`.
+instead of a `!tfrt.chain`.
 
 Errors are just values that prevent execution of downstream kernels. Unused
 errors behave like any other unused value: they're completely ignored by the
@@ -133,8 +133,8 @@ executor. This function returns 1, even though it internally generated an unused
 ```c++
 func @test_ignore_error() -> i32 {
   %unused = "tfrt_test.fail"() : () -> i32
-  %x = hex.constant.i32 1
-  hex.return %x : i32
+  %x = tfrt.constant.i32 1
+  tfrt.return %x : i32
 }
 ```
 
@@ -155,7 +155,7 @@ the executor skip all remaining kernel invocations.
 to implementors of potentially long-running kernels to periodically check
 `RequestContext::GetCancelAsyncValue` or `RequestContext::IsCancelled` and
 return early when the cancellation is detected. For example,
-[`HexRepeatI32`](https://github.com/tensorflow/runtime/blob/master/lib/basic_kernels/control_flow_kernels.cc)
+[`TFRTRepeatI32`](https://github.com/tensorflow/runtime/blob/master/lib/basic_kernels/control_flow_kernels.cc)
 checks `CancelAsyncValue` once per loop iteration.
 
 ## Managing Resource Lifetimes In The Presence Of Errors

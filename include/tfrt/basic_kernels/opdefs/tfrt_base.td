@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- hex_base.td --------------------------------------------------------===//
+//===- tfrt_base.td -------------------------------------------------------===//
 //
-// This file defines Hex dialect and its types.
+// This file defines TFRT dialect and its types.
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef HEX_BASE
+#ifdef TFRT_BASE
 #else
-#define HEX_BASE
+#define TFRT_BASE
 
 include "mlir/IR/OpBase.td"
 
-// "hex" Host Executor dialect.
-def Hex_Dialect : Dialect {
-  let name = "hex";
+// Host Executor dialect.
+def TFRT_Dialect : Dialect {
+  let name = "tfrt";
 
   let description = [{
     The Host Executor dialect.
@@ -34,11 +34,11 @@ def Hex_Dialect : Dialect {
     This dialect contains common host operations.
   }];
 
-  let cppNamespace = "hex";
+  let cppNamespace = "tfrt";
 }
 
-def Hex_ChainType :
-    Type<CPred<"$_self.isa<tfrt::hex::ChainType>()">, "!hex.chain type">,
-    BuildableType<"$_builder.getType<tfrt::hex::ChainType>()">;
+def TFRT_ChainType :
+    Type<CPred<"$_self.isa<tfrt::ChainType>()">, "!tfrt.chain type">,
+    BuildableType<"$_builder.getType<tfrt::ChainType>()">;
 
-#endif  // HEX_BASE
+#endif  // TFRT_BASE

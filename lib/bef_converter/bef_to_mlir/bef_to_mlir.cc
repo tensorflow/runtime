@@ -995,7 +995,7 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
   func_op.getBody().takeBody(*region);
 
   if (bef_function.IsSyncFunction()) {
-    func_op.setAttr("hex.sync", mlir::UnitAttr::get(&context_));
+    func_op.setAttr("tfrt.sync", mlir::UnitAttr::get(&context_));
   }
   return func_op;
 }
@@ -1006,7 +1006,7 @@ mlir::FuncOp BEFToMLIRConverter::CreateNativeFuncOp(
   auto type = mlir::FunctionType::get(bef_function.argument_types,
                                       bef_function.result_types, &context_);
   auto func_op = mlir::FuncOp::create(location, bef_function.name, type);
-  func_op.setAttr("hex.native", mlir::UnitAttr::get(&context_));
+  func_op.setAttr("tfrt.native", mlir::UnitAttr::get(&context_));
   return func_op;
 }
 
@@ -1391,7 +1391,7 @@ mlir::LogicalResult BEFFunctionReader::ReadKernels(ArrayRef<uint32_t> kernels,
   // All functions end with a return op.
   mlir::OperationState return_op_state(
       // use enclosing function's location as return op's location.
-      location_, "hex.return");
+      location_, "tfrt.return");
 
   // Add function's result regs as ReturnOp's operands.
   for (auto result_reg_index : result_regs_) {

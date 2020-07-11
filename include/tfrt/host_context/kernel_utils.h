@@ -77,8 +77,8 @@ AsyncValueRef<T> ForwardValue(T& value, AsyncValueRef<Chain> chain,
 // All kernels defined with TFRT_KERNEL accept an implicit Chain as their last
 // argument. For example, the Add kernels above could be called like this:
 //
-//   %c0 = hex.new.chain
-//   %z = "Add"(%x, %y, %c0) : (i32, i32, !hex.chain) -> i32
+//   %c0 = tfrt.new.chain
+//   %z = "Add"(%x, %y, %c0) : (i32, i32, !tfrt.chain) -> i32
 //
 // For kernels with multiple results, you can return std::pair/tuple as the
 // result type:
@@ -210,7 +210,7 @@ class ArgumentView {
 // all other Arguments.
 //
 // This should only be used when argument types are unknown, for example
-// HexCall.
+// TFRTCall.
 class RemainingArguments {
  public:
   explicit RemainingArguments(ArrayRef<AsyncValue*> remaining_arguments)
@@ -328,7 +328,7 @@ class Result {
 // can be at most one RemainingResults, and it must appear after all other
 // Results.
 //
-// This should only be used when result types are unknown, for example HexCall.
+// This should only be used when result types are unknown, for example TFRTCall.
 class RemainingResults {
  public:
   RemainingResults(HostContext* host,

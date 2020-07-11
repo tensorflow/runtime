@@ -15,8 +15,8 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Running 'cast_f16'
-func @cast_f16() -> !hex.chain {
-  %ch0 = hex.new.chain
+func @cast_f16() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
   // Create tensor whose shape is represented using RepKind::kRep32.
@@ -30,13 +30,13 @@ func @cast_f16() -> !hex.chain {
     "tfrt_test.relu"(%half_handle) : 1
 
   // CHECK: shape = [1, 1], values = [Does not support printing fp16.]
-  %ch1 = "corert.print_tensorhandle"(%half_result, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch1 = "corert.print_tensorhandle"(%half_result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   %float_result = corert.executeop(%cpu)
     "tfrt_test.cast"(%half_result) { type = "f32" } : 1
 
   // CHECK: shape = [1, 1], values = [0.000000e+00]
-  %ch2 = "corert.print_tensorhandle"(%float_result, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch2 = "corert.print_tensorhandle"(%float_result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  hex.return %ch2 : !hex.chain
+  tfrt.return %ch2 : !tfrt.chain
 }

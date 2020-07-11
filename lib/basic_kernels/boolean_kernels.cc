@@ -25,17 +25,17 @@ namespace tfrt {
 namespace {
 
 //===----------------------------------------------------------------------===//
-// hex boolean constant kernels
+// tfrt boolean constant kernels
 //===----------------------------------------------------------------------===//
 
 // In TFRT, bool attributes are 1-byte. But sizeof(bool) is not necessarily one
 // byte.
-bool HexConstantI1(Attribute<int8_t> arg) { return arg.get() != 0; }
+bool TFRTConstantI1(Attribute<int8_t> arg) { return arg.get() != 0; }
 
 //===----------------------------------------------------------------------===//
-// hex boolean and kernels
+// tfrt boolean and kernels
 //===----------------------------------------------------------------------===//
-bool HexAnd(bool arg0, bool arg1) { return arg0 && arg1; }
+bool TFRTAnd(bool arg0, bool arg1) { return arg0 && arg1; }
 
 }  // namespace
 
@@ -44,9 +44,9 @@ bool HexAnd(bool arg0, bool arg1) { return arg0 && arg1; }
 //===----------------------------------------------------------------------===//
 
 void RegisterBooleanKernels(KernelRegistry* registry) {
-  registry->AddKernel("hex.constant.i1", TFRT_KERNEL(HexConstantI1));
+  registry->AddKernel("tfrt.constant.i1", TFRT_KERNEL(TFRTConstantI1));
 
-  registry->AddKernel("hex.and.i1", TFRT_KERNEL(HexAnd));
+  registry->AddKernel("tfrt.and.i1", TFRT_KERNEL(TFRTAnd));
 }
 
 }  // namespace tfrt

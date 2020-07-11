@@ -159,14 +159,14 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
 
   let arguments = (ins
     CoreRT_DeviceType:$device,
-    Hex_ChainType:$in_op_chain,
+    TFRT_ChainType:$in_op_chain,
     Variadic<CoreRT_TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
     StrAttr:$op_name
   );
 
   let results = (outs
-    Hex_ChainType:$out_op_chain,
+    TFRT_ChainType:$out_op_chain,
     Variadic<CoreRT_TensorHandleType>:$results
   );
 }
@@ -177,12 +177,12 @@ def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler"> {
     GetOpHandler returns a registered device, which can be used by ExecuteOp.
 
     Example:
-      %ch0 = hex.new.chain
+      %ch0 = tfrt.new.chain
       %cpu = corert.get_op_handler %ch0 "cpu"
   }];
 
   let arguments = (ins
-    Hex_ChainType:$in_op_chain,
+    TFRT_ChainType:$in_op_chain,
     StrAttr:$device_name
   );
   let results = (outs
@@ -206,7 +206,7 @@ def CoreRT_RegisterOpHandlerChainOp : CoreRT_Op<"register_op_handler_chain"> {
     CoreRT_DeviceType:$device,
     StrAttr:$device_name
   );
-  let results = (outs Hex_ChainType:$out_op_chain);
+  let results = (outs TFRT_ChainType:$out_op_chain);
   let assemblyFormat = "$device $device_name attr-dict";
   let verifier = ?;
 }

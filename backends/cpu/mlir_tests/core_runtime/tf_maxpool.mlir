@@ -15,8 +15,8 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'maxpool_valid_padding'
-func @maxpool_valid_padding() -> !hex.chain {
-  %ch_epoch = hex.new.chain
+func @maxpool_valid_padding() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %cpu_handle_input = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
@@ -27,12 +27,12 @@ func @maxpool_valid_padding() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 1, 1], values = [8.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }
 
 // CHECK: --- Running 'maxpool_same_padding'
-func @maxpool_same_padding() -> !hex.chain {
-  %ch_epoch = hex.new.chain
+func @maxpool_same_padding() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %maxpool_in_th = corert.executeop(%cpu) "tf.Const"()
@@ -42,5 +42,5 @@ func @maxpool_same_padding() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [1, 2, 2, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }

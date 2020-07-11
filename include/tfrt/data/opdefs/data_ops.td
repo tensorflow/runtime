@@ -38,8 +38,10 @@ def Data_Dialect : Dialect {
 }
 
 // Type definition.
-def DatasetType: OpaqueType<"hex", "dataset", "!hex.dataset type">;
-def IteratorType: OpaqueType<"hex", "iterator", "!hex.iterator type">;
+//
+// TODO(tfrt-dev): Define these types properly.
+def DatasetType: OpaqueType<"tfrt", "dataset", "!tfrt.dataset type">;
+def IteratorType: OpaqueType<"tfrt", "iterator", "!tfrt.iterator type">;
 
 // Base class for Data dialect ops.
 class Data_Op<string mnemonic, list<OpTrait> traits = []> :
@@ -78,7 +80,7 @@ def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
       %chain_out, %value = data.iterator_get_next (%iterator, %chain_in) : !t.tensor
   }];
 
-  let arguments = (ins IteratorType:$iterator, Hex_ChainType:$chain_in);
+  let arguments = (ins IteratorType:$iterator, TFRT_ChainType:$chain_in);
   let results = (outs Variadic<AnyType>:$results);
 }
 
@@ -120,7 +122,7 @@ class BatchDatasetOp<string suffix>
 
     Example:
       %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
-      %batch_size = hex.constant.i64 32
+      %batch_size = tfrt.constant.i64 32
       %dataset2 = data.batch_dataset.i32 %dataset1, %batch_size
         { same_input_metadata = 1 : i1 }
   }];
@@ -230,7 +232,7 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
     Example:
       %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
       %dataset2 = data.map_dataset %dataset1 {function = @times_two}
-      %prefetch_num = hex.constant.i64 8
+      %prefetch_num = tfrt.constant.i64 8
       %dataset3 = data.prefetch_dataset %dataset2, %prefetch_num
   }];
 
@@ -274,7 +276,7 @@ def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
 
     Example:
       %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
-      %count = hex.constant.i64 8
+      %count = tfrt.constant.i64 8
       %dataset2 = data.repeat_dataset %dataset1, %count
   }];
 

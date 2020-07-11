@@ -15,8 +15,8 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'fused_batch_norm_v3'
-func @fused_batch_norm_v3() -> !hex.chain {
-  %ch_epoch = hex.new.chain
+func @fused_batch_norm_v3() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   // Test tf.FusedBatchNormV3.
@@ -35,5 +35,5 @@ func @fused_batch_norm_v3() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [1, 2, 2, 1], values = [1.000000e+00, -1.000000e+00, -1.000000e+00, 1.000000e+00]
   %ch_print = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%res#0) : 0
-  hex.return %ch_print : !hex.chain
+  tfrt.return %ch_print : !tfrt.chain
 }

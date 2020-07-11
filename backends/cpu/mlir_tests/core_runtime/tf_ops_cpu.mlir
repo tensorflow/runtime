@@ -15,8 +15,8 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'const_f32'
-func @const_f32() -> !hex.chain {
-  %ch0 = hex.new.chain
+func @const_f32() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
   %cpu_handle_result = corert.executeop(%cpu)
@@ -24,5 +24,5 @@ func @const_f32() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [5], values = [-1.000000e+00, -5.000000e-01, 0.000000e+00, 5.000000e-01, 1.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%cpu_handle_result) : 0
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }

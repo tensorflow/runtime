@@ -15,7 +15,7 @@
 // RUN: tfrt_translate -mlir-to-bef -split-input-file -verify-diagnostics %s
 
 func @function_arg() -> i32 {
-  // expected-error @+1 {{all functions need to have a hex.return}}
+  // expected-error @+1 {{all functions need to have a tfrt.return}}
   %x = "someop"() : () -> i32
 }
 
@@ -27,19 +27,19 @@ func @external_func() -> i32
 // -----
 
 func @caller() {
-  %c1 = hex.constant.i32 1
+  %c1 = tfrt.constant.i32 1
   // expected-error @+1 {{function @missing_callee not defined}}
   "unregistered.call"(%c1) { name = @missing_callee } : (i32) -> ()
-  hex.return
+  tfrt.return
 }
 
 // -----
 
 func @caller() {
-  %c1 = hex.constant.i32 1
+  %c1 = tfrt.constant.i32 1
   // expected-error @+1 {{'missing_callee' does not reference a valid function}}
-  hex.call @missing_callee(%c1) : (i32) -> ()
-  hex.return
+  tfrt.call @missing_callee(%c1) : (i32) -> ()
+  tfrt.return
 }
 
 // -----
@@ -47,5 +47,5 @@ func @caller() {
 func @caller() {
   // expected-error @+1 {{BEF files cannot encode the 'type' attribute}}
   "someop"() { type = tensor<1xf32>} : () -> i32
-  hex.return
+  tfrt.return
 }

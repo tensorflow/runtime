@@ -334,7 +334,7 @@ tfrt_cc_library(
 filegroup(
     name = "OpBaseTdFiles",
     srcs = [
-        "include/tfrt/basic_kernels/opdefs/hex_base.td",
+        "include/tfrt/basic_kernels/opdefs/tfrt_base.td",
         "include/tfrt/tensor/opdefs/tensor_shape_base.td",
         "include/tfrt/tfrt_op_base.td",
         "@llvm-project//mlir:include/mlir/IR/OpBase.td",
@@ -346,7 +346,7 @@ filegroup(
 exports_files(
     [
         "include/tfrt/tfrt_op_base.td",
-        "include/tfrt/basic_kernels/opdefs/hex_base.td",
+        "include/tfrt/basic_kernels/opdefs/tfrt_base.td",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
         "include/tfrt/core_runtime/opdefs/corert_base.td",
     ],
@@ -378,11 +378,11 @@ tfrt_cc_library(
     name = "basic_kernels_opdefs",
     srcs = [
         "lib/basic_kernels/opdefs/basic_kernels.cc",
-        "lib/basic_kernels/opdefs/hex_base.cc",
+        "lib/basic_kernels/opdefs/tfrt_base.cc",
     ],
     hdrs = [
         "include/tfrt/basic_kernels/opdefs/basic_kernels.h",
-        "include/tfrt/basic_kernels/opdefs/hex_base.h",
+        "include/tfrt/basic_kernels/opdefs/tfrt_base.h",
         "include/tfrt/basic_kernels/opdefs/types.h",
     ],
     alwayslink_static_registration_src = "lib/basic_kernels/opdefs/static_registration.cc",

@@ -16,7 +16,7 @@
 
 // CHECK-LABEL: --- Running 'test_softmax_f32'
 func @test_softmax_f32() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %t1 = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 2 : i64] }
@@ -24,24 +24,24 @@ func @test_softmax_f32() {
 
   %ch1 = "tfrt_dht.set_tensor_with_constant_values.f32"(%t1, %ch0)
     { values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32] }
-    : (!t.tensor, !hex.chain) -> !hex.chain
+    : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
   %t2 = "tfrt_dht.create_uninitialized_tensor.f32.2"()
     { shape = [2 : i64, 2 : i64] }
     : () -> !t.tensor
 
   %ch2 = "eigen.softmax.f32"(%t1, %t2, %ch1) { log = false }
-    : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
+    : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
   // CHECK-SAME: [2.689414e-01, 7.310586e-01, 2.689414e-01, 7.310586e-01]
   tfrt_dht.print_tensor %t2, %ch2
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'test_log_softmax_f32'
 func @test_log_softmax_f32() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %t1 = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [2 : i64, 2 : i64] }
@@ -49,17 +49,17 @@ func @test_log_softmax_f32() {
 
   %ch1 = "tfrt_dht.set_tensor_with_constant_values.f32"(%t1, %ch0)
     { values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32] }
-    : (!t.tensor, !hex.chain) -> !hex.chain
+    : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
   %t2 = "tfrt_dht.create_uninitialized_tensor.f32.2"()
     { shape = [2 : i64, 2 : i64] }
     : () -> !t.tensor
 
   %ch2 = "eigen.softmax.f32"(%t1, %t2, %ch1) { log = true }
-    : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
+    : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
   // CHECK-SAME: [-1.313262e+00, -3.132617e-01, -1.313262e+00, -3.132617e-01]
   tfrt_dht.print_tensor %t2, %ch2
-  hex.return
+  tfrt.return
 }

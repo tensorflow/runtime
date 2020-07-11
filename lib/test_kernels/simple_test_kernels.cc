@@ -31,13 +31,13 @@
 namespace tfrt {
 
 // This kernel produces an error.
-static llvm::Expected<int32_t> HexTestFail() {
+static llvm::Expected<int32_t> TestFail() {
   return MakeStringError("something bad happened");
 }
 
 // This kernel produces a normal output and an error output.
-static void HexTestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
-                               KernelFrame* frame) {
+static void TestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
+                            KernelFrame* frame) {
   one.Emplace(1);
   frame->ReportError("something bad happened");
 }
@@ -53,9 +53,9 @@ static void TestReportErrorAsync(Result<int32_t> out,
 }
 
 // This kernel cancels execution.
-static void HexTestCancel(Argument<Chain> chain_in, Result<int> int_out,
-                          Result<Chain> chain_out,
-                          const ExecutionContext& exec_ctx) {
+static void TestCancel(Argument<Chain> chain_in, Result<int> int_out,
+                       Result<Chain> chain_out,
+                       const ExecutionContext& exec_ctx) {
   // Calling RequestContext::Cancel() for testing the cancel behavior.
   // Do NOT do this in a normal kernel. RequestContext::Cancel() should be
   // called by a client external to the BEFExecutor.
@@ -67,9 +67,9 @@ static void HexTestCancel(Argument<Chain> chain_in, Result<int> int_out,
 // This kernel expects a nested array attribute in the form:
 //  [["string", [0 : i32, 1 : i32]], [1.0 : f32]]
 // , and return a result for each leaf value.
-static void HexTestFlat(Result<std::string> str_out, Result<int32_t> int_out_0,
-                        Result<int32_t> int_out_1, Result<float> float_out,
-                        AggregateAttr array) {
+static void TestFlat(Result<std::string> str_out, Result<int32_t> int_out_0,
+                     Result<int32_t> int_out_1, Result<float> float_out,
+                     AggregateAttr array) {
   auto a0 = array.GetAttributeOfType<AggregateAttr>(0);
   str_out.Emplace(a0.GetAttributeOfType<StringAttr>(0).GetValue().str());
 
@@ -82,7 +82,7 @@ static void HexTestFlat(Result<std::string> str_out, Result<int32_t> int_out_0,
 }
 
 // A resource whose lifetime is explicitly managed by
-// HexTest{Allocate,Deallocate}Resource.
+// Test{Allocate,Deallocate}Resource.
 class TestResource {
  public:
   TestResource() {
@@ -106,7 +106,7 @@ class TestResource {
 // the unique_ptr. The unique_ptr also lets the executor automatically destroy
 // the resource if the Deallocate kernel never runs - that can happen if an
 // error occurs, or if execution is canceled.
-static void HexTestAllocateResource(
+static void TestAllocateResource(
     Argument<Chain> chain_in,
     Result<std::unique_ptr<TestResource>> resource_out,
     Result<Chain> chain_out) {
@@ -114,7 +114,7 @@ static void HexTestAllocateResource(
   chain_out.Set(chain_in);
 }
 
-static void HexTestDeallocateResource(
+static void TestDeallocateResource(
     Argument<std::unique_ptr<TestResource>> resource_in,
     Argument<Chain> chain_in, Result<Chain> chain_out) {
   resource_in->reset();
@@ -149,7 +149,7 @@ struct TestFinalClass final {
 };
 }  // namespace
 
-static std::string HexTestAsyncValueGet(const ExecutionContext& exec_ctx) {
+static std::string TestAsyncValueGet(const ExecutionContext& exec_ctx) {
   std::string return_value;
   llvm::raw_string_ostream sstr(return_value);
   HostContext* host = exec_ctx.host();
@@ -189,7 +189,7 @@ static std::string AsyncValueRefToString(const AsyncValueRef<int>& ref) {
   return sstr.str();
 }
 
-static std::string HexTestAsyncValueRef(const ExecutionContext& exec_ctx) {
+static std::string TestAsyncValueRef(const ExecutionContext& exec_ctx) {
   //////////////////////////////////////////////////////////////////////
   // Sync usage.
 
@@ -237,7 +237,7 @@ static std::string HexTestAsyncValueRef(const ExecutionContext& exec_ctx) {
   return sstr.str();
 }
 
-static Chain HexTestLogging(Argument<std::string> arg) {
+static Chain TestLogging(Argument<std::string> arg) {
   TFRT_LOG(INFO) << "from TFRT_LOG(INFO): " << *arg;
   TFRT_LOG(WARNING) << "from TFRT_LOG(WARNING): " << *arg;
   TFRT_LOG(ERROR) << "from TFRT_LOG(ERROR): " << *arg;
@@ -294,20 +294,19 @@ static DenseHostTensor TestConstDenseAttr(DenseAttr dense_attr,
 }
 
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
-  registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(HexTestFail));
-  registry->AddKernel("tfrt_test.partial_fail",
-                      TFRT_KERNEL(HexTestPartialFail));
-  registry->AddKernel("tfrt_test.cancel", TFRT_KERNEL(HexTestCancel));
-  registry->AddKernel("tfrt_test.flat", TFRT_KERNEL(HexTestFlat));
+  registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
+  registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
+  registry->AddKernel("tfrt_test.cancel", TFRT_KERNEL(TestCancel));
+  registry->AddKernel("tfrt_test.flat", TFRT_KERNEL(TestFlat));
   registry->AddKernel("tfrt_test.async_value_get",
-                      TFRT_KERNEL(HexTestAsyncValueGet));
+                      TFRT_KERNEL(TestAsyncValueGet));
   registry->AddKernel("tfrt_test.async_value_ref",
-                      TFRT_KERNEL(HexTestAsyncValueRef));
-  registry->AddKernel("tfrt_test.logging", TFRT_KERNEL(HexTestLogging));
+                      TFRT_KERNEL(TestAsyncValueRef));
+  registry->AddKernel("tfrt_test.logging", TFRT_KERNEL(TestLogging));
   registry->AddKernel("tfrt_test.allocate_resource",
-                      TFRT_KERNEL(HexTestAllocateResource));
+                      TFRT_KERNEL(TestAllocateResource));
   registry->AddKernel("tfrt_test.deallocate_resource",
-                      TFRT_KERNEL(HexTestDeallocateResource));
+                      TFRT_KERNEL(TestDeallocateResource));
   registry->AddKernel("tfrt_test.use_sample_shared_context",
                       TFRT_KERNEL(TestUseSampleSharedContext));
   registry->AddKernel("tfrt_test.report_error_async",

@@ -17,6 +17,6 @@
 // CHECK: --- Running 'test_leak_one_int32'
 func @test_leak_one_int32() -> () {
   "tfrt_test.memory_leak_one_int32"() : () -> ()
-  hex.return
+  tfrt.return
 }
 // CHECK: Memory leak detected: 1 alive allocations, 4 alive bytes

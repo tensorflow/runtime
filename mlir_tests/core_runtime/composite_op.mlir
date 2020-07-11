@@ -14,17 +14,17 @@
 
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices='cpu' | FileCheck %s --dump-input=fail
 
-func @matmul_fn(%ch: !hex.chain, %arg : !corert.tensorhandle) -> (!hex.chain, !corert.tensorhandle) {
+func @matmul_fn(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch "cpu"
   %t1 = corert.executeop(%cpu) "tfrt_test.matmul"(%arg, %arg)
     {transpose_a = false, transpose_b = false}: 1
-  hex.return %ch, %t1 : !hex.chain, !corert.tensorhandle
+  tfrt.return %ch, %t1 : !tfrt.chain, !corert.tensorhandle
 }
 
 // CHECK-LABEL: --- Running 'corert.simple_composite_op'
-func @corert.simple_composite_op() -> !hex.chain {
+func @corert.simple_composite_op() -> !tfrt.chain {
   // Prepare input.
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
   %a_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
@@ -34,13 +34,13 @@ func @corert.simple_composite_op() -> !hex.chain {
   %result = "corert.execute_crt_op" (%matmul_fn_op, %a_handle) {op_attrs =[]} : (!corert.op, !corert.tensorhandle) -> !corert.tensorhandle
 
   // CHECK: shape = [1, 1], values = [4.000000e+00]
-  %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   %result1 = corert.executeop(%cpu) "tfrt_test.matmul"(%result, %result)
     {transpose_a = false, transpose_b = false}: 1
 
   // CHECK: shape = [1, 1], values = [1.600000e+01]
-  %ch2 = "corert.print_tensorhandle"(%result1, %ch1) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch2 = "corert.print_tensorhandle"(%result1, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  hex.return %ch2 : !hex.chain
+  tfrt.return %ch2 : !tfrt.chain
 }

@@ -258,8 +258,8 @@ knows the return type, so most kernels construct and return a new
 `ConcreteAsyncValue` via `HostContext::MakeAvailableAsyncValueRef`.
 
 Some kernels do not know their return types when they return. Examples include
-non-strict control flow kernels like `hex.if` and `hex.repeat`. When the return
-types are unknown, these kernels return `IndirectAsyncValue` via
+non-strict control flow kernels like `tfrt.if` and `tfrt.repeat`. When the
+return types are unknown, these kernels return `IndirectAsyncValue` via
 `HostContext::MakeIndirectAsyncValue()`.
 
 #### Returning a result from an asynchronous BEF function may require an `IndirectAsyncValue`
@@ -285,17 +285,17 @@ return values. Example:
 ```c++
 func @indirect_async_return(%c1: i32) -> i32 {
   // %c1 is an available ConcreteAsyncValue.
-  %c1 = hex.constant.i32 1
+  %c1 = tfrt.constant.i32 1
 
   // %v2 is an unavailable ConcreteAsyncValue (not an IndirectAsyncValue!).
-  %v2 = "hex.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
+  %v2 = "tfrt.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
 
   // %v3 is empty: this async_add can't run because %v2 is not available.
-  %v3 = "hex.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
+  %v3 = "tfrt.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
 
   // Executor creates an unavailable IndirectAsyncValue for %v3 because it must
   // return an AsyncValue to indirect_async_return's caller.
-  hex.return %v3 : i32
+  tfrt.return %v3 : i32
 }
 ```
 
@@ -318,25 +318,25 @@ non-strict function. When the kernel's arguments become available, these
 
 ```c++
 func @return_first_arg(%x: i32, %y: i32) -> i32 {
-  hex.return %x : i32
+  tfrt.return %x : i32
 }
 
 func @indirect_async_arg() {
   // %c1 is an available ConcreteAsyncValue.
-  %c1 = hex.constant.i32 1
+  %c1 = tfrt.constant.i32 1
 
   // %v2 is an unavailable ConcreteAsyncValue (not an IndirectAsyncValue!).
-  %v2 = "hex.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
+  %v2 = "tfrt.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
 
   // %v3 is empty: this async_add can't run because %v2 is not available.
-  %v3 = "hex.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
+  %v3 = "tfrt.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
 
   // BEFExecutor allocates an IndirectAsyncValue for %v3 because it must provide
-  // an AsyncValue for return_first_arg's second argument. Note: all hex.call
+  // an AsyncValue for return_first_arg's second argument. Note: all tfrt.call
   // invocations are nonstrict by default.
-  %x = hex.call @return_first_arg(%c1, %v3) : (i32, i32) -> i32
+  %x = tfrt.call @return_first_arg(%c1, %v3) : (i32, i32) -> i32
 
-  hex.return
+  tfrt.return
 }
 ```
 
@@ -349,19 +349,19 @@ For example:
 
 ```c++
 func @share(%x: i32) -> (i32, i32) {
-  hex.return %x, %x : i32, i32
+  tfrt.return %x, %x : i32, i32
 }
 
 func @caller() -> (i32, i32) {
-  %c1 = hex.constant.i32 1
-  %c2, %c3 = hex.call @share(%c1) : (i32) -> (i32, i32)
-  hex.return %c2, %c3
+  %c1 = tfrt.constant.i32 1
+  %c2, %c3 = tfrt.call @share(%c1) : (i32) -> (i32, i32)
+  tfrt.return %c2, %c3
 }
 ```
 
 In this example, `BEFExecutor::Execute` first executes `caller`, which contains
-a `hex.call`, which invokes a BEF function. `hex.call` creates a new
-`BEFExecutor` and recursively invokes Execute on `share`. `hex.call`'s kernel
+a `tfrt.call`, which invokes a BEF function. `tfrt.call` creates a new
+`BEFExecutor` and recursively invokes Execute on `share`. `tfrt.call`'s kernel
 arguments and results (`%c1`, `%c2`) become the inner `BEFExecutor`'s BEF
 function arguments and returns (`%x`).
 
@@ -377,9 +377,9 @@ this example:
 
 ```c++
 func @foo() -> () {
-  %in = hex.constant.i32 1
+  %in = tfrt.constant.i32 1
   %out = "async_kernel"(%in) : (i32) -> i32
-  hex.return
+  tfrt.return
 }
 ```
 
@@ -419,13 +419,13 @@ In this example, the `user_count` for `%x` is 4:
 // Initial refcount for %x is 4 (1 + 2 + 1).
 func @foo() -> (i32, i32) {
   // 1 use of %x here: setting %x counts as a use (see next section).
-  %x = hex.constant.i32 42
+  %x = tfrt.constant.i32 42
 
   // 2 uses of %x here.
-  %y = hex.add.i32 %x, %x
+  %y = tfrt.add.i32 %x, %x
 
   // 1 more use of %x here.
-  hex.return %x, %y : i32, i32
+  tfrt.return %x, %y : i32, i32
 }
 ```
 
@@ -433,19 +433,19 @@ BEF files also store
 [`UsedBy` records](binary_executable_format.md#kernel-definition) for each
 kernel's result. These records direct the executor to downstream kernels that
 depend on the produced value. In the example above, `%x` has one `UsedBy` record
-for `hex.add.i32`, because `hex.add.i32` depends on `%x`. After running a
+for `tfrt.add.i32`, because `tfrt.add.i32` depends on `%x`. After running a
 kernel, the executor drops one ref every time a register is used. So in the
-example above, after executing `hex.constant.i32`, `%x`'s refcount drops to 3.
-And after executing `hex.add.i32`, `%x`'s refcount drops to 1.
+example above, after executing `tfrt.constant.i32`, `%x`'s refcount drops to 3.
+And after executing `tfrt.add.i32`, `%x`'s refcount drops to 1.
 
-Note: *`hex.return` is not a kernel*. In the example above, `%x` does *not* have
-a `UsedBy` record for `hex.return`. Registers passed to `hex.return` are counted
-in `user_count`, but do not have `UsedBy` records. This effectively gives each
-return value an extra ref, because `user_count` always adds a ref for
-`hex.return`, but there is no corresponding `DropRef`, because there is no
-kernel to execute for `hex.return`. The executor uses this trick to transfer
+Note: *`tfrt.return` is not a kernel*. In the example above, `%x` does *not*
+have a `UsedBy` record for `tfrt.return`. Registers passed to `tfrt.return` are
+counted in `user_count`, but do not have `UsedBy` records. This effectively
+gives each return value an extra ref, because `user_count` always adds a ref for
+`tfrt.return`, but there is no corresponding `DropRef`, because there is no
+kernel to execute for `tfrt.return`. The executor uses this trick to transfer
 "+1" return values to the executor's caller: in the example above, note how `%x`
-conveniently has a refcount of 1 after `hex.add.i32` executes, so the executor
+conveniently has a refcount of 1 after `tfrt.add.i32` executes, so the executor
 does not need to adjust the returned value's refcount.
 
 #### Setting a register counts as a use
@@ -456,22 +456,22 @@ Setting a register must count as a use to properly handle unused
 ```c++
 // BEFExecutor allocates an IndirectAsyncValue for this function's return.
 func @make_indirect() -> i32 {
-  %c1 = hex.constant.i32 1
-  %v2 = "hex.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
-  // Executor can not execute this hex.async_add.i32 because %v2 is not
+  %c1 = tfrt.constant.i32 1
+  %v2 = "tfrt.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
+  // Executor can not execute this tfrt.async_add.i32 because %v2 is not
   // available.
-  %v3 = "hex.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
-  hex.return %v3 : i32
+  %v3 = "tfrt.async_add.i32"(%v2, %v2) : (i32, i32) -> i32
+  tfrt.return %v3 : i32
 }
 
 func @caller() {
   // The returned IndirectAsyncValue is unused, so naively we'd immediately
-  // destroy the IndirectAsyncValue. But hex.async_add.i32 has not yet
+  // destroy the IndirectAsyncValue. But tfrt.async_add.i32 has not yet
   // forwarded the IndirectAsyncValue. Setting this IndirectAsyncValue must
   // count as a use to keep it alive until it is forwarded.
-  %unused = hex.call @make_indirect() : (i32) -> i32
+  %unused = tfrt.call @make_indirect() : (i32) -> i32
 
-  hex.return
+  tfrt.return
 }
 ```
 
@@ -481,27 +481,27 @@ returns control back to `caller`.
 
 But `caller` does not use this return value. If we counted users naively, `%v3`
 would be returned to `caller` with only 1 ref (returning `%v3` would be the only
-use). After control returns from `hex.call`, the executor would drop the only
+use). After control returns from `tfrt.call`, the executor would drop the only
 ref because `%unused` has no users. This would prematurely destroy the
-IndirectAsyncValue, before `make_indirect`'s `hex.async_add.i32` can
+IndirectAsyncValue, before `make_indirect`'s `tfrt.async_add.i32` can
 asynchronously forward it.
 
 We fix this by always counting register assignment as an additional use. This
 increases every register's `RegisterInfo::user_count` by 1. In this example,
 `%v3` has a `user_count` of 2 (setting `%v3` counts as one use and returning
 `%v3` counts as another), so `%v3` has an initial refcount of 2. Note that the
-second `hex.async_add.i32` only drops its ref on `%v3` *after* it asynchronously
-assigns `%v3`.
+second `tfrt.async_add.i32` only drops its ref on `%v3` *after* it
+asynchronously assigns `%v3`.
 
 So when control returns to `caller`, the `IndirectAsyncValue` still has its
 initial refcount of 2, and `caller` drops the +1 ref it received from
 `make_indirect` because `%unused` has no users. At this point the
 `IndirectAsyncValue` still has one ref, and so it remains alive until
-`hex.async_add.i32` finishes forwarding the `IndirectAsyncValue`.
+`tfrt.async_add.i32` finishes forwarding the `IndirectAsyncValue`.
 
 Note: as described in the [Implementing a kernel](#implementing-a-kernel)
-section, `hex.async_add.i32` will add a ref before it calls `EnqueueWork` to
+section, `tfrt.async_add.i32` will add a ref before it calls `EnqueueWork` to
 keep its output value alive. But in this example, the executor *can not execute*
-the second `hex.async_add.i32` kernel because the kernel's input `%v2` values
-are not available, so `hex.async_add.i32` does not get an opportunity to add a
+the second `tfrt.async_add.i32` kernel because the kernel's input `%v2` values
+are not available, so `tfrt.async_add.i32` does not get an opportunity to add a
 ref.

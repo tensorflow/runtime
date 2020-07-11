@@ -16,7 +16,7 @@
 
 // CHECK-LABEL: --- Running 'basic'
 func @basic() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = "sht.create_tensor"()
     {shape = [2], values = ["string", "tensor"]} : () -> !t.tensor
@@ -24,5 +24,5 @@ func @basic() {
   // CHECK: shape = [2], values = ["string", "tensor"]
   %c1 = tfrt_dht.print_tensor %a, %c0
 
-  hex.return
+  tfrt.return
 }

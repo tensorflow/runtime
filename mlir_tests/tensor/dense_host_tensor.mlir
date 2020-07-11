@@ -17,7 +17,7 @@
 
 // CHECK-LABEL: --- Running 'basic_tensor'
 func @basic_tensor() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %c1 = tfrt_dht.fill_tensor_with_constant.i32 %a, %c0 0 : i32
@@ -47,13 +47,13 @@ func @basic_tensor() {
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=24>
   %c10 = tfrt_dht.print_buffer %buf, %c9
 
-  hex.return
+  tfrt.return
 }
 
 // Testing tensor_equal.
 // CHECK-LABEL: --- Running 'tensor_equal'
 func @tensor_equal() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %c1 = tfrt_dht.fill_tensor_with_constant.i32 %a, %c0 0 : i32
@@ -61,7 +61,7 @@ func @tensor_equal() {
   %cmp, %c2 = tfrt_dht.tensor_equal.i32 %a, %a, %c1
 
   // CHECK: int1 = 1
-  hex.print.i1 %cmp, %c0
+  tfrt.print.i1 %cmp, %c0
 
   %b = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %c3 = tfrt_dht.fill_tensor_with_constant.i32 %b, %c0 1 : i32
@@ -69,14 +69,14 @@ func @tensor_equal() {
   %cmp2, %c4 = tfrt_dht.tensor_equal.i32 %a, %b, %c3
 
   // CHECK: int1 = 0
-  hex.print.i1 %cmp2, %c4
+  tfrt.print.i1 %cmp2, %c4
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'basic_f32_tensor'
 func @basic_f32_tensor() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]
   %c1 = tfrt_dht.fill_tensor_with_constant.f32 %a, %c0 1.0 : f32
@@ -84,12 +84,12 @@ func @basic_f32_tensor() {
   // CHECK: shape = [2, 2], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %c2 = tfrt_dht.print_tensor %a, %c1
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'tensor_from_buffer'
 func @tensor_from_buffer() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]
   %c1 = tfrt_dht.fill_tensor_with_constant.f32 %a, %c0 1.0 : f32
@@ -104,21 +104,21 @@ func @tensor_from_buffer() {
   // CHECK: shape = [4, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %c5 = tfrt_dht.print_tensor %b, %c1
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'tensor_from_slices'
 func @tensor_from_slices() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
-  %buf_size = hex.constant.i64 16
-  %buf_alignment = hex.constant.i64 4
+  %buf_size = tfrt.constant.i64 16
+  %buf_alignment = tfrt.constant.i64 4
   %buf = tfrt_dht.allocate_buffer %buf_size, %buf_alignment
 
   %shape = ts.build_shape [2 : i64, 1 : i64]
-  %size = hex.constant.i64 8
+  %size = tfrt.constant.i64 8
 
-  %buf_a_offset = hex.constant.i64 0
+  %buf_a_offset = tfrt.constant.i64 0
   %buf_a = tfrt_dht.get_buffer_slice %buf, %buf_a_offset, %size
   %a, %c1 = tfrt_dht.make_tensor.f32 %buf_a, %shape, %c0
   %c2 = tfrt_dht.fill_tensor_with_constant.f32 %a, %c1 1.0 : f32
@@ -126,7 +126,7 @@ func @tensor_from_slices() {
   // CHECK: shape = [2, 1], values = [1.000000e+00, 1.000000e+00]
   %c3 = tfrt_dht.print_tensor %a, %c2
 
-  %buf_b_offset = hex.constant.i64 8
+  %buf_b_offset = tfrt.constant.i64 8
   %buf_b = tfrt_dht.get_buffer_slice %buf, %buf_b_offset, %size
   %b, %c4 = tfrt_dht.make_tensor.f32 %buf_b, %shape, %c3
   %c5 = tfrt_dht.fill_tensor_with_constant.f32 %b, %c4 2.0 : f32
@@ -135,8 +135,8 @@ func @tensor_from_slices() {
   %c6 = tfrt_dht.print_tensor %b, %c5
 
   %buf_c_shape = ts.build_shape [1 : i64, 1 : i64]
-  %buf_c_size = hex.constant.i64 4
-  %buf_c_offset = hex.constant.i64 4
+  %buf_c_size = tfrt.constant.i64 4
+  %buf_c_offset = tfrt.constant.i64 4
   %buf_c = tfrt_dht.get_buffer_slice %buf, %buf_c_offset, %buf_c_size
   %c, %c7 = tfrt_dht.make_tensor.f32 %buf_c, %buf_c_shape, %c6
   %c8 = tfrt_dht.fill_tensor_with_constant.f32 %c, %c7 3.0 : f32
@@ -148,34 +148,34 @@ func @tensor_from_slices() {
   // CHECK: shape = [1, 1], values = [3.000000e+00]
   %c11 = tfrt_dht.print_tensor %c, %c10
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'slice_tensor'
 func @slice_tensor() {
-  %ch0 = hex.new.chain
-  %zero = hex.constant.i64 0
-  %one = hex.constant.i64 1
+  %ch0 = tfrt.new.chain
+  %zero = tfrt.constant.i64 0
+  %one = tfrt.constant.i64 1
 
   %slice_begin = tfrt_dht.create_uninitialized_tensor.i64.1 [3 : i64]
   %ch1 = "tfrt_dht.set_tensor_with_values.i64"(%slice_begin, %ch0, %zero, %one, %one)
-    : (!t.tensor, !hex.chain, i64, i64, i64) -> !hex.chain
+    : (!t.tensor, !tfrt.chain, i64, i64, i64) -> !tfrt.chain
 
   %input = tfrt_dht.create_uninitialized_tensor.i32.3 [2 : i64, 3 : i64, 2 : i64]
   %ch2 = tfrt_dht.set_tensor_with_constant_values.i32 %input, %ch1 [1 : i32, 2 : i32, 3 : i32, 4 : i32, 5 : i32, 6 : i32, 7 : i32, 8 : i32, 9 : i32, 10 : i32, 11 : i32, 12 : i32]
 
   %output = tfrt_dht.create_uninitialized_tensor.i32.3 [2 : i64, 2 : i64, 1 : i64]
   %ch3 = "tfrt_test.slice_inplace.i32.3"(%input, %slice_begin, %ch2, %output)
-    : (!t.tensor, !t.tensor, !hex.chain, !t.tensor) -> !hex.chain
+    : (!t.tensor, !t.tensor, !tfrt.chain, !t.tensor) -> !tfrt.chain
 
   // CHECK: shape = [2, 2, 1], values = [4, 6, 10, 12]
   tfrt_dht.print_tensor %output, %ch3
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'bool_tensor'
 func @bool_tensor() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %value = tfrt_dht.create_uninitialized_tensor.bool.1 [2 : i64]
   %ch1 = tfrt_dht.set_tensor_with_constant_values.bool %value, %ch0 [false, true]
@@ -183,17 +183,17 @@ func @bool_tensor() {
   // CHECK: shape = [2], values = [0, 1]
   %ch2 = tfrt_dht.print_tensor %value, %ch1
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'dense_attr'
 func @dense_attr() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = "tfrt_test.const_dense_attr"() {value = dense<[[1, 1], [2, 2]]> : tensor<2x2xi32>} : () -> !t.tensor
 
   // CHECK: shape = [2, 2], values = [1, 1, 2, 2]
   %c1 = tfrt_dht.print_tensor %a, %c0
 
-  hex.return
+  tfrt.return
 }

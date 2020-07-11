@@ -37,7 +37,7 @@ Example:
 
 ```c++
  func @benchmark() {
-   %c = hex.constant.i32 42
+   %c = tfrt.constant.i32 42
 
    tfrt_test.benchmark "add.i32" (%c : i32)
      duration_secs = 1,    // benchmark duration in seconds
@@ -45,12 +45,12 @@ Example:
      num_warmup_runs = 10  // the number of warm up runs
    {
      // The MLIR code to be benchmarked goes here.
-     // The following code benchmarks the hex.constant.i32 and hex.add.i32 kernel
-     %x = hex.add.i32 %c, %c
-     hex.return %x : i32    // the benchmarked function needs to return exactly one value
+     // The following code benchmarks the tfrt.constant.i32 and tfrt.add.i32 kernel
+     %x = tfrt.add.i32 %c, %c
+     tfrt.return %x : i32    // the benchmarked function needs to return exactly one value
    }
 
-   hex.return  // The return statement is necessary for any bef function.
+   tfrt.return  // The return statement is necessary for any bef function.
  }
 ```
 

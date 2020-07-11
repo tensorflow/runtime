@@ -15,8 +15,8 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'conv2d_valid'
-func @conv2d_valid() -> !hex.chain {
-  %ch_epoch = hex.new.chain
+func @conv2d_valid() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %conv2d_in_th1 = corert.executeop(%cpu) "tf.Const"()
@@ -28,12 +28,12 @@ func @conv2d_valid() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [4, 2, 2, 4], md5sum = 1215977510, values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, ... ]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%conv2d_th) : 0
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }
 
 // CHECK: --- Running 'conv2d_valid_strides'
-func @conv2d_valid_strides() -> !hex.chain {
-  %ch_epoch = hex.new.chain
+func @conv2d_valid_strides() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %conv2d_in_th1 = corert.executeop(%cpu) "tf.Const"()
@@ -45,12 +45,12 @@ func @conv2d_valid_strides() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [4, 1, 1, 4], values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%conv2d_th) : 0
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }
 
 // CHECK: --- Running 'conv2d_same'
-func @conv2d_same() -> !hex.chain {
-  %ch_epoch = hex.new.chain
+func @conv2d_same() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %conv2d_in_th1 = corert.executeop(%cpu) "tf.Const"()
@@ -62,12 +62,12 @@ func @conv2d_same() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [4, 4, 4, 4], md5sum = 1579683316, values = [1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, ... ]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%conv2d_th) : 0
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }
 
 // CHECK: --- Running 'conv2d_same_strides'
-func @conv2d_same_strides() -> !hex.chain {
-  %ch_epoch = hex.new.chain
+func @conv2d_same_strides() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %conv2d_in_th1 = corert.executeop(%cpu) "tf.Const"()
@@ -79,5 +79,5 @@ func @conv2d_same_strides() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [4, 2, 2, 4], md5sum = 3242887444, values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, ... ]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%conv2d_th) : 0
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }

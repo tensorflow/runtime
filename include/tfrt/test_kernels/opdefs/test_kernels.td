@@ -58,22 +58,22 @@ def DoAsyncOp : Test_Op<"do.async"> {
     asynchronously. It has one region which represents the body.
 
     The body region takes an arbitrary number of arguments and may return
-    arbitrary number of return values, using a `hex.return` operation at the
+    arbitrary number of return values, using a `tfrt.return` operation at the
     end of the region.
 
     Example:
 
       tfrt_test.do.async () -> () {
-        hex.return
+        tfrt.return
       }
 
       %res = tfrt_test.do.async () -> (i32) {
-        %val = hex.constant.i32 1
-        hex.return %val
+        %val = tfrt.constant.i32 1
+        tfrt.return %val
       }
 
       %res1, %res2 = tfrt_test.do.async %val1, %val2 : (i32, f32) -> (i32, f32) {
-        hex.return %val1, val2 : i32, f32
+        tfrt.return %val1, val2 : i32, f32
       }
   }];
   let arguments = (ins Variadic<AnyType>);
@@ -105,10 +105,10 @@ def BenchmarkOp : Test_Op<"benchmark"> {
          max_count = 100,
          num_warmup_runs = 10 {
          // The MLIR code to be benchmarked goes here.
-         // The following code benchmarks the hex.add.i32 kernel.
-         %x = hex.add.i32 %c, %c
+         // The following code benchmarks the tfrt.add.i32 kernel.
+         %x = tfrt.add.i32 %c, %c
          // The benchmarked function needs to return exactly one value.
-         hex.return %x : i32
+         tfrt.return %x : i32
        }
   }];
 
@@ -122,7 +122,7 @@ def BenchmarkOp : Test_Op<"benchmark"> {
     DefaultValuedAttr<I32Attr, "1">:$num_warmup_runs
   );
 
-  let results = (outs Hex_ChainType);
+  let results = (outs TFRT_ChainType);
 }
 
 class Count3Op<string suffix, Type type>

@@ -29,13 +29,13 @@ namespace tfrt {
 //===----------------------------------------------------------------------===//
 
 // TODO(rmlarsen): Avoid code duplication.
-static float HexConstantF32(Attribute<float> arg) { return *arg; }
+static float TFRTConstantF32(Attribute<float> arg) { return *arg; }
 
-static float HexAddF32(Argument<float> arg0, Argument<float> arg1) {
+static float TFRTAddF32(Argument<float> arg0, Argument<float> arg1) {
   return *arg0 + *arg1;
 }
 
-static Chain HexPrintF32(Argument<float> arg, KernelFrame* frame) {
+static Chain TFRTPrintF32(Argument<float> arg, KernelFrame* frame) {
   printf("f32 = %f\n", *arg);
   fflush(stdout);
   return Chain();
@@ -45,13 +45,13 @@ static Chain HexPrintF32(Argument<float> arg, KernelFrame* frame) {
 // f64 float kernels
 //===----------------------------------------------------------------------===//
 
-static double HexConstantF64(Attribute<double> arg) { return *arg; }
+static double TFRTConstantF64(Attribute<double> arg) { return *arg; }
 
-static double HexAddF64(Argument<double> arg0, Argument<double> arg1) {
+static double TFRTAddF64(Argument<double> arg0, Argument<double> arg1) {
   return *arg0 + *arg1;
 }
 
-static Chain HexPrintF64(Argument<double> arg, KernelFrame* frame) {
+static Chain TFRTPrintF64(Argument<double> arg, KernelFrame* frame) {
   printf("f64 = %f\n", *arg);
   fflush(stdout);
   return Chain();
@@ -62,12 +62,12 @@ static Chain HexPrintF64(Argument<double> arg, KernelFrame* frame) {
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-static T HexMinimum(T v1, T v2) {
+static T TFRTMinimum(T v1, T v2) {
   return std::min(v1, v2);
 }
 
 template <typename T>
-static Expected<T> HexDiv(T arg0, T arg1) {
+static Expected<T> TFRTDiv(T arg0, T arg1) {
   if (arg1 == 0) {
     return MakeStringError("Divide by zero");
   }
@@ -75,7 +75,7 @@ static Expected<T> HexDiv(T arg0, T arg1) {
 }
 
 template <typename T>
-static T HexMultiply(T arg0, T arg1) {
+static T TFRTMultiply(T arg0, T arg1) {
   return arg0 * arg1;
 }
 
@@ -84,16 +84,16 @@ static T HexMultiply(T arg0, T arg1) {
 //===----------------------------------------------------------------------===//
 
 void RegisterFloatKernels(KernelRegistry* registry) {
-  registry->AddKernel("hex.constant.f32", TFRT_KERNEL(HexConstantF32));
-  registry->AddKernel("hex.add.f32", TFRT_KERNEL(HexAddF32));
-  registry->AddKernel("hex.print.f32", TFRT_KERNEL(HexPrintF32));
+  registry->AddKernel("tfrt.constant.f32", TFRT_KERNEL(TFRTConstantF32));
+  registry->AddKernel("tfrt.add.f32", TFRT_KERNEL(TFRTAddF32));
+  registry->AddKernel("tfrt.print.f32", TFRT_KERNEL(TFRTPrintF32));
 
-  registry->AddKernel("hex.constant.f64", TFRT_KERNEL(HexConstantF64));
-  registry->AddKernel("hex.add.f64", TFRT_KERNEL(HexAddF64));
-  registry->AddKernel("hex.print.f64", TFRT_KERNEL(HexPrintF64));
-  registry->AddKernel("hex.minimum.f64", TFRT_KERNEL(HexMinimum<double>));
-  registry->AddKernel("hex.div.f64", TFRT_KERNEL(HexDiv<double>));
-  registry->AddKernel("hex.multiply.f64", TFRT_KERNEL(HexMultiply<double>));
+  registry->AddKernel("tfrt.constant.f64", TFRT_KERNEL(TFRTConstantF64));
+  registry->AddKernel("tfrt.add.f64", TFRT_KERNEL(TFRTAddF64));
+  registry->AddKernel("tfrt.print.f64", TFRT_KERNEL(TFRTPrintF64));
+  registry->AddKernel("tfrt.minimum.f64", TFRT_KERNEL(TFRTMinimum<double>));
+  registry->AddKernel("tfrt.div.f64", TFRT_KERNEL(TFRTDiv<double>));
+  registry->AddKernel("tfrt.multiply.f64", TFRT_KERNEL(TFRTMultiply<double>));
 }
 
 }  // namespace tfrt

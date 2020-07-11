@@ -18,94 +18,94 @@
 
 // CHECK-LABEL: --- Running 'test_batch_norm_in_1x1x1x8_epsilon_0.0001'
 func @test_batch_norm_in_1x1x1x8_epsilon_0.0001() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
       value = "backends/common/mlir_tests/compat/eigen/test_data/batch_norm_f32.btf"
-  } : () -> !hex.string
+  } : () -> !tfrt.string
 
-  %input_index    = hex.constant.i32 0
-  %gamma_index    = hex.constant.i32 1
-  %beta_index     = hex.constant.i32 2
-  %mean_index     = hex.constant.i32 3
-  %var_index      = hex.constant.i32 4
-  %expected_index = hex.constant.i32 5
+  %input_index    = tfrt.constant.i32 0
+  %gamma_index    = tfrt.constant.i32 1
+  %beta_index     = tfrt.constant.i32 2
+  %mean_index     = tfrt.constant.i32 3
+  %var_index      = tfrt.constant.i32 4
+  %expected_index = tfrt.constant.i32 5
 
   %input = "btf.read_dense_tensor.f32.4"(%path, %input_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %gamma = "btf.read_dense_tensor.f32.1"(%path, %gamma_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %beta = "btf.read_dense_tensor.f32.1"(%path, %beta_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %mean = "btf.read_dense_tensor.f32.1"(%path, %mean_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %var = "btf.read_dense_tensor.f32.1"(%path, %var_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %ch2 = "eigen.batch_norm.f32"(%input, %gamma, %beta, %mean, %var, %ch0)
     { epsilon = [0.0001 : f32] }
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
-        !t.tensor, !hex.chain) -> !hex.chain
+        !t.tensor, !tfrt.chain) -> !tfrt.chain
 
   %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %input, %ch2)
-    : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
+    : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
 
   // CHECK: int1 = 1
-  hex.print.i1 %cmp, %ch2
+  tfrt.print.i1 %cmp, %ch2
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'test_batch_norm_in_1x1x2x4_epsilon_0.0001'
 func @test_batch_norm_in_1x1x2x4_epsilon_0.0001() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
       value = "backends/common/mlir_tests/compat/eigen/test_data/batch_norm_f32.btf"
-  } : () -> !hex.string
+  } : () -> !tfrt.string
 
-  %input_index    = hex.constant.i32 6
-  %gamma_index    = hex.constant.i32 7
-  %beta_index     = hex.constant.i32 8
-  %mean_index     = hex.constant.i32 9
-  %var_index      = hex.constant.i32 10
-  %expected_index = hex.constant.i32 11
+  %input_index    = tfrt.constant.i32 6
+  %gamma_index    = tfrt.constant.i32 7
+  %beta_index     = tfrt.constant.i32 8
+  %mean_index     = tfrt.constant.i32 9
+  %var_index      = tfrt.constant.i32 10
+  %expected_index = tfrt.constant.i32 11
 
   %input = "btf.read_dense_tensor.f32.4"(%path, %input_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %gamma = "btf.read_dense_tensor.f32.1"(%path, %gamma_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %beta = "btf.read_dense_tensor.f32.1"(%path, %beta_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %mean = "btf.read_dense_tensor.f32.1"(%path, %mean_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %var = "btf.read_dense_tensor.f32.1"(%path, %var_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %expected = "btf.read_dense_tensor.f32.4"(%path, %expected_index)
-    : (!hex.string, i32) -> (!t.tensor)
+    : (!tfrt.string, i32) -> (!t.tensor)
 
   %ch2 = "eigen.batch_norm.f32"(%input, %gamma, %beta, %mean, %var, %ch0)
     { epsilon = [0.0001 : f32] }
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
-        !t.tensor, !hex.chain) -> !hex.chain
+        !t.tensor, !tfrt.chain) -> !tfrt.chain
 
   %cmp, %ch3 = "tfrt_dht.tensor_allclose.f32"(%expected, %input, %ch2)
-    : (!t.tensor, !t.tensor, !hex.chain) -> (i1, !hex.chain)
+    : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
 
   // CHECK: int1 = 1
-  hex.print.i1 %cmp, %ch2
+  tfrt.print.i1 %cmp, %ch2
 
-  hex.return
+  tfrt.return
 }

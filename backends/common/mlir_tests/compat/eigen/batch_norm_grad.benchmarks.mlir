@@ -16,10 +16,10 @@
 
 // CHECK-LABEL: --- Running 'BM_BatchNormGrad_8x32x32x128'
 func @BM_BatchNormGrad_8x32x32x128() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // output_grad: [8, 32, 32, 128]
   %output_grad = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -66,7 +66,7 @@ func @BM_BatchNormGrad_8x32x32x128() {
     { shape = [128 : i64] }
     : () -> !t.tensor
 
-  %init = hex.merge.chains %ch0, %ch1, %ch2, %ch3, %ch4, %ch5
+  %init = tfrt.merge.chains %ch0, %ch1, %ch2, %ch3, %ch4, %ch5
 
   tfrt_test.benchmark "BM_BatchNormGrad_8x32x32x128"(
       %output_grad : !t.tensor,
@@ -77,7 +77,7 @@ func @BM_BatchNormGrad_8x32x32x128() {
       %input_grad  : !t.tensor,
       %gamma_grad  : !t.tensor,
       %beta_grad   : !t.tensor,
-      %init        : !hex.chain
+      %init        : !tfrt.chain
   )
   duration_secs = 5, max_count = 1000, num_warmup_runs = 10
   {
@@ -87,13 +87,13 @@ func @BM_BatchNormGrad_8x32x32x128() {
         %gamma_grad, %beta_grad
        )
        { epsilon = 0.01 : f32 }
-       : (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !hex.chain,
+       : (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain,
           !t.tensor, !t.tensor, !t.tensor
-         ) -> (!hex.chain, !hex.chain, !hex.chain)
+         ) -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
 
-      %done = hex.merge.chains %ch_in, %ch_gamma, %ch_beta
-      hex.return %done : !hex.chain
+      %done = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta
+      tfrt.return %done : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }

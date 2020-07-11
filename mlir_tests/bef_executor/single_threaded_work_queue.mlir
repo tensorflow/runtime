@@ -18,54 +18,54 @@
 
 // CHECK-LABEL: --- Not running 'call_add.i32' because it has arguments
 func @call_add.i32(%x: i32, %y: i32) -> i32 {
-  %z = hex.add.i32 %x, %y
-  hex.return %z : i32
+  %z = tfrt.add.i32 %x, %y
+  tfrt.return %z : i32
 }
 
 // CHECK-LABEL: --- Running 'nonstrict_kernel_with_error_input'
 func @nonstrict_kernel_with_error_input() -> i32 {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %one = hex.constant.i32 1
+  %one = tfrt.constant.i32 1
 
   %error = "tfrt_test.fail"() : () -> i32 // expected-error {{something bad happened}}
 
-  %async_one = "hex.async_constant.i32"() { value = 1 : i32 } : () -> i32
+  %async_one = "tfrt_test.async_constant.i32"() { value = 1 : i32 } : () -> i32
 
-  // This should be printed after hex.return. This is because RunBefExecutor
+  // This should be printed after tfrt.return. This is because RunBefExecutor
   // calls Await() before it calls Quiesce(). %output should be available
   // immediately because we make kernel with async error non-strict. %async_one
   // should be available after we call Quiesce().
-  hex.print.i32 %async_one, %ch0
+  tfrt.print.i32 %async_one, %ch0
 
-  // hex.add should be ready for processing before %async_one is available.
-  %output = hex.call @call_add.i32(%error, %async_one) : (i32, i32) -> i32
+  // tfrt.add should be ready for processing before %async_one is available.
+  %output = tfrt.call @call_add.i32(%error, %async_one) : (i32, i32) -> i32
 
-  hex.return %output : i32
+  tfrt.return %output : i32
 }
 // CHECK-NEXT: 'nonstrict_kernel_with_error_input' returned <<error: something bad happened>>
 // CHECK-NEXT: int32 = 1
 
 // CHECK-LABEL: --- Running 'strict_kernel_with_error_input'
 func @strict_kernel_with_error_input() -> i32 {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %one = hex.constant.i32 1
+  %one = tfrt.constant.i32 1
 
   %error = "tfrt_test.fail"() : () -> i32 // expected-error {{something bad happened}}
 
-  %async_one = "hex.async_constant.i32"() { value = 1 : i32 } : () -> i32
+  %async_one = "tfrt_test.async_constant.i32"() { value = 1 : i32 } : () -> i32
 
-  // This should be printed after hex.return. This is because RunBefExecutor
+  // This should be printed after tfrt.return. This is because RunBefExecutor
   // calls Await() before it calls Quiesce(). %output should be available
   // immediately because we make kernel with async error non-strict. %async_one
   // should be available after we call Quiesce().
-  hex.print.i32 %async_one, %ch0
+  tfrt.print.i32 %async_one, %ch0
 
-  // hex.add should be ready for processing before %async_one is available.
-  %output = hex.add.i32 %error, %async_one
+  // tfrt.add should be ready for processing before %async_one is available.
+  %output = tfrt.add.i32 %error, %async_one
 
-  hex.return %output : i32
+  tfrt.return %output : i32
 }
 // CHECK-NEXT: 'strict_kernel_with_error_input' returned <<error: something bad happened>>
 // CHECK-NEXT: int32 = 1

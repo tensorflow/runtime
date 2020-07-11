@@ -33,7 +33,6 @@
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
-namespace hex {
 
 //===----------------------------------------------------------------------===//
 // CallOp
@@ -58,7 +57,7 @@ static ParseResult parseCallOp(OpAsmParser &parser, OperationState &result) {
 }
 
 static void print(OpAsmPrinter &p, CallOp op) {
-  p << "hex.call " << op.getAttr("callee") << '(';
+  p << "tfrt.call " << op.getAttr("callee") << '(';
   p.printOperands(op.getOperands());
   p << ')';
   p.printOptionalAttrDict(op.getAttrs(),
@@ -251,17 +250,17 @@ static LogicalResult verify(ConstantF64Op op) {
   return verifyFloatConstant(op);
 }
 
-// Verify that the specified region contains a hex.return operation with the
+// Verify that the specified region contains a tfrt.return operation with the
 // specified type list and emit an error if not.
 template <typename ResultTypeContainer>
-static LogicalResult checkHexReturn(Operation *op, Region *region,
-                                    ResultTypeContainer result_types) {
+static LogicalResult checkTFRTReturn(Operation *op, Region *region,
+                                     ResultTypeContainer result_types) {
   assert(std::distance(region->begin(), region->end()) == 1 &&
          "verifier should already check region size");
   auto *block = &region->front();
 
   if (block->empty() || !isa<ReturnOp>(block->back()))
-    return op->emitOpError("expected hex.return in body");
+    return op->emitOpError("expected tfrt.return in body");
 
   auto returnOp = cast<ReturnOp>(block->back());
   if (!std::equal(returnOp.getOperandTypes().begin(),
@@ -293,10 +292,10 @@ static LogicalResult verify(IfOp op) {
         op.getOperand(i + 1).getType() != else_block->getArgument(i).getType())
       return op.emitOpError("operand/argument type mismatch");
 
-  if (failed(checkHexReturn(op, &op.then_region(), op.getResultTypes())))
+  if (failed(checkTFRTReturn(op, &op.then_region(), op.getResultTypes())))
     return failure();
 
-  return checkHexReturn(op, &op.else_region(), op.getResultTypes());
+  return checkTFRTReturn(op, &op.else_region(), op.getResultTypes());
 }
 
 ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
@@ -341,8 +340,9 @@ ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
     // required in the IR and by the op kernel implementation.  Fill in the
     // default implementation.
     if (!types.getResults().empty())
-      return parser.emitError(parser.getCurrentLocation(),
-                              "expected 'else' in 'hex.if' with result values");
+      return parser.emitError(
+          parser.getCurrentLocation(),
+          "expected 'else' in 'tfrt.if' with result values");
 
     mlir::OpBuilder builder(result.getContext());
     auto *block = builder.createBlock(else_region);
@@ -354,7 +354,7 @@ ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
 }
 
 void print(OpAsmPrinter &p, IfOp op) {
-  p << "hex.if ";
+  p << "tfrt.if ";
   p.printOperands(op.getOperands());
   if (!op.getAttrs().empty()) {
     p.printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"bef.nonstrict"});
@@ -472,7 +472,7 @@ static ParseResult parseRepeatI32Op(OpAsmParser &parser,
 }
 
 static void print(OpAsmPrinter &p, RepeatI32Op op) {
-  p << "hex.repeat.i32 ";
+  p << "tfrt.repeat.i32 ";
   p.printOperands(op.getOperands());
   if (!op.getAttrs().empty()) {
     p.printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"bef.nonstrict"});
@@ -498,21 +498,21 @@ static LogicalResult verify(RepeatI32Op op) {
     if (op.getOperand(i + 1).getType() != op.getResult(i).getType())
       return op.emitOpError("operand/result type mismatch");
 
-  return checkHexReturn(op, &op.region(), op.getResultTypes());
+  return checkTFRTReturn(op, &op.region(), op.getResultTypes());
 }
 
 //===----------------------------------------------------------------------===//
 // ParallelForI32Op
 //===----------------------------------------------------------------------===//
 
-// Parse hex.parallel_for.i32 operation.
+// Parse tfrt.parallel_for.i32 operation.
 //
 // Expected format:
 //
-//   %ch = hex.parallel_for.i32 %start to %end fixed %block_size,
+//   %ch = tfrt.parallel_for.i32 %start to %end fixed %block_size,
 //                              %loop_arg0 : !my.type {
 //     ... parallel block compute function ...
-//     hex.return ... : !hex.chain
+//     tfrt.return ... : !tfrt.chain
 //   }
 static ParseResult parseParallelForI32Op(OpAsmParser &parser,
                                          OperationState &result) {
@@ -565,7 +565,7 @@ static ParseResult parseParallelForI32Op(OpAsmParser &parser,
 }
 
 static void print(OpAsmPrinter &p, ParallelForI32Op op) {
-  p << "hex.parallel_for.i32 ";
+  p << "tfrt.parallel_for.i32 ";
 
   p.printOperand(op.getOperand(0));
   p << " to ";
@@ -592,26 +592,26 @@ static void print(OpAsmPrinter &p, ParallelForI32Op op) {
 static LogicalResult verify(ParallelForI32Op op) {
   auto *block = &op.getRegion().front();
   if (block->empty() || !isa<ReturnOp>(block->back()))
-    return op.emitOpError("expected hex.return in body");
+    return op.emitOpError("expected tfrt.return in body");
 
   // Synchronous parallel region can have a return op without operands.
   auto return_op = cast<ReturnOp>(block->back());
   if (return_op.getNumOperands() == 0) return success();
 
   // Otherwise parallel region must return a chain (same result type as
-  // hex.parallel_for itself).
-  return checkHexReturn(op, &op.region(), op.getResultTypes());
+  // tfrt.parallel_for itself).
+  return checkTFRTReturn(op, &op.region(), op.getResultTypes());
 }
 
 //===----------------------------------------------------------------------===//
 // ParallelCallI32Op
 //===----------------------------------------------------------------------===//
 
-// Parse hex.parallel_call.i32 operation.
+// Parse tfrt.parallel_call.i32 operation.
 //
 // Expected format:
 //
-//   %ch = hex.parallel_call.i32 %start to %end fixed %block_size
+//   %ch = tfrt.parallel_call.i32 %start to %end fixed %block_size
 //         @callee(%loop_arg0) : !my.type
 static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
                                           OperationState &result) {
@@ -660,7 +660,7 @@ static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
 }
 
 static void print(OpAsmPrinter &p, ParallelCallI32Op op) {
-  p << "hex.parallel_call.i32 ";
+  p << "tfrt.parallel_call.i32 ";
 
   p.printOperand(op.getOperand(0));
   p << " to ";
@@ -738,7 +738,7 @@ static ParseResult parseReturnOp(OpAsmParser &parser, OperationState &result) {
 }
 
 static void print(OpAsmPrinter &p, ReturnOp op) {
-  p << "hex.return";
+  p << "tfrt.return";
   if (op.getNumOperands() > 0) {
     p << ' ';
     p.printOperands(op.getOperands());
@@ -751,7 +751,7 @@ static LogicalResult verify(ReturnOp op) {
   // The parent is often a 'func' but not always.
   auto function = dyn_cast<FuncOp>(op.getParentOp());
 
-  // We allow hex.return in arbitrary control flow structures.
+  // We allow tfrt.return in arbitrary control flow structures.
   if (!function) return success();
 
   // The operand number and types must match the function signature.
@@ -778,5 +778,4 @@ static LogicalResult verify(ReturnOp op) {
 #define GET_OP_CLASSES
 #include "tfrt/basic_kernels/opdefs/basic_kernels_opdefs.cpp.inc"
 
-}  // namespace hex
 }  // namespace tfrt

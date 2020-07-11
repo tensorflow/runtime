@@ -20,24 +20,24 @@
 // CHECK: --- Running 'print_hello'
 func @print_hello() {
   // CHECK: hello host executor!
-  %ch0 = hex.new.chain
-  %ch1 = "tfrt_test.print_hello"(%ch0) : (!hex.chain) -> !hex.chain
-  hex.return
+  %ch0 = tfrt.new.chain
+  %ch1 = "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
+  tfrt.return
 }
 
 // CHECK: --- Running 'print_bye'
 func @print_bye() {
-  %ch0 = hex.new.chain
-  %bye = "tfrt_test.get_string"() { value = "bye host executor!" } : () -> !hex.string
+  %ch0 = tfrt.new.chain
+  %bye = "tfrt_test.get_string"() { value = "bye host executor!" } : () -> !tfrt.string
 
   // CHECK: string = bye host executor!
-  %ch1 = "tfrt_test.print_string"(%bye, %ch0) : (!hex.string, !hex.chain) -> (!hex.chain)
-  hex.return
+  %ch1 = "tfrt_test.print_string"(%bye, %ch0) : (!tfrt.string, !tfrt.chain) -> (!tfrt.chain)
+  tfrt.return
 }
 
 func @__init__() {
-  %ch0 = hex.new.chain
-  %bye = "tfrt_test.get_string"() { value = "initializing!" } : () -> !hex.string
-  %ch1 = "tfrt_test.print_string"(%bye, %ch0) : (!hex.string, !hex.chain) -> (!hex.chain)
-  hex.return
+  %ch0 = tfrt.new.chain
+  %bye = "tfrt_test.get_string"() { value = "initializing!" } : () -> !tfrt.string
+  %ch1 = "tfrt_test.print_string"(%bye, %ch0) : (!tfrt.string, !tfrt.chain) -> (!tfrt.chain)
+  tfrt.return
 }

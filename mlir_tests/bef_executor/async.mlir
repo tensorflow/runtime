@@ -21,118 +21,118 @@
 
 // CHECK-LABEL: --- Running 'async_add'
 func @async_add() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %x = hex.constant.i32 42
-  %c1 = hex.constant.i32 1
+  %x = tfrt.constant.i32 42
+  %c1 = tfrt.constant.i32 1
 
   // CHECK: int32 = 42
-  hex.print.i32 %x, %ch0
+  tfrt.print.i32 %x, %ch0
 
   %y = tfrt_test.do.async %x, %c1 : (i32, i32) -> (i32) {
-    %y_res = hex.add.i32 %x, %c1
-    hex.return %y_res : i32
+    %y_res = tfrt.add.i32 %x, %c1
+    tfrt.return %y_res : i32
   }
 
-  hex.print.i32 %y, %ch0
+  tfrt.print.i32 %y, %ch0
 
   // CHECK: int32 = 42
-  hex.print.i32 %x, %ch0
+  tfrt.print.i32 %x, %ch0
 
   // 43 is printed after async_add.i32 completes.
   // CHECK: int32 = 43
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: -- Running 'async_repeat2'
 func @async_repeat2() {
-  %count = hex.constant.i32 2
+  %count = tfrt.constant.i32 2
 
-  hex.repeat.i32 %count {
+  tfrt.repeat.i32 %count {
     tfrt_test.do.async : () -> () {
-      %ch0 = hex.new.chain
-      "tfrt_test.print_hello"(%ch0) : (!hex.chain) -> !hex.chain
+      %ch0 = tfrt.new.chain
+      "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
 
-      %x = hex.constant.i32 0
-      hex.print.i32 %x, %ch0
-      hex.return
+      %x = tfrt.constant.i32 0
+      tfrt.print.i32 %x, %ch0
+      tfrt.return
     }
-    hex.return
+    tfrt.return
   }
 
-  %ch3 = hex.new.chain
+  %ch3 = tfrt.new.chain
 
-  %x = hex.constant.i32 -1
+  %x = tfrt.constant.i32 -1
   // CHECK-NEXT: int32 = -1
-  hex.print.i32 %x, %ch3
+  tfrt.print.i32 %x, %ch3
 
   // CHECK-NEXT: hello host executor!
   // CHECK-NEXT: int32 = 0
   // CHECK-NEXT: hello host executor!
   // CHECK-NEXT: int32 = 0
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Not running 'call_async_add.i32' because it has arguments
 func @call_async_add.i32(%x: i32, %y: i32) -> i32 {
-  %a = "hex.async_add.i32"(%x, %y) : (i32, i32) -> i32
-  %b = "hex.async_add.i32"(%a, %y) : (i32, i32) -> i32
-  hex.return %b : i32
+  %a = "tfrt_test.async_add.i32"(%x, %y) : (i32, i32) -> i32
+  %b = "tfrt_test.async_add.i32"(%a, %y) : (i32, i32) -> i32
+  tfrt.return %b : i32
 }
 
 // CHECK-LABEL: --- Running 'async_add.i32_caller'
 func @async_add.i32_caller() {
-  %x = hex.constant.i32 42
-  %c1 = hex.constant.i32 1
-  %ch = hex.new.chain
+  %x = tfrt.constant.i32 42
+  %c1 = tfrt.constant.i32 1
+  %ch = tfrt.new.chain
 
   // CHECK: int32 = 42
-  hex.print.i32 %x, %ch
+  tfrt.print.i32 %x, %ch
 
-  %y = hex.call @call_async_add.i32(%x, %c1) : (i32, i32) -> i32
-  hex.print.i32 %y, %ch
+  %y = tfrt.call @call_async_add.i32(%x, %c1) : (i32, i32) -> i32
+  tfrt.print.i32 %y, %ch
 
   // CHECK: int32 = 42
-  hex.print.i32 %x, %ch
+  tfrt.print.i32 %x, %ch
 
   // 44 is printed after call_async_add.i32 completes.
   // CHECK: int32 = 44
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'test_async_print_result'
 func @test_async_print_result() -> i32 {
-  %c1 = hex.constant.i32 1
-  %c42 = hex.constant.i32 42
-  %a = "hex.async_add.i32"(%c1, %c42) : (i32, i32) -> i32
+  %c1 = tfrt.constant.i32 1
+  %c42 = tfrt.constant.i32 42
+  %a = "tfrt_test.async_add.i32"(%c1, %c42) : (i32, i32) -> i32
 
-  hex.return %a : i32
+  tfrt.return %a : i32
 }
 // CHECK: 'test_async_print_result' returned 43
 
 // CHECK-LABEL: --- Running 'test_async_copy'
 func @test_async_copy() -> i32 {
-  %c42 = hex.constant.i32 42
-  %copy = "hex.async_copy.i32"(%c42) : (i32) -> i32
+  %c42 = tfrt.constant.i32 42
+  %copy = "tfrt_test.async_copy.i32"(%c42) : (i32) -> i32
 
-  hex.return %copy : i32
+  tfrt.return %copy : i32
 }
 // CHECK: 'test_async_copy' returned 42
 
 // CHECK-LABEL: --- Running 'test_async_copy.with_delay'
 func @test_async_copy.with_delay() -> i32 {
-  %c42 = hex.constant.i32 42
-  %copy = "hex.async_copy.with_delay.i32"(%c42) : (i32) -> i32
+  %c42 = tfrt.constant.i32 42
+  %copy = "tfrt_test.async_copy.with_delay.i32"(%c42) : (i32) -> i32
 
-  hex.return %copy : i32
+  tfrt.return %copy : i32
 }
 // CHECK: 'test_async_copy.with_delay' returned 42
 
 // CHECK-LABEL: --- Running 'test_async_copy_2'
 func @test_async_copy_2() -> i32 {
-  %c43 = hex.constant.i32 43
-  %copy = "hex.async_copy_2.i32"(%c43) : (i32) -> i32
+  %c43 = tfrt.constant.i32 43
+  %copy = "tfrt_test.async_copy_2.i32"(%c43) : (i32) -> i32
 
-  hex.return %copy : i32
+  tfrt.return %copy : i32
 }
 // CHECK: 'test_async_copy_2' returned 43

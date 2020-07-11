@@ -28,51 +28,51 @@ namespace tfrt {
 namespace {
 
 //===----------------------------------------------------------------------===//
-// hex integer constant kernels
+// tfrt integer constant kernels
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-T HexConstant(Attribute<T> arg) {
+T TFRTConstant(Attribute<T> arg) {
   return arg.get();
 }
 
 //===----------------------------------------------------------------------===//
-// hex add kernels
+// tfrt add kernels
 //===----------------------------------------------------------------------===//
 template <typename T>
-T HexAdd(T arg0, T arg1) {
+T TFRTAdd(T arg0, T arg1) {
   return arg0 + arg1;
 }
 
 //===----------------------------------------------------------------------===//
-// hex minus kernels
+// tfrt minus kernels
 //===----------------------------------------------------------------------===//
 template <typename T>
-T HexMinus(T arg0, T arg1) {
+T TFRTMinus(T arg0, T arg1) {
   return arg0 - arg1;
 }
 
 //===----------------------------------------------------------------------===//
-// hex equal kernels
+// tfrt equal kernels
 //===----------------------------------------------------------------------===//
 template <typename T>
-bool HexEqual(T arg0, T arg1) {
+bool TFRTEqual(T arg0, T arg1) {
   return arg0 == arg1;
 }
 
 //===----------------------------------------------------------------------===//
-// hex less equal kernels
+// tfrt less equal kernels
 //===----------------------------------------------------------------------===//
 template <typename T>
-bool HexLessEqual(T arg0, T arg1) {
+bool TFRTLessEqual(T arg0, T arg1) {
   return arg0 <= arg1;
 }
 
 //===----------------------------------------------------------------------===//
-// hex div kernel. Returns quotient and remainder
+// tfrt div kernel. Returns quotient and remainder
 //===----------------------------------------------------------------------===//
 template <typename T>
-Expected<std::pair<T, T>> HexDiv(T arg0, T arg1) {
+Expected<std::pair<T, T>> TFRTDiv(T arg0, T arg1) {
   if (arg1 == 0) {
     return MakeStringError("Divide by zero");
   }
@@ -80,33 +80,33 @@ Expected<std::pair<T, T>> HexDiv(T arg0, T arg1) {
 }
 
 //===----------------------------------------------------------------------===//
-// hex print integer kernels
+// tfrt print integer kernels
 //===----------------------------------------------------------------------===//
 
-Chain HexPrintI1(bool arg) {
+Chain TFRTPrintI1(bool arg) {
   tfrt::outs() << "int1 = " << static_cast<int32_t>(arg) << '\n';
   tfrt::outs().flush();
   return Chain();
 }
 
-Chain HexPrintI32(int32_t arg) {
+Chain TFRTPrintI32(int32_t arg) {
   tfrt::outs() << "int32 = " << arg << '\n';
   tfrt::outs().flush();
   return Chain();
 }
 
-Chain HexPrintI64(int64_t arg) {
+Chain TFRTPrintI64(int64_t arg) {
   tfrt::outs() << "int64 = " << arg << '\n';
   tfrt::outs().flush();
   return Chain();
 }
 
 //===----------------------------------------------------------------------===//
-// hex cast kernels
+// tfrt cast kernels
 //===----------------------------------------------------------------------===//
 
 template <typename Tin, typename Tout>
-static Tout HexCast(Tin value) {
+static Tout TFRTCast(Tin value) {
   return static_cast<Tout>(value);
 }
 
@@ -117,41 +117,43 @@ static Tout HexCast(Tin value) {
 //===----------------------------------------------------------------------===//
 
 void RegisterIntegerKernels(KernelRegistry* registry) {
-  registry->AddKernel("hex.constant.i32", TFRT_KERNEL(HexConstant<int32_t>));
-  registry->AddKernel("hex.constant.i64", TFRT_KERNEL(HexConstant<int64_t>));
+  registry->AddKernel("tfrt.constant.i32", TFRT_KERNEL(TFRTConstant<int32_t>));
+  registry->AddKernel("tfrt.constant.i64", TFRT_KERNEL(TFRTConstant<int64_t>));
 
-  registry->AddKernel("hex.add.i32", TFRT_KERNEL(HexAdd<int32_t>));
-  registry->AddKernel("hex.add.i64", TFRT_KERNEL(HexAdd<int64_t>));
+  registry->AddKernel("tfrt.add.i32", TFRT_KERNEL(TFRTAdd<int32_t>));
+  registry->AddKernel("tfrt.add.i64", TFRT_KERNEL(TFRTAdd<int64_t>));
 
-  registry->AddKernel("hex.minus.i32", TFRT_KERNEL(HexMinus<int32_t>));
-  registry->AddKernel("hex.minus.i64", TFRT_KERNEL(HexMinus<int64_t>));
+  registry->AddKernel("tfrt.minus.i32", TFRT_KERNEL(TFRTMinus<int32_t>));
+  registry->AddKernel("tfrt.minus.i64", TFRT_KERNEL(TFRTMinus<int64_t>));
 
-  registry->AddKernel("hex.equal.i32", TFRT_KERNEL(HexEqual<int32_t>));
-  registry->AddKernel("hex.equal.i64", TFRT_KERNEL(HexEqual<int64_t>));
+  registry->AddKernel("tfrt.equal.i32", TFRT_KERNEL(TFRTEqual<int32_t>));
+  registry->AddKernel("tfrt.equal.i64", TFRT_KERNEL(TFRTEqual<int64_t>));
 
-  registry->AddKernel("hex.lessequal.i32", TFRT_KERNEL(HexLessEqual<int32_t>));
-  registry->AddKernel("hex.lessequal.i64", TFRT_KERNEL(HexLessEqual<int64_t>));
+  registry->AddKernel("tfrt.lessequal.i32",
+                      TFRT_KERNEL(TFRTLessEqual<int32_t>));
+  registry->AddKernel("tfrt.lessequal.i64",
+                      TFRT_KERNEL(TFRTLessEqual<int64_t>));
 
-  registry->AddKernel("hex.div.i32", TFRT_KERNEL(HexDiv<int32_t>));
-  registry->AddKernel("hex.div.i64", TFRT_KERNEL(HexDiv<int64_t>));
+  registry->AddKernel("tfrt.div.i32", TFRT_KERNEL(TFRTDiv<int32_t>));
+  registry->AddKernel("tfrt.div.i64", TFRT_KERNEL(TFRTDiv<int64_t>));
 
-  registry->AddKernel("hex.print.i1", TFRT_KERNEL(HexPrintI1));
-  registry->AddKernel("hex.print.i32", TFRT_KERNEL(HexPrintI32));
-  registry->AddKernel("hex.print.i64", TFRT_KERNEL(HexPrintI64));
+  registry->AddKernel("tfrt.print.i1", TFRT_KERNEL(TFRTPrintI1));
+  registry->AddKernel("tfrt.print.i32", TFRT_KERNEL(TFRTPrintI32));
+  registry->AddKernel("tfrt.print.i64", TFRT_KERNEL(TFRTPrintI64));
 
-  registry->AddKernel("hex.cast.i64_to_f64",
-                      TFRT_KERNEL(HexCast<int64_t, double>));
-  registry->AddKernel("hex.cast.f64_to_i64",
-                      TFRT_KERNEL(HexCast<double, int64_t>));
+  registry->AddKernel("tfrt.cast.i64_to_f64",
+                      TFRT_KERNEL(TFRTCast<int64_t, double>));
+  registry->AddKernel("tfrt.cast.f64_to_i64",
+                      TFRT_KERNEL(TFRTCast<double, int64_t>));
 
   // Register synchronous kernels.
-  registry->AddSyncKernel("hex.constant_s.i32",
-                          TFRT_SYNC_KERNEL(HexConstant<int32_t>));
-  registry->AddSyncKernel("hex.constant_s.i64",
-                          TFRT_SYNC_KERNEL(HexConstant<int64_t>));
+  registry->AddSyncKernel("tfrt.constant_s.i32",
+                          TFRT_SYNC_KERNEL(TFRTConstant<int32_t>));
+  registry->AddSyncKernel("tfrt.constant_s.i64",
+                          TFRT_SYNC_KERNEL(TFRTConstant<int64_t>));
 
-  registry->AddSyncKernel("hex.add_s.i32", TFRT_SYNC_KERNEL(HexAdd<int32_t>));
-  registry->AddSyncKernel("hex.add_s.i64", TFRT_SYNC_KERNEL(HexAdd<int64_t>));
+  registry->AddSyncKernel("tfrt.add_s.i32", TFRT_SYNC_KERNEL(TFRTAdd<int32_t>));
+  registry->AddSyncKernel("tfrt.add_s.i64", TFRT_SYNC_KERNEL(TFRTAdd<int64_t>));
 }
 
 }  // namespace tfrt

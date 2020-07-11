@@ -38,7 +38,7 @@ enum Kind {
 
 }  // namespace CoreRTTypes
 
-// TODO(tfrt-dev): Move StringType to Hex dialect.
+// TODO(tfrt-dev): Move StringType to TFRT dialect.
 class StringType
     : public mlir::Type::TypeBase<StringType, mlir::Type, mlir::TypeStorage> {
  public:

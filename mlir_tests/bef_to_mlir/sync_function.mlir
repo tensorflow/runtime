@@ -15,7 +15,7 @@
 // RUN: tfrt_translate -mlir-to-bef %s | tfrt_translate -bef-to-mlir | tfrt_opt -allow-unregistered-dialect | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: func @sync_func_foo
-// CHECK-SAME: hex.sync
-func @sync_func_foo(%x: i32, %y: i32) -> i32 attributes {hex.sync} {
-  hex.return %x : i32
+// CHECK-SAME: tfrt.sync
+func @sync_func_foo(%x: i32, %y: i32) -> i32 attributes {tfrt.sync} {
+  tfrt.return %x : i32
 }

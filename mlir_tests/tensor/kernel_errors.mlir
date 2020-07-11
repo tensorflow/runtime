@@ -19,5 +19,5 @@ func @bad_result() {
   // expected-error @+1 {{'ts.build_shape' op result #0 must be !ts.shape type}}
   %a = "ts.build_shape"() { value = [1 : i64] }: () -> i64
 
-  hex.return
+  tfrt.return
 }

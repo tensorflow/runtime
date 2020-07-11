@@ -16,48 +16,48 @@
 
 // CHECK-LABEL: --- Running 'const_dense_tensor'
 func @const_dense_tensor() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %a = corert.const_dense_tensor dense<[0, 1, 2]>: tensor<3xi32>
 
   // CHECK: shape = [3], values = [0, 1, 2]
-  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'const_string_tensor'
 func @const_string_tensor() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %a = corert.const_string_tensor {shape = [2], value = ["string", "tensor"]}
 
   // CHECK: shape = [2], values = ["string", "tensor"]
-  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'scalar_string_tensor'
 func @scalar_string_tensor() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %a = corert.const_string_tensor {shape = [], value = ["string"]}
 
   // CHECK: shape = [], values = ["string"]
-  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'create_dense_tensor'
 func @create_dense_tensor() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   %a = corert.create_dense_tensor.ui64 {shape = [1], value = [2 : ui64]}
 
   // CHECK: shape = [1], values = [2]
-  %ch1 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch1 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  hex.return
+  tfrt.return
 }

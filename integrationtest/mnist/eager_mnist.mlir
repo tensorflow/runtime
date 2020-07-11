@@ -21,7 +21,7 @@ func @mnist_compute(%cpu: !corert.device,
                     %b2 : !corert.tensorhandle,
                     %test_input_features : !corert.tensorhandle,
                     %test_input_labels : !corert.tensorhandle,
-                    %ch0 : !hex.chain) -> (!hex.chain)
+                    %ch0 : !tfrt.chain) -> (!tfrt.chain)
                     //!corert.tensorhandle)
 {
   // broadcast_b1 = test.broadcast(b1)
@@ -65,12 +65,12 @@ func @mnist_compute(%cpu: !corert.device,
   %avg_accuracy = corert.executeop(%cpu)
     "tfrt_test.reduce_mean"(%equal_f32) { axis = 0 : i32 } : 1
 
-  hex.return %ch0: !hex.chain
+  tfrt.return %ch0: !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'bm_mnist'
 func @bm_mnist() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
   // w1
@@ -106,16 +106,16 @@ func @bm_mnist() {
       %b2 : !corert.tensorhandle,
       %test_input_features : !corert.tensorhandle,
       %test_input_labels : !corert.tensorhandle,
-      %ch0: !hex.chain)
+      %ch0: !tfrt.chain)
       duration_secs = 10, max_count = 10000, num_warmup_runs = 10 {
-      %avg_accuracy = hex.call @mnist_compute(%cpu, %w1, %b1, %w2, %b2, %test_input_features, %test_input_labels, %ch0)
+      %avg_accuracy = tfrt.call @mnist_compute(%cpu, %w1, %b1, %w2, %b2, %test_input_features, %test_input_labels, %ch0)
        : (!corert.device, !corert.tensorhandle, !corert.tensorhandle,
           !corert.tensorhandle, !corert.tensorhandle,
           !corert.tensorhandle, !corert.tensorhandle,
-          !hex.chain) -> !hex.chain
+          !tfrt.chain) -> !tfrt.chain
 
-      hex.return %avg_accuracy : !hex.chain
+      tfrt.return %avg_accuracy : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }

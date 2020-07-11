@@ -16,10 +16,10 @@
 
 // CHECK-LABEL: --- Running 'BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2'
 func @BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // in: [8, 32, 32, 128].
   %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -35,7 +35,7 @@ func @BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2() {
   tfrt_test.benchmark "BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2"(
       %in   : !t.tensor,
       %out  : !t.tensor,
-      %ch1  : !hex.chain
+      %ch1  : !tfrt.chain
   )
   duration_secs = 5, max_count = 1000, num_warmup_runs = 10
   {
@@ -43,10 +43,10 @@ func @BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2() {
        { padding = "valid",  pool_size = [3 : i64, 3 : i64],
          strides = [2 : i64, 2 : i64]
        }
-       : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
+       : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }

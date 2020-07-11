@@ -50,7 +50,7 @@ namespace tfrt {
 // And then wrap this function with TFRT_SYNC_KERNEL for registritaion with
 // KernelRegistry:
 //
-//  registry->AddSyncKernel("hex.sync.add.i32", TFRT_SYNC_KERNEL(Add));
+//  registry->AddSyncKernel("tfrt.sync.add.i32", TFRT_SYNC_KERNEL(Add));
 //
 // For kernels with multiple results, you can return std::pair/tuple as the
 // result type:

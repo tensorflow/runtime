@@ -51,7 +51,7 @@ func @{func_name}() {{
     num_warmup_runs = 10 {{
 {body}
   }}
-  hex.return
+  tfrt.return
 }}
 """.format(
     func_name=func_name, body=body)

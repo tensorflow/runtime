@@ -47,7 +47,7 @@ sample code, we can use `Chain`s to enforce the proper dependency as follows.
 ```c++
 %t = allocate_tensor()
 // Use chain to add proper dependency between initialize_tensor and print_tensor
-%ch0 = hex.new.chain()  // create a chain
+%ch0 = tfrt.new.chain()  // create a chain
 %ch1 = initialize_tensor(%t, %ch0)
 %ch2 = print_tensor(%t, %ch1)
 ```
@@ -62,8 +62,8 @@ void FooKernel(Argument<int> arg, Argument<Chain> in_chain, Result<Chain> out_ch
 }
 ```
 
-The manual construction of `Chain` with `hex.new.chain()` should only be used in
-test cases. In practice, we expect the compiler infrastructure to manage
+The manual construction of `Chain` with `tfrt.new.chain()` should only be used
+in test cases. In practice, we expect the compiler infrastructure to manage
 `Chain`s so that they are passed into functions and kernels that need them, as
 otherwise the executions may not be ordered properly.
 

@@ -642,7 +642,7 @@ API. There are also a few other kernels:
 This is an example op graph using `corert` kernels:
 
 ```c++
-func @example() -> !hex.chain {
+func @example() -> !tfrt.chain {
   %cpu = corert.get_op_handler("cpu")
 
   // Create TensorHandles
@@ -652,8 +652,8 @@ func @example() -> !hex.chain {
     "test.create_dense_tensor"() { shape = [1, 1], values = [-2.0 : f32] }
 
   %result = corert.executeop(%cpu) "test.add" (%lhs, %rhs)
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
   %ch1 = corert.print_tensorhandle(%result, %ch0)
-  hex.return %ch1 : !hex.chain
+  tfrt.return %ch1 : !tfrt.chain
 }
 ```

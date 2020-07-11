@@ -15,24 +15,24 @@
 // RUN: tfrt_opt -split-input-file -verify-diagnostics %s
 
 func @invalid_input(%arg : i32) { // expected-note {{prior use here}}
-  %ch = hex.new.chain
+  %ch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch "cpu"
 
   // expected-error @+1 {{expects different type than prior uses: '!corert.tensorhandle' vs 'i32'}}
   %res0 = corert.executeop(%cpu) "some.op"(%arg) : 1
 
-  hex.return %res0 : !corert.tensorhandle
+  tfrt.return %res0 : !corert.tensorhandle
 }
 
 // -----
 
 func @invalid_opattrs() {
-  %ch = hex.new.chain
+  %ch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch "cpu"
 
   // expected-error @+1 {{'corert.executeop' op each op_attr should be a key-value pair, where the key is a string}}
   %res0 = "corert.executeop" (%cpu)
     {op_name = "some.op", op_attrs = [1 : i32]} : (!corert.device) -> !corert.tensorhandle
 
-  hex.return %res0 : !corert.tensorhandle
+  tfrt.return %res0 : !corert.tensorhandle
 }

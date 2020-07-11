@@ -19,9 +19,9 @@
 // CHECK-LABEL: "func"
 func @basic.constant() -> i32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"() {{{.*}} = {{.*}}}
-  // CHECK-NEXT: "hex.return"([[REG]]) : ({{.*}}) -> ()
+  // CHECK-NEXT: "tfrt.return"([[REG]]) : ({{.*}}) -> ()
 
   %x = "simple.op"() {value = 42 : i32} : () -> i32
-  hex.return %x : i32
+  tfrt.return %x : i32
 }
 // CHECK: sym_name = "basic.constant"

@@ -28,12 +28,12 @@ func @benchmark() {
 
   tfrt_test.benchmark "add.i32"() duration_secs = 1, max_count = 100, num_warmup_runs = 10
   {
-    %c = hex.constant.i32 42
-    %x = hex.add.i32 %c, %c
-    hex.return %x : i32
+    %c = tfrt.constant.i32 42
+    %x = tfrt.add.i32 %c, %c
+    tfrt.return %x : i32
   }
 
-  hex.return
+  tfrt.return
 }
 
 // A function to demonstrate the use of benchmark kernels with the input compute
@@ -46,14 +46,14 @@ func @benchmark2() {
   // CHECK: BM:add.i32:Time 95%(us):
   // CHECK: BM:add.i32:Time 99%(us):
 
-  %c = hex.constant.i32 42
+  %c = tfrt.constant.i32 42
 
   // Pass the argument to the function to be benchmarked.
   tfrt_test.benchmark "add.i32"(%c : i32) duration_secs = 1, max_count = 100
   {
-    %x = hex.add.i32 %c, %c
-    hex.return %x : i32
+    %x = tfrt.add.i32 %c, %c
+    tfrt.return %x : i32
   }
 
-  hex.return
+  tfrt.return
 }

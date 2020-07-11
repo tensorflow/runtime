@@ -16,10 +16,10 @@
 
 // CHECK-LABEL: --- Running 'BM_ZeroPadding_in_1x224x224x3_p_3x3'
 func @BM_ZeroPadding_in_1x224x224x3_p_3x3() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // in: [1, 224, 224, 3].
   %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -35,16 +35,16 @@ func @BM_ZeroPadding_in_1x224x224x3_p_3x3() {
   tfrt_test.benchmark "BM_ZeroPadding_in_1x224x224x3_p_3x3"(
       %in   : !t.tensor,
       %out  : !t.tensor,
-      %ch1  : !hex.chain
+      %ch1  : !tfrt.chain
   )
   duration_secs = 5, max_count = 1000, num_warmup_runs = 10
   {
       %ch_out = "eigen.zero_padding.f32"(%in, %out, %ch1)
        { padding = [3 : i64, 3 : i64] }
-       : (!t.tensor, !t.tensor, !hex.chain) -> !hex.chain
+       : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }

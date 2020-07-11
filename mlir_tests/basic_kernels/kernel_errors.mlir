@@ -16,25 +16,25 @@
 
 func @bad_return(%x: i32) {
 
-  // expected-error @+1 {{'hex.return' op has 1 operands, but enclosing function returns 0}}
-  hex.return %x : i32
+  // expected-error @+1 {{'tfrt.return' op has 1 operands, but enclosing function returns 0}}
+  tfrt.return %x : i32
 }
 
 // -----
 
-func @return_mismatch(%x: i32) -> !hex.chain {
+func @return_mismatch(%x: i32) -> !tfrt.chain {
 
-  // expected-error @+1 {{type of return operand 0 ('i32') doesn't match function result type ('!hex.chain')}}
-  hex.return %x : i32
+  // expected-error @+1 {{type of return operand 0 ('i32') doesn't match function result type ('!tfrt.chain')}}
+  tfrt.return %x : i32
 }
 
 // -----
 
 func @if_mismatch(%cond: i1, %v1: i32, %v2: i32) -> i32 {
 
-  hex.if %cond, %v1 : (i32) -> () {
+  tfrt.if %cond, %v1 : (i32) -> () {
 
-    // expected-error @+1 {{'hex.return' op operand types don't match 'hex.if' result}}
-    hex.return %v1 : i32
+    // expected-error @+1 {{'tfrt.return' op operand types don't match 'tfrt.if' result}}
+    tfrt.return %v1 : i32
   }
 }

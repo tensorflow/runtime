@@ -116,12 +116,12 @@ static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
 
 //--------------------------------------------------------------------------- //
 
-static AsyncValueRef<Chain> HexParallelFor(const ExecutionContext& exec_ctx,
-                                           Argument<int32_t> start,
-                                           Argument<int32_t> end,
-                                           Argument<int32_t> block_size,
-                                           RemainingArguments args,
-                                           Attribute<Function> body_fn_const) {
+static AsyncValueRef<Chain> TFRTParallelFor(const ExecutionContext& exec_ctx,
+                                            Argument<int32_t> start,
+                                            Argument<int32_t> end,
+                                            Argument<int32_t> block_size,
+                                            RemainingArguments args,
+                                            Attribute<Function> body_fn_const) {
   const Function* body_fn = &(*body_fn_const);
 
   const size_t total_size = *end - *start;
@@ -134,7 +134,7 @@ static AsyncValueRef<Chain> HexParallelFor(const ExecutionContext& exec_ctx,
                                       fixed_block_sizes, args, body_fn);
 
   } else if (body_fn->result_types().size() == 1) {
-    assert(body_fn->result_types()[0].GetName() == "!hex.chain");
+    assert(body_fn->result_types()[0].GetName() == "!tfrt.chain");
     return ExecuteAsyncParallelForBody(exec_ctx, total_size, offset,
                                        fixed_block_sizes, args, body_fn);
 
@@ -147,8 +147,8 @@ static AsyncValueRef<Chain> HexParallelFor(const ExecutionContext& exec_ctx,
 }  // namespace
 
 void RegisterParallelKernels(KernelRegistry* registry) {
-  registry->AddKernel("hex.parallel_for.i32", TFRT_KERNEL(HexParallelFor));
-  registry->AddKernel("hex.parallel_call.i32", TFRT_KERNEL(HexParallelFor));
+  registry->AddKernel("tfrt.parallel_for.i32", TFRT_KERNEL(TFRTParallelFor));
+  registry->AddKernel("tfrt.parallel_call.i32", TFRT_KERNEL(TFRTParallelFor));
 }
 
 }  // namespace tfrt

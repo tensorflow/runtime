@@ -16,7 +16,7 @@
 
 // CHECK-LABEL: func @many_users
 func @many_users() -> i32 {
-  %a = hex.constant.i32 1
+  %a = tfrt.constant.i32 1
 
   "simple.op"(%a) : (i32) -> ()
   "simple.op"(%a) : (i32) -> ()
@@ -312,5 +312,5 @@ func @many_users() -> i32 {
   "simple.op"(%a) : (i32) -> ()
   "simple.op"(%a) : (i32) -> ()
 
-  hex.return %a : i32
+  tfrt.return %a : i32
 }

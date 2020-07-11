@@ -16,7 +16,7 @@
 
 //===- types.h --------------------------------------------------*- C++ -*-===//
 //
-// This file declares types for the 'hex' dialect.
+// This file declares types for the 'tfrt' dialect.
 //
 //===----------------------------------------------------------------------===//
 
@@ -26,9 +26,8 @@
 #include "mlir/IR/Types.h"
 
 namespace tfrt {
-namespace hex {
 
-namespace HexTypes {
+namespace TFRTTypes {
 
 // TODO(tf-runtime-team): We should register TFRT dialect with MLIR core and
 // then use TFRT's enum here.
@@ -36,7 +35,7 @@ enum Kind {
   kChain = mlir::Type::FIRST_PRIVATE_EXPERIMENTAL_2_TYPE,
 };
 
-}  // namespace HexTypes
+}  // namespace TFRTTypes
 
 class ChainType
     : public mlir::Type::TypeBase<ChainType, mlir::Type, mlir::TypeStorage> {
@@ -44,13 +43,12 @@ class ChainType
   using Base::Base;
 
   static ChainType get(mlir::MLIRContext *context) {
-    return Base::get(context, HexTypes::kChain);
+    return Base::get(context, TFRTTypes::kChain);
   }
 
-  static bool kindof(unsigned kind) { return kind == HexTypes::kChain; }
+  static bool kindof(unsigned kind) { return kind == TFRTTypes::kChain; }
 };
 
-}  // namespace hex
 }  // namespace tfrt
 
 #endif  // TFRT_BASIC_KERNELS_OPDEFS_TYPES_H_

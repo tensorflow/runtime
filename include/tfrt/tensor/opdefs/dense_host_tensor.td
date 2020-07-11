@@ -76,13 +76,13 @@ class MakeTensorOp<string dtype>
     i.e. the number of elements, of requested dtype, in the given shape.
 
     Example:
-      %ch0 = hex.new.chain
+      %ch0 = tfrt.new.chain
       %cuda_host_buf, %ch1 = cuda.mem.allocate_host %size, %alignment, %ch0
       %tensor, %ch2 = tfrt_dht.make_tensor.f32 %cuda_host_buf, %shape, %ch0
   }];
 
-  let arguments = (ins HostBufferType, TS_Shape, Hex_ChainType);
-  let results = (outs TensorType, Hex_ChainType);
+  let arguments = (ins HostBufferType, TS_Shape, TFRT_ChainType);
+  let results = (outs TensorType, TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -96,13 +96,13 @@ class FillTensorOp<string dtype>
     chain.
 
     Example:
-      %1 = hex.new.chain
+      %1 = tfrt.new.chain
       %2 = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i32, 2 : i32]
       %3 = tfrt_dht.fill_tensor_with_constant.i32 %2, %1 0 : i32
   }];
 
-  let arguments = (ins TensorType, Hex_ChainType);
-  let results = (outs Hex_ChainType);
+  let arguments = (ins TensorType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
 
   let printer = [{ return tfrt::dht::printFillTensorOp(p, *this); }];
   let parser = " return tfrt::dht::parseFillTensorOp(parser, result);";
@@ -119,8 +119,8 @@ def PrintTensorOp : DHT_Op<"print_tensor"> {
       %3 = tfrt_dht.print_tensor %1, %2
   }];
 
-  let arguments = (ins TensorType, Hex_ChainType);
-  let results = (outs Hex_ChainType);
+  let arguments = (ins TensorType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -134,13 +134,13 @@ class SetTensorOp<string dtype>
     a chain.
 
     Example:
-      %1 = hex.new.chain
+      %1 = tfrt.new.chain
       %2 = tfrt_dht.create_uninitialized_tensor.i32.2 [1 : i32, 2 : i32]
       %3 = tfrt_dht.set_tensor_with_constant_values.i32 %2, %1 [0 : i32, 1 : i32]
   }];
 
-  let arguments = (ins TensorType, Hex_ChainType);
-  let results = (outs Hex_ChainType);
+  let arguments = (ins TensorType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
 
   let printer = [{ return tfrt::dht::printSetTensorOp(p, *this); }];
   let parser = " return tfrt::dht::parseSetTensorOp(parser, result);";
@@ -160,8 +160,8 @@ class TensorEqualOp<string dtype>
       %4, %5 = tfrt_dht.tensor_equal.i32 %1, %2, %3
   }];
 
-  let arguments = (ins TensorType, TensorType, Hex_ChainType);
-  let results = (outs I1, Hex_ChainType);
+  let arguments = (ins TensorType, TensorType, TFRT_ChainType);
+  let results = (outs I1, TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -174,8 +174,8 @@ def AllocateBuffer : DHT_Op<"allocate_buffer"> {
     outputs a buffer of that size.
 
     Example:
-      %size = hex.constant.i64 164
-      %alignment = hex.constant.i64 8
+      %size = tfrt.constant.i64 164
+      %alignment = tfrt.constant.i64 8
       %buf = tfrt_dht.allocate %size, %alignment
   }];
 
@@ -193,12 +193,12 @@ def GetBufferOp : DHT_Op<"get_buffer"> {
 
     Example:
       %t = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i32, 2 : i32]
-      %ch1 = hex.new.chain
+      %ch1 = tfrt.new.chain
       %buf, %ch2 = tfrt_dht.get_buffer %t, %ch1
   }];
 
-  let arguments = (ins TensorType, Hex_ChainType);
-  let results = (outs HostBufferType, Hex_ChainType);
+  let arguments = (ins TensorType, TFRT_ChainType);
+  let results = (outs HostBufferType, TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -212,8 +212,8 @@ def GetBufferSliceOp : DHT_Op<"get_buffer_slice"> {
 
     Example:
       %parent_buf = tfrt_dht.allocate %parent_size, %alignment
-      %offset = hex.constant.i64 0
-      %size = hex.constant.i64 64
+      %offset = tfrt.constant.i64 0
+      %size = tfrt.constant.i64 64
       %buf_a = tfrt_dht.get_buffer_slice %parent_buf, %offset, %size
   }];
 
@@ -232,8 +232,8 @@ def PrintBufferOp : DHT_Op<"print_buffer"> {
       %chain1 = tfrt_dht.print_buffer %buffer, %chain0
   }];
 
-  let arguments = (ins HostBufferType, Hex_ChainType);
-  let results = (outs Hex_ChainType);
+  let arguments = (ins HostBufferType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 

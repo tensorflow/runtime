@@ -16,10 +16,10 @@
 
 func @trivial() {
   "simple.kernel"() : () -> ()
-  hex.return
+  tfrt.return
 }
 
 func @args_results(%a: i32, %b: f32) -> (i8, i32) {
   %c = "simple.kernel"(%a, %b) : (i32, f32) -> i8
-  hex.return %c, %a : i8, i32
+  tfrt.return %c, %a : i8, i32
 }

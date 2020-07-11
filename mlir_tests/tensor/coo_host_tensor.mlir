@@ -17,7 +17,7 @@
 
 // CHECK-LABEL: --- Running 'basic_tensor'
 func @basic_tensor() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %c1 = tfrt_dht.fill_tensor_with_constant.i32 %a, %c0 4 : i32
@@ -33,12 +33,12 @@ func @basic_tensor() {
   // CHECK: CooHostTensor dtype = I32, shape = [2, 3], indices = [], values = []
   %c6 = tfrt_dht.print_tensor %s2, %c5
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'tensor_roundtrip'
 func @tensor_roundtrip() {
-  %c1 = hex.new.chain
+  %c1 = tfrt.new.chain
 
   // Keep tensor uninitialized. This means we'll be getting random values in
   // there.
@@ -51,18 +51,18 @@ func @tensor_roundtrip() {
   %cmp2, %c6 = coo.tensor_equal.i32.2 %s, %f, %c4
 
   // CHECK: int1 = 1
-  "hex.print.i1"(%cmp, %c5) : (i1, !hex.chain) -> (!hex.chain)
+  "tfrt.print.i1"(%cmp, %c5) : (i1, !tfrt.chain) -> (!tfrt.chain)
 
   // CHECK: int1 = 1
-  "hex.print.i1"(%cmp2, %c6) : (i1, !hex.chain) -> (!hex.chain)
+  "tfrt.print.i1"(%cmp2, %c6) : (i1, !tfrt.chain) -> (!tfrt.chain)
 
-  hex.return
+  tfrt.return
 }
 
 // Testing tensor_equal.
 // CHECK-LABEL: --- Running 'tensor_equal'
 func @tensor_equal() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %c1 = tfrt_dht.fill_tensor_with_constant.i32 %a, %c0 4 : i32
@@ -71,7 +71,7 @@ func @tensor_equal() {
   %cmp, %c3 = coo.tensor_equal.i32.2 %s1, %s1, %c2
 
   // CHECK: int1 = 1
-  "hex.print.i1"(%cmp, %c3) : (i1, !hex.chain) -> (!hex.chain)
+  "tfrt.print.i1"(%cmp, %c3) : (i1, !tfrt.chain) -> (!tfrt.chain)
 
   %z = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %c4 = tfrt_dht.fill_tensor_with_constant.i32 %z, %c0 1 : i32
@@ -80,14 +80,14 @@ func @tensor_equal() {
   %cmp2, %c6 = coo.tensor_equal.i32.2 %s1, %s2, %c5
 
   // CHECK: int1 = 0
-  "hex.print.i1"(%cmp2, %c6) : (i1, !hex.chain) -> (!hex.chain)
+  "tfrt.print.i1"(%cmp2, %c6) : (i1, !tfrt.chain) -> (!tfrt.chain)
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'basic_f32_tensor'
 func @basic_f32_tensor() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = tfrt_dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]
   %c1 = tfrt_dht.fill_tensor_with_constant.f32 %a, %c0 1.0 : f32
@@ -96,5 +96,5 @@ func @basic_f32_tensor() {
   // CHECK: CooHostTensor dtype = F32, shape = [2, 2], indices = [0, 0, 0, 1, 1, 0, 1, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %c3 = tfrt_dht.print_tensor %s1, %c2
 
-  hex.return
+  tfrt.return
 }

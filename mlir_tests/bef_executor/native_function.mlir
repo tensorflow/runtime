@@ -14,55 +14,55 @@
 
 // RUN: bef_executor $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
-func @native_add(%a: i32, %b: i32) -> i32 attributes {hex.native}
-func @native_async_add(%a: i32, %b: i32) -> i32 attributes {hex.native}
+func @native_add(%a: i32, %b: i32) -> i32 attributes {tfrt.native}
+func @native_async_add(%a: i32, %b: i32) -> i32 attributes {tfrt.native}
 
 // CHECK-LABEL: --- Running 'call_native_add'
 func @call_native_add() {
-  %a = hex.constant.i32 1
-  %b = hex.constant.i32 2
+  %a = tfrt.constant.i32 1
+  %b = tfrt.constant.i32 2
 
-  %r = hex.call @native_add(%a, %b) : (i32, i32) -> i32
+  %r = tfrt.call @native_add(%a, %b) : (i32, i32) -> i32
 
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
   // CHECK: int32 = 3
-  hex.print.i32 %r, %ch0
+  tfrt.print.i32 %r, %ch0
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'call_native_async_add'
 func @call_native_async_add() {
-  %a = hex.constant.i32 1
-  %b = hex.constant.i32 2
+  %a = tfrt.constant.i32 1
+  %b = tfrt.constant.i32 2
 
-  %r = hex.call @native_async_add(%a, %b) : (i32, i32) -> i32
+  %r = tfrt.call @native_async_add(%a, %b) : (i32, i32) -> i32
 
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
   // CHECK: int32 = 3
-  hex.print.i32 %r, %ch0
+  tfrt.print.i32 %r, %ch0
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'call_native_add_with_unavailable_input'
 func @call_native_add_with_unavailable_input() {
-  %a = hex.constant.i32 1
-  %b = hex.constant.i32 1
+  %a = tfrt.constant.i32 1
+  %b = tfrt.constant.i32 1
   %c = tfrt_test.do.async %a, %b : (i32, i32) -> (i32) {
-    %y_res = hex.add.i32 %a, %b
-    hex.return %y_res : i32
+    %y_res = tfrt.add.i32 %a, %b
+    tfrt.return %y_res : i32
   }
 
-  %r = hex.call @native_add(%a, %c) : (i32, i32) -> i32
+  %r = tfrt.call @native_add(%a, %c) : (i32, i32) -> i32
 
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
   // CHECK: int32 = 3
-  hex.print.i32 %r, %ch0
+  tfrt.print.i32 %r, %ch0
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'native_error'
 // CHECK: something bad happened
-func @native_error() -> i32 attributes {hex.native}
+func @native_error() -> i32 attributes {tfrt.native}

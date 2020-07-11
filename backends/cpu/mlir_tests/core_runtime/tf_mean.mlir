@@ -15,8 +15,8 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'mean'
-func @mean() -> !hex.chain {
-  %ch_1 = hex.new.chain
+func @mean() -> !tfrt.chain {
+  %ch_1 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_1 "cpu"
 
   %input_1 = corert.executeop(%cpu) "tf.Const"()
@@ -28,6 +28,6 @@ func @mean() -> !hex.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [1, 1], values = [2.500000e+00]
   %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
-  hex.return %ch_2 : !hex.chain
+  tfrt.return %ch_2 : !tfrt.chain
 }
 

@@ -23,12 +23,12 @@
 #define TFRT_OP_BASE
 
 include "mlir/IR/OpBase.td"
-include "tfrt/basic_kernels/opdefs/hex_base.td"
+include "tfrt/basic_kernels/opdefs/tfrt_base.td"
 
 //===----------------------------------------------------------------------===//
 // Type definitions
 //===----------------------------------------------------------------------===//
-def StringType : OpaqueType<"hex", "string", "!hex.string type">;
+def StringType : OpaqueType<"tfrt", "string", "!tfrt.string type">;
 
 def TensorType
   : OpaqueType<"t", "tensor", "tensor">;

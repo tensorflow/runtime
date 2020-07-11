@@ -50,12 +50,12 @@ DataDialect::DataDialect(MLIRContext *context)
 namespace {
 
 static Type GetIteratorType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("hex"), "iterator",
+  return OpaqueType::get(builder->getIdentifier("tfrt"), "iterator",
                          builder->getContext());
 }
 
 static Type GetChainType(Builder *builder) {
-  return builder->getType<hex::ChainType>();
+  return builder->getType<ChainType>();
 }
 
 }  // namespace

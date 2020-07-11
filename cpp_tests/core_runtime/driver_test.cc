@@ -247,7 +247,7 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
       };
 
   TypeName chain_type =
-      driver_.GetHostContext()->GetKernelRegistry().GetType("!hex.chain");
+      driver_.GetHostContext()->GetKernelRegistry().GetType("!tfrt.chain");
   TypeName tensor_handle_type =
       driver_.GetHostContext()->GetKernelRegistry().GetType(
           CoreRuntime::kTensorHandleType);

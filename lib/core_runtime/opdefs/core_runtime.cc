@@ -172,7 +172,7 @@ static Type GetDeviceType(Builder *builder) {
 }
 
 static Type GetChainType(Builder *builder) {
-  return builder->getType<hex::ChainType>();
+  return builder->getType<ChainType>();
 }
 
 static Type GetTensorHandleType(Builder *builder) {

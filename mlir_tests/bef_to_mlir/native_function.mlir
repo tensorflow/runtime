@@ -15,13 +15,13 @@
 // RUN: tfrt_translate -mlir-to-bef %s | tfrt_translate --bef-to-mlir | tfrt_opt -allow-unregistered-dialect | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: func @some_func
-// CHECK-SAME: hex.native
-func @some_func(%x: i32) -> i32 attributes {hex.native}
+// CHECK-SAME: tfrt.native
+func @some_func(%x: i32) -> i32 attributes {tfrt.native}
 
 // CHECK-LABEL: func @call_native
 func @call_native(%x : i32) -> i32 {
 
   // CHECK: "native_call"({{.*}}) {callee = @some_func}
   %r = "native_call"(%x) {callee = @some_func} : (i32) -> i32
-  hex.return %r : i32
+  tfrt.return %r : i32
 }

@@ -23,10 +23,8 @@
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 
 namespace tfrt {
-namespace hex {
 
 // Static initialization for dialect registration.
-static ::mlir::DialectRegistration<HexDialect> hex_registration;
+static ::mlir::DialectRegistration<TFRTDialect> tfrt_registration;
 
-}  // namespace hex
 }  // namespace tfrt

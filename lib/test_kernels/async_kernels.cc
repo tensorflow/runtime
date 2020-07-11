@@ -39,19 +39,19 @@ void SleepForRandomDuration() {
   std::this_thread::sleep_for(std::chrono::milliseconds(dist(rng)));
 }
 
-static AsyncValueRef<int32_t> HexAsyncAddI32(int32_t arg0, int32_t arg1,
-                                             const ExecutionContext& exec_ctx) {
+static AsyncValueRef<int32_t> TestAsyncAddI32(
+    int32_t arg0, int32_t arg1, const ExecutionContext& exec_ctx) {
   // Even though a single scalar add is trivial, we can do it on a background
   // thread if we'd like!
   return exec_ctx.host()->EnqueueWork([arg0, arg1] { return arg0 + arg1; });
 }
 
-static AsyncValueRef<bool> HexAsyncConstantI1(
+static AsyncValueRef<bool> TestAsyncConstantI1(
     Attribute<int8_t> arg, const ExecutionContext& exec_ctx) {
   return exec_ctx.host()->EnqueueWork([arg = *arg] { return arg != 0; });
 }
 
-static AsyncValueRef<int32_t> HexAsyncConstantI32(
+static AsyncValueRef<int32_t> TestAsyncConstantI32(
     Attribute<int32_t> arg, const ExecutionContext& exec_ctx) {
   return exec_ctx.host()->EnqueueWork([arg = *arg] { return arg; });
 }
@@ -88,16 +88,18 @@ static AsyncValueRef<T> TestAsyncCopyWithDelay(
 
 // Install some async kernels for use by the test driver.
 void RegisterAsyncKernels(KernelRegistry* registry) {
-  registry->AddKernel("hex.async_constant.i1", TFRT_KERNEL(HexAsyncConstantI1));
-  registry->AddKernel("hex.async_constant.i32",
-                      TFRT_KERNEL(HexAsyncConstantI32));
-  registry->AddKernel("hex.async_add.i32", TFRT_KERNEL(HexAsyncAddI32));
-  registry->AddKernel("hex.async_copy.i32",
+  registry->AddKernel("tfrt_test.async_constant.i1",
+                      TFRT_KERNEL(TestAsyncConstantI1));
+  registry->AddKernel("tfrt_test.async_constant.i32",
+                      TFRT_KERNEL(TestAsyncConstantI32));
+  registry->AddKernel("tfrt_test.async_add.i32", TFRT_KERNEL(TestAsyncAddI32));
+  registry->AddKernel("tfrt_test.async_copy.i32",
                       TFRT_KERNEL(TestAsyncCopy<int32_t>));
-  registry->AddKernel("hex.async_copy.with_delay.i32",
+  registry->AddKernel("tfrt_test.async_copy.with_delay.i32",
                       TFRT_KERNEL(TestAsyncCopyWithDelay<int32_t>));
-  registry->AddKernel("hex.async_copy.with_delay.i64",
+  registry->AddKernel("tfrt_test.async_copy.with_delay.i64",
                       TFRT_KERNEL(TestAsyncCopyWithDelay<int64_t>));
-  registry->AddKernel("hex.async_copy_2.i32", TFRT_KERNEL(TestAsyncCopy2));
+  registry->AddKernel("tfrt_test.async_copy_2.i32",
+                      TFRT_KERNEL(TestAsyncCopy2));
 }
 }  // namespace tfrt

@@ -19,34 +19,35 @@ Create a file called `hello.mlir` with the following content:
 
 ```c++
 func @hello() {
-  %chain = hex.new.chain
+  %chain = tfrt.new.chain
 
   // Create a string containing "hello world" and store it in %hello.
-  %hello = "tfrt_test.get_string"() { value = "hello world" } : () -> !hex.string
+  %hello = "tfrt_test.get_string"() { value = "hello world" } : () -> !tfrt.string
 
   // Print the string in %hello.
-  "tfrt_test.print_string"(%hello, %chain) : (!hex.string, !hex.chain) -> !hex.chain
+  "tfrt_test.print_string"(%hello, %chain) : (!tfrt.string, !tfrt.chain) -> !tfrt.chain
 
-  hex.return
+  tfrt.return
 }
 ```
 
 The `@hello` function above shows how to create and print a string. The text
 after each `:` specifies the types involved:
 
--   `() -> !hex.string` means that `tfrt_test.get_string` takes no arguments and
-    returns a `!hex.string`. `hex` stands for "host executor", a name which we
-    might revisit in future design.
--   `(!hex.string, !hex.chain) -> !hex.chain` means that
-    `tfrt_test.print_string` takes two arguments (`!hex.string` and
-    `!hex.chain`) and returns a `!hex.chain`. `chain` is a TFRT abstraction to
+-   `() -> !tfrt.string` means that `tfrt_test.get_string` takes no arguments
+    and returns a `!tfrt.string`. `tfrt` stands for "host executor", a name
+    which we might revisit in future design.
+-   `(!tfrt.string, !tfrt.chain) -> !tfrt.chain` means that
+    `tfrt_test.print_string` takes two arguments (`!tfrt.string` and
+    `!tfrt.chain`) and returns a `!tfrt.chain`. `chain` is a TFRT abstraction to
     manage dependencies; see [explicit_dependency.md](explicit_dependency.md).
 
 `tfrt_test.get_string`'s `value` is an *attribute*, not an argument. Attributes
 are compile-time constants, while arguments are only available at runtime upon
 kernel/function invocation.
 
-This example code ignores the `!hex.chain` returned by `tfrt_test.print_string`.
+This example code ignores the `!tfrt.chain` returned by
+`tfrt_test.print_string`.
 
 Translate `hello.mlir` to [BEF](binary_executable_format.md) by running
 `tfrt_translate --mlir_to_bef`:
@@ -55,21 +56,10 @@ Translate `hello.mlir` to [BEF](binary_executable_format.md) by running
 $ bazel-bin/tools/tfrt_translate --mlir-to-bef hello.mlir > hello.bef
 ```
 
-You can dump the encoded BEF file, and see that it contains the `hello world`
-string attribute:
+You can dump the encoded BEF file:
 
 ```shell
 $ hexdump -C hello.bef
-00000000  0b ef 00 02 00 01 16 68  65 6c 6c 6f 2e 6d 6c 69  |.......hello.mli|
-00000010  72 00 02 18 00 02 0c 00  05 0c 00 08 03 00 01 01  |r...............|
-00000020  03 81 3a 21 68 65 78 2e  63 68 61 69 6e 00 21 68  |..:!hex.chain.!h|
-00000030  65 78 2e 73 74 72 69 6e  67 00 68 65 6c 6c 6f 00  |ex.string.hello.|
-00000040  68 65 78 2e 6e 65 77 2e  63 68 61 69 6e 00 74 66  |hex.new.chain.tf|
-00000050  72 74 5f 74 65 73 74 2e  67 65 74 5f 73 74 72 69  |rt_test.get_stri|
-00000060  6e 67 00 74 66 72 74 5f  74 65 73 74 2e 70 72 69  |ng.tfrt_test.pri|
-00000070  6e 74 5f 73 74 72 69 6e  67 00 76 61 6c 75 65 00  |nt_string.value.|
-00000080  04 18 0b 68 65 6c 6c 6f  20 77 6f 72 6c 64 05 08  |...hello world..|
-...
 ```
 
 Run `hello.bef` with `bef_executor` to see it print `hello world`:
@@ -100,21 +90,21 @@ following to `hello.mlir`:
 
 ```c++
 func @hello_integers() {
-  %chain = hex.new.chain
+  %chain = tfrt.new.chain
 
   // Create an integer containing 42.
-  %forty_two = hex.constant.i32 42
+  %forty_two = tfrt.constant.i32 42
 
   // Print 42.
-  hex.print.i32 %forty_two, %chain
+  tfrt.print.i32 %forty_two, %chain
 
-  hex.return
+  tfrt.return
 }
 ```
 
 `@hello_integers` shows how to create and print integers. This example does not
 have the verbose type information we saw in `@hello` because we've defined
-custom parsers for the `hex.constant.i32` and `hex.print.32` kernels in
+custom parsers for the `tfrt.constant.i32` and `tfrt.print.32` kernels in
 [basic_kernels.td](https://github.com/tensorflow/runtime/blob/master/include/tfrt/basic_kernels/opdefs/basic_kernels.td).
 See MLIR's
 [Operation Definition Specification (ODS)](https://mlir.llvm.org/docs/OpDefinitions/)
@@ -214,16 +204,16 @@ kernels:
 
 ```c++
 func @print_coordinate() {
-  %chain = hex.new.chain
+  %chain = tfrt.new.chain
 
-  %two = hex.constant.i32 2
-  %four = hex.constant.i32 4
+  %two = tfrt.constant.i32 2
+  %four = tfrt.constant.i32 4
 
   %coordinate = "my.create_coordinate"(%two, %four) : (i32, i32) -> !my.coordinate
 
-  "my.print_coordinate"(%coordinate, %chain) : (!my.coordinate, !hex.chain) -> !hex.chain
+  "my.print_coordinate"(%coordinate, %chain) : (!my.coordinate, !tfrt.chain) -> !tfrt.chain
 
-  hex.return
+  tfrt.return
 }
 ```
 

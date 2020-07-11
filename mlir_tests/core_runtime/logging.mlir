@@ -15,8 +15,8 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices="sync_logging|cpu" 2>&1 | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Running 'test_logger'
-func @test_logger() -> !hex.chain {
-  %ch0 = hex.new.chain
+func @test_logger() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
   %log = corert.get_op_handler %ch0 "sync_logging"
 
   // CHECK: [0] dispatch 'tfrt_test.create_dense_tensor' 0 arguments, 1 result, OpAttrs contains 2 entries:
@@ -29,7 +29,7 @@ func @test_logger() -> !hex.chain {
   %b_handle = corert.executeop(%log) "tfrt_test.odd_collector"(%a_handle) : 1
 
   // CHECK: DenseHostTensor dtype = I32, shape = [3], values = [1, 3, 5]
-  %ch3 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !hex.chain) -> !hex.chain
+  %ch3 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  hex.return %ch3 : !hex.chain
+  tfrt.return %ch3 : !tfrt.chain
 }

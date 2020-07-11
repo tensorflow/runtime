@@ -43,33 +43,33 @@ func @basic_shape() {
   // CHECK: shape = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
   ts.print_shape %d
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'tensor_shape_equal'
 func @tensor_shape_equal() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
   // Normal shape.
   %a1 = ts.build_shape [1 : i64, 57 : i64, 92 : i64]
   %a2 = ts.build_shape [1 : i64, 57 : i64, 92 : i64]
   %aa = ts.equal_shape %a1, %a2
   // CHECK: int1 = 1
-  hex.print.i1 %aa, %ch0
+  tfrt.print.i1 %aa, %ch0
 
   // Zero-D shape.
   %b1 = ts.build_shape []
   %b2 = ts.build_shape []
   %bb = ts.equal_shape %b1, %b2
   // CHECK: int1 = 1
-  hex.print.i1 %bb, %ch0
+  tfrt.print.i1 %bb, %ch0
 
   // 32-bit shape.
   %c1 = ts.build_shape [ 65537 : i64 ]
   %c2 = ts.build_shape [ 65537 : i64 ]
   %cc = ts.equal_shape %c1, %c2
   // CHECK: int1 = 1
-  hex.print.i1 %cc, %ch0
+  tfrt.print.i1 %cc, %ch0
 
   // High rank shape.
   %d1 = ts.build_shape [
@@ -80,34 +80,34 @@ func @tensor_shape_equal() {
          5 : i64, 6 : i64, 7 : i64, 8 : i64, 9 : i64 ]
   %dd = ts.equal_shape %d1, %d2
   // CHECK: int1 = 1
-  hex.print.i1 %dd, %ch0
+  tfrt.print.i1 %dd, %ch0
 
   // Inequality.
   %ab = ts.equal_shape %a1, %b1
   // CHECK: int1 = 0
-  hex.print.i1 %ab, %ch0
+  tfrt.print.i1 %ab, %ch0
 
   %ac = ts.equal_shape %a1, %c1
   // CHECK: int1 = 0
-  hex.print.i1 %ac, %ch0
+  tfrt.print.i1 %ac, %ch0
 
   %ad = ts.equal_shape %a1, %d1
   // CHECK: int1 = 0
-  hex.print.i1 %ad, %ch0
+  tfrt.print.i1 %ad, %ch0
 
   %bc = ts.equal_shape %b1, %c1
   // CHECK: int1 = 0
-  hex.print.i1 %bc, %ch0
+  tfrt.print.i1 %bc, %ch0
 
   %bd = ts.equal_shape %b1, %d1
   // CHECK: int1 = 0
-  hex.print.i1 %bd, %ch0
+  tfrt.print.i1 %bd, %ch0
 
   %cd = ts.equal_shape %c1, %d1
   // CHECK: int1 = 0
-  hex.print.i1 %cd, %ch0
+  tfrt.print.i1 %cd, %ch0
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'representation_edge_cases'
@@ -160,7 +160,7 @@ func @representation_edge_cases() {
   // CHECK: shape = [4294967295, 4294967295, 4294967295, 65536]
   ts.print_shape %f
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'fixed_rank_shape'
@@ -171,5 +171,5 @@ func @fixed_rank_shape() {
   // CHECK: fixed_rank_shape = [1, 57, 92]
   ts.print_fixed_rank_shape.3 %b
 
-  hex.return
+  tfrt.return
 }

@@ -276,14 +276,18 @@ static bool IsSupportedAttribute(mlir::Attribute attr) {
   return IsSupportedAttributeValue(attr);
 }
 
-// The "hex.return" kernel gets special case handling in BEF files.
+// The "tfrt.return" kernel gets special case handling in BEF files.
 static bool IsReturn(mlir::Operation* op) {
-  return op->getName().getStringRef() == "hex.return";
+  // TODO(tfrt-dev): Use C++ op type here instead of relying on string
+  // comparing.
+  return op->getName().getStringRef() == "tfrt.return";
 }
 
-static bool IsNativeFunc(mlir::FuncOp op) { return !!op.getAttr("hex.native"); }
+static bool IsNativeFunc(mlir::FuncOp op) {
+  return !!op.getAttr("tfrt.native");
+}
 
-static bool IsSyncFunc(mlir::FuncOp op) { return !!op.getAttr("hex.sync"); }
+static bool IsSyncFunc(mlir::FuncOp op) { return !!op.getAttr("tfrt.sync"); }
 
 static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   // Emit information about the type of the function.
@@ -295,7 +299,7 @@ static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
 
   // Results.
   // MLIR Regions don't have an easy way to identify results in regions, so
-  // we just hard code the "hex.return" instruction.
+  // we just hard code the "tfrt.return" instruction.
   auto& last_op = block.back();
   assert(IsReturn(&last_op));
 
@@ -582,7 +586,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
         // Verify that all functions end with a return to catch a common error.
         auto& last_op = fn.front().back();
         if (!IsReturn(&last_op)) {
-          last_op.emitError() << "all functions need to have a hex.return";
+          last_op.emitError() << "all functions need to have a tfrt.return";
           result = LogicalResult::Failure;
           return;
         }

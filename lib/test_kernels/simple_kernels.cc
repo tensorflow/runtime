@@ -178,7 +178,7 @@ static AsyncValueRef<T> TestCopyWithDelay(Argument<T> in,
 }
 
 //===----------------------------------------------------------------------===//
-// hex count3 kernels. For input x, returns x+1, x+2, x+3
+// tfrt_test count3 kernels. For input x, returns x+1, x+2, x+3
 // For demonstrating using std::tuple to return multiple outputs
 //===----------------------------------------------------------------------===//
 template <typename T>

@@ -16,43 +16,43 @@
 
 // CHECK: --- Running 'hello'
 func @hello() {
-  %chain = hex.new.chain
+  %chain = tfrt.new.chain
 
   // Create a string containing "hello world" and store it in %hello.
-  %hello = "tfrt_test.get_string"() { value = "hello world" } : () -> !hex.string
+  %hello = "tfrt_test.get_string"() { value = "hello world" } : () -> !tfrt.string
 
   // Print the string in %hello.
   // CHECK: string = hello world
-  "tfrt_test.print_string"(%hello, %chain) : (!hex.string, !hex.chain) -> !hex.chain
+  "tfrt_test.print_string"(%hello, %chain) : (!tfrt.string, !tfrt.chain) -> !tfrt.chain
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK: --- Running 'hello_integers'
 func @hello_integers() {
-  %chain = hex.new.chain
+  %chain = tfrt.new.chain
 
   // Create an integer containing 42.
-  %forty_two = hex.constant.i32 42
+  %forty_two = tfrt.constant.i32 42
 
   // Print 42.
   // CHECK: int32 = 42
-  hex.print.i32 %forty_two, %chain
+  tfrt.print.i32 %forty_two, %chain
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK: --- Running 'print_coordinate'
 func @print_coordinate() {
-  %chain = hex.new.chain
+  %chain = tfrt.new.chain
 
-  %two = hex.constant.i32 2
-  %four = hex.constant.i32 4
+  %two = tfrt.constant.i32 2
+  %four = tfrt.constant.i32 4
 
   %coordinate = "tfrt_tutorial.create_coordinate"(%two, %four) : (i32, i32) -> !my.coordinate
 
   // CHECK: (2, 4)
-  "tfrt_tutorial.print_coordinate"(%coordinate, %chain) : (!my.coordinate, !hex.chain) -> !hex.chain
+  "tfrt_tutorial.print_coordinate"(%coordinate, %chain) : (!my.coordinate, !tfrt.chain) -> !tfrt.chain
 
-  hex.return
+  tfrt.return
 }

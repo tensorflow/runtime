@@ -16,7 +16,7 @@
 
 //===- basic_kernels.h - MLIR opdefs for basic_kernels library --*- C++ -*-===//
 //
-// This file declares the 'hex' dialect as well as the operators that make up
+// This file declares the 'tfrt' dialect as well as the operators that make up
 // the basic_kernels library.
 //
 //===----------------------------------------------------------------------===//
@@ -26,17 +26,15 @@
 
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "tfrt/basic_kernels/opdefs/hex_base.h"
+#include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 
 using namespace mlir;
 
 namespace tfrt {
-namespace hex {
 
 #define GET_OP_CLASSES
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h.inc"
 
-}  // namespace hex
 }  // namespace tfrt
 
 #endif  // TFRT_BASIC_OPS_OPDEFS_BASIC_OPS_H_

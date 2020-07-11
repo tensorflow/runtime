@@ -20,107 +20,107 @@
 
 func @fizzbuzz_compute(%n : i32) -> (i32, i32, i32)
 {
-  %zero = hex.constant.i32 0
-  %one = hex.constant.i32 1
-  %two = hex.constant.i32 2
-  %three = hex.constant.i32 3
-  %six = hex.constant.i32 6
+  %zero = tfrt.constant.i32 0
+  %one = tfrt.constant.i32 1
+  %two = tfrt.constant.i32 2
+  %three = tfrt.constant.i32 3
+  %six = tfrt.constant.i32 6
 
   // TODO(b/146014117): Don't compute constant.i32 0 multiple times.
-  %fizzbuzz0 = hex.constant.i32 0
-  %buzz0 = hex.constant.i32 0
-  %fizz0 = hex.constant.i32 0
+  %fizzbuzz0 = tfrt.constant.i32 0
+  %buzz0 = tfrt.constant.i32 0
+  %fizz0 = tfrt.constant.i32 0
 
-  %i0 = hex.constant.i32 0
+  %i0 = tfrt.constant.i32 0
 
   %i2, %fizzbuzz3, %buzz4, %fizz5, %zero1, %one1, %two1, %three1, %six1 =
-      hex.repeat.i32
+      tfrt.repeat.i32
       %n, %i0, %fizzbuzz0, %buzz0, %fizz0, %zero, %one, %two, %three, %six :
       i32, i32, i32, i32, i32, i32, i32, i32, i32 {
-    %i1 = hex.add.i32 %i0, %one
+    %i1 = tfrt.add.i32 %i0, %one
 
-    %quot, %rem = hex.div.i32 %i1, %six
-    %isfizzbuzz = hex.equal.i32 %rem, %zero
+    %quot, %rem = tfrt.div.i32 %i1, %six
+    %isfizzbuzz = tfrt.equal.i32 %rem, %zero
 
-    %fizzbuzz2, %buzz3, %fizz4 = hex.if
+    %fizzbuzz2, %buzz3, %fizz4 = tfrt.if
         %isfizzbuzz, %i1, %fizzbuzz0, %buzz0, %fizz0, %zero, %one, %two, %three :
         (i32, i32, i32, i32, i32, i32, i32, i32) -> (i32, i32, i32) {
 
-        %fizzbuzz1 = hex.add.i32 %fizzbuzz0, %one
-        hex.return %fizzbuzz1, %buzz0, %fizz0 : i32, i32, i32
+        %fizzbuzz1 = tfrt.add.i32 %fizzbuzz0, %one
+        tfrt.return %fizzbuzz1, %buzz0, %fizz0 : i32, i32, i32
 
     } else {
 
-      %quot, %rem = hex.div.i32 %i1, %three
-      %isfizz = hex.equal.i32 %rem, %zero
+      %quot, %rem = tfrt.div.i32 %i1, %three
+      %isfizz = tfrt.equal.i32 %rem, %zero
 
-      %buzz2, %fizz3 = hex.if
+      %buzz2, %fizz3 = tfrt.if
           %isfizz, %i1, %buzz0, %fizz0, %zero, %one, %two :
           (i32, i32, i32, i32, i32, i32) -> (i32, i32) {
 
-        %buzz1 = hex.add.i32 %buzz0, %one
-        hex.return %buzz1, %fizz0 : i32, i32
+        %buzz1 = tfrt.add.i32 %buzz0, %one
+        tfrt.return %buzz1, %fizz0 : i32, i32
 
       } else {
 
-        %quot, %rem = hex.div.i32 %i1, %two
-        %isbuzz = hex.equal.i32 %rem, %zero
+        %quot, %rem = tfrt.div.i32 %i1, %two
+        %isbuzz = tfrt.equal.i32 %rem, %zero
 
-        %fizz2 = hex.if
+        %fizz2 = tfrt.if
             %isbuzz, %i1, %fizz0, %one :
             (i32, i32, i32) -> (i32) {
-          %fizz1 = hex.add.i32 %fizz0, %one
-          hex.return %fizz1 : i32
+          %fizz1 = tfrt.add.i32 %fizz0, %one
+          tfrt.return %fizz1 : i32
         } else {
-          hex.return %fizz0 : i32
+          tfrt.return %fizz0 : i32
         }
 
-        hex.return %buzz0, %fizz2 : i32, i32
+        tfrt.return %buzz0, %fizz2 : i32, i32
       }
 
-      hex.return %fizzbuzz0, %buzz2, %fizz3 : i32, i32, i32
+      tfrt.return %fizzbuzz0, %buzz2, %fizz3 : i32, i32, i32
     }
 
-    hex.return %i1, %fizzbuzz2, %buzz3, %fizz4, %zero, %one, %two, %three, %six :
+    tfrt.return %i1, %fizzbuzz2, %buzz3, %fizz4, %zero, %one, %two, %three, %six :
         i32, i32, i32, i32, i32, i32, i32, i32, i32
   }
 
-  hex.return %fizzbuzz3, %buzz4, %fizz5 : i32, i32, i32
+  tfrt.return %fizzbuzz3, %buzz4, %fizz5 : i32, i32, i32
 }
 
 
 // CHECK-LABEL: --- Running 'fizzbuzz'
-func @fizzbuzz() -> !hex.chain {
-  %ch0 = hex.new.chain
+func @fizzbuzz() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
 
-  %n = hex.constant.i32 1000
+  %n = tfrt.constant.i32 1000
 
   %fizzbuzz0, %fizz0, %buzz0 =
-      hex.call @fizzbuzz_compute(%n) : (i32) -> (i32, i32, i32)
+      tfrt.call @fizzbuzz_compute(%n) : (i32) -> (i32, i32, i32)
 
   // 1000 // 6
   // CHECK: int32 = 166
-  %ch1 = hex.print.i32 %fizzbuzz0, %ch0
+  %ch1 = tfrt.print.i32 %fizzbuzz0, %ch0
   // 1000 // 3 - 1000 // 6
   // CHECK: int32 = 167
-  %ch2 = hex.print.i32 %fizz0, %ch1
+  %ch2 = tfrt.print.i32 %fizz0, %ch1
   // 1000 // 2 - 1000 // 6
   // CHECK: int32 = 334
-  %ch3 = hex.print.i32 %buzz0, %ch2
+  %ch3 = tfrt.print.i32 %buzz0, %ch2
 
-  hex.return %ch3 : !hex.chain
+  tfrt.return %ch3 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'bm_fizzbuzz'
 func @bm_fizzbuzz() {
-  %n = hex.constant.i32 1000
+  %n = tfrt.constant.i32 1000
 
   tfrt_test.benchmark "bm_fizzbuzz"(%n : i32)
       duration_secs = 4, max_count = 10000, num_warmup_runs = 10 {
       %fizzbuzz0, %fizz0, %buzz0 =
-          hex.call @fizzbuzz_compute(%n) : (i32) -> (i32, i32, i32)
-      hex.return %n : i32
+          tfrt.call @fizzbuzz_compute(%n) : (i32) -> (i32, i32, i32)
+      tfrt.return %n : i32
   }
 
-  hex.return
+  tfrt.return
 }

@@ -187,7 +187,7 @@ example test is shown below:
 
 // CHECK-LABEL: --- Running 'basic_tensor'
 func @basic_tensor() {
-  %c0 = hex.new.chain
+  %c0 = tfrt.new.chain
 
   %a = dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %c1 = dht.fill_tensor_with_constant.i32 %a, %c0 0 : i32
@@ -195,7 +195,7 @@ func @basic_tensor() {
   // CHECK: shape = [3, 2], values = [0, 0, 0, 0, 0, 0]
   %c2 = dht.print_tensor %a, %c1
 
-  hex.return
+  tfrt.return
 }
 ```
 

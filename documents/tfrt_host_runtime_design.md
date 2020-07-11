@@ -140,7 +140,7 @@ An example kernel implementation is shown below:
 ```c++
 // Kernel that adds two integers.
 // KernelFrame holds the kernel’s arguments and results.
-static void HexAdd(KernelFrame* frame) {
+static void TFRTAdd(KernelFrame* frame) {
   // Fetch the kernel’s 0th argument.
   AsyncValue* arg1 = frame->GetArgAt(0);
   // Fetch the kernel’s 1st argument.
@@ -176,12 +176,12 @@ Here is an example graph function, expressed in MLIR:
 
 ```c++
 func @sample_function() -> i32 {
-  %one = hex.constant.i32 1       // Make AsyncValue with value 1
-  %two = hex.constant.i32 2       // Make AsyncValue with value 2
-  %three = hex.add.i32 %one, %two // Make AsyncValue with value 3 (1+2)
+  %one = tfrt.constant.i32 1       // Make AsyncValue with value 1
+  %two = tfrt.constant.i32 2       // Make AsyncValue with value 2
+  %three = tfrt.add.i32 %one, %two // Make AsyncValue with value 3 (1+2)
 
-  hex.print.i32 %three            // Print AsyncValue %three
-  hex.return %three : i32         // Return AsyncValue %three
+  tfrt.print.i32 %three            // Print AsyncValue %three
+  tfrt.return %three : i32         // Return AsyncValue %three
 }
 ```
 
@@ -450,17 +450,17 @@ A host program describes a DAG of kernels to be executed, analogous to a
 GraphDef. Here is an example host program, expressed in MLIR.
 
 ```c++
-func @sample_function(%ch0 : !hex.chain) -> (i32, !hex.chain) {
+func @sample_function(%ch0 : !tfrt.chain) -> (i32, !tfrt.chain) {
     // %one is an AsyncValue with constant 1.
-    %one = hex.constant.i32 1
+    %one = tfrt.constant.i32 1
     // %two is an AsyncValue with constant 2.
-    %two = hex.constant.i32 2
+    %two = tfrt.constant.i32 2
     // %three is an AsyncValue with constant 3.
-    %three = hex.add.i32 %one, %two
+    %three = tfrt.add.i32 %one, %two
     // Print %three and produce chain %ch1.
-    %ch1 = hex.print.i32 %three, %ch0
+    %ch1 = tfrt.print.i32 %three, %ch0
     // Returns %three and %ch1.
-    hex.return %three, %ch1 : i32, !hex.chain
+    tfrt.return %three, %ch1 : i32, !tfrt.chain
 }
 ```
 
@@ -490,7 +490,7 @@ TFRT kernels do not dynamically type check, for better performance. The
 kernel’s arguments to `int32_t`.
 
 ```c++
-static int32_t HexAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
+static int32_t TFRTAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
   return *arg0 + *arg1;
 }
 ```
@@ -568,14 +568,14 @@ the argument `AsyncValue`.
 
 ```c++
 // A kernel that synchronously returns one value may return the value
-// normally (static int32_t HexAddI32(...)). This is equivalent to
-//   static void HexAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1,
+// normally (static int32_t TFRTAddI32(...)). This is equivalent to
+//   static void TFRTAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1,
 //                         Result<int32_t> result)
-static int32_t HexAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
+static int32_t TFRTAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
   return *arg0 + *arg1;
 }
 
-static Chain HexPrintI32(Argument<int32_t> arg, Argument<Chain> chain) {
+static Chain TFRTPrintI32(Argument<int32_t> arg, Argument<Chain> chain) {
   printf("%d\n", *arg);
   return *chain;
 }
@@ -639,7 +639,7 @@ resources, such as the concurrent work queue, host allocator, or shared context,
 they can also take a `HostContext` as an argument.
 
 ```c++
-static void HexIf(RemainingArguments args, RemainingResults results,
+static void TFRTIf(RemainingArguments args, RemainingResults results,
                   Attribute<Function> true_fn_const,
                   Attribute<Function> false_fn_const, HostContext* host) {
   const Function* true_fn = &(*true_fn_const);
@@ -655,10 +655,10 @@ attributes.
 
 ```c++
 void RegisterIntegerKernels(KernelRegistry* registry) {
-  registry->AddKernel("hex.constant.i1", TFRT_KERNEL(HexConstantI1));
-  registry->AddKernel("hex.constant.i32", TFRT_KERNEL(HexConstantI32));
-  registry->AddKernel("hex.add.i32", TFRT_KERNEL(HexAddI32));
-  registry->AddKernel("hex.lessequal.i32", TFRT_KERNEL(HexLessEqualI32));
+  registry->AddKernel("tfrt.constant.i1", TFRT_KERNEL(TFRTConstantI1));
+  registry->AddKernel("tfrt.constant.i32", TFRT_KERNEL(TFRTConstantI32));
+  registry->AddKernel("tfrt.add.i32", TFRT_KERNEL(TFRTAddI32));
+  registry->AddKernel("tfrt.lessequal.i32", TFRT_KERNEL(TFRTLessEqualI32));
 }
 ```
 
@@ -676,16 +676,16 @@ equivalently a TFRT kernel). It uses the
 [LLVM TableGen](https://llvm.org/docs/TableGen/) underneath, and is thus concise
 and reduces boilerplate code. It is great for auto-generating C++ classes and
 helper methods (accessors, verifiers etc.). Here is a simple op entry for
-`AddI32Op` or equivalently the `HexAddI32` kernel.
+`AddI32Op` or equivalently the `TFRTAddI32` kernel.
 
 ```c++
-def AddI32Op : Hex_Op<"add.i32"> {
+def AddI32Op : TFRT_Op<"add.i32"> {
  let summary = "add.i32 operation";
  let description = [{
-    The "hex.add.i32" operation takes two I32 arguments and returns their
+    The "tfrt.add.i32" operation takes two I32 arguments and returns their
     sum as the result. Example usage:
 
-      %2 = hex.add.i32 %0, %1
+      %2 = tfrt.add.i32 %0, %1
  }];
  let arguments = (ins I32, I32);
  let results = (outs I32);
@@ -854,8 +854,8 @@ any work to other threads. Synchronous kernels produce available `AsyncValue`s.
 Example:
 
 ```c++
-int32_t HexAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
-  // The thread that calls HexAddI32 performs this addition, and produces
+int32_t TFRTAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
+  // The thread that calls TFRTAddI32 performs this addition, and produces
   // an available AsyncValue.
   return *arg0 + *arg1;
 }
@@ -866,7 +866,7 @@ thread, and an asynchronous part that runs on another thread. Asynchronous
 kernels produce unavailable `AsyncValue`s. Example:
 
 ```c++
-void HexAddI32Async(Argument<int32_t> arg0, Argument<int32_t> arg1,
+void TFRTAddI32Async(Argument<int32_t> arg0, Argument<int32_t> arg1,
                     Result<int32_t> output, HostContext* host) {
   // Synchronously allocate an unavailable AsyncValue for ‘output’.
   auto result = output.Allocate();
@@ -886,7 +886,7 @@ A kernel may be “partially asynchronous” by returning a mix of available and
 unavailable values. Example:
 
 ```c++
-void HexAddI32SyncAsync(Argument<int32_t> arg0, Argument<int32_t> arg1,
+void TFRTAddI32SyncAsync(Argument<int32_t> arg0, Argument<int32_t> arg1,
                         Result<int32_t> sync_result,
                         Result<int32_t> async_result,
                         HostContext* host) {
@@ -988,7 +988,7 @@ values to the executor.
 This kernel synchronously adds two `int32_t`’s:
 
 ```c++
-int32_t HexAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
+int32_t TFRTAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
   return *arg0 + *arg1;
 }
 ```
@@ -996,7 +996,7 @@ int32_t HexAddI32(Argument<int32_t> arg0, Argument<int32_t> arg1) {
 And this kernel synchronously prints an `int32_t`:
 
 ```c++
-Chain HexPrintI32(Argument<int32_t> arg) {
+Chain TFRTPrintI32(Argument<int32_t> arg) {
   printf("%d\n", *arg);
   return Chain();
 }
@@ -1006,37 +1006,37 @@ And we can synchronously run these two kernels with this MLIR:
 
 ```c++
 func @double_and_print() -> i32 {
-  %x = hex.constant.i32 42
+  %x = tfrt.constant.i32 42
 
-  // * The ‘+’ in HexAddI32 runs synchronously, on the thread that called
+  // * The ‘+’ in TFRTAddI32 runs synchronously, on the thread that called
   //   Execute(@double_and_print)
-  // * HexAddI32 returns an available ConcreteAsyncValue<int32_t>
+  // * TFRTAddI32 returns an available ConcreteAsyncValue<int32_t>
   // * %y points at this available value
-  %y = hex.add.i32 %x, %x
+  %y = tfrt.add.i32 %x, %x
 
-  // printf in HexPrintI32 also run synchronously on the same thread, after
-  // HexAddI32 due to dataflow dependence on %y
-  hex.print.i32 %y
+  // printf in TFRTPrintI32 also run synchronously on the same thread, after
+  // TFRTAddI32 due to dataflow dependence on %y
+  tfrt.print.i32 %y
 
-  // Returns available ConcreteAsyncValue<int32_t> after HexPrintI32
+  // Returns available ConcreteAsyncValue<int32_t> after TFRTPrintI32
   // completes.
-  // Note: hex.return is a special form that does not run a kernel. Chain
-  // is not needed to sequence the hex.print.i32 above, before the
-  // hex.return below. See Note below.
-  hex.return %y : i32
+  // Note: tfrt.return is a special form that does not run a kernel. Chain
+  // is not needed to sequence the tfrt.print.i32 above, before the
+  // tfrt.return below. See Note below.
+  tfrt.return %y : i32
 }
 ```
 
-Note: `hex.return` is a *special form* that specifies the function’s return
-values. There is no kernel that implements `hex.return`, unlike `hex.add.i32`
-(implemented by `HexAddI32`) and `hex.print.i32` (implemented by `HexPrintI32`),
-so `hex.return` does not run like other kernels. `hex.return` behaves like a
-non-strict kernel: `hex.return` does not require any of its arguments to be
-available. `hex.return` occurs only after the executor has attempted to run
-every kernel in the function. So in the example above, the executor will first
-run `hex.print.i32`, and then `hex.return` returns control to
-`@double_and_print`'s caller. `hex.print.i32` and `hex.return` can not occur in
-parallel.
+Note: `tfrt.return` is a *special form* that specifies the function’s return
+values. There is no kernel that implements `tfrt.return`, unlike `tfrt.add.i32`
+(implemented by `TFRTAddI32`) and `tfrt.print.i32` (implemented by
+`TFRTPrintI32`), so `tfrt.return` does not run like other kernels. `tfrt.return`
+behaves like a non-strict kernel: `tfrt.return` does not require any of its
+arguments to be available. `tfrt.return` occurs only after the executor has
+attempted to run every kernel in the function. So in the example above, the
+executor will first run `tfrt.print.i32`, and then `tfrt.return` returns control
+to `@double_and_print`'s caller. `tfrt.print.i32` and `tfrt.return` can not
+occur in parallel.
 
 ###### Asynchronous Execution
 
@@ -1051,7 +1051,7 @@ blocking work to the `ConcurrentWorkQueue`.
 An example kernel that performs a high latency read:
 
 ```c++
-void HexAsyncReadFromMars(Result<int32_t> output, HostContext* host) {
+void TFRTAsyncReadFromMars(Result<int32_t> output, HostContext* host) {
   // Allocate an unavailable result.
   auto result = output.Allocate();
 
@@ -1074,44 +1074,45 @@ An example MLIR driver for this kernel:
 
 ```c++
 func @print_from_mars() -> i32 {
-  // * EnqueueBlockingWork in HexAsyncReadI32FromMars runs synchronously on
+  // * EnqueueBlockingWork in TFRTAsyncReadI32FromMars runs synchronously on
   //   the thread that calls Execute(print_from_mars)
   // * BlockingRead runs asynchronously on a WorkQueue thread
-  // * HexAsyncReadFromMars returns an unavailable
+  // * TFRTAsyncReadFromMars returns an unavailable
   //   ConcreteAsyncValue<int32_t>
   // * %y points at this unavailable value
-  %y = hex.async.read.from.mars
+  %y = tfrt.async.read.from.mars
 
-  // * HexPrintI32 will not run until %y becomes available
-  // * HexPrintI32 runs synchronously on the WorkQueue thread that produced
+  // * TFRTPrintI32 will not run until %y becomes available
+  // * TFRTPrintI32 runs synchronously on the WorkQueue thread that produced
   //   %y
-  hex.print.i32 %y
+  tfrt.print.i32 %y
 
   // Returns unavailable ConcreteAsyncValue<int32_t>, before %y becomes
   // available
-  hex.return %y : i32
+  tfrt.return %y : i32
 }
 
 ```
 
 Asynchronous kernels are compatible with synchronous kernels: the example above
-shows an asynchronous `hex.async.read.from.mars` passing a result to a
-synchronous `hex.print.i32`.
+shows an asynchronous `tfrt.async.read.from.mars` passing a result to a
+synchronous `tfrt.print.i32`.
 
 ###### Control Flow
 
 Kernels may invoke `BEFExecutor`, which allows ordinary kernels to implement
-control flow. Only `hex.return` has special handling in `BEFExecutor`. All other
-control flow (`call, if, repeat`, etc) is implemented with ordinary kernels.
+control flow. Only `tfrt.return` has special handling in `BEFExecutor`. All
+other control flow (`call, if, repeat`, etc) is implemented with ordinary
+kernels.
 
 Example kernel that calls a function:
 
 ```c++
-void HexCall(KernelFrame* frame) {
+void TFRTCall(KernelFrame* frame) {
   // Get function to execute.
   auto& fn = frame->GetConstantAt<Function>(0);
 
-  // Run ‘fn’, passing through hex.call’s args and results. ‘fn’ executes
+  // Run ‘fn’, passing through tfrt.call’s args and results. ‘fn’ executes
   // on a new instance of BEFExecutor.
   fn.Execute(frame->GetArguments(),
              frame->GetResults(),
@@ -1122,7 +1123,7 @@ void HexCall(KernelFrame* frame) {
 Example conditional kernel:
 
 ```c++
-void HexIf(KernelFrame* frame) {
+void TFRTIf(KernelFrame* frame) {
   const auto* true_fn = &frame->GetConstantAt<Function>(0);
   const auto* false_fn = &frame->GetConstantAt<Function>(1);
 
@@ -1149,54 +1150,54 @@ execution is deferred until all its arguments are available. This makes it
 easier to write a kernel, because a kernel’s arguments are all just concrete
 values - the kernel author does not have to worry about unavailable arguments.
 
-But strictness can be inefficient for kernels like `hex.call`, which do not
+But strictness can be inefficient for kernels like `tfrt.call`, which do not
 require available arguments. An example of this inefficiency:
 
 ```c++
 // Return first arg, ignore second arg.
 func @return_first_arg(%x: i32, %y: i32) -> i32 {
-  hex.return %x : i32
+  tfrt.return %x : i32
 }
 
 func @slow_call() -> i32 {
-  %x = hex.constant.i32 42
-  %y = hex.async.read.from.mars
-  // Executor defers hex.call until %y is available, but @return_first_arg
+  %x = tfrt.constant.i32 42
+  %y = tfrt.async.read.from.mars
+  // Executor defers tfrt.call until %y is available, but @return_first_arg
   // won’t use %y!
-  %z = hex.call @return_first_arg(%x, %y) : (i32) -> (i32)
+  %z = tfrt.call @return_first_arg(%x, %y) : (i32) -> (i32)
 
   // Returns before %y becomes available. %z is an unavailable
   // IndirectAsyncValue
-  hex.return %z : i32
+  tfrt.return %z : i32
 }
 ```
 
-In this example, the executor must defer `hex.call` until `%y` becomes
+In this example, the executor must defer `tfrt.call` until `%y` becomes
 available, even though `return_first_arg` does not actually use `%y`.
 
 This can run more efficiently with non-strict execution:
 
 ```c++
 func @fast_call() -> i32 {
-  %x = hex.constant.i32 42
-  %y = hex.async.read.from.mars
-  // * The calling executor invokes this nonstrict hex.call when any
+  %x = tfrt.constant.i32 42
+  %y = tfrt.async.read.from.mars
+  // * The calling executor invokes this nonstrict tfrt.call when any
   //   argument is available. %x is available!
   // * If a kernel in @return_first_arg used %y, called executor would
   //   defer execution of that kernel until it becomes available.
-  %z = hex.call @return_first_arg(%x, %y) {bef.nonstrict} : (i32) -> (i32)
+  %z = tfrt.call @return_first_arg(%x, %y) {bef.nonstrict} : (i32) -> (i32)
 
   // Returns before %y becomes available. %z is a available
   // ConcreteAsyncValue<int32_t>. %y is off the critical path.
-  hex.return %z : i32
+  tfrt.return %z : i32
 }
 ```
 
-In this example, `hex.call` is nonstrict, so the executor can run
-`hex.call`immediately after `%x` is available. The executor does not need to
-defer `hex.call` until `%y` becomes available.
+In this example, `tfrt.call` is nonstrict, so the executor can run
+`tfrt.call`immediately after `%x` is available. The executor does not need to
+defer `tfrt.call` until `%y` becomes available.
 
-We can safely run `hex.call` as a non-strict kernel because `hex.call`
+We can safely run `tfrt.call` as a non-strict kernel because `tfrt.call`
 recursively invokes `BEFExecutor`, and `BEFExecutor` supports unavailable
 arguments - it must understand unavailable arguments to run asynchronous
 kernels.

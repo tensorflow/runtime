@@ -15,37 +15,37 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=null | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Not running 'register_cpu_op_handler_chain' because it has arguments.
-func @register_cpu_op_handler_chain(%ch0: !hex.chain) -> !hex.chain {
+func @register_cpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {
   %null = "corert.create_null_op_handler"() : () -> !corert.device
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
   %ch = corert.register_op_handler_chain %cpu "cpu0"
-  hex.return %ch : !hex.chain
+  tfrt.return %ch : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Not running 'get_cpu_op_handler' because it has arguments.
-func @get_cpu_op_handler(%ch0: !hex.chain) -> !hex.chain {
+func @get_cpu_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
   %cpu0 = corert.get_op_handler %ch0 "cpu0"
   %cpu_handle_result = corert.executeop(%cpu0)
     "tf.Const"() {value = dense<[42, 314]> : tensor<2xi32>, dtype = i32} : 1
 
   %ch1 = corert.executeop.seq(%cpu0, %ch0) "tfrt_test.print"(%cpu_handle_result) : 0
-  hex.return %ch1 : !hex.chain
+  tfrt.return %ch1 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Not running 'failed_cpu_get_op_handler' because it has arguments.
-func @failed_cpu_get_op_handler(%ch0: !hex.chain) -> !hex.chain {
+func @failed_cpu_get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
   // expected-error @+1 {{runtime error: op_handler not found}}
   %cpu0 = corert.get_op_handler %ch0 "cpu0"
-  %ch1 = hex.new.chain
-  hex.return %ch1 : !hex.chain
+  %ch1 = tfrt.new.chain
+  tfrt.return %ch1 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'test_cpu_op_handler_chain_kernels'
-func @test_cpu_op_handler_chain_kernels()  -> !hex.chain {
-  %ch0 = hex.new.chain
-  %ch1 = hex.call @failed_cpu_get_op_handler(%ch0) : (!hex.chain) -> !hex.chain
-  %ch2 = hex.call @register_cpu_op_handler_chain(%ch1) : (!hex.chain) -> !hex.chain
+func @test_cpu_op_handler_chain_kernels()  -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
+  %ch1 = tfrt.call @failed_cpu_get_op_handler(%ch0) : (!tfrt.chain) -> !tfrt.chain
+  %ch2 = tfrt.call @register_cpu_op_handler_chain(%ch1) : (!tfrt.chain) -> !tfrt.chain
   // CHECK: DenseHostTensor dtype = I32, shape = [2], values = [42, 314]
-  %ch3 = hex.call @get_cpu_op_handler(%ch2) : (!hex.chain) -> !hex.chain
-  hex.return %ch3 : !hex.chain
+  %ch3 = tfrt.call @get_cpu_op_handler(%ch2) : (!tfrt.chain) -> !tfrt.chain
+  tfrt.return %ch3 : !tfrt.chain
 }

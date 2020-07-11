@@ -15,8 +15,8 @@
 // RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'addV2_dense_dense_f32'
-func @addV2_dense_dense_f32() -> !hex.chain{
-  %ch_epoch = hex.new.chain
+func @addV2_dense_dense_f32() -> !tfrt.chain{
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %operand_0 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
@@ -27,12 +27,12 @@ func @addV2_dense_dense_f32() -> !hex.chain{
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 3], values = [-1.000000e+00, 5.000000e-01, 2.000000e+00, 3.500000e+00, 5.000000e+00, 6.500000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }
 
 // CHECK: --- Running 'addV2_dense_scalar_f32'
-func @addV2_dense_scalar_f32() -> !hex.chain{
-  %ch_epoch = hex.new.chain
+func @addV2_dense_scalar_f32() -> !tfrt.chain{
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %operand_0 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
@@ -43,12 +43,12 @@ func @addV2_dense_scalar_f32() -> !hex.chain{
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 3], values = [0.000000e+00, 5.000000e-01, 1.000000e+00, 1.500000e+00, 2.000000e+00, 2.500000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }
 
 // CHECK: --- Running 'addV2_scalar_dense_f32'
-func @addV2_scalar_dense_f32() -> !hex.chain{
-  %ch_epoch = hex.new.chain
+func @addV2_scalar_dense_f32() -> !tfrt.chain{
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %operand_0 = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
@@ -59,12 +59,12 @@ func @addV2_scalar_dense_f32() -> !hex.chain{
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 3], values = [1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }
 
 // CHECK: --- Running 'addV2_scalar_scalar_f32'
-func @addV2_scalar_scalar_f32() -> !hex.chain{
-  %ch_epoch = hex.new.chain
+func @addV2_scalar_scalar_f32() -> !tfrt.chain{
+  %ch_epoch = tfrt.new.chain
   %cpu = corert.get_op_handler %ch_epoch "cpu"
 
   %operand_0 = corert.executeop(%cpu) "tfrt_test.create_from_scalar"()
@@ -75,5 +75,5 @@ func @addV2_scalar_scalar_f32() -> !hex.chain{
   // CHECK: ScalarHostTensor dtype = F32, shape = [2, 3], value = 3.000000e+00
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
-  hex.return %ch_print_cpu : !hex.chain
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }

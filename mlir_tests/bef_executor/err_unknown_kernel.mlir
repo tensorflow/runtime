@@ -17,5 +17,5 @@
 func @unsupported_kernel_function() {
   // expected-error @+1 {{unknown kernel name 'unsupported_kernel'}}
   "unsupported_kernel"() : () -> ()
-  hex.return
+  tfrt.return
 }

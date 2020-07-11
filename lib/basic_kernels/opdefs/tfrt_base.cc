@@ -12,26 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- hex_base.cc ---------------------------------------------------===//
+//===- tfrt_base.cc -------------------------------------------------------===//
 //
-// This file implements hex dialect.
+// This file implements tfrt dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/basic_kernels/opdefs/hex_base.h"
+#include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
-namespace hex {
 
 //===----------------------------------------------------------------------===//
-// HexDialect Dialect
+// TFRTDialect Dialect
 //===----------------------------------------------------------------------===//
 
-HexDialect::HexDialect(mlir::MLIRContext *context)
-    : mlir::Dialect(/*name=*/"hex", context) {
+TFRTDialect::TFRTDialect(mlir::MLIRContext *context)
+    : mlir::Dialect(/*name=*/"tfrt", context) {
   allowUnknownTypes();
 
   // TODO(b/160693129): Eventually specify all of the operations.
@@ -45,7 +44,7 @@ HexDialect::HexDialect(mlir::MLIRContext *context)
       >();
 }
 
-mlir::Type HexDialect::parseType(mlir::DialectAsmParser &parser) const {
+mlir::Type TFRTDialect::parseType(mlir::DialectAsmParser &parser) const {
   llvm::StringRef spec = parser.getFullSymbolSpec();
 
   if (spec == "chain") return ChainType::get(getContext());
@@ -53,19 +52,18 @@ mlir::Type HexDialect::parseType(mlir::DialectAsmParser &parser) const {
   if (auto type = mlir::Dialect::parseType(parser)) return type;
 
   mlir::Location loc = parser.getEncodedSourceLoc(parser.getNameLoc());
-  mlir::emitError(loc) << "unknown hex type " << spec;
+  mlir::emitError(loc) << "unknown tfrt type " << spec;
   return {};
 }
 
-void HexDialect::printType(mlir::Type type,
-                           mlir::DialectAsmPrinter &printer) const {
+void TFRTDialect::printType(mlir::Type type,
+                            mlir::DialectAsmPrinter &printer) const {
   if (type.isa<ChainType>()) {
     printer << "chain";
     return;
   }
 
-  llvm_unreachable("unknown hex type");
+  llvm_unreachable("unknown tfrt type");
 }
 
-}  // namespace hex
 }  // namespace tfrt

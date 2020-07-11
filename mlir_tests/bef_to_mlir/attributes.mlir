@@ -16,48 +16,48 @@
 
 // CHECK-LABEL: func @integer1.constant() -> i1
 func @integer1.constant() -> i1 {
-  // CHECK-NEXT: [[REG:%.*]] = hex.constant.i1 1
-  // CHECK-NEXT: hex.return [[REG]] : i1
+  // CHECK-NEXT: [[REG:%.*]] = tfrt.constant.i1 1
+  // CHECK-NEXT: tfrt.return [[REG]] : i1
 
-  %x = hex.constant.i1 1
-  hex.return %x : i1
+  %x = tfrt.constant.i1 1
+  tfrt.return %x : i1
 }
 
 // CHECK-LABEL: func @integer32.constant() -> i32
 func @integer32.constant() -> i32 {
-  // CHECK-NEXT: [[REG:%.*]] = hex.constant.i32 42
-  // CHECK-NEXT: hex.return [[REG]] : i32
+  // CHECK-NEXT: [[REG:%.*]] = tfrt.constant.i32 42
+  // CHECK-NEXT: tfrt.return [[REG]] : i32
 
-  %x = hex.constant.i32 42
-  hex.return %x : i32
+  %x = tfrt.constant.i32 42
+  tfrt.return %x : i32
 }
 
 // CHECK-LABEL: func @integer64.constant() -> i64
 func @integer64.constant() -> i64 {
-  // CHECK-NEXT: [[REG:%.*]] = hex.constant.i64 42
-  // CHECK-NEXT: hex.return [[REG]] : i64
+  // CHECK-NEXT: [[REG:%.*]] = tfrt.constant.i64 42
+  // CHECK-NEXT: tfrt.return [[REG]] : i64
 
-  %x = hex.constant.i64 42
-  hex.return %x : i64
+  %x = tfrt.constant.i64 42
+  tfrt.return %x : i64
 }
 
 // CHECK-LABEL: func @float32.constant() -> f32
 func @float32.constant() -> f32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"() {value = {{.*}} : f32} : () -> f32
-  // CHECK-NEXT: hex.return [[REG]] : f32
+  // CHECK-NEXT: tfrt.return [[REG]] : f32
 
   %x = "simple.op"() {value = -0.1 : f32} : () -> f32
-  hex.return %x : f32
+  tfrt.return %x : f32
 }
 
 // CHECK-LABEL: func @string.constant() -> f32
 func @string.constant() -> f32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"()
   // CHECK-SAME: {value = "string constant"} : () -> f32
-  // CHECK-NEXT: hex.return [[REG]] : f32
+  // CHECK-NEXT: tfrt.return [[REG]] : f32
 
   %x = "simple.op"() {value = "string constant"} : () -> f32
-  hex.return %x : f32
+  tfrt.return %x : f32
 }
 
 // CHECK-LABEL: func @array.constant() -> i32
@@ -91,17 +91,17 @@ func @array.constant() -> i32 {
 
   // CHECK: {value = [dense<0> : tensor<4xi64>, dense<1> : tensor<4xi64>]} : () -> i32
   %d = "simple.op"() {value = [dense<0> : tensor<4xi64>, dense<1> : tensor<4xi64>]} : () -> i32
-  hex.return %d : i32
+  tfrt.return %d : i32
 }
 
 // CHECK-LABEL: func @aggregate.constant() -> i32
 func @aggregate.constant() -> i32 {
   // CHECK-NEXT: [[REG:%.*]] = "simple.op"()
   // CHECK-SAME: {value = [1 : i32, [2 : i32, "string"]]} : () -> i32
-  // CHECK-NEXT: hex.return [[REG]] : i32
+  // CHECK-NEXT: tfrt.return [[REG]] : i32
 
   %x = "simple.op"() {value = [1: i32, [2: i32, "string"]]} : () -> i32
-  hex.return %x : i32
+  tfrt.return %x : i32
 }
 
 // CHECK-LABEL: func @type.attribute() -> (i32, i32, i32)
@@ -109,12 +109,12 @@ func @type.attribute() -> (i32, i32, i32) {
   // CHECK-NEXT: [[REG0:%.*]] = "get_width"() {value = i32} : () -> i32
   // CHECK-NEXT: [[REG1:%.*]] = "get_width"() {value = f64} : () -> i32
   // CHECK-NEXT: [[REG2:%.*]] = "get_widths"() {value = [f64, f32]} : () -> i32
-  // CHECK-NEXT: hex.return [[REG0]], [[REG1]], [[REG2]] : i32, i32, i32
+  // CHECK-NEXT: tfrt.return [[REG0]], [[REG1]], [[REG2]] : i32, i32, i32
 
   %x = "get_width"() {value = i32} : () -> i32
   %y = "get_width"() {value = f64} : () -> i32
   %z = "get_widths"() {value = [f64, f32]} : () -> i32
-  hex.return %x, %y, %z: i32, i32, i32
+  tfrt.return %x, %y, %z: i32, i32, i32
 }
 
 
@@ -147,14 +147,14 @@ func @dense_elements.constant() {
   %11 = "simple.op"() {value = dense<1.0> : tensor<1xf32>} : () -> i32
   %12 = "simple.op"() {value = dense<1.0> : tensor<1xf64>} : () -> i32
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: @shape_attr
 func @shape_attr() {
   // CHECK: #corert.shape<2x?x3>
   "simple.op"() {shape = #corert.shape<2x?x3>} : () -> ()
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: @data_type_attr
@@ -188,5 +188,5 @@ func @data_type_attr() {
   "simple.op"() {type = complex<f32>} : () -> ()
   "simple.op"() {type = complex<f64>} : () -> ()
   "simple.op"() {type = !corert.string} : () -> ()
-  hex.return
+  tfrt.return
 }

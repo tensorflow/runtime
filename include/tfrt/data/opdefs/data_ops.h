@@ -28,7 +28,7 @@
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
-#include "tfrt/basic_kernels/opdefs/hex_base.h"
+#include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 
 using namespace mlir;
 

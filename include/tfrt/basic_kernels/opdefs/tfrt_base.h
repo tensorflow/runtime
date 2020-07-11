@@ -14,32 +14,30 @@
  * limitations under the License.
  */
 
-//===- hex_base.h - MLIR opdefs for hex dialect -----------------*- C++ -*-===//
+//===- tfrt_base.h - MLIR opdefs for tfrt dialect ---------------*- C++ -*-===//
 //
-// This file declares the 'hex' dialect.
+// This file declares the 'tfrt' dialect.
 //
 //===----------------------------------------------------------------------===//
-#ifndef TFRT_BASIC_KERNELS_OPDEFS_HEX_BASE_H_
-#define TFRT_BASIC_KERNELS_OPDEFS_HEX_BASE_H_
+#ifndef TFRT_BASIC_KERNELS_OPDEFS_TFRT_BASE_H_
+#define TFRT_BASIC_KERNELS_OPDEFS_TFRT_BASE_H_
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectImplementation.h"
 
 namespace tfrt {
-namespace hex {
 
 // Dialect for basic operations.
-class HexDialect : public mlir::Dialect {
+class TFRTDialect : public mlir::Dialect {
  public:
-  explicit HexDialect(mlir::MLIRContext *context);
-  static llvm::StringRef getDialectNamespace() { return "hex"; }
+  explicit TFRTDialect(mlir::MLIRContext *context);
+  static llvm::StringRef getDialectNamespace() { return "tfrt"; }
 
   mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
   void printType(mlir::Type type,
                  mlir::DialectAsmPrinter &printer) const override;
 };
 
-}  // namespace hex
 }  // namespace tfrt
 
-#endif  // TFRT_BASIC_KERNELS_OPDEFS_HEX_BASE_H_
+#endif  // TFRT_BASIC_KERNELS_OPDEFS_TFRT_BASE_H_

@@ -16,10 +16,10 @@
 
 // CHECK-LABEL: --- Running 'BM_Conv2D_in_8x32x32x128_f_1x1x128'
 func @BM_Conv2D_in_8x32x32x128_f_1x1x128() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // in: [8, 32, 32, 128].
   %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -49,27 +49,27 @@ func @BM_Conv2D_in_8x32x32x128_f_1x1x128() {
       %kern : !t.tensor,
       %bias : !t.tensor,
       %out  : !t.tensor,
-      %ch3  : !hex.chain
+      %ch3  : !tfrt.chain
   )
   duration_secs = 5, max_count = 1000, num_warmup_runs = 10
   {
       %ch_out = "eigen.conv2d.bias.f32"(%in, %kern, %bias, %out, %ch3)
        { padding = "valid",  strides = [1 : i64, 1 : i64] }
        : (!t.tensor, !t.tensor, !t.tensor,
-          !t.tensor, !hex.chain) -> !hex.chain
+          !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2D_in_32x28x28x96_f_1x1x128'
 func @BM_Conv2D_in_32x28x28x96_f_1x1x128() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // in: [32, 28, 28, 96].
   %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -99,27 +99,27 @@ func @BM_Conv2D_in_32x28x28x96_f_1x1x128() {
       %kern : !t.tensor,
       %bias : !t.tensor,
       %out  : !t.tensor,
-      %ch3  : !hex.chain
+      %ch3  : !tfrt.chain
   )
   duration_secs = 5, max_count = 1000, num_warmup_runs = 10
   {
       %ch_out = "eigen.conv2d.bias.f32"(%in, %kern, %bias, %out, %ch3)
        { padding = "valid",  strides = [1 : i64, 1 : i64] }
        : (!t.tensor, !t.tensor, !t.tensor,
-          !t.tensor, !hex.chain) -> !hex.chain
+          !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'BM_Conv2D_in_1x56x56x256_f_1x1x512'
 func @BM_Conv2D_in_1x56x56x256_f_1x1x512() {
-  %ch0 = hex.new.chain
+  %ch0 = tfrt.new.chain
 
-  %zero = hex.constant.f32 0.0
-  %one = hex.constant.f32 1.0
+  %zero = tfrt.constant.f32 0.0
+  %one = tfrt.constant.f32 1.0
 
   // in: [1, 56, 56, 256].
   %in = "tfrt_dht.create_uninitialized_tensor.f32.4"()
@@ -149,17 +149,17 @@ func @BM_Conv2D_in_1x56x56x256_f_1x1x512() {
       %kern : !t.tensor,
       %bias : !t.tensor,
       %out  : !t.tensor,
-      %ch3  : !hex.chain
+      %ch3  : !tfrt.chain
   )
   duration_secs = 5, max_count = 1000, num_warmup_runs = 10
   {
       %ch_out = "eigen.conv2d.bias.f32"(%in, %kern, %bias, %out, %ch3)
        { padding = "valid",  strides = [1 : i64, 1 : i64] }
        : (!t.tensor, !t.tensor, !t.tensor,
-          !t.tensor, !hex.chain) -> !hex.chain
+          !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-      hex.return %ch_out : !hex.chain
+      tfrt.return %ch_out : !tfrt.chain
   }
 
-  hex.return
+  tfrt.return
 }

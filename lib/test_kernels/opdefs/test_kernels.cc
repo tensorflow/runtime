@@ -46,17 +46,17 @@ TestDialect::TestDialect(MLIRContext *context)
       >();
 }
 
-// Verify that the specified region contains a hex.return operation with the
+// Verify that the specified region contains a tfrt.return operation with the
 // specified type list and emit an error if not.
 template <typename ResultTypeContainer>
-static LogicalResult checkHexReturn(Operation *op, Region *region,
-                                    ResultTypeContainer result_types) {
+static LogicalResult checkTFRTReturn(Operation *op, Region *region,
+                                     ResultTypeContainer result_types) {
   assert(std::distance(region->begin(), region->end()) == 1 &&
          "verifier should already check region size");
   auto *block = &region->front();
 
-  if (block->empty() || block->back().getName().getStringRef() != "hex.return")
-    return op->emitOpError("expected hex.return in body");
+  if (block->empty() || block->back().getName().getStringRef() != "tfrt.return")
+    return op->emitOpError("expected tfrt.return in body");
 
   if (!std::equal(block->back().getOperandTypes().begin(),
                   block->back().getOperandTypes().end(), result_types.begin(),
@@ -113,7 +113,7 @@ static void print(OpAsmPrinter &p, DoAsyncOp op) {
 }
 
 static LogicalResult verify(DoAsyncOp op) {
-  return checkHexReturn(op, &op.region(), op.getResultTypes());
+  return checkTFRTReturn(op, &op.region(), op.getResultTypes());
 }
 
 //===----------------------------------------------------------------------===//
@@ -160,7 +160,7 @@ static ParseResult parseBenchmarkOp(OpAsmParser &parser,
   if (parser.resolveOperands(operands, types, type_loc, result.operands))
     return failure();
 
-  auto chainType = hex::ChainType::get(result.getContext());
+  auto chainType = ChainType::get(result.getContext());
   if (parser.addTypeToList(chainType, result.types)) return failure();
 
   auto parseIntegerKeywordAttr = [&]() -> ParseResult {
@@ -251,7 +251,7 @@ static LogicalResult verify(BenchmarkOp op) {
   // Verify that the target benchmark region has exactly one return value.
   auto &region = op.region();
   auto &last_op = region.front().back();
-  if (last_op.getName().getStringRef() != "hex.return") {
+  if (last_op.getName().getStringRef() != "tfrt.return") {
     return op.emitOpError("missing return statement");
   }
   if (last_op.getNumOperands() != 1) {

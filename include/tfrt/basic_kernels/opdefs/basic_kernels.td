@@ -103,6 +103,39 @@ def IfOp : Hex_Op<"if"> {
                         SizedRegion<1>:$else_region);
 }
 
+def CondOp : Hex_Op<"cond"> {
+  let summary = "conditional operation";
+  let description = [{
+    The "hex.cond" operation takes an i1 condition, a 'true' function and a
+    'false' function.  If the condition is true, the 'true' function is called
+    and the "hex.cond" operation returns the results of that function, otherwise
+    the "false" function is called and its values are returned.
+
+    The 'true' and 'false' functions must have the same signature, but they may
+    take an arbitrary number of arguments and return values with the same types
+    as the op return types. Both functions are encoded as function attribute,
+    named true_fn and false_fn. The a_ and b_ prefix prevent reordering by BEF
+    since BEF orders attribute by name alphabetically.
+
+    This operation is safe to use as a 'nonstrict' op, which dispatches its body
+    whenever the condition and any dependent arguments are resolved.
+
+    Example:
+
+      %res = hex.cond %cond @true_fn @false_fn (%x, %y) : (i32, f32) -> (i32)
+  }];
+  let arguments = (ins I1:$cond,
+                       FlatSymbolRefAttr:$a_true_fn,
+                       FlatSymbolRefAttr:$b_false_fn,
+                       Variadic<AnyType>:$fn_operands);
+  let results = (outs Variadic<AnyType>:$outputs);
+
+  let assemblyFormat = [{
+    $cond $a_true_fn $b_false_fn `(` $fn_operands `)` attr-dict `:` `(` type($fn_operands) `)` `->` `(` type($outputs) `)`
+  }];
+}
+
+
 def NewChainOp : Hex_Op<"new.chain", [NoSideEffect]> {
   let summary = "host executor chain constructor";
   let description = [{

@@ -320,6 +320,7 @@ void RegisterControlFlowKernels(KernelRegistry* registry) {
   registry->AddKernel("hex.repeat.i32", TFRT_KERNEL(HexRepeatI32));
   registry->AddKernel("hex.call", TFRT_KERNEL(HexCall));
   registry->AddKernel("hex.if", TFRT_KERNEL(HexIf));
+  registry->AddKernel("hex.cond", TFRT_KERNEL(HexIf));
 }
 
 }  // namespace tfrt

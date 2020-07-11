@@ -193,3 +193,35 @@ func @unused_indirect_async_return() {
 
   hex.return
 }
+
+// hex.cond tests.
+
+func @identity(%x: i32) -> i32 {
+  hex.return %x : i32
+}
+
+func @double(%x: i32) -> i32 {
+  %y = hex.add.i32 %x, %x
+  hex.return %y : i32
+}
+
+// CHECK-LABEL: --- Running 'if_test_with_func'
+func @if_test_with_func() {
+  %ch0 = hex.new.chain
+
+  %a = hex.constant.i32 41
+
+  %true = hex.constant.i1 1
+  %true_res = hex.cond %true @identity @double (%a) : (i32) -> (i32)
+
+  // CHECK-NEXT: int32 = 41
+  %ch1 = hex.print.i32 %true_res, %ch0
+
+  %false = hex.constant.i1 0
+  %false_res = hex.cond %false @identity @double (%a) : (i32) -> (i32)
+
+  // CHECK-NEXT: int32 = 82
+  %ch2 = hex.print.i32 %false_res, %ch1
+
+  hex.return
+}

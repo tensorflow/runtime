@@ -19,6 +19,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "tfrt/host_context/profiled_allocator.h"
+
 #include <atomic>
 #include <cstddef>
 #include <cstdint>

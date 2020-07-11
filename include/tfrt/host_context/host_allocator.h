@@ -81,14 +81,6 @@ std::unique_ptr<HostAllocator> CreateMallocAllocator();
 // Create an allocator of fixed size for testing.
 std::unique_ptr<HostAllocator> CreateFixedSizeAllocator(size_t capacity = 1024);
 
-// Decorate an allocator with memory usage profiling.
-std::unique_ptr<HostAllocator> CreateProfiledAllocator(
-    std::unique_ptr<HostAllocator> allocator);
-
-// Decorate an allocator with memory leak check.
-std::unique_ptr<HostAllocator> CreateLeakCheckAllocator(
-    std::unique_ptr<HostAllocator> allocator);
-
 // An RAII-based abstraction that manages an array of objects via HostAllocator.
 template <typename ObjectT>
 class HostArray {

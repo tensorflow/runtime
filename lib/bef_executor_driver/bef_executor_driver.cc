@@ -41,6 +41,7 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/location.h"
+#include "tfrt/host_context/profiled_allocator.h"
 #include "tfrt/host_context/resource_context.h"
 #include "tfrt/metrics/metrics_api.h"
 #include "tfrt/support/mutex.h"

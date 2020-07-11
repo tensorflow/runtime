@@ -27,6 +27,14 @@ config_setting(
 )
 
 tfrt_cc_library(
+    name = "profiled_allocator",
+    srcs = ["lib/host_context/profiled_allocator.cc"],
+    hdrs = ["include/tfrt/host_context/profiled_allocator.h"],
+    visibility = [":friends"],
+    deps = [":hostcontext"],
+)
+
+tfrt_cc_library(
     name = "hostcontext",
     srcs = [
         "lib/host_context/async_value.cc",
@@ -43,7 +51,6 @@ tfrt_cc_library(
         "lib/host_context/kernel_registry.cc",
         "lib/host_context/native_function.cc",
         "lib/host_context/parallel_for.cc",
-        "lib/host_context/profiled_allocator.cc",
         "lib/host_context/shared_context.cc",
         "lib/host_context/single_threaded_work_queue.cc",
         "lib/host_context/test_fixed_size_allocator.cc",
@@ -535,6 +542,7 @@ tfrt_cc_library(
         ":core_runtime",
         ":hostcontext",
         ":metrics_api",
+        ":profiled_allocator",
         ":support",
         ":tracing",
         "@llvm-project//llvm:Support",

@@ -11,10 +11,8 @@ filegroup(
     data = [
         "@llvm-project//llvm:FileCheck",
         "@llvm-project//llvm:not",
-        #=== GOOGLE_PIPER: llvm-project/mlir:run_lit.sh ===#
         "@tf_runtime//tools:bef_executor",
         "@tf_runtime//tools:bef_name",
         "@tf_runtime//tools:tfrt_opt",
-        "@tf_runtime//tools:tfrt_translate",
     ],
 )

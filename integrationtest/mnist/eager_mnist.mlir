@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate --mlir-to-bef %s | bef_executor --devices=cpu | FileCheck %s --dump-input=fail
+// RUN: bef_executor $(bef_name %s) --devices=cpu | FileCheck %s --dump-input=fail
 
 func @mnist_compute(%cpu: !corert.device,
                     %w1 : !corert.tensorhandle,

@@ -26,7 +26,12 @@ def mlir_to_bef(name = ""):
         exec_tools = ["@tf_runtime//tools:tfrt_translate"],
     )
 
-def glob_tfrt_lit_tests(data = []):
+def glob_tfrt_lit_tests(
+        name = "glob_tfrt_lit_tests",
+        data = [],
+        default_size = "small",
+        default_tags = [],
+        exclude = []):
     """Run mlir_to_bef on all .mlir files and invoke glob_lit_tests."""
     mlir_files = native.glob(["**/*.mlir"], exclude_directories = 1)
 
@@ -37,8 +42,13 @@ def glob_tfrt_lit_tests(data = []):
         per_test_extra_data[mlir_file] = [mlir_file[:-5] + ".bef"]
 
     glob_lit_tests(
-        data = data,
+        data = data + [
+            #=== GOOGLE_PIPER: llvm-project/mlir:run_lit.sh ===#
+        ],
         per_test_extra_data = per_test_extra_data,
         #=== GOOGLE_PIPER: tf_runtime/mlir_tests:run_lit.sh ===#
         test_file_exts = ["mlir"],
+        default_size = default_size,
+        default_tags = default_tags,
+        exclude = exclude,
     )

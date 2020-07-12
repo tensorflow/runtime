@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | tfrt_translate -bef-to-mlir | tfrt_opt -allow-unregistered-dialect | FileCheck %s --dump-input=fail
+// RUN: tfrt_translate -bef-to-mlir $(bef_name %s) | tfrt_opt -allow-unregistered-dialect | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: func @sync_func_foo
 // CHECK-SAME: tfrt.sync

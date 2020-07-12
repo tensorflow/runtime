@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate --mlir-to-bef %s | bef_executor | FileCheck %s --dump-input=fail
-// RUN: tfrt_translate --mlir-to-bef %s | bef_executor -work_queue_type=mstd | FileCheck %s --dump-input=fail
+// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor -work_queue_type=mstd $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // This function is just a select: "cond ? v1 : v2", exercising tfrt.if with
 // result values.

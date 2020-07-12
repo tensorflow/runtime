@@ -19,9 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-// RUN: tfrt_translate -mlir-to-bef %s             \
-// RUN:   | bef_executor --work_queue_type=mstd:8  \
-// RUN:   | FileCheck %s --dump-input=fail
+// RUN: bef_executor --work_queue_type=mstd:8 $(bef_name %s) | FileCheck %s --dump-input=fail
 
 func @native_sink(%a: i32, %b: i32) -> () attributes {tfrt.native}
 func @native_async_sink(%a: i32, %b: i32) -> !tfrt.chain attributes {tfrt.native}

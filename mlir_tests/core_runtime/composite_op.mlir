@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices='cpu' | FileCheck %s --dump-input=fail
+// RUN: bef_executor -devices=cpu $(bef_name %s) | FileCheck %s --dump-input=fail
 
 func @matmul_fn(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch "cpu"

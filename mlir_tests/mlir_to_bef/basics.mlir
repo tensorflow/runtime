@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s > /dev/null
+// RUN: cat $(bef_name %s) > /dev/null
 
 func @trivial() {
   "simple.kernel"() : () -> ()

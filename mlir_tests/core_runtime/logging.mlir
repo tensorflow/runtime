@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices="sync_logging|cpu" 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor -devices='sync_logging|cpu' $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Running 'test_logger'
 func @test_logger() -> !tfrt.chain {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor | FileCheck %s --dump-input=fail
+// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Running 'const_dense_tensor'
 func @const_dense_tensor() {

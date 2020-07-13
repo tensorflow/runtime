@@ -38,7 +38,7 @@ def glob_tfrt_lit_tests(
     """Run mlir_to_bef on all .mlir files and invoke glob_lit_tests."""
     mlir_files = native.glob(
         include = ["**/*.mlir"],
-        exclude = no_bef_translation,
+        exclude = exclude + no_bef_translation,
         exclude_directories = 1,
     )
 

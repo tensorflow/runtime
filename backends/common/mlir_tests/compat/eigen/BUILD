@@ -23,6 +23,7 @@ glob_tfrt_lit_tests(
         "test_data/max_pooling_f32.btf",
         ":test_utilities",
     ],
+    exclude = glob(["*.benchmarks.mlir"]),
 )
 
 # Bundle together all of the test utilities that are used by tests.

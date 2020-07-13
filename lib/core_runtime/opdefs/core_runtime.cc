@@ -23,6 +23,8 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
+#include "mlir/IR/Function.h"
+#include "mlir/IR/Module.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/OperationSupport.h"
@@ -340,6 +342,66 @@ LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
 
 OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
   return value();
+}
+
+//===----------------------------------------------------------------------===//
+// CondOp
+//===----------------------------------------------------------------------===//
+
+static LogicalResult verify(CondOp op) {
+  // Check that the true/false function attributes are specified.
+  auto trueFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("a_true_fn");
+  if (!trueFnAttr)
+    return op.emitOpError("requires a 'a_true_fn' symbol reference attribute");
+
+  auto falseFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("b_false_fn");
+  if (!falseFnAttr)
+    return op.emitOpError("requires a 'a_false_fn' symbol reference attribute");
+
+  auto trueFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+      trueFnAttr.getValue());
+  if (!trueFn)
+    return op.emitOpError() << "'" << trueFnAttr.getValue()
+                            << "' does not reference a valid function";
+
+  auto falseFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+      falseFnAttr.getValue());
+  if (!falseFn)
+    return op.emitOpError() << "'" << falseFnAttr.getValue()
+                            << "' does not reference a valid function";
+
+  // Verify that the operand and result types match the true/false function.
+  auto trueFnType = trueFn.getType();
+  if (trueFnType.getNumInputs() != op.getNumOperands() - 1)
+    return op.emitOpError("incorrect number of operands for true function");
+
+  auto falseFnType = falseFn.getType();
+  if (falseFnType.getNumInputs() != op.getNumOperands() - 1)
+    return op.emitOpError("incorrect number of operands for false function");
+
+  for (unsigned i = 0, e = trueFnType.getNumInputs(); i != e; ++i) {
+    if (op.getOperand(i + 1).getType() != trueFnType.getInput(i))
+      return op.emitOpError("operand type mismatch for true function");
+
+    if (op.getOperand(i + 1).getType() != falseFnType.getInput(i))
+      return op.emitOpError("operand type mismatch for false function");
+  }
+
+  if (trueFnType.getNumResults() != op.getNumResults())
+    return op.emitOpError("incorrect number of results for true function");
+
+  if (falseFnType.getNumResults() != op.getNumResults())
+    return op.emitOpError("incorrect number of results for false function");
+
+  for (unsigned i = 0, e = trueFnType.getNumResults(); i != e; ++i) {
+    if (op.getResult(i).getType() != trueFnType.getResult(i))
+      return op.emitOpError("result type mismatch for true function");
+
+    if (op.getResult(i).getType() != falseFnType.getResult(i))
+      return op.emitOpError("result type mismatch for false function");
+  }
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//

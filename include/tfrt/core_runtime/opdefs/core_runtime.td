@@ -210,4 +210,40 @@ def CoreRT_RegisterOpHandlerChainOp : CoreRT_Op<"register_op_handler_chain"> {
   let assemblyFormat = "$device $device_name attr-dict";
   let verifier = ?;
 }
+
+def CoreRt_CondOp : CoreRT_Op<"cond"> {
+  let summary = "conditional operation";
+  let description = [{
+    The "corert.cond" operation takes a tensorhandle as predicate, a 'true'
+    function and a 'false' function.  If the condition is true, the 'true'
+    function is called and the "hex.cond" operation returns the results of that
+    function, otherwise the "false" function is called and its values are
+    returned.
+
+    The 'true' and 'false' functions must have the same signature, but they may
+    take an arbitrary number of arguments and return values with the same types
+    as the op return types. Both functions are encoded as function attribute,
+    named true_fn and false_fn. The a_ and b_ prefix prevent reordering by BEF
+    since BEF orders attribute by name alphabetically.
+
+    This operation is safe to use as a 'nonstrict' op, which dispatches its body
+    whenever the condition and any dependent arguments are resolved.
+
+    Example:
+
+      %chain, %z = corert.cond %cond, @true_fn, @false_fn (%chain, %x, %y) : (i32)
+  }];
+  let arguments = (ins CoreRT_TensorHandleType:$cond,
+                       FlatSymbolRefAttr:$a_true_fn,
+                       FlatSymbolRefAttr:$b_false_fn,
+                       TFRT_ChainType:$in_op_chain,
+                       Variadic<CoreRT_TensorHandleType>:$fn_operands);
+  let results = (outs TFRT_ChainType:$out_op_chain,
+                      Variadic<CoreRT_TensorHandleType>:$fn_outputs);
+  // TODO(b/161008370): Add bef.nonstrict.
+  let assemblyFormat = [{
+      $cond $a_true_fn $b_false_fn `(` $in_op_chain (`,` $fn_operands^)? `)` attr-dict `:` `(` type($fn_outputs) `)`
+    }];
+}
+
 #endif

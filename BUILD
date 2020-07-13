@@ -586,6 +586,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/core_runtime/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":dtype",
         ":hostcontext",
         ":support",
         ":tensor",

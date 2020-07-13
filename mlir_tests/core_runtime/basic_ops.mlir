@@ -374,4 +374,43 @@ func @test_async_dispatch_async_metadata_error() -> !tfrt.chain {
   tfrt.return %ch1 : !tfrt.chain
 }
 
+func @return_first(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+  tfrt.return %in, %x : !tfrt.chain, !corert.tensorhandle
+}
+
+func @return_second(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+  tfrt.return %in, %y : !tfrt.chain, !corert.tensorhandle
+}
+
+// CHECK-LABEL: --- Running 'control_flow_conditional'
+func @control_flow_conditional() {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %a_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1 : i32] } : 1
+  %b_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [2 : i32] } : 1
+
+  %true_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1], values = [1 : i32] } : 1
+
+  %true_res:2 = corert.cond %true_handle @return_first @return_second (%ch0, %a_handle, %b_handle) : (!corert.tensorhandle)
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [2, 2], values = [1, 1, 1, 1]
+  %ch2 = "corert.print_tensorhandle"(%true_res#1, %true_res#0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  %false_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1], values = [0 : i8] } : 1
+
+  %false_handle_unresolved = corert.executeop(%cpu) "tfrt_test.async.noop_no_md"(%false_handle) : 1
+
+  %false_res:2 = corert.cond %false_handle_unresolved @return_first @return_second (%ch2, %a_handle, %b_handle) : (!corert.tensorhandle)
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [2, 2], values = [2, 2, 2, 2]
+  %ch3 = "corert.print_tensorhandle"(%false_res#1, %false_res#0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  tfrt.return
+}
 

@@ -31,10 +31,12 @@
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/host_tensor.h"
 #include "tfrt/tensor/string_host_tensor.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
@@ -366,6 +368,165 @@ static Chain RegisterOpHandlerChain(Argument<OpHandler *> root,
   return Chain();
 }
 
+static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
+  switch (dht.dtype().kind()) {
+    default:
+      llvm_unreachable("dtype not supported");
+      break;
+    case DType::BOOL: {
+      auto dht_view = DHTArrayView<bool>(&dht);
+      assert(dht_view.NumElements() == 1);
+      return dht_view[0];
+    }
+#define DTYPE_INT(ENUM)                                                      \
+  case DType::ENUM: {                                                        \
+    auto dht_view = DHTArrayView<tfrt::TypeForDTypeKind<DType::ENUM>>(&dht); \
+    assert(dht_view.NumElements() == 1);                                     \
+    return dht_view[0] != 0;                                                 \
+  }
+#include "tfrt/dtype/dtype.def"  // NOLINT
+  }
+}
+
+// corert.cond dispatches to a 'true' or 'false' function based on a condition.
+//
+// Arguments: The first argument is the condition, with type TensorHandle, and
+// any additional arguments are passed to the selected function.
+//
+// Attributes: The first attribute is the true_fn, and the second attribute is
+// the false_fn. The functions must have matching signatures, and their
+// signatures must match corert.cond's signature.
+//
+// corert.cond supports "non-strict" invocation: it is safe to invoke before all
+// its arguments are ready. The caller must set the bef.nonstrict attribute on
+// hex.if to make an invocation non-strict.
+static void CoreRtConditional(RemainingArguments args, RemainingResults results,
+                              Attribute<Function> true_fn_const,
+                              Attribute<Function> false_fn_const,
+                              const ExecutionContext &exec_ctx) {
+  assert(args.size() > 0);
+
+  const Function *true_fn = &(*true_fn_const);
+  const Function *false_fn = &(*false_fn_const);
+
+  assert(true_fn->argument_types().size() == args.size() - 1 &&
+         "argument count mismatch");
+  assert(true_fn->result_types().size() == results.size() &&
+         "result count mismatch");
+  assert(true_fn->argument_types() == false_fn->argument_types() &&
+         true_fn->result_types() == false_fn->result_types() &&
+         "true and false function types need to line up");
+
+  // Note: At this point, the condition's availability is unknown. It may become
+  // available at any time.
+
+  // Copy `args` and add a ref to each arg. These refs will be dropped when the
+  // RCArray is destroyed. arg_refs is captured by the lambda so the kernel's
+  // arguments will be available when the closure runs.
+  RCArray<AsyncValue> arg_refs(args.values());
+
+  // We need to create all the result values eagerly so we can return them
+  // from the HexIf function, even though we don't know their types.  Use
+  // an IndirectAsyncValue for this, because it can lazily get resolved.
+  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  result_refs.reserve(results.size());
+  for (int i = 0, e = results.size(); i != e; ++i) {
+    auto result = results.AllocateIndirectResultAt(i);
+    // To ensure the results live long enough to be filled in by our deferred
+    // evaluation, we keep the RCReferences holding the results.
+    result_refs.push_back(std::move(result));
+  }
+
+  auto handle_error_and_return =
+      [](AsyncValue *condition,
+         MutableArrayRef<RCReference<IndirectAsyncValue>> results) {
+        // If we have an error, then we can force propagate errors to all the
+        // results.
+        if (condition->IsError()) {
+          for (auto &result : results) result->ForwardTo(FormRef(condition));
+          return;
+        }
+      };
+
+  auto if_impl =
+      [](const HostTensor &ht, const Function *true_fn,
+         const Function *false_fn, ArrayRef<AsyncValue *> arg_refs,
+         MutableArrayRef<RCReference<IndirectAsyncValue>> result_refs,
+         const ExecutionContext &exec_ctx) {
+        bool predicate = false;
+        // TODO(zhangqiaorjc): Handle other tensor types and other
+        // dtypes.
+        if (const DenseHostTensor *dht = llvm::dyn_cast<DenseHostTensor>(&ht)) {
+          predicate = GetDHTPredicateValue(*dht);
+        } else if (const StringHostTensor *sht =
+                       llvm::dyn_cast<StringHostTensor>(&ht)) {
+          auto strings = sht->strings();
+          // Only empty string is false.
+          if (strings.empty() || strings[0].empty()) {
+            predicate = false;
+          } else {
+            predicate = true;
+          }
+        } else {
+          assert(false && "tensor type not yet supported");
+        }
+
+        const Function *fn = predicate ? true_fn : false_fn;
+        SmallVector<RCReference<AsyncValue>, 8> results;
+        results.resize(result_refs.size());
+        fn->Execute(exec_ctx, arg_refs.drop_front(), results);
+
+        // Forward result_refs to results. This transfers the +1
+        // results returned by Execute to the ForwardTo call.
+        for (int i = 0, e = result_refs.size(); i != e; ++i) {
+          result_refs[i]->ForwardTo(std::move(results[i]));
+        }
+      };
+
+  // Arg[0] is a TensorHandle async value condition predicate.
+  AsyncValue *condition_tensorhandle = args[0];
+  // Dispatch when the condition becomes available.
+  condition_tensorhandle->AndThen(
+      [condition_tensorhandle, handle_error_and_return, exec_ctx, if_impl,
+       true_fn_ref = FormRef(true_fn), false_fn_ref = FormRef(false_fn),
+       arg_refs = std::move(arg_refs),
+       result_refs = std::move(result_refs)]() mutable {
+        handle_error_and_return(condition_tensorhandle, result_refs);
+        AsyncValue *condition_async_tensor =
+            condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+
+        condition_async_tensor->AndThen(
+            [condition_async_tensor, handle_error_and_return, exec_ctx, if_impl,
+             true_fn_ref = std::move(true_fn_ref),
+             false_fn_ref = std::move(false_fn_ref),
+             arg_refs = std::move(arg_refs),
+             result_refs = std::move(result_refs)]() mutable {
+              handle_error_and_return(condition_async_tensor, result_refs);
+
+              auto &tensor = condition_async_tensor->get<Tensor>();
+              uint32_t allowed_formats =
+                  1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost);
+              AsyncValueRef<HostTensor> condition_host_tensor =
+                  tensor.ConvertToHostTensor(exec_ctx.host(), allowed_formats);
+
+              condition_host_tensor.AndThen(
+                  [condition_host_tensor = condition_host_tensor.CopyRef(),
+                   handle_error_and_return, exec_ctx, if_impl,
+                   true_fn_ref = std::move(true_fn_ref),
+                   false_fn_ref = std::move(false_fn_ref),
+                   arg_refs = std::move(arg_refs),
+                   result_refs = std::move(result_refs)]() mutable {
+                    handle_error_and_return(
+                        condition_host_tensor.GetAsyncValue(), result_refs);
+
+                    if_impl(*condition_host_tensor, true_fn_ref.get(),
+                            false_fn_ref.get(), arg_refs.values(), result_refs,
+                            exec_ctx);
+                  });
+            });
+      });
+}
+
 //===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//
@@ -430,6 +591,7 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(ConstDenseTensor));
   registry->AddKernel("corert.const_string_tensor",
                       TFRT_KERNEL(ConstStringTensor));
+  registry->AddKernel("corert.cond", TFRT_KERNEL(CoreRtConditional));
 
   RegisterCreateDenseTensor(registry);
 }

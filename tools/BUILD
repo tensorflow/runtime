@@ -69,6 +69,17 @@ tfrt_cc_binary(
     ],
 )
 
+tfrt_cc_binary(
+    name = "btf_info",
+    srcs = ["btf_info_tool/main.cc"],
+    deps = [
+        ":opt_lib",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext_alwayslink",
+        "@tf_runtime//:tensor",
+    ],
+)
+
 tfrt_cc_library(
     name = "bef_executor_lib",
     srcs = [

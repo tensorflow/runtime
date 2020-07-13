@@ -76,8 +76,21 @@ DENSE_TENSOR_PAYLOAD ::= DIMS DENSE_TENSOR_DATA
 DENSE_TENSOR_DATA    ::= uint8_t*
 
 COO_TENSOR_PAYLOAD   ::= DIMS INDICES VALUES
-INDICES              ::= uint64_t*
-VAUES                ::= DENSE_TENSOR_PAYLOAD
+INDICES              ::= DENSE_TENSOR_PAYLOAD
+VALUES               ::= DENSE_TENSOR_PAYLOAD
 
 DIMS                 ::= uint64_t*
 ```
+
+`INDICES` is a `DENSE_TENSOR_PAYLOAD` with the following attributes:
+
+-   Rank: 2
+-   Dims: `(N, RANK)`, where `N` is the number of nonzero indices in the sparse
+    tensor.
+-   Type: `uint64_t`
+
+`VALUES` is a `DENSE_TENSOR_PAYLOAD` with the following attributes:
+
+-   Rank: 1
+-   Dims: `(N)`
+-   Type: the type of the COO tensor.

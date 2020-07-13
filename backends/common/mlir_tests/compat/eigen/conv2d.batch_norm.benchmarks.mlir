@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor | FileCheck %s --dump-input=fail
+// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Running 'BM_Conv2D_in_8x32x32x128_f_1x1x128'
 func @BM_Conv2D_in_8x32x32x128_f_1x1x128() {
@@ -61,7 +61,7 @@ func @BM_Conv2D_in_8x32x32x128_f_1x1x128() {
   %out = "tfrt_dht.create_uninitialized_tensor.f32.4"()
     { shape = [8 : i64, 32 : i64, 32 : i64, 128 : i64] }
     : () -> !t.tensor
-
+  tfrt_test.benchmark "BM_Conv2D_in_8x32x32x128_f_1x1x128"(
       %in     : !t.tensor,
       %kern   : !t.tensor,
       %scale  : !t.tensor,

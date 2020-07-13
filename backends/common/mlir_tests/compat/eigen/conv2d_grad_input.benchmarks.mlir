@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor | FileCheck %s --dump-input=fail
+// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Running 'BM_Conv2DGradInput_in_8x32x32x128_f1x1x128_s1x1_SAME'
 func @BM_Conv2DGradInput_in_8x32x32x128_f1x1x128_s1x1_SAME() {

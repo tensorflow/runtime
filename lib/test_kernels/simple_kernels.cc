@@ -71,6 +71,15 @@ static bool TestStringEqual(const std::string& s1, const std::string& s2) {
   return s1 == s2;
 }
 
+// path_format should take an integer as argument.
+static std::string FormatString(const std::string& path_format,
+                                const int32_t index) {
+  std::string path;
+  llvm::raw_string_ostream ss(path);
+  ss << llvm::format(path_format.c_str(), index);
+  return ss.str();
+}
+
 static void SetupStringRegistry(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.get_string", TFRT_KERNEL(TestGetString));
   registry->AddKernel("tfrt_test.print_string", TFRT_KERNEL(TestPrintString));
@@ -78,6 +87,7 @@ static void SetupStringRegistry(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.string_equal", TFRT_KERNEL(TestStringEqual));
   registry->AddKernel("tfrt_test.read_string_from_file",
                       TFRT_KERNEL(ReadStringFromFile));
+  registry->AddKernel("tfrt_test.format_string", TFRT_KERNEL(FormatString));
 }
 
 //===----------------------------------------------------------------------===//

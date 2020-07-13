@@ -99,53 +99,33 @@ IterationResult TFRecordDatasetIterator::GetNextElement(
 llvm::Expected<std::string> TFRecordDatasetIterator::ReadChecksummed(
     size_t n, bool* eof) {
   // The crc has size uint32.
-  const size_t to_read = n + sizeof(uint32_t);
+  const size_t count = n + sizeof(uint32_t);
+  *eof = false;
 
   std::string result;
   result.clear();
-  result.resize(to_read);
+  result.resize(count);
 
   char* buffer = &result[0];
-  stream_.read(buffer, to_read);
+  auto count_or_error = stream_->Read(buffer, count);
 
-  if (stream_.eof()) {
-    if (stream_.gcount() == 0) {
-      // The previous record read was the final one. We're trying to read past
-      // the end of the file, but there's nothing left.
-      *eof = true;
-      return MakeStringError("end of file");
-    }
-    // Unable to read the full to_read number of bytes; this is
-    // a partial record.
-  }
-  if (stream_.fail()) {
-    return MakeStringError("failed to read data from stream");
+  if (!count_or_error) {
+    return count_or_error.takeError();
   }
 
-  // TODO(rachelim): Check the checksum.
-
-  result.resize(n);
-  return result;
-}
-
-// TODO(rachelim): Instead of having a bool* eof, consider subclassing
-// ErrorInfo and returning a special error type for eof.
-llvm::Expected<std::string> TFRecordDatasetIterator::ReadRecord(bool* eof) {
-  if (stream_.eof() && stream_.gcount() == 0) {
+  if (*count_or_error < count) {
     *eof = true;
     return MakeStringError("end of file");
   }
 
-  if (stream_.fail()) {
-    return MakeStringError("failed to read file: ", parent_dataset_->path_);
-  }
+  // TODO(rachelim): Check the checksum.
+  result.resize(n);
+  return result;
+}
 
+llvm::Expected<std::string> TFRecordDatasetIterator::ReadRecord(bool* eof) {
   // Read header.
   auto header = ReadChecksummed(sizeof(uint64_t), eof);
-  if (*eof) {
-    return MakeStringError("end of file");
-  }
-
   if (!header) {
     return header.takeError();
   }

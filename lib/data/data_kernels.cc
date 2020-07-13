@@ -140,8 +140,10 @@ RCReference<InterleaveDataset> MakeInterleaveDataset(
 RCReference<TFRecordDataset> MakeTFRecordDataset(
     std::string path, const ExecutionContext& exec_ctx) {
   auto num_worker_threads = exec_ctx.host()->GetNumWorkerThreads();
+  // Default buffer size to 256 KB.
+  int64_t buffer_size = 256 * 1024;
   return TakeRef(exec_ctx.host()->Construct<TFRecordDataset>(
-      std::move(path), num_worker_threads, exec_ctx.host()));
+      std::move(path), buffer_size, num_worker_threads, exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//

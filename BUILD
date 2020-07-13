@@ -663,6 +663,24 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "io",
+    srcs = [
+        "lib/io/buffered_input_stream.cc",
+        "lib/io/file_input_stream.cc",
+    ],
+    hdrs = [
+        "include/tfrt/io/buffered_input_stream.h",
+        "include/tfrt/io/file_input_stream.h",
+        "include/tfrt/io/input_stream.h",
+    ],
+    deps = [
+        ":hostcontext",
+        ":support",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+tfrt_cc_library(
     name = "data",
     srcs = [
         "lib/data/batch_dataset.h",
@@ -693,6 +711,7 @@ tfrt_cc_library(
     deps = [
         ":dtype",
         ":hostcontext",
+        ":io",
         ":support",
         ":tensor",
         "@llvm-project//llvm:Support",

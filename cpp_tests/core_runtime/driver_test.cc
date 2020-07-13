@@ -271,6 +271,43 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
   ASSERT_EQ(a2_view.Elements()[0], 2);
 }
 
+TEST_F(CpuDriverTest, NativeCompositeOpTest) {
+  // Add 2 scalar int32.
+  tfrt::NativeCallable add_callable =
+      [](AsyncValue* const* arguments, int num_arguments,
+         RCReference<AsyncValue>* results, int num_results, HostContext* host) {
+        assert(num_arguments == 3);
+        const int32_t result_value =
+            arguments[1]->get<int32_t>() + arguments[2]->get<int32_t>();
+        TFRT_DLOG(INFO) << "Result value is " << result_value;
+
+        assert(num_results == 2);
+        results[0] = host->GetReadyChain().CopyRef();
+        results[1] = host->MakeAvailableAsyncValueRef<int32_t>(result_value);
+      };
+
+  TypeName chain_type =
+      driver_.GetHostContext()->GetKernelRegistry().GetType("!tfrt.chain");
+  TypeName i32_type =
+      driver_.GetHostContext()->GetKernelRegistry().GetType("tfrt.i32");
+  NativeFunction fn("test_fn",
+                    /*argument_types=*/{chain_type, i32_type, i32_type},
+                    /*result_types=*/{chain_type, i32_type}, add_callable);
+  auto op = driver_.MakeNativeCompositeOp(&fn);
+
+  auto a1 = driver_.GetHostContext()->MakeAvailableAsyncValueRef<int32_t>(1);
+  tfrt::RCReference<AsyncValue> a2;
+  CompositeOpInvocation op_invocation{
+      driver_.CreateExecutionContext(__FILE__, __LINE__),
+      {a1.CopyRCRef(), a1.CopyRCRef()},
+      {a2},
+      nullptr};
+  op(op_invocation);
+  driver_.WaitForHostContextQuiesce();
+
+  ASSERT_EQ(a2->get<int32_t>(), 2);
+}
+
 void BM_CpuDriverTest(benchmark::State& state) {
   example::CoreRuntimeDriver driver{"cpu"};
 

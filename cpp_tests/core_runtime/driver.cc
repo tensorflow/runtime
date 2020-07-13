@@ -94,6 +94,14 @@ CoreRuntimeOp CoreRuntimeDriver::MakeCompositeOp(const Function* fn) {
   return std::move(handle.get());
 }
 
+CoreRuntimeOp CoreRuntimeDriver::MakeNativeCompositeOp(const Function* fn) {
+  Expected<CoreRuntimeOp> handle = corert_->MakeNativeCompositeOp(fn);
+  if (!handle) {
+    TFRT_LOG(FATAL) << handle.takeError();
+  }
+  return std::move(handle.get());
+}
+
 void CoreRuntimeDriver::WaitForHostContextQuiesce() {
   corert_->GetHostContext()->Quiesce();
 }

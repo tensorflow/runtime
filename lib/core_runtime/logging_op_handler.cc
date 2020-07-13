@@ -240,57 +240,63 @@ class LoggingOpHandler : public OpHandler {
 Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
   auto fallback_handle = GetFallback()->MakeOp(op_name);
   if (!fallback_handle) return fallback_handle.takeError();
-  return CoreRuntimeOp([this, op_name = op_name.str(),
-                        fallback_handle = std::move(fallback_handle.get())](
-                           const OpInvocation &invocation) mutable {
-    // TODO(tfrt-devs): Make this class thread safe.
-    auto id_number = log_counter_.fetch_add(1);
+  return CoreRuntimeOp(
+      [this, op_name = op_name.str(),
+       fallback_handle = std::move(fallback_handle.get())](
+          const OpInvocation &invocation) mutable {
+        // TODO(tfrt-devs): Make this class thread safe.
+        auto id_number = log_counter_.fetch_add(1);
 
-    // Used to make logging messages more grammatical.
-    auto plural = [](size_t n) -> const char * { return n == 1 ? "" : "s"; };
+        // Used to make logging messages more grammatical.
+        auto plural = [](size_t n) -> const char * {
+          return n == 1 ? "" : "s";
+        };
 
-    // Print everything into a std::string, and then print it with printf.  This
-    // ensures that the messages are emitted atomically (even if multiple
-    // threads are concurrently logging), because printf has an internal mutex.
-    {
-      std::string message;
-      llvm::raw_string_ostream os(message);
+        // Print everything into a std::string, and then print it with printf.
+        // This ensures that the messages are emitted atomically (even if
+        // multiple threads are concurrently logging), because printf has an
+        // internal mutex.
+        {
+          std::string message;
+          llvm::raw_string_ostream os(message);
 
-      auto num_args = invocation.arguments.size();
-      auto num_results = invocation.results.size();
-      os << '[' << id_number << "] dispatch '" << op_name << "' " << num_args
-         << " argument" << plural(num_args) << ", " << num_results << " result"
-         << plural(num_results);
-      if (invocation.attrs.GetNumEntries() == 0) {
-        os << ", no attributes\n";
-      } else {
-        os << ", ";
-        invocation.attrs.Print(os);
-      }
+          auto num_args = invocation.arguments.size();
+          auto num_results = invocation.results.size();
+          os << '[' << id_number << "] dispatch '" << op_name << "' "
+             << num_args << " argument" << plural(num_args) << ", "
+             << num_results << " result" << plural(num_results);
+          if (invocation.attrs.GetNumEntries() == 0) {
+            os << ", no attributes\n";
+          } else {
+            os << ", ";
+            invocation.attrs.Print(os);
+          }
 
-      Print(os.str());
-    }
+          Print(os.str());
+        }
 
-    {
-      // Collect all input tensors, convert them to HostTensor's and await.
-      SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
-          CollectAsyncHostTensors(invocation.exec_ctx, invocation.arguments);
+        {
+          // Collect all input tensors, convert them to HostTensor's and await.
+          SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
+              CollectAsyncHostTensors(invocation.exec_ctx,
+                                      invocation.arguments);
 
-      PrintAsyncHostTensors(async_host_tensors, /*is_input=*/true, id_number,
-                            op_name);
-    }
+          PrintAsyncHostTensors(async_host_tensors, /*is_input=*/true,
+                                id_number, op_name);
+        }
 
-    // Delegate to the op_handler we wrap.
-    fallback_handle(invocation);
-    if (sync_log_results_ && !invocation.results.empty()) {
-      // Collect all output tensors, convert them to DHT and await.
-      SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
-          CollectAsyncHostTensors(invocation.exec_ctx, invocation.results);
+        // Delegate to the op_handler we wrap.
+        fallback_handle(invocation);
+        if (sync_log_results_ && !invocation.results.empty()) {
+          // Collect all output tensors, convert them to DHT and await.
+          SmallVector<RCReference<AsyncValue>, 4> async_host_tensors =
+              CollectAsyncHostTensors(invocation.exec_ctx, invocation.results);
 
-      PrintAsyncHostTensors(async_host_tensors, /*is_input=*/false, id_number,
-                            op_name);
-    }
-  });
+          PrintAsyncHostTensors(async_host_tensors, /*is_input=*/false,
+                                id_number, op_name);
+        }
+      },
+      /*is_fallback=*/false);
 }
 
 llvm::Expected<std::unique_ptr<OpHandler>> CreateLoggingOpHandler(

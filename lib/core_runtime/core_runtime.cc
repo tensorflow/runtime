@@ -412,6 +412,51 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
   return CoreRuntimeOp(std::move(execute_fn), false);
 }
 
+Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
+  auto execute_fn = [fn = fn](const CompositeOpInvocation& invocation) {
+    auto* host = invocation.exec_ctx.host();
+
+    // TODO(fishx): Return an error to the client instead of asserting.
+    assert(invocation.arguments.size() + 1 == fn->argument_types().size());
+    assert(invocation.results.size() + 1 == fn->result_types().size());
+
+    SmallVector<AsyncValue*, 4> arguments;
+    SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
+    arguments.reserve(fn->argument_types().size());
+    arguments_ref.reserve(fn->argument_types().size());
+
+    // The first argument is a chain for side-effects.
+    if (invocation.chain && *invocation.chain) {
+      arguments.push_back(invocation.chain->GetAsyncValue());
+    } else {
+      arguments_ref.push_back(host->GetReadyChain());
+      arguments.push_back(arguments_ref.back().get());
+    }
+
+    for (size_t i = 0, e = invocation.arguments.size(); i != e; ++i) {
+      arguments_ref.push_back(invocation.arguments[i].CopyRef());
+      arguments.push_back(arguments_ref.back().get());
+    }
+
+    SmallVector<RCReference<AsyncValue>, 4> results;
+    results.resize(fn->result_types().size());
+
+    fn->Execute(invocation.exec_ctx, arguments, results);
+
+    // The first result is the a chain for side-effects.
+    if (invocation.chain)
+      *invocation.chain = AsyncValueRef<Chain>(std::move(results[0]));
+
+    for (auto iter : llvm::enumerate(llvm::drop_begin(results, 1))) {
+      size_t i = iter.index();
+      auto& result_th = iter.value();
+
+      invocation.results[i] = std::move(result_th);
+    }
+  };
+  return CoreRuntimeOp(std::move(execute_fn));
+}
+
 void CoreRuntime::TakeOpHandler(std::unique_ptr<OpHandler> op_handler) {
   impl_->TakeOpHandler(std::move(op_handler));
 }

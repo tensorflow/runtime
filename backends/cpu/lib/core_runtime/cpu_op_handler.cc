@@ -198,7 +198,8 @@ Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
         // TODO(fishx): ExecuteOnOpHandler should return void.
         ExecuteOnOpHandler<CpuOpHandlerTraits>(
             update_chain, invocation, this->device_.CopyRef(), *op_entry);
-      });
+      },
+      /*is_fallback=*/false);
 }
 
 }  // namespace tfrt

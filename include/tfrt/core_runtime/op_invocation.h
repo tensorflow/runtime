@@ -24,6 +24,7 @@
 #define TFRT_CORE_RUNTIME_OP_INVOCATION_H_
 
 #include "llvm/ADT/ArrayRef.h"
+#include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -71,6 +72,35 @@ struct OpInvocation {
   OpInvocation(OpInvocation&&) = delete;
   OpInvocation& operator=(const OpInvocation&) = delete;
   OpInvocation& operator=(OpInvocation&&) = delete;
+};
+
+// TODO(b/161062314): Assess whether to use this struct consistently for
+// composite op handling.
+struct CompositeOpInvocation {
+  // The ExecutionContext of the op invocation.
+  ExecutionContext exec_ctx;
+
+  // This is the input arguments to an op invocation.  Note that this is a
+  // MutableArrayRef because invocation of the op will generally take (and
+  // null out) the input TensorHandles in order to implement in-place
+  // optimizations.
+  ArrayRef<RCReference<AsyncValue>> arguments;
+
+  // Result TensorHandles to be provided by the op invocation.
+  MutableArrayRef<RCReference<AsyncValue>> results;
+
+  // This points to a chain value that the op execution should depend on if it
+  // has side effects.  Invocation of a side effecting op will read from this
+  // pointer, and then write the result chain which completes when the op side
+  // effects are done.
+  AsyncValueRef<Chain>* chain;
+
+  // Non-copyable and non-movable because this includes unsafe pointers to the
+  // caller stack.
+  CompositeOpInvocation(const CompositeOpInvocation&) = delete;
+  CompositeOpInvocation(CompositeOpInvocation&&) = delete;
+  CompositeOpInvocation& operator=(const CompositeOpInvocation&) = delete;
+  CompositeOpInvocation& operator=(CompositeOpInvocation&&) = delete;
 };
 
 }  // namespace tfrt

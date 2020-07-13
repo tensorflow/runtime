@@ -53,6 +53,7 @@ class CoreRuntimeDriver final : public LocationHandler {
 
   CoreRuntimeOp MakeOp(string_view op_name);
   CoreRuntimeOp MakeCompositeOp(const Function* fn);
+  CoreRuntimeOp MakeNativeCompositeOp(const Function* fn);
 
   HostContext* GetHostContext() const { return corert_->GetHostContext(); }
 

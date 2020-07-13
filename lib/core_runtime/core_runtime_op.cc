@@ -27,12 +27,13 @@ namespace tfrt {
 CoreRuntimeOp::CoreRuntimeOp() : fn_(nullptr), is_fallback_(false) {}
 
 CoreRuntimeOp::CoreRuntimeOp(
-    llvm::unique_function<void(const OpInvocation&)>&& fn)
-    : CoreRuntimeOp(std::move(fn), false) {}
-
-CoreRuntimeOp::CoreRuntimeOp(
     llvm::unique_function<void(const OpInvocation&)>&& fn, bool is_fallback)
     : fn_(std::move(fn)), is_fallback_(is_fallback) {}
+
+// is_fallback_ is not relevant.
+CoreRuntimeOp::CoreRuntimeOp(
+    llvm::unique_function<void(const CompositeOpInvocation&)>&& fn)
+    : native_fn_(std::move(fn)), is_fallback_(false) {}
 
 void CoreRuntimeOp::operator()(const ExecutionContext& exec_ctx,
                                MutableArrayRef<TensorHandle> arguments,
@@ -54,6 +55,16 @@ void CoreRuntimeOp::operator()(const OpInvocation& invocation) {
          "Op invocation must have results or a chain");
 
   fn_(invocation);
+}
+
+void CoreRuntimeOp::operator()(const CompositeOpInvocation& invocation) {
+  // The caller must provide a chain or at least one result (or both).  Ops with
+  // zero results must have a chain because they are side effecting.  This
+  // ensures that we have a way to report errors to the caller.
+  assert((invocation.chain || !invocation.results.empty()) &&
+         "Op invocation must have results or a chain");
+
+  native_fn_(invocation);
 }
 
 }  // namespace tfrt

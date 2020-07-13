@@ -38,9 +38,12 @@ class CoreRuntimeOp {
  public:
   // Default initialized CoreRuntimeOp's are in the invalid state.
   explicit CoreRuntimeOp();
-  explicit CoreRuntimeOp(llvm::unique_function<void(const OpInvocation&)>&& fn);
   CoreRuntimeOp(llvm::unique_function<void(const OpInvocation&)>&& fn,
                 bool is_fallback);
+  // Creates a "native function" in that it takes and returns AsyncValues of
+  // any types, and not having to going through TensorHandle.
+  CoreRuntimeOp(
+      llvm::unique_function<void(const CompositeOpInvocation&)>&& native_fn);
 
   // Execute the prepared op.
   //
@@ -66,12 +69,15 @@ class CoreRuntimeOp {
 
   void operator()(const OpInvocation& invocation);
 
+  void operator()(const CompositeOpInvocation& invocation);
+
   explicit operator bool() const { return static_cast<bool>(fn_); }
 
   bool IsFallback() const { return is_fallback_; }
 
  private:
   llvm::unique_function<void(const OpInvocation&)> fn_;
+  llvm::unique_function<void(const CompositeOpInvocation&)> native_fn_;
   bool is_fallback_;
 };
 

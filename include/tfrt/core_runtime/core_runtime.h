@@ -105,12 +105,20 @@ class CoreRuntime final {
   Expected<CoreRuntimeOp> MakeOp(string_view op_name, OpHandler* op_handler);
 
   // [Experimental]
-  // Construct and return a CoreRuntimeOp (a callable) from a Function. This
-  // Function must only take TensorHandle as inputs and produce TensorHandle
+  // Construct and return a CoreRuntimeOp (a callable) from a Function. To
+  // handle side effects, the first argument must be an input chain, and the
+  // first result an output chain.
+  //
+  // This Function must take TensorHandle as inputs and produce TensorHandle
   // as output. Right now the Function cannot have side effect since it cannot
   // handle chain properly.
-  // TODO(b/157526882): Add test for this API.
   Expected<CoreRuntimeOp> MakeCompositeOp(const Function* fn);
+
+  // Similar to the above API, but this function takes and returns AsyncValues
+  // of any underlying types, and is not tied to TensorHandle.
+  // TODO(b/161062313): Assess whether / how to unify these 2 forms of composite
+  // ops.
+  Expected<CoreRuntimeOp> MakeNativeCompositeOp(const Function* fn);
 
   // [Experimental]
   // Transfer the ownership of an OpHandler to this core runtime object.

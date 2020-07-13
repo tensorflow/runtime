@@ -152,6 +152,16 @@ AsyncValue* InterleaveDatasetIterator::FetchInputValues(
 
     auto& iterator = iterator_and_queue.iterator;
     auto& queue = iterator_and_queue.queue;
+
+    if (iterator_and_queue.fetched_num_in_block == 0 && !queue.empty()) {
+      // iterator_index_for_fetch_ is ahead of iterator_index_for_output_ by
+      // one cycle of iterators. Exit the loop so that we can forward the
+      // fetched values to the outputs before fetching more values. Otherwise a
+      // newly created iterator's queue can be several blocks of values behind
+      // other iterators' queue which complicates FillOutputValues().
+      break;
+    }
+
     // Decide the number of values to fetch from the current iterator. It
     // should not exceed 1) the pending values in the the output_buffer_
     // and 2) the remaining values to fetch in the current block.
@@ -180,7 +190,8 @@ AsyncValue* InterleaveDatasetIterator::FetchInputValues(
 
 AsyncValue* InterleaveDatasetIterator::FillOutputValues(
     const ExecutionContext& exec_ctx) {
-  while (total_queues_size_ > 0 && num_open_iterators_ > 0) {
+  while (total_queues_size_ > 0) {
+    assert(num_open_iterators_ > 0);
     auto& iterator_and_queue = iterator_and_queues_[iterator_index_for_output_];
     // Move to the next iterator to look for the open iterator.
     if (!iterator_and_queue.is_open) {
@@ -222,6 +233,9 @@ AsyncValue* InterleaveDatasetIterator::FillOutputValues(
       total_queues_size_ -= queue.size();
       iterator_and_queue.is_open = false;
       num_open_iterators_--;
+
+      iterator_index_for_output_ =
+          (iterator_index_for_output_ + 1) % parent_dataset_->cycle_length_;
       continue;
     }
     // The current iterator has not reached end. Forward the value at the front
@@ -300,7 +314,9 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
       }
       output.eof.emplace(true);
     }
-    callback();
+    // No state is kept in the stack due to tail recursion. Thus we don't need
+    // to increment the callback_count.
+    MaybeScheduleBackgroundTask(exec_ctx, true, callback_count);
     return;
   }
 
@@ -311,7 +327,9 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
     unavailable_async_value_ptr->AndThen(std::move(callback));
     return;
   }
-  callback();
+  // No state is kept in the stack due to tail recursion. Thus we don't need to
+  // increment the callback_count.
+  MaybeScheduleBackgroundTask(exec_ctx, true, callback_count);
 }
 
 }  // namespace data

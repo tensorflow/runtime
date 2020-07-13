@@ -122,8 +122,9 @@ void RepeatDatasetIterator::MaybeScheduleBackgroundTask(
   }
   if (input_buffer_.empty()) {
     // Recursively call the function again because the output_buffer_ might have
-    // more values. Tail recursion is enabled here.
-    callback();
+    // more values. No state is kept in the stack due to tail recursion. Thus we
+    // don't need to increment the callback_count.
+    MaybeScheduleBackgroundTask(exec_ctx, true, callback_count);
     return;
   }
   // After the first value in the `input_buffer_` becomes available, the token

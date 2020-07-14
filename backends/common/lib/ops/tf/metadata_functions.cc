@@ -495,6 +495,8 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.AddV2", TFRT_METADATA(TfBinaryOpMd));
     result->emplace_back("tf.Tanh", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.MatMul", TFRT_METADATA(MatMulMd));
+    result->emplace_back("tf.Log", TFRT_METADATA(UnaryIdentityMd));
+    result->emplace_back("tf.Log1p", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Relu", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Conv2D", TFRT_METADATA(TfConvOpMd));
     result->emplace_back("tf.MaxPool", TFRT_METADATA(TfMaxPoolOpMd));

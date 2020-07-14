@@ -21,6 +21,7 @@
 #include "tfrt/cpu/ops/tf/cpu_ops.h"
 
 #include "../../kernels/cpu_kernels.h"
+#include "cwise_unary_ops.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/common/ops/tf/metadata_functions.h"
 #include "tfrt/core_runtime/op_attrs.h"
@@ -225,6 +226,8 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
                      CpuOpFlags::NoSideEffects);
   op_registry->AddOp("tf.BiasAdd", TFRT_CPU_OP(TfBiasAddOp),
                      CpuOpFlags::NoSideEffects);
+
+  RegisterTfUnaryCpuOps(op_registry);
 }
 
 }  // namespace tfrt

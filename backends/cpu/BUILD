@@ -69,6 +69,8 @@ tfrt_cc_library(
     name = "tf_ops",
     srcs = [
         "lib/ops/tf/cpu_ops.cc",
+        "lib/ops/tf/cwise_unary_ops.cc",
+        "lib/ops/tf/cwise_unary_ops.h",
     ],
     hdrs = [
         "include/tfrt/cpu/ops/tf/cpu_ops.h",
@@ -91,7 +93,10 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "cpu_kernels",
-    hdrs = ["lib/kernels/cpu_kernels.h"],
+    hdrs = [
+        "lib/kernels/cpu_kernels.h",
+        "lib/kernels/cwise_unary_kernels.h",
+    ],
     deps = [
         "@mkl_dnn//:mkldnn_single_threaded",
         "@tf_runtime//:dtype",

@@ -172,20 +172,28 @@ TEST_F(SyncKernelTest, Reset) {
 
 using SyncKernelDeathTest = SyncKernelTest;
 
+// Assert death only in the debug mode, as the validity of kernel call is only
+// validated in the debug mode.
+#ifndef NDEBUG
+#define ASSERT_DEATH_IN_DEBUG(...) ASSERT_DEBUG_DEATH(__VA_ARGS__)
+#else
+#define ASSERT_DEATH_IN_DEBUG(...)
+#endif
+
 TEST_F(SyncKernelDeathTest, TooFewArguments) {
   Value arg1{1};
   Value result;
   kernel_frame_.AddArg(&arg1);
   kernel_frame_.AddResult(&result);
 
-  ASSERT_DEBUG_DEATH((TFRT_SYNC_KERNEL(IntAdd)(&kernel_frame_)), "");
+  ASSERT_DEATH_IN_DEBUG((TFRT_SYNC_KERNEL(IntAdd)(&kernel_frame_)), "");
 }
 
 TEST_F(SyncKernelDeathTest, TooFewAttributes) {
   Value result;
   kernel_frame_.AddResult(&result);
 
-  ASSERT_DEBUG_DEATH((TFRT_SYNC_KERNEL(IntConstant)(&kernel_frame_)), "");
+  ASSERT_DEATH_IN_DEBUG((TFRT_SYNC_KERNEL(IntConstant)(&kernel_frame_)), "");
 }
 
 TEST_F(SyncKernelDeathTest, ExtraArguments) {
@@ -198,8 +206,8 @@ TEST_F(SyncKernelDeathTest, ExtraArguments) {
   kernel_frame_.AddArg(&arg3);
   kernel_frame_.AddResult(&result);
 
-  ASSERT_DEBUG_DEATH((TFRT_SYNC_KERNEL(IntAdd)(&kernel_frame_)),
-                     "Extra arguments passed to kernel.");
+  ASSERT_DEATH_IN_DEBUG((TFRT_SYNC_KERNEL(IntAdd)(&kernel_frame_)),
+                        "Extra arguments passed to kernel.");
 }
 
 TEST_F(SyncKernelDeathTest, ExtraAttributes) {
@@ -211,8 +219,8 @@ TEST_F(SyncKernelDeathTest, ExtraAttributes) {
   kernel_frame_.AddResult(&result);
   kernel_frame_.AddAttribute(nullptr);
 
-  ASSERT_DEBUG_DEATH((TFRT_SYNC_KERNEL(IntAdd)(&kernel_frame_)),
-                     "Extra attributes passed to kernel.");
+  ASSERT_DEATH_IN_DEBUG((TFRT_SYNC_KERNEL(IntAdd)(&kernel_frame_)),
+                        "Extra attributes passed to kernel.");
 }
 
 }  // namespace

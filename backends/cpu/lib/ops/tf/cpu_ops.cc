@@ -21,6 +21,7 @@
 #include "tfrt/cpu/ops/tf/cpu_ops.h"
 
 #include "../../kernels/cpu_kernels.h"
+#include "cwise_binary_ops.h"
 #include "cwise_unary_ops.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/common/ops/tf/metadata_functions.h"
@@ -58,24 +59,6 @@ static Expected<DenseHostTensor> TfConstOp(const OpAttrsRef& attrs,
               dest_md.GetHostSizeInBytes());
 
   return std::move(dest_tensor);
-}
-
-//===----------------------------------------------------------------------===//
-// tf.Add op
-//===----------------------------------------------------------------------===//
-
-static AsyncValueRef<HostTensor> TfAddOp(const HostTensor& lhs,
-                                         const HostTensor& rhs,
-                                         const ExecutionContext& exec_ctx) {
-  switch (lhs.dtype().kind()) {
-    default:
-      assert(0 && "shape function failure");
-      return {};
-#define DTYPE_NUMERIC(ENUM) \
-  case DType::ENUM:         \
-    return cpu::Add<EigenTypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
-#include "tfrt/dtype/dtype.def"
-  }
 }
 
 //===----------------------------------------------------------------------===//
@@ -216,8 +199,6 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
   }
   op_registry->AddOp("tf.Const", TFRT_CPU_OP(TfConstOp),
                      CpuOpFlags::NoSideEffects, {"value"});
-  op_registry->AddOp("tf.AddV2", TFRT_CPU_OP(TfAddOp),
-                     CpuOpFlags::NoSideEffects | CpuOpFlags::AllowsScalar);
   op_registry->AddOp("tf.MatMul", TFRT_CPU_OP(TfMatMulOp),
                      CpuOpFlags::NoSideEffects, {"transpose_a", "transpose_b"});
   op_registry->AddOp("tf.Relu", TFRT_CPU_OP(TfReluOp),
@@ -228,6 +209,7 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
                      CpuOpFlags::NoSideEffects);
 
   RegisterTfUnaryCpuOps(op_registry);
+  RegisterTfBinaryCpuOps(op_registry);
 }
 
 }  // namespace tfrt

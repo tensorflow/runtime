@@ -172,8 +172,7 @@ static AsyncValueRef<Chain> ElementwiseAdd(
     DenseHostTensor* C, const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b, auto& c) { return a + b; };
   return AsyncValueRef<Chain>(
-      BinaryEigenKernelAsync<DHTArrayView<T>, MutableDHTArrayView<T>>(
-          A, B, C, std::move(fn), exec_ctx));
+      BinaryEigenKernelAsync<T, T>(A, B, C, std::move(fn), exec_ctx));
 }
 
 // Computes B += A.
@@ -201,8 +200,7 @@ static AsyncValueRef<Chain> ElementwiseEqual(
   auto fn = [](auto& A, auto& B, auto& C) {
     return (A == B).template cast<T>();
   };
-  return BinaryEigenKernelAsync<DHTArrayView<T>, MutableDHTArrayView<T>>(
-      A, B, C, std::move(fn), exec_ctx);
+  return BinaryEigenKernelAsync<T, T>(A, B, C, std::move(fn), exec_ctx);
 }
 
 // Computes B = (A == B).

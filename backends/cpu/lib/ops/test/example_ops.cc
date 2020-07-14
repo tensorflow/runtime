@@ -105,8 +105,54 @@ static AsyncValueRef<HostTensor> TestCreateFromScalarOp(
 // test.add op
 //===----------------------------------------------------------------------===//
 
+namespace {
+template <typename T>
+AsyncValueRef<HostTensor> TestAddOpImpl(const HostTensor& lhs_ref,
+                                        const HostTensor& rhs_ref,
+                                        const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+
+  auto* lhs = &lhs_ref;
+  auto* rhs = &rhs_ref;
+
+  // We handle Scalar+Scalar, Scalar+Dense, Dense+Dense below. Swap
+  // Dense+Scalar to simplify the logic since add is commutative.
+  if (isa<DenseHostTensor>(lhs) && isa<AnyScalarHostTensor>(rhs))
+    std::swap(lhs, rhs);
+
+  // Handle scalar+scalar.
+  if (auto* srhs = dyn_cast<ScalarHostTensor<T>>(rhs)) {
+    auto* slhs = cast<ScalarHostTensor<T>>(lhs);
+    auto result = slhs->GetValue() + srhs->GetValue();
+    return host->template MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(
+        slhs->metadata(), result);
+  }
+
+  auto dest = DenseHostTensor::CreateUninitialized(lhs->metadata(), host);
+  if (!dest)
+    return host->MakeErrorAsyncValueRef("out of memory allocating result");
+
+  MutableDHTArrayView<T> dest_view(dest.getPointer());
+
+  // Handle scalar+dense.
+  DHTArrayView<T> rhs_view(cast<DenseHostTensor>(rhs));
+  if (auto* slhs = dyn_cast<ScalarHostTensor<T>>(lhs)) {
+    // Add a scalar to a dense tensor.
+    auto lhs = slhs->GetValue();
+    for (size_t i = 0, e = dest_view.NumElements(); i != e; ++i)
+      dest_view[i] = lhs + rhs_view[i];
+  } else {
+    // Add two dense tensors.
+    DHTArrayView<T> lhs_view(cast<DenseHostTensor>(lhs));
+    for (size_t i = 0, e = dest_view.NumElements(); i != e; ++i)
+      dest_view[i] = lhs_view[i] + rhs_view[i];
+  }
+  return host->MakeAvailableAsyncValueRef<DenseHostTensor>(
+      std::move(dest.getValue()));
+}
+}  // namespace
+
 // This implements the test.add op.
-//
 static AsyncValueRef<HostTensor> TestAddOp(const HostTensor& lhs,
                                            const HostTensor& rhs,
                                            const ExecutionContext& exec_ctx) {
@@ -116,7 +162,7 @@ static AsyncValueRef<HostTensor> TestAddOp(const HostTensor& lhs,
       return {};
 #define DTYPE_TRIVIAL(ENUM) \
   case DType::ENUM:         \
-    return cpu::AddSlow<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
+    return TestAddOpImpl<TypeForDTypeKind<DType::ENUM>>(lhs, rhs, exec_ctx);
 #include "tfrt/dtype/dtype.def"
   }
 }

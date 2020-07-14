@@ -69,6 +69,8 @@ tfrt_cc_library(
     name = "tf_ops",
     srcs = [
         "lib/ops/tf/cpu_ops.cc",
+        "lib/ops/tf/cwise_binary_ops.cc",
+        "lib/ops/tf/cwise_binary_ops.h",
         "lib/ops/tf/cwise_unary_ops.cc",
         "lib/ops/tf/cwise_unary_ops.h",
     ],
@@ -95,6 +97,7 @@ tfrt_cc_library(
     name = "cpu_kernels",
     hdrs = [
         "lib/kernels/cpu_kernels.h",
+        "lib/kernels/cwise_binary_kernels.h",
         "lib/kernels/cwise_unary_kernels.h",
     ],
     deps = [
@@ -104,5 +107,6 @@ tfrt_cc_library(
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
         "@tf_runtime//backends/common:eigencompat",
+        "@tf_runtime//backends/common:tf_bcast",
     ],
 )

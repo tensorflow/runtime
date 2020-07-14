@@ -134,11 +134,11 @@ AsyncValueRef<Chain> UnaryEigenKernelAsync(
 // matching input and output shapes. The functor Fn should return an Eigen
 // tensor expression that can be assigned to an object of type
 // EigenTensor<Tout, Rank>.
-template <typename DHTViewTin, typename MutableDHTViewTout, typename Fn>
+template <typename Tin, typename Tout, typename Fn>
 Expected<Chain> BinaryEigenKernel(
-    DHTViewTin left, DHTViewTin right,
+    DHTArrayView<Tin> left, DHTArrayView<Tin> right,
     // `output` supplies the buffer in which to write the output.
-    MutableDHTViewTout& output, Fn fn) {
+    MutableDHTArrayView<Tout>& output, Fn fn) {
   const auto& shape_left = left.Shape();
   const auto& shape_right = right.Shape();
   const auto& shape_output = output.Shape();
@@ -157,16 +157,16 @@ Expected<Chain> BinaryEigenKernel(
 // matching input and output shapes. The functor Fn should return an Eigen
 // tensor expression that can be assigned to an object of type
 // EigenTensor<Tout, Rank>.
-template <typename DHTViewTin, typename MutableDHTViewTout, typename Fn>
+template <typename Tin, typename Tout, typename Fn>
 AsyncValueRef<Chain> BinaryEigenKernelAsync(
     const DenseHostTensor& left, const DenseHostTensor& right,
     // `output` supplies the buffer in which to write the output.
     DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  auto left_view = DHTViewTin(&left);
-  auto right_view = DHTViewTin(&right);
-  auto output_view = MutableDHTViewTout(output);
+  auto left_view = DHTArrayView<Tin>(&left);
+  auto right_view = DHTArrayView<Tin>(&right);
+  auto output_view = MutableDHTArrayView<Tout>(output);
   const auto& shape_left = left_view.Shape();
   const auto& shape_right = right_view.Shape();
   const auto& shape_output = output_view.Shape();

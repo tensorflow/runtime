@@ -21,44 +21,12 @@
 
 #include "tf_record_dataset.h"
 
+#include "tfrt/support/crc32c.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/raw_coding.h"
 
 namespace tfrt {
 namespace data {
-
-namespace {
-// The following is copied from tensorflow/core/platform/raw_coding.h
-static const bool kLittleEndian = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
-
-inline uint32_t DecodeFixed32(const char* ptr) {
-  if (kLittleEndian) {
-    // Load the raw bytes
-    uint32_t result;
-    memcpy(&result, ptr,
-           sizeof(result));  // gcc optimizes this to a plain load
-    return result;
-  } else {
-    return ((static_cast<uint32_t>(static_cast<unsigned char>(ptr[0]))) |
-            (static_cast<uint32_t>(static_cast<unsigned char>(ptr[1])) << 8) |
-            (static_cast<uint32_t>(static_cast<unsigned char>(ptr[2])) << 16) |
-            (static_cast<uint32_t>(static_cast<unsigned char>(ptr[3])) << 24));
-  }
-}
-
-inline uint64_t DecodeFixed64(const char* ptr) {
-  if (kLittleEndian) {
-    // Load the raw bytes
-    uint64_t result;
-    memcpy(&result, ptr,
-           sizeof(result));  // gcc optimizes this to a plain load
-    return result;
-  } else {
-    uint64_t lo = DecodeFixed32(ptr);
-    uint64_t hi = DecodeFixed32(ptr + 4);
-    return (hi << 32) | lo;
-  }
-}
-}  // namespace
 
 //===----------------------------------------------------------------------===//
 // Implementation for TFRecordDataset member functions
@@ -97,7 +65,7 @@ IterationResult TFRecordDatasetIterator::GetNextElement(
 // Note: RecordReader maintains the offset. For now, we're relying on
 // ifstream reading sequentially.
 llvm::Expected<std::string> TFRecordDatasetIterator::ReadChecksummed(
-    size_t n, bool* eof) {
+    size_t pos, size_t n, bool* eof) {
   // The crc has size uint32.
   const size_t count = n + sizeof(uint32_t);
   *eof = false;
@@ -108,36 +76,36 @@ llvm::Expected<std::string> TFRecordDatasetIterator::ReadChecksummed(
 
   char* buffer = &result[0];
   auto count_or_error = stream_->Read(buffer, count);
-
-  if (!count_or_error) {
-    return count_or_error.takeError();
-  }
+  if (!count_or_error) return count_or_error.takeError();
 
   if (*count_or_error < count) {
     *eof = true;
     return MakeStringError("end of file");
   }
+  const uint32_t masked_crc = DecodeFixed32(result.data() + n);
+  if (crc32c::Unmask(masked_crc) != crc32c::Value(result.data(), n)) {
+    return MakeStringError("data corruption at position ", pos);
+  }
 
-  // TODO(rachelim): Check the checksum.
   result.resize(n);
   return result;
 }
 
 llvm::Expected<std::string> TFRecordDatasetIterator::ReadRecord(bool* eof) {
+  *eof = false;
+  auto pos = stream_->Tell();
+  if (!pos) return pos.takeError();
+
   // Read header.
-  auto header = ReadChecksummed(sizeof(uint64_t), eof);
-  if (!header) {
-    return header.takeError();
-  }
+  auto header = ReadChecksummed(*pos, sizeof(uint64_t), eof);
+  if (!header) return header.takeError();
   const uint64_t length = DecodeFixed64(header->data());
 
   // Read body.
-  auto body = ReadChecksummed(length, eof);
+  auto body = ReadChecksummed(*pos, length, eof);
   if (*eof) {
-    // Successfully read the header, but got eof on the body, i.e. this is
-    // a partial record. Raise an error.
     *eof = false;
-    return MakeStringError("failed to read body of TFRecord");
+    return MakeStringError("truncated record at position ", *pos);
   }
   return body;
 }

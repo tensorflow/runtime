@@ -111,7 +111,7 @@ class TFRecordDatasetIterator : public io::PrefetchingIterator {
   // Otherwise, advances the input stream by n + 4 bytes and returns the first
   // n bytes.
   // If eof is set to true, caller should not process the return value.
-  llvm::Expected<std::string> ReadChecksummed(size_t n, bool* eof);
+  llvm::Expected<std::string> ReadChecksummed(size_t pos, size_t n, bool* eof);
 
   // Reads a record from the input stream and advances the input stream to point
   // to the start of the next record. Updates *eof to true iff stream_ is

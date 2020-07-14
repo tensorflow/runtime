@@ -32,9 +32,7 @@ filegroup(
     testonly = True,
     data = [
         "@llvm-project//llvm:FileCheck",
-        #=== GOOGLE_PIPER: llvm-project/mlir:run_lit.sh ===#
         "@tf_runtime//tools:bef_executor",
         "@tf_runtime//tools:bef_name",
-        "@tf_runtime//tools:tfrt_opt",
     ],
 )

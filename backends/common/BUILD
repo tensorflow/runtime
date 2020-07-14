@@ -31,6 +31,7 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":eigencompat",
+        ":tf_bcast",
         ":tf_dnn_ops_util",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
@@ -73,6 +74,18 @@ tfrt_cc_library(
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
         "@tf_runtime//backends/common:eigen_kernels",  # TODO(csigg): Only for shape_functions.h, fix.
+    ],
+)
+
+tfrt_cc_library(
+    name = "tf_bcast",
+    srcs = ["lib/ops/tf/bcast.cc"],
+    hdrs = ["include/tfrt/common/ops/tf/bcast.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
     ],
 )
 

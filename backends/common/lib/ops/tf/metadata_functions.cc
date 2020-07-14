@@ -22,6 +22,7 @@
 
 #include <tuple>
 
+#include "tfrt/common/ops/tf/bcast.h"
 #include "tfrt/common/ops/tf/dnn_ops_util.h"
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/core_runtime/op_attrs.h"
@@ -44,35 +45,6 @@ static DType OpAttrTypeToDType(OpAttrType type) {
   }
 }
 
-// Computes broadcasted result dimension for a elementwise binary operation.
-// Refer to https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html for
-// the exact behavior.
-static Expected<SmallVector<ssize_t, 8>> GetPotentiallyBroadcastedOperands(
-    ArrayRef<ssize_t> lhs_shape, ArrayRef<ssize_t> rhs_shape) {
-  SmallVector<ssize_t, 8> ret;
-  for (int i = 0; i < std::max(lhs_shape.size(), rhs_shape.size()); i++) {
-    ssize_t lhs_dim = 1;
-    ssize_t rhs_dim = 1;
-    if (i < lhs_shape.size()) {
-      lhs_dim = *(lhs_shape.rbegin() + i);
-    }
-    if (i < rhs_shape.size()) {
-      rhs_dim = *(rhs_shape.rbegin() + i);
-    }
-    if (lhs_dim == rhs_dim) {
-      ret.push_back(lhs_dim);
-    } else if (lhs_dim == 1) {
-      ret.push_back(rhs_dim);
-    } else if (rhs_dim == 1) {
-      ret.push_back(lhs_dim);
-    } else {
-      return MakeStringError("unable to broadcast");
-    }
-  }
-  std::reverse(ret.begin(), ret.end());
-  return ret;
-}
-
 // Elementwise binary operation operation.
 static Expected<TensorMetadata> TfBinaryOpMd(const TensorMetadata& lhs,
                                              const TensorMetadata& rhs) {
@@ -81,13 +53,9 @@ static Expected<TensorMetadata> TfBinaryOpMd(const TensorMetadata& lhs,
 
   // Handle the broadcasting case.
   // A knob can be added to turn off broadcasting.
-  SmallVector<ssize_t, 8> lhs_shape, rhs_shape;
-  lhs.shape.GetDimensions(&lhs_shape);
-  rhs.shape.GetDimensions(&rhs_shape);
-  TFRT_ASSIGN_OR_RETURN(
-      auto broadcasted_shape,
-      GetPotentiallyBroadcastedOperands(lhs_shape, rhs_shape));
-  return TensorMetadata(lhs.dtype, TensorShape(broadcasted_shape));
+  TFRT_ASSIGN_OR_RETURN(auto broadcasted_shape,
+                        GetBroadcastedShape(lhs.shape, rhs.shape));
+  return TensorMetadata(lhs.dtype, broadcasted_shape);
 }
 
 static Expected<TensorMetadata> ConstOpMd(const OpAttrsRef& attrs) {

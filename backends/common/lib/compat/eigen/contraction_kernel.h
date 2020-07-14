@@ -515,7 +515,7 @@ struct GemmKernelProvider<float, float, float, IndexType, OutputMapper> {
     }                                                                          \
                                                                                \
     template <typename Device>                                                 \
-    void deallocate(Device& d, BlockMemHandle handle) {                        \
+    static void deallocate(Device& d, BlockMemHandle handle) {                 \
       BlockMemAllocator::deallocate(d, handle);                                \
     }                                                                          \
                                                                                \

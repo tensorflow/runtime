@@ -296,12 +296,10 @@ TEST_F(CpuDriverTest, NativeCompositeOpTest) {
   auto op = driver_.MakeNativeCompositeOp(&fn);
 
   auto a1 = driver_.GetHostContext()->MakeAvailableAsyncValueRef<int32_t>(1);
+  tfrt::RCReference<AsyncValue> args[2] = {a1.CopyRCRef(), a1.CopyRCRef()};
   tfrt::RCReference<AsyncValue> a2;
   CompositeOpInvocation op_invocation{
-      driver_.CreateExecutionContext(__FILE__, __LINE__),
-      {a1.CopyRCRef(), a1.CopyRCRef()},
-      {a2},
-      nullptr};
+      driver_.CreateExecutionContext(__FILE__, __LINE__), args, a2, nullptr};
   op(op_invocation);
   driver_.WaitForHostContextQuiesce();
 

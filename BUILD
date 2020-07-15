@@ -236,6 +236,7 @@ tfrt_cc_library(
     name = "tensor",
     srcs = [
         "lib/tensor/btf.cc",
+        "lib/tensor/conversion_registry.cc",
         "lib/tensor/coo_host_tensor.cc",
         "lib/tensor/coo_host_tensor_kernels.cc",
         "lib/tensor/dense_host_tensor.cc",
@@ -251,6 +252,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/tensor/btf.h",
         "include/tfrt/tensor/btf_reader_util.h",
+        "include/tfrt/tensor/conversion_registry.h",
         "include/tfrt/tensor/coo_host_tensor.h",
         "include/tfrt/tensor/dense_host_tensor.h",
         "include/tfrt/tensor/dense_host_tensor_kernels.h",

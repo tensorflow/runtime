@@ -27,7 +27,10 @@
 
 namespace tfrt {
 
+class TensorConversionFnRegistry;
+
 void RegisterCooHostTensorKernels(KernelRegistry* registry);
+void RegisterCooHostTensorConversionFn(TensorConversionFnRegistry* registry);
 
 // Represents a sparse tensor as a coordinate list (COO).
 class CooHostTensor final : public HostTensor {

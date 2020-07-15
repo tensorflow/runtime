@@ -21,6 +21,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/kernel_registry.h"
+#include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/coo_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_kernels.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
@@ -38,5 +39,11 @@ static void Register(KernelRegistry* registry) {
 }
 
 TFRT_STATIC_KERNEL_REGISTRATION(Register);
+
+// TODO(fishx): Create a macro for this registration.
+static bool host_conversion_fn_registration = []() {
+  AddStaticTensorConversionFn(RegisterCooHostTensorConversionFn);
+  return true;
+}();
 
 }  // namespace tfrt

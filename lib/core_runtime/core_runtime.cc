@@ -39,6 +39,7 @@
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/mutex.h"
+#include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
@@ -166,6 +167,8 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
   // Register all of the kernels that are statically linked into this executable
   // with our registry.
   RegisterStaticKernels(runtime->GetHostContext()->GetRegistry());
+
+  RegisterTensorConversionFns(runtime->GetHostContext());
 
   if (op_handler_chains.empty()) return std::move(runtime);
 

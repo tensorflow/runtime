@@ -109,6 +109,9 @@ void RegisterTfBinaryOp(CpuOpRegistry* op_registry, string_view op_name) {
 
 void RegisterTfBinaryCpuOps(CpuOpRegistry* op_registry) {
   RegisterTfBinaryOp<cpu::functor::Add>(op_registry, "tf.AddV2");
+  RegisterTfBinaryOp<cpu::functor::Mul>(op_registry, "tf.Mul");
+  RegisterTfBinaryOp<cpu::functor::Div>(op_registry, "tf.RealDiv");
+  RegisterTfBinaryOp<cpu::functor::Sub>(op_registry, "tf.Sub");
 }
 
 }  // namespace tfrt

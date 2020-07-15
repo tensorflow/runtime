@@ -470,7 +470,10 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.MaxPool", TFRT_METADATA(TfMaxPoolOpMd));
     result->emplace_back("tf.Mean", TFRT_METADATA(TfMeanOpMd));
     result->emplace_back("_tf.Mean", TFRT_METADATA(TfMeanOpFoldedMd));
+    result->emplace_back("tf.Mul", TFRT_METADATA(TfBinaryOpMd));
+    result->emplace_back("tf.RealDiv", TFRT_METADATA(TfBinaryOpMd));
     result->emplace_back("tf.Softmax", TFRT_METADATA(UnaryIdentityMd));
+    result->emplace_back("tf.Sub", TFRT_METADATA(TfBinaryOpMd));
     result->emplace_back("tf.BiasAdd", TFRT_METADATA(TfBiasAddOpMd));
     result->emplace_back("tf.FusedBatchNormV3", TFRT_METADATA(TfBatchNormOpMd));
     result->emplace_back("tf._FusedBatchNormEx",

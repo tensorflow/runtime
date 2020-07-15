@@ -86,6 +86,21 @@ struct Add {
   using Functor = BinaryFunctor<T, Eigen::internal::scalar_sum_op<T>>;
 };
 
+struct Div {
+  template <typename T>
+  using Functor = BinaryFunctor<T, Eigen::internal::scalar_quotient_op<T>>;
+};
+
+struct Sub {
+  template <typename T>
+  using Functor = BinaryFunctor<T, Eigen::internal::scalar_difference_op<T>>;
+};
+
+struct Mul {
+  template <typename T>
+  using Functor = BinaryFunctor<T, Eigen::internal::scalar_product_op<T>>;
+};
+
 // Bind scalar value on the right side of the binary expression to the binary
 // functor and get back a unary functor:
 //

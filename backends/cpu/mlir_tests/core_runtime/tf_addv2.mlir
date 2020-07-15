@@ -25,7 +25,7 @@ func @addV2_dense_dense_f32() -> !tfrt.chain{
     { shape = [2, 3], values = [0.0 : f32, 1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32] } : 1
   %cpu_handle_result = corert.executeop(%cpu) "tf.AddV2"(%operand_0, %operand_1) : 1
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 3]
-  // CEHCK-SAME: values = [-1.000000e+00, 5.000000e-01, 2.000000e+00, 3.500000e+00, 5.000000e+00, 6.500000e+00]
+  // CHECK-SAME: values = [-1.000000e+00, 5.000000e-01, 2.000000e+00, 3.500000e+00, 5.000000e+00, 6.500000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

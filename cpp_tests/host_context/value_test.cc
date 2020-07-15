@@ -123,5 +123,39 @@ TEST(ValueTest, OutOfPlace) {
   ASSERT_FALSE(v2.HasValue());
 }
 
+struct BaseType1 {};
+struct BaseType2 {};
+struct FinalType1 final : BaseType1 {};
+struct FinalType2 final : BaseType2 {};
+struct PolymorphicFinalType2 final : BaseType2 {
+  virtual ~PolymorphicFinalType2() = default;
+};
+
+// Assert death only in the debug mode, otherwise, skip the statement.
+#ifndef NDEBUG
+#define ASSERT_DEATH_IN_DEBUG(...) ASSERT_DEBUG_DEATH(__VA_ARGS__)
+#else
+#define ASSERT_DEATH_IN_DEBUG(...)
+#endif
+
+TEST(ValueDeathTest, TypeCheck) {
+  Value v1{0};
+
+  // Try to access an int as a float triggers the type assertion.
+  ASSERT_DEATH_IN_DEBUG(v1.get<float>(), "");
+
+  Value v2{FinalType1{}};
+  ASSERT_FALSE(v2.IsType<BaseType1>());
+
+  // Try to access the payload as FinalType2 triggers the type assertion, as
+  // FinalType2 is a final type.
+  ASSERT_DEATH_IN_DEBUG(v1.get<FinalType2>(), "");
+
+  // Try to access a polymorphic payload type using a non-polymorphic base class
+  // is not allowed and triggers an type assertion.
+  Value v3{PolymorphicFinalType2{}};
+  ASSERT_DEATH_IN_DEBUG(v3.get<BaseType2>(), "");
+}
+
 }  // namespace
 }  // namespace tfrt

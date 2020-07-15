@@ -39,6 +39,23 @@ struct make_void {
 template <typename... Ts>
 using void_t = typename make_void<Ts...>::type;
 
+// This is the equivalent of std::conjunction in C++17.
+template <class...>
+struct conjunction : std::true_type {};
+template <class B1>
+struct conjunction<B1> : B1 {};
+template <class B1, class... Bn>
+struct conjunction<B1, Bn...>
+    : std::conditional_t<bool(B1::value), conjunction<Bn...>, B1> {};
+
+// This is the equivalent of std::negation in C++17.
+template <class B>
+struct negation : std::integral_constant<bool, !bool(B::value)> {};
+
+// Check whether T may be a base class.
+template <typename T>
+using MaybeBase = conjunction<std::is_class<T>, negation<std::is_final<T>>>;
+
 // The detector pattern in C++ that can be used for checking whether a type has
 // a specific property, e.g. whether an internal type is present or whether a
 // particular operation is valid.

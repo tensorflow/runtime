@@ -57,6 +57,28 @@ class OutOfPlaceTypeTraits;
 // * For non-moveable types regardless of size, the payload is stored out of
 //   place with a heap allocation.
 //
+// Unlike std::any, Value supports getting a reference to the base class of the
+// stored type. For example, the following code works:
+//
+// struct BaseClass {};
+// struct DerivedClass : BaseClass {};
+//
+// Value v{DerivedClass()};
+// auto& base = v.get<BaseClass>();
+//
+// The restriction to this capability is that casting from a derived class to a
+// base class should not need pointer adjustment. More specifically, all of the
+// following cases are illegal:
+//
+// * Get a non-polymorphic base class when the payload is a polymorphic derived
+//   class.
+// * Get non-first base class when the payload inherits from multiple bases.
+// * Get a virtual base class of the payload class.
+//
+// TODO: Add type assertion to prevent getting a base class reference for the
+// stored type in the presense of multiple inheritance or virtual inheritance.
+// This will make the debug type checking more robust.
+//
 // The Value class is thread-compatible.
 //
 // TODO: We need to add the conversion between AsyncValue and Value to allow for
@@ -109,6 +131,20 @@ class Value {
   // Check if Value contains object of type T.
   template <typename T>
   bool IsType() const;
+
+  // MaybeTypeCompatible returns true if the type value stored in this Value
+  // instance can be safely cast to `T`.  MaybeTypeCompatible may return true
+  // even if the value cannot be safely cast to `T`. However, if it returns
+  // false then the value definitely cannot be safely cast to `T`. This means it
+  // is useful mainly as a debugging aid for use in assert() etc.
+
+  template <typename T,
+            typename std::enable_if<MaybeBase<T>::value>::type* = nullptr>
+  bool MaybeTypeCompatible() const;
+
+  template <typename T,
+            typename std::enable_if<!MaybeBase<T>::value>::type* = nullptr>
+  bool MaybeTypeCompatible() const;
 
   // Check if object of type T is stored in place.
   template <typename T>
@@ -213,10 +249,12 @@ struct TypeTraits {
                            OutOfPlaceTypeTraits<T>>;
     clear = &TypeTraitFns::Clear;
     move_construct = &TypeTraitFns::MoveConstruct;
+    is_polymorphic = std::is_polymorphic<T>::value;
   }
 
   ClearFn clear;
   MoveConstructFn move_construct;
+  bool is_polymorphic;
 };
 
 template <typename T>
@@ -251,7 +289,7 @@ T& Value::get() {
 
 template <typename T>
 const T& Value::get() const {
-  assert(IsType<T>());
+  assert(MaybeTypeCompatible<T>());
 
   if (IsInPlace<T>()) {
     return *reinterpret_cast<const T*>(&storage_);
@@ -296,6 +334,19 @@ inline void Value::reset() {
 template <typename T>
 bool Value::IsType() const {
   return internal::GetTypeTraits<T>() == traits_;
+}
+
+template <typename T, typename std::enable_if<MaybeBase<T>::value>::type*>
+bool Value::MaybeTypeCompatible() const {
+  // We can't do a IsType<T>() in this case because `T` might be an base class.
+  // So we conservatively just check the polymorphic-ness are consistent.
+  return std::is_polymorphic<T>::value == traits_->is_polymorphic;
+}
+
+template <typename T, typename std::enable_if<!MaybeBase<T>::value>::type*>
+bool Value::MaybeTypeCompatible() const {
+  return IsType<T>() &&
+         std::is_polymorphic<T>::value == traits_->is_polymorphic;
 }
 
 }  // namespace tfrt

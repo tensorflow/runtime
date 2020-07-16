@@ -166,7 +166,7 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
 
   // Register all of the kernels that are statically linked into this executable
   // with our registry.
-  RegisterStaticKernels(runtime->GetHostContext()->GetRegistry());
+  RegisterStaticKernels(runtime->GetHostContext()->GetMutableRegistry());
 
   RegisterTensorConversionFns(runtime->GetHostContext());
 
@@ -379,36 +379,8 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
           invocation.results[i] = std::move(result_th->get<TensorHandle>());
         }
       } else {
-        auto md_av = host->MakeUnconstructedAsyncValueRef<TensorMetadata>();
-        auto tensor_av = host->MakeIndirectAsyncValue();
-
-        // NOTE(fishx): In this case, device information is not ready
-        // synchronously. Righ now I put an empty device as placeholder. But
-        // se should support async device OR delete this branch and do an
-        // assert check.
-        invocation.results[i] = TensorHandle(
-            {}, md_av.CopyRef(), AsyncValueRef<Tensor>(tensor_av.CopyRef()));
-        result_th->AndThen([md_av = std::move(md_av),
-                            tensor_av = std::move(tensor_av),
-                            result_th = result_th.CopyRef()]() mutable {
-          if (result_th->IsError()) {
-            md_av.SetError(result_th->GetError());
-            tensor_av->SetError(result_th->GetError());
-            return;
-          }
-          assert(result_th->IsType<TensorHandle>());
-          auto& th = result_th->get<TensorHandle>();
-          tensor_av->ForwardTo(FormRef(th.GetAsyncTensor()));
-          if (th.IsMetadataAvailable()) {
-            md_av.emplace(th.GetAvailableMetadata());
-            return;
-          }
-          auto result_md = th.GetAsyncMetadata().CopyRef();
-          result_md.AndThen([md_av = std::move(md_av),
-                             result_md = std::move(result_md)]() mutable {
-            md_av.emplace(result_md.get<TensorMetadata>());
-          });
-        });
+        llvm_unreachable(
+            "composite op must return tensor handler synchronously");
       }
     }
   };

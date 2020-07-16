@@ -91,13 +91,12 @@ namespace tfrt {
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandler(
     bool update_chain, const OpInvocation& invocation,
-    RCReference<Device> retval_device,
-    typename OpHandlerTraits::OpEntryTy op_entry,
+    RCReference<Device> device, typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info);
 
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandler(bool update_chain, const OpInvocation& invocation,
-                        RCReference<Device> retval_device,
+                        RCReference<Device> device,
                         typename OpHandlerTraits::OpEntryTy op_entry);
 
 namespace internal {
@@ -149,8 +148,7 @@ using MetadataIsReadyCallback = llvm::unique_function<void(
 // `invocation.chain`.
 void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
                                 const OpMetadataFn& metadata_fn,
-                                bool update_chain,
-                                RCReference<Device> retval_device,
+                                bool update_chain, RCReference<Device> device,
                                 MetadataIsReadyCallback callback);
 
 template <typename OpHandlerTraits>
@@ -537,11 +535,10 @@ void ExecuteWithResultMetadataResolved(
 template <typename OpHandlerTraits>
 LLVM_ATTRIBUTE_NOINLINE void ExecuteWithMetadataAsync(
     const OpInvocation& invocation, bool update_chain,
-    RCReference<Device> retval_device,
-    typename OpHandlerTraits::OpEntryTy op_entry,
+    RCReference<Device> device, typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   ExecuteWhenMetadataIsReady(
-      invocation, op_entry.metadata_fn, update_chain, std::move(retval_device),
+      invocation, op_entry.metadata_fn, update_chain, std::move(device),
       [op_entry = std::move(op_entry),
        op_handler_info = std::move(op_handler_info), update_chain](
           const ExecutionContext& exec_ctx,
@@ -559,8 +556,7 @@ LLVM_ATTRIBUTE_NOINLINE void ExecuteWithMetadataAsync(
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandlerImpl(
     bool update_chain, const OpInvocation& invocation,
-    RCReference<Device> retval_device,
-    typename OpHandlerTraits::OpEntryTy op_entry,
+    RCReference<Device> device, typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   using internal::ExecuteMetadataFunction;
   using internal::MDFunctionExecResult;
@@ -586,8 +582,8 @@ bool ExecuteOnOpHandlerImpl(
 
     if (md_exec_result == MDFunctionExecResult::kMetadataUnavailable) {
       internal::ExecuteWithMetadataAsync<OpHandlerTraits>(
-          invocation, update_chain, std::move(retval_device),
-          std::move(op_entry), std::move(op_handler_info));
+          invocation, update_chain, std::move(device), std::move(op_entry),
+          std::move(op_handler_info));
       return true;
     }
   }
@@ -610,12 +606,11 @@ bool ExecuteOnOpHandlerImpl(
 
   for (size_t i = 0, e = results.size(); i != e; ++i) {
     if (op_entry.metadata_fn) {
-      results[i] = TensorHandle(retval_device.CopyRef(), result_mds[i],
+      results[i] = TensorHandle(device.CopyRef(), result_mds[i],
                                 std::move(result_tensor_avs[i]));
     } else {
-      results[i] =
-          TensorHandle(retval_device.CopyRef(), std::move(result_md_avs[i]),
-                       std::move(result_tensor_avs[i]));
+      results[i] = TensorHandle(device.CopyRef(), std::move(result_md_avs[i]),
+                                std::move(result_tensor_avs[i]));
     }
   }
 
@@ -626,17 +621,16 @@ bool ExecuteOnOpHandlerImpl(
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandler(
     bool update_chain, const OpInvocation& invocation,
-    RCReference<Device> retval_device,
-    typename OpHandlerTraits::OpEntryTy op_entry,
+    RCReference<Device> device, typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   return internal::ExecuteOnOpHandlerImpl<OpHandlerTraits>(
-      update_chain, invocation, std::move(retval_device), std::move(op_entry),
+      update_chain, invocation, std::move(device), std::move(op_entry),
       op_handler_info);
 }
 
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandler(bool update_chain, const OpInvocation& invocation,
-                        RCReference<Device> retval_device,
+                        RCReference<Device> device,
                         typename OpHandlerTraits::OpEntryTy op_entry) {
   // For now implement the non-OpHandlerInfoTy overload by faking a
   // OpHandlerInfoTy using an `int`.
@@ -666,7 +660,7 @@ bool ExecuteOnOpHandler(bool update_chain, const OpInvocation& invocation,
   };
 
   return internal::ExecuteOnOpHandlerImpl<InnerOpHandlerTraits>(
-      update_chain, invocation, std::move(retval_device), std::move(op_entry),
+      update_chain, invocation, std::move(device), std::move(op_entry),
       /*op_handler_info=*/0);
 }
 

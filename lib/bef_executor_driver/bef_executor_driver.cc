@@ -166,11 +166,11 @@ int RunBefExecutor(const RunBefConfig& run_config) {
     // The library should specify a kernel registration entrypoint.
     if (auto kernel_reg = dyn_lib.SearchForAddressOfSymbol("RegisterKernels")) {
       reinterpret_cast<void (*)(KernelRegistry*)>(kernel_reg)(
-          host->GetRegistry());
+          host->GetMutableRegistry());
     }
   }
 
-  auto bef(BEFFile::Open(buffer_arr, host->GetRegistry(),
+  auto bef(BEFFile::Open(buffer_arr, host->GetMutableRegistry(),
                          decoded_diagnostic_handler, host->allocator()));
 
   if (!bef) {

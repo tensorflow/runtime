@@ -59,11 +59,11 @@ int main(int argc, char** argv) {
 
   // Register kernels used for fib.mlir test inline to avoid _alwayslink target
   // in this minimal test driver.
-  tfrt::RegisterIntegerKernels(host.GetRegistry());
-  tfrt::RegisterControlFlowKernels(host.GetRegistry());
+  tfrt::RegisterIntegerKernels(host.GetMutableRegistry());
+  tfrt::RegisterControlFlowKernels(host.GetMutableRegistry());
 
   std::vector<uint8_t> buffer = ReadFromStdInToBuffer();
-  auto bef(tfrt::BEFFile::Open(buffer, host.GetRegistry(),
+  auto bef(tfrt::BEFFile::Open(buffer, host.GetMutableRegistry(),
                                decoded_diagnostic_handler,
                                host_allocator.get()));
   if (!bef) {

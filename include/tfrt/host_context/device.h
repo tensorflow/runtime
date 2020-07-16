@@ -16,7 +16,8 @@
 
 //===- device.h - device abstraction ----------------------------*- C++ -*-===//
 //
-// Device abstract that are used in both op-by-op and graph execution.
+// Device is a low level abstraction that represents a physical compute device
+// (e.g. CPU, GPU, TPU), to be used in both op-by-op and graph execution.
 //
 //===----------------------------------------------------------------------===//
 #ifndef TFRT_HOST_CONTEXT_DEVICE_H_
@@ -43,7 +44,6 @@ class DeviceTypeRegistry;
 class DeviceType {
  public:
   string_view name() const { return name_; }
-  bool IsValid() const { return !name_.empty(); }
 
   bool operator==(const DeviceType& other) const {
     // We can compare their address directly because all instances are managed
@@ -53,9 +53,6 @@ class DeviceType {
 
  private:
   friend DeviceTypeRegistry;
-
-  // Default constructor that creates an invalid DeviceType.
-  DeviceType() {}
 
   // It is hidden because all instances are managed by DeviceTypeRegistry.
   explicit DeviceType(string_view name) : name_(name) {}
@@ -67,16 +64,12 @@ class DeviceType {
 class Device : public ReferenceCounted<Device> {
  public:
   Device(const DeviceType& type, string_view name) : type_(type), name_(name) {
-    assert(type_.IsValid() &&
-           "Cannot create a Device with invalid device type");
     assert(!name_.empty() && "Cannot create a Device with empty device name");
   }
 
   ~Device() {}
 
-  // This class is not copyable or assignable. If we add a copy operation it
-  // will likely be explicit - copying a Tensor can be a very expensive
-  // operation.
+  // This class is not copyable or assignable.
   Device(const Device& other) = delete;
   Device& operator=(const Device&) = delete;
 
@@ -85,10 +78,10 @@ class Device : public ReferenceCounted<Device> {
 
  private:
   const DeviceType& type_;
-  std::string name_;
+  const std::string name_;
 };
 
-// A central place to manage all active devices.
+// A central place to manage all active devices. Thread-safe.
 class DeviceManager {
  public:
   ~DeviceManager() = default;
@@ -113,7 +106,7 @@ class DeviceManager {
 // Contains all the DeviceType that are supported.
 class DeviceTypeRegistry {
  public:
-  // Each process should only have one DeviceTypeRegistry;
+  // Each process should only have one DeviceTypeRegistry.
   static DeviceTypeRegistry* GetStaticDeviceTypeRegistry();
 
   ~DeviceTypeRegistry();
@@ -122,8 +115,6 @@ class DeviceTypeRegistry {
   const DeviceType& GetDeviceType(string_view type) const;
 
  private:
-  DeviceType invalid_type_;
-
   // We use an array instead of map because we don't expected to have many
   // device types. And it is not on the performance critical path.
   SmallVector<DeviceType, 4> types_;

@@ -157,7 +157,7 @@ class TensorHandle final {
     TensorMetadata inlined_metadata_;
   };
 
-  // TODO(b/159161872): Consider support async device.
+  // The device where the underlying tensor is located on.
   RCReference<Device> device_;
 };
 

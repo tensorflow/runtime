@@ -241,13 +241,14 @@ class HostContext {
   //===--------------------------------------------------------------------===//
   const KernelRegistry& GetKernelRegistry() { return registry_; }
 
-  KernelRegistry* GetRegistry() { return &registry_; }
+  KernelRegistry* GetMutableRegistry() { return &registry_; }
 
   //===--------------------------------------------------------------------===//
   // Device Manager
   //===--------------------------------------------------------------------===//
   DeviceManager* GetDeviceManager() { return &device_mgr_; }
 
+  // TODO(b/161370736): Remove this method.
   RCReference<Device> GetHostDeviceRef();
 
  private:

@@ -39,11 +39,10 @@ const DeviceType& DeviceTypeRegistry::GetDeviceType(string_view type) const {
       return dt;
     }
   }
-  return invalid_type_;
+  llvm_unreachable("invalid device type");
 }
 
-/*static*/ DeviceTypeRegistry*
-DeviceTypeRegistry::GetStaticDeviceTypeRegistry() {
+DeviceTypeRegistry* DeviceTypeRegistry::GetStaticDeviceTypeRegistry() {
   static DeviceTypeRegistry* ret = new DeviceTypeRegistry();
   return ret;
 }
@@ -58,12 +57,8 @@ const DeviceType& GetStaticDeviceType(string_view type) {
 
 RCReference<Device> DeviceManager::MaybeAddDevice(RCReference<Device> device) {
   mutex_lock l(mu_);
-  auto it = device_map_.find(device->name());
-  if (it != device_map_.end()) return it->second.CopyRef();
-  bool added = device_map_.try_emplace(device->name(), device.CopyRef()).second;
-  (void)added;
-  assert(added && "Re-registered existing Device");
-  return device;
+  auto it = device_map_.try_emplace(device->name(), std::move(device));
+  return it.first->second.CopyRef();
 }
 
 RCReference<Device> DeviceManager::GetDeviceRef(string_view device_name) const {

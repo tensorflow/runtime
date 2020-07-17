@@ -158,12 +158,7 @@ class SyncBEFFunction final : public BEFFunction {
   // Execute SyncBEFFunction synchronously. Return excution error in the Error
   // return value.
   Error SyncExecute(const ExecutionContext& exec_ctx,
-                    ArrayRef<Value*> arguments,
-                    ArrayRef<Value*> results) const {
-    // TODO(jingdong): Implement this function when BEFInterpreter is ready.
-    assert(false && "Not implemented");
-    abort();
-  }
+                    ArrayRef<Value*> arguments, ArrayRef<Value*> results) const;
 
   // Return an array of descriptors for all of our registers, indexed by
   // their register number.

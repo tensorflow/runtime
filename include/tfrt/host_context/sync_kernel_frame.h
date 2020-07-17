@@ -47,13 +47,11 @@ namespace tfrt {
 // access the inputs and attributes, and return result values.
 class SyncKernelFrame {
  public:
-  explicit SyncKernelFrame(ExecutionContext* exec_ctx) : exec_ctx_{exec_ctx} {}
-
-  const ExecutionContext& GetExecutionContext() const { return *exec_ctx_; }
-  HostContext* GetHostContext() const { return exec_ctx_->host(); }
+  const ExecutionContext& GetExecutionContext() const { return exec_ctx_; }
+  HostContext* GetHostContext() const { return exec_ctx_.host(); }
 
   // Get the location.
-  Location GetLocation() const { return exec_ctx_->location(); }
+  Location GetLocation() const { return exec_ctx_.location(); }
 
   // Get the number of arguments.
   int GetNumArgs() const { return num_arguments_; }
@@ -77,15 +75,12 @@ class SyncKernelFrame {
   ArrayRef<const void*> GetAttributes() const {
     if (value_or_attrs_.empty()) return {};
 
-    return llvm::makeArrayRef(
-        &value_or_attrs_[num_arguments_ + num_results_].attr,
-        GetNumAttributes());
+    return llvm::makeArrayRef(&value_or_attrs_[num_arguments_].attr,
+                              GetNumAttributes());
   }
 
   // Get the number of attributes.
-  int GetNumAttributes() const {
-    return value_or_attrs_.size() - num_arguments_ - num_results_;
-  }
+  int GetNumAttributes() const { return num_attributes_; }
 
   // Get the attribute at the given index as type T.
   // TODO(jingdong): Disable const char*.
@@ -115,25 +110,23 @@ class SyncKernelFrame {
   }
 
   // Get the number of results.
-  int GetNumResults() const { return num_results_; }
+  int GetNumResults() const {
+    return value_or_attrs_.size() - num_arguments_ - num_attributes_;
+  }
 
   // Emplace construct the result at given index.
   template <typename T, typename... Args>
   void EmplaceResultAt(int index, Args&&... args) {
-    assert(index < num_results_ && "Invalid result index");
-    Value* result = value_or_attrs_[num_arguments_ + index].value;
+    assert(index < GetNumResults() && "Invalid result index");
+    Value* result = GetResults()[index];
     assert(!result->HasValue() && "Result value is non-empty.");
     result->emplace<T>(std::forward<Args>(args)...);
   }
 
   // Get all results as an immutable ArrayRef.
   ArrayRef<Value*> GetResults() const {
-    return GetValues(num_arguments_, num_results_);
+    return GetValues(num_arguments_ + num_attributes_, GetNumResults());
   }
-
-  // Assert the size of arguments, attributes, and results are as expected.
-  void AssertArity(int num_arguments, int num_attributes,
-                   int num_results) const;
 
   // Report error from the kernel execution.
   void SetError(Error error) {
@@ -153,8 +146,13 @@ class SyncKernelFrame {
     const void* attr;
   };
 
+  // `exec_ctx` must out-live the SyncKernelFrame object, as SyncKernelFrame
+  // only keeps a reference to `exec_ctx`.
+  explicit SyncKernelFrame(const ExecutionContext& exec_ctx)
+      : exec_ctx_{exec_ctx} {}
+
   ArrayRef<Value*> GetValues(size_t from, size_t length) const {
-    assert((from + length) <= (num_arguments_ + num_results_));
+    assert(IsAllValue(from, length));
 
     if (length == 0) return {};
 
@@ -162,19 +160,38 @@ class SyncKernelFrame {
   }
 
   MutableArrayRef<Value*> GetMutableValues(size_t from, size_t length) {
-    assert((from + length) <= (num_arguments_ + num_results_));
+    assert(IsAllValue(from, length));
 
     if (length == 0) return {};
 
     return llvm::makeMutableArrayRef(&(value_or_attrs_[from].value), length);
   }
 
+  // Return if the given index points to a Value in value_or_attrs_.
+  bool IsValue(size_t index) const {
+    // index points to an argument.
+    if (index < num_arguments_) return true;
+    // index points to a result.
+    if (index >= num_arguments_ + num_attributes_) return true;
+
+    // index points to an attribute.
+    return false;
+  }
+
+  // Return if the given index range all point to a Value in value_or_attrs_.
+  bool IsAllValue(size_t from, size_t length) const {
+    for (size_t i = from; i < from + length; ++i) {
+      if (!IsValue(i)) return false;
+    }
+    return true;
+  }
+
   // This SmallVector stores the kernel argument Values, result Values, and
   // attributes in order.
   SmallVector<ValueOrAttribute, 8> value_or_attrs_;
   int num_arguments_ = 0;
-  int num_results_ = 0;
-  ExecutionContext* exec_ctx_ = nullptr;
+  int num_attributes_ = 0;
+  const ExecutionContext& exec_ctx_;
   Error error_ = Error::success();
 };
 
@@ -186,11 +203,13 @@ class SyncKernelFrame {
 // in a single SmallVector. As a result, to initialize a SyncKernelFrame, this
 // class requires that the client performs the following actions in order:
 // 1. Adds the arguments (using AddArg())
-// 2. Add the results (using AddResult())
-// 3. Add the attributes (using AddAttribute())
+// 2. Add the attributes (using AddAttribute())
+// 3. Add the results (using AddResult())
 class SyncKernelFrameBuilder : public SyncKernelFrame {
  public:
-  explicit SyncKernelFrameBuilder(ExecutionContext* exec_ctx)
+  // `exec_ctx` must out-live the SyncKernelFrameBuilder object, as
+  // SyncKernelFrameBuilder only keeps a reference to `exec_ctx`.
+  explicit SyncKernelFrameBuilder(const ExecutionContext& exec_ctx)
       : SyncKernelFrame{exec_ctx} {}
 
   // Get result Value at the given index.
@@ -198,43 +217,32 @@ class SyncKernelFrameBuilder : public SyncKernelFrame {
 
   // Add a new argument to the SyncKernelFrame.
   void AddArg(Value* value) {
-    assert(num_results_ == 0 && "Must call AddArg before calling AddResult");
+    assert(num_attributes_ == 0 &&
+           "Must call AddArg before calling AddAttribute.");
     value_or_attrs_.emplace_back(value);
     ++num_arguments_;
   }
 
-  // Add a new result to the SyncKernelFrame.
-  void AddResult(Value* value) {
-    assert(GetNumAttributes() == 0 &&
-           "Must call AddResult before calling AddAttribute");
-    value_or_attrs_.emplace_back(value);
-    ++num_results_;
-  }
-
   // Add a new attribute to the SyncKernelFrame.
-  void AddAttribute(const void* attr) { value_or_attrs_.emplace_back(attr); }
-
-  // Set the location.
-  void SetLocation(const Location& location) {
-    exec_ctx_->set_location(location);
+  void AddAttribute(const void* attr) {
+    assert(GetNumResults() == 0 &&
+           "Must call AddAttribute before calling AddResult.");
+    value_or_attrs_.emplace_back(attr);
+    ++num_attributes_;
   }
+
+  // Add a new result to the SyncKernelFrame.
+  void AddResult(Value* value) { value_or_attrs_.emplace_back(value); }
 
   // Clear all fields.
   void Reset() {
     value_or_attrs_.clear();
     num_arguments_ = 0;
-    num_results_ = 0;
+    num_attributes_ = 0;
   }
 };
 
 // Implementation details
-
-inline void SyncKernelFrame::AssertArity(int num_arguments, int num_attributes,
-                                         int num_results) const {
-  assert(num_arguments_ == num_arguments);
-  assert(GetNumAttributes() == num_attributes);
-  assert(GetNumResults() == num_results);
-}
 
 }  // namespace tfrt
 

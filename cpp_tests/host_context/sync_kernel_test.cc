@@ -62,14 +62,14 @@ class SyncKernelTest : public ::testing::Test {
       RequestContext::Create(&host_context_, /*resource_context=*/nullptr);
   ExecutionContext exec_ctx_{req_ctx_.CopyRef()};
 
-  SyncKernelFrameBuilder kernel_frame_{&exec_ctx_};
+  SyncKernelFrameBuilder kernel_frame_{exec_ctx_};
 };
 
 TEST_F(SyncKernelTest, IntConstant) {
   int attr = 2;
   Value result;
-  kernel_frame_.AddResult(&result);
   kernel_frame_.AddAttribute(&attr);
+  kernel_frame_.AddResult(&result);
 
   TFRT_SYNC_KERNEL(IntConstant)(&kernel_frame_);
   auto results = kernel_frame_.GetResults();
@@ -216,8 +216,8 @@ TEST_F(SyncKernelDeathTest, ExtraAttributes) {
   Value result;
   kernel_frame_.AddArg(&arg1);
   kernel_frame_.AddArg(&arg2);
-  kernel_frame_.AddResult(&result);
   kernel_frame_.AddAttribute(nullptr);
+  kernel_frame_.AddResult(&result);
 
   ASSERT_DEATH_IN_DEBUG((TFRT_SYNC_KERNEL(IntAdd)(&kernel_frame_)),
                         "Extra attributes passed to kernel.");

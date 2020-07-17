@@ -670,6 +670,11 @@ Error SyncBEFFunction::Init() {
       return format_error("Failed to read register user_count");
 
     bool is_arg = (num_registers < num_arguments());
+    if (is_arg) {
+      // +1 on the user count so that we do not reset the argument Value in the
+      // function evaluation.
+      ++user_count;
+    }
     register_infos_.push_back(
         RegisterInfo{static_cast<uint32_t>(user_count), is_arg});
   }
@@ -696,7 +701,11 @@ Error SyncBEFFunction::Init() {
       return format_error("Failed to read result_reg");
     result_regs_.push_back(result_reg);
 
-    register_infos_[result_reg].is_arg_or_result = true;
+    // +1 on the user count so that we do not reset the result Value in the
+    // function evaluation.
+    auto& reg_info = register_infos_[result_reg];
+    reg_info.is_arg_or_result = true;
+    ++reg_info.user_count;
   }
 
   // Kernels are aligned to kKernelEntryAlignment.

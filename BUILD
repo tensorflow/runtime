@@ -209,6 +209,7 @@ tfrt_cc_library(
         "lib/bef_executor/bef_executor.cc",
         "lib/bef_executor/bef_file.cc",
         "lib/bef_executor/bef_file_impl.h",
+        "lib/bef_executor/bef_interpreter.cc",
     ],
     hdrs = [
         "include/tfrt/bef_executor/bef_file.h",

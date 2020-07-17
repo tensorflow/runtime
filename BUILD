@@ -26,6 +26,12 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+# Config setting to conditionally link GPU targets.
+alias(
+    name = "gpu_enabled",
+    actual = "@rules_cuda//cuda:cuda_enabled",
+)
+
 tfrt_cc_library(
     name = "profiled_allocator",
     srcs = ["lib/host_context/profiled_allocator.cc"],

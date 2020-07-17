@@ -1,0 +1,48 @@
+/*
+ * Copyright 2020 The TensorFlow Runtime Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+//===- dense_map_utils.h - Defines DenseMapInfo specializations -*- C++ -*-===//
+//
+// Defines specializations for llvm::DenseMapInfo. This allows some gpu::stream
+// classes to be used as keys in llvm::DenseMap.
+//
+//===----------------------------------------------------------------------===//
+#ifndef TFRT_GPU_STREAM_DENSE_MAP_UTILS_H_
+#define TFRT_GPU_STREAM_DENSE_MAP_UTILS_H_
+
+#include "llvm/ADT/DenseMapInfo.h"
+#include "tfrt/gpu/stream/stream_wrapper.h"
+
+namespace llvm {
+
+template <>
+struct DenseMapInfo<tfrt::gpu::stream::Stream> {
+  using Stream = tfrt::gpu::stream::Stream;
+  static inline Stream getEmptyKey() {
+    return Stream(DenseMapInfo<void*>::getEmptyKey());
+  }
+  static inline Stream getTombstoneKey() {
+    return Stream(DenseMapInfo<void*>::getTombstoneKey());
+  }
+  static unsigned getHashValue(const Stream& s) { return s.hash(); }
+  static bool isEqual(const Stream& lhs, const Stream& rhs) {
+    return lhs == rhs;
+  }
+};
+
+}  // namespace llvm
+
+#endif  // TFRT_GPU_STREAM_DENSE_MAP_UTILS_H_

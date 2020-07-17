@@ -20,3 +20,7 @@ workspace(name = "tf_runtime")
 load(":dependencies.bzl", "tfrt_dependencies")
 
 tfrt_dependencies()
+
+load("@rules_cuda//cuda:dependencies.bzl", "rules_cuda_dependencies")
+
+rules_cuda_dependencies()

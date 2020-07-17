@@ -36,8 +36,15 @@ build --host_linkopt=-lm
 # Override via: "-c dbg" or --compilation_mode=dbg
 build --compilation_mode=opt
 
-# CUDA (currently, this is a no-op)
-build:cuda --define=enable_cuda=1
+# Build settings for //backends/gpu/...
+build --@rules_cuda//cuda:cuda_targets=sm_60
+build --@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs
+build --copt=-U_FORTIFY_SOURCE  # TODO(csigg): fix and remove
+
+# CUDA support
+build:cuda --define=enable_cuda=1  # Link //backends/gpu to //tools targets.
+test:cuda  --test_env=CUDA_CACHE_DISABLE=1  # Do not cache CUDA JIT
+test:cuda  --test_strategy=exclusive  # Run tests serially to avoid GPU OOM.
 
 # Build Event Service
 build:bes --bes_backend=buildeventservice.googleapis.com

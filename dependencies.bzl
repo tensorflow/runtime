@@ -16,9 +16,20 @@
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
 load("@tf_runtime//third_party:repo.bzl", "tfrt_http_archive")
+load("@tf_runtime//third_party/cuda:dependencies.bzl", "cuda_dependencies")
 
 def tfrt_dependencies():
     """Loads TFRT external dependencies into WORKSPACE."""
+
+    # Bazel rules to build CUDA targets.
+    # TODO(csigg): move this to some public repo.
+    maybe(
+        name = "rules_cuda",
+        repo_rule = native.local_repository,
+        path = "third_party/rules_cuda",
+    )
+
+    cuda_dependencies()
 
     # LLVM and MLIR from llvm-project.
     LLVM_COMMIT = "1d3f61f8a799489f7f4d81e46d9e6b31a954ea4e"

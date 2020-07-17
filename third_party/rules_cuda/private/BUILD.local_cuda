@@ -1,0 +1,50 @@
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "header_files",
+    srcs = glob(["cuda/include/**"]),
+)
+
+cc_library(
+    name = "cuda_headers",
+    hdrs = [":header_files"],
+    includes = ["cuda/include"],
+)
+
+cc_library(
+    name = "cuda_stub",
+    srcs = ["cuda/lib64/stubs/libcuda.so"],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+        "-lrt",
+    ],
+)
+
+# Note: do not use this target directly, use the configurable label_flag
+# @rules_cuda//cuda:cuda_runtime instead.
+cc_library(
+    name = "cuda_runtime",
+    srcs = glob(["cuda/lib64/libcudart.so.*"]),
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+        "-lrt",
+    ],
+    visibility = ["@rules_cuda//cuda:__pkg__"],
+)
+
+# Note: do not use this target directly, use the configurable label_flag
+# @rules_cuda//cuda:cuda_runtime instead.
+cc_library(
+    name = "cuda_runtime_static",
+    srcs = ["cuda/lib64/libcudart_static.a"],
+    linkopts = [
+        "-ldl",
+        "-lpthread",
+        "-lrt",
+    ],
+    visibility = ["@rules_cuda//cuda:__pkg__"],
+)

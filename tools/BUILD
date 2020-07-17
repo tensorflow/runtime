@@ -32,6 +32,10 @@ tfrt_cc_library(
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:MlirOptMain",
     ] + select({
+        "@tf_runtime//:gpu_enabled": [
+            "@tf_runtime//backends/gpu:cuda_opdefs_alwayslink",
+            "@tf_runtime//backends/gpu:cuda_test_opdefs_alwayslink",
+        ],
         "//conditions:default": [],
     }),
 )
@@ -57,6 +61,10 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:tfrt_translate_main",
     ] + select({
+        "@tf_runtime//:gpu_enabled": [
+            "@tf_runtime//backends/gpu:cuda_opdefs_alwayslink",
+            "@tf_runtime//backends/gpu:cuda_test_opdefs_alwayslink",
+        ],
         "//conditions:default": [],
     }),
 )
@@ -112,6 +120,13 @@ tfrt_cc_binary(
         "@tf_runtime//backends/cpu:test_ops_alwayslink",
         "@tf_runtime//backends/cpu:tf_ops_alwayslink",
     ] + select({
+        "@tf_runtime//:gpu_enabled": [
+            "@tf_runtime//backends/gpu:cuda_alwayslink",
+            "@tf_runtime//backends/gpu:cuda_test_alwayslink",
+            "@tf_runtime//backends/gpu:gpu_op_handler_alwayslink",
+            "@tf_runtime//backends/gpu:gpu_test_ops_alwayslink",
+            "@tf_runtime//backends/gpu:gpu_tf_ops_alwayslink",
+        ],
         "//conditions:default": [],
     }),
 )

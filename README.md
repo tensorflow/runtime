@@ -479,6 +479,99 @@ The three key directories under the TFRT root directory are
    <td>CPU mlir based tests
    </td>
   </tr>
+  <td colspan="2" ><strong><code>backends/gpu/</code></strong>
+   </td>
+   <td>GPU infra and op/kernel implementations. We might split this directory into a separate repository at some point after the interface with the rest of TFRT infra becomes stable.
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>include/</code>
+   </td>
+   <td>GPU related public headers
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>lib/core_runtime/</code>
+   </td>
+   <td>GPU Core runtime infra
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>lib/memory</code>
+   </td>
+   <td>GPU memory abstraction
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>lib/stream</code>
+   </td>
+   <td>GPU stream abstraction and wrappers
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>lib/tensor</code>
+   </td>
+   <td>GPU tensor
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>lib/ops</code>
+   </td>
+   <td>GPU ops
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>lib/kernels</code>
+   </td>
+   <td>GPU kernels
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>lib/data</code>
+   </td>
+   <td>GPU kernels for input pipeline infrastructure
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>cpp_tests/</code>
+   </td>
+   <td>GPU infra unit tests
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>mlir_tests/</code>
+   </td>
+   <td>GPU mlir based tests
+   </td>
+  </tr>
+  <tr>
+   <td>
+   </td>
+   <td><code>tools/</code>
+   </td>
+   <td>Miscellaneous utilities
+   </td>
+  </tr>
 </table>
 
 ## Contribution guidelines

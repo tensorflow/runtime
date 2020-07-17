@@ -35,7 +35,8 @@ abstractions, and general design principles.
 TFRT, as well as instructions to build and test TFRT components.
 
 TFRT currently supports Ubuntu-16.04. Future supported platforms include MacOS,
-Windows, etc. Bazel and clang are required to build and test TFRT.
+Windows, etc. Bazel and clang are required to build and test TFRT. NVIDIA's CUDA
+Toolkit and cuDNN libraries are required for the GPU backend.
 
 To describe the TFRT build and test workflows, we will build and run the
 following binaries for graph execution.
@@ -137,17 +138,62 @@ $ sudo apt-get install -y gcc-8 g++-8
 
 To verify installation, re-run the `clang++ -v` check above.
 
+#### GPU prerequisites
+
+**Note:** You can skip this section if you don't want to build the GPU backend.
+Remember to exclude `//backends/gpu/...` from your Bazel target patterns though.
+
+Building and running the GPU backend requires installing additional components.
+
+Install clang Python bindings using pip with
+
+```shell
+$ pip3 install clang
+```
+
+Alternatively, you can use apt and add the install location to sys.path with
+
+```shell
+$ apt-get install -y python3-clang-10
+$ echo '/usr/lib/python3/dist-packages' > "$(python3 -m site --user-site)/dist-packages.pth"
+```
+
+Install NVIDIA's CUDA Toolkit v10.2 (see
+[installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux)
+for details) in a single directory from NVIDIA’s `.run` package with
+
+```shell
+$ wget http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_440.33.01_linux.run
+$ sudo sh cuda_10.2.89_440.33.01_linux.run --silent --toolkit --toolkitpath=<path>
+```
+
+Register the path to CUDA shared objects with
+
+```shell
+$ sudo echo '<path>/lib64' > '/etc/ld.so.conf.d/cuda.conf'
+$ sudo ldconfig
+```
+
+Install NVIDIA's cuDNN v7.6 libraries (see
+[installation guide](http://docs.nvidia.com/deeplearning/sdk/cudnn-install) for
+details) with
+
+```shell
+$ wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+$ sudo apt install ./libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+```
+
 ### Building and running TFRT
 
 To build TFRT, `cd` to the root directory (where `WORKSPACE` file is located) of
 the TFRT workspace. A set of build configurations is in `.bazelrc` file. You can
-create a `user.bazelrc` in the repository root with extra bazel configs that may
+create a `user.bazelrc` in the repository root with extra Bazel configs that may
 be useful. Build `tfrt_translate` and `bef_executor` with the following
 commands:
 
 ```shell
-$ bazel build -c opt //tools:bef_executor
-$ bazel build -c opt //tools:tfrt_translate
+$ bazel build //tools:bef_executor
+$ bazel build //tools:tfrt_translate
 ```
 
 The above commands build the binaries with `opt` compilation mode. Check
@@ -169,6 +215,14 @@ $ bazel-bin/tools/tfrt_translate -mlir-to-bef mlir_tests/bef_executor/async.mlir
 ```
 
 Any output will be printed out to the terminal.
+
+### Adding GPU support
+
+Add `--config=cuda` to the Bazel command to link the GPU backend to the above
+targets.
+
+Custom CUDA Toolkit locations can be specified with
+`--repo_env=CUDA_PATH=<path>`. The default is `/usr/local/cuda`.
 
 ### Testing
 
@@ -202,32 +256,24 @@ func @basic_tensor() {
 To run a test, simply invoke `bazel test`:
 
 ```shell
-$ bazel test -c opt //mlir_tests/bef_executor:basics.mlir.test
+$ bazel test //mlir_tests/bef_executor:basics.mlir.test
 ```
 
-Suites of MLIR tests are placed under three directories:
-
-*   `./mlir_tests` which include tests for core TFRT components and core
-    kernels;
-*   `./backends/common/mlir_tests, ./backends/cpu/mlir_tests` which includes
-    tests for CPU Ops.
-
-To run the test suites, run the following command:
+Most tests under `//backends/gpu/...` need to be built with `--config=cuda` so
+that the GPU backend is linked to the bef_executor:
 
 ```shell
-$ bazel test -c opt <path/to/test/suite>:all
+$ bazel test --config=cuda //backends/gpu/mlir_tests/core_runtime:get_device.mlir.test
 ```
 
-where the path to the test suite is one of the above.
-
-To run all CPU tests:
+Use Bazel
+[target patterns](\(https://docs.bazel.build/versions/master/guide.html#specifying-targets-to-build\))
+to run multiple tests:
 
 ```shell
-$ bazel test -c opt //... -- -//third_party/...
+$ bazel test -- //... -//third_party/... -//backends/gpu/...  # All CPU tests.
+$ bazel test --config=cuda //backends/gpu/...                 # All GPU tests.
 ```
-
-where `-//third_party/...` excludes tests specified in build files for
-third_party repositories.
 
 ### Next Steps
 

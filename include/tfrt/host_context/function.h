@@ -50,6 +50,11 @@ class Function {
     return ArrayRef<TypeName>(argument_result_types_).drop_front(num_argument_);
   }
 
+  size_t num_arguments() const { return num_argument_; }
+  size_t num_results() const {
+    return argument_result_types_.size() - num_argument_;
+  }
+
   // Execute this function on the specified ExecutionContext, passing the
   // specified arguments. This returns one AsyncValue for each result.
   virtual void Execute(

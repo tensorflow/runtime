@@ -124,7 +124,9 @@ enum class SpecialAttribute : uint8_t {
 
 // This enum defined the function kind.
 enum class FunctionKind : uint8_t {
-  // This is the normal BEF function that defines registers and kernels in BEF.
+  // This is the async BEF function that defines registers and kernels in BEF.
+  // TODO(jingdong): Rename kBEFFunction to kAsyncBEFFunction after the code for
+  // SyncBEFFunction stabilizes.
   kBEFFunction = 0,
 
   // This is the native function that invokes executable code directly.

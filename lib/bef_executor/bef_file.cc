@@ -28,6 +28,7 @@
 #include "tfrt/host_context/native_function.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/bef_reader.h"
+#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 
@@ -192,7 +193,7 @@ bool BEFFileReader::DiagnoseUnknownKernel(size_t kernel_idx,
   SmallVector<size_t, 4> result_regs;
 
   for (const auto& function_index : function_indices) {
-    if (function_index.kind != FunctionKind::kBEFFunction) continue;
+    if (function_index.kind == FunctionKind::kNativeFunction) continue;
 
     BEFFileImpl::FunctionInfo function_info;
 
@@ -396,9 +397,15 @@ bool BEFFileReader::ReadFunctionIndexSection() {
         break;
       }
       case FunctionKind::kSyncBEFFunction: {
-        bef_file_->error_handler_(
-            DecodedDiagnostic("does not yet handle sync bef function"));
-        return true;
+        if (function_index.function_offset >=
+            bef_file_->function_section_.size())
+          return format_error();
+        auto bef_function = SyncBEFFunction::Create(
+            name, function_index.arguments, function_index.results,
+            function_index.function_offset, bef_file_);
+        if (!bef_function) return format_error();
+        bef_file_->functions_.push_back(std::move(bef_function.get()));
+        break;
       }
       case FunctionKind::kNativeFunction: {
         auto callable = NativeFunctionRegistry::GetGlobalRegistry().Get(name);
@@ -462,6 +469,8 @@ void BEFFileImpl::EmitFormatError(const char* message) {
   error_handler_(DecodedDiagnostic(message));
 }
 
+// TODO(b/160504938): Refactor this function to return Error instead of
+// reporting error via EmitFormatError to make the API more natural.
 bool BEFFileImpl::ReadFunction(size_t function_offset,
                                ArrayRef<TypeName> results,
                                size_t* location_offset,
@@ -615,6 +624,95 @@ const Function* BEFFile::GetFunction(string_view function_name) const {
   auto it = impl->function_symbol_table_.find(function_name);
   if (it == impl->function_symbol_table_.end()) return nullptr;
   return impl->functions_[it->second].get();
+}
+
+Expected<std::unique_ptr<SyncBEFFunction>> SyncBEFFunction::Create(
+    string_view name, ArrayRef<TypeName> arguments, ArrayRef<TypeName> results,
+    size_t function_offset, BEFFileImpl* bef_file) {
+  // std::make_unique cannot be used, as the constructor of SyncBEFFunction is
+  // private.
+  // NOLINTNEXTLINE
+  auto bef_function = std::unique_ptr<SyncBEFFunction>(
+      new SyncBEFFunction(name, arguments, results, function_offset, bef_file));
+
+  if (auto error = bef_function->Init())
+    return std::move(error);
+  else
+    return bef_function;
+}
+
+Error SyncBEFFunction::Init() {
+  assert(register_infos_.empty());
+  assert(kernels_.empty());
+  assert(kernel_offsets_.empty());
+  assert(result_regs_.empty());
+
+  auto format_error = [&](const char* msg) -> Error {
+    return MakeStringError("Invalid Function section in BEF file: ", msg);
+  };
+
+  auto function_section = bef_file_->function_section();
+  if (function_offset_ >= function_section.size())
+    return format_error("Invalid function offset");
+
+  BEFReader reader(function_section.drop_front(function_offset_));
+
+  // First we have the location info and register info table.
+  size_t num_registers;
+  size_t location_offset;
+  if (reader.ReadInt(&location_offset) || reader.ReadInt(&num_registers))
+    return format_error("Failed to read location_offset or num_registers");
+
+  register_infos_.reserve(num_registers);
+  while (num_registers--) {
+    size_t user_count;
+    if (reader.ReadInt(&user_count))
+      return format_error("Failed to read register user_count");
+
+    bool is_arg = (num_registers < num_arguments());
+    register_infos_.push_back(
+        RegisterInfo{static_cast<uint32_t>(user_count), is_arg});
+  }
+
+  // Next we have the kernel index table.
+  size_t num_kernels;
+  if (reader.ReadInt(&num_kernels))
+    return format_error("Failed to read num_kernels");
+
+  kernel_offsets_.reserve(num_kernels);
+  while (num_kernels--) {
+    size_t offset, num_operands;
+    if (reader.ReadInt(&offset) || reader.ReadInt(&num_operands))
+      return format_error("Failed to read kernel offset or num_operands");
+    kernel_offsets_.push_back(offset);
+  }
+
+  // Read the result registers.
+  size_t num_results = result_types().size();
+  result_regs_.reserve(num_results);
+  for (unsigned i = 0, e = num_results; i != e; ++i) {
+    size_t result_reg;
+    if (reader.ReadInt(&result_reg) || result_reg >= num_registers)
+      return format_error("Failed to read result_reg");
+    result_regs_.push_back(result_reg);
+
+    register_infos_[result_reg].is_arg_or_result = true;
+  }
+
+  // Kernels are aligned to kKernelEntryAlignment.
+  if (reader.ReadAlignment(kKernelEntryAlignment))
+    return format_error("Failed to align BEF to kKernelEntryAlignment");
+
+  // We found the start of our kernel section.
+  kernels_ = llvm::makeArrayRef(
+      reinterpret_cast<const uint32_t*>(reader.file().begin()),
+      reader.file().size() / kKernelEntryAlignment);
+
+  if (num_arguments() > 0) {
+    // Remove the first kernel which is an argument pseudo kernel.
+    kernels_ = kernels_.drop_front();
+  }
+  return Error::success();
 }
 
 }  // namespace tfrt

@@ -29,6 +29,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/kernel_registry.h"
@@ -39,6 +40,7 @@ namespace tfrt {
 
 class BEFFileImpl;
 class DecodedLocation;
+class Value;
 
 // Inlined array to keep registers and kernels info together with a BEF executor
 // if their size is small. Default constructed as empty, and must be resized
@@ -101,7 +103,7 @@ class BEFInfoArray {
 };
 
 // This class implements Function for BEF files.
-class BEFFunction final : public Function {
+class BEFFunction : public Function {
  public:
   BEFFunction(string_view name, ArrayRef<TypeName> arguments,
               ArrayRef<TypeName> results, size_t function_offset,
@@ -124,9 +126,80 @@ class BEFFunction final : public Function {
   void AddRef() const override;
   void DropRef() const override;
 
- private:
+ protected:
   size_t function_offset_;
   BEFFileImpl* bef_file_;
+};
+
+// This class implements SyncFunction for BEF files.
+class SyncBEFFunction final : public BEFFunction {
+ public:
+  struct RegisterInfo {
+    uint32_t user_count : 31;
+    bool is_arg_or_result : 1;
+  };
+
+  // Create a SyncBEFFunction. Return nullptr if the BEF file has format error.
+  static Expected<std::unique_ptr<SyncBEFFunction>> Create(
+      string_view name, ArrayRef<TypeName> arguments,
+      ArrayRef<TypeName> results, size_t function_offset,
+      BEFFileImpl* bef_file);
+
+  void Execute(
+      const ExecutionContext& exec_ctx, ArrayRef<AsyncValue*> arguments,
+      MutableArrayRef<RCReference<AsyncValue>> results) const override {
+    // TODO(b/160501723): Implement the async Execute() function for
+    // SyncBEFFunction when we need to interoperate between sync and async
+    // functions. This requires implementing conversion between Value and
+    // AsyncValue.
+    assert(false && "Not implemented");
+  }
+
+  // Execute SyncBEFFunction synchronously. Return excution error in the Error
+  // return value.
+  Error SyncExecute(const ExecutionContext& exec_ctx,
+                    ArrayRef<Value*> arguments,
+                    ArrayRef<Value*> results) const {
+    // TODO(jingdong): Implement this function when BEFInterpreter is ready.
+    assert(false && "Not implemented");
+    abort();
+  }
+
+  // Return an array of descriptors for all of our registers, indexed by
+  // their register number.
+  ArrayRef<RegisterInfo> register_infos() const { return register_infos_; }
+
+  // Return the kernel entries of all kernels of this function.
+  ArrayRef<uint32_t> kernels() const { return kernels_; }
+
+  // Return an array of offsets for all of the kernels in this function,
+  // indexed by the kernel number.
+  ArrayRef<uint32_t> kernel_offsets() const { return kernel_offsets_; }
+
+  // Return an array of register index for the result registers.
+  ArrayRef<uint32_t> result_regs() const { return result_regs_; }
+
+ private:
+  using BEFFunction::BEFFunction;
+
+  // Read the register and kernel information for the function. We cache this
+  // information in SyncBEFFunction to avoid repeatedly reading this information
+  // for every function execution.
+  Error Init();
+
+  // This is an array of descriptors for all of our registers, indexed by
+  // their register number.
+  SmallVector<RegisterInfo, 16> register_infos_;
+
+  // This ArrayRef contains kernel entries of all kernels of this function.
+  ArrayRef<uint32_t> kernels_;
+
+  // This is an array of offsets for all of the kernels in this function,
+  // indexed by the kernel number.
+  SmallVector<uint32_t, 8> kernel_offsets_;
+
+  // This is an array of register index for the result registers.
+  SmallVector<uint32_t, 4> result_regs_;
 };
 
 // This class is the implementation details behind the BEFFile::Open method,
@@ -191,6 +264,14 @@ class BEFFileImpl : public BEFFile {
   // used for the heap-allocated buffer that backs info arrays in FunctionInfo.
   //
   // On error, an error is emitted and false is returned.
+  //
+  // ReadFunction is invoked for every BEFFunction execution. We can consider
+  // caching the kernel and register information in the BEFFunction object to
+  // avoid repeadly reading the same information from the BEF file. However, in
+  // the current implementation, we couple BEFExecutor states, e.g. AsyncValue
+  // for RegisterInfo, with the function reading. Caching kernel and register
+  // information would require us to avoid such coupling which can adversely
+  // affect the performance.
   bool ReadFunction(size_t function_offset, ArrayRef<TypeName> results,
                     size_t* location_offset, FunctionInfo* function_info,
                     SmallVectorImpl<size_t>* result_regs,
@@ -204,11 +285,19 @@ class BEFFileImpl : public BEFFile {
   // slow.
   const char* GetKernelName(size_t kernel_id);
 
-  AsyncKernelImplementation GetAsyncKernel(uint32_t kernel_code) {
+  AsyncKernelImplementation GetAsyncKernel(uint32_t kernel_code) const {
     KernelImplementation kernel_impl = kernels_[kernel_code];
     assert(kernel_impl.is<AsyncKernelImplementation>());
     return kernel_impl.get<AsyncKernelImplementation>();
   }
+
+  SyncKernelImplementation GetSyncKernel(uint32_t kernel_code) const {
+    KernelImplementation kernel_impl = kernels_[kernel_code];
+    assert(kernel_impl.is<SyncKernelImplementation>());
+    return kernel_impl.get<SyncKernelImplementation>();
+  }
+
+  ArrayRef<uint8_t> function_section() const { return function_section_; }
 
   ErrorHandler error_handler_;
 

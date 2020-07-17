@@ -26,7 +26,7 @@
 namespace tfrt {
 
 class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
-  using ThreadingEnvironment = ::tfrt::internal::StdThreadingEnvironment;
+  using ThreadingEnvironment = ::tfrt::internal::ThreadingEnvironment;
 
  public:
   MultiThreadedWorkQueue(int num_threads, int num_blocking_threads);

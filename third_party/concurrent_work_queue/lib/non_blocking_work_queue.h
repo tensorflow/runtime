@@ -66,6 +66,8 @@ class NonBlockingWorkQueue
   using Base::Steal;
 
  private:
+  static constexpr char const* kThreadNamePrefix = "tfrt-non-blocking-queue";
+
   template <typename WorkQueue>
   friend class WorkQueueBase;
 
@@ -87,7 +89,8 @@ class NonBlockingWorkQueue
 template <typename ThreadingEnvironment>
 NonBlockingWorkQueue<ThreadingEnvironment>::NonBlockingWorkQueue(
     QuiescingState* quiescing_state, int num_threads)
-    : WorkQueueBase<NonBlockingWorkQueue>(quiescing_state, num_threads) {}
+    : WorkQueueBase<NonBlockingWorkQueue>(quiescing_state, kThreadNamePrefix,
+                                          num_threads) {}
 
 template <typename ThreadingEnvironment>
 void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {

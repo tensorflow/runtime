@@ -18,7 +18,7 @@
 namespace tfrt {
 namespace {
 
-using ThreadingEnvironment = ::tfrt::internal::StdThreadingEnvironment;
+using ThreadingEnvironment = ::tfrt::internal::ThreadingEnvironment;
 using WorkQueue = ::tfrt::internal::NonBlockingWorkQueue<ThreadingEnvironment>;
 
 // Benchmark work queue throughput.

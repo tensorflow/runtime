@@ -20,7 +20,7 @@
 namespace tfrt {
 namespace {
 
-using ThreadingEnvironment = ::tfrt::internal::StdThreadingEnvironment;
+using ThreadingEnvironment = ::tfrt::internal::ThreadingEnvironment;
 using WorkQueue = ::tfrt::internal::BlockingWorkQueue<ThreadingEnvironment>;
 
 TEST(BlockingWorkQueueTest, RejectRunBlockingTask) {

@@ -39,13 +39,8 @@
 //
 //    // Starts a new thread running function `f` with arguments `arg`.
 //    template <class Function, class... Args>
-//    std::unique_ptr<Thread> StartThread(Function&& f, Args&&... args) { ... }
-//
-//    // Blocks the current thread until the `thread` finishes its execution.
-//    static void Join(Thread* thread) { ... }
-//
-//    // Separates the thread of execution from the thread object.
-//    static void Detach(Thread* thread) { ... }
+//    std::unique_ptr<Thread> StartThread(string_view name_prefix,
+//         Function&& f, Args&&... args) { ... }
 //
 //    // Returns current thread id hash code. Must have characteristics of a
 //    // good hash function and generate uniformly distributed values. Values
@@ -297,7 +292,8 @@ class WorkQueueBase {
   // will be unparked, however this should be very rare in practice.
   static constexpr int kMinActiveThreadsToStartSpinning = 4;
 
-  explicit WorkQueueBase(QuiescingState* quiescing_state, int num_threads);
+  explicit WorkQueueBase(QuiescingState* quiescing_state,
+                         string_view name_prefix, int num_threads);
   ~WorkQueueBase();
 
   // Main worker thread loop.
@@ -435,7 +431,7 @@ inline std::vector<unsigned> ComputeCoprimes(int n) {
 
 template <typename Derived>
 WorkQueueBase<Derived>::WorkQueueBase(QuiescingState* quiescing_state,
-                                      int num_threads)
+                                      string_view name_prefix, int num_threads)
     : num_threads_(num_threads),
       thread_data_(num_threads),
       coprimes_(ComputeCoprimes(num_threads)),
@@ -448,8 +444,8 @@ WorkQueueBase<Derived>::WorkQueueBase(QuiescingState* quiescing_state,
       derived_(static_cast<Derived&>(*this)) {
   assert(num_threads >= 1);
   for (int i = 0; i < num_threads; i++) {
-    thread_data_[i].thread =
-        threading_environment_.StartThread([this, i]() { WorkerLoop(i); });
+    thread_data_[i].thread = threading_environment_.StartThread(
+        name_prefix, [this, i]() { WorkerLoop(i); });
   }
 }
 
@@ -469,9 +465,8 @@ WorkQueueBase<Derived>::~WorkQueueBase() {
       thread_data.queue.Flush();
     }
   }
-  // Join to all worker threads before calling destructors.
+  // All worker threads joined in destructors.
   for (ThreadData& thread_data : thread_data_) {
-    ThreadingEnvironment::Join(thread_data.thread.get());
     thread_data.thread.reset();
   }
 }

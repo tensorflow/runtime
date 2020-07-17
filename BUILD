@@ -99,7 +99,9 @@ tfrt_cc_library(
         ":support",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
-    ],
+    ] + select({
+        "//conditions:default": [],
+    }),
 )
 
 tfrt_cc_library(

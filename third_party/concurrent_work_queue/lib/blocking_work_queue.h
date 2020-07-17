@@ -15,7 +15,9 @@
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_BLOCKING_WORK_QUEUE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_BLOCKING_WORK_QUEUE_H_
 
+#include <cstdint>
 #include <limits>
+#include <list>
 #include <queue>
 #include <ratio>
 
@@ -66,6 +68,9 @@ class BlockingWorkQueue
   void Quiesce();
 
  private:
+  static constexpr char const* kThreadNamePrefix = "tfrt-blocking-queue";
+  static constexpr char const* kDynamicThreadNamePrefix = "tfrt-dynamic-queue";
+
   template <typename WorkQueue>
   friend class WorkQueueBase;
 
@@ -115,6 +120,14 @@ class BlockingWorkQueue
   // idle threads. It does not keep more tasks than there are idle threads.
   std::queue<TaskFunction> idle_task_queue_ TFRT_GUARDED_BY(mutex_);
 
+  // Unique pointer owning a dynamic thread, and an active flag.
+  using DynamicThread = std::pair<std::unique_ptr<Thread>, bool>;
+
+  // Container for dynamically started threads. Some of the threads might be
+  // already terminated. Terminated threads lazily removed from the
+  // `dynamic_threads_` on each call to `RunBlockingTask`.
+  std::list<DynamicThread> dynamic_threads_ TFRT_GUARDED_BY(mutex_);
+
   // Idle threads must stop waiting for the next task in the `idle_task_queue_`.
   bool stop_waiting_ = false;
 };
@@ -123,7 +136,8 @@ template <typename ThreadingEnvironment>
 BlockingWorkQueue<ThreadingEnvironment>::BlockingWorkQueue(
     QuiescingState* quiescing_state, int num_threads,
     int max_num_dynamic_threads, std::chrono::nanoseconds idle_wait_time)
-    : WorkQueueBase<BlockingWorkQueue>(quiescing_state, num_threads),
+    : WorkQueueBase<BlockingWorkQueue>(quiescing_state, kThreadNamePrefix,
+                                       num_threads),
       max_num_dynamic_threads_(max_num_dynamic_threads),
       idle_wait_time_(idle_wait_time) {}
 
@@ -207,10 +221,22 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
     return llvm::None;
   }
 
+  // Cleanup dynamic threads that are already terminated.
+  dynamic_threads_.remove_if(
+      [](DynamicThread& thread) -> bool { return thread.second == false; });
+
   // There are no idle threads and we are not at the thread limit. We
   // start a new thread to run the task.
   if (num_dynamic_threads_ < max_num_dynamic_threads_) {
-    auto do_work = [this, task = wrap(std::move(task))]() mutable {
+    // Prepare an entry to hold a new dynamic thread.
+    //
+    // NOTE: We rely on std::list pointer stability for passing a reference to
+    // the container element to the `do_work` lambda.
+    dynamic_threads_.emplace_back();
+    DynamicThread& dynamic_thread = dynamic_threads_.back();
+
+    auto do_work = [this, &dynamic_thread,
+                    task = wrap(std::move(task))]() mutable {
       task();
       // Reset executed task to call destructor without holding the lock,
       // because it might be expensive. Also we want to call it before
@@ -232,15 +258,15 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
       }
 
       // No more work to do or shutdown occurred. Exit the thread.
+      dynamic_thread.second = false;
       --num_dynamic_threads_;
       if (stop_waiting_) thread_exited_cv_.notify_one();
     };
 
-    std::unique_ptr<Thread> thread =
-        threading_environment_.StartThread(std::move(do_work));
-
-    // Detach the thread. We rely on num_threads_ to detect thread exiting.
-    ThreadingEnvironment::Detatch(thread.get());
+    // Start a new dynamic thread.
+    dynamic_thread.second = true;  // is active
+    dynamic_thread.first = threading_environment_.StartThread(
+        kDynamicThreadNamePrefix, std::move(do_work));
     ++num_dynamic_threads_;
 
     return llvm::None;

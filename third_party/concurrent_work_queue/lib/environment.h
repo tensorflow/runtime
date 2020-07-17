@@ -12,30 +12,6 @@
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_ENVIRONMENT_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_ENVIRONMENT_H_
 
-#include <thread>
-
-namespace tfrt {
-namespace internal {
-
-struct StdThreadingEnvironment {
-  using Thread = std::thread;
-
-  template <class Function, class... Args>
-  std::unique_ptr<Thread> StartThread(Function&& f, Args&&... args) const {
-    return std::make_unique<Thread>(std::forward<Function>(f),
-                                    std::forward<Args>(args)...);
-  }
-
-  static void Join(Thread* thread) { thread->join(); }
-
-  static void Detatch(Thread* thread) { thread->detach(); }
-
-  static uint64_t ThisThreadIdHash() {
-    return std::hash<std::thread::id>()(std::this_thread::get_id());
-  }
-};
-
-}  // namespace internal
-}  // namespace tfrt
+#include "environment_std.h"
 
 #endif  // TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_ENVIRONMENT_H_

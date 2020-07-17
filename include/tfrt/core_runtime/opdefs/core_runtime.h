@@ -52,7 +52,7 @@ class CoreRTDialect : public Dialect {
   void printType(mlir::Type type, mlir::DialectAsmPrinter &os) const override;
 
   Operation *materializeConstant(OpBuilder &builder, Attribute value, Type type,
-                                 Location loc) override;
+                                 mlir::Location loc) override;
 };
 
 #define GET_OP_CLASSES

@@ -116,15 +116,17 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
 
   // Casts the return value of the kernel, if non-void. Otherwise ignores the
   // return value.
-  template <typename T>
+  template <typename T, typename Enable = void>
   struct SyncKernelReturnHelper {
     static void Invoke(SyncKernelFrame* frame, const Args&... args) {
       HandleReturn(frame, impl_fn(args...));
     }
   };
 
-  template <>
-  struct SyncKernelReturnHelper<void> {
+  // Specialize for the case when T is void.
+  template <typename T>
+  struct SyncKernelReturnHelper<
+      T, std::enable_if_t<std::is_same<T, void>::value>> {
     static void Invoke(SyncKernelFrame* frame, const Args&... args) {
       impl_fn(args...);
     }

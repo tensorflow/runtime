@@ -638,7 +638,7 @@ Expected<std::unique_ptr<SyncBEFFunction>> SyncBEFFunction::Create(
   if (auto error = bef_function->Init())
     return std::move(error);
   else
-    return bef_function;
+    return std::move(bef_function);
 }
 
 Error SyncBEFFunction::Init() {

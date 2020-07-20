@@ -45,3 +45,35 @@ func @log1p_f32() -> !tfrt.chain {
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
+
+// CHECK: --- Running 'rsqrt_f32'
+func @rsqrt_f32() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %operand = corert.executeop(%cpu) "tf.Const"()
+    {value = dense<[2.0, 2.5, 3.0, 4.5, 5.0]> : tensor<5xf32>, dtype = f32} : 1
+
+  %cpu_handle_result = corert.executeop(%cpu) "tf.Rsqrt"(%operand) : 1
+
+  // CHECK: DenseHostTensor dtype = F32, shape = [5]
+  // CHECK-SAME: values = [7.071067e-01, 6.324555e-01, 5.773503e-01, 4.714045e-01, 4.472136e-01]
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%cpu_handle_result) : 0
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}
+
+// CHECK: --- Running 'sigmoid_f32'
+func @sigmoid_f32() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %operand = corert.executeop(%cpu) "tf.Const"()
+    {value = dense<[1.0, 2.5, 3.0, 4.5, 6.0]> : tensor<5xf32>, dtype = f32} : 1
+
+  %cpu_handle_result = corert.executeop(%cpu) "tf.Sigmoid"(%operand) : 1
+
+  // CHECK: DenseHostTensor dtype = F32, shape = [5]
+  // CHECK-SAME: values = [7.310586e-01, 9.241418e-01, 9.525741e-01, 9.890131e-01, 9.975274e-01]
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%cpu_handle_result) : 0
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}

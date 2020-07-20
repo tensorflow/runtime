@@ -81,6 +81,8 @@ void RegisterTfUnaryOp(CpuOpRegistry* op_registry, string_view op_name) {
 void RegisterTfUnaryCpuOps(CpuOpRegistry* op_registry) {
   RegisterTfUnaryOp<cpu::functor::Log>(op_registry, "tf.Log");
   RegisterTfUnaryOp<cpu::functor::Log1p>(op_registry, "tf.Log1p");
+  RegisterTfUnaryOp<cpu::functor::Rsqrt>(op_registry, "tf.Rsqrt");
+  RegisterTfUnaryOp<cpu::functor::Sigmoid>(op_registry, "tf.Sigmoid");
 }
 
 }  // namespace tfrt

@@ -49,6 +49,16 @@ struct Log1p {
   using Functor = UnaryFunctor<T, Eigen::internal::scalar_log1p_op<T>>;
 };
 
+struct Rsqrt {
+  template <typename T>
+  using Functor = UnaryFunctor<T, Eigen::internal::scalar_rsqrt_op<T>>;
+};
+
+struct Sigmoid {
+  template <typename T>
+  using Functor = UnaryFunctor<T, Eigen::internal::scalar_logistic_op<T>>;
+};
+
 }  // namespace functor
 
 template <typename UnaryFunctor>

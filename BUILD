@@ -790,3 +790,60 @@ tfrt_cc_library(
         "@tf_runtime//:tensor",
     ],
 )
+
+tfrt_cc_library(
+    name = "distributed_kernels",
+    srcs = [
+        "lib/distributed_runtime/kernels.cc",
+        "lib/distributed_runtime/test_kernels.cc",
+    ],
+    alwayslink_static_registration_src = "lib/distributed_runtime/kernels_static_registration.cc",
+    visibility = [":friends"],
+    deps = [
+        ":distributed_runtime",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+gentbl(
+    name = "distributed_kernels_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/distributed_runtime/opdefs/kernels.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/distributed_runtime/opdefs/kernels_opdefs.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/distributed_runtime/opdefs/kernels.td",
+    td_includes = [
+        "include",
+    ],
+    td_srcs = [
+        ":OpBaseTdFiles",
+        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+    ],
+)
+
+tfrt_cc_library(
+    name = "distributed_kernels_opdefs",
+    srcs = [
+        "lib/distributed_runtime/opdefs/kernels.cc",
+    ],
+    hdrs = [
+        "include/tfrt/distributed_runtime/opdefs/kernels.h",
+    ],
+    alwayslink_static_registration_src = "lib/distributed_runtime/opdefs/static_registration.cc",
+    deps = [
+        ":basic_kernels_opdefs",
+        ":distributed_kernels_opdefs_inc_gen",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:SideEffects",
+    ],
+)

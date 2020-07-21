@@ -52,6 +52,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         "@tf_runtime//:basic_kernels_opdefs_alwayslink",
+        "@tf_runtime//:distributed_kernels_opdefs_alwayslink",
         "@tf_runtime//:beftomlir_alwayslink",
         "@tf_runtime//:core_runtime_opdefs_alwayslink",
         "@tf_runtime//:data_opdefs_alwayslink",

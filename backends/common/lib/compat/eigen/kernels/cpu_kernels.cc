@@ -21,19 +21,10 @@
 #include "batch_norm.h"
 #include "conv2d.h"
 #include "max_pooling.h"
-#include "softmax.h"
 #include "zero_padding.h"
 
 namespace tfrt {
 namespace compat {
-
-template <typename T>
-static AsyncValueRef<Chain> Softmax(const DenseHostTensor& logits,
-                                    DenseHostTensor* softmax,
-                                    const Chain& chain_in, Attribute<bool> log,
-                                    const ExecutionContext& exec_ctx) {
-  return SoftmaxImpl<T>(logits, log.get(), softmax, exec_ctx);
-}
 
 template <typename T>
 static AsyncValueRef<Chain> ZeroPadding(const DenseHostTensor& input,
@@ -91,7 +82,6 @@ static AsyncValueRef<Chain> FusedBatchNormV3Kernel(
 }  // namespace compat
 
 void RegisterEigenKernels(KernelRegistry* registry) {
-  registry->AddKernel("eigen.softmax.f32", TFRT_KERNEL(compat::Softmax<float>));
   registry->AddKernel("eigen.zero_padding.f32",
                       TFRT_KERNEL(compat::ZeroPadding<float>));
   registry->AddKernel("eigen.max_pooling_2d.f32",

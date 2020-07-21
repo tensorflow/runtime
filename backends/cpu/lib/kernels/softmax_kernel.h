@@ -1,46 +1,44 @@
-// Copyright 2020 The TensorFlow Runtime Authors
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//      http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+ * Copyright 2020 The TensorFlow Runtime Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-//===- zero_padding.h -------------------------------------------*- C++ -*-===//
+//===- softmax_kernel.h -----------------------------------------*- C++ -*-===//
 //
-// Pad input tensor with zeroes.
+// Softmax and LogSoftmax kernels implementation.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_SOFTMAX_H_
-#define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_SOFTMAX_H_
+#ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_SOFTMAX_KERNEL_H_
+#define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_SOFTMAX_KERNEL_H_
 
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/host_context/kernel_utils.h"
 
 namespace tfrt {
-namespace compat {
-
-using ::Eigen::Index;
-using ::tfrt::compat::AsEigenConstTensor;
-using ::tfrt::compat::AsEigenTensor;
+namespace cpu {
 
 template <typename T>
-static AsyncValueRef<Chain> SoftmaxImpl(const DenseHostTensor& logits, bool log,
-                                        DenseHostTensor* softmax,
-                                        const ExecutionContext& exec_ctx) {
+static AsyncValueRef<Chain> Softmax(const DenseHostTensor& logits, bool log,
+                                    DenseHostTensor* softmax,
+                                    const ExecutionContext& exec_ctx) {
   DHTIndexableView<T, 2> logits_view(&logits);
   MutableDHTIndexableView<T, 2> softmax_view(softmax);
 
-  auto logits_t = AsEigenConstTensor(logits_view);
-  auto softmax_t = AsEigenTensor(softmax_view);
+  auto logits_t = compat::AsEigenConstTensor(logits_view);
+  auto softmax_t = compat::AsEigenTensor(softmax_view);
 
   static constexpr int kBatchDim = 0;
   static constexpr int kClassDim = 1;
@@ -69,13 +67,14 @@ static AsyncValueRef<Chain> SoftmaxImpl(const DenseHostTensor& logits, bool log,
                                              .reshape(batch_by_one)
                                              .broadcast(one_by_class));
 
-  auto& ctx = exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>();
+  auto& ctx =
+      exec_ctx.host()->GetOrCreateSharedContext<compat::EigenHostContext>();
 
   if (log) {
     // softmax = logits - max(logits along classes);
     AsyncValueRef<Chain> logits_ready =
         AsyncAssign(ctx, softmax_t, std::move(shifted_logits_expr),
-                    KeepBuffers::alive(&logits, softmax));
+                    compat::KeepBuffers::alive(&logits, softmax));
 
     // softmax = softmax - log(sum(exp(softmax along classes)));
     auto softmax_expr = (softmax_t - softmax_t.exp()
@@ -86,13 +85,13 @@ static AsyncValueRef<Chain> SoftmaxImpl(const DenseHostTensor& logits, bool log,
                                          .broadcast(one_by_class));
 
     return AsyncAssign(ctx, logits_ready, softmax_t, std::move(softmax_expr),
-                       KeepBuffers::alive(&logits, softmax));
+                       compat::KeepBuffers::alive(&logits, softmax));
 
   } else {
     // softmax = exp(logits - max(logits along classes));
     AsyncValueRef<Chain> logits_ready =
         AsyncAssign(ctx, softmax_t, std::move(shifted_logits_expr.exp()),
-                    KeepBuffers::alive(&logits, softmax));
+                    compat::KeepBuffers::alive(&logits, softmax));
 
     // softmax = softmax * (1 / sum(softmax along classes));
     auto softmax_expr = (softmax_t * softmax_t.sum(along_class)
@@ -102,11 +101,11 @@ static AsyncValueRef<Chain> SoftmaxImpl(const DenseHostTensor& logits, bool log,
                                          .broadcast(one_by_class));
 
     return AsyncAssign(ctx, logits_ready, softmax_t, std::move(softmax_expr),
-                       KeepBuffers::alive(&logits, softmax));
+                       compat::KeepBuffers::alive(&logits, softmax));
   }
 }
 
-}  // namespace compat
+}  // namespace cpu
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_SOFTMAX_H_
+#endif  // TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_SOFTMAX_KERNEL_H_

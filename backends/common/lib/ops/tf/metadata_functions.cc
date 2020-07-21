@@ -487,6 +487,7 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.Shape", TFRT_METADATA(TfShapeOpMd));
     result->emplace_back("tf.Softmax", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Sigmoid", TFRT_METADATA(UnaryIdentityMd));
+    result->emplace_back("tf.LogSoftmax", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Sub", TFRT_METADATA(TfBinaryOpMd));
     result->emplace_back("tf.BiasAdd", TFRT_METADATA(TfBiasAddOpMd));
     result->emplace_back("tf.FusedBatchNormV3", TFRT_METADATA(TfBatchNormOpMd));

@@ -267,7 +267,7 @@ $ bazel test --config=cuda //backends/gpu/mlir_tests/core_runtime:get_device.mli
 ```
 
 Use Bazel
-[target patterns](\(https://docs.bazel.build/versions/master/guide.html#specifying-targets-to-build\))
+[target patterns](https://docs.bazel.build/versions/master/guide.html#specifying-targets-to-build)
 to run multiple tests:
 
 ```shell

@@ -363,6 +363,11 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
 
     fn->Execute(invocation.exec_ctx, arguments, results);
 
+    // Check if chain is available. If not, wait until the composite op
+    // results are fully resolved.
+    // TODO(b/161751424) Assess using SyncFunction to execute composite ops.
+    if (!results[0]->IsAvailable()) host->Await(results);
+
     // The first result is the a chain for side-effects.
     if (invocation.chain)
       *invocation.chain = AsyncValueRef<Chain>(std::move(results[0]));
@@ -417,6 +422,11 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
     results.resize(fn->result_types().size());
 
     fn->Execute(invocation.exec_ctx, arguments, results);
+
+    // Check if chain is available. If not, wait until the native composite op
+    // results are fully resolved.
+    // TODO(b/161751424) Assess using SyncFunction to execute composite ops.
+    if (!results[0]->IsAvailable()) host->Await(results);
 
     // The first result is the a chain for side-effects.
     if (invocation.chain)

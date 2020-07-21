@@ -113,7 +113,7 @@ cudaError_t CUDARTAPI __cudaPopCallConfiguration(dim3 *gridDim, dim3 *blockDim,
 }
 
 __host__ __device__ unsigned CUDARTAPI __cudaPushCallConfiguration(
-    dim3 gridDim, dim3 blockDim, size_t sharedMem = 0, void *stream = 0) {
+    dim3 gridDim, dim3 blockDim, size_t sharedMem = 0, void *stream = nullptr) {
   using FuncPtr = unsigned(CUDARTAPI *)(dim3 gridDim, dim3 blockDim,
                                         size_t sharedMem, void *stream);
   static auto func_ptr =

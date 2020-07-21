@@ -158,6 +158,17 @@ static Expected<TensorMetadata> TfConvOpMd(const TensorMetadata& input,
   return TensorMetadata(input.dtype, output_dims_nchw);
 }
 
+static Expected<TensorMetadata> TfShapeOpMd(const TensorMetadata& input,
+                                            const OpAttrsRef& attrs) {
+  auto out_type = attrs.GetAsserting<OpAttrType>("out_type");
+  auto dtype = OpAttrTypeToDType(out_type);
+
+  if (dtype.kind() != DType::I32 && dtype.kind() != DType::I64)
+    return MakeStringError("Unsupported `out_type` value: ", dtype.kind());
+
+  return TensorMetadata(dtype, {input.shape.GetRank()});
+}
+
 static Expected<TensorMetadata> TfMaxPoolOpMd(const TensorMetadata& input,
                                               const OpAttrsRef& attrs) {
   auto padding = attrs.GetStringAsserting("padding");
@@ -473,6 +484,7 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.Mul", TFRT_METADATA(TfBinaryOpMd));
     result->emplace_back("tf.RealDiv", TFRT_METADATA(TfBinaryOpMd));
     result->emplace_back("tf.Rsqrt", TFRT_METADATA(UnaryIdentityMd));
+    result->emplace_back("tf.Shape", TFRT_METADATA(TfShapeOpMd));
     result->emplace_back("tf.Softmax", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Sigmoid", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Sub", TFRT_METADATA(TfBinaryOpMd));

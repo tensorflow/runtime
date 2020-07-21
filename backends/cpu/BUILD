@@ -73,6 +73,8 @@ tfrt_cc_library(
         "lib/ops/tf/cwise_binary_ops.h",
         "lib/ops/tf/cwise_unary_ops.cc",
         "lib/ops/tf/cwise_unary_ops.h",
+        "lib/ops/tf/shape_ops.cc",
+        "lib/ops/tf/shape_ops.h",
     ],
     hdrs = [
         "include/tfrt/cpu/ops/tf/cpu_ops.h",

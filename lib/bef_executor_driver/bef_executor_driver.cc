@@ -220,21 +220,6 @@ int RunBefExecutor(const RunBefConfig& run_config) {
 
 static void RunBefFunctionHelper(HostContext* host, const Function* function) {
   TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", function->name()));
-  // If the function takes arguments, then we can't run it from this driver.
-  if (!function->argument_types().empty()) {
-    tfrt::outs() << "--- Not running '" << function->name()
-                 << "' because it has arguments.\n";
-    tfrt::outs().flush();
-    return;
-  }
-
-  // Skip anonymous functions.
-  if (function->name().empty()) {
-    return;
-  }
-
-  tfrt::outs() << "--- Running '" << function->name() << "':\n";
-  tfrt::outs().flush();
 
   // Kick off an execution of the function body.
   llvm::SmallVector<RCReference<AsyncValue>, 4> results;
@@ -293,18 +278,30 @@ static void RunBefFunctionHelper(HostContext* host, const Function* function) {
   // checker work better in the face of side effecting kernels that aren't
   // properly chained together (which is useful for testing).
   host->Quiesce();
-
-  // Drop any result references before doing the leak check.
-  results.clear();
 }
 
 static void RunBefFunction(HostContext* host, const Function* function) {
+  // If the function takes arguments, then we can't run it from this driver.
+  if (!function->argument_types().empty()) {
+    tfrt::outs() << "--- Not running '" << function->name()
+                 << "' because it has arguments.\n";
+    tfrt::outs().flush();
+    return;
+  }
+
+  // Skip anonymous functions.
+  if (function->name().empty()) {
+    return;
+  }
+
   // Async value leak check before and after running the function.
   size_t before_num_values;
   if (AsyncValue::AsyncValueAllocationTrackingEnabled())
     before_num_values = AsyncValue::GetNumAsyncValueInstances();
 
   // Actually run the function.
+  tfrt::outs() << "--- Running '" << function->name() << "':\n";
+  tfrt::outs().flush();
   RunBefFunctionHelper(host, function);
 
   if (AsyncValue::AsyncValueAllocationTrackingEnabled()) {

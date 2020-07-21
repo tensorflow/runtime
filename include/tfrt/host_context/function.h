@@ -27,6 +27,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/host_context/type_name.h"
+#include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -66,10 +67,14 @@ class Function {
   virtual void AddRef() const = 0;
   virtual void DropRef() const = 0;
 
+  FunctionKind function_kind() const { return function_kind_; }
+
  protected:
-  Function(string_view name, ArrayRef<TypeName> argument_types,
-           ArrayRef<TypeName> result_types)
-      : name_(name), num_argument_(argument_types.size()) {
+  Function(string_view name, FunctionKind function_kind,
+           ArrayRef<TypeName> argument_types, ArrayRef<TypeName> result_types)
+      : name_(name),
+        function_kind_(function_kind),
+        num_argument_(argument_types.size()) {
     argument_result_types_.reserve(argument_types.size() + result_types.size());
     argument_result_types_.insert(argument_result_types_.end(),
                                   argument_types.begin(), argument_types.end());
@@ -84,6 +89,7 @@ class Function {
 
   // This is the name of the function, or empty if anonymous.
   string_view name_;
+  FunctionKind function_kind_;
 
   size_t num_argument_;
   SmallVector<TypeName, 8> argument_result_types_;

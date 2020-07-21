@@ -108,9 +108,8 @@ class BEFFunction : public Function {
   BEFFunction(string_view name, ArrayRef<TypeName> arguments,
               ArrayRef<TypeName> results, size_t function_offset,
               BEFFileImpl* bef_file)
-      : Function(name, arguments, results),
-        function_offset_(function_offset),
-        bef_file_(bef_file) {}
+      : BEFFunction(name, FunctionKind::kBEFFunction, arguments, results,
+                    function_offset, bef_file) {}
 
   BEFFunction(BEFFunction&& other)
       : Function(std::move(other)),
@@ -127,6 +126,13 @@ class BEFFunction : public Function {
   void DropRef() const override;
 
  protected:
+  BEFFunction(string_view name, FunctionKind function_kind,
+              ArrayRef<TypeName> arguments, ArrayRef<TypeName> results,
+              size_t function_offset, BEFFileImpl* bef_file)
+      : Function(name, function_kind, arguments, results),
+        function_offset_(function_offset),
+        bef_file_(bef_file) {}
+
   size_t function_offset_;
   BEFFileImpl* bef_file_;
 };
@@ -175,11 +181,15 @@ class SyncBEFFunction final : public BEFFunction {
   ArrayRef<uint32_t> result_regs() const { return result_regs_; }
 
  private:
-  using BEFFunction::BEFFunction;
+  SyncBEFFunction(string_view name, ArrayRef<TypeName> arguments,
+                  ArrayRef<TypeName> results, size_t function_offset,
+                  BEFFileImpl* bef_file)
+      : BEFFunction(name, FunctionKind::kSyncBEFFunction, arguments, results,
+                    function_offset, bef_file) {}
 
-  // Read the register and kernel information for the function. We cache this
-  // information in SyncBEFFunction to avoid repeatedly reading this information
-  // for every function execution.
+  // Read the register and kernel information for the function. We cache
+  // this information in SyncBEFFunction to avoid repeatedly reading this
+  // information for every function execution.
   Error Init();
 
   // This is an array of descriptors for all of our registers, indexed by

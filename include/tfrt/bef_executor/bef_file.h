@@ -66,6 +66,21 @@ class BEFFile : public ReferenceCounted<BEFFile> {
   virtual ~BEFFile() = 0;
 };
 
+// Execute SyncBEFFunction synchronously. Return excution error in the Error
+// return value.
+//
+// TODO(jingdong): Remove this function once we implement
+// SyncBEFFunction::Execute() that takes and returns AsyncValue. This is
+// required for now, as we want to be able to call
+// SyncBEFFunction::SyncExecute() without exposing SyncBEFFunction in the header
+// file.
+class ExecutionContext;
+class Value;
+Error ExecuteSyncBEFFunction(const Function& func,
+                             const ExecutionContext& exec_ctx,
+                             ArrayRef<Value*> arguments,
+                             ArrayRef<Value*> results);
+
 }  // namespace tfrt
 
 #endif  // TFRT_BEF_EXECUTOR_BEF_FILE_H_

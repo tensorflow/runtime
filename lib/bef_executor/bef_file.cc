@@ -664,12 +664,12 @@ Error SyncBEFFunction::Init() {
     return format_error("Failed to read location_offset or num_registers");
 
   register_infos_.reserve(num_registers);
-  while (num_registers--) {
+  for (size_t reg_index = 0; reg_index < num_registers; ++reg_index) {
     size_t user_count;
     if (reader.ReadInt(&user_count))
       return format_error("Failed to read register user_count");
 
-    bool is_arg = (num_registers < num_arguments());
+    bool is_arg = (reg_index < num_arguments());
     if (is_arg) {
       // +1 on the user count so that we do not reset the argument Value in the
       // function evaluation.
@@ -685,11 +685,16 @@ Error SyncBEFFunction::Init() {
     return format_error("Failed to read num_kernels");
 
   kernel_offsets_.reserve(num_kernels);
-  while (num_kernels--) {
+  for (size_t kernel_index = 0; kernel_index < num_kernels; ++kernel_index) {
     size_t offset, num_operands;
     if (reader.ReadInt(&offset) || reader.ReadInt(&num_operands))
       return format_error("Failed to read kernel offset or num_operands");
-    kernel_offsets_.push_back(offset);
+
+    if (num_arguments() == 0 || kernel_index != 0) {
+      // Only insert if it is not the first kernel which is an argument pseudo
+      // kernel when there are arguments.
+      kernel_offsets_.push_back(offset);
+    }
   }
 
   // Read the result registers.
@@ -717,11 +722,16 @@ Error SyncBEFFunction::Init() {
       reinterpret_cast<const uint32_t*>(reader.file().begin()),
       reader.file().size() / kKernelEntryAlignment);
 
-  if (num_arguments() > 0) {
-    // Remove the first kernel which is an argument pseudo kernel.
-    kernels_ = kernels_.drop_front();
-  }
   return Error::success();
+}
+
+Error ExecuteSyncBEFFunction(const Function& func,
+                             const ExecutionContext& exec_ctx,
+                             ArrayRef<Value*> arguments,
+                             ArrayRef<Value*> results) {
+  assert(func.function_kind() == FunctionKind::kSyncBEFFunction);
+  const SyncBEFFunction& sync_func = static_cast<const SyncBEFFunction&>(func);
+  return sync_func.SyncExecute(exec_ctx, arguments, results);
 }
 
 }  // namespace tfrt

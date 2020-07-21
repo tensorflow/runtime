@@ -71,7 +71,9 @@ class NativeFunction : public Function {
  public:
   NativeFunction(string_view name, ArrayRef<TypeName> argument_types,
                  ArrayRef<TypeName> result_types, NativeCallable callable)
-      : Function(name, argument_types, result_types), callable_(callable) {}
+      : Function(name, FunctionKind::kNativeFunction, argument_types,
+                 result_types),
+        callable_(callable) {}
 
   void Execute(const ExecutionContext& exec_ctx,
                ArrayRef<AsyncValue*> arguments,

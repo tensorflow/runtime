@@ -22,7 +22,7 @@ func @hello() {
   %chain = tfrt.new.chain
 
   // Create a string containing "hello world" and store it in %hello.
-  %hello = "tfrt_test.get_string"() { value = "hello world" } : () -> !tfrt.string
+  %hello = "tfrt_test.get_string"() { string_attr = "hello world" } : () -> !tfrt.string
 
   // Print the string in %hello.
   "tfrt_test.print_string"(%hello, %chain) : (!tfrt.string, !tfrt.chain) -> !tfrt.chain
@@ -35,16 +35,25 @@ The `@hello` function above shows how to create and print a string. The text
 after each `:` specifies the types involved:
 
 -   `() -> !tfrt.string` means that `tfrt_test.get_string` takes no arguments
-    and returns a `!tfrt.string`. `tfrt` stands for "host executor", a name
-    which we might revisit in future design.
+    and returns a `!tfrt.string`. `tfrt` is a
+    [MLIR dialect](https://mlir.llvm.org/docs/LangRef/#dialects) prefix (or
+    namespace) for TFRT.
 -   `(!tfrt.string, !tfrt.chain) -> !tfrt.chain` means that
     `tfrt_test.print_string` takes two arguments (`!tfrt.string` and
     `!tfrt.chain`) and returns a `!tfrt.chain`. `chain` is a TFRT abstraction to
-    manage dependencies; see [explicit_dependency.md](explicit_dependency.md).
+    manage dependencies. For detailed explanation, see the
+    [Explicit Dependency Management in TFRT documentation](explicit_dependency.md).
 
-`tfrt_test.get_string`'s `value` is an *attribute*, not an argument. Attributes
-are compile-time constants, while arguments are only available at runtime upon
-kernel/function invocation.
+`tfrt_test.get_string`'s `string_attr` is an *attribute*, not an *argument*.
+Attributes are compile-time constants, while arguments are only available at
+runtime upon kernel/function invocation. In the above example, the `string_attr`
+attribute has the value `hello world`.
+
+`tfrt.return` is a special form that specifies the function's return values,
+similar to a C++ `return` statement. In the above case, the function `@hello`
+does not have a return value. For detailed explanation and more examples, refer
+to the
+[TFRT Host Runtime Design documentation](tfrt_host_runtime_design.md#tfrt_return).
 
 This example code ignores the `!tfrt.chain` returned by
 `tfrt_test.print_string`.
@@ -56,7 +65,8 @@ Translate `hello.mlir` to [BEF](binary_executable_format.md) by running
 $ bazel-bin/tools/tfrt_translate --mlir-to-bef hello.mlir > hello.bef
 ```
 
-You can dump the encoded BEF file:
+You can dump the encoded BEF file, and see that it contains the `hello world`
+string attribute:
 
 ```shell
 $ hexdump -C hello.bef
@@ -256,5 +266,8 @@ the MLIR programs as shown above. Instead, we are building a graph compiler that
 will generate such MLIR programs from TensorFlow functions created from
 TensorFlow model code.
 
-Also, see [TFRT Op-by-op Execution Design](tfrt_op_by_op_execution_design.md) on
-how TFRT will support eagerly executing TensorFlow ops.
+Next, see [TFRT Host Runtime Design](tfrt_host_runtime_design.md) for detailed
+explanation on TFRT concepts including `AsyncValue`, `Kernel`, and `Graph
+Execution` etc. Also, see
+[TFRT Op-by-op Execution Design](tfrt_op_by_op_execution_design.md) on how TFRT
+will support eagerly executing TensorFlow ops.

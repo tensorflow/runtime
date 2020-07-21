@@ -1027,16 +1027,16 @@ func @double_and_print() -> i32 {
 }
 ```
 
-Note: `tfrt.return` is a *special form* that specifies the function’s return
-values. There is no kernel that implements `tfrt.return`, unlike `tfrt.add.i32`
-(implemented by `TFRTAddI32`) and `tfrt.print.i32` (implemented by
-`TFRTPrintI32`), so `tfrt.return` does not run like other kernels. `tfrt.return`
-behaves like a non-strict kernel: `tfrt.return` does not require any of its
-arguments to be available. `tfrt.return` occurs only after the executor has
-attempted to run every kernel in the function. So in the example above, the
-executor will first run `tfrt.print.i32`, and then `tfrt.return` returns control
-to `@double_and_print`'s caller. `tfrt.print.i32` and `tfrt.return` can not
-occur in parallel.
+<a id="tfrt_return"></a>Note: `tfrt.return` is a *special form* that specifies
+the function’s return values. There is no kernel that implements `tfrt.return`,
+unlike `tfrt.add.i32` (implemented by `TFRTAddI32`) and `tfrt.print.i32`
+(implemented by `TFRTPrintI32`), so `tfrt.return` does not run like other
+kernels. `tfrt.return` behaves like a non-strict kernel: `tfrt.return` does not
+require any of its arguments to be available. `tfrt.return` occurs only after
+the executor has attempted to run every kernel in the function. So in the
+example above, the executor will first run `tfrt.print.i32`, and then
+`tfrt.return` returns control to `@double_and_print`'s caller. `tfrt.print.i32`
+and `tfrt.return` can not occur in parallel.
 
 ###### Asynchronous Execution
 

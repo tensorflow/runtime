@@ -189,6 +189,14 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
     }
   }
 
+  // For kernel functions that return Error, call frame->SetError() to report
+  // the error message.
+  static void HandleReturn(SyncKernelFrame* frame, Error&& t) {
+    if (t) {
+      frame->SetError(std::move(t));
+    }
+  }
+
   // Helper that introspects the kernel arguments to derive the signature and
   // cast parts of the SyncKernelFrame to their appropriate type before passing
   // them to impl_fn. Works by recursively unpacking the arguments.

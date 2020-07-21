@@ -22,6 +22,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/shared_context.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -34,6 +35,9 @@ namespace tfrt {
 static llvm::Expected<int32_t> TestFail() {
   return MakeStringError("something bad happened");
 }
+
+// This kernel produces only failure/success as Error.
+static Error TestError() { return MakeStringError("something bad happened"); }
 
 // This kernel produces a normal output and an error output.
 static void TestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
@@ -313,6 +317,9 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestReportErrorAsync));
   registry->AddKernel("tfrt_test.const_dense_attr",
                       TFRT_KERNEL(TestConstDenseAttr));
+
+  registry->AddSyncKernel("tfrt_test.fail_s", TFRT_SYNC_KERNEL(TestFail));
+  registry->AddSyncKernel("tfrt_test.error_s", TFRT_SYNC_KERNEL(TestError));
 }
 
 }  // namespace tfrt

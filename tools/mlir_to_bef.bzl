@@ -34,7 +34,8 @@ def glob_tfrt_lit_tests(
         exclude = [],
         # Do not run "tfrt_translate -mlir-to-bef" on these files.
         no_bef_translation = [],
-        size_override = {}):
+        size_override = {},
+        tags_override = {}):
     """Run mlir_to_bef on all .mlir files and invoke glob_lit_tests."""
     mlir_files = native.glob(
         include = ["**/*.mlir"],
@@ -59,4 +60,5 @@ def glob_tfrt_lit_tests(
         default_tags = default_tags,
         exclude = exclude,
         size_override = size_override,
+        tags_override = tags_override,
     )

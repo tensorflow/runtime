@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu,gpu | FileCheck %s --dump-input=fail
+// RUN: bef_executor -devices=cpu,gpu $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Running 'get_cpu_device'
 func @get_cpu_device() -> !tfrt.chain {

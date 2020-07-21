@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=gpu | FileCheck %s --dump-input=always
+// RUN: bef_executor -devices=gpu $(bef_name %s) | FileCheck %s --dump-input=always
 
 // CHECK: --- Running 'BM_Tf_Mean_InnerReduce_1x2056x7x7_f32'
 func @BM_Tf_Mean_InnerReduce_1x2056x7x7_f32() {

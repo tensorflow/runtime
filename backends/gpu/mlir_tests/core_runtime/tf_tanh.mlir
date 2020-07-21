@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=gpu | FileCheck %s --dump-input=fail
+// RUN: bef_executor -devices=gpu $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'tanh_f32'
 func @tanh_f32() -> !tfrt.chain {

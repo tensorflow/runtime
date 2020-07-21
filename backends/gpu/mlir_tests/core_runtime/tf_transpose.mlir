@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu,gpu | FileCheck %s --dump-input=always
+// RUN: bef_executor -devices=cpu,gpu $(bef_name %s) | FileCheck %s --dump-input=always
 
 // CHECK: --- Running 'transpose_1x0'
 func @transpose_1x0() -> !tfrt.chain {

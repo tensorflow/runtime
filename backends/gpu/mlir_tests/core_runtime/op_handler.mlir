@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices=cpu | FileCheck %s --dump-input=fail
+// RUN: bef_executor -devices=cpu $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Not running 'register_gpu_op_handler_chain' because it has arguments.
 func @register_gpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {

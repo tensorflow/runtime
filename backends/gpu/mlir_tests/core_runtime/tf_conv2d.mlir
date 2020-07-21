@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | env CUDNN_LOGINFO_DBG=1 TFRT_DEBUG_DEFAULT_CONV_FWD_ALGO=CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM bef_executor -devices=cpu,gpu | FileCheck %s --dump-input=fail
+// RUN: env CUDNN_LOGINFO_DBG=1 TFRT_DEBUG_DEFAULT_CONV_FWD_ALGO=CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM bef_executor -devices=cpu,gpu $(bef_name %s) | FileCheck %s --dump-input=fail
 // CHECK: --- Running 'conv2d_f32'
 func @conv2d_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain

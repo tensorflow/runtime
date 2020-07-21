@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef %s | bef_executor -devices="cpu:sync_logging|cpu,gpu:sync_logging|gpu" 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor -devices="cpu:sync_logging|cpu,gpu:sync_logging|gpu"  $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
 // TODO(jingdong): Merge this file into logging.mlir after we fix the device creation process to allow more than one instances of a device type in a process.
 

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO(ezhulenev): add  | bef_executor -devices=gpu | FileCheck %s --dump-input=fail.
-// RUN: tfrt_translate -mlir-to-bef %s
+// TODO(ezhulenev): Replace with: bef_executor -devices=gpu $(bef_name %s) | FileCheck %s --dump-input=fail.
+// RUN: true
 
 // CHECK: --- Running 'mean'
 func @mean() -> !tfrt.chain {

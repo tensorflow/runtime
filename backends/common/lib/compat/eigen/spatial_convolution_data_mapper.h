@@ -1608,6 +1608,7 @@ struct gemm_pack_colmajor_block<
 
     const IndexType start_col = rhs.colOffset();
     const IndexType max_col = rhs.maxCol(peeled_k);
+    const IndexType depth_offset = rhs.depthOffset();
 
     for (IndexType col = 0; col < num_cols; ++col) {
       SubMapper lm = rhs.getLinearMapper(0, col);
@@ -1626,8 +1627,7 @@ struct gemm_pack_colmajor_block<
         // We can squeeze reads for all rows in [start_row, max_row) range.
         if (!has_padding ||
             (!pad_col && !lm.padAnyRow(start_row, max_row - 1))) {
-          const IndexType start_depth =
-              (c == start_col) ? rhs.depthOffset() : 0;
+          const IndexType start_depth = (c == start_col) ? depth_offset : 0;
 
           const IndexType max_depth =
               std::min<IndexType>(start_depth + (peeled_k - k),
@@ -1714,7 +1714,7 @@ struct gemm_pack_colmajor_block<
           assert(k <= peeled_k);
 
           const IndexType start_depth =
-              ((c == start_col) && (r == start_row)) ? rhs.depthOffset() : 0;
+              ((c == start_col) && (r == start_row)) ? depth_offset : 0;
           const IndexType max_depth = rhs.maxDepth(peeled_k - k, start_depth);
 
           const bool pad = has_padding && (pad_col || lm.padRow(r));
@@ -1786,6 +1786,7 @@ struct gemm_pack_colmajor_block<
 
     const IndexType start_col = rhs.colOffset();
     const IndexType max_col = rhs.maxCol(peeled_k);
+    const IndexType depth_offset = rhs.depthOffset();
 
     // Original input column and row after applying all non-standard strides and
     // dilations. Computed by padOrSkip{Row,Col}.
@@ -1807,7 +1808,7 @@ struct gemm_pack_colmajor_block<
           assert(k <= peeled_k);
 
           const IndexType start_depth =
-              ((c == start_col) && (r == start_row)) ? rhs.depthOffset() : 0;
+              ((c == start_col) && (r == start_row)) ? depth_offset : 0;
           const IndexType max_depth = rhs.maxDepth(peeled_k - k, start_depth);
 
           const bool pad_or_skip =

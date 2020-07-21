@@ -39,9 +39,7 @@ namespace tfrt {
 namespace {
 
 const char* kMockCommunicatorType = "mock_type";
-const char* kMockCommunicatorName1 = "mock_1";
-const char* kMockCommunicatorName2 = "mock_2";
-const char* kInvalidCommunicatorName = "invalid";
+const char* kMockCommunicatorName = "mock_name";
 
 class MockCommunicator : public FabricCommunicator {
  public:
@@ -49,23 +47,21 @@ class MockCommunicator : public FabricCommunicator {
       : FabricCommunicator(name,
                            /*distributed_context=*/nullptr) {}
   MOCK_METHOD(void, Send,
-              (InstanceKey instance_key, Rank destination,
+              (InstanceKey instance_key, HostId destination,
                llvm::StringRef payload),
               (override));
 };
 
 DistributedContextConfiguration GetSampleConfiguration() {
+  HostConfiguration host_config{
+      /*addresses=*/{"addr0", "addr1", "addr2", "addr3"}, /*rank=*/1};
   FabricCommunicatorConfiguration mock_communicator_config{
-      kMockCommunicatorType, {}};
-  FabricCommunicatorConfiguration invalid_communicator_config{"invalid_type",
-                                                              {}};
-  DistributedContextConfiguration context_config;
-  context_config.communicators.insert(
-      {kMockCommunicatorName1, mock_communicator_config});
-  context_config.communicators.insert(
-      {kMockCommunicatorName2, mock_communicator_config});
-  context_config.communicators.insert(
-      {kInvalidCommunicatorName, invalid_communicator_config});
+      kMockCommunicatorType, host_config};
+  CollectiveGroup group0{/*name=*/"group0", /*members=*/{0, 1}};
+  CollectiveGroup group1{/*name=*/"group1", /*members=*/{1, 2, 3}};
+  DistributedContextConfiguration context_config{
+      mock_communicator_config,
+      /*collective_groups=*/{group0, group1}};
   return context_config;
 }
 
@@ -73,48 +69,47 @@ TEST(DistributedContext, CreateFabricCommunicator) {
   auto configuration = GetSampleConfiguration();
   DistributedContext dist_context(/*host_context=*/nullptr, configuration);
 
-  EXPECT_EQ(dist_context.GetOrCreateFabricCommunicator("wrong_name"), nullptr);
-  EXPECT_EQ(dist_context.GetOrCreateFabricCommunicator(kMockCommunicatorName1),
-            nullptr);
+  EXPECT_EQ(dist_context.GetOrCreateFabricCommunicator(), nullptr);
 
-  auto mock_factory = [](llvm::StringRef name,
-                         DistributedContext* distributed_context,
+  auto mock_factory = [](DistributedContext* distributed_context,
                          const FabricCommunicatorConfiguration& configuration)
-      -> FabricCommunicator* { return new MockCommunicator(name); };
+      -> FabricCommunicator* {
+    return new MockCommunicator(kMockCommunicatorName);
+  };
   DistributedContext::RegisterFabricCommunicatorType(kMockCommunicatorType,
                                                      mock_factory);
 
-  auto communicator_mock_1 =
-      dist_context.GetOrCreateFabricCommunicator(kMockCommunicatorName1);
-  EXPECT_NE(communicator_mock_1, nullptr);
-  EXPECT_EQ(communicator_mock_1->GetFabricCommunicatorName(),
-            kMockCommunicatorName1);
-  EXPECT_EQ(dist_context.GetOrCreateFabricCommunicator(kMockCommunicatorName1),
-            communicator_mock_1);
-
-  EXPECT_EQ(
-      dist_context.GetOrCreateFabricCommunicator(kInvalidCommunicatorName),
-      nullptr);
-
-  auto communicator_mock_2 =
-      dist_context.GetOrCreateFabricCommunicator(kMockCommunicatorName2);
-  EXPECT_NE(communicator_mock_2, nullptr);
-  EXPECT_EQ(communicator_mock_2->GetFabricCommunicatorName(),
-            kMockCommunicatorName2);
+  FabricCommunicator* fabric_communicator =
+      dist_context.GetOrCreateFabricCommunicator();
+  EXPECT_NE(fabric_communicator, nullptr);
+  EXPECT_EQ(dist_context.GetOrCreateFabricCommunicator(), fabric_communicator);
 }
 
 TEST(DistributedContext, GetHostContext) {
-  auto configuration = GetSampleConfiguration();
-
   auto diag_handler = [](const DecodedDiagnostic&) {};
   HostContext host_context(diag_handler, tfrt::CreateMallocAllocator(),
                            tfrt::CreateMultiThreadedWorkQueue(
                                /*num_threads=*/4,
                                /*num_blocking_threads=*/64));
 
+  auto configuration = GetSampleConfiguration();
   DistributedContext dist_context(&host_context, configuration);
 
   ASSERT_EQ(dist_context.GetHostContext(), &host_context);
+}
+
+TEST(DistributedContext, GetCollectiveGroup) {
+  auto diag_handler = [](const DecodedDiagnostic&) {};
+  HostContext host_context(diag_handler, tfrt::CreateMallocAllocator(),
+                           tfrt::CreateMultiThreadedWorkQueue(
+                               /*num_threads=*/4,
+                               /*num_blocking_threads=*/64));
+
+  auto configuration = GetSampleConfiguration();
+  DistributedContext dist_context(&host_context, configuration);
+
+  auto group1 = dist_context.GetCollectiveGroup("group1");
+  EXPECT_EQ(group1.name, "group1");
 }
 
 }  // namespace

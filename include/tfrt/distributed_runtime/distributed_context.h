@@ -50,24 +50,36 @@ namespace tfrt {
 class FabricCommunicator;
 class CallbackRegistry;
 
+// TODO(pisong, ayushd): remove `using`.
 using InstanceKey = std::string;
-using Rank = int32_t;
+using HostId = int32_t;
+
+struct HostConfiguration {
+  // Ordered list of all addresses in the cluster.
+  llvm::SmallVector<std::string, 8> addresses;
+  // Id of this host.  Address of this host is `addresses[id]`.
+  HostId id;
+};
 
 struct FabricCommunicatorConfiguration {
-  std::string type;                       // fabric type, e.g. grpc
-  llvm::StringMap<std::string> settings;  // fabric-specific settings
+  std::string type;  // fabric type, e.g. grpc
+  HostConfiguration host_configuration;
+};
+
+struct CollectiveGroup {
+  std::string name;  // unique identifier for this group
+  llvm::SmallVector<HostId, 8> members;
 };
 
 struct DistributedContextConfiguration {
-  // Mapping from FabricCommunicator name to FabricCommunicator configuration
-  llvm::StringMap<FabricCommunicatorConfiguration> communicators;
+  FabricCommunicatorConfiguration fabric_configuration;
+  llvm::SmallVector<CollectiveGroup, 4> collective_groups;
 };
 
 // DistributedContext constructs and owns fabric communicators.
 class DistributedContext {
  public:
   using FabricCommunicatorFactory = std::function<FabricCommunicator*(
-      llvm::StringRef communicator_name,
       DistributedContext* distributed_context,
       const FabricCommunicatorConfiguration& configuration)>;
 
@@ -80,11 +92,25 @@ class DistributedContext {
   DistributedContext(const DistributedContext&) = delete;
   DistributedContext& operator=(const DistributedContext&) = delete;
 
-  FabricCommunicator* GetOrCreateFabricCommunicator(
-      const std::string& communicator_name) TFRT_EXCLUDES(communicators_mutex_);
+  FabricCommunicator* GetOrCreateFabricCommunicator()
+      TFRT_EXCLUDES(communicator_mutex_);
 
   HostContext* GetHostContext() { return host_context_; }
+
   CallbackRegistry* GetCallbackRegistry() { return callback_registry_.get(); }
+
+  DistributedContextConfiguration GetConfiguration() { return configuration_; }
+
+  HostId GetId() {
+    return configuration_.fabric_configuration.host_configuration.id;
+  }
+
+  size_t GetSize() {
+    return configuration_.fabric_configuration.host_configuration.addresses
+        .size();
+  }
+
+  CollectiveGroup GetCollectiveGroup(llvm::StringRef name);
 
   static void RegisterFabricCommunicatorType(
       const std::string& communicator_type_name,
@@ -93,16 +119,15 @@ class DistributedContext {
  private:
   static llvm::StringMap<FabricCommunicatorFactory>*
   GetFabricCommunicatorFactories();
-  FabricCommunicator* GetOrCreateFabricCommunicatorUnsafe(
-      llvm::StringRef communicator_name) TFRT_REQUIRES(communicators_mutex_);
-  void InitializeAllFabricCommunicators() TFRT_EXCLUDES(communicators_mutex_);
+  FabricCommunicator* GetOrCreateFabricCommunicatorUnsafe()
+      TFRT_REQUIRES(communicator_mutex_);
 
   HostContext* const host_context_;
   const DistributedContextConfiguration configuration_;
   std::unique_ptr<CallbackRegistry> callback_registry_;
-  mutex communicators_mutex_;
-  llvm::StringMap<std::unique_ptr<FabricCommunicator>> fabric_communicators_
-      TFRT_GUARDED_BY(communicators_mutex_);
+  mutex communicator_mutex_;
+  std::unique_ptr<FabricCommunicator> fabric_communicator_
+      TFRT_GUARDED_BY(communicator_mutex_);
 };
 
 }  // namespace tfrt

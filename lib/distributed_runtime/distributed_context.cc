@@ -34,54 +34,52 @@ DistributedContext::DistributedContext(
     : host_context_{host_context},
       configuration_{std::move(configuration)},
       callback_registry_(new CallbackRegistry()) {
-  InitializeAllFabricCommunicators();
+  GetOrCreateFabricCommunicator();
 }
 
-FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicator(
-    const std::string& communicator_name) {
-  mutex_lock lock(communicators_mutex_);
-  return GetOrCreateFabricCommunicatorUnsafe(communicator_name);
+FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicator() {
+  mutex_lock lock(communicator_mutex_);
+  return GetOrCreateFabricCommunicatorUnsafe();
 }
 
-FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicatorUnsafe(
-    llvm::StringRef communicator_name) {
+CollectiveGroup DistributedContext::GetCollectiveGroup(llvm::StringRef name) {
+  CollectiveGroup collective_group;
+  bool found = false;
+  for (const auto& registered_group : configuration_.collective_groups) {
+    if (registered_group.name == name) {
+      collective_group = registered_group;
+      found = true;
+    }
+  }
+  if (!found) {
+    TFRT_LOG(WARNING) << "Did not find collective group";
+  }
+  return collective_group;
+}
+
+FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicatorUnsafe() {
   // Don't create a new communicator if cached
-  auto comms_iter = fabric_communicators_.find(communicator_name);
-  if (comms_iter != fabric_communicators_.end()) {
-    return comms_iter->second.get();
+  if (fabric_communicator_ != nullptr) {
+    return fabric_communicator_.get();
   }
-
-  // Get communicator configuration
-  const auto& communicators_config = configuration_.communicators;
-  auto config_iter = communicators_config.find(communicator_name);
-  if (config_iter == communicators_config.end()) {
-    TFRT_LOG(WARNING) << "Did not find configuration for fabric communicator "
-                      << communicator_name;
-    return nullptr;
-  }
-  const auto& communicator_configuration = config_iter->second;
-  const auto& communicator_type = communicator_configuration.type;
 
   // Get communicator type factory
+  const auto& communicator_configuration = configuration_.fabric_configuration;
+  const auto& communicator_type = communicator_configuration.type;
   const auto* communicator_factories = GetFabricCommunicatorFactories();
   auto factories_iter = communicator_factories->find(communicator_type);
   if (factories_iter == communicator_factories->end()) {
     TFRT_LOG(WARNING) << "Did not find fabric communicator factory for "
-                         "communicator with name "
-                      << communicator_name << " and type " << communicator_type;
-    ;
+                         "communicator with type "
+                      << communicator_type;
     return nullptr;
   }
   const auto& factory_function = factories_iter->second;
 
   // Create FabricCommunicator
-  FabricCommunicator* communicator =
-      factory_function(communicator_name, this, communicator_configuration);
-
-  auto emplace_ret = fabric_communicators_.try_emplace(
-      communicator_name, std::unique_ptr<FabricCommunicator>(communicator));
-  assert(emplace_ret.second);
-  return emplace_ret.first->getValue().get();
+  fabric_communicator_.reset(
+      factory_function(this, communicator_configuration));
+  return fabric_communicator_.get();
 }
 
 void DistributedContext::RegisterFabricCommunicatorType(
@@ -97,15 +95,6 @@ DistributedContext::GetFabricCommunicatorFactories() {
   static auto* communicator_factories =
       new llvm::StringMap<FabricCommunicatorFactory>();
   return communicator_factories;
-}
-
-void DistributedContext::InitializeAllFabricCommunicators() {
-  mutex_lock lock(communicators_mutex_);
-  const auto& communicators_config = configuration_.communicators;
-  for (const auto& communicator_entry : communicators_config) {
-    const auto& communicator_name = communicator_entry.first();
-    GetOrCreateFabricCommunicatorUnsafe(communicator_name);
-  }
 }
 
 }  // namespace tfrt

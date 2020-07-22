@@ -174,7 +174,7 @@ static Error TestSyncBenchmark(RemainingSyncArguments args,
         "value");
   }
 
-  if (fn->num_arguments() != args.values().size()) {
+  if (fn->num_arguments() != args.size()) {
     return MakeStringError(
         "Incorrect number of arguments for the target function for the "
         "SyncBenchmark op");
@@ -183,12 +183,17 @@ static Error TestSyncBenchmark(RemainingSyncArguments args,
   BenchmarkStats bm_stats{fn->name(), *num_warmup_runs, *max_count,
                           std::chrono::seconds(*duration_secs)};
 
+  SmallVector<Value*, 16> func_args;
+  for (auto i = 0; i < args.size(); ++i) {
+    func_args.emplace_back(args[i]);
+  }
+
   while (bm_stats.MoreRun()) {
     bm_stats.StartRun();
     // TODO(jingdong): Expose BEFInterpreter and SyncBEFFunction so we can
     // factor the warm up cost out of the benchmark to make the benchmark
     // results more accurate.
-    auto error = ExecuteSyncBEFFunction(*fn, exec_ctx, args.values(), {});
+    auto error = ExecuteSyncBEFFunction(*fn, exec_ctx, func_args, {});
     bm_stats.StopRun();
     if (error) return error;
   }

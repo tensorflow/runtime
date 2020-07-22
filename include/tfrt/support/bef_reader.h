@@ -183,6 +183,25 @@ class BEFKernel {
     return llvm::makeArrayRef(body_start_ + offset, num_entries);
   }
 
+  ArrayRef<uint32_t> GetArguments() const {
+    return llvm::makeArrayRef(body_start_, num_arguments());
+  }
+
+  ArrayRef<uint32_t> GetAttributes() const {
+    return llvm::makeArrayRef(body_start_ + num_arguments(), num_attributes());
+  }
+
+  ArrayRef<uint32_t> GetFunctions() const {
+    return llvm::makeArrayRef(body_start_ + num_arguments() + num_attributes(),
+                              num_functions());
+  }
+
+  ArrayRef<uint32_t> GetResults() const {
+    return llvm::makeArrayRef(
+        body_start_ + num_arguments() + num_attributes() + num_functions(),
+        num_results());
+  }
+
  private:
   const BEFKernelHeader* header_;
   // The result table contains the list of NumUsedBys.

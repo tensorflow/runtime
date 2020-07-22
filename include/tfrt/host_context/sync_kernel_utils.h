@@ -100,14 +100,16 @@ namespace tfrt {
 // Arguments.
 class RemainingSyncArguments {
  public:
-  explicit RemainingSyncArguments(ArrayRef<Value*> values) : values_(values) {}
+  explicit RemainingSyncArguments(ArrayRef<uint32_t> reg_indices,
+                                  ArrayRef<Value*> registers)
+      : reg_indices_{reg_indices}, registers_{registers} {}
 
-  ArrayRef<Value*> values() const { return values_; }
-  size_t size() const { return values_.size(); }
-  Value* operator[](size_t i) const { return values_[i]; }
+  size_t size() const { return reg_indices_.size(); }
+  Value* operator[](size_t i) const { return registers_[reg_indices_[i]]; }
 
  private:
-  ArrayRef<Value*> values_;
+  ArrayRef<uint32_t> reg_indices_;
+  ArrayRef<Value*> registers_;
 };
 
 // This class is an implementation detail of TFRT_SYNC_KERNEL.
@@ -258,7 +260,7 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
                   "TypedAttrT must be derived from class TypedAttrBase");
     template <int in_idx, int const_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      TypedAttrT arg(frame->GetAttributes()[const_idx]);
+      TypedAttrT arg(frame->GetAttributeAt(const_idx));
       SyncKernelCallHelper<Tail...>::template Invoke<in_idx, const_idx + 1>(
           frame, pargs..., arg);
     }
@@ -356,7 +358,7 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
       static_assert(const_idx == 0,
                     "Arguments and results should appear before attributes.");
       RemainingSyncArguments remaining_arguments(
-          frame->GetArguments().drop_front(in_idx));
+          frame->GetArguments().drop_front(in_idx), frame->GetRegisters());
 
       SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
           frame, pargs..., remaining_arguments);

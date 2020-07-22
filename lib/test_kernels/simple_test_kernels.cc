@@ -300,8 +300,8 @@ static DenseHostTensor TestConstDenseAttr(DenseAttr dense_attr,
 // For testing RemainingSyncArguments
 static int TestSyncSum(int a, RemainingSyncArguments other_args) {
   int sum = a;
-  for (auto& v : other_args.values()) {
-    sum += v->get<int>();
+  for (int i = 0; i < other_args.size(); ++i) {
+    sum += other_args[i]->get<int>();
   }
   return sum;
 }

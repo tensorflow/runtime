@@ -48,20 +48,38 @@ class BEFInterpreter final {
                 ArrayRef<Value*> results);
 
  private:
+  struct KernelEntry {
+    SyncKernelImplementation kernel_fn;
+    // KernelEntry starting location in BEF.
+    const uint32_t* kernel_start;
+    // All attributes, including, function attributes.
+    // This refers to a segment in attribute_pool_.
+    ArrayRef<const void*> attributes;
+    // Registers that are retired after the execution of this kernel.
+    // This refers to a segment in retired_register_pool_.
+    ArrayRef<Value*> retired_regs;
+  };
+
+  // Set up the data for each kernel.
+  void SetupKernelEntries();
   // Set up the registers for the function computation.
   void SetupRegisters(ArrayRef<Value*> arguments, ArrayRef<Value*> results);
 
-  struct Register {
-    uint32_t user_count;
-    Value* value;
-  };
-
   const SyncBEFFunction& func_;
 
-  SmallVector<Register, 16> registers_;
+  // All registers used in the function.
+  SmallVector<Value*, 16> registers_;
 
   // Store local Values used in the computation.
   SmallVector<Value, 16> local_values_;
+
+  // All kernel entries in the function.
+  SmallVector<KernelEntry, 16> kernel_entries_;
+
+  // Registers that are retired at each kernel.
+  SmallVector<Value*, 16> retired_register_pool_;
+  // Attributes used in all kernels.
+  SmallVector<const void*, 16> attribute_pool_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -88,40 +106,117 @@ BEFInterpreter::BEFInterpreter(const SyncBEFFunction& func) : func_{func} {
     if (reg_info.is_arg_or_result) {
 #ifndef NDEBUG
       // Initialize argument or result register Value in the debug mode.
-      reg.value = nullptr;
+      reg = nullptr;
 #endif
     } else {
-      reg.value = &local_values_[local_value_index];
+      reg = &local_values_[local_value_index];
       ++local_value_index;
     }
+  }
+
+  SetupKernelEntries();
+}
+
+void BEFInterpreter::SetupKernelEntries() {
+  SmallVector<int, 16> user_counts;
+
+  auto register_infos = func_.register_infos();
+  user_counts.reserve(register_infos.size());
+
+  // Initialize the user counts for each register.
+  for (auto& reg_info : register_infos) {
+    user_counts.emplace_back() = reg_info.user_count;
+  }
+
+  retired_register_pool_.reserve(local_values_.size());
+
+  // Prepare all kernel entries for this function.
+  for (auto kernel_offset : func_.kernel_offsets()) {
+    auto& kernel_entry = kernel_entries_.emplace_back();
+
+    // Get the KernelEntry starting location in BEF.
+    kernel_entry.kernel_start =
+        func_.kernels().data() + kernel_offset / kKernelEntryAlignment;
+
+    BEFKernel kernel(kernel_entry.kernel_start);
+
+    // Get the kernel function.
+    kernel_entry.kernel_fn =
+        func_.bef_file()->GetSyncKernel(kernel.kernel_code());
+    assert(kernel_entry.kernel_fn != nullptr);
+
+    int retired_reg_start = retired_register_pool_.size();
+
+    // Collect retired registers from arguments.
+    auto arguments = kernel.GetArguments();
+    for (auto reg_idx : arguments) {
+      auto& user_count = user_counts[reg_idx];
+
+      --user_count;
+      assert(user_count >= 0);
+      if (user_count == 0) {
+        auto* value = registers_[reg_idx];
+        assert(value);
+        retired_register_pool_.emplace_back(value);
+      }
+    }
+
+    // Collect retired registers from results.
+    auto results = kernel.GetResults();
+    for (auto reg_index : results) {
+      // If there is no use for the result, mark it as retired.
+      if (user_counts[reg_index] == 0) {
+        auto* value = registers_[reg_index];
+        assert(value);
+        retired_register_pool_.emplace_back(value);
+      }
+    }
+
+    // Set the retired registers for this kernel.
+    kernel_entry.retired_regs =
+        llvm::makeArrayRef(retired_register_pool_.begin() + retired_reg_start,
+                           retired_register_pool_.end());
+
+    // Collect the attributes
+    int attribute_start = attribute_pool_.size();
+    auto attributes = kernel.GetAttributes();
+    for (auto attribute_offset : attributes) {
+      // We pass the pointer here because this attribute could be an array of
+      // size 0.
+      attribute_pool_.emplace_back(func_.bef_file()->attribute_section_.data() +
+                                   attribute_offset);
+    }
+
+    // Collect the function attributes.
+    auto functions = kernel.GetFunctions();
+    for (auto fn_idx : functions) {
+      // Functions are passed as their corresponding `Function`.
+      attribute_pool_.emplace_back(func_.bef_file()->functions_[fn_idx].get());
+    }
+
+    // Set the attributes for this kernel.
+    kernel_entry.attributes = llvm::makeArrayRef(
+        attribute_pool_.begin() + attribute_start, attribute_pool_.end());
   }
 }
 
 void BEFInterpreter::SetupRegisters(ArrayRef<Value*> arguments,
                                     ArrayRef<Value*> results) {
-  auto register_infos = func_.register_infos();
-
   // Set up argument Value
   for (size_t i = 0; i < arguments.size(); ++i) {
-    assert(register_infos[i].is_arg_or_result);
-    assert(!registers_[i].value);
-    registers_[i].value = arguments[i];
+    assert(func_.register_infos()[i].is_arg_or_result);
+    assert(!registers_[i]);
+    registers_[i] = arguments[i];
   }
 
   // Set up result Value
   auto result_index = 0;
   for (auto reg_idx : func_.result_regs()) {
-    assert(register_infos[reg_idx].is_arg_or_result);
-    assert(!registers_[reg_idx].value);
+    assert(func_.register_infos()[reg_idx].is_arg_or_result);
+    assert(!registers_[reg_idx]);
 
-    registers_[reg_idx].value = results[result_index];
+    registers_[reg_idx] = results[result_index];
     ++result_index;
-  }
-
-  // Set up register user counts
-  for (size_t reg_index = 0, end = register_infos.size(); reg_index != end;
-       ++reg_index) {
-    registers_[reg_index].user_count = register_infos[reg_index].user_count;
   }
 }
 
@@ -135,71 +230,20 @@ Error BEFInterpreter::Execute(const ExecutionContext& exec_ctx,
 
   SetupRegisters(arguments, results);
 
-  SyncKernelFrameBuilder kernel_frame(exec_ctx);
-  SmallVector<Value*, 8> retired_values;
+  SyncKernelFrameBuilder kernel_frame(registers_, exec_ctx);
 
-  for (auto kernel_offset : func_.kernel_offsets()) {
-    BEFKernel kernel(func_.kernels().data() +
-                     kernel_offset / kKernelEntryAlignment);
+  // Walk through each kernel entry and invoke each kernel sequentially.
+  for (auto& kernel_entry : kernel_entries_) {
+    BEFKernel kernel(kernel_entry.kernel_start);
 
-    // Find the kernel function.
-    SyncKernelImplementation kernel_fn =
-        func_.bef_file()->GetSyncKernel(kernel.kernel_code());
-    assert(kernel_fn != nullptr);
+    kernel_frame.SetArguments(kernel.GetArguments());
+    kernel_frame.SetAttributes(kernel_entry.attributes);
+    kernel_frame.SetResults(kernel.GetResults());
 
-    int entry_offset = 0;
-
-    // Set up arguments.
-    auto arguments =
-        kernel.GetKernelEntries(entry_offset, kernel.num_arguments());
-    for (auto reg_idx : arguments) {
-      auto& reg = registers_[reg_idx];
-
-      kernel_frame.AddArg(reg.value);
-
-      --reg.user_count;
-      assert(reg.user_count >= 0);
-      if (reg.user_count == 0) {
-        retired_values.emplace_back(reg.value);
-      }
-    }
-
-    // Set up attributes.
-    entry_offset += arguments.size();
-    auto attributes =
-        kernel.GetKernelEntries(entry_offset, kernel.num_attributes());
-    for (auto attribute_offset : attributes) {
-      // We pass the pointer here because this attribute could be an array of
-      // size 0.
-      kernel_frame.AddAttribute(func_.bef_file()->attribute_section_.data() +
-                                attribute_offset);
-    }
-
-    // Set up function attributes.
-    entry_offset += attributes.size();
-    auto functions =
-        kernel.GetKernelEntries(entry_offset, kernel.num_functions());
-    for (auto fn_idx : functions) {
-      // Functions are passed as their corresponding `Function`.
-      kernel_frame.AddAttribute(func_.bef_file()->functions_[fn_idx].get());
-    }
-
-    // Set up results.
-    entry_offset += functions.size();
-    auto results = kernel.GetKernelEntries(entry_offset, kernel.num_results());
-    for (auto reg_index : results) {
-      auto& reg = registers_[reg_index];
-      kernel_frame.AddResult(reg.value);
-      // If there is no use for the result, mark it as retired.
-      if (reg.user_count == 0) {
-        retired_values.emplace_back(reg.value);
-      }
-    }
-
-    kernel_fn(&kernel_frame);
+    kernel_entry.kernel_fn(&kernel_frame);
 
     // Free values that are no longer needed.
-    for (auto value : retired_values) {
+    for (auto value : kernel_entry.retired_regs) {
       value->reset();
     }
 
@@ -207,23 +251,20 @@ Error BEFInterpreter::Execute(const ExecutionContext& exec_ctx,
     if (auto error = kernel_frame.TakeError()) {
       return error;
     }
-
-    // Reset state for the next kernel evaluation.
-    kernel_frame.Reset();
-    retired_values.clear();
   }
 
 #ifndef NDEBUG
   // In debug mode, reset all the argument and result registers to make
   // debugging easier.
   for (size_t i = 0; i < arguments.size(); ++i) {
-    registers_[i].value = nullptr;
+    registers_[i] = nullptr;
   }
 
   for (auto reg_idx : func_.result_regs()) {
-    registers_[reg_idx].value = nullptr;
+    registers_[reg_idx] = nullptr;
   }
 
+  // Check all local values are freed.
   for (auto& value : local_values_) {
     assert(!value.HasValue());
   }

@@ -97,14 +97,15 @@ void PrefetchingIterator::ReadIOSource(const ExecutionContext& exec_ctx) {
       reached_eof_ = true;
       break;
     }
+    prefetch_buffer_.push(std::move(input));
     auto output = DequeueOutputBuffer();
-    if (!output) {
-      prefetch_buffer_.push(std::move(input));
-    } else {
+    if (output) {
+      auto earliest_input = std::move(prefetch_buffer_.front());
+      prefetch_buffer_.pop();
       // It is guaranteed that no other thread will attempt to dequeue value
       // from the output buffer.
-      ForwardInputToOutput(std::move(input), std::move(output.getValue()),
-                           exec_ctx);
+      ForwardInputToOutput(std::move(earliest_input),
+                           std::move(output.getValue()), exec_ctx);
     }
   }
   ReadIOSource(exec_ctx);

@@ -263,6 +263,146 @@ static LogicalResult verify(BenchmarkOp op) {
 }
 
 //===----------------------------------------------------------------------===//
+// SyncBenchmarkOp
+//===----------------------------------------------------------------------===//
+
+// Parse the SyncBenchmarkOp in the following format
+//
+// tfrt_test.sync_benchmark @fibonacci.i32()
+//       duration_secs = 1, max_count = 100, num_warmup_runs = 10
+
+static ParseResult parseSyncBenchmarkOp(OpAsmParser &parser,
+                                        OperationState &result) {
+  SymbolRefAttr targetFnAttr;
+  if (parser.parseAttribute(targetFnAttr, "target_fn", result.attributes))
+    return failure();
+
+  // Parse the operands, e.g. (%c : i32, %d : f32)
+  if (parser.parseLParen()) return failure();
+
+  SmallVector<OpAsmParser::OperandType, 4> operands;
+  SmallVector<Type, 4> types;
+  llvm::SMLoc type_loc = parser.getCurrentLocation();
+
+  if (parser.parseOptionalRParen()) {
+    // Parse non-empty operands
+    do {
+      // Parse %c : i32,
+      OpAsmParser::OperandType operand;
+      Type type;
+
+      if (parser.parseOperand(operand) || parser.parseColonType(type))
+        return failure();
+
+      operands.push_back(operand);
+      types.push_back(type);
+
+    } while (succeeded(parser.parseOptionalComma()));
+
+    if (parser.parseRParen()) return failure();
+  }
+
+  if (parser.resolveOperands(operands, types, type_loc, result.operands))
+    return failure();
+
+  auto parseIntegerKeywordAttr = [&]() -> ParseResult {
+    StringRef attr;
+    Attribute resultAttr;
+
+    return failure(parser.parseKeyword(&attr) || parser.parseEqual() ||
+                   parser.parseAttribute(resultAttr,
+                                         parser.getBuilder().getIntegerType(32),
+                                         attr, result.attributes));
+  };
+
+  // Parse the keyword attribute, e.g. max_count = 100, duration_secs = 1
+  do {
+    if (parseIntegerKeywordAttr()) return failure();
+  } while (succeeded(parser.parseOptionalComma()));
+
+  auto setDefaultAttrIfUnset = [&](const char *attr_name, int value) {
+    bool found = llvm::any_of(result.attributes,
+                              [attr_name](const NamedAttribute &attr) {
+                                return attr.first == attr_name;
+                              });
+    if (!found) {
+      IntegerAttr default_val = parser.getBuilder().getI32IntegerAttr(value);
+      result.addAttribute(attr_name, default_val);
+    }
+  };
+
+  // Set the default attribute num_warmup_runs to 1 if unset
+  setDefaultAttrIfUnset("num_warmup_runs", 1);
+
+  return success();
+}
+
+// Print the SyncBenchmarkOp in the following format
+// tfrt_test.sync_benchmark @fibonacci.i32()
+//       max_count = 100, duration_secs = 1
+static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
+  p << "tfrt_test.sync_benchmark ";
+
+  // Print the target benchmark function
+  p << op.getAttr("target_fn");
+
+  // Print the operands and types, e.g. (%c : i32, %d : f32)
+  p << '(';
+  llvm::interleaveComma(llvm::zip(op.getOperands(), op.getOperandTypes()), p,
+                        [&](const auto &it) {
+                          p << std::get<0>(it) << " : " << std::get<1>(it);
+                        });
+  p << ") ";
+
+  bool need_comma = false;
+
+  // Print the attributes, e.g. max_count = 100, duration_secs = 1
+  for (auto &name_attr : op.getAttrs()) {
+    auto id = name_attr.first;
+    if (id == "target_fn") continue;
+
+    if (need_comma) p << ", ";
+
+    auto attr = name_attr.second;
+
+    p << id << " = ";
+    if (auto int_attr = attr.dyn_cast<IntegerAttr>()) {
+      int_attr.getValue().print(p.getStream(), /*isSigned=*/false);
+    } else {
+      op.emitOpError("Unexpected attribute");
+    }
+
+    need_comma = true;
+  }
+}
+
+static LogicalResult verify(SyncBenchmarkOp op) {
+  auto fnAttr = op.getAttrOfType<FlatSymbolRefAttr>("target_fn");
+  if (!fnAttr)
+    return op.emitOpError("requires a 'target_fn' symbol reference attribute");
+
+  auto fn =
+      op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
+  if (!fn)
+    return op.emitOpError() << "'" << fnAttr.getValue()
+                            << "' does not reference a valid function";
+
+  // Verify that the operand and result types match the callee.
+  auto fnType = fn.getType();
+  if (fnType.getNumInputs() != op.getNumOperands())
+    return op.emitOpError("incorrect number of operands for callee");
+
+  for (unsigned i = 0, e = fnType.getNumInputs(); i != e; ++i)
+    if (op.getOperand(i).getType() != fnType.getInput(i))
+      return op.emitOpError("operand type mismatch");
+
+  if (fnType.getNumResults() != 0)
+    return op.emitOpError("Target benchmark function must return zero value.");
+
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 

@@ -125,6 +125,49 @@ def BenchmarkOp : Test_Op<"benchmark"> {
   let results = (outs TFRT_ChainType);
 }
 
+def SyncBenchmarkOp : Test_Op<"sync_benchmark"> {
+  let summary = "synchronous benchmark operation";
+  let description = [{
+     The "tfrt_test.sync_benchmark" operation benchmarks the performance of an
+     MLIR synchronous region by executing the given MLIR region repeatedly up
+     to the `duration_secs` seconds or `max_count` times. `num_warmup_runs`
+     specifies the number of warm up runs to run the given MLIR region before
+     the benchmark starts.
+
+     The target MLIR region can take an arbitrary number of arguments and
+     should return no value. The arguments for the MLIR region are
+     provided as the operands of the tfrt_test.sync_benchmark op.
+
+     Example:
+        // Target sync function to benchmark.
+        func @fibonacci.i32() -> i32 attributes {hex.sync} {
+          %0 = "hex.constant_s.i32"() {value = 0 : i32} : () -> i32
+          %1 = "hex.constant_s.i32"() {value = 1 : i32} : () -> i32
+
+          %2 = "hex.add_s.i32"(%0, %1) : (i32, i32) -> i32
+          %3 = "hex.add_s.i32"(%1, %2) : (i32, i32) -> i32
+          %4 = "hex.add_s.i32"(%2, %3) : (i32, i32) -> i32
+          %5 = "hex.add_s.i32"(%3, %4) : (i32, i32) -> i32
+
+          hex.return
+        }
+
+       tfrt_test.sync_benchmark @fibonacci.i32()
+           duration_secs = 1, max_count = 100, num_warmup_runs = 10
+
+  }];
+
+  let arguments = (ins
+    FlatSymbolRefAttr:$target_fn,
+    Variadic<AnyType>,
+    I32Attr:$duration_secs,
+    I32Attr:$max_count,
+    DefaultValuedAttr<I32Attr, "1">:$num_warmup_runs
+  );
+
+  let results = (outs);
+}
+
 class Count3Op<string suffix, Type type>
   : Test_Op<"count3." # suffix, [NoSideEffect]> {
   let summary = "tfrt_test.count3 operation";

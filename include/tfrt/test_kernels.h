@@ -36,6 +36,7 @@ void RegisterAsyncKernels(KernelRegistry* registry);
 
 // Install benchmark kernels.
 void RegisterBenchmarkKernels(KernelRegistry* registry);
+void RegisterSyncBenchmarkKernels(KernelRegistry* registry);
 
 // Install some atomic test kernels for use by the test driver.
 void RegisterAtomicTestKernels(KernelRegistry* registry);

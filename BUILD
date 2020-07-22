@@ -620,6 +620,7 @@ tfrt_cc_library(
         "lib/test_kernels/benchmark_kernels.cc",
         "lib/test_kernels/simple_kernels.cc",
         "lib/test_kernels/simple_test_kernels.cc",
+        "lib/test_kernels/sync_benchmark_kernels.cc",
         "lib/test_kernels/test_native_functions.cc",
         "lib/test_kernels/tutorial_kernels.cc",
     ],
@@ -629,6 +630,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/test_kernels/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":befexecutor",
         ":hostcontext",
         ":support",
         ":tensor",

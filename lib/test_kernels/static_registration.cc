@@ -30,6 +30,7 @@ namespace tfrt {
 static void RegisterExampleKernels(KernelRegistry* registry) {
   RegisterAsyncKernels(registry);
   RegisterBenchmarkKernels(registry);
+  RegisterSyncBenchmarkKernels(registry);
   RegisterSimpleKernels(registry);
   RegisterAtomicTestKernels(registry);
   RegisterAsyncTestKernels(registry);

@@ -95,6 +95,21 @@ namespace tfrt {
 #define TFRT_SYNC_KERNEL(...) \
   ::tfrt::TfrtSyncKernelImpl<decltype(&__VA_ARGS__), &__VA_ARGS__>::Invoke
 
+// RemainingSyncArguments collects all remaining arguments in an ArrayRef. There
+// can be at most one RemainingSyncArguments, and it must appear after all other
+// Arguments.
+class RemainingSyncArguments {
+ public:
+  explicit RemainingSyncArguments(ArrayRef<Value*> values) : values_(values) {}
+
+  ArrayRef<Value*> values() const { return values_; }
+  size_t size() const { return values_.size(); }
+  Value* operator[](size_t i) const { return values_[i]; }
+
+ private:
+  ArrayRef<Value*> values_;
+};
+
 // This class is an implementation detail of TFRT_SYNC_KERNEL.
 template <typename F, F f>
 struct TfrtSyncKernelImpl;
@@ -319,7 +334,7 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
     template <int in_idx, int const_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(in_idx != -1,
-                    "Do not place Arguments after RemainingArguments");
+                    "Do not place Arguments after RemainingSyncArguments");
       static_assert(const_idx == 0,
                     "Arguments and results should appear before attributes.");
       auto* value = frame->GetArgAt(in_idx);
@@ -330,6 +345,24 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
+  // RemainingSyncArguments provides an ArrayRef<Value*> containing all
+  // remaining arguments. Useful for variadic kernels.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<RemainingSyncArguments, Tail...> {
+    template <int in_idx, int const_idx, typename... PreviousArgs>
+    static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(in_idx != -1,
+                    "Do not use more than one RemainingSyncArguments");
+      static_assert(const_idx == 0,
+                    "Arguments and results should appear before attributes.");
+      RemainingSyncArguments remaining_arguments(
+          frame->GetArguments().drop_front(in_idx));
+
+      SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
+          frame, pargs..., remaining_arguments);
+    }
+  };
+
   // Base case: No arguments left.
   // TypeTag<T> is a dummy template parameter to work around the restriction
   // of GCC that fully specialized template is not allowed in a template class.
@@ -337,7 +370,7 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   struct SyncKernelCallHelper<TypeTag<T>> {
     template <int in_idx, int const_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      assert(in_idx == frame->GetNumArgs() &&
+      assert((in_idx == -1 || in_idx == frame->GetNumArgs()) &&
              "Extra arguments passed to kernel.");
       assert(const_idx == frame->GetNumAttributes() &&
              "Extra attributes passed to kernel.");

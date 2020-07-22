@@ -297,6 +297,15 @@ static DenseHostTensor TestConstDenseAttr(DenseAttr dense_attr,
   return std::move(*result);
 }
 
+// For testing RemainingSyncArguments
+static int TestSyncSum(int a, RemainingSyncArguments other_args) {
+  int sum = a;
+  for (auto& v : other_args.values()) {
+    sum += v->get<int>();
+  }
+  return sum;
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -320,6 +329,7 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
 
   registry->AddSyncKernel("tfrt_test.fail_s", TFRT_SYNC_KERNEL(TestFail));
   registry->AddSyncKernel("tfrt_test.error_s", TFRT_SYNC_KERNEL(TestError));
+  registry->AddSyncKernel("tfrt_test.sync_sum", TFRT_SYNC_KERNEL(TestSyncSum));
 }
 
 }  // namespace tfrt

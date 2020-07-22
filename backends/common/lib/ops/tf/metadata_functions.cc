@@ -212,7 +212,14 @@ static Expected<TensorMetadata> TfBiasAddOpMd(const TensorMetadata& value,
                                               const TensorMetadata& bias,
                                               const OpAttrsRef& attrs) {
   if (value.dtype != bias.dtype)
-    return MakeStringError("incompatible dtypes for test.add");
+    return MakeStringError("incompatible dtypes for tf.BiasAdd");
+
+  string_view data_format;
+  bool has_data_format_attr = attrs.GetString("data_format", &data_format);
+
+  if (has_data_format_attr && data_format != "NHWC") {
+    return MakeStringError("invalid data format. Currently only support NHWC");
+  }
 
   if (bias.shape.GetRank() != 1) {
     return MakeStringError("bias must be 1-D");

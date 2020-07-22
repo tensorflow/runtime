@@ -228,14 +228,17 @@ static AsyncValueRef<Chain> Mean(const DenseHostTensor& input,
 // CPU BiasAdd kernels
 //===----------------------------------------------------------------------===//
 
-template <typename T>
+// A special case of tf.add where bias is restricted to be 1-D.
+// Currently only support NHWC data format.
+template <typename T, size_t RANK>
 static AsyncValueRef<Chain> BiasAdd(const DenseHostTensor& input,
                                     const DenseHostTensor& bias,
                                     DenseHostTensor* output,
                                     const ExecutionContext& exec_ctx) {
-  DHTIndexableView<T, 2> input_view(&input);
+  DHTIndexableView<T, RANK> input_view(&input);
+  MutableDHTIndexableView<T, RANK> output_view(output);
   DHTIndexableView<T, 1> bias_view(&bias);
-  MutableDHTIndexableView<T, 2> output_view(output);
+
   const auto& shape_input = input_view.FixedShape();
   const auto& shape_bias = bias_view.FixedShape();
   const auto& shape_output = output_view.FixedShape();
@@ -244,17 +247,19 @@ static AsyncValueRef<Chain> BiasAdd(const DenseHostTensor& input,
     return EmitErrorAsync(exec_ctx, "unexpected output shape");
   }
 
-  if (shape_bias[0] != shape_input[1]) {
+  if (shape_bias[0] != shape_input[RANK - 1]) {
     return EmitErrorAsync(exec_ctx, "bias shape does not match input shape");
   }
 
-  Eigen::array<Eigen::Index, 2> reshape_dims;
-  reshape_dims[0] = static_cast<Eigen::Index>(1);
-  reshape_dims[1] = static_cast<Eigen::Index>(shape_bias[0]);
-
-  Eigen::array<Eigen::Index, 2> broadcast_dims;
-  broadcast_dims[0] = static_cast<Eigen::Index>(shape_input[0]);
-  broadcast_dims[1] = static_cast<Eigen::Index>(1);
+  // Reshape bias to the shape of input. Broadcast along the last axis of input.
+  Eigen::array<Eigen::Index, RANK> reshape_dims;
+  Eigen::array<Eigen::Index, RANK> broadcast_dims;
+  for (size_t i = 0; i < RANK - 1; ++i) {
+    reshape_dims[i] = static_cast<Eigen::Index>(1);
+    broadcast_dims[i] = static_cast<Eigen::Index>(shape_input[i]);
+  }
+  reshape_dims[RANK - 1] = static_cast<Eigen::Index>(shape_bias[0]);
+  broadcast_dims[RANK - 1] = static_cast<Eigen::Index>(1);
 
   auto input_t = AsEigenConstTensor(input_view);
   auto bias_t = AsEigenConstTensor(bias_view);

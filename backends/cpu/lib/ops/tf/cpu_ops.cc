@@ -166,7 +166,7 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
 //===----------------------------------------------------------------------===//
 // tf.BiadAdd op
 //===----------------------------------------------------------------------===//
-
+// TODO(b/161888722) Use Eigen broadcasting instead of dispatching by rank.
 static AsyncValueRef<DenseHostTensor> TfBiasAddOp(
     const DenseHostTensor& input, const DenseHostTensor& bias,
     const TensorMetadata& output_md, const ExecutionContext& exec_ctx) {
@@ -177,14 +177,31 @@ static AsyncValueRef<DenseHostTensor> TfBiasAddOp(
   }
 
   AsyncValueRef<Chain> chain;
+  size_t input_rank = input.shape().GetRank();
   switch (input.dtype().kind()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfBiasAddOp");
       break;
-#define DTYPE_NUMERIC(ENUM)                                   \
-  case DType::ENUM:                                           \
-    chain = cpu::BiasAdd<EigenTypeForDTypeKind<DType::ENUM>>( \
-        input, bias, output.getPointer(), exec_ctx);          \
+#define DTYPE_NUMERIC(ENUM)                                          \
+  case DType::ENUM:                                                  \
+    switch (input_rank) {                                            \
+      case 2:                                                        \
+        chain = cpu::BiasAdd<EigenTypeForDTypeKind<DType::ENUM>, 2>( \
+            input, bias, output.getPointer(), exec_ctx);             \
+        break;                                                       \
+      case 3:                                                        \
+        chain = cpu::BiasAdd<EigenTypeForDTypeKind<DType::ENUM>, 3>( \
+            input, bias, output.getPointer(), exec_ctx);             \
+        break;                                                       \
+      case 4:                                                        \
+        chain = cpu::BiasAdd<EigenTypeForDTypeKind<DType::ENUM>, 4>( \
+            input, bias, output.getPointer(), exec_ctx);             \
+        break;                                                       \
+      case 5:                                                        \
+        chain = cpu::BiasAdd<EigenTypeForDTypeKind<DType::ENUM>, 5>( \
+            input, bias, output.getPointer(), exec_ctx);             \
+        break;                                                       \
+    }                                                                \
     break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }

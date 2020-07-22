@@ -77,19 +77,22 @@ TEST(BCastTest, GetArgumentBCast) {
   }
 
   {
-    auto bcast = GetArgumentBCast(TensorShape({3}), TensorShape({2, 3}));
+    auto bcast = GetArgumentBCast(TensorShape(ArrayRef<ssize_t>{3}),
+                                  TensorShape({2, 3}));
     ASSERT_EQ(ReshapeOf(bcast), "[1, 3]");
     ASSERT_EQ(BroadcastOf(bcast), "[2, 1]");
   }
 
   {
-    auto bcast = GetArgumentBCast(TensorShape({1}), TensorShape({2, 3}));
+    auto bcast = GetArgumentBCast(TensorShape(ArrayRef<ssize_t>{1}),
+                                  TensorShape({2, 3}));
     ASSERT_EQ(ReshapeOf(bcast), "[1, 1]");
     ASSERT_EQ(BroadcastOf(bcast), "[2, 3]");
   }
 
   {
-    auto bcast = GetArgumentBCast(TensorShape({3, 3}), TensorShape({3}));
+    auto bcast = GetArgumentBCast(TensorShape({3, 3}),
+                                  TensorShape(ArrayRef<ssize_t>{3}));
     ASSERT_FALSE(static_cast<bool>(bcast));
   }
 

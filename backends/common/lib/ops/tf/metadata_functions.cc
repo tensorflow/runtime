@@ -166,7 +166,7 @@ static Expected<TensorMetadata> TfShapeOpMd(const TensorMetadata& input,
   if (dtype.kind() != DType::I32 && dtype.kind() != DType::I64)
     return MakeStringError("Unsupported `out_type` value: ", dtype.kind());
 
-  return TensorMetadata(dtype, {input.shape.GetRank()});
+  return TensorMetadata(dtype, ArrayRef<ssize_t>{input.shape.GetRank()});
 }
 
 static Expected<TensorMetadata> TfMaxPoolOpMd(const TensorMetadata& input,

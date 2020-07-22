@@ -29,7 +29,7 @@ namespace tfrt {
 namespace gpu {
 
 RCReference<Device> CreateGpuDevice(int gpu_ordinal, HostContext* host) {
-  static DeviceTypeRegistration register_device_type_cpu("gpu");
+  static DeviceTypeRegistration register_device_type_gpu("gpu");
   auto device_name = StrCat("GPU:", gpu_ordinal);
   auto existing_device = host->GetDeviceManager()->GetDeviceRef(device_name);
   if (existing_device) {

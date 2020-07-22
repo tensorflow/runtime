@@ -52,6 +52,10 @@ void RegisterDenseTensorReaders(KernelRegistry* registry) {
       TFRT_KERNEL(
           ReadTensorFromBTF<ParseDenseHostTensorTraits<int32_t, Rank>>));
   registry->AddKernel(
+      "btf.read_dense_tensor.i64." + std::to_string(Rank),
+      TFRT_KERNEL(
+          ReadTensorFromBTF<ParseDenseHostTensorTraits<int64_t, Rank>>));
+  registry->AddKernel(
       "btf.read_dense_tensor.i8." + std::to_string(Rank),
       TFRT_KERNEL(ReadTensorFromBTF<ParseDenseHostTensorTraits<int8_t, Rank>>));
   registry->AddKernel(

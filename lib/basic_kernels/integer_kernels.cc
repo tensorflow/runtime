@@ -141,6 +141,10 @@ void RegisterIntegerKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt.print.i32", TFRT_KERNEL(TFRTPrintI32));
   registry->AddKernel("tfrt.print.i64", TFRT_KERNEL(TFRTPrintI64));
 
+  registry->AddKernel("tfrt.cast.i64_to_f32",
+                      TFRT_KERNEL(TFRTCast<int64_t, float>));
+  registry->AddKernel("tfrt.cast.f32_to_i64",
+                      TFRT_KERNEL(TFRTCast<float, int64_t>));
   registry->AddKernel("tfrt.cast.i64_to_f64",
                       TFRT_KERNEL(TFRTCast<int64_t, double>));
   registry->AddKernel("tfrt.cast.f64_to_i64",

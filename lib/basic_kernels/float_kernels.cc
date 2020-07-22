@@ -25,30 +25,13 @@
 namespace tfrt {
 
 //===----------------------------------------------------------------------===//
-// f32 float kernels
+// float kernels
 //===----------------------------------------------------------------------===//
-
-// TODO(rmlarsen): Avoid code duplication.
-static float TFRTConstantF32(Attribute<float> arg) { return *arg; }
-
-static float TFRTAddF32(Argument<float> arg0, Argument<float> arg1) {
-  return *arg0 + *arg1;
-}
 
 static Chain TFRTPrintF32(Argument<float> arg, KernelFrame* frame) {
   printf("f32 = %f\n", *arg);
   fflush(stdout);
   return Chain();
-}
-
-//===----------------------------------------------------------------------===//
-// f64 float kernels
-//===----------------------------------------------------------------------===//
-
-static double TFRTConstantF64(Attribute<double> arg) { return *arg; }
-
-static double TFRTAddF64(Argument<double> arg0, Argument<double> arg1) {
-  return *arg0 + *arg1;
 }
 
 static Chain TFRTPrintF64(Argument<double> arg, KernelFrame* frame) {
@@ -57,9 +40,15 @@ static Chain TFRTPrintF64(Argument<double> arg, KernelFrame* frame) {
   return Chain();
 }
 
-//===----------------------------------------------------------------------===//
-// float kernels
-//===----------------------------------------------------------------------===//
+template <typename T>
+static T TFRTConstant(Attribute<T> arg) {
+  return *arg;
+}
+
+template <typename T>
+static T TFRTAdd(Argument<T> arg0, Argument<T> arg1) {
+  return *arg0 + *arg1;
+}
 
 template <typename T>
 static T TFRTMinimum(T v1, T v2) {
@@ -83,17 +72,22 @@ static T TFRTMultiply(T arg0, T arg1) {
 // Registration
 //===----------------------------------------------------------------------===//
 
-void RegisterFloatKernels(KernelRegistry* registry) {
-  registry->AddKernel("tfrt.constant.f32", TFRT_KERNEL(TFRTConstantF32));
-  registry->AddKernel("tfrt.add.f32", TFRT_KERNEL(TFRTAddF32));
-  registry->AddKernel("tfrt.print.f32", TFRT_KERNEL(TFRTPrintF32));
+template <typename T>
+void RegisterFloatKernelsForType(KernelRegistry* registry,
+                                 const std::string& suffix) {
+  registry->AddKernel("tfrt.constant." + suffix, TFRT_KERNEL(TFRTConstant<T>));
+  registry->AddKernel("tfrt.add." + suffix, TFRT_KERNEL(TFRTAdd<T>));
+  registry->AddKernel("tfrt.minimum." + suffix, TFRT_KERNEL(TFRTMinimum<T>));
+  registry->AddKernel("tfrt.div." + suffix, TFRT_KERNEL(TFRTDiv<T>));
+  registry->AddKernel("tfrt.multiply." + suffix, TFRT_KERNEL(TFRTMultiply<T>));
+}
 
-  registry->AddKernel("tfrt.constant.f64", TFRT_KERNEL(TFRTConstantF64));
-  registry->AddKernel("tfrt.add.f64", TFRT_KERNEL(TFRTAddF64));
+void RegisterFloatKernels(KernelRegistry* registry) {
+  registry->AddKernel("tfrt.print.f32", TFRT_KERNEL(TFRTPrintF32));
   registry->AddKernel("tfrt.print.f64", TFRT_KERNEL(TFRTPrintF64));
-  registry->AddKernel("tfrt.minimum.f64", TFRT_KERNEL(TFRTMinimum<double>));
-  registry->AddKernel("tfrt.div.f64", TFRT_KERNEL(TFRTDiv<double>));
-  registry->AddKernel("tfrt.multiply.f64", TFRT_KERNEL(TFRTMultiply<double>));
+
+  RegisterFloatKernelsForType<float>(registry, "f32");
+  RegisterFloatKernelsForType<double>(registry, "f64");
 }
 
 }  // namespace tfrt

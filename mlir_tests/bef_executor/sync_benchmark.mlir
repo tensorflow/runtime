@@ -17,10 +17,7 @@
 
 // A function to demonstrate the use of benchmark kernels.
 
-func @fibonacci.i32() -> () attributes {tfrt.sync} {
-  %0 = "tfrt.constant_s.i32"() {value = 0 : i32} : () -> i32
-  %1 = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
-
+func @fibonacci.i32(%0: i32, %1: i32) -> () attributes {tfrt.sync} {
   %2 = "tfrt.add_s.i32"(%0, %1) : (i32, i32) -> i32
   %3 = "tfrt.add_s.i32"(%1, %2) : (i32, i32) -> i32
   %4 = "tfrt.add_s.i32"(%2, %3) : (i32, i32) -> i32
@@ -48,7 +45,10 @@ func @sync_benchmark() attributes {tfrt.sync} {
   // CHECK: BM:fibonacci.i32:Time 95%(ns):
   // CHECK: BM:fibonacci.i32:Time 99%(ns):
 
-  tfrt_test.sync_benchmark @fibonacci.i32()
+  %0 = "tfrt.constant_s.i32"() {value = 0 : i32} : () -> i32
+  %1 = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
+
+  tfrt_test.sync_benchmark @fibonacci.i32(%0 : i32, %1 : i32)
       duration_secs = 1, max_count = 1000000, num_warmup_runs = 10
 
   tfrt.return

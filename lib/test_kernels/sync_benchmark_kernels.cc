@@ -155,7 +155,8 @@ class BenchmarkStats {
 // max_count: Max run count of input function.
 // num_warmup_runs: Number of warm up runs before benchmarking starts.
 // fn_const: The input function to be benchmarked.
-static Error TestSyncBenchmark(Attribute<int32_t> duration_secs,
+static Error TestSyncBenchmark(RemainingSyncArguments args,
+                               Attribute<int32_t> duration_secs,
                                Attribute<int32_t> max_count,
                                Attribute<int32_t> num_warmup_runs,
                                Attribute<Function> fn_const,
@@ -173,9 +174,10 @@ static Error TestSyncBenchmark(Attribute<int32_t> duration_secs,
         "value");
   }
 
-  if (fn->num_arguments() != 0) {
+  if (fn->num_arguments() != args.values().size()) {
     return MakeStringError(
-        "SyncBenchmark op requires the input function have zero arguments");
+        "Incorrect number of arguments for the target function for the "
+        "SyncBenchmark op");
   }
 
   BenchmarkStats bm_stats{fn->name(), *num_warmup_runs, *max_count,
@@ -186,7 +188,7 @@ static Error TestSyncBenchmark(Attribute<int32_t> duration_secs,
     // TODO(jingdong): Expose BEFInterpreter and SyncBEFFunction so we can
     // factor the warm up cost out of the benchmark to make the benchmark
     // results more accurate.
-    auto error = ExecuteSyncBEFFunction(*fn, exec_ctx, {}, {});
+    auto error = ExecuteSyncBEFFunction(*fn, exec_ctx, args.values(), {});
     bm_stats.StopRun();
     if (error) return error;
   }

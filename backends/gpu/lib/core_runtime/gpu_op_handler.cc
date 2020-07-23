@@ -142,20 +142,6 @@ struct GpuOpHandlerTraits {
                          chain);
   }
 };
-
-llvm::Expected<gpu::stream::Stream> CreateNonOwningStream(
-    Platform platform, void* injected_stream) {
-  switch (platform) {
-    case Platform::CUDA:
-      return gpu::stream::Stream(static_cast<CUstream>(injected_stream));
-    case Platform::ROCm:
-      return gpu::stream::Stream(static_cast<hipStream_t>(injected_stream));
-    default:
-      return llvm::createStringError(
-          llvm::inconvertibleErrorCode(),
-          tfrt::StrCat("Invalid platform ", platform));
-  }
-}
 }  // namespace
 
 llvm::Expected<std::unique_ptr<OpHandler>> GPUOpHandlerFactory(
@@ -215,19 +201,16 @@ llvm::Error GpuOpHandler::Initialize() {
   llvm::Optional<CurrentContext> current_context;
 
   // Use external GPU resources if they are available.
-  if (auto gpu_resources = gpu::GetTfrtGpuResources(gpu_ordinal_)) {
+  if (auto gpu_resources = gpu::GetTfrtGpuResources(device_)) {
     // Set a non-owning context.
-    context_ = static_cast<CUcontext>(gpu_resources->gpu_context);
+    context_ = gpu_resources->gpu_context;
     TFRT_ASSIGN_OR_RETURN(auto current, CtxSetCurrent(context_));
     current_context.emplace(current);
 
     allocator_ = std::unique_ptr<gpu::GpuAllocator>(
-        gpu_resources->allocator_factory(current));
+        gpu_resources->allocator_factory(context_));
 
-    TFRT_ASSIGN_OR_RETURN(
-        stream_,
-        CreateNonOwningStream(current.platform(), gpu_resources->stream));
-
+    stream_ = gpu_resources->stream;
   } else {
     TFRT_ASSIGN_OR_RETURN(owned_context_, DevicePrimaryCtxRetain(device_));
     context_ = owned_context_.get();

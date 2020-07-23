@@ -24,6 +24,7 @@
 
 #include "llvm/ADT/Optional.h"
 #include "tfrt/gpu/memory/bfc_gpu_allocator.h"
+#include "tfrt/gpu/stream/hash_utils.h"
 #include "tfrt/support/mutex.h"
 
 namespace tfrt {
@@ -33,30 +34,25 @@ namespace {
 
 class GpuResourcesMap {
  public:
-  void SetResources(int gpu_ordinal, GpuResources resources) {
+  void SetResources(stream::Device device, GpuResources resources) {
     mutex_lock lock(mu_);
-    assert(map_.count(gpu_ordinal) == 0 &&
-           "Only one set of resources per gpu ordinal is allowed");
-    map_.emplace(std::make_pair(gpu_ordinal, std::move(resources)));
+    auto it = map_.emplace(std::make_pair(device, std::move(resources)));
+    static_cast<void>(it);
+    assert(it.second && "Only one set of resources per gpu ordinal is allowed");
   }
 
-  llvm::Optional<GpuResources> GetResources(int gpu_ordinal) {
+  llvm::Optional<GpuResources> GetResources(stream::Device device) {
     mutex_lock lock(mu_);
-    auto it = map_.find(gpu_ordinal);
+    auto it = map_.find(device);
     if (it != map_.end()) {
       return it->second;
     }
     return llvm::None;
   }
 
-  bool Empty() const {
-    mutex_lock lock(mu_);
-    return map_.empty();
-  }
-
  private:
   mutable mutex mu_;
-  std::unordered_map<int, GpuResources> map_;
+  std::unordered_map<stream::Device, GpuResources> map_;
 };
 
 }  // namespace
@@ -68,12 +64,12 @@ GpuResourcesMap* GetGpuResourcesMap() {
   return registry;
 }
 
-void SetTfrtGpuResources(int gpu_ordinal, GpuResources resources) {
-  GetGpuResourcesMap()->SetResources(gpu_ordinal, resources);
+void SetTfrtGpuResources(stream::Device device, GpuResources resources) {
+  GetGpuResourcesMap()->SetResources(device, resources);
 }
 
-llvm::Optional<GpuResources> GetTfrtGpuResources(int gpu_ordinal) {
-  return GetGpuResourcesMap()->GetResources(gpu_ordinal);
+llvm::Optional<GpuResources> GetTfrtGpuResources(stream::Device device) {
+  return GetGpuResourcesMap()->GetResources(device);
 }
 
 }  // namespace gpu

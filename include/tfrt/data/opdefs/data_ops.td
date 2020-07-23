@@ -26,12 +26,12 @@ include "tfrt/tfrt_op_base.td"
 
 // "data" dialect
 def Data_Dialect : Dialect {
-  let name = "data";
+  let name = "tfrt_data";
 
   let description = [{
-    The Data dialect.
+    The TFRT Data dialect.
 
-    This dialect contains common data operations.
+    This dialect contains common TFRT data operations.
   }];
 
   let cppNamespace = "data";
@@ -56,12 +56,12 @@ class Data_Op<string mnemonic, list<OpTrait> traits = []> :
 //===----------------------------------------------------------------------===//
 
 def MakeIteratorOp : Data_Op<"make_iterator"> {
-  let summary = "data make_iterator operation";
+  let summary = "tfrt_data make_iterator operation";
   let description = [{
-    data.make_iterator creates an iterator from a dataset.
+    tfrt_data.make_iterator creates an iterator from a dataset.
 
     Example:
-      %iterator = data.make_iterator %dataset
+      %iterator = tfrt_data.make_iterator %dataset
   }];
 
   let arguments = (ins DatasetType:$dataset);
@@ -71,13 +71,13 @@ def MakeIteratorOp : Data_Op<"make_iterator"> {
 }
 
 def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
-  let summary = "data iterator_get_next operation";
+  let summary = "tfrt_data iterator_get_next operation";
   let description = [{
-    data.iterator_get_next yields a chain and an element from the iterator.
+    tfrt_data.iterator_get_next yields a chain and an element from the iterator.
 
     Example:
-      %iterator = data.make_iterator %dataset
-      %chain_out, %value = data.iterator_get_next (%iterator, %chain_in) : !t.tensor
+      %iterator = tfrt_data.make_iterator %dataset
+      %chain_out, %value = tfrt_data.iterator_get_next (%iterator, %chain_in) : !t.tensor
   }];
 
   let arguments = (ins IteratorType:$iterator, TFRT_ChainType:$chain_in);
@@ -85,17 +85,17 @@ def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
 }
 
 def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {
-  let summary = "data enumerate.iterator operation";
+  let summary = "tfrt_data enumerate.iterator operation";
   let description = [{
-    data.enumerate.iterator repeatedly draws the next element from the iterator
-    and executes the function on it to update the arguments until the iterator
-    is exhausted.
+    tfrt_data.enumerate.iterator repeatedly draws the next element from the
+    iterator and executes the function on it to update the arguments until the
+    iterator is exhausted.
 
     The result types are specified after the colon. The results have the same
     types as the operands, excluding the first operand, which is the iterator.
 
     example:
-      data.enumerate.iterator (%iterator, %zero) { function = @add_one } : i64
+      tfrt_data.enumerate.iterator (%iterator, %zero) { function = @add_one } : i64
   }];
 
   let arguments = (ins
@@ -115,15 +115,15 @@ def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {
 
 class BatchDatasetOp<string suffix>
   : Data_Op<"batch_dataset." # suffix> {
-  let summary = "data batch_dataset operation";
+  let summary = "tfrt_data batch_dataset operation";
   let description = [{
-    data.batch_dataset wraps around another dataset instance and batches the
-    underlying elements.
+    tfrt_data.batch_dataset wraps around another dataset instance and batches
+    the underlying elements.
 
     Example:
-      %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
+      %dataset1 = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
       %batch_size = tfrt.constant.i64 32
-      %dataset2 = data.batch_dataset.i32 %dataset1, %batch_size
+      %dataset2 = tfrt_data.batch_dataset.i32 %dataset1, %batch_size
         { same_input_metadata = 1 : i1 }
   }];
 
@@ -147,14 +147,14 @@ def BatchDatasetTensorAndI64Op : BatchDatasetOp<"tensor_and_i64">;
 
 // TODO(rachelim): Add verification to filter functions.
 def FilterDatasetOp : Data_Op<"filter_dataset"> {
-  let summary = "data filter_dataset operation";
+  let summary = "tfrt_data filter_dataset operation";
   let description = [{
-    data.filter_dataset takes elements from the input dataset and yields the
-    elements which satisfy a user-defined filter function.
+    tfrt_data.filter_dataset takes elements from the input dataset and yields
+    the elements which satisfy a user-defined filter function.
 
     Example:
-      %dataset1 = data.range_dataset.i32 (%start, %stop, %step)
-      %dataset2 = data.filter_dataset (%dataset1)
+      %dataset1 = tfrt_data.range_dataset.i32 (%start, %stop, %step)
+      %dataset2 = tfrt_data.filter_dataset (%dataset1)
         {function = @filter_even, arity = 1: i64}
   }];
 
@@ -172,13 +172,13 @@ def FilterDatasetOp : Data_Op<"filter_dataset"> {
 
 // TODO(rachelim): Add verification to interleave functions.
 def InterleaveDatasetOp : Data_Op<"interleave_dataset"> {
-  let summary = "data interleave_dataset operation";
+  let summary = "tfrt_data interleave_dataset operation";
   let description = [{
-    data.interleave_dataset applies a function to its input to create a dataset
-    per input elements and interleaves the results of these datasets.
+    tfrt_data.interleave_dataset applies a function to its input to create a
+    dataset per input elements and interleaves the results of these datasets.
 
     Example:
-      %dataset = data.interleave_dataset (%filenames)
+      %dataset = tfrt_data.interleave_dataset (%filenames)
         {function = @read_tf_record_files, arity = 1: i64}
   }];
 
@@ -198,14 +198,14 @@ def InterleaveDatasetOp : Data_Op<"interleave_dataset"> {
 
 // TODO(rachelim): Add verification to map functions.
 def MapDatasetOp : Data_Op<"map_dataset"> {
-  let summary = "data map_dataset operation";
+  let summary = "tfrt_data map_dataset operation";
   let description = [{
-    data.map_dataset maps a user-defined function over the elements in its
+    tfrt_data.map_dataset maps a user-defined function over the elements in its
     input dataset.
 
     Example:
-      %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
-      %dataset2 = data.map_dataset %dataset1 {function = @times_two}
+      %dataset1 = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
+      %dataset2 = tfrt_data.map_dataset %dataset1 {function = @times_two}
   }];
 
   let arguments = (ins
@@ -224,16 +224,16 @@ def MapDatasetOp : Data_Op<"map_dataset"> {
 }
 
 def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
-  let summary = "data prefetch_dataset operation";
+  let summary = "tfrt_data prefetch_dataset operation";
   let description = [{
-    data.prefetch_dataset wraps around another dataset instance and prefetches
-    elements from the underlying dataset in an internal buffer.
+    tfrt_data.prefetch_dataset wraps around another dataset instance and
+    prefetches elements from the underlying dataset in an internal buffer.
 
     Example:
-      %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
-      %dataset2 = data.map_dataset %dataset1 {function = @times_two}
+      %dataset1 = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
+      %dataset2 = tfrt_data.map_dataset %dataset1 {function = @times_two}
       %prefetch_num = tfrt.constant.i64 8
-      %dataset3 = data.prefetch_dataset %dataset2, %prefetch_num
+      %dataset3 = tfrt_data.prefetch_dataset %dataset2, %prefetch_num
   }];
 
   let arguments = (ins
@@ -247,13 +247,13 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
 }
 
 def RangeDatasetOp : Data_Op<"range_dataset" > {
-  let summary = "data range_dataset operation";
+  let summary = "tfrt_data range_dataset operation";
   let description = [{
-    data.range_dataset yields a step-separated range of values from
+    tfrt_data.range_dataset yields a step-separated range of values from
     start (inclusive) to stop (exclusive).
 
     Example:
-      %dataset = data.range_dataset %start, %stop, %step {element_type = i32}
+      %dataset = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
   }];
 
   let arguments = (ins
@@ -269,15 +269,15 @@ def RangeDatasetOp : Data_Op<"range_dataset" > {
 }
 
 def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
-  let summary = "data repeat_dataset operation";
+  let summary = "tfrt_data repeat_dataset operation";
   let description = [{
-    data.repeat_dataset wraps around another dataset instance and repeats
+    tfrt_data.repeat_dataset wraps around another dataset instance and repeats
     it a specified number of times.
 
     Example:
-      %dataset1 = data.range_dataset %start, %stop, %step {element_type = i32}
+      %dataset1 = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
       %count = tfrt.constant.i64 8
-      %dataset2 = data.repeat_dataset %dataset1, %count
+      %dataset2 = tfrt_data.repeat_dataset %dataset1, %count
   }];
 
   let arguments = (ins
@@ -291,12 +291,12 @@ def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
 }
 
 def TFRecordDatasetOp : Data_Op<"tf_record_dataset"> {
-  let summary = "data tf_record_dataset operation";
+  let summary = "tfrt_data tf_record_dataset operation";
   let description = [{
-    data.tf_record_dataset reads TFRecord bytes from a file.
+    tfrt_data.tf_record_dataset reads TFRecord bytes from a file.
 
     Example:
-      %dataset = data.tf_record_dataset %path
+      %dataset = tfrt_data.tf_record_dataset %path
   }];
 
   let arguments = (ins

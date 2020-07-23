@@ -428,48 +428,51 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
 
 // This is the entrypoint to the library.
 void RegisterDataKernels(KernelRegistry* registry) {
-  registry->AddKernel("data.make_iterator",
+  registry->AddKernel("tfrt_data.make_iterator",
                       TFRT_KERNEL(MakeIteratorFromDataset));
-  registry->AddKernel("data.iterator_get_next", TFRT_KERNEL(IteratorGetNext));
-  registry->AddKernel("data.enumerate.iterator",
+  registry->AddKernel("tfrt_data.iterator_get_next",
+                      TFRT_KERNEL(IteratorGetNext));
+  registry->AddKernel("tfrt_data.enumerate.iterator",
                       TFRT_KERNEL(EnumerateIterator));
 
   // TODO(b/155892156): Remove type specialization on dataset kernels.
-  registry->AddKernel("data.make_dataset_from_values.i32",
+  registry->AddKernel("tfrt_data.make_dataset_from_values.i32",
                       TFRT_KERNEL(MakeDatasetFromValues<int32_t>));
-  registry->AddKernel("data.make_dataset_from_values.i64",
+  registry->AddKernel("tfrt_data.make_dataset_from_values.i64",
                       TFRT_KERNEL(MakeDatasetFromValues<int64_t>));
-  registry->AddKernel("data.make_dataset_from_values.str",
+  registry->AddKernel("tfrt_data.make_dataset_from_values.str",
                       TFRT_KERNEL(MakeDatasetFromValues<std::string>));
-  registry->AddKernel("data.make_dataset_from_values.tensor",
+  registry->AddKernel("tfrt_data.make_dataset_from_values.tensor",
                       TFRT_KERNEL(MakeDatasetFromValues<DenseHostTensor>));
 
-  registry->AddKernel("data.range_dataset", TFRT_KERNEL(MakeRangeDataset));
+  registry->AddKernel("tfrt_data.range_dataset", TFRT_KERNEL(MakeRangeDataset));
 
-  registry->AddKernel("data.batch_dataset.tensor",
+  registry->AddKernel("tfrt_data.batch_dataset.tensor",
                       TFRT_KERNEL(MakeBatchDataset<DenseHostTensor>));
-  registry->AddKernel("data.batch_dataset.i32",
+  registry->AddKernel("tfrt_data.batch_dataset.i32",
                       TFRT_KERNEL(MakeBatchDataset<int32_t>));
-  registry->AddKernel("data.batch_dataset.i64",
+  registry->AddKernel("tfrt_data.batch_dataset.i64",
                       TFRT_KERNEL(MakeBatchDataset<int64_t>));
-  registry->AddKernel("data.batch_dataset.tensor_and_i64",
+  registry->AddKernel("tfrt_data.batch_dataset.tensor_and_i64",
                       TFRT_KERNEL(MakeBatchDataset<DenseHostTensor, int64_t>));
-  registry->AddKernel("data.batch_dataset.i64_and_i64",
+  registry->AddKernel("tfrt_data.batch_dataset.i64_and_i64",
                       TFRT_KERNEL(MakeBatchDataset<int64_t, int64_t>));
 
-  registry->AddKernel("data.memory_dataset.i64",
+  registry->AddKernel("tfrt_data.memory_dataset.i64",
                       TFRT_KERNEL(MakeMemoryDataset<int64_t>));
-  registry->AddKernel("data.memory_dataset.str",
+  registry->AddKernel("tfrt_data.memory_dataset.str",
                       TFRT_KERNEL(MakeMemoryDataset<std::string>));
 
-  registry->AddKernel("data.filter_dataset", TFRT_KERNEL(MakeFilterDataset));
-  registry->AddKernel("data.interleave_dataset",
+  registry->AddKernel("tfrt_data.filter_dataset",
+                      TFRT_KERNEL(MakeFilterDataset));
+  registry->AddKernel("tfrt_data.interleave_dataset",
                       TFRT_KERNEL(MakeInterleaveDataset));
-  registry->AddKernel("data.map_dataset", TFRT_KERNEL(MakeMapDataset));
-  registry->AddKernel("data.prefetch_dataset",
+  registry->AddKernel("tfrt_data.map_dataset", TFRT_KERNEL(MakeMapDataset));
+  registry->AddKernel("tfrt_data.prefetch_dataset",
                       TFRT_KERNEL(MakePrefetchDataset));
-  registry->AddKernel("data.repeat_dataset", TFRT_KERNEL(MakeRepeatDataset));
-  registry->AddKernel("data.tf_record_dataset",
+  registry->AddKernel("tfrt_data.repeat_dataset",
+                      TFRT_KERNEL(MakeRepeatDataset));
+  registry->AddKernel("tfrt_data.tf_record_dataset",
                       TFRT_KERNEL(MakeTFRecordDataset));
 }
 

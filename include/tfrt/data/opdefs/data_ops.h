@@ -39,7 +39,7 @@ namespace data {
 class DataDialect : public Dialect {
  public:
   explicit DataDialect(MLIRContext *context);
-  static StringRef getDialectNamespace() { return "data"; }
+  static StringRef getDialectNamespace() { return "tfrt_data"; }
 };
 
 #define GET_OP_CLASSES

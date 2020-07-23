@@ -37,10 +37,10 @@ class ExecutionContext;
 struct TensorFormats {
   uint32_t allowed_formats;
 
-  bool IsAllowed(Tensor::Subclass subclass);
+  bool Contains(Tensor::Subclass subclass) const;
 };
 inline raw_ostream& operator<<(raw_ostream& os, const TensorFormats& formats) {
-  os << formats.allowed_formats;
+  os << llvm::format_hex(formats.allowed_formats, 2);
   return os;
 }
 
@@ -56,12 +56,11 @@ using TensorConversionFn =
     AsyncValueRef<Tensor> (*)(const Tensor& tensor, const Device& dst,
                               TensorFormats allowed_formats, HostContext* host);
 
-// Copy tensor to device. It will look up and call the TensorConversionFn
+// Transfer tensor to device. It will look up and call the TensorConversionFn
 // registered in the TensorConversionFn registry.
-AsyncValueRef<Tensor> CopyTensorToDevice(const Tensor& tensor,
-                                         const Device& dst,
-                                         TensorFormats allowed_formats,
-                                         HostContext* host);
+AsyncValueRef<Tensor> TransferTensorTo(const Tensor& tensor, const Device& dst,
+                                       TensorFormats allowed_formats,
+                                       HostContext* host);
 
 class TensorConversionFnRegistry {
  public:

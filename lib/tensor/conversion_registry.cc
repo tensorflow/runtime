@@ -35,7 +35,7 @@ struct TensorConversionFnRegistryContext : public SharedContext {
 };
 }  // namespace
 
-bool TensorFormats::IsAllowed(Tensor::Subclass subclass) {
+bool TensorFormats::Contains(Tensor::Subclass subclass) const {
   return (allowed_formats & (1 << static_cast<uint32_t>(subclass)));
 }
 
@@ -52,10 +52,9 @@ TensorConversionFn TensorConversionFnRegistry::GetTensorConversionFn(
   return it == conversion_fn_map_.end() ? nullptr : it->second;
 }
 
-AsyncValueRef<Tensor> CopyTensorToDevice(const Tensor& tensor,
-                                         const Device& dst,
-                                         TensorFormats allowed_formats,
-                                         HostContext* host) {
+AsyncValueRef<Tensor> TransferTensorTo(const Tensor& tensor, const Device& dst,
+                                       TensorFormats allowed_formats,
+                                       HostContext* host) {
   auto& shared_ctx =
       host->GetOrCreateSharedContext<TensorConversionFnRegistryContext>();
   assert(shared_ctx.registry && "does not have a TensorConversionFnRegistry");

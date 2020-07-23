@@ -30,11 +30,13 @@
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
+#include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/host_tensor.h"
@@ -527,6 +529,20 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
       });
 }
 
+// TODO(fishx): Take device object as an argument instead of attribute.
+// Right now we cannot do that because a kernel cannot take RCReference as an
+// argument. We need to use either CopyRef() or std::move for RCReference
+// argument.
+static Expected<TensorHandle> TransferToDevice(
+    const TensorHandle &src, StringAttribute device,
+    Attribute<uint32_t> formats, const ExecutionContext &exec_ctx) {
+  auto device_ref = exec_ctx.host()->GetDeviceManager()->GetDeviceRef(device);
+  TensorFormats allowed_formats{formats.get()};
+  if (!device_ref)
+    return MakeStringError("failed to find device with name: ", device);
+  return src.TransferTo(exec_ctx, std::move(device_ref), allowed_formats);
+}
+
 //===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//
@@ -592,6 +608,7 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.const_string_tensor",
                       TFRT_KERNEL(ConstStringTensor));
   registry->AddKernel("corert.cond", TFRT_KERNEL(CoreRtConditional));
+  registry->AddKernel("corert.transfer", TFRT_KERNEL(TransferToDevice));
 
   RegisterCreateDenseTensor(registry);
 }

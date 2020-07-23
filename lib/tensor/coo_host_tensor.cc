@@ -58,9 +58,9 @@ void ConvertToDHTTensorHelper(const DenseHostTensor &indices,
 
 AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
     HostContext *host, uint32_t allowed_formats) const {
-  return AsyncValueRef<HostTensor>(CopyTensorToDevice(*this,
-                                                      *host->GetHostDeviceRef(),
-                                                      {allowed_formats}, host)
+  return AsyncValueRef<HostTensor>(TransferTensorTo(*this,
+                                                    *host->GetHostDeviceRef(),
+                                                    {allowed_formats}, host)
                                        .ReleaseRCRef());
 }
 
@@ -90,7 +90,7 @@ static AsyncValueRef<Tensor> CooToHostTensorConversion(
   const CooHostTensor &coo = static_cast<const CooHostTensor &>(tensor);
   // Allows conversion to ScalarHostTensor if at most one element or if it is an
   // arbitrary-shaped COO tensor but all elements are zero.
-  if (allowed_formats.IsAllowed(Tensor::Subclass::ScalarHost)) {
+  if (allowed_formats.Contains(Tensor::Subclass::ScalarHost)) {
     switch (tensor.dtype().kind()) {
       default:
         llvm_unreachable("can't happen");
@@ -113,7 +113,7 @@ static AsyncValueRef<Tensor> CooToHostTensorConversion(
     }
   }
 
-  if (allowed_formats.IsAllowed(Tensor::Subclass::DenseHost)) {
+  if (allowed_formats.Contains(Tensor::Subclass::DenseHost)) {
     // Otherwise, return a DenseHostTensor.
     auto result = host->MakeUnconstructedAsyncValueRef<DenseHostTensor>();
     auto result_alloc =

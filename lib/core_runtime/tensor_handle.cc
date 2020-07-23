@@ -22,6 +22,10 @@
 
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/device.h"
+#include "tfrt/host_context/execution_context.h"
+#include "tfrt/host_context/host_context.h"
+#include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/tensor.h"
 
 namespace tfrt {
@@ -68,6 +72,44 @@ TensorHandle TensorHandle::CreateError(RCReference<AsyncValue> error) {
   auto tensor_md = AsyncValueRef<TensorMetadata>(error.CopyRef());
   auto tensor = AsyncValueRef<Tensor>(std::move(error));
   return TensorHandle({}, std::move(tensor_md), std::move(tensor));
+}
+
+TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
+                                      RCReference<Device> device,
+                                      TensorFormats allowed_formats) const {
+  HostContext* host = exec_ctx.host();
+  AsyncValueRef<Tensor> result_tensor;
+  if (GetAsyncTensor()->IsAvailable()) {
+    auto& tensor = GetAsyncTensor()->get<Tensor>();
+    if (device.get() == device_.get() &&
+        allowed_formats.Contains(tensor.subclass()))
+      return CopyRef();
+    result_tensor = TransferTensorTo(tensor, *device, allowed_formats, host);
+  } else {
+    RCReference<IndirectAsyncValue> result_ind_av =
+        host->MakeIndirectAsyncValue();
+    result_tensor = AsyncValueRef<Tensor>(result_ind_av.CopyRef());
+    GetAsyncTensor()->AndThen(
+        [th = CopyRef(), result_ind_av = std::move(result_ind_av),
+         device = device.CopyRef(), allowed_formats, host]() {
+          auto& tensor = th.GetAsyncTensor()->get<Tensor>();
+          if (device.get() == th.device_.get() &&
+              allowed_formats.Contains(tensor.subclass())) {
+            result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+          } else {
+            result_ind_av->ForwardTo(
+                TransferTensorTo(tensor, *device, allowed_formats, host));
+          }
+        });
+  }
+
+  if (IsMetadataAvailable()) {
+    return TensorHandle(std::move(device), GetAvailableMetadata(),
+                        std::move(result_tensor));
+  } else {
+    return TensorHandle(std::move(device), GetAsyncMetadata().CopyRef(),
+                        std::move(result_tensor));
+  }
 }
 
 raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle) {

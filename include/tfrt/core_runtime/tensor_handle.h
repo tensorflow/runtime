@@ -32,7 +32,9 @@
 
 namespace tfrt {
 
+class Device;
 class Tensor;
+class TensorFormats;
 
 // An opaque representation of a rectangular tensor computed by the host/device
 // runtime.
@@ -114,7 +116,20 @@ class TensorHandle final {
   // invalid after it's moved.
   bool IsValid() const { return GetAsyncTensor() != nullptr; }
 
-  const Device& device() { return *device_.get(); }
+  const Device& device() { return *device_; }
+
+  // Transfer the TensorHandle to the target Device and convert its format. The
+  // target device can be same as current device, in this case, it will only
+  // do format conversion. If both target device and target format are same as
+  // this TensorHandle, it will simply return a new reference of this
+  // TensorHandle. If it fails, the result TensorHandle will contain the error
+  // in its tensor_ field.
+  //
+  // allowed_formats is a bitmask indicating target formats. It is a bitmask of
+  // tensor Subclass kinds.
+  TensorHandle TransferTo(const ExecutionContext& exec_ctx,
+                          RCReference<Device> device,
+                          TensorFormats allowed_formats) const;
 
  private:
   friend raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle);

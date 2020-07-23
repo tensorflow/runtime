@@ -206,4 +206,44 @@ func @test_coo_scalar_mixed() -> !tfrt.chain {
 }
 
 
+// CHECK-LABEL: --- Running 'test_coo_dense_transfer'
+func @test_coo_dense_transfer() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
+  %cpu_op_handler = corert.get_op_handler %ch0 "cpu"
+
+  %a_handle = corert.executeop(%cpu_op_handler) "tfrt_test.create_dense_tensor"()
+    {shape = [1, 2], values = [0 : i64, 0 : i64] } : 1
+
+  %b_handle = corert.executeop(%cpu_op_handler) "tfrt_test.create_dense_tensor"()
+   {shape = [1], values = [1 : i32] } : 1
+
+  %c_handle = corert.executeop(%cpu_op_handler) "tfrt_test.create_coo_tensor"
+    (%a_handle, %b_handle) {shape = [1, 1]} : 1
+
+  // CHECK: CooHostTensor dtype = I32, shape = [1, 1], indices = [0, 0], values = [1]
+  %ch1 = "corert.print_tensorhandle"(%c_handle, %ch0)
+    : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  // TODO(fishx): Introduce helper kernel to construct formats.
+  // Formats is a bitmask of Tensor::Subclass. 1 is DenseCpu.
+  // COO->DHT
+  %d_handle = "corert.transfer"(%c_handle) {device="CPU:0", formats=1}
+    : (!corert.tensorhandle) -> !corert.tensorhandle
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [1]
+  %ch2 = "corert.print_tensorhandle"(%d_handle, %ch1)
+    : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  // DHT->DHT
+  %e_handle = "corert.transfer"(%d_handle) {device="CPU:0", formats=1}
+    : (!corert.tensorhandle) -> !corert.tensorhandle
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [1]
+  %ch3 = "corert.print_tensorhandle"(%d_handle, %ch2)
+    : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  tfrt.return %ch3 : !tfrt.chain
+}
+
+
 

@@ -169,8 +169,9 @@ struct BinaryKernelImpl {
       : host(host),
         eigen(host->GetOrCreateSharedContext<compat::EigenHostContext>()) {}
 
-  AsyncValueRef<Chain> ScalarScalar(const HostTensor& lhs,
-                                    const HostTensor& rhs, HostTensor* output) {
+  template <typename OnDone>
+  void ScalarScalar(const HostTensor& lhs, const HostTensor& rhs,
+                    HostTensor* output, OnDone on_done) {
     auto* lhs_scalar = cast<ScalarHostTensor<Input>>(&lhs);
     auto* rhs_scalar = cast<ScalarHostTensor<Input>>(&rhs);
     auto* out_scalar = cast<ScalarHostTensor<Input>>(output);
@@ -179,11 +180,12 @@ struct BinaryKernelImpl {
     Input value = functor(lhs_scalar->GetValue(), rhs_scalar->GetValue());
     out_scalar->SetValue(value);
 
-    return host->MakeAvailableAsyncValueRef<Chain>();
+    on_done(Error::success());
   }
 
-  AsyncValueRef<Chain> ScalarTensor(const HostTensor& lhs,
-                                    const HostTensor& rhs, HostTensor* output) {
+  template <typename OnDone>
+  void ScalarTensor(const HostTensor& lhs, const HostTensor& rhs,
+                    HostTensor* output, OnDone on_done) {
     auto* lhs_scalar = cast<ScalarHostTensor<Input>>(&lhs);
     auto* rhs_tensor = cast<DenseHostTensor>(&rhs);
     auto* out_tensor = cast<DenseHostTensor>(output);
@@ -195,13 +197,15 @@ struct BinaryKernelImpl {
     using BindLeft = functor::BindLeftScalar<Input, Output, Functor>;
     auto expr = rhs_t.unaryExpr(BindLeft(lhs_scalar->GetValue()));
 
-    return compat::AsyncAssign(
-        host->GetOrCreateSharedContext<compat::EigenHostContext>(), out_t,
-        std::move(expr), compat::KeepBuffers::alive(rhs_tensor, out_tensor));
+    compat::AsyncAssign(
+        eigen, out_t, std::move(expr),
+        [buffers = compat::KeepBuffers::alive(rhs_tensor, out_tensor),
+         on_done = std::move(on_done)]() { on_done(Error::success()); });
   }
 
-  AsyncValueRef<Chain> TensorScalar(const HostTensor& lhs,
-                                    const HostTensor& rhs, HostTensor* output) {
+  template <typename OnDone>
+  void TensorScalar(const HostTensor& lhs, const HostTensor& rhs,
+                    HostTensor* output, OnDone on_done) {
     auto* lhs_tensor = cast<DenseHostTensor>(&lhs);
     auto* rhs_scalar = cast<ScalarHostTensor<Input>>(&rhs);
     auto* out_tensor = cast<DenseHostTensor>(output);
@@ -213,13 +217,15 @@ struct BinaryKernelImpl {
     using BindRight = functor::BindRightScalar<Input, Output, Functor>;
     auto expr = lhs_t.unaryExpr(BindRight(rhs_scalar->GetValue()));
 
-    return compat::AsyncAssign(
-        host->GetOrCreateSharedContext<compat::EigenHostContext>(), out_t,
-        std::move(expr), compat::KeepBuffers::alive(lhs_tensor, out_tensor));
+    compat::AsyncAssign(
+        eigen, out_t, std::move(expr),
+        [buffers = compat::KeepBuffers::alive(lhs_tensor, out_tensor),
+         on_done = std::move(on_done)]() { on_done(Error::success()); });
   }
 
-  AsyncValueRef<Chain> TensorTensor(const HostTensor& lhs,
-                                    const HostTensor& rhs, HostTensor* output) {
+  template <typename OnDone>
+  void TensorTensor(const HostTensor& lhs, const HostTensor& rhs,
+                    HostTensor* output, OnDone on_done) {
     auto* lhs_tensor = cast<DenseHostTensor>(&lhs);
     auto* rhs_tensor = cast<DenseHostTensor>(&rhs);
     auto* out_tensor = cast<DenseHostTensor>(output);
@@ -228,45 +234,53 @@ struct BinaryKernelImpl {
     auto rhs_t = compat::AsEigenConstTensor(DHTArrayView<Input>(rhs_tensor));
     auto out_t = compat::AsEigenTensor(MutableDHTArrayView<Input>(out_tensor));
 
-    auto args = [&]() {
-      return compat::KeepBuffers::alive(lhs_tensor, rhs_tensor, out_tensor);
+    // Builds a callback for assign operations that extends buffers lifetime.
+    auto assign_callback = [&]() {
+      return [buffers = compat::KeepBuffers::alive(lhs_tensor, rhs_tensor,
+                                                   out_tensor),
+              on_done = std::move(on_done)]() { on_done(Error::success()); };
     };
 
-    // Arguments do not need broadcasting.
     if (lhs_tensor->shape() == rhs_tensor->shape()) {
+      // Arguments do not need broadcasting.
       auto expr = lhs_t.binaryExpr(rhs_t, Functor());
-      return compat::AsyncAssign(eigen, out_t, std::move(expr), args());
-    }
+      compat::AsyncAssign(eigen, out_t, std::move(expr), assign_callback());
 
-    // Scalar (or Tensor of size 1) + Tensor.
-    if (lhs_tensor->NumElements() == 1) {
+    } else if (lhs_tensor->NumElements() == 1) {
+      // Scalar (or Tensor of size 1) + Tensor.
       using BindLeft = functor::BindLeftScalar<Input, Output, Functor>;
       auto expr = rhs_t.unaryExpr(BindLeft(*lhs_t.data()));
-      return compat::AsyncAssign(eigen, out_t, std::move(expr), args());
-    }
+      compat::AsyncAssign(eigen, out_t, std::move(expr), assign_callback());
 
-    // Tensor + Scalar (or Tensor of size 1).
-    if (rhs_tensor->NumElements() == 1) {
+    } else if (rhs_tensor->NumElements() == 1) {
+      // Tensor + Scalar (or Tensor of size 1).
       using BindRight = functor::BindRightScalar<Input, Output, Functor>;
       auto expr = lhs_t.unaryExpr(BindRight(*rhs_t.data()));
-      return compat::AsyncAssign(eigen, out_t, std::move(expr), args());
-    }
+      compat::AsyncAssign(eigen, out_t, std::move(expr), assign_callback());
 
-    // Handle Tensor + Tensor with broadcasting.
-    return TensorTensorBcast(*lhs_tensor, *rhs_tensor, out_tensor);
+    } else {
+      // Handle Tensor + Tensor with broadcasting.
+      TensorTensorBcast(*lhs_tensor, *rhs_tensor, out_tensor,
+                        std::move(on_done));
+    }
   }
 
-  AsyncValueRef<Chain> TensorTensorBcast(const DenseHostTensor& lhs_tensor,
-                                         const DenseHostTensor& rhs_tensor,
-                                         DenseHostTensor* out_tensor) {
+  template <typename OnDone>
+  void TensorTensorBcast(const DenseHostTensor& lhs_tensor,
+                         const DenseHostTensor& rhs_tensor,
+                         DenseHostTensor* out_tensor, OnDone on_done) {
     // Get broadcasting specifications for lhs and rhs arguments.
     auto lhs_bcast = GetArgumentBCast(lhs_tensor.shape(), out_tensor->shape());
     auto rhs_bcast = GetArgumentBCast(rhs_tensor.shape(), out_tensor->shape());
 
-    if (auto err = lhs_bcast.takeError())
-      return host->MakeErrorAsyncValueRef(StrCat(err));
-    if (auto err = rhs_bcast.takeError())
-      return host->MakeErrorAsyncValueRef(StrCat(err));
+    if (auto err = lhs_bcast.takeError()) {
+      on_done(std::move(err));
+      return;
+    }
+    if (auto err = rhs_bcast.takeError()) {
+      on_done(std::move(err));
+      return;
+    }
 
     const int rank = lhs_bcast->rank();
     assert(lhs_bcast->rank() == rhs_bcast->rank());
@@ -275,7 +289,7 @@ struct BinaryKernelImpl {
     auto rhs_arr_view = DHTArrayView<Input>(&rhs_tensor);
 
     // Use Rank type defined below to pass rank value via lambda argument.
-    auto dispatch = [&](auto rank_dispatch) -> AsyncValueRef<Chain> {
+    auto dispatch = [&](auto rank_dispatch) -> void {
       constexpr int rank = decltype(rank_dispatch)::value;
 
       FixedRankShape<rank> lhs_shape(TensorShape(lhs_bcast->reshape()));
@@ -290,9 +304,11 @@ struct BinaryKernelImpl {
       auto rhs_expr = rhs_t.broadcast(rhs_bcast->broadcast());
       auto expr = lhs_expr.binaryExpr(rhs_expr, Functor());
 
-      return compat::AsyncAssign(
+      compat::AsyncAssign(
           eigen, out_t, std::move(expr),
-          compat::KeepBuffers::alive(&lhs_tensor, &rhs_tensor, out_tensor));
+          [buffers =
+               compat::KeepBuffers::alive(&lhs_tensor, &rhs_tensor, out_tensor),
+           on_done = std::move(on_done)]() { on_done(Error::success()); });
     };
 
     // Rank 1 (vectors) must have the same number of elements, or one of the
@@ -300,18 +316,18 @@ struct BinaryKernelImpl {
     // combinations are handled by TensorTensor function above, and we need to
     // dispatch only tensors with rank 2 or higher.
     if (rank == 2) {
-      return dispatch(Rank<2>{});
+      dispatch(Rank<2>{});
     } else if (rank == 3) {
-      return dispatch(Rank<3>{});
+      dispatch(Rank<3>{});
     } else if (rank == 4) {
-      return dispatch(Rank<4>{});
+      dispatch(Rank<4>{});
     } else if (rank == 5) {
-      return dispatch(Rank<5>{});
+      dispatch(Rank<5>{});
+    } else {
+      on_done(MakeStringError(
+          "Unsupported binary kernel broadcasting: lhs=", lhs_tensor.shape(),
+          " rhs=", rhs_tensor.shape(), " out=", out_tensor->shape()));
     }
-
-    return host->MakeErrorAsyncValueRef(StrCat(
-        "Unsupported binary kernel broadcasting: lhs=", lhs_tensor.shape(),
-        " rhs=", rhs_tensor.shape(), " out=", out_tensor->shape()));
   }
 
   // Helper struct to pass compile time constant to lambda as a value argument.
@@ -326,32 +342,46 @@ struct BinaryKernelImpl {
 
 }  // namespace internal
 
+template <typename BinaryFunctor, typename OnDone>
+static void BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
+                         HostTensor* output, const ExecutionContext& exec_ctx,
+                         OnDone on_done) {
+  using T = typename BinaryFunctor::Input;
+
+  internal::BinaryKernelImpl<BinaryFunctor> impl(exec_ctx.host());
+
+  if (isa<ScalarHostTensor<T>>(lhs) && isa<ScalarHostTensor<T>>(rhs)) {
+    impl.ScalarScalar(lhs, rhs, output, std::move(on_done));
+
+  } else if (isa<ScalarHostTensor<T>>(lhs) && isa<DenseHostTensor>(rhs)) {
+    impl.ScalarTensor(lhs, rhs, output, std::move(on_done));
+
+  } else if (isa<DenseHostTensor>(lhs) && isa<ScalarHostTensor<T>>(rhs)) {
+    impl.TensorScalar(lhs, rhs, output, std::move(on_done));
+
+  } else if (isa<DenseHostTensor>(lhs) && isa<DenseHostTensor>(rhs)) {
+    impl.TensorTensor(lhs, rhs, output, std::move(on_done));
+
+  } else {
+    on_done(MakeStringError("Unsupported operand types"));
+  }
+}
+
 template <typename BinaryFunctor>
 static AsyncValueRef<Chain> BinaryKernel(const HostTensor& lhs,
                                          const HostTensor& rhs,
                                          HostTensor* output,
                                          const ExecutionContext& exec_ctx) {
-  using T = typename BinaryFunctor::Input;
+  HostContext* host = exec_ctx.host();
+  AsyncValueRef<Chain> chain = host->MakeConstructedAsyncValueRef<Chain>();
 
-  internal::BinaryKernelImpl<BinaryFunctor> impl(exec_ctx.host());
+  auto on_done = [chain = chain.CopyRef()](Error err) {
+    err ? chain.SetError(err) : chain.SetStateConcrete();
+  };
 
-  // Handle scalar + scalar.
-  if (isa<ScalarHostTensor<T>>(lhs) && isa<ScalarHostTensor<T>>(rhs))
-    return impl.ScalarScalar(lhs, rhs, output);
+  BinaryKernel<BinaryFunctor>(lhs, rhs, output, exec_ctx, std::move(on_done));
 
-  // Handle scalar + tensor.
-  if (isa<ScalarHostTensor<T>>(lhs) && isa<DenseHostTensor>(rhs))
-    return impl.ScalarTensor(lhs, rhs, output);
-
-  // Handle tensor + scalar.
-  if (isa<DenseHostTensor>(lhs) && isa<ScalarHostTensor<T>>(rhs))
-    return impl.TensorScalar(lhs, rhs, output);
-
-  // Handle tensor + tensor.
-  if (isa<DenseHostTensor>(lhs) && isa<DenseHostTensor>(rhs))
-    return impl.TensorTensor(lhs, rhs, output);
-
-  return exec_ctx.host()->MakeErrorAsyncValueRef("Unsupported operand types");
+  return chain;
 }
 
 }  // namespace cpu

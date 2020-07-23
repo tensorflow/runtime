@@ -61,17 +61,41 @@ struct Sigmoid {
 
 }  // namespace functor
 
-template <typename UnaryFunctor>
-static AsyncValueRef<Chain> UnaryKernel(const DenseHostTensor& input,
-                                        DenseHostTensor* output,
-                                        const ExecutionContext& exec_ctx) {
+template <typename UnaryFunctor, typename OnDone>
+static void UnaryKernel(const DenseHostTensor& input, DenseHostTensor* output,
+                        const ExecutionContext& exec_ctx, OnDone on_done) {
   using F = typename UnaryFunctor::Functor;
   using T = typename UnaryFunctor::Input;
   using R = typename UnaryFunctor::Output;
 
-  auto fn = [](auto& in, auto& _) { return in.unaryExpr(F()); };
-  return ::tfrt::compat::UnaryEigenKernelAsync<T, R>(input, output,
-                                                     std::move(fn), exec_ctx);
+  HostContext* host = exec_ctx.host();
+  auto& ctx = host->GetOrCreateSharedContext<compat::EigenHostContext>();
+
+  auto input_t = compat::AsEigenConstTensor(DHTArrayView<T>(&input));
+  auto output_t = compat::AsEigenTensor(MutableDHTArrayView<R>(output));
+
+  auto expr = input_t.unaryExpr(F());
+
+  compat::AsyncAssign(
+      ctx, output_t, std::move(expr),
+      [buffers = compat::KeepBuffers::alive(&input, output),
+       on_done = std::move(on_done)]() { on_done(Error::success()); });
+}
+
+template <typename UnaryFunctor>
+static AsyncValueRef<Chain> UnaryKernel(const DenseHostTensor& input,
+                                        DenseHostTensor* output,
+                                        const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  AsyncValueRef<Chain> chain = host->MakeConstructedAsyncValueRef<Chain>();
+
+  auto on_done = [chain = chain.CopyRef()](Error err) {
+    err ? chain.SetError(err) : chain.SetStateConcrete();
+  };
+
+  UnaryKernel<UnaryFunctor>(input, output, exec_ctx, std::move(on_done));
+
+  return chain;
 }
 
 }  // namespace cpu

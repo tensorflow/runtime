@@ -48,26 +48,32 @@ static AsyncValueRef<DenseHostTensor> TfUnaryOp(
     const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  auto dest = DenseHostTensor::CreateUninitialized(output_md, host);
-  if (!dest) {
+  AsyncValueRef<DenseHostTensor> output =
+      DenseHostTensor::MakeConstructedAsyncValueRef(output_md, host);
+  if (!output) {
     return EmitErrorAsync(exec_ctx, "out of memory allocating result");
   }
 
-  AsyncValueRef<Chain> chain;
+  auto on_done = [output = output.CopyRef()](Error err) {
+    // Forward errors to the tensor output.
+    err ? output.SetError(err) : output.SetStateConcrete();
+  };
+
   switch (input.dtype().kind()) {
     default:
-      chain = EmitErrorAsync(exec_ctx, "unsupported dtype");
+      return EmitErrorAsync(exec_ctx, "unsupported dtype");
       break;
-#define DTYPE_FLOAT(ENUM)                                                    \
-  case DType::ENUM: {                                                        \
-    using F = typename UnaryFunctor::template Functor<                       \
-        EigenTypeForDTypeKind<DType::ENUM>>;                                 \
-    chain = ::tfrt::cpu::UnaryKernel<F>(input, dest.getPointer(), exec_ctx); \
+#define DTYPE_FLOAT(ENUM)                                     \
+  case DType::ENUM: {                                         \
+    using F = typename UnaryFunctor::template Functor<        \
+        EigenTypeForDTypeKind<DType::ENUM>>;                  \
+    tfrt::cpu::UnaryKernel<F>(input, &output.get(), exec_ctx, \
+                              std::move(on_done));            \
   } break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(dest.getValue(), std::move(chain), host);
+  return output;
 }
 
 template <typename Functor>

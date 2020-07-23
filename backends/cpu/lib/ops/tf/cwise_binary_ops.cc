@@ -75,28 +75,33 @@ static AsyncValueRef<HostTensor> TfBinaryOp(const HostTensor& lhs,
   // ------------------------------------------------------------------------ //
   // Handle dense host tensor case, output is a dense host tensor.
   // ------------------------------------------------------------------------ //
-  auto dest = DenseHostTensor::CreateUninitialized(output_md, host);
-  if (!dest) {
+  AsyncValueRef<DenseHostTensor> output =
+      DenseHostTensor::MakeConstructedAsyncValueRef(output_md, host);
+  if (!output) {
     return EmitErrorAsync(exec_ctx, "out of memory allocating result");
   }
 
-  AsyncValueRef<Chain> chain;
+  auto on_done = [output = output.CopyRef()](Error err) {
+    // Forward errors to the tensor output.
+    err ? output.SetError(err) : output.SetStateConcrete();
+  };
+
   switch (lhs.dtype().kind()) {
     default:
-      chain = EmitErrorAsync(exec_ctx, "unsupported dtype");
+      on_done(MakeStringError("unsupported dtype"));
       break;
 
-#define DTYPE_NUMERIC(ENUM)                                                  \
-  case DType::ENUM: {                                                        \
-    using F = typename BinaryFunctor::template Functor<                      \
-        EigenTypeForDTypeKind<DType::ENUM>>;                                 \
-    chain =                                                                  \
-        ::tfrt::cpu::BinaryKernel<F>(lhs, rhs, dest.getPointer(), exec_ctx); \
+#define DTYPE_NUMERIC(ENUM)                                         \
+  case DType::ENUM: {                                               \
+    using F = typename BinaryFunctor::template Functor<             \
+        EigenTypeForDTypeKind<DType::ENUM>>;                        \
+    ::tfrt::cpu::BinaryKernel<F>(lhs, rhs, &output.get(), exec_ctx, \
+                                 std::move(on_done));               \
   } break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(dest.getValue(), std::move(chain), host);
+  return output;
 }
 
 template <typename Functor>

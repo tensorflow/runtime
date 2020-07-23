@@ -27,6 +27,7 @@
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/support/latch.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_metadata.h"
 #include "tfrt/tensor/tensor_shape.h"
@@ -59,10 +60,12 @@ void BinaryKernel(benchmark::State& state, int num_threads,
   using Functor = typename ::tfrt::cpu::functor::Add::Functor<float>;
 
   for (auto _ : state) {
-    std::array<RCReference<AsyncValue>, 1> chain = {
-        ::tfrt::cpu::BinaryKernel<Functor>(*lhs, *rhs, res.getPointer(),
-                                           exec_ctx)};
-    host->Await(chain);
+    tfrt::latch done(1);
+
+    ::tfrt::cpu::BinaryKernel<Functor>(*lhs, *rhs, res.getPointer(), exec_ctx,
+                                       [&](Error err) { done.count_down(); });
+
+    done.wait();
   }
 
   state.SetItemsProcessed(res_shape.GetNumElements() * state.iterations());

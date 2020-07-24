@@ -81,6 +81,11 @@ class DenseGpuTensor final : public Tensor {
   RCReference<GpuBuffer> buffer_;
 };
 
+template <typename T>
+T* GetRawPointer(const DenseGpuTensor& tensor) {
+  return GetRawPointer<T>(tensor.buffer());
+}
+
 }  // namespace gpu
 }  // namespace tfrt
 

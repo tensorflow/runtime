@@ -174,7 +174,8 @@ void BfcGpuAllocator::Deallocate(const gpu::GpuBuffer& buffer) {
   mutex_lock l(mu_);
 
   // Find the chunk from the ptr.
-  auto it = ptr_to_chunk_map_.find(buffer.pointer().raw());
+  auto ptr = GetRawPointer<void>(buffer);
+  auto it = ptr_to_chunk_map_.find(ptr);
   assert(it != ptr_to_chunk_map_.end() &&
          "Asked to deallocate a pointer we never allocated");
 

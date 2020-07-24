@@ -63,11 +63,7 @@ class GpuBuffer : public ReferenceCounted<GpuBuffer> {
 
   ~GpuBuffer();
 
-  template <typename T = void>
-  gpu::stream::Pointer<T> pointer() const {
-    return gpu::stream::Pointer<T>{reinterpret_cast<T*>(pointer_.raw()),
-                                   pointer_.platform()};
-  }
+  const gpu::stream::Pointer<void>& pointer() const { return pointer_; }
 
   // Returns the number of `bytes` held by this buffer.
   size_t size() const { return size_; }
@@ -94,6 +90,11 @@ class GpuBuffer : public ReferenceCounted<GpuBuffer> {
     Deallocator deallocator_;
   };
 };
+
+template <typename T>
+T* GetRawPointer(const GpuBuffer& buffer) {
+  return static_cast<T*>(buffer.pointer().raw());
+}
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const GpuBuffer& buffer);
 

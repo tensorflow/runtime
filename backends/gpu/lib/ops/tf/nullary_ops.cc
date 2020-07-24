@@ -53,7 +53,7 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
   stream::Pointer<const void> memcpy_src(dense_view.data(),
                                          dctx->current_context().platform());
   if (auto error = stream::MemcpyAsync(dctx->current_context(),
-                                       /*dst=*/buffer->pointer<void>(),
+                                       /*dst=*/buffer->pointer(),
                                        /*src=*/memcpy_src, size_in_bytes,
                                        dctx->stream())) {
     return std::move(error);

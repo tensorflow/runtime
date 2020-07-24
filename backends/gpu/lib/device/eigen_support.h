@@ -67,13 +67,13 @@ OwningEigenGpuDevice CreateEigenGpuDevice(::Eigen::StreamInterface* interface);
 // Conversion functions from TFRT GPU tensors to Eigen tensors
 //===----------------------------------------------------------------------===//
 
+// TODO(csigg): Should argument be const?
 template <typename T, size_t Rank>
 compat::EigenTensor<T, Rank> AsEigenTensor(DenseGpuTensor* tensor) {
   assert(tensor->dtype() == GetDType<T>());
   assert(tensor->shape().GetRank() == Rank);
   return compat::EigenTensor<T, Rank>(
-      tensor->buffer().pointer<T>().raw(),
-      compat::AsEigenDSizes<Rank>(tensor->shape()));
+      GetRawPointer<T>(*tensor), compat::AsEigenDSizes<Rank>(tensor->shape()));
 }
 
 template <typename T, size_t Rank>
@@ -82,8 +82,7 @@ compat::EigenConstTensor<T, Rank> AsEigenConstTensor(
   assert(tensor.dtype() == GetDType<T>());
   assert(tensor.shape().GetRank() == Rank);
   return compat::EigenConstTensor<T, Rank>(
-      tensor.buffer().pointer<T>().raw(),
-      compat::AsEigenDSizes<Rank>(tensor.shape()));
+      GetRawPointer<T>(tensor), compat::AsEigenDSizes<Rank>(tensor.shape()));
 }
 
 }  // namespace gpu

@@ -87,10 +87,10 @@ static llvm::Error CallCublasGemm(stream::CurrentContext current,
                     transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                     n, m, k,
                     ConstValue<T>(1.0).pointer(handle.platform()),
-                    b.buffer().pointer<const T>(), transpose_b ? k : n,
-                    a.buffer().pointer<const T>(), transpose_a ? m : k,
+                    static_cast<stream::Pointer<const T>>(b.buffer().pointer()), transpose_b ? k : n,
+                    static_cast<stream::Pointer<const T>>(a.buffer().pointer()), transpose_a ? m : k,
                     ConstValue<T>(0.0).pointer(handle.platform()),
-                    result->pointer<T>(), n);
+                    static_cast<stream::Pointer<T>>(result->pointer()), n);
   // clang-format on
 }
 
@@ -142,9 +142,9 @@ static llvm::Expected<DenseGpuTensor> GpuMatmulOp(
     // If a has shape [x, 0] and b has shape [0, y], the
     // output shape is [x, y] where x and y are non-zero, so we fill
     // the output with zeros.
-    if (auto error = stream::MemsetD8Async(dctx->current_context(),
-                                           buffer->pointer<void>(), 0,
-                                           size_in_bytes, dctx->stream())) {
+    if (auto error =
+            stream::MemsetD8Async(dctx->current_context(), buffer->pointer(), 0,
+                                  size_in_bytes, dctx->stream())) {
       return std::move(error);
     }
     return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));

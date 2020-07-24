@@ -67,9 +67,9 @@ struct FunctorDispatch<FunctorSignature<ResultType, T>, Functor> {
     assert(args.size() == 1);
 
     AlignedEigenVector<ResultType> result(
-        result_tensor.buffer().pointer<ResultType>().raw(),
+        GetRawPointer<ResultType>(result_tensor),
         result_tensor.shape().GetNumElements());
-    AlignedEigenVector<T> arg(args[0]->buffer().pointer<T>().raw(),
+    AlignedEigenVector<T> arg(GetRawPointer<T>(*args[0]),
                               args[0]->shape().GetNumElements());
 
     assert(result.size() == arg.size());
@@ -128,14 +128,13 @@ struct FunctorDispatch<FunctorSignature<ResultType, T0, T1>, Functor> {
 
     Eigen::TensorMap<Eigen::Tensor<LhsType, rank, Eigen::RowMajor, int32_t>,
                      Eigen::Aligned>
-        lhs(lhs_tensor->buffer().pointer<ResultType>().raw(), lhs_shape);
+        lhs(GetRawPointer<LhsType>(*lhs_tensor), lhs_shape);
     Eigen::TensorMap<Eigen::Tensor<RhsType, rank, Eigen::RowMajor, int32_t>,
                      Eigen::Aligned>
-        rhs(rhs_tensor->buffer().pointer<ResultType>().raw(), rhs_shape);
+        rhs(GetRawPointer<RhsType>(*rhs_tensor), rhs_shape);
     Eigen::TensorMap<Eigen::Tensor<ResultType, rank, Eigen::RowMajor, int32_t>,
                      Eigen::Aligned>
-        result(result_tensor->buffer().pointer<ResultType>().raw(),
-               result_shape);
+        result(GetRawPointer<ResultType>(*result_tensor), result_shape);
 
     result.device(*dctx->eigen_gpu_device()) =
         lhs.broadcast(lhs_broadcast_factors)
@@ -148,15 +147,15 @@ struct FunctorDispatch<FunctorSignature<ResultType, T0, T1>, Functor> {
     assert(args.size() == 2);
 
     AlignedEigenVector<ResultType> result(
-        result_tensor.buffer().pointer<ResultType>().raw(),
+        GetRawPointer<ResultType>(result_tensor),
         result_tensor.shape().GetNumElements());
 
     const auto* lhs_tensor = args[0];
     const auto* rhs_tensor = args[1];
-    AlignedEigenVector<LhsType> lhs(args[0]->buffer().pointer<LhsType>().raw(),
+    AlignedEigenVector<LhsType> lhs(GetRawPointer<LhsType>(*args[0]),
                                     args[0]->shape().GetNumElements());
 
-    AlignedEigenVector<RhsType> rhs(args[1]->buffer().pointer<RhsType>().raw(),
+    AlignedEigenVector<RhsType> rhs(GetRawPointer<RhsType>(*args[1]),
                                     args[1]->shape().GetNumElements());
 
     if (lhs_tensor->shape() == rhs_tensor->shape()) {

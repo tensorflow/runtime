@@ -227,7 +227,7 @@ llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input, T* output,
                             /*size=*/temp_storage_bytes, dctx->stream()));
 
   // Do reduction.
-  return launch(tmp_buffer->pointer().raw());
+  return launch(GetRawPointer<void>(*tmp_buffer));
 }
 
 template <typename T, typename ReduceOp, typename TransformOp>
@@ -293,7 +293,7 @@ llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input, T* output,
   if (!tmp_buffer_or_error) return tmp_buffer_or_error.takeError();
 
   // Do reduction.
-  return launch(tmp_buffer_or_error.get()->pointer().raw());
+  return launch(GetRawPointer<void>(*tmp_buffer_or_error.get()));
 }
 
 template <typename T, typename ReduceOp, typename TransformOp>
@@ -388,8 +388,8 @@ llvm::Error Reduce(GpuDispatchContext* dctx, const DenseGpuTensor& input,
                    const GpuBuffer& output, const TensorMetadata& out_md,
                    ArrayRef<int32_t> reduction_indices, T init, ReduceOp reduce,
                    TransformOp transform) {
-  auto input_ptr = input.buffer().pointer<const T>().raw();
-  auto output_ptr = output.pointer<T>().raw();
+  auto input_ptr = GetRawPointer<const T>(input);
+  auto output_ptr = GetRawPointer<T>(output);
 
   if (out_md.shape.GetRank() == 0) {
     return FullReduction(dctx, input_ptr, output_ptr, input.NumElements(), init,

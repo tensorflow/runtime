@@ -181,8 +181,8 @@ llvm::Error DispatchTrivialTranspose(GpuDispatchContext* dctx, DType dtype,
     using T = decltype(type_tag);
     return stream::CudaLaunchKernel(
         dctx->current_context(), &Transpose2DCoalesced<T>, grid, threads,
-        shared_memory_size_bytes, dctx->stream(), output.pointer<T>().raw(),
-        input.pointer<T>().raw(), width, height);
+        shared_memory_size_bytes, dctx->stream(), GetRawPointer<T>(output),
+        GetRawPointer<T>(input), width, height);
   };
 
   switch (dtype.kind()) {
@@ -224,8 +224,8 @@ llvm::Error DispatchSwapDims1And2In3(GpuDispatchContext* dctx, DType dtype,
     using T = decltype(type_tag);
     return stream::CudaLaunchKernel(
         dctx->current_context(), &SwapDims1And2In3<T>, grid, threads,
-        shared_memory_size_bytes, dctx->stream(), output.pointer<T>().raw(),
-        input.pointer<T>().raw(), planes, width, height);
+        shared_memory_size_bytes, dctx->stream(), GetRawPointer<T>(output),
+        GetRawPointer<T>(input), planes, width, height);
   };
 
   switch (dtype.kind()) {

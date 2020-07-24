@@ -300,14 +300,14 @@ struct TransformFilter {
       ShuffleInTensor3Simple<T, 2, 1, 0>
           <<<config.block_count, config.thread_per_block, 0,
              static_cast<cudaStream_t>(stream)>>>(
-              config.virtual_thread_count, in.buffer().pointer<T>().raw(),
-              combined_dims, out->pointer<T>().raw());
+              config.virtual_thread_count, GetRawPointer<T>(in), combined_dims,
+              GetRawPointer<T>(*out));
     } else if (channel_order == ChannelOrder::ChannelLast) {
       ShuffleInTensor3Simple<T, 1, 2, 0>
           <<<config.block_count, config.thread_per_block, 0,
              static_cast<cudaStream_t>(stream)>>>(
-              config.virtual_thread_count, in.buffer().pointer<T>().raw(),
-              combined_dims, out->pointer<T>().raw());
+              config.virtual_thread_count, GetRawPointer<T>(in), combined_dims,
+              GetRawPointer<T>(*out));
     } else {
       return MakeStringError("Unsupported channel order: ", channel_order);
     }
@@ -524,7 +524,7 @@ struct FusedBatchNormInferenceFunctor {
     const bool no_side_input = side_input == nullptr;
     const bool add_side_input = !no_side_input;
     const T* side_input_ptr =
-        no_side_input ? nullptr : side_input->buffer().pointer<T>().raw();
+        no_side_input ? nullptr : GetRawPointer<T>(*side_input);
 
     const bool no_activation =
         activation_mode == FusedBatchNormActivationMode::kIdentity;
@@ -534,12 +534,10 @@ struct FusedBatchNormInferenceFunctor {
     auto launch = [&](auto* kernel, int channel_size, int inner_dim_size) {
       return stream::CudaLaunchKernel(
           current, kernel, config.block_count, config.thread_per_block, 0,
-          static_cast<cudaStream_t>(stream), count, channel_size,
-          inner_dim_size, input.buffer().pointer<T>().raw(),
-          scale.buffer().pointer<U>().raw(), bias.buffer().pointer<U>().raw(),
-          mean.buffer().pointer<U>().raw(),
-          variance.buffer().pointer<U>().raw(), side_input_ptr, epsilon,
-          output_buffer->pointer<T>().raw());
+          stream, count, channel_size, inner_dim_size, GetRawPointer<T>(input),
+          GetRawPointer<U>(scale), GetRawPointer<U>(bias),
+          GetRawPointer<U>(mean), GetRawPointer<U>(variance), side_input_ptr,
+          epsilon, GetRawPointer<T>(*output_buffer));
     };
 
     auto input_shape = GetDimensions(input.shape());

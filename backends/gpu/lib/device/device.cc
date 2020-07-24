@@ -30,25 +30,13 @@
 #include "tfrt/support/string_util.h"
 
 namespace tfrt {
-class AsyncValue;
-class Chain;
-class GpuOpRegistry;
-class Tensor;
-using gpu::stream::CtxSetCurrent;
-using gpu::stream::CurrentContext;
-using gpu::stream::DeviceGet;
-using gpu::stream::OwningEvent;
-using gpu::stream::Platform;
-using gpu::stream::StreamFlags;
+using gpu::stream::CtxSetCurrent;  // TODO(csigg): remove once ADL is fixed.
 
 class GpuDevice::Impl {
  public:
   explicit Impl(int gpu_ordinal) : gpu_ordinal_(gpu_ordinal) {}
 
   llvm::Error Initialize();
-
- private:
-  friend class GpuDevice;
 
   int gpu_ordinal_;
 
@@ -57,8 +45,9 @@ class GpuDevice::Impl {
 
   gpu::stream::Device device_;
 
-  // NB! The declaration order here is important.  We want to destroy context_
-  // last.
+  // NB! The declaration order here is important.  We want to destroy
+  // owned_context_ last.
+  //
   // If `owned_context_` is null, `context_` points to a non-owning context.
   // Otherwise, `context_` is set to be `owned_context_.get()`.
   gpu::stream::OwningContext owned_context_;
@@ -80,8 +69,9 @@ class GpuDevice::Impl {
 
 llvm::Error GpuDevice::Impl::Initialize() {
   // TODO(zhangqiaorjc): Generalize to multi-GPU.
-  TFRT_ASSIGN_OR_RETURN(device_, DeviceGet(Platform::CUDA, gpu_ordinal_));
-  llvm::Optional<CurrentContext> current_context;
+  TFRT_ASSIGN_OR_RETURN(device_,
+                        DeviceGet(gpu::stream::Platform::CUDA, gpu_ordinal_));
+  llvm::Optional<gpu::stream::CurrentContext> current_context;
 
   // Use external GPU resources if they are available.
   if (auto gpu_resources = gpu::GetTfrtGpuResources(device_)) {
@@ -100,8 +90,9 @@ llvm::Error GpuDevice::Impl::Initialize() {
     TFRT_ASSIGN_OR_RETURN(auto current, CtxSetCurrent(context_));
     current_context.emplace(current);
 
-    TFRT_ASSIGN_OR_RETURN(owned_stream_,
-                          StreamCreate(current, StreamFlags::DEFAULT));
+    TFRT_ASSIGN_OR_RETURN(
+        owned_stream_,
+        StreamCreate(current, gpu::stream::StreamFlags::DEFAULT));
     stream_ = owned_stream_.get();
 
     allocator_ =
@@ -131,7 +122,7 @@ GpuDevice::GpuDevice(int gpu_ordinal)
     : Device(GetStaticDeviceType("gpu"), StrCat("GPU:", gpu_ordinal)),
       impl_(std::make_unique<Impl>(gpu_ordinal)) {}
 
-GpuDevice::~GpuDevice() {}
+llvm::Error GpuDevice::Initialize() { return impl_->Initialize(); }
 
 gpu::stream::Stream GpuDevice::stream() const { return impl_->stream_; }
 
@@ -156,7 +147,5 @@ gpu::stream::CurrentContext GpuDevice::CreateContext() const {
   llvm::ExitOnError die_if_error;
   return die_if_error(CtxSetCurrent(impl_->context_));
 }
-
-llvm::Error GpuDevice::Initialize() { return impl_->Initialize(); }
 
 }  // namespace tfrt

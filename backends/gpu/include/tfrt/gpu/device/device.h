@@ -44,8 +44,6 @@ class GpuDevice : public Device {
  public:
   explicit GpuDevice(int gpu_ordinal);
 
-  ~GpuDevice() override;
-
   llvm::Error Initialize();
 
   // The inputs to the GPU dispatch function are available for reading on this

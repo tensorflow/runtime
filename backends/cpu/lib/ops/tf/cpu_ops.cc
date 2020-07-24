@@ -21,6 +21,7 @@
 #include "tfrt/cpu/ops/tf/cpu_ops.h"
 
 #include "../../kernels/cpu_kernels.h"
+#include "concat_op.h"
 #include "cwise_binary_ops.h"
 #include "cwise_unary_ops.h"
 #include "shape_ops.h"
@@ -227,6 +228,7 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
   op_registry->AddOp("tf.BiasAdd", TFRT_CPU_OP(TfBiasAddOp),
                      CpuOpFlags::NoSideEffects);
 
+  RegisterTfConcatCpuOp(op_registry);
   RegisterTfUnaryCpuOps(op_registry);
   RegisterTfBinaryCpuOps(op_registry);
   RegisterTfShapeCpuOps(op_registry);

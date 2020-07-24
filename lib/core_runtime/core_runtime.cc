@@ -397,8 +397,16 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
     auto* host = invocation.exec_ctx.host();
 
     // TODO(fishx): Return an error to the client instead of asserting.
-    assert(invocation.arguments.size() + 1 == fn->argument_types().size());
-    assert(invocation.results.size() + 1 == fn->result_types().size());
+    if (invocation.arguments.size() + 1 != fn->argument_types().size()) {
+      TFRT_LOG(FATAL) << "Fn has " << fn->argument_types().size()
+                      << " arguments, while invocation provides "
+                      << invocation.arguments.size() << " arguments.";
+    }
+    if (invocation.results.size() + 1 != fn->result_types().size()) {
+      TFRT_LOG(FATAL) << "Fn has " << fn->result_types().size()
+                      << " results, while invocation provides "
+                      << invocation.results.size() << " results.";
+    }
 
     SmallVector<AsyncValue*, 4> arguments;
     SmallVector<RCReference<AsyncValue>, 4> arguments_ref;

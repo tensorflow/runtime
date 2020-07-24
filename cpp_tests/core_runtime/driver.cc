@@ -41,13 +41,15 @@ static std::unique_ptr<CoreRuntime> CreateCoreRuntime(
   auto diag_handler = [](const DecodedDiagnostic& diag) {
     llvm::errs() << "Encountered runtime error: " << diag.message << "\n";
   };
-  auto corert = CoreRuntime::Create(
-      diag_handler, tfrt::CreateMallocAllocator(),
-      tfrt::CreateMultiThreadedWorkQueue(
-          /*num_threads=*/4, /*max_num_pending_blocking_tasks=*/64),
-      op_handlers);
+  auto corert =
+      CoreRuntime::Create(diag_handler, tfrt::CreateMallocAllocator(),
+                          tfrt::CreateMultiThreadedWorkQueue(
+                              /*num_threads=*/4, /*num_blocking_threads=*/64),
+                          op_handlers);
 
-  assert(corert);
+  if (!corert) {
+    TFRT_LOG(FATAL) << corert.takeError();
+  }
   return std::move(*corert);
 }
 

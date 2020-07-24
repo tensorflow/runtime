@@ -165,6 +165,28 @@ tfrt_cc_test(
     ],
 )
 
+tfrt_cc_library(
+    name = "driver_test_lib",
+    testonly = True,
+    srcs = [
+        "core_runtime/driver.cc",
+    ],
+    hdrs = [
+        "core_runtime/driver.h",
+    ],
+    visibility = [
+        ":__subpackages__",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:core_runtime",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)
+
 tfrt_cc_test(
     name = "core_runtime/driver_test",
     srcs = [
@@ -173,6 +195,7 @@ tfrt_cc_test(
         "core_runtime/driver_test.cc",
     ],
     deps = [
+        ":driver_test_lib",
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
         "@tf_runtime//:basic_kernels_alwayslink",
@@ -180,7 +203,6 @@ tfrt_cc_test(
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
         "@tf_runtime//:tensor_alwayslink",
         "@tf_runtime//backends/cpu:core_runtime_alwayslink",
         "@tf_runtime//backends/cpu:test_ops_alwayslink",

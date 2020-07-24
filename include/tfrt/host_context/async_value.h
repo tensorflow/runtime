@@ -38,6 +38,7 @@
 #include "tfrt/host_context/host_context_ptr.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/logging.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/support/type_traits.h"
 
@@ -233,6 +234,19 @@ class AsyncValue {
     // Return true if this async value is resolved to a concrete value or error.
     bool IsAvailable() const { return state_ == kConcrete || state_ == kError; }
     bool IsUnavailable() const { return !IsAvailable(); }
+
+    const char* DebugString() const {
+      switch (state_) {
+        case kUnconstructed:
+          return "kUnconstructed";
+        case kConstructed:
+          return "kConstructed";
+        case kConcrete:
+          return "kConcrete";
+        case kError:
+          return "kError";
+      }
+    }
 
    private:
     StateEnum state_;
@@ -683,12 +697,14 @@ const T& AsyncValue::get() const {
 
   switch (kind()) {
     case Kind::kConcrete:
-      assert((s == State::kConstructed || s == State::kConcrete) &&
-             "Cannot call get() when ConcreteAsyncValue isn't constructed.");
+      TFRT_DLOG_IF(FATAL, s != State::kConstructed && s != State::kConcrete)
+          << "Cannot call get() when ConcreteAsyncValue isn't "
+             "constructed; state: "
+          << s;
       return GetConcreteValue<T>();
     case Kind::kIndirect:
-      assert(s == State::kConcrete &&
-             "Cannot call get() when IndirectAsyncValue isn't ok.");
+      TFRT_DLOG_IF(FATAL, s != State::kConcrete)
+          << "Cannot call get() when IndirectAsyncValue isn't ok; state: " << s;
       auto* iv_value = cast<IndirectAsyncValue>(this)->value_;
       assert(iv_value && "Indirect value not resolved");
       return iv_value->get<T>();
@@ -754,6 +770,12 @@ void AsyncValue::AndThen(WaiterT&& waiter) {
     return;
   }
   EnqueueWaiter(std::forward<WaiterT>(waiter), old_value);
+}
+
+inline raw_ostream& operator<<(raw_ostream& os,
+                               const AsyncValue::State& state) {
+  os << state.DebugString();
+  return os;
 }
 
 }  // namespace tfrt

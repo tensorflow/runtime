@@ -27,9 +27,7 @@ TFRT_COPTS = select({
         # Disable exceptions.
         "-fno-exceptions",
     ],
-}) + [
-    "-Wno-c++98-c++11-compat",
-]
+})
 
 TFRT_FEATURES = select({
     "//conditions:default": [],

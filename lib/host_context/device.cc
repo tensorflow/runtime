@@ -54,17 +54,4 @@ DeviceTypeRegistration::DeviceTypeRegistration(string_view name) {
 const DeviceType& GetStaticDeviceType(string_view type) {
   return DeviceTypeRegistry::GetStaticDeviceTypeRegistry()->GetDeviceType(type);
 }
-
-RCReference<Device> DeviceManager::MaybeAddDevice(RCReference<Device> device) {
-  mutex_lock l(mu_);
-  auto it = device_map_.try_emplace(device->name(), std::move(device));
-  return it.first->second.CopyRef();
-}
-
-RCReference<Device> DeviceManager::GetDeviceRef(string_view device_name) const {
-  mutex_lock l(mu_);
-  auto it = device_map_.find(device_name);
-  return it == device_map_.end() ? RCReference<Device>() : it->second.CopyRef();
-}
-
 }  // namespace tfrt

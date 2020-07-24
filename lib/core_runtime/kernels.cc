@@ -536,7 +536,8 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
 static Expected<TensorHandle> TransferToDevice(
     const TensorHandle &src, StringAttribute device,
     Attribute<uint32_t> formats, const ExecutionContext &exec_ctx) {
-  auto device_ref = exec_ctx.host()->GetDeviceManager()->GetDeviceRef(device);
+  auto device_ref =
+      exec_ctx.host()->GetDeviceManager()->GetDeviceRef<Device>(device);
   TensorFormats allowed_formats{formats.get()};
   if (!device_ref)
     return MakeStringError("failed to find device with name: ", device);

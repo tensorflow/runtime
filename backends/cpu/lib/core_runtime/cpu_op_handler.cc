@@ -132,7 +132,8 @@ llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
   tfrt::RegisterStaticCpuOps(&op_registry);
   return std::unique_ptr<OpHandler>(new CpuOpHandler(
       runtime, fallback, std::move(op_registry),
-      runtime->GetHostContext()->GetDeviceManager()->GetDeviceRef("CPU:0")));
+      runtime->GetHostContext()->GetDeviceManager()->GetDeviceRef<CpuDevice>(
+          "CPU:0")));
 }
 
 llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,

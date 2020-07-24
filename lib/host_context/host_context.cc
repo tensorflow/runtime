@@ -54,8 +54,7 @@ HostContext::HostContext(
   // Add a CPU:0 device by default.
   static DeviceTypeRegistration cpu_type("cpu");
   // TODO(b/160264760): Pick a better device name than "CPU:0".
-  host_device_ = device_mgr_.MaybeAddDevice(
-      TakeRef(new Device(GetStaticDeviceType("cpu"), "CPU:0")));
+  host_device_ = device_mgr_.MaybeAddDevice(TakeRef(new CpuDevice("CPU:0")));
 }
 
 HostContext::~HostContext() {

@@ -14,69 +14,66 @@
  * limitations under the License.
  */
 
-//===- gpu_dispatch_context.h -----------------------------------*- C++ -*-===//
+//===- device.h -------------------------------------------------*- C++ -*-===//
 //
-// This file declares GpuDispatchContext which holds information needed by
-// GPU dispatch functions.
+// This file declares GpuDevice which holds GPU device specific information.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_GPU_CORE_RUNTIME_GPU_DISPATCH_CONTEXT_H_
-#define TFRT_GPU_CORE_RUNTIME_GPU_DISPATCH_CONTEXT_H_
+#ifndef TFRT_GPU_DEVICE_DEVICE_H_
+#define TFRT_GPU_DEVICE_DEVICE_H_
 
-#include "tfrt/gpu/device/device.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/stream/blas_wrapper.h"
 #include "tfrt/gpu/stream/dnn_wrapper.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/host_context/device.h"
 
 namespace Eigen {
 class GpuDevice;
 }
 
 namespace tfrt {
-class GpuDispatchContext {
+namespace gpu {
+class GpuAllocator;
+}  // namespace gpu
+
+using gpu::stream::CurrentContext;
+
+class GpuDevice : public Device {
  public:
-  explicit GpuDispatchContext(const GpuDevice& device)
-      : stream_(device.stream()),
-        allocator_(device.allocator()),
-        eigen_gpu_device_(device.eigen_gpu_device()),
-        blas_handle_(device.blas_handle()),
-        dnn_handle_(device.dnn_handle()),
-        current_context_(std::move(device.CreateContext())) {}
+  explicit GpuDevice(int gpu_ordinal);
+
+  ~GpuDevice() override;
+
+  llvm::Error Initialize();
 
   // The inputs to the GPU dispatch function are available for reading on this
   // stream.  The outputs from the dispatch must also be ready for reading on
   // this stream.
-  gpu::stream::Stream stream() const { return stream_; }
+  gpu::stream::Stream stream() const;
 
   // Allocator for allocating GPU device memory.
-  gpu::GpuAllocator* allocator() const { return allocator_; }
+  gpu::GpuAllocator* allocator() const;
 
   // Eigen GPU device. Used to launch Eigen kernels.
-  Eigen::GpuDevice* eigen_gpu_device() const { return eigen_gpu_device_; }
+  Eigen::GpuDevice* eigen_gpu_device() const;
 
   // GPU BLAS library handle. Used to launch BLAS routines.
-  gpu::stream::BlasHandle blas_handle() const { return blas_handle_; }
+  gpu::stream::BlasHandle blas_handle() const;
 
   // GPU DNN library handle. Used to launch convolutions etc.
-  gpu::stream::DnnHandle dnn_handle() const { return dnn_handle_; }
+  gpu::stream::DnnHandle dnn_handle() const;
 
-  // The GPU device sets the current context before calling into the dispatch
+  // Create a current context. It is usually called inside the dispatch
   // function.  See the documentation for gpu::stream::CurrentContext for more
   // details.
-  gpu::stream::CurrentContext current_context() const {
-    return current_context_;
-  }
+  gpu::stream::CurrentContext CreateContext() const;
 
  private:
-  gpu::stream::Stream stream_;
-  gpu::GpuAllocator* allocator_;
-  Eigen::GpuDevice* eigen_gpu_device_;
-  gpu::stream::BlasHandle blas_handle_;
-  gpu::stream::DnnHandle dnn_handle_;
-  gpu::stream::CurrentContext current_context_;
+  class Impl;
+  std::unique_ptr<Impl> impl_;
 };
 }  // namespace tfrt
 
-#endif  // TFRT_GPU_CORE_RUNTIME_GPU_DISPATCH_CONTEXT_H_
+#endif  // TFRT_GPU_DEVICE_DEVICE_H_

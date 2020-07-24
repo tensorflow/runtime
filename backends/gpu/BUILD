@@ -133,10 +133,10 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "gpu_config",
     srcs = [
-        "lib/core_runtime/gpu_config.cc",
+        "lib/device/gpu_config.cc",
     ],
     hdrs = [
-        "include/tfrt/gpu/core_runtime/gpu_config.h",
+        "include/tfrt/gpu/device/gpu_config.h",
     ],
     visibility = [
         "@tf_runtime//:friends",
@@ -209,11 +209,9 @@ tfrt_cc_library(
     deps = [
         ":gpu_config",
         ":gpu_device",
-        ":gpu_device_eigen_support",
         ":gpu_memory",
         ":gpu_stream_wrapper",
         ":gpu_tensor",
-        "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -226,9 +224,11 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "gpu_device",
     srcs = [
+        "lib/device/device.cc",
         "lib/device/device_util.cc",
     ],
     hdrs = [
+        "include/tfrt/gpu/device/device.h",
         "include/tfrt/gpu/device/device_util.h",
     ],
     visibility = [
@@ -236,6 +236,12 @@ tfrt_cc_library(
         "@tf_runtime//:friends",
     ],
     deps = [
+        ":gpu_config",
+        ":gpu_device_eigen_support",
+        ":gpu_memory",
+        ":gpu_stream_wrapper",
+        ":gpu_tensor",
+        "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -244,8 +250,8 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "gpu_device_eigen_support",
-    srcs = ["lib/core_runtime/eigen_support.cc"],
-    hdrs = ["lib/core_runtime/eigen_support.h"],
+    srcs = ["lib/device/eigen_support.cc"],
+    hdrs = ["lib/device/eigen_support.h"],
     deps = [
         ":gpu_stream_wrapper",
         ":gpu_tensor",

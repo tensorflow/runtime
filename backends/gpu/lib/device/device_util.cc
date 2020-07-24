@@ -21,6 +21,9 @@
 //===----------------------------------------------------------------------===//
 #include "tfrt/gpu/device/device_util.h"
 
+#include <memory>
+
+#include "tfrt/gpu/device/device.h"
 #include "tfrt/host_context/device.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/string_util.h"
@@ -28,15 +31,21 @@
 namespace tfrt {
 namespace gpu {
 
-RCReference<Device> CreateGpuDevice(int gpu_ordinal, HostContext* host) {
+llvm::Expected<RCReference<GpuDevice>> GetOrCreateGpuDevice(int gpu_ordinal,
+                                                            HostContext* host) {
   static DeviceTypeRegistration register_device_type_gpu("gpu");
   auto device_name = StrCat("GPU:", gpu_ordinal);
-  auto existing_device = host->GetDeviceManager()->GetDeviceRef(device_name);
+  auto existing_device =
+      host->GetDeviceManager()->GetDeviceRef<GpuDevice>(device_name);
   if (existing_device) {
     return existing_device;
   }
-  return host->GetDeviceManager()->MaybeAddDevice(
-      TakeRef(new Device(GetStaticDeviceType("gpu"), device_name)));
+  auto gpu_device = TakeRef(new GpuDevice(gpu_ordinal));
+  if (auto error = gpu_device->Initialize()) {
+    return std::move(error);
+  }
+
+  return host->GetDeviceManager()->MaybeAddDevice(std::move(gpu_device));
 }
 
 }  // namespace gpu

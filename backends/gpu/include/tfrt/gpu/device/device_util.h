@@ -25,14 +25,15 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
-class Device;
 class HostContext;
+class GpuDevice;
 
 namespace gpu {
 
 // Create and return a GPU device. If the device has been created before
 // return the existing device directly. Thread-safe.
-RCReference<Device> CreateGpuDevice(int gpu_ordinal, HostContext* host);
+llvm::Expected<RCReference<GpuDevice>> GetOrCreateGpuDevice(int gpu_ordinal,
+                                                            HostContext* host);
 
 }  // namespace gpu
 }  // namespace tfrt

@@ -67,7 +67,7 @@ class Device : public ReferenceCounted<Device> {
     assert(!name_.empty() && "Cannot create a Device with empty device name");
   }
 
-  ~Device() {}
+  virtual ~Device() {}
 
   // This class is not copyable or assignable.
   Device(const Device& other) = delete;
@@ -90,10 +90,28 @@ class DeviceManager {
 
   // Add a new device if it doesn't exist. If it doesn't exist, return the newly
   // added device, otherwise, return the existing device.
-  RCReference<Device> MaybeAddDevice(RCReference<Device> device);
+  template <typename T,
+            std::enable_if_t<std::is_base_of<Device, T>::value, int> = 0>
+  RCReference<T> MaybeAddDevice(RCReference<T> device) {
+    mutex_lock l(mu_);
+    auto it = device_map_.try_emplace(device->name(), device.CopyRef());
+    // TODO(fishx): Change the static_cast to dyn_cast to check the type after
+    // introducing classof method into Device.
+    return FormRef(static_cast<T*>(it.first->second.get()));
+  }
 
   // Lookup a device by its name. Return an empty RCReference if not found.
-  RCReference<Device> GetDeviceRef(string_view device_name) const;
+  template <typename T,
+            std::enable_if_t<std::is_base_of<Device, T>::value, int> = 0>
+  RCReference<T> GetDeviceRef(string_view device_name) const {
+    mutex_lock l(mu_);
+    auto it = device_map_.find(device_name);
+
+    // TODO(fishx): Change the static_cast to dyn_cast to check the type after
+    // introducing classof method into Device.
+    return it == device_map_.end() ? RCReference<T>()
+                                   : FormRef(static_cast<T*>(it->second.get()));
+  }
 
  private:
   DeviceManager() = default;
@@ -126,6 +144,22 @@ struct DeviceTypeRegistration {
 };
 
 const DeviceType& GetStaticDeviceType(string_view type);
+
+class CpuDevice : public Device {
+ public:
+  explicit CpuDevice(string_view name)
+      : Device(GetStaticDeviceType("cpu"), name) {}
+
+  ~CpuDevice() override {}
+};
+
+class SimpleDevice : public Device {
+ public:
+  explicit SimpleDevice(const DeviceType& type, string_view name)
+      : Device(type, name) {}
+
+  ~SimpleDevice() override {}
+};
 
 }  // namespace tfrt
 

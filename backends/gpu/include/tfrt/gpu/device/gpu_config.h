@@ -19,8 +19,8 @@
 // This file defines various helpers to configure GPU OpHandler.
 //
 //===----------------------------------------------------------------------===//
-#ifndef TFRT_GPU_MEMORY_GPU_ALLOCATOR_REGISTRY_H_
-#define TFRT_GPU_MEMORY_GPU_ALLOCATOR_REGISTRY_H_
+#ifndef TFRT_GPU_DEVICE_GPU_CONFIG_H_
+#define TFRT_GPU_DEVICE_GPU_CONFIG_H_
 
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
@@ -47,4 +47,4 @@ llvm::Optional<GpuResources> GetTfrtGpuResources(stream::Device device);
 
 }  // namespace gpu
 }  // namespace tfrt
-#endif  // TFRT_GPU_MEMORY_GPU_ALLOCATOR_REGISTRY_H_
+#endif  // TFRT_GPU_DEVICE_GPU_CONFIG_H_

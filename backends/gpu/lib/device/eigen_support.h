@@ -21,8 +21,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_BACKENDS_GPU_LIB_CORE_RUNTIME_EIGEN_SUPPORT_H_
-#define TFRT_BACKENDS_GPU_LIB_CORE_RUNTIME_EIGEN_SUPPORT_H_
+#ifndef TFRT_BACKENDS_GPU_LIB_DEVICE_EIGEN_SUPPORT_H_
+#define TFRT_BACKENDS_GPU_LIB_DEVICE_EIGEN_SUPPORT_H_
 
 #include <memory>
 
@@ -89,4 +89,4 @@ compat::EigenConstTensor<T, Rank> AsEigenConstTensor(
 }  // namespace gpu
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_GPU_LIB_CORE_RUNTIME_EIGEN_SUPPORT_H_
+#endif  // TFRT_BACKENDS_GPU_LIB_DEVICE_EIGEN_SUPPORT_H_

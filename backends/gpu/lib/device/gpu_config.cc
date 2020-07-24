@@ -18,7 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/gpu/core_runtime/gpu_config.h"
+#include "tfrt/gpu/device/gpu_config.h"
 
 #include <unordered_map>
 

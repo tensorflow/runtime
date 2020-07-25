@@ -66,9 +66,10 @@ static AsyncValueRef<DenseHostTensor> TfConcatOp(
 
   switch (args[0].dtype().kind()) {
     default:
-      chain = EmitErrorAsync(exec_ctx, "unsupported dtype");
+      chain = EmitErrorAsync(exec_ctx,
+                             StrCat("Unsupported dtype: ", args[0].dtype()));
       break;
-#define DTYPE_FLOAT(ENUM)                                                 \
+#define DTYPE_NUMERIC(ENUM)                                               \
   case DType::ENUM: {                                                     \
     using T = EigenTypeForDTypeKind<DType::ENUM>;                         \
     chain = ::tfrt::cpu::ConcatKernel<T>(inputs, axis, dest.getPointer(), \

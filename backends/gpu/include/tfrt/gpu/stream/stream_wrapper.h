@@ -199,7 +199,6 @@ class Device {
   }
 };
 
-namespace internal {
 // Resource union type.
 template <typename CudaT, typename HipT>
 class Resource {
@@ -245,14 +244,13 @@ class Resource {
               << ")";
   }
 };
-}  // namespace internal
 
 // Non-owning handles of GPU resources.
-using Context = internal::Resource<CUcontext, hipCtx_t>;
-using Module = internal::Resource<CUmodule, hipModule_t>;
-using Stream = internal::Resource<CUstream, hipStream_t>;
-using Event = internal::Resource<CUevent, hipEvent_t>;
-using Function = internal::Resource<CUfunction, hipFunction_t>;
+using Context = Resource<CUcontext, hipCtx_t>;
+using Module = Resource<CUmodule, hipModule_t>;
+using Stream = Resource<CUstream, hipStream_t>;
+using Event = Resource<CUevent, hipEvent_t>;
+using Function = Resource<CUfunction, hipFunction_t>;
 
 // Serves as a contract that the context has been set on the current thread.
 //

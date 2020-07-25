@@ -32,7 +32,7 @@ namespace gpu {
 namespace stream {
 
 // Non-owning handles of GPU resources.
-using SolverDnHandle = internal::Resource<cusolverDnHandle_t, rocsolver_handle>;
+using SolverDnHandle = Resource<cusolverDnHandle_t, rocsolver_handle>;
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.

@@ -67,25 +67,22 @@ enum class DnnRnnMode {
 };
 
 // Non-owning handles of GPU resources.
-using DnnHandle = internal::Resource<cudnnHandle_t, miopenHandle_t>;
+using DnnHandle = Resource<cudnnHandle_t, miopenHandle_t>;
 using DnnTensorDescriptor =
-    internal::Resource<cudnnTensorDescriptor_t, miopenTensorDescriptor_t>;
+    Resource<cudnnTensorDescriptor_t, miopenTensorDescriptor_t>;
 using DnnConvolutionDescriptor =
-    internal::Resource<cudnnConvolutionDescriptor_t,
-                       miopenConvolutionDescriptor_t>;
+    Resource<cudnnConvolutionDescriptor_t, miopenConvolutionDescriptor_t>;
 using DnnPoolingDescriptor =
-    internal::Resource<cudnnPoolingDescriptor_t, miopenPoolingDescriptor_t>;
+    Resource<cudnnPoolingDescriptor_t, miopenPoolingDescriptor_t>;
 using DnnActivationDescriptor =
-    internal::Resource<cudnnActivationDescriptor_t,
-                       miopenActivationDescriptor_t>;
+    Resource<cudnnActivationDescriptor_t, miopenActivationDescriptor_t>;
 using DnnFilterDescriptor =
-    internal::Resource<cudnnFilterDescriptor_t, miopenFilterDescriptor_t>;
+    Resource<cudnnFilterDescriptor_t, miopenFilterDescriptor_t>;
 using DnnDropoutDescriptor =
-    internal::Resource<cudnnDropoutDescriptor_t, miopenDropoutDescriptor_t>;
-using DnnRnnDescriptor =
-    internal::Resource<cudnnRNNDescriptor_t, miopenRNNDescriptor_t>;
+    Resource<cudnnDropoutDescriptor_t, miopenDropoutDescriptor_t>;
+using DnnRnnDescriptor = Resource<cudnnRNNDescriptor_t, miopenRNNDescriptor_t>;
 using DnnPersistentRnnPlan =
-    internal::Resource<cudnnPersistentRNNPlan_t, miopenPersistentRNNPlan_t>;
+    Resource<cudnnPersistentRNNPlan_t, miopenPersistentRNNPlan_t>;
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.

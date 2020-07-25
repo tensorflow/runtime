@@ -32,7 +32,7 @@ namespace gpu {
 namespace stream {
 
 // Non-owning handles of GPU resources.
-using BlasHandle = internal::Resource<cublasHandle_t, rocblas_handle>;
+using BlasHandle = Resource<cublasHandle_t, rocblas_handle>;
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.

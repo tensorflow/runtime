@@ -24,6 +24,7 @@
 #include "concat_op.h"
 #include "cwise_binary_ops.h"
 #include "cwise_unary_ops.h"
+#include "matmul_fusion_ops.h"
 #include "shape_ops.h"
 #include "softmax_ops.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
@@ -233,6 +234,7 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
   RegisterTfBinaryCpuOps(op_registry);
   RegisterTfShapeCpuOps(op_registry);
   RegisterTfSofmaxCpuOps(op_registry);
+  RegisterTfMatmulFusionCpuOps(op_registry);
 }
 
 }  // namespace tfrt

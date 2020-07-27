@@ -18,7 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "contraction_kernel.h"
+#include "tfrt/common/compat/eigen/contraction_kernel.h"
 
 #include <mutex>
 

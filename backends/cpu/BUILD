@@ -75,6 +75,8 @@ tfrt_cc_library(
         "lib/ops/tf/cwise_binary_ops.h",
         "lib/ops/tf/cwise_unary_ops.cc",
         "lib/ops/tf/cwise_unary_ops.h",
+        "lib/ops/tf/matmul_fusion_ops.cc",
+        "lib/ops/tf/matmul_fusion_ops.h",
         "lib/ops/tf/shape_ops.cc",
         "lib/ops/tf/shape_ops.h",
         "lib/ops/tf/softmax_ops.cc",
@@ -106,6 +108,7 @@ tfrt_cc_library(
         "lib/kernels/cpu_kernels.h",
         "lib/kernels/cwise_binary_kernels.h",
         "lib/kernels/cwise_unary_kernels.h",
+        "lib/kernels/matmul_kernel.h",
         "lib/kernels/softmax_kernel.h",
     ],
     deps = [

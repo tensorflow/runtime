@@ -18,7 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "../contraction_kernel.h"
+#include "tfrt/common/compat/eigen/contraction_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/host_context/kernel_utils.h"

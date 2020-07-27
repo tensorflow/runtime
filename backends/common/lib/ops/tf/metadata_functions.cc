@@ -80,6 +80,7 @@ static TensorMetadata UnaryIdentityMd(const TensorMetadata& input) {
 
 static Expected<TensorMetadata> MatMulMd(const TensorMetadata& a,
                                          const TensorMetadata& b,
+                                         VariadicOpArg<TensorMetadata> _,
                                          const OpAttrsRef& attrs) {
   if (a.dtype != b.dtype)
     return MakeStringError("incompatible dtypes for MatMul: In[0]: ", a.dtype,
@@ -481,6 +482,7 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.AddV2", TFRT_METADATA(TfBinaryOpMd));
     result->emplace_back("tf.Tanh", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.MatMul", TFRT_METADATA(MatMulMd));
+    result->emplace_back("tf._FusedMatMul", TFRT_METADATA(MatMulMd));
     result->emplace_back("tf.Log", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Log1p", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Relu", TFRT_METADATA(UnaryIdentityMd));

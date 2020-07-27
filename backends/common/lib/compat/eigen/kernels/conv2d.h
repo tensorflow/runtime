@@ -25,13 +25,13 @@
 
 #include <cstdint>
 
-#include "../contraction_output_kernel.h"
-#include "../spatial_convolution.h"
 #include "conv2d_shape_functions.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
+#include "tfrt/common/compat/eigen/contraction_output_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/kernels/shape_functions.h"
+#include "tfrt/common/compat/eigen/spatial_convolution.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_utils.h"

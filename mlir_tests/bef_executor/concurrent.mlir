@@ -137,13 +137,21 @@ func @nested_async_incs_complete_after_quiesce() {
 }
 
 
-// This tests blocking work queue.
+// These test blocking work queue.
 // CHECK-LABEL: --- Running 'simple_blocking_sleep'
 func @simple_blocking_sleep() {
   %a = tfrt.constant.i32 1000
   "tfrt_test.usleep"(%a) : (i32) -> ()
   // CHECK: Slept for 1000 microseconds
   tfrt.return
+}
+
+// CHECK-LABEL: --- Running 'simple_blocking_sleep_with_chain'
+func @simple_blocking_sleep_with_chain() -> !tfrt.chain {
+  %a = tfrt.constant.i32 999
+  // CHECK: Slept for 999 microseconds
+  %ch = "tfrt_test.blocking.usleep"(%a) : (i32) -> (!tfrt.chain)
+  tfrt.return %ch : !tfrt.chain
 }
 
 // This tests blocking work queue by adding multiple blocking tasks.

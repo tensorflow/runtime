@@ -164,7 +164,8 @@ AsyncValueRef<HostTensor> GpuOpHandler::CopyDeviceTensorToHost(
   GpuDispatchContext dctx = MakeGpuDispatchContext();
   auto* host = GetRuntime()->GetHostContext();
   if (auto* gpu_tensor = dyn_cast<gpu::DenseGpuTensor>(&tensor)) {
-    return gpu::CopyDenseGpuTensorToHost(&dctx, *gpu_tensor, host);
+    return gpu::CopyDenseGpuTensorToHost(dctx.current_context(), dctx.stream(),
+                                         *gpu_tensor, host);
   } else {
     return GetFallback()->CopyDeviceTensorToHost(exec_ctx, tensor);
   }
@@ -174,8 +175,8 @@ AsyncValueRef<Tensor> GpuOpHandler::CopyHostTensorToDevice(
     const DenseHostTensor& tensor) {
   GpuDispatchContext dctx = MakeGpuDispatchContext();
   auto* host = GetRuntime()->GetHostContext();
-  Expected<gpu::DenseGpuTensor> gpu_tensor =
-      gpu::CopyDenseHostTensorToGpu(&dctx, tensor, host);
+  Expected<gpu::DenseGpuTensor> gpu_tensor = gpu::CopyDenseHostTensorToGpu(
+      dctx.current_context(), dctx.stream(), dctx.allocator(), tensor, host);
 
   if (gpu_tensor) {
     return host->MakeAvailableAsyncValueRef<gpu::DenseGpuTensor>(

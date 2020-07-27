@@ -24,6 +24,7 @@
 #ifndef TFRT_GPU_CORE_RUNTIME_TENSOR_UTIL_H_
 #define TFRT_GPU_CORE_RUNTIME_TENSOR_UTIL_H_
 
+#include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -36,14 +37,16 @@ class DenseHostTensor;
 
 namespace gpu {
 
+class GpuAllocator;
 class DenseGpuTensor;
 
 AsyncValueRef<DenseHostTensor> CopyDenseGpuTensorToHost(
-    GpuDispatchContext* dctx, const DenseGpuTensor& tensor, HostContext* host);
+    stream::CurrentContext current_context, stream::Stream stream,
+    const DenseGpuTensor& tensor, HostContext* host);
 
-Expected<DenseGpuTensor> CopyDenseHostTensorToGpu(GpuDispatchContext* dctx,
-                                                  const DenseHostTensor& tensor,
-                                                  HostContext* host);
+Expected<DenseGpuTensor> CopyDenseHostTensorToGpu(
+    stream::CurrentContext current_context, stream::Stream stream,
+    GpuAllocator* allocator, const DenseHostTensor& tensor, HostContext* host);
 
 }  // namespace gpu
 }  // namespace tfrt

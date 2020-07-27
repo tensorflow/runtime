@@ -21,7 +21,7 @@
 
 #include "tfrt/gpu/core_runtime/tensor_util.h"
 
-#include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
+#include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
@@ -38,8 +38,8 @@ using gpu::stream::OwningEvent;
 using gpu::stream::Pointer;
 
 AsyncValueRef<DenseHostTensor> CopyDenseGpuTensorToHost(
-    GpuDispatchContext* dctx, const DenseGpuTensor& gpu_tensor,
-    HostContext* host) {
+    stream::CurrentContext current_context, stream::Stream stream,
+    const DenseGpuTensor& gpu_tensor, HostContext* host) {
   llvm::Optional<DenseHostTensor> result_or_error =
       DenseHostTensor::CreateUninitialized(gpu_tensor.metadata(), host);
   if (!result_or_error) {
@@ -47,13 +47,13 @@ AsyncValueRef<DenseHostTensor> CopyDenseGpuTensorToHost(
   }
   DenseHostTensor result = std::move(*result_or_error);
 
-  Pointer<void> memcpy_dst(result.data(), dctx->current_context().platform());
+  Pointer<void> memcpy_dst(result.data(), current_context.platform());
   Pointer<void> memcpy_src = gpu_tensor.buffer().pointer();
 
   size_t size_in_bytes = gpu_tensor.metadata().GetHostSizeInBytes();
   llvm::Error memcpy_error =
-      MemcpyAsync(dctx->current_context(), /*dst=*/memcpy_dst,
-                  /*src=*/memcpy_src, size_in_bytes, dctx->stream());
+      MemcpyAsync(current_context, /*dst=*/memcpy_dst, /*src=*/memcpy_src,
+                  size_in_bytes, stream);
   if (memcpy_error) {
     return host->MakeErrorAsyncValueRef(
         "failed to enqueue host to device memcpy: " +
@@ -61,7 +61,7 @@ AsyncValueRef<DenseHostTensor> CopyDenseGpuTensorToHost(
   }
 
   llvm::Expected<OwningEvent> event_or_error =
-      EventCreate(dctx->current_context(), EventFlags::DISABLE_TIMING);
+      EventCreate(current_context, EventFlags::DISABLE_TIMING);
   if (!event_or_error) {
     return host->MakeErrorAsyncValueRef(
         "could not create event to wait for host to device memcpy: " +
@@ -70,7 +70,7 @@ AsyncValueRef<DenseHostTensor> CopyDenseGpuTensorToHost(
 
   OwningEvent event = std::move(*event_or_error);
 
-  llvm::Error event_record_error = EventRecord(event.get(), dctx->stream());
+  llvm::Error event_record_error = EventRecord(event.get(), stream);
   if (event_record_error) {
     return host->MakeErrorAsyncValueRef(
         "could not enqueue event to wait for host to device memcpy: " +
@@ -88,32 +88,29 @@ AsyncValueRef<DenseHostTensor> CopyDenseGpuTensorToHost(
       });
 }
 
-Expected<DenseGpuTensor> CopyDenseHostTensorToGpu(GpuDispatchContext* dctx,
-                                                  const DenseHostTensor& tensor,
-                                                  HostContext* host) {
+Expected<DenseGpuTensor> CopyDenseHostTensorToGpu(
+    stream::CurrentContext current_context, stream::Stream stream,
+    GpuAllocator* allocator, const DenseHostTensor& tensor, HostContext* host) {
   size_t size_in_bytes = tensor.metadata().GetHostSizeInBytes();
 
   llvm::Expected<RCReference<gpu::GpuBuffer>> buffer_or_error =
-      dctx->allocator()->Allocate(
-          /*size=*/size_in_bytes, dctx->stream());
+      allocator->Allocate(
+          /*size=*/size_in_bytes, stream);
   if (!buffer_or_error) return buffer_or_error.takeError();
   RCReference<gpu::GpuBuffer> buffer = std::move(*buffer_or_error);
 
-  Pointer<const void> memcpy_src(tensor.data(),
-                                 dctx->current_context().platform());
-  if (auto error =
-          MemcpyAsync(dctx->current_context(), /*dst=*/buffer->pointer(),
-                      /*src=*/memcpy_src, size_in_bytes, dctx->stream()))
+  Pointer<const void> memcpy_src(tensor.data(), current_context.platform());
+  if (auto error = MemcpyAsync(current_context, /*dst=*/buffer->pointer(),
+                               /*src=*/memcpy_src, size_in_bytes, stream))
     return std::move(error);
 
   llvm::Expected<OwningEvent> event_or_error =
-      EventCreate(dctx->current_context(), EventFlags::DISABLE_TIMING);
+      EventCreate(current_context, EventFlags::DISABLE_TIMING);
   if (!event_or_error) return event_or_error.takeError();
 
   OwningEvent event = std::move(*event_or_error);
 
-  if (auto error = EventRecord(event.get(), dctx->stream()))
-    return std::move(error);
+  if (auto error = EventRecord(event.get(), stream)) return std::move(error);
 
   // The underlying buffer of `tensor` needs to live until the memcpy is done.
   bool work_enqueued = host->EnqueueBlockingWork(

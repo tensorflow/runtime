@@ -41,7 +41,7 @@ static void SparseTensorEqual(Argument<CooHostTensor> t1,
 template <typename T, size_t Rank>
 static void ConvertToDHT(Argument<CooHostTensor> in, Argument<Chain> in_chain,
                          Result<DenseHostTensor> out, Result<Chain> out_chain,
-                         KernelErrorHandler handler, KernelFrame* frame) {
+                         KernelErrorHandler handler, AsyncKernelFrame* frame) {
   uint32_t allowed_formats =
       1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost);
   auto host_tensor =
@@ -59,7 +59,7 @@ template <typename T, size_t Rank>
 static void ConvertFromDHT(ArgumentView<MutableDHTIndexableView<T, Rank>> in,
                            Argument<Chain> in_chain, Result<CooHostTensor> out,
                            Result<Chain> out_chain, KernelErrorHandler handler,
-                           KernelFrame* frame) {
+                           AsyncKernelFrame* frame) {
   ssize_t num_non_zero_values = 0;
   for (const auto& element : in->Elements()) {
     if (element != 0) {

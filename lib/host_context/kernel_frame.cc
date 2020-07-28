@@ -14,8 +14,8 @@
 
 //===- kernel_frame.cc - Information for kernel invocation ----------------===//
 //
-// This file implements KernelFrame which captures argument, result, and other
-// related information provided to kernels on kernel invocation.
+// This file implements AsyncKernelFrame which captures argument, result, and
+// other related information provided to kernels on kernel invocation.
 //
 //===----------------------------------------------------------------------===//
 
@@ -25,7 +25,7 @@
 
 namespace tfrt {
 
-void KernelFrame::ReportError(string_view msg) {
+void AsyncKernelFrame::ReportError(string_view msg) {
   bool has_set_error = false;
 
   RCReference<ErrorAsyncValue> error_value = EmitErrorAsync(exec_ctx_, msg);

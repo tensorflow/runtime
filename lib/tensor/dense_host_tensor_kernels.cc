@@ -40,7 +40,7 @@ template <typename T, size_t Rank>
 static void CreateUninitializedDenseTensor(Result<DenseHostTensor> out,
                                            ArrayAttribute<ssize_t> shape_in,
                                            KernelErrorHandler handler,
-                                           KernelFrame* frame) {
+                                           AsyncKernelFrame* frame) {
   auto result = DenseHostTensor::CreateUninitialized<T>(
       TensorShape(shape_in.data()), frame->GetHostContext());
   if (!result.hasValue()) {
@@ -110,7 +110,7 @@ static llvm::Expected<Chain> SetDenseTensorWithValues(
 static Chain NoOpHostTensor(Argument<DenseHostTensor> in) { return Chain(); }
 
 static llvm::Expected<RCReference<HostBuffer>> AllocateBuffer(
-    int64_t size, int64_t alignment, KernelFrame* frame) {
+    int64_t size, int64_t alignment, AsyncKernelFrame* frame) {
   auto data = HostBuffer::CreateUninitialized(
       static_cast<size_t>(size), static_cast<size_t>(alignment),
       frame->GetHostContext()->allocator());

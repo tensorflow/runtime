@@ -80,7 +80,7 @@ static void Conv2DGradInput(ArgumentView<DHTIndexableView<T, 4>> output_grad,
                             ArrayAttribute<ssize_t> strides,
                             KernelErrorHandler handler,
                             const ExecutionContext& exec_ctx,
-                            KernelFrame* frame) {
+                            AsyncKernelFrame* frame) {
   const FixedRankShape<4> input_shape = input_grad->FixedShape();
   const FixedRankShape<4> filter_shape = kernel->FixedShape();
   const FixedRankShape<4> output_shape = output_grad->FixedShape();

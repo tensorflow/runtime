@@ -16,8 +16,8 @@
 
 //===- kernel_frame.h - Information for kernel invocation -------*- C++ -*-===//
 //
-// This file implements KernelFrame which captures argument, result, and other
-// related information provided to kernels on kernel invocation.
+// This file implements AsyncKernelFrame which captures argument, result, and
+// other related information provided to kernels on kernel invocation.
 //
 //===----------------------------------------------------------------------===//
 
@@ -40,19 +40,19 @@
 
 namespace tfrt {
 
-// KernelFrame captures the states associated with a kernel invocation,
+// AsyncKernelFrame captures the states associated with a kernel invocation,
 // including the input arguments, attributes, result values, location and host
-// context. KernelFrame is constructed by the kernel caller (currently only
+// context. AsyncKernelFrame is constructed by the kernel caller (currently only
 // BEFExecutor) using the KernelFrameBuilder subclass. The kernel implementation
-// is passed a pointer to a KernelFrame object for them to access the inputs and
-// attributes, and return result values.
+// is passed a pointer to a AsyncKernelFrame object for them to access the
+// inputs and attributes, and return result values.
 //
 // The result AsyncValue pointers are not initialized when a kernel is called.
 // The Kernel implementation is responsible for creating AsyncValue objects and
 // setting the result AsyncValue pointers.
-class KernelFrame {
+class AsyncKernelFrame {
  public:
-  explicit KernelFrame(ExecutionContext exec_ctx)
+  explicit AsyncKernelFrame(ExecutionContext exec_ctx)
       : exec_ctx_{std::move(exec_ctx)} {}
 
   const ExecutionContext& GetExecutionContext() const { return exec_ctx_; }
@@ -253,19 +253,21 @@ class KernelFrame {
   ExecutionContext exec_ctx_;
 };
 
-// KernelFrameBuilder is used by the kernel caller to construct a KernelFrame
-// object without exposing the builder methods to the kernel implementation.
+// KernelFrameBuilder is used by the kernel caller to construct a
+// AsyncKernelFrame object without exposing the builder methods to the kernel
+// implementation.
 //
-// As an optimization, KernelFrame stores arguments, attributes, and results in
-// a single SmallVector. As a result, to initialize a KernelFrame, this class
-// requires that the client performs the following actions in order:
+// As an optimization, AsyncKernelFrame stores arguments, attributes, and
+// results in a single SmallVector. As a result, to initialize a
+// AsyncKernelFrame, this class requires that the client performs the following
+// actions in order:
 // 1. Adds the arguments (using AddArg()),
 // 2. Set the number of results (using SetNumResults())
 // 3. Add the attributes (using AddAttribute())
-class KernelFrameBuilder : public KernelFrame {
+class KernelFrameBuilder : public AsyncKernelFrame {
  public:
   explicit KernelFrameBuilder(ExecutionContext exec_ctx)
-      : KernelFrame{std::move(exec_ctx)} {}
+      : AsyncKernelFrame{std::move(exec_ctx)} {}
 
   // Get result AsyncValue at the given index.
   AsyncValue* GetResultAt(int index) const { return GetResults()[index]; }
@@ -274,7 +276,7 @@ class KernelFrameBuilder : public KernelFrame {
     attribute_section_ = attribute_section;
   }
 
-  // Add a new argument to the KernelFrame.
+  // Add a new argument to the AsyncKernelFrame.
   void AddArg(AsyncValue* async_value) {
     assert(num_results_ == -1 &&
            "Must call AddArg before calling SetNumResults");
@@ -284,7 +286,7 @@ class KernelFrameBuilder : public KernelFrame {
     ++num_arguments_;
   }
 
-  // Add a new attribute to the KernelFrame.
+  // Add a new attribute to the AsyncKernelFrame.
   void AddAttribute(const void* attr) {
     assert(num_results_ != -1 &&
            "Must call SetNumResults before calling AddAttribute");
@@ -314,20 +316,20 @@ class KernelFrameBuilder : public KernelFrame {
   }
 };
 
-// RAIIKernelFrame is like KernelFrame, but adds a ref to each contained value
-// upon construction, and drops the refs on destruction. This is useful when
-// implementing async kernels.
-class RAIIKernelFrame : public KernelFrame {
+// RAIIKernelFrame is like AsyncKernelFrame, but adds a ref to each contained
+// value upon construction, and drops the refs on destruction. This is useful
+// when implementing async kernels.
+class RAIIKernelFrame : public AsyncKernelFrame {
  public:
   RAIIKernelFrame() = delete;
-  RAIIKernelFrame(const KernelFrame& frame) : KernelFrame(frame) {
+  RAIIKernelFrame(const AsyncKernelFrame& frame) : AsyncKernelFrame(frame) {
     AddRefAll();
   }
 
-  RAIIKernelFrame(const RAIIKernelFrame& that) : KernelFrame(that) {
+  RAIIKernelFrame(const RAIIKernelFrame& that) : AsyncKernelFrame(that) {
     AddRefAll();
   }
-  RAIIKernelFrame(RAIIKernelFrame&& that) : KernelFrame(std::move(that)) {}
+  RAIIKernelFrame(RAIIKernelFrame&& that) : AsyncKernelFrame(std::move(that)) {}
 
   ~RAIIKernelFrame() {
     // async_value_or_attrs_ is empty when this object has been moved from.
@@ -352,8 +354,8 @@ class RAIIKernelFrame : public KernelFrame {
 
 // Implementation details
 
-inline void KernelFrame::AssertArity(int num_arguments, int num_attributes,
-                                     int num_results) const {
+inline void AsyncKernelFrame::AssertArity(int num_arguments, int num_attributes,
+                                          int num_results) const {
   assert(num_arguments_ == num_arguments);
   assert(GetNumAttributes() == num_attributes);
   assert(GetNumResults() == num_results);

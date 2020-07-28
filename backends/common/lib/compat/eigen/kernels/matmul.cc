@@ -40,7 +40,7 @@ void MatMul(Argument<T> alpha, ArgumentView<DHTIndexableView<T, 2>> a,
             ArgumentView<MutableDHTIndexableView<T, 2>> c,
             Argument<Chain> chain_in, Result<Chain> chain_out,
             KernelErrorHandler handler, const ExecutionContext& exec_ctx,
-            KernelFrame* frame) {
+            AsyncKernelFrame* frame) {
   const auto& shape_a = a->FixedShape();
   const auto& shape_b = b->FixedShape();
   const auto& shape_c = c->FixedShape();

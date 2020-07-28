@@ -115,7 +115,7 @@ static void TestQuiesce(const ExecutionContext& exec_ctx) {
 static void TestReportErrorConcreteAsync(Argument<int32_t> in,
                                          Result<int32_t> out,
                                          const ExecutionContext& exec_ctx,
-                                         KernelFrame* frame) {
+                                         AsyncKernelFrame* frame) {
   AsyncValueRef<int32_t> result_ref = out.Allocate();
   exec_ctx.host()->EnqueueWork(
       [in = *in, result_ref = std::move(result_ref), frame = *frame]() mutable {
@@ -131,7 +131,7 @@ static void TestReportErrorConcreteAsync(Argument<int32_t> in,
 static void TestReportIndirectErrorAsync(Argument<int32_t> in,
                                          Result<int32_t> out,
                                          const ExecutionContext& exec_ctx,
-                                         KernelFrame* frame) {
+                                         AsyncKernelFrame* frame) {
   HostContext* host = exec_ctx.host();
   auto result_ref = out.AllocateIndirect();
   host->EnqueueWork([in = *in, result_ref = std::move(result_ref),

@@ -51,7 +51,7 @@ static void BatchNormGrad(
     Attribute<float> epsilon,
     // Execution context ---------------------------------------------------- //
     KernelErrorHandler handler, const ExecutionContext& exec_ctx,
-    KernelFrame* frame) {
+    AsyncKernelFrame* frame) {
   // clang-format on
 
   // Note: the following formulas are used to compute the gradients for

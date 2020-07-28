@@ -139,8 +139,8 @@ An example kernel implementation is shown below:
 
 ```c++
 // Kernel that adds two integers.
-// KernelFrame holds the kernel’s arguments and results.
-static void TFRTAdd(KernelFrame* frame) {
+// AsyncKernelFrame holds the kernel’s arguments and results.
+static void TFRTAdd(AsyncKernelFrame* frame) {
   // Fetch the kernel’s 0th argument.
   AsyncValue* arg1 = frame->GetArgAt(0);
   // Fetch the kernel’s 1st argument.
@@ -206,9 +206,9 @@ below for more context.
 `BEFExecutor` reads a BEF file and executes its kernel graph. It tracks the
 computation’s state in registers, which point to argument and result
 `AsyncValue`s for all kernels in the graph. Registers help transfer data between
-kernels. `BEFExecutor` invokes a kernel by creating a `KernelFrame` with
-pointers to the kernel’s arguments and results, and passing the `KernelFrame` to
-the kernel.
+kernels. `BEFExecutor` invokes a kernel by creating a `AsyncKernelFrame` with
+pointers to the kernel’s arguments and results, and passing the
+`AsyncKernelFrame` to the kernel.
 
 ### Eager Execution Sketch
 
@@ -551,17 +551,17 @@ registry at runtime. They can be strung together easily with a MLIR host program
 where the MLIR kernels have names that match kernel names in the registry. This
 leads to an easily hackable system that is friendly to experimentation.
 
-All argument and result `AsyncValue`s are staged in a `KernelFrame`, which is a
-thin wrapper around a list of argument and result `AsyncValue` objects. The
-`KernelFrame` is prepared and passed to a kernel when the kernel gets invoked.
-The kernel can read all argument `AsyncValue`s and attributes from the
-`KernelFrame`, and also allocate and modify result `AsyncValue`s on the
-`KernelFrame`.
+All argument and result `AsyncValue`s are staged in a `AsyncKernelFrame`, which
+is a thin wrapper around a list of argument and result `AsyncValue` objects. The
+`AsyncKernelFrame` is prepared and passed to a kernel when the kernel gets
+invoked. The kernel can read all argument `AsyncValue`s and attributes from the
+`AsyncKernelFrame`, and also allocate and modify result `AsyncValue`s on the
+`AsyncKernelFrame`.
 
 To make it easy for kernels to work with `AsyncValue`s, we provide high level
 syntax sugar with templates such as `Argument<T>, Result<T>, Attribute<T>` and
-others. They are wrappers around `KernelFrame` to allow kernels to deal with C++
-native data types directly with less boilerplate.
+others. They are wrappers around `AsyncKernelFrame` to allow kernels to deal
+with C++ native data types directly with less boilerplate.
 
 Here are some example kernel definitions. `Argument<T>` points to the payload of
 the argument `AsyncValue`.
@@ -1108,7 +1108,7 @@ kernels.
 Example kernel that calls a function:
 
 ```c++
-void TFRTCall(KernelFrame* frame) {
+void TFRTCall(AsyncKernelFrame* frame) {
   // Get function to execute.
   auto& fn = frame->GetConstantAt<Function>(0);
 
@@ -1123,7 +1123,7 @@ void TFRTCall(KernelFrame* frame) {
 Example conditional kernel:
 
 ```c++
-void TFRTIf(KernelFrame* frame) {
+void TFRTIf(AsyncKernelFrame* frame) {
   const auto* true_fn = &frame->GetConstantAt<Function>(0);
   const auto* false_fn = &frame->GetConstantAt<Function>(1);
 

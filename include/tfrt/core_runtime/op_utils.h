@@ -489,7 +489,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   }
 
   // For kernel functions that return std::tuple<>, store the results in order
-  // as the output AsyncValues in the KernelFrame.
+  // as the output AsyncValues in the AsyncKernelFrame.
   template <int result_idx, bool has_chain, typename... T>
   static void HandleReturn(MutableArrayRef<RCReference<AsyncValue>> results,
                            AsyncValueRef<Chain>* chain,
@@ -502,7 +502,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   }
 
   // Helper function for storing multiple return values in std::tuple<> as
-  // output AsyncValue in KernelFrame.
+  // output AsyncValue in AsyncKernelFrame.
   template <typename TupleT, size_t... I>
   static void EmplaceTupleResult(
       MutableArrayRef<RCReference<AsyncValue>> results,

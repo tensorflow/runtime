@@ -28,7 +28,7 @@
 namespace tfrt {
 
 // We define this kernel the hard way, since it is variadic.
-static void TsBuildShape(KernelFrame* frame) {
+static void TsBuildShape(AsyncKernelFrame* frame) {
   frame->AssertArity(/*nargs*/ 0, /*nattributes*/ 1, /*nresults*/ 1);
 
   ArrayRef<ssize_t> elements = frame->GetArrayAttributeAt<ssize_t>(0).data();

@@ -127,7 +127,7 @@ static void CudaEventRecord(Argument<gpu::stream::OwningEvent> event,
 // completed
 static void CudaEventPoll(Argument<gpu::stream::OwningEvent> event,
                           Argument<Chain> in_chain, Result<Chain> out_chain,
-                          KernelFrame* in_frame) {
+                          AsyncKernelFrame* in_frame) {
   // TODO(b/146084342): Implement this with an efficient EventMgr.
   llvm::Error error = gpu::stream::EventSynchronize(event.get().get());
   if (error) return ReportError(KernelErrorHandler(in_frame), std::move(error));

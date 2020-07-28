@@ -41,7 +41,7 @@ static Error TestError() { return MakeStringError("something bad happened"); }
 
 // This kernel produces a normal output and an error output.
 static void TestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
-                            KernelFrame* frame) {
+                            AsyncKernelFrame* frame) {
   one.Emplace(1);
   frame->ReportError("something bad happened");
 }
@@ -49,7 +49,7 @@ static void TestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
 // This kernel produces an error asynchronously.
 static void TestReportErrorAsync(Result<int32_t> out,
                                  const ExecutionContext& exec_ctx,
-                                 KernelFrame* frame) {
+                                 AsyncKernelFrame* frame) {
   exec_ctx.host()->EnqueueWork(
       [out_ref = out.Allocate(), frame_copy = *frame]() mutable {
         frame_copy.ReportError("something bad happened asynchronously");

@@ -435,12 +435,14 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
       // kernel that is starting before all operands are available. In that
       // case, we use an IndirectAsyncValue so it can be resolved later.
       AsyncValue* value = GetOrCreateRegisterValue(&reg, GetHost());
-      // TODO(b/142757465): remove arguments_and_results_ vector in KernelFrame.
+      // TODO(b/142757465): remove arguments_and_results_ vector in
+      // AsyncKernelFrame.
       kernel_frame.AddArg(value);
       if (value->IsError()) any_error_argument = value;
     }
 
-    // TODO(b/142757465): remove arguments_and_results_ vector in KernelFrame.
+    // TODO(b/142757465): remove arguments_and_results_ vector in
+    // AsyncKernelFrame.
     kernel_frame.SetNumResults(kernel.num_results());
 
     // Set up attributes.

@@ -28,13 +28,13 @@ namespace tfrt {
 // float kernels
 //===----------------------------------------------------------------------===//
 
-static Chain TFRTPrintF32(Argument<float> arg, KernelFrame* frame) {
+static Chain TFRTPrintF32(Argument<float> arg, AsyncKernelFrame* frame) {
   printf("f32 = %f\n", *arg);
   fflush(stdout);
   return Chain();
 }
 
-static Chain TFRTPrintF64(Argument<double> arg, KernelFrame* frame) {
+static Chain TFRTPrintF64(Argument<double> arg, AsyncKernelFrame* frame) {
   printf("f64 = %f\n", *arg);
   fflush(stdout);
   return Chain();

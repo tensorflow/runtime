@@ -170,6 +170,14 @@ static Expected<TensorMetadata> TfShapeOpMd(const TensorMetadata& input,
   return TensorMetadata(dtype, ArrayRef<ssize_t>{input.shape.GetRank()});
 }
 
+static Expected<TensorMetadata> TfZerosLikeOpMd(const TensorMetadata& input,
+                                                const OpAttrsRef& attrs) {
+  auto out_type = attrs.GetAsserting<OpAttrType>("T");
+  auto dtype = OpAttrTypeToDType(out_type);
+
+  return TensorMetadata(dtype, input.shape);
+}
+
 static Expected<TensorMetadata> TfMaxPoolOpMd(const TensorMetadata& input,
                                               const OpAttrsRef& attrs) {
   auto padding = attrs.GetStringAsserting("padding");
@@ -507,6 +515,7 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.Transpose", TFRT_METADATA(TfTransposeOpMd));
     result->emplace_back("_tf.Transpose", TFRT_METADATA(TfTransposeOpFoldedMd));
     result->emplace_back("tf.Cast", TFRT_METADATA(TfCastOpMd));
+    result->emplace_back("tf.ZerosLike", TFRT_METADATA(TfZerosLikeOpMd));
     return result;
   }();
 

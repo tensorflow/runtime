@@ -70,6 +70,8 @@ tfrt_cc_library(
     srcs = [
         "lib/ops/tf/concat_op.cc",
         "lib/ops/tf/concat_op.h",
+        "lib/ops/tf/constant_ops.cc",
+        "lib/ops/tf/constant_ops.h",
         "lib/ops/tf/cpu_ops.cc",
         "lib/ops/tf/cwise_binary_ops.cc",
         "lib/ops/tf/cwise_binary_ops.h",

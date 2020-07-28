@@ -22,6 +22,7 @@
 
 #include "../../kernels/cpu_kernels.h"
 #include "concat_op.h"
+#include "constant_ops.h"
 #include "cwise_binary_ops.h"
 #include "cwise_unary_ops.h"
 #include "matmul_fusion_ops.h"
@@ -230,6 +231,7 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
                      CpuOpFlags::NoSideEffects);
 
   RegisterTfConcatCpuOp(op_registry);
+  RegisterTfConstantCpuOps(op_registry);
   RegisterTfUnaryCpuOps(op_registry);
   RegisterTfBinaryCpuOps(op_registry);
   RegisterTfShapeCpuOps(op_registry);

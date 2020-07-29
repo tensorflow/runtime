@@ -145,6 +145,11 @@ llvm::Error CudaFuncSetAttribute(CurrentContext current, const void* function,
   return TO_ERROR(cudaFuncSetAttribute(function, attribute, value));
 }
 
+llvm::Error CudaStreamSynchronize(CurrentContext current, CUstream stream) {
+  CheckCudaContext(current);
+  return TO_ERROR(cudaStreamSynchronize(stream));
+}
+
 }  // namespace stream
 }  // namespace gpu
 }  // namespace tfrt

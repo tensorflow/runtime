@@ -33,7 +33,6 @@ namespace gpu {
 
 llvm::Expected<RCReference<GpuDevice>> GetOrCreateGpuDevice(int gpu_ordinal,
                                                             HostContext* host) {
-  static DeviceTypeRegistration register_device_type_gpu("gpu");
   auto device_name = StrCat("GPU:", gpu_ordinal);
   auto existing_device =
       host->GetDeviceManager()->GetDeviceRef<GpuDevice>(device_name);

@@ -30,7 +30,6 @@
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
-#include "tfrt/gpu/core_runtime/tensor_util.h"
 #include "tfrt/gpu/device/device.h"
 #include "tfrt/gpu/device/device_util.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
@@ -40,6 +39,7 @@
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
+#include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/host_tensor.h"
 
@@ -156,16 +156,18 @@ GpuOpHandler::GpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
       device_(std::move(device)) {}
 
 GpuDispatchContext GpuOpHandler::MakeGpuDispatchContext() {
-  return GpuDispatchContext{*device_};
+  return GpuDispatchContext{device_.get()};
 }
 
 AsyncValueRef<HostTensor> GpuOpHandler::CopyDeviceTensorToHost(
     const ExecutionContext& exec_ctx, const Tensor& tensor) {
-  GpuDispatchContext dctx = MakeGpuDispatchContext();
   auto* host = GetRuntime()->GetHostContext();
   if (auto* gpu_tensor = dyn_cast<gpu::DenseGpuTensor>(&tensor)) {
-    return gpu::CopyDenseGpuTensorToHost(dctx.current_context(), dctx.stream(),
-                                         *gpu_tensor, host);
+    return AsyncValueRef<HostTensor>(
+        TransferTensorTo(*gpu_tensor, *device_, host->GetHostDevice(),
+                         TensorFormats::Create({Tensor::Subclass::DenseHost}),
+                         host)
+            .ReleaseRCRef());
   } else {
     return GetFallback()->CopyDeviceTensorToHost(exec_ctx, tensor);
   }
@@ -173,18 +175,14 @@ AsyncValueRef<HostTensor> GpuOpHandler::CopyDeviceTensorToHost(
 
 AsyncValueRef<Tensor> GpuOpHandler::CopyHostTensorToDevice(
     const DenseHostTensor& tensor) {
-  GpuDispatchContext dctx = MakeGpuDispatchContext();
   auto* host = GetRuntime()->GetHostContext();
-  Expected<gpu::DenseGpuTensor> gpu_tensor = gpu::CopyDenseHostTensorToGpu(
-      dctx.current_context(), dctx.stream(), dctx.allocator(), tensor, host);
-
-  if (gpu_tensor) {
-    return host->MakeAvailableAsyncValueRef<gpu::DenseGpuTensor>(
-        std::move(*gpu_tensor));
-  } else {
-    return host->MakeErrorAsyncValueRef(StrCat(gpu_tensor.takeError()));
-  }
+  return AsyncValueRef<HostTensor>(
+      TransferTensorTo(tensor, host->GetHostDevice(), *device_,
+                       TensorFormats::Create({Tensor::Subclass::DenseGpu}),
+                       host)
+          .ReleaseRCRef());
 }
+
 Expected<CoreRuntimeOp> GpuOpHandler::MakeOp(string_view op_name) {
   auto* op_entry = op_registry_.impl_->LookupOpEntry(op_name);
   // If this operation is unknown by gpu device, then we try to run it on

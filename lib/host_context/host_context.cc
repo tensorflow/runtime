@@ -250,4 +250,6 @@ RCReference<Device> HostContext::GetHostDeviceRef() {
   return host_device_.CopyRef();
 }
 
+const Device& HostContext::GetHostDevice() { return *host_device_; }
+
 }  // namespace tfrt

@@ -37,13 +37,14 @@ class GpuDevice;
 namespace tfrt {
 class GpuDispatchContext {
  public:
-  explicit GpuDispatchContext(const GpuDevice& device)
-      : stream_(device.stream()),
-        allocator_(device.allocator()),
-        eigen_gpu_device_(device.eigen_gpu_device()),
-        blas_handle_(device.blas_handle()),
-        dnn_handle_(device.dnn_handle()),
-        current_context_(std::move(device.CreateContext())) {}
+  explicit GpuDispatchContext(const GpuDevice* device)
+      : device_(device),
+        stream_(device->stream()),
+        allocator_(device->allocator()),
+        eigen_gpu_device_(device->eigen_gpu_device()),
+        blas_handle_(device->blas_handle()),
+        dnn_handle_(device->dnn_handle()),
+        current_context_(std::move(device->CreateContext())) {}
 
   // The inputs to the GPU dispatch function are available for reading on this
   // stream.  The outputs from the dispatch must also be ready for reading on
@@ -69,7 +70,10 @@ class GpuDispatchContext {
     return current_context_;
   }
 
+  const GpuDevice& device() const { return *device_; }
+
  private:
+  const GpuDevice* device_;
   gpu::stream::Stream stream_;
   gpu::GpuAllocator* allocator_;
   Eigen::GpuDevice* eigen_gpu_device_;

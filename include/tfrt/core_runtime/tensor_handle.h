@@ -128,7 +128,7 @@ class TensorHandle final {
   // allowed_formats is a bitmask indicating target formats. It is a bitmask of
   // tensor Subclass kinds.
   TensorHandle TransferTo(const ExecutionContext& exec_ctx,
-                          RCReference<Device> device,
+                          RCReference<Device> dst,
                           TensorFormats allowed_formats) const;
 
  private:

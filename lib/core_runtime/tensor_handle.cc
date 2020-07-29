@@ -75,39 +75,39 @@ TensorHandle TensorHandle::CreateError(RCReference<AsyncValue> error) {
 }
 
 TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
-                                      RCReference<Device> device,
+                                      RCReference<Device> dst,
                                       TensorFormats allowed_formats) const {
   HostContext* host = exec_ctx.host();
   AsyncValueRef<Tensor> result_tensor;
+  // TODO(b/158775215): Avoid getting source device from HostContext.
+  const Device& src = device_ ? *device_ : exec_ctx.host()->GetHostDevice();
   if (GetAsyncTensor()->IsAvailable()) {
     auto& tensor = GetAsyncTensor()->get<Tensor>();
-    if (device.get() == device_.get() &&
-        allowed_formats.Contains(tensor.subclass()))
+    if (dst.get() == &src && allowed_formats.Contains(tensor.subclass()))
       return CopyRef();
-    result_tensor = TransferTensorTo(tensor, *device, allowed_formats, host);
+    result_tensor = TransferTensorTo(tensor, src, *dst, allowed_formats, host);
   } else {
     RCReference<IndirectAsyncValue> result_ind_av =
         host->MakeIndirectAsyncValue();
     result_tensor = AsyncValueRef<Tensor>(result_ind_av.CopyRef());
-    GetAsyncTensor()->AndThen(
-        [th = CopyRef(), result_ind_av = std::move(result_ind_av),
-         device = device.CopyRef(), allowed_formats, host]() {
-          auto& tensor = th.GetAsyncTensor()->get<Tensor>();
-          if (device.get() == th.device_.get() &&
-              allowed_formats.Contains(tensor.subclass())) {
-            result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
-          } else {
-            result_ind_av->ForwardTo(
-                TransferTensorTo(tensor, *device, allowed_formats, host));
-          }
-        });
+    GetAsyncTensor()->AndThen([th = CopyRef(), &src,
+                               result_ind_av = std::move(result_ind_av),
+                               dst = dst.CopyRef(), allowed_formats, host]() {
+      auto& tensor = th.GetAsyncTensor()->get<Tensor>();
+      if (dst.get() == &src && allowed_formats.Contains(tensor.subclass())) {
+        result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+      } else {
+        result_ind_av->ForwardTo(
+            TransferTensorTo(tensor, src, *dst, allowed_formats, host));
+      }
+    });
   }
 
   if (IsMetadataAvailable()) {
-    return TensorHandle(std::move(device), GetAvailableMetadata(),
+    return TensorHandle(std::move(dst), GetAvailableMetadata(),
                         std::move(result_tensor));
   } else {
-    return TensorHandle(std::move(device), GetAsyncMetadata().CopyRef(),
+    return TensorHandle(std::move(dst), GetAsyncMetadata().CopyRef(),
                         std::move(result_tensor));
   }
 }

@@ -250,6 +250,7 @@ class HostContext {
 
   // TODO(b/161370736): Remove this method.
   RCReference<Device> GetHostDeviceRef();
+  const Device& GetHostDevice();
 
  private:
   friend class HostContextPtr;

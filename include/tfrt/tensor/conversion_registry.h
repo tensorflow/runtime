@@ -33,12 +33,14 @@ class ExecutionContext;
 
 // It is a bitmask indicating supported tensor formats. It is a bitmask of
 // tensor Subclass kinds.
-// TODO(fishx): Add a helper method to construct TensorFormats.
 struct TensorFormats {
+  static TensorFormats Create(llvm::ArrayRef<Tensor::Subclass> sbuclasses);
+
   uint32_t allowed_formats;
 
   bool Contains(Tensor::Subclass subclass) const;
 };
+
 inline raw_ostream& operator<<(raw_ostream& os, const TensorFormats& formats) {
   os << llvm::format_hex(formats.allowed_formats, 2);
   return os;
@@ -52,13 +54,14 @@ inline raw_ostream& operator<<(raw_ostream& os, const TensorFormats& formats) {
 // This returns an error value if the input tensor is invalid or an error is
 // encountered like OOM.
 // TODO(fishx): Change HostContext to ExecutionContext.
-using TensorConversionFn =
-    AsyncValueRef<Tensor> (*)(const Tensor& tensor, const Device& dst,
-                              TensorFormats allowed_formats, HostContext* host);
+using TensorConversionFn = AsyncValueRef<Tensor> (*)(
+    const Tensor& tensor, const Device& src, const Device& dst,
+    TensorFormats allowed_formats, const ExecutionContext& exec_ctx);
 
 // Transfer tensor to device. It will look up and call the TensorConversionFn
 // registered in the TensorConversionFn registry.
-AsyncValueRef<Tensor> TransferTensorTo(const Tensor& tensor, const Device& dst,
+AsyncValueRef<Tensor> TransferTensorTo(const Tensor& tensor, const Device& src,
+                                       const Device& dst,
                                        TensorFormats allowed_formats,
                                        HostContext* host);
 

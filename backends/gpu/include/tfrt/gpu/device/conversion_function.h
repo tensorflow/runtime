@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//===- tensor_util.h --------------------------------------------*- C++ -*-===//
+//===- conversion_function.h ------------------------------------*- C++ -*-===//
 //
 // This file declares GPU tensor util functions for copying between gpu and
 // host.
@@ -34,6 +34,7 @@ class GpuDispatchContext;
 template <typename T>
 class AsyncValueRef;
 class DenseHostTensor;
+class TensorConversionFnRegistry;
 
 namespace gpu {
 
@@ -47,6 +48,8 @@ AsyncValueRef<DenseHostTensor> CopyDenseGpuTensorToHost(
 Expected<DenseGpuTensor> CopyDenseHostTensorToGpu(
     stream::CurrentContext current_context, stream::Stream stream,
     GpuAllocator* allocator, const DenseHostTensor& tensor, HostContext* host);
+
+void RegisterGpuTensorConversionFn(TensorConversionFnRegistry* registry);
 
 }  // namespace gpu
 }  // namespace tfrt

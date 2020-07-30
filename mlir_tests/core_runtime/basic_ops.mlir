@@ -414,3 +414,16 @@ func @control_flow_conditional() {
   tfrt.return
 }
 
+// CHECK-LABEL: --- Running 'test_string_tensor'
+func @test_string_tensor() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %a = corert.const_string_tensor {shape = [2], value = ["string", "tensor"]}
+
+  // CHECK: StringHostTensor shape = [2], values = ["string", "tensor"]
+  %ch1 = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%a) : 0
+
+  tfrt.return %ch1 : !tfrt.chain
+}
+

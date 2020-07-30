@@ -83,6 +83,9 @@ uint32_t TensorNeedsConversion(const Tensor& t, const CpuOpEntry& entry) {
   if (entry.flags & CpuOpFlags::AllowsScalar)
     allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::ScalarHost);
 
+  if (entry.flags & CpuOpFlags::AllowsString)
+    allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::StringHost);
+
   if (entry.flags & CpuOpFlags::AllowsCoo)
     allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::CooHost);
 

@@ -84,12 +84,16 @@ struct CpuOpFlags {
     AllowsScalar = 1 << 1,
 
     // If this is set, the op dispatch function is prepared to deal with
+    // tensor inputs in StringHostTensor format.
+    AllowsString = 1 << 2,
+
+    // If this is set, the op dispatch function is prepared to deal with
     // tensor inputs in CooHostTensor format.
-    AllowsCoo = 1 << 2,
+    AllowsCoo = 1 << 3,
 
     // If this is set, the op dispatch function is prepared to deal with
     // tensor inputs in TfLiteHostTensor format.
-    AllowsTfLite = 1 << 3,
+    AllowsTfLite = 1 << 4,
   } flags;
 
   explicit CpuOpFlags() : flags(None) {}

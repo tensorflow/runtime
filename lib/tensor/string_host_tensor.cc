@@ -53,7 +53,7 @@ AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
 
 void StringHostTensor::Print(raw_ostream& os) const {
   const auto& shape = this->shape();
-  os << "SHT shape = " << shape;
+  os << "StringHostTensor shape = " << shape;
 
   auto strings = this->strings();
 

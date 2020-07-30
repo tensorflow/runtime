@@ -370,7 +370,8 @@ void RegisterTestCpuOps(CpuOpRegistry* op_registry) {
                      TFRT_CPU_OP(TestAddDenseOnly3Op),
                      CpuOpFlags::NoSideEffects);
   op_registry->AddOp("tfrt_test.print", TFRT_CPU_OP(PrintOp),
-                     CpuOpFlags::AllowsScalar | CpuOpFlags::AllowsCoo);
+                     CpuOpFlags::AllowsScalar | CpuOpFlags::AllowsString |
+                         CpuOpFlags::AllowsCoo);
   op_registry->AddOp("tfrt_test.print_address", TFRT_CPU_OP(PrintAddressOp),
                      CpuOpFlags::AllowsScalar | CpuOpFlags::AllowsCoo);
   op_registry->AddOp("tfrt_test.identity", TFRT_CPU_OP(IdentityOp),

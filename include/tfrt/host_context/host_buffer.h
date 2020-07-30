@@ -78,7 +78,28 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
         return sliced_.ptr;
     }
   }
+
   size_t size() const { return size_; }
+
+  // Returns `true` iff `*this` is an exclusive owner of the underlying data.
+  bool IsExclusiveDataOwner() {
+    // We don't know anything about the custom deallocator and can't guarantee
+    // that we have an exclusive access to the data.
+    if (mode_ == Mode::kOutOfLine) return false;
+
+    // There are multiple references to this buffer, and we can't claim
+    // that we have an exclusive access to the data.
+    if (!IsUnique()) return false;
+
+    // The last reference to inlined buffer has exclusive access to the data.
+    if (mode_ == Mode::kInlined) return true;
+
+    // Otherwise check if the parent buffer has an exclusive access.
+    if (mode_ == Mode::kSliced)
+      return sliced_.parent_buffer->IsExclusiveDataOwner();
+
+    return false;
+  }
 
  private:
   // For access to Destroy().

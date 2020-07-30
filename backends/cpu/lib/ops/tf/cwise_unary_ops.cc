@@ -26,6 +26,7 @@
 #include "cwise_unary_ops.h"
 
 #include "../../kernels/cwise_unary_kernels.h"
+#include "buffer_forwarding.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/common/ops/tf/metadata_functions.h"
 #include "tfrt/core_runtime/op_attrs.h"
@@ -44,31 +45,28 @@ namespace {
 
 template <typename UnaryFunctor>
 static AsyncValueRef<DenseHostTensor> TfUnaryOp(
-    const DenseHostTensor& input, const TensorMetadata& output_md,
+    Argument<DenseHostTensor> input, const TensorMetadata& output_md,
     const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-
+  // Forward input tensor or allocate new output tensor.
   AsyncValueRef<DenseHostTensor> output =
-      DenseHostTensor::MakeConstructedAsyncValueRef(output_md, host);
-  if (!output) {
-    return EmitErrorAsync(exec_ctx, "out of memory allocating result");
-  }
+      ForwardInputOrAllocateOutput(exec_ctx, output_md, input);
+  if (output.IsError()) return output;
 
   auto on_done = [output = output.CopyRef()](Error err) {
     // Forward errors to the tensor output.
     err ? output.SetError(err) : output.SetStateConcrete();
   };
 
-  switch (input.dtype().kind()) {
+  switch (input->dtype().kind()) {
     default:
       return EmitErrorAsync(exec_ctx, "unsupported dtype");
       break;
-#define DTYPE_FLOAT(ENUM)                                     \
-  case DType::ENUM: {                                         \
-    using F = typename UnaryFunctor::template Functor<        \
-        EigenTypeForDTypeKind<DType::ENUM>>;                  \
-    tfrt::cpu::UnaryKernel<F>(input, &output.get(), exec_ctx, \
-                              std::move(on_done));            \
+#define DTYPE_FLOAT(ENUM)                                      \
+  case DType::ENUM: {                                          \
+    using F = typename UnaryFunctor::template Functor<         \
+        EigenTypeForDTypeKind<DType::ENUM>>;                   \
+    tfrt::cpu::UnaryKernel<F>(*input, &output.get(), exec_ctx, \
+                              std::move(on_done));             \
   } break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }

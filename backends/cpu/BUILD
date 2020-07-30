@@ -66,6 +66,18 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "buffer_forwarding",
+    srcs = ["lib/ops/tf/buffer_forwarding.cc"],
+    hdrs = ["lib/ops/tf/buffer_forwarding.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_library(
     name = "tf_ops",
     srcs = [
         "lib/ops/tf/concat_op.cc",
@@ -90,6 +102,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/ops/tf/static_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":buffer_forwarding",
         ":core_runtime",
         ":cpu_kernels",
         "@llvm-project//llvm:Support",

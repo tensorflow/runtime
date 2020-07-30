@@ -40,10 +40,16 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
   SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
 
-  // TODO(clattner): This copies the input TensorHandle's.  While this is
-  // correct, it would be better to *move* out of the input async value when
-  // we know that we're the last user of the async value.
-  for (auto *arg : args) th_args.push_back(arg->get<TensorHandle>().CopyRef());
+  // Move the TensorHandle if we know that we are the last user of the async
+  // value. This enables buffer forwading in ops implementation, because we
+  // do not add redundant references to the tensor async value.
+  for (auto *arg : args) {
+    if (arg->IsUnique()) {
+      th_args.push_back(std::move(arg->get<TensorHandle>()));
+    } else {
+      th_args.push_back(arg->get<TensorHandle>().CopyRef());
+    }
+  }
 
   SmallVector<TensorHandle, 8> result_ths;
   result_ths.resize(results.size());

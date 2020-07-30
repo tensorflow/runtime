@@ -291,6 +291,23 @@ static AsyncValueRef<Chain> PrintOp(const HostTensor& input,
 }
 
 //===----------------------------------------------------------------------===//
+// test.print_address op
+//===----------------------------------------------------------------------===//
+
+static AsyncValueRef<Chain> PrintAddressOp(const HostTensor& input,
+                                           const ExecutionContext& exec_ctx) {
+  if (auto* dht = dyn_cast<DenseHostTensor>(&input)) {
+    tfrt::outs() << "DenseHostTensor: buffer=" << dht->buffer()->data();
+  } else {
+    tfrt::outs() << "Unsupported tensor type";
+  }
+
+  tfrt::outs() << '\n';
+  tfrt::outs().flush();
+  return exec_ctx.host()->GetReadyChain();
+}
+
+//===----------------------------------------------------------------------===//
 // test.identity op
 //===----------------------------------------------------------------------===//
 
@@ -353,6 +370,8 @@ void RegisterTestCpuOps(CpuOpRegistry* op_registry) {
                      TFRT_CPU_OP(TestAddDenseOnly3Op),
                      CpuOpFlags::NoSideEffects);
   op_registry->AddOp("tfrt_test.print", TFRT_CPU_OP(PrintOp),
+                     CpuOpFlags::AllowsScalar | CpuOpFlags::AllowsCoo);
+  op_registry->AddOp("tfrt_test.print_address", TFRT_CPU_OP(PrintAddressOp),
                      CpuOpFlags::AllowsScalar | CpuOpFlags::AllowsCoo);
   op_registry->AddOp("tfrt_test.identity", TFRT_CPU_OP(IdentityOp),
                      CpuOpFlags::NoSideEffects);

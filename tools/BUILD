@@ -42,6 +42,7 @@ tfrt_cc_library(
 
 tfrt_cc_binary(
     name = "tfrt_opt",
+    visibility = [":friends"],
     deps = [
         ":opt_lib",
     ],

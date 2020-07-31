@@ -238,15 +238,14 @@ is cancelled or an error occurs.
 
 These are guidelines, not rules: they can and will conflict with each other.
 
+Use Complete Sentences for messages. Start error message with lower-case letter
+and avoid having a full stop at the end of the message.
+
 Remember that error messages are for human consumption and are not generally
 parsed by code. Try to write error messages that help whoever reads them.
 Resolve guideline conflicts by thinking about what would be more helpful for the
 user. And remember that you might not be the user - what's helpful to you might
 confuse others.
-
-### Use Complete Sentences
-
-Capitalize the first letter of each sentence and use punctuation.
 
 ### Be Specific And Succinct
 

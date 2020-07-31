@@ -61,3 +61,22 @@ func @concat_f32_axis_neg_1() -> !tfrt.chain {
 
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
+
+// CHECK: --- Running 'concat_f32_scalars'
+func @concat_f32_scalars() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
+
+  %s0 = corert.create_dense_tensor.f32 {shape = [], value = [0.125 : f32]}
+  %s1 = corert.create_dense_tensor.f32 {shape = [], value = [0.250 : f32]}
+
+  %axis = corert.create_dense_tensor.i32 {shape = [], value = [0 : i32]}
+
+  %cpu_handle_result = corert.executeop(%cpu) "tf.ConcatV2"(%s0, %s1, %axis) { N = 2 : i64 }: 1
+
+  // CHECK: DenseHostTensor dtype = F32, shape = [2]
+  // CHECK-SAME: values = [1.250000e-01, 2.500000e-01]
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
+
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}

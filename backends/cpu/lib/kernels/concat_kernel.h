@@ -65,11 +65,14 @@ static Expected<TensorMetadata> ConcatTensorMetadata(
     const DenseHostTensor* arg = args[i];
     const TensorShape& shape = arg->shape();
 
-    concat_axis_dim_size += shape.GetDimensionSize(axis);
+    // Implicitly convert scalars to vectors of length 1.
+    concat_axis_dim_size += rank == 0 ? 1 : shape.GetDimensionSize(axis);
 
-    // Input data types must match.
+    // Inputs must be of the same rank and data type.
     if (arg->dtype() != arg0_dtype)
       return MakeStringError("Input dtypes do not match");
+    if (shape.GetRank() != rank)
+      return MakeStringError("Input ranks do not match");
 
     // Construct a error message for non-matching dimension.
     auto wrong_dim = [&](int dim) -> Error {
@@ -114,6 +117,17 @@ static AsyncValueRef<Chain> ConcatKernel(ArrayRef<const DenseHostTensor*> args,
                                          int64_t axis, DenseHostTensor* output,
                                          const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
+
+  // Handle scalars concatenation separately to keep the common path simple.
+  if (args[0]->shape().GetRank() == 0) {
+    for (int i = 0; i < args.size(); ++i) {
+      const T* inp = static_cast<const T*>(args[i]->data());
+      T* out = static_cast<T*>(output->data());
+      out[i] = *inp;
+    }
+
+    return host->MakeAvailableAsyncValueRef<Chain>();
+  }
 
   // TODO(ezhulenev): Make this asynchronous/multithreaded.
   auto rank_dispatch = [&](auto rank_tag) -> void {

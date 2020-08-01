@@ -48,7 +48,26 @@ AsyncValueRef<StringHostTensor> StringHostTensor::MakeConstructedAsyncValueRef(
 
 AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
     HostContext* host, uint32_t allowed_formats) const {
-  llvm_unreachable("StringHostTensor::ConvertToHostTensor not supported");
+  assert(allowed_formats &
+         (1 << static_cast<uint32_t>(Tensor::Subclass::StringHost)));
+
+  // We need to make a copy of the data, because the source and result
+  // buffers are logically independent.
+  auto result = host->MakeUnconstructedAsyncValueRef<StringHostTensor>();
+
+  auto result_alloc = CreateUninitialized(metadata(), host);
+  if (!result_alloc)
+    return host->MakeErrorAsyncValueRef("out of memory copying tensor");
+
+  auto& result_tensor = result_alloc.getValue();
+
+  // Copy over the data.
+  for (int i = 0; i < NumElements(); ++i) {
+    result_tensor.strings()[i] = strings()[i];
+  }
+
+  result.emplace(std::move(result_tensor));
+  return result;
 }
 
 void StringHostTensor::Print(raw_ostream& os) const {

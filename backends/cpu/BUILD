@@ -95,6 +95,8 @@ tfrt_cc_library(
         "lib/ops/tf/shape_ops.h",
         "lib/ops/tf/softmax_ops.cc",
         "lib/ops/tf/softmax_ops.h",
+        "lib/ops/tf/tile_op.cc",
+        "lib/ops/tf/tile_op.h",
     ],
     hdrs = [
         "include/tfrt/cpu/ops/tf/cpu_ops.h",
@@ -125,6 +127,7 @@ tfrt_cc_library(
         "lib/kernels/cwise_unary_kernels.h",
         "lib/kernels/matmul_kernel.h",
         "lib/kernels/softmax_kernel.h",
+        "lib/kernels/tile_kernel.h",
     ],
     deps = [
         "@mkl_dnn//:mkldnn_single_threaded",

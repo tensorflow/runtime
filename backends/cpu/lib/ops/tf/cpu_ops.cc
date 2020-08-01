@@ -39,6 +39,7 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
+#include "tile_op.h"
 
 namespace tfrt {
 namespace {
@@ -237,6 +238,7 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
   RegisterTfShapeCpuOps(op_registry);
   RegisterTfSofmaxCpuOps(op_registry);
   RegisterTfMatmulFusionCpuOps(op_registry);
+  RegisterTfTileCpuOp(op_registry);
 }
 
 }  // namespace tfrt

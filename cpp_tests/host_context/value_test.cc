@@ -123,6 +123,31 @@ TEST(ValueTest, OutOfPlace) {
   ASSERT_FALSE(v2.HasValue());
 }
 
+struct AbstractBase {
+  virtual ~AbstractBase() = default;
+  virtual int value() const = 0;
+};
+
+struct Derived : AbstractBase {
+  explicit Derived(int i) : v{i} {}
+
+  int value() const override { return v; }
+
+  const int v;
+};
+
+TEST(ValueTest, AbstractBase) {
+  Value v1{Derived{2}};
+
+  ASSERT_EQ(v1.get<AbstractBase>().value(), 2);
+  ASSERT_TRUE(v1.IsType<Derived>());
+
+  Value v2{std::move(v1)};
+
+  ASSERT_EQ(v2.get<AbstractBase>().value(), 2);
+  ASSERT_TRUE(v2.IsType<Derived>());
+}
+
 struct BaseType1 {};
 struct BaseType2 {};
 struct FinalType1 final : BaseType1 {};

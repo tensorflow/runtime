@@ -157,7 +157,7 @@ class Value {
   // DenseHostTensor is 48 bytes. We want to avoid heap allocation for
   // DenseHostTensor and keep the size of Value objects to be the size of a
   // cache line size (64 bytes).
-  static constexpr int kInPlaceSize = 56;
+  static constexpr int kInPlaceSize = 48;
   static constexpr int kInPlaceAlignment = 8;
 
   template <class T>
@@ -173,12 +173,9 @@ class Value {
   using InPlaceStorageT =
       std::aligned_storage_t<kInPlaceSize, kInPlaceAlignment>;
 
-  union {
-    InPlaceStorageT storage_;
-    void* value_;
-  };
-
+  void* value_;  // Always point to the payload.
   const internal::TypeTraits* traits_ = nullptr;
+  InPlaceStorageT storage_;
 };
 
 // We only optimize the code for 64-bit architectures for now.
@@ -208,6 +205,7 @@ struct InPlaceTypeTraits {
 
     T& t = from->get<T>();
     new (&to->storage_) T(std::move(t));
+    to->value_ = &to->storage_;
     to->traits_ = from->traits_;
 
     t.~T();
@@ -291,11 +289,7 @@ template <typename T>
 const T& Value::get() const {
   assert(MaybeTypeCompatible<T>());
 
-  if (IsInPlace<T>()) {
-    return *reinterpret_cast<const T*>(&storage_);
-  } else {
-    return *static_cast<const T*>(value_);
-  }
+  return *static_cast<const T*>(value_);
 }
 
 // emplace() constructs the payload object of type T in place with the given
@@ -320,6 +314,7 @@ void Value::fill(Args&&... args) {
     static_assert(alignof(T) <= kInPlaceAlignment,
                   "Alignment requirement too big for Value");
     new (&storage_) T(std::forward<Args>(args)...);
+    value_ = &storage_;
   } else {
     value_ = new T(std::forward<Args>(args)...);
   }

@@ -65,19 +65,23 @@ class CoreRuntimeOp {
                   MutableArrayRef<TensorHandle> arguments,
                   const OpAttrsRef& attrs,
                   MutableArrayRef<TensorHandle> results,
-                  AsyncValueRef<Chain>* chain);
+                  AsyncValueRef<Chain>* chain) const;
 
-  void operator()(const OpInvocation& invocation);
+  void operator()(const OpInvocation& invocation) const;
 
-  void operator()(const CompositeOpInvocation& invocation);
+  void operator()(const CompositeOpInvocation& invocation) const;
 
   explicit operator bool() const { return static_cast<bool>(fn_); }
 
   bool IsFallback() const { return is_fallback_; }
 
  private:
-  llvm::unique_function<void(const OpInvocation&)> fn_;
-  llvm::unique_function<void(const CompositeOpInvocation&)> native_fn_;
+  // Since CoreRuntimeOp is semantically immutable, its operator() should be
+  // const functions.  We need to mark fn_ and native_fn_ as mutable so we can
+  // mark the operator() of this class as const function, because
+  // llvm::unique_function::operator() is non-const for some reason.
+  mutable llvm::unique_function<void(const OpInvocation&)> fn_;
+  mutable llvm::unique_function<void(const CompositeOpInvocation&)> native_fn_;
   bool is_fallback_;
 };
 

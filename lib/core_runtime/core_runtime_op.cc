@@ -39,7 +39,7 @@ void CoreRuntimeOp::operator()(const ExecutionContext& exec_ctx,
                                MutableArrayRef<TensorHandle> arguments,
                                const OpAttrsRef& attrs,
                                MutableArrayRef<TensorHandle> results,
-                               AsyncValueRef<Chain>* chain) {
+                               AsyncValueRef<Chain>* chain) const {
   // TODO(fishx): Consider removing op_name from OpInvocation after migrating
   // all clients to Prepare API.
   OpInvocation invocation{string_view{}, exec_ctx, arguments,
@@ -47,7 +47,7 @@ void CoreRuntimeOp::operator()(const ExecutionContext& exec_ctx,
   fn_(invocation);
 }
 
-void CoreRuntimeOp::operator()(const OpInvocation& invocation) {
+void CoreRuntimeOp::operator()(const OpInvocation& invocation) const {
   // The caller must provide a chain or at least one result (or both).  Ops with
   // zero results must have a chain because they are side effecting.  This
   // ensures that we have a way to report errors to the caller.
@@ -57,7 +57,7 @@ void CoreRuntimeOp::operator()(const OpInvocation& invocation) {
   fn_(invocation);
 }
 
-void CoreRuntimeOp::operator()(const CompositeOpInvocation& invocation) {
+void CoreRuntimeOp::operator()(const CompositeOpInvocation& invocation) const {
   // The caller must provide a chain or at least one result (or both).  Ops with
   // zero results must have a chain because they are side effecting.  This
   // ensures that we have a way to report errors to the caller.

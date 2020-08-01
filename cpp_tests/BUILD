@@ -190,8 +190,6 @@ tfrt_cc_library(
 tfrt_cc_test(
     name = "core_runtime/driver_test",
     srcs = [
-        "core_runtime/driver.cc",
-        "core_runtime/driver.h",
         "core_runtime/driver_test.cc",
     ],
     deps = [

@@ -25,6 +25,49 @@
 
 namespace tfrt {
 
+const char *DType::GetName() const {
+  switch (kind_) {
+    case Invalid:
+      return "invalid";
+    case Unsupported:
+      return "unsupported";
+    case UI8:
+      return "u8";
+    case UI16:
+      return "u16";
+    case UI32:
+      return "u32";
+    case UI64:
+      return "u64";
+    case I1:
+      return "u1";
+    case I8:
+      return "i8";
+    case I16:
+      return "i16";
+    case I32:
+      return "i32";
+    case I64:
+      return "i64";
+    case F32:
+      return "f32";
+    case F64:
+      return "f64";
+    case BOOL:
+      return "bool";
+    case COMPLEX64:
+      return "complex64";
+    case COMPLEX128:
+      return "complex128";
+    case F16:
+      return "f16";
+    case BF16:
+      return "bf16";
+    case String:
+      return "str";
+  }
+}
+
 // Return the size of one value of this dtype when represented on the host.
 size_t DType::GetHostSize() const {
   switch (kind_) {

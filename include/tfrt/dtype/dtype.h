@@ -61,6 +61,9 @@ class DType {
   bool IsValid() const { return kind_ != Invalid; }
   bool IsInvalid() const { return kind_ == Invalid; }
 
+  // Get the name for the dtype, e.g. i32, f32.
+  const char *GetName() const;
+
   // Print out a blob of memory as this dtype.
   void Print(const void *data, raw_ostream &os) const;
 

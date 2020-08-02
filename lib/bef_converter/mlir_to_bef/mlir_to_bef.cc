@@ -1494,7 +1494,7 @@ class BEFFunctionEmitter : public BEFEmitter {
   void EmitRegisterTable(mlir::Block* block, BEFEmitter* register_types);
   void EmitKernelResultUsers(mlir::Value result, BEFEmitter* kernel_list,
                              BEFEmitter* kernel_body) const;
-  void EmitArgumentsPseudoOp(mlir::Block* block, BEFEmitter* emitter) const;
+  void EmitArgumentsPseudoOp(mlir::Block* block, BEFEmitter* kernel_list) const;
   void EmitKernel(mlir::Operation* op, BEFEmitter* kernel_list,
                   BEFEmitter* attribute_names) const;
 

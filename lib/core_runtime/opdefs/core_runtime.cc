@@ -276,7 +276,7 @@ static ParseResult parseExecuteOpSeq(OpAsmParser &parser,
 template <typename OpTy>
 void PrintExecuteOpImpl(OpAsmPrinter &p, OpTy op) {
   auto op_attrs = op.op_attrs();
-  if (op_attrs.size() != 0) {
+  if (!op_attrs.empty()) {
     auto print_key_value = [&](mlir::Attribute attr) {
       auto key_value = attr.cast<ArrayAttr>().getValue();
       auto key = key_value[0];

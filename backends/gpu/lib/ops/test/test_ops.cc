@@ -38,11 +38,7 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
-using gpu::stream::EventFlags;
-using gpu::stream::EventRecord;
-using gpu::stream::EventSynchronize;
 using gpu::stream::OwningEvent;
-using gpu::stream::Pointer;
 
 // TODO(tfrt-devs): CoreRT device (corert.executeop) takes TensorHandle
 // inputs, and produce TensorHandle outputs. This operation simply passes input

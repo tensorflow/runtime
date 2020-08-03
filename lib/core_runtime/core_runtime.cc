@@ -374,14 +374,14 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
 
     for (auto iter : llvm::enumerate(llvm::drop_begin(results, 1))) {
       size_t i = iter.index();
-      auto& result_th = iter.value();
-      if (result_th->IsAvailable()) {
-        if (result_th->IsError()) {
+      auto& result_av = iter.value();
+      if (result_av->IsAvailable()) {
+        if (result_av->IsError()) {
           invocation.results[i] =
-              TensorHandle(AsyncValueRef<TensorHandle>(result_th.CopyRef()));
+              TensorHandle(AsyncValueRef<TensorHandle>(result_av.CopyRef()));
         } else {
-          assert(result_th->IsType<TensorHandle>());
-          invocation.results[i] = std::move(result_th->get<TensorHandle>());
+          assert(result_av->IsType<TensorHandle>());
+          invocation.results[i] = result_av->get<TensorHandle>().CopyRef();
         }
       } else {
         llvm_unreachable(
@@ -442,9 +442,9 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
 
     for (auto iter : llvm::enumerate(llvm::drop_begin(results, 1))) {
       size_t i = iter.index();
-      auto& result_th = iter.value();
+      auto& result_av = iter.value();
 
-      invocation.results[i] = std::move(result_th);
+      invocation.results[i] = result_av.CopyRef();
     }
   };
   return CoreRuntimeOp(std::move(execute_fn));

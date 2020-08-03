@@ -28,8 +28,7 @@ namespace tfrt {
 
 namespace {
 
-static constexpr int kMaxNumThreads = 256;
-static constexpr int kDefaultNumThreads = 8;
+static constexpr int kDefaultNumBlockingThreads = 256;
 
 // Factory function for a single-threaded thread pool. The argument must be
 // empty.
@@ -44,11 +43,10 @@ std::unique_ptr<ConcurrentWorkQueue> SingleThreadedWorkQueueFactory(
 }
 
 struct MakeMultiThreadedWorkQueue {
-  static std::unique_ptr<ConcurrentWorkQueue> make(int num_threads,
+  static std::unique_ptr<ConcurrentWorkQueue> make(int num_nonblocking_threads,
                                                    int num_blocking_threads) {
-    return CreateMultiThreadedWorkQueue(
-        std::min(kMaxNumThreads, num_threads),
-        std::min(kMaxNumThreads, num_blocking_threads));
+    return CreateMultiThreadedWorkQueue(num_nonblocking_threads,
+                                        num_blocking_threads);
   }
 };
 
@@ -58,23 +56,18 @@ struct MakeMultiThreadedWorkQueue {
 // use for blocking work, and Y will determine the number of threads for
 // nonblocking work. If X is not specified, the pool will use a number of
 // threads based on the number of CPUs in the system. Y is not specified, a
-// `kDefaultNumThreads` number of threads will be used for blocking work.
+// `kDefaultNumBlockingThreads` of threads will be used for blocking work.
 template <typename MakeWorkQueue>
 std::unique_ptr<ConcurrentWorkQueue> MultiThreadedWorkQueueFactory(
     string_view arg) {
   if (arg.empty()) {
-    // Reserve one or more CPUs (currently 1 out of 8) for blocking tasks, to
-    // avoid oversubscribing CPUs.
-    static constexpr float kBlockingCpuFraction = 0.125;
-    int num_cpus = std::thread::hardware_concurrency();
-    int num_blocking =
-        std::max(static_cast<int>(num_cpus * kBlockingCpuFraction), 1);
-    int num_nonblocking = std::max(num_cpus - num_blocking, 1);
+    int num_nonblocking = std::thread::hardware_concurrency();
+    int num_blocking = kDefaultNumBlockingThreads;
     return MakeWorkQueue::make(num_nonblocking, num_blocking);
   } else {
     size_t comma = arg.find(',');
     int num_threads;
-    int num_blocking = kDefaultNumThreads;
+    int num_blocking = kDefaultNumBlockingThreads;
     if (comma == std::string::npos) {
       size_t pos;
       num_threads = std::stoi(std::string(arg), &pos);

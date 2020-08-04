@@ -242,8 +242,8 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
   if (!fallback_handle) return fallback_handle.takeError();
   return CoreRuntimeOp(
       [this, op_name = op_name.str(),
-       fallback_handle = std::move(fallback_handle.get())](
-          const OpInvocation &invocation) mutable {
+       fallback_handle =
+           std::move(fallback_handle.get())](const OpInvocation &invocation) {
         // TODO(tfrt-devs): Make this class thread safe.
         auto id_number = log_counter_.fetch_add(1);
 

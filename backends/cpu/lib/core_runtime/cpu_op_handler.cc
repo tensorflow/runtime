@@ -197,7 +197,7 @@ Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
   // NOTE(fishx): To avoid introducing an extra heap allocation, we need to
   // ensure that the size of captured variable is smaller than 3 pointers.
   return CoreRuntimeOp(
-      [op_entry, this](const OpInvocation& invocation) mutable {
+      [op_entry, this](const OpInvocation& invocation) {
         bool update_chain = !(op_entry->flags & CpuOpFlags::NoSideEffects);
         // TODO(fishx): ExecuteOnOpHandler should return void.
         ExecuteOnOpHandler<CpuOpHandlerTraits>(

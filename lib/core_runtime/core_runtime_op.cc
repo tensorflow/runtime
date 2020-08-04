@@ -27,12 +27,13 @@ namespace tfrt {
 CoreRuntimeOp::CoreRuntimeOp() : fn_(nullptr), is_fallback_(false) {}
 
 CoreRuntimeOp::CoreRuntimeOp(
-    llvm::unique_function<void(const OpInvocation&)>&& fn, bool is_fallback)
+    llvm::unique_function<void(const OpInvocation&) const>&& fn,
+    bool is_fallback)
     : fn_(std::move(fn)), is_fallback_(is_fallback) {}
 
 // is_fallback_ is not relevant.
 CoreRuntimeOp::CoreRuntimeOp(
-    llvm::unique_function<void(const CompositeOpInvocation&)>&& fn)
+    llvm::unique_function<void(const CompositeOpInvocation&) const>&& fn)
     : native_fn_(std::move(fn)), is_fallback_(false) {}
 
 void CoreRuntimeOp::operator()(const ExecutionContext& exec_ctx,

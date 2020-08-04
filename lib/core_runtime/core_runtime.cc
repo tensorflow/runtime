@@ -301,7 +301,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
   // TODO(b/155801998): Avoid this string copy.
   return CoreRuntimeOp(
       [op_name = op_name.str(), op = std::move(op.get()),
-       op_handler](const OpInvocation& invocation) mutable {
+       op_handler](const OpInvocation& invocation) {
         TFRT_TRACE_KERNEL_SCOPE(
             StrCat(op_name, "#op_handler=", op_handler->GetName()));
         op(invocation);

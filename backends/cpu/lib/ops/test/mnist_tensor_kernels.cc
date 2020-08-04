@@ -735,6 +735,7 @@ static void RegisterMNISTTensorKernelsForType(KernelRegistry* registry,
 void RegisterMNISTTensorKernels(KernelRegistry* registry) {
   RegisterMNISTTensorKernelsForType<float>(registry, "f32");
   RegisterMNISTTensorKernelsForType<int32_t>(registry, "i32");
+  RegisterMNISTTensorKernelsForType<int64_t>(registry, "i64");
   registry->AddKernel("tfrt_test.cast.i32_to_f32",
                       TFRT_KERNEL(Cast<int32_t, float>));
 }

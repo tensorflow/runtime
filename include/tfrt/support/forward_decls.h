@@ -53,6 +53,8 @@ class StringRef;
 
 template <typename FunctionT>
 class unique_function;
+template <typename FunctionT>
+class function_ref;
 }  // namespace llvm
 
 namespace tfrt {

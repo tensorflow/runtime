@@ -173,3 +173,42 @@ func @fixed_rank_shape() {
 
   tfrt.return
 }
+
+// CHECK-LABEL: --- Running 'partial_tensor_shape'
+func @partial_tensor_shape() {
+  %a = ts.build_partial_shape [1 : i64, 57 : i64, 92 : i64]
+
+  // CHECK: partial_tensor_shape = [1, 57, 92]
+  ts.print_partial_shape %a
+
+  %b = ts.to_shape %a
+
+  // CHECK: shape = [1, 57, 92]
+  ts.print_shape %b
+
+  tfrt.return
+}
+
+// CHECK-LABEL: --- Running 'partial_tensor_shape_with_unknown_dim'
+func @partial_tensor_shape_with_unknown_dim() {
+  %a = ts.build_partial_shape [-1 : i64, 57 : i64, 92 : i64]
+
+  // CHECK: partial_tensor_shape = [-1, 57, 92]
+  ts.print_partial_shape %a
+
+  tfrt.return
+}
+
+// CHECK-LABEL: --- Running 'partial_tensor_shape_to_tensor_shape_error'
+func @partial_tensor_shape_to_tensor_shape_error() {
+  %a = ts.build_partial_shape [-1 : i64, 57 : i64, -1 : i64]
+
+  // CHECK: partial_tensor_shape = [-1, 57, -1]
+  ts.print_partial_shape %a
+
+  // expected-error @+1 {{runtime error: Unknown dimensions at following indices = [0, 2]}}
+  %b = ts.to_shape %a
+
+  tfrt.return
+}
+

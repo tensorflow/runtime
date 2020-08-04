@@ -20,10 +20,11 @@
 
 #include "tfrt/tensor/tensor_shape.h"
 
-#include <algorithm>
-
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Compiler.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/support/error_util.h"
+#include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 
@@ -234,6 +235,79 @@ ssize_t TensorShape::GetDimensionSize(int dim_idx) const {
     case RepKind::kRepExternal:
       return representation_.rep_external.dims[dim_idx];
   }
+}
+
+raw_ostream& operator<<(raw_ostream& os, const PartialTensorShape& value) {
+  if (!value.GetShape().hasValue()) {
+    return os << "Unknown rank";
+  }
+
+  os << '[';
+  if (!value.GetShape()->empty()) {
+    llvm::interleaveComma(value.GetShape().getValue(), os);
+  }
+  return os << ']';
+}
+
+PartialTensorShape::PartialTensorShape(Optional<ArrayRef<int64_t>> dims) {
+  if (dims.hasValue()) {
+    SmallVector<int64_t, 4> dims_vec{dims.getValue().begin(),
+                                     dims.getValue().end()};
+    dims_ = std::move(dims_vec);
+  }
+}
+
+bool PartialTensorShape::IsUnranked() const {
+  if (dims_.hasValue()) {
+    return false;
+  }
+  return true;
+}
+
+Optional<ArrayRef<int64_t>> PartialTensorShape::GetShape() const {
+  if (IsUnranked()) {
+    return llvm::None;
+  }
+  return llvm::makeArrayRef(dims_.getValue());
+}
+
+bool PartialTensorShape::IsShapeKnown() const {
+  if (IsUnranked()) {
+    return false;
+  }
+  // TODO(ashwinm): This can be precomputed.
+  return std::find_if(dims_->begin(), dims_->end(),
+                      PartialTensorShape::IsUnknownDim) == dims_->end();
+}
+
+int PartialTensorShape::GetRank() const {
+  if (IsUnranked()) {
+    return PartialTensorShape::kUnknownDimSize;
+  }
+  return GetShape().getValue().size();
+}
+
+Expected<TensorShape> PartialTensorShape::ToTensorShape() const {
+  if (IsShapeKnown()) {
+    return TensorShape(dims_.getValue());
+  }
+
+  if (IsUnranked()) {
+    return MakeStringError("Unknown rank");
+  }
+
+  SmallVector<ssize_t, 4> unknown_dims;
+  for (int i = 0; i < dims_->size(); i++) {
+    if (IsUnknownDim(dims_.getValue()[i])) {
+      unknown_dims.push_back(i);
+    }
+  }
+  std::string str;
+  llvm::raw_string_ostream os(str);
+  os << "[";
+  llvm::interleaveComma(unknown_dims, os);
+  os << "]";
+  return MakeStringError("Unknown dimensions at following indices = ", str);
 }
 
 template <size_t Rank>

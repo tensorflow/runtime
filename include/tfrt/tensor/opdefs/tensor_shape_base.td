@@ -24,5 +24,6 @@
 
 // Type definition.
 def TS_Shape : OpaqueType<"ts", "shape", "!ts.shape type">;
+def TS_PartialShape : OpaqueType<"ts", "partial_shape", "!ts.partial_shape type">;
 
 #endif  // TS_OPS_BASE

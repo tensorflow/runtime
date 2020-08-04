@@ -126,5 +126,39 @@ foreach rank = [0, 1, 2, 3] in {
   def TS_PrintFixedRankShapeOp_#rank : PrintFixedRankShapeOp<rank>;
 }
 
+def TS_BuildPartialShapeOp : TS_Op<"build_partial_shape", [NoSideEffect]> {
+  let summary = "Build partial tensor shape operation";
+
+  let description = [{
+    An operation that builds a partial tensor shape.
+  }];
+
+  let arguments = (ins I64ArrayAttr:$value);
+  let results = (outs TS_PartialShape:$output);
+  let assemblyFormat = "$value attr-dict";
+}
+
+def TS_PrintPartialShapeOp : TS_Op<"print_partial_shape"> {
+  let summary = "Prints the shape of the given partial tensor shape";
+
+  let description = [{
+    An operation that prints the shape of the given partial tensor shape.
+  }];
+
+  let arguments = (ins TS_PartialShape:$shape);
+  let assemblyFormat = "operands attr-dict";
+}
+
+def TS_ToTensorShapeOp : TS_Op<"to_shape"> {
+  let summary = "Converts partial tensor shape to tensor shape operation";
+
+  let description = [{
+    An operation that converts a partial tensor shape to tensor shape.
+  }];
+
+  let arguments = (ins TS_PartialShape:$shape);
+  let results = (outs TS_Shape:$output);
+  let assemblyFormat = "operands attr-dict";
+}
 
 #endif  // TS_OPS

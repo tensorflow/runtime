@@ -20,6 +20,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -59,6 +60,19 @@ static void TsPrintFixedRankShape(Argument<FixedRankShape<Rank>> arg) {
   tfrt::outs().flush();
 }
 
+static PartialTensorShape TsBuildPartialShape(ArrayAttribute<ssize_t> shape) {
+  return PartialTensorShape(shape.data());
+}
+
+static void TsPrintPartialShape(Argument<PartialTensorShape> arg) {
+  tfrt::outs() << "partial_tensor_shape = " << *arg << '\n';
+  tfrt::outs().flush();
+}
+
+static Expected<TensorShape> TsToShape(const PartialTensorShape& arg) {
+  return arg.ToTensorShape();
+}
+
 void RegisterTensorShapeKernels(KernelRegistry* registry) {
   registry->AddKernel("ts.build_shape", TsBuildShape);
   registry->AddKernel("ts.print_shape", TFRT_KERNEL(TsPrintShape));
@@ -77,6 +91,11 @@ void RegisterTensorShapeKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TsPrintFixedRankShape<2>));
   registry->AddKernel("ts.print_fixed_rank_shape.3",
                       TFRT_KERNEL(TsPrintFixedRankShape<3>));
+  registry->AddKernel("ts.build_partial_shape",
+                      TFRT_KERNEL(TsBuildPartialShape));
+  registry->AddKernel("ts.print_partial_shape",
+                      TFRT_KERNEL(TsPrintPartialShape));
+  registry->AddKernel("ts.to_shape", TFRT_KERNEL(TsToShape));
 }
 
 }  // namespace tfrt

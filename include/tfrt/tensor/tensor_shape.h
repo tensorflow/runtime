@@ -26,6 +26,9 @@
 #include <array>
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/None.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/Error.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -143,7 +146,7 @@ class FixedRankShape {
   using iterator = typename Dims::iterator;
 
   FixedRankShape() { dims_.fill(0); }
-  FixedRankShape(const Dims& dims) : dims_(dims) {}
+  explicit FixedRankShape(const Dims& dims) : dims_(dims) {}
   explicit FixedRankShape(const TensorShape& shape);
 
   bool operator==(const FixedRankShape& other) const {
@@ -168,6 +171,54 @@ class FixedRankShape {
 
  private:
   std::array<ssize_t, Rank> dims_;
+};
+
+// Represents the shape of a tensor whose rank can either be unknown or known
+// but some dimensions may be unknown.
+// This type is intended for writing kernels that model shape
+// computations. Any tensor shape that eventually should be executed by the
+// runtime, must be converted to a TensorShape, if it's shape is fully known,
+// otherwise it is not a valid shape for the runtime and an error will be
+// returned while trying to convert it.
+// This represents the RankedTensorShape/UnrankedTensorShape in the MLIR
+// standard types.
+class PartialTensorShape {
+ public:
+  // Create a PartialTensorShape with the dimensions. If rank itself is unknown,
+  // (dims is llvm::None), this is an unranked. Else, it is ranked where each
+  // dimensions could still be unknown (indicated by kUnknownDimSize) as well.
+  explicit PartialTensorShape(Optional<ArrayRef<int64_t>> dims);
+
+  // Returns the shape of the tensor.
+  // If unranked, return llvm::None
+  // If ranked, return dimensions (including kUnknownDimSize for unknown dim).
+  Optional<ArrayRef<int64_t>> GetShape() const;
+
+  // Returns true if the rank is unknown. Else, returns false.
+  // TODO(ashwinm): Add a test for unranked in tensor_shape.mlir
+  bool IsUnranked() const;
+
+  // Returns the rank if rank is known. If unknown, returns kUnknownDimSize.
+  // The maximum rank is 255. A scalar returns a 0.
+  int GetRank() const;
+
+  // If unknown rank or any dimension has unknown size (< 0), it doesn't have
+  // known shape. If true, this shape can be converted to a
+  // TensorShape.
+  bool IsShapeKnown() const;
+
+  // Convert to a TensorShape if all dimensions are known, else return error
+  // indicating all such unknown dimensions.
+  Expected<TensorShape> ToTensorShape() const;
+
+  static constexpr int64_t kUnknownDimSize = -1;
+  static bool IsUnknownDim(int64_t dim) { return dim == kUnknownDimSize; }
+
+ private:
+  // We store dims in SmallVector here since PartialTensorShape is designed
+  // for use in shape computations where we could alter the shape by adding/
+  // removing dimensions.
+  Optional<SmallVector<int64_t, 4>> dims_;
 };
 
 //
@@ -270,6 +321,8 @@ FixedRankShape<Rank>::FixedRankShape(const TensorShape& shape) {
 
 template <size_t Rank>
 raw_ostream& operator<<(raw_ostream& os, const FixedRankShape<Rank>& value);
+
+raw_ostream& operator<<(raw_ostream& os, const PartialTensorShape& value);
 
 }  // namespace tfrt
 

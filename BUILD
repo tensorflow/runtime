@@ -1,3 +1,4 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load(":build_defs.bzl", "tfrt_cc_library")
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
 
@@ -786,10 +787,10 @@ tfrt_cc_library(
     ],
     visibility = [":friends"],
     deps = [
+        ":hostcontext",
+        ":support",
+        ":tensor",
         "@llvm-project//llvm:Support",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
     ],
 )
 
@@ -803,10 +804,10 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":distributed_runtime",
+        ":hostcontext",
+        ":support",
+        ":tensor",
         "@llvm-project//llvm:Support",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
     ],
 )
 
@@ -848,4 +849,10 @@ tfrt_cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
     ],
+)
+
+bzl_library(
+    name = "build_defs_bzl",
+    srcs = ["build_defs.bzl"],
+    visibility = ["//visibility:private"],
 )

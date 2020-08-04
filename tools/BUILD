@@ -1,3 +1,4 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
 
 package(
@@ -157,4 +158,10 @@ tfrt_cc_binary(
 cc_binary(
     name = "bef_name",
     srcs = ["bef_name.cc"],
+)
+
+bzl_library(
+    name = "mlir_to_bef_bzl",
+    srcs = ["mlir_to_bef.bzl"],
+    visibility = ["//visibility:private"],
 )

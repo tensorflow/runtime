@@ -1,3 +1,4 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@tf_runtime//:build_defs.bzl", "tfrt_py_binary")
 load("@tf_runtime//mlir_tests/bef_perf:gen_benchmark.bzl", "gen_benchmark")
 
@@ -58,3 +59,9 @@ gen_benchmark(benchmark_name = "fully_serial")
 gen_benchmark(benchmark_name = "fully_parallel")
 
 gen_benchmark(benchmark_name = "star")
+
+bzl_library(
+    name = "gen_benchmark_bzl",
+    srcs = ["gen_benchmark.bzl"],
+    visibility = ["//visibility:private"],
+)

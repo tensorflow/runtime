@@ -765,6 +765,7 @@ tfrt_cc_library(
         "include/tfrt/data/opdefs/data_ops.h",
     ],
     alwayslink_static_registration_src = "lib/data/opdefs/static_registration.cc",
+    visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
         ":data_opdefs_inc_gen",

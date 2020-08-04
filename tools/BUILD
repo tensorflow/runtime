@@ -30,7 +30,6 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AllPassesAndDialectsNoRegistration",
         "@llvm-project//mlir:MlirOptLib",
-        "@llvm-project//mlir:MlirOptMain",
     ] + select({
         "@tf_runtime//:gpu_enabled": [
             "@tf_runtime//backends/gpu:cuda_opdefs_alwayslink",
@@ -45,6 +44,7 @@ tfrt_cc_binary(
     visibility = [":friends"],
     deps = [
         ":opt_lib",
+        "@llvm-project//mlir:MlirOptMain",
     ],
 )
 

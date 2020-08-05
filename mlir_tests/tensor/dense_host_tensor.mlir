@@ -197,3 +197,20 @@ func @dense_attr() {
 
   tfrt.return
 }
+
+// CHECK-LABEL: --- Running 'sync_basic_tensor'
+func @sync_basic_tensor() attributes {tfrt.sync} {
+  %a = tfrt_dht_sync.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
+  tfrt_dht_sync.set_tensor_with_constant_values.i32 %a
+    [1 : i32, -1 : i32, 1 : i32, -1 : i32, 1 : i32, -1 : i32]
+
+  // CHECK: shape = [3, 2], values = [1, -1, 1, -1, 1, -1]
+  tfrt_dht_sync.print_tensor %a
+
+  %b = "tfrt_test.sync.const_dense_attr"() {value = dense<[[1, 1], [2, 2]]> : tensor<2x2xi32>} : () -> !t.tensor
+
+  // CHECK: shape = [2, 2], values = [1, 1, 2, 2]
+  tfrt_dht_sync.print_tensor %b
+
+  tfrt.return
+}

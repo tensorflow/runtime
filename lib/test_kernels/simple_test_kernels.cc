@@ -326,6 +326,8 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestReportErrorAsync));
   registry->AddKernel("tfrt_test.const_dense_attr",
                       TFRT_KERNEL(TestConstDenseAttr));
+  registry->AddSyncKernel("tfrt_test.sync.const_dense_attr",
+                          TFRT_SYNC_KERNEL(TestConstDenseAttr));
 
   registry->AddSyncKernel("tfrt_test.fail_s", TFRT_SYNC_KERNEL(TestFail));
   registry->AddSyncKernel("tfrt_test.error_s", TFRT_SYNC_KERNEL(TestError));

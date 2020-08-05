@@ -26,6 +26,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/support/string_util.h"
@@ -37,17 +38,14 @@
 namespace tfrt {
 
 template <typename T, size_t Rank>
-static void CreateUninitializedDenseTensor(Result<DenseHostTensor> out,
-                                           ArrayAttribute<ssize_t> shape_in,
-                                           KernelErrorHandler handler,
-                                           AsyncKernelFrame* frame) {
+static Expected<DenseHostTensor> CreateUninitializedDenseTensor(
+    ArrayAttribute<ssize_t> shape_in, const ExecutionContext& exec_ctx) {
   auto result = DenseHostTensor::CreateUninitialized<T>(
-      TensorShape(shape_in.data()), frame->GetHostContext());
+      TensorShape(shape_in.data()), exec_ctx.host());
   if (!result.hasValue()) {
-    handler.ReportError("Cannot allocate tensor");
-    return;
+    return MakeStringError("Cannot allocate tensor");
   }
-  out.Emplace(std::move(*result));
+  return std::move(*result);
 }
 
 template <typename T>
@@ -91,6 +89,17 @@ static void SetDenseTensorWithConstantValues(
 }
 
 template <typename T>
+static Error SyncSetDenseTensorWithConstantValues(MutableDHTArrayView<T> in,
+                                                  ArrayAttribute<T> values) {
+  if (in.NumElements() != values.size()) {
+    return MakeStringError("Incorrect number of values for the tensor: ",
+                           values.size(), ", but expected ", in.NumElements());
+  }
+  std::copy(values.data().begin(), values.data().end(), in.Elements().begin());
+  return Error::success();
+}
+
+template <typename T>
 static llvm::Expected<Chain> SetDenseTensorWithValues(
     MutableDHTArrayView<T> input, const Chain& chain_in,
     RemainingArguments values) {
@@ -122,6 +131,11 @@ static Chain PrintTensor(const Tensor& t) {
   tfrt::outs() << t << "\n";
   tfrt::outs().flush();
   return Chain();
+}
+
+static void SyncPrintTensor(const Tensor& t) {
+  tfrt::outs() << t << "\n";
+  tfrt::outs().flush();
 }
 
 static Chain PrintDenseTensorShape(Argument<DenseHostTensor> t) {
@@ -185,6 +199,9 @@ static void RegisterDenseHostTensorKernelsForTypeAndRank(
   std::string suffix = t_name + "." + std::to_string(Rank);
   registry->AddKernel("tfrt_dht.create_uninitialized_tensor." + suffix,
                       TFRT_KERNEL(CreateUninitializedDenseTensor<T, Rank>));
+  registry->AddSyncKernel(
+      "tfrt_dht_sync.create_uninitialized_tensor." + suffix,
+      TFRT_SYNC_KERNEL(CreateUninitializedDenseTensor<T, Rank>));
 }
 
 template <typename T>
@@ -199,6 +216,9 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(MakeTensor<T>));
   registry->AddKernel("tfrt_dht.set_tensor_with_constant_values." + suffix,
                       TFRT_KERNEL(SetDenseTensorWithConstantValues<T>));
+  registry->AddSyncKernel(
+      "tfrt_dht_sync.set_tensor_with_constant_values." + suffix,
+      TFRT_SYNC_KERNEL(SyncSetDenseTensorWithConstantValues<T>));
   registry->AddKernel("tfrt_dht.set_tensor_with_values." + suffix,
                       TFRT_KERNEL(SetDenseTensorWithValues<T>));
   registry->AddKernel("tfrt_dht.tensor_equal." + suffix,
@@ -232,6 +252,8 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
                                                               "complex128");
   registry->AddKernel("tfrt_dht.allocate_buffer", TFRT_KERNEL(AllocateBuffer));
   registry->AddKernel("tfrt_dht.print_tensor", TFRT_KERNEL(PrintTensor));
+  registry->AddSyncKernel("tfrt_dht_sync.print_tensor",
+                          TFRT_SYNC_KERNEL(SyncPrintTensor));
   registry->AddKernel("tfrt_dht.print_tensor_shape",
                       TFRT_KERNEL(PrintDenseTensorShape));
   registry->AddKernel("tfrt_dht.get_tensor_shape",

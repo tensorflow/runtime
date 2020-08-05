@@ -39,9 +39,26 @@ def DHT_Dialect : Dialect {
   let cppNamespace = "dht";
 }
 
+// Dense host tensor dialect.
+def DHT_Sync_Dialect : Dialect {
+  let name = "tfrt_dht_sync";
+
+  let description = [{
+    The DenseHostTensor dialect sync.
+
+    This dialect contains synchronous operations for working with dense host tensors.
+  }];
+
+  let cppNamespace = "dht";
+}
+
 // Base class for the operation in this dialect
 class DHT_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<DHT_Dialect, mnemonic, traits>;
+
+// Base class for the operation in this dialect
+class DHT_Sync_Op<string mnemonic, list<OpTrait> traits = []> :
+    Op<DHT_Sync_Dialect, mnemonic, traits>;
 
 class CreateUninitializedTensorOp<string dtype, int rank>
   : DHT_Op<"create_uninitialized_tensor." # dtype # "." # rank,
@@ -63,6 +80,26 @@ class CreateUninitializedTensorOp<string dtype, int rank>
   let printer = [{ return tfrt::dht::printCreateUninitTensorOp(p, *this); }];
   let parser = " return tfrt::dht::parseCreateUninitTensorOp(parser, result);";
 }
+
+class SyncCreateUninitializedTensorOp<string dtype, int rank>
+  : DHT_Sync_Op<"create_uninitialized_tensor." # dtype # "." # rank,
+          [NoSideEffect]> {
+  let summary = "tfrt_dht_sync.create_uninitialized_tensor operation";
+
+  let description = [{
+    An operation that creates an uninitialized tensor.
+    It takes a shape attribute and outputs a tensor as output.
+
+    Example:
+      %2 = tfrt_dht_sync.create_uninitialized_tensor.i32.0 []
+      %3 = tfrt_dht_sync.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
+  }];
+
+  let arguments = (ins I64ArrayAttr:$shape);
+  let results = (outs TensorType);
+  let assemblyFormat = "$shape attr-dict";
+}
+
 
 class MakeTensorOp<string dtype>
   : DHT_Op<"make_tensor." # dtype> {
@@ -124,6 +161,21 @@ def PrintTensorOp : DHT_Op<"print_tensor"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def SyncPrintTensorOp : DHT_Sync_Op<"print_tensor"> {
+  let summary = "tfrt_dht_sync.print_tensor operation";
+
+  let description = [{
+    An operation that prints a tensor. It takes a tensor as input.
+
+    Example:
+      tfrt_dht_sync.print_tensor %1
+  }];
+
+  let arguments = (ins TensorType);
+  let results = (outs);
+  let assemblyFormat = "operands attr-dict";
+}
+
 class SetTensorOp<string dtype>
   : DHT_Op<"set_tensor_with_constant_values." # dtype> {
   let summary = "tfrt_dht.set_tensor_with_constant_values operation";
@@ -144,6 +196,24 @@ class SetTensorOp<string dtype>
 
   let printer = [{ return tfrt::dht::printSetTensorOp(p, *this); }];
   let parser = " return tfrt::dht::parseSetTensorOp(parser, result);";
+}
+
+class SyncSetTensorOp<string dtype>
+  : DHT_Sync_Op<"set_tensor_with_constant_values." # dtype> {
+  let summary = "tfrt_dht_sync.set_tensor_with_constant_values operation";
+
+  let description = [{
+    An operation that sets an input tensor with given values. It takes an input
+    tensor and a list of values as attribute, and outputs nothing.
+
+    Example:
+      %2 = tfrt_dht.create_uninitialized_tensor.i32.2 [1 : i32, 2 : i32]
+      tfrt_dht.set_tensor_with_constant_values.i32 %2 [0 : i32, 1 : i32]
+  }];
+
+  let arguments = (ins TensorType:$tensor, ArrayAttr:$values);
+  let results = (outs);
+  let assemblyFormat = "$tensor $values attr-dict";
 }
 
 class TensorEqualOp<string dtype>
@@ -242,10 +312,13 @@ foreach dtype = ["ui8", "ui16", "ui32", "ui64", "i32", "f32", "i64", "bool", "co
   foreach rank = [0, 1, 2, 3, 4] in {
     def DHT_CreateUninitializedTensorOp_#dtype#_#rank
       : CreateUninitializedTensorOp<dtype, rank>;
+    def DHT_SyncCreateUninitializedTensorOp_#dtype#_#rank
+      : SyncCreateUninitializedTensorOp<dtype, rank>;
   }
   def DHT_FillTensorOp_#dtype : FillTensorOp<dtype>;
   def DHT_MakeTensorOp_#dtype : MakeTensorOp<dtype>;
   def DHT_SetTensorOp_#dtype : SetTensorOp<dtype>;
+  def DHT_SyncSetTensorOp_#dtype : SyncSetTensorOp<dtype>;
   def DHT_TensorEqualOp_#dtype : TensorEqualOp<dtype>;
 }
 

@@ -223,10 +223,15 @@ TEST(TaskDequeTest, EmptynessCheckMultipleWorkers) {
   constexpr int kNumIterations = 1 << 14;
   constexpr int kNumWorkers = 10;
 
-  std::atomic<int> live_workers = kNumWorkers;
-
   ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
   ASSERT_FALSE(queue.Empty());
+
+  struct ScopedLiveWorker {
+    ~ScopedLiveWorker() { live_workers--; }
+    std::atomic<int>& live_workers;
+  };
+
+  std::atomic<int> live_workers = kNumWorkers;
 
   std::atomic<int> worker_id = 0;
 
@@ -235,6 +240,8 @@ TEST(TaskDequeTest, EmptynessCheckMultipleWorkers) {
     std::mt19937 rng(rd());
 
     int id = worker_id.fetch_add(1);
+
+    ScopedLiveWorker live_worker{live_workers};
 
     for (int i = 0; i < kNumIterations; ++i) {
       // Queue is never empty before we push a task.
@@ -248,17 +255,22 @@ TEST(TaskDequeTest, EmptynessCheckMultipleWorkers) {
 
       std::this_thread::yield();
 
+      // PopFront and PopBack can return empty optional if atomic exchange
+      // operation failed under contention, but they should be successfull
+      // after a reasonable number of iterations.
+      llvm::Optional<TaskFunction> popped = llvm::None;
       if (id == 0 && rng() % 2 == 0) {
-        ASSERT_TRUE(queue.PopFront().hasValue());
+        for (int i = 0; i < 100 && !popped.hasValue(); ++i)
+          popped = queue.PopFront();
       } else {
-        ASSERT_TRUE(queue.PopBack().hasValue());
+        for (int i = 0; i < 100 && !popped.hasValue(); ++i)
+          popped = queue.PopBack();
       }
+      ASSERT_TRUE(popped.hasValue());
 
       // And it's never empty after we pop a task.
       ASSERT_FALSE(queue.Empty());
     }
-
-    live_workers--;
   };
 
   // Start worker threads.

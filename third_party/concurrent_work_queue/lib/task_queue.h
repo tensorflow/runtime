@@ -25,8 +25,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_
-#define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_
+#ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_QUEUE_H_
+#define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_QUEUE_H_
 
 #include <array>
 #include <atomic>
@@ -174,4 +174,4 @@ class TaskQueue {
 }  // namespace internal
 }  // namespace tfrt
 
-#endif  // TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_
+#endif  // TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_QUEUE_H_

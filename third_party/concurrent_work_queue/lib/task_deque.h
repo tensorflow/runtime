@@ -37,8 +37,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_DEQUE_TASK_DEQUE_H_
-#define TFRT_THIRD_PARTY_CONCURRENT_WORK_DEQUE_TASK_DEQUE_H_
+#ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_
+#define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_
 
 #include <array>
 #include <atomic>
@@ -274,6 +274,7 @@ class TaskDeque {
     // larger than it is during concurrent modifications. E.g. push can
     // increment size before the corresponding pop has decremented it.
     // So the computed size can be up to kCapacity + 1, fix it.
+    assert(size <= kCapacity + 1);
     if (size > static_cast<int>(kCapacity)) size = kCapacity;
     return static_cast<unsigned>(size);
   }
@@ -282,4 +283,4 @@ class TaskDeque {
 }  // namespace internal
 }  // namespace tfrt
 
-#endif  // TFRT_THIRD_PARTY_CONCURRENT_WORK_DEQUE_TASK_DEQUE_H_
+#endif  // TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_

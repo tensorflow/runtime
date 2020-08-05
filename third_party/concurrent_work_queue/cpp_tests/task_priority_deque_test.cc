@@ -1,0 +1,428 @@
+// This Source Code Form is subject to the terms of the Mozilla
+// Public License v. 2.0. If a copy of the MPL was not distributed
+// with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+//===- task_priority_deque_test.cc ------------------------------*- C++ -*-===//
+//
+// Unit tests and benchmarks for TaskPriorityDeque.
+//
+//===----------------------------------------------------------------------===//
+
+#include "task_priority_deque.h"
+
+#include <random>
+#include <thread>
+
+#include "benchmark/benchmark.h"
+#include "gtest/gtest.h"
+#include "llvm/ADT/None.h"
+#include "llvm/ADT/Optional.h"
+#include "tfrt/host_context/task_function.h"
+
+namespace tfrt {
+namespace {
+
+using TaskPriorityDeque = ::tfrt::internal::TaskPriorityDeque;
+using TaskPriority = ::tfrt::internal::TaskPriority;
+
+// Helper class to create TaskFunction with an observable side effect.
+struct TaskFunctions {
+  TaskFunction Next(int value) {
+    return TaskFunction([this, value]() { this->value = value; });
+  }
+
+  int Run(llvm::Optional<TaskFunction> task) {
+    if (!task.hasValue()) return -1;
+    (*task)();
+    return value;
+  }
+
+  int value = -1;
+};
+
+TEST(TaskPriorityDequeTest, QueueCreatedEmpty) {
+  TaskPriorityDeque queue;
+
+  ASSERT_TRUE(queue.Empty());
+  ASSERT_EQ(queue.Size(), 0);
+
+  ASSERT_EQ(queue.PopFront(), llvm::None);
+  ASSERT_EQ(queue.PopBack(), llvm::None);
+}
+
+TEST(TaskPriorityDequeTest, PushAndPopFrontDefaultPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  ASSERT_EQ(queue.PushFront(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.Size(), 1);
+  ASSERT_EQ(fn.Run(queue.PopFront()), 1);
+  ASSERT_EQ(queue.Size(), 0);
+}
+
+TEST(TaskPriorityDequeTest, PushAndPopFrontWithPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  ASSERT_EQ(queue.PushFront(fn.Next(1), TaskPriority::kLow), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(2), TaskPriority::kLow), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(3), TaskPriority::kDefault), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(4), TaskPriority::kDefault), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(5), TaskPriority::kHigh), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(6), TaskPriority::kHigh), llvm::None);
+  ASSERT_EQ(queue.Size(), 6);
+
+  ASSERT_EQ(fn.Run(queue.PopFront()), 6);
+  ASSERT_EQ(fn.Run(queue.PopFront()), 5);
+  ASSERT_EQ(fn.Run(queue.PopFront()), 4);
+  ASSERT_EQ(fn.Run(queue.PopFront()), 3);
+  ASSERT_EQ(fn.Run(queue.PopFront()), 2);
+  ASSERT_EQ(fn.Run(queue.PopFront()), 1);
+  ASSERT_EQ(queue.Size(), 0);
+}
+
+TEST(TaskPriorityDequeTest, PushAndPopBackDefaultPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.Size(), 1);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 1);
+  ASSERT_EQ(queue.Size(), 0);
+}
+
+TEST(TaskPriorityDequeTest, PushAndPopBackWithPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  ASSERT_EQ(queue.PushBack(fn.Next(1), TaskPriority::kLow), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(2), TaskPriority::kLow), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(3), TaskPriority::kDefault), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(4), TaskPriority::kDefault), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(5), TaskPriority::kHigh), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(6), TaskPriority::kHigh), llvm::None);
+  ASSERT_EQ(queue.Size(), 6);
+
+  ASSERT_EQ(fn.Run(queue.PopBack()), 6);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 5);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 4);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 3);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 2);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 1);
+  ASSERT_EQ(queue.Size(), 0);
+}
+
+TEST(TaskPriorityDequeTest, PushFrontAndPopBackDefaultPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  ASSERT_EQ(queue.PushFront(fn.Next(1)), llvm::None);
+  ASSERT_EQ(queue.Size(), 1);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 1);
+  ASSERT_EQ(queue.Size(), 0);
+}
+
+TEST(TaskPriorityDequeTest, PushFrontAndPopBackWithPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  ASSERT_EQ(queue.PushFront(fn.Next(1), TaskPriority::kLow), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(2), TaskPriority::kLow), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(3), TaskPriority::kDefault), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(4), TaskPriority::kDefault), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(5), TaskPriority::kHigh), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(6), TaskPriority::kHigh), llvm::None);
+
+  ASSERT_EQ(fn.Run(queue.PopBack()), 5);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 6);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 3);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 4);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 1);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 2);
+  ASSERT_EQ(queue.Size(), 0);
+}
+
+TEST(TaskPriorityDequeTest, PushFrontToOverflowDefaultPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
+    ASSERT_EQ(queue.PushFront(fn.Next(i)), llvm::None);
+  }
+
+  auto overflow = queue.PushFront(fn.Next(12345));
+  ASSERT_TRUE(overflow.hasValue());
+  ASSERT_EQ(fn.Run(std::move(overflow)), 12345);
+
+  for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
+    ASSERT_EQ(fn.Run(queue.PopBack()), i);
+    ASSERT_EQ(queue.Size(), TaskPriorityDeque::kCapacity - i - 1);
+  }
+}
+
+TEST(TaskPriorityDequeTest, PushFrontToOverflowWithPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  auto priority = [](int i) -> TaskPriority {
+    if (i % 3 == 0) return TaskPriority::kLow;
+    if (i % 3 == 1) return TaskPriority::kDefault;
+    return TaskPriority::kHigh;
+  };
+
+  for (int i = 0; i < 3 * TaskPriorityDeque::kCapacity; ++i) {
+    ASSERT_EQ(queue.PushFront(fn.Next(i), priority(i)), llvm::None);
+  }
+
+  auto overflow0 = queue.PushFront(fn.Next(12345), TaskPriority::kLow);
+  auto overflow1 = queue.PushFront(fn.Next(67891), TaskPriority::kDefault);
+  auto overflow2 = queue.PushFront(fn.Next(23456), TaskPriority::kHigh);
+
+  ASSERT_TRUE(overflow0.hasValue());
+  ASSERT_TRUE(overflow1.hasValue());
+  ASSERT_TRUE(overflow2.hasValue());
+
+  ASSERT_EQ(fn.Run(std::move(overflow0)), 12345);
+  ASSERT_EQ(fn.Run(std::move(overflow1)), 67891);
+  ASSERT_EQ(fn.Run(std::move(overflow2)), 23456);
+
+  for (int p = 0; p < 3; ++p) {
+    for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
+      ASSERT_EQ(fn.Run(queue.PopBack()), (3 - p - 1) + 3 * i);
+      ASSERT_EQ(queue.Size(), (3 - p) * TaskPriorityDeque::kCapacity - i - 1);
+    }
+  }
+}
+
+TEST(TaskPriorityDequeTest, PushBackToOverflowDefaultPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
+    ASSERT_EQ(queue.PushBack(fn.Next(i)), llvm::None);
+  }
+
+  auto overflow = queue.PushBack(fn.Next(12345));
+  ASSERT_TRUE(overflow.hasValue());
+  ASSERT_EQ(fn.Run(std::move(overflow)), 12345);
+
+  for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
+    ASSERT_EQ(fn.Run(queue.PopFront()), i);
+  }
+}
+
+TEST(TaskPriorityDequeTest, PushBackToOverflowWithPriority) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  auto priority = [](int i) -> TaskPriority {
+    if (i % 3 == 0) return TaskPriority::kLow;
+    if (i % 3 == 1) return TaskPriority::kDefault;
+    return TaskPriority::kHigh;
+  };
+
+  for (int i = 0; i < 3 * TaskPriorityDeque::kCapacity; ++i) {
+    ASSERT_EQ(queue.PushBack(fn.Next(i), priority(i)), llvm::None);
+  }
+
+  auto overflow0 = queue.PushBack(fn.Next(12345), TaskPriority::kLow);
+  auto overflow1 = queue.PushBack(fn.Next(67891), TaskPriority::kDefault);
+  auto overflow2 = queue.PushBack(fn.Next(23456), TaskPriority::kHigh);
+
+  ASSERT_TRUE(overflow0.hasValue());
+  ASSERT_TRUE(overflow1.hasValue());
+  ASSERT_TRUE(overflow2.hasValue());
+
+  ASSERT_EQ(fn.Run(std::move(overflow0)), 12345);
+  ASSERT_EQ(fn.Run(std::move(overflow1)), 67891);
+  ASSERT_EQ(fn.Run(std::move(overflow2)), 23456);
+
+  for (int p = 0; p < 3; ++p) {
+    for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
+      ASSERT_EQ(fn.Run(queue.PopFront()), (3 - p - 1) + 3 * i);
+      ASSERT_EQ(queue.Size(), (3 - p) * TaskPriorityDeque::kCapacity - i - 1);
+    }
+  }
+}
+
+// Check that queue correctly reports its emptyness status under contention.
+// Worker thread constantly push and pop one task to/from the queue, that
+// initially was added a single task.
+TEST(TaskPriorityDequeTest, EmptynessCheckSingleWorker) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  constexpr int kNumIterations = 1 << 16;
+
+  std::atomic<bool> done = false;
+
+  ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
+  ASSERT_FALSE(queue.Empty());
+
+  auto worker = [&]() {
+    std::random_device rd;
+    std::mt19937 rng(rd());
+
+    for (int i = 0; i < kNumIterations; ++i) {
+      // Queue is never empty before we push a task.
+      ASSERT_FALSE(queue.Empty());
+
+      auto priority = [](int rng) -> TaskPriority {
+        if (rng % 3 == 0) return TaskPriority::kLow;
+        if (rng % 3 == 1) return TaskPriority::kDefault;
+        return TaskPriority::kHigh;
+      };
+
+      if (rng() % 2) {
+        ASSERT_EQ(queue.PushFront(fn.Next(1), priority(rng())), llvm::None);
+      } else {
+        ASSERT_EQ(queue.PushBack(fn.Next(1), priority(rng())), llvm::None);
+      }
+
+      std::this_thread::yield();
+
+      int choice = rng() % 2;
+
+      if (choice == 0) {
+        ASSERT_TRUE(queue.PopFront().hasValue());
+      } else if (choice == 1) {
+        ASSERT_TRUE(queue.PopBack().hasValue());
+      }
+
+      // And it's never empty after we pop a task.
+      ASSERT_FALSE(queue.Empty());
+    }
+
+    done = true;
+  };
+
+  // Start a worker thread.
+  std::thread worker_thread(worker);
+
+  while (!done) {
+    ASSERT_FALSE(queue.Empty());
+    unsigned size = queue.Size();
+    ASSERT_GE(size, 1);
+    ASSERT_LE(size, 2);
+  }
+
+  ASSERT_EQ(queue.Size(), 1);
+  ASSERT_TRUE(queue.PopBack().hasValue());
+
+  // Wait for worker thread completion.
+  worker_thread.join();
+}
+
+// Check that queue correctly reports its emptyness status under contention.
+// With a multiple worker threads we can use the front of the queue only from
+// one thread, all other threads must use the back of the queue.
+TEST(TaskPriorityDequeTest, EmptynessCheckMultipleWorkers) {
+  TaskFunctions fn;
+  TaskPriorityDeque queue;
+
+  constexpr int kNumIterations = 1 << 14;
+  constexpr int kNumWorkers = 10;
+
+  ASSERT_EQ(queue.PushBack(fn.Next(1)), llvm::None);
+  ASSERT_FALSE(queue.Empty());
+
+  std::atomic<int> worker_id = 0;
+
+  struct ScopedLiveWorker {
+    ~ScopedLiveWorker() { live_workers--; }
+    std::atomic<int>& live_workers;
+  };
+
+  std::atomic<int> live_workers = kNumWorkers;
+
+  auto worker = [&]() {
+    std::random_device rd;
+    std::mt19937 rng(rd());
+
+    int id = worker_id.fetch_add(1);
+
+    ScopedLiveWorker live_worker{live_workers};
+
+    for (int i = 0; i < kNumIterations; ++i) {
+      // Queue is never empty before we push a task.
+      ASSERT_FALSE(queue.Empty());
+
+      auto priority = [](int rng) -> TaskPriority {
+        if (rng % 3 == 0) return TaskPriority::kLow;
+        if (rng % 3 == 1) return TaskPriority::kDefault;
+        return TaskPriority::kHigh;
+      };
+
+      if (id == 0 && rng() % 2 == 0) {
+        ASSERT_EQ(queue.PushFront(fn.Next(1), priority(rng())), llvm::None);
+      } else {
+        ASSERT_EQ(queue.PushBack(fn.Next(1), priority(rng())), llvm::None);
+      }
+
+      std::this_thread::yield();
+
+      // PopFront and PopBack can return empty optional if atomic exchange
+      // operation failed under contention, but they should be successfull
+      // after a reasonable number of iterations.
+      llvm::Optional<TaskFunction> popped = llvm::None;
+      if (id == 0 && rng() % 2 == 0) {
+        for (int i = 0; i < 100 && !popped.hasValue(); ++i)
+          popped = queue.PopFront();
+      } else {
+        for (int i = 0; i < 100 && !popped.hasValue(); ++i)
+          popped = queue.PopBack();
+      }
+      ASSERT_TRUE(popped.hasValue());
+
+      // And it's never empty after we pop a task.
+      ASSERT_FALSE(queue.Empty());
+    }
+  };
+
+  // Start worker threads.
+  std::vector<std::thread> worker_threads;
+  for (int i = 0; i < kNumWorkers; ++i) worker_threads.emplace_back(worker);
+
+  while (live_workers > 0) {
+    ASSERT_FALSE(queue.Empty());
+    unsigned size = queue.Size();
+    ASSERT_GE(size, 1);
+    ASSERT_LE(size, 1 + kNumWorkers);
+  }
+
+  ASSERT_EQ(queue.Size(), 1);
+  ASSERT_TRUE(queue.PopBack().hasValue());
+
+  // Wait for worker threads completion.
+  for (auto& worker_thread : worker_threads) worker_thread.join();
+}
+
+void BM_PushFrontAndPopFront(benchmark::State& state) {
+  const int num_tasks = state.range(0);
+
+  TaskPriorityDeque queue;
+  for (auto _ : state) {
+    for (int i = 0; i < num_tasks; ++i) (void)queue.PushFront({});
+    for (int i = 0; i < num_tasks; ++i) (void)queue.PopFront();
+  }
+
+  state.SetItemsProcessed(num_tasks * state.iterations());
+}
+
+void BM_PushBackAndPopFront(benchmark::State& state) {
+  const int num_tasks = state.range(0);
+
+  TaskPriorityDeque queue;
+  for (auto _ : state) {
+    for (int i = 0; i < num_tasks; ++i) (void)queue.PushBack({});
+    for (int i = 0; i < num_tasks; ++i) (void)queue.PopFront();
+  }
+
+  state.SetItemsProcessed(num_tasks * state.iterations());
+}
+
+BENCHMARK(BM_PushFrontAndPopFront)->Arg(1)->Arg(10)->Arg(100)->Arg(1000);
+BENCHMARK(BM_PushBackAndPopFront)->Arg(1)->Arg(10)->Arg(100)->Arg(1000);
+
+}  // namespace
+}  // namespace tfrt

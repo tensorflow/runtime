@@ -17,6 +17,7 @@ filegroup(
         "lib/multi_threaded_work_queue.cc",
         "lib/non_blocking_work_queue.h",
         "lib/task_deque.h",
+        "lib/task_priority_deque.h",
         "lib/task_queue.h",
         "lib/work_queue_base.h",
     ] + select({
@@ -82,6 +83,18 @@ tfrt_cc_test(
 tfrt_cc_test(
     name = "cpp_tests/task_deque_test",
     srcs = ["cpp_tests/task_deque_test.cc"],
+    includes = ["lib"],
+    deps = [
+        ":concurrent_work_queue",
+        "//testing/base/public:gunit_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+    ],
+)
+
+tfrt_cc_test(
+    name = "cpp_tests/task_priority_deque_test",
+    srcs = ["cpp_tests/task_priority_deque_test.cc"],
     includes = ["lib"],
     deps = [
         ":concurrent_work_queue",

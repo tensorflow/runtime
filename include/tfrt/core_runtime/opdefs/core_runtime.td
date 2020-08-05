@@ -171,7 +171,7 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
   );
 }
 
-def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler"> {
+def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler", [NoSideEffect]> {
   let summary = "return the registered op handler";
   let description = [{
     GetOpHandler returns a registered device, which can be used by ExecuteOp.

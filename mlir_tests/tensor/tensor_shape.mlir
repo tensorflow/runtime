@@ -212,3 +212,14 @@ func @partial_tensor_shape_to_tensor_shape_error() {
   tfrt.return
 }
 
+// CHECK-LABEL: --- Running 'partial_tensor_shape_unranked'
+func @partial_tensor_shape_unranked() {
+  %a = ts.build_unranked_partial_shape
+
+  // CHECK: partial_tensor_shape = Unknown rank
+  ts.print_partial_shape %a
+
+  tfrt.return
+}
+
+

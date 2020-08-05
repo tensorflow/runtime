@@ -238,7 +238,7 @@ ssize_t TensorShape::GetDimensionSize(int dim_idx) const {
 }
 
 raw_ostream& operator<<(raw_ostream& os, const PartialTensorShape& value) {
-  if (!value.GetShape().hasValue()) {
+  if (value.IsUnranked()) {
     return os << "Unknown rank";
   }
 

@@ -195,7 +195,6 @@ class PartialTensorShape {
   Optional<ArrayRef<int64_t>> GetShape() const;
 
   // Returns true if the rank is unknown. Else, returns false.
-  // TODO(ashwinm): Add a test for unranked in tensor_shape.mlir
   bool IsUnranked() const;
 
   // Returns the rank if rank is known. If unknown, returns kUnknownDimSize.

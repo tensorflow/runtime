@@ -138,6 +138,17 @@ def TS_BuildPartialShapeOp : TS_Op<"build_partial_shape", [NoSideEffect]> {
   let assemblyFormat = "$value attr-dict";
 }
 
+def TS_BuildUnrankedPartialShapeOp : TS_Op<"build_unranked_partial_shape", [NoSideEffect]> {
+  let summary = "Build unranked partial tensor shape operation";
+
+  let description = [{
+    An operation that builds an unranked partial tensor shape.
+  }];
+
+  let results = (outs TS_PartialShape:$output);
+  let assemblyFormat = "operands attr-dict";
+}
+
 def TS_PrintPartialShapeOp : TS_Op<"print_partial_shape"> {
   let summary = "Prints the shape of the given partial tensor shape";
 

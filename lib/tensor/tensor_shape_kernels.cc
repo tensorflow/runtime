@@ -64,6 +64,10 @@ static PartialTensorShape TsBuildPartialShape(ArrayAttribute<ssize_t> shape) {
   return PartialTensorShape(shape.data());
 }
 
+static PartialTensorShape TsBuildUnrankedPartialShape() {
+  return PartialTensorShape(llvm::None);
+}
+
 static void TsPrintPartialShape(Argument<PartialTensorShape> arg) {
   tfrt::outs() << "partial_tensor_shape = " << *arg << '\n';
   tfrt::outs().flush();
@@ -93,6 +97,8 @@ void RegisterTensorShapeKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TsPrintFixedRankShape<3>));
   registry->AddKernel("ts.build_partial_shape",
                       TFRT_KERNEL(TsBuildPartialShape));
+  registry->AddKernel("ts.build_unranked_partial_shape",
+                      TFRT_KERNEL(TsBuildUnrankedPartialShape));
   registry->AddKernel("ts.print_partial_shape",
                       TFRT_KERNEL(TsPrintPartialShape));
   registry->AddKernel("ts.to_shape", TFRT_KERNEL(TsToShape));

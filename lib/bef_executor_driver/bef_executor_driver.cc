@@ -44,7 +44,7 @@
 #include "tfrt/host_context/profiled_allocator.h"
 #include "tfrt/host_context/resource_context.h"
 #include "tfrt/host_context/value.h"
-#include "tfrt/metrics/metrics_api.h"
+#include "tfrt/metrics/metrics.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tracing/tracing.h"

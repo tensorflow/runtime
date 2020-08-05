@@ -228,12 +228,12 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "metrics_api",
+    name = "metrics",
     srcs = [
-        "lib/metrics/metrics_api_dummy.cc",
+        "lib/metrics/metrics.cc",
     ],
     hdrs = [
-        "include/tfrt/metrics/metrics_api.h",
+        "include/tfrt/metrics/metrics.h",
     ],
     visibility = [":friends"],
     deps = [
@@ -557,7 +557,7 @@ tfrt_cc_library(
         ":befexecutor",
         ":core_runtime",
         ":hostcontext",
-        ":metrics_api",
+        ":metrics",
         ":profiled_allocator",
         ":support",
         ":tracing",

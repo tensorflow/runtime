@@ -44,7 +44,7 @@
 #include "tfrt/host_context/profiled_allocator.h"
 #include "tfrt/host_context/resource_context.h"
 #include "tfrt/host_context/value.h"
-#include "tfrt/metrics/metrics.h"
+#include "tfrt/metrics/common_metrics.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tracing/tracing.h"
@@ -56,10 +56,7 @@ static void RunBefFunction(HostContext* host, const Function* function);
 
 int RunBefExecutor(const RunBefConfig& run_config) {
   TFRT_TRACE_SCOPE("Bef Executor");
-  static auto* version_metric =
-      metrics::NewGauge<std::string>("/tensorflow/runtime/version");
-  static std::once_flag initialized;
-  std::call_once(initialized, [] { version_metric->SetValue("TFRT_V0"); });
+  metrics::AddTFRTVersionMetric();
 
   // Set up the input file.
   std::string error_message;

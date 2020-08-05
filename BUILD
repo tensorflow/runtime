@@ -233,6 +233,7 @@ tfrt_cc_library(
         "lib/metrics/metrics.cc",
     ],
     hdrs = [
+        "include/tfrt/metrics/common_metrics.h",
         "include/tfrt/metrics/metrics.h",
     ],
     visibility = [":friends"],

@@ -98,6 +98,18 @@ static AsyncValueRef<Chain> UnaryKernel(const DenseHostTensor& input,
   return chain;
 }
 
+template <typename UnaryFunctor>
+void SyncUnaryKernel(const DenseHostTensor& input, DenseHostTensor* output) {
+  using F = typename UnaryFunctor::Functor;
+  using T = typename UnaryFunctor::Input;
+  using R = typename UnaryFunctor::Output;
+
+  auto input_t = compat::AsEigenConstTensor(DHTArrayView<T>(&input));
+  auto output_t = compat::AsEigenTensor(MutableDHTArrayView<R>(output));
+
+  output_t = input_t.unaryExpr(F());
+}
+
 }  // namespace cpu
 }  // namespace tfrt
 

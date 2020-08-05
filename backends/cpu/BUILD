@@ -120,6 +120,9 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "cpu_kernels",
+    srcs = [
+        "lib/kernels/tf/cwise_unary_kernels.cc",
+    ],
     hdrs = [
         "lib/kernels/concat_kernel.h",
         "lib/kernels/cpu_kernels.h",
@@ -129,6 +132,8 @@ tfrt_cc_library(
         "lib/kernels/softmax_kernel.h",
         "lib/kernels/tile_kernel.h",
     ],
+    alwayslink_static_registration_src = "lib/kernels/tf/static_registration.cc",
+    visibility = ["@tf_runtime//:friends"],
     deps = [
         "@mkl_dnn//:mkldnn_single_threaded",
         "@tf_runtime//:dtype",

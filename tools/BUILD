@@ -119,6 +119,7 @@ tfrt_cc_binary(
         "@tf_runtime//:test_kernels_alwayslink",
         "@tf_runtime//backends/common:eigen_kernels_alwayslink",
         "@tf_runtime//backends/common:eigen_ops_alwayslink",
+        "@tf_runtime//backends/cpu:cpu_kernels_alwayslink",
         "@tf_runtime//backends/cpu:core_runtime_alwayslink",
         "@tf_runtime//backends/cpu:test_ops_alwayslink",
         "@tf_runtime//backends/cpu:tf_ops_alwayslink",

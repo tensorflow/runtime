@@ -18,6 +18,7 @@ def _cuda_headers_impl(repository_ctx):
     for name, sha256 in [
         ("cublas", "9537c3e89a85ea0082217e326cd8e03420f7723e05c98d730d80bda8b230c81b"),
         ("cudart", "8a203bd87a2fde37608e8bc3c0c9347b40586906c613b6bef0bfc3995ff40099"),
+        ("cufft", "bac1602183022c7a9c3e13078fcac59e4eee0390afe99c3c7348c894a97e19dd"),
         ("cusolver", "68e049c1d27ad3558cddd9ad82cf885b6789f1f01934f9b60340c391fa8e6279"),
         ("misc", "5e208a8e0f25c9df41121f0502eadae903fa64f808437516198004bdbf6af04b"),
     ]:

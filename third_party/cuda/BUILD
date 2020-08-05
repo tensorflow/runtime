@@ -23,6 +23,7 @@ licenses(["notice"])
         "cuda",
         "cudart",
         "cudnn",
+        "cufft",
         "cusolverdn",
     ]
 ]

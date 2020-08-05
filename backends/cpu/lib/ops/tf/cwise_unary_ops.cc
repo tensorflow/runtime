@@ -16,7 +16,7 @@
 
 //===- cwise_unary_ops.cc - -------------------------------------*- C++ -*-===//
 //
-// Column wise unary Tensorflow operations.
+// Coefficient wise unary Tensorflow operations.
 //
 //===----------------------------------------------------------------------===//
 

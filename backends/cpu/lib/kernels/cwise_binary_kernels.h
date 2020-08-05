@@ -16,7 +16,7 @@
 
 //===- cwise_binary_kernels.h -----------------------------------*- C++ -*-===//
 //
-// Column wise binary kernels.
+// Coefficient wise binary kernels.
 //
 //===----------------------------------------------------------------------===//
 

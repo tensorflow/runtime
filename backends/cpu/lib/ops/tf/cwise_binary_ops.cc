@@ -16,7 +16,7 @@
 
 //===- cwise_binary_ops.cc - ------------------------------------*- C++ -*-===//
 //
-// Column wise binary Tensorflow operations.
+// Coefficient wise binary Tensorflow operations.
 //
 //===----------------------------------------------------------------------===//
 

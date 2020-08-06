@@ -32,3 +32,17 @@ tfrt_cc_test(
         "@tf_runtime//backends/cpu:buffer_forwarding",
     ],
 )
+
+tfrt_cc_test(
+    name = "ops/tf/type_dispatch_test",
+    srcs = ["ops/tf/type_dispatch_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+        "@tf_runtime//backends/cpu:type_dispatch",
+    ],
+)

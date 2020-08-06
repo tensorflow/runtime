@@ -40,6 +40,7 @@
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/scalar_host_tensor.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
+#include "type_dispatch.h"
 
 namespace tfrt {
 namespace {
@@ -51,57 +52,53 @@ static AsyncValueRef<HostTensor> TfBinaryOp(Argument<HostTensor> lhs,
                                             const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
+  internal::NumericTypeDispatch type_dispatch(lhs->dtype());
+
+  auto unsupported = [&](DType dtype) -> AsyncValueRef<HostTensor> {
+    return host->MakeErrorAsyncValueRef(
+        StrCat("Unsupported input dtype: ", dtype));
+  };
+
   // ------------------------------------------------------------------------ //
   // Handle scalar + scalar case, output is a scalar tensor.
   // ------------------------------------------------------------------------ //
   if (isa<AnyScalarHostTensor>(*lhs) && isa<AnyScalarHostTensor>(*rhs)) {
-    switch (lhs->dtype().kind()) {
-      default:
-        return host->MakeErrorAsyncValueRef("unsupported dtype");
+    auto dispatch = [&](auto type_tag) -> AsyncValueRef<HostTensor> {
+      using T = decltype(type_tag);
+      using F = typename BinaryFunctor::template Functor<T>;
+      using R = typename F::Output;
+      auto output =
+          host->MakeAvailableAsyncValueRef<ScalarHostTensor<R>>(output_md);
+      cpu::BinaryKernel<F>(*lhs, *rhs, &output.get(), exec_ctx,
+                           [](Error err) {});
+      return output;
+    };
 
-#define DTYPE_NUMERIC(ENUM)                                               \
-  case DType::ENUM: {                                                     \
-    using T = EigenTypeForDTypeKind<DType::ENUM>;                         \
-    using F = typename BinaryFunctor::template Functor<T>;                \
-    auto output =                                                         \
-        host->MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(output_md); \
-    ::tfrt::cpu::BinaryKernel<F>(*lhs, *rhs, &output.get(), exec_ctx,     \
-                                 [](Error err) {});                       \
-    return output;                                                        \
-  } break;
-#include "tfrt/dtype/dtype.def"  // NOLINT
-    }
+    return type_dispatch(dispatch, unsupported);
   }
 
   // ------------------------------------------------------------------------ //
   // Handle dense host tensor case, output is a dense host tensor.
   // ------------------------------------------------------------------------ //
-  // Forward input tensor or allocate new output tensor.
-  AsyncValueRef<DenseHostTensor> output =
-      ForwardInputOrAllocateOutput(exec_ctx, output_md, lhs, rhs);
-  if (output.IsError()) return output;
+  auto dispatch = [&](auto type_tag) -> AsyncValueRef<HostTensor> {
+    // Forward input tensor or allocate new output tensor.
+    auto output = ForwardInputOrAllocateOutput(exec_ctx, output_md, lhs, rhs);
+    if (output.IsError()) return output;
 
-  auto on_done = [output = output.CopyRef()](Error err) {
-    // Forward errors to the tensor output.
-    err ? output.SetError(err) : output.SetStateConcrete();
+    using T = decltype(type_tag);
+    using F = typename BinaryFunctor::template Functor<T>;
+
+    auto on_done = [output = output.CopyRef()](Error err) {
+      // Forward errors to the tensor output.
+      err ? output.SetError(err) : output.SetStateConcrete();
+    };
+    cpu::BinaryKernel<F>(*lhs, *rhs, &output.get(), exec_ctx,
+                         std::move(on_done));
+
+    return output;
   };
 
-  switch (lhs->dtype().kind()) {
-    default:
-      on_done(MakeStringError("unsupported dtype"));
-      break;
-
-#define DTYPE_NUMERIC(ENUM)                                           \
-  case DType::ENUM: {                                                 \
-    using T = EigenTypeForDTypeKind<DType::ENUM>;                     \
-    using F = typename BinaryFunctor::template Functor<T>;            \
-    ::tfrt::cpu::BinaryKernel<F>(*lhs, *rhs, &output.get(), exec_ctx, \
-                                 std::move(on_done));                 \
-  } break;
-#include "tfrt/dtype/dtype.def"  // NOLINT
-  }
-
-  return output;
+  return type_dispatch(dispatch, unsupported);
 }
 
 template <typename Functor>

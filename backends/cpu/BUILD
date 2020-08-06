@@ -78,6 +78,18 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "type_dispatch",
+    hdrs = ["lib/ops/tf/type_dispatch.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//backends/common:eigencompat",
+    ],
+)
+
+tfrt_cc_library(
     name = "tf_ops",
     srcs = [
         "lib/ops/tf/concat_op.cc",
@@ -107,6 +119,7 @@ tfrt_cc_library(
         ":buffer_forwarding",
         ":core_runtime",
         ":cpu_kernels",
+        ":type_dispatch",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",

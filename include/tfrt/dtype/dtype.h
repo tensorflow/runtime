@@ -56,7 +56,7 @@ class DType {
   bool operator==(DType other) const { return kind_ == other.kind_; }
   bool operator!=(DType other) const { return kind_ != other.kind_; }
 
-  Kind kind() const { return kind_; }
+  constexpr Kind kind() const { return kind_; }
 
   bool IsValid() const { return kind_ != Invalid; }
   bool IsInvalid() const { return kind_ == Invalid; }

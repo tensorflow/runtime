@@ -101,6 +101,12 @@ struct Mul {
   using Functor = BinaryFunctor<T, Eigen::internal::scalar_product_op<T>>;
 };
 
+struct Less {
+  template <typename T>
+  using Functor = BinaryFunctor<
+      T, Eigen::internal::scalar_cmp_op<T, T, Eigen::internal::cmp_LT>, bool>;
+};
+
 // Bind scalar value on the right side of the binary expression to the binary
 // functor and get back a unary functor:
 //
@@ -174,10 +180,10 @@ struct BinaryKernelImpl {
                     HostTensor* output, OnDone on_done) {
     auto* lhs_scalar = cast<ScalarHostTensor<Input>>(&lhs);
     auto* rhs_scalar = cast<ScalarHostTensor<Input>>(&rhs);
-    auto* out_scalar = cast<ScalarHostTensor<Input>>(output);
+    auto* out_scalar = cast<ScalarHostTensor<Output>>(output);
 
     Functor functor;
-    Input value = functor(lhs_scalar->GetValue(), rhs_scalar->GetValue());
+    Output value = functor(lhs_scalar->GetValue(), rhs_scalar->GetValue());
     out_scalar->SetValue(value);
 
     on_done(Error::success());
@@ -191,7 +197,7 @@ struct BinaryKernelImpl {
     auto* out_tensor = cast<DenseHostTensor>(output);
 
     auto rhs_t = compat::AsEigenConstTensor(DHTArrayView<Input>(rhs_tensor));
-    auto out_t = compat::AsEigenTensor(MutableDHTArrayView<Input>(out_tensor));
+    auto out_t = compat::AsEigenTensor(MutableDHTArrayView<Output>(out_tensor));
 
     // Bind scalar value to the right side of the binary functor.
     using BindLeft = functor::BindLeftScalar<Input, Output, Functor>;
@@ -211,7 +217,7 @@ struct BinaryKernelImpl {
     auto* out_tensor = cast<DenseHostTensor>(output);
 
     auto lhs_t = compat::AsEigenConstTensor(DHTArrayView<Input>(lhs_tensor));
-    auto out_t = compat::AsEigenTensor(MutableDHTArrayView<Input>(out_tensor));
+    auto out_t = compat::AsEigenTensor(MutableDHTArrayView<Output>(out_tensor));
 
     // Bind scalar value to the right side of the binary functor.
     using BindRight = functor::BindRightScalar<Input, Output, Functor>;
@@ -232,7 +238,7 @@ struct BinaryKernelImpl {
 
     auto lhs_t = compat::AsEigenConstTensor(DHTArrayView<Input>(lhs_tensor));
     auto rhs_t = compat::AsEigenConstTensor(DHTArrayView<Input>(rhs_tensor));
-    auto out_t = compat::AsEigenTensor(MutableDHTArrayView<Input>(out_tensor));
+    auto out_t = compat::AsEigenTensor(MutableDHTArrayView<Output>(out_tensor));
 
     // Builds a callback for assign operations that extends buffers lifetime.
     auto assign_callback = [&]() {
@@ -295,7 +301,7 @@ struct BinaryKernelImpl {
       FixedRankShape<rank> lhs_shape(TensorShape(lhs_bcast->reshape()));
       FixedRankShape<rank> rhs_shape(TensorShape(rhs_bcast->reshape()));
 
-      auto out_view = MutableDHTIndexableView<Input, rank>(out_tensor);
+      auto out_view = MutableDHTIndexableView<Output, rank>(out_tensor);
       auto lhs_t = compat::AsEigenConstTensor(lhs_arr_view, lhs_shape);
       auto rhs_t = compat::AsEigenConstTensor(rhs_arr_view, rhs_shape);
       auto out_t = compat::AsEigenTensor(out_view);

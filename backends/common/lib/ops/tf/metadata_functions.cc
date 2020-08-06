@@ -45,17 +45,33 @@ static DType OpAttrTypeToDType(OpAttrType type) {
   }
 }
 
-// Elementwise binary operation operation.
-static Expected<TensorMetadata> TfBinaryOpMd(const TensorMetadata& lhs,
-                                             const TensorMetadata& rhs) {
+namespace {
+
+static Expected<TensorMetadata> CwiseBinaryOpMd(
+    const TensorMetadata& lhs, const TensorMetadata& rhs,
+    Optional<DType::Kind> kind = {}) {
   if (lhs.dtype != rhs.dtype)
-    return MakeStringError("incompatible dtypes for test.add");
+    return MakeStringError("incompatible dtypes for binary operation");
 
   // Handle the broadcasting case.
   // A knob can be added to turn off broadcasting.
   TFRT_ASSIGN_OR_RETURN(auto broadcasted_shape,
                         GetBroadcastedShape(lhs.shape, rhs.shape));
-  return TensorMetadata(lhs.dtype, broadcasted_shape);
+
+  DType out_dtype(kind.getValueOr(lhs.dtype.kind()));
+  return TensorMetadata(out_dtype, broadcasted_shape);
+}
+
+}  // namespace
+
+static Expected<TensorMetadata> TfBinaryOpMd(const TensorMetadata& lhs,
+                                             const TensorMetadata& rhs) {
+  return CwiseBinaryOpMd(lhs, rhs);
+}
+
+static Expected<TensorMetadata> TfBinaryComparisonOpMd(
+    const TensorMetadata& lhs, const TensorMetadata& rhs) {
+  return CwiseBinaryOpMd(lhs, rhs, DType::BOOL);
 }
 
 static Expected<TensorMetadata> ConstOpMd(const OpAttrsRef& attrs) {
@@ -491,6 +507,7 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.Tanh", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.MatMul", TFRT_METADATA(MatMulMd));
     result->emplace_back("tf._FusedMatMul", TFRT_METADATA(MatMulMd));
+    result->emplace_back("tf.Less", TFRT_METADATA(TfBinaryComparisonOpMd));
     result->emplace_back("tf.Log", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Log1p", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Relu", TFRT_METADATA(UnaryIdentityMd));

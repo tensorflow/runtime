@@ -113,6 +113,21 @@ class DeviceManager {
                                    : FormRef(static_cast<T*>(it->second.get()));
   }
 
+  // Return a default device for a Device type. Return an empty RCReference if
+  // not found.
+  template <typename T,
+            std::enable_if_t<std::is_base_of<Device, T>::value, int> = 0>
+  RCReference<T> GetDeviceRef(const DeviceType& type) const {
+    mutex_lock l(mu_);
+    for (auto& it : device_map_) {
+      // TODO(fishx): Change the static_cast to dyn_cast to check the type after
+      // introducing classof method into Device.
+      if (it.second->type() == type)
+        return FormRef(static_cast<T*>(it.second.get()));
+    }
+    return RCReference<T>();
+  }
+
  private:
   DeviceManager() = default;
   friend class HostContext;

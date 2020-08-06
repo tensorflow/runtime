@@ -46,8 +46,8 @@ class TensorHandle final {
         AsyncValueRef<TensorMetadata>(RCReference<AsyncValue>());
   }
 
-  // A TensorHandle owns a `async_metadata` and `tensor`, neither input pointer
-  // is allowed to be NULL.
+  // A TensorHandle owns a `async_metadata`, `tensor` and 'device', none of
+  // these input pointer is allowed to be NULL.
   TensorHandle(RCReference<Device> device,
                AsyncValueRef<TensorMetadata> async_metadata,
                AsyncValueRef<Tensor> tensor);
@@ -59,11 +59,6 @@ class TensorHandle final {
   // right now we cannot convert an AsyncValueRef to
   // RCReference<ErrorAsyncValue> easily.
   explicit TensorHandle(AsyncValueRef<TensorHandle> error);
-
-  // TODO(b/158775215): Remove following two constructor.
-  TensorHandle(AsyncValueRef<TensorMetadata> async_metadata,
-               AsyncValueRef<Tensor> tensor);
-  TensorHandle(const TensorMetadata& metadata, AsyncValueRef<Tensor> tensor);
 
   ~TensorHandle();
 
@@ -193,7 +188,8 @@ inline TensorHandle::~TensorHandle() {
 }
 
 inline TensorHandle::TensorHandle(TensorHandle&& other)
-    : tensor_and_is_metadata_inline_(other.tensor_and_is_metadata_inline_) {
+    : tensor_and_is_metadata_inline_(other.tensor_and_is_metadata_inline_),
+      device_(std::move(other.device_)) {
   if (other.IsMetadataInline()) {
     new (&inlined_metadata_) TensorMetadata(std::move(other.inlined_metadata_));
   } else {
@@ -221,6 +217,7 @@ inline TensorHandle& TensorHandle::operator=(TensorHandle&& other) {
   auto tensor = GetAsyncTensor();
   if (tensor) tensor->DropRef();
   tensor_and_is_metadata_inline_ = other.tensor_and_is_metadata_inline_;
+  device_ = std::move(other.device_);
   // Reset other to default initialized state.
   other.Reset();
   return *this;

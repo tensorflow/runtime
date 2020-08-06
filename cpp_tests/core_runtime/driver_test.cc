@@ -215,36 +215,37 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
   tfrt::TensorHandle a2;
 
   // Add 2 scalar int32 tensors, with TensorHandle as the input/output type.
-  tfrt::NativeCallable add_callable =
-      [](AsyncValue* const* arguments, int num_arguments,
-         RCReference<AsyncValue>* results, int num_results, HostContext* host) {
-        assert(num_arguments == 3);
-        auto& a = arguments[1]->get<TensorHandle>();
-        auto& b = arguments[2]->get<TensorHandle>();
-        TFRT_DLOG(INFO) << "a is " << a;
-        TFRT_DLOG(INFO) << "b is " << b;
-        const auto& a_tensor = a.GetAsyncTensor()->get<DenseHostTensor>();
-        const auto& b_tensor = b.GetAsyncTensor()->get<DenseHostTensor>();
-        const int32_t result_value =
-            DHTArrayView<int32_t>(&a_tensor).Elements()[0] +
-            DHTArrayView<int32_t>(&b_tensor).Elements()[0];
-        AsyncValueRef<DenseHostTensor> result =
-            DenseHostTensor::MakeConstructedAsyncValueRef(
-                a.GetAvailableMetadata(), host);
-        assert(result);
-        MutableDHTArrayView<int32_t> result_view(&result.get());
-        *result_view.data() = result_value;
-        TFRT_DLOG(INFO) << "Result value is " << result_value;
-        result.SetStateConcrete();
+  tfrt::NativeCallable add_callable = [](AsyncValue* const* arguments,
+                                         int num_arguments,
+                                         RCReference<AsyncValue>* results,
+                                         int num_results, HostContext* host) {
+    assert(num_arguments == 3);
+    auto& a = arguments[1]->get<TensorHandle>();
+    auto& b = arguments[2]->get<TensorHandle>();
+    TFRT_DLOG(INFO) << "a is " << a;
+    TFRT_DLOG(INFO) << "b is " << b;
+    const auto& a_tensor = a.GetAsyncTensor()->get<DenseHostTensor>();
+    const auto& b_tensor = b.GetAsyncTensor()->get<DenseHostTensor>();
+    const int32_t result_value =
+        DHTArrayView<int32_t>(&a_tensor).Elements()[0] +
+        DHTArrayView<int32_t>(&b_tensor).Elements()[0];
+    AsyncValueRef<DenseHostTensor> result =
+        DenseHostTensor::MakeConstructedAsyncValueRef(a.GetAvailableMetadata(),
+                                                      host);
+    assert(result);
+    MutableDHTArrayView<int32_t> result_view(&result.get());
+    *result_view.data() = result_value;
+    TFRT_DLOG(INFO) << "Result value is " << result_value;
+    result.SetStateConcrete();
 
-        assert(num_results == 2);
-        results[0] = host->GetReadyChain().CopyRef();
-        // TODO(b/158775215): Use Test device as the result's device
-        results[1] = host->MakeAvailableAsyncValueRef<TensorHandle>(
-            RCReference<Device>(), a.GetAvailableMetadata(), std::move(result));
-        TFRT_DLOG(INFO) << "result is " << results[1]->get<TensorHandle>()
-                        << " with state " << results[1]->IsAvailable();
-      };
+    assert(num_results == 2);
+    results[0] = host->GetReadyChain().CopyRef();
+    // TODO(b/158775215): Use Test device as the result's device
+    results[1] = host->MakeAvailableAsyncValueRef<TensorHandle>(
+        host->GetHostDeviceRef(), a.GetAvailableMetadata(), std::move(result));
+    TFRT_DLOG(INFO) << "result is " << results[1]->get<TensorHandle>()
+                    << " with state " << results[1]->IsAvailable();
+  };
 
   TypeName chain_type =
       driver_.GetHostContext()->GetKernelRegistry().GetType("!tfrt.chain");

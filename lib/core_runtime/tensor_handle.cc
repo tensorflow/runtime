@@ -34,11 +34,10 @@ TensorHandle::TensorHandle(RCReference<Device> device,
                            AsyncValueRef<TensorMetadata> async_metadata,
                            AsyncValueRef<Tensor> tensor)
     : device_(std::move(device)) {
-  // TODO(b/158775215): Assert the device is valid. We cannot do it now because
-  // there is still some callers in TF side that create TensorHandle with
-  // absent device.
   assert(async_metadata.GetAsyncValue());
   assert(tensor.GetAsyncValue());
+  if (!async_metadata.IsError() && !tensor.IsError())
+    assert(device_ && "device cannot be NULL");
   tensor_and_is_metadata_inline_.setPointerAndInt(tensor.release(), false);
   new (&async_metadata_)
       AsyncValueRef<TensorMetadata>(std::move(async_metadata));
@@ -48,8 +47,8 @@ TensorHandle::TensorHandle(RCReference<Device> device,
                            const TensorMetadata& metadata,
                            AsyncValueRef<Tensor> tensor)
     : device_(std::move(device)) {
-  // TODO(b/158775215): Assert the device is valid.
   assert(tensor.GetAsyncValue());
+  if (!tensor.IsError()) assert(device_ && "device cannot be NULL");
   tensor_and_is_metadata_inline_.setPointerAndInt(tensor.release(), true);
   new (&inlined_metadata_) TensorMetadata(metadata);
 }
@@ -60,18 +59,10 @@ TensorHandle::TensorHandle(AsyncValueRef<TensorHandle> error)
   assert(error.IsError());
 }
 
-TensorHandle::TensorHandle(AsyncValueRef<TensorMetadata> async_metadata,
-                           AsyncValueRef<Tensor> tensor)
-    : TensorHandle({}, std::move(async_metadata), std::move(tensor)) {}
-TensorHandle::TensorHandle(const TensorMetadata& metadata,
-                           AsyncValueRef<Tensor> tensor)
-    : TensorHandle({}, metadata, std::move(tensor)) {}
-
 TensorHandle TensorHandle::CreateError(RCReference<AsyncValue> error) {
   assert(error->IsError());
-  auto tensor_md = AsyncValueRef<TensorMetadata>(error.CopyRef());
-  auto tensor = AsyncValueRef<Tensor>(std::move(error));
-  return TensorHandle({}, std::move(tensor_md), std::move(tensor));
+  auto th = AsyncValueRef<TensorHandle>(std::move(error));
+  return TensorHandle(std::move(th));
 }
 
 TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
@@ -79,8 +70,7 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
                                       TensorFormats allowed_formats) const {
   HostContext* host = exec_ctx.host();
   AsyncValueRef<Tensor> result_tensor;
-  // TODO(b/158775215): Avoid getting source device from HostContext.
-  const Device& src = device_ ? *device_ : exec_ctx.host()->GetHostDevice();
+  const Device& src = *device_;
   if (GetAsyncTensor()->IsAvailable()) {
     auto& tensor = GetAsyncTensor()->get<Tensor>();
     if (dst.get() == &src && allowed_formats.Contains(tensor.subclass()))

@@ -48,12 +48,13 @@ namespace tfrt {
 // Convert a HostTensor (or subclass) into a TensorHandle for use by
 // Core Runtime.
 static void HTToTensorHandle(Argument<HostTensor> arg, Argument<Chain> in_chain,
-                             Result<TensorHandle> tensorhandle_output) {
+                             Result<TensorHandle> tensorhandle_output,
+                             const ExecutionContext &exec_ctx) {
   // Since we know the Tensor is present, we can access its metadata.
   // TODO(b/158775215): Replace the placeholder device with the device from
   // HostTensor.
-  tensorhandle_output.Emplace(RCReference<Device>(), arg->metadata(),
-                              arg.ValueRef());
+  tensorhandle_output.Emplace(exec_ctx.host()->GetHostDeviceRef(),
+                              arg->metadata(), arg.ValueRef());
 }
 
 static void TensorHandleToHT(Argument<TensorHandle> arg,
@@ -166,9 +167,8 @@ static llvm::Expected<TensorHandle> ConstStringTensor(
 
   tensor_ref.SetStateConcrete();
 
-  // TODO(b/158775215): Replace the placeholder device with the device from
-  // HostContext.
-  return TensorHandle(/*device=*/{}, metadata, std::move(tensor_ref));
+  return TensorHandle(exec_ctx.host()->GetHostDeviceRef(), metadata,
+                      std::move(tensor_ref));
 }
 
 static llvm::Expected<TensorHandle> ConstDenseTensor(
@@ -183,9 +183,8 @@ static llvm::Expected<TensorHandle> ConstDenseTensor(
   if (!tensor_ref)
     return MakeStringError("failed to allocate dense host tensor");
 
-  // TODO(b/158775215): Replace the placeholder device with the device from
-  // HostContext.
-  return TensorHandle(/*device=*/{}, metadata, std::move(tensor_ref));
+  return TensorHandle(host->GetHostDeviceRef(), metadata,
+                      std::move(tensor_ref));
 }
 
 template <typename DType>
@@ -202,7 +201,7 @@ static llvm::Expected<TensorHandle> CreateDenseTensor(
 
   dht.SetStateConcrete();
 
-  return TensorHandle(metadata, std::move(dht));
+  return TensorHandle(host->GetHostDeviceRef(), metadata, std::move(dht));
 }
 
 // ExecuteOp executes the `op_name` operation on the `op_handler`.

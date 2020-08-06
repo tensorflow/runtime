@@ -43,7 +43,7 @@ namespace internal {
 
 class TaskQueue {
  public:
-  static constexpr unsigned kCapacity = 1024;
+  static const unsigned kCapacity = 1024;
 
   static_assert((kCapacity > 2) && (kCapacity <= (64u << 10u)),
                 "TaskQueue capacity must be in [4, 65536] range");

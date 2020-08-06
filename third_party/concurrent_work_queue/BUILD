@@ -18,6 +18,7 @@ filegroup(
         "lib/non_blocking_work_queue.h",
         "lib/task_deque.h",
         "lib/task_priority_deque.h",
+        "lib/task_queue.cc",
         "lib/task_queue.h",
         "lib/work_queue_base.h",
     ] + select({

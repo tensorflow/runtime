@@ -23,7 +23,7 @@
 #ifndef TFRT_DATA_MEMORY_DATASET_H_
 #define TFRT_DATA_MEMORY_DATASET_H_
 
-#include "dataset.h"
+#include "tfrt/data/dataset.h"
 
 namespace tfrt {
 namespace data {

@@ -26,7 +26,7 @@
 
 #include <queue>
 
-#include "dataset.h"
+#include "tfrt/data/dataset.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/thread_annotations.h"
 

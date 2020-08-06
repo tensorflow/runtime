@@ -18,7 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "dataset.h"
+#include "tfrt/data/dataset.h"
 
 namespace tfrt {
 namespace data {

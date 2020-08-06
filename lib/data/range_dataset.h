@@ -24,7 +24,7 @@
 #ifndef TFRT_LIB_DATA_RANGE_DATASET_H_
 #define TFRT_LIB_DATA_RANGE_DATASET_H_
 
-#include "dataset.h"
+#include "tfrt/data/dataset.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/support/forward_decls.h"
 

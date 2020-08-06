@@ -27,7 +27,7 @@
 #include <memory>
 #include <queue>
 
-#include "dataset.h"
+#include "tfrt/data/dataset.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/mutex.h"

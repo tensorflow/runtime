@@ -24,7 +24,7 @@
 #ifndef TFRT_DATA_SLICE_DATASET_H_
 #define TFRT_DATA_SLICE_DATASET_H_
 
-#include "dataset.h"
+#include "tfrt/data/dataset.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 

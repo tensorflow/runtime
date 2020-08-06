@@ -25,8 +25,8 @@
 #ifndef TFRT_DATA_BATCH_DATASET_H_
 #define TFRT_DATA_BATCH_DATASET_H_
 
-#include "dataset.h"
 #include "llvm/ADT/SmallVector.h"
+#include "tfrt/data/dataset.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"

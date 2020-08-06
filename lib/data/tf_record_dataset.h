@@ -24,8 +24,8 @@
 #ifndef TFRT_LIB_DATA_TF_RECORD_DATASET_H_
 #define TFRT_LIB_DATA_TF_RECORD_DATASET_H_
 
-#include "dataset.h"
 #include "io.h"
+#include "tfrt/data/dataset.h"
 #include "tfrt/io/buffered_input_stream.h"
 #include "tfrt/io/file_input_stream.h"
 #include "tfrt/support/forward_decls.h"

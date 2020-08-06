@@ -27,7 +27,7 @@
 
 #include <queue>
 
-#include "dataset.h"
+#include "tfrt/data/dataset.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {

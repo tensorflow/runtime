@@ -705,7 +705,6 @@ tfrt_cc_library(
         "lib/data/batch_dataset.h",
         "lib/data/data_kernels.cc",
         "lib/data/dataset.cc",
-        "lib/data/dataset.h",
         "lib/data/filter_dataset.cc",
         "lib/data/filter_dataset.h",
         "lib/data/interleave_dataset.cc",
@@ -724,6 +723,9 @@ tfrt_cc_library(
         "lib/data/slice_dataset.h",
         "lib/data/tf_record_dataset.cc",
         "lib/data/tf_record_dataset.h",
+    ],
+    hdrs = [
+        "include/tfrt/data/dataset.h",
     ],
     alwayslink_static_registration_src = "lib/data/static_registration.cc",
     visibility = [":friends"],

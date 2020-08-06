@@ -35,6 +35,7 @@ namespace ts {
 // Dialect for operations that manipulate tensor shape.
 class TensorShapeDialect : public Dialect {
  public:
+  static StringRef getDialectNamespace() { return "ts"; }
   explicit TensorShapeDialect(MLIRContext *context);
 };
 

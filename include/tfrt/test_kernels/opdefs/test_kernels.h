@@ -36,6 +36,7 @@ namespace test {
 // Dialect for test operations.
 class TestDialect : public Dialect {
  public:
+  static StringRef getDialectNamespace() { return "tfrt_test"; }
   explicit TestDialect(MLIRContext* context);
 };
 

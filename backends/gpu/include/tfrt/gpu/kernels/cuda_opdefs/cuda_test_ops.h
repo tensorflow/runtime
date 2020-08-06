@@ -35,6 +35,7 @@ namespace cuda {
 // Dialect for cuda_test operations.
 class CUDATestDialect : public Dialect {
  public:
+  static StringRef getDialectNamespace() { return "cuda_test"; }
   explicit CUDATestDialect(MLIRContext* context);
 };
 

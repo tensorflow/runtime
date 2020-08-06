@@ -35,6 +35,7 @@ namespace dht {
 // Dialect for dense host tensor operations.
 class DenseHostTensorDialect : public Dialect {
  public:
+  static StringRef getDialectNamespace() { return "tfrt_dht"; }
   explicit DenseHostTensorDialect(MLIRContext *context);
 };
 

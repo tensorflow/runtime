@@ -34,6 +34,7 @@ namespace coo {
 // Dialect for COO-layout sparse host tensor dialect.
 class CooHostTensorDialect : public Dialect {
  public:
+  static StringRef getDialectNamespace() { return "coo"; }
   explicit CooHostTensorDialect(MLIRContext *context);
 };
 

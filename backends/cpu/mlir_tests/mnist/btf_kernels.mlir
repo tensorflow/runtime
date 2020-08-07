@@ -29,33 +29,27 @@ func @tensor_io() {
   %two = tfrt.constant.i32 2
 
   %t0 = "btf.read_dense_tensor.i32.2"(%path, %zero) : (!tfrt.string, i32) -> (!t.tensor)
-  // CHECK: shape = [2, 2], values = [1, 2, 3, 4]
+  // CHECK-NEXT: shape = [2, 2], values = [1, 2, 3, 4]
   %c1 = tfrt_dht.print_tensor %t0, %c0
 
   %t1 = "btf.read_dense_tensor.i32.1"(%path, %one) : (!tfrt.string, i32) -> (!t.tensor)
-  // CHECK: shape = [5], values = [0, 1, 2, 3, 4]
+  // CHECK-NEXT: shape = [5], values = [0, 1, 2, 3, 4]
   %c2 = tfrt_dht.print_tensor %t1, %c1
 
   %t2 = "btf.read_dense_tensor.i32.1"(%path, %two) : (!tfrt.string, i32) -> (!t.tensor)
-  // CHECK: shape = [0], values = []
+  // CHECK-NEXT: shape = [0], values = []
   %c3 = tfrt_dht.print_tensor %t2, %c2
 
   tfrt.return
 }
 
-
 // CHECK-LABEL: --- Running 'tensor_io_invalid_path'
-func @tensor_io_invalid_path() -> !t.tensor {
+func @tensor_io_invalid_path() {
   %c0 = tfrt.new.chain
   %path = "tfrt_test.get_string"() { value = "/tmp/invalid_path" } : () -> !tfrt.string
-
   %zero = tfrt.constant.i32 0
-
   // expected-error @+1 {{failed to open file /tmp/invalid_path for reading}}
   %t0 = "btf.read_dense_tensor.i32.2"(%path, %zero) : (!tfrt.string, i32) -> (!t.tensor)
-  // This does not run, but is currently necessary to work around b/142498181.
-  %c1 = tfrt_dht.print_tensor %t0, %c0
 
-  // CHECK-NEXT: 'tensor_io_invalid_path' returned
-  tfrt.return %t0 : !t.tensor
+  tfrt.return
 }

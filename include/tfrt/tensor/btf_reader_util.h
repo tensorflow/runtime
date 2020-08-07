@@ -159,8 +159,12 @@ AsyncValueRef<typename ParseTensorTraits::TensorTy> ReadTensorFromBTF(
     std::string path, int32_t index, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  return host->EnqueueBlockingWork([host, path, index] {
-    return ReadTensorFromBTFHelper<ParseTensorTraits>(path, index, host);
+  return host->EnqueueBlockingWork([host, path, index, exec_ctx] {
+    auto result = ReadTensorFromBTFHelper<ParseTensorTraits>(path, index, host);
+    if (!result) {
+      EmitError(exec_ctx, StrCat(result.takeError()));
+    }
+    return result;
   });
 }
 

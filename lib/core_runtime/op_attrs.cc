@@ -31,6 +31,38 @@
 
 namespace tfrt {
 
+const int64_t OpAttrsRawEntry::kNotInlinedScalarSentinel;
+const int64_t OpAttrsRawEntry::kInlinedScalarSentinel;
+
+int64_t OpAttrsRawEntry::DecodeArraySize(int64_t encoded_array_size) {
+  if (encoded_array_size >= 0) return encoded_array_size;
+  if (encoded_array_size == OpAttrsRawEntry::kNotInlinedScalarSentinel ||
+      encoded_array_size == OpAttrsRawEntry::kInlinedScalarSentinel)
+    return 1;
+  llvm_unreachable("encoded_array_size should not be negative");
+}
+
+int64_t OpAttrsRawEntry::EncodeArraySize(int64_t num_elements, bool inlined) {
+  if (num_elements >= 0) return num_elements;
+  if (num_elements == OpAttrsRawEntry::kScalarSentinel && inlined)
+    return OpAttrsRawEntry::kInlinedScalarSentinel;
+  if (num_elements == OpAttrsRawEntry::kScalarSentinel && !inlined)
+    return OpAttrsRawEntry::kNotInlinedScalarSentinel;
+  if (num_elements == OpAttrsRawEntry::kInlinedScalarSentinel ||
+      num_elements == OpAttrsRawEntry::kNotInlinedScalarSentinel)
+    return num_elements;
+  llvm_unreachable("num_elements not encodable");
+}
+
+int64_t OpAttrsRawEntry::GetNumElements(int64_t num_elements) {
+  if (num_elements >= 0) return num_elements;
+  if (num_elements == OpAttrsRawEntry::kScalarSentinel ||
+      num_elements == OpAttrsRawEntry::kNotInlinedScalarSentinel ||
+      num_elements == OpAttrsRawEntry::kInlinedScalarSentinel)
+    return 1;
+  llvm_unreachable("num_elements value error");
+}
+
 OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
   // TODO(tfrt-devs): Unify BEFDataType, OpAttrType and tfrt::DType.
   switch (kind) {
@@ -204,7 +236,7 @@ class OpAttrs::OutOfLineRepresentation {
     return it == entries_.end() ? nullptr : &it->second;
   }
 
-  bool SetRaw(string_view attr_name, const void *data, ssize_t num_elements,
+  bool SetRaw(string_view attr_name, const void *data, int64_t num_elements,
               OpAttrType type);
 
   size_t GetNumEntries() const { return entries_.size(); }
@@ -228,7 +260,7 @@ OpAttrs::OutOfLineRepresentation::OutOfLineRepresentation(OpAttrs *orig_attrs) {
 
 bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
                                               const void *data,
-                                              ssize_t num_elements,
+                                              int64_t num_elements,
                                               OpAttrType type) {
   // Figure out what entry we need to fill in.
   auto entry_it_pair =
@@ -244,14 +276,16 @@ bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
   auto type_alignment = type_size_and_alignment.second;
 
   auto &entry = entry_it_pair.first->second;
-  auto bytes_to_copy = std::abs(num_elements) * type_size;
-  if (type_size > sizeof(void *) ||
-      num_elements != OpAttrsRawEntry::kScalarSentinel) {
+  auto bytes_to_copy =
+      OpAttrsRawEntry::GetNumElements(num_elements) * type_size;
+  bool is_array = num_elements >= 0;
+  bool is_small = type_size <= sizeof(void *);
+  if (is_array || !is_small) {
     // If we have an array attribute, then we need to emit the array size before
     // the data, so it can be interpreted directly as a BEF array constant.
     SmallVector<uint8_t, 4> array_size;
     size_t array_size_space = 0;
-    if (num_elements != OpAttrsRawEntry::kScalarSentinel) {
+    if (is_array) {
       EmitBEFArrayLength(size_t(num_elements), &array_size);
       array_size_space =
           size_t(llvm::alignTo(array_size.size(), type_alignment));
@@ -268,16 +302,19 @@ bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
 
     // Copy the element(s) themselves.
     memcpy(element_ptr, data, bytes_to_copy);
+    entry.array_size =
+        OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/false);
     entry.data = element_ptr;
   } else {
     // If it is a small scalar, copy the data to the inlined buffer.
     assert(type_alignment <= alignof(void *));
     assert(type_size <= sizeof(void *));
+    entry.array_size =
+        OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/true);
     memcpy(entry.buffer, data, bytes_to_copy);
   }
 
   entry.name = entry_it_pair.first->first().data();
-  entry.array_size = num_elements;
   entry.type = type;
   return true;
 }
@@ -334,7 +371,7 @@ void OpAttrs::Reset() {
 }
 
 bool OpAttrs::SetRaw(string_view attr_name, const void *data,
-                     ssize_t num_elements, OpAttrType type) {
+                     int64_t num_elements, OpAttrType type) {
   // If we're mutating the set, then drop any frozen representation that may be
   // formed.
   if (frozen_representation_) frozen_representation_.reset();
@@ -378,10 +415,11 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
   auto type_size = type_size_and_alignment.first;
   auto type_alignment = type_size_and_alignment.second;
 
-  // If it is a scalar, we can just copy the data to OpAttrsRawEntry's inlined
-  // buffer.
-  if (type_size <= sizeof(void *) &&
-      num_elements == OpAttrsRawEntry::kScalarSentinel) {
+  bool is_array = num_elements >= 0;
+  bool is_small = type_size <= sizeof(void *);
+  // If it is a small scalar, we can just copy the data to OpAttrsRawEntry's
+  // inlined buffer.
+  if (is_small && !is_array) {
     // Fill in the attribute entry.
     auto &entry = inline_entries_[num_inline_entries_++];
     entry.name = name_pointer;
@@ -389,7 +427,9 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
     assert(type_alignment <= alignof(void *));
     memcpy(entry.buffer, data, type_size);
 
-    entry.array_size = num_elements;
+    // Set to inline scalar.
+    entry.array_size =
+        OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/true);
     entry.type = type;
     return true;
   }
@@ -400,8 +440,7 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
   // If we have an array attribute, then we need to emit the array size before
   // the data, so it can be interpreted directly as a BEF array constant.
   SmallVector<uint8_t, 4> array_size;
-  if (num_elements != OpAttrsRawEntry::kScalarSentinel)
-    EmitBEFArrayLength(size_t(num_elements), &array_size);
+  if (is_array) EmitBEFArrayLength(size_t(num_elements), &array_size);
   inline_buffer_used_ += array_size.size();
 
   // Then we hold the data. Round the element pointer up to the alignment
@@ -411,10 +450,9 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
       static_cast<size_t>(llvm::alignTo(inline_buffer_used_, type_alignment));
   auto *dest_pointer = inline_buffer_ + inline_buffer_used_;
 
-  // The number of bytes is equal to the number of elements times its size, but
-  // we represent scalar counts as -1 here, so we need an std::abs to normalize
-  // them.
-  auto bytes_to_copy = std::abs(num_elements) * type_size;
+  // The number of bytes is equal to the number of elements times its size.
+  auto bytes_to_copy =
+      OpAttrsRawEntry::GetNumElements(num_elements) * type_size;
   inline_buffer_used_ += bytes_to_copy;
 
   // If we are out of space, then switch to an out-of-line representation.
@@ -436,7 +474,8 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
   auto &entry = inline_entries_[num_inline_entries_++];
   entry.name = name_pointer;
   entry.data = dest_pointer;
-  entry.array_size = num_elements;
+  entry.array_size =
+      OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/false);
   entry.type = type;
   return true;
 }
@@ -491,7 +530,8 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
         llvm::alignTo(alloc_size, size_type_alignment.second));
 
     // Add space for the elements.
-    alloc_size += std::abs(entry->array_size) * size_type_alignment.first;
+    alloc_size += OpAttrsRawEntry::DecodeArraySize(entry->array_size) *
+                  size_type_alignment.first;
   }
 
   // Now that we know the size, create the result.
@@ -534,7 +574,8 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
           llvm::alignTo(reinterpret_cast<uint64_t>(data_ptr), type_alignment));
 
       // Copy over the elements, including the array_size if present.
-      size_t elements_size = std::abs(src_entry.array_size) * type_size;
+      size_t elements_size =
+          OpAttrsRawEntry::DecodeArraySize(src_entry.array_size) * type_size;
       memcpy(data_ptr - array_size_size,
              static_cast<const char *>(src_entry.data) - array_size_size,
              elements_size + array_size_size);
@@ -723,7 +764,8 @@ void OpAttrsRef::Print(raw_ostream &os) const {
       const char *data = static_cast<const char *>(entry.data);
       os << '[';
 
-      for (size_t i = 0, e = std::abs(entry.array_size); i != e; ++i) {
+      for (size_t i = 0, e = OpAttrsRawEntry::DecodeArraySize(entry.array_size);
+           i != e; ++i) {
         // Only print the first elements of large arrays.
         if (i == 5) {
           os << "...";

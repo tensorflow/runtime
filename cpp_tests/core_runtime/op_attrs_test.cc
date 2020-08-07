@@ -28,7 +28,6 @@
 
 #include "gtest/gtest.h"
 #include "llvm/ADT/ArrayRef.h"
-#include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/support/forward_decls.h"
@@ -40,11 +39,44 @@
 namespace tfrt {
 namespace {
 
-TEST(CpuDriverTest, DenseAttr) {
+TEST(OpAttrsTest, ScalarInlined) {
+  OpAttrs op_attrs;
+  ASSERT_TRUE(op_attrs.Set<int64_t>("foo", 1234));
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("foo"), 1234);
+
+  OpAttrsRef op_attrs_ref = op_attrs.freeze();
+  ASSERT_EQ(op_attrs_ref.GetAsserting<int64_t>("foo"), 1234);
+}
+
+TEST(OpAttrsTest, MoveOutOfLine) {
+  OpAttrs op_attrs;
+  ASSERT_TRUE(op_attrs.Set<int64_t>("a", 1));
+  ASSERT_TRUE(op_attrs.Set<int64_t>("b", 2));
+  ASSERT_TRUE(op_attrs.Set<int64_t>("c", 3));
+  ASSERT_TRUE(op_attrs.Set<int64_t>("d", 4));
+  ASSERT_TRUE(op_attrs.Set<int64_t>("e", 5));
+  ASSERT_TRUE(op_attrs.Set<int64_t>("f", 6));
+
+  // Triggers OpAttrs::MoveOutOfLine.
+  ASSERT_TRUE(op_attrs.Set<int64_t>("g", 7));
+  ASSERT_TRUE(op_attrs.IsOutOfLine());
+  ASSERT_TRUE(op_attrs.Set<int64_t>("h", 8));
+
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("a"), 1);
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("b"), 2);
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("c"), 3);
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("d"), 4);
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("e"), 5);
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("f"), 6);
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("g"), 7);
+  ASSERT_EQ(op_attrs.GetAsserting<int64_t>("h"), 8);
+}
+
+TEST(OpAttrsTest, DenseAttr) {
   auto host = CreateHostContext();
 
   // Create a DHT to serialize to a DenseAttr.
-  auto dht_create_res = tfrt::DenseHostTensor::CreateUninitialized<float>(
+  auto dht_create_res = DenseHostTensor::CreateUninitialized<float>(
       TensorShape({1, 2}), host.get());
   ASSERT_TRUE(dht_create_res.hasValue());
   DenseHostTensor dht(std::move(*dht_create_res));
@@ -57,11 +89,12 @@ TEST(CpuDriverTest, DenseAttr) {
   DenseAttr dense_attr(dense_attr_buffer.data());
 
   // OpAttrs::Set should copy the bytes.
-  auto attrs = std::make_unique<tfrt::OpAttrs>();
+  auto attrs = std::make_unique<OpAttrs>();
+  // Scalar too large to fit inline.
   ASSERT_TRUE(attrs->Set("value", dense_attr));
 
   // OpAttrs::Get after OpAttrs::Set works.
-  tfrt::DenseAttr dense_attr1;
+  DenseAttr dense_attr1;
   ASSERT_TRUE(attrs->Get("value", &dense_attr1));
   auto dht_des =
       DeserializeDenseHostTensorFromDenseAttr(dense_attr1, host.get());
@@ -75,7 +108,7 @@ TEST(CpuDriverTest, DenseAttr) {
   for (auto& i : dense_attr_buffer) i = 0;
 
   // OpAttrs::Get still works.
-  tfrt::DenseAttr dense_attr2;
+  DenseAttr dense_attr2;
   ASSERT_TRUE(attrs->Get("value", &dense_attr2));
   auto dht_des2 =
       DeserializeDenseHostTensorFromDenseAttr(dense_attr2, host.get());
@@ -86,13 +119,13 @@ TEST(CpuDriverTest, DenseAttr) {
   ASSERT_EQ(tensor_view2[1], 1.0f);
 
   // OpAttrs::Freeze puts a copy on the heap.
-  tfrt::OpAttrsRef frozen_attrs = attrs->freeze();
+  OpAttrsRef frozen_attrs = attrs->freeze();
 
   // Deallocate the original attrs.
   attrs.reset();
 
   // OpAttrsRef::Get on the frozen attrs still works.
-  tfrt::DenseAttr dense_attr3;
+  DenseAttr dense_attr3;
   ASSERT_TRUE(frozen_attrs.Get("value", &dense_attr3));
   auto dht_des3 =
       DeserializeDenseHostTensorFromDenseAttr(dense_attr3, host.get());
@@ -109,20 +142,20 @@ TEST(OpAttrsTest, Array) {
   std::vector<int> values_int = {123};
   ArrayRef<int> values_int_ref(values_int);
 
-  tfrt::OpAttrs opattrs;
-  ASSERT_TRUE(opattrs.SetArray<float>("foo", values_float));
-  ASSERT_TRUE(opattrs.SetArray<int>("bar", values_int));
-  tfrt::OpAttrsRef opattrs_ref(opattrs);
+  OpAttrs op_attrs;
+  ASSERT_TRUE(op_attrs.SetArray<float>("foo", values_float));
+  ASSERT_TRUE(op_attrs.SetArray<int>("bar", values_int));
+  OpAttrsRef op_attrs_ref(op_attrs);
 
-  tfrt::ArrayRef<float> out1, out2, out3, out4;
-  ASSERT_TRUE(opattrs.GetArray<float>("foo", &out1));
-  ASSERT_TRUE(opattrs_ref.GetArray<float>("foo", &out4));
+  ArrayRef<float> out1, out2, out3, out4;
+  ASSERT_TRUE(op_attrs.GetArray<float>("foo", &out1));
+  ASSERT_TRUE(op_attrs_ref.GetArray<float>("foo", &out4));
   ASSERT_EQ(out1, values_float_ref);
   ASSERT_EQ(out4, values_float_ref);
   // Check attribute has incorrect type (bar is int array)
-  ASSERT_FALSE(opattrs.GetArray<float>("bar", &out2));
+  ASSERT_FALSE(op_attrs.GetArray<float>("bar", &out2));
   // Check attribute doesn't exist
-  ASSERT_FALSE(opattrs.GetArray<float>("baz", &out3));
+  ASSERT_FALSE(op_attrs.GetArray<float>("baz", &out3));
 }
 
 TEST(OpAttrsTest, ArrayBF16) {
@@ -130,13 +163,13 @@ TEST(OpAttrsTest, ArrayBF16) {
                                    bf16{static_cast<uint16_t>(2.0)}};
   ArrayRef<bf16> values_bf16_ref(values_bf16);
 
-  tfrt::OpAttrs opattrs;
-  ASSERT_TRUE(opattrs.SetArray<bf16>("foo", values_bf16));
-  tfrt::OpAttrsRef opattrs_ref(opattrs);
+  OpAttrs op_attrs;
+  ASSERT_TRUE(op_attrs.SetArray<bf16>("foo", values_bf16));
+  OpAttrsRef op_attrs_ref(op_attrs);
 
-  tfrt::ArrayRef<bf16> out1, out2;
-  ASSERT_TRUE(opattrs.GetArray<bf16>("foo", &out1));
-  ASSERT_TRUE(opattrs_ref.GetArray<bf16>("foo", &out2));
+  ArrayRef<bf16> out1, out2;
+  ASSERT_TRUE(op_attrs.GetArray<bf16>("foo", &out1));
+  ASSERT_TRUE(op_attrs_ref.GetArray<bf16>("foo", &out2));
   for (int i = 0; i < 2; ++i) {
     // Specifically check value since we don't have operator== for bf16.
     ASSERT_EQ(out1[i].value, values_bf16[i].value);
@@ -150,15 +183,15 @@ TEST(OpAttrsTest, ArrayAsserting) {
   std::vector<int32_t> empty;
   ArrayRef<int32_t> empty_ref(empty);
 
-  tfrt::OpAttrs opattrs;
-  ASSERT_TRUE(opattrs.SetArray<int32_t>("foo", values));
-  ASSERT_TRUE(opattrs.SetArray<int32_t>("bar", empty));
-  tfrt::OpAttrsRef opattrs_ref(opattrs);
+  OpAttrs op_attrs;
+  ASSERT_TRUE(op_attrs.SetArray<int32_t>("foo", values));
+  ASSERT_TRUE(op_attrs.SetArray<int32_t>("bar", empty));
+  OpAttrsRef op_attrs_ref(op_attrs);
 
-  ASSERT_EQ(opattrs.GetArrayAsserting<int32_t>("foo"), values_ref);
-  ASSERT_EQ(opattrs.GetArrayAsserting<int32_t>("bar"), empty_ref);
-  ASSERT_EQ(opattrs_ref.GetArrayAsserting<int32_t>("foo"), values_ref);
-  ASSERT_EQ(opattrs_ref.GetArrayAsserting<int32_t>("bar"), empty_ref);
+  ASSERT_EQ(op_attrs.GetArrayAsserting<int32_t>("foo"), values_ref);
+  ASSERT_EQ(op_attrs.GetArrayAsserting<int32_t>("bar"), empty_ref);
+  ASSERT_EQ(op_attrs_ref.GetArrayAsserting<int32_t>("foo"), values_ref);
+  ASSERT_EQ(op_attrs_ref.GetArrayAsserting<int32_t>("bar"), empty_ref);
 }
 }  // namespace
 }  // namespace tfrt

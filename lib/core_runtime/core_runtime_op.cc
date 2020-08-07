@@ -33,8 +33,8 @@ CoreRuntimeOp::CoreRuntimeOp(
 
 // is_fallback_ is not relevant.
 CoreRuntimeOp::CoreRuntimeOp(
-    llvm::unique_function<void(const CompositeOpInvocation&) const>&& fn)
-    : native_fn_(std::move(fn)), is_fallback_(false) {}
+    llvm::unique_function<void(const CompositeOpInvocation&) const>&& native_fn)
+    : native_fn_(std::move(native_fn)), is_fallback_(false) {}
 
 void CoreRuntimeOp::operator()(const ExecutionContext& exec_ctx,
                                MutableArrayRef<TensorHandle> arguments,

@@ -42,8 +42,9 @@ class CoreRuntimeOp {
                 bool is_fallback);
   // Creates a "native function" in that it takes and returns AsyncValues of
   // any types, and not having to going through TensorHandle.
-  CoreRuntimeOp(llvm::unique_function<void(const CompositeOpInvocation&)
-                                          const>&& native_fn);
+  explicit CoreRuntimeOp(
+      llvm::unique_function<void(const CompositeOpInvocation&) const>&&
+          native_fn);
 
   // Execute the prepared op.
   //

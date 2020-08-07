@@ -454,7 +454,7 @@ LogicalResult EntityTable::AddFunction(mlir::Region* region, string_view name,
     return LogicalResult::Failure;
   }
 
-  for (auto arg : region->front().getArguments()) AddType(arg.getType());
+  for (auto type : region->getArgumentTypes()) AddType(type);
 
   // Remember this function.
   AddString(name);

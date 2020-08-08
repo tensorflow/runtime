@@ -30,10 +30,10 @@
 namespace tfrt {
 namespace cpu {
 
-template <typename T>
-static AsyncValueRef<Chain> Softmax(const DenseHostTensor& logits, bool log,
-                                    DenseHostTensor* softmax,
-                                    const ExecutionContext& exec_ctx) {
+template <typename T, bool log, typename EigenEvaluator>
+static typename EigenEvaluator::DependencyToken Softmax(
+    const DenseHostTensor& logits, DenseHostTensor* softmax,
+    const ExecutionContext& exec_ctx) {
   DHTIndexableView<T, 2> logits_view(&logits);
   MutableDHTIndexableView<T, 2> softmax_view(softmax);
 
@@ -66,15 +66,13 @@ static AsyncValueRef<Chain> Softmax(const DenseHostTensor& logits, bool log,
                                              .eval()
                                              .reshape(batch_by_one)
                                              .broadcast(one_by_class));
-
-  auto& ctx =
-      exec_ctx.host()->GetOrCreateSharedContext<compat::EigenHostContext>();
+  EigenEvaluator eigen{exec_ctx.host()};
 
   if (log) {
     // softmax = logits - max(logits along classes);
-    AsyncValueRef<Chain> logits_ready =
-        AsyncAssign(ctx, softmax_t, std::move(shifted_logits_expr),
-                    compat::KeepBuffers::alive(&logits, softmax));
+    auto logits_ready =
+        eigen.Evaluate(softmax_t, std::move(shifted_logits_expr),
+                       eigen.KeepAlive(&logits, softmax));
 
     // softmax = softmax - log(sum(exp(softmax along classes)));
     auto softmax_expr = (softmax_t - softmax_t.exp()
@@ -84,14 +82,14 @@ static AsyncValueRef<Chain> Softmax(const DenseHostTensor& logits, bool log,
                                          .reshape(batch_by_one)
                                          .broadcast(one_by_class));
 
-    return AsyncAssign(ctx, logits_ready, softmax_t, std::move(softmax_expr),
-                       compat::KeepBuffers::alive(&logits, softmax));
+    return eigen.Evaluate(logits_ready, softmax_t, std::move(softmax_expr),
+                          eigen.KeepAlive(&logits, softmax));
 
   } else {
     // softmax = exp(logits - max(logits along classes));
-    AsyncValueRef<Chain> logits_ready =
-        AsyncAssign(ctx, softmax_t, std::move(shifted_logits_expr.exp()),
-                    compat::KeepBuffers::alive(&logits, softmax));
+    auto logits_ready =
+        eigen.Evaluate(softmax_t, std::move(shifted_logits_expr.exp()),
+                       eigen.KeepAlive(&logits, softmax));
 
     // softmax = softmax * (1 / sum(softmax along classes));
     auto softmax_expr = (softmax_t * softmax_t.sum(along_class)
@@ -100,8 +98,8 @@ static AsyncValueRef<Chain> Softmax(const DenseHostTensor& logits, bool log,
                                          .reshape(batch_by_one)
                                          .broadcast(one_by_class));
 
-    return AsyncAssign(ctx, logits_ready, softmax_t, std::move(softmax_expr),
-                       compat::KeepBuffers::alive(&logits, softmax));
+    return eigen.Evaluate(logits_ready, softmax_t, std::move(softmax_expr),
+                          eigen.KeepAlive(&logits, softmax));
   }
 }
 

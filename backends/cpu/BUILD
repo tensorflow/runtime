@@ -136,6 +136,7 @@ tfrt_cc_library(
     srcs = [
         "lib/kernels/tf/cwise_binary_kernels.cc",
         "lib/kernels/tf/cwise_unary_kernels.cc",
+        "lib/kernels/tf/softmax_kernels.cc",
     ],
     hdrs = [
         "lib/kernels/concat_kernel.h",

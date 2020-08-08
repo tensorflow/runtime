@@ -27,9 +27,11 @@ namespace tf {
 
 void RegisterUnaryCpuKernels(KernelRegistry* registry);
 void RegisterBinaryCpuKernels(KernelRegistry* registry);
+void RegisterSoftmaxCpuKernels(KernelRegistry* registry);
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterUnaryCpuKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterBinaryCpuKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterSoftmaxCpuKernels);
 
 }  // namespace tf
 }  // namespace tfrt

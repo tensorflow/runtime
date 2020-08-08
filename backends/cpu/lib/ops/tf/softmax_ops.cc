@@ -24,6 +24,7 @@
 
 #include "../../kernels/softmax_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
+#include "tfrt/common/compat/eigen/eigen_evaluator.h"
 #include "tfrt/core_runtime/op_utils.h"
 #include "tfrt/cpu/core_runtime/cpu_op_registry.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -51,10 +52,11 @@ static AsyncValueRef<DenseHostTensor> TfSoftmaxOp(
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype");
       break;
-#define DTYPE_FLOAT(ENUM)                                             \
-  case DType::ENUM: {                                                 \
-    chain = ::tfrt::cpu::Softmax<EigenTypeForDTypeKind<DType::ENUM>>( \
-        logits, log, dest.getPointer(), exec_ctx);                    \
+#define DTYPE_FLOAT(ENUM)                                                 \
+  case DType::ENUM: {                                                     \
+    chain = ::tfrt::cpu::Softmax<EigenTypeForDTypeKind<DType::ENUM>, log, \
+                                 compat::AsyncEigenEvaluator>(            \
+        logits, dest.getPointer(), exec_ctx);                             \
   } break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }

@@ -42,7 +42,7 @@ namespace corert {
 //===----------------------------------------------------------------------===//
 
 CoreRTDialect::CoreRTDialect(MLIRContext *context)
-    : Dialect(/*name=*/"corert", context) {
+    : Dialect(/*name=*/"corert", context, TypeID::get<CoreRTDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
 

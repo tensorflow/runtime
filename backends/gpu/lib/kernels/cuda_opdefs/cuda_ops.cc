@@ -36,7 +36,7 @@ namespace cuda {
 //===----------------------------------------------------------------------===//
 
 CUDADialect::CUDADialect(MLIRContext *context)
-    : Dialect(/*name*/ "cuda", context) {
+    : Dialect(/*name*/ "cuda", context, TypeID::get<CUDADialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
 

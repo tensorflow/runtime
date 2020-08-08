@@ -36,7 +36,7 @@ namespace coo {
 //===----------------------------------------------------------------------===//
 
 CooHostTensorDialect::CooHostTensorDialect(MLIRContext *context)
-    : Dialect(/*name=*/"coo", context) {
+    : Dialect(/*name=*/"coo", context, TypeID::get<CooHostTensorDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
   addOperations<

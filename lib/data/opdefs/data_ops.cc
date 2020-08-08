@@ -37,7 +37,8 @@ namespace data {
 //===----------------------------------------------------------------------===//
 
 DataDialect::DataDialect(MLIRContext *context)
-    : Dialect(/*name=*/getDialectNamespace(), context) {
+    : Dialect(/*name=*/getDialectNamespace(), context,
+              TypeID::get<DataDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
 

@@ -36,7 +36,7 @@ namespace dist {
 //===----------------------------------------------------------------------===//
 
 DistributedDialect::DistributedDialect(MLIRContext *context)
-    : Dialect(/*name=*/"dist", context) {
+    : Dialect(/*name=*/"dist", context, TypeID::get<DistributedDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
   addOperations<

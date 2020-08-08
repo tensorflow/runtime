@@ -34,7 +34,7 @@ namespace ts {
 //===----------------------------------------------------------------------===//
 
 TensorShapeDialect::TensorShapeDialect(MLIRContext *context)
-    : Dialect(/*name=*/"ts", context) {
+    : Dialect(/*name=*/"ts", context, TypeID::get<TensorShapeDialect>()) {
   allowUnknownTypes();
   addOperations<
 #define GET_OP_LIST

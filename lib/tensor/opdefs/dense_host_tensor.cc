@@ -36,7 +36,8 @@ namespace dht {
 //===----------------------------------------------------------------------===//
 
 DenseHostTensorDialect::DenseHostTensorDialect(MLIRContext *context)
-    : Dialect(/*name=*/"tfrt_dht", context) {
+    : Dialect(/*name=*/"tfrt_dht", context,
+              TypeID::get<DenseHostTensorDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
   addOperations<

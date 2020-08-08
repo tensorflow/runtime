@@ -30,7 +30,7 @@ namespace tfrt {
 //===----------------------------------------------------------------------===//
 
 TFRTDialect::TFRTDialect(mlir::MLIRContext *context)
-    : mlir::Dialect(/*name=*/"tfrt", context) {
+    : mlir::Dialect(/*name=*/"tfrt", context, TypeID::get<TFRTDialect>()) {
   allowUnknownTypes();
 
   // TODO(b/160693129): Eventually specify all of the operations.

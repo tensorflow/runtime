@@ -36,7 +36,7 @@ namespace test {
 //===----------------------------------------------------------------------===//
 
 TestDialect::TestDialect(MLIRContext *context)
-    : Dialect(/*name*/ "tfrt_test", context) {
+    : Dialect(/*name*/ "tfrt_test", context, TypeID::get<TestDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
 

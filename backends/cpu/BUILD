@@ -134,6 +134,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "cpu_kernels",
     srcs = [
+        "lib/kernels/tf/cwise_binary_kernels.cc",
         "lib/kernels/tf/cwise_unary_kernels.cc",
     ],
     hdrs = [

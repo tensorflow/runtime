@@ -33,6 +33,7 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/dense_tensor_utils.h"
+#include "tfrt/tensor/scalar_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
@@ -65,6 +66,34 @@ static void MakeTensor(Argument<RCReference<HostBuffer>> buffer,
   }
   tensor.Emplace(TensorMetadata(GetDType<T>(), *shape), std::move(*buffer));
   out_chain.Set(in_chain);
+}
+
+template <typename T>
+static Expected<DenseHostTensor> CreateDenseTensor(
+    ArrayAttribute<ssize_t> shape, ArrayAttribute<T> values,
+    const ExecutionContext& exec_ctx) {
+  auto result = DenseHostTensor::CreateUninitialized<T>(
+      TensorShape(shape.data()), exec_ctx.host());
+  if (!result.hasValue()) {
+    return MakeStringError("Cannot allocate tensor");
+  }
+
+  MutableDHTArrayView<T> dst{&*result};
+  if (values.size() == 1) {
+    dst.Fill(values[0]);
+  } else {
+    assert(values.size() == dst.NumElements());
+    std::copy(values.data().begin(), values.data().end(),
+              dst.Elements().begin());
+  }
+
+  return std::move(*result);
+}
+
+template <typename T>
+static ScalarHostTensor<T> CreateFromScalar(ArrayAttribute<ssize_t> shape,
+                                            Attribute<T> value) {
+  return ScalarHostTensor<T>{TensorShape{shape.data()}, *value};
 }
 
 template <typename T>
@@ -208,8 +237,12 @@ template <typename T>
 static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
                                                   const std::string& t_name) {
   std::string suffix = t_name;
-  // Constant is in the name because we will presumably want a version that uses
-  // a variable.
+  registry->AddSyncKernel("tfrt_dht_sync.create_dense_tensor." + suffix,
+                          TFRT_SYNC_KERNEL(CreateDenseTensor<T>));
+  registry->AddSyncKernel("tfrt_dht_sync.create_from_scalar." + suffix,
+                          TFRT_SYNC_KERNEL(CreateFromScalar<T>));
+  // Constant is in the name because we will presumably want a version that
+  // uses a variable.
   registry->AddKernel("tfrt_dht.fill_tensor_with_constant." + suffix,
                       TFRT_KERNEL(FillDenseTensorWithConstantValue<T>));
   registry->AddKernel("tfrt_dht.make_tensor." + suffix,

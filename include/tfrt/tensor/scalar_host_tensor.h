@@ -57,8 +57,17 @@ template <typename ElementType>
 class ScalarHostTensor final : public AnyScalarHostTensor {
  public:
   // Create an uninitialized ScalarHostTensor.
+  explicit ScalarHostTensor(const TensorShape& shape)
+      : ScalarHostTensor{TensorMetadata{GetDType<ElementType>(), shape}} {}
+
+  explicit ScalarHostTensor(const TensorShape& shape, ElementType value)
+      : ScalarHostTensor{TensorMetadata{GetDType<ElementType>(), shape},
+                         value} {}
+  // Create an uninitialized ScalarHostTensor.
   explicit ScalarHostTensor(TensorMetadata metadata)
-      : AnyScalarHostTensor(metadata) {}
+      : AnyScalarHostTensor(metadata) {
+    assert(metadata.dtype == GetDType<ElementType>());
+  }
 
   // Create an initialized ScalarHostTensor.
   ScalarHostTensor(TensorMetadata metadata, ElementType value)

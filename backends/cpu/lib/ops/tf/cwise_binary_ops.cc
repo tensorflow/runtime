@@ -69,8 +69,8 @@ static AsyncValueRef<HostTensor> TfBinaryOp(Argument<HostTensor> lhs,
       using R = typename F::Output;
       auto output =
           host->MakeAvailableAsyncValueRef<ScalarHostTensor<R>>(output_md);
-      cpu::BinaryKernel<F>(*lhs, *rhs, &output.get(), exec_ctx,
-                           [](Error err) {});
+      cpu::BinaryKernel<F, compat::AsyncEigenEvaluator>(
+          *lhs, *rhs, &output.get(), exec_ctx, [](Error err) {});
       return output;
     };
 
@@ -92,8 +92,8 @@ static AsyncValueRef<HostTensor> TfBinaryOp(Argument<HostTensor> lhs,
       // Forward errors to the tensor output.
       err ? output.SetError(err) : output.SetStateConcrete();
     };
-    cpu::BinaryKernel<F>(*lhs, *rhs, &output.get(), exec_ctx,
-                         std::move(on_done));
+    cpu::BinaryKernel<F, compat::AsyncEigenEvaluator>(
+        *lhs, *rhs, &output.get(), exec_ctx, std::move(on_done));
 
     return output;
   };

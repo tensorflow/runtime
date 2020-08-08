@@ -23,6 +23,7 @@
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CWISE_BINARY_KERNELS_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CWISE_BINARY_KERNELS_H_
 
+#include "tfrt/common/compat/eigen/eigen_evaluator.h"
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/common/ops/tf/bcast.h"
@@ -165,15 +166,14 @@ struct BindLeftScalar : private Functor {
 
 namespace internal {
 
-template <typename BinaryFunctor>
+template <typename BinaryFunctor, typename EigenEvaluator>
 struct BinaryKernelImpl {
   using Functor = typename BinaryFunctor::Functor;
   using Input = typename BinaryFunctor::Input;
   using Output = typename BinaryFunctor::Output;
 
-  explicit BinaryKernelImpl(HostContext* host)
-      : host(host),
-        eigen(host->GetOrCreateSharedContext<compat::EigenHostContext>()) {}
+  explicit BinaryKernelImpl(EigenEvaluator eigen_evaluator)
+      : eigen{eigen_evaluator} {}
 
   template <typename OnDone>
   void ScalarScalar(const HostTensor& lhs, const HostTensor& rhs,
@@ -203,9 +203,9 @@ struct BinaryKernelImpl {
     using BindLeft = functor::BindLeftScalar<Input, Output, Functor>;
     auto expr = rhs_t.unaryExpr(BindLeft(lhs_scalar->GetValue()));
 
-    compat::AsyncAssign(
-        eigen, out_t, std::move(expr),
-        [buffers = compat::KeepBuffers::alive(rhs_tensor, out_tensor),
+    eigen.Evaluate(
+        out_t, std::move(expr),
+        [buffers = eigen.KeepAlive(rhs_tensor, out_tensor),
          on_done = std::move(on_done)]() { on_done(Error::success()); });
   }
 
@@ -223,9 +223,9 @@ struct BinaryKernelImpl {
     using BindRight = functor::BindRightScalar<Input, Output, Functor>;
     auto expr = lhs_t.unaryExpr(BindRight(rhs_scalar->GetValue()));
 
-    compat::AsyncAssign(
-        eigen, out_t, std::move(expr),
-        [buffers = compat::KeepBuffers::alive(lhs_tensor, out_tensor),
+    eigen.Evaluate(
+        out_t, std::move(expr),
+        [buffers = eigen.KeepAlive(lhs_tensor, out_tensor),
          on_done = std::move(on_done)]() { on_done(Error::success()); });
   }
 
@@ -242,27 +242,26 @@ struct BinaryKernelImpl {
 
     // Builds a callback for assign operations that extends buffers lifetime.
     auto assign_callback = [&]() {
-      return [buffers = compat::KeepBuffers::alive(lhs_tensor, rhs_tensor,
-                                                   out_tensor),
+      return [buffers = eigen.KeepAlive(lhs_tensor, rhs_tensor, out_tensor),
               on_done = std::move(on_done)]() { on_done(Error::success()); };
     };
 
     if (lhs_tensor->shape() == rhs_tensor->shape()) {
       // Arguments do not need broadcasting.
       auto expr = lhs_t.binaryExpr(rhs_t, Functor());
-      compat::AsyncAssign(eigen, out_t, std::move(expr), assign_callback());
+      eigen.Evaluate(out_t, std::move(expr), assign_callback());
 
     } else if (lhs_tensor->NumElements() == 1) {
       // Scalar (or Tensor of size 1) + Tensor.
       using BindLeft = functor::BindLeftScalar<Input, Output, Functor>;
       auto expr = rhs_t.unaryExpr(BindLeft(*lhs_t.data()));
-      compat::AsyncAssign(eigen, out_t, std::move(expr), assign_callback());
+      eigen.Evaluate(out_t, std::move(expr), assign_callback());
 
     } else if (rhs_tensor->NumElements() == 1) {
       // Tensor + Scalar (or Tensor of size 1).
       using BindRight = functor::BindRightScalar<Input, Output, Functor>;
       auto expr = lhs_t.unaryExpr(BindRight(*rhs_t.data()));
-      compat::AsyncAssign(eigen, out_t, std::move(expr), assign_callback());
+      eigen.Evaluate(out_t, std::move(expr), assign_callback());
 
     } else {
       // Handle Tensor + Tensor with broadcasting.
@@ -310,10 +309,9 @@ struct BinaryKernelImpl {
       auto rhs_expr = rhs_t.broadcast(rhs_bcast->broadcast());
       auto expr = lhs_expr.binaryExpr(rhs_expr, Functor());
 
-      compat::AsyncAssign(
-          eigen, out_t, std::move(expr),
-          [buffers =
-               compat::KeepBuffers::alive(&lhs_tensor, &rhs_tensor, out_tensor),
+      eigen.Evaluate(
+          out_t, std::move(expr),
+          [buffers = eigen.KeepAlive(&lhs_tensor, &rhs_tensor, out_tensor),
            on_done = std::move(on_done)]() { on_done(Error::success()); });
     };
 
@@ -342,19 +340,19 @@ struct BinaryKernelImpl {
     static constexpr int value = rank;
   };
 
-  HostContext* host;
-  compat::EigenHostContext& eigen;
+  EigenEvaluator eigen;
 };
 
 }  // namespace internal
 
-template <typename BinaryFunctor, typename OnDone>
-static void BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
-                         HostTensor* output, const ExecutionContext& exec_ctx,
-                         OnDone on_done) {
+template <typename BinaryFunctor, typename EigenEvaluator, typename OnDone>
+void BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
+                  HostTensor* output, const ExecutionContext& exec_ctx,
+                  OnDone on_done) {
   using T = typename BinaryFunctor::Input;
 
-  internal::BinaryKernelImpl<BinaryFunctor> impl(exec_ctx.host());
+  internal::BinaryKernelImpl<BinaryFunctor, EigenEvaluator> impl(
+      EigenEvaluator{exec_ctx.host()});
 
   if (isa<ScalarHostTensor<T>>(lhs) && isa<ScalarHostTensor<T>>(rhs)) {
     impl.ScalarScalar(lhs, rhs, output, std::move(on_done));
@@ -374,10 +372,9 @@ static void BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
 }
 
 template <typename BinaryFunctor>
-static AsyncValueRef<Chain> BinaryKernel(const HostTensor& lhs,
-                                         const HostTensor& rhs,
-                                         HostTensor* output,
-                                         const ExecutionContext& exec_ctx) {
+AsyncValueRef<Chain> BinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
+                                  HostTensor* output,
+                                  const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
   AsyncValueRef<Chain> chain = host->MakeConstructedAsyncValueRef<Chain>();
 
@@ -385,9 +382,20 @@ static AsyncValueRef<Chain> BinaryKernel(const HostTensor& lhs,
     err ? chain.SetError(err) : chain.SetStateConcrete();
   };
 
-  BinaryKernel<BinaryFunctor>(lhs, rhs, output, exec_ctx, std::move(on_done));
+  BinaryKernel<BinaryFunctor, compat::AsyncEigenEvaluator>(
+      lhs, rhs, output, exec_ctx, std::move(on_done));
 
   return chain;
+}
+
+template <typename BinaryFunctor>
+Error SyncBinaryKernel(const HostTensor& lhs, const HostTensor& rhs,
+                       HostTensor* output, const ExecutionContext& exec_ctx) {
+  Error error = Error::success();
+  auto on_done = [&](Error err) { error = std::move(err); };
+  BinaryKernel<BinaryFunctor, compat::SyncEigenEvaluator>(lhs, rhs, output,
+                                                          exec_ctx, on_done);
+  return error;
 }
 
 }  // namespace cpu

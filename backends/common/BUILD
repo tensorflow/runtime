@@ -112,6 +112,7 @@ tfrt_cc_library(
         "include/tfrt/common/compat/eigen/contraction_kernel.h",
         "include/tfrt/common/compat/eigen/contraction_output_kernel.h",
         "include/tfrt/common/compat/eigen/eigen_dtype.h",
+        "include/tfrt/common/compat/eigen/eigen_evaluator.h",
         "include/tfrt/common/compat/eigen/eigen_kernel.h",
         "include/tfrt/common/compat/eigen/partial_packets.h",
         "include/tfrt/common/compat/eigen/spatial_convolution.h",

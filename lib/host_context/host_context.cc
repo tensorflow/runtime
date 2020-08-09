@@ -50,7 +50,7 @@ HostContext::HostContext(
   assert(instance_index() < HostContextPtr::kDummyIndex &&
          "Created too many HostContext instances");
   all_host_contexts_[instance_index()] = this;
-  ready_chain_ = MakeAvailableAsyncValueRef<Chain>();
+  ReadyChain::Get().Construct(this);
   // Add a CPU:0 device by default.
   static DeviceTypeRegistration cpu_type("cpu");
   // TODO(b/160264760): Pick a better device name than "CPU:0".
@@ -62,7 +62,7 @@ HostContext::~HostContext() {
   Quiesce();
   // We need to free the ready chain AsyncValue first, as the destructor of the
   // AsyncValue calls the HostContext to free its memory.
-  ready_chain_.reset();
+  ReadyChain::Get().Destruct(this);
   all_host_contexts_[instance_index()] = nullptr;
 }
 

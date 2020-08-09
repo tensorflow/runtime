@@ -345,7 +345,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
     if (invocation.chain && *invocation.chain) {
       arguments.push_back(invocation.chain->GetAsyncValue());
     } else {
-      arguments_ref.push_back(host->GetReadyChain());
+      arguments_ref.push_back(GetReadyChain(host));
       arguments.push_back(arguments_ref.back().get());
     }
 
@@ -417,7 +417,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
     if (invocation.chain && *invocation.chain) {
       arguments.push_back(invocation.chain->GetAsyncValue());
     } else {
-      arguments_ref.push_back(host->GetReadyChain());
+      arguments_ref.push_back(GetReadyChain(host));
       arguments.push_back(arguments_ref.back().get());
     }
 

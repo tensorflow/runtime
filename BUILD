@@ -46,6 +46,7 @@ tfrt_cc_library(
     srcs = [
         "lib/host_context/async_value.cc",
         "lib/host_context/async_value_ref.cc",
+        "lib/host_context/chain.cc",
         "lib/host_context/concurrent_work_queue.cc",
         "lib/host_context/device.cc",
         "lib/host_context/diagnostic.cc",

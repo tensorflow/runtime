@@ -19,14 +19,55 @@
 // Chain is a control dependence between kernels. Its runtime representation is
 // a zero sized value.
 //
+// ReadyChain is a singleton that holds an AsyncValueRef to a Chain for each
+// HostContext, to avoid repeated creation of ready chains on the heap.
 //===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_CHAIN_H_
 #define TFRT_HOST_CONTEXT_CHAIN_H_
 
+#include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/host_context.h"
+
 namespace tfrt {
 
 struct Chain {};
+
+class ReadyChain {
+ public:
+  ReadyChain(const ReadyChain&) = delete;
+  ReadyChain& operator=(const ReadyChain&) = delete;
+
+  static ReadyChain& Get() {
+    // TODO(b/162096472) Use NoDestructor when available.
+    static ReadyChain& kReadyChain = *new ReadyChain();
+    return kReadyChain;
+  }
+
+  AsyncValueRef<Chain> GetReadyChain(HostContext* host) {
+    return all_ready_chains_[HostContextPtr(host).index()].CopyRef();
+  }
+
+ private:
+  friend class HostContext;
+
+  ReadyChain() = default;
+
+  void Construct(HostContext* host) {
+    all_ready_chains_[HostContextPtr(host).index()] =
+        host->MakeAvailableAsyncValueRef<Chain>();
+  }
+
+  void Destruct(HostContext* host) {
+    all_ready_chains_[HostContextPtr(host).index()].reset();
+  }
+
+  // Store a ready chain for each HostContext to avoid repeated creations of
+  // ready chains on the heap.
+  AsyncValueRef<Chain> all_ready_chains_[HostContextPtr::kDummyIndex];
+};
+
+AsyncValueRef<Chain> GetReadyChain(HostContext* host);
 
 }  // namespace tfrt
 

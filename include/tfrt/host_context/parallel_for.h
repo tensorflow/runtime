@@ -27,6 +27,7 @@
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/STLExtras.h"
+#include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/mutex.h"

@@ -51,6 +51,7 @@ class HostContextPtr {
 
  private:
   friend class HostContext;
+  friend class ReadyChain;
 
   explicit HostContextPtr(int index) : index_{static_cast<uint8_t>(index)} {
     assert(index < kDummyIndex);

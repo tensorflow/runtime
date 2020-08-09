@@ -29,6 +29,7 @@
 #include "tfrt/core_runtime/core_runtime_op.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/tensor_handle.h"
+#include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/native_function.h"
@@ -239,7 +240,7 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
     result.SetStateConcrete();
 
     assert(num_results == 2);
-    results[0] = host->GetReadyChain().CopyRef();
+    results[0] = GetReadyChain(host).CopyRef();
     // TODO(b/158775215): Use Test device as the result's device
     results[1] = host->MakeAvailableAsyncValueRef<TensorHandle>(
         host->GetHostDeviceRef(), a.GetAvailableMetadata(), std::move(result));
@@ -283,7 +284,7 @@ TEST_F(CpuDriverTest, NativeCompositeOpTest) {
         TFRT_DLOG(INFO) << "Result value is " << result_value;
 
         assert(num_results == 2);
-        results[0] = host->GetReadyChain().CopyRef();
+        results[0] = GetReadyChain(host).CopyRef();
         results[1] = host->MakeAvailableAsyncValueRef<int32_t>(result_value);
       };
 

@@ -35,7 +35,6 @@ namespace tfrt {
 
 class DecodedDiagnostic;
 
-class Chain;
 class ConcurrentWorkQueue;
 class HostAllocator;
 class TypeDescriptor;
@@ -91,8 +90,6 @@ class HostContext {
   std::function<void(const DecodedDiagnostic&)> diag_handler() {
     return diag_handler_;
   }
-
-  AsyncValueRef<Chain> GetReadyChain() const { return ready_chain_.CopyRef(); }
 
   //===--------------------------------------------------------------------===//
   // Memory Management
@@ -287,9 +284,6 @@ class HostContext {
   //===--------------------------------------------------------------------===//
   TimerQueue* GetTimerQueue() { return &timer_queue_; }
 
-  // Store a ready chain in HostContext to avoid repeated creations of ready
-  // chains on the heap.
-  AsyncValueRef<Chain> ready_chain_;
   KernelRegistry registry_;
   DeviceManager device_mgr_;
   RCReference<Device> host_device_;

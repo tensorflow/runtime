@@ -338,6 +338,7 @@ tfrt_cc_library(
     srcs = ["lib/bef_converter/bef_to_mlir/bef_to_mlir.cc"],
     hdrs = ["include/tfrt/bef_converter/bef_to_mlir.h"],
     alwayslink_static_registration_src = "lib/bef_converter/bef_to_mlir/static_registration.cc",
+    visibility = [":friends"],
     deps = [
         ":core_runtime_opdefs",
         ":support",

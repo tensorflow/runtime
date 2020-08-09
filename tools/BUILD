@@ -83,6 +83,7 @@ tfrt_cc_binary(
 tfrt_cc_binary(
     name = "btf_info",
     srcs = ["btf_info_tool/main.cc"],
+    visibility = [":friends"],
     deps = [
         ":opt_lib",
         "@llvm-project//llvm:Support",

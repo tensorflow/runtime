@@ -38,8 +38,6 @@ class HostContext;
 
 // Kernel implementations use this signature, synchronously or asynchronously
 // performing some computation and updating results.
-//
-// TODO(b/160478052): Rename AsyncKernelFrame to AsyncKernelFrame.
 using AsyncKernelImplementation = void (*)(AsyncKernelFrame* frame);
 using SyncKernelImplementation = void (*)(SyncKernelFrame* frame);
 

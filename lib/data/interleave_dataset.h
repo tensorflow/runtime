@@ -64,6 +64,7 @@ class InterleaveDataset : public Dataset {
       : input_dataset_(std::move(input_dataset)),
         cycle_length_(cycle_length),
         block_length_(block_length),
+        prefetch_iterator_num_(cycle_length),
         arity_(arity),
         host_(host),
         allocator_(host->allocator()),
@@ -89,6 +90,10 @@ class InterleaveDataset : public Dataset {
   RCReference<Dataset> input_dataset_;
   const int64_t cycle_length_;
   const int64_t block_length_;
+  // Pre-initialize up to `cycle_length` intermediate iterators, in addition to
+  // initializing the intermediate iterators already requested by the current
+  // cycle.
+  const int64_t prefetch_iterator_num_;
   const int64_t arity_;
   HostContext* host_;
   HostAllocator* allocator_;
@@ -136,7 +141,7 @@ class InterleaveDatasetIterator : public Iterator {
     // The dataset by calling func_(input_value).
     RCReference<AsyncValue> dataset;
     // The intermediate iterator created from the above dataset.
-    RCReference<Iterator> iterator;
+    AsyncValueRef<RCReference<Iterator>> iterator;
     // A queue of results from the above intermediate iterator.
     std::queue<IterationResult> queue;
     // The number of results fetched in the current fetch-block of this iterator
@@ -169,6 +174,12 @@ class InterleaveDatasetIterator : public Iterator {
   // appropriate.
   void MaybeScheduleBackgroundTask(const ExecutionContext& exec_ctx,
                                    bool is_token_owner, int callback_count)
+      TFRT_EXCLUDES(mu_);
+
+  // If the input iterator has not reached end, prefetch enough values from it
+  // and transform those values into intermediate iterators until
+  // num_open_iterators_ == cycle_length_ + prefetch_iterator_num_.
+  void PreInitializeIntermediateIterators(const ExecutionContext& exec_ctx)
       TFRT_EXCLUDES(mu_);
 
   // This method contains the following logic:
@@ -224,9 +235,15 @@ class InterleaveDatasetIterator : public Iterator {
   RCReference<Iterator> input_iterator_;
   bool is_input_iterator_eof_ = false;
 
-  // List of intermediate iterators and their states.
+  // List of intermediate iterators and their states. The positions of those
+  // intermediate iterators have been fixed in the iterator cycle and thus we
+  // can get values from them.
   std::vector<IteratorAndQueue> iterator_and_queues_;
-  // Total number of iterators whose is_open is true.
+  // Buffer of prefetched intermediate iterators. The iterator in this buffer
+  // should be moved to iterator_and_queues_ before we can get values from it.
+  std::queue<IteratorAndQueue> prefetched_iterators_;
+  // Total number of iterators in prefetched_iterators_ and iterator_and_queues_
+  // whose is_open is true.
   size_t num_open_iterators_ = 0;
   // iterator_and_queues_[iterator_index_for_fetch_] contains the next
   // iterator to fetch from.

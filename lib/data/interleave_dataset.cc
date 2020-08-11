@@ -59,6 +59,46 @@ IterationResult InterleaveDatasetIterator::GetNext(
   return result;
 }
 
+void InterleaveDatasetIterator::PreInitializeIntermediateIterators(
+    const ExecutionContext& exec_ctx) {
+  if (is_input_iterator_eof_) return;
+  auto* host = exec_ctx.host();
+
+  auto fetch_num = parent_dataset_->cycle_length_ +
+                   parent_dataset_->prefetch_iterator_num_ -
+                   num_open_iterators_;
+  for (int i = 0; i < fetch_num; i++) {
+    // Read value from the input iterator.
+    auto input_value = input_iterator_->GetNext(exec_ctx);
+    // Construct dataset = func_(input_value).
+    SmallVector<AsyncValue*, 4> fn_args;
+    for (const auto& value : input_value.values) {
+      fn_args.push_back(value.get());
+    }
+    SmallVector<RCReference<AsyncValue>, 1> fn_results;
+    fn_results.resize(1);
+    parent_dataset_->func_->Execute(exec_ctx, fn_args, fn_results);
+
+    auto entry = IteratorAndQueue(std::move(input_value),
+                                  std::move(fn_results[0]), true);
+    entry.iterator =
+        host->MakeUnconstructedAsyncValueRef<RCReference<Iterator>>();
+    // Instantiate the intermediate iterator once the dataset is available.
+    entry.dataset->AndThen([dataset = entry.dataset.CopyRef(),
+                            iterator = entry.iterator.CopyRef()]() mutable {
+      if (dataset->IsError()) {
+        iterator.SetError(dataset->GetError());
+        return;
+      }
+      auto iter = dataset->template get<RCReference<Dataset>>()->MakeIterator();
+      iterator.emplace(std::move(iter));
+    });
+
+    prefetched_iterators_.push(std::move(entry));
+    num_open_iterators_++;
+  }
+}
+
 AsyncValue* InterleaveDatasetIterator::FetchInputValues(
     const ExecutionContext& exec_ctx) {
   auto output_buffer_size = OutputBufferSize();
@@ -70,30 +110,20 @@ AsyncValue* InterleaveDatasetIterator::FetchInputValues(
     auto& iterator_and_queue = iterator_and_queues_[iterator_index_for_fetch_];
 
     if (!iterator_and_queue.is_open) {
-      // We can not create any new iterator and there is no more open iterator
-      // to fetch from.
-      if (is_input_iterator_eof_ && num_open_iterators_ == 0) break;
-      // We can not create any new iterator and there is open iterator to fetch
-      // from. Move to the next iterator in the circular array.
-      if (is_input_iterator_eof_) {
+      PreInitializeIntermediateIterators(exec_ctx);
+      // There is no more open iterator to fetch from.
+      if (num_open_iterators_ == 0) break;
+      // There is no available iterator from prefetched_iterators_ to move to
+      // this position in the circular array. Move to the next iterator in the
+      // circular array.
+      if (prefetched_iterators_.empty()) {
         iterator_index_for_fetch_ =
             (iterator_index_for_fetch_ + 1) % parent_dataset_->cycle_length_;
         continue;
       }
-      // Create a new iterator at the current position in the array.
-      auto input_value = input_iterator_->GetNext(exec_ctx);
-      // Construct dataset = func_(input_value).
-      SmallVector<AsyncValue*, 4> fn_args;
-      for (const auto& value : input_value.values) {
-        fn_args.push_back(value.get());
-      }
-      SmallVector<RCReference<AsyncValue>, 1> fn_results;
-      fn_results.resize(1);
-      parent_dataset_->func_->Execute(exec_ctx, fn_args, fn_results);
-
-      iterator_and_queues_[iterator_index_for_fetch_] = IteratorAndQueue(
-          std::move(input_value), std::move(fn_results[0]), true);
-      num_open_iterators_++;
+      iterator_and_queues_[iterator_index_for_fetch_] =
+          std::move(prefetched_iterators_.front());
+      prefetched_iterators_.pop();
       continue;
     }
 
@@ -103,56 +133,35 @@ AsyncValue* InterleaveDatasetIterator::FetchInputValues(
     if (!input_value_eof.IsAvailable()) {
       return input_value_eof.GetAsyncValue();
     }
-    // The eof of input_value has error. Propagate the error to the next value
-    // in the output_buffer_ and update iterator's state.
-    if (input_value_eof.IsError()) {
-      auto output = DequeueOutputBuffer();
-      output_buffer_size--;
-
-      output.eof.SetError(input_value_eof.GetError());
-      for (int i = 0; i < parent_dataset_->arity_; ++i) {
-        output.values[i]->SetError(input_value_eof.GetError());
-      }
-      iterator_and_queue.is_open = false;
-      num_open_iterators_--;
-      continue;
-    }
     // The eof of input_value is true.
-    if (input_value_eof.get()) {
+    if (!input_value_eof.IsError() && input_value_eof.get()) {
       is_input_iterator_eof_ = true;
       iterator_and_queue.is_open = false;
       num_open_iterators_--;
       continue;
     }
 
-    auto& dataset = iterator_and_queue.dataset;
-    // Wait for the dataset to be available.
-    if (!dataset->IsAvailable()) {
-      return dataset.get();
+    auto& iterator = iterator_and_queue.iterator;
+    // Wait for the iterator to be available.
+    if (!iterator.IsAvailable()) {
+      return iterator.GetAsyncValue();
     }
-    // The dataset has error. Propagate the error to the next value in
+    // The iterator has error. Propagate the error to the next value in
     // the output_buffer_ and update iterator's state.
-    if (dataset->IsError()) {
+    if (iterator.IsError()) {
       auto output = DequeueOutputBuffer();
       output_buffer_size--;
 
-      output.eof.SetError(dataset->GetError());
+      output.eof.SetError(iterator.GetError());
       for (int i = 0; i < parent_dataset_->arity_; ++i) {
-        output.values[i]->SetError(dataset->GetError());
+        output.values[i]->SetError(iterator.GetError());
       }
       iterator_and_queue.is_open = false;
       num_open_iterators_--;
       continue;
     }
-    // Create the iterator from the dataset if it has not already been created.
-    if (!iterator_and_queue.iterator) {
-      iterator_and_queue.iterator =
-          dataset->template get<RCReference<Dataset>>()->MakeIterator();
-    }
 
-    auto& iterator = iterator_and_queue.iterator;
     auto& queue = iterator_and_queue.queue;
-
     if (iterator_and_queue.fetched_num_in_block == 0 && !queue.empty()) {
       // iterator_index_for_fetch_ is ahead of iterator_index_for_output_ by
       // one cycle of iterators. Exit the loop so that we can forward the
@@ -172,7 +181,7 @@ AsyncValue* InterleaveDatasetIterator::FetchInputValues(
     // Pretch values from the current iterator into its queue and update
     // iterator's state.
     for (int i = 0; i < fetch_num; ++i) {
-      queue.push(iterator->GetNext(exec_ctx));
+      queue.push(iterator.get()->GetNext(exec_ctx));
     }
     iterator_and_queue.fetched_num_in_block += fetch_num;
     total_queues_size_ += fetch_num;

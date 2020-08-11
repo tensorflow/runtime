@@ -77,7 +77,7 @@ def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
 
     Example:
       %iterator = tfrt_data.make_iterator %dataset
-      %chain_out, %value = tfrt_data.iterator_get_next (%iterator, %chain_in) : !t.tensor
+      %chain_out, %value = tfrt_data.iterator_get_next %iterator, %chain_in : !t.tensor
   }];
 
   let arguments = (ins IteratorType:$iterator, TFRT_ChainType:$chain_in);
@@ -95,7 +95,7 @@ def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {
     types as the operands, excluding the first operand, which is the iterator.
 
     example:
-      tfrt_data.enumerate.iterator (%iterator, %zero) { function = @add_one } : i64
+     %result = tfrt_data.enumerate.iterator %iterator, %zero { function = @add_one } : i64
   }];
 
   let arguments = (ins
@@ -121,10 +121,9 @@ class BatchDatasetOp<string suffix>
     the underlying elements.
 
     Example:
-      %dataset1 = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
+      %dataset_1 = tfrt_data.range_dataset %start, %stop, %step { element_type = i32 }
       %batch_size = tfrt.constant.i64 32
-      %dataset2 = tfrt_data.batch_dataset.i32 %dataset1, %batch_size
-        { same_input_metadata = 1 : i1 }
+      %dataset_2 = tfrt_data.batch_dataset.i32 %dataset_1, %batch_size { same_input_metadata = 1 : i1 }
   }];
 
   let arguments = (ins
@@ -153,9 +152,8 @@ def FilterDatasetOp : Data_Op<"filter_dataset"> {
     the elements which satisfy a user-defined filter function.
 
     Example:
-      %dataset1 = tfrt_data.range_dataset.i32 (%start, %stop, %step)
-      %dataset2 = tfrt_data.filter_dataset (%dataset1)
-        {function = @filter_even, arity = 1: i64}
+      %dataset_1 = tfrt_data.range_dataset %start, %stop, %step { element_type = i32 }
+      %dataset_2 = tfrt_data.filter_dataset %dataset_1 { function = @filter_even, arity = 1 : i64 }
   }];
 
   let arguments = (ins
@@ -178,8 +176,8 @@ def InterleaveDatasetOp : Data_Op<"interleave_dataset"> {
     dataset per input elements and interleaves the results of these datasets.
 
     Example:
-      %dataset = tfrt_data.interleave_dataset (%filenames)
-        {function = @read_tf_record_files, arity = 1: i64}
+      %dataset_2 = tfrt_data.interleave_dataset %dataset_1, %cycle_len, %block_len
+        { function = @get_tf_record_dataset, arity = 1: i64 }
   }];
 
   let arguments = (ins
@@ -204,8 +202,8 @@ def MapDatasetOp : Data_Op<"map_dataset"> {
     input dataset.
 
     Example:
-      %dataset1 = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
-      %dataset2 = tfrt_data.map_dataset %dataset1 {function = @times_two}
+      %dataset_1 = tfrt_data.range_dataset %start, %stop, %step { element_type = i32 }
+      %dataset_2 = tfrt_data.map_dataset %dataset_1 { function = @times_two }
   }];
 
   let arguments = (ins
@@ -230,10 +228,10 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
     prefetches elements from the underlying dataset in an internal buffer.
 
     Example:
-      %dataset1 = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
-      %dataset2 = tfrt_data.map_dataset %dataset1 {function = @times_two}
+      %dataset_1 = tfrt_data.range_dataset %start, %stop, %step { element_type = i32 }
+      %dataset_2 = tfrt_data.map_dataset %dataset_1 { function = @times_two }
       %prefetch_num = tfrt.constant.i64 8
-      %dataset3 = tfrt_data.prefetch_dataset %dataset2, %prefetch_num
+      %dataset_3 = tfrt_data.prefetch_dataset %dataset_2, %prefetch_num
   }];
 
   let arguments = (ins
@@ -253,7 +251,7 @@ def RangeDatasetOp : Data_Op<"range_dataset" > {
     start (inclusive) to stop (exclusive).
 
     Example:
-      %dataset = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
+      %dataset = tfrt_data.range_dataset %start, %stop, %step { element_type = i32 }
   }];
 
   let arguments = (ins
@@ -275,9 +273,9 @@ def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
     it a specified number of times.
 
     Example:
-      %dataset1 = tfrt_data.range_dataset %start, %stop, %step {element_type = i32}
+      %dataset_1 = tfrt_data.range_dataset %start, %stop, %step { element_type = i32 }
       %count = tfrt.constant.i64 8
-      %dataset2 = tfrt_data.repeat_dataset %dataset1, %count
+      %dataset_2 = tfrt_data.repeat_dataset %dataset_1, %count
   }];
 
   let arguments = (ins

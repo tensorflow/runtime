@@ -108,21 +108,18 @@ Error SimpleTracingSink::RequestTracing(bool enable) {
   return Error::success();
 }
 
-void SimpleTracingSink::RecordTracingEvent(const char* /*category*/,
-                                           string_view name) {
+void SimpleTracingSink::RecordTracingEvent(string_view name) {
   GetTracingStorage().RecordEvent(std::string(name));
 }
-void SimpleTracingSink::RecordTracingEvent(const char* /*category*/,
-                                           std::string&& name) {
+void SimpleTracingSink::RecordTracingEvent(std::string&& name) {
   GetTracingStorage().RecordEvent(std::move(name));
 }
 
-void SimpleTracingSink::PushTracingScope(const char* /*category*/,
-                                         string_view name) {
+void SimpleTracingSink::PushTracingScope(string_view name) {
   GetTracingStorage().PushScope(std::string(name));
 }
-void SimpleTracingSink::PushTracingScope(const char* /*category*/,
-                                         std::string&& name) {
+
+void SimpleTracingSink::PushTracingScope(std::string&& name) {
   GetTracingStorage().PushScope(std::move(name));
 }
 

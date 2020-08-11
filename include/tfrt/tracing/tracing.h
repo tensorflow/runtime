@@ -43,9 +43,9 @@ class TracingSink {
   virtual Error RequestTracing(bool enable) = 0;
 
   // Records an instant event for the calling thread.
-  virtual void RecordTracingEvent(const char* category, string_view name) = 0;
+  virtual void RecordTracingEvent(string_view name) = 0;
   // Pushes a tracing scope to the calling thread's stack.
-  virtual void PushTracingScope(const char* category, string_view name) = 0;
+  virtual void PushTracingScope(string_view name) = 0;
   // Ends the tracing scope from top of the calling thread's stack.
   // May be called after trace recording has been disabled.
   virtual void PopTracingScope() = 0;
@@ -53,11 +53,17 @@ class TracingSink {
   // The following functions forward to the above. Derived classes can override
   // them as an optimization if their sinks consume the corresponding type.
 
-  virtual void RecordTracingEvent(const char* category, const char* name);
-  virtual void RecordTracingEvent(const char* category, std::string&& name);
-  virtual void PushTracingScope(const char* category, const char* name);
-  virtual void PushTracingScope(const char* category, std::string&& name);
+  virtual void RecordTracingEvent(const char* name);
+  virtual void RecordTracingEvent(std::string&& name);
+  virtual void PushTracingScope(const char* name);
+  virtual void PushTracingScope(std::string&& name);
 };
+
+// When choosing a level, use
+// Default for activities related to ops and kernels execution.
+// Verbose for extra information which is cheap to generate.
+// Debug for extra information which is expensive to generate
+enum class TracingLevel { Default = 0, Verbose = 1, Debug = 2 };
 
 namespace internal {
 // The one and only registered tracing sink.
@@ -65,6 +71,10 @@ extern TracingSink* kTracingSink;
 // Counter whether tracing is currently enabled. If positive, tracing events and
 // scopes should be sent to the sink.
 extern std::atomic<int> kIsTracingEnabled;
+
+// Stores the current tracing level. All activities which lower level will be
+// discarded.
+extern std::atomic<TracingLevel> kTracingLevel;
 }  // namespace internal
 
 // Registers the tracing sink. Only one sink can be registered at any time.
@@ -76,13 +86,22 @@ void RegisterTracingSink(TracingSink* tracing_sink);
 inline bool IsTracingEnabled() {
   return internal::kIsTracingEnabled.load(std::memory_order_acquire) > 0;
 }
+
+inline bool IsAboveTracingLevel(TracingLevel level) {
+  auto current_level = internal::kTracingLevel.load(std::memory_order_acquire);
+  return static_cast<int>(current_level) >= static_cast<int>(level);
+}
+
 #else  // TFRT_DISABLE_TRACING
 // Always return false because tracing is disabled at compile time.
 constexpr inline bool IsTracingEnabled() { return false; }
+constexpr inline bool IsAboveTracingLevel(TracingLevel) { return false; }
+
 #endif
 
 // Requests the tracing sink to enable or disable tracing.
 void RequestTracing(bool enable);
+void SetTracingLevel(TracingLevel level);
 
 // RAII class to request tracing for the duration of the instance.
 class TracingRequester {
@@ -96,35 +115,26 @@ class TracingRequester {
 };
 
 // Functions to add a tracing event.
-inline void RecordTracingEvent(const char* category, const char* name) {
-  if (IsTracingEnabled())
-    internal::kTracingSink->RecordTracingEvent(category, name);
+inline void RecordTracingEvent(TracingLevel level, const char* name) {
+  if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
+    internal::kTracingSink->RecordTracingEvent(name);
+  }
 }
-inline void RecordTracingEvent(const char* name) {
-  RecordTracingEvent(nullptr, name);
+inline void RecordTracingEvent(TracingLevel level, string_view name) {
+  if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
+    internal::kTracingSink->RecordTracingEvent(name);
+  }
 }
-inline void RecordTracingEvent(const char* category, string_view name) {
-  if (IsTracingEnabled())
-    internal::kTracingSink->RecordTracingEvent(category, name);
-}
-inline void RecordTracingEvent(string_view name) {
-  RecordTracingEvent(nullptr, name);
-}
-inline void RecordTracingEvent(const char* category, std::string&& name) {
-  if (IsTracingEnabled())
-    internal::kTracingSink->RecordTracingEvent(category, std::move(name));
-}
-inline void RecordTracingEvent(std::string&& name) {
-  RecordTracingEvent(nullptr, std::move(name));
+inline void RecordTracingEvent(TracingLevel level, std::string&& name) {
+  if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
+    internal::kTracingSink->RecordTracingEvent(std::move(name));
+  }
 }
 template <typename F>
-void RecordTracingEvent(const char* category, F&& get_name) {
-  if (IsTracingEnabled())
-    internal::kTracingSink->RecordTracingEvent(category, get_name());
-}
-template <typename F>
-void RecordTracingEvent(F&& get_name) {
-  RecordTracingEvent(nullptr, std::forward<F>(get_name));
+void RecordTracingEvent(TracingLevel level, F&& get_name) {
+  if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
+    internal::kTracingSink->RecordTracingEvent(get_name());
+  }
 }
 
 // RAII class that pushes/pops a tracing scope.
@@ -134,32 +144,23 @@ class TracingScope {
   TracingScope& operator=(const TracingScope&) = delete;
 
  public:
-  TracingScope(const char* category, const char* name)
-      : enabled_(IsTracingEnabled()) {
-    if (enabled_) internal::kTracingSink->PushTracingScope(category, name);
+  TracingScope(TracingLevel level, const char* name)
+      : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
+    if (enabled_) internal::kTracingSink->PushTracingScope(name);
   }
-  explicit TracingScope(const char* name) : TracingScope(nullptr, name) {}
-  TracingScope(const char* category, string_view name)
-      : enabled_(IsTracingEnabled()) {
-    if (enabled_) internal::kTracingSink->PushTracingScope(category, name);
+  TracingScope(TracingLevel level, string_view name)
+      : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
+    if (enabled_) internal::kTracingSink->PushTracingScope(name);
   }
-  explicit TracingScope(string_view name) : TracingScope(nullptr, name) {}
-  TracingScope(const char* category, std::string&& name)
-      : enabled_(IsTracingEnabled()) {
-    if (enabled_)
-      internal::kTracingSink->PushTracingScope(category, std::move(name));
-  }
-  explicit TracingScope(std::string&& name)
-      : TracingScope(nullptr, std::move(name)) {}
-  template <typename F>
-  TracingScope(const char* category, F&& get_name)
-      : enabled_(IsTracingEnabled()) {
-    if (enabled_)
-      internal::kTracingSink->PushTracingScope(category, get_name());
+  TracingScope(TracingLevel level, std::string&& name)
+      : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
+    if (enabled_) internal::kTracingSink->PushTracingScope(std::move(name));
   }
   template <typename F>
-  explicit TracingScope(F&& get_name)
-      : TracingScope(nullptr, std::forward<F>(get_name)) {}
+  TracingScope(TracingLevel level, F&& get_name)
+      : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
+    if (enabled_) internal::kTracingSink->PushTracingScope(get_name());
+  }
 
   ~TracingScope() {
     if (enabled_) internal::kTracingSink->PopTracingScope();
@@ -184,21 +185,29 @@ class TracingScope {
 // is long enough (~100ns) and `*_EVENT` otherwise.
 
 #ifndef TFRT_DISABLE_TRACING
-#define TFRT_TRACE_SCOPE(id) \
-  ::tfrt::tracing::TracingScope tracing_scope([&] { return id; })
-#define TFRT_TRACE_EVENT(id) \
-  ::tfrt::tracing::RecordTracingEvent([&] { return id; })
-#define TFRT_TRACE_KERNEL_SCOPE(id) \
-  ::tfrt::tracing::TracingScope tracing_scope("kernel", [&] { return id; })
-#define TFRT_TRACE_KERNEL_EVENT(id) \
-  ::tfrt::tracing::RecordTracingEvent("kernel", [&] { return id; })
+#define __TFRT_TRACE_GET_LEVEL(level) tfrt::tracing::TracingLevel::level
+#define TFRT_TRACE_SCOPE_LEVEL(level, message)                               \
+  ::tfrt::tracing::TracingScope tracing_scope(__TFRT_TRACE_GET_LEVEL(level), \
+                                              [&] { return message; })
+#define TFRT_TRACE_EVENT_LEVEL(level, message)                       \
+  ::tfrt::tracing::RecordTracingEvent(__TFRT_TRACE_GET_LEVEL(level), \
+                                      [&] { return message; })
+
+// TODO(xldrx): Replace TFRT_TRACE_* with TFRT_TRACE_*_LEVEL
+#define TFRT_TRACE_SCOPE(message) TFRT_TRACE_SCOPE_LEVEL(Default, message)
+#define TFRT_TRACE_EVENT(message) TFRT_TRACE_EVENT_LEVEL(Default, message)
+#define TFRT_TRACE_KERNEL_SCOPE(message) \
+  TFRT_TRACE_SCOPE_LEVEL(Default, message)
+#define TFRT_TRACE_KERNEL_EVENT(message) \
+  TFRT_TRACE_EVENT_LEVEL(Default, message)
+
 #else  // TFRT_DISABLE_TRACING
 // Note: the above macro definitions would generate the same code as these stubs
 // because IsTracingEnabled() always returns false and all code is eliminated.
-#define TFRT_TRACE_SCOPE(id)
-#define TFRT_TRACE_EVENT(id)
-#define TFRT_TRACE_KERNEL_SCOPE(id)
-#define TFRT_TRACE_KERNEL_EVENT(id)
+#define TFRT_TRACE_SCOPE(message)
+#define TFRT_TRACE_EVENT(message)
+#define TFRT_TRACE_KERNEL_SCOPE(message)
+#define TFRT_TRACE_KERNEL_EVENT(message)
 #endif  // TFRT_DISABLE_TRACING
 
 #endif  // TFRT_TRACING_TRACING_H_

@@ -74,6 +74,14 @@ static llvm::cl::opt<bool> cl_enable_tracing(  // NOLINT
     "enable_tracing", llvm::cl::desc("Enable Performance Tracing"),
     llvm::cl::Optional, llvm::cl::ValueDisallowed);
 
+static llvm::cl::opt<tfrt::tracing::TracingLevel> cl_tracing_level(  // NOLINT
+    "tracing_level", llvm::cl::desc("Specify the Tracing Level:"),
+    llvm::cl::values(
+        clEnumValN(tfrt::tracing::TracingLevel::Default, "default", "default"),
+        clEnumValN(tfrt::tracing::TracingLevel::Verbose, "verbose", "verbose"),
+        clEnumValN(tfrt::tracing::TracingLevel::Debug, "debug", "debug")),
+    llvm::cl::init(tfrt::tracing::TracingLevel::Default));
+
 //===----------------------------------------------------------------------===//
 // Driver main
 //===----------------------------------------------------------------------===//
@@ -93,6 +101,7 @@ int main(int argc, char** argv) {
 
   llvm::Optional<tfrt::tracing::TracingRequester> tracing;
   if (cl_enable_tracing) tracing.emplace();
+  tfrt::tracing::SetTracingLevel(cl_tracing_level);
 
   return RunBefExecutor(run_config);
 }

@@ -28,24 +28,25 @@ namespace tfrt {
 namespace tracing {
 TracingSink::~TracingSink() = default;
 
-void TracingSink::RecordTracingEvent(const char* category, const char* name) {
-  RecordTracingEvent(category, string_view(name));
+void TracingSink::RecordTracingEvent(const char* name) {
+  RecordTracingEvent(string_view(name));
 }
 
-void TracingSink::RecordTracingEvent(const char* category, std::string&& name) {
-  RecordTracingEvent(category, string_view(name));
+void TracingSink::RecordTracingEvent(std::string&& name) {
+  RecordTracingEvent(string_view(name));
 }
 
-void TracingSink::PushTracingScope(const char* category, const char* name) {
-  PushTracingScope(category, string_view(name));
+void TracingSink::PushTracingScope(const char* name) {
+  PushTracingScope(string_view(name));
 }
 
-void TracingSink::PushTracingScope(const char* category, std::string&& name) {
-  PushTracingScope(category, string_view(name));
+void TracingSink::PushTracingScope(std::string&& name) {
+  PushTracingScope(string_view(name));
 }
 
 TracingSink* internal::kTracingSink = nullptr;
 std::atomic<int> internal::kIsTracingEnabled(0);
+std::atomic<TracingLevel> internal::kTracingLevel(TracingLevel::Default);
 
 static std::mutex& GetTracingMutex() {
   static auto mutex = new std::mutex;
@@ -71,6 +72,10 @@ void RequestTracing(bool enable) {
   internal::kIsTracingEnabled.store(value, std::memory_order_release);
   // Don't log error to avoid binary size bloat.
   consumeError(internal::kTracingSink->RequestTracing(enable));
+}
+
+void SetTracingLevel(TracingLevel level) {
+  internal::kTracingLevel.store(level);
 }
 
 }  // namespace tracing

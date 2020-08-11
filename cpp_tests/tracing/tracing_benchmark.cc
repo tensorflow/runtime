@@ -37,11 +37,13 @@ class BenchmarkTracingSink : TracingSink {
   BenchmarkTracingSink() {
     RegisterTracingSink(this);
 #ifndef TFRT_BM_DISABLE_TRACING_REQUEST
-    EXPECT_TRUE(IsSuccess(RequestTracing(true)));
+    tfrt::tracing::RequestTracing(true);
+    EXPECT_TRUE(IsTracingEnabled());
 #endif
   }
   ~BenchmarkTracingSink() override {
-    EXPECT_TRUE(IsSuccess(RequestTracing(false)));
+    tfrt::tracing::RequestTracing(false);
+    EXPECT_FALSE(IsTracingEnabled());
     EXPECT_EQ(num_completed_, num_scopes_ + num_ranges_);
     TFRT_LOG(INFO) << "Recorded " << num_events_ << " events, " << num_scopes_
                    << " scopes, " << num_ranges_ << " ranges.";
@@ -50,14 +52,12 @@ class BenchmarkTracingSink : TracingSink {
     TFRT_LOG(INFO) << "Tracing enable: " << enable;
     return Error::success();
   }
-  void RecordTracingEvent(const char*, string_view) override { ++num_events_; }
-  void RecordTracingEvent(const char*, const char*) override { ++num_events_; }
-  void RecordTracingEvent(const char*, std::string&&) override {
-    ++num_events_;
-  }
-  void PushTracingScope(const char*, string_view) override { ++num_scopes_; }
-  void PushTracingScope(const char*, const char*) override { ++num_scopes_; }
-  void PushTracingScope(const char*, std::string&&) override { ++num_scopes_; }
+  void RecordTracingEvent(string_view) override { ++num_events_; }
+  void RecordTracingEvent(const char*) override { ++num_events_; }
+  void RecordTracingEvent(std::string&&) override { ++num_events_; }
+  void PushTracingScope(string_view) override { ++num_scopes_; }
+  void PushTracingScope(const char*) override { ++num_scopes_; }
+  void PushTracingScope(std::string&&) override { ++num_scopes_; }
   void PopTracingScope() override { ++num_completed_; }
 
  private:
@@ -77,7 +77,7 @@ BENCHMARK(BM_EmptyLoop);
 void BM_TracingEvents(benchmark::State& state) {
   BenchmarkTracingSink sink;
   for (auto _ : state) {
-    RecordTracingEvent("event");
+    RecordTracingEvent(TracingLevel::Default, "event");
   }
 }
 BENCHMARK(BM_TracingEvents);
@@ -85,7 +85,8 @@ BENCHMARK(BM_TracingEvents);
 void BM_StrCatTracingEvents(benchmark::State& state) {
   BenchmarkTracingSink sink;
   for (auto _ : state) {
-    RecordTracingEvent([&] { return StrCat("event", ""); });
+    RecordTracingEvent(TracingLevel::Default,
+                       [&] { return StrCat("event", ""); });
   }
 }
 BENCHMARK(BM_StrCatTracingEvents);
@@ -93,7 +94,7 @@ BENCHMARK(BM_StrCatTracingEvents);
 void BM_TracingScopes(benchmark::State& state) {
   BenchmarkTracingSink sink;
   for (auto _ : state) {
-    TracingScope("scope");
+    TracingScope(TracingLevel::Default, "scope");
   }
 }
 BENCHMARK(BM_TracingScopes);
@@ -101,7 +102,7 @@ BENCHMARK(BM_TracingScopes);
 void BM_StrCatTracingScopes(benchmark::State& state) {
   BenchmarkTracingSink sink;
   for (auto _ : state) {
-    TracingScope([&] { return StrCat("scope", ""); });
+    TracingScope(TracingLevel::Default, [&] { return StrCat("scope", ""); });
   }
 }
 BENCHMARK(BM_StrCatTracingScopes);

@@ -31,10 +31,10 @@ namespace tracing {
 class SimpleTracingSink : public TracingSink {
  public:
   Error RequestTracing(bool enable) override;
-  void RecordTracingEvent(const char* category, string_view name) override;
-  void RecordTracingEvent(const char* category, std::string&& name) override;
-  void PushTracingScope(const char* category, string_view name) override;
-  void PushTracingScope(const char* category, std::string&& name) override;
+  void RecordTracingEvent(string_view name) override;
+  void RecordTracingEvent(std::string&& name) override;
+  void PushTracingScope(string_view name) override;
+  void PushTracingScope(std::string&& name) override;
   void PopTracingScope() override;
 };
 }  // namespace tracing

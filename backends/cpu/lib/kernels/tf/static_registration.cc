@@ -29,11 +29,13 @@ void RegisterUnaryCpuKernels(KernelRegistry* registry);
 void RegisterBinaryCpuKernels(KernelRegistry* registry);
 void RegisterSoftmaxCpuKernels(KernelRegistry* registry);
 void RegisterConstCpuKernels(KernelRegistry* registry);
+void RegisterFusedMatmulKernels(KernelRegistry* registry);
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterUnaryCpuKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterBinaryCpuKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterSoftmaxCpuKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterConstCpuKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterFusedMatmulKernels);
 
 }  // namespace tf
 }  // namespace tfrt

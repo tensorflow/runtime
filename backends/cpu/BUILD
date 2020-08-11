@@ -137,6 +137,7 @@ tfrt_cc_library(
         "lib/kernels/tf/const_kernels.cc",
         "lib/kernels/tf/cwise_binary_kernels.cc",
         "lib/kernels/tf/cwise_unary_kernels.cc",
+        "lib/kernels/tf/fused_matmul_kernels.cc",
         "lib/kernels/tf/softmax_kernels.cc",
     ],
     hdrs = [
@@ -144,6 +145,7 @@ tfrt_cc_library(
         "lib/kernels/cpu_kernels.h",
         "lib/kernels/cwise_binary_kernels.h",
         "lib/kernels/cwise_unary_kernels.h",
+        "lib/kernels/fused_matmul_kernel.h",
         "lib/kernels/matmul_kernel.h",
         "lib/kernels/softmax_kernel.h",
         "lib/kernels/tile_kernel.h",

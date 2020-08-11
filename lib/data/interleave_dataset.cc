@@ -52,7 +52,7 @@ IterationResult InterleaveDatasetIterator::GetNext(
       IterationResult::Pending(std::move(result_values), std::move(result_eof));
   {
     mutex_lock lock(mu_);
-    output_buffer_.push(result.CopyRef());
+    output_buffer_back_.push(result.CopyRef());
   }
 
   MaybeScheduleBackgroundTask(exec_ctx, false, 0);
@@ -104,7 +104,7 @@ AsyncValue* InterleaveDatasetIterator::FetchInputValues(
   auto output_buffer_size = OutputBufferSize();
 
   // The loop attempts to fetch enough values from the intermediate iterators to
-  // fill every value in the output_buffer_. It may stop earlier if e.g. an
+  // fill every value in the output_buffer_*. It may stop earlier if e.g. an
   // intermediate iterator is not available.
   while (total_queues_size_ < output_buffer_size) {
     auto& iterator_and_queue = iterator_and_queues_[iterator_index_for_fetch_];
@@ -147,7 +147,7 @@ AsyncValue* InterleaveDatasetIterator::FetchInputValues(
       return iterator.GetAsyncValue();
     }
     // The iterator has error. Propagate the error to the next value in
-    // the output_buffer_ and update iterator's state.
+    // the output_buffer_* and update iterator's state.
     if (iterator.IsError()) {
       auto output = DequeueOutputBuffer();
       output_buffer_size--;
@@ -172,8 +172,9 @@ AsyncValue* InterleaveDatasetIterator::FetchInputValues(
     }
 
     // Decide the number of values to fetch from the current iterator. It
-    // should not exceed 1) the pending values in the the output_buffer_
-    // and 2) the remaining values to fetch in the current block.
+    // should not exceed 1) the number of pending values in the the
+    // output_buffer_* and 2) the number of remaining values to fetch in the
+    // current block.
     auto fetched_num_in_block = iterator_and_queue.fetched_num_in_block;
     auto fetch_num =
         std::min(output_buffer_size - total_queues_size_,
@@ -218,7 +219,7 @@ AsyncValue* InterleaveDatasetIterator::FillOutputValues(
       return next_result.eof.GetAsyncValue();
     }
     // The eof of the value at the front of the queue has error. Propagate the
-    // error to the next value in the output_buffer_.
+    // error to the next value in the output_buffer_*.
     if (next_result.eof.IsError()) {
       auto output = DequeueOutputBuffer();
       output.eof.SetError(next_result.eof.GetError());
@@ -248,7 +249,7 @@ AsyncValue* InterleaveDatasetIterator::FillOutputValues(
       continue;
     }
     // The current iterator has not reached end. Forward the value at the front
-    // of its queue to the next value in the output_buffer_.
+    // of its queue to the next value in the output_buffer_*.
     auto output = DequeueOutputBuffer();
     output.eof.emplace(false);
     for (int i = 0; i < parent_dataset_->arity_; ++i) {
@@ -276,7 +277,7 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
     mutex_lock lock(mu_);
     // There is no more output value to update. Release the token if the caller
     // owns the token and then return.
-    if (output_buffer_.empty()) {
+    if (output_buffer_front_.empty() && output_buffer_back_.empty()) {
       if (is_token_owner) {
         token_owned_ = false;
       }
@@ -289,7 +290,7 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
   }
   // Only the thread that owns the token can execute the code below. This
   // ensures in-order delivery since at most one thread can take value from the
-  // input_iterator_ and update the output value in the output_buffer_.
+  // input_iterator_ and update the output value in the output_buffer_front_.
 
   auto host = exec_ctx.host();
   auto callback = [exec_ctx, host, callback_count,
@@ -311,7 +312,7 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
   }
 
   // input_iterator_ has reached end and there is no open iterator to fetch
-  // from. Mark all values in the output_buffer_ to be eof=true.
+  // from. Mark all values in the output_buffer_* to be eof=true.
   if (total_queues_size_ == 0) {
     assert(is_input_iterator_eof_ && num_open_iterators_ == 0);
     auto error = host->MakeErrorAsyncValueRef("iterator reached end");

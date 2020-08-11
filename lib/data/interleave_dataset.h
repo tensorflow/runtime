@@ -168,7 +168,7 @@ class InterleaveDatasetIterator : public Iterator {
   // helps ensure in-order delivery while still allowing an unblocking
   // GetNext(...) API.
   //
-  // If there is no value in the `output_buffer_`, or if the caller can not get
+  // If there is no value in the `output_buffer_*`, or if the caller can not get
   // the token to run the control flow logic, this method will not schedule any
   // background task. Otherwise, this method will schedule background task as
   // appropriate.
@@ -189,7 +189,7 @@ class InterleaveDatasetIterator : public Iterator {
   //    block/cycle config. Fetch value from this iterator into its queue.
   // 4) If there is any error from the input_iterator_, or if there is error
   //    from calling func_(input), the method propagates the error to the next
-  //    value in the output_buffer_ and that value from output_buffer_.
+  //    value in the output_buffer_*.
   //
   // If there is any unavailable async value that stops this method from
   // fetching values, e.g. input value is not available to create
@@ -199,35 +199,42 @@ class InterleaveDatasetIterator : public Iterator {
       TFRT_EXCLUDES(mu_);
 
   // This method identifies the correct intermediate iterator that should be
-  // used fill the next value in output_buffer_ and keeps forwarding fetched
-  // values to the values in the output_buffer_ as much as possible.
+  // used fill the next value in output_buffer_* and keeps forwarding fetched
+  // values to the values in the output_buffer_* as much as possible.
   //
   // It repeats the following steps until either it encounters a value with
   // unavailable eof or when total_queues_size_ == 0:
   // 1) If the eof of the value at the front of its queue is unavailable, the
   //    method returns an pointer to that eof's AsyncValue.
   // 2) If the eof of the value at the front of its queue has error, the method
-  //    propagates the error to the next value in the output_buffer_ and pops
+  //    propagates the error to the next value in the output_buffer_* and pops
   //    both values out of their queues.
   // 3) If the eof of the value at the front of its queue is true, the method
   //    marks set is_open=false for this iterator and identifies the next
   //    iterator in the cycle.
   // 4) If the eof of the value at the front of its queue is false, the method
-  //    forwards this value to the next value in the output_buffer_ and pops
+  //    forwards this value to the next value in the output_buffer_* and pops
   //    both values out of their queues.
   AsyncValue* FillOutputValues(const ExecutionContext& exec_ctx)
       TFRT_EXCLUDES(mu_);
 
+  // Return the total number of values in the output buffers.
   int OutputBufferSize() TFRT_EXCLUDES(mu_) {
     mutex_lock lock(mu_);
-    return output_buffer_.size();
+    return output_buffer_back_.size() + output_buffer_front_.size();
   }
 
+  // Return the next value in the output buffer. Values in the
+  // output_buffer_front_ should be returned before those values in
+  // the output_buffer_back_.
   IterationResult DequeueOutputBuffer() TFRT_EXCLUDES(mu_) {
-    mutex_lock lock(mu_);
-    assert(!output_buffer_.empty());
-    auto value = std::move(output_buffer_.front());
-    output_buffer_.pop();
+    if (output_buffer_front_.empty()) {
+      mutex_lock lock(mu_);
+      std::swap(output_buffer_front_, output_buffer_back_);
+    }
+    assert(!output_buffer_front_.empty());
+    auto value = std::move(output_buffer_front_.front());
+    output_buffer_front_.pop();
     return value;
   }
 
@@ -249,19 +256,24 @@ class InterleaveDatasetIterator : public Iterator {
   // iterator to fetch from.
   size_t iterator_index_for_fetch_ = 0;
   // iterator_and_queues_[iterator_index_for_output_] contains the value to fill
-  // the next value in output_buffer_.
+  // the next value in output_buffer_*.
   size_t iterator_index_for_output_ = 0;
   // Total size of queues across all iterators whose is_open is true.
   size_t total_queues_size_ = 0;
 
   mutex mu_;
-  // A queue of IterationResult that have already been returned to the
-  // GetNext(...) caller.
-  std::queue<IterationResult> output_buffer_ TFRT_GUARDED_BY(mu_);
+  // A queue of unavailable IterationResult enqueued by the caller of GetNext().
+  // This queue must be accessed with the mutex because it can be accessed by
+  // both GetNext() caller and the blocking threadpool.
+  std::queue<IterationResult> output_buffer_back_ TFRT_GUARDED_BY(mu_);
+  // A queue of unavailable IterationResult that are moved from
+  // output_buffer_back_. This queue can be accessed without the mutex because
+  // only the token owner can access it.
+  std::queue<IterationResult> output_buffer_front_;
   // This is a unique logical token for this iterator instance. It effectively
   // acts as a lock to ensure in-order delivery of results by guaranteeing that
   // at most one thread can take the next value from the input_iterator_ and
-  // update values in output_buffer_.
+  // update values in output_buffer_front_.
   //
   // The thread which changes token_owned from false to true "holds" the token,
   // and can pass it on to a thread that runs the callback it schedules. The

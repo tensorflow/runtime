@@ -75,20 +75,22 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
     auto& tensor = GetAsyncTensor()->get<Tensor>();
     if (dst.get() == &src && allowed_formats.Contains(tensor.subclass()))
       return CopyRef();
-    result_tensor = TransferTensorTo(tensor, src, *dst, allowed_formats, host);
+    result_tensor =
+        TransferTensorTo(exec_ctx, tensor, src, *dst, allowed_formats);
   } else {
     RCReference<IndirectAsyncValue> result_ind_av =
         host->MakeIndirectAsyncValue();
     result_tensor = AsyncValueRef<Tensor>(result_ind_av.CopyRef());
     GetAsyncTensor()->AndThen([th = CopyRef(), &src,
                                result_ind_av = std::move(result_ind_av),
-                               dst = dst.CopyRef(), allowed_formats, host]() {
+                               dst = dst.CopyRef(), allowed_formats,
+                               exec_ctx]() {
       auto& tensor = th.GetAsyncTensor()->get<Tensor>();
       if (dst.get() == &src && allowed_formats.Contains(tensor.subclass())) {
         result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
       } else {
         result_ind_av->ForwardTo(
-            TransferTensorTo(tensor, src, *dst, allowed_formats, host));
+            TransferTensorTo(exec_ctx, tensor, src, *dst, allowed_formats));
       }
     });
   }

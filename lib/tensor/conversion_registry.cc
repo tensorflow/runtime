@@ -61,22 +61,31 @@ TensorConversionFn TensorConversionFnRegistry::GetTensorConversionFn(
   return it == conversion_fn_map_.end() ? nullptr : it->second;
 }
 
-AsyncValueRef<Tensor> TransferTensorTo(const Tensor& tensor, const Device& src,
+AsyncValueRef<Tensor> TransferTensorTo(const ExecutionContext& exec_ctx,
+                                       const Tensor& tensor, const Device& src,
                                        const Device& dst,
-                                       TensorFormats allowed_formats,
-                                       HostContext* host) {
+                                       TensorFormats allowed_formats) {
+  auto* host = exec_ctx.host();
   auto& shared_ctx =
       host->GetOrCreateSharedContext<TensorConversionFnRegistryContext>();
   assert(shared_ctx.registry && "does not have a TensorConversionFnRegistry");
   auto conversion_fn = shared_ctx.registry->GetTensorConversionFn(
       {tensor.subclass(), &dst.type()});
   if (!conversion_fn) {
-    return host->MakeErrorAsyncValueRef("cannot find conversion function.");
+    return EmitErrorAsync(exec_ctx, "cannot find conversion function.");
   }
+
+  return conversion_fn(tensor, src, dst, allowed_formats, exec_ctx);
+}
+
+AsyncValueRef<Tensor> TransferTensorTo(const Tensor& tensor, const Device& src,
+                                       const Device& dst,
+                                       TensorFormats allowed_formats,
+                                       HostContext* host) {
   // TODO(fishx): Avoid constructing ExecutionContext here.
   auto req_ctx = RequestContext::Create(host, /*resource_context=*/nullptr);
   ExecutionContext exec_ctx(std::move(req_ctx));
-  return conversion_fn(tensor, src, dst, allowed_formats, exec_ctx);
+  return TransferTensorTo(exec_ctx, tensor, src, dst, allowed_formats);
 }
 
 static std::vector<TensorConversionFnRegistration>*

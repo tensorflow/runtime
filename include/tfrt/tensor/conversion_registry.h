@@ -60,6 +60,14 @@ using TensorConversionFn = AsyncValueRef<Tensor> (*)(
 
 // Transfer tensor to device. It will look up and call the TensorConversionFn
 // registered in the TensorConversionFn registry.
+AsyncValueRef<Tensor> TransferTensorTo(const ExecutionContext& exec_ctx,
+                                       const Tensor& tensor, const Device& src,
+                                       const Device& dst,
+                                       TensorFormats allowed_formats);
+
+// This variant is to support legacy cases that haven't been migrated to use
+// ExecutionContext.
+// TODO(fishx): Remove this method.
 AsyncValueRef<Tensor> TransferTensorTo(const Tensor& tensor, const Device& src,
                                        const Device& dst,
                                        TensorFormats allowed_formats,

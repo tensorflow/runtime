@@ -306,6 +306,15 @@ static int TestSyncSum(int a, RemainingSyncArguments other_args) {
   return sum;
 }
 
+// For testing RepeatedSyncArguments
+static int TestSyncSum2(int a, RepeatedSyncArguments<int> other_args) {
+  int sum = a;
+  for (auto i : other_args) {
+    sum += i;
+  }
+  return sum;
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -332,6 +341,8 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddSyncKernel("tfrt_test.fail_s", TFRT_SYNC_KERNEL(TestFail));
   registry->AddSyncKernel("tfrt_test.error_s", TFRT_SYNC_KERNEL(TestError));
   registry->AddSyncKernel("tfrt_test.sync_sum", TFRT_SYNC_KERNEL(TestSyncSum));
+  registry->AddSyncKernel("tfrt_test.sync_sum2",
+                          TFRT_SYNC_KERNEL(TestSyncSum2));
 }
 
 }  // namespace tfrt

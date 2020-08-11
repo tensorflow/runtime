@@ -67,3 +67,15 @@ func @test_remaining_sync_args() -> i32 attributes {tfrt.sync} {
   // CHECK-NEXT: 'test_remaining_sync_args' returned 6
   tfrt.return %x : i32
 }
+
+// CHECK-LABEL: --- Running 'test_repeated_sync_args'
+func @test_repeated_sync_args() -> i32 attributes {tfrt.sync} {
+  %0 = "tfrt.constant_s.i32"() {value = 0 : i32} : () -> i32
+  %1 = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
+  %2 = "tfrt.constant_s.i32"() {value = 2 : i32} : () -> i32
+  %3 = "tfrt.constant_s.i32"() {value = 3 : i32} : () -> i32
+
+  %x = "tfrt_test.sync_sum2"(%0, %1, %2, %3) : (i32, i32, i32, i32) -> i32
+  // CHECK-NEXT: 'test_repeated_sync_args' returned 6
+  tfrt.return %x : i32
+}

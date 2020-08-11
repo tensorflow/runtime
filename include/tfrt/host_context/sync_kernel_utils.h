@@ -100,12 +100,57 @@ namespace tfrt {
 // Arguments.
 class RemainingSyncArguments {
  public:
-  explicit RemainingSyncArguments(ArrayRef<uint32_t> reg_indices,
-                                  ArrayRef<Value*> registers)
+  RemainingSyncArguments(ArrayRef<uint32_t> reg_indices,
+                         ArrayRef<Value*> registers)
       : reg_indices_{reg_indices}, registers_{registers} {}
 
   size_t size() const { return reg_indices_.size(); }
   Value* operator[](size_t i) const { return registers_[reg_indices_[i]]; }
+
+ private:
+  ArrayRef<uint32_t> reg_indices_;
+  ArrayRef<Value*> registers_;
+};
+
+// RepeatedArguments collects all remaining arguments of the same type in an
+// ArrayRef. There can be at most one RemainingArguments/RepeatedArguments, and
+// it must appear after all other Arguments.
+template <typename T>
+class RepeatedSyncArguments {
+ public:
+  class Iterator {
+   public:
+    Iterator(size_t index, const RepeatedSyncArguments* parent)
+        : index_{index}, parent_{parent} {}
+
+    T& operator*() const { return (*parent_)[index_]; }
+    T* operator->() const { return &(*parent_)[index_]; }
+
+    bool operator==(Iterator other) const { return index_ == other.index_; }
+    bool operator!=(Iterator other) const { return index_ != other.index_; }
+
+    Iterator& operator++() {
+      ++index_;
+      return *this;
+    }
+
+   private:
+    size_t index_;
+    const RepeatedSyncArguments* parent_;
+  };
+
+  RepeatedSyncArguments(ArrayRef<uint32_t> reg_indices,
+                        ArrayRef<Value*> registers)
+      : reg_indices_{reg_indices}, registers_{registers} {}
+
+  size_t size() const { return reg_indices_.size(); }
+  T& operator[](size_t i) const {
+    return registers_[reg_indices_[i]]->template get<T>();
+  }
+
+  // Enable the ranged-for usage, e.g. for (auto& v : repeated_arguments) {...}
+  Iterator begin() const { return Iterator{0, this}; }
+  Iterator end() const { return Iterator{reg_indices_.size(), this}; }
 
  private:
   ArrayRef<uint32_t> reg_indices_;
@@ -336,7 +381,8 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
     template <int in_idx, int const_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(in_idx != -1,
-                    "Do not place Arguments after RemainingSyncArguments");
+                    "Do not place Arguments after "
+                    "RemainingSyncArguments/RepeatedSyncArguments");
       static_assert(const_idx == 0,
                     "Arguments and results should appear before attributes.");
       auto* value = frame->GetArgAt(in_idx);
@@ -354,7 +400,8 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
     template <int in_idx, int const_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(in_idx != -1,
-                    "Do not use more than one RemainingSyncArguments");
+                    "Do not use more than one "
+                    "RemainingSyncArguments/RepeatedSyncArguments");
       static_assert(const_idx == 0,
                     "Arguments and results should appear before attributes.");
       RemainingSyncArguments remaining_arguments(
@@ -362,6 +409,25 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
 
       SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
           frame, pargs..., remaining_arguments);
+    }
+  };
+
+  // RepeatedSyncArguments provides an ArrayRef<T*> containing all
+  // remaining arguments. Useful for variadic kernels.
+  template <typename T, typename... Tail>
+  struct SyncKernelCallHelper<RepeatedSyncArguments<T>, Tail...> {
+    template <int in_idx, int const_idx, typename... PreviousArgs>
+    static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(in_idx != -1,
+                    "Do not use more than one "
+                    "RemainingSyncArguments/RepeatedSyncArguments");
+      static_assert(const_idx == 0,
+                    "Arguments and results should appear before attributes.");
+      RepeatedSyncArguments<T> repeated_arguments(
+          frame->GetArguments().drop_front(in_idx), frame->GetRegisters());
+
+      SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
+          frame, pargs..., repeated_arguments);
     }
   };
 

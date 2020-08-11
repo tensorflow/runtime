@@ -19,12 +19,18 @@
 
 // CHECK-LABEL: --- Running 'benchmark'
 func @benchmark() {
-  // CHECK: BM:add.i32:Duration(us):
+  // CHECK: BM:add.i32:Duration(ns):
   // CHECK: BM:add.i32:Count:
-  // CHECK: BM:add.i32:Time Min(us):
-  // CHECK: BM:add.i32:Time 50%(us):
-  // CHECK: BM:add.i32:Time 95%(us):
-  // CHECK: BM:add.i32:Time 99%(us):
+  // CHECK: BM:add.i32:Time Min(ns):
+  // CHECK: BM:add.i32:Time 50%(ns):
+  // CHECK: BM:add.i32:Time 95%(ns):
+  // CHECK: BM:add.i32:Time 99%(ns):
+  // CHECK: BM:add.i32:CPU Min(ns):
+  // CHECK: BM:add.i32:CPU 50%(ns):
+  // CHECK: BM:add.i32:CPU 95%(ns):
+  // CHECK: BM:add.i32:CPU 99%(ns):
+  // CHECK: BM:add.i32:CPU utilization(percent):
+
 
   tfrt_test.benchmark "add.i32"() duration_secs = 1, max_count = 100, num_warmup_runs = 10
   {
@@ -39,12 +45,17 @@ func @benchmark() {
 // A function to demonstrate the use of benchmark kernels with the input compute
 // as an external arguments.
 func @benchmark2() {
-  // CHECK: BM:add.i32:Duration(us):
+  // CHECK: BM:add.i32:Duration(ns):
   // CHECK: BM:add.i32:Count:
-  // CHECK: BM:add.i32:Time Min(us):
-  // CHECK: BM:add.i32:Time 50%(us):
-  // CHECK: BM:add.i32:Time 95%(us):
-  // CHECK: BM:add.i32:Time 99%(us):
+  // CHECK: BM:add.i32:Time Min(ns):
+  // CHECK: BM:add.i32:Time 50%(ns):
+  // CHECK: BM:add.i32:Time 95%(ns):
+  // CHECK: BM:add.i32:Time 99%(ns):
+  // CHECK: BM:add.i32:CPU Min(ns):
+  // CHECK: BM:add.i32:CPU 50%(ns):
+  // CHECK: BM:add.i32:CPU 95%(ns):
+  // CHECK: BM:add.i32:CPU 99%(ns):
+  // CHECK: BM:add.i32:CPU utilization(percent)
 
   %c = tfrt.constant.i32 42
 

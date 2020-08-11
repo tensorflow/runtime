@@ -17,12 +17,17 @@
 // A function to demonstrate the use of benchmark kernels.
 // CHECK-LABEL: --- Running 'BM_corert.matmul'
 func @BM_corert.matmul() {
-  // CHECK: BM:BM_corert.matmul:Duration(us):
+  // CHECK: BM:BM_corert.matmul:Duration(ns):
   // CHECK: BM:BM_corert.matmul:Count:
-  // CHECK: BM:BM_corert.matmul:Time Min(us):
-  // CHECK: BM:BM_corert.matmul:Time 50%(us):
-  // CHECK: BM:BM_corert.matmul:Time 95%(us):
-  // CHECK: BM:BM_corert.matmul:Time 99%(us):
+  // CHECK: BM:BM_corert.matmul:Time Min(ns):
+  // CHECK: BM:BM_corert.matmul:Time 50%(ns):
+  // CHECK: BM:BM_corert.matmul:Time 95%(ns):
+  // CHECK: BM:BM_corert.matmul:Time 99%(ns):
+  // CHECK: BM:BM_corert.matmul:CPU Min(ns):
+  // CHECK: BM:BM_corert.matmul:CPU 50%(ns):
+  // CHECK: BM:BM_corert.matmul:CPU 95%(ns):
+  // CHECK: BM:BM_corert.matmul:CPU 99%(ns):
+  // CHECK: BM:BM_corert.matmul:CPU utilization(percent):
 
   // Prepare input.
   %ch0 = tfrt.new.chain

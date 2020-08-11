@@ -65,6 +65,23 @@ func @addV2_dense_scalar_dense_f32() attributes {tfrt.sync} {
   tfrt.return
 }
 
+// CHECK: --- Running 'addV2_rank_0_dense_scalar_dense_f32'
+func @addV2_rank_0_dense_scalar_dense_f32() attributes {tfrt.sync} {
+  %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
+    { shape = [], values = [1.0 : f32] } : () -> !t.tensor
+  %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
+    { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : () -> !t.tensor
+
+  %result = tfrt_dht_sync.create_uninitialized_tensor.f32.1 [2: i64, 3: i64]
+  "tf_sync.AddV2.f32"(%operand_0, %operand_1, %result) : (!t.tensor, !t.tensor, !t.tensor)->()
+
+  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3]
+  // CHECK-SAME: values = [0.000000e+00, 5.000000e-01, 1.000000e+00, 1.500000e+00, 2.000000e+00, 2.500000e+00]
+  tfrt_dht_sync.print_tensor %result
+
+  tfrt.return
+}
+
 // CHECK: --- Running 'addV2_dense_dense_bcast_f32'
 func @addV2_dense_dense_bcast_f32() attributes {tfrt.sync} {
   %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()

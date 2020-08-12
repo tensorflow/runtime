@@ -24,52 +24,48 @@
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CONCAT_KERNEL_H_
 
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
-#include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/host_context/chain.h"
-#include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/ranges.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
 namespace cpu {
 
-static Expected<int64_t> ConcatAxis(const DenseHostTensor& axis_arg) {
-  int64_t axis;
-
+inline Expected<int64_t> ConcatAxis(const DenseHostTensor& axis_arg) {
   if (axis_arg.dtype().kind() == DType::I32) {
     DHTArrayView<int32_t> view(&axis_arg);
-    axis = *view.begin();
+    return *view.begin();
   } else if (axis_arg.dtype().kind() == DType::I64) {
     DHTArrayView<int64_t> view(&axis_arg);
-    axis = *view.begin();
+    return *view.begin();
   } else {
     return MakeStringError("Unsupported axis data type");
   }
-
-  return axis;
 }
 
-static Expected<TensorMetadata> ConcatTensorMetadata(
-    ArrayRef<const DenseHostTensor*> args, int64_t axis) {
-  const DenseHostTensor* arg0 = args[0];
-  const DType& arg0_dtype = arg0->dtype();
-  const TensorShape& arg0_shape = arg0->shape();
+template <typename DHTRange>
+Expected<TensorMetadata> ConcatMetadataKernel(const DHTRange& args, int axis) {
+  const DenseHostTensor& arg0 = args[0];
+  const DType& arg0_dtype = arg0.dtype();
+  const TensorShape& arg0_shape = arg0.shape();
 
-  const int rank = arg0->shape().GetRank();
+  const int rank = arg0_shape.GetRank();
+  // Compute the actual axis from a negative value.
+  axis = axis < 0 ? axis + rank : axis;
 
   // The size of a result along the concatenation dimension.
   ssize_t concat_axis_dim_size = 0;
 
-  for (int i = 0; i < args.size(); ++i) {
-    const DenseHostTensor* arg = args[i];
-    const TensorShape& shape = arg->shape();
+  for (size_t i = 0; i < args.size(); ++i) {
+    const DenseHostTensor& arg = args[i];
+    const TensorShape& shape = arg.shape();
 
     // Implicitly convert scalars to vectors of length 1.
     concat_axis_dim_size += rank == 0 ? 1 : shape.GetDimensionSize(axis);
 
     // Inputs must be of the same rank and data type.
-    if (arg->dtype() != arg0_dtype)
+    if (arg.dtype() != arg0_dtype)
       return MakeStringError("Input dtypes do not match");
     if (shape.GetRank() != rank)
       return MakeStringError("Input ranks do not match");
@@ -104,30 +100,29 @@ static Expected<TensorMetadata> ConcatTensorMetadata(
   for (int d = axis + 1; d < rank; ++d)
     output_dims.push_back(arg0_shape.GetDimensionSize(d));
 
-  return TensorMetadata(arg0->dtype(), TensorShape(output_dims));
+  return TensorMetadata(arg0_dtype, TensorShape(output_dims));
 }
 
 template <int rank>
-struct ConcatRankTag {
-  static constexpr int value = rank;
-};
+using ConcatRankTag = std::integral_constant<int, rank>;
 
-template <typename T>
-static AsyncValueRef<Chain> ConcatKernel(ArrayRef<const DenseHostTensor*> args,
-                                         int64_t axis, DenseHostTensor* output,
-                                         const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
+template <typename T, typename DHTRange>
+Error ConcatKernel(const DHTRange& args, int axis, DenseHostTensor* output) {
+  const int input_rank = args[0].shape().GetRank();
 
   // Handle scalars concatenation separately to keep the common path simple.
-  if (args[0]->shape().GetRank() == 0) {
+  if (input_rank == 0) {
     for (int i = 0; i < args.size(); ++i) {
-      const T* inp = static_cast<const T*>(args[i]->data());
+      const T* inp = static_cast<const T*>(args[i].data());
       T* out = static_cast<T*>(output->data());
       out[i] = *inp;
     }
 
-    return host->MakeAvailableAsyncValueRef<Chain>();
+    return Error::success();
   }
+
+  // Compute the actual axis from a negative value.
+  axis = axis < 0 ? axis + input_rank : axis;
 
   // TODO(ezhulenev): Make this asynchronous/multithreaded.
   auto rank_dispatch = [&](auto rank_tag) -> void {
@@ -139,8 +134,8 @@ static AsyncValueRef<Chain> ConcatKernel(ArrayRef<const DenseHostTensor*> args,
     // Offset for writing to the output along the axis dimension.
     ssize_t offset = 0;
 
-    for (int i = 0; i < args.size(); ++i) {
-      auto arg_view = DHTIndexableView<T, rank>(args[i]);
+    for (auto& dht : args) {
+      auto arg_view = DHTIndexableView<T, rank>(&dht);
       auto arg_t = compat::AsEigenConstTensor(arg_view);
 
       // Offsets for the output slice.
@@ -150,8 +145,7 @@ static AsyncValueRef<Chain> ConcatKernel(ArrayRef<const DenseHostTensor*> args,
 
       // Size of the output slice.
       Eigen::DSizes<ssize_t, rank> sizes;
-      for (int d = 0; d < rank; d++)
-        sizes[d] = args[i]->shape().GetDimensionSize(d);
+      for (int d = 0; d < rank; d++) sizes[d] = dht.shape().GetDimensionSize(d);
 
       offset += sizes[axis];
 
@@ -160,8 +154,7 @@ static AsyncValueRef<Chain> ConcatKernel(ArrayRef<const DenseHostTensor*> args,
     }
   };
 
-  const int rank = output->shape().GetRank();
-
+  auto rank = output->shape().GetRank();
   // Dispatch based on the output tensor rank.
   if (rank == 1) {
     rank_dispatch(ConcatRankTag<1>{});
@@ -174,10 +167,10 @@ static AsyncValueRef<Chain> ConcatKernel(ArrayRef<const DenseHostTensor*> args,
   } else if (rank == 5) {
     rank_dispatch(ConcatRankTag<4>{});
   } else {
-    return host->MakeErrorAsyncValueRef("Unsupported output tensor rank");
+    return MakeStringError("Unsupported output tensor rank");
   }
 
-  return host->MakeAvailableAsyncValueRef<Chain>();
+  return Error::success();
 }
 
 }  // namespace cpu

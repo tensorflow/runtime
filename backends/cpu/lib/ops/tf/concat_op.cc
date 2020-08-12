@@ -35,51 +35,44 @@
 namespace tfrt {
 namespace {
 
-static AsyncValueRef<DenseHostTensor> TfConcatOp(
-    RepeatedArguments<DenseHostTensor> args, const ExecutionContext& exec_ctx) {
+static Expected<DenseHostTensor> TfConcatOp(
+    RepeatedArguments<DenseHostTensor> inputs,
+    const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  // Parse concatenation axis.
-  Expected<int64_t> expected_axis = cpu::ConcatAxis(args[args.size() - 1]);
-  if (auto err = expected_axis.takeError())
-    return EmitErrorAsync(exec_ctx, std::move(err));
+  auto axis = cpu::ConcatAxis(inputs[inputs.size() - 1]);
+  if (!axis) return axis.takeError();
 
-  // Compute the actual axis from a negative value.
-  const int rank = args[0].shape().GetRank();
-  int64_t axis = *expected_axis < 0 ? *expected_axis + rank : *expected_axis;
+  // The last DHT in inputs is the axis. Make a range view to cover all but the
+  // last DHT inputs as args.
+  auto args = views::Counted(inputs.begin(), inputs.size() - 1);
 
-  // Compute the output tensor shape.
-  llvm::SmallVector<const DenseHostTensor*, 4> inputs;
-  for (int i = 0; i < args.size() - 1; ++i) inputs.push_back(&args[i]);
-  auto expected_output_md = cpu::ConcatTensorMetadata(inputs, axis);
-  if (auto err = expected_output_md.takeError())
-    return EmitErrorAsync(exec_ctx, std::move(err));
+  auto output_md = cpu::ConcatMetadataKernel(args, *axis);
+  if (!output_md) return output_md.takeError();
 
   // Allocate output tensor.
-  auto dest = DenseHostTensor::CreateUninitialized(*expected_output_md, host);
+  auto dest = DenseHostTensor::CreateUninitialized(*output_md, host);
   if (!dest) {
-    return EmitErrorAsync(exec_ctx, "out of memory allocating result");
+    return MakeStringError("out of memory allocating result");
   }
 
   // Call concat kernel.
-  AsyncValueRef<Chain> chain;
-
   switch (args[0].dtype().kind()) {
     default:
-      chain = EmitErrorAsync(exec_ctx,
-                             StrCat("Unsupported dtype: ", args[0].dtype()));
+      return MakeStringError("Unsupported dtype: ", args[0].dtype());
       break;
-#define DTYPE_NUMERIC(ENUM)                                               \
-  case DType::ENUM: {                                                     \
-    using T = EigenTypeForDTypeKind<DType::ENUM>;                         \
-    chain = ::tfrt::cpu::ConcatKernel<T>(inputs, axis, dest.getPointer(), \
-                                         exec_ctx);                       \
-  } break;
+#define DTYPE_NUMERIC(ENUM)                                                    \
+  case DType::ENUM: {                                                          \
+    using T = EigenTypeForDTypeKind<DType::ENUM>;                              \
+    auto error = ::tfrt::cpu::ConcatKernel<T>(args, *axis, dest.getPointer()); \
+    if (error) return std::move(error);                                        \
+    break;                                                                     \
+  }
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(dest.getValue(), std::move(chain), host);
-}
+  return std::move(*dest);
+}  // namespace
 
 }  // namespace
 

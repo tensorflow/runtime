@@ -235,6 +235,12 @@ class RepeatedArguments {
     using AsyncValueIterator = ArrayRef<AsyncValue*>::iterator;
 
    public:
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = T;
+    using difference_type = ssize_t;
+    using pointer = T*;
+    using reference = T&;
+
     explicit Iterator(AsyncValueIterator it) : it_{it} {}
 
     T& operator*() const { return (*it_)->get<T>(); }

@@ -248,6 +248,8 @@ class RepeatedArguments {
       return *this;
     }
 
+    Iterator operator+(size_t offset) const { return Iterator{it_ + offset}; }
+
    private:
     AsyncValueIterator it_;
   };

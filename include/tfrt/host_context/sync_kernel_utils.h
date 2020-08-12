@@ -134,6 +134,10 @@ class RepeatedSyncArguments {
       return *this;
     }
 
+    Iterator operator+(size_t offset) const {
+      return Iterator{index_ + offset, parent_};
+    }
+
    private:
     size_t index_;
     const RepeatedSyncArguments* parent_;

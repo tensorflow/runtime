@@ -139,6 +139,8 @@ tfrt_cc_library(
     ],
     hdrs = [
         "include/tfrt/support/aligned_buffer.h",
+        "include/tfrt/support/ranges.h",
+        "include/tfrt/support/ranges_util.h",
         "include/tfrt/support/alloc.h",
         "include/tfrt/support/bef_encoding.h",
         "include/tfrt/support/bef_reader.h",

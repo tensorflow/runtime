@@ -45,8 +45,6 @@ class ChainType
   static ChainType get(mlir::MLIRContext *context) {
     return Base::get(context, TFRTTypes::kChain);
   }
-
-  static bool kindof(unsigned kind) { return kind == TFRTTypes::kChain; }
 };
 
 }  // namespace tfrt

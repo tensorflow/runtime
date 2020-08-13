@@ -67,8 +67,6 @@ class ShapeAttr : public mlir::Attribute::AttrBase<ShapeAttr, mlir::Attribute,
  public:
   using Base::Base;
 
-  static bool kindof(unsigned kind) { return kind == CoreRTAttributes::kShape; }
-
   // Get or create an unranked shape attribute.
   static ShapeAttr get(mlir::MLIRContext* context) {
     return Base::get(context, CoreRTAttributes::kShape,

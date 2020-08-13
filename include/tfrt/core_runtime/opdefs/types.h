@@ -47,8 +47,6 @@ class StringType
   static StringType get(mlir::MLIRContext *context) {
     return Base::get(context, CoreRTTypes::kString);
   }
-
-  static bool kindof(unsigned kind) { return kind == CoreRTTypes::kString; }
 };
 
 class TensorHandleType
@@ -60,10 +58,6 @@ class TensorHandleType
   static TensorHandleType get(mlir::MLIRContext *context) {
     return Base::get(context, CoreRTTypes::kTensorHandle);
   }
-
-  static bool kindof(unsigned kind) {
-    return kind == CoreRTTypes::kTensorHandle;
-  }
 };
 
 class DeviceType
@@ -74,8 +68,6 @@ class DeviceType
   static DeviceType get(mlir::MLIRContext *context) {
     return Base::get(context, CoreRTTypes::kDevice);
   }
-
-  static bool kindof(unsigned kind) { return kind == CoreRTTypes::kDevice; }
 };
 
 }  // namespace corert

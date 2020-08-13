@@ -97,7 +97,9 @@ class AsyncValue {
   bool IsUnresolvedIndirect() const;
 
   // Return true if reference count is 1.
-  bool IsUnique() const { return refcount_.load() == 1; }
+  bool IsUnique() const {
+    return refcount_.load(std::memory_order_acquire) == 1;
+  }
 
   // Add a new reference to this object.
   //
@@ -649,7 +651,7 @@ inline bool AsyncValue::IsUnresolvedIndirect() const {
 
 inline AsyncValue* AsyncValue::AddRef(uint32_t count) {
   if (count > 0) {
-    assert(refcount_.load() > 0);
+    assert(refcount_.load(std::memory_order_relaxed) > 0);
     // Increasing the reference counter can always be done with
     // memory_order_relaxed: New references to an object can only be formed from
     // an existing reference, and passing an existing reference from one thread
@@ -660,7 +662,7 @@ inline AsyncValue* AsyncValue::AddRef(uint32_t count) {
 }
 
 inline void AsyncValue::DropRef(uint32_t count) {
-  assert(refcount_.load() > 0);
+  assert(refcount_.load(std::memory_order_relaxed) > 0);
   // We expect that `count` argument will often equal the actual reference count
   // here; optimize for that.
   // If `count` == reference count, only an acquire barrier is needed

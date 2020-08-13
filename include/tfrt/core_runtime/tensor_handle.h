@@ -111,7 +111,7 @@ class TensorHandle final {
   // invalid after it's moved.
   bool IsValid() const { return GetAsyncTensor() != nullptr; }
 
-  const Device& device() { return *device_; }
+  const Device& device() const { return *device_; }
 
   // Transfer the TensorHandle to the target Device and convert its format. The
   // target device can be same as current device, in this case, it will only

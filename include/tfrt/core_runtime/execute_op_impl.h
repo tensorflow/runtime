@@ -32,6 +32,12 @@ class AggregateAttr;
 class ExecutionContext;
 class AsyncValue;
 class CoreRuntimeOp;
+class OpAttrs;
+
+// Set up `op_attrs` with binary attributes in `op_attr_array`.
+// TypedAttributeTrait is required in ops' ODS to use this function on their
+// attributes.
+void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs);
 
 // ExecuteOpImpl is the common implementation used by ExecuteOpSeq and
 // ExecuteOp. The `op_chain` is the input/output parameter for sequencing op

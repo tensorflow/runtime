@@ -32,6 +32,68 @@
 
 namespace tfrt {
 
+void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
+  for (size_t i = 0, e = op_attr_array.GetNumElements(); i != e; ++i) {
+    auto pair = op_attr_array.GetAttributeOfType<AggregateAttr>(i);
+    assert(pair.GetNumElements() == 2);
+    string_view key = pair.GetAttributeOfType<StringAttr>(0).GetValue();
+    TypedAttrBase attr = pair.GetAttribute(1);
+
+    BEFAttributeType attribute_type = attr.type();
+    if (IsArrayAttribute(attribute_type)) {
+      auto type = GetOpAttrTypeFromBEFAttributeType(
+          GetElementAttributeType(attribute_type));
+      auto array_attr = attr.cast<ArrayAttr>();
+      op_attrs->SetRaw(key, array_attr.GetElements(),
+                       array_attr.GetNumElements(), type);
+    } else if (IsDenseAttribute(attribute_type)) {
+      auto r = op_attrs->Set(key, attr.cast<DenseAttr>());
+      assert(r);
+      (void)r;
+    } else if (IsDataTypeAttribute(attribute_type)) {
+      switch (GetDataType(attribute_type)) {
+        case BEFDataType::kBool:
+          op_attrs->Set(key, attr.cast<BoolAttr>().GetValue());
+          break;
+        case BEFDataType::kI32:
+          op_attrs->Set(key, attr.cast<I32Attr>().GetValue());
+          break;
+        case BEFDataType::kI64:
+          op_attrs->Set(key, attr.cast<I64Attr>().GetValue());
+          break;
+        case BEFDataType::kF32:
+          op_attrs->Set(key, attr.cast<F32Attr>().GetValue());
+          break;
+        case BEFDataType::kF64:
+          op_attrs->Set(key, attr.cast<F64Attr>().GetValue());
+          break;
+        case BEFDataType::kString:
+          op_attrs->SetString(key, attr.cast<StringAttr>().GetValue());
+          break;
+        default:
+          llvm_unreachable("unknown attribute type");
+      }
+    } else {
+      switch (attribute_type) {
+        case BEFAttributeType::kType: {
+          auto type_attr = attr.cast<TypeAttr>();
+          BEFDataType type = type_attr.GetValue();
+          op_attrs->Set(key, GetOpAttrTypeFromBEFDataType(type));
+          break;
+        }
+        case BEFAttributeType::kShape:
+          op_attrs->Set(key, attr.cast<ShapeAttr>());
+          break;
+        case BEFAttributeType::kAggregate:
+          op_attrs->Set(key, attr.cast<AggregateAttr>());
+          break;
+        default:
+          llvm_unreachable("unknown attribute type");
+      }
+    }
+  }
+}
+
 void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
                    AsyncValueRef<Chain> *op_chain,
                    MutableArrayRef<RCReference<AsyncValue>> results,
@@ -56,65 +118,7 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
 
   // Set up OpAttrs.
   OpAttrs op_attrs;
-  for (size_t i = 0, e = op_attr_array.GetNumElements(); i != e; ++i) {
-    auto pair = op_attr_array.GetAttributeOfType<AggregateAttr>(i);
-    assert(pair.GetNumElements() == 2);
-    string_view key = pair.GetAttributeOfType<StringAttr>(0).GetValue();
-    TypedAttrBase attr = pair.GetAttribute(1);
-
-    BEFAttributeType attribute_type = attr.type();
-    if (IsArrayAttribute(attribute_type)) {
-      auto type = GetOpAttrTypeFromBEFAttributeType(
-          GetElementAttributeType(attribute_type));
-      auto array_attr = attr.cast<ArrayAttr>();
-      op_attrs.SetRaw(key, array_attr.GetElements(),
-                      array_attr.GetNumElements(), type);
-    } else if (IsDenseAttribute(attribute_type)) {
-      auto r = op_attrs.Set(key, attr.cast<DenseAttr>());
-      assert(r);
-      (void)r;
-    } else if (IsDataTypeAttribute(attribute_type)) {
-      switch (GetDataType(attribute_type)) {
-        case BEFDataType::kBool:
-          op_attrs.Set(key, attr.cast<BoolAttr>().GetValue());
-          break;
-        case BEFDataType::kI32:
-          op_attrs.Set(key, attr.cast<I32Attr>().GetValue());
-          break;
-        case BEFDataType::kI64:
-          op_attrs.Set(key, attr.cast<I64Attr>().GetValue());
-          break;
-        case BEFDataType::kF32:
-          op_attrs.Set(key, attr.cast<F32Attr>().GetValue());
-          break;
-        case BEFDataType::kF64:
-          op_attrs.Set(key, attr.cast<F64Attr>().GetValue());
-          break;
-        case BEFDataType::kString:
-          op_attrs.SetString(key, attr.cast<StringAttr>().GetValue());
-          break;
-        default:
-          llvm_unreachable("unknown attribute type");
-      }
-    } else {
-      switch (attribute_type) {
-        case BEFAttributeType::kType: {
-          auto type_attr = attr.cast<TypeAttr>();
-          BEFDataType type = type_attr.GetValue();
-          op_attrs.Set(key, GetOpAttrTypeFromBEFDataType(type));
-          break;
-        }
-        case BEFAttributeType::kShape:
-          op_attrs.Set(key, attr.cast<ShapeAttr>());
-          break;
-        case BEFAttributeType::kAggregate:
-          op_attrs.Set(key, attr.cast<AggregateAttr>());
-          break;
-        default:
-          llvm_unreachable("unknown attribute type");
-      }
-    }
-  }
+  SetUpOpAttrs(op_attr_array, &op_attrs);
 
   op(exec_ctx, th_args, OpAttrsRef(op_attrs), result_ths, op_chain);
 

@@ -50,11 +50,8 @@ def glob_tfrt_lit_tests(
         per_test_extra_data[mlir_file] = [mlir_file[:-5] + ".bef"]
 
     glob_lit_tests(
-        data = data + [
-            #=== GOOGLE_PIPER: llvm-project/mlir:run_lit.sh ===#
-        ],
+        data = data,
         per_test_extra_data = per_test_extra_data,
-        #=== GOOGLE_PIPER: tf_runtime/mlir_tests:run_lit.sh ===#
         test_file_exts = ["mlir"],
         default_size = default_size,
         default_tags = default_tags,

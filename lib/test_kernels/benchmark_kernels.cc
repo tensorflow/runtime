@@ -56,7 +56,7 @@ class BenchmarkStats {
   void StopRun() {
     // Do not collect the runtime statistics if we are still in the warm up
     // period.
-    if (cur_count_ < num_warmup_runs_) return;
+    if (cur_count_ <= num_warmup_runs_) return;
 
     // Stop the wall clock timer.
     auto cur_stop_walltime_ = std::chrono::steady_clock::now();

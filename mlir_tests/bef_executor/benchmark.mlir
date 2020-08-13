@@ -20,7 +20,7 @@
 // CHECK-LABEL: --- Running 'benchmark'
 func @benchmark() {
   // CHECK: BM:add.i32:Duration(ns):
-  // CHECK: BM:add.i32:Count:
+  // CHECK: BM:add.i32:Count: 100
   // CHECK: BM:add.i32:Time Min(ns):
   // CHECK: BM:add.i32:Time 50%(ns):
   // CHECK: BM:add.i32:Time 95%(ns):
@@ -46,7 +46,7 @@ func @benchmark() {
 // as an external arguments.
 func @benchmark2() {
   // CHECK: BM:add.i32:Duration(ns):
-  // CHECK: BM:add.i32:Count:
+  // CHECK: BM:add.i32:Count: 100
   // CHECK: BM:add.i32:Time Min(ns):
   // CHECK: BM:add.i32:Time 50%(ns):
   // CHECK: BM:add.i32:Time 95%(ns):

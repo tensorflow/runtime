@@ -38,39 +38,6 @@
 namespace tfrt {
 namespace {
 
-void TileStringTensor(const StringHostTensor& input, StringHostTensor* output) {
-  // Compute strides from the shape.
-  auto strides = [](const TensorShape& shape) -> SmallVector<ssize_t, 5> {
-    SmallVector<ssize_t, 5> strides(shape.GetRank());
-    ssize_t stride = 1;
-    for (int i = shape.GetRank() - 1; i >= 0; --i) {
-      strides[i] = stride;
-      stride *= shape.GetDimensionSize(i);
-    }
-    return strides;
-  };
-
-  const int ndims = output->shape().GetRank();
-  const ssize_t nelem = output->NumElements();
-
-  auto in_strides = strides(input.shape());
-  auto out_strides = strides(output->shape());
-
-  ArrayRef<std::string> inp = input.strings();
-  MutableArrayRef<std::string> out = output->strings();
-
-  for (ssize_t o_idx = 0; o_idx < nelem; ++o_idx) {
-    ssize_t i_idx = 0;
-    ssize_t t = o_idx;
-    for (int i = 0; i < ndims; ++i) {
-      ssize_t i_dim = input.shape().GetDimensionSize(i);
-      i_idx += t / out_strides[i] % i_dim * in_strides[i];
-      t %= out_strides[i];
-    }
-    out[o_idx] = inp[i_idx];
-  }
-}
-
 static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
                                           const DenseHostTensor& multiples_arg,
                                           const ExecutionContext& exec_ctx) {
@@ -116,11 +83,11 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
         chain = EmitErrorAsync(exec_ctx,
                                StrCat("Unsupported dtype: ", input.dtype()));
         break;
-#define DTYPE_NUMERIC(ENUM)                                    \
-  case DType::ENUM: {                                          \
-    using T = EigenTypeForDTypeKind<DType::ENUM>;              \
-    chain = ::tfrt::cpu::Tile<T>(input, *expected_multiples,   \
-                                 dest.getPointer(), exec_ctx); \
+#define DTYPE_NUMERIC(ENUM)                                       \
+  case DType::ENUM: {                                             \
+    using T = EigenTypeForDTypeKind<DType::ENUM>;                 \
+    chain = ::tfrt::cpu::Tile<T, compat::AsyncEigenEvaluator>(    \
+        input, *expected_multiples, dest.getPointer(), exec_ctx); \
   } break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
     }
@@ -135,7 +102,7 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
       return EmitErrorAsync(exec_ctx, "out of memory allocating result");
     }
 
-    TileStringTensor(input, dest.getPointer());
+    cpu::TileStringTensor(input, dest.getPointer());
 
     return host->MakeAvailableAsyncValueRef<StringHostTensor>(std::move(*dest));
 

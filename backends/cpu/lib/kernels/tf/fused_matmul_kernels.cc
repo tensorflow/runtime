@@ -35,11 +35,9 @@ Error FusedMatMul(const DenseHostTensor& a, const DenseHostTensor& b,
                   AggregateAttr fused_ops_attr, Attribute<bool> transpose_a,
                   Attribute<bool> transpose_b,
                   const ExecutionContext& exec_ctx) {
-  auto result = cpu::FusedMatMul<T, compat::SyncEigenEvaluator>(
+  return cpu::FusedMatMul<T, compat::SyncEigenEvaluator>(
       a, b, output, fusion_inputs, *transpose_a, *transpose_b, fused_ops_attr,
       exec_ctx);
-  if (!result) return result.takeError();
-  return Error::success();
 }
 }  // namespace
 namespace tf {

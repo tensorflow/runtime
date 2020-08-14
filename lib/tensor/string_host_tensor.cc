@@ -23,18 +23,25 @@
 #include "llvm/Support/MD5.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/tensor/tensor_metadata.h"
 
 namespace tfrt {
 
 llvm::Optional<StringHostTensor> StringHostTensor::CreateUninitialized(
-    const TensorMetadata& metadata, HostContext* host) {
-  auto num_elements = metadata.shape.GetNumElements();
+    const TensorShape& shape, HostContext* host) {
+  auto num_elements = shape.GetNumElements();
   HostArray<std::string> strings(num_elements, host->allocator());
   for (auto& str : strings.mutable_array()) {
     new (&str) std::string();
   }
 
-  return StringHostTensor(metadata, std::move(strings));
+  return StringHostTensor(shape, std::move(strings));
+}
+
+llvm::Optional<StringHostTensor> StringHostTensor::CreateUninitialized(
+    const TensorMetadata& metadata, HostContext* host) {
+  assert(metadata.dtype == DType(DType::String));
+  return CreateUninitialized(metadata.shape, host);
 }
 
 AsyncValueRef<StringHostTensor> StringHostTensor::MakeConstructedAsyncValueRef(

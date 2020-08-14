@@ -26,27 +26,20 @@
 #include "tfrt/host_context/sync_kernel_utils.h"
 
 namespace tfrt {
-namespace {
-
-template <typename T, bool log>
-void SyncSoftmax(const DenseHostTensor& logits, DenseHostTensor* softmax,
-                 const ExecutionContext& exec_ctx) {
-  cpu::Softmax<T, log, compat::SyncEigenEvaluator>(logits, softmax, exec_ctx);
-}
-
-}  // namespace
 namespace tf {
 
 void RegisterSoftmaxCpuKernels(KernelRegistry* registry) {
-#define DTYPE_FLOAT(ENUM)                                              \
-  {                                                                    \
-    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;               \
-    registry->AddSyncKernel(                                           \
-        StrCat("tf_sync.Softmax.", GetDType<CPP_TYPE>().GetName()),    \
-        TFRT_SYNC_KERNEL(SyncSoftmax<CPP_TYPE, false>));               \
-    registry->AddSyncKernel(                                           \
-        StrCat("tf_sync.LogSoftmax.", GetDType<CPP_TYPE>().GetName()), \
-        TFRT_SYNC_KERNEL(SyncSoftmax<CPP_TYPE, true>));                \
+#define DTYPE_FLOAT(ENUM)                                                \
+  {                                                                      \
+    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                 \
+    registry->AddSyncKernel(                                             \
+        StrCat("tf_sync.Softmax.", GetDType<CPP_TYPE>().GetName()),      \
+        TFRT_SYNC_KERNEL(                                                \
+            cpu::Softmax<CPP_TYPE, false, compat::SyncEigenEvaluator>)); \
+    registry->AddSyncKernel(                                             \
+        StrCat("tf_sync.LogSoftmax.", GetDType<CPP_TYPE>().GetName()),   \
+        TFRT_SYNC_KERNEL(                                                \
+            cpu::Softmax<CPP_TYPE, true, compat::SyncEigenEvaluator>));  \
   }
 #include "tfrt/dtype/dtype.def"
 }

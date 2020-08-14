@@ -26,9 +26,11 @@
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_EVAULATOR_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_EVAULATOR_H_
 
+#include <cassert>
 #include <type_traits>
 
 #include "./thread_pool_device.h"
+#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace compat {
@@ -71,6 +73,12 @@ class AsyncEigenEvaluator {
                        std::move(args));
   }
 
+  template <typename... Args>
+  DependencyToken MakeError(Args&&... args) {
+    return ctx_.host()->MakeErrorAsyncValueRef(
+        StrCat(std::forward<Args>(args)...));
+  }
+
  private:
   const EigenHostContext& ctx_;
 };
@@ -83,7 +91,9 @@ class SyncEigenEvaluator {
   struct NoKeepAlive {};
 
  public:
-  using DependencyToken = Chain;
+  // This plays the same role as the AsyncValueRef<Chain> in the
+  // AsyncEigenEvaluator.
+  using DependencyToken = Error;
 
   explicit SyncEigenEvaluator(HostContext* host) {}
 
@@ -102,15 +112,23 @@ class SyncEigenEvaluator {
   }
 
   template <typename Output, typename Expr>
-  Chain Evaluate(Output out, Expr expr, NoKeepAlive) {
+  Error Evaluate(Output out, Expr expr, NoKeepAlive) {
     out = expr;
-    return Chain{};
+    return Error::success();
   }
 
   template <typename Output, typename Expr>
-  Chain Evaluate(Chain chain, Output out, Expr expr, NoKeepAlive) {
+  Error Evaluate(Error& error, Output out, Expr expr, NoKeepAlive) {
+    // Similar to the AsyncValueRef `chain` in the AsyncEigenEvalutor, the
+    // `error` parameter is used to carry dependency only.
+    assert(!error);
     out = expr;
-    return Chain{};
+    return Error::success();
+  }
+
+  template <typename... Args>
+  Error MakeError(Args&&... args) {
+    return MakeStringError(std::forward<Args>(args)...);
   }
 };
 

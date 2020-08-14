@@ -140,6 +140,8 @@ tfrt_cc_library(
         "lib/kernels/tf/cwise_unary_kernels.cc",
         "lib/kernels/tf/fused_matmul_kernels.cc",
         "lib/kernels/tf/softmax_kernels.cc",
+        "lib/kernels/tf/tile_kernels.cc",
+        "lib/kernels/tile_kernel.cc",
     ],
     hdrs = [
         "lib/kernels/concat_kernel.h",

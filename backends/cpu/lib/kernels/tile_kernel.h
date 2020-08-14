@@ -23,56 +23,31 @@
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_TILE_KERNEL_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_TILE_KERNEL_H_
 
+#include "tfrt/common/compat/eigen/eigen_evaluator.h"
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
-#include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
+#include "tfrt/tensor/string_host_tensor.h"
 
 namespace tfrt {
 namespace cpu {
 
-static Expected<SmallVector<ssize_t, 5>> TileMultiples(
-    const DenseHostTensor& multiples_arg) {
-  SmallVector<ssize_t, 5> multiples;
-
-  if (multiples_arg.shape().GetRank() != 1) {
-    return MakeStringError("Tile multiples must be a vector");
-  }
-
-  if (multiples_arg.dtype().kind() == DType::I32) {
-    DHTArrayView<int32_t> view(&multiples_arg);
-    auto els = view.Elements();
-    for (int i = 0; i < view.NumElements(); ++i) multiples.push_back(els[i]);
-
-  } else if (multiples_arg.dtype().kind() == DType::I64) {
-    DHTArrayView<int64_t> view(&multiples_arg);
-    auto els = view.Elements();
-    for (int i = 0; i < view.NumElements(); ++i) multiples.push_back(els[i]);
-
-  } else {
-    return MakeStringError("Unsupported multiples data type");
-  }
-
-  return multiples;
-}
+Expected<SmallVector<ssize_t, 5>> TileMultiples(
+    const DenseHostTensor& multiples_arg);
 
 template <int rank>
-struct TileRankTag {
-  static constexpr int value = rank;
-};
+using TileRankTag = std::integral_constant<int, rank>;
 
-template <typename T>
-static AsyncValueRef<Chain> Tile(const DenseHostTensor& input,
-                                 const SmallVector<ssize_t, 5>& multiples,
-                                 DenseHostTensor* output,
-                                 const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-  auto& ctx = host->GetOrCreateSharedContext<compat::EigenHostContext>();
+template <typename T, typename EigenEvaluator>
+static typename EigenEvaluator::DependencyToken Tile(
+    const DenseHostTensor& input, const SmallVector<ssize_t, 5>& multiples,
+    DenseHostTensor* output, const ExecutionContext& exec_ctx) {
+  EigenEvaluator eigen{exec_ctx.host()};
 
-  auto rank_dispatch = [&](auto rank_tag) -> AsyncValueRef<Chain> {
+  auto rank_dispatch = [&](auto rank_tag) {
     static constexpr int rank = decltype(rank_tag)::value;
 
     auto input_view = DHTIndexableView<T, rank>(&input);
@@ -86,8 +61,8 @@ static AsyncValueRef<Chain> Tile(const DenseHostTensor& input,
       broadcast[i] = multiples[i];
     }
 
-    return AsyncAssign(ctx, output_t, input_t.broadcast(broadcast),
-                       compat::KeepBuffers::alive(&input, output));
+    return eigen.Evaluate(output_t, input_t.broadcast(broadcast),
+                          eigen.KeepAlive(&input, output));
   };
 
   // Dispatch based on the output tensor rank.
@@ -104,9 +79,11 @@ static AsyncValueRef<Chain> Tile(const DenseHostTensor& input,
   } else if (rank == 5) {
     return rank_dispatch(TileRankTag<5>{});
   } else {
-    return host->MakeErrorAsyncValueRef("Unsupported tensor rank");
+    return eigen.MakeError("Unsupported tensor rank");
   }
 }
+
+void TileStringTensor(const StringHostTensor& input, StringHostTensor* output);
 
 }  // namespace cpu
 }  // namespace tfrt

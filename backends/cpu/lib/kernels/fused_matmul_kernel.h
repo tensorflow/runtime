@@ -37,7 +37,7 @@ namespace tfrt {
 namespace cpu {
 
 template <typename T, typename EigenEvaluator, typename FuseInputsRange>
-Expected<typename EigenEvaluator::DependencyToken> FusedMatMul(
+typename EigenEvaluator::DependencyToken FusedMatMul(
     const DenseHostTensor& a, const DenseHostTensor& b, DenseHostTensor* output,
     FuseInputsRange fusion_inputs, bool transpose_a, bool transpose_b,
     AggregateAttr fused_ops_attr, const ExecutionContext& exec_ctx) {
@@ -45,7 +45,7 @@ Expected<typename EigenEvaluator::DependencyToken> FusedMatMul(
 
   // TODO(ezhulenev): Add support for transposed operands.
   if (transpose_a || transpose_b) {
-    return MakeStringError("Transpose is not supported");
+    return eigen.MakeError("Transpose is not supported");
   }
 
   // Parse the MatMul fusion config.
@@ -55,7 +55,7 @@ Expected<typename EigenEvaluator::DependencyToken> FusedMatMul(
   }
 
   if (fused_ops.empty()) {
-    return MakeStringError("FusedMatMul must specify fused operations");
+    return eigen.MakeError("FusedMatMul must specify fused operations");
   }
 
   // Match the fusion to Eigen contraction output kernel.
@@ -70,11 +70,11 @@ Expected<typename EigenEvaluator::DependencyToken> FusedMatMul(
     auto& bias = fusion_inputs[0];
 
     if (bias.shape().GetRank() != 1)
-      return MakeStringError("Bias tensor must a vector");
+      return eigen.MakeError("Bias tensor must a vector");
 
     const ssize_t inner_dim = output->shape().GetDimensionSize(1);
     if (bias.NumElements() != inner_dim)
-      return MakeStringError("The number of bias elements ", bias.NumElements(),
+      return eigen.MakeError("The number of bias elements ", bias.NumElements(),
                              " doesn't match output inner dimension ",
                              inner_dim);
   }
@@ -98,7 +98,7 @@ Expected<typename EigenEvaluator::DependencyToken> FusedMatMul(
                           eigen);
   }
 
-  return MakeStringError("Unsupported fusion type");
+  return eigen.MakeError("Unsupported fusion type");
 }
 
 }  // namespace cpu

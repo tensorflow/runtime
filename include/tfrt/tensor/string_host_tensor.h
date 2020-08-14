@@ -25,6 +25,7 @@
 
 #include <string>
 
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/tensor/host_tensor.h"
 
@@ -39,6 +40,9 @@ class StringHostTensor final : public HostTensor {
   static llvm::Optional<StringHostTensor> CreateUninitialized(
       const TensorMetadata& metadata, HostContext* host);
 
+  static llvm::Optional<StringHostTensor> CreateUninitialized(
+      const TensorShape& shape, HostContext* host);
+
   // Make an AsyncValueRef<StringHostTensor> with kConstructed state.
   static AsyncValueRef<StringHostTensor> MakeConstructedAsyncValueRef(
       const TensorMetadata& metadata, HostContext* host);
@@ -46,7 +50,13 @@ class StringHostTensor final : public HostTensor {
   StringHostTensor(const TensorMetadata& metadata,
                    HostArray<std::string> strings)
       : HostTensor(Subclass::StringHost, metadata),
-        strings_(std::move(strings)) {}
+        strings_(std::move(strings)) {
+    assert(metadata.dtype == DType(DType::String));
+  }
+
+  StringHostTensor(const TensorShape& shape, HostArray<std::string> strings)
+      : StringHostTensor{TensorMetadata{DType(DType::String), shape},
+                         std::move(strings)} {}
 
   StringHostTensor(StringHostTensor&& other);
   StringHostTensor& operator=(StringHostTensor&& other);

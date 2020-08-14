@@ -18,11 +18,27 @@
 func @basic() {
   %c0 = tfrt.new.chain
 
-  %a = "sht.create_tensor"()
+  %a = "tfrt_sht.create_tensor"()
     {shape = [2], values = ["string", "tensor"]} : () -> !t.tensor
 
   // CHECK: shape = [2], values = ["string", "tensor"]
   %c1 = tfrt_dht.print_tensor %a, %c0
+
+  tfrt.return
+}
+
+func @sync_basic() attributes {tfrt.sync} {
+  %a = "tfrt_sht_sync.create_tensor"()
+    {shape = [2], values = ["string", "tensor"]} : () -> !t.tensor
+
+  // CHECK: shape = [2], values = ["string", "tensor"]
+  tfrt_dht_sync.print_tensor %a
+
+  %b = "tfrt_sht_sync.create_uninitialized_tensor"()
+    {shape = [2]} : () -> !t.tensor
+
+  // CHECK: shape = [2], values = ["", ""]
+  tfrt_dht_sync.print_tensor %b
 
   tfrt.return
 }

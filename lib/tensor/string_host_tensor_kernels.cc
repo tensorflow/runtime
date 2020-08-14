@@ -21,6 +21,7 @@
 #include "tfrt/tensor/string_host_tensor_kernels.h"
 
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/string_host_tensor.h"
 
@@ -47,10 +48,25 @@ llvm::Expected<StringHostTensor> CreateStringTensor(
   return std::move(result).getValue();
 }
 
+static Expected<StringHostTensor> CreateUninitializedStringTensor(
+    ArrayAttribute<ssize_t> shape_in, const ExecutionContext& exec_ctx) {
+  auto result = StringHostTensor::CreateUninitialized(
+      TensorShape(shape_in.data()), exec_ctx.host());
+  if (!result.hasValue()) {
+    return MakeStringError("Cannot allocate tensor");
+  }
+  return std::move(*result);
+}
+
 }  // namespace
 
 void RegisterStringHostTensorKernels(KernelRegistry* registry) {
-  registry->AddKernel("sht.create_tensor", TFRT_KERNEL(CreateStringTensor));
+  registry->AddKernel("tfrt_sht.create_tensor",
+                      TFRT_KERNEL(CreateStringTensor));
+  registry->AddSyncKernel("tfrt_sht_sync.create_tensor",
+                          TFRT_SYNC_KERNEL(CreateStringTensor));
+  registry->AddSyncKernel("tfrt_sht_sync.create_uninitialized_tensor",
+                          TFRT_SYNC_KERNEL(CreateUninitializedStringTensor));
 }
 
 }  // namespace tfrt

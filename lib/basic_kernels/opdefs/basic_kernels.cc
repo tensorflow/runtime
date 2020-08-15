@@ -226,9 +226,8 @@ static LogicalResult verify(ConstantI64Op op) {
 
 static ParseResult parseConstantF32Op(OpAsmParser &parser,
                                       OperationState &result) {
-  return parseConstantOp(
-      FloatType::get(mlir::StandardTypes::F32, result.getContext()), parser,
-      result);
+  return parseConstantOp(FloatType::getF32(result.getContext()), parser,
+                         result);
 }
 
 static void print(OpAsmPrinter &p, ConstantF32Op op) { printConstant(p, op); }
@@ -239,9 +238,8 @@ static LogicalResult verify(ConstantF32Op op) {
 
 static ParseResult parseConstantF64Op(OpAsmParser &parser,
                                       OperationState &result) {
-  return parseConstantOp(
-      FloatType::get(mlir::StandardTypes::F64, result.getContext()), parser,
-      result);
+  return parseConstantOp(FloatType::getF64(result.getContext()), parser,
+                         result);
 }
 
 static void print(OpAsmPrinter &p, ConstantF64Op op) { printConstant(p, op); }

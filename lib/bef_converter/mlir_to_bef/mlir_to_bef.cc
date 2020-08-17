@@ -42,9 +42,11 @@
 #include "mlir/IR/Module.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/StandardTypes.h"
+#include "tfrt/bef_converter/bef_emitter.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/traits.h"
 #include "tfrt/core_runtime/opdefs/types.h"
+#include "tfrt/support/aligned_buffer.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -786,96 +788,18 @@ namespace {
 // this tracks the alignment requirement of the contents.  If this is a
 // subsection of the file, then the enclosing container is required to provide
 // at least this alignment.
-class BEFEmitter {
+class BEFFileEmitter : public BEFEmitter {
  public:
-  static constexpr uint8_t kDummyByte = 0xCC;
   static constexpr uint32_t kDummyPseudoKernelCode = 0xABABABAB;
   static constexpr uint32_t kDummyPseudoKernelLocation = 0xCDCDCDCD;
 
-  BEFEmitter() {}
-  BEFEmitter(const BEFEmitter&) = delete;
-  BEFEmitter& operator=(const BEFEmitter&) = delete;
+  BEFFileEmitter() {}
+  BEFFileEmitter(const BEFFileEmitter&) = delete;
+  BEFFileEmitter& operator=(const BEFFileEmitter&) = delete;
 
-  // Return the alignment required by this chunk of a BEF file.
-  unsigned GetRequiredAlignment() const { return required_alignment_; }
-
-  size_t size() const { return result_.size(); }
-
-  void EmitByte(uint8_t byte) { result_.push_back(byte); }
-
-  void EmitBytes(llvm::ArrayRef<uint8_t> bytes) {
-    result_.insert(result_.end(), bytes.begin(), bytes.end());
-  }
-
-  void OverwriteBytes(size_t offset, const void* data, size_t size) {
-    assert(offset + size <= result_.size());
-    std::memcpy(&result_[offset], data, size);
-  }
-
-  void EmitAlignment(unsigned alignment) {
-    // Alignment of 0 and 1 is a noop.
-    if (alignment < 2) return;
-
-    assert(llvm::isPowerOf2_32(alignment));
-
-    // We need attributes to have proper alignment in the file, so figure out
-    // whether we need padding before this to make sure it ends up at the right
-    // address.
-    size_t cur_offset = size();
-    size_t needed_padding = llvm::alignTo(cur_offset, alignment) - cur_offset;
-
-    // Emit dummy padding bytes to get up to the right offset.
-    while (needed_padding--) EmitByte(kDummyByte);
-
-    // Keep track of the maximum required alignment.
-    required_alignment_ = std::max(required_alignment_, alignment);
-  }
-
-  // Emit a guaranteed 2-byte integer aligned to 2 bytes, allowing this to be
-  // directly mapped into the target process in little-endian form.
-  void EmitInt2(uint16_t value) {
-    EmitAlignment(2);
-    uint8_t data[] = {uint8_t(value & 0xFF), uint8_t((value >> 8) & 0xFF)};
-    EmitBytes(data);
-  }
-
-  // Emit a guaranteed 4-byte integer aligned to 4 bytes, allowing this to be
-  // directly mapped into the target process in little-endian form.
-  void EmitInt4(uint32_t value) {
-    EmitAlignment(4);
-    uint8_t data[] = {uint8_t(value & 0xFF), uint8_t((value >> 8) & 0xFF),
-                      uint8_t((value >> 16) & 0xFF),
-                      uint8_t((value >> 24) & 0xFF)};
-    EmitBytes(data);
-  }
-
-  // Emit a guaranteed 8-byte integer aligned to 8 bytes, allowing this to be
-  // directly mapped into the target process in little-endian form.
-  void EmitInt8(uint64_t value) {
-    EmitAlignment(8);
-    uint8_t data[] = {
-        uint8_t(value & 0xFF),         uint8_t((value >> 8) & 0xFF),
-        uint8_t((value >> 16) & 0xFF), uint8_t((value >> 24) & 0xFF),
-        uint8_t((value >> 32) & 0xFF), uint8_t((value >> 40) & 0xFF),
-        uint8_t((value >> 48) & 0xFF), uint8_t((value >> 56) & 0xFF)};
-    EmitBytes(data);
-  }
-
-  // Emit a vbr encoded integer of arbitrary width.
-  void EmitInt(size_t value) { EmitIntImpl(value, false); }
   // Emit a vbr encoded integer with low byte first
   void EmitIntLowByteFirst(size_t value) {
     EmitBEFArrayLength(value, &result_);
-  }
-
-  // Many parts of the emitter logic includes forward references into stuff
-  // that hasn't been emitted and has variable size.  This is handled by making
-  // nested emitters.  This helper function emits the subpieces once they are
-  // constructed, ensuring that alignment requirements of the nested emitter
-  // are maintained correctly.
-  void EmitEmitter(const BEFEmitter& emitter) {
-    EmitAlignment(emitter.GetRequiredAlignment());
-    EmitBytes(emitter.result_);
   }
 
   void EmitSection(BEFSectionID section_id,
@@ -905,51 +829,18 @@ class BEFEmitter {
     EmitBytes(section_data);
   }
 
-  void EmitSection(BEFSectionID section_id, const BEFEmitter& emitter) {
+  void EmitSection(BEFSectionID section_id, const BEFFileEmitter& emitter) {
     EmitSection(section_id, emitter.result_, emitter.GetRequiredAlignment());
   }
-
-  std::vector<uint8_t> TakeResult() { return std::move(result_); }
-
-  // Move size bytes in the result from src_offset to dst_offset.
-  void MoveResult(size_t dst_offset, size_t src_offset, size_t size);
-
-  // Set size bytes in the result from offset to value
-  void SetResult(size_t offset, uint8_t value, size_t size);
-
- private:
-  void EmitIntImpl(size_t value, bool is_high_part);
-  // Keep track of the alignment required for the start of this object.
-  unsigned required_alignment_ = 1;
-  std::vector<uint8_t> result_;
 };
 
-constexpr uint8_t BEFEmitter::kDummyByte;
-constexpr uint32_t BEFEmitter::kDummyPseudoKernelCode;
-constexpr uint32_t BEFEmitter::kDummyPseudoKernelLocation;
+constexpr uint32_t BEFFileEmitter::kDummyPseudoKernelCode;
+constexpr uint32_t BEFFileEmitter::kDummyPseudoKernelLocation;
 
 }  // namespace
 
-void BEFEmitter::MoveResult(size_t dst_offset, size_t src_offset, size_t size) {
-  memmove(result_.data() + dst_offset, result_.data() + src_offset, size);
-}
-
-void BEFEmitter::SetResult(size_t offset, uint8_t value, size_t size) {
-  memset(result_.data() + offset, value, size);
-}
-
-// Our fundamental unit is a bytestream, but we want to be able to emit large
-// values as well.  We use a VBR encoding, where the high bit set indicates
-// that this is only a portion of the value.
-void BEFEmitter::EmitIntImpl(size_t value, bool is_high_part) {
-  if ((value >> 7) != 0) EmitIntImpl(value >> 7, /*is_high_part=*/true);
-
-  result_.push_back(
-      static_cast<uint8_t>((value & 127) | (is_high_part ? 128 : 0)));
-}
-
 // This is the emitter that builds a BEF into an std::vector.
-class BEFModuleEmitter : public BEFEmitter {
+class BEFModuleEmitter : public BEFFileEmitter {
  public:
   explicit BEFModuleEmitter(mlir::ModuleOp module) : module_(module) {}
 
@@ -960,14 +851,15 @@ class BEFModuleEmitter : public BEFEmitter {
   void EmitFormatVersion();
   void EmitLocationInfo();
   void EmitStrings();
-  void EmitAttributes(BEFEmitter* attribute_types);
+  void EmitAttributes(BEFFileEmitter* attribute_types);
   void EmitKernels();
   void EmitTypes();
-  void EmitFunctions(BEFEmitter* attribute_names, BEFEmitter* register_types);
+  void EmitFunctions(BEFFileEmitter* attribute_names,
+                     BEFFileEmitter* register_types);
   void EmitFunctionIndex();
-  void EmitAttributeTypes(const BEFEmitter& attribute_types);
-  void EmitAttributeNames(const BEFEmitter& attribute_names);
-  void EmitRegisterTypes(const BEFEmitter& register_types);
+  void EmitAttributeTypes(const BEFFileEmitter& attribute_types);
+  void EmitAttributeNames(const BEFFileEmitter& attribute_names);
+  void EmitRegisterTypes(const BEFFileEmitter& register_types);
 
  private:
   mlir::ModuleOp module_;
@@ -981,7 +873,7 @@ void BEFModuleEmitter::EmitFormatVersion() {
 }
 
 void BEFModuleEmitter::EmitLocationInfo() {
-  BEFEmitter filenames_section;
+  BEFFileEmitter filenames_section;
   for (auto filename : entities_.location_filenames) {
     filenames_section.EmitBytes(
         {reinterpret_cast<const uint8_t*>(filename.data()), filename.size()});
@@ -992,7 +884,7 @@ void BEFModuleEmitter::EmitLocationInfo() {
   EmitSection(BEFSectionID::kLocationFilenames, filenames_section);
 
   // Emit each of the positions and remember the offsets within the section.
-  BEFEmitter positions_section;
+  BEFFileEmitter positions_section;
   for (auto position : entities_.location_positions) {
     entity_index_.AddLocationPosition(position, positions_section.size());
     positions_section.EmitInt(std::get<0>(position));
@@ -1015,7 +907,7 @@ void BEFModuleEmitter::EmitStrings() {
 
   // Now that we have all the strings in order, emit them and remember their
   // offsets in the string section.
-  BEFEmitter string_section;
+  BEFFileEmitter string_section;
   for (const auto& entry : strs_in_order) {
     entity_index_.AddString(entry, string_section.size());
     string_section.EmitBytes(
@@ -1321,10 +1213,10 @@ void BEFTypedAttributeEmitter::EmitShapeAttribute(
 }
 
 // This is the emitter that builds the attributes section of a BEF.
-class BEFAttributesEmitter : public BEFEmitter {
+class BEFAttributesEmitter : public BEFFileEmitter {
  public:
   explicit BEFAttributesEmitter(EntityIndex* entity_index,
-                                BEFEmitter* attribute_type_emitter)
+                                BEFFileEmitter* attribute_type_emitter)
       : entity_index_(*entity_index),
         attribute_type_emitter_(*attribute_type_emitter) {}
 
@@ -1342,7 +1234,7 @@ class BEFAttributesEmitter : public BEFEmitter {
   }
 
   EntityIndex& entity_index_;
-  BEFEmitter& attribute_type_emitter_;
+  BEFFileEmitter& attribute_type_emitter_;
 
   int num_attributes_ = 0;
 };
@@ -1422,14 +1314,14 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
   EmitAttributeType(offset, attribute_type, typed);
 }
 
-void BEFModuleEmitter::EmitAttributes(BEFEmitter* attribute_types) {
+void BEFModuleEmitter::EmitAttributes(BEFFileEmitter* attribute_types) {
   // The attributes are already in a stable order, so just emit them in the
   // order they were found.
 
   // Emit attributes and record them in EntityIndex. Nested array attributes
   // will be traversed recursively and their elements will be emitted and
   // recorded before the top level offsets array is emitted.
-  BEFEmitter attribute_type_emitter;
+  BEFFileEmitter attribute_type_emitter;
   BEFAttributesEmitter attributes_section(&entity_index_,
                                           &attribute_type_emitter);
   for (auto attr : entities_.attributes) {
@@ -1448,7 +1340,7 @@ void BEFModuleEmitter::EmitAttributes(BEFEmitter* attribute_types) {
 void BEFModuleEmitter::EmitKernels() {
   // The kernels are already in a stable order, so just emit them in the
   // order they were found.
-  BEFEmitter ops_section;
+  BEFFileEmitter ops_section;
   // Count of the number of kernels that exist.
   ops_section.EmitInt(entities_.kernels.size());
 
@@ -1463,7 +1355,7 @@ void BEFModuleEmitter::EmitKernels() {
 void BEFModuleEmitter::EmitTypes() {
   // The types are already in a stable order, so just emit them in the
   // order they were found.
-  BEFEmitter types_section;
+  BEFFileEmitter types_section;
 
   // Count of the number of types that exist.
   types_section.EmitInt(entities_.types.size());
@@ -1481,22 +1373,23 @@ void BEFModuleEmitter::EmitTypes() {
 }
 
 // This is the emitter that builds the function entry of a BEF.
-class BEFFunctionEmitter : public BEFEmitter {
+class BEFFunctionEmitter : public BEFFileEmitter {
  public:
   BEFFunctionEmitter(const EntityTable& entities,
                      const EntityIndex& entity_index)
       : entities_(entities), entity_index_(entity_index) {}
 
-  void EmitFunction(mlir::Region* region, BEFEmitter* attribute_names,
-                    BEFEmitter* register_types);
+  void EmitFunction(mlir::Region* region, BEFFileEmitter* attribute_names,
+                    BEFFileEmitter* register_types);
 
  private:
-  void EmitRegisterTable(mlir::Block* block, BEFEmitter* register_types);
-  void EmitKernelResultUsers(mlir::Value result, BEFEmitter* kernel_list,
-                             BEFEmitter* kernel_body) const;
-  void EmitArgumentsPseudoOp(mlir::Block* block, BEFEmitter* kernel_list) const;
-  void EmitKernel(mlir::Operation* op, BEFEmitter* kernel_list,
-                  BEFEmitter* attribute_names) const;
+  void EmitRegisterTable(mlir::Block* block, BEFFileEmitter* register_types);
+  void EmitKernelResultUsers(mlir::Value result, BEFFileEmitter* kernel_list,
+                             BEFFileEmitter* kernel_body) const;
+  void EmitArgumentsPseudoOp(mlir::Block* block,
+                             BEFFileEmitter* kernel_list) const;
+  void EmitKernel(mlir::Operation* op, BEFFileEmitter* kernel_list,
+                  BEFFileEmitter* attribute_names) const;
 
   unsigned GetRegisterNumber(mlir::Value reg) const {
     auto it = register_number_.find(reg);
@@ -1512,8 +1405,8 @@ class BEFFunctionEmitter : public BEFEmitter {
 };
 
 void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
-                                      BEFEmitter* attribute_names,
-                                      BEFEmitter* register_types) {
+                                      BEFFileEmitter* attribute_names,
+                                      BEFFileEmitter* register_types) {
   assert(llvm::hasSingleElement(*region) && "should have a single block");
   auto& block = region->front();
 
@@ -1541,7 +1434,7 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 
   mlir::Operation* return_op = nullptr;
 
-  BEFEmitter kernel_list;
+  BEFFileEmitter kernel_list;
 
   attribute_names->EmitInt(num_kernels);
 
@@ -1613,9 +1506,9 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 }
 
 void BEFFunctionEmitter::EmitRegisterTable(mlir::Block* block,
-                                           BEFEmitter* register_types) {
-  BEFEmitter reg_table;
-  BEFEmitter reg_type_table;
+                                           BEFFileEmitter* register_types) {
+  BEFFileEmitter reg_table;
+  BEFFileEmitter reg_type_table;
   unsigned num_registers = 0;
 
   auto emit_register = [&](mlir::Value reg) {
@@ -1643,9 +1536,9 @@ void BEFFunctionEmitter::EmitRegisterTable(mlir::Block* block,
   register_types->EmitEmitter(reg_type_table);
 }
 
-void BEFFunctionEmitter::EmitKernelResultUsers(mlir::Value result,
-                                               BEFEmitter* kernel_list,
-                                               BEFEmitter* kernel_body) const {
+void BEFFunctionEmitter::EmitKernelResultUsers(
+    mlir::Value result, BEFFileEmitter* kernel_list,
+    BEFFileEmitter* kernel_body) const {
   int num_users = 0;
   for (auto* user : result.getUsers()) {
     // Ignore the 'return' op, it gets special handling.
@@ -1659,8 +1552,8 @@ void BEFFunctionEmitter::EmitKernelResultUsers(mlir::Value result,
   kernel_list->EmitInt4(num_users);
 }
 
-void BEFFunctionEmitter::EmitArgumentsPseudoOp(mlir::Block* block,
-                                               BEFEmitter* kernel_list) const {
+void BEFFunctionEmitter::EmitArgumentsPseudoOp(
+    mlir::Block* block, BEFFileEmitter* kernel_list) const {
   // This kernel starts with a dummy code and a dummy location. And this kernel
   // only has results and used_bys in its body.
 
@@ -1679,7 +1572,7 @@ void BEFFunctionEmitter::EmitArgumentsPseudoOp(mlir::Block* block,
   // special_metadata
   kernel_list->EmitInt4(0);
 
-  BEFEmitter kernel_body;
+  BEFFileEmitter kernel_body;
   for (auto arg : block->getArguments())
     kernel_body.EmitInt4(GetRegisterNumber(arg));
   for (auto arg : block->getArguments())
@@ -1691,8 +1584,8 @@ void BEFFunctionEmitter::EmitArgumentsPseudoOp(mlir::Block* block,
 }
 
 void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
-                                    BEFEmitter* kernel_list,
-                                    BEFEmitter* attribute_names) const {
+                                    BEFFileEmitter* kernel_list,
+                                    BEFFileEmitter* attribute_names) const {
   // Each kernel starts out with an opcode record.
   kernel_list->EmitInt4(entities_.GetKernelID(op));
 
@@ -1703,7 +1596,7 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
 
   // Because the numbers of each types of entries are emitted first, we use
   // another emitter to keep all entries and append them to kernel_list later.
-  BEFEmitter kernel_body;
+  BEFFileEmitter kernel_body;
 
   // Then we have the arguments.
   kernel_list->EmitInt4(op->getNumOperands());
@@ -1713,8 +1606,8 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   // Then attributes.
   int num_input_functions = 0;
   int num_input_attributes = 0;
-  BEFEmitter input_function_emitter;
-  BEFEmitter input_attribute_emitter;
+  BEFFileEmitter input_function_emitter;
+  BEFFileEmitter input_attribute_emitter;
   uint32_t special_attribute = 0;
   bool is_op_attrs_typed = IsOpAttrsTyped(op);
   for (auto attr_name_pair : op->getAttrs()) {
@@ -1774,8 +1667,8 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   kernel_list->EmitEmitter(kernel_body);
 }
 
-void BEFModuleEmitter::EmitFunctions(BEFEmitter* attribute_names,
-                                     BEFEmitter* register_types) {
+void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
+                                     BEFFileEmitter* register_types) {
   BEFFunctionEmitter functions_section(entities_, entity_index_);
 
   attribute_names->EmitInt(entities_.functions.size());
@@ -1796,7 +1689,7 @@ void BEFModuleEmitter::EmitFunctions(BEFEmitter* attribute_names,
 void BEFModuleEmitter::EmitFunctionIndex() {
   auto function_index = entity_index_.GetFunctionIndex();
 
-  BEFEmitter function_index_section;
+  BEFFileEmitter function_index_section;
 
   // Count of the number of functions that exist.
   function_index_section.EmitInt(function_index.size());
@@ -1820,15 +1713,17 @@ void BEFModuleEmitter::EmitFunctionIndex() {
   EmitSection(BEFSectionID::kFunctionIndex, function_index_section);
 }
 
-void BEFModuleEmitter::EmitAttributeTypes(const BEFEmitter& attribute_types) {
+void BEFModuleEmitter::EmitAttributeTypes(
+    const BEFFileEmitter& attribute_types) {
   EmitSection(BEFSectionID::kAttributeTypes, attribute_types);
 }
 
-void BEFModuleEmitter::EmitAttributeNames(const BEFEmitter& attribute_names) {
+void BEFModuleEmitter::EmitAttributeNames(
+    const BEFFileEmitter& attribute_names) {
   EmitSection(BEFSectionID::kAttributeNames, attribute_names);
 }
 
-void BEFModuleEmitter::EmitRegisterTypes(const BEFEmitter& register_types) {
+void BEFModuleEmitter::EmitRegisterTypes(const BEFFileEmitter& register_types) {
   EmitSection(BEFSectionID::kRegisterTypes, register_types);
 }
 
@@ -1838,8 +1733,8 @@ void BEFModuleEmitter::EmitRegisterTypes(const BEFEmitter& register_types) {
 //
 // On error, this emits the error message through the MLIR error handler, and
 // returns an empty std:vector.
-std::vector<uint8_t> ConvertMLIRToBEF(mlir::ModuleOp module,
-                                      bool disable_optional_sections) {
+AlignedBuffer<8> ConvertMLIRToBEF(mlir::ModuleOp module,
+                                  bool disable_optional_sections) {
   BEFModuleEmitter emitter(module);
 
   // Build the entities table.
@@ -1850,9 +1745,9 @@ std::vector<uint8_t> ConvertMLIRToBEF(mlir::ModuleOp module,
   // Magic number at the start of the file.
   emitter.EmitBytes({kBEFMagic1, kBEFMagic2});
 
-  BEFEmitter attribute_types;
-  BEFEmitter attribute_names;
-  BEFEmitter register_types;
+  BEFFileEmitter attribute_types;
+  BEFFileEmitter attribute_names;
+  BEFFileEmitter register_types;
 
   // Emit each section of the file.
   emitter.EmitFormatVersion();

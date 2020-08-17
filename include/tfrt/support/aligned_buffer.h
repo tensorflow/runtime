@@ -38,19 +38,31 @@ struct AlignedAllocator {
   static_assert(alignof(T) <= Align,
                 "The alignment of T must not be larger than Align.");
 
-  typedef T value_type;
+  using value_type = T;
 
   T* allocate(size_t n) {
     auto* ptr = AlignedAlloc(Align, n * sizeof(T));
     return static_cast<T*>(ptr);
   }
-  void deallocate(T* p, size_t) { std::free(p); }
+  void deallocate(T* p, size_t) noexcept { std::free(p); }
 
   template <typename U>
   struct rebind {
     using other = AlignedAllocator<U, Align>;
   };
 };
+
+template <typename T, size_t Align>
+inline bool operator==(const AlignedAllocator<T, Align>& x,
+                       const AlignedAllocator<T, Align>& y) {
+  return true;
+}
+
+template <typename T, size_t Align>
+inline bool operator!=(const AlignedAllocator<T, Align>& x,
+                       const AlignedAllocator<T, Align>& y) {
+  return !(x == y);
+}
 
 }  // namespace internal
 

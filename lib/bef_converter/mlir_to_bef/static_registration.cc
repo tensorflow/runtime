@@ -23,6 +23,7 @@
 #include "mlir/IR/Module.h"
 #include "mlir/Translation.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"
+#include "tfrt/support/aligned_buffer.h"
 
 static llvm::cl::opt<bool> disable_optional_sections(  // NOLINT
     "disable-optional-sections",
@@ -35,7 +36,7 @@ namespace {
 
 mlir::LogicalResult ConvertMLIRToBEFTranslation(mlir::ModuleOp module,
                                                 llvm::raw_ostream& output) {
-  std::vector<uint8_t> bef_file =
+  tfrt::AlignedBuffer<8> bef_file =
       tfrt::ConvertMLIRToBEF(module, disable_optional_sections);
   if (bef_file.empty()) return mlir::failure();
 

@@ -317,6 +317,21 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "bef_emitter",
+    srcs = [
+        "lib/bef_converter/bef_emitter.cc",
+    ],
+    hdrs = [
+        "include/tfrt/bef_converter/bef_emitter.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":support",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+tfrt_cc_library(
     name = "mlirtobef",
     srcs = [
         "lib/bef_converter/mlir_to_bef/mlir_to_bef.cc",
@@ -327,6 +342,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/bef_converter/mlir_to_bef/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":bef_emitter",
         ":core_runtime_opdefs",
         ":support",
         "@llvm-project//llvm:Support",

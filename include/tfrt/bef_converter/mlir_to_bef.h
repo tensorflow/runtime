@@ -26,20 +26,24 @@
 #include <cstdint>
 #include <vector>
 
+#include "tfrt/support/aligned_buffer.h"
+
 namespace mlir {
 class ModuleOp;
 }
 
 namespace tfrt {
 
+using BEFBuffer = AlignedBuffer<8>;
+
 // This function converts the specified MLIR module containing a host executor
 // compatible program to the BinaryExecutableFormat (BEF) format, which is the
 // low level format that the executor takes.
 //
 // On error, this emits the error message through the MLIR error handler, and
-// returns an empty std:vector.
-std::vector<uint8_t> ConvertMLIRToBEF(mlir::ModuleOp module,
-                                      bool disable_optional_sections);
+// returns an empty AlignedBuffer.
+BEFBuffer ConvertMLIRToBEF(mlir::ModuleOp module,
+                           bool disable_optional_sections);
 
 }  // namespace tfrt
 

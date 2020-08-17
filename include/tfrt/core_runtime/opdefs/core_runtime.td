@@ -192,14 +192,14 @@ def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler", [NoSideEffect]> {
   let verifier = ?;
 }
 
-def CoreRT_RegisterOpHandlerChainOp : CoreRT_Op<"register_op_handler_chain"> {
-  let summary = "Register a name for a Chain of OpHandlers.";
+def CoreRT_RegisterOpHandlerOp : CoreRT_Op<"register_op_handler"> {
+  let summary = "Register a name for an OpHandler.";
   let description = [{
-    Register a name for the given Chain of OpHandlers and make the chain
-    accessible through corert.get_op_handler.
+    Register a name for the given OpHandler and make it accessible through
+      corert.get_op_handler.
 
     Example:
-      %chain = corert.register_op_handler_chain %root_op_handler, "my_chain0"
+      %chain = corert.register_op_handler %op_handler, "my_op_handler0"
   }];
 
   let arguments = (ins

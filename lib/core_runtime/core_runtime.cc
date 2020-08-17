@@ -51,7 +51,7 @@ namespace {
 class OpHandlerRegistry {
  public:
   OpHandler* GetOrNull(string_view name) const {
-    return all_chains_.lookup(name);
+    return op_handers_by_name_.lookup(name);
   }
 
   void AddOpHandler(std::unique_ptr<OpHandler> op_handler) {
@@ -59,16 +59,16 @@ class OpHandlerRegistry {
     all_op_handlers_.emplace_back(std::move(op_handler));
   }
 
-  bool AddOpHandlerChain(string_view name, OpHandler* root) {
-    assert(root);
-    auto r = all_chains_.try_emplace(name, root);
+  bool AddOpHandlerChain(string_view name, OpHandler* op_handler) {
+    assert(op_handler);
+    auto r = op_handers_by_name_.try_emplace(name, op_handler);
     (void)r;
     return r.second;
   }
 
  private:
-  // all_chains_ can be looked up via GetOrNull() function.
-  llvm::StringMap<OpHandler*> all_chains_;
+  // op_handers_by_name_ can be looked up via GetOrNull() function.
+  llvm::StringMap<OpHandler*> op_handers_by_name_;
   std::vector<std::unique_ptr<OpHandler>> all_op_handlers_;
 };
 
@@ -104,8 +104,8 @@ class CoreRuntime::Impl {
     op_handler_registry_.AddOpHandler(std::move(op_handler));
   }
 
-  void RegisterOpHandlerChain(string_view chain_name, OpHandler* chain_root) {
-    op_handler_registry_.AddOpHandlerChain(chain_name, chain_root);
+  void RegisterOpHandlerChain(string_view name, OpHandler* op_handler) {
+    op_handler_registry_.AddOpHandlerChain(name, op_handler);
   }
 
  private:
@@ -454,9 +454,8 @@ void CoreRuntime::TakeOpHandler(std::unique_ptr<OpHandler> op_handler) {
   impl_->TakeOpHandler(std::move(op_handler));
 }
 
-void CoreRuntime::RegisterOpHandlerChain(string_view chain_name,
-                                         OpHandler* chain_root) {
-  impl_->RegisterOpHandlerChain(chain_name, chain_root);
+void CoreRuntime::RegisterOpHandler(string_view name, OpHandler* op_handler) {
+  impl_->RegisterOpHandlerChain(name, op_handler);
 }
 
 }  // namespace tfrt

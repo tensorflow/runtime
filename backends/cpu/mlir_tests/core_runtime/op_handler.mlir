@@ -18,7 +18,7 @@
 func @register_cpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {
   %null = "corert.create_null_op_handler"() : () -> !corert.device
   %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
-  %ch = corert.register_op_handler_chain %cpu "cpu0"
+  %ch = corert.register_op_handler %cpu "cpu0"
   tfrt.return %ch : !tfrt.chain
 }
 

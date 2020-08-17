@@ -19,7 +19,7 @@ func @register_gpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {
   %null = "corert.create_null_op_handler"() : () -> !corert.device
   %gpu_ordinal = tfrt.constant.i32 0
   %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
-  %ch = corert.register_op_handler_chain %gpu "gpu0"
+  %ch = corert.register_op_handler %gpu "gpu0"
   tfrt.return %ch : !tfrt.chain
 }
 

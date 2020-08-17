@@ -81,7 +81,7 @@ TEST(OpHandlerTest, Registration) {
   // After DummyOpHandler ownership takeover
   ASSERT_FALSE(core_runtime->GetOpHandler(chain_name));
 
-  core_runtime->RegisterOpHandlerChain(chain_name, chain_root);
+  core_runtime->RegisterOpHandler(chain_name, chain_root);
   // After Chain Registration
   ASSERT_EQ(core_runtime->GetOpHandler(chain_name), chain_root);
   ASSERT_FALSE(core_runtime->GetOpHandler(op_handler_name));

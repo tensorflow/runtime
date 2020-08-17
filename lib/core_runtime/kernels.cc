@@ -358,14 +358,14 @@ static tfrt::Expected<OpHandler *> GetOpHandler(
   return tfrt::MakeStringError("op_handler not found.");
 }
 
-static Chain RegisterOpHandlerChain(Argument<OpHandler *> root,
-                                    StringAttribute chain_name,
-                                    const ExecutionContext &exec_ctx) {
+static Chain RegisterOpHandler(Argument<OpHandler *> root,
+                               StringAttribute chain_name,
+                               const ExecutionContext &exec_ctx) {
   assert(root.get());
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
-  runtime->RegisterOpHandlerChain(chain_name, root.get());
+  runtime->RegisterOpHandler(chain_name, root.get());
   return Chain();
 }
 
@@ -602,8 +602,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(ExecuteCoreRuntimeOp));
   registry->AddKernel("corert.make_composite_op", TFRT_KERNEL(MakeCompositeOp));
   registry->AddKernel("corert.get_op_handler", TFRT_KERNEL(GetOpHandler));
-  registry->AddKernel("corert.register_op_handler_chain",
-                      TFRT_KERNEL(RegisterOpHandlerChain));
+  registry->AddKernel("corert.register_op_handler",
+                      TFRT_KERNEL(RegisterOpHandler));
   registry->AddKernel("corert.const_dense_tensor",
                       TFRT_KERNEL(ConstDenseTensor));
   registry->AddKernel("corert.const_string_tensor",

@@ -126,10 +126,10 @@ class CoreRuntime final {
   void TakeOpHandler(std::unique_ptr<OpHandler> op_handler);
 
   // [Experimental]
-  // Assign a name to a given OpHandler chain and make the chain accessible
-  // through GetOpHandler. All OpHandlers in the chain should owned by the
-  // core runtime object or stay alive during the execution.
-  void RegisterOpHandlerChain(string_view chain_name, OpHandler* chain_root);
+  // Assign a name to a given OpHandler and make it accessible through
+  // GetOpHandler. All OpHandlers should owned by the core runtime object or
+  // stay alive during the execution.
+  void RegisterOpHandler(string_view name, OpHandler* op_handler);
 
  private:
   friend class OpHandler;

@@ -109,10 +109,19 @@ void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {
   // the new task into a random queue (FIFO execution order). Tasks still could
   // be executed in LIFO order, if they would be stolen by other workers.
 
+  // We opportunistically skip notifying parked thread if we push a task to the
+  // front of an empty queue. It is very common pattern when a task running in a
+  // worker thread pushes continuation to the work queue, and finished its
+  // execution shortly after (but we do not know this for sure at this point).
+  // However if the task continues its execution for a long time after
+  // submitting a continuation, this might lead to sub-optimal parallelization.
+  bool skip_notify = false;
+
   PerThread* pt = GetPerThread();
   if (pt->parent == this) {
     // Worker thread of this pool, push onto the thread's queue.
     Queue& q = thread_data_[pt->thread_id].queue;
+    skip_notify = q.Empty();
     inline_task = q.PushFront(std::move(task));
   } else {
     // A free-standing thread (or worker of another pool).
@@ -129,7 +138,7 @@ void NonBlockingWorkQueue<ThreadingEnvironment>::AddTask(TaskFunction task) {
   // program, that is, this is kept alive while any threads can potentially be
   // in Schedule.
   if (!inline_task.hasValue()) {
-    if (IsNotifyParkedThreadRequired())
+    if (!skip_notify && IsNotifyParkedThreadRequired())
       event_count_.Notify(/*notify_all=*/false);
   } else {
     (*inline_task)();  // Push failed, execute directly.

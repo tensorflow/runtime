@@ -283,7 +283,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "documents/Dialects/AVX512/AVX512.md",
+            "g3doc/Dialects/AVX512/AVX512.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -1046,7 +1046,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "documents/Dialects/LLVMIR/LLVMAVX512.md",
+            "g3doc/Dialects/LLVMIR/LLVMAVX512.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -1806,7 +1806,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "documents/Dialects/SPIRV/SPIRVOps.md",
+            "g3doc/Dialects/SPIRV/SPIRVOps.md",
         ),
         (
             "-gen-enum-decls",
@@ -3059,8 +3059,8 @@ cc_library(
         ":SideEffectInterfaces",
         ":StandardOps",
         ":Support",
-        "//third_party/vulkan_headers",
         "@llvm-project//llvm:Support",
+        "@vulkan_headers",
         "@vulkan_sdk//:sdk",
     ],
 )
@@ -3218,7 +3218,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "documents/Dialects/OpenACC/OpenACCOps.md",
+            "g3doc/Dialects/OpenACC/OpenACCOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -3261,7 +3261,7 @@ gentbl(
     ],
     tblgen = ":mlir-tblgen",
     td_file = "@llvm-project//llvm:include/llvm/Frontend/OpenMP/OMP.td",
-    td_includes = ["third_party/llvm/llvm-project/llvm/include"],
+    td_includes = ["external/llvm-project/llvm/include"],
     td_srcs = [
         "@llvm-project//llvm:omp_td_files",
         ":OpBaseTdFiles",
@@ -3294,7 +3294,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "documents/Dialects/OpenMP/OpenMPOps.md",
+            "g3doc/Dialects/OpenMP/OpenMPOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -3355,7 +3355,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "documents/Dialects/QuantOps/QuantOps.md",
+            "g3doc/Dialects/QuantOps/QuantOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -3538,7 +3538,7 @@ gentbl(
     tbl_outs = [
         (
             "-gen-op-doc",
-            "documents/Dialects/Linalg/LinalgOps.md",
+            "g3doc/Dialects/Linalg/LinalgOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",
@@ -3751,7 +3751,7 @@ gentbl(
         ),
         (
             "-gen-op-doc",
-            "documents/Dialects/Vector/VectorOps.md",
+            "g3doc/Dialects/Vector/VectorOps.md",
         ),
     ],
     tblgen = ":mlir-tblgen",

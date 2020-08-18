@@ -42,16 +42,28 @@
 #endif
 
 namespace tfrt {
+
 NOINLINE StackTrace CreateStackTrace0() {
   int skip_count = 1;  // Do not include this function in the stack trace.
 #if __has_feature(address_sanitizer) || __has_feature(memory_sanitizer) || \
     __has_feature(thread_sanitizer)
   ++skip_count;  // Skip __interceptor_backtrace added by ASAN/MSAN/TSAN.
 #endif
-  return CreateStackTrace(skip_count);
+  auto ret = CreateStackTrace(skip_count);
+  DoNotOptimize(ret.get());
+  return ret;
 }
-NOINLINE StackTrace CreateStackTrace1() { return CreateStackTrace0(); }
-NOINLINE StackTrace CreateStackTrace2() { return CreateStackTrace1(); }
+
+NOINLINE StackTrace CreateStackTrace1() {
+  auto ret = CreateStackTrace0();
+  DoNotOptimize(ret.get());
+  return ret;
+}
+NOINLINE StackTrace CreateStackTrace2() {
+  auto ret = CreateStackTrace1();
+  DoNotOptimize(ret);
+  return ret;
+}
 
 namespace {
 llvm::Error SuccessError() { return llvm::Error::success(); }

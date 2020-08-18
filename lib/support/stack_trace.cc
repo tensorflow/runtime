@@ -66,15 +66,21 @@ class StackTraceOstream : public llvm::raw_ostream {
   int skip_count_;
   std::string string_;
 };
+
 }  // namespace
 
 StackTrace CreateStackTrace(int skip_count) {
 #ifdef NDEBUG
   return nullptr;  // Disable stack traces in optimized builds.
 #endif
+  // FIXME: Once the trivial-abi unique_ptr patch is rolled out, we should
+  // adjust this "skipcount" to be +1 and remove the tail-call inhibitor.
   StackTraceOstream os(skip_count + 2);
   llvm::sys::PrintStackTrace(os);
-  return StackTrace(new internal::StackTraceImpl{std::move(os.str())});
+
+  auto ret = StackTrace(new internal::StackTraceImpl{std::move(os.str())});
+  DoNotOptimize(ret.get());
+  return ret;
 }
 
 }  // namespace tfrt

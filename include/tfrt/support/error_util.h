@@ -67,6 +67,13 @@ llvm::raw_ostream& operator<<(
 using StackTrace =
     std::unique_ptr<internal::StackTraceImpl, internal::StackTraceDeleter>;
 
+// Fake use on the object to prevent the compiler from doing a tail-call, which
+// messes up the expected stack sizes of the CreateStackTrace() function.
+template <class T>
+void DoNotOptimize(const T& var) {
+  asm volatile("" : "+m"(const_cast<T&>(var)));
+}
+
 // Capture the current stack trace, without the first 'skip_count' frames. The
 // result may be empty (i.e. does not print anything) if capturing traces is
 // not supported.

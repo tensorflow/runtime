@@ -79,3 +79,47 @@ func @test_repeated_sync_args() -> i32 attributes {tfrt.sync} {
   // CHECK-NEXT: 'test_repeated_sync_args' returned 6
   tfrt.return %x : i32
 }
+
+// CHECK-LABEL: --- Running 'test_many_attributes'
+func @test_many_attributes() -> i32 attributes {tfrt.sync} {
+  %0 = "tfrt.constant_s.i32"() {value = 0 : i32} : () -> i32
+  %1 = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
+  %2 = "tfrt.constant_s.i32"() {value = 2 : i32} : () -> i32
+  %3 = "tfrt.constant_s.i32"() {value = 3 : i32} : () -> i32
+
+  %x = "tfrt_test.sync_sum_attributes"() {
+      v0 = 0: i32,
+      v1 = 1: i32,
+      v2 = 2: i32,
+      v3 = 3: i32,
+      v4 = 4: i32,
+      v5 = 5: i32,
+      v6 = 6: i32,
+      v7 = 7: i32,
+      v8 = 8: i32,
+      v9 = 9: i32,
+      v10 = 10: i32,
+      v11 = 1: i32,
+      v12 = 2: i32,
+      v13 = 3: i32,
+      v14 = 4: i32,
+      v15 = 5: i32,
+      v16 = 6: i32,
+      v17 = 7: i32,
+      v18 = 8: i32,
+      v19 = 9: i32,
+      v20 = 10: i32,
+      v21 = 1: i32,
+      v22 = 2: i32,
+      v23 = 3: i32,
+      v24 = 4: i32,
+      v25 = 5: i32,
+      v26 = 6: i32,
+      v27 = 7: i32,
+      v28 = 8: i32,
+      v29 = 9: i32,
+      v30 = 10: i32
+      } : () -> i32
+  // CHECK-NEXT: 'test_many_attributes' returned 165
+  tfrt.return %x : i32
+}

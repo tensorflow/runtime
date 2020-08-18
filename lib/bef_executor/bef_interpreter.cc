@@ -54,7 +54,8 @@ class BEFInterpreter final {
     const uint32_t* kernel_start;
     // All attributes, including, function attributes.
     // This refers to a segment in attribute_pool_.
-    ArrayRef<const void*> attributes;
+    int attribute_start;
+    int num_attributes;
     // Registers that are retired after the execution of this kernel.
     // This refers to a segment in retired_register_pool_.
     ArrayRef<Value*> retired_regs;
@@ -195,8 +196,8 @@ void BEFInterpreter::SetupKernelEntries() {
     }
 
     // Set the attributes for this kernel.
-    kernel_entry.attributes = llvm::makeArrayRef(
-        attribute_pool_.begin() + attribute_start, attribute_pool_.end());
+    kernel_entry.attribute_start = attribute_start;
+    kernel_entry.num_attributes = attribute_pool_.size() - attribute_start;
   }
 }
 
@@ -237,7 +238,9 @@ Error BEFInterpreter::Execute(const ExecutionContext& exec_ctx,
     BEFKernel kernel(kernel_entry.kernel_start);
 
     kernel_frame.SetArguments(kernel.GetArguments());
-    kernel_frame.SetAttributes(kernel_entry.attributes);
+    kernel_frame.SetAttributes(llvm::makeArrayRef(
+        attribute_pool_.data() + kernel_entry.attribute_start,
+        kernel_entry.num_attributes));
     kernel_frame.SetResults(kernel.GetResults());
 
     kernel_entry.kernel_fn(&kernel_frame);

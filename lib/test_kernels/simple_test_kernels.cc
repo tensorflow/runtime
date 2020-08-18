@@ -315,6 +315,16 @@ static int TestSyncSum2(int a, RepeatedSyncArguments<int> other_args) {
   return sum;
 }
 
+// For testing a large number of attributes
+static void TestSyncSumAttributes(SyncKernelFrame* frame) {
+  int sum = 0;
+  for (int i = 0; i < frame->GetNumAttributes(); ++i) {
+    sum += *frame->GetAttributeAt<int>(i);
+  }
+
+  frame->EmplaceResultAt<int>(0, sum);
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -343,6 +353,8 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddSyncKernel("tfrt_test.sync_sum", TFRT_SYNC_KERNEL(TestSyncSum));
   registry->AddSyncKernel("tfrt_test.sync_sum2",
                           TFRT_SYNC_KERNEL(TestSyncSum2));
+  registry->AddSyncKernel("tfrt_test.sync_sum_attributes",
+                          TestSyncSumAttributes);
 }
 
 }  // namespace tfrt

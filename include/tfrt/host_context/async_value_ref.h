@@ -166,8 +166,6 @@ class AsyncValueRef {
 
 // For consistency, the error message should start with a lower case letter
 // and not end with a period.
-// TODO(b/154971298): Add the error message convention to
-// documents/error_handling.md.
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
                                             string_view message);
 

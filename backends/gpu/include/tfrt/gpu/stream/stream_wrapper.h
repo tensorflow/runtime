@@ -231,8 +231,7 @@ class Resource {
   bool operator!=(Resource other) const { return pair_ != other.pair_; }
 
   size_t hash() const noexcept {
-    std::hash<void*> h;
-    return h(pair_.getOpaqueValue());
+    return std::hash<void*>()(pair_.getOpaqueValue());
   }
 
  private:
@@ -329,9 +328,6 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CurrentContext current);
 //
 // This class does not model a random access iterator (i.e. fancy pointer) to
 // avoid accidentally dereferencing addresses accessible from device only.
-//
-// Addresses must be at least 2 byte aligned (runtime-checked in debug
-// builds).
 template <typename T>
 class Pointer {
   // Replacement for llvm::PointerIntPair when T is less than 4 bytes aligned.
@@ -346,6 +342,12 @@ class Pointer {
     void setPointerAndInt(T* ptr, Platform platform) {
       ptr_ = ptr;
       int_ = platform;
+    }
+    bool operator==(const PointerPlatformPair& other) const {
+      return ptr_ == other.ptr_ && int_ == other.int_;
+    }
+    bool operator!=(const PointerPlatformPair& other) const {
+      return !operator==(other);
     }
 
    private:
@@ -691,19 +693,25 @@ llvm::Expected<DeviceMemory<T>> MemAllocManaged(CurrentContext current,
   return DeviceMemory<T>(static_cast<Pointer<T>>(memory->release()));
 }
 
-// Helper functions to get a device pointer or address range of type T.
+// Helper functions to get a device pointer or address range of type T. The
+// implementations forward to the corresponding overloads for Pointer<void>.
 template <typename T>
 llvm::Expected<Pointer<T>> MemHostGetDevicePointer(Pointer<T> host_ptr) {
-  auto result = MemHostGetDevicePointer(const_cast<T*>(host_ptr.raw()));
+  auto platform = host_ptr.platform();
+  auto raw = const_cast<std::remove_cv_t<T*>>(host_ptr.raw(platform));
+  auto result = MemHostGetDevicePointer(Pointer<void>(raw, platform));
   if (!result) return result.takeError();
-  return static_cast<Pointer<T>>(result);
+  return static_cast<Pointer<T>>(*result);
 }
 template <typename T>
 llvm::Expected<MemoryRange<T>> MemGetAddressRange(CurrentContext current,
                                                   Pointer<T> ptr) {
-  auto result = MemGetAddressRange(const_cast<T*>(ptr.raw()));
+  auto platform = ptr.platform();
+  auto raw = const_cast<std::remove_cv_t<T*>>(ptr.raw(platform));
+  auto result = MemGetAddressRange(current, Pointer<void>(raw, platform));
   if (!result) return result.takeError();
-  return {static_cast<Pointer<T>>(result->base), result->size_bytes};
+  return MemoryRange<T>{static_cast<Pointer<T>>(result->base),
+                        result->size_bytes};
 }
 
 // Helper function to launch kernels. Attention, no argument type checking is

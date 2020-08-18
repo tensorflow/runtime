@@ -168,7 +168,7 @@ TEST_P(Test, TestDestroyResourcesWithoutCurrentContext) {
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
 
-  DeviceMemory<void> deviceptr;
+  DeviceMemory<void> device_ptr;
   HostMemory<void> host_ptr;
   DeviceMemory<void> managed_ptr;
   RegisteredMemory<void> registered_ptr;
@@ -176,7 +176,7 @@ TEST_P(Test, TestDestroyResourcesWithoutCurrentContext) {
 
   {
     TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-    TFRT_ASSERT_AND_ASSIGN(deviceptr, MemAlloc(current, /*size_bytes=*/8));
+    TFRT_ASSERT_AND_ASSIGN(device_ptr, MemAlloc(current, /*size_bytes=*/8));
     TFRT_ASSERT_AND_ASSIGN(host_ptr, MemHostAlloc(current, /*size_bytes=*/8,
                                                   MemHostAllocFlags::PORTABLE));
     TFRT_ASSERT_AND_ASSIGN(
@@ -646,6 +646,39 @@ TEST_P(Test, UnalignedPointeeType) {
   auto platform = GetParam();
   Pointer<const char>(reinterpret_cast<const char*>(0x1), platform);
   Pointer<unsigned char>(reinterpret_cast<unsigned char*>(0x1), platform);
+}
+
+TEST_P(Test, MemHostGetDevicePointer) {
+  auto platform = Platform::CUDA;
+  ASSERT_TRUE(IsSuccess(Init(platform)));
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
+  ASSERT_GT(count, 0);
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
+  char buffer[32];
+  TFRT_ASSERT_AND_ASSIGN(auto registered_ptr,
+                         MemHostRegister(current, buffer, sizeof(buffer),
+                                         MemHostRegisterFlags::DEVICEMAP));
+  auto host_ptr = static_cast<Pointer<char>>(registered_ptr.get());
+  TFRT_ASSERT_AND_ASSIGN(auto device_ptr, MemHostGetDevicePointer(host_ptr));
+  EXPECT_NE(device_ptr, Pointer<char>(nullptr, platform));
+}
+
+TEST_P(Test, MemGetAddressRange) {
+  auto platform = Platform::CUDA;
+  ASSERT_TRUE(IsSuccess(Init(platform)));
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
+  ASSERT_GT(count, 0);
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
+  size_t size_bytes = 32;
+  TFRT_ASSERT_AND_ASSIGN(auto pointer, MemAlloc(current, size_bytes));
+  auto char_ptr = static_cast<Pointer<char>>(pointer.get());
+  TFRT_ASSERT_AND_ASSIGN(auto range, MemGetAddressRange(current, char_ptr));
+  EXPECT_EQ(char_ptr, range.base);
+  EXPECT_EQ(size_bytes, range.size_bytes);
 }
 
 }  // namespace stream

@@ -61,28 +61,35 @@ namespace io {
 // of prefetched records, but also on the memory consumption.
 class PrefetchingIterator : public Iterator {
  public:
-  explicit PrefetchingIterator(int32_t num_worker_threads)
+  explicit PrefetchingIterator(int64_t max_prefetch_num,
+                               int64_t prefetch_threshold)
       : Iterator(),
-        max_prefetch_num_(num_worker_threads * 8),
-        prefetch_threshold_(num_worker_threads * 2),
+        max_prefetch_num_(max_prefetch_num),
+        prefetch_threshold_(prefetch_threshold),
         token_owned_(false),
-        reached_eof_(false) {
-    assert(num_worker_threads > 0);
-  }
+        reached_eof_(false) {}
 
-  // Gets the next element from a prefetch buffer, and maybe launches an
-  // asynchronous prefetch task to fill up the buffer. If the buffer is
-  // empty, reads next element from the derived iterator.
+  // Gets the next element from a prefetch buffer, and may be enqueue an
+  // asynchronous blocking task to fill up the buffer. If the prefetch buffer is
+  // empty and the blocking task can not be enqueued, reads the next element
+  // from the IO source directly.
+  //
+  // After this method returns, either a blocking task is launched, or
+  // output_buffer_size <= prefetch_buffer_size. The blocking
+  // task should guarantee that output_buffer_size <= prefetch_buffer_size
+  // before it completes.
   IterationResult GetNext(const ExecutionContext& exec_ctx) final;
 
  protected:
   // Reads the next element from the underlying IO source. Prefetching iterator
   // guarantees that all calls to this function will be properly synchronized.
   //
-  // GetNextElement() should avoid decoding error location. This is because the
-  // location handler might have already been freed when this method is called
-  // by a blocking thread. PrefetchingIterator should set error location and
-  // emit the error when it forwards the error to an output value.
+  // GetNextElement() is expected to run synchronously and returns an
+  // IterationResult that contains only available AsyncValues. And it should
+  // avoid decoding error location. This is because the location handler might
+  // have already been freed when this method is called by a blocking thread.
+  // PrefetchingIterator should set error location and emit the error when it
+  // forwards the error to an output value.
   virtual IterationResult GetNextElement(const ExecutionContext& exec_cxt) = 0;
 
  private:
@@ -98,11 +105,6 @@ class PrefetchingIterator : public Iterator {
   // output_buffer_.
   void MaterializeOutputs(const ExecutionContext& exec_ctx);
 
-  int OutputBufferSize() TFRT_EXCLUDES(mu_) {
-    mutex_lock lock(mu_);
-    return output_buffer_.size();
-  }
-
   llvm::Optional<IterationResult> DequeueOutputBuffer() TFRT_EXCLUDES(mu_) {
     mutex_lock lock(mu_);
     if (output_buffer_.empty()) return llvm::None;
@@ -111,11 +113,14 @@ class PrefetchingIterator : public Iterator {
     return value;
   }
 
+  bool ReachedEof() TFRT_EXCLUDES(mu_) {
+    mutex_lock lock(mu_);
+    return reached_eof_;
+  }
+
   mutex mu_;
-  // A queue of IterationResult returned by GetNextElement(...). This queue
-  // does not need to be explicitly protected by lock because the implementation
-  // ensures that only token owner can access it.
-  std::queue<IterationResult> prefetch_buffer_;
+  // A queue of IterationResult returned by GetNextElement(...).
+  std::queue<IterationResult> prefetch_buffer_ TFRT_GUARDED_BY(mu_);
   // A queue of IterationResult that have already been returned to the
   // GetNext(...) caller.
   std::queue<IterationResult> output_buffer_ TFRT_GUARDED_BY(mu_);
@@ -131,12 +136,12 @@ class PrefetchingIterator : public Iterator {
 
   // This is a unique logical token for this iterator instance. It effectively
   // acts as a lock to ensure in-order delivery of results by guaranteeing that
-  // at most one thread can take the next value from the input_iterator_ and
-  // update values in prefetch_buffer_.
+  // at most one thread can call GetNextElement() to access the underlying IO
+  // source. And a blocking task is enqueued/running if and only if
+  // token_owned_ == true.
   bool token_owned_ TFRT_GUARDED_BY(mu_);
-  // Whether the iterator has reached eof. If there exits a thread that owns the
-  // token, then only that thread should access this flag.
-  bool reached_eof_;
+  // Whether the iterator has reached eof.
+  bool reached_eof_ TFRT_GUARDED_BY(mu_);
 };
 
 }  // namespace io

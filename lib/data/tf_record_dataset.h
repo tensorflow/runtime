@@ -46,10 +46,12 @@ using ::tfrt::io::InputStream;
 class TFRecordDataset : public Dataset {
  public:
   explicit TFRecordDataset(std::string path, int64_t buffer_size,
-                           int32_t num_worker_threads, HostContext* host)
+                           int64_t max_prefetch_num, int64_t prefetch_threshold,
+                           HostContext* host)
       : path_(std::move(path)),
         buffer_size_(buffer_size),
-        num_worker_threads_(num_worker_threads),
+        max_prefetch_num_(max_prefetch_num),
+        prefetch_threshold_(prefetch_threshold),
         host_(host),
         allocator_(host->allocator()) {
     assert(buffer_size_ >= 0);
@@ -70,7 +72,8 @@ class TFRecordDataset : public Dataset {
 
   const std::string path_;
   const int64_t buffer_size_;
-  const int32_t num_worker_threads_;
+  const int64_t max_prefetch_num_;
+  const int64_t prefetch_threshold_;
   HostContext* host_;
   HostAllocator* allocator_;
 };
@@ -78,7 +81,8 @@ class TFRecordDataset : public Dataset {
 class TFRecordDatasetIterator : public io::PrefetchingIterator {
  public:
   explicit TFRecordDatasetIterator(RCReference<TFRecordDataset> parent_dataset)
-      : io::PrefetchingIterator(parent_dataset->num_worker_threads_),
+      : io::PrefetchingIterator(parent_dataset->max_prefetch_num_,
+                                parent_dataset->prefetch_threshold_),
         parent_dataset_(std::move(parent_dataset)),
         stream_(new FileInputStream(parent_dataset_->path_.c_str())) {
     if (parent_dataset_->buffer_size_ > 0) {

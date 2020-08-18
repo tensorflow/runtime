@@ -754,6 +754,7 @@ tfrt_cc_library(
         ":io",
         ":support",
         ":tensor",
+        ":tracing",
         "@llvm-project//llvm:Support",
     ],
 )

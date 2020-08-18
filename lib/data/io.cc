@@ -52,6 +52,12 @@ IterationResult PrefetchingIterator::GetNext(const ExecutionContext& exec_ctx) {
     // Optimize the fast path. Return the first value from prefetched buffer if
     // there is no other pending output value and there is prefetched value
     // available.
+    //
+    // IDEA(donglin): we can further optimize the fast path by not having
+    // GetNext() grab lock in the common case. This can be achieved by moving
+    // values from the prefetch_buffer to another buffer that can only be
+    // accessed by the caller of GetNext(), so that the GetNext() can return
+    // value from this buffer directly if it is non-empty.
     if (!prefetch_buffer_.empty() && output_buffer_.empty()) {
       auto input = std::move(prefetch_buffer_.front());
       prefetch_buffer_.pop();

@@ -42,10 +42,11 @@ tfrt_cc_library(
 
 tfrt_cc_binary(
     name = "tfrt_opt",
+    srcs = ["tfrt_opt/tfrt_opt.cc"],
     visibility = [":friends"],
     deps = [
         ":opt_lib",
-        "@llvm-project//mlir:MlirOptMain",
+        "@llvm-project//mlir:MlirOptLib",
     ],
 )
 

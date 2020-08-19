@@ -298,3 +298,15 @@ tfrt_cc_test(
         "@tf_runtime//:tracing",
     ],
 )
+
+tfrt_cc_test(
+    name = "bef/bef_attr_encoder_test",
+    srcs = ["bef/bef_attr_encoder_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:bef_attr_encoder",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)

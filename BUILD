@@ -368,6 +368,23 @@ tfrt_cc_library(
     ],
 )
 
+tfrt_cc_library(
+    name = "bef_attr_encoder",
+    srcs = [
+        "lib/bef_converter/bef_attr_encoder/bef_attr_encoder.cc",
+    ],
+    hdrs = [
+        "include/tfrt/bef_converter/bef_attr_encoder.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":bef_emitter",
+        ":hostcontext",
+        ":support",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
 filegroup(
     name = "OpBaseTdFiles",
     srcs = [

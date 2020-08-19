@@ -28,14 +28,6 @@
 namespace tfrt {
 namespace corert {
 
-namespace CoreRTAttributes {
-
-enum Kind {
-  kShape = mlir::Attribute::FIRST_PRIVATE_EXPERIMENTAL_1_ATTR,
-};
-
-}
-
 namespace internal {
 
 struct ShapeAttrStorage : public mlir::AttributeStorage {
@@ -69,16 +61,13 @@ class ShapeAttr : public mlir::Attribute::AttrBase<ShapeAttr, mlir::Attribute,
 
   // Get or create an unranked shape attribute.
   static ShapeAttr get(mlir::MLIRContext* context) {
-    return Base::get(context, CoreRTAttributes::kShape,
-                     llvm::ArrayRef<int64_t>(),
-                     /*unranked=*/1);
+    return Base::get(context, llvm::ArrayRef<int64_t>(), /*unranked=*/1);
   }
 
   // Get or create a ranked shape attribute.
   static ShapeAttr get(mlir::MLIRContext* context,
                        llvm::ArrayRef<int64_t> shape) {
-    return Base::get(context, CoreRTAttributes::kShape, shape,
-                     /*unranked=*/0);
+    return Base::get(context, shape, /*unranked=*/0);
   }
 
   bool hasRank() const { return !getImpl()->unranked; }

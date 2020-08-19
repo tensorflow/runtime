@@ -151,13 +151,10 @@ mlir::Attribute CoreRTDialect::parseAttribute(mlir::DialectAsmParser &parser,
 
 void CoreRTDialect::printAttribute(mlir::Attribute attr,
                                    mlir::DialectAsmPrinter &os) const {
-  switch (attr.getKind()) {
-    case CoreRTAttributes::kShape:
-      PrintShapeAttr(attr.cast<ShapeAttr>(), os);
-      break;
-    default:
-      llvm_unreachable("unexpected corert attribute kind");
-  }
+  if (auto shape_attr = attr.dyn_cast<ShapeAttr>())
+    PrintShapeAttr(attr.cast<ShapeAttr>(), os);
+  else
+    llvm_unreachable("unexpected corert attribute kind");
 }
 
 Operation *CoreRTDialect::materializeConstant(OpBuilder &builder,

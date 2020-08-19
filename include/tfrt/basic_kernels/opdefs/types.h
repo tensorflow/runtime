@@ -27,24 +27,10 @@
 
 namespace tfrt {
 
-namespace TFRTTypes {
-
-// TODO(tf-runtime-team): We should register TFRT dialect with MLIR core and
-// then use TFRT's enum here.
-enum Kind {
-  kChain = mlir::Type::FIRST_PRIVATE_EXPERIMENTAL_2_TYPE,
-};
-
-}  // namespace TFRTTypes
-
 class ChainType
     : public mlir::Type::TypeBase<ChainType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
-
-  static ChainType get(mlir::MLIRContext *context) {
-    return Base::get(context, TFRTTypes::kChain);
-  }
 };
 
 }  // namespace tfrt

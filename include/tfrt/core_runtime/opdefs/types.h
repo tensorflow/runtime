@@ -28,25 +28,11 @@
 namespace tfrt {
 namespace corert {
 
-namespace CoreRTTypes {
-
-enum Kind {
-  kString = mlir::Type::FIRST_PRIVATE_EXPERIMENTAL_1_TYPE,
-  kTensorHandle,
-  kDevice,
-};
-
-}  // namespace CoreRTTypes
-
 // TODO(tfrt-dev): Move StringType to TFRT dialect.
 class StringType
     : public mlir::Type::TypeBase<StringType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
-
-  static StringType get(mlir::MLIRContext *context) {
-    return Base::get(context, CoreRTTypes::kString);
-  }
 };
 
 class TensorHandleType
@@ -54,20 +40,12 @@ class TensorHandleType
                                   mlir::TypeStorage> {
  public:
   using Base::Base;
-
-  static TensorHandleType get(mlir::MLIRContext *context) {
-    return Base::get(context, CoreRTTypes::kTensorHandle);
-  }
 };
 
 class DeviceType
     : public mlir::Type::TypeBase<DeviceType, mlir::Type, mlir::TypeStorage> {
  public:
   using Base::Base;
-
-  static DeviceType get(mlir::MLIRContext *context) {
-    return Base::get(context, CoreRTTypes::kDevice);
-  }
 };
 
 }  // namespace corert

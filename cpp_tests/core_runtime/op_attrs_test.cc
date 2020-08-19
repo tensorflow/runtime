@@ -26,8 +26,10 @@
 #include <utility>
 #include <vector>
 
+#include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "tfrt/bef_converter/bef_attr_encoder.h"
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/support/forward_decls.h"
@@ -193,5 +195,53 @@ TEST(OpAttrsTest, ArrayAsserting) {
   ASSERT_EQ(op_attrs_ref.GetArrayAsserting<int32_t>("foo"), values_ref);
   ASSERT_EQ(op_attrs_ref.GetArrayAsserting<int32_t>("bar"), empty_ref);
 }
+
+void BM_OpAttrSetBool(benchmark::State& state) {
+  for (auto _ : state) {
+    tfrt::OpAttrs attrs;
+    benchmark::DoNotOptimize(attrs.Set<bool>("transpose", false));
+  }
+}
+BENCHMARK(BM_OpAttrSetBool);
+
+void BM_OpAttrGetBool(benchmark::State& state) {
+  tfrt::OpAttrs attrs;
+  attrs.Set<bool>("transpose", false);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(attrs.GetAsserting<bool>("transpose"));
+  }
+}
+BENCHMARK(BM_OpAttrGetBool);
+
+void BM_OpAttrSetShape(benchmark::State& state) {
+  int64_t dims[2] = {2, 2};
+  tfrt::BEFTypedAttributeEncoder encoder;
+  ASSERT_TRUE(!encoder.EncodeShapeAttr(llvm::makeArrayRef(dims, 2)));
+  auto buf = encoder.TakeResult();
+
+  for (auto _ : state) {
+    tfrt::OpAttrs attrs;
+    tfrt::ShapeAttr shape_attr(buf.data());
+    benchmark::DoNotOptimize(attrs.Set("shape", shape_attr));
+  }
+}
+BENCHMARK(BM_OpAttrSetShape);
+
+void BM_OpAttrGetShape(benchmark::State& state) {
+  tfrt::OpAttrs attrs;
+
+  int64_t dims[2] = {2, 2};
+  BEFTypedAttributeEncoder encoder;
+  ASSERT_TRUE(!encoder.EncodeShapeAttr(llvm::makeArrayRef(dims, 2)));
+  auto buf = encoder.TakeResult();
+  tfrt::ShapeAttr shape_attr(buf.data());
+
+  attrs.Set("shape", shape_attr);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(attrs.GetAsserting<tfrt::ShapeAttr>("shape"));
+  }
+}
+BENCHMARK(BM_OpAttrGetShape);
+
 }  // namespace
 }  // namespace tfrt

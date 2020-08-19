@@ -226,8 +226,10 @@ tfrt_cc_test(
     ],
     deps = [
         ":common",
+        "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//:bef_attr_encoder",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

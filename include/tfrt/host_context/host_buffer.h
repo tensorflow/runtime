@@ -60,7 +60,7 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   void *data() {
     switch (mode_) {
       case Mode::kInlined:
-        return &inlined_.data[0];
+        return &unaligned_data_[0] + inlined_.alignment_offset;
       case Mode::kOutOfLine:
         return out_of_line_.ptr;
       case Mode::kSliced:
@@ -71,7 +71,7 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   const void *data() const {
     switch (mode_) {
       case Mode::kInlined:
-        return &inlined_.data[0];
+        return &unaligned_data_[0] + inlined_.alignment_offset;
       case Mode::kOutOfLine:
         return out_of_line_.ptr;
       case Mode::kSliced:
@@ -139,8 +139,7 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   union {
     struct {
       HostAllocator *allocator;
-      // The data is allocated in the flexible memory array.
-      alignas(alignof(std::max_align_t)) char data[];
+      int alignment_offset;
     } inlined_;
 
     struct {
@@ -153,6 +152,10 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
       RCReference<HostBuffer> parent_buffer;
     } sliced_;
   };
+
+  // The inlined data is allocated in the flexible memory array. This needs to
+  // be the last member of the class.
+  alignas(alignof(std::max_align_t)) char unaligned_data_[];
 };
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const HostBuffer &buffer);

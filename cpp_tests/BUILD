@@ -22,6 +22,18 @@ tfrt_cc_library(
 )
 
 tfrt_cc_test(
+    name = "host_context/host_buffer_test",
+    srcs = [
+        "host_context/host_buffer_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_context/host_context_test",
     srcs = [
         "host_context/host_context_test.cc",

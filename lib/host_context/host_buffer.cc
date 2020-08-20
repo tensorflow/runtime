@@ -20,6 +20,7 @@
 
 #include "tfrt/host_context/host_buffer.h"
 
+#include <cstddef>
 #include <cstdint>
 
 #include "llvm/Support/Format.h"
@@ -29,12 +30,45 @@ namespace tfrt {
 
 RCReference<HostBuffer> HostBuffer::CreateUninitialized(
     size_t size, size_t alignment, HostAllocator *allocator) {
-  assert(alignof(std::max_align_t) >= alignment && "Invalid alignment");
-  auto *buf =
-      allocator->AllocateBytes(sizeof(HostBuffer) + size, alignof(HostBuffer));
+  assert(llvm::isPowerOf2_32(alignment) &&
+         "Only power of 2 aligments are supported");
+
+  // If the requested alignment is not greater than the alignment of
+  // unaligned_data_ field, we do not need to do additional adjustment.
+  if (alignment <= alignof(std::max_align_t)) {
+    auto *buf = allocator->AllocateBytes(sizeof(HostBuffer) + size,
+                                         alignof(HostBuffer));
+    if (!buf) return {};
+
+    auto host_buffer = TakeRef(new (buf) HostBuffer(size, allocator));
+    host_buffer->inlined_.alignment_offset = 0;
+
+    return host_buffer;
+  }
+
+  // If the requested alignment is greater than the alignment of unaligned_data_
+  // field, allocate size + alignment for the data so we have enough space to
+  // adjust the buffer for alignment.
+  auto *buf = allocator->AllocateBytes(sizeof(HostBuffer) + size + alignment,
+                                       alignof(HostBuffer));
   if (!buf) return {};
 
-  return TakeRef(new (buf) HostBuffer(size, allocator));
+  auto host_buffer = TakeRef(new (buf) HostBuffer(size, allocator));
+
+  // Adjust for data alignment.
+  void *data_ptr = &host_buffer->unaligned_data_[0];
+  size_t space = size + alignment;
+  auto aligned = std::align(alignment, size, data_ptr, space);
+
+  (void)aligned;
+  // std::align should always succeed as we allocated (size + alignment) size.
+  assert(aligned);
+
+  // Compute the alignment offset.
+  host_buffer->inlined_.alignment_offset =
+      static_cast<char *>(data_ptr) - &host_buffer->unaligned_data_[0];
+
+  return host_buffer;
 }
 
 RCReference<HostBuffer> HostBuffer::CreateFromExternal(

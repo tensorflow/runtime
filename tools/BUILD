@@ -46,6 +46,7 @@ tfrt_cc_binary(
     visibility = [":friends"],
     deps = [
         ":opt_lib",
+        "@llvm-project//mlir:AllPassesAndDialectsNoRegistration",
         "@llvm-project//mlir:MlirOptLib",
     ],
 )

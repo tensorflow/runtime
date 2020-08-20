@@ -18,8 +18,13 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/InitAllDialects.h"
+#include "mlir/InitAllPasses.h"
 #include "mlir/Support/MlirOptMain.h"
 
 int main(int argc, char **argv) {
-  return failed(mlir::MlirOptMain(argc, argv, "TFRT pass driver\n"));
+  mlir::DialectRegistry registry;
+  mlir::registerAllDialects(registry);
+  mlir::registerAllPasses();
+  return failed(mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry));
 }

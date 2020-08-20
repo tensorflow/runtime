@@ -214,8 +214,7 @@ host executor ops/kernels. This is good for testing without the hardware, makes
 it easier to exercise failure cases, and speeds iteration time. We'll still need
 real hardware tests of course.
 
-See
-[MLIR Testing doc](https://github.com/tensorflow/mlir/blob/master/documents/TestingGuide.md)
+See [MLIR Testing Guide](https://mlir.llvm.org/getting_started/TestingGuide/)
 for relevant discussion.
 
 ### Performance

@@ -22,16 +22,9 @@ tfrt_cc_library(
     name = "opt_lib",
     visibility = [":friends"],
     deps = [
-        "@tf_runtime//:basic_kernels_opdefs_alwayslink",
-        "@tf_runtime//:core_runtime_alwayslink",
-        "@tf_runtime//:core_runtime_opdefs_alwayslink",
-        "@tf_runtime//:data_opdefs_alwayslink",
-        "@tf_runtime//:tensor_opdefs_alwayslink",
-        "@tf_runtime//:test_kernels_opdefs_alwayslink",
         "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:AllPassesAndDialectsNoRegistration",
-        "@llvm-project//mlir:MlirOptLib",
     ] + select({
+        # TODO(chky): Create a separate opt tool for gpu.
         "@tf_runtime//:gpu_enabled": [
             "@tf_runtime//backends/gpu:cuda_opdefs_alwayslink",
             "@tf_runtime//backends/gpu:cuda_test_opdefs_alwayslink",
@@ -46,8 +39,8 @@ tfrt_cc_binary(
     visibility = [":friends"],
     deps = [
         ":opt_lib",
-        "@llvm-project//mlir:AllPassesAndDialectsNoRegistration",
         "@llvm-project//mlir:MlirOptLib",
+        "@tf_runtime//:init_tfrt_dialects",
     ],
 )
 

@@ -897,3 +897,22 @@ bzl_library(
     srcs = ["build_defs.bzl"],
     visibility = ["//visibility:private"],
 )
+
+tfrt_cc_library(
+    name = "init_tfrt_dialects",
+    srcs = [
+        "lib/init_tfrt_dialects.cc",
+    ],
+    hdrs = [
+        "include/tfrt/init_tfrt_dialects.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":basic_kernels_opdefs",
+        ":core_runtime_opdefs",
+        ":data_opdefs",
+        ":tensor_opdefs",
+        ":test_kernels_opdefs",
+        "@llvm-project//mlir:IR",
+    ],
+)

@@ -51,9 +51,9 @@ IterationResult InterleaveDatasetIterator::GetNext(
   llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
   result_values.resize(parent_dataset_->arity_);
   for (size_t i = 0; i < parent_dataset_->arity_; ++i) {
-    result_values[i] = host->MakeIndirectAsyncValue();
+    result_values[i] = MakeIndirectAsyncValue(host);
   }
-  auto result_eof = host->MakeUnconstructedAsyncValueRef<bool>();
+  auto result_eof = MakeUnconstructedAsyncValueRef<bool>(host);
   auto result =
       IterationResult::Pending(std::move(result_values), std::move(result_eof));
   {
@@ -88,9 +88,9 @@ void InterleaveDatasetIterator::PreInitializeIntermediateIterators(
     auto entry = IteratorAndQueue(std::move(input_value),
                                   std::move(fn_results[0]), true);
     entry.prefetched_value =
-        host->MakeUnconstructedAsyncValueRef<IterationResult>();
+        MakeUnconstructedAsyncValueRef<IterationResult>(host);
     entry.iterator =
-        host->MakeUnconstructedAsyncValueRef<RCReference<Iterator>>();
+        MakeUnconstructedAsyncValueRef<RCReference<Iterator>>(host);
     // Instantiate the intermediate iterator once the dataset is available.
     entry.dataset->AndThen([dataset = entry.dataset.CopyRef(),
                             prefetched_value = entry.prefetched_value.CopyRef(),
@@ -343,7 +343,7 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
     // from. Mark all values in the output_buffer_* to be eof=true.
     if (total_queues_size_ == 0) {
       assert(is_input_iterator_eof_ && num_open_iterators_ == 0);
-      auto error = host->MakeErrorAsyncValueRef("iterator reached end");
+      auto error = MakeErrorAsyncValueRef(host, "iterator reached end");
       auto output_buffer_size = OutputBufferSize();
       for (; output_buffer_size > 0; --output_buffer_size) {
         auto output = DequeueOutputBuffer();

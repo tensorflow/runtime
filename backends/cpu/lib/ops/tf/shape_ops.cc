@@ -129,8 +129,8 @@ static AsyncValueRef<DenseHostTensor> TfExpandDimsOp(
   }
 
   TensorMetadata output_md(input.metadata().dtype, output_dims);
-  return host->MakeAvailableAsyncValueRef<DenseHostTensor>(
-      output_md, input.buffer().CopyRef());
+  return MakeAvailableAsyncValueRef<DenseHostTensor>(host, output_md,
+                                                     input.buffer().CopyRef());
 }
 
 }  // namespace

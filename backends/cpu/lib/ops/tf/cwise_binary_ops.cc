@@ -55,8 +55,8 @@ static AsyncValueRef<HostTensor> TfBinaryOp(Argument<HostTensor> lhs,
   internal::NumericTypeDispatch type_dispatch(lhs->dtype());
 
   auto unsupported = [&](DType dtype) -> AsyncValueRef<HostTensor> {
-    return host->MakeErrorAsyncValueRef(
-        StrCat("Unsupported input dtype: ", dtype));
+    return MakeErrorAsyncValueRef(host,
+                                  StrCat("Unsupported input dtype: ", dtype));
   };
 
   // ------------------------------------------------------------------------ //
@@ -68,7 +68,7 @@ static AsyncValueRef<HostTensor> TfBinaryOp(Argument<HostTensor> lhs,
       using F = typename BinaryFunctor::template Functor<T>;
       using R = typename F::Output;
       auto output =
-          host->MakeAvailableAsyncValueRef<ScalarHostTensor<R>>(output_md);
+          MakeAvailableAsyncValueRef<ScalarHostTensor<R>>(host, output_md);
       cpu::BinaryKernel<F, compat::AsyncEigenEvaluator>(
           *lhs, *rhs, &output.get(), exec_ctx, [](Error err) {});
       return output;

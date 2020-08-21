@@ -75,8 +75,8 @@ class AsyncEigenEvaluator {
 
   template <typename... Args>
   DependencyToken MakeError(Args&&... args) {
-    return ctx_.host()->MakeErrorAsyncValueRef(
-        StrCat(std::forward<Args>(args)...));
+    return MakeErrorAsyncValueRef(ctx_.host(),
+                                  StrCat(std::forward<Args>(args)...));
   }
 
  private:

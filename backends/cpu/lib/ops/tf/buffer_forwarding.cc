@@ -46,7 +46,7 @@ AsyncValueRef<DenseHostTensor> ForwardInputOrAllocateOutput(
     // We can't forward the input AsyncValue because we must return constructed
     // but not yet available value.
     auto dht = input->CopyRef();
-    return host->MakeConstructedAsyncValueRef<DenseHostTensor>(std::move(dht));
+    return MakeConstructedAsyncValueRef<DenseHostTensor>(host, std::move(dht));
   }
 
   AsyncValueRef<DenseHostTensor> allocated =

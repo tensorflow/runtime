@@ -350,8 +350,8 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
     }
 
     for (size_t i = 0, e = invocation.arguments.size(); i != e; ++i) {
-      arguments_ref.push_back(host->MakeAvailableAsyncValueRef<TensorHandle>(
-          invocation.arguments[i].CopyRef()));
+      arguments_ref.push_back(MakeAvailableAsyncValueRef<TensorHandle>(
+          host, invocation.arguments[i].CopyRef()));
       arguments.push_back(arguments_ref.back().get());
 
       // Clean up the argument to enable input forwarding.

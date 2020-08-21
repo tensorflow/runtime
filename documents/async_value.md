@@ -255,7 +255,7 @@ following sections show some examples of how `ConcreteAsyncValue` and
 Returning a new result value from a kernel is the most common way new
 `AsyncValues` are constructed. When a kernel returns a value, the kernel usually
 knows the return type, so most kernels construct and return a new
-`ConcreteAsyncValue` via `HostContext::MakeAvailableAsyncValueRef`.
+`ConcreteAsyncValue` via `MakeAvailableAsyncValueRef`.
 
 Some kernels do not know their return types when they return. Examples include
 non-strict control flow kernels like `tfrt.if` and `tfrt.repeat`. When the

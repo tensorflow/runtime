@@ -98,17 +98,18 @@ static AsyncValueRef<Tensor> CooToHostTensorConversion(
 #define DTYPE_NUMERIC(ENUM)                                                 \
   case DType::ENUM:                                                         \
     if (coo.NumElements() == 0) {                                           \
-      return host->MakeAvailableAsyncValueRef<                              \
-          ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(coo.metadata()); \
+      return MakeAvailableAsyncValueRef<                                    \
+          ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(host,            \
+                                                           coo.metadata()); \
     } else if (coo.NumElements() == 1) {                                    \
-      return host->MakeAvailableAsyncValueRef<                              \
+      return MakeAvailableAsyncValueRef<                                    \
           ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(                 \
-          coo.metadata(),                                                   \
+          host, coo.metadata(),                                             \
           DHTArrayView<TypeForDTypeKind<DType::ENUM>>(coo.Values())[0]);    \
     } else if (coo.Indices()->NumElements() == 0) {                         \
-      return host->MakeAvailableAsyncValueRef<                              \
+      return MakeAvailableAsyncValueRef<                                    \
           ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(                 \
-          coo.metadata(), TypeForDTypeKind<DType::ENUM>(0));                \
+          host, coo.metadata(), TypeForDTypeKind<DType::ENUM>(0));          \
     }
 #include "tfrt/dtype/dtype.def"  // NOLINT
     }
@@ -116,12 +117,12 @@ static AsyncValueRef<Tensor> CooToHostTensorConversion(
 
   if (allowed_formats.Contains(Tensor::Subclass::DenseHost)) {
     // Otherwise, return a DenseHostTensor.
-    auto result = host->MakeUnconstructedAsyncValueRef<DenseHostTensor>();
+    auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
     auto result_alloc =
         DenseHostTensor::CreateUninitialized(coo.metadata(), host);
     if (!result_alloc)
-      return host->MakeErrorAsyncValueRef(
-          "out of memory converting coo tensor to dht tensor");
+      return MakeErrorAsyncValueRef(
+          host, "out of memory converting coo tensor to dht tensor");
     auto &result_tensor = result_alloc.getValue();
 
     switch (coo.dtype().kind()) {
@@ -139,8 +140,9 @@ static AsyncValueRef<Tensor> CooToHostTensorConversion(
     return result;
   }
 
-  return host->MakeErrorAsyncValueRef(StrCat(
-      "failed to convert coo tensor to allowed_format: ", allowed_formats));
+  return MakeErrorAsyncValueRef(
+      host, StrCat("failed to convert coo tensor to allowed_format: ",
+                   allowed_formats));
 }
 
 void RegisterCooHostTensorConversionFn(TensorConversionFnRegistry *registry) {

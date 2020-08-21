@@ -49,19 +49,19 @@ struct IterationResult {
   static IterationResult Values(SmallVector<RCReference<AsyncValue>, 4> values,
                                 HostContext* host) {
     return IterationResult(std::move(values),
-                           host->MakeAvailableAsyncValueRef<bool>(false));
+                           MakeAvailableAsyncValueRef<bool>(host, false));
   }
 
   // Construct IterationResult with eof = true. `values` will have error.
   static IterationResult Eof(HostContext* host, size_t num_values) {
     SmallVector<RCReference<AsyncValue>, 4> values;
     values.resize(num_values);
-    auto error = host->MakeErrorAsyncValueRef("iterator reached end");
+    auto error = MakeErrorAsyncValueRef(host, "iterator reached end");
     for (size_t i = 0; i < num_values; ++i) {
       values[i] = error.CopyRef();
     }
     return IterationResult(std::move(values),
-                           host->MakeAvailableAsyncValueRef<bool>(true));
+                           MakeAvailableAsyncValueRef<bool>(host, true));
   }
 
   // Construct IterationResult with error in both `values` and `eof`.
@@ -131,7 +131,7 @@ static void AllocateTupleResult(
     MutableArrayRef<RCReference<AsyncValue>> results, HostContext* host,
     std::index_sequence<I...>) {
   std::ignore = std::initializer_list<int>{
-      (results[I] = host->MakeUnconstructedAsyncValueRef<T>().ReleaseRCRef(),
+      (results[I] = MakeUnconstructedAsyncValueRef<T>(host).ReleaseRCRef(),
        0)...};
 }
 

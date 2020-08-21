@@ -18,9 +18,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/host_context/async_value.h"
-
 #include "llvm/ADT/FunctionExtras.h"
+#include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/concurrent_vector.h"
@@ -172,7 +171,8 @@ void AsyncValue::SetError(DecodedDiagnostic diag_in) {
     NotifyAvailable(State::kError);
   } else {
     assert(kind() == Kind::kIndirect);
-    auto error_av = host_context_->MakeErrorAsyncValueRef(std::move(diag_in));
+    auto error_av =
+        MakeErrorAsyncValueRef(host_context_.get(), std::move(diag_in));
     cast<IndirectAsyncValue>(this)->ForwardTo(std::move(error_av));
   }
 }

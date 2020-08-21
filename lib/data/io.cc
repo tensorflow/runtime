@@ -77,8 +77,8 @@ IterationResult PrefetchingIterator::GetNext(const ExecutionContext& exec_ctx) {
   result_values.resize(1);
   // The IndirectAsyncValue might be filled later by the background blocking
   // thread.
-  result_values[0] = host->MakeIndirectAsyncValue();
-  auto result_eof = host->MakeUnconstructedAsyncValueRef<bool>();
+  result_values[0] = MakeIndirectAsyncValue(host);
+  auto result_eof = MakeUnconstructedAsyncValueRef<bool>(host);
   auto result =
       IterationResult::Pending(std::move(result_values), std::move(result_eof));
   {

@@ -47,11 +47,11 @@ static AsyncValueRef<HostTensor> TfZerosLike(const HostTensor& input,
     default:
       return EmitErrorAsync(exec_ctx, "unsupported dtype");
       break;
-#define DTYPE_NUMERIC(ENUM)                                       \
-  case DType::ENUM: {                                             \
-    using T = EigenTypeForDTypeKind<DType::ENUM>;                 \
-    return host->MakeAvailableAsyncValueRef<ScalarHostTensor<T>>( \
-        output_md, static_cast<T>(0.0));                          \
+#define DTYPE_NUMERIC(ENUM)                                 \
+  case DType::ENUM: {                                       \
+    using T = EigenTypeForDTypeKind<DType::ENUM>;           \
+    return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>( \
+        host, output_md, static_cast<T>(0.0));              \
   }
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }

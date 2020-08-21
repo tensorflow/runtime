@@ -409,7 +409,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                   "Do not both have result argument and return result");
     assert(results.size() == 1 && "Incorrect number of return value");
     results[0] =
-        exec_ctx.host()->MakeAvailableAsyncValueRef<T>(std::forward<T>(t));
+        MakeAvailableAsyncValueRef<T>(exec_ctx.host(), std::forward<T>(t));
   }
 
   // For ops functions that return AsyncValueRef<Chain>.
@@ -511,9 +511,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
     // Use braced-init-list to retrieve the results in the tuple in sequence.
     std::ignore = std::initializer_list<int>{
         (results[I] =
-             exec_ctx.host()
-                 ->MakeAvailableAsyncValueRef<std::tuple_element_t<I, TupleT>>(
-                     std::get<I>(std::forward<TupleT>(result))),
+             MakeAvailableAsyncValueRef<std::tuple_element_t<I, TupleT>>(
+                 exec_ctx.host(), std::get<I>(std::forward<TupleT>(result))),
          0)...};
   }
 

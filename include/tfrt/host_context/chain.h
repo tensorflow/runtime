@@ -55,7 +55,7 @@ class ReadyChain {
 
   void Construct(HostContext* host) {
     all_ready_chains_[HostContextPtr(host).index()] =
-        host->MakeAvailableAsyncValueRef<Chain>();
+        MakeAvailableAsyncValueRef<Chain>(host);
   }
 
   void Destruct(HostContext* host) {

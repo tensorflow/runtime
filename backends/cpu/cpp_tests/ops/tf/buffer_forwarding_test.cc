@@ -127,8 +127,8 @@ TEST(BufferForwarding, SlicedBuffer) {
   // Slice a DenseHostTensor of the same type and shape.
   auto sliced_buffer = HostBuffer::CreateFromExternal(dht->buffer().CopyRef(),
                                                       0, dht->buffer()->size());
-  auto sliced_dht = host->MakeAvailableAsyncValueRef<DenseHostTensor>(
-      input_md, std::move(sliced_buffer));
+  auto sliced_dht = MakeAvailableAsyncValueRef<DenseHostTensor>(
+      host, input_md, std::move(sliced_buffer));
 
   Argument<DenseHostTensor> arg(sliced_dht.GetAsyncValue());
 

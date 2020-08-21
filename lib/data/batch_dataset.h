@@ -85,7 +85,7 @@ SmallVector<AsyncValueRef<TensorMetadata>, 4> GetInputMetadata(
   SmallVector<AsyncValueRef<TensorMetadata>, 4> metadatas;
   metadatas.resize(sizeof...(T));
   for (size_t i = 0; i < sizeof...(T); ++i) {
-    metadatas[i] = host->MakeUnconstructedAsyncValueRef<TensorMetadata>();
+    metadatas[i] = MakeUnconstructedAsyncValueRef<TensorMetadata>(host);
   }
   GetInputMetadataHelper<sizeof...(T), T...>(input, metadatas);
 
@@ -215,7 +215,7 @@ void CopySlice(RCReference<AsyncValue> input_value,
         error_value->DropRef();
       } else if (batch_size == 0) {
         auto error =
-            exec_ctx.host()->MakeErrorAsyncValueRef("iterator reached end");
+            MakeErrorAsyncValueRef(exec_ctx.host(), "iterator reached end");
         result->SetError(error->GetError());
       } else if (eof_num == 0) {
         result->emplace<DenseHostTensor>(std::move(result_buffer.get()));
@@ -321,7 +321,7 @@ static SmallVector<AsyncValueRef<DenseHostTensor>, 4> AllocateOutputTensors(
   results.reserve(metadatas.size());
   for (size_t i = 0; i < metadatas.size(); ++i) {
     auto result =
-        exec_ctx.host()->MakeUnconstructedAsyncValueRef<DenseHostTensor>();
+        MakeUnconstructedAsyncValueRef<DenseHostTensor>(exec_ctx.host());
     metadatas[i].AndThen([exec_ctx, batch_size,
                           metadata = metadatas[i].CopyRef(),
                           result = result.CopyRef()]() {
@@ -470,7 +470,7 @@ IterationResult BatchDatasetIterator<T...>::GetNext(
   result_values.reserve(sizeof...(T));
   for (size_t i = 0; i < sizeof...(T); ++i) {
     result_values.push_back(
-        host->MakeUnconstructedAsyncValueRef<DenseHostTensor>());
+        MakeUnconstructedAsyncValueRef<DenseHostTensor>(host));
   }
   // result's eof should be exactly the same as the eof of the first input.
   auto result = IterationResult::Pending(std::move(result_values),

@@ -84,7 +84,7 @@ static void TensorHandleToShape(Argument<TensorHandle> arg,
     }
     auto shape = metadata_ref.get().shape;
     value_ref->ForwardTo(
-        host->MakeAvailableAsyncValueRef<TensorShape>(std::move(shape)));
+        MakeAvailableAsyncValueRef<TensorShape>(host, std::move(shape)));
   });
 }
 
@@ -179,7 +179,7 @@ static llvm::Expected<TensorHandle> ConstDenseTensor(
 
   auto metadata = dht->metadata();
   auto tensor_ref =
-      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(*dht));
+      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(*dht));
   if (!tensor_ref)
     return MakeStringError("failed to allocate dense host tensor");
 

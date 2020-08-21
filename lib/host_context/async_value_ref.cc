@@ -26,14 +26,33 @@
 
 namespace tfrt {
 
+RCReference<IndirectAsyncValue> MakeIndirectAsyncValue(HostContext* host) {
+  return TakeRef(host->Construct<IndirectAsyncValue>(host));
+}
+
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
                                             string_view message) {
   auto diag = EmitError(exec_ctx, message);
-  return exec_ctx.host()->MakeErrorAsyncValueRef(std::move(diag));
+  return MakeErrorAsyncValueRef(exec_ctx.host(), std::move(diag));
 }
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
                                             llvm::Error error) {
   return EmitErrorAsync(exec_ctx, StrCat(error));
 }
+
+RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
+    HostContext* host, DecodedDiagnostic&& diagnostic) {
+  // Create an AsyncValue for this error condition.
+  auto* error_value =
+      HostContextConstruct<ErrorAsyncValue>(host, host, std::move(diagnostic));
+
+  return TakeRef(error_value);
+}
+
+RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(HostContext* host,
+                                                    string_view message) {
+  return MakeErrorAsyncValueRef(host, DecodedDiagnostic(message));
+}
+
 }  // namespace tfrt

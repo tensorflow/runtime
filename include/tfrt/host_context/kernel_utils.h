@@ -45,7 +45,7 @@ namespace tfrt {
 template <typename T>
 AsyncValueRef<T> ForwardValue(T& value, AsyncValueRef<Chain> chain,
                               HostContext* host) {
-  auto result = host->MakeUnconstructedAsyncValueRef<T>();
+  auto result = MakeUnconstructedAsyncValueRef<T>(host);
   auto* chain_av = chain.GetAsyncValue();
   chain_av->AndThen([result = result.CopyRef(), value = std::move(value),
                      chain = std::move(chain)]() mutable {
@@ -291,7 +291,7 @@ class Result {
   // Construct the result in place.
   template <typename... Args>
   void Emplace(Args&&... args) {
-    Set(host_->MakeAvailableAsyncValueRef<T>(std::forward<Args>(args)...));
+    Set(MakeAvailableAsyncValueRef<T>(host_, std::forward<Args>(args)...));
   }
 
   // Use this argument as a result without a deep copy.
@@ -313,7 +313,7 @@ class Result {
 
   AsyncValueRef<T> Allocate() {
     assert(*result_ == nullptr);
-    auto result = host_->MakeUnconstructedAsyncValueRef<T>();
+    auto result = MakeUnconstructedAsyncValueRef<T>(host_);
     // result_ is stored in AsyncKernelFrame and needs a +1 ref count.
     *result_ = result.CopyRef().release();
     return result;
@@ -321,7 +321,7 @@ class Result {
 
   RCReference<IndirectAsyncValue> AllocateIndirect() {
     assert(*result_ == nullptr);
-    auto result = host_->MakeIndirectAsyncValue();
+    auto result = MakeIndirectAsyncValue(host_);
     // result_ is stored in AsyncKernelFrame and needs a +1 ref count.
     *result_ = result.CopyRef().release();
     return result;
@@ -354,7 +354,7 @@ class RemainingResults {
   template <typename T>
   const RCReference<AsyncValue>& AllocateAt(int index) {
     assert(!remaining_results_[index]);
-    auto result = host_->MakeUnconstructedAsyncValueRef<T>().ReleaseRCRef();
+    auto result = MakeUnconstructedAsyncValueRef<T>(host_).ReleaseRCRef();
     remaining_results_[index] = std::move(result);
     return remaining_results_[index];
   }
@@ -362,7 +362,7 @@ class RemainingResults {
   // This sets the specified result to a newly created IndirectAsyncResult and
   // returns an unowned pointer to it.
   RCReference<IndirectAsyncValue> AllocateIndirectResultAt(int index) {
-    auto indirect = host_->MakeIndirectAsyncValue();
+    auto indirect = MakeIndirectAsyncValue(host_);
     remaining_results_[index] = indirect.CopyRef();
     return indirect;
   }

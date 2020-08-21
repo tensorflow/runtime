@@ -136,8 +136,8 @@ class AsyncKernelFrame {
   // Emplace construct the result at given index.
   template <typename T, typename... Args>
   void EmplaceResultAt(int index, Args&&... args) {
-    SetResultAt(index, GetHostContext()->MakeAvailableAsyncValueRef<T>(
-                           std::forward<Args>(args)...));
+    SetResultAt(index, MakeAvailableAsyncValueRef<T>(
+                           GetHostContext(), std::forward<Args>(args)...));
   }
 
   // Allocate an AsyncValue with uninitialized payload as the result at the
@@ -151,7 +151,7 @@ class AsyncKernelFrame {
   // given index and return the allocated AsyncValue.
   template <typename T>
   AsyncValueRef<T> AllocateResultAt(int index) {
-    auto result = GetHostContext()->MakeUnconstructedAsyncValueRef<T>();
+    auto result = MakeUnconstructedAsyncValueRef<T>(GetHostContext());
     SetResultAt(index, result.CopyRef());
     return result;
   }
@@ -173,7 +173,7 @@ class AsyncKernelFrame {
   // Allocate an AsyncValue with uninitialized payload as the result at the
   // given index and return the allocated AsyncValue.
   RCReference<IndirectAsyncValue> AllocateIndirectResultAt(int index) {
-    auto result = GetHostContext()->MakeIndirectAsyncValue();
+    auto result = MakeIndirectAsyncValue(GetHostContext());
     SetResultAt(index, result.CopyRef());
     return result;
   }

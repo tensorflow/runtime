@@ -78,15 +78,6 @@ class HostContext {
   // through a location handler.
   void EmitError(const DecodedDiagnostic& diagnostic);
 
-  // Constructs an AsyncValue that contains an error which can be further
-  // propagated.
-  RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
-      DecodedDiagnostic&& diagnostic);
-
-  // Constructs an AsyncValue that contains an error message which can be
-  // further propagated.
-  RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(string_view message);
-
   std::function<void(const DecodedDiagnostic&)> diag_handler() {
     return diag_handler_;
   }
@@ -128,29 +119,6 @@ class HostContext {
     t->~T();
     Deallocate(t);
   }
-
-  // Allocate an unconstructed AsyncValueRef. The AsyncValueRef should be made
-  // available later by invoking AsyncValueRef::emplace or
-  // AsyncValueRef::SetError.
-  //
-  // TODO(lauj, jingdong) Move MakeUnconstructedAsyncValueRef and
-  // MakeAvailableAsyncValueRef to async_value_ref.h. These methods should not
-  // depend on HostContext.
-  template <typename T>
-  AsyncValueRef<T> MakeUnconstructedAsyncValueRef();
-
-  // Allocate and construct an AsyncValueRef without making it available for
-  // consumption. The AsyncValueRef should be made available later by invoking
-  // AsyncValueRef::SetStateConcrete or AsyncValueRef::SetError.
-  template <typename T, typename... Args>
-  AsyncValueRef<T> MakeConstructedAsyncValueRef(Args&&... args);
-
-  // Allocate and construct an available AsyncValueRef.
-  template <typename T, typename... Args>
-  AsyncValueRef<T> MakeAvailableAsyncValueRef(Args&&... args);
-
-  // Construct an empty IndirectAsyncValue, not forwarding to anything.
-  RCReference<IndirectAsyncValue> MakeIndirectAsyncValue();
 
   //===--------------------------------------------------------------------===//
   // Concurrency
@@ -296,29 +264,6 @@ class HostContext {
   const HostContextPtr instance_ptr_;
 };
 
-template <typename T, typename... Args>
-AsyncValueRef<T> HostContext::MakeConstructedAsyncValueRef(Args&&... args) {
-  return AsyncValueRef<T>(TakeRef(Construct<internal::ConcreteAsyncValue<T>>(
-      instance_ptr_,
-      typename internal::ConcreteAsyncValue<T>::ConstructedPayload{},
-      std::forward<Args>(args)...)));
-}
-
-template <typename T, typename... Args>
-AsyncValueRef<T> HostContext::MakeAvailableAsyncValueRef(Args&&... args) {
-  return AsyncValueRef<T>(TakeRef(Construct<internal::ConcreteAsyncValue<T>>(
-      instance_ptr_,
-      typename internal::ConcreteAsyncValue<T>::ConcretePayload{},
-      std::forward<Args>(args)...)));
-}
-
-template <typename T>
-AsyncValueRef<T> HostContext::MakeUnconstructedAsyncValueRef() {
-  return AsyncValueRef<T>(TakeRef(Construct<internal::ConcreteAsyncValue<T>>(
-      instance_ptr_,
-      typename internal::ConcreteAsyncValue<T>::UnconstructedPayload{})));
-}
-
 template <typename SharedContextType>
 SharedContextType& HostContext::GetOrCreateSharedContext() {
   int shared_context_id = DenseIdForSharedContext<SharedContextType>();
@@ -337,7 +282,7 @@ int HostContext::DenseIdForSharedContext() {
 
 template <typename F, typename R, std::enable_if_t<!std::is_void<R>(), int>>
 AsyncValueRef<R> HostContext::EnqueueWork(F&& work) {
-  auto result = this->MakeUnconstructedAsyncValueRef<R>();
+  auto result = MakeUnconstructedAsyncValueRef<R>(this);
   this->EnqueueWork(
       [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
         result.emplace(work());
@@ -347,7 +292,7 @@ AsyncValueRef<R> HostContext::EnqueueWork(F&& work) {
 
 template <typename F, typename R, std::enable_if_t<!std::is_void<R>(), int>>
 AsyncValueRef<R> HostContext::EnqueueBlockingWork(F&& work) {
-  auto result = this->MakeUnconstructedAsyncValueRef<R>();
+  auto result = MakeUnconstructedAsyncValueRef<R>(this);
   bool enqueued = this->EnqueueBlockingWork(
       [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
         result.emplace(work());
@@ -360,7 +305,7 @@ AsyncValueRef<R> HostContext::EnqueueBlockingWork(F&& work) {
 
 template <typename F, typename R, std::enable_if_t<!std::is_void<R>(), int>>
 AsyncValueRef<R> HostContext::RunBlockingWork(F&& work) {
-  auto result = this->MakeUnconstructedAsyncValueRef<R>();
+  auto result = MakeUnconstructedAsyncValueRef<R>(this);
   bool enqueued = this->RunBlockingWork(
       [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
         result.emplace(work());
@@ -369,6 +314,12 @@ AsyncValueRef<R> HostContext::RunBlockingWork(F&& work) {
     result.SetError("Failed to run blocking work.");
   }
   return result;
+}
+
+// HostContext free function to Allocate and initialize an object of type T.
+template <typename T, typename... Args>
+T* HostContextConstruct(HostContext* host, Args&&... args) {
+  return host->Construct<T>(std::forward<Args>(args)...);
 }
 
 }  // namespace tfrt

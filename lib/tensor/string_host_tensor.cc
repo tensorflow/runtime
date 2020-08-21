@@ -47,8 +47,8 @@ llvm::Optional<StringHostTensor> StringHostTensor::CreateUninitialized(
 AsyncValueRef<StringHostTensor> StringHostTensor::MakeConstructedAsyncValueRef(
     const TensorMetadata& metadata, HostContext* host) {
   if (auto result = CreateUninitialized(metadata, host))
-    return host->MakeConstructedAsyncValueRef<StringHostTensor>(
-        std::move(result).getValue());
+    return tfrt::MakeConstructedAsyncValueRef<StringHostTensor>(
+        host, std::move(result).getValue());
 
   return {};
 }
@@ -60,11 +60,11 @@ AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
 
   // We need to make a copy of the data, because the source and result
   // buffers are logically independent.
-  auto result = host->MakeUnconstructedAsyncValueRef<StringHostTensor>();
+  auto result = MakeUnconstructedAsyncValueRef<StringHostTensor>(host);
 
   auto result_alloc = CreateUninitialized(metadata(), host);
   if (!result_alloc)
-    return host->MakeErrorAsyncValueRef("out of memory copying tensor");
+    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
 
   auto& result_tensor = result_alloc.getValue();
 

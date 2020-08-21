@@ -43,8 +43,8 @@ void* AnyScalarHostTensor::data() {
 template <typename T>
 static AsyncValueRef<HostTensor> CopyScalar(const ScalarHostTensor<T>& src,
                                             HostContext* host) {
-  return host->MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(src.metadata(),
-                                                               src.GetValue());
+  return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(host, src.metadata(),
+                                                         src.GetValue());
 }
 
 AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
@@ -64,11 +64,11 @@ AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
     }
   }
 
-  auto result = host->MakeUnconstructedAsyncValueRef<DenseHostTensor>();
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
 
   auto result_alloc = DenseHostTensor::CreateUninitialized(metadata(), host);
   if (!result_alloc)
-    return host->MakeErrorAsyncValueRef("out of memory copying tensor");
+    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
 
   auto& result_tensor = result_alloc.getValue();
 

@@ -54,9 +54,9 @@ IterationResult RepeatDatasetIterator::GetNext(
   llvm::SmallVector<RCReference<AsyncValue>, 4> result_values;
   result_values.resize(arity_);
   for (size_t i = 0; i < arity_; ++i) {
-    result_values[i] = host->MakeIndirectAsyncValue();
+    result_values[i] = MakeIndirectAsyncValue(host);
   }
-  auto result_eof = host->MakeUnconstructedAsyncValueRef<bool>();
+  auto result_eof = MakeUnconstructedAsyncValueRef<bool>(host);
   auto result =
       IterationResult::Pending(std::move(result_values), std::move(result_eof));
   {
@@ -165,7 +165,7 @@ void RepeatDatasetIterator::HandleEofAvailableInput(IterationResult input,
     return;
   }
   // The input_iterator_ has been exhausted and there is no remaining count.
-  auto error = host->MakeErrorAsyncValueRef("iterator reached end");
+  auto error = MakeErrorAsyncValueRef(host, "iterator reached end");
   auto output_buffer_size = OutputBufferSize();
   for (; output_buffer_size > 0; --output_buffer_size) {
     auto output = DequeueOutputBuffer();

@@ -68,11 +68,6 @@ HostContext::~HostContext() {
 
 void Function::VtableAnchor() {}
 
-// Construct an empty IndirectAsyncValue, not forwarding to anything.
-RCReference<IndirectAsyncValue> HostContext::MakeIndirectAsyncValue() {
-  return TakeRef(Construct<IndirectAsyncValue>(instance_ptr_));
-}
-
 //===----------------------------------------------------------------------===//
 // Error Reporting
 //===----------------------------------------------------------------------===//
@@ -83,23 +78,6 @@ void HostContext::EmitError(const DecodedDiagnostic& diagnostic) {
   // Emit the message to the global handler, guaranteeing that it will be seen
   // by the handler registered with the HostContext.
   diag_handler_(diagnostic);
-}
-
-// Create a ConcreteAsyncValue in error state for a specified decoded
-// diagnostic.
-RCReference<ErrorAsyncValue> HostContext::MakeErrorAsyncValueRef(
-    DecodedDiagnostic&& diagnostic) {
-  // Create an AsyncValue for this error condition.
-  auto* error_value =
-      Construct<ErrorAsyncValue>(instance_ptr_, std::move(diagnostic));
-
-  return TakeRef(error_value);
-}
-
-// Create a ConcreteAsyncValue in error state for a specified error message.
-RCReference<ErrorAsyncValue> HostContext::MakeErrorAsyncValueRef(
-    string_view message) {
-  return MakeErrorAsyncValueRef(DecodedDiagnostic(message));
 }
 
 //===----------------------------------------------------------------------===//

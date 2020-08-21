@@ -204,7 +204,7 @@ template <typename Output, typename Expr, typename ArgLifetimeExtension,
               !internal::is_invocable<ArgLifetimeExtension>::value>>
 AsyncValueRef<Chain> AsyncAssign(const EigenHostContext& ctx, Output out,
                                  Expr expr, ArgLifetimeExtension args) {
-  auto chain = ctx.host()->MakeUnconstructedAsyncValueRef<Chain>();
+  auto chain = MakeUnconstructedAsyncValueRef<Chain>(ctx.host());
   auto callback = [args = std::move(args), chain = chain.CopyRef()]() {
     chain.emplace();
   };
@@ -237,7 +237,7 @@ template <typename Output, typename Expr, typename ArgLifetimeExtension,
 AsyncValueRef<Chain> AsyncAssign(const EigenHostContext& ctx,
                                  ArrayRef<AsyncValue*> dependencies, Output out,
                                  Expr expr, ArgLifetimeExtension args) {
-  auto chain = ctx.host()->MakeUnconstructedAsyncValueRef<Chain>();
+  auto chain = MakeUnconstructedAsyncValueRef<Chain>(ctx.host());
 
   ctx.host()->RunWhenReady(
       dependencies,

@@ -120,11 +120,11 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
   // Prepopulate result_th_avs's.
   for (auto& result : results) {
     // We know the metadata value will be a TensorMetadata or an error.
-    auto md = host->MakeUnconstructedAsyncValueRef<TensorMetadata>();
+    auto md = MakeUnconstructedAsyncValueRef<TensorMetadata>(host);
 
     // We don't know what subclass of Tensor will be used, so we need to use an
     // IndirectAsyncValue.
-    auto tensor = host->MakeIndirectAsyncValue();
+    auto tensor = MakeIndirectAsyncValue(host);
     result_th_avs.push_back(md.CopyRCRef());
     result_th_avs.push_back(tensor.CopyRef());
     result = TensorHandle(retval_device.CopyRef(), std::move(md),
@@ -141,7 +141,7 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
     if (!invocation.chain->IsAvailable())
       async_mds.push_back(invocation.chain->GetAsyncValue());
 
-    chain_ref = host->MakeUnconstructedAsyncValueRef<Chain>();
+    chain_ref = MakeUnconstructedAsyncValueRef<Chain>(host);
     *invocation.chain = chain_ref.CopyRef();
   }
 

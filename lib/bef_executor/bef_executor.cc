@@ -63,7 +63,7 @@ AsyncValue* GetOrCreateRegisterValue(BEFFileImpl::RegisterInfo* reg,
   // If it doesn't exist, we create an IndirectAsyncValue for this.  We have to
   // be a bit careful though because a concurrent task could swap in the actual
   // result while we're working on this.
-  auto* indirect_value = host->MakeIndirectAsyncValue().release();
+  auto* indirect_value = MakeIndirectAsyncValue(host).release();
 
   AsyncValue* existing = nullptr;
   // Speculatively set refcount in the expectation that compare_exchange

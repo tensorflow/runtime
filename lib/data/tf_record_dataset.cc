@@ -51,13 +51,13 @@ IterationResult TFRecordDatasetIterator::GetNextElement(
   if (!result) {
     // Do not decode location or emit error because the local handler might have
     // been freed.
-    auto error = host->MakeErrorAsyncValueRef(StrCat(result.takeError()));
+    auto error = MakeErrorAsyncValueRef(host, StrCat(result.takeError()));
     return IterationResult::Error(std::move(error), 1);
   }
 
   llvm::SmallVector<RCReference<AsyncValue>, 4> values;
   values.push_back(
-      host->MakeAvailableAsyncValueRef<std::string>(std::move(*result)));
+      MakeAvailableAsyncValueRef<std::string>(host, std::move(*result)));
   return IterationResult::Values(std::move(values), host);
 }
 

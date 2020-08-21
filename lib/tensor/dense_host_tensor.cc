@@ -50,19 +50,19 @@ AsyncValueRef<DenseHostTensor> DenseHostTensor::MakeConstructedAsyncValueRef(
   auto dht = CreateUninitialized(metadata, host);
   if (!dht) return {};
 
-  return host->MakeConstructedAsyncValueRef<DenseHostTensor>(
-      std::move(dht.getValue()));
+  return tfrt::MakeConstructedAsyncValueRef<DenseHostTensor>(
+      host, std::move(dht.getValue()));
 }
 
 AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
     HostContext* host, uint32_t allowed_formats) const {
   // We need to make a copy of the data, because the source and result
   // buffers are logically independent.
-  auto result = host->MakeUnconstructedAsyncValueRef<DenseHostTensor>();
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
 
   auto result_alloc = CreateUninitialized(metadata(), host);
   if (!result_alloc)
-    return host->MakeErrorAsyncValueRef("out of memory copying tensor");
+    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
 
   auto& result_tensor = result_alloc.getValue();
 

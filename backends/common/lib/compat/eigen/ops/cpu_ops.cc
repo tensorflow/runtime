@@ -165,7 +165,7 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
   HostContext* host = exec_ctx.host();
   std::array<AsyncValueRef<DenseHostTensor>, 6> results;
 
-  auto result = host->MakeUnconstructedAsyncValueRef<DenseHostTensor>();
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
   for (int i = 0; i < 6; ++i) {
     results[i] = result.CopyRef();
   }

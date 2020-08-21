@@ -79,7 +79,7 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
         TransferTensorTo(exec_ctx, tensor, src, *dst, allowed_formats);
   } else {
     RCReference<IndirectAsyncValue> result_ind_av =
-        host->MakeIndirectAsyncValue();
+        MakeIndirectAsyncValue(host);
     result_tensor = AsyncValueRef<Tensor>(result_ind_av.CopyRef());
     GetAsyncTensor()->AndThen([th = CopyRef(), &src,
                                result_ind_av = std::move(result_ind_av),

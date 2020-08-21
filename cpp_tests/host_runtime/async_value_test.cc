@@ -41,7 +41,7 @@ TEST(AsyncValueRef, Conversions) {
   };
 
   AsyncValueRef<WrappedInt32> wrapped_int_value =
-      host->MakeAvailableAsyncValueRef<WrappedInt32>(42);
+      MakeAvailableAsyncValueRef<WrappedInt32>(host.get(), 42);
   EXPECT_EQ(wrapped_int_value.get().value(), 42);
   EXPECT_EQ(wrapped_int_value->value(), 42);
   EXPECT_EQ((*wrapped_int_value).value(), 42);
@@ -57,7 +57,8 @@ TEST(AsyncValueRef, Conversions) {
 
 TEST(AsyncValue, ConstructedToError) {
   std::unique_ptr<HostContext> host = CreateHostContext();
-  AsyncValue* value = host->MakeConstructedAsyncValueRef<int32_t>(0).release();
+  AsyncValue* value =
+      MakeConstructedAsyncValueRef<int32_t>(host.get(), 0).release();
   value->AndThen([] {});
   value->SetError(DecodedDiagnostic("test error"));
   value->DropRef();

@@ -103,7 +103,7 @@ static void TfMatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
   }
 
   *dest =
-      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//

@@ -137,7 +137,7 @@ static void TestReportIndirectErrorAsync(Argument<int32_t> in,
   host->EnqueueWork([in = *in, result_ref = std::move(result_ref),
                      frame = *frame, host]() mutable {
     if (in == 0) {
-      auto concrete_av = host->MakeAvailableAsyncValueRef<int32_t>();
+      auto concrete_av = MakeAvailableAsyncValueRef<int32_t>(host);
       result_ref->ForwardTo(std::move(concrete_av));
     } else {
       // ReportError creates a ConcreteAsyncValue in error state and

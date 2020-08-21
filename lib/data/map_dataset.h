@@ -79,7 +79,7 @@ static llvm::SmallVector<RCReference<AsyncValue>, 4> EnqueueFunction(
   llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> results;
   results.resize(num_results);
   for (size_t i = 0; i < num_results; ++i) {
-    results[i] = host->MakeIndirectAsyncValue();
+    results[i] = MakeIndirectAsyncValue(host);
   }
   llvm::SmallVector<RCReference<AsyncValue>, 4> results_ref;
   for (const auto& result : results) {

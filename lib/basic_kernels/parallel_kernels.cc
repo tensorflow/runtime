@@ -46,8 +46,8 @@ static AsyncValueRef<Chain> ExecuteAsyncParallelForBody(
     HostContext* host = exec_ctx.host();
 
     // Pack parallel block arguments into async values.
-    auto start_arg = host->MakeAvailableAsyncValueRef<int32_t>(start + offset);
-    auto end_arg = host->MakeAvailableAsyncValueRef<int32_t>(end + offset);
+    auto start_arg = MakeAvailableAsyncValueRef<int32_t>(host, start + offset);
+    auto end_arg = MakeAvailableAsyncValueRef<int32_t>(host, end + offset);
 
     SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
                                            end_arg.GetAsyncValue()};
@@ -89,8 +89,8 @@ static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
     HostContext* host = exec_ctx.host();
 
     // Pack parallel block arguments into async values.
-    auto start_arg = host->MakeAvailableAsyncValueRef<int32_t>(start + offset);
-    auto end_arg = host->MakeAvailableAsyncValueRef<int32_t>(end + offset);
+    auto start_arg = MakeAvailableAsyncValueRef<int32_t>(host, start + offset);
+    auto end_arg = MakeAvailableAsyncValueRef<int32_t>(host, end + offset);
 
     SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
                                            end_arg.GetAsyncValue()};
@@ -103,7 +103,7 @@ static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
   };
 
   // Mark result chain completed when all parallel for blocks are completed.
-  auto done = exec_ctx.host()->MakeConstructedAsyncValueRef<Chain>();
+  auto done = MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
   auto on_done = [done = done.CopyRef()]() { done.SetStateConcrete(); };
 
   // Launch parallel for operation.
@@ -139,8 +139,8 @@ static AsyncValueRef<Chain> TFRTParallelFor(const ExecutionContext& exec_ctx,
                                        fixed_block_sizes, args, body_fn);
 
   } else {
-    return exec_ctx.host()->MakeErrorAsyncValueRef(
-        "Invalid parallel body function result types");
+    return MakeErrorAsyncValueRef(
+        exec_ctx.host(), "Invalid parallel body function result types");
   }
 }
 

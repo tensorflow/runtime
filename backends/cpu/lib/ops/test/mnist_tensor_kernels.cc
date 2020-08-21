@@ -81,7 +81,7 @@ static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
   }
 
   *dest =
-      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -92,7 +92,7 @@ template <typename T>
 static AsyncValueRef<T> WaitForChain(T&& t, AsyncValueRef<Chain> chain,
                                      const ExecutionContext& exec_ctx) {
   auto result =
-      exec_ctx.host()->MakeConstructedAsyncValueRef<T>(std::forward<T>(t));
+      MakeConstructedAsyncValueRef<T>(exec_ctx.host(), std::forward<T>(t));
   auto* chain_av = chain.GetAsyncValue();
   chain_av->AndThen(
       [chain = std::move(chain), result = result.CopyRef()]() mutable {
@@ -226,7 +226,7 @@ static void ElementwiseEqualOp(const DenseHostTensor& lhs,
   }
 
   *dest_tensor =
-      host->MakeUnconstructedAsyncValueRef<DenseHostTensor>().ReleaseRCRef();
+      MakeUnconstructedAsyncValueRef<DenseHostTensor>(host).ReleaseRCRef();
 
   AsyncValueRef<Chain> chain;
   auto* dest_dht = dest.getPointer();
@@ -291,7 +291,7 @@ static void CastOp(const DenseHostTensor& A, const TensorMetadata& B_md,
   }
 
   *B_tensor =
-      host->MakeUnconstructedAsyncValueRef<DenseHostTensor>().ReleaseRCRef();
+      MakeUnconstructedAsyncValueRef<DenseHostTensor>(host).ReleaseRCRef();
 
   AsyncValueRef<Chain> chain;
   switch (B_md.dtype.kind()) {
@@ -410,7 +410,7 @@ static void Broadcast1DOp(const DenseHostTensor& src,
 #include "tfrt/dtype/dtype.def"
   }
   *dest =
-      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -504,7 +504,7 @@ static void ArgmaxOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
   }
 
   *dest =
-      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -597,7 +597,7 @@ static void ReduceMeanOp(const DenseHostTensor& src, const OpAttrsRef& attrs,
   }
 
   *dest =
-      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -642,7 +642,7 @@ static void CreateDenseTensorOp(const OpAttrsRef& attrs,
   }
 
   *dest =
-      host->MakeAvailableAsyncValueRef<DenseHostTensor>(std::move(dest_tensor));
+      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//

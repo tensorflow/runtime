@@ -165,7 +165,7 @@ void ParallelFor::Execute(size_t total_size, const BlockSizes& block_sizes,
 AsyncValueRef<Chain> ParallelFor::Execute(
     size_t total_size, const BlockSizes& block_sizes,
     llvm::unique_function<void(size_t, size_t)> compute) const {
-  auto chain = host_->MakeConstructedAsyncValueRef<Chain>();
+  auto chain = MakeConstructedAsyncValueRef<Chain>(host_);
   Execute(total_size, block_sizes, std::move(compute),
           [chain = chain.CopyRef()]() { chain.SetStateConcrete(); });
   return chain;

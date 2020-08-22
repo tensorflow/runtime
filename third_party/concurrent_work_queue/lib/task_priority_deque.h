@@ -44,17 +44,25 @@
 namespace tfrt {
 namespace internal {
 
-enum class TaskPriority : int8_t { kHigh = 0, kDefault = 1, kLow = 2 };
+enum class TaskPriority : int8_t {
+  kCritical = 0,
+  kHigh = 1,
+  kDefault = 2,
+  kLow = 3
+};
 
 class TaskPriorityDeque {
   static constexpr uint64_t kCounterBits = 10;  // capacity = 1024
 
-  static constexpr std::array<TaskPriority, 3> kTaskPriorities = {
-      TaskPriority::kHigh,
-      TaskPriority::kDefault,
-      TaskPriority::kLow,
+  static constexpr int kNumTaskPriorities = 4;
+
+  static constexpr std::array<TaskPriority, kNumTaskPriorities>
+      kTaskPriorities = {
+          TaskPriority::kCritical,
+          TaskPriority::kHigh,
+          TaskPriority::kDefault,
+          TaskPriority::kLow,
   };
-  static constexpr int kNumTaskPriorities = kTaskPriorities.size();
 
   static_assert(static_cast<int>(kTaskPriorities[0]) == 0,
                 "Unexpected TaskPriority value");
@@ -62,12 +70,14 @@ class TaskPriorityDeque {
                 "Unexpected TaskPriority value");
   static_assert(static_cast<int>(kTaskPriorities[2]) == 2,
                 "Unexpected TaskPriority value");
+  static_assert(static_cast<int>(kTaskPriorities[3]) == 3,
+                "Unexpected TaskPriority value");
 
  public:
   static constexpr uint64_t kCapacity = (1ull << kCounterBits);
 
-  static_assert((kCapacity > 2) && (kCapacity <= (4u << 10u)),
-                "TaskPriorityDeque capacity must be in [4, 4096] range");
+  static_assert((kCapacity > 2) && (kCapacity <= (1u << 10u)),
+                "TaskPriorityDeque capacity must be in [4, 1024] range");
   static_assert(
       (kCapacity & (kCapacity - 1)) == 0,
       "TaskPriorityDeque capacity must be a power of two for fast masking");
@@ -237,35 +247,40 @@ class TaskPriorityDeque {
   static constexpr uint64_t kIndexMaskExt = (1ull << (kCounterBits + 1)) - 1;
 
   // Offsets for indices in front/back for different priority levels.
-  static constexpr std::array<uint64_t, 3> kIndexShift = {
-      (kCounterBits + 1) * 0,  // High
-      (kCounterBits + 1) * 1,  // Default
-      (kCounterBits + 1) * 2,  // Low
+  static constexpr std::array<uint64_t, kNumTaskPriorities> kIndexShift = {
+      (kCounterBits + 1) * 0,  // Critical
+      (kCounterBits + 1) * 1,  // High
+      (kCounterBits + 1) * 2,  // Default
+      (kCounterBits + 1) * 3,  // Low
   };
 
   // Masks for extracting index values from front/back.
-  static constexpr std::array<uint64_t, 3> kIndexMasks = {
-      kIndexMask << kIndexShift[0],  // High
-      kIndexMask << kIndexShift[1],  // Default
-      kIndexMask << kIndexShift[2],  // Low
+  static constexpr std::array<uint64_t, kNumTaskPriorities> kIndexMasks = {
+      kIndexMask << kIndexShift[0],  // Critical
+      kIndexMask << kIndexShift[1],  // High
+      kIndexMask << kIndexShift[2],  // Default
+      kIndexMask << kIndexShift[3],  // Low
   };
 
   // Masks for extracting index plus overflow bit.
-  static constexpr std::array<uint64_t, 3> kIndexMasksExt = {
-      kIndexMaskExt << kIndexShift[0],  // High
-      kIndexMaskExt << kIndexShift[1],  // Default
-      kIndexMaskExt << kIndexShift[2],  // Low
+  static constexpr std::array<uint64_t, kNumTaskPriorities> kIndexMasksExt = {
+      kIndexMaskExt << kIndexShift[0],  // Critical
+      kIndexMaskExt << kIndexShift[1],  // High
+      kIndexMaskExt << kIndexShift[2],  // Default
+      kIndexMaskExt << kIndexShift[3],  // Low
   };
 
   // Masks for extracting two complementary indices.
-  static constexpr std::array<uint64_t, 3> kIndexMaskCompl = {
-      kIndexMasksExt[1] | kIndexMasksExt[2],
-      kIndexMasksExt[0] | kIndexMasksExt[2],
-      kIndexMasksExt[0] | kIndexMasksExt[1],
+  static constexpr std::array<uint64_t, kNumTaskPriorities> kIndexMaskCompl = {
+      kIndexMasksExt[1] | kIndexMasksExt[2] | kIndexMasksExt[3],  // 0 vs 1,2,3
+      kIndexMasksExt[0] | kIndexMasksExt[2] | kIndexMasksExt[3],  // 1 vs 0,2,3
+      kIndexMasksExt[0] | kIndexMasksExt[1] | kIndexMasksExt[3],  // 2 vs 0,1,3
+      kIndexMasksExt[0] | kIndexMasksExt[1] | kIndexMasksExt[2],  // 3 vs 0,1,2
   };
 
   // Mask for extracting all indices at once.
-  static constexpr uint64_t kIndicesBits = (kCounterBits + 1) * 3;
+  static constexpr uint64_t kIndicesBits =
+      (kCounterBits + 1) * kNumTaskPriorities;
   static constexpr uint64_t kIndicesMask = (1ull << kIndicesBits) - 1;
 
   // The remaining bits contain modification counter that is incremented on Push
@@ -443,14 +458,16 @@ class TaskPriorityDeque {
       return front.IndexExt(priority) - back.IndexExt(priority);
     };
 
-    int size0 = queue_size(TaskPriority::kHigh);
-    int size1 = queue_size(TaskPriority::kDefault);
-    int size2 = queue_size(TaskPriority::kLow);
+    int size0 = queue_size(TaskPriority::kCritical);
+    int size1 = queue_size(TaskPriority::kHigh);
+    int size2 = queue_size(TaskPriority::kDefault);
+    int size3 = queue_size(TaskPriority::kLow);
 
     // Fix overflow.
     if (size0 < 0) size0 += 2 * kCapacity;
     if (size1 < 0) size1 += 2 * kCapacity;
     if (size2 < 0) size2 += 2 * kCapacity;
+    if (size3 < 0) size3 += 2 * kCapacity;
 
     // Order of modification in push/pop is crafted to make the queue look
     // larger than it is during concurrent modifications. E.g. push can
@@ -459,12 +476,14 @@ class TaskPriorityDeque {
     assert(size0 <= static_cast<int>(kCapacity) + 1);
     assert(size1 <= static_cast<int>(kCapacity) + 1);
     assert(size2 <= static_cast<int>(kCapacity) + 1);
+    assert(size3 <= static_cast<int>(kCapacity) + 1);
     if (size0 > static_cast<int>(kCapacity)) size0 = kCapacity;
     if (size1 > static_cast<int>(kCapacity)) size1 = kCapacity;
     if (size2 > static_cast<int>(kCapacity)) size2 = kCapacity;
+    if (size3 > static_cast<int>(kCapacity)) size3 = kCapacity;
 
-    int size = size0 + size1 + size2;
-    assert(size <= 3 * kCapacity);
+    int size = size0 + size1 + size2 + size3;
+    assert(size <= kNumTaskPriorities * kCapacity);
 
     return size;
   }

@@ -22,6 +22,8 @@
 namespace tfrt {
 namespace {
 
+static constexpr int kNumPriorities = 4;
+
 using TaskPriorityDeque = ::tfrt::internal::TaskPriorityDeque;
 using TaskPriority = ::tfrt::internal::TaskPriority;
 
@@ -70,8 +72,12 @@ TEST(TaskPriorityDequeTest, PushAndPopFrontWithPriority) {
   ASSERT_EQ(queue.PushFront(fn.Next(4), TaskPriority::kDefault), llvm::None);
   ASSERT_EQ(queue.PushFront(fn.Next(5), TaskPriority::kHigh), llvm::None);
   ASSERT_EQ(queue.PushFront(fn.Next(6), TaskPriority::kHigh), llvm::None);
-  ASSERT_EQ(queue.Size(), 6);
+  ASSERT_EQ(queue.PushFront(fn.Next(7), TaskPriority::kCritical), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(8), TaskPriority::kCritical), llvm::None);
+  ASSERT_EQ(queue.Size(), 8);
 
+  ASSERT_EQ(fn.Run(queue.PopFront()), 8);
+  ASSERT_EQ(fn.Run(queue.PopFront()), 7);
   ASSERT_EQ(fn.Run(queue.PopFront()), 6);
   ASSERT_EQ(fn.Run(queue.PopFront()), 5);
   ASSERT_EQ(fn.Run(queue.PopFront()), 4);
@@ -101,8 +107,12 @@ TEST(TaskPriorityDequeTest, PushAndPopBackWithPriority) {
   ASSERT_EQ(queue.PushBack(fn.Next(4), TaskPriority::kDefault), llvm::None);
   ASSERT_EQ(queue.PushBack(fn.Next(5), TaskPriority::kHigh), llvm::None);
   ASSERT_EQ(queue.PushBack(fn.Next(6), TaskPriority::kHigh), llvm::None);
-  ASSERT_EQ(queue.Size(), 6);
+  ASSERT_EQ(queue.PushBack(fn.Next(7), TaskPriority::kCritical), llvm::None);
+  ASSERT_EQ(queue.PushBack(fn.Next(8), TaskPriority::kCritical), llvm::None);
+  ASSERT_EQ(queue.Size(), 8);
 
+  ASSERT_EQ(fn.Run(queue.PopBack()), 8);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 7);
   ASSERT_EQ(fn.Run(queue.PopBack()), 6);
   ASSERT_EQ(fn.Run(queue.PopBack()), 5);
   ASSERT_EQ(fn.Run(queue.PopBack()), 4);
@@ -132,7 +142,11 @@ TEST(TaskPriorityDequeTest, PushFrontAndPopBackWithPriority) {
   ASSERT_EQ(queue.PushFront(fn.Next(4), TaskPriority::kDefault), llvm::None);
   ASSERT_EQ(queue.PushFront(fn.Next(5), TaskPriority::kHigh), llvm::None);
   ASSERT_EQ(queue.PushFront(fn.Next(6), TaskPriority::kHigh), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(7), TaskPriority::kCritical), llvm::None);
+  ASSERT_EQ(queue.PushFront(fn.Next(8), TaskPriority::kCritical), llvm::None);
 
+  ASSERT_EQ(fn.Run(queue.PopBack()), 7);
+  ASSERT_EQ(fn.Run(queue.PopBack()), 8);
   ASSERT_EQ(fn.Run(queue.PopBack()), 5);
   ASSERT_EQ(fn.Run(queue.PopBack()), 6);
   ASSERT_EQ(fn.Run(queue.PopBack()), 3);
@@ -165,31 +179,35 @@ TEST(TaskPriorityDequeTest, PushFrontToOverflowWithPriority) {
   TaskPriorityDeque queue;
 
   auto priority = [](int i) -> TaskPriority {
-    if (i % 3 == 0) return TaskPriority::kLow;
-    if (i % 3 == 1) return TaskPriority::kDefault;
-    return TaskPriority::kHigh;
+    if (i % kNumPriorities == 0) return TaskPriority::kLow;
+    if (i % kNumPriorities == 1) return TaskPriority::kDefault;
+    if (i % kNumPriorities == 2) return TaskPriority::kHigh;
+    return TaskPriority::kCritical;
   };
 
-  for (int i = 0; i < 3 * TaskPriorityDeque::kCapacity; ++i) {
+  for (int i = 0; i < 4 * TaskPriorityDeque::kCapacity; ++i) {
     ASSERT_EQ(queue.PushFront(fn.Next(i), priority(i)), llvm::None);
   }
 
   auto overflow0 = queue.PushFront(fn.Next(12345), TaskPriority::kLow);
   auto overflow1 = queue.PushFront(fn.Next(67891), TaskPriority::kDefault);
   auto overflow2 = queue.PushFront(fn.Next(23456), TaskPriority::kHigh);
+  auto overflow3 = queue.PushFront(fn.Next(78910), TaskPriority::kCritical);
 
   ASSERT_TRUE(overflow0.hasValue());
   ASSERT_TRUE(overflow1.hasValue());
   ASSERT_TRUE(overflow2.hasValue());
+  ASSERT_TRUE(overflow3.hasValue());
 
   ASSERT_EQ(fn.Run(std::move(overflow0)), 12345);
   ASSERT_EQ(fn.Run(std::move(overflow1)), 67891);
   ASSERT_EQ(fn.Run(std::move(overflow2)), 23456);
+  ASSERT_EQ(fn.Run(std::move(overflow3)), 78910);
 
-  for (int p = 0; p < 3; ++p) {
+  for (int p = 0; p < 4; ++p) {
     for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
-      ASSERT_EQ(fn.Run(queue.PopBack()), (3 - p - 1) + 3 * i);
-      ASSERT_EQ(queue.Size(), (3 - p) * TaskPriorityDeque::kCapacity - i - 1);
+      ASSERT_EQ(fn.Run(queue.PopBack()), (4 - p - 1) + 4 * i);
+      ASSERT_EQ(queue.Size(), (4 - p) * TaskPriorityDeque::kCapacity - i - 1);
     }
   }
 }
@@ -216,31 +234,35 @@ TEST(TaskPriorityDequeTest, PushBackToOverflowWithPriority) {
   TaskPriorityDeque queue;
 
   auto priority = [](int i) -> TaskPriority {
-    if (i % 3 == 0) return TaskPriority::kLow;
-    if (i % 3 == 1) return TaskPriority::kDefault;
-    return TaskPriority::kHigh;
+    if (i % kNumPriorities == 0) return TaskPriority::kLow;
+    if (i % kNumPriorities == 1) return TaskPriority::kDefault;
+    if (i % kNumPriorities == 2) return TaskPriority::kHigh;
+    return TaskPriority::kCritical;
   };
 
-  for (int i = 0; i < 3 * TaskPriorityDeque::kCapacity; ++i) {
+  for (int i = 0; i < kNumPriorities * TaskPriorityDeque::kCapacity; ++i) {
     ASSERT_EQ(queue.PushBack(fn.Next(i), priority(i)), llvm::None);
   }
 
   auto overflow0 = queue.PushBack(fn.Next(12345), TaskPriority::kLow);
   auto overflow1 = queue.PushBack(fn.Next(67891), TaskPriority::kDefault);
   auto overflow2 = queue.PushBack(fn.Next(23456), TaskPriority::kHigh);
+  auto overflow3 = queue.PushBack(fn.Next(78901), TaskPriority::kHigh);
 
   ASSERT_TRUE(overflow0.hasValue());
   ASSERT_TRUE(overflow1.hasValue());
   ASSERT_TRUE(overflow2.hasValue());
+  ASSERT_TRUE(overflow3.hasValue());
 
   ASSERT_EQ(fn.Run(std::move(overflow0)), 12345);
   ASSERT_EQ(fn.Run(std::move(overflow1)), 67891);
   ASSERT_EQ(fn.Run(std::move(overflow2)), 23456);
+  ASSERT_EQ(fn.Run(std::move(overflow3)), 78901);
 
-  for (int p = 0; p < 3; ++p) {
+  for (int p = 0; p < 4; ++p) {
     for (int i = 0; i < TaskPriorityDeque::kCapacity; ++i) {
-      ASSERT_EQ(fn.Run(queue.PopFront()), (3 - p - 1) + 3 * i);
-      ASSERT_EQ(queue.Size(), (3 - p) * TaskPriorityDeque::kCapacity - i - 1);
+      ASSERT_EQ(fn.Run(queue.PopFront()), (4 - p - 1) + 4 * i);
+      ASSERT_EQ(queue.Size(), (4 - p) * TaskPriorityDeque::kCapacity - i - 1);
     }
   }
 }
@@ -268,9 +290,10 @@ TEST(TaskPriorityDequeTest, EmptynessCheckSingleWorker) {
       ASSERT_FALSE(queue.Empty());
 
       auto priority = [](int rng) -> TaskPriority {
-        if (rng % 3 == 0) return TaskPriority::kLow;
-        if (rng % 3 == 1) return TaskPriority::kDefault;
-        return TaskPriority::kHigh;
+        if (rng % kNumPriorities == 0) return TaskPriority::kLow;
+        if (rng % kNumPriorities == 1) return TaskPriority::kDefault;
+        if (rng % kNumPriorities == 2) return TaskPriority::kHigh;
+        return TaskPriority::kCritical;
       };
 
       if (rng() % 2) {
@@ -348,9 +371,10 @@ TEST(TaskPriorityDequeTest, EmptynessCheckMultipleWorkers) {
       ASSERT_FALSE(queue.Empty());
 
       auto priority = [](int rng) -> TaskPriority {
-        if (rng % 3 == 0) return TaskPriority::kLow;
-        if (rng % 3 == 1) return TaskPriority::kDefault;
-        return TaskPriority::kHigh;
+        if (rng % kNumPriorities == 0) return TaskPriority::kLow;
+        if (rng % kNumPriorities == 1) return TaskPriority::kDefault;
+        if (rng % kNumPriorities == 2) return TaskPriority::kHigh;
+        return TaskPriority::kCritical;
       };
 
       if (id == 0 && rng() % 2 == 0) {

@@ -758,6 +758,8 @@ tfrt_cc_library(
         "lib/data/range_dataset.h",
         "lib/data/repeat_dataset.cc",
         "lib/data/repeat_dataset.h",
+        "lib/data/skip_dataset.cc",
+        "lib/data/skip_dataset.h",
         "lib/data/slice_dataset.h",
         "lib/data/tf_record_dataset.cc",
         "lib/data/tf_record_dataset.h",

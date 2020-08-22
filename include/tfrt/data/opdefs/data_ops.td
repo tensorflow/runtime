@@ -288,6 +288,28 @@ def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def SkipDatasetOp : Data_Op<"skip_dataset"> {
+  let summary = "tfrt_data skip_dataset operation";
+  let description = [{
+    tfrt_data.skip_dataset wraps around another dataset instance and skips
+    a specified number of elements from that dataset.
+
+    Example:
+      %dataset_1 = tfrt_data.skip_dataset %start, %stop, %step { element_type = i32 }
+      %count = tfrt.constant.i64 8
+      %dataset_2 = tfrt_data.repeat_dataset %dataset_1, %count
+  }];
+
+  let arguments = (ins
+    DatasetType:$input_dataset,
+    I64:$count
+  );
+
+  let results = (outs DatasetType:$output_dataset);
+
+  let assemblyFormat = "operands attr-dict";
+}
+
 def TFRecordDatasetOp : Data_Op<"tf_record_dataset"> {
   let summary = "tfrt_data tf_record_dataset operation";
   let description = [{

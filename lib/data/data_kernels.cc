@@ -26,6 +26,7 @@
 #include "prefetch_dataset.h"
 #include "range_dataset.h"
 #include "repeat_dataset.h"
+#include "skip_dataset.h"
 #include "slice_dataset.h"
 #include "tf_record_dataset.h"
 #include "tfrt/host_context/function.h"
@@ -158,6 +159,17 @@ RCReference<RepeatDataset> MakeRepeatDataset(RCReference<Dataset>* dataset,
   HostContext* host = exec_ctx.host();
   return TakeRef(
       host->Construct<RepeatDataset>(dataset->CopyRef(), count, host));
+}
+
+//===----------------------------------------------------------------------===//
+// SkipDataset
+//===----------------------------------------------------------------------===//
+
+RCReference<SkipDataset> MakeSkipDataset(RCReference<Dataset>* dataset,
+                                         int64_t count,
+                                         const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  return TakeRef(host->Construct<SkipDataset>(dataset->CopyRef(), count, host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -474,6 +486,7 @@ void RegisterDataKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(MakePrefetchDataset));
   registry->AddKernel("tfrt_data.repeat_dataset",
                       TFRT_KERNEL(MakeRepeatDataset));
+  registry->AddKernel("tfrt_data.skip_dataset", TFRT_KERNEL(MakeSkipDataset));
   registry->AddKernel("tfrt_data.tf_record_dataset",
                       TFRT_KERNEL(MakeTFRecordDataset));
 }

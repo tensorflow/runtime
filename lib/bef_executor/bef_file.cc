@@ -366,14 +366,15 @@ bool BEFFileReader::ReadFunctionIndexSectionInternal(
 // and the function_symbol_table_, and returning false on success. Emit an error
 // and return true on failure.
 bool BEFFileReader::ReadFunctionIndexSection() {
-  auto format_error = [&]() -> bool {
-    bef_file_->EmitFormatError("invalid FunctionIndex section in BEF file");
+  auto format_error = [&](auto&&... args) -> bool {
+    bef_file_->EmitFormatError(
+        StrCat("invalid FunctionIndex section in BEF file: ", args...));
     return true;
   };
 
   SmallVector<FunctionIndex, 8> function_indices;
   if (ReadFunctionIndexSectionInternal(&function_indices))
-    return format_error();
+    return format_error("Failed to read the FunctionIndex section");
 
   bef_file_->functions_.reserve(function_indices.size());
 
@@ -389,7 +390,7 @@ bool BEFFileReader::ReadFunctionIndexSection() {
       case FunctionKind::kBEFFunction: {
         if (function_index.function_offset >=
             bef_file_->function_section_.size())
-          return format_error();
+          return format_error("Invalid offset found for BEFFunction");
         auto bef_function = std::make_unique<BEFFunction>(
             name, function_index.arguments, function_index.results,
             function_index.function_offset, bef_file_);
@@ -399,20 +400,19 @@ bool BEFFileReader::ReadFunctionIndexSection() {
       case FunctionKind::kSyncBEFFunction: {
         if (function_index.function_offset >=
             bef_file_->function_section_.size())
-          return format_error();
+          return format_error("Invalid offset found for SyncBEFFunction");
         auto bef_function = SyncBEFFunction::Create(
             name, function_index.arguments, function_index.results,
             function_index.function_offset, bef_file_);
-        if (!bef_function) return format_error();
+        if (!bef_function) return format_error(bef_function.takeError());
         bef_file_->functions_.push_back(std::move(bef_function.get()));
         break;
       }
       case FunctionKind::kNativeFunction: {
         auto callable = NativeFunctionRegistry::GetGlobalRegistry().Get(name);
         if (callable == nullptr) {
-          bef_file_->EmitFormatError(
+          return format_error(
               "unable to find native function in global registry");
-          return true;
         }
         bef_file_->functions_.push_back(std::make_unique<NativeFunction>(
             name, function_index.arguments, function_index.results, callable));
@@ -465,7 +465,7 @@ BEFFileImpl::BEFFileImpl(std::function<void(DecodedDiagnostic)> error_handler)
 
 BEFFileImpl::~BEFFileImpl() {}
 
-void BEFFileImpl::EmitFormatError(const char* message) {
+void BEFFileImpl::EmitFormatError(string_view message) {
   error_handler_(DecodedDiagnostic(message));
 }
 
@@ -648,7 +648,7 @@ Error SyncBEFFunction::Init() {
   assert(result_regs_.empty());
 
   auto format_error = [&](const char* msg) -> Error {
-    return MakeStringError("Invalid Function section in BEF file: ", msg);
+    return MakeStringError("Invalid SyncBEFFunction(", msg, ")");
   };
 
   auto function_section = bef_file_->function_section();
@@ -709,6 +709,9 @@ Error SyncBEFFunction::Init() {
     // +1 on the user count so that we do not reset the result Value in the
     // function evaluation.
     auto& reg_info = register_infos_[result_reg];
+    if (reg_info.is_arg_or_result) {
+      return format_error("Result cannot be an argument or another result");
+    }
     reg_info.is_arg_or_result = true;
     ++reg_info.user_count;
   }

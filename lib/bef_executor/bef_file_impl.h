@@ -217,7 +217,7 @@ class BEFFileImpl : public BEFFile {
   explicit BEFFileImpl(ErrorHandler error_handler);
 
   // Emit an error message about a malformed BEF file.
-  void EmitFormatError(const char* message);
+  void EmitFormatError(string_view message);
 
   // When decoding a function info descriptor, this describes each register.
   struct RegisterInfo {

@@ -32,7 +32,8 @@ class HostContext;
 
 // Represents a tensor whose elements are stored contiguously in row major
 // format with no padding or stride.
-class DenseHostTensor final : public HostTensor {
+class DenseHostTensor final : public HostTensor,
+                              public TensorTraits<DenseHostTensor> {
  public:
   DenseHostTensor(const TensorMetadata& metadata, RCReference<HostBuffer> data)
       : HostTensor(Subclass::DenseHost, metadata), data_(std::move(data)) {}
@@ -91,9 +92,8 @@ class DenseHostTensor final : public HostTensor {
   AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, uint32_t allowed_formats) const override;
 
-  static bool classof(const Tensor* t) {
-    return t->subclass() == Subclass::DenseHost;
-  }
+  // Tensor type for DenseHostTensor.
+  static const char* name() { return "DenseHost"; }
 
  private:
   // This class is not copyable or assignable. If we add a copy operation it

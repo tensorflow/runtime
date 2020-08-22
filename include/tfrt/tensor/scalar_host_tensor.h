@@ -30,7 +30,8 @@ namespace tfrt {
 
 // Represents a tensor whose elements are represented as a broadcasted scalar
 // value.
-class AnyScalarHostTensor : public HostTensor {
+class AnyScalarHostTensor : public HostTensor,
+                            public TensorTraits<AnyScalarHostTensor> {
  public:
   AnyScalarHostTensor(TensorMetadata metadata)
       : HostTensor(Subclass::ScalarHost, metadata) {}
@@ -46,9 +47,8 @@ class AnyScalarHostTensor : public HostTensor {
 
   void Print(raw_ostream& os) const override;
 
-  static bool classof(const Tensor* t) {
-    return t->subclass() == Subclass::ScalarHost;
-  }
+  // Tensor type for ScalarHostTensor.
+  static const char* name() { return "ScalarHost"; }
 };
 
 // This is a ScalarHostTensor of a specific type.  It represents a tensor whose

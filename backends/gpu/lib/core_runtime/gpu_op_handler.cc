@@ -164,9 +164,8 @@ AsyncValueRef<HostTensor> GpuOpHandler::CopyDeviceTensorToHost(
   auto* host = GetRuntime()->GetHostContext();
   if (auto* gpu_tensor = dyn_cast<gpu::DenseGpuTensor>(&tensor)) {
     return AsyncValueRef<HostTensor>(
-        TransferTensorTo(*gpu_tensor, *device_, host->GetHostDevice(),
-                         TensorFormats::Create({Tensor::Subclass::DenseHost}),
-                         host)
+        ConvertTensor(*gpu_tensor, *device_, host->GetHostDevice(),
+                      DenseHostTensor::kTensorType, host)
             .ReleaseRCRef());
   } else {
     return GetFallback()->CopyDeviceTensorToHost(exec_ctx, tensor);
@@ -177,9 +176,8 @@ AsyncValueRef<Tensor> GpuOpHandler::CopyHostTensorToDevice(
     const DenseHostTensor& tensor) {
   auto* host = GetRuntime()->GetHostContext();
   return AsyncValueRef<HostTensor>(
-      TransferTensorTo(tensor, host->GetHostDevice(), *device_,
-                       TensorFormats::Create({Tensor::Subclass::DenseGpu}),
-                       host)
+      ConvertTensor(tensor, host->GetHostDevice(), *device_,
+                    gpu::DenseGpuTensor::kTensorType, host)
           .ReleaseRCRef());
 }
 

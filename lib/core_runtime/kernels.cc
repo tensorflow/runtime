@@ -534,13 +534,13 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
 // argument.
 static Expected<TensorHandle> TransferToDevice(
     const TensorHandle &src, StringAttribute device,
-    Attribute<uint32_t> formats, const ExecutionContext &exec_ctx) {
+    StringAttribute dst_tensor_type_name, const ExecutionContext &exec_ctx) {
   auto device_ref =
       exec_ctx.host()->GetDeviceManager()->GetDeviceRef<Device>(device);
-  TensorFormats allowed_formats{formats.get()};
   if (!device_ref)
     return MakeStringError("failed to find device with name: ", device);
-  return src.TransferTo(exec_ctx, std::move(device_ref), allowed_formats);
+  return src.TransferTo(exec_ctx, std::move(device_ref),
+                        GetStaticTensorType(dst_tensor_type_name));
 }
 
 //===----------------------------------------------------------------------===//

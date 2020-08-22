@@ -36,7 +36,8 @@ namespace gpu {
 // based on shapes, dtype, and/or layout. These kernels take tensors
 // as arguments.
 // DenseGpuTensor is thread-safe.
-class DenseGpuTensor final : public Tensor {
+class DenseGpuTensor final : public Tensor,
+                             public TensorTraits<DenseGpuTensor> {
  public:
   DenseGpuTensor(const TensorMetadata& metadata, RCReference<GpuBuffer> buffer);
   DenseGpuTensor(const TensorShape& shape, DType dtype,
@@ -67,9 +68,8 @@ class DenseGpuTensor final : public Tensor {
     return DenseGpuTensor(new_shape, dtype(), buffer_.CopyRef());
   }
 
-  static bool classof(const Tensor* t) {
-    return t->subclass() == Subclass::DenseGpu;
-  }
+  // Tensor type for DenseGpuTensor.
+  static const char* name() { return "DenseGpu"; }
 
   void Print(llvm::raw_ostream& os) const override;
 

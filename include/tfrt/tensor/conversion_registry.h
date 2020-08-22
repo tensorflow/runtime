@@ -24,6 +24,7 @@
 #include "llvm/ADT/DenseMapInfo.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/tensor.h"
+#include "tfrt/tensor/tensor_type_registration.h"
 
 namespace tfrt {
 
@@ -31,23 +32,8 @@ class Device;
 class DeviceType;
 class ExecutionContext;
 
-// It is a bitmask indicating supported tensor formats. It is a bitmask of
-// tensor Subclass kinds.
-struct TensorFormats {
-  static TensorFormats Create(llvm::ArrayRef<Tensor::Subclass> sbuclasses);
-
-  uint32_t allowed_formats;
-
-  bool Contains(Tensor::Subclass subclass) const;
-};
-
-inline raw_ostream& operator<<(raw_ostream& os, const TensorFormats& formats) {
-  os << llvm::format_hex(formats.allowed_formats, 2);
-  return os;
-}
-
-// TensorConversionFn allows copying the contents of a Tensor into another
-// Tenosr format and/or into another Device. This can (in general) require
+// TensorConversionFn allows convert a Tensor from a source Tensor type into a
+// destination Tensor type. This can (in general) require
 // device computation or lots of copying, so this returns an AsyncValue for the
 // result.
 //
@@ -56,22 +42,22 @@ inline raw_ostream& operator<<(raw_ostream& os, const TensorFormats& formats) {
 // TODO(fishx): Change HostContext to ExecutionContext.
 using TensorConversionFn = AsyncValueRef<Tensor> (*)(
     const Tensor& tensor, const Device& src, const Device& dst,
-    TensorFormats allowed_formats, const ExecutionContext& exec_ctx);
+    TensorType dst_tensor_type, const ExecutionContext& exec_ctx);
 
-// Transfer tensor to device. It will look up and call the TensorConversionFn
-// registered in the TensorConversionFn registry.
-AsyncValueRef<Tensor> TransferTensorTo(const ExecutionContext& exec_ctx,
-                                       const Tensor& tensor, const Device& src,
-                                       const Device& dst,
-                                       TensorFormats allowed_formats);
+// Convert tensor to tensor type. It will look up and call the
+// TensorConversionFn registered in the TensorConversionFn registry
+AsyncValueRef<Tensor> ConvertTensor(const ExecutionContext& exec_ctx,
+                                    const Tensor& tensor, const Device& src,
+                                    const Device& dst,
+                                    TensorType dst_tensor_type);
 
 // This variant is to support legacy cases that haven't been migrated to use
 // ExecutionContext.
 // TODO(fishx): Remove this method.
-AsyncValueRef<Tensor> TransferTensorTo(const Tensor& tensor, const Device& src,
-                                       const Device& dst,
-                                       TensorFormats allowed_formats,
-                                       HostContext* host);
+AsyncValueRef<Tensor> ConvertTensor(const Tensor& tensor, const Device& src,
+                                    const Device& dst,
+                                    TensorType dst_tensor_type,
+                                    HostContext* host);
 
 class TensorConversionFnRegistry {
  public:
@@ -81,15 +67,13 @@ class TensorConversionFnRegistry {
   TensorConversionFnRegistry& operator=(const TensorConversionFnRegistry&) =
       delete;
 
-  // The key of TensorConversionFnRegistry is a pair of Tensor subclass of
-  // source tensor and a target device type.
+  // The key of TensorConversionFnRegistry is a pair of source TensorType
+  // destination TensorType.
   struct ConversionKey {
-    Tensor::Subclass src_subclass;
-    const DeviceType* dst_device_type;
+    TensorType src_tensor_type;
+    TensorType dst_tensor_type;
   };
 
-  // TODO(fishx): Add a static check to ensure that the TensorConversionFn match
-  // the TensorSubclass in its Key.
   void AddTensorConversionFn(ConversionKey key, TensorConversionFn fn);
   TensorConversionFn GetTensorConversionFn(ConversionKey key) const;
 
@@ -114,21 +98,22 @@ namespace llvm {
 template <>
 struct DenseMapInfo<tfrt::TensorConversionFnRegistry::ConversionKey> {
   using ConversionKey = tfrt::TensorConversionFnRegistry::ConversionKey;
-  using DeviceTypeInfo = DenseMapInfo<const tfrt::DeviceType*>;
   static ConversionKey getEmptyKey() {
-    return {tfrt::Tensor::Subclass::DenseHost, DeviceTypeInfo::getEmptyKey()};
+    return {tfrt::TensorType::kUnknownTensorType,
+            tfrt::TensorType::kUnknownTensorType};
   }
   static ConversionKey getTombstoneKey() {
-    return {tfrt::Tensor::Subclass::DenseHost, DeviceTypeInfo::getEmptyKey()};
+    return {tfrt::TensorType::kUnknownTensorType,
+            tfrt::TensorType::kUnknownTensorType};
   }
   static unsigned getHashValue(const ConversionKey& k) {
     return detail::combineHashValue(
-        static_cast<unsigned>(k.src_subclass),
-        DeviceTypeInfo::getHashValue(k.dst_device_type));
+        static_cast<unsigned>(k.src_tensor_type.id()),
+        static_cast<unsigned>(k.dst_tensor_type.id()));
   }
   static bool isEqual(const ConversionKey& lhs, const ConversionKey& rhs) {
-    return lhs.src_subclass == rhs.src_subclass &&
-           DeviceTypeInfo::isEqual(lhs.dst_device_type, rhs.dst_device_type);
+    return lhs.src_tensor_type == rhs.src_tensor_type &&
+           lhs.dst_tensor_type == rhs.dst_tensor_type;
   }
 };
 }  // namespace llvm

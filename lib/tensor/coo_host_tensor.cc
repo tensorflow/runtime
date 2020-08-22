@@ -59,9 +59,26 @@ void ConvertToDHTTensorHelper(const DenseHostTensor &indices,
 AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
     HostContext *host, uint32_t allowed_formats) const {
   auto &cpu = host->GetHostDevice();
+  AsyncValueRef<HostTensor> result;
+  if (allowed_formats &
+      (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::ScalarHost))) {
+    result = AsyncValueRef<HostTensor>(
+        ConvertTensor(*this, cpu, cpu, AnyScalarHostTensor::kTensorType, host));
+  }
+  if (result.IsError() &&
+      (allowed_formats &
+       (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::DenseHost)))) {
+    result = AsyncValueRef<HostTensor>(
+        ConvertTensor(*this, cpu, cpu, DenseHostTensor::kTensorType, host));
+  }
+  return result;
+}
+
+AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
+    HostContext *host, TensorType dst_tensor_type) const {
+  auto &cpu = host->GetHostDevice();
   return AsyncValueRef<HostTensor>(
-      TransferTensorTo(*this, cpu, cpu, {allowed_formats}, host)
-          .ReleaseRCRef());
+      ConvertTensor(*this, cpu, cpu, dst_tensor_type, host).ReleaseRCRef());
 }
 
 void CooHostTensor::Print(raw_ostream &os) const {
@@ -82,19 +99,19 @@ void CooHostTensor::Print(raw_ostream &os) const {
 }
 
 // TODO(fishx): Add a macro to simplify the implementation of ConversionFn.
-static AsyncValueRef<Tensor> CooToHostTensorConversion(
+static AsyncValueRef<Tensor> ConvertCooHostTensorToScalarHostTensor(
     const Tensor &tensor, const Device &src, const Device &dst,
-    TensorFormats allowed_formats, const ExecutionContext &exec_ctx) {
-  assert(tensor.subclass() == Tensor::Subclass::CooHost);
+    TensorType dst_tensor_type, const ExecutionContext &exec_ctx) {
+  assert(tensor.tensor_type() == CooHostTensor::kTensorType);
+  assert(dst_tensor_type == AnyScalarHostTensor::kTensorType);
   assert(dst.type().name() == "cpu");
   const CooHostTensor &coo = static_cast<const CooHostTensor &>(tensor);
   auto *host = exec_ctx.host();
   // Allows conversion to ScalarHostTensor if at most one element or if it is an
   // arbitrary-shaped COO tensor but all elements are zero.
-  if (allowed_formats.Contains(Tensor::Subclass::ScalarHost)) {
-    switch (tensor.dtype().kind()) {
-      default:
-        llvm_unreachable("can't happen");
+  switch (tensor.dtype().kind()) {
+    default:
+      llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                                 \
   case DType::ENUM:                                                         \
     if (coo.NumElements() == 0) {                                           \
@@ -112,43 +129,51 @@ static AsyncValueRef<Tensor> CooToHostTensorConversion(
           host, coo.metadata(), TypeForDTypeKind<DType::ENUM>(0));          \
     }
 #include "tfrt/dtype/dtype.def"  // NOLINT
-    }
   }
 
-  if (allowed_formats.Contains(Tensor::Subclass::DenseHost)) {
-    // Otherwise, return a DenseHostTensor.
-    auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
-    auto result_alloc =
-        DenseHostTensor::CreateUninitialized(coo.metadata(), host);
-    if (!result_alloc)
-      return MakeErrorAsyncValueRef(
-          host, "out of memory converting coo tensor to dht tensor");
-    auto &result_tensor = result_alloc.getValue();
+  return MakeErrorAsyncValueRef(
+      host, StrCat("failed to convert coo tensor to scalar host tensor"));
+}
 
-    switch (coo.dtype().kind()) {
-      default:
-        llvm_unreachable("can't happen");
+static AsyncValueRef<Tensor> ConvertCooHostTensorToDenseHostTensor(
+    const Tensor &tensor, const Device &src, const Device &dst,
+    TensorType dst_tensor_type, const ExecutionContext &exec_ctx) {
+  assert(tensor.tensor_type() == CooHostTensor::kTensorType);
+  assert(dst_tensor_type == DenseHostTensor::kTensorType);
+  assert(dst.type().name() == "cpu");
+  const CooHostTensor &coo = static_cast<const CooHostTensor &>(tensor);
+  auto *host = exec_ctx.host();
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
+  auto result_alloc =
+      DenseHostTensor::CreateUninitialized(coo.metadata(), host);
+  if (!result_alloc) {
+    return MakeErrorAsyncValueRef(
+        host, "out of memory converting coo tensor to dht tensor");
+  }
+  auto &result_tensor = result_alloc.getValue();
+
+  switch (coo.dtype().kind()) {
+    default:
+      llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                  \
   case DType::ENUM:                                          \
     ConvertToDHTTensorHelper<TypeForDTypeKind<DType::ENUM>>( \
         *coo.Indices(), *coo.Values(), &result_tensor);      \
     break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
-    }
-
-    result.emplace(std::move(result_tensor));
-    return result;
   }
-
-  return MakeErrorAsyncValueRef(
-      host, StrCat("failed to convert coo tensor to allowed_format: ",
-                   allowed_formats));
+  result.emplace(std::move(result_tensor));
+  return result;
 }
 
 void RegisterCooHostTensorConversionFn(TensorConversionFnRegistry *registry) {
   registry->AddTensorConversionFn(
-      {Tensor::Subclass::CooHost, &GetStaticDeviceType("cpu")},
-      CooToHostTensorConversion);
+      {CooHostTensor::kTensorType, DenseHostTensor::kTensorType},
+      ConvertCooHostTensorToDenseHostTensor);
+
+  registry->AddTensorConversionFn(
+      {CooHostTensor::kTensorType, AnyScalarHostTensor::kTensorType},
+      ConvertCooHostTensorToScalarHostTensor);
 }
 
 }  // namespace tfrt

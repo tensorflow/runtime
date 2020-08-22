@@ -34,6 +34,16 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "support/tensor_type_registration_test",
+    srcs = ["support/tensor_type_registration_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_context/host_context_test",
     srcs = [
         "host_context/host_context_test.cc",

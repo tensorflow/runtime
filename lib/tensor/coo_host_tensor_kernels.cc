@@ -42,10 +42,8 @@ template <typename T, size_t Rank>
 static void ConvertToDHT(Argument<CooHostTensor> in, Argument<Chain> in_chain,
                          Result<DenseHostTensor> out, Result<Chain> out_chain,
                          KernelErrorHandler handler, AsyncKernelFrame* frame) {
-  uint32_t allowed_formats =
-      1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost);
-  auto host_tensor =
-      in.get().ConvertToHostTensor(frame->GetHostContext(), allowed_formats);
+  auto host_tensor = in.get().ConvertToHostTensor(frame->GetHostContext(),
+                                                  DenseHostTensor::kTensorType);
   auto dht = AsyncValueRef<DenseHostTensor>(host_tensor.ReleaseRCRef());
   out.Set(std::move(dht));
   out_chain.Set(in_chain);

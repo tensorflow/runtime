@@ -22,7 +22,6 @@
 
 #ifndef TFRT_TENSOR_COO_HOST_TENSOR_H_
 #define TFRT_TENSOR_COO_HOST_TENSOR_H_
-
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
@@ -33,7 +32,8 @@ void RegisterCooHostTensorKernels(KernelRegistry* registry);
 void RegisterCooHostTensorConversionFn(TensorConversionFnRegistry* registry);
 
 // Represents a sparse tensor as a coordinate list (COO).
-class CooHostTensor final : public HostTensor {
+class CooHostTensor final : public HostTensor,
+                            public TensorTraits<CooHostTensor> {
  public:
   // Empty and null by default.
   CooHostTensor() = default;
@@ -55,9 +55,11 @@ class CooHostTensor final : public HostTensor {
   AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, uint32_t allowed_formats) const override;
 
-  static bool classof(const Tensor* t) {
-    return t->subclass() == Subclass::CooHost;
-  }
+  AsyncValueRef<HostTensor> ConvertToHostTensor(
+      HostContext* host, TensorType dst_tensor_type_id) const override;
+
+  // Tensor type for CooHostTensor.
+  static const char* name() { return "CooHost"; }
 
  private:
   DenseHostTensor indices_;

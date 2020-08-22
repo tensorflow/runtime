@@ -29,12 +29,12 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/device.h"
 #include "tfrt/tensor/tensor_metadata.h"
+#include "tfrt/tensor/tensor_type_registration.h"
 
 namespace tfrt {
 
 class Device;
 class Tensor;
-class TensorFormats;
 
 // An opaque representation of a rectangular tensor computed by the host/device
 // runtime.
@@ -119,12 +119,9 @@ class TensorHandle final {
   // this TensorHandle, it will simply return a new reference of this
   // TensorHandle. If it fails, the result TensorHandle will contain the error
   // in its tensor_ field.
-  //
-  // allowed_formats is a bitmask indicating target formats. It is a bitmask of
-  // tensor Subclass kinds.
   TensorHandle TransferTo(const ExecutionContext& exec_ctx,
                           RCReference<Device> dst,
-                          TensorFormats allowed_formats) const;
+                          TensorType dst_tensor_type) const;
 
  private:
   friend raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle);

@@ -262,6 +262,7 @@ tfrt_cc_library(
         "lib/tensor/tensor_serialize_utils.cc",
         "lib/tensor/tensor_shape.cc",
         "lib/tensor/tensor_shape_kernels.cc",
+        "lib/tensor/tensor_type_registration.cc",
     ],
     hdrs = [
         "include/tfrt/tensor/btf.h",
@@ -281,6 +282,7 @@ tfrt_cc_library(
         "include/tfrt/tensor/tensor_metadata.h",
         "include/tfrt/tensor/tensor_serialize_utils.h",
         "include/tfrt/tensor/tensor_shape.h",
+        "include/tfrt/tensor/tensor_type_registration.h",
     ],
     alwayslink_static_registration_src = "lib/tensor/static_registration.cc",
     visibility = [":friends"],

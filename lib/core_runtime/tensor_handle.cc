@@ -27,6 +27,7 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/tensor.h"
+#include "tfrt/tensor/tensor_type_registration.h"
 
 namespace tfrt {
 
@@ -67,32 +68,30 @@ TensorHandle TensorHandle::CreateError(RCReference<AsyncValue> error) {
 
 TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
                                       RCReference<Device> dst,
-                                      TensorFormats allowed_formats) const {
+                                      TensorType dst_tensor_type) const {
   HostContext* host = exec_ctx.host();
   AsyncValueRef<Tensor> result_tensor;
   const Device& src = *device_;
   if (GetAsyncTensor()->IsAvailable()) {
     auto& tensor = GetAsyncTensor()->get<Tensor>();
-    if (dst.get() == &src && allowed_formats.Contains(tensor.subclass()))
+    if (dst.get() == &src && tensor.IsTensorType(dst_tensor_type))
       return CopyRef();
-    result_tensor =
-        TransferTensorTo(exec_ctx, tensor, src, *dst, allowed_formats);
+    result_tensor = ConvertTensor(exec_ctx, tensor, src, *dst, dst_tensor_type);
   } else {
     RCReference<IndirectAsyncValue> result_ind_av =
         MakeIndirectAsyncValue(host);
     result_tensor = AsyncValueRef<Tensor>(result_ind_av.CopyRef());
-    GetAsyncTensor()->AndThen([th = CopyRef(), &src,
-                               result_ind_av = std::move(result_ind_av),
-                               dst = dst.CopyRef(), allowed_formats,
-                               exec_ctx]() {
-      auto& tensor = th.GetAsyncTensor()->get<Tensor>();
-      if (dst.get() == &src && allowed_formats.Contains(tensor.subclass())) {
-        result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
-      } else {
-        result_ind_av->ForwardTo(
-            TransferTensorTo(exec_ctx, tensor, src, *dst, allowed_formats));
-      }
-    });
+    GetAsyncTensor()->AndThen(
+        [th = CopyRef(), &src, result_ind_av = std::move(result_ind_av),
+         dst = dst.CopyRef(), dst_tensor_type, exec_ctx]() {
+          auto& tensor = th.GetAsyncTensor()->get<Tensor>();
+          if (dst.get() == &src && tensor.IsTensorType(dst_tensor_type)) {
+            result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+          } else {
+            result_ind_av->ForwardTo(
+                ConvertTensor(exec_ctx, tensor, src, *dst, dst_tensor_type));
+          }
+        });
   }
 
   if (IsMetadataAvailable()) {

@@ -41,11 +41,11 @@ namespace gpu {
 class GpuAllocator;
 class DenseGpuTensor;
 
-AsyncValueRef<DenseHostTensor> CopyDenseGpuTensorToHost(
+AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
     stream::CurrentContext current_context, stream::Stream stream,
     const DenseGpuTensor& tensor, HostContext* host);
 
-Expected<DenseGpuTensor> CopyDenseHostTensorToGpu(
+Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
     stream::CurrentContext current_context, stream::Stream stream,
     GpuAllocator* allocator, const DenseHostTensor& tensor, HostContext* host);
 

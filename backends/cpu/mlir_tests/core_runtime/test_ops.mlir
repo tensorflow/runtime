@@ -225,9 +225,8 @@ func @test_coo_dense_transfer() -> !tfrt.chain {
     : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   // TODO(fishx): Introduce helper kernel to construct formats.
-  // Formats is a bitmask of Tensor::Subclass. 1 is DenseCpu.
   // COO->DHT
-  %d_handle = "corert.transfer"(%c_handle) {device="CPU:0", formats=1}
+  %d_handle = "corert.transfer"(%c_handle) {device="CPU:0", dst_tensor_type_name="DenseHost"}
     : (!corert.tensorhandle) -> !corert.tensorhandle
 
   // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [1]
@@ -235,7 +234,7 @@ func @test_coo_dense_transfer() -> !tfrt.chain {
     : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   // DHT->DHT
-  %e_handle = "corert.transfer"(%d_handle) {device="CPU:0", formats=1}
+  %e_handle = "corert.transfer"(%d_handle) {device="CPU:0", dst_tensor_type_name="DenseHost"}
     : (!corert.tensorhandle) -> !corert.tensorhandle
 
   // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [1]

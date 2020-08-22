@@ -24,6 +24,7 @@
 #define TFRT_TENSOR_TENSOR_H_
 
 #include "tfrt/tensor/tensor_metadata.h"
+#include "tfrt/tensor/tensor_type_registration.h"
 
 namespace tfrt {
 class HostContext;
@@ -32,7 +33,7 @@ class HostTensor;
 // A Tensor is a hyper-rectangular array of values, and the Tensor class is the
 // common base class for all tensor implementations in TFRT.
 //
-// Tensor has a dynamically determined dtype, rank, layout, and device.  It is
+// Tensor has a dynamically determined dtype, rank, and tensor type.  It is
 // subclassed by more specific types used by various devices.
 class Tensor {
  public:
@@ -59,6 +60,8 @@ class Tensor {
 
   const TensorMetadata& metadata() const { return metadata_; }
 
+  TensorType tensor_type() const { return tensor_type_; }
+
   ssize_t NumElements() const { return shape().GetNumElements(); }
 
   virtual void Print(raw_ostream& os) const = 0;
@@ -75,6 +78,12 @@ class Tensor {
   virtual AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, uint32_t allowed_formats) const = 0;
 
+  // Same as above, except dst_tensor_type_name is used to specify destination
+  // tensor type name instead of allowed_formats.
+  // TODO(b/163084901): make it a pure virtual function
+  virtual AsyncValueRef<HostTensor> ConvertToHostTensor(
+      HostContext* host, TensorType dst_tensor_type) const;
+
   virtual bool IsHostTensor() const { return false; }
 
   // Note: subclass() exists for implementations of classof(..), which allows
@@ -83,6 +92,10 @@ class Tensor {
   // switch over this, because your code will have to be updated when new tensor
   // classes get added.
   Subclass subclass() const { return subclass_; }
+
+  bool IsTensorType(TensorType tensor_type) const {
+    return this->tensor_type() == tensor_type;
+  }
 
  protected:
   // This class is not copyable or assignable. If we add a copy operation it
@@ -104,6 +117,9 @@ class Tensor {
  private:
   TensorMetadata metadata_;
   Subclass subclass_;
+  template <class Derived>
+  friend class TensorTraits;
+  TensorType tensor_type_ = TensorType::kUnknownTensorType;
 };
 
 inline Tensor::Tensor(Tensor&& other) = default;
@@ -113,6 +129,23 @@ inline raw_ostream& operator<<(raw_ostream& os, const Tensor& tensor) {
   tensor.Print(os);
   return os;
 }
+
+// TensorTraits register TensorType for Derived class. Each sub Tensor needs to
+// inherit TensorTraits.
+// Example usage:
+// class MyTensor : public Tensor, public TensorTraits<MyTensor> {};
+template <class Derived>
+class TensorTraits {
+ public:
+  static const tfrt::TensorType& kTensorType;
+  TensorTraits() { static_cast<Derived*>(this)->tensor_type_ = kTensorType; }
+
+  static bool classof(const Tensor* t) { return t->IsTensorType(kTensorType); }
+};
+
+template <class Derived>
+const tfrt::TensorType& TensorTraits<Derived>::kTensorType =
+    RegisterStaticTensorType(Derived::name());
 
 }  // namespace tfrt
 

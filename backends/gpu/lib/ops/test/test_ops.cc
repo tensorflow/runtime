@@ -121,24 +121,24 @@ static llvm::Expected<gpu::DenseGpuTensor> CreateDenseTensorOp(
   }
 
   DenseHostTensor tensor{result_md, std::move(host_buffer)};
-  return gpu::CopyDenseHostTensorToGpu(dctx->current_context(), dctx->stream(),
-                                       dctx->allocator(), tensor,
-                                       exec_ctx.host());
+  return gpu::ConvertDenseHostTensorToDenseGpuTensor(
+      dctx->current_context(), dctx->stream(), dctx->allocator(), tensor,
+      exec_ctx.host());
 }
 
 static AsyncValueRef<DenseHostTensor> GpuTensorToHostTensorOp(
     GpuDispatchContext* dctx, const gpu::DenseGpuTensor& input,
     const TensorMetadata& result_md, const ExecutionContext& exec_ctx) {
-  return gpu::CopyDenseGpuTensorToHost(dctx->current_context(), dctx->stream(),
-                                       input, exec_ctx.host());
+  return gpu::ConvertDenseGpuTensorToDenseHostTensor(
+      dctx->current_context(), dctx->stream(), input, exec_ctx.host());
 }
 
 static llvm::Expected<gpu::DenseGpuTensor> DHTToGpuTensorOp(
     GpuDispatchContext* dctx, const DenseHostTensor& input,
     const TensorMetadata& result_md, const ExecutionContext& exec_ctx) {
-  return gpu::CopyDenseHostTensorToGpu(dctx->current_context(), dctx->stream(),
-                                       dctx->allocator(), input,
-                                       exec_ctx.host());
+  return gpu::ConvertDenseHostTensorToDenseGpuTensor(
+      dctx->current_context(), dctx->stream(), dctx->allocator(), input,
+      exec_ctx.host());
 }
 
 static TensorMetadata UnaryIdentityMD(const TensorMetadata& input) {

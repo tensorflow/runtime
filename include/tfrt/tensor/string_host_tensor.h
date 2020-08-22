@@ -33,7 +33,8 @@ namespace tfrt {
 
 // Represents a tensor of strings. The metadata of strings (pointer and size)
 // are stored contiguously in row major format with no padding or stride.
-class StringHostTensor final : public HostTensor {
+class StringHostTensor final : public HostTensor,
+                               public TensorTraits<StringHostTensor> {
  public:
   // Allocate a StringHostTensor with uninitialized data. Return None on
   // failure.
@@ -72,9 +73,8 @@ class StringHostTensor final : public HostTensor {
   AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, uint32_t allowed_formats) const override;
 
-  static bool classof(const Tensor* t) {
-    return t->subclass() == Subclass::StringHost;
-  }
+  // Tensor type for StringHostTensor.
+  static const char* name() { return "StringHost"; }
 
  private:
   // TODO(tfrt-devs): Consider making it reference counted.

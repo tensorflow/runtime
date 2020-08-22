@@ -24,6 +24,7 @@ licenses(["notice"])
         "cudart",
         "cudnn",
         "cufft",
+        "cufftxt",
         "cusolverdn",
     ]
 ]
@@ -35,6 +36,8 @@ tfrt_cc_library(
         ":cuda_stub_inc",
         ":cudart_stub_inc",
         ":cudnn_stub_inc",
+        ":cufft_stub_inc",
+        ":cufftxt_stub_inc",
         ":cusolverdn_stub_inc",
     ],
     visibility = ["//visibility:public"],

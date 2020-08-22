@@ -48,6 +48,7 @@ tfrt_cc_library(
         "lib/stream/cuda_stub.cc",
         "lib/stream/cudart_stub.cc",
         "lib/stream/cudnn_stub.cc",
+        "lib/stream/cufft_stub.cc",
         "lib/stream/cusolver_stub.cc",
     ],
     visibility = ["//visibility:private"],

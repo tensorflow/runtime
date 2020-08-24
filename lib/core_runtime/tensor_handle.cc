@@ -84,6 +84,8 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
     GetAsyncTensor()->AndThen(
         [th = CopyRef(), &src, result_ind_av = std::move(result_ind_av),
          dst = dst.CopyRef(), dst_tensor_type, exec_ctx]() {
+          // TODO(tfrt-devs): Error handling when `th` has an error. Currently
+          // it fails at `th.GetAsyncTensor()->get<Tensor>();` call.
           auto& tensor = th.GetAsyncTensor()->get<Tensor>();
           if (dst.get() == &src && tensor.IsTensorType(dst_tensor_type)) {
             result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));

@@ -475,7 +475,7 @@ class OpAttrsRef {
     return true;
   }
 
-  // Read an array attribute when it is known to exist. This asserts on failure.
+  // Read a string attribute when it is known to exist. This asserts on failure.
   string_view GetStringAsserting(string_view attr_name) const {
     string_view value;
     bool success = GetString(attr_name, &value);

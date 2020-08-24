@@ -165,6 +165,7 @@ tfrt_cc_library(
         "include/tfrt/support/thread_annotations.h",
         "include/tfrt/support/thread_local.h",
         "include/tfrt/support/type_traits.h",
+        "include/tfrt/support/variant.h",
     ] + select({
         "//conditions:default": ["include/tfrt/support/std_mutex.h"],
     }),

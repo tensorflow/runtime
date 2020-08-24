@@ -28,6 +28,7 @@
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/variant.h"
 
 namespace tfrt {
 
@@ -42,7 +43,7 @@ using AsyncKernelImplementation = void (*)(AsyncKernelFrame* frame);
 using SyncKernelImplementation = void (*)(SyncKernelFrame* frame);
 
 using KernelImplementation =
-    llvm::PointerUnion<AsyncKernelImplementation, SyncKernelImplementation>;
+    Variant<Monostate, AsyncKernelImplementation, SyncKernelImplementation>;
 
 namespace internal {
 

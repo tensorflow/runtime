@@ -23,7 +23,11 @@
 #ifndef TFRT_SUPPORT_TYPE_TRAITS_H_
 #define TFRT_SUPPORT_TYPE_TRAITS_H_
 
+#include <tuple>
+#include <type_traits>
 #include <utility>
+
+#include "llvm/ADT/STLExtras.h"
 
 namespace tfrt {
 
@@ -39,22 +43,45 @@ struct make_void {
 template <typename... Ts>
 using void_t = typename make_void<Ts...>::type;
 
-// This is the equivalent of std::conjunction in C++17.
+// The same as std::disjunction in C++17.
 template <class...>
-struct conjunction : std::true_type {};
+struct disjunction : std::false_type {};
 template <class B1>
-struct conjunction<B1> : B1 {};
+struct disjunction<B1> : B1 {};
 template <class B1, class... Bn>
-struct conjunction<B1, Bn...>
-    : std::conditional_t<bool(B1::value), conjunction<Bn...>, B1> {};
-
-// This is the equivalent of std::negation in C++17.
-template <class B>
-struct negation : std::integral_constant<bool, !bool(B::value)> {};
+struct disjunction<B1, Bn...>
+    : std::conditional_t<bool(B1::value), B1, disjunction<Bn...>> {};
 
 // Check whether T may be a base class.
 template <typename T>
-using MaybeBase = conjunction<std::is_class<T>, negation<std::is_final<T>>>;
+using MaybeBase =
+    llvm::conjunction<std::is_class<T>, llvm::negation<std::is_final<T>>>;
+
+// Find the index of a type in a tuple.
+//
+// Example:
+// using Tuple = std::tuple<int, float, double>;
+// static_assert(TupleIndexOf<int, Tuple>::value == 0);
+// static_assert(TupleIndexOf<double, Tuple>::value == 2);
+template <class T, class Tuple>
+struct TupleIndexOf;
+
+template <class T, class... Types>
+struct TupleIndexOf<T, std::tuple<T, Types...>>
+    : std::integral_constant<size_t, 0> {};
+
+template <class T, class U, class... Types>
+struct TupleIndexOf<T, std::tuple<U, Types...>>
+    : std::integral_constant<size_t,
+                             1 + TupleIndexOf<T, std::tuple<Types...>>::value> {
+};
+
+template <typename T, typename Tuple>
+struct TupleHasType;
+
+template <typename T, typename... Us>
+struct TupleHasType<T, std::tuple<Us...>>
+    : disjunction<std::is_same<T, Us>...> {};
 
 // The detector pattern in C++ that can be used for checking whether a type has
 // a specific property, e.g. whether an internal type is present or whether a

@@ -29,6 +29,7 @@
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/bef_reader.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/variant.h"
 
 namespace tfrt {
 
@@ -258,7 +259,7 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
         &bef_file_->string_section_[kernel_name_offset]);
 
     auto kernel = registry_->GetKernel(kernel_name);
-    if (kernel.isNull()) {
+    if (kernel.is<Monostate>()) {
       return DiagnoseUnknownKernel(bef_file_->kernels_.size(), kernel_name,
                                    host_allocator);
     }

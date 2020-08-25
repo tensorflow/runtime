@@ -174,11 +174,6 @@ void AddStaticCpuOpRegistration(CpuOpRegistration func);
 // registry.
 void RegisterStaticCpuOps(CpuOpRegistry* op_reg);
 
-// Create a OpHandler from the specified registry of CPU ops and kernels.  The
-// op_handler is owned by CoreRuntime, just like all op_handlers.  The fallback
-// handler is used to run ops not registered with CPU op_handler.
-Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
-                                        OpHandler* fallback_op_handler);
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_CPU_CORE_RUNTIME_CPU_OP_REGISTRY_H_

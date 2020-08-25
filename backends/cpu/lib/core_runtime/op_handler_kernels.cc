@@ -36,14 +36,12 @@ static void CreateNullOpHandlerKernel(Result<OpHandler *> op_handler,
   op_handler.Emplace(op_handler_ptr.get());
 }
 
-static void CreateCpuOpHandlerKernel(Argument<OpHandler *> fallback,
-                                     Result<OpHandler *> op_handler,
-                                     const ExecutionContext &exec_ctx) {
+static Expected<OpHandler *> CreateCpuOpHandlerKernel(
+    Argument<OpHandler *> fallback, const ExecutionContext &exec_ctx) {
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
-  auto op_handler_ptr = CreateCpuOpHandler(runtime, fallback.get());
-  assert(op_handler_ptr);
-  op_handler.Emplace(op_handler_ptr.get());
+  return CreateCpuOpHandler(runtime, exec_ctx.host()->GetHostDeviceRef(),
+                            fallback.get());
 }
 //===----------------------------------------------------------------------===//
 // Registration

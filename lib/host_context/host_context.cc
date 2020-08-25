@@ -37,11 +37,13 @@ void LocationHandler::VtableAnchor() {}
 std::atomic<int> HostContext::num_shared_context_types_{0};
 static std::atomic<int> next_host_context_index{0};
 HostContext* HostContext::all_host_contexts_[HostContextPtr::kDummyIndex];
+const char* const HostContext::kDefaultHostDeviceName = "CPU:0";
 
 HostContext::HostContext(
     std::function<void(const DecodedDiagnostic&)> diag_handler,
     std::unique_ptr<HostAllocator> allocator,
-    std::unique_ptr<ConcurrentWorkQueue> work_queue)
+    std::unique_ptr<ConcurrentWorkQueue> work_queue,
+    string_view host_device_name)
     : diag_handler_(std::move(diag_handler)),
       allocator_(std::move(allocator)),
       work_queue_(std::move(work_queue)),
@@ -53,9 +55,16 @@ HostContext::HostContext(
   ReadyChain::Get().Construct(this);
   // Add a CPU:0 device by default.
   static DeviceTypeRegistration cpu_type("cpu");
-  // TODO(b/160264760): Pick a better device name than "CPU:0".
-  host_device_ = device_mgr_.MaybeAddDevice(TakeRef(new CpuDevice("CPU:0")));
+  host_device_ =
+      device_mgr_.MaybeAddDevice(TakeRef(new CpuDevice(host_device_name)));
 }
+
+HostContext::HostContext(
+    std::function<void(const DecodedDiagnostic&)> diag_handler,
+    std::unique_ptr<HostAllocator> allocator,
+    std::unique_ptr<ConcurrentWorkQueue> work_queue)
+    : HostContext(std::move(diag_handler), std::move(allocator),
+                  std::move(work_queue), kDefaultHostDeviceName) {}
 
 HostContext::~HostContext() {
   // Wait for the completion of all async tasks managed by this host context.

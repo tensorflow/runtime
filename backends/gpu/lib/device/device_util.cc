@@ -31,15 +31,18 @@
 namespace tfrt {
 namespace gpu {
 
-llvm::Expected<RCReference<GpuDevice>> GetOrCreateGpuDevice(int gpu_ordinal,
+llvm::Expected<RCReference<GpuDevice>> GetOrCreateGpuDevice(string_view name,
+                                                            int gpu_ordinal,
                                                             HostContext* host) {
-  auto device_name = StrCat("GPU:", gpu_ordinal);
+  if (llvm::Error result = gpu::stream::Init(gpu::stream::Platform::CUDA))
+    return std::move(result);
+
   auto existing_device =
-      host->GetDeviceManager()->GetDeviceRef<GpuDevice>(device_name);
+      host->GetDeviceManager()->GetDeviceRef<GpuDevice>(name);
   if (existing_device) {
     return existing_device;
   }
-  auto gpu_device = TakeRef(new GpuDevice(gpu_ordinal));
+  auto gpu_device = TakeRef(new GpuDevice(name, gpu_ordinal));
   if (auto error = gpu_device->Initialize()) {
     return std::move(error);
   }

@@ -32,7 +32,8 @@ namespace gpu {
 
 // Create and return a GPU device. If the device has been created before
 // return the existing device directly. Thread-safe.
-llvm::Expected<RCReference<GpuDevice>> GetOrCreateGpuDevice(int gpu_ordinal,
+llvm::Expected<RCReference<GpuDevice>> GetOrCreateGpuDevice(string_view name,
+                                                            int gpu_ordinal,
                                                             HostContext* host);
 
 }  // namespace gpu

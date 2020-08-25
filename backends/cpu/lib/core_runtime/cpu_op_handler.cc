@@ -57,8 +57,8 @@ class CpuOpHandler : public OpHandler {
   const CpuOpRegistry op_registry_;
   RCReference<Device> device_;
 
-  friend llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
-                                                       OpHandler* fallback);
+  friend llvm::Expected<OpHandler*> CreateCpuOpHandler(
+      CoreRuntime* runtime, RCReference<Device> device, OpHandler* fallback);
 
   // TODO(b/157120084): Remove after op_handler DSL is deprecated.
   friend llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
@@ -140,15 +140,15 @@ llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
 }
 
 llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
+                                              RCReference<Device> device,
                                               OpHandler* fallback) {
   if (!runtime) {
     return MakeStringError("Invalid Runtime");
   }
   CpuOpRegistry op_registry;
   tfrt::RegisterStaticCpuOps(&op_registry);
-  auto cpu_op_handler = std::unique_ptr<CpuOpHandler>(
-      new CpuOpHandler(runtime, fallback, std::move(op_registry),
-                       runtime->GetHostContext()->GetHostDeviceRef()));
+  auto cpu_op_handler = std::unique_ptr<CpuOpHandler>(new CpuOpHandler(
+      runtime, fallback, std::move(op_registry), std::move(device)));
   auto cpu_op_handler_ptr = cpu_op_handler.get();
   runtime->TakeOpHandler(std::move(cpu_op_handler));
   return cpu_op_handler_ptr;

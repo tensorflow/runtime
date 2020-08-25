@@ -56,11 +56,18 @@ class CoreRuntime final {
       std::function<void(const DecodedDiagnostic&)> diag_handler,
       std::unique_ptr<HostAllocator> allocator,
       std::unique_ptr<ConcurrentWorkQueue> work_queue,
+      string_view host_device_name, ArrayRef<std::string> op_handler_chains);
+
+  static llvm::Expected<std::unique_ptr<CoreRuntime>> Create(
+      std::function<void(const DecodedDiagnostic&)> diag_handler,
+      std::unique_ptr<HostAllocator> allocator,
+      std::unique_ptr<ConcurrentWorkQueue> work_queue,
       ArrayRef<std::string> op_handler_chains);
 
   CoreRuntime(std::function<void(const DecodedDiagnostic&)> diag_handler,
               std::unique_ptr<HostAllocator> allocator,
-              std::unique_ptr<ConcurrentWorkQueue> work_queue);
+              std::unique_ptr<ConcurrentWorkQueue> work_queue,
+              string_view host_device_name);
 
   ~CoreRuntime();
 

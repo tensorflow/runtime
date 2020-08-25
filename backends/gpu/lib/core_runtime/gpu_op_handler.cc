@@ -74,9 +74,8 @@ class GpuOpHandler : public OpHandler {
 
   RCReference<GpuDevice> device_;
 
-  friend llvm::Expected<OpHandler*> CreateGpuOpHandler(CoreRuntime* runtime,
-                                                       int gpu_ordinal,
-                                                       OpHandler* fallback);
+  friend llvm::Expected<OpHandler*> CreateGpuOpHandler(
+      CoreRuntime* runtime, RCReference<Device> device, OpHandler* fallback);
 
   // TODO(b/157120084): Remove after op_handler DSL is deprecated.
   friend llvm::Expected<std::unique_ptr<OpHandler>> GPUOpHandlerFactory(
@@ -112,13 +111,11 @@ struct GpuOpHandlerTraits {
 
 llvm::Expected<std::unique_ptr<OpHandler>> GPUOpHandlerFactory(
     CoreRuntime* runtime, OpHandler* fallback) {
-  if (llvm::Error result = gpu::stream::Init(gpu::stream::Platform::CUDA))
-    return std::move(result);
-
   GpuOpRegistry op_registry;
   tfrt::RegisterStaticGpuOps(&op_registry);
   // TODO(xldrx): Add multi gpu support.
-  auto device = gpu::GetOrCreateGpuDevice(0, runtime->GetHostContext());
+  auto device =
+      gpu::GetOrCreateGpuDevice("GPU:0", 0, runtime->GetHostContext());
   if (!device) return device.takeError();
 
   auto op_handler = std::make_unique<GpuOpHandler>(
@@ -128,23 +125,15 @@ llvm::Expected<std::unique_ptr<OpHandler>> GPUOpHandlerFactory(
 }
 
 llvm::Expected<OpHandler*> CreateGpuOpHandler(CoreRuntime* runtime,
-                                              int gpu_ordinal,
+                                              RCReference<GpuDevice> device,
                                               OpHandler* fallback) {
-  if (llvm::Error result = gpu::stream::Init(gpu::stream::Platform::CUDA))
-    return std::move(result);
-
   GpuOpRegistry op_registry;
   tfrt::RegisterStaticGpuOps(&op_registry);
-  auto device =
-      gpu::GetOrCreateGpuDevice(gpu_ordinal, runtime->GetHostContext());
-  if (!device) return device.takeError();
   auto gpu_op_handler = std::make_unique<GpuOpHandler>(
-      runtime, fallback, std::move(op_registry), std::move(device.get()));
+      runtime, fallback, std::move(op_registry), std::move(device));
 
   auto gpu_op_handler_ptr = gpu_op_handler.get();
   runtime->TakeOpHandler(std::move(gpu_op_handler));
-  return gpu_op_handler_ptr;
-
   return gpu_op_handler_ptr;
 }
 

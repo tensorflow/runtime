@@ -22,21 +22,23 @@
 
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/gpu/core_runtime/gpu_op_handler.h"
+#include "tfrt/gpu/device/device.h"
+#include "tfrt/gpu/device/device_util.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 
 namespace tfrt {
 
-static void CreateGpuOpHandlerKernel(Argument<int> gpu_ordinal,
-                                     Argument<OpHandler *> fallback,
-                                     Result<OpHandler *> op_handler,
-                                     const ExecutionContext &exec_ctx) {
+static Expected<OpHandler *> CreateGpuOpHandlerKernel(
+    int gpu_ordinal, Argument<OpHandler *> fallback,
+    const ExecutionContext &exec_ctx) {
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
-  auto op_handler_ptr =
-      CreateGpuOpHandler(runtime, gpu_ordinal.get(), fallback.get());
-  assert(op_handler_ptr);
-  op_handler.Emplace(op_handler_ptr.get());
+  auto device_name = StrCat("GPU:", gpu_ordinal);
+  auto gpu = gpu::GetOrCreateGpuDevice(device_name, gpu_ordinal,
+                                       runtime->GetHostContext());
+  if (!gpu) return gpu.takeError();
+  return CreateGpuOpHandler(runtime, std::move(gpu.get()), fallback.get());
 }
 //===----------------------------------------------------------------------===//
 // Registration

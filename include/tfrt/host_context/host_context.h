@@ -63,9 +63,20 @@ class HostContext {
   using ResultTypeT = typename UnwrapExpected<std::result_of_t<F()>>::type;
 
  public:
+  // The host device name that we will use if the caller does not specify the
+  // device name.
+  static const char* const kDefaultHostDeviceName;
+
+  HostContext(std::function<void(const DecodedDiagnostic&)> diag_handler,
+              std::unique_ptr<HostAllocator> allocator,
+              std::unique_ptr<ConcurrentWorkQueue> work_queue,
+              string_view host_device_name);
+
+  // This constructor uses "CPU:0" as the default host device name.
   HostContext(std::function<void(const DecodedDiagnostic&)> diag_handler,
               std::unique_ptr<HostAllocator> allocator,
               std::unique_ptr<ConcurrentWorkQueue> work_queue);
+
   HostContext(const HostContext&) = delete;
   HostContext& operator=(const HostContext&) = delete;
   ~HostContext();
@@ -213,7 +224,6 @@ class HostContext {
   //===--------------------------------------------------------------------===//
   DeviceManager* GetDeviceManager() { return &device_mgr_; }
 
-  // TODO(b/161370736): Remove this method.
   RCReference<Device> GetHostDeviceRef();
   const Device& GetHostDevice();
 

@@ -27,10 +27,13 @@
 #include <memory>
 
 #include "tfrt/core_runtime/op_handler.h"
+#include "tfrt/support/ref_count.h"
 
 namespace tfrt {
+class GpuDevice;
+
 llvm::Expected<OpHandler*> CreateGpuOpHandler(CoreRuntime* runtime,
-                                              int gpu_ordinal,
+                                              RCReference<GpuDevice> device,
                                               OpHandler* fallback);
 
 // TODO(b/157120084): Remove after op_handler DSL is deprecated.

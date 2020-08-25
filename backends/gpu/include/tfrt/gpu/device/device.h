@@ -42,7 +42,7 @@ using gpu::stream::CurrentContext;
 
 class GpuDevice : public Device {
  public:
-  explicit GpuDevice(int gpu_ordinal);
+  explicit GpuDevice(string_view name, int gpu_ordinal);
 
   llvm::Error Initialize();
 

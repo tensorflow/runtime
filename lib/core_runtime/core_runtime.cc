@@ -85,9 +85,10 @@ class CoreRuntime::Impl {
  public:
   Impl(std::function<void(const DecodedDiagnostic&)> diag_handler,
        std::unique_ptr<HostAllocator> allocator,
-       std::unique_ptr<ConcurrentWorkQueue> work_queue)
+       std::unique_ptr<ConcurrentWorkQueue> work_queue,
+       string_view host_device_name)
       : context_(std::move(diag_handler), std::move(allocator),
-                 std::move(work_queue)) {}
+                 std::move(work_queue), host_device_name) {}
 
   HostContext* GetHostContext() { return &context_; }
 
@@ -160,9 +161,10 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
     std::function<void(const DecodedDiagnostic&)> diag_handler,
     std::unique_ptr<HostAllocator> allocator,
     std::unique_ptr<ConcurrentWorkQueue> work_queue,
-    ArrayRef<std::string> op_handler_chains) {
+    string_view host_device_name, ArrayRef<std::string> op_handler_chains) {
   auto runtime = std::make_unique<CoreRuntime>(
-      std::move(diag_handler), std::move(allocator), std::move(work_queue));
+      std::move(diag_handler), std::move(allocator), std::move(work_queue),
+      host_device_name);
 
   // Register all of the kernels that are statically linked into this executable
   // with our registry.
@@ -247,14 +249,25 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
   return std::move(runtime);
 }
 
+llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
+    std::function<void(const DecodedDiagnostic&)> diag_handler,
+    std::unique_ptr<HostAllocator> allocator,
+    std::unique_ptr<ConcurrentWorkQueue> work_queue,
+    ArrayRef<std::string> op_handler_chains) {
+  return CoreRuntime::Create(
+      std::move(diag_handler), std::move(allocator), std::move(work_queue),
+      HostContext::kDefaultHostDeviceName, op_handler_chains);
+}
+
 CoreRuntime::CoreRuntime(
     std::function<void(const DecodedDiagnostic&)> diag_handler,
     std::unique_ptr<HostAllocator> allocator,
-    std::unique_ptr<ConcurrentWorkQueue> work_queue) {
+    std::unique_ptr<ConcurrentWorkQueue> work_queue,
+    string_view host_device_name) {
   // Create the impl for the CoreRuntime, which constructs a HostContext among
   // other things.
   impl_ = std::make_unique<Impl>(std::move(diag_handler), std::move(allocator),
-                                 std::move(work_queue));
+                                 std::move(work_queue), host_device_name);
 
   auto& ctx =
       GetHostContext()->GetOrCreateSharedContext<CoreRuntimeSharedContext>();

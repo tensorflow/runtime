@@ -30,8 +30,10 @@
 #include "tfrt/cpu/core_runtime/cpu_op_registry.h"
 
 namespace tfrt {
+class Device;
 
 llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
+                                              RCReference<Device> device,
                                               OpHandler* fallback);
 
 // TODO(b/157120084): Remove after op_handler DSL is deprecated.

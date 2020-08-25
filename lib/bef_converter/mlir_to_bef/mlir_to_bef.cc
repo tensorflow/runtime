@@ -593,6 +593,27 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
           return;
         }
 
+        if (IsSyncFunc(fn)) {
+          llvm::SmallSetVector<mlir::Value, 4> return_operands;
+          for (auto iter : llvm::enumerate(last_op.getOperands())) {
+            auto index = iter.index();
+            const auto& operand = iter.value();
+            if (operand.getKind() == mlir::Value::Kind::BlockArgument) {
+              last_op.emitError() << "return value " << index
+                                  << " is an argument in a sync function";
+              result = LogicalResult::Failure;
+              return;
+            }
+
+            if (!return_operands.insert(operand)) {
+              last_op.emitError() << "return value " << index
+                                  << " is duplicated in a sync function";
+              result = LogicalResult::Failure;
+              return;
+            }
+          }
+        }
+
         auto func_kind = IsSyncFunc(fn) ? FunctionKind::kSyncBEFFunction
                                         : FunctionKind::kBEFFunction;
         if (AddFunction(&fn.getBody(), fn.getName(), func_kind) ==
@@ -1493,8 +1514,9 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 
   // Emit the result registers list at the end of the KERNEL_TABLE if present.
   if (return_op) {
-    for (auto operand : return_op->getOperands())
+    for (auto operand : return_op->getOperands()) {
       EmitInt(GetRegisterNumber(operand));
+    }
   }
 
   // Once we're done, we can emit the kernel data after the kernel index

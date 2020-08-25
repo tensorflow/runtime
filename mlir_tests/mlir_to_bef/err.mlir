@@ -49,3 +49,18 @@ func @caller() {
   "someop"() { type = tensor<1xf32>} : () -> i32
   tfrt.return
 }
+
+// -----
+
+func @sync_fn_return_argument(%1: i32) -> i32 attributes {tfrt.sync} {
+  // expected-error @+1 {{return value 0 is an argument in a sync function}}
+  tfrt.return %1 : i32
+}
+
+// -----
+
+func @sync_fn_return_duplicated(%1: i32) -> (i32, i32) attributes {tfrt.sync} {
+  %c1 = tfrt.constant.i32 1
+  // expected-error @+1 {{return value 1 is duplicated in a sync function}}
+  tfrt.return %c1, %c1 : i32, i32
+}

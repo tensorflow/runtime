@@ -24,8 +24,6 @@
 
 namespace tfrt {
 
-static DeviceTypeRegistration register_device_type_gpu("gpu");
-
 // TODO(fishx): Create a macro for this registration.
 static bool gpu_conversion_fn_registration = []() {
   AddStaticTensorConversionFn(gpu::RegisterGpuTensorConversionFn);

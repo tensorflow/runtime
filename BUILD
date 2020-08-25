@@ -269,6 +269,7 @@ tfrt_cc_library(
         "include/tfrt/tensor/btf.h",
         "include/tfrt/tensor/btf_reader_util.h",
         "include/tfrt/tensor/conversion_registry.h",
+        "include/tfrt/tensor/conversion_utils.h",
         "include/tfrt/tensor/coo_host_tensor.h",
         "include/tfrt/tensor/dense_host_tensor.h",
         "include/tfrt/tensor/dense_host_tensor_kernels.h",

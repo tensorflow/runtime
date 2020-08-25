@@ -40,8 +40,13 @@ class GpuAllocator;
 
 using gpu::stream::CurrentContext;
 
-class GpuDevice : public Device {
+class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
  public:
+  static const char* type_name() {
+    static constexpr char kName[] = "gpu";
+    return kName;
+  }
+
   explicit GpuDevice(string_view name, int gpu_ordinal);
 
   llvm::Error Initialize();

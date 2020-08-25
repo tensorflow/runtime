@@ -39,10 +39,9 @@ class ExecutionContext;
 //
 // This returns an error value if the input tensor is invalid or an error is
 // encountered like OOM.
-// TODO(fishx): Change HostContext to ExecutionContext.
 using TensorConversionFn = AsyncValueRef<Tensor> (*)(
     const Tensor& tensor, const Device& src, const Device& dst,
-    TensorType dst_tensor_type, const ExecutionContext& exec_ctx);
+    const ExecutionContext& exec_ctx);
 
 // Convert tensor to tensor type. It will look up and call the
 // TensorConversionFn registered in the TensorConversionFn registry

@@ -30,6 +30,7 @@
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/conversion_registry.h"
+#include "tfrt/tensor/conversion_utils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_metadata.h"
 
@@ -93,19 +94,13 @@ AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
       });
 }
 
-static AsyncValueRef<Tensor> DenseGpuTensorToDenseHostTensorConversionFn(
-    const Tensor& tensor, const Device& src, const Device& dst,
-    TensorType dst_tensor_type, const ExecutionContext& exec_ctx) {
-  assert(llvm::isa<DenseGpuTensor>(tensor));
-  assert(dst_tensor_type == DenseHostTensor::kTensorType);
-  assert(src.type().name() == "gpu");
-  assert(dst.type().name() == "cpu");
-
-  const GpuDevice& gpu_device = static_cast<const GpuDevice&>(src);
-  const DenseGpuTensor& gpu_tensor = static_cast<const DenseGpuTensor&>(tensor);
-  return ConvertDenseGpuTensorToDenseHostTensor(gpu_device.CreateContext(),
-                                                gpu_device.stream(), gpu_tensor,
-                                                exec_ctx.host());
+static AsyncValueRef<DenseHostTensor>
+DenseGpuTensorToDenseHostTensorConversionFn(const DenseGpuTensor& tensor,
+                                            const GpuDevice& src,
+                                            const CpuDevice& dst,
+                                            const ExecutionContext& exec_ctx) {
+  return ConvertDenseGpuTensorToDenseHostTensor(
+      src.CreateContext(), src.stream(), tensor, exec_ctx.host());
 }
 
 Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
@@ -147,35 +142,19 @@ Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
   return gpu::DenseGpuTensor(tensor.metadata(), std::move(buffer));
 }
 
-static AsyncValueRef<Tensor> DenseHostTensorToDenseGpuTensorConversionFn(
-    const Tensor& tensor, const Device& src, const Device& dst,
-    TensorType dst_tensor_type, const ExecutionContext& exec_ctx) {
-  assert(llvm::isa<DenseHostTensor>(tensor));
-  assert(dst_tensor_type == DenseGpuTensor::kTensorType);
-  assert(src.type().name() == "cpu");
-  assert(dst.type().name() == "gpu");
-
-  const GpuDevice& gpu_device = static_cast<const GpuDevice&>(dst);
-  const DenseHostTensor& cpu_tensor =
-      static_cast<const DenseHostTensor&>(tensor);
-
-  auto expected_gpu_tensor = ConvertDenseHostTensorToDenseGpuTensor(
-      gpu_device.CreateContext(), gpu_device.stream(), gpu_device.allocator(),
-      cpu_tensor, exec_ctx.host());
-  if (!expected_gpu_tensor)
-    return EmitErrorAsync(exec_ctx, expected_gpu_tensor.takeError());
-  return MakeAvailableAsyncValueRef<DenseGpuTensor>(
-      exec_ctx.host(), std::move(expected_gpu_tensor.get()));
+static Expected<DenseGpuTensor> DenseHostTensorToDenseGpuTensorConversionFn(
+    const DenseHostTensor& tensor, const CpuDevice& src, const GpuDevice& dst,
+    const ExecutionContext& exec_ctx) {
+  return ConvertDenseHostTensorToDenseGpuTensor(dst.CreateContext(),
+                                                dst.stream(), dst.allocator(),
+                                                tensor, exec_ctx.host());
 }
 
 void RegisterGpuTensorConversionFn(TensorConversionFnRegistry* registry) {
   registry->AddTensorConversionFn(
-      {DenseHostTensor::kTensorType, DenseGpuTensor::kTensorType},
-      DenseHostTensorToDenseGpuTensorConversionFn);
-
+      TFRT_CONVERSION(DenseHostTensorToDenseGpuTensorConversionFn));
   registry->AddTensorConversionFn(
-      {DenseGpuTensor::kTensorType, DenseHostTensor::kTensorType},
-      DenseGpuTensorToDenseHostTensorConversionFn);
+      TFRT_CONVERSION(DenseGpuTensorToDenseHostTensorConversionFn));
 }
 
 }  // namespace gpu

@@ -53,8 +53,6 @@ HostContext::HostContext(
          "Created too many HostContext instances");
   all_host_contexts_[instance_index()] = this;
   ReadyChain::Get().Construct(this);
-  // Add a CPU:0 device by default.
-  static DeviceTypeRegistration cpu_type("cpu");
   host_device_ =
       device_mgr_.MaybeAddDevice(TakeRef(new CpuDevice(host_device_name)));
 }

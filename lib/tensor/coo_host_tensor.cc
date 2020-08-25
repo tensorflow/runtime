@@ -27,6 +27,7 @@
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/tensor/conversion_registry.h"
+#include "tfrt/tensor/conversion_utils.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/scalar_host_tensor.h"
 
@@ -98,18 +99,15 @@ void CooHostTensor::Print(raw_ostream &os) const {
   os << "]\n";
 }
 
-// TODO(fishx): Add a macro to simplify the implementation of ConversionFn.
-static AsyncValueRef<Tensor> ConvertCooHostTensorToScalarHostTensor(
-    const Tensor &tensor, const Device &src, const Device &dst,
-    TensorType dst_tensor_type, const ExecutionContext &exec_ctx) {
-  assert(tensor.tensor_type() == CooHostTensor::kTensorType);
-  assert(dst_tensor_type == AnyScalarHostTensor::kTensorType);
-  assert(dst.type().name() == "cpu");
-  const CooHostTensor &coo = static_cast<const CooHostTensor &>(tensor);
+static AsyncValueRef<AnyScalarHostTensor>
+ConvertCooHostTensorToScalarHostTensor(const CooHostTensor &coo,
+                                       const CpuDevice &src,
+                                       const CpuDevice &dst,
+                                       const ExecutionContext &exec_ctx) {
   auto *host = exec_ctx.host();
   // Allows conversion to ScalarHostTensor if at most one element or if it is an
   // arbitrary-shaped COO tensor but all elements are zero.
-  switch (tensor.dtype().kind()) {
+  switch (coo.dtype().kind()) {
     default:
       llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                                 \
@@ -135,30 +133,26 @@ static AsyncValueRef<Tensor> ConvertCooHostTensorToScalarHostTensor(
       host, StrCat("failed to convert coo tensor to scalar host tensor"));
 }
 
-static AsyncValueRef<Tensor> ConvertCooHostTensorToDenseHostTensor(
-    const Tensor &tensor, const Device &src, const Device &dst,
-    TensorType dst_tensor_type, const ExecutionContext &exec_ctx) {
-  assert(tensor.tensor_type() == CooHostTensor::kTensorType);
-  assert(dst_tensor_type == DenseHostTensor::kTensorType);
-  assert(dst.type().name() == "cpu");
-  const CooHostTensor &coo = static_cast<const CooHostTensor &>(tensor);
+static AsyncValueRef<DenseHostTensor> ConvertCooHostTensorToDenseHostTensor(
+    const CooHostTensor &tensor, const CpuDevice &src, const CpuDevice &dst,
+    const ExecutionContext &exec_ctx) {
   auto *host = exec_ctx.host();
   auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
   auto result_alloc =
-      DenseHostTensor::CreateUninitialized(coo.metadata(), host);
+      DenseHostTensor::CreateUninitialized(tensor.metadata(), host);
   if (!result_alloc) {
     return MakeErrorAsyncValueRef(
         host, "out of memory converting coo tensor to dht tensor");
   }
   auto &result_tensor = result_alloc.getValue();
 
-  switch (coo.dtype().kind()) {
+  switch (tensor.dtype().kind()) {
     default:
       llvm_unreachable("can't happen");
-#define DTYPE_NUMERIC(ENUM)                                  \
-  case DType::ENUM:                                          \
-    ConvertToDHTTensorHelper<TypeForDTypeKind<DType::ENUM>>( \
-        *coo.Indices(), *coo.Values(), &result_tensor);      \
+#define DTYPE_NUMERIC(ENUM)                                   \
+  case DType::ENUM:                                           \
+    ConvertToDHTTensorHelper<TypeForDTypeKind<DType::ENUM>>(  \
+        *tensor.Indices(), *tensor.Values(), &result_tensor); \
     break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
@@ -168,12 +162,9 @@ static AsyncValueRef<Tensor> ConvertCooHostTensorToDenseHostTensor(
 
 void RegisterCooHostTensorConversionFn(TensorConversionFnRegistry *registry) {
   registry->AddTensorConversionFn(
-      {CooHostTensor::kTensorType, DenseHostTensor::kTensorType},
-      ConvertCooHostTensorToDenseHostTensor);
-
+      TFRT_CONVERSION(ConvertCooHostTensorToDenseHostTensor));
   registry->AddTensorConversionFn(
-      {CooHostTensor::kTensorType, AnyScalarHostTensor::kTensorType},
-      ConvertCooHostTensorToScalarHostTensor);
+      TFRT_CONVERSION(ConvertCooHostTensorToScalarHostTensor));
 }
 
 }  // namespace tfrt

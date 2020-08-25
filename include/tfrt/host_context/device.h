@@ -76,6 +76,10 @@ class Device : public ReferenceCounted<Device> {
   const DeviceType& type() const { return type_; }
   string_view name() const { return name_; }
 
+  bool IsDeviceType(const DeviceType& type) const {
+    return this->type() == type;
+  }
+
  private:
   const DeviceType& type_;
   const std::string name_;
@@ -144,7 +148,7 @@ class DeviceTypeRegistry {
 
   ~DeviceTypeRegistry();
 
-  void RegisterDeviceType(string_view type);
+  const DeviceType& RegisterDeviceType(string_view type);
   const DeviceType& GetDeviceType(string_view type) const;
 
  private:
@@ -153,27 +157,37 @@ class DeviceTypeRegistry {
   SmallVector<DeviceType, 4> types_;
 };
 
-// A helper class for registering a new DeviceType.
-struct DeviceTypeRegistration {
-  explicit DeviceTypeRegistration(string_view name);
-};
+// Register and return a new DeviceType.
+const DeviceType& RegisterDeviceType(string_view type);
 
 const DeviceType& GetStaticDeviceType(string_view type);
 
-class CpuDevice : public Device {
+// DeviceTraits register DeviceType for Derived class. Each sub Device needs to
+// inherit DeviceTraits.
+// Example usage:
+// class MyDevice : public Device, public DeviceTraits<MyDevice> {};
+template <class Derived>
+class DeviceTraits {
  public:
-  explicit CpuDevice(string_view name)
-      : Device(GetStaticDeviceType("cpu"), name) {}
+  static const DeviceType& kDeviceType;
 
-  ~CpuDevice() override {}
+  static bool classof(const Device* t) { return t->IsDeviceType(kDeviceType); }
 };
 
-class SimpleDevice : public Device {
- public:
-  explicit SimpleDevice(const DeviceType& type, string_view name)
-      : Device(type, name) {}
+template <class Derived>
+const tfrt::DeviceType& DeviceTraits<Derived>::kDeviceType =
+    RegisterDeviceType(Derived::type_name());
 
-  ~SimpleDevice() override {}
+class CpuDevice : public Device, public DeviceTraits<CpuDevice> {
+ public:
+  static const char* type_name() {
+    static constexpr char kName[] = "cpu";
+    return kName;
+  }
+
+  explicit CpuDevice(string_view name) : Device(kDeviceType, name) {}
+
+  ~CpuDevice() override {}
 };
 
 }  // namespace tfrt

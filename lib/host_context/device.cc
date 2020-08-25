@@ -24,13 +24,14 @@
 
 namespace tfrt {
 
-void DeviceTypeRegistry::RegisterDeviceType(string_view type) {
+const DeviceType& DeviceTypeRegistry::RegisterDeviceType(string_view type) {
   for (auto& dt : types_) {
     if (dt.name() == type) {
       assert(false && "re-registered existing device type.");
     }
   }
   types_.push_back(DeviceType(type));
+  return types_.back();
 }
 
 const DeviceType& DeviceTypeRegistry::GetDeviceType(string_view type) const {
@@ -47,8 +48,9 @@ DeviceTypeRegistry* DeviceTypeRegistry::GetStaticDeviceTypeRegistry() {
   return ret;
 }
 
-DeviceTypeRegistration::DeviceTypeRegistration(string_view name) {
-  DeviceTypeRegistry::GetStaticDeviceTypeRegistry()->RegisterDeviceType(name);
+const DeviceType& RegisterDeviceType(string_view type) {
+  return DeviceTypeRegistry::GetStaticDeviceTypeRegistry()->RegisterDeviceType(
+      type);
 }
 
 const DeviceType& GetStaticDeviceType(string_view type) {

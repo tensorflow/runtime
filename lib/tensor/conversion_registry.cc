@@ -66,7 +66,7 @@ AsyncValueRef<Tensor> ConvertTensor(const ExecutionContext& exec_ctx,
     return EmitErrorAsync(exec_ctx, "cannot find conversion function");
   }
 
-  return conversion_fn(tensor, src, dst, dst_tensor_type, exec_ctx);
+  return conversion_fn(tensor, src, dst, exec_ctx);
 }
 
 AsyncValueRef<Tensor> ConvertTensor(const Tensor& tensor, const Device& src,

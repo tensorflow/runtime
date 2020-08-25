@@ -119,8 +119,7 @@ llvm::Error GpuDevice::Impl::Initialize() {
 }
 
 GpuDevice::GpuDevice(string_view name, int gpu_ordinal)
-    : Device(GetStaticDeviceType("gpu"), name),
-      impl_(std::make_unique<Impl>(gpu_ordinal)) {}
+    : Device(kDeviceType, name), impl_(std::make_unique<Impl>(gpu_ordinal)) {}
 
 llvm::Error GpuDevice::Initialize() { return impl_->Initialize(); }
 

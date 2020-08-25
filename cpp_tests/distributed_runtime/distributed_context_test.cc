@@ -45,10 +45,21 @@ class MockCommunicator : public FabricCommunicator {
  public:
   explicit MockCommunicator(llvm::StringRef name)
       : FabricCommunicator(name,
-                           /*distributed_context=*/nullptr) {}
+                           /*distributed_context=*/nullptr,
+                           /*request handler=*/nullptr) {}
   MOCK_METHOD(void, Send,
               (InstanceKey instance_key, HostId destination,
                llvm::StringRef payload),
+              (override));
+
+  MOCK_METHOD(void, RemoteRegister,
+              (HostId destination, const RemoteRegisterInvocation& request,
+               CallbackFn done),
+              (override));
+
+  MOCK_METHOD(void, RemoteExecute,
+              (HostId destination, const RemoteExecuteInvocation& request,
+               CallbackFn done),
               (override));
 };
 
@@ -72,6 +83,7 @@ TEST(DistributedContext, CreateFabricCommunicator) {
   EXPECT_EQ(dist_context.GetOrCreateFabricCommunicator(), nullptr);
 
   auto mock_factory = [](DistributedContext* distributed_context,
+                         FabricCommunicatorRequestHandler* request_handler,
                          const FabricCommunicatorConfiguration& configuration)
       -> FabricCommunicator* {
     return new MockCommunicator(kMockCommunicatorName);

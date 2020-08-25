@@ -48,6 +48,7 @@ namespace tfrt {
   }()
 
 class FabricCommunicator;
+class FabricCommunicatorRequestHandler;
 class CallbackRegistry;
 
 // TODO(pisong, ayushd): remove `using`.
@@ -81,16 +82,24 @@ class DistributedContext {
  public:
   using FabricCommunicatorFactory = std::function<FabricCommunicator*(
       DistributedContext* distributed_context,
+      FabricCommunicatorRequestHandler* request_handler,
       const FabricCommunicatorConfiguration& configuration)>;
 
   explicit DistributedContext(HostContext* host_context,
                               DistributedContextConfiguration configuration);
+
+  // Create DistributedContext and forward incoming requests to RequestHandler.
+  explicit DistributedContext(
+      HostContext* host_context,
+      std::unique_ptr<FabricCommunicatorRequestHandler> request_handler,
+      DistributedContextConfiguration configuration);
 
   DistributedContext(DistributedContext&&) = delete;
   DistributedContext& operator=(DistributedContext&&) = delete;
 
   DistributedContext(const DistributedContext&) = delete;
   DistributedContext& operator=(const DistributedContext&) = delete;
+  ~DistributedContext();
 
   FabricCommunicator* GetOrCreateFabricCommunicator()
       TFRT_EXCLUDES(communicator_mutex_);
@@ -116,6 +125,10 @@ class DistributedContext {
       const std::string& communicator_type_name,
       FabricCommunicatorFactory factory_function);
 
+  FabricCommunicatorRequestHandler* GetRequestHandler() {
+    return request_handler_.get();
+  }
+
  private:
   static llvm::StringMap<FabricCommunicatorFactory>*
   GetFabricCommunicatorFactories();
@@ -125,6 +138,7 @@ class DistributedContext {
   HostContext* const host_context_;
   const DistributedContextConfiguration configuration_;
   std::unique_ptr<CallbackRegistry> callback_registry_;
+  std::unique_ptr<FabricCommunicatorRequestHandler> request_handler_;
   mutex communicator_mutex_;
   std::unique_ptr<FabricCommunicator> fabric_communicator_
       TFRT_GUARDED_BY(communicator_mutex_);

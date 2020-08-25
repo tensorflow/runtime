@@ -30,12 +30,25 @@
 namespace tfrt {
 
 DistributedContext::DistributedContext(
+    HostContext* host_context,
+    std::unique_ptr<FabricCommunicatorRequestHandler> request_handler,
+    DistributedContextConfiguration configuration)
+    : host_context_{host_context},
+      configuration_{std::move(configuration)},
+      callback_registry_(new CallbackRegistry()),
+      request_handler_(std::move(request_handler)) {
+  GetOrCreateFabricCommunicator();
+}
+
+DistributedContext::DistributedContext(
     HostContext* host_context, DistributedContextConfiguration configuration)
     : host_context_{host_context},
       configuration_{std::move(configuration)},
       callback_registry_(new CallbackRegistry()) {
   GetOrCreateFabricCommunicator();
 }
+
+DistributedContext::~DistributedContext() {}
 
 FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicator() {
   mutex_lock lock(communicator_mutex_);
@@ -77,8 +90,8 @@ FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicatorUnsafe() {
   const auto& factory_function = factories_iter->second;
 
   // Create FabricCommunicator
-  fabric_communicator_.reset(
-      factory_function(this, communicator_configuration));
+  fabric_communicator_.reset(factory_function(this, request_handler_.get(),
+                                              communicator_configuration));
   return fabric_communicator_.get();
 }
 

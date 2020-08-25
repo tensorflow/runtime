@@ -23,6 +23,7 @@
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_MATMUL_KERNEL_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_MATMUL_KERNEL_H_
 
+#include "tfrt/common/compat/eigen/contraction_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/host_context/kernel_utils.h"

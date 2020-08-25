@@ -66,6 +66,32 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "jit_contraction_output_kernel",
+    srcs = ["lib/jit/contraction_output_kernel.cc"],
+    hdrs = ["include/tfrt/cpu/jit/contraction_output_kernel.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:OrcJIT",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:AllPassesAndDialectsNoRegistration",
+        "@llvm-project//mlir:ExecutionEngine",
+        "@llvm-project//mlir:ExecutionEngineUtils",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:LLVMDialect",
+        "@llvm-project//mlir:LLVMTransforms",
+        "@llvm-project//mlir:MlirJitRunner",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:mlir_c_runner_utils",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//backends/common:eigencompat",
+    ],
+)
+
+tfrt_cc_library(
     name = "buffer_forwarding",
     srcs = ["lib/ops/tf/buffer_forwarding.cc"],
     hdrs = ["lib/ops/tf/buffer_forwarding.h"],
@@ -103,6 +129,8 @@ tfrt_cc_library(
         "lib/ops/tf/cwise_unary_ops.h",
         "lib/ops/tf/matmul_fusion_ops.cc",
         "lib/ops/tf/matmul_fusion_ops.h",
+        "lib/ops/tf/matmul_jit_fusion_ops.cc",
+        "lib/ops/tf/matmul_jit_fusion_ops.h",
         "lib/ops/tf/shape_ops.cc",
         "lib/ops/tf/shape_ops.h",
         "lib/ops/tf/softmax_ops.cc",
@@ -119,6 +147,7 @@ tfrt_cc_library(
         ":buffer_forwarding",
         ":core_runtime",
         ":cpu_kernels",
+        ":jit_contraction_output_kernel",
         ":type_dispatch",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",

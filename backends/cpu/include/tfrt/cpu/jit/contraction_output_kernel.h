@@ -34,12 +34,11 @@
 #ifndef TFRT_BACKENDS_CPU_JIT_CONTRACTION_OUTPUT_KERNEL_H_
 #define TFRT_BACKENDS_CPU_JIT_CONTRACTION_OUTPUT_KERNEL_H_
 
-#include <iostream>
-
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
 namespace cpu {
@@ -58,10 +57,21 @@ Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
 // output block is a view into that array at `row_offset` and `col_offset`
 // offsets, of `rows`x`cols` size, and a `stride` in the inner dimension (size
 // of contraction output inner dimension).
+//
+// The contraction output kernel can take arbitrary number of additional
+// arguments (e.g. bias vector for BiasAdd output kernel). All additional
+// arguments must be memrefs with statically known ranks, this is verified at
+// the compile time.
 void CallCompiledContractionOutputKernel(
     CompiledContractionOutputKernel* kernel, DType dtype, void* data,
     int64_t stride, int64_t row_offset, int64_t col_offset, int64_t rows,
-    int64_t cols);
+    int64_t cols, ArrayRef<const DenseHostTensor*> additional_args);
+
+// Verifies that additional output kernel arguments are compatible with compiled
+// output kernel.
+Error VerifyCompiledContractionOutoutKernelArgs(
+    CompiledContractionOutputKernel* kernel,
+    ArrayRef<const DenseHostTensor*> additional_args);
 
 // Eigen contraction output kernel template that delegates all the work to the
 // compiled output contraction kernel.
@@ -71,8 +81,11 @@ class ContractionOutputKernel {
   using ContractionOutputMapper =
       Eigen::internal::blas_data_mapper<T, Eigen::Index, Eigen::ColMajor>;
 
-  explicit ContractionOutputKernel(CompiledContractionOutputKernel* kernel)
-      : kernel_(kernel) {}
+  ContractionOutputKernel(CompiledContractionOutputKernel* kernel,
+                          ArrayRef<const DenseHostTensor*> additional_args)
+      : kernel_(kernel),
+        additional_kernel_args_(additional_args.begin(),
+                                additional_args.end()) {}
 
   void operator()(const ContractionOutputMapper& output_mapper,
                   const Eigen::TensorContractionParams& params,
@@ -85,11 +98,13 @@ class ContractionOutputKernel {
     T* output_base = &output_mapper(0, 0);
     CallCompiledContractionOutputKernel(
         kernel_, GetDType<T>(), static_cast<void*>(output_base),
-        output_mapper.stride(), row_offset, col_offset, rows, cols);
+        output_mapper.stride(), row_offset, col_offset, rows, cols,
+        additional_kernel_args_);
   }
 
  private:
   CompiledContractionOutputKernel* kernel_;
+  SmallVector<const DenseHostTensor*, 8> additional_kernel_args_;
 };
 
 }  // namespace jit

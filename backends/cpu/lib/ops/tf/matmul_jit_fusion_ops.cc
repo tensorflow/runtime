@@ -61,6 +61,19 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
                           StrCat("Failed to compiled output kernel: ", err));
   }
 
+  // Convert fusion inputs to compiled kernel arguments.
+  SmallVector<const DenseHostTensor*, 8> additional_args;
+  for (DenseHostTensor& fusion_input : fusion_inputs) {
+    additional_args.push_back(&fusion_input);
+  }
+
+  // Verify that additional arguments are compatible with the compiled kernel.
+  if (auto err = cpu::jit::VerifyCompiledContractionOutoutKernelArgs(
+          *compiled_kernel, additional_args)) {
+    return EmitErrorAsync(
+        exec_ctx, StrCat("Illegal output kernel additional argument: ", err));
+  }
+
   // Dispatch to the correct data type expression.
   auto unsupported = [&](DType dtype) -> AsyncValueRef<Chain> {
     return EmitErrorAsync(exec_ctx, StrCat("Unsupported input dtype: ", dtype));
@@ -68,8 +81,9 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
 
   auto dispatch = [&](auto type_tag) -> AsyncValueRef<Chain> {
     using T = decltype(type_tag);
-    cpu::jit::ContractionOutputKernel<float> output_kernel(*compiled_kernel);
-    return cpu::MatMul<T>(1.0, a, b, 0.0, &*output, output_kernel,
+    cpu::jit::ContractionOutputKernel<float> output_kernel(*compiled_kernel,
+                                                           additional_args);
+    return cpu::MatMul<T>(1.0, a, b, 0.0, &*output, std::move(output_kernel),
                           compat::AsyncEigenEvaluator(host));
   };
 

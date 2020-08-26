@@ -87,6 +87,7 @@ tfrt_cc_library(
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
         "@tf_runtime//backends/common:eigencompat",
     ],
 )

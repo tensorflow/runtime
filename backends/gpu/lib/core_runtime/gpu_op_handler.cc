@@ -51,7 +51,6 @@ class Chain;
 class GpuOpRegistry;
 class Tensor;
 using gpu::stream::OwningEvent;
-using gpu::stream::Platform;
 
 class GpuOpHandler : public OpHandler {
  public:

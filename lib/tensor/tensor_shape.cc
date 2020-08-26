@@ -287,6 +287,14 @@ int PartialTensorShape::GetRank() const {
   return GetShape().getValue().size();
 }
 
+int64_t PartialTensorShape::GetDimensionSize(int dim_idx) const {
+  assert(!IsUnranked() && "GetDim must be called on a ranked tensor shape");
+  assert(dim_idx >= 0 && dim_idx < GetRank() &&
+         "Index i must be in the range of [0, rank)");
+
+  return (*dims_)[dim_idx];
+}
+
 Expected<TensorShape> PartialTensorShape::ToTensorShape() const {
   if (IsShapeKnown()) {
     return TensorShape(dims_.getValue());

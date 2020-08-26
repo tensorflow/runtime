@@ -201,6 +201,10 @@ class PartialTensorShape {
   // The maximum rank is 255. A scalar returns a 0.
   int GetRank() const;
 
+  // Returns the dimension at the specified index. `dim_idx` must be in range:
+  // [0, GetRank()) and the shape must be ranked.
+  int64_t GetDimensionSize(int dim_idx) const;
+
   // If unknown rank or any dimension has unknown size (< 0), it doesn't have
   // known shape. If true, this shape can be converted to a
   // TensorShape.

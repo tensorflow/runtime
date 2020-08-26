@@ -131,10 +131,22 @@ tfrt_cc_library(
     }),
 )
 
+# Op/Kernel dependencies belong here rather than directly adding them in
+# tools:bef_executor. This ensures other bef_executor binaries can easily use
+# the same kernels as tools:bef_executor
+tfrt_cc_library(
+    name = "bef_executor_jit_kernels",
+    visibility = [":friends"],
+    deps = [
+        "@tf_runtime//backends/cpu:tf_jit_ops_alwayslink",
+    ],
+)
+
 tfrt_cc_binary(
     name = "bef_executor",
     visibility = [":friends"],
     deps = [
+        ":bef_executor_jit_kernels",
         ":bef_executor_kernels",
         ":bef_executor_lib",
         "@tf_runtime//:dtype",

@@ -129,8 +129,6 @@ tfrt_cc_library(
         "lib/ops/tf/cwise_unary_ops.h",
         "lib/ops/tf/matmul_fusion_ops.cc",
         "lib/ops/tf/matmul_fusion_ops.h",
-        "lib/ops/tf/matmul_jit_fusion_ops.cc",
-        "lib/ops/tf/matmul_jit_fusion_ops.h",
         "lib/ops/tf/shape_ops.cc",
         "lib/ops/tf/shape_ops.h",
         "lib/ops/tf/softmax_ops.cc",
@@ -142,6 +140,35 @@ tfrt_cc_library(
         "include/tfrt/cpu/ops/tf/cpu_ops.h",
     ],
     alwayslink_static_registration_src = "lib/ops/tf/static_registration.cc",
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":buffer_forwarding",
+        ":core_runtime",
+        ":cpu_kernels",
+        ":jit_contraction_output_kernel",
+        ":type_dispatch",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:core_runtime",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+        "@tf_runtime//backends/common:eigencompat",
+        "@tf_runtime//backends/common:tf_metadata_functions",
+    ],
+)
+
+tfrt_cc_library(
+    name = "tf_jit_ops",
+    srcs = [
+        "lib/ops/tf/cpu_jit_ops.cc",
+        "lib/ops/tf/matmul_jit_fusion_ops.cc",
+        "lib/ops/tf/matmul_jit_fusion_ops.h",
+    ],
+    hdrs = [
+        "include/tfrt/cpu/ops/tf/cpu_jit_ops.h",
+    ],
+    alwayslink_static_registration_src = "lib/ops/tf/static_registration_jit.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":buffer_forwarding",

@@ -61,7 +61,8 @@ def gentbl(name, tblgen, td_file, td_srcs, tbl_outs, library = True, **kwargs):
             message = "Generating code from table: %s" % td_file,
             cmd = (("$(location %s) " + "-I external/llvm-project/llvm/include " +
                     "-I external/llvm-project/clang/include " +
-                    "-I $$(dirname $(location %s)) " + "%s $(location %s) -o $@") % (
+                    "-I $$(dirname $(location %s)) " + ("%s $(location %s) --long-string-literals=0 " +
+                                                        "-o $@")) % (
                 tblgen,
                 td_file,
                 opts,
@@ -190,6 +191,7 @@ posix_cmake_vars = {
     "HAVE_PTHREAD_H": 1,
     "HAVE_SIGNAL_H": 1,
     "HAVE_STDINT_H": 1,
+    "HAVE_SYSEXITS_H": 1,
     "HAVE_SYS_IOCTL_H": 1,
     "HAVE_SYS_MMAN_H": 1,
     "HAVE_SYS_PARAM_H": 1,

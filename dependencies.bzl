@@ -32,8 +32,8 @@ def tfrt_dependencies():
     cuda_dependencies()
 
     # LLVM and MLIR from llvm-project.
-    LLVM_COMMIT = "131b3b9ed4efd11d2e50d2963fd11f5d7c7650f0"
-    LLVM_SHA256 = "f614dc599cc7d10c787f996de7a16c8d43fa38dedad0354501dc22e04520716c"
+    LLVM_COMMIT = "b5924a8e27536d19dd5c4d302db29fb6163d5faa"
+    LLVM_SHA256 = "ec8885fd0fc4068d0420bfb92b10bf200a240dca8a897dfeccfacf72fba310e2"
     LLVM_URLS = [
         "https://storage.googleapis.com/mirror.tensorflow.org/github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),
         "https://github.com/llvm/llvm-project/archive/{commit}.tar.gz".format(commit = LLVM_COMMIT),

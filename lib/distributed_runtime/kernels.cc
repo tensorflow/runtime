@@ -367,6 +367,64 @@ void Broadcast(Argument<DistributedContext> dist_context,
       });
 }
 
+AsyncValueRef<Chain> RemoteRegisterKernel(Chain ch,
+                                          DistributedContext* dist_context,
+                                          HostId receiver,
+                                          StringAttribute program,
+                                          StringAttribute program_name,
+                                          const ExecutionContext& exec_ctx) {
+  RemoteRegisterInvocation request;
+  // program and program_name will live as long as out_chain is not populated.
+  request.program = program.get();
+  request.program_name = program_name.get();
+
+  AsyncValueRef<Chain> out_chain =
+      MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
+
+  exec_ctx.host()->EnqueueWork([receiver, request, dist_context,
+                                out_chain = out_chain.CopyRef()]() mutable {
+    dist_context->GetOrCreateFabricCommunicator()->RemoteRegister(
+        receiver, request,
+        [out_chain = out_chain.CopyRef()](bool success) mutable {
+          if (!success) {
+            out_chain.SetError("Failed Remote Register");
+          } else {
+            out_chain.SetStateConcrete();
+          }
+        });
+  });
+
+  return out_chain;
+}
+
+AsyncValueRef<Chain> RemoteExecuteKernel(Chain ch,
+                                         DistributedContext* dist_context,
+                                         HostId receiver,
+                                         StringAttribute program_name,
+                                         const ExecutionContext& exec_ctx) {
+  RemoteExecuteInvocation request;
+  // program_name will live as long as out_chain is not populated.
+  request.program_name = program_name.get();
+
+  AsyncValueRef<Chain> out_chain =
+      MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
+
+  exec_ctx.host()->EnqueueWork([receiver, request, dist_context,
+                                out_chain = out_chain.CopyRef()]() mutable {
+    dist_context->GetOrCreateFabricCommunicator()->RemoteExecute(
+        receiver, request,
+        [out_chain = out_chain.CopyRef()](bool success) mutable {
+          if (!success) {
+            out_chain.SetError("Failed Remote Execute");
+          } else {
+            out_chain.SetStateConcrete();
+          }
+        });
+  });
+
+  return out_chain;
+}
+
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -381,6 +439,9 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
   registry->AddKernel("dist.cpu.broadcast.f32", TFRT_KERNEL(Broadcast<float>));
   registry->AddKernel("dist.cpu.broadcast.i32",
                       TFRT_KERNEL(Broadcast<int32_t>));
+  registry->AddKernel("dist.remote_execute", TFRT_KERNEL(RemoteExecuteKernel));
+  registry->AddKernel("dist.remote_register",
+                      TFRT_KERNEL(RemoteRegisterKernel));
 }
 
 }  // namespace tfrt

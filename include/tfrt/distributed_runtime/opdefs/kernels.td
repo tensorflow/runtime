@@ -45,7 +45,7 @@ def CollectiveGroupType
 // Base class for the operation in this dialect
 class DistOp<string mnemonic, list<OpTrait> traits = []>
     : Op<DistDialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
-  let assemblyFormat = "operands attr-dict";
+
 }
 
 // TODO(ayushd, xldrx): consider changing reduction_fn from attribute to a
@@ -73,6 +73,7 @@ class AllReduceOp<string dtype> : DistOp<"cpu.allreduce." # dtype> {
     TensorType,
     TFRT_ChainType);
   let results = (outs TFRT_ChainType);
+  let assemblyFormat = "operands attr-dict";
 }
 
 foreach dtype = ["i32", "f32"] in {
@@ -101,6 +102,7 @@ class BroadcastOp<string dtype> : DistOp<"cpu.broadcast." # dtype> {
     I32,
     TFRT_ChainType);
   let results = (outs TFRT_ChainType);
+  let assemblyFormat = "operands attr-dict";
 }
 
 foreach dtype = ["i32", "f32"] in {
@@ -120,6 +122,22 @@ def SetupFromString : DistOp<"test_setup_from_string"> {
 
   let arguments = (ins I32:$id);
   let results = (outs DistributedContextType : $result);
+  let assemblyFormat = "operands attr-dict";
+}
+
+def SetupWithRequestHandlerFromString :
+    DistOp<"test_setup_with_request_handler_from_string"> {
+  let summary = "dist.test_setup_with_request_handler_from_string operation";
+
+  let description = [{
+    Similar to SetupFromString but also associate a RequestHandler
+    implementation that processes incoming RemoteExecute and RemoteRegister
+    requests.
+  }];
+
+  let arguments = (ins I32:$id);
+  let results = (outs DistributedContextType : $result);
+  let assemblyFormat = "operands attr-dict";
 }
 
 def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
@@ -135,6 +153,57 @@ def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
     StringType:$name
   );
   let results = (outs CollectiveGroupType);
+  let assemblyFormat = "operands attr-dict";
+}
+
+def RemoteRegisterOp :  DistOp<"remote_register"> {
+  let summary = "dist.remote_register operation";
+  let description = [{
+    Register a program on a remote location.
+
+    "program" has to be a string representing MLIR in TFRT dialect
+
+    Example:
+      dist.remote_register (%context, %id) "program" "program_name"
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    DistributedContextType:$context,
+    I32:$host_id,
+    StrAttr:$program,
+    StrAttr:$program_name
+  );
+  let results = (outs
+    TFRT_ChainType:$out_op_chain
+  );
+
+  let printer = [{ return tfrt::dist::print(p, *this); }];
+  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+}
+
+def RemoteExecuteOp :  DistOp<"remote_execute"> {
+  let summary = "dist.remote_execute operation";
+  let description = [{
+    Executes a program on a remote location.
+    // TODO(bramandia): Add supports for inputs and outputs.
+
+    Example:
+      dist.remote_execute (%context, %id) "program_name"
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    DistributedContextType:$context,
+    I32:$host_id,
+    StrAttr:$program_name
+  );
+  let results = (outs
+    TFRT_ChainType:$out_op_chain
+  );
+
+  let printer = [{ return tfrt::dist::print(p, *this); }];
+  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
 }
 
 #endif  // DISTRIBUTED_OPS

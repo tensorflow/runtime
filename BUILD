@@ -343,12 +343,30 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/bef_converter/mlir_to_bef.h",
     ],
-    alwayslink_static_registration_src = "lib/bef_converter/mlir_to_bef/static_registration.cc",
     visibility = [":friends"],
     deps = [
         ":bef_attr_encoder",
         ":bef_emitter",
         ":core_runtime_opdefs",
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+tfrt_cc_library(
+    name = "mlirtobef_translate",
+    srcs = [
+        "lib/bef_converter/mlir_to_bef/mlir_to_bef_translate.cc",
+    ],
+    hdrs = [
+        "include/tfrt/bef_converter/mlir_to_bef_translate.h",
+    ],
+    alwayslink_static_registration_src = "lib/bef_converter/mlir_to_bef/static_registration.cc",
+    visibility = [":friends"],
+    deps = [
+        ":init_tfrt_dialects",
+        ":mlirtobef",
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -360,10 +378,26 @@ tfrt_cc_library(
     name = "beftomlir",
     srcs = ["lib/bef_converter/bef_to_mlir/bef_to_mlir.cc"],
     hdrs = ["include/tfrt/bef_converter/bef_to_mlir.h"],
-    alwayslink_static_registration_src = "lib/bef_converter/bef_to_mlir/static_registration.cc",
     visibility = [":friends"],
     deps = [
         ":core_runtime_opdefs",
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "beftomlir_translate",
+    srcs = ["lib/bef_converter/bef_to_mlir/bef_to_mlir_translate.cc"],
+    hdrs = ["include/tfrt/bef_converter/bef_to_mlir_translate.h"],
+    alwayslink_static_registration_src = "lib/bef_converter/bef_to_mlir/static_registration.cc",
+    visibility = [":friends"],
+    deps = [
+        ":beftomlir",
+        ":init_tfrt_dialects",
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -942,6 +976,7 @@ tfrt_cc_library(
         ":basic_kernels_opdefs",
         ":core_runtime_opdefs",
         ":data_opdefs",
+        ":distributed_kernels_opdefs",
         ":tensor_opdefs",
         ":test_kernels_opdefs",
         "@llvm-project//mlir:IR",

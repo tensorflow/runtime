@@ -30,6 +30,7 @@
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/types.h"
@@ -43,6 +44,8 @@ namespace corert {
 
 CoreRTDialect::CoreRTDialect(MLIRContext *context)
     : Dialect(/*name=*/"corert", context, TypeID::get<CoreRTDialect>()) {
+  context->getOrLoadDialect<TFRTDialect>();
+
   allowUnknownTypes();
   allowUnknownOperations();
 

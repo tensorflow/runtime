@@ -48,17 +48,12 @@ tfrt_cc_library(
     name = "translate_lib",
     visibility = [":friends"],
     deps = [
-        "@tf_runtime//:basic_kernels_opdefs_alwayslink",
-        "@tf_runtime//:distributed_kernels_opdefs_alwayslink",
-        "@tf_runtime//:beftomlir_alwayslink",
-        "@tf_runtime//:core_runtime_opdefs_alwayslink",
-        "@tf_runtime//:data_opdefs_alwayslink",
-        "@tf_runtime//:mlirtobef_alwayslink",
-        "@tf_runtime//:tensor_opdefs_alwayslink",
-        "@tf_runtime//:test_kernels_opdefs_alwayslink",
+        "@tf_runtime//:mlirtobef_translate_alwayslink",
+        "@tf_runtime//:beftomlir_translate_alwayslink",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:tfrt_translate_main",
     ] + select({
+        # TODO(chky): Create a separate translate tool for gpu.
         "@tf_runtime//:gpu_enabled": [
             "@tf_runtime//backends/gpu:cuda_opdefs_alwayslink",
             "@tf_runtime//backends/gpu:cuda_test_opdefs_alwayslink",

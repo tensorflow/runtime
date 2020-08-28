@@ -12,55 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- BEF to MLIR conversion ---------------------------------------------===//
+//===- BEF to MLIR translation registration -------------------------------===//
 //
-// This file implements a mlir translation for the bef-to-mlir converter. It
-// opens up an BEF file specified on the command line and converts it to a mlir
-// file at specified location.
+// This file registrates BEF to MLIR translation.
 //
 //===----------------------------------------------------------------------===//
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/SourceMgr.h"
-#include "llvm/Support/raw_ostream.h"
-#include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Module.h"
 #include "mlir/Translation.h"
-#include "tfrt/bef_converter/bef_to_mlir.h"
+#include "tfrt/bef_converter/bef_to_mlir_translate.h"
 
 namespace tfrt {
 namespace {
 
-mlir::OwningModuleRef ConvertFromBEF(llvm::SourceMgr *source_mgr,
-                                     mlir::MLIRContext *context) {
-  const llvm::MemoryBuffer *input =
-      source_mgr->getMemoryBuffer(source_mgr->getMainFileID());
-  mlir::Location location =
-      mlir::FileLineColLoc::get(input->getBufferIdentifier(), 0, 0, context);
-
-  source_mgr->setDiagHandler([](const llvm::SMDiagnostic &diag, void *) {
-    llvm::SMDiagnostic bef_diag(diag.getFilename(), diag.getKind(),
-                                diag.getMessage());
-    bef_diag.print(nullptr, llvm::errs());
-  });
-
-  auto bef_file = llvm::ArrayRef<uint8_t>(
-      reinterpret_cast<const uint8_t *>(input->getBufferStart()),
-      input->getBufferSize());
-  if (bef_file.empty()) {
-    mlir::emitError(location) << "BEF file is empty.";
-    return {};
-  }
-
-  mlir::SourceMgrDiagnosticHandler source_mgr_diag_handler(*source_mgr,
-                                                           context);
-
-  return ConvertBEFToMLIR(location, bef_file, context);
-}
-
-static mlir::TranslateToMLIRRegistration registration(
-    "bef-to-mlir", [](llvm::SourceMgr &source_mgr, mlir::MLIRContext *context) {
-      return ConvertFromBEF(&source_mgr, context);
-    });
+static mlir::TranslateToMLIRRegistration registration("bef-to-mlir",
+                                                      BEFToMLIRTranslate);
 
 }  // namespace
 }  // namespace tfrt

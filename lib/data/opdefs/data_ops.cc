@@ -27,6 +27,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
@@ -39,6 +40,8 @@ namespace data {
 DataDialect::DataDialect(MLIRContext *context)
     : Dialect(/*name=*/getDialectNamespace(), context,
               TypeID::get<DataDialect>()) {
+  context->getOrLoadDialect<TFRTDialect>();
+
   allowUnknownTypes();
   allowUnknownOperations();
 

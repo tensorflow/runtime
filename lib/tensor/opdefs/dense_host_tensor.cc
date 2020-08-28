@@ -26,6 +26,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
@@ -38,6 +39,8 @@ namespace dht {
 DenseHostTensorDialect::DenseHostTensorDialect(MLIRContext *context)
     : Dialect(/*name=*/"tfrt_dht", context,
               TypeID::get<DenseHostTensorDialect>()) {
+  context->getOrLoadDialect<TFRTDialect>();
+
   allowUnknownTypes();
   allowUnknownOperations();
   addOperations<

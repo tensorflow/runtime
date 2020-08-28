@@ -1,0 +1,64 @@
+// Copyright 2020 The TensorFlow Runtime Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//===- BEF to MLIR translation --------------------------------------------===//
+//
+// This file implements a mlir translation for the bef-to-mlir converter. It
+// opens up an BEF file specified on the command line and converts it to a mlir
+// file at specified location.
+//
+//===----------------------------------------------------------------------===//
+#include "llvm/Support/MemoryBuffer.h"
+#include "llvm/Support/SourceMgr.h"
+#include "llvm/Support/raw_ostream.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Module.h"
+#include "mlir/Translation.h"
+#include "tfrt/bef_converter/bef_to_mlir.h"
+#include "tfrt/init_tfrt_dialects.h"
+
+namespace tfrt {
+
+mlir::OwningModuleRef BEFToMLIRTranslate(llvm::SourceMgr &source_mgr,
+                                         mlir::MLIRContext *context) {
+  RegisterTFRTDialects(context->getDialectRegistry());
+  for (const auto &dialect_name : context->getAvailableDialects()) {
+    context->getOrLoadDialect(dialect_name);
+  }
+
+  const llvm::MemoryBuffer *input =
+      source_mgr.getMemoryBuffer(source_mgr.getMainFileID());
+  mlir::Location location =
+      mlir::FileLineColLoc::get(input->getBufferIdentifier(), 0, 0, context);
+
+  source_mgr.setDiagHandler([](const llvm::SMDiagnostic &diag, void *) {
+    llvm::SMDiagnostic bef_diag(diag.getFilename(), diag.getKind(),
+                                diag.getMessage());
+    bef_diag.print(nullptr, llvm::errs());
+  });
+
+  auto bef_file = llvm::ArrayRef<uint8_t>(
+      reinterpret_cast<const uint8_t *>(input->getBufferStart()),
+      input->getBufferSize());
+  if (bef_file.empty()) {
+    mlir::emitError(location) << "BEF file is empty.";
+    return {};
+  }
+
+  mlir::SourceMgrDiagnosticHandler source_mgr_diag_handler(source_mgr, context);
+
+  return ConvertBEFToMLIR(location, bef_file, context);
+}
+
+}  // namespace tfrt

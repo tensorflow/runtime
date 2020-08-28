@@ -12,24 +12,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- MLIR to BEF Translation Registration -------------------------------===//
+//===- MLIR to BEF Translation --------------------------------------------===//
 //
 // This file implements the registration for the mlir-to-bef converter in MLIR
 // Translate infrastructure.  It opens up an mlir file specified on the command
 // line and converts it to a bef file at specified location.
 //
 //===----------------------------------------------------------------------===//
+#include "llvm/Support/CommandLine.h"
 #include "mlir/IR/Module.h"
-#include "mlir/Translation.h"
-#include "tfrt/bef_converter/mlir_to_bef_translate.h"
-#include "tfrt/init_tfrt_dialects.h"
+#include "tfrt/bef_converter/mlir_to_bef.h"
+#include "tfrt/support/aligned_buffer.h"
+
+static llvm::cl::opt<bool> disable_optional_sections(  // NOLINT
+    "disable-optional-sections",
+    llvm::cl::desc("Disable optional sections for register types, attribute "
+                   "types and attribute names."),
+    llvm::cl::init(false));
 
 namespace tfrt {
-namespace {
 
-static mlir::TranslateFromMLIRRegistration registration(
-    "mlir-to-bef", MLIRToBEFTranslate,
-    [](mlir::DialectRegistry& registry) { RegisterTFRTDialects(registry); });
+mlir::LogicalResult MLIRToBEFTranslate(mlir::ModuleOp module,
+                                       llvm::raw_ostream& output) {
+  tfrt::AlignedBuffer<8> bef_file =
+      tfrt::ConvertMLIRToBEF(module, disable_optional_sections);
+  if (bef_file.empty()) return mlir::failure();
 
-}  // namespace
+  // Success!
+  output.write(reinterpret_cast<const char*>(bef_file.data()), bef_file.size());
+  return mlir::success();
+}
+
 }  // namespace tfrt

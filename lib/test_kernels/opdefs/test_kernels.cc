@@ -26,6 +26,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
@@ -36,7 +37,9 @@ namespace test {
 //===----------------------------------------------------------------------===//
 
 TestDialect::TestDialect(MLIRContext *context)
-    : Dialect(/*name*/ "tfrt_test", context, TypeID::get<TestDialect>()) {
+    : Dialect(/*name=*/"tfrt_test", context, TypeID::get<TestDialect>()) {
+  context->getOrLoadDialect<TFRTDialect>();
+
   allowUnknownTypes();
   allowUnknownOperations();
 

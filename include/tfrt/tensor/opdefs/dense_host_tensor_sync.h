@@ -27,7 +27,7 @@
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
-using namespace mlir;
+using namespace mlir;  // NOLINT
 
 namespace tfrt {
 namespace dht {

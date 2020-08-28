@@ -22,6 +22,7 @@
 
 #include "tfrt/tensor/opdefs/coo_host_tensor.h"
 #include "tfrt/tensor/opdefs/dense_host_tensor.h"
+#include "tfrt/tensor/opdefs/dense_host_tensor_sync.h"
 #include "tfrt/tensor/opdefs/tensor_shape.h"
 
 namespace tfrt {
@@ -36,6 +37,8 @@ namespace dht {
 
 // Static initialization for dialect registration.
 static ::mlir::DialectRegistration<DenseHostTensorDialect> dht_registration;
+static ::mlir::DialectRegistration<DenseHostTensorSyncDialect>
+    dht_sync_registration;
 
 }  // namespace dht
 

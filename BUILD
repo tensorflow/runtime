@@ -497,6 +497,27 @@ gentbl(
 )
 
 gentbl(
+    name = "dense_host_tensor_sync_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/tensor/opdefs/dense_host_tensor_sync.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/tensor/opdefs/dense_host_tensor_sync.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/tensor/opdefs/dense_host_tensor_sync.td",
+    td_includes = ["include"],
+    td_srcs = [
+        ":OpBaseTdFiles",
+        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+    ],
+)
+
+gentbl(
     name = "coo_host_tensor_opdefs_inc_gen",
     tbl_outs = [
         (
@@ -521,11 +542,13 @@ tfrt_cc_library(
     srcs = [
         "lib/tensor/opdefs/coo_host_tensor.cc",
         "lib/tensor/opdefs/dense_host_tensor.cc",
+        "lib/tensor/opdefs/dense_host_tensor_sync.cc",
         "lib/tensor/opdefs/tensor_shape.cc",
     ],
     hdrs = [
         "include/tfrt/tensor/opdefs/coo_host_tensor.h",
         "include/tfrt/tensor/opdefs/dense_host_tensor.h",
+        "include/tfrt/tensor/opdefs/dense_host_tensor_sync.h",
         "include/tfrt/tensor/opdefs/tensor_shape.h",
     ],
     alwayslink_static_registration_src = "lib/tensor/opdefs/static_registration.cc",
@@ -534,6 +557,7 @@ tfrt_cc_library(
         ":basic_kernels_opdefs",
         ":coo_host_tensor_opdefs_inc_gen",
         ":dense_host_tensor_opdefs_inc_gen",
+        ":dense_host_tensor_sync_opdefs_inc_gen",
         ":tensor_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",

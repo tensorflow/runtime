@@ -17,6 +17,7 @@ glob_tfrt_lit_tests(
             "notap",
         ],
     },
+    tfrt_translate = "@tf_runtime//backends/gpu:tfrt_gpu_translate",
 )
 
 # Bundle together all of the test utilities that are used by tests.
@@ -27,6 +28,5 @@ filegroup(
         "@llvm-project//llvm:FileCheck",
         "@tf_runtime//tools:bef_executor",
         "@tf_runtime//tools:bef_name",
-        "@tf_runtime//tools:tfrt_opt",
     ],
 )

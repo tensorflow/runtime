@@ -18,27 +18,11 @@ exports_files([
     "LICENSE",
 ])
 
-tfrt_cc_library(
-    name = "opt_lib",
-    visibility = [":friends"],
-    deps = [
-        "@llvm-project//llvm:Support",
-    ] + select({
-        # TODO(chky): Create a separate opt tool for gpu.
-        "@tf_runtime//:gpu_enabled": [
-            "@tf_runtime//backends/gpu:cuda_opdefs_alwayslink",
-            "@tf_runtime//backends/gpu:cuda_test_opdefs_alwayslink",
-        ],
-        "//conditions:default": [],
-    }),
-)
-
 tfrt_cc_binary(
     name = "tfrt_opt",
     srcs = ["tfrt_opt/tfrt_opt.cc"],
     visibility = [":friends"],
     deps = [
-        ":opt_lib",
         "@llvm-project//mlir:MlirOptLib",
         "@tf_runtime//:init_tfrt_dialects",
     ],
@@ -48,18 +32,11 @@ tfrt_cc_library(
     name = "translate_lib",
     visibility = [":friends"],
     deps = [
-        "@tf_runtime//:mlirtobef_translate_alwayslink",
-        "@tf_runtime//:beftomlir_translate_alwayslink",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//:beftomlir_translate_alwayslink",
+        "@tf_runtime//:mlirtobef_translate_alwayslink",
         "@tf_runtime//third_party/llvm_derived:tfrt_translate_main",
-    ] + select({
-        # TODO(chky): Create a separate translate tool for gpu.
-        "@tf_runtime//:gpu_enabled": [
-            "@tf_runtime//backends/gpu:cuda_opdefs_alwayslink",
-            "@tf_runtime//backends/gpu:cuda_test_opdefs_alwayslink",
-        ],
-        "//conditions:default": [],
-    }),
+    ],
 )
 
 tfrt_cc_binary(
@@ -75,7 +52,6 @@ tfrt_cc_binary(
     srcs = ["btf_info_tool/main.cc"],
     visibility = [":friends"],
     deps = [
-        ":opt_lib",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext_alwayslink",
         "@tf_runtime//:tensor",

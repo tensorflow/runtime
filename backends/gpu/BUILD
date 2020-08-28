@@ -1,5 +1,5 @@
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
-load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
+load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
 load(
     "@rules_cuda//cuda:defs.bzl",
     "cuda_library",
@@ -676,7 +676,6 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops.h",
     ],
-    alwayslink_static_registration_src = "lib/kernels/cuda_opdefs/static_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":cuda_opdefs_inc_gen",
@@ -695,7 +694,6 @@ tfrt_cc_library(
     hdrs = [
         ":cuda_test_opdefs_ops",
     ],
-    alwayslink_static_registration_src = "lib/kernels/cuda_opdefs/test_static_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":cuda_opdefs",
@@ -717,7 +715,6 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/kernels/cuda/static_registration.cc",
     visibility = [":tests_and_tools"],
     deps = [
-        ":cuda_opdefs_alwayslink",
         ":gpu_memory",
         ":gpu_stream_wrapper",
         ":gpu_tensor",
@@ -744,5 +741,34 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_binary(
+    name = "tfrt_gpu_opt",
+    srcs = ["tools/tfrt_gpu_opt/tfrt_gpu_opt.cc"],
+    visibility = [":tests_and_tools"],
+    deps = [
+        ":cuda_opdefs",
+        ":cuda_test_opdefs",
+        "@llvm-project//mlir:MlirOptLib",
+        "@tf_runtime//:init_tfrt_dialects",
+    ],
+)
+
+tfrt_cc_binary(
+    name = "tfrt_gpu_translate",
+    srcs = ["tools/tfrt_gpu_translate/static_registration.cc"],
+    visibility = [":tests_and_tools"],
+    deps = [
+        ":cuda_opdefs",
+        ":cuda_test_opdefs",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Translation",
+        "@tf_runtime//:beftomlir_translate",
+        "@tf_runtime//:init_tfrt_dialects",
+        "@tf_runtime//:mlirtobef_translate",
+        "@tf_runtime//third_party/llvm_derived:tfrt_translate_main",
     ],
 )

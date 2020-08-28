@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
-// RUN: tfrt_opt %s | tfrt_opt
+// RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'memcpy_host_to_device_and_back_test'
 func @memcpy_host_to_device_and_back_test() {

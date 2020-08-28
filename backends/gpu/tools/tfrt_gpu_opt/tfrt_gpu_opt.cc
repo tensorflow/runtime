@@ -12,21 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- static_registration.cc ---------------------------------------------===//
+//===- Mlir-Opt utility ---------------------------------------------------===//
 //
-// This file uses a static constructor to automatically register all of the
-// kernels in this directory.  This can be used to simplify clients that don't
-// care about selective registration of kernels.
+// Load MLIR and apply required passes on it.
 //
 //===----------------------------------------------------------------------===//
 
+#include "mlir/Support/MlirOptMain.h"
 #include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops.h"
+#include "tfrt/gpu/kernels/cuda_opdefs/cuda_test_ops.h"
+#include "tfrt/init_tfrt_dialects.h"
 
-namespace tfrt {
-namespace cuda {
-
-// Static initialization for dialect registration.
-static ::mlir::DialectRegistration<CUDADialect> cuda_registration;
-
-}  // namespace cuda
-}  // namespace tfrt
+int main(int argc, char **argv) {
+  mlir::DialectRegistry registry;
+  tfrt::RegisterTFRTDialects(registry);
+  registry.insert<tfrt::cuda::CUDADialect>();
+  registry.insert<tfrt::cuda::CUDATestDialect>();
+  return failed(mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry));
+}

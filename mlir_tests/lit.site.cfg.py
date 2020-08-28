@@ -33,7 +33,10 @@ config.runfile_srcdir = os.path.join(runfile_srcdir, tfrt_workspace)
 
 config.llvm_tools_dir = os.path.join(runfile_srcdir, 'llvm-project', 'llvm')
 
-config.tfrt_tools_dirs = [os.path.join(runfile_srcdir, tfrt_workspace, 'tools')]
+config.tfrt_tools_dirs = [
+    os.path.join(runfile_srcdir, tfrt_workspace, 'tools'),
+    os.path.join(runfile_srcdir, tfrt_workspace, 'backends', 'gpu'),
+]
 
 test_target_dir = os.environ['TEST_TARGET'].strip('/').rsplit(':')[0]
 config.tfrt_test_dir = os.path.join(runfile_srcdir, tfrt_workspace,

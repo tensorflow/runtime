@@ -47,7 +47,7 @@ tool_dirs = config.tfrt_tools_dirs + [config.llvm_tools_dir]
 
 tool_names = [
     'bef_executor', 'bef_name', 'tfrt_translate', 'tfrt_opt',
-    'code_size_test_driver'
+    'tfrt_gpu_translate', 'tfrt_gpu_opt', 'code_size_test_driver'
 ]
 tools = [ToolSubst(s, unresolved='ignore') for s in tool_names]
 llvm_config.add_tool_substitutions(tools, tool_dirs)

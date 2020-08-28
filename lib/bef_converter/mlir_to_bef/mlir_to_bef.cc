@@ -42,12 +42,14 @@
 #include "mlir/IR/Module.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/StandardTypes.h"
+#include "tfrt/bef_converter/bef_attr_encoder.h"
 #include "tfrt/bef_converter/bef_emitter.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/traits.h"
 #include "tfrt/core_runtime/opdefs/types.h"
 #include "tfrt/support/aligned_buffer.h"
 #include "tfrt/support/bef_encoding.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 
 #ifdef DEBUG_MLIR_TO_BEF
@@ -1067,6 +1069,7 @@ class BEFTypedAttributeEmitter : public BEFEmitter {
   void EmitArrayAttribute(mlir::ArrayAttr array_attr);
   void EmitDenseElementsAttribute(mlir::DenseElementsAttr dense_elements_attr);
   void EmitShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
+  void EmitRankedShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
 };
 
 void BEFTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
@@ -1210,27 +1213,31 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
 
 void BEFTypedAttributeEmitter::EmitShapeAttribute(
     tfrt::corert::ShapeAttr shape_attr) {
+  if (shape_attr.hasRank()) {
+    EmitRankedShapeAttribute(shape_attr);
+    return;
+  }
+
+  BEFTypedAttributeEncoder encoder;
+  auto error = encoder.EncodeUnrankedShapeAttr();
+  assert(!error);
+  (void)error;
+
+  EmitEmitter(encoder);
+}
+
+void BEFTypedAttributeEmitter::EmitRankedShapeAttribute(
+    tfrt::corert::ShapeAttr shape_attr) {
   assert(shape_attr.hasRank());
 
   ArrayRef<int64_t> shape = shape_attr.getShape();
 
-  uint16_t rank = AssertAttrFieldSize(shape.size());
-  uint16_t byte_count = AssertAttrFieldSize(sizeof(BEFShapeAttr));
-  if (rank > 0) {
-    byte_count = AssertAttrFieldSize(sizeof(int64_t) * (rank - 1) + byte_count);
-  }
+  BEFTypedAttributeEncoder encoder;
+  auto error = encoder.EncodeRankedShapeAttr(shape);
+  assert(!error);
+  (void)error;
 
-  EmitAlignment(alignof(BEFShapeAttr));
-
-  EmitInt2(static_cast<uint16_t>(BEFAttributeType::kShape));
-  EmitInt2(byte_count);
-  EmitInt2(rank);
-  EmitByte(kDummyByte);
-  EmitByte(kDummyByte);
-
-  for (int64_t dim : shape) {
-    EmitInt8(dim);
-  }
+  EmitEmitter(encoder);
 }
 
 // This is the emitter that builds the attributes section of a BEF.

@@ -38,24 +38,34 @@ TEST(BEFAttrEncoderTest, EncodeZeroShape) {
   int64_t dims[1];
 
   BEFTypedAttributeEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeShapeAttr(llvm::makeArrayRef(dims, 0)));
+  ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 0)));
 
   auto buf = encoder.TakeResult();
-  tfrt::ShapeAttr shape_attr(buf.data());
+  tfrt::RankedShapeAttr shape_attr(buf.data());
 
   ASSERT_EQ(shape_attr.GetRank(), 0);
   auto shape = shape_attr.GetShape();
   ASSERT_EQ(shape.size(), 0);
 }
 
-TEST(BEFAttrEncoderTest, EncodeShape) {
-  int64_t dims[3] = {1, 2, 3};
-
+TEST(BEFAttrEncoderTest, EncodeUnrankedShape) {
   BEFTypedAttributeEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeShapeAttr(llvm::makeArrayRef(dims, 3)));
+  ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
 
   auto buf = encoder.TakeResult();
   tfrt::ShapeAttr shape_attr(buf.data());
+
+  ASSERT_FALSE(shape_attr.HasRank());
+}
+
+TEST(BEFAttrEncoderTest, EncodeRankedShape) {
+  int64_t dims[3] = {1, 2, 3};
+
+  BEFTypedAttributeEncoder encoder;
+  ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 3)));
+
+  auto buf = encoder.TakeResult();
+  tfrt::RankedShapeAttr shape_attr(buf.data());
 
   ASSERT_EQ(shape_attr.GetRank(), 3);
 
@@ -70,35 +80,38 @@ TEST(BEFAttrEncoderTest, EncodeShapeList) {
   const int64_t a[1] = {1};
   const int64_t b[2] = {2, 3};
   const int64_t c[3] = {4, 5, 6};
-  const int64_t* dims[3] = {a, b, c};
+  const int64_t* dims[4] = {a, b, c, nullptr};
 
-  int sizes[3] = {1, 2, 3};
+  int sizes[4] = {1, 2, 3, -1};
 
   BEFTypedAttributeEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeShapeListAttr(dims, sizes, 3));
+  ASSERT_TRUE(!encoder.EncodeShapeListAttr(dims, sizes, 4));
 
   auto buf = encoder.TakeResult();
   tfrt::AggregateAttr aggr_attr(buf.data());
 
-  ASSERT_EQ(aggr_attr.GetNumElements(), 3);
+  ASSERT_EQ(aggr_attr.GetNumElements(), 4);
 
-  auto shape_a = aggr_attr.GetAttributeOfType<tfrt::ShapeAttr>(0);
+  auto shape_a = aggr_attr.GetAttributeOfType<tfrt::RankedShapeAttr>(0);
   auto elems_array_a = shape_a.GetShape();
   ASSERT_EQ(elems_array_a.size(), 1);
   ASSERT_EQ(elems_array_a[0], 1);
 
-  auto shape_b = aggr_attr.GetAttributeOfType<tfrt::ShapeAttr>(1);
+  auto shape_b = aggr_attr.GetAttributeOfType<tfrt::RankedShapeAttr>(1);
   auto elems_array_b = shape_b.GetShape();
   ASSERT_EQ(elems_array_b.size(), 2);
   ASSERT_EQ(elems_array_b[0], 2);
   ASSERT_EQ(elems_array_b[1], 3);
 
-  auto shape_c = aggr_attr.GetAttributeOfType<tfrt::ShapeAttr>(2);
+  auto shape_c = aggr_attr.GetAttributeOfType<tfrt::RankedShapeAttr>(2);
   auto elems_array_c = shape_c.GetShape();
   ASSERT_EQ(elems_array_c.size(), 3);
   ASSERT_EQ(elems_array_c[0], 4);
   ASSERT_EQ(elems_array_c[1], 5);
   ASSERT_EQ(elems_array_c[2], 6);
+
+  auto shape_d = aggr_attr.GetAttributeOfType<tfrt::ShapeAttr>(3);
+  ASSERT_FALSE(shape_d.HasRank());
 }
 
 TEST(BEFAttrEncoderTest, EncodeEmptyString) {

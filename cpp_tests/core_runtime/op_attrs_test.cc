@@ -213,10 +213,9 @@ void BM_OpAttrGetBool(benchmark::State& state) {
 }
 BENCHMARK(BM_OpAttrGetBool);
 
-void BM_OpAttrSetShape(benchmark::State& state) {
-  int64_t dims[2] = {2, 2};
+void BM_OpAttrSetUnrankedShape(benchmark::State& state) {
   tfrt::BEFTypedAttributeEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeShapeAttr(llvm::makeArrayRef(dims, 2)));
+  ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
   auto buf = encoder.TakeResult();
 
   for (auto _ : state) {
@@ -225,14 +224,27 @@ void BM_OpAttrSetShape(benchmark::State& state) {
     benchmark::DoNotOptimize(attrs.Set("shape", shape_attr));
   }
 }
-BENCHMARK(BM_OpAttrSetShape);
+BENCHMARK(BM_OpAttrSetUnrankedShape);
 
-void BM_OpAttrGetShape(benchmark::State& state) {
+void BM_OpAttrSetRankedShape(benchmark::State& state) {
+  int64_t dims[2] = {2, 2};
+  tfrt::BEFTypedAttributeEncoder encoder;
+  ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2)));
+  auto buf = encoder.TakeResult();
+
+  for (auto _ : state) {
+    tfrt::OpAttrs attrs;
+    tfrt::ShapeAttr shape_attr(buf.data());
+    benchmark::DoNotOptimize(attrs.Set("shape", shape_attr));
+  }
+}
+BENCHMARK(BM_OpAttrSetRankedShape);
+
+void BM_OpAttrGetUnrankedShape(benchmark::State& state) {
   tfrt::OpAttrs attrs;
 
-  int64_t dims[2] = {2, 2};
   BEFTypedAttributeEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeShapeAttr(llvm::makeArrayRef(dims, 2)));
+  ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
   auto buf = encoder.TakeResult();
   tfrt::ShapeAttr shape_attr(buf.data());
 
@@ -241,7 +253,23 @@ void BM_OpAttrGetShape(benchmark::State& state) {
     benchmark::DoNotOptimize(attrs.GetAsserting<tfrt::ShapeAttr>("shape"));
   }
 }
-BENCHMARK(BM_OpAttrGetShape);
+BENCHMARK(BM_OpAttrGetUnrankedShape);
+
+void BM_OpAttrGetRankedShape(benchmark::State& state) {
+  tfrt::OpAttrs attrs;
+
+  int64_t dims[2] = {2, 2};
+  BEFTypedAttributeEncoder encoder;
+  ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2)));
+  auto buf = encoder.TakeResult();
+  tfrt::ShapeAttr shape_attr(buf.data());
+
+  attrs.Set("shape", shape_attr);
+  for (auto _ : state) {
+    benchmark::DoNotOptimize(attrs.GetAsserting<tfrt::ShapeAttr>("shape"));
+  }
+}
+BENCHMARK(BM_OpAttrGetRankedShape);
 
 }  // namespace
 }  // namespace tfrt

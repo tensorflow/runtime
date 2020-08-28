@@ -346,6 +346,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/bef_converter/mlir_to_bef/static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":bef_attr_encoder",
         ":bef_emitter",
         ":core_runtime_opdefs",
         ":support",

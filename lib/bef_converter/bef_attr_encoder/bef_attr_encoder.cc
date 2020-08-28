@@ -33,26 +33,40 @@
 
 namespace tfrt {
 
-llvm::Error BEFTypedAttributeEncoder::EncodeShapeAttr(ArrayRef<int64_t> dims) {
-  int num_dims = dims.size();
-  if (num_dims < 0) {
-    // TODO(b/156035574): Need to support unranked shape.
-    return MakeStringError("does not yet support unknown rank");
-  }
-
-  uint16_t byte_count = AssertAttrFieldSize(sizeof(BEFShapeAttr));
-  if (num_dims > 0) {
-    byte_count =
-        AssertAttrFieldSize(sizeof(int64_t) * (num_dims - 1) + byte_count);
-  }
-
-  EmitAlignment(alignof(BEFShapeAttr));  // FIXME
+void BEFTypedAttributeEncoder::EncodeShapeAttrBase(int byte_count, int rank) {
   EmitInt2(static_cast<uint16_t>(BEFAttributeType::kShape));
   EmitInt2(byte_count);
-  EmitInt2(num_dims);
-  EmitDummyByte();
-  EmitDummyByte();
-  for (int i = 0; i < num_dims; ++i) {
+  EmitByte(rank < 0 ? static_cast<uint8_t>(BEFShapeType::kUnranked)
+                    : static_cast<uint8_t>(BEFShapeType::kRanked));
+  EmitByte(kDummyByte);
+  EmitInt2(rank);
+}
+
+llvm::Error BEFTypedAttributeEncoder::EncodeUnrankedShapeAttr() {
+  uint16_t byte_count = AssertAttrFieldSize(sizeof(BEFShapeAttr));
+
+  EmitAlignment(alignof(BEFShapeAttr));
+
+  EncodeShapeAttrBase(byte_count, /*rank=*/-1);
+
+  return llvm::Error::success();
+}
+
+llvm::Error BEFTypedAttributeEncoder::EncodeRankedShapeAttr(
+    ArrayRef<int64_t> dims) {
+  int rank = dims.size();
+
+  uint16_t byte_count = AssertAttrFieldSize(sizeof(BEFRankedShapeAttr));
+  if (rank > 0) {
+    byte_count = AssertAttrFieldSize(sizeof(int64_t) * (rank - 1) + byte_count);
+  }
+
+  EmitAlignment(alignof(BEFRankedShapeAttr));
+
+  EncodeShapeAttrBase(byte_count, rank);
+
+  // Emit the dimensions.
+  for (int i = 0; i < rank; ++i) {
     EmitInt8(dims[i]);
   }
 
@@ -90,10 +104,13 @@ llvm::Error BEFTypedAttributeEncoder::EncodeShapeListAttr(const int64_t** dims,
   SmallVector<uint16_t, 8> offsets;
   for (int i = 0; i < num_values; ++i) {
     BEFTypedAttributeEncoder elem_encoder;
-    if (auto error = elem_encoder.EncodeShapeAttr(
-            llvm::makeArrayRef(dims[i], num_dims[i])))
+    if (num_dims[i] < 0) {
+      if (auto error = elem_encoder.EncodeUnrankedShapeAttr()) return error;
+    } else if (auto error = elem_encoder.EncodeRankedShapeAttr(
+                   llvm::makeArrayRef(dims[i], num_dims[i]))) {
       return error;
-    EmitAlignment(alignof(BEFShapeAttr));
+    }
+    EmitAlignment(elem_encoder.GetRequiredAlignment());
     offsets.push_back(AssertAttrFieldSize(size()));
     EmitEmitter(elem_encoder);
   }

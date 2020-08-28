@@ -34,7 +34,8 @@ namespace tfrt {
 // functions inside headers for TensorShape, and other user defined types.
 class BEFTypedAttributeEncoder : public BEFEmitter {
  public:
-  llvm::Error EncodeShapeAttr(ArrayRef<int64_t> dims);
+  llvm::Error EncodeUnrankedShapeAttr();
+  llvm::Error EncodeRankedShapeAttr(ArrayRef<int64_t> dims);
 
   llvm::Error EncodeShapeListAttr(const int64_t** dims, const int* num_dims,
                                   int num_values);
@@ -43,6 +44,12 @@ class BEFTypedAttributeEncoder : public BEFEmitter {
 
   llvm::Error EncodeStringListAttr(const void* const* values,
                                    const size_t* lengths, int num_values);
+
+ private:
+  // A helper function to emit the common header for both ranked and unranked
+  // shape attributes. If `rank` is a negative number, then this shape is
+  // unranked.
+  void EncodeShapeAttrBase(int byte_count, int rank);
 };
 
 }  // namespace tfrt

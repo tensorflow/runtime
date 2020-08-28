@@ -486,7 +486,17 @@ class BEFTypedAttributeReader {
   }
 
   tfrt::corert::ShapeAttr ReadShapeAttribute(const BEFShapeAttr* header) {
-    ArrayRef<int64_t> shape = llvm::makeArrayRef(header->dims, header->rank);
+    if (header->shape_type == BEFShapeType::kUnranked)
+      return tfrt::corert::ShapeAttr::get(builder_.getContext());
+
+    return ReadRankedShapeAttribute(
+        reinterpret_cast<const BEFRankedShapeAttr*>(header));
+  }
+
+  tfrt::corert::ShapeAttr ReadRankedShapeAttribute(
+      const BEFRankedShapeAttr* header) {
+    ArrayRef<int64_t> shape =
+        llvm::makeArrayRef(header->dims, header->shape_base.rank);
 
     return tfrt::corert::ShapeAttr::get(builder_.getContext(), shape);
   }

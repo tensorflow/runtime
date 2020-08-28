@@ -154,6 +154,8 @@ func @dense_elements.constant() {
 func @shape_attr() {
   // CHECK: #corert.shape<2x?x3>
   "simple.op"() {shape = #corert.shape<2x?x3>} : () -> ()
+  // CHECK: #corert.shape<*>
+  "simple.op"() {shape = #corert.shape<*>} : () -> ()
   tfrt.return
 }
 

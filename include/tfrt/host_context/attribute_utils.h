@@ -300,14 +300,30 @@ class ShapeAttr : public internal::AttrHeaderBase<ShapeAttr, BEFShapeAttr> {
 
   static constexpr size_t Alignment() { return alignof(int64_t); }
 
-  int GetRank() const { return header().rank; }
+  bool HasRank() const { return header().shape_type == BEFShapeType::kRanked; }
+
+  static bool classof(TypedAttrBase base) {
+    return base.type() == BEFAttributeType::kShape;
+  }
+};
+
+class RankedShapeAttr
+    : public internal::AttrHeaderBase<RankedShapeAttr, BEFRankedShapeAttr> {
+ public:
+  using Base::Base;
+
+  static constexpr size_t Alignment() { return alignof(int64_t); }
+
+  int GetRank() const { return header().shape_base.rank; }
 
   ArrayRef<int64_t> GetShape() const {
     return llvm::makeArrayRef(header().dims, GetRank());
   }
 
   static bool classof(TypedAttrBase base) {
-    return base.type() == BEFAttributeType::kShape;
+    return base.type() == BEFAttributeType::kShape &&
+           reinterpret_cast<const BEFShapeAttr*>(base.data())->shape_type ==
+               BEFShapeType::kRanked;
   }
 };
 

@@ -435,11 +435,21 @@ struct BEFArrayAttr {
   uint16_t element_offset;
 };
 
-// Shape attributes in TFRT must be ranked.
+enum class BEFShapeType : uint8_t {
+  kUnranked = 0,
+  kRanked,
+};
+
 struct BEFShapeAttr {
   BEFAttrBase base;
+  BEFShapeType shape_type;
+  uint8_t padding;
   uint16_t rank;
-  uint8_t paddings[2];
+};
+
+// Shape attributes in TFRT must be ranked.
+struct BEFRankedShapeAttr {
+  BEFShapeAttr shape_base;
   int64_t dims[1];
 };
 

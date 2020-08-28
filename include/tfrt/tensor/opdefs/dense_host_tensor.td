@@ -237,6 +237,21 @@ def PrintBufferOp : DHT_Op<"print_buffer"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def GetTensorShapeOp : DHT_Op<"get_tensor_shape", [NoSideEffect]> {
+  let summary = "tfrt_dht.get_tensor_shape operation";
+
+  let description = [{
+    An operation that returns the shape of the dense host tensor.
+
+    Example:
+      %0 = tfrt_dht.get_tensor_shape %t
+  }];
+
+  let arguments = (ins TensorType);
+  let results = (outs TS_Shape);
+  let assemblyFormat = "operands attr-dict";
+}
+
 // Instantiate for each dtype and rank pair.
 foreach dtype = ["ui8", "ui16", "ui32", "ui64", "i32", "f32", "i64", "bool", "complex64", "complex128"] in {
   foreach rank = [0, 1, 2, 3, 4] in {

@@ -214,3 +214,14 @@ func @sync_basic_tensor() attributes {tfrt.sync} {
 
   tfrt.return
 }
+
+// CHECK-LABEL: --- Running 'get_tensor_shape'
+func @get_tensor_shape() {
+  %a = "tfrt_test.const_dense_attr"() {value = dense<[[1, 1], [2, 2]]> : tensor<2x2xi32>} : () -> !t.tensor
+
+  %b = tfrt_dht.get_tensor_shape %a
+  // CHECK: shape = [2, 2]
+  ts.print_shape %b
+
+  tfrt.return
+}

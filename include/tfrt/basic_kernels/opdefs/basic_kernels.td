@@ -373,6 +373,24 @@ class DivOp<string suffix, Type type>
 def DivI32Op : DivOp<"i32", I32>;
 def DivI64Op : DivOp<"i64", I64>;
 
+class MulOp<string suffix, Type type>
+  : TFRT_Op<"mul." # suffix, [NoSideEffect]> {
+  let summary = "tfrt.mul operation";
+  let description = [{
+     An operation that takes two inputs and returns their product.
+
+     Example:
+       %2 = tfrt.mul.i32 %0, %1
+  }];
+  let arguments = (ins type, type);
+  let results = (outs type);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
+def MulI32Op : MulOp<"i32", I32>;
+def MulI64Op : MulOp<"i64", I64>;
+
 class PrintOp<string suffix, Type type> : TFRT_Op<"print." # suffix> {
   let summary = "tfrt.print operation";
   let description = [{

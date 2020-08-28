@@ -80,6 +80,14 @@ Expected<std::pair<T, T>> TFRTDiv(T arg0, T arg1) {
 }
 
 //===----------------------------------------------------------------------===//
+// tfrt mul kernel.
+//===----------------------------------------------------------------------===//
+template <typename T>
+T TFRTMul(T arg0, T arg1) {
+  return arg0 * arg1;
+}
+
+//===----------------------------------------------------------------------===//
 // tfrt print integer kernels
 //===----------------------------------------------------------------------===//
 
@@ -136,6 +144,9 @@ void RegisterIntegerKernels(KernelRegistry* registry) {
 
   registry->AddKernel("tfrt.div.i32", TFRT_KERNEL(TFRTDiv<int32_t>));
   registry->AddKernel("tfrt.div.i64", TFRT_KERNEL(TFRTDiv<int64_t>));
+
+  registry->AddKernel("tfrt.mul.i32", TFRT_KERNEL(TFRTMul<int32_t>));
+  registry->AddKernel("tfrt.mul.i64", TFRT_KERNEL(TFRTMul<int64_t>));
 
   registry->AddKernel("tfrt.print.i1", TFRT_KERNEL(TFRTPrintI1));
   registry->AddKernel("tfrt.print.i32", TFRT_KERNEL(TFRTPrintI32));

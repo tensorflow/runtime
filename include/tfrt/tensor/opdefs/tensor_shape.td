@@ -82,6 +82,18 @@ def TS_GetDimensionOp : TS_Op<"get_dimension"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def TS_GetNumElementsOp : TS_Op<"get_num_elements"> {
+  let summary = "Returns the number of elements in the shape";
+
+  let description = [{
+    An operation that returns the number of elements in the shape.
+  }];
+
+  let arguments = (ins TS_Shape);
+  let results = (outs I64);
+  let assemblyFormat = "operands attr-dict";
+}
+
 def TS_PrintShapeOp : TS_Op<"print_shape"> {
   let summary = "Print tensor shape operation";
 
@@ -169,6 +181,18 @@ def TS_ToTensorShapeOp : TS_Op<"to_shape"> {
 
   let arguments = (ins TS_PartialShape:$shape);
   let results = (outs TS_Shape:$output);
+  let assemblyFormat = "operands attr-dict";
+}
+
+def TS_ToPartialTensorShapeOp : TS_Op<"to_partial_shape"> {
+  let summary = "Converts tensor shape to partial tensor shape operation";
+
+  let description = [{
+    An operation that converts a tensor shape to partial tensor shape.
+  }];
+
+  let arguments = (ins TS_Shape:$shape);
+  let results = (outs TS_PartialShape:$output);
   let assemblyFormat = "operands attr-dict";
 }
 

@@ -21,6 +21,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -47,6 +48,10 @@ static bool TsEqualShape(Argument<TensorShape> lhs, Argument<TensorShape> rhs) {
 
 static ssize_t TsGetDimension(const TensorShape& shape, int idx) {
   return shape.GetDimensionSize(idx);
+}
+
+static ssize_t TsGetNumElements(const TensorShape& shape) {
+  return shape.GetNumElements();
 }
 
 template <size_t Rank>
@@ -77,11 +82,22 @@ static Expected<TensorShape> TsToShape(const PartialTensorShape& arg) {
   return arg.ToTensorShape();
 }
 
+static PartialTensorShape TsToPartialShape(const TensorShape& arg) {
+  // TODO(haoliang): Ideally we should be able to build a PartialTensorShape
+  // directly from a TensorShape via a constructor method, so that we can avoid
+  // allocating the temporary dimensions array.
+  llvm::SmallVector<ssize_t, 4> dims;
+  dims.reserve(arg.GetRank());
+  arg.GetDimensions(&dims);
+  return PartialTensorShape(llvm::makeArrayRef(dims));
+}
+
 void RegisterTensorShapeKernels(KernelRegistry* registry) {
   registry->AddKernel("ts.build_shape", TsBuildShape);
   registry->AddKernel("ts.print_shape", TFRT_KERNEL(TsPrintShape));
   registry->AddKernel("ts.equal_shape", TFRT_KERNEL(TsEqualShape));
   registry->AddKernel("ts.get_dimension", TFRT_KERNEL(TsGetDimension));
+  registry->AddKernel("ts.get_num_elements", TFRT_KERNEL(TsGetNumElements));
   registry->AddKernel("ts.as_fixed_rank_shape.1",
                       TFRT_KERNEL(TsAsFixedRankShape<1>));
   registry->AddKernel("ts.as_fixed_rank_shape.2",
@@ -102,6 +118,7 @@ void RegisterTensorShapeKernels(KernelRegistry* registry) {
   registry->AddKernel("ts.print_partial_shape",
                       TFRT_KERNEL(TsPrintPartialShape));
   registry->AddKernel("ts.to_shape", TFRT_KERNEL(TsToShape));
+  registry->AddKernel("ts.to_partial_shape", TFRT_KERNEL(TsToPartialShape));
 }
 
 }  // namespace tfrt

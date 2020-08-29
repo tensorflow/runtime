@@ -174,6 +174,18 @@ func @fixed_rank_shape() {
   tfrt.return
 }
 
+// CHECK-LABEL: --- Running 'ts_get_num_elements'
+func @ts_get_num_elements() {
+  %ch0 = tfrt.new.chain
+
+  %a = ts.build_shape [1 : i64, 10 : i64, 10 : i64]
+  %b = ts.get_num_elements %a
+
+  // CHECK: int64 = 100
+  %ch1 = tfrt.print.i64 %b, %ch0
+  tfrt.return
+}
+
 // CHECK-LABEL: --- Running 'partial_tensor_shape'
 func @partial_tensor_shape() {
   %a = ts.build_partial_shape [1 : i64, 57 : i64, 92 : i64]
@@ -222,4 +234,17 @@ func @partial_tensor_shape_unranked() {
   tfrt.return
 }
 
+// CHECK-LABEL: --- Running 'ts_to_partial_shape'
+func @ts_to_partial_shape() {
+  %a = ts.build_shape [1 : i64, 57 : i64, 92 : i64]
 
+  // CHECK: shape = [1, 57, 92]
+  ts.print_shape %a
+
+  %b = ts.to_partial_shape %a
+
+  // CHECK: shape = [1, 57, 92]
+  ts.print_partial_shape %b
+
+  tfrt.return
+}

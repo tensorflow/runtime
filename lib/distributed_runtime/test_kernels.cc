@@ -17,7 +17,6 @@
 // This file implements kernels for testing distributed kernels.
 //
 //===----------------------------------------------------------------------===//
-
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
@@ -27,24 +26,18 @@ namespace tfrt {
 
 namespace {
 
-void TestSetupFromString(Argument<HostId> id,
-                         Result<DistributedContext> dist_context,
-                         const ExecutionContext& exec_ctx) {
-  HostConfiguration host_config{{"localhost:40002", "localhost:50002",
-                                 "localhost:40001", "localhost:50001"},
-                                id.get()};
-  FabricCommunicatorConfiguration fabric_config{"grpc_communicator",
-                                                host_config};
-  CollectiveGroup group1{/*name=*/"group1", /*members=*/{0, 1, 2, 3}};
-  DistributedContextConfiguration dist_context_config{fabric_config, {group1}};
-  dist_context.Emplace(exec_ctx.host(), dist_context_config);
+AsyncValueRef<DistributedContext> TestCreateDistributedContext(
+    const DistributedContextConfiguration& configuration,
+    const ExecutionContext& exec_ctx) {
+  return MakeAvailableAsyncValueRef<DistributedContext>(
+      exec_ctx.host(), exec_ctx.host(), configuration);
 }
 
 }  // namespace
 
 void RegisterDistributedTestKernels(KernelRegistry* registry) {
-  registry->AddKernel("dist.test_setup_from_string",
-                      TFRT_KERNEL(TestSetupFromString));
+  registry->AddKernel("dist.test_create_distributed_context",
+                      TFRT_KERNEL(TestCreateDistributedContext));
 }
 
 }  // namespace tfrt

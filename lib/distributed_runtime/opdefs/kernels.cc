@@ -35,6 +35,11 @@ namespace dist {
 // Distributed Dialect
 //===----------------------------------------------------------------------===//
 
+static Type GetDistributedContextConfigurationType(Builder *builder) {
+  return OpaqueType::get(builder->getIdentifier("dist"),
+                         "dist_context_configuration", builder->getContext());
+}
+
 DistributedDialect::DistributedDialect(MLIRContext *context)
     : Dialect(/*name=*/"dist", context, TypeID::get<DistributedDialect>()) {
   allowUnknownTypes();
@@ -43,6 +48,25 @@ DistributedDialect::DistributedDialect(MLIRContext *context)
 #define GET_OP_LIST
 #include "tfrt/distributed_runtime/opdefs/kernels_opdefs.cpp.inc"
       >();
+}
+
+static ParseResult parseCreateConfigurations(OpAsmParser &parser,
+                                             OperationState &result) {
+  auto &builder = parser.getBuilder();
+
+  int64_t num_results = 0;
+  if (succeeded(parser.parseOptionalColon())) {
+    IntegerAttr attr;
+    mlir::NamedAttrList attrs;
+    if (failed(parser.parseAttribute(attr, "num_results", attrs)))
+      return failure();
+    num_results = attr.getValue().getSExtValue();
+  }
+  auto configuration_type = GetDistributedContextConfigurationType(&builder);
+
+  result.types.append(num_results, configuration_type);
+
+  return success();
 }
 
 //===----------------------------------------------------------------------===//

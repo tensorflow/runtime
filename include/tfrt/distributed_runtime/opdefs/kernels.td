@@ -39,13 +39,16 @@ def DistDialect : Dialect {
 def DistributedContextType
     : OpaqueType<"dist", "dist_context", "!dist.dist_context type">;
 
+def DistributedContextConfigurationType
+    : OpaqueType<"dist", "dist_context_configuration",
+                 "!dist.dist_context_configuration type">;
+
 def CollectiveGroupType
     : OpaqueType<"dist", "collective_group", "!dist.collective_group type">;
 
 // Base class for the operation in this dialect
 class DistOp<string mnemonic, list<OpTrait> traits = []>
     : Op<DistDialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
-  let assemblyFormat = "operands attr-dict";
 }
 
 // TODO(ayushd, xldrx): consider changing reduction_fn from attribute to a
@@ -73,6 +76,7 @@ class AllReduceOp<string dtype> : DistOp<"cpu.allreduce." # dtype> {
     TensorType,
     TFRT_ChainType);
   let results = (outs TFRT_ChainType);
+  let assemblyFormat = "operands attr-dict";
 }
 
 foreach dtype = ["i32", "f32"] in {
@@ -101,6 +105,7 @@ class BroadcastOp<string dtype> : DistOp<"cpu.broadcast." # dtype> {
     I32,
     TFRT_ChainType);
   let results = (outs TFRT_ChainType);
+  let assemblyFormat = "operands attr-dict";
 }
 
 foreach dtype = ["i32", "f32"] in {
@@ -109,17 +114,42 @@ foreach dtype = ["i32", "f32"] in {
 
 // Test kernels
 // TODO(ayushd): Implement set_up_from_string, create_collective_group kernels
-def SetupFromString : DistOp<"test_setup_from_string"> {
-  let summary = "dist.test_setup_from_string operation";
+def CreateConfigurations : DistOp<"test_create_configurations"> {
+  let summary = "dist.test_create_configurations operation";
 
   let description = [{
-    A test kernel that creates a new distributed context consisting of 4 members
-    running on localhost, grpc_communicator as a fabric communicator, and one
-    collective group of all members.
+    A test kernel that creates a distributed context configuration consisting of
+    N members running on localhost, grpc_communicator as a fabric communicator,
+    and one collective group of all members.
+
+    Example:
+      // Creating 4 DistributedContextConfigurations
+      %configs:4 = dist.test_create_configurations : 4
   }];
 
-  let arguments = (ins I32:$id);
+  let results = (outs Variadic<DistributedContextConfigurationType> : $result);
+  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+}
+
+def CreateDistributedContext : DistOp<"test_create_distributed_context"> {
+  let summary = "dist.test_create_distributed_context config";
+
+  let description = [{
+    A test kernel that creates a distributed context from the given
+    configuration.
+
+    Example:
+      // Creating 2 DistributedContextConfigurations
+      %configs:2 = dist.test_create_configurations : 2
+      // Creating first DistributedContext based on the first configuration
+      %context0 = dist.test_create_distributed_context %configs#0
+      // Creating first DistributedContext based on the second configuration
+      %context0 = dist.test_create_distributed_context %configs#1
+  }];
+
+  let arguments = (ins DistributedContextConfigurationType);
   let results = (outs DistributedContextType : $result);
+  let assemblyFormat = "operands attr-dict";
 }
 
 def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
@@ -135,6 +165,7 @@ def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
     StringType:$name
   );
   let results = (outs CollectiveGroupType);
+  let assemblyFormat = "operands attr-dict";
 }
 
 #endif  // DISTRIBUTED_OPS

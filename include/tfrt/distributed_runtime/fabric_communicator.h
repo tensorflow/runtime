@@ -31,13 +31,13 @@ namespace tfrt {
 
 // Arguments for remote execute request
 struct RemoteExecuteInvocation {
-  std::string program_name;  // The name of the program to be executed
+  string_view program_name;  // The name of the program to be executed
 };
 
 // Arguments for remote register request
 struct RemoteRegisterInvocation {
-  std::string program;       // The body of the program to be registered
-  std::string program_name;  // The name of the program to be registered
+  string_view program;       // The body of the program to be registered
+  string_view program_name;  // The name of the program to be registered
 };
 
 // Define the handler for various incoming requests that are received by

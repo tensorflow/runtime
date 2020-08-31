@@ -882,18 +882,27 @@ tfrt_cc_library(
     srcs = [
         "lib/distributed_runtime/callback_registry.cc",
         "lib/distributed_runtime/distributed_context.cc",
+        "lib/distributed_runtime/request_handler.cc",
     ],
     hdrs = [
         "include/tfrt/distributed_runtime/callback_registry.h",
         "include/tfrt/distributed_runtime/distributed_context.h",
         "include/tfrt/distributed_runtime/fabric_communicator.h",
+        "include/tfrt/distributed_runtime/request_handler.h",
     ],
     visibility = [":friends"],
     deps = [
+        ":befexecutor",
         ":hostcontext",
+        ":init_tfrt_dialects",
+        ":mlirtobef",
         ":support",
         ":tensor",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:StandardOps",
     ],
 )
 
@@ -945,6 +954,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/distributed_runtime/opdefs/kernels.h",
     ],
+    visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
         ":distributed_kernels_opdefs_inc_gen",

@@ -20,22 +20,84 @@
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/request_handler.h"
 #include "tfrt/host_context/kernel_utils.h"
 
 namespace tfrt {
 
 namespace {
+// TestRequestHandler: A wrapper for RequestHandler to:
+// - buffer the incoming requests
+// - provide functionality to trigger request processing one by one by
+//   process_next_request kernel.
+// - delegate execution to RequestHandler
+class TestRequestHandler : public FabricCommunicatorRequestHandler {
+ public:
+  TestRequestHandler() {}
+  ~TestRequestHandler() final {}
+
+  void HandleRemoteRegister(const RemoteRegisterInvocation& request) final {
+    handler_.HandleRemoteRegister(request);
+  }
+
+  void HandleRemoteExecute(const RemoteExecuteInvocation& request) final {
+    mutex_lock lock(invocations_mutex_);
+    // Need to deep copy the request since RPC would be marked as done and
+    // hence, the underlying data request refers to will be deleted.
+    string_store_.push_back(request.program_name.str());
+    invocations_.push({string_store_.back()});
+    cond_.notify_one();
+  }
+
+  void ProcessNextRequest() {
+    RemoteExecuteInvocation invocation;
+    {
+      mutex_lock lock(invocations_mutex_);
+      cond_.wait(lock, [this]() { return !this->invocations_.empty(); });
+      invocation = invocations_.front();
+      invocations_.pop();
+    }
+    handler_.HandleRemoteExecute(invocation);
+  }
+
+ private:
+  mutex invocations_mutex_;
+  tfrt::condition_variable cond_;
+  std::queue<RemoteExecuteInvocation> invocations_;
+  std::vector<std::string> string_store_;
+  RequestHandler handler_;
+};
+
+// Process the next request in the DistributedContext's TestRequestHandler
+// queue.
+void TestProcessNextRequest(Argument<DistributedContext> dist_context,
+                            Result<Chain> chain,
+                            const ExecutionContext& exec_ctx) {
+  AsyncValueRef<Chain> out = chain.Allocate();
+  TestRequestHandler* handler =
+      static_cast<TestRequestHandler*>(dist_context->GetRequestHandler());
+  exec_ctx.host()->EnqueueWork([handler, out = out.CopyRef()] {
+    handler->ProcessNextRequest();
+    out.emplace();
+  });
+}
 
 AsyncValueRef<DistributedContext> TestCreateDistributedContext(
     const DistributedContextConfiguration& configuration,
     const ExecutionContext& exec_ctx) {
-  return MakeAvailableAsyncValueRef<DistributedContext>(
-      exec_ctx.host(), exec_ctx.host(), configuration);
+  auto handler = std::make_unique<TestRequestHandler>();
+  AsyncValueRef<DistributedContext> value =
+      MakeAvailableAsyncValueRef<DistributedContext>(
+          exec_ctx.host(), exec_ctx.host(), std::move(handler), configuration);
+
+  return value;
 }
 
 }  // namespace
 
 void RegisterDistributedTestKernels(KernelRegistry* registry) {
+  registry->AddKernel("dist.test_process_next_request",
+                      TFRT_KERNEL(TestProcessNextRequest));
   registry->AddKernel("dist.test_create_distributed_context",
                       TFRT_KERNEL(TestCreateDistributedContext));
 }

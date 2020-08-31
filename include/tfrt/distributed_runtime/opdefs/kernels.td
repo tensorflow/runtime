@@ -168,4 +168,54 @@ def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def RemoteRegisterOp :  DistOp<"remote_register"> {
+  let summary = "dist.remote_register operation";
+  let description = [{
+    Register a program on a remote location.
+
+    "program" has to be a string representing MLIR in TFRT dialect
+
+    Example:
+      dist.remote_register (%context, %id) "program" "program_name"
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    DistributedContextType:$context,
+    I32:$host_id,
+    StrAttr:$program,
+    StrAttr:$program_name
+  );
+  let results = (outs
+    TFRT_ChainType:$out_op_chain
+  );
+
+  let printer = [{ return tfrt::dist::print(p, *this); }];
+  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+}
+
+def RemoteExecuteOp :  DistOp<"remote_execute"> {
+  let summary = "dist.remote_execute operation";
+  let description = [{
+    Executes a program on a remote location.
+    // TODO(bramandia): Add supports for inputs and outputs.
+
+    Example:
+      dist.remote_execute (%context, %id) "program_name"
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    DistributedContextType:$context,
+    I32:$host_id,
+    StrAttr:$program_name
+  );
+  let results = (outs
+    TFRT_ChainType:$out_op_chain
+  );
+
+  let printer = [{ return tfrt::dist::print(p, *this); }];
+  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+}
+
 #endif  // DISTRIBUTED_OPS

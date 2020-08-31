@@ -478,7 +478,6 @@ tfrt_cc_library(
         "include/tfrt/basic_kernels/opdefs/tfrt_base.h",
         "include/tfrt/basic_kernels/opdefs/types.h",
     ],
-    alwayslink_static_registration_src = "lib/basic_kernels/opdefs/static_registration.cc",
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs_inc_gen",
@@ -586,7 +585,6 @@ tfrt_cc_library(
         "include/tfrt/tensor/opdefs/dense_host_tensor_sync.h",
         "include/tfrt/tensor/opdefs/tensor_shape.h",
     ],
-    alwayslink_static_registration_src = "lib/tensor/opdefs/static_registration.cc",
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -633,7 +631,6 @@ tfrt_cc_library(
         "include/tfrt/core_runtime/opdefs/traits.h",
         "include/tfrt/core_runtime/opdefs/types.h",
     ],
-    alwayslink_static_registration_src = "lib/core_runtime/opdefs/static_registration.cc",
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -769,7 +766,6 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/test_kernels/opdefs/test_kernels.h",
     ],
-    alwayslink_static_registration_src = "lib/test_kernels/opdefs/static_registration.cc",
     deps = [
         ":basic_kernels_opdefs",
         ":test_kernels_opdefs_inc_gen",
@@ -869,7 +865,6 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/data/opdefs/data_ops.h",
     ],
-    alwayslink_static_registration_src = "lib/data/opdefs/static_registration.cc",
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -948,7 +943,6 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/distributed_runtime/opdefs/kernels.h",
     ],
-    alwayslink_static_registration_src = "lib/distributed_runtime/opdefs/static_registration.cc",
     deps = [
         ":basic_kernels_opdefs",
         ":distributed_kernels_opdefs_inc_gen",

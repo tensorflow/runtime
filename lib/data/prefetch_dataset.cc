@@ -38,7 +38,7 @@ RCReference<Iterator> PrefetchDataset::MakeIterator() {
 //===----------------------------------------------------------------------===//
 IterationResult PrefetchDatasetIterator::GetNext(
     const ExecutionContext& exec_ctx) {
-  while (buffer_.size() < parent_dataset_->prefetch_num_) {
+  while (buffer_.size() < parent_dataset_->prefetch_num_ + 1) {
     buffer_.push(input_iterator_->GetNext(exec_ctx));
   }
   auto result = std::move(buffer_.front());

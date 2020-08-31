@@ -113,11 +113,6 @@ class PrefetchingIterator : public Iterator {
     return value;
   }
 
-  bool ReachedEof() TFRT_EXCLUDES(mu_) {
-    mutex_lock lock(mu_);
-    return reached_eof_;
-  }
-
   mutex mu_;
   // A queue of IterationResult returned by GetNextElement(...).
   std::queue<IterationResult> prefetch_buffer_ TFRT_GUARDED_BY(mu_);

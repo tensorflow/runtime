@@ -21,6 +21,7 @@
 #include "batch_dataset.h"
 #include "filter_dataset.h"
 #include "interleave_dataset.h"
+#include "log_dataset.h"
 #include "map_dataset.h"
 #include "memory_dataset.h"
 #include "prefetch_dataset.h"
@@ -437,6 +438,16 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
 }
 
 //===----------------------------------------------------------------------===//
+// LogDataset
+//===----------------------------------------------------------------------===//
+
+RCReference<LogDataset> MakeLogDataset(RCReference<Dataset>* dataset,
+                                       const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  return TakeRef(host->Construct<LogDataset>(dataset->CopyRef(), host));
+}
+
+//===----------------------------------------------------------------------===//
 // Kernel registrations
 //===----------------------------------------------------------------------===//
 
@@ -489,6 +500,7 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_data.skip_dataset", TFRT_KERNEL(MakeSkipDataset));
   registry->AddKernel("tfrt_data.tf_record_dataset",
                       TFRT_KERNEL(MakeTFRecordDataset));
+  registry->AddKernel("tfrt_data.log_dataset", TFRT_KERNEL(MakeLogDataset));
 }
 
 }  // namespace data

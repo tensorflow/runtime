@@ -806,6 +806,7 @@ tfrt_cc_library(
         "lib/data/interleave_dataset.h",
         "lib/data/io.cc",
         "lib/data/io.h",
+        "lib/data/log_dataset.h",
         "lib/data/map_dataset.cc",
         "lib/data/map_dataset.h",
         "lib/data/memory_dataset.h",
@@ -834,6 +835,7 @@ tfrt_cc_library(
         ":tensor",
         ":tracing",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 

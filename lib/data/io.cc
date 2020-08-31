@@ -181,6 +181,8 @@ void PrefetchingIterator::ForwardInputToOutput(
 
 void PrefetchingIterator::MaterializeOutputs(const ExecutionContext& exec_ctx) {
   llvm::SmallVector<std::pair<IterationResult, IterationResult>, 4> pairs;
+  bool reached_eof;
+  size_t prefetch_buffer_size;
   while (true) {
     {
       mutex_lock lock(mu_);
@@ -191,6 +193,8 @@ void PrefetchingIterator::MaterializeOutputs(const ExecutionContext& exec_ctx) {
         output_buffer_.pop();
         pairs.push_back(std::make_pair(std::move(input), std::move(output)));
       }
+      reached_eof = reached_eof_;
+      prefetch_buffer_size = prefetch_buffer_.size();
     }
     if (pairs.empty()) break;
     // Materialize outputs in reverse order in order to reduce the number of
@@ -201,7 +205,7 @@ void PrefetchingIterator::MaterializeOutputs(const ExecutionContext& exec_ctx) {
     }
     pairs.clear();
   }
-  if (ReachedEof()) {
+  if (reached_eof && prefetch_buffer_size == 0) {
     IterationResult eof_result = IterationResult::Eof(exec_ctx.host(), 1);
     while (auto output = DequeueOutputBuffer()) {
       ForwardInputToOutput(eof_result.CopyRef(), std::move(output.getValue()),

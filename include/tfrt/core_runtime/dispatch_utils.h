@@ -56,34 +56,32 @@ namespace tfrt {
 //   using OpHandlerInfoTy = ...;
 //
 //   // If `arg_tensor` needs to be convered to a op_handler specific format
-//   then
-//   // does so, stores the converted value in *converted and returns true.
+//   // then does so, stores the converted value in *converted and returns true.
 //   // Otherwise returns false and leaves *converted untouched.
-//   //
-//   // The op_handler_info argument is required only if the `OpHandlerInfoTy`
-//   typedef
-//   // is present.
 //   static bool MaybeConvertTensor(const OpEntryTy& op_entry,
-//                                  [const OpHandlerInfoTy& op_handler_info,]
+//                                  const OpHandlerInfoTy& op_handler_info,
 //                                  const Tensor& arg_tensor,
 //                                  const ExecutionContext& exec_ctx,
 //                                  RCReference<AsyncValue>* converted);
 //
 //   // Executes the op_handler specific dispatch function for the op
-//   corresponding
-//   // to `op_entry`.
-//   //
-//   // The op_handler_info argument is required only if the `OpHandlerInfoTy`
-//   typedef
-//   // is present.
+//   // corresponding to `op_entry`.
 //   static void Dispatch(const OpEntryTy& op_entry,
-//                        [const OpHandlerInfoTy& op_handler_info,]
+//                        const OpHandlerInfoTy& op_handler_info,
 //                        ArrayRef<InputTensorTy*> inputs,
 //                        const OpAttrsRef& attrs,
 //                        ArrayRef<TensorMetadata> result_mds,
 //                        MutableArrayRef<RCReference<AsyncValue>> results,
 //                        AsyncValueRef<Chain>* chain,
 //                        const ExecutionContext& exec_ctx);
+//
+//   // Obtain the device for where the result tensor locates at.  The device
+//   // can be either specified or inferred from result Tensors
+//   // (e.g. RuntimeFallbackTensor).
+//   static Expected<RCReference<Device>> GetResultDevice(
+//       [const OpHandlerInfoTy& op_handler_info,]
+//       AsyncValueRef<Tensor> result_tensor_av,
+//       const ExecutionContext& exec_ctx);
 // };
 //
 // This overload will be SFINAE'ed out if OpHandlerTraits::OpHandlerInfoTy
@@ -91,13 +89,8 @@ namespace tfrt {
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandler(
     bool update_chain, const OpInvocation& invocation,
-    RCReference<Device> device, typename OpHandlerTraits::OpEntryTy op_entry,
+    typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info);
-
-template <typename OpHandlerTraits>
-bool ExecuteOnOpHandler(bool update_chain, const OpInvocation& invocation,
-                        RCReference<Device> device,
-                        typename OpHandlerTraits::OpEntryTy op_entry);
 
 namespace internal {
 // Internal implementaion details, please do not depend on things inside this
@@ -350,7 +343,7 @@ template <typename OpHandlerTraits>
   // Finally, run the dispatch function.
   AsyncValueRef<Chain> op_chain;
   {
-    TFRT_TRACE_SCOPE(tfrt::StrCat("RunDispatch: ", op_entry.op_name));
+    TFRT_TRACE_SCOPE(StrCat("RunDispatch: ", op_entry.op_name));
 
     OpHandlerTraits::Dispatch(op_entry, op_handler_info, arg_tensors, attrs,
                               result_mds, *results, &op_chain, exec_ctx);
@@ -556,7 +549,7 @@ LLVM_ATTRIBUTE_NOINLINE void ExecuteWithMetadataAsync(
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandlerImpl(
     bool update_chain, const OpInvocation& invocation,
-    RCReference<Device> device, typename OpHandlerTraits::OpEntryTy op_entry,
+    typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   using internal::ExecuteMetadataFunction;
   using internal::MDFunctionExecResult;
@@ -582,8 +575,8 @@ bool ExecuteOnOpHandlerImpl(
 
     if (md_exec_result == MDFunctionExecResult::kMetadataUnavailable) {
       internal::ExecuteWithMetadataAsync<OpHandlerTraits>(
-          invocation, update_chain, std::move(device), std::move(op_entry),
-          std::move(op_handler_info));
+          invocation, update_chain, op_handler_info->GetDeviceRef(),
+          std::move(op_entry), std::move(op_handler_info));
       return true;
     }
   }
@@ -605,11 +598,22 @@ bool ExecuteOnOpHandlerImpl(
       std::move(op_handler_info));
 
   for (size_t i = 0, e = results.size(); i != e; ++i) {
+    auto result_device = OpHandlerTraits::GetResultDevice(
+        op_handler_info, result_tensor_avs[i].CopyRef(), invocation.exec_ctx);
+    if (!result_device) {
+      RCReference<AsyncValue> error_av = MakeErrorAsyncValueRef(
+          invocation.exec_ctx.host(),
+          tfrt::StrCat("failed to obtain result tensor's device: ",
+                       result_device.takeError()));
+      results[i] = tfrt::TensorHandle::CreateError(std::move(error_av));
+      continue;
+    }
     if (op_entry.metadata_fn) {
-      results[i] = TensorHandle(device.CopyRef(), result_mds[i],
+      results[i] = TensorHandle(std::move(result_device.get()), result_mds[i],
                                 std::move(result_tensor_avs[i]));
     } else {
-      results[i] = TensorHandle(device.CopyRef(), std::move(result_md_avs[i]),
+      results[i] = TensorHandle(std::move(result_device.get()),
+                                std::move(result_md_avs[i]),
                                 std::move(result_tensor_avs[i]));
     }
   }
@@ -621,47 +625,10 @@ bool ExecuteOnOpHandlerImpl(
 template <typename OpHandlerTraits>
 bool ExecuteOnOpHandler(
     bool update_chain, const OpInvocation& invocation,
-    RCReference<Device> device, typename OpHandlerTraits::OpEntryTy op_entry,
+    typename OpHandlerTraits::OpEntryTy op_entry,
     typename OpHandlerTraits::OpHandlerInfoTy op_handler_info) {
   return internal::ExecuteOnOpHandlerImpl<OpHandlerTraits>(
-      update_chain, invocation, std::move(device), std::move(op_entry),
-      op_handler_info);
-}
-
-template <typename OpHandlerTraits>
-bool ExecuteOnOpHandler(bool update_chain, const OpInvocation& invocation,
-                        RCReference<Device> device,
-                        typename OpHandlerTraits::OpEntryTy op_entry) {
-  // For now implement the non-OpHandlerInfoTy overload by faking a
-  // OpHandlerInfoTy using an `int`.
-  struct InnerOpHandlerTraits {
-    using InputTensorTy = typename OpHandlerTraits::InputTensorTy;
-    using OpEntryTy = typename OpHandlerTraits::OpEntryTy;
-    using OpHandlerInfoTy = int;
-
-    static bool MaybeConvertTensor(const OpEntryTy& op_entry, OpHandlerInfoTy,
-                                   const Tensor& arg_tensor,
-                                   const ExecutionContext& exec_ctx,
-                                   RCReference<AsyncValue>* converted) {
-      return OpHandlerTraits::MaybeConvertTensor(op_entry, arg_tensor, exec_ctx,
-                                                 converted);
-    }
-
-    static void Dispatch(const OpEntryTy& op_entry, OpHandlerInfoTy,
-                         ArrayRef<InputTensorTy*> inputs,
-                         const OpAttrsRef& attrs,
-                         ArrayRef<TensorMetadata> result_mds,
-                         MutableArrayRef<RCReference<AsyncValue>> results,
-                         AsyncValueRef<Chain>* chain,
-                         const ExecutionContext& exec_ctx) {
-      OpHandlerTraits::Dispatch(op_entry, inputs, attrs, result_mds, results,
-                                chain, exec_ctx);
-    }
-  };
-
-  return internal::ExecuteOnOpHandlerImpl<InnerOpHandlerTraits>(
-      update_chain, invocation, std::move(device), std::move(op_entry),
-      /*op_handler_info=*/0);
+      update_chain, invocation, std::move(op_entry), op_handler_info);
 }
 
 }  // namespace tfrt

@@ -48,6 +48,16 @@ namespace tfrt {
 template <typename F, F f>
 struct ConversionFnImpl;
 
+template <typename SrcDeviceT,
+          std::enable_if_t<!std::is_same<Device, SrcDeviceT>::value, int> = 0>
+void checkSrcDeviceType(const Device& src) {
+  assert(src.type() == SrcDeviceT::kDeviceType);
+}
+
+template <typename SrcDeviceT,
+          std::enable_if_t<std::is_same<Device, SrcDeviceT>::value, int> = 0>
+void checkSrcDeviceType(const Device& src) {}
+
 template <typename ReturnT, typename TensorT, typename SrcDeviceT,
           typename DstDeviceT,
           ReturnT (*impl_fn)(const TensorT&, const SrcDeviceT&,
@@ -66,7 +76,7 @@ struct ConversionFnImpl<ReturnT (*)(const TensorT&, const SrcDeviceT&,
                   "the third argument must be subclass of Device");
     assert(tensor.IsTensorType(TensorT::kTensorType));
     const auto& t = static_cast<const TensorT&>(tensor);
-    assert(src.type() == SrcDeviceT::kDeviceType);
+    checkSrcDeviceType<SrcDeviceT>(src);
     const auto& s = static_cast<const SrcDeviceT&>(src);
     assert(dst.type() == DstDeviceT::kDeviceType);
     const auto& d = static_cast<const DstDeviceT&>(dst);

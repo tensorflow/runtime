@@ -50,12 +50,6 @@ class TensorMetadata;
 //
 // If the kernel has a runtime failure, the chain should be set to the
 // error value, and any invalid results should be set to errors as well.
-// TODO(b/153484730): Remove duplicate HostContext. Today we need this to make
-// CpuDispatchFn has the same signature as GpuDispatchFn.
-//
-// TODO(b/154970304): Move ExecutionContext to be the first argument to keep all
-// input arguments before output arguments. We also want to establish a
-// convention of placing ExecutionContext as the first argument.
 using CpuDispatchFn = void (*)(const ExecutionContext& exec_ctx,
                                ArrayRef<AsyncValue*> inputs,
                                const OpAttrsRef& attrs,

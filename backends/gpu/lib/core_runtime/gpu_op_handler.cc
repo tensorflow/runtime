@@ -68,6 +68,8 @@ class GpuOpHandler : public OpHandler {
   AsyncValueRef<Tensor> CopyHostTensorToDevice(
       const DenseHostTensor& tensor) override;
 
+  RCReference<GpuDevice> GetDeviceRef() { return device_.CopyRef(); }
+
  private:
   const GpuOpRegistry op_registry_;
 
@@ -105,13 +107,19 @@ struct GpuOpHandlerTraits {
     op_entry.dispatch_fn(exec_ctx, &dctx, inputs, attrs, result_mds, results,
                          chain);
   }
+
+  static Expected<RCReference<Device>> GetResultDevice(
+      GpuOpHandler* gpu_op_handler, AsyncValueRef<Tensor> result_tensor_av_ref,
+      const ExecutionContext& exec_ctx) {
+    return gpu_op_handler->GetDeviceRef();
+  }
 };
 }  // namespace
 
 llvm::Expected<std::unique_ptr<OpHandler>> GPUOpHandlerFactory(
     CoreRuntime* runtime, OpHandler* fallback) {
   GpuOpRegistry op_registry;
-  tfrt::RegisterStaticGpuOps(&op_registry);
+  RegisterStaticGpuOps(&op_registry);
   // TODO(xldrx): Add multi gpu support.
   auto device =
       gpu::GetOrCreateGpuDevice("GPU:0", 0, runtime->GetHostContext());
@@ -127,7 +135,7 @@ llvm::Expected<OpHandler*> CreateGpuOpHandler(CoreRuntime* runtime,
                                               RCReference<GpuDevice> device,
                                               OpHandler* fallback) {
   GpuOpRegistry op_registry;
-  tfrt::RegisterStaticGpuOps(&op_registry);
+  RegisterStaticGpuOps(&op_registry);
   auto gpu_op_handler = std::make_unique<GpuOpHandler>(
       runtime, fallback, std::move(op_registry), std::move(device));
 
@@ -171,16 +179,15 @@ AsyncValueRef<Tensor> GpuOpHandler::CopyHostTensorToDevice(
 
 Expected<CoreRuntimeOp> GpuOpHandler::MakeOp(string_view op_name) {
   auto* op_entry = op_registry_.impl_->LookupOpEntry(op_name);
-  // If this operation is unknown by gpu device, then we try to run it on
-  // fallback device.
+  // If this operation is unknown by gpu OpHandler, then we try to run it on
+  // fallback OpHandler.
   if (op_entry->dispatch_fn == nullptr) return GetFallback()->MakeOp(op_name);
   // TODO(b/149044322): Add side-effect flag in op registry.
 
   return CoreRuntimeOp(
       [op_entry, this](const OpInvocation& invocation) {
         return ExecuteOnOpHandler<GpuOpHandlerTraits>(
-            /*update_chain=*/false, invocation, this->device_.CopyRef(),
-            *op_entry, this);
+            /*update_chain=*/false, invocation, *op_entry, this);
       },
       /*is_fallback=*/false);
 }

@@ -53,6 +53,8 @@ class CpuOpHandler : public OpHandler {
   AsyncValueRef<Tensor> CopyHostTensorToDevice(
       const DenseHostTensor& tensor) override;
 
+  RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
+
  private:
   const CpuOpRegistry op_registry_;
   RCReference<Device> device_;
@@ -103,8 +105,10 @@ uint32_t TensorNeedsConversion(const Tensor& t, const CpuOpEntry& entry) {
 struct CpuOpHandlerTraits {
   using InputTensorTy = AsyncValue;
   using OpEntryTy = CpuOpEntry;
+  using OpHandlerInfoTy = CpuOpHandler*;
 
   static bool MaybeConvertTensor(const CpuOpEntry& op_entry,
+                                 CpuOpHandler* cpu_op_handler,
                                  const Tensor& arg_tensor,
                                  const ExecutionContext& exec_ctx,
                                  RCReference<AsyncValue>* converted) {
@@ -116,13 +120,19 @@ struct CpuOpHandlerTraits {
     return false;
   }
 
-  static void Dispatch(const CpuOpEntry& op_entry, ArrayRef<AsyncValue*> inputs,
-                       const OpAttrsRef& attrs,
+  static void Dispatch(const CpuOpEntry& op_entry, CpuOpHandler* cpu_op_handler,
+                       ArrayRef<AsyncValue*> inputs, const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,
                        MutableArrayRef<RCReference<AsyncValue>> results,
                        AsyncValueRef<Chain>* chain,
                        const ExecutionContext& exec_ctx) {
     op_entry.dispatch_fn(exec_ctx, inputs, attrs, result_mds, results, chain);
+  }
+
+  static Expected<RCReference<Device>> GetResultDevice(
+      CpuOpHandler* cpu_op_handler, AsyncValueRef<Tensor> result_tensor_av_ref,
+      const ExecutionContext& exec_ctx) {
+    return cpu_op_handler->GetDeviceRef();
   }
 };
 
@@ -132,7 +142,7 @@ struct CpuOpHandlerTraits {
 llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
     CoreRuntime* runtime, OpHandler* fallback) {
   CpuOpRegistry op_registry;
-  tfrt::RegisterStaticCpuOps(&op_registry);
+  RegisterStaticCpuOps(&op_registry);
   return std::unique_ptr<OpHandler>(new CpuOpHandler(
       runtime, fallback, std::move(op_registry),
       runtime->GetHostContext()->GetDeviceManager()->GetDeviceRef<CpuDevice>(
@@ -146,7 +156,7 @@ llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
     return MakeStringError("Invalid Runtime");
   }
   CpuOpRegistry op_registry;
-  tfrt::RegisterStaticCpuOps(&op_registry);
+  RegisterStaticCpuOps(&op_registry);
   auto cpu_op_handler = std::unique_ptr<CpuOpHandler>(new CpuOpHandler(
       runtime, fallback, std::move(op_registry), std::move(device)));
   auto cpu_op_handler_ptr = cpu_op_handler.get();
@@ -190,8 +200,8 @@ AsyncValueRef<Tensor> CpuOpHandler::CopyHostTensorToDevice(
 Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
   auto* op_entry = op_registry_.impl_->LookupOpEntry(op_name);
 
-  // If this operation is unknown by cpu device, then we try to run it on
-  // fallback device.
+  // If this operation is unknown by cpu OpHandler, then we try to run it on
+  // fallback OpHandler.
   if (op_entry->dispatch_fn == nullptr) return GetFallback()->MakeOp(op_name);
 
   // NOTE(fishx): To avoid introducing an extra heap allocation, we need to
@@ -200,8 +210,8 @@ Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
       [op_entry, this](const OpInvocation& invocation) {
         bool update_chain = !(op_entry->flags & CpuOpFlags::NoSideEffects);
         // TODO(fishx): ExecuteOnOpHandler should return void.
-        ExecuteOnOpHandler<CpuOpHandlerTraits>(
-            update_chain, invocation, this->device_.CopyRef(), *op_entry);
+        ExecuteOnOpHandler<CpuOpHandlerTraits>(update_chain, invocation,
+                                               *op_entry, this);
       },
       /*is_fallback=*/false);
 }

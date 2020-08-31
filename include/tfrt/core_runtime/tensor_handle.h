@@ -113,6 +113,8 @@ class TensorHandle final {
 
   const Device& device() const { return *device_; }
 
+  RCReference<Device> CopyRefDevice() { return device_.CopyRef(); }
+
   // Transfer the TensorHandle to the target Device and convert its format. The
   // target device can be same as current device, in this case, it will only
   // do format conversion. If both target device and target format are same as

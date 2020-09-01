@@ -24,11 +24,15 @@
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetSelect.h"
+#include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
+#include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
+#include "mlir/Dialect/LLVMIR/LLVMDialect.h"
+#include "mlir/Dialect/SCF/SCF.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
-#include "mlir/InitAllDialects.h"
-#include "mlir/InitAllPasses.h"
+#include "mlir/IR/StandardTypes.h"
 #include "mlir/Parser.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
@@ -172,9 +176,6 @@ void InitializeCompiler() {
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
 
-    mlir::registerAllDialects();
-    mlir::registerAllPasses();
-
     return true;
   })();
   (void)initialized;
@@ -247,6 +248,9 @@ Expected<CompiledContractionOutputKernel> Compile(string_view function_name,
   source_mgr.AddNewSourceBuffer(std::move(src), llvm::SMLoc());
 
   mlir::MLIRContext context;
+  context.getDialectRegistry()
+      .insert<mlir::LLVM::LLVMDialect, mlir::scf::SCFDialect,
+              mlir::StandardOpsDialect>();
   mlir::OwningModuleRef module(mlir::parseSourceFile(source_mgr, &context));
   if (!module) {
     return MakeStringError("Failed to parse kernel source");

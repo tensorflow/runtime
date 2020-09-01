@@ -34,6 +34,7 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/conversion_registry.h"
@@ -90,11 +91,14 @@ static void TensorHandleToShape(Argument<TensorHandle> arg,
 
 // Convert a HostTensor (or subclass) into a TensorHandle for use by
 // Core Runtime.
-static Chain PrintTensorHandle(Argument<TensorHandle> arg) {
+static void PrintTensorHandleSync(const TensorHandle &arg) {
   llvm::SmallString<256> message;
-  llvm::raw_svector_ostream(message) << arg.get() << "\n";
+  llvm::raw_svector_ostream(message) << arg << "\n";
   printf("%s", message.c_str());
   fflush(stdout);
+}
+static Chain PrintTensorHandle(const TensorHandle &arg) {
+  PrintTensorHandleSync(arg);
   return Chain();
 }
 
@@ -224,6 +228,23 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
                 exec_ctx);
 }
 
+// Synchronous version of ExecuteOp.
+static Error ExecuteOpSync(SyncArgument<OpHandler *> op_handler,
+                           RepeatedSyncArguments<TensorHandle> args,
+                           SyncKernelFrame *frame, AggregateAttr op_attr_array,
+                           StringAttr op_name,
+                           const ExecutionContext &exec_ctx) {
+  auto *host = exec_ctx.host();
+  auto *core_rt = CoreRuntime::GetFromHostContext(host);
+  if (!core_rt) return MakeStringError("no CoreRuntime available");
+
+  auto expected_op = core_rt->MakeOp(op_name.GetValue(), op_handler.get());
+  if (!expected_op) return MakeStringError(expected_op.takeError());
+  ExecuteOpImplSync(expected_op.get(), args,
+                    /*op_chain =*/nullptr, frame, op_attr_array, exec_ctx);
+  return Error::success();
+}
+
 // ExecuteOpSeq executes the `op_name` operation on the `op_handler`. It takes
 // an `in_op_chain` and produces an `out_op_chain` for sequencing op execution.
 // The execution is only started when `in_op_chain` is ready, and the
@@ -346,9 +367,8 @@ static tfrt::Expected<CoreRuntimeOp> MakeCompositeOp(
 
 // GetOpHandler accepts chains because the op_handlers now can be registered
 // dynamically as well.
-static tfrt::Expected<OpHandler *> GetOpHandler(
-    Argument<Chain> in_op_chain, StringAttribute op_handler_name,
-    const ExecutionContext &exec_ctx) {
+static tfrt::Expected<OpHandler *> GetOpHandlerSync(
+    StringAttribute op_handler_name, const ExecutionContext &exec_ctx) {
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
@@ -358,14 +378,26 @@ static tfrt::Expected<OpHandler *> GetOpHandler(
   return tfrt::MakeStringError("op_handler not found.");
 }
 
-static Chain RegisterOpHandler(Argument<OpHandler *> root,
-                               StringAttribute chain_name,
-                               const ExecutionContext &exec_ctx) {
+static tfrt::Expected<OpHandler *> GetOpHandler(
+    Argument<Chain> in_op_chain, StringAttribute op_handler_name,
+    const ExecutionContext &exec_ctx) {
+  return GetOpHandlerSync(op_handler_name, exec_ctx);
+}
+
+static void RegisterOpHandlerSync(Argument<OpHandler *> root,
+                                  StringAttribute chain_name,
+                                  const ExecutionContext &exec_ctx) {
   assert(root.get());
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
 
   runtime->RegisterOpHandler(chain_name, root.get());
+}
+
+static Chain RegisterOpHandler(Argument<OpHandler *> root,
+                               StringAttribute chain_name,
+                               const ExecutionContext &exec_ctx) {
+  RegisterOpHandlerSync(root, chain_name, exec_ctx);
   return Chain();
 }
 
@@ -548,8 +580,10 @@ static Expected<TensorHandle> TransferToDevice(
 //===----------------------------------------------------------------------===//
 
 void RegisterCreateDenseTensor(KernelRegistry *registry) {
-#define REGISTER_CREATE_DENSE_TENSOR(CPP_TYPE, TYPE_NAME)       \
-  registry->AddKernel("corert.create_dense_tensor." #TYPE_NAME, \
+#define REGISTER_CREATE_DENSE_TENSOR(CPP_TYPE, TYPE_NAME)            \
+  registry->AddKernel("corert.create_dense_tensor." #TYPE_NAME,      \
+                      TFRT_KERNEL(CreateDenseTensor<CPP_TYPE>));     \
+  registry->AddKernel("corert_sync.create_dense_tensor." #TYPE_NAME, \
                       TFRT_KERNEL(CreateDenseTensor<CPP_TYPE>))
   REGISTER_CREATE_DENSE_TENSOR(uint8_t, ui8);
   REGISTER_CREATE_DENSE_TENSOR(uint16_t, ui16);
@@ -610,6 +644,15 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(ConstStringTensor));
   registry->AddKernel("corert.cond", TFRT_KERNEL(CoreRtConditional));
   registry->AddKernel("corert.transfer", TFRT_KERNEL(TransferToDevice));
+
+  registry->AddSyncKernel("corert_sync.print_tensorhandle",
+                          TFRT_SYNC_KERNEL(PrintTensorHandleSync));
+  registry->AddSyncKernel("corert_sync.get_op_handler",
+                          TFRT_SYNC_KERNEL(GetOpHandlerSync));
+  registry->AddSyncKernel("corert_sync.register_op_handler",
+                          TFRT_SYNC_KERNEL(RegisterOpHandlerSync));
+  registry->AddSyncKernel("corert_sync.executeop",
+                          TFRT_SYNC_KERNEL(ExecuteOpSync));
 
   RegisterCreateDenseTensor(registry);
 }

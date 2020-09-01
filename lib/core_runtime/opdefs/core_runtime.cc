@@ -33,6 +33,7 @@
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
+#include "tfrt/core_runtime/opdefs/corert_utils.h"
 #include "tfrt/core_runtime/opdefs/types.h"
 
 namespace tfrt {
@@ -169,31 +170,6 @@ Operation *CoreRTDialect::materializeConstant(OpBuilder &builder,
   return nullptr;
 }
 
-static Type GetDeviceType(Builder *builder) {
-  return builder->getType<DeviceType>();
-}
-
-static Type GetChainType(Builder *builder) {
-  return builder->getType<ChainType>();
-}
-
-static Type GetTensorHandleType(Builder *builder) {
-  return builder->getType<TensorHandleType>();
-}
-
-template <typename OpTy>
-LogicalResult VerifyExecuteOpImpl(OpTy op) {
-  auto op_attr_array = op.op_attrs().getValue();
-  for (auto op_attr : op_attr_array) {
-    auto key_value = op_attr.template dyn_cast<ArrayAttr>();
-    if (!key_value || key_value.getValue().size() != 2 ||
-        !key_value.getValue()[0].template isa<StringAttr>())
-      return op.emitOpError() << "each op_attr should be a key-value pair, "
-                                 "where the key is a string";
-  }
-  return success();
-}
-
 void ExecuteOp::build(OpBuilder &builder, OperationState &state,
                       ArrayRef<Type> results, Value device, ValueRange operands,
                       ArrayRef<std::pair<StringRef, Attribute>> op_attrs,
@@ -211,58 +187,6 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
 static LogicalResult verify(ExecuteOp op) { return VerifyExecuteOpImpl(op); }
 static LogicalResult verify(ExecuteOpSeq op) { return VerifyExecuteOpImpl(op); }
 
-static ParseResult ParseExecuteOpImpl(OpAsmParser &parser,
-                                      OperationState &result, int num_chains) {
-  auto &builder = parser.getBuilder();
-  auto device_type = GetDeviceType(&builder);
-  auto chain_type = GetChainType(&builder);
-  auto tensorhandle_type = GetTensorHandleType(&builder);
-
-  StringAttr op_name;
-  SmallVector<OpAsmParser::OperandType, 4> device_and_in_chains;
-  SmallVector<OpAsmParser::OperandType, 4> operands;
-  NamedAttrList op_attrs;
-  auto loc = parser.getNameLoc();
-  if (parser.parseOperandList(device_and_in_chains,
-                              /*requiredOperandCount=*/num_chains + 1,
-                              OpAsmParser::Delimiter::Paren) ||
-      parser.parseAttribute(op_name, "op_name", result.attributes) ||
-      parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren) ||
-      parser.parseOptionalAttrDict(op_attrs))
-    return failure();
-
-  int64_t num_results = 0;
-  if (succeeded(parser.parseOptionalColon())) {
-    IntegerAttr attr;
-    mlir::NamedAttrList attrs;
-    if (failed(parser.parseAttribute(attr, "num_results", attrs)))
-      return failure();
-    num_results = attr.getValue().getSExtValue();
-  }
-
-  SmallVector<Type, 4> operand_types;
-  operand_types.push_back(device_type);
-  operand_types.append(num_chains, chain_type);
-  if (parser.resolveOperands(device_and_in_chains, operand_types, loc,
-                             result.operands) ||
-      parser.resolveOperands(operands, tensorhandle_type, result.operands))
-    return failure();
-
-  result.types.append(num_chains, chain_type);
-  result.types.append(num_results, tensorhandle_type);
-
-  SmallVector<Attribute, 4> op_attr_array;
-  for (const auto &key_value : op_attrs) {
-    auto key = builder.getStringAttr(key_value.first.strref());
-    auto value = key_value.second;
-    op_attr_array.push_back(builder.getArrayAttr({key, value}));
-  }
-
-  result.attributes.push_back(
-      builder.getNamedAttr("op_attrs", builder.getArrayAttr(op_attr_array)));
-
-  return success();
-}
 static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/0);
 }
@@ -271,28 +195,6 @@ static ParseResult parseExecuteOpSeq(OpAsmParser &parser,
   // ExecuteOpSeq is nonstrict.
   result.addAttribute("bef.nonstrict", parser.getBuilder().getUnitAttr());
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/1);
-}
-
-template <typename OpTy>
-void PrintExecuteOpImpl(OpAsmPrinter &p, OpTy op) {
-  auto op_attrs = op.op_attrs();
-  if (!op_attrs.empty()) {
-    auto print_key_value = [&](mlir::Attribute attr) {
-      auto key_value = attr.cast<ArrayAttr>().getValue();
-      auto key = key_value[0];
-      auto value = key_value[1];
-
-      p << key.cast<StringAttr>().getValue();
-      p << " = ";
-      p << value;
-    };
-
-    auto op_attr_array = op_attrs.getValue();
-    p << " {";
-    interleaveComma(op_attr_array, p, print_key_value);
-    p << '}';
-  }
-  if (!op.results().empty()) p << " : " << op.results().size();
 }
 static void print(OpAsmPrinter &p, ExecuteOp op) {
   p << "corert.executeop(" << op.device() << ") " << op.getAttr("op_name")

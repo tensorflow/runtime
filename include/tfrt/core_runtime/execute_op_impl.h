@@ -33,6 +33,11 @@ class ExecutionContext;
 class AsyncValue;
 class CoreRuntimeOp;
 class OpAttrs;
+class Value;
+class TensorHandle;
+template <typename T>
+class RepeatedSyncArguments;
+class SyncKernelFrame;
 
 // Set up `op_attrs` with binary attributes in `op_attr_array`.
 // TypedAttributeTrait is required in ops' ODS to use this function on their
@@ -47,6 +52,12 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
                    MutableArrayRef<RCReference<AsyncValue>> results,
                    AggregateAttr op_attr_array,
                    const ExecutionContext &exec_ctx);
+
+void ExecuteOpImplSync(const CoreRuntimeOp &op,
+                       RepeatedSyncArguments<TensorHandle> args,
+                       AsyncValueRef<Chain> *op_chain, SyncKernelFrame *frame,
+                       AggregateAttr op_attr_array,
+                       const ExecutionContext &exec_ctx);
 
 }  // namespace tfrt
 

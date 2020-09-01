@@ -49,6 +49,40 @@ func @basic_test_matmul_f32() -> !tfrt.chain {
   tfrt.return %ch7 : !tfrt.chain
 }
 
+// CHECK-LABEL: --- Running 'basic_test_matmul_f32_sync'
+func @basic_test_matmul_f32_sync() attributes {tfrt.sync} {
+  %cpu = corert_sync.get_op_handler "cpu"
+
+  // Create tensor whose shape is represented using RepKind::kRep32.
+  %a_handle = corert_sync.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1, 65536], values = [1.0 : f32] } : 1
+
+  %b_handle = corert_sync.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [65536, 1], values = [1.0 : f32] } : 1
+
+  // Create tensor whose shape is represented using RepKind::kRep16.
+  %c_handle = corert_sync.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
+
+  // This test.matmul involves two tensors whose shapes are represented using
+  // RepKind::kRep32.
+  %result1 = corert_sync.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %b_handle)
+    {transpose_a = false, transpose_b = false}: 1
+
+  // CHECK: shape = [1, 1], values = [6.553600e+04]
+  "corert_sync.print_tensorhandle"(%result1) : (!corert.tensorhandle) -> ()
+
+  // This test.matmul involves two tensors whose shapes are represented using
+  // RepKind::kRep16.
+  %result2 = corert_sync.executeop(%cpu) "tfrt_test.matmul"(%result1, %c_handle)
+    {transpose_a = false, transpose_b = false}: 1
+
+  // CHECK: shape = [1, 1], values = [1.310720e+05]
+  "corert_sync.print_tensorhandle"(%result2) : (!corert.tensorhandle) -> ()
+
+  tfrt.return
+}
+
 // CHECK-LABEL: --- Running 'basic_test_matmul_transpose_f32'
 func @basic_test_matmul_transpose_f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain

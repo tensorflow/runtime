@@ -95,6 +95,22 @@ namespace tfrt {
 #define TFRT_SYNC_KERNEL(...) \
   ::tfrt::TfrtSyncKernelImpl<decltype(&__VA_ARGS__), &__VA_ARGS__>::Invoke
 
+// Kernels should use this so we know the kernel has an argument.
+template <typename T>
+class SyncArgument {
+ public:
+  explicit SyncArgument(Value* value) : value_(value) {}
+
+  Value* value() const { return value_; }
+
+  T& get() const { return value_->template get<T>(); }
+  T* operator->() const { return &get(); }
+  T& operator*() const { return get(); }
+
+ private:
+  Value* value_;
+};
+
 // RemainingSyncArguments collects all remaining arguments in an ArrayRef. There
 // can be at most one RemainingSyncArguments, and it must appear after all other
 // Arguments.
@@ -356,6 +372,19 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
+  // Specialization to cast a single input argument (Head).
+  template <typename Head, typename... Tail>
+  struct SyncKernelCallHelper<SyncArgument<Head>, Tail...> {
+    template <int in_idx, int const_idx, typename... PreviousArgs>
+    static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(const_idx == 0,
+                    "Arguments and results should appear before attributes.");
+      SyncArgument<Head> arg(frame->GetArgAt(in_idx));
+      SyncKernelCallHelper<Tail...>::template Invoke<in_idx + 1, const_idx>(
+          frame, pargs..., arg);
+    }
+  };
+
   // Treat other pointer as an Argument.
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<Head*, Tail...> {
@@ -438,6 +467,15 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
 
       SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
           frame, pargs..., repeated_arguments);
+    }
+  };
+
+  template <typename... Tail>
+  struct SyncKernelCallHelper<SyncKernelFrame*, Tail...> {
+    template <int in_idx, int const_idx, typename... PreviousArgs>
+    static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
+          frame, pargs..., frame);
     }
   };
 

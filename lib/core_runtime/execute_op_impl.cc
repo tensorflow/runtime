@@ -28,6 +28,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
@@ -126,6 +127,34 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
   for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
     auto &th_ref = result_ths[i];
     results[i]->emplace<TensorHandle>(std::move(th_ref));
+  }
+}
+
+void ExecuteOpImplSync(const CoreRuntimeOp &op,
+                       RepeatedSyncArguments<TensorHandle> args,
+                       AsyncValueRef<Chain> *op_chain, SyncKernelFrame *frame,
+                       AggregateAttr op_attr_array,
+                       const ExecutionContext &exec_ctx) {
+  SmallVector<TensorHandle, 8> th_args;
+  th_args.reserve(args.size());
+
+  for (auto &arg : args) {
+    th_args.push_back(arg.CopyRef());
+  }
+
+  SmallVector<TensorHandle, 8> result_ths;
+  result_ths.resize(frame->GetNumResults());
+
+  // Set up OpAttrs.
+  OpAttrs op_attrs;
+  SetUpOpAttrs(op_attr_array, &op_attrs);
+
+  op(exec_ctx, th_args, OpAttrsRef(op_attrs), result_ths, op_chain);
+
+  // Return all of the TensorHandles in AsyncValue's.
+  for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
+    auto &th_ref = result_ths[i];
+    frame->EmplaceResultAt<TensorHandle>(i, std::move(th_ref));
   }
 }
 

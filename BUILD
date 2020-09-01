@@ -624,10 +624,12 @@ tfrt_cc_library(
     name = "core_runtime_opdefs",
     srcs = [
         "lib/core_runtime/opdefs/core_runtime.cc",
+        "lib/core_runtime/opdefs/corert_utils.cc",
     ],
     hdrs = [
         "include/tfrt/core_runtime/opdefs/attributes.h",
         "include/tfrt/core_runtime/opdefs/core_runtime.h",
+        "include/tfrt/core_runtime/opdefs/corert_utils.h",
         "include/tfrt/core_runtime/opdefs/traits.h",
         "include/tfrt/core_runtime/opdefs/types.h",
     ],
@@ -635,6 +637,49 @@ tfrt_cc_library(
     deps = [
         ":basic_kernels_opdefs",
         ":core_runtime_opdefs_inc_gen",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+gentbl(
+    name = "core_runtime_sync_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/core_runtime/opdefs/sync/core_runtime_opdefs.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/core_runtime/opdefs/sync/core_runtime_opdefs.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/core_runtime/opdefs/sync/core_runtime.td",
+    td_includes = ["include"],
+    td_srcs = [
+        ":OpBaseTdFiles",
+        "include/tfrt/core_runtime/opdefs/corert_traits.td",
+        "include/tfrt/core_runtime/opdefs/corert_base.td",
+        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+    ],
+)
+
+tfrt_cc_library(
+    name = "core_runtime_sync_opdefs",
+    srcs = [
+        "lib/core_runtime/opdefs/sync/core_runtime.cc",
+    ],
+    hdrs = [
+        "include/tfrt/core_runtime/opdefs/sync/core_runtime.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":basic_kernels_opdefs",
+        ":core_runtime_opdefs",
+        ":core_runtime_sync_opdefs_inc_gen",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
@@ -981,6 +1026,7 @@ tfrt_cc_library(
     deps = [
         ":basic_kernels_opdefs",
         ":core_runtime_opdefs",
+        ":core_runtime_sync_opdefs",
         ":data_opdefs",
         ":distributed_kernels_opdefs",
         ":tensor_opdefs",

@@ -43,6 +43,7 @@ TEST(BEFAttrEncoderTest, EncodeZeroShape) {
   auto buf = encoder.TakeResult();
   tfrt::RankedShapeAttr shape_attr(buf.data());
 
+  ASSERT_EQ(shape_attr.size(), sizeof(BEFShapeAttr));
   ASSERT_EQ(shape_attr.GetRank(), 0);
   auto shape = shape_attr.GetShape();
   ASSERT_EQ(shape.size(), 0);

@@ -32,12 +32,20 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
+namespace {
+
+BEFShapeType GetBEFShapeType(int rank) {
+  if (rank < 0) return BEFShapeType::kUnranked;
+
+  return BEFShapeType::kRanked;
+}
+
+}  // namespace
 
 void BEFTypedAttributeEncoder::EncodeShapeAttrBase(int byte_count, int rank) {
   EmitInt2(static_cast<uint16_t>(BEFAttributeType::kShape));
   EmitInt2(byte_count);
-  EmitByte(rank < 0 ? static_cast<uint8_t>(BEFShapeType::kUnranked)
-                    : static_cast<uint8_t>(BEFShapeType::kRanked));
+  EmitByte(static_cast<uint8_t>(GetBEFShapeType(rank)));
   EmitByte(kDummyByte);
   EmitInt2(rank);
 }
@@ -54,12 +62,14 @@ llvm::Error BEFTypedAttributeEncoder::EncodeUnrankedShapeAttr() {
 
 llvm::Error BEFTypedAttributeEncoder::EncodeRankedShapeAttr(
     ArrayRef<int64_t> dims) {
-  int rank = dims.size();
+  // Emit the shape with non-zero ranks as BEFShapeAttr. If rank is 0, the shape
+  // attribute is emitted as BEFShapeAttr instead of BEFRankedShapeAttr.
 
-  uint16_t byte_count = AssertAttrFieldSize(sizeof(BEFRankedShapeAttr));
-  if (rank > 0) {
-    byte_count = AssertAttrFieldSize(sizeof(int64_t) * (rank - 1) + byte_count);
-  }
+  size_t rank = dims.size();
+
+  uint16_t byte_count = AssertAttrFieldSize(sizeof(BEFShapeAttr));
+
+  byte_count = AssertAttrFieldSize(sizeof(int64_t) * rank + byte_count);
 
   EmitAlignment(alignof(BEFRankedShapeAttr));
 

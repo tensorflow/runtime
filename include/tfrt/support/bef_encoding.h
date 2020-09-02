@@ -448,6 +448,9 @@ struct BEFShapeAttr {
 };
 
 // Shape attributes in TFRT must be ranked.
+// TODO(tfrt-dev): Consider a better binary representation for ranked shape
+// attributes. Currently shapes with 0-rank are not emitted as
+// BEFRankedShapeAttr as it has at least one trailing integer for dimensions.
 struct BEFRankedShapeAttr {
   BEFShapeAttr shape_base;
   int64_t dims[1];

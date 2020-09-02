@@ -33,7 +33,7 @@ func @unary_ops() attributes {tfrt.sync} {
   %c = "tfrt_test.sync.const_dense_attr"() {value = dense<[2.0, 2.5, 3.0, 4.5, 5.0]> : tensor<5xf32>} : () -> !t.tensor
   "tf_sync.Rsqrt.f32"(%c, %b) : (!t.tensor, !t.tensor)->()
 
-  // CHECK: dtype = F32, shape = [5], values = [7.071067e-01, 6.324555e-01, 5.773503e-01, 4.714045e-01, 4.472136e-01]
+  // CHECK: dtype = F32, shape = [5], values = [7.071{{[0-9]*}}e-01, 6.324{{[0-9]*}}e-01, 5.773{{[0-9]*}}e-01, 4.714{{[0-9]*}}e-01, 4.472{{[0-9]*}}e-01]
   tfrt_dht_sync.print_tensor %b
 
   %d = "tfrt_test.sync.const_dense_attr"() {value = dense<[1.0, 2.5, 3.0, 4.5, 6.0]> : tensor<5xf32>} : () -> !t.tensor

@@ -57,7 +57,7 @@ func @rsqrt_f32() -> !tfrt.chain {
   %cpu_handle_result = corert.executeop(%cpu) "tf.Rsqrt"(%operand) : 1
 
   // CHECK: DenseHostTensor dtype = F32, shape = [5]
-  // CHECK-SAME: values = [7.071067e-01, 6.324555e-01, 5.773503e-01, 4.714045e-01, 4.472136e-01]
+  // CHECK-SAME: values = [7.071{{[0-9]*}}e-01, 6.324{{[0-9]*}}e-01, 5.773{{[0-9]*}}e-01, 4.714{{[0-9]*}}e-01, 4.472{{[0-9]*}}e-01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

@@ -22,30 +22,48 @@
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
 namespace proto {
 
-static llvm::Expected<tfrt::proto::Example> ParseExampleFromBytes(
-    const std::string& data) {
-  tfrt::proto::Example example;
-  if (!example.ParseFromString(data)) {
-    return MakeStringError("failed to parse example.proto from string");
-  }
-  return example;
+static AsyncValueRef<tfrt::proto::Example> ParseExampleFromBytes(
+    Argument<std::string> data, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  using ReturnTy = Expected<tfrt::proto::Example>;
+
+  return host->EnqueueWork([data = data.ValueRef(), exec_ctx]() -> ReturnTy {
+    TFRT_TRACE_SCOPE("ParseExampleFromBytes");
+    tfrt::proto::Example example;
+    if (!example.ParseFromString(data.get())) {
+      auto diag =
+          EmitError(exec_ctx, "failed to parse example.proto from string");
+      return MakeStringError(diag.message);
+    }
+    return example;
+  });
 }
 
-static llvm::Expected<std::string> GetBytesFieldFromExample(
-    const tfrt::proto::Example& example, const std::string& key) {
-  const auto& feature_map = example.features().feature();
-  if (!feature_map.contains(key)) {
-    return MakeStringError("key ", key, " is not found in the proto");
-  }
-  const auto& bytes_list = feature_map.at(key).bytes_list();
-  // Assume that each feature is a scalar.
-  assert(bytes_list.value_size() == 1);
+static AsyncValueRef<std::string> GetBytesFieldFromExample(
+    Argument<tfrt::proto::Example> example, Argument<std::string> key,
+    const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  using ReturnTy = Expected<std::string>;
 
-  return bytes_list.value(0);
+  return host->EnqueueWork([example = example.ValueRef(), key = key.ValueRef(),
+                            exec_ctx]() -> ReturnTy {
+    TFRT_TRACE_SCOPE("GetBytesFieldFromExample");
+    const auto& feature_map = example->features().feature();
+    if (!feature_map.contains(key.get())) {
+      auto diag =
+          EmitError(exec_ctx, "key ", key.get(), " is not found in the proto");
+      return MakeStringError(diag.message);
+    }
+    const auto& bytes_list = feature_map.at(key.get()).bytes_list();
+    // Assume that each feature is a scalar.
+    assert(bytes_list.value_size() == 1);
+    return bytes_list.value(0);
+  });
 }
 
 static llvm::Expected<int64_t> GetInt64FieldFromExample(

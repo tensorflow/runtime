@@ -45,10 +45,11 @@ IterationResult MapDatasetIterator::GetNext(const ExecutionContext& exec_ctx) {
 
   // IDEA(donglin): consider extending RCArray to support CopyRef() without
   // doing shallow copy.
-  auto additional_fn_args = parent_dataset_->additional_fn_args_.CopyRef();
-  auto result =
-      EnqueueFunction(map_fn, std::move(additional_fn_args),
-                      RCArray<AsyncValue>(std::move(values)), exec_ctx);
+  SmallVector<RCReference<AsyncValue>, 4> arguments;
+  for (auto* value : parent_dataset_->additional_fn_args_.values())
+    arguments.push_back(FormRef(value));
+  for (auto& value : values) arguments.push_back(std::move(value));
+  auto result = RunFunctionWhenReady(map_fn, std::move(arguments), exec_ctx);
   return IterationResult::Pending(std::move(result), std::move(eof));
 }
 

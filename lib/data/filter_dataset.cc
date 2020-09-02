@@ -89,13 +89,10 @@ void FilterDatasetIterator::MaybeScheduleBackgroundTask(
                         input_and_predicate_buffer_.size() +
                         std::max(num_false_predicate_.load(), 0);
   const Function* filter_fn = parent_dataset_->filter_fn_.get();
-  auto additional_fn_args =
-      RCArray<AsyncValue>(llvm::SmallVector<AsyncValue*, 1>());
   for (int i = 0; i < input_fetch_num; i++) {
     auto input = input_iterator_->GetNext(exec_ctx);
     auto predicate_values =
-        EnqueueFunction(filter_fn, additional_fn_args.CopyRef(),
-                        RCArray<AsyncValue>(input.values), exec_ctx);
+        RunFunctionWhenReady(filter_fn, input.CopyRef().values, exec_ctx);
     assert(predicate_values.size() == 1);
 
     predicate_values[0]->AndThen(

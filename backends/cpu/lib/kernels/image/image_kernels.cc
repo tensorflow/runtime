@@ -26,74 +26,97 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/dense_tensor_utils.h"
+#include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
 namespace image {
 
 // Returns tf.image.decode_jpeg(data, channels=3)
 static AsyncValueRef<DenseHostTensor> DecodeJpeg(
-    const std::string& data, const ExecutionContext& exec_ctx) {
-  if (!llvm::StringRef(data).startswith("\xff\xd8\xff")) {
-    return EmitErrorAsync(exec_ctx, "image does not have jpeg format");
-  }
+    Argument<std::string> data, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  auto output = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
 
-  jpeg::UncompressFlags flags;
-  flags.components = 3;
-  flags.dct_method = JDCT_IFAST;
+  host->EnqueueWork([data = data.ValueRef(), output = output.CopyRef(),
+                     exec_ctx] {
+    TFRT_TRACE_SCOPE("DecodeJpeg");
+    if (!llvm::StringRef(data.get()).startswith("\xff\xd8\xff")) {
+      auto diag = EmitError(exec_ctx, "image does not have jpeg format");
+      output.SetError(diag);
+      return;
+    }
+    jpeg::UncompressFlags flags;
+    flags.components = 3;
+    flags.dct_method = JDCT_IFAST;
 
-  AsyncValueRef<DenseHostTensor> result;
+    AsyncValueRef<DenseHostTensor> buffer;
+    jpeg::Uncompress(
+        data.get().data(), data.get().size(), flags, nullptr /* nwarn */,
+        [exec_ctx, &buffer](int width, int height, int channels) -> uint8_t* {
+          auto tensor = DenseHostTensor::CreateUninitialized<uint8_t>(
+              TensorShape({height, width, channels}), exec_ctx.host());
+          if (!tensor) {
+            buffer = EmitErrorAsync(exec_ctx, "cannot allocate tensor");
+            return nullptr;
+          }
+          buffer = MakeAvailableAsyncValueRef<DenseHostTensor>(
+              exec_ctx.host(), std::move(*tensor));
+          return static_cast<uint8_t*>(buffer.get().data());
+        });
+    if (buffer.IsError()) {
+      output.SetError(buffer.GetError());
+      return;
+    }
+    output.emplace(std::move(buffer.get()));
+  });
 
-  jpeg::Uncompress(
-      data.data(), data.size(), flags, nullptr /* nwarn */,
-      [&exec_ctx, &result](int width, int height, int channels) -> uint8_t* {
-        auto tensor = DenseHostTensor::CreateUninitialized<uint8_t>(
-            TensorShape({height, width, channels}), exec_ctx.host());
-        if (!tensor) {
-          result = EmitErrorAsync(exec_ctx, "cannot allocate tensor");
-          return nullptr;
-        }
-        result = MakeAvailableAsyncValueRef<DenseHostTensor>(
-            exec_ctx.host(), std::move(*tensor));
-        return static_cast<uint8_t*>(result.get().data());
-      });
-  return result;
+  return output;
 }
 
 // IDEA(donglin): allocate tensor buffer outside this kernel
 // Returns tf.compat.v1.image.resize(input, [height, width])
-static llvm::Expected<DenseHostTensor> ResizeBilinear(
-    const DenseHostTensor& input, int64_t height, int64_t width,
+static AsyncValueRef<DenseHostTensor> ResizeBilinear(
+    Argument<DenseHostTensor> input, int64_t height, int64_t width,
     const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  const TensorShape& shape = input.shape();
-  if (shape.GetRank() != 3) {
-    return MakeStringError("input tensor shape must be 3");
-  }
 
-  ssize_t batch_size = 1;
-  ssize_t input_height = shape.GetDimensionSize(0);
-  ssize_t input_width = shape.GetDimensionSize(1);
-  ssize_t channels = shape.GetDimensionSize(2);
-  float height_scale = input_height / static_cast<float>(height);
-  float width_scale = input_width / static_cast<float>(width);
+  using ReturnTy = Expected<DenseHostTensor>;
+  return host->EnqueueWork([input = input.ValueRef(), height, width,
+                            exec_ctx]() -> ReturnTy {
+    TFRT_TRACE_SCOPE("ResizeBilinear");
+    const TensorShape& shape = input->shape();
+    if (shape.GetRank() != 3) {
+      auto diag = EmitError(exec_ctx, "input tensor shape must be 3");
+      return MakeStringError(diag.message);
+    }
 
-  // Create the temporary output tensor with batch_size=1. This follows the same
-  // logic in tf.image.resize which adds a batch dimension if the input image
-  // does not have the batch dimension. It is easier to port the code from TF
-  // to TFRT by following the same logic. And in the future we may also want
-  // this kernel to process input image with or without the batch dimension.
-  auto dht = DenseHostTensor::CreateUninitialized<float>(
-      TensorShape({batch_size, height, width, channels}), host);
-  if (!dht) {
-    return MakeStringError("cannot allocate tensor");
-  }
-  resize_image(input, height_scale, width_scale, *dht);
+    ssize_t batch_size = 1;
+    ssize_t input_height = shape.GetDimensionSize(0);
+    ssize_t input_width = shape.GetDimensionSize(1);
+    ssize_t channels = shape.GetDimensionSize(2);
+    float height_scale = input_height / static_cast<float>(height);
+    float width_scale = input_width / static_cast<float>(width);
 
-  // Remove the batch_size dimension before returning the result.
-  TensorMetadata output_metadata(GetDType<float>(), {height, width, channels});
-  DenseHostTensor output(output_metadata, dht->ReleaseBuffer());
+    // Create the temporary output tensor with batch_size=1. This follows the
+    // same logic in tf.image.resize which adds a batch dimension if the input
+    // image does not have the batch dimension. It is easier to port the code
+    // from TF to TFRT by following the same logic. And in the future we may
+    // also want this kernel to process input image with or without the batch
+    // dimension.
+    auto dht = DenseHostTensor::CreateUninitialized<float>(
+        TensorShape({batch_size, height, width, channels}), exec_ctx.host());
+    if (!dht) {
+      auto diag = EmitError(exec_ctx, "cannot allocate tensor");
+      return MakeStringError(diag.message);
+    }
+    resize_image(input.get(), height_scale, width_scale, *dht);
 
-  return std::move(output);
+    // Remove the batch_size dimension before returning the result.
+    TensorMetadata output_metadata(GetDType<float>(),
+                                   {height, width, channels});
+    DenseHostTensor output(output_metadata, dht->ReleaseBuffer());
+    return std::move(output);
+  });
 }
 
 // This is the entrypoint to the library.

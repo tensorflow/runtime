@@ -67,70 +67,65 @@ class MapDataset : public Dataset {
   RCReference<const Function> map_fn_;
 };
 
-// Enqueues map_fn(additional_fn_args, args) on the work queue and returns
-// the result AsyncValues.
-static llvm::SmallVector<RCReference<AsyncValue>, 4> EnqueueFunction(
-    const Function* map_fn, RCArray<AsyncValue> additional_fn_args,
-    RCArray<AsyncValue> args, const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-  auto num_results = map_fn->result_types().size();
+// If all AsyncValue's in `arguments` are available at the time this method is
+// called, run the function using `arguments` as input and return the
+// function's execution result. Otherwise, run the function when AsyncValue's
+// in `arguments` are all available and return a set of IndirectAsyncValue's.
+// Those IndirectAsyncValue's will be resolved later using function's execution
+// results.
+//
+// This method is useful when the function might enqueue work into a
+// threadpool and we want to make sure the work will indeed be executed in the
+// specified threadpool. If we call Function::Execute() directly, the work
+// might instead be executed by the thread that resolves the last un-resolved
+// argument according to the 'AndThen' semantics.
+//
+// The function is executed inline without being explicitly enqueued to the
+// threadpool. We expect the function itself to offload expensive operations to
+// the threadpool.
+inline llvm::SmallVector<RCReference<AsyncValue>, 4> RunFunctionWhenReady(
+    const Function* function,
+    llvm::SmallVector<RCReference<AsyncValue>, 4> arguments,
+    const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  auto num_results = function->result_types().size();
+  bool is_ready = true;
+  llvm::SmallVector<AsyncValue*, 4> argument_ptrs;
+  for (const auto& argument : arguments) {
+    if (!argument->IsAvailable()) is_ready = false;
+    argument_ptrs.push_back(argument.get());
+  }
+  // This is the fast path when all arguments are already available. It avoids
+  // the overhead of creating IndirectAsyncValue in the slow path.
+  if (is_ready) {
+    SmallVector<RCReference<AsyncValue>, 4> fn_results;
+    fn_results.resize(num_results);
+    function->Execute(exec_ctx, argument_ptrs, fn_results);
+    return fn_results;
+  }
 
-  // Placeholder for results.
   llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> results;
+  llvm::SmallVector<RCReference<AsyncValue>, 4> results_copy;
   results.resize(num_results);
+  results_copy.resize(num_results);
   for (size_t i = 0; i < num_results; ++i) {
     results[i] = MakeIndirectAsyncValue(host);
-  }
-  llvm::SmallVector<RCReference<AsyncValue>, 4> results_ref;
-  for (const auto& result : results) {
-    results_ref.push_back(result.CopyRef());
+    results_copy[i] = results[i].CopyRef();
   }
 
-  host->RunWhenReady(
-      args.values(),
-      [exec_ctx, num_results, map_fn = std::move(map_fn),
-       additional_fn_args = std::move(additional_fn_args),
-       args = args.CopyRef(), results = std::move(results)]() mutable {
-        // IDEA(donglin): We can optimize performance for small tasks by not
-        // enqueuing small tasks to the threadpool. We need a way to identify
-        // small tasks.
-        //
-        // Enqueue the map function to the threadpool to improve performance by
-        // running the map function in parallel. An alternative approach to
-        // increase parallelism is to compose map function with async kernels.
-        // This alternative approach likely incurs higher thread context switch
-        // overhead because different async kernels may be run by different
-        // threads.
-        //
-        // NOTE: We enqueue work after the args are available. If we
-        // enqueue work before the args are available, a thread from the
-        // blocking threadpool might run the map function if the args is
-        // computed by a thread in the blocking threadpool.
-        exec_ctx.host()->EnqueueWork(
-            [exec_ctx, num_results, map_fn = std::move(map_fn),
-             additional_fn_args = std::move(additional_fn_args),
-             args = std::move(args), results = std::move(results)]() mutable {
-              // Construct arguments for function execution. The arguments
-              // consist of the 'additional_fn_args' from the MapDataset
-              // constructor, followed by the values from the underlying
-              // iterator.
-              SmallVector<AsyncValue*, 4> arguments;
-              for (auto* additional_arg : additional_fn_args.values()) {
-                arguments.push_back(additional_arg);
-              }
-              for (const auto& arg : args.values()) {
-                arguments.push_back(arg);
-              }
-              SmallVector<RCReference<AsyncValue>, 4> fn_results;
-              fn_results.resize(num_results);
-              map_fn->Execute(exec_ctx, arguments, fn_results);
-              for (size_t i = 0; i < num_results; ++i) {
-                results[i]->ForwardTo(std::move(fn_results[i]));
-              }
-            });
-      });
+  host->RunWhenReady(argument_ptrs, [function, arguments = std::move(arguments),
+                                     results = std::move(results),
+                                     argument_ptrs, exec_ctx]() mutable {
+    auto num_results = function->result_types().size();
+    SmallVector<RCReference<AsyncValue>, 4> fn_results;
+    fn_results.resize(num_results);
+    function->Execute(exec_ctx, argument_ptrs, fn_results);
+    for (size_t i = 0; i < num_results; ++i) {
+      results[i]->ForwardTo(std::move(fn_results[i]));
+    }
+  });
 
-  return results_ref;
+  return results_copy;
 }
 
 class MapDatasetIterator : public Iterator {

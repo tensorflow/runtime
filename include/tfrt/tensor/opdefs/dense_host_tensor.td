@@ -165,7 +165,7 @@ class TensorEqualOp<string dtype>
   let assemblyFormat = "operands attr-dict";
 }
 
-def AllocateBuffer : DHT_Op<"allocate_buffer"> {
+def AllocateBufferOp : DHT_Op<"allocate_buffer"> {
   let summary = "tfrt_dht.allocate_buffer operation";
 
   let description = [{

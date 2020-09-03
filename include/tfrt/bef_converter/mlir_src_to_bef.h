@@ -14,35 +14,29 @@
  * limitations under the License.
  */
 
-//===- mlir_to_bef.h --------------------------------------------*- C++ -*-===//
+//===- mlir_src_to_bef.h ----------------------------------------*- C++ -*-===//
 //
-// This file declares the interface to the MLIRToBEF library.
+// This file declares a utility function to convert MLIR source code to BEF.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_BEF_CONVERTER_MLIR_TO_BEF_H_
-#define TFRT_BEF_CONVERTER_MLIR_TO_BEF_H_
-
-#include <cstdint>
-#include <vector>
+#ifndef TFRT_BEF_CONVERTER_MLIR_SRC_TO_BEF_H_
+#define TFRT_BEF_CONVERTER_MLIR_SRC_TO_BEF_H_
 
 #include "tfrt/bef_converter/bef_buffer.h"
-
-namespace mlir {
-class ModuleOp;
-}
+#include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 
-// This function converts the specified MLIR module containing a host executor
+// This function converts the specified MLIR source containing a host executor
 // compatible program to the BinaryExecutableFormat (BEF) format, which is the
 // low level format that the executor takes.
 //
 // On error, this emits the error message through the MLIR error handler, and
 // returns an empty AlignedBuffer.
-BEFBuffer ConvertMLIRToBEF(mlir::ModuleOp module,
-                           bool disable_optional_sections);
+BEFBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
+                              bool disable_optional_sections);
 
 }  // namespace tfrt
 
-#endif  // TFRT_BEF_CONVERTER_MLIR_TO_BEF_H_
+#endif  // TFRT_BEF_CONVERTER_MLIR_SRC_TO_BEF_H_

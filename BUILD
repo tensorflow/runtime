@@ -341,6 +341,7 @@ tfrt_cc_library(
         "lib/bef_converter/mlir_to_bef/mlir_to_bef.cc",
     ],
     hdrs = [
+        "include/tfrt/bef_converter/bef_buffer.h",
         "include/tfrt/bef_converter/mlir_to_bef.h",
     ],
     visibility = [":friends"],
@@ -1032,5 +1033,26 @@ tfrt_cc_library(
         ":tensor_opdefs",
         ":test_kernels_opdefs",
         "@llvm-project//mlir:IR",
+    ],
+)
+
+tfrt_cc_library(
+    name = "mlir_src_to_bef",
+    srcs = [
+        "lib/bef_converter/mlir_to_bef/mlir_src_to_bef.cc",
+    ],
+    hdrs = [
+        "include/tfrt/bef_converter/mlir_src_to_bef.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":init_tfrt_dialects",
+        ":mlirtobef",
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:StandardOps",
     ],
 )

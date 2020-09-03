@@ -30,7 +30,9 @@ namespace tfrt {
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCpuOpHandlerKernels);
 
 // TODO(b/157120084): Remove after op_handler DSL is deprecated.
-static OpHandlerRegistration register_null("null", NullOpHandlerFactory);
-static OpHandlerRegistration register_cpu("cpu", CpuOpHandlerFactory);
+static OpHandlerFactoryRegistration register_null_factory("null",
+                                                          NullOpHandlerFactory);
+static OpHandlerFactoryRegistration register_cpu_factory("cpu",
+                                                         CpuOpHandlerFactory);
 
 }  // namespace tfrt

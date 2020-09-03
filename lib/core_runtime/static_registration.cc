@@ -36,10 +36,10 @@ static void RegisterKernels(KernelRegistry *registry) {
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterKernels);
 
-static OpHandlerRegistration logging_registration("logging",
-                                                  CreateLoggingOpHandler);
+static OpHandlerFactoryRegistration logging_factory_registration(
+    "logging", CreateLoggingOpHandler);
 
-static OpHandlerRegistration sync_logging_registration(
+static OpHandlerFactoryRegistration sync_logging_factory_registration(
     "sync_logging", CreateSyncLoggingOpHandler);
 
 }  // namespace tfrt

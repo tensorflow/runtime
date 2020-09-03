@@ -30,6 +30,7 @@ namespace tfrt {
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuOpHandlerKernels);
 
 // TODO(b/157120084): Remove after op_handler DSL is deprecated.
-static OpHandlerRegistration register_gpu("gpu", GPUOpHandlerFactory);
+static OpHandlerFactoryRegistration register_gpu_factory("gpu",
+                                                         GPUOpHandlerFactory);
 
 }  // namespace tfrt

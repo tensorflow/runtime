@@ -71,8 +71,9 @@ class OpHandlerFactory {
 
 // A helper class for registering a OpHandler's factory method into the global
 // factory.
-struct OpHandlerRegistration {
-  OpHandlerRegistration(string_view name, const OpHandlerCreateFn& create_fn) {
+struct OpHandlerFactoryRegistration {
+  OpHandlerFactoryRegistration(string_view name,
+                               const OpHandlerCreateFn& create_fn) {
     OpHandlerFactory::GetGlobalOpHandlerFactory().Add(name, create_fn);
   }
 };

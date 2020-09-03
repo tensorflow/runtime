@@ -65,8 +65,6 @@ class HostAllocator {
 
  protected:
   friend class HostContext;
-  friend class FixedSizeAllocator;
-  friend class ProfiledAllocator;
   HostAllocator() = default;
   HostAllocator(const HostAllocator&) = delete;
   HostAllocator& operator=(const HostAllocator&) = delete;

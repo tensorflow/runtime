@@ -31,7 +31,7 @@ namespace tfrt {
 class HostAllocator;
 
 // HostBuffer is a reference counted chunk of untyped memory on the host, whose
-// memory is managed by HostContext.
+// memory may be managed by HostContext or allocated by the user.
 class HostBuffer : public ReferenceCounted<HostBuffer> {
  public:
   // Create an uninitialized HostBuffer of the specified size and alignment.

@@ -67,12 +67,21 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "jit_contraction_output_kernel",
-    srcs = ["lib/jit/contraction_output_kernel.cc"],
-    hdrs = ["include/tfrt/cpu/jit/contraction_output_kernel.h"],
+    srcs = [
+        "lib/jit/contraction_output_kernel.cc",
+        "lib/jit/contraction_output_kernel_builder.cc",
+    ],
+    hdrs = [
+        "include/tfrt/cpu/jit/contraction_output_kernel.h",
+        "include/tfrt/cpu/jit/contraction_output_kernel_builder.h",
+    ],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Affine",
+        "@llvm-project//mlir:AllPassesAndDialectsNoRegistration",
+        "@llvm-project//mlir:EDSC",
         "@llvm-project//mlir:ExecutionEngine",
         "@llvm-project//mlir:ExecutionEngineUtils",
         "@llvm-project//mlir:IR",
@@ -85,7 +94,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:SCFToStandard",
         "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:mlir_c_runner_utils",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

@@ -51,11 +51,9 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
     return MakeErrorAsyncValueRef(host, "Operands transpose is not supported");
   }
 
-  string_view mlir_blob = attrs.GetStringAsserting("mlir_blob");
-
-  // Compile fusion MLIR blob into the contraction output kernel.
-  auto compiled_kernel =
-      cpu::jit::GetCompiledContractionOutputKernel(host, "compute", mlir_blob);
+  // Compile fusion into the contraction output kernel.
+  auto compiled_kernel = cpu::jit::GetCompiledContractionOutputKernel(
+      host, attrs.GetStringAsserting("fusion"));
   if (auto err = compiled_kernel.takeError()) {
     return EmitErrorAsync(exec_ctx,
                           StrCat("Failed to compiled output kernel: ", err));

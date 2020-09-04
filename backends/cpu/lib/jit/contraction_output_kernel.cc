@@ -26,10 +26,10 @@
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
-#include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/StandardTypes.h"
@@ -37,6 +37,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
+#include "tfrt/cpu/jit/contraction_output_kernel_builder.h"
 #include "tfrt/host_context/shared_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
@@ -238,11 +239,35 @@ Expected<SmallVector<int, 4>> VerifyOutputKerneSignature(
   return args_ranks;
 }
 
-Expected<CompiledContractionOutputKernel> Compile(string_view function_name,
-                                                  string_view source,
-                                                  CompilationOptions opts) {
-  auto str = source.str();
-  auto src = llvm::MemoryBuffer::getMemBuffer(str, "<unknown>");
+// Gets a contraction output kernel as a MLIR blob by serializing output kernel
+// function to string.
+Expected<std::string> GetSource(string_view output_kernel_name) {
+  auto builder = GetContractionOutputKernelBuilder(output_kernel_name);
+  if (!builder) return builder.takeError();
+
+  mlir::MLIRContext context(/*loadAllDialects=*/false);
+
+  // Explicitly load small set of dialects that we expect to see in contraction
+  // output kernel definition.
+  context.loadDialect<mlir::AffineDialect, mlir::scf::SCFDialect,
+                      mlir::StandardOpsDialect>();
+
+  std::string str;
+  llvm::raw_string_ostream os(str);
+
+  mlir::FuncOp func = (*builder)->Build(&context);
+  func.print(os);
+  func.erase();
+
+  return str;
+}
+
+Expected<CompiledContractionOutputKernel> Compile(
+    string_view output_kernel_name, CompilationOptions opts) {
+  // Get the source for the contraction output kernel.
+  auto str = GetSource(output_kernel_name);
+  if (!str) return str.takeError();
+  auto src = llvm::MemoryBuffer::getMemBuffer(*str, "<unknown>");
 
   llvm::SourceMgr source_mgr;
   source_mgr.AddNewSourceBuffer(std::move(src), llvm::SMLoc());
@@ -258,7 +283,7 @@ Expected<CompiledContractionOutputKernel> Compile(string_view function_name,
 
   // Verify output kernel function signature and collect additional arguments
   // ranks.
-  auto additional_args = VerifyOutputKerneSignature(*module, function_name);
+  auto additional_args = VerifyOutputKerneSignature(*module, "compute");
   if (auto err = additional_args.takeError()) return std::move(err);
 
   mlir::LowerToLLVMOptions lower_to_llvm_opts;
@@ -290,8 +315,8 @@ Expected<CompiledContractionOutputKernel> Compile(string_view function_name,
                                               opts.jit_code_opt_level, libs);
   if (!engine) return engine.takeError();
 
-  return CompiledContractionOutputKernel(
-      function_name, std::move(*additional_args), std::move(*engine));
+  return CompiledContractionOutputKernel("compute", std::move(*additional_args),
+                                         std::move(*engine));
 }
 
 //----------------------------------------------------------------------------//
@@ -307,7 +332,7 @@ class CompiledKernelsContext : public SharedContext {
   void operator=(const CompiledKernelsContext&) = delete;
 
   Expected<CompiledContractionOutputKernel*> GetCompiledKernel(
-      string_view key, string_view function_name, string_view mlir_module) {
+      string_view key, string_view output_kernel_name) {
     {  // Fast path. Check if the kernel is already compiled.
       mutex_lock lock(mu_);
       auto it = kernels_.find(key);
@@ -315,7 +340,7 @@ class CompiledKernelsContext : public SharedContext {
     }
 
     // Compile the kernel without holding a lock.
-    auto compiled = Compile(function_name, mlir_module, opts_);
+    auto compiled = Compile(output_kernel_name, opts_);
     if (!compiled) return compiled.takeError();
 
     // Double check that concurrent execution did not already compile the kernel
@@ -339,14 +364,13 @@ class CompiledKernelsContext : public SharedContext {
 
 // Returns contraction output kernel compiled from the MLIR module.
 Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
-    HostContext* host, string_view function_name, string_view mlir_module) {
+    HostContext* host, string_view output_kernel_name) {
   InitializeCompiler();
 
   auto& ctx = host->GetOrCreateSharedContext<CompiledKernelsContext>();
-  // TODO(ezhulenev): Create a shorter fingerprint from the mlir module to use
-  // as a lookup key for the cache.
-  const string_view key = mlir_module;
-  return ctx.GetCompiledKernel(key, function_name, mlir_module);
+  // TODO(ezhulenev): Support type polymorphic output kernels
+  const string_view key = output_kernel_name;
+  return ctx.GetCompiledKernel(key, output_kernel_name);
 }
 
 void CallCompiledContractionOutputKernel(

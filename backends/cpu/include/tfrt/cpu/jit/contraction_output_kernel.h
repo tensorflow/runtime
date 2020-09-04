@@ -47,9 +47,10 @@ namespace jit {
 // Forward declare types defined in .cc file.
 class CompiledContractionOutputKernel;
 
-// Returns contraction output kernel compiled from the MLIR module.
+// Returns contraction output kernel compiled from the MLIR function created
+// by the contraction output kernel builder.
 Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
-    HostContext* host, string_view function_name, string_view mlir_module);
+    HostContext* host, string_view output_kernel_name);
 
 // Calls compiled output kernel for the contraction output block.
 //

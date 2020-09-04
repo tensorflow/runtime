@@ -47,58 +47,6 @@ using EigenTensor =
     Eigen::TensorMap<Eigen::Tensor<T, Rank, Eigen::ColMajor, Eigen::Index>,
                      Eigen::Aligned>;
 
-inline string_view AddOneF32() {
-  return R"(
-  func @compute(%output_block : memref<?x?xf32>,
-                %row_offset : i64, %col_offset : i64) {
-    %c0 = constant 0 : index
-    %c1 = constant 1 : index
-    %one = constant 1.0 : f32
-
-    %d0 = dim %output_block, %c0 : memref<?x?xf32>
-    %d1 = dim %output_block, %c1 : memref<?x?xf32>
-
-    scf.for %i0 = %c0 to %d0 step %c1 {
-      scf.for %i1 = %c0 to %d1 step %c1 {
-        %0 = load %output_block[%i0, %i1] : memref<?x?xf32>
-        %1 = addf %0, %one : f32
-        store %1, %output_block[%i0, %i1] : memref<?x?xf32>
-      }
-    }
-
-    return
-  })";
-}
-
-inline string_view AddBiasF32() {
-  return R"(
-  func @compute(%output_block : memref<?x?xf32>,
-                %row_offset : i64, %col_offset : i64,
-                %bias : memref<?xf32>) {
-    %c0 = constant 0 : index
-    %c1 = constant 1 : index
-    %one = constant 1.0 : f32
-
-    %d0 = dim %output_block, %c0 : memref<?x?xf32>
-    %d1 = dim %output_block, %c1 : memref<?x?xf32>
-
-    // Inner dim offset == bias offset.
-    %bias_offset = index_cast %col_offset : i64 to index
-
-    scf.for %i0 = %c0 to %d0 step %c1 {
-      scf.for %i1 = %c0 to %d1 step %c1 {
-        %0 = addi %bias_offset, %i1 : index
-        %1 = load %output_block[%i0, %i1] : memref<?x?xf32>
-        %2 = load %bias[%0] : memref<?xf32>
-        %3 = addf %1, %2 : f32
-        store %3, %output_block[%i0, %i1] : memref<?x?xf32>
-      }
-    }
-
-    return
-  })";
-}
-
 TEST(ContractionOutputKernelTest, AddOne) {
   auto host_ptr = CreateTestHostContext();
   HostContext* host = host_ptr.get();
@@ -112,8 +60,7 @@ TEST(ContractionOutputKernelTest, AddOne) {
   ContractionOutputMapper mapper(storage.data(), 10, 1);
 
   // Compile contraction output kernel.
-  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, "compute",
-                                                             AddOneF32());
+  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, "AddOne");
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.
@@ -162,8 +109,7 @@ TEST(ContractionOutputKernelTest, AddBias) {
   ContractionOutputMapper mapper(mapper_base, 10, 1);
 
   // Compile contraction output kernel.
-  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, "compute",
-                                                             AddBiasF32());
+  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, "BiasAdd");
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.

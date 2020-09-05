@@ -114,7 +114,7 @@ func @hello_integers() {
 
 `@hello_integers` shows how to create and print integers. This example does not
 have the verbose type information we saw in `@hello` because we've defined
-custom parsers for the `tfrt.constant.i32` and `tfrt.print.32` kernels in
+custom parsers for the `tfrt.constant.i32` and `tfrt.print.i32` kernels in
 [basic_kernels.td](https://github.com/tensorflow/runtime/blob/master/include/tfrt/basic_kernels/opdefs/basic_kernels.td).
 See MLIR's
 [Operation Definition Specification (ODS)](https://mlir.llvm.org/docs/OpDefinitions/)

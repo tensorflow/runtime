@@ -50,6 +50,7 @@ namespace tfrt {
 class FabricCommunicator;
 class FabricCommunicatorRequestHandler;
 class CallbackRegistry;
+class RemoteObjectManager;
 
 // TODO(pisong, ayushd): remove `using`.
 using InstanceKey = std::string;
@@ -88,11 +89,9 @@ class DistributedContext {
   explicit DistributedContext(HostContext* host_context,
                               DistributedContextConfiguration configuration);
 
-  // Create DistributedContext and forward incoming requests to RequestHandler.
-  explicit DistributedContext(
-      HostContext* host_context,
-      std::unique_ptr<FabricCommunicatorRequestHandler> request_handler,
-      DistributedContextConfiguration configuration);
+  // Initialize DistributedContext and forward incoming requests to
+  // RequestHandler.
+  void Init(std::unique_ptr<FabricCommunicatorRequestHandler> request_handler);
 
   DistributedContext(DistributedContext&&) = delete;
   DistributedContext& operator=(DistributedContext&&) = delete;
@@ -129,6 +128,10 @@ class DistributedContext {
     return request_handler_.get();
   }
 
+  RemoteObjectManager* GetRemoteObjectManager() {
+    return remote_manager_.get();
+  }
+
  private:
   static llvm::StringMap<FabricCommunicatorFactory>*
   GetFabricCommunicatorFactories();
@@ -136,6 +139,7 @@ class DistributedContext {
       TFRT_REQUIRES(communicator_mutex_);
 
   HostContext* const host_context_;
+  std::unique_ptr<RemoteObjectManager> remote_manager_;
   const DistributedContextConfiguration configuration_;
   std::unique_ptr<CallbackRegistry> callback_registry_;
   std::unique_ptr<FabricCommunicatorRequestHandler> request_handler_;

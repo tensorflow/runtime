@@ -24,27 +24,24 @@
 
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/mutex.h"
 
 namespace tfrt {
 
 DistributedContext::DistributedContext(
-    HostContext* host_context,
-    std::unique_ptr<FabricCommunicatorRequestHandler> request_handler,
-    DistributedContextConfiguration configuration)
-    : host_context_{host_context},
-      configuration_{std::move(configuration)},
-      callback_registry_(new CallbackRegistry()),
-      request_handler_(std::move(request_handler)) {
-  GetOrCreateFabricCommunicator();
-}
-
-DistributedContext::DistributedContext(
     HostContext* host_context, DistributedContextConfiguration configuration)
     : host_context_{host_context},
+      remote_manager_(std::make_unique<RemoteObjectManager>(
+          configuration.fabric_configuration.host_configuration.id,
+          host_context_)),
       configuration_{std::move(configuration)},
-      callback_registry_(new CallbackRegistry()) {
+      callback_registry_(new CallbackRegistry()) {}
+
+void DistributedContext::Init(
+    std::unique_ptr<FabricCommunicatorRequestHandler> request_handler) {
+  request_handler_ = std::move(request_handler);
   GetOrCreateFabricCommunicator();
 }
 

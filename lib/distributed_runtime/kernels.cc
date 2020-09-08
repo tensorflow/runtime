@@ -25,6 +25,7 @@
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -397,17 +398,30 @@ AsyncValueRef<Chain> RemoteRegisterKernel(Chain ch,
   return out_chain;
 }
 
-AsyncValueRef<Chain> RemoteExecuteKernel(Chain ch,
-                                         DistributedContext* dist_context,
-                                         HostId receiver,
-                                         StringAttribute program_name,
-                                         const ExecutionContext& exec_ctx) {
+void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
+                         HostId receiver, RemainingArguments inputs,
+                         RemainingResults results, StringAttribute program_name,
+                         const ExecutionContext& exec_ctx) {
   RemoteExecuteInvocation request;
   // program_name will live as long as out_chain is not populated.
   request.program_name = program_name.get();
 
+  for (int i = 0; i < inputs.size(); ++i) {
+    const RemoteObjectId& input = inputs[i]->get<RemoteObjectId>();
+    request.inputs.push_back(input);
+  }
+
   AsyncValueRef<Chain> out_chain =
       MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
+  results[0] = out_chain.CopyRef();
+
+  RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
+  for (int i = 1; i < results.size(); ++i) {
+    RemoteObjectId out_id = manager->AllocateRemoteObject();
+    request.outputs.push_back(out_id);
+    results[i] =
+        MakeAvailableAsyncValueRef<RemoteObjectId>(exec_ctx.host(), out_id);
+  }
 
   exec_ctx.host()->EnqueueWork([receiver, request, dist_context,
                                 out_chain = out_chain.CopyRef()]() mutable {
@@ -421,8 +435,6 @@ AsyncValueRef<Chain> RemoteExecuteKernel(Chain ch,
           }
         });
   });
-
-  return out_chain;
 }
 
 }  // namespace

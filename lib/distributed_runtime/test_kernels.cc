@@ -33,7 +33,8 @@ namespace {
 // - delegate execution to RequestHandler
 class TestRequestHandler : public FabricCommunicatorRequestHandler {
  public:
-  TestRequestHandler() {}
+  explicit TestRequestHandler(DistributedContext* context)
+      : handler_(context) {}
   ~TestRequestHandler() final {}
 
   void HandleRemoteRegister(const RemoteRegisterInvocation& request) final {
@@ -44,8 +45,12 @@ class TestRequestHandler : public FabricCommunicatorRequestHandler {
     mutex_lock lock(invocations_mutex_);
     // Need to deep copy the request since RPC would be marked as done and
     // hence, the underlying data request refers to will be deleted.
-    string_store_.push_back(request.program_name.str());
-    invocations_.push({string_store_.back()});
+    string_store_.push(request.program_name.str());
+    RemoteExecuteInvocation request_copy;
+    request_copy.program_name = string_store_.back();
+    request_copy.inputs = request.inputs;
+    request_copy.outputs = request.outputs;
+    invocations_.push(request_copy);
     cond_.notify_one();
   }
 
@@ -64,7 +69,7 @@ class TestRequestHandler : public FabricCommunicatorRequestHandler {
   mutex invocations_mutex_;
   tfrt::condition_variable cond_;
   std::queue<RemoteExecuteInvocation> invocations_;
-  std::vector<std::string> string_store_;
+  std::queue<std::string> string_store_;
   RequestHandler handler_;
 };
 
@@ -85,11 +90,11 @@ void TestProcessNextRequest(Argument<DistributedContext> dist_context,
 AsyncValueRef<DistributedContext> TestCreateDistributedContext(
     const DistributedContextConfiguration& configuration,
     const ExecutionContext& exec_ctx) {
-  auto handler = std::make_unique<TestRequestHandler>();
   AsyncValueRef<DistributedContext> value =
       MakeAvailableAsyncValueRef<DistributedContext>(
-          exec_ctx.host(), exec_ctx.host(), std::move(handler), configuration);
-
+          exec_ctx.host(), exec_ctx.host(), configuration);
+  auto handler = std::make_unique<TestRequestHandler>(&value.get());
+  value->Init(std::move(handler));
   return value;
 }
 

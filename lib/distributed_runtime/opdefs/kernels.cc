@@ -53,10 +53,13 @@ static Type GetContextType(Builder *builder) {
 static Type GetChainType(Builder *builder) {
   return builder->getType<ChainType>();
 }
-
 static Type GetDistributedContextConfigurationType(Builder *builder) {
   return OpaqueType::get(builder->getIdentifier("dist"),
                          "dist_context_configuration", builder->getContext());
+}
+static Type GetRemoteObjectIdType(Builder *builder) {
+  return OpaqueType::get(builder->getIdentifier("dist"), "remote_object_id",
+                         builder->getContext());
 }
 
 static void print(OpAsmPrinter &p, RemoteExecuteOp op) {
@@ -144,8 +147,27 @@ static ParseResult parseRemoteExecuteOp(OpAsmParser &parser,
     return failure();
   }
 
+  auto remote_object_id_type = GetRemoteObjectIdType(&builder);
+
+  SmallVector<OpAsmParser::OperandType, 4> inputs;
+  if (parser.parseOperandList(inputs, -1, OpAsmParser::Delimiter::Paren)) {
+    return failure();
+  }
+  if (parser.resolveOperands(inputs, remote_object_id_type, result.operands))
+    return failure();
+
   result.types.append(1, chain_type);
 
+  int64_t num_results = 0;
+  if (succeeded(parser.parseOptionalColon())) {
+    IntegerAttr attr;
+    mlir::NamedAttrList attrs;
+    if (failed(parser.parseAttribute(attr, "num_results", attrs)))
+      return failure();
+    num_results = attr.getValue().getSExtValue();
+  }
+
+  result.types.append(num_results, remote_object_id_type);
   return success();
 }
 

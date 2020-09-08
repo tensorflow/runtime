@@ -26,12 +26,16 @@
 #include <string>
 
 #include "tfrt/distributed_runtime/distributed_context.h"
+#include "tfrt/distributed_runtime/remote_object.h"
 
 namespace tfrt {
 
 // Arguments for remote execute request
 struct RemoteExecuteInvocation {
   string_view program_name;  // The name of the program to be executed
+
+  llvm::SmallVector<RemoteObjectId, 4> inputs;   // The list of inputs arguments
+  llvm::SmallVector<RemoteObjectId, 4> outputs;  // The list of output arguments
 };
 
 // Arguments for remote register request

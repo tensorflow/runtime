@@ -46,6 +46,9 @@ def DistributedContextConfigurationType
 def CollectiveGroupType
     : OpaqueType<"dist", "collective_group", "!dist.collective_group type">;
 
+def RemoteObjectIdType
+    : OpaqueType<"dist", "remote_object_id", "!dist.remote_object_id type">;
+
 // Base class for the operation in this dialect
 class DistOp<string mnemonic, list<OpTrait> traits = []>
     : Op<DistDialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
@@ -208,10 +211,12 @@ def RemoteExecuteOp :  DistOp<"remote_execute"> {
     TFRT_ChainType:$in_op_chain,
     DistributedContextType:$context,
     I32:$host_id,
-    StrAttr:$program_name
+    StrAttr:$program_name,
+    Variadic<RemoteObjectIdType>:$arguments
   );
   let results = (outs
-    TFRT_ChainType:$out_op_chain
+    TFRT_ChainType:$out_op_chain,
+    Variadic<RemoteObjectIdType>:$results
   );
 
   let printer = [{ return tfrt::dist::print(p, *this); }];

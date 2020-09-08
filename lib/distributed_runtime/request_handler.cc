@@ -33,6 +33,7 @@
 #include "mlir/Parser.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"
 #include "tfrt/bef_executor/bef_file.h"
+#include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"
@@ -108,18 +109,10 @@ RCReference<BEFFile> RequestHandler::FunctionCache::Prepare(
   return RCReference<BEFFile>();
 }
 
-RequestHandler::RequestHandler() {
-  auto diag_handler = [](const DecodedDiagnostic& diag) {
-    llvm::errs() << diag.message;
-  };
-
-  // TODO(bramandia): Figure out remote configuration.
-  host_context_ = std::make_unique<HostContext>(
-      diag_handler, CreateMallocAllocator(),
-      CreateMultiThreadedWorkQueue(/*num_threads=*/4,
-                                   /*num_blocking_threads=*/64));
-  tfrt::RegisterStaticKernels(host_context_->GetMutableRegistry());
-  function_cache_ = std::make_unique<FunctionCache>(host_context_.get());
+RequestHandler::RequestHandler(DistributedContext* context)
+    : context_(context) {
+  HostContext* host_context = context_->GetHostContext();
+  function_cache_ = std::make_unique<FunctionCache>(host_context);
 }
 
 RequestHandler::~RequestHandler() {}
@@ -144,7 +137,7 @@ void RequestHandler::HandleRemoteExecute(
   RCReference<BEFFile> bef_file =
       function_cache_->Prepare(request.program_name.str());
   if (bef_file.get() == nullptr) {
-    TFRT_LOG(ERROR) << "Can't find program: " << request.program_name;
+    TFRT_LOG(ERROR) << "Can't find program: [" << request.program_name << "]";
     return;
   }
   const Function* fn = bef_file->GetFunction(request.program_name);
@@ -154,21 +147,43 @@ void RequestHandler::HandleRemoteExecute(
         ".");
     return;
   }
+  if (fn->result_types().size() != request.outputs.size()) {
+    TFRT_LOG(ERROR) << "Result size mismatch: fn #result: "
+                    << fn->result_types().size()
+                    << " Received #outputs: " << request.outputs.size();
+    return;
+  }
+  if (fn->argument_types().size() != request.inputs.size()) {
+    TFRT_LOG(ERROR) << "Argument size mismatch: fn #arg: "
+                    << fn->argument_types().size()
+                    << " Received #inputs: " << request.inputs.size();
+    return;
+  }
 
   // TODO(bramandia): Propagate RequestContext from the request.
   ResourceContext resource_context;
   RCReference<tfrt::RequestContext> req_ctx =
-      RequestContext::Create(host_context_.get(), &resource_context);
+      RequestContext::Create(context_->GetHostContext(), &resource_context);
 
   tfrt::ExecutionContext exec_ctx{std::move(req_ctx)};
 
+  RemoteObjectManager* manager = context_->GetRemoteObjectManager();
   SmallVector<AsyncValue*, 4> arguments;
   SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
   arguments.reserve(fn->argument_types().size());
   arguments_ref.reserve(fn->argument_types().size());
+  for (int i = 0; i < request.inputs.size(); ++i) {
+    const RemoteObjectId& input_id = request.inputs[i];
+    RCReference<AsyncValue> val = manager->GetRemoteObject(input_id);
+    arguments_ref.push_back(val.CopyRef());
+    arguments.push_back(val.get());
+  }
   SmallVector<RCReference<AsyncValue>, 4> results;
   results.resize(fn->result_types().size());
-
   fn->Execute(exec_ctx, arguments, results);
+  for (int i = 0; i < request.outputs.size(); ++i) {
+    const RemoteObjectId& output_id = request.outputs[i];
+    manager->SetRemoteObject(output_id, results[i].CopyRef());
+  }
 }
 }  // namespace tfrt

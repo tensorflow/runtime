@@ -47,14 +47,39 @@ TEST(ResourceContextTest, GetOrCreate) {
   ASSERT_EQ(rc2->GetData(), 41);
 }
 
-TEST(ResourceContextTest, GetAndCreate) {
+TEST(ResourceContextTest, GetOrDie) {
   ResourceContext resource_context;
   SomeResource* rc =
       resource_context.CreateResource<SomeResource>("some_name", 41);
   ASSERT_EQ(rc->GetData(), 41);
 
-  SomeResource* rc2 = resource_context.GetResource<SomeResource>("some_name");
+  SomeResource* rc2 =
+      resource_context.GetResourceOrDie<SomeResource>("some_name");
   ASSERT_EQ(rc2->GetData(), 41);
+}
+
+TEST(ResourceContextDeathTest, GetAndDie) {
+  EXPECT_DEATH(ResourceContext().GetResourceOrDie<SomeResource>("some_name"),
+               "");
+}
+
+TEST(ResourceContextTest, GetNotCreated) {
+  ResourceContext resource_context;
+  Optional<SomeResource*> resource =
+      resource_context.GetResource<SomeResource>("some_name");
+  EXPECT_EQ(resource.hasValue(), false);
+}
+
+TEST(ResourceContextTest, CreateAndGet) {
+  ResourceContext resource_context;
+  SomeResource* rc =
+      resource_context.CreateResource<SomeResource>("some_name", 41);
+  ASSERT_EQ(rc->GetData(), 41);
+
+  Optional<SomeResource*> resource =
+      resource_context.GetResource<SomeResource>("some_name");
+  EXPECT_EQ(resource.hasValue(), true);
+  EXPECT_EQ(resource.getValue()->GetData(), 41);
 }
 
 }  // namespace

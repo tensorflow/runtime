@@ -39,10 +39,23 @@ namespace tfrt {
 // ResourceContext is used to store and retrieve resources.
 class ResourceContext {
  public:
-  // Get a resource T with a `resource_name`.
+  // Get a resource T with a `resource_name`. Thread-safe.
+  template <typename T>
+  Optional<T*> GetResource(string_view resource_name) TFRT_EXCLUDES(mu_) {
+    tfrt::mutex_lock lock(mu_);
+    auto it = resources_.find(resource_name);
+    if (it == resources_.end()) {
+      return llvm::None;
+    }
+    T* data = tfrt::any_cast<T>(&it->second);
+    return data;
+  }
+
+  // Get a resource T with a `resource_name`. Asserts that the resource has
+  // been created.
   // Thread-safe.
   template <typename T>
-  T* GetResource(tfrt::string_view resource_name) TFRT_EXCLUDES(mu_) {
+  T* GetResourceOrDie(tfrt::string_view resource_name) TFRT_EXCLUDES(mu_) {
     tfrt::mutex_lock lock(mu_);
     auto it = resources_.find(resource_name);
     assert(it != resources_.end());

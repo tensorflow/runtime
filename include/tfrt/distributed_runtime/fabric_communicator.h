@@ -73,12 +73,13 @@ class FabricCommunicator {
 
   virtual ~FabricCommunicator() = default;
 
+  // TODO(b/168132685): Use Status input for async callback function.
+  using CallbackFn = llvm::unique_function<void(bool /* success */)>;
   virtual void Send(InstanceKey instance_key, HostId destination,
-                    llvm::StringRef payload) = 0;
+                    llvm::StringRef payload, CallbackFn done) = 0;
 
   // The callback will be called once the program has been successfully
   // registered in the destination.
-  using CallbackFn = llvm::unique_function<void(bool /* success */)>;
   virtual void RemoteRegister(HostId destination,
                               const RemoteRegisterInvocation& request,
                               CallbackFn done) = 0;

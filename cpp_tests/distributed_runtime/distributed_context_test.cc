@@ -49,7 +49,7 @@ class MockCommunicator : public FabricCommunicator {
                            /*request handler=*/nullptr) {}
   MOCK_METHOD(void, Send,
               (InstanceKey instance_key, HostId destination,
-               llvm::StringRef payload),
+               llvm::StringRef payload, CallbackFn done),
               (override));
 
   MOCK_METHOD(void, RemoteRegister,

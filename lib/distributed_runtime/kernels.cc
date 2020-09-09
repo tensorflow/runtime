@@ -153,6 +153,7 @@ void DoAllReduce(const InstanceKey& instance_key,
       llvm::StringRef(reinterpret_cast<const char*>(in_tensor.data()),
                       in_tensor.DataSizeInBytes());
   auto counter = std::make_shared<std::atomic<int>>(0);
+  const auto empty_callback_fn = [](const bool ok) {};
 
   for (int step = 0; step <= 2 * kGroupSize - 2; ++step) {
     auto step_key = StepKey(kPrefix, instance_key, step);
@@ -161,36 +162,36 @@ void DoAllReduce(const InstanceKey& instance_key,
       llvm::StringRef payload = GetSplit(in_tensor_ref, kGroupSize, dtype_size,
                                          SplitIndex(my_id, kGroupSize, step));
       fabric_communicator->Send(StepKey(kPrefix, instance_key, 1), kNeighborId,
-                                payload);
+                                payload, empty_callback_fn);
     } else if (step <= kLastScatterStep) {
       // Scatter Stage: Send a chunk to the neighbor, aggregate the incoming
       // chunk with local buffer.
-      auto recv_callback = [step, instance_key,
-                            in_split =
-                                GetSplit(in_tensor_ref, kGroupSize, dtype_size,
-                                         SplitIndex(my_id, kGroupSize, step)),
-                            out_split =
-                                GetSplit(in_tensor_ref, kGroupSize, dtype_size,
-                                         SplitIndex(my_id, kGroupSize, step)),
-                            reduction_fn, final_fn, fabric_communicator,
-                            kLastScatterStep, kGroupSize, kPrefix, kNeighborId](
-                               const InstanceKey&,
-                               CallbackRegistry::CallbackValue callback_value) {
-        // Scatter aggregates the results with the local buffer.
-        reduction_fn(const_cast<char*>(callback_value->data()),
-                     const_cast<char*>(in_split.data()), in_split.size());
+      auto recv_callback =
+          [step, instance_key,
+           in_split = GetSplit(in_tensor_ref, kGroupSize, dtype_size,
+                               SplitIndex(my_id, kGroupSize, step)),
+           out_split = GetSplit(in_tensor_ref, kGroupSize, dtype_size,
+                                SplitIndex(my_id, kGroupSize, step)),
+           reduction_fn, final_fn, fabric_communicator, kLastScatterStep,
+           kGroupSize, kPrefix, kNeighborId,
+           empty_callback_fn](const InstanceKey&,
+                              CallbackRegistry::CallbackValue callback_value) {
+            // Scatter aggregates the results with the local buffer.
+            reduction_fn(const_cast<char*>(callback_value->data()),
+                         const_cast<char*>(in_split.data()), in_split.size());
 
-        if (step == kLastScatterStep) {
-          final_fn(const_cast<char*>(callback_value->data()), in_split.size(),
-                   kGroupSize);
-          std::copy(callback_value->begin(), callback_value->end(),
-                    const_cast<char*>(out_split.begin()));
-        }
+            if (step == kLastScatterStep) {
+              final_fn(const_cast<char*>(callback_value->data()),
+                       in_split.size(), kGroupSize);
+              std::copy(callback_value->begin(), callback_value->end(),
+                        const_cast<char*>(out_split.begin()));
+            }
 
-        fabric_communicator->Send(
-            StepKey(kPrefix, instance_key, step + 1), kNeighborId,
-            llvm::StringRef(callback_value->data(), callback_value->size()));
-      };
+            fabric_communicator->Send(
+                StepKey(kPrefix, instance_key, step + 1), kNeighborId,
+                llvm::StringRef(callback_value->data(), callback_value->size()),
+                empty_callback_fn);
+          };
       callback_registry->SetCallback(step_key, recv_callback);
     } else {
       // Gather Stage: An incoming chunk is final. Just assign it to local
@@ -200,7 +201,7 @@ void DoAllReduce(const InstanceKey& instance_key,
            out_split = GetSplit(in_tensor_ref, kGroupSize, dtype_size,
                                 SplitIndex(my_id, kGroupSize, step)),
            fabric_communicator, callback_registry, kLastGatherStep, kPrefix,
-           kNeighborId, kTotalGatherSteps](
+           kNeighborId, kTotalGatherSteps, empty_callback_fn](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
             // Gather assigns the incoming data to the local buffer
@@ -210,7 +211,8 @@ void DoAllReduce(const InstanceKey& instance_key,
               fabric_communicator->Send(
                   StepKey(kPrefix, instance_key, step + 1), kNeighborId,
                   llvm::StringRef(callback_value->data(),
-                                  callback_value->size()));
+                                  callback_value->size()),
+                  empty_callback_fn);
             }
             if (++(*counter) == kTotalGatherSteps) {
               callback_registry->SetValue(instance_key, nullptr);
@@ -292,6 +294,7 @@ void DoBroadcast(const InstanceKey& instance_key,
   auto in_tensor = llvm::StringRef(reinterpret_cast<const char*>(tensor.data()),
                                    tensor.DataSizeInBytes());
   auto chunks_collected = std::make_shared<std::atomic<int>>(0);
+  const auto empty_callback_fn = [](const bool ok) {};
 
   for (auto i = 0; i < kGroupSize; ++i) {
     auto chunk_key = StepKey(kPrefix, instance_key, i);
@@ -299,11 +302,12 @@ void DoBroadcast(const InstanceKey& instance_key,
       // A Sender sends data to its neighbor.
       auto payload = GetSplit(in_tensor, kGroupSize, dtype_size, i);
       fabric_communicator->Send(StepKey(kPrefix, chunk_key, kNeighborId),
-                                kNeighborId, payload);
+                                kNeighborId, payload, empty_callback_fn);
     } else {
       auto recv_callback = [registry, instance_key, sender, chunk_key, i,
                             kPrefix, in_tensor, kGroupSize, kNeighborId,
-                            dtype_size, chunks_collected, fabric_communicator](
+                            dtype_size, chunks_collected, fabric_communicator,
+                            empty_callback_fn](
                                const InstanceKey&,
                                CallbackRegistry::CallbackValue data) mutable {
         // A neighbor receives data and forwards it to its neighbor.
@@ -313,7 +317,7 @@ void DoBroadcast(const InstanceKey& instance_key,
         if (kNeighborId != sender) {
           fabric_communicator->Send(
               StepKey(kPrefix, chunk_key, kNeighborId), kNeighborId,
-              llvm::StringRef(data->data(), data->size()));
+              llvm::StringRef(data->data(), data->size()), empty_callback_fn);
         }
         if (++(*chunks_collected) == kGroupSize) {
           registry->SetValue(instance_key, nullptr);

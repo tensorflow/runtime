@@ -240,6 +240,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/metrics/common_metrics.h",
         "include/tfrt/metrics/gauge.h",
+        "include/tfrt/metrics/histogram.h",
         "include/tfrt/metrics/metrics.h",
         "include/tfrt/metrics/metrics_registry.h",
     ],

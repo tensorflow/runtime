@@ -26,15 +26,26 @@
 #include <string>
 
 #include "gauge.h"
+#include "histogram.h"
 
 namespace tfrt {
 namespace metrics {
+
+//===----------------------------------------------------------------------===//
+// Methods to create Gauge metrics
+//===----------------------------------------------------------------------===//
 
 template <typename T>
 Gauge<T>* NewGauge(std::string name);
 
 template <>
 Gauge<std::string>* NewGauge(std::string name);
+
+//===----------------------------------------------------------------------===//
+// Methods to create Histogram metrics
+//===----------------------------------------------------------------------===//
+
+Histogram* NewHistogram(std::string name, const Buckets& buckets);
 
 }  // namespace metrics
 }  // namespace tfrt

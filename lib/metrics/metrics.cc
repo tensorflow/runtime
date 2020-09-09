@@ -34,11 +34,25 @@ class DummyGauge : public Gauge<T> {
   void Set(T value) override {}
 };
 
+// A dummy implementation of the Histogram metric interface.
+class DummyHistogram : public Histogram {
+ public:
+  DummyHistogram() {}
+
+  void Record(double value) override {}
+};
+
 template <>
 Gauge<std::string>* NewGauge(std::string name) {
   if (internal::kMetricsRegistry != nullptr)
     return internal::kMetricsRegistry->NewStringGauge(name);
   return new DummyGauge<std::string>();
+}
+
+Histogram* NewHistogram(std::string name, const Buckets& buckets) {
+  if (internal::kMetricsRegistry != nullptr)
+    return internal::kMetricsRegistry->NewHistogram(name, buckets);
+  return new DummyHistogram();
 }
 
 }  // namespace metrics

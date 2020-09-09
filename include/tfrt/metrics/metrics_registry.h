@@ -26,6 +26,7 @@
 #include <string>
 
 #include "gauge.h"
+#include "histogram.h"
 
 namespace tfrt {
 namespace metrics {
@@ -35,6 +36,8 @@ class MetricsRegistry {
   virtual ~MetricsRegistry() {}
 
   virtual Gauge<std::string>* NewStringGauge(std::string name) = 0;
+
+  virtual Histogram* NewHistogram(std::string name, const Buckets& buckets) = 0;
 };
 
 namespace internal {

@@ -21,32 +21,19 @@
 //===----------------------------------------------------------------------===//
 #include "tfrt/distributed_runtime/request_handler.h"
 
-#include <llvm/Support/SourceMgr.h>
-
 #include <unordered_map>
 
 #include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/Module.h"
-#include "mlir/Parser.h"
-#include "tfrt/bef_converter/mlir_to_bef.h"
+#include "tfrt/bef_converter/mlir_src_to_bef.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
-#include "tfrt/init_tfrt_dialects.h"
-#include "tfrt/support/aligned_buffer.h"
 
 namespace tfrt {
-void registerMlirDialects(mlir::DialectRegistry& registry) {
-  RegisterTFRTDialects(registry);
-  registry.insert<mlir::StandardOpsDialect>();
-}
-
 // TODO(bramandia): Replace this with TFRT FunctionLibrary once available.
 class RequestHandler::FunctionCache {
  public:
@@ -54,8 +41,7 @@ class RequestHandler::FunctionCache {
 
   // Register the given program. A program can have multiple functions in it.
   // The program_name serves as both unique ID of this program.
-  void Register(const std::string& program_name,
-                mlir::OwningModuleRef&& module);
+  void Register(const std::string& program_name, BEFBuffer bef_buffer);
 
   // Create BEFFile corresponding to the program with the given name.
   RCReference<BEFFile> Prepare(const std::string& program_name);
@@ -67,7 +53,7 @@ class RequestHandler::FunctionCache {
   // A struct representing a BEFFile and the respective buffer.
   struct CachedBEF {
     RCReference<BEFFile> bef_file;
-    std::unique_ptr<tfrt::AlignedBuffer<8>> bef_buffer;
+    BEFBuffer bef_buffer;
   };
   // Map from the program name to the CachedBEF.
   std::unordered_map<std::string, CachedBEF> cached_bef_
@@ -75,18 +61,9 @@ class RequestHandler::FunctionCache {
 };
 
 void RequestHandler::FunctionCache::Register(const std::string& program_name,
-                                             mlir::OwningModuleRef&& module) {
-  // TODO(bramandia): Propagate errors to caller.
-  auto tmp_bef = tfrt::ConvertMLIRToBEF(module.get(),
-                                        /* disable_optional_sections = */ true);
-  if (tmp_bef.empty()) {
-    TFRT_LOG(ERROR) << tfrt::StrCat("Failed to convert MLIR to BEF: ",
-                                    program_name);
-  }
-  auto bef_buffer =
-      std::make_unique<tfrt::AlignedBuffer<8>>(std::move(tmp_bef));
+                                             BEFBuffer bef_buffer) {
   RCReference<BEFFile> bef_file =
-      tfrt::BEFFile::Open(*bef_buffer, host_->GetKernelRegistry(),
+      tfrt::BEFFile::Open(bef_buffer, host_->GetKernelRegistry(),
                           host_->diag_handler(), host_->allocator());
 
   if (!bef_file) {
@@ -119,16 +96,15 @@ RequestHandler::~RequestHandler() {}
 
 void RequestHandler::HandleRemoteRegister(
     const RemoteRegisterInvocation& request) {
-  // Create MLIR module from the request.
-  mlir::MLIRContext context;
-  registerMlirDialects(context.getDialectRegistry());
-  context.allowsUnregisteredDialects();
-  llvm::SourceMgr source_mgr;
-  source_mgr.AddNewSourceBuffer(
-      llvm::MemoryBuffer::getMemBuffer(request.program), llvm::SMLoc());
-  auto module = mlir::parseSourceFile(source_mgr, &context);
-
-  function_cache_->Register(request.program_name.str(), std::move(module));
+  auto bef_buffer = ConvertMLIRSrcToBEF(request.program,
+                                        /* disable_optional_sections = */ true);
+  if (bef_buffer.empty()) {
+    // TODO(bramandia): Propagate errors to caller.
+    TFRT_LOG(ERROR) << tfrt::StrCat("Failed to convert MLIR to BEF: ",
+                                    request.program_name);
+    return;
+  }
+  function_cache_->Register(request.program_name.str(), std::move(bef_buffer));
 }
 
 void RequestHandler::HandleRemoteExecute(

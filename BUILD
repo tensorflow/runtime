@@ -946,15 +946,10 @@ tfrt_cc_library(
     deps = [
         ":befexecutor",
         ":hostcontext",
-        ":init_tfrt_dialects",
-        ":mlirtobef",
+        ":mlir_src_to_bef",
         ":support",
         ":tensor",
         "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:Parser",
-        "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:StandardOps",
     ],
 )
 

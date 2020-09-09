@@ -14,7 +14,7 @@
 
 //===- buffered_input_stream.cc -------------------------------------------===//
 //
-// This file implements BufferedInputStream.
+// This file implements the BufferedInputStream class.
 //
 //===----------------------------------------------------------------------===//
 
@@ -23,8 +23,8 @@
 namespace tfrt {
 namespace io {
 
-llvm::Expected<size_t> BufferedInputStream::Read(char* buf, size_t count) {
-  if (count < 0) return MakeStringError("count should not be negative");
+llvm::Expected<size_t> BufferedInputStream::Read(char* buf, size_t max_count) {
+  if (max_count < 0) return MakeStringError("max_count should not be negative");
 
   if (!buffer_limit_) {
     auto error = buffer_limit_.takeError();
@@ -33,7 +33,7 @@ llvm::Expected<size_t> BufferedInputStream::Read(char* buf, size_t count) {
   }
 
   size_t actual_count = 0;
-  while (actual_count < count) {
+  while (actual_count < max_count) {
     if (buffer_pos_ == *buffer_limit_) {
       buffer_limit_ = input_stream_->Read(buffer_, buffer_size_);
       buffer_pos_ = 0;
@@ -45,7 +45,7 @@ llvm::Expected<size_t> BufferedInputStream::Read(char* buf, size_t count) {
       if (*buffer_limit_ == 0) break;
     }
     size_t read_cnt =
-        std::min(*buffer_limit_ - buffer_pos_, count - actual_count);
+        std::min(*buffer_limit_ - buffer_pos_, max_count - actual_count);
     std::memcpy(buf + actual_count, buffer_ + buffer_pos_, read_cnt);
     buffer_pos_ += read_cnt;
     actual_count += read_cnt;

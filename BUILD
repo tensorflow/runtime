@@ -831,16 +831,23 @@ tfrt_cc_library(
     srcs = [
         "lib/io/buffered_input_stream.cc",
         "lib/io/file_input_stream.cc",
+        "lib/io/file_system.cc",
+        "lib/io/posix_file_system.cc",
+        "lib/io/posix_file_system.h",
     ],
     hdrs = [
         "include/tfrt/io/buffered_input_stream.h",
         "include/tfrt/io/file_input_stream.h",
+        "include/tfrt/io/file_system.h",
         "include/tfrt/io/input_stream.h",
     ],
+    alwayslink_static_registration_src = "lib/io/static_registration.cc",
+    visibility = [":friends"],
     deps = [
         ":hostcontext",
         ":support",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 

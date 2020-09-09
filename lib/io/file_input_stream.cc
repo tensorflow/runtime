@@ -14,7 +14,7 @@
 
 //===- file_input_stream.cc -----------------------------------------------===//
 //
-// This file implements FileInputStream.
+// This file implements the FileInputStream class.
 //
 //===----------------------------------------------------------------------===//
 
@@ -23,22 +23,13 @@
 namespace tfrt {
 namespace io {
 
-llvm::Expected<size_t> FileInputStream::Read(char* buf, size_t count) {
-  if (stream_.eof()) return 0;
-  stream_.read(buf, count);
-
-  if (stream_.eof()) return stream_.gcount();
-  if (stream_.fail()) return MakeStringError("failed to read file: ", path_);
-  return stream_.gcount();
+llvm::Expected<size_t> FileInputStream::Read(char* buf, size_t max_count) {
+  auto result = file_->Read(buf, max_count, offset_);
+  if (result) offset_ += *result;
+  return result;
 }
 
-llvm::Expected<size_t> FileInputStream::Tell() {
-  int64_t pos = stream_.tellg();
-  if (pos < 0) {
-    return MakeStringError("failed to tell the file offset");
-  }
-  return pos;
-}
+llvm::Expected<size_t> FileInputStream::Tell() { return offset_; }
 
 }  // namespace io
 }  // namespace tfrt

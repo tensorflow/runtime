@@ -26,16 +26,11 @@
 
 #include "io.h"
 #include "tfrt/data/dataset.h"
-#include "tfrt/io/buffered_input_stream.h"
-#include "tfrt/io/file_input_stream.h"
+#include "tfrt/io/input_stream.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 namespace data {
-
-using ::tfrt::io::BufferedInputStream;
-using ::tfrt::io::FileInputStream;
-using ::tfrt::io::InputStream;
 
 // TFRecordDataset reads TFRecord bytes from a file.
 //
@@ -83,14 +78,7 @@ class TFRecordDatasetIterator : public io::PrefetchingIterator {
   explicit TFRecordDatasetIterator(RCReference<TFRecordDataset> parent_dataset)
       : io::PrefetchingIterator(parent_dataset->max_prefetch_num_,
                                 parent_dataset->prefetch_threshold_),
-        parent_dataset_(std::move(parent_dataset)),
-        stream_(new FileInputStream(parent_dataset_->path_.c_str())) {
-    if (parent_dataset_->buffer_size_ > 0) {
-      stream_ = std::make_unique<BufferedInputStream>(
-          std::move(stream_), parent_dataset_->buffer_size_,
-          parent_dataset_->allocator_);
-    }
-  }
+        parent_dataset_(std::move(parent_dataset)) {}
 
   // This class is not copyable or movable.
   TFRecordDatasetIterator(const TFRecordDatasetIterator&) = delete;
@@ -101,6 +89,8 @@ class TFRecordDatasetIterator : public io::PrefetchingIterator {
   // input file is exhausted. Returns error async value if failed to read
   // the next record.
   IterationResult GetNextElement(const ExecutionContext& exec_ctx) final;
+
+  llvm::Error MaybeInitializeStream();
 
  private:
   void Destroy() override {
@@ -125,7 +115,8 @@ class TFRecordDatasetIterator : public io::PrefetchingIterator {
   llvm::Expected<std::string> ReadRecord(bool* eof);
 
   RCReference<TFRecordDataset> parent_dataset_;
-  std::unique_ptr<InputStream> stream_;
+  std::unique_ptr<::tfrt::io::InputStream> stream_;
+  llvm::Error initialization_error_ = llvm::Error::success();
 };
 
 }  // namespace data

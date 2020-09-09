@@ -14,40 +14,35 @@
  * limitations under the License.
  */
 
-//===- file_input_stream.h --------------------------------------*- C++ -*-===//
+//===- posix_file_system.h --------------------------------------*- C++ -*-===//
 //
-// This file declares the FileInputStream class.
+// This file declares the PosixFileSystem class.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_IO_FILE_INPUT_STREAM_H_
-#define TFRT_IO_FILE_INPUT_STREAM_H_
+#ifndef TFRT_LIB_IO_POSIX_FILE_SYSTEM_H_
+#define TFRT_LIB_IO_POSIX_FILE_SYSTEM_H_
 
 #include "tfrt/io/file_system.h"
-#include "tfrt/io/input_stream.h"
 
 namespace tfrt {
 namespace io {
 
-class FileInputStream : public InputStream {
+// This class is used to manage files in a POSIX file system.
+class PosixFileSystem : public FileSystem {
  public:
-  explicit FileInputStream(std::unique_ptr<RandomAccessFile> file)
-      : file_(std::move(file)) {}
+  explicit PosixFileSystem() {}
 
   // This class is not copyable or movable.
-  FileInputStream(const FileInputStream&) = delete;
-  FileInputStream& operator=(const FileInputStream&) = delete;
+  PosixFileSystem(const PosixFileSystem&) = delete;
+  PosixFileSystem& operator=(const PosixFileSystem&) = delete;
 
-  llvm::Expected<size_t> Read(char* buf, size_t max_count) override;
-
-  llvm::Expected<size_t> Tell() override;
-
- private:
-  std::unique_ptr<RandomAccessFile> file_;
-  size_t offset_ = 0;
+  llvm::Error NewRandomAccessFile(
+      const std::string& path,
+      std::unique_ptr<RandomAccessFile>* file) override;
 };
 
 }  // namespace io
 }  // namespace tfrt
 
-#endif  // TFRT_IO_FILE_INPUT_STREAM_H_
+#endif  // TFRT_LIB_IO_POSIX_FILE_SYSTEM_H_

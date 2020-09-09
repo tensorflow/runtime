@@ -16,35 +16,34 @@
 
 //===- input_stream.h -------------------------------------------*- C++ -*-===//
 //
-// This file declares the interface for reading data from IO source.
+// This file declares the interface to read bytes from an IO source.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef TFRT_IO_INPUT_STREAM_H_
 #define TFRT_IO_INPUT_STREAM_H_
 
-#include <memory>
-
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace io {
 
-// An interface that declares operations to access IO source.
+// An interface that declares operations to read bytes from an IO source.
 class InputStream {
  public:
   explicit InputStream() {}
 
   virtual ~InputStream() {}
 
-  // Read() attempts to read up to count bytes from the input stream into the
-  // buffer starting at buf. If the stream is at or past the EOF, no bytes are
-  // read, and read() returns zero.
+  // This method reads up to `max_count` bytes from the input stream into the
+  // buffer starting at `buf`. It may read less than `max_count` bytes if
+  // there are less than `max_count` bytes available in the stream.
   //
-  // On success, the number of bytes read is returned (zero indicates EOF if
-  // count > 0). It is not an error if this number is smaller than count.
+  // On success, the number of bytes read is returned. If this number is smaller
+  // than `max_count`, it indicates that the stream has reached EOF after this
+  // call.
   // On error, llvm::Error is returned.
-  virtual llvm::Expected<size_t> Read(char* buf, size_t count) = 0;
+  virtual llvm::Expected<size_t> Read(char* buf, size_t max_count) = 0;
 
   // Returns the position of the next byte in the input stream to be read.
   // If the stream does not support the operation, or if it fails, the function

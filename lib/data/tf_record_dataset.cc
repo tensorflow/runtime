@@ -21,6 +21,9 @@
 
 #include "tf_record_dataset.h"
 
+#include "tfrt/io/buffered_input_stream.h"
+#include "tfrt/io/file_input_stream.h"
+#include "tfrt/io/file_system.h"
 #include "tfrt/support/crc32c.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/raw_coding.h"
@@ -42,6 +45,11 @@ RCReference<Iterator> TFRecordDataset::MakeIterator() {
 IterationResult TFRecordDatasetIterator::GetNextElement(
     const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
+  if (auto error = MaybeInitializeStream()) {
+    auto async_error = MakeErrorAsyncValueRef(host, StrCat(error));
+    return IterationResult::Error(std::move(async_error), 1);
+  }
+
   bool eof = false;
   auto result = ReadRecord(&eof);
 
@@ -108,6 +116,37 @@ llvm::Expected<std::string> TFRecordDatasetIterator::ReadRecord(bool* eof) {
     return MakeStringError("truncated record at position ", *pos);
   }
   return body;
+}
+
+llvm::Error TFRecordDatasetIterator::MaybeInitializeStream() {
+  if (initialization_error_) {
+    return MakeStringError(initialization_error_);
+  }
+
+  if (stream_) return llvm::Error::success();
+
+  auto* fs_registry = ::tfrt::io::FileSystemRegistry::Default();
+  auto* file_system = fs_registry->Lookup("");
+  if (!file_system) {
+    initialization_error_ =
+        MakeStringError("No file system is found for the given scheme");
+    return MakeStringError(initialization_error_);
+  }
+
+  std::unique_ptr<::tfrt::io::RandomAccessFile> file;
+  auto error = file_system->NewRandomAccessFile(parent_dataset_->path_, &file);
+  if (error) {
+    initialization_error_ = MakeStringError(error);
+    return error;
+  }
+
+  stream_ = std::make_unique<::tfrt::io::FileInputStream>(std::move(file));
+  if (parent_dataset_->buffer_size_ > 0) {
+    stream_ = std::make_unique<::tfrt::io::BufferedInputStream>(
+        std::move(stream_), parent_dataset_->buffer_size_,
+        parent_dataset_->allocator_);
+  }
+  return llvm::Error::success();
 }
 
 }  // namespace data

@@ -16,19 +16,16 @@
 
 //===- buffered_file_input_stream.h -----------------------------*- C++ -*-===//
 //
-// This file declares BufferedInputStream which buffers data from another input
-// stream.
+// This file declares the BufferedInputStream class which buffers data from
+// another input stream.
 //
 //===----------------------------------------------------------------------===//
 
 #ifndef TFRT_IO_BUFFERED_INPUT_STREAM_H_
 #define TFRT_IO_BUFFERED_INPUT_STREAM_H_
 
-#include <fstream>
-
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/io/input_stream.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace io {
@@ -52,7 +49,7 @@ class BufferedInputStream : public InputStream {
   BufferedInputStream(const BufferedInputStream&) = delete;
   BufferedInputStream& operator=(const BufferedInputStream&) = delete;
 
-  llvm::Expected<size_t> Read(char* buf, size_t count) override;
+  llvm::Expected<size_t> Read(char* buf, size_t max_count) override;
 
   llvm::Expected<size_t> Tell() override;
 

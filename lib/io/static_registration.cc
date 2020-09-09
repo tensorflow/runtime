@@ -14,40 +14,23 @@
  * limitations under the License.
  */
 
-//===- file_input_stream.h --------------------------------------*- C++ -*-===//
+//===- static_registration.cc ---------------------------------------------===//
 //
-// This file declares the FileInputStream class.
+// This file uses a static constructor to register file systems.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_IO_FILE_INPUT_STREAM_H_
-#define TFRT_IO_FILE_INPUT_STREAM_H_
-
 #include "tfrt/io/file_system.h"
-#include "tfrt/io/input_stream.h"
 
 namespace tfrt {
 namespace io {
 
-class FileInputStream : public InputStream {
- public:
-  explicit FileInputStream(std::unique_ptr<RandomAccessFile> file)
-      : file_(std::move(file)) {}
+void RegisterPosixFileSystem(FileSystemRegistry* registry);
 
-  // This class is not copyable or movable.
-  FileInputStream(const FileInputStream&) = delete;
-  FileInputStream& operator=(const FileInputStream&) = delete;
-
-  llvm::Expected<size_t> Read(char* buf, size_t max_count) override;
-
-  llvm::Expected<size_t> Tell() override;
-
- private:
-  std::unique_ptr<RandomAccessFile> file_;
-  size_t offset_ = 0;
-};
+static bool kRegisterFileSystem = [] {
+  RegisterPosixFileSystem(FileSystemRegistry::Default());
+  return true;
+}();
 
 }  // namespace io
 }  // namespace tfrt
-
-#endif  // TFRT_IO_FILE_INPUT_STREAM_H_

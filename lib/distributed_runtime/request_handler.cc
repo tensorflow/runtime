@@ -86,7 +86,7 @@ void RequestHandler::FunctionCache::Register(const std::string& program_name,
   auto bef_buffer =
       std::make_unique<tfrt::AlignedBuffer<8>>(std::move(tmp_bef));
   RCReference<BEFFile> bef_file =
-      tfrt::BEFFile::Open(*bef_buffer, host_->GetMutableRegistry(),
+      tfrt::BEFFile::Open(*bef_buffer, host_->GetKernelRegistry(),
                           host_->diag_handler(), host_->allocator());
 
   if (!bef_file) {

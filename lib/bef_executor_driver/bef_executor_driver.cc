@@ -170,7 +170,7 @@ int RunBefExecutor(const RunBefConfig& run_config) {
     }
   }
 
-  auto bef(BEFFile::Open(buffer_arr, host->GetMutableRegistry(),
+  auto bef(BEFFile::Open(buffer_arr, host->GetKernelRegistry(),
                          decoded_diagnostic_handler, host->allocator()));
 
   if (!bef) {

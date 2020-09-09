@@ -52,7 +52,7 @@ class BEFFile : public ReferenceCounted<BEFFile> {
   // passed in, taking a closure to run when the lifetime of the BEFFile is
   // done.
   static RCReference<BEFFile> Open(ArrayRef<uint8_t> file,
-                                   KernelRegistry* registry,
+                                   const KernelRegistry& registry,
                                    ErrorHandler error_handler,
                                    HostAllocator* host_allocator);
 

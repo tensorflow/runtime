@@ -55,7 +55,7 @@ struct FunctionIndex {
 // an error message and return true on failure.
 class BEFFileReader : public BEFReader {
  public:
-  BEFFileReader(ArrayRef<uint8_t> file, KernelRegistry* registry,
+  BEFFileReader(ArrayRef<uint8_t> file, const KernelRegistry& registry,
                 BEFFileImpl* bef_file)
       : BEFReader(file), registry_(registry), bef_file_(bef_file) {}
 
@@ -72,7 +72,7 @@ class BEFFileReader : public BEFReader {
                              HostAllocator* host_allocator);
 
   // These are things set up at construction time.
-  KernelRegistry* registry_;
+  const KernelRegistry& registry_;
 
   // This is the file structure we're reading.
   BEFFileImpl* bef_file_;
@@ -258,7 +258,7 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
     const char* kernel_name = reinterpret_cast<const char*>(
         &bef_file_->string_section_[kernel_name_offset]);
 
-    auto kernel = registry_->GetKernel(kernel_name);
+    auto kernel = registry_.GetKernel(kernel_name);
     if (kernel.is<Monostate>()) {
       return DiagnoseUnknownKernel(bef_file_->kernels_.size(), kernel_name,
                                    host_allocator);
@@ -297,7 +297,7 @@ bool BEFFileReader::ReadTypesSection() {
     // If this is an unknown type, bail out.
     const char* type_name_str = reinterpret_cast<const char*>(
         &bef_file_->string_section_[type_name_offset]);
-    auto type_name = registry_->GetType(type_name_str);
+    auto type_name = registry_.GetType(type_name_str);
 
     // Otherwise remember it.
     bef_file_->type_names_.push_back(type_name);
@@ -430,7 +430,7 @@ bool BEFFileReader::ReadFunctionIndexSection() {
 BEFFile::~BEFFile() {}
 
 RCReference<BEFFile> BEFFile::Open(ArrayRef<uint8_t> file,
-                                   KernelRegistry* registry,
+                                   const KernelRegistry& registry,
                                    ErrorHandler error_handler,
                                    tfrt::HostAllocator* host_allocator) {
   auto* bef_impl = new BEFFileImpl(error_handler);

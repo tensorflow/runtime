@@ -63,7 +63,7 @@ int main(int argc, char** argv) {
   tfrt::RegisterControlFlowKernels(host.GetMutableRegistry());
 
   std::vector<uint8_t> buffer = ReadFromStdInToBuffer();
-  auto bef(tfrt::BEFFile::Open(buffer, host.GetMutableRegistry(),
+  auto bef(tfrt::BEFFile::Open(buffer, host.GetKernelRegistry(),
                                decoded_diagnostic_handler,
                                host_allocator.get()));
   if (!bef) {

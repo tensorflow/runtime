@@ -16,7 +16,7 @@
 
 //===- metrics.h ------------------------------------------------*- C++ -*-===//
 //
-// This file declares the metrics library.
+// This file declares global functions to create metrics.
 //
 //===----------------------------------------------------------------------===//
 
@@ -24,49 +24,17 @@
 #define TFRT_METRICS_METRICS_H_
 
 #include <string>
-#include <vector>
+
+#include "gauge.h"
 
 namespace tfrt {
 namespace metrics {
 
 template <typename T>
-class Gauge {
- public:
-  virtual ~Gauge() {}
+Gauge<T>* NewGauge(std::string name);
 
-  virtual void SetValue(T value) = 0;
-};
-
-class MetricsRegistry {
- public:
-  virtual ~MetricsRegistry() {}
-
-  virtual Gauge<std::string>* NewStringGauge(std::string name) = 0;
-};
-
-namespace internal {
-// The global metric registry to be used for all TFRT metrics.
-extern MetricsRegistry* kMetricsRegistry;
-}  // namespace internal
-
-// Registers the metrics registry. Only one registry can be registered at any
-// time.
-void RegisterMetricsRegistry(MetricsRegistry* metrics_registry);
-
-template <typename T>
-class DummyGauge : public Gauge<T> {
- public:
-  DummyGauge() {}
-
-  void SetValue(T value) override {}
-};
-
-template <typename T>
-Gauge<T>* NewGauge(std::string name) {
-  if (internal::kMetricsRegistry != nullptr)
-    return internal::kMetricsRegistry->NewStringGauge(name);
-  return new DummyGauge<T>();
-}
+template <>
+Gauge<std::string>* NewGauge(std::string name);
 
 }  // namespace metrics
 }  // namespace tfrt

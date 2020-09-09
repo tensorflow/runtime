@@ -235,10 +235,13 @@ tfrt_cc_library(
     name = "metrics",
     srcs = [
         "lib/metrics/metrics.cc",
+        "lib/metrics/metrics_registry.cc",
     ],
     hdrs = [
         "include/tfrt/metrics/common_metrics.h",
+        "include/tfrt/metrics/gauge.h",
         "include/tfrt/metrics/metrics.h",
+        "include/tfrt/metrics/metrics_registry.h",
     ],
     visibility = [":friends"],
     deps = [

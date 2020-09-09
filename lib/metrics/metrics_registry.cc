@@ -12,33 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- metrics.cc ---------------------------------------------------------===//
+//===- metrics_registry.cc ------------------------------------------------===//
 //
-// This file defines global functions to create metrics.
+// This file defines functions to register the MetricsRegistry instance.
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/metrics/metrics.h"
-
 #include "tfrt/metrics/metrics_registry.h"
+
+#include <cassert>
+#include <mutex>
 
 namespace tfrt {
 namespace metrics {
 
-// A dummy implementation of the Gauge metric interface.
-template <typename T>
-class DummyGauge : public Gauge<T> {
- public:
-  DummyGauge() {}
+MetricsRegistry* internal::kMetricsRegistry = nullptr;
 
-  void Set(T value) override {}
-};
+static std::mutex& GetMetricsMutex() {
+  static auto mutex = new std::mutex;
+  return *mutex;
+}
 
-template <>
-Gauge<std::string>* NewGauge(std::string name) {
-  if (internal::kMetricsRegistry != nullptr)
-    return internal::kMetricsRegistry->NewStringGauge(name);
-  return new DummyGauge<std::string>();
+void RegisterMetricsRegistry(MetricsRegistry* metrics_registry) {
+  std::lock_guard<std::mutex> lock(GetMetricsMutex());
+  assert(metrics_registry);
+  assert(internal::kMetricsRegistry == nullptr);
+  internal::kMetricsRegistry = metrics_registry;
 }
 
 }  // namespace metrics

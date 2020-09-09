@@ -14,30 +14,28 @@
  * limitations under the License.
  */
 
-//===- common_metrics.h -----------------------------------------*- C++ -*-===//
+//===- gauge.h --------------------------------------------------*- C++ -*-===//
 //
-// This file provides methods to define a few common TFRT metrics.
+// This file declares the Gauge metric interface.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_METRICS_COMMON_METRICS_H_
-#define TFRT_METRICS_COMMON_METRICS_H_
-
-#include "tfrt/metrics/metrics.h"
+#ifndef TFRT_METRICS_GAUGE_H_
+#define TFRT_METRICS_GAUGE_H_
 
 namespace tfrt {
 namespace metrics {
 
-inline void AddTFRTVersionMetric() {
-  static auto* version_metric = [] {
-    auto* m = metrics::NewGauge<std::string>("/tensorflow/runtime/version");
-    m->Set("TFRT_V0");
-    return m;
-  }();
-  (void)version_metric;
-}
+// The Gauge metric interface.
+template <typename T>
+class Gauge {
+ public:
+  virtual ~Gauge() {}
+
+  virtual void Set(T value) = 0;
+};
 
 }  // namespace metrics
 }  // namespace tfrt
 
-#endif  // TFRT_METRICS_COMMON_METRICS_H_
+#endif  // TFRT_METRICS_GAUGE_H_

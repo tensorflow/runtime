@@ -14,30 +14,39 @@
  * limitations under the License.
  */
 
-//===- common_metrics.h -----------------------------------------*- C++ -*-===//
+//===- metrics_registry.h ---------------------------------------*- C++ -*-===//
 //
-// This file provides methods to define a few common TFRT metrics.
+// This file declares the MetricsRegistry interface.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_METRICS_COMMON_METRICS_H_
-#define TFRT_METRICS_COMMON_METRICS_H_
+#ifndef TFRT_METRICS_METRICS_REGISTRY_H_
+#define TFRT_METRICS_METRICS_REGISTRY_H_
 
-#include "tfrt/metrics/metrics.h"
+#include <string>
+
+#include "gauge.h"
 
 namespace tfrt {
 namespace metrics {
 
-inline void AddTFRTVersionMetric() {
-  static auto* version_metric = [] {
-    auto* m = metrics::NewGauge<std::string>("/tensorflow/runtime/version");
-    m->Set("TFRT_V0");
-    return m;
-  }();
-  (void)version_metric;
-}
+class MetricsRegistry {
+ public:
+  virtual ~MetricsRegistry() {}
+
+  virtual Gauge<std::string>* NewStringGauge(std::string name) = 0;
+};
+
+namespace internal {
+// The global metric registry to be used for all TFRT metrics.
+extern MetricsRegistry* kMetricsRegistry;
+}  // namespace internal
+
+// Registers the metrics registry. Only one registry can be registered at any
+// time.
+void RegisterMetricsRegistry(MetricsRegistry* metrics_registry);
 
 }  // namespace metrics
 }  // namespace tfrt
 
-#endif  // TFRT_METRICS_COMMON_METRICS_H_
+#endif  // TFRT_METRICS_METRICS_REGISTRY_H_

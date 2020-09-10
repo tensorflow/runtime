@@ -60,7 +60,7 @@ TEST(ContractionOutputKernelTest, AddOne) {
   ContractionOutputMapper mapper(storage.data(), 10, 1);
 
   // Compile contraction output kernel.
-  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, "AddOne");
+  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, {"AddOne"});
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.
@@ -109,7 +109,7 @@ TEST(ContractionOutputKernelTest, AddBias) {
   ContractionOutputMapper mapper(mapper_base, 10, 1);
 
   // Compile contraction output kernel.
-  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, "BiasAdd");
+  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, {"BiasAdd"});
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.
@@ -120,6 +120,50 @@ TEST(ContractionOutputKernelTest, AddBias) {
     for (int j = 0; j < 3; ++j) {
       ASSERT_EQ(tensor(row_offset + i, col_offset + j),
                 bias_initial_value + row_offset + i);
+    }
+  }
+}
+
+TEST(ContractionOutputKernelTest, AddOneAndBias) {
+  auto host_ptr = CreateTestHostContext();
+  HostContext* host = host_ptr.get();
+
+  std::vector<float> storage(100);
+  EigenTensor<float, 2> tensor(storage.data(), 10, 10);
+
+  const float bias_initial_value = 11.0;
+  std::vector<float> bias_storage(10);
+  std::iota(bias_storage.begin(), bias_storage.end(), bias_initial_value);
+
+  auto noop_deallocator = [](void* ptr, size_t size) {};
+  TensorShape bias_shape(ArrayRef<ssize_t>(10));
+  DenseHostTensor bias(TensorMetadata(DType(DType::F32), bias_shape),
+                       HostBuffer::CreateFromExternal(bias_storage.data(), 10,
+                                                      noop_deallocator));
+
+  // Column major mapper for the `tensor`.
+  using ContractionOutputMapper =
+      cpu::jit::ContractionOutputKernel<float>::ContractionOutputMapper;
+
+  const int row_offset = 2;
+  const int col_offset = 3;
+
+  float* mapper_base = storage.data() + 10 * col_offset + row_offset;
+  ContractionOutputMapper mapper(mapper_base, 10, 1);
+
+  // Compile contraction output kernel.
+  auto kernel =
+      cpu::jit::GetCompiledContractionOutputKernel(host, {"AddOne", "BiasAdd"});
+  ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
+
+  // Call compiled contraction output kernel.
+  cpu::jit::ContractionOutputKernel<float> output_kernel(*kernel, {&bias});
+  output_kernel(mapper, {true}, row_offset, col_offset, 5, 3);
+
+  for (int i = 3; i < 5; ++i) {
+    for (int j = 0; j < 3; ++j) {
+      ASSERT_EQ(tensor(row_offset + i, col_offset + j),
+                1.0 + bias_initial_value + row_offset + i);
     }
   }
 }

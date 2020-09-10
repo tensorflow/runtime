@@ -50,7 +50,7 @@ class CompiledContractionOutputKernel;
 // Returns contraction output kernel compiled from the MLIR function created
 // by the contraction output kernel builder.
 Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
-    HostContext* host, string_view output_kernel_name);
+    HostContext* host, ArrayRef<string_view> output_kernels);
 
 // Calls compiled output kernel for the contraction output block.
 //

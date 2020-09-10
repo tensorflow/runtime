@@ -51,9 +51,16 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
     return MakeErrorAsyncValueRef(host, "Operands transpose is not supported");
   }
 
+  // Collect output kernel names from the attribute.
+  auto fusion = attrs.GetAsserting<AggregateAttr>("fusion");
+  SmallVector<string_view, 4> fusion_kernels(fusion.GetNumElements());
+  for (int i = 0; i < fusion.GetNumElements(); ++i) {
+    fusion_kernels[i] = fusion.GetAttributeOfType<StringAttr>(i).GetValue();
+  }
+
   // Compile fusion into the contraction output kernel.
-  auto compiled_kernel = cpu::jit::GetCompiledContractionOutputKernel(
-      host, attrs.GetStringAsserting("fusion"));
+  auto compiled_kernel =
+      cpu::jit::GetCompiledContractionOutputKernel(host, fusion_kernels);
   if (auto err = compiled_kernel.takeError()) {
     return EmitErrorAsync(exec_ctx,
                           StrCat("Failed to compiled output kernel: ", err));
@@ -69,7 +76,7 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
   if (auto err = cpu::jit::VerifyCompiledContractionOutoutKernelArgs(
           *compiled_kernel, additional_args)) {
     return EmitErrorAsync(
-        exec_ctx, StrCat("Illegal output kernel additional argument: ", err));
+        exec_ctx, StrCat("Illegal output kernel additional arguments: ", err));
   }
 
   // Dispatch to the correct data type expression.

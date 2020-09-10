@@ -26,23 +26,22 @@
 
 #include "llvm/Support/Error.h"
 #include "mlir/IR/Function.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/Operation.h"
+#include "mlir/IR/Module.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 namespace cpu {
 namespace jit {
 
-// Builds a contraction output kernel function.
+// Builds a contraction output kernel function and adds it to the module.
 class ContractionOutputKernelBuilder {
  public:
   virtual ~ContractionOutputKernelBuilder() = default;
-  virtual mlir::FuncOp Build(mlir::MLIRContext* ctx) = 0;
+  virtual Expected<mlir::FuncOp> Build(mlir::ModuleOp module) = 0;
 };
 
 Expected<std::unique_ptr<ContractionOutputKernelBuilder>>
-GetContractionOutputKernelBuilder(string_view name);
+GetContractionOutputKernelBuilder(ArrayRef<string_view> output_kernels);
 
 }  // namespace jit
 }  // namespace cpu

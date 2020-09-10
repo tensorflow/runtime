@@ -3006,11 +3006,9 @@ cc_library(
 
 cc_library(
     name = "AllPassesAndDialects",
-    srcs = ["@tf_runtime//third_party/mlir:mlir-auto-init.cpp"],
     deps = [
         ":AllPassesAndDialectsNoRegistration",
     ],
-    alwayslink = 1,
 )
 
 cc_binary(

@@ -19,7 +19,6 @@ third_party/mkl_dnn/BUILD
 third_party/mkl_dnn/BUILD.mkl_dnn
 third_party/mlir/BUILD
 third_party/mlir/linalggen.bzl
-third_party/mlir/mlir-auto-init.cpp
 third_party/mlir/tblgen.bzl
 third_party/mlir/test.BUILD
 third_party/protobuf/BUILD

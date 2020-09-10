@@ -108,11 +108,19 @@ FuncOp CreateOutputKernelFunc(ModuleOp module, string_view function_name,
 
 class AddOne : public ContractionOutputKernelBuilder {
  public:
-  Expected<FuncOp> Build(ModuleOp module) final;
+  Expected<FuncOp> Build(ModuleOp module, DType dtype,
+                         ArrayRef<DType> additional_args) const final;
 };
 
-Expected<FuncOp> AddOne::Build(ModuleOp module) {
+Expected<FuncOp> AddOne::Build(ModuleOp module, DType dtype,
+                               ArrayRef<DType> additional_args) const {
   MLIRContext* ctx = module.getContext();
+
+  if (dtype != DType(DType::F32))
+    return MakeStringError("AddOne supports only f32 dtype");
+
+  if (!additional_args.empty())
+    return MakeStringError("AddOne requires empty additional args");
 
   auto f32_ty = FloatType::getF32(ctx);
 
@@ -155,11 +163,24 @@ Expected<FuncOp> AddOne::Build(ModuleOp module) {
 
 class BiasAdd : public ContractionOutputKernelBuilder {
  public:
-  Expected<FuncOp> Build(mlir::ModuleOp module) final;
+  Expected<FuncOp> Build(mlir::ModuleOp module, DType dtype,
+                         ArrayRef<DType> additional_args) const final;
+
+  int GetNumAdditionalArgs() const final { return 1; }
 };
 
-Expected<FuncOp> BiasAdd::Build(ModuleOp module) {
+Expected<FuncOp> BiasAdd::Build(ModuleOp module, DType dtype,
+                                ArrayRef<DType> additional_args) const {
   MLIRContext* ctx = module.getContext();
+
+  if (dtype != DType(DType::F32))
+    return MakeStringError("BiasAdd supports only f32 dtype");
+
+  if (additional_args.size() != 1)
+    return MakeStringError("BiasAdd requires one additional args");
+
+  if (dtype != additional_args[0])
+    return MakeStringError("Bias dtype must be the same as output dtype");
 
   auto f32_ty = FloatType::getF32(ctx);
   auto index_ty = IndexType::get(ctx);
@@ -209,13 +230,15 @@ class OutputKernelsComposition : public ContractionOutputKernelBuilder {
  public:
   explicit OutputKernelsComposition(ArrayRef<string_view> output_kernels)
       : output_kernels_(output_kernels) {}
-  Expected<FuncOp> Build(mlir::ModuleOp module) final;
+  Expected<FuncOp> Build(mlir::ModuleOp module, DType dtype,
+                         ArrayRef<DType> additional_args) const final;
 
  private:
   ArrayRef<string_view> output_kernels_;
 };
 
-Expected<FuncOp> OutputKernelsComposition::Build(ModuleOp module) {
+Expected<FuncOp> OutputKernelsComposition::Build(
+    ModuleOp module, DType dtype, ArrayRef<DType> additional_args) const {
   // The number of default output kernel argumets:
   //   output_block, row offset, col offset.
   static constexpr int kNumDefautArgs = 3;
@@ -224,23 +247,32 @@ Expected<FuncOp> OutputKernelsComposition::Build(ModuleOp module) {
   llvm::SmallVector<FuncOp, 4> output_kernels;
 
   // Types of additional arguments for all output kernels.
-  llvm::SmallVector<Type, 4> additional_args;
+  llvm::SmallVector<Type, 4> additional_args_types;
+
+  int additional_args_offset = 0;
 
   for (string_view output_kernel : output_kernels_) {
     auto builder = GetContractionOutputKernelBuilder(output_kernel);
     if (auto err = builder.takeError()) return std::move(err);
 
-    auto function = (*builder)->Build(module);
+    // Take dtypes corresponding to the output kernel.
+    int num_additional_args = (*builder)->GetNumAdditionalArgs();
+    ArrayRef<DType> dtypes = additional_args.drop_front(additional_args_offset)
+                                 .take_front(num_additional_args);
+    additional_args_offset += num_additional_args;
+
+    auto function = (*builder)->Build(module, dtype, dtypes);
     if (auto err = function.takeError()) return std::move(err);
 
     output_kernels.push_back(*function);
 
     for (Type type : function->getType().getInputs().drop_front(kNumDefautArgs))
-      additional_args.push_back(type);
+      additional_args_types.push_back(type);
   }
 
   // Create a function for the output kernel composition.
-  auto function = CreateOutputKernelFunc(module, "compute", {additional_args});
+  auto function =
+      CreateOutputKernelFunc(module, "compute", {additional_args_types});
 
   // Call output kernels one by one.
   OpBuilder builder(function.getBody());
@@ -250,7 +282,7 @@ Expected<FuncOp> OutputKernelsComposition::Build(ModuleOp module) {
   auto row_offset = function.getArgument(1);
   auto col_offset = function.getArgument(2);
 
-  int additional_args_offset = 0;
+  additional_args_offset = 0;
 
   for (FuncOp output_kernel : output_kernels) {
     llvm::SmallVector<Value, 4> args = {output_block, row_offset, col_offset};

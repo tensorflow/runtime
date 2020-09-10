@@ -20,6 +20,7 @@
 
 #include "tfrt/cpu/jit/contraction_output_kernel.h"
 
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
 #include "llvm/Support/MemoryBuffer.h"
@@ -55,13 +56,23 @@ namespace jit {
 class CompiledContractionOutputKernel {
  public:
   explicit CompiledContractionOutputKernel(
-      string_view function_name, SmallVector<int, 4> additional_args_ranks,
+      string_view function_name, DType output_dtype,
+      SmallVector<DType, 4> additional_args_dtypes,
+      SmallVector<int, 4> additional_args_ranks,
       std::unique_ptr<mlir::ExecutionEngine> engine)
       : function_name_(function_name.str()),
+        output_dtype_(output_dtype),
+        additional_args_dtypes_(additional_args_dtypes),
         additional_args_ranks_(std::move(additional_args_ranks)),
         engine_(std::move(engine)) {}
 
-  Error Verify(ArrayRef<const DenseHostTensor*> additional_args) {
+  Error Verify(DType dtype, ArrayRef<const DenseHostTensor*> additional_args) {
+    if (dtype != output_dtype_) {
+      return MakeStringError("Data type ", dtype,
+                             " does not match expected output data type ",
+                             output_dtype_);
+    }
+
     if (additional_args.size() != additional_args_ranks_.size()) {
       return MakeStringError("Wrong number of additional argumets. Expected ",
                              additional_args_ranks_.size(), " got ",
@@ -70,10 +81,17 @@ class CompiledContractionOutputKernel {
 
     for (int i = 0; i < additional_args.size(); ++i) {
       const auto& additional_arg = additional_args[i];
+
       if (additional_arg->shape().GetRank() != additional_args_ranks_[i]) {
         return MakeStringError("Wrong additional argument #", i,
                                " rank. Expected ", additional_args_ranks_[i],
                                " got ", additional_arg->shape().GetRank());
+      }
+
+      if (additional_arg->dtype() != additional_args_dtypes_[i]) {
+        return MakeStringError("Wrong additional argument #", i,
+                               " dtype. Expected ", additional_args_dtypes_[i],
+                               " got ", additional_arg->dtype());
       }
     }
 
@@ -161,6 +179,8 @@ class CompiledContractionOutputKernel {
   };
 
   std::string function_name_;
+  DType output_dtype_;
+  SmallVector<DType, 4> additional_args_dtypes_;
   SmallVector<int, 4> additional_args_ranks_;
   std::unique_ptr<mlir::ExecutionEngine> engine_;
 };
@@ -197,7 +217,7 @@ Expected<SmallVector<int, 4>> VerifyOutputKerneSignature(
 
   if (fn.getNumArguments() < 3) {
     return MakeStringError(
-        "Output kernel function must have at least 4 arguments, got %d",
+        "Output kernel function must have at least 3 arguments, got %d",
         fn.getNumArguments());
   }
 
@@ -225,7 +245,7 @@ Expected<SmallVector<int, 4>> VerifyOutputKerneSignature(
     auto arg = fn.getArgument(i).getType().dyn_cast<mlir::MemRefType>();
     if (!arg || !arg.hasRank())
       return MakeStringError(
-          "Additional output kernel arguments must be ranked memrefs");
+          "Additional output kernel arguments must be ranked memref");
 
     // TODO(ezhulenev): Support other ranks for additional arguments.
     if (arg.getRank() != 1) {
@@ -247,7 +267,8 @@ struct OutputKernelSource {
 // Gets a contraction output kernel as a MLIR blob by serializing output kernel
 // function to string.
 Expected<OutputKernelSource> GetOutputKernelSource(
-    ArrayRef<string_view> output_kernels) {
+    ArrayRef<string_view> output_kernels, DType dtype,
+    ArrayRef<DType> additional_args) {
   auto builder = GetContractionOutputKernelBuilder(output_kernels);
   if (!builder) return builder.takeError();
 
@@ -262,7 +283,8 @@ Expected<OutputKernelSource> GetOutputKernelSource(
   mlir::OwningModuleRef module =
       mlir::ModuleOp::create(mlir::UnknownLoc::get(&context));
 
-  Expected<mlir::FuncOp> func = (*builder)->Build(*module);
+  Expected<mlir::FuncOp> func =
+      (*builder)->Build(*module, dtype, additional_args);
   if (auto err = func.takeError()) return std::move(err);
 
   OutputKernelSource src;
@@ -275,9 +297,10 @@ Expected<OutputKernelSource> GetOutputKernelSource(
 }
 
 Expected<CompiledContractionOutputKernel> Compile(
-    ArrayRef<string_view> output_kernels, CompilationOptions opts) {
+    ArrayRef<string_view> output_kernels, DType dtype,
+    ArrayRef<DType> additional_args, CompilationOptions opts) {
   // Get the source for the contraction output kernel.
-  auto src = GetOutputKernelSource(output_kernels);
+  auto src = GetOutputKernelSource(output_kernels, dtype, additional_args);
   if (!src) return src.takeError();
 
   auto buffer = llvm::MemoryBuffer::getMemBuffer(src->module, "<unknown>");
@@ -296,8 +319,9 @@ Expected<CompiledContractionOutputKernel> Compile(
 
   // Verify output kernel function signature and collect additional arguments
   // ranks.
-  auto additional_args = VerifyOutputKerneSignature(*module, src->entrypoint);
-  if (auto err = additional_args.takeError()) return std::move(err);
+  auto additional_args_ranks =
+      VerifyOutputKerneSignature(*module, src->entrypoint);
+  if (auto err = additional_args_ranks.takeError()) return std::move(err);
 
   mlir::LowerToLLVMOptions lower_to_llvm_opts;
   mlir::PassManager pm(&context);
@@ -329,7 +353,9 @@ Expected<CompiledContractionOutputKernel> Compile(
   if (!engine) return engine.takeError();
 
   return CompiledContractionOutputKernel(
-      src->entrypoint, std::move(*additional_args), std::move(*engine));
+      src->entrypoint, dtype,
+      SmallVector<DType, 4>(additional_args.begin(), additional_args.end()),
+      std::move(*additional_args_ranks), std::move(*engine));
 }
 
 //----------------------------------------------------------------------------//
@@ -345,7 +371,8 @@ class CompiledKernelsContext : public SharedContext {
   void operator=(const CompiledKernelsContext&) = delete;
 
   Expected<CompiledContractionOutputKernel*> GetCompiledKernel(
-      string_view key, ArrayRef<string_view> output_kernels) {
+      string_view key, ArrayRef<string_view> output_kernels, DType dtype,
+      ArrayRef<DType> additional_args) {
     {  // Fast path. Check if the kernel is already compiled.
       mutex_lock lock(mu_);
       auto it = kernels_.find(key);
@@ -353,7 +380,7 @@ class CompiledKernelsContext : public SharedContext {
     }
 
     // Compile the kernel without holding a lock.
-    auto compiled = Compile(output_kernels, opts_);
+    auto compiled = Compile(output_kernels, dtype, additional_args, opts_);
     if (!compiled) return compiled.takeError();
 
     // Double check that concurrent execution did not already compile the kernel
@@ -377,15 +404,20 @@ class CompiledKernelsContext : public SharedContext {
 
 // Returns contraction output kernel compiled from the MLIR module.
 Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
-    HostContext* host, ArrayRef<string_view> output_kernels) {
+    HostContext* host, ArrayRef<string_view> output_kernels, DType dtype,
+    ArrayRef<DType> additional_args) {
   InitializeCompiler();
 
   auto& ctx = host->GetOrCreateSharedContext<CompiledKernelsContext>();
   assert(!output_kernels.empty());
 
-  // TODO(ezhulenev): Support type polymorphic output kernels
-  const std::string key = llvm::join(output_kernels, "_");
-  return ctx.GetCompiledKernel(key, output_kernels);
+  auto dtypes = llvm::map_range(additional_args,
+                                [](DType dtype) { return StrCat(dtype); });
+
+  const std::string key = StrCat(dtype, ":", llvm::join(dtypes, ":"), ":",
+                                 llvm::join(output_kernels, ":"));
+
+  return ctx.GetCompiledKernel(key, output_kernels, dtype, additional_args);
 }
 
 void CallCompiledContractionOutputKernel(
@@ -397,9 +429,9 @@ void CallCompiledContractionOutputKernel(
 }
 
 Error VerifyCompiledContractionOutoutKernelArgs(
-    CompiledContractionOutputKernel* kernel,
+    CompiledContractionOutputKernel* kernel, DType dtype,
     ArrayRef<const DenseHostTensor*> additional_args) {
-  return kernel->Verify(additional_args);
+  return kernel->Verify(dtype, additional_args);
 }
 
 }  // namespace jit

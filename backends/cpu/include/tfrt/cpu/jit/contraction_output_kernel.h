@@ -49,8 +49,14 @@ class CompiledContractionOutputKernel;
 
 // Returns contraction output kernel compiled from the MLIR function created
 // by the contraction output kernel builder.
+//
+//   `dtype`           - data type of a contraction output
+//   `additional_args` - data types of the additional arguments passed to the
+//                       contraction output kernel (e.g. data type of the bias
+//                       vector for BiasAdd output fusion)
 Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
-    HostContext* host, ArrayRef<string_view> output_kernels);
+    HostContext* host, ArrayRef<string_view> output_kernels, DType dtype,
+    ArrayRef<DType> additional_args);
 
 // Calls compiled output kernel for the contraction output block.
 //
@@ -71,7 +77,7 @@ void CallCompiledContractionOutputKernel(
 // Verifies that additional output kernel arguments are compatible with compiled
 // output kernel.
 Error VerifyCompiledContractionOutoutKernelArgs(
-    CompiledContractionOutputKernel* kernel,
+    CompiledContractionOutputKernel* kernel, DType dtype,
     ArrayRef<const DenseHostTensor*> additional_args);
 
 // Eigen contraction output kernel template that delegates all the work to the

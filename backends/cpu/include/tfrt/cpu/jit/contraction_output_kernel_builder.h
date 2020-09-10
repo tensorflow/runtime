@@ -27,6 +27,7 @@
 #include "llvm/Support/Error.h"
 #include "mlir/IR/Function.h"
 #include "mlir/IR/Module.h"
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -37,7 +38,12 @@ namespace jit {
 class ContractionOutputKernelBuilder {
  public:
   virtual ~ContractionOutputKernelBuilder() = default;
-  virtual Expected<mlir::FuncOp> Build(mlir::ModuleOp module) = 0;
+
+  virtual Expected<mlir::FuncOp> Build(
+      mlir::ModuleOp module, DType dtype,
+      ArrayRef<DType> additional_args) const = 0;
+
+  virtual int GetNumAdditionalArgs() const { return 0; }
 };
 
 Expected<std::unique_ptr<ContractionOutputKernelBuilder>>

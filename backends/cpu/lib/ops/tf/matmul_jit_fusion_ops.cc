@@ -58,9 +58,16 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
     fusion_kernels[i] = fusion.GetAttributeOfType<StringAttr>(i).GetValue();
   }
 
+  // Collect output block and additional arguments dtypes.
+  const DType output_dtype = a.dtype();
+  SmallVector<DType, 8> additional_args_dtypes;
+  for (DenseHostTensor& dht : fusion_inputs) {
+    additional_args_dtypes.push_back(dht.dtype());
+  }
+
   // Compile fusion into the contraction output kernel.
-  auto compiled_kernel =
-      cpu::jit::GetCompiledContractionOutputKernel(host, fusion_kernels);
+  auto compiled_kernel = cpu::jit::GetCompiledContractionOutputKernel(
+      host, fusion_kernels, output_dtype, additional_args_dtypes);
   if (auto err = compiled_kernel.takeError()) {
     return EmitErrorAsync(exec_ctx,
                           StrCat("Failed to compiled output kernel: ", err));
@@ -74,7 +81,7 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
 
   // Verify that additional arguments are compatible with the compiled kernel.
   if (auto err = cpu::jit::VerifyCompiledContractionOutoutKernelArgs(
-          *compiled_kernel, additional_args)) {
+          *compiled_kernel, output_dtype, additional_args)) {
     return EmitErrorAsync(
         exec_ctx, StrCat("Illegal output kernel additional arguments: ", err));
   }
@@ -102,7 +109,7 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
 void RegisterTfMatmulJitFusionCpuOps(CpuOpRegistry* op_registry) {
   op_registry->AddOp("tf._JitFusedMatMul", TFRT_CPU_OP(TfJitFusedMatMulOp),
                      CpuOpFlags::NoSideEffects,
-                     {"transpose_a", "transpose_b", "mlir_blob"});
+                     {"transpose_a", "transpose_b", "fusion"});
 }
 
 }  // namespace tfrt

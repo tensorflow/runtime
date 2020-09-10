@@ -8,6 +8,7 @@ tfrt_cc_test(
     deps = [
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//backends/cpu:jit_contraction_output_kernel",
     ],

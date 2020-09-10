@@ -26,6 +26,7 @@
 #include <numeric>
 
 #include "gtest/gtest.h"
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_allocator.h"
@@ -51,6 +52,8 @@ TEST(ContractionOutputKernelTest, AddOne) {
   auto host_ptr = CreateTestHostContext();
   HostContext* host = host_ptr.get();
 
+  auto f32 = DType(DType::F32);
+
   std::vector<float> storage(100);
   EigenTensor<float, 2> tensor(storage.data(), 10, 10);
 
@@ -60,7 +63,8 @@ TEST(ContractionOutputKernelTest, AddOne) {
   ContractionOutputMapper mapper(storage.data(), 10, 1);
 
   // Compile contraction output kernel.
-  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, {"AddOne"});
+  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(
+      host, {"AddOne"}, f32, /*additional_args=*/{});
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.
@@ -85,6 +89,8 @@ TEST(ContractionOutputKernelTest, AddBias) {
   auto host_ptr = CreateTestHostContext();
   HostContext* host = host_ptr.get();
 
+  auto f32 = DType(DType::F32);
+
   std::vector<float> storage(100);
   EigenTensor<float, 2> tensor(storage.data(), 10, 10);
 
@@ -94,7 +100,7 @@ TEST(ContractionOutputKernelTest, AddBias) {
 
   auto noop_deallocator = [](void* ptr, size_t size) {};
   TensorShape bias_shape(ArrayRef<ssize_t>(10));
-  DenseHostTensor bias(TensorMetadata(DType(DType::F32), bias_shape),
+  DenseHostTensor bias(TensorMetadata(f32, bias_shape),
                        HostBuffer::CreateFromExternal(bias_storage.data(), 10,
                                                       noop_deallocator));
 
@@ -109,7 +115,8 @@ TEST(ContractionOutputKernelTest, AddBias) {
   ContractionOutputMapper mapper(mapper_base, 10, 1);
 
   // Compile contraction output kernel.
-  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(host, {"BiasAdd"});
+  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(
+      host, {"BiasAdd"}, f32, /*additional_args=*/{f32});
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.
@@ -128,6 +135,8 @@ TEST(ContractionOutputKernelTest, AddOneAndBias) {
   auto host_ptr = CreateTestHostContext();
   HostContext* host = host_ptr.get();
 
+  auto f32 = DType(DType::F32);
+
   std::vector<float> storage(100);
   EigenTensor<float, 2> tensor(storage.data(), 10, 10);
 
@@ -137,7 +146,7 @@ TEST(ContractionOutputKernelTest, AddOneAndBias) {
 
   auto noop_deallocator = [](void* ptr, size_t size) {};
   TensorShape bias_shape(ArrayRef<ssize_t>(10));
-  DenseHostTensor bias(TensorMetadata(DType(DType::F32), bias_shape),
+  DenseHostTensor bias(TensorMetadata(f32, bias_shape),
                        HostBuffer::CreateFromExternal(bias_storage.data(), 10,
                                                       noop_deallocator));
 
@@ -152,8 +161,8 @@ TEST(ContractionOutputKernelTest, AddOneAndBias) {
   ContractionOutputMapper mapper(mapper_base, 10, 1);
 
   // Compile contraction output kernel.
-  auto kernel =
-      cpu::jit::GetCompiledContractionOutputKernel(host, {"AddOne", "BiasAdd"});
+  auto kernel = cpu::jit::GetCompiledContractionOutputKernel(
+      host, {"AddOne", "BiasAdd"}, f32, /*additional_args=*/{f32});
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.

@@ -48,8 +48,7 @@ BEFBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
 
   if (!module) return {};
 
-  return ConvertMLIRToBEF(module.get(),
-                          /* disable_optional_sections = */ true);
+  return ConvertMLIRToBEF(module.get(), disable_optional_sections);
 }
 
 }  // namespace tfrt

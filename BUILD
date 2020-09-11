@@ -44,6 +44,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "hostcontext",
     srcs = [
+        "lib/host_context/async_dispatch.cc",
         "lib/host_context/async_value.cc",
         "lib/host_context/async_value_ref.cc",
         "lib/host_context/chain.cc",
@@ -66,6 +67,7 @@ tfrt_cc_library(
         "@tf_runtime//third_party/concurrent_work_queue:concurrent_work_queue_srcs",
     ],
     hdrs = [
+        "include/tfrt/host_context/async_dispatch.h",
         "include/tfrt/host_context/async_value.h",
         "include/tfrt/host_context/async_value_ref.h",
         "include/tfrt/host_context/attribute_utils.h",

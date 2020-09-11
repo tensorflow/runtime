@@ -21,6 +21,7 @@
 #include <thread>
 
 #include "llvm/ADT/FunctionExtras.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/rc_array.h"
@@ -55,10 +56,9 @@ static void TestDoAsync(RemainingArguments args, RemainingResults results,
     result_refs.push_back(std::move(result));
   }
 
-  HostContext* host = exec_ctx.host();
-  host->EnqueueWork([exec_ctx, body = FormRef(&body_fn.get()),
-                     arg_refs = std::move(arg_refs),
-                     result_refs = std::move(result_refs)]() {
+  EnqueueWork(exec_ctx, [exec_ctx, body = FormRef(&body_fn.get()),
+                         arg_refs = std::move(arg_refs),
+                         result_refs = std::move(result_refs)]() {
     SmallVector<RCReference<AsyncValue>, 8> results;
     results.resize(result_refs.size());
 
@@ -75,7 +75,7 @@ static void TestDoAsync(RemainingArguments args, RemainingResults results,
 static void TestUSleep(Argument<int32_t> sleep_time_us_arg,
                        const ExecutionContext& exec_ctx) {
   int32_t sleep_time_us = *sleep_time_us_arg;
-  bool work_enqueued = exec_ctx.host()->EnqueueBlockingWork([sleep_time_us] {
+  bool work_enqueued = EnqueueBlockingWork(exec_ctx, [sleep_time_us] {
     std::this_thread::sleep_for(std::chrono::microseconds(sleep_time_us));
     printf("Slept for %d microseconds\n", sleep_time_us);
     fflush(stdout);
@@ -92,8 +92,8 @@ static void TestBlockingUSleep(Argument<int32_t> sleep_time_us_arg,
                                Result<Chain> sleeping_done,
                                const ExecutionContext& exec_ctx) {
   int32_t sleep_time_us = *sleep_time_us_arg;
-  bool work_enqueued = exec_ctx.host()->EnqueueBlockingWork(
-      [sleep_time_us, sleeping_done = sleeping_done.Allocate()] {
+  bool work_enqueued = EnqueueBlockingWork(
+      exec_ctx, [sleep_time_us, sleeping_done = sleeping_done.Allocate()] {
         std::this_thread::sleep_for(std::chrono::microseconds(sleep_time_us));
         printf("Slept for %d microseconds\n", sleep_time_us);
         fflush(stdout);
@@ -117,15 +117,15 @@ static void TestReportErrorConcreteAsync(Argument<int32_t> in,
                                          const ExecutionContext& exec_ctx,
                                          AsyncKernelFrame* frame) {
   AsyncValueRef<int32_t> result_ref = out.Allocate();
-  exec_ctx.host()->EnqueueWork(
-      [in = *in, result_ref = std::move(result_ref), frame = *frame]() mutable {
-        if (in == 0) {
-          result_ref.emplace(in);
-        } else {
-          // ReportError sets unavailable ConcreteAsyncValue to error.
-          frame.ReportError("something bad happened asynchronously");
-        }
-      });
+  EnqueueWork(exec_ctx, [in = *in, result_ref = std::move(result_ref),
+                         frame = *frame]() mutable {
+    if (in == 0) {
+      result_ref.emplace(in);
+    } else {
+      // ReportError sets unavailable ConcreteAsyncValue to error.
+      frame.ReportError("something bad happened asynchronously");
+    }
+  });
 }
 
 static void TestReportIndirectErrorAsync(Argument<int32_t> in,
@@ -134,8 +134,8 @@ static void TestReportIndirectErrorAsync(Argument<int32_t> in,
                                          AsyncKernelFrame* frame) {
   HostContext* host = exec_ctx.host();
   auto result_ref = out.AllocateIndirect();
-  host->EnqueueWork([in = *in, result_ref = std::move(result_ref),
-                     frame = *frame, host]() mutable {
+  EnqueueWork(exec_ctx, [in = *in, result_ref = std::move(result_ref),
+                         frame = *frame, host]() mutable {
     if (in == 0) {
       auto concrete_av = MakeAvailableAsyncValueRef<int32_t>(host);
       result_ref->ForwardTo(std::move(concrete_av));

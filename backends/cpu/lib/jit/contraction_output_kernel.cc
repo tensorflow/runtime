@@ -272,7 +272,7 @@ Expected<OutputKernelSource> GetOutputKernelSource(
   auto builder = GetContractionOutputKernelBuilder(output_kernels);
   if (!builder) return builder.takeError();
 
-  mlir::MLIRContext context(/*loadAllDialects=*/false);
+  mlir::MLIRContext context;
 
   // Explicitly load small set of dialects that we expect to see in contraction
   // output kernel definition.

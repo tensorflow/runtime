@@ -223,6 +223,69 @@ Expected<FuncOp> BiasAdd::Build(ModuleOp module, DType dtype,
 }
 
 //----------------------------------------------------------------------------//
+// Relu activation.
+//----------------------------------------------------------------------------//
+
+// TODO(ezhulenev): Add a generic builder to support different types of
+// activation functions.
+
+class Relu : public ContractionOutputKernelBuilder {
+ public:
+  Expected<FuncOp> Build(mlir::ModuleOp module, DType dtype,
+                         ArrayRef<DType> additional_args) const final;
+
+  int GetNumAdditionalArgs() const final { return 1; }
+};
+
+Expected<FuncOp> Relu::Build(ModuleOp module, DType dtype,
+                             ArrayRef<DType> additional_args) const {
+  MLIRContext* ctx = module.getContext();
+
+  // TODO(ezhulenev): Support more data types.
+  if (dtype != DType(DType::F32))
+    return MakeStringError("Relu supports only f32 dtype");
+
+  if (!additional_args.empty())
+    return MakeStringError("Relu requires empty additional args");
+
+  auto f32_ty = FloatType::getF32(ctx);
+
+  FuncOp function = CreateOutputKernelFunc(module, "relu");
+
+  OpBuilder builder(function.getBody());
+  edsc::ScopedContext scope(builder, function.getLoc());
+
+  edsc::MemRefBoundsCapture output_block_bounds(function.getArgument(0));
+  intr::StdIndexedValue output_block(function.getArgument(0));
+
+  Value d0 = output_block_bounds.ub(0);
+  Value d1 = output_block_bounds.ub(1);
+
+  Value c0 = intr::std_constant_index(0);
+  Value c1 = intr::std_constant_index(1);
+  Value zero = intr::std_constant_float(llvm::APFloat(0.0f), f32_ty);
+
+  mlir::scf::buildLoopNest(
+      edsc::ScopedContext::getBuilderRef(), edsc::ScopedContext::getLocation(),
+      {c0, c0}, {d0, d1}, {c1, c1}, {},
+      [&](OpBuilder& builder, Location loc, ValueRange ivs, ValueRange args) {
+        edsc::ScopedContext loop_body(builder, loc);
+        assert(args.empty() && "expected empty arguments");
+        assert(ivs.size() == 2 && "expected two induction variable");
+        Value i0 = ivs[0];
+        Value i1 = ivs[1];
+        Value value = output_block(i0, i1);
+        output_block(i0, i1) =
+            intr::std_select(edsc::op::sgt(value, zero), value, zero);
+        return mlir::scf::ValueVector();
+      });
+
+  intr::std_ret();
+
+  return function;
+}
+
+//----------------------------------------------------------------------------//
 // Compose contraction output kernels.
 //----------------------------------------------------------------------------//
 
@@ -313,6 +376,7 @@ Expected<std::unique_ptr<ContractionOutputKernelBuilder>>
 GetContractionOutputKernelBuilder(string_view name) {
   if (name == "AddOne") return std::make_unique<AddOne>();
   if (name == "BiasAdd") return std::make_unique<BiasAdd>();
+  if (name == "Relu") return std::make_unique<Relu>();
 
   return MakeStringError("Unknown contraction output kernel: ", name);
 }

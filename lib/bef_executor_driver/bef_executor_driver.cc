@@ -199,15 +199,15 @@ int RunBefExecutor(const RunBefConfig& run_config) {
   }
 
   // Run the init function first if exists.
-  auto init_function = bef->GetFunction(run_config.init_function);
+  auto test_init_function = bef->GetFunction(run_config.test_init_function);
 
-  if (init_function) {
-    RunBefFunction(host, init_function);
+  if (test_init_function) {
+    RunBefFunction(host, test_init_function);
   }
 
   // Loop over each of the functions, running each as a standalone testcase.
   for (auto* fn : function_list) {
-    if (fn != init_function) {
+    if (fn != test_init_function) {
       RunBefFunction(host, fn);
     }
   }

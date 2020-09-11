@@ -20,10 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_LIB_CORE_RUNTIME_LOGGING_OP_HANDLER_H_
-#define TFRT_LIB_CORE_RUNTIME_LOGGING_OP_HANDLER_H_
-
-#include <memory>
+#ifndef TFRT_CORE_RUNTIME_LOGGING_OP_HANDLER_H_
+#define TFRT_CORE_RUNTIME_LOGGING_OP_HANDLER_H_
 
 #include "tfrt/support/forward_decls.h"
 
@@ -32,12 +30,15 @@ namespace tfrt {
 class OpHandler;
 class CoreRuntime;
 
-llvm::Expected<std::unique_ptr<OpHandler>> CreateLoggingOpHandler(
+llvm::Expected<tfrt::OpHandler *> CreateLoggingOpHandler(
+    tfrt::CoreRuntime *runtime, OpHandler *fallback, bool sync_log_results);
+
+llvm::Expected<std::unique_ptr<OpHandler>> LoggingOpHandlerFactory(
     CoreRuntime *runtime, OpHandler *fallback);
 
-llvm::Expected<std::unique_ptr<OpHandler>> CreateSyncLoggingOpHandler(
+llvm::Expected<std::unique_ptr<OpHandler>> SyncLoggingOpHandlerFactory(
     CoreRuntime *runtime, OpHandler *fallback);
 
 }  // namespace tfrt
 
-#endif  // TFRT_LIB_CORE_RUNTIME_LOGGING_OP_HANDLER_H_
+#endif  // TFRT_CORE_RUNTIME_LOGGING_OP_HANDLER_H_

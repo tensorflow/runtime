@@ -12,12 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices='sync_logging|cpu' $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor -devices='null' $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
+
+// CHECK-LABEL: --- Not running 'register_op_handlers' because it has arguments.
+func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %op_handler = "corert.create_logging_op_handler"(%cpu) {sync_log_results=1} : (!corert.device) -> !corert.device
+  %ch = corert.register_op_handler %op_handler "sync_logging"
+  tfrt.return %ch : !tfrt.chain
+}
 
 // CHECK-LABEL: --- Running 'test_logger'
 func @test_logger() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
-  %log = corert.get_op_handler %ch0 "sync_logging"
+  %ch1 = tfrt.call @register_op_handlers(%ch0) : (!tfrt.chain) -> !tfrt.chain
+  %log = corert.get_op_handler %ch1 "sync_logging"
 
   // CHECK: [0] dispatch 'tfrt_test.create_dense_tensor' 0 arguments, 1 result, OpAttrs contains 2 entries:
   // CHECK:  'shape' type=I64 value=[5]

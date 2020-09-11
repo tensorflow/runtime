@@ -25,6 +25,7 @@
 #include "llvm/ADT/SmallString.h"
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/core_runtime/execute_op_impl.h"
+#include "tfrt/core_runtime/logging_op_handler.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_handler.h"
 #include "tfrt/core_runtime/tensor_handle.h"
@@ -401,6 +402,18 @@ static Chain RegisterOpHandler(Argument<OpHandler *> root,
   return Chain();
 }
 
+void CreateLoggingOpHandlerKernel(Argument<OpHandler *> fallback,
+                                  Result<OpHandler *> op_handler,
+                                  Attribute<bool> sync_log_results,
+                                  const ExecutionContext &exec_ctx) {
+  auto *runtime = tfrt::CoreRuntime::GetFromHostContext(exec_ctx.host());
+  assert(runtime);
+  auto op_handler_ptr =
+      CreateLoggingOpHandler(runtime, fallback.get(), sync_log_results.get());
+  assert(op_handler_ptr);
+  op_handler.Emplace(op_handler_ptr.get());
+}
+
 static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
   switch (dht.dtype().kind()) {
     default:
@@ -638,6 +651,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.get_op_handler", TFRT_KERNEL(GetOpHandler));
   registry->AddKernel("corert.register_op_handler",
                       TFRT_KERNEL(RegisterOpHandler));
+  registry->AddKernel("corert.create_logging_op_handler",
+                      TFRT_KERNEL(CreateLoggingOpHandlerKernel));
   registry->AddKernel("corert.const_dense_tensor",
                       TFRT_KERNEL(ConstDenseTensor));
   registry->AddKernel("corert.const_string_tensor",

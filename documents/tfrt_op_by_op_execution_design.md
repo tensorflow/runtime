@@ -231,7 +231,7 @@ and
 
 There are also many other pseudo `op_handler`s for different purposes:
 
-*   [**Sync Logging `OpHandler`**](https://github.com/tensorflow/runtime/blob/master/lib/core_runtime/logging_op_handler.h):
+*   [**Sync Logging `OpHandler`**](https://github.com/tensorflow/runtime/blob/master/include/tfrt/core_runtime/logging_op_handler.h):
     This `op_handler` can print the inputs and outputs of every ops. We used it
     for debugging.
 

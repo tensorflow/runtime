@@ -73,7 +73,6 @@ void FlattenTensorAndDumpToOStream(const StringHostTensor &sht,
   }
 }
 
-// TODO(tfrt-devs): Rename it.
 class LoggingOpHandler : public OpHandler {
  public:
   static llvm::Expected<std::unique_ptr<LoggingOpHandler>> Create(
@@ -299,12 +298,24 @@ Expected<CoreRuntimeOp> LoggingOpHandler::MakeOp(string_view op_name) {
       /*is_fallback=*/false);
 }
 
-llvm::Expected<std::unique_ptr<OpHandler>> CreateLoggingOpHandler(
+llvm::Expected<tfrt::OpHandler *> CreateLoggingOpHandler(
+    tfrt::CoreRuntime *runtime, OpHandler *fallback, bool sync_log_results) {
+  auto op_handler =
+      LoggingOpHandler::Create(runtime, fallback, sync_log_results);
+  if (auto error = op_handler.takeError()) {
+    return std::move(error);
+  }
+  auto op_handler_ptr = op_handler->get();
+  runtime->TakeOpHandler(std::move(op_handler.get()));
+  return op_handler_ptr;
+}
+
+llvm::Expected<std::unique_ptr<OpHandler>> LoggingOpHandlerFactory(
     CoreRuntime *runtime, OpHandler *fallback) {
   return LoggingOpHandler::Create(runtime, fallback, false);
 }
 
-llvm::Expected<std::unique_ptr<OpHandler>> CreateSyncLoggingOpHandler(
+llvm::Expected<std::unique_ptr<OpHandler>> SyncLoggingOpHandlerFactory(
     CoreRuntime *runtime, OpHandler *fallback) {
   return LoggingOpHandler::Create(runtime, fallback, true);
 }

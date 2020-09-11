@@ -20,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "./logging_op_handler.h"
 #include "tfrt/core_runtime/kernels.h"
+#include "tfrt/core_runtime/logging_op_handler.h"
 #include "tfrt/core_runtime/op_handler.h"
 #include "tfrt/core_runtime/op_handler_factory.h"
 #include "tfrt/host_context/kernel_registry.h"
@@ -37,9 +37,9 @@ static void RegisterKernels(KernelRegistry *registry) {
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterKernels);
 
 static OpHandlerFactoryRegistration logging_factory_registration(
-    "logging", CreateLoggingOpHandler);
+    "logging", LoggingOpHandlerFactory);
 
 static OpHandlerFactoryRegistration sync_logging_factory_registration(
-    "sync_logging", CreateSyncLoggingOpHandler);
+    "sync_logging", SyncLoggingOpHandlerFactory);
 
 }  // namespace tfrt

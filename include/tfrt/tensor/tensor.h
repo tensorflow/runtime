@@ -46,11 +46,7 @@ class Tensor {
     CooHost,     // This is a CooHostTensor
     StringHost,  // This is a StringHostTensor
 
-    DenseGpu,           // This is a DenseGpuTensor
-    TFRuntimeFallback,  // This is a TFRuntimeFallbackTensor
-    TFKernelFallback,   // This is a TFKernelFallbackTensor
-    TFLiteHost,         // This is a TfLiteHostTensor
-    DenseTpu,           // This is a DenseTpuTensor
+    TFLiteHost,  // This is a TfLiteHostTensor
   };
 
   DType dtype() const { return metadata_.dtype; }
@@ -60,6 +56,11 @@ class Tensor {
 
   const TensorMetadata& metadata() const { return metadata_; }
 
+  // Note: tensor_type() exists for implementations of classof(..), which allows
+  // dynamic casting with isa<>, dyn_cast<>, etc.  Clients should generally use
+  // those templates instead of directly using this member.  You shouldn't
+  // switch over this, because your code will have to be updated when new tensor
+  // classes get added.
   TensorType tensor_type() const { return tensor_type_; }
 
   ssize_t NumElements() const { return shape().GetNumElements(); }
@@ -75,23 +76,17 @@ class Tensor {
   //
   // This returns an error value if the input tensor is invalid or an error is
   // encountered like OOM.
+  // TODO(b/163084901): ConvertToHostTensor will be deprecated soon.
   virtual AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, uint32_t allowed_formats) const = 0;
 
   // Same as above, except dst_tensor_type_name is used to specify destination
   // tensor type name instead of allowed_formats.
-  // TODO(b/163084901): make it a pure virtual function
+  // TODO(b/163084901): ConvertToHostTensor will be deprecated soon.
   virtual AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, TensorType dst_tensor_type) const;
 
   virtual bool IsHostTensor() const { return false; }
-
-  // Note: subclass() exists for implementations of classof(..), which allows
-  // dynamic casting with isa<>, dyn_cast<>, etc.  Clients should generally use
-  // those templates instead of directly using this member.  You shouldn't
-  // switch over this, because your code will have to be updated when new tensor
-  // classes get added.
-  Subclass subclass() const { return subclass_; }
 
   bool IsTensorType(TensorType tensor_type) const {
     return this->tensor_type() == tensor_type;
@@ -104,11 +99,11 @@ class Tensor {
   Tensor(const Tensor& other) = delete;
   Tensor& operator=(const Tensor&) = delete;
 
-  Tensor(Subclass subclass, const TensorMetadata& metadata)
-      : metadata_(metadata), subclass_(subclass) {
+  explicit Tensor(const TensorMetadata& metadata) : metadata_(metadata) {
     assert(metadata.IsValid() &&
            "Cannot create a tensor with invalid metadata");
   }
+
   virtual ~Tensor();
 
   Tensor(Tensor&& other);
@@ -116,7 +111,6 @@ class Tensor {
 
  private:
   TensorMetadata metadata_;
-  Subclass subclass_;
   template <class Derived>
   friend class TensorTraits;
   TensorType tensor_type_ = TensorType::kUnknownTensorType;

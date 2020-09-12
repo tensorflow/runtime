@@ -33,8 +33,8 @@ namespace tfrt {
 class AnyScalarHostTensor : public HostTensor,
                             public TensorTraits<AnyScalarHostTensor> {
  public:
-  AnyScalarHostTensor(TensorMetadata metadata)
-      : HostTensor(Subclass::ScalarHost, metadata) {}
+  explicit AnyScalarHostTensor(TensorMetadata metadata)
+      : HostTensor(metadata) {}
 
   // Return a pointer to the data.
   void* data();

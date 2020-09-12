@@ -25,10 +25,13 @@
 
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/host_context/value.h"
+#include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/host_tensor.h"
 
 namespace tfrt {
 class HostContext;
+
+void RegisterDenseHostTensorConversionFn(TensorConversionFnRegistry* registry);
 
 // Represents a tensor whose elements are stored contiguously in row major
 // format with no padding or stride.
@@ -36,7 +39,7 @@ class DenseHostTensor final : public HostTensor,
                               public TensorTraits<DenseHostTensor> {
  public:
   DenseHostTensor(const TensorMetadata& metadata, RCReference<HostBuffer> data)
-      : HostTensor(Subclass::DenseHost, metadata), data_(std::move(data)) {}
+      : HostTensor(metadata), data_(std::move(data)) {}
 
   // Move operations are supported.
   DenseHostTensor(DenseHostTensor&& other) = default;
@@ -91,6 +94,9 @@ class DenseHostTensor final : public HostTensor,
 
   AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, uint32_t allowed_formats) const override;
+
+  AsyncValueRef<HostTensor> ConvertToHostTensor(
+      HostContext* host, TensorType dst_tensor_type) const override;
 
   // Tensor type for DenseHostTensor.
   static const char* name() { return "DenseHost"; }

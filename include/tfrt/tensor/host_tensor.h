@@ -37,8 +37,7 @@ class HostTensor : public Tensor {
   bool IsHostTensor() const override { return true; }
 
  protected:
-  HostTensor(Subclass subclass, const TensorMetadata& metadata)
-      : Tensor(subclass, metadata) {}
+  explicit HostTensor(const TensorMetadata& metadata) : Tensor(metadata) {}
   ~HostTensor() = default;
 };
 

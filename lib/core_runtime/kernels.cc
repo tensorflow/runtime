@@ -540,9 +540,12 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
         handle_error_and_return(condition_tensorhandle, result_refs);
         AsyncValue *condition_async_tensor =
             condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+        auto src_device_ref =
+            condition_tensorhandle->get<TensorHandle>().CopyRefDevice();
 
         condition_async_tensor->AndThen(
-            [condition_async_tensor, handle_error_and_return, exec_ctx, if_impl,
+            [condition_async_tensor, src_device_ref = std::move(src_device_ref),
+             handle_error_and_return, exec_ctx, if_impl,
              true_fn_ref = std::move(true_fn_ref),
              false_fn_ref = std::move(false_fn_ref),
              arg_refs = std::move(arg_refs),
@@ -550,10 +553,10 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
               handle_error_and_return(condition_async_tensor, result_refs);
 
               auto &tensor = condition_async_tensor->get<Tensor>();
-              uint32_t allowed_formats =
-                  1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost);
               AsyncValueRef<HostTensor> condition_host_tensor =
-                  tensor.ConvertToHostTensor(exec_ctx.host(), allowed_formats);
+                  AsyncValueRef<HostTensor>(ConvertTensor(
+                      tensor, *src_device_ref, exec_ctx.host()->GetHostDevice(),
+                      DenseHostTensor::kTensorType, exec_ctx.host()));
 
               condition_host_tensor.AndThen(
                   [condition_host_tensor = condition_host_tensor.CopyRef(),

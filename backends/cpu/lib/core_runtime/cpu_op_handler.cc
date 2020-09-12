@@ -30,8 +30,12 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/device.h"
 #include "tfrt/host_context/execution_context.h"
+#include "tfrt/tensor/coo_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/host_tensor.h"
+#include "tfrt/tensor/scalar_host_tensor.h"
+#include "tfrt/tensor/string_host_tensor.h"
+#include "tfrt/tensor/tensor_type_registration.h"
 
 #define DEBUG_TYPE "tfrt-cpu-op-op_handler"
 
@@ -79,23 +83,44 @@ namespace {
 // then return the allowed format mask.
 uint32_t TensorNeedsConversion(const Tensor& t, const CpuOpEntry& entry) {
   // DenseHostTensor is always supported.
+  // TODO(chenyin): remove allowed_formats. ConvertToHostTensor should only need
+  // tensor type.
   uint32_t allowed_formats =
       1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost);
+  uint32_t allowed_types =
+      uint32_t{1} << static_cast<uint32_t>(DenseHostTensor::kTensorType.id());
 
-  if (entry.flags & CpuOpFlags::AllowsScalar)
+  if (entry.flags & CpuOpFlags::AllowsScalar) {
     allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::ScalarHost);
+    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
+                         AnyScalarHostTensor::kTensorType.id());
+  }
 
-  if (entry.flags & CpuOpFlags::AllowsString)
+  if (entry.flags & CpuOpFlags::AllowsString) {
     allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::StringHost);
+    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
+                         StringHostTensor::kTensorType.id());
+  }
 
-  if (entry.flags & CpuOpFlags::AllowsCoo)
+  if (entry.flags & CpuOpFlags::AllowsCoo) {
     allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::CooHost);
+    allowed_types |= uint32_t{1}
+                     << static_cast<uint32_t>(CooHostTensor::kTensorType.id());
+  }
 
-  if (entry.flags & CpuOpFlags::AllowsTfLite)
+  // Note: TFLite tensors are deprecated and this path will be removed.
+  if (entry.flags & CpuOpFlags::AllowsTfLite) {
     allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::TFLiteHost);
+    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
+                         GetStaticTensorType("TFLiteHost").id());
+    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
+                         GetStaticTensorType("TFLiteStringHost").id());
+  }
 
   // If the tensor is already in a supported format, then we're done.
-  if (allowed_formats & 1 << static_cast<uint32_t>(t.subclass())) return 0;
+  if (allowed_types & uint32_t{1}
+                          << static_cast<uint32_t>(t.tensor_type().id()))
+    return 0;
 
   // Otherwise return the mask of supported formats so a conversion can be
   // performed.

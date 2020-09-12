@@ -60,19 +60,19 @@ void ConvertToDHTTensorHelper(const DenseHostTensor &indices,
 AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
     HostContext *host, uint32_t allowed_formats) const {
   auto &cpu = host->GetHostDevice();
-  AsyncValueRef<HostTensor> result;
+
   if (allowed_formats &
       (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::ScalarHost))) {
-    result = AsyncValueRef<HostTensor>(
+    auto result = AsyncValueRef<HostTensor>(
         ConvertTensor(*this, cpu, cpu, AnyScalarHostTensor::kTensorType, host));
+    if (!result.IsError()) return result;
   }
-  if (result.IsError() &&
-      (allowed_formats &
-       (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::DenseHost)))) {
-    result = AsyncValueRef<HostTensor>(
+  if (allowed_formats &
+      (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::DenseHost))) {
+    return AsyncValueRef<HostTensor>(
         ConvertTensor(*this, cpu, cpu, DenseHostTensor::kTensorType, host));
   }
-  return result;
+  return MakeErrorAsyncValueRef(host, "Unconverted tensor");
 }
 
 AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(

@@ -27,9 +27,12 @@
 
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/host_allocator.h"
+#include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/host_tensor.h"
 
 namespace tfrt {
+
+void RegisterStringHostTensorConversionFn(TensorConversionFnRegistry* registry);
 
 // Represents a tensor of strings. The metadata of strings (pointer and size)
 // are stored contiguously in row major format with no padding or stride.
@@ -50,8 +53,7 @@ class StringHostTensor final : public HostTensor,
 
   StringHostTensor(const TensorMetadata& metadata,
                    HostArray<std::string> strings)
-      : HostTensor(Subclass::StringHost, metadata),
-        strings_(std::move(strings)) {
+      : HostTensor(metadata), strings_(std::move(strings)) {
     assert(metadata.dtype == DType(DType::String));
   }
 
@@ -72,6 +74,9 @@ class StringHostTensor final : public HostTensor,
 
   AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, uint32_t allowed_formats) const override;
+
+  AsyncValueRef<HostTensor> ConvertToHostTensor(
+      HostContext* host, TensorType tensor_type) const override;
 
   // Tensor type for StringHostTensor.
   static const char* name() { return "StringHost"; }

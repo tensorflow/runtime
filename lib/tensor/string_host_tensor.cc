@@ -23,6 +23,8 @@
 #include "llvm/Support/MD5.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/tensor/conversion_registry.h"
+#include "tfrt/tensor/conversion_utils.h"
 #include "tfrt/tensor/tensor_metadata.h"
 
 namespace tfrt {
@@ -55,22 +57,35 @@ AsyncValueRef<StringHostTensor> StringHostTensor::MakeConstructedAsyncValueRef(
 
 AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
     HostContext* host, uint32_t allowed_formats) const {
-  assert(allowed_formats &
-         (1 << static_cast<uint32_t>(Tensor::Subclass::StringHost)));
+  return ConvertToHostTensor(host, StringHostTensor::kTensorType);
+}
 
+AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
+    HostContext* host, TensorType dst_tensor_type) const {
+  auto& cpu = host->GetHostDevice();
+  return AsyncValueRef<HostTensor>(
+      ConvertTensor(*this, cpu, cpu, StringHostTensor::kTensorType, host));
+}
+
+static AsyncValueRef<StringHostTensor>
+ConvertStringHostTensorToStringHostTensor(const StringHostTensor& tensor,
+                                          const CpuDevice& src,
+                                          const CpuDevice& dst,
+                                          const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
   // We need to make a copy of the data, because the source and result
   // buffers are logically independent.
   auto result = MakeUnconstructedAsyncValueRef<StringHostTensor>(host);
 
-  auto result_alloc = CreateUninitialized(metadata(), host);
+  auto result_alloc = tensor.CreateUninitialized(tensor.metadata(), host);
   if (!result_alloc)
     return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
 
   auto& result_tensor = result_alloc.getValue();
 
   // Copy over the data.
-  for (int i = 0; i < NumElements(); ++i) {
-    result_tensor.strings()[i] = strings()[i];
+  for (int i = 0; i < tensor.NumElements(); ++i) {
+    result_tensor.strings()[i] = tensor.strings()[i];
   }
 
   result.emplace(std::move(result_tensor));
@@ -108,4 +123,9 @@ void StringHostTensor::Print(raw_ostream& os) const {
   os << ']';
 }
 
+void RegisterStringHostTensorConversionFn(
+    TensorConversionFnRegistry* registry) {
+  registry->AddTensorConversionFn(
+      TFRT_CONVERSION(ConvertStringHostTensorToStringHostTensor));
+}
 }  // namespace tfrt

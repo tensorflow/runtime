@@ -25,7 +25,11 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/MD5.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/host_context/device.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/tensor/conversion_registry.h"
+#include "tfrt/tensor/conversion_utils.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 
 namespace tfrt {
@@ -56,25 +60,14 @@ AsyncValueRef<DenseHostTensor> DenseHostTensor::MakeConstructedAsyncValueRef(
 
 AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
     HostContext* host, uint32_t allowed_formats) const {
-  // We need to make a copy of the data, because the source and result
-  // buffers are logically independent.
-  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
+  return ConvertToHostTensor(host, DenseHostTensor::kTensorType);
+}
 
-  auto result_alloc = CreateUninitialized(metadata(), host);
-  if (!result_alloc)
-    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
-
-  auto& result_tensor = result_alloc.getValue();
-
-  // TODO(tfrt-devs): This could be done in parallel in the background for
-  // large tensors.  We could also detect when the tensor is full of broadcasted
-  // data and convert to ScalarHostTensor.
-
-  // Copy over the data.
-  memcpy(result_tensor.data(), data(), DataSizeInBytes());
-
-  result.emplace(std::move(result_tensor));
-  return result;
+AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
+    HostContext* host, TensorType dst_tensor_type) const {
+  auto& cpu = host->GetHostDevice();
+  return AsyncValueRef<HostTensor>(
+      ConvertTensor(*this, cpu, cpu, DenseHostTensor::kTensorType, host));
 }
 
 void DenseHostTensor::Print(raw_ostream& os) const {
@@ -102,6 +95,37 @@ void DenseHostTensor::Print(raw_ostream& os) const {
     os << ", ... ";
   }
   os << ']';
+}
+
+static AsyncValueRef<DenseHostTensor> ConvertDenseHostTensorToDenseHostTensor(
+    const DenseHostTensor& tensor, const CpuDevice& src, const CpuDevice& dst,
+    const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  // We need to make a copy of the data, because the source and result
+  // buffers are logically independent.
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
+
+  auto result_alloc =
+      DenseHostTensor::CreateUninitialized(tensor.metadata(), host);
+  if (!result_alloc)
+    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
+
+  auto& result_tensor = result_alloc.getValue();
+
+  // TODO(tfrt-devs): This could be done in parallel in the background for
+  // large tensors.  We could also detect when the tensor is full of broadcasted
+  // data and convert to ScalarHostTensor.
+
+  // Copy over the data.
+  memcpy(result_tensor.data(), tensor.data(), tensor.DataSizeInBytes());
+
+  result.emplace(std::move(result_tensor));
+  return result;
+}
+
+void RegisterDenseHostTensorConversionFn(TensorConversionFnRegistry* registry) {
+  registry->AddTensorConversionFn(
+      TFRT_CONVERSION(ConvertDenseHostTensorToDenseHostTensor));
 }
 
 }  // namespace tfrt

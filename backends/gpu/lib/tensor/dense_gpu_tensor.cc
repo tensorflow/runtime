@@ -42,8 +42,7 @@ DenseGpuTensor::DenseGpuTensor(const TensorShape& shape, DType dtype,
 
 DenseGpuTensor::DenseGpuTensor(const TensorMetadata& metadata,
                                RCReference<GpuBuffer> buffer)
-    : Tensor(Tensor::Subclass::DenseGpu, metadata),
-      buffer_(std::move(buffer)) {}
+    : Tensor(metadata), buffer_(std::move(buffer)) {}
 
 void DenseGpuTensor::Print(llvm::raw_ostream& os) const {
   os << "DenseGpuTensor<dtype=" << dtype() << ", shape=" << shape()

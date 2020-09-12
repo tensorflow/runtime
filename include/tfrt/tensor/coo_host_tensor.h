@@ -40,7 +40,7 @@ class CooHostTensor final : public HostTensor,
 
   CooHostTensor(const TensorShape& shape, DType dtype,
                 DenseHostTensor&& indices, DenseHostTensor&& values)
-      : HostTensor(Subclass::CooHost, TensorMetadata(dtype, shape)),
+      : HostTensor(TensorMetadata(dtype, shape)),
         indices_(std::move(indices)),
         values_(std::move(values)) {}
 

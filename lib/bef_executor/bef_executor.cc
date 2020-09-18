@@ -42,6 +42,22 @@
 #define DEBUG_PRINT(...)
 #endif
 
+// TSan ignores the memory synchronization ordering for the load operation if
+// the comparison fails, and it leads to false positives, because it uses
+// std::memory_order_release to check the ordering between previous write
+// to the `REG` and loading of that value by a failed compare_exchange_strong
+// operation into `EXISTING`.
+#if defined(__has_feature) && __has_feature(thread_sanitizer)
+#define COMPARE_EXCHANGE_STRONG(REG, EXISTING, NEW_VALUE) \
+  reg->value.compare_exchange_strong(EXISTING, NEW_VALUE, \
+                                     /*order=*/std::memory_order_acq_rel)
+#else
+#define COMPARE_EXCHANGE_STRONG(REG, EXISTING, NEW_VALUE)                   \
+  reg->value.compare_exchange_strong(EXISTING, NEW_VALUE,                   \
+                                     /*success=*/std::memory_order_release, \
+                                     /*failure=*/std::memory_order_acquire)
+#endif
+
 namespace tfrt {
 
 //===----------------------------------------------------------------------===//
@@ -73,9 +89,7 @@ AsyncValue* GetOrCreateRegisterValue(BEFFileImpl::RegisterInfo* reg,
   // register will count as an additional use (+1), so add user_count refs,
   // bringing its refcount to (user_count + 1).
   indirect_value->AddRef(reg->user_count);
-  if (!reg->value.compare_exchange_strong(existing, indirect_value,
-                                          std::memory_order_release,
-                                          std::memory_order_acquire)) {
+  if (!COMPARE_EXCHANGE_STRONG(reg, existing, indirect_value)) {
     // If result_reg already got a result, then we don't need the
     // IndirectAsyncValue after all. Decrease refcount back to 0.
     indirect_value->DropRef(reg->user_count + 1);
@@ -124,9 +138,8 @@ AsyncValue* SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
   // Setting a register counts as an additional use (+1), but we are setting
   // the register right now (-1), so we can skip that AddRef/DropRef pair.
   new_value->AddRef(reg->user_count - 1);
-  if (!reg->value.compare_exchange_strong(existing, new_value,
-                                          std::memory_order_release,
-                                          std::memory_order_acquire)) {
+
+  if (!COMPARE_EXCHANGE_STRONG(reg, existing, new_value)) {
     // If there was already a value in it, it must be a IndirectAsyncValue. We
     // set the IndirectAsyncValue to point to the result.
     auto indirect_value = cast<IndirectAsyncValue>(existing);

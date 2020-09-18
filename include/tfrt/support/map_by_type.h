@@ -53,17 +53,17 @@ namespace tfrt {
 template <typename IdSet>
 class MapByType {
  public:
-  template <typename T, typename... Args>
-  T& emplace(Args&&... args) {
-    auto id = getTypeId<T>();
+  template <typename T, typename... Args, typename VT = std::decay_t<T>>
+  VT& emplace(Args&&... args) {
+    auto id = getTypeId<VT>();
     if (id >= data_.size()) data_.resize(id + 1);
 
-    data_[id] = make_unique_any<T>(std::forward<Args>(args)...);
-    return *any_cast<T>(&data_[id]);
+    data_[id] = make_unique_any<VT>(std::forward<Args>(args)...);
+    return *any_cast<VT>(&data_[id]);
   }
 
   template <typename T>
-  T& insert(T&& t) {
+  std::decay_t<T>& insert(T&& t) {
     return emplace<T>(std::forward<T>(t));
   }
 

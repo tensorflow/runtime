@@ -58,6 +58,17 @@ TEST(MapByTypeTest, Basic) {
   EXPECT_EQ(t1.v, 2);
   EXPECT_TRUE(map.contains<T1>());
   EXPECT_EQ(map.get<T1>().v, 2);
+
+  struct A {
+    int v = 3;
+  };
+
+  EXPECT_FALSE(map.contains<A>());
+  A t2_lvalue;
+  auto& t2 = map.insert(t2_lvalue);
+  EXPECT_EQ(t2.v, 3);
+  EXPECT_TRUE(map.contains<A>());
+  EXPECT_EQ(map.get<A>().v, 3);
 }
 
 TEST(MapByTypeTest, DestructorCount) {

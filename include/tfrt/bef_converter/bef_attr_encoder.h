@@ -46,10 +46,20 @@ class BEFTypedAttributeEncoder : public BEFEmitter {
                                    const size_t* lengths, int num_values);
 
  private:
+  void EncodeAttrBase(BEFAttributeType type, size_t byte_count);
+
+  // Encode a list of attributes as an aggregate attribute in BEF. The `emitter`
+  // will be called with the indices sequentially and is expected to emit the
+  // bytes for this element and return the offset.
+  llvm::Error EncodeListAttr(
+      size_t num_elements,
+      llvm::function_ref<llvm::Expected<BEFAggregateAttrOffset32_t>(int)>
+          emitter);
+
   // A helper function to emit the common header for both ranked and unranked
   // shape attributes. If `rank` is a negative number, then this shape is
   // unranked.
-  void EncodeShapeAttrBase(int byte_count, int rank);
+  void EncodeShapeAttrBase(size_t byte_count, int rank);
 };
 
 }  // namespace tfrt

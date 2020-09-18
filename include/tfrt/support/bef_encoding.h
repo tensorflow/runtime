@@ -402,8 +402,24 @@ struct BEFAttrBase {
   BEFAttributeType type;
   // The byte count for the entire content including `BEFAttrBase` and necessary
   // alignment paddings.
-  uint16_t byte_count;
+  uint16_t byte_count_high;
+  uint32_t byte_count_low;
 };
+static_assert(sizeof(BEFAttrBase) == 8, "Unexpected size of BEFAttrBase");
+static_assert(alignof(BEFAttrBase) == 4, "Unexpected alignment of BEFAttrBase");
+static_assert(std::is_standard_layout<BEFAttrBase>::value,
+              "BEFAttrBase must have standard layout");
+
+inline uint64_t GetBEFAttrByteCount(const BEFAttrBase& base) {
+  return (static_cast<uint64_t>(base.byte_count_high) << 32) |
+         base.byte_count_low;
+}
+
+inline void SetBEFAttrByteCount(uint64_t byte_count, BEFAttrBase* base) {
+  assert((byte_count >> 48) == 0);
+  base->byte_count_high = static_cast<uint16_t>(byte_count >> 32);
+  base->byte_count_low = static_cast<uint32_t>(byte_count & ((1ull << 32) - 1));
+}
 
 struct BEFFixed8Attr {
   BEFAttrBase base;
@@ -422,7 +438,6 @@ struct BEFFixed32Attr {
 
 struct BEFFixed64Attr {
   BEFAttrBase base;
-  uint8_t paddings[4];
   uint64_t data;
 };
 
@@ -434,9 +449,9 @@ struct BEFStringAttr {
 
 struct BEFArrayAttr {
   BEFAttrBase base;
-  uint16_t num_elements;
+  uint32_t num_elements;
   // `offset` is byte offset from &base for the elements.
-  uint16_t element_offset;
+  uint32_t element_offset;
 };
 
 enum class BEFShapeType : uint8_t {
@@ -457,34 +472,43 @@ struct BEFShapeAttr {
 // BEFRankedShapeAttr as it has at least one trailing integer for dimensions.
 struct BEFRankedShapeAttr {
   BEFShapeAttr shape_base;
+  uint8_t paddings[4];
   int64_t dims[1];
 };
 
 struct BEFDenseAttr {
   BEFAttrBase base;
   uint16_t rank;
-  uint16_t num_elements;
   // `shape_offset` is the offset from &base for the shape dimensions. It is
   // aligned to 8-byte as dimensions are always signed 64bit integers in TFRT.
   uint16_t shape_offset;
+  uint32_t num_elements;
   // `element_offset` is the byte offset from &base for the elements. It should
   // be sufficiently aligned according to data type, though it cannot be more
   // than 8-byte aligned.
-  uint16_t element_offset;
+  uint32_t element_offset;
 };
 
+using BEFAggregateAttrOffset32_t = uint32_t;
 struct BEFAggregateAttr {
   BEFAttrBase base;
-  uint16_t num_elements;
-  // `offsets` is the start of `num_elements` 16bit integers offsets, which are
+  uint32_t num_elements;
+  // `offsets` is the start of `num_elements` 32bit-integer offsets, which are
   // immediately followed by the corresponding elements. These elements are also
   // typed (ie. start with BEFAttrBase).
-  uint16_t offsets[1];
+  BEFAggregateAttrOffset32_t offsets[1];
 };
 
-inline uint16_t AssertAttrFieldSize(size_t size) {
+// TODO(b/168505010): The size error should be handled properly by callers
+// instead of using assert().
+inline uint16_t AssertAttrFieldSize16(size_t size) {
   assert(size <= ((1ul << 16) - 1));
   return static_cast<uint16_t>(size);
+}
+
+inline uint32_t AssertAttrFieldSize32(size_t size) {
+  assert(size <= ((1ul << 32) - 1));
+  return static_cast<uint32_t>(size);
 }
 
 // AttributeTag is used in optional attribute types section to indicate the

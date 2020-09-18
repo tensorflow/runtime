@@ -412,7 +412,7 @@ class BEFTypedAttributeReader {
     const auto* base =
         reinterpret_cast<const BEFAttrBase*>(&attributes_[offset]);
 
-    assert(offset + base->byte_count <= attributes_.size());
+    assert(offset + GetBEFAttrByteCount(*base) <= attributes_.size());
 
     return ReadAttribute(base);
   }
@@ -504,7 +504,7 @@ class BEFTypedAttributeReader {
 
   mlir::StringAttr ReadStringAttribute(const BEFStringAttr* header) {
     string_view value(reinterpret_cast<const char*>(header->data),
-                      header->base.byte_count - sizeof(BEFAttrBase));
+                      GetBEFAttrByteCount(header->base) - sizeof(BEFAttrBase));
     return builder_.getStringAttr(value);
   }
 
@@ -570,7 +570,7 @@ class BEFTypedAttributeReader {
   }
 
   mlir::ArrayAttr ReadAggregateAttribute(const BEFAggregateAttr* header) {
-    ArrayRef<uint16_t> offsets =
+    ArrayRef<BEFAggregateAttrOffset32_t> offsets =
         llvm::makeArrayRef(header->offsets, header->num_elements);
 
     const uint8_t* data = reinterpret_cast<const uint8_t*>(header);

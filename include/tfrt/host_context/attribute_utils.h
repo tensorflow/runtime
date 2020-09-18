@@ -126,7 +126,7 @@ class TypedAttrBase {
   BEFAttributeType type() const { return base_->type; }
 
   const void* data() const { return static_cast<const void*>(base_); }
-  size_t size() const { return base_->byte_count; }
+  size_t size() const { return GetBEFAttrByteCount(*base_); }
 
   template <typename T>
   bool isa() const {
@@ -284,8 +284,9 @@ class StringAttr : public internal::AttrHeaderBase<StringAttr, BEFStringAttr> {
   using Base::Base;
 
   string_view GetValue() const {
-    return string_view(reinterpret_cast<const char*>(header().data),
-                       header().base.byte_count - sizeof(BEFAttrBase));
+    return string_view(
+        reinterpret_cast<const char*>(header().data),
+        GetBEFAttrByteCount(header().base) - sizeof(BEFAttrBase));
   }
 
   static bool classof(TypedAttrBase base) {

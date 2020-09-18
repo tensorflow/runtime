@@ -1110,9 +1110,9 @@ void BEFTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
   EmitAlignment(untyped_emitter.GetRequiredAlignment());
 
   size_t payload_start = size();
+  size_t byte_count = payload_start - prev_start + untyped_emitter.size();
 
-  base.byte_count =
-      AssertAttrFieldSize(payload_start - prev_start + untyped_emitter.size());
+  SetBEFAttrByteCount(byte_count, &base);
 
   OverwriteBytes(prev_start, &base, sizeof(base));
 
@@ -1123,33 +1123,33 @@ void BEFTypedAttributeEmitter::EmitAggregateAttribute(
     mlir::ArrayAttr aggregate_attr) {
   size_t start_offset = size();
 
-  // TODO(chky): Consider directly allocate header in result buffer.
   BEFAggregateAttr header;
   header.base.type = BEFAttributeType::kAggregate;
-  header.num_elements = AssertAttrFieldSize(aggregate_attr.size());
+  header.num_elements = AssertAttrFieldSize32(aggregate_attr.size());
 
-  size_t header_size = header.num_elements > 0
-                           ? sizeof(BEFAggregateAttr) +
-                                 sizeof(uint16_t) * (header.num_elements - 1)
-                           : sizeof(BEFAggregateAttr);
+  size_t header_size =
+      header.num_elements > 0
+          ? sizeof(BEFAggregateAttr) +
+                sizeof(BEFAggregateAttrOffset32_t) * (header.num_elements - 1)
+          : sizeof(BEFAggregateAttr);
 
   for (int i = 0; i < header_size; ++i) EmitBytes(kDummyByte);
 
-  SmallVector<uint16_t, 8> offsets;
+  SmallVector<BEFAggregateAttrOffset32_t, 8> offsets;
   for (auto element : aggregate_attr) {
     BEFTypedAttributeEmitter element_emitter;
     element_emitter.EmitAttribute(element);
     EmitAlignment(element_emitter.GetRequiredAlignment());
-    offsets.push_back(AssertAttrFieldSize(size()));
+    offsets.push_back(AssertAttrFieldSize32(size()));
     EmitEmitter(element_emitter);
   }
 
-  header.base.byte_count = AssertAttrFieldSize(size() - start_offset);
+  SetBEFAttrByteCount(size() - start_offset, &header.base);
 
   size_t element_offset = offsetof(BEFAggregateAttr, offsets);
   OverwriteBytes(start_offset, &header, element_offset);
   OverwriteBytes(start_offset + element_offset, offsets.data(),
-                 sizeof(uint16_t) * offsets.size());
+                 sizeof(BEFAggregateAttrOffset32_t) * offsets.size());
 }
 
 void BEFTypedAttributeEmitter::EmitArrayAttribute(mlir::ArrayAttr array_attr) {
@@ -1161,7 +1161,7 @@ void BEFTypedAttributeEmitter::EmitArrayAttribute(mlir::ArrayAttr array_attr) {
 
   BEFArrayAttr header;
   header.base.type = GetArrayAttributeType(element_type);
-  header.num_elements = AssertAttrFieldSize(array_attr.size());
+  header.num_elements = AssertAttrFieldSize32(array_attr.size());
 
   // Reserve space for header.
   for (int i = 0; i < sizeof(header); ++i) EmitBytes(kDummyByte);
@@ -1170,9 +1170,9 @@ void BEFTypedAttributeEmitter::EmitArrayAttribute(mlir::ArrayAttr array_attr) {
   elements.EmitArrayAttribute(array_attr);
 
   EmitAlignment(elements.GetRequiredAlignment());
-  header.element_offset = AssertAttrFieldSize(size() - start_offset);
+  header.element_offset = AssertAttrFieldSize32(size() - start_offset);
   EmitEmitter(elements);
-  header.base.byte_count = AssertAttrFieldSize(size() - start_offset);
+  SetBEFAttrByteCount(size() - start_offset, &header.base);
 
   OverwriteBytes(start_offset, &header, sizeof(header));
 }
@@ -1190,14 +1190,14 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
   BEFDataType element_type =
       ConvertMLIRDataTypeToBEFDataType(shaped_type.getElementType());
   header.base.type = GetDenseAttributeType(element_type);
-  header.rank = shape.size();
-  header.num_elements = AssertAttrFieldSize(shaped_type.getNumElements());
+  header.rank = AssertAttrFieldSize16(shape.size());
+  header.num_elements = AssertAttrFieldSize32(shaped_type.getNumElements());
 
   // Reserve space for header.
   for (int i = 0; i < sizeof(header); ++i) EmitBytes(kDummyByte);
 
   EmitAlignment(alignof(int64_t));
-  header.shape_offset = AssertAttrFieldSize(size() - start_offset);
+  header.shape_offset = AssertAttrFieldSize16(size() - start_offset);
   for (auto dim : shape) EmitInt8(dim);
 
   BEFAttributeEmitter elements;
@@ -1220,9 +1220,9 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
   }
 
   EmitAlignment(elements.GetRequiredAlignment());
-  header.element_offset = AssertAttrFieldSize(size() - start_offset);
+  header.element_offset = AssertAttrFieldSize32(size() - start_offset);
   EmitEmitter(elements);
-  header.base.byte_count = AssertAttrFieldSize(size() - start_offset);
+  SetBEFAttrByteCount(size() - start_offset, &header.base);
 
   OverwriteBytes(start_offset, &header, sizeof(header));
 }

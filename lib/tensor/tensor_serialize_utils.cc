@@ -110,10 +110,11 @@ std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
   BEFDenseAttr header;
   header.base.type =
       GetDenseAttributeType(ConvertTensorDTypeToBEFDataType(md.dtype));
-  header.rank = md.shape.GetRank();
-  header.num_elements = md.shape.GetNumElements();
+  header.rank = AssertAttrFieldSize16(md.shape.GetRank());
+  header.num_elements = AssertAttrFieldSize32(md.shape.GetNumElements());
 
-  header.shape_offset = llvm::alignTo(sizeof(BEFDenseAttr), alignof(int64_t));
+  header.shape_offset = AssertAttrFieldSize16(
+      llvm::alignTo(sizeof(BEFDenseAttr), alignof(int64_t)));
   data.resize(header.shape_offset, 0xCC);
 
   SmallVector<int64_t, 4> shape;
@@ -133,7 +134,7 @@ std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
   auto elements = llvm::makeArrayRef(
       reinterpret_cast<const uint8_t*>(buf.data()), buf.size());
   data.insert(data.end(), elements.begin(), elements.end());
-  header.base.byte_count = AssertAttrFieldSize(data.size());
+  SetBEFAttrByteCount(data.size(), &header.base);
 
   std::memcpy(data.data(), &header, sizeof(BEFDenseAttr));
 

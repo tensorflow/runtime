@@ -1186,8 +1186,10 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
   auto shape = shaped_type.getShape();
 
   BEFDenseAttr header;
-  header.base.type = GetDenseAttributeType(
-      ConvertMLIRDataTypeToBEFDataType(shaped_type.getElementType()));
+
+  BEFDataType element_type =
+      ConvertMLIRDataTypeToBEFDataType(shaped_type.getElementType());
+  header.base.type = GetDenseAttributeType(element_type);
   header.rank = shape.size();
   header.num_elements = AssertAttrFieldSize(shaped_type.getNumElements());
 
@@ -1199,8 +1201,22 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
   for (auto dim : shape) EmitInt8(dim);
 
   BEFAttributeEmitter elements;
-  for (auto attr : dense_elements_attr.getAttributeValues()) {
-    elements.EmitAttribute(attr);
+
+  if (element_type == BEFDataType::kComplex64 ||
+      element_type == BEFDataType::kComplex128) {
+    if (element_type == BEFDataType::kComplex64) {
+      elements.EmitAlignment(alignof(std::complex<float>));
+    } else {
+      elements.EmitAlignment(alignof(std::complex<double>));
+    }
+    ArrayRef<char> raw_data = dense_elements_attr.getRawData();
+    elements.EmitBytes(llvm::makeArrayRef(
+        reinterpret_cast<const uint8_t*>(raw_data.data()), raw_data.size()));
+  } else {
+    // TODO(tfrt-dev): Use raw data directly for dense elements.
+    for (auto attr : dense_elements_attr.getAttributeValues()) {
+      elements.EmitAttribute(attr);
+    }
   }
 
   EmitAlignment(elements.GetRequiredAlignment());

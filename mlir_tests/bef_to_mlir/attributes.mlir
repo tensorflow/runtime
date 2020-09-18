@@ -133,6 +133,8 @@ func @dense_elements.constant() {
   // CHECK: dense<1.000000e+00> : tensor<1xf16>
   // CHECK: dense<1.000000e+00> : tensor<1xf32>
   // CHECK: dense<1.000000e+00> : tensor<1xf64>
+  // CHECK: dense<(1.000000e+00,2.000000e+00)> : tensor<1xcomplex<f32>>
+  // CHECK: dense<(1.000000e+00,2.000000e+00)> : tensor<1xcomplex<f64>>
   %0 = "simple.op"() {value = dense<true> : tensor<1xi1>} : () -> i32
   %1 = "simple.op"() {value = dense<1> : tensor<1xi8>} : () -> i32
   %2 = "simple.op"() {value = dense<1> : tensor<1xi16>} : () -> i32
@@ -146,6 +148,8 @@ func @dense_elements.constant() {
   %10 = "simple.op"() {value = dense<1.0> : tensor<1xf16>} : () -> i32
   %11 = "simple.op"() {value = dense<1.0> : tensor<1xf32>} : () -> i32
   %12 = "simple.op"() {value = dense<1.0> : tensor<1xf64>} : () -> i32
+  %13 = "simple.op"() {value = dense<(1.0, 2.0)> : tensor<1xcomplex<f32>>} : () -> i32
+  %14 = "simple.op"() {value = dense<(1.0, 2.0)> : tensor<1xcomplex<f64>>} : () -> i32
 
   tfrt.return
 }

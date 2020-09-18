@@ -233,6 +233,10 @@ enum class BEFAttributeType : uint16_t {
   kF16Dense = static_cast<uint8_t>(BEFDataType::kF16) | kDenseAttributeType,
   kF32Dense = static_cast<uint8_t>(BEFDataType::kF32) | kDenseAttributeType,
   kF64Dense = static_cast<uint8_t>(BEFDataType::kF64) | kDenseAttributeType,
+  kComplex64Dense =
+      static_cast<uint8_t>(BEFDataType::kComplex64) | kDenseAttributeType,
+  kComplex128Dense =
+      static_cast<uint8_t>(BEFDataType::kComplex128) | kDenseAttributeType,
 
   kAggregate = kAggregateAttributeType,
 };

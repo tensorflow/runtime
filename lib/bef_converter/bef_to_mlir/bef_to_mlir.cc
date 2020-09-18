@@ -281,11 +281,44 @@ mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
       return builder->getF32Type();
     case BEFDataType::kF64:
       return builder->getF64Type();
+    case BEFDataType::kComplex64:
+      return mlir::ComplexType::get(builder->getF32Type());
+    case BEFDataType::kComplex128:
+      return mlir::ComplexType::get(builder->getF64Type());
     case BEFDataType::kString:
       return tfrt::corert::StringType::get(builder->getContext());
     default:
       llvm_unreachable("unknown type attribute.");
   }
+}
+
+size_t GetBEFDataTypeByteSize(BEFDataType dtype) {
+  switch (dtype) {
+    case BEFDataType::kBool:
+    case BEFDataType::kI1:
+    case BEFDataType::kI8:
+    case BEFDataType::kUI8:
+      return 1;
+    case BEFDataType::kI16:
+    case BEFDataType::kUI16:
+    case BEFDataType::kBF16:
+    case BEFDataType::kF16:
+      return 2;
+    case BEFDataType::kI32:
+    case BEFDataType::kUI32:
+    case BEFDataType::kF32:
+      return 4;
+    case BEFDataType::kI64:
+    case BEFDataType::kUI64:
+    case BEFDataType::kF64:
+    case BEFDataType::kComplex64:
+      return 8;
+    case BEFDataType::kComplex128:
+      return 16;
+    default:
+      break;
+  }
+  llvm_unreachable("unsupported data type");
 }
 
 // This reads attributes from attributes sections with the type information from
@@ -502,20 +535,36 @@ class BEFTypedAttributeReader {
   }
 
   mlir::DenseElementsAttr ReadDenseAttribute(const BEFDenseAttr* header) {
-    auto element_type = GetDataType(header->base.type);
+    BEFDataType element_type = GetDataType(header->base.type);
 
     const auto* data = reinterpret_cast<const uint8_t*>(header);
 
     auto shape = llvm::makeArrayRef(
         reinterpret_cast<const int64_t*>(data + header->shape_offset),
         header->rank);
-
-    auto elements = CreateAttrsFromDenseArray(
-        static_cast<BEFAttributeType>(element_type), header->num_elements,
-        data + header->element_offset);
+    ArrayRef<char> raw_data = llvm::makeArrayRef(
+        reinterpret_cast<const char*>(data) + header->element_offset,
+        header->num_elements * GetBEFDataTypeByteSize(element_type));
 
     auto type = mlir::RankedTensorType::get(
         shape, DecodeTypeAttribute(&builder_, element_type));
+
+    if (element_type == BEFDataType::kComplex64 ||
+        element_type == BEFDataType::kComplex128) {
+      bool is_splat = false;
+      bool is_valid =
+          mlir::DenseElementsAttr::isValidRawBuffer(type, raw_data, is_splat);
+      // TODO(tfrt-dev): Improve the error reporting in bef_to_mlir.
+      assert(is_valid);
+      (void)is_valid;
+      return mlir::DenseElementsAttr::getFromRawBuffer(type, raw_data,
+                                                       is_splat);
+    }
+
+    // TODO(tfrt-dev): Use raw data directly for dense elements.
+    auto elements = CreateAttrsFromDenseArray(
+        static_cast<BEFAttributeType>(element_type), header->num_elements,
+        data + header->element_offset);
 
     return mlir::DenseElementsAttr::get(type, elements);
   }

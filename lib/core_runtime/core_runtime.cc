@@ -311,6 +311,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
   auto op = op_handler->MakeOp(op_name);
   if (!op) return op;
   bool is_fallback = op->IsFallback();
+  auto device = op->GetDeviceRef();
   // TODO(b/155801998): Avoid this string copy.
   return CoreRuntimeOp(
       [op_name = op_name.str(), op = std::move(op.get()),
@@ -319,7 +320,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
             StrCat(op_name, "#op_handler=", op_handler->GetName()));
         op(invocation);
       },
-      is_fallback);
+      is_fallback, std::move(device), op->GetTensorType());
 #endif  // TFRT_DISABLE_TRACING
 }
 

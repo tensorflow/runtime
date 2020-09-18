@@ -31,6 +31,14 @@ CoreRuntimeOp::CoreRuntimeOp(
     bool is_fallback)
     : fn_(std::move(fn)), is_fallback_(is_fallback) {}
 
+CoreRuntimeOp::CoreRuntimeOp(
+    llvm::unique_function<void(const OpInvocation&) const>&& fn,
+    bool is_fallback, RCReference<Device> device, TensorType arg_tensor_type)
+    : fn_(std::move(fn)),
+      is_fallback_(is_fallback),
+      device_(std::move(device)),
+      arg_tensor_type_(std::move(arg_tensor_type)) {}
+
 // is_fallback_ is not relevant.
 CoreRuntimeOp::CoreRuntimeOp(
     llvm::unique_function<void(const CompositeOpInvocation&) const>&& native_fn)

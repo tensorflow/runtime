@@ -233,12 +233,16 @@ Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
   // ensure that the size of captured variable is smaller than 3 pointers.
   return CoreRuntimeOp(
       [op_entry, this](const OpInvocation& invocation) {
+        // CPU OpHandler should associate a CPU device.
+        assert(this->device_);
         bool update_chain = !(op_entry->flags & CpuOpFlags::NoSideEffects);
+
         // TODO(fishx): ExecuteOnOpHandler should return void.
         ExecuteOnOpHandler<CpuOpHandlerTraits>(update_chain, invocation,
                                                *op_entry, this);
       },
-      /*is_fallback=*/false);
+      /*is_fallback=*/false, /*device=*/device_.CopyRef(),
+      /*arg_tensor_type=*/DenseHostTensor::kTensorType);
 }
 
 }  // namespace tfrt

@@ -108,6 +108,7 @@ struct GpuOpHandlerTraits {
                          chain);
   }
 
+  // TODO(b/168609399): design a proper way to obtain device for result tensors.
   static Expected<RCReference<Device>> GetResultDevice(
       GpuOpHandler* gpu_op_handler, AsyncValueRef<Tensor> result_tensor_av_ref,
       const ExecutionContext& exec_ctx) {
@@ -186,10 +187,14 @@ Expected<CoreRuntimeOp> GpuOpHandler::MakeOp(string_view op_name) {
 
   return CoreRuntimeOp(
       [op_entry, this](const OpInvocation& invocation) {
+        // GPU OpHandler should associate a GPU device.
+        assert(this->device_);
+
         return ExecuteOnOpHandler<GpuOpHandlerTraits>(
             /*update_chain=*/false, invocation, *op_entry, this);
       },
-      /*is_fallback=*/false);
+      /*is_fallback=*/false, /*device=*/device_.CopyRef(),
+      /*arg_tensor_type=*/GetStaticTensorType("DenseGpu"));
 }
 
 }  // namespace tfrt

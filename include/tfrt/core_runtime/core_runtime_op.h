@@ -24,7 +24,10 @@
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "tfrt/core_runtime/op_invocation.h"
+#include "tfrt/host_context/device.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/tensor_type_registration.h"
 
 namespace tfrt {
 
@@ -40,6 +43,11 @@ class CoreRuntimeOp {
   explicit CoreRuntimeOp();
   CoreRuntimeOp(llvm::unique_function<void(const OpInvocation&) const>&& fn,
                 bool is_fallback);
+
+  CoreRuntimeOp(llvm::unique_function<void(const OpInvocation&) const>&& fn,
+                bool is_fallback, RCReference<Device> device,
+                TensorType arg_tensor_type = DenseHostTensor::kTensorType);
+
   // Creates a "native function" in that it takes and returns AsyncValues of
   // any types, and not having to going through TensorHandle.
   explicit CoreRuntimeOp(
@@ -76,6 +84,12 @@ class CoreRuntimeOp {
 
   bool IsFallback() const { return is_fallback_; }
 
+  string_view DeviceName() { return device_->name(); }
+
+  RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
+
+  const TensorType& GetTensorType() { return arg_tensor_type_; }
+
  private:
   // Since CoreRuntimeOp is semantically immutable, its operator() should be
   // const functions.  We need to mark fn_ and native_fn_ as mutable so we can
@@ -84,6 +98,19 @@ class CoreRuntimeOp {
   llvm::unique_function<void(const OpInvocation&) const> fn_;
   llvm::unique_function<void(const CompositeOpInvocation&) const> native_fn_;
   bool is_fallback_;
+
+  // The target device that the op requires the arguments to be placed on.
+  // Currently we assume all arguments are placed on the same device for one op.
+  // this may not be true for certain ops (e.g. tf.Reshape). Currently such ops
+  // are supported by TF Runtime Fallback. In the future, indivicual argument
+  // placement information will be obtained from redesigned OpRegistry (SSOT).
+  RCReference<Device> device_;
+
+  // The target tensor type for arguments. By default DenseHostTensor on CPU.
+  // Same as above, we currently assume all arguments have the same TensorType,
+  // which may not be ture for certain ops, and will be obtained from redesigned
+  // OpRegistry (SSOT).
+  TensorType arg_tensor_type_ = DenseHostTensor::kTensorType;
 };
 
 }  // namespace tfrt

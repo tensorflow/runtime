@@ -216,6 +216,52 @@ llvm::Expected<OwningPersistentRnnPlan> DnnCreatePersistentRnnPlan(
     DnnRnnDescriptor descriptor, int batch_size, DnnDataType data_type);
 llvm::Error DnnDestroyPersistentRnnPlan(DnnPersistentRnnPlan plan);
 
+llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
+                              const DnnPoolingDescriptor pooling_desc,
+                              Pointer<const void> alpha,
+                              const DnnTensorDescriptor x_desc,
+                              Pointer<const void> x, Pointer<const void> beta,
+                              const DnnTensorDescriptor y_desc,
+                              Pointer<void> y);
+
+llvm::Error DnnPoolingBackward(
+    CurrentContext current, DnnHandle handle,
+    const DnnPoolingDescriptor pooling_desc, Pointer<const void> alpha,
+    const DnnTensorDescriptor y_desc, Pointer<const void> y,
+    const DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    const DnnTensorDescriptor x_desc, Pointer<const void> x,
+    Pointer<const void> beta, const DnnTensorDescriptor dx_desc,
+    Pointer<void> dx);
+
+llvm::Error DnnRnnForwardInference(
+    CurrentContext current, DnnHandle handle, DnnRnnDescriptor rnn_descriptor,
+    llvm::ArrayRef<DnnTensorDescriptor> input_descriptors,
+    Pointer<const void> input_data, DnnTensorDescriptor hidden_input_descriptor,
+    Pointer<const void> hidden_input_data,
+    DnnTensorDescriptor cell_input_descriptor,
+    Pointer<const void> cell_input_data, DnnFilterDescriptor filter_descriptor,
+    Pointer<const void> filter_data,
+    llvm::ArrayRef<DnnTensorDescriptor> output_descriptors,
+    Pointer<void> output_data, DnnTensorDescriptor hidden_output_descriptor,
+    Pointer<void> hidden_output_data,
+    DnnTensorDescriptor cell_output_descriptor, Pointer<void> cell_output_data,
+    Pointer<void> workspace, size_t workspace_size_bytes);
+
+llvm::Error DnnRnnForwardTraining(
+    CurrentContext current, DnnHandle handle, DnnRnnDescriptor rnn_descriptor,
+    llvm::ArrayRef<DnnTensorDescriptor> input_descriptors,
+    Pointer<const void> input_data, DnnTensorDescriptor hidden_input_descriptor,
+    Pointer<const void> hidden_input_data,
+    DnnTensorDescriptor cell_input_descriptor,
+    Pointer<const void> cell_input_data, DnnFilterDescriptor filter_descriptor,
+    Pointer<const void> filter_data,
+    llvm::ArrayRef<DnnTensorDescriptor> output_descriptors,
+    Pointer<void> output_data, DnnTensorDescriptor hidden_output_descriptor,
+    Pointer<void> hidden_output_data,
+    DnnTensorDescriptor cell_output_descriptor, Pointer<void> cell_output_data,
+    Pointer<void> workspace, size_t workspace_size_bytes,
+    Pointer<void> reserve_space, size_t reserve_space_size_in_bytes);
+
 }  // namespace stream
 }  // namespace gpu
 }  // namespace tfrt

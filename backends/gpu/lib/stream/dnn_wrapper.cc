@@ -244,6 +244,132 @@ llvm::Error DnnDestroyPersistentRnnPlan(DnnPersistentRnnPlan plan) {
   }
 }
 
+llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
+                              const DnnPoolingDescriptor pooling_desc,
+                              Pointer<const void> alpha,
+                              const DnnTensorDescriptor x_desc,
+                              Pointer<const void> x, Pointer<const void> beta,
+                              const DnnTensorDescriptor y_desc,
+                              Pointer<void> y) {
+  auto platform = current.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnPoolingForward(current, handle, pooling_desc, alpha, x_desc,
+                                 x, beta, y_desc, y);
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error DnnPoolingBackward(
+    CurrentContext current, DnnHandle handle,
+    const DnnPoolingDescriptor pooling_desc, Pointer<const void> alpha,
+    const DnnTensorDescriptor y_desc, Pointer<const void> y,
+    const DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    const DnnTensorDescriptor x_desc, Pointer<const void> x,
+    Pointer<const void> beta, const DnnTensorDescriptor dx_desc,
+    Pointer<void> dx) {
+  auto platform = current.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnPoolingBackward(current, handle, pooling_desc, alpha, y_desc,
+                                  y, dy_desc, dy, x_desc, x, beta, dx_desc, dx);
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error DnnRnnForwardInference(
+    CurrentContext current, DnnHandle handle, DnnRnnDescriptor rnn_descriptor,
+    llvm::ArrayRef<DnnTensorDescriptor> input_descriptors,
+    Pointer<const void> input_data, DnnTensorDescriptor hidden_input_descriptor,
+    Pointer<const void> hidden_input_data,
+    DnnTensorDescriptor cell_input_descriptor,
+    Pointer<const void> cell_input_data, DnnFilterDescriptor filter_descriptor,
+    Pointer<const void> filter_data,
+    llvm::ArrayRef<DnnTensorDescriptor> output_descriptors,
+    Pointer<void> output_data, DnnTensorDescriptor hidden_output_descriptor,
+    Pointer<void> hidden_output_data,
+    DnnTensorDescriptor cell_output_descriptor, Pointer<void> cell_output_data,
+    Pointer<void> workspace, size_t workspace_size_bytes) {
+  auto platform = current.platform();
+  switch (platform) {
+    case Platform::CUDA: {
+      // TODO(gkg@): Figure out the right default size and replace
+      // std::vector with llvm::SmallVector.
+      // TODO(gkg@): Factor out type conversion below to the helper function.
+      std::vector<cudnnTensorDescriptor_t> cu_input_descriptors(
+          input_descriptors.size());
+      for (DnnTensorDescriptor input_descriptor : input_descriptors) {
+        cu_input_descriptors.push_back(input_descriptor);
+      }
+      std::vector<cudnnTensorDescriptor_t> cu_output_descriptors(
+          output_descriptors.size());
+      for (DnnTensorDescriptor output_descriptor : output_descriptors) {
+        cu_output_descriptors.push_back(output_descriptor);
+      }
+      return CudnnRnnForwardInference(
+          current, handle, rnn_descriptor, cu_input_descriptors, input_data,
+          hidden_input_descriptor, hidden_input_data, cell_input_descriptor,
+          cell_input_data, filter_descriptor, filter_data,
+          cu_output_descriptors, output_data, hidden_output_descriptor,
+          hidden_output_data, cell_output_descriptor, cell_output_data,
+          workspace, workspace_size_bytes);
+    }
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error DnnRnnForwardTraining(
+    CurrentContext current, DnnHandle handle, DnnRnnDescriptor rnn_descriptor,
+    llvm::ArrayRef<DnnTensorDescriptor> input_descriptors,
+    Pointer<const void> input_data, DnnTensorDescriptor hidden_input_descriptor,
+    Pointer<const void> hidden_input_data,
+    DnnTensorDescriptor cell_input_descriptor,
+    Pointer<const void> cell_input_data, DnnFilterDescriptor filter_descriptor,
+    Pointer<const void> filter_data,
+    llvm::ArrayRef<DnnTensorDescriptor> output_descriptors,
+    Pointer<void> output_data, DnnTensorDescriptor hidden_output_descriptor,
+    Pointer<void> hidden_output_data,
+    DnnTensorDescriptor cell_output_descriptor, Pointer<void> cell_output_data,
+    Pointer<void> workspace, size_t workspace_size_bytes,
+    Pointer<void> reserve_space, size_t reserve_space_size_in_bytes) {
+  auto platform = current.platform();
+  switch (platform) {
+    case Platform::CUDA: {
+      std::vector<cudnnTensorDescriptor_t> cu_input_descriptors(
+          input_descriptors.size());
+      for (DnnTensorDescriptor input_descriptor : input_descriptors) {
+        cu_input_descriptors.push_back(input_descriptor);
+      }
+      std::vector<cudnnTensorDescriptor_t> cu_output_descriptors(
+          output_descriptors.size());
+      for (DnnTensorDescriptor output_descriptor : output_descriptors) {
+        cu_output_descriptors.push_back(output_descriptor);
+      }
+      return CudnnRnnForwardTraining(
+          current, handle, rnn_descriptor, cu_input_descriptors, input_data,
+          hidden_input_descriptor, hidden_input_data, cell_input_descriptor,
+          cell_input_data, filter_descriptor, filter_data,
+          cu_output_descriptors, output_data, hidden_output_descriptor,
+          hidden_output_data, cell_output_descriptor, cell_output_data,
+          workspace, workspace_size_bytes, reserve_space,
+          reserve_space_size_in_bytes);
+    }
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 }  // namespace stream
 }  // namespace gpu
 }  // namespace tfrt

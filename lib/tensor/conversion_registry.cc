@@ -63,7 +63,10 @@ AsyncValueRef<Tensor> ConvertTensor(const ExecutionContext& exec_ctx,
       {tensor.tensor_type(), dst_tensor_type});
 
   if (!conversion_fn) {
-    return EmitErrorAsync(exec_ctx, "cannot find conversion function");
+    return EmitErrorAsync(exec_ctx,
+                          StrCat("cannot find conversion function for [",
+                                 tensor.tensor_type().name(), "]->[",
+                                 dst_tensor_type.name(), "]"));
   }
 
   return conversion_fn(tensor, src, dst, exec_ctx);

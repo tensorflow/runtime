@@ -94,17 +94,10 @@ class TypeDispatch {
   const DType dtype_;
 };
 
-using NumericTypeDispatch = TypeDispatch<TypeForDTypeKind<DType::UI8>,   //
-                                         TypeForDTypeKind<DType::UI16>,  //
-                                         TypeForDTypeKind<DType::UI32>,  //
-                                         TypeForDTypeKind<DType::UI64>,  //
-                                         TypeForDTypeKind<DType::I8>,    //
-                                         TypeForDTypeKind<DType::I16>,   //
-                                         TypeForDTypeKind<DType::I32>,   //
-                                         TypeForDTypeKind<DType::I64>,   //
-                                         TypeForDTypeKind<DType::F16>,   //
-                                         TypeForDTypeKind<DType::F32>,   //
-                                         TypeForDTypeKind<DType::F64>>;
+template <DType::Kind... kind>
+struct GetTypeDispatch {
+  using Type = internal::TypeDispatch<TypeForDTypeKind<kind>...>;
+};
 
 }  // namespace internal
 }  // namespace tfrt

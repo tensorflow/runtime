@@ -54,6 +54,9 @@ llvm::Expected<OwningBlasHandle> BlasCreate(CurrentContext current);
 llvm::Error BlasDestroy(BlasHandle handle);
 llvm::Error BlasSetStream(BlasHandle handle, Stream stream);
 llvm::Expected<Stream> BlasGetStream(BlasHandle handle);
+llvm::Error BlasSaxpy(CurrentContext current, BlasHandle handle, int n,
+                      Pointer<const float> alpha, Pointer<const float> x,
+                      int incx, Pointer<float> y, int incy);
 
 }  // namespace stream
 }  // namespace gpu

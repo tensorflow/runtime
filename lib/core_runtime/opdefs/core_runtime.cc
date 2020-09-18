@@ -306,12 +306,12 @@ static LogicalResult verify(CondOp op) {
   return success();
 }
 
+}  // namespace corert
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/core_runtime/opdefs/core_runtime_opdefs.cpp.inc"
-
-}  // namespace corert
-}  // namespace tfrt

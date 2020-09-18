@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices=null $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Not running 'register_op_handlers' because it has arguments.
 func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {
-  %null = corert.get_op_handler %ch0 "null"
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
   %ch1 = corert.register_op_handler %null "custom0"
   tfrt.return %ch1 : !tfrt.chain
 }

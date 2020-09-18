@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices=cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+
+func @register_op_handlers_cpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  corert.register_op_handler %cpu "cpu"
+  tfrt.return
+}
 
 // CHECK: --- Running 'conv2d_valid'
 func @conv2d_valid() -> !tfrt.chain {

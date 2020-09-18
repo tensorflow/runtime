@@ -12,7 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices="cpu:sync_logging|cpu,gpu:sync_logging|gpu"  $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers  $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
+
+func @register_op_handlers() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %sync_cpu = "corert.create_logging_op_handler"(%cpu) {sync_log_results=1} : (!corert.device) -> !corert.device
+  corert.register_op_handler %sync_cpu "cpu"
+
+  %gpu_ordinal = tfrt.constant.i32 0
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  %sync_gpu = "corert.create_logging_op_handler"(%gpu) {sync_log_results=1} : (!corert.device) -> !corert.device
+  corert.register_op_handler %sync_gpu "gpu"
+  tfrt.return
+}
+
 
 // TODO(jingdong): Merge this file into logging.mlir after we fix the device creation process to allow more than one instances of a device type in a process.
 

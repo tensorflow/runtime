@@ -78,11 +78,13 @@ class StringHostTensor final : public HostTensor,
   AsyncValueRef<HostTensor> ConvertToHostTensor(
       HostContext* host, TensorType tensor_type) const override;
 
+  HostArray<std::string> CopyBuffer(HostContext* host) const;
+
   // Tensor type for StringHostTensor.
   static const char* name() { return "StringHost"; }
 
  private:
-  // TODO(tfrt-devs): Consider making it reference counted.
+  // TODO(b/168554623): Consider making it reference counted.
   HostArray<std::string> strings_;
 };
 

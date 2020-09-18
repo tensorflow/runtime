@@ -94,6 +94,8 @@ tfrt_cc_library(
         "@llvm-project//mlir:SCFToStandard",
         "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Transforms",
+        "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

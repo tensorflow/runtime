@@ -35,7 +35,7 @@ def Test_Dialect : Dialect {
     This dialect contains common test operations.
   }];
 
-  let cppNamespace = "test";
+  let cppNamespace = "::tfrt::test";
 }
 
 def ProtoExampleType : OpaqueType<"proto", "example", "!proto.example type">;

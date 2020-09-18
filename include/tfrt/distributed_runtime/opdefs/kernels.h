@@ -38,10 +38,10 @@ class DistributedDialect : public Dialect {
   static StringRef getDialectNamespace() { return "dist"; }
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/distributed_runtime/opdefs/kernels.h.inc"
-
 }  // namespace dist
 }  // end namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/distributed_runtime/opdefs/kernels.h.inc"
 
 #endif  // TFRT_DIST_OPDEFS_DIST_H_

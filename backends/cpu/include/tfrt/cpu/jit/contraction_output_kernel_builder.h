@@ -31,6 +31,9 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
+
+class OpAttrsRef;
+
 namespace cpu {
 namespace jit {
 
@@ -40,7 +43,7 @@ class ContractionOutputKernelBuilder {
   virtual ~ContractionOutputKernelBuilder() = default;
 
   virtual Expected<mlir::FuncOp> Build(
-      mlir::ModuleOp module, DType dtype,
+      mlir::ModuleOp module, const OpAttrsRef& attrs, DType dtype,
       ArrayRef<DType> additional_args) const = 0;
 
   virtual int GetNumAdditionalArgs() const { return 0; }

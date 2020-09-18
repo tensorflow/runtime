@@ -82,6 +82,20 @@ llvm::Expected<Stream> BlasGetStream(BlasHandle handle) {
   }
 }
 
+llvm::Error BlasSaxpy(CurrentContext current, BlasHandle handle, int n,
+                      Pointer<const float> alpha, Pointer<const float> x,
+                      int incx, Pointer<float> y, int incy) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CublasSaxpy(current, handle, n, alpha, x, incx, y, incy);
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 }  // namespace stream
 }  // namespace gpu
 }  // namespace tfrt

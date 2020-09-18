@@ -67,7 +67,7 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
 
   // Compile fusion into the contraction output kernel.
   auto compiled_kernel = cpu::jit::GetCompiledContractionOutputKernel(
-      host, fusion_kernels, output_dtype, additional_args_dtypes);
+      host, fusion_kernels, attrs, output_dtype, additional_args_dtypes);
   if (auto err = compiled_kernel.takeError()) {
     return EmitErrorAsync(exec_ctx,
                           StrCat("Failed to compiled output kernel: ", err));

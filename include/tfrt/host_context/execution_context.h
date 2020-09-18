@@ -25,6 +25,7 @@
 
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/resource_context.h"
+#include "tfrt/support/map_by_type.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
@@ -38,9 +39,24 @@ class ErrorAsyncValue;
 // passed around during the execution of a request. This allows us to support
 // per-request actions, such as canceling all pending ops for a request and
 // assigning all tasks of a request to a particular priority.
-
 class RequestContext : public ReferenceCounted<RequestContext> {
  public:
+  using ContextData = MapByType<RequestContext>;
+
+  // Both ResourceContext and ContextData manages data used during the request
+  // execution. ResourceContext is more flexible than ContextData at the cost of
+  // performance. ResourceContext stores the data keyed by a string name. It
+  // allows inserting data dynamically during the request execution and uses a
+  // mutex to ensure thread-safety. In contrast, ContextData stores data keyed
+  // by the data type and is populated only during the request initialization
+  // time. Thus, the look up requires only a simple array index without
+  // synchronization overhead.
+  static RCReference<RequestContext> Create(HostContext* host,
+                                            ResourceContext* resource_context,
+                                            ContextData ctx_data) {
+    return TakeRef(
+        new RequestContext(host, resource_context, std::move(ctx_data)));
+  }
   static RCReference<RequestContext> Create(HostContext* host,
                                             ResourceContext* resource_context) {
     return TakeRef(new RequestContext(host, resource_context));
@@ -58,13 +74,28 @@ class RequestContext : public ReferenceCounted<RequestContext> {
     return cancel_value_.load(std::memory_order_acquire);
   }
 
+  // Get context data by type. The returned reference T& is stable. The client
+  // may store the reference/pointer if needed.
+  template <typename T>
+  T& GetData() {
+    return context_data_.get<T>();
+  }
+
  private:
-  explicit RequestContext(HostContext* host, ResourceContext* resource_context)
+  RequestContext(HostContext* host, ResourceContext* resource_context)
       : host_{host}, resource_context_{resource_context} {}
+
+  RequestContext(HostContext* host, ResourceContext* resource_context,
+                 ContextData ctx_data)
+      : host_{host},
+        resource_context_{resource_context},
+        context_data_{std::move(ctx_data)} {}
 
   HostContext* const host_ = nullptr;
   ResourceContext* const resource_context_ = nullptr;
   std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
+
+  ContextData context_data_;
 };
 
 // ExecutionContext holds the context information for kernel and op execution,

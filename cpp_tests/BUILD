@@ -188,9 +188,31 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "support/map_by_type_test",
+    srcs = [
+        "support/map_by_type_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "support/latch_test",
     srcs = [
         "support/latch_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
+    name = "support/philox_random_test",
+    srcs = [
+        "support/philox_random_test.cc",
     ],
     deps = [
         "@com_google_googletest//:gtest_main",

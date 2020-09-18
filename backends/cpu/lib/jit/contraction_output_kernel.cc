@@ -38,6 +38,8 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/FileUtilities.h"
+#include "mlir/Transforms/Passes.h"
+#include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/cpu/jit/contraction_output_kernel_builder.h"
 #include "tfrt/host_context/shared_context.h"
 #include "tfrt/support/error_util.h"
@@ -60,11 +62,13 @@ class CompiledContractionOutputKernel {
       SmallVector<DType, 4> additional_args_dtypes,
       SmallVector<int, 4> additional_args_ranks,
       std::unique_ptr<mlir::ExecutionEngine> engine)
-      : function_name_(function_name.str()),
-        output_dtype_(output_dtype),
+      : output_dtype_(output_dtype),
         additional_args_dtypes_(additional_args_dtypes),
         additional_args_ranks_(std::move(additional_args_ranks)),
-        engine_(std::move(engine)) {}
+        engine_(std::move(engine)),
+        fptr_(*engine_->lookup(function_name)) {
+    assert(fptr_ != nullptr);
+  }
 
   Error Verify(DType dtype, ArrayRef<const DenseHostTensor*> additional_args) {
     if (dtype != output_dtype_) {
@@ -101,9 +105,6 @@ class CompiledContractionOutputKernel {
   void Call(void* data, int64_t stride, int64_t row_offset, int64_t col_offset,
             int64_t rows, int64_t cols,
             ArrayRef<const DenseHostTensor*> additional_args) {
-    auto fptr = engine_->lookup(function_name_);
-    assert(fptr);
-
     // Jit compiled MLIR function takes arguments by `void**` type erased
     // pointers.
     llvm::SmallVector<void*, 32> fn_args;
@@ -166,10 +167,13 @@ class CompiledContractionOutputKernel {
       add_memref_arg(memref);
     }
 
-    (*fptr)(fn_args.data());
+    (*fptr_)(fn_args.data());
   }
 
  private:
+  // Pointer to a compiled contraction output kernel function.
+  using FusionFptr = void (*)(void**);
+
   struct MemrefArg {
     explicit MemrefArg(int rank) : sizes(rank), strides(rank) {}
     void* data;
@@ -178,11 +182,11 @@ class CompiledContractionOutputKernel {
     SmallVector<int64_t, 4> strides;
   };
 
-  std::string function_name_;
   DType output_dtype_;
   SmallVector<DType, 4> additional_args_dtypes_;
   SmallVector<int, 4> additional_args_ranks_;
   std::unique_ptr<mlir::ExecutionEngine> engine_;
+  FusionFptr fptr_;
 };
 
 namespace {
@@ -267,7 +271,7 @@ struct OutputKernelSource {
 // Gets a contraction output kernel as a MLIR blob by serializing output kernel
 // function to string.
 Expected<OutputKernelSource> GetOutputKernelSource(
-    ArrayRef<string_view> output_kernels, DType dtype,
+    ArrayRef<string_view> output_kernels, const OpAttrsRef& attrs, DType dtype,
     ArrayRef<DType> additional_args) {
   auto builder = GetContractionOutputKernelBuilder(output_kernels);
   if (!builder) return builder.takeError();
@@ -284,7 +288,7 @@ Expected<OutputKernelSource> GetOutputKernelSource(
       mlir::ModuleOp::create(mlir::UnknownLoc::get(&context));
 
   Expected<mlir::FuncOp> func =
-      (*builder)->Build(*module, dtype, additional_args);
+      (*builder)->Build(*module, attrs, dtype, additional_args);
   if (auto err = func.takeError()) return std::move(err);
 
   OutputKernelSource src;
@@ -297,10 +301,11 @@ Expected<OutputKernelSource> GetOutputKernelSource(
 }
 
 Expected<CompiledContractionOutputKernel> Compile(
-    ArrayRef<string_view> output_kernels, DType dtype,
+    ArrayRef<string_view> output_kernels, const OpAttrsRef& attrs, DType dtype,
     ArrayRef<DType> additional_args, CompilationOptions opts) {
   // Get the source for the contraction output kernel.
-  auto src = GetOutputKernelSource(output_kernels, dtype, additional_args);
+  auto src =
+      GetOutputKernelSource(output_kernels, attrs, dtype, additional_args);
   if (!src) return src.takeError();
 
   auto buffer = llvm::MemoryBuffer::getMemBuffer(src->module, "<unknown>");
@@ -325,6 +330,9 @@ Expected<CompiledContractionOutputKernel> Compile(
 
   mlir::LowerToLLVMOptions lower_to_llvm_opts;
   mlir::PassManager pm(&context);
+  pm.addPass(mlir::createInlinerPass());
+  pm.addPass(mlir::createCSEPass());
+  pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createLowerToCFGPass());
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));
 
@@ -344,7 +352,7 @@ Expected<CompiledContractionOutputKernel> Compile(
 
   // Additional LLVM passes to run.
   llvm::SmallVector<const llvm::PassInfo*, 4> passes;
-  auto transformer = mlir::makeLLVMPassesTransformer(passes, /*mbOptLevel=*/0,
+  auto transformer = mlir::makeLLVMPassesTransformer(passes, /*mbOptLevel=*/2,
                                                      target_machine->get());
 
   // Build MLIR exection engine.
@@ -365,14 +373,16 @@ Expected<CompiledContractionOutputKernel> Compile(
 
 class CompiledKernelsContext : public SharedContext {
  public:
-  explicit CompiledKernelsContext(HostContext* host_context) {}
+  explicit CompiledKernelsContext(HostContext* host_context) {
+    opts_.jit_code_opt_level = llvm::CodeGenOpt::Level::Default;
+  }
 
   CompiledKernelsContext(const CompiledKernelsContext&) = delete;
   void operator=(const CompiledKernelsContext&) = delete;
 
   Expected<CompiledContractionOutputKernel*> GetCompiledKernel(
-      string_view key, ArrayRef<string_view> output_kernels, DType dtype,
-      ArrayRef<DType> additional_args) {
+      string_view key, ArrayRef<string_view> output_kernels,
+      const OpAttrsRef& attrs, DType dtype, ArrayRef<DType> additional_args) {
     {  // Fast path. Check if the kernel is already compiled.
       mutex_lock lock(mu_);
       auto it = kernels_.find(key);
@@ -380,7 +390,8 @@ class CompiledKernelsContext : public SharedContext {
     }
 
     // Compile the kernel without holding a lock.
-    auto compiled = Compile(output_kernels, dtype, additional_args, opts_);
+    auto compiled =
+        Compile(output_kernels, attrs, dtype, additional_args, opts_);
     if (!compiled) return compiled.takeError();
 
     // Double check that concurrent execution did not already compile the kernel
@@ -404,8 +415,8 @@ class CompiledKernelsContext : public SharedContext {
 
 // Returns contraction output kernel compiled from the MLIR module.
 Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
-    HostContext* host, ArrayRef<string_view> output_kernels, DType dtype,
-    ArrayRef<DType> additional_args) {
+    HostContext* host, ArrayRef<string_view> output_kernels,
+    const OpAttrsRef& attrs, DType dtype, ArrayRef<DType> additional_args) {
   InitializeCompiler();
 
   auto& ctx = host->GetOrCreateSharedContext<CompiledKernelsContext>();
@@ -414,10 +425,15 @@ Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
   auto dtypes = llvm::map_range(additional_args,
                                 [](DType dtype) { return StrCat(dtype); });
 
-  const std::string key = StrCat(dtype, ":", llvm::join(dtypes, ":"), ":",
-                                 llvm::join(output_kernels, ":"));
+  // Build unique key for the contraction fusion from types, output kernels and
+  // fused operation attributes.
+  std::string key = StrCat(dtype, ":", llvm::join(dtypes, ":"), ":",
+                           llvm::join(output_kernels, ":"));
+  llvm::raw_string_ostream os(key);
+  attrs.Print(os);
 
-  return ctx.GetCompiledKernel(key, output_kernels, dtype, additional_args);
+  return ctx.GetCompiledKernel(key, output_kernels, attrs, dtype,
+                               additional_args);
 }
 
 void CallCompiledContractionOutputKernel(

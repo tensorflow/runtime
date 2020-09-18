@@ -192,12 +192,12 @@ static LogicalResult verify(RangeDatasetOp op) {
   return success();
 }
 
+}  // namespace data
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/data/opdefs/data_ops_opdefs.cpp.inc"
-
-}  // namespace data
-}  // namespace tfrt

@@ -12,7 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices=cpu,gpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu_gpu $(bef_name %s) | FileCheck %s --dump-input=fail
+
+func @register_op_handlers_cpu_gpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  corert.register_op_handler %cpu "cpu"
+
+  %gpu_ordinal = tfrt.constant.i32 0
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  corert.register_op_handler %gpu "gpu"
+  tfrt.return
+}
 
 // CHECK: --- Running 'round_trip_transfer'
 func @round_trip_transfer() -> !tfrt.chain {
@@ -56,7 +68,7 @@ func @invalid_transfer() -> !tfrt.chain {
   %th0_cpu = "corert.transfer"(%th0_gpu) {device="CPU:0", dst_tensor_type_name="StringHost"}
     : (!corert.tensorhandle) -> !corert.tensorhandle
 
-  // CHECK: Error TensorHandle: 'cannot find conversion function'
+  // CHECK: Error TensorHandle: 'cannot find conversion function for [DenseGpu]->[StringHost]'
   %ch1 = "corert.print_tensorhandle"(%th0_cpu, %ch0)
     : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 

@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices=cpu $(bef_name %s) | FileCheck %s --dump-input=always
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+
+func @register_op_handlers_cpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  corert.register_op_handler %cpu "cpu"
+  tfrt.return
+}
 
 // CHECK: --- Running 'fusedMatMul_AddOne_f32'
 func @fusedMatMul_AddOne_f32() -> !tfrt.chain{
@@ -97,6 +104,27 @@ func @fusedMatMul_Relu_f32() -> !tfrt.chain {
 
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
   // CHECK-SAME: values = [0.000000e+00, 0.000000e+00, 8.000000e+00, 1.100000e+01]
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
+
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}
+
+// CHECK: --- Running 'fusedMatMul_LeakyRelu_f32'
+func @fusedMatMul_LeakyRelu_f32() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
+
+  %operand_0 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : 1
+  %operand_1 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [3, 2], values = [0.0 : f32, 1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32] } : 1
+
+  %cpu_handle_result = corert.executeop(%cpu)
+      "tf._JitFusedMatMul"(%operand_0, %operand_1)
+      { fusion = ["LeakyRelu"], alpha = 0.2 : f32, transpose_a = false, transpose_b = false } : 1
+
+  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK-SAME: values = [-2.000000e-01, -5.000000e-01, 8.000000e+00, 1.100000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

@@ -42,10 +42,10 @@ class DataDialect : public Dialect {
   static StringRef getDialectNamespace() { return "tfrt_data"; }
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/data/opdefs/data_ops.h.inc"
-
 }  // namespace data
 }  // namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/data/opdefs/data_ops.h.inc"
 
 #endif  // TFRT_DATA_OPDEFS_DATA_OPS_H_

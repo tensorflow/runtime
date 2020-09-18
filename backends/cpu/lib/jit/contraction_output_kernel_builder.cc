@@ -20,18 +20,12 @@
 
 #include "tfrt/cpu/jit/contraction_output_kernel_builder.h"
 
-#include "llvm/ExecutionEngine/Orc/Core.h"
-#include "llvm/ExecutionEngine/Orc/Mangling.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/MemoryBuffer.h"
-#include "llvm/Support/TargetSelect.h"
 #include "mlir/Dialect/Affine/EDSC/Intrinsics.h"
 #include "mlir/Dialect/SCF/EDSC/Intrinsics.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/EDSC/Intrinsics.h"
 #include "mlir/EDSC/Builders.h"
-#include "mlir/ExecutionEngine/ExecutionEngine.h"
-#include "mlir/ExecutionEngine/OptUtils.h"
 #include "mlir/IR/AffineExpr.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Function.h"
@@ -40,12 +34,12 @@
 #include "mlir/IR/Module.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/Types.h"
+#include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace cpu {
 namespace jit {
-
 namespace {
 
 namespace edsc = ::mlir::edsc;
@@ -108,11 +102,12 @@ FuncOp CreateOutputKernelFunc(ModuleOp module, string_view function_name,
 
 class AddOne : public ContractionOutputKernelBuilder {
  public:
-  Expected<FuncOp> Build(ModuleOp module, DType dtype,
+  Expected<FuncOp> Build(ModuleOp module, const OpAttrsRef& attrs, DType dtype,
                          ArrayRef<DType> additional_args) const final;
 };
 
-Expected<FuncOp> AddOne::Build(ModuleOp module, DType dtype,
+Expected<FuncOp> AddOne::Build(ModuleOp module, const OpAttrsRef& attrs,
+                               DType dtype,
                                ArrayRef<DType> additional_args) const {
   MLIRContext* ctx = module.getContext();
 
@@ -146,9 +141,7 @@ Expected<FuncOp> AddOne::Build(ModuleOp module, DType dtype,
         edsc::ScopedContext loop_body(builder, loc);
         assert(args.empty() && "expected empty arguments");
         assert(ivs.size() == 2 && "expected two induction variable");
-        Value i0 = ivs[0];
-        Value i1 = ivs[1];
-        output_block(i0, i1) = intr::std_addf(output_block(i0, i1), one);
+        output_block(ivs) = intr::std_addf(output_block(ivs), one);
         return mlir::scf::ValueVector();
       });
 
@@ -163,13 +156,15 @@ Expected<FuncOp> AddOne::Build(ModuleOp module, DType dtype,
 
 class BiasAdd : public ContractionOutputKernelBuilder {
  public:
-  Expected<FuncOp> Build(mlir::ModuleOp module, DType dtype,
+  Expected<FuncOp> Build(mlir::ModuleOp module, const OpAttrsRef& attrs,
+                         DType dtype,
                          ArrayRef<DType> additional_args) const final;
 
   int GetNumAdditionalArgs() const final { return 1; }
 };
 
-Expected<FuncOp> BiasAdd::Build(ModuleOp module, DType dtype,
+Expected<FuncOp> BiasAdd::Build(ModuleOp module, const OpAttrsRef& attrs,
+                                DType dtype,
                                 ArrayRef<DType> additional_args) const {
   MLIRContext* ctx = module.getContext();
 
@@ -210,10 +205,9 @@ Expected<FuncOp> BiasAdd::Build(ModuleOp module, DType dtype,
         edsc::ScopedContext loop_body(builder, loc);
         assert(args.empty() && "expected empty arguments");
         assert(ivs.size() == 2 && "expected two induction variable");
-        Value i0 = ivs[0];
         Value i1 = ivs[1];
         Value bias = bias_vector(intr::std_addi(bias_offset, i1));
-        output_block(i0, i1) = intr::std_addf(output_block(i0, i1), bias);
+        output_block(ivs) = intr::std_addf(output_block(ivs), bias);
         return mlir::scf::ValueVector();
       });
 
@@ -223,32 +217,44 @@ Expected<FuncOp> BiasAdd::Build(ModuleOp module, DType dtype,
 }
 
 //----------------------------------------------------------------------------//
-// Relu activation.
+// Activation function.
 //----------------------------------------------------------------------------//
 
-// TODO(ezhulenev): Add a generic builder to support different types of
-// activation functions.
-
-class Relu : public ContractionOutputKernelBuilder {
+class ActivationBuilder : public ContractionOutputKernelBuilder {
  public:
-  Expected<FuncOp> Build(mlir::ModuleOp module, DType dtype,
+  explicit ActivationBuilder(string_view activation)
+      : activation_(activation) {}
+
+  Expected<FuncOp> Build(mlir::ModuleOp module, const OpAttrsRef& attrs,
+                         DType dtype,
                          ArrayRef<DType> additional_args) const final;
 
-  int GetNumAdditionalArgs() const final { return 1; }
+  int GetNumAdditionalArgs() const final { return 0; }
+
+ protected:
+  virtual Expected<std::vector<Value>> BuildInitValues(
+      MLIRContext* ctx, const OpAttrsRef& attrs) const = 0;
+
+  virtual Value BuildOutputValue(MLIRContext* ctx, std::vector<Value> init,
+                                 Value value) const = 0;
+
+  string_view activation() const { return activation_; }
+
+ private:
+  string_view activation_;
 };
 
-Expected<FuncOp> Relu::Build(ModuleOp module, DType dtype,
-                             ArrayRef<DType> additional_args) const {
+Expected<FuncOp> ActivationBuilder::Build(
+    ModuleOp module, const OpAttrsRef& attrs, DType dtype,
+    ArrayRef<DType> additional_args) const {
   MLIRContext* ctx = module.getContext();
 
   // TODO(ezhulenev): Support more data types.
   if (dtype != DType(DType::F32))
-    return MakeStringError("Relu supports only f32 dtype");
+    return MakeStringError(activation(), " supports only f32 dtype");
 
   if (!additional_args.empty())
-    return MakeStringError("Relu requires empty additional args");
-
-  auto f32_ty = FloatType::getF32(ctx);
+    return MakeStringError(activation(), " requires empty additional args");
 
   FuncOp function = CreateOutputKernelFunc(module, "relu");
 
@@ -263,7 +269,9 @@ Expected<FuncOp> Relu::Build(ModuleOp module, DType dtype,
 
   Value c0 = intr::std_constant_index(0);
   Value c1 = intr::std_constant_index(1);
-  Value zero = intr::std_constant_float(llvm::APFloat(0.0f), f32_ty);
+
+  auto init = BuildInitValues(ctx, attrs);
+  if (auto err = init.takeError()) return std::move(err);
 
   mlir::scf::buildLoopNest(
       edsc::ScopedContext::getBuilderRef(), edsc::ScopedContext::getLocation(),
@@ -272,11 +280,7 @@ Expected<FuncOp> Relu::Build(ModuleOp module, DType dtype,
         edsc::ScopedContext loop_body(builder, loc);
         assert(args.empty() && "expected empty arguments");
         assert(ivs.size() == 2 && "expected two induction variable");
-        Value i0 = ivs[0];
-        Value i1 = ivs[1];
-        Value value = output_block(i0, i1);
-        output_block(i0, i1) =
-            intr::std_select(edsc::op::sgt(value, zero), value, zero);
+        output_block(ivs) = BuildOutputValue(ctx, *init, output_block(ivs));
         return mlir::scf::ValueVector();
       });
 
@@ -286,6 +290,61 @@ Expected<FuncOp> Relu::Build(ModuleOp module, DType dtype,
 }
 
 //----------------------------------------------------------------------------//
+// Relu activation.
+//----------------------------------------------------------------------------//
+
+class Relu : public ActivationBuilder {
+ public:
+  Relu() : ActivationBuilder("Relu") {}
+
+  Expected<std::vector<Value>> BuildInitValues(
+      MLIRContext* ctx, const OpAttrsRef& attrs) const final {
+    auto f32_ty = FloatType::getF32(ctx);
+    Value zero = intr::std_constant_float(llvm::APFloat(0.0f), f32_ty);
+    std::vector<Value> values = {zero};
+    return values;
+  }
+
+  Value BuildOutputValue(MLIRContext* ctx, std::vector<Value> init,
+                         Value value) const final {
+    Value zero = init[0];
+    return intr::std_select(edsc::op::sgt(value, zero), value, zero);
+  }
+};
+
+//----------------------------------------------------------------------------//
+// LakyRelu activation.
+//----------------------------------------------------------------------------//
+
+class LeakyRelu : public ActivationBuilder {
+ public:
+  LeakyRelu() : ActivationBuilder("LeakyRelu") {}
+
+  Expected<std::vector<Value>> BuildInitValues(
+      MLIRContext* ctx, const OpAttrsRef& attrs) const final {
+    auto alpha_value = attrs.GetOptional<float>("alpha");
+    if (!alpha_value.hasValue())
+      return MakeStringError(
+          "missing alpha attribute for the LeakuRely fusion");
+
+    auto f32_ty = FloatType::getF32(ctx);
+    Value zero = intr::std_constant_float(llvm::APFloat(0.0f), f32_ty);
+    Value alpha = intr::std_constant_float(llvm::APFloat(*alpha_value), f32_ty);
+
+    std::vector<Value> values = {zero, alpha};
+    return values;
+  }
+
+  Value BuildOutputValue(MLIRContext* ctx, std::vector<Value> init,
+                         Value value) const final {
+    Value zero = init[0];
+    Value alpha = init[1];
+    return intr::std_select(edsc::op::sgt(value, zero), value,
+                            intr::std_mulf(value, alpha));
+  }
+};
+
+//----------------------------------------------------------------------------//
 // Compose contraction output kernels.
 //----------------------------------------------------------------------------//
 
@@ -293,7 +352,8 @@ class OutputKernelsComposition : public ContractionOutputKernelBuilder {
  public:
   explicit OutputKernelsComposition(ArrayRef<string_view> output_kernels)
       : output_kernels_(output_kernels) {}
-  Expected<FuncOp> Build(mlir::ModuleOp module, DType dtype,
+  Expected<FuncOp> Build(mlir::ModuleOp module, const OpAttrsRef& attrs,
+                         DType dtype,
                          ArrayRef<DType> additional_args) const final;
 
  private:
@@ -301,7 +361,8 @@ class OutputKernelsComposition : public ContractionOutputKernelBuilder {
 };
 
 Expected<FuncOp> OutputKernelsComposition::Build(
-    ModuleOp module, DType dtype, ArrayRef<DType> additional_args) const {
+    ModuleOp module, const OpAttrsRef& attrs, DType dtype,
+    ArrayRef<DType> additional_args) const {
   // The number of default output kernel argumets:
   //   output_block, row offset, col offset.
   static constexpr int kNumDefautArgs = 3;
@@ -324,7 +385,7 @@ Expected<FuncOp> OutputKernelsComposition::Build(
                                  .take_front(num_additional_args);
     additional_args_offset += num_additional_args;
 
-    auto function = (*builder)->Build(module, dtype, dtypes);
+    auto function = (*builder)->Build(module, attrs, dtype, dtypes);
     if (auto err = function.takeError()) return std::move(err);
 
     output_kernels.push_back(*function);
@@ -377,6 +438,7 @@ GetContractionOutputKernelBuilder(string_view name) {
   if (name == "AddOne") return std::make_unique<AddOne>();
   if (name == "BiasAdd") return std::make_unique<BiasAdd>();
   if (name == "Relu") return std::make_unique<Relu>();
+  if (name == "LeakyRelu") return std::make_unique<LeakyRelu>();
 
   return MakeStringError("Unknown contraction output kernel: ", name);
 }

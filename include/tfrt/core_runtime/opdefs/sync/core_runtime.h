@@ -45,10 +45,10 @@ class CoreRTSyncDialect : public Dialect {
                                  mlir::Location loc) override;
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/core_runtime/opdefs/sync/core_runtime_opdefs.h.inc"
-
 }  // namespace corert_sync
 }  // namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/core_runtime/opdefs/sync/core_runtime_opdefs.h.inc"
 
 #endif  // TFRT_CORE_RUNTIME_OPDEFS_SYNC_CORE_RUNTIME_H_

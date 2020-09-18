@@ -123,6 +123,20 @@ void StringHostTensor::Print(raw_ostream& os) const {
   os << ']';
 }
 
+HostArray<std::string> StringHostTensor::CopyBuffer(HostContext* host) const {
+  HostArray<std::string> to_buffer(strings_.size(), host->allocator());
+
+  // TODO(tfrt-dev): Consider optimizing StringHostTensor to avoid the copy
+  // here.
+  for (auto iter : llvm::zip(to_buffer.mutable_array(), strings())) {
+    std::string& to_str = std::get<0>(iter);
+    const std::string& from_str = std::get<1>(iter);
+    new (&to_str) std::string(from_str);
+  }
+
+  return to_buffer;
+}
+
 void RegisterStringHostTensorConversionFn(
     TensorConversionFnRegistry* registry) {
   registry->AddTensorConversionFn(

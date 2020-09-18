@@ -32,6 +32,7 @@
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
+#include "tfrt/tensor/string_host_tensor.h"
 
 namespace tfrt {
 namespace {
@@ -92,9 +93,9 @@ static Expected<int64_t> GetExpandAxisValue(const DenseHostTensor& axis) {
   return axis_value;
 }
 
-static AsyncValueRef<DenseHostTensor> TfExpandDimsOp(
-    const DenseHostTensor& input, const DenseHostTensor& axis,
-    const ExecutionContext& exec_ctx) {
+static AsyncValueRef<Tensor> TfExpandDimsOp(const Tensor& input,
+                                            const DenseHostTensor& axis,
+                                            const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
   const TensorShape& input_shape = input.shape();
@@ -129,8 +130,18 @@ static AsyncValueRef<DenseHostTensor> TfExpandDimsOp(
   }
 
   TensorMetadata output_md(input.metadata().dtype, output_dims);
-  return MakeAvailableAsyncValueRef<DenseHostTensor>(host, output_md,
-                                                     input.buffer().CopyRef());
+
+  if (const auto* dht = llvm::dyn_cast<const DenseHostTensor>(&input)) {
+    return MakeAvailableAsyncValueRef<DenseHostTensor>(host, output_md,
+                                                       dht->buffer().CopyRef());
+  }
+
+  if (const auto* sht = llvm::dyn_cast<const StringHostTensor>(&input)) {
+    return MakeAvailableAsyncValueRef<StringHostTensor>(host, output_md,
+                                                        sht->CopyBuffer(host));
+  }
+
+  return EmitErrorAsync(exec_ctx, "Unsupported tensor type for tf.ExpandDims");
 }
 
 }  // namespace
@@ -143,7 +154,7 @@ void RegisterTfShapeCpuOps(CpuOpRegistry* op_registry) {
   op_registry->AddOp("tf.Shape", TFRT_CPU_OP(TfShapeOp),
                      CpuOpFlags::NoSideEffects);
   op_registry->AddOp("tf.ExpandDims", TFRT_CPU_OP(TfExpandDimsOp),
-                     CpuOpFlags::NoSideEffects);
+                     CpuOpFlags::NoSideEffects | CpuOpFlags::AllowsString);
 }
 
 }  // namespace tfrt

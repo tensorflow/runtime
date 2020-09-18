@@ -41,6 +41,9 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
+
+class OpAttrsRef;
+
 namespace cpu {
 namespace jit {
 
@@ -55,8 +58,8 @@ class CompiledContractionOutputKernel;
 //                       contraction output kernel (e.g. data type of the bias
 //                       vector for BiasAdd output fusion)
 Expected<CompiledContractionOutputKernel*> GetCompiledContractionOutputKernel(
-    HostContext* host, ArrayRef<string_view> output_kernels, DType dtype,
-    ArrayRef<DType> additional_args);
+    HostContext* host, ArrayRef<string_view> output_kernels,
+    const OpAttrsRef& attrs, DType dtype, ArrayRef<DType> additional_args);
 
 // Calls compiled output kernel for the contraction output block.
 //

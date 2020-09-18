@@ -38,11 +38,10 @@ class DenseHostTensorDialect : public Dialect {
   static StringRef getDialectNamespace() { return "tfrt_dht"; }
   explicit DenseHostTensorDialect(MLIRContext *context);
 };
+}  // namespace dht
+}  // namespace tfrt
 
 #define GET_OP_CLASSES
 #include "tfrt/tensor/opdefs/dense_host_tensor.h.inc"
-
-}  // namespace dht
-}  // namespace tfrt
 
 #endif  // TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_H_

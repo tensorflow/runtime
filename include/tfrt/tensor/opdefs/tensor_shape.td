@@ -36,7 +36,7 @@ def TS_Dialect : Dialect {
     This dialect contains operations for working with tensor shapes.
   }];
 
-  let cppNamespace = "ts";
+  let cppNamespace = "::tfrt::ts";
 }
 
 // Base class for the operation in this dialect

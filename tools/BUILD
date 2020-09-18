@@ -126,14 +126,31 @@ tfrt_cc_binary(
     ],
 )
 
-# bazel build -c opt --copt=-Os --define=disable_rtti_and_exceptions=true
-#   --linkopt=-Wl,--strip-all --linkopt=-Wl,--icf=safe, --define=use_std_mutex=1, --copt=-DSTD_MUTEX
+# Command to build the code_size_test_driver manually for Linux:
+# bazel build \
+#     --compilation_mode=opt \
+#     --copt=-Os \
+#     --define=disable_rtti_and_exceptions=true \
+#     --linkopt=-Wl,--strip-all \
+#     --linkopt=-Wl,--icf=safe \
+#     --define=use_std_mutex=true \
+#     --define=use_std_thread=true \
+#     --copt=-DSTD_MUTEX \
+#     --copt=-DSTD_THREAD \
 #   //code_size_test_driver
-# Android
-# bazel build --config=android_arm64 -c opt --copt=-Os
-#   --define=disable_rtti_and_exceptions=true --linkopt=-Wl,--strip-all
-#   --linkopt=-Wl,--icf=safe, --define=use_std_mutex=1, --copt=-DSTD_MUTEX
+#
+# Command to build the code_size_test_driver manually for android:
+# bazel build \
+#     --compilation_mode=opt \
+#     --config=android_arm64 \
+#     --define=disable_rtti_and_exceptions=true \
+#     --copt=-Os --linkopt=-Wl,--strip-all --linkopt=-Wl,--icf=safe \
+#     --define=use_std_mutex=true \
+#     --define=use_std_thread=true \
+#     --copt=-DSTD_MUTEX \
+#     --copt=-DSTD_THREAD \
 #   //code_size_test_driver
+
 tfrt_cc_binary(
     name = "code_size_test_driver",
     srcs = [

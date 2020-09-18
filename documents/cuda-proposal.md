@@ -459,16 +459,16 @@ are known to be small, but in general the compiler should sequence allocations
 and produce the following graph.
 
 ```
- allocA
-  |
-  v
- kernelA
-    |  \\
-    |   \\
-    |   allocB
-    |    |
-    v    v
-    kernelB
+allocA
+ |
+ v
+kernelA
+   |  \\
+   |   \\
+   |   allocB
+   |    |
+   v    v
+   kernelB
 ```
 
 where the double-dashed line is a `chain`, i.e. a control dependency. Without

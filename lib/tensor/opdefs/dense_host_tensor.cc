@@ -135,6 +135,8 @@ static void printSetTensorOp(OpAsmPrinter &p, SetTensorOp op) {
   p.printOperands(op.getOperands());
   p << " " << op.getAttr("values");
 }
+}  // namespace dht
+}  // namespace tfrt
 
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
@@ -142,6 +144,3 @@ static void printSetTensorOp(OpAsmPrinter &p, SetTensorOp op) {
 
 #define GET_OP_CLASSES
 #include "tfrt/tensor/opdefs/dense_host_tensor.cpp.inc"
-
-}  // namespace dht
-}  // namespace tfrt

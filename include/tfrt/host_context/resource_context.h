@@ -28,6 +28,7 @@
 #include <atomic>
 #include <memory>
 
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm_derived/Support/unique_any.h"
 #include "tfrt/support/forward_decls.h"
@@ -36,9 +37,19 @@
 
 namespace tfrt {
 
-// ResourceContext is used to store and retrieve resources.
+// ResourceContext is used to store and retrieve resources. This class is
+// thread-safe.
 class ResourceContext {
  public:
+  ResourceContext() = default;
+
+  // Resources stored inside are destroyed in reverse insertion order. This is
+  // useful when some resources depend on other previously inserted resources.
+  ~ResourceContext();
+
+  ResourceContext(const ResourceContext&) = delete;
+  ResourceContext& operator=(const ResourceContext&) = delete;
+
   // Get a resource T with a `resource_name`. Thread-safe.
   template <typename T>
   Optional<T*> GetResource(string_view resource_name) TFRT_EXCLUDES(mu_) {
@@ -72,6 +83,7 @@ class ResourceContext {
     auto res = resources_.try_emplace(resource_name, tfrt::in_place_type<T>,
                                       std::forward<Args>(args)...);
     assert(res.second);
+    resource_vector_.push_back(&res.first->second);
     return tfrt::any_cast<T>(&res.first->second);
   }
 
@@ -86,13 +98,20 @@ class ResourceContext {
     tfrt::mutex_lock lock(mu_);
     auto res = resources_.try_emplace(resource_name, tfrt::in_place_type<T>,
                                       std::forward<Args>(args)...);
+    if (res.second) resource_vector_.push_back(&res.first->second);
     return tfrt::any_cast<T>(&res.first->second);
   }
 
  private:
   tfrt::mutex mu_;
   llvm::StringMap<tfrt::UniqueAny> resources_ TFRT_GUARDED_BY(mu_);
+  llvm::SmallVector<tfrt::UniqueAny*, 8> resource_vector_ TFRT_GUARDED_BY(mu_);
 };
+
+inline ResourceContext::~ResourceContext() {
+  // Destroy resources in reverse insertion order.
+  for (auto* res : llvm::reverse(resource_vector_)) res->reset();
+}
 
 }  // namespace tfrt
 #endif  // TFRT_HOST_CONTEXT_RESOURCE_CONTEXT_H_

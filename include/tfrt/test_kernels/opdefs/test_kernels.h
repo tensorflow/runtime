@@ -40,10 +40,10 @@ class TestDialect : public Dialect {
   explicit TestDialect(MLIRContext* context);
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/test_kernels/opdefs/test_kernels.h.inc"
-
 }  // namespace test
 }  // namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/test_kernels/opdefs/test_kernels.h.inc"
 
 #endif  // TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_H_

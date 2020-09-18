@@ -769,11 +769,11 @@ static LogicalResult verify(ReturnOp op) {
   return success();
 }
 
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/basic_kernels/opdefs/basic_kernels_opdefs.cpp.inc"
-
-}  // namespace tfrt

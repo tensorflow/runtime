@@ -405,12 +405,12 @@ static LogicalResult verify(SyncBenchmarkOp op) {
   return success();
 }
 
+}  // namespace test
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/test_kernels/opdefs/test_kernels_opdefs.cpp.inc"
-
-}  // namespace test
-}  // namespace tfrt

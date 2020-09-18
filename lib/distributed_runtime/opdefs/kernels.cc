@@ -171,12 +171,12 @@ static ParseResult parseRemoteExecuteOp(OpAsmParser &parser,
   return success();
 }
 
+}  // namespace dist
+}  // end namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/distributed_runtime/opdefs/kernels_opdefs.cpp.inc"
-
-}  // namespace dist
-}  // end namespace tfrt

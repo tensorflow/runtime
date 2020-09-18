@@ -33,7 +33,7 @@ def DistDialect : Dialect {
   let description = [{The Distributed dialect.
                      This dialect contains distributed execution operations.}];
 
-  let cppNamespace = "dist";
+  let cppNamespace = "::tfrt::dist";
 }
 
 def DistributedContextType

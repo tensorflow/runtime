@@ -17,8 +17,10 @@
 // This file implements kernels for testing distributed kernels.
 //
 //===----------------------------------------------------------------------===//
+
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
+#include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/distributed_runtime/request_handler.h"
 #include "tfrt/host_context/kernel_utils.h"

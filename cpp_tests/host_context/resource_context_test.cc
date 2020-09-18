@@ -23,6 +23,7 @@
 #include "tfrt/host_context/resource_context.h"
 
 #include "gtest/gtest.h"
+#include "tfrt/support/string_util.h"
 
 namespace tfrt {
 namespace {
@@ -80,6 +81,24 @@ TEST(ResourceContextTest, CreateAndGet) {
       resource_context.GetResource<SomeResource>("some_name");
   EXPECT_EQ(resource.hasValue(), true);
   EXPECT_EQ(resource.getValue()->GetData(), 41);
+}
+
+TEST(ResourceContextTest, DestructionOrder) {
+  static bool parent_destroyed = false;
+  struct Parent {
+    ~Parent() { parent_destroyed = true; }
+  };
+
+  struct Child {
+    ~Child() { EXPECT_FALSE(parent_destroyed); }
+  };
+
+  ResourceContext resource_context;
+  resource_context.CreateResource<Parent>("parent");
+
+  for (int i = 0; i < 100; ++i) {
+    resource_context.CreateResource<Child>(StrCat("child", i));
+  }
 }
 
 }  // namespace

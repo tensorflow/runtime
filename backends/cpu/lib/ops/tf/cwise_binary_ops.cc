@@ -25,6 +25,8 @@
 
 #include "cwise_binary_ops.h"
 
+#include <type_traits>
+
 #include "../../kernels/cwise_binary_kernels.h"
 #include "buffer_forwarding.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
@@ -45,14 +47,14 @@
 namespace tfrt {
 namespace {
 
-template <typename BinaryFunctor>
+template <typename BinaryFunctor, typename TypeDispatch>
 static AsyncValueRef<HostTensor> TfBinaryOp(Argument<HostTensor> lhs,
                                             Argument<HostTensor> rhs,
                                             const TensorMetadata& output_md,
                                             const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  internal::NumericTypeDispatch type_dispatch(lhs->dtype());
+  TypeDispatch type_dispatch(lhs->dtype());
 
   auto unsupported = [&](DType dtype) -> AsyncValueRef<HostTensor> {
     return MakeErrorAsyncValueRef(host,
@@ -101,9 +103,24 @@ static AsyncValueRef<HostTensor> TfBinaryOp(Argument<HostTensor> lhs,
   return type_dispatch(dispatch, unsupported);
 }
 
-template <typename Functor>
+// clang-format off
+using Numeric = typename internal::GetTypeDispatch<
+    DType::UI8, DType::UI16, DType::UI32, DType::UI64,
+    DType::I8,  DType::I16,  DType::I32,  DType::I64,
+    DType::F16, DType::F32,  DType::F64>::Type;
+
+using NumericAndComplex = typename internal::GetTypeDispatch<
+    DType::UI8, DType::UI16, DType::UI32, DType::UI64,
+    DType::I8,  DType::I16,  DType::I32,  DType::I64,
+    DType::F16, DType::F32,  DType::F64,
+    DType::COMPLEX64, DType::COMPLEX128>::Type;
+// clang-format on
+
+template <typename Functor, bool complex = true>
 void RegisterTfBinaryOp(CpuOpRegistry* op_registry, string_view op_name) {
-  op_registry->AddOp(op_name, TFRT_CPU_OP(TfBinaryOp<Functor>),
+  using TypeDispatch =
+      typename std::conditional<complex, NumericAndComplex, Numeric>::type;
+  op_registry->AddOp(op_name, TFRT_CPU_OP(TfBinaryOp<Functor, TypeDispatch>),
                      CpuOpFlags::NoSideEffects | CpuOpFlags::AllowsScalar);
 }
 
@@ -114,7 +131,9 @@ void RegisterTfBinaryCpuOps(CpuOpRegistry* op_registry) {
   RegisterTfBinaryOp<cpu::functor::Mul>(op_registry, "tf.Mul");
   RegisterTfBinaryOp<cpu::functor::Div>(op_registry, "tf.RealDiv");
   RegisterTfBinaryOp<cpu::functor::Sub>(op_registry, "tf.Sub");
-  RegisterTfBinaryOp<cpu::functor::Less>(op_registry, "tf.Less");
+
+  // Operations that do not support compex data types.
+  RegisterTfBinaryOp<cpu::functor::Less, false>(op_registry, "tf.Less");
 }
 
 }  // namespace tfrt

@@ -42,12 +42,12 @@ TensorShapeDialect::TensorShapeDialect(MLIRContext *context)
       >();
 }
 
+}  // namespace ts
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/tensor/opdefs/tensor_shape.cpp.inc"
-
-}  // namespace ts
-}  // namespace tfrt

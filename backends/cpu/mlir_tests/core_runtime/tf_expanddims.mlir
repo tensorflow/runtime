@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices=cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+
+func @register_op_handlers_cpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  corert.register_op_handler %cpu "cpu"
+  tfrt.return
+}
 
 // CHECK: --- Running 'expand_dims_i32'
 func @expand_dims_i32() -> !tfrt.chain{
@@ -36,6 +43,36 @@ func @expand_dims_i32() -> !tfrt.chain{
   // CHECK: DenseHostTensor dtype = F32, shape = [1, 2, 3]
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 1, 3]
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 3, 1]
+  %ch_print_cpu_0 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_0) : 0
+  %ch_print_cpu_1 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_1) : 0
+  %ch_print_cpu_2 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_2) : 0
+
+  %ch_print_cpu = tfrt.merge.chains %ch_print_cpu_0, %ch_print_cpu_1, %ch_print_cpu_2
+
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}
+
+// CHECK: --- Running 'expand_dims_string'
+func @expand_dims_string() -> !tfrt.chain{
+  %ch_epoch = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
+
+  %operand_0 = corert.const_string_tensor {shape = [2, 3], value = ["this", "is", "a", "const", "string", "tensor"]}
+
+  %axis_zero = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [1], values = [0 : i32] } : 1
+  %axis_one = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [1], values = [1 : i32] } : 1
+  %axis_neg_one = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [1], values = [-1 : i32] } : 1
+
+  %cpu_handle_result_0 = corert.executeop(%cpu) "tf.ExpandDims"(%operand_0, %axis_zero) : 1
+  %cpu_handle_result_1 = corert.executeop(%cpu) "tf.ExpandDims"(%operand_0, %axis_one) : 1
+  %cpu_handle_result_2 = corert.executeop(%cpu) "tf.ExpandDims"(%operand_0, %axis_neg_one) : 1
+
+  // CHECK: StringHostTensor shape = [1, 2, 3]
+  // CHECK: StringHostTensor shape = [2, 1, 3]
+  // CHECK: StringHostTensor shape = [2, 3, 1]
   %ch_print_cpu_0 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_0) : 0
   %ch_print_cpu_1 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_1) : 0
   %ch_print_cpu_2 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_2) : 0

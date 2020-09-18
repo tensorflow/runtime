@@ -46,10 +46,7 @@ def CUDA_Dialect : Dialect {
 class CUDA_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<CUDA_Dialect, mnemonic, traits> {
 
-  // Each registered op in the cuda namespace needs to provide a printer,
-  // a parser and a verifier.
-  let printer = [{ return tfrt::cuda::print(p, *this); }];
-  let parser = [{ return tfrt::cuda::parse$cppClass(parser, result); }];
+  let assemblyFormat = "operands attr-dict";
 }
 
 def InitOp : CUDA_Op<"init"> {
@@ -65,7 +62,6 @@ def InitOp : CUDA_Op<"init"> {
   }];
   let arguments = (ins TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def DeviceGetOp : CUDA_Op<"device.get"> {
@@ -81,7 +77,6 @@ def DeviceGetOp : CUDA_Op<"device.get"> {
   }];
   let arguments = (ins I32, TFRT_ChainType);
   let results = (outs DeviceType, TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def StreamCreateOp : CUDA_Op<"stream.create"> {
@@ -97,7 +92,6 @@ def StreamCreateOp : CUDA_Op<"stream.create"> {
   }];
   let arguments = (ins ContextType, TFRT_ChainType);
   let results = (outs StreamType, TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def StreamSynchronizeOp : CUDA_Op<"stream.synchronize"> {
@@ -114,7 +108,6 @@ def StreamSynchronizeOp : CUDA_Op<"stream.synchronize"> {
   }];
   let arguments = (ins StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def EventCreateOp : CUDA_Op<"event.create"> {
@@ -128,7 +121,6 @@ def EventCreateOp : CUDA_Op<"event.create"> {
   }];
   let arguments = (ins ContextType, TFRT_ChainType);
   let results = (outs EventType, TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def EventRecordOp : CUDA_Op<"event.record"> {
@@ -142,7 +134,6 @@ def EventRecordOp : CUDA_Op<"event.record"> {
   }];
   let arguments = (ins EventType, StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def EventPollOp : CUDA_Op<"event.poll"> {
@@ -160,7 +151,6 @@ def EventPollOp : CUDA_Op<"event.poll"> {
   }];
   let arguments = (ins EventType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def AllocatorCreateOp : CUDA_Op<"allocator.create"> {
@@ -174,7 +164,6 @@ def AllocatorCreateOp : CUDA_Op<"allocator.create"> {
   }];
   let arguments = (ins ContextType, TFRT_ChainType);
   let results = (outs AllocatorType, TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def AllocatorDestroyOp : CUDA_Op<"allocator.destroy"> {
@@ -188,7 +177,6 @@ def AllocatorDestroyOp : CUDA_Op<"allocator.destroy"> {
   }];
   let arguments = (ins AllocatorType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def MemAllocateOp : CUDA_Op<"mem.allocate"> {
@@ -229,7 +217,6 @@ def MemAllocateOp : CUDA_Op<"mem.allocate"> {
   }];
   let arguments = (ins AllocatorType, StreamType, I64:$size, TFRT_ChainType);
   let results = (outs BufferType, TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def MemPrintOp : CUDA_Op<"mem.print_metadata"> {
@@ -243,7 +230,6 @@ def MemPrintOp : CUDA_Op<"mem.print_metadata"> {
   }];
   let arguments = (ins BufferType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 class TensorMakeOp<string dtype> : CUDA_Op<"tensor.make." # dtype> {
@@ -262,7 +248,6 @@ class TensorMakeOp<string dtype> : CUDA_Op<"tensor.make." # dtype> {
   }];
   let arguments = (ins BufferType, TS_Shape, TFRT_ChainType);
   let results = (outs TensorType, TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 foreach dtype = ["i8", "i32", "i64", "f32", "f64"] in {
@@ -280,7 +265,6 @@ def TensorPrintOp : CUDA_Op<"tensor.print_metadata"> {
   }];
   let arguments = (ins TensorType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def MemcpyHtoDOp : CUDA_Op<"mem.copy_host_to_device"> {
@@ -297,7 +281,6 @@ def MemcpyHtoDOp : CUDA_Op<"mem.copy_host_to_device"> {
   }];
   let arguments = (ins ContextType, BufferType:$dst, HostBufferType:$src, I64, StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 def MemcpyDtoHOp : CUDA_Op<"mem.copy_device_to_host"> {
@@ -315,7 +298,6 @@ def MemcpyDtoHOp : CUDA_Op<"mem.copy_device_to_host"> {
   }];
   let arguments = (ins ContextType, HostBufferType:$dst, BufferType:$src, I64, StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 #endif  // CUDA_OPS

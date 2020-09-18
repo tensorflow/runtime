@@ -30,11 +30,7 @@
 
 using namespace mlir;
 
-namespace tfrt {
-
 #define GET_OP_CLASSES
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h.inc"
-
-}  // namespace tfrt
 
 #endif  // TFRT_BASIC_OPS_OPDEFS_BASIC_OPS_H_

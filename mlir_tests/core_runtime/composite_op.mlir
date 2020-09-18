@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices=cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+
+func @register_op_handlers_cpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  corert.register_op_handler %cpu "cpu"
+  tfrt.return
+}
 
 func @matmul_fn(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch "cpu"

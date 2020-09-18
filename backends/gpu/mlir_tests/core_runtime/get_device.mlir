@@ -12,7 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices=cpu,gpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu_gpu $(bef_name %s) | FileCheck %s --dump-input=fail
+
+func @register_op_handlers_cpu_gpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  corert.register_op_handler %cpu "cpu"
+
+  %gpu_ordinal = tfrt.constant.i32 0
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  corert.register_op_handler %gpu "gpu"
+  tfrt.return
+}
 
 // CHECK-LABEL: --- Running 'get_cpu_device'
 func @get_cpu_device() -> !tfrt.chain {

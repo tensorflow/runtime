@@ -55,10 +55,10 @@ class CoreRTDialect : public Dialect {
                                  mlir::Location loc) override;
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/core_runtime/opdefs/core_runtime_opdefs.h.inc"
-
 }  // namespace corert
 }  // namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/core_runtime/opdefs/core_runtime_opdefs.h.inc"
 
 #endif  // TFRT_CORE_RUNTIME_OPDEFS_CORE_RUNTIME_H_

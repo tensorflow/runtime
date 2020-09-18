@@ -80,6 +80,12 @@ OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
       return OpAttrType::I64;
     case BEFDataType::kUI8:
       return OpAttrType::UI8;
+    case BEFDataType::kUI16:
+      return OpAttrType::UI16;
+    case BEFDataType::kUI32:
+      return OpAttrType::UI32;
+    case BEFDataType::kUI64:
+      return OpAttrType::UI64;
     case BEFDataType::kBF16:
       return OpAttrType::BF16;
     case BEFDataType::kF16:
@@ -88,6 +94,10 @@ OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
       return OpAttrType::F32;
     case BEFDataType::kF64:
       return OpAttrType::F64;
+    case BEFDataType::kComplex64:
+      return OpAttrType::COMPLEX64;
+    case BEFDataType::kComplex128:
+      return OpAttrType::COMPLEX128;
     case BEFDataType::kString:
       return OpAttrType::CHAR;
     default:
@@ -173,6 +183,10 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       return {sizeof(fp16), alignof(fp16)};
     case OpAttrType::I1:
       return {sizeof(i1), alignof(i1)};
+    case OpAttrType::COMPLEX64:
+      return {sizeof(std::complex<float>), alignof(std::complex<float>)};
+    case OpAttrType::COMPLEX128:
+      return {sizeof(std::complex<double>), alignof(std::complex<double>)};
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
     return {sizeof(CPP_TYPE), alignof(CPP_TYPE)};
@@ -197,6 +211,10 @@ const char *GetNameString(OpAttrType type) {
       return "F16";
     case OpAttrType::I1:
       return "I1";
+    case OpAttrType::COMPLEX64:
+      return "COMPLEX64";
+    case OpAttrType::COMPLEX128:
+      return "COMPLEX128";
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
     return #ENUM;
@@ -726,6 +744,14 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
       break;
     case OpAttrType::I1:
       os << *static_cast<const uint8_t *>(ptr);
+      break;
+    case OpAttrType::COMPLEX64:
+      os << "(" << static_cast<const std::complex<float> *>(ptr)->real() << ","
+         << static_cast<const std::complex<float> *>(ptr)->imag() << ")";
+      break;
+    case OpAttrType::COMPLEX128:
+      os << "(" << static_cast<const std::complex<double> *>(ptr)->real() << ","
+         << static_cast<const std::complex<double> *>(ptr)->imag() << ")";
       break;
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE)           \
   case OpAttrType::ENUM:                       \

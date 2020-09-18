@@ -12,7 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: env CUDNN_LOGINFO_DBG=1 TFRT_DEBUG_DEFAULT_CONV_FWD_ALGO=CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM bef_executor -devices=cpu,gpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: env CUDNN_LOGINFO_DBG=1 TFRT_DEBUG_DEFAULT_CONV_FWD_ALGO=CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM bef_executor --test_init_function=register_op_handlers_cpu_gpu $(bef_name %s) | FileCheck %s --dump-input=fail
+
+func @register_op_handlers_cpu_gpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  corert.register_op_handler %cpu "cpu"
+
+  %gpu_ordinal = tfrt.constant.i32 0
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  corert.register_op_handler %gpu "gpu"
+  tfrt.return
+}
+
 // CHECK: --- Running 'conv2d_f32'
 func @conv2d_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain

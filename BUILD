@@ -145,6 +145,7 @@ tfrt_cc_library(
         "include/tfrt/support/ranges_util.h",
         "include/tfrt/support/alloc.h",
         "include/tfrt/support/bef_encoding.h",
+        "include/tfrt/support/philox_random.h",
         "include/tfrt/support/bef_reader.h",
         "include/tfrt/support/bf16.h",
         "include/tfrt/support/byte_order.h",
@@ -168,12 +169,15 @@ tfrt_cc_library(
         "include/tfrt/support/thread_local.h",
         "include/tfrt/support/type_traits.h",
         "include/tfrt/support/variant.h",
+        "include/tfrt/support/type_id.h",
+        "include/tfrt/support/map_by_type.h",
     ] + select({
         "//conditions:default": ["include/tfrt/support/std_mutex.h"],
     }),
     visibility = [":friends"],
     deps = [
         "@llvm-project//llvm:Support",
+        "@tf_runtime//third_party/llvm_derived:unique_any",
     ] + select({
         "//conditions:default": [],
     }),
@@ -875,6 +879,8 @@ tfrt_cc_library(
         "lib/data/range_dataset.h",
         "lib/data/repeat_dataset.cc",
         "lib/data/repeat_dataset.h",
+        "lib/data/shuffle_dataset.cc",
+        "lib/data/shuffle_dataset.h",
         "lib/data/skip_dataset.cc",
         "lib/data/skip_dataset.h",
         "lib/data/slice_dataset.h",
@@ -968,6 +974,9 @@ tfrt_cc_library(
     srcs = [
         "lib/distributed_runtime/kernels.cc",
         "lib/distributed_runtime/test_kernels.cc",
+    ],
+    hdrs = [
+        "include/tfrt/distributed_runtime/distributed_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/distributed_runtime/kernels_static_registration.cc",
     visibility = [":friends"],

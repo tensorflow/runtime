@@ -24,6 +24,7 @@
 #define TFRT_CORE_RUNTIME_OP_ATTR_TYPE_H_
 
 #include <cinttypes>
+#include <complex>
 #include <utility>
 
 #include "tfrt/support/bef_encoding.h"
@@ -44,6 +45,8 @@ enum class OpAttrType : uint8_t {
   BF16,
   F16,
   I1,
+  COMPLEX64,
+  COMPLEX128,
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) ENUM,
 #include "tfrt/core_runtime/op_attr_type.def"
 };
@@ -81,6 +84,16 @@ constexpr OpAttrType GetOpAttrType<bf16>() {
 template <>
 constexpr OpAttrType GetOpAttrType<fp16>() {
   return OpAttrType::F16;
+}
+
+template <>
+constexpr OpAttrType GetOpAttrType<std::complex<float>>() {
+  return OpAttrType::COMPLEX64;
+}
+
+template <>
+constexpr OpAttrType GetOpAttrType<std::complex<double>>() {
+  return OpAttrType::COMPLEX128;
 }
 
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE)               \

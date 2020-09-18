@@ -166,11 +166,11 @@ Return Values
     `AsyncValueRef` to the deferred work function:
 
     ```c++
-     static void MyKernel(Argument<int32_t> in, HostContext* host) {
-       host->EnqueueWork([in_ref = in.ValueRef()] {
-         // Retrieve the int32_t value with in_ref.get().
-       });
-     }
+    static void MyKernel(Argument<int32_t> in, HostContext* host) {
+      host->EnqueueWork([in_ref = in.ValueRef()] {
+        // Retrieve the int32_t value with in_ref.get().
+      });
+    }
     ```
 
 ## Implementing a kernel

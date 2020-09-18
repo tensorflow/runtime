@@ -26,6 +26,7 @@
 #include <numeric>
 
 #include "gtest/gtest.h"
+#include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
@@ -57,6 +58,9 @@ TEST(ContractionOutputKernelTest, AddOne) {
   std::vector<float> storage(100);
   EigenTensor<float, 2> tensor(storage.data(), 10, 10);
 
+  OpAttrs attrs;
+  OpAttrsRef attrs_ref = attrs.freeze();
+
   // Column major mapper for the `tensor`.
   using ContractionOutputMapper =
       cpu::jit::ContractionOutputKernel<float>::ContractionOutputMapper;
@@ -64,7 +68,7 @@ TEST(ContractionOutputKernelTest, AddOne) {
 
   // Compile contraction output kernel.
   auto kernel = cpu::jit::GetCompiledContractionOutputKernel(
-      host, {"AddOne"}, f32, /*additional_args=*/{});
+      host, {"AddOne"}, attrs_ref, f32, /*additional_args=*/{});
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.
@@ -104,6 +108,9 @@ TEST(ContractionOutputKernelTest, AddBias) {
                        HostBuffer::CreateFromExternal(bias_storage.data(), 10,
                                                       noop_deallocator));
 
+  OpAttrs attrs;
+  OpAttrsRef attrs_ref = attrs.freeze();
+
   // Column major mapper for the `tensor`.
   using ContractionOutputMapper =
       cpu::jit::ContractionOutputKernel<float>::ContractionOutputMapper;
@@ -116,7 +123,7 @@ TEST(ContractionOutputKernelTest, AddBias) {
 
   // Compile contraction output kernel.
   auto kernel = cpu::jit::GetCompiledContractionOutputKernel(
-      host, {"BiasAdd"}, f32, /*additional_args=*/{f32});
+      host, {"BiasAdd"}, attrs_ref, f32, /*additional_args=*/{f32});
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.
@@ -150,6 +157,9 @@ TEST(ContractionOutputKernelTest, AddOneAndBias) {
                        HostBuffer::CreateFromExternal(bias_storage.data(), 10,
                                                       noop_deallocator));
 
+  OpAttrs attrs;
+  OpAttrsRef attrs_ref = attrs.freeze();
+
   // Column major mapper for the `tensor`.
   using ContractionOutputMapper =
       cpu::jit::ContractionOutputKernel<float>::ContractionOutputMapper;
@@ -162,7 +172,7 @@ TEST(ContractionOutputKernelTest, AddOneAndBias) {
 
   // Compile contraction output kernel.
   auto kernel = cpu::jit::GetCompiledContractionOutputKernel(
-      host, {"AddOne", "BiasAdd"}, f32, /*additional_args=*/{f32});
+      host, {"AddOne", "BiasAdd"}, attrs_ref, f32, /*additional_args=*/{f32});
   ASSERT_FALSE(static_cast<bool>(kernel.takeError()));
 
   // Call compiled contraction output kernel.

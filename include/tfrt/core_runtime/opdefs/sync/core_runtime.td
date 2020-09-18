@@ -34,7 +34,7 @@ def CoreRTSync_Dialect : Dialect {
     For more details, please refer to documents/tfrt_op_by_op_execution_design.md.
   }];
 
-  let cppNamespace = "corert_sync";
+  let cppNamespace = "::tfrt::corert_sync";
 }
 
 // Base class for corert dialect ops.

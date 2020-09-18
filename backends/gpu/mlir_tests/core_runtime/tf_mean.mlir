@@ -12,8 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO(ezhulenev): Replace with: bef_executor -devices=gpu $(bef_name %s) | FileCheck %s --dump-input=fail.
+// TODO(ezhulenev): Replace with: bef_executor --test_init_function=register_op_handlers_gpu $(bef_name %s) | FileCheck %s --dump-input=fail.
 // RUN: true
+
+func @register_op_handlers_gpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %gpu_ordinal = tfrt.constant.i32 0
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  corert.register_op_handler %gpu "gpu"
+  tfrt.return
+}
 
 // CHECK: --- Running 'mean'
 func @mean() -> !tfrt.chain {

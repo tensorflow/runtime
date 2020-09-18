@@ -44,12 +44,12 @@ class FilterDatasetIterator;
 class FilterDataset : public Dataset {
  public:
   explicit FilterDataset(RCReference<Dataset> input_dataset,
-                         RCReference<const Function> filter_fn, int64_t arity,
+                         RCReference<const Function> filter_fn,
                          HostContext* host)
       : input_dataset_(std::move(input_dataset)),
         host_(host),
         allocator_(host->allocator()),
-        arity_(arity),
+        arity_(filter_fn->num_arguments()),
         filter_fn_(std::move(filter_fn)) {}
 
   // This class is not copyable or movable.

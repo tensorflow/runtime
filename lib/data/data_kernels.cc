@@ -27,6 +27,7 @@
 #include "prefetch_dataset.h"
 #include "range_dataset.h"
 #include "repeat_dataset.h"
+#include "shuffle_dataset.h"
 #include "skip_dataset.h"
 #include "slice_dataset.h"
 #include "tf_record_dataset.h"
@@ -110,12 +111,11 @@ RCReference<MapDataset> MakeMapDataset(RCReference<Dataset>* dataset,
 //===----------------------------------------------------------------------===//
 
 RCReference<FilterDataset> MakeFilterDataset(RCReference<Dataset>* dataset,
-                                             Attribute<int64_t> arity,
                                              Attribute<Function> fn,
                                              const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(host->Construct<FilterDataset>(
-      (*dataset).CopyRef(), FormRef(&fn.get()), arity.get(), host));
+  return TakeRef(host->Construct<FilterDataset>((*dataset).CopyRef(),
+                                                FormRef(&fn.get()), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -148,6 +148,17 @@ RCReference<TFRecordDataset> MakeTFRecordDataset(
   return TakeRef(exec_ctx.host()->Construct<TFRecordDataset>(
       std::move(path), buffer_size, max_prefetch_num, prefetch_threshold,
       exec_ctx.host()));
+}
+
+//===----------------------------------------------------------------------===//
+// ShuffleDataset
+//===----------------------------------------------------------------------===//
+
+RCReference<ShuffleDataset> MakeShuffleDataset(
+    RCReference<Dataset>* dataset, int64_t buffer_size, int64_t seed,
+    int64_t seed2, const ExecutionContext& exec_ctx) {
+  return TakeRef(exec_ctx.host()->Construct<ShuffleDataset>(
+      dataset->CopyRef(), buffer_size, seed, seed2, exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -500,6 +511,8 @@ void RegisterDataKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_data.skip_dataset", TFRT_KERNEL(MakeSkipDataset));
   registry->AddKernel("tfrt_data.tf_record_dataset",
                       TFRT_KERNEL(MakeTFRecordDataset));
+  registry->AddKernel("tfrt_data.shuffle_dataset",
+                      TFRT_KERNEL(MakeShuffleDataset));
   registry->AddKernel("tfrt_data.log_dataset", TFRT_KERNEL(MakeLogDataset));
 }
 

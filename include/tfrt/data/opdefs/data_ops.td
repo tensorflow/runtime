@@ -34,7 +34,7 @@ def Data_Dialect : Dialect {
     This dialect contains common TFRT data operations.
   }];
 
-  let cppNamespace = "data";
+  let cppNamespace = "::tfrt::data";
 }
 
 // Type definition.
@@ -153,13 +153,12 @@ def FilterDatasetOp : Data_Op<"filter_dataset"> {
 
     Example:
       %dataset_1 = tfrt_data.range_dataset %start, %stop, %step { element_type = i32 }
-      %dataset_2 = tfrt_data.filter_dataset %dataset_1 { function = @filter_even, arity = 1 : i64 }
+      %dataset_2 = tfrt_data.filter_dataset %dataset_1 { function = @filter_even }
   }];
 
   let arguments = (ins
     DatasetType:$input_dataset,
 
-    I64Attr:$arity,
     FlatSymbolRefAttr:$function
   );
 
@@ -321,6 +320,30 @@ def TFRecordDatasetOp : Data_Op<"tf_record_dataset"> {
 
   let arguments = (ins
     StringType:$path
+  );
+
+  let results = (outs DatasetType:$output_dataset);
+
+  let assemblyFormat = "operands attr-dict";
+}
+
+// The ShuffleDatasetOp has the same functionality as the ShuffleDatasetV3 op in
+// TF except that it currently does not take the optional seed_generator.
+def ShuffleDatasetOp : Data_Op<"shuffle_dataset"> {
+  let summary = "tfrt_data shuffle_dataset operation";
+  let description = [{
+    tfrt_data.shuffle_dataset buffers and shuffles values from another dataset
+    before outputting those values.
+
+    Example:
+      %dataset_2 = tfrt_data.shuffle_dataset %dataset_1, %buffer_size, %seed, %seed2
+  }];
+
+  let arguments = (ins
+    DatasetType:$input_dataset,
+    I64:$buffer_size,
+    I64:$seed,
+    I64:$seed2
   );
 
   let results = (outs DatasetType:$output_dataset);

@@ -43,9 +43,7 @@ def CUDA_Test_Dialect : Dialect {
 class CUDA_Test_Op<string mnemonic, list<OpTrait> traits = []> :
     Op<CUDA_Test_Dialect, mnemonic, traits> {
 
-  // Each registered op needs to provide a printer, a parser and a verifier.
-  let printer = [{ return tfrt::cuda::print(p, *this); }];
-  let parser = [{ return tfrt::cuda::parse$cppClass(parser, result); }];
+  let assemblyFormat = "operands attr-dict";
 }
 
 
@@ -66,7 +64,6 @@ def TestContextGetOp : CUDA_Test_Op<"context.get"> {
   }];
   let arguments = (ins DeviceType, TFRT_ChainType);
   let results = (outs ContextType, TFRT_ChainType);
-  let assemblyFormat = "operands attr-dict";
 }
 
 #endif  // CUDA_TEST_OPS

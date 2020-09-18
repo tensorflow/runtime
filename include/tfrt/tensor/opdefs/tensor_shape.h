@@ -39,10 +39,10 @@ class TensorShapeDialect : public Dialect {
   explicit TensorShapeDialect(MLIRContext *context);
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/tensor/opdefs/tensor_shape.h.inc"
-
 }  // namespace ts
 }  // namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/tensor/opdefs/tensor_shape.h.inc"
 
 #endif  // TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_H_

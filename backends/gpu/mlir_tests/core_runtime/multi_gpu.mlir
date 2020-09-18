@@ -12,19 +12,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor -devices=cpu $(bef_name %s) | FileCheck %s --dump-input=always
+// RUN: bef_executor --test_init_function=register_op_handlers $(bef_name %s) | FileCheck %s --dump-input=always
 
-// CHECK: --- Running '__init__'
-func @__init__() -> !tfrt.chain {
+func @register_op_handlers() {
   %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  corert.register_op_handler %cpu "cpu"
+
   %ordinal_0 = tfrt.constant.i32 0
   %gpu_0 = "corert.create_gpu_op_handler" (%ordinal_0, %null) : (i32, !corert.device) -> !corert.device
-  %ch_0 = corert.register_op_handler %gpu_0 "gpu0"
+  corert.register_op_handler %gpu_0 "gpu0"
 
   %ordinal_1 = tfrt.constant.i32 1
   %gpu_1 = "corert.create_gpu_op_handler" (%ordinal_1, %null) : (i32, !corert.device) -> !corert.device
-  %ch_1 = corert.register_op_handler %gpu_1 "gpu1"
-  tfrt.return %ch_1 : !tfrt.chain
+   corert.register_op_handler %gpu_1 "gpu1"
+  tfrt.return
 }
 
 

@@ -121,12 +121,12 @@ OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
   return value();
 }
 
+}  // namespace corert_sync
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/core_runtime/opdefs/sync/core_runtime_opdefs.cpp.inc"
-
-}  // namespace corert_sync
-}  // namespace tfrt

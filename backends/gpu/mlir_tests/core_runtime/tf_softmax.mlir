@@ -12,7 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: env CUDNN_LOGINFO_DBG=1 bef_executor -devices=gpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: env CUDNN_LOGINFO_DBG=1 bef_executor --test_init_function=register_op_handlers_gpu $(bef_name %s) | FileCheck %s --dump-input=fail
+
+func @register_op_handlers_gpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %gpu_ordinal = tfrt.constant.i32 0
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  corert.register_op_handler %gpu "gpu"
+  tfrt.return
+}
 
 // CHECK: --- Running 'softmax_f32'
 func @softmax_f32() -> !tfrt.chain {

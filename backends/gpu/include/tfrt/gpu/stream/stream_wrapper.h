@@ -726,8 +726,10 @@ llvm::Error LaunchKernel(CurrentContext current, Function function,
   std::array<void*, sizeof...(Args)> arg_ptrs = {{&arguments...}};
   return LaunchKernel(current, function, grid_dim[0], grid_dim[1], grid_dim[2],
                       block_dim[0], block_dim[1], block_dim[2],
-                      shared_memory_size_bytes, stream, arg_ptrs, nullptr);
+                      shared_memory_size_bytes, stream, arg_ptrs,
+                      llvm::ArrayRef<void*>{});
 }
+
 template <typename... Args>
 llvm::Error LaunchCooperativeKernel(CurrentContext current, Function function,
                                     std::array<unsigned, 3> grid_dim,

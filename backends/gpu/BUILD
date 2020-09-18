@@ -718,6 +718,7 @@ tfrt_cc_library(
         ":gpu_memory",
         ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":module_table",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
@@ -770,5 +771,17 @@ tfrt_cc_binary(
         "@tf_runtime//:init_tfrt_dialects",
         "@tf_runtime//:mlirtobef_translate",
         "@tf_runtime//third_party/llvm_derived:tfrt_translate_main",
+    ],
+)
+
+tfrt_cc_library(
+    name = "module_table",
+    srcs = ["lib/module_table.cc"],
+    hdrs = ["include/tfrt/gpu/module_table.h"],
+    deps = [
+        ":gpu_stream_wrapper",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
     ],
 )

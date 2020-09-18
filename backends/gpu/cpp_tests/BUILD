@@ -100,3 +100,23 @@ tfrt_cc_test(
         "@tf_runtime//cpp_tests:common",
     ],
 )
+
+tfrt_cc_test(
+    name = "module_table_test",
+    srcs = [
+        "module_table_test.cc",
+    ],
+    tags = [
+        "noasan",
+        "nomsan",
+        "requires-gpu-nvidia",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:support",
+        "@tf_runtime//backends/gpu:gpu_stream_wrapper",
+        "@tf_runtime//backends/gpu:module_table",
+        "@tf_runtime//cpp_tests:common",
+    ],
+)

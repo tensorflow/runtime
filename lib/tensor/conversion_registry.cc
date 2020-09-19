@@ -82,6 +82,15 @@ AsyncValueRef<Tensor> ConvertTensor(const Tensor& tensor, const Device& src,
   return ConvertTensor(exec_ctx, tensor, src, dst, dst_tensor_type);
 }
 
+AsyncValueRef<HostTensor> ConvertTensorOnHost(const Tensor& tensor,
+                                              TensorType dst_tensor_type,
+                                              HostContext* host_ctx) {
+  auto& cpu = host_ctx->GetHostDevice();
+  return AsyncValueRef<HostTensor>(
+      ConvertTensor(tensor, cpu, cpu, dst_tensor_type, host_ctx)
+          .ReleaseRCRef());
+}
+
 static std::vector<TensorConversionFnRegistration>*
 GetStaticTensorConversionFnRegistrations() {
   static std::vector<TensorConversionFnRegistration>* ret =

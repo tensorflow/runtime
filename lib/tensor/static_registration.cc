@@ -25,6 +25,7 @@
 #include "tfrt/tensor/coo_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_kernels.h"
+#include "tfrt/tensor/scalar_host_tensor.h"
 #include "tfrt/tensor/string_host_tensor.h"
 #include "tfrt/tensor/string_host_tensor_kernels.h"
 #include "tfrt/tensor/tensor_shape.h"
@@ -46,6 +47,7 @@ static bool host_conversion_fn_registration = []() {
   AddStaticTensorConversionFn(RegisterCooHostTensorConversionFn);
   AddStaticTensorConversionFn(RegisterDenseHostTensorConversionFn);
   AddStaticTensorConversionFn(RegisterStringHostTensorConversionFn);
+  AddStaticTensorConversionFn(RegisterScalarHostTensorConversionFn);
   return true;
 }();
 

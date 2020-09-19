@@ -326,7 +326,7 @@ static RCReference<AsyncValue> AsyncNoopOp(const HostTensor& src,
   HostContext* host = exec_ctx.host();
   auto dest_ind = MakeIndirectAsyncValue(host);
 
-  auto copy = src.ConvertToHostTensor(host, ~uint32_t(0));
+  auto copy = ConvertTensorOnHost(src, src.tensor_type(), host);
 
   host->EnqueueWork(
       [dest_ind = dest_ind.CopyRef(), copy = std::move(copy)]() mutable {

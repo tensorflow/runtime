@@ -21,7 +21,9 @@
 #include "tfrt/tensor/scalar_host_tensor.h"
 
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/tensor/conversion_utils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
@@ -41,8 +43,8 @@ void* AnyScalarHostTensor::data() {
 }
 
 template <typename T>
-static AsyncValueRef<HostTensor> CopyScalar(const ScalarHostTensor<T>& src,
-                                            HostContext* host) {
+static AsyncValueRef<AnyScalarHostTensor> CopyScalar(
+    const ScalarHostTensor<T>& src, HostContext* host) {
   return MakeAvailableAsyncValueRef<ScalarHostTensor<T>>(host, src.metadata(),
                                                          src.GetValue());
 }
@@ -53,29 +55,51 @@ AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
   // still requires a copy of the data though.
   if (allowed_formats &
       (1 << static_cast<uint32_t>(Tensor::Subclass::ScalarHost))) {
-    switch (dtype().kind()) {
-      default:
-        llvm_unreachable("can't happen");
-#define DTYPE_NUMERIC(ENUM) \
-  case DType::ENUM:         \
-    return CopyScalar(      \
-        *cast<ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(this), host);
-#include "tfrt/dtype/dtype.def"  // NOLINT
-    }
+    return ConvertTensorOnHost(*this, AnyScalarHostTensor::kTensorType, host);
   }
+  return ConvertTensorOnHost(*this, DenseHostTensor::kTensorType, host);
+}
 
+void AnyScalarHostTensor::Print(raw_ostream& os) const {
+  os << "ScalarHostTensor dtype = " << dtype() << ", shape = " << shape()
+     << ", value = ";
+  dtype().Print(data(), os);
+}
+static AsyncValueRef<AnyScalarHostTensor>
+ConvertScalarHostTensorToScalarHostTensor(const AnyScalarHostTensor& tensor,
+                                          const CpuDevice& src,
+                                          const CpuDevice& dst,
+                                          const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  switch (tensor.dtype().kind()) {
+    default:
+      llvm_unreachable("can't happen");
+#define DTYPE_NUMERIC(ENUM)                                              \
+  case DType::ENUM:                                                      \
+    return CopyScalar(                                                   \
+        *cast<ScalarHostTensor<TypeForDTypeKind<DType::ENUM>>>(&tensor), \
+        host);
+#include "tfrt/dtype/dtype.def"  // NOLINT
+  }
+}
+
+static AsyncValueRef<DenseHostTensor> ConvertScalarHostTensorToDenseHostTensor(
+    const AnyScalarHostTensor& tensor, const CpuDevice& src,
+    const CpuDevice& dst, const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
   auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
 
-  auto result_alloc = DenseHostTensor::CreateUninitialized(metadata(), host);
+  auto result_alloc =
+      DenseHostTensor::CreateUninitialized(tensor.metadata(), host);
   if (!result_alloc)
     return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
 
   auto& result_tensor = result_alloc.getValue();
 
   auto num_elements = result_tensor.NumElements();
-  auto element_size = dtype().GetHostSize();
+  auto element_size = tensor.dtype().GetHostSize();
   auto* dest_data = result_tensor.data();
-  auto* src_data = data();
+  auto* src_data = tensor.data();
 
   // Fill the DenseHostTensor with the scalar value.  We specialize for a few
   // common sizes here to allow the compiler to specialize for us.
@@ -113,10 +137,13 @@ AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
   return result;
 }
 
-void AnyScalarHostTensor::Print(raw_ostream& os) const {
-  os << "ScalarHostTensor dtype = " << dtype() << ", shape = " << shape()
-     << ", value = ";
-  dtype().Print(data(), os);
+void RegisterScalarHostTensorConversionFn(
+    TensorConversionFnRegistry* registry) {
+  registry->AddTensorConversionFn(
+      TFRT_CONVERSION(ConvertScalarHostTensorToDenseHostTensor));
+
+  registry->AddTensorConversionFn(
+      TFRT_CONVERSION(ConvertScalarHostTensorToScalarHostTensor));
 }
 
 }  // namespace tfrt

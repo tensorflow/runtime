@@ -58,6 +58,11 @@ AsyncValueRef<Tensor> ConvertTensor(const Tensor& tensor, const Device& src,
                                     TensorType dst_tensor_type,
                                     HostContext* host);
 
+// Tensor convertion when both source and destination device are CPU.
+AsyncValueRef<HostTensor> ConvertTensorOnHost(const Tensor& tensor,
+                                              TensorType dst_tensor_type,
+                                              HostContext* host_ctx);
+
 class TensorConversionFnRegistry {
  public:
   TensorConversionFnRegistry() = default;

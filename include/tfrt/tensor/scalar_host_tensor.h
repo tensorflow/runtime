@@ -24,9 +24,12 @@
 #ifndef TFRT_TENSOR_SCALAR_HOST_TENSOR_H_
 #define TFRT_TENSOR_SCALAR_HOST_TENSOR_H_
 
+#include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/host_tensor.h"
 
 namespace tfrt {
+
+void RegisterScalarHostTensorConversionFn(TensorConversionFnRegistry* registry);
 
 // Represents a tensor whose elements are represented as a broadcasted scalar
 // value.

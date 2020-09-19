@@ -65,9 +65,7 @@ AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
 
 AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
     HostContext* host, TensorType dst_tensor_type) const {
-  auto& cpu = host->GetHostDevice();
-  return AsyncValueRef<HostTensor>(
-      ConvertTensor(*this, cpu, cpu, DenseHostTensor::kTensorType, host));
+  return ConvertTensorOnHost(*this, DenseHostTensor::kTensorType, host);
 }
 
 void DenseHostTensor::Print(raw_ostream& os) const {

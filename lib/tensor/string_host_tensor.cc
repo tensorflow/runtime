@@ -62,9 +62,7 @@ AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
 
 AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
     HostContext* host, TensorType dst_tensor_type) const {
-  auto& cpu = host->GetHostDevice();
-  return AsyncValueRef<HostTensor>(
-      ConvertTensor(*this, cpu, cpu, StringHostTensor::kTensorType, host));
+  return ConvertTensorOnHost(*this, StringHostTensor::kTensorType, host);
 }
 
 static AsyncValueRef<StringHostTensor>

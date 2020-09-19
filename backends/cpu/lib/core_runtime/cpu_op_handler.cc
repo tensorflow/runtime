@@ -195,12 +195,11 @@ AsyncValueRef<HostTensor> CpuOpHandler::CopyDeviceTensorToHost(
     // If tensor is a host tensor, we call Tensor::ConvertToHostTensor
     // to make a copy of the tensor here, because the source and result buffers
     // are logically independent.
-    auto host = GetRuntime()->GetHostContext();
-    uint32_t allowed_formats =
-        1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost) |
-        1 << static_cast<uint32_t>(Tensor::Subclass::StringHost);
-    auto host_tensor = tensor.ConvertToHostTensor(host, allowed_formats);
-    return AsyncValueRef<DenseHostTensor>(host_tensor.ReleaseRCRef());
+    auto& dst_tensor_type = tensor.IsTensorType(StringHostTensor::kTensorType)
+                                ? StringHostTensor::kTensorType
+                                : DenseHostTensor::kTensorType;
+    return ConvertTensorOnHost(tensor, dst_tensor_type,
+                               GetRuntime()->GetHostContext());
   }
 
   // Otherwise, this copy is meant for the fallback device.
@@ -209,13 +208,10 @@ AsyncValueRef<HostTensor> CpuOpHandler::CopyDeviceTensorToHost(
 
 AsyncValueRef<Tensor> CpuOpHandler::CopyHostTensorToDevice(
     const DenseHostTensor& tensor) {
-  // We call Tensor::ConvertToHostTensor to make a copy of the tensor here,
+  // We call ConvertTensorOnHost to make a copy of the tensor here,
   // because the source and result buffers are logically independent.
-  auto host = GetRuntime()->GetHostContext();
-  uint32_t allowed_formats =
-      1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost);
-  auto host_tensor = tensor.ConvertToHostTensor(host, allowed_formats);
-  return AsyncValueRef<DenseHostTensor>(host_tensor.ReleaseRCRef());
+  return ConvertTensorOnHost(tensor, DenseHostTensor::kTensorType,
+                             GetRuntime()->GetHostContext());
 }
 
 //===----------------------------------------------------------------------===//

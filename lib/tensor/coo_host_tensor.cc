@@ -59,27 +59,22 @@ void ConvertToDHTTensorHelper(const DenseHostTensor &indices,
 
 AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
     HostContext *host, uint32_t allowed_formats) const {
-  auto &cpu = host->GetHostDevice();
-
   if (allowed_formats &
       (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::ScalarHost))) {
-    auto result = AsyncValueRef<HostTensor>(
-        ConvertTensor(*this, cpu, cpu, AnyScalarHostTensor::kTensorType, host));
+    auto result =
+        ConvertTensorOnHost(*this, AnyScalarHostTensor::kTensorType, host);
     if (!result.IsError()) return result;
   }
   if (allowed_formats &
       (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::DenseHost))) {
-    return AsyncValueRef<HostTensor>(
-        ConvertTensor(*this, cpu, cpu, DenseHostTensor::kTensorType, host));
+    return ConvertTensorOnHost(*this, DenseHostTensor::kTensorType, host);
   }
   return MakeErrorAsyncValueRef(host, "Unconverted tensor");
 }
 
 AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
     HostContext *host, TensorType dst_tensor_type) const {
-  auto &cpu = host->GetHostDevice();
-  return AsyncValueRef<HostTensor>(
-      ConvertTensor(*this, cpu, cpu, dst_tensor_type, host).ReleaseRCRef());
+  return ConvertTensorOnHost(*this, dst_tensor_type, host);
 }
 
 void CooHostTensor::Print(raw_ostream &os) const {

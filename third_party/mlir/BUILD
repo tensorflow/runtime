@@ -5,6 +5,7 @@ load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
 load("@tf_runtime//third_party/mlir:linalggen.bzl", "genlinalg")
 
 package(
+    default_compatible_with = ["//buildenv/target:non_prod"],
     default_visibility = [":friends"],
     licenses = ["notice"],
 )
@@ -3107,6 +3108,7 @@ cc_binary(
 cc_binary(
     name = "tools/libcuda-runtime-wrappers.so",
     srcs = ["tools/mlir-cuda-runner/cuda-runtime-wrappers.cpp"],
+    compatible_with = ["//buildenv/target:prod"],
     linkshared = True,
     deps = [
         ":mlir_c_runner_utils",
@@ -3151,6 +3153,7 @@ cc_binary(
 cc_binary(
     name = "mlir-cuda-runner",
     srcs = ["tools/mlir-cuda-runner/mlir-cuda-runner.cpp"],
+    compatible_with = ["//buildenv/target:prod"],
     data = [":tools/libcuda-runtime-wrappers.so"],
     deps = [
         ":AllPassesAndDialectsNoRegistration",

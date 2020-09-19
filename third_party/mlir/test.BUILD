@@ -1,6 +1,7 @@
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
 
 package(
+    default_compatible_with = ["//buildenv/target:non_prod"],
     default_visibility = [":test_friends"],
     licenses = ["notice"],
 )

@@ -22,12 +22,15 @@
 #include <unordered_map>
 
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/stream/cuda_wrapper.h"
 #include "tfrt/gpu/stream/hash_utils.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/mutex.h"
+#include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
 namespace cuda {
@@ -63,8 +66,34 @@ static void TestContextGet(Argument<gpu::stream::Device> device,
   out_chain.Set(in_chain);
 }
 
+// Convenience function that copies a host tensor to the device and returns a
+// buffer pointing to the newly allocated memory. The intended purpose of this
+// function is to make writing unit tests simpler
+static void TestCpyTensorHtoD(
+    Argument<gpu::stream::Context> context,
+    Argument<std::unique_ptr<gpu::GpuAllocator>> allocator,
+    Argument<gpu::stream::OwningStream> stream, Argument<DenseHostTensor> src,
+    Argument<Chain> in_chain, Result<RCReference<gpu::GpuBuffer>> out_buffer,
+    Result<Chain> out_chain, KernelErrorHandler handler) {
+  size_t tensor_size = src->DataSizeInBytes();
+  auto buffer = (*allocator)->Allocate(tensor_size, stream->get());
+  if (!buffer) return ReportError(handler, buffer.takeError());
+
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  if (!current) return ReportError(handler, current.takeError());
+  llvm::Error error =
+      Memcpy(*current, buffer.get()->pointer(),
+             gpu::stream::Pointer<const void>(src->data(), context->platform()),
+             tensor_size);
+  if (error) return ReportError(handler, std::move(error));
+  out_buffer.Emplace(std::move(*buffer));
+  out_chain.Set(in_chain);
+}
+
 void RegisterTestCudaKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("cuda_test.context.get", TFRT_KERNEL(TestContextGet));
+  kernel_reg->AddKernel("cuda_test.copy_tensor_host_to_device",
+                        TFRT_KERNEL(TestCpyTensorHtoD));
 }
 
 }  // namespace cuda

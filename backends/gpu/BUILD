@@ -737,11 +737,12 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/kernels/cuda/test_static_registration.cc",
     visibility = [":tests_and_tools"],
     deps = [
-        ":cuda",
+        ":gpu_memory",
         ":gpu_stream_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
     ],
 )
 

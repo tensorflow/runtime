@@ -66,4 +66,20 @@ def TestContextGetOp : CUDA_Test_Op<"context.get"> {
   let results = (outs ContextType, TFRT_ChainType);
 }
 
+def TestCpyTensorHtoDOp : CUDA_Test_Op<"copy_tensor_host_to_device"> {
+  let summary = "cuda_test copy_tensor_host_to_device operation";
+  let description = [{
+    cuda_test.copy_tensor_host_to_device copies a host tensor to the device.
+
+    Returns the newly allocated buffer.
+
+    Example:
+      %tensor = tfrt_dht.create_uninitialized_tensor.f32.1 [1 : i64]
+      %ch1 = tfrt_dht.set_tensor_with_constant_values.f32 %tensor, %ch0 [1.0 : f32]
+      %gpu_buffer, %ch2 = cuda_test.copy_tensor_host_to_device %context, %allocator, %stream, %tensor, %ch1
+  }];
+  let arguments = (ins ContextType, AllocatorType, StreamType, TensorType, TFRT_ChainType);
+  let results = (outs BufferType, TFRT_ChainType);
+}
+
 #endif  // CUDA_TEST_OPS

@@ -83,27 +83,40 @@ using ElementWiseFinalFunction =
 
 void IdentityFinalFn(char* lhs, size_t data_size, size_t group_size) {}
 
-llvm::StringRef GetSplit(llvm::StringRef split_input, int num_splits,
-                         size_t dtype_size, int split_id) {
-  const size_t num_elements = split_input.size() / dtype_size;
+template <typename T>
+llvm::StringRef GetSplit(llvm::StringRef split_input, size_t num_splits,
+                         size_t num_elements, int split_id) {
   if (num_elements < num_splits) {
     TFRT_LOG(FATAL)
         << "Expected at least one element per split for num_elements="
         << num_elements << " and num_splits=" << num_splits;
   }
-  const size_t num_elements_per_split = std::floor(num_elements / num_splits);
-  const size_t data_size_per_split = num_elements_per_split * dtype_size;
-  if (split_id * data_size_per_split > split_input.size()) {
-    TFRT_LOG(FATAL) << "The given split id does not exist.";
+  llvm::ArrayRef<T> input(reinterpret_cast<const T*>(split_input.data()),
+                          num_elements);
+  // First compute an equitable num_elements_per_split as floor(num_elements /
+  // num_splits).  Note that this can leave some elements leftover
+  // (extra_elements) if num_elements does not evenly divide num_splits.  e.g.
+  // if num_elements = 7 and num_splits = 4.  In this case, we spread out the
+  // leftover elements equally between the first extra_elements splits.  So in
+  // the previous example, extra_elements = 3, and the first 3 splits get one
+  // extra element each, producing [2, 2, 2, 1].
+  const size_t num_elements_per_split = num_elements / num_splits;
+  const size_t extra_elements = num_elements % num_splits;
+  size_t num_previous_elements;
+  size_t num_elements_current_split;
+  if (split_id < extra_elements) {
+    // This split (and all the ones before it) get one extra element.
+    num_previous_elements = split_id * (num_elements_per_split + 1);
+    num_elements_current_split = num_elements_per_split + 1;
+  } else {
+    // This split gets num_elements_per_split items.  The ones before it got
+    // (split_id * num_elements_per_split + extra_elements).
+    num_previous_elements = split_id * num_elements_per_split + extra_elements;
+    num_elements_current_split = num_elements_per_split;
   }
-  const char* data_ptr = split_input.data();
-  size_t split_size = data_size_per_split;
-  // The last split gets leftover.
-  if (split_id * data_size_per_split + data_size_per_split >
-      split_input.size()) {
-    split_size = split_input.size() - (split_id * data_size_per_split);
-  }
-  return llvm::StringRef(data_ptr + split_id * data_size_per_split, split_size);
+  return llvm::StringRef(
+      reinterpret_cast<const char*>(input.data() + num_previous_elements),
+      num_elements_current_split * sizeof(T));
 }
 
 InstanceKey StepKey(const std::string& prefix, const InstanceKey& instance_key,
@@ -134,15 +147,13 @@ CollectiveGroup CreateCollectiveGroup(Argument<DistributedContext> dist_context,
   return collective_group;
 }
 
-void DoAllReduce(const InstanceKey& instance_key,
-                 const CollectiveGroup& collective_group, size_t dtype_size,
-                 const DenseHostTensor& in_tensor,
-                 const DenseHostTensor& out_tensor,
-                 ElementWiseReductionFunction reduction_fn,
-                 ElementWiseFinalFunction final_fn,
-                 CallbackRegistry* callback_registry,
-                 FabricCommunicator* fabric_communicator, HostId my_id,
-                 int my_index) {
+template <typename T>
+void DoAllReduce(
+    const InstanceKey& instance_key, const CollectiveGroup& collective_group,
+    const DenseHostTensor& in_tensor, const DenseHostTensor& out_tensor,
+    ElementWiseReductionFunction reduction_fn,
+    ElementWiseFinalFunction final_fn, CallbackRegistry* callback_registry,
+    FabricCommunicator* fabric_communicator, HostId my_id, int my_index) {
   const auto kGroupSize = collective_group.members.size();
   const auto kNeighborId =
       collective_group.members[(my_index + 1) % kGroupSize];
@@ -153,6 +164,7 @@ void DoAllReduce(const InstanceKey& instance_key,
   auto in_tensor_ref =
       llvm::StringRef(reinterpret_cast<const char*>(in_tensor.data()),
                       in_tensor.DataSizeInBytes());
+  const auto num_elements = in_tensor.NumElements();
   auto counter = std::make_shared<std::atomic<int>>(0);
   const auto empty_callback_fn = [](const bool ok) {};
 
@@ -160,8 +172,9 @@ void DoAllReduce(const InstanceKey& instance_key,
     auto step_key = StepKey(kPrefix, instance_key, step);
 
     if (step == 0) {
-      llvm::StringRef payload = GetSplit(in_tensor_ref, kGroupSize, dtype_size,
-                                         SplitIndex(my_id, kGroupSize, step));
+      llvm::StringRef payload =
+          GetSplit<T>(in_tensor_ref, kGroupSize, num_elements,
+                      SplitIndex(my_id, kGroupSize, step));
       fabric_communicator->Send(StepKey(kPrefix, instance_key, 1), kNeighborId,
                                 payload, empty_callback_fn);
     } else if (step <= kLastScatterStep) {
@@ -169,10 +182,10 @@ void DoAllReduce(const InstanceKey& instance_key,
       // chunk with local buffer.
       auto recv_callback =
           [step, instance_key,
-           in_split = GetSplit(in_tensor_ref, kGroupSize, dtype_size,
-                               SplitIndex(my_id, kGroupSize, step)),
-           out_split = GetSplit(in_tensor_ref, kGroupSize, dtype_size,
-                                SplitIndex(my_id, kGroupSize, step)),
+           in_split = GetSplit<T>(in_tensor_ref, kGroupSize, num_elements,
+                                  SplitIndex(my_id, kGroupSize, step)),
+           out_split = GetSplit<T>(in_tensor_ref, kGroupSize, num_elements,
+                                   SplitIndex(my_id, kGroupSize, step)),
            reduction_fn, final_fn, fabric_communicator, kLastScatterStep,
            kGroupSize, kPrefix, kNeighborId,
            empty_callback_fn](const InstanceKey&,
@@ -199,8 +212,8 @@ void DoAllReduce(const InstanceKey& instance_key,
       // buffer and pass it to the neighbour as is.
       auto recv_callback =
           [step, counter, instance_key,
-           out_split = GetSplit(in_tensor_ref, kGroupSize, dtype_size,
-                                SplitIndex(my_id, kGroupSize, step)),
+           out_split = GetSplit<T>(in_tensor_ref, kGroupSize, num_elements,
+                                   SplitIndex(my_id, kGroupSize, step)),
            fabric_communicator, callback_registry, kLastGatherStep, kPrefix,
            kNeighborId, kTotalGatherSteps, empty_callback_fn](
               const InstanceKey&,
@@ -271,19 +284,20 @@ void AllReduce(Argument<DistributedContext> dist_context,
   callback_registry->SetCallback(*instance_key, std::move(on_done));
   exec_ctx.host()->EnqueueWork(
       [instance_key = *instance_key, collective_group = *collective_group,
-       dtype_size = sizeof(T), in_tensor = in_tensor.ValueRef(),
-       out_tensor = out_tensor.ValueRef(), reduction_fn, final_fn,
+       in_tensor = in_tensor.ValueRef(), out_tensor = out_tensor.ValueRef(),
+       reduction_fn, final_fn,
        callback_registry = dist_context->GetCallbackRegistry(),
        fabric_communicator = dist_context->GetOrCreateFabricCommunicator(),
        my_id = dist_context->GetId(), my_index] {
-        DoAllReduce(instance_key, collective_group, dtype_size, in_tensor.get(),
-                    out_tensor.get(), reduction_fn, final_fn, callback_registry,
-                    fabric_communicator, my_id, my_index);
+        DoAllReduce<T>(instance_key, collective_group, in_tensor.get(),
+                       out_tensor.get(), reduction_fn, final_fn,
+                       callback_registry, fabric_communicator, my_id, my_index);
       });
 }
 
+template <typename T>
 void DoBroadcast(const InstanceKey& instance_key,
-                 const CollectiveGroup& collective_group, size_t dtype_size,
+                 const CollectiveGroup& collective_group,
                  DenseHostTensor& tensor, HostId sender,
                  CallbackRegistry* registry,
                  FabricCommunicator* fabric_communicator, HostId my_id,
@@ -294,6 +308,7 @@ void DoBroadcast(const InstanceKey& instance_key,
   const auto kPrefix = collective_group.name;
   auto in_tensor = llvm::StringRef(reinterpret_cast<const char*>(tensor.data()),
                                    tensor.DataSizeInBytes());
+  const auto num_elements = tensor.NumElements();
   auto chunks_collected = std::make_shared<std::atomic<int>>(0);
   const auto empty_callback_fn = [](const bool ok) {};
 
@@ -301,20 +316,21 @@ void DoBroadcast(const InstanceKey& instance_key,
     auto chunk_key = StepKey(kPrefix, instance_key, i);
     if (my_id == sender) {
       // A Sender sends data to its neighbor.
-      auto payload = GetSplit(in_tensor, kGroupSize, dtype_size, i);
+      auto payload = GetSplit<T>(in_tensor, kGroupSize, num_elements, i);
       fabric_communicator->Send(StepKey(kPrefix, chunk_key, kNeighborId),
                                 kNeighborId, payload, empty_callback_fn);
     } else {
       auto recv_callback = [registry, instance_key, sender, chunk_key, i,
                             kPrefix, in_tensor, kGroupSize, kNeighborId,
-                            dtype_size, chunks_collected, fabric_communicator,
+                            chunks_collected, fabric_communicator, num_elements,
                             empty_callback_fn](
                                const InstanceKey&,
                                CallbackRegistry::CallbackValue data) mutable {
         // A neighbor receives data and forwards it to its neighbor.
-        std::copy(data->begin(), data->end(),
-                  const_cast<char*>(
-                      GetSplit(in_tensor, kGroupSize, dtype_size, i).begin()));
+        std::copy(
+            data->begin(), data->end(),
+            const_cast<char*>(
+                GetSplit<T>(in_tensor, kGroupSize, num_elements, i).begin()));
         if (kNeighborId != sender) {
           fabric_communicator->Send(
               StepKey(kPrefix, chunk_key, kNeighborId), kNeighborId,
@@ -363,13 +379,12 @@ void Broadcast(Argument<DistributedContext> dist_context,
   registry->SetCallback(*instance_key, std::move(on_done));
   exec_ctx.host()->EnqueueWork(
       [instance_key = *instance_key, collective_group = *collective_group,
-       dtype_size = sizeof(T), sender = *sender, registry,
+       sender = *sender, registry,
        fabric_communicator = dist_context->GetOrCreateFabricCommunicator(),
        my_id = dist_context->GetId(), in_tensor_ref = in_tensor.ValueRef(),
        my_index] {
-        DoBroadcast(instance_key, collective_group, dtype_size,
-                    in_tensor_ref.get(), sender, registry, fabric_communicator,
-                    my_id, my_index);
+        DoBroadcast<T>(instance_key, collective_group, in_tensor_ref.get(),
+                       sender, registry, fabric_communicator, my_id, my_index);
       });
 }
 

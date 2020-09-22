@@ -127,6 +127,10 @@ static Tout TFRTCast(Tin value) {
 void RegisterIntegerKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt.constant.i32", TFRT_KERNEL(TFRTConstant<int32_t>));
   registry->AddKernel("tfrt.constant.i64", TFRT_KERNEL(TFRTConstant<int64_t>));
+  registry->AddKernel("tfrt.constant.ui32",
+                      TFRT_KERNEL(TFRTConstant<uint32_t>));
+  registry->AddKernel("tfrt.constant.ui64",
+                      TFRT_KERNEL(TFRTConstant<uint64_t>));
 
   registry->AddKernel("tfrt.add.i32", TFRT_KERNEL(TFRTAdd<int32_t>));
   registry->AddKernel("tfrt.add.i64", TFRT_KERNEL(TFRTAdd<int64_t>));

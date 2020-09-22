@@ -69,6 +69,19 @@ def ConstantI64Op : ConstantOp<"i64", I64, I64Attr>;
 def ConstantF32Op : ConstantOp<"f32", F32, F32Attr>;
 def ConstantF64Op : ConstantOp<"f64", F64, F64Attr>;
 
+class ConstantUnsignedOp<int bitwidth, Type baseType, Attr attr>
+  : TFRT_Op<"constant.ui" # bitwidth, [NoSideEffect]> {
+  let summary = "host executor constant value constructor";
+
+  let arguments = (ins attr:$value);
+  let results = (outs baseType);
+  let verifier = "";
+  let assemblyFormat = "$value attr-dict";
+}
+
+def ConstantUI32Op : ConstantUnsignedOp<32, UI32, UI32Attr>;
+def ConstantUI64Op : ConstantUnsignedOp<64, UI64, UI64Attr>;
+
 def IfOp : TFRT_Op<"if"> {
   let summary = "if operation";
   let description = [{

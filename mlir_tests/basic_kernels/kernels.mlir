@@ -70,5 +70,7 @@ func @constant() {
   %b = tfrt.constant.i32 41
   // CHECK-NEXT: %2 = tfrt.constant.f32 1.000000e-01
   %c = tfrt.constant.f32 0.1
+  // CHECK-NEXT: %3 = tfrt.constant.ui32 4095
+  %d = tfrt.constant.ui32 4095
   tfrt.return
 }

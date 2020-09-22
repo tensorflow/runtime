@@ -12,8 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s)
-// | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
 
 func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.device
@@ -469,3 +468,51 @@ func @test_string_tensor() -> !tfrt.chain {
   tfrt.return %ch1 : !tfrt.chain
 }
 
+// While loop condition: Returns false iff %x is a dense tensor of { shape = [1, 1], values = [-1 : i32] }.
+func @while_cond_add1(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %a_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [1 : i32] } : 1
+
+  %result = corert.executeop(%cpu) "tfrt_test.add"(%x, %a_handle) : 1
+
+  tfrt.return %in, %result : !tfrt.chain, !corert.tensorhandle
+}
+
+// While loop body: Returns %x + { shape = [1, 1], values = [2 : i32] }.
+func @while_body_add2(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %a_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2 : i32] } : 1
+
+  %result = corert.executeop(%cpu) "tfrt_test.add"(%x, %a_handle) : 1
+
+  %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  tfrt.return %in, %result : !tfrt.chain, !corert.tensorhandle
+}
+
+// While loop test
+// CHECK-LABEL: --- Running 'control_flow_while_loop'
+func @control_flow_while_loop() {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %a_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [-9 : i32] } : 1
+
+  // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-7]
+  // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-5]
+  // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-3]
+  // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-1]
+  %ch1, %result = corert.while @while_cond_add1 @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle)
+
+  tfrt.return
+}

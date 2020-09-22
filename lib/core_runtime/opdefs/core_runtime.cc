@@ -20,6 +20,7 @@
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/Support/FormatVariadic.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
@@ -301,6 +302,69 @@ static LogicalResult verify(CondOp op) {
 
     if (op.getResult(i).getType() != falseFnType.getResult(i))
       return op.emitOpError("result type mismatch for false function");
+  }
+
+  return success();
+}
+
+//===----------------------------------------------------------------------===//
+// WhileOp
+//===----------------------------------------------------------------------===//
+
+static LogicalResult verify(WhileOp op) {
+  // Check that the cond and body function attributes are specified.
+  auto condFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("a_cond_fn");
+  if (!condFnAttr)
+    return op.emitOpError("requires a 'a_cond_fn' symbol reference attribute");
+
+  auto bodyFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("b_body_fn");
+  if (!bodyFnAttr)
+    return op.emitOpError("requires a 'b_body_fn' symbol reference attribute");
+
+  auto condFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+      condFnAttr.getValue());
+  if (!condFn)
+    return op.emitOpError() << "'" << condFnAttr.getValue()
+                            << "' does not reference a valid function";
+
+  auto bodyFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+      bodyFnAttr.getValue());
+  if (!bodyFn)
+    return op.emitOpError() << "'" << bodyFnAttr.getValue()
+                            << "' does not reference a valid function";
+
+  // Verify the operand and result types of the cond and body functions.
+  auto condFnType = condFn.getType();
+  if (condFnType.getNumInputs() != op.getNumOperands())
+    return op.emitOpError(
+        llvm::formatv("incorrect number of operands for cond function: WhileOp "
+                      "has {0} operands but cond function has {1} operands",
+                      op.getNumOperands(), condFnType.getNumInputs()));
+
+  auto bodyFnType = bodyFn.getType();
+  if (bodyFnType.getNumInputs() != op.getNumOperands())
+    return op.emitOpError(
+        llvm::formatv("incorrect number of operands for body function: WhileOp "
+                      "has {0} operands but body function has {1} operands",
+                      op.getNumOperands(), bodyFnType.getNumInputs()));
+
+  for (unsigned i = 0, e = condFnType.getNumInputs(); i != e; ++i) {
+    if (op.getOperand(i).getType() != condFnType.getInput(i))
+      return op.emitOpError("operand type mismatch for cond function");
+
+    if (op.getOperand(i).getType() != bodyFnType.getInput(i))
+      return op.emitOpError("operand type mismatch for body function");
+  }
+
+  if (bodyFnType.getNumResults() != op.getNumResults())
+    return op.emitOpError(
+        llvm::formatv("incorrect number of results for body function: WhileOp "
+                      "has {0} results but body function has {1} results",
+                      op.getNumResults(), bodyFnType.getNumResults()));
+
+  for (unsigned i = 0, e = bodyFnType.getNumResults(); i != e; ++i) {
+    if (op.getResult(i).getType() != bodyFnType.getResult(i))
+      return op.emitOpError("result type mismatch for body function");
   }
 
   return success();

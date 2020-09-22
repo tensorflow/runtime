@@ -246,4 +246,37 @@ def CoreRt_CondOp : CoreRT_Op<"cond"> {
     }];
 }
 
+def CoreRt_WhileOp : CoreRT_Op<"while"> {
+  let summary = "while loop operation";
+  let description = [{
+    The "corert.while" operation takes a 'Cond' function and a 'Body' function
+    and performs the following action:
+        fn_output = fn_operands; while(cond_fn(fn_output)) { fn_output = body_fn(fn_output) }
+
+    The 'Cond' and 'Body' functions must have the same input signature, but they
+    may take an arbitrary number of arguments. The 'Body' function must return
+    values with the same types as the op return types. Both functions are
+    encoded as function attribute, named cond_fn and body_fn. The a_ and b_
+    prefix prevent reordering by BEF since BEF orders attribute by name
+    alphabetically.
+
+    This operation is safe to use as a 'nonstrict' op, which dispatches its body
+    whenever the condition and any dependent arguments are resolved.
+
+    Example:
+
+      %chain, %z = corert.while @cond_fn, @body_fn (%chain, %x, %y) : (i32)
+  }];
+  let arguments = (ins FlatSymbolRefAttr:$a_cond_fn,
+                       FlatSymbolRefAttr:$b_body_fn,
+                       TFRT_ChainType:$in_op_chain,
+                       Variadic<CoreRT_TensorHandleType>:$fn_operands);
+  let results = (outs TFRT_ChainType:$out_op_chain,
+                      Variadic<CoreRT_TensorHandleType>:$fn_outputs);
+  // TODO(b/161008370): Add bef.nonstrict.
+  let assemblyFormat = [{
+      $a_cond_fn $b_body_fn `(` $in_op_chain (`,` $fn_operands^)? `)` attr-dict `:` `(` type($fn_outputs) `)`
+    }];
+}
+
 #endif

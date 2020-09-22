@@ -434,6 +434,19 @@ static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
   }
 }
 
+static llvm::Expected<bool> GetTensorPredicateValue(const Tensor &tensor) {
+  // TODO(hanbinyoon): Handle other tensor types and other dtypes.
+  if (const DenseHostTensor *dht = llvm::dyn_cast<DenseHostTensor>(&tensor)) {
+    return GetDHTPredicateValue(*dht);
+  } else if (const StringHostTensor *sht =
+                 llvm::dyn_cast<StringHostTensor>(&tensor)) {
+    ArrayRef<std::string> strings = sht->strings();
+    // Only empty string is false.
+    return !strings.empty() && !strings[0].empty();
+  }
+  return MakeStringError("tensor type not yet supported");
+}
+
 // corert.cond dispatches to a 'true' or 'false' function based on a condition.
 //
 // Arguments: The first argument is the condition, with type TensorHandle, and
@@ -499,25 +512,17 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
          const Function *false_fn, ArrayRef<AsyncValue *> arg_refs,
          MutableArrayRef<RCReference<IndirectAsyncValue>> result_refs,
          const ExecutionContext &exec_ctx) {
-        bool predicate = false;
-        // TODO(zhangqiaorjc): Handle other tensor types and other
-        // dtypes.
-        if (const DenseHostTensor *dht = llvm::dyn_cast<DenseHostTensor>(&ht)) {
-          predicate = GetDHTPredicateValue(*dht);
-        } else if (const StringHostTensor *sht =
-                       llvm::dyn_cast<StringHostTensor>(&ht)) {
-          auto strings = sht->strings();
-          // Only empty string is false.
-          if (strings.empty() || strings[0].empty()) {
-            predicate = false;
-          } else {
-            predicate = true;
+        llvm::Expected<bool> predicate = GetTensorPredicateValue(ht);
+        if (!predicate) {
+          RCReference<ErrorAsyncValue> error_value =
+              EmitErrorAsync(exec_ctx, StrCat(predicate.takeError()));
+          for (auto &result : result_refs) {
+            result->SetError(error_value->GetError());
           }
-        } else {
-          assert(false && "tensor type not yet supported");
+          return;
         }
 
-        const Function *fn = predicate ? true_fn : false_fn;
+        const Function *fn = predicate.get() ? true_fn : false_fn;
         SmallVector<RCReference<AsyncValue>, 8> results;
         results.resize(result_refs.size());
         fn->Execute(exec_ctx, arg_refs.drop_front(), results);
@@ -543,6 +548,8 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
         auto src_device_ref =
             condition_tensorhandle->get<TensorHandle>().CopyRefDevice();
 
+        // TODO(hanbinyoon): Remove this extra level of asynchrony after
+        // b/162752746 is fixed.
         condition_async_tensor->AndThen(
             [condition_async_tensor, src_device_ref = std::move(src_device_ref),
              handle_error_and_return, exec_ctx, if_impl,
@@ -589,6 +596,202 @@ static Expected<TensorHandle> TransferToDevice(
     return MakeStringError("failed to find device with name: ", device);
   return src.TransferTo(exec_ctx, std::move(device_ref),
                         GetStaticTensorType(dst_tensor_type_name));
+}
+
+// Forward declaration for use in CoreRtWhileLoopIterationImpl.
+static void CoreRtWhileLoopIteration(
+    const ExecutionContext &exec_ctx, RCReference<const Function> cond_fn_ref,
+    RCReference<const Function> body_fn_ref,
+    SmallVector<RCReference<AsyncValue>, 4> arg_refs,
+    SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs);
+
+// This is a helper function that runs a single iteration (or zero iterations if
+// the condition is not met) of CoreRtWhileLoop.
+static void CoreRtWhileLoopIterationImpl(
+    const ExecutionContext &exec_ctx, const Tensor &condition,
+    RCReference<const Function> cond_fn_ref,
+    RCReference<const Function> body_fn_ref,
+    SmallVector<RCReference<AsyncValue>, 4> arg_refs,
+    SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) {
+  // Determine whether to execute the loop body function.
+  llvm::Expected<bool> predicate = GetTensorPredicateValue(condition);
+  if (!predicate) {
+    // Set errors to all the results instead of executing the loop body
+    // function.
+    RCReference<ErrorAsyncValue> error_value =
+        EmitErrorAsync(exec_ctx, StrCat(predicate.takeError()));
+    for (auto &result : result_refs) {
+      result->SetError(error_value->GetError());
+    }
+    return;
+  }
+
+  if (!predicate.get()) {
+    // Copy args to results instead of executing the loop body function.
+    for (int arg = 0; arg != arg_refs.size(); ++arg) {
+      result_refs[arg]->ForwardTo(FormRef(arg_refs[arg].get()));
+    }
+    return;
+  }
+
+  // Execute the loop body function.
+  SmallVector<AsyncValue *, 4> args;
+  for (RCReference<AsyncValue> &arg : arg_refs) args.push_back(arg.get());
+  SmallVector<RCReference<AsyncValue>, 4> passed_args;
+  passed_args.resize(result_refs.size());
+  body_fn_ref->Execute(exec_ctx, args, passed_args);
+
+  exec_ctx.host()->EnqueueWork(
+      [exec_ctx, cond_fn_ref = std::move(cond_fn_ref),
+       body_fn_ref = std::move(body_fn_ref), arg_refs = std::move(passed_args),
+       result_refs = std::move(result_refs)]() mutable {
+        CoreRtWhileLoopIteration(exec_ctx, std::move(cond_fn_ref),
+                                 std::move(body_fn_ref), std::move(arg_refs),
+                                 std::move(result_refs));
+      });
+}
+
+// This is a helper function that executes the loop condition function and kicks
+// off a potential iteration of CoreRtWhileLoop.
+static void CoreRtWhileLoopIteration(
+    const ExecutionContext &exec_ctx, RCReference<const Function> cond_fn_ref,
+    RCReference<const Function> body_fn_ref,
+    SmallVector<RCReference<AsyncValue>, 4> arg_refs,
+    SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) {
+  if (auto cancel_av = exec_ctx.GetCancelAsyncValue()) {
+    // Cancellation detected. Set results to the cancel async value, and break
+    // out.
+    for (auto &result : result_refs) {
+      result->ForwardTo(FormRef(cancel_av));
+    }
+    return;
+  }
+
+  // Returns true if any errors were propagated to the results. (If so, the
+  // caller should halt further work.)
+  auto handle_error_and_return =
+      [](AsyncValue *condition,
+         MutableArrayRef<RCReference<IndirectAsyncValue>> results) -> bool {
+    // If we have an error, then we can force propagate errors to all the
+    // results.
+    if (condition->IsError()) {
+      for (auto &result : results) result->ForwardTo(FormRef(condition));
+      return true;
+    }
+    return false;
+  };
+
+  // TODO(hanbinyoon): Look for ways to avoid allocating this args SmallVector
+  // on each iteration of the loop. For example, consider the reuse of
+  // passed_args in TFRTRepeatI32Block().
+  SmallVector<AsyncValue *, 4> args;
+  for (RCReference<AsyncValue> &arg : arg_refs) args.push_back(arg.get());
+  SmallVector<RCReference<AsyncValue>, 2> condition;
+  condition.resize(2);
+  cond_fn_ref->Execute(exec_ctx, args, condition);
+
+  assert(condition[0]->IsType<Chain>() &&
+         "Cond function did not return a chain");
+  assert(condition[1]->IsType<TensorHandle>() &&
+         "Cond function did not return a TensorHandle");
+
+  // Dispatch when the condition becomes available.
+  exec_ctx.host()->RunWhenReady(
+      condition,
+      [condition_tensorhandle_ref = condition[1].CopyRef(),
+       handle_error_and_return, exec_ctx = std::move(exec_ctx),
+       cond_fn_ref = std::move(cond_fn_ref),
+       body_fn_ref = std::move(body_fn_ref), arg_refs = std::move(arg_refs),
+       result_refs = std::move(result_refs)]() mutable {
+        AsyncValue *condition_tensorhandle = condition_tensorhandle_ref.get();
+        if (handle_error_and_return(condition_tensorhandle, result_refs))
+          return;
+
+        AsyncValue *condition_async_tensor =
+            condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+
+        // TODO(hanbinyoon): Remove this extra level of asynchrony after
+        // b/162752746 is fixed.
+        condition_async_tensor->AndThen(
+            [condition_tensorhandle_ref = std::move(condition_tensorhandle_ref),
+             handle_error_and_return, exec_ctx = std::move(exec_ctx),
+             cond_fn_ref = std::move(cond_fn_ref),
+             body_fn_ref = std::move(body_fn_ref),
+             arg_refs = std::move(arg_refs),
+             result_refs = std::move(result_refs)]() mutable {
+              AsyncValue *condition_tensorhandle =
+                  condition_tensorhandle_ref.get();
+              AsyncValue *condition_async_tensor =
+                  condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+              if (handle_error_and_return(condition_async_tensor, result_refs))
+                return;
+
+              // TODO(hanbinyoon): Handle other tensor types. Currently assumes
+              // dense host tensor or string host tensor.
+              auto &condition_tensor = condition_async_tensor->get<Tensor>();
+              CoreRtWhileLoopIterationImpl(
+                  exec_ctx, condition_tensor, std::move(cond_fn_ref),
+                  std::move(body_fn_ref), std::move(arg_refs),
+                  std::move(result_refs));
+            });
+      });
+}
+
+// corert.while dispatches multiple iterations of a 'Body' function based on a
+// 'Cond' function like the following:
+//     results = args; while (cond_fn(results)) { results = body_fn(results) }
+//
+// Arguments: All arguments are passed to the 'Cond' and 'Body' functions.
+//
+// Attributes: The first attribute is the cond_fn, and the second attribute is
+// the body_fn. The functions must have matching input signatures, and body_fn's
+// signature must match corert.while's signature.
+static void CoreRtWhileLoop(RemainingArguments args, RemainingResults results,
+                            Attribute<Function> cond_fn_const,
+                            Attribute<Function> body_fn_const,
+                            const ExecutionContext &exec_ctx) {
+  assert(args.size() > 0);
+
+  const Function *cond_fn = &(*cond_fn_const);
+  const Function *body_fn = &(*body_fn_const);
+
+  assert(body_fn->argument_types() == body_fn->result_types() &&
+         "Argument and result types of repeat body_fn must match");
+  assert(body_fn->argument_types() == cond_fn->argument_types() &&
+         "body and cond function argument types need to line up");
+  assert(body_fn->argument_types().size() == args.size() &&
+         "argument count mismatch");
+  assert(body_fn->result_types().size() == results.size() &&
+         "result count mismatch");
+
+  // Copy `args` and add a ref to each arg. These refs will be dropped when the
+  // RCReferences are destroyed. arg_refs is captured by the lambda (in
+  // CoreRtWhileLoopIteration) so the kernel's arguments will be available when
+  // the closure runs.
+  SmallVector<RCReference<AsyncValue>, 4> arg_refs;
+  for (AsyncValue *arg : args.values()) {
+    arg_refs.push_back(FormRef(arg));
+  }
+
+  // Create a RCRef of Function to extend its lifetime into the lambda (in
+  // CoreRtWhileLoopIteration).
+  RCReference<const Function> cond_fn_ref = FormRef(cond_fn);
+  RCReference<const Function> body_fn_ref = FormRef(body_fn);
+
+  // Define results as IndirectAsync values. The actual results are set in the
+  // last iteration of the loop.
+  // TODO(hanbinyoon): Consider using concrete types; the first is a Chain and
+  // the rest are TensorHandles.
+  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  result_refs.reserve(results.size());
+  for (int i = 0, e = results.size(); i != e; ++i) {
+    auto result = results.AllocateIndirectResultAt(i);
+    result_refs.push_back(std::move(result));
+  }
+
+  CoreRtWhileLoopIteration(std::move(exec_ctx), std::move(cond_fn_ref),
+                           std::move(body_fn_ref), std::move(arg_refs),
+                           std::move(result_refs));
 }
 
 //===----------------------------------------------------------------------===//
@@ -662,6 +865,7 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(ConstStringTensor));
   registry->AddKernel("corert.cond", TFRT_KERNEL(CoreRtConditional));
   registry->AddKernel("corert.transfer", TFRT_KERNEL(TransferToDevice));
+  registry->AddKernel("corert.while", TFRT_KERNEL(CoreRtWhileLoop));
 
   registry->AddSyncKernel("corert_sync.print_tensorhandle",
                           TFRT_SYNC_KERNEL(PrintTensorHandleSync));

@@ -27,9 +27,10 @@ RemoteObjectManager::RemoteObjectManager(HostId host_id,
     : host_id_(host_id), host_context_(host_context) {}
 RemoteObjectManager::~RemoteObjectManager() {}
 
-RemoteObjectId RemoteObjectManager::AllocateRemoteObject() {
+RemoteObjectId RemoteObjectManager::AllocateRemoteObject(
+    RCReference<Device> output_device) {
   const int64_t local_id = next_unique_id_.fetch_add(1);
-  return RemoteObjectId(host_id_, local_id);
+  return RemoteObjectId(host_id_, local_id, output_device.CopyRef());
 }
 
 void RemoteObjectManager::SetRemoteObject(const RemoteObjectId& id,

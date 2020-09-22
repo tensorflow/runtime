@@ -24,6 +24,7 @@
 
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/remote_device.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/mutex.h"
@@ -89,6 +90,17 @@ FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicatorUnsafe() {
   // Create FabricCommunicator
   fabric_communicator_.reset(factory_function(this, request_handler_.get(),
                                               communicator_configuration));
+
+  // TODO(bramandia): Get the list of devices from each worker and register
+  // them.
+  for (const auto& address :
+       communicator_configuration.host_configuration.addresses) {
+    const std::string device_name =
+        StrCat(address.name, "/device:", HostContext::kDefaultHostDeviceName);
+    host_context_->GetDeviceManager()->MaybeAddDevice(
+        TakeRef(new RemoteCpuDevice(device_name)));
+  }
+
   return fabric_communicator_.get();
 }
 

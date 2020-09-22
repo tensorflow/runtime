@@ -18,10 +18,13 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "llvm/Support/raw_ostream.h"
+#include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/remote_execute.h"
 #include "tfrt/distributed_runtime/request_handler.h"
 #include "tfrt/host_context/kernel_utils.h"
 
@@ -43,15 +46,25 @@ class TestRequestHandler : public FabricCommunicatorRequestHandler {
     handler_.HandleRemoteRegister(request);
   }
 
+  // Need to deep copy the string_view in the request since RPC would be marked
+  // as done and hence, the underlying data request refers to will be deleted.
+  string_view DeepCopy(string_view view) {
+    string_store_.push(view.str());
+    return string_store_.back();
+  }
+
   void HandleRemoteExecute(const RemoteExecuteInvocation& request) final {
     mutex_lock lock(invocations_mutex_);
-    // Need to deep copy the request since RPC would be marked as done and
-    // hence, the underlying data request refers to will be deleted.
-    string_store_.push(request.program_name.str());
     RemoteExecuteInvocation request_copy;
-    request_copy.program_name = string_store_.back();
-    request_copy.inputs = request.inputs;
-    request_copy.outputs = request.outputs;
+    request_copy.program_name = DeepCopy(request.program_name);
+    for (const auto& id : request.inputs) {
+      request_copy.inputs.emplace_back(id.prefix_id, id.local_id,
+                                       DeepCopy(id.device));
+    }
+    for (const auto& id : request.outputs) {
+      request_copy.outputs.emplace_back(id.prefix_id, id.local_id,
+                                        DeepCopy(id.device));
+    }
     invocations_.push(request_copy);
     cond_.notify_one();
   }
@@ -100,6 +113,23 @@ AsyncValueRef<DistributedContext> TestCreateDistributedContext(
   return value;
 }
 
+void TestPrintRemoteObjectId(const RemoteObjectId& id,
+                             const ExecutionContext& exec_ctx) {
+  tfrt::outs() << "RemoteObjectId{prefix_id: " << id.prefix_id
+               << " local_id: " << id.local_id
+               << " device: " << id.device->name() << "}"
+               << "\n";
+}
+
+void TestPrintRemoteExecuteSpec(const RemoteExecuteSpec& id,
+                                const ExecutionContext& exec_ctx) {
+  tfrt::outs() << "RemoteExecuteSpec:[ ";
+  for (const auto& device : id.output_devices) {
+    tfrt::outs() << device->name() << " ";
+  }
+  tfrt::outs() << "]\n";
+}
+
 }  // namespace
 
 void RegisterDistributedTestKernels(KernelRegistry* registry) {
@@ -107,6 +137,10 @@ void RegisterDistributedTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestProcessNextRequest));
   registry->AddKernel("dist.test_create_distributed_context",
                       TFRT_KERNEL(TestCreateDistributedContext));
+  registry->AddKernel("dist.test_print_remote_object_id",
+                      TFRT_KERNEL(TestPrintRemoteObjectId));
+  registry->AddKernel("dist.test_print_remote_execute_spec",
+                      TFRT_KERNEL(TestPrintRemoteExecuteSpec));
 }
 
 }  // namespace tfrt

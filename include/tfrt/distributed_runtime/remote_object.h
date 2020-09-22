@@ -23,17 +23,33 @@
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_OBJECT_H_
 
 #include "tfrt/distributed_runtime/distributed_context.h"
+#include "tfrt/host_context/device.h"
 
 namespace tfrt {
 // Globally unique identifier for a remote object
 struct RemoteObjectId {
-  RemoteObjectId(int32_t prefix_id, int64_t local_id)
-      : prefix_id(prefix_id), local_id(local_id) {}
+  RemoteObjectId(int32_t prefix_id, int64_t local_id,
+                 RCReference<Device> device)
+      : prefix_id(prefix_id), local_id(local_id), device(device.CopyRef()) {}
 
+  RemoteObjectId(const RemoteObjectId& other)
+      : prefix_id(other.prefix_id),
+        local_id(other.local_id),
+        device(other.device.CopyRef()) {}
+
+  RemoteObjectId& operator=(const RemoteObjectId& other) {
+    prefix_id = other.prefix_id;
+    local_id = other.local_id;
+    device = other.device.CopyRef();
+    return *this;
+  }
   // Unique ID is pair of a unique prefix id (for instance, it can be the host
   // generates the id) and the unique id within that host.
   int32_t prefix_id;
   int64_t local_id;
+
+  // The device where this object lives.
+  RCReference<Device> device;
 };
 
 }  // namespace tfrt

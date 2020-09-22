@@ -38,7 +38,7 @@ class RemoteObjectManager {
   // Create new unique RemoteObjectId.
   // This is called by remote_execute kernels to allocate unique RemoteObject
   // for the outputs of execution.
-  RemoteObjectId AllocateRemoteObject();
+  RemoteObjectId AllocateRemoteObject(RCReference<Device> output_device);
 
   // Store a remote object with the given id and value
   // This is called by RequestHandler implementation to store the remote
@@ -64,8 +64,12 @@ class RemoteObjectManager {
 namespace llvm {
 template <>
 struct DenseMapInfo<tfrt::RemoteObjectId> {
-  static tfrt::RemoteObjectId getEmptyKey() { return {-1, 0}; }
-  static tfrt::RemoteObjectId getTombstoneKey() { return {-1, -1}; }
+  static tfrt::RemoteObjectId getEmptyKey() {
+    return {-1, 0, tfrt::RCReference<tfrt::Device>()};
+  }
+  static tfrt::RemoteObjectId getTombstoneKey() {
+    return {-1, -1, tfrt::RCReference<tfrt::Device>()};
+  }
   static unsigned getHashValue(const tfrt::RemoteObjectId& id) {
     return id.local_id;
   }

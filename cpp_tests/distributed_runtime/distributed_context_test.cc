@@ -64,8 +64,11 @@ class MockCommunicator : public FabricCommunicator {
 };
 
 DistributedContextConfiguration GetSampleConfiguration() {
-  HostConfiguration host_config{
-      /*addresses=*/{"addr0", "addr1", "addr2", "addr3"}, /*rank=*/1};
+  HostConfiguration host_config{/*addresses=*/{{"worker0", "addr0"},
+                                               {"worker1", "addr1"},
+                                               {"worker2", "addr2"},
+                                               {"worker3", "addr3"}},
+                                /*rank=*/1};
   FabricCommunicatorConfiguration mock_communicator_config{
       kMockCommunicatorType, host_config};
   CollectiveGroup group0{/*name=*/"group0", /*members=*/{0, 1}};
@@ -77,8 +80,16 @@ DistributedContextConfiguration GetSampleConfiguration() {
 }
 
 TEST(DistributedContext, CreateFabricCommunicator) {
+  auto diag_handler = [](const DecodedDiagnostic&) {};
+  HostContext host_context(diag_handler, tfrt::CreateMallocAllocator(),
+                           tfrt::CreateMultiThreadedWorkQueue(
+                               /*num_threads=*/4,
+                               /*num_blocking_threads=*/64));
+
   auto configuration = GetSampleConfiguration();
-  DistributedContext dist_context(/*host_context=*/nullptr, configuration);
+  DistributedContext dist_context(&host_context, configuration);
+
+  ASSERT_EQ(dist_context.GetHostContext(), &host_context);
 
   EXPECT_EQ(dist_context.GetOrCreateFabricCommunicator(), nullptr);
 
@@ -95,19 +106,6 @@ TEST(DistributedContext, CreateFabricCommunicator) {
       dist_context.GetOrCreateFabricCommunicator();
   EXPECT_NE(fabric_communicator, nullptr);
   EXPECT_EQ(dist_context.GetOrCreateFabricCommunicator(), fabric_communicator);
-}
-
-TEST(DistributedContext, GetHostContext) {
-  auto diag_handler = [](const DecodedDiagnostic&) {};
-  HostContext host_context(diag_handler, tfrt::CreateMallocAllocator(),
-                           tfrt::CreateMultiThreadedWorkQueue(
-                               /*num_threads=*/4,
-                               /*num_blocking_threads=*/64));
-
-  auto configuration = GetSampleConfiguration();
-  DistributedContext dist_context(&host_context, configuration);
-
-  ASSERT_EQ(dist_context.GetHostContext(), &host_context);
 }
 
 TEST(DistributedContext, GetCollectiveGroup) {

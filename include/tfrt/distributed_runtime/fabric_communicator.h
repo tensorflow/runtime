@@ -34,8 +34,16 @@ namespace tfrt {
 struct RemoteExecuteInvocation {
   string_view program_name;  // The name of the program to be executed
 
-  llvm::SmallVector<RemoteObjectId, 4> inputs;   // The list of inputs arguments
-  llvm::SmallVector<RemoteObjectId, 4> outputs;  // The list of output arguments
+  // This is a serializable version of GlobalId.
+  struct Id {
+    Id(int32_t prefix_id, int64_t local_id, string_view device)
+        : prefix_id(prefix_id), local_id(local_id), device(device) {}
+    int32_t prefix_id;
+    int64_t local_id;
+    string_view device;
+  };
+  llvm::SmallVector<Id, 4> inputs;   // The list of inputs arguments
+  llvm::SmallVector<Id, 4> outputs;  // The list of output arguments
 };
 
 // Arguments for remote register request

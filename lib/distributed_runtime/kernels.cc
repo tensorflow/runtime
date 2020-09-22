@@ -26,6 +26,7 @@
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/remote_execute.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/logging.h"
@@ -418,17 +419,39 @@ AsyncValueRef<Chain> RemoteRegisterKernel(Chain ch,
   return out_chain;
 }
 
+AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
+    RemainingArguments inputs, const ExecutionContext& exec_ctx) {
+  AsyncValueRef<RemoteExecuteSpec> value =
+      MakeAvailableAsyncValueRef<RemoteExecuteSpec>(exec_ctx.host());
+  value->output_devices.reserve(inputs.size());
+  for (int i = 0; i < inputs.size(); ++i) {
+    const std::string& device_str = inputs[i]->get<std::string>();
+    RCReference<Device> device =
+        exec_ctx.host()->GetDeviceManager()->GetDeviceRef<Device>(device_str);
+    if (device.get() == nullptr) {
+      TFRT_LOG(ERROR) << "Can't find device: " << device_str;
+      return MakeErrorAsyncValueRef(exec_ctx.host(),
+                                    StrCat("Can't find device: ", device_str));
+    }
+    value->output_devices.push_back(device.CopyRef());
+  }
+  return value;
+}
+
 void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
-                         HostId receiver, RemainingArguments inputs,
-                         RemainingResults results, StringAttribute program_name,
+                         HostId receiver, Argument<RemoteExecuteSpec> spec,
+                         RemainingArguments inputs, RemainingResults results,
+                         StringAttribute program_name,
                          const ExecutionContext& exec_ctx) {
   RemoteExecuteInvocation request;
   // program_name will live as long as out_chain is not populated.
   request.program_name = program_name.get();
 
+  request.inputs.reserve(inputs.size());
   for (int i = 0; i < inputs.size(); ++i) {
     const RemoteObjectId& input = inputs[i]->get<RemoteObjectId>();
-    request.inputs.push_back(input);
+    request.inputs.emplace_back(input.prefix_id, input.local_id,
+                                input.device->name());
   }
 
   AsyncValueRef<Chain> out_chain =
@@ -436,15 +459,26 @@ void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
   results[0] = out_chain.CopyRef();
 
   RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
+  if (spec->output_devices.size() != results.size() - 1) {
+    out_chain.SetError(
+        StrCat("Mismatch output devices size in RemoteExecuteSpec: ",
+               spec->output_devices.size(), " expected: ", results.size() - 1));
+    return;
+  }
+  request.outputs.reserve(results.size() - 1);
   for (int i = 1; i < results.size(); ++i) {
-    RemoteObjectId out_id = manager->AllocateRemoteObject();
-    request.outputs.push_back(out_id);
-    results[i] =
-        MakeAvailableAsyncValueRef<RemoteObjectId>(exec_ctx.host(), out_id);
+    AsyncValueRef<RemoteObjectId> out_id =
+        MakeAvailableAsyncValueRef<RemoteObjectId>(
+            exec_ctx.host(), manager->AllocateRemoteObject(
+                                 spec->output_devices[i - 1].CopyRef()));
+    request.outputs.emplace_back(out_id->prefix_id, out_id->local_id,
+                                 out_id->device->name());
+    results[i] = out_id.CopyRef();
   }
 
   exec_ctx.host()->EnqueueWork([receiver, request, dist_context,
-                                out_chain = out_chain.CopyRef()]() mutable {
+                                out_chain = out_chain.CopyRef(),
+                                spec = spec.ValueRef()]() mutable {
     dist_context->GetOrCreateFabricCommunicator()->RemoteExecute(
         receiver, request,
         [out_chain = out_chain.CopyRef()](bool success) mutable {
@@ -456,7 +490,6 @@ void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
         });
   });
 }
-
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -471,6 +504,8 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
   registry->AddKernel("dist.cpu.broadcast.f32", TFRT_KERNEL(Broadcast<float>));
   registry->AddKernel("dist.cpu.broadcast.i32",
                       TFRT_KERNEL(Broadcast<int32_t>));
+  registry->AddKernel("dist.create_remote_execute_spec",
+                      TFRT_KERNEL(CreateRemoteExecuteSpec));
   registry->AddKernel("dist.remote_execute", TFRT_KERNEL(RemoteExecuteKernel));
   registry->AddKernel("dist.remote_register",
                       TFRT_KERNEL(RemoteRegisterKernel));

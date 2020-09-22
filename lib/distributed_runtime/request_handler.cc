@@ -149,7 +149,16 @@ void RequestHandler::HandleRemoteExecute(
   arguments.reserve(fn->argument_types().size());
   arguments_ref.reserve(fn->argument_types().size());
   for (int i = 0; i < request.inputs.size(); ++i) {
-    const RemoteObjectId& input_id = request.inputs[i];
+    auto& id = request.inputs[i];
+
+    RCReference<Device> device =
+        context_->GetHostContext()->GetDeviceManager()->GetDeviceRef<Device>(
+            id.device);
+    if (device.get() == nullptr) {
+      TFRT_LOG(ERROR) << "Can't find device: " << id.device;
+      return;
+    }
+    RemoteObjectId input_id(id.prefix_id, id.local_id, device.CopyRef());
     RCReference<AsyncValue> val = manager->GetRemoteObject(input_id);
     arguments_ref.push_back(val.CopyRef());
     arguments.push_back(val.get());
@@ -158,7 +167,15 @@ void RequestHandler::HandleRemoteExecute(
   results.resize(fn->result_types().size());
   fn->Execute(exec_ctx, arguments, results);
   for (int i = 0; i < request.outputs.size(); ++i) {
-    const RemoteObjectId& output_id = request.outputs[i];
+    auto& id = request.outputs[i];
+    RCReference<Device> device =
+        context_->GetHostContext()->GetDeviceManager()->GetDeviceRef<Device>(
+            id.device);
+    if (device.get() == nullptr) {
+      TFRT_LOG(ERROR) << "Can't find device: " << id.device;
+      return;
+    }
+    RemoteObjectId output_id(id.prefix_id, id.local_id, device.CopyRef());
     manager->SetRemoteObject(output_id, results[i].CopyRef());
   }
 }

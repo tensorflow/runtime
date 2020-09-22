@@ -50,6 +50,15 @@ static Type GetContextType(Builder *builder) {
                          builder->getContext());
 }
 
+static Type GetStringType(Builder *builder) {
+  return OpaqueType::get(builder->getIdentifier("tfrt"), "string",
+                         builder->getContext());
+}
+static Type GetRemoteExecuteSpecType(Builder *builder) {
+  return OpaqueType::get(builder->getIdentifier("dist"), "remote_execute_spec",
+                         builder->getContext());
+}
+
 static Type GetChainType(Builder *builder) {
   return builder->getType<ChainType>();
 }
@@ -60,6 +69,10 @@ static Type GetDistributedContextConfigurationType(Builder *builder) {
 static Type GetRemoteObjectIdType(Builder *builder) {
   return OpaqueType::get(builder->getIdentifier("dist"), "remote_object_id",
                          builder->getContext());
+}
+
+static void print(OpAsmPrinter &p, CreateRemoteExecuteSpecOp op) {
+  p << "dist.create_remote_execute_spec(" << op.output_devices() << ")";
 }
 
 static void print(OpAsmPrinter &p, RemoteExecuteOp op) {
@@ -123,6 +136,22 @@ static ParseResult parseRemoteRegisterOp(OpAsmParser &parser,
   return success();
 }
 
+static ParseResult parseCreateRemoteExecuteSpecOp(OpAsmParser &parser,
+                                                  OperationState &result) {
+  auto &builder = parser.getBuilder();
+
+  SmallVector<OpAsmParser::OperandType, 4> inputs;
+  if (parser.parseOperandList(inputs, -1, OpAsmParser::Delimiter::Paren)) {
+    return failure();
+  }
+  if (parser.resolveOperands(inputs, GetStringType(&builder), result.operands))
+    return failure();
+
+  result.types.append(1, GetRemoteExecuteSpecType(&builder));
+
+  return success();
+}
+
 static ParseResult parseRemoteExecuteOp(OpAsmParser &parser,
                                         OperationState &result) {
   auto &builder = parser.getBuilder();
@@ -130,8 +159,8 @@ static ParseResult parseRemoteExecuteOp(OpAsmParser &parser,
 
   auto chain_type = GetChainType(&builder);
 
-  SmallVector<OpAsmParser::OperandType, 4> chain_context_and_hostid;
-  if (parser.parseOperandList(chain_context_and_hostid, 3,
+  SmallVector<OpAsmParser::OperandType, 4> non_input_operands;
+  if (parser.parseOperandList(non_input_operands, 4,
                               OpAsmParser::Delimiter::Paren)) {
     return failure();
   }
@@ -139,7 +168,8 @@ static ParseResult parseRemoteExecuteOp(OpAsmParser &parser,
   operand_types.push_back(chain_type);
   operand_types.push_back(GetContextType(&builder));
   operand_types.push_back(builder.getI32Type());
-  if (parser.resolveOperands(chain_context_and_hostid, operand_types,
+  operand_types.push_back(GetRemoteExecuteSpecType(&builder));
+  if (parser.resolveOperands(non_input_operands, operand_types,
                              parser.getNameLoc(), result.operands))
     return failure();
 

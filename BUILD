@@ -954,6 +954,8 @@ tfrt_cc_library(
         "include/tfrt/distributed_runtime/callback_registry.h",
         "include/tfrt/distributed_runtime/distributed_context.h",
         "include/tfrt/distributed_runtime/fabric_communicator.h",
+        "include/tfrt/distributed_runtime/remote_device.h",
+        "include/tfrt/distributed_runtime/remote_execute.h",
         "include/tfrt/distributed_runtime/remote_object.h",
         "include/tfrt/distributed_runtime/remote_object_manager.h",
         "include/tfrt/distributed_runtime/request_handler.h",
@@ -986,6 +988,7 @@ tfrt_cc_library(
         ":support",
         ":tensor",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
 

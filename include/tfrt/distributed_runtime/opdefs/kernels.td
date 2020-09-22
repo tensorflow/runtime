@@ -49,6 +49,9 @@ def CollectiveGroupType
 def RemoteObjectIdType
     : OpaqueType<"dist", "remote_object_id", "!dist.remote_object_id type">;
 
+def RemoteExecuteSpecType
+    : OpaqueType<"dist", "remote_execute_spec", "!dist.remote_execute_spec type">;
+
 // Base class for the operation in this dialect
 class DistOp<string mnemonic, list<OpTrait> traits = []>
     : Op<DistDialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
@@ -197,20 +200,41 @@ def RemoteRegisterOp :  DistOp<"remote_register"> {
   let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
 }
 
+def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {
+  let summary = "dist.create_remote_execute_spec operation";
+  let description = [{
+    Create a specification for remote execution.
+    A specification contains a list of output devices.
+
+    Example:
+      %spec = dist.create_remote_execute_spec %device_name1 %device_name2
+  }];
+
+  let arguments = (ins
+    Variadic<StringType>:$output_devices
+  );
+  let results = (outs
+    RemoteExecuteSpecType:$out_spec
+  );
+
+  let printer = [{ return tfrt::dist::print(p, *this); }];
+  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+}
+
 def RemoteExecuteOp :  DistOp<"remote_execute"> {
   let summary = "dist.remote_execute operation";
   let description = [{
     Executes a program on a remote location.
-    // TODO(bramandia): Add supports for inputs and outputs.
 
     Example:
-      dist.remote_execute (%context, %id) "program_name"
+      %out = dist.remote_execute (%context, %id, %spec) "program_name" %in
   }];
 
   let arguments = (ins
     TFRT_ChainType:$in_op_chain,
     DistributedContextType:$context,
     I32:$host_id,
+    RemoteExecuteSpecType:$spec,
     StrAttr:$program_name,
     Variadic<RemoteObjectIdType>:$arguments
   );

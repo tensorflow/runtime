@@ -57,8 +57,19 @@ using InstanceKey = std::string;
 using HostId = int32_t;
 
 struct HostConfiguration {
+  struct NameAddressPair {
+    NameAddressPair(const std::string& name, const std::string& address)
+        : name(name), address(address) {}
+
+    // The name associated with this address.
+    // This is something like: "job:worker1/task:0"
+    std::string name;
+    // The address that can be used by FabricCommunicator.
+    // For instance, this can be hostname:port.
+    std::string address;
+  };
   // Ordered list of all addresses in the cluster.
-  llvm::SmallVector<std::string, 8> addresses;
+  llvm::SmallVector<NameAddressPair, 8> addresses;
   // Id of this host.  Address of this host is `addresses[id]`.
   HostId id;
 };

@@ -281,4 +281,34 @@ def MemcpyDtoHOp : CUDA_Op<"mem.copy_device_to_host"> {
   let results = (outs TFRT_ChainType);
 }
 
+def ModuleLoadStatic : CUDA_Op<"module.load_static"> {
+  let summary = "Loads a set of CUBIN or PTX modules.";
+  let description = [{
+    cuda.module.load_static loads a fixed set of CUBIN or PTX modules.
+
+    These modules are kept in a table that persists for the lifetime of the
+    BEF execution (as a Resource). Repeated invocations of this function for the
+    same device causes a runtime error.
+
+    Example:
+      %ch1 = cuda.module.load_static %ctx %chain {
+        modules = ["some ptx", "or cubin"],
+        funs_per_module = [2, 1],
+        functions = ["ptxFunc0", "ptxFunc1", "cubinFunc0"]
+      }
+
+      Subsequent cuda.launch calls can reference ptxFunc0, ptxFunc1, and
+      cubinFunc0 as 0, 1, and 2 respectively.
+  }];
+  let arguments = (ins
+    ContextType:$ctx,
+    TFRT_ChainType:$in_chain,
+    StrArrayAttr:$modules,
+    I32ArrayAttr:$funcs_per_module,
+    StrArrayAttr:$functions
+  );
+  let results = (outs TFRT_ChainType:$out_chain);
+  let assemblyFormat = "operands attr-dict";
+}
+
 #endif  // CUDA_OPS

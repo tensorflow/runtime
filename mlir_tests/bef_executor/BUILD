@@ -8,7 +8,7 @@ glob_tfrt_lit_tests(data = [":test_utilities"])
 filegroup(
     name = "test_utilities",
     testonly = True,
-    data = [
+    srcs = [
         "@llvm-project//llvm:FileCheck",
         "@llvm-project//llvm:not",
         "@tf_runtime//tools:bef_executor",

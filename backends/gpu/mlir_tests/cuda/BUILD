@@ -12,7 +12,7 @@ glob_tfrt_lit_tests(
 filegroup(
     name = "test_utilities",
     testonly = True,
-    data = [
+    srcs = [
         "@llvm-project//llvm:FileCheck",
         "@tf_runtime//backends/gpu:tfrt_gpu_opt",
         "@tf_runtime//tools:bef_executor",

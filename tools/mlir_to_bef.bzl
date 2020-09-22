@@ -17,14 +17,25 @@
 load("@tf_runtime//mlir_tests:lit.bzl", "glob_lit_tests")
 
 def mlir_to_bef(name, tfrt_translate):
-    """Runs "tfrt_translate -mlir-to-bef $test.mlir" to create $test.bef."""
+    """Runs "tfrt_translate -mlir-to-bef $test.mlir" to create $test.bef.
+
+    Args:
+      name: the name of mlir test.
+      tfrt_translate: translation tool to use.
+
+    Returns:
+      the name of generated bef file.
+    """
+    bef_file = name[:-5] + ".bef"
+    rule_name = name + ".bef"
     native.genrule(
-        name = "mlir_to_bef." + name,
+        name = rule_name,
         srcs = [name],
-        outs = [name[:-5] + ".bef"],
+        outs = [bef_file],
         cmd = "$(location " + tfrt_translate + ") -mlir-to-bef $(location " + name + ") > $@",
         exec_tools = [tfrt_translate],
     )
+    return bef_file
 
 def glob_tfrt_lit_tests(
         name = "glob_tfrt_lit_tests",
@@ -51,8 +62,8 @@ def glob_tfrt_lit_tests(
     # Pass generated .bef files to glob_lit_tests as per_test_extra_data.
     per_test_extra_data = {}
     for mlir_file in mlir_files:
-        mlir_to_bef(mlir_file, tfrt_translate)
-        per_test_extra_data[mlir_file] = [mlir_file[:-5] + ".bef"]
+        bef_file = mlir_to_bef(mlir_file, tfrt_translate)
+        per_test_extra_data[mlir_file] = [bef_file]
 
     glob_lit_tests(
         data = data,

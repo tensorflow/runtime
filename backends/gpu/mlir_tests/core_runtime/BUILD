@@ -24,7 +24,7 @@ glob_tfrt_lit_tests(
 filegroup(
     name = "test_utilities",
     testonly = True,
-    data = [
+    srcs = [
         "@llvm-project//llvm:FileCheck",
         "@tf_runtime//tools:bef_executor",
         "@tf_runtime//tools:bef_name",

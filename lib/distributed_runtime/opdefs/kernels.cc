@@ -80,11 +80,6 @@ static void print(OpAsmPrinter &p, RemoteExecuteOp op) {
     << op.getAttr("program_name");
 }
 
-static void print(OpAsmPrinter &p, RemoteRegisterOp op) {
-  p << "dist.remote_register(" << op.getAttr("hostid") << ") "
-    << op.getAttr("program_name");
-}
-
 static ParseResult parseCreateConfigurations(OpAsmParser &parser,
                                              OperationState &result) {
   auto &builder = parser.getBuilder();
@@ -100,38 +95,6 @@ static ParseResult parseCreateConfigurations(OpAsmParser &parser,
   auto configuration_type = GetDistributedContextConfigurationType(&builder);
 
   result.types.append(num_results, configuration_type);
-
-  return success();
-}
-
-static ParseResult parseRemoteRegisterOp(OpAsmParser &parser,
-                                         OperationState &result) {
-  auto &builder = parser.getBuilder();
-  StringAttr program_type;
-
-  auto chain_type = GetChainType(&builder);
-
-  SmallVector<OpAsmParser::OperandType, 4> chain_context_and_hostid;
-  if (parser.parseOperandList(chain_context_and_hostid, 3,
-                              OpAsmParser::Delimiter::Paren)) {
-    return failure();
-  }
-  SmallVector<Type, 4> operand_types;
-  operand_types.push_back(chain_type);
-  operand_types.push_back(GetContextType(&builder));
-  operand_types.push_back(builder.getI32Type());
-  if (parser.resolveOperands(chain_context_and_hostid, operand_types,
-                             parser.getNameLoc(), result.operands))
-    return failure();
-
-  if (parser.parseAttribute(program_type, "program", result.attributes)) {
-    return failure();
-  }
-  if (parser.parseAttribute(program_type, "program_name", result.attributes)) {
-    return failure();
-  }
-
-  result.types.append(1, chain_type);
 
   return success();
 }

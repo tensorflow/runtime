@@ -182,7 +182,7 @@ def RemoteRegisterOp :  DistOp<"remote_register"> {
     "program" has to be a string representing MLIR in TFRT dialect
 
     Example:
-      dist.remote_register (%context, %id) "program" "program_name"
+      %out_chain = dist.remote_register (%in_chain, %context, %id) "program" "program_name"
   }];
 
   let arguments = (ins
@@ -196,8 +196,9 @@ def RemoteRegisterOp :  DistOp<"remote_register"> {
     TFRT_ChainType:$out_op_chain
   );
 
-  let printer = [{ return tfrt::dist::print(p, *this); }];
-  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+  let assemblyFormat = [{
+      `(` $in_op_chain`,` $context`,` $host_id `)` $program_name $program attr-dict
+  }];
 }
 
 def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {

@@ -49,9 +49,62 @@ class ModuleTableImpl : public ModuleTable {
   const std::vector<stream::Function> functions_;
 };
 
+// Maintains a sorted vector of mappings from device_id to module table.
+class MultiDeviceModuleTableImpl : public MultiDeviceModuleTable {
+ public:
+  llvm::Error AddTable(const stream::Device& device,
+                       std::unique_ptr<ModuleTable> table) override {
+    const int device_id = device.id(device.platform());
+    Entry to_insert{device_id, std::move(table)};
+    const auto insertion_it = std::lower_bound(tables_.begin(), tables_.end(),
+                                               to_insert, CompareEntries{});
+    if (insertion_it != tables_.end() &&
+        insertion_it->device_id == to_insert.device_id) {
+      return llvm::createStringError(
+          llvm::errc::invalid_argument,
+          StrCat("Unable to load CUDA module table. Table has "
+                 "already been created for device ",
+                 device_id));
+    }
+    tables_.insert(insertion_it, std::move(to_insert));
+    return llvm::Error::success();
+  }
+
+  llvm::Optional<const ModuleTable*> GetTable(
+      const stream::Device& device) const override {
+    const int device_id = device.id(device.platform());
+    auto it = std::lower_bound(tables_.begin(), tables_.end(), Entry{device_id},
+                               CompareEntries{});
+    if (it == tables_.end()) {
+      return llvm::None;
+    }
+    return it->module_table.get();
+  }
+
+ private:
+  struct Entry {
+    int device_id;
+    std::unique_ptr<ModuleTable> module_table;
+  };
+  struct CompareEntries {
+    bool operator()(const Entry& lhs, const Entry& rhs) const {
+      return lhs.device_id < rhs.device_id;
+    }
+  };
+
+  // Sorted vector. 16 is chosen as a cautious upper estimate for the number of
+  // GPUs in a system.
+  llvm::SmallVector<Entry, 16> tables_;
+};
+
 }  // namespace
 
 static bool IsCString(string_view s) { return s.back() == 0; }
+
+/*static*/ std::unique_ptr<MultiDeviceModuleTable>
+MultiDeviceModuleTable::Create() {
+  return std::make_unique<MultiDeviceModuleTableImpl>();
+}
 
 // Safely converts string_views to c_str for functions that require char * null
 // terminated string arguments.

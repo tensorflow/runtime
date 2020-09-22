@@ -413,6 +413,57 @@ TEST_F(ModuleTableTest, MultiModuleMultiKernel) {
   }
 }
 
+TEST_F(ModuleTableTest, MultiDeviceModuleTable) {
+  class DummyModuleTable : public ModuleTable {
+   public:
+    stream::Function GetFunction(ModuleFuncHandle handle) const override {
+      return {};
+    }
+  };
+
+  std::array<stream::Device, 3> device{
+      stream::Device(0, stream::Platform::CUDA),
+      stream::Device(1, stream::Platform::CUDA),
+      stream::Device(2, stream::Platform::CUDA),
+  };
+  std::array<std::unique_ptr<ModuleTable>, 3> owned_module_tables{
+      std::make_unique<DummyModuleTable>(),
+      std::make_unique<DummyModuleTable>(),
+      std::make_unique<DummyModuleTable>(),
+  };
+  std::array<ModuleTable*, 3> module_tables{
+      owned_module_tables[0].get(),
+      owned_module_tables[1].get(),
+      owned_module_tables[2].get(),
+  };
+
+  auto multi_device_table = MultiDeviceModuleTable::Create();
+  ASSERT_TRUE(IsSuccess(multi_device_table->AddTable(
+      device[0], std::move(owned_module_tables[0]))));
+  EXPECT_TRUE(multi_device_table->GetTable(device[0]).hasValue());
+  EXPECT_EQ(*multi_device_table->GetTable(device[0]), module_tables[0]);
+
+  ASSERT_TRUE(IsSuccess(multi_device_table->AddTable(
+      device[2], std::move(owned_module_tables[2]))));
+  // Verify that pre-existing table is unaffected.
+  EXPECT_TRUE(multi_device_table->GetTable(device[0]).hasValue());
+  EXPECT_EQ(*multi_device_table->GetTable(device[0]), module_tables[0]);
+
+  EXPECT_TRUE(multi_device_table->GetTable(device[2]).hasValue());
+  EXPECT_EQ(*multi_device_table->GetTable(device[2]), module_tables[2]);
+
+  ASSERT_TRUE(IsSuccess(multi_device_table->AddTable(
+      device[1], std::move(owned_module_tables[1]))));
+  // Verify pre-existing tables
+  EXPECT_TRUE(multi_device_table->GetTable(device[0]).hasValue());
+  EXPECT_EQ(*multi_device_table->GetTable(device[0]), module_tables[0]);
+  EXPECT_TRUE(multi_device_table->GetTable(device[2]).hasValue());
+  EXPECT_EQ(*multi_device_table->GetTable(device[2]), module_tables[2]);
+
+  EXPECT_TRUE(multi_device_table->GetTable(device[1]).hasValue());
+  EXPECT_EQ(*multi_device_table->GetTable(device[1]), module_tables[1]);
+}
+
 }  // namespace
 }  // namespace gpu
 }  // namespace tfrt

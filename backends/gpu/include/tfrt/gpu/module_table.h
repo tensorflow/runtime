@@ -88,9 +88,25 @@ class ModuleFuncHandle {
   uint32_t raw_ = 0;
 };
 
-// Vector of module tables indexed by device id.
-using MultiDeviceModuleTable =
-    llvm::SmallVector<std::unique_ptr<ModuleTable>, 16>;
+// MultiDeviceModuleTable is a map from Device to ModuleTable indexed by device
+// id.
+class MultiDeviceModuleTable {
+ public:
+  static std::unique_ptr<MultiDeviceModuleTable> Create();
+
+  virtual ~MultiDeviceModuleTable() = default;
+
+  // Takes ownership of a ModuleTable and associates it with the device id of
+  // the provided device.
+  // invalid_argument error if the device already has an associated table.
+  virtual llvm::Error AddTable(const stream::Device& device,
+                               std::unique_ptr<ModuleTable> table) = 0;
+
+  // Returns the ModuleTable associated with the device, or None if the device
+  // has not yet been associated with a ModuleTable.
+  virtual llvm::Optional<const ModuleTable*> GetTable(
+      const stream::Device& device) const = 0;
+};
 
 }  // namespace gpu
 }  // namespace tfrt

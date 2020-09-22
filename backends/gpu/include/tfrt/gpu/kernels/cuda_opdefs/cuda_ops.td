@@ -28,26 +28,7 @@
 include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
-
-// "cuda" dialect
-def CUDA_Dialect : Dialect {
-  let name = "cuda";
-
-  let description = [{
-    The CUDA dialect.
-
-    This dialect contains common CUDA operations.
-  }];
-
-  let cppNamespace = "cuda";
-}
-
-// Base class for CUDA dialect ops.
-class CUDA_Op<string mnemonic, list<OpTrait> traits = []> :
-    Op<CUDA_Dialect, mnemonic, traits> {
-
-  let assemblyFormat = "operands attr-dict";
-}
+include "tfrt/gpu/kernels/cuda_opdefs/cuda_blas_ops.td"
 
 def InitOp : CUDA_Op<"init"> {
   let summary = "cuda init operation";

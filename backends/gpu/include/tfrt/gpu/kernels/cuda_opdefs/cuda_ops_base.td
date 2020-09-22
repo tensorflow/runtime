@@ -42,4 +42,26 @@ def AllocatorType : OpaqueType<"cuda", "allocator", "!cuda.allocator type">;
 // Buffer represents a CUDA device memory buffer.
 def BufferType : OpaqueType<"cuda", "buffer", "!cuda.buffer type">;
 
+def CublasHandleType : OpaqueType<"cuda", "blas_handle", "!cuda.blas_handle type">;
+
+// "cuda" dialect
+def CUDA_Dialect : Dialect {
+  let name = "cuda";
+
+  let description = [{
+    The CUDA dialect.
+
+    This dialect contains common CUDA operations.
+  }];
+
+  let cppNamespace = "cuda";
+}
+
+// Base class for CUDA dialect ops.
+class CUDA_Op<string mnemonic, list<OpTrait> traits = []> :
+    Op<CUDA_Dialect, mnemonic, traits> {
+
+  let assemblyFormat = "operands attr-dict";
+}
+
 #endif  // CUDA_OPS_BASE

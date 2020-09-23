@@ -28,6 +28,7 @@
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/distributed_runtime/remote_execute.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -283,7 +284,8 @@ void AllReduce(Argument<DistributedContext> dist_context,
       };
   CallbackRegistry* callback_registry = dist_context->GetCallbackRegistry();
   callback_registry->SetCallback(*instance_key, std::move(on_done));
-  exec_ctx.host()->EnqueueWork(
+  EnqueueWork(
+      exec_ctx,
       [instance_key = *instance_key, collective_group = *collective_group,
        in_tensor = in_tensor.ValueRef(), out_tensor = out_tensor.ValueRef(),
        reduction_fn, final_fn,
@@ -378,7 +380,8 @@ void Broadcast(Argument<DistributedContext> dist_context,
   };
   CallbackRegistry* registry = dist_context->GetCallbackRegistry();
   registry->SetCallback(*instance_key, std::move(on_done));
-  exec_ctx.host()->EnqueueWork(
+  EnqueueWork(
+      exec_ctx,
       [instance_key = *instance_key, collective_group = *collective_group,
        sender = *sender, registry,
        fabric_communicator = dist_context->GetOrCreateFabricCommunicator(),
@@ -403,8 +406,8 @@ AsyncValueRef<Chain> RemoteRegisterKernel(Chain ch,
   AsyncValueRef<Chain> out_chain =
       MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
 
-  exec_ctx.host()->EnqueueWork([receiver, request, dist_context,
-                                out_chain = out_chain.CopyRef()]() mutable {
+  EnqueueWork(exec_ctx, [receiver, request, dist_context,
+                         out_chain = out_chain.CopyRef()]() mutable {
     dist_context->GetOrCreateFabricCommunicator()->RemoteRegister(
         receiver, request,
         [out_chain = out_chain.CopyRef()](bool success) mutable {
@@ -476,19 +479,19 @@ void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
     results[i] = out_id.CopyRef();
   }
 
-  exec_ctx.host()->EnqueueWork([receiver, request, dist_context,
-                                out_chain = out_chain.CopyRef(),
-                                spec = spec.ValueRef()]() mutable {
-    dist_context->GetOrCreateFabricCommunicator()->RemoteExecute(
-        receiver, request,
-        [out_chain = out_chain.CopyRef()](bool success) mutable {
-          if (!success) {
-            out_chain.SetError("Failed Remote Execute");
-          } else {
-            out_chain.SetStateConcrete();
-          }
-        });
-  });
+  EnqueueWork(exec_ctx,
+              [receiver, request, dist_context, out_chain = out_chain.CopyRef(),
+               spec = spec.ValueRef()]() mutable {
+                dist_context->GetOrCreateFabricCommunicator()->RemoteExecute(
+                    receiver, request,
+                    [out_chain = out_chain.CopyRef()](bool success) mutable {
+                      if (!success) {
+                        out_chain.SetError("Failed Remote Execute");
+                      } else {
+                        out_chain.SetStateConcrete();
+                      }
+                    });
+              });
 }
 }  // namespace
 

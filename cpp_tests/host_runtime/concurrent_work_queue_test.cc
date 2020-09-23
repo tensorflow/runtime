@@ -25,6 +25,7 @@
 
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/test_util.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
@@ -63,7 +64,7 @@ TEST(SingleThreadeWorkQueueTest,
 
   std::thread thread{[&] {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    host.EnqueueWork([&] { av.SetStateConcrete(); });
+    EnqueueWork(&host, [&] { av.SetStateConcrete(); });
   }};
 
   host.Await(av.CopyRCRef());
@@ -82,7 +83,7 @@ TEST(SingleThreadeWorkQueueTest,
 
   std::thread thread{[&] {
     std::this_thread::sleep_for(std::chrono::milliseconds(20));
-    bool success = host.EnqueueBlockingWork([&] { av.SetStateConcrete(); });
+    bool success = EnqueueBlockingWork(&host, [&] { av.SetStateConcrete(); });
     EXPECT_TRUE(success);
   }};
 

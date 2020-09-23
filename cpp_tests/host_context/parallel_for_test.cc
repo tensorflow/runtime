@@ -27,8 +27,10 @@
 #include <utility>
 
 #include "gtest/gtest.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/latch.h"
@@ -39,15 +41,20 @@ namespace tfrt {
 using BlockSizes = ParallelFor::BlockSizes;
 using Range = std::pair<size_t, size_t>;
 
-std::unique_ptr<HostContext> CreateTestHostContext(int num_threads) {
+static std::unique_ptr<HostContext> CreateTestHostContext(int num_threads) {
   return std::make_unique<HostContext>(
       [](const DecodedDiagnostic&) {}, CreateMallocAllocator(),
       CreateMultiThreadedWorkQueue(num_threads, num_threads));
 }
 
+static ExecutionContext CreateTestExecutionContext(HostContext* host) {
+  auto request_ctx = RequestContext::Create(host, nullptr);
+  return ExecutionContext{std::move(request_ctx)};
+}
+
 TEST(ParallelForTest, FixedBlockSize) {
   auto host = CreateTestHostContext(4);
-  ParallelFor pfor(host.get());
+  ParallelFor pfor(CreateTestExecutionContext(host.get()));
 
   latch barrier(5);  // 4 tasks + 1 on-done callback
   mutex mu;
@@ -72,7 +79,7 @@ TEST(ParallelForTest, FixedBlockSize) {
 
 TEST(ParallelForTest, MinBlockSize) {
   auto host = CreateTestHostContext(4);
-  ParallelFor pfor(host.get());
+  ParallelFor pfor(CreateTestExecutionContext(host.get()));
 
   latch barrier(3);  // 2 tasks + 1 on-done callback
   mutex mu;
@@ -97,7 +104,7 @@ TEST(ParallelForTest, MinBlockSize) {
 
 TEST(ParallelForTest, BlockTasksCompletion) {
   auto host = CreateTestHostContext(4);
-  ParallelFor pfor(host.get());
+  ParallelFor pfor(CreateTestExecutionContext(host.get()));
 
   latch barrier(1);
   std::atomic<int32_t> completed_tasks{0};
@@ -117,10 +124,11 @@ TEST(ParallelForTest, BlockTasksCompletion) {
 
 TEST(ParallelForTest, ExecuteNestedParallelism) {
   auto host = CreateTestHostContext(4);
-  ParallelFor pfor(host.get());
+  auto exec_ctx = CreateTestExecutionContext(host.get());
+  ParallelFor pfor(exec_ctx);
 
   auto fork = [&](size_t begin, size_t end) -> AsyncValueRef<Range> {
-    return host->EnqueueWork([begin, end]() -> Range {
+    return EnqueueWork(exec_ctx, [begin, end]() -> Range {
       std::this_thread::sleep_for(std::chrono::milliseconds(150 - end));
       return std::make_pair(begin, end);
     });

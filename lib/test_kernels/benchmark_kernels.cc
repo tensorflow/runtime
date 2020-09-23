@@ -26,6 +26,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/bef_executor/bef_file.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_context.h"
@@ -182,14 +183,13 @@ class AsyncBenchmarkRunner {
   }
 
  private:
-  HostContext* GetHostContext() const { return exec_ctx_.host(); }
   // Start benchmarking a new function execution.
   void StartNewRun() {
     bm_stats_.StartRun();
     // We need to run the actual work in the work queue to avoid exhausting the
     // stack space, otherwise, we will have very deep recursion of
     // Function::Execute -> AsyncValue::AndThen -> Function::Execute -> ...
-    GetHostContext()->EnqueueWork([this] {
+    EnqueueWork(exec_ctx_, [this] {
       // The benchmarked function should return exactly one value.
       assert(func_->result_types().size() == 1);
 

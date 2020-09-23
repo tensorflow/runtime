@@ -64,7 +64,7 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
 LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(const ExecutionContext& exec_ctx,
                                             F&& work) {
-  return exec_ctx.host()->EnqueueWork(std::forward<F>(work));
+  return EnqueueWork(exec_ctx.host(), std::forward<F>(work));
 }
 
 // Add some blocking work to the work_queue used by the ExecutionContext.
@@ -113,6 +113,38 @@ void RunWhenReady(const ExecutionContext& exec_ctx,
 void RunWhenReady(const ExecutionContext& exec_ctx,
                   ArrayRef<RCReference<AsyncValue>> values,
                   llvm::unique_function<void()> callee);
+
+// The following set of functions scheduled a blocking or non-blocking work
+// without an ExecutionContext. They should only be used for tasks that are
+// outside of a kernel execution. Depending on the thread pool implementation,
+// such tasks are typically scheduled at the default priority.
+inline void EnqueueWork(HostContext* host, llvm::unique_function<void()> work) {
+  host->EnqueueWork(std::move(work));
+}
+
+template <typename F, typename R = internal::AsyncResultTypeT<F>,
+          std::enable_if_t<!std::is_void<R>(), int> = 0>
+LLVM_NODISCARD inline AsyncValueRef<R> EnqueueWork(HostContext* host,
+                                                   F&& work) {
+  return host->EnqueueWork(std::forward<F>(work));
+}
+
+LLVM_NODISCARD inline bool EnqueueBlockingWork(
+    HostContext* host, llvm::unique_function<void()> work) {
+  return host->EnqueueBlockingWork(std::move(work));
+}
+
+template <typename F, typename R = internal::AsyncResultTypeT<F>,
+          std::enable_if_t<!std::is_void<R>(), int> = 0>
+LLVM_NODISCARD AsyncValueRef<R> EnqueueBlockingWork(HostContext* host,
+                                                    F&& work) {
+  return host->EnqueueBlockingWork(std::forward<F>(work));
+}
+
+LLVM_NODISCARD inline bool RunBlockingWork(HostContext* host,
+                                           llvm::unique_function<void()> work) {
+  return host->RunBlockingWork(std::move(work));
+}
 
 }  // namespace tfrt
 

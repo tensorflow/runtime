@@ -26,6 +26,7 @@
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/distributed_runtime/remote_execute.h"
 #include "tfrt/distributed_runtime/request_handler.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_utils.h"
 
 namespace tfrt {
@@ -96,7 +97,7 @@ void TestProcessNextRequest(Argument<DistributedContext> dist_context,
   AsyncValueRef<Chain> out = chain.Allocate();
   TestRequestHandler* handler =
       static_cast<TestRequestHandler*>(dist_context->GetRequestHandler());
-  exec_ctx.host()->EnqueueWork([handler, out = out.CopyRef()] {
+  EnqueueWork(exec_ctx, [handler, out = out.CopyRef()] {
     handler->ProcessNextRequest();
     out.emplace();
   });

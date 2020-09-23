@@ -24,6 +24,8 @@
 
 #include "interleave_dataset.h"
 
+#include "tfrt/host_context/async_dispatch.h"
+
 namespace tfrt {
 namespace data {
 
@@ -322,7 +324,7 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
     auto callback = [exec_ctx, host, callback_count,
                      iterator = FormRef(this)]() mutable {
       if (callback_count >= MAX_RECURSIVE_CALLS) {
-        host->EnqueueWork([exec_ctx, iterator = std::move(iterator)] {
+        EnqueueWork(exec_ctx, [exec_ctx, iterator = std::move(iterator)] {
           iterator->MaybeScheduleBackgroundTask(exec_ctx, true, 0);
         });
       } else {

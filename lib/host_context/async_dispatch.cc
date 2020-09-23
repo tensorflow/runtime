@@ -31,7 +31,7 @@ void Await(const ExecutionContext& exec_ctx,
 
 void EnqueueWork(const ExecutionContext& exec_ctx,
                  llvm::unique_function<void()> work) {
-  exec_ctx.host()->EnqueueWork(std::move(work));
+  EnqueueWork(exec_ctx.host(), std::move(work));
 }
 
 bool EnqueueBlockingWork(const ExecutionContext& exec_ctx,

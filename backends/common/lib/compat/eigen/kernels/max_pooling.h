@@ -218,12 +218,10 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
   auto chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
   auto args = KeepBuffers::alive(&input, output);
 
-  ParallelFor(exec_ctx.host())
-      .Execute(num_outputs, ParallelFor::BlockSizes::Min(min_block_size),
-               std::move(compute),
-               [chain = chain.CopyRef(), args = std::move(args)]() {
-                 chain.emplace();
-               });
+  ParallelFor(exec_ctx).Execute(
+      num_outputs, ParallelFor::BlockSizes::Min(min_block_size),
+      std::move(compute),
+      [chain = chain.CopyRef(), args = std::move(args)]() { chain.emplace(); });
   return chain;
 }
 

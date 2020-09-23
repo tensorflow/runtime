@@ -24,6 +24,7 @@
 #include <thread>
 
 #include "llvm/ADT/FunctionExtras.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/test_kernels.h"
 
@@ -43,42 +44,41 @@ static AsyncValueRef<int32_t> TestAsyncAddI32(
     int32_t arg0, int32_t arg1, const ExecutionContext& exec_ctx) {
   // Even though a single scalar add is trivial, we can do it on a background
   // thread if we'd like!
-  return exec_ctx.host()->EnqueueWork([arg0, arg1] { return arg0 + arg1; });
+  return EnqueueWork(exec_ctx, [arg0, arg1] { return arg0 + arg1; });
 }
 
 static AsyncValueRef<bool> TestAsyncConstantI1(
     Attribute<int8_t> arg, const ExecutionContext& exec_ctx) {
-  return exec_ctx.host()->EnqueueWork([arg = *arg] { return arg != 0; });
+  return EnqueueWork(exec_ctx, [arg = *arg] { return arg != 0; });
 }
 
 static AsyncValueRef<int32_t> TestAsyncConstantI32(
     Attribute<int32_t> arg, const ExecutionContext& exec_ctx) {
-  return exec_ctx.host()->EnqueueWork([arg = *arg] { return arg; });
+  return EnqueueWork(exec_ctx, [arg = *arg] { return arg; });
 }
 
 // This implementation of TestAsyncCopy returns results directly.
 template <typename T>
 static AsyncValueRef<T> TestAsyncCopy(Argument<T> in,
                                       const ExecutionContext& exec_ctx) {
-  return exec_ctx.host()->EnqueueWork(
-      [in_ref = in.ValueRef()] { return in_ref.get(); });
+  return EnqueueWork(exec_ctx,
+                     [in_ref = in.ValueRef()] { return in_ref.get(); });
 }
 
 // This implementation of TestAsyncCopy returns results via a 'Result'
 // parameter.
 static void TestAsyncCopy2(Argument<int32_t> in, Result<int32_t> out,
                            const ExecutionContext& exec_ctx) {
-  exec_ctx.host()->EnqueueWork(
-      [in_ref = in.ValueRef(), out_ref = out.Allocate()] {
-        out_ref.emplace(in_ref.get());
-      });
+  EnqueueWork(exec_ctx, [in_ref = in.ValueRef(), out_ref = out.Allocate()] {
+    out_ref.emplace(in_ref.get());
+  });
 }
 
 // Returns a copy of an argument after a random delay.
 template <typename T>
 static AsyncValueRef<T> TestAsyncCopyWithDelay(
     Argument<T> in, const ExecutionContext& exec_ctx) {
-  return exec_ctx.host()->EnqueueWork([in_ref = in.ValueRef()] {
+  return EnqueueWork(exec_ctx, [in_ref = in.ValueRef()] {
     SleepForRandomDuration();
     return in_ref.get();
   });

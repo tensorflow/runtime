@@ -23,6 +23,7 @@
 
 #include "io.h"
 
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
@@ -43,7 +44,7 @@ IterationResult PrefetchingIterator::GetNext(const ExecutionContext& exec_ctx) {
         iterator->ReadIOSource(exec_ctx);
       };
       // This call can fail if the work queue is full.
-      if (host->EnqueueBlockingWork(std::move(task))) {
+      if (EnqueueBlockingWork(exec_ctx, std::move(task))) {
         // The task which is successfully scheduled in the blocking threadpool
         // should own the token.
         token_owned_ = true;

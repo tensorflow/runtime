@@ -25,6 +25,7 @@
 #include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
@@ -67,7 +68,8 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
     return std::move(error);
 
   // `frozen_attrs` needs to live until the memcpy is done.
-  bool work_enqueued = exec_ctx.host()->EnqueueBlockingWork(
+  bool work_enqueued = EnqueueBlockingWork(
+      exec_ctx,
       [frozen_attrs = std::move(frozen_attrs), event = std::move(event)] {
         // FIXME(sanjoy): How do we handle an error from EventSynchronize here?
         llvm::ExitOnError die_if_error;

@@ -28,6 +28,7 @@
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/STLExtras.h"
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/mutex.h"
@@ -38,7 +39,8 @@ class HostContext;
 
 class ParallelFor {
  public:
-  explicit ParallelFor(HostContext* host) : host_(host) {}
+  explicit ParallelFor(ExecutionContext exec_ctx)
+      : exec_ctx_(std::move(exec_ctx)) {}
 
   //===--------------------------------------------------------------------===//
   // BlockSizes configures how a range is split into parallely executed blocks.
@@ -143,7 +145,8 @@ class ParallelFor {
       llvm::unique_function<R(ArrayRef<AsyncValueRef<T>>)> on_done) const;
 
  private:
-  HostContext* host_;  // must outlive all parallel operations in flight
+  ExecutionContext exec_ctx_;  // The data in exec_ctx_ must outlive all
+                               // parallel operations in flight
 };
 
 template <typename T, typename R>
@@ -152,9 +155,10 @@ AsyncValueRef<R> ParallelFor::Execute(
     llvm::unique_function<AsyncValueRef<T>(size_t, size_t)> compute,
     llvm::unique_function<R(ArrayRef<AsyncValueRef<T>>)> on_done) const {
   // Immediately return the result of `on_done` if nothing to execute.
-  if (total_size == 0) return MakeAvailableAsyncValueRef<R>(host_, on_done({}));
+  if (total_size == 0)
+    return MakeAvailableAsyncValueRef<R>(exec_ctx_.host(), on_done({}));
 
-  AsyncValueRef<R> result = MakeUnconstructedAsyncValueRef<R>(host_);
+  AsyncValueRef<R> result = MakeUnconstructedAsyncValueRef<R>(exec_ctx_.host());
 
   using ComputeFn = llvm::unique_function<AsyncValueRef<T>(size_t, size_t)>;
   using DoneFn = llvm::unique_function<R(ArrayRef<AsyncValueRef<T>>)>;
@@ -201,8 +205,8 @@ AsyncValueRef<R> ParallelFor::Execute(
       // At this point all block compute tasks are launched, but not all of
       // their asynchronous results are completed. When all block results are
       // ready, call `on_done` function to compute a value for `result`.
-      [host = host_, ctx = std::move(ctx)]() mutable -> void {
-        host->RunWhenReady(ctx->BlockResults(), [host, ctx = std::move(ctx)]() {
+      [host = exec_ctx_.host(), ctx = std::move(ctx)]() mutable -> void {
+        host->RunWhenReady(ctx->BlockResults(), [ctx = std::move(ctx)]() {
           R result = ctx->on_done(ctx->block_results);
           ctx->result.emplace(std::move(result));
         });

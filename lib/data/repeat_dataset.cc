@@ -23,6 +23,8 @@
 
 #include "repeat_dataset.h"
 
+#include "tfrt/host_context/async_dispatch.h"
+
 namespace tfrt {
 namespace data {
 
@@ -96,10 +98,10 @@ void RepeatDatasetIterator::MaybeScheduleBackgroundTask(
   // false. And schedule tasks to run the filter_fn for newly fetched values in
   // parallel.
   auto host = exec_ctx.host();
-  auto callback = [exec_ctx, host, callback_count,
+  auto callback = [exec_ctx, callback_count,
                    iterator = FormRef(this)]() mutable {
     if (callback_count >= MAX_RECURSIVE_CALLS) {
-      host->EnqueueWork([exec_ctx, iterator = std::move(iterator)] {
+      EnqueueWork(exec_ctx, [exec_ctx, iterator = std::move(iterator)] {
         iterator->MaybeScheduleBackgroundTask(exec_ctx, true, 0);
       });
     } else {

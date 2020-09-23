@@ -68,7 +68,7 @@ static AsyncValueRef<Chain> ExecuteAsyncParallelForBody(
   };
 
   // Launch parallel for operation.
-  ParallelFor parallel_for(exec_ctx.host());
+  ParallelFor parallel_for(exec_ctx);
   return parallel_for.Execute<Chain, Chain>(
       total_size, block_sizes, std::move(compute), std::move(on_done));
 }
@@ -107,7 +107,7 @@ static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
   auto on_done = [done = done.CopyRef()]() { done.SetStateConcrete(); };
 
   // Launch parallel for operation.
-  ParallelFor parallel_for(exec_ctx.host());
+  ParallelFor parallel_for(exec_ctx);
   parallel_for.Execute(total_size, block_sizes, std::move(compute),
                        std::move(on_done));
 

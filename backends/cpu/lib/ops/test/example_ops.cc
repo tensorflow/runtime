@@ -271,7 +271,7 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly3Op(
 
   // Add two dense tensors in parallel. This one is intentionally using min
   // block size of 1 to trigger parallel block execution.
-  ParallelFor(host).Execute(
+  ParallelFor(exec_ctx).Execute(
       lhs.NumElements(), ParallelFor::BlockSizes::Min(1), std::move(add_impl),
       [dht = dht.CopyRef()]() mutable { dht.SetStateConcrete(); });
 
@@ -328,10 +328,10 @@ static RCReference<AsyncValue> AsyncNoopOp(const HostTensor& src,
 
   auto copy = ConvertTensorOnHost(src, src.tensor_type(), host);
 
-  host->EnqueueWork(
-      [dest_ind = dest_ind.CopyRef(), copy = std::move(copy)]() mutable {
-        dest_ind->ForwardTo(std::move(copy).ReleaseRCRef());
-      });
+  EnqueueWork(exec_ctx, [dest_ind = dest_ind.CopyRef(),
+                         copy = std::move(copy)]() mutable {
+    dest_ind->ForwardTo(std::move(copy).ReleaseRCRef());
+  });
 
   return dest_ind;
 }

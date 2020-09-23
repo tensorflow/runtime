@@ -22,6 +22,7 @@
 
 #include "tfrt/host_context/parallel_for.h"
 
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
 
@@ -70,11 +71,12 @@ namespace {
 class ParallelForExecutionContext {
  public:
   static ParallelForExecutionContext* Allocate(
-      HostContext* host, size_t n, size_t block_size,
+      ExecutionContext exec_ctx, size_t n, size_t block_size,
       llvm::unique_function<void(size_t, size_t)> compute,
       llvm::unique_function<void()> on_done) {
-    return new ParallelForExecutionContext(
-        host, n, block_size, std::move(compute), std::move(on_done));
+    return new ParallelForExecutionContext(std::move(exec_ctx), n, block_size,
+                                           std::move(compute),
+                                           std::move(on_done));
   }
 
   // EvalBlocks() recursively splits the assigned block range and enqueues work
@@ -87,8 +89,9 @@ class ParallelForExecutionContext {
       const size_t mid_block = start_block + (end_block - start_block) / 2;
 
       // Evaluate [mid_block, end_block) blocks.
-      host_->EnqueueWork(
-          [this, mid_block, end_block]() { EvalBlocks(mid_block, end_block); });
+      EnqueueWork(exec_ctx_, [this, mid_block, end_block]() {
+        EvalBlocks(mid_block, end_block);
+      });
 
       // Current range becomes [start_block, mid_block).
       end_block = mid_block;
@@ -107,10 +110,10 @@ class ParallelForExecutionContext {
 
  private:
   ParallelForExecutionContext(
-      HostContext* host, size_t n, size_t block_size,
+      ExecutionContext exec_ctx, size_t n, size_t block_size,
       llvm::unique_function<void(size_t, size_t)> compute,
       llvm::unique_function<void()> on_done)
-      : host_(host),
+      : exec_ctx_(std::move(exec_ctx)),
         n_(n),
         block_size_(block_size),
         pending_blocks_(DivUp(n, block_size)),
@@ -125,7 +128,8 @@ class ParallelForExecutionContext {
     return (x + y - 1) / y;
   }
 
-  HostContext* host_;  // must stay alive before the `on_done` is called
+  ExecutionContext exec_ctx_;  // The data in exec_ctx_ must stay alive before
+                               // the `on_done` is called
 
   size_t n_;
   size_t block_size_;
@@ -144,8 +148,8 @@ void ParallelFor::Execute(size_t total_size, const BlockSizes& block_sizes,
   if (total_size == 0) return on_done();
 
   // Compute a parallel block size for the non-empty range [0, total_size).
-  const size_t block_size =
-      block_sizes.GetBlockSize(host_->GetNumWorkerThreads(), total_size);
+  const size_t block_size = block_sizes.GetBlockSize(
+      exec_ctx_.host()->GetNumWorkerThreads(), total_size);
   assert(block_size > 0 && "Illegal block size");
   assert(block_size <= total_size && "Illegal block size");
 
@@ -158,14 +162,15 @@ void ParallelFor::Execute(size_t total_size, const BlockSizes& block_sizes,
 
   // Allocate parallel for execution context on the heap.
   ParallelForExecutionContext* ctx = ParallelForExecutionContext::Allocate(
-      host_, total_size, block_size, std::move(compute), std::move(on_done));
+      exec_ctx_, total_size, block_size, std::move(compute),
+      std::move(on_done));
   ctx->EvalBlocks(0, ctx->PendingBlocks());
 }
 
 AsyncValueRef<Chain> ParallelFor::Execute(
     size_t total_size, const BlockSizes& block_sizes,
     llvm::unique_function<void(size_t, size_t)> compute) const {
-  auto chain = MakeConstructedAsyncValueRef<Chain>(host_);
+  auto chain = MakeConstructedAsyncValueRef<Chain>(exec_ctx_.host());
   Execute(total_size, block_sizes, std::move(compute),
           [chain = chain.CopyRef()]() { chain.SetStateConcrete(); });
   return chain;

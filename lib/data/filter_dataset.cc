@@ -24,6 +24,8 @@
 
 #include "filter_dataset.h"
 
+#include "tfrt/host_context/async_dispatch.h"
+
 namespace tfrt {
 namespace data {
 
@@ -164,7 +166,7 @@ void FilterDatasetIterator::MaybeScheduleBackgroundTask(
       iterator->num_false_predicate_.fetch_sub(1);
     }
     if (callback_count >= MAX_RECURSIVE_CALLS) {
-      host->EnqueueWork([exec_ctx, iterator = std::move(iterator)] {
+      EnqueueWork(exec_ctx, [exec_ctx, iterator = std::move(iterator)] {
         iterator->MaybeScheduleBackgroundTask(exec_ctx, true, 0);
       });
     } else {

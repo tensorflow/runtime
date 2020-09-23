@@ -18,6 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/native_function.h"
@@ -61,7 +62,7 @@ void NativeAsyncAdd(AsyncValue* const* arguments, int num_arguments,
   int32_t b = arguments[1]->get<int32_t>();
 
   assert(num_results == 1);
-  results[0] = host->EnqueueWork([c = a + b]() { return c; });
+  results[0] = EnqueueWork(host, [c = a + b]() { return c; });
 }
 
 void NativeError(AsyncValue* const* arguments, int num_arguments,

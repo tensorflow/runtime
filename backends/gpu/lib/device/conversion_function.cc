@@ -25,6 +25,7 @@
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
@@ -83,7 +84,8 @@ AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
                   toString(std::move(event_record_error)));
   }
 
-  return host->EnqueueBlockingWork(
+  return EnqueueBlockingWork(
+      host,
       [event = std::move(event),
        result = std::move(result)]() mutable -> Expected<DenseHostTensor> {
         if (EventSynchronize(event.get())) {
@@ -128,8 +130,8 @@ Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
   if (auto error = EventRecord(event.get(), stream)) return std::move(error);
 
   // The underlying buffer of `tensor` needs to live until the memcpy is done.
-  bool work_enqueued = host->EnqueueBlockingWork(
-      [tensor = tensor.CopyRef(), event = std::move(event)] {
+  bool work_enqueued = EnqueueBlockingWork(
+      host, [tensor = tensor.CopyRef(), event = std::move(event)] {
         // FIXME(sanjoy): How do we handle an error from EventSynchronize here?
         llvm::ExitOnError die_if_error;
         die_if_error(EventSynchronize(event.get()));

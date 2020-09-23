@@ -11,6 +11,7 @@
 #include <atomic>
 
 #include "gtest/gtest.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_allocator.h"
@@ -39,9 +40,10 @@ TEST(MultiThreadedWorkQueueTest, PingPong) {
     last_executed_task = n;
 
     if (n % 2 == 0) {
-      host->EnqueueWork([&, n]() { enqueue(n + 1); });
+      EnqueueWork(host.get(), [&, n]() { enqueue(n + 1); });
     } else {
-      bool enqueued = host->EnqueueBlockingWork([&, n]() { enqueue(n + 1); });
+      bool enqueued =
+          EnqueueBlockingWork(host.get(), [&, n]() { enqueue(n + 1); });
       if (!enqueued) last_executed_task = -100;
     }
   };

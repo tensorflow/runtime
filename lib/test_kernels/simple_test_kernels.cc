@@ -19,6 +19,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm_derived/Support/raw_ostream.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/shared_context.h"
@@ -50,10 +51,10 @@ static void TestPartialFail(Result<int32_t> one, Result<int32_t> error_out,
 static void TestReportErrorAsync(Result<int32_t> out,
                                  const ExecutionContext& exec_ctx,
                                  AsyncKernelFrame* frame) {
-  exec_ctx.host()->EnqueueWork(
-      [out_ref = out.Allocate(), frame_copy = *frame]() mutable {
-        frame_copy.ReportError("something bad happened asynchronously");
-      });
+  EnqueueWork(exec_ctx,
+              [out_ref = out.Allocate(), frame_copy = *frame]() mutable {
+                frame_copy.ReportError("something bad happened asynchronously");
+              });
 }
 
 // This kernel cancels execution.

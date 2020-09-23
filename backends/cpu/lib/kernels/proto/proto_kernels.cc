@@ -19,6 +19,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/kernels/proto/example.proto.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
@@ -29,41 +30,42 @@ namespace proto {
 
 static AsyncValueRef<tfrt::proto::Example> ParseExampleFromBytes(
     Argument<std::string> data, const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
   using ReturnTy = Expected<tfrt::proto::Example>;
 
-  return host->EnqueueWork([data = data.ValueRef(), exec_ctx]() -> ReturnTy {
-    TFRT_TRACE_SCOPE("ParseExampleFromBytes");
-    tfrt::proto::Example example;
-    if (!example.ParseFromString(data.get())) {
-      auto diag =
-          EmitError(exec_ctx, "failed to parse example.proto from string");
-      return MakeStringError(diag.message);
-    }
-    return example;
-  });
+  return EnqueueWork(
+      exec_ctx, [data = data.ValueRef(), exec_ctx]() -> ReturnTy {
+        TFRT_TRACE_SCOPE("ParseExampleFromBytes");
+        tfrt::proto::Example example;
+        if (!example.ParseFromString(data.get())) {
+          auto diag =
+              EmitError(exec_ctx, "failed to parse example.proto from string");
+          return MakeStringError(diag.message);
+        }
+        return example;
+      });
 }
 
 static AsyncValueRef<std::string> GetBytesFieldFromExample(
     Argument<tfrt::proto::Example> example, Argument<std::string> key,
     const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
   using ReturnTy = Expected<std::string>;
 
-  return host->EnqueueWork([example = example.ValueRef(), key = key.ValueRef(),
-                            exec_ctx]() -> ReturnTy {
-    TFRT_TRACE_SCOPE("GetBytesFieldFromExample");
-    const auto& feature_map = example->features().feature();
-    if (!feature_map.contains(key.get())) {
-      auto diag =
-          EmitError(exec_ctx, "key ", key.get(), " is not found in the proto");
-      return MakeStringError(diag.message);
-    }
-    const auto& bytes_list = feature_map.at(key.get()).bytes_list();
-    // Assume that each feature is a scalar.
-    assert(bytes_list.value_size() == 1);
-    return bytes_list.value(0);
-  });
+  return EnqueueWork(exec_ctx,
+                     [example = example.ValueRef(), key = key.ValueRef(),
+                      exec_ctx]() -> ReturnTy {
+                       TFRT_TRACE_SCOPE("GetBytesFieldFromExample");
+                       const auto& feature_map = example->features().feature();
+                       if (!feature_map.contains(key.get())) {
+                         auto diag = EmitError(exec_ctx, "key ", key.get(),
+                                               " is not found in the proto");
+                         return MakeStringError(diag.message);
+                       }
+                       const auto& bytes_list =
+                           feature_map.at(key.get()).bytes_list();
+                       // Assume that each feature is a scalar.
+                       assert(bytes_list.value_size() == 1);
+                       return bytes_list.value(0);
+                     });
 }
 
 static llvm::Expected<int64_t> GetInt64FieldFromExample(

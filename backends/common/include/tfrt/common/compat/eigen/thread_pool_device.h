@@ -27,6 +27,7 @@
 #define EIGEN_USE_THREADS
 
 #include "llvm/ADT/FunctionExtras.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/kernel_frame.h"
@@ -72,7 +73,9 @@ class EigenHostContext : public SharedContext {
 
     // Submits a closure to be run by a thread in the pool.
     void Schedule(std::function<void()> fn) override {
-      host_context_->EnqueueWork(std::move(fn));
+      // TODO(tfrt-dev): Need to find a way to pass in ExecutionContext here for
+      // the async task, so that the task can be scheduled properly.
+      EnqueueWork(host_context_, std::move(fn));
     }
 
     // Returns the number of threads in the pool.

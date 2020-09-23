@@ -7,12 +7,15 @@
 
 <!-- TOC -->
 
-This test provides a realistic and large-sized model to benchmark the inference
-performance of TFRT. This allows us to compare TFRT performance with the current
-TensorFlow. The ResNet50 model executed in this test is same as the model used
-by
+The goal of this test is to demonstrate that the TFRT can run a large-sized
+ResNet50 model in inference mode (forward-pass only). This document describes
+the setup of the ResNet50 integration test and walks through the instructions to
+run it. The ResNet50 model executed in this test is same as the model used by
 [MLPerf inference benchmark](https://github.com/mlperf/inference/tree/r0.5/v0.5/classification_and_detection).
-This document walks through the instructions to run the test.
+
+The test runs ResNet50 inference on CPU for one step and checks that it
+generates the expected result. It is different from the ResNet50 inference GPU
+benchmark presented in the 2020 TensorFlow DevSummit.
 
 ## Test setup
 
@@ -23,6 +26,12 @@ This test has the following files:
     TensorFlow) in the custom [Binary Tensor Format](binary_tensor_format.md)
     (BTF).
 
+    Since the BTF file is more than 90 MB, we can not check it into repository
+    and you will need to manually download
+    `resnet50_graph_inference_tensors.btf` from Google Drive
+    [here](https://drive.google.com/file/d/1ReGkWkGlf9q48fauP-uhApRuoZFn1i8F/view?usp=sharing)
+    to the directory `integrationtest/resnet/test_data/`.
+
 *   [resnet50_graph_inference.mlir](https://github.com/tensorflow/runtime/blob/master/integrationtest/resnet/resnet50_graph_inference.mlir)
     that initializes the ResNet50 model in TFRT using the model weights stored
     in the resnet50_graph_inference_tensors.btf, runs one inference step using
@@ -31,19 +40,15 @@ This test has the following files:
 
 ## Test instructions
 
-Since the BTF file is more than 90 MB, we can not check it into repository and
-you will need to manually download it from Google Drive
+First, download `resnet50_graph_inference_tensors.btf` from Google Drive
 [here](https://drive.google.com/file/d/1ReGkWkGlf9q48fauP-uhApRuoZFn1i8F/view?usp=sharing)
-to the path
-integrationtest/resnet/test_data/resnet50_graph_inference_tensors.btf.
+to the directory `integrationtest/resnet/test_data/`.
 
-Then you need to modify integrationtest/resnet/BUILD to un-comment the line that
-contains "resnet50_graph_inference_tensors.btf" and remove the line that
-contains "resnet50_graph_inference.mlir" in the `exclude` section.
+Then modify `integrationtest/resnet/BUILD` to un-comment the line that contains
+`resnet50_graph_inference_tensors.btf` and remove the line that contains
+`resnet50_graph_inference.mlir` in the `exclude` section.
 
-Lastly, execute the command below to run the test. This test uses TFRT to run
-the ResNet50 model in inference mode for one step and checks that it generates
-the expected probability distribution across labels.
+Lastly, execute the command below to run the test.
 
 ```shell
 $ bazel test //integrationtest/resnet:resnet50_graph_inference.mlir.test

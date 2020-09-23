@@ -29,6 +29,7 @@
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_handler.h"
 #include "tfrt/core_runtime/tensor_handle.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
@@ -295,7 +296,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
     result_refs.push_back(av.CopyRef());
   }
 
-  host->RunWhenReady(
+  RunWhenReady(
       async_args,
       [core_rt, op_handler = op_handler.ValueRef(),
        op_chain = in_op_chain.ValueRef(), arg_refs = std::move(arg_refs),
@@ -641,14 +642,14 @@ static void CoreRtWhileLoopIterationImpl(
   passed_args.resize(result_refs.size());
   body_fn_ref->Execute(exec_ctx, args, passed_args);
 
-  exec_ctx.host()->EnqueueWork(
-      [exec_ctx, cond_fn_ref = std::move(cond_fn_ref),
-       body_fn_ref = std::move(body_fn_ref), arg_refs = std::move(passed_args),
-       result_refs = std::move(result_refs)]() mutable {
-        CoreRtWhileLoopIteration(exec_ctx, std::move(cond_fn_ref),
-                                 std::move(body_fn_ref), std::move(arg_refs),
-                                 std::move(result_refs));
-      });
+  EnqueueWork(exec_ctx, [exec_ctx, cond_fn_ref = std::move(cond_fn_ref),
+                         body_fn_ref = std::move(body_fn_ref),
+                         arg_refs = std::move(passed_args),
+                         result_refs = std::move(result_refs)]() mutable {
+    CoreRtWhileLoopIteration(exec_ctx, std::move(cond_fn_ref),
+                             std::move(body_fn_ref), std::move(arg_refs),
+                             std::move(result_refs));
+  });
 }
 
 // This is a helper function that executes the loop condition function and kicks
@@ -696,45 +697,42 @@ static void CoreRtWhileLoopIteration(
          "Cond function did not return a TensorHandle");
 
   // Dispatch when the condition becomes available.
-  exec_ctx.host()->RunWhenReady(
-      condition,
-      [condition_tensorhandle_ref = condition[1].CopyRef(),
-       handle_error_and_return, exec_ctx = std::move(exec_ctx),
-       cond_fn_ref = std::move(cond_fn_ref),
-       body_fn_ref = std::move(body_fn_ref), arg_refs = std::move(arg_refs),
-       result_refs = std::move(result_refs)]() mutable {
-        AsyncValue *condition_tensorhandle = condition_tensorhandle_ref.get();
-        if (handle_error_and_return(condition_tensorhandle, result_refs))
-          return;
+  RunWhenReady(condition, [condition_tensorhandle_ref = condition[1].CopyRef(),
+                           handle_error_and_return,
+                           exec_ctx = std::move(exec_ctx),
+                           cond_fn_ref = std::move(cond_fn_ref),
+                           body_fn_ref = std::move(body_fn_ref),
+                           arg_refs = std::move(arg_refs),
+                           result_refs = std::move(result_refs)]() mutable {
+    AsyncValue *condition_tensorhandle = condition_tensorhandle_ref.get();
+    if (handle_error_and_return(condition_tensorhandle, result_refs)) return;
 
-        AsyncValue *condition_async_tensor =
-            condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+    AsyncValue *condition_async_tensor =
+        condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
 
-        // TODO(hanbinyoon): Remove this extra level of asynchrony after
-        // b/162752746 is fixed.
-        condition_async_tensor->AndThen(
-            [condition_tensorhandle_ref = std::move(condition_tensorhandle_ref),
-             handle_error_and_return, exec_ctx = std::move(exec_ctx),
-             cond_fn_ref = std::move(cond_fn_ref),
-             body_fn_ref = std::move(body_fn_ref),
-             arg_refs = std::move(arg_refs),
-             result_refs = std::move(result_refs)]() mutable {
-              AsyncValue *condition_tensorhandle =
-                  condition_tensorhandle_ref.get();
-              AsyncValue *condition_async_tensor =
-                  condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
-              if (handle_error_and_return(condition_async_tensor, result_refs))
-                return;
+    // TODO(hanbinyoon): Remove this extra level of asynchrony after
+    // b/162752746 is fixed.
+    condition_async_tensor->AndThen(
+        [condition_tensorhandle_ref = std::move(condition_tensorhandle_ref),
+         handle_error_and_return, exec_ctx = std::move(exec_ctx),
+         cond_fn_ref = std::move(cond_fn_ref),
+         body_fn_ref = std::move(body_fn_ref), arg_refs = std::move(arg_refs),
+         result_refs = std::move(result_refs)]() mutable {
+          AsyncValue *condition_tensorhandle = condition_tensorhandle_ref.get();
+          AsyncValue *condition_async_tensor =
+              condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+          if (handle_error_and_return(condition_async_tensor, result_refs))
+            return;
 
-              // TODO(hanbinyoon): Handle other tensor types. Currently assumes
-              // dense host tensor or string host tensor.
-              auto &condition_tensor = condition_async_tensor->get<Tensor>();
-              CoreRtWhileLoopIterationImpl(
-                  exec_ctx, condition_tensor, std::move(cond_fn_ref),
-                  std::move(body_fn_ref), std::move(arg_refs),
-                  std::move(result_refs));
-            });
-      });
+          // TODO(hanbinyoon): Handle other tensor types. Currently assumes
+          // dense host tensor or string host tensor.
+          auto &condition_tensor = condition_async_tensor->get<Tensor>();
+          CoreRtWhileLoopIterationImpl(
+              exec_ctx, condition_tensor, std::move(cond_fn_ref),
+              std::move(body_fn_ref), std::move(arg_refs),
+              std::move(result_refs));
+        });
+  });
 }
 
 // corert.while dispatches multiple iterations of a 'Body' function based on a

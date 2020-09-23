@@ -26,6 +26,7 @@
 #include <thread>
 
 #include "gtest/gtest.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_allocator.h"
@@ -54,7 +55,7 @@ TEST(HostContextTest, RunBlockingWork) {
   std::set<std::thread::id> threads;
 
   for (int i = 0; i < 10; ++i) {
-    bool submitted = host->RunBlockingWork([&]() {
+    bool submitted = RunBlockingWork(host.get(), [&] {
       start.wait();
       {
         mutex_lock lock(mu);
@@ -74,7 +75,7 @@ TEST(HostContextTest, RunBlockingWork) {
 TEST(HostContextTest, RunBlockingWorkWithResult) {
   auto host = CreateTestHostContext(1);
 
-  AsyncValueRef<int> result = host->RunBlockingWork([]() -> int { return 42; });
+  AsyncValueRef<int> result = RunBlockingWork(host.get(), [] { return 42; });
 
   llvm::SmallVector<RCReference<AsyncValue>, 4> refs;
   refs.push_back(result.CopyRCRef());

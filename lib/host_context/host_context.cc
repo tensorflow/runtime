@@ -111,84 +111,12 @@ void HostContext::Await(ArrayRef<RCReference<AsyncValue>> values) {
   work_queue_->Await(values);
 }
 
-// Add some work to the workqueue managed by this CPU device.
-void HostContext::EnqueueWork(llvm::unique_function<void()> work) {
-  work_queue_->AddTask(TaskFunction(std::move(work)));
-}
-
-// Add some work to the workqueue managed by this CPU device.
-bool HostContext::EnqueueBlockingWork(llvm::unique_function<void()> work) {
-  Optional<TaskFunction> task = work_queue_->AddBlockingTask(
-      TaskFunction(std::move(work)), /*allow_queuing=*/true);
-  return !task.hasValue();
-}
-
-// Runs blocking work on a work_queue managed by this CPU device.
-bool HostContext::RunBlockingWork(llvm::unique_function<void()> work) {
-  Optional<TaskFunction> task = work_queue_->AddBlockingTask(
-      TaskFunction(std::move(work)), /*allow_queuing=*/false);
-  return !task.hasValue();
-}
-
 int HostContext::GetNumWorkerThreads() const {
   return work_queue_->GetParallelismLevel();
 }
 
 bool HostContext::IsInWorkerThread() const {
   return work_queue_->IsInWorkerThread();
-}
-
-// Run the specified function when the specified set of AsyncValue's are all
-// resolved.  This is a set-version of "AndThen".
-void HostContext::RunWhenReady(ArrayRef<AsyncValue*> values,
-                               llvm::unique_function<void()> callee) {
-  // Perform a quick scan of the arguments.  If they are all available, or if
-  // any is already an error, then we can run the callee synchronously.
-  SmallVector<AsyncValue*, 4> unavailable_values;
-  for (auto i : values) {
-    if (!i->IsAvailable()) unavailable_values.push_back(i);
-  }
-
-  // If we can synchronously call 'callee', then do it and we're done.
-  if (unavailable_values.empty()) return callee();
-
-  // If there is exactly one unavailable value, then we can just AndThen it.
-  if (unavailable_values.size() == 1) {
-    unavailable_values[0]->AndThen(
-        [callee = std::move(callee)]() mutable { callee(); });
-    return;
-  }
-
-  struct CounterAndCallee {
-    std::atomic<size_t> counter;
-    llvm::unique_function<void()> callee;
-  };
-
-  // Otherwise, we have multiple unavailable values.  Put a counter on the heap
-  // and have each unavailable value decrement and test it.
-  auto* data =
-      new CounterAndCallee{{unavailable_values.size()}, std::move(callee)};
-
-  for (auto* val : unavailable_values) {
-    val->AndThen([data]() {
-      // Decrement the counter unless we're the last to be here.
-      if (data->counter.fetch_sub(1) != 1) return;
-
-      // If we are the last one, then run the callee and free the data.
-      data->callee();
-      delete data;
-    });
-  }
-}
-
-void HostContext::RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
-                               llvm::unique_function<void()> callee) {
-  auto mapped = llvm::map_range(
-      values, [](const RCReference<AsyncValue>& ref) -> AsyncValue* {
-        return ref.get();
-      });
-  SmallVector<AsyncValue*, 8> values_ptr(mapped.begin(), mapped.end());
-  RunWhenReady(values_ptr, std::move(callee));
 }
 
 //===----------------------------------------------------------------------===//

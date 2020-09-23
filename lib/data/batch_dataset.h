@@ -233,7 +233,7 @@ void CopySlice(RCReference<AsyncValue> input_value,
     }
   };
 
-  exec_ctx.host()->RunWhenReady(async_value_ptrs, std::move(callback));
+  RunWhenReady(async_value_ptrs, std::move(callback));
 }
 
 template <typename T>

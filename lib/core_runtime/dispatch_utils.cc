@@ -145,67 +145,66 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
     *invocation.chain = chain_ref.CopyRef();
   }
 
-  host->RunWhenReady(
-      async_mds,
-      [metadata_fn, callback = std::move(callback),
-       exec_ctx = invocation.exec_ctx, frozen_attrs = invocation.attrs.freeze(),
-       chain = std::move(chain_ref), result_th_avs = std::move(result_th_avs),
-       arguments = std::move(arguments_copy)]() mutable {
-        auto num_results = result_th_avs.size() / 2;
+  RunWhenReady(async_mds, [metadata_fn, callback = std::move(callback),
+                           exec_ctx = invocation.exec_ctx,
+                           frozen_attrs = invocation.attrs.freeze(),
+                           chain = std::move(chain_ref),
+                           result_th_avs = std::move(result_th_avs),
+                           arguments = std::move(arguments_copy)]() mutable {
+    auto num_results = result_th_avs.size() / 2;
 
-        // If any error is detected, this closure ties off our state and
-        // propagates the error correctly.
-        auto propagate_error = [&](AsyncValue* error_av) {
-          auto& diag = error_av->GetError();
-          // Set the previously allocated metadata AV to the error.
-          for (auto& result_th_av : result_th_avs) result_th_av->SetError(diag);
-          if (chain) chain.SetError(diag);
-        };
+    // If any error is detected, this closure ties off our state and
+    // propagates the error correctly.
+    auto propagate_error = [&](AsyncValue* error_av) {
+      auto& diag = error_av->GetError();
+      // Set the previously allocated metadata AV to the error.
+      for (auto& result_th_av : result_th_avs) result_th_av->SetError(diag);
+      if (chain) chain.SetError(diag);
+    };
 
-        // This lambda will run when all of the async_shapes are resolved,
-        // allowing us to run the shape function and then carry on.
-        SmallVector<TensorMetadata, 4> argument_mds;
-        argument_mds.reserve(arguments.size());
-        for (size_t i = 0, e = arguments.size(); i != e; ++i) {
-          // If any input is an error, then propagate the error to all outputs
-          // and we are done.
-          if (arguments[i].IsMetadataError()) {
-            return propagate_error(
-                arguments[i].GetAsyncMetadata().GetAsyncValue());
-          }
+    // This lambda will run when all of the async_shapes are resolved,
+    // allowing us to run the shape function and then carry on.
+    SmallVector<TensorMetadata, 4> argument_mds;
+    argument_mds.reserve(arguments.size());
+    for (size_t i = 0, e = arguments.size(); i != e; ++i) {
+      // If any input is an error, then propagate the error to all outputs
+      // and we are done.
+      if (arguments[i].IsMetadataError()) {
+        return propagate_error(arguments[i].GetAsyncMetadata().GetAsyncValue());
+      }
 
-          // Otherwise, we have the metadata for the input.
-          argument_mds.push_back(arguments[i].GetAvailableMetadata());
-        }
+      // Otherwise, we have the metadata for the input.
+      argument_mds.push_back(arguments[i].GetAvailableMetadata());
+    }
 
-        // Okay, the shapes are available as we expect, run the metadata
-        // function to get the result shapes.
-        SmallVector<TensorMetadata, 4> result_mds(num_results);
-        if (auto error =
-                metadata_fn(exec_ctx, argument_mds, frozen_attrs, result_mds)) {
-          // If the metadata function produced an error, propagate it.
-          return propagate_error(error.get());
-        }
+    // Okay, the shapes are available as we expect, run the metadata
+    // function to get the result shapes.
+    SmallVector<TensorMetadata, 4> result_mds(num_results);
+    if (auto error =
+            metadata_fn(exec_ctx, argument_mds, frozen_attrs, result_mds)) {
+      // If the metadata function produced an error, propagate it.
+      return propagate_error(error.get());
+    }
 
-        // Now that we know the metadata results for this op, we can fulfill the
-        // AsyncValue's for the result TensorHandles.  Do this eagerly to keep
-        // the shape computations flowing fast.
-        for (size_t i = 0; i != num_results; ++i)
-          result_th_avs[i * 2]->emplace<TensorMetadata>(result_mds[i]);
+    // Now that we know the metadata results for this op, we can fulfill the
+    // AsyncValue's for the result TensorHandles.  Do this eagerly to keep
+    // the shape computations flowing fast.
+    for (size_t i = 0; i != num_results; ++i)
+      result_th_avs[i * 2]->emplace<TensorMetadata>(result_mds[i]);
 
-        // Now that we have the result shapes, we can run/enqueue the kernel.
-        SmallVector<AsyncValueRef<Tensor>, 8> result_tensor_avs;
-        callback(exec_ctx, arguments, frozen_attrs, result_mds.size(),
-                 result_mds, &result_tensor_avs, &chain);
+    // Now that we have the result shapes, we can run/enqueue the kernel.
+    SmallVector<AsyncValueRef<Tensor>, 8> result_tensor_avs;
+    callback(exec_ctx, arguments, frozen_attrs, result_mds.size(), result_mds,
+             &result_tensor_avs, &chain);
 
-        // Now that we have the AsyncValue's for the result tensors, we can fill
-        // in the IndirectAsyncValue's for the TensorHandle results.
-        for (size_t i = 0; i != num_results; ++i) {
-          auto* indirect_av =
-              cast<IndirectAsyncValue>(result_th_avs[i * 2 + 1].get());
-          indirect_av->ForwardTo(std::move(result_tensor_avs[i]));
-        }
-      });
+    // Now that we have the AsyncValue's for the result tensors, we can fill
+    // in the IndirectAsyncValue's for the TensorHandle results.
+    for (size_t i = 0; i != num_results; ++i) {
+      auto* indirect_av =
+          cast<IndirectAsyncValue>(result_th_avs[i * 2 + 1].get());
+      indirect_av->ForwardTo(std::move(result_tensor_avs[i]));
+    }
+  });
 }
 
 }  // namespace internal

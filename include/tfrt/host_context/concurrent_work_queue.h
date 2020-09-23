@@ -33,7 +33,9 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
+
 class AsyncValue;
+class ExecutionContext;
 
 // This is a pure virtual base class for concurrent work queue implementations.
 // This provides an abstraction for adding work items to a queue to be executed
@@ -70,19 +72,31 @@ class AsyncValue;
 // directly - instead, you should interact with HostContext.
 class ConcurrentWorkQueue {
  public:
+  ConcurrentWorkQueue() = default;
+
+  ConcurrentWorkQueue(const ConcurrentWorkQueue&) = delete;
+  ConcurrentWorkQueue& operator=(const ConcurrentWorkQueue&) = delete;
+
   // Undefined what happens to pending work when destructor is called.
   virtual ~ConcurrentWorkQueue();
 
   // Return a human-readable description of the work queue.
   virtual std::string name() const = 0;
 
- protected:
   // Enqueue a block of work. Thread-safe.
   //
   // If the work queue implementation has a fixed-size internal queue of pending
   // work items, and it is full, it can choose to execute `work` in the caller
   // thread.
   virtual void AddTask(TaskFunction work) = 0;
+
+  // ExecutionContext includes the context information for this task, such as
+  // the request priority. A concrete CWQ implemenation may use the context
+  // information to schedule the task as appropriate. The default implementation
+  // ignores the ExecutionContext.
+  virtual void AddTask(const ExecutionContext& exec_ctx, TaskFunction work) {
+    AddTask(std::move(work));
+  }
 
   // Enqueue a blocking task. Thread-safe.
   //
@@ -94,6 +108,15 @@ class ConcurrentWorkQueue {
   // returns the argument wrapped in an optional.
   LLVM_NODISCARD virtual Optional<TaskFunction> AddBlockingTask(
       TaskFunction work, bool allow_queuing) = 0;
+
+  // ExecutionContext includes the context information for this task, such as
+  // the request priority. A concrete CWQ implemenation may use the context
+  // information to schedule the task as appropriate. The default implementation
+  // ignores the ExecutionContext.
+  LLVM_NODISCARD virtual Optional<TaskFunction> AddBlockingTask(
+      const ExecutionContext& exec_ctx, TaskFunction work, bool allow_queuing) {
+    return AddBlockingTask(std::move(work), allow_queuing);
+  }
 
   // Block until the specified values are available (either with a value or an
   // error result).
@@ -116,17 +139,6 @@ class ConcurrentWorkQueue {
   // Returns true if the caller thread is one of the worker threads managed by
   // this work queue. Returns true only for threads executing compute tasks.
   virtual bool IsInWorkerThread() const = 0;
-
-  ConcurrentWorkQueue() = default;
-
- private:
-  // Clients should access ConcurrentWorkQueue's methods via HostContext.
-  friend class HostContext;
-  // Tests-only.
-  friend class ConcurrentWorkQueueTestHelper;
-
-  ConcurrentWorkQueue(const ConcurrentWorkQueue&) = delete;
-  ConcurrentWorkQueue& operator=(const ConcurrentWorkQueue&) = delete;
 };
 
 // Create a thread pool that only uses the host donor thread, involving no

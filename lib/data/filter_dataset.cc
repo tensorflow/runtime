@@ -125,10 +125,10 @@ void FilterDatasetIterator::MaybeScheduleBackgroundTask(
   async_value_ptrs.push_back(input.eof.GetAsyncValue());
   async_value_ptrs.push_back(predicate.values[0].get());
   async_value_ptrs.push_back(predicate.eof.GetAsyncValue());
-  host->RunWhenReady(async_value_ptrs, [exec_ctx, host, callback_count,
-                                        input = std::move(input),
-                                        predicate = std::move(predicate),
-                                        iterator = FormRef(this)]() mutable {
+  RunWhenReady(async_value_ptrs, [exec_ctx, host, callback_count,
+                                  input = std::move(input),
+                                  predicate = std::move(predicate),
+                                  iterator = FormRef(this)]() mutable {
     auto predicate_value = std::move(predicate.values[0]);
     auto predicate_eof = std::move(predicate.eof);
     if (predicate_eof.IsError()) {

@@ -22,6 +22,9 @@
 
 #include "tfrt/host_context/async_dispatch.h"
 
+#include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/host_context/task_function.h"
+
 namespace tfrt {
 
 void Await(const ExecutionContext& exec_ctx,
@@ -31,29 +34,96 @@ void Await(const ExecutionContext& exec_ctx,
 
 void EnqueueWork(const ExecutionContext& exec_ctx,
                  llvm::unique_function<void()> work) {
-  EnqueueWork(exec_ctx.host(), std::move(work));
+  auto& work_queue = exec_ctx.host()->work_queue();
+  work_queue.AddTask(exec_ctx, TaskFunction(std::move(work)));
 }
 
 bool EnqueueBlockingWork(const ExecutionContext& exec_ctx,
                          llvm::unique_function<void()> work) {
-  return exec_ctx.host()->EnqueueBlockingWork(std::move(work));
+  auto& work_queue = exec_ctx.host()->work_queue();
+  Optional<TaskFunction> task = work_queue.AddBlockingTask(
+      exec_ctx, TaskFunction(std::move(work)), /*allow_queuing=*/true);
+  return !task.hasValue();
 }
 
 bool RunBlockingWork(const ExecutionContext& exec_ctx,
                      llvm::unique_function<void()> work) {
-  return exec_ctx.host()->RunBlockingWork(std::move(work));
+  auto& work_queue = exec_ctx.host()->work_queue();
+  Optional<TaskFunction> task = work_queue.AddBlockingTask(
+      exec_ctx, TaskFunction(std::move(work)), /*allow_queuing=*/false);
+  return !task.hasValue();
 }
 
-void RunWhenReady(const ExecutionContext& exec_ctx,
-                  ArrayRef<AsyncValue*> values,
-                  llvm::unique_function<void()> callee) {
-  exec_ctx.host()->RunWhenReady(values, std::move(callee));
+void EnqueueWork(HostContext* host, llvm::unique_function<void()> work) {
+  auto& work_queue = host->work_queue();
+  work_queue.AddTask(TaskFunction(std::move(work)));
 }
 
-void RunWhenReady(const ExecutionContext& exec_ctx,
-                  ArrayRef<RCReference<AsyncValue>> values,
+LLVM_NODISCARD bool EnqueueBlockingWork(HostContext* host,
+                                        llvm::unique_function<void()> work) {
+  auto& work_queue = host->work_queue();
+  Optional<TaskFunction> task = work_queue.AddBlockingTask(
+      TaskFunction(std::move(work)), /*allow_queuing=*/true);
+  return !task.hasValue();
+}
+
+LLVM_NODISCARD bool RunBlockingWork(HostContext* host,
+                                    llvm::unique_function<void()> work) {
+  auto& work_queue = host->work_queue();
+  Optional<TaskFunction> task = work_queue.AddBlockingTask(
+      TaskFunction(std::move(work)), /*allow_queuing=*/false);
+  return !task.hasValue();
+}
+
+void RunWhenReady(ArrayRef<AsyncValue*> values,
                   llvm::unique_function<void()> callee) {
-  exec_ctx.host()->RunWhenReady(values, std::move(callee));
+  // Perform a quick scan of the arguments.  If they are all available, or if
+  // any is already an error, then we can run the callee synchronously.
+  SmallVector<AsyncValue*, 4> unavailable_values;
+  for (auto i : values) {
+    if (!i->IsAvailable()) unavailable_values.push_back(i);
+  }
+
+  // If we can synchronously call 'callee', then do it and we're done.
+  if (unavailable_values.empty()) return callee();
+
+  // If there is exactly one unavailable value, then we can just AndThen it.
+  if (unavailable_values.size() == 1) {
+    unavailable_values[0]->AndThen(
+        [callee = std::move(callee)]() mutable { callee(); });
+    return;
+  }
+
+  struct CounterAndCallee {
+    std::atomic<size_t> counter;
+    llvm::unique_function<void()> callee;
+  };
+
+  // Otherwise, we have multiple unavailable values.  Put a counter on the heap
+  // and have each unavailable value decrement and test it.
+  auto* data =
+      new CounterAndCallee{{unavailable_values.size()}, std::move(callee)};
+
+  for (auto* val : unavailable_values) {
+    val->AndThen([data]() {
+      // Decrement the counter unless we're the last to be here.
+      if (data->counter.fetch_sub(1) != 1) return;
+
+      // If we are the last one, then run the callee and free the data.
+      data->callee();
+      delete data;
+    });
+  }
+}
+
+void RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
+                  llvm::unique_function<void()> callee) {
+  auto mapped = llvm::map_range(
+      values, [](const RCReference<AsyncValue>& ref) -> AsyncValue* {
+        return ref.get();
+      });
+  SmallVector<AsyncValue*, 8> values_ptr(mapped.begin(), mapped.end());
+  RunWhenReady(values_ptr, std::move(callee));
 }
 
 }  // namespace tfrt

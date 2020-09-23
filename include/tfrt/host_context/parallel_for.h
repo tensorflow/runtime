@@ -27,6 +27,7 @@
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/STLExtras.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
@@ -205,8 +206,8 @@ AsyncValueRef<R> ParallelFor::Execute(
       // At this point all block compute tasks are launched, but not all of
       // their asynchronous results are completed. When all block results are
       // ready, call `on_done` function to compute a value for `result`.
-      [host = exec_ctx_.host(), ctx = std::move(ctx)]() mutable -> void {
-        host->RunWhenReady(ctx->BlockResults(), [ctx = std::move(ctx)]() {
+      [ctx = std::move(ctx)]() mutable -> void {
+        RunWhenReady(ctx->BlockResults(), [ctx = std::move(ctx)]() {
           R result = ctx->on_done(ctx->block_results);
           ctx->result.emplace(std::move(result));
         });

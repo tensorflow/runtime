@@ -20,6 +20,7 @@
 
 #include "tfrt/host_context/native_function.h"
 
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 
@@ -54,24 +55,23 @@ void NativeFunction::Execute(
     av_ref = indirect_results.back().CopyRef();
   }
 
-  host->RunWhenReady(
-      unavailable_args,
-      [this, host, args = std::move(args),
-       indirect_results = std::move(indirect_results)]() mutable {
-        SmallVector<AsyncValue*, 4> arg_avs;
-        arg_avs.reserve(args.size());
-        for (const auto& arg : args) arg_avs.push_back(arg.get());
+  RunWhenReady(unavailable_args,
+               [this, host, args = std::move(args),
+                indirect_results = std::move(indirect_results)]() mutable {
+                 SmallVector<AsyncValue*, 4> arg_avs;
+                 arg_avs.reserve(args.size());
+                 for (const auto& arg : args) arg_avs.push_back(arg.get());
 
-        SmallVector<RCReference<AsyncValue>, 4> results;
-        results.resize(indirect_results.size());
-        callable_(arg_avs.data(), arg_avs.size(), results.data(),
-                  results.size(), host);
+                 SmallVector<RCReference<AsyncValue>, 4> results;
+                 results.resize(indirect_results.size());
+                 callable_(arg_avs.data(), arg_avs.size(), results.data(),
+                           results.size(), host);
 
-        for (int i = 0, e = results.size(); i != e; ++i) {
-          assert(results[i]);
-          indirect_results[i]->ForwardTo(std::move(results[i]));
-        }
-      });
+                 for (int i = 0, e = results.size(); i != e; ++i) {
+                   assert(results[i]);
+                   indirect_results[i]->ForwardTo(std::move(results[i]));
+                 }
+               });
 }
 
 }  // namespace tfrt

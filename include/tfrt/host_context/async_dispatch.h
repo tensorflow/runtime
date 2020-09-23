@@ -41,6 +41,7 @@ struct UnwrapExpected<Expected<T>> {
 
 template <typename F>
 using AsyncResultTypeT = typename UnwrapExpected<std::result_of_t<F()>>::type;
+
 }  // namespace internal
 
 // Block until the specified values are available (either with a value or an
@@ -54,8 +55,8 @@ void Await(const ExecutionContext& exec_ctx,
 void EnqueueWork(const ExecutionContext& exec_ctx,
                  llvm::unique_function<void()> work);
 
-// Add some non-blocking work to the work_queue used by the ExecutionContext.
-// Return AsyncValueRef<R> for work that returns R. R cannot be void.
+// Overload of EnqueueWork that return AsyncValueRef<R> for work that returns R
+// when R is not void.
 //
 // Example:
 // int a = 1, b = 2;
@@ -64,7 +65,12 @@ template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
 LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(const ExecutionContext& exec_ctx,
                                             F&& work) {
-  return EnqueueWork(exec_ctx.host(), std::forward<F>(work));
+  auto result = MakeUnconstructedAsyncValueRef<R>(exec_ctx.host());
+  EnqueueWork(exec_ctx, [result = result.CopyRef(),
+                         work = std::forward<F>(work)]() mutable {
+    result.emplace(work());
+  });
+  return result;
 }
 
 // Add some blocking work to the work_queue used by the ExecutionContext.
@@ -78,6 +84,29 @@ LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(const ExecutionContext& exec_ctx,
 LLVM_NODISCARD bool EnqueueBlockingWork(const ExecutionContext& exec_ctx,
                                         llvm::unique_function<void()> work);
 
+// Overload of EnqueueBlockingWork that return AsyncValueRef<R> for work that
+// returns R when R is not void.
+//
+// Example:
+// int a = 1, b = 2;
+// AsyncValueRef<int> r = EnqueueBlockingWork(exec_ctx, [a, b] { return a + b;
+// });
+template <typename F, typename R = internal::AsyncResultTypeT<F>,
+          std::enable_if_t<!std::is_void<R>(), int> = 0>
+LLVM_NODISCARD AsyncValueRef<R> EnqueueBlockingWork(
+    const ExecutionContext& exec_ctx, F&& work) {
+  auto result = MakeUnconstructedAsyncValueRef<R>(exec_ctx.host());
+  bool enqueued = EnqueueBlockingWork(
+      exec_ctx,
+      [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
+        result.emplace(work());
+      });
+  if (!enqueued) {
+    result.SetError("Failed to enqueue blocking work.");
+  }
+  return result;
+}
+
 // Runs blocking work on a work_queue used by the ExecutionContext.
 //
 // Work is guaranteed to be started immediately on one of the threads managed
@@ -88,63 +117,110 @@ LLVM_NODISCARD bool EnqueueBlockingWork(const ExecutionContext& exec_ctx,
 LLVM_NODISCARD bool RunBlockingWork(const ExecutionContext& exec_ctx,
                                     llvm::unique_function<void()> work);
 
-// Add some blocking work to the work_queue used by the ExecutionContext.
-template <typename F, typename R = internal::AsyncResultTypeT<F>,
-          std::enable_if_t<!std::is_void<R>(), int> = 0>
-LLVM_NODISCARD AsyncValueRef<R> EnqueueBlockingWork(
-    const ExecutionContext& exec_ctx, F&& work) {
-  return exec_ctx.host()->EnqueueBlockingWork(std::forward<F>(work));
-}
-
-// Runs blocking work on a work_queue used by the ExecutionContext.
+// Overload of RunBlockingWork that return AsyncValueRef<R> for work that
+// returns R when R is not void.
+//
+// Example:
+// int a = 1, b = 2;
+// AsyncValueRef<int> r = RunBlockingWork(exec_ctx, [a, b] { return a + b;
+// });
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
 LLVM_NODISCARD AsyncValueRef<R> RunBlockingWork(
     const ExecutionContext& exec_ctx, F&& work) {
-  exec_ctx.host()->RunBlockingWork(std::forward<F>(work));
+  auto result = MakeUnconstructedAsyncValueRef<R>(exec_ctx.host());
+  bool enqueued = RunBlockingWork(
+      exec_ctx,
+      [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
+        result.emplace(work());
+      });
+  if (!enqueued) {
+    result.SetError("Failed to run blocking work.");
+  }
+  return result;
 }
-
-// Run the specified function when the specified set of AsyncValue's are all
-// resolved.  This is a set-version of "AndThen".
-void RunWhenReady(const ExecutionContext& exec_ctx,
-                  ArrayRef<AsyncValue*> values,
-                  llvm::unique_function<void()> callee);
-
-void RunWhenReady(const ExecutionContext& exec_ctx,
-                  ArrayRef<RCReference<AsyncValue>> values,
-                  llvm::unique_function<void()> callee);
 
 // The following set of functions scheduled a blocking or non-blocking work
 // without an ExecutionContext. They should only be used for tasks that are
 // outside of a kernel execution. Depending on the thread pool implementation,
 // such tasks are typically scheduled at the default priority.
-inline void EnqueueWork(HostContext* host, llvm::unique_function<void()> work) {
-  host->EnqueueWork(std::move(work));
-}
+void EnqueueWork(HostContext* host, llvm::unique_function<void()> work);
 
+// Overload of EnqueueWork that return AsyncValueRef<R> for work that returns R
+// when R is not void.
+//
+// Example:
+// int a = 1, b = 2;
+// AsyncValueRef<int> r = EnqueueWork(host_ctx, [a, b] { return a + b; });
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
-LLVM_NODISCARD inline AsyncValueRef<R> EnqueueWork(HostContext* host,
-                                                   F&& work) {
-  return host->EnqueueWork(std::forward<F>(work));
+LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(HostContext* host, F&& work) {
+  auto result = MakeUnconstructedAsyncValueRef<R>(host);
+  EnqueueWork(host, [result = result.CopyRef(),
+                     work = std::forward<F>(work)]() mutable {
+    result.emplace(work());
+  });
+  return result;
 }
 
-LLVM_NODISCARD inline bool EnqueueBlockingWork(
-    HostContext* host, llvm::unique_function<void()> work) {
-  return host->EnqueueBlockingWork(std::move(work));
-}
+LLVM_NODISCARD bool EnqueueBlockingWork(HostContext* host,
+                                        llvm::unique_function<void()> work);
 
+// Overload of EnqueueBlockingWork that return AsyncValueRef<R> for work that
+// returns R when R is not void.
+//
+// Example:
+// int a = 1, b = 2;
+// AsyncValueRef<int> r = EnqueueBlockingWork(host_ctx, [a, b] { return a + b;
+// });
 template <typename F, typename R = internal::AsyncResultTypeT<F>,
           std::enable_if_t<!std::is_void<R>(), int> = 0>
 LLVM_NODISCARD AsyncValueRef<R> EnqueueBlockingWork(HostContext* host,
                                                     F&& work) {
-  return host->EnqueueBlockingWork(std::forward<F>(work));
+  auto result = MakeUnconstructedAsyncValueRef<R>(host);
+  bool enqueued = EnqueueBlockingWork(
+      host,
+      [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
+        result.emplace(work());
+      });
+  if (!enqueued) {
+    result.SetError("Failed to enqueue blocking work.");
+  }
+  return result;
 }
 
-LLVM_NODISCARD inline bool RunBlockingWork(HostContext* host,
-                                           llvm::unique_function<void()> work) {
-  return host->RunBlockingWork(std::move(work));
+LLVM_NODISCARD bool RunBlockingWork(HostContext* host,
+                                    llvm::unique_function<void()> work);
+
+// Overload of RunBlockingWork that return AsyncValueRef<R> for work that
+// returns R when R is not void.
+//
+// Example:
+// int a = 1, b = 2;
+// AsyncValueRef<int> r = RunBlockingWork(host_ctx, [a, b] { return a + b;
+// });
+template <typename F, typename R = internal::AsyncResultTypeT<F>,
+          std::enable_if_t<!std::is_void<R>(), int> = 0>
+LLVM_NODISCARD AsyncValueRef<R> RunBlockingWork(HostContext* host, F&& work) {
+  auto result = MakeUnconstructedAsyncValueRef<R>(host);
+  bool enqueued = RunBlockingWork(
+      host,
+      [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
+        result.emplace(work());
+      });
+  if (!enqueued) {
+    result.SetError("Failed to run blocking work.");
+  }
+  return result;
 }
+
+// Run the specified function when the specified set of AsyncValue's are all
+// resolved.  This is a set-version of "AndThen".
+void RunWhenReady(ArrayRef<AsyncValue*> values,
+                  llvm::unique_function<void()> callee);
+
+void RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
+                  llvm::unique_function<void()> callee);
 
 }  // namespace tfrt
 

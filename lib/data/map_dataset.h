@@ -25,6 +25,7 @@
 #define TFRT_LIB_DATA_MAP_DATASET_H_
 
 #include "tfrt/data/dataset.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -113,9 +114,9 @@ inline llvm::SmallVector<RCReference<AsyncValue>, 4> RunFunctionWhenReady(
     results_copy[i] = results[i].CopyRef();
   }
 
-  host->RunWhenReady(argument_ptrs, [function, arguments = std::move(arguments),
-                                     results = std::move(results),
-                                     argument_ptrs, exec_ctx]() mutable {
+  RunWhenReady(argument_ptrs, [function, arguments = std::move(arguments),
+                               results = std::move(results), argument_ptrs,
+                               exec_ctx]() mutable {
     auto num_results = function->result_types().size();
     SmallVector<RCReference<AsyncValue>, 4> fn_results;
     fn_results.resize(num_results);

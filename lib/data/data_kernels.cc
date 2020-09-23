@@ -349,12 +349,11 @@ struct EnumerateContext {
 
     // Get next input values.
     auto next = iterator->GetNext(exec_ctx);
-    exec_ctx.host()->RunWhenReady(
-        next.AsyncValues(),
-        [ctx = std::move(ctx), next = std::move(next)]() mutable {
-          auto* ctx_ptr = ctx.get();
-          ctx_ptr->ProcessInputs(std::move(ctx), std::move(next));
-        });
+    RunWhenReady(next.AsyncValues(),
+                 [ctx = std::move(ctx), next = std::move(next)]() mutable {
+                   auto* ctx_ptr = ctx.get();
+                   ctx_ptr->ProcessInputs(std::move(ctx), std::move(next));
+                 });
   }
 
   // Forward EOF flag error to all enumerate results.
@@ -440,12 +439,11 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
 
   // Request the first input from the iterator.
   auto next = iterator->GetNext(exec_ctx);
-  exec_ctx.host()->RunWhenReady(
-      next.AsyncValues(),
-      [ctx = std::move(ctx), next = next.CopyRef()]() mutable {
-        auto* ctx_ptr = ctx.get();
-        ctx_ptr->ProcessInputs(std::move(ctx), std::move(next));
-      });
+  RunWhenReady(next.AsyncValues(),
+               [ctx = std::move(ctx), next = next.CopyRef()]() mutable {
+                 auto* ctx_ptr = ctx.get();
+                 ctx_ptr->ProcessInputs(std::move(ctx), std::move(next));
+               });
 }
 
 //===----------------------------------------------------------------------===//

@@ -29,6 +29,7 @@
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
@@ -160,14 +161,16 @@ AsyncValueRef<typename ParseTensorTraits::TensorTy> ReadTensorFromBTF(
   HostContext* host = exec_ctx.host();
 
   using ReturnTy = Expected<typename ParseTensorTraits::TensorTy>;
-  return host->EnqueueBlockingWork([host, path, index, exec_ctx]() -> ReturnTy {
-    auto result = ReadTensorFromBTFHelper<ParseTensorTraits>(path, index, host);
-    if (!result) {
-      auto diag = EmitError(exec_ctx, result.takeError());
-      return MakeStringError(diag.message);
-    }
-    return result;
-  });
+  return EnqueueBlockingWork(
+      exec_ctx, [host, path, index, exec_ctx]() -> ReturnTy {
+        auto result =
+            ReadTensorFromBTFHelper<ParseTensorTraits>(path, index, host);
+        if (!result) {
+          auto diag = EmitError(exec_ctx, result.takeError());
+          return MakeStringError(diag.message);
+        }
+        return result;
+      });
 }
 
 template <typename DType_, size_t Rank_>

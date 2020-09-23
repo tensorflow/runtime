@@ -242,15 +242,13 @@ AsyncValueRef<Chain> AsyncAssign(const EigenHostContext& ctx,
                                  Expr expr, ArgLifetimeExtension args) {
   auto chain = MakeUnconstructedAsyncValueRef<Chain>(ctx.host());
 
-  ctx.host()->RunWhenReady(
-      dependencies,
-      [&ctx, out = std::move(out), expr = std::move(expr),
-       chain = chain.CopyRef(), args = std::move(args)]() mutable {
-        auto done = [args = std::move(args), chain = std::move(chain)]() {
-          chain.emplace();
-        };
-        out.device(ctx.Device(), std::move(done)) = expr;
-      });
+  RunWhenReady(dependencies,
+               [&ctx, out = std::move(out), expr = std::move(expr),
+                chain = chain.CopyRef(), args = std::move(args)]() mutable {
+                 auto done = [args = std::move(args),
+                              chain = std::move(chain)]() { chain.emplace(); };
+                 out.device(ctx.Device(), std::move(done)) = expr;
+               });
 
   return chain;
 }

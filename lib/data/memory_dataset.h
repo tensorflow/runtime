@@ -142,7 +142,7 @@ class MemoryDatasetIterator : public Iterator {
     internal::AllocateTupleResult<T...>(
         values_copy, host, std::make_index_sequence<sizeof...(T)>{});
 
-    host->RunWhenReady(
+    RunWhenReady(
         input.values, [input = input.CopyRef(),
                        values_copy = RCArray<AsyncValue>(values_copy)]() {
           internal::CopyByValue<T...>(input.values, values_copy.CopyRef());

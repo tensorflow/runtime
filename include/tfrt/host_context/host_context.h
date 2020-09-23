@@ -49,19 +49,6 @@ class SharedContext;
 // expected to be re-used through the life-time of a process, so the limited
 // instance numbers are not expected to be a problem in practice.
 class HostContext {
-  // Extract result type for EnqueueWork and EnqueueBlockingWork.
-  template <typename T>
-  struct UnwrapExpected {
-    using type = T;
-  };
-  template <typename T>
-  struct UnwrapExpected<Expected<T>> {
-    using type = T;
-  };
-
-  template <typename F>
-  using ResultTypeT = typename UnwrapExpected<std::result_of_t<F()>>::type;
-
  public:
   // The host device name that we will use if the caller does not specify the
   // device name.
@@ -146,48 +133,6 @@ class HostContext {
   // This should not be called by a thread managed by the work queue.
   void Quiesce();
 
-  // Add some non-blocking work to the work_queue managed by this CPU device.
-  void EnqueueWork(llvm::unique_function<void()> work);
-
-  // Add some non-blocking work to the work_queue managed by this CPU device.
-  // Return AsyncValueRef<R> for work that returns R. R cannot be void.
-  //
-  // Example:
-  // int a = 1, b = 2;
-  // AsyncValueRef<int> r = host->EnqueueWork([a, b] { return a + b; });
-  template <typename F, typename R = ResultTypeT<F>,
-            std::enable_if_t<!std::is_void<R>(), int> = 0>
-  LLVM_NODISCARD AsyncValueRef<R> EnqueueWork(F&& work);
-
-  // Add some blocking work to the work_queue managed by this CPU device.
-  //
-  // Work is allowed to be added to the queue and executed later on any thread
-  // managed by the work queue. If the work depends on the completion of other
-  // work enqueued into the same work_queue, it can lead to a dead lock. For
-  // this type of work RunBlockingWork should be used.
-  //
-  // Returns false if the work queue is full and can't accept new work.
-  LLVM_NODISCARD bool EnqueueBlockingWork(llvm::unique_function<void()> work);
-
-  // Runs blocking work on a work_queue managed by this CPU device.
-  //
-  // Work is guaranteed to be started immediately on one of the threads managed
-  // by the work queue without queuing.
-  //
-  // Returns false if the work queue can't assign a thread to a work item, thus
-  // can't guarantee that it will start executing.
-  LLVM_NODISCARD bool RunBlockingWork(llvm::unique_function<void()> work);
-
-  // Add some blocking work to the work_queue managed by this CPU device.
-  template <typename F, typename R = ResultTypeT<F>,
-            std::enable_if_t<!std::is_void<R>(), int> = 0>
-  LLVM_NODISCARD AsyncValueRef<R> EnqueueBlockingWork(F&& work);
-
-  // Runs blocking work on a work_queue managed by this CPU device.
-  template <typename F, typename R = ResultTypeT<F>,
-            std::enable_if_t<!std::is_void<R>(), int> = 0>
-  LLVM_NODISCARD AsyncValueRef<R> RunBlockingWork(F&& work);
-
   // Returns the number of worker threads in the work_queue managed by this CPU
   // device. This does not include any additional threads that might have been
   // created to handle blocking work (enqueued by EnqueueBlockingWork).
@@ -196,13 +141,6 @@ class HostContext {
   // Returns true if the caller thread is one of the work queue threads managed
   // by this context. Returns true only for threads executing non-blocking work.
   bool IsInWorkerThread() const;
-
-  // Run the specified function when the specified set of AsyncValue's are all
-  // resolved.  This is a set-version of "AndThen".
-  void RunWhenReady(ArrayRef<AsyncValue*> values,
-                    llvm::unique_function<void()> callee);
-  void RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
-                    llvm::unique_function<void()> callee);
 
   //===--------------------------------------------------------------------===//
   // Shared context
@@ -226,6 +164,8 @@ class HostContext {
 
   RCReference<Device> GetHostDeviceRef();
   const Device& GetHostDevice();
+
+  ConcurrentWorkQueue& work_queue() const { return *work_queue_; }
 
  private:
   friend class HostContextPtr;
@@ -288,42 +228,6 @@ template <typename SharedContextType>
 int HostContext::DenseIdForSharedContext() {
   static int id = num_shared_context_types_++;
   return id;
-}
-
-template <typename F, typename R, std::enable_if_t<!std::is_void<R>(), int>>
-AsyncValueRef<R> HostContext::EnqueueWork(F&& work) {
-  auto result = MakeUnconstructedAsyncValueRef<R>(this);
-  this->EnqueueWork(
-      [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
-        result.emplace(work());
-      });
-  return result;
-}
-
-template <typename F, typename R, std::enable_if_t<!std::is_void<R>(), int>>
-AsyncValueRef<R> HostContext::EnqueueBlockingWork(F&& work) {
-  auto result = MakeUnconstructedAsyncValueRef<R>(this);
-  bool enqueued = this->EnqueueBlockingWork(
-      [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
-        result.emplace(work());
-      });
-  if (!enqueued) {
-    result.SetError("Failed to enqueue blocking work.");
-  }
-  return result;
-}
-
-template <typename F, typename R, std::enable_if_t<!std::is_void<R>(), int>>
-AsyncValueRef<R> HostContext::RunBlockingWork(F&& work) {
-  auto result = MakeUnconstructedAsyncValueRef<R>(this);
-  bool enqueued = this->RunBlockingWork(
-      [result = result.CopyRef(), work = std::forward<F>(work)]() mutable {
-        result.emplace(work());
-      });
-  if (!enqueued) {
-    result.SetError("Failed to run blocking work.");
-  }
-  return result;
 }
 
 // HostContext free function to Allocate and initialize an object of type T.

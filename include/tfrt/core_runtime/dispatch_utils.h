@@ -28,6 +28,7 @@
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/core_runtime/op_metadata_function.h"
 #include "tfrt/core_runtime/tensor_handle.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/ref_count.h"
@@ -282,10 +283,9 @@ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunction() {
   // If any arguments required async conversions (e.g. copy off a op_handler),
   // then we have to wait for those arguments to complete.
   if (!async_args.empty()) {
-    exec_ctx_.host()->RunWhenReady(
-        async_args, [dispatch_info = std::move(*this)]() mutable {
-          dispatch_info.RunDispatchFunction();
-        });
+    RunWhenReady(async_args, [dispatch_info = std::move(*this)]() mutable {
+      dispatch_info.RunDispatchFunction();
+    });
     return;
   }
 
@@ -513,10 +513,10 @@ void ExecuteWithResultMetadataResolved(
     }
   }
 
-  exec_ctx.host()->RunWhenReady(
-      async_args, [op_dispatcher = std::move(op_dispatcher)]() mutable {
-        op_dispatcher.RunDispatchFunction();
-      });
+  RunWhenReady(async_args,
+               [op_dispatcher = std::move(op_dispatcher)]() mutable {
+                 op_dispatcher.RunDispatchFunction();
+               });
 }
 
 // This is the slow-path that is run when it turns out that an input

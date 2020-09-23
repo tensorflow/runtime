@@ -48,6 +48,12 @@ class CoreRuntime final {
   // TODO(fishx): Avoid hard-coded type string.
   static const char* kTensorHandleType;
 
+  // Create a CoreRuntime object with no OpHandler initialized.
+  static llvm::Expected<std::unique_ptr<CoreRuntime>> Create(
+      std::function<void(const DecodedDiagnostic&)> diag_handler,
+      std::unique_ptr<HostAllocator> allocator,
+      std::unique_ptr<ConcurrentWorkQueue> work_queue);
+
   // Create a CoreRuntime object. `op_handler_chains` is an array of strings
   // that specifies devices to register including their fallback op handlers.
   // For example, if we need a cpu device that falls back to tf device, we can

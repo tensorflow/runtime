@@ -160,6 +160,15 @@ struct CoreRuntimeSharedContext : public SharedContext {
 llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
     std::function<void(const DecodedDiagnostic&)> diag_handler,
     std::unique_ptr<HostAllocator> allocator,
+    std::unique_ptr<ConcurrentWorkQueue> work_queue) {
+  return CoreRuntime::Create(std::move(diag_handler), std::move(allocator),
+                             std::move(work_queue),
+                             HostContext::kDefaultHostDeviceName, {});
+}
+
+llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
+    std::function<void(const DecodedDiagnostic&)> diag_handler,
+    std::unique_ptr<HostAllocator> allocator,
     std::unique_ptr<ConcurrentWorkQueue> work_queue,
     string_view host_device_name, ArrayRef<std::string> op_handler_chains) {
   auto runtime = std::make_unique<CoreRuntime>(

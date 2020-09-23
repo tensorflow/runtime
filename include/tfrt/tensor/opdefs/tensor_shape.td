@@ -26,22 +26,9 @@ include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-// Tensor shape dialect.
-def TS_Dialect : Dialect {
-  let name = "ts";
-
-  let description = [{
-    The Tensor Shape dialect.
-
-    This dialect contains operations for working with tensor shapes.
-  }];
-
-  let cppNamespace = "::tfrt::ts";
-}
-
 // Base class for the operation in this dialect
 class TS_Op<string mnemonic, list<OpTrait> traits = []> :
-    Op<TS_Dialect, mnemonic, traits> {
+    Op<TensorShapeDialect, mnemonic, traits> {
   let parser = [{ return tfrt::ts::parse$cppClass(parser, result); }];
   let printer = " return tfrt::ts::printOpWithOperands(p, *this)" "; ";
 }

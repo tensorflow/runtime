@@ -21,10 +21,10 @@
 #include "tfrt/tensor/opdefs/tensor_shape.h"
 
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
-#include "tfrt/tensor/opdefs/tensor_shape.h"
 
 namespace tfrt {
 namespace ts {
@@ -33,13 +33,39 @@ namespace ts {
 // TensorShape Dialect
 //===----------------------------------------------------------------------===//
 
-TensorShapeDialect::TensorShapeDialect(MLIRContext *context)
-    : Dialect(/*name=*/"ts", context, TypeID::get<TensorShapeDialect>()) {
+void TensorShapeDialect::initialize() {
   allowUnknownTypes();
+  addTypes<ShapeType, PartialShapeType>();
   addOperations<
 #define GET_OP_LIST
 #include "tfrt/tensor/opdefs/tensor_shape.cpp.inc"
       >();
+}
+
+/// Parse a type registered to this dialect.
+Type TensorShapeDialect::parseType(DialectAsmParser &parser) const {
+  StringRef keyword;
+  if (parser.parseKeyword(&keyword)) return Type();
+
+  if (keyword == "shape") return ShapeType::get(getContext());
+  if (keyword == "partial_shape") return PartialShapeType::get(getContext());
+
+  parser.emitError(parser.getNameLoc(), "unknown shape type: ") << keyword;
+  return Type();
+}
+
+/// Print a type registered to this dialect.
+void TensorShapeDialect::printType(Type type, DialectAsmPrinter &os) const {
+  if (type.isa<ShapeType>()) {
+    os << "shape";
+    return;
+  }
+
+  if (type.isa<PartialShapeType>()) {
+    os << "partial_shape";
+    return;
+  }
+  llvm_unreachable("unexpected 'shape' type kind");
 }
 
 }  // namespace ts

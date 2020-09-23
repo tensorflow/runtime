@@ -32,11 +32,18 @@ using namespace mlir;
 namespace tfrt {
 namespace ts {
 
-// Dialect for operations that manipulate tensor shape.
-class TensorShapeDialect : public Dialect {
+/// The shape descriptor type represents rank and dimension sizes.
+class ShapeType : public Type::TypeBase<ShapeType, Type, TypeStorage> {
  public:
-  static StringRef getDialectNamespace() { return "ts"; }
-  explicit TensorShapeDialect(MLIRContext *context);
+  using Base::Base;
+};
+
+/// The partial shape descriptor type represents a static or a dynamic (unknown
+/// rank/dim) shape.
+class PartialShapeType
+    : public Type::TypeBase<PartialShapeType, Type, TypeStorage> {
+ public:
+  using Base::Base;
 };
 
 }  // namespace ts
@@ -44,5 +51,6 @@ class TensorShapeDialect : public Dialect {
 
 #define GET_OP_CLASSES
 #include "tfrt/tensor/opdefs/tensor_shape.h.inc"
+#include "tfrt/tensor/opdefs/tensor_shape_dialect.h.inc"
 
 #endif  // TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_H_

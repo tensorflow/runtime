@@ -510,6 +510,10 @@ gentbl(
             "-gen-op-defs",
             "include/tfrt/tensor/opdefs/tensor_shape.cpp.inc",
         ),
+        (
+            "-gen-dialect-decls -dialect=ts",
+            "include/tfrt/tensor/opdefs/tensor_shape_dialect.h.inc",
+        ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/tensor_shape.td",

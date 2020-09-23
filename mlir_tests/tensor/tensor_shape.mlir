@@ -248,3 +248,18 @@ func @ts_to_partial_shape() {
 
   tfrt.return
 }
+
+// CHECK-LABEL: --- Running 'tensor_shape_type_check'
+func @tensor_shape_type_check() {
+  %a = "ts.build_shape"() { value = [1 : i64, 57 : i64, 92 : i64] } : () -> !ts.shape
+
+  // CHECK: shape = [1, 57, 92]
+  ts.print_shape %a
+
+  %b = "ts.build_partial_shape"() { value = [-1 : i64, 57 : i64, -1 : i64] } : () -> !ts.partial_shape
+
+  // CHECK: partial_tensor_shape = [-1, 57, -1]
+  ts.print_partial_shape %b
+
+  tfrt.return
+}

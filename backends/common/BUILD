@@ -89,6 +89,17 @@ tfrt_cc_library(
     ],
 )
 
+tfrt_cc_library(
+    name = "eigentype",
+    hdrs = ["include/tfrt/common/compat/eigen/eigen_dtype.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@eigen_archive//:eigen3",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:support",
+    ],
+)
+
 # Depending on a build configuration Eigen kernels library might use different
 # contraction kernel (small matrix multiplication kernel used to multiply
 # together blocks of the original tensors) implementation.

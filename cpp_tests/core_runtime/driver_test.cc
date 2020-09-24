@@ -43,7 +43,7 @@ namespace {
 
 class CpuDriverTest : public testing::Test {
  protected:
-  example::CoreRuntimeDriver driver_{"cpu"};
+  example::CoreRuntimeCpuDriver driver_;
 };
 
 TEST_F(CpuDriverTest, MatmulTest) {
@@ -309,7 +309,7 @@ TEST_F(CpuDriverTest, NativeCompositeOpTest) {
 }
 
 void BM_CpuDriverTest(benchmark::State& state) {
-  example::CoreRuntimeDriver driver{"cpu"};
+  example::CoreRuntimeCpuDriver driver;
 
   tfrt::OpAttrs attrs1;
   tfrt::TensorHandle a1;
@@ -333,7 +333,7 @@ void BM_CpuDriverTest(benchmark::State& state) {
 BENCHMARK(BM_CpuDriverTest);
 
 void BM_CpuMakeOpDriverTest(benchmark::State& state) {
-  example::CoreRuntimeDriver driver{"cpu"};
+  example::CoreRuntimeCpuDriver driver;
 
   tfrt::OpAttrs attrs1;
   tfrt::TensorHandle a1;

@@ -39,9 +39,9 @@ class TensorHandle;
 
 namespace example {
 
-class CoreRuntimeDriver final : public LocationHandler {
+class CoreRuntimeCpuDriver final : public LocationHandler {
  public:
-  explicit CoreRuntimeDriver(const std::string& op_handlers);
+  explicit CoreRuntimeCpuDriver();
 
   // Eagerly execute the op.
   void Execute(const ExecutionContext& exec_ctx, string_view op_name,
@@ -63,8 +63,7 @@ class CoreRuntimeDriver final : public LocationHandler {
   void WaitForHostContextQuiesce();
 
  private:
-  CoreRuntimeDriver(std::unique_ptr<CoreRuntime> corert,
-                    const std::string& op_handler);
+  explicit CoreRuntimeCpuDriver(std::unique_ptr<CoreRuntime> corert);
 
   // Decode the location sections to figure out the file/line/column of this
   // error.

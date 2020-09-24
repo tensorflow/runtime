@@ -602,9 +602,7 @@ bool ExecuteOnOpHandlerImpl(
         op_handler_info, result_tensor_avs[i].CopyRef(), invocation.exec_ctx);
     if (!result_device) {
       RCReference<AsyncValue> error_av = MakeErrorAsyncValueRef(
-          invocation.exec_ctx.host(),
-          tfrt::StrCat("failed to obtain result tensor's device: ",
-                       result_device.takeError()));
+          invocation.exec_ctx.host(), tfrt::StrCat(result_device.takeError()));
       results[i] = tfrt::TensorHandle::CreateError(std::move(error_av));
       continue;
     }

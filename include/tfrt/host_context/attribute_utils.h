@@ -159,7 +159,7 @@ class AttrHeaderBase : public TypedAttrBase {
   using Base = AttrHeaderBase;
 
   AttrHeaderBase(const void* data) : TypedAttrBase(data) {
-    assert(isa<AttrClass>());
+    assert(data == nullptr || isa<AttrClass>());
   }
 
  protected:

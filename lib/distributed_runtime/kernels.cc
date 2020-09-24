@@ -37,6 +37,24 @@ namespace tfrt {
 
 namespace {
 
+// TODO(b/168132685): Use Status input for async callback function.
+using CallbackFn = llvm::unique_function<void(bool /* success */)>;
+
+class RefCountedCallback : public ReferenceCounted<RefCountedCallback> {
+ public:
+  explicit RefCountedCallback(CallbackFn done) : done_(std::move(done)) {}
+  ~RefCountedCallback() { done_(is_ok_); }
+  void UpdateState(const bool s) {
+    mutex_lock l(mu_);
+    is_ok_ = is_ok_ && s;
+  }
+
+ private:
+  CallbackFn done_;
+  mutex mu_;
+  bool is_ok_ TFRT_GUARDED_BY(mu_) = true;
+};
+
 //===----------------------------------------------------------------------===//
 // Dist AllReduce
 //===----------------------------------------------------------------------===//
@@ -133,13 +151,12 @@ size_t SplitIndex(HostId id, size_t group_size, int step) {
 }
 
 int FindMyIndex(CollectiveGroup& collective_group, HostId my_id) {
-  int my_index = -1;
-  for (auto i = 0; i < collective_group.members.size(); ++i) {
+  for (int i = 0; i < collective_group.members.size(); ++i) {
     if (collective_group.members[i] == my_id) {
-      my_index = i;
+      return i;
     }
   }
-  return my_index;
+  return -1;
 }
 
 CollectiveGroup CreateCollectiveGroup(Argument<DistributedContext> dist_context,
@@ -150,48 +167,82 @@ CollectiveGroup CreateCollectiveGroup(Argument<DistributedContext> dist_context,
 }
 
 template <typename T>
-void DoAllReduce(
-    const InstanceKey& instance_key, const CollectiveGroup& collective_group,
-    const DenseHostTensor& in_tensor, const DenseHostTensor& out_tensor,
-    ElementWiseReductionFunction reduction_fn,
-    ElementWiseFinalFunction final_fn, CallbackRegistry* callback_registry,
-    FabricCommunicator* fabric_communicator, HostId my_id, int my_index) {
-  const auto kGroupSize = collective_group.members.size();
-  const auto kNeighborId =
-      collective_group.members[(my_index + 1) % kGroupSize];
-  const auto kLastScatterStep = kGroupSize - 1;
-  const auto kLastGatherStep = 2 * kGroupSize - 2;
-  const auto kTotalGatherSteps = kGroupSize - 1;
+void DoAllReduce(const ExecutionContext& exec_ctx,
+                 AsyncValueRef<DistributedContext> dist_ctx,
+                 const InstanceKey& instance_key,
+                 const CollectiveGroup& collective_group,
+                 const DenseHostTensor& in_tensor,
+                 const DenseHostTensor& out_tensor,
+                 ElementWiseReductionFunction reduction_fn,
+                 ElementWiseFinalFunction final_fn, HostId my_id,
+                 HostId neighbor_id, AsyncValueRef<Chain> out_chain) {
+  const size_t kGroupSize = collective_group.members.size();
+  const size_t kLastScatterStep = kGroupSize - 1;
+  const size_t kLastGatherStep = 2 * kGroupSize - 2;
   const auto kPrefix = collective_group.name;
+  const int kTotalSteps = 2 * kGroupSize - 1;
+
   auto in_tensor_ref =
       llvm::StringRef(reinterpret_cast<const char*>(in_tensor.data()),
                       in_tensor.DataSizeInBytes());
-  const auto num_elements = in_tensor.NumElements();
-  auto counter = std::make_shared<std::atomic<int>>(0);
-  const auto empty_callback_fn = [](const bool ok) {};
+  auto* callback_registry = dist_ctx->GetCallbackRegistry();
+  auto* fabric_communicator = dist_ctx->GetOrCreateFabricCommunicator();
 
-  for (int step = 0; step <= 2 * kGroupSize - 2; ++step) {
-    auto step_key = StepKey(kPrefix, instance_key, step);
+  auto done = [out_chain = out_chain.CopyRef(),
+               dist_ctx = dist_ctx.CopyRef()](const bool ok) mutable {
+    if (!ok) {
+      out_chain.SetError("Failed executing all-reduce.");
+    }
+    out_chain.emplace();
+  };
+
+  // Ref counted callback to keep track of pending steps in all reduce.
+  // Add one ref before starting each step, and drop one ref when the step
+  // finishes (for steps with async RPCs, drop the reference when RPC finishes).
+  auto refcounted_done = TakeRef(
+      new RefCountedCallback([host = dist_ctx->GetHostContext(), exec_ctx,
+                              done = std::move(done)](const bool ok) mutable {
+        // NOTE: we might be executing this in either HostContext work queue
+        // threads or the FabricCommunicator callback threads. Must make sure
+        // AsyncValue Chain gets emplaced (or set error) in the work queue
+        // threadpool, so that:
+        //   * subsequent operations (i.e., AndThen) for this AsyncValue are
+        //     executed in the work queue threads;
+        //   * the AsyncValue drops its last ref and gets deallocated in the
+        //     work queue threads
+        // Otherwise, the HostContext might get destroyed before the AsyncValue
+        // is deallocated or finishes its AndThen work, leading to segfault.
+        if (host->IsInWorkerThread()) {
+          done(ok);
+        } else {
+          EnqueueWork(exec_ctx,
+                      [done = std::move(done), ok]() mutable { done(ok); });
+        }
+      }));
+
+  for (int step = 0; step < kTotalSteps; ++step) {
+    const InstanceKey step_key = StepKey(kPrefix, instance_key, step);
+    const InstanceKey next_step_key = StepKey(kPrefix, instance_key, step + 1);
+    const size_t split_id = SplitIndex(my_id, kGroupSize, step);
+    llvm::StringRef split_data = GetSplit<T>(in_tensor_ref, kGroupSize,
+                                             in_tensor.NumElements(), split_id);
 
     if (step == 0) {
-      llvm::StringRef payload =
-          GetSplit<T>(in_tensor_ref, kGroupSize, num_elements,
-                      SplitIndex(my_id, kGroupSize, step));
-      fabric_communicator->Send(StepKey(kPrefix, instance_key, 1), kNeighborId,
-                                payload, empty_callback_fn);
+      fabric_communicator->Send(
+          next_step_key, neighbor_id, split_data,
+          [refcounted_done = refcounted_done.CopyRef()](const bool ok) {
+            refcounted_done->UpdateState(ok);
+          });
     } else if (step <= kLastScatterStep) {
-      // Scatter Stage: Send a chunk to the neighbor, aggregate the incoming
+      // Scatter stage: send a chunk to the neighbor, aggregate the incoming
       // chunk with local buffer.
-      auto recv_callback =
-          [step, instance_key,
-           in_split = GetSplit<T>(in_tensor_ref, kGroupSize, num_elements,
-                                  SplitIndex(my_id, kGroupSize, step)),
-           out_split = GetSplit<T>(in_tensor_ref, kGroupSize, num_elements,
-                                   SplitIndex(my_id, kGroupSize, step)),
-           reduction_fn, final_fn, fabric_communicator, kLastScatterStep,
-           kGroupSize, kPrefix, kNeighborId,
-           empty_callback_fn](const InstanceKey&,
-                              CallbackRegistry::CallbackValue callback_value) {
+      callback_registry->SetCallback(
+          step_key, [step, in_split = split_data, out_split = split_data,
+                     reduction_fn, final_fn, fabric_communicator,
+                     kLastScatterStep, kGroupSize, next_step_key, neighbor_id,
+                     refcounted_done = refcounted_done.CopyRef()](
+                        const InstanceKey&,
+                        CallbackRegistry::CallbackValue callback_value) {
             // Scatter aggregates the results with the local buffer.
             reduction_fn(const_cast<char*>(callback_value->data()),
                          const_cast<char*>(in_split.data()), in_split.size());
@@ -204,20 +255,21 @@ void DoAllReduce(
             }
 
             fabric_communicator->Send(
-                StepKey(kPrefix, instance_key, step + 1), kNeighborId,
+                next_step_key, neighbor_id,
                 llvm::StringRef(callback_value->data(), callback_value->size()),
-                empty_callback_fn);
-          };
-      callback_registry->SetCallback(step_key, recv_callback);
+                [refcounted_done =
+                     refcounted_done.CopyRef()](const bool ok) mutable {
+                  refcounted_done->UpdateState(ok);
+                });
+          });
     } else {
-      // Gather Stage: An incoming chunk is final. Just assign it to local
-      // buffer and pass it to the neighbour as is.
-      auto recv_callback =
-          [step, counter, instance_key,
-           out_split = GetSplit<T>(in_tensor_ref, kGroupSize, num_elements,
-                                   SplitIndex(my_id, kGroupSize, step)),
-           fabric_communicator, callback_registry, kLastGatherStep, kPrefix,
-           kNeighborId, kTotalGatherSteps, empty_callback_fn](
+      // Gather stage: an incoming chunk is final; just assign it to local
+      // buffer and pass it to the neighbor as is.
+      callback_registry->SetCallback(
+          step_key,
+          [step, out_split = split_data, fabric_communicator, kLastGatherStep,
+           next_step_key, neighbor_id,
+           refcounted_done = refcounted_done.CopyRef()](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
             // Gather assigns the incoming data to the local buffer
@@ -225,16 +277,15 @@ void DoAllReduce(
                       const_cast<char*>(out_split.begin()));
             if (step < kLastGatherStep) {
               fabric_communicator->Send(
-                  StepKey(kPrefix, instance_key, step + 1), kNeighborId,
+                  next_step_key, neighbor_id,
                   llvm::StringRef(callback_value->data(),
                                   callback_value->size()),
-                  empty_callback_fn);
+                  [refcounted_done =
+                       refcounted_done.CopyRef()](const bool ok) mutable {
+                    refcounted_done->UpdateState(ok);
+                  });
             }
-            if (++(*counter) == kTotalGatherSteps) {
-              callback_registry->SetValue(instance_key, nullptr);
-            }
-          };
-      callback_registry->SetCallback(step_key, recv_callback);
+          });
     }
   }
 }
@@ -269,33 +320,22 @@ void AllReduce(Argument<DistributedContext> dist_context,
         "This worker is not part of the collective group ");
     return;
   }
+  const HostId neighbor_id =
+      collective_group
+          ->members[(my_index + 1) % collective_group->members.size()];
 
-  // Move AsyncValueRefs to on_done callback - this ensures that the arguments
-  // will not be destroyed until the callback executes.
-  auto on_done =
-      [dist_context = dist_context.ValueRef(), instance_key = *instance_key,
-       in_tensor = in_tensor.ValueRef(), out_tensor = out_tensor.ValueRef(),
-       out_chain = std::move(out_chain_indirect)](
-          const InstanceKey& reduced_key, CallbackRegistry::CallbackValue) {
-        if (instance_key != reduced_key) {
-          out_chain.SetError("instance key mismatch in AllReduce callback");
-        }
-        out_chain.emplace();
-      };
-  CallbackRegistry* callback_registry = dist_context->GetCallbackRegistry();
-  callback_registry->SetCallback(*instance_key, std::move(on_done));
-  EnqueueWork(
-      exec_ctx,
-      [instance_key = *instance_key, collective_group = *collective_group,
-       in_tensor = in_tensor.ValueRef(), out_tensor = out_tensor.ValueRef(),
-       reduction_fn, final_fn,
-       callback_registry = dist_context->GetCallbackRegistry(),
-       fabric_communicator = dist_context->GetOrCreateFabricCommunicator(),
-       my_id = dist_context->GetId(), my_index] {
-        DoAllReduce<T>(instance_key, collective_group, in_tensor.get(),
-                       out_tensor.get(), reduction_fn, final_fn,
-                       callback_registry, fabric_communicator, my_id, my_index);
-      });
+  EnqueueWork(exec_ctx, [exec_ctx, instance_key = *instance_key,
+                         dist_context = dist_context.ValueRef(),
+                         collective_group = *collective_group,
+                         in_tensor = in_tensor.ValueRef(),
+                         out_tensor = out_tensor.ValueRef(), reduction_fn,
+                         final_fn, my_id = dist_context->GetId(), neighbor_id,
+                         out_chain = std::move(out_chain_indirect)] {
+    DoAllReduce<T>(exec_ctx, dist_context.CopyRef(), instance_key,
+                   collective_group, in_tensor.get(), out_tensor.get(),
+                   reduction_fn, final_fn, my_id, neighbor_id,
+                   out_chain.CopyRef());
+  });
 }
 
 template <typename T>
@@ -340,14 +380,14 @@ void DoBroadcast(const InstanceKey& instance_key,
               llvm::StringRef(data->data(), data->size()), empty_callback_fn);
         }
         if (++(*chunks_collected) == kGroupSize) {
-          registry->SetValue(instance_key, nullptr);
+          registry->SetValue(instance_key, /*value=*/nullptr);
         }
       };
       registry->SetCallback(StepKey(kPrefix, chunk_key, my_id), recv_callback);
     }
   }
   if (my_id == sender) {
-    registry->SetValue(instance_key, nullptr);
+    registry->SetValue(instance_key, /*value=*/nullptr);
   }
 }
 

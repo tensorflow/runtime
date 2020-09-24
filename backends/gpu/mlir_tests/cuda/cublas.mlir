@@ -26,8 +26,9 @@ func @cublas_axpy() -> !tfrt.chain {
   %allocator, %ch4 = cuda.allocator.create %context, %ch3
   %stream, %ch5 = cuda.stream.create %context, %ch4
   %cublas_handle = cuda.blas.create %context
+  %ch6 = cuda.blas.set_stream %cublas_handle, %stream, %ch5
 
-  %cha0 = tfrt.merge.chains %ch5
+  %cha0 = tfrt.merge.chains %ch6
 
   %buffer_length = tfrt.constant.i32 4 // [2, 2] = 4 floats
   %buffer_size_in_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes

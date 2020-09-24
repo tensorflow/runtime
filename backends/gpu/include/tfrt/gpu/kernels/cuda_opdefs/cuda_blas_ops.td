@@ -40,6 +40,18 @@ def BlasCreateOp : CUDA_Op<"blas.create"> {
   let results = (outs CublasHandleType);
 }
 
+def BlasSetStreamOp : CUDA_Op<"blas.set_stream"> {
+  let summary = "cuda blas.set_stream operation";
+  let description = [{
+    cuda.blas.set_stream sets the BLAS library stream.
+
+    All subsequent BLAS calls will execute on the set stream (until
+    blas.set_stream is called with a different stream).
+  }];
+  let arguments = (ins CublasHandleType, StreamType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
+}
+
 def BlasSaxpyOp : CUDA_Op<"blas.axpy.f32"> {
   let summary = "cuda blas.axpy.f32 operation";
   let description = [{

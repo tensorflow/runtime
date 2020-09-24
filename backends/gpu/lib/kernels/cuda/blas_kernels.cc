@@ -54,6 +54,16 @@ static void BlasCreate(Argument<gpu::stream::Context> context,
   out_cublas_handle.Emplace(std::move(*cublas_handle));
 }
 
+static void BlasSetStream(Argument<gpu::stream::OwningBlasHandle> cublas_handle,
+                          Argument<gpu::stream::OwningStream> stream,
+                          Argument<Chain> in_chain, Result<Chain> out_chain,
+                          KernelErrorHandler handler) {
+  llvm::Error error =
+      gpu::stream::BlasSetStream(cublas_handle->get(), stream->get());
+  if (error) return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
 static void BlasSaxpy(Argument<gpu::stream::Context> context,
                       Argument<gpu::stream::OwningBlasHandle> cublas_handle,
                       Argument<int32_t> n, Argument<float> alpha,
@@ -77,6 +87,7 @@ static void BlasSaxpy(Argument<gpu::stream::Context> context,
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("cuda.blas.create", TFRT_KERNEL(BlasCreate));
   kernel_reg->AddKernel("cuda.blas.axpy.f32", TFRT_KERNEL(BlasSaxpy));
+  kernel_reg->AddKernel("cuda.blas.set_stream", TFRT_KERNEL(BlasSetStream));
 }
 }  // namespace cuda
 }  // namespace tfrt

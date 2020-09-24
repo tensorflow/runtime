@@ -345,6 +345,81 @@ static void CudaModuleLoadStatic(Argument<gpu::stream::Context> context,
   out_chain.Set(in_chain);
 }
 
+static void CudaLaunch(
+    Argument<Chain> in_chain, Argument<gpu::stream::Context> context,
+    Argument<uint32_t> grid_dim_x, Argument<uint32_t> grid_dim_y,
+    Argument<uint32_t> grid_dim_z, Argument<uint32_t> block_dim_x,
+    Argument<uint32_t> block_dim_y, Argument<uint32_t> block_dim_z,
+    Argument<uint32_t> shared_memory_size_bytes,
+    Argument<gpu::stream::OwningStream> stream, RemainingArguments args,
+    Result<Chain> out_chain, Attribute<gpu::ModuleFuncHandle> function_handle,
+    const ExecutionContext& exec_ctx, KernelErrorHandler handler) {
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  if (!current) return REPORT_ERROR(handler, current.takeError());
+
+  auto device = gpu::stream::CtxGetDevice(*current);
+  if (!device) return REPORT_ERROR(handler, device.takeError());
+
+  const int device_ordinal = device->id(current->platform());
+
+  auto multi_device_module_table_or =
+      exec_ctx.resource_context()
+          ->GetResource<std::unique_ptr<gpu::MultiDeviceModuleTable>>(
+              kModuleTableResource);
+  if (!multi_device_module_table_or.hasValue()) {
+    REPORT_ERROR(handler,
+                 "CUDA module table has not been initialized for any device");
+    return;
+  }
+  const gpu::MultiDeviceModuleTable& multi_device_module_table =
+      *(multi_device_module_table_or.getValue()->get());
+  const auto module_table = multi_device_module_table.GetTable(*device);
+  if (!module_table) {
+    REPORT_ERROR(
+        handler,
+        StrCat("CUDA module table has not been initialized for device ",
+               device_ordinal));
+    return;
+  }
+
+  // Kernel params are a vector of pointers to the kernel args, so we must first
+  // materialize the kernel arg values.
+  llvm::SmallVector<uintptr_t, 16> arg_values;
+  arg_values.reserve(args.size());
+  for (const auto& arg : args.values()) {
+    if (arg->IsType<RCReference<gpu::GpuBuffer>>()) {
+      arg_values.push_back(reinterpret_cast<uintptr_t>(
+          arg->get<RCReference<gpu::GpuBuffer>>()->pointer().raw()));
+    } else if (arg->IsType<int32_t>()) {
+      arg_values.push_back(arg->get<int32_t>());
+    } else {
+      REPORT_ERROR(handler,
+                   "Unsupported argument type provided to cuda.launch.");
+      return;
+    }
+  }
+
+  // Add required layer of indirection for kernel params.
+  // TODO(idan): Consider using packed params interface.
+  llvm::SmallVector<void*, 16> arg_pointers;
+  arg_pointers.reserve(args.size());
+  for (auto& arg_value : arg_values) {
+    arg_pointers.push_back(&arg_value);
+  }
+
+  gpu::stream::Function func_ptr =
+      (*module_table)->GetFunction(function_handle.get());
+  llvm::Error error = gpu::stream::LaunchKernel(
+      *current, func_ptr, grid_dim_x.get(), grid_dim_y.get(), grid_dim_z.get(),
+      block_dim_x.get(), block_dim_y.get(), block_dim_z.get(),
+      shared_memory_size_bytes.get(), stream->get(), arg_pointers,
+      llvm::ArrayRef<void*>{});
+
+  if (error) return REPORT_ERROR(handler, std::move(error));
+
+  out_chain.Set(in_chain);
+}
+
 void RegisterCudaKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("cuda.init", TFRT_KERNEL(CudaInit));
   kernel_reg->AddKernel("cuda.device.get", TFRT_KERNEL(CudaDeviceGet));
@@ -385,6 +460,7 @@ void RegisterCudaKernels(KernelRegistry* kernel_reg) {
 
   kernel_reg->AddKernel("cuda.module.load_static",
                         TFRT_KERNEL(CudaModuleLoadStatic));
+  kernel_reg->AddKernel("cuda.launch", TFRT_KERNEL(CudaLaunch));
 }
 
 }  // namespace cuda

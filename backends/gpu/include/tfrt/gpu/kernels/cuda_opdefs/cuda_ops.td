@@ -311,4 +311,42 @@ def ModuleLoadStatic : CUDA_Op<"module.load_static"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def Launch : CUDA_Op<"launch"> {
+  let summary = "Launches a kernel";
+  let description = [{
+    cuda.launch invokes the provided kernel on a the provided stream.
+
+    The function attribute used by this kernel must refer to the index of a
+    function loaded via cuda.module.load_static.
+
+    Example:
+      %ch1 = cuda.launch %ch0 %ctx
+                         %grid_dim_x %grid_dim_y %grid_dim_z
+                         %block_dim_x %block_dim_y %block_dim_z
+                         %shared_memory_size_bytes %stream
+                         { function_handle = 21 : ui64 }
+                         (%arg0, %arg1, ..., %argN) : (<type0>, <type1>, ... <typeN>)
+  }];
+  let arguments = (ins
+    TFRT_ChainType:$in_chain,
+    ContextType:$ctx,
+    UI32:$grid_dim_x,
+    UI32:$grid_dim_y,
+    UI32:$grid_dim_z,
+    UI32:$block_dim_x,
+    UI32:$block_dim_y,
+    UI32:$block_dim_z,
+    UI32:$shared_memory_size_bytes,
+    StreamType:$stream,
+    Variadic<AnyTypeOf<[BufferType, AnyFloat, AnyInteger]>>:$args,
+    UI64Attr:$function_handle
+  );
+  let results = (outs TFRT_ChainType:$out_chain);
+  let assemblyFormat = [{
+    $in_chain $ctx $grid_dim_x $grid_dim_y $grid_dim_z
+        $block_dim_x  $block_dim_y  $block_dim_z  $shared_memory_size_bytes
+        $stream attr-dict ( `(` $args^ `)`  `:` `(` type($args) `)`  )?
+  }];
+}
+
 #endif  // CUDA_OPS

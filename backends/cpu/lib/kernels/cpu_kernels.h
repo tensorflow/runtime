@@ -23,6 +23,8 @@
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CPU_KERNELS_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CPU_KERNELS_H_
 
+#include <type_traits>
+
 #include "mkldnn.h"  // from @mkl_dnn
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -193,35 +195,55 @@ static AsyncValueRef<Chain> Mean(const DenseHostTensor& input,
                                  ArrayRef<int32_t> reduction_indices,
                                  DenseHostTensor* output,
                                  const ExecutionContext& exec_ctx) {
-  // shape_input has format (batch_size, height, width, in_channel_num)
-  DHTIndexableView<T, 4> input_view(&input);
-  MutableDHTIndexableView<T, 2> output_view(output);
-  const auto& shape_input = input_view.FixedShape();
-  // shape_output has format (batch_size, in_channel_num)
-  const auto& shape_output = output_view.FixedShape();
+  auto mean = [&](auto input_rank_tag,
+                  auto reduction_rank_tag) -> AsyncValueRef<Chain> {
+    constexpr int input_rank = decltype(input_rank_tag)::value;
+    constexpr int reduction_rank = decltype(reduction_rank_tag)::value;
+    constexpr int output_rank = input_rank - reduction_rank;
+    static_assert(output_rank >= 0, "Output rank must be greater than 0");
 
-  const FixedRankShape<2> expected_output_shape(
-      {shape_input[0], shape_input[3]});
+    DHTIndexableView<T, input_rank> input_view(&input);
+    MutableDHTIndexableView<T, output_rank> output_view(output);
 
-  if (shape_output != expected_output_shape) {
-    return EmitErrorAsync(exec_ctx, "unexpected output shape");
-  }
+    Eigen::DSizes<Eigen::Index, reduction_rank> reduction_indices_t;
+    for (int i = 0; i < reduction_rank; ++i) {
+      reduction_indices_t[i] = reduction_indices[i];
+    }
 
-  if (reduction_indices.size() != 2) {
-    return EmitErrorAsync(exec_ctx,
-                          "Only reduction indices with size 2 is supported");
-  }
+    auto input_t = AsEigenConstTensor(input_view);
+    auto output_t = AsEigenTensor(output_view);
+    auto expr = input_t.mean(reduction_indices_t);
 
-  Eigen::DSizes<Eigen::Index, 2> reduction_indices_t;
-  reduction_indices_t[0] = reduction_indices[0];
-  reduction_indices_t[1] = reduction_indices[1];
-  auto input_t = AsEigenConstTensor(input_view);
-  auto output_t = AsEigenTensor(output_view);
-  auto expr = input_t.mean(reduction_indices_t);
+    return AsyncAssign(
+        exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
+        std::move(output_t), std::move(expr),
+        KeepBuffers::alive(&input, output));
+  };
 
-  return AsyncAssign(
-      exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
-      std::move(output_t), std::move(expr), KeepBuffers::alive(&input, output));
+  const int input_rank = input.shape().GetRank();
+  const int reduction_rank = reduction_indices.size();
+
+#define REDUCE(INPUT, REDUCTION)                          \
+  if (input_rank == INPUT && reduction_rank == REDUCTION) \
+    return mean(std::integral_constant<int32_t, INPUT>{}, \
+                std::integral_constant<int32_t, REDUCTION>{});
+
+  REDUCE(1, 1);
+  REDUCE(2, 1);
+  REDUCE(2, 2);
+  REDUCE(3, 1);
+  REDUCE(3, 2);
+  REDUCE(3, 3);
+  REDUCE(4, 1);
+  REDUCE(4, 2);
+  REDUCE(4, 3);
+  REDUCE(4, 4);
+
+#undef REDUCE
+
+  return EmitErrorAsync(
+      exec_ctx, StrCat("Unsupported reduction ranks: input_rank=", input_rank,
+                       " reduction_rank=", reduction_rank));
 }
 
 //===----------------------------------------------------------------------===//

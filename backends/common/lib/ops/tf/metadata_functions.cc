@@ -464,19 +464,6 @@ static Expected<TensorMetadata> TfMeanOpMdImpl(
   return TensorMetadata(input.dtype, output_dims);
 }
 
-static Expected<TensorMetadata> TfMeanOpMd(
-    const TensorMetadata& input, const TensorMetadata& /* reduction_indices */,
-    const OpAttrsRef& attrs) {
-  // TODO(tfrt-devs): Read reduction_indices from the tensor argument.
-  auto channel_order = GuessChannelOrder(input.shape);
-  if (!channel_order) return MakeStringError("Could not guess channel order.");
-  auto spatial_offset = *channel_order == ChannelOrder::ChannelLast ? 1 : 2;
-  llvm::SmallVector<int32_t, 2> default_reduction_indices = {
-      spatial_offset, spatial_offset + 1};
-
-  return TfMeanOpMdImpl<int32_t>(input, default_reduction_indices, attrs);
-}
-
 static Expected<TensorMetadata> TfMeanOpFoldedMd(const TensorMetadata& input,
                                                  const OpAttrsRef& attrs) {
   DenseAttr dense_attr;
@@ -514,7 +501,6 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.Relu", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Conv2D", TFRT_METADATA(TfConvOpMd));
     result->emplace_back("tf.MaxPool", TFRT_METADATA(TfMaxPoolOpMd));
-    result->emplace_back("tf.Mean", TFRT_METADATA(TfMeanOpMd));
     result->emplace_back("_tf.Mean", TFRT_METADATA(TfMeanOpFoldedMd));
     result->emplace_back("tf.Mul", TFRT_METADATA(TfBinaryOpMd));
     result->emplace_back("tf.RealDiv", TFRT_METADATA(TfBinaryOpMd));

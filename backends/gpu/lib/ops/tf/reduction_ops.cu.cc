@@ -487,14 +487,23 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpFolded(
 
 static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOp(
     GpuDispatchContext* dctx, const DenseGpuTensor& input,
-    const DenseGpuTensor& /*reduction_indices*/,
-    const TensorMetadata& result_md) {
+    const DenseGpuTensor& /*reduction_indices*/) {
   // TODO(tfrt-devs): Read reduction_indices from a dense host tensor.
   auto channel_order = GuessChannelOrder(input.shape());
   if (!channel_order) return MakeStringError("Could not guess channel order.");
   auto spatial_offset = *channel_order == ChannelOrder::ChannelLast ? 1 : 2;
   llvm::SmallVector<int32_t, 2> reduction_indices = {spatial_offset,
                                                      spatial_offset + 1};
+
+  SmallVector<ssize_t, 2> result_dims;
+  if (*channel_order == ChannelOrder::ChannelLast) {
+    result_dims = {input.shape().GetDimensionSize(0),
+                   input.shape().GetDimensionSize(3)};
+  } else {
+    result_dims = {input.shape().GetDimensionSize(0),
+                   input.shape().GetDimensionSize(1)};
+  }
+  TensorMetadata result_md(input.dtype(), result_dims);
 
   return ComputeMeanGpuOpImpl(dctx, input, reduction_indices, result_md);
 }

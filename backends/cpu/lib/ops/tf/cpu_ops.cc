@@ -140,11 +140,43 @@ static AsyncValueRef<DenseHostTensor> TfReluOp(
 // tf.Mean op
 //===----------------------------------------------------------------------===//
 
+static Expected<TensorMetadata> TfMeanOutputMd(
+    const DenseHostTensor& input, const DenseHostTensor& reduction_indices) {
+  // Check if an input dimension is reduced or not.
+  DHTArrayView<int32_t> reduction_indices_view(&reduction_indices);
+  llvm::SmallVector<bool, 4> reduced_dim(input.shape().GetRank(), false);
+  for (auto reduction_index : reduction_indices_view.Elements()) {
+    if (reduction_index < 0 || reduction_index >= input.shape().GetRank()) {
+      return MakeStringError(
+          "tf.Mean reduction index must be in [0, input_rank) range");
+    }
+    if (reduced_dim[reduction_index]) {
+      return MakeStringError("tf.Mean reduction indices must be unique");
+    }
+
+    reduced_dim[reduction_index] = true;
+  }
+
+  llvm::SmallVector<ssize_t, 4> output_dims;
+  for (int i = 0; i < input.shape().GetRank(); ++i) {
+    if (!reduced_dim[i])
+      output_dims.push_back(input.shape().GetDimensionSize(i));
+  }
+
+  return TensorMetadata(input.dtype(), output_dims);
+}
+
 static AsyncValueRef<DenseHostTensor> TfMeanOp(
     const DenseHostTensor& input, const DenseHostTensor& reduction_indices,
-    const TensorMetadata& output_md, const ExecutionContext& exec_ctx) {
+    const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  auto output = DenseHostTensor::CreateUninitialized(output_md, host);
+
+  // Compute output tensor metadata from reduction indices.
+  auto output_md = TfMeanOutputMd(input, reduction_indices);
+  if (auto err = output_md.takeError())
+    return EmitErrorAsync(exec_ctx, std::move(err));
+
+  auto output = DenseHostTensor::CreateUninitialized(*output_md, host);
   if (!output) {
     return EmitErrorAsync(exec_ctx, "out of memory allocating tensor");
   }

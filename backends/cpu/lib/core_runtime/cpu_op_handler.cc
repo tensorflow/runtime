@@ -117,6 +117,11 @@ uint32_t TensorNeedsConversion(const Tensor& t, const CpuOpEntry& entry) {
                          GetStaticTensorType("TFLiteStringHost").id());
   }
 
+  if (entry.flags & CpuOpFlags::AllowsTfRuntimeFallback) {
+    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
+                         GetStaticTensorType("RuntimeFallback").id());
+  }
+
   // If the tensor is already in a supported format, then we're done.
   if (allowed_types & uint32_t{1}
                           << static_cast<uint32_t>(t.tensor_type().id()))

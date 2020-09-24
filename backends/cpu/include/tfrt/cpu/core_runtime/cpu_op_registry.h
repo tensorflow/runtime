@@ -88,6 +88,10 @@ struct CpuOpFlags {
     // If this is set, the op dispatch function is prepared to deal with
     // tensor inputs in TfLiteHostTensor format.
     AllowsTfLite = 1 << 4,
+
+    // If this is set, the op dispatch function is prepared to deal with tensor
+    // inputs in the TFRuntimeFallbackTensor format.
+    AllowsTfRuntimeFallback = 1 << 5,
   } flags;
 
   explicit CpuOpFlags() : flags(None) {}

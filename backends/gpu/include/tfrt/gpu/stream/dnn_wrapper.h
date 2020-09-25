@@ -189,6 +189,7 @@ llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor);
 
 llvm::Expected<OwningDnnConvolutionDescriptor> DnnCreateConvolutionDescriptor(
     Platform platform);
+
 llvm::Error DnnDestroyConvolutionDescriptor(
     DnnConvolutionDescriptor descriptor);
 

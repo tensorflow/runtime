@@ -75,7 +75,7 @@ StackTrace CreateStackTrace(int skip_count) {
 #endif
   // FIXME: Once the trivial-abi unique_ptr patch is rolled out, we should
   // adjust this "skipcount" to be +1 and remove the tail-call inhibitor.
-  StackTraceOstream os(skip_count + 2);
+  StackTraceOstream os(skip_count + 3);
   llvm::sys::PrintStackTrace(os);
 
   auto ret = StackTrace(new internal::StackTraceImpl{std::move(os.str())});

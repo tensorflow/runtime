@@ -39,8 +39,8 @@ namespace {
 // - delegate execution to RequestHandler
 class TestRequestHandler : public FabricCommunicatorRequestHandler {
  public:
-  explicit TestRequestHandler(DistributedContext* context)
-      : handler_(context) {}
+  explicit TestRequestHandler(AsyncValueRef<DistributedContext> context)
+      : handler_(context.CopyRef()) {}
   ~TestRequestHandler() final {}
 
   void HandleRemoteRegister(const RemoteRegisterInvocation& request) final {
@@ -109,7 +109,7 @@ AsyncValueRef<DistributedContext> TestCreateDistributedContext(
   AsyncValueRef<DistributedContext> value =
       MakeAvailableAsyncValueRef<DistributedContext>(
           exec_ctx.host(), exec_ctx.host(), configuration);
-  auto handler = std::make_unique<TestRequestHandler>(&value.get());
+  auto handler = std::make_unique<TestRequestHandler>(value.CopyRef());
   value->Init(std::move(handler));
   return value;
 }

@@ -39,14 +39,17 @@ class RequestContext;
 // at the callee location.
 class RequestHandler : public FabricCommunicatorRequestHandler {
  public:
-  RequestHandler(DistributedContext* context);
+  explicit RequestHandler(AsyncValueRef<DistributedContext> dist_context);
   virtual ~RequestHandler();
 
   void HandleRemoteRegister(const RemoteRegisterInvocation& request) final;
   void HandleRemoteExecute(const RemoteExecuteInvocation& request) final;
 
  private:
-  DistributedContext* context_;
+  HostContext* host_ctx();
+  DistributedContext* dist_ctx();
+
+  AsyncValue* dist_ctx_;
 
   class FunctionCache;
   std::unique_ptr<FunctionCache> function_cache_;

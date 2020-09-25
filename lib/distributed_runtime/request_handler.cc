@@ -86,10 +86,9 @@ RCReference<BEFFile> RequestHandler::FunctionCache::Prepare(
   return RCReference<BEFFile>();
 }
 
-RequestHandler::RequestHandler(DistributedContext* context)
-    : context_(context) {
-  HostContext* host_context = context_->GetHostContext();
-  function_cache_ = std::make_unique<FunctionCache>(host_context);
+RequestHandler::RequestHandler(AsyncValueRef<DistributedContext> context)
+    : dist_ctx_(context.GetAsyncValue()) {
+  function_cache_ = std::make_unique<FunctionCache>(host_ctx());
 }
 
 RequestHandler::~RequestHandler() {}
@@ -129,31 +128,38 @@ void RequestHandler::HandleRemoteExecute(
                     << " Received #outputs: " << request.outputs.size();
     return;
   }
-  if (fn->argument_types().size() != request.inputs.size()) {
+
+  // TODO(bramandia): Propagate RequestContext from the request.
+  ResourceContext resource_context;
+  RCReference<tfrt::RequestContext> req_ctx =
+      RequestContext::Create(host_ctx(), &resource_context);
+
+  tfrt::ExecutionContext exec_ctx{std::move(req_ctx)};
+
+  RemoteObjectManager* manager = dist_ctx()->GetRemoteObjectManager();
+  SmallVector<AsyncValue*, 4> arguments;
+  SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
+  arguments.reserve(fn->argument_types().size());
+  arguments_ref.reserve(fn->argument_types().size());
+  int num_dist_context_args = 0;
+  // Allow the first argument to be `DistributedContext`.
+  if (fn->num_arguments() > 0 &&
+      fn->argument_types()[0].GetName() == "!dist.dist_context") {
+    arguments.push_back(dist_ctx_);
+    num_dist_context_args = 1;
+  }
+  if (fn->argument_types().size() !=
+      num_dist_context_args + request.inputs.size()) {
     TFRT_LOG(ERROR) << "Argument size mismatch: fn #arg: "
                     << fn->argument_types().size()
                     << " Received #inputs: " << request.inputs.size();
     return;
   }
-
-  // TODO(bramandia): Propagate RequestContext from the request.
-  ResourceContext resource_context;
-  RCReference<tfrt::RequestContext> req_ctx =
-      RequestContext::Create(context_->GetHostContext(), &resource_context);
-
-  tfrt::ExecutionContext exec_ctx{std::move(req_ctx)};
-
-  RemoteObjectManager* manager = context_->GetRemoteObjectManager();
-  SmallVector<AsyncValue*, 4> arguments;
-  SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
-  arguments.reserve(fn->argument_types().size());
-  arguments_ref.reserve(fn->argument_types().size());
   for (int i = 0; i < request.inputs.size(); ++i) {
     auto& id = request.inputs[i];
 
     RCReference<Device> device =
-        context_->GetHostContext()->GetDeviceManager()->GetDeviceRef<Device>(
-            id.device);
+        host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device);
     if (device.get() == nullptr) {
       TFRT_LOG(ERROR) << "Can't find device: " << id.device;
       return;
@@ -169,8 +175,7 @@ void RequestHandler::HandleRemoteExecute(
   for (int i = 0; i < request.outputs.size(); ++i) {
     auto& id = request.outputs[i];
     RCReference<Device> device =
-        context_->GetHostContext()->GetDeviceManager()->GetDeviceRef<Device>(
-            id.device);
+        host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device);
     if (device.get() == nullptr) {
       TFRT_LOG(ERROR) << "Can't find device: " << id.device;
       return;
@@ -178,5 +183,13 @@ void RequestHandler::HandleRemoteExecute(
     RemoteObjectId output_id(id.prefix_id, id.local_id, device.CopyRef());
     manager->SetRemoteObject(output_id, results[i].CopyRef());
   }
+}
+
+HostContext* RequestHandler::host_ctx() {
+  return dist_ctx_->get<DistributedContext>().GetHostContext();
+}
+
+DistributedContext* RequestHandler::dist_ctx() {
+  return &dist_ctx_->get<DistributedContext>();
 }
 }  // namespace tfrt

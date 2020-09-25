@@ -160,6 +160,22 @@ llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor) {
   }
 }
 
+llvm::Error DnnSetTensorDescriptor(DnnTensorDescriptor descriptor,
+                                   DnnDataType data_type,
+                                   llvm::ArrayRef<int> dimensions,
+                                   llvm::ArrayRef<int> strides) {
+  auto platform = descriptor.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnSetTensorDescriptor(descriptor, ToCuda(data_type), dimensions,
+                                      strides);
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 llvm::Error DnnDestroyConvolutionDescriptor(
     DnnConvolutionDescriptor descriptor) {
   auto platform = descriptor.platform();

@@ -187,6 +187,11 @@ llvm::Expected<OwningDnnTensorDescriptor> DnnCreateTensorDescriptor(
     Platform platform);
 llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor);
 
+llvm::Error DnnSetTensorDescriptor(DnnTensorDescriptor descriptor,
+                                   DnnDataType data_type,
+                                   llvm::ArrayRef<int> dimensions,
+                                   llvm::ArrayRef<int> strides);
+
 llvm::Expected<OwningDnnConvolutionDescriptor> DnnCreateConvolutionDescriptor(
     Platform platform);
 

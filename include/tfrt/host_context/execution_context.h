@@ -113,7 +113,9 @@ class ExecutionContext {
  public:
   explicit ExecutionContext(RCReference<RequestContext> req_ctx,
                             Location location = {})
-      : request_ctx_{std::move(req_ctx)}, location_{location} {}
+      : request_ctx_{std::move(req_ctx)},
+        location_{location},
+        is_fallback_op_{false} {}
 
   ExecutionContext(const ExecutionContext& exec_ctx)
       : request_ctx_{exec_ctx.request_ctx_.CopyRef()},
@@ -137,9 +139,15 @@ class ExecutionContext {
     return request_ctx_->resource_context();
   }
 
+  void set_fallback_op(bool is_fallback_op) {
+    is_fallback_op_ = is_fallback_op;
+  }
+  bool is_fallback_op() const { return is_fallback_op_; }
+
  private:
   RCReference<RequestContext> request_ctx_;
   Location location_;
+  bool is_fallback_op_;
 };
 
 }  // namespace tfrt

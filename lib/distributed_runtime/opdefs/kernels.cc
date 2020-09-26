@@ -75,11 +75,6 @@ static void print(OpAsmPrinter &p, CreateRemoteExecuteSpecOp op) {
   p << "dist.create_remote_execute_spec(" << op.output_devices() << ")";
 }
 
-static void print(OpAsmPrinter &p, RemoteExecuteOp op) {
-  p << "dist.remote_execute(" << op.getAttr("hostid") << ") "
-    << op.getAttr("program_name");
-}
-
 static ParseResult parseCreateConfigurations(OpAsmParser &parser,
                                              OperationState &result) {
   auto &builder = parser.getBuilder();
@@ -112,55 +107,6 @@ static ParseResult parseCreateRemoteExecuteSpecOp(OpAsmParser &parser,
 
   result.types.append(1, GetRemoteExecuteSpecType(&builder));
 
-  return success();
-}
-
-static ParseResult parseRemoteExecuteOp(OpAsmParser &parser,
-                                        OperationState &result) {
-  auto &builder = parser.getBuilder();
-  StringAttr program_type;
-
-  auto chain_type = GetChainType(&builder);
-
-  SmallVector<OpAsmParser::OperandType, 4> non_input_operands;
-  if (parser.parseOperandList(non_input_operands, 4,
-                              OpAsmParser::Delimiter::Paren)) {
-    return failure();
-  }
-  SmallVector<Type, 4> operand_types;
-  operand_types.push_back(chain_type);
-  operand_types.push_back(GetContextType(&builder));
-  operand_types.push_back(builder.getI32Type());
-  operand_types.push_back(GetRemoteExecuteSpecType(&builder));
-  if (parser.resolveOperands(non_input_operands, operand_types,
-                             parser.getNameLoc(), result.operands))
-    return failure();
-
-  if (parser.parseAttribute(program_type, "program_name", result.attributes)) {
-    return failure();
-  }
-
-  auto remote_object_id_type = GetRemoteObjectIdType(&builder);
-
-  SmallVector<OpAsmParser::OperandType, 4> inputs;
-  if (parser.parseOperandList(inputs, -1, OpAsmParser::Delimiter::Paren)) {
-    return failure();
-  }
-  if (parser.resolveOperands(inputs, remote_object_id_type, result.operands))
-    return failure();
-
-  result.types.append(1, chain_type);
-
-  int64_t num_results = 0;
-  if (succeeded(parser.parseOptionalColon())) {
-    IntegerAttr attr;
-    mlir::NamedAttrList attrs;
-    if (failed(parser.parseAttribute(attr, "num_results", attrs)))
-      return failure();
-    num_results = attr.getValue().getSExtValue();
-  }
-
-  result.types.append(num_results, remote_object_id_type);
   return success();
 }
 

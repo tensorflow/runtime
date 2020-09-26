@@ -228,7 +228,7 @@ def RemoteExecuteOp :  DistOp<"remote_execute"> {
     Executes a program on a remote location.
 
     Example:
-      %out = dist.remote_execute (%context, %id, %spec) "program_name" %in
+      %chain, %result = dist.remote_execute [%context, %id, %spec] "program_name" (%in) : (!dist.remote_object_id) -> !dist.remote_object_id
   }];
 
   let arguments = (ins
@@ -243,9 +243,9 @@ def RemoteExecuteOp :  DistOp<"remote_execute"> {
     TFRT_ChainType:$out_op_chain,
     Variadic<RemoteObjectIdType>:$results
   );
-
-  let printer = [{ return tfrt::dist::print(p, *this); }];
-  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+  let assemblyFormat = [{
+      `[` $in_op_chain`,` $context`,` $host_id`,` $spec `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
+  }];
 }
 
 #endif  // DISTRIBUTED_OPS

@@ -39,9 +39,13 @@ def Data_Dialect : Dialect {
 
 // Type definition.
 //
-// TODO(tfrt-dev): Define these types properly.
-def DatasetType: OpaqueType<"tfrt", "dataset", "!tfrt.dataset type">;
-def IteratorType: OpaqueType<"tfrt", "iterator", "!tfrt.iterator type">;
+def Data_DatasetType :
+  Type<CPred<"$_self.isa<tfrt::data::DatasetType>()">, "!tfrt_data.dataset type">,
+  BuildableType<"$_builder.getType<tfrt::data::DatasetType>()">;
+def Data_IteratorType :
+  Type<CPred<"$_self.isa<tfrt::data::IteratorType>()">, "!tfrt_data.iterator type">,
+  BuildableType<"$_builder.getType<tfrt::data::IteratorType>()">;
+
 
 // Base class for Data dialect ops.
 class Data_Op<string mnemonic, list<OpTrait> traits = []> :
@@ -64,8 +68,8 @@ def MakeIteratorOp : Data_Op<"make_iterator"> {
       %iterator = tfrt_data.make_iterator %dataset
   }];
 
-  let arguments = (ins DatasetType:$dataset);
-  let results = (outs IteratorType:$iterator);
+  let arguments = (ins Data_DatasetType:$dataset);
+  let results = (outs Data_IteratorType:$iterator);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -80,7 +84,7 @@ def IteratorGetNextOp : Data_Op<"iterator_get_next"> {
       %chain_out, %value = tfrt_data.iterator_get_next %iterator, %chain_in : !t.tensor
   }];
 
-  let arguments = (ins IteratorType:$iterator, TFRT_ChainType:$chain_in);
+  let arguments = (ins Data_IteratorType:$iterator, TFRT_ChainType:$chain_in);
   let results = (outs Variadic<AnyType>:$results);
 }
 
@@ -99,7 +103,7 @@ def EnumerateIteratorOp : Data_Op<"enumerate.iterator"> {
   }];
 
   let arguments = (ins
-    IteratorType:$iterator,
+    Data_IteratorType:$iterator,
     Variadic<AnyType>:$arguments,
 
     FlatSymbolRefAttr:$function
@@ -127,12 +131,12 @@ class BatchDatasetOp<string suffix>
   }];
 
   let arguments = (ins
-     DatasetType:$input_dataset,
+     Data_DatasetType:$input_dataset,
      I64:$batch_size,
 
      I1Attr:$same_input_metadata
   );
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -157,12 +161,12 @@ def FilterDatasetOp : Data_Op<"filter_dataset"> {
   }];
 
   let arguments = (ins
-    DatasetType:$input_dataset,
+    Data_DatasetType:$input_dataset,
 
     FlatSymbolRefAttr:$function
   );
 
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -180,7 +184,7 @@ def InterleaveDatasetOp : Data_Op<"interleave_dataset"> {
   }];
 
   let arguments = (ins
-    DatasetType:$input_dataset,
+    Data_DatasetType:$input_dataset,
     I64:$cycle_length,
     I64:$block_length,
 
@@ -188,7 +192,7 @@ def InterleaveDatasetOp : Data_Op<"interleave_dataset"> {
     FlatSymbolRefAttr:$function
   );
 
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -206,13 +210,13 @@ def MapDatasetOp : Data_Op<"map_dataset"> {
   }];
 
   let arguments = (ins
-    DatasetType:$input_dataset,
+    Data_DatasetType:$input_dataset,
     Variadic<AnyType>:$other_arguments,
 
     FlatSymbolRefAttr:$function
   );
 
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = [{
     $input_dataset (`,` $other_arguments^ `:` type($other_arguments))?
@@ -234,11 +238,11 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
   }];
 
   let arguments = (ins
-    DatasetType:$input_dataset,
+    Data_DatasetType:$input_dataset,
     I64:$prefetch_num
   );
 
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -260,7 +264,7 @@ def RangeDatasetOp : Data_Op<"range_dataset" > {
 
      TypeAttr:$element_type
   );
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
   let verifier = [{ return tfrt::data::verify(*this); }];
   let assemblyFormat = "operands attr-dict";
 }
@@ -278,11 +282,11 @@ def RepeatDatasetOp : Data_Op<"repeat_dataset"> {
   }];
 
   let arguments = (ins
-    DatasetType:$input_dataset,
+    Data_DatasetType:$input_dataset,
     I64:$count
   );
 
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -300,11 +304,11 @@ def SkipDatasetOp : Data_Op<"skip_dataset"> {
   }];
 
   let arguments = (ins
-    DatasetType:$input_dataset,
+    Data_DatasetType:$input_dataset,
     I64:$count
   );
 
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -322,7 +326,7 @@ def TFRecordDatasetOp : Data_Op<"tf_record_dataset"> {
     StringType:$path
   );
 
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }
@@ -340,13 +344,13 @@ def ShuffleDatasetOp : Data_Op<"shuffle_dataset"> {
   }];
 
   let arguments = (ins
-    DatasetType:$input_dataset,
+    Data_DatasetType:$input_dataset,
     I64:$buffer_size,
     I64:$seed,
     I64:$seed2
   );
 
-  let results = (outs DatasetType:$output_dataset);
+  let results = (outs Data_DatasetType:$output_dataset);
 
   let assemblyFormat = "operands attr-dict";
 }

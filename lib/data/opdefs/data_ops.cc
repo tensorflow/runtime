@@ -29,6 +29,7 @@
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
+#include "tfrt/data/opdefs/types.h"
 
 namespace tfrt {
 namespace data {
@@ -44,6 +45,7 @@ DataDialect::DataDialect(MLIRContext *context)
 
   allowUnknownTypes();
   allowUnknownOperations();
+  addTypes<DatasetType, IteratorType>();
 
   addOperations<
 #define GET_OP_LIST
@@ -51,11 +53,36 @@ DataDialect::DataDialect(MLIRContext *context)
       >();
 }
 
+mlir::Type DataDialect::parseType(mlir::DialectAsmParser &parser) const {
+  llvm::StringRef spec = parser.getFullSymbolSpec();
+  if (spec == "dataset") return DatasetType::get(getContext());
+  if (spec == "iterator") return IteratorType::get(getContext());
+
+  if (auto type = mlir::Dialect::parseType(parser)) return type;
+
+  mlir::Location loc = parser.getEncodedSourceLoc(parser.getNameLoc());
+  mlir::emitError(loc) << "unknown data type " << spec;
+  return {};
+}
+
+void DataDialect::printType(mlir::Type type,
+                            mlir::DialectAsmPrinter &printer) const {
+  if (type.isa<DatasetType>()) {
+    printer << "dataset";
+    return;
+  }
+
+  if (type.isa<IteratorType>()) {
+    printer << "iterator";
+    return;
+  }
+  llvm_unreachable("unknown data type");
+}
+
 namespace {
 
 static Type GetIteratorType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("tfrt"), "iterator",
-                         builder->getContext());
+  return builder->getType<IteratorType>();
 }
 
 static Type GetChainType(Builder *builder) {

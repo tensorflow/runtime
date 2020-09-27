@@ -40,6 +40,10 @@ class DataDialect : public Dialect {
  public:
   explicit DataDialect(MLIRContext *context);
   static StringRef getDialectNamespace() { return "tfrt_data"; }
+
+  mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+  void printType(mlir::Type type,
+                 mlir::DialectAsmPrinter &printer) const override;
 };
 
 }  // namespace data

@@ -48,6 +48,8 @@ using ::tfrt::compat::KeepBuffers;
 // CPU Matmul kernels
 //===----------------------------------------------------------------------===//
 
+// TODO(ezhulenev): Remove these MatMul kernels (requires mnist kernels update).
+
 template <typename T>
 void MatMul2DKernel(T alpha, DHTIndexableView<T, 2> A, DHTIndexableView<T, 2> B,
                     T beta, MutableDHTIndexableView<T, 2>& C, bool transpose_a,

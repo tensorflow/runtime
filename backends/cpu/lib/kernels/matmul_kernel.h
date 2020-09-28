@@ -37,14 +37,17 @@ namespace cpu {
 // Link: https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms#Level_3
 template <typename T, typename OutputKernel, typename EigenEvaluator>
 typename EigenEvaluator::DependencyToken MatMul(
-    T alpha, const DenseHostTensor& a, const DenseHostTensor& b, T beta,
-    DenseHostTensor* c, OutputKernel output_kernel, EigenEvaluator eigen) {
+    float alpha, const DenseHostTensor& a, const DenseHostTensor& b, float beta,
+    DenseHostTensor* c, bool transpose_a, bool transpose_b,
+    OutputKernel output_kernel, EigenEvaluator eigen) {
   DHTIndexableView<T, 2> a_view(&a);
   DHTIndexableView<T, 2> b_view(&b);
   MutableDHTIndexableView<T, 2> c_view(c);
 
   // Contraction dimension.
-  Eigen::array<Eigen::IndexPair<Eigen::Index>, 1> contract_dim({1, 0});
+  Eigen::array<Eigen::IndexPair<Eigen::Index>, 1> contract_dim;
+  contract_dim[0].first = transpose_a ? 0 : 1;
+  contract_dim[0].second = transpose_b ? 1 : 0;
 
   auto in0 = compat::AsEigenConstTensor(a_view);
   auto in1 = compat::AsEigenConstTensor(b_view);

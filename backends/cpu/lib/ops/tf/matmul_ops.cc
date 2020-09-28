@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-//===- matmul_fusion_ops.cc - -----------------------------------*- C++ -*-===//
+//===- matmul_ops.cc - ------------------------------------------*- C++ -*-===//
 //
-// Tensorflow MatMul fusion operations.
+// Tensorflow MatMul operations.
 //
 //===----------------------------------------------------------------------===//
 
-#include "matmul_fusion_ops.h"
+#include "matmul_ops.h"
 
 #include <algorithm>
+#include <complex>
 #include <initializer_list>
 
-#include "../../kernels/fused_matmul_kernel.h"
+#include "../../kernels/matmul_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_evaluator.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_utils.h"
@@ -38,9 +39,10 @@
 namespace tfrt {
 namespace {
 
-static AsyncValueRef<DenseHostTensor> TfFusedMatMulOp(
-    const DenseHostTensor& a, const DenseHostTensor& b,
-    RepeatedArguments<DenseHostTensor> fusion_inputs, const OpAttrsRef& attrs,
+using compat::AsyncEigenEvaluator;
+
+static AsyncValueRef<DenseHostTensor> TfMatMulOp(
+    const DenseHostTensor& a, const DenseHostTensor& b, const OpAttrsRef& attrs,
     const TensorMetadata& output_md, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
@@ -51,7 +53,8 @@ static AsyncValueRef<DenseHostTensor> TfFusedMatMulOp(
 
   bool transpose_a = attrs.GetAsserting<bool>("transpose_a");
   bool transpose_b = attrs.GetAsserting<bool>("transpose_b");
-  auto fused_ops_attr = attrs.GetAsserting<AggregateAttr>("fused_ops");
+
+  AsyncEigenEvaluator evaluator(exec_ctx.host());
 
   // Dispatch based on the input data type.
   auto unsupported = [&](DType dtype) -> AsyncValueRef<Chain> {
@@ -60,24 +63,22 @@ static AsyncValueRef<DenseHostTensor> TfFusedMatMulOp(
 
   auto dispatch = [&](auto type_tag) -> AsyncValueRef<Chain> {
     using T = decltype(type_tag);
-    return cpu::FusedMatMul<T, compat::AsyncEigenEvaluator>(
-        a, b, &*output, fusion_inputs, transpose_a, transpose_b, fused_ops_attr,
-        exec_ctx);
+    return cpu::MatMul<T>(1.0, a, b, 0.0, &*output, transpose_a, transpose_b,
+                          Eigen::NoOpOutputKernel(), evaluator);
   };
 
-  // TODO(ezhulenev): Keep these types consistent with graph rewrite that
-  // does fusion (kernel matcher pass).
-  internal::TypeDispatch<float, int32_t> type_dispatch(a.dtype());
+  internal::TypeDispatch<float, double, int32_t, int64_t, uint32_t, uint64_t,
+                         std::complex<float>, std::complex<double>>
+      type_dispatch(a.dtype());
   return ForwardValue(output.getValue(), type_dispatch(dispatch, unsupported),
                       host);
 }
 
 }  // namespace
 
-void RegisterTfMatmulFusionCpuOps(CpuOpRegistry* op_registry) {
-  op_registry->AddOp("tf._FusedMatMul", TFRT_CPU_OP(TfFusedMatMulOp),
-                     CpuOpFlags::NoSideEffects,
-                     {"transpose_a", "transpose_b", "fused_ops"});
+void RegisterTfMatmulCpuOps(CpuOpRegistry* op_registry) {
+  op_registry->AddOp("tf.MatMul", TFRT_CPU_OP(TfMatMulOp),
+                     CpuOpFlags::NoSideEffects, {"transpose_a", "transpose_b"});
 }
 
 }  // namespace tfrt

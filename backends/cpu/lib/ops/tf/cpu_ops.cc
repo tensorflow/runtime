@@ -26,6 +26,7 @@
 #include "cwise_binary_ops.h"
 #include "cwise_unary_ops.h"
 #include "matmul_fusion_ops.h"
+#include "matmul_ops.h"
 #include "shape_ops.h"
 #include "softmax_ops.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
@@ -65,45 +66,6 @@ static Expected<DenseHostTensor> TfConstOp(const OpAttrsRef& attrs,
               dest_md.GetHostSizeInBytes());
 
   return std::move(dest_tensor);
-}
-
-//===----------------------------------------------------------------------===//
-// tf.Matmul op
-//===----------------------------------------------------------------------===//
-
-static void TfMatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
-                       const OpAttrsRef& attrs, const TensorMetadata& dest_md,
-                       RCReference<AsyncValue>* dest,
-                       const ExecutionContext& exec_ctx) {
-  HostContext* host = exec_ctx.host();
-
-  auto dest_alloc = DenseHostTensor::CreateUninitialized(dest_md, host);
-  if (!dest_alloc) {
-    *dest = EmitErrorAsync(exec_ctx, "out of memory allocating result");
-    return;
-  }
-
-  auto& dest_tensor = dest_alloc.getValue();
-
-  // Handle attributes.
-  bool transpose_a = attrs.GetAsserting<bool>("transpose_a");
-  bool transpose_b = attrs.GetAsserting<bool>("transpose_b");
-
-  // Computes C = A @ B.
-  switch (lhs.dtype().kind()) {
-    default:
-      *dest = EmitErrorAsync(exec_ctx, "unsupported dtype for matmul");
-      return;
-#define DTYPE_NUMERIC(ENUM)                                    \
-  case DType::ENUM:                                            \
-    cpu::CallMatMulKernel<EigenTypeForDTypeKind<DType::ENUM>>( \
-        lhs, rhs, &dest_tensor, transpose_a, transpose_b);     \
-    break;
-#include "tfrt/dtype/dtype.def"  // NOLINT
-  }
-
-  *dest =
-      MakeAvailableAsyncValueRef<DenseHostTensor>(host, std::move(dest_tensor));
 }
 
 //===----------------------------------------------------------------------===//
@@ -254,8 +216,6 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
   }
   op_registry->AddOp("tf.Const", TFRT_CPU_OP(TfConstOp),
                      CpuOpFlags::NoSideEffects, {"value"});
-  op_registry->AddOp("tf.MatMul", TFRT_CPU_OP(TfMatMulOp),
-                     CpuOpFlags::NoSideEffects, {"transpose_a", "transpose_b"});
   op_registry->AddOp("tf.Relu", TFRT_CPU_OP(TfReluOp),
                      CpuOpFlags::NoSideEffects);
   op_registry->AddOp("tf.Mean", TFRT_CPU_OP(TfMeanOp),
@@ -270,6 +230,7 @@ void RegisterTfCpuOps(CpuOpRegistry* op_registry) {
   RegisterTfShapeCpuOps(op_registry);
   RegisterTfSofmaxCpuOps(op_registry);
   RegisterTfMatmulFusionCpuOps(op_registry);
+  RegisterTfMatmulCpuOps(op_registry);
   RegisterTfTileCpuOp(op_registry);
 }
 

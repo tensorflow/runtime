@@ -43,11 +43,6 @@ typename EigenEvaluator::DependencyToken FusedMatMul(
     AggregateAttr fused_ops_attr, const ExecutionContext& exec_ctx) {
   EigenEvaluator eigen{exec_ctx.host()};
 
-  // TODO(ezhulenev): Add support for transposed operands.
-  if (transpose_a || transpose_b) {
-    return eigen.MakeError("Transpose is not supported");
-  }
-
   // Parse the MatMul fusion config.
   SmallVector<string_view, 4> fused_ops(fused_ops_attr.GetNumElements());
   for (int i = 0; i < fused_ops_attr.GetNumElements(); ++i) {
@@ -84,8 +79,8 @@ typename EigenEvaluator::DependencyToken FusedMatMul(
     using OutputKernel = compat::BiasAddOutputKernel<T>;
     DHTArrayView<T> bias_view(&fusion_inputs[0]);
     OutputKernel output_kernel(compat::AsEigenConstTensor(bias_view));
-    return cpu::MatMul<T>(1.0, a, b, 0.0, output, std::move(output_kernel),
-                          eigen);
+    return cpu::MatMul<T>(1.0, a, b, 0.0, output, transpose_a, transpose_b,
+                          std::move(output_kernel), eigen);
   }
 
   // Fusion: BiasAdd + Relu
@@ -94,8 +89,8 @@ typename EigenEvaluator::DependencyToken FusedMatMul(
     DHTArrayView<T> bias_view(&fusion_inputs[0]);
     OutputKernel output_kernel(compat::AsEigenConstTensor(bias_view));
 
-    return cpu::MatMul<T>(1.0, a, b, 0.0, output, std::move(output_kernel),
-                          eigen);
+    return cpu::MatMul<T>(1.0, a, b, 0.0, output, transpose_a, transpose_b,
+                          std::move(output_kernel), eigen);
   }
 
   return eigen.MakeError("Unsupported fusion type");

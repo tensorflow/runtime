@@ -47,9 +47,6 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
 
   bool transpose_a = attrs.GetAsserting<bool>("transpose_a");
   bool transpose_b = attrs.GetAsserting<bool>("transpose_b");
-  if (transpose_a || transpose_b) {
-    return MakeErrorAsyncValueRef(host, "Operands transpose is not supported");
-  }
 
   // Collect output kernel names from the attribute.
   auto fusion = attrs.GetAsserting<AggregateAttr>("fusion");
@@ -95,7 +92,8 @@ static AsyncValueRef<DenseHostTensor> TfJitFusedMatMulOp(
     using T = decltype(type_tag);
     cpu::jit::ContractionOutputKernel<float> output_kernel(*compiled_kernel,
                                                            additional_args);
-    return cpu::MatMul<T>(1.0, a, b, 0.0, &*output, std::move(output_kernel),
+    return cpu::MatMul<T>(1.0, a, b, 0.0, &*output, transpose_a, transpose_b,
+                          std::move(output_kernel),
                           compat::AsyncEigenEvaluator(host));
   };
 

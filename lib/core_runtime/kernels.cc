@@ -445,7 +445,8 @@ static llvm::Expected<bool> GetTensorPredicateValue(const Tensor &tensor) {
     // Only empty string is false.
     return !strings.empty() && !strings[0].empty();
   }
-  return MakeStringError("tensor type not yet supported");
+  return MakeStringError("tensor predicate does not support type ",
+                         tensor.tensor_type().name());
 }
 
 // corert.cond dispatches to a 'true' or 'false' function based on a condition.

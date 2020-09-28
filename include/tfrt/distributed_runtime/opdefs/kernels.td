@@ -222,6 +222,33 @@ def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {
   let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
 }
 
+
+def RemoteExecuteFuncOp :  DistOp<"remote_execute_func"> {
+  let summary = "dist.remote_execute_func operation";
+  let description = [{
+    Executes a program on a remote location.
+
+    Example:
+      %chain, %results:2 = dist.remote_execute_func[%chain, %context, %worker_id] @program_name(%arg1, %arg2, ...) : (...) -> (...)
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    DistributedContextType:$context,
+    I32:$host_id,
+    FlatSymbolRefAttr:$callee,
+    Variadic<AnyType>:$callee_args
+  );
+  let results = (outs
+    TFRT_ChainType:$out_op_chain,
+    Variadic<AnyType>:$results
+  );
+  let assemblyFormat = [{
+      `[` $in_op_chain`,` $context`,` $host_id `]`  $callee `(` $callee_args `)` attr-dict `:` functional-type ( $callee_args , $results )
+  }];
+
+}
+
 def RemoteExecuteOp :  DistOp<"remote_execute"> {
   let summary = "dist.remote_execute operation";
   let description = [{

@@ -140,6 +140,14 @@ static BEFDataType ConvertMLIRDataTypeToBEFDataType(mlir::Type type) {
     return BEFDataType::kString;
   }
 
+  if (auto resource_type = type.dyn_cast<corert::ResourceType>()) {
+    return BEFDataType::kResource;
+  }
+
+  if (auto variant_type = type.dyn_cast<corert::VariantType>()) {
+    return BEFDataType::kVariant;
+  }
+
   if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {
     return EncodeComplexTypeAttribute(complex_type);
   }
@@ -203,13 +211,14 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
     return static_cast<BEFAttributeType>(BEFDataType::kString);
 
   // We support i1, i8, i16, i32, i64, ui8, ui16, ui32, ui64, bf16, f16, f32,
-  //  f64, complex64, complex128 and string type attributes.
+  //  f64, complex64, complex128, string, resource and variant type attributes.
   if (auto type_attr = attr.dyn_cast<mlir::TypeAttr>()) {
     auto type = type_attr.getValue();
     if (type.isInteger(1) || type.isInteger(8) || type.isInteger(16) ||
         type.isInteger(32) || type.isInteger(64) || type.isBF16() ||
         type.isF16() || type.isF32() || type.isF64() ||
-        type.isa<corert::StringType>())
+        type.isa<corert::StringType>() || type.isa<corert::ResourceType>() ||
+        type.isa<corert::VariantType>())
       return BEFAttributeType::kType;
 
     if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {

@@ -100,6 +100,10 @@ OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
       return OpAttrType::COMPLEX128;
     case BEFDataType::kString:
       return OpAttrType::CHAR;
+    case BEFDataType::kResource:
+      return OpAttrType::UNSUPPORTED_RESOURCE;
+    case BEFDataType::kVariant:
+      return OpAttrType::UNSUPPORTED_VARIANT;
     default:
       break;
   }
@@ -187,6 +191,9 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       return {sizeof(std::complex<float>), alignof(std::complex<float>)};
     case OpAttrType::COMPLEX128:
       return {sizeof(std::complex<double>), alignof(std::complex<double>)};
+    case OpAttrType::UNSUPPORTED_RESOURCE:
+    case OpAttrType::UNSUPPORTED_VARIANT:
+      llvm_unreachable("unsupported attribute type");
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
     return {sizeof(CPP_TYPE), alignof(CPP_TYPE)};
@@ -215,6 +222,9 @@ const char *GetNameString(OpAttrType type) {
       return "COMPLEX64";
     case OpAttrType::COMPLEX128:
       return "COMPLEX128";
+    case OpAttrType::UNSUPPORTED_RESOURCE:
+    case OpAttrType::UNSUPPORTED_VARIANT:
+      llvm_unreachable("unsupported attribute type");
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
     return #ENUM;
@@ -753,6 +763,9 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
       os << "(" << static_cast<const std::complex<double> *>(ptr)->real() << ","
          << static_cast<const std::complex<double> *>(ptr)->imag() << ")";
       break;
+    case OpAttrType::UNSUPPORTED_RESOURCE:
+    case OpAttrType::UNSUPPORTED_VARIANT:
+      llvm_unreachable("unsupported attribute type");
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE)           \
   case OpAttrType::ENUM:                       \
     os << *static_cast<const CPP_TYPE *>(ptr); \

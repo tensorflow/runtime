@@ -48,6 +48,18 @@ class DeviceType
   using Base::Base;
 };
 
+class ResourceType
+    : public mlir::Type::TypeBase<ResourceType, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
+class VariantType
+    : public mlir::Type::TypeBase<VariantType, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
 }  // namespace corert
 }  // namespace tfrt
 

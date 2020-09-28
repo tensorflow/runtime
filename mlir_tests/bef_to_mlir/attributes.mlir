@@ -178,6 +178,8 @@ func @data_type_attr() {
   // CHECK: complex<f32>
   // CHECK: complex<f64>
   // CHECK: !corert.string
+  // CHECK: !corert.resource
+  // CHECK: !corert.variant
   "simple.op"() {type = i1} : () -> ()
   "simple.op"() {type = i8} : () -> ()
   "simple.op"() {type = i16} : () -> ()
@@ -194,5 +196,7 @@ func @data_type_attr() {
   "simple.op"() {type = complex<f32>} : () -> ()
   "simple.op"() {type = complex<f64>} : () -> ()
   "simple.op"() {type = !corert.string} : () -> ()
+  "simple.op"() {type = !corert.resource} : () -> ()
+  "simple.op"() {type = !corert.variant} : () -> ()
   tfrt.return
 }

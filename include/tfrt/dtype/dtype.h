@@ -44,6 +44,8 @@ class DType {
     Invalid,
     // Valid types that are not natively supported by TFRT.
     Unsupported,
+    Unsupported_Resource,
+    Unsupported_Variant,
 #define DTYPE(ENUM) ENUM,
 #include "tfrt/dtype/dtype.def"
   };
@@ -60,6 +62,10 @@ class DType {
 
   bool IsValid() const { return kind_ != Invalid; }
   bool IsInvalid() const { return kind_ == Invalid; }
+  bool IsUnsupported() const {
+    return kind_ == Unsupported || kind_ == Unsupported_Resource ||
+           kind_ == Unsupported_Variant;
+  }
 
   // Get the name for the dtype, e.g. i32, f32.
   const char *GetName() const;

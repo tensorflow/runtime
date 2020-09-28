@@ -47,6 +47,9 @@ enum class OpAttrType : uint8_t {
   I1,
   COMPLEX64,
   COMPLEX128,
+  // Following two attribute type can only be used as value of DTYPE.
+  UNSUPPORTED_RESOURCE,
+  UNSUPPORTED_VARIANT,
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) ENUM,
 #include "tfrt/core_runtime/op_attr_type.def"
 };

@@ -30,6 +30,8 @@ const char *DType::GetName() const {
     case Invalid:
       return "invalid";
     case Unsupported:
+    case Unsupported_Resource:
+    case Unsupported_Variant:
       return "unsupported";
     case UI8:
       return "u8";
@@ -75,6 +77,8 @@ size_t DType::GetHostSize() const {
       assert(0 && "invalid dtype has no size");
       return ~size_t(0);
     case Unsupported:
+    case Unsupported_Resource:
+    case Unsupported_Variant:
       assert(0 && "unsupported dtype has no size");
       return ~size_t(0);
     case String:
@@ -105,6 +109,8 @@ size_t DType::GetHostAlignment() const {
       assert(0 && "invalid dtype has no alignment");
       return ~size_t(0);
     case Unsupported:
+    case Unsupported_Resource:
+    case Unsupported_Variant:
       assert(0 && "unspupported dtype has no alignment");
       return ~size_t(0);
     case String:
@@ -134,6 +140,8 @@ void DType::Print(const void *data, raw_ostream &os) const {
   switch (kind()) {
     case DType::Invalid:
     case DType::Unsupported:
+    case DType::Unsupported_Resource:
+    case DType::Unsupported_Variant:
       llvm_unreachable("can't happen");
     case DType::BF16:
       os << "Does not support printing bf16.";
@@ -177,6 +185,8 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
   switch (kind()) {
     case DType::Invalid:
     case DType::Unsupported:
+    case DType::Unsupported_Resource:
+    case DType::Unsupported_Variant:
       llvm_unreachable("can't happen");
     case DType::BF16:
       os << "Does not support printing bf16.";
@@ -233,6 +243,8 @@ raw_ostream &operator<<(raw_ostream &os, DType dtype) {
       os << "<invalid dtype>";
       break;
     case DType::Unsupported:
+    case DType::Unsupported_Resource:
+    case DType::Unsupported_Variant:
       os << "<unsupported dtype>";
       break;
 #define DTYPE(ENUM) \

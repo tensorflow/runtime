@@ -53,7 +53,8 @@ CoreRTDialect::CoreRTDialect(MLIRContext *context)
 
   addAttributes<ShapeAttr>();
 
-  addTypes<StringType, TensorHandleType, DeviceType>();
+  addTypes<StringType, TensorHandleType, DeviceType, ResourceType,
+           VariantType>();
 
   addOperations<
 #define GET_OP_LIST
@@ -117,6 +118,8 @@ mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser &parser) const {
   if (data == "string") return StringType::get(getContext());
   if (data == "device") return DeviceType::get(getContext());
   if (data == "tensorhandle") return TensorHandleType::get(getContext());
+  if (data == "resource") return ResourceType::get(getContext());
+  if (data == "variant") return VariantType::get(getContext());
 
   // TODO(tfrt-devs): Every type should be properly defined. Remove
   // OpaqueType here once all types are defined in corerrt.
@@ -138,6 +141,16 @@ void CoreRTDialect::printType(mlir::Type type,
 
   if (type.isa<TensorHandleType>()) {
     os << "tensorhandle";
+    return;
+  }
+
+  if (type.isa<ResourceType>()) {
+    os << "resource";
+    return;
+  }
+
+  if (type.isa<VariantType>()) {
+    os << "variant";
     return;
   }
 

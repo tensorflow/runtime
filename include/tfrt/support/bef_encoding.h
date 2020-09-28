@@ -192,11 +192,15 @@ enum class BEFDataType : uint8_t {
   kComplex128,
   kString,
 
+  // Right now we only support following two types as type attribute.
+  kResource,
+  kVariant,
+
   // TODO(tfrt-devs): Consider adding support for resource, variant
   // and quantized integers.
 
   kFirstDataType = kBool,
-  kLastDataType = kString,
+  kLastDataType = kVariant,
 };
 
 // This enum defines the attribute type.

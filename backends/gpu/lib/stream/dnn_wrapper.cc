@@ -64,6 +64,18 @@ llvm::SmallVector<cudnnTensorDescriptor_t, kTensorDescriptorArraySize> ToCuda(
   return cudnn_descriptors;
 }
 
+static constexpr auto ToDnn(cudnnDataType_t data_type) {
+  return static_cast<DnnDataType>(data_type);
+}
+
+static DnnTensorDescriptorData ToDnn(CudnnTensorDescriptorData data) {
+  DnnTensorDescriptorData dnn_data;
+  dnn_data.data_type = ToDnn(data.data_type);
+  dnn_data.dimensions = data.dimensions;
+  dnn_data.strides = data.strides;
+  return dnn_data;
+}
+
 void internal::DnnHandleDeleter::operator()(DnnHandle handle) const {
   LogIfError(DnnDestroy(handle));
 }
@@ -153,6 +165,23 @@ llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor) {
   switch (platform) {
     case Platform::CUDA:
       return CudnnDestroyTensorDescriptor(descriptor);
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Expected<DnnTensorDescriptorData> DnnGetTensorDescriptor(
+    DnnTensorDescriptor descriptor) {
+  auto platform = descriptor.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      if (auto data = CudnnGetTensorDescriptor(descriptor)) {
+        return ToDnn(*data);
+      } else {
+        return data.takeError();
+      }
     case Platform::ROCm:
       return UnsupportedPlatform(platform);
     default:

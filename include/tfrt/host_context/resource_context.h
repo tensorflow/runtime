@@ -102,6 +102,20 @@ class ResourceContext {
     return tfrt::any_cast<T>(&res.first->second);
   }
 
+  // Delete resource with name `resource_name`.  No-op if it doesn't exist.
+  // Thread-safe.
+  void DeleteResource(tfrt::string_view resource_name) {
+    tfrt::mutex_lock lock(mu_);
+    auto map_it = resources_.find(resource_name);
+    if (map_it == resources_.end()) {
+      return;
+    }
+    auto vector_it = std::find(resource_vector_.begin(), resource_vector_.end(),
+                               &map_it->second);
+    resource_vector_.erase(vector_it);
+    resources_.erase(map_it);
+  }
+
  private:
   tfrt::mutex mu_;
   llvm::StringMap<tfrt::UniqueAny> resources_ TFRT_GUARDED_BY(mu_);

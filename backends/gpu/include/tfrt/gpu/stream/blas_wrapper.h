@@ -31,6 +31,14 @@ namespace tfrt {
 namespace gpu {
 namespace stream {
 
+enum class BlasOperation {
+  kNone = 0,
+  kTranspose = 1,
+  kConjugateTranspose = 2,
+  kHermitianTranspose = 2,
+  kConjgTranspose = 3
+};
+
 // Non-owning handles of GPU resources.
 using BlasHandle = Resource<cublasHandle_t, rocblas_handle>;
 
@@ -57,6 +65,11 @@ llvm::Expected<Stream> BlasGetStream(BlasHandle handle);
 llvm::Error BlasSaxpy(CurrentContext current, BlasHandle handle, int n,
                       Pointer<const float> alpha, Pointer<const float> x,
                       int incx, Pointer<float> y, int incy);
+llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
+                      BlasOperation transa, BlasOperation transb, int m, int n,
+                      int k, Pointer<const float> alpha, Pointer<const float> A,
+                      int lda, Pointer<const float> B, int ldb,
+                      Pointer<const float> beta, Pointer<float> C, int ldc);
 
 }  // namespace stream
 }  // namespace gpu

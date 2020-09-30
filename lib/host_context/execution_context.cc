@@ -22,6 +22,7 @@
 
 #include "tfrt/host_context/execution_context.h"
 
+#include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_context.h"
 
 namespace tfrt {
@@ -46,6 +47,23 @@ void RequestContext::Cancel() {
                                              std::memory_order_relaxed)) {
     error_value->DropRef();
   }
+}
+
+Expected<RCReference<RequestContext>> RequestContextBuilder::build() && {
+  auto& cwq = host_->work_queue();
+  if (auto error = cwq.InitRequest(this)) return std::move(error);
+
+  return TakeRef(
+      new RequestContext(host_, resource_context_, std::move(context_data_)));
+};
+
+RCReference<RequestContext> RequestContext::Create(
+    HostContext* host, ResourceContext* resource_context) {
+  auto req_ctx = RequestContextBuilder(host, resource_context).build();
+  if (req_ctx) return std::move(*req_ctx);
+
+  // TODO(tfrt-dev): Refactor all the clients to handle the failures properly.
+  llvm_unreachable("Failed to build RequestContext.");
 }
 
 }  // namespace tfrt

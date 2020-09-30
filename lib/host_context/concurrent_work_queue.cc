@@ -23,6 +23,7 @@
 
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Error.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -41,6 +42,10 @@ WorkQueueFactoryMap* GetWorkQueueFactories() {
 }  // namespace
 
 ConcurrentWorkQueue::~ConcurrentWorkQueue() = default;
+
+Error ConcurrentWorkQueue::InitRequest(RequestContextBuilder* ctx_builder) {
+  return Error::success();
+}
 
 void RegisterWorkQueueFactory(string_view name, WorkQueueFactory factory) {
   auto p = GetWorkQueueFactories()->try_emplace(name, std::move(factory));

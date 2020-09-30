@@ -36,6 +36,7 @@ namespace tfrt {
 
 class AsyncValue;
 class ExecutionContext;
+class RequestContextBuilder;
 
 // This is a pure virtual base class for concurrent work queue implementations.
 // This provides an abstraction for adding work items to a queue to be executed
@@ -82,6 +83,8 @@ class ConcurrentWorkQueue {
 
   // Return a human-readable description of the work queue.
   virtual std::string name() const = 0;
+
+  virtual Error InitRequest(RequestContextBuilder* ctx_builder);
 
   // Enqueue a block of work. Thread-safe.
   //

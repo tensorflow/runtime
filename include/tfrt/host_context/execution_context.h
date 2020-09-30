@@ -39,28 +39,19 @@ class ErrorAsyncValue;
 // passed around during the execution of a request. This allows us to support
 // per-request actions, such as canceling all pending ops for a request and
 // assigning all tasks of a request to a particular priority.
+//
+// RequestContext can only be created by using RequestContextBuilder defined
+// below.
 class RequestContext : public ReferenceCounted<RequestContext> {
  public:
   using ContextData = MapByType<RequestContext>;
 
-  // Both ResourceContext and ContextData manages data used during the request
-  // execution. ResourceContext is more flexible than ContextData at the cost of
-  // performance. ResourceContext stores the data keyed by a string name. It
-  // allows inserting data dynamically during the request execution and uses a
-  // mutex to ensure thread-safety. In contrast, ContextData stores data keyed
-  // by the data type and is populated only during the request initialization
-  // time. Thus, the look up requires only a simple array index without
-  // synchronization overhead.
+  // Deprecated. Use RequestContextBuilder instead.
+  //
+  // TODO(tfrt-dev): Convert all clients to use RequestConcontextBuilder and
+  // remove this function.
   static RCReference<RequestContext> Create(HostContext* host,
-                                            ResourceContext* resource_context,
-                                            ContextData ctx_data) {
-    return TakeRef(
-        new RequestContext(host, resource_context, std::move(ctx_data)));
-  }
-  static RCReference<RequestContext> Create(HostContext* host,
-                                            ResourceContext* resource_context) {
-    return TakeRef(new RequestContext(host, resource_context));
-  }
+                                            ResourceContext* resource_context);
   ~RequestContext();
 
   bool IsCancelled() const { return GetCancelAsyncValue(); }
@@ -82,8 +73,7 @@ class RequestContext : public ReferenceCounted<RequestContext> {
   }
 
  private:
-  RequestContext(HostContext* host, ResourceContext* resource_context)
-      : host_{host}, resource_context_{resource_context} {}
+  friend class RequestContextBuilder;
 
   RequestContext(HostContext* host, ResourceContext* resource_context,
                  ContextData ctx_data)
@@ -92,10 +82,61 @@ class RequestContext : public ReferenceCounted<RequestContext> {
         context_data_{std::move(ctx_data)} {}
 
   HostContext* const host_ = nullptr;
+  // Both ResourceContext and ContextData manages data used during the request
+  // execution. ResourceContext is more flexible than ContextData at the cost of
+  // performance. ResourceContext stores the data keyed by a string name. It
+  // allows inserting data dynamically during the request execution and uses a
+  // mutex to ensure thread-safety. In contrast, ContextData stores data keyed
+  // by the data type and is populated only during the request initialization
+  // time. The look up requires only a simple array index without
+  // synchronization overhead.
   ResourceContext* const resource_context_ = nullptr;
-  std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
-
   ContextData context_data_;
+
+  std::atomic<ErrorAsyncValue*> cancel_value_{nullptr};
+};
+
+struct RequestOptions {
+  using RequestPriority = int;
+
+  RequestPriority priority = 0;
+};
+
+// A builder class for RequestContext.
+// Sample usage:
+// auto request_context = RequestContextBuilder(host, resource_context)
+//                          .set_request_options(request_options)
+//                          .build();
+class RequestContextBuilder {
+ public:
+  RequestContextBuilder(HostContext* host, ResourceContext* resource_context)
+      : host_{host}, resource_context_{resource_context} {}
+
+  RequestContextBuilder& set_request_options(RequestOptions request_options) & {
+    request_options_ = std::move(request_options);
+    return *this;
+  }
+
+  RequestContextBuilder&& set_request_options(
+      RequestOptions request_options) && {
+    request_options_ = std::move(request_options);
+    return std::move(*this);
+  }
+
+  const RequestOptions& request_options() const { return request_options_; }
+  RequestContext::ContextData& context_data() { return context_data_; }
+
+  // Build the RequestContext object.
+  // This method is marked with &&, as it logically consumes this object. Once
+  // the build() method is called, the RequestContextBuilder should no longer be
+  // used.
+  Expected<RCReference<RequestContext>> build() &&;
+
+ private:
+  HostContext* host_;
+  RequestOptions request_options_;
+  ResourceContext* resource_context_ = nullptr;
+  RequestContext::ContextData context_data_;
 };
 
 // ExecutionContext holds the context information for kernel and op execution,

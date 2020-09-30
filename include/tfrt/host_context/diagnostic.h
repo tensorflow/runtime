@@ -23,6 +23,8 @@
 #ifndef TFRT_HOST_CONTEXT_DIAGNOSTIC_H_
 #define TFRT_HOST_CONTEXT_DIAGNOSTIC_H_
 
+#include <utility>
+
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/string_util.h"
@@ -31,21 +33,46 @@ namespace tfrt {
 
 class ExecutionContext;
 
+enum class ErrorCode {
+  kOK,  // Not an error.
+  kCancelled,
+  kUnknown,
+  kInvalidArgument,
+  kDeadlineExceeded,
+  kNotFound,
+  kOutOfRange,
+  // TODO(tfrt-devs): add more diagnostic codes if needed.
+};
+
+// Translate the code to string.
+string_view ErrorName(ErrorCode code);
+
 // This is a simple representation of a decoded diagnostic.
 struct DecodedDiagnostic {
+  // TODO(b/169618466): carry error code in llvm::Error.
   explicit DecodedDiagnostic(const Error& error);
   explicit DecodedDiagnostic(string_view message) : message(message) {}
+  DecodedDiagnostic(string_view message, ErrorCode code)
+      : message(message), code(code) {}
   DecodedDiagnostic(DecodedLocation location, string_view message)
       : location(std::move(location)), message(message) {}
+  DecodedDiagnostic(DecodedLocation location, string_view message,
+                    ErrorCode code)
+      : location(std::move(location)), message(message), code(code) {}
 
   llvm::Optional<DecodedLocation> location;
   std::string message;
+  ErrorCode code{ErrorCode::kOK};
 };
 
 raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diagnostic);
 
 DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
                             string_view message);
+
+DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
+                            string_view message, ErrorCode code);
+
 template <typename... Args>
 DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx, Args&&... args) {
   return EmitError(exec_ctx, string_view{StrCat(std::forward<Args>(args)...)});

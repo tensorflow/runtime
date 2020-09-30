@@ -82,6 +82,12 @@ static llvm::cl::opt<tfrt::tracing::TracingLevel> cl_tracing_level(  // NOLINT
         clEnumValN(tfrt::tracing::TracingLevel::Debug, "debug", "debug")),
     llvm::cl::init(tfrt::tracing::TracingLevel::Default));
 
+// Print error code if there's any error.
+static llvm::cl::opt<bool> cl_print_error_code(  // NOLINT
+    "print_error_code",
+    llvm::cl::desc("Print error code if there's any error."),
+    llvm::cl::Optional, llvm::cl::ValueDisallowed);
+
 //===----------------------------------------------------------------------===//
 // Driver main
 //===----------------------------------------------------------------------===//
@@ -98,6 +104,7 @@ int main(int argc, char** argv) {
   run_config.devices = cl_devices;
   run_config.work_queue_type = cl_work_queue_type;
   run_config.host_allocator_type = cl_host_allocator_type;
+  run_config.print_error_code = cl_print_error_code;
 
   llvm::Optional<tfrt::tracing::TracingRequester> tracing;
   if (cl_enable_tracing) tracing.emplace();

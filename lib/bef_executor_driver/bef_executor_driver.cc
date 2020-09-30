@@ -52,7 +52,8 @@
 namespace tfrt {
 // TODO(jingdong): Change const Function* to const Functino& in funciton
 // argument to conform to the style guide.
-static void RunBefFunction(HostContext* host, const Function* function);
+static void RunBefFunction(HostContext* host, const Function* function,
+                           bool print_error_code);
 
 int RunBefExecutor(const RunBefConfig& run_config) {
   TFRT_TRACE_SCOPE("Bef Executor");
@@ -202,13 +203,13 @@ int RunBefExecutor(const RunBefConfig& run_config) {
   auto test_init_function = bef->GetFunction(run_config.test_init_function);
 
   if (test_init_function) {
-    RunBefFunction(host, test_init_function);
+    RunBefFunction(host, test_init_function, run_config.print_error_code);
   }
 
   // Loop over each of the functions, running each as a standalone testcase.
   for (auto* fn : function_list) {
     if (fn != test_init_function) {
-      RunBefFunction(host, fn);
+      RunBefFunction(host, fn, run_config.print_error_code);
     }
   }
 
@@ -288,7 +289,8 @@ static void RunSyncBefFunctionHelper(HostContext* host,
 }
 
 static void RunAsyncBefFunctionHelper(HostContext* host,
-                                      const Function* function) {
+                                      const Function* function,
+                                      bool print_error_code) {
   TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", function->name()));
 
   // Kick off an execution of the function body.
@@ -319,7 +321,11 @@ static void RunAsyncBefFunctionHelper(HostContext* host,
       auto type_name = result_types[i];
 
       if (auto* error = results[i]->GetErrorIfPresent()) {
-        tfrt::outs() << "<<error: " << error->message << ">>";
+        if (print_error_code)
+          tfrt::outs() << "<<error: " << error->message
+                       << ", code: " << ErrorName(error->code) << ">>";
+        else
+          tfrt::outs() << "<<error: " << error->message << ">>";
       } else {
         PrintResult(type_name, results[i]);
       }
@@ -341,7 +347,8 @@ static void RunAsyncBefFunctionHelper(HostContext* host,
   host->Quiesce();
 }
 
-static void RunBefFunction(HostContext* host, const Function* function) {
+static void RunBefFunction(HostContext* host, const Function* function,
+                           bool print_error_code) {
   // If the function takes arguments, then we can't run it from this driver.
   if (!function->argument_types().empty()) {
     tfrt::outs() << "--- Not running '" << function->name()
@@ -366,7 +373,7 @@ static void RunBefFunction(HostContext* host, const Function* function) {
   if (function->function_kind() == FunctionKind::kSyncBEFFunction) {
     RunSyncBefFunctionHelper(host, function);
   } else {
-    RunAsyncBefFunctionHelper(host, function);
+    RunAsyncBefFunctionHelper(host, function, print_error_code);
   }
 
   if (AsyncValue::AsyncValueAllocationTrackingEnabled()) {

@@ -40,10 +40,34 @@ raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diag) {
   return os << diag.message;
 }
 
+string_view ErrorName(ErrorCode code) {
+  switch (code) {
+    case ErrorCode::kOK:
+      return "OK";
+    case ErrorCode::kCancelled:
+      return "Cancelled";
+    case ErrorCode::kUnknown:
+      return "Unknown";
+    case ErrorCode::kInvalidArgument:
+      return "InvalidArgument";
+    case ErrorCode::kDeadlineExceeded:
+      return "DeadlineExceeded";
+    case ErrorCode::kNotFound:
+      return "NotFound";
+    case ErrorCode::kOutOfRange:
+      return "OutOfRange";
+  }
+}
+
 DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
                             string_view message) {
+  return EmitError(exec_ctx, message, ErrorCode::kUnknown);
+}
+
+DecodedDiagnostic EmitError(const ExecutionContext& exec_ctx,
+                            string_view message, ErrorCode code) {
   auto decoded_loc = exec_ctx.location().Decode();
-  auto diag = DecodedDiagnostic(decoded_loc, message);
+  auto diag = DecodedDiagnostic(decoded_loc, message, code);
 
   HostContext* host = exec_ctx.host();
   host->EmitError(diag);

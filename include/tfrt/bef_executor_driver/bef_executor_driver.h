@@ -58,6 +58,7 @@ struct RunBefConfig {
   std::string test_init_function;
   std::string work_queue_type;
   tfrt::HostAllocatorType host_allocator_type;
+  bool print_error_code = false;
 };
 
 int RunBefExecutor(const RunBefConfig& run_config);

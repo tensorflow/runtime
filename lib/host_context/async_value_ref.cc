@@ -32,7 +32,13 @@ RCReference<IndirectAsyncValue> MakeIndirectAsyncValue(HostContext* host) {
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
                                             string_view message) {
-  auto diag = EmitError(exec_ctx, message);
+  return EmitErrorAsync(exec_ctx, message, ErrorCode::kUnknown);
+}
+
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            string_view message,
+                                            ErrorCode code) {
+  auto diag = EmitError(exec_ctx, message, code);
   return MakeErrorAsyncValueRef(exec_ctx.host(), std::move(diag));
 }
 

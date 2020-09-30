@@ -23,6 +23,8 @@
 #ifndef TFRT_CORE_RUNTIME_DISPATCH_UTILS_H_
 #define TFRT_CORE_RUNTIME_DISPATCH_UTILS_H_
 
+#include <utility>
+
 #include "llvm/ADT/SmallVector.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_invocation.h"
@@ -601,8 +603,9 @@ bool ExecuteOnOpHandlerImpl(
     auto result_device = OpHandlerTraits::GetResultDevice(
         op_handler_info, result_tensor_avs[i].CopyRef(), invocation.exec_ctx);
     if (!result_device) {
-      RCReference<AsyncValue> error_av = MakeErrorAsyncValueRef(
-          invocation.exec_ctx.host(), tfrt::StrCat(result_device.takeError()));
+      auto diag = result_tensor_avs[i].GetError();
+      RCReference<AsyncValue> error_av =
+          MakeErrorAsyncValueRef(invocation.exec_ctx.host(), std::move(diag));
       results[i] = tfrt::TensorHandle::CreateError(std::move(error_av));
       continue;
     }

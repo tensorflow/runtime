@@ -6,8 +6,6 @@ package(
 
 licenses(["notice"])
 
-exports_files(["LICENSE"])
-
 # Add "--define disable_eigen_mkldnn_contraction_kernel=true" to your build
 # command to disable MKL-DNN sgemm in Eigen tensor contractions (matrix
 # multiplications and convolutions). The MKL-DNN kernels are generated at

@@ -14,10 +14,6 @@ package_group(
     ],
 )
 
-exports_files([
-    "LICENSE",
-])
-
 tfrt_cc_binary(
     name = "tfrt_opt",
     srcs = ["tfrt_opt/tfrt_opt.cc"],

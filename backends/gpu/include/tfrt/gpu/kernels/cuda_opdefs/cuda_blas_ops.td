@@ -57,7 +57,22 @@ def BlasSaxpyOp : CUDA_Op<"blas.axpy.f32"> {
   let description = [{
     cuda.blas.axpy.f32 call BLAS saxpy function.
   }];
-  let arguments = (ins ContextType, CublasHandleType, I32:$n, F32:$alpha, BufferType:$x, I32:$incx, BufferType:$y, I32:$incy, TFRT_ChainType);
+  let arguments = (ins ContextType, CublasHandleType, I32:$n, F32:$alpha,
+                   BufferType:$x, I32:$incx, BufferType:$y, I32:$incy,
+                   TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
+}
+
+def BlasSgemmOp : CUDA_Op<"blas.gemm.f32"> {
+  let summary = "cuda blas.gemm.f32 operation";
+  let description = [{
+    cuda.blas.gemm.f32 calls BLAS sgemm function.
+  }];
+  let arguments = (ins ContextType, CublasHandleType,
+                   I32:$transa, I32:$transb,
+                   I32:$m, I32:$n, I32:$k, F32:$alpha, BufferType:$A, I32:$lda,
+                   BufferType:$B, I32:$ldb, F32:$beta, BufferType:$C, I32:$ldc,
+                   TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 

@@ -18,6 +18,7 @@
 // by the TFRT CUDA runtime.
 //
 //===----------------------------------------------------------------------===//
+#include "llvm/Support/Errc.h"
 #include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/stream/blas_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
@@ -25,6 +26,8 @@
 
 namespace tfrt {
 namespace cuda {
+
+using ::tfrt::gpu::stream::Pointer;
 //
 // Overloaded helpers for the REPORT_ERROR macro. Allows the macro to use either
 // strings or llvm::Errors.
@@ -74,20 +77,65 @@ static void BlasSaxpy(Argument<gpu::stream::Context> context,
                       Result<Chain> out_chain, KernelErrorHandler handler) {
   auto current = gpu::stream::CtxSetCurrent(*context);
   if (!current) return REPORT_ERROR(handler, current.takeError());
-  gpu::stream::Pointer<const float> alpha_ptr(&(*alpha), context->platform());
+  Pointer<const float> alpha_ptr(&(*alpha), context->platform());
 
-  llvm::Error error = gpu::stream::BlasSaxpy(
-      *current, cublas_handle->get(), *n, alpha_ptr,
-      gpu::stream::Pointer<const float>(x->get()->pointer()), *incx,
-      gpu::stream::Pointer<float>(y->get()->pointer()), *incy);
+  llvm::Error error =
+      gpu::stream::BlasSaxpy(*current, cublas_handle->get(), *n, alpha_ptr,
+                             Pointer<const float>(x->get()->pointer()), *incx,
+                             Pointer<float>(y->get()->pointer()), *incy);
+  if (error) return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
+static llvm::Expected<gpu::stream::BlasOperation> SafeIntToBlasOperation(
+    int32_t operation) {
+  auto blas_operation = static_cast<gpu::stream::BlasOperation>(operation);
+  if (blas_operation > gpu::stream::BlasOperation::kConjugate) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Invalid BlasOperation value: %d",
+                                   operation);
+  }
+
+  return blas_operation;
+}
+
+static void BlasSgemm(Argument<gpu::stream::Context> context,
+                      Argument<gpu::stream::OwningBlasHandle> cublas_handle,
+                      Argument<int32_t> transa, Argument<int32_t> transb,
+                      Argument<int32_t> m, Argument<int32_t> n,
+                      Argument<int32_t> k, Argument<float> alpha,
+                      Argument<RCReference<gpu::GpuBuffer>> A,
+                      Argument<int32_t> lda,
+                      Argument<RCReference<gpu::GpuBuffer>> B,
+                      Argument<int32_t> ldb, Argument<float> beta,
+                      Argument<RCReference<gpu::GpuBuffer>> C,
+                      Argument<int32_t> ldc, Argument<Chain> in_chain,
+                      Result<Chain> out_chain, KernelErrorHandler handler) {
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  if (!current) return REPORT_ERROR(handler, current.takeError());
+  Pointer<const float> alpha_ptr(&(*alpha), context->platform());
+  Pointer<const float> beta_ptr(&(*beta), context->platform());
+
+  auto transa_blas = SafeIntToBlasOperation(*transa);
+  if (!transa_blas) return REPORT_ERROR(handler, transa_blas.takeError());
+
+  auto transb_blas = SafeIntToBlasOperation(*transb);
+  if (!transb_blas) return REPORT_ERROR(handler, transb_blas.takeError());
+
+  llvm::Error error = gpu::stream::BlasSgemm(
+      *current, cublas_handle->get(), *transa_blas, *transb_blas, *m, *n, *k,
+      alpha_ptr, Pointer<const float>(A->get()->pointer()), *lda,
+      Pointer<const float>(B->get()->pointer()), *ldb, beta_ptr,
+      Pointer<float>(C->get()->pointer()), *ldc);
   if (error) return REPORT_ERROR(handler, std::move(error));
   out_chain.Set(in_chain);
 }
 
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("cuda.blas.create", TFRT_KERNEL(BlasCreate));
-  kernel_reg->AddKernel("cuda.blas.axpy.f32", TFRT_KERNEL(BlasSaxpy));
   kernel_reg->AddKernel("cuda.blas.set_stream", TFRT_KERNEL(BlasSetStream));
+  kernel_reg->AddKernel("cuda.blas.axpy.f32", TFRT_KERNEL(BlasSaxpy));
+  kernel_reg->AddKernel("cuda.blas.gemm.f32", TFRT_KERNEL(BlasSgemm));
 }
 }  // namespace cuda
 }  // namespace tfrt

@@ -29,6 +29,8 @@
 
 namespace tfrt {
 
+class DenseHostTensor;
+
 void RegisterScalarHostTensorConversionFn(TensorConversionFnRegistry* registry);
 
 // Represents a tensor whose elements are represented as a broadcasted scalar
@@ -99,6 +101,9 @@ class ScalarHostTensor final : public AnyScalarHostTensor {
  private:
   ElementType value_;
 };
+
+llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
+    const AnyScalarHostTensor& tensor, const ExecutionContext& exec_ctx);
 
 }  // namespace tfrt
 

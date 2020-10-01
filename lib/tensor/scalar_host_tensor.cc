@@ -23,6 +23,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/tensor/conversion_utils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
@@ -83,16 +84,13 @@ ConvertScalarHostTensorToScalarHostTensor(const AnyScalarHostTensor& tensor,
   }
 }
 
-static AsyncValueRef<DenseHostTensor> ConvertScalarHostTensorToDenseHostTensor(
-    const AnyScalarHostTensor& tensor, const CpuDevice& src,
-    const CpuDevice& dst, const ExecutionContext& exec_ctx) {
+llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
+    const AnyScalarHostTensor& tensor, const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
-  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
-
   auto result_alloc =
       DenseHostTensor::CreateUninitialized(tensor.metadata(), host);
-  if (!result_alloc)
-    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
+
+  if (!result_alloc) return llvm::None;
 
   auto& result_tensor = result_alloc.getValue();
 
@@ -133,7 +131,20 @@ static AsyncValueRef<DenseHostTensor> ConvertScalarHostTensorToDenseHostTensor(
       break;
   }
 
-  result.emplace(std::move(result_tensor));
+  return result_alloc;
+}
+
+static AsyncValueRef<DenseHostTensor> ConvertScalarHostTensorToDenseHostTensor(
+    const AnyScalarHostTensor& tensor, const CpuDevice& src,
+    const CpuDevice& dst, const ExecutionContext& exec_ctx) {
+  auto* host = exec_ctx.host();
+  auto result = MakeUnconstructedAsyncValueRef<DenseHostTensor>(host);
+
+  auto optional_dht = CopyScalarHostTensorToDenseHostTensor(tensor, exec_ctx);
+  if (!optional_dht)
+    return MakeErrorAsyncValueRef(host, "out of memory copying tensor");
+
+  result.emplace(std::move(optional_dht.getValue()));
   return result;
 }
 

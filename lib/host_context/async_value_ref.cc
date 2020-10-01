@@ -47,6 +47,11 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
   return EmitErrorAsync(exec_ctx, StrCat(error));
 }
 
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            llvm::Error error, ErrorCode code) {
+  return EmitErrorAsync(exec_ctx, StrCat(error), code);
+}
+
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
     HostContext* host, DecodedDiagnostic&& diagnostic) {
   // Create an AsyncValue for this error condition.

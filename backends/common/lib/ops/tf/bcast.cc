@@ -54,8 +54,8 @@ Expected<TensorShape> GetBroadcastedShape(const TensorShape& arg0_shape,
     } else if (arg1_dim == 1) {
       ret.push_back(arg0_dim);
     } else {
-      return MakeStringError("Illegal broadcast dimensions: arg0=", arg0_dim,
-                             " arg1=", arg1_dim);
+      return MakeStringError("Dimensions must be equal, but are ", arg0_dim,
+                             " and ", arg1_dim);
     }
   }
 

@@ -129,7 +129,8 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
     if (v) {
       return HandleReturn(std::move(*v), results, exec_ctx);
     } else {
-      return EmitErrorAsync(exec_ctx, v.takeError());
+      return EmitErrorAsync(exec_ctx, v.takeError(),
+                            ErrorCode::kInvalidArgument);
     }
   }
 

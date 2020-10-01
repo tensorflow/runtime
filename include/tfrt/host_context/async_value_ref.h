@@ -180,6 +180,10 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
                                             llvm::Error error);
 
+// TODO(b/169618466): assess carrying error code in llvm::Error.
+RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
+                                            llvm::Error error, ErrorCode code);
+
 // Create a ConcreteAsyncValue in error state for a specified decoded
 // diagnostic.
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(

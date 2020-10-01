@@ -14,7 +14,7 @@
 
 //===- cuda_ops.td ---------------------------------------------------------===//
 //
-// CUDA based CUDA pperation definitions.
+// CUDA based operation definitions.
 //
 // The same ops should be implementable with a ROCm backend as well.
 // Current doc strings refer to CUDA only.

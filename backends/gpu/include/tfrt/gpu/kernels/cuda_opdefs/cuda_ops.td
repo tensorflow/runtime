@@ -52,7 +52,7 @@ def DeviceGetOp : CUDA_Op<"device.get"> {
 
     Example:
       %ch1 = tfrt.new.chain
-      %runtime, %ch2 = cuda.init %ch1
+      %ch2 = cuda.init %ch1
       %index = tfrt.constant.i32 0
       %device, %ch3 = cuda.device.get %index, %ch2
   }];

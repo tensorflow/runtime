@@ -45,10 +45,6 @@ static llvm::cl::opt<std::string> cl_test_init_function(  // NOLINT
         "functions even if it is not specified in --functions flag."),
     llvm::cl::init(""));
 
-static llvm::cl::list<std::string> cl_devices(  // NOLINT
-    "devices", llvm::cl::desc("Specify devices to register"),
-    llvm::cl::ZeroOrMore, llvm::cl::MiscFlags::CommaSeparated);
-
 // Enable ConcurrentWorkQueue types to be specified on the command line.
 static llvm::cl::opt<std::string> cl_work_queue_type(  // NOLINT
     "work_queue_type",
@@ -101,7 +97,6 @@ int main(int argc, char** argv) {
   run_config.shared_libs = cl_shared_libs;
   run_config.functions = cl_functions;
   run_config.test_init_function = cl_test_init_function;
-  run_config.devices = cl_devices;
   run_config.work_queue_type = cl_work_queue_type;
   run_config.host_allocator_type = cl_host_allocator_type;
   run_config.print_error_code = cl_print_error_code;

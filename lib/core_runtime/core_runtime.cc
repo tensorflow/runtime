@@ -163,109 +163,23 @@ llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
     std::unique_ptr<ConcurrentWorkQueue> work_queue) {
   return CoreRuntime::Create(std::move(diag_handler), std::move(allocator),
                              std::move(work_queue),
-                             HostContext::kDefaultHostDeviceName, {});
+                             HostContext::kDefaultHostDeviceName);
 }
-
 llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
     std::function<void(const DecodedDiagnostic&)> diag_handler,
     std::unique_ptr<HostAllocator> allocator,
     std::unique_ptr<ConcurrentWorkQueue> work_queue,
-    string_view host_device_name, ArrayRef<std::string> op_handler_chains) {
+    string_view host_device_name) {
   auto runtime = std::make_unique<CoreRuntime>(
       std::move(diag_handler), std::move(allocator), std::move(work_queue),
       host_device_name);
 
-  // Register all of the kernels that are statically linked into this executable
-  // with our registry.
+  // Register all of the kernels that are statically linked into this
+  // executable with our registry.
   RegisterStaticKernels(runtime->GetHostContext()->GetMutableRegistry());
 
   RegisterTensorConversionFns(runtime->GetHostContext());
-
-  if (op_handler_chains.empty()) return std::move(runtime);
-
-  OpHandlerRegistry op_handler_registry;
-  const auto& factory = OpHandlerFactory::GetGlobalOpHandlerFactory();
-
-  OpHandler* null_op_handler;
-  if (auto error_or_null_create_fn = factory.Get("null")) {
-    const auto& null_create_fn = *error_or_null_create_fn;
-    auto error_or_null_op_handler = null_create_fn(runtime.get(), nullptr);
-    assert(error_or_null_op_handler);
-    null_op_handler = error_or_null_op_handler->get();
-    op_handler_registry.AddOpHandler(std::move(*error_or_null_op_handler));
-  } else {
-    return error_or_null_create_fn.takeError();
-  }
-
-  for (string_view op_handler_chain_spec : op_handler_chains) {
-    // op_handler_chain_spec is in one of the following two formats:
-    // 1) <chain_name>:<op_handler1>|<op_handler2>
-    //    Example: cpu:logging|cpu
-    // 2) <op_handler1>
-    //    If the op_handler chain has only a single op_handler, the chain_name
-    //    is optional. Example: cpu
-
-    string_view op_handler_chain_name;
-    string_view op_handler_chain;
-
-    // First, split by ':' to get op_handler chain name and the op_handler chain
-    // string.
-    llvm::SmallVector<string_view, 2> op_handler_name_and_chain;
-    op_handler_chain_spec.split(op_handler_name_and_chain, ':');
-    if (op_handler_name_and_chain.size() == 1) {
-      op_handler_chain = op_handler_name_and_chain[0];
-    } else if (op_handler_name_and_chain.size() == 2) {
-      op_handler_chain_name = op_handler_name_and_chain[0];
-      op_handler_chain = op_handler_name_and_chain[1];
-    } else {
-      return MakeStringError("Invalid op_handler chain format: ",
-                             op_handler_chain_spec);
-    }
-
-    // Second, split op_handler_chain by '|' to get op_handler names.
-    llvm::SmallVector<string_view, 2> op_handler_names;
-    op_handler_chain.split(op_handler_names, '|');
-
-    // OpHandler chain should be created in reverse order. The OpHandler at the
-    // end of the chain (e.g., fallbacks) should be created first.
-    OpHandler* fallback = null_op_handler;
-    for (auto name : llvm::reverse(op_handler_names)) {
-      if (auto error_or_create_fn = factory.Get(name)) {
-        const auto& create_fn = *error_or_create_fn;
-        auto op_handler = create_fn(runtime.get(), fallback);
-        if (!op_handler) return op_handler.takeError();
-        fallback = op_handler->get();
-        op_handler_registry.AddOpHandler(std::move(*op_handler));
-      } else {
-        return error_or_create_fn.takeError();
-      }
-    }
-
-    // `fallback` now points to the first op_handler in the op_handler chain.
-    if (op_handler_chain_name.empty())
-      op_handler_chain_name = fallback->GetName();
-
-    if (!op_handler_registry.AddOpHandlerChain(op_handler_chain_name,
-                                               fallback)) {
-      return MakeStringError("OpHandler ",
-                             std::string(op_handler_chain_name).c_str(),
-                             " already registered.\n");
-    }
-  }
-
-  runtime->impl_->SetOpHandlerRegistry(std::move(op_handler_registry));
-
   return std::move(runtime);
-}
-
-llvm::Expected<std::unique_ptr<CoreRuntime>> CoreRuntime::Create(
-    std::function<void(const DecodedDiagnostic&)> diag_handler,
-    std::unique_ptr<HostAllocator> allocator,
-    std::unique_ptr<ConcurrentWorkQueue> work_queue,
-    ArrayRef<std::string> op_handler_chains) {
-  return CoreRuntime::Create(
-      std::move(diag_handler), std::move(allocator), std::move(work_queue),
-      HostContext::kDefaultHostDeviceName, op_handler_chains);
 }
 
 CoreRuntime::CoreRuntime(
@@ -273,8 +187,8 @@ CoreRuntime::CoreRuntime(
     std::unique_ptr<HostAllocator> allocator,
     std::unique_ptr<ConcurrentWorkQueue> work_queue,
     string_view host_device_name) {
-  // Create the impl for the CoreRuntime, which constructs a HostContext among
-  // other things.
+  // Create the impl for the CoreRuntime, which constructs a HostContext
+  // among other things.
   impl_ = std::make_unique<Impl>(std::move(diag_handler), std::move(allocator),
                                  std::move(work_queue), host_device_name);
 
@@ -288,7 +202,7 @@ CoreRuntime::~CoreRuntime() = default;
 
 HostContext* CoreRuntime::GetHostContext() { return impl_->GetHostContext(); }
 
-// Return the CoreRuntime instance that owns the specified HostContext.  This
+// Return the CoreRuntime instance that owns the specified HostContext. This
 // returns null if the specified HostContext isn't owned by a CoreRuntime.
 CoreRuntime* CoreRuntime::GetFromHostContext(HostContext* context) {
   return context->GetOrCreateSharedContext<CoreRuntimeSharedContext>().runtime;
@@ -454,8 +368,8 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
 
     fn->Execute(invocation.exec_ctx, arguments, results);
 
-    // Check if chain is available. If not, wait until the native composite op
-    // results are fully resolved.
+    // Check if chain is available. If not, wait until the native composite
+    // op results are fully resolved.
     // TODO(b/161751424) Assess using SyncFunction to execute composite ops.
     if (!results[0]->IsAvailable()) host->Await(results);
 

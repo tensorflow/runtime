@@ -144,7 +144,7 @@ int RunBefExecutor(const RunBefConfig& run_config) {
 
   auto core_rt =
       CoreRuntime::Create(decoded_diagnostic_handler, std::move(host_allocator),
-                          std::move(work_queue), run_config.devices);
+                          std::move(work_queue));
   if (!core_rt) {
     llvm::errs() << core_rt.takeError();
     return 1;

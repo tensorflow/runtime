@@ -25,6 +25,8 @@
 #include "gtest/gtest.h"
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/cpp_tests/test_util.h"
+#include "tfrt/cpu/core_runtime/cpu_op_handler.h"
+#include "tfrt/cpu/core_runtime/null_op_handler.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/error_util.h"
 
@@ -50,14 +52,22 @@ class DummyOpHandler : public OpHandler {
 };
 
 static std::unique_ptr<CoreRuntime> CreateCoreRuntime() {
+  constexpr const char* kCpuOpHandlerName = "cpu";
   auto diag_handler = [](const DecodedDiagnostic& diag) {
     llvm::errs() << "Encountered runtime error: " << diag.message << "\n";
   };
   Expected<std::unique_ptr<CoreRuntime>> corert =
       CoreRuntime::Create(diag_handler, tfrt::CreateMallocAllocator(),
                           tfrt::CreateMultiThreadedWorkQueue(
-                              /*num_threads=*/4, /*num_blocking_threads=*/64),
-                          /*op_handler_chains=*/{"cpu"});
+                              /*num_threads=*/4, /*num_blocking_threads=*/64));
+
+  auto null_op_handler = tfrt::CreateNullOpHandler(corert->get());
+
+  auto cpu_device = corert.get()->GetHostContext()->GetHostDeviceRef();
+  auto cpu_op_handler = tfrt::CreateCpuOpHandler(
+      corert->get(), std::move(cpu_device), null_op_handler.get());
+
+  corert.get()->RegisterOpHandler(kCpuOpHandlerName, cpu_op_handler.get());
 
   assert(corert);
   return std::move(*corert);

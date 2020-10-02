@@ -52,7 +52,6 @@ struct RunBefConfig {
   string_view program_name;
   // Use '-' to take input from stdin.
   string_view input_filename;
-  ArrayRef<std::string> devices;
   ArrayRef<std::string> shared_libs;
   ArrayRef<std::string> functions;
   std::string test_init_function;

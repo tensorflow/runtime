@@ -166,4 +166,50 @@ DenseView CreateDenseView(const DenseAttr& attr) {
   return DenseView(dtype, attr.shape(), attr.GetElements());
 }
 
+// Write value to location in little endian manner.
+char* WriteUint64(uint64_t value, char* location) {
+  uint8_t data[] = {
+      uint8_t(value & 0xFF),         uint8_t((value >> 8) & 0xFF),
+      uint8_t((value >> 16) & 0xFF), uint8_t((value >> 24) & 0xFF),
+      uint8_t((value >> 32) & 0xFF), uint8_t((value >> 40) & 0xFF),
+      uint8_t((value >> 48) & 0xFF), uint8_t((value >> 56) & 0xFF)};
+  memcpy(location, data, sizeof(uint64_t));
+  return location + sizeof(uint64_t);
+}
+
+std::string SerializeTensorMetadata(const TensorMetadata& md) {
+  std::string buffer;
+  buffer.resize(sizeof(uint64_t) * (md.shape.GetRank() + 1));
+  char* pos = &buffer[0];
+  pos = WriteUint64(static_cast<uint64_t>(md.dtype.kind()), pos);
+  SmallVector<ssize_t, 4> dimensions;
+  md.shape.GetDimensions(&dimensions);
+  for (int i = 0; i < dimensions.size(); ++i) {
+    pos = WriteUint64(dimensions[i], pos);
+  }
+  return buffer;
+}
+
+llvm::Expected<TensorMetadata> DeserializeTensorMetadata(
+    string_view serialized) {
+  ASSERT_LITTLE_ENDIAN();
+  const char* pos = serialized.data();
+  DType::Kind kind =
+      static_cast<DType::Kind>(*reinterpret_cast<const uint64_t*>(pos));
+  pos += sizeof(uint64_t);
+
+  const int num_elements = serialized.size() / 8 - 1;
+  SmallVector<ssize_t, 4> dimensions;
+  dimensions.reserve(num_elements);
+  for (int i = 0; i < num_elements; ++i) {
+    dimensions.push_back(*reinterpret_cast<const uint64_t*>(pos));
+    pos += sizeof(uint64_t);
+  }
+
+  TensorShape shape(dimensions);
+  TensorMetadata md(DType(kind), shape);
+
+  return md;
+}
+
 }  // namespace tfrt

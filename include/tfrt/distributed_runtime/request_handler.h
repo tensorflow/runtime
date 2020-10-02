@@ -43,7 +43,8 @@ class RequestHandler : public FabricCommunicatorRequestHandler {
   virtual ~RequestHandler();
 
   void HandleRemoteRegister(const RemoteRegisterInvocation& request) final;
-  void HandleRemoteExecute(const RemoteExecuteInvocation& request) final;
+  void HandleRemoteExecute(const RemoteExecuteInvocation& request,
+                           RemoteExecuteCallbackFn done) final;
 
  private:
   HostContext* host_ctx();

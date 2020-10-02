@@ -28,10 +28,14 @@
 #include "tfrt/bef_converter/mlir_src_to_bef.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/tensor.h"
+#include "tfrt/tensor/tensor_serialize_utils.h"
 
 namespace tfrt {
 // TODO(bramandia): Replace this with TFRT FunctionLibrary once available.
@@ -106,13 +110,17 @@ void RequestHandler::HandleRemoteRegister(
   function_cache_->Register(request.program_name.str(), std::move(bef_buffer));
 }
 
-void RequestHandler::HandleRemoteExecute(
-    const RemoteExecuteInvocation& request) {
+void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
+                                         RemoteExecuteCallbackFn done) {
+  auto response = std::make_unique<RemoteExecuteInvocationResult>();
+  response->ok = false;
+
   // TODO(bramandia): Propagate errors to caller.
   RCReference<BEFFile> bef_file =
       function_cache_->Prepare(request.program_name.str());
   if (bef_file.get() == nullptr) {
     TFRT_LOG(ERROR) << "Can't find program: [" << request.program_name << "]";
+    done(std::move(response));
     return;
   }
   const Function* fn = bef_file->GetFunction(request.program_name);
@@ -120,12 +128,14 @@ void RequestHandler::HandleRemoteExecute(
     TFRT_LOG(ERROR) << tfrt::StrCat(
         "Failed to get program from BEFFile with name ", request.program_name,
         ".");
+    done(std::move(response));
     return;
   }
   if (fn->result_types().size() != request.outputs.size()) {
     TFRT_LOG(ERROR) << "Result size mismatch: fn #result: "
                     << fn->result_types().size()
                     << " Received #outputs: " << request.outputs.size();
+    done(std::move(response));
     return;
   }
 
@@ -162,6 +172,7 @@ void RequestHandler::HandleRemoteExecute(
         host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device);
     if (device.get() == nullptr) {
       TFRT_LOG(ERROR) << "Can't find device: " << id.device;
+      done(std::move(response));
       return;
     }
     RemoteObjectId input_id(id.prefix_id, id.local_id, device.CopyRef());
@@ -169,20 +180,46 @@ void RequestHandler::HandleRemoteExecute(
     arguments_ref.push_back(val.CopyRef());
     arguments.push_back(val.get());
   }
-  SmallVector<RCReference<AsyncValue>, 4> results;
-  results.resize(fn->result_types().size());
-  fn->Execute(exec_ctx, arguments, results);
+  auto results = std::make_unique<SmallVector<RCReference<AsyncValue>, 4>>();
+  results->resize(fn->result_types().size());
+
+  fn->Execute(exec_ctx, arguments, *results);
   for (int i = 0; i < request.outputs.size(); ++i) {
-    auto& id = request.outputs[i];
+    auto& id = request.outputs[i].id;
     RCReference<Device> device =
         host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device);
     if (device.get() == nullptr) {
       TFRT_LOG(ERROR) << "Can't find device: " << id.device;
+      done(std::move(response));
       return;
     }
     RemoteObjectId output_id(id.prefix_id, id.local_id, device.CopyRef());
-    manager->SetRemoteObject(output_id, results[i].CopyRef());
+    manager->SetRemoteObject(output_id, (*results)[i].CopyRef());
   }
+
+  // get the pointer of results before being moved on the lambda capture.
+  auto result_ref = results.get();
+  // Request will live as long as done is not called yet.
+  RunWhenReady(*result_ref, [fn, done = std::move(done), &request,
+                             results = std::move(results),
+                             response = std::move(response)]() mutable {
+    for (int i = 0; i < request.outputs.size(); ++i) {
+      if (request.outputs[i].need_metadata) {
+        // TODO(bramandia): Handle function returning TensorHandle.
+        if (fn->result_types()[i].GetName() == "!t.tensor") {
+          std::string serialized =
+              SerializeTensorMetadata((*results)[i]->get<Tensor>().metadata());
+          response->metadata.push_back(serialized);
+        } else {
+          TFRT_LOG(ERROR) << "Invalid type " << fn->result_types()[i].GetName();
+          done(std::move(response));
+          return;
+        }
+      }
+    }
+    response->ok = true;
+    done(std::move(response));
+  });
 }
 
 HostContext* RequestHandler::host_ctx() {

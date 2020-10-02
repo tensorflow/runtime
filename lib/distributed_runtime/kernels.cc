@@ -22,16 +22,19 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/distributed_runtime/remote_execute.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
+#include "tfrt/distributed_runtime/remote_tensor.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/tensor_serialize_utils.h"
 
 namespace tfrt {
 
@@ -481,11 +484,11 @@ AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
   return value;
 }
 
-void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
-                         HostId receiver, Argument<RemoteExecuteSpec> spec,
-                         RemainingArguments inputs, RemainingResults results,
-                         StringAttribute program_name,
-                         const ExecutionContext& exec_ctx) {
+void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
+                   Argument<RemoteExecuteSpec> spec, RemainingArguments inputs,
+                   RemainingResults results, StringAttribute program_name,
+                   int32_t num_output_with_tensorhandle,
+                   const ExecutionContext& exec_ctx) {
   RemoteExecuteInvocation request;
   // program_name will live as long as out_chain is not populated.
   request.program_name = program_name.get();
@@ -496,42 +499,108 @@ void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
     request.inputs.emplace_back(input.prefix_id, input.local_id,
                                 input.device->name());
   }
-
+  // First output: chain
   AsyncValueRef<Chain> out_chain =
       MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
   results[0] = out_chain.CopyRef();
-
-  RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
-  if (spec->output_devices.size() != results.size() - 1) {
+  if (results.size() != 1 /*chain*/ + spec->output_devices.size() +
+                            num_output_with_tensorhandle) {
     out_chain.SetError(
         StrCat("Mismatch output devices size in RemoteExecuteSpec: ",
                spec->output_devices.size(), " expected: ", results.size() - 1));
     return;
   }
-  request.outputs.reserve(results.size() - 1);
-  for (int i = 1; i < results.size(); ++i) {
+
+  // The next num_id_outputs are RemoteObjectId
+  const int num_id_output = results.size() - num_output_with_tensorhandle - 1;
+  request.outputs.reserve(num_id_output);
+  RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
+  struct RemoteObjectAndMetadata {
+    AsyncValueRef<RemoteObjectId> id;
+    AsyncValueRef<RemoteTensor> tensor;
+    AsyncValueRef<TensorMetadata> metadata;
+  };
+  llvm::SmallVector<RemoteObjectAndMetadata, 4> remote_objs;
+  for (int i = 1; i <= num_id_output; ++i) {
+    RCReference<Device> output_device = spec->output_devices[i - 1].CopyRef();
     AsyncValueRef<RemoteObjectId> out_id =
         MakeAvailableAsyncValueRef<RemoteObjectId>(
-            exec_ctx.host(), manager->AllocateRemoteObject(
-                                 spec->output_devices[i - 1].CopyRef()));
-    request.outputs.emplace_back(out_id->prefix_id, out_id->local_id,
-                                 out_id->device->name());
+            exec_ctx.host(),
+            manager->AllocateRemoteObject(std::move(output_device)));
     results[i] = out_id.CopyRef();
+    // The last num_output_with_metadata RemoteObjectIds needs to have
+    // TensorMetadata returned.
+    const bool need_metadata =
+        i > (num_id_output - num_output_with_tensorhandle);
+    if (need_metadata) {
+      auto tensor =
+          MakeUnconstructedAsyncValueRef<RemoteTensor>(exec_ctx.host());
+      auto metadata =
+          MakeUnconstructedAsyncValueRef<TensorMetadata>(exec_ctx.host());
+      AsyncValueRef<TensorHandle> th = MakeAvailableAsyncValueRef<TensorHandle>(
+          exec_ctx.host(), out_id->device.CopyRef(), metadata.CopyRef(),
+          tensor.CopyRef());
+      remote_objs.emplace_back(RemoteObjectAndMetadata{
+          out_id.CopyRef(), std::move(tensor), std::move(metadata)});
+      // The remaining outputs are TensorHandle
+      results[num_id_output + remote_objs.size()] = th.CopyRef();
+    }
+    request.outputs.emplace_back(out_id->prefix_id, out_id->local_id,
+                                 out_id->device->name(), need_metadata);
   }
 
-  EnqueueWork(exec_ctx,
-              [receiver, request, dist_context, out_chain = out_chain.CopyRef(),
-               spec = spec.ValueRef()]() mutable {
-                dist_context->GetOrCreateFabricCommunicator()->RemoteExecute(
-                    receiver, request,
-                    [out_chain = out_chain.CopyRef()](bool success) mutable {
-                      if (!success) {
-                        out_chain.SetError("Failed Remote Execute");
-                      } else {
-                        out_chain.SetStateConcrete();
-                      }
-                    });
-              });
+  EnqueueWork(exec_ctx, [receiver, request = std::move(request), dist_context,
+                         out_chain = out_chain.CopyRef(),
+                         remote_objs = std::move(remote_objs)]() mutable {
+    dist_context->GetOrCreateFabricCommunicator()->RemoteExecute(
+        receiver, request,
+        [out_chain = out_chain.CopyRef(), remote_objs = std::move(remote_objs),
+         host_context = dist_context->GetHostContext()](
+            std::unique_ptr<RemoteExecuteInvocationResult>
+                invocation_result) mutable {
+          // Propagate metadata and output chain
+          const int num_metadata = invocation_result->metadata.size();
+          for (int i = 0; i < remote_objs.size(); ++i) {
+            auto& obj = remote_objs[i];
+            if (i >= num_metadata) {
+              obj.metadata.SetError(DecodedDiagnostic("Metadata not returned"));
+              continue;
+            }
+            auto metadata =
+                DeserializeTensorMetadata(invocation_result->metadata[i]);
+            if (metadata) {
+              obj.metadata.emplace(metadata.get());
+              obj.tensor.emplace(std::move(metadata.get()), obj.id.get());
+            } else {
+              obj.tensor.SetError(DecodedDiagnostic(metadata.takeError()));
+            }
+          }
+          if (!invocation_result->ok) {
+            out_chain.SetError("Failed Remote Execute");
+          } else {
+            out_chain.SetStateConcrete();
+          }
+        });
+  });
+}
+
+void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
+                         HostId receiver, Argument<RemoteExecuteSpec> spec,
+                         RemainingArguments inputs, RemainingResults results,
+                         StringAttribute program_name,
+                         const ExecutionContext& exec_ctx) {
+  RemoteExecute(ch, dist_context, receiver, spec, inputs, results, program_name,
+                0, exec_ctx);
+}
+
+void RemoteExecuteTHKernel(Chain ch, DistributedContext* dist_context,
+                           HostId receiver, Argument<RemoteExecuteSpec> spec,
+                           RemainingArguments inputs, RemainingResults results,
+                           Attribute<int32_t> num_output_with_tensorhandle,
+                           StringAttribute program_name,
+                           const ExecutionContext& exec_ctx) {
+  RemoteExecute(ch, dist_context, receiver, spec, inputs, results, program_name,
+                num_output_with_tensorhandle.get(), exec_ctx);
 }
 }  // namespace
 
@@ -550,6 +619,8 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
   registry->AddKernel("dist.create_remote_execute_spec",
                       TFRT_KERNEL(CreateRemoteExecuteSpec));
   registry->AddKernel("dist.remote_execute", TFRT_KERNEL(RemoteExecuteKernel));
+  registry->AddKernel("dist.remote_execute_th",
+                      TFRT_KERNEL(RemoteExecuteTHKernel));
   registry->AddKernel("dist.remote_register",
                       TFRT_KERNEL(RemoteRegisterKernel));
 }

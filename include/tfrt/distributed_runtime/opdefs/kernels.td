@@ -270,8 +270,52 @@ def RemoteExecuteOp :  DistOp<"remote_execute"> {
     TFRT_ChainType:$out_op_chain,
     Variadic<RemoteObjectIdType>:$results
   );
+
   let assemblyFormat = [{
       `[` $in_op_chain`,` $context`,` $host_id`,` $spec `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
+  }];
+}
+
+def RemoteExecuteWithMetadataOp :  DistOp<"remote_execute_th"> {
+  let summary = "dist.remote_execute_th operation";
+  let description = [{
+    Executes a program on a remote location.
+    This is similar to RemoteExecuteOp with a difference that we also returned
+    the TensorHandle representing the remote object, in addition to the
+    RemoteObjectId.
+
+    The user specify an input N which indicates how many outputs in which the
+    TensorHandle are to be returned.
+
+    If the remote function returns K outputs, both the RemoteObjectId and the
+    TensorHandle of the last N outputs will be returned. Whereas for the
+    first K-N outputs, only the RemoteObjectId will be returned.
+    It is required that the last N outputs are of type Tensor.
+21
+    Example:
+      // "1" after spec indicates N above.
+      %out_id1, %out_id2, %out_th2 =
+          dist.remote_execute_th (%context, %id, %spec, 1) "program_name" %in
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    DistributedContextType:$context,
+    I32:$host_id,
+    RemoteExecuteSpecType:$spec,
+    I32Attr:$num_tensorhandle_output,
+    StrAttr:$program_name,
+    Variadic<RemoteObjectIdType>:$arguments
+  );
+  let results = (outs
+    TFRT_ChainType:$out_op_chain,
+    // Return RemoteObjectId outputs followed by $num_tensorhandle_output
+    // TensorMetadata outputs.
+    Variadic<AnyType>:$results
+  );
+
+  let assemblyFormat = [{
+      `[` $in_op_chain`,` $context`,` $host_id`,` $spec`,` $num_tensorhandle_output `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
   }];
 }
 

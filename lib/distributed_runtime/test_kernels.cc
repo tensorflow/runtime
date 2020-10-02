@@ -47,45 +47,43 @@ class TestRequestHandler : public FabricCommunicatorRequestHandler {
     handler_.HandleRemoteRegister(request);
   }
 
-  // Need to deep copy the string_view in the request since RPC would be marked
-  // as done and hence, the underlying data request refers to will be deleted.
-  string_view DeepCopy(string_view view) {
-    string_store_.push(view.str());
-    return string_store_.back();
-  }
-
-  void HandleRemoteExecute(const RemoteExecuteInvocation& request) final {
+  void HandleRemoteExecute(const RemoteExecuteInvocation& request,
+                           RemoteExecuteCallbackFn done) final {
     mutex_lock lock(invocations_mutex_);
-    RemoteExecuteInvocation request_copy;
-    request_copy.program_name = DeepCopy(request.program_name);
-    for (const auto& id : request.inputs) {
-      request_copy.inputs.emplace_back(id.prefix_id, id.local_id,
-                                       DeepCopy(id.device));
-    }
-    for (const auto& id : request.outputs) {
-      request_copy.outputs.emplace_back(id.prefix_id, id.local_id,
-                                        DeepCopy(id.device));
-    }
-    invocations_.push(request_copy);
+    invocations_.push({request, std::move(done)});
     cond_.notify_one();
   }
 
-  void ProcessNextRequest() {
-    RemoteExecuteInvocation invocation;
+  using CallbackFn = llvm::unique_function<void()>;
+  void ProcessNextRequest(CallbackFn fn) {
+    std::unique_ptr<InvocationPair> invocation_pair;
     {
       mutex_lock lock(invocations_mutex_);
       cond_.wait(lock, [this]() { return !this->invocations_.empty(); });
-      invocation = invocations_.front();
+      invocation_pair = std::make_unique<InvocationPair>();
+      invocation_pair->invocation = invocations_.front().invocation;
+      invocation_pair->callback_fn =
+          std::move(invocations_.front().callback_fn);
       invocations_.pop();
     }
-    handler_.HandleRemoteExecute(invocation);
+    auto& invocation = invocation_pair->invocation;
+    handler_.HandleRemoteExecute(
+        invocation,
+        [invocation_pair = std::move(invocation_pair), fn = std::move(fn)](
+            std::unique_ptr<RemoteExecuteInvocationResult> result) mutable {
+          invocation_pair->callback_fn(std::move(result));
+          fn();
+        });
   }
 
  private:
+  struct InvocationPair {
+    RemoteExecuteInvocation invocation;
+    RemoteExecuteCallbackFn callback_fn;
+  };
   mutex invocations_mutex_;
   tfrt::condition_variable cond_;
-  std::queue<RemoteExecuteInvocation> invocations_;
-  std::queue<std::string> string_store_;
+  std::queue<InvocationPair> invocations_;
   RequestHandler handler_;
 };
 
@@ -98,8 +96,7 @@ void TestProcessNextRequest(Argument<DistributedContext> dist_context,
   TestRequestHandler* handler =
       static_cast<TestRequestHandler*>(dist_context->GetRequestHandler());
   EnqueueWork(exec_ctx, [handler, out = out.CopyRef()] {
-    handler->ProcessNextRequest();
-    out.emplace();
+    handler->ProcessNextRequest([out = out.CopyRef()] { out.emplace(); });
   });
 }
 
@@ -116,10 +113,7 @@ AsyncValueRef<DistributedContext> TestCreateDistributedContext(
 
 void TestPrintRemoteObjectId(const RemoteObjectId& id,
                              const ExecutionContext& exec_ctx) {
-  tfrt::outs() << "RemoteObjectId{prefix_id: " << id.prefix_id
-               << " local_id: " << id.local_id
-               << " device: " << id.device->name() << "}"
-               << "\n";
+  tfrt::outs() << id << "\n";
 }
 
 void TestPrintRemoteExecuteSpec(const RemoteExecuteSpec& id,

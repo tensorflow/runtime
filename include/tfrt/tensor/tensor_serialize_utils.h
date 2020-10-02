@@ -53,6 +53,11 @@ TensorMetadata CreateTensorMetadata(const DenseAttr& attr);
 
 DenseView CreateDenseView(const DenseAttr& attr);
 
+std::string SerializeTensorMetadata(const TensorMetadata& md);
+
+llvm::Expected<TensorMetadata> DeserializeTensorMetadata(
+    string_view serialized);
+
 }  // namespace tfrt
 
 #endif  // TFRT_SUPPORT_BEF_SERIALIZE_H_

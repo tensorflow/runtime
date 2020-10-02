@@ -953,6 +953,7 @@ tfrt_cc_library(
         "lib/distributed_runtime/callback_registry.cc",
         "lib/distributed_runtime/distributed_context.cc",
         "lib/distributed_runtime/remote_object_manager.cc",
+        "lib/distributed_runtime/remote_tensor.cc",
         "lib/distributed_runtime/request_handler.cc",
     ],
     hdrs = [
@@ -963,6 +964,7 @@ tfrt_cc_library(
         "include/tfrt/distributed_runtime/remote_execute.h",
         "include/tfrt/distributed_runtime/remote_object.h",
         "include/tfrt/distributed_runtime/remote_object_manager.h",
+        "include/tfrt/distributed_runtime/remote_tensor.h",
         "include/tfrt/distributed_runtime/request_handler.h",
     ],
     visibility = [":friends"],
@@ -988,6 +990,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/distributed_runtime/kernels_static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":core_runtime",
         ":distributed_runtime",
         ":hostcontext",
         ":support",

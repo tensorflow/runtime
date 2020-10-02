@@ -59,7 +59,7 @@ class MockCommunicator : public FabricCommunicator {
 
   MOCK_METHOD(void, RemoteExecute,
               (HostId destination, const RemoteExecuteInvocation& request,
-               CallbackFn done),
+               RemoteExecuteCallbackFn done),
               (override));
 };
 

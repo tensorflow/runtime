@@ -42,8 +42,22 @@ struct RemoteExecuteInvocation {
     int64_t local_id;
     string_view device;
   };
-  llvm::SmallVector<Id, 4> inputs;   // The list of inputs arguments
-  llvm::SmallVector<Id, 4> outputs;  // The list of output arguments
+  struct Output {
+    Output(int32_t prefix_id, int64_t local_id, string_view device,
+           bool need_metadata)
+        : id(prefix_id, local_id, device), need_metadata(need_metadata) {}
+    Id id;
+    bool need_metadata;
+  };
+  llvm::SmallVector<Id, 4> inputs;       // The list of inputs arguments
+  llvm::SmallVector<Output, 4> outputs;  // The list of output arguments
+};
+
+struct RemoteExecuteInvocationResult {
+  // TODO(bramandia): Propagate error message.
+  bool ok;
+  // Serialized metadata.
+  llvm::SmallVector<std::string, 4> metadata;
 };
 
 // Arguments for remote register request
@@ -63,7 +77,10 @@ class FabricCommunicatorRequestHandler {
 
   virtual void HandleRemoteRegister(
       const RemoteRegisterInvocation& request) = 0;
-  virtual void HandleRemoteExecute(const RemoteExecuteInvocation& request) = 0;
+  using RemoteExecuteCallbackFn = llvm::unique_function<void(
+      std::unique_ptr<RemoteExecuteInvocationResult>)>;
+  virtual void HandleRemoteExecute(const RemoteExecuteInvocation& request,
+                                   RemoteExecuteCallbackFn done) = 0;
 };
 
 // FabricCommunicator is an abstraction for a layer between the kernel and the
@@ -95,9 +112,11 @@ class FabricCommunicator {
   // The callback will be called once a response is received from the
   // destination. This might not mean the actual execution has completed in
   // the destination.
+  using RemoteExecuteCallbackFn = llvm::unique_function<void(
+      std::unique_ptr<RemoteExecuteInvocationResult>)>;
   virtual void RemoteExecute(HostId destination,
                              const RemoteExecuteInvocation& request,
-                             CallbackFn done) = 0;
+                             RemoteExecuteCallbackFn done) = 0;
 
   const std::string& GetFabricCommunicatorName() const { return name_; }
 

@@ -43,6 +43,7 @@ struct RemoteObjectId {
     device = other.device.CopyRef();
     return *this;
   }
+
   // Unique ID is pair of a unique prefix id (for instance, it can be the host
   // generates the id) and the unique id within that host.
   int32_t prefix_id;
@@ -51,6 +52,13 @@ struct RemoteObjectId {
   // The device where this object lives.
   RCReference<Device> device;
 };
+
+inline raw_ostream& operator<<(raw_ostream& os, const RemoteObjectId& id) {
+  os << "RemoteObjectId{prefix_id: " << id.prefix_id
+     << " local_id: " << id.local_id << " device: " << id.device->name() << "}";
+
+  return os;
+}
 
 }  // namespace tfrt
 #endif  // TFRT_DISTRIBUTED_RUNTIME_REMOTE_OBJECT_H_

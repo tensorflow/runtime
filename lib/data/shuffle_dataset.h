@@ -54,7 +54,7 @@ class ShuffleDataset : public Dataset {
   ShuffleDataset(const ShuffleDataset&) = delete;
   ShuffleDataset& operator=(const ShuffleDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   friend class ShuffleDatasetIterator;
@@ -73,10 +73,11 @@ class ShuffleDataset : public Dataset {
 
 class ShuffleDatasetIterator : public Iterator {
  public:
-  explicit ShuffleDatasetIterator(RCReference<ShuffleDataset> dataset)
+  explicit ShuffleDatasetIterator(RCReference<ShuffleDataset> dataset,
+                                  const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()),
+        input_iterator_(parent_dataset_->input_dataset_->MakeIterator(context)),
         random_(parent_dataset_->seed_, parent_dataset_->seed2_) {}
 
   // This class is not copyable or movable.

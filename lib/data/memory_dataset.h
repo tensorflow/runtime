@@ -82,7 +82,7 @@ class MemoryDataset : public Dataset {
   MemoryDataset(const MemoryDataset&) = delete;
   MemoryDataset& operator=(const MemoryDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   friend class MemoryDatasetIterator<T...>;
@@ -99,10 +99,12 @@ class MemoryDataset : public Dataset {
 template <typename... T>
 class MemoryDatasetIterator : public Iterator {
  public:
-  explicit MemoryDatasetIterator(RCReference<MemoryDataset<T...>> dataset)
+  explicit MemoryDatasetIterator(RCReference<MemoryDataset<T...>> dataset,
+                                 const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
+        input_iterator_(
+            parent_dataset_->input_dataset_->MakeIterator(context)) {}
 
   // This class is not copyable or movable.
   MemoryDatasetIterator(const MemoryDatasetIterator&) = delete;
@@ -160,8 +162,10 @@ class MemoryDatasetIterator : public Iterator {
 };
 
 template <typename... T>
-RCReference<Iterator> MemoryDataset<T...>::MakeIterator() {
-  return TakeRef(host_->Construct<MemoryDatasetIterator<T...>>(FormRef(this)));
+RCReference<Iterator> MemoryDataset<T...>::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(
+      host_->Construct<MemoryDatasetIterator<T...>>(FormRef(this), context));
 }
 
 }  // namespace data

@@ -62,7 +62,8 @@ IterationResult RangeDatasetIterator::GetNext(
 //===----------------------------------------------------------------------===//
 // RangeDataset methods
 //===----------------------------------------------------------------------===//
-RCReference<Iterator> RangeDataset::MakeIterator() {
+RCReference<Iterator> RangeDataset::MakeIterator(
+    const IteratorContext& context) {
   return TakeRef(host_->Construct<RangeDatasetIterator>(FormRef(this)));
 }
 

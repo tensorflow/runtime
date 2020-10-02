@@ -230,7 +230,8 @@ RCReference<PrefetchDataset> MakePrefetchDataset(
 
 // Create an iterator that points to the first element in the dataset.
 RCReference<Iterator> MakeIteratorFromDataset(RCReference<Dataset>* dataset) {
-  return (*dataset)->MakeIterator();
+  IteratorContext context;
+  return (*dataset)->MakeIterator(context);
 }
 
 // Get the next element from the iterator and advance iterator.

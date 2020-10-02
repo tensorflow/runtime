@@ -32,8 +32,10 @@ namespace data {
 //===----------------------------------------------------------------------===//
 // InterleaveDataset methods
 //===----------------------------------------------------------------------===//
-RCReference<Iterator> InterleaveDataset::MakeIterator() {
-  return TakeRef(host_->Construct<InterleaveDatasetIterator>(FormRef(this)));
+RCReference<Iterator> InterleaveDataset::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(
+      host_->Construct<InterleaveDatasetIterator>(FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//
@@ -97,13 +99,14 @@ void InterleaveDatasetIterator::PreInitializeIntermediateIterators(
     entry.dataset->AndThen([dataset = entry.dataset.CopyRef(),
                             prefetched_value = entry.prefetched_value.CopyRef(),
                             iterator = entry.iterator.CopyRef(),
-                            exec_ctx]() mutable {
+                            context = context_, exec_ctx]() mutable {
       if (dataset->IsError()) {
         prefetched_value.SetError(dataset->GetError());
         iterator.SetError(dataset->GetError());
         return;
       }
-      auto iter = dataset->template get<RCReference<Dataset>>()->MakeIterator();
+      auto iter =
+          dataset->template get<RCReference<Dataset>>()->MakeIterator(context);
       // IDEA(donglin): delay prefetching values from the 'future' iterators
       // until we have finished prefetching values from the iterators in the
       // current cycle.

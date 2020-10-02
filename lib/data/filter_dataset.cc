@@ -32,8 +32,10 @@ namespace data {
 //===----------------------------------------------------------------------===//
 // FilterDataset methods
 //===----------------------------------------------------------------------===//
-RCReference<Iterator> FilterDataset::MakeIterator() {
-  return TakeRef(host_->Construct<FilterDatasetIterator>(FormRef(this)));
+RCReference<Iterator> FilterDataset::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(
+      host_->Construct<FilterDatasetIterator>(FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//

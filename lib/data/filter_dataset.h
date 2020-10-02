@@ -56,7 +56,7 @@ class FilterDataset : public Dataset {
   FilterDataset(const FilterDataset&) = delete;
   FilterDataset& operator=(const FilterDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -77,10 +77,11 @@ class FilterDataset : public Dataset {
 
 class FilterDatasetIterator : public Iterator {
  public:
-  explicit FilterDatasetIterator(RCReference<FilterDataset> parent_dataset)
+  explicit FilterDatasetIterator(RCReference<FilterDataset> parent_dataset,
+                                 const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()),
+        input_iterator_(parent_dataset_->input_dataset_->MakeIterator(context)),
         num_false_predicate_(0),
         token_owned_(false) {}
 

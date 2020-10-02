@@ -29,8 +29,10 @@ namespace data {
 //===----------------------------------------------------------------------===//
 // PrefetchDataset methods
 //===----------------------------------------------------------------------===//
-RCReference<Iterator> PrefetchDataset::MakeIterator() {
-  return TakeRef(host_->Construct<PrefetchDatasetIterator>(FormRef(this)));
+RCReference<Iterator> PrefetchDataset::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(
+      host_->Construct<PrefetchDatasetIterator>(FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//

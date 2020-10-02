@@ -46,7 +46,7 @@ class SkipDataset : public Dataset {
   SkipDataset(const SkipDataset&) = delete;
   SkipDataset& operator=(const SkipDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   friend class SkipDatasetIterator;
@@ -63,10 +63,12 @@ class SkipDataset : public Dataset {
 
 class SkipDatasetIterator : public Iterator {
  public:
-  explicit SkipDatasetIterator(RCReference<SkipDataset> dataset)
+  explicit SkipDatasetIterator(RCReference<SkipDataset> dataset,
+                               const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
+        input_iterator_(
+            parent_dataset_->input_dataset_->MakeIterator(context)) {}
 
   // This class is not copyable or movable.
   SkipDatasetIterator(const SkipDatasetIterator&) = delete;

@@ -29,8 +29,8 @@ namespace data {
 //===----------------------------------------------------------------------===//
 // MapDataset methods
 //===----------------------------------------------------------------------===//
-RCReference<Iterator> MapDataset::MakeIterator() {
-  return TakeRef(host_->Construct<MapDatasetIterator>(FormRef(this)));
+RCReference<Iterator> MapDataset::MakeIterator(const IteratorContext& context) {
+  return TakeRef(host_->Construct<MapDatasetIterator>(FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//

@@ -137,6 +137,9 @@ static void AllocateTupleResult(
 
 }  // namespace internal
 
+// This struct provides parameters specific to iterator creation.
+struct IteratorContext {};
+
 class Iterator : public ReferenceCounted<Iterator> {
  public:
   explicit Iterator() {}
@@ -159,7 +162,8 @@ class Dataset : public ReferenceCounted<Dataset> {
 
   // Creates an iterator that points to the first element of the dataset.
   // The iterator should keep +1 reference to the parent_dataset.
-  virtual RCReference<Iterator> MakeIterator() = 0;
+  virtual RCReference<Iterator> MakeIterator(
+      const IteratorContext& context) = 0;
 
  private:
   // For access to Destroy().

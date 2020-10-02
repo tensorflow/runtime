@@ -62,7 +62,8 @@ namespace io {
 class PrefetchingIterator : public Iterator {
  public:
   explicit PrefetchingIterator(int64_t max_prefetch_num,
-                               int64_t prefetch_threshold)
+                               int64_t prefetch_threshold,
+                               const IteratorContext& context)
       : Iterator(),
         max_prefetch_num_(max_prefetch_num),
         prefetch_threshold_(prefetch_threshold),

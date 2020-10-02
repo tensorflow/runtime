@@ -46,7 +46,7 @@ class SliceDataset : public Dataset {
   SliceDataset(const SliceDataset&) = delete;
   SliceDataset& operator=(const SliceDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   friend class SliceDatasetIterator<T>;
@@ -117,7 +117,8 @@ inline IterationResult SliceDatasetIterator<DenseHostTensor>::GetNext(
 }
 
 template <typename T>
-RCReference<Iterator> SliceDataset<T>::MakeIterator() {
+RCReference<Iterator> SliceDataset<T>::MakeIterator(
+    const IteratorContext& context) {
   return TakeRef(host_->Construct<SliceDatasetIterator<T>>(
       FormRef(this), data_.begin(), data_.end()));
 }

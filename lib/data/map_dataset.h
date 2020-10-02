@@ -51,7 +51,7 @@ class MapDataset : public Dataset {
   MapDataset(const MapDataset&) = delete;
   MapDataset& operator=(const MapDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -131,10 +131,12 @@ inline llvm::SmallVector<RCReference<AsyncValue>, 4> RunFunctionWhenReady(
 
 class MapDatasetIterator : public Iterator {
  public:
-  explicit MapDatasetIterator(RCReference<MapDataset> parent_dataset)
+  explicit MapDatasetIterator(RCReference<MapDataset> parent_dataset,
+                              const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
+        input_iterator_(
+            parent_dataset_->input_dataset_->MakeIterator(context)) {}
 
   IterationResult GetNext(const ExecutionContext& exec_ctx) override;
 

@@ -77,7 +77,7 @@ class InterleaveDataset : public Dataset {
   InterleaveDataset(const InterleaveDataset&) = delete;
   InterleaveDataset& operator=(const InterleaveDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -103,10 +103,12 @@ class InterleaveDataset : public Dataset {
 class InterleaveDatasetIterator : public Iterator {
  public:
   explicit InterleaveDatasetIterator(
-      RCReference<InterleaveDataset> parent_dataset)
+      RCReference<InterleaveDataset> parent_dataset,
+      const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()),
+        input_iterator_(parent_dataset_->input_dataset_->MakeIterator(context)),
+        context_(context),
         token_owned_(false) {
     for (int i = 0; i < parent_dataset_->cycle_length_; ++i) {
       iterator_and_queues_.push_back(
@@ -245,6 +247,7 @@ class InterleaveDatasetIterator : public Iterator {
 
   RCReference<InterleaveDataset> parent_dataset_;
   RCReference<Iterator> input_iterator_;
+  const IteratorContext context_;
   bool is_input_iterator_eof_ = false;
 
   // List of intermediate iterators and their states. The positions of those

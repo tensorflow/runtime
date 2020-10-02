@@ -50,7 +50,7 @@ class RangeDataset : public Dataset {
   RangeDataset(const RangeDataset&) = delete;
   RangeDataset& operator=(const RangeDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   friend class RangeDatasetIterator;

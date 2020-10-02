@@ -31,8 +31,10 @@ namespace data {
 //===----------------------------------------------------------------------===//
 // ShuffleDataset methods
 //===----------------------------------------------------------------------===//
-RCReference<Iterator> ShuffleDataset::MakeIterator() {
-  return TakeRef(host_->Construct<ShuffleDatasetIterator>(FormRef(this)));
+RCReference<Iterator> ShuffleDataset::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(
+      host_->Construct<ShuffleDatasetIterator>(FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//

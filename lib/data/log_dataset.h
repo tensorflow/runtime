@@ -46,7 +46,7 @@ class LogDataset : public Dataset {
   LogDataset(const LogDataset&) = delete;
   LogDataset& operator=(const LogDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -62,10 +62,12 @@ class LogDataset : public Dataset {
 
 class LogDatasetIterator : public Iterator {
  public:
-  explicit LogDatasetIterator(RCReference<LogDataset> parent_dataset)
+  explicit LogDatasetIterator(RCReference<LogDataset> parent_dataset,
+                              const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
+        input_iterator_(
+            parent_dataset_->input_dataset_->MakeIterator(context)) {}
 
   // This class is not copyable or movable.
   LogDatasetIterator(const LogDatasetIterator&) = delete;
@@ -87,8 +89,9 @@ class LogDatasetIterator : public Iterator {
   std::queue<IterationResult> buffer_;
 };
 
-inline RCReference<Iterator> LogDataset::MakeIterator() {
-  return TakeRef(host_->Construct<LogDatasetIterator>(FormRef(this)));
+inline RCReference<Iterator> LogDataset::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(host_->Construct<LogDatasetIterator>(FormRef(this), context));
 }
 
 }  // namespace data

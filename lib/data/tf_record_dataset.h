@@ -56,7 +56,7 @@ class TFRecordDataset : public Dataset {
   TFRecordDataset(const TFRecordDataset&) = delete;
   TFRecordDataset& operator=(const TFRecordDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   friend class TFRecordDatasetIterator;
@@ -75,9 +75,10 @@ class TFRecordDataset : public Dataset {
 
 class TFRecordDatasetIterator : public io::PrefetchingIterator {
  public:
-  explicit TFRecordDatasetIterator(RCReference<TFRecordDataset> parent_dataset)
+  explicit TFRecordDatasetIterator(RCReference<TFRecordDataset> parent_dataset,
+                                   const IteratorContext& context)
       : io::PrefetchingIterator(parent_dataset->max_prefetch_num_,
-                                parent_dataset->prefetch_threshold_),
+                                parent_dataset->prefetch_threshold_, context),
         parent_dataset_(std::move(parent_dataset)) {}
 
   // This class is not copyable or movable.

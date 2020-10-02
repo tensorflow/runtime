@@ -31,8 +31,10 @@ namespace data {
 //===----------------------------------------------------------------------===//
 // RepeatDataset methods
 //===----------------------------------------------------------------------===//
-RCReference<Iterator> RepeatDataset::MakeIterator() {
-  return TakeRef(host_->Construct<RepeatDatasetIterator>(FormRef(this)));
+RCReference<Iterator> RepeatDataset::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(
+      host_->Construct<RepeatDatasetIterator>(FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//
@@ -160,7 +162,7 @@ void RepeatDatasetIterator::HandleEofAvailableInput(IterationResult input,
   if (can_repeat) {
     // The input_iterator_ has been exhausted and there is remaining count.
     current_count_++;
-    input_iterator_ = parent_dataset_->input_dataset_->MakeIterator();
+    input_iterator_ = parent_dataset_->input_dataset_->MakeIterator(context_);
     // All the remaining elements in the buffer must be EOF because they come
     // from the exhausted iterator. Therefore we can clear the buffer.
     input_buffer_ = {};

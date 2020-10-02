@@ -50,7 +50,7 @@ class RepeatDataset : public Dataset {
   RepeatDataset(const RepeatDataset&) = delete;
   RepeatDataset& operator=(const RepeatDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   friend class RepeatDatasetIterator;
@@ -67,10 +67,12 @@ class RepeatDataset : public Dataset {
 
 class RepeatDatasetIterator : public Iterator {
  public:
-  explicit RepeatDatasetIterator(RCReference<RepeatDataset> dataset)
+  explicit RepeatDatasetIterator(RCReference<RepeatDataset> dataset,
+                                 const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()),
+        input_iterator_(parent_dataset_->input_dataset_->MakeIterator(context)),
+        context_(context),
         token_owned_(false) {}
 
   // This class is not copyable or movable.
@@ -116,6 +118,7 @@ class RepeatDatasetIterator : public Iterator {
 
   RCReference<RepeatDataset> parent_dataset_;
   RCReference<Iterator> input_iterator_;
+  const IteratorContext context_;
 
   mutex mu_;
   int arity_ = -1;

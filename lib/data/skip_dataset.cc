@@ -29,8 +29,9 @@ namespace data {
 //===----------------------------------------------------------------------===//
 // SkipDataset methods
 //===----------------------------------------------------------------------===//
-RCReference<Iterator> SkipDataset::MakeIterator() {
-  return TakeRef(host_->Construct<SkipDatasetIterator>(FormRef(this)));
+RCReference<Iterator> SkipDataset::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(host_->Construct<SkipDatasetIterator>(FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//

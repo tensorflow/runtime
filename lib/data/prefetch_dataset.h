@@ -49,7 +49,7 @@ class PrefetchDataset : public Dataset {
   PrefetchDataset(const PrefetchDataset&) = delete;
   PrefetchDataset& operator=(const PrefetchDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -66,10 +66,12 @@ class PrefetchDataset : public Dataset {
 
 class PrefetchDatasetIterator : public Iterator {
  public:
-  explicit PrefetchDatasetIterator(RCReference<PrefetchDataset> parent_dataset)
+  explicit PrefetchDatasetIterator(RCReference<PrefetchDataset> parent_dataset,
+                                   const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()) {}
+        input_iterator_(
+            parent_dataset_->input_dataset_->MakeIterator(context)) {}
 
   // This class is not copyable or movable.
   PrefetchDatasetIterator(const PrefetchDatasetIterator&) = delete;

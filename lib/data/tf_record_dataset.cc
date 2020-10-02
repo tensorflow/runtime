@@ -35,8 +35,10 @@ namespace data {
 // Implementation for TFRecordDataset member functions
 //===----------------------------------------------------------------------===//
 
-RCReference<Iterator> TFRecordDataset::MakeIterator() {
-  return TakeRef(host_->Construct<TFRecordDatasetIterator>(FormRef(this)));
+RCReference<Iterator> TFRecordDataset::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(
+      host_->Construct<TFRecordDatasetIterator>(FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//

@@ -374,7 +374,7 @@ class BatchDataset : public Dataset {
   BatchDataset(const BatchDataset&) = delete;
   BatchDataset& operator=(const BatchDataset&) = delete;
 
-  RCReference<Iterator> MakeIterator() override;
+  RCReference<Iterator> MakeIterator(const IteratorContext& context) override;
 
  private:
   // Allow iterator to rely on private data members of this dataset.
@@ -394,10 +394,11 @@ class BatchDataset : public Dataset {
 template <typename... T>
 class BatchDatasetIterator : public Iterator {
  public:
-  explicit BatchDatasetIterator(RCReference<BatchDataset<T...>> parent_dataset)
+  explicit BatchDatasetIterator(RCReference<BatchDataset<T...>> parent_dataset,
+                                const IteratorContext& context)
       : Iterator(),
         parent_dataset_(std::move(parent_dataset)),
-        input_iterator_(parent_dataset_->input_dataset_->MakeIterator()),
+        input_iterator_(parent_dataset_->input_dataset_->MakeIterator(context)),
         is_initialized_(false) {}
 
   // This class is not copyable or movable.
@@ -423,8 +424,10 @@ class BatchDatasetIterator : public Iterator {
 };
 
 template <typename... T>
-RCReference<Iterator> BatchDataset<T...>::MakeIterator() {
-  return TakeRef(host_->Construct<BatchDatasetIterator<T...>>(FormRef(this)));
+RCReference<Iterator> BatchDataset<T...>::MakeIterator(
+    const IteratorContext& context) {
+  return TakeRef(
+      host_->Construct<BatchDatasetIterator<T...>>(FormRef(this), context));
 }
 
 // IDEA(donglin): Consider scheduling the batch operation to the background

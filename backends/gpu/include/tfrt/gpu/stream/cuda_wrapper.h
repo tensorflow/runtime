@@ -171,6 +171,8 @@ llvm::Error CuMemsetD32Async(CurrentContext current, Pointer<void> dst,
                              std::uint32_t value, size_t count,
                              CUstream stream);
 
+llvm::Expected<OwningModule> CuModuleLoadData(CurrentContext current,
+                                              const void* image);
 llvm::Expected<OwningModule> CuModuleLoadDataEx(
     CurrentContext current, const void* image,
     llvm::ArrayRef<CUjit_option> jit_options,

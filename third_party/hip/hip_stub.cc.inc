@@ -519,6 +519,17 @@ hipError_t hipModuleLoadData(hipModule_t *module, const void *image) {
   return func_ptr(module, image);
 }
 
+hipError_t hipModuleLoadDataEx(hipModule_t *module, const void *image,
+                               unsigned int numOptions, hipJitOption *options,
+                               void **optionValues) {
+  using FuncPtr = hipError_t (*)(hipModule_t *, const void *, unsigned int,
+                                 hipJitOption *, void **);
+  static auto func_ptr =
+      reinterpret_cast<FuncPtr>(LoadSymbol("hipModuleLoadDataEx"));
+  if (!func_ptr) return hipErrorSharedObjectInitFailed;
+  return func_ptr(module, image, numOptions, options, optionValues);
+}
+
 hipError_t hipModuleLaunchKernel(hipFunction_t f, unsigned int gridDimX,
                                  unsigned int gridDimY, unsigned int gridDimZ,
                                  unsigned int blockDimX, unsigned int blockDimY,

@@ -140,6 +140,27 @@ enum hipDeviceAttribute_t {
   hipDeviceAttributeEccEnabled,
 };
 
+enum hipJitOption {
+  hipJitOptionMaxRegisters = 0,
+  hipJitOptionThreadsPerBlock,
+  hipJitOptionWallTime,
+  hipJitOptionInfoLogBuffer,
+  hipJitOptionInfoLogBufferSizeBytes,
+  hipJitOptionErrorLogBuffer,
+  hipJitOptionErrorLogBufferSizeBytes,
+  hipJitOptionOptimizationLevel,
+  hipJitOptionTargetFromContext,
+  hipJitOptionTarget,
+  hipJitOptionFallbackStrategy,
+  hipJitOptionGenerateDebugInfo,
+  hipJitOptionLogVerbose,
+  hipJitOptionGenerateLineInfo,
+  hipJitOptionCacheMode,
+  hipJitOptionSm3xOpt,
+  hipJitOptionFastCompile,
+  hipJitOptionNumOptions
+};
+
 enum hipMemcpyKind {
   hipMemcpyHostToHost = 0,
   hipMemcpyHostToDevice = 1,
@@ -330,6 +351,10 @@ hipError_t hipFuncGetAttributes(struct hipFuncAttributes* attr,
                                 const void* func);
 
 hipError_t hipModuleLoadData(hipModule_t* module, const void* image);
+
+hipError_t hipModuleLoadDataEx(hipModule_t* module, const void* image,
+                               unsigned int numOptions, hipJitOption* options,
+                               void** optionValues);
 
 hipError_t hipModuleLaunchKernel(hipFunction_t f, unsigned int gridDimX,
                                  unsigned int gridDimY, unsigned int gridDimZ,

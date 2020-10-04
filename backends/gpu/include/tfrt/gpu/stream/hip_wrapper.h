@@ -152,6 +152,10 @@ llvm::Error HipMemsetD32Async(CurrentContext current, Pointer<void> dst,
 
 llvm::Expected<OwningModule> HipModuleLoadData(CurrentContext current,
                                                const void* image);
+llvm::Expected<OwningModule> HipModuleLoadDataEx(
+    CurrentContext current, const void* image,
+    llvm::ArrayRef<hipJitOption> options, llvm::ArrayRef<void*> option_values);
+
 llvm::Error HipModuleUnload(hipModule_t module);
 llvm::Expected<Function> HipModuleGetFunction(hipModule_t module,
                                               const char* name);

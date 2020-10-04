@@ -499,6 +499,17 @@ llvm::Expected<OwningModule> HipModuleLoadData(CurrentContext current,
   return OwningModule(module);
 }
 
+llvm::Expected<OwningModule> HipModuleLoadDataEx(
+    CurrentContext current, const void* image,
+    llvm::ArrayRef<hipJitOption> options, llvm::ArrayRef<void*> option_values) {
+  CheckHipContext(current);
+  hipModule_t module;
+  RETURN_IF_ERROR(hipModuleLoadDataEx(
+      &module, image, options.size(), const_cast<hipJitOption*>(options.data()),
+      const_cast<void**>(option_values.data())));
+  return OwningModule(module);
+}
+
 llvm::Error HipModuleUnload(hipModule_t module) {
   if (module == nullptr) return llvm::Error::success();
   return TO_ERROR(hipModuleUnload(module));

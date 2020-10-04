@@ -594,6 +594,14 @@ llvm::Expected<OwningModule> CuModuleLoadDataEx(
   return OwningModule(module);
 }
 
+llvm::Expected<OwningModule> CuModuleLoadData(CurrentContext current,
+                                              const void* image) {
+  CheckCudaContext(current);
+  CUmodule module;
+  RETURN_IF_ERROR(cuModuleLoadData(&module, image));
+  return OwningModule(module);
+}
+
 llvm::Error CuModuleUnload(CUmodule module) {
   if (module == nullptr) return llvm::Error::success();
   return TO_ERROR(cuModuleUnload(module));

@@ -644,6 +644,19 @@ llvm::Error MemsetD32Async(CurrentContext current, Pointer<void> dst,
 
 llvm::Expected<OwningModule> ModuleLoadData(CurrentContext current,
                                             const void* image);
+
+struct ModuleLoadOptions {
+  llvm::Optional<llvm::ArrayRef<char>> info_log_buffer;
+  llvm::Optional<llvm::ArrayRef<char>> error_log_buffer;
+  llvm::Optional<int> log_verbose;
+
+  enum class FallbackStrategy { kPreferPtx, kPreferBinary };
+  llvm::Optional<FallbackStrategy> fallback_strategy;
+};
+llvm::Expected<OwningModule> ModuleLoadDataEx(CurrentContext current,
+                                              const void* image,
+                                              const ModuleLoadOptions& options);
+
 llvm::Error ModuleUnload(Module module);
 llvm::Expected<Function> ModuleGetFunction(Module module, const char* name);
 

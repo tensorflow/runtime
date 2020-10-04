@@ -844,9 +844,105 @@ llvm::Expected<OwningModule> ModuleLoadData(CurrentContext current,
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CuModuleLoadDataEx(current, image, {}, {});
+      return CuModuleLoadData(current, image);
     case Platform::ROCm:
       return HipModuleLoadData(current, image);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+namespace {
+
+struct CudaModuleLoadOptions {
+  explicit CudaModuleLoadOptions(const ModuleLoadOptions& in_options) {
+    if (in_options.info_log_buffer) {
+      options.push_back(CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES);
+      option_values.push_back(
+          reinterpret_cast<void*>(in_options.info_log_buffer->size()));
+
+      options.push_back(CU_JIT_INFO_LOG_BUFFER);
+      option_values.push_back(
+          const_cast<char*>(in_options.info_log_buffer->data()));
+    }
+    if (in_options.error_log_buffer) {
+      options.push_back(CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES);
+      option_values.push_back(
+          reinterpret_cast<void*>(in_options.error_log_buffer->size()));
+
+      options.push_back(CU_JIT_ERROR_LOG_BUFFER);
+      option_values.push_back(
+          const_cast<char*>(in_options.error_log_buffer->data()));
+    }
+    if (in_options.log_verbose) {
+      options.push_back(CU_JIT_LOG_VERBOSE);
+      option_values.push_back(reinterpret_cast<void*>(*in_options.log_verbose));
+    }
+
+    if (in_options.fallback_strategy) {
+      options.push_back(CU_JIT_FALLBACK_STRATEGY);
+      option_values.push_back(
+          reinterpret_cast<void*>(*in_options.fallback_strategy));
+    }
+  }
+
+  llvm::SmallVector<CUjit_option, 4> options;
+  llvm::SmallVector<void*, 4> option_values;
+};
+
+struct HipModuleLoadOptions {
+  explicit HipModuleLoadOptions(const ModuleLoadOptions& in_options) {
+    if (in_options.info_log_buffer) {
+      options.push_back(hipJitOptionInfoLogBufferSizeBytes);
+      option_values.push_back(
+          reinterpret_cast<void*>(in_options.info_log_buffer->size()));
+
+      options.push_back(hipJitOptionInfoLogBuffer);
+      option_values.push_back(
+          const_cast<char*>(in_options.info_log_buffer->data()));
+    }
+    if (in_options.error_log_buffer) {
+      options.push_back(hipJitOptionErrorLogBufferSizeBytes);
+      option_values.push_back(
+          reinterpret_cast<void*>(in_options.error_log_buffer->size()));
+
+      options.push_back(hipJitOptionErrorLogBuffer);
+      option_values.push_back(
+          const_cast<char*>(in_options.error_log_buffer->data()));
+    }
+    if (in_options.log_verbose) {
+      options.push_back(hipJitOptionLogVerbose);
+      option_values.push_back(reinterpret_cast<void*>(*in_options.log_verbose));
+    }
+
+    if (in_options.fallback_strategy) {
+      options.push_back(hipJitOptionFallbackStrategy);
+      option_values.push_back(
+          reinterpret_cast<void*>(*in_options.fallback_strategy));
+    }
+  }
+
+  llvm::SmallVector<hipJitOption, 4> options;
+  llvm::SmallVector<void*, 4> option_values;
+};
+
+}  // namespace
+
+llvm::Expected<OwningModule> ModuleLoadDataEx(
+    CurrentContext current, const void* image,
+    const ModuleLoadOptions& options) {
+  auto platform = current.platform();
+  switch (platform) {
+    case Platform::CUDA: {
+      CudaModuleLoadOptions parsed_opts(options);
+      return CuModuleLoadDataEx(current, image, parsed_opts.options,
+                                parsed_opts.option_values);
+    }
+    case Platform::ROCm: {
+      HipModuleLoadOptions parsed_opts(options);
+      return HipModuleLoadDataEx(current, image, parsed_opts.options,
+                                 parsed_opts.option_values);
+    }
     default:
       return InvalidPlatform(platform);
   }

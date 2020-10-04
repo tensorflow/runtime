@@ -81,6 +81,7 @@
       "cuMemsetD8Async",
       "cuMemsetD16Async",
       "cuMemsetD32Async",
+      "cuModuleLoadData",
       "cuModuleLoadDataEx",
       "cuModuleUnload",
       "cuModuleGetFunction",

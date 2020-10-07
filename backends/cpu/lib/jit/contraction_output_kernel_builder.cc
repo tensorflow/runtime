@@ -217,6 +217,109 @@ Expected<FuncOp> BiasAdd::Build(ModuleOp module, const OpAttrsRef& attrs,
 }
 
 //----------------------------------------------------------------------------//
+// FusedBatchNorm does the batch normalization of the output tensor (normalizes
+// the output tensor by mean and variance, and applies (optionally) a scale to
+// it, as well as an offset). See `tf.nn.batch_normalization` documentation.
+//
+// This is inference only fusion, and it does not compute batch mean or batch
+// variance (see `training=False` in TF batch normalization documentation).
+//----------------------------------------------------------------------------//
+
+class FusedBatchNorm : public ContractionOutputKernelBuilder {
+ public:
+  Expected<FuncOp> Build(mlir::ModuleOp module, const OpAttrsRef& attrs,
+                         DType dtype,
+                         ArrayRef<DType> additional_args) const final;
+
+  int GetNumAdditionalArgs() const final { return 1; }
+};
+
+Expected<FuncOp> FusedBatchNorm::Build(ModuleOp module, const OpAttrsRef& attrs,
+                                       DType dtype,
+                                       ArrayRef<DType> additional_args) const {
+  MLIRContext* ctx = module.getContext();
+
+  if (dtype != DType(DType::F32))
+    return MakeStringError("FusedBatchNorm supports only f32 dtype");
+
+  if (additional_args.size() != 4)
+    return MakeStringError("FusedBatchNorm requires four additional args");
+
+  bool all_f32 = llvm::all_of(additional_args, [](DType arg_dtype) -> bool {
+    return arg_dtype == DType(DType::F32);
+  });
+  if (!all_f32)
+    return MakeStringError("All additional arguments must be of f32 dtype");
+
+  auto epsilon_value = attrs.GetOptional<float>("epsilon");
+  if (!epsilon_value.hasValue())
+    return MakeStringError(
+        "missing epsilon attribute for the FusedBatchNorm fusion");
+
+  auto f32_ty = FloatType::getF32(ctx);
+  auto index_ty = IndexType::get(ctx);
+
+  // Additional args: scale, offset, mean, variance
+  auto additional_arg_ty = MemRefType::get({-1}, f32_ty);
+  FuncOp function =
+      CreateOutputKernelFunc(module, "fused_batch_norm",
+                             {additional_arg_ty, additional_arg_ty,
+                              additional_arg_ty, additional_arg_ty});
+
+  OpBuilder builder(function.getBody());
+  edsc::ScopedContext scope(builder, function.getLoc());
+
+  edsc::MemRefBoundsCapture output_block_bounds(function.getArgument(0));
+  intr::StdIndexedValue output_block(function.getArgument(0));
+  intr::StdIndexedValue scale_vector(function.getArgument(3));
+  intr::StdIndexedValue offset_vector(function.getArgument(4));
+  intr::StdIndexedValue mean_vector(function.getArgument(5));
+  intr::StdIndexedValue variance_vector(function.getArgument(6));
+
+  Value d0 = output_block_bounds.ub(0);
+  Value d1 = output_block_bounds.ub(1);
+
+  Value c0 = intr::std_constant_index(0);
+  Value c1 = intr::std_constant_index(1);
+
+  // Offset in the additional args: scale, offset, mean, variance.
+  Value args_offset = intr::std_index_cast(function.getArgument(2), index_ty);
+
+  Value epsilon =
+      intr::std_constant_float(llvm::APFloat(*epsilon_value), f32_ty);
+
+  mlir::scf::buildLoopNest(
+      edsc::ScopedContext::getBuilderRef(), edsc::ScopedContext::getLocation(),
+      {c0, c0}, {d0, d1}, {c1, c1}, {},
+      [&](OpBuilder& builder, Location loc, ValueRange ivs, ValueRange args) {
+        edsc::ScopedContext loop_body(builder, loc);
+        assert(args.empty() && "expected empty arguments");
+        assert(ivs.size() == 2 && "expected two induction variable");
+        Value i1 = ivs[1];
+
+        Value x = output_block(ivs);
+        Value scale = scale_vector(intr::std_addi(args_offset, i1));
+        Value offset = scale_vector(intr::std_addi(args_offset, i1));
+        Value mean = scale_vector(intr::std_addi(args_offset, i1));
+        Value variance = scale_vector(intr::std_addi(args_offset, i1));
+
+        Value x_centered = intr::std_subf(x, mean);
+        Value scaling_factor = intr::std_mulf(
+            intr::std_rsqrt(intr::std_addf(variance, epsilon)), scale);
+        Value x_scaled = intr::std_mulf(x_centered, scaling_factor);
+        Value x_shifted = intr::std_addf(x_scaled, offset);
+
+        output_block(ivs) = x_shifted;
+
+        return mlir::scf::ValueVector();
+      });
+
+  intr::std_ret();
+
+  return function;
+}
+
+//----------------------------------------------------------------------------//
 // Activation function.
 //----------------------------------------------------------------------------//
 
@@ -437,6 +540,7 @@ Expected<std::unique_ptr<ContractionOutputKernelBuilder>>
 GetContractionOutputKernelBuilder(string_view name) {
   if (name == "AddOne") return std::make_unique<AddOne>();
   if (name == "BiasAdd") return std::make_unique<BiasAdd>();
+  if (name == "FusedBatchNorm") return std::make_unique<FusedBatchNorm>();
   if (name == "Relu") return std::make_unique<Relu>();
   if (name == "LeakyRelu") return std::make_unique<LeakyRelu>();
 

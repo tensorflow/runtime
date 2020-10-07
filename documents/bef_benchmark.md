@@ -36,22 +36,22 @@ To use the benchmark kernel, the user needs to take the following two steps:
 Example:
 
 ```c++
-func @benchmark() {
-  %c = tfrt.constant.i32 42
+ func @benchmark() {
+   %c = tfrt.constant.i32 42
 
-  tfrt_test.benchmark "add.i32" (%c : i32)
-    duration_secs = 1,    // benchmark duration in seconds
-    max_count = 100,      // the maximum repeated runs for the benchmark
-    num_warmup_runs = 10  // the number of warm up runs
-  {
-    // The MLIR code to be benchmarked goes here.
-    // The following code benchmarks the tfrt.constant.i32 and tfrt.add.i32 kernel
-    %x = tfrt.add.i32 %c, %c
-    tfrt.return %x : i32    // the benchmarked function needs to return exactly one value
-  }
+   tfrt_test.benchmark "add.i32" (%c : i32)
+     duration_secs = 1,    // benchmark duration in seconds
+     max_count = 100,      // the maximum repeated runs for the benchmark
+     num_warmup_runs = 10  // the number of warm up runs
+   {
+     // The MLIR code to be benchmarked goes here.
+     // The following code benchmarks the tfrt.constant.i32 and tfrt.add.i32 kernel
+     %x = tfrt.add.i32 %c, %c
+     tfrt.return %x : i32    // the benchmarked function needs to return exactly one value
+   }
 
-  tfrt.return  // The return statement is necessary for any bef function.
-}
+   tfrt.return  // The return statement is necessary for any bef function.
+ }
 ```
 
 NOTE: The benchmarked function needs to return exactly one value. The exact

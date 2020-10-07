@@ -126,7 +126,19 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
   // Return all of the TensorHandles in AsyncValue's.
   for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
     auto &th_ref = result_ths[i];
-    results[i]->emplace<TensorHandle>(std::move(th_ref));
+    auto *tensor_av = th_ref.GetAsyncTensor();
+
+    // Only set the AsyncValue of TensorHandle to be available when the
+    // underlying tensor is available. This is to avoid unnecessary async
+    // dispatches in BEF execution.
+    if (tensor_av->IsAvailable()) {
+      results[i]->emplace<TensorHandle>(std::move(th_ref));
+    } else {
+      tensor_av->AndThen([result = results[i].CopyRef(),
+                          th_ref = std::move(th_ref)]() mutable {
+        result->emplace<TensorHandle>(std::move(th_ref));
+      });
+    }
   }
 }
 

@@ -425,8 +425,8 @@ llvm::Error ReduceMean(GpuDispatchContext* dctx, const DenseGpuTensor& input,
                        ArrayRef<int32_t> reduction_indices) {
   // Number of input elements per output element.
   ssize_t num_reduced = input.NumElements() / out_md.shape.GetNumElements();
-  return Reduce(dctx, input, output, out_md, reduction_indices, T{}, cub::Sum(),
-                Multiplies<T>(T{1} / num_reduced));
+  return Reduce(dctx, input, output, out_md, reduction_indices, T{0},
+                cub::Sum(), Multiplies<T>(T{1} / num_reduced));
 }
 
 static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpImpl(

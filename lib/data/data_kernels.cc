@@ -215,13 +215,13 @@ RCReference<BatchDataset<T...>> MakeBatchDataset(
 
 RCReference<PrefetchDataset> MakePrefetchDataset(
     RCReference<Dataset>* dataset, int64_t prefetch_num,
-    const ExecutionContext& exec_ctx) {
+    Attribute<bool> is_deterministic, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
   if (prefetch_num == -1) {
     prefetch_num = host->GetNumWorkerThreads();
   }
-  return TakeRef(
-      host->Construct<PrefetchDataset>(dataset->CopyRef(), prefetch_num, host));
+  return TakeRef(host->Construct<PrefetchDataset>(
+      dataset->CopyRef(), prefetch_num, is_deterministic.get(), host));
 }
 
 //===----------------------------------------------------------------------===//

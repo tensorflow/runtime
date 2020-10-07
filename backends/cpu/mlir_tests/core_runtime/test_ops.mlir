@@ -145,7 +145,7 @@ func @test_scalar_denseonly3_mixed() -> !tfrt.chain {
 
   %c_handle = corert.executeop(%cpu) "tfrt_test.add.denseonly3"(%a_handle, %b_handle) : 1
 
-  // CHECK: future TensorHandle with metadata I32 [2, 3]
+  // CHECK: DenseHostTensor dtype = I32, shape = [2, 3], values = [3, 3, 3, 3, 3, 3]
   %ch1 = "corert.print_tensorhandle"(%c_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   //  DenseHostTensor dtype = I32, shape = [2, 3], values = [3, 3, 3, 3, 3, 3]

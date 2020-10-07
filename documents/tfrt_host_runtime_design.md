@@ -1091,6 +1091,7 @@ func @print_from_mars() -> i32 {
   // available
   tfrt.return %y : i32
 }
+
 ```
 
 Asynchronous kernels are compatible with synchronous kernels: the example above

@@ -239,7 +239,9 @@ def PrefetchDatasetOp : Data_Op<"prefetch_dataset"> {
 
   let arguments = (ins
     Data_DatasetType:$input_dataset,
-    I64:$prefetch_num
+    I64:$prefetch_num,
+
+    I1Attr:$is_deterministic
   );
 
   let results = (outs Data_DatasetType:$output_dataset);

@@ -302,7 +302,7 @@ func @test_async() -> !tfrt.chain {
 
   %b_handle = corert.executeop(%cpu) "tfrt_test.async.noop"(%a_handle) : 1
 
-  // CHECK: future TensorHandle with metadata I32 [2, 2]
+  // CHECK: ScalarHostTensor dtype = I32, shape = [2, 2], value = 1
   %ch3 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   // CHECK: ScalarHostTensor dtype = I32, shape = [2, 2], value = 1
@@ -321,7 +321,7 @@ func @test_async_no_md() -> !tfrt.chain {
 
   %b_handle = corert.executeop(%cpu) "tfrt_test.async.noop_no_md"(%a_handle) : 1
 
-  // CHECK: fully future TensorHandle with unresolved metadata
+  // CHECK: ScalarHostTensor dtype = I32, shape = [2, 2], value = 1
   %ch3 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch3 : !tfrt.chain
@@ -359,7 +359,7 @@ func @test_side_effect() -> !tfrt.chain {
 
   %c_handle = corert.executeop(%cpu) "tfrt_test.add"(%b_handle, %b_handle) : 1
 
-  // CHECK: future TensorHandle with metadata I32 [2, 2]
+  // CHECK: ScalarHostTensor dtype = I32, shape = [2, 2], value = 2
   %ch4 = "corert.print_tensorhandle"(%c_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   // Print in the opposite order from resolving to make sure the prints get
@@ -407,7 +407,7 @@ func @test_async_dispatch_async_metadata_error() -> !tfrt.chain {
 
   %b_handle = corert.executeop(%cpu) "tfrt_test.async.noop_no_md"(%a_handle) : 1
 
-  // CHECK: fully future TensorHandle with unresolved metadata
+  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %ch1 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   %res_handle = corert.executeop(%cpu) "tfrt_test.matmul" (%a_handle, %b_handle) {transpose_a = false, transpose_b = false} : 1
@@ -451,6 +451,32 @@ func @control_flow_conditional() {
 
   // CHECK: DenseHostTensor dtype = I32, shape = [2, 2], values = [2, 2, 2, 2]
   %ch3 = "corert.print_tensorhandle"(%false_res#1, %false_res#0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  tfrt.return
+}
+
+// CHECK-LABEL: --- Running 'control_flow_conditional_error'
+func @control_flow_conditional_error() {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %a_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1 : i32] } : 1
+  %b_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [2 : i32] } : 1
+
+  %tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [1 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %tensor, %ch0 1 : i32
+  // expected-error @+1 {{invalid tensor metadata}}
+  %erroneous_handle = "tfrt_test.tensorhandle_with_error_metadata"(%tensor, %ch1)
+    : (!t.tensor, !tfrt.chain) -> !corert.tensorhandle
+
+  // expected-error @+1 {{failed to find device for condition tensor handle}}
+  %ch2, %result = corert.cond %erroneous_handle @return_first @return_second (%ch1, %a_handle, %b_handle) : (!corert.tensorhandle)
+
+  // CHECK-NOT: DenseHostTensor dtype = I32
+  %ch3 = "corert.print_tensorhandle"(%result, %ch2) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return
 }
@@ -513,6 +539,25 @@ func @control_flow_while_loop() {
   // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-3]
   // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-1]
   %ch1, %result = corert.while @while_cond_add1 @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle)
+
+  tfrt.return
+}
+
+// While loop error test
+// CHECK-LABEL: --- Running 'control_flow_while_loop_error'
+func @control_flow_while_loop_error() {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %tensor = tfrt_dht.create_uninitialized_tensor.i32.2 [1 : i64, 1 : i64]
+  %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %tensor, %ch0 -9 : i32
+  // expected-error @+1 {{invalid tensor metadata}}
+  %a_handle = "tfrt_test.tensorhandle_with_error_metadata"(%tensor, %ch1)
+    : (!t.tensor, !tfrt.chain) -> !corert.tensorhandle
+
+  // CHECK-NOT: DenseHostTensor dtype = I32
+  %ch2, %result = corert.while @while_cond_add1 @while_body_add2 (%ch1, %a_handle) : (!corert.tensorhandle)
 
   tfrt.return
 }

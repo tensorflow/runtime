@@ -31,8 +31,11 @@ namespace data {
 //===----------------------------------------------------------------------===//
 RCReference<Iterator> PrefetchDataset::MakeIterator(
     const IteratorContext& context) {
-  return TakeRef(
-      host_->Construct<PrefetchDatasetIterator>(FormRef(this), context));
+  if (is_deterministic_)
+    return TakeRef(
+        host_->Construct<PrefetchDatasetIterator>(FormRef(this), context));
+  return TakeRef(host_->Construct<NonDeterministicPrefetchDatasetIterator>(
+      FormRef(this), context));
 }
 
 //===----------------------------------------------------------------------===//
@@ -45,6 +48,37 @@ IterationResult PrefetchDatasetIterator::GetNext(
   }
   auto result = std::move(buffer_.front());
   buffer_.pop();
+  return result;
+}
+
+//===----------------------------------------------------------------------===//
+// NonDeterministicPrefetchDatasetIterator methods
+//===----------------------------------------------------------------------===//
+
+static bool AvailableAndNotEof(const IterationResult& result) {
+  if (result.eof.IsConcrete() && result.eof.get()) return false;
+  if (!result.eof.IsAvailable()) return false;
+  for (auto& value : result.values) {
+    if (!value->IsAvailable()) return false;
+  }
+  return true;
+}
+
+IterationResult NonDeterministicPrefetchDatasetIterator::GetNext(
+    const ExecutionContext& exec_ctx) {
+  while (buffer_.size() < parent_dataset_->prefetch_num_ + 1) {
+    buffer_.push_back(input_iterator_->GetNext(exec_ctx));
+  }
+  for (auto it = buffer_.begin(), e = buffer_.end(); it != e; ++it) {
+    if (AvailableAndNotEof(*it)) {
+      auto value = std::move(*it);
+      buffer_.erase(it);
+      return value;
+    }
+  }
+
+  auto result = std::move(buffer_.front());
+  buffer_.pop_front();
   return result;
 }
 

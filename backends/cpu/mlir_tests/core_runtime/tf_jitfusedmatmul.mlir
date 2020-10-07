@@ -129,3 +129,33 @@ func @fusedMatMul_LeakyRelu_f32() -> !tfrt.chain {
 
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
+
+// CHECK: --- Running 'fusedMatMul_FusedBatchNorm_f32'
+func @fusedMatMul_FusedBatchNorm_f32() -> !tfrt.chain{
+  %ch_epoch = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
+
+  %operand_0 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : 1
+  %operand_1 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [3, 2], values = [0.0 : f32, 1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32] } : 1
+
+  %scale = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [2], values = [0.5 : f32, 0.25 : f32] } : 1
+  %offset = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [2], values = [1.5 : f32, 1.25 : f32] } : 1
+  %mean = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [2], values = [2.5 : f32, 2.25 : f32] } : 1
+  %variance = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [2], values = [3.5 : f32, 3.25 : f32] } : 1
+
+  %cpu_handle_result = corert.executeop(%cpu)
+      "tf._JitFusedMatMul"(%operand_0, %operand_1, %scale, %offset, %mean, %variance)
+      { fusion = ["FusedBatchNorm"], epsilon = 0.01 : f32, transpose_a = false, transpose_b = false } : 1
+
+  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK-SAME: values = [-5.502100e-01, -1.098298e+00, 5.751050e+00, 5.520621e+00]
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
+
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}

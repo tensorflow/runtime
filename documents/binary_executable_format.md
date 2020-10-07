@@ -48,12 +48,12 @@ stable until all the TODOs are resolved.
 #### Grammar
 
 ```none
-BYTE                   ::= `0x00`...`0xFF`
-INTEGER                ::= (`0x80`...`0xFF`)* (`0x00`...`0x7F`)
-FIXED32                ::= BYTE BYTE BYTE BYTE
-NULL_TERMINATED_STRING ::= (`0x01`...`0xFF`)* `0x00`
-OFFSET                 ::= INTEGER
-INDEX                  ::= INTEGER
+  BYTE                   ::= `0x00`...`0xFF`
+  INTEGER                ::= (`0x80`...`0xFF`)* (`0x00`...`0x7F`)
+  FIXED32                ::= BYTE BYTE BYTE BYTE
+  NULL_TERMINATED_STRING ::= (`0x01`...`0xFF`)* `0x00`
+  OFFSET                 ::= INTEGER
+  INDEX                  ::= INTEGER
 ```
 
 A BEF file is formed as a byte stream whose top-level structure is a list of
@@ -95,10 +95,10 @@ and for dealing with that "random file someone sent you".
 #### Grammar
 
 ```none
-SECTION                ::= SECTION_HEADER SECTION_DATA
-SECTION_HEADER         ::= SECTION_ID INTEGER<"Length"> SECTION_BODY_ALIGNMENT?
-SECTION_ID             ::= BYTE
-SECTION_BODY_ALIGNMENT ::= BYTE<"Alignment"> BYTE<"AlignmentPadding">*
+  SECTION                ::= SECTION_HEADER SECTION_DATA
+  SECTION_HEADER         ::= SECTION_ID INTEGER<"Length"> SECTION_BODY_ALIGNMENT?
+  SECTION_ID             ::= BYTE
+  SECTION_BODY_ALIGNMENT ::= BYTE<"Alignment"> BYTE<"AlignmentPadding">*
 ```
 
 *Sections* are the top level entities in the file (after the header). Each
@@ -117,23 +117,23 @@ defined in
 #### Grammar
 
 ```none
-BEF_FILE     ::= `0x0B` `0xEF` SECTION*
+  BEF_FILE     ::= `0x0B` `0xEF` SECTION*
 
-SECTION_DATA ::= FORMAT_VERSION_SECTION
-SECTION_DATA ::= LOCATION_FILENAMES_SECTION
-SECTION_DATA ::= LOCATION_POSITIONS_SECTION
-SECTION_DATA ::= STRINGS_SECTION
-SECTION_DATA ::= ATTRIBUTES_SECTION
-SECTION_DATA ::= KERNELS_SECTION
-SECTION_DATA ::= TYPES_SECTION
-SECTION_DATA ::= FUNCTIONS_SECTION
-SECTION_DATA ::= FUNCTION_INDEX_SECTION
-SECTION_DATA ::= ATTRIBUTE_TYPES_SECTION
-SECTION_DATA ::= ATTRIBUTE_NAMES_SECTION
-SECTION_DATA ::= REGISTER_TYPES_SECTION
+  SECTION_DATA ::= FORMAT_VERSION_SECTION
+  SECTION_DATA ::= LOCATION_FILENAMES_SECTION
+  SECTION_DATA ::= LOCATION_POSITIONS_SECTION
+  SECTION_DATA ::= STRINGS_SECTION
+  SECTION_DATA ::= ATTRIBUTES_SECTION
+  SECTION_DATA ::= KERNELS_SECTION
+  SECTION_DATA ::= TYPES_SECTION
+  SECTION_DATA ::= FUNCTIONS_SECTION
+  SECTION_DATA ::= FUNCTION_INDEX_SECTION
+  SECTION_DATA ::= ATTRIBUTE_TYPES_SECTION
+  SECTION_DATA ::= ATTRIBUTE_NAMES_SECTION
+  SECTION_DATA ::= REGISTER_TYPES_SECTION
 
-// Unknown section.
-SECTION_DATA ::= BYTE*
+  // Unknown section.
+  SECTION_DATA ::= BYTE*
 ```
 
 The top level structure of the file is a two-byte "magic number" of `0x0BEF`
@@ -148,7 +148,7 @@ format for some purpose.
 #### Grammar
 
 ```none
-FORMAT_VERSION_SECTION ::= `0x00`
+  FORMAT_VERSION_SECTION ::= `0x00`
 ```
 
 The FormatVersion section contains a single byte, the version number (0).
@@ -161,7 +161,7 @@ version number.
 #### Grammar
 
 ```none
-LOCATION_FILENAMES_SECTION ::= NULL_TERMINATED_STRING*
+  LOCATION_FILENAMES_SECTION ::= NULL_TERMINATED_STRING*
 ```
 
 This section contains a list of NULL terminated filenames used for location
@@ -180,8 +180,8 @@ strings.
 #### Grammar
 
 ```none
-POSITION ::= INDEX<"Filename"> INTEGER<"LineNum"> INTEGER<"ColumnNum">
-LOCATION_POSITIONS_SECTION ::= POSITION*
+  POSITION ::= INDEX<"Filename"> INTEGER<"LineNum"> INTEGER<"ColumnNum">
+  LOCATION_POSITIONS_SECTION ::= POSITION*
 ```
 
 This section contains a list of "positions", represented as filename/line/column
@@ -198,7 +198,7 @@ etc. It probably makes sense to consider a more elaborate design at some point.
 #### Grammar
 
 ```none
-STRINGS_SECTION ::= NULL_TERMINATED_STRING*
+  STRINGS_SECTION ::= NULL_TERMINATED_STRING*
 ```
 
 The Strings section contains a list of NULL terminated strings used by the
@@ -214,7 +214,7 @@ NULL characters become important for something (at a space/complexity cost).
 #### Grammar
 
 ```none
-ATTRIBUTES_SECTION ::= BYTE*
+  ATTRIBUTES_SECTION ::= BYTE*
 ```
 
 The Attributes section contains the value of attributes used by kernels in the
@@ -258,7 +258,7 @@ performance penalty.
 #### Grammar
 
 ```none
-KERNELS_SECTION ::= INTEGER<"KernelCount"> OFFSET<"KernelNameOffset">*
+  KERNELS_SECTION ::= INTEGER<"KernelCount"> OFFSET<"KernelNameOffset">*
 ```
 
 The Kernels section defines a table of kernel names, directly corresponding to
@@ -281,7 +281,7 @@ array in memory for kernels.
 #### Grammar
 
 ```none
-TYPES_SECTION ::= INTEGER<"TypeCount"> OFFSET<"TypeNameOffset">*
+  TYPES_SECTION ::= INTEGER<"TypeCount"> OFFSET<"TypeNameOffset">*
 ```
 
 The Types section defines a table of type names used by the host program, and is
@@ -294,7 +294,7 @@ specify types of registers.
 #### Grammar
 
 ```none
-FUNCTIONS_SECTION ::= FUNCTION*
+  FUNCTIONS_SECTION ::= FUNCTION*
 ```
 
 The Functions section is a list of Function records emitted to the byte stream
@@ -319,16 +319,16 @@ control flow and other concepts that occur with MLIR regions.
 #### Grammar
 
 ```none
-FUNCTION       ::= OFFSET<"Location"> REGISTER_TABLE KERNEL_TABLE \
-                   RESULT_REGS BYTE<"AlignmentPadding">* KERNEL+
+  FUNCTION       ::= OFFSET<"Location"> REGISTER_TABLE KERNEL_TABLE \
+                     RESULT_REGS BYTE<"AlignmentPadding">* KERNEL+
 
-REGISTER_TABLE ::= INTEGER<"NumRegs"> REGISTER_ENTRY*
-REGISTER_ENTRY ::= INTEGER<"NumUses">
+  REGISTER_TABLE ::= INTEGER<"NumRegs"> REGISTER_ENTRY*
+  REGISTER_ENTRY ::= INTEGER<"NumUses">
 
-KERNEL_TABLE   ::= INTEGER<"NumKernels"> KERNEL_ENTRY*
-KERNEL_ENTRY   ::= (OFFSET<"KernelOffset"> INTEGER<"NumOperands">)
+  KERNEL_TABLE   ::= INTEGER<"NumKernels"> KERNEL_ENTRY*
+  KERNEL_ENTRY   ::= (OFFSET<"KernelOffset"> INTEGER<"NumOperands">)
 
-RESULT_REGS    ::= INDEX<"Register">*
+  RESULT_REGS    ::= INDEX<"Register">*
 ```
 
 Each function is defined by a location (an offset into the
@@ -360,18 +360,18 @@ allow the use of kernel indexes.
 #### Grammar
 
 ```none
-KERNEL             ::= KERNEL_HEADER KERNEL_BODY
+  KERNEL             ::= KERNEL_HEADER KERNEL_BODY
 
-KERNEL_HEADER      ::= FIXED32<"KernelCode"> FIXED32<"KernelLocation"> \
-                       FIXED32<"NumArguments"> FIXED32<"NumAttributes"> \
-                       FIXED32<"NumFunctions"> FIXED32<"NumResults"> \
-                       FIXED32<"SpecialMetadata"> \
+  KERNEL_HEADER      ::= FIXED32<"KernelCode"> FIXED32<"KernelLocation"> \
+                         FIXED32<"NumArguments"> FIXED32<"NumAttributes"> \
+                         FIXED32<"NumFunctions"> FIXED32<"NumResults"> \
+                         FIXED32<"SpecialMetadata"> \
 
-KERNEL_RESULT_TABLE::= FIXED32<"NumUsedBys">*
+  KERNEL_RESULT_TABLE::= FIXED32<"NumUsedBys">*
 
-KERNEL_BODY        ::= FIXED32<KernelArgument>* FIXED32<KernelAttribute>* \
-                       FIXED32<KernelFunction>* FIXED32<KernelResult>* \
-                       FIXED32<KernelUsedBy>*
+  KERNEL_BODY        ::= FIXED32<KernelArgument>* FIXED32<KernelAttribute>* \
+                         FIXED32<KernelFunction>* FIXED32<KernelResult>* \
+                         FIXED32<KernelUsedBy>*
 ```
 
 Each instance of a kernel includes a kernel header, a result table and a kernel
@@ -410,10 +410,10 @@ kernel.
 #### Grammar
 
 ```none
-FUNCTION_INDEX_SECTION ::= INTEGER<"NumFunctions"> FUNCTION_ENTRY*
-FUNCTION_ENTRY         ::= BYTE<"FunctionKind"> OFFSET<"Function"> \
-                           OFFSET<"Name"> INTEGER<"NumArguments"> \
-                           INDEX<"Type">* INTEGER<"NumResults"> INDEX<"Type">*
+  FUNCTION_INDEX_SECTION ::= INTEGER<"NumFunctions"> FUNCTION_ENTRY*
+  FUNCTION_ENTRY         ::= BYTE<"FunctionKind"> OFFSET<"Function"> \
+                             OFFSET<"Name"> INTEGER<"NumArguments"> \
+                             INDEX<"Type">* INTEGER<"NumResults"> INDEX<"Type">*
 ```
 
 The FunctionIndex section defines a table of functions in the BEF file, one for
@@ -437,8 +437,8 @@ of any individual function until it is needed.
 #### Grammar
 
 ```none
-ATTRIBUTE_TYPES_SECTION   ::= INTEGER<"NumAttributes"> ATTRIBUTE_TYPE_ENTRY*
-ATTRIBUTE_TYPE_ENTRY      ::= OFFSET<"Attributes"> BYTE<"AttributeType">
+  ATTRIBUTE_TYPES_SECTION   ::= INTEGER<"NumAttributes"> ATTRIBUTE_TYPE_ENTRY*
+  ATTRIBUTE_TYPE_ENTRY      ::= OFFSET<"Attributes"> BYTE<"AttributeType">
 ```
 
 The AttributeTypes section is an optional section which is not needed for BEF
@@ -453,10 +453,10 @@ in bef_encoding.h.
 #### Grammar
 
 ```none
-ATTRIBUTE_NAMES_SECTION ::= INTEGER<"NumFunctions"> KERNEL_TABLE*
-KERNEL_TABLE            ::= INTEGER<"NumKernels"> KERNEL_ENTRY*
-KERNEL_ENTRY            ::= SPECIAL_ATTRIBUTE OFFSET<"AttributeName">*
-SPECIAL_ATTRIBUTE       ::= BYTE
+  ATTRIBUTE_NAMES_SECTION ::= INTEGER<"NumFunctions"> KERNEL_TABLE*
+  KERNEL_TABLE            ::= INTEGER<"NumKernels"> KERNEL_ENTRY*
+  KERNEL_ENTRY            ::= SPECIAL_ATTRIBUTE OFFSET<"AttributeName">*
+  SPECIAL_ATTRIBUTE       ::= BYTE
 ```
 
 TODO(tfrt-devs): Remove the special_attribute byte and update `tfrt_translate`
@@ -478,8 +478,8 @@ the name of the attribute used by this kernel.
 #### Grammar
 
 ```none
-REGISTER_TYPES_SECTION ::= INTEGER<"NumFunctions"> REGISTER_TYPE_TABLE
-REGISTER_TYPE_TABLE    ::= INTEGER<"NumRegs"> INDEX<"Types">*
+  REGISTER_TYPES_SECTION ::= INTEGER<"NumFunctions"> REGISTER_TYPE_TABLE
+  REGISTER_TYPE_TABLE    ::= INTEGER<"NumRegs"> INDEX<"Types">*
 ```
 
 The RegisterTypes section is an optional section which is not needed for BEF

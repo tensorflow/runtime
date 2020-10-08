@@ -25,6 +25,7 @@
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
+#include "tfrt/tensor/opdefs/tensor.h"
 
 using namespace mlir;
 

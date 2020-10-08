@@ -439,6 +439,8 @@ filegroup(
     name = "OpBaseTdFiles",
     srcs = [
         "include/tfrt/basic_kernels/opdefs/tfrt_base.td",
+        "include/tfrt/tensor/opdefs/host_tensor.td",
+        "include/tfrt/tensor/opdefs/tensor.td",
         "include/tfrt/tensor/opdefs/tensor_shape_base.td",
         "include/tfrt/tfrt_op_base.td",
         "@llvm-project//mlir:include/mlir/IR/OpBase.td",
@@ -449,6 +451,8 @@ filegroup(
 
 exports_files(
     [
+        "include/tfrt/tensor/opdefs/host_tensor.td",
+        "include/tfrt/tensor/opdefs/tensor.td",
         "include/tfrt/tfrt_op_base.td",
         "include/tfrt/basic_kernels/opdefs/tfrt_base.td",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
@@ -500,7 +504,7 @@ tfrt_cc_library(
 )
 
 gentbl(
-    name = "tensor_opdefs_inc_gen",
+    name = "tensor_shape_opdefs_inc_gen",
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -517,6 +521,48 @@ gentbl(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/tensor_shape.td",
+    td_includes = ["include"],
+    td_srcs = [
+        ":OpBaseTdFiles",
+        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+    ],
+)
+
+gentbl(
+    name = "tensor_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/tensor/opdefs/tensor.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/tensor/opdefs/tensor.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/tensor/opdefs/tensor.td",
+    td_includes = ["include"],
+    td_srcs = [
+        ":OpBaseTdFiles",
+        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+    ],
+)
+
+gentbl(
+    name = "host_tensor_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/tensor/opdefs/host_tensor.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/tensor/opdefs/host_tensor.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/tensor/opdefs/host_tensor.td",
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
@@ -592,12 +638,16 @@ tfrt_cc_library(
         "lib/tensor/opdefs/coo_host_tensor.cc",
         "lib/tensor/opdefs/dense_host_tensor.cc",
         "lib/tensor/opdefs/dense_host_tensor_sync.cc",
+        "lib/tensor/opdefs/host_tensor.cc",
+        "lib/tensor/opdefs/tensor.cc",
         "lib/tensor/opdefs/tensor_shape.cc",
     ],
     hdrs = [
         "include/tfrt/tensor/opdefs/coo_host_tensor.h",
         "include/tfrt/tensor/opdefs/dense_host_tensor.h",
         "include/tfrt/tensor/opdefs/dense_host_tensor_sync.h",
+        "include/tfrt/tensor/opdefs/host_tensor.h",
+        "include/tfrt/tensor/opdefs/tensor.h",
         "include/tfrt/tensor/opdefs/tensor_shape.h",
     ],
     visibility = [":friends"],
@@ -606,7 +656,9 @@ tfrt_cc_library(
         ":coo_host_tensor_opdefs_inc_gen",
         ":dense_host_tensor_opdefs_inc_gen",
         ":dense_host_tensor_sync_opdefs_inc_gen",
+        ":host_tensor_opdefs_inc_gen",
         ":tensor_opdefs_inc_gen",
+        ":tensor_shape_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
     ],
@@ -828,6 +880,7 @@ tfrt_cc_library(
     ],
     deps = [
         ":basic_kernels_opdefs",
+        ":tensor_opdefs",
         ":test_kernels_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
@@ -1035,6 +1088,7 @@ tfrt_cc_library(
     deps = [
         ":basic_kernels_opdefs",
         ":distributed_kernels_opdefs_inc_gen",
+        ":tensor_opdefs",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
     ],

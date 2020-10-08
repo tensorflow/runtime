@@ -12,24 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===-- tfrt_op_base.td - Base op definition file ----------*- tablegen -*-===//
+//===- host_tensor.td ----------------------------------------------------===//
 //
-// This is the base operation definition file for TFRT ops.
+// Operation definitions for host tensor dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef TFRT_OP_BASE
+#ifdef TFRT_TENSOR_OPDEFS_HOST_TENSOR_H_
 #else
-#define TFRT_OP_BASE
+#define TFRT_TENSOR_OPDEFS_HOST_TENSOR_H_
 
 include "mlir/IR/OpBase.td"
-include "tfrt/basic_kernels/opdefs/tfrt_base.td"
-include "tfrt/tensor/opdefs/host_tensor.td"
-include "tfrt/tensor/opdefs/tensor.td"
+
+// TFRT host tensor dialect.
+// TODO(b/170246041): Consider move this into the TFRT dialect instead.
+def HostTensor_Dialect : Dialect {
+  let name = "ht";
+
+  let description = [{
+    The host tensor dialect.
+
+    This dialect defines operations to work with host tensor in tfrt.
+  }];
+
+  let cppNamespace = "::tfrt::ht";
+}
 
 //===----------------------------------------------------------------------===//
 // Type definitions
 //===----------------------------------------------------------------------===//
-def StringType : OpaqueType<"tfrt", "string", "!tfrt.string type">;
+def HostBufferType : DialectType<HostTensor_Dialect,
+    CPred<"$_self.isa<::tfrt::ht::HostBufferType>()">, "!ht.host_buffer type">,
+    BuildableType<"$_builder.getType<::tfrt::ht::HostBufferType>()"> {
+  let typeDescription = [{
+    `!ht.host_buffer type` represents a host buffer.
+  }];
+}
 
-#endif  // TFRT_OP_BASE
+#endif  // TFRT_TENSOR_OPDEFS_HOST_TENSOR_H_

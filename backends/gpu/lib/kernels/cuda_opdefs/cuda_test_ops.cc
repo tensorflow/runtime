@@ -27,6 +27,7 @@
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
+#include "tfrt/tensor/opdefs/tensor.h"
 
 namespace tfrt {
 namespace cuda {
@@ -37,6 +38,7 @@ namespace cuda {
 
 CUDATestDialect::CUDATestDialect(MLIRContext *context)
     : Dialect(/*name*/ "cuda_test", context, TypeID::get<CUDATestDialect>()) {
+  context->getOrLoadDialect<tfrt::t::TensorDialect>();
   allowUnknownTypes();
   allowUnknownOperations();
 

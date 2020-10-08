@@ -26,6 +26,8 @@
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
+#include "tfrt/tensor/opdefs/host_tensor.h"
+#include "tfrt/tensor/opdefs/tensor.h"
 #include "tfrt/tensor/opdefs/tensor_shape.h"
 
 using namespace mlir;

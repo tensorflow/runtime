@@ -28,6 +28,8 @@
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
+#include "tfrt/tensor/opdefs/host_tensor.h"
+#include "tfrt/tensor/opdefs/tensor.h"
 
 namespace tfrt {
 namespace dht {
@@ -40,6 +42,8 @@ DenseHostTensorDialect::DenseHostTensorDialect(MLIRContext *context)
     : Dialect(/*name=*/"tfrt_dht", context,
               TypeID::get<DenseHostTensorDialect>()) {
   context->getOrLoadDialect<TFRTDialect>();
+  context->getOrLoadDialect<tfrt::t::TensorDialect>();
+  context->getOrLoadDialect<tfrt::ht::HostTensorDialect>();
 
   allowUnknownTypes();
   allowUnknownOperations();
@@ -54,8 +58,7 @@ static Type getChainType(mlir::MLIRContext *context) {
 }
 
 static Type getTensorType(mlir::MLIRContext *context) {
-  auto tDialect = Identifier::get("t", context);
-  return OpaqueType::get(tDialect, "tensor", context);
+  return tfrt::t::TensorType::get(context);
 }
 
 //===----------------------------------------------------------------------===//

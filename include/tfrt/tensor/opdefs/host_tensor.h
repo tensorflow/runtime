@@ -14,37 +14,44 @@
  * limitations under the License.
  */
 
-//===- test_kernels.h - MLIR op definitions for test_kernels ----*- C++ -*-===//
+//===- host_tensor.h --------------------------------------------*- C++ -*-===//
 //
-// This file declares the 'test' dialect as well as the operators in the
-// test_kernels library.
+// MLIR op definitions for host tensor dialects.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_H_
-#define TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_H_
+#ifndef TFRT_TENSOR_OPDEFS_HOST_TENSOR_H_
+#define TFRT_TENSOR_OPDEFS_HOST_TENSOR_H_
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "tfrt/tensor/opdefs/tensor.h"
 
 using namespace mlir;
 
 namespace tfrt {
-namespace test {
+namespace ht {
 
-// Dialect for test operations.
-class TestDialect : public Dialect {
+class HostTensorDialect : public Dialect {
  public:
-  static StringRef getDialectNamespace() { return "tfrt_test"; }
-  explicit TestDialect(MLIRContext* context);
+  static StringRef getDialectNamespace() { return "ht"; }
+  explicit HostTensorDialect(MLIRContext *context);
+
+  Type parseType(DialectAsmParser &parser) const override;
+  void printType(Type type, DialectAsmPrinter &os) const override;
 };
 
-}  // namespace test
+/// The host buffer descriptor type.
+class HostBufferType
+    : public Type::TypeBase<HostBufferType, Type, TypeStorage> {
+ public:
+  using Base::Base;
+};
+
+}  // namespace ht
 }  // namespace tfrt
 
 #define GET_OP_CLASSES
-#include "tfrt/test_kernels/opdefs/test_kernels.h.inc"
+#include "tfrt/tensor/opdefs/host_tensor.h.inc"
 
-#endif  // TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_H_
+#endif  // TFRT_TENSOR_OPDEFS_HOST_TENSOR_H_

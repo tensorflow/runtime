@@ -12,24 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===-- tfrt_op_base.td - Base op definition file ----------*- tablegen -*-===//
+//===- tensor.td ----------------------------------------------------===//
 //
-// This is the base operation definition file for TFRT ops.
+// Operation definitions for generic TFRT tensor dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef TFRT_OP_BASE
+#ifdef TFRT_TENSOR_OPDEFS_TENSOR_H_
 #else
-#define TFRT_OP_BASE
+#define TFRT_TENSOR_OPDEFS_TENSOR_H_
 
 include "mlir/IR/OpBase.td"
-include "tfrt/basic_kernels/opdefs/tfrt_base.td"
-include "tfrt/tensor/opdefs/host_tensor.td"
-include "tfrt/tensor/opdefs/tensor.td"
+
+// TFRT tensor dialect.
+// TODO(b/170246041): Move `TensorType` under the TFRT dialect.
+def Tensor_Dialect : Dialect {
+  let name = "t";
+
+  let description = [{
+    The TFRT tensor dialect.
+
+    This dialect defines operations to work with tensor in tfrt.
+  }];
+
+  let cppNamespace = "::tfrt::t";
+}
 
 //===----------------------------------------------------------------------===//
 // Type definitions
 //===----------------------------------------------------------------------===//
-def StringType : OpaqueType<"tfrt", "string", "!tfrt.string type">;
+def TensorType : DialectType<Tensor_Dialect,
+    CPred<"$_self.isa<::tfrt::t::TensorType>()">, "!t.tensor type">,
+    BuildableType<"$_builder.getType<::tfrt::t::TensorType>()"> {
+  let typeDescription = [{
+    `!t.tensor type` represents a generic tfrt tensor.
+  }];
+}
 
-#endif  // TFRT_OP_BASE
+#endif  // TFRT_TENSOR_OPDEFS_TENSOR_H_

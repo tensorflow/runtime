@@ -225,3 +225,21 @@ func @get_tensor_shape() {
 
   tfrt.return
 }
+
+// CHECK-LABEL: --- Running 'test_type_parsing'
+func @test_type_parsing() {
+  %c0 = tfrt.new.chain
+
+  %buf_size = tfrt.constant.i64 16
+  %buf_alignment = tfrt.constant.i64 4
+  %buf = "tfrt_dht.allocate_buffer"(%buf_size, %buf_alignment) : (i64, i64) -> !ht.host_buffer
+
+  %shape = ts.build_shape [2 : i64, 1 : i64]
+  %size = tfrt.constant.i64 8
+
+  %buf_a_offset = tfrt.constant.i64 0
+  %buf_a = tfrt_dht.get_buffer_slice %buf, %buf_a_offset, %size
+  %a, %c1 = "tfrt_dht.make_tensor.f32"(%buf_a, %shape, %c0) : (!ht.host_buffer, !ts.shape, !tfrt.chain) -> (!t.tensor, !tfrt.chain)
+
+  tfrt.return
+}

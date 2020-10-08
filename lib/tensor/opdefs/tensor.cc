@@ -12,48 +12,64 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dense_host_tensor_sync.cc ------------------------------------------===//
+//===- tensor.cc ----------------------------------------------------===//
 //
-// This file implements MLIR operations for the dense host tensor sync dialect.
+// This file implements MLIR operation functions for the tensor dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#include "tfrt/tensor/opdefs/dense_host_tensor_sync.h"
+#include "tfrt/tensor/opdefs/tensor.h"
 
 #include "mlir/IR/Builders.h"
-#include "mlir/IR/Function.h"
-#include "mlir/IR/Module.h"
+#include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
-#include "tfrt/basic_kernels/opdefs/types.h"
-#include "tfrt/tensor/opdefs/tensor.h"
 
 namespace tfrt {
-namespace dht {
+namespace t {
 
 //===----------------------------------------------------------------------===//
-// DenseHostTensor Dialect
+// TensorShape Dialect
 //===----------------------------------------------------------------------===//
 
-DenseHostTensorSyncDialect::DenseHostTensorSyncDialect(MLIRContext *context)
-    : Dialect(/*name=*/"tfrt_dht_sync", context,
-              TypeID::get<DenseHostTensorSyncDialect>()) {
-  context->getOrLoadDialect<tfrt::t::TensorDialect>();
+TensorDialect::TensorDialect(MLIRContext *context)
+    : Dialect(/*name=*/"t", context, TypeID::get<TensorDialect>()) {
   allowUnknownTypes();
-  allowUnknownOperations();
+  addTypes<TensorType>();
   addOperations<
 #define GET_OP_LIST
-#include "tfrt/tensor/opdefs/dense_host_tensor_sync.cpp.inc"
+#include "tfrt/tensor/opdefs/tensor.cpp.inc"
       >();
 }
+
+/// Parse a type registered to this dialect.
+Type TensorDialect::parseType(DialectAsmParser &parser) const {
+  StringRef keyword;
+  if (parser.parseKeyword(&keyword)) return Type();
+
+  if (keyword == "tensor") return TensorType::get(getContext());
+
+  parser.emitError(parser.getNameLoc(), "unknown tensor type: ") << keyword;
+  return Type();
+}
+
+/// Print a type registered to this dialect.
+void TensorDialect::printType(Type type, DialectAsmPrinter &os) const {
+  if (type.isa<TensorType>()) {
+    os << "tensor";
+    return;
+  }
+
+  llvm_unreachable("unexpected 'tensor' type kind");
+}
+
+}  // namespace t
+}  // namespace tfrt
 
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "tfrt/tensor/opdefs/dense_host_tensor_sync.cpp.inc"
-
-}  // namespace dht
-}  // namespace tfrt
+#include "tfrt/tensor/opdefs/tensor.cpp.inc"

@@ -36,9 +36,6 @@ llvm::Expected<OpHandler*> CreateGpuOpHandler(CoreRuntime* runtime,
                                               RCReference<GpuDevice> device,
                                               OpHandler* fallback);
 
-// TODO(b/157120084): Remove after op_handler DSL is deprecated.
-llvm::Expected<std::unique_ptr<OpHandler>> GPUOpHandlerFactory(
-    CoreRuntime* runtime, OpHandler* fallback);
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_GPU_CORE_RUNTIME_GPU_OP_HANDLER_H_

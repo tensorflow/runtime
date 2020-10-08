@@ -54,10 +54,6 @@ class NullOpHandler : public OpHandler {
 
   friend llvm::Expected<OpHandler*> CreateNullOpHandler(CoreRuntime* runtime);
 
-  // TODO(b/157120084): Remove after op_handler DSL is deprecated.
-  friend llvm::Expected<std::unique_ptr<OpHandler>> NullOpHandlerFactory(
-      CoreRuntime* runtime, OpHandler* fallback);
-
  private:
   explicit NullOpHandler(CoreRuntime* runtime)
       : OpHandler("null", runtime, nullptr) {}
@@ -72,12 +68,6 @@ llvm::Expected<OpHandler*> CreateNullOpHandler(CoreRuntime* runtime) {
   auto null_op_handler_ptr = null_op_handler.get();
   runtime->TakeOpHandler(std::move(null_op_handler));
   return null_op_handler_ptr;
-}
-
-// TODO(b/157120084): Remove after op_handler DSL is deprecated.
-llvm::Expected<std::unique_ptr<OpHandler>> NullOpHandlerFactory(
-    CoreRuntime* runtime, OpHandler* fallback) {
-  return std::unique_ptr<OpHandler>(new NullOpHandler(runtime));
 }
 
 }  // namespace tfrt

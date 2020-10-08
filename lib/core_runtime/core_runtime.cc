@@ -24,7 +24,6 @@
 
 #include "tfrt/core_runtime/core_runtime_op.h"
 #include "tfrt/core_runtime/op_handler.h"
-#include "tfrt/core_runtime/op_handler_factory.h"
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/chain.h"
@@ -73,11 +72,6 @@ class OpHandlerRegistry {
 };
 
 }  // namespace
-
-OpHandlerFactory& OpHandlerFactory::GetGlobalOpHandlerFactory() {
-  static auto* const global_op_handler_factory = new OpHandlerFactory();
-  return *global_op_handler_factory;
-}
 
 OpHandler::~OpHandler() {}
 

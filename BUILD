@@ -803,7 +803,6 @@ tfrt_cc_library(
         "include/tfrt/core_runtime/op_attr_type.h",
         "include/tfrt/core_runtime/op_attrs.h",
         "include/tfrt/core_runtime/op_handler.h",
-        "include/tfrt/core_runtime/op_handler_factory.h",
         "include/tfrt/core_runtime/op_invocation.h",
         "include/tfrt/core_runtime/op_metadata_function.h",
         "include/tfrt/core_runtime/op_utils.h",

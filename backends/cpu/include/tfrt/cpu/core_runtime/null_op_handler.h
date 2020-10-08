@@ -33,9 +33,5 @@ namespace tfrt {
 
 llvm::Expected<OpHandler*> CreateNullOpHandler(CoreRuntime* runtime);
 
-// TODO(b/157120084): Remove after op_handler DSL is deprecated.
-llvm::Expected<std::unique_ptr<OpHandler>> NullOpHandlerFactory(
-    CoreRuntime* runtime, OpHandler* fallback);
-
 }  // namespace tfrt
 #endif  // TFRT_BACKENDS_CPU_CORE_RUNTIME_NULL_OP_HANDLER_H_

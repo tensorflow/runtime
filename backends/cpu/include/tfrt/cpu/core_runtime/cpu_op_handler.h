@@ -36,10 +36,6 @@ llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
                                               RCReference<Device> device,
                                               OpHandler* fallback);
 
-// TODO(b/157120084): Remove after op_handler DSL is deprecated.
-llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
-    CoreRuntime* runtime, OpHandler* fallback);
-
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_CPU_CORE_RUNTIME_CPU_OP_HANDLER_H_

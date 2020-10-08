@@ -66,10 +66,6 @@ class CpuOpHandler : public OpHandler {
   friend llvm::Expected<OpHandler*> CreateCpuOpHandler(
       CoreRuntime* runtime, RCReference<Device> device, OpHandler* fallback);
 
-  // TODO(b/157120084): Remove after op_handler DSL is deprecated.
-  friend llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
-      CoreRuntime* runtime, OpHandler* fallback);
-
   explicit CpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
                         CpuOpRegistry op_registry, RCReference<Device> device)
       : OpHandler("cpu", runtime, fallback),
@@ -167,17 +163,6 @@ struct CpuOpHandlerTraits {
 };
 
 }  // namespace
-
-// TODO(b/157120084): Remove after op_handler DSL is deprecated.
-llvm::Expected<std::unique_ptr<OpHandler>> CpuOpHandlerFactory(
-    CoreRuntime* runtime, OpHandler* fallback) {
-  CpuOpRegistry op_registry;
-  RegisterStaticCpuOps(&op_registry);
-  return std::unique_ptr<OpHandler>(new CpuOpHandler(
-      runtime, fallback, std::move(op_registry),
-      runtime->GetHostContext()->GetDeviceManager()->GetDeviceRef<CpuDevice>(
-          "CPU:0")));
-}
 
 llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
                                               RCReference<Device> device,

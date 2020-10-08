@@ -29,7 +29,6 @@
 #include "tfrt/core_runtime/kernels.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_handler.h"
-#include "tfrt/core_runtime/op_handler_factory.h"
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/execution_context.h"
@@ -308,16 +307,6 @@ llvm::Expected<tfrt::OpHandler *> CreateLoggingOpHandler(
   auto op_handler_ptr = op_handler->get();
   runtime->TakeOpHandler(std::move(op_handler.get()));
   return op_handler_ptr;
-}
-
-llvm::Expected<std::unique_ptr<OpHandler>> LoggingOpHandlerFactory(
-    CoreRuntime *runtime, OpHandler *fallback) {
-  return LoggingOpHandler::Create(runtime, fallback, false);
-}
-
-llvm::Expected<std::unique_ptr<OpHandler>> SyncLoggingOpHandlerFactory(
-    CoreRuntime *runtime, OpHandler *fallback) {
-  return LoggingOpHandler::Create(runtime, fallback, true);
 }
 
 }  // namespace tfrt

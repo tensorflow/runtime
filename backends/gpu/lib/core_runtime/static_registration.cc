@@ -21,16 +21,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "op_handler_kernels.h"
-#include "tfrt/core_runtime/op_handler_factory.h"
 #include "tfrt/gpu/core_runtime/gpu_op_handler.h"
 #include "tfrt/host_context/kernel_registry.h"
 
 namespace tfrt {
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuOpHandlerKernels);
-
-// TODO(b/157120084): Remove after op_handler DSL is deprecated.
-static OpHandlerFactoryRegistration register_gpu_factory("gpu",
-                                                         GPUOpHandlerFactory);
 
 }  // namespace tfrt

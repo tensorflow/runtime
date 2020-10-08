@@ -77,10 +77,6 @@ class GpuOpHandler : public OpHandler {
 
   friend llvm::Expected<OpHandler*> CreateGpuOpHandler(
       CoreRuntime* runtime, RCReference<Device> device, OpHandler* fallback);
-
-  // TODO(b/157120084): Remove after op_handler DSL is deprecated.
-  friend llvm::Expected<std::unique_ptr<OpHandler>> GPUOpHandlerFactory(
-      CoreRuntime* runtime, OpHandler* fallback);
 };
 
 namespace {
@@ -116,21 +112,6 @@ struct GpuOpHandlerTraits {
   }
 };
 }  // namespace
-
-llvm::Expected<std::unique_ptr<OpHandler>> GPUOpHandlerFactory(
-    CoreRuntime* runtime, OpHandler* fallback) {
-  GpuOpRegistry op_registry;
-  RegisterStaticGpuOps(&op_registry);
-  // TODO(xldrx): Add multi gpu support.
-  auto device =
-      gpu::GetOrCreateGpuDevice("GPU:0", 0, runtime->GetHostContext());
-  if (!device) return device.takeError();
-
-  auto op_handler = std::make_unique<GpuOpHandler>(
-      runtime, fallback, std::move(op_registry), std::move(device.get()));
-
-  return op_handler;
-}
 
 llvm::Expected<OpHandler*> CreateGpuOpHandler(CoreRuntime* runtime,
                                               RCReference<GpuDevice> device,

@@ -33,12 +33,6 @@ class CoreRuntime;
 llvm::Expected<tfrt::OpHandler *> CreateLoggingOpHandler(
     tfrt::CoreRuntime *runtime, OpHandler *fallback, bool sync_log_results);
 
-llvm::Expected<std::unique_ptr<OpHandler>> LoggingOpHandlerFactory(
-    CoreRuntime *runtime, OpHandler *fallback);
-
-llvm::Expected<std::unique_ptr<OpHandler>> SyncLoggingOpHandlerFactory(
-    CoreRuntime *runtime, OpHandler *fallback);
-
 }  // namespace tfrt
 
 #endif  // TFRT_CORE_RUNTIME_LOGGING_OP_HANDLER_H_

@@ -608,20 +608,23 @@ void RemoteExecuteTHKernel(Chain ch, DistributedContext* dist_context,
 // Registration
 //===----------------------------------------------------------------------===//
 void RegisterDistributedKernels(KernelRegistry* registry) {
-  registry->AddKernel("dist.create_collective_group",
+  registry->AddKernel("tfrt_dist.create_collective_group",
                       TFRT_KERNEL(CreateCollectiveGroup));
-  registry->AddKernel("dist.cpu.allreduce.f32", TFRT_KERNEL(AllReduce<float>));
-  registry->AddKernel("dist.cpu.allreduce.i32",
+  registry->AddKernel("tfrt_dist.cpu.allreduce.f32",
+                      TFRT_KERNEL(AllReduce<float>));
+  registry->AddKernel("tfrt_dist.cpu.allreduce.i32",
                       TFRT_KERNEL(AllReduce<int32_t>));
-  registry->AddKernel("dist.cpu.broadcast.f32", TFRT_KERNEL(Broadcast<float>));
-  registry->AddKernel("dist.cpu.broadcast.i32",
+  registry->AddKernel("tfrt_dist.cpu.broadcast.f32",
+                      TFRT_KERNEL(Broadcast<float>));
+  registry->AddKernel("tfrt_dist.cpu.broadcast.i32",
                       TFRT_KERNEL(Broadcast<int32_t>));
-  registry->AddKernel("dist.create_remote_execute_spec",
+  registry->AddKernel("tfrt_dist.create_remote_execute_spec",
                       TFRT_KERNEL(CreateRemoteExecuteSpec));
-  registry->AddKernel("dist.remote_execute", TFRT_KERNEL(RemoteExecuteKernel));
-  registry->AddKernel("dist.remote_execute_th",
+  registry->AddKernel("tfrt_dist.remote_execute",
+                      TFRT_KERNEL(RemoteExecuteKernel));
+  registry->AddKernel("tfrt_dist.remote_execute_th",
                       TFRT_KERNEL(RemoteExecuteTHKernel));
-  registry->AddKernel("dist.remote_register",
+  registry->AddKernel("tfrt_dist.remote_register",
                       TFRT_KERNEL(RemoteRegisterKernel));
 }
 

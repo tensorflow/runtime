@@ -154,7 +154,7 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
   int num_dist_context_args = 0;
   // Allow the first argument to be `DistributedContext`.
   if (fn->num_arguments() > 0 &&
-      fn->argument_types()[0].GetName() == "!dist.dist_context") {
+      fn->argument_types()[0].GetName() == "!tfrt_dist.dist_context") {
     arguments.push_back(dist_ctx_);
     num_dist_context_args = 1;
   }

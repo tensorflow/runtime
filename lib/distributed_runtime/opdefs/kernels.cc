@@ -36,7 +36,8 @@ namespace dist {
 //===----------------------------------------------------------------------===//
 
 DistributedDialect::DistributedDialect(MLIRContext *context)
-    : Dialect(/*name=*/"dist", context, TypeID::get<DistributedDialect>()) {
+    : Dialect(/*name=*/"tfrt_dist", context,
+              TypeID::get<DistributedDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
   addOperations<
@@ -46,7 +47,7 @@ DistributedDialect::DistributedDialect(MLIRContext *context)
 }
 
 static Type GetContextType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("dist"), "dist_context",
+  return OpaqueType::get(builder->getIdentifier("tfrt_dist"), "dist_context",
                          builder->getContext());
 }
 
@@ -55,24 +56,24 @@ static Type GetStringType(Builder *builder) {
                          builder->getContext());
 }
 static Type GetRemoteExecuteSpecType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("dist"), "remote_execute_spec",
-                         builder->getContext());
+  return OpaqueType::get(builder->getIdentifier("tfrt_dist"),
+                         "remote_execute_spec", builder->getContext());
 }
 
 static Type GetChainType(Builder *builder) {
   return builder->getType<ChainType>();
 }
 static Type GetDistributedContextConfigurationType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("dist"),
+  return OpaqueType::get(builder->getIdentifier("tfrt_dist"),
                          "dist_context_configuration", builder->getContext());
 }
 static Type GetRemoteObjectIdType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("dist"), "remote_object_id",
-                         builder->getContext());
+  return OpaqueType::get(builder->getIdentifier("tfrt_dist"),
+                         "remote_object_id", builder->getContext());
 }
 
 static void print(OpAsmPrinter &p, CreateRemoteExecuteSpecOp op) {
-  p << "dist.create_remote_execute_spec(" << op.output_devices() << ")";
+  p << "tfrt_dist.create_remote_execute_spec(" << op.output_devices() << ")";
 }
 
 static ParseResult parseCreateConfigurations(OpAsmParser &parser,

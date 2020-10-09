@@ -28,7 +28,7 @@ include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // Distributed dialect.
 def DistDialect : Dialect {
-  let name = "dist";
+  let name = "tfrt_dist";
 
   let description = [{The Distributed dialect.
                      This dialect contains distributed execution operations.}];
@@ -37,20 +37,20 @@ def DistDialect : Dialect {
 }
 
 def DistributedContextType
-    : OpaqueType<"dist", "dist_context", "!dist.dist_context type">;
+    : OpaqueType<"tfrt_dist", "dist_context", "!tfrt_dist.dist_context type">;
 
 def DistributedContextConfigurationType
-    : OpaqueType<"dist", "dist_context_configuration",
-                 "!dist.dist_context_configuration type">;
+    : OpaqueType<"tfrt_dist", "dist_context_configuration",
+                 "!tfrt_dist.dist_context_configuration type">;
 
 def CollectiveGroupType
-    : OpaqueType<"dist", "collective_group", "!dist.collective_group type">;
+    : OpaqueType<"tfrt_dist", "collective_group", "!tfrt_dist.collective_group type">;
 
 def RemoteObjectIdType
-    : OpaqueType<"dist", "remote_object_id", "!dist.remote_object_id type">;
+    : OpaqueType<"tfrt_dist", "remote_object_id", "!tfrt_dist.remote_object_id type">;
 
 def RemoteExecuteSpecType
-    : OpaqueType<"dist", "remote_execute_spec", "!dist.remote_execute_spec type">;
+    : OpaqueType<"tfrt_dist", "remote_execute_spec", "!tfrt_dist.remote_execute_spec type">;
 
 // Base class for the operation in this dialect
 class DistOp<string mnemonic, list<OpTrait> traits = []>
@@ -60,7 +60,7 @@ class DistOp<string mnemonic, list<OpTrait> traits = []>
 // TODO(ayushd, xldrx): consider changing reduction_fn from attribute to a
 // part of the kernel name.
 class AllReduceOp<string dtype> : DistOp<"cpu.allreduce." # dtype> {
-  let summary = "dist.cpu.allreduce operation";
+  let summary = "tfrt_dist.cpu.allreduce operation";
 
   let description = [{
     An operation to perform an allreduce primitive on members of a communicator.
@@ -71,7 +71,7 @@ class AllReduceOp<string dtype> : DistOp<"cpu.allreduce." # dtype> {
     "reduction_fn". Currently the following functions are supported: "sum".
 
     Example:
-      %out_chain = dist.cpu.allreduce.f32 %context, %collective_group, %instance_id, %tensor_in, %tensor_out, %in_chain {reduction_fn="sum"};
+      %out_chain = tfrt_dist.cpu.allreduce.f32 %context, %collective_group, %instance_id, %tensor_in, %tensor_out, %in_chain {reduction_fn="sum"};
   }];
 
   let arguments = (ins
@@ -90,7 +90,7 @@ foreach dtype = ["i32", "f32"] in {
 }
 
 class BroadcastOp<string dtype> : DistOp<"cpu.broadcast." # dtype> {
-  let summary = "dist.cpu.broadcast operation";
+  let summary = "tfrt_dist.cpu.broadcast operation";
 
   let description = [{
     An operation to perform a broadcast primitive from one member to all other
@@ -100,7 +100,7 @@ class BroadcastOp<string dtype> : DistOp<"cpu.broadcast." # dtype> {
     prepare an empty buffer in the input.
 
     Example:
-      %out_chain = dist.cpu.broadcast.i32 %context, %instance_id, %input, %sender_id, %in_chain
+      %out_chain = tfrt_dist.cpu.broadcast.i32 %context, %instance_id, %input, %sender_id, %in_chain
   }];
 
   let arguments = (ins
@@ -121,7 +121,7 @@ foreach dtype = ["i32", "f32"] in {
 // Test kernels
 // TODO(ayushd): Implement set_up_from_string, create_collective_group kernels
 def CreateConfigurations : DistOp<"test_create_configurations"> {
-  let summary = "dist.test_create_configurations operation";
+  let summary = "tfrt_dist.test_create_configurations operation";
 
   let description = [{
     A test kernel that creates a distributed context configuration consisting of
@@ -130,7 +130,7 @@ def CreateConfigurations : DistOp<"test_create_configurations"> {
 
     Example:
       // Creating 4 DistributedContextConfigurations
-      %configs:4 = dist.test_create_configurations : 4
+      %configs:4 = tfrt_dist.test_create_configurations : 4
   }];
 
   let results = (outs Variadic<DistributedContextConfigurationType> : $result);
@@ -138,7 +138,7 @@ def CreateConfigurations : DistOp<"test_create_configurations"> {
 }
 
 def CreateDistributedContext : DistOp<"test_create_distributed_context"> {
-  let summary = "dist.test_create_distributed_context config";
+  let summary = "tfrt_dist.test_create_distributed_context config";
 
   let description = [{
     A test kernel that creates a distributed context from the given
@@ -146,11 +146,11 @@ def CreateDistributedContext : DistOp<"test_create_distributed_context"> {
 
     Example:
       // Creating 2 DistributedContextConfigurations
-      %configs:2 = dist.test_create_configurations : 2
+      %configs:2 = tfrt_dist.test_create_configurations : 2
       // Creating first DistributedContext based on the first configuration
-      %context0 = dist.test_create_distributed_context %configs#0
+      %context0 = tfrt_dist.test_create_distributed_context %configs#0
       // Creating first DistributedContext based on the second configuration
-      %context0 = dist.test_create_distributed_context %configs#1
+      %context0 = tfrt_dist.test_create_distributed_context %configs#1
   }];
 
   let arguments = (ins DistributedContextConfigurationType);
@@ -159,7 +159,7 @@ def CreateDistributedContext : DistOp<"test_create_distributed_context"> {
 }
 
 def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
-  let summary = "dist.create_collective_group operation";
+  let summary = "tfrt_dist.create_collective_group operation";
 
   let description = [{
     An operation that fetches a collective group by name from a distributed
@@ -175,14 +175,14 @@ def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
 }
 
 def RemoteRegisterOp :  DistOp<"remote_register"> {
-  let summary = "dist.remote_register operation";
+  let summary = "tfrt_dist.remote_register operation";
   let description = [{
     Register a program on a remote location.
 
     "program" has to be a string representing MLIR in TFRT dialect
 
     Example:
-      %out_chain = dist.remote_register (%in_chain, %context, %id) "program" "program_name"
+      %out_chain = tfrt_dist.remote_register (%in_chain, %context, %id) "program" "program_name"
   }];
 
   let arguments = (ins
@@ -202,13 +202,13 @@ def RemoteRegisterOp :  DistOp<"remote_register"> {
 }
 
 def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {
-  let summary = "dist.create_remote_execute_spec operation";
+  let summary = "tfrt_dist.create_remote_execute_spec operation";
   let description = [{
     Create a specification for remote execution.
     A specification contains a list of output devices.
 
     Example:
-      %spec = dist.create_remote_execute_spec %device_name1 %device_name2
+      %spec = tfrt_dist.create_remote_execute_spec %device_name1 %device_name2
   }];
 
   let arguments = (ins
@@ -224,12 +224,12 @@ def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {
 
 
 def RemoteExecuteFuncOp :  DistOp<"remote_execute_func"> {
-  let summary = "dist.remote_execute_func operation";
+  let summary = "tfrt_dist.remote_execute_func operation";
   let description = [{
     Executes a program on a remote location.
 
     Example:
-      %chain, %results:2 = dist.remote_execute_func[%chain, %context, %worker_id] @program_name(%arg1, %arg2, ...) : (...) -> (...)
+      %chain, %results:2 = tfrt_dist.remote_execute_func[%chain, %context, %worker_id] @program_name(%arg1, %arg2, ...) : (...) -> (...)
   }];
 
   let arguments = (ins
@@ -250,12 +250,12 @@ def RemoteExecuteFuncOp :  DistOp<"remote_execute_func"> {
 }
 
 def RemoteExecuteOp :  DistOp<"remote_execute"> {
-  let summary = "dist.remote_execute operation";
+  let summary = "tfrt_dist.remote_execute operation";
   let description = [{
     Executes a program on a remote location.
 
     Example:
-      %chain, %result = dist.remote_execute [%context, %id, %spec] "program_name" (%in) : (!dist.remote_object_id) -> !dist.remote_object_id
+      %chain, %result = tfrt_dist.remote_execute [%context, %id, %spec] "program_name" (%in) : (!tfrt_dist.remote_object_id) -> !tfrt_dist.remote_object_id
   }];
 
   let arguments = (ins
@@ -277,7 +277,7 @@ def RemoteExecuteOp :  DistOp<"remote_execute"> {
 }
 
 def RemoteExecuteWithMetadataOp :  DistOp<"remote_execute_th"> {
-  let summary = "dist.remote_execute_th operation";
+  let summary = "tfrt_dist.remote_execute_th operation";
   let description = [{
     Executes a program on a remote location.
     This is similar to RemoteExecuteOp with a difference that we also returned
@@ -295,7 +295,7 @@ def RemoteExecuteWithMetadataOp :  DistOp<"remote_execute_th"> {
     Example:
       // "1" after spec indicates N above.
       %out_id1, %out_id2, %out_th2 =
-          dist.remote_execute_th (%context, %id, %spec, 1) "program_name" %in
+          tfrt_dist.remote_execute_th (%context, %id, %spec, 1) "program_name" %in
   }];
 
   let arguments = (ins

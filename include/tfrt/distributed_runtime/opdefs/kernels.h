@@ -36,7 +36,7 @@ namespace dist {
 class DistributedDialect : public Dialect {
  public:
   explicit DistributedDialect(MLIRContext *context);
-  static StringRef getDialectNamespace() { return "dist"; }
+  static StringRef getDialectNamespace() { return "tfrt_dist"; }
 };
 
 }  // namespace dist

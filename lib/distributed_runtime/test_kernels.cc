@@ -128,13 +128,13 @@ void TestPrintRemoteExecuteSpec(const RemoteExecuteSpec& id,
 }  // namespace
 
 void RegisterDistributedTestKernels(KernelRegistry* registry) {
-  registry->AddKernel("dist.test_process_next_request",
+  registry->AddKernel("tfrt_dist.test_process_next_request",
                       TFRT_KERNEL(TestProcessNextRequest));
-  registry->AddKernel("dist.test_create_distributed_context",
+  registry->AddKernel("tfrt_dist.test_create_distributed_context",
                       TFRT_KERNEL(TestCreateDistributedContext));
-  registry->AddKernel("dist.test_print_remote_object_id",
+  registry->AddKernel("tfrt_dist.test_print_remote_object_id",
                       TFRT_KERNEL(TestPrintRemoteObjectId));
-  registry->AddKernel("dist.test_print_remote_execute_spec",
+  registry->AddKernel("tfrt_dist.test_print_remote_execute_spec",
                       TFRT_KERNEL(TestPrintRemoteExecuteSpec));
 }
 

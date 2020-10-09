@@ -131,7 +131,7 @@ func @basic_add_dense_gpu_tensors_f16() -> !tfrt.chain {
 // CHECK: --- Running 'return_multiple_results'
 func @return_multiple_results() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = cuda.init %ch_epoch
+  %ch_cuda_init = tfrt_cuda.init %ch_epoch
   %gpu = corert.get_op_handler %ch_cuda_init "gpu"
 
   %gpu_handles:2 = corert.executeop(%gpu) "tfrt_test.return_multiple_results"() : 2
@@ -142,7 +142,7 @@ func @return_multiple_results() -> !tfrt.chain {
 // CHECK: --- Running 'return_multiple_results_with_error'
 func @return_multiple_results_with_error() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = cuda.init %ch_epoch
+  %ch_cuda_init = tfrt_cuda.init %ch_epoch
   %gpu = corert.get_op_handler %ch_cuda_init "gpu"
 
   // expected-error @+1 {{runtime error: error from ReturnMultipleResultsWithError op}}
@@ -154,7 +154,7 @@ func @return_multiple_results_with_error() -> !tfrt.chain {
 // CHECK: --- Running 'test_optional_args'
 func @test_optional_args() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = cuda.init %ch_epoch
+  %ch_cuda_init = tfrt_cuda.init %ch_epoch
   %gpu = corert.get_op_handler %ch_cuda_init "gpu"
 
   %gpu_handle1 = corert.executeop(%gpu)
@@ -179,7 +179,7 @@ func @test_optional_args() -> !tfrt.chain {
 // CHECK: --- Running 'test_variadic_args'
 func @test_variadic_args() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = cuda.init %ch_epoch
+  %ch_cuda_init = tfrt_cuda.init %ch_epoch
   %gpu = corert.get_op_handler %ch_cuda_init "gpu"
 
   %gpu_handle1 = corert.executeop(%gpu)

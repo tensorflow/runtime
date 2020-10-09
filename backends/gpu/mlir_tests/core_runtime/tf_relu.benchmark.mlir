@@ -25,7 +25,7 @@ func @register_op_handlers_gpu() {
 // CHECK: --- Running 'BM_Tf_Relu_1x56x56x256_f32'
 func @BM_Tf_Relu_1x56x56x256_f32() {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = cuda.init %ch_epoch
+  %ch_cuda_init = tfrt_cuda.init %ch_epoch
   %gpu = corert.get_op_handler %ch_cuda_init "gpu"
 
   %input = corert.executeop(%gpu) "tfrt_test.create_dense_tensor"()

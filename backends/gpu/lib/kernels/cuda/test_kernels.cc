@@ -42,7 +42,8 @@ static void ReportError(KernelErrorHandler out, llvm::Error error) {
   });
 }
 
-// cuda_test.context.get returns the primary CUDA context for the given device.
+// tfrt_cuda_test.context.get returns the primary CUDA context for the given
+// device.
 static void TestContextGet(Argument<gpu::stream::Device> device,
                            Argument<Chain> in_chain,
                            Result<gpu::stream::Context> out_context,
@@ -91,8 +92,9 @@ static void TestCpyTensorHtoD(
 }
 
 void RegisterTestCudaKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("cuda_test.context.get", TFRT_KERNEL(TestContextGet));
-  kernel_reg->AddKernel("cuda_test.copy_tensor_host_to_device",
+  kernel_reg->AddKernel("tfrt_cuda_test.context.get",
+                        TFRT_KERNEL(TestContextGet));
+  kernel_reg->AddKernel("tfrt_cuda_test.copy_tensor_host_to_device",
                         TFRT_KERNEL(TestCpyTensorHtoD));
 }
 

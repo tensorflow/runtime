@@ -26,9 +26,9 @@ include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
 
-// "cuda_test" dialect
+// "tfrt_cuda_test" dialect
 def CUDA_Test_Dialect : Dialect {
-  let name = "cuda_test";
+  let name = "tfrt_cuda_test";
 
   let description = [{
     The CUDA dialect.
@@ -36,6 +36,8 @@ def CUDA_Test_Dialect : Dialect {
     This dialect contains common CUDA operations.
   }];
 
+  // TODO(tfrt-devs): using ::tfrt::cuda here so that we don't need to wrap
+  // generated code with tfrt::cuda namespace manually.
   let cppNamespace = "cuda";
 }
 
@@ -48,9 +50,9 @@ class CUDA_Test_Op<string mnemonic, list<OpTrait> traits = []> :
 
 
 def TestContextGetOp : CUDA_Test_Op<"context.get"> {
-  let summary = "cuda_test context.get operation";
+  let summary = "tfrt_cuda_test context.get operation";
   let description = [{
-    cuda_test.context.get returns a CUDA context for the given device.
+    tfrt_cuda_test.context.get returns a CUDA context for the given device.
 
     The returned context does not need to be destroyed or released and user
     can assume that it will outlive the function where it is used.
@@ -60,23 +62,23 @@ def TestContextGetOp : CUDA_Test_Op<"context.get"> {
       %ch2 = cuda.init %ch1
       %index = tfrt.constant.i32 0
       %device, %ch3 = cuda.device.get %index, %ch2
-      %ctx, %ch4 = cuda_test.context.get %device, %ch2
+      %ctx, %ch4 = tfrt_cuda_test.context.get %device, %ch2
   }];
   let arguments = (ins DeviceType, TFRT_ChainType);
   let results = (outs ContextType, TFRT_ChainType);
 }
 
 def TestCpyTensorHtoDOp : CUDA_Test_Op<"copy_tensor_host_to_device"> {
-  let summary = "cuda_test copy_tensor_host_to_device operation";
+  let summary = "tfrt_cuda_test copy_tensor_host_to_device operation";
   let description = [{
-    cuda_test.copy_tensor_host_to_device copies a host tensor to the device.
+    tfrt_cuda_test.copy_tensor_host_to_device copies a host tensor to the device.
 
     Returns the newly allocated buffer.
 
     Example:
       %tensor = tfrt_dht.create_uninitialized_tensor.f32.1 [1 : i64]
       %ch1 = tfrt_dht.set_tensor_with_constant_values.f32 %tensor, %ch0 [1.0 : f32]
-      %gpu_buffer, %ch2 = cuda_test.copy_tensor_host_to_device %context, %allocator, %stream, %tensor, %ch1
+      %gpu_buffer, %ch2 = tfrt_cuda_test.copy_tensor_host_to_device %context, %allocator, %stream, %tensor, %ch1
   }];
   let arguments = (ins ContextType, AllocatorType, StreamType, TensorType, TFRT_ChainType);
   let results = (outs BufferType, TFRT_ChainType);

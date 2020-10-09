@@ -25,28 +25,28 @@
 // Type definitions.
 
 // Device is the physical CUDA device.
-def DeviceType : OpaqueType<"cuda", "device", "!cuda.device type">;
+def DeviceType : OpaqueType<"tfrt_cuda", "device", "!tfrt_cuda.device type">;
 
 // Context holds state that provides the context for executing kernels,
 // allocating memory, and other CUDA operations.
 // This Context is analogous to CUcontext.
-def ContextType : OpaqueType<"cuda", "context", "!cuda.context type">;
+def ContextType : OpaqueType<"tfrt_cuda", "context", "!tfrt_cuda.context type">;
 
 // Stream represents a CUDA Stream.
-def StreamType : OpaqueType<"cuda", "stream", "!cuda.stream type">;
+def StreamType : OpaqueType<"tfrt_cuda", "stream", "!tfrt_cuda.stream type">;
 
-def EventType : OpaqueType<"cuda", "event", "!cuda.event type">;
+def EventType : OpaqueType<"tfrt_cuda", "event", "!tfrt_cuda.event type">;
 
-def AllocatorType : OpaqueType<"cuda", "allocator", "!cuda.allocator type">;
+def AllocatorType : OpaqueType<"tfrt_cuda", "allocator", "!tfrt_cuda.allocator type">;
 
 // Buffer represents a CUDA device memory buffer.
-def BufferType : OpaqueType<"cuda", "buffer", "!cuda.buffer type">;
+def BufferType : OpaqueType<"tfrt_cuda", "buffer", "!tfrt_cuda.buffer type">;
 
-def CublasHandleType : OpaqueType<"cuda", "blas_handle", "!cuda.blas_handle type">;
+def CublasHandleType : OpaqueType<"tfrt_cuda", "blas_handle", "!tfrt_cuda.blas_handle type">;
 
-// "cuda" dialect
+// "tfrt_cuda" dialect
 def CUDA_Dialect : Dialect {
-  let name = "cuda";
+  let name = "tfrt_cuda";
 
   let description = [{
     The CUDA dialect.
@@ -54,6 +54,8 @@ def CUDA_Dialect : Dialect {
     This dialect contains common CUDA operations.
   }];
 
+  // TODO(tfrt-devs): using ::tfrt::cuda here so that we don't need to wrap
+  // generated code with tfrt::cuda namespace manually.
   let cppNamespace = "cuda";
 }
 

@@ -37,7 +37,8 @@ namespace cuda {
 //===----------------------------------------------------------------------===//
 
 CUDATestDialect::CUDATestDialect(MLIRContext *context)
-    : Dialect(/*name*/ "cuda_test", context, TypeID::get<CUDATestDialect>()) {
+    : Dialect(/*name*/ "tfrt_cuda_test", context,
+              TypeID::get<CUDATestDialect>()) {
   context->getOrLoadDialect<tfrt::t::TensorDialect>();
   allowUnknownTypes();
   allowUnknownOperations();

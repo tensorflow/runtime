@@ -18,11 +18,11 @@
 // CHECK-LABEL: --- Running 'event_create_test'
 func @event_create_test() {
   %ch1 = tfrt.new.chain
-  %ch2 = cuda.init %ch1
+  %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = cuda.device.get %index, %ch2
-  %context, %ch4 = cuda_test.context.get %device, %ch2
-  %event, %ch5 = cuda.event.create %context, %ch2
+  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
+  %event, %ch5 = tfrt_cuda.event.create %context, %ch2
 
   tfrt.return
 }
@@ -30,15 +30,15 @@ func @event_create_test() {
 // CHECK-LABEL: --- Running 'event_record_and_poll_test'
 func @event_record_and_poll_test() {
   %ch1 = tfrt.new.chain
-  %ch2 = cuda.init %ch1
+  %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = cuda.device.get %index, %ch2
-  %context, %ch4 = cuda_test.context.get %device, %ch2
-  %stream, %ch5 = cuda.stream.create %context, %ch2
+  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
+  %stream, %ch5 = tfrt_cuda.stream.create %context, %ch2
 
-  %event, %ch6 = cuda.event.create %context, %ch2
-  %ch7 = cuda.event.record %event, %stream, %ch2
-  %ch8 = cuda.event.poll %event, %ch7
+  %event, %ch6 = tfrt_cuda.event.create %context, %ch2
+  %ch7 = tfrt_cuda.event.record %event, %stream, %ch2
+  %ch8 = tfrt_cuda.event.poll %event, %ch7
 
   tfrt.return
 }

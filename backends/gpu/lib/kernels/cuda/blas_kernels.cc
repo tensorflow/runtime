@@ -132,10 +132,11 @@ static void BlasSgemm(Argument<gpu::stream::Context> context,
 }
 
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("cuda.blas.create", TFRT_KERNEL(BlasCreate));
-  kernel_reg->AddKernel("cuda.blas.set_stream", TFRT_KERNEL(BlasSetStream));
-  kernel_reg->AddKernel("cuda.blas.axpy.f32", TFRT_KERNEL(BlasSaxpy));
-  kernel_reg->AddKernel("cuda.blas.gemm.f32", TFRT_KERNEL(BlasSgemm));
+  kernel_reg->AddKernel("tfrt_cuda.blas.create", TFRT_KERNEL(BlasCreate));
+  kernel_reg->AddKernel("tfrt_cuda.blas.set_stream",
+                        TFRT_KERNEL(BlasSetStream));
+  kernel_reg->AddKernel("tfrt_cuda.blas.axpy.f32", TFRT_KERNEL(BlasSaxpy));
+  kernel_reg->AddKernel("tfrt_cuda.blas.gemm.f32", TFRT_KERNEL(BlasSgemm));
 }
 }  // namespace cuda
 }  // namespace tfrt

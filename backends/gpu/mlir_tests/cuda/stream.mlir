@@ -18,38 +18,38 @@
 // CHECK-LABEL: --- Running 'stream_create_test'
 func @stream_create_test() {
   %ch1 = tfrt.new.chain
-  %ch2 = cuda.init %ch1
+  %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch4 = cuda.device.get %index, %ch2
-  %context, %ch5 = cuda_test.context.get %device, %ch2
-  %allocator, %ch_alloc = cuda.allocator.create %context, %ch2
-  %stream, %ch6 = cuda.stream.create %context, %ch2
+  %device, %ch4 = tfrt_cuda.device.get %index, %ch2
+  %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
+  %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
+  %stream, %ch6 = tfrt_cuda.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 64
-  %buffer, %ch7 = cuda.mem.allocate %allocator, %stream, %size, %ch2
+  %buffer, %ch7 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch2
   // CHECK: GpuBuffer<pointer={{0x[[:xdigit:]]*}} (CUDA), size=64>
-  %ch8 = cuda.mem.print_metadata %buffer, %ch2
+  %ch8 = tfrt_cuda.mem.print_metadata %buffer, %ch2
 
   %shape = ts.build_shape [2 : i64, 4 : i64]
-  %tensor, %ch9 = cuda.tensor.make.f64 %buffer, %shape, %ch8
+  %tensor, %ch9 = tfrt_cuda.tensor.make.f64 %buffer, %shape, %ch8
   // CHECK: DenseGpuTensor<dtype=F64, shape=[2, 4], pointer={{0x[[:xdigit:]]*}} (CUDA)>
-  %ch10 = cuda.tensor.print_metadata %tensor, %ch9
+  %ch10 = tfrt_cuda.tensor.print_metadata %tensor, %ch9
 
-  %ch11 = cuda.allocator.destroy %allocator, %ch10
+  %ch11 = tfrt_cuda.allocator.destroy %allocator, %ch10
   tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'stream_create_synchronize'
 func @stream_create_synchronize() {
   %ch1 = tfrt.new.chain
-  %ch2 = cuda.init %ch1
+  %ch2 = tfrt_cuda.init %ch1
 
   %index = tfrt.constant.i32 0
-  %device, %ch4 = cuda.device.get %index, %ch2
-  %context, %ch5 = cuda_test.context.get %device, %ch2
+  %device, %ch4 = tfrt_cuda.device.get %index, %ch2
+  %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
 
-  %stream, %ch6 = cuda.stream.create %context, %ch2
-  %ch7 = cuda.stream.synchronize %stream, %ch6
+  %stream, %ch6 = tfrt_cuda.stream.create %context, %ch2
+  %ch7 = tfrt_cuda.stream.synchronize %stream, %ch6
 
   tfrt.return
 }
@@ -57,21 +57,21 @@ func @stream_create_synchronize() {
 // CHECK-LABEL: --- Running 'make_tensor_from_smaller_buffer_should_fail'
 func @make_tensor_from_smaller_buffer_should_fail() {
   %ch1 = tfrt.new.chain
-  %ch2 = cuda.init %ch1
+  %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch4 = cuda.device.get %index, %ch2
-  %context, %ch5 = cuda_test.context.get %device, %ch2
-  %allocator, %ch_alloc = cuda.allocator.create %context, %ch2
-  %stream, %ch6 = cuda.stream.create %context, %ch2
+  %device, %ch4 = tfrt_cuda.device.get %index, %ch2
+  %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
+  %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
+  %stream, %ch6 = tfrt_cuda.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 64
-  %buffer, %ch7 = cuda.mem.allocate %allocator, %stream, %size, %ch6
+  %buffer, %ch7 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch6
 
   %shape = ts.build_shape [5 : i64, 4 : i64]
-  // expected-error @+1 {{cuda.tensor.make failed: buffer_size (64) is not equal to the number of elements in shape ([5, 4]) times element size (4)}}
-  %tensor, %ch8 = cuda.tensor.make.i32 %buffer, %shape, %ch7
+  // expected-error @+1 {{tfrt_cuda.tensor.make failed: buffer_size (64) is not equal to the number of elements in shape ([5, 4]) times element size (4)}}
+  %tensor, %ch8 = tfrt_cuda.tensor.make.i32 %buffer, %shape, %ch7
 
-  %ch10 = cuda.allocator.destroy %allocator, %ch8
+  %ch10 = tfrt_cuda.allocator.destroy %allocator, %ch8
   tfrt.return
 }
 

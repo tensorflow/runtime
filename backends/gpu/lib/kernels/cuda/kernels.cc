@@ -58,7 +58,7 @@ static void ReportErrorInternal(KernelErrorHandler error_handler,
 #define REPORT_ERROR(error_handler, error) \
   ReportErrorInternal(error_handler, error, __FILE__, __LINE__)
 
-// cuda.init initializes CUDA driver.
+// tfrt_cuda.init initializes CUDA driver.
 static void CudaInit(Argument<Chain> in_chain, Result<Chain> out_chain,
                      KernelErrorHandler handler) {
   llvm::Error result = gpu::stream::Init(gpu::stream::Platform::CUDA);
@@ -66,7 +66,7 @@ static void CudaInit(Argument<Chain> in_chain, Result<Chain> out_chain,
   out_chain.Set(in_chain);
 }
 
-// cuda.device.get returns the CUDA Device at the given index.
+// tfrt_cuda.device.get returns the CUDA Device at the given index.
 static void CudaDeviceGet(Argument<int32_t> ordinal, Argument<Chain> in_chain,
                           Result<gpu::stream::Device> out_device,
                           Result<Chain> out_chain, KernelErrorHandler handler) {
@@ -76,8 +76,8 @@ static void CudaDeviceGet(Argument<int32_t> ordinal, Argument<Chain> in_chain,
   out_chain.Set(in_chain);
 }
 
-// cuda.stream.create creates a new stream that does not implicitly synchronize
-// with stream 0.
+// tfrt_cuda.stream.create creates a new stream that does not implicitly
+// synchronize with stream 0.
 static void CudaStreamCreate(Argument<gpu::stream::Context> context,
                              Argument<Chain> in_chain,
                              Result<gpu::stream::OwningStream> out_stream,
@@ -92,7 +92,7 @@ static void CudaStreamCreate(Argument<gpu::stream::Context> context,
   out_chain.Set(in_chain);
 }
 
-// cuda.stream.synchronize waits until all stream's tasks are completed.
+// tfrt_cuda.stream.synchronize waits until all stream's tasks are completed.
 //
 // Result: Sets the output chain when all tasks submitted on a stream are
 // completed. This kernel will block the caller thread.
@@ -105,7 +105,7 @@ static void CudaStreamSynchronize(Argument<gpu::stream::OwningStream> stream,
   out_chain.Set(in_chain);
 }
 
-// cuda.event.create creates a new cuda event.
+// tfrt_cuda.event.create creates a new cuda event.
 //
 // Result: new cuda event.
 static void CudaEventCreate(Argument<gpu::stream::Context> context,
@@ -122,7 +122,7 @@ static void CudaEventCreate(Argument<gpu::stream::Context> context,
   out_chain.Set(in_chain);
 }
 
-// cuda.event.create creates a new cuda event.
+// tfrt_cuda.event.create creates a new cuda event.
 //
 // Result: new cuda event.
 static void CudaEventRecord(Argument<gpu::stream::OwningEvent> event,
@@ -135,10 +135,10 @@ static void CudaEventRecord(Argument<gpu::stream::OwningEvent> event,
   out_chain.Set(in_chain);
 }
 
-// cuda.event.poll polls for event being reached.
+// tfrt_cuda.event.poll polls for event being reached.
 //
 // Result: Sets the output chain when the event has been reached, i.e.
-// all work scheduled prior to the last call to cuda.event.record has been
+// all work scheduled prior to the last call to tfrt_cuda.event.record has been
 // completed
 static void CudaEventPoll(Argument<gpu::stream::OwningEvent> event,
                           Argument<Chain> in_chain, Result<Chain> out_chain,
@@ -150,7 +150,7 @@ static void CudaEventPoll(Argument<gpu::stream::OwningEvent> event,
   out_chain.Set(in_chain);
 }
 
-// cuda.allocator.create creates a new allocator.
+// tfrt_cuda.allocator.create creates a new allocator.
 //
 // Result: new allocator.
 static void CudaAllocatorCreate(
@@ -161,7 +161,7 @@ static void CudaAllocatorCreate(
   out_chain.Set(in_chain);
 }
 
-// cuda.allocator.destroy destroys an allocator.
+// tfrt_cuda.allocator.destroy destroys an allocator.
 static void CudaAllocatorDestroy(
     Argument<std::unique_ptr<gpu::GpuAllocator>> allocator,
     Argument<Chain> in_chain, Result<Chain> out_chain) {
@@ -169,7 +169,7 @@ static void CudaAllocatorDestroy(
   out_chain.Set(in_chain);
 }
 
-// cuda.mem.allocate allocates a new CUDA buffer.
+// tfrt_cuda.mem.allocate allocates a new CUDA buffer.
 static void CudaMemAllocate(
     Argument<std::unique_ptr<gpu::GpuAllocator>> allocator,
     Argument<gpu::stream::OwningStream> stream, Argument<int64_t> size,
@@ -181,7 +181,7 @@ static void CudaMemAllocate(
   out_chain.Set(in_chain);
 }
 
-// cuda.mem.print_metadata prints `buffer`'s metadata.
+// tfrt_cuda.mem.print_metadata prints `buffer`'s metadata.
 static void CudaMemPrintMetadata(Argument<RCReference<gpu::GpuBuffer>> buffer,
                                  Argument<Chain> in_chain,
                                  Result<Chain> out_chain) {
@@ -192,7 +192,7 @@ static void CudaMemPrintMetadata(Argument<RCReference<gpu::GpuBuffer>> buffer,
   out_chain.Set(in_chain);
 }
 
-// cuda.tensor.make makes a tensor from the given shape and buffer.
+// tfrt_cuda.tensor.make makes a tensor from the given shape and buffer.
 // It is specialized for each supported DType.
 template <typename T>
 static void CudaTensorMake(Argument<RCReference<gpu::GpuBuffer>> buffer,
@@ -210,7 +210,7 @@ static void CudaTensorMake(Argument<RCReference<gpu::GpuBuffer>> buffer,
       shape->GetNumElements() * GetDType<T>().GetHostSize()) {
     std::string error_msg;
     llvm::raw_string_ostream ss(error_msg);
-    ss << "cuda.tensor.make failed: buffer_size (" << buffer.get()->size()
+    ss << "tfrt_cuda.tensor.make failed: buffer_size (" << buffer.get()->size()
        << ") is not equal to the number of elements in shape (" << *shape
        << ") times element size (" << GetDType<T>().GetHostSize() << ")";
     REPORT_ERROR(handler, ss.str());
@@ -220,7 +220,7 @@ static void CudaTensorMake(Argument<RCReference<gpu::GpuBuffer>> buffer,
   out_chain.Set(in_chain);
 }
 
-// cuda.tensor.print_metadata prints `tensor`'s metadata.
+// tfrt_cuda.tensor.print_metadata prints `tensor`'s metadata.
 static void CudaTensorPrintMetadata(Argument<gpu::DenseGpuTensor> tensor,
                                     Argument<Chain> in_chain,
                                     Result<Chain> out_chain,
@@ -230,7 +230,7 @@ static void CudaTensorPrintMetadata(Argument<gpu::DenseGpuTensor> tensor,
   out_chain.Set(in_chain);
 }
 
-// cuda.mem.copy_host_to_device copies memory from host to device.
+// tfrt_cuda.mem.copy_host_to_device copies memory from host to device.
 static void CudaMemcpyHtoD(Argument<gpu::stream::Context> context,
                            Argument<RCReference<gpu::GpuBuffer>> dst,
                            Argument<RCReference<HostBuffer>> src,
@@ -239,19 +239,19 @@ static void CudaMemcpyHtoD(Argument<gpu::stream::Context> context,
                            Argument<Chain> in_chain, Result<Chain> out_chain,
                            KernelErrorHandler handler) {
   if (dst.get()->size() < *bytes_count) {
-    REPORT_ERROR(
-        handler,
-        tfrt::StrCat(
-            "cuda.mem.copy_host_to_device failed: destination buffer size (",
-            dst.get()->size(), ") is less than number of bytes to copy (",
-            *bytes_count, ")"));
+    REPORT_ERROR(handler,
+                 tfrt::StrCat("tfrt_cuda.mem.copy_host_to_device failed: "
+                              "destination buffer size (",
+                              dst.get()->size(),
+                              ") is less than number of bytes to copy (",
+                              *bytes_count, ")"));
     return;
   }
   if (src.get()->size() < *bytes_count) {
     REPORT_ERROR(
         handler,
         tfrt::StrCat(
-            "cuda.mem.copy_host_to_device failed: source buffer size (",
+            "tfrt_cuda.mem.copy_host_to_device failed: source buffer size (",
             src.get()->size(), ") is less than number of bytes to copy (",
             *bytes_count, ")"));
     return;
@@ -267,7 +267,7 @@ static void CudaMemcpyHtoD(Argument<gpu::stream::Context> context,
   out_chain.Set(in_chain);
 }
 
-// cuda.mem.copy_device_to_host copies memory from device to host.
+// tfrt_cuda.mem.copy_device_to_host copies memory from device to host.
 static void CudaMemcpyDtoH(Argument<gpu::stream::Context> context,
                            Argument<RCReference<HostBuffer>> dst,
                            Argument<RCReference<gpu::GpuBuffer>> src,
@@ -276,19 +276,19 @@ static void CudaMemcpyDtoH(Argument<gpu::stream::Context> context,
                            Argument<Chain> in_chain, Result<Chain> out_chain,
                            KernelErrorHandler handler) {
   if (dst.get()->size() < *bytes_count) {
-    REPORT_ERROR(
-        handler,
-        tfrt::StrCat(
-            "cuda.mem.copy_device_to_host failed: destination buffer size (",
-            dst.get()->size(), ") is less than number of bytes to copy (",
-            *bytes_count, ")"));
+    REPORT_ERROR(handler,
+                 tfrt::StrCat("tfrt_cuda.mem.copy_device_to_host failed: "
+                              "destination buffer size (",
+                              dst.get()->size(),
+                              ") is less than number of bytes to copy (",
+                              *bytes_count, ")"));
     return;
   }
   if (src.get()->size() < *bytes_count) {
     REPORT_ERROR(
         handler,
         tfrt::StrCat(
-            "cuda.mem.copy_device_to_host failed: source buffer size (",
+            "tfrt_cuda.mem.copy_device_to_host failed: source buffer size (",
             src.get()->size(), ") is less than number of bytes to copy (",
             *bytes_count, ")"));
     return;
@@ -394,7 +394,7 @@ static void CudaLaunch(
       arg_values.push_back(arg->get<int32_t>());
     } else {
       REPORT_ERROR(handler,
-                   "Unsupported argument type provided to cuda.launch.");
+                   "Unsupported argument type provided to tfrt_cuda.launch.");
       return;
     }
   }
@@ -421,46 +421,47 @@ static void CudaLaunch(
 }
 
 void RegisterCudaKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("cuda.init", TFRT_KERNEL(CudaInit));
-  kernel_reg->AddKernel("cuda.device.get", TFRT_KERNEL(CudaDeviceGet));
-  kernel_reg->AddKernel("cuda.stream.create", TFRT_KERNEL(CudaStreamCreate));
-  kernel_reg->AddKernel("cuda.stream.synchronize",
+  kernel_reg->AddKernel("tfrt_cuda.init", TFRT_KERNEL(CudaInit));
+  kernel_reg->AddKernel("tfrt_cuda.device.get", TFRT_KERNEL(CudaDeviceGet));
+  kernel_reg->AddKernel("tfrt_cuda.stream.create",
+                        TFRT_KERNEL(CudaStreamCreate));
+  kernel_reg->AddKernel("tfrt_cuda.stream.synchronize",
                         TFRT_KERNEL(CudaStreamSynchronize));
 
-  kernel_reg->AddKernel("cuda.event.create", TFRT_KERNEL(CudaEventCreate));
-  kernel_reg->AddKernel("cuda.event.record", TFRT_KERNEL(CudaEventRecord));
-  kernel_reg->AddKernel("cuda.event.poll", TFRT_KERNEL(CudaEventPoll));
+  kernel_reg->AddKernel("tfrt_cuda.event.create", TFRT_KERNEL(CudaEventCreate));
+  kernel_reg->AddKernel("tfrt_cuda.event.record", TFRT_KERNEL(CudaEventRecord));
+  kernel_reg->AddKernel("tfrt_cuda.event.poll", TFRT_KERNEL(CudaEventPoll));
 
-  kernel_reg->AddKernel("cuda.allocator.create",
+  kernel_reg->AddKernel("tfrt_cuda.allocator.create",
                         TFRT_KERNEL(CudaAllocatorCreate));
-  kernel_reg->AddKernel("cuda.allocator.destroy",
+  kernel_reg->AddKernel("tfrt_cuda.allocator.destroy",
                         TFRT_KERNEL(CudaAllocatorDestroy));
 
-  kernel_reg->AddKernel("cuda.mem.allocate", TFRT_KERNEL(CudaMemAllocate));
-  kernel_reg->AddKernel("cuda.mem.print_metadata",
+  kernel_reg->AddKernel("tfrt_cuda.mem.allocate", TFRT_KERNEL(CudaMemAllocate));
+  kernel_reg->AddKernel("tfrt_cuda.mem.print_metadata",
                         TFRT_KERNEL(CudaMemPrintMetadata));
 
-  kernel_reg->AddKernel("cuda.tensor.make.i8",
+  kernel_reg->AddKernel("tfrt_cuda.tensor.make.i8",
                         TFRT_KERNEL(CudaTensorMake<int8_t>));
-  kernel_reg->AddKernel("cuda.tensor.make.i32",
+  kernel_reg->AddKernel("tfrt_cuda.tensor.make.i32",
                         TFRT_KERNEL(CudaTensorMake<int32_t>));
-  kernel_reg->AddKernel("cuda.tensor.make.i64",
+  kernel_reg->AddKernel("tfrt_cuda.tensor.make.i64",
                         TFRT_KERNEL(CudaTensorMake<int64_t>));
-  kernel_reg->AddKernel("cuda.tensor.make.f32",
+  kernel_reg->AddKernel("tfrt_cuda.tensor.make.f32",
                         TFRT_KERNEL(CudaTensorMake<float>));
-  kernel_reg->AddKernel("cuda.tensor.make.f64",
+  kernel_reg->AddKernel("tfrt_cuda.tensor.make.f64",
                         TFRT_KERNEL(CudaTensorMake<double>));
 
-  kernel_reg->AddKernel("cuda.tensor.print_metadata",
+  kernel_reg->AddKernel("tfrt_cuda.tensor.print_metadata",
                         TFRT_KERNEL(CudaTensorPrintMetadata));
-  kernel_reg->AddKernel("cuda.mem.copy_host_to_device",
+  kernel_reg->AddKernel("tfrt_cuda.mem.copy_host_to_device",
                         TFRT_KERNEL(CudaMemcpyHtoD));
-  kernel_reg->AddKernel("cuda.mem.copy_device_to_host",
+  kernel_reg->AddKernel("tfrt_cuda.mem.copy_device_to_host",
                         TFRT_KERNEL(CudaMemcpyDtoH));
 
-  kernel_reg->AddKernel("cuda.module.load_static",
+  kernel_reg->AddKernel("tfrt_cuda.module.load_static",
                         TFRT_KERNEL(CudaModuleLoadStatic));
-  kernel_reg->AddKernel("cuda.launch", TFRT_KERNEL(CudaLaunch));
+  kernel_reg->AddKernel("tfrt_cuda.launch", TFRT_KERNEL(CudaLaunch));
 }
 
 }  // namespace cuda

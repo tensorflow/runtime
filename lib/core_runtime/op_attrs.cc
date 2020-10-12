@@ -66,8 +66,6 @@ int64_t OpAttrsRawEntry::GetNumElements(int64_t num_elements) {
 OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
   // TODO(tfrt-devs): Unify BEFDataType, OpAttrType and tfrt::DType.
   switch (kind) {
-    case BEFDataType::kBool:
-      return OpAttrType::BOOL;
     case BEFDataType::kI1:
       return OpAttrType::BOOL;
     case BEFDataType::kI8:

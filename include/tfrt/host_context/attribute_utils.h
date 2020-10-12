@@ -191,12 +191,13 @@ class DataTypeAttrBase : public AttrHeaderBase<DataTypeAttrClass, HeaderType> {
 
 }  // namespace internal
 
-class BoolAttr
-    : public internal::DataTypeAttrBase<BoolAttr, BEFFixed8Attr,
-                                        BEFDataType::kBool, uint8_t> {
+class I1Attr : public internal::DataTypeAttrBase<I1Attr, BEFFixed8Attr,
+                                                 BEFDataType::kI1, uint8_t> {
  public:
   using Base::Base;
 
+  // TODO(chky): I1Attr should return tfrt::i1 directly once BEFDataType
+  // is unified with tfrt::Dtype.
   bool GetValue() const { return static_cast<bool>(Base::GetValue()); }
 };
 

@@ -173,8 +173,6 @@ enum {
 enum class BEFDataType : uint8_t {
   kUnsupported,
 
-  kBool,
-
   kI1,
   kI8,
   kI16,
@@ -199,7 +197,7 @@ enum class BEFDataType : uint8_t {
   // TODO(tfrt-devs): Consider adding support for resource, variant
   // and quantized integers.
 
-  kFirstDataType = kBool,
+  kFirstDataType = kI1,
   kLastDataType = kVariant,
 };
 
@@ -230,6 +228,7 @@ enum class BEFAttributeType : uint16_t {
 
   kTypeArray = kType | kArrayAttributeType,
 
+  kI1Dense = static_cast<uint8_t>(BEFDataType::kI1) | kDenseAttributeType,
   kI8Dense = static_cast<uint8_t>(BEFDataType::kI8) | kDenseAttributeType,
   kI32Dense = static_cast<uint8_t>(BEFDataType::kI32) | kDenseAttributeType,
   kI64Dense = static_cast<uint8_t>(BEFDataType::kI64) | kDenseAttributeType,

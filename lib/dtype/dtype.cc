@@ -42,7 +42,8 @@ const char *DType::GetName() const {
     case UI64:
       return "u64";
     case I1:
-      return "u1";
+      // TODO(b/170482990): unify I1 and BOOL, use tfrt::i1 directly.
+      return "bool";
     case I8:
       return "i8";
     case I16:
@@ -55,8 +56,6 @@ const char *DType::GetName() const {
       return "f32";
     case F64:
       return "f64";
-    case BOOL:
-      return "bool";
     case COMPLEX64:
       return "complex64";
     case COMPLEX128:
@@ -89,8 +88,6 @@ size_t DType::GetHostSize() const {
       return sizeof(TypeForDTypeKind<DType::BF16>);
     case I1:
       return sizeof(TypeForDTypeKind<DType::I1>);
-    case BOOL:
-      return sizeof(TypeForDTypeKind<DType::BOOL>);
     case COMPLEX64:
       return sizeof(TypeForDTypeKind<DType::COMPLEX64>);
     case COMPLEX128:
@@ -122,8 +119,6 @@ size_t DType::GetHostAlignment() const {
       return alignof(TypeForDTypeKind<DType::BF16>);
     case I1:
       return alignof(TypeForDTypeKind<DType::I1>);
-    case BOOL:
-      return alignof(TypeForDTypeKind<DType::BOOL>);
     case COMPLEX64:
       return alignof(TypeForDTypeKind<DType::COMPLEX64>);
     case COMPLEX128:
@@ -148,9 +143,6 @@ void DType::Print(const void *data, raw_ostream &os) const {
       break;
     case DType::F16:
       os << "Does not support printing fp16.";
-      break;
-    case DType::I1:
-      os << *static_cast<const i1 *>(data);
       break;
     case DType::String:
       os << *static_cast<const TypeForDTypeKind<DType::String> *>(data);
@@ -195,13 +187,10 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
       os << "Does not support printing fp16.";
       break;
     case DType::I1:
-      os << *static_cast<const i1 *>(data);
+      os << *static_cast<const TypeForDTypeKind<DType::I1> *>(data);
       break;
     case DType::String:
       os << *static_cast<const TypeForDTypeKind<DType::String> *>(data);
-      break;
-    case DType::BOOL:
-      os << *static_cast<const TypeForDTypeKind<DType::BOOL> *>(data);
       break;
     case DType::COMPLEX64:
       os << "("

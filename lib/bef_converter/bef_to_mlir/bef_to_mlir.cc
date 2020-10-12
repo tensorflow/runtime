@@ -298,7 +298,6 @@ mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
 
 size_t GetBEFDataTypeByteSize(BEFDataType dtype) {
   switch (dtype) {
-    case BEFDataType::kBool:
     case BEFDataType::kI1:
     case BEFDataType::kI8:
     case BEFDataType::kUI8:
@@ -457,9 +456,10 @@ class BEFTypedAttributeReader {
     assert(IsDataTypeAttribute(base->type));
     auto dtype = static_cast<BEFDataType>(base->type);
     switch (dtype) {
-      case BEFDataType::kBool:
-        return builder_.getBoolAttr(static_cast<bool>(
-            ReadFixed8Attribute(reinterpret_cast<const BEFFixed8Attr*>(base))));
+      case BEFDataType::kI1:
+        return builder_.getIntegerAttr(
+            builder_.getIntegerType(1),
+            ReadFixed8Attribute(reinterpret_cast<const BEFFixed8Attr*>(base)));
       case BEFDataType::kI32:
         return builder_.getIntegerAttr(
             builder_.getIntegerType(32),
@@ -631,12 +631,6 @@ BEFTypedAttributeReader::CreateAttrsFromDenseArray(
 
   // TODO(chky): Consider simplying the following code to avoid code duplicate.
   switch (GetDataType(element_type)) {
-    case BEFDataType::kBool: {
-      auto array = llvm::makeArrayRef(data, num_elements);
-      for (auto elt : array)
-        elements.push_back(builder_.getBoolAttr(static_cast<bool>(elt)));
-      break;
-    }
     case BEFDataType::kI1: {
       CreateIntegerAttrArray<int8_t, 1>(&builder_, data, num_elements,
                                         &elements);
@@ -1153,8 +1147,6 @@ mlir::Attribute BEFAttributeReader::ReadAttribute(
 mlir::Attribute BEFAttributeReader::ReadDataTypeAttribute(
     BEFReader* reader, BEFDataType data_type) {
   switch (data_type) {
-    case BEFDataType::kBool:
-      return ReadBoolAttribute(reader);
     case BEFDataType::kI1:
       return ReadIntegerAttribute(reader, 1);
     case BEFDataType::kI8:

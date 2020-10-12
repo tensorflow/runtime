@@ -36,7 +36,7 @@ namespace {
 BEFDataType ConvertTensorDTypeToBEFDataType(DType dtype) {
   switch (dtype.kind()) {
     case DType::BOOL:
-      return BEFDataType::kBool;
+      return BEFDataType::kI1;
     case DType::UI8:
       return BEFDataType::kUI8;
     case DType::I8:
@@ -66,7 +66,7 @@ BEFDataType ConvertTensorDTypeToBEFDataType(DType dtype) {
 
 DType ConvertBEFDataTypeToTensorDType(BEFDataType kind) {
   switch (kind) {
-    case BEFDataType::kBool:
+    case BEFDataType::kI1:
       return DType(DType::BOOL);
     case BEFDataType::kI8:
       return DType(DType::I8);

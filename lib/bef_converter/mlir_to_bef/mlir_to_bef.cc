@@ -159,10 +159,6 @@ static BEFDataType ConvertMLIRDataTypeToBEFDataType(mlir::Type type) {
 // it are checked recursively, and if any element is unsupported,
 // BEFAttributeType::Unsupported will be returned.
 static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
-  // We support bool attributes (stored as 1 byte in BEF).
-  if (attr.isa<mlir::BoolAttr>())
-    return static_cast<BEFAttributeType>(BEFDataType::kBool);
-
   // We support 1-bit (stored as 1 byte in BEF), 32-bit, and 64-bit
   // integers.
   if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {

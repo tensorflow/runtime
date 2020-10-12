@@ -53,8 +53,8 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
       (void)r;
     } else if (IsDataTypeAttribute(attribute_type)) {
       switch (GetDataType(attribute_type)) {
-        case BEFDataType::kBool:
-          op_attrs->Set(key, attr.cast<BoolAttr>().GetValue());
+        case BEFDataType::kI1:
+          op_attrs->Set(key, attr.cast<I1Attr>().GetValue());
           break;
         case BEFDataType::kI32:
           op_attrs->Set(key, attr.cast<I32Attr>().GetValue());

@@ -25,8 +25,8 @@
 
 static void *LoadSymbol(const char *symbol_name) {
   static void *handle = [&] {
-    auto ptr = dlopen("libcublas.so.10", RTLD_LAZY);
-    if (!ptr) TFRT_LOG_ERROR << "Failed to load libcublas.so.10";
+    auto ptr = dlopen("libcublas.so", RTLD_LAZY);
+    if (!ptr) TFRT_LOG_ERROR << "Failed to load libcublas.so";
     return ptr;
   }();
   return handle ? dlsym(handle, symbol_name) : nullptr;

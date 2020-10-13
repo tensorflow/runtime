@@ -55,9 +55,12 @@ func @create_dense_tensor() {
   %ch0 = tfrt.new.chain
 
   %a = corert.create_dense_tensor.ui64 {shape = [1], value = [2 : ui64]}
+  %b = corert.create_dense_tensor.i1 {shape = [1], value = [false]}
 
-  // CHECK: shape = [1], values = [2]
+  // CHECK: dtype = UI64, shape = [1], values = [2]
   %ch1 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  // CHECK: dtype = I1, shape = [1], values = [0]
+  %ch2 = "corert.print_tensorhandle"(%b, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return
 }

@@ -32,8 +32,53 @@ namespace stream {
 
 // Convert DNN wrapper enums to cuDNN enums.
 static constexpr auto ToCuda(DnnDataType data_type) {
-  return static_cast<cudnnDataType_t>(data_type);
+  switch (data_type) {
+    case DnnDataType::kFloat:
+      return CUDNN_DATA_FLOAT;
+    case DnnDataType::kDouble:
+      return CUDNN_DATA_DOUBLE;
+    case DnnDataType::kHalf:
+      return CUDNN_DATA_HALF;
+    case DnnDataType::kInt8:
+      return CUDNN_DATA_INT8;
+    case DnnDataType::kInt32:
+      return CUDNN_DATA_INT32;
+    case DnnDataType::kInt8x4:
+      return CUDNN_DATA_INT8x4;
+    case DnnDataType::kUint8:
+      return CUDNN_DATA_UINT8;
+    case DnnDataType::kUint8x4:
+      return CUDNN_DATA_UINT8x4;
+    case DnnDataType::kInt8x32:
+      return CUDNN_DATA_INT8x32;
+  }
+  llvm_unreachable(StrCat("Unrecognized DnnDataType: ", data_type).c_str());
 }
+
+static constexpr cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
+  switch (mode) {
+    case DnnPoolingMode::kPoolingMax:
+      return CUDNN_POOLING_MAX;
+    case DnnPoolingMode::kPoolingAverageCountIncludePadding:
+      return CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
+    case DnnPoolingMode::kPoolingAverageCountExcludePadding:
+      return CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING;
+    case DnnPoolingMode::kPoolingMaxDeterministic:
+      return CUDNN_POOLING_MAX_DETERMINISTIC;
+  }
+  llvm_unreachable(StrCat("Unrecognized DnnPoolingMode mode: ", mode).c_str());
+}
+
+static constexpr auto ToCuda(DnnNanPropagation nan) {
+  switch (nan) {
+    case DnnNanPropagation::kNotPropagateNan:
+      return CUDNN_NOT_PROPAGATE_NAN;
+    case DnnNanPropagation::kPropagateNan:
+      return CUDNN_PROPAGATE_NAN;
+  }
+  llvm_unreachable(StrCat("Unrecognized DnnNanPropagation nan: ", nan).c_str());
+}
+
 /*
 static constexpr auto ToCuda(DnnTensorFormat format) {
   return static_cast<cudnnTensorFormat_t>(format);
@@ -297,6 +342,26 @@ llvm::Error DnnDestroyPersistentRnnPlan(DnnPersistentRnnPlan plan) {
   switch (platform) {
     case Platform::CUDA:
       return CudnnDestroyPersistentRnnPlan(plan);
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error DnnSetPoolingDescriptor(CurrentContext current,
+                                    DnnPoolingDescriptor descriptor,
+                                    DnnPoolingMode mode,
+                                    DnnNanPropagation nan_propagation,
+                                    llvm::ArrayRef<int> window_dimensions,
+                                    llvm::ArrayRef<int> paddings,
+                                    llvm::ArrayRef<int> strides) {
+  auto platform = current.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnSetPoolingDescriptor(descriptor, ToCuda(mode),
+                                       ToCuda(nan_propagation),
+                                       window_dimensions, paddings, strides);
     case Platform::ROCm:
       return UnsupportedPlatform(platform);
     default:

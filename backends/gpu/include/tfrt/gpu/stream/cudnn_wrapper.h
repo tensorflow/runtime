@@ -47,19 +47,19 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t dtype);
 // Return types for functions returning multiple values.
 struct CudnnTensorDescriptorData {
   cudnnDataType_t data_type;
-  llvm::SmallVector<int, kDnnDimMax> dimensions;
-  llvm::SmallVector<int, kDnnDimMax> strides;
+  llvm::SmallVector<int, kDnnDimMax()> dimensions;
+  llvm::SmallVector<int, kDnnDimMax()> strides;
 };
 struct CudnnFilterDescriptorData {
   cudnnDataType_t data_type;
   cudnnTensorFormat_t format;
-  llvm::SmallVector<int, kDnnDimMax> dimensions;
+  llvm::SmallVector<int, kDnnDimMax()> dimensions;
 };
 struct CudnnTransformDescriptorData {
   cudnnTensorFormat_t destination_format;
-  llvm::SmallVector<int, kDnnDimMax> paddings_before;
-  llvm::SmallVector<int, kDnnDimMax> paddings_after;
-  llvm::SmallVector<unsigned, kDnnDimMax - 2> fold;
+  llvm::SmallVector<int, kDnnDimMax()> paddings_before;
+  llvm::SmallVector<int, kDnnDimMax()> paddings_after;
+  llvm::SmallVector<unsigned, kDnnDimMax() - 2> fold;
   cudnnFoldingDirection_t direction;
 };
 struct CudnnOpTensorDescriptorData {
@@ -75,16 +75,16 @@ struct CudnnReduceTensorDescriptorData {
   cudnnIndicesType_t index_type;
 };
 struct CudnnConvolutionDescriptorData {
-  llvm::SmallVector<int, kDnnDimMax> paddings;
-  llvm::SmallVector<int, kDnnDimMax> filter_strides;
-  llvm::SmallVector<int, kDnnDimMax> dilations;
+  llvm::SmallVector<int, kDnnDimMax()> paddings;
+  llvm::SmallVector<int, kDnnDimMax()> filter_strides;
+  llvm::SmallVector<int, kDnnDimMax()> dilations;
   cudnnConvolutionMode_t mode;
   cudnnDataType_t math_type;
 };
 struct CudnnPoolingDescriptorData {
-  llvm::SmallVector<int, kDnnDimMax> window_dimensions;
-  llvm::SmallVector<int, kDnnDimMax> paddings;
-  llvm::SmallVector<int, kDnnDimMax> strides;
+  llvm::SmallVector<int, kDnnDimMax()> window_dimensions;
+  llvm::SmallVector<int, kDnnDimMax()> paddings;
+  llvm::SmallVector<int, kDnnDimMax()> strides;
   cudnnPoolingMode_t mode;
   cudnnNanPropagation_t nan_propagation;
 };
@@ -277,7 +277,7 @@ llvm::Error CudnnSetConvolutionDescriptor(
     cudnnConvolutionMode_t mode, cudnnDataType_t compute_type);
 llvm::Expected<CudnnConvolutionDescriptorData> CudnnGetConvolutionDescriptor(
     cudnnConvolutionDescriptor_t descriptor);
-llvm::Expected<llvm::SmallVector<int, kDnnDimMax>>
+llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
 CudnnGetConvolutionForwardOutputDim(cudnnConvolutionDescriptor_t conv_desc,
                                     cudnnTensorDescriptor_t input_tensor_desc,
                                     cudnnFilterDescriptor_t filter_desc);
@@ -409,7 +409,7 @@ llvm::Error CudnnSetPoolingDescriptor(cudnnPoolingDescriptor_t descriptor,
                                       llvm::ArrayRef<int> strides);
 llvm::Expected<CudnnPoolingDescriptorData> CudnnGetPoolingDescriptor(
     const cudnnPoolingDescriptor_t descriptor);
-llvm::Expected<llvm::SmallVector<int, kDnnDimMax>>
+llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
 CudnnGetPoolingForwardOutputDim(
     const cudnnPoolingDescriptor_t pooling_desc,
     const cudnnTensorDescriptor_t input_tensor_desc);

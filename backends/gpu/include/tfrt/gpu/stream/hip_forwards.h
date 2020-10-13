@@ -40,6 +40,22 @@ using miopenFilterDescriptor_t = struct miopenFilterStruct *;
 using miopenDropoutDescriptor_t = struct miopenDropoutStruct *;
 using miopenRNNDescriptor_t = struct miopenRNNStruct *;
 using miopenPersistentRNNPlan_t = struct miopenPersistentRNNPlan *;
+using miopenOpTensorDescriptor_t = struct miopenOpTensorDescriptor *;
+using miopenTensorTransformDescriptor_t =
+    struct miopenTensorTransformDescriptor *;
+using miopenReduceTensorDescriptor_t = struct miopenReduceTensorDescriptor *;
+using miopenReduceTensorDescriptor_t = struct miopenReduceTensorDescriptor *;
+using miopenRuntimeTag_t = struct miopenRuntimeTag *;
+using miopenStatus_t = struct miopenStatus *;
+using miopenConvolutionFwdAlgo_t = struct miopenConvolutionFwdAlgo *;
+using miopenConvolutionBwdFilterAlgo_t =
+    struct miopenConvolutionBwdFilterAlgo *;
+using miopenConvolutionBwdDataAlgo_t = struct miopenConvolutionBwdDataAlgo *;
+using miopenConvolutionFwdAlgoPerf_t = struct mioopenConvolutionFwdAlgoPerf *;
+using miopenConvolutionBwdFilterAlgoPerf_t =
+    struct miopenConvolutionBwdFilterAlgoPerf *;
+using miopenConvolutionBwdDataAlgoPerf_t =
+    struct miopenConvolutionBwdDataAlgoPerf *;
 
 // Forward declaration of rocBLAS types.
 using rocblas_handle = struct _rocblas_handle *;

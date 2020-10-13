@@ -145,6 +145,7 @@ enum class MemAttachFlags {
   GLOBAL = 1,
   HOST = 2,
 };
+
 // Print enumerator value to os.
 template <typename E>
 typename std::enable_if<std::is_enum<E>::value, llvm::raw_ostream>::type&

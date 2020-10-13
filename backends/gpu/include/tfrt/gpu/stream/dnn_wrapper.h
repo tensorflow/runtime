@@ -31,39 +31,220 @@ namespace tfrt {
 namespace gpu {
 namespace stream {
 
+constexpr int kDnnDimMax() { return 8; }
+
+enum class DnnErrQueryMode {
+  kRawcode,
+  kNonblocking,
+  kBlocking,
+};
+
 enum class DnnDataType {
-  FLOAT = 0,
-  DOUBLE = 1,
-  HALF = 2,
-  INT8 = 3,
-  INT32 = 4,
-  INT8x4 = 5,
-  UINT8 = 6,
-  UINT8x4 = 7,
-  INT8x32 = 8,
+  kFloat,
+  kDouble,
+  kHalf,
+  kInt8,
+  kInt32,
+  kInt8x4,
+  kUint8,
+  kUint8x4,
+  kInt8x32,
 };
 
 enum class DnnTensorFormat {
-  NCHW = 0,
-  NHWC = 1,
-  NCHW_VECT_C = 2,
+  kNchw,
+  kNhwc,
+  kNchwVectC,
 };
 
 enum class DnnRnnInputMode {
-  LINEAR = 0,
-  SKIP = 1,
+  kLinear,
+  kSkip,
 };
 
 enum class DnnDirectionMode {
-  UNIDIRECTIONAL = 0,
-  BIDIRECTIONAL = 1,
+  kUnidirectional,
+  kBidirectional,
 };
 
 enum class DnnRnnMode {
-  RNN_RELU = 0,
-  RNN_TANH = 1,
-  LSTM = 2,
-  GRU = 3,
+  kRnnRelu,
+  kRnnTanh,
+  kLstm,
+  kGru,
+};
+
+enum class DnnFoldingDirection {
+  kTransformFold,
+  kTransformUnfold,
+};
+
+enum class DnnOpTensorOp {
+  kOpTensorAdd,
+  kOpTensorMul,
+  kOpTensorMin,
+  kOpTensorMax,
+  kOpTensorSqrt,
+  kOpTensorNot,
+};
+
+enum class DnnReduceTensorOp {
+  kReduceTensorAdd,
+  kReduceTensorMul,
+  kReduceTensorMin,
+  kReduceTensorMax,
+  kReduceTensorAmax,
+  kReduceTensorAvg,
+  kReduceTensorNorm1,
+  kReduceTensorNorm2,
+  kReduceTensorMulNoZeros,
+};
+
+enum class DnnReduceTensorIndices {
+  kReduceTensorNoIndices,
+  kReduceTensorFlattenedIndicesw,
+};
+
+enum class DnnIndicesType {
+  kDnn32BitIndices,
+  kDnn64BitIndices,
+  kDnn16BitIndices,
+  kDnn8BitIndices,
+};
+
+enum class DnnNanPropagation {
+  kNotPropagateNan,
+  kPropagateNan,
+};
+
+enum class DnnReorderType {
+  kDefaultReorder,
+  kNoReorder,
+};
+
+enum class DnnMathType {
+  kDefaultMath,
+  kTensorOpMath,
+  kTensorOpMathAllowConversion,
+};
+
+enum class DnnConvolutionMode { kConvolution, kCrossCorrelation };
+
+enum class DnnDeterminism {
+  kNonDeterministic,
+  kDeterministic,
+};
+
+enum class DnnSoftmaxAlgorithm {
+  kSoftmaxFast,
+  kSoftmaxAccurate,
+  kSoftmaxLog,
+};
+
+enum class DnnSoftmaxMode {
+  kSoftmaxModeInstance,
+  kSoftmaxModeChannel,
+};
+
+enum class DnnPoolingMode {
+  kPoolingMax,
+  kPoolingAverageCountIncludePadding,
+  kPoolingAverageCountExcludePadding,
+  kPoolingMaxDeterministic,
+};
+
+enum class DnnActivationMode {
+  kActivationSigmoid,
+  kActivationRelu,
+  kActivationTanh,
+  kActivationClippedRelu,
+  kActivationElu,
+  kActivationIdentity,
+};
+
+enum class DnnBatchNormMode {
+  // bnScale, bnBias tensor dims are 1xCxHxWx.. (one value per CHW...-slice,
+  // normalized over N slice)
+  kBatchnormPerActivation,
+  // bnScale, bnBias tensor dims are 1xCx1x1 (one value per C-dim normalized
+  // over Nx1xHxW subtensors)
+  kBatchnormSpatial,
+  // bnScale, bnBias tensor dims are 1xCx1x1 (one value per C-dim normalized
+  // over Nx1xHxW subtensors). May be faster than BATCHNORM_SPATIAL but
+  // imposes some limits on the range of values
+  kBatchnormSpatialPersistent,
+};
+
+enum class DnnBatchNormOps {
+  kBatchnormOpsBn,               // do batch normalization only
+  kBatchnormOpsBnActivation,     // do batchNorm, then activation
+  kBatchnormOpsBnAddActivation,  // do batchNorm, then elemWiseAdd, then
+                                 // activation
+};
+
+enum class DnnRNNInputMode { kLinearInput, kSkipInput };
+
+enum class DnnRNNMode {
+  kRnnRelu,  // Stock RNN with ReLu activation
+  kRnnTanh,  // Stock RNN with tanh activation
+  kLstm,     // LSTM with no peephole connections
+  kGru,      // Using h' = tanh(r * Uh(t-1) + Wx) and h = (1 - z) * h' + z *
+             // h(t-1);
+};
+
+enum class DnnRNNAlgo {
+  kRnnAlgoStandard,
+  kRnnAlgoPersistStatic,
+  kRnnAlgoPersistDynamic,
+  kRnnAlgoCount,
+};
+
+enum class DnnRNNBiasMode {
+  kRnnNoBias,         // rnn cell formulas do not use biases
+  kRnnSingleInpBias,  // rnn cell formulas use one input bias in input GEMM
+  kRnnDoubleBias,     // default, rnn cell formulas use two bias vectors
+  kRnnSingleRecBias,  // rnn cell formulas use one recurrent bias in recurrent
+                      // GEMM
+};
+
+enum class DnnRNNClipMode {
+  kRnnClipNone,    // disables LSTM cell clipping
+  kRnnClipMinmax,  // enables LSTM cell clipping
+};
+
+struct DnnOpTensorDescriptorData {
+  DnnOpTensorOp op;
+  DnnDataType math_type;
+  DnnNanPropagation nan_propagation;
+};
+
+struct DnnConvolutionDescriptorData {
+  llvm::SmallVector<int, kDnnDimMax()> paddings;
+  llvm::SmallVector<int, kDnnDimMax()> filter_strides;
+  llvm::SmallVector<int, kDnnDimMax()> dilations;
+  DnnConvolutionMode mode;
+  DnnDataType math_type;
+};
+
+struct DnnPoolingDescriptorData {
+  llvm::SmallVector<int, kDnnDimMax()> window_dimensions;
+  llvm::SmallVector<int, kDnnDimMax()> paddings;
+  llvm::SmallVector<int, kDnnDimMax()> strides;
+  DnnPoolingMode mode;
+  DnnNanPropagation nan_propagation;
+};
+
+struct DnnActivationDescriptorData {
+  DnnActivationMode mode;
+  DnnNanPropagation nan_propagation;
+  double coefficient;
+};
+
+struct DnnRnnClipData {
+  DnnRNNClipMode mode;
+  DnnNanPropagation nan_propagation;
+  double left_clip;
+  double right_clip;
 };
 
 // Non-owning handles of GPU resources.
@@ -83,6 +264,16 @@ using DnnDropoutDescriptor =
 using DnnRnnDescriptor = Resource<cudnnRNNDescriptor_t, miopenRNNDescriptor_t>;
 using DnnPersistentRnnPlan =
     Resource<cudnnPersistentRNNPlan_t, miopenPersistentRNNPlan_t>;
+using DnnOpTensorDescriptor =
+    Resource<cudnnOpTensorDescriptor_t, miopenOpTensorDescriptor_t>;
+using DnnTensorTransformDescriptor =
+    Resource<cudnnTensorTransformDescriptor_t,
+             miopenTensorTransformDescriptor_t>;
+using DnnReduceTensorDescriptor =
+    Resource<cudnnReduceTensorDescriptor_t, miopenReduceTensorDescriptor_t>;
+using DnnReduceTensorDescriptorData =
+    Resource<cudnnReduceTensorDescriptor_t, miopenReduceTensorDescriptor_t>;
+using DnnRuntimeTag = Resource<cudnnRuntimeTag_t, miopenRuntimeTag_t>;
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.
@@ -148,18 +339,16 @@ using OwningDnnRnnDescriptor =
 using OwningPersistentRnnPlan =
     internal::OwningResource<internal::DnnPersistentRnnPlanDeleter>;
 
-static constexpr int kDnnDimMax = 8;
-
 // Return types for functions returning multiple values.
 struct DnnTensorDescriptorData {
   DnnDataType data_type;
-  llvm::SmallVector<int, kDnnDimMax> dimensions;
-  llvm::SmallVector<int, kDnnDimMax> strides;
+  llvm::SmallVector<int, kDnnDimMax()> dimensions;
+  llvm::SmallVector<int, kDnnDimMax()> strides;
 };
 struct DnnFilterDescriptorData {
   DnnDataType data_type;
   DnnTensorFormat format;
-  llvm::SmallVector<int, kDnnDimMax> dimensions;
+  llvm::SmallVector<int, kDnnDimMax()> dimensions;
 };
 struct DnnDropoutDescriptorData {
   float dropout;
@@ -225,6 +414,13 @@ llvm::Expected<OwningPersistentRnnPlan> DnnCreatePersistentRnnPlan(
     DnnRnnDescriptor descriptor, int batch_size, DnnDataType data_type);
 llvm::Error DnnDestroyPersistentRnnPlan(DnnPersistentRnnPlan plan);
 
+llvm::Error DnnSetPoolingDescriptor(CurrentContext current,
+                                    DnnPoolingDescriptor descriptor,
+                                    DnnPoolingMode mode,
+                                    DnnNanPropagation nan_propagation,
+                                    llvm::ArrayRef<int> window_dimensions,
+                                    llvm::ArrayRef<int> paddings,
+                                    llvm::ArrayRef<int> strides);
 llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
                               const DnnPoolingDescriptor pooling_desc,
                               Pointer<const void> alpha,

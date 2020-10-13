@@ -236,11 +236,11 @@ llvm::Expected<CudnnTensorDescriptorData> CudnnGetTensorDescriptor(
     cudnnTensorDescriptor_t descriptor) {
   CudnnTensorDescriptorData data;
   int rank = 0;
-  data.dimensions.resize(kDnnDimMax);
-  data.strides.resize(kDnnDimMax);
-  RETURN_IF_ERROR(
-      cudnnGetTensorNdDescriptor(descriptor, kDnnDimMax, &data.data_type, &rank,
-                                 data.dimensions.data(), data.strides.data()));
+  data.dimensions.resize(kDnnDimMax());
+  data.strides.resize(kDnnDimMax());
+  RETURN_IF_ERROR(cudnnGetTensorNdDescriptor(
+      descriptor, kDnnDimMax(), &data.data_type, &rank, data.dimensions.data(),
+      data.strides.data()));
   data.dimensions.resize(rank);
   data.strides.resize(rank);
   return data;
@@ -495,8 +495,8 @@ llvm::Expected<CudnnFilterDescriptorData> CudnnGetFilterDescriptor(
     cudnnFilterDescriptor_t descriptor) {
   CudnnFilterDescriptorData data;
   int rank = 0;
-  data.dimensions.resize(kDnnDimMax);
-  RETURN_IF_ERROR(cudnnGetFilterNdDescriptor(descriptor, kDnnDimMax,
+  data.dimensions.resize(kDnnDimMax());
+  RETURN_IF_ERROR(cudnnGetFilterNdDescriptor(descriptor, kDnnDimMax(),
                                              &data.data_type, &data.format,
                                              &rank, data.dimensions.data()));
   data.dimensions.resize(rank);
@@ -603,11 +603,11 @@ llvm::Expected<CudnnConvolutionDescriptorData> CudnnGetConvolutionDescriptor(
     cudnnConvolutionDescriptor_t descriptor) {
   int rank = 0;
   CudnnConvolutionDescriptorData data;
-  data.paddings.resize(kDnnDimMax);
-  data.filter_strides.resize((kDnnDimMax));
-  data.dilations.resize(kDnnDimMax);
+  data.paddings.resize(kDnnDimMax());
+  data.filter_strides.resize((kDnnDimMax()));
+  data.dilations.resize(kDnnDimMax());
   RETURN_IF_ERROR(cudnnGetConvolutionNdDescriptor(
-      descriptor, kDnnDimMax, &rank, data.paddings.data(),
+      descriptor, kDnnDimMax(), &rank, data.paddings.data(),
       data.filter_strides.data(), data.dilations.data(), &data.mode,
       &data.math_type));
   data.paddings.resize(rank);
@@ -616,13 +616,13 @@ llvm::Expected<CudnnConvolutionDescriptorData> CudnnGetConvolutionDescriptor(
   return data;
 }
 
-llvm::Expected<llvm::SmallVector<int, kDnnDimMax>>
+llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
 CudnnGetConvolutionForwardOutputDim(cudnnConvolutionDescriptor_t conv_desc,
                                     cudnnTensorDescriptor_t input_tensor_desc,
                                     cudnnFilterDescriptor_t filter_desc) {
-  llvm::SmallVector<int, kDnnDimMax> output_dim(kDnnDimMax);
+  llvm::SmallVector<int, kDnnDimMax()> output_dim(kDnnDimMax());
   RETURN_IF_ERROR(cudnnGetConvolutionNdForwardOutputDim(
-      conv_desc, input_tensor_desc, filter_desc, kDnnDimMax,
+      conv_desc, input_tensor_desc, filter_desc, kDnnDimMax(),
       output_dim.data()));
   return output_dim;
 }
@@ -915,11 +915,11 @@ llvm::Expected<CudnnPoolingDescriptorData> CudnnGetPoolingDescriptor(
     const cudnnPoolingDescriptor_t descriptor) {
   CudnnPoolingDescriptorData data;
   int rank = 0;
-  data.window_dimensions.resize(kDnnDimMax);
-  data.paddings.resize(kDnnDimMax);
-  data.strides.resize(kDnnDimMax);
+  data.window_dimensions.resize(kDnnDimMax());
+  data.paddings.resize(kDnnDimMax());
+  data.strides.resize(kDnnDimMax());
   RETURN_IF_ERROR(cudnnGetPoolingNdDescriptor(
-      descriptor, kDnnDimMax, &data.mode, &data.nan_propagation, &rank,
+      descriptor, kDnnDimMax(), &data.mode, &data.nan_propagation, &rank,
       data.window_dimensions.data(), data.paddings.data(),
       data.strides.data()));
   data.window_dimensions.resize(rank);
@@ -928,13 +928,13 @@ llvm::Expected<CudnnPoolingDescriptorData> CudnnGetPoolingDescriptor(
   return data;
 }
 
-llvm::Expected<llvm::SmallVector<int, kDnnDimMax>>
+llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
 CudnnGetPoolingForwardOutputDim(
     const cudnnPoolingDescriptor_t pooling_desc,
     const cudnnTensorDescriptor_t input_tensor_desc) {
-  llvm::SmallVector<int, kDnnDimMax> output_dim(kDnnDimMax);
+  llvm::SmallVector<int, kDnnDimMax()> output_dim(kDnnDimMax());
   RETURN_IF_ERROR(cudnnGetPoolingNdForwardOutputDim(
-      pooling_desc, input_tensor_desc, kDnnDimMax, output_dim.data()));
+      pooling_desc, input_tensor_desc, kDnnDimMax(), output_dim.data()));
   return output_dim;
 }
 

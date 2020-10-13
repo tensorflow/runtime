@@ -228,6 +228,17 @@ class OpAttrs final {
   }
 
   template <typename T>
+  Optional<T> GetOptional(string_view attr_name) const {
+    T value;
+    bool success = Get(attr_name, &value);
+    if (success) {
+      return value;
+    } else {
+      return llvm::None;
+    }
+  }
+
+  template <typename T>
   bool SetArray(string_view attr_name, ArrayRef<T> value) {
     return SetRaw(attr_name, value.data(), value.size(), GetOpAttrType<T>());
   }
@@ -253,6 +264,13 @@ class OpAttrs final {
     return values;
   }
 
+  template <typename T>
+  ArrayRef<T> GetArrayOptional(string_view attr_name) const {
+    ArrayRef<T> values;
+    GetArray(attr_name, &values);
+    return values;
+  }
+
   // Support string_views as aliases of ArrayRef<char> in Get/Set.
   bool SetString(string_view attr_name, string_view value) {
     return SetArray(attr_name, ArrayRef<char>(value.data(), value.size()));
@@ -273,6 +291,16 @@ class OpAttrs final {
     assert(success);
     (void)success;
     return value;
+  }
+
+  Optional<string_view> GetStringOptional(string_view attr_name) const {
+    string_view value;
+    bool success = GetString(attr_name, &value);
+    if (success) {
+      return value;
+    } else {
+      return llvm::None;
+    }
   }
 
   // Look up an attribute by name, regardless of its underlying type.

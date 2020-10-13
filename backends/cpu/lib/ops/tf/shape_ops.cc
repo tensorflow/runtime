@@ -42,7 +42,7 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 static AsyncValueRef<DenseHostTensor> TfShapeOp(
-    const DenseHostTensor& input, const TensorMetadata& output_md,
+    const Tensor& input, const TensorMetadata& output_md,
     const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
   auto dest = DenseHostTensor::MakeConstructedAsyncValueRef(output_md, host);

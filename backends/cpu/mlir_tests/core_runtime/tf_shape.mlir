@@ -54,3 +54,19 @@ func @shape_i64() -> !tfrt.chain{
 
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
+
+// CHECK: --- Running 'shape_string_input'
+func @shape_string_input() -> !tfrt.chain{
+  %ch_epoch = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
+
+  %operand_0 = corert.const_string_tensor {shape = [], value = ["string content"]}
+
+  %cpu_handle_result = corert.executeop(%cpu) "tf.Shape"(%operand_0) { out_type = i32 } : 1
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [0]
+  // CHECK-SAME: values = []
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
+
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}

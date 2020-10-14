@@ -320,7 +320,88 @@ void BM_EventEnqueue(benchmark::State& state) {
     latch.wait();
   }
 }
+
+void BM_ManyThreadsManyStreams(benchmark::State& state) {
+  Platform platform(Platform::CUDA);
+  ASSERT_TRUE(IsSuccess(Init(platform)));
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
+  ASSERT_GT(count, 0);
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
+  TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context.get()));
+
+  const int thread_count = state.range(0);
+  const size_t size = state.range(1);
+  EventManager manager;
+
+  std::vector<StreamAndBuffers> sb;
+  sb.reserve(thread_count);
+  for (int i = 0; i < thread_count; ++i) {
+    sb.emplace_back(current, size);
+  }
+  std::vector<OwningEvent> events(thread_count);
+  std::generate(events.begin(), events.end(), [&] {
+    return std::move(*EventCreate(current, EventFlags::DISABLE_TIMING));
+  });
+
+  for (auto _ : state) {
+    latch latch(thread_count);
+    for (int i = 0; i < thread_count; ++i) {
+      sb[i].H2D(current, events[i].get());
+    }
+    for (int i = 0; i < thread_count; ++i) {
+      manager.Synchronize(events[i].get(), sb[i].stream.get(),
+                          [&latch](llvm::Error error) { latch.count_down(); });
+    }
+    latch.wait();
+  }
+}
+
+void BM_MultipleEventsPerStream(benchmark::State& state) {
+  Platform platform(Platform::CUDA);
+  ASSERT_TRUE(IsSuccess(Init(platform)));
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
+  ASSERT_GT(count, 0);
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
+  TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context.get()));
+
+  const int thread_count = state.range(0);
+  const int events_per_stream = state.range(1);
+  EventManager manager;
+
+  std::vector<StreamAndBuffers> sb;
+  sb.reserve(thread_count);
+  for (int i = 0; i < thread_count; ++i) {
+    sb.emplace_back(current, /*size=*/8192);
+  }
+
+  std::vector<OwningEvent> events(thread_count * events_per_stream);
+  std::generate(events.begin(), events.end(), [&] {
+    return std::move(*EventCreate(current, EventFlags::DISABLE_TIMING));
+  });
+
+  for (auto _ : state) {
+    latch latch(thread_count * events_per_stream);
+    for (int j = 0; j < events_per_stream; ++j) {
+      for (int i = 0; i < thread_count; ++i) {
+        sb[i].H2D(current, events[i * events_per_stream + j].get());
+      }
+    }
+    for (int i = 0; i < thread_count; ++i) {
+      for (int j = 0; j < events_per_stream; ++j) {
+        manager.Synchronize(
+            events[i * events_per_stream + j].get(), sb[i].stream.get(),
+            [&latch](llvm::Error error) { latch.count_down(); });
+      }
+    }
+    latch.wait();
+  }
+}
+
 BENCHMARK(BM_EventEnqueue);
+BENCHMARK(BM_ManyThreadsManyStreams)->RangePair(1, 32, 4, 32 << 20);
+BENCHMARK(BM_MultipleEventsPerStream)->RangePair(1, 32, 2, 32);
 
 }  // namespace stream
 }  // namespace gpu

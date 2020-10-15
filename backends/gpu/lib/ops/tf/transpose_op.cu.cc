@@ -18,6 +18,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "transpose_op.h"
+
 #include "llvm/Support/Error.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/core_runtime/op_attrs.h"
@@ -28,7 +30,6 @@
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
-#include "transpose_op.h"
 
 namespace tfrt {
 namespace gpu {

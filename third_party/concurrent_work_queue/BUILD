@@ -12,7 +12,6 @@ filegroup(
     name = "concurrent_work_queue_srcs",
     srcs = [
         "lib/blocking_work_queue.h",
-        "lib/environment.h",
         "lib/event_count.h",
         "lib/multi_threaded_work_queue.cc",
         "lib/non_blocking_work_queue.h",
@@ -21,9 +20,7 @@ filegroup(
         "lib/task_queue.cc",
         "lib/task_queue.h",
         "lib/work_queue_base.h",
-    ] + select({
-        "//conditions:default": ["lib/environment_std.h"],
-    }),
+    ],
 )
 
 tfrt_cc_library(
@@ -34,9 +31,7 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
-    ] + select({
-        "//conditions:default": [],
-    }),
+    ],
 )
 
 tfrt_cc_test(

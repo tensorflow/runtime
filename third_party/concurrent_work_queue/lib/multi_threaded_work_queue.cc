@@ -13,7 +13,6 @@
 #include <thread>
 
 #include "blocking_work_queue.h"
-#include "environment.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "non_blocking_work_queue.h"
 #include "tfrt/host_context/async_value.h"
@@ -22,12 +21,11 @@
 #include "tfrt/support/latch.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/support/string_util.h"
+#include "tfrt/support/thread_environment.h"
 
 namespace tfrt {
 
 class MultiThreadedWorkQueue : public ConcurrentWorkQueue {
-  using ThreadingEnvironment = ::tfrt::internal::ThreadingEnvironment;
-
  public:
   MultiThreadedWorkQueue(int num_threads, int num_blocking_threads);
   ~MultiThreadedWorkQueue() override;

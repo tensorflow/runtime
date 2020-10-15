@@ -71,6 +71,9 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
                                       TensorType dst_tensor_type) const {
   HostContext* host = exec_ctx.host();
   AsyncValueRef<Tensor> result_tensor;
+  if (GetAsyncTensor()->IsError()) {
+    return TensorHandle(AsyncValueRef<TensorHandle>(FormRef(GetAsyncTensor())));
+  }
   const Device& src = *device_;
   if (GetAsyncTensor()->IsAvailable()) {
     auto& tensor = GetAsyncTensor()->get<Tensor>();

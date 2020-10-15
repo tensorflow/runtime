@@ -106,7 +106,7 @@ class MapByType {
  private:
   template <typename T>
   static size_t getTypeId() {
-    return DenseTypeId<IdSet>::template get<T>();
+    return DenseTypeId<IdSet>::template get<std::decay_t<T>>();
   }
   std::vector<tfrt::UniqueAny> data_;
 };

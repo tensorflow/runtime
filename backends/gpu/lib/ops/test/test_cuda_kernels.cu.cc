@@ -18,9 +18,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <string>
-
 #include "test_cuda_kernels.h"
+
+#include <string>
 
 #define EIGEN_USE_GPU
 

@@ -11,16 +11,15 @@
 #include "blocking_work_queue.h"
 
 #include "benchmark/benchmark.h"
-#include "environment.h"
 #include "gtest/gtest.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/support/latch.h"
+#include "tfrt/support/thread_environment.h"
 
 namespace tfrt {
 namespace {
 
-using ThreadingEnvironment = ::tfrt::internal::ThreadingEnvironment;
 using WorkQueue = ::tfrt::internal::BlockingWorkQueue<ThreadingEnvironment>;
 
 TEST(BlockingWorkQueueTest, RejectRunBlockingTask) {

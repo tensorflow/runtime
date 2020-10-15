@@ -62,12 +62,6 @@ class GpuOpHandler : public OpHandler {
 
   GpuDispatchContext MakeGpuDispatchContext();
 
-  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const ExecutionContext& exec_ctx, const Tensor& tensor) override;
-
-  AsyncValueRef<Tensor> CopyHostTensorToDevice(
-      const DenseHostTensor& tensor) override;
-
   RCReference<GpuDevice> GetDeviceRef() { return device_.CopyRef(); }
 
  private:
@@ -135,28 +129,6 @@ GpuOpHandler::GpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
 
 GpuDispatchContext GpuOpHandler::MakeGpuDispatchContext() {
   return GpuDispatchContext{device_.get()};
-}
-
-AsyncValueRef<HostTensor> GpuOpHandler::CopyDeviceTensorToHost(
-    const ExecutionContext& exec_ctx, const Tensor& tensor) {
-  auto* host = GetRuntime()->GetHostContext();
-  if (auto* gpu_tensor = dyn_cast<gpu::DenseGpuTensor>(&tensor)) {
-    return AsyncValueRef<HostTensor>(
-        ConvertTensor(*gpu_tensor, *device_, host->GetHostDevice(),
-                      DenseHostTensor::kTensorType, host)
-            .ReleaseRCRef());
-  } else {
-    return GetFallback()->CopyDeviceTensorToHost(exec_ctx, tensor);
-  }
-}
-
-AsyncValueRef<Tensor> GpuOpHandler::CopyHostTensorToDevice(
-    const DenseHostTensor& tensor) {
-  auto* host = GetRuntime()->GetHostContext();
-  return AsyncValueRef<HostTensor>(
-      ConvertTensor(tensor, host->GetHostDevice(), *device_,
-                    gpu::DenseGpuTensor::kTensorType, host)
-          .ReleaseRCRef());
 }
 
 Expected<CoreRuntimeOp> GpuOpHandler::MakeOp(string_view op_name) {

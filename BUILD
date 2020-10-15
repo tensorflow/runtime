@@ -103,9 +103,7 @@ tfrt_cc_library(
         ":support",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
-    ] + select({
-        "//conditions:default": [],
-    }),
+    ],
 )
 
 tfrt_cc_library(
@@ -171,6 +169,7 @@ tfrt_cc_library(
         "include/tfrt/support/variant.h",
         "include/tfrt/support/type_id.h",
         "include/tfrt/support/map_by_type.h",
+        "include/tfrt/support/thread_environment.h",
     ] + select({
         "//conditions:default": ["include/tfrt/support/std_mutex.h"],
     }),
@@ -178,9 +177,22 @@ tfrt_cc_library(
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
+        ":thread_environment",
     ] + select({
         "//conditions:default": [],
     }),
+)
+
+tfrt_cc_library(
+    name = "thread_environment",
+    hdrs = ["include/tfrt/support/thread_environment.h"] + select({
+        "//conditions:default": ["include/tfrt/support/thread_environment_std.h"],
+    }),
+    visibility = ["//visibility:private"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//third_party/llvm_derived:unique_any",
+    ],
 )
 
 tfrt_cc_library(
@@ -877,6 +889,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/test_kernels/opdefs/test_kernels.h",
     ],
+    visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
         ":tensor_opdefs",

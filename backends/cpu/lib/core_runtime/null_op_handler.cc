@@ -38,20 +38,6 @@ class NullOpHandler : public OpHandler {
     return MakeStringError(op_name, " was not supported by NullOpHandler.");
   }
 
-  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const ExecutionContext& exec_ctx, const Tensor& tensor) override {
-    assert(false &&
-           "NullOpHandler::CopyDeviceTensorToHost should not be called");
-    abort();
-  }
-
-  AsyncValueRef<Tensor> CopyHostTensorToDevice(
-      const DenseHostTensor& tensor) override {
-    assert(false &&
-           "NullOpHandler::CopyHostTensorToDevice should not be called");
-    abort();
-  }
-
   friend llvm::Expected<OpHandler*> CreateNullOpHandler(CoreRuntime* runtime);
 
  private:

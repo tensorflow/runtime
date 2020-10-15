@@ -58,15 +58,6 @@ class OpHandler {
 
   virtual Expected<CoreRuntimeOp> MakeOp(string_view op_name) = 0;
 
-  // Copy device tensor to host.
-  // The argument `tensor` needs to be the device tensor.
-  // TODO(b/152437241): Move these two function out from OpHandler.
-  virtual AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const ExecutionContext &exec_ctx, const Tensor &tensor) = 0;
-  // Copy host tensor to device.
-  virtual AsyncValueRef<Tensor> CopyHostTensorToDevice(
-      const DenseHostTensor &tensor) = 0;
-
   virtual ~OpHandler();
 
  private:

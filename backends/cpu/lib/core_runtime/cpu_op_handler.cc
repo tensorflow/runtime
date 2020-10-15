@@ -46,17 +46,6 @@ class CpuOpHandler : public OpHandler {
 
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
 
-  // For CpuOpHandler, the argument `tensor` needs to be a HostTensor. This
-  // function returns a HostTensor (DenseHostTensor or StringHostTensor), which
-  // contains a copy of the underlying data.
-  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const ExecutionContext& exec_ctx, const Tensor& tensor) override;
-
-  // This function returns a DenseHostTensor that contains a copy of the
-  // underlying buffer of the argument `tensor`.
-  AsyncValueRef<Tensor> CopyHostTensorToDevice(
-      const DenseHostTensor& tensor) override;
-
   RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
 
  private:
@@ -177,31 +166,6 @@ llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
   auto cpu_op_handler_ptr = cpu_op_handler.get();
   runtime->TakeOpHandler(std::move(cpu_op_handler));
   return cpu_op_handler_ptr;
-}
-
-AsyncValueRef<HostTensor> CpuOpHandler::CopyDeviceTensorToHost(
-    const ExecutionContext& exec_ctx, const Tensor& tensor) {
-  if (tensor.IsHostTensor()) {
-    // If tensor is a host tensor, we call Tensor::ConvertToHostTensor
-    // to make a copy of the tensor here, because the source and result buffers
-    // are logically independent.
-    auto& dst_tensor_type = tensor.IsTensorType(StringHostTensor::kTensorType)
-                                ? StringHostTensor::kTensorType
-                                : DenseHostTensor::kTensorType;
-    return ConvertTensorOnHost(tensor, dst_tensor_type,
-                               GetRuntime()->GetHostContext());
-  }
-
-  // Otherwise, this copy is meant for the fallback device.
-  return GetFallback()->CopyDeviceTensorToHost(exec_ctx, tensor);
-}
-
-AsyncValueRef<Tensor> CpuOpHandler::CopyHostTensorToDevice(
-    const DenseHostTensor& tensor) {
-  // We call ConvertTensorOnHost to make a copy of the tensor here,
-  // because the source and result buffers are logically independent.
-  return ConvertTensorOnHost(tensor, DenseHostTensor::kTensorType,
-                             GetRuntime()->GetHostContext());
 }
 
 //===----------------------------------------------------------------------===//

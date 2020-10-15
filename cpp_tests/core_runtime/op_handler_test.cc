@@ -41,14 +41,6 @@ class DummyOpHandler : public OpHandler {
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override {
     return MakeStringError(op_name, " is not supported.");
   }
-  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const ExecutionContext& exec_ctx, const Tensor& tensor) override {
-    llvm_unreachable("not implemented");
-  }
-  AsyncValueRef<Tensor> CopyHostTensorToDevice(
-      const DenseHostTensor& tensor) override {
-    llvm_unreachable("not implemented");
-  }
 };
 
 static std::unique_ptr<CoreRuntime> CreateCoreRuntime() {

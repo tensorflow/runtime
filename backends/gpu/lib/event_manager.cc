@@ -24,112 +24,136 @@
 #include <atomic>
 #include <memory>
 
+#include "tfrt/host_context/async_dispatch.h"
+#include "tfrt/host_context/chain.h"
 #include "tfrt/support/logging.h"
 
 namespace tfrt {
 namespace gpu {
 
-EventManager::EventManager() {}
+EventManager::EventManager(HostContext& host_context)
+    : host_context_(host_context),
+      worker_cancelled_(false),
+      worker_(std::bind(&EventManager::PollEvents, this)) {}
 
-void EventManager::ThreadInfo::AddEvent(stream::Event event,
-                                        EventReachedCallback on_reached) {
-  bool was_empty;
-  {
-    mutex_lock lock(mu);
-    was_empty = events.empty();
-    events.emplace_back(event, std::move(on_reached));
+AsyncValueRef<Chain> EventManager::Synchronize(
+    RCReference<stream::RcEvent> event) {
+  // Check if the event is already ready.
+  auto query_result = stream::EventQuery(event->resource());
+  if (!query_result) {
+    return MakeErrorAsyncValueRef(&host_context_,
+                                  StrCat("EventManager error querying event: ",
+                                         query_result.takeError()));
   }
-  if (was_empty) cv.notify_one();
+  if (*query_result) {
+    return GetReadyChain(&host_context_);
+  }
+
+  auto pending_async_value_ref =
+      MakeUnconstructedAsyncValueRef<Chain>(&host_context_);
+  // Add Ref outside of mutex. In order to bitpack event record, we have a
+  // pointer to the AsyncValue instead of an AsyncValueRef.
+  AsyncValue* pending_async_value =
+      pending_async_value_ref.GetAsyncValue()->AddRef();
+
+  events_mutex_.lock();
+  events_.push_back(EventRecord{{pending_async_value, RecordStatus::kPending},
+                                std::move(event)});
+  condition_.notify_one();
+  events_mutex_.unlock();
+  return pending_async_value_ref;
 }
 
-EventManager::ThreadInfo::~ThreadInfo() {
-  assert(thread.joinable());
-  {
-    mutex_lock lock(mu);
-    status.store(ThreadStatus::SHUTTING_DOWN, std::memory_order_release);
-    // Notify while holding the lock to make sure we don't race with
-    // cv.wait(), which is protected with mu.
-    cv.notify_one();
-  }
-  thread.join();
-}
-
-void EventManager::Synchronize(stream::Event event, stream::Stream stream,
-                               EventReachedCallback on_reached) {
-  // Most of the time, threads_ is only read. Consider using a shared_mutex
-  // (added in C++17) for mu_ if locking here shows up in profiles.
-
-  // If there is already a thread assigned to `stream`, add `event` to its
-  // queue.
-  // We use explicit locking instead of mutex_lock to avoid grabbing multiple
-  // mutexes at once and worrying about lock ordering. Static analysis is smart
-  // enough to catch lock/unlock bugs.
-  mu_.lock();
-  auto it = threads_.find(stream);
-  if (it != threads_.end()) {
-    ThreadInfo* ti = it->second.get();
-    // Even if another stream steals this ThreadInfo, ThreadInfo will not be
-    // deleted. So, it is safe to unlock mu_ here.
-    mu_.unlock();
-    ti->AddEvent(event, std::move(on_reached));
-    return;
-  }
-
-  // There is no thread already assigned to `stream`. Look for a thread assigned
-  // to another stream and steal it.
-  it = std::find_if(
-      threads_.begin(), threads_.end(), [](const auto& stream_and_thread) {
-        return stream_and_thread.second->status.load(
-                   std::memory_order_acquire) == ThreadStatus::IDLE;
-      });
-  if (it != threads_.end()) {
-    mu_.unlock();
-    it->second->AddEvent(event, std::move(on_reached));
-    return;
-  }
-
-  // All threads are busy. Create a new one.
-  threads_[stream] = std::make_unique<ThreadInfo>();
-  ThreadInfo* new_thread = threads_[stream].get();
-  mu_.unlock();
-  // Start the thread after releasing mu_ to maintain the invariant
-  // that we never hold more than one mutex.
-  new_thread->thread = std::thread([new_thread]() { ThreadFn(new_thread); });
-  new_thread->AddEvent(event, std::move(on_reached));
-}
-
-void EventManager::ThreadFn(ThreadInfo* thread_info) {
-  while (true) {
-    // Wait for some events to come and copy them into a temp deque.
-    std::deque<EventAndCallback> swapped_events;
-    bool shutdown_after_processing = false;
+void EventManager::PollEvents() {
+  while (!worker_cancelled_.load(std::memory_order_relaxed)) {
     {
-      mutex_lock lock(thread_info->mu);
-      while (thread_info->events.empty()) {
-        ThreadStatus previous = thread_info->status.exchange(
-            ThreadStatus::IDLE, std::memory_order_release);
-        if (previous == ThreadStatus::SHUTTING_DOWN) {
-          return;
+      mutex_lock lock(events_mutex_);
+      condition_.wait(lock, [&]() TFRT_REQUIRES(events_mutex_) -> bool {
+        return !events_.empty() ||
+               worker_cancelled_.load(std::memory_order_relaxed);
+      });
+    }
+
+    bool has_events = true;
+    while (has_events) {
+      if (worker_cancelled_.load(std::memory_order_relaxed)) {
+        TFRT_LOG_INFO << "EventManager worker thread cancelled.";
+        return;
+      }
+
+      std::vector<EventRecord> to_resolve;
+      {
+        mutex_lock lock(events_mutex_);
+        for (auto& event_record : events_) {
+          auto query_result =
+              stream::EventQuery(event_record.event->resource());
+          if (!query_result) {
+            // Report errors immediately
+            event_record.pending_async_value.getPointer()->SetError(
+                DecodedDiagnostic(query_result.takeError()));
+            event_record.pending_async_value.getPointer()->DropRef();
+            event_record.pending_async_value.setInt(RecordStatus::kError);
+            continue;
+          }
+          // The event is ready.
+          if (*query_result) {
+            event_record.pending_async_value.setInt(RecordStatus::kResolved);
+          }
         }
-        thread_info->cv.wait(lock);
-      }
-      ThreadStatus previous = thread_info->status.exchange(
-          ThreadStatus::PROCESSING, std::memory_order_release);
-      if (previous == ThreadStatus::SHUTTING_DOWN) {
-        shutdown_after_processing = true;
-      }
-      swapped_events.swap(thread_info->events);
-    }
+        // Partition events_ such that the head of the list contains the
+        // kPending events, and the tail contains a mix of kErrors and
+        // kResolved. We'll remove all non-pending event records.
+        auto to_resolve_it = std::partition(
+            events_.begin(), events_.end(), [](const auto& record) {
+              return record.pending_async_value.getInt() ==
+                     RecordStatus::kPending;
+            });
+        // Use remove_if to partition the vector again such that all the
+        // kResolved are clustered together.
+        auto to_remove_it = std::remove_if(
+            to_resolve_it, events_.end(), [](const auto& record) {
+              return record.pending_async_value.getInt() ==
+                     RecordStatus::kError;
+            });
 
-    // Synchronize events and invoke their callbacks.
-    for (EventAndCallback& item : swapped_events) {
-      item.on_reached(stream::EventSynchronize(item.event));
-    }
-    swapped_events.clear();
+        // Move the kDone events into a local vector so we can resolve them
+        // outside the mutex.
+        to_resolve.insert(to_resolve.end(),
+                          std::make_move_iterator(to_resolve_it),
+                          std::make_move_iterator(to_remove_it));
+        events_.erase(to_resolve_it, events_.end());
+        has_events = !events_.empty();
+      }
 
-    if (shutdown_after_processing) {
-      return;
+      if (!to_resolve.empty()) {
+        EnqueueWork(&host_context_, [events = std::move(to_resolve)] {
+          for (auto& record : events) {
+            record.pending_async_value.getPointer()->emplace<Chain>();
+            record.pending_async_value.getPointer()->DropRef();
+          }
+        });
+      }
+      std::this_thread::yield();
     }
+  }
+  TFRT_LOG_INFO << "Exiting EventManager worker thread.";
+}
+
+EventManager::~EventManager() {
+  worker_cancelled_.store(true, std::memory_order_relaxed);
+  {
+    mutex_lock lock(events_mutex_);
+    condition_.notify_one();
+  }
+  worker_.join();
+
+  mutex_lock lock(events_mutex_);
+  TFRT_LOG_INFO << "EventManager destroyed with " << events_.size()
+                << " pending events.";
+  for (auto& event : events_) {
+    event.pending_async_value.getPointer()->SetError(
+        DecodedDiagnostic("Cancelled EventManager."));
+    event.pending_async_value.getPointer()->DropRef();
   }
 }
 

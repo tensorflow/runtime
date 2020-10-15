@@ -44,10 +44,13 @@ TEST(MapByTypeTest, Basic) {
 
   auto& i = map.insert(2);
   EXPECT_TRUE(map.contains<int>());
+  EXPECT_TRUE(map.contains<const int>());
   EXPECT_EQ(map.get<int>(), 2);
+  EXPECT_EQ(map.get<const int>(), 2);
 
   i = 3;
   EXPECT_EQ(map.get<int>(), 3);
+  EXPECT_EQ(map.get<const int>(), 3);
 
   EXPECT_EQ(*map.getIfExists<int>(), 3);
 

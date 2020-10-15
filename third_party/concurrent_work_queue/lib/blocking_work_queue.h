@@ -83,7 +83,6 @@ class BlockingWorkQueue
   using Base::event_count_;
   using Base::num_threads_;
   using Base::thread_data_;
-  using Base::threading_environment_;
 
   LLVM_NODISCARD Optional<TaskFunction> NextTask(Queue* queue);
   LLVM_NODISCARD Optional<TaskFunction> Steal(Queue* queue);
@@ -265,7 +264,7 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
 
     // Start a new dynamic thread.
     dynamic_thread.second = true;  // is active
-    dynamic_thread.first = threading_environment_.StartThread(
+    dynamic_thread.first = ThreadingEnvironment::StartThread(
         kDynamicThreadNamePrefix, std::move(do_work));
     ++num_dynamic_threads_;
 

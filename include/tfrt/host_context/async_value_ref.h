@@ -112,7 +112,7 @@ class AsyncValueRef {
   // run the waiter when the AsyncValueRef becomes available.
   template <typename WaiterT>
   void AndThen(WaiterT&& waiter) const {
-    value_->AndThen(std::move(waiter));
+    value_->AndThen(std::forward<WaiterT>(waiter));
   }
 
   // Return true if this AsyncValueRef represents an error.

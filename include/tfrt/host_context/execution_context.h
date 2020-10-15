@@ -51,7 +51,8 @@ class RequestContext : public ReferenceCounted<RequestContext> {
   // TODO(tfrt-dev): Convert all clients to use RequestConcontextBuilder and
   // remove this function.
   static RCReference<RequestContext> Create(HostContext* host,
-                                            ResourceContext* resource_context);
+                                            ResourceContext* resource_context,
+                                            int64_t id = 0);
   ~RequestContext();
 
   bool IsCancelled() const { return GetCancelAsyncValue(); }
@@ -72,15 +73,26 @@ class RequestContext : public ReferenceCounted<RequestContext> {
     return context_data_.get<T>();
   }
 
+  // Get context data by type. The returned reference T& is stable. The client
+  // may store the reference/pointer if needed.
+  template <typename T>
+  T* GetDataIfExists() {
+    return context_data_.getIfExists<T>();
+  }
+
+  int64_t id() const { return id_; }
+
  private:
   friend class RequestContextBuilder;
 
   RequestContext(HostContext* host, ResourceContext* resource_context,
-                 ContextData ctx_data)
-      : host_{host},
+                 ContextData ctx_data, int64_t id)
+      : id_{id},
+        host_{host},
         resource_context_{resource_context},
         context_data_{std::move(ctx_data)} {}
 
+  int64_t id_;
   HostContext* const host_ = nullptr;
   // Both ResourceContext and ContextData manages data used during the request
   // execution. ResourceContext is more flexible than ContextData at the cost of
@@ -109,8 +121,9 @@ struct RequestOptions {
 //                          .build();
 class RequestContextBuilder {
  public:
-  RequestContextBuilder(HostContext* host, ResourceContext* resource_context)
-      : host_{host}, resource_context_{resource_context} {}
+  RequestContextBuilder(HostContext* host, ResourceContext* resource_context,
+                        int64_t id = 0)
+      : id_{id}, host_{host}, resource_context_{resource_context} {}
 
   RequestContextBuilder& set_request_options(RequestOptions request_options) & {
     request_options_ = std::move(request_options);
@@ -133,6 +146,7 @@ class RequestContextBuilder {
   Expected<RCReference<RequestContext>> build() &&;
 
  private:
+  int64_t id_;
   HostContext* host_;
   RequestOptions request_options_;
   ResourceContext* resource_context_ = nullptr;

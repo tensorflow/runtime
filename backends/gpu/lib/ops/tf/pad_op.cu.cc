@@ -17,9 +17,10 @@
 // Instantiates templated functors used in implementation of tf.Pad op on GPU.
 //
 //===----------------------------------------------------------------------===//
+#include "pad_op.h"
+
 #include <iostream>  // some eigen header use std::cerr without including it.
 
-#include "pad_op.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/core_runtime/op_attrs.h"

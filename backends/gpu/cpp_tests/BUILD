@@ -76,6 +76,7 @@ tfrt_cc_test(
         "@com_github_google_benchmark//:benchmark_main",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//backends/gpu:gpu_event_manager",
         "@tf_runtime//backends/gpu:gpu_stream_wrapper",

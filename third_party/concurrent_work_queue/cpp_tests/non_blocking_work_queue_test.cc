@@ -11,14 +11,13 @@
 #include "non_blocking_work_queue.h"
 
 #include "benchmark/benchmark.h"
-#include "environment.h"
 #include "tfrt/host_context/task_function.h"
 #include "tfrt/support/latch.h"
+#include "tfrt/support/thread_environment.h"
 
 namespace tfrt {
 namespace {
 
-using ThreadingEnvironment = ::tfrt::internal::ThreadingEnvironment;
 using WorkQueue = ::tfrt::internal::NonBlockingWorkQueue<ThreadingEnvironment>;
 
 // Benchmark work queue throughput.

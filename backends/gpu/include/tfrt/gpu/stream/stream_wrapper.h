@@ -99,6 +99,7 @@
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/stream/cuda_forwards.h"
 #include "tfrt/gpu/stream/hip_forwards.h"
+#include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 namespace gpu {
@@ -507,6 +508,20 @@ struct MemoryDeleter : public Deleter {
 };
 template <typename T, typename Deleter>
 using OwningMemory = std::unique_ptr<T, MemoryDeleter<T, Deleter>>;
+
+template <typename Deleter>
+class RcResource : public ReferenceCounted<RcResource<Deleter>> {
+ public:
+  explicit RcResource(OwningResource<Deleter> resource)
+      : resource_(std::move(resource)) {}
+
+  using Pointer = typename Deleter::pointer;
+  Pointer resource() const { return resource_.get(); }
+  Pointer resource() { return resource_.get(); }
+
+ private:
+  OwningResource<Deleter> resource_;
+};
 }  // namespace internal
 
 // RAII wrappers for resources. Instances own the underlying resource.
@@ -519,6 +534,10 @@ using OwningContext = internal::OwningResource<internal::ContextDeleter>;
 using OwningModule = internal::OwningResource<internal::ModuleDeleter>;
 using OwningStream = internal::OwningResource<internal::StreamDeleter>;
 using OwningEvent = internal::OwningResource<internal::EventDeleter>;
+
+// RefCounted wrappers for resources that share ownership of the underlying
+// resources.
+using RcEvent = internal::RcResource<internal::EventDeleter>;
 
 // RAII wrappers for GPU memory. Instances own the underlying memory.
 template <typename T>

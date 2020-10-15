@@ -344,7 +344,6 @@ class WorkQueueBase {
   unsigned NumActiveThreads() const { return num_threads_ - blocked_.load(); }
 
   const int num_threads_;
-  ThreadingEnvironment threading_environment_;
 
   std::vector<ThreadData> thread_data_;
   std::vector<unsigned> coprimes_;
@@ -444,7 +443,7 @@ WorkQueueBase<Derived>::WorkQueueBase(QuiescingState* quiescing_state,
       derived_(static_cast<Derived&>(*this)) {
   assert(num_threads >= 1);
   for (int i = 0; i < num_threads; i++) {
-    thread_data_[i].thread = threading_environment_.StartThread(
+    thread_data_[i].thread = ThreadingEnvironment::StartThread(
         name_prefix, [this, i]() { WorkerLoop(i); });
   }
 }

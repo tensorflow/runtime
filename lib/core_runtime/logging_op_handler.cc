@@ -119,44 +119,33 @@ class LoggingOpHandler : public OpHandler {
 
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
 
-  AsyncValueRef<HostTensor> CopyDeviceTensorToHost(
-      const ExecutionContext &exec_ctx, const Tensor &tensor) override {
-    return GetFallback()->CopyDeviceTensorToHost(exec_ctx, tensor);
-  }
-
-  AsyncValueRef<Tensor> CopyHostTensorToDevice(
-      const DenseHostTensor &tensor) override {
-    return GetFallback()->CopyHostTensorToDevice(tensor);
-  }
-
  private:
   bool ShouldDumpTensorToFile() const { return !tensor_dump_prefix_.empty(); }
 
+  // TODO(tfrt-devs): Handle error TensorHandle.
   SmallVector<RCReference<AsyncValue>, 4> CollectAsyncHostTensors(
       const ExecutionContext &exec_ctx, ArrayRef<TensorHandle> tensor_handles) {
     auto *host = exec_ctx.host();
-    SmallVector<RCReference<AsyncValue>, 4> async_tensors;
-    for (auto &tensor_handle : tensor_handles) {
-      auto async_tensor = tensor_handle.GetAsyncTensor();
-      assert(async_tensor);
-      async_tensors.push_back(FormRef(async_tensor));
+
+    // Wait for all metadatas.
+    std::vector<RCReference<AsyncValue>> tensor_metadatas;
+    for (auto &th : tensor_handles) {
+      if (!th.IsMetadataAvailable()) {
+        tensor_metadatas.push_back(th.GetAsyncMetadata().CopyRCRef());
+      }
     }
 
-    // Wait for all tensors to be ready.
-    host->Await(async_tensors);
+    host->Await(tensor_metadatas);
 
     // Convert all tensors to HostTensor.
     SmallVector<RCReference<AsyncValue>, 4> async_hts;
-    for (auto &async_tensor : async_tensors) {
-      auto &tensor = async_tensor->get<Tensor>();
-      if (llvm::isa<DenseHostTensor>(&tensor) ||
-          llvm::isa<StringHostTensor>(&tensor)) {
-        async_hts.emplace_back(async_tensor.CopyRef());
-      } else {
-        AsyncValueRef<HostTensor> async_host_tensor =
-            CopyDeviceTensorToHost(exec_ctx, tensor);
-        async_hts.emplace_back(async_host_tensor.ReleaseRCRef());
-      }
+    for (auto &th : tensor_handles) {
+      auto host_tensor_handle =
+          th.TransferTo(exec_ctx, host->GetHostDeviceRef(),
+                        th.GetAvailableMetadata().dtype.kind() == DType::String
+                            ? StringHostTensor::kTensorType
+                            : DenseHostTensor::kTensorType);
+      async_hts.emplace_back(host_tensor_handle.ReleaseTensorRef());
     }
 
     // Wait for the conversion to complete.

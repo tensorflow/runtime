@@ -29,6 +29,7 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -60,7 +61,15 @@ struct RunBefConfig {
   bool print_error_code = false;
 };
 
+// Run the BEF program with default execution context.
 int RunBefExecutor(const RunBefConfig& run_config);
+
+// Run the BEF program with the specified execution context. For each entry
+// function, one execution context will be created and used.
+int RunBefExecutor(
+    const RunBefConfig& run_config,
+    const std::function<llvm::Expected<ExecutionContext>(
+        HostContext*, ResourceContext*)>& create_execution_context);
 
 }  // namespace tfrt
 #endif  // TFRT_BEF_EXECUTOR_DRIVER_BEF_EXECUTOR_DRIVER_H_

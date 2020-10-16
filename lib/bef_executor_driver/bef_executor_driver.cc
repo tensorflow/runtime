@@ -35,7 +35,6 @@
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
-#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
@@ -52,10 +51,29 @@
 namespace tfrt {
 // TODO(jingdong): Change const Function* to const Functino& in funciton
 // argument to conform to the style guide.
-static void RunBefFunction(HostContext* host, const Function* function,
-                           bool print_error_code);
+static void RunBefFunction(
+    HostContext* host, const Function* function,
+    const std::function<llvm::Expected<ExecutionContext>(
+        HostContext*, ResourceContext*)>& create_execution_context,
+    bool print_error_code);
 
 int RunBefExecutor(const RunBefConfig& run_config) {
+  return RunBefExecutor(
+      run_config,
+      [](HostContext* host, ResourceContext* resource_context)
+          -> llvm::Expected<ExecutionContext> {
+        auto req_ctx = RequestContextBuilder(host, resource_context).build();
+        if (!req_ctx) return req_ctx.takeError();
+        return ExecutionContext{std::move(req_ctx.get())};
+      });
+}
+
+int RunBefExecutor(
+    const RunBefConfig& run_config,
+    const std::function<llvm::Expected<ExecutionContext>(
+        HostContext*, ResourceContext*)>& create_execution_context) {
+  assert(create_execution_context);
+
   TFRT_TRACE_SCOPE("Bef Executor");
   metrics::AddTFRTVersionMetric();
 
@@ -203,13 +221,15 @@ int RunBefExecutor(const RunBefConfig& run_config) {
   auto test_init_function = bef->GetFunction(run_config.test_init_function);
 
   if (test_init_function) {
-    RunBefFunction(host, test_init_function, run_config.print_error_code);
+    RunBefFunction(host, test_init_function, create_execution_context,
+                   run_config.print_error_code);
   }
 
   // Loop over each of the functions, running each as a standalone testcase.
   for (auto* fn : function_list) {
     if (fn != test_init_function) {
-      RunBefFunction(host, fn, run_config.print_error_code);
+      RunBefFunction(host, fn, create_execution_context,
+                     run_config.print_error_code);
     }
   }
 
@@ -238,7 +258,7 @@ static void PrintResult(const TypeName& type_name, const ValueType& result) {
   }
 }
 
-static void RunSyncBefFunctionHelper(HostContext* host,
+static void RunSyncBefFunctionHelper(const ExecutionContext& exec_ctx,
                                      const Function* function) {
   TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", function->name()));
 
@@ -249,16 +269,6 @@ static void RunSyncBefFunctionHelper(HostContext* host,
   for (auto& value : results) {
     result_ptrs.emplace_back(&value);
   }
-
-  // Add a ResourceContext ops/kernels to access resources. Shared across
-  // kernels in this function, but not across functions.
-  tfrt::ResourceContext resource_context;
-  // If any kernel calls RequestContext::Cancel, it will create an extra async
-  // value that's stored inside RequestContext which is destroyed only when
-  // RequestContext is destroyed.
-  RCReference<RequestContext> req_ctx =
-      tfrt::RequestContext::Create(host, &resource_context);
-  ExecutionContext exec_ctx{std::move(req_ctx)};
 
   auto error = ExecuteSyncBEFFunction(*function, exec_ctx, /*arguments=*/{},
                                       result_ptrs);
@@ -288,7 +298,7 @@ static void RunSyncBefFunctionHelper(HostContext* host,
   }
 }
 
-static void RunAsyncBefFunctionHelper(HostContext* host,
+static void RunAsyncBefFunctionHelper(const ExecutionContext& exec_ctx,
                                       const Function* function,
                                       bool print_error_code) {
   TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", function->name()));
@@ -297,20 +307,10 @@ static void RunAsyncBefFunctionHelper(HostContext* host,
   llvm::SmallVector<RCReference<AsyncValue>, 4> results;
   results.resize(function->result_types().size());
 
-  // Add a ResourceContext ops/kernels to access resources. Shared across
-  // kernels in this function, but not across functions.
-  tfrt::ResourceContext resource_context;
-  // If any kernel calls RequestContext::Cancel, it will create an extra async
-  // value that's stored inside RequestContext which is destroyed only when
-  // RequestContext is destroyed.
-  RCReference<RequestContext> req_ctx =
-      tfrt::RequestContext::Create(host, &resource_context);
-  ExecutionContext exec_ctx{std::move(req_ctx)};
-
   function->Execute(exec_ctx, /*arguments=*/{}, results);
 
   // Block until the function results are fully resolved.
-  host->Await(results);
+  exec_ctx.host()->Await(results);
 
   // Go ahead and print out the function results that we know about.
   if (!results.empty()) {
@@ -344,11 +344,14 @@ static void RunAsyncBefFunctionHelper(HostContext* host,
   // all execution before moving on to the next one.  This makes the leak
   // checker work better in the face of side effecting kernels that aren't
   // properly chained together (which is useful for testing).
-  host->Quiesce();
+  exec_ctx.host()->Quiesce();
 }
 
-static void RunBefFunction(HostContext* host, const Function* function,
-                           bool print_error_code) {
+static void RunBefFunction(
+    HostContext* host, const Function* function,
+    const std::function<llvm::Expected<ExecutionContext>(
+        HostContext*, ResourceContext*)>& create_execution_context,
+    bool print_error_code) {
   // If the function takes arguments, then we can't run it from this driver.
   if (!function->argument_types().empty()) {
     tfrt::outs() << "--- Not running '" << function->name()
@@ -370,10 +373,24 @@ static void RunBefFunction(HostContext* host, const Function* function,
   // Actually run the function.
   tfrt::outs() << "--- Running '" << function->name() << "':\n";
   tfrt::outs().flush();
-  if (function->function_kind() == FunctionKind::kSyncBEFFunction) {
-    RunSyncBefFunctionHelper(host, function);
-  } else {
-    RunAsyncBefFunctionHelper(host, function, print_error_code);
+
+  {
+    // Add a ResourceContext ops/kernels to access resources. Shared across
+    // kernels in this function, but not across functions.
+    ResourceContext resource_context;
+    // If any kernel calls RequestContext::Cancel, it will create an extra
+    // async value that's stored inside RequestContext which is destroyed
+    // only when RequestContext is destroyed.
+    auto exec_ctx = create_execution_context(host, &resource_context);
+    if (!exec_ctx) {
+      llvm::errs() << "Failed to create execution context.\n";
+      abort();
+    }
+    if (function->function_kind() == FunctionKind::kSyncBEFFunction) {
+      RunSyncBefFunctionHelper(exec_ctx.get(), function);
+    } else {
+      RunAsyncBefFunctionHelper(exec_ctx.get(), function, print_error_code);
+    }
   }
 
   if (AsyncValue::AsyncValueAllocationTrackingEnabled()) {

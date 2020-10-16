@@ -60,3 +60,20 @@ func @tile_string() -> !tfrt.chain{
 
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
+
+// CHECK: --- Running 'tile_i1'
+func @tile_i1() -> !tfrt.chain{
+  %ch_epoch = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
+
+  %operand_0 = corert.const_dense_tensor dense<[[true, false, true], [false, true, false]]> : tensor<2x3xi1>
+  %operand_1 = corert.const_dense_tensor dense<[2, 2]> : tensor<2xi32>
+
+  %cpu_handle_result = corert.executeop(%cpu) "tf.Tile"(%operand_0, %operand_1) : 1
+
+  // CHECK: DenseHostTensor dtype = I1, shape = [4, 6]
+  // CHECK-SAME: values = [1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0]
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
+
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}

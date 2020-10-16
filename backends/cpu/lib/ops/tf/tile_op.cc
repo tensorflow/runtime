@@ -83,6 +83,11 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
         chain = EmitErrorAsync(exec_ctx,
                                StrCat("Unsupported dtype: ", input.dtype()));
         break;
+      case DType::I1: {
+        using T = EigenTypeForDTypeKind<DType::I1>;
+        chain = ::tfrt::cpu::Tile<T, compat::AsyncEigenEvaluator>(
+            input, *expected_multiples, dest.getPointer(), exec_ctx);
+      } break;
 #define DTYPE_NUMERIC(ENUM)                                       \
   case DType::ENUM: {                                             \
     using T = EigenTypeForDTypeKind<DType::ENUM>;                 \

@@ -31,6 +31,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/thread_annotations.h"
+#include "tfrt/support/thread_environment.h"
 
 namespace tfrt {
 
@@ -78,7 +79,7 @@ class EventManager {
   std::atomic_bool worker_cancelled_;
   // TODO(imintz): Evaluate polling on the non-blocking work queue with a task
   // that reschedules itself.
-  std::thread worker_;
+  std::unique_ptr<ThreadingEnvironment::Thread> worker_;
 };
 
 }  // namespace gpu

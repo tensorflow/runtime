@@ -27,6 +27,7 @@
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/support/logging.h"
+#include "tfrt/support/thread_environment.h"
 
 namespace tfrt {
 namespace gpu {
@@ -34,7 +35,8 @@ namespace gpu {
 EventManager::EventManager(HostContext& host_context)
     : host_context_(host_context),
       worker_cancelled_(false),
-      worker_(std::bind(&EventManager::PollEvents, this)) {}
+      worker_(ThreadingEnvironment::StartThread(
+          "tfrt-event-manager", &EventManager::PollEvents, this)) {}
 
 AsyncValueRef<Chain> EventManager::Synchronize(
     RCReference<stream::RcEvent> event) {
@@ -145,7 +147,8 @@ EventManager::~EventManager() {
     mutex_lock lock(events_mutex_);
     condition_.notify_one();
   }
-  worker_.join();
+  // Joins thread on destruction.
+  worker_.reset();
 
   mutex_lock lock(events_mutex_);
   TFRT_LOG_INFO << "EventManager destroyed with " << events_.size()

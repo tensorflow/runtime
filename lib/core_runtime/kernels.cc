@@ -577,9 +577,10 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
 
           auto &tensor = condition_async_tensor->get<Tensor>();
           AsyncValueRef<HostTensor> condition_host_tensor =
-              AsyncValueRef<HostTensor>(ConvertTensor(
-                  tensor, *src_device_ref, exec_ctx.host()->GetHostDevice(),
-                  DenseHostTensor::kTensorType, exec_ctx.host()));
+              AsyncValueRef<HostTensor>(
+                  ConvertTensor(exec_ctx, tensor, *src_device_ref,
+                                exec_ctx.host()->GetHostDevice(),
+                                DenseHostTensor::kTensorType));
 
           condition_host_tensor.AndThen(
               [condition_host_tensor = condition_host_tensor.CopyRef(),

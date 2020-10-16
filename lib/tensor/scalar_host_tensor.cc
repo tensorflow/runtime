@@ -56,9 +56,11 @@ AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
   // still requires a copy of the data though.
   if (allowed_formats &
       (1 << static_cast<uint32_t>(Tensor::Subclass::ScalarHost))) {
-    return ConvertTensorOnHost(*this, AnyScalarHostTensor::kTensorType, host);
+    return ConvertTensorOnHostDeprecated(
+        *this, AnyScalarHostTensor::kTensorType, host);
   }
-  return ConvertTensorOnHost(*this, DenseHostTensor::kTensorType, host);
+  return ConvertTensorOnHostDeprecated(*this, DenseHostTensor::kTensorType,
+                                       host);
 }
 
 void AnyScalarHostTensor::Print(raw_ostream& os) const {

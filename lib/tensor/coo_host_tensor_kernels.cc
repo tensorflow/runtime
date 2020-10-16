@@ -43,8 +43,8 @@ static void ConvertToDHT(Argument<CooHostTensor> in, Argument<Chain> in_chain,
                          Result<DenseHostTensor> out, Result<Chain> out_chain,
                          KernelErrorHandler handler, AsyncKernelFrame* frame) {
   auto dht = AsyncValueRef<DenseHostTensor>(
-      ConvertTensorOnHost(in.get(), DenseHostTensor::kTensorType,
-                          frame->GetHostContext())
+      ConvertTensorOnHost(frame->GetExecutionContext(), in.get(),
+                          DenseHostTensor::kTensorType)
           .ReleaseRCRef());
   out.Set(std::move(dht));
   out_chain.Set(in_chain);

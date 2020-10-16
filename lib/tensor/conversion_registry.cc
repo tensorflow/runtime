@@ -72,23 +72,20 @@ AsyncValueRef<Tensor> ConvertTensor(const ExecutionContext& exec_ctx,
   return conversion_fn(tensor, src, dst, exec_ctx);
 }
 
-AsyncValueRef<Tensor> ConvertTensor(const Tensor& tensor, const Device& src,
-                                    const Device& dst,
-                                    TensorType dst_tensor_type,
-                                    HostContext* host) {
-  // TODO(fishx): Avoid constructing ExecutionContext here.
-  auto req_ctx = RequestContext::Create(host, /*resource_context=*/nullptr);
-  ExecutionContext exec_ctx(std::move(req_ctx));
-  return ConvertTensor(exec_ctx, tensor, src, dst, dst_tensor_type);
+AsyncValueRef<HostTensor> ConvertTensorOnHost(const ExecutionContext& exec_ctx,
+                                              const Tensor& tensor,
+                                              TensorType dst_tensor_type) {
+  auto& cpu = exec_ctx.host()->GetHostDevice();
+  return AsyncValueRef<HostTensor>(
+      ConvertTensor(exec_ctx, tensor, cpu, cpu, dst_tensor_type)
+          .ReleaseRCRef());
 }
 
-AsyncValueRef<HostTensor> ConvertTensorOnHost(const Tensor& tensor,
-                                              TensorType dst_tensor_type,
-                                              HostContext* host_ctx) {
-  auto& cpu = host_ctx->GetHostDevice();
-  return AsyncValueRef<HostTensor>(
-      ConvertTensor(tensor, cpu, cpu, dst_tensor_type, host_ctx)
-          .ReleaseRCRef());
+AsyncValueRef<HostTensor> ConvertTensorOnHostDeprecated(
+    const Tensor& tensor, TensorType dst_tensor_type, HostContext* host) {
+  auto req_ctx = RequestContext::Create(host, /*resource_context=*/nullptr);
+  ExecutionContext exec_ctx(std::move(req_ctx));
+  return ConvertTensorOnHost(exec_ctx, tensor, dst_tensor_type);
 }
 
 static std::vector<TensorConversionFnRegistration>*

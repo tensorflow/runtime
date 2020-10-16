@@ -50,18 +50,15 @@ AsyncValueRef<Tensor> ConvertTensor(const ExecutionContext& exec_ctx,
                                     const Device& dst,
                                     TensorType dst_tensor_type);
 
-// This variant is to support legacy cases that haven't been migrated to use
-// ExecutionContext.
-// TODO(fishx): Remove this method.
-AsyncValueRef<Tensor> ConvertTensor(const Tensor& tensor, const Device& src,
-                                    const Device& dst,
-                                    TensorType dst_tensor_type,
-                                    HostContext* host);
+// Tensor conversion when both source and destination device are CPU.
+AsyncValueRef<HostTensor> ConvertTensorOnHost(const ExecutionContext& exec_ctx,
+                                              const Tensor& tensor,
+                                              TensorType dst_tensor_type);
 
-// Tensor convertion when both source and destination device are CPU.
-AsyncValueRef<HostTensor> ConvertTensorOnHost(const Tensor& tensor,
-                                              TensorType dst_tensor_type,
-                                              HostContext* host_ctx);
+// TODO(b/163084901): Clean up this method after cleaning up
+// Tensor::ConvertToHostTensor.
+AsyncValueRef<HostTensor> ConvertTensorOnHostDeprecated(
+    const Tensor& tensor, TensorType dst_tensor_type, HostContext* host);
 
 class TensorConversionFnRegistry {
  public:

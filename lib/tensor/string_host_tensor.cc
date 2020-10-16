@@ -62,7 +62,8 @@ AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
 
 AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
     HostContext* host, TensorType dst_tensor_type) const {
-  return ConvertTensorOnHost(*this, StringHostTensor::kTensorType, host);
+  return ConvertTensorOnHostDeprecated(*this, StringHostTensor::kTensorType,
+                                       host);
 }
 
 static AsyncValueRef<StringHostTensor>

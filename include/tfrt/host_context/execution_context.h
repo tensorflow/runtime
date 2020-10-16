@@ -136,6 +136,9 @@ class RequestContextBuilder {
     return std::move(*this);
   }
 
+  int64_t id() const { return id_; }
+  HostContext* host() const { return host_; }
+  ResourceContext* resource_context() const { return resource_context_; }
   const RequestOptions& request_options() const { return request_options_; }
   RequestContext::ContextData& context_data() { return context_data_; }
 

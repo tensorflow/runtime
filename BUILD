@@ -1,5 +1,10 @@
-load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load(":build_defs.bzl", "tfrt_cc_library")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load(
+    "@bazel_skylib//rules:common_settings.bzl",
+    "bool_flag",
+    "string_setting",
+)
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
 
 package(
@@ -19,11 +24,30 @@ exports_files([
     "LICENSE",
 ])
 
+string_setting(
+    name = "build_env",
+    build_setting_default = "oss",
+    visibility = ["//visibility:private"],
+)
+
+# Whether to build in google environment.
+config_setting(
+    name = "is_build_env_google",
+    flag_values = {":build_env": "google"},
+    visibility = ["//visibility:public"],
+)
+
 # To build tf_runtime without RTTI/exceptions, use:
-# bazel build --define=disable_rtti_and_exceptions=true
+# bazel build --config=disable_rtti_and_exceptions
+bool_flag(
+    name = "rtti_and_exceptions",
+    build_setting_default = True,
+    visibility = ["//visibility:private"],
+)
+
 config_setting(
     name = "disable_rtti_and_exceptions",
-    define_values = {"disable_rtti_and_exceptions": "true"},
+    flag_values = {"rtti_and_exceptions": "false"},
     visibility = ["//visibility:public"],
 )
 
@@ -64,6 +88,7 @@ tfrt_cc_library(
         "lib/host_context/single_threaded_work_queue.cc",
         "lib/host_context/test_fixed_size_allocator.cc",
         "lib/host_context/timer_queue.cc",
+        "@tf_runtime//third_party/concurrent_work_queue:concurrent_work_queue_hdrs",
         "@tf_runtime//third_party/concurrent_work_queue:concurrent_work_queue_srcs",
     ],
     hdrs = [
@@ -125,6 +150,26 @@ tfrt_cc_library(
     ],
 )
 
+# Generates 'mutex.h' and `thread_environment.h` based on the build_env flag.
+# This avoids a (non-transitive) copts setting to include one or the other
+# header file by the preprocessor.
+[
+    genrule(
+        name = out_name,
+        srcs = select({
+            ":is_build_env_google": ["include/tfrt/support/" + google_name],
+            "//conditions:default": ["include/tfrt/support/" + default_name],
+        }),
+        outs = ["include/tfrt/support/" + out_name],
+        cmd = "cp $< $@",
+        visibility = ["//visibility:private"],
+    )
+    for (out_name, google_name, default_name) in [
+        ("mutex.h", "absl_mutex.h", "std_mutex.h"),
+        ("thread_environment.h", "thread_environment_google.h", "thread_environment_std.h"),
+    ]
+]
+
 tfrt_cc_library(
     name = "support",
     srcs = [
@@ -139,60 +184,50 @@ tfrt_cc_library(
     ],
     hdrs = [
         "include/tfrt/support/aligned_buffer.h",
-        "include/tfrt/support/ranges.h",
-        "include/tfrt/support/ranges_util.h",
         "include/tfrt/support/alloc.h",
         "include/tfrt/support/bef_encoding.h",
-        "include/tfrt/support/philox_random.h",
         "include/tfrt/support/bef_reader.h",
         "include/tfrt/support/bf16.h",
         "include/tfrt/support/byte_order.h",
-        "include/tfrt/support/raw_coding.h",
-        "include/tfrt/support/crc32c.h",
         "include/tfrt/support/concurrent_vector.h",
+        "include/tfrt/support/crc32c.h",
         "include/tfrt/support/error_util.h",
         "include/tfrt/support/forward_decls.h",
         "include/tfrt/support/fp16.h",
         "include/tfrt/support/hash_util.h",
         "include/tfrt/support/latch.h",
         "include/tfrt/support/logging.h",
+        "include/tfrt/support/map_by_type.h",
         "include/tfrt/support/msan.h",
         "include/tfrt/support/mutex.h",
         "include/tfrt/support/op_registry_impl.h",
+        "include/tfrt/support/philox_random.h",
+        "include/tfrt/support/ranges.h",
+        "include/tfrt/support/ranges_util.h",
+        "include/tfrt/support/raw_coding.h",
         "include/tfrt/support/rc_array.h",
         "include/tfrt/support/ref_count.h",
         "include/tfrt/support/string_util.h",
         "include/tfrt/support/template_util.h",
         "include/tfrt/support/thread_annotations.h",
+        "include/tfrt/support/thread_environment.h",
         "include/tfrt/support/thread_local.h",
+        "include/tfrt/support/type_id.h",
         "include/tfrt/support/type_traits.h",
         "include/tfrt/support/variant.h",
-        "include/tfrt/support/type_id.h",
-        "include/tfrt/support/map_by_type.h",
-        "include/tfrt/support/thread_environment.h",
-    ] + select({
-        "//conditions:default": ["include/tfrt/support/std_mutex.h"],
-    }),
+    ],
     visibility = [":friends"],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
-        ":thread_environment",
     ] + select({
+        ":is_build_env_google": [
+            "//third_party/absl/synchronization",
+            "//third_party/absl/time",
+            "//thread",
+        ],
         "//conditions:default": [],
     }),
-)
-
-tfrt_cc_library(
-    name = "thread_environment",
-    hdrs = ["include/tfrt/support/thread_environment.h"] + select({
-        "//conditions:default": ["include/tfrt/support/thread_environment_std.h"],
-    }),
-    visibility = ["//visibility:private"],
-    deps = [
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//third_party/llvm_derived:unique_any",
-    ],
 )
 
 tfrt_cc_library(
@@ -889,7 +924,6 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/test_kernels/opdefs/test_kernels.h",
     ],
-    visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
         ":tensor_opdefs",

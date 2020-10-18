@@ -1,6 +1,7 @@
 load(":defs.bzl", "cuda_targets")
-load("//private:build.bzl", "bool_setting", "cuda_targets_flag", "local_cuda_path")
+load("//private:build.bzl", "cuda_targets_flag", "local_cuda_path")
 load("@bazel_skylib//lib:selects.bzl", "selects")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_setting")
 load("@local_cuda//:defs.bzl", "cuda_path")
 
 package(default_visibility = ["//visibility:public"])

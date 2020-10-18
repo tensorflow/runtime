@@ -1,4 +1,4 @@
-load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library", "tfrt_cc_test")
+load("@tf_runtime//:build_defs.bzl", "tfrt_cc_test")
 
 licenses(["reciprocal"])
 
@@ -8,29 +8,30 @@ package(
 
 exports_files(["LICENSE"])
 
+# These headers are intertwined with tf_runtime:hostcontext. Export them to
+# be built as part of the hostcontext.
+#
+# Ideally we would split the hostcontext into a headers target and a library
+# target. However, there is not really a good solution to re-export the headers
+# from the library target, and downstream targets would need to depend on both.
 filegroup(
-    name = "concurrent_work_queue_srcs",
+    name = "concurrent_work_queue_hdrs",
     srcs = [
         "lib/blocking_work_queue.h",
         "lib/event_count.h",
-        "lib/multi_threaded_work_queue.cc",
         "lib/non_blocking_work_queue.h",
         "lib/task_deque.h",
         "lib/task_priority_deque.h",
-        "lib/task_queue.cc",
         "lib/task_queue.h",
         "lib/work_queue_base.h",
     ],
 )
 
-tfrt_cc_library(
-    name = "concurrent_work_queue",
-    hdrs = [":concurrent_work_queue_srcs"],
-    visibility = ["//visibility:private"],
-    deps = [
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
+filegroup(
+    name = "concurrent_work_queue_srcs",
+    srcs = [
+        "lib/multi_threaded_work_queue.cc",
+        "lib/task_queue.cc",
     ],
 )
 
@@ -38,10 +39,10 @@ tfrt_cc_test(
     name = "cpp_tests/blocking_work_queue_test",
     srcs = [
         "cpp_tests/blocking_work_queue_test.cc",
+        ":concurrent_work_queue_hdrs",
     ],
     includes = ["lib"],
     deps = [
-        ":concurrent_work_queue",
         "//testing/base/public:gunit_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
@@ -53,10 +54,10 @@ tfrt_cc_test(
     name = "cpp_tests/multi_threaded_work_queue_test",
     srcs = [
         "cpp_tests/multi_threaded_work_queue_test.cc",
+        ":concurrent_work_queue_hdrs",
     ],
     includes = ["lib"],
     deps = [
-        ":concurrent_work_queue",
         "//testing/base/public:gunit_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
@@ -66,11 +67,14 @@ tfrt_cc_test(
 
 tfrt_cc_test(
     name = "cpp_tests/non_blocking_work_queue_test",
-    srcs = ["cpp_tests/non_blocking_work_queue_test.cc"],
+    srcs = [
+        "cpp_tests/non_blocking_work_queue_test.cc",
+        ":concurrent_work_queue_hdrs",
+    ],
     includes = ["lib"],
     deps = [
-        ":concurrent_work_queue",
         "//testing/base/public:gunit_main",
+        "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
     ],
@@ -78,36 +82,45 @@ tfrt_cc_test(
 
 tfrt_cc_test(
     name = "cpp_tests/task_deque_test",
-    srcs = ["cpp_tests/task_deque_test.cc"],
+    srcs = [
+        "cpp_tests/task_deque_test.cc",
+        ":concurrent_work_queue_hdrs",
+    ],
     includes = ["lib"],
     deps = [
-        ":concurrent_work_queue",
         "//testing/base/public:gunit_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
     ],
 )
 
 tfrt_cc_test(
     name = "cpp_tests/task_priority_deque_test",
-    srcs = ["cpp_tests/task_priority_deque_test.cc"],
+    srcs = [
+        "cpp_tests/task_priority_deque_test.cc",
+        ":concurrent_work_queue_hdrs",
+    ],
     includes = ["lib"],
     deps = [
-        ":concurrent_work_queue",
         "//testing/base/public:gunit_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
     ],
 )
 
 tfrt_cc_test(
     name = "cpp_tests/task_queue_test",
-    srcs = ["cpp_tests/task_queue_test.cc"],
+    srcs = [
+        "cpp_tests/task_queue_test.cc",
+        ":concurrent_work_queue_hdrs",
+    ],
     includes = ["lib"],
     deps = [
-        ":concurrent_work_queue",
         "//testing/base/public:gunit_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
     ],
 )

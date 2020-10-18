@@ -29,7 +29,7 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "mutex.h"
+#include "tfrt/support/mutex.h"
 
 namespace tfrt {
 

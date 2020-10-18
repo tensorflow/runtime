@@ -18,11 +18,3 @@ def _local_cuda_path_impl(ctx):
     return CudaInfo(value = cuda_path)
 
 local_cuda_path = rule(implementation = _local_cuda_path_impl)
-
-def _bool_setting_impl(ctx):
-    pass  # Never change the default value.
-
-bool_setting = rule(
-    implementation = _bool_setting_impl,
-    build_setting = config.bool(),
-)

@@ -28,7 +28,7 @@
 #include <memory>
 #include <vector>
 
-#include "mutex.h"
+#include "tfrt/support/mutex.h"
 #include "thread_annotations.h"
 
 namespace tfrt {

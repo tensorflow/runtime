@@ -55,66 +55,32 @@ system libraries. If we also statically link the C++ runtime, as done by default
 in Bazel, we get 405KB.
 
 ```shell
-$ bazel build -c opt --copt=-Os --define=disable_rtti_and_exceptions=true \
-    --linkopt=-Wl,--strip-all --linkopt=-Wl,--icf=safe \
+$ bazel build --config=code_size_test
     third_party/tf_runtime:code_size_test_driver
 ```
 
-We used a few well-known techniques in mobile app/embedded world to reduce the
-binary size:
+The above configuration applies a few well-known techniques in mobile
+app/embedded world to reduce the binary size:
 
 ### Disable RTTI and exceptions
 
-A Skylark config_setting `disable_rtti_and_exceptions` determines if RTTI and
-exceptions are enabled. This needs to be configurable because some users may
-want to enable RTTI and exceptions.
-
-```
-# bazel build --define=disable_rtti_and_exceptions=true
-
-config_setting( name = "disable_rtti_and_exceptions", define_values =
-{"disable_rtti_and_exceptions": "true"}, visibility = ["//visibility:public"], )
-```
-
-In our `build_defs.bzl` we optionally include copts flags, and disable the
-incompatible header_module.
-
-```
-TFRT_COPTS = select({
-    "//conditions:default": [],
-    "//:disable_rtti_and_exceptions": [
-        # Disable RTTI.
-        "-fno-rtti",
-        # Disable exceptions.
-        "-fno-exceptions",
-    ],
-}) + [
-    "-Wno-c++98-c++11-compat",
-]
-
-TFRT_FEATURES = select({
-    "//conditions:default": [],
-    "//:disable_rtti_and_exceptions": [
-        # Precompiled header modules do not work with fno-rtti or fno-exceptions.
-        # See b/137799263.
-        "-use_header_modules",
-    ],
-})
-```
+We use a `rtti_and_exceptions` Skylark flag to disable RTTI and exceptions
+through the corresponding copts `-fno-rtti` and `-fno-exceptions`. As a side
+effect, we also need to disable header modules.
 
 ### Strip symbols
 
-We can pass linker options `--linkopt=-Wl,--strip-all` to strip all symbols.
+We pass linker options `--linkopt=-Wl,--strip-all` to strip all symbols.
 
 ### Ask compiler to optimize for binary size.
 
-We can ask compiler to optimize for size by specifying `--copt=-Os`, where `-Os`
+We ask compiler to optimize for size by specifying `--copt=-Os`, where `-Os`
 enables all `-O2` optimizations except those that often increase code size.
 
 ### Safe ICF
 
-We can ask compiler to merge identical functions into a single copy whenever
-safe to do so with `--linkopt=-Wl,--icf=safe`.
+We ask compiler to merge identical functions into a single copy whenever safe to
+do so with `--linkopt=-Wl,--icf=safe`.
 
 ## Tools for Analyzing Binary Size
 

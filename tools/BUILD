@@ -122,31 +122,11 @@ tfrt_cc_binary(
     ],
 )
 
-# Command to build the code_size_test_driver manually for Linux:
-# bazel build \
-#     --compilation_mode=opt \
-#     --copt=-Os \
-#     --define=disable_rtti_and_exceptions=true \
-#     --linkopt=-Wl,--strip-all \
-#     --linkopt=-Wl,--icf=safe \
-#     --define=use_std_mutex=true \
-#     --define=use_std_thread=true \
-#     --copt=-DSTD_MUTEX \
-#     --copt=-DSTD_THREAD \
-#   //code_size_test_driver
+# Command to build the code_size_test_driver manually:
+# bazel build --config=code_size_test
+#     //tools:code_size_test_driver
 #
-# Command to build the code_size_test_driver manually for android:
-# bazel build \
-#     --compilation_mode=opt \
-#     --config=android_arm64 \
-#     --define=disable_rtti_and_exceptions=true \
-#     --copt=-Os --linkopt=-Wl,--strip-all --linkopt=-Wl,--icf=safe \
-#     --define=use_std_mutex=true \
-#     --define=use_std_thread=true \
-#     --copt=-DSTD_MUTEX \
-#     --copt=-DSTD_THREAD \
-#   //code_size_test_driver
-
+# In order to build for Android, add '--config=android_arm64'.
 tfrt_cc_binary(
     name = "code_size_test_driver",
     srcs = [

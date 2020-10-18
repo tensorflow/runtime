@@ -65,8 +65,8 @@
 #include <vector>
 
 #include "llvm/ADT/STLExtras.h"
-#include "mutex.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/mutex.h"
 #include "tfrt/support/thread_annotations.h"
 
 namespace tfrt {

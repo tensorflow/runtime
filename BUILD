@@ -924,6 +924,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/test_kernels/opdefs/test_kernels.h",
     ],
+    visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
         ":tensor_opdefs",

@@ -487,14 +487,17 @@ AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
 void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
                    Argument<RemoteExecuteSpec> spec, RemainingArguments inputs,
                    RemainingResults results, StringAttribute program_name,
-                   int32_t num_output_with_tensorhandle,
+                   int num_fn_inputs, int32_t num_output_with_tensorhandle,
                    const ExecutionContext& exec_ctx) {
+  // If some output IDs are present in the inputs, we assume all output IDs are
+  // pre-allocated.
+  const bool output_id_allocated = num_fn_inputs != inputs.size();
   RemoteExecuteInvocation request;
   // program_name will live as long as out_chain is not populated.
   request.program_name = program_name.get();
 
-  request.inputs.reserve(inputs.size());
-  for (int i = 0; i < inputs.size(); ++i) {
+  request.inputs.reserve(num_fn_inputs);
+  for (int i = 0; i < num_fn_inputs; ++i) {
     const RemoteObjectId& input = inputs[i]->get<RemoteObjectId>();
     request.inputs.emplace_back(input.prefix_id, input.local_id,
                                 input.device->name());
@@ -503,17 +506,32 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
   AsyncValueRef<Chain> out_chain =
       MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
   results[0] = out_chain.CopyRef();
-  if (results.size() != 1 /*chain*/ + spec->output_devices.size() +
-                            num_output_with_tensorhandle) {
+
+  // If output_id is preallocated, we only return TensorHandles. Otherwise, we
+  // return output ids followed by TensorHandles.
+  if (results.size() !=
+      1 /*chain*/ + (output_id_allocated ? 0 : spec->output_devices.size()) +
+          num_output_with_tensorhandle) {
     out_chain.SetError(
         StrCat("Mismatch output devices size in RemoteExecuteSpec: ",
                spec->output_devices.size(), " expected: ", results.size() - 1));
     return;
   }
 
-  // The next num_id_outputs are RemoteObjectId
-  const int num_id_output = results.size() - num_output_with_tensorhandle - 1;
-  request.outputs.reserve(num_id_output);
+  // Actual number of outputs of the remote function.
+  int num_fn_output;
+  if (output_id_allocated) {
+    // Each of the output IDs must be passed as inputs.
+    num_fn_output = inputs.size() - num_fn_inputs;
+  } else {
+    // Otherwise, we can infer this from the kernel outputs minus chain minus
+    // TensorHandle output
+    num_fn_output = results.size() - num_output_with_tensorhandle - 1;
+  }
+  // Start output index of TensorHandle outputs.
+  // If output id is allocated, we only return TensorHandles.
+  const int th_output_idx = output_id_allocated ? 0 : num_fn_output;
+  request.outputs.reserve(num_fn_output);
   RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
   struct RemoteObjectAndMetadata {
     AsyncValueRef<RemoteObjectId> id;
@@ -521,17 +539,25 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
     AsyncValueRef<TensorMetadata> metadata;
   };
   llvm::SmallVector<RemoteObjectAndMetadata, 4> remote_objs;
-  for (int i = 1; i <= num_id_output; ++i) {
+  for (int i = 1; i <= num_fn_output; ++i) {
     RCReference<Device> output_device = spec->output_devices[i - 1].CopyRef();
-    AsyncValueRef<RemoteObjectId> out_id =
-        MakeAvailableAsyncValueRef<RemoteObjectId>(
-            exec_ctx.host(),
-            manager->AllocateRemoteObject(std::move(output_device)));
-    results[i] = out_id.CopyRef();
+    AsyncValueRef<RemoteObjectId> out_id;
+    if (output_id_allocated) {
+      // Reuse output id
+      out_id =
+          AsyncValueRef<RemoteObjectId>(FormRef(inputs[num_fn_inputs + i - 1]));
+    } else {
+      // Allocate output id
+      out_id = MakeAvailableAsyncValueRef<RemoteObjectId>(
+          exec_ctx.host(),
+          manager->AllocateRemoteObject(std::move(output_device)));
+      // The next num_id_outputs are RemoteObjectId
+      results[i] = out_id.CopyRef();
+    }
     // The last num_output_with_metadata RemoteObjectIds needs to have
     // TensorMetadata returned.
     const bool need_metadata =
-        i > (num_id_output - num_output_with_tensorhandle);
+        i > (num_fn_output - num_output_with_tensorhandle);
     if (need_metadata) {
       auto tensor =
           MakeUnconstructedAsyncValueRef<RemoteTensor>(exec_ctx.host());
@@ -543,7 +569,7 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
       remote_objs.emplace_back(RemoteObjectAndMetadata{
           out_id.CopyRef(), std::move(tensor), std::move(metadata)});
       // The remaining outputs are TensorHandle
-      results[num_id_output + remote_objs.size()] = th.CopyRef();
+      results[th_output_idx + remote_objs.size()] = th.CopyRef();
     }
     request.outputs.emplace_back(out_id->prefix_id, out_id->local_id,
                                  out_id->device->name(), need_metadata);
@@ -590,7 +616,7 @@ void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
                          StringAttribute program_name,
                          const ExecutionContext& exec_ctx) {
   RemoteExecute(ch, dist_context, receiver, spec, inputs, results, program_name,
-                0, exec_ctx);
+                inputs.size(), 0, exec_ctx);
 }
 
 void RemoteExecuteTHKernel(Chain ch, DistributedContext* dist_context,
@@ -600,7 +626,17 @@ void RemoteExecuteTHKernel(Chain ch, DistributedContext* dist_context,
                            StringAttribute program_name,
                            const ExecutionContext& exec_ctx) {
   RemoteExecute(ch, dist_context, receiver, spec, inputs, results, program_name,
-                num_output_with_tensorhandle.get(), exec_ctx);
+                inputs.size(), num_output_with_tensorhandle.get(), exec_ctx);
+}
+
+void RemoteExecuteTHPreallocatedKernel(
+    Chain ch, DistributedContext* dist_context, HostId receiver,
+    Argument<RemoteExecuteSpec> spec, RemainingArguments inputs,
+    RemainingResults results, Attribute<int32_t> num_inputs,
+    Attribute<int32_t> num_output_with_tensorhandle,
+    StringAttribute program_name, const ExecutionContext& exec_ctx) {
+  RemoteExecute(ch, dist_context, receiver, spec, inputs, results, program_name,
+                num_inputs.get(), num_output_with_tensorhandle.get(), exec_ctx);
 }
 }  // namespace
 
@@ -624,6 +660,8 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(RemoteExecuteKernel));
   registry->AddKernel("tfrt_dist.remote_execute_th",
                       TFRT_KERNEL(RemoteExecuteTHKernel));
+  registry->AddKernel("tfrt_dist.remote_execute_th_preallocated",
+                      TFRT_KERNEL(RemoteExecuteTHPreallocatedKernel));
   registry->AddKernel("tfrt_dist.remote_register",
                       TFRT_KERNEL(RemoteRegisterKernel));
 }

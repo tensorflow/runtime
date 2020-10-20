@@ -23,6 +23,7 @@
 #define DISTRIBUTED_OPS
 
 include "mlir/IR/OpBase.td"
+include "tfrt/core_runtime/opdefs/corert_base.td"
 include "tfrt/tfrt_op_base.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
@@ -276,7 +277,7 @@ def RemoteExecuteOp :  DistOp<"remote_execute"> {
   }];
 }
 
-def RemoteExecuteWithMetadataOp :  DistOp<"remote_execute_th"> {
+def RemoteExecuteTHOp :  DistOp<"remote_execute_th"> {
   let summary = "tfrt_dist.remote_execute_th operation";
   let description = [{
     Executes a program on a remote location.
@@ -309,13 +310,56 @@ def RemoteExecuteWithMetadataOp :  DistOp<"remote_execute_th"> {
   );
   let results = (outs
     TFRT_ChainType:$out_op_chain,
-    // Return RemoteObjectId outputs followed by $num_tensorhandle_output
-    // TensorMetadata outputs.
+    // Return RemoteObjectId outputs followed by $num_tensorhandle_outputs.
     Variadic<AnyType>:$results
   );
 
   let assemblyFormat = [{
       `[` $in_op_chain`,` $context`,` $host_id`,` $spec`,` $num_tensorhandle_output `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
+  }];
+}
+
+def RemoteExecuteTHPreallocatedOp :  DistOp<"remote_execute_th_preallocated"> {
+  let summary = "tfrt_dist.remote_execute_th_preallocated operation";
+  let description = [{
+    Executes a program on a remote location.
+    This is similar to remote_execute_th with a difference that the
+    RemoteObjectIds of ALL of the output have been assigned previously and we
+    should reuse them.
+
+    Note: This kernel does not support taking preallocated RemoteIds for some
+    (but not all) of the outputs. If there is a need, such support can be added
+    in the future.
+
+    Since the RemoteObjectIds of the outputs are given as inputs to this kernel,
+    this kernel only returns TensorHandle as outputs.
+
+    Example:
+      // "1" after spec indicates that there is 1 RemoteObjectIds input in the
+      // $arguments. The remaining arguments are the outputs RemoteObjectIds.
+      // Subsequent "1" indicates that there is 1 TensorHandle output.
+      %out_th2 =
+          tfrt_dist.remote_execute_th_preallocated (%context, %id, %spec, 1, 1) "program_name" %in %out1 %out2
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    DistributedContextType:$context,
+    I32:$host_id,
+    RemoteExecuteSpecType:$spec,
+    I32Attr:$num_input,
+    I32Attr:$num_tensorhandle_output,
+    StrAttr:$program_name,
+    Variadic<RemoteObjectIdType>:$arguments
+  );
+  let results = (outs
+    TFRT_ChainType:$out_op_chain,
+    // Return $num_tensorhandle_outputs.
+    Variadic<CoreRT_TensorHandleType>:$results
+  );
+
+  let assemblyFormat = [{
+      `[` $in_op_chain`,` $context`,` $host_id`,` $spec`,` $num_input`,` $num_tensorhandle_output `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
   }];
 }
 

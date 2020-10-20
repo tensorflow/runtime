@@ -27,6 +27,7 @@
 #include "mlir/IR/StandardTypes.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
+#include "tfrt/core_runtime/opdefs/types.h"
 
 namespace tfrt {
 namespace dist {

@@ -27,6 +27,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/bef_converter/mlir_src_to_bef.h"
 #include "tfrt/bef_executor/bef_file.h"
+#include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
@@ -48,19 +49,27 @@ class RequestHandler::FunctionCache {
   void Register(const std::string& program_name, BEFBuffer bef_buffer);
 
   // Create BEFFile corresponding to the program with the given name.
-  RCReference<BEFFile> Prepare(const std::string& program_name);
+  // A struct representing a BEFFile and the respective buffer.
+  struct CachedBEF {
+    CachedBEF() {}
+    CachedBEF(const CachedBEF& cached_bef)
+        : bef_file(cached_bef.bef_file.CopyRef()),
+          require_distributed_context(cached_bef.require_distributed_context),
+          require_preallocated_outputs(
+              cached_bef.require_preallocated_outputs) {}
+
+    RCReference<BEFFile> bef_file;
+    bool require_distributed_context = false;
+    bool require_preallocated_outputs = false;
+  };
+  CachedBEF Prepare(const std::string& program_name);
 
  private:
   HostContext* host_;
 
   mutex cached_bef_mutex_;
-  // A struct representing a BEFFile and the respective buffer.
-  struct CachedBEF {
-    RCReference<BEFFile> bef_file;
-    BEFBuffer bef_buffer;
-  };
   // Map from the program name to the CachedBEF.
-  std::unordered_map<std::string, CachedBEF> cached_bef_
+  std::unordered_map<std::string, std::pair<BEFBuffer, CachedBEF>> cached_bef_
       TFRT_GUARDED_BY(cached_bef_mutex_);
 };
 
@@ -75,19 +84,38 @@ void RequestHandler::FunctionCache::Register(const std::string& program_name,
                                     program_name, ".");
     return;
   }
+  const Function* fn = bef_file->GetFunction(program_name);
+  int arg_index = 0;
+  bool require_distributed_context = false;
+  if (fn->num_arguments() > 0 &&
+      fn->argument_types()[0].GetName() == "!tfrt_dist.dist_context") {
+    require_distributed_context = true;
+    arg_index++;
+  }
+  // If the next argument is RemoteObjectId, this is the RemoteObjectId outputs.
+  // We have to pass all the output remote object IDs.
+  bool require_preallocated_outputs = false;
+  if (fn->num_arguments() > arg_index &&
+      fn->argument_types()[arg_index].GetName() ==
+          "!tfrt_dist.remote_object_id") {
+    require_preallocated_outputs = true;
+  }
   mutex_lock lock(cached_bef_mutex_);
-  cached_bef_[program_name].bef_file = bef_file.CopyRef();
-  cached_bef_[program_name].bef_buffer = std::move(bef_buffer);
+  auto& cached = cached_bef_[program_name];
+  cached.first = std::move(bef_buffer);
+  cached.second.bef_file = bef_file.CopyRef();
+  cached.second.require_distributed_context = require_distributed_context;
+  cached.second.require_preallocated_outputs = require_preallocated_outputs;
 }
 
-RCReference<BEFFile> RequestHandler::FunctionCache::Prepare(
+RequestHandler::FunctionCache::CachedBEF RequestHandler::FunctionCache::Prepare(
     const std::string& program_name) {
   mutex_lock lock(cached_bef_mutex_);
   auto iter = cached_bef_.find(program_name);
   if (iter != cached_bef_.end()) {
-    return iter->second.bef_file.CopyRef();
+    return iter->second.second;
   }
-  return RCReference<BEFFile>();
+  return CachedBEF();
 }
 
 RequestHandler::RequestHandler(AsyncValueRef<DistributedContext> context)
@@ -116,8 +144,8 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
   response->ok = false;
 
   // TODO(bramandia): Propagate errors to caller.
-  RCReference<BEFFile> bef_file =
-      function_cache_->Prepare(request.program_name.str());
+  auto cached_bef = function_cache_->Prepare(request.program_name.str());
+  RCReference<BEFFile>& bef_file = cached_bef.bef_file;
   if (bef_file.get() == nullptr) {
     TFRT_LOG(ERROR) << "Can't find program: [" << request.program_name << "]";
     done(std::move(response));
@@ -151,15 +179,28 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
   SmallVector<RCReference<AsyncValue>, 4> arguments_ref;
   arguments.reserve(fn->argument_types().size());
   arguments_ref.reserve(fn->argument_types().size());
-  int num_dist_context_args = 0;
   // Allow the first argument to be `DistributedContext`.
-  if (fn->num_arguments() > 0 &&
-      fn->argument_types()[0].GetName() == "!tfrt_dist.dist_context") {
+  if (cached_bef.require_distributed_context) {
     arguments.push_back(dist_ctx_);
-    num_dist_context_args = 1;
   }
-  if (fn->argument_types().size() !=
-      num_dist_context_args + request.inputs.size()) {
+  if (cached_bef.require_preallocated_outputs) {
+    for (int i = 0; i < request.outputs.size(); ++i) {
+      auto& id = request.outputs[i].id;
+      RCReference<Device> device =
+          host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device);
+      if (device.get() == nullptr) {
+        TFRT_LOG(ERROR) << "Can't find device: " << id.device;
+        done(std::move(response));
+        return;
+      }
+      RCReference<AsyncValue> remote_object_id =
+          MakeAvailableAsyncValueRef<RemoteObjectId>(
+              host_ctx(), id.prefix_id, id.local_id, device.CopyRef());
+      arguments_ref.push_back(remote_object_id.CopyRef());
+      arguments.push_back(remote_object_id.get());
+    }
+  }
+  if (fn->argument_types().size() != arguments.size() + request.inputs.size()) {
     TFRT_LOG(ERROR) << "Argument size mismatch: fn #arg: "
                     << fn->argument_types().size()
                     << " Received #inputs: " << request.inputs.size();
@@ -193,6 +234,8 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
       done(std::move(response));
       return;
     }
+    // TODO(bramandia): Do not store the output in the map if the device is not
+    // a local device.
     RemoteObjectId output_id(id.prefix_id, id.local_id, device.CopyRef());
     manager->SetRemoteObject(output_id, (*results)[i].CopyRef());
   }
@@ -200,15 +243,21 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
   // get the pointer of results before being moved on the lambda capture.
   auto result_ref = results.get();
   // Request will live as long as done is not called yet.
-  RunWhenReady(*result_ref, [fn, done = std::move(done), &request,
+  RunWhenReady(*result_ref, [fn, done = std::move(done), request,
                              results = std::move(results),
-                             response = std::move(response)]() mutable {
+                             response = std::move(response),
+                             arguments = std::move(arguments),
+                             arguments_ref =
+                                 std::move(arguments_ref)]() mutable {
     for (int i = 0; i < request.outputs.size(); ++i) {
       if (request.outputs[i].need_metadata) {
-        // TODO(bramandia): Handle function returning TensorHandle.
         if (fn->result_types()[i].GetName() == "!t.tensor") {
           std::string serialized =
               SerializeTensorMetadata((*results)[i]->get<Tensor>().metadata());
+          response->metadata.push_back(serialized);
+        } else if (fn->result_types()[i].GetName() == "!corert.tensorhandle") {
+          std::string serialized = SerializeTensorMetadata(
+              (*results)[i]->get<TensorHandle>().GetAvailableMetadata());
           response->metadata.push_back(serialized);
         } else {
           TFRT_LOG(ERROR) << "Invalid type " << fn->result_types()[i].GetName();

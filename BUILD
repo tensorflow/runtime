@@ -1070,6 +1070,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":befexecutor",
+        ":core_runtime",
         ":hostcontext",
         ":mlir_src_to_bef",
         ":support",
@@ -1119,6 +1120,7 @@ gentbl(
     ],
     td_srcs = [
         ":OpBaseTdFiles",
+        "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
         "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
     ],
 )
@@ -1134,6 +1136,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
+        ":core_runtime_opdefs",
         ":distributed_kernels_opdefs_inc_gen",
         ":tensor_opdefs",
         "@llvm-project//mlir:IR",

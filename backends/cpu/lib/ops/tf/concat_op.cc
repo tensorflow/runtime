@@ -61,6 +61,12 @@ static Expected<DenseHostTensor> TfConcatOp(
     default:
       return MakeStringError("Unsupported dtype: ", args[0].dtype());
       break;
+    case DType::I1: {
+      using T = EigenTypeForDTypeKind<DType::I1>;
+      auto error = ::tfrt::cpu::ConcatKernel<T>(args, *axis, dest.getPointer());
+      if (error) return std::move(error);
+      break;
+    }
 #define DTYPE_NUMERIC(ENUM)                                                    \
   case DType::ENUM: {                                                          \
     using T = EigenTypeForDTypeKind<DType::ENUM>;                              \

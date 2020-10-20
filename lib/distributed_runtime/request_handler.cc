@@ -34,6 +34,7 @@
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
@@ -46,7 +47,7 @@ class RequestHandler::FunctionCache {
 
   // Register the given program. A program can have multiple functions in it.
   // The program_name serves as both unique ID of this program.
-  void Register(const std::string& program_name, BEFBuffer bef_buffer);
+  Error Register(const std::string& program_name, BEFBuffer bef_buffer);
 
   // Create BEFFile corresponding to the program with the given name.
   // A struct representing a BEFFile and the respective buffer.
@@ -73,16 +74,15 @@ class RequestHandler::FunctionCache {
       TFRT_GUARDED_BY(cached_bef_mutex_);
 };
 
-void RequestHandler::FunctionCache::Register(const std::string& program_name,
-                                             BEFBuffer bef_buffer) {
+Error RequestHandler::FunctionCache::Register(const std::string& program_name,
+                                              BEFBuffer bef_buffer) {
   RCReference<BEFFile> bef_file =
       tfrt::BEFFile::Open(bef_buffer, host_->GetKernelRegistry(),
                           host_->diag_handler(), host_->allocator());
 
   if (!bef_file) {
-    TFRT_LOG(ERROR) << tfrt::StrCat("Failed to open lowered BEF for function ",
-                                    program_name, ".");
-    return;
+    return llvm::make_error<MalformattedMlirFileErrorInfo>(
+        StrCat("Failed to open lowered BEF for function ", program_name, "."));
   }
   const Function* fn = bef_file->GetFunction(program_name);
   int arg_index = 0;
@@ -101,11 +101,16 @@ void RequestHandler::FunctionCache::Register(const std::string& program_name,
     require_preallocated_outputs = true;
   }
   mutex_lock lock(cached_bef_mutex_);
+  if (cached_bef_.find(program_name) != cached_bef_.end()) {
+    return llvm::make_error<RemoteFunctionAlreadyExistsErrorInfo>(
+        StrCat("Program ", program_name, " already registered."));
+  }
   auto& cached = cached_bef_[program_name];
   cached.first = std::move(bef_buffer);
   cached.second.bef_file = bef_file.CopyRef();
   cached.second.require_distributed_context = require_distributed_context;
   cached.second.require_preallocated_outputs = require_preallocated_outputs;
+  return Error::success();
 }
 
 RequestHandler::FunctionCache::CachedBEF RequestHandler::FunctionCache::Prepare(
@@ -125,45 +130,42 @@ RequestHandler::RequestHandler(AsyncValueRef<DistributedContext> context)
 
 RequestHandler::~RequestHandler() {}
 
-void RequestHandler::HandleRemoteRegister(
+Error RequestHandler::HandleRemoteRegister(
     const RemoteRegisterInvocation& request) {
   auto bef_buffer = ConvertMLIRSrcToBEF(request.program,
                                         /* disable_optional_sections = */ true);
   if (bef_buffer.empty()) {
-    // TODO(bramandia): Propagate errors to caller.
-    TFRT_LOG(ERROR) << tfrt::StrCat("Failed to convert MLIR to BEF: ",
-                                    request.program_name);
-    return;
+    return llvm::make_error<MalformattedMlirFileErrorInfo>(
+        StrCat("Failed to convert MLIR to BEF: ", request.program_name),
+        dist_ctx()->GetTaskName());
   }
-  function_cache_->Register(request.program_name.str(), std::move(bef_buffer));
+  return function_cache_->Register(request.program_name.str(),
+                                   std::move(bef_buffer));
 }
 
 void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
                                          RemoteExecuteCallbackFn done) {
-  auto response = std::make_unique<RemoteExecuteInvocationResult>();
-  response->ok = false;
-
-  // TODO(bramandia): Propagate errors to caller.
   auto cached_bef = function_cache_->Prepare(request.program_name.str());
   RCReference<BEFFile>& bef_file = cached_bef.bef_file;
   if (bef_file.get() == nullptr) {
-    TFRT_LOG(ERROR) << "Can't find program: [" << request.program_name << "]";
-    done(std::move(response));
+    Error e = llvm::make_error<InvalidArgumentErrorInfo>(
+        StrCat("Can't find program: [", request.program_name, "]"));
+    done(std::make_unique<RemoteExecuteInvocationResult>(std::move(e)));
     return;
   }
   const Function* fn = bef_file->GetFunction(request.program_name);
   if (fn == nullptr) {
-    TFRT_LOG(ERROR) << tfrt::StrCat(
-        "Failed to get program from BEFFile with name ", request.program_name,
-        ".");
-    done(std::move(response));
+    Error e = llvm::make_error<InvalidArgumentErrorInfo>(
+        StrCat("Failed to get program from BEFFile with name ",
+               request.program_name, "."));
+    done(std::make_unique<RemoteExecuteInvocationResult>(std::move(e)));
     return;
   }
   if (fn->result_types().size() != request.outputs.size()) {
-    TFRT_LOG(ERROR) << "Result size mismatch: fn #result: "
-                    << fn->result_types().size()
-                    << " Received #outputs: " << request.outputs.size();
-    done(std::move(response));
+    Error e = llvm::make_error<InvalidArgumentErrorInfo>(
+        StrCat("Result size mismatch: fn #result: ", fn->result_types().size(),
+               " Received #outputs: ", request.outputs.size()));
+    done(std::make_unique<RemoteExecuteInvocationResult>(std::move(e)));
     return;
   }
 
@@ -189,8 +191,9 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
       RCReference<Device> device =
           host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device);
       if (device.get() == nullptr) {
-        TFRT_LOG(ERROR) << "Can't find device: " << id.device;
-        done(std::move(response));
+        Error e = llvm::make_error<DeviceNotFoundErrorInfo>(
+            StrCat("Can't find device: ", id.device));
+        done(std::make_unique<RemoteExecuteInvocationResult>(std::move(e)));
         return;
       }
       RCReference<AsyncValue> remote_object_id =
@@ -201,9 +204,10 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
     }
   }
   if (fn->argument_types().size() != arguments.size() + request.inputs.size()) {
-    TFRT_LOG(ERROR) << "Argument size mismatch: fn #arg: "
-                    << fn->argument_types().size()
-                    << " Received #inputs: " << request.inputs.size();
+    Error e = llvm::make_error<InvalidArgumentErrorInfo>(
+        StrCat("Argument size mismatch: fn #arg: ", fn->argument_types().size(),
+               " Received #inputs: ", request.inputs.size()));
+    done(std::make_unique<RemoteExecuteInvocationResult>(std::move(e)));
     return;
   }
   for (int i = 0; i < request.inputs.size(); ++i) {
@@ -212,8 +216,9 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
     RCReference<Device> device =
         host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device);
     if (device.get() == nullptr) {
-      TFRT_LOG(ERROR) << "Can't find device: " << id.device;
-      done(std::move(response));
+      Error e = llvm::make_error<DeviceNotFoundErrorInfo>(
+          StrCat("Can't find device: ", id.device));
+      done(std::make_unique<RemoteExecuteInvocationResult>(std::move(e)));
       return;
     }
     RemoteObjectId input_id(id.prefix_id, id.local_id, device.CopyRef());
@@ -230,8 +235,9 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
     RCReference<Device> device =
         host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device);
     if (device.get() == nullptr) {
-      TFRT_LOG(ERROR) << "Can't find device: " << id.device;
-      done(std::move(response));
+      Error e = llvm::make_error<DeviceNotFoundErrorInfo>(
+          StrCat("Can't find device: ", id.device));
+      done(std::make_unique<RemoteExecuteInvocationResult>(std::move(e)));
       return;
     }
     // TODO(bramandia): Do not store the output in the map if the device is not
@@ -245,10 +251,11 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
   // Request will live as long as done is not called yet.
   RunWhenReady(*result_ref, [fn, done = std::move(done), request,
                              results = std::move(results),
-                             response = std::move(response),
                              arguments = std::move(arguments),
                              arguments_ref =
                                  std::move(arguments_ref)]() mutable {
+    auto response =
+        std::make_unique<RemoteExecuteInvocationResult>(Error::success());
     for (int i = 0; i < request.outputs.size(); ++i) {
       if (request.outputs[i].need_metadata) {
         if (fn->result_types()[i].GetName() == "!t.tensor") {
@@ -260,13 +267,13 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,
               (*results)[i]->get<TensorHandle>().GetAvailableMetadata());
           response->metadata.push_back(serialized);
         } else {
-          TFRT_LOG(ERROR) << "Invalid type " << fn->result_types()[i].GetName();
+          response->error = llvm::make_error<InvalidArgumentErrorInfo>(
+              StrCat("Invalid type ", fn->result_types()[i].GetName()));
           done(std::move(response));
           return;
         }
       }
     }
-    response->ok = true;
     done(std::move(response));
   });
 }

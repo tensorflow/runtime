@@ -43,8 +43,8 @@ class TestRequestHandler : public FabricCommunicatorRequestHandler {
       : handler_(context.CopyRef()) {}
   ~TestRequestHandler() final {}
 
-  void HandleRemoteRegister(const RemoteRegisterInvocation& request) final {
-    handler_.HandleRemoteRegister(request);
+  Error HandleRemoteRegister(const RemoteRegisterInvocation& request) final {
+    return handler_.HandleRemoteRegister(request);
   }
 
   void HandleRemoteExecute(const RemoteExecuteInvocation& request,

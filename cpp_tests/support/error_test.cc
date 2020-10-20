@@ -25,6 +25,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/cpp_tests/error_util.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/logging.h"
 
 #ifndef __has_feature
 #define __has_feature(x) 0
@@ -66,8 +67,8 @@ NOINLINE StackTrace CreateStackTrace2() {
 }
 
 namespace {
-llvm::Error SuccessError() { return llvm::Error::success(); }
-llvm::Error FailError() { return MakeStringError(); }
+Error SuccessError() { return Error::success(); }
+Error FailError() { return MakeStringError(); }
 llvm::Expected<int> ValueExpected() { return 42; }
 llvm::Expected<int> FailExpected() { return FailError(); }
 
@@ -124,6 +125,50 @@ TEST(Test, StackTrace) {
   // In case that info is missing, we also don't print the " @ ".
   if (llvm::StringRef(buffer).contains(" @ "))
     EXPECT_TRUE(Contains(buffer, __FILE__));
+}
+
+TEST(Test, TypedError) {
+  Error e0 = llvm::make_error<RpcUnavailableErrorInfo>(
+      "Connection reset by peer.", "/job:worker/task:0");
+  EXPECT_TRUE(e0.isA<RpcUnavailableErrorInfo>());
+  EXPECT_TRUE(e0.isA<BaseTypedErrorInfo>());
+  EXPECT_FALSE(e0.isA<UnknownErrorInfo>());
+
+  Error e1 = llvm::make_error<RpcCancelledErrorInfo>(
+      "Cancelled remote execute!", "/job:worker/task:0");
+  EXPECT_TRUE(e1.isA<RpcCancelledErrorInfo>());
+  EXPECT_TRUE(e1.isA<BaseTypedErrorInfo>());
+  EXPECT_FALSE(e1.isA<UnknownErrorInfo>());
+
+  Error e2 = MakeStringError("hello world");
+  EXPECT_FALSE(e2.isA<BaseTypedErrorInfo>());
+  EXPECT_TRUE(e2.isA<TupleErrorInfo<std::string>>());
+}
+
+TEST(Test, ErrorCollection) {
+  Error e0 = llvm::make_error<RpcDeadlineExceededErrorInfo>(
+      "Deadline exceeded for registering function.", "/job:worker/task:0");
+  Error e1 = llvm::make_error<RpcCancelledErrorInfo>(
+      "Cancelled remote execute!", "/job:worker/task:1");
+
+  auto ec0 = std::make_unique<ErrorCollection>();
+  ec0->AddError(std::move(e0));
+  ec0->AddError(std::move(e1));
+
+  Error e2 = llvm::make_error<RpcCancelledErrorInfo>(
+      "Cancelled remote execute!", "/job:worker/task:2");
+  auto ec1 = std::make_unique<ErrorCollection>();
+  ec1->AddError(std::move(e2));
+
+  Error e_ec1(std::move(ec1));
+  EXPECT_TRUE(e_ec1.isA<ErrorCollection>());
+  // An Error of ErrorCollection type can be added to another ErrorCollection
+  ec0->AddError(std::move(e_ec1));
+
+  Error e(std::move(ec0));
+  EXPECT_TRUE(e.isA<ErrorCollection>());
+  EXPECT_FALSE(e.isA<BaseTypedErrorInfo>());
+  TFRT_LOG(INFO) << e;
 }
 
 void BM_CaptureStackTrace(benchmark::State& state) {

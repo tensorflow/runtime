@@ -25,8 +25,10 @@
 
 #include <string>
 
+#include "llvm/Support/Error.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/remote_object.h"
+#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 
@@ -54,10 +56,13 @@ struct RemoteExecuteInvocation {
 };
 
 struct RemoteExecuteInvocationResult {
-  // TODO(bramandia): Propagate error message.
-  bool ok;
+  // Invocation status.
+  Error error;
   // Serialized metadata.
   llvm::SmallVector<std::string, 4> metadata;
+
+  RemoteExecuteInvocationResult() = delete;
+  explicit RemoteExecuteInvocationResult(Error e) : error(std::move(e)) {}
 };
 
 // Arguments for remote register request
@@ -75,7 +80,7 @@ class FabricCommunicatorRequestHandler {
  public:
   virtual ~FabricCommunicatorRequestHandler() {}
 
-  virtual void HandleRemoteRegister(
+  virtual Error HandleRemoteRegister(
       const RemoteRegisterInvocation& request) = 0;
   using RemoteExecuteCallbackFn = llvm::unique_function<void(
       std::unique_ptr<RemoteExecuteInvocationResult>)>;
@@ -94,12 +99,11 @@ class FabricCommunicator {
                               FabricCommunicatorRequestHandler* request_handler)
       : name_{name},
         distributed_context_{distributed_context},
-        request_handler_(request_handler){};
+        request_handler_(request_handler) {}
 
   virtual ~FabricCommunicator() = default;
 
-  // TODO(b/168132685): Use Status input for async callback function.
-  using CallbackFn = llvm::unique_function<void(bool /* success */)>;
+  using CallbackFn = llvm::unique_function<void(Error error)>;
   virtual void Send(InstanceKey instance_key, HostId destination,
                     llvm::StringRef payload, CallbackFn done) = 0;
 

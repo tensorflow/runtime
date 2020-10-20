@@ -32,7 +32,9 @@
 #include "tfrt/distributed_runtime/remote_tensor.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
+#include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
@@ -40,22 +42,33 @@ namespace tfrt {
 
 namespace {
 
-// TODO(b/168132685): Use Status input for async callback function.
-using CallbackFn = llvm::unique_function<void(bool /* success */)>;
+using CallbackFn = llvm::unique_function<void(Error)>;
 
 class RefCountedCallback : public ReferenceCounted<RefCountedCallback> {
  public:
   explicit RefCountedCallback(CallbackFn done) : done_(std::move(done)) {}
-  ~RefCountedCallback() { done_(is_ok_); }
-  void UpdateState(const bool s) {
+
+  ~RefCountedCallback() {
+    if (errors_) {
+      done_(Error(std::move(errors_)));
+    } else {
+      done_(Error::success());
+    }
+  }
+
+  void UpdateState(Error e) {
+    if (!e) return;
     mutex_lock l(mu_);
-    is_ok_ = is_ok_ && s;
+    if (errors_ == nullptr) {
+      errors_ = std::make_unique<ErrorCollection>();
+    }
+    errors_->AddError(std::move(e));
   }
 
  private:
   CallbackFn done_;
   mutex mu_;
-  bool is_ok_ TFRT_GUARDED_BY(mu_) = true;
+  std::unique_ptr<ErrorCollection> errors_ TFRT_GUARDED_BY(mu_);
 };
 
 //===----------------------------------------------------------------------===//
@@ -192,11 +205,12 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
   auto* fabric_communicator = dist_ctx->GetOrCreateFabricCommunicator();
 
   auto done = [out_chain = out_chain.CopyRef(),
-               dist_ctx = dist_ctx.CopyRef()](const bool ok) mutable {
-    if (!ok) {
-      out_chain.SetError("Failed executing all-reduce.");
+               dist_ctx = dist_ctx.CopyRef()](Error e) mutable {
+    if (e) {
+      out_chain.SetError(e);
+    } else {
+      out_chain.emplace();
     }
-    out_chain.emplace();
   };
 
   // Ref counted callback to keep track of pending steps in all reduce.
@@ -204,7 +218,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
   // finishes (for steps with async RPCs, drop the reference when RPC finishes).
   auto refcounted_done = TakeRef(
       new RefCountedCallback([host = dist_ctx->GetHostContext(), exec_ctx,
-                              done = std::move(done)](const bool ok) mutable {
+                              done = std::move(done)](Error e) mutable {
         // NOTE: we might be executing this in either HostContext work queue
         // threads or the FabricCommunicator callback threads. Must make sure
         // AsyncValue Chain gets emplaced (or set error) in the work queue
@@ -216,10 +230,12 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
         // Otherwise, the HostContext might get destroyed before the AsyncValue
         // is deallocated or finishes its AndThen work, leading to segfault.
         if (host->IsInWorkerThread()) {
-          done(ok);
+          done(std::move(e));
         } else {
           EnqueueWork(exec_ctx,
-                      [done = std::move(done), ok]() mutable { done(ok); });
+                      [done = std::move(done), e = std::move(e)]() mutable {
+                        done(std::move(e));
+                      });
         }
       }));
 
@@ -233,8 +249,8 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
     if (step == 0) {
       fabric_communicator->Send(
           next_step_key, neighbor_id, split_data,
-          [refcounted_done = refcounted_done.CopyRef()](const bool ok) {
-            refcounted_done->UpdateState(ok);
+          [refcounted_done = refcounted_done.CopyRef()](Error e) {
+            refcounted_done->UpdateState(std::move(e));
           });
     } else if (step <= kLastScatterStep) {
       // Scatter stage: send a chunk to the neighbor, aggregate the incoming
@@ -260,9 +276,8 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
             fabric_communicator->Send(
                 next_step_key, neighbor_id,
                 llvm::StringRef(callback_value->data(), callback_value->size()),
-                [refcounted_done =
-                     refcounted_done.CopyRef()](const bool ok) mutable {
-                  refcounted_done->UpdateState(ok);
+                [refcounted_done = refcounted_done.CopyRef()](Error e) mutable {
+                  refcounted_done->UpdateState(std::move(e));
                 });
           });
     } else {
@@ -284,8 +299,8 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
                   llvm::StringRef(callback_value->data(),
                                   callback_value->size()),
                   [refcounted_done =
-                       refcounted_done.CopyRef()](const bool ok) mutable {
-                    refcounted_done->UpdateState(ok);
+                       refcounted_done.CopyRef()](Error e) mutable {
+                    refcounted_done->UpdateState(std::move(e));
                   });
             }
           });
@@ -356,7 +371,7 @@ void DoBroadcast(const InstanceKey& instance_key,
                                    tensor.DataSizeInBytes());
   const auto num_elements = tensor.NumElements();
   auto chunks_collected = std::make_shared<std::atomic<int>>(0);
-  const auto empty_callback_fn = [](const bool ok) {};
+  const auto empty_callback_fn = [](Error e) {};
 
   for (auto i = 0; i < kGroupSize; ++i) {
     auto chunk_key = StepKey(kPrefix, instance_key, i);
@@ -416,9 +431,8 @@ void Broadcast(Argument<DistributedContext> dist_context,
                   instance_key = *instance_key](
                      const InstanceKey& broadcast_key,
                      CallbackRegistry::CallbackValue) {
-    if (instance_key != broadcast_key) {
-      out_chain.SetError("instance key mismatch in Broadcast callback");
-    }
+    assert(instance_key == broadcast_key &&
+           "Instance key mismatch in broadcast callback.");
     out_chain.emplace();
   };
   CallbackRegistry* registry = dist_context->GetCallbackRegistry();
@@ -452,10 +466,9 @@ AsyncValueRef<Chain> RemoteRegisterKernel(Chain ch,
   EnqueueWork(exec_ctx, [receiver, request, dist_context,
                          out_chain = out_chain.CopyRef()]() mutable {
     dist_context->GetOrCreateFabricCommunicator()->RemoteRegister(
-        receiver, request,
-        [out_chain = out_chain.CopyRef()](bool success) mutable {
-          if (!success) {
-            out_chain.SetError("Failed Remote Register");
+        receiver, request, [out_chain = out_chain.CopyRef()](Error e) mutable {
+          if (e) {
+            out_chain.SetError(std::move(e));
           } else {
             out_chain.SetStateConcrete();
           }
@@ -512,9 +525,9 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
   if (results.size() !=
       1 /*chain*/ + (output_id_allocated ? 0 : spec->output_devices.size()) +
           num_output_with_tensorhandle) {
-    out_chain.SetError(
-        StrCat("Mismatch output devices size in RemoteExecuteSpec: ",
-               spec->output_devices.size(), " expected: ", results.size() - 1));
+    out_chain.SetError(llvm::make_error<InvalidArgumentErrorInfo>(StrCat(
+        "Mismatch output devices size in RemoteExecuteSpec: ",
+        spec->output_devices.size(), " expected: ", results.size() - 1)));
     return;
   }
 
@@ -582,18 +595,16 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
         receiver, request,
         [out_chain = out_chain.CopyRef(), remote_objs = std::move(remote_objs),
          host_context = dist_context->GetHostContext()](
-            std::unique_ptr<RemoteExecuteInvocationResult>
-                invocation_result) mutable {
+            std::unique_ptr<RemoteExecuteInvocationResult> result) mutable {
           // Propagate metadata and output chain
-          const int num_metadata = invocation_result->metadata.size();
+          const int num_metadata = result->metadata.size();
           for (int i = 0; i < remote_objs.size(); ++i) {
             auto& obj = remote_objs[i];
             if (i >= num_metadata) {
               obj.metadata.SetError(DecodedDiagnostic("Metadata not returned"));
               continue;
             }
-            auto metadata =
-                DeserializeTensorMetadata(invocation_result->metadata[i]);
+            auto metadata = DeserializeTensorMetadata(result->metadata[i]);
             if (metadata) {
               obj.metadata.emplace(metadata.get());
               obj.tensor.emplace(std::move(metadata.get()), obj.id.get());
@@ -601,8 +612,8 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
               obj.tensor.SetError(DecodedDiagnostic(metadata.takeError()));
             }
           }
-          if (!invocation_result->ok) {
-            out_chain.SetError("Failed Remote Execute");
+          if (result->error) {
+            out_chain.SetError(std::move(result->error));
           } else {
             out_chain.SetStateConcrete();
           }

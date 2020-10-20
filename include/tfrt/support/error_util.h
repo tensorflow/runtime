@@ -29,6 +29,7 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Error.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/support/string_util.h"
 
 // Concatenate 'left' and 'right'.
@@ -49,6 +50,11 @@
   lhs = std::move(*expected)
 
 namespace tfrt {
+
+enum class ErrorCode {
+#define ERROR_TYPE(ENUM) k##ENUM,
+#include "tfrt/support/error_type.def"
+};
 
 namespace internal {
 // Pimpl class holding a stack trace, see CreateStackTrace() below.
@@ -159,6 +165,94 @@ template <typename... Args>
 llvm::Error MakeStringError(Args&&... args) {
   return MakeTupleError(StrCat(std::forward<Args>(args)...));
 }
+
+// Translate the code to string.
+string_view ErrorName(ErrorCode code);
+
+using ErrorType = string_view;
+
+// Error that can be serialized and transferred through different hosts.
+class BaseTypedErrorInfo : public llvm::ErrorInfo<BaseTypedErrorInfo> {
+ public:
+  // Required field for all ErrorInfo derivatives.
+  static char ID;  // NOLINT
+
+  void log(llvm::raw_ostream& os) const override {
+    os << type_ << ": " << message_;
+    if (!task_name_.empty()) {
+      os << " (from task: " << task_name_ << ")";
+    }
+  }
+
+  ErrorType type() const { return type_; }
+  std::string message() const override { return message_; }
+  string_view task_name() const { return task_name_; }
+
+  std::error_code convertToErrorCode() const final {
+    return llvm::inconvertibleErrorCode();
+  }
+
+ protected:
+  BaseTypedErrorInfo(ErrorType type, string_view message, string_view task_name)
+      : type_(type), message_(message), task_name_(task_name) {}
+
+ private:
+  const ErrorType type_;
+  const std::string message_;
+  const std::string task_name_;
+};
+
+template <typename ErrorTrait>
+class TypedErrorInfo
+    : public llvm::ErrorInfo<TypedErrorInfo<ErrorTrait>, BaseTypedErrorInfo> {
+ public:
+  static char ID;  // NOLINT
+  using llvm::ErrorInfo<TypedErrorInfo<ErrorTrait>,
+                        BaseTypedErrorInfo>::ErrorInfo;
+  explicit TypedErrorInfo<ErrorTrait>(string_view message,
+                                      string_view task_name = "")
+      : TypedErrorInfo<ErrorTrait>(ErrorTrait::name, message, task_name) {}
+};
+
+#define ERROR_TYPE(ENUM)                 \
+  struct ENUM##ErrorTrait {              \
+    static constexpr char* name = #ENUM; \
+  };                                     \
+  using ENUM##ErrorInfo = TypedErrorInfo<ENUM##ErrorTrait>;
+#include "tfrt/support/error_type.def"  // NOLINT
+
+template <typename ErrorTrait>
+char TypedErrorInfo<ErrorTrait>::ID;
+
+void LogIfError(Error&& error);
+void DieIfError(Error&& error);
+
+// Basic implementation of a collection of typed errors. Not thread-safe.
+// TODO(haoyuzhang): implement more advanced error aggregation with lineage.
+class ErrorCollection : public llvm::ErrorInfo<ErrorCollection> {
+ public:
+  // Required field for all ErrorInfo derivatives.
+  static char ID;  // NOLINT
+
+  std::error_code convertToErrorCode() const final {
+    return llvm::inconvertibleErrorCode();
+  }
+
+  // Add an error to the collection. If the added error is an ErrorCollection,
+  // merge the errors into the current collection.
+  void AddError(Error error);
+
+  // Log summarized error information for the collection of errors. Sample
+  // summarized error message logging:
+  //
+  //   RpcDeadlineExceeded: Found 2 errors:
+  //     (1) RpcDeadlineExceeded: Timeout registering function on remote host.
+  //     (2) Cancelled: Remote execute is cancelled
+  void log(raw_ostream& OS) const override;
+
+ private:
+  llvm::SmallVector<std::unique_ptr<BaseTypedErrorInfo>, 4> errors_;
+};
 
 }  // namespace tfrt
 

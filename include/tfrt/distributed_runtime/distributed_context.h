@@ -120,8 +120,14 @@ class DistributedContext {
 
   DistributedContextConfiguration GetConfiguration() { return configuration_; }
 
-  HostId GetId() {
+  HostId GetId() const {
     return configuration_.fabric_configuration.host_configuration.id;
+  }
+
+  string_view GetTaskName() const {
+    return configuration_.fabric_configuration.host_configuration
+        .addresses[GetId()]
+        .name;
   }
 
   size_t GetSize() {

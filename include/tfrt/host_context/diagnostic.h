@@ -26,26 +26,13 @@
 #include <utility>
 
 #include "tfrt/host_context/location.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/string_util.h"
 
 namespace tfrt {
 
 class ExecutionContext;
-
-enum class ErrorCode {
-  kOK,  // Not an error.
-  kCancelled,
-  kUnknown,
-  kInvalidArgument,
-  kDeadlineExceeded,
-  kNotFound,
-  kOutOfRange,
-  // TODO(tfrt-devs): add more diagnostic codes if needed.
-};
-
-// Translate the code to string.
-string_view ErrorName(ErrorCode code);
 
 // This is a simple representation of a decoded diagnostic.
 struct DecodedDiagnostic {

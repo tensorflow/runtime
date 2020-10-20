@@ -42,7 +42,7 @@ class RequestHandler : public FabricCommunicatorRequestHandler {
   explicit RequestHandler(AsyncValueRef<DistributedContext> dist_context);
   virtual ~RequestHandler();
 
-  void HandleRemoteRegister(const RemoteRegisterInvocation& request) final;
+  Error HandleRemoteRegister(const RemoteRegisterInvocation& request) final;
   void HandleRemoteExecute(const RemoteExecuteInvocation& request,
                            RemoteExecuteCallbackFn done) final;
 

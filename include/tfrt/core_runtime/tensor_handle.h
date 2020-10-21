@@ -99,6 +99,14 @@ class TensorHandle final {
     return tensor_and_is_metadata_inline_.getPointer();
   }
 
+  // Returns true if this is an error TensorHandle
+  bool IsError() const {
+    return IsMetadataError() || GetAsyncTensor()->IsError();
+  }
+
+  // Returns the error in this TensorHandle
+  ErrorAsyncValue* GetErrorAsyncValue();
+
   // Return a new copy of the TensorHandle without deep copying any of the
   // underlying data.
   TensorHandle CopyRef() const;

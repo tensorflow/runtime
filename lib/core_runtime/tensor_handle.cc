@@ -39,7 +39,13 @@ TensorHandle::TensorHandle(RCReference<Device> device,
   assert(tensor.GetAsyncValue());
   if (!async_metadata.IsError() && !tensor.IsError())
     assert(device_ && "device cannot be NULL");
-  tensor_and_is_metadata_inline_.setPointerAndInt(tensor.release(), false);
+  if (async_metadata.IsError()) {
+    tensor_and_is_metadata_inline_.setPointerAndInt(
+        async_metadata.CopyRef().release(), false);
+  } else {
+    tensor_and_is_metadata_inline_.setPointerAndInt(tensor.release(), false);
+  }
+
   new (&async_metadata_)
       AsyncValueRef<TensorMetadata>(std::move(async_metadata));
 }
@@ -64,6 +70,16 @@ TensorHandle TensorHandle::CreateError(RCReference<AsyncValue> error) {
   assert(error->IsError());
   auto th = AsyncValueRef<TensorHandle>(std::move(error));
   return TensorHandle(std::move(th));
+}
+
+ErrorAsyncValue* TensorHandle::GetErrorAsyncValue() {
+  assert(
+      IsError() &&
+      "Cannot call GetErrorAsyncValue() if it is not an error TensorHandle.");
+  if (GetAsyncTensor()->IsError()) {
+    return llvm::cast<ErrorAsyncValue>(GetAsyncTensor());
+  }
+  return llvm::cast<ErrorAsyncValue>(async_metadata_.GetAsyncValue());
 }
 
 TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,

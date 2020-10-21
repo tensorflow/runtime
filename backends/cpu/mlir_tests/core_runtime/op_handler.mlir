@@ -16,8 +16,8 @@
 
 // CHECK-LABEL: --- Not running 'register_cpu_op_handler_chain' because it has arguments.
 func @register_cpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   %ch = corert.register_op_handler %cpu "cpu0"
   tfrt.return %ch : !tfrt.chain
 }

@@ -15,9 +15,9 @@
 // RUN: bef_executor --test_init_function=register_op_handlers_gpu $(bef_name %s) | FileCheck %s --dump-input=always
 
 func @register_op_handlers_gpu() {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %gpu_ordinal = tfrt.constant.i32 0
-  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %gpu "gpu"
   tfrt.return
 }
@@ -32,7 +32,7 @@ func @BM_Tf_Relu_1x56x56x256_f32() {
     { shape = [1, 56, 56, 256], values = [1.0 : f32] } : 1
 
   tfrt_test.benchmark "BM_Tf_Relu_1x56x56x256_f32"(
-      %gpu      : !corert.device,
+      %gpu      : !corert.ophandler,
       %input    : !corert.tensorhandle
   )
   duration_secs = 5, max_count = 1000, num_warmup_runs = 10

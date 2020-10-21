@@ -15,8 +15,8 @@
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
 
 func @register_op_handlers_cpu() {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
   tfrt.return
 }
@@ -44,7 +44,7 @@ func @create_from_scalar_error() -> !tfrt.chain {
 
   // expected-error @+1 {{test.create_from_scalar must have 'value' attribute}}
   %a_handle = "corert.executeop"(%cpu) {op_attrs = [["shape", [2 : i64, 3 : i64]]], op_name = "tfrt_test.create_from_scalar"}
-    : (!corert.device) -> !corert.tensorhandle
+    : (!corert.ophandler) -> !corert.tensorhandle
 
   tfrt.return %ch0 : !tfrt.chain
 }

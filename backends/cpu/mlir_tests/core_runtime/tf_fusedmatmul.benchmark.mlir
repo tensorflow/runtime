@@ -15,8 +15,8 @@
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
 
 func @register_op_handlers_cpu() {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
   tfrt.return
 }
@@ -36,7 +36,7 @@ func @BM_FusedMatMulBiasRelu_256x256x256_f32() {
     { shape = [256], values = [1.0 : f32] } : 1
 
   tfrt_test.benchmark "BM_FusedMatMulBiasRelu_256x256x256_f32"(
-      %cpu     : !corert.device,
+      %cpu     : !corert.ophandler,
       %lhs     : !corert.tensorhandle,
       %rhs     : !corert.tensorhandle,
       %bias    : !corert.tensorhandle
@@ -70,7 +70,7 @@ func @BM_JitFusedMatMulBiasRelu_256x256x256_f32() {
     { shape = [256], values = [1.0 : f32] } : 1
 
   tfrt_test.benchmark "BM_JitFusedMatMulBiasRelu_256x256x256_f32"(
-      %cpu     : !corert.device,
+      %cpu     : !corert.ophandler,
       %lhs     : !corert.tensorhandle,
       %rhs     : !corert.tensorhandle,
       %bias    : !corert.tensorhandle

@@ -15,13 +15,13 @@
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu_gpu $(bef_name %s) | FileCheck %s --dump-input=always
 
 func @register_op_handlers_cpu_gpu() {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
 
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
 
   %gpu_ordinal = tfrt.constant.i32 0
-  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %gpu "gpu"
   tfrt.return
 }

@@ -15,15 +15,15 @@
 // RUN: bef_executor --test_init_function=register_op_handlers  $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
 func @register_op_handlers() {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
 
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
-  %sync_cpu = "corert.create_logging_op_handler"(%cpu) {sync_log_results=1} : (!corert.device) -> !corert.device
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
+  %sync_cpu = "corert.create_logging_op_handler"(%cpu) {sync_log_results=1} : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %sync_cpu "cpu"
 
   %gpu_ordinal = tfrt.constant.i32 0
-  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
-  %sync_gpu = "corert.create_logging_op_handler"(%gpu) {sync_log_results=1} : (!corert.device) -> !corert.device
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
+  %sync_gpu = "corert.create_logging_op_handler"(%gpu) {sync_log_results=1} : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %sync_gpu "gpu"
   tfrt.return
 }

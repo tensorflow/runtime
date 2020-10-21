@@ -56,7 +56,8 @@ Operation *CoreRTSyncDialect::materializeConstant(OpBuilder &builder,
 }
 
 void ExecuteOp::build(OpBuilder &builder, OperationState &state,
-                      ArrayRef<Type> results, Value device, ValueRange operands,
+                      ArrayRef<Type> results, Value op_handler,
+                      ValueRange operands,
                       ArrayRef<std::pair<StringRef, Attribute>> op_attrs,
                       StringRef op_name) {
   SmallVector<Attribute, 4> attrs;
@@ -66,7 +67,7 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
     attrs.push_back(ArrayAttr::get(key_value, builder.getContext()));
   }
   auto attr = ArrayAttr::get(attrs, builder.getContext());
-  build(builder, state, results, device, operands, attr, op_name);
+  build(builder, state, results, op_handler, operands, attr, op_name);
 }
 
 static LogicalResult verify(ExecuteOp op) {
@@ -78,8 +79,8 @@ static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
 }
 
 static void print(OpAsmPrinter &p, ExecuteOp op) {
-  p << "corert_sync.executeop(" << op.device() << ") " << op.getAttr("op_name")
-    << '(' << op.operands() << ')';
+  p << "corert_sync.executeop(" << op.op_handler() << ") "
+    << op.getAttr("op_name") << '(' << op.operands() << ')';
 
   corert::PrintExecuteOpImpl(p, op);
 }

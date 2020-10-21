@@ -27,8 +27,8 @@
 namespace tfrt {
 namespace corert {
 
-static Type GetDeviceType(Builder *builder) {
-  return builder->getType<DeviceType>();
+static Type GetOpHandlerType(Builder *builder) {
+  return builder->getType<OpHandlerType>();
 }
 
 static Type GetChainType(Builder *builder) {
@@ -42,16 +42,16 @@ static Type GetTensorHandleType(Builder *builder) {
 ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
                                int num_chains) {
   auto &builder = parser.getBuilder();
-  auto device_type = GetDeviceType(&builder);
+  auto op_handler_type = GetOpHandlerType(&builder);
   auto chain_type = GetChainType(&builder);
   auto tensorhandle_type = GetTensorHandleType(&builder);
 
   StringAttr op_name;
-  SmallVector<OpAsmParser::OperandType, 4> device_and_in_chains;
+  SmallVector<OpAsmParser::OperandType, 4> op_handler_and_in_chains;
   SmallVector<OpAsmParser::OperandType, 4> operands;
   NamedAttrList op_attrs;
   auto loc = parser.getNameLoc();
-  if (parser.parseOperandList(device_and_in_chains,
+  if (parser.parseOperandList(op_handler_and_in_chains,
                               /*requiredOperandCount=*/num_chains + 1,
                               OpAsmParser::Delimiter::Paren) ||
       parser.parseAttribute(op_name, "op_name", result.attributes) ||
@@ -69,9 +69,9 @@ ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
   }
 
   SmallVector<Type, 4> operand_types;
-  operand_types.push_back(device_type);
+  operand_types.push_back(op_handler_type);
   operand_types.append(num_chains, chain_type);
-  if (parser.resolveOperands(device_and_in_chains, operand_types, loc,
+  if (parser.resolveOperands(op_handler_and_in_chains, operand_types, loc,
                              result.operands) ||
       parser.resolveOperands(operands, tensorhandle_type, result.operands))
     return failure();

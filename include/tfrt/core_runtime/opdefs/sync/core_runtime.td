@@ -106,13 +106,13 @@ def ExecuteOp : CoreRTSync_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeT
     The ExecuteOp executes an operation on the specified device.
 
     Example:
-      %res = corert_sync.executeop(%device) "some.op"(%arg) : 1
+      %res = corert_sync.executeop(%op_handler) "some.op"(%arg) : 1
 
     Note that the trailing number indicates the number of results.
   }];
 
   let arguments = (ins
-    CoreRT_DeviceType:$device,
+    CoreRT_OpHandlerType:$op_handler,
     Variadic<CoreRT_TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
     StrAttr:$op_name
@@ -138,7 +138,7 @@ def ExecuteOp : CoreRTSync_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeT
 def CoreRTSync_GetOpHandler : CoreRTSync_Op<"get_op_handler", [NoSideEffect]> {
   let summary = "return the registered op handler";
   let description = [{
-    GetOpHandler returns a registered device, which can be used by ExecuteOp.
+    GetOpHandler returns a registered op handler, which can be used by ExecuteOp.
 
     Example:
       %cpu = corert_sync.get_op_handler "cpu"
@@ -148,7 +148,7 @@ def CoreRTSync_GetOpHandler : CoreRTSync_Op<"get_op_handler", [NoSideEffect]> {
     StrAttr:$device_name
   );
   let results = (outs
-    CoreRT_DeviceType:$device
+    CoreRT_OpHandlerType:$op_handler
   );
   let assemblyFormat = "$device_name attr-dict";
   let verifier = ?;

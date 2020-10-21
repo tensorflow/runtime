@@ -15,9 +15,9 @@
 // RUN: bef_executor --test_init_function=register_op_handlers_gpu $(bef_name %s) | FileCheck %s --dump-input=always
 
 func @register_op_handlers_gpu() {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %gpu_ordinal = tfrt.constant.i32 0
-  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %gpu "gpu"
   tfrt.return
 }
@@ -35,7 +35,7 @@ func @BM_Tf_Conv2d_1x256x56x56_3x3_256_f32() {
     { shape = [3, 3, 256, 256], values = [1.0 : f32] } : 1
 
   tfrt_test.benchmark "BM_Tf_Conv2d_1x256x56x56_3x3_256_f32"(
-      %gpu      : !corert.device,
+      %gpu      : !corert.ophandler,
       %input    : !corert.tensorhandle,
       %filter   : !corert.tensorhandle
   )
@@ -78,7 +78,7 @@ func @BM_Tf_Conv2d_1x56x56x256_3x3_256_f16() {
     { DstT = f16, SrcT = f32, Truncate = true } : 1
 
   tfrt_test.benchmark "BM_Tf_Conv2d_1x56x56x256_3x3_256_f16"(
-      %gpu      : !corert.device,
+      %gpu      : !corert.ophandler,
       %input    : !corert.tensorhandle,
       %filter   : !corert.tensorhandle
   )
@@ -121,7 +121,7 @@ func @BM_Tf_Conv2d_1x56x56x256_1x1_256_f16() {
     { DstT = f16, SrcT = f32, Truncate = true } : 1
 
   tfrt_test.benchmark "BM_Tf_Conv2d_1x56x56x256_1x1_256_f16"(
-      %gpu      : !corert.device,
+      %gpu      : !corert.ophandler,
       %input    : !corert.tensorhandle,
       %filter   : !corert.tensorhandle
   )

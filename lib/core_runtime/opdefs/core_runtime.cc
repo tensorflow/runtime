@@ -53,7 +53,7 @@ CoreRTDialect::CoreRTDialect(MLIRContext *context)
 
   addAttributes<ShapeAttr>();
 
-  addTypes<StringType, TensorHandleType, DeviceType, ResourceType,
+  addTypes<StringType, TensorHandleType, OpHandlerType, ResourceType,
            VariantType>();
 
   addOperations<
@@ -116,7 +116,7 @@ mlir::Type CoreRTDialect::parseType(mlir::DialectAsmParser &parser) const {
   if (parser.parseKeyword(&data)) return Type();
 
   if (data == "string") return StringType::get(getContext());
-  if (data == "device") return DeviceType::get(getContext());
+  if (data == "ophandler") return OpHandlerType::get(getContext());
   if (data == "tensorhandle") return TensorHandleType::get(getContext());
   if (data == "resource") return ResourceType::get(getContext());
   if (data == "variant") return VariantType::get(getContext());
@@ -134,8 +134,8 @@ void CoreRTDialect::printType(mlir::Type type,
     return;
   }
 
-  if (type.isa<DeviceType>()) {
-    os << "device";
+  if (type.isa<OpHandlerType>()) {
+    os << "ophandler";
     return;
   }
 
@@ -185,7 +185,8 @@ Operation *CoreRTDialect::materializeConstant(OpBuilder &builder,
 }
 
 void ExecuteOp::build(OpBuilder &builder, OperationState &state,
-                      ArrayRef<Type> results, Value device, ValueRange operands,
+                      ArrayRef<Type> results, Value op_handler,
+                      ValueRange operands,
                       ArrayRef<std::pair<StringRef, Attribute>> op_attrs,
                       StringRef op_name) {
   SmallVector<Attribute, 4> attrs;
@@ -195,7 +196,7 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
     attrs.push_back(ArrayAttr::get(key_value, builder.getContext()));
   }
   auto attr = ArrayAttr::get(attrs, builder.getContext());
-  build(builder, state, results, device, operands, attr, op_name);
+  build(builder, state, results, op_handler, operands, attr, op_name);
 }
 
 static LogicalResult verify(ExecuteOp op) { return VerifyExecuteOpImpl(op); }
@@ -211,13 +212,13 @@ static ParseResult parseExecuteOpSeq(OpAsmParser &parser,
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/1);
 }
 static void print(OpAsmPrinter &p, ExecuteOp op) {
-  p << "corert.executeop(" << op.device() << ") " << op.getAttr("op_name")
+  p << "corert.executeop(" << op.op_handler() << ") " << op.getAttr("op_name")
     << '(' << op.operands() << ')';
 
   PrintExecuteOpImpl(p, op);
 }
 static void print(OpAsmPrinter &p, ExecuteOpSeq op) {
-  p << "corert.executeop.seq(" << op.device() << ", " << op.in_op_chain()
+  p << "corert.executeop.seq(" << op.op_handler() << ", " << op.in_op_chain()
     << ") " << op.getAttr("op_name") << '(' << op.operands() << ')';
 
   PrintExecuteOpImpl(p, op);

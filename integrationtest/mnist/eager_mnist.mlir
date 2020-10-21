@@ -15,13 +15,13 @@
 // RUN: bef_executor $(bef_name %s) --test_init_function=register_op_handlers_cpu | FileCheck %s --dump-input=fail
 
 func @register_op_handlers_cpu() {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
   tfrt.return
 }
 
-func @mnist_compute(%cpu: !corert.device,
+func @mnist_compute(%cpu: !corert.ophandler,
                     %w1 : !corert.tensorhandle,
                     %b1 : !corert.tensorhandle,
                     %w2 : !corert.tensorhandle,
@@ -106,7 +106,7 @@ func @bm_mnist() {
 
 
   tfrt_test.benchmark "bm_mnist"(
-      %cpu: !corert.device,
+      %cpu: !corert.ophandler,
       %w1 : !corert.tensorhandle,
       %b1 : !corert.tensorhandle,
       %w2 : !corert.tensorhandle,
@@ -116,7 +116,7 @@ func @bm_mnist() {
       %ch0: !tfrt.chain)
       duration_secs = 10, max_count = 10000, num_warmup_runs = 10 {
       %avg_accuracy = tfrt.call @mnist_compute(%cpu, %w1, %b1, %w2, %b2, %test_input_features, %test_input_labels, %ch0)
-       : (!corert.device, !corert.tensorhandle, !corert.tensorhandle,
+       : (!corert.ophandler, !corert.tensorhandle, !corert.tensorhandle,
           !corert.tensorhandle, !corert.tensorhandle,
           !corert.tensorhandle, !corert.tensorhandle,
           !tfrt.chain) -> !tfrt.chain

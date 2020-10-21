@@ -111,16 +111,16 @@ def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
 def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait]> {
   let summary = "The CoreRuntime ExecuteOp";
   let description = [{
-    The ExecuteOp executes an operation on the specified device.
+    The ExecuteOp executes an operation on the specified op handler.
 
     Example:
-      %res = corert.executeop(%device) "some.op"(%arg) : 1
+      %res = corert.executeop(%op_handler) "some.op"(%arg) : 1
 
     Note that the trailing number indicates the number of results.
   }];
 
   let arguments = (ins
-    CoreRT_DeviceType:$device,
+    CoreRT_OpHandlerType:$op_handler,
     Variadic<CoreRT_TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
     StrAttr:$op_name
@@ -138,7 +138,7 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait
 
   let builders = [OpBuilder<
     "OpBuilder &builder, OperationState &state, ArrayRef<Type> results, "
-    "Value device, ValueRange operands, "
+    "Value op_handler, ValueRange operands, "
     "ArrayRef<std::pair<StringRef, Attribute>> op_attrs, StringRef op_name"
   >];
 }
@@ -146,19 +146,19 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait
 def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
   let summary = "The sequenced version of CoreRuntime ExecuteOp";
   let description = [{
-    The ExecuteOpSeq executes an operation on the specified device, similar to
+    The ExecuteOpSeq executes an operation on the specified op handler, similar to
     ExecuteOp. In addition, it takes an in_op_chain and produces an out_op_chain
     that can be used to sequence op executions. ExecuteOpSeq is nonstrict on
     in_op_chain.
 
     Example:
-      %op_ch_out, %res = corert.executeop.seq(%device, %op_ch_in) "some.op"(%arg) : 1
+      %op_ch_out, %res = corert.executeop.seq(%op_handler, %op_ch_in) "some.op"(%arg) : 1
 
     Note that the trailing number indicates the number of results.
   }];
 
   let arguments = (ins
-    CoreRT_DeviceType:$device,
+    CoreRT_OpHandlerType:$op_handler,
     TFRT_ChainType:$in_op_chain,
     Variadic<CoreRT_TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
@@ -174,7 +174,7 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
 def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler", [NoSideEffect]> {
   let summary = "return the registered op handler";
   let description = [{
-    GetOpHandler returns a registered device, which can be used by ExecuteOp.
+    GetOpHandler returns a registered op handler, which can be used by ExecuteOp.
 
     Example:
       %ch0 = tfrt.new.chain
@@ -183,12 +183,12 @@ def CoreRT_GetOpHandler : CoreRT_Op<"get_op_handler", [NoSideEffect]> {
 
   let arguments = (ins
     TFRT_ChainType:$in_op_chain,
-    StrAttr:$device_name
+    StrAttr:$op_handler_name
   );
   let results = (outs
-    CoreRT_DeviceType:$device
+    CoreRT_OpHandlerType:$op_handler
   );
-  let assemblyFormat = "$in_op_chain $device_name attr-dict";
+  let assemblyFormat = "$in_op_chain $op_handler_name attr-dict";
   let verifier = ?;
 }
 
@@ -203,11 +203,11 @@ def CoreRT_RegisterOpHandlerOp : CoreRT_Op<"register_op_handler"> {
   }];
 
   let arguments = (ins
-    CoreRT_DeviceType:$device,
-    StrAttr:$device_name
+    CoreRT_OpHandlerType:$op_handler,
+    StrAttr:$op_handler_name
   );
   let results = (outs TFRT_ChainType:$out_op_chain);
-  let assemblyFormat = "$device $device_name attr-dict";
+  let assemblyFormat = "$op_handler $op_handler_name attr-dict";
   let verifier = ?;
 }
 

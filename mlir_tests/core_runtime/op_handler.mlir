@@ -16,7 +16,7 @@
 
 // CHECK-LABEL: --- Not running 'register_op_handlers' because it has arguments.
 func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
   %ch1 = corert.register_op_handler %null "custom0"
   tfrt.return %ch1 : !tfrt.chain
 }

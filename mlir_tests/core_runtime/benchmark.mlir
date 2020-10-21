@@ -15,8 +15,8 @@
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
 
 func @register_op_handlers_cpu() {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
   tfrt.return
 }
@@ -42,7 +42,7 @@ func @BM_corert.matmul() {
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
 
 
-  tfrt_test.benchmark "BM_corert.matmul"(%cpu : !corert.device, %a_handle : !corert.tensorhandle, %ch0 : !tfrt.chain) duration_secs = 1, max_count = 1000
+  tfrt_test.benchmark "BM_corert.matmul"(%cpu : !corert.ophandler, %a_handle : !corert.tensorhandle, %ch0 : !tfrt.chain) duration_secs = 1, max_count = 1000
   {
     %result = corert.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %a_handle)
       {transpose_a = false, transpose_b = false}: 1
@@ -52,7 +52,7 @@ func @BM_corert.matmul() {
   tfrt.return
 }
 
-func @matmul_sync(%cpu : !corert.device, %a_handle : !corert.tensorhandle) -> () attributes {tfrt.sync} {
+func @matmul_sync(%cpu : !corert.ophandler, %a_handle : !corert.tensorhandle) -> () attributes {tfrt.sync} {
   %result = corert_sync.executeop(%cpu) "tfrt_test.matmul"(%a_handle, %a_handle)
     {transpose_a = false, transpose_b = false}: 1
   tfrt.return
@@ -78,7 +78,7 @@ func @BM_corert.matmul_sync() attributes {tfrt.sync} {
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
 
 
-  tfrt_test.sync_benchmark @matmul_sync(%cpu : !corert.device, %a_handle : !corert.tensorhandle) duration_secs = 1, max_count = 1000
+  tfrt_test.sync_benchmark @matmul_sync(%cpu : !corert.ophandler, %a_handle : !corert.tensorhandle) duration_secs = 1, max_count = 1000
 
   tfrt.return
 }

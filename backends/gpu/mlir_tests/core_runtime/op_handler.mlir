@@ -16,12 +16,12 @@
 
 // CHECK-LABEL: --- Not running 'register_gpu_op_handler_chain' because it has arguments.
 func @register_gpu_op_handler_chain(%ch0: !tfrt.chain) -> !tfrt.chain {
-  %null = "corert.create_null_op_handler"() : () -> !corert.device
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.device) -> !corert.device
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
 
   %gpu_ordinal = tfrt.constant.i32 0
-  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.device) -> !corert.device
+  %gpu = "corert.create_gpu_op_handler" (%gpu_ordinal, %null) : (i32, !corert.ophandler) -> !corert.ophandler
   %ch = corert.register_op_handler %gpu "gpu0"
   tfrt.return %ch : !tfrt.chain
 }

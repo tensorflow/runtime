@@ -34,9 +34,9 @@ def CoreRT_Dialect : Dialect {
 
 // Deivce is an aggregate of Core Runtime ops. It is passed to corert.executeop
 // so that the required Core Runtime can be looked up in this device.
-def CoreRT_DeviceType :
-    Type<CPred<"$_self.isa<tfrt::corert::DeviceType>()">, "!corert.device type">,
-    BuildableType<"$_builder.getType<tfrt::corert::DeviceType>()">;
+def CoreRT_OpHandlerType :
+    Type<CPred<"$_self.isa<tfrt::corert::OpHandlerType>()">, "!corert.ophandler type">,
+    BuildableType<"$_builder.getType<tfrt::corert::OpHandlerType>()">;
 
 // TensorHandle is the currency type for Core Runtime execution.
 def CoreRT_TensorHandleType:

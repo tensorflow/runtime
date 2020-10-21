@@ -42,8 +42,8 @@ class TensorHandleType
   using Base::Base;
 };
 
-class DeviceType
-    : public mlir::Type::TypeBase<DeviceType, mlir::Type, mlir::TypeStorage> {
+class OpHandlerType : public mlir::Type::TypeBase<OpHandlerType, mlir::Type,
+                                                  mlir::TypeStorage> {
  public:
   using Base::Base;
 };

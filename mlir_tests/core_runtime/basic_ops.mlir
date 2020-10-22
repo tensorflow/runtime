@@ -472,7 +472,6 @@ func @control_flow_conditional_error() {
   %erroneous_handle = "tfrt_test.tensorhandle_with_error_metadata"(%tensor, %ch1)
     : (!t.tensor, !tfrt.chain) -> !corert.tensorhandle
 
-  // expected-error @+1 {{failed to find device for condition tensor handle}}
   %ch2, %result = corert.cond %erroneous_handle @return_first @return_second (%ch1, %a_handle, %b_handle) : (!corert.tensorhandle)
 
   // CHECK-NOT: DenseHostTensor dtype = I32

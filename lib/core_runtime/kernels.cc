@@ -445,6 +445,16 @@ static bool ReturnAfterHandlingError(
     for (auto &result : results) result->ForwardTo(FormRef(condition));
     return true;
   }
+
+  if (condition->IsType<TensorHandle>() &&
+      condition->get<TensorHandle>().IsError()) {
+    for (auto &result : results) {
+      result->ForwardTo(
+          FormRef(condition->get<TensorHandle>().GetErrorAsyncValue()));
+    }
+    return true;
+  }
+
   return false;
 }
 
@@ -541,63 +551,55 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
   // Arg[0] is a TensorHandle async value condition predicate.
   AsyncValue *condition_tensorhandle = args[0];
   // Dispatch when the condition becomes available.
-  condition_tensorhandle->AndThen([condition_tensorhandle, exec_ctx, if_impl,
-                                   true_fn_ref = FormRef(true_fn),
-                                   false_fn_ref = FormRef(false_fn),
-                                   arg_refs = std::move(arg_refs),
-                                   result_refs =
-                                       std::move(result_refs)]() mutable {
-    if (ReturnAfterHandlingError(condition_tensorhandle, result_refs)) return;
-    AsyncValue *condition_async_tensor =
-        condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
-    auto src_device_ref =
-        condition_tensorhandle->get<TensorHandle>().CopyRefDevice();
-    if (!src_device_ref) {
-      RCReference<ErrorAsyncValue> error_value = EmitErrorAsync(
-          exec_ctx, StrCat(MakeStringError(
-                        "failed to find device for condition tensor handle")));
-      for (auto &result : result_refs) {
-        result->SetError(error_value->GetError());
-      }
-      return;
-    }
+  condition_tensorhandle->AndThen(
+      [condition_tensorhandle, exec_ctx, if_impl,
+       true_fn_ref = FormRef(true_fn), false_fn_ref = FormRef(false_fn),
+       arg_refs = std::move(arg_refs),
+       result_refs = std::move(result_refs)]() mutable {
+        if (ReturnAfterHandlingError(condition_tensorhandle, result_refs))
+          return;
+        AsyncValue *condition_async_tensor =
+            condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+        auto src_device_ref =
+            condition_tensorhandle->get<TensorHandle>().CopyRefDevice();
 
-    // TODO(hanbinyoon): Remove this extra level of asynchrony after
-    // b/162752746 is fixed.
-    // TODO(hanbinyoon): Consider refactoring to reduce code repetition -
-    // possibly a version of RunWhenReady that takes a vector of closures
-    // that return AsyncValues.
-    condition_async_tensor->AndThen(
-        [condition_async_tensor, src_device_ref = std::move(src_device_ref),
-         exec_ctx, if_impl, true_fn_ref = std::move(true_fn_ref),
-         false_fn_ref = std::move(false_fn_ref), arg_refs = std::move(arg_refs),
-         result_refs = std::move(result_refs)]() mutable {
-          if (ReturnAfterHandlingError(condition_async_tensor, result_refs))
-            return;
+        // TODO(hanbinyoon): Remove this extra level of asynchrony after
+        // b/162752746 is fixed.
+        // TODO(hanbinyoon): Consider refactoring to reduce code repetition -
+        // possibly a version of RunWhenReady that takes a vector of closures
+        // that return AsyncValues.
+        condition_async_tensor->AndThen(
+            [condition_async_tensor, src_device_ref = std::move(src_device_ref),
+             exec_ctx, if_impl, true_fn_ref = std::move(true_fn_ref),
+             false_fn_ref = std::move(false_fn_ref),
+             arg_refs = std::move(arg_refs),
+             result_refs = std::move(result_refs)]() mutable {
+              if (ReturnAfterHandlingError(condition_async_tensor, result_refs))
+                return;
 
-          auto &tensor = condition_async_tensor->get<Tensor>();
-          AsyncValueRef<HostTensor> condition_host_tensor =
-              AsyncValueRef<HostTensor>(
-                  ConvertTensor(exec_ctx, tensor, *src_device_ref,
-                                exec_ctx.host()->GetHostDevice(),
-                                DenseHostTensor::kTensorType));
+              auto &tensor = condition_async_tensor->get<Tensor>();
+              AsyncValueRef<HostTensor> condition_host_tensor =
+                  AsyncValueRef<HostTensor>(
+                      ConvertTensor(exec_ctx, tensor, *src_device_ref,
+                                    exec_ctx.host()->GetHostDevice(),
+                                    DenseHostTensor::kTensorType));
 
-          condition_host_tensor.AndThen(
-              [condition_host_tensor = condition_host_tensor.CopyRef(),
-               exec_ctx, if_impl, true_fn_ref = std::move(true_fn_ref),
-               false_fn_ref = std::move(false_fn_ref),
-               arg_refs = std::move(arg_refs),
-               result_refs = std::move(result_refs)]() mutable {
-                if (ReturnAfterHandlingError(
-                        condition_host_tensor.GetAsyncValue(), result_refs))
-                  return;
+              condition_host_tensor.AndThen(
+                  [condition_host_tensor = condition_host_tensor.CopyRef(),
+                   exec_ctx, if_impl, true_fn_ref = std::move(true_fn_ref),
+                   false_fn_ref = std::move(false_fn_ref),
+                   arg_refs = std::move(arg_refs),
+                   result_refs = std::move(result_refs)]() mutable {
+                    if (ReturnAfterHandlingError(
+                            condition_host_tensor.GetAsyncValue(), result_refs))
+                      return;
 
-                if_impl(*condition_host_tensor, true_fn_ref.get(),
-                        false_fn_ref.get(), arg_refs.values(), result_refs,
-                        exec_ctx);
-              });
-        });
-  });
+                    if_impl(*condition_host_tensor, true_fn_ref.get(),
+                            false_fn_ref.get(), arg_refs.values(), result_refs,
+                            exec_ctx);
+                  });
+            });
+      });
 }
 
 // TODO(fishx): Take device object as an argument instead of attribute.
@@ -710,11 +712,23 @@ static void CoreRtWhileLoopIteration(
 
     AsyncValue *condition_async_tensor =
         condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+    auto src_device_ref =
+        condition_tensorhandle->get<TensorHandle>().CopyRefDevice();
+    if (!src_device_ref->IsDeviceType(CpuDevice::kDeviceType)) {
+      RCReference<ErrorAsyncValue> error_value = EmitErrorAsync(
+          exec_ctx, StrCat(MakeStringError(
+                        "non-cpu device for condition tensor handle")));
+      for (auto &result : result_refs) {
+        result->SetError(error_value->GetError());
+      }
+      return;
+    }
 
     // TODO(hanbinyoon): Remove this extra level of asynchrony after
     // b/162752746 is fixed.
     condition_async_tensor->AndThen(
         [condition_tensorhandle_ref = std::move(condition_tensorhandle_ref),
+         src_device_ref = std::move(src_device_ref),
          exec_ctx = std::move(exec_ctx), cond_fn_ref = std::move(cond_fn_ref),
          body_fn_ref = std::move(body_fn_ref), arg_refs = std::move(arg_refs),
          result_refs = std::move(result_refs)]() mutable {
@@ -724,13 +738,29 @@ static void CoreRtWhileLoopIteration(
           if (ReturnAfterHandlingError(condition_async_tensor, result_refs))
             return;
 
-          // TODO(hanbinyoon): Handle other tensor types. Currently assumes
-          // dense host tensor or string host tensor.
-          auto &condition_tensor = condition_async_tensor->get<Tensor>();
-          CoreRtWhileLoopIterationImpl(
-              exec_ctx, condition_tensor, std::move(cond_fn_ref),
-              std::move(body_fn_ref), std::move(arg_refs),
-              std::move(result_refs));
+          auto &tensor = condition_async_tensor->get<Tensor>();
+          AsyncValueRef<HostTensor> condition_host_tensor =
+              AsyncValueRef<HostTensor>(
+                  ConvertTensor(exec_ctx, tensor, *src_device_ref,
+                                exec_ctx.host()->GetHostDevice(),
+                                DenseHostTensor::kTensorType));
+
+          condition_host_tensor.AndThen(
+              [condition_host_tensor = condition_host_tensor.CopyRef(),
+               exec_ctx = std::move(exec_ctx),
+               cond_fn_ref = std::move(cond_fn_ref),
+               body_fn_ref = std::move(body_fn_ref),
+               arg_refs = std::move(arg_refs),
+               result_refs = std::move(result_refs)]() mutable {
+                if (ReturnAfterHandlingError(
+                        condition_host_tensor.GetAsyncValue(), result_refs))
+                  return;
+
+                CoreRtWhileLoopIterationImpl(
+                    exec_ctx, *condition_host_tensor, std::move(cond_fn_ref),
+                    std::move(body_fn_ref), std::move(arg_refs),
+                    std::move(result_refs));
+              });
         });
   });
 }

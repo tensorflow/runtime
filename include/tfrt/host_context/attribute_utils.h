@@ -296,6 +296,28 @@ class StringAttr : public internal::AttrHeaderBase<StringAttr, BEFStringAttr> {
   }
 };
 
+// FuncAttr holds the function names as strings. This attribute is separated
+// from StringAttr so that clients (such as TensorFlow runtime fallback)
+// can handle separately.
+//
+// Currently we ignore the attributes in a TensorFlow function op, which is
+// different from current TensorFlow runtime. This is acceptable since these
+// attributes are unused.
+class FuncAttr : public internal::AttrHeaderBase<FuncAttr, BEFStringAttr> {
+ public:
+  using Base::Base;
+
+  string_view GetFunctionName() const {
+    return string_view(
+        reinterpret_cast<const char*>(header().data),
+        GetBEFAttrByteCount(header().base) - sizeof(BEFAttrBase));
+  }
+
+  static bool classof(TypedAttrBase base) {
+    return base.type() == BEFAttributeType::kFunc;
+  }
+};
+
 class ShapeAttr : public internal::AttrHeaderBase<ShapeAttr, BEFShapeAttr> {
  public:
   using Base::Base;

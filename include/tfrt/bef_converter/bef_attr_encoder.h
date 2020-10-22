@@ -45,6 +45,11 @@ class BEFTypedAttributeEncoder : public BEFEmitter {
   llvm::Error EncodeStringListAttr(const void* const* values,
                                    const size_t* lengths, int num_values);
 
+  llvm::Error EncodeFuncAttr(string_view sv);
+
+  llvm::Error EncodeFuncListAttr(const void* const* values,
+                                 const size_t* lengths, int num_values);
+
  private:
   void EncodeAttrBase(BEFAttributeType type, size_t byte_count);
 

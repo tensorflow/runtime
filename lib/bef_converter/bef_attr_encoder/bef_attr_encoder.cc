@@ -105,6 +105,22 @@ llvm::Error BEFTypedAttributeEncoder::EncodeStringAttr(string_view sv) {
   return llvm::Error::success();
 }
 
+llvm::Error BEFTypedAttributeEncoder::EncodeFuncAttr(string_view sv) {
+  size_t length = sv.size();
+  size_t byte_count = sizeof(BEFAttrBase) + sizeof(uint8_t) * length;
+  // Here we directly cast the BEFDataType to BEFAttributeType. This is fine as
+  // we explicitly reserve the entire range of valid BEFDataType values in
+  // BEFAttributeType.
+  //
+  // TODO(tfrt-dev): Revisit the design of BEFAttributeType to avoid
+  // static_cast.
+  EncodeAttrBase(static_cast<BEFAttributeType>(BEFAttributeType::kFunc),
+                 byte_count);
+  EmitBytes(
+      llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(sv.data()), length));
+  return llvm::Error::success();
+}
+
 // Encode a list of attributes as an aggregate attribute in BEF. The `emitter`
 // will be called with the indices sequentially and is expected to emit the
 // bytes for this element and return the offset.
@@ -168,6 +184,22 @@ llvm::Error BEFTypedAttributeEncoder::EncodeStringListAttr(
       num_values, [&](int index) -> llvm::Expected<BEFAggregateAttrOffset32_t> {
         BEFTypedAttributeEncoder elem_encoder;
         if (auto error = elem_encoder.EncodeStringAttr(string_view(
+                static_cast<const char*>(values[index]), lengths[index]))) {
+          return std::move(error);
+        }
+        EmitAlignment(elem_encoder.GetRequiredAlignment());
+        BEFAggregateAttrOffset32_t offset = AssertAttrFieldSize32(size());
+        EmitEmitter(elem_encoder);
+        return offset;
+      });
+}
+
+llvm::Error BEFTypedAttributeEncoder::EncodeFuncListAttr(
+    const void* const* values, const size_t* lengths, int num_values) {
+  return EncodeListAttr(
+      num_values, [&](int index) -> llvm::Expected<BEFAggregateAttrOffset32_t> {
+        BEFTypedAttributeEncoder elem_encoder;
+        if (auto error = elem_encoder.EncodeFuncAttr(string_view(
                 static_cast<const char*>(values[index]), lengths[index]))) {
           return std::move(error);
         }

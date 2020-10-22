@@ -242,6 +242,8 @@ enum class BEFAttributeType : uint16_t {
       static_cast<uint8_t>(BEFDataType::kComplex128) | kDenseAttributeType,
 
   kAggregate = kAggregateAttributeType,
+
+  kFunc,
 };
 static_assert(static_cast<uint16_t>(BEFAttributeType::kLastScalarType) <=
                   kScalarAttributeTypeMask,
@@ -263,6 +265,10 @@ inline bool IsScalarAttribute(BEFAttributeType type) {
 inline bool IsDataTypeAttribute(BEFAttributeType type) {
   return type >= BEFAttributeType::kFirstDataType &&
          type <= BEFAttributeType::kLastDataType;
+}
+
+inline bool IsFuncAttribute(BEFAttributeType type) {
+  return type == BEFAttributeType::kFunc;
 }
 
 inline BEFAttributeType GetDenseAttributeType(BEFDataType element_type) {

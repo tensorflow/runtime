@@ -114,6 +114,11 @@ class ArrayAttribute {
   ArrayRef<T> data_;
 };
 
+// FunctionAttribute holds the function name. Can be extended in the future.
+struct FunctionAttribute {
+  string_view func_name;
+};
+
 // TypedAttrBase is the base class for all typed attributes below. It provides
 // llvm style cast (isa, cast, dyn_cast, etc) for efficient down-casting to
 // subclasses.

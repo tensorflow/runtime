@@ -138,6 +138,33 @@ TEST(OpAttrsTest, DenseAttr) {
   ASSERT_EQ(tensor_view3[1], 1.0f);
 }
 
+TEST(OpAttrsTest, FuncAttr) {
+  // Create a Function attribute.
+  FunctionAttribute func_attr{"mighty_function"};
+
+  // OpAttrs::Set should copy the bytes.
+  auto attrs = std::make_unique<OpAttrs>();
+  // Scalar too large to fit inline.
+  ASSERT_TRUE(attrs->SetFunc("func", func_attr));
+
+  // OpAttrs::Get after OpAttrs::Set works.
+  string_view func_attr_str;
+  ASSERT_TRUE(attrs->GetFuncName("func", &func_attr_str));
+
+  ASSERT_EQ(func_attr_str, "mighty_function");
+
+  // OpAttrs::Freeze puts a copy on the heap.
+  OpAttrsRef frozen_attrs = attrs->freeze();
+
+  // Deallocate the original attrs.
+  attrs.reset();
+
+  // OpAttrsRef::Get on the frozen attrs still works.
+  string_view func_attr_str1;
+  ASSERT_TRUE(frozen_attrs.GetFuncName("func", &func_attr_str1));
+  ASSERT_EQ(func_attr_str1, "mighty_function");
+}
+
 TEST(OpAttrsTest, Array) {
   std::vector<float> values_float = {true, false};
   ArrayRef<float> values_float_ref(values_float);

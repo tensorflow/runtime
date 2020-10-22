@@ -179,6 +179,8 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       ShapeAttr shape_attr(data);
       return {shape_attr.size(), ShapeAttr::Alignment()};
     }
+    case OpAttrType::FUNC:
+      return {sizeof(char), alignof(char)};
     case OpAttrType::BF16:
       return {sizeof(bf16), alignof(bf16)};
     case OpAttrType::F16:
@@ -210,6 +212,8 @@ const char *GetNameString(OpAttrType type) {
       return "DENSE";
     case OpAttrType::SHAPE:
       return "SHAPE";
+    case OpAttrType::FUNC:
+      return "FUNC";
     case OpAttrType::BF16:
       return "BF16";
     case OpAttrType::F16:
@@ -743,6 +747,10 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
       os << ">";
       break;
     }
+    case OpAttrType::FUNC:
+      os << GetNameString(OpAttrType::FUNC);
+      os << " function_name: " << *static_cast<const char *>(ptr);
+      break;
     case OpAttrType::BF16:
       assert(0 && "cannot print bf16 yet.");
       break;

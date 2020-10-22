@@ -189,6 +189,7 @@ enum class BEFDataType : uint8_t {
   kComplex64,
   kComplex128,
   kString,
+  kFunc,
 
   // Right now we only support following two types as type attribute.
   kResource,

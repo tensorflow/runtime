@@ -42,6 +42,8 @@ enum class OpAttrType : uint8_t {
   AGGREGATE,
   DENSE,
   SHAPE,
+  // Function attribute.
+  FUNC,
   BF16,
   F16,
   I1,

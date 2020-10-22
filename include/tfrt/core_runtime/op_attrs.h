@@ -283,8 +283,7 @@ class OpAttrs final {
     return true;
   }
 
-  // Read an array attribute when it is known to exist. This asserts on
-  // failure.
+  // Read a string attribute when it is known to exist. This asserts on failure.
   string_view GetStringAsserting(string_view attr_name) const {
     string_view value;
     bool success = GetString(attr_name, &value);
@@ -296,6 +295,44 @@ class OpAttrs final {
   Optional<string_view> GetStringOptional(string_view attr_name) const {
     string_view value;
     bool success = GetString(attr_name, &value);
+    if (success) {
+      return value;
+    } else {
+      return llvm::None;
+    }
+  }
+
+  // Support string_views as aliases of ArrayRef<char> in Get/Set.
+  bool SetFunc(string_view attr_name, FunctionAttribute value) {
+    auto ar{ArrayRef<char>(value.func_name.data(), value.func_name.size())};
+    return SetRaw(attr_name, ar.data(), ar.size(), OpAttrType::FUNC);
+  }
+
+  bool GetFuncName(string_view attr_name, string_view* value) const {
+    ArrayRef<char> value_ar;
+    const OpAttrsRawEntry* result = GetRaw(attr_name);
+    if (!result || !result->IsArray() || result->type != OpAttrType::FUNC)
+      return false;
+
+    value_ar = ArrayRef<char>(reinterpret_cast<const char*>(result->data),
+                              result->array_size);
+    *value = string_view(value_ar.data(), value_ar.size());
+    return true;
+  }
+
+  // Read a function attribute when it is known to exist. This asserts on
+  // failure.
+  string_view GetFuncNameAsserting(string_view attr_name) const {
+    string_view value;
+    bool success = GetFuncName(attr_name, &value);
+    assert(success);
+    (void)success;
+    return value;
+  }
+
+  Optional<string_view> GetFuncNameOptional(string_view attr_name) const {
+    string_view value;
+    bool success = GetFuncName(attr_name, &value);
     if (success) {
       return value;
     } else {
@@ -515,6 +552,38 @@ class OpAttrsRef {
   Optional<string_view> GetStringOptional(string_view attr_name) const {
     string_view value;
     bool success = GetString(attr_name, &value);
+    if (success) {
+      return value;
+    } else {
+      return llvm::None;
+    }
+  }
+
+  bool GetFuncName(string_view attr_name, string_view* value) const {
+    ArrayRef<char> value_ar;
+    const OpAttrsRawEntry* result = GetRaw(attr_name);
+    if (!result || !result->IsArray() || result->type != OpAttrType::FUNC)
+      return false;
+
+    value_ar = ArrayRef<char>(reinterpret_cast<const char*>(result->data),
+                              result->array_size);
+    *value = string_view(value_ar.data(), value_ar.size());
+    return true;
+  }
+
+  // Read a function attribute when it is known to exist. This asserts on
+  // failure.
+  string_view GetFuncNameAsserting(string_view attr_name) const {
+    string_view value;
+    bool success = GetFuncName(attr_name, &value);
+    assert(success);
+    (void)success;
+    return value;
+  }
+
+  Optional<string_view> GetFuncNameOptional(string_view attr_name) const {
+    string_view value;
+    bool success = GetFuncName(attr_name, &value);
     if (success) {
       return value;
     } else {

@@ -92,14 +92,13 @@ llvm::Error BEFTypedAttributeEncoder::EncodeRankedShapeAttr(
 llvm::Error BEFTypedAttributeEncoder::EncodeStringAttr(string_view sv) {
   size_t length = sv.size();
   size_t byte_count = sizeof(BEFAttrBase) + sizeof(uint8_t) * length;
-  // Here we directly cast the BEFDataType to BEFAttributeType. This is fine as
-  // we explicitly reserve the entire range of valid BEFDataType values in
+  // Here we directly cast the DType::Kind to BEFAttributeType. This is fine as
+  // we explicitly reserve the entire range of valid DType::Kind values in
   // BEFAttributeType.
   //
   // TODO(tfrt-dev): Revisit the design of BEFAttributeType to avoid
   // static_cast.
-  EncodeAttrBase(static_cast<BEFAttributeType>(BEFDataType::kString),
-                 byte_count);
+  EncodeAttrBase(static_cast<BEFAttributeType>(DType::String), byte_count);
   EmitBytes(
       llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(sv.data()), length));
   return llvm::Error::success();

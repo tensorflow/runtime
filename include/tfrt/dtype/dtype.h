@@ -38,16 +38,14 @@ namespace tfrt {
 
 class DType {
  public:
-  enum Kind {
-    // Invalid type that is used by default constructor. A Tensor should never
-    // use this type.
-    Invalid,
-    // Valid types that are not natively supported by TFRT.
-    Unsupported,
-    Unsupported_Resource,
-    Unsupported_Variant,
-#define DTYPE(ENUM) ENUM,
+  enum Kind : uint8_t {
+    Invalid = 0,
+    FirstDType = 1,
+#define DTYPE(ENUM, VALUE) ENUM = VALUE,
 #include "tfrt/dtype/dtype.def"
+    LastDType,
+    // Valid types that are not natively supported by TFRT.
+    Unsupported = LastDType,
     // TODO(b/170482990): Unify BOOL and I1.
     BOOL = I1,
   };
@@ -65,8 +63,7 @@ class DType {
   bool IsValid() const { return kind_ != Invalid; }
   bool IsInvalid() const { return kind_ == Invalid; }
   bool IsUnsupported() const {
-    return kind_ == Unsupported || kind_ == Unsupported_Resource ||
-           kind_ == Unsupported_Variant;
+    return kind_ == Unsupported || kind_ == Resource || kind_ == Variant;
   }
 
   // Get the name for the dtype, e.g. i32, f32.
@@ -131,7 +128,7 @@ TFRT_DEFINE_DTYPE_INTERNAL(UI8, uint8_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI16, uint16_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI32, uint32_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI64, uint64_t)
-// TODO(b/170482990): Unify BOOL and I1. And use tfrt::i1 as the cpp type.
+// TODO(b/170482990): Unify I1 and BOOL, and use tfrt::i1 as the cpp type.
 TFRT_DEFINE_DTYPE_INTERNAL(I1, bool)
 // TFRT_DEFINE_DTYPE_INTERNAL(BOOL, bool)
 TFRT_DEFINE_DTYPE_INTERNAL(I8, int8_t)
@@ -144,9 +141,9 @@ TFRT_DEFINE_DTYPE_INTERNAL(F32, float)
 TFRT_DEFINE_DTYPE_INTERNAL(F64, double)
 // TODO(tfrt-devs): Consider creating a special CPP string type for TFRT.
 TFRT_DEFINE_DTYPE_INTERNAL(String, std::string)
-TFRT_DEFINE_DTYPE_INTERNAL(COMPLEX64,
+TFRT_DEFINE_DTYPE_INTERNAL(Complex64,
                            std::complex<float>)  // Single precision complex.
-TFRT_DEFINE_DTYPE_INTERNAL(COMPLEX128,
+TFRT_DEFINE_DTYPE_INTERNAL(Complex128,
                            std::complex<double>)  // Double precision complex.
 // LINT.ThenChange(//depot/tf_runtime/include/tfrt/dtype/dtype.def)
 

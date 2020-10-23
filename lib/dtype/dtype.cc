@@ -28,10 +28,10 @@ namespace tfrt {
 const char *DType::GetName() const {
   switch (kind_) {
     case Invalid:
-      return "invalid";
+      return "Invalid";
     case Unsupported:
-    case Unsupported_Resource:
-    case Unsupported_Variant:
+    case Resource:
+    case Variant:
       return "unsupported";
     case UI8:
       return "u8";
@@ -56,9 +56,9 @@ const char *DType::GetName() const {
       return "f32";
     case F64:
       return "f64";
-    case COMPLEX64:
+    case Complex64:
       return "complex64";
-    case COMPLEX128:
+    case Complex128:
       return "complex128";
     case F16:
       return "f16";
@@ -76,8 +76,8 @@ size_t DType::GetHostSize() const {
       assert(0 && "invalid dtype has no size");
       return ~size_t(0);
     case Unsupported:
-    case Unsupported_Resource:
-    case Unsupported_Variant:
+    case Resource:
+    case Variant:
       assert(0 && "unsupported dtype has no size");
       return ~size_t(0);
     case String:
@@ -88,10 +88,10 @@ size_t DType::GetHostSize() const {
       return sizeof(TypeForDTypeKind<DType::BF16>);
     case I1:
       return sizeof(TypeForDTypeKind<DType::I1>);
-    case COMPLEX64:
-      return sizeof(TypeForDTypeKind<DType::COMPLEX64>);
-    case COMPLEX128:
-      return sizeof(TypeForDTypeKind<DType::COMPLEX128>);
+    case Complex64:
+      return sizeof(TypeForDTypeKind<DType::Complex64>);
+    case Complex128:
+      return sizeof(TypeForDTypeKind<DType::Complex128>);
 #define DTYPE_NUMERIC(ENUM) \
   case ENUM:                \
     return sizeof(TypeForDTypeKind<DType::ENUM>);
@@ -106,8 +106,8 @@ size_t DType::GetHostAlignment() const {
       assert(0 && "invalid dtype has no alignment");
       return ~size_t(0);
     case Unsupported:
-    case Unsupported_Resource:
-    case Unsupported_Variant:
+    case Resource:
+    case Variant:
       assert(0 && "unspupported dtype has no alignment");
       return ~size_t(0);
     case String:
@@ -119,10 +119,10 @@ size_t DType::GetHostAlignment() const {
       return alignof(TypeForDTypeKind<DType::BF16>);
     case I1:
       return alignof(TypeForDTypeKind<DType::I1>);
-    case COMPLEX64:
-      return alignof(TypeForDTypeKind<DType::COMPLEX64>);
-    case COMPLEX128:
-      return alignof(TypeForDTypeKind<DType::COMPLEX128>);
+    case Complex64:
+      return alignof(TypeForDTypeKind<DType::Complex64>);
+    case Complex128:
+      return alignof(TypeForDTypeKind<DType::Complex128>);
 #define DTYPE_NUMERIC(ENUM) \
   case ENUM:                \
     return alignof(TypeForDTypeKind<DType::ENUM>);
@@ -135,8 +135,8 @@ void DType::Print(const void *data, raw_ostream &os) const {
   switch (kind()) {
     case DType::Invalid:
     case DType::Unsupported:
-    case DType::Unsupported_Resource:
-    case DType::Unsupported_Variant:
+    case DType::Resource:
+    case DType::Variant:
       llvm_unreachable("can't happen");
     case DType::BF16:
       os << "Does not support printing bf16.";
@@ -147,21 +147,21 @@ void DType::Print(const void *data, raw_ostream &os) const {
     case DType::String:
       os << *static_cast<const TypeForDTypeKind<DType::String> *>(data);
       break;
-    case DType::COMPLEX64:
+    case DType::Complex64:
       os << "("
-         << static_cast<const TypeForDTypeKind<DType::COMPLEX64> *>(data)
+         << static_cast<const TypeForDTypeKind<DType::Complex64> *>(data)
                 ->real()
          << ","
-         << static_cast<const TypeForDTypeKind<DType::COMPLEX64> *>(data)
+         << static_cast<const TypeForDTypeKind<DType::Complex64> *>(data)
                 ->imag()
          << ")";
       break;
-    case DType::COMPLEX128:
+    case DType::Complex128:
       os << "("
-         << static_cast<const TypeForDTypeKind<DType::COMPLEX128> *>(data)
+         << static_cast<const TypeForDTypeKind<DType::Complex128> *>(data)
                 ->real()
          << ","
-         << static_cast<const TypeForDTypeKind<DType::COMPLEX128> *>(data)
+         << static_cast<const TypeForDTypeKind<DType::Complex128> *>(data)
                 ->imag()
          << ")";
       break;
@@ -177,8 +177,8 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
   switch (kind()) {
     case DType::Invalid:
     case DType::Unsupported:
-    case DType::Unsupported_Resource:
-    case DType::Unsupported_Variant:
+    case DType::Resource:
+    case DType::Variant:
       llvm_unreachable("can't happen");
     case DType::BF16:
       os << "Does not support printing bf16.";
@@ -192,21 +192,21 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
     case DType::String:
       os << *static_cast<const TypeForDTypeKind<DType::String> *>(data);
       break;
-    case DType::COMPLEX64:
+    case DType::Complex64:
       os << "("
-         << static_cast<const TypeForDTypeKind<DType::COMPLEX64> *>(data)
+         << static_cast<const TypeForDTypeKind<DType::Complex64> *>(data)
                 ->real()
          << ","
-         << static_cast<const TypeForDTypeKind<DType::COMPLEX64> *>(data)
+         << static_cast<const TypeForDTypeKind<DType::Complex64> *>(data)
                 ->imag()
          << ")";
       break;
-    case DType::COMPLEX128:
+    case DType::Complex128:
       os << "("
-         << static_cast<const TypeForDTypeKind<DType::COMPLEX128> *>(data)
+         << static_cast<const TypeForDTypeKind<DType::Complex128> *>(data)
                 ->real()
          << ","
-         << static_cast<const TypeForDTypeKind<DType::COMPLEX128> *>(data)
+         << static_cast<const TypeForDTypeKind<DType::Complex128> *>(data)
                 ->imag()
          << ")";
       break;
@@ -232,13 +232,11 @@ raw_ostream &operator<<(raw_ostream &os, DType dtype) {
       os << "<invalid dtype>";
       break;
     case DType::Unsupported:
-    case DType::Unsupported_Resource:
-    case DType::Unsupported_Variant:
       os << "<unsupported dtype>";
       break;
-#define DTYPE(ENUM) \
-  case DType::ENUM: \
-    os << #ENUM;    \
+#define DTYPE(ENUM, _) \
+  case DType::ENUM:    \
+    os << #ENUM;       \
     break;
 #include "tfrt/dtype/dtype.def"
   }

@@ -25,22 +25,22 @@
 // type.
 
 // LINT.IfChange
-// All DTypes.
+// The macros below define all TFRT dtypes.
+// DTYPE(ENUM, VALUE).
 #ifdef DTYPE
-// Add more dtypes as necessary.
-DTYPE(UI8)
-DTYPE(UI16)
-DTYPE(UI32)
-DTYPE(UI64)
-DTYPE(I1)
-DTYPE(I8)
-DTYPE(I16)
-DTYPE(I32)
-DTYPE(I64)
-DTYPE(F32)
-DTYPE(F64)
-DTYPE(COMPLEX64)
-DTYPE(COMPLEX128)
+DTYPE(UI8,        1)
+DTYPE(UI16,       2)
+DTYPE(UI32,       3)
+DTYPE(UI64,       4)
+DTYPE(I1,         5)
+DTYPE(I8,         6)
+DTYPE(I16,        7)
+DTYPE(I32,        8)
+DTYPE(I64,        9)
+DTYPE(F32,        10)
+DTYPE(F64,        11)
+DTYPE(Complex64,  12)
+DTYPE(Complex128, 13)
 
 //===----------------------------------------------------------------------===//
 // Non-trivial types
@@ -51,16 +51,18 @@ DTYPE(COMPLEX128)
 // real implementation type.
 
 // Compact 16-bit encoding of floating point numbers.
-DTYPE(F16)
+DTYPE(F16,        14)
 
 // Compact 16-bit encoding bfloat16 brain floating point numbers.
-DTYPE(BF16)
+DTYPE(BF16,       15)
 
 //===----------------------------------------------------------------------===//
 // Non-POD types
 //===----------------------------------------------------------------------===//
 
-DTYPE(String)
+DTYPE(String,     16)
+DTYPE(Resource,   17)
+DTYPE(Variant,    18)
 
 #undef DTYPE
 #endif

@@ -31,72 +31,6 @@
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
-namespace {
-
-BEFDataType ConvertTensorDTypeToBEFDataType(DType dtype) {
-  switch (dtype.kind()) {
-    case DType::BOOL:
-      return BEFDataType::kI1;
-    case DType::UI8:
-      return BEFDataType::kUI8;
-    case DType::I8:
-      return BEFDataType::kI8;
-    case DType::I16:
-      return BEFDataType::kI16;
-    case DType::I32:
-      return BEFDataType::kI32;
-    case DType::I64:
-      return BEFDataType::kI64;
-    case DType::BF16:
-      return BEFDataType::kBF16;
-    case DType::F16:
-      return BEFDataType::kF16;
-    case DType::F32:
-      return BEFDataType::kF32;
-    case DType::F64:
-      return BEFDataType::kF64;
-    case DType::COMPLEX64:
-      return BEFDataType::kComplex64;
-    default:
-      llvm_unreachable("unsupported dtype.");
-  }
-}
-
-}  // namespace
-
-DType ConvertBEFDataTypeToTensorDType(BEFDataType kind) {
-  switch (kind) {
-    case BEFDataType::kI1:
-      return DType(DType::BOOL);
-    case BEFDataType::kI8:
-      return DType(DType::I8);
-    case BEFDataType::kI16:
-      return DType(DType::I16);
-    case BEFDataType::kI32:
-      return DType(DType::I32);
-    case BEFDataType::kI64:
-      return DType(DType::I64);
-    case BEFDataType::kUI8:
-      return DType(DType::UI8);
-    case BEFDataType::kBF16:
-      return DType(DType::BF16);
-    case BEFDataType::kF16:
-      return DType(DType::F16);
-    case BEFDataType::kF32:
-      return DType(DType::F32);
-    case BEFDataType::kF64:
-      return DType(DType::F64);
-    case BEFDataType::kComplex64:
-      return DType(DType::COMPLEX64);
-    // TODO(tf-runtime-team): Support the missing dtypes in tensor.
-    case BEFDataType::kUI16:
-    case BEFDataType::kUI32:
-    case BEFDataType::kUI64:
-    case BEFDataType::kComplex128:
-    default:
-      llvm_unreachable("unsupported dtype.");
-  }
-}
 
 // TODO(tfrt-devs): Consider creating a custom buffer with 8-byte
 // alignment for the tensor data instead of using std::vector<uint64_t>.
@@ -108,8 +42,7 @@ std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
   const auto& buf = *dht.buffer();
 
   BEFDenseAttr header;
-  header.base.type =
-      GetDenseAttributeType(ConvertTensorDTypeToBEFDataType(md.dtype));
+  header.base.type = GetDenseAttributeType(md.dtype.kind());
   header.rank = AssertAttrFieldSize16(md.shape.GetRank());
   header.num_elements = AssertAttrFieldSize32(md.shape.GetNumElements());
 
@@ -143,8 +76,7 @@ std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
 
 llvm::Expected<DenseHostTensor> DeserializeDenseHostTensorFromDenseAttr(
     DenseAttr attr, HostContext* host) {
-  DType dtype = ConvertBEFDataTypeToTensorDType(attr.dtype());
-  TensorMetadata md(dtype, attr.shape());
+  TensorMetadata md(DType(attr.dtype()), attr.shape());
 
   auto result_alloc = DenseHostTensor::CreateUninitialized(md, host);
   if (!result_alloc) {
@@ -162,8 +94,7 @@ TensorMetadata CreateTensorMetadata(const DenseAttr& attr) {
 }
 
 DenseView CreateDenseView(const DenseAttr& attr) {
-  auto dtype = ConvertBEFDataTypeToTensorDType(attr.dtype());
-  return DenseView(dtype, attr.shape(), attr.GetElements());
+  return DenseView(DType(attr.dtype()), attr.shape(), attr.GetElements());
 }
 
 // Write value to location in little endian manner.

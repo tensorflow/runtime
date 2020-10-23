@@ -53,22 +53,22 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
       (void)r;
     } else if (IsDataTypeAttribute(attribute_type)) {
       switch (GetDataType(attribute_type)) {
-        case BEFDataType::kI1:
+        case DType::I1:
           op_attrs->Set(key, attr.cast<I1Attr>().GetValue());
           break;
-        case BEFDataType::kI32:
+        case DType::I32:
           op_attrs->Set(key, attr.cast<I32Attr>().GetValue());
           break;
-        case BEFDataType::kI64:
+        case DType::I64:
           op_attrs->Set(key, attr.cast<I64Attr>().GetValue());
           break;
-        case BEFDataType::kF32:
+        case DType::F32:
           op_attrs->Set(key, attr.cast<F32Attr>().GetValue());
           break;
-        case BEFDataType::kF64:
+        case DType::F64:
           op_attrs->Set(key, attr.cast<F64Attr>().GetValue());
           break;
-        case BEFDataType::kString:
+        case DType::String:
           op_attrs->SetString(key, attr.cast<StringAttr>().GetValue());
           break;
         default:
@@ -78,8 +78,8 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
       switch (attribute_type) {
         case BEFAttributeType::kType: {
           auto type_attr = attr.cast<TypeAttr>();
-          BEFDataType type = type_attr.GetValue();
-          op_attrs->Set(key, GetOpAttrTypeFromBEFDataType(type));
+          DType::Kind type = type_attr.GetValue();
+          op_attrs->Set(key, GetOpAttrTypeFromDType(type));
           break;
         }
         case BEFAttributeType::kShape:

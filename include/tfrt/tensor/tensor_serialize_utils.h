@@ -47,8 +47,6 @@ std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
 llvm::Expected<DenseHostTensor> DeserializeDenseHostTensorFromDenseAttr(
     DenseAttr attr, HostContext* host);
 
-DType ConvertBEFDataTypeToTensorDType(BEFDataType kind);
-
 TensorMetadata CreateTensorMetadata(const DenseAttr& attr);
 
 DenseView CreateDenseView(const DenseAttr& attr);

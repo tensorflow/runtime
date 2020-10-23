@@ -84,13 +84,11 @@ RCReference<SliceDataset<DenseHostTensor>> MakeDatasetFromValues(
 // Create a dataset that yields the specified range.
 RCReference<RangeDataset> MakeRangeDataset(int64_t start, int64_t stop,
                                            int64_t step,
-                                           Attribute<uint8_t> element_type,
+                                           Attribute<DType::Kind> element_type,
                                            const ExecutionContext& exec_ctx) {
   assert(step != 0 && "step size cannot be 0");
-  auto dtype = ConvertBEFDataTypeToTensorDType(
-      static_cast<BEFDataType>(element_type.get()));
   return TakeRef(exec_ctx.host()->Construct<RangeDataset>(
-      start, stop, step, dtype, exec_ctx.host()));
+      start, stop, step, DType(element_type.get()), exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//

@@ -113,7 +113,7 @@ using NumericAndComplex = typename internal::GetTypeDispatch<
     DType::UI8, DType::UI16, DType::UI32, DType::UI64,
     DType::I8,  DType::I16,  DType::I32,  DType::I64,
     DType::F16, DType::F32,  DType::F64,
-    DType::COMPLEX64, DType::COMPLEX128>::Type;
+    DType::Complex64, DType::Complex128>::Type;
 // clang-format on
 
 template <typename Functor, bool complex = true>

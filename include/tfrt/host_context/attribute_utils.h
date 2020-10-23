@@ -176,7 +176,7 @@ class AttrHeaderBase : public TypedAttrBase {
 // An intermediate class template for all fixed-width attributes. It provides
 // the common GetValue() method for all fixed-width attributes.
 template <typename DataTypeAttrClass, typename HeaderType,
-          BEFDataType DataTypeEnum, typename DataType>
+          DType::Kind DataTypeEnum, typename DataType>
 class DataTypeAttrBase : public AttrHeaderBase<DataTypeAttrClass, HeaderType> {
  public:
   using AttrHeaderBase<DataTypeAttrClass, HeaderType>::AttrHeaderBase;
@@ -197,48 +197,46 @@ class DataTypeAttrBase : public AttrHeaderBase<DataTypeAttrClass, HeaderType> {
 }  // namespace internal
 
 class I1Attr : public internal::DataTypeAttrBase<I1Attr, BEFFixed8Attr,
-                                                 BEFDataType::kI1, uint8_t> {
+                                                 DType::I1, uint8_t> {
  public:
   using Base::Base;
 
-  // TODO(chky): I1Attr should return tfrt::i1 directly once BEFDataType
-  // is unified with tfrt::Dtype.
+  // TODO(chky): I1Attr should return tfrt::i1 directly.
   bool GetValue() const { return static_cast<bool>(Base::GetValue()); }
 };
 
 class I8Attr : public internal::DataTypeAttrBase<I8Attr, BEFFixed8Attr,
-                                                 BEFDataType::kI8, uint8_t> {
+                                                 DType::I8, uint8_t> {
  public:
   using Base::Base;
 };
 
 class I32Attr : public internal::DataTypeAttrBase<I32Attr, BEFFixed32Attr,
-                                                  BEFDataType::kI32, int32_t> {
+                                                  DType::I32, int32_t> {
  public:
   using Base::Base;
 };
 
 class F32Attr : public internal::DataTypeAttrBase<F32Attr, BEFFixed32Attr,
-                                                  BEFDataType::kF32, float> {
+                                                  DType::F32, float> {
  public:
   using Base::Base;
 };
 
 class I64Attr : public internal::DataTypeAttrBase<I64Attr, BEFFixed64Attr,
-                                                  BEFDataType::kI64, int64_t> {
+                                                  DType::I64, int64_t> {
  public:
   using Base::Base;
 };
 
-class BF16Attr
-    : public internal::DataTypeAttrBase<BF16Attr, BEFFixed16Attr,
-                                        BEFDataType::kBF16, uint16_t> {
+class BF16Attr : public internal::DataTypeAttrBase<BF16Attr, BEFFixed16Attr,
+                                                   DType::BF16, uint16_t> {
  public:
   using Base::Base;
 };
 
 class F64Attr : public internal::DataTypeAttrBase<F64Attr, BEFFixed64Attr,
-                                                  BEFDataType::kF64, double> {
+                                                  DType::F64, double> {
  public:
   using Base::Base;
 };
@@ -247,8 +245,8 @@ class TypeAttr : public internal::AttrHeaderBase<TypeAttr, BEFFixed8Attr> {
  public:
   using Base::Base;
 
-  BEFDataType GetValue() const {
-    return static_cast<BEFDataType>(header().data);
+  DType::Kind GetValue() const {
+    return static_cast<DType::Kind>(header().data);
   }
 
   static bool classof(TypedAttrBase base) {
@@ -297,7 +295,7 @@ class StringAttr : public internal::AttrHeaderBase<StringAttr, BEFStringAttr> {
 
   static bool classof(TypedAttrBase base) {
     return IsDataTypeAttribute(base.type()) &&
-           GetDataType(base.type()) == BEFDataType::kString;
+           GetDataType(base.type()) == DType::String;
   }
 };
 
@@ -363,7 +361,7 @@ class DenseAttr : public internal::AttrHeaderBase<DenseAttr, BEFDenseAttr> {
 
   static constexpr size_t Alignment() { return alignof(int64_t); }
 
-  BEFDataType dtype() const { return GetDataType(type()); }
+  DType::Kind dtype() const { return GetDataType(type()); }
 
   llvm::ArrayRef<ssize_t> shape() const {
     const auto* bytes = static_cast<const uint8_t*>(data());

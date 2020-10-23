@@ -63,50 +63,50 @@ int64_t OpAttrsRawEntry::GetNumElements(int64_t num_elements) {
   llvm_unreachable("num_elements value error");
 }
 
-OpAttrType GetOpAttrTypeFromBEFDataType(BEFDataType kind) {
-  // TODO(tfrt-devs): Unify BEFDataType, OpAttrType and tfrt::DType.
+OpAttrType GetOpAttrTypeFromDType(DType::Kind kind) {
+  // TODO(tfrt-devs): Unify BEFAttributeType, OpAttrType and tfrt::DType.
   switch (kind) {
-    case BEFDataType::kI1:
+    case DType::I1:
       return OpAttrType::BOOL;
-    case BEFDataType::kI8:
+    case DType::I8:
       return OpAttrType::I8;
-    case BEFDataType::kI16:
+    case DType::I16:
       return OpAttrType::I16;
-    case BEFDataType::kI32:
+    case DType::I32:
       return OpAttrType::I32;
-    case BEFDataType::kI64:
+    case DType::I64:
       return OpAttrType::I64;
-    case BEFDataType::kUI8:
+    case DType::UI8:
       return OpAttrType::UI8;
-    case BEFDataType::kUI16:
+    case DType::UI16:
       return OpAttrType::UI16;
-    case BEFDataType::kUI32:
+    case DType::UI32:
       return OpAttrType::UI32;
-    case BEFDataType::kUI64:
+    case DType::UI64:
       return OpAttrType::UI64;
-    case BEFDataType::kBF16:
+    case DType::BF16:
       return OpAttrType::BF16;
-    case BEFDataType::kF16:
+    case DType::F16:
       return OpAttrType::F16;
-    case BEFDataType::kF32:
+    case DType::F32:
       return OpAttrType::F32;
-    case BEFDataType::kF64:
+    case DType::F64:
       return OpAttrType::F64;
-    case BEFDataType::kComplex64:
+    case DType::Complex64:
       return OpAttrType::COMPLEX64;
-    case BEFDataType::kComplex128:
+    case DType::Complex128:
       return OpAttrType::COMPLEX128;
-    case BEFDataType::kString:
+    case DType::String:
       return OpAttrType::CHAR;
-    case BEFDataType::kResource:
+    case DType::Resource:
       return OpAttrType::UNSUPPORTED_RESOURCE;
-    case BEFDataType::kVariant:
+    case DType::Variant:
       return OpAttrType::UNSUPPORTED_VARIANT;
     default:
       break;
   }
 
-  llvm_unreachable("unsupported BEFDataType in Core Runtime.");
+  llvm_unreachable("unsupported DType in Core Runtime.");
 }
 
 // Return the OpAttrType converted from BEFAttributeType in BEF.
@@ -114,7 +114,7 @@ OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind) {
   if (IsDenseAttribute(kind)) return OpAttrType::DENSE;
 
   if (IsDataTypeAttribute(kind))
-    return GetOpAttrTypeFromBEFDataType(GetDataType(kind));
+    return GetOpAttrTypeFromDType(GetDataType(kind));
 
   switch (kind) {
     case BEFAttributeType::kAggregate:

@@ -220,6 +220,7 @@ tfrt_cc_library(
     ],
     visibility = [":friends"],
     deps = [
+        ":dtype",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
     ] + select({
@@ -279,6 +280,7 @@ tfrt_cc_library(
     ],
     visibility = [":friends"],
     deps = [
+        ":dtype",
         ":hostcontext",
         ":support",
         ":tracing",

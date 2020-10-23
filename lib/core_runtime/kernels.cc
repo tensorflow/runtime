@@ -120,8 +120,8 @@ static Chain OpAttrsSet(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static Chain OpAttrsSetDType(Argument<OpAttrs> attrs, StringAttribute key,
-                             Attribute<BEFDataType> value) {
-  attrs->Set(key, GetOpAttrTypeFromBEFDataType(*value));
+                             Attribute<DType::Kind> value) {
+  attrs->Set(key, GetOpAttrTypeFromDType(*value));
   return Chain();
 }
 

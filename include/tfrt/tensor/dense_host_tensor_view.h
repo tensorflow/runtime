@@ -62,10 +62,9 @@ class DHTArrayView {
   // (like Eigen or libxssm).
   size_t NumElements() const { return dht_.DataSizeInBytes() / sizeof(DType); }
 
-  const DType* data() const {
-    assert(dht_.data() && "dereferencing a null host tensor");
-    return static_cast<const DType*>(dht_.data());
-  }
+  // The pointer to the data. If there is no elements, the returned pointer is
+  // undefined.
+  const DType* data() const { return static_cast<const DType*>(dht_.data()); }
 
   ArrayRef<DType> Elements() const {
     return ArrayRef<DType>(data(), NumElements());
@@ -100,8 +99,10 @@ class MutableDHTArrayView : public DHTArrayView<DType> {
     std::fill(data(), data() + this->NumElements(), v);
   }
   using DHTArrayView<DType>::data;
+
+  // The pointer to the data. If there is no elements, the returned pointer is
+  // undefined.
   DType* data() {
-    assert(this->dht_.data() && "dereferencing a null host tensor");
     return const_cast<DType*>(static_cast<const DType*>(this->dht_.data()));
   }
 

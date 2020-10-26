@@ -356,8 +356,9 @@ Expected<CompiledContractionOutputKernel> Compile(
                                                      target_machine->get());
 
   // Build MLIR exection engine.
-  auto engine = mlir::ExecutionEngine::create(*module, transformer,
-                                              opts.jit_code_opt_level, libs);
+  auto engine =
+      mlir::ExecutionEngine::create(*module, /*llvmModuleBuilder=*/nullptr,
+                                    transformer, opts.jit_code_opt_level, libs);
   if (!engine) return engine.takeError();
 
   return CompiledContractionOutputKernel(

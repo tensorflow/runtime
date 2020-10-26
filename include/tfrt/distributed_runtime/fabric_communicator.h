@@ -69,6 +69,16 @@ struct RemoteExecuteInvocationResult {
 struct RemoteRegisterInvocation {
   string_view program;       // The body of the program to be registered
   string_view program_name;  // The name of the program to be registered
+  bool need_compilation;     // Whether to perform compilation
+};
+
+struct RemoteRegisterInvocationResult {
+  // Invocation status.
+  Error error;
+  llvm::SmallVector<std::string, 4> output_device;
+
+  RemoteRegisterInvocationResult() = delete;
+  explicit RemoteRegisterInvocationResult(Error e) : error(std::move(e)) {}
 };
 
 // Define the handler for various incoming requests that are received by
@@ -80,8 +90,11 @@ class FabricCommunicatorRequestHandler {
  public:
   virtual ~FabricCommunicatorRequestHandler() {}
 
-  virtual Error HandleRemoteRegister(
-      const RemoteRegisterInvocation& request) = 0;
+  using RemoteRegisterCallbackFn = llvm::unique_function<void(
+      std::unique_ptr<RemoteRegisterInvocationResult>)>;
+  virtual void HandleRemoteRegister(const RemoteRegisterInvocation& request,
+                                    RemoteRegisterCallbackFn done) = 0;
+
   using RemoteExecuteCallbackFn = llvm::unique_function<void(
       std::unique_ptr<RemoteExecuteInvocationResult>)>;
   virtual void HandleRemoteExecute(const RemoteExecuteInvocation& request,
@@ -109,9 +122,11 @@ class FabricCommunicator {
 
   // The callback will be called once the program has been successfully
   // registered in the destination.
+  using RemoteRegisterCallbackFn = llvm::unique_function<void(
+      std::unique_ptr<RemoteRegisterInvocationResult>)>;
   virtual void RemoteRegister(HostId destination,
                               const RemoteRegisterInvocation& request,
-                              CallbackFn done) = 0;
+                              RemoteRegisterCallbackFn done) = 0;
 
   // The callback will be called once a response is received from the
   // destination. This might not mean the actual execution has completed in

@@ -20,6 +20,10 @@
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Module.h"
+#include "mlir/Parser.h"
+#include "tfrt/compiler/compiler_pass.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/distributed_kernels.h"
@@ -28,6 +32,7 @@
 #include "tfrt/distributed_runtime/request_handler.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/init_tfrt_dialects.h"
 
 namespace tfrt {
 
@@ -43,8 +48,14 @@ class TestRequestHandler : public FabricCommunicatorRequestHandler {
       : handler_(context.CopyRef()) {}
   ~TestRequestHandler() final {}
 
-  Error HandleRemoteRegister(const RemoteRegisterInvocation& request) final {
-    return handler_.HandleRemoteRegister(request);
+  void HandleRemoteRegister(const RemoteRegisterInvocation& request,
+                            RemoteRegisterCallbackFn done) final {
+    handler_.HandleRemoteRegister(
+        request,
+        [done = std::move(done)](
+            std::unique_ptr<RemoteRegisterInvocationResult> result) mutable {
+          done(std::move(result));
+        });
   }
 
   void HandleRemoteExecute(const RemoteExecuteInvocation& request,
@@ -125,6 +136,44 @@ void TestPrintRemoteExecuteSpec(const RemoteExecuteSpec& id,
   tfrt::outs() << "]\n";
 }
 
+class FakeCompilerPass : public CompilerPass {
+ public:
+  ~FakeCompilerPass() override {}
+  FakeCompilerPass(string_view compiled_program,
+                   const llvm::SmallVector<std::string, 4>& output_devices)
+      : compiled_program_(compiled_program), output_devices_(output_devices) {
+    RegisterTFRTDialects(context_.getDialectRegistry());
+    context_.allowUnregisteredDialects();
+  }
+
+  llvm::Expected<CompilationOutput> Compile(
+      mlir::ModuleOp module) const override {
+    CompilationOutput output;
+    output.module = mlir::parseSourceString(compiled_program_, &context_);
+    output.output_devices = output_devices_;
+
+    return std::move(output);
+  }
+
+ private:
+  mutable mlir::MLIRContext context_;
+  std::string compiled_program_;
+  llvm::SmallVector<std::string, 4> output_devices_;
+};
+
+void TestRegisterFakeCompilerPass(RemainingArguments inputs,
+                                  StringAttribute compiled_program,
+                                  StringAttribute compiler_pass_name,
+                                  const ExecutionContext& exec_ctx) {
+  llvm::SmallVector<std::string, 4> output_devices;
+  for (int i = 0; i < inputs.size(); ++i) {
+    output_devices.push_back(inputs[i]->get<std::string>());
+  }
+  RegisterCompilerPass(
+      compiler_pass_name.str(),
+      new FakeCompilerPass(compiled_program.get(), output_devices));
+}
+
 }  // namespace
 
 void RegisterDistributedTestKernels(KernelRegistry* registry) {
@@ -136,6 +185,8 @@ void RegisterDistributedTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestPrintRemoteObjectId));
   registry->AddKernel("tfrt_dist.test_print_remote_execute_spec",
                       TFRT_KERNEL(TestPrintRemoteExecuteSpec));
+  registry->AddKernel("tfrt_dist.test_register_fake_compiler_pass",
+                      TFRT_KERNEL(TestRegisterFakeCompilerPass));
 }
 
 }  // namespace tfrt

@@ -29,6 +29,8 @@
 namespace tfrt {
 // A specification for remote_execute kernel calls.
 struct RemoteExecuteSpec {
+  RemoteExecuteSpec(llvm::SmallVectorImpl<RCReference<Device>>&& output_devices)
+      : output_devices(std::move(output_devices)) {}
   // IDEA: Added a way to efficiently represent multiple identical devices.
   // List of output devices where the outputs of remote execute kernel will
   // reside.

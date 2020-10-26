@@ -449,40 +449,76 @@ void Broadcast(Argument<DistributedContext> dist_context,
       });
 }
 
-AsyncValueRef<Chain> RemoteRegisterKernel(Chain ch,
-                                          DistributedContext* dist_context,
-                                          HostId receiver,
-                                          StringAttribute program,
-                                          StringAttribute program_name,
-                                          const ExecutionContext& exec_ctx) {
+void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
+                                HostId receiver, RemainingResults results,
+                                StringAttribute program,
+                                StringAttribute program_name,
+                                bool need_compilation,
+                                const ExecutionContext& exec_ctx) {
   RemoteRegisterInvocation request;
   // program and program_name will live as long as out_chain is not populated.
   request.program = program.get();
   request.program_name = program_name.get();
+  request.need_compilation = need_compilation;
 
-  AsyncValueRef<Chain> out_chain =
-      MakeConstructedAsyncValueRef<Chain>(exec_ctx.host());
+  RCReference<AsyncValue> out;
+  if (need_compilation) {
+    out = MakeUnconstructedAsyncValueRef<RemoteExecuteSpec>(exec_ctx.host());
+  } else {
+    out = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
+  }
+  results[0] = out.CopyRef();
 
-  EnqueueWork(exec_ctx, [receiver, request, dist_context,
-                         out_chain = out_chain.CopyRef()]() mutable {
+  EnqueueWork(exec_ctx, [receiver, request, dist_context, need_compilation,
+                         out = out.CopyRef()]() mutable {
     dist_context->GetOrCreateFabricCommunicator()->RemoteRegister(
-        receiver, request, [out_chain = out_chain.CopyRef()](Error e) mutable {
-          if (e) {
-            out_chain.SetError(std::move(e));
+        receiver, request,
+        [out = out.CopyRef(), need_compilation, dist_context](
+            std::unique_ptr<RemoteRegisterInvocationResult> result) mutable {
+          if (result->error) {
+            out->SetError(DecodedDiagnostic(std::move(result->error)));
           } else {
-            out_chain.SetStateConcrete();
+            if (need_compilation) {
+              DeviceManager* manager =
+                  dist_context->GetHostContext()->GetDeviceManager();
+              llvm::SmallVector<RCReference<Device>, 4> output_devices;
+              output_devices.reserve(result->output_device.size());
+              for (const std::string& device_str : result->output_device) {
+                RCReference<Device> device =
+                    manager->GetDeviceRef<Device>(device_str);
+                output_devices.push_back(device.CopyRef());
+              }
+              out->emplace<RemoteExecuteSpec>(std::move(output_devices));
+            } else {
+              out->emplace<Chain>();
+            }
           }
         });
   });
+}
 
-  return out_chain;
+void RemoteRegisterKernel(Chain ch, DistributedContext* dist_context,
+                          HostId receiver, RemainingResults results,
+                          StringAttribute program, StringAttribute program_name,
+                          const ExecutionContext& exec_ctx) {
+  RemoteRegisterKernelHelper(ch, dist_context, receiver, results, program,
+                             program_name, /*need_compilation=*/false,
+                             exec_ctx);
+}
+
+void RegisterTFProgramKernel(Chain ch, DistributedContext* dist_context,
+                             HostId receiver, RemainingResults results,
+                             StringAttribute program,
+                             StringAttribute program_name,
+                             const ExecutionContext& exec_ctx) {
+  RemoteRegisterKernelHelper(ch, dist_context, receiver, results, program,
+                             program_name, /*need_compilation=*/true, exec_ctx);
 }
 
 AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
     RemainingArguments inputs, const ExecutionContext& exec_ctx) {
-  AsyncValueRef<RemoteExecuteSpec> value =
-      MakeAvailableAsyncValueRef<RemoteExecuteSpec>(exec_ctx.host());
-  value->output_devices.reserve(inputs.size());
+  llvm::SmallVector<RCReference<Device>, 4> output_devices;
+  output_devices.reserve(inputs.size());
   for (int i = 0; i < inputs.size(); ++i) {
     const std::string& device_str = inputs[i]->get<std::string>();
     RCReference<Device> device =
@@ -492,9 +528,10 @@ AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
       return MakeErrorAsyncValueRef(exec_ctx.host(),
                                     StrCat("Can't find device: ", device_str));
     }
-    value->output_devices.push_back(device.CopyRef());
+    output_devices.push_back(device.CopyRef());
   }
-  return value;
+  return MakeAvailableAsyncValueRef<RemoteExecuteSpec>(
+      exec_ctx.host(), std::move(output_devices));
 }
 
 void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
@@ -675,6 +712,8 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(RemoteExecuteTHPreallocatedKernel));
   registry->AddKernel("tfrt_dist.remote_register",
                       TFRT_KERNEL(RemoteRegisterKernel));
+  registry->AddKernel("tfrt_dist.register_tf_function",
+                      TFRT_KERNEL(RegisterTFProgramKernel));
 }
 
 }  // namespace tfrt

@@ -138,6 +138,27 @@ def CreateConfigurations : DistOp<"test_create_configurations"> {
   let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
 }
 
+def RegisterFakeCompilerPass : DistOp<"test_register_fake_compiler_pass"> {
+  let summary = "tfrt_dist.test_register_fake_compiler_pass operation";
+
+  let description = [{
+    A test kernel that registers a fake compiler pass with hard-coded output.
+
+    Example:
+      tfrt_dist.test_register_fake_compiler_pass "pass_name" "lowered_output"
+      (%output_device1, %output_device2)
+  }];
+
+  let arguments = (ins
+    StrAttr:$compiler_pass_name,
+    StrAttr:$compiled_program,
+    Variadic<StringType>:$output_devices
+  );
+
+  let assemblyFormat = [{
+      $compiler_pass_name $compiled_program `(` $output_devices `)` attr-dict
+  }];}
+
 def CreateDistributedContext : DistOp<"test_create_distributed_context"> {
   let summary = "tfrt_dist.test_create_distributed_context config";
 
@@ -175,6 +196,7 @@ def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+// TODO(bramandia): Rename to register_tfrt_program
 def RemoteRegisterOp :  DistOp<"remote_register"> {
   let summary = "tfrt_dist.remote_register operation";
   let description = [{
@@ -195,6 +217,34 @@ def RemoteRegisterOp :  DistOp<"remote_register"> {
   );
   let results = (outs
     TFRT_ChainType:$out_op_chain
+  );
+
+  let assemblyFormat = [{
+      `(` $in_op_chain`,` $context`,` $host_id `)` $program_name $program attr-dict
+  }];
+}
+
+def RegisterTFProgramOp :  DistOp<"register_tf_function"> {
+  let summary = "dist.register_tf_function operation";
+  let description = [{
+    Register a program on a remote location. Returns the execution spec.
+
+    "program" has to be a string representing MLIR in TF dialect
+
+    Example:
+      %spec = dist.register_tf_function (%in_chain, %context, %id)
+          "program" "program_name"
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    DistributedContextType:$context,
+    I32:$host_id,
+    StrAttr:$program,
+    StrAttr:$program_name
+  );
+  let results = (outs
+    RemoteExecuteSpecType:$out_spec
   );
 
   let assemblyFormat = [{

@@ -25,8 +25,14 @@
 
 #include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/IR/MLIRContext.h"
+#include "mlir/IR/Module.h"
+#include "mlir/Parser.h"
 #include "tfrt/bef_converter/mlir_src_to_bef.h"
+#include "tfrt/bef_converter/mlir_to_bef.h"
 #include "tfrt/bef_executor/bef_file.h"
+#include "tfrt/compiler/compiler_pass.h"
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -40,6 +46,9 @@
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
 namespace tfrt {
+namespace {
+const char* kCompilerPassName = "partition_tf_dialect";
+}  // namespace
 // TODO(bramandia): Replace this with TFRT FunctionLibrary once available.
 class RequestHandler::FunctionCache {
  public:
@@ -130,17 +139,56 @@ RequestHandler::RequestHandler(AsyncValueRef<DistributedContext> context)
 
 RequestHandler::~RequestHandler() {}
 
-Error RequestHandler::HandleRemoteRegister(
-    const RemoteRegisterInvocation& request) {
-  auto bef_buffer = ConvertMLIRSrcToBEF(request.program,
-                                        /* disable_optional_sections = */ true);
+void RequestHandler::HandleRemoteRegister(
+    const RemoteRegisterInvocation& request, RemoteRegisterCallbackFn done) {
+  auto response =
+      std::make_unique<RemoteRegisterInvocationResult>(Error::success());
+  BEFBuffer bef_buffer;
+  if (request.need_compilation) {
+    // Create MLIR module from the request.
+    mlir::MLIRContext context;
+    context.allowUnregisteredDialects();
+    auto module = mlir::parseSourceString(request.program, &context);
+
+    const CompilerPass* pass = GetCompilerPass(kCompilerPassName);
+    if (pass == nullptr) {
+      TFRT_LOG(ERROR) << "Not implemented";
+      response->error = llvm::make_error<NotFoundErrorInfo>(
+          StrCat("Compiler pass not found for program: ", request.program_name),
+          dist_ctx()->GetTaskName());
+      done(std::move(response));
+      return;
+    }
+    llvm::Expected<CompilerPass::CompilationOutput> output_or =
+        pass->Compile(module.get());
+    if (!output_or) {
+      response->error = llvm::make_error<CompilationFailedErrorInfo>(
+          StrCat("Failed to convert MLIR to BEF: ", request.program_name),
+          dist_ctx()->GetTaskName());
+      done(std::move(response));
+      return;
+    }
+
+    CompilerPass::CompilationOutput output = std::move(output_or.get());
+    bef_buffer = ConvertMLIRToBEF(output.module.get(),
+                                  /* disable_optional_sections = */ true);
+    for (const auto& output_device : output.output_devices) {
+      response->output_device.push_back(output_device);
+    }
+  } else {
+    bef_buffer = ConvertMLIRSrcToBEF(request.program,
+                                     /* disable_optional_sections = */ true);
+  }
   if (bef_buffer.empty()) {
-    return llvm::make_error<MalformattedMlirFileErrorInfo>(
+    response->error = llvm::make_error<MalformattedMlirFileErrorInfo>(
         StrCat("Failed to convert MLIR to BEF: ", request.program_name),
         dist_ctx()->GetTaskName());
+    done(std::move(response));
+    return;
   }
-  return function_cache_->Register(request.program_name.str(),
-                                   std::move(bef_buffer));
+  response->error = function_cache_->Register(request.program_name.str(),
+                                              std::move(bef_buffer));
+  done(std::move(response));
 }
 
 void RequestHandler::HandleRemoteExecute(const RemoteExecuteInvocation& request,

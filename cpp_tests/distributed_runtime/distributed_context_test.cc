@@ -54,7 +54,7 @@ class MockCommunicator : public FabricCommunicator {
 
   MOCK_METHOD(void, RemoteRegister,
               (HostId destination, const RemoteRegisterInvocation& request,
-               CallbackFn done),
+               RemoteRegisterCallbackFn done),
               (override));
 
   MOCK_METHOD(void, RemoteExecute,

@@ -1074,12 +1074,18 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":befexecutor",
+        ":compiler_pass",
         ":core_runtime",
         ":hostcontext",
         ":mlir_src_to_bef",
+        ":mlirtobef",
         ":support",
         ":tensor",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:StandardOps",
     ],
 )
 
@@ -1095,12 +1101,17 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/distributed_runtime/kernels_static_registration.cc",
     visibility = [":friends"],
     deps = [
+        ":compiler_pass",
         ":core_runtime",
         ":distributed_runtime",
         ":hostcontext",
+        ":init_tfrt_dialects",
         ":support",
         ":tensor",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )
@@ -1145,6 +1156,22 @@ tfrt_cc_library(
         ":tensor_opdefs",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
+    ],
+)
+
+tfrt_cc_library(
+    name = "compiler_pass",
+    srcs = [
+        "lib/compiler/compiler_pass.cc",
+    ],
+    hdrs = [
+        "include/tfrt/compiler/compiler_pass.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
     ],
 )
 

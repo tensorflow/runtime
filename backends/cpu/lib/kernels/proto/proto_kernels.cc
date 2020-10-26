@@ -34,7 +34,7 @@ static AsyncValueRef<tfrt::proto::Example> ParseExampleFromBytes(
 
   return EnqueueWork(
       exec_ctx, [data = data.ValueRef(), exec_ctx]() -> ReturnTy {
-        TFRT_TRACE_SCOPE("ParseExampleFromBytes");
+        TFRT_TRACE_SCOPE(Default, "ParseExampleFromBytes");
         tfrt::proto::Example example;
         if (!example.ParseFromString(data.get())) {
           auto diag =
@@ -53,7 +53,7 @@ static AsyncValueRef<std::string> GetBytesFieldFromExample(
   return EnqueueWork(exec_ctx,
                      [example = example.ValueRef(), key = key.ValueRef(),
                       exec_ctx]() -> ReturnTy {
-                       TFRT_TRACE_SCOPE("GetBytesFieldFromExample");
+                       TFRT_TRACE_SCOPE(Default, "GetBytesFieldFromExample");
                        const auto& feature_map = example->features().feature();
                        if (!feature_map.contains(key.get())) {
                          auto diag = EmitError(exec_ctx, "key ", key.get(),

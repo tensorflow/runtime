@@ -78,7 +78,7 @@ static llvm::Error CallCublasGemm(stream::CurrentContext current,
                                   uint64_t n, const gpu::DenseGpuTensor& a,
                                   const gpu::DenseGpuTensor& b,
                                   GpuBuffer* result) {
-  TFRT_TRACE_SCOPE("CublasGemm");
+  TFRT_TRACE_SCOPE(Default, "CublasGemm");
   // Blas expects matrices in column major.
   // Use C' = B' x A' (' stands for transpose)
   // clang-format off
@@ -127,7 +127,7 @@ static llvm::Expected<DenseGpuTensor> GpuMatmulOp(
     GpuDispatchContext* dctx, const gpu::DenseGpuTensor& a,
     const gpu::DenseGpuTensor& b, const OpAttrsRef& attrs,
     const TensorMetadata& result_md) {
-  TFRT_TRACE_SCOPE("GpuMatmulOp");
+  TFRT_TRACE_SCOPE(Default, "GpuMatmulOp");
 
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
   TFRT_ASSIGN_OR_RETURN(RCReference<GpuBuffer> buffer,

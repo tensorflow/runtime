@@ -489,7 +489,8 @@ void BEFExecutor::DecrementArgumentsNotReadyCounts(
       // kernel_fn should populate results in kernel_frame with pointers to
       // AsyncValue before it returns.
       {
-        TFRT_TRACE_KERNEL_SCOPE(BefFile()->GetKernelName(kernel.kernel_code()));
+        TFRT_TRACE_SCOPE(Default,
+                         BefFile()->GetKernelName(kernel.kernel_code()));
         kernel_fn(&kernel_frame);
       }
     } else {

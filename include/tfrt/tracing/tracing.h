@@ -186,28 +186,18 @@ class TracingScope {
 
 #ifndef TFRT_DISABLE_TRACING
 #define __TFRT_TRACE_GET_LEVEL(level) tfrt::tracing::TracingLevel::level
-#define TFRT_TRACE_SCOPE_LEVEL(level, message)                               \
+#define TFRT_TRACE_SCOPE(level, message)                                     \
   ::tfrt::tracing::TracingScope tracing_scope(__TFRT_TRACE_GET_LEVEL(level), \
                                               [&] { return message; })
-#define TFRT_TRACE_EVENT_LEVEL(level, message)                       \
+#define TFRT_TRACE_EVENT(level, message)                             \
   ::tfrt::tracing::RecordTracingEvent(__TFRT_TRACE_GET_LEVEL(level), \
                                       [&] { return message; })
-
-// TODO(xldrx): Replace TFRT_TRACE_* with TFRT_TRACE_*_LEVEL
-#define TFRT_TRACE_SCOPE(message) TFRT_TRACE_SCOPE_LEVEL(Default, message)
-#define TFRT_TRACE_EVENT(message) TFRT_TRACE_EVENT_LEVEL(Default, message)
-#define TFRT_TRACE_KERNEL_SCOPE(message) \
-  TFRT_TRACE_SCOPE_LEVEL(Default, message)
-#define TFRT_TRACE_KERNEL_EVENT(message) \
-  TFRT_TRACE_EVENT_LEVEL(Default, message)
 
 #else  // TFRT_DISABLE_TRACING
 // Note: the above macro definitions would generate the same code as these stubs
 // because IsTracingEnabled() always returns false and all code is eliminated.
-#define TFRT_TRACE_SCOPE(message)
-#define TFRT_TRACE_EVENT(message)
-#define TFRT_TRACE_KERNEL_SCOPE(message)
-#define TFRT_TRACE_KERNEL_EVENT(message)
+#define TFRT_TRACE_SCOPE(level, message)
+#define TFRT_TRACE_EVENT(level, message)
 #endif  // TFRT_DISABLE_TRACING
 
 #endif  // TFRT_TRACING_TRACING_H_

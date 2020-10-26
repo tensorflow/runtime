@@ -74,7 +74,7 @@ int RunBefExecutor(
         HostContext*, ResourceContext*)>& create_execution_context) {
   assert(create_execution_context);
 
-  TFRT_TRACE_SCOPE("Bef Executor");
+  TFRT_TRACE_SCOPE(Default, "Bef Executor");
   metrics::AddTFRTVersionMetric();
 
   // Set up the input file.
@@ -260,7 +260,7 @@ static void PrintResult(const TypeName& type_name, const ValueType& result) {
 
 static void RunSyncBefFunctionHelper(const ExecutionContext& exec_ctx,
                                      const Function* function) {
-  TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", function->name()));
+  TFRT_TRACE_SCOPE(Default, StrCat("Function: ", function->name()));
 
   llvm::SmallVector<Value, 4> results;
   results.resize(function->result_types().size());
@@ -301,7 +301,7 @@ static void RunSyncBefFunctionHelper(const ExecutionContext& exec_ctx,
 static void RunAsyncBefFunctionHelper(const ExecutionContext& exec_ctx,
                                       const Function* function,
                                       bool print_error_code) {
-  TFRT_TRACE_KERNEL_SCOPE(StrCat("Function: ", function->name()));
+  TFRT_TRACE_SCOPE(Default, StrCat("Function: ", function->name()));
 
   // Kick off an execution of the function body.
   llvm::SmallVector<RCReference<AsyncValue>, 4> results;

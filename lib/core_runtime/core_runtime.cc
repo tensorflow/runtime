@@ -233,8 +233,8 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
   return CoreRuntimeOp(
       [op_name = op_name.str(), op = std::move(op.get()),
        op_handler](const OpInvocation& invocation) {
-        TFRT_TRACE_KERNEL_SCOPE(
-            StrCat(op_name, "#op_handler=", op_handler->GetName()));
+        TFRT_TRACE_SCOPE(
+            Default, StrCat(op_name, "#op_handler=", op_handler->GetName()));
         op(invocation);
       },
       is_fallback, std::move(device), op->GetTensorType());

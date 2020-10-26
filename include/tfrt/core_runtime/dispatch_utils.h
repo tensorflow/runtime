@@ -345,7 +345,7 @@ template <typename OpHandlerTraits>
   // Finally, run the dispatch function.
   AsyncValueRef<Chain> op_chain;
   {
-    TFRT_TRACE_SCOPE(StrCat("RunDispatch: ", op_entry.op_name));
+    TFRT_TRACE_SCOPE(Default, StrCat("RunDispatch: ", op_entry.op_name));
 
     OpHandlerTraits::Dispatch(op_entry, op_handler_info, arg_tensors, attrs,
                               result_mds, *results, &op_chain, exec_ctx);

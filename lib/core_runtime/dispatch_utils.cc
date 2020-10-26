@@ -73,7 +73,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
 
   // TODO(tfrt-devs): Remove this tracing tag when finished debugging
   // dispatch performance.
-  TFRT_TRACE_SCOPE("RunMetadataFunction");
+  TFRT_TRACE_SCOPE(Default, "RunMetadataFunction");
   if (auto error = metadata_fn(invocation.exec_ctx, argument_mds,
                                invocation.attrs, result_mds)) {
     // If the metadata function produced an error, propagate it.

@@ -40,7 +40,7 @@ static AsyncValueRef<DenseHostTensor> DecodeJpeg(
 
   EnqueueWork(exec_ctx, [data = data.ValueRef(), output = output.CopyRef(),
                          exec_ctx] {
-    TFRT_TRACE_SCOPE("DecodeJpeg");
+    TFRT_TRACE_SCOPE(Default, "DecodeJpeg");
     if (!llvm::StringRef(data.get()).startswith("\xff\xd8\xff")) {
       auto diag = EmitError(exec_ctx, "image does not have jpeg format");
       output.SetError(diag);
@@ -83,7 +83,7 @@ static AsyncValueRef<DenseHostTensor> ResizeBilinear(
   return EnqueueWork(
       exec_ctx,
       [input = input.ValueRef(), height, width, exec_ctx]() -> ReturnTy {
-        TFRT_TRACE_SCOPE("ResizeBilinear");
+        TFRT_TRACE_SCOPE(Default, "ResizeBilinear");
         const TensorShape& shape = input->shape();
         if (shape.GetRank() != 3) {
           auto diag = EmitError(exec_ctx, "input tensor shape must be 3");

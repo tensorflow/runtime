@@ -40,7 +40,7 @@ IterationResult PrefetchingIterator::GetNext(const ExecutionContext& exec_ctx) {
         prefetch_buffer_.size() <
             prefetch_threshold_ + output_buffer_.size() + 1) {
       auto task = [iterator = FormRef(this), exec_ctx]() {
-        TFRT_TRACE_SCOPE("ReadIOSource");
+        TFRT_TRACE_SCOPE(Default, "ReadIOSource");
         iterator->ReadIOSource(exec_ctx);
       };
       // This call can fail if the work queue is full.

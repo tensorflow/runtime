@@ -72,10 +72,6 @@ class AsyncValue {
  public:
   ~AsyncValue();
 
-  // TODO: Rename Is* methods to be more consistent with the states. For example
-  // we can rename them to IsError(), IsConcrete(),
-  // IsUnavailableIndirect().
-
   // Return true if state is kUnconstructed.
   bool IsUnconstructed() const;
 

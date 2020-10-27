@@ -79,14 +79,6 @@ struct GpuOpHandlerTraits {
   using OpEntryTy = GpuOpEntry;
   using OpHandlerInfoTy = GpuOpHandler*;
 
-  static bool MaybeConvertTensor(const GpuOpEntry& op_entry,
-                                 GpuOpHandler* gpu_op_handler,
-                                 const Tensor& arg_tensor,
-                                 const ExecutionContext& exec_ctx,
-                                 RCReference<AsyncValue>* converted) {
-    return false;
-  }
-
   static void Dispatch(const GpuOpEntry& op_entry, GpuOpHandler* gpu_op_handler,
                        ArrayRef<AsyncValue*> inputs, const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,

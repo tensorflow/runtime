@@ -55,17 +55,8 @@ namespace tfrt {
 //
 //   // If this typedef is present, ExecuteOnOpHandler exposes an overload that
 //   // takes a value of `OpHandlerInfoTy` and pipes in this value to the
-//   // MaybeConvertTensor and Dispatch callbacks.
+//   // Dispatch callbacks.
 //   using OpHandlerInfoTy = ...;
-//
-//   // If `arg_tensor` needs to be convered to a op_handler specific format
-//   // then does so, stores the converted value in *converted and returns true.
-//   // Otherwise returns false and leaves *converted untouched.
-//   static bool MaybeConvertTensor(const OpEntryTy& op_entry,
-//                                  const OpHandlerInfoTy& op_handler_info,
-//                                  const Tensor& arg_tensor,
-//                                  const ExecutionContext& exec_ctx,
-//                                  RCReference<AsyncValue>* converted);
 //
 //   // Executes the op_handler specific dispatch function for the op
 //   // corresponding to `op_entry`.
@@ -200,11 +191,6 @@ class AsyncOpDispatcher {
  private:
   void PropagateError(AsyncValue* error);
 
-  bool MaybeConvertTensor(const Tensor& t, RCReference<AsyncValue>* converted) {
-    return OpHandlerTraits::MaybeConvertTensor(op_entry_, op_handler_info_, t,
-                                               exec_ctx_, converted);
-  }
-
   template <typename InputTensorTy>
   static InputTensorTy* GetInputTensor(const RCReference<AsyncValue>& arg) {
     return GetInputTensorHelper(arg, TypeTag<InputTensorTy>());
@@ -263,32 +249,10 @@ template <typename OpHandlerTraits>
 void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunction() {
   // Get pointers to the InputTensorTy to pass into the dispatch function.  We
   // may discover on the fly that we need a conversion.  If so, handle that too.
-  SmallVector<AsyncValue*, 4> async_args;
   for (auto& arg : arguments_) {
     // If any of the arguments ended up being an error, then propagate it and
     // bail out.
     if (arg->IsError()) return PropagateError(arg.get());
-
-    auto& arg_tensor = arg->template get<Tensor>();
-    RCReference<AsyncValue> copied_arg;
-
-    // If we need an argument conversion, then do that now.
-    if (MaybeConvertTensor(arg_tensor, &arg)) {
-      // If any tensor conversion ended up being an error, then propagate it and
-      // bail out.
-      if (arg->IsError()) return PropagateError(arg.get());
-      // If the argument conversion was async, then we have to wait for it.
-      if (arg->IsUnavailable()) async_args.push_back(arg.get());
-    }
-  }
-
-  // If any arguments required async conversions (e.g. copy off a op_handler),
-  // then we have to wait for those arguments to complete.
-  if (!async_args.empty()) {
-    RunWhenReady(async_args, [dispatch_info = std::move(*this)]() mutable {
-      dispatch_info.RunDispatchFunction();
-    });
-    return;
   }
 
   // Finally, run the dispatch function.
@@ -441,38 +405,9 @@ void ExecuteWithResultMetadataResolved(
     // errors through the slow path as well.
     if (!async_tensor->IsConcrete()) {
       async_args.push_back(async_tensor);
-      arg_tensors.push_back(argument.ReleaseTensorRef());
-      continue;
     }
 
-    // If the argument is already available, then we can check to see if it is a
-    // supported format, and issue a data copy eagerly if not.
-    auto& arg_tensor = async_tensor->get<Tensor>();
-
-    RCReference<AsyncValue> copy;
-    if (OpHandlerTraits::MaybeConvertTensor(op_entry, op_handler_info,
-                                            arg_tensor, exec_ctx, &copy)) {
-      if (copy->IsError()) {
-        // If any tensor conversion fails, set results to error.
-        result_tensor_avs->reserve(num_results);
-        for (size_t i = 0; i != num_results; ++i) {
-          (*result_md_avs)[i].SetError(copy->GetError());
-          auto diag_copy = copy->GetError();
-          result_tensor_avs->push_back(
-              MakeErrorAsyncValueRef(exec_ctx.host(), std::move(diag_copy)));
-        }
-        if (chain && *chain && update_chain) {
-          chain->SetError(copy->GetError());
-        }
-        return;
-      }
-      // If the copy itself was async, then remember to "and then" it.
-      if (copy->IsUnavailable()) async_args.push_back(copy.get());
-
-      arg_tensors.push_back(std::move(copy));
-    } else {
-      arg_tensors.push_back(argument.ReleaseTensorRef());
-    }
+    arg_tensors.push_back(argument.ReleaseTensorRef());
   }
 
   if (async_args.empty()) {

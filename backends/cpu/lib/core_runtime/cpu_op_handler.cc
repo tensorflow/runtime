@@ -158,14 +158,6 @@ struct CpuOpHandlerTraits {
   using OpEntryTy = CpuOpEntry;
   using OpHandlerInfoTy = CpuOpHandler*;
 
-  static bool MaybeConvertTensor(const CpuOpEntry& op_entry,
-                                 CpuOpHandler* cpu_op_handler,
-                                 const Tensor& arg_tensor,
-                                 const ExecutionContext& exec_ctx,
-                                 RCReference<AsyncValue>* converted) {
-    return false;
-  }
-
   static void Dispatch(const CpuOpEntry& op_entry, CpuOpHandler* cpu_op_handler,
                        ArrayRef<AsyncValue*> inputs, const OpAttrsRef& attrs,
                        ArrayRef<TensorMetadata> result_mds,

@@ -205,7 +205,7 @@ func @test_coo_scalar_mixed() -> !tfrt.chain {
 
   %e_handle = corert.executeop(%cpu) "tfrt_test.add"(%c_handle, %d_handle) : 1
 
-  // CHECK: ScalarHostTensor dtype = I32, shape = [1, 1], value = 2
+  // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [2]
   %ch2 = "corert.print_tensorhandle"(%e_handle, %ch1)
     : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 

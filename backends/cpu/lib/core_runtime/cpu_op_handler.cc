@@ -30,6 +30,7 @@
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/device.h"
 #include "tfrt/host_context/execution_context.h"
+#include "tfrt/support/logging.h"
 #include "tfrt/tensor/coo_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/host_tensor.h"
@@ -40,81 +41,116 @@
 #define DEBUG_TYPE "tfrt-cpu-op-op_handler"
 
 namespace tfrt {
-class CpuOpHandler : public OpHandler {
- public:
-  ~CpuOpHandler() override {}
-
-  Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
-
-  RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
-
- private:
-  const CpuOpRegistry op_registry_;
-  RCReference<Device> device_;
-
-  friend llvm::Expected<OpHandler*> CreateCpuOpHandler(
-      CoreRuntime* runtime, RCReference<Device> device, OpHandler* fallback);
-
-  explicit CpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
-                        CpuOpRegistry op_registry, RCReference<Device> device)
-      : OpHandler("cpu", runtime, fallback),
-        op_registry_(std::move(op_registry)),
-        device_(std::move(device)) {}
-};
 
 namespace {
 
 // If the specified tensor needs conversion to be compatible with CpuOpEntry,
-// then return the allowed format mask.
-uint32_t TensorNeedsConversion(const Tensor& t, const CpuOpEntry& entry) {
+// then return the target tensor type. Otherwise, return the original tensor
+// type.
+TensorType ArgumentTensorType(const Tensor& t, const CpuOpFlags& flags) {
   // DenseHostTensor is always supported.
-  // TODO(chenyin): remove allowed_formats. ConvertToHostTensor should only need
-  // tensor type.
-  uint32_t allowed_formats =
-      1 << static_cast<uint32_t>(Tensor::Subclass::DenseHost);
-  uint32_t allowed_types =
-      uint32_t{1} << static_cast<uint32_t>(DenseHostTensor::kTensorType.id());
+  auto result = DenseHostTensor::kTensorType;
 
-  if (entry.flags & CpuOpFlags::AllowsScalar) {
-    allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::ScalarHost);
-    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
-                         AnyScalarHostTensor::kTensorType.id());
+  if (flags & CpuOpFlags::AllowsScalar) {
+    auto type = AnyScalarHostTensor::kTensorType;
+    if (t.IsTensorType(type)) return type;
   }
 
-  if (entry.flags & CpuOpFlags::AllowsString) {
-    allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::StringHost);
-    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
-                         StringHostTensor::kTensorType.id());
+  if (flags & CpuOpFlags::AllowsCoo) {
+    auto type = CooHostTensor::kTensorType;
+    if (t.IsTensorType(type)) return type;
   }
 
-  if (entry.flags & CpuOpFlags::AllowsCoo) {
-    allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::CooHost);
-    allowed_types |= uint32_t{1}
-                     << static_cast<uint32_t>(CooHostTensor::kTensorType.id());
+  if (flags & CpuOpFlags::AllowsString) {
+    auto type = StringHostTensor::kTensorType;
+    if (t.IsTensorType(type)) return type;
+    if (t.dtype().kind() == DType::String &&
+        result == DenseHostTensor::kTensorType)
+      result = type;
   }
 
   // Note: TFLite tensors are deprecated and this path will be removed.
-  if (entry.flags & CpuOpFlags::AllowsTfLite) {
-    allowed_formats |= 1 << static_cast<uint32_t>(Tensor::Subclass::TFLiteHost);
-    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
-                         GetStaticTensorType("TFLiteHost").id());
-    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
-                         GetStaticTensorType("TFLiteStringHost").id());
+  if (flags & CpuOpFlags::AllowsTfLite) {
+    auto type = t.dtype().kind() == DType::String
+                    ? GetStaticTensorType("TFLiteStringHost")
+                    : GetStaticTensorType("TFLiteHost");
+    if (t.IsTensorType(type)) return type;
+    if (result == DenseHostTensor::kTensorType) result = type;
   }
 
-  if (entry.flags & CpuOpFlags::AllowsTfRuntimeFallback) {
-    allowed_types |= uint32_t{1} << static_cast<uint32_t>(
-                         GetStaticTensorType("RuntimeFallback").id());
+  if (flags & CpuOpFlags::AllowsTfRuntimeFallback) {
+    auto type = GetStaticTensorType("RuntimeFallback");
+    if (t.IsTensorType(type)) return type;
+    if (result == DenseHostTensor::kTensorType) result = type;
   }
 
-  // If the tensor is already in a supported format, then we're done.
-  if (allowed_types & uint32_t{1}
-                          << static_cast<uint32_t>(t.tensor_type().id()))
-    return 0;
+  return result;
+}
 
-  // Otherwise return the mask of supported formats so a conversion can be
-  // performed.
-  return allowed_formats;
+TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
+                                  const CpuOpFlags& flags,
+                                  CpuOpHandler* op_handler, TensorHandle arg) {
+  if (arg.IsError()) return arg;
+  RCReference<Device> device = op_handler->GetDeviceRef();
+  // We does not support implicit tensor conversion across device.
+  if (device.get() != &arg.device()) {
+    TFRT_LOG(WARNING) << "Cannot implict convert from device "
+                      << arg.device().name() << " to " << device->name();
+    return arg;
+  }
+
+  if (arg.GetAsyncTensor()->IsAvailable()) {
+    auto& tensor = arg.GetAsyncTensor()->get<Tensor>();
+    auto target_type = ArgumentTensorType(tensor, flags);
+    if (target_type == tensor.tensor_type()) return arg;
+    if (!op_handler->AllowImplicitConversion(tensor.tensor_type(),
+                                             target_type)) {
+      TFRT_LOG(WARNING) << "Cannot implict convert "
+                        << tensor.tensor_type().name() << " to "
+                        << target_type.name();
+      return arg;
+    }
+    return arg.TransferTo(exec_ctx, op_handler->GetDeviceRef(), target_type);
+  } else {
+    RCReference<IndirectAsyncValue> result_ind_av =
+        MakeIndirectAsyncValue(exec_ctx.host());
+    auto argument_tensor = AsyncValueRef<Tensor>(FormRef(arg.GetAsyncTensor()));
+    arg.GetAsyncTensor()->AndThen(
+        [exec_ctx, argument_tensor = std::move(argument_tensor),
+         result_ind_av = result_ind_av.CopyRef(), device = device.CopyRef(),
+         op_handler, flags]() mutable {
+          if (argument_tensor.IsError()) {
+            result_ind_av->ForwardTo(
+                RCReference<AsyncValue>(std::move(argument_tensor)));
+            return;
+          }
+          auto target_type = ArgumentTensorType(argument_tensor.get(), flags);
+          if (target_type == argument_tensor.get().tensor_type()) {
+            result_ind_av->ForwardTo(
+                RCReference<AsyncValue>(std::move(argument_tensor)));
+            return;
+          }
+          if (!op_handler->AllowImplicitConversion(
+                  argument_tensor.get().tensor_type(), target_type)) {
+            TFRT_LOG(WARNING) << "Cannot implicit convert "
+                              << argument_tensor->tensor_type().name() << " to "
+                              << target_type.name();
+            result_ind_av->ForwardTo(
+                RCReference<AsyncValue>(std::move(argument_tensor)));
+            return;
+          }
+          result_ind_av->ForwardTo(ConvertTensor(
+              exec_ctx, argument_tensor.get(), *device, *device, target_type));
+        });
+
+    if (arg.IsMetadataAvailable()) {
+      return TensorHandle(std::move(device), arg.GetAvailableMetadata(),
+                          AsyncValueRef<Tensor>(std::move(result_ind_av)));
+    } else {
+      return TensorHandle(std::move(device), arg.GetAsyncMetadata().CopyRef(),
+                          AsyncValueRef<Tensor>(std::move(result_ind_av)));
+    }
+  }
 }
 
 struct CpuOpHandlerTraits {
@@ -127,11 +163,6 @@ struct CpuOpHandlerTraits {
                                  const Tensor& arg_tensor,
                                  const ExecutionContext& exec_ctx,
                                  RCReference<AsyncValue>* converted) {
-    if (auto allowed_formats = TensorNeedsConversion(arg_tensor, op_entry)) {
-      *converted =
-          arg_tensor.ConvertToHostTensor(exec_ctx.host(), allowed_formats);
-      return true;
-    }
     return false;
   }
 
@@ -153,9 +184,9 @@ struct CpuOpHandlerTraits {
 
 }  // namespace
 
-llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
-                                              RCReference<Device> device,
-                                              OpHandler* fallback) {
+llvm::Expected<CpuOpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
+                                                 RCReference<Device> device,
+                                                 OpHandler* fallback) {
   if (!runtime) {
     return MakeStringError("Invalid Runtime");
   }
@@ -165,8 +196,23 @@ llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
       runtime, fallback, std::move(op_registry), std::move(device)));
   auto cpu_op_handler_ptr = cpu_op_handler.get();
   runtime->TakeOpHandler(std::move(cpu_op_handler));
+
+  cpu_op_handler_ptr->AddImplicitConversion(AnyScalarHostTensor::kTensorType,
+                                            DenseHostTensor::kTensorType);
+  cpu_op_handler_ptr->AddImplicitConversion(CooHostTensor::kTensorType,
+                                            DenseHostTensor::kTensorType);
+
   return cpu_op_handler_ptr;
 }
+
+const char* const CpuOpHandler::kName = "cpu";
+
+CpuOpHandler::CpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
+                           CpuOpRegistry op_registry,
+                           RCReference<Device> device)
+    : OpHandler(CpuOpHandler::kName, runtime, fallback),
+      op_registry_(std::move(op_registry)),
+      device_(std::move(device)) {}
 
 //===----------------------------------------------------------------------===//
 // Op Dispatch Implementation
@@ -187,12 +233,25 @@ Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
         assert(this->device_);
         bool update_chain = !(op_entry->flags & CpuOpFlags::NoSideEffects);
 
+        // Convert the argument tensors if needed.
+        for (auto& argument : invocation.arguments) {
+          argument = MaybeConvertArgument(invocation.exec_ctx, op_entry->flags,
+                                          this, std::move(argument));
+        }
+
         // TODO(fishx): ExecuteOnOpHandler should return void.
         ExecuteOnOpHandler<CpuOpHandlerTraits>(update_chain, invocation,
                                                *op_entry, this);
       },
       /*is_fallback=*/false, /*device=*/device_.CopyRef(),
       /*arg_tensor_type=*/DenseHostTensor::kTensorType);
+}
+
+void CpuOpHandler::AddImplicitConversion(TensorType src, TensorType dst) {
+  allowed_conversions.insert({src, dst});
+}
+bool CpuOpHandler::AllowImplicitConversion(TensorType src, TensorType dst) {
+  return allowed_conversions.contains({src, dst});
 }
 
 }  // namespace tfrt

@@ -26,15 +26,45 @@
 
 #include <memory>
 
+#include "llvm/ADT/SetVector.h"
 #include "tfrt/core_runtime/op_handler.h"
 #include "tfrt/cpu/core_runtime/cpu_op_registry.h"
 
 namespace tfrt {
+class CoreRuntime;
+class CoreRuntimeOp;
 class Device;
 
-llvm::Expected<OpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
-                                              RCReference<Device> device,
-                                              OpHandler* fallback);
+class CpuOpHandler : public OpHandler {
+ public:
+  static const char* const kName;
+  ~CpuOpHandler() override {}
+
+  Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
+
+  RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
+
+  void AddImplicitConversion(TensorType src, TensorType dst);
+
+  bool AllowImplicitConversion(TensorType src, TensorType dst);
+
+ private:
+  const CpuOpRegistry op_registry_;
+  RCReference<Device> device_;
+
+  llvm::SmallSetVector<TensorConversionFnRegistry::ConversionKey, 4>
+      allowed_conversions;
+
+  friend llvm::Expected<CpuOpHandler*> CreateCpuOpHandler(
+      CoreRuntime* runtime, RCReference<Device> device, OpHandler* fallback);
+
+  explicit CpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
+                        CpuOpRegistry op_registry, RCReference<Device> device);
+};
+
+llvm::Expected<CpuOpHandler*> CreateCpuOpHandler(CoreRuntime* runtime,
+                                                 RCReference<Device> device,
+                                                 OpHandler* fallback);
 
 }  // namespace tfrt
 

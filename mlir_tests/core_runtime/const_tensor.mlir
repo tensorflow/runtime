@@ -50,6 +50,18 @@ func @scalar_string_tensor() {
   tfrt.return
 }
 
+// CHECK-LABEL: --- Running 'splat_string_tensor'
+func @splat_string_tensor() {
+  %ch0 = tfrt.new.chain
+
+  %a = corert.const_string_tensor {shape = [2], value = ["string"]}
+
+  // CHECK: shape = [2], values = ["string", "string"]
+  %ch5 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  tfrt.return
+}
+
 // CHECK-LABEL: --- Running 'create_dense_tensor'
 func @create_dense_tensor() {
   %ch0 = tfrt.new.chain

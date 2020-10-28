@@ -165,12 +165,19 @@ static llvm::Expected<TensorHandle> ConstStringTensor(
     return MakeStringError("failed to allocate string host tensor");
 
   auto strings = tensor_ref.get().strings();
-  assert(strings.size() == value.GetNumElements());
 
-  for (int i = 0, e = strings.size(); i != e; ++i) {
-    strings[i] = value.GetAttributeOfType<StringAttr>(i).GetValue().str();
+  if (value.GetNumElements() == 1) {
+    // All elements are the same, and only one element is saved in BEF.
+    string_view sv = value.GetAttributeOfType<StringAttr>(0).GetValue();
+    for (int i = 0, e = strings.size(); i != e; ++i) {
+      strings[i] = sv.str();
+    }
+  } else {
+    assert(strings.size() == value.GetNumElements());
+    for (int i = 0, e = strings.size(); i != e; ++i) {
+      strings[i] = value.GetAttributeOfType<StringAttr>(i).GetValue().str();
+    }
   }
-
   tensor_ref.SetStateConcrete();
 
   return TensorHandle(exec_ctx.host()->GetHostDeviceRef(), metadata,

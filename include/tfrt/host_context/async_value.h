@@ -601,8 +601,6 @@ class IndirectAsyncValue : public AsyncValue {
     }
   }
 
-  // TODO(b/139835587): Use LSB to remember if ForwardTo was called and assert
-  // it.
   AsyncValue* value_ = nullptr;
 };
 

@@ -58,17 +58,6 @@ AsyncValueRef<DenseHostTensor> DenseHostTensor::MakeConstructedAsyncValueRef(
       host, std::move(dht.getValue()));
 }
 
-AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
-    HostContext* host, uint32_t allowed_formats) const {
-  return ConvertToHostTensor(host, DenseHostTensor::kTensorType);
-}
-
-AsyncValueRef<HostTensor> DenseHostTensor::ConvertToHostTensor(
-    HostContext* host, TensorType dst_tensor_type) const {
-  return ConvertTensorOnHostDeprecated(*this, DenseHostTensor::kTensorType,
-                                       host);
-}
-
 void DenseHostTensor::Print(raw_ostream& os) const {
   os << "DenseHostTensor dtype = " << dtype() << ", shape = " << shape();
 

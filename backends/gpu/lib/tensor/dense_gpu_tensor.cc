@@ -29,13 +29,6 @@
 namespace tfrt {
 namespace gpu {
 
-AsyncValueRef<HostTensor> DenseGpuTensor::ConvertToHostTensor(
-    HostContext* host, uint32_t allowed_formats) const {
-  // TODO(tfrt-devs): Implement this.
-
-  llvm_unreachable("GPU to host copy not implemented");
-}
-
 DenseGpuTensor::DenseGpuTensor(const TensorShape& shape, DType dtype,
                                RCReference<GpuBuffer> buffer)
     : DenseGpuTensor(TensorMetadata(dtype, shape), std::move(buffer)) {}

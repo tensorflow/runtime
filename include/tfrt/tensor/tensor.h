@@ -67,25 +67,6 @@ class Tensor {
 
   virtual void Print(raw_ostream& os) const = 0;
 
-  // Copy the contents of this Tensor into HostTensor format and return it as a
-  // new tensor.  This can (in general) require device computation or
-  // lots of copying, so this returns an AsyncValue for the result.
-  //
-  // The allowed_formats field is a bitmask indicating supported host formats.
-  // it is a bitmask of host Subclass kinds.  DenseHostTensor is always allowed.
-  //
-  // This returns an error value if the input tensor is invalid or an error is
-  // encountered like OOM.
-  // TODO(b/163084901): ConvertToHostTensor will be deprecated soon.
-  virtual AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, uint32_t allowed_formats) const = 0;
-
-  // Same as above, except dst_tensor_type_name is used to specify destination
-  // tensor type name instead of allowed_formats.
-  // TODO(b/163084901): ConvertToHostTensor will be deprecated soon.
-  virtual AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, TensorType dst_tensor_type) const;
-
   virtual bool IsHostTensor() const { return false; }
 
   bool IsTensorType(TensorType tensor_type) const {

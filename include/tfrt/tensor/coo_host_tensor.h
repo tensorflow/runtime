@@ -52,12 +52,6 @@ class CooHostTensor final : public HostTensor,
 
   void Print(raw_ostream& os) const override;
 
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, uint32_t allowed_formats) const override;
-
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, TensorType dst_tensor_type_id) const override;
-
   // Tensor type for CooHostTensor.
   static const char* name() { return "CooHost"; }
 

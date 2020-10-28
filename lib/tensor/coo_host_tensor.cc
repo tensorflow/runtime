@@ -57,27 +57,6 @@ void ConvertToDHTTensorHelper(const DenseHostTensor &indices,
 }
 }  // namespace
 
-AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
-    HostContext *host, uint32_t allowed_formats) const {
-  if (allowed_formats &
-      (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::ScalarHost))) {
-    auto result = ConvertTensorOnHostDeprecated(
-        *this, AnyScalarHostTensor::kTensorType, host);
-    if (!result.IsError()) return result;
-  }
-  if (allowed_formats &
-      (uint32_t{1} << static_cast<uint32_t>(Tensor::Subclass::DenseHost))) {
-    return ConvertTensorOnHostDeprecated(*this, DenseHostTensor::kTensorType,
-                                         host);
-  }
-  return MakeErrorAsyncValueRef(host, "Unconverted tensor");
-}
-
-AsyncValueRef<HostTensor> CooHostTensor::ConvertToHostTensor(
-    HostContext *host, TensorType dst_tensor_type) const {
-  return ConvertTensorOnHostDeprecated(*this, dst_tensor_type, host);
-}
-
 void CooHostTensor::Print(raw_ostream &os) const {
   // Just dumps the flat values for now.
   os << "CooHostTensor dtype = " << dtype() << ", shape = " << shape();

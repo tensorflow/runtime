@@ -39,11 +39,4 @@ raw_ostream& operator<<(raw_ostream& os, const TensorMetadata& metadata) {
   return os << metadata.dtype << " " << metadata.shape;
 }
 
-AsyncValueRef<HostTensor> Tensor::ConvertToHostTensor(
-    HostContext* host, TensorType dst_tensor_type) const {
-  return MakeErrorAsyncValueRef(
-      host,
-      StrCat("Unavailable ConvertToHostTensor with dst_tensor_type_name"));
-}
-
 }  // namespace tfrt

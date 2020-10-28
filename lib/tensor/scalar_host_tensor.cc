@@ -50,19 +50,6 @@ static AsyncValueRef<AnyScalarHostTensor> CopyScalar(
                                                          src.GetValue());
 }
 
-AsyncValueRef<HostTensor> AnyScalarHostTensor::ConvertToHostTensor(
-    HostContext* host, uint32_t allowed_formats) const {
-  // If the caller allows ScalarHostTensor, then we can stay compact.  This
-  // still requires a copy of the data though.
-  if (allowed_formats &
-      (1 << static_cast<uint32_t>(Tensor::Subclass::ScalarHost))) {
-    return ConvertTensorOnHostDeprecated(
-        *this, AnyScalarHostTensor::kTensorType, host);
-  }
-  return ConvertTensorOnHostDeprecated(*this, DenseHostTensor::kTensorType,
-                                       host);
-}
-
 void AnyScalarHostTensor::Print(raw_ostream& os) const {
   os << "ScalarHostTensor dtype = " << dtype() << ", shape = " << shape()
      << ", value = ";

@@ -34,9 +34,6 @@ class RemoteTensor : public Tensor, public TensorTraits<RemoteTensor> {
 
   void Print(raw_ostream& os) const override;
 
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, uint32_t allowed_formats) const override;
-
   static const char* name() { return "Remote"; }
 
  private:

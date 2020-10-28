@@ -31,9 +31,4 @@ void RemoteTensor::Print(raw_ostream& os) const {
      << ", shape = " << shape();
 }
 
-AsyncValueRef<HostTensor> RemoteTensor::ConvertToHostTensor(
-    HostContext* host, uint32_t allowed_formats) const {
-  return MakeErrorAsyncValueRef(host, "Not implemented");
-}
-
 }  // namespace tfrt

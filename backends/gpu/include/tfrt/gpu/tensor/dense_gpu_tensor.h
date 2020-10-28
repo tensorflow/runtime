@@ -48,9 +48,6 @@ class DenseGpuTensor final : public Tensor,
   DenseGpuTensor(DenseGpuTensor&& b) = default;
   DenseGpuTensor& operator=(DenseGpuTensor&& b) = default;
 
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, uint32_t allowed_formats) const override;
-
   size_t DataSizeInBytes() const { return buffer_->size(); }
 
   DenseGpuTensor CopyRef() const {

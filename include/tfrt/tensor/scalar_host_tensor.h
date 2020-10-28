@@ -47,9 +47,6 @@ class AnyScalarHostTensor : public HostTensor,
     return const_cast<AnyScalarHostTensor*>(this)->data();
   }
 
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, uint32_t allowed_formats) const override;
-
   void Print(raw_ostream& os) const override;
 
   // Tensor type for ScalarHostTensor.

@@ -81,13 +81,6 @@ AsyncValueRef<HostTensor> ConvertTensorOnHost(const ExecutionContext& exec_ctx,
           .ReleaseRCRef());
 }
 
-AsyncValueRef<HostTensor> ConvertTensorOnHostDeprecated(
-    const Tensor& tensor, TensorType dst_tensor_type, HostContext* host) {
-  auto req_ctx = RequestContext::Create(host, /*resource_context=*/nullptr);
-  ExecutionContext exec_ctx(std::move(req_ctx));
-  return ConvertTensorOnHost(exec_ctx, tensor, dst_tensor_type);
-}
-
 static std::vector<TensorConversionFnRegistration>*
 GetStaticTensorConversionFnRegistrations() {
   static std::vector<TensorConversionFnRegistration>* ret =

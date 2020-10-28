@@ -72,12 +72,6 @@ class StringHostTensor final : public HostTensor,
 
   void Print(raw_ostream& os) const override;
 
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, uint32_t allowed_formats) const override;
-
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, TensorType tensor_type) const override;
-
   HostArray<std::string> CopyBuffer(HostContext* host) const;
 
   // Tensor type for StringHostTensor.

@@ -92,12 +92,6 @@ class DenseHostTensor final : public HostTensor,
 
   void Print(raw_ostream& os) const override;
 
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, uint32_t allowed_formats) const override;
-
-  AsyncValueRef<HostTensor> ConvertToHostTensor(
-      HostContext* host, TensorType dst_tensor_type) const override;
-
   // Tensor type for DenseHostTensor.
   static const char* name() { return "DenseHost"; }
 

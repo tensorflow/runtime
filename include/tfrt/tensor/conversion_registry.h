@@ -55,11 +55,6 @@ AsyncValueRef<HostTensor> ConvertTensorOnHost(const ExecutionContext& exec_ctx,
                                               const Tensor& tensor,
                                               TensorType dst_tensor_type);
 
-// TODO(b/163084901): Clean up this method after cleaning up
-// Tensor::ConvertToHostTensor.
-AsyncValueRef<HostTensor> ConvertTensorOnHostDeprecated(
-    const Tensor& tensor, TensorType dst_tensor_type, HostContext* host);
-
 class TensorConversionFnRegistry {
  public:
   TensorConversionFnRegistry() = default;

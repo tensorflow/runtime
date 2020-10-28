@@ -55,17 +55,6 @@ AsyncValueRef<StringHostTensor> StringHostTensor::MakeConstructedAsyncValueRef(
   return {};
 }
 
-AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
-    HostContext* host, uint32_t allowed_formats) const {
-  return ConvertToHostTensor(host, StringHostTensor::kTensorType);
-}
-
-AsyncValueRef<HostTensor> StringHostTensor::ConvertToHostTensor(
-    HostContext* host, TensorType dst_tensor_type) const {
-  return ConvertTensorOnHostDeprecated(*this, StringHostTensor::kTensorType,
-                                       host);
-}
-
 static AsyncValueRef<StringHostTensor>
 ConvertStringHostTensorToStringHostTensor(const StringHostTensor& tensor,
                                           const CpuDevice& src,

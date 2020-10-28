@@ -136,11 +136,11 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait
     void getOpAttrs(SmallVectorImpl<std::pair<StringRef, Attribute>>* op_attrs);
   }];
 
-  let builders = [OpBuilder<
-    "OpBuilder &builder, OperationState &state, ArrayRef<Type> results, "
-    "Value op_handler, ValueRange operands, "
-    "ArrayRef<std::pair<StringRef, Attribute>> op_attrs, StringRef op_name"
-  >];
+  let builders = [
+    OpBuilderDAG<(ins "ArrayRef<Type>":$results, "Value":$op_handler,
+      "ValueRange":$operands,
+      "ArrayRef<std::pair<StringRef, Attribute>>":$op_attrs,
+      "StringRef":$op_name)>];
 }
 
 def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {

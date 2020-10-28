@@ -128,11 +128,11 @@ def ExecuteOp : CoreRTSync_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeT
     void getOpAttrs(SmallVectorImpl<std::pair<StringRef, Attribute>>* op_attrs);
   }];
 
-  let builders = [OpBuilder<
-    "OpBuilder &builder, OperationState &state, ArrayRef<Type> results, "
-    "Value device, ValueRange operands, "
-    "ArrayRef<std::pair<StringRef, Attribute>> op_attrs, StringRef op_name"
-  >];
+  let builders = [
+    OpBuilderDAG<(ins "ArrayRef<Type>":$results, "Value":$device,
+      "ValueRange":$operands,
+      "ArrayRef<std::pair<StringRef, Attribute>>":$op_attrs,
+      "StringRef":$op_name)>];
 }
 
 def CoreRTSync_GetOpHandler : CoreRTSync_Op<"get_op_handler", [NoSideEffect]> {

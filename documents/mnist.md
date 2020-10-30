@@ -1,9 +1,8 @@
 # MNIST Integration Test
 
 <!--* freshness: {
-  owner: 'zhangqiaorjc'
   owner: 'chuanhao'
-  reviewed: '2020-03-31'
+  reviewed: '2020-10-29'
 } *-->
 
 <!-- TOC -->

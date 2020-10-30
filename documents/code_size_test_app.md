@@ -1,9 +1,8 @@
 # Code Size Test App
 
 <!--* freshness: {
-  owner: 'zhangqiaorjc'
   owner: 'chuanhao'
-  reviewed: '2020-04-24'
+  reviewed: '2020-10-29'
 } *-->
 
 <!-- TOC -->
@@ -25,7 +24,7 @@ needs to be written in MLIR, and converted to BEF format using `tfrt_translate
 need to link `basic_kernels` library for the kernel implementations to compute
 Fibonacci sequence.
 
-With the TFRT Host Runtime API, a potential application can be built on top of
+With the TFRT Host Runtime APIs, a potential application can be built on top of
 C++ API directly without going through MLIR to BEF conversion.
 
 To run the test:

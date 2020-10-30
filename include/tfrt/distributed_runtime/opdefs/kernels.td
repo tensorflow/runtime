@@ -164,19 +164,44 @@ def CreateDistributedContext : DistOp<"test_create_distributed_context"> {
 
   let description = [{
     A test kernel that creates a distributed context from the given
-    configuration.
+    configuration. At the end of executing ops with this context, use
+    test_close_distributed_context to close it.
 
     Example:
       // Creating 2 DistributedContextConfigurations
       %configs:2 = tfrt_dist.test_create_configurations : 2
       // Creating first DistributedContext based on the first configuration
       %context0 = tfrt_dist.test_create_distributed_context %configs#0
-      // Creating first DistributedContext based on the second configuration
-      %context0 = tfrt_dist.test_create_distributed_context %configs#1
+      // Creating second DistributedContext based on the second configuration
+      %context1 = tfrt_dist.test_create_distributed_context %configs#1
+
+      // Executing ops that use the contexts
+      %out_chain = ...
+
+      // Closing first DistributedContext
+      %close0 = tfrt_dist.test_close_distributed_context %context0, %out_chain
+      // Closing second DistributedContext
+      %close1 = tfrt_dist.test_close_distributed_context %context1, %close0
   }];
 
   let arguments = (ins DistributedContextConfigurationType);
   let results = (outs DistributedContextType : $result);
+  let assemblyFormat = "operands attr-dict";
+}
+
+def CloseDistributedContext : DistOp<"test_close_distributed_context"> {
+  let summary = "tfrt_dist.test_close_distributed_context config chain";
+
+  let description = [{
+    A test kernel that closes the given distributed context.
+
+    See CreateDistributedContext for examples.
+  }];
+
+  let arguments = (ins
+    DistributedContextType : $context,
+    TFRT_ChainType : $in_op_chain);
+  let results = (outs TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 

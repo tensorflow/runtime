@@ -1056,20 +1056,26 @@ tfrt_cc_library(
     srcs = [
         "lib/distributed_runtime/callback_registry.cc",
         "lib/distributed_runtime/distributed_context.cc",
+        "lib/distributed_runtime/function_cache.cc",
         "lib/distributed_runtime/remote_object_manager.cc",
         "lib/distributed_runtime/remote_tensor.cc",
-        "lib/distributed_runtime/request_handler.cc",
+        "lib/distributed_runtime/request_handler_impl.cc",
+        "lib/distributed_runtime/server_context.cc",
     ],
     hdrs = [
         "include/tfrt/distributed_runtime/callback_registry.h",
         "include/tfrt/distributed_runtime/distributed_context.h",
         "include/tfrt/distributed_runtime/fabric_communicator.h",
+        "include/tfrt/distributed_runtime/function_cache.h",
+        "include/tfrt/distributed_runtime/remote_client.h",
         "include/tfrt/distributed_runtime/remote_device.h",
         "include/tfrt/distributed_runtime/remote_execute.h",
         "include/tfrt/distributed_runtime/remote_object.h",
         "include/tfrt/distributed_runtime/remote_object_manager.h",
         "include/tfrt/distributed_runtime/remote_tensor.h",
         "include/tfrt/distributed_runtime/request_handler.h",
+        "include/tfrt/distributed_runtime/request_handler_impl.h",
+        "include/tfrt/distributed_runtime/server_context.h",
     ],
     visibility = [":friends"],
     deps = [
@@ -1079,6 +1085,7 @@ tfrt_cc_library(
         ":hostcontext",
         ":mlir_src_to_bef",
         ":mlirtobef",
+        ":remote_message_cc_proto",
         ":support",
         ":tensor",
         "@llvm-project//llvm:Support",
@@ -1087,6 +1094,18 @@ tfrt_cc_library(
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:StandardOps",
     ],
+)
+
+proto_library(
+    name = "remote_message_proto",
+    srcs = ["include/tfrt/distributed_runtime/proto/remote_message.proto"],
+    visibility = [":friends"],
+)
+
+cc_proto_library(
+    name = "remote_message_cc_proto",
+    visibility = [":friends"],
+    deps = [":remote_message_proto"],
 )
 
 tfrt_cc_library(
@@ -1106,6 +1125,7 @@ tfrt_cc_library(
         ":distributed_runtime",
         ":hostcontext",
         ":init_tfrt_dialects",
+        ":remote_message_cc_proto",
         ":support",
         ":tensor",
         "@llvm-project//llvm:Support",

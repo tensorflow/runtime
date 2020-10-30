@@ -9,6 +9,8 @@ tfrt_cc_test(
         "@com_google_googletest//:gtest_main",
         "@tf_runtime//:distributed_runtime",
         "@tf_runtime//:hostcontext",
+        "@tf_runtime//:remote_message_cc_proto",
+        "@tf_runtime//:support",
         "@tf_runtime//cpp_tests:common",
     ],
 )

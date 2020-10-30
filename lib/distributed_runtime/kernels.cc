@@ -27,6 +27,8 @@
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/proto/remote_message.pb.h"
+#include "tfrt/distributed_runtime/remote_client.h"
 #include "tfrt/distributed_runtime/remote_execute.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/distributed_runtime/remote_tensor.h"
@@ -202,7 +204,8 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
       llvm::StringRef(reinterpret_cast<const char*>(in_tensor.data()),
                       in_tensor.DataSizeInBytes());
   auto* callback_registry = dist_ctx->GetCallbackRegistry();
-  auto* fabric_communicator = dist_ctx->GetOrCreateFabricCommunicator();
+  RemoteClientInterface* neighbor_client =
+      dist_ctx->GetRemoteClient(neighbor_id);
 
   auto done = [out_chain = out_chain.CopyRef(),
                dist_ctx = dist_ctx.CopyRef()](Error e) mutable {
@@ -245,23 +248,30 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
     const size_t split_id = SplitIndex(my_id, kGroupSize, step);
     llvm::StringRef split_data = GetSplit<T>(in_tensor_ref, kGroupSize,
                                              in_tensor.NumElements(), split_id);
+    auto request = std::make_unique<SendDataRequest>();
+    auto response = std::make_unique<SendDataResponse>();
+    request->set_context_id(dist_ctx->GetContextId());
+    request->set_instance_key(next_step_key);
 
     if (step == 0) {
-      fabric_communicator->Send(
-          next_step_key, neighbor_id, split_data,
-          [refcounted_done = refcounted_done.CopyRef()](Error e) {
+      request->set_payload(split_data.data(), split_data.size());
+      neighbor_client->SendAsync(
+          request.get(), response.get(),
+          [request = std::move(request), response = std::move(response),
+           refcounted_done = refcounted_done.CopyRef()](Error e) {
             refcounted_done->UpdateState(std::move(e));
           });
     } else if (step <= kLastScatterStep) {
       // Scatter stage: send a chunk to the neighbor, aggregate the incoming
       // chunk with local buffer.
       callback_registry->SetCallback(
-          step_key, [step, in_split = split_data, out_split = split_data,
-                     reduction_fn, final_fn, fabric_communicator,
-                     kLastScatterStep, kGroupSize, next_step_key, neighbor_id,
-                     refcounted_done = refcounted_done.CopyRef()](
-                        const InstanceKey&,
-                        CallbackRegistry::CallbackValue callback_value) {
+          step_key,
+          [step, in_split = split_data, out_split = split_data,
+           request = std::move(request), response = std::move(response),
+           neighbor_client, reduction_fn, final_fn, kLastScatterStep,
+           kGroupSize, refcounted_done = refcounted_done.CopyRef()](
+              const InstanceKey&,
+              CallbackRegistry::CallbackValue callback_value) mutable {
             // Scatter aggregates the results with the local buffer.
             reduction_fn(const_cast<char*>(callback_value->data()),
                          const_cast<char*>(in_split.data()), in_split.size());
@@ -272,11 +282,12 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
               std::copy(callback_value->begin(), callback_value->end(),
                         const_cast<char*>(out_split.begin()));
             }
-
-            fabric_communicator->Send(
-                next_step_key, neighbor_id,
-                llvm::StringRef(callback_value->data(), callback_value->size()),
-                [refcounted_done = refcounted_done.CopyRef()](Error e) mutable {
+            request->set_payload(callback_value->data(),
+                                 callback_value->size());
+            neighbor_client->SendAsync(
+                request.get(), response.get(),
+                [request = std::move(request), response = std::move(response),
+                 refcounted_done = refcounted_done.CopyRef()](Error e) mutable {
                   refcounted_done->UpdateState(std::move(e));
                 });
           });
@@ -285,20 +296,21 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
       // buffer and pass it to the neighbor as is.
       callback_registry->SetCallback(
           step_key,
-          [step, out_split = split_data, fabric_communicator, kLastGatherStep,
-           next_step_key, neighbor_id,
-           refcounted_done = refcounted_done.CopyRef()](
+          [step, out_split = split_data, kLastGatherStep,
+           request = std::move(request), response = std::move(response),
+           neighbor_client, refcounted_done = refcounted_done.CopyRef()](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
             // Gather assigns the incoming data to the local buffer
             std::copy(callback_value->begin(), callback_value->end(),
                       const_cast<char*>(out_split.begin()));
             if (step < kLastGatherStep) {
-              fabric_communicator->Send(
-                  next_step_key, neighbor_id,
-                  llvm::StringRef(callback_value->data(),
-                                  callback_value->size()),
-                  [refcounted_done =
+              request->set_payload(callback_value->data(),
+                                   callback_value->size());
+              neighbor_client->SendAsync(
+                  request.get(), response.get(),
+                  [request = std::move(request), response = std::move(response),
+                   refcounted_done =
                        refcounted_done.CopyRef()](Error e) mutable {
                     refcounted_done->UpdateState(std::move(e));
                   });
@@ -332,7 +344,7 @@ void AllReduce(Argument<DistributedContext> dist_context,
     out_chain_indirect.SetError("unexpected reduction_name in AllReduce");
     return;
   }
-  int my_index = FindMyIndex(collective_group.get(), dist_context->GetId());
+  int my_index = FindMyIndex(collective_group.get(), dist_context->GetHostId());
   if (my_index == -1) {
     out_chain_indirect.SetError(
         "This worker is not part of the collective group ");
@@ -342,27 +354,27 @@ void AllReduce(Argument<DistributedContext> dist_context,
       collective_group
           ->members[(my_index + 1) % collective_group->members.size()];
 
-  EnqueueWork(exec_ctx, [exec_ctx, instance_key = *instance_key,
-                         dist_context = dist_context.ValueRef(),
-                         collective_group = *collective_group,
-                         in_tensor = in_tensor.ValueRef(),
-                         out_tensor = out_tensor.ValueRef(), reduction_fn,
-                         final_fn, my_id = dist_context->GetId(), neighbor_id,
-                         out_chain = std::move(out_chain_indirect)] {
-    DoAllReduce<T>(exec_ctx, dist_context.CopyRef(), instance_key,
-                   collective_group, in_tensor.get(), out_tensor.get(),
-                   reduction_fn, final_fn, my_id, neighbor_id,
-                   out_chain.CopyRef());
-  });
+  EnqueueWork(
+      exec_ctx,
+      [exec_ctx, instance_key = *instance_key,
+       dist_context = dist_context.ValueRef(),
+       collective_group = *collective_group, in_tensor = in_tensor.ValueRef(),
+       out_tensor = out_tensor.ValueRef(), reduction_fn, final_fn,
+       my_id = dist_context->GetHostId(), neighbor_id,
+       out_chain = std::move(out_chain_indirect)] {
+        DoAllReduce<T>(exec_ctx, dist_context.CopyRef(), instance_key,
+                       collective_group, in_tensor.get(), out_tensor.get(),
+                       reduction_fn, final_fn, my_id, neighbor_id,
+                       out_chain.CopyRef());
+      });
 }
 
 template <typename T>
-void DoBroadcast(const InstanceKey& instance_key,
+void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
+                 const InstanceKey& instance_key,
                  const CollectiveGroup& collective_group,
-                 DenseHostTensor& tensor, HostId sender,
-                 CallbackRegistry* registry,
-                 FabricCommunicator* fabric_communicator, HostId my_id,
-                 int my_index) {
+                 DenseHostTensor& tensor, HostId sender, HostId my_id,
+                 int my_index, AsyncValueRef<Chain> out_chain) {
   const auto kGroupSize = collective_group.members.size();
   const auto kNeighborId =
       collective_group.members[(my_index + 1) % kGroupSize];
@@ -370,42 +382,62 @@ void DoBroadcast(const InstanceKey& instance_key,
   auto in_tensor = llvm::StringRef(reinterpret_cast<const char*>(tensor.data()),
                                    tensor.DataSizeInBytes());
   const auto num_elements = tensor.NumElements();
-  auto chunks_collected = std::make_shared<std::atomic<int>>(0);
-  const auto empty_callback_fn = [](Error e) {};
+
+  auto* registry = dist_ctx->GetCallbackRegistry();
+  RemoteClientInterface* neighbor_client =
+      dist_ctx->GetRemoteClient(kNeighborId);
+
+  auto refcounted_done = TakeRef(
+      new RefCountedCallback([out_chain = out_chain.CopyRef(),
+                              dist_ctx = dist_ctx.CopyRef()](Error e) mutable {
+        if (e) {
+          out_chain.SetError(e);
+        } else {
+          out_chain.emplace();
+        }
+      }));
 
   for (auto i = 0; i < kGroupSize; ++i) {
     auto chunk_key = StepKey(kPrefix, instance_key, i);
+    auto request = std::make_unique<SendDataRequest>();
+    auto response = std::make_unique<SendDataResponse>();
+    request->set_context_id(dist_ctx->GetContextId());
+    request->set_instance_key(StepKey(kPrefix, chunk_key, kNeighborId));
     if (my_id == sender) {
       // A Sender sends data to its neighbor.
       auto payload = GetSplit<T>(in_tensor, kGroupSize, num_elements, i);
-      fabric_communicator->Send(StepKey(kPrefix, chunk_key, kNeighborId),
-                                kNeighborId, payload, empty_callback_fn);
+      request->set_payload(payload.data(), payload.size());
+      neighbor_client->SendAsync(
+          request.get(), response.get(),
+          [request = std::move(request), response = std::move(response),
+           refcounted_done = refcounted_done.CopyRef()](Error e) {
+            refcounted_done->UpdateState(std::move(e));
+          });
     } else {
-      auto recv_callback = [registry, instance_key, sender, chunk_key, i,
-                            kPrefix, in_tensor, kGroupSize, kNeighborId,
-                            chunks_collected, fabric_communicator, num_elements,
-                            empty_callback_fn](
-                               const InstanceKey&,
-                               CallbackRegistry::CallbackValue data) mutable {
-        // A neighbor receives data and forwards it to its neighbor.
-        std::copy(
-            data->begin(), data->end(),
-            const_cast<char*>(
-                GetSplit<T>(in_tensor, kGroupSize, num_elements, i).begin()));
-        if (kNeighborId != sender) {
-          fabric_communicator->Send(
-              StepKey(kPrefix, chunk_key, kNeighborId), kNeighborId,
-              llvm::StringRef(data->data(), data->size()), empty_callback_fn);
-        }
-        if (++(*chunks_collected) == kGroupSize) {
-          registry->SetValue(instance_key, /*value=*/nullptr);
-        }
-      };
-      registry->SetCallback(StepKey(kPrefix, chunk_key, my_id), recv_callback);
+      registry->SetCallback(
+          StepKey(kPrefix, chunk_key, my_id),
+          [sender, i, in_tensor, kGroupSize, kNeighborId, num_elements,
+           neighbor_client, request = std::move(request),
+           response = std::move(response),
+           refcounted_done = refcounted_done.CopyRef()](
+              const InstanceKey&,
+              CallbackRegistry::CallbackValue data) mutable {
+            // A neighbor receives data and forwards it to its neighbor.
+            std::copy(data->begin(), data->end(),
+                      const_cast<char*>(
+                          GetSplit<T>(in_tensor, kGroupSize, num_elements, i)
+                              .begin()));
+            if (kNeighborId != sender) {
+              request->set_payload(data->data(), data->size());
+              neighbor_client->SendAsync(
+                  request.get(), response.get(),
+                  [request = std::move(request), response = std::move(response),
+                   refcounted_done = refcounted_done.CopyRef()](Error e) {
+                    refcounted_done->UpdateState(std::move(e));
+                  });
+            }
+          });
     }
-  }
-  if (my_id == sender) {
-    registry->SetValue(instance_key, /*value=*/nullptr);
   }
 }
 
@@ -417,35 +449,21 @@ void Broadcast(Argument<DistributedContext> dist_context,
                Argument<Chain> in_chain, Result<Chain> out_chain,
                const ExecutionContext& exec_ctx) {
   auto out_chain_indirect = out_chain.Allocate();
-  int my_index = FindMyIndex(collective_group.get(), dist_context->GetId());
+  int my_index = FindMyIndex(collective_group.get(), dist_context->GetHostId());
   if (my_index == -1) {
     out_chain_indirect.SetError(
         "This worker is not part of the collective group ");
     return;
   }
-  // Move AsyncValueRefs to on_done callback - this ensures that the arguments
-  // will not be destroyed until the callback executes.
-  auto on_done = [out_chain = std::move(out_chain_indirect),
-                  in_tensor_ref = in_tensor.ValueRef(),
-                  dist_context_ref = dist_context.ValueRef(),
-                  instance_key = *instance_key](
-                     const InstanceKey& broadcast_key,
-                     CallbackRegistry::CallbackValue) {
-    assert(instance_key == broadcast_key &&
-           "Instance key mismatch in broadcast callback.");
-    out_chain.emplace();
-  };
-  CallbackRegistry* registry = dist_context->GetCallbackRegistry();
-  registry->SetCallback(*instance_key, std::move(on_done));
   EnqueueWork(
       exec_ctx,
-      [instance_key = *instance_key, collective_group = *collective_group,
-       sender = *sender, registry,
-       fabric_communicator = dist_context->GetOrCreateFabricCommunicator(),
-       my_id = dist_context->GetId(), in_tensor_ref = in_tensor.ValueRef(),
-       my_index] {
-        DoBroadcast<T>(instance_key, collective_group, in_tensor_ref.get(),
-                       sender, registry, fabric_communicator, my_id, my_index);
+      [dist_context = dist_context.ValueRef(), instance_key = *instance_key,
+       collective_group = *collective_group, sender = *sender,
+       my_id = dist_context->GetHostId(), in_tensor_ref = in_tensor.ValueRef(),
+       my_index, out_chain = std::move(out_chain_indirect)] {
+        DoBroadcast<T>(dist_context.CopyRef(), instance_key, collective_group,
+                       in_tensor_ref.get(), sender, my_id, my_index,
+                       out_chain.CopyRef());
       });
 }
 
@@ -455,11 +473,14 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
                                 StringAttribute program_name,
                                 bool need_compilation,
                                 const ExecutionContext& exec_ctx) {
-  RemoteRegisterInvocation request;
+  auto request = std::make_unique<RemoteRegisterRequest>();
   // program and program_name will live as long as out_chain is not populated.
-  request.program = program.get();
-  request.program_name = program_name.get();
-  request.need_compilation = need_compilation;
+  request->set_context_id(dist_context->GetContextId());
+  request->set_program(program.str());
+  request->set_program_name(program_name.str());
+  request->set_need_compilation(need_compilation);
+  RemoteClientInterface* remote_client =
+      dist_context->GetRemoteClient(receiver);
 
   RCReference<AsyncValue> out;
   if (need_compilation) {
@@ -469,23 +490,25 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
   }
   results[0] = out.CopyRef();
 
-  EnqueueWork(exec_ctx, [receiver, request, dist_context, need_compilation,
+  EnqueueWork(exec_ctx, [remote_client, request = std::move(request),
+                         dist_context, need_compilation,
                          out = out.CopyRef()]() mutable {
-    dist_context->GetOrCreateFabricCommunicator()->RemoteRegister(
-        receiver, request,
-        [out = out.CopyRef(), need_compilation, dist_context](
-            std::unique_ptr<RemoteRegisterInvocationResult> result) mutable {
-          if (result->error) {
-            out->SetError(DecodedDiagnostic(std::move(result->error)));
+    auto response = std::make_unique<RemoteRegisterResponse>();
+    remote_client->RemoteRegisterAsync(
+        request.get(), response.get(),
+        [request = std::move(request), response = std::move(response),
+         need_compilation, dist_context, out = out.CopyRef()](Error e) mutable {
+          if (e) {
+            out->SetError(DecodedDiagnostic(std::move(e)));
           } else {
             if (need_compilation) {
               DeviceManager* manager =
                   dist_context->GetHostContext()->GetDeviceManager();
               llvm::SmallVector<RCReference<Device>, 4> output_devices;
-              output_devices.reserve(result->output_device.size());
-              for (const std::string& device_str : result->output_device) {
+              output_devices.reserve(response->output_device_size());
+              for (int i = 0; i < response->output_device_size(); i++) {
                 RCReference<Device> device =
-                    manager->GetDeviceRef<Device>(device_str);
+                    manager->GetDeviceRef<Device>(response->output_device(i));
                 output_devices.push_back(device.CopyRef());
               }
               out->emplace<RemoteExecuteSpec>(std::move(output_devices));
@@ -542,15 +565,18 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
   // If some output IDs are present in the inputs, we assume all output IDs are
   // pre-allocated.
   const bool output_id_allocated = num_fn_inputs != inputs.size();
-  RemoteExecuteInvocation request;
+  auto request = std::make_unique<RemoteExecuteRequest>();
   // program_name will live as long as out_chain is not populated.
-  request.program_name = program_name.get();
+  request->set_context_id(dist_context->GetContextId());
+  request->set_program_name(program_name.str());
+  request->mutable_input()->Reserve(num_fn_inputs);
 
-  request.inputs.reserve(num_fn_inputs);
   for (int i = 0; i < num_fn_inputs; ++i) {
     const RemoteObjectId& input = inputs[i]->get<RemoteObjectId>();
-    request.inputs.emplace_back(input.prefix_id, input.local_id,
-                                input.device->name());
+    auto* add_input = request->add_input();
+    add_input->set_prefix_id(input.prefix_id);
+    add_input->set_local_id(input.local_id);
+    add_input->set_device(input.device->name().str());
   }
   // First output: chain
   AsyncValueRef<Chain> out_chain =
@@ -581,7 +607,7 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
   // Start output index of TensorHandle outputs.
   // If output id is allocated, we only return TensorHandles.
   const int th_output_idx = output_id_allocated ? 0 : num_fn_output;
-  request.outputs.reserve(num_fn_output);
+  request->mutable_output()->Reserve(num_fn_output);
   RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
   struct RemoteObjectAndMetadata {
     AsyncValueRef<RemoteObjectId> id;
@@ -621,27 +647,34 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
       // The remaining outputs are TensorHandle
       results[th_output_idx + remote_objs.size()] = th.CopyRef();
     }
-    request.outputs.emplace_back(out_id->prefix_id, out_id->local_id,
-                                 out_id->device->name(), need_metadata);
+    auto* add_output = request->add_output();
+    add_output->set_need_metadata(need_metadata);
+    auto* add_output_id = add_output->mutable_id();
+    add_output_id->set_prefix_id(out_id->prefix_id);
+    add_output_id->set_local_id(out_id->local_id);
+    add_output_id->set_device(out_id->device->name().str());
   }
 
-  EnqueueWork(exec_ctx, [receiver, request = std::move(request), dist_context,
-                         out_chain = out_chain.CopyRef(),
+  RemoteClientInterface* remote_client =
+      dist_context->GetRemoteClient(receiver);
+  EnqueueWork(exec_ctx, [remote_client, request = std::move(request),
+                         dist_context, out_chain = out_chain.CopyRef(),
                          remote_objs = std::move(remote_objs)]() mutable {
-    dist_context->GetOrCreateFabricCommunicator()->RemoteExecute(
-        receiver, request,
-        [out_chain = out_chain.CopyRef(), remote_objs = std::move(remote_objs),
-         host_context = dist_context->GetHostContext()](
-            std::unique_ptr<RemoteExecuteInvocationResult> result) mutable {
+    auto response = std::make_unique<RemoteExecuteResponse>();
+    remote_client->RemoteExecuteAsync(
+        request.get(), response.get(),
+        [request = std::move(request), response = std::move(response),
+         out_chain = out_chain.CopyRef(), remote_objs = std::move(remote_objs),
+         host_context = dist_context->GetHostContext()](Error e) mutable {
           // Propagate metadata and output chain
-          const int num_metadata = result->metadata.size();
+          const int num_metadata = response->metadata_size();
           for (int i = 0; i < remote_objs.size(); ++i) {
             auto& obj = remote_objs[i];
             if (i >= num_metadata) {
               obj.metadata.SetError(DecodedDiagnostic("Metadata not returned"));
               continue;
             }
-            auto metadata = DeserializeTensorMetadata(result->metadata[i]);
+            auto metadata = DeserializeTensorMetadata(response->metadata(i));
             if (metadata) {
               obj.metadata.emplace(metadata.get());
               obj.tensor.emplace(std::move(metadata.get()), obj.id.get());
@@ -649,8 +682,8 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
               obj.tensor.SetError(DecodedDiagnostic(metadata.takeError()));
             }
           }
-          if (result->error) {
-            out_chain.SetError(std::move(result->error));
+          if (e) {
+            out_chain.SetError(std::move(e));
           } else {
             out_chain.SetStateConcrete();
           }

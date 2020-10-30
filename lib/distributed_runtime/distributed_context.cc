@@ -14,46 +14,31 @@
  * limitations under the License.
  */
 
-//===- distributed_context.cc - Distributed Context -------------*- C++ -*-===//
+//===- distributed_context.cc - Distributed Context ------*- C++ -*--------===//
 //
-// This file contains the implementation of distributed context.
+// Contains implementation of DistributedContext class.
 //
 //===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/distributed_context.h"
 
+#include "llvm/ADT/DenseMap.h"
+#include "tfrt/bef_converter/bef_buffer.h"
+#include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
-#include "tfrt/distributed_runtime/remote_device.h"
+#include "tfrt/distributed_runtime/function_cache.h"
+#include "tfrt/distributed_runtime/remote_client.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
-#include "tfrt/support/logging.h"
-#include "tfrt/support/mutex.h"
+#include "tfrt/distributed_runtime/server_context.h"
+#include "tfrt/host_context/function.h"
+#include "tfrt/host_context/host_context.h"
+#include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 
-DistributedContext::DistributedContext(
-    HostContext* host_context, DistributedContextConfiguration configuration)
-    : host_context_{host_context},
-      remote_manager_(std::make_unique<RemoteObjectManager>(
-          configuration.fabric_configuration.host_configuration.id,
-          host_context_)),
-      configuration_{std::move(configuration)},
-      callback_registry_(new CallbackRegistry()) {}
-
-void DistributedContext::Init(
-    std::unique_ptr<FabricCommunicatorRequestHandler> request_handler) {
-  request_handler_ = std::move(request_handler);
-  GetOrCreateFabricCommunicator();
-}
-
-DistributedContext::~DistributedContext() {}
-
-FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicator() {
-  mutex_lock lock(communicator_mutex_);
-  return GetOrCreateFabricCommunicatorUnsafe();
-}
-
-CollectiveGroup DistributedContext::GetCollectiveGroup(llvm::StringRef name) {
+CollectiveGroup DistributedContext::GetCollectiveGroup(
+    llvm::StringRef name) const {
   CollectiveGroup collective_group;
   bool found = false;
   for (const auto& registered_group : configuration_.collective_groups) {
@@ -68,55 +53,44 @@ CollectiveGroup DistributedContext::GetCollectiveGroup(llvm::StringRef name) {
   return collective_group;
 }
 
-FabricCommunicator* DistributedContext::GetOrCreateFabricCommunicatorUnsafe() {
-  // Don't create a new communicator if cached
-  if (fabric_communicator_ != nullptr) {
-    return fabric_communicator_.get();
-  }
+DistributedContext::DistributedContext(
+    uint64_t context_id, ServerContext* server_context,
+    DistributedContextConfiguration configuration)
+    : context_id_(context_id),
+      server_context_(server_context),
+      configuration_(std::move(configuration)),
+      remote_manager_(std::make_unique<RemoteObjectManager>(
+          configuration.cluster_config.id, server_context_->GetHostContext())),
+      callback_registry_(new CallbackRegistry()),
+      function_cache_(new FunctionCache(server_context->GetHostContext())) {
+  InitializeRemoteDevices();
+}
 
-  // Get communicator type factory
-  const auto& communicator_configuration = configuration_.fabric_configuration;
-  const auto& communicator_type = communicator_configuration.type;
-  const auto* communicator_factories = GetFabricCommunicatorFactories();
-  auto factories_iter = communicator_factories->find(communicator_type);
-  if (factories_iter == communicator_factories->end()) {
-    TFRT_LOG(WARNING) << "Did not find fabric communicator factory for "
-                         "communicator with type "
-                      << communicator_type;
-    return nullptr;
-  }
-  const auto& factory_function = factories_iter->second;
+DistributedContext::~DistributedContext() {}
 
-  // Create FabricCommunicator
-  fabric_communicator_.reset(factory_function(this, request_handler_.get(),
-                                              communicator_configuration));
-
-  // TODO(bramandia): Get the list of devices from each worker and register
-  // them.
-  for (const auto& address :
-       communicator_configuration.host_configuration.addresses) {
+// TODO(bramandia,haoyuzhang): Create remote device manager inside
+// DistributedContext, and add the list of devices from the create context
+// request.
+void DistributedContext::InitializeRemoteDevices() {
+  for (const auto& address : configuration_.cluster_config.addresses) {
     const std::string device_name =
         StrCat(address.name, "/device:", HostContext::kDefaultHostDeviceName);
-    host_context_->GetDeviceManager()->MaybeAddDevice(
+    server_context_->GetHostContext()->GetDeviceManager()->MaybeAddDevice(
         TakeRef(new RemoteCpuDevice(device_name)));
   }
-
-  return fabric_communicator_.get();
 }
 
-void DistributedContext::RegisterFabricCommunicatorType(
-    const std::string& communicator_type_name,
-    FabricCommunicatorFactory factory_function) {
-  auto communicator_factories = GetFabricCommunicatorFactories();
-  communicator_factories->try_emplace(communicator_type_name,
-                                      std::move(factory_function));
-}
-
-llvm::StringMap<DistributedContext::FabricCommunicatorFactory>*
-DistributedContext::GetFabricCommunicatorFactories() {
-  static auto* communicator_factories =
-      new llvm::StringMap<FabricCommunicatorFactory>();
-  return communicator_factories;
+RemoteClientInterface* DistributedContext::GetRemoteClient(HostId id) {
+  mutex_lock l(remote_clients_mu_);
+  auto it = remote_clients_.find(id);
+  if (it == remote_clients_.end()) {
+    auto* communicator = server_context_->GetOrCreateFabricCommunicator();
+    auto ret = remote_clients_.try_emplace(
+        id, communicator->CreateRemoteClient(this, id));
+    assert(ret.second && "Failed to create remote client.");
+    it = ret.first;
+  }
+  return it->second.get();
 }
 
 }  // namespace tfrt

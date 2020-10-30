@@ -16,8 +16,9 @@
 
 //===- distributed_context.h - Distributed Context --------------*- C++ -*-===//
 //
-// This file declares DistributedContext, which constructs and owns fabric
-// communicator.
+// Declares DistributedContext, which represents the server-side state (tasks,
+// remote objects, function registry, etc.) associated with a distributed
+// execution environment.
 //
 //===----------------------------------------------------------------------===//
 
@@ -26,43 +27,29 @@
 
 #include <string>
 
-#include "llvm/ADT/StringMap.h"
-#include "tfrt/host_context/host_context.h"
-#include "tfrt/host_context/kernel_utils.h"
+#include "llvm/ADT/SmallVector.h"
+#include "tfrt/distributed_runtime/function_cache.h"
+#include "tfrt/distributed_runtime/remote_client.h"
+#include "tfrt/distributed_runtime/remote_device.h"
+#include "tfrt/distributed_runtime/server_context.h"
 #include "tfrt/support/forward_decls.h"
-#include "tfrt/support/logging.h"
-#include "tfrt/support/mutex.h"
+#include "tfrt/support/ref_count.h"
+#include "tfrt/support/thread_annotations.h"
 
 namespace tfrt {
 
-#define __TFRT_DIST_UNIQUE_NAME(base_name) \
-  __TFRT_DIST_NAME_MERGE(base_name, __COUNTER__)
-#define __TFRT_DIST_NAME_MERGE(name1, name2) name1##name2
-
-#define TFRT_STATIC_FABRIC_COMMUNICATOR_REGISTRATION(communicator_type_name, \
-                                                     factory_function)       \
-  static bool __TFRT_DIST_UNIQUE_NAME(__tfrt_static_communicator_) = []() {  \
-    ::tfrt::DistributedContext::RegisterFabricCommunicatorType(              \
-        communicator_type_name, std::move(factory_function));                \
-    return true;                                                             \
-  }()
-
-class FabricCommunicator;
-class FabricCommunicatorRequestHandler;
 class CallbackRegistry;
 class RemoteObjectManager;
+class RemoteClientInterface;
+class FunctionCache;
 
-// TODO(pisong, ayushd): remove `using`.
-using InstanceKey = std::string;
-using HostId = int32_t;
-
-struct HostConfiguration {
+struct ClusterConfiguration {
   struct NameAddressPair {
     NameAddressPair(const std::string& name, const std::string& address)
         : name(name), address(address) {}
 
     // The name associated with this address.
-    // This is something like: "job:worker1/task:0"
+    // This is something like: "/job:worker/task:1"
     std::string name;
     // The address that can be used by FabricCommunicator.
     // For instance, this can be hostname:port.
@@ -74,95 +61,86 @@ struct HostConfiguration {
   HostId id;
 };
 
-struct FabricCommunicatorConfiguration {
-  std::string type;  // fabric type, e.g. grpc
-  HostConfiguration host_configuration;
-};
-
 struct CollectiveGroup {
   std::string name;  // unique identifier for this group
   llvm::SmallVector<HostId, 8> members;
 };
 
+// Configurations at the client side and can be propagated through network.
 struct DistributedContextConfiguration {
-  FabricCommunicatorConfiguration fabric_configuration;
+  ClusterConfiguration cluster_config;
   llvm::SmallVector<CollectiveGroup, 4> collective_groups;
 };
 
-// DistributedContext constructs and owns fabric communicators.
+// DistributedContext owns a collection of server-side state related to
+// distributed execution. It is created from a ServerContext and is uniquely
+// identified by its context id.
+// The state it owns include:
+//   * Callback registry
+//   * Function cache
+//   * Clients for communicating with other peers in the cluster
 class DistributedContext {
  public:
-  using FabricCommunicatorFactory = std::function<FabricCommunicator*(
-      DistributedContext* distributed_context,
-      FabricCommunicatorRequestHandler* request_handler,
-      const FabricCommunicatorConfiguration& configuration)>;
-
-  explicit DistributedContext(HostContext* host_context,
-                              DistributedContextConfiguration configuration);
-
-  // Initialize DistributedContext and forward incoming requests to
-  // RequestHandler.
-  void Init(std::unique_ptr<FabricCommunicatorRequestHandler> request_handler);
+  DistributedContext(uint64_t context_id, ServerContext* server,
+                     DistributedContextConfiguration configuration);
+  ~DistributedContext();
 
   DistributedContext(DistributedContext&&) = delete;
   DistributedContext& operator=(DistributedContext&&) = delete;
 
   DistributedContext(const DistributedContext&) = delete;
   DistributedContext& operator=(const DistributedContext&) = delete;
-  ~DistributedContext();
 
-  FabricCommunicator* GetOrCreateFabricCommunicator()
-      TFRT_EXCLUDES(communicator_mutex_);
+  HostContext* GetHostContext() { return server_context_->GetHostContext(); }
 
-  HostContext* GetHostContext() { return host_context_; }
+  ServerContext* GetServerContext() { return server_context_; }
 
-  CallbackRegistry* GetCallbackRegistry() { return callback_registry_.get(); }
+  uint64_t GetContextId() const { return context_id_; }
 
-  DistributedContextConfiguration GetConfiguration() { return configuration_; }
-
-  HostId GetId() const {
-    return configuration_.fabric_configuration.host_configuration.id;
-  }
+  HostId GetHostId() const { return configuration_.cluster_config.id; }
 
   string_view GetTaskName() const {
-    return configuration_.fabric_configuration.host_configuration
-        .addresses[GetId()]
-        .name;
+    HostId my_id = configuration_.cluster_config.id;
+    return configuration_.cluster_config.addresses[my_id].name;
   }
 
-  size_t GetSize() {
-    return configuration_.fabric_configuration.host_configuration.addresses
-        .size();
+  string_view GetTaskName(HostId id) const {
+    return configuration_.cluster_config.addresses[id].name;
   }
 
-  CollectiveGroup GetCollectiveGroup(llvm::StringRef name);
-
-  static void RegisterFabricCommunicatorType(
-      const std::string& communicator_type_name,
-      FabricCommunicatorFactory factory_function);
-
-  FabricCommunicatorRequestHandler* GetRequestHandler() {
-    return request_handler_.get();
+  string_view GetRemoteAddress(HostId id) const {
+    return configuration_.cluster_config.addresses[id].address;
   }
 
-  RemoteObjectManager* GetRemoteObjectManager() {
+  CollectiveGroup GetCollectiveGroup(llvm::StringRef name) const;
+
+  CallbackRegistry* GetCallbackRegistry() const {
+    return callback_registry_.get();
+  }
+
+  RemoteObjectManager* GetRemoteObjectManager() const {
     return remote_manager_.get();
   }
 
- private:
-  static llvm::StringMap<FabricCommunicatorFactory>*
-  GetFabricCommunicatorFactories();
-  FabricCommunicator* GetOrCreateFabricCommunicatorUnsafe()
-      TFRT_REQUIRES(communicator_mutex_);
+  FunctionCache* GetFunctionCache() const { return function_cache_.get(); }
 
-  HostContext* const host_context_;
-  std::unique_ptr<RemoteObjectManager> remote_manager_;
+  RemoteClientInterface* GetRemoteClient(HostId id);
+
+ private:
+  void InitializeRemoteDevices();
+
+  const uint64_t context_id_;
+  ServerContext* const server_context_;
   const DistributedContextConfiguration configuration_;
+
+  mutex remote_clients_mu_;
+  llvm::DenseMap<HostId, std::unique_ptr<RemoteClientInterface>> remote_clients_
+      TFRT_GUARDED_BY(remote_clients_mu_);
+
+  std::unique_ptr<RemoteObjectManager> remote_manager_;
   std::unique_ptr<CallbackRegistry> callback_registry_;
-  std::unique_ptr<FabricCommunicatorRequestHandler> request_handler_;
-  mutex communicator_mutex_;
-  std::unique_ptr<FabricCommunicator> fabric_communicator_
-      TFRT_GUARDED_BY(communicator_mutex_);
+
+  std::unique_ptr<FunctionCache> function_cache_;
 };
 
 }  // namespace tfrt

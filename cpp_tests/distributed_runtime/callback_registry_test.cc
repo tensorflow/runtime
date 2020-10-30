@@ -28,7 +28,6 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "tfrt/distributed_runtime/distributed_context.h"
 
 namespace tfrt {
 namespace {

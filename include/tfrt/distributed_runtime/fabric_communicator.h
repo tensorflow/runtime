@@ -25,124 +25,92 @@
 
 #include <string>
 
-#include "llvm/Support/Error.h"
-#include "tfrt/distributed_runtime/distributed_context.h"
-#include "tfrt/distributed_runtime/remote_object.h"
-#include "tfrt/support/error_util.h"
+#include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringRef.h"
+#include "tfrt/support/forward_decls.h"
+#include "tfrt/support/logging.h"
 
 namespace tfrt {
 
-// Arguments for remote execute request
-struct RemoteExecuteInvocation {
-  string_view program_name;  // The name of the program to be executed
+class DistributedContext;
+class RemoteClientInterface;
+class RequestHandlerInterface;
+class ServerContext;
 
-  // This is a serializable version of GlobalId.
-  struct Id {
-    Id(int32_t prefix_id, int64_t local_id, string_view device)
-        : prefix_id(prefix_id), local_id(local_id), device(device) {}
-    int32_t prefix_id;
-    int64_t local_id;
-    string_view device;
-  };
-  struct Output {
-    Output(int32_t prefix_id, int64_t local_id, string_view device,
-           bool need_metadata)
-        : id(prefix_id, local_id, device), need_metadata(need_metadata) {}
-    Id id;
-    bool need_metadata;
-  };
-  llvm::SmallVector<Id, 4> inputs;       // The list of inputs arguments
-  llvm::SmallVector<Output, 4> outputs;  // The list of output arguments
-};
+#define __TFRT_DIST_UNIQUE_NAME(base_name) \
+  __TFRT_DIST_NAME_MERGE(base_name, __COUNTER__)
+#define __TFRT_DIST_NAME_MERGE(name1, name2) name1##name2
 
-struct RemoteExecuteInvocationResult {
-  // Invocation status.
-  Error error;
-  // Serialized metadata.
-  llvm::SmallVector<std::string, 4> metadata;
+#define TFRT_STATIC_FABRIC_COMMUNICATOR_REGISTRATION(communicator_type_name, \
+                                                     factory_function)       \
+  static bool __TFRT_DIST_UNIQUE_NAME(__tfrt_static_communicator_) = []() {  \
+    ::tfrt::FabricCommunicator::RegisterFabricCommunicatorType(              \
+        communicator_type_name, std::move(factory_function));                \
+    return true;                                                             \
+  }()
 
-  RemoteExecuteInvocationResult() = delete;
-  explicit RemoteExecuteInvocationResult(Error e) : error(std::move(e)) {}
-};
+// TODO(pisong, ayushd): remove `using`.
+using InstanceKey = std::string;
+using HostId = int32_t;
 
-// Arguments for remote register request
-struct RemoteRegisterInvocation {
-  string_view program;       // The body of the program to be registered
-  string_view program_name;  // The name of the program to be registered
-  bool need_compilation;     // Whether to perform compilation
-};
-
-struct RemoteRegisterInvocationResult {
-  // Invocation status.
-  Error error;
-  llvm::SmallVector<std::string, 4> output_device;
-
-  RemoteRegisterInvocationResult() = delete;
-  explicit RemoteRegisterInvocationResult(Error e) : error(std::move(e)) {}
-};
-
-// Define the handler for various incoming requests that are received by
-// FabricCommunicator.
-// Users of FabricCommunicator supplies an implementation of
-// FabricCommunicatorRequestHandler to be called whenever an incoming request
-// is received.
-class FabricCommunicatorRequestHandler {
- public:
-  virtual ~FabricCommunicatorRequestHandler() {}
-
-  using RemoteRegisterCallbackFn = llvm::unique_function<void(
-      std::unique_ptr<RemoteRegisterInvocationResult>)>;
-  virtual void HandleRemoteRegister(const RemoteRegisterInvocation& request,
-                                    RemoteRegisterCallbackFn done) = 0;
-
-  using RemoteExecuteCallbackFn = llvm::unique_function<void(
-      std::unique_ptr<RemoteExecuteInvocationResult>)>;
-  virtual void HandleRemoteExecute(const RemoteExecuteInvocation& request,
-                                   RemoteExecuteCallbackFn done) = 0;
+struct FabricCommunicatorConfiguration {
+  std::string type;            // fabric type, (e.g., grpc)
+  std::string server_address;  // Server address (e.g., hostname:port)
 };
 
 // FabricCommunicator is an abstraction for a layer between the kernel and the
 // network fabric which is able to send and receive data.
 class FabricCommunicator {
  public:
+  using FabricCommunicatorFactory =
+      std::function<FabricCommunicator*(ServerContext* server_context)>;
+
   // Create FabricCommunicator and redirects the received requests to the
   // request_handler.
-  explicit FabricCommunicator(llvm::StringRef name,
-                              DistributedContext* distributed_context,
-                              FabricCommunicatorRequestHandler* request_handler)
-      : name_{name},
-        distributed_context_{distributed_context},
-        request_handler_(request_handler) {}
+  FabricCommunicator(llvm::StringRef name, ServerContext* server_context)
+      : name_{name}, server_context_(server_context) {}
 
   virtual ~FabricCommunicator() = default;
 
-  using CallbackFn = llvm::unique_function<void(Error error)>;
-  virtual void Send(InstanceKey instance_key, HostId destination,
-                    llvm::StringRef payload, CallbackFn done) = 0;
-
-  // The callback will be called once the program has been successfully
-  // registered in the destination.
-  using RemoteRegisterCallbackFn = llvm::unique_function<void(
-      std::unique_ptr<RemoteRegisterInvocationResult>)>;
-  virtual void RemoteRegister(HostId destination,
-                              const RemoteRegisterInvocation& request,
-                              RemoteRegisterCallbackFn done) = 0;
-
-  // The callback will be called once a response is received from the
-  // destination. This might not mean the actual execution has completed in
-  // the destination.
-  using RemoteExecuteCallbackFn = llvm::unique_function<void(
-      std::unique_ptr<RemoteExecuteInvocationResult>)>;
-  virtual void RemoteExecute(HostId destination,
-                             const RemoteExecuteInvocation& request,
-                             RemoteExecuteCallbackFn done) = 0;
-
   const std::string& GetFabricCommunicatorName() const { return name_; }
 
+  static void RegisterFabricCommunicatorType(
+      const std::string& communicator_type_name,
+      FabricCommunicatorFactory factory_function) {
+    auto communicator_factories = GetFabricCommunicatorFactories();
+    communicator_factories->try_emplace(communicator_type_name,
+                                        std::move(factory_function));
+  }
+
+  static FabricCommunicator* CreateFabricCommunicator(
+      string_view communicator_type, ServerContext* server) {
+    // Get communicator type factory
+    const auto* communicator_factories = GetFabricCommunicatorFactories();
+    auto factories_iter = communicator_factories->find(communicator_type);
+    if (factories_iter == communicator_factories->end()) {
+      TFRT_LOG(WARNING) << "Did not find fabric communicator factory for "
+                           "communicator with type "
+                        << communicator_type;
+      return nullptr;
+    }
+    const auto& factory_function = factories_iter->second;
+    return factory_function(server);
+  }
+
+  virtual std::unique_ptr<RemoteClientInterface> CreateRemoteClient(
+      DistributedContext* dist_context, HostId remote_host_id) = 0;
+
  protected:
-  std::string name_;
-  DistributedContext* distributed_context_;
-  FabricCommunicatorRequestHandler* request_handler_;
+  const std::string name_;
+  ServerContext* server_context_;
+
+ private:
+  static llvm::StringMap<FabricCommunicatorFactory>*
+  GetFabricCommunicatorFactories() {
+    static auto* communicator_factories =
+        new llvm::StringMap<FabricCommunicatorFactory>();
+    return communicator_factories;
+  }
 };
 
 }  // namespace tfrt

@@ -28,9 +28,15 @@
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/proto/remote_message.pb.h"
 #include "tfrt/distributed_runtime/remote_execute.h"
+#include "tfrt/distributed_runtime/remote_object.h"
 #include "tfrt/distributed_runtime/request_handler.h"
+#include "tfrt/distributed_runtime/request_handler_impl.h"
+#include "tfrt/distributed_runtime/server_context.h"
 #include "tfrt/host_context/async_dispatch.h"
+#include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/init_tfrt_dialects.h"
 
@@ -42,60 +48,67 @@ namespace {
 // - provide functionality to trigger request processing one by one by
 //   process_next_request kernel.
 // - delegate execution to RequestHandler
-class TestRequestHandler : public FabricCommunicatorRequestHandler {
+class TestRequestHandler : public RequestHandlerInterface {
  public:
-  explicit TestRequestHandler(AsyncValueRef<DistributedContext> context)
-      : handler_(context.CopyRef()) {}
+  explicit TestRequestHandler(ServerContext* server_context)
+      : handler_(NewRequestHandler(server_context)) {}
   ~TestRequestHandler() final {}
 
-  void HandleRemoteRegister(const RemoteRegisterInvocation& request,
-                            RemoteRegisterCallbackFn done) final {
-    handler_.HandleRemoteRegister(
-        request,
-        [done = std::move(done)](
-            std::unique_ptr<RemoteRegisterInvocationResult> result) mutable {
-          done(std::move(result));
-        });
+  Error HandleSendData(const SendDataRequest* request,
+                       SendDataResponse* response) final {
+    return handler_->HandleSendData(request, response);
   }
 
-  void HandleRemoteExecute(const RemoteExecuteInvocation& request,
-                           RemoteExecuteCallbackFn done) final {
+  void HandleRemoteRegister(const RemoteRegisterRequest* request,
+                            RemoteRegisterResponse* response,
+                            CallbackFn done) final {
+    return handler_->HandleRemoteRegister(request, response, std::move(done));
+  }
+
+  void HandleRemoteExecute(const RemoteExecuteRequest* request,
+                           RemoteExecuteResponse* response,
+                           CallbackFn done) final {
     mutex_lock lock(invocations_mutex_);
-    invocations_.push({request, std::move(done)});
+    Invocation invocation{request, response, std::move(done)};
+    invocations_.push(std::move(invocation));
     cond_.notify_one();
   }
 
-  using CallbackFn = llvm::unique_function<void()>;
-  void ProcessNextRequest(CallbackFn fn) {
-    std::unique_ptr<InvocationPair> invocation_pair;
+  void ProcessNextRequest(llvm::unique_function<void()> fn) {
+    auto invocation = std::make_shared<Invocation>();
     {
       mutex_lock lock(invocations_mutex_);
       cond_.wait(lock, [this]() { return !this->invocations_.empty(); });
-      invocation_pair = std::make_unique<InvocationPair>();
-      invocation_pair->invocation = invocations_.front().invocation;
-      invocation_pair->callback_fn =
-          std::move(invocations_.front().callback_fn);
+      *invocation = std::move(invocations_.front());
       invocations_.pop();
     }
-    auto& invocation = invocation_pair->invocation;
-    handler_.HandleRemoteExecute(
-        invocation,
-        [invocation_pair = std::move(invocation_pair), fn = std::move(fn)](
-            std::unique_ptr<RemoteExecuteInvocationResult> result) mutable {
-          invocation_pair->callback_fn(std::move(result));
+    handler_->HandleRemoteExecute(
+        invocation->request, invocation->response,
+        [invocation, fn = std::move(fn)](Error e) mutable {
+          invocation->callback_fn(std::move(e));
           fn();
         });
   }
 
  private:
-  struct InvocationPair {
-    RemoteExecuteInvocation invocation;
-    RemoteExecuteCallbackFn callback_fn;
+  struct Invocation {
+    const RemoteExecuteRequest* request;
+    RemoteExecuteResponse* response;
+    CallbackFn callback_fn;
   };
   mutex invocations_mutex_;
   tfrt::condition_variable cond_;
-  std::queue<InvocationPair> invocations_;
-  RequestHandler handler_;
+  std::queue<Invocation> invocations_;
+  std::unique_ptr<RequestHandlerInterface> handler_;
+};
+
+class TestServerContext : public ServerContext {
+ public:
+  TestServerContext(HostContext* host_context,
+                    ServerContextConfiguration configuration)
+      : ServerContext(host_context, configuration) {
+    ResetRequestHandler(std::make_unique<TestRequestHandler>(this));
+  }
 };
 
 // Process the next request in the DistributedContext's TestRequestHandler
@@ -104,8 +117,8 @@ void TestProcessNextRequest(Argument<DistributedContext> dist_context,
                             Result<Chain> chain,
                             const ExecutionContext& exec_ctx) {
   AsyncValueRef<Chain> out = chain.Allocate();
-  TestRequestHandler* handler =
-      static_cast<TestRequestHandler*>(dist_context->GetRequestHandler());
+  TestRequestHandler* handler = static_cast<TestRequestHandler*>(
+      dist_context->GetServerContext()->GetRequestHandler());
   EnqueueWork(exec_ctx, [handler, out = out.CopyRef()] {
     handler->ProcessNextRequest([out = out.CopyRef()] { out.emplace(); });
   });
@@ -114,12 +127,35 @@ void TestProcessNextRequest(Argument<DistributedContext> dist_context,
 AsyncValueRef<DistributedContext> TestCreateDistributedContext(
     const DistributedContextConfiguration& configuration,
     const ExecutionContext& exec_ctx) {
-  AsyncValueRef<DistributedContext> value =
-      MakeAvailableAsyncValueRef<DistributedContext>(
-          exec_ctx.host(), exec_ctx.host(), configuration);
-  auto handler = std::make_unique<TestRequestHandler>(value.CopyRef());
-  value->Init(std::move(handler));
-  return value;
+  const HostId id = configuration.cluster_config.id;
+  const auto& server_address =
+      configuration.cluster_config.addresses[id].address;
+  FabricCommunicatorConfiguration fabric_config{"grpc_communicator",
+                                                server_address};
+  ServerContextConfiguration server_config{fabric_config};
+  ServerContext* server = new TestServerContext(exec_ctx.host(), server_config);
+
+  // Create distributed context with context id 0.
+  // TODO(haoyuzhang): take context_id as op input and allow multiple
+  // distributed contexts to be created in the same server context.
+  Error e = server->CreateDistributedContext(0, configuration);
+  if (e) {
+    return MakeErrorAsyncValueRef(exec_ctx.host(),
+                                  DecodedDiagnostic(std::move(e)));
+  }
+  return server->GetDistributedContextAsyncValue(0);
+}
+
+void TestCloseDistributedContext(Argument<DistributedContext> dist_context,
+                                 Argument<Chain> in_chain,
+                                 Result<Chain> out_chain,
+                                 const ExecutionContext& exec_ctx) {
+  auto out_chain_indirect = out_chain.Allocate();
+  ServerContext* server = dist_context->GetServerContext();
+  // TODO(haoyuzhang): allow individual distributed contexts to be closed.
+  server->ShutDown();
+  delete server;
+  out_chain_indirect.emplace();
 }
 
 void TestPrintRemoteObjectId(const RemoteObjectId& id,
@@ -181,6 +217,8 @@ void RegisterDistributedTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestProcessNextRequest));
   registry->AddKernel("tfrt_dist.test_create_distributed_context",
                       TFRT_KERNEL(TestCreateDistributedContext));
+  registry->AddKernel("tfrt_dist.test_close_distributed_context",
+                      TFRT_KERNEL(TestCloseDistributedContext));
   registry->AddKernel("tfrt_dist.test_print_remote_object_id",
                       TFRT_KERNEL(TestPrintRemoteObjectId));
   registry->AddKernel("tfrt_dist.test_print_remote_execute_spec",

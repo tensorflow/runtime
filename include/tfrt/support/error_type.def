@@ -42,6 +42,7 @@ ERROR_TYPE(DeviceNotFound)
 ERROR_TYPE(RemoteFunctionAlreadyExists)
 ERROR_TYPE(MalformattedMlirFile)
 ERROR_TYPE(CompilationFailed)
+ERROR_TYPE(InvalidDistributedContextId)
 
 // TODO(tfrt-devs): add more error codes if needed.
 

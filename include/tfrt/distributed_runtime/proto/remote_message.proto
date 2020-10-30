@@ -1,0 +1,69 @@
+// Copyright 2020 The TensorFlow Runtime Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//===- remote_message.proto -----------------------------------------------===//
+//
+// This file defines protocol messages for communications in distributed TFRT.
+//
+//===----------------------------------------------------------------------===//
+
+syntax = "proto3";
+
+package tfrt;
+
+message SendDataRequest {
+  fixed64 context_id = 1;
+  string instance_key = 2;
+  bytes payload = 3;
+}
+
+message SendDataResponse {}
+
+message RemoteRegisterRequest {
+  fixed64 context_id = 1;
+  // The name of the program to be registered.
+  string program_name = 2;
+  // The body of the program to be executed
+  bytes program = 3;
+  bool need_compilation = 4;
+}
+
+message RemoteRegisterResponse {
+  repeated string output_device = 1;
+}
+
+message RemoteObjectIdProto {
+  int32 prefix_id = 1;
+  int64 local_id = 2;
+  string device = 3;
+}
+
+message RemoteExecuteOutput {
+  RemoteObjectIdProto id = 1;
+  bool need_metadata = 2;
+}
+
+message RemoteExecuteRequest {
+  fixed64 context_id = 1;
+  // The name of the program to be executed
+  string program_name = 2;
+
+  // List of inputs and outputs
+  repeated RemoteObjectIdProto input = 3;
+  repeated RemoteExecuteOutput output = 4;
+}
+
+message RemoteExecuteResponse {
+  repeated bytes metadata = 1;
+}

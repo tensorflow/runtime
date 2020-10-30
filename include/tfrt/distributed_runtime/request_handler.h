@@ -16,45 +16,38 @@
 
 //===- request_handler.h - Request Handler ----------------------*- C++ -*-===//
 //
-// This file declares RequestHandler, which implements logic to register and
-// execute programs.
+// This file declares RequestHandler, which implements logic to send data, and
+// register and execute programs.
 //
 //===----------------------------------------------------------------------===//
+
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_H_
 
 #include <llvm/ADT/ArrayRef.h>
 #include <tfrt/support/ref_count.h>
 
-#include "tfrt/distributed_runtime/fabric_communicator.h"
-#include "tfrt/host_context/chain.h"
-#include "tfrt/host_context/resource_context.h"
+#include "tfrt/distributed_runtime/proto/remote_message.pb.h"
+#include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 
-class HostContext;
-class RequestContext;
+using CallbackFn = llvm::unique_function<void(Error)>;
 
-// Implementation of processing of RemoteRegister and RemoteExecute requests
-// at the callee location.
-class RequestHandler : public FabricCommunicatorRequestHandler {
+class RequestHandlerInterface {
  public:
-  explicit RequestHandler(AsyncValueRef<DistributedContext> dist_context);
-  virtual ~RequestHandler();
+  virtual ~RequestHandlerInterface() {}
 
-  void HandleRemoteRegister(const RemoteRegisterInvocation& request,
-                            RemoteRegisterCallbackFn done) final;
-  void HandleRemoteExecute(const RemoteExecuteInvocation& request,
-                           RemoteExecuteCallbackFn done) final;
+  virtual Error HandleSendData(const SendDataRequest* request,
+                               SendDataResponse* response) = 0;
 
- private:
-  HostContext* host_ctx();
-  DistributedContext* dist_ctx();
+  virtual void HandleRemoteRegister(const RemoteRegisterRequest* request,
+                                    RemoteRegisterResponse* response,
+                                    CallbackFn done) = 0;
 
-  AsyncValue* dist_ctx_;
-
-  class FunctionCache;
-  std::unique_ptr<FunctionCache> function_cache_;
+  virtual void HandleRemoteExecute(const RemoteExecuteRequest* request,
+                                   RemoteExecuteResponse* response,
+                                   CallbackFn done) = 0;
 };
 
 }  // namespace tfrt

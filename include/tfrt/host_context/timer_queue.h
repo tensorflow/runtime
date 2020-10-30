@@ -22,8 +22,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef THIRD_PARTY_TF_RUNTIME_INCLUDE_TFRT_HOST_CONTEXT_TIMER_QUEUE_H_
-#define THIRD_PARTY_TF_RUNTIME_INCLUDE_TFRT_HOST_CONTEXT_TIMER_QUEUE_H_
+#ifndef TFRT_HOST_CONTEXT_TIMER_QUEUE_H_
+#define TFRT_HOST_CONTEXT_TIMER_QUEUE_H_
 
 #include <chrono>
 #include <queue>
@@ -104,4 +104,4 @@ class TimerQueue {
 
 }  // namespace tfrt
 
-#endif  // THIRD_PARTY_TF_RUNTIME_INCLUDE_TFRT_HOST_CONTEXT_TIMER_QUEUE_H_
+#endif  // TFRT_HOST_CONTEXT_TIMER_QUEUE_H_

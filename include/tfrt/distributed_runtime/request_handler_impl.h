@@ -20,8 +20,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef THIRD_PARTY_TF_RUNTIME_INCLUDE_TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_IMPL_H_
-#define THIRD_PARTY_TF_RUNTIME_INCLUDE_TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_IMPL_H_
+#ifndef TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_IMPL_H_
+#define TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_IMPL_H_
 
 #include "tfrt/distributed_runtime/request_handler.h"
 
@@ -34,4 +34,4 @@ std::unique_ptr<RequestHandlerInterface> NewRequestHandler(
 
 }  // namespace tfrt
 
-#endif  // THIRD_PARTY_TF_RUNTIME_INCLUDE_TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_IMPL_H_
+#endif  // TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_IMPL_H_

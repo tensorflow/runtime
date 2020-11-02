@@ -65,6 +65,13 @@ class TestRequestHandler : public RequestHandlerInterface {
     return handler_->HandleRemoteRegister(request, response, std::move(done));
   }
 
+  void HandleDeleteRemoteObjects(const DeleteRemoteObjectsRequest* request,
+                                 DeleteRemoteObjectsResponse* response,
+                                 CallbackFn done) final {
+    return handler_->HandleDeleteRemoteObjects(request, response,
+                                               std::move(done));
+  }
+
   void HandleRemoteExecute(const RemoteExecuteRequest* request,
                            RemoteExecuteResponse* response,
                            CallbackFn done) final {

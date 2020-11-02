@@ -23,6 +23,7 @@
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_DEVICE_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_DEVICE_H_
 
+#include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/host_context/device.h"
 
 namespace tfrt {
@@ -33,9 +34,16 @@ class RemoteCpuDevice : public Device, public DeviceTraits<RemoteCpuDevice> {
     return kName;
   }
 
-  explicit RemoteCpuDevice(string_view name) : Device(kDeviceType, name) {}
+  explicit RemoteCpuDevice(string_view name, HostId host_id)
+      : Device(kDeviceType, name), host_id_(host_id) {}
 
   ~RemoteCpuDevice() override {}
+
+  HostId GetHostId() const { return host_id_; }
+
+ private:
+  // The Host where this device resides.
+  HostId host_id_;
 };
 
 }  // namespace tfrt

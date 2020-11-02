@@ -52,4 +52,25 @@ RCReference<AsyncValue> RemoteObjectManager::GetRemoteObject(
   return value.CopyRef();
 }
 
+// Delete the given remote object ids.
+Error RemoteObjectManager::DeleteRemoteObjects(
+    const llvm::SmallVectorImpl<RemoteObjectId>& ids) {
+  tfrt::mutex_lock lock(mutex_);
+  std::unique_ptr<ErrorCollection> errors;
+  for (const RemoteObjectId& id : ids) {
+    if (!object_maps_.erase(id)) {
+      if (!errors) {
+        errors = std::make_unique<ErrorCollection>();
+      }
+      errors->AddError(llvm::make_error<InvalidArgumentErrorInfo>(
+          StrCat("Could not find object: ", id)));
+    }
+  }
+  if (errors) {
+    return Error(std::move(errors));
+  } else {
+    return Error::success();
+  }
+}
+
 }  // namespace tfrt

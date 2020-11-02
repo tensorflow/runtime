@@ -50,6 +50,9 @@ class RemoteObjectManager {
   // objects input to the remote_execute.
   RCReference<AsyncValue> GetRemoteObject(const RemoteObjectId& id);
 
+  // Delete the given remote object ids.
+  Error DeleteRemoteObjects(const llvm::SmallVectorImpl<RemoteObjectId>& ids);
+
  private:
   std::atomic<int64_t> next_unique_id_{1};
   HostId host_id_;

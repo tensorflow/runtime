@@ -70,6 +70,10 @@ class RequestHandler : public RequestHandlerInterface {
                            RemoteExecuteResponse* response,
                            CallbackFn done) final;
 
+  void HandleDeleteRemoteObjects(const DeleteRemoteObjectsRequest* request,
+                                 DeleteRemoteObjectsResponse* response,
+                                 CallbackFn done) final;
+
  private:
   HostContext* host_ctx() { return server_context_->GetHostContext(); }
 
@@ -279,6 +283,31 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
     }
     done(Error::success());
   });
+}
+
+void RequestHandler::HandleDeleteRemoteObjects(
+    const DeleteRemoteObjectsRequest* request,
+    DeleteRemoteObjectsResponse* response, CallbackFn done) {
+  auto expected = server_context_->GetDistributedContext(request->context_id());
+  if (!expected) {
+    done(expected.takeError());
+    return;
+  }
+  DistributedContext* dist_context = expected.get();
+
+  llvm::SmallVector<RemoteObjectId, 4> ids;
+  for (const RemoteObjectIdProto& id : request->input()) {
+    RCReference<Device> device =
+        host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device());
+    if (device.get() == nullptr) {
+      done(llvm::make_error<DeviceNotFoundErrorInfo>(
+          StrCat("Can't find device: ", id.device())));
+      return;
+    }
+    ids.emplace_back(id.prefix_id(), id.local_id(), device.CopyRef());
+  }
+  RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
+  done(manager->DeleteRemoteObjects(ids));
 }
 }  // namespace
 

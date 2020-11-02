@@ -72,11 +72,13 @@ DistributedContext::~DistributedContext() {}
 // DistributedContext, and add the list of devices from the create context
 // request.
 void DistributedContext::InitializeRemoteDevices() {
-  for (const auto& address : configuration_.cluster_config.addresses) {
+  for (HostId host_id = 0;
+       host_id < configuration_.cluster_config.addresses.size(); ++host_id) {
+    const auto& address = configuration_.cluster_config.addresses[host_id];
     const std::string device_name =
         StrCat(address.name, "/device:", HostContext::kDefaultHostDeviceName);
     server_context_->GetHostContext()->GetDeviceManager()->MaybeAddDevice(
-        TakeRef(new RemoteCpuDevice(device_name)));
+        TakeRef(new RemoteCpuDevice(device_name, host_id)));
   }
 }
 

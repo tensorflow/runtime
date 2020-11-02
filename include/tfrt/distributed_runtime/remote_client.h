@@ -56,6 +56,12 @@ class RemoteClientInterface {
   virtual void RemoteExecuteAsync(const RemoteExecuteRequest* request,
                                   RemoteExecuteResponse* response,
                                   CallbackFn done) = 0;
+
+  // Delete Remote objects on remote location. The callback will be invoked
+  // after the deletion has completed on remote location.
+  virtual void DeleteRemoteObjectsAsync(
+      const DeleteRemoteObjectsRequest* request,
+      DeleteRemoteObjectsResponse* response, CallbackFn done) = 0;
 };
 
 }  // namespace tfrt

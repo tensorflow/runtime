@@ -67,3 +67,13 @@ message RemoteExecuteRequest {
 message RemoteExecuteResponse {
   repeated bytes metadata = 1;
 }
+message DeleteRemoteObjectsRequest {
+  fixed64 context_id = 1;
+
+  // List of inputs
+  repeated RemoteObjectIdProto input = 2;
+
+  // TODO(bramandia): Add chain input
+}
+
+message DeleteRemoteObjectsResponse {}

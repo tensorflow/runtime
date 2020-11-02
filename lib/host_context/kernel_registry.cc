@@ -27,6 +27,7 @@
 #include "llvm/ADT/StringSet.h"
 #include "tfrt/host_context/type_name.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/mutex.h"
 
 namespace tfrt {
 
@@ -35,7 +36,8 @@ using llvm::StringSet;
 
 struct KernelRegistry::Impl {
   StringMap<KernelImplementation> implementations;
-  StringSet<> type_names;
+  StringSet<> type_names TFRT_GUARDED_BY(mu);
+  mutex mu;
 };
 
 KernelRegistry::KernelRegistry() : impl_(std::make_unique<Impl>()) {}
@@ -67,6 +69,7 @@ KernelImplementation KernelRegistry::GetKernel(string_view kernel_name) const {
 }
 
 TypeName KernelRegistry::GetType(string_view type_name) const {
+  mutex_lock lock(impl_->mu);
   auto it = impl_->type_names.insert(type_name).first;
   return TypeName(it->getKeyData());
 }

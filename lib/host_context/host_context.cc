@@ -27,7 +27,6 @@
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/shared_context.h"
-#include "tfrt/support/mutex.h"
 #include "tfrt/support/string_util.h"
 
 namespace tfrt {

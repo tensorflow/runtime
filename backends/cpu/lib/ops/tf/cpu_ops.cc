@@ -102,8 +102,14 @@ static AsyncValueRef<DenseHostTensor> TfReluOp(
 // tf.Mean op
 //===----------------------------------------------------------------------===//
 
-static Expected<TensorMetadata> TfMeanOutputMd(
-    const DenseHostTensor& input, const DenseHostTensor& reduction_indices) {
+struct MeanOutputMd {
+  TensorMetadata output_metadata;
+  TensorMetadata final_output_metadata;
+};
+
+static Expected<MeanOutputMd> TfMeanOutputMd(
+    const DenseHostTensor& input, const DenseHostTensor& reduction_indices,
+    bool keep_dims) {
   // Check if an input dimension is reduced or not.
   DHTArrayView<int32_t> reduction_indices_view(&reduction_indices);
   llvm::SmallVector<bool, 4> reduced_dim(input.shape().GetRank(), false);
@@ -120,25 +126,38 @@ static Expected<TensorMetadata> TfMeanOutputMd(
   }
 
   llvm::SmallVector<ssize_t, 4> output_dims;
+  llvm::SmallVector<ssize_t, 4> final_output_dims;
+  output_dims.reserve(input.shape().GetRank());
+  final_output_dims.reserve(input.shape().GetRank());
   for (int i = 0; i < input.shape().GetRank(); ++i) {
-    if (!reduced_dim[i])
+    if (!reduced_dim[i]) {
       output_dims.push_back(input.shape().GetDimensionSize(i));
+      final_output_dims.push_back(input.shape().GetDimensionSize(i));
+    } else if (keep_dims) {
+      final_output_dims.push_back(1);
+    }
   }
 
-  return TensorMetadata(input.dtype(), output_dims);
+  return MeanOutputMd{TensorMetadata(input.dtype(), output_dims),
+                      TensorMetadata(input.dtype(), final_output_dims)};
 }
 
 static AsyncValueRef<DenseHostTensor> TfMeanOp(
     const DenseHostTensor& input, const DenseHostTensor& reduction_indices,
-    const ExecutionContext& exec_ctx) {
+    const OpAttrsRef& op_attrs, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
+  bool keep_dims = false;
+  if (auto attr = op_attrs.GetOptional<bool>("keep_dims"))
+    keep_dims = attr.getValue();
+
   // Compute output tensor metadata from reduction indices.
-  auto output_md = TfMeanOutputMd(input, reduction_indices);
+  auto output_md = TfMeanOutputMd(input, reduction_indices, keep_dims);
   if (auto err = output_md.takeError())
     return EmitErrorAsync(exec_ctx, std::move(err));
 
-  auto output = DenseHostTensor::CreateUninitialized(*output_md, host);
+  auto output =
+      DenseHostTensor::CreateUninitialized(output_md->output_metadata, host);
   if (!output) {
     return EmitErrorAsync(exec_ctx, "out of memory allocating tensor");
   }
@@ -158,7 +177,12 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain), host);
+  DenseHostTensor final_output(output_md->final_output_metadata,
+                               output->ReleaseBuffer());
+
+  // TODO(tfrt-devs): ForwardValue() should be able to take an rvalue to
+  // indicate the variable cannot be used by caller after this call.
+  return ForwardValue(final_output, std::move(chain), host);
 }
 
 //===----------------------------------------------------------------------===//

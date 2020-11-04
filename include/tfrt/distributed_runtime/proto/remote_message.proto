@@ -30,7 +30,7 @@ message SendDataRequest {
 
 message SendDataResponse {}
 
-message RemoteRegisterRequest {
+message RegisterFunctionRequest {
   fixed64 context_id = 1;
   // The name of the program to be registered.
   string program_name = 2;
@@ -39,7 +39,7 @@ message RemoteRegisterRequest {
   bool need_compilation = 4;
 }
 
-message RemoteRegisterResponse {
+message RegisterFunctionResponse {
   repeated string output_device = 1;
 }
 

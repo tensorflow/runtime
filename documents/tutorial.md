@@ -2,7 +2,7 @@
 
 <!--* freshness: {
   owner: 'lauj'
-  reviewed: '2020-04-28'
+  reviewed: '2020-11-03'
 } *-->
 
 <!-- TOC -->
@@ -130,7 +130,7 @@ Choosing memory leak check allocator.
 Choosing single-threaded work queue.
 --- Running 'hello':
 string = hello world
---- Running hello_integers:
+--- Running 'hello_integers':
 int32 = 42
 ```
 

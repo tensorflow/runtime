@@ -92,14 +92,15 @@ TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
                                   CpuOpHandler* op_handler, TensorHandle arg) {
   if (arg.IsError()) return arg;
   RCReference<Device> device = op_handler->GetDeviceRef();
-  // We does not support implicit tensor conversion across device.
-  if (device.get() != &arg.device()) {
-    TFRT_LOG(WARNING) << "Cannot implict convert from device "
-                      << arg.device().name() << " to " << device->name();
-    return arg;
-  }
 
-  if (arg.GetAsyncTensor()->IsAvailable()) {
+  if (arg.GetAsyncTensor()->IsAvailable() && arg.IsDeviceAvailable()) {
+    // We does not support implicit tensor conversion across device.
+    if (device.get() != arg.GetAvailableDevice().get()) {
+      TFRT_LOG(WARNING) << "Cannot implictly convert from device "
+                        << arg.GetAvailableDevice()->name() << " to "
+                        << device->name();
+      return arg;
+    }
     auto& tensor = arg.GetAsyncTensor()->get<Tensor>();
     auto target_type = ArgumentTensorType(tensor, flags);
     if (target_type == tensor.tensor_type()) return arg;
@@ -114,33 +115,47 @@ TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
   } else {
     RCReference<IndirectAsyncValue> result_ind_av =
         MakeIndirectAsyncValue(exec_ctx.host());
-    auto argument_tensor = AsyncValueRef<Tensor>(FormRef(arg.GetAsyncTensor()));
-    arg.GetAsyncTensor()->AndThen(
-        [exec_ctx, argument_tensor = std::move(argument_tensor),
-         result_ind_av = result_ind_av.CopyRef(), device = device.CopyRef(),
-         op_handler, flags]() mutable {
-          if (argument_tensor.IsError()) {
-            result_ind_av->ForwardTo(
-                RCReference<AsyncValue>(std::move(argument_tensor)));
+    SmallVector<AsyncValue*, 2> async_values;
+    async_values.push_back(arg.GetAsyncTensor());
+    if (!arg.IsDeviceAvailable()) {
+      async_values.push_back(arg.GetAsyncDevice().GetAsyncValue());
+    }
+    RunWhenReady(
+        async_values,
+        [exec_ctx, arg = arg.CopyRef(), result_ind_av = result_ind_av.CopyRef(),
+         device = device.CopyRef(), op_handler, flags]() mutable {
+          if (arg.IsDeviceError()) {
+            result_ind_av->ForwardTo(arg.GetAsyncDevice().CopyRCRef());
             return;
           }
-          auto target_type = ArgumentTensorType(argument_tensor.get(), flags);
-          if (target_type == argument_tensor.get().tensor_type()) {
-            result_ind_av->ForwardTo(
-                RCReference<AsyncValue>(std::move(argument_tensor)));
+          // We does not support implicit tensor conversion across device.
+          if (device.get() != arg.GetAvailableDevice().get()) {
+            TFRT_LOG(WARNING)
+                << "Cannot implict convert from device "
+                << arg.GetAvailableDevice()->name() << " to " << device->name();
+            result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
             return;
           }
-          if (!op_handler->AllowImplicitConversion(
-                  argument_tensor.get().tensor_type(), target_type)) {
-            TFRT_LOG(WARNING) << "Cannot implicit convert "
-                              << argument_tensor->tensor_type().name() << " to "
+          if (arg.GetAsyncTensor()->IsError()) {
+            result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
+            return;
+          }
+          auto& arg_tensor = arg.GetAsyncTensor()->get<Tensor>();
+          auto target_type = ArgumentTensorType(arg_tensor, flags);
+          if (target_type == arg_tensor.tensor_type()) {
+            result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
+            return;
+          }
+          if (!op_handler->AllowImplicitConversion(arg_tensor.tensor_type(),
+                                                   target_type)) {
+            TFRT_LOG(WARNING) << "Cannot implicitly convert "
+                              << arg_tensor.tensor_type().name() << " to "
                               << target_type.name();
-            result_ind_av->ForwardTo(
-                RCReference<AsyncValue>(std::move(argument_tensor)));
+            result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
             return;
           }
-          result_ind_av->ForwardTo(ConvertTensor(
-              exec_ctx, argument_tensor.get(), *device, *device, target_type));
+          result_ind_av->ForwardTo(ConvertTensor(exec_ctx, arg_tensor, *device,
+                                                 *device, target_type));
         });
 
     if (arg.IsMetadataAvailable()) {

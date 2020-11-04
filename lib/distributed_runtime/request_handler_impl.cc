@@ -62,9 +62,9 @@ class RequestHandler : public RequestHandlerInterface {
   Error HandleSendData(const SendDataRequest* request,
                        SendDataResponse* response) final;
 
-  void HandleRemoteRegister(const RemoteRegisterRequest* request,
-                            RemoteRegisterResponse* response,
-                            CallbackFn done) final;
+  void HandleRegisterFunction(const RegisterFunctionRequest* request,
+                              RegisterFunctionResponse* response,
+                              CallbackFn done) final;
 
   void HandleRemoteExecute(const RemoteExecuteRequest* request,
                            RemoteExecuteResponse* response,
@@ -94,9 +94,9 @@ Error RequestHandler::HandleSendData(const SendDataRequest* request,
   return Error::success();
 }
 
-void RequestHandler::HandleRemoteRegister(const RemoteRegisterRequest* request,
-                                          RemoteRegisterResponse* response,
-                                          CallbackFn done) {
+void RequestHandler::HandleRegisterFunction(
+    const RegisterFunctionRequest* request, RegisterFunctionResponse* response,
+    CallbackFn done) {
   auto expected = server_context_->GetDistributedContext(request->context_id());
   if (!expected) done(expected.takeError());
   DistributedContext* dist_context = expected.get();

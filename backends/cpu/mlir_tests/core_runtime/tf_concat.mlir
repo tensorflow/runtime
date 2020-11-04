@@ -106,3 +106,22 @@ func @concat_i1() -> !tfrt.chain {
 
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
+
+// CHECK: --- Running 'concat_string'
+func @concat_string() -> !tfrt.chain {
+  %ch_epoch = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch_epoch "cpu"
+
+  %s0 = corert.const_string_tensor {shape = [2, 2], value = ["s00", "s01", "s02", "s03"]}
+  %s1 = corert.const_string_tensor {shape = [2, 3], value = ["s10", "s11", "s12", "s13", "s14", "s15"]}
+
+  %axis = corert.const_dense_tensor dense<[1]> : tensor<1xi32>
+
+  %cpu_handle_result = corert.executeop(%cpu) "tf.ConcatV2"(%s0, %s1, %axis) { N = 2 : i64 }: 1
+
+  // CHECK: StringHostTensor shape = [2, 5]
+  // CHECK-SAME: values = ["s00", "s01", "s10", "s11", "s12", "s02", "s03", "s13", "s14", "s15"]
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
+
+  tfrt.return %ch_print_cpu : !tfrt.chain
+}

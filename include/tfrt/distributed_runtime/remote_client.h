@@ -46,9 +46,9 @@ class RemoteClientInterface {
   virtual void SendAsync(const SendDataRequest* request,
                          SendDataResponse* response, CallbackFn done) = 0;
 
-  virtual void RemoteRegisterAsync(const RemoteRegisterRequest* request,
-                                   RemoteRegisterResponse* response,
-                                   CallbackFn done) = 0;
+  virtual void RegisterFunctionAsync(const RegisterFunctionRequest* request,
+                                     RegisterFunctionResponse* response,
+                                     CallbackFn done) = 0;
 
   // The callback will be invoked once a response is received from the
   // destination. This might not mean the actual execution has completed in

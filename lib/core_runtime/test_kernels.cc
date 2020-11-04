@@ -29,11 +29,12 @@ namespace tfrt {
 
 static void TensorToTensorHandleWithErrorMetadata(
     Argument<Tensor> arg, Result<TensorHandle> tensorhandle_output,
-    KernelErrorHandler handler) {
+    KernelErrorHandler handler, const ExecutionContext& exec_ctx) {
   auto metadata = handler.EmitError("invalid tensor metadata");
   // TODO(b/158775215): TensorHandle should take device from Tensor argument.
   tensorhandle_output.Emplace(
-      RCReference<Device>(), AsyncValueRef<TensorMetadata>(std::move(metadata)),
+      exec_ctx.host()->GetHostDeviceRef(),
+      AsyncValueRef<TensorMetadata>(std::move(metadata)),
       AsyncValueRef<Tensor>(FormRef(arg.value())));
 }
 
@@ -61,7 +62,7 @@ static void corert_op_attrs_ref_print(Argument<OpAttrsRef> frozen,
   out_chain.Set(in_chain);
 }
 
-void RegisterCoreRuntimeTestKernels(KernelRegistry *registry) {
+void RegisterCoreRuntimeTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.tensorhandle_with_error_metadata",
                       TFRT_KERNEL(TensorToTensorHandleWithErrorMetadata));
   registry->AddKernel("tfrt_test.corert.op_attrs_print",

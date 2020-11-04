@@ -100,9 +100,9 @@ sure the incremental progress does move us closer to the vision.
 
 ### Modularity
 
-Modularity is a strong goal for TFRT - not to split TensorFlow into a few
-libraries - but we believe the end state will have dozens or perhaps over a
-hundred different libraries which can be composed together in different ways for
+Modularity is a strong goal for TFRT - not to split TFRT into a few libraries -
+but we believe the end state will have dozens or perhaps over a hundred
+different libraries which can be composed together in different ways for
 different products.
 
 This is important because our goal is to build an extremely flexible and

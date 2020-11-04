@@ -41,9 +41,9 @@ class RequestHandlerInterface {
   virtual Error HandleSendData(const SendDataRequest* request,
                                SendDataResponse* response) = 0;
 
-  virtual void HandleRemoteRegister(const RemoteRegisterRequest* request,
-                                    RemoteRegisterResponse* response,
-                                    CallbackFn done) = 0;
+  virtual void HandleRegisterFunction(const RegisterFunctionRequest* request,
+                                      RegisterFunctionResponse* response,
+                                      CallbackFn done) = 0;
 
   virtual void HandleRemoteExecute(const RemoteExecuteRequest* request,
                                    RemoteExecuteResponse* response,

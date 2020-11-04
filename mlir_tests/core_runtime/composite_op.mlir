@@ -79,3 +79,47 @@ func @corert.composite_op_result_multi_fanout() -> !tfrt.chain {
 
   tfrt.return %ch1 : !tfrt.chain
 }
+
+
+func @return_first(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+  tfrt.return %in, %x : !tfrt.chain, !corert.tensorhandle
+}
+
+func @return_second(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+  tfrt.return %in, %y : !tfrt.chain, !corert.tensorhandle
+}
+
+func @func_with_control_flow(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+  %cpu = corert.get_op_handler %ch "cpu"
+
+  %a_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1 : i32] } : 1
+  %b_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [2 : i32] } : 1
+
+  %async_handle = corert.executeop(%cpu) "tfrt_test.async.noop"(%arg) : 1
+
+  %result:2 = corert.cond %async_handle @return_first @return_second (%ch, %a_handle, %b_handle) : (!corert.tensorhandle)
+
+  tfrt.return %result#0, %result#1 : !tfrt.chain, !corert.tensorhandle
+}
+
+
+// CHECK-LABEL: --- Running 'corert.composite_op_async_output'
+func @corert.composite_op_async_output() -> !tfrt.chain {
+  // Prepare input.
+  %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
+  %true_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1], values = [1 : i32] } : 1
+
+  %fn_op = "corert.make_composite_op" () {fn=@func_with_control_flow} : () -> !corert.op
+
+  %result = "corert.execute_crt_op" (%fn_op, %true_handle) {op_attrs =[]} : (!corert.op, !corert.tensorhandle) -> (!corert.tensorhandle)
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [2, 2], values = [1, 1, 1, 1]
+  %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  tfrt.return %ch1 : !tfrt.chain
+}
+

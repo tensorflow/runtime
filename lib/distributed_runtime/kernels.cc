@@ -473,7 +473,7 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
                                 StringAttribute program_name,
                                 bool need_compilation,
                                 const ExecutionContext& exec_ctx) {
-  auto request = std::make_unique<RemoteRegisterRequest>();
+  auto request = std::make_unique<RegisterFunctionRequest>();
   // program and program_name will live as long as out_chain is not populated.
   request->set_context_id(dist_context->GetContextId());
   request->set_program(program.str());
@@ -493,8 +493,8 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
   EnqueueWork(exec_ctx, [remote_client, request = std::move(request),
                          dist_context, need_compilation,
                          out = out.CopyRef()]() mutable {
-    auto response = std::make_unique<RemoteRegisterResponse>();
-    remote_client->RemoteRegisterAsync(
+    auto response = std::make_unique<RegisterFunctionResponse>();
+    remote_client->RegisterFunctionAsync(
         request.get(), response.get(),
         [request = std::move(request), response = std::move(response),
          need_compilation, dist_context, out = out.CopyRef()](Error e) mutable {
@@ -520,20 +520,21 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
   });
 }
 
-void RemoteRegisterKernel(Chain ch, DistributedContext* dist_context,
-                          HostId receiver, RemainingResults results,
-                          StringAttribute program, StringAttribute program_name,
-                          const ExecutionContext& exec_ctx) {
+void RegisterTFRTFunctionKernel(Chain ch, DistributedContext* dist_context,
+                                HostId receiver, RemainingResults results,
+                                StringAttribute program,
+                                StringAttribute program_name,
+                                const ExecutionContext& exec_ctx) {
   RemoteRegisterKernelHelper(ch, dist_context, receiver, results, program,
                              program_name, /*need_compilation=*/false,
                              exec_ctx);
 }
 
-void RegisterTFProgramKernel(Chain ch, DistributedContext* dist_context,
-                             HostId receiver, RemainingResults results,
-                             StringAttribute program,
-                             StringAttribute program_name,
-                             const ExecutionContext& exec_ctx) {
+void RegisterTFFunctionKernel(Chain ch, DistributedContext* dist_context,
+                              HostId receiver, RemainingResults results,
+                              StringAttribute program,
+                              StringAttribute program_name,
+                              const ExecutionContext& exec_ctx) {
   RemoteRegisterKernelHelper(ch, dist_context, receiver, results, program,
                              program_name, /*need_compilation=*/true, exec_ctx);
 }
@@ -743,10 +744,10 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(RemoteExecuteTHKernel));
   registry->AddKernel("tfrt_dist.remote_execute_th_preallocated",
                       TFRT_KERNEL(RemoteExecuteTHPreallocatedKernel));
-  registry->AddKernel("tfrt_dist.remote_register",
-                      TFRT_KERNEL(RemoteRegisterKernel));
+  registry->AddKernel("tfrt_dist.register_tfrt_function",
+                      TFRT_KERNEL(RegisterTFRTFunctionKernel));
   registry->AddKernel("tfrt_dist.register_tf_function",
-                      TFRT_KERNEL(RegisterTFProgramKernel));
+                      TFRT_KERNEL(RegisterTFFunctionKernel));
 }
 
 }  // namespace tfrt

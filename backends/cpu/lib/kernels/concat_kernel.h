@@ -44,9 +44,10 @@ inline Expected<int64_t> ConcatAxis(const DenseHostTensor& axis_arg) {
   }
 }
 
-template <typename DHTRange>
-Expected<TensorMetadata> ConcatMetadataKernel(const DHTRange& args, int axis) {
-  const DenseHostTensor& arg0 = args[0];
+template <typename TensorRange>
+Expected<TensorMetadata> ConcatMetadataKernel(const TensorRange& args,
+                                              int axis) {
+  const Tensor& arg0 = args[0];
   const DType& arg0_dtype = arg0.dtype();
   const TensorShape& arg0_shape = arg0.shape();
 
@@ -58,7 +59,7 @@ Expected<TensorMetadata> ConcatMetadataKernel(const DHTRange& args, int axis) {
   ssize_t concat_axis_dim_size = 0;
 
   for (size_t i = 0; i < args.size(); ++i) {
-    const DenseHostTensor& arg = args[i];
+    const Tensor& arg = args[i];
     const TensorShape& shape = arg.shape();
 
     // Implicitly convert scalars to vectors of length 1.

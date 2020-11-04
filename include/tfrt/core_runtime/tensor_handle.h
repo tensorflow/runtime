@@ -41,13 +41,20 @@ class Tensor;
 class TensorHandle final {
  public:
   // Default initialized TensorHandle's are in the invalid state.
-  explicit TensorHandle() : tensor_and_is_metadata_inline_(nullptr, false) {
-    new (&async_metadata_)
-        AsyncValueRef<TensorMetadata>(RCReference<AsyncValue>());
+  explicit TensorHandle() : tensor_and_flags_(nullptr, 0) {
+    new (&async_metadata_) AsyncValueRef<TensorMetadata>();
+    new (&async_device_) AsyncValueRef<RCReference<Device>>();
   }
 
   // A TensorHandle owns a `async_metadata`, `tensor` and 'device', none of
   // these input pointer is allowed to be NULL.
+  TensorHandle(AsyncValueRef<RCReference<Device>> async_device,
+               AsyncValueRef<TensorMetadata> async_metadata,
+               AsyncValueRef<Tensor> tensor);
+
+  TensorHandle(AsyncValueRef<RCReference<Device>> async_device,
+               const TensorMetadata& metadata, AsyncValueRef<Tensor> tensor);
+
   TensorHandle(RCReference<Device> device,
                AsyncValueRef<TensorMetadata> async_metadata,
                AsyncValueRef<Tensor> tensor);
@@ -76,6 +83,24 @@ class TensorHandle final {
   // will be set to the error AsyncValue.
   static TensorHandle CreateError(RCReference<AsyncValue> error);
 
+  bool IsDeviceAvailable() const {
+    return IsDeviceInline() || async_device_.IsConcrete();
+  }
+
+  bool IsDeviceError() const {
+    return !IsDeviceInline() && async_device_.IsError();
+  }
+
+  const AsyncValueRef<RCReference<Device>>& GetAsyncDevice() const;
+
+  // Return reference of the Device.
+  // Use this method only if IsDeviceAvailable() returns true.
+  const RCReference<Device>& GetAvailableDevice() const {
+    assert(IsValid());
+    if (IsDeviceInline()) return inlined_device_;
+    return async_device_.get();
+  }
+
   bool IsMetadataAvailable() const {
     return IsMetadataInline() || async_metadata_.IsConcrete();
   }
@@ -95,9 +120,7 @@ class TensorHandle final {
   }
 
   // Returns nullptr if handle is in an invalid state.
-  AsyncValue* GetAsyncTensor() const {
-    return tensor_and_is_metadata_inline_.getPointer();
-  }
+  AsyncValue* GetAsyncTensor() const { return tensor_and_flags_.getPointer(); }
 
   // Returns true if this is an error TensorHandle
   bool IsError() const {
@@ -119,10 +142,6 @@ class TensorHandle final {
   // invalid after it's moved.
   bool IsValid() const { return GetAsyncTensor() != nullptr; }
 
-  const Device& device() const { return *device_; }
-
-  RCReference<Device> CopyRefDevice() { return device_.CopyRef(); }
-
   // Transfer the TensorHandle to the target Device and convert its format. The
   // target device can be same as current device, in this case, it will only
   // do format conversion. If both target device and target format are same as
@@ -133,11 +152,18 @@ class TensorHandle final {
                           RCReference<Device> dst,
                           TensorType dst_tensor_type) const;
 
+  TensorHandle TransferToSameDevice(const ExecutionContext& exec_ctx,
+                                    TensorType dst_tensor_type) const;
+
  private:
   friend raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle);
 
+  bool IsDeviceInline() const {
+    return tensor_and_flags_.getInt() & Flags::DeviceInline;
+  }
+
   bool IsMetadataInline() const {
-    return tensor_and_is_metadata_inline_.getInt();
+    return tensor_and_flags_.getInt() & Flags::MetadataInline;
   }
 
   // Reset both tensor and metadata to default initialized state.
@@ -147,15 +173,27 @@ class TensorHandle final {
     } else {
       async_metadata_.~AsyncValueRef();
     }
+    if (IsDeviceInline()) {
+      inlined_device_.~RCReference();
+    } else {
+      async_device_.~AsyncValueRef();
+    }
     new (&async_metadata_)
         AsyncValueRef<TensorMetadata>(RCReference<AsyncValue>());
-    tensor_and_is_metadata_inline_.setPointerAndInt(nullptr, false);
+    new (&async_device_)
+        AsyncValueRef<RCReference<Device>>(RCReference<AsyncValue>());
+    tensor_and_flags_.setPointerAndInt(nullptr, 0);
   }
 
-  // This is a PointerIntPair of an AsyncValue* to the Tensor object and a bool
-  // flag on whether metadata is inline. The tensor AsyncValue is null if the
-  // handle is invalid.
-  llvm::PointerIntPair<AsyncValue*, 1, bool> tensor_and_is_metadata_inline_;
+  enum Flags : uint32_t {
+    MetadataInline = 1 << 0,
+    DeviceInline = 1 << 1,
+  };
+
+  // This is a PointerIntPair of an AsyncValue* to the Tensor object and a two
+  // bits flag to indicate whether metadata and device are inlined. The tensor
+  // AsyncValue is null if the handle is invalid.
+  llvm::PointerIntPair<AsyncValue*, 2, uint32_t> tensor_and_flags_;
 
   // If IsMetadataInline() is true, `inlined_metadata_` specifies the shape
   // and the dtype for the TensorHandle inline. Otherwise, `async_metadata_`
@@ -174,8 +212,21 @@ class TensorHandle final {
     TensorMetadata inlined_metadata_;
   };
 
-  // The device where the underlying tensor is located on.
-  RCReference<Device> device_;
+  // If IsDeviceInline() is true, `inlined_device_` specifies the device
+  // for the TensorHandle inline. Otherwise, `async_device_`  specifies the
+  // device in an AsyncValue, which may be null for an invalid TensorHandle.
+  //
+  // Eager op dispatch aims to make sure the device for a TensorHandle is
+  // always synchronously available, but certain cases (e.g. asychronous graph
+  // lowering) prevent this. As such, all clients should be prepared to handle
+  // a 'future' metadata.
+  //
+  // `async_device_` is null and IsDeviceInline() is false for an invalid
+  // TensorHandle.
+  union {
+    AsyncValueRef<RCReference<Device>> async_device_;
+    RCReference<Device> inlined_device_;
+  };
 };
 
 static_assert(sizeof(TensorHandle) == 40 || sizeof(void*) != 8,
@@ -188,6 +239,11 @@ inline TensorHandle::~TensorHandle() {
   } else {
     async_metadata_.~AsyncValueRef();
   }
+  if (IsDeviceInline()) {
+    inlined_device_.~RCReference();
+  } else {
+    async_device_.~AsyncValueRef();
+  }
 
   // DropRef on Tensor AsyncValue.
   auto tensor = GetAsyncTensor();
@@ -195,13 +251,19 @@ inline TensorHandle::~TensorHandle() {
 }
 
 inline TensorHandle::TensorHandle(TensorHandle&& other)
-    : tensor_and_is_metadata_inline_(other.tensor_and_is_metadata_inline_),
-      device_(std::move(other.device_)) {
+    : tensor_and_flags_(other.tensor_and_flags_) {
   if (other.IsMetadataInline()) {
     new (&inlined_metadata_) TensorMetadata(std::move(other.inlined_metadata_));
   } else {
     new (&async_metadata_)
         AsyncValueRef<TensorMetadata>(std::move(other.async_metadata_));
+  }
+  if (other.IsDeviceInline()) {
+    new (&inlined_device_)
+        RCReference<Device>(std::move(other.inlined_device_));
+  } else {
+    new (&async_device_)
+        AsyncValueRef<RCReference<Device>>(std::move(other.async_device_));
   }
   // Reset other to default initialized state.
   other.Reset();
@@ -221,13 +283,33 @@ inline TensorHandle& TensorHandle::operator=(TensorHandle&& other) {
     new (&inlined_metadata_) TensorMetadata(std::move(other.inlined_metadata_));
   }
 
+  if (IsDeviceInline() && other.IsDeviceInline()) {
+    inlined_device_ = std::move(other.inlined_device_);
+  } else if (!IsDeviceInline() && !other.IsDeviceInline()) {
+    async_device_ = std::move(other.async_device_);
+  } else if (IsDeviceInline() && !other.IsDeviceInline()) {
+    inlined_device_.~RCReference();
+    new (&async_device_)
+        AsyncValueRef<RCReference<Device>>(std::move(other.async_device_));
+  } else {  // !IsDeviceInline() && other.IsDeviceInline()
+    async_device_.~AsyncValueRef();
+    new (&inlined_device_)
+        RCReference<Device>(std::move(other.inlined_device_));
+  }
+
   auto tensor = GetAsyncTensor();
   if (tensor) tensor->DropRef();
-  tensor_and_is_metadata_inline_ = other.tensor_and_is_metadata_inline_;
-  device_ = std::move(other.device_);
+  tensor_and_flags_ = other.tensor_and_flags_;
   // Reset other to default initialized state.
   other.Reset();
   return *this;
+}
+
+inline const AsyncValueRef<RCReference<Device>>& TensorHandle::GetAsyncDevice()
+    const {
+  assert(IsValid() && !IsDeviceInline());
+
+  return async_device_;
 }
 
 inline const AsyncValueRef<TensorMetadata>& TensorHandle::GetAsyncMetadata()
@@ -239,11 +321,19 @@ inline const AsyncValueRef<TensorMetadata>& TensorHandle::GetAsyncMetadata()
 
 inline TensorHandle TensorHandle::CopyRef() const {
   auto tensor = AsyncValueRef<Tensor>(FormRef(GetAsyncTensor()));
-  if (IsMetadataInline())
-    return TensorHandle(device_.CopyRef(), inlined_metadata_,
+  if (IsDeviceInline() && IsMetadataInline()) {
+    return TensorHandle(inlined_device_.CopyRef(), inlined_metadata_,
                         std::move(tensor));
-  return TensorHandle(device_.CopyRef(), async_metadata_.CopyRef(),
-                      std::move(tensor));
+  } else if (!IsDeviceInline() && IsMetadataInline()) {
+    return TensorHandle(async_device_.CopyRef(), inlined_metadata_,
+                        std::move(tensor));
+  } else if (IsDeviceInline() && !IsMetadataInline()) {
+    return TensorHandle(inlined_device_.CopyRef(), async_metadata_.CopyRef(),
+                        std::move(tensor));
+  } else {
+    return TensorHandle(async_device_.CopyRef(), async_metadata_.CopyRef(),
+                        std::move(tensor));
+  }
 }
 
 // Release the tensor and put the handle in a default-constructed state.

@@ -26,6 +26,7 @@
 #include "tfrt/core_runtime/op_handler.h"
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/core_runtime/tensor_handle.h"
+#include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/execution_context.h"
@@ -39,6 +40,7 @@
 #include "tfrt/support/logging.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/tensor/conversion_registry.h"
+#include "tfrt/tensor/tensor_metadata.h"
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
@@ -224,7 +226,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeOp(string_view op_name,
                                             OpHandler* op_handler) {
 #ifdef TFRT_DISABLE_TRACING
   return op_handler->MakeOp(op_name);
-#else  // TFRT_DISABLE_TRACING
+#else   // TFRT_DISABLE_TRACING
   auto op = op_handler->MakeOp(op_name);
   if (!op) return op;
   bool is_fallback = op->IsFallback();
@@ -294,11 +296,6 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
 
     fn->Execute(invocation.exec_ctx, arguments, results);
 
-    // Check if chain is available. If not, wait until the composite op
-    // results are fully resolved.
-    // TODO(b/161751424) Assess using SyncFunction to execute composite ops.
-    if (!results[0]->IsAvailable()) host->Await(results);
-
     // The first result is the a chain for side-effects.
     if (invocation.chain)
       *invocation.chain = AsyncValueRef<Chain>(std::move(results[0]));
@@ -309,14 +306,63 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
       if (result_av->IsAvailable()) {
         if (result_av->IsError()) {
           invocation.results[i] =
-              TensorHandle(AsyncValueRef<TensorHandle>(result_av.CopyRef()));
+              TensorHandle(AsyncValueRef<TensorHandle>(std::move(result_av)));
         } else {
           assert(result_av->IsType<TensorHandle>());
           invocation.results[i] = result_av->get<TensorHandle>().CopyRef();
         }
       } else {
-        llvm_unreachable(
-            "composite op must return tensor handler synchronously");
+        auto device_av =
+            MakeUnconstructedAsyncValueRef<RCReference<Device>>(host);
+        auto metadata_av = MakeUnconstructedAsyncValueRef<TensorMetadata>(host);
+        auto tensor_ind_av = MakeIndirectAsyncValue(host);
+
+        result_av->AndThen([result_av = result_av.CopyRef(),
+                            device_av = device_av.CopyRef(),
+                            metadata_av = metadata_av.CopyRef(),
+                            tensor_ind_av = tensor_ind_av.CopyRef()]() mutable {
+          if (result_av->IsError()) {
+            device_av.SetError(result_av->GetError());
+            metadata_av.SetError(result_av->GetError());
+            tensor_ind_av->SetError(result_av->GetError());
+            return;
+          }
+          auto& th = result_av->get<TensorHandle>();
+
+          if (th.IsDeviceAvailable()) {
+            device_av.emplace(th.GetAvailableDevice().CopyRef());
+          } else {
+            th.GetAsyncDevice().AndThen(
+                [th_device = th.GetAsyncDevice().CopyRef(),
+                 device_av = std::move(device_av)]() {
+                  if (th_device.IsError()) {
+                    device_av.SetError(th_device.GetError());
+                  } else {
+                    device_av.emplace(th_device.get().CopyRef());
+                  }
+                });
+          }
+
+          if (th.IsMetadataAvailable()) {
+            metadata_av.emplace(th.GetAvailableMetadata());
+          } else {
+            th.GetAsyncMetadata().AndThen(
+                [th_metadata = th.GetAsyncMetadata().CopyRef(),
+                 metadata_av = std::move(metadata_av)]() {
+                  if (th_metadata.IsError()) {
+                    metadata_av.SetError(th_metadata.GetError());
+                  } else {
+                    metadata_av.emplace(th_metadata.get());
+                  }
+                });
+          }
+
+          tensor_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+        });
+
+        invocation.results[i] =
+            TensorHandle(std::move(device_av), std::move(metadata_av),
+                         AsyncValueRef<Tensor>(std::move(tensor_ind_av)));
       }
     }
   };

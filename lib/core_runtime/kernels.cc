@@ -556,23 +556,40 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
       };
 
   // Arg[0] is a TensorHandle async value condition predicate.
-  AsyncValue *condition_tensorhandle = args[0];
+  AsyncValue *condition_tensorhandle_ptr = args[0];
   // Dispatch when the condition becomes available.
-  condition_tensorhandle->AndThen([condition_tensorhandle, exec_ctx, if_impl,
-                                   true_fn_ref = FormRef(true_fn),
-                                   false_fn_ref = FormRef(false_fn),
-                                   arg_refs = std::move(arg_refs),
-                                   result_refs =
-                                       std::move(result_refs)]() mutable {
-    if (ReturnAfterHandlingError(condition_tensorhandle, result_refs)) return;
-
+  condition_tensorhandle_ptr->AndThen([condition_tensorhandle_ptr =
+                                           condition_tensorhandle_ptr,
+                                       exec_ctx, if_impl,
+                                       true_fn_ref = FormRef(true_fn),
+                                       false_fn_ref = FormRef(false_fn),
+                                       arg_refs = std::move(arg_refs),
+                                       result_refs =
+                                           std::move(result_refs)]() mutable {
+    if (ReturnAfterHandlingError(condition_tensorhandle_ptr, result_refs))
+      return;
+    auto &condition_tensorhandle =
+        condition_tensorhandle_ptr->get<TensorHandle>();
     AsyncValue *condition_async_tensor =
-        condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+        condition_tensorhandle.GetAsyncTensor();
+    assert(condition_async_tensor->IsAvailable());
     if (ReturnAfterHandlingError(condition_async_tensor, result_refs)) return;
 
-    auto src_device_ref =
-        condition_tensorhandle->get<TensorHandle>().CopyRefDevice();
+    if (condition_tensorhandle.IsDeviceError()) {
+      auto has_error = ReturnAfterHandlingError(
+          condition_tensorhandle.GetAsyncDevice().GetAsyncValue(), result_refs);
+      assert(has_error);
+      (void)has_error;
+      return;
+    }
+    assert(condition_tensorhandle.IsDeviceAvailable());
+    auto &src_device_ref = condition_tensorhandle.GetAvailableDevice();
     auto &tensor = condition_async_tensor->get<Tensor>();
+
+    // NOTE(fishx): Right now, we will try to implicit transfer the
+    // condition tensor to cpu and read its value. However, in the
+    // future, we should try not do implicit copy here. Instead, we
+    // should let the compiler insert transfer kernel explicitly.
     AsyncValueRef<HostTensor> condition_host_tensor =
         AsyncValueRef<HostTensor>(ConvertTensor(
             exec_ctx, tensor, *src_device_ref, exec_ctx.host()->GetHostDevice(),
@@ -701,26 +718,31 @@ static void CoreRtWhileLoopIteration(
                            body_fn_ref = std::move(body_fn_ref),
                            arg_refs = std::move(arg_refs),
                            result_refs = std::move(result_refs)]() mutable {
-    AsyncValue *condition_tensorhandle = condition_tensorhandle_ref.get();
-    if (ReturnAfterHandlingError(condition_tensorhandle, result_refs)) return;
+    if (ReturnAfterHandlingError(condition_tensorhandle_ref.get(), result_refs))
+      return;
 
+    auto &condition_tensorhandle =
+        condition_tensorhandle_ref->get<TensorHandle>();
     AsyncValue *condition_async_tensor =
-        condition_tensorhandle->get<TensorHandle>().GetAsyncTensor();
+        condition_tensorhandle.GetAsyncTensor();
     if (ReturnAfterHandlingError(condition_async_tensor, result_refs)) return;
 
-    auto src_device_ref =
-        condition_tensorhandle->get<TensorHandle>().CopyRefDevice();
-    if (!src_device_ref->IsDeviceType(CpuDevice::kDeviceType)) {
-      RCReference<ErrorAsyncValue> error_value = EmitErrorAsync(
-          exec_ctx, StrCat(MakeStringError(
-                        "non-cpu device for condition tensor handle")));
-      for (auto &result : result_refs) {
-        result->SetError(error_value->GetError());
-      }
+    if (condition_tensorhandle.IsDeviceError()) {
+      auto has_error = ReturnAfterHandlingError(
+          condition_tensorhandle.GetAsyncDevice().GetAsyncValue(), result_refs);
+      assert(has_error);
+      (void)has_error;
       return;
     }
+    assert(condition_tensorhandle.IsDeviceAvailable());
+    auto &src_device_ref = condition_tensorhandle.GetAvailableDevice();
 
     auto &tensor = condition_async_tensor->get<Tensor>();
+
+    // NOTE(fishx): Right now, we will try to implicit transfer the
+    // condition tensor to cpu and read its value. However, in the
+    // future, we should try not do implicit copy here. Instead, we
+    // should let the compiler insert transfer kernel explicitly.
     AsyncValueRef<HostTensor> condition_host_tensor =
         AsyncValueRef<HostTensor>(ConvertTensor(
             exec_ctx, tensor, *src_device_ref, exec_ctx.host()->GetHostDevice(),

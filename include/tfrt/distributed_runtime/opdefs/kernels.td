@@ -221,16 +221,15 @@ def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
   let assemblyFormat = "operands attr-dict";
 }
 
-// TODO(bramandia): Rename to register_tfrt_program
-def RemoteRegisterOp :  DistOp<"remote_register"> {
-  let summary = "tfrt_dist.remote_register operation";
+def RegisterTFRTFunctionOp :  DistOp<"register_tfrt_function"> {
+  let summary = "tfrt_dist.register_tfrt_function operation";
   let description = [{
-    Register a program on a remote location.
+    Register a TFRT program on a remote location.
 
     "program" has to be a string representing MLIR in TFRT dialect
 
     Example:
-      %out_chain = tfrt_dist.remote_register (%in_chain, %context, %id) "program" "program_name"
+      %out_chain = tfrt_dist.register_tfrt_function (%in_chain, %context, %id) "program" "program_name"
   }];
 
   let arguments = (ins
@@ -249,10 +248,11 @@ def RemoteRegisterOp :  DistOp<"remote_register"> {
   }];
 }
 
-def RegisterTFProgramOp :  DistOp<"register_tf_function"> {
+def RegisterTFFunctionOp :  DistOp<"register_tf_function"> {
   let summary = "dist.register_tf_function operation";
   let description = [{
-    Register a program on a remote location. Returns the execution spec.
+    Register a program in TF dialect on a remote location.
+    Returns the execution spec.
 
     "program" has to be a string representing MLIR in TF dialect
 

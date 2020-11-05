@@ -24,6 +24,7 @@
 #define TFRT_TENSOR_TENSOR_SHAPE_H_
 
 #include <array>
+#include <cstdint>
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/None.h"
@@ -326,6 +327,13 @@ template <size_t Rank>
 raw_ostream& operator<<(raw_ostream& os, const FixedRankShape<Rank>& value);
 
 raw_ostream& operator<<(raw_ostream& os, const PartialTensorShape& value);
+
+// Returns a TensorShape with rank `num_out_dims`. The returned shape is
+// obtained by collapsing all dimensions in `shape` except the last
+// `num_out_dims` - 1 dimensions into the first dimension. Logic based on:
+// https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/framework/tensor.cc#L1278
+TensorShape GetFlattenedInnerDimsShape(const TensorShape& shape,
+                                       int64_t num_out_dims);
 
 }  // namespace tfrt
 

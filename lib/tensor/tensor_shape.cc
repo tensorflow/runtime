@@ -27,6 +27,24 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
+namespace {
+
+llvm::SmallVector<int64_t, 4> ComputeInnerDims(
+    const llvm::SmallVector<ssize_t, 4>& orig_dims, int64_t num_out_dims) {
+  llvm::SmallVector<int64_t, 4> out_dims(num_out_dims, 0);
+  int64_t offset = orig_dims.size() - num_out_dims;
+  for (int64_t out_dim = num_out_dims - 1; out_dim >= 0; --out_dim) {
+    const int64_t in_dim = out_dim + offset;
+    assert(orig_dims[in_dim] >= 0 && "Unknown dimension");
+    out_dims[out_dim] = orig_dims[in_dim];
+  }
+  for (int64_t in_dim = 0; in_dim < offset; ++in_dim) {
+    out_dims[0] *= orig_dims[in_dim];
+  }
+  return out_dims;
+}
+
+}  // namespace
 
 raw_ostream& operator<<(raw_ostream& os, const TensorShape& value) {
   os << '[';
@@ -341,5 +359,12 @@ template raw_ostream& operator<<(raw_ostream& os,
                                  const FixedRankShape<3>& value);
 template raw_ostream& operator<<(raw_ostream& os,
                                  const FixedRankShape<4>& value);
+
+TensorShape GetFlattenedInnerDimsShape(const TensorShape& shape,
+                                       int64_t num_out_dims) {
+  llvm::SmallVector<ssize_t, 4> orig_dims(shape.GetRank());
+  shape.GetDimensions(&orig_dims);
+  return TensorShape(ComputeInnerDims(orig_dims, num_out_dims));
+}
 
 }  // namespace tfrt

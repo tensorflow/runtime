@@ -26,6 +26,8 @@
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
 namespace cpu {
@@ -34,8 +36,19 @@ template <typename T, bool log, typename EigenEvaluator>
 static typename EigenEvaluator::DependencyToken Softmax(
     const DenseHostTensor& logits, DenseHostTensor* softmax,
     const ExecutionContext& exec_ctx) {
-  DHTIndexableView<T, 2> logits_view(&logits);
-  MutableDHTIndexableView<T, 2> softmax_view(softmax);
+  // TODO(b/172291736): Avoid creating another DHT by having a generic view
+  // class that operates on only a shape and a pointer.
+  DenseHostTensor reshaped_logits(
+      TensorMetadata(logits.dtype(), GetFlattenedInnerDimsShape(
+                                         logits.shape(), /*num_out_dims=*/2)),
+      logits.buffer().CopyRef());
+  DenseHostTensor reshaped_softmax(
+      TensorMetadata(
+          softmax->dtype(),
+          GetFlattenedInnerDimsShape(softmax->shape(), /*num_out_dims=*/2)),
+      softmax->buffer().CopyRef());
+  DHTIndexableView<T, 2> logits_view(&reshaped_logits);
+  MutableDHTIndexableView<T, 2> softmax_view(&reshaped_softmax);
 
   auto logits_t = compat::AsEigenConstTensor(logits_view);
   auto softmax_t = compat::AsEigenTensor(softmax_view);

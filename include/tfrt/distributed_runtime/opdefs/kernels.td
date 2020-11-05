@@ -37,21 +37,25 @@ def DistDialect : Dialect {
   let cppNamespace = "::tfrt::dist";
 }
 
-def DistributedContextType
-    : OpaqueType<"tfrt_dist", "dist_context", "!tfrt_dist.dist_context type">;
+def DistributedContextType :
+  Type<CPred<"$_self.isa<tfrt::dist::DistributedContextType>()">, "!tfrt_dist.dist_context type">,
+  BuildableType<"$_builder.getType<tfrt::dist::DistributedContextType>()">;
 
-def DistributedContextConfigurationType
-    : OpaqueType<"tfrt_dist", "dist_context_configuration",
-                 "!tfrt_dist.dist_context_configuration type">;
+def DistributedContextConfigurationType :
+  Type<CPred<"$_self.isa<tfrt::dist::DistributedContextConfigurationType>()">, "!tfrt_dist.dist_context_configuration type">,
+  BuildableType<"$_builder.getType<tfrt::dist::DistributedContextConfigurationType>()">;
 
-def CollectiveGroupType
-    : OpaqueType<"tfrt_dist", "collective_group", "!tfrt_dist.collective_group type">;
+def CollectiveGroupType :
+  Type<CPred<"$_self.isa<tfrt::dist::CollectiveGroupType>()">, "!tfrt_dist.collective_group type">,
+  BuildableType<"$_builder.getType<tfrt::dist::CollectiveGroupType>()">;
 
-def RemoteObjectIdType
-    : OpaqueType<"tfrt_dist", "remote_object_id", "!tfrt_dist.remote_object_id type">;
+def RemoteObjectIdType :
+  Type<CPred<"$_self.isa<tfrt::dist::RemoteObjectIdType>()">, "!tfrt_dist.remote_object_id type">,
+  BuildableType<"$_builder.getType<tfrt::dist::RemoteObjectIdType>()">;
 
-def RemoteExecuteSpecType
-    : OpaqueType<"tfrt_dist", "remote_execute_spec", "!tfrt_dist.remote_execute_spec type">;
+def RemoteExecuteSpecType :
+  Type<CPred<"$_self.isa<tfrt::dist::RemoteExecuteSpecType>()">, "!tfrt_dist.remote_execute_spec type">,
+  BuildableType<"$_builder.getType<tfrt::dist::RemoteExecuteSpecType>()">;
 
 // Base class for the operation in this dialect
 class DistOp<string mnemonic, list<OpTrait> traits = []>

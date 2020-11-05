@@ -37,6 +37,11 @@ class DistributedDialect : public Dialect {
  public:
   explicit DistributedDialect(MLIRContext *context);
   static StringRef getDialectNamespace() { return "tfrt_dist"; }
+
+  mlir::Type parseType(mlir::DialectAsmParser &parser) const override;
+
+  void printType(mlir::Type type,
+                 mlir::DialectAsmPrinter &printer) const override;
 };
 
 }  // namespace dist

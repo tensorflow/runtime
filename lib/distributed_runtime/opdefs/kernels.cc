@@ -21,6 +21,7 @@
 #include "tfrt/distributed_runtime/opdefs/kernels.h"
 
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/Function.h"
 #include "mlir/IR/Module.h"
 #include "mlir/IR/OpImplementation.h"
@@ -28,6 +29,7 @@
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/core_runtime/opdefs/types.h"
+#include "tfrt/distributed_runtime/opdefs/types.h"
 
 namespace tfrt {
 namespace dist {
@@ -41,6 +43,9 @@ DistributedDialect::DistributedDialect(MLIRContext *context)
               TypeID::get<DistributedDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
+  addTypes<DistributedContextType, DistributedContextConfigurationType,
+           CollectiveGroupType, RemoteObjectIdType, RemoteExecuteSpecType>();
+
   addOperations<
 #define GET_OP_LIST
 #include "tfrt/distributed_runtime/opdefs/kernels_opdefs.cpp.inc"
@@ -48,29 +53,28 @@ DistributedDialect::DistributedDialect(MLIRContext *context)
 }
 
 static Type GetContextType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("tfrt_dist"), "dist_context",
-                         builder->getContext());
+  return builder->getType<tfrt::dist::DistributedContextType>();
 }
 
 static Type GetStringType(Builder *builder) {
   return OpaqueType::get(builder->getIdentifier("tfrt"), "string",
                          builder->getContext());
 }
+
 static Type GetRemoteExecuteSpecType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("tfrt_dist"),
-                         "remote_execute_spec", builder->getContext());
+  return builder->getType<tfrt::dist::RemoteExecuteSpecType>();
 }
 
 static Type GetChainType(Builder *builder) {
   return builder->getType<ChainType>();
 }
+
 static Type GetDistributedContextConfigurationType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("tfrt_dist"),
-                         "dist_context_configuration", builder->getContext());
+  return builder->getType<tfrt::dist::DistributedContextConfigurationType>();
 }
+
 static Type GetRemoteObjectIdType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("tfrt_dist"),
-                         "remote_object_id", builder->getContext());
+  return builder->getType<tfrt::dist::RemoteObjectIdType>();
 }
 
 static void print(OpAsmPrinter &p, CreateRemoteExecuteSpecOp op) {
@@ -110,6 +114,38 @@ static ParseResult parseCreateRemoteExecuteSpecOp(OpAsmParser &parser,
   result.types.append(1, GetRemoteExecuteSpecType(&builder));
 
   return success();
+}
+
+mlir::Type DistributedDialect::parseType(mlir::DialectAsmParser &parser) const {
+  llvm::StringRef spec = parser.getFullSymbolSpec();
+  if (spec == "dist_context") return DistributedContextType::get(getContext());
+  if (spec == "dist_context_configuration")
+    return DistributedContextConfigurationType::get(getContext());
+  if (spec == "collective_group") return CollectiveGroupType::get(getContext());
+  if (spec == "remote_object_id") return RemoteObjectIdType::get(getContext());
+  if (spec == "remote_execute_spec")
+    return RemoteExecuteSpecType::get(getContext());
+
+  mlir::Location loc = parser.getEncodedSourceLoc(parser.getNameLoc());
+  mlir::emitError(loc) << "unknown tfrt_dist type " << spec;
+  return {};
+}
+
+void DistributedDialect::printType(mlir::Type type,
+                                   mlir::DialectAsmPrinter &printer) const {
+  if (type.isa<DistributedContextType>()) {
+    printer << "dist_context";
+  } else if (type.isa<DistributedContextConfigurationType>()) {
+    printer << "dist_context_configuration";
+  } else if (type.isa<CollectiveGroupType>()) {
+    printer << "collective_group";
+  } else if (type.isa<RemoteObjectIdType>()) {
+    printer << "remote_object_id";
+  } else if (type.isa<RemoteExecuteSpecType>()) {
+    printer << "remote_execute_spec";
+  } else {
+    llvm_unreachable("unknown dist type");
+  }
 }
 
 }  // namespace dist

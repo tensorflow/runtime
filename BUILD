@@ -1167,6 +1167,7 @@ tfrt_cc_library(
     ],
     hdrs = [
         "include/tfrt/distributed_runtime/opdefs/kernels.h",
+        "include/tfrt/distributed_runtime/opdefs/types.h",
     ],
     visibility = [":friends"],
     deps = [

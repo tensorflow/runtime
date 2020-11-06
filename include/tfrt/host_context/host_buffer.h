@@ -57,6 +57,8 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   static RCReference<HostBuffer> CreateFromExternal(
       RCReference<HostBuffer> parent_buffer, size_t offset, size_t size);
 
+  // Returns the address of the data. If the buffer is empty, the behavior is
+  // undefined to dereference the returned address.
   void *data() {
     switch (mode_) {
       case Mode::kInlined:
@@ -68,6 +70,8 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
     }
   }
 
+  // Returns the address of the data. If the buffer is empty, the behavior is
+  // undefined to dereference the returned address.
   const void *data() const {
     switch (mode_) {
       case Mode::kInlined:

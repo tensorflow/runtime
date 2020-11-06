@@ -2,7 +2,7 @@
 
 <!--* freshness: {
   owner: 'lauj'
-  reviewed: '2020-04-27'
+  reviewed: '2020-11-06'
 } *-->
 
 <!-- TOC -->
@@ -162,12 +162,13 @@ Return Values
 
     For example, if a kernel wants to do some deferred work that needs an
     argument, the kernel should call `Argument::ValueRef()` to create a new
-    `AsyncValueRef` for the argument, and transfer ownership of the
-    `AsyncValueRef` to the deferred work function:
+    `AsyncValueRef` which holds a new reference on the argument, and transfer
+    ownership of the `AsyncValueRef` to the deferred work function:
 
     ```c++
-     static void MyKernel(Argument<int32_t> in, HostContext* host) {
-       host->EnqueueWork([in_ref = in.ValueRef()] {
+     static void MyKernel(Argument<int32_t> in,
+                          const ExecutionContext& exec_ctx) {
+       EnqueueWork(exec_ctx, [in_ref = in.ValueRef()] {
          // Retrieve the int32_t value with in_ref.get().
        });
      }
@@ -192,9 +193,9 @@ are typically added and maintained with `Argument::ValueRef()`. For example:
 
 ```c++
 static AsyncValueRef<int32_t> AsyncCopy(Argument<int32_t> in,
-                                        HostContext* host) {
-  return host->EnqueueWork(
-      [in_ref = in.ValueRef()] { return in_ref.get(); });
+                                        const ExecutionContext& exec_ctx) {
+  return EnqueueWork(exec_ctx,
+                     [in_ref = in.ValueRef()] { return in_ref.get(); });
 }
 ```
 
@@ -205,8 +206,8 @@ that use the `Result` template, the additional ref is added by
 
 ```c++
 static void TestAsyncCopy(Argument<int32_t> in, Result<int32_t> out,
-                          HostContext* host) {
-  host->EnqueueWork([in_ref = in.ValueRef(), out_ref = out.Allocate()] {
+                          const ExecutionContext& exec_ctx) {
+  EnqueueWork(exec_ctx, [in_ref = in.ValueRef(), out_ref = out.Allocate()] {
     out_ref.emplace(in_ref.get());
   });
 }
@@ -221,7 +222,7 @@ refs are usually added by `Result::Set`:
 
 ```c++
 static void CopyToTwo(Argument<int32_t> in, Result<int32_t> out_1,
-                      Result<int32_t> out_2, HostContext* host) {
+                      Result<int32_t> out_2) {
   out_1.Set(in);
   out_2.Set(in);
 }
@@ -258,9 +259,9 @@ knows the return type, so most kernels construct and return a new
 `ConcreteAsyncValue` via `MakeAvailableAsyncValueRef`.
 
 Some kernels do not know their return types when they return. Examples include
-non-strict control flow kernels like `tfrt.if` and `tfrt.repeat`. When the
+non-strict control flow kernels like `tfrt.if` and `tfrt.repeat.i32`. When the
 return types are unknown, these kernels return `IndirectAsyncValue` via
-`HostContext::MakeIndirectAsyncValue()`.
+`MakeIndirectAsyncValue`.
 
 #### Returning a result from an asynchronous BEF function may require an `IndirectAsyncValue`
 
@@ -503,5 +504,5 @@ Note: as described in the [Implementing a kernel](#implementing-a-kernel)
 section, `tfrt.async_add.i32` will add a ref before it calls `EnqueueWork` to
 keep its output value alive. But in this example, the executor *can not execute*
 the second `tfrt.async_add.i32` kernel because the kernel's input `%v2` values
-are not available, so `tfrt.async_add.i32` does not get an opportunity to add a
-ref.
+are not available, so `tfrt.async_add.i32` does not have the opportunity to add
+a ref.

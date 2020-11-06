@@ -114,10 +114,11 @@ func @concat_string() -> !tfrt.chain {
 
   %s0 = corert.const_string_tensor {shape = [2, 2], value = ["s00", "s01", "s02", "s03"]}
   %s1 = corert.const_string_tensor {shape = [2, 3], value = ["s10", "s11", "s12", "s13", "s14", "s15"]}
+  %s2 = corert.const_string_tensor {shape = [2, 0], value = []}
 
   %axis = corert.const_dense_tensor dense<[1]> : tensor<1xi32>
 
-  %cpu_handle_result = corert.executeop(%cpu) "tf.ConcatV2"(%s0, %s1, %axis) { N = 2 : i64 }: 1
+  %cpu_handle_result = corert.executeop(%cpu) "tf.ConcatV2"(%s0, %s1, %s2, %axis) { N = 3 : i64 }: 1
 
   // CHECK: StringHostTensor shape = [2, 5]
   // CHECK-SAME: values = ["s00", "s01", "s10", "s11", "s12", "s02", "s03", "s13", "s14", "s15"]

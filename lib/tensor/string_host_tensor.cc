@@ -32,6 +32,10 @@ namespace tfrt {
 llvm::Optional<StringHostTensor> StringHostTensor::CreateUninitialized(
     const TensorShape& shape, HostContext* host) {
   auto num_elements = shape.GetNumElements();
+  if (num_elements == 0) {
+    return StringHostTensor(shape, /*strings=*/{});
+  }
+
   HostArray<std::string> strings(num_elements, host->allocator());
   for (auto& str : strings.mutable_array()) {
     new (&str) std::string();

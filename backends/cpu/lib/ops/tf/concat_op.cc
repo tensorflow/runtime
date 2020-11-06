@@ -86,9 +86,10 @@ static Expected<StringHostTensor> TfConcatOpString(
   auto compute_flat_dim = [](llvm::ArrayRef<ssize_t> dims, int begin, int end) {
     assert(begin >= 0);
     assert(end <= dims.size());
+    assert(begin <= end);
     int64_t result = 1;
     for (; begin < end; ++begin) {
-      assert(dims[begin] > 0);
+      assert(dims[begin] >= 0);
       result *= dims[begin];
     }
     return result;
@@ -96,6 +97,10 @@ static Expected<StringHostTensor> TfConcatOpString(
 
   llvm::SmallVector<ssize_t, 4> output_dims;
   output_md.shape.GetDimensions(&output_dims);
+
+  // The following logic basically reshape the output and args to rank-2 tensors
+  // according to axis, and then copy over all elements in the inner dimension
+  // of args to inner dimension of the output.
 
   int64_t outer_dim = compute_flat_dim(output_dims, 0, axis);
   int64_t inner_dim = compute_flat_dim(output_dims, axis, output_dims.size());
@@ -106,6 +111,7 @@ static Expected<StringHostTensor> TfConcatOpString(
     arg.shape().GetDimensions(&arg_dims);
     int64_t arg_inner_dim = compute_flat_dim(arg_dims, axis, arg_dims.size());
     assert(inner_offset + arg_inner_dim <= inner_dim);
+    assert(outer_dim == compute_flat_dim(arg_dims, 0, axis));
 
     int64_t outer_offset = 0;
     int64_t arg_outer_offset = 0;

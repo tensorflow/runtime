@@ -99,8 +99,9 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
     if (mode_ == Mode::kInlined) return true;
 
     // Otherwise check if the parent buffer has an exclusive access.
-    if (mode_ == Mode::kSliced)
+    if (mode_ == Mode::kSliced) {
       return sliced_.parent_buffer->IsExclusiveDataOwner();
+    }
 
     return false;
   }

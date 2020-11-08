@@ -41,7 +41,7 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
     if (!buf) return {};
 
     auto host_buffer = TakeRef(new (buf) HostBuffer(size, allocator));
-    host_buffer->inlined_.alignment_offset = 0;
+    host_buffer->data_ = &host_buffer->unaligned_data_[0];
 
     return host_buffer;
   }
@@ -56,17 +56,13 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
   auto host_buffer = TakeRef(new (buf) HostBuffer(size, allocator));
 
   // Adjust for data alignment.
-  void *data_ptr = &host_buffer->unaligned_data_[0];
+  host_buffer->data_ = &host_buffer->unaligned_data_[0];
   size_t space = size + alignment;
-  auto aligned = std::align(alignment, size, data_ptr, space);
+  auto aligned = std::align(alignment, size, host_buffer->data_, space);
 
   (void)aligned;
   // std::align should always succeed as we allocated (size + alignment) size.
   assert(aligned);
-
-  // Compute the alignment offset.
-  host_buffer->inlined_.alignment_offset =
-      static_cast<char *>(data_ptr) - &host_buffer->unaligned_data_[0];
 
   return host_buffer;
 }
@@ -92,11 +88,11 @@ HostBuffer::~HostBuffer() {
     case Mode::kInlined:
       break;
     case Mode::kOutOfLine:
-      out_of_line_.deallocator(out_of_line_.ptr, size_);
-      out_of_line_.deallocator.~Deallocator();
+      out_of_line_deallocator_(data_, size_);
+      out_of_line_deallocator_.~Deallocator();
       break;
     case Mode::kSliced:
-      sliced_.parent_buffer.~RCReference<HostBuffer>();
+      sliced_parent_buffer_.~RCReference<HostBuffer>();
       break;
   }
 }
@@ -105,7 +101,7 @@ void HostBuffer::Destroy() {
   switch (mode_) {
     case Mode::kInlined:
       this->~HostBuffer();
-      inlined_.allocator->DeallocateBytes(this, sizeof(HostBuffer) + size_);
+      inlined_allocator_->DeallocateBytes(this, sizeof(HostBuffer) + size_);
       break;
     case Mode::kOutOfLine:
     case Mode::kSliced:

@@ -59,29 +59,11 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
 
   // Returns the address of the data. If the buffer is empty, the behavior is
   // undefined to dereference the returned address.
-  void *data() {
-    switch (mode_) {
-      case Mode::kInlined:
-        return &unaligned_data_[0] + inlined_.alignment_offset;
-      case Mode::kOutOfLine:
-        return out_of_line_.ptr;
-      case Mode::kSliced:
-        return sliced_.ptr;
-    }
-  }
+  void *data() { return data_; }
 
   // Returns the address of the data. If the buffer is empty, the behavior is
   // undefined to dereference the returned address.
-  const void *data() const {
-    switch (mode_) {
-      case Mode::kInlined:
-        return &unaligned_data_[0] + inlined_.alignment_offset;
-      case Mode::kOutOfLine:
-        return out_of_line_.ptr;
-      case Mode::kSliced:
-        return sliced_.ptr;
-    }
-  }
+  const void *data() const { return data_; }
 
   size_t size() const { return size_; }
 
@@ -100,7 +82,7 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
 
     // Otherwise check if the parent buffer has an exclusive access.
     if (mode_ == Mode::kSliced) {
-      return sliced_.parent_buffer->IsExclusiveDataOwner();
+      return sliced_parent_buffer_->IsExclusiveDataOwner();
     }
 
     return false;
@@ -111,22 +93,25 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   friend class ReferenceCounted<HostBuffer>;
 
   HostBuffer(size_t size, HostAllocator *allocator)
-      : size_(size), mode_{Mode::kInlined}, inlined_{.allocator = allocator} {}
+      : size_(size), mode_{Mode::kInlined}, inlined_allocator_{allocator} {}
 
   HostBuffer(void *ptr, size_t size, Deallocator deallocator)
-      : size_(size),
+      : data_(ptr),
+        size_(size),
         mode_{Mode::kOutOfLine},
-        out_of_line_{.ptr = ptr, .deallocator = std::move(deallocator)} {}
+        out_of_line_deallocator_{std::move(deallocator)} {}
 
   HostBuffer(void *ptr, size_t size, RCReference<HostBuffer> parent_buffer)
-      : size_(size),
+      : data_(ptr),
+        size_(size),
         mode_{Mode::kSliced},
-        sliced_{.ptr = ptr, .parent_buffer = std::move(parent_buffer)} {}
+        sliced_parent_buffer_{std::move(parent_buffer)} {}
 
   ~HostBuffer();
 
   void Destroy();
 
+  void *data_;
   size_t size_ : 62;
 
   enum class Mode : uint8_t {
@@ -142,20 +127,11 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
 
   // TODO(zhangqiaorjc): Use variant instead of union.
   union {
-    struct {
-      HostAllocator *allocator;
-      int alignment_offset;
-    } inlined_;
+    HostAllocator *inlined_allocator_;
 
-    struct {
-      void *ptr;
-      Deallocator deallocator;
-    } out_of_line_;
+    Deallocator out_of_line_deallocator_;
 
-    struct {
-      void *ptr;
-      RCReference<HostBuffer> parent_buffer;
-    } sliced_;
+    RCReference<HostBuffer> sliced_parent_buffer_;
   };
 
   // The inlined data is allocated in the flexible memory array. This needs to

@@ -47,9 +47,10 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
   }
 
   // If the requested alignment is greater than the alignment of unaligned_data_
-  // field, allocate size + alignment for the data so we have enough space to
+  // field, allocate (size + alignment) for the data so we have enough space to
   // adjust the buffer for alignment.
-  auto *buf = allocator->AllocateBytes(sizeof(HostBuffer) + size + alignment,
+  size_t alloc_size = size + alignment;
+  auto *buf = allocator->AllocateBytes(sizeof(HostBuffer) + alloc_size,
                                        alignof(HostBuffer));
   if (!buf) return {};
 
@@ -57,9 +58,9 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
 
   // Adjust for data alignment.
   host_buffer->data_ = &host_buffer->unaligned_data_[0];
-  size_t space = size + alignment;
-  auto aligned = std::align(alignment, size, host_buffer->data_, space);
-
+  // `align()` invocation is extracted out from `assert()` so that `align()` is
+  // not removed in opt mode.
+  auto aligned = std::align(alignment, size, host_buffer->data_, alloc_size);
   (void)aligned;
   // std::align should always succeed as we allocated (size + alignment) size.
   assert(aligned);

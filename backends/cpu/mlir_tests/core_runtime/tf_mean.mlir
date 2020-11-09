@@ -44,7 +44,7 @@ func @mean_keep_dims() -> !tfrt.chain {
   %cpu = corert.get_op_handler %ch_1 "cpu"
 
   %input_1 = corert.const_dense_tensor dense<[[[[1.0], [2.0]], [[3.0], [4.0]]]]> : tensor<1x2x2x1xf32>
-  %input_2 = corert.const_dense_tensor dense<[1, 2]> : tensor<2xi32>
+  %input_2 = corert.const_dense_tensor dense<[1, -2]> : tensor<2xi32>
   %output = corert.executeop(%cpu) "tf.Mean"(%input_1, %input_2)
     { T = f32, Tidx = i32, keep_dims = true } : 1
 

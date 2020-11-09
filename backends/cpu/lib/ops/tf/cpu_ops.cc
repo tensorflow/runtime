@@ -102,27 +102,40 @@ static AsyncValueRef<DenseHostTensor> TfReluOp(
 // tf.Mean op
 //===----------------------------------------------------------------------===//
 
-struct MeanOutputMd {
+struct MeanHelper {
   TensorMetadata output_metadata;
   TensorMetadata final_output_metadata;
+
+  // Unlike the input reduction_indices, this one contains only positive
+  // numbers.
+  SmallVector<int32_t, 4> positive_reduction_indices;
 };
 
-static Expected<MeanOutputMd> TfMeanOutputMd(
+static Expected<MeanHelper> TfMeanOutputMd(
     const DenseHostTensor& input, const DenseHostTensor& reduction_indices,
     bool keep_dims) {
+  MeanHelper helper;
+
   // Check if an input dimension is reduced or not.
+  // TODO(tfrt-devs): Support i64 reduction_indices.
   DHTArrayView<int32_t> reduction_indices_view(&reduction_indices);
   llvm::SmallVector<bool, 4> reduced_dim(input.shape().GetRank(), false);
+  helper.positive_reduction_indices.reserve(reduction_indices.NumElements());
   for (auto reduction_index : reduction_indices_view.Elements()) {
-    if (reduction_index < 0 || reduction_index >= input.shape().GetRank()) {
+    int rank = input.shape().GetRank();
+    if (reduction_index < -rank || reduction_index >= rank) {
       return MakeStringError(
-          "tf.Mean reduction index must be in [0, input_rank) range");
+          "tf.Mean reduction index must be in [-input_rank, input_rank) range");
     }
+    // Add the rank to get the corresponding positive index if it is negative.
+    reduction_index = (reduction_index + rank) % rank;
     if (reduced_dim[reduction_index]) {
       return MakeStringError("tf.Mean reduction indices must be unique");
     }
 
     reduced_dim[reduction_index] = true;
+
+    helper.positive_reduction_indices.push_back(reduction_index);
   }
 
   llvm::SmallVector<ssize_t, 4> output_dims;
@@ -138,8 +151,11 @@ static Expected<MeanOutputMd> TfMeanOutputMd(
     }
   }
 
-  return MeanOutputMd{TensorMetadata(input.dtype(), output_dims),
-                      TensorMetadata(input.dtype(), final_output_dims)};
+  helper.output_metadata = TensorMetadata(input.dtype(), output_dims);
+  helper.final_output_metadata =
+      TensorMetadata(input.dtype(), final_output_dims);
+
+  return helper;
 }
 
 static AsyncValueRef<DenseHostTensor> TfMeanOp(
@@ -152,32 +168,31 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
     keep_dims = attr.getValue();
 
   // Compute output tensor metadata from reduction indices.
-  auto output_md = TfMeanOutputMd(input, reduction_indices, keep_dims);
-  if (auto err = output_md.takeError())
+  auto helper = TfMeanOutputMd(input, reduction_indices, keep_dims);
+  if (auto err = helper.takeError())
     return EmitErrorAsync(exec_ctx, std::move(err));
 
   auto output =
-      DenseHostTensor::CreateUninitialized(output_md->output_metadata, host);
+      DenseHostTensor::CreateUninitialized(helper->output_metadata, host);
   if (!output) {
     return EmitErrorAsync(exec_ctx, "out of memory allocating tensor");
   }
-  DHTArrayView<int32_t> reduction_indices_view(&reduction_indices);
 
   AsyncValueRef<Chain> chain;
   switch (input.dtype().kind()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfMeanOp");
       break;
-#define DTYPE_FLOAT(ENUM)                                              \
-  case DType::ENUM:                                                    \
-    chain = cpu::Mean<EigenTypeForDTypeKind<DType::ENUM>>(             \
-        input, reduction_indices_view.Elements(), output.getPointer(), \
-        exec_ctx);                                                     \
+#define DTYPE_FLOAT(ENUM)                                               \
+  case DType::ENUM:                                                     \
+    chain = cpu::Mean<EigenTypeForDTypeKind<DType::ENUM>>(              \
+        input, helper->positive_reduction_indices, output.getPointer(), \
+        exec_ctx);                                                      \
     break;
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  DenseHostTensor final_output(output_md->final_output_metadata,
+  DenseHostTensor final_output(helper->final_output_metadata,
                                output->ReleaseBuffer());
 
   // TODO(tfrt-devs): ForwardValue() should be able to take an rvalue to

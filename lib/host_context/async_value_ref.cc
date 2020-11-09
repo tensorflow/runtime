@@ -53,7 +53,7 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 }
 
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
-    HostContext* host, DecodedDiagnostic&& diagnostic) {
+    HostContext* host, DecodedDiagnostic diagnostic) {
   // Create an AsyncValue for this error condition.
   auto* error_value =
       HostContextConstruct<ErrorAsyncValue>(host, host, std::move(diagnostic));

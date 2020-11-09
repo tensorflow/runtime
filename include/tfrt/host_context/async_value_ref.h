@@ -187,7 +187,7 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 // Create a ConcreteAsyncValue in error state for a specified decoded
 // diagnostic.
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
-    HostContext* host, DecodedDiagnostic&& diagnostic);
+    HostContext* host, DecodedDiagnostic diagnostic);
 
 // Create a ConcreteAsyncValue in error state for a specified error message.
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(HostContext* host,

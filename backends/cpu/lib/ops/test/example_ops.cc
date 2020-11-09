@@ -376,6 +376,8 @@ void RegisterTestCpuOps(CpuOpRegistry* op_registry) {
                      CpuOpFlags::AllowsScalar | CpuOpFlags::AllowsCoo);
   op_registry->AddOp("tfrt_test.identity", TFRT_CPU_OP(IdentityOp),
                      CpuOpFlags::NoSideEffects);
+  op_registry->AddOp("tfrt_test.identity_dense_only", TFRT_CPU_OP(IdentityOp),
+                     CpuOpFlags::NoSideEffects);
   op_registry->AddOp("tfrt_test.async.noop", TFRT_CPU_OP(AsyncNoopOp),
                      CpuOpFlags::NoSideEffects | CpuOpFlags::AllowsScalar);
   // Register another AsyncNoopOp but with no metadata function.

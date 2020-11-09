@@ -96,6 +96,9 @@ TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
   if (arg.GetAsyncTensor()->IsAvailable() && arg.IsDeviceAvailable()) {
     // We does not support implicit tensor conversion across device.
     if (device.get() != arg.GetAvailableDevice().get()) {
+      // TODO(b/172847467): Return error tensor here instead of a slient
+      // warning. This cannot be done currently as it will break existing GPU
+      // tests.
       TFRT_LOG(WARNING) << "Cannot implictly convert from device "
                         << arg.GetAvailableDevice()->name() << " to "
                         << device->name();
@@ -106,10 +109,10 @@ TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
     if (target_type == tensor.tensor_type()) return arg;
     if (!op_handler->AllowImplicitConversion(tensor.tensor_type(),
                                              target_type)) {
-      TFRT_LOG(WARNING) << "Cannot implict convert "
-                        << tensor.tensor_type().name() << " to "
-                        << target_type.name();
-      return arg;
+      return TensorHandle(EmitErrorAsync(
+          exec_ctx,
+          tfrt::StrCat("Cannot implictly convert ", tensor.tensor_type().name(),
+                       " to ", target_type.name())));
     }
     return arg.TransferTo(exec_ctx, op_handler->GetDeviceRef(), target_type);
   } else {
@@ -130,6 +133,9 @@ TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
           }
           // We does not support implicit tensor conversion across device.
           if (device.get() != arg.GetAvailableDevice().get()) {
+            // TODO(b/172847467): Return error tensor here instead of a slient
+            // warning. This cannot be done currently as it will break existing
+            // GPU tests.
             TFRT_LOG(WARNING)
                 << "Cannot implict convert from device "
                 << arg.GetAvailableDevice()->name() << " to " << device->name();
@@ -148,10 +154,10 @@ TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
           }
           if (!op_handler->AllowImplicitConversion(arg_tensor.tensor_type(),
                                                    target_type)) {
-            TFRT_LOG(WARNING) << "Cannot implicitly convert "
-                              << arg_tensor.tensor_type().name() << " to "
-                              << target_type.name();
-            result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
+            result_ind_av->ForwardTo(EmitErrorAsync(
+                exec_ctx, tfrt::StrCat("Cannot implictly convert ",
+                                       arg_tensor.tensor_type().name(), " to ",
+                                       target_type.name())));
             return;
           }
           result_ind_av->ForwardTo(ConvertTensor(exec_ctx, arg_tensor, *device,

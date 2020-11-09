@@ -251,5 +251,15 @@ func @test_coo_dense_transfer() -> !tfrt.chain {
   tfrt.return %ch3 : !tfrt.chain
 }
 
+// CHECK-LABEL: --- Running 'test_tensor_conversion_error'
+func @test_tensor_conversion_error() -> !corert.tensorhandle {
+  %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
+  %str_tensor = corert.const_string_tensor {shape = [], value = ["string"]}
 
+  // expected-error @+1 {{Cannot implictly convert StringHost to DenseHost}}
+  %tensor_handle = corert.executeop(%cpu) "tfrt_test.identity_dense_only"(%str_tensor) : 1
+
+  tfrt.return %tensor_handle: !corert.tensorhandle
+}

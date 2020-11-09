@@ -152,7 +152,7 @@ static AsyncValueRef<Tensor> TfExpandDimsOp(const Tensor& input,
 
 void RegisterTfShapeCpuOps(CpuOpRegistry* op_registry) {
   op_registry->AddOp("tf.Shape", TFRT_CPU_OP(TfShapeOp),
-                     CpuOpFlags::NoSideEffects);
+                     CpuOpFlags::NoSideEffects | CpuOpFlags::AllowsString);
   op_registry->AddOp("tf.ExpandDims", TFRT_CPU_OP(TfExpandDimsOp),
                      CpuOpFlags::NoSideEffects | CpuOpFlags::AllowsString);
 }

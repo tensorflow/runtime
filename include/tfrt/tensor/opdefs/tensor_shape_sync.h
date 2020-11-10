@@ -14,38 +14,34 @@
  * limitations under the License.
  */
 
-//===- dense_host_tensor_sync.h - op defs for dht sync dialect --*- C++ -*-===//
+//===- tensor_shape_sync.h - MLIR op definitions for ts dialect -*- C++ -*-===//
 //
-// This file declares the 'tfrt_dht_sync' dialect.
+// This file declares the 'ts_sync' dialect.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_
-#define TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_
+#ifndef TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_SYNC_H_
+#define TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_SYNC_H_
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "tfrt/tensor/opdefs/host_tensor.h"
-#include "tfrt/tensor/opdefs/tensor.h"
 #include "tfrt/tensor/opdefs/tensor_shape.h"
 
-using namespace mlir;  // NOLINT
-
 namespace tfrt {
-namespace dht {
+namespace ts_sync {
 
-// Dialect for dense host tensor sync operations.
-class DenseHostTensorSyncDialect : public Dialect {
+// Dialect for sync tensor shape operations.
+class TensorShapeSyncDialect : public mlir::Dialect {
  public:
-  static StringRef getDialectNamespace() { return "tfrt_dht_sync"; }
-  explicit DenseHostTensorSyncDialect(MLIRContext *context);
+  static mlir::StringRef getDialectNamespace() { return "ts_sync"; }
+  explicit TensorShapeSyncDialect(mlir::MLIRContext *context);
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/tensor/opdefs/dense_host_tensor_sync.h.inc"
-
-}  // namespace dht
+}  // namespace ts_sync
 }  // namespace tfrt
 
-#endif  // TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_
+#define GET_OP_CLASSES
+#include "tfrt/tensor/opdefs/tensor_shape_sync.h.inc"
+
+#endif  // TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_SYNC_H_

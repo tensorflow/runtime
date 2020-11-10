@@ -77,6 +77,40 @@ def SyncPrintTensorOp : DHT_Sync_Op<"print_tensor"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def SyncAllocateBufferOp : DHT_Sync_Op<"allocate_buffer"> {
+  let summary = "tfrt_dht_sync.allocate_buffer operation";
+
+  let description = [{
+    An operation that creates an buffer.
+    It takes in the size of the buffer in bytes and the alignment in bytes and
+    outputs a buffer of that size.
+
+    Example:
+      %size = tfrt.constant.i64 164
+      %alignment = tfrt.constant.i64 8
+      %buf = tfrt_dht_sync.allocate %size, %alignment
+  }];
+
+  let arguments = (ins I64, I64);
+  let results = (outs HostBufferType);
+  let assemblyFormat = "operands attr-dict";
+}
+
+def SyncGetTensorShapeOp : DHT_Sync_Op<"get_tensor_shape", [NoSideEffect]> {
+  let summary = "tfrt_dht_sync.get_tensor_shape operation";
+
+  let description = [{
+    An operation that returns the shape of the dense host tensor.
+
+    Example:
+      %0 = tfrt_dht_sync.get_tensor_shape %t
+  }];
+
+  let arguments = (ins TensorType);
+  let results = (outs TS_Shape);
+  let assemblyFormat = "operands attr-dict";
+}
+
 class SyncSetTensorOp<string dtype>
   : DHT_Sync_Op<"set_tensor_with_constant_values." # dtype> {
   let summary = "tfrt_dht_sync.set_tensor_with_constant_values operation";
@@ -95,6 +129,23 @@ class SyncSetTensorOp<string dtype>
   let assemblyFormat = "$tensor $values attr-dict";
 }
 
+class SyncMakeTensorOp<string dtype>
+  : DHT_Sync_Op<"make_tensor." # dtype> {
+  let summary = "tfrt_dht_sync.make_tensor operation";
+
+  let description = [{
+    An operation that creates a tensor from the given shape and buffer.
+    Created tensor shares the memory with the given buffer.
+
+    The size of the buffer must match the size needed to hold the tensor,
+    i.e. the number of elements, of requested dtype, in the given shape.
+  }];
+
+  let arguments = (ins HostBufferType, TS_Shape);
+  let results = (outs TensorType);
+  let assemblyFormat = "operands attr-dict";
+}
+
 // Instantiate for each dtype and rank pair.
 foreach dtype = ["ui8", "ui16", "ui32", "ui64", "i32", "f32", "i64", "bool", "complex64", "complex128"] in {
   foreach rank = [0, 1, 2, 3, 4] in {
@@ -102,6 +153,7 @@ foreach dtype = ["ui8", "ui16", "ui32", "ui64", "i32", "f32", "i64", "bool", "co
       : SyncCreateUninitializedTensorOp<dtype, rank>;
   }
   def DHT_SyncSetTensorOp_#dtype : SyncSetTensorOp<dtype>;
+  def DHT_SyncMakeTensorOp_#dtype : SyncMakeTensorOp<dtype>;
 }
 
 #endif  // DHT_SYNC_OPS

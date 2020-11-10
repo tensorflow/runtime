@@ -173,6 +173,9 @@ void RegisterIntegerKernels(KernelRegistry* registry) {
 
   registry->AddSyncKernel("tfrt.add_s.i32", TFRT_SYNC_KERNEL(TFRTAdd<int32_t>));
   registry->AddSyncKernel("tfrt.add_s.i64", TFRT_SYNC_KERNEL(TFRTAdd<int64_t>));
+
+  registry->AddSyncKernel("tfrt.mul_s.i32", TFRT_SYNC_KERNEL(TFRTMul<int32_t>));
+  registry->AddSyncKernel("tfrt.mul_s.i64", TFRT_SYNC_KERNEL(TFRTMul<int64_t>));
 }
 
 }  // namespace tfrt

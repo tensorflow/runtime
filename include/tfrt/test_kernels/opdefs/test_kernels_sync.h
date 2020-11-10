@@ -14,38 +14,36 @@
  * limitations under the License.
  */
 
-//===- dense_host_tensor_sync.h - op defs for dht sync dialect --*- C++ -*-===//
+//===- test_kernels_sync.h --------------------------------------*- C++ -*-===//
 //
-// This file declares the 'tfrt_dht_sync' dialect.
+// MLIR op definitions for sync test kernels.
+// This file declares the 'tfrt_test_sync' dialect as well as the operators in
+// the test_kernels_sync library.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_
-#define TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_
+#ifndef TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_SYNC_H_
+#define TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_SYNC_H_
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
-#include "tfrt/tensor/opdefs/host_tensor.h"
 #include "tfrt/tensor/opdefs/tensor.h"
-#include "tfrt/tensor/opdefs/tensor_shape.h"
-
-using namespace mlir;  // NOLINT
 
 namespace tfrt {
-namespace dht {
+namespace test_sync {
 
-// Dialect for dense host tensor sync operations.
-class DenseHostTensorSyncDialect : public Dialect {
+// Dialect for synchronous test operations.
+class TestSyncDialect : public Dialect {
  public:
-  static StringRef getDialectNamespace() { return "tfrt_dht_sync"; }
-  explicit DenseHostTensorSyncDialect(MLIRContext *context);
+  static StringRef getDialectNamespace() { return "tfrt_test_sync"; }
+  explicit TestSyncDialect(MLIRContext* context);
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/tensor/opdefs/dense_host_tensor_sync.h.inc"
-
-}  // namespace dht
+}  // namespace test_sync
 }  // namespace tfrt
 
-#endif  // TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_
+#define GET_OP_CLASSES
+#include "tfrt/test_kernels/opdefs/test_kernels_sync.h.inc"
+
+#endif  // TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_SYNC_H_

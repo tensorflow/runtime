@@ -25,6 +25,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
@@ -35,6 +36,11 @@ static void TsBuildShape(AsyncKernelFrame* frame) {
 
   ArrayRef<ssize_t> elements = frame->GetArrayAttributeAt<ssize_t>(0).data();
   frame->EmplaceResult<TensorShape>(elements);
+}
+
+// Builds a `TensorShape` from an array attribute.
+static TensorShape TsSyncBuildShape(ArrayAttribute<ssize_t> shape) {
+  return TensorShape(shape.data());
 }
 
 static void TsPrintShape(Argument<TensorShape> arg) {
@@ -119,6 +125,14 @@ void RegisterTensorShapeKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TsPrintPartialShape));
   registry->AddKernel("ts.to_shape", TFRT_KERNEL(TsToShape));
   registry->AddKernel("ts.to_partial_shape", TFRT_KERNEL(TsToPartialShape));
+
+  // Register sync kernels.
+  registry->AddSyncKernel("ts_sync.build_shape",
+                          TFRT_SYNC_KERNEL(TsSyncBuildShape));
+  registry->AddSyncKernel("ts_sync.build_partial_shape",
+                          TFRT_SYNC_KERNEL(TsBuildPartialShape));
+  registry->AddSyncKernel("ts_sync.to_partial_shape",
+                          TFRT_SYNC_KERNEL(TsToPartialShape));
 }
 
 }  // namespace tfrt

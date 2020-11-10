@@ -25,6 +25,7 @@
 
 #include <functional>
 
+#include "llvm/Support/Error.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/common/compat/eigen/thread_pool_device.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -78,26 +79,30 @@ AsyncValueRef<Chain> NullaryEigenKernelAsync(
                      KeepBuffers::alive(argument));
 }
 
-// Helper function for implementing synchronous Eigen-based unary kernels with
+// Implements synchronous Eigen-based unary kernels with
 // matching input and output shapes. The functor Fn should return an Eigen
 // tensor expression that can be assigned to an object of type
 // EigenTensor<Tout, 1>.
 template <typename Tin, typename Tout, typename Fn>
-Expected<Chain> UnaryEigenKernel(
-    DHTArrayView<Tin> input,
+llvm::Error UnaryEigenKernel(
+    const DenseHostTensor& input,
     // `output` supplies the buffer in which to write the output.
-    MutableDHTArrayView<Tout> output, Fn fn, Location loc) {
-  const auto& shape_input = input->Shape();
-  const auto& shape_output = output->Shape();
+    DenseHostTensor* output, Fn fn, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+  auto input_view = DHTArrayView<Tin>(&input);
+  auto output_view = MutableDHTArrayView<Tout>(output);
+  const TensorShape& shape_input = input_view.Shape();
+  const TensorShape& shape_output = output_view.Shape();
   if (shape_input != shape_output) {
     return MakeStringError(" tensor shape mismatch: ", shape_input, " vs. ",
                            shape_output);
   }
-
-  auto in = AsEigenConstTensor(input);
-  auto out = AsEigenTensor(output);
-  output = fn(input, output);
-  return Chain();
+  auto in = AsEigenConstTensor(input_view);
+  auto out = AsEigenTensor(output_view);
+  auto expr = fn(in, out);
+  out.device(host->GetOrCreateSharedContext<EigenHostContext>().Device()) =
+      expr;
+  return llvm::Error::success();
 }
 
 // Helper function for implementing asynchronous Eigen-based unary kernels with

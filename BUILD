@@ -582,6 +582,27 @@ gentbl(
 )
 
 gentbl(
+    name = "tensor_shape_sync_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/tensor/opdefs/tensor_shape_sync.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/tensor/opdefs/tensor_shape_sync.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/tensor/opdefs/tensor_shape_sync.td",
+    td_includes = ["include"],
+    td_srcs = [
+        ":OpBaseTdFiles",
+        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+    ],
+)
+
+gentbl(
     name = "tensor_opdefs_inc_gen",
     tbl_outs = [
         (
@@ -694,6 +715,7 @@ tfrt_cc_library(
         "lib/tensor/opdefs/host_tensor.cc",
         "lib/tensor/opdefs/tensor.cc",
         "lib/tensor/opdefs/tensor_shape.cc",
+        "lib/tensor/opdefs/tensor_shape_sync.cc",
     ],
     hdrs = [
         "include/tfrt/tensor/opdefs/coo_host_tensor.h",
@@ -702,6 +724,7 @@ tfrt_cc_library(
         "include/tfrt/tensor/opdefs/host_tensor.h",
         "include/tfrt/tensor/opdefs/tensor.h",
         "include/tfrt/tensor/opdefs/tensor_shape.h",
+        "include/tfrt/tensor/opdefs/tensor_shape_sync.h",
     ],
     visibility = [":friends"],
     deps = [
@@ -712,6 +735,7 @@ tfrt_cc_library(
         ":host_tensor_opdefs_inc_gen",
         ":tensor_opdefs_inc_gen",
         ":tensor_shape_opdefs_inc_gen",
+        ":tensor_shape_sync_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
     ],
@@ -939,6 +963,46 @@ tfrt_cc_library(
         "@llvm-project//mlir:SideEffects",
         "@llvm-project//mlir:Support",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
+    ],
+)
+
+gentbl(
+    name = "test_kernels_sync_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/test_kernels/opdefs/test_kernels_sync.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/test_kernels/opdefs/test_kernels_sync_opdefs.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/test_kernels/opdefs/test_kernels_sync.td",
+    td_includes = ["include"],
+    td_srcs = [
+        ":OpBaseTdFiles",
+        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+    ],
+)
+
+tfrt_cc_library(
+    name = "test_kernels_sync_opdefs",
+    srcs = [
+        "lib/test_kernels/opdefs/test_kernels_sync.cc",
+    ],
+    hdrs = [
+        "include/tfrt/test_kernels/opdefs/test_kernels_sync.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":basic_kernels_opdefs",
+        ":tensor_opdefs",
+        ":test_kernels_sync_opdefs_inc_gen",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:SideEffects",
+        "@llvm-project//mlir:Support",
     ],
 )
 

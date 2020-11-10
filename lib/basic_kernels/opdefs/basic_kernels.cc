@@ -224,6 +224,20 @@ static LogicalResult verify(ConstantI64Op op) {
   return verifyIntegerConstant(op, 64);
 }
 
+static ParseResult parseSyncConstantI64Op(OpAsmParser &parser,
+                                          OperationState &result) {
+  return parseConstantOp(IntegerType::get(64, result.getContext()), parser,
+                         result);
+}
+
+static void print(OpAsmPrinter &p, SyncConstantI64Op op) {
+  printConstant(p, op);
+}
+
+static LogicalResult verify(SyncConstantI64Op op) {
+  return verifyIntegerConstant(op, 64);
+}
+
 static ParseResult parseConstantF32Op(OpAsmParser &parser,
                                       OperationState &result) {
   return parseConstantOp(FloatType::getF32(result.getContext()), parser,
@@ -236,6 +250,20 @@ static LogicalResult verify(ConstantF32Op op) {
   return verifyFloatConstant(op);
 }
 
+static ParseResult parseSyncConstantF32Op(OpAsmParser &parser,
+                                          OperationState &result) {
+  return parseConstantOp(FloatType::getF32(result.getContext()), parser,
+                         result);
+}
+
+static void print(OpAsmPrinter &p, SyncConstantF32Op op) {
+  printConstant(p, op);
+}
+
+static LogicalResult verify(SyncConstantF32Op op) {
+  return verifyFloatConstant(op);
+}
+
 static ParseResult parseConstantF64Op(OpAsmParser &parser,
                                       OperationState &result) {
   return parseConstantOp(FloatType::getF64(result.getContext()), parser,
@@ -245,6 +273,20 @@ static ParseResult parseConstantF64Op(OpAsmParser &parser,
 static void print(OpAsmPrinter &p, ConstantF64Op op) { printConstant(p, op); }
 
 static LogicalResult verify(ConstantF64Op op) {
+  return verifyFloatConstant(op);
+}
+
+static ParseResult parseSyncConstantF64Op(OpAsmParser &parser,
+                                          OperationState &result) {
+  return parseConstantOp(FloatType::getF64(result.getContext()), parser,
+                         result);
+}
+
+static void print(OpAsmPrinter &p, SyncConstantF64Op op) {
+  printConstant(p, op);
+}
+
+static LogicalResult verify(SyncConstantF64Op op) {
   return verifyFloatConstant(op);
 }
 

@@ -30,6 +30,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/support/msan.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
@@ -164,6 +165,7 @@ void CallMatMulKernel(const DenseHostTensor& lhs_dht,
 
 // This is the MatMul kernel interface.
 // TODO(rmlarsen): Add support for transposition and conjugation.
+// TODO(haoliang): Unify `MatMul2D` and `SyncMatMul2D` with a template function.
 template <typename T>
 Expected<Chain> MatMul2D(T alpha, DHTIndexableView<T, 2> A,
                          DHTIndexableView<T, 2> B, T beta,
@@ -175,17 +177,36 @@ Expected<Chain> MatMul2D(T alpha, DHTIndexableView<T, 2> A,
   return Chain();
 }
 
+// Computes MatMul in sync style.
+template <typename T>
+void SyncMatMul2D(T alpha, DHTIndexableView<T, 2> A, DHTIndexableView<T, 2> B,
+                  T beta, MutableDHTIndexableView<T, 2> C) {
+  // TODO(rmlarsen): Add support for transposition and conjugation.
+  bool transpose_a = false;
+  bool transpose_b = false;
+  MatMul2DKernel<T>(alpha, A, B, beta, C, transpose_a, transpose_b);
+}
+
 //===----------------------------------------------------------------------===//
 // CPU Relu kernels
 //===----------------------------------------------------------------------===//
 
 // Computes B = Relu(A).
+// TODO(haoliang): Unify `Relu` and `SyncRelu` with a template function.
 template <typename T>
 static AsyncValueRef<Chain> Relu(const DenseHostTensor& A, DenseHostTensor* B,
                                  const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) { return a.cwiseMax(static_cast<T>(0)); };
   return ::tfrt::compat::UnaryEigenKernelAsync<T, T>(A, B, std::move(fn),
                                                      exec_ctx);
+}
+
+// Computes B = Relu(A) in sync style.
+template <typename T>
+static llvm::Error SyncRelu(const DenseHostTensor& A, DenseHostTensor* B,
+                            const ExecutionContext& exec_ctx) {
+  auto fn = [](auto& a, auto& b) { return a.cwiseMax(static_cast<T>(0)); };
+  return ::tfrt::compat::UnaryEigenKernel<T, T>(A, B, std::move(fn), exec_ctx);
 }
 
 //===----------------------------------------------------------------------===//

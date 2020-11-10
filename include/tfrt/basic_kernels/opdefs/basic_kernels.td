@@ -69,6 +69,20 @@ def ConstantI64Op : ConstantOp<"i64", I64, I64Attr>;
 def ConstantF32Op : ConstantOp<"f32", F32, F32Attr>;
 def ConstantF64Op : ConstantOp<"f64", F64, F64Attr>;
 
+// TODO(tf-runtime-team): Consider reusing op defitions for sync/async ops.
+// TODO(tf-runtime-team): Consider create `tfrt_sync` dialect.
+class SyncConstantOp<string suffix, Type baseType, Attr attr>
+  : TFRT_Op<"constant_s." # suffix, [NoSideEffect]> {
+  let summary = "host executor constant value constructor";
+
+  let arguments = (ins attr:$value);
+  let results = (outs baseType);
+}
+
+def SyncConstantI64Op : SyncConstantOp<"i64", I64, I64Attr>;
+def SyncConstantF32Op : SyncConstantOp<"f32", F32, F32Attr>;
+def SyncConstantF64Op : SyncConstantOp<"f64", F64, F64Attr>;
+
 class ConstantUnsignedOp<int bitwidth, Type baseType, Attr attr>
   : TFRT_Op<"constant.ui" # bitwidth, [NoSideEffect]> {
   let summary = "host executor constant value constructor";
@@ -403,6 +417,24 @@ class MulOp<string suffix, Type type>
 
 def MulI32Op : MulOp<"i32", I32>;
 def MulI64Op : MulOp<"i64", I64>;
+
+class SyncMulOp<string suffix, Type type>
+  : TFRT_Op<"mul_s." # suffix, [NoSideEffect]> {
+  let summary = "tfrt.mul operation";
+  let description = [{
+     An operation that takes two inputs and returns their product.
+
+     Example:
+       %2 = tfrt.mul.i32 %0, %1
+  }];
+  let arguments = (ins type, type);
+  let results = (outs type);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
+def SyncMulI32Op : SyncMulOp<"i32", I32>;
+def SyncMulI64Op : SyncMulOp<"i64", I64>;
 
 class PrintOp<string suffix, Type type> : TFRT_Op<"print." # suffix> {
   let summary = "tfrt.print operation";

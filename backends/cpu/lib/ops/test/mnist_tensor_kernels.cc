@@ -32,6 +32,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/tensor/btf.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 
@@ -706,6 +707,8 @@ template <typename T>
 static void RegisterMNISTTensorKernelsForType(KernelRegistry* registry,
                                               const std::string& suffix) {
   registry->AddKernel("tfrt_test.relu." + suffix, TFRT_KERNEL(cpu::Relu<T>));
+  registry->AddSyncKernel("tfrt_test_sync.relu." + suffix,
+                          TFRT_SYNC_KERNEL(cpu::SyncRelu<T>));
   registry->AddKernel("tfrt_test.relu_inplace." + suffix,
                       TFRT_KERNEL(ReluInPlace<T>));
   registry->AddKernel("tfrt_test.add." + suffix,
@@ -718,6 +721,8 @@ static void RegisterMNISTTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(ElementwiseEqualInPlace<T>));
   registry->AddKernel("tfrt_test.matmul." + suffix + ".2",
                       TFRT_KERNEL(cpu::MatMul2D<T>));
+  registry->AddSyncKernel("tfrt_test_sync.matmul." + suffix + ".2",
+                          TFRT_SYNC_KERNEL(cpu::SyncMatMul2D<T>));
   registry->AddKernel("tfrt_test.broadcast." + suffix + ".2",
                       TFRT_KERNEL(Broadcast1D<T, 2>));
   registry->AddKernel("tfrt_test.broadcast." + suffix + ".3",

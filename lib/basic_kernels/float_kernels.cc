@@ -20,6 +20,7 @@
 
 #include "tfrt/basic_kernels/basic_kernels.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
@@ -76,6 +77,8 @@ template <typename T>
 void RegisterFloatKernelsForType(KernelRegistry* registry,
                                  const std::string& suffix) {
   registry->AddKernel("tfrt.constant." + suffix, TFRT_KERNEL(TFRTConstant<T>));
+  registry->AddSyncKernel("tfrt.constant_s." + suffix,
+                          TFRT_SYNC_KERNEL(TFRTConstant<T>));
   registry->AddKernel("tfrt.add." + suffix, TFRT_KERNEL(TFRTAdd<T>));
   registry->AddKernel("tfrt.minimum." + suffix, TFRT_KERNEL(TFRTMinimum<T>));
   registry->AddKernel("tfrt.div." + suffix, TFRT_KERNEL(TFRTDiv<T>));

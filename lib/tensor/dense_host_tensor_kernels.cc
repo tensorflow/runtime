@@ -68,6 +68,22 @@ static void MakeTensor(Argument<RCReference<HostBuffer>> buffer,
   out_chain.Set(in_chain);
 }
 
+// Constructs a `DenseHostTensor` from the given host buffer and shape.
+template <typename T>
+static Expected<DenseHostTensor> SyncMakeTensor(
+    const RCReference<HostBuffer>& buffer, TensorShape shape) {
+  if (buffer->size() != shape.GetNumElements() * GetDType<T>().GetHostSize()) {
+    std::string error_msg;
+    llvm::raw_string_ostream ss(error_msg);
+    ss << "tfrt_dht_sync.make_tensor failed: buffer_size (" << buffer->size()
+       << ") is not equal to the number of elements in shape (" << shape
+       << ") times element size (" << GetDType<T>().GetHostSize() << ")";
+    return MakeStringError(ss.str());
+  }
+  return DenseHostTensor(TensorMetadata(GetDType<T>(), shape),
+                         buffer.CopyRef());
+}
+
 template <typename T>
 static Expected<DenseHostTensor> CreateDenseTensor(
     ArrayAttribute<ssize_t> shape, ArrayAttribute<T> values,
@@ -149,6 +165,16 @@ static Chain NoOpHostTensor(Argument<DenseHostTensor> in) { return Chain(); }
 
 static llvm::Expected<RCReference<HostBuffer>> AllocateBuffer(
     int64_t size, int64_t alignment, AsyncKernelFrame* frame) {
+  auto data = HostBuffer::CreateUninitialized(
+      static_cast<size_t>(size), static_cast<size_t>(alignment),
+      frame->GetHostContext()->allocator());
+  if (!data) return MakeStringError("Cannot allocate host buffer");
+  return std::move(data);
+}
+
+// Constructs a `HostBuffer` based on the given size (in bytes) and alignment.
+static llvm::Expected<RCReference<HostBuffer>> SyncAllocateBuffer(
+    int64_t size, int64_t alignment, SyncKernelFrame* frame) {
   auto data = HostBuffer::CreateUninitialized(
       static_cast<size_t>(size), static_cast<size_t>(alignment),
       frame->GetHostContext()->allocator());
@@ -247,6 +273,8 @@ static void RegisterDenseHostTensorKernelsForType(KernelRegistry* registry,
                       TFRT_KERNEL(FillDenseTensorWithConstantValue<T>));
   registry->AddKernel("tfrt_dht.make_tensor." + suffix,
                       TFRT_KERNEL(MakeTensor<T>));
+  registry->AddSyncKernel("tfrt_dht_sync.make_tensor." + suffix,
+                          TFRT_SYNC_KERNEL(SyncMakeTensor<T>));
   registry->AddKernel("tfrt_dht.set_tensor_with_constant_values." + suffix,
                       TFRT_KERNEL(SetDenseTensorWithConstantValues<T>));
   registry->AddSyncKernel(
@@ -284,6 +312,8 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   RegisterDenseHostTensorKernelsForType<std::complex<double>>(registry,
                                                               "complex128");
   registry->AddKernel("tfrt_dht.allocate_buffer", TFRT_KERNEL(AllocateBuffer));
+  registry->AddSyncKernel("tfrt_dht_sync.allocate_buffer",
+                          TFRT_SYNC_KERNEL(SyncAllocateBuffer));
   registry->AddKernel("tfrt_dht.print_tensor", TFRT_KERNEL(PrintTensor));
   registry->AddSyncKernel("tfrt_dht_sync.print_tensor",
                           TFRT_SYNC_KERNEL(SyncPrintTensor));
@@ -291,6 +321,8 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(PrintDenseTensorShape));
   registry->AddKernel("tfrt_dht.get_tensor_shape",
                       TFRT_KERNEL(GetDenseTensorShape));
+  registry->AddSyncKernel("tfrt_dht_sync.get_tensor_shape",
+                          TFRT_SYNC_KERNEL(GetDenseTensorShape));
   registry->AddKernel("tfrt_dht.no_op_ht", TFRT_KERNEL(NoOpHostTensor));
   registry->AddKernel("tfrt_dht.get_buffer", TFRT_KERNEL(GetBuffer));
   registry->AddKernel("tfrt_dht.get_buffer_slice", TFRT_KERNEL(GetBufferSlice));

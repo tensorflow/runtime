@@ -28,11 +28,14 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseMapInfo.h"
 #include "tfrt/distributed_runtime/remote_object.h"
+#include "tfrt/distributed_runtime/task_handle.h"
 
 namespace tfrt {
 class RemoteObjectManager {
  public:
-  explicit RemoteObjectManager(HostId host_id, HostContext* host_context);
+  static const uint64_t kInvalidPrefixId;
+
+  RemoteObjectManager(TaskHandle task_handle, HostContext* host_context);
   ~RemoteObjectManager();
 
   // Create new unique RemoteObjectId.
@@ -55,7 +58,7 @@ class RemoteObjectManager {
 
  private:
   std::atomic<int64_t> next_unique_id_{1};
-  HostId host_id_;
+  const uint64_t prefix_id_;
   HostContext* host_context_;
 
   tfrt::mutex mutex_;
@@ -68,10 +71,12 @@ namespace llvm {
 template <>
 struct DenseMapInfo<tfrt::RemoteObjectId> {
   static tfrt::RemoteObjectId getEmptyKey() {
-    return {-1, 0, tfrt::RCReference<tfrt::Device>()};
+    return {tfrt::RemoteObjectManager::kInvalidPrefixId, 0,
+            tfrt::RCReference<tfrt::Device>()};
   }
   static tfrt::RemoteObjectId getTombstoneKey() {
-    return {-1, -1, tfrt::RCReference<tfrt::Device>()};
+    return {tfrt::RemoteObjectManager::kInvalidPrefixId, 0,
+            tfrt::RCReference<tfrt::Device>()};
   }
   static unsigned getHashValue(const tfrt::RemoteObjectId& id) {
     return id.local_id;

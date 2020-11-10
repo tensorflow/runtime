@@ -28,7 +28,7 @@
 namespace tfrt {
 // Globally unique identifier for a remote object
 struct RemoteObjectId {
-  RemoteObjectId(int32_t prefix_id, int64_t local_id,
+  RemoteObjectId(uint64_t prefix_id, int64_t local_id,
                  RCReference<Device> device)
       : prefix_id(prefix_id), local_id(local_id), device(device.CopyRef()) {}
 
@@ -46,8 +46,8 @@ struct RemoteObjectId {
 
   // Unique ID is pair of a unique prefix id (for instance, it can be the host
   // generates the id) and the unique id within that host.
-  int32_t prefix_id;
-  int64_t local_id;
+  uint64_t prefix_id;
+  uint64_t local_id;
 
   // The device where this object lives.
   RCReference<Device> device;

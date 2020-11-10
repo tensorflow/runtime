@@ -162,50 +162,64 @@ InstanceKey StepKey(const std::string& prefix, const InstanceKey& instance_key,
   return StrCat(prefix, ":", instance_key, ":", step);
 }
 
-size_t SplitIndex(HostId id, size_t group_size, int step) {
+size_t SplitIndex(int id, size_t group_size, int step) {
   size_t index = id - step;
   index = ((index % group_size) + group_size) % group_size;
   return index;
 }
 
-int FindMyIndex(CollectiveGroup& collective_group, HostId my_id) {
-  for (int i = 0; i < collective_group.members.size(); ++i) {
-    if (collective_group.members[i] == my_id) {
+int FindMyIndex(
+    const llvm::SmallVector<TaskHandle, 8>& collective_group_members,
+    TaskHandle my_task_handle) {
+  for (int i = 0; i < collective_group_members.size(); ++i) {
+    if (collective_group_members[i] == my_task_handle) {
       return i;
     }
   }
   return -1;
 }
 
-CollectiveGroup CreateCollectiveGroup(Argument<DistributedContext> dist_context,
-                                      Argument<std::string> name,
-                                      const ExecutionContext& exec_ctx) {
-  auto collective_group = dist_context->GetCollectiveGroup(name.get());
-  return collective_group;
+TaskHandle GetTaskHandle(Argument<DistributedContext> dist_context,
+                         Argument<std::string> task_name,
+                         const ExecutionContext& exec_ctx) {
+  return dist_context->GetTaskHandle(*task_name);
 }
 
 template <typename T>
 void DoAllReduce(const ExecutionContext& exec_ctx,
                  AsyncValueRef<DistributedContext> dist_ctx,
                  const InstanceKey& instance_key,
-                 const CollectiveGroup& collective_group,
+                 const std::string& collective_group_name,
                  const DenseHostTensor& in_tensor,
                  const DenseHostTensor& out_tensor,
                  ElementWiseReductionFunction reduction_fn,
-                 ElementWiseFinalFunction final_fn, HostId my_id,
-                 HostId neighbor_id, AsyncValueRef<Chain> out_chain) {
+                 ElementWiseFinalFunction final_fn,
+                 AsyncValueRef<Chain> out_chain) {
+  const auto& collective_group =
+      dist_ctx->GetCollectiveGroup(collective_group_name);
+  const int my_index =
+      FindMyIndex(collective_group.members, dist_ctx->GetTaskHandle());
+  if (my_index == -1) {
+    out_chain.SetError(StrCat("The current task ", dist_ctx->GetTaskName(),
+                              " is not part of the collective group ",
+                              collective_group_name));
+    return;
+  }
   const size_t kGroupSize = collective_group.members.size();
   const size_t kLastScatterStep = kGroupSize - 1;
   const size_t kLastGatherStep = 2 * kGroupSize - 2;
-  const auto kPrefix = collective_group.name;
+  const auto kPrefix = collective_group_name;
   const int kTotalSteps = 2 * kGroupSize - 1;
+
+  const int neighbor_index = (my_index + 1) % collective_group.members.size();
+  const TaskHandle neighbor_task = collective_group.members[neighbor_index];
 
   auto in_tensor_ref =
       llvm::StringRef(reinterpret_cast<const char*>(in_tensor.data()),
                       in_tensor.DataSizeInBytes());
   auto* callback_registry = dist_ctx->GetCallbackRegistry();
   RemoteClientInterface* neighbor_client =
-      dist_ctx->GetRemoteClient(neighbor_id);
+      dist_ctx->GetRemoteClient(neighbor_task);
 
   auto done = [out_chain = out_chain.CopyRef(),
                dist_ctx = dist_ctx.CopyRef()](Error e) mutable {
@@ -245,7 +259,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
   for (int step = 0; step < kTotalSteps; ++step) {
     const InstanceKey step_key = StepKey(kPrefix, instance_key, step);
     const InstanceKey next_step_key = StepKey(kPrefix, instance_key, step + 1);
-    const size_t split_id = SplitIndex(my_id, kGroupSize, step);
+    const size_t split_id = SplitIndex(my_index, kGroupSize, step);
     llvm::StringRef split_data = GetSplit<T>(in_tensor_ref, kGroupSize,
                                              in_tensor.NumElements(), split_id);
     auto request = std::make_unique<SendDataRequest>();
@@ -322,7 +336,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
 
 template <typename T>
 void AllReduce(Argument<DistributedContext> dist_context,
-               Argument<CollectiveGroup> collective_group,
+               Argument<std::string> collective_group_name,
                Argument<InstanceKey> instance_key,
                Argument<DenseHostTensor> in_tensor,
                Argument<DenseHostTensor> out_tensor, Argument<Chain> in_chain,
@@ -344,48 +358,48 @@ void AllReduce(Argument<DistributedContext> dist_context,
     out_chain_indirect.SetError("unexpected reduction_name in AllReduce");
     return;
   }
-  int my_index = FindMyIndex(collective_group.get(), dist_context->GetHostId());
-  if (my_index == -1) {
-    out_chain_indirect.SetError(
-        "This worker is not part of the collective group ");
-    return;
-  }
-  const HostId neighbor_id =
-      collective_group
-          ->members[(my_index + 1) % collective_group->members.size()];
 
-  EnqueueWork(
-      exec_ctx,
-      [exec_ctx, instance_key = *instance_key,
-       dist_context = dist_context.ValueRef(),
-       collective_group = *collective_group, in_tensor = in_tensor.ValueRef(),
-       out_tensor = out_tensor.ValueRef(), reduction_fn, final_fn,
-       my_id = dist_context->GetHostId(), neighbor_id,
-       out_chain = std::move(out_chain_indirect)] {
-        DoAllReduce<T>(exec_ctx, dist_context.CopyRef(), instance_key,
-                       collective_group, in_tensor.get(), out_tensor.get(),
-                       reduction_fn, final_fn, my_id, neighbor_id,
-                       out_chain.CopyRef());
-      });
+  EnqueueWork(exec_ctx, [exec_ctx, instance_key = *instance_key,
+                         dist_context = dist_context.ValueRef(),
+                         collective_group_name = *collective_group_name,
+                         in_tensor = in_tensor.ValueRef(),
+                         out_tensor = out_tensor.ValueRef(), reduction_fn,
+                         final_fn, out_chain = std::move(out_chain_indirect)] {
+    DoAllReduce<T>(exec_ctx, dist_context.CopyRef(), instance_key,
+                   collective_group_name, in_tensor.get(), out_tensor.get(),
+                   reduction_fn, final_fn, out_chain.CopyRef());
+  });
 }
 
 template <typename T>
 void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
                  const InstanceKey& instance_key,
-                 const CollectiveGroup& collective_group,
-                 DenseHostTensor& tensor, HostId sender, HostId my_id,
-                 int my_index, AsyncValueRef<Chain> out_chain) {
+                 const std::string& collective_group_name,
+                 DenseHostTensor& tensor, const TaskHandle sender,
+                 AsyncValueRef<Chain> out_chain) {
+  const auto& collective_group =
+      dist_ctx->GetCollectiveGroup(collective_group_name);
+  const int my_index =
+      FindMyIndex(collective_group.members, dist_ctx->GetTaskHandle());
+  if (my_index == -1) {
+    out_chain.SetError(StrCat("The current task ", dist_ctx->GetTaskName(),
+                              " is not part of the collective group ",
+                              collective_group_name));
+    return;
+  }
   const auto kGroupSize = collective_group.members.size();
-  const auto kNeighborId =
-      collective_group.members[(my_index + 1) % kGroupSize];
-  const auto kPrefix = collective_group.name;
+  const auto kPrefix = collective_group_name;
+  const TaskHandle my_task = dist_ctx->GetTaskHandle();
+  const int neighbor_index = (my_index + 1) % kGroupSize;
+  const TaskHandle neighbor_task = collective_group.members[neighbor_index];
+
   auto in_tensor = llvm::StringRef(reinterpret_cast<const char*>(tensor.data()),
                                    tensor.DataSizeInBytes());
   const auto num_elements = tensor.NumElements();
 
   auto* registry = dist_ctx->GetCallbackRegistry();
   RemoteClientInterface* neighbor_client =
-      dist_ctx->GetRemoteClient(kNeighborId);
+      dist_ctx->GetRemoteClient(neighbor_task);
 
   auto refcounted_done = TakeRef(
       new RefCountedCallback([out_chain = out_chain.CopyRef(),
@@ -402,8 +416,8 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
     auto request = std::make_unique<SendDataRequest>();
     auto response = std::make_unique<SendDataResponse>();
     request->set_context_id(dist_ctx->GetContextId());
-    request->set_instance_key(StepKey(kPrefix, chunk_key, kNeighborId));
-    if (my_id == sender) {
+    request->set_instance_key(StepKey(kPrefix, chunk_key, neighbor_index));
+    if (my_task == sender) {
       // A Sender sends data to its neighbor.
       auto payload = GetSplit<T>(in_tensor, kGroupSize, num_elements, i);
       request->set_payload(payload.data(), payload.size());
@@ -415,8 +429,8 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
           });
     } else {
       registry->SetCallback(
-          StepKey(kPrefix, chunk_key, my_id),
-          [sender, i, in_tensor, kGroupSize, kNeighborId, num_elements,
+          StepKey(kPrefix, chunk_key, my_index),
+          [sender, i, in_tensor, kGroupSize, neighbor_task, num_elements,
            neighbor_client, request = std::move(request),
            response = std::move(response),
            refcounted_done = refcounted_done.CopyRef()](
@@ -427,7 +441,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
                       const_cast<char*>(
                           GetSplit<T>(in_tensor, kGroupSize, num_elements, i)
                               .begin()));
-            if (kNeighborId != sender) {
+            if (neighbor_task != sender) {
               request->set_payload(data->data(), data->size());
               neighbor_client->SendAsync(
                   request.get(), response.get(),
@@ -443,32 +457,25 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
 
 template <typename T>
 void Broadcast(Argument<DistributedContext> dist_context,
-               Argument<CollectiveGroup> collective_group,
+               Argument<std::string> collective_group_name,
                Argument<InstanceKey> instance_key,
-               Argument<DenseHostTensor> in_tensor, Argument<HostId> sender,
+               Argument<DenseHostTensor> in_tensor, Argument<TaskHandle> sender,
                Argument<Chain> in_chain, Result<Chain> out_chain,
                const ExecutionContext& exec_ctx) {
   auto out_chain_indirect = out_chain.Allocate();
-  int my_index = FindMyIndex(collective_group.get(), dist_context->GetHostId());
-  if (my_index == -1) {
-    out_chain_indirect.SetError(
-        "This worker is not part of the collective group ");
-    return;
-  }
-  EnqueueWork(
-      exec_ctx,
-      [dist_context = dist_context.ValueRef(), instance_key = *instance_key,
-       collective_group = *collective_group, sender = *sender,
-       my_id = dist_context->GetHostId(), in_tensor_ref = in_tensor.ValueRef(),
-       my_index, out_chain = std::move(out_chain_indirect)] {
-        DoBroadcast<T>(dist_context.CopyRef(), instance_key, collective_group,
-                       in_tensor_ref.get(), sender, my_id, my_index,
-                       out_chain.CopyRef());
-      });
+  EnqueueWork(exec_ctx, [dist_context = dist_context.ValueRef(),
+                         instance_key = *instance_key,
+                         collective_group_name = *collective_group_name,
+                         sender = *sender, in_tensor_ref = in_tensor.ValueRef(),
+                         out_chain = std::move(out_chain_indirect)] {
+    DoBroadcast<T>(dist_context.CopyRef(), instance_key, collective_group_name,
+                   in_tensor_ref.get(), sender, out_chain.CopyRef());
+  });
 }
 
 void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
-                                HostId receiver, RemainingResults results,
+                                const TaskHandle receiver,
+                                RemainingResults results,
                                 StringAttribute program,
                                 StringAttribute program_name,
                                 bool need_compilation,
@@ -521,7 +528,7 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
 }
 
 void RegisterTFRTFunctionKernel(Chain ch, DistributedContext* dist_context,
-                                HostId receiver, RemainingResults results,
+                                TaskHandle receiver, RemainingResults results,
                                 StringAttribute program,
                                 StringAttribute program_name,
                                 const ExecutionContext& exec_ctx) {
@@ -531,7 +538,7 @@ void RegisterTFRTFunctionKernel(Chain ch, DistributedContext* dist_context,
 }
 
 void RegisterTFFunctionKernel(Chain ch, DistributedContext* dist_context,
-                              HostId receiver, RemainingResults results,
+                              TaskHandle receiver, RemainingResults results,
                               StringAttribute program,
                               StringAttribute program_name,
                               const ExecutionContext& exec_ctx) {
@@ -558,10 +565,11 @@ AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
       exec_ctx.host(), std::move(output_devices));
 }
 
-void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
-                   Argument<RemoteExecuteSpec> spec, RemainingArguments inputs,
-                   RemainingResults results, StringAttribute program_name,
-                   int num_fn_inputs, int32_t num_output_with_tensorhandle,
+void RemoteExecute(Chain ch, DistributedContext* dist_context,
+                   const TaskHandle receiver, Argument<RemoteExecuteSpec> spec,
+                   RemainingArguments inputs, RemainingResults results,
+                   StringAttribute program_name, int num_fn_inputs,
+                   int32_t num_output_with_tensorhandle,
                    const ExecutionContext& exec_ctx) {
   // If some output IDs are present in the inputs, we assume all output IDs are
   // pre-allocated.
@@ -693,7 +701,7 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context, HostId receiver,
 }
 
 void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
-                         HostId receiver, Argument<RemoteExecuteSpec> spec,
+                         TaskHandle receiver, Argument<RemoteExecuteSpec> spec,
                          RemainingArguments inputs, RemainingResults results,
                          StringAttribute program_name,
                          const ExecutionContext& exec_ctx) {
@@ -702,7 +710,8 @@ void RemoteExecuteKernel(Chain ch, DistributedContext* dist_context,
 }
 
 void RemoteExecuteTHKernel(Chain ch, DistributedContext* dist_context,
-                           HostId receiver, Argument<RemoteExecuteSpec> spec,
+                           TaskHandle receiver,
+                           Argument<RemoteExecuteSpec> spec,
                            RemainingArguments inputs, RemainingResults results,
                            Attribute<int32_t> num_output_with_tensorhandle,
                            StringAttribute program_name,
@@ -712,7 +721,7 @@ void RemoteExecuteTHKernel(Chain ch, DistributedContext* dist_context,
 }
 
 void RemoteExecuteTHPreallocatedKernel(
-    Chain ch, DistributedContext* dist_context, HostId receiver,
+    Chain ch, DistributedContext* dist_context, TaskHandle receiver,
     Argument<RemoteExecuteSpec> spec, RemainingArguments inputs,
     RemainingResults results, Attribute<int32_t> num_inputs,
     Attribute<int32_t> num_output_with_tensorhandle,
@@ -726,8 +735,7 @@ void RemoteExecuteTHPreallocatedKernel(
 // Registration
 //===----------------------------------------------------------------------===//
 void RegisterDistributedKernels(KernelRegistry* registry) {
-  registry->AddKernel("tfrt_dist.create_collective_group",
-                      TFRT_KERNEL(CreateCollectiveGroup));
+  registry->AddKernel("tfrt_dist.get_task_handle", TFRT_KERNEL(GetTaskHandle));
   registry->AddKernel("tfrt_dist.cpu.allreduce.f32",
                       TFRT_KERNEL(AllReduce<float>));
   registry->AddKernel("tfrt_dist.cpu.allreduce.i32",

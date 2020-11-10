@@ -39,6 +39,7 @@ ERROR_TYPE(RpcUnknown)
 
 // Custom error types
 ERROR_TYPE(DeviceNotFound)
+ERROR_TYPE(TaskNotFound)
 ERROR_TYPE(RemoteFunctionAlreadyExists)
 ERROR_TYPE(MalformattedMlirFile)
 ERROR_TYPE(CompilationFailed)

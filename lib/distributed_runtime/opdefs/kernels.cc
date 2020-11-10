@@ -44,7 +44,7 @@ DistributedDialect::DistributedDialect(MLIRContext *context)
   allowUnknownTypes();
   allowUnknownOperations();
   addTypes<DistributedContextType, DistributedContextConfigurationType,
-           CollectiveGroupType, RemoteObjectIdType, RemoteExecuteSpecType>();
+           TaskHandleType, RemoteObjectIdType, RemoteExecuteSpecType>();
 
   addOperations<
 #define GET_OP_LIST
@@ -121,7 +121,7 @@ mlir::Type DistributedDialect::parseType(mlir::DialectAsmParser &parser) const {
   if (spec == "dist_context") return DistributedContextType::get(getContext());
   if (spec == "dist_context_configuration")
     return DistributedContextConfigurationType::get(getContext());
-  if (spec == "collective_group") return CollectiveGroupType::get(getContext());
+  if (spec == "task_handle") return TaskHandleType::get(getContext());
   if (spec == "remote_object_id") return RemoteObjectIdType::get(getContext());
   if (spec == "remote_execute_spec")
     return RemoteExecuteSpecType::get(getContext());
@@ -137,8 +137,8 @@ void DistributedDialect::printType(mlir::Type type,
     printer << "dist_context";
   } else if (type.isa<DistributedContextConfigurationType>()) {
     printer << "dist_context_configuration";
-  } else if (type.isa<CollectiveGroupType>()) {
-    printer << "collective_group";
+  } else if (type.isa<TaskHandleType>()) {
+    printer << "task_handle";
   } else if (type.isa<RemoteObjectIdType>()) {
     printer << "remote_object_id";
   } else if (type.isa<RemoteExecuteSpecType>()) {

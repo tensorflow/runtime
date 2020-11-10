@@ -51,21 +51,27 @@ class MockCommunicator : public FabricCommunicator {
       : FabricCommunicator(name, /*server_context=*/nullptr) {}
 
   MOCK_METHOD(std::unique_ptr<RemoteClientInterface>, CreateRemoteClient,
-              (DistributedContext * dist_context, HostId remote_host_id),
+              (DistributedContext * dist_context, TaskHandle task_handle),
               (override));
 };
 
 DistributedContextConfiguration GetSampleDistributedConfiguration() {
-  ClusterConfiguration cluster_config{/*addresses=*/{{"worker0", "addr0"},
-                                                     {"worker1", "addr1"},
-                                                     {"worker2", "addr2"},
-                                                     {"worker3", "addr3"}},
-                                      /*id=*/1};
+  ClusterConfiguration cluster_config{
+      /*task_addresses=*/{{"/job:worker_a/task:0", "addr0"},
+                          {"/job:worker_a/task:1", "addr1"},
+                          {"/job:worker_b/task:2", "addr2"},
+                          {"/job:worker_b/task:3", "addr3"}},
+      /*task_name=*/"/job:worker_a/task:1"};
   FabricCommunicatorConfiguration mock_communicator_config{
       kMockCommunicatorType,
-      cluster_config.addresses[cluster_config.id].address};
-  CollectiveGroup group0{/*name=*/"group0", /*members=*/{0, 1}};
-  CollectiveGroup group1{/*name=*/"group1", /*members=*/{1, 2, 3}};
+      cluster_config.task_addresses.find(cluster_config.task_name)->second};
+  CollectiveGroupConfiguration group0{
+      /*name=*/"group0",
+      /*members=*/{"/job:worker_a/task:0", "/job:worker_a/task:1"}};
+  CollectiveGroupConfiguration group1{
+      /*name=*/"group1",
+      /*members=*/{"/job:worker_a/task:1", "/job:worker_b/task:2",
+                   "/job:worker_b/task:3"}};
   DistributedContextConfiguration dist_config{
       cluster_config,
       /*collective_groups=*/{group0, group1}};
@@ -76,7 +82,7 @@ ServerContextConfiguration GetSampleServerConfiguration(
     DistributedContextConfiguration& dist_config) {
   const auto& cluster_config = dist_config.cluster_config;
   const auto& server_address =
-      cluster_config.addresses[cluster_config.id].address;
+      cluster_config.task_addresses.find(cluster_config.task_name)->second;
   FabricCommunicatorConfiguration mock_communicator_config{
       kMockCommunicatorType, server_address};
   ServerContextConfiguration server_config{mock_communicator_config};
@@ -121,9 +127,9 @@ TEST(ServerContext, CreateDistributedContext) {
   ServerContext server_context(&host_context, server_config);
   const uint64_t ctx_id0 = 0;
   const uint64_t ctx_id1 = 1;
-  dist_config.cluster_config.id = 0;
+  dist_config.cluster_config.task_name = "/job:worker_a/task:0";
   EXPECT_FALSE(server_context.CreateDistributedContext(ctx_id0, dist_config));
-  dist_config.cluster_config.id = 1;
+  dist_config.cluster_config.task_name = "/job:worker_a/task:1";
   EXPECT_FALSE(server_context.CreateDistributedContext(ctx_id1, dist_config));
 
   DistributedContext* dist_ctx0 =
@@ -131,13 +137,13 @@ TEST(ServerContext, CreateDistributedContext) {
   EXPECT_NE(dist_ctx0, nullptr);
   EXPECT_EQ(dist_ctx0->GetHostContext(), &host_context);
   EXPECT_EQ(dist_ctx0->GetContextId(), ctx_id0);
-  EXPECT_EQ(dist_ctx0->GetHostId(), 0);
+  EXPECT_EQ(dist_ctx0->GetTaskName(), "/job:worker_a/task:0");
   DistributedContext* dist_ctx1 =
       server_context.GetDistributedContext(ctx_id1).get();
   EXPECT_NE(dist_ctx1, nullptr);
   EXPECT_EQ(dist_ctx1->GetHostContext(), &host_context);
   EXPECT_EQ(dist_ctx1->GetContextId(), ctx_id1);
-  EXPECT_EQ(dist_ctx1->GetHostId(), 1);
+  EXPECT_EQ(dist_ctx1->GetTaskName(), "/job:worker_a/task:1");
 
   EXPECT_NE(dist_ctx0, dist_ctx1);
   // Creating DistributedContext with existing context id will lead to error
@@ -162,6 +168,7 @@ TEST(DistributedContext, GetCollectiveGroup) {
 
   auto group1 = dist_context->GetCollectiveGroup("group1");
   EXPECT_EQ(group1.name, "group1");
+  EXPECT_EQ(group1.members.size(), 3);
 }
 
 }  // namespace

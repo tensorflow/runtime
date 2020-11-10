@@ -27,6 +27,7 @@
 
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
+#include "tfrt/distributed_runtime/task_handle.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/logging.h"
 
@@ -51,7 +52,6 @@ class ServerContext;
 
 // TODO(pisong, ayushd): remove `using`.
 using InstanceKey = std::string;
-using HostId = int32_t;
 
 struct FabricCommunicatorConfiguration {
   std::string type;            // fabric type, (e.g., grpc)
@@ -98,7 +98,7 @@ class FabricCommunicator {
   }
 
   virtual std::unique_ptr<RemoteClientInterface> CreateRemoteClient(
-      DistributedContext* dist_context, HostId remote_host_id) = 0;
+      DistributedContext* dist_context, TaskHandle task_handle) = 0;
 
  protected:
   const std::string name_;

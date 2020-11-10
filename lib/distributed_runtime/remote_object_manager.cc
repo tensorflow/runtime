@@ -21,16 +21,19 @@
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 
 namespace tfrt {
+const uint64_t RemoteObjectManager::kInvalidPrefixId = 0;
 
-RemoteObjectManager::RemoteObjectManager(HostId host_id,
+RemoteObjectManager::RemoteObjectManager(TaskHandle task_handle,
                                          HostContext* host_context)
-    : host_id_(host_id), host_context_(host_context) {}
+    : prefix_id_(task_handle.get_value()), host_context_(host_context) {
+  assert(prefix_id_ != kInvalidPrefixId);
+}
 RemoteObjectManager::~RemoteObjectManager() {}
 
 RemoteObjectId RemoteObjectManager::AllocateRemoteObject(
     RCReference<Device> output_device) {
-  const int64_t local_id = next_unique_id_.fetch_add(1);
-  return RemoteObjectId(host_id_, local_id, output_device.CopyRef());
+  const uint64_t local_id = next_unique_id_.fetch_add(1);
+  return RemoteObjectId(prefix_id_, local_id, output_device.CopyRef());
 }
 
 void RemoteObjectManager::SetRemoteObject(const RemoteObjectId& id,

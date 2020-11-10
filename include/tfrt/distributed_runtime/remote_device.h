@@ -34,16 +34,16 @@ class RemoteCpuDevice : public Device, public DeviceTraits<RemoteCpuDevice> {
     return kName;
   }
 
-  explicit RemoteCpuDevice(string_view name, HostId host_id)
-      : Device(kDeviceType, name), host_id_(host_id) {}
+  explicit RemoteCpuDevice(string_view name, TaskHandle task_handle)
+      : Device(kDeviceType, name), task_handle_(task_handle) {}
 
   ~RemoteCpuDevice() override {}
 
-  HostId GetHostId() const { return host_id_; }
+  TaskHandle GetTaskHandle() const { return task_handle_; }
 
  private:
-  // The Host where this device resides.
-  HostId host_id_;
+  // The remote task where this device resides.
+  TaskHandle task_handle_;
 };
 
 }  // namespace tfrt

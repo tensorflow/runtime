@@ -26,6 +26,7 @@
 #include "tfrt/bef_converter/bef_buffer.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
+#include "tfrt/distributed_runtime/cluster_info.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/distributed_runtime/function_cache.h"
 #include "tfrt/distributed_runtime/remote_client.h"
@@ -37,58 +38,66 @@
 
 namespace tfrt {
 
-CollectiveGroup DistributedContext::GetCollectiveGroup(
-    llvm::StringRef name) const {
-  CollectiveGroup collective_group;
-  bool found = false;
-  for (const auto& registered_group : configuration_.collective_groups) {
-    if (registered_group.name == name) {
-      collective_group = registered_group;
-      found = true;
-    }
-  }
-  if (!found) {
-    TFRT_LOG(WARNING) << "Did not find collective group";
-  }
-  return collective_group;
-}
-
 DistributedContext::DistributedContext(
     uint64_t context_id, ServerContext* server_context,
     DistributedContextConfiguration configuration)
     : context_id_(context_id),
       server_context_(server_context),
-      configuration_(std::move(configuration)),
+      cluster_info_(configuration.cluster_config),
+      collective_groups_(InitializeCollectiveGroups(configuration)),
       remote_manager_(std::make_unique<RemoteObjectManager>(
-          configuration.cluster_config.id, server_context_->GetHostContext())),
+          cluster_info_.GetTaskHandle(), server_context_->GetHostContext())),
       callback_registry_(new CallbackRegistry()),
       function_cache_(new FunctionCache(server_context->GetHostContext())) {
-  InitializeRemoteDevices();
+  InitializeRemoteDevices(configuration);
 }
 
 DistributedContext::~DistributedContext() {}
 
+llvm::StringMap<CollectiveGroup> DistributedContext::InitializeCollectiveGroups(
+    const DistributedContextConfiguration& config) {
+  llvm::StringMap<CollectiveGroup> collective_groups;
+  for (const auto& group_config : config.collective_groups) {
+    llvm::SmallVector<TaskHandle, 8> members;
+    members.reserve(group_config.members.size());
+    for (const auto& task : group_config.members) {
+      members.push_back(cluster_info_.GetTaskHandle(task).get());
+    }
+    collective_groups.try_emplace(group_config.name,
+                                  CollectiveGroup{group_config.name, members});
+  }
+  return collective_groups;
+}
+
 // TODO(bramandia,haoyuzhang): Create remote device manager inside
 // DistributedContext, and add the list of devices from the create context
 // request.
-void DistributedContext::InitializeRemoteDevices() {
-  for (HostId host_id = 0;
-       host_id < configuration_.cluster_config.addresses.size(); ++host_id) {
-    const auto& address = configuration_.cluster_config.addresses[host_id];
+void DistributedContext::InitializeRemoteDevices(
+    const DistributedContextConfiguration& config) {
+  for (const auto& pair : config.cluster_config.task_addresses) {
     const std::string device_name =
-        StrCat(address.name, "/device:", HostContext::kDefaultHostDeviceName);
+        StrCat(pair.first(), "/device:", HostContext::kDefaultHostDeviceName);
+    TaskHandle task_handle = GetTaskHandle(pair.first());
     server_context_->GetHostContext()->GetDeviceManager()->MaybeAddDevice(
-        TakeRef(new RemoteCpuDevice(device_name, host_id)));
+        TakeRef(new RemoteCpuDevice(device_name, task_handle)));
   }
 }
 
-RemoteClientInterface* DistributedContext::GetRemoteClient(HostId id) {
+const CollectiveGroup& DistributedContext::GetCollectiveGroup(
+    string_view name) const {
+  const auto& it = collective_groups_.find(name);
+  assert(it != collective_groups_.end() && "Failed to find collective group.");
+  return it->second;
+}
+
+RemoteClientInterface* DistributedContext::GetRemoteClient(
+    TaskHandle task_handle) {
   mutex_lock l(remote_clients_mu_);
-  auto it = remote_clients_.find(id);
+  auto it = remote_clients_.find(task_handle);
   if (it == remote_clients_.end()) {
     auto* communicator = server_context_->GetOrCreateFabricCommunicator();
     auto ret = remote_clients_.try_emplace(
-        id, communicator->CreateRemoteClient(this, id));
+        task_handle, communicator->CreateRemoteClient(this, task_handle));
     assert(ret.second && "Failed to create remote client.");
     it = ret.first;
   }

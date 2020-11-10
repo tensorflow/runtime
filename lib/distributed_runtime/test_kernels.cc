@@ -134,9 +134,9 @@ void TestProcessNextRequest(Argument<DistributedContext> dist_context,
 AsyncValueRef<DistributedContext> TestCreateDistributedContext(
     const DistributedContextConfiguration& configuration,
     const ExecutionContext& exec_ctx) {
-  const HostId id = configuration.cluster_config.id;
+  const string_view task_name = configuration.cluster_config.task_name;
   const auto& server_address =
-      configuration.cluster_config.addresses[id].address;
+      configuration.cluster_config.task_addresses.find(task_name)->second;
   FabricCommunicatorConfiguration fabric_config{"grpc_communicator",
                                                 server_address};
   ServerContextConfiguration server_config{fabric_config};

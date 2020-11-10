@@ -45,9 +45,9 @@ def DistributedContextConfigurationType :
   Type<CPred<"$_self.isa<tfrt::dist::DistributedContextConfigurationType>()">, "!tfrt_dist.dist_context_configuration type">,
   BuildableType<"$_builder.getType<tfrt::dist::DistributedContextConfigurationType>()">;
 
-def CollectiveGroupType :
-  Type<CPred<"$_self.isa<tfrt::dist::CollectiveGroupType>()">, "!tfrt_dist.collective_group type">,
-  BuildableType<"$_builder.getType<tfrt::dist::CollectiveGroupType>()">;
+def TaskHandleType :
+  Type<CPred<"$_self.isa<tfrt::dist::TaskHandleType>()">, "!tfrt_dist.task_handle type">,
+  BuildableType<"$_builder.getType<tfrt::dist::TaskHandleType>()">;
 
 def RemoteObjectIdType :
   Type<CPred<"$_self.isa<tfrt::dist::RemoteObjectIdType>()">, "!tfrt_dist.remote_object_id type">,
@@ -76,12 +76,12 @@ class AllReduceOp<string dtype> : DistOp<"cpu.allreduce." # dtype> {
     "reduction_fn". Currently the following functions are supported: "sum".
 
     Example:
-      %out_chain = tfrt_dist.cpu.allreduce.f32 %context, %collective_group, %instance_id, %tensor_in, %tensor_out, %in_chain {reduction_fn="sum"};
+      %out_chain = tfrt_dist.cpu.allreduce.f32 %context, %collective_group_name, %instance_id, %tensor_in, %tensor_out, %in_chain {reduction_fn="sum"};
   }];
 
   let arguments = (ins
     DistributedContextType,
-    CollectiveGroupType,
+    StringType,
     StringType,
     TensorType,
     TensorType,
@@ -100,20 +100,20 @@ class BroadcastOp<string dtype> : DistOp<"cpu.broadcast." # dtype> {
   let description = [{
     An operation to perform a broadcast primitive from one member to all other
     members of a communicator. This collective takes a communicator, an instance
-    id (identical on all devices), an input, and a sender id, and outputs a
+    id (identical on all devices), an input, and a sender task, and outputs a
     chain. The sender places data to be broadcasted in the input. The receivers
     prepare an empty buffer in the input.
 
     Example:
-      %out_chain = tfrt_dist.cpu.broadcast.i32 %context, %instance_id, %input, %sender_id, %in_chain
+      %out_chain = tfrt_dist.cpu.broadcast.i32 %context, %collective_group_name, %instance_id, %input, %sender_task, %in_chain
   }];
 
   let arguments = (ins
     DistributedContextType,
-    CollectiveGroupType,
+    StringType,
     StringType,
     TensorType,
-    I32,
+    TaskHandleType,
     TFRT_ChainType);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
@@ -209,19 +209,18 @@ def CloseDistributedContext : DistOp<"test_close_distributed_context"> {
   let assemblyFormat = "operands attr-dict";
 }
 
-def CreateCollectiveGroupOp : DistOp<"create_collective_group"> {
-  let summary = "tfrt_dist.create_collective_group operation";
+def GetTaskHandleOp : DistOp<"get_task_handle"> {
+  let summary = "tfrt_dist.get_task_handle operation";
 
   let description = [{
-    An operation that fetches a collective group by name from a distributed
-    context.
+    A test kernel to fetch task handle by name from the distributed context.
   }];
 
   let arguments = (ins
     DistributedContextType:$context,
-    StringType:$name
+    StringType:$task_name
   );
-  let results = (outs CollectiveGroupType);
+  let results = (outs TaskHandleType);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -233,13 +232,13 @@ def RegisterTFRTFunctionOp :  DistOp<"register_tfrt_function"> {
     "program" has to be a string representing MLIR in TFRT dialect
 
     Example:
-      %out_chain = tfrt_dist.register_tfrt_function (%in_chain, %context, %id) "program" "program_name"
+      %out_chain = tfrt_dist.register_tfrt_function (%in_chain, %context, %remote_task) "program" "program_name"
   }];
 
   let arguments = (ins
     TFRT_ChainType:$in_op_chain,
     DistributedContextType:$context,
-    I32:$host_id,
+    TaskHandleType:$remote_task,
     StrAttr:$program,
     StrAttr:$program_name
   );
@@ -248,7 +247,7 @@ def RegisterTFRTFunctionOp :  DistOp<"register_tfrt_function"> {
   );
 
   let assemblyFormat = [{
-      `(` $in_op_chain`,` $context`,` $host_id `)` $program_name $program attr-dict
+      `(` $in_op_chain`,` $context`,` $remote_task `)` $program_name $program attr-dict
   }];
 }
 
@@ -268,7 +267,7 @@ def RegisterTFFunctionOp :  DistOp<"register_tf_function"> {
   let arguments = (ins
     TFRT_ChainType:$in_op_chain,
     DistributedContextType:$context,
-    I32:$host_id,
+    TaskHandleType:$remote_task,
     StrAttr:$program,
     StrAttr:$program_name
   );
@@ -277,7 +276,7 @@ def RegisterTFFunctionOp :  DistOp<"register_tf_function"> {
   );
 
   let assemblyFormat = [{
-      `(` $in_op_chain`,` $context`,` $host_id `)` $program_name $program attr-dict
+      `(` $in_op_chain`,` $context`,` $remote_task `)` $program_name $program attr-dict
   }];
 }
 
@@ -309,13 +308,13 @@ def RemoteExecuteFuncOp :  DistOp<"remote_execute_func"> {
     Executes a program on a remote location.
 
     Example:
-      %chain, %results:2 = tfrt_dist.remote_execute_func[%chain, %context, %worker_id] @program_name(%arg1, %arg2, ...) : (...) -> (...)
+      %chain, %results:2 = tfrt_dist.remote_execute_func[%chain, %context, %remote_task] @program_name(%arg1, %arg2, ...) : (...) -> (...)
   }];
 
   let arguments = (ins
     TFRT_ChainType:$in_op_chain,
     DistributedContextType:$context,
-    I32:$host_id,
+    TaskHandleType:$remote_task,
     FlatSymbolRefAttr:$callee,
     Variadic<AnyType>:$callee_args
   );
@@ -324,7 +323,7 @@ def RemoteExecuteFuncOp :  DistOp<"remote_execute_func"> {
     Variadic<AnyType>:$results
   );
   let assemblyFormat = [{
-      `[` $in_op_chain`,` $context`,` $host_id `]`  $callee `(` $callee_args `)` attr-dict `:` functional-type ( $callee_args , $results )
+      `[` $in_op_chain`,` $context`,` $remote_task `]`  $callee `(` $callee_args `)` attr-dict `:` functional-type ( $callee_args , $results )
   }];
 
 }
@@ -335,13 +334,13 @@ def RemoteExecuteOp :  DistOp<"remote_execute"> {
     Executes a program on a remote location.
 
     Example:
-      %chain, %result = tfrt_dist.remote_execute [%context, %id, %spec] "program_name" (%in) : (!tfrt_dist.remote_object_id) -> !tfrt_dist.remote_object_id
+      %chain, %result = tfrt_dist.remote_execute [%context, %remote_task, %spec] "program_name" (%in) : (!tfrt_dist.remote_object_id) -> !tfrt_dist.remote_object_id
   }];
 
   let arguments = (ins
     TFRT_ChainType:$in_op_chain,
     DistributedContextType:$context,
-    I32:$host_id,
+    TaskHandleType:$remote_task,
     RemoteExecuteSpecType:$spec,
     StrAttr:$program_name,
     Variadic<RemoteObjectIdType>:$arguments
@@ -352,7 +351,7 @@ def RemoteExecuteOp :  DistOp<"remote_execute"> {
   );
 
   let assemblyFormat = [{
-      `[` $in_op_chain`,` $context`,` $host_id`,` $spec `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
+      `[` $in_op_chain`,` $context`,` $remote_task`,` $spec `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
   }];
 }
 
@@ -371,17 +370,17 @@ def RemoteExecuteTHOp :  DistOp<"remote_execute_th"> {
     TensorHandle of the last N outputs will be returned. Whereas for the
     first K-N outputs, only the RemoteObjectId will be returned.
     It is required that the last N outputs are of type Tensor.
-21
+
     Example:
       // "1" after spec indicates N above.
       %out_id1, %out_id2, %out_th2 =
-          tfrt_dist.remote_execute_th (%context, %id, %spec, 1) "program_name" %in
+          tfrt_dist.remote_execute_th (%context, %remote_task, %spec, 1) "program_name" %in
   }];
 
   let arguments = (ins
     TFRT_ChainType:$in_op_chain,
     DistributedContextType:$context,
-    I32:$host_id,
+    TaskHandleType:$remote_task,
     RemoteExecuteSpecType:$spec,
     I32Attr:$num_tensorhandle_output,
     StrAttr:$program_name,
@@ -394,7 +393,7 @@ def RemoteExecuteTHOp :  DistOp<"remote_execute_th"> {
   );
 
   let assemblyFormat = [{
-      `[` $in_op_chain`,` $context`,` $host_id`,` $spec`,` $num_tensorhandle_output `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
+      `[` $in_op_chain`,` $context`,` $remote_task`,` $spec`,` $num_tensorhandle_output `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
   }];
 }
 
@@ -418,13 +417,13 @@ def RemoteExecuteTHPreallocatedOp :  DistOp<"remote_execute_th_preallocated"> {
       // $arguments. The remaining arguments are the outputs RemoteObjectIds.
       // Subsequent "1" indicates that there is 1 TensorHandle output.
       %out_th2 =
-          tfrt_dist.remote_execute_th_preallocated (%context, %id, %spec, 1, 1) "program_name" %in %out1 %out2
+          tfrt_dist.remote_execute_th_preallocated (%context, %remote_task, %spec, 1, 1) "program_name" %in %out1 %out2
   }];
 
   let arguments = (ins
     TFRT_ChainType:$in_op_chain,
     DistributedContextType:$context,
-    I32:$host_id,
+    TaskHandleType:$remote_task,
     RemoteExecuteSpecType:$spec,
     I32Attr:$num_input,
     I32Attr:$num_tensorhandle_output,
@@ -438,7 +437,7 @@ def RemoteExecuteTHPreallocatedOp :  DistOp<"remote_execute_th_preallocated"> {
   );
 
   let assemblyFormat = [{
-      `[` $in_op_chain`,` $context`,` $host_id`,` $spec`,` $num_input`,` $num_tensorhandle_output `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
+      `[` $in_op_chain`,` $context`,` $remote_task`,` $spec`,` $num_input`,` $num_tensorhandle_output `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
   }];
 }
 

@@ -42,9 +42,8 @@ class DistributedContextConfigurationType
   using Base::Base;
 };
 
-class CollectiveGroupType
-    : public mlir::Type::TypeBase<CollectiveGroupType, mlir::Type,
-                                  mlir::TypeStorage> {
+class TaskHandleType : public mlir::Type::TypeBase<TaskHandleType, mlir::Type,
+                                                   mlir::TypeStorage> {
  public:
   using Base::Base;
 };

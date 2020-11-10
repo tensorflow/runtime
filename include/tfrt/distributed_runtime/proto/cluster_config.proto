@@ -1,0 +1,67 @@
+// Copyright 2020 The TensorFlow Runtime Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//===- cluster_config.proto -----------------------------------------------===//
+//
+// This file defines protocol messages for configuring distributed runtime.
+//
+//===----------------------------------------------------------------------===//
+
+syntax = "proto3";
+
+package tfrt;
+
+// Configuration of one job in the cluster.
+message JobConfiguration {
+  // The name of this job.
+  string name = 1;
+
+  // Mapping from task ID to network address.
+  //
+  // The full task name is represented by the job name and task id. For example,
+  // if the job name is "worker" and task id is 1, the full task name can be
+  // uniquely referred to as "/job:worker/task:1" in the cluster.
+  map<int32, string> tasks = 2;
+}
+
+// Configuration of the cluster with all jobs.
+message ClusterConfiguration {
+  // List of jobs in this cluster.
+  repeated JobConfiguration jobs = 1;
+}
+
+message CollectiveGroupConfiguration {
+  // Name of the collective group.
+  string name = 1;
+
+  // List of member tasks in this group.
+  repeated string members = 2;
+}
+
+// Configuration of the cluster and collectives for a DistributedContext.
+message DistributedContextConfiguration {
+  // Config of the cluster.
+  ClusterConfiguration cluster_config = 1;
+
+  // List of collective groups in the cluster.
+  repeated CollectiveGroupConfiguration collective_groups = 2;
+
+  // Job name of the current task. Must match with the `name` field of one of
+  // the `jobs` in `cluster_config`.
+  string job_name = 3;
+
+  // Task index of the current task. Must be a valid task index in the `tasks`
+  // map of the job specified by the `job_name`.
+  int32 task_id = 4;
+}

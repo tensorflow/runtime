@@ -43,7 +43,8 @@ DistributedContext::DistributedContext(
     DistributedContextConfiguration configuration)
     : context_id_(context_id),
       server_context_(server_context),
-      cluster_info_(configuration.cluster_config),
+      dist_config_(configuration),
+      cluster_info_(configuration),
       collective_groups_(InitializeCollectiveGroups(configuration)),
       remote_manager_(std::make_unique<RemoteObjectManager>(
           cluster_info_.GetTaskHandle(), server_context_->GetHostContext())),
@@ -57,14 +58,14 @@ DistributedContext::~DistributedContext() {}
 llvm::StringMap<CollectiveGroup> DistributedContext::InitializeCollectiveGroups(
     const DistributedContextConfiguration& config) {
   llvm::StringMap<CollectiveGroup> collective_groups;
-  for (const auto& group_config : config.collective_groups) {
+  for (const auto& group_config : config.collective_groups()) {
     llvm::SmallVector<TaskHandle, 8> members;
-    members.reserve(group_config.members.size());
-    for (const auto& task : group_config.members) {
+    members.reserve(group_config.members_size());
+    for (const auto& task : group_config.members()) {
       members.push_back(cluster_info_.GetTaskHandle(task).get());
     }
-    collective_groups.try_emplace(group_config.name,
-                                  CollectiveGroup{group_config.name, members});
+    collective_groups.try_emplace(
+        group_config.name(), CollectiveGroup{group_config.name(), members});
   }
   return collective_groups;
 }
@@ -74,12 +75,16 @@ llvm::StringMap<CollectiveGroup> DistributedContext::InitializeCollectiveGroups(
 // request.
 void DistributedContext::InitializeRemoteDevices(
     const DistributedContextConfiguration& config) {
-  for (const auto& pair : config.cluster_config.task_addresses) {
-    const std::string device_name =
-        StrCat(pair.first(), "/device:", HostContext::kDefaultHostDeviceName);
-    TaskHandle task_handle = GetTaskHandle(pair.first());
-    server_context_->GetHostContext()->GetDeviceManager()->MaybeAddDevice(
-        TakeRef(new RemoteCpuDevice(device_name, task_handle)));
+  for (const auto& job_config : config.cluster_config().jobs()) {
+    for (const auto& task_addr : job_config.tasks()) {
+      const std::string device_name =
+          StrCat("/job:", job_config.name(), "/task:", task_addr.first,
+                 "/device:", HostContext::kDefaultHostDeviceName);
+      TaskHandle task_handle =
+          GetTaskHandle(job_config.name(), task_addr.first);
+      server_context_->GetHostContext()->GetDeviceManager()->MaybeAddDevice(
+          TakeRef(new RemoteCpuDevice(device_name, task_handle)));
+    }
   }
 }
 

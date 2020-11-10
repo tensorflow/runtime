@@ -31,6 +31,7 @@
 #include "llvm/ADT/StringMap.h"
 #include "tfrt/distributed_runtime/cluster_info.h"
 #include "tfrt/distributed_runtime/function_cache.h"
+#include "tfrt/distributed_runtime/proto/cluster_config.pb.h"
 #include "tfrt/distributed_runtime/remote_client.h"
 #include "tfrt/distributed_runtime/remote_device.h"
 #include "tfrt/distributed_runtime/server_context.h"
@@ -44,28 +45,6 @@ class CallbackRegistry;
 class RemoteObjectManager;
 class RemoteClientInterface;
 class FunctionCache;
-
-struct ClusterConfiguration {
-  // Map from task name (e.g., "/job:worker/task:1") to network address
-  // (e.g., "hostname:port") for all tasks in cluster.
-  llvm::StringMap<std::string> task_addresses;
-
-  // Self task name.
-  std::string task_name;
-};
-
-struct CollectiveGroupConfiguration {
-  // Unique identifier for this group.
-  std::string name;
-  // List of group members with full task names, e.g., "/job:worker/task:1"
-  llvm::SmallVector<std::string, 8> members;
-};
-
-// Configurations at the client side and can be propagated through network.
-struct DistributedContextConfiguration {
-  ClusterConfiguration cluster_config;
-  llvm::SmallVector<CollectiveGroupConfiguration, 4> collective_groups;
-};
 
 // Collective group membership stored inside DistributedContext. Different from
 // the CollectiveGroupConfiguration, the members are represented by TaskHandles
@@ -146,6 +125,7 @@ class DistributedContext {
   const uint64_t context_id_;
   ServerContext* const server_context_;
 
+  const DistributedContextConfiguration dist_config_;
   const ClusterInfo cluster_info_;
   // Map from collective group name to the group members
   const llvm::StringMap<CollectiveGroup> collective_groups_;

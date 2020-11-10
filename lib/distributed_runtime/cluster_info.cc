@@ -24,6 +24,7 @@
 
 #include "llvm/ADT/StringExtras.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
+#include "tfrt/distributed_runtime/proto/cluster_config.pb.h"
 #include "tfrt/distributed_runtime/task_name_util.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/random_util.h"
@@ -44,24 +45,21 @@ ClusterInfo::TaskInfo::TaskInfo(string_view job, int task_id, string_view addr)
       name(StrCat("/job:", job, "/task:", task_id)),
       address(addr) {}
 
-// TODO(haoyuzhang): avoid string parsing in ClusterInfo initialization when
-// ClusterConfiguration is defined with separate job names and task ids.
-ClusterInfo::ClusterInfo(const ClusterConfiguration& cluster_config) {
-  for (const auto& task_addr : cluster_config.task_addresses) {
-    // TODO(haoyuzhang): Get rid of name parsing when ClusterConfiguration is
-    // moved to proto.
-    std::string job_name;
-    int task_id;
-    DieIfError(
-        TaskNameUtil::ParseTaskName(task_addr.first(), &job_name, &task_id));
-
-    auto job_it = jobs_.try_emplace(job_name, JobInfo{job_name}).first;
-    TaskInfo task_info(job_name, task_id, task_addr.second);
-    auto task_inserted = job_it->second.tasks.try_emplace(task_id, task_info);
-    assert(task_inserted.second && "Found duplicate tasks in ClusterInfo.");
-    tasks_.try_emplace(task_info.handle, &task_inserted.first->second);
-    if (task_addr.first() == cluster_config.task_name) {
-      task_handle_ = task_info.handle;
+ClusterInfo::ClusterInfo(const DistributedContextConfiguration& dist_config) {
+  for (const JobConfiguration& job_config :
+       dist_config.cluster_config().jobs()) {
+    for (const auto& task_addr : job_config.tasks()) {
+      const std::string& job_name = job_config.name();
+      const int task_id = task_addr.first;
+      auto job_it = jobs_.try_emplace(job_name, JobInfo{job_name}).first;
+      TaskInfo task_info(job_name, task_id, task_addr.second);
+      auto task_inserted = job_it->second.tasks.try_emplace(task_id, task_info);
+      assert(task_inserted.second && "Found duplicate tasks in ClusterInfo.");
+      tasks_.try_emplace(task_info.handle, &task_inserted.first->second);
+      if (job_name == dist_config.job_name() &&
+          task_id == dist_config.task_id()) {
+        task_handle_ = task_info.handle;
+      }
     }
   }
 }

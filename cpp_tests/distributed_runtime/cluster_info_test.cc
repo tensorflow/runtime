@@ -22,6 +22,7 @@
 
 #include "tfrt/distributed_runtime/cluster_info.h"
 
+#include "google/protobuf/text_format.h"
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
@@ -31,18 +32,33 @@
 namespace tfrt {
 namespace {
 TEST(ClusterInfo, GetTaskHandle) {
+  const std::string dist_config_str =
+      "  cluster_config {"
+      "    jobs {"
+      "      name: 'worker_x'"
+      "      tasks: { key: 0 value: 'addr0' }"
+      "      tasks: { key: 1 value: 'addr1' }"
+      "    }"
+      "    jobs {"
+      "      name: 'worker2'"
+      "      tasks: { key: 2 value: 'addr2' }"
+      "    }"
+      "    jobs {"
+      "      name: 'worker3'"
+      "      tasks: { key: 3 value: 'addr3' }"
+      "    }"
+      "  }"
+      "  job_name: 'worker_x'"
+      "  task_id: 1";
   const std::vector<std::string> tasks{
       "/job:worker_x/task:0", "/job:worker_x/task:1", "/job:worker2/task:2",
       "/job:worker3/task:3"};
   const std::vector<std::string> addresses{"addr0", "addr1", "addr2", "addr3"};
 
-  ClusterConfiguration cluster_config{
-      /*task_addresses=*/{{tasks[0], addresses[0]},
-                          {tasks[1], addresses[1]},
-                          {tasks[2], addresses[2]},
-                          {tasks[3], addresses[3]}},
-      /*task_name=*/tasks[1]};
-  ClusterInfo cluster_info(cluster_config);
+  DistributedContextConfiguration config;
+  EXPECT_TRUE(::google::protobuf::TextFormat::ParseFromString(dist_config_str,
+                                                              &config));
+  ClusterInfo cluster_info(config);
 
   // Get task information of the task itself
   auto expected_handle = cluster_info.GetTaskHandle(tasks[1]);

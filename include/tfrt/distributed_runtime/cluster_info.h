@@ -33,12 +33,12 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
-class ClusterConfiguration;
+class DistributedContextConfiguration;
 
 // Hold the job and task information of the cluster within a DistributedContext.
 class ClusterInfo {
  public:
-  explicit ClusterInfo(const ClusterConfiguration& cluster_config);
+  explicit ClusterInfo(const DistributedContextConfiguration& dist_config);
 
   ClusterInfo(ClusterInfo&&) = delete;
   ClusterInfo& operator=(ClusterInfo&&) = delete;

@@ -1088,6 +1088,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":befexecutor",
+        ":cluster_config_cc_proto",
         ":compiler_pass",
         ":core_runtime",
         ":hostcontext",
@@ -1102,6 +1103,18 @@ tfrt_cc_library(
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:StandardOps",
     ],
+)
+
+proto_library(
+    name = "cluster_config_proto",
+    srcs = ["include/tfrt/distributed_runtime/proto/cluster_config.proto"],
+    visibility = [":friends"],
+)
+
+cc_proto_library(
+    name = "cluster_config_cc_proto",
+    visibility = [":friends"],
+    deps = [":cluster_config_proto"],
 )
 
 proto_library(

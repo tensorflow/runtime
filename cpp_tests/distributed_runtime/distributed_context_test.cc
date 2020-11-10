@@ -26,6 +26,7 @@
 #include <memory>
 
 #include "gmock/gmock.h"
+#include "google/protobuf/text_format.h"
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
@@ -56,35 +57,51 @@ class MockCommunicator : public FabricCommunicator {
 };
 
 DistributedContextConfiguration GetSampleDistributedConfiguration() {
-  ClusterConfiguration cluster_config{
-      /*task_addresses=*/{{"/job:worker_a/task:0", "addr0"},
-                          {"/job:worker_a/task:1", "addr1"},
-                          {"/job:worker_b/task:2", "addr2"},
-                          {"/job:worker_b/task:3", "addr3"}},
-      /*task_name=*/"/job:worker_a/task:1"};
-  FabricCommunicatorConfiguration mock_communicator_config{
-      kMockCommunicatorType,
-      cluster_config.task_addresses.find(cluster_config.task_name)->second};
-  CollectiveGroupConfiguration group0{
-      /*name=*/"group0",
-      /*members=*/{"/job:worker_a/task:0", "/job:worker_a/task:1"}};
-  CollectiveGroupConfiguration group1{
-      /*name=*/"group1",
-      /*members=*/{"/job:worker_a/task:1", "/job:worker_b/task:2",
-                   "/job:worker_b/task:3"}};
-  DistributedContextConfiguration dist_config{
-      cluster_config,
-      /*collective_groups=*/{group0, group1}};
-  return dist_config;
+  const std::string dist_config_str =
+      "  cluster_config {"
+      "    jobs {"
+      "      name: 'worker_a'"
+      "      tasks: { key: 0 value: 'addr0' }"
+      "      tasks: { key: 1 value: 'addr1' }"
+      "    }"
+      "    jobs {"
+      "      name: 'worker_b'"
+      "      tasks: { key: 2 value: 'addr2' }"
+      "      tasks: { key: 3 value: 'addr3' }"
+      "    }"
+      "  }"
+      "  job_name: 'worker_a'"
+      "  task_id: 1"
+      "  collective_groups {"
+      "    name: 'group0'"
+      "    members: '/job:worker_a/task:0'"
+      "    members: '/job:worker_a/task:1'"
+      "  }"
+      "  collective_groups {"
+      "    name: 'group1'"
+      "    members: '/job:worker_a/task:1'"
+      "    members: '/job:worker_b/task:2'"
+      "    members: '/job:worker_b/task:3'"
+      "  }";
+
+  DistributedContextConfiguration config;
+  EXPECT_TRUE(::google::protobuf::TextFormat::ParseFromString(dist_config_str,
+                                                              &config));
+  return config;
 }
 
 ServerContextConfiguration GetSampleServerConfiguration(
     DistributedContextConfiguration& dist_config) {
-  const auto& cluster_config = dist_config.cluster_config;
-  const auto& server_address =
-      cluster_config.task_addresses.find(cluster_config.task_name)->second;
+  const auto& cluster_config = dist_config.cluster_config();
+  string_view server_address;
+  for (const auto& job_config : cluster_config.jobs()) {
+    if (job_config.name() == dist_config.job_name()) {
+      server_address = job_config.tasks().at(dist_config.task_id());
+      break;
+    }
+  }
   FabricCommunicatorConfiguration mock_communicator_config{
-      kMockCommunicatorType, server_address};
+      kMockCommunicatorType, server_address.str()};
   ServerContextConfiguration server_config{mock_communicator_config};
   return server_config;
 }
@@ -127,9 +144,9 @@ TEST(ServerContext, CreateDistributedContext) {
   ServerContext server_context(&host_context, server_config);
   const uint64_t ctx_id0 = 0;
   const uint64_t ctx_id1 = 1;
-  dist_config.cluster_config.task_name = "/job:worker_a/task:0";
+  dist_config.set_task_id(0);
   EXPECT_FALSE(server_context.CreateDistributedContext(ctx_id0, dist_config));
-  dist_config.cluster_config.task_name = "/job:worker_a/task:1";
+  dist_config.set_task_id(1);
   EXPECT_FALSE(server_context.CreateDistributedContext(ctx_id1, dist_config));
 
   DistributedContext* dist_ctx0 =

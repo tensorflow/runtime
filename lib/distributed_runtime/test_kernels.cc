@@ -134,11 +134,15 @@ void TestProcessNextRequest(Argument<DistributedContext> dist_context,
 AsyncValueRef<DistributedContext> TestCreateDistributedContext(
     const DistributedContextConfiguration& configuration,
     const ExecutionContext& exec_ctx) {
-  const string_view task_name = configuration.cluster_config.task_name;
-  const auto& server_address =
-      configuration.cluster_config.task_addresses.find(task_name)->second;
+  string_view server_address;
+  for (const auto& job_config : configuration.cluster_config().jobs()) {
+    if (job_config.name() == configuration.job_name()) {
+      server_address = job_config.tasks().at(configuration.task_id());
+      break;
+    }
+  }
   FabricCommunicatorConfiguration fabric_config{"grpc_communicator",
-                                                server_address};
+                                                server_address.str()};
   ServerContextConfiguration server_config{fabric_config};
   ServerContext* server = new TestServerContext(exec_ctx.host(), server_config);
 

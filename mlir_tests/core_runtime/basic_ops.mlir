@@ -391,28 +391,10 @@ func @test_error_propagation() -> !tfrt.chain {
   // This op should not run, given that the input is an error.
   %op_ch5 = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%c_handle) : 0
 
-  // CHECK-NEXT: Error TensorHandle: 'error from test.error.tensor implementation'
   %ch4 = "corert.print_tensorhandle"(%c_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
+  // CHECK-NEXT: 'test_error_propagation' returned <<error: error from test.error.tensor implementation>>
   tfrt.return %ch4 : !tfrt.chain
-}
-
-// CHECK-LABEL: --- Running 'test_async_dispatch_async_metadata_error'
-func @test_async_dispatch_async_metadata_error() -> !tfrt.chain {
-  %ch0 = tfrt.new.chain
-  %cpu = corert.get_op_handler %ch0 "cpu"
-
-  %a_handle = corert.executeop(%cpu)
-    "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [1.0 : f32] } : 1
-
-  %b_handle = corert.executeop(%cpu) "tfrt_test.async.noop_no_md"(%a_handle) : 1
-
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
-  %ch1 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-
-  %res_handle = corert.executeop(%cpu) "tfrt_test.matmul" (%a_handle, %b_handle) {transpose_a = false, transpose_b = false} : 1
-
-  tfrt.return %ch1 : !tfrt.chain
 }
 
 func @return_first(%in: !tfrt.chain, %x: !corert.tensorhandle, %y: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {

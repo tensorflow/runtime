@@ -131,11 +131,21 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
     // Only set the AsyncValue of TensorHandle to be available when the
     // underlying tensor is available. This is to avoid unnecessary async
     // dispatches in BEF execution.
-    if (tensor_av->IsAvailable()) {
+    auto state = tensor_av->state();
+    if (state.IsError()) {
+      // Here we don't propagate errors to all results. We just faithfully
+      // propagate the results from the op implementation. It is up to the op
+      // implementation on how to set errors in its results.
+      results[i]->SetError(tensor_av->GetError());
+    } else if (state.IsAvailable()) {
       results[i]->emplace<TensorHandle>(std::move(th_ref));
     } else {
-      tensor_av->AndThen([result = results[i].CopyRef(),
+      tensor_av->AndThen([tensor_av, result = results[i].CopyRef(),
                           th_ref = std::move(th_ref)]() mutable {
+        if (tensor_av->IsError()) {
+          result->SetError(tensor_av->GetError());
+          return;
+        }
         result->emplace<TensorHandle>(std::move(th_ref));
       });
     }

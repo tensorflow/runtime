@@ -148,6 +148,10 @@ Error ConcatKernel(const DHTRange& args, int axis, DenseHostTensor* output) {
       Eigen::DSizes<ssize_t, rank> sizes;
       for (int d = 0; d < rank; d++) sizes[d] = dht.shape().GetDimensionSize(d);
 
+      // It's possible for this input tensor to have zero dimension along the
+      // specified axis, in which case no work is needed, b/172595919
+      if (sizes[axis] == 0) continue;
+
       offset += sizes[axis];
 
       // Write argument into the output tensor slice.

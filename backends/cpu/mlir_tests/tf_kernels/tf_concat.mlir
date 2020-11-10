@@ -82,3 +82,23 @@ func @concat_f32_scalars() attributes {tfrt.sync} {
 
   tfrt.return
 }
+
+// CHECK: --- Running 'concat_zero_dim'
+func @concat_zero_dim() attributes {tfrt.sync} {
+  %operand_0 = "tfrt_dht_sync.create_dense_tensor.f32"()
+    { shape = [2, 0], values = [] } : () -> !t.tensor
+  %operand_1 = "tfrt_dht_sync.create_dense_tensor.f32"()
+    { shape = [2, 3], values = [7.0 : f32, 8.0 : f32, 9.0 : f32, 10.0 : f32, 11.0 : f32, 12.0 : f32] } : () -> !t.tensor
+
+  %axis = "tfrt.constant_s.i32"() {value = 1 : i32} : () -> i32
+
+  %result = tfrt_dht_sync.create_uninitialized_tensor.f32.1 [2: i64, 3: i64]
+
+  "tf_sync.ConcatV2.f32"(%axis, %operand_0, %operand_1, %result) : (i32, !t.tensor, !t.tensor, !t.tensor) -> ()
+
+  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3]
+  // CHECK-SAME: values = [7.000000e+00, 8.000000e+00, 9.000000e+00, 1.000000e+01, 1.100000e+01, 1.200000e+01]
+  tfrt_dht_sync.print_tensor %result
+
+  tfrt.return
+}

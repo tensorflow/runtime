@@ -100,6 +100,33 @@ struct Relu {
   };
 };
 
+// Applies `Relu6` to the passed input expression.
+struct Relu6 {
+  template <typename XprType>
+  static auto apply(XprType expr)
+      -> decltype(expr.cwiseMax(std::declval<typename XprType::Scalar>())
+                      .cwiseMin(std::declval<typename XprType::Scalar>())) {
+    return expr.cwiseMax(static_cast<typename XprType::Scalar>(0))
+        .cwiseMin(static_cast<typename XprType::Scalar>(6));
+  };
+};
+
+// Applies `Elu` to the passed input expression.
+struct Elu {
+  template <typename XprType>
+  static auto apply(XprType expr)
+      -> decltype((expr < std::declval<typename XprType::Scalar>())
+                      .select(expr.exp() -
+                                  expr.constant(
+                                      std::declval<typename XprType::Scalar>()),
+                              expr)) {
+    return (expr < static_cast<typename XprType::Scalar>(0))
+        .select(expr.exp() -
+                    expr.constant(static_cast<typename XprType::Scalar>(1)),
+                expr);
+  };
+};
+
 // Adds bias to the output block inner dimension. Optionally applies activation
 // function specified by `Activation` type parameter.
 template <typename T, typename Activation = Identity>

@@ -35,12 +35,30 @@
 
 namespace tfrt {
 namespace cpu {
+namespace {
+
+template <typename OutputKernel, typename T, typename EigenEvaluator>
+typename EigenEvaluator::DependencyToken FusedMatMulInternal(
+    const DenseHostTensor& a, const DenseHostTensor& b, DenseHostTensor* output,
+    const DenseHostTensor& fusion_input, bool transpose_a, bool transpose_b,
+    EigenEvaluator eigen) {
+  DHTArrayView<T> bias_view(&fusion_input);
+  OutputKernel output_kernel(compat::AsEigenConstTensor(bias_view));
+  return cpu::MatMul<T>(1.0, a, b, 0.0, output, transpose_a, transpose_b,
+                        std::move(output_kernel), eigen);
+}
+
+}  // namespace
 
 template <typename T, typename EigenEvaluator, typename FuseInputsRange>
 typename EigenEvaluator::DependencyToken FusedMatMul(
     const DenseHostTensor& a, const DenseHostTensor& b, DenseHostTensor* output,
     FuseInputsRange fusion_inputs, bool transpose_a, bool transpose_b,
     AggregateAttr fused_ops_attr, const ExecutionContext& exec_ctx) {
+  static_assert(std::is_same<std::decay_t<decltype(fusion_inputs[0])>,
+                             DenseHostTensor>::value,
+                "fusion_inputs must be a range of DenseHostTensor");
+
   EigenEvaluator eigen{exec_ctx.host()};
 
   // Parse the MatMul fusion config.
@@ -76,21 +94,27 @@ typename EigenEvaluator::DependencyToken FusedMatMul(
 
   // Fusion: BiasAdd
   if (match_fusion({"BiasAdd"})) {
-    using OutputKernel = compat::BiasAddOutputKernel<T>;
-    DHTArrayView<T> bias_view(&fusion_inputs[0]);
-    OutputKernel output_kernel(compat::AsEigenConstTensor(bias_view));
-    return cpu::MatMul<T>(1.0, a, b, 0.0, output, transpose_a, transpose_b,
-                          std::move(output_kernel), eigen);
+    return FusedMatMulInternal<compat::BiasAddOutputKernel<T>, T>(
+        a, b, output, fusion_inputs[0], transpose_a, transpose_b, eigen);
   }
 
   // Fusion: BiasAdd + Relu
   if (match_fusion({"BiasAdd", "Relu"})) {
-    using OutputKernel = compat::BiasAddOutputKernel<T, compat::Relu>;
-    DHTArrayView<T> bias_view(&fusion_inputs[0]);
-    OutputKernel output_kernel(compat::AsEigenConstTensor(bias_view));
+    return FusedMatMulInternal<compat::BiasAddOutputKernel<T, compat::Relu>, T>(
+        a, b, output, fusion_inputs[0], transpose_a, transpose_b, eigen);
+  }
 
-    return cpu::MatMul<T>(1.0, a, b, 0.0, output, transpose_a, transpose_b,
-                          std::move(output_kernel), eigen);
+  // Fusion: BiasAdd + Relu6
+  if (match_fusion({"BiasAdd", "Relu6"})) {
+    return FusedMatMulInternal<compat::BiasAddOutputKernel<T, compat::Relu6>,
+                               T>(a, b, output, fusion_inputs[0], transpose_a,
+                                  transpose_b, eigen);
+  }
+
+  // Fusion: BiasAdd + Elu
+  if (match_fusion({"BiasAdd", "Elu"})) {
+    return FusedMatMulInternal<compat::BiasAddOutputKernel<T, compat::Elu>, T>(
+        a, b, output, fusion_inputs[0], transpose_a, transpose_b, eigen);
   }
 
   return eigen.MakeError("Unsupported fusion type");

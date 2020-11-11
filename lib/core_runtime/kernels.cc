@@ -706,18 +706,19 @@ static void CoreRtWhileLoopIteration(
   condition.resize(2);
   cond_fn_ref->Execute(exec_ctx, args, condition);
 
-  assert(condition[0]->IsType<Chain>() &&
-         "Cond function did not return a chain");
-  assert(condition[1]->IsType<TensorHandle>() &&
-         "Cond function did not return a TensorHandle");
-
   // Dispatch when the condition becomes available.
-  RunWhenReady(condition, [condition_tensorhandle_ref = condition[1].CopyRef(),
+  RunWhenReady(condition, [condition_chain_ref = condition[0].CopyRef(),
+                           condition_tensorhandle_ref = condition[1].CopyRef(),
                            exec_ctx = std::move(exec_ctx),
                            cond_fn_ref = std::move(cond_fn_ref),
                            body_fn_ref = std::move(body_fn_ref),
                            arg_refs = std::move(arg_refs),
                            result_refs = std::move(result_refs)]() mutable {
+    assert(condition_chain_ref->IsType<Chain>() &&
+           "Cond function did not return a chain");
+    assert(condition_tensorhandle_ref->IsType<TensorHandle>() &&
+           "Cond function did not return a TensorHandle");
+
     if (ReturnAfterHandlingError(condition_tensorhandle_ref.get(), result_refs))
       return;
 

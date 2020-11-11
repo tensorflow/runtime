@@ -266,5 +266,17 @@ def GetInt64FieldFromExampleOp : Test_Op<"get_int64_field_from_example"> {
   let verifier = ?;
 }
 
+def GetStringOp : Test_Op<"get_string"> {
+  let summary = "tfrt_test.get_string";
+  let description = [{
+    Get a !tfrt.string value from the given string attribute.
+  }];
+
+  let arguments = (ins StrAttr:$value);
+  let results = (outs TFRT_StringType);
+  let assemblyFormat = "attr-dict";
+  let verifier = ?;
+}
+
 
 #endif  // TEST_OPS

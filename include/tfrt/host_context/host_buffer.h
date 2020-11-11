@@ -92,8 +92,10 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   // For access to Destroy().
   friend class ReferenceCounted<HostBuffer>;
 
-  HostBuffer(size_t size, HostAllocator *allocator)
-      : size_(size), mode_{Mode::kInlined}, inlined_allocator_{allocator} {}
+  HostBuffer(size_t size, size_t allocated_size, HostAllocator *allocator)
+      : size_(size),
+        mode_{Mode::kInlined},
+        inlined_{allocator, allocated_size} {}
 
   HostBuffer(void *ptr, size_t size, Deallocator deallocator)
       : data_(ptr),
@@ -127,7 +129,10 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
 
   // TODO(zhangqiaorjc): Use variant instead of union.
   union {
-    HostAllocator *inlined_allocator_;
+    struct {
+      HostAllocator *allocator;
+      size_t allocated_size;
+    } inlined_;
 
     Deallocator out_of_line_deallocator_;
 

@@ -40,7 +40,7 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
                                          alignof(HostBuffer));
     if (!buf) return {};
 
-    auto host_buffer = TakeRef(new (buf) HostBuffer(size, allocator));
+    auto host_buffer = TakeRef(new (buf) HostBuffer(size, size, allocator));
     host_buffer->data_ = &host_buffer->unaligned_data_[0];
 
     return host_buffer;
@@ -54,7 +54,7 @@ RCReference<HostBuffer> HostBuffer::CreateUninitialized(
                                        alignof(HostBuffer));
   if (!buf) return {};
 
-  auto host_buffer = TakeRef(new (buf) HostBuffer(size, allocator));
+  auto host_buffer = TakeRef(new (buf) HostBuffer(size, alloc_size, allocator));
 
   // Adjust for data alignment.
   host_buffer->data_ = &host_buffer->unaligned_data_[0];
@@ -100,10 +100,12 @@ HostBuffer::~HostBuffer() {
 
 void HostBuffer::Destroy() {
   switch (mode_) {
-    case Mode::kInlined:
+    case Mode::kInlined: {
       this->~HostBuffer();
-      inlined_allocator_->DeallocateBytes(this, sizeof(HostBuffer) + size_);
+      inlined_.allocator->DeallocateBytes(
+          this, sizeof(HostBuffer) + inlined_.allocated_size);
       break;
+    }
     case Mode::kOutOfLine:
     case Mode::kSliced:
       delete this;

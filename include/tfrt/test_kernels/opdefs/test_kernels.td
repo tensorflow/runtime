@@ -196,7 +196,7 @@ def DecodeJpegOp : Test_Op<"decode_jpeg"> {
     Example:
       %image_decoded =  tfrt_test.decode_jpeg %image_encoded
   }];
-  let arguments = (ins StringType);
+  let arguments = (ins TFRT_StringType);
   let results = (outs TensorType);
   let assemblyFormat = "operands attr-dict";
   let verifier = ?;
@@ -228,7 +228,7 @@ def ParseExampleFromBytesOp : Test_Op<"parse_example_from_bytes"> {
       %example = tfrt_test.parse_example_from_bytes" %bytes
   }];
 
-  let arguments = (ins StringType);
+  let arguments = (ins TFRT_StringType);
   let results = (outs ProtoExampleType);
   let assemblyFormat = "operands attr-dict";
   let verifier = ?;
@@ -244,8 +244,8 @@ def GetBytesFieldFromExampleOp : Test_Op<"get_bytes_field_from_example"> {
       %value = tfrt_test.get_bytes_field_from_example %example, %key
   }];
 
-  let arguments = (ins ProtoExampleType, StringType);
-  let results = (outs StringType);
+  let arguments = (ins ProtoExampleType, TFRT_StringType);
+  let results = (outs TFRT_StringType);
   let assemblyFormat = "operands attr-dict";
   let verifier = ?;
 }
@@ -260,7 +260,7 @@ def GetInt64FieldFromExampleOp : Test_Op<"get_int64_field_from_example"> {
       %value = tfrt_test.get_int64_field_from_example %example, %key
   }];
 
-  let arguments = (ins ProtoExampleType, StringType);
+  let arguments = (ins ProtoExampleType, TFRT_StringType);
   let results = (outs I64);
   let assemblyFormat = "operands attr-dict";
   let verifier = ?;

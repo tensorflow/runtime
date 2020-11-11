@@ -325,7 +325,7 @@ def TFRecordDatasetOp : Data_Op<"tf_record_dataset"> {
   }];
 
   let arguments = (ins
-    StringType:$path
+    TFRT_StringType:$path
   );
 
   let results = (outs Data_DatasetType:$output_dataset);

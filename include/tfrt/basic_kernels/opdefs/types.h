@@ -33,6 +33,12 @@ class ChainType
   using Base::Base;
 };
 
+class StringType
+    : public mlir::Type::TypeBase<StringType, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
 }  // namespace tfrt
 
 #endif  // TFRT_BASIC_KERNELS_OPDEFS_TYPES_H_

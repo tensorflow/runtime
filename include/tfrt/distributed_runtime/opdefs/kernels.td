@@ -81,8 +81,8 @@ class AllReduceOp<string dtype> : DistOp<"cpu.allreduce." # dtype> {
 
   let arguments = (ins
     DistributedContextType,
-    StringType,
-    StringType,
+    TFRT_StringType,
+    TFRT_StringType,
     TensorType,
     TensorType,
     TFRT_ChainType);
@@ -110,8 +110,8 @@ class BroadcastOp<string dtype> : DistOp<"cpu.broadcast." # dtype> {
 
   let arguments = (ins
     DistributedContextType,
-    StringType,
-    StringType,
+    TFRT_StringType,
+    TFRT_StringType,
     TensorType,
     TaskHandleType,
     TFRT_ChainType);
@@ -156,7 +156,7 @@ def RegisterFakeCompilerPass : DistOp<"test_register_fake_compiler_pass"> {
   let arguments = (ins
     StrAttr:$compiler_pass_name,
     StrAttr:$compiled_program,
-    Variadic<StringType>:$output_devices
+    Variadic<TFRT_StringType>:$output_devices
   );
 
   let assemblyFormat = [{
@@ -218,7 +218,7 @@ def GetTaskHandleOp : DistOp<"get_task_handle"> {
 
   let arguments = (ins
     DistributedContextType:$context,
-    StringType:$task_name
+    TFRT_StringType:$task_name
   );
   let results = (outs TaskHandleType);
   let assemblyFormat = "operands attr-dict";
@@ -291,7 +291,7 @@ def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {
   }];
 
   let arguments = (ins
-    Variadic<StringType>:$output_devices
+    Variadic<TFRT_StringType>:$output_devices
   );
   let results = (outs
     RemoteExecuteSpecType:$out_spec

@@ -36,7 +36,7 @@ TFRTDialect::TFRTDialect(mlir::MLIRContext *context)
   // TODO(b/160693129): Eventually specify all of the operations.
   allowUnknownOperations();
 
-  addTypes<ChainType>();
+  addTypes<ChainType, StringType>();
 
   addOperations<
 #define GET_OP_LIST
@@ -49,6 +49,8 @@ mlir::Type TFRTDialect::parseType(mlir::DialectAsmParser &parser) const {
 
   if (spec == "chain") return ChainType::get(getContext());
 
+  if (spec == "string") return StringType::get(getContext());
+
   if (auto type = mlir::Dialect::parseType(parser)) return type;
 
   mlir::Location loc = parser.getEncodedSourceLoc(parser.getNameLoc());
@@ -60,10 +62,11 @@ void TFRTDialect::printType(mlir::Type type,
                             mlir::DialectAsmPrinter &printer) const {
   if (type.isa<ChainType>()) {
     printer << "chain";
-    return;
+  } else if (type.isa<StringType>()) {
+    printer << "string";
+  } else {
+    llvm_unreachable("unknown tfrt type");
   }
-
-  llvm_unreachable("unknown tfrt type");
 }
 
 }  // namespace tfrt

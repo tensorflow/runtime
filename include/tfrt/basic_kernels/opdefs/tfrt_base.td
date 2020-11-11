@@ -41,4 +41,8 @@ def TFRT_ChainType :
     Type<CPred<"$_self.isa<tfrt::ChainType>()">, "!tfrt.chain type">,
     BuildableType<"$_builder.getType<tfrt::ChainType>()">;
 
+def TFRT_StringType :
+    Type<CPred<"$_self.isa<tfrt::StringType>()">, "!tfrt.string type">,
+    BuildableType<"$_builder.getType<tfrt::StringType>()">;
+
 #endif  // TFRT_BASE

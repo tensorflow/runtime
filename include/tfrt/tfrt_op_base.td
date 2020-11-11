@@ -30,6 +30,6 @@ include "tfrt/tensor/opdefs/tensor.td"
 //===----------------------------------------------------------------------===//
 // Type definitions
 //===----------------------------------------------------------------------===//
-def StringType : OpaqueType<"tfrt", "string", "!tfrt.string type">;
+
 
 #endif  // TFRT_OP_BASE

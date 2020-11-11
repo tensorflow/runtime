@@ -57,8 +57,7 @@ static Type GetContextType(Builder *builder) {
 }
 
 static Type GetStringType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("tfrt"), "string",
-                         builder->getContext());
+  return builder->getType<tfrt::StringType>();
 }
 
 static Type GetRemoteExecuteSpecType(Builder *builder) {

@@ -38,6 +38,12 @@ class RequestHandlerInterface {
  public:
   virtual ~RequestHandlerInterface() {}
 
+  virtual Error HandleCreateContext(const CreateContextRequest* request,
+                                    CreateContextResponse* response) = 0;
+
+  virtual Error HandleCloseContext(const CloseContextRequest* request,
+                                   CloseContextResponse* response) = 0;
+
   virtual Error HandleSendData(const SendDataRequest* request,
                                SendDataResponse* response) = 0;
 

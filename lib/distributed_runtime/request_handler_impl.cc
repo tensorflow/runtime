@@ -59,6 +59,12 @@ class RequestHandler : public RequestHandlerInterface {
       : server_context_(server_context) {}
   ~RequestHandler() override{};
 
+  Error HandleCreateContext(const CreateContextRequest* request,
+                            CreateContextResponse* response) final;
+
+  Error HandleCloseContext(const CloseContextRequest* request,
+                           CloseContextResponse* response) final;
+
   Error HandleSendData(const SendDataRequest* request,
                        SendDataResponse* response) final;
 
@@ -79,6 +85,23 @@ class RequestHandler : public RequestHandlerInterface {
 
   ServerContext* server_context_;
 };
+
+Error RequestHandler::HandleCreateContext(const CreateContextRequest* request,
+                                          CreateContextResponse* response) {
+  auto expected = server_context_->GetDistributedContext(request->context_id());
+  if (expected) {
+    return llvm::make_error<DistributedContextAlreadyExistsErrorInfo>(
+        StrCat("Failed to create DistributedContext: the context with id <",
+               request->context_id(), "> already exists."));
+  }
+  return server_context_->CreateDistributedContext(request->context_id(),
+                                                   request->dist_config());
+}
+
+Error RequestHandler::HandleCloseContext(const CloseContextRequest* request,
+                                         CloseContextResponse* response) {
+  return server_context_->CloseDistributedContext(request->context_id());
+}
 
 Error RequestHandler::HandleSendData(const SendDataRequest* request,
                                      SendDataResponse* response) {

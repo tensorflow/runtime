@@ -59,13 +59,16 @@ class ClusterInfo {
   Expected<string_view> GetTaskAddress(TaskHandle task_handle) const;
 
  private:
+  struct JobInfo;
   struct TaskInfo {
     const TaskHandle handle;
+    const JobInfo* job;
+    const int task_id;
     // Full name of the task, e.g., "/job:worker/task:1"
     const std::string name;
     const std::string address;
     TaskInfo() = delete;
-    explicit TaskInfo(string_view job, int task_id, string_view addr);
+    explicit TaskInfo(JobInfo* job_info, int task_id, string_view addr);
   };
 
   struct JobInfo {

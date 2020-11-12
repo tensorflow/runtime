@@ -22,6 +22,26 @@ syntax = "proto3";
 
 package tfrt;
 
+import "include/tfrt/distributed_runtime/proto/cluster_config.proto";
+
+message CreateContextRequest {
+  // Unique ID for the DistributedContext to be created.
+  // This ID will be used for all subsequent communications in this distributed
+  // execution environment between client/server.
+  fixed64 context_id = 1;
+
+  // Configuration of the cluster and the role (job, task) of the target host.
+  DistributedContextConfiguration dist_config = 2;
+}
+
+message CreateContextResponse {}
+
+message CloseContextRequest {
+  fixed64 context_id = 1;
+}
+
+message CloseContextResponse {}
+
 message SendDataRequest {
   fixed64 context_id = 1;
   string instance_key = 2;

@@ -117,6 +117,16 @@ class DistributedContext {
 
   RemoteClientInterface* GetRemoteClient(TaskHandle task_handle);
 
+  using CallbackFn = llvm::unique_function<void(Error)>;
+
+  // Create contexts on remote tasks. The callback will be invoked after all
+  // remote calls finish.
+  void CreateRemoteContexts(CallbackFn done_callback);
+
+  // Close contexts on remote tasks. The callback will be invoked after all
+  // remote calls finish.
+  void CloseRemoteContexts(CallbackFn done_callback);
+
  private:
   llvm::StringMap<CollectiveGroup> InitializeCollectiveGroups(
       const DistributedContextConfiguration&);

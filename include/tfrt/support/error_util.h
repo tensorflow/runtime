@@ -242,6 +242,10 @@ class ErrorCollection : public llvm::ErrorInfo<ErrorCollection> {
   // merge the errors into the current collection.
   void AddError(Error error);
 
+  // Get reference to all error info instances contained in this collection.
+  const llvm::SmallVector<std::unique_ptr<BaseTypedErrorInfo>, 4>&
+  GetAllErrors() const;
+
   // Log summarized error information for the collection of errors. Sample
   // summarized error message logging:
   //

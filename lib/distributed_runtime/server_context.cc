@@ -90,6 +90,15 @@ Error ServerContext::CreateDistributedContext(
   return Error::success();
 }
 
+Error ServerContext::CloseDistributedContext(uint64_t context_id) {
+  mutex_lock l(context_mu_);
+  if (!dist_contexts_.erase(context_id)) {
+    return llvm::make_error<InvalidDistributedContextIdErrorInfo>(
+        StrCat("Context with id ", context_id, " does not exist."));
+  }
+  return Error::success();
+}
+
 Expected<DistributedContext*> ServerContext::GetDistributedContext(
     uint64_t context_id) const {
   mutex_lock l(context_mu_);

@@ -54,6 +54,16 @@ class TestRequestHandler : public RequestHandlerInterface {
       : handler_(NewRequestHandler(server_context)) {}
   ~TestRequestHandler() final {}
 
+  Error HandleCreateContext(const CreateContextRequest* request,
+                            CreateContextResponse* response) final {
+    return handler_->HandleCreateContext(request, response);
+  }
+
+  Error HandleCloseContext(const CloseContextRequest* request,
+                           CloseContextResponse* response) final {
+    return handler_->HandleCloseContext(request, response);
+  }
+
   Error HandleSendData(const SendDataRequest* request,
                        SendDataResponse* response) final {
     return handler_->HandleSendData(request, response);

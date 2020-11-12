@@ -211,6 +211,7 @@ tfrt_cc_library(
         "include/tfrt/support/raw_coding.h",
         "include/tfrt/support/rc_array.h",
         "include/tfrt/support/ref_count.h",
+        "include/tfrt/support/refcounted_callback.h",
         "include/tfrt/support/string_util.h",
         "include/tfrt/support/template_util.h",
         "include/tfrt/support/thread_annotations.h",
@@ -1185,6 +1186,7 @@ proto_library(
     name = "remote_message_proto",
     srcs = ["include/tfrt/distributed_runtime/proto/remote_message.proto"],
     visibility = [":friends"],
+    deps = [":cluster_config_proto"],
 )
 
 cc_proto_library(

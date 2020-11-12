@@ -44,6 +44,7 @@ ERROR_TYPE(RemoteFunctionAlreadyExists)
 ERROR_TYPE(MalformattedMlirFile)
 ERROR_TYPE(CompilationFailed)
 ERROR_TYPE(InvalidDistributedContextId)
+ERROR_TYPE(DistributedContextAlreadyExists)
 
 // TODO(tfrt-devs): add more error codes if needed.
 

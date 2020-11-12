@@ -70,6 +70,11 @@ void ErrorCollection::AddError(Error error) {
   }
 }
 
+const llvm::SmallVector<std::unique_ptr<BaseTypedErrorInfo>, 4>&
+ErrorCollection::GetAllErrors() const {
+  return std::move(errors_);
+}
+
 void ErrorCollection::log(raw_ostream& OS) const {
   if (errors_.empty()) {
     OS << llvm::toString(Error::success());

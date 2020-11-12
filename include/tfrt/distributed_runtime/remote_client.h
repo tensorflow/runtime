@@ -43,8 +43,22 @@ class RemoteClientInterface {
   // If invoked with network error, the response message will be empty.
   using CallbackFn = llvm::unique_function<void(Error error)>;
 
-  virtual void SendAsync(const SendDataRequest* request,
-                         SendDataResponse* response, CallbackFn done) = 0;
+  // Create a DistributedContext on the remote task. If the remote task already
+  // has a context with the requested context_id, the done callback will be
+  // invoked with DistributedContextAlreadyExists error.
+  virtual void CreateContextAsync(const CreateContextRequest* request,
+                                  CreateContextResponse* response,
+                                  CallbackFn done) = 0;
+
+  // Close DistributedContext on the remote task. If the remote task does not
+  // have a context with the requested context_id, the done callback will be
+  // invoked with InvalidDistributedContextId error.
+  virtual void CloseContextAsync(const CloseContextRequest* request,
+                                 CloseContextResponse* response,
+                                 CallbackFn done) = 0;
+
+  virtual void SendDataAsync(const SendDataRequest* request,
+                             SendDataResponse* response, CallbackFn done) = 0;
 
   virtual void RegisterFunctionAsync(const RegisterFunctionRequest* request,
                                      RegisterFunctionResponse* response,

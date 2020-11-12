@@ -36,6 +36,7 @@
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
+#include "tfrt/support/refcounted_callback.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
@@ -43,35 +44,6 @@
 namespace tfrt {
 
 namespace {
-
-using CallbackFn = llvm::unique_function<void(Error)>;
-
-class RefCountedCallback : public ReferenceCounted<RefCountedCallback> {
- public:
-  explicit RefCountedCallback(CallbackFn done) : done_(std::move(done)) {}
-
-  ~RefCountedCallback() {
-    if (errors_) {
-      done_(Error(std::move(errors_)));
-    } else {
-      done_(Error::success());
-    }
-  }
-
-  void UpdateState(Error e) {
-    if (!e) return;
-    mutex_lock l(mu_);
-    if (errors_ == nullptr) {
-      errors_ = std::make_unique<ErrorCollection>();
-    }
-    errors_->AddError(std::move(e));
-  }
-
- private:
-  CallbackFn done_;
-  mutex mu_;
-  std::unique_ptr<ErrorCollection> errors_ TFRT_GUARDED_BY(mu_);
-};
 
 //===----------------------------------------------------------------------===//
 // Dist AllReduce
@@ -269,7 +241,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
 
     if (step == 0) {
       request->set_payload(split_data.data(), split_data.size());
-      neighbor_client->SendAsync(
+      neighbor_client->SendDataAsync(
           request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
            refcounted_done = refcounted_done.CopyRef()](Error e) {
@@ -298,7 +270,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
             }
             request->set_payload(callback_value->data(),
                                  callback_value->size());
-            neighbor_client->SendAsync(
+            neighbor_client->SendDataAsync(
                 request.get(), response.get(),
                 [request = std::move(request), response = std::move(response),
                  refcounted_done = refcounted_done.CopyRef()](Error e) mutable {
@@ -321,7 +293,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
             if (step < kLastGatherStep) {
               request->set_payload(callback_value->data(),
                                    callback_value->size());
-              neighbor_client->SendAsync(
+              neighbor_client->SendDataAsync(
                   request.get(), response.get(),
                   [request = std::move(request), response = std::move(response),
                    refcounted_done =
@@ -421,7 +393,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
       // A Sender sends data to its neighbor.
       auto payload = GetSplit<T>(in_tensor, kGroupSize, num_elements, i);
       request->set_payload(payload.data(), payload.size());
-      neighbor_client->SendAsync(
+      neighbor_client->SendDataAsync(
           request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
            refcounted_done = refcounted_done.CopyRef()](Error e) {
@@ -443,7 +415,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
                               .begin()));
             if (neighbor_task != sender) {
               request->set_payload(data->data(), data->size());
-              neighbor_client->SendAsync(
+              neighbor_client->SendDataAsync(
                   request.get(), response.get(),
                   [request = std::move(request), response = std::move(response),
                    refcounted_done = refcounted_done.CopyRef()](Error e) {

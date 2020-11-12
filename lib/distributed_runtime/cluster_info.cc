@@ -40,9 +40,12 @@ TaskHandle GetNewTaskHandle() {
 }
 }  // namespace
 
-ClusterInfo::TaskInfo::TaskInfo(string_view job, int task_id, string_view addr)
+ClusterInfo::TaskInfo::TaskInfo(JobInfo* job_info, int task_id,
+                                string_view addr)
     : handle(GetNewTaskHandle()),
-      name(StrCat("/job:", job, "/task:", task_id)),
+      job(job_info),
+      task_id(task_id),
+      name(TaskNameUtil::ConcatTaskName(job_info->name, task_id)),
       address(addr) {}
 
 ClusterInfo::ClusterInfo(const DistributedContextConfiguration& dist_config) {
@@ -52,7 +55,7 @@ ClusterInfo::ClusterInfo(const DistributedContextConfiguration& dist_config) {
       const std::string& job_name = job_config.name();
       const int task_id = task_addr.first;
       auto job_it = jobs_.try_emplace(job_name, JobInfo{job_name}).first;
-      TaskInfo task_info(job_name, task_id, task_addr.second);
+      TaskInfo task_info(&job_it->second, task_id, task_addr.second);
       auto task_inserted = job_it->second.tasks.try_emplace(task_id, task_info);
       assert(task_inserted.second && "Found duplicate tasks in ClusterInfo.");
       tasks_.try_emplace(task_info.handle, &task_inserted.first->second);

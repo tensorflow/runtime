@@ -74,6 +74,8 @@ class ServerContext {
                                  DistributedContextConfiguration configuration)
       TFRT_EXCLUDES(context_mu_);
 
+  Error CloseDistributedContext(uint64_t context_id) TFRT_EXCLUDES(context_mu_);
+
   RequestHandlerInterface* GetRequestHandler() const {
     return request_handler_.get();
   }

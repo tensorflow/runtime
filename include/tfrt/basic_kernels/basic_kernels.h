@@ -33,6 +33,7 @@ void RegisterIntegerKernels(KernelRegistry* registry);
 void RegisterFloatKernels(KernelRegistry* registry);
 void RegisterControlFlowKernels(KernelRegistry* registry);
 void RegisterParallelKernels(KernelRegistry* registry);
+void RegisterDeviceKernels(KernelRegistry* registry);
 
 }  // namespace tfrt
 

@@ -618,13 +618,9 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
 // argument. We need to use either CopyRef() or std::move for RCReference
 // argument.
 static Expected<TensorHandle> TransferToDevice(
-    const TensorHandle &src, StringAttribute device,
+    const TensorHandle &src, const RCReference<Device> &device,
     StringAttribute dst_tensor_type_name, const ExecutionContext &exec_ctx) {
-  auto device_ref =
-      exec_ctx.host()->GetDeviceManager()->GetDeviceRef<Device>(device);
-  if (!device_ref)
-    return MakeStringError("failed to find device with name: ", device);
-  return src.TransferTo(exec_ctx, std::move(device_ref),
+  return src.TransferTo(exec_ctx, device.CopyRef(),
                         GetStaticTensorType(dst_tensor_type_name));
 }
 

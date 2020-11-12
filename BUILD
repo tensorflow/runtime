@@ -367,6 +367,7 @@ tfrt_cc_library(
     srcs = [
         "lib/basic_kernels/boolean_kernels.cc",
         "lib/basic_kernels/control_flow_kernels.cc",
+        "lib/basic_kernels/device_kernels.cc",
         "lib/basic_kernels/float_kernels.cc",
         "lib/basic_kernels/integer_kernels.cc",
         "lib/basic_kernels/parallel_kernels.cc",

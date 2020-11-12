@@ -217,6 +217,7 @@ func @test_coo_scalar_mixed() -> !tfrt.chain {
 func @test_coo_dense_transfer() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu_op_handler = corert.get_op_handler %ch0 "cpu"
+  %cpu_device = "tfrt.get_device"(%ch0) {device_name="CPU:0"} : (!tfrt.chain) -> !tfrt.device
 
   %a_handle = corert.executeop(%cpu_op_handler) "tfrt_test.create_dense_tensor"()
     {shape = [1, 2], values = [0 : i64, 0 : i64] } : 1
@@ -233,16 +234,16 @@ func @test_coo_dense_transfer() -> !tfrt.chain {
 
   // TODO(fishx): Introduce helper kernel to construct formats.
   // COO->DHT
-  %d_handle = "corert.transfer"(%c_handle) {device="CPU:0", dst_tensor_type_name="DenseHost"}
-    : (!corert.tensorhandle) -> !corert.tensorhandle
+  %d_handle = "corert.transfer"(%c_handle, %cpu_device) {dst_tensor_type_name="DenseHost"}
+    : (!corert.tensorhandle, !tfrt.device) -> !corert.tensorhandle
 
   // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [1]
   %ch2 = "corert.print_tensorhandle"(%d_handle, %ch1)
     : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   // DHT->DHT
-  %e_handle = "corert.transfer"(%d_handle) {device="CPU:0", dst_tensor_type_name="DenseHost"}
-    : (!corert.tensorhandle) -> !corert.tensorhandle
+  %e_handle = "corert.transfer"(%d_handle, %cpu_device) {dst_tensor_type_name="DenseHost"}
+    : (!corert.tensorhandle, !tfrt.device) -> !corert.tensorhandle
 
   // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [1]
   %ch3 = "corert.print_tensorhandle"(%d_handle, %ch2)

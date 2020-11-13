@@ -1063,6 +1063,7 @@ mlir::FuncOp BEFToMLIRConverter::CreateNativeFuncOp(
                                       bef_function.result_types, &context_);
   auto func_op = mlir::FuncOp::create(location, bef_function.name, type);
   func_op.setAttr("tfrt.native", mlir::UnitAttr::get(&context_));
+  func_op.setPrivate();
   return func_op;
 }
 

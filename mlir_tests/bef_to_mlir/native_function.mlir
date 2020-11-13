@@ -12,11 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate --bef-to-mlir $(bef_name %s) | tfrt_opt -allow-unregistered-dialect | FileCheck %s --dump-input=fail
+// RUN: tfrt_translate --bef-to-mlir $(bef_name %s)
+/// | tfrt_opt -allow-unregistered-dialect
+/// | FileCheck %s --dump-input=fail
 
-// CHECK-LABEL: func @some_func
+// CHECK-LABEL: func private @some_func
 // CHECK-SAME: tfrt.native
-func @some_func(%x: i32) -> i32 attributes {tfrt.native}
+func private @some_func(%x: i32) -> i32 attributes {tfrt.native}
 
 // CHECK-LABEL: func @call_native
 func @call_native(%x : i32) -> i32 {

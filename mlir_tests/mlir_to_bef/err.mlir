@@ -22,7 +22,7 @@ func @function_arg() -> i32 {
 // -----
 
 // expected-error @+1 {{external functions are not allowed}}
-func @external_func() -> i32
+func private @external_func() -> i32
 
 // -----
 

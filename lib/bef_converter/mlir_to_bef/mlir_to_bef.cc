@@ -380,11 +380,11 @@ struct EntityTable {
   llvm::SmallVector<string_view, 4> location_filenames;
   llvm::StringMap<unsigned> location_filenames_index;
 
-  // This is a list of locations within the file, the first element of the
-  // tuple is a index into location_filenames, the second and third are line/col
-  // information.
+  // These are the locations for all operations within the file, the first
+  // element of the tuple is a index into location_filenames, the second and
+  // third are line/col information.
   typedef std::tuple<unsigned, unsigned, unsigned> LocationTuple;
-  llvm::SetVector<LocationTuple> location_positions;
+  llvm::DenseMap<mlir::Operation*, LocationTuple> location_positions;
 
  public:
   LogicalResult Collect(mlir::ModuleOp module,
@@ -404,7 +404,7 @@ struct EntityTable {
   void AddKernel(mlir::Operation* kernel);
   unsigned GetKernelID(mlir::Operation* kernel) const;
 
-  void AddLocation(mlir::Location loc);
+  void AddLocation(mlir::Operation* op);
 
   void AddAttributeType(mlir::Attribute attr);
 };
@@ -505,7 +505,8 @@ unsigned EntityTable::GetKernelID(mlir::Operation* kernel) const {
   return it->second;
 }
 
-void EntityTable::AddLocation(mlir::Location loc) {
+void EntityTable::AddLocation(mlir::Operation* op) {
+  auto loc = op->getLoc();
   string_view filename = "";
   unsigned line = 0, col = 0;
   if (auto file_line_col = loc.dyn_cast<mlir::FileLineColLoc>()) {
@@ -519,7 +520,10 @@ void EntityTable::AddLocation(mlir::Location loc) {
       location_filenames_index.insert({filename, next_filename_index}).first;
   if (it->second == next_filename_index) location_filenames.push_back(filename);
 
-  location_positions.insert(LocationTuple{it->second, line, col});
+  auto r =
+      location_positions.try_emplace(op, LocationTuple{it->second, line, col});
+  assert(r.second);
+  (void)r;
 }
 
 void EntityTable::AddAttributeType(mlir::Attribute attr) {
@@ -561,7 +565,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
       return;
     }
 
-    AddLocation(op->getLoc());
+    AddLocation(op);
 
     auto* cur_region = op->getParentRegion();
 
@@ -767,27 +771,12 @@ class EntityIndex {
 
   typedef EntityTable::LocationTuple LocationTuple;
 
-  void AddLocationPosition(LocationTuple position, size_t offset) {
-    location_position_offsets_[position] = offset;
+  void AddLocationPosition(mlir::Operation* op, size_t offset) {
+    location_position_offsets_[op] = offset;
   }
 
-  size_t GetLocationPositionOffset(mlir::Location loc,
-                                   const EntityTable& entities) const {
-    string_view filename = "";
-    unsigned line = 0, col = 0;
-    if (auto file_line_col = loc.dyn_cast<mlir::FileLineColLoc>()) {
-      filename = file_line_col.getFilename();
-      line = file_line_col.getLine();
-      col = file_line_col.getColumn();
-    }
-
-    auto fn_it = entities.location_filenames_index.find(filename);
-    assert(fn_it != entities.location_filenames_index.end() &&
-           "unknown location");
-    auto fn_idx = fn_it->second;
-
-    auto loc_it =
-        location_position_offsets_.find(LocationTuple{fn_idx, line, col});
+  size_t GetLocationPositionOffset(mlir::Operation* op) const {
+    auto loc_it = location_position_offsets_.find(op);
     assert(loc_it != location_position_offsets_.end() && "unknown location");
     return loc_it->second;
   }
@@ -803,7 +792,7 @@ class EntityIndex {
   std::vector<FunctionIndexEntry> function_index_;
 
   // This is the location of the offsets into the section.
-  llvm::DenseMap<LocationTuple, size_t> location_position_offsets_;
+  llvm::DenseMap<mlir::Operation*, size_t> location_position_offsets_;
 };
 
 }  // namespace
@@ -913,8 +902,10 @@ void BEFModuleEmitter::EmitLocationInfo() {
 
   // Emit each of the positions and remember the offsets within the section.
   BEFFileEmitter positions_section;
-  for (auto position : entities_.location_positions) {
-    entity_index_.AddLocationPosition(position, positions_section.size());
+  for (auto iter : entities_.location_positions) {
+    mlir::Operation* op = iter.first;
+    auto position = iter.second;
+    entity_index_.AddLocationPosition(op, positions_section.size());
     positions_section.EmitInt(std::get<0>(position));
     positions_section.EmitInt(std::get<1>(position));
     positions_section.EmitInt(std::get<2>(position));
@@ -1458,7 +1449,7 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
   auto& block = region->front();
 
   auto location_offset =
-      entity_index_.GetLocationPositionOffset(region->getLoc(), entities_);
+      entity_index_.GetLocationPositionOffset(region->getParentOp());
   EmitInt(location_offset);
 
   // Emit the register table.
@@ -1638,8 +1629,7 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   kernel_list->EmitInt4(entities_.GetKernelID(op));
 
   // Include a location.
-  auto location_offset =
-      entity_index_.GetLocationPositionOffset(op->getLoc(), entities_);
+  auto location_offset = entity_index_.GetLocationPositionOffset(op);
   kernel_list->EmitInt4(location_offset);
 
   // Because the numbers of each types of entries are emitted first, we use

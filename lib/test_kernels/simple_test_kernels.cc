@@ -326,6 +326,34 @@ static void TestSyncSumAttributes(SyncKernelFrame* frame) {
   frame->EmplaceResultAt<int>(0, sum);
 }
 
+// For testing that invocations of this kernel with different name get
+// different locations.
+static llvm::Expected<Chain> TestUniqueLoc(StringAttribute name,
+                                           const ExecutionContext& exec_ctx) {
+  class LocMap {
+   public:
+    // Return true if there is no entry for `loc` or the existing loc has the
+    // same `name`.
+    bool InsertIfNotExistsOrSame(Location loc, string_view name) {
+      mutex_lock lock(m_);
+      auto r = locs_.try_emplace(loc.data, name);
+      if (!r.second) return r.first->second == name;
+      return true;
+    }
+
+   private:
+    mutex m_;
+    llvm::DenseMap<intptr_t, string_view> locs_;
+  };
+
+  static auto* const loc_map = new LocMap;
+
+  if (!loc_map->InsertIfNotExistsOrSame(exec_ctx.location(), name.get()))
+    return MakeStringError("duplicate locations ", exec_ctx.location().data);
+
+  return Chain();
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -346,6 +374,8 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestReportErrorAsync));
   registry->AddKernel("tfrt_test.const_dense_attr",
                       TFRT_KERNEL(TestConstDenseAttr));
+  registry->AddKernel("tfrt_test.unique_loc", TFRT_KERNEL(TestUniqueLoc));
+
   registry->AddSyncKernel("tfrt_test.sync.const_dense_attr",
                           TFRT_SYNC_KERNEL(TestConstDenseAttr));
 

@@ -195,9 +195,19 @@ template <typename T>
 std::tuple<T, T, T> TestCount3(T x) {
   return {x + 1, x + 2, x + 3};
 }
+
+static void TestIdentity(Argument<Chain>, RemainingArguments args,
+                         RemainingResults results) {
+  assert(args.size() == results.size());
+  for (int i = 0; i < args.size(); ++i) {
+    results[i] = FormRef(args[i]);
+  }
+}
+
 }  // namespace
 
 void RegisterSimpleKernels(KernelRegistry* registry) {
+  registry->AddKernel("tfrt_test.identity", TFRT_KERNEL(TestIdentity));
   registry->AddKernel("tfrt_test.print_hello", TFRT_KERNEL(TestPrintHello));
   registry->AddKernel("tfrt_test.sum", TFRT_KERNEL(TestSum));
   registry->AddKernel("tfrt_test.share_to_two", TFRT_KERNEL(TestShareToTwo));

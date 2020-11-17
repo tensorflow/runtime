@@ -426,3 +426,13 @@ func @test_error_result_async_unused() -> i32 {
   // CHECK: 'test_error_result_async_unused' returned 123
   tfrt.return %x : i32
 }
+
+// CHECK-LABEL: --- Running 'test_identity'
+func @test_identity() {
+  %ch = tfrt.new.chain
+  %x = tfrt.constant.i32 123
+  %y = "tfrt_test.identity"(%ch, %x) : (!tfrt.chain, i32) -> (i32)
+  // CHECK: int32 = 123
+  tfrt.print.i32 %y, %ch
+  tfrt.return
+}

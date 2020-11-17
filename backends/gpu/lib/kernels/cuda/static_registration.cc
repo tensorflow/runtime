@@ -27,11 +27,13 @@ namespace cuda {
 
 void RegisterCudaKernels(KernelRegistry* kernel_reg);
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg);
+void RegisterCudaDnnKernels(KernelRegistry* kernel_reg);
 
 namespace kernels {
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaBlasKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaDnnKernels);
 
 }  // namespace kernels
 }  // namespace cuda

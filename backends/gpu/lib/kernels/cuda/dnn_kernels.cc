@@ -1,0 +1,322 @@
+// Copyright 2020 The TensorFlow Runtime Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//===- dnn_kernels.cc - CUDA runtime interface ----------------------------===//
+//
+// This file defines the C++ functions that implement the kernels provided by
+// the TFRT CUDA runtime.
+//
+//===----------------------------------------------------------------------===//
+#include <cstdint>
+#include <memory>
+#include <string>
+
+#include "kernels.h"
+#include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/Error.h"
+#include "llvm/Support/raw_ostream.h"
+#include "llvm_derived/Support/raw_ostream.h"
+#include "tfrt/dtype/dtype.h"
+#include "tfrt/gpu/memory/caching_gpu_allocator.h"
+#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/gpu/module_table.h"
+#include "tfrt/gpu/stream/cuda_wrapper.h"
+#include "tfrt/gpu/stream/dnn_wrapper.h"
+#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/tensor/dense_gpu_tensor.h"
+#include "tfrt/host_context/kernel_registry.h"
+#include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/tensor_shape.h"
+#include "tfrt/tensor/tensor_type_registration.h"
+
+namespace tfrt {
+namespace cuda {
+
+// Overloaded helpers for the REPORT_ERROR macro. Allows the macro
+// to use either strings or llvm::Errors.
+static void ReportErrorInternal(KernelErrorHandler error_handler,
+                                string_view error_message, string_view file,
+                                int line) {
+  return error_handler.ReportError(file, ':', line, ' ', error_message);
+}
+
+static void ReportErrorInternal(KernelErrorHandler error_handler, Error error,
+                                string_view file, int line) {
+  llvm::handleAllErrors(std::move(error), [&](const llvm::ErrorInfoBase& info) {
+    ReportErrorInternal(error_handler, info.message(), file, line);
+  });
+}
+
+#define REPORT_ERROR(error_handler, error) \
+  ReportErrorInternal(error_handler, error, __FILE__, __LINE__)
+
+template <typename T>
+llvm::Expected<ArrayRef<T>> GetTensorData(const DenseHostTensor& t) {
+  if (t.shape().GetRank() != 1) {
+    return MakeStringError(
+        "GetTensorData: input tensor is not a rank 1 tensor");
+  }
+  if (t.dtype() != GetDType<T>())
+    return tfrt::MakeStringError(
+        "GetTensorData: input tensor type mismatch with desired vector type.");
+  return ArrayRef<T>(static_cast<const T*>(t.data()), t.NumElements());
+}
+
+// Casting UI32 from MLIR to the proper DNN enumerator typ.
+llvm::Expected<gpu::stream::DnnPoolingMode> IntToDnnPoolingMode(uint32_t mode) {
+  switch (mode) {
+    case 0:
+      return gpu::stream::DnnPoolingMode::kPoolingMax;
+    case 1:
+      return gpu::stream::DnnPoolingMode::kPoolingAverageCountIncludePadding;
+    case 2:
+      return gpu::stream::DnnPoolingMode::kPoolingAverageCountExcludePadding;
+    case 3:
+      return gpu::stream::DnnPoolingMode::kPoolingMaxDeterministic;
+    default:
+      return MakeStringError("UI32 mode out of range for enum cast");
+  }
+}
+
+llvm::Expected<gpu::stream::DnnNanPropagation> IntToDnnNanPropagation(
+    uint32_t nan_propagation) {
+  switch (nan_propagation) {
+    case 0:
+      return gpu::stream::DnnNanPropagation::kNotPropagateNan;
+    case 1:
+      return gpu::stream::DnnNanPropagation::kPropagateNan;
+    default:
+      return MakeStringError("UI32 nan_propagation out of range for enum cast");
+  }
+}
+
+llvm::Expected<gpu::stream::DnnDataType> IntToDnnDataType(uint32_t data_type) {
+  switch (data_type) {
+    case 0:
+      return gpu::stream::DnnDataType::kFloat;
+    case 1:
+      return gpu::stream::DnnDataType::kDouble;
+    case 2:
+      return gpu::stream::DnnDataType::kHalf;
+    case 3:
+      return gpu::stream::DnnDataType::kInt8;
+    case 4:
+      return gpu::stream::DnnDataType::kInt32;
+    case 5:
+      return gpu::stream::DnnDataType::kInt8x4;
+    case 6:
+      return gpu::stream::DnnDataType::kUint8;
+    case 7:
+      return gpu::stream::DnnDataType::kUint8x4;
+    case 8:
+      return gpu::stream::DnnDataType::kInt8x32;
+    default:
+      return MakeStringError("UI32 data_type out of range for enum cast");
+  }
+}
+
+using ::tfrt::gpu::stream::Pointer;
+
+static void DnnCreate(Argument<gpu::stream::Context> context,
+                      Argument<Chain> in_chain,
+                      Result<gpu::stream::OwningDnnHandle> dnn_handle,
+                      Result<Chain> out_chain, KernelErrorHandler handler) {
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  if (!current) return REPORT_ERROR(handler, current.takeError());
+  auto handle = gpu::stream::DnnCreate(*current);
+  if (!handle) return REPORT_ERROR(handler, handle.takeError());
+  dnn_handle.Emplace(std::move(*handle));
+  out_chain.Set(in_chain);
+}
+
+static void DnnDestroy(Argument<gpu::stream::OwningDnnHandle> dnn_handle,
+                       Argument<Chain> in_chain, Result<Chain> out_chain,
+                       KernelErrorHandler handler) {
+  if (auto error = gpu::stream::DnnDestroy(dnn_handle->get()))
+    return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
+static void DnnCreatePoolingDescriptor(
+    Argument<gpu::stream::Context> context, Argument<uint32_t> mode,
+    Argument<uint32_t> nan_propagation,
+    const DenseHostTensor& window_dimensions, const DenseHostTensor& paddings,
+    const DenseHostTensor& strides, Argument<Chain> in_chain,
+    Result<gpu::stream::OwningDnnPoolingDescriptor> dnn_pooling_descriptor,
+    Result<Chain> out_chain, KernelErrorHandler handler) {
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  auto descriptor =
+      gpu::stream::DnnCreatePoolingDescriptor(current->platform());
+  if (!descriptor) return REPORT_ERROR(handler, descriptor.takeError());
+  if (window_dimensions.dtype().kind() != tfrt::DType::I32)
+    return REPORT_ERROR(
+        handler,
+        "DnnCreatePoolingDescriptor: window_dimensions is not an I32 tensor.");
+  auto win_dim = GetTensorData<int>(window_dimensions);
+  if (!win_dim)
+    return REPORT_ERROR(
+        handler,
+        "DnnCreatePoolingDescriptor: window_dimensions is not a 1D tensor.");
+  if (paddings.dtype().kind() != tfrt::DType::I32)
+    return REPORT_ERROR(
+        handler, "DnnSetPoolingDescriptor: paddings is not an I32 tensor.");
+  auto pddngs = GetTensorData<int>(paddings);
+  if (!pddngs)
+    return REPORT_ERROR(
+        handler, "DnnSetPoolingDescriptor: paddings is not a 1D tensor.");
+  if (strides.dtype().kind() != tfrt::DType::I32)
+    return REPORT_ERROR(
+        handler, "DnnCreatePoolingDescriptor: strides is not an I32 tensor.");
+  auto strds = GetTensorData<int>(strides);
+  if (!strds)
+    return REPORT_ERROR(
+        handler, "DnnCreatePoolingDescriptor: strides is not a 1D tensor.");
+  if (auto error = gpu::stream::DnnSetPoolingDescriptor(
+          *current, descriptor.get().get(),
+          IntToDnnPoolingMode(mode.get()).get(),
+          IntToDnnNanPropagation(nan_propagation.get()).get(), win_dim.get(),
+          pddngs.get(), strds.get()))
+    return REPORT_ERROR(handler, std::move(error));
+  dnn_pooling_descriptor.Emplace(std::move(*descriptor));
+  out_chain.Set(in_chain);
+}
+
+static void DnnDestroyPoolingDescriptor(
+    Argument<gpu::stream::OwningDnnPoolingDescriptor> descriptor,
+    Argument<Chain> in_chain, Result<Chain> out_chain,
+    KernelErrorHandler handler) {
+  if (auto error = gpu::stream::DnnDestroyPoolingDescriptor(descriptor->get()))
+    return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
+static void DnnCreateTensorDescriptor(
+    Argument<gpu::stream::Context> context, Argument<uint32_t> data_type,
+    const DenseHostTensor& dimensions, const DenseHostTensor& strides,
+    Argument<Chain> in_chain,
+    Result<gpu::stream::OwningDnnTensorDescriptor> dnn_tensor_descriptor,
+    Result<Chain> out_chain, KernelErrorHandler handler) {
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  auto descriptor = gpu::stream::DnnCreateTensorDescriptor(current->platform());
+  if (!descriptor) return REPORT_ERROR(handler, descriptor.takeError());
+  if (dimensions.dtype().kind() != tfrt::DType::I32)
+    return REPORT_ERROR(
+        handler, "DnnCreateTensorDescriptor: dimensions is not an I32 tensor.");
+  auto dim = GetTensorData<int>(dimensions);
+  if (!dim)
+    return REPORT_ERROR(
+        handler, "DnnCreateTensorDescriptor: dimensions is not a 1D tensor.");
+  if (strides.dtype().kind() != tfrt::DType::I32)
+    return REPORT_ERROR(
+        handler, "DnnCreateTensorDescriptor: strides is not an I32 tensor.");
+  auto strds = GetTensorData<int>(strides);
+  if (!strds)
+    return REPORT_ERROR(
+        handler, "DnnCreateTensorDescriptor: strides is not a 1D tensor.");
+  if (auto error = gpu::stream::DnnSetTensorDescriptor(
+          descriptor.get().get(), IntToDnnDataType(data_type.get()).get(),
+          dim.get(), strds.get()))
+    return REPORT_ERROR(handler, std::move(error));
+  dnn_tensor_descriptor.Emplace(std::move(*descriptor));
+  out_chain.Set(in_chain);
+}
+
+static void DnnDestroyTensorDescriptor(
+    Argument<gpu::stream::OwningDnnTensorDescriptor> descriptor,
+    Argument<Chain> in_chain, Result<Chain> out_chain,
+    KernelErrorHandler handler) {
+  if (auto error = gpu::stream::DnnDestroyTensorDescriptor(descriptor->get()))
+    return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
+static void DnnPoolingForward(
+    Argument<gpu::stream::Context> context,
+    Argument<gpu::stream::OwningDnnHandle> handle,
+    Argument<gpu::stream::OwningDnnPoolingDescriptor> pooling_desc,
+    Argument<float> alpha,
+    Argument<gpu::stream::OwningDnnTensorDescriptor> x_desc,
+    Argument<RCReference<gpu::GpuBuffer>> x, Argument<float> beta,
+    Argument<const gpu::stream::OwningDnnTensorDescriptor> y_desc,
+    Argument<RCReference<gpu::GpuBuffer>> y, Argument<Chain> in_chain,
+    Result<Chain> out_chain, KernelErrorHandler handler) {
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  if (!current) return REPORT_ERROR(handler, current.takeError());
+  Pointer<const void> alpha_ptr(&(*alpha), context->platform());
+  Pointer<const void> beta_ptr(&(*beta), context->platform());
+
+  if (auto error = tfrt::gpu::stream::DnnPoolingForward(
+          *current, handle->get(), pooling_desc->get(), alpha_ptr,
+          x_desc->get(), Pointer<const void>(x->get()->pointer()), beta_ptr,
+          y_desc->get(), Pointer<void>(y->get()->pointer())))
+    return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
+static void DnnPoolingBackward(
+    Argument<gpu::stream::Context> context,
+    Argument<gpu::stream::OwningDnnHandle> handle,
+    Argument<gpu::stream::OwningDnnPoolingDescriptor> pooling_desc,
+    Argument<float> alpha,
+    Argument<gpu::stream::OwningDnnTensorDescriptor> y_desc,
+    Argument<RCReference<gpu::GpuBuffer>> y,
+    Argument<const gpu::stream::OwningDnnTensorDescriptor> dy_desc,
+    Argument<RCReference<gpu::GpuBuffer>> dy,
+    Argument<gpu::stream::OwningDnnTensorDescriptor> x_desc,
+    Argument<RCReference<gpu::GpuBuffer>> x, Argument<float> beta,
+    Argument<const gpu::stream::OwningDnnTensorDescriptor> dx_desc,
+    Argument<RCReference<gpu::GpuBuffer>> dx, Argument<Chain> in_chain,
+    Result<Chain> out_chain, KernelErrorHandler handler) {
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  if (!current) return REPORT_ERROR(handler, current.takeError());
+  Pointer<const void> alpha_ptr(&*alpha, context->platform());
+  Pointer<const void> beta_ptr(&(*beta), context->platform());
+
+  if (auto error = gpu::stream::DnnPoolingBackward(
+          *current, handle->get(), pooling_desc->get(), alpha_ptr,
+          y_desc->get(), Pointer<const void>(y->get()->pointer()),
+          dy_desc->get(), Pointer<const void>(dy->get()->pointer()),
+          x_desc->get(), Pointer<const void>(x->get()->pointer()), beta_ptr,
+          dx_desc->get(), Pointer<void>(dx->get()->pointer())))
+    return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
+void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
+  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create", TFRT_KERNEL(DnnCreate));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_destroy", TFRT_KERNEL(DnnDestroy));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create_pooling_descriptor",
+                        TFRT_KERNEL(DnnCreatePoolingDescriptor));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_destroy_pooling_descriptor",
+                        TFRT_KERNEL(DnnDestroyPoolingDescriptor));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create_tensor_descriptor",
+                        TFRT_KERNEL(DnnCreateTensorDescriptor));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_destroy_tensor_descriptor",
+                        TFRT_KERNEL(DnnDestroyTensorDescriptor));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.pooling_forward",
+                        TFRT_KERNEL(DnnPoolingForward));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.pooling_backward",
+                        TFRT_KERNEL(DnnPoolingBackward));
+}
+
+}  // namespace cuda
+}  // namespace tfrt

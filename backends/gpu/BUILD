@@ -642,6 +642,7 @@ gentbl(
         "@tf_runtime//:OpBaseTdFiles",
         "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td",
         "include/tfrt/gpu/kernels/cuda_opdefs/cuda_blas_ops.td",
+        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_dnn_ops.td",
     ],
 )
 
@@ -711,6 +712,7 @@ tfrt_cc_library(
     name = "cuda",
     srcs = [
         "lib/kernels/cuda/blas_kernels.cc",
+        "lib/kernels/cuda/dnn_kernels.cc",
         "lib/kernels/cuda/kernels.cc",
         "lib/kernels/cuda/kernels.h",
     ],

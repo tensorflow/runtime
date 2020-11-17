@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cuda_ops.td ---------------------------------------------------------===//
+//===- cuda_ops.td --------------------------------------------------------===//
 //
 // CUDA based CUDA pperation definitions.
 //
@@ -29,6 +29,7 @@ include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_blas_ops.td"
+include "tfrt/gpu/kernels/cuda_opdefs/cuda_dnn_ops.td"
 
 def InitOp : CUDA_Op<"init"> {
   let summary = "cuda init operation";

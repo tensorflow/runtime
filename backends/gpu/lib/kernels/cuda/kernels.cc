@@ -18,7 +18,6 @@
 // the TFRT CUDA runtime.
 //
 //===----------------------------------------------------------------------===//
-#include "kernels.h"
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"

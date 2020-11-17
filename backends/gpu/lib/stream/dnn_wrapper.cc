@@ -205,6 +205,18 @@ llvm::Expected<Stream> DnnGetStream(DnnHandle handle) {
   }
 }
 
+llvm::Expected<OwningDnnTensorDescriptor> DnnCreateTensorDescriptor(
+    Platform platform) {
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnCreateTensorDescriptor();
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor) {
   auto platform = descriptor.platform();
   switch (platform) {
@@ -263,6 +275,17 @@ llvm::Error DnnDestroyConvolutionDescriptor(
   }
 }
 
+llvm::Expected<OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
+    Platform platform) {
+  switch (platform) {
+    case Platform::CUDA:
+      return CudnnCreatePoolingDescriptor();
+    case Platform::ROCm:
+      return UnsupportedPlatform(platform);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
 llvm::Error DnnDestroyPoolingDescriptor(DnnPoolingDescriptor descriptor) {
   auto platform = descriptor.platform();
   switch (platform) {

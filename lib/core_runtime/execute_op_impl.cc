@@ -95,10 +95,27 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
   }
 }
 
+// Set up `op_attrs` with binary attributes in `op_attr_func_array`.
+// `op_attr_func_array` is an array of string that denotes function attributes.
+void SetUpOpFuncAttrs(AggregateAttr op_func_attr_array, OpAttrs *op_attrs) {
+  for (size_t i = 0, e = op_func_attr_array.GetNumElements(); i != e; ++i) {
+    auto pair = op_func_attr_array.GetAttributeOfType<AggregateAttr>(i);
+    assert(pair.GetNumElements() == 2);
+    string_view key = pair.GetAttributeOfType<StringAttr>(0).GetValue();
+    TypedAttrBase attr = pair.GetAttribute(1);
+
+    // The function attribute is string typed.
+    assert(IsDataTypeAttribute(attr.type()) &&
+           GetDataType(attr.type()) == DType::String);
+    auto string_attr = attr.cast<StringAttr>().GetValue();
+    op_attrs->SetFunc(key, {string_attr});
+  }
+}
 void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
                    AsyncValueRef<Chain> *op_chain,
                    MutableArrayRef<RCReference<AsyncValue>> results,
                    AggregateAttr op_attr_array,
+                   AggregateAttr op_func_attr_array,
                    const ExecutionContext &exec_ctx) {
   SmallVector<TensorHandle, 8> th_args;
   th_args.reserve(args.size());
@@ -120,6 +137,9 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
   // Set up OpAttrs.
   OpAttrs op_attrs;
   SetUpOpAttrs(op_attr_array, &op_attrs);
+
+  // Set up OpAttrs specifically for function attributes.
+  SetUpOpFuncAttrs(op_func_attr_array, &op_attrs);
 
   op(exec_ctx, th_args, OpAttrsRef(op_attrs), result_ths, op_chain);
 

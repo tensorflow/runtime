@@ -75,7 +75,8 @@ static LogicalResult verify(ExecuteOp op) {
 }
 
 static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
-  return corert::ParseExecuteOpImpl(parser, result, /*num_chains=*/0);
+  return corert::ParseExecuteOpImpl(parser, result, /*num_chains=*/0,
+                                    /*has_func_attr=*/false);
 }
 
 static void print(OpAsmPrinter &p, ExecuteOp op) {
@@ -83,6 +84,7 @@ static void print(OpAsmPrinter &p, ExecuteOp op) {
     << op.getAttr("op_name") << '(' << op.operands() << ')';
 
   corert::PrintExecuteOpImpl(p, op);
+  if (!op.results().empty()) p << " : " << op.results().size();
 }
 
 void ExecuteOp::getOpAttrs(

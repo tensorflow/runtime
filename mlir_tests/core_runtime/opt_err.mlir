@@ -32,7 +32,7 @@ func @invalid_opattrs() {
 
   // expected-error @+1 {{'corert.executeop' op each op_attr should be a key-value pair, where the key is a string}}
   %res0 = "corert.executeop" (%cpu)
-    {op_name = "some.op", op_attrs = [1 : i32]} : (!corert.ophandler) -> !corert.tensorhandle
+    {op_name = "some.op", op_attrs = [1 : i32], op_func_attrs = []} : (!corert.ophandler) -> !corert.tensorhandle
 
   tfrt.return %res0 : !corert.tensorhandle
 }

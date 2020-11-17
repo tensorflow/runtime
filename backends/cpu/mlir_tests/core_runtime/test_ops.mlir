@@ -43,7 +43,7 @@ func @create_from_scalar_error() -> !tfrt.chain {
   %cpu = corert.get_op_handler %ch0 "cpu"
 
   // expected-error @+1 {{test.create_from_scalar must have 'value' attribute}}
-  %a_handle = "corert.executeop"(%cpu) {op_attrs = [["shape", [2 : i64, 3 : i64]]], op_name = "tfrt_test.create_from_scalar"}
+  %a_handle = "corert.executeop"(%cpu) {op_attrs = [["shape", [2 : i64, 3 : i64]]], op_name = "tfrt_test.create_from_scalar", op_func_attrs = []}
     : (!corert.ophandler) -> !corert.tensorhandle
 
   tfrt.return %ch0 : !tfrt.chain

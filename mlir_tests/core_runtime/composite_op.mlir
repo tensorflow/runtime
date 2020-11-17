@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s)
 
 func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
@@ -38,7 +38,7 @@ func @corert.simple_composite_op() -> !tfrt.chain {
 
   %matmul_fn_op = "corert.make_composite_op" () {fn=@matmul_fn} : () -> !corert.op
 
-  %result = "corert.execute_crt_op" (%matmul_fn_op, %a_handle) {op_attrs =[]} : (!corert.op, !corert.tensorhandle) -> !corert.tensorhandle
+  %result = "corert.execute_crt_op" (%matmul_fn_op, %a_handle) {op_attrs = [], op_func_attrs = []} : (!corert.op, !corert.tensorhandle) -> !corert.tensorhandle
 
   // CHECK: shape = [1, 1], values = [4.000000e+00]
   %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
@@ -69,7 +69,7 @@ func @corert.composite_op_result_multi_fanout() -> !tfrt.chain {
 
   %matmul_fn_op = "corert.make_composite_op" () {fn=@matmul_fn_two_results} : () -> !corert.op
 
-  %result, %result_1 = "corert.execute_crt_op" (%matmul_fn_op, %a_handle) {op_attrs =[]} : (!corert.op, !corert.tensorhandle) -> (!corert.tensorhandle, !corert.tensorhandle)
+  %result, %result_1 = "corert.execute_crt_op" (%matmul_fn_op, %a_handle) {op_attrs =[], op_func_attrs = []} : (!corert.op, !corert.tensorhandle) -> (!corert.tensorhandle, !corert.tensorhandle)
 
   // CHECK: shape = [1, 1], values = [4.000000e+00]
   %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
@@ -115,7 +115,7 @@ func @corert.composite_op_async_output() -> !tfrt.chain {
 
   %fn_op = "corert.make_composite_op" () {fn=@func_with_control_flow} : () -> !corert.op
 
-  %result = "corert.execute_crt_op" (%fn_op, %true_handle) {op_attrs =[]} : (!corert.op, !corert.tensorhandle) -> (!corert.tensorhandle)
+  %result = "corert.execute_crt_op" (%fn_op, %true_handle) {op_attrs =[], op_func_attrs = []} : (!corert.op, !corert.tensorhandle) -> (!corert.tensorhandle)
 
   // CHECK: DenseHostTensor dtype = I32, shape = [2, 2], values = [1, 1, 1, 1]
   %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain

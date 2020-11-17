@@ -43,11 +43,34 @@ LogicalResult VerifyExecuteOpImpl(OpTy op) {
 }
 
 template <typename OpTy>
+void PrintExecuteOpFuncAttribute(mlir::OpAsmPrinter &p, OpTy op) {
+  auto op_func_attrs = op.op_func_attrs();
+  if (!op_func_attrs.empty()) {
+    auto print_key_value = [&](mlir::Attribute attr) {
+      auto key_value = attr.cast<mlir::ArrayAttr>().getValue();
+      assert(key_value.size() == 2 && "invalid named attribute format.");
+      auto key = key_value[0];
+      auto value = key_value[1];
+
+      p << key.cast<mlir::StringAttr>().getValue();
+      p << " = ";
+      p << value;
+    };
+
+    auto op_func_attr_array = op_func_attrs.getValue();
+    p << " {";
+    llvm::interleaveComma(op_func_attr_array, p, print_key_value);
+    p << '}';
+  }
+}
+
+template <typename OpTy>
 void PrintExecuteOpImpl(OpAsmPrinter &p, OpTy op) {
   auto op_attrs = op.op_attrs();
   if (!op_attrs.empty()) {
     auto print_key_value = [&](mlir::Attribute attr) {
       auto key_value = attr.cast<ArrayAttr>().getValue();
+      assert(key_value.size() == 2 && "invalid named attribute format.");
       auto key = key_value[0];
       auto value = key_value[1];
 
@@ -61,11 +84,10 @@ void PrintExecuteOpImpl(OpAsmPrinter &p, OpTy op) {
     interleaveComma(op_attr_array, p, print_key_value);
     p << '}';
   }
-  if (!op.results().empty()) p << " : " << op.results().size();
 }
 
 ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
-                               int num_chains);
+                               int num_chains, bool has_func_attr = false);
 
 }  // namespace corert
 }  // namespace tfrt

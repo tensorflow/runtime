@@ -220,7 +220,8 @@ static llvm::Expected<TensorHandle> CreateDenseTensor(
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
 static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
                       RemainingResults results, AggregateAttr op_attr_array,
-                      StringAttr op_name, KernelErrorHandler handler,
+                      AggregateAttr op_func_attr_array, StringAttr op_name,
+                      KernelErrorHandler handler,
                       const ExecutionContext &exec_ctx) {
   auto *host = exec_ctx.host();
   auto *core_rt = CoreRuntime::GetFromHostContext(host);
@@ -234,7 +235,7 @@ static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
 
   ExecuteOpImpl(std::move(expected_op.get()), args.values(),
                 /*op_chain =*/nullptr, results.values(), op_attr_array,
-                exec_ctx);
+                op_func_attr_array, exec_ctx);
 }
 
 // Synchronous version of ExecuteOp.
@@ -261,7 +262,8 @@ static Error ExecuteOpSync(SyncArgument<OpHandler *> op_handler,
 static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
                          Argument<Chain> in_op_chain, RemainingArguments args,
                          Result<Chain> out_op_chain, RemainingResults results,
-                         AggregateAttr op_attr_array, StringAttr op_name,
+                         AggregateAttr op_attr_array,
+                         AggregateAttr op_func_attr_array, StringAttr op_name,
                          KernelErrorHandler handler,
                          const ExecutionContext &exec_ctx) {
   auto *host = exec_ctx.host();
@@ -285,7 +287,8 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
 
     auto op_chain = in_op_chain.ValueRef();
     ExecuteOpImpl(std::move(expected_op.get()), args.values(), &op_chain,
-                  results.values(), op_attr_array, exec_ctx);
+                  results.values(), op_attr_array, op_func_attr_array,
+                  exec_ctx);
     out_op_chain.Set(std::move(op_chain));
     return;
   }
@@ -309,7 +312,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
        op_chain = in_op_chain.ValueRef(), arg_refs = std::move(arg_refs),
        result_refs = std::move(result_refs),
        out_op_chain = out_op_chain.Allocate(), op_name = op_name.GetValue(),
-       op_attr_array, exec_ctx]() mutable {
+       op_attr_array, op_func_attr_array, exec_ctx]() mutable {
         auto propgate_error = [&](const DecodedDiagnostic &diag) {
           out_op_chain.SetError(diag);
           for (auto &result_ref : result_refs) result_ref->SetError(diag);
@@ -330,7 +333,7 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
         }
 
         ExecuteOpImpl(std::move(expected_op.get()), arg_avs, &op_chain,
-                      result_refs, op_attr_array, exec_ctx);
+                      result_refs, op_attr_array, op_func_attr_array, exec_ctx);
 
         auto *op_chain_av = op_chain.GetAsyncValue();
         op_chain_av->AndThen([op_chain = std::move(op_chain),
@@ -351,6 +354,7 @@ static void ExecuteCoreRuntimeOp(Argument<CoreRuntimeOp> op,
                                  RemainingArguments args,
                                  RemainingResults results,
                                  AggregateAttr op_attrs,
+                                 AggregateAttr op_func_attrs,
                                  KernelErrorHandler handler,
                                  const ExecutionContext &exec_ctx) {
   auto *host = exec_ctx.host();
@@ -361,7 +365,8 @@ static void ExecuteCoreRuntimeOp(Argument<CoreRuntimeOp> op,
     results.AllocateAt<TensorHandle>(b);
 
   ExecuteOpImpl(std::move(op.get()), args.values(),
-                /*op_chain =*/nullptr, results.values(), op_attrs, exec_ctx);
+                /*op_chain =*/nullptr, results.values(), op_attrs,
+                op_func_attrs, exec_ctx);
 }
 
 static tfrt::Expected<CoreRuntimeOp> MakeCompositeOp(
@@ -586,9 +591,9 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
     auto &src_device_ref = condition_tensorhandle.GetAvailableDevice();
     auto &tensor = condition_async_tensor->get<Tensor>();
 
-    // NOTE(fishx): Right now, we will try to implicit transfer the
+    // NOTE(fishx): Right now, we will try to implicitly transfer the
     // condition tensor to cpu and read its value. However, in the
-    // future, we should try not do implicit copy here. Instead, we
+    // future, we should try not do implicitly copy here. Instead, we
     // should let the compiler insert transfer kernel explicitly.
     AsyncValueRef<HostTensor> condition_host_tensor =
         AsyncValueRef<HostTensor>(ConvertTensor(

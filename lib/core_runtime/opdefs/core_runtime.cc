@@ -188,6 +188,7 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
                       ArrayRef<Type> results, Value op_handler,
                       ValueRange operands,
                       ArrayRef<std::pair<StringRef, Attribute>> op_attrs,
+                      ArrayRef<std::pair<StringRef, Attribute>> op_func_attrs,
                       StringRef op_name) {
   SmallVector<Attribute, 4> attrs;
   for (const auto &named_attr : op_attrs) {
@@ -195,33 +196,49 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
     SmallVector<Attribute, 2> key_value{name, named_attr.second};
     attrs.push_back(ArrayAttr::get(key_value, builder.getContext()));
   }
+
+  SmallVector<Attribute, 4> func_attrs;
+  for (const auto &named_attr : op_func_attrs) {
+    auto name = builder.getStringAttr(named_attr.first);
+    SmallVector<Attribute, 2> key_value{name, named_attr.second};
+    func_attrs.push_back(ArrayAttr::get(key_value, builder.getContext()));
+  }
+
   auto attr = ArrayAttr::get(attrs, builder.getContext());
-  build(builder, state, results, op_handler, operands, attr, op_name);
+  auto func_attr = ArrayAttr::get(func_attrs, builder.getContext());
+  build(builder, state, results, op_handler, operands, attr, func_attr,
+        op_name);
 }
 
 static LogicalResult verify(ExecuteOp op) { return VerifyExecuteOpImpl(op); }
 static LogicalResult verify(ExecuteOpSeq op) { return VerifyExecuteOpImpl(op); }
 
 static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
-  return ParseExecuteOpImpl(parser, result, /*num_chains=*/0);
+  return ParseExecuteOpImpl(parser, result, /*num_chains=*/0,
+                            /*has_func_attr=*/true);
 }
 static ParseResult parseExecuteOpSeq(OpAsmParser &parser,
                                      OperationState &result) {
   // ExecuteOpSeq is nonstrict.
   result.addAttribute("bef.nonstrict", parser.getBuilder().getUnitAttr());
-  return ParseExecuteOpImpl(parser, result, /*num_chains=*/1);
+  return ParseExecuteOpImpl(parser, result, /*num_chains=*/1,
+                            /*has_func_attr=*/true);
 }
 static void print(OpAsmPrinter &p, ExecuteOp op) {
   p << "corert.executeop(" << op.op_handler() << ") " << op.getAttr("op_name")
     << '(' << op.operands() << ')';
 
   PrintExecuteOpImpl(p, op);
+  PrintExecuteOpFuncAttribute(p, op);
+  if (!op.results().empty()) p << " : " << op.results().size();
 }
 static void print(OpAsmPrinter &p, ExecuteOpSeq op) {
   p << "corert.executeop.seq(" << op.op_handler() << ", " << op.in_op_chain()
     << ") " << op.getAttr("op_name") << '(' << op.operands() << ')';
 
   PrintExecuteOpImpl(p, op);
+  PrintExecuteOpFuncAttribute(p, op);
+  if (!op.results().empty()) p << " : " << op.results().size();
 }
 
 void ExecuteOp::getOpAttrs(

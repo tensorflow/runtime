@@ -40,7 +40,7 @@ static Type GetTensorHandleType(Builder *builder) {
 }
 
 ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
-                               int num_chains) {
+                               int num_chains, bool has_func_attr) {
   auto &builder = parser.getBuilder();
   auto op_handler_type = GetOpHandlerType(&builder);
   auto chain_type = GetChainType(&builder);
@@ -50,13 +50,15 @@ ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
   SmallVector<OpAsmParser::OperandType, 4> op_handler_and_in_chains;
   SmallVector<OpAsmParser::OperandType, 4> operands;
   NamedAttrList op_attrs;
+  NamedAttrList op_func_attrs;
   auto loc = parser.getNameLoc();
   if (parser.parseOperandList(op_handler_and_in_chains,
                               /*requiredOperandCount=*/num_chains + 1,
                               OpAsmParser::Delimiter::Paren) ||
       parser.parseAttribute(op_name, "op_name", result.attributes) ||
       parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren) ||
-      parser.parseOptionalAttrDict(op_attrs))
+      parser.parseOptionalAttrDict(op_attrs) ||
+      parser.parseOptionalAttrDict(op_func_attrs))
     return failure();
 
   int64_t num_results = 0;
@@ -88,6 +90,19 @@ ParseResult ParseExecuteOpImpl(OpAsmParser &parser, OperationState &result,
 
   result.attributes.push_back(
       builder.getNamedAttr("op_attrs", builder.getArrayAttr(op_attr_array)));
+
+  // TODO(tfrt-devs): support func attributes in corert_sync.
+  if (has_func_attr) {
+    llvm::SmallVector<mlir::Attribute, 4> op_func_attr_array;
+    for (const auto &key_value : op_func_attrs) {
+      auto key = builder.getStringAttr(key_value.first.strref());
+      auto value = key_value.second;
+      op_func_attr_array.push_back(builder.getArrayAttr({key, value}));
+    }
+
+    result.attributes.push_back(builder.getNamedAttr(
+        "op_func_attrs", builder.getArrayAttr(op_func_attr_array)));
+  }
 
   return success();
 }

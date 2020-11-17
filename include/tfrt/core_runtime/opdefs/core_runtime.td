@@ -117,12 +117,24 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait
       %res = corert.executeop(%op_handler) "some.op"(%arg) : 1
 
     Note that the trailing number indicates the number of results.
+
+
+    The func attrs and op attrs are placed in two separate regions.
+
+    Example:
+      %res = corert.executeop(%op_handler) "some.op"(%arg)
+      {attr1 = value, attr2 = value2} {f_attr1 = "fn1", f_attr2 = "fn2"} : 1
+
+    Note that in this case, the first braket contains op attributes other than
+    function attributes, and the second braket contains function attributes,
+    which represent function names.
   }];
 
   let arguments = (ins
     CoreRT_OpHandlerType:$op_handler,
     Variadic<CoreRT_TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
+    ArrayAttr:$op_func_attrs,
     StrAttr:$op_name
   );
 
@@ -140,6 +152,7 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait
     OpBuilderDAG<(ins "ArrayRef<Type>":$results, "Value":$op_handler,
       "ValueRange":$operands,
       "ArrayRef<std::pair<StringRef, Attribute>>":$op_attrs,
+      "ArrayRef<std::pair<StringRef, Attribute>>":$op_func_attrs,
       "StringRef":$op_name)>];
 }
 
@@ -155,6 +168,16 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
       %op_ch_out, %res = corert.executeop.seq(%op_handler, %op_ch_in) "some.op"(%arg) : 1
 
     Note that the trailing number indicates the number of results.
+
+    The func attrs and op attrs are placed in two separate regions.
+
+    Example:
+      %op_ch_out, %res = corert.executeop.seq(%op_ch_in) "some.op"(%arg)
+      {fn = function_1} {attr1 = value, attr2 = value2} : 1
+
+    Note that in this case, the first braket contains op attributes other than
+    function attributes, and the second braket contains function attributes,
+    which represent function names.
   }];
 
   let arguments = (ins
@@ -162,6 +185,7 @@ def ExecuteOpSeq : CoreRT_Op<"executeop.seq", [CoreRT_TypedAttributeTrait]> {
     TFRT_ChainType:$in_op_chain,
     Variadic<CoreRT_TensorHandleType>:$operands,
     ArrayAttr:$op_attrs,
+    ArrayAttr:$op_func_attrs,
     StrAttr:$op_name
   );
 

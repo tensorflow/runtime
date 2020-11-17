@@ -70,8 +70,8 @@ class ServerContext {
   AsyncValueRef<DistributedContext> GetDistributedContextAsyncValue(
       uint64_t context_id) const;
 
-  Error CreateDistributedContext(uint64_t context_id,
-                                 DistributedContextConfiguration configuration)
+  Expected<DistributedContext*> CreateDistributedContext(
+      uint64_t context_id, DistributedContextConfiguration configuration)
       TFRT_EXCLUDES(context_mu_);
 
   Error CloseDistributedContext(uint64_t context_id) TFRT_EXCLUDES(context_mu_);

@@ -57,6 +57,10 @@ def RemoteExecuteSpecType :
   Type<CPred<"$_self.isa<tfrt::dist::RemoteExecuteSpecType>()">, "!tfrt_dist.remote_execute_spec type">,
   BuildableType<"$_builder.getType<tfrt::dist::RemoteExecuteSpecType>()">;
 
+def RemoteChainManagerType :
+  Type<CPred<"$_self.isa<tfrt::dist::RemoteChainManagerType>()">, "!tfrt_dist.remote_chain_manager type">,
+  BuildableType<"$_builder.getType<tfrt::dist::RemoteChainManagerType>()">;
+
 // Base class for the operation in this dialect
 class DistOp<string mnemonic, list<OpTrait> traits = []>
     : Op<DistDialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
@@ -161,17 +165,19 @@ def RegisterFakeCompilerPass : DistOp<"test_register_fake_compiler_pass"> {
 
   let assemblyFormat = [{
       $compiler_pass_name $compiled_program `(` $output_devices `)` attr-dict
-  }];}
+  }];
+}
 
 def CreateDistributedContext : DistOp<"test_create_distributed_context"> {
   let summary = "tfrt_dist.test_create_distributed_context config";
 
   let description = [{
-    A test kernel that creates a distributed context from the given
-    configuration. At the end of executing ops with this context, use
+    A test kernel that creates a set of distributed contexts from the given
+    set of configurations. At the end of executing ops with this context, use
     test_close_distributed_context to close it.
 
     Example:
+      // Multi client setup
       // Creating 2 DistributedContextConfigurations
       %configs:2 = tfrt_dist.test_create_configurations : 2
       // Creating first DistributedContext based on the first configuration
@@ -186,10 +192,35 @@ def CreateDistributedContext : DistOp<"test_create_distributed_context"> {
       %close0 = tfrt_dist.test_close_distributed_context %context0, %out_chain
       // Closing second DistributedContext
       %close1 = tfrt_dist.test_close_distributed_context %context1, %close0
+
+      // Single client setup
+      // Create 2 Servers on 2 different ports. Ask first server to create
+      // DistributedContext and create a remote context on the second server
+      // Returns both the distributed contexts.
+      %client_context, %worker_context =
+          tfrt_dist.test_create_distributed_context %configs#0, %configs#1 :
+          (!tfrt_dist.dist_context_configuration,
+          !tfrt_dist.dist_context_configuration) ->
+          (!tfrt_dist.dist_context, !tfrt_dist.dist_context)
   }];
 
-  let arguments = (ins DistributedContextConfigurationType);
-  let results = (outs DistributedContextType : $result);
+  let arguments = (ins Variadic<DistributedContextConfigurationType> : $configs);
+  let results = (outs Variadic<DistributedContextType> : $results);
+  let assemblyFormat = [{
+      $configs attr-dict `:` functional-type ( $configs , $results )
+  }];
+}
+
+def CreateRemoteChainManager : DistOp<"test_create_remote_chain_manager"> {
+  let summary = "tfrt_dist.test_create_remote_chain_manager config";
+
+  let description = [{
+    A test kernel that creates a RemoteChainManager from the given
+    DistributedContext.
+  }];
+
+  let arguments = (ins DistributedContextType);
+  let results = (outs RemoteChainManagerType : $result);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -439,6 +470,42 @@ def RemoteExecuteTHPreallocatedOp :  DistOp<"remote_execute_th_preallocated"> {
   let assemblyFormat = [{
       `[` $in_op_chain`,` $context`,` $remote_task`,` $spec`,` $num_input`,` $num_tensorhandle_output `]`  $program_name `(` $arguments `)` attr-dict `:` functional-type ( $arguments , $results )
   }];
+}
+
+def GetChainForTaskHandleOp : DistOp<"get_chain_for_task_handle"> {
+  let summary =
+      "tfrt_dist.get_chain_for_task_handle chain_mgr remote_task_handle";
+
+  let description = [{
+    Get the remote chain of the given task on the given RemoteChainManager.
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    RemoteChainManagerType:$manager,
+    TaskHandleType:$remote_task);
+  let results = (outs
+    RemoteObjectIdType : $remote_chain);
+  let assemblyFormat = "operands attr-dict";
+}
+
+
+def SetChainForTaskHandleOp : DistOp<"set_chain_for_task_handle"> {
+  let summary =
+      "tfrt_dist.set_chain_for_task_handle chain_mgr remote_task_handle";
+
+  let description = [{
+    Set the remote chain of the given task on the given RemoteChainManager.
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_op_chain,
+    RemoteChainManagerType:$manager,
+    TaskHandleType:$remote_task,
+    RemoteObjectIdType : $remote_chain);
+  let results = (outs
+    TFRT_ChainType:$out_op_chain);
+  let assemblyFormat = "operands attr-dict";
 }
 
 #endif  // DISTRIBUTED_OPS

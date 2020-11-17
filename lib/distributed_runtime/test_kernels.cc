@@ -29,6 +29,7 @@
 #include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/distributed_runtime/proto/remote_message.pb.h"
+#include "tfrt/distributed_runtime/remote_chain_manager.h"
 #include "tfrt/distributed_runtime/remote_execute.h"
 #include "tfrt/distributed_runtime/remote_object.h"
 #include "tfrt/distributed_runtime/request_handler.h"
@@ -141,30 +142,60 @@ void TestProcessNextRequest(Argument<DistributedContext> dist_context,
   });
 }
 
-AsyncValueRef<DistributedContext> TestCreateDistributedContext(
-    const DistributedContextConfiguration& configuration,
-    const ExecutionContext& exec_ctx) {
-  string_view server_address;
-  for (const auto& job_config : configuration.cluster_config().jobs()) {
-    if (job_config.name() == configuration.job_name()) {
-      server_address = job_config.tasks().at(configuration.task_id());
-      break;
+// Return N DistributedContext, one for each server
+void TestCreateDistributedContext(RemainingArguments configurations,
+                                  RemainingResults distributed_contexts,
+                                  const ExecutionContext& exec_ctx) {
+  llvm::SmallVector<ServerContext*, 4> servers;
+  // Create remote servers
+  for (int i = 0; i < configurations.size(); ++i) {
+    const DistributedContextConfiguration& configuration =
+        configurations[i]->get<DistributedContextConfiguration>();
+    string_view server_address;
+    for (const auto& job_config : configuration.cluster_config().jobs()) {
+      if (job_config.name() == configuration.job_name()) {
+        server_address = job_config.tasks().at(configuration.task_id());
+        break;
+      }
     }
+    FabricCommunicatorConfiguration fabric_config{"grpc_communicator",
+                                                  server_address.str()};
+    ServerContextConfiguration server_config{fabric_config};
+    servers.push_back(new TestServerContext(exec_ctx.host(), server_config));
   }
-  FabricCommunicatorConfiguration fabric_config{"grpc_communicator",
-                                                server_address.str()};
-  ServerContextConfiguration server_config{fabric_config};
-  ServerContext* server = new TestServerContext(exec_ctx.host(), server_config);
-
-  // Create distributed context with context id 0.
-  // TODO(haoyuzhang): take context_id as op input and allow multiple
-  // distributed contexts to be created in the same server context.
-  Error e = server->CreateDistributedContext(0, configuration);
-  if (e) {
-    return MakeErrorAsyncValueRef(exec_ctx.host(),
-                                  DecodedDiagnostic(std::move(e)));
+  // Create distributed context with context id 0 at the first server
+  const DistributedContextConfiguration& configuration =
+      configurations[0]->get<DistributedContextConfiguration>();
+  Expected<DistributedContext*> dist_context_or_error =
+      servers[0]->CreateDistributedContext(0, configuration);
+  if (!dist_context_or_error) {
+    for (int i = 0; i < servers.size(); ++i) {
+      Error error = dist_context_or_error.takeError();
+      distributed_contexts[i] =
+          MakeErrorAsyncValueRef(exec_ctx.host(), DecodedDiagnostic(error));
+    }
+    return;
   }
-  return server->GetDistributedContextAsyncValue(0);
+  llvm::SmallVector<RCReference<IndirectAsyncValue>, 4> outputs;
+  for (int i = 0; i < servers.size(); ++i) {
+    outputs.push_back(distributed_contexts.AllocateIndirectResultAt(i));
+  }
+  // Create other distributed context for remote servers.
+  dist_context_or_error.get()->CreateRemoteContexts(
+      [servers, outputs = std::move(outputs)](Error error) mutable {
+        TFRT_LOG(ERROR) << "Create remote context!";
+        for (int i = 0; i < outputs.size(); ++i) {
+          if (error) {
+            outputs[i]->SetError(DecodedDiagnostic(error));
+          } else {
+            AsyncValueRef<DistributedContext> c =
+                servers[i]->GetDistributedContextAsyncValue(0);
+            TFRT_LOG(ERROR) << "Create remote context! " << c->GetTaskName();
+            outputs[i]->ForwardTo(
+                servers[i]->GetDistributedContextAsyncValue(0));
+          }
+        }
+      });
 }
 
 void TestCloseDistributedContext(Argument<DistributedContext> dist_context,
@@ -177,6 +208,13 @@ void TestCloseDistributedContext(Argument<DistributedContext> dist_context,
   server->ShutDown();
   delete server;
   out_chain_indirect.emplace();
+}
+
+AsyncValueRef<RemoteChainManager> TestCreateRemoteChainManager(
+    Argument<DistributedContext> dist_context,
+    const ExecutionContext& exec_ctx) {
+  return MakeAvailableAsyncValueRef<RemoteChainManager>(exec_ctx.host(),
+                                                        &dist_context.get());
 }
 
 void TestPrintRemoteObjectId(const RemoteObjectId& id,
@@ -240,6 +278,8 @@ void RegisterDistributedTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestCreateDistributedContext));
   registry->AddKernel("tfrt_dist.test_close_distributed_context",
                       TFRT_KERNEL(TestCloseDistributedContext));
+  registry->AddKernel("tfrt_dist.test_create_remote_chain_manager",
+                      TFRT_KERNEL(TestCreateRemoteChainManager));
   registry->AddKernel("tfrt_dist.test_print_remote_object_id",
                       TFRT_KERNEL(TestPrintRemoteObjectId));
   registry->AddKernel("tfrt_dist.test_print_remote_execute_spec",

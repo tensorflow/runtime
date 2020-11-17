@@ -145,9 +145,9 @@ TEST(ServerContext, CreateDistributedContext) {
   const uint64_t ctx_id0 = 0;
   const uint64_t ctx_id1 = 1;
   dist_config.set_task_id(0);
-  EXPECT_FALSE(server_context.CreateDistributedContext(ctx_id0, dist_config));
+  EXPECT_FALSE(!server_context.CreateDistributedContext(ctx_id0, dist_config));
   dist_config.set_task_id(1);
-  EXPECT_FALSE(server_context.CreateDistributedContext(ctx_id1, dist_config));
+  EXPECT_FALSE(!server_context.CreateDistributedContext(ctx_id1, dist_config));
 
   DistributedContext* dist_ctx0 =
       server_context.GetDistributedContext(ctx_id0).get();
@@ -165,6 +165,7 @@ TEST(ServerContext, CreateDistributedContext) {
   EXPECT_NE(dist_ctx0, dist_ctx1);
   // Creating DistributedContext with existing context id will lead to error
   EXPECT_TRUE(server_context.CreateDistributedContext(ctx_id0, dist_config)
+                  .takeError()
                   .isA<UnknownErrorInfo>());
 }
 
@@ -179,7 +180,7 @@ TEST(DistributedContext, GetCollectiveGroup) {
   auto server_config = GetSampleServerConfiguration(dist_config);
   ServerContext server(&host_context, server_config);
   const uint64_t context_id = 0;
-  EXPECT_FALSE(server.CreateDistributedContext(context_id, dist_config));
+  EXPECT_FALSE(!server.CreateDistributedContext(context_id, dist_config));
   DistributedContext* dist_context =
       server.GetDistributedContext(context_id).get();
 

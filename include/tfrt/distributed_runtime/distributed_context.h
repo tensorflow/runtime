@@ -34,6 +34,7 @@
 #include "tfrt/distributed_runtime/proto/cluster_config.pb.h"
 #include "tfrt/distributed_runtime/remote_client.h"
 #include "tfrt/distributed_runtime/remote_device.h"
+#include "tfrt/distributed_runtime/remote_object.h"
 #include "tfrt/distributed_runtime/server_context.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
@@ -127,10 +128,17 @@ class DistributedContext {
   // remote calls finish.
   void CloseRemoteContexts(CallbackFn done_callback);
 
+  RemoteObjectId LocalReadyChain() {
+    assert(local_ready_chain_ != nullptr);
+    return *local_ready_chain_;
+  }
+  llvm::DenseMap<TaskHandle, RemoteObjectId> RemoteReadyChains();
+
  private:
   llvm::StringMap<CollectiveGroup> InitializeCollectiveGroups(
       const DistributedContextConfiguration&);
-  void InitializeRemoteDevices(const DistributedContextConfiguration&);
+
+  Error AddReadyChain(TaskHandle task_handle, const RemoteObjectIdProto& chain);
 
   const uint64_t context_id_;
   ServerContext* const server_context_;
@@ -148,6 +156,11 @@ class DistributedContext {
   std::unique_ptr<CallbackRegistry> callback_registry_;
 
   std::unique_ptr<FunctionCache> function_cache_;
+
+  std::unique_ptr<RemoteObjectId> local_ready_chain_;
+  mutex ready_chains_mu_;
+  llvm::DenseMap<TaskHandle, RemoteObjectId> ready_chains_
+      TFRT_GUARDED_BY(ready_chains_mu_);
 };
 
 }  // namespace tfrt

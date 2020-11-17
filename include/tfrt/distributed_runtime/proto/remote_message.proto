@@ -34,7 +34,9 @@ message CreateContextRequest {
   DistributedContextConfiguration dist_config = 2;
 }
 
-message CreateContextResponse {}
+message CreateContextResponse {
+  RemoteObjectIdProto ready_chain = 1;
+}
 
 message CloseContextRequest {
   fixed64 context_id = 1;
@@ -62,7 +64,6 @@ message RegisterFunctionRequest {
 message RegisterFunctionResponse {
   repeated string output_device = 1;
 }
-
 message RemoteObjectIdProto {
   uint64 prefix_id = 1;
   uint64 local_id = 2;

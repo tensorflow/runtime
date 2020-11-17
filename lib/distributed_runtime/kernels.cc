@@ -28,6 +28,7 @@
 #include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/distributed_runtime/proto/remote_message.pb.h"
+#include "tfrt/distributed_runtime/remote_chain_manager.h"
 #include "tfrt/distributed_runtime/remote_client.h"
 #include "tfrt/distributed_runtime/remote_execute.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
@@ -701,6 +702,21 @@ void RemoteExecuteTHPreallocatedKernel(
   RemoteExecute(ch, dist_context, receiver, spec, inputs, results, program_name,
                 num_inputs.get(), num_output_with_tensorhandle.get(), exec_ctx);
 }
+
+AsyncValueRef<RemoteObjectId> GetChainForTaskHandle(
+    Chain ch, RemoteChainManager* chain_manager, TaskHandle task,
+    const ExecutionContext& exec_ctx) {
+  return MakeAvailableAsyncValueRef<RemoteObjectId>(
+      exec_ctx.host(), chain_manager->GetRemoteChain(task));
+}
+
+AsyncValueRef<Chain> SetChainForTaskHandle(
+    Chain ch, RemoteChainManager* chain_manager, TaskHandle task,
+    Argument<RemoteObjectId> remote_chain, const ExecutionContext& exec_ctx) {
+  chain_manager->SetRemoteChain(task, remote_chain.get());
+  return MakeAvailableAsyncValueRef<Chain>(exec_ctx.host());
+}
+
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -728,6 +744,10 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(RegisterTFRTFunctionKernel));
   registry->AddKernel("tfrt_dist.register_tf_function",
                       TFRT_KERNEL(RegisterTFFunctionKernel));
+  registry->AddKernel("tfrt_dist.get_chain_for_task_handle",
+                      TFRT_KERNEL(GetChainForTaskHandle));
+  registry->AddKernel("tfrt_dist.set_chain_for_task_handle",
+                      TFRT_KERNEL(SetChainForTaskHandle));
 }
 
 }  // namespace tfrt

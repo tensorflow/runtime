@@ -22,7 +22,7 @@
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_OBJECT_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_OBJECT_H_
 
-#include "tfrt/distributed_runtime/distributed_context.h"
+#include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/device.h"
 
 namespace tfrt {

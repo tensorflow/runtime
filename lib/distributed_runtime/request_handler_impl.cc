@@ -52,6 +52,11 @@
 namespace tfrt {
 namespace {
 const char* kCompilerPassName = "partition_tf_dialect";
+void ToProto(const RemoteObjectId& id, RemoteObjectIdProto* proto) {
+  proto->set_prefix_id(id.prefix_id);
+  proto->set_local_id(id.local_id);
+  proto->set_device(id.device->name().str());
+}
 
 class RequestHandler : public RequestHandlerInterface {
  public:
@@ -94,8 +99,15 @@ Error RequestHandler::HandleCreateContext(const CreateContextRequest* request,
         StrCat("Failed to create DistributedContext: the context with id <",
                request->context_id(), "> already exists."));
   }
-  return server_context_->CreateDistributedContext(request->context_id(),
-                                                   request->dist_config());
+
+  Expected<DistributedContext*> context =
+      server_context_->CreateDistributedContext(request->context_id(),
+                                                request->dist_config());
+  if (!context) {
+    return context.takeError();
+  }
+  ToProto(context.get()->LocalReadyChain(), response->mutable_ready_chain());
+  return Error::success();
 }
 
 Error RequestHandler::HandleCloseContext(const CloseContextRequest* request,

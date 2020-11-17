@@ -49,10 +49,36 @@ DistributedContext::DistributedContext(
       cluster_info_(configuration),
       collective_groups_(InitializeCollectiveGroups(configuration)),
       remote_manager_(std::make_unique<RemoteObjectManager>(
-          cluster_info_.GetTaskHandle(), server_context_->GetHostContext())),
+          cluster_info_.GetTaskHandle(), GetHostContext())),
       callback_registry_(new CallbackRegistry()),
-      function_cache_(new FunctionCache(server_context->GetHostContext())) {
-  InitializeRemoteDevices(configuration);
+      function_cache_(new FunctionCache(GetHostContext())) {
+  // TODO(bramandia,haoyuzhang): Create remote device manager inside
+  // DistributedContext, and add the list of devices from the create context
+  // request.
+  for (const auto& job_config : dist_config_.cluster_config().jobs()) {
+    for (const auto& task_addr : job_config.tasks()) {
+      const std::string device_name =
+          StrCat("/job:", job_config.name(), "/task:", task_addr.first,
+                 "/device:", HostContext::kDefaultHostDeviceName);
+      TaskHandle task_handle =
+          GetTaskHandle(job_config.name(), task_addr.first);
+      server_context_->GetHostContext()->GetDeviceManager()->MaybeAddDevice(
+          TakeRef(new RemoteCpuDevice(device_name, task_handle)));
+    }
+  }
+
+  const std::string device_name =
+      StrCat("/job:", dist_config_.job_name(), "/task:", dist_config_.task_id(),
+             "/device:", HostContext::kDefaultHostDeviceName);
+  RCReference<Device> cpu_device =
+      GetHostContext()->GetDeviceManager()->GetDeviceRef<Device>(device_name);
+  assert(cpu_device);
+  if (cpu_device.get() != nullptr) {
+    local_ready_chain_ = std::make_unique<RemoteObjectId>(
+        remote_manager_->AllocateRemoteObject(cpu_device.CopyRef()));
+    remote_manager_->SetRemoteObject(
+        *local_ready_chain_, GetReadyChain(GetHostContext()).CopyRCRef());
+  }
 }
 
 DistributedContext::~DistributedContext() {}
@@ -70,24 +96,6 @@ llvm::StringMap<CollectiveGroup> DistributedContext::InitializeCollectiveGroups(
         group_config.name(), CollectiveGroup{group_config.name(), members});
   }
   return collective_groups;
-}
-
-// TODO(bramandia,haoyuzhang): Create remote device manager inside
-// DistributedContext, and add the list of devices from the create context
-// request.
-void DistributedContext::InitializeRemoteDevices(
-    const DistributedContextConfiguration& config) {
-  for (const auto& job_config : config.cluster_config().jobs()) {
-    for (const auto& task_addr : job_config.tasks()) {
-      const std::string device_name =
-          StrCat("/job:", job_config.name(), "/task:", task_addr.first,
-                 "/device:", HostContext::kDefaultHostDeviceName);
-      TaskHandle task_handle =
-          GetTaskHandle(job_config.name(), task_addr.first);
-      server_context_->GetHostContext()->GetDeviceManager()->MaybeAddDevice(
-          TakeRef(new RemoteCpuDevice(device_name, task_handle)));
-    }
-  }
 }
 
 const CollectiveGroup& DistributedContext::GetCollectiveGroup(
@@ -133,6 +141,7 @@ void DistributedContext::CreateRemoteContexts(
           task.first == dist_config_.task_id()) {
         continue;
       }
+
       auto request = std::make_unique<CreateContextRequest>();
       request->set_context_id(context_id_);
       auto* request_dist_config = request->mutable_dist_config();
@@ -144,15 +153,21 @@ void DistributedContext::CreateRemoteContexts(
            *base_request->mutable_dist_config()->mutable_collective_groups()) {
         request_dist_config->mutable_collective_groups()->AddAllocated(&cg);
       }
+
       TaskHandle task_handle = GetTaskHandle(job_config.name(), task.first);
       RemoteClientInterface* client = GetRemoteClient(task_handle);
       auto response = std::make_unique<CreateContextResponse>();
       client->CreateContextAsync(
           request.get(), response.get(),
-          [base_request, request = std::move(request),
+          [this, task_handle, base_request, request = std::move(request),
            response = std::move(response),
            rc_done = rc_done.CopyRef()](Error e) mutable {
-            rc_done->UpdateState(std::move(e));
+            if (e) {
+              rc_done->UpdateState(std::move(e));
+            } else {
+              rc_done->UpdateState(
+                  AddReadyChain(task_handle, response->ready_chain()));
+            }
             // NOTE: `base_request` is the owner of `cluster_config` and
             // `collective_groups`. Release these fields from `request` so that
             // these fields are not destructed multiple times.
@@ -165,6 +180,22 @@ void DistributedContext::CreateRemoteContexts(
           });
     }
   }
+}
+
+Error DistributedContext::AddReadyChain(TaskHandle task_handle,
+                                        const RemoteObjectIdProto& chain) {
+  RCReference<Device> device =
+      GetHostContext()->GetDeviceManager()->GetDeviceRef<Device>(
+          chain.device());
+  if (device.get() == nullptr) {
+    return llvm::make_error<DeviceNotFoundErrorInfo>(
+        StrCat("Can't find device: ", chain.device()));
+  }
+  RemoteObjectId ready_chain(chain.prefix_id(), chain.local_id(),
+                             device.CopyRef());
+  mutex_lock l(ready_chains_mu_);
+  ready_chains_.insert({task_handle, ready_chain});
+  return Error::success();
 }
 
 void DistributedContext::CloseRemoteContexts(
@@ -190,6 +221,12 @@ void DistributedContext::CloseRemoteContexts(
           });
     }
   }
+}
+
+llvm::DenseMap<TaskHandle, RemoteObjectId>
+DistributedContext::RemoteReadyChains() {
+  mutex_lock l(ready_chains_mu_);
+  return ready_chains_;
 }
 
 }  // namespace tfrt

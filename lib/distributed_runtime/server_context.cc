@@ -74,11 +74,13 @@ void ServerContext::ResetRequestHandler(
   GetOrCreateFabricCommunicator();
 }
 
-Error ServerContext::CreateDistributedContext(
+Expected<DistributedContext*> ServerContext::CreateDistributedContext(
     uint64_t context_id, DistributedContextConfiguration configuration) {
   AsyncValueRef<DistributedContext> dist_context =
       MakeAvailableAsyncValueRef<DistributedContext>(
           host_context_, context_id, this, std::move(configuration));
+  DistributedContext* context = &dist_context.get();
+
   mutex_lock l(context_mu_);
   bool inserted =
       dist_contexts_.try_emplace(context_id, std::move(dist_context)).second;
@@ -87,7 +89,7 @@ Error ServerContext::CreateDistributedContext(
         StrCat("Failed to create DistributedContext: context ID ", context_id,
                " already exists!"));
   }
-  return Error::success();
+  return context;
 }
 
 Error ServerContext::CloseDistributedContext(uint64_t context_id) {

@@ -20,6 +20,8 @@
 
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 
+#include "tfrt/host_context/async_value_ref.h"
+
 namespace tfrt {
 const uint64_t RemoteObjectManager::kInvalidPrefixId = 0;
 

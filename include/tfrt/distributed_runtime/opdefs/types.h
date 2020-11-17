@@ -62,6 +62,13 @@ class RemoteExecuteSpecType
   using Base::Base;
 };
 
+class RemoteChainManagerType
+    : public mlir::Type::TypeBase<RemoteChainManagerType, mlir::Type,
+                                  mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
 }  // namespace dist
 }  // namespace tfrt
 

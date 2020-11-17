@@ -214,7 +214,7 @@ func @tensorhandle_to_shape_test() {
     : (!corert.tensorhandle, !tfrt.chain) -> !ts.shape
 
   // CHECK: shape = [1, 4]
-  "ts.print_shape"(%a_shape) : (!ts.shape) -> ()
+  "ts.print_shape"(%a_shape, %ch0) : (!ts.shape, !tfrt.chain) -> (!tfrt.chain)
 
   tfrt.return
 }

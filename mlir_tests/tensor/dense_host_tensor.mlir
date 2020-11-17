@@ -217,11 +217,13 @@ func @sync_basic_tensor() attributes {tfrt.sync} {
 
 // CHECK-LABEL: --- Running 'get_tensor_shape'
 func @get_tensor_shape() {
+  %ch = tfrt.new.chain
+
   %a = "tfrt_test.const_dense_attr"() {value = dense<[[1, 1], [2, 2]]> : tensor<2x2xi32>} : () -> !t.tensor
 
   %b = tfrt_dht.get_tensor_shape %a
   // CHECK: shape = [2, 2]
-  ts.print_shape %b
+  ts.print_shape %b, %ch
 
   tfrt.return
 }

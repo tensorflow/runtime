@@ -88,7 +88,11 @@ def TS_PrintShapeOp : TS_Op<"print_shape"> {
     An operation that prints a tensor shape.
   }];
 
-  let arguments = (ins TS_Shape:$shape);
+  let arguments = (ins
+    TS_Shape:$shape,
+    TFRT_ChainType:$in_ch
+  );
+  let results = (outs TFRT_ChainType:$out_ch);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -115,7 +119,11 @@ class PrintFixedRankShapeOp<int rank> : TS_Op<"print_fixed_rank_shape." # rank> 
     An operation that prints a FixedRankShape.
   }];
 
-  let arguments = (ins TS_FixedRankShape<rank>:$shape);
+  let arguments = (ins
+    TS_FixedRankShape<rank>:$shape,
+    TFRT_ChainType:$in_ch
+  );
+  let results = (outs TFRT_ChainType:$out_ch);
   let assemblyFormat = "operands attr-dict";
 }
 
@@ -145,7 +153,7 @@ def TS_BuildUnrankedPartialShapeOp : TS_Op<"build_unranked_partial_shape", [NoSi
   }];
 
   let results = (outs TS_PartialShape:$output);
-  let assemblyFormat = "operands attr-dict";
+  let assemblyFormat = "attr-dict";
 }
 
 def TS_PrintPartialShapeOp : TS_Op<"print_partial_shape"> {
@@ -155,7 +163,11 @@ def TS_PrintPartialShapeOp : TS_Op<"print_partial_shape"> {
     An operation that prints the shape of the given partial tensor shape.
   }];
 
-  let arguments = (ins TS_PartialShape:$shape);
+  let arguments = (ins
+    TS_PartialShape:$shape,
+    TFRT_ChainType:$in_ch
+  );
+  let results = (outs TFRT_ChainType:$out_ch);
   let assemblyFormat = "operands attr-dict";
 }
 

@@ -43,9 +43,10 @@ static TensorShape TsSyncBuildShape(ArrayAttribute<ssize_t> shape) {
   return TensorShape(shape.data());
 }
 
-static void TsPrintShape(Argument<TensorShape> arg) {
+static Chain TsPrintShape(Argument<TensorShape> arg) {
   tfrt::outs() << "shape = " << *arg << '\n';
   tfrt::outs().flush();
+  return Chain();
 }
 
 static bool TsEqualShape(Argument<TensorShape> lhs, Argument<TensorShape> rhs) {
@@ -66,9 +67,10 @@ static FixedRankShape<Rank> TsAsFixedRankShape(Argument<TensorShape> arg) {
 }
 
 template <size_t Rank>
-static void TsPrintFixedRankShape(Argument<FixedRankShape<Rank>> arg) {
+static Chain TsPrintFixedRankShape(Argument<FixedRankShape<Rank>> arg) {
   tfrt::outs() << "fixed_rank_shape = " << *arg << '\n';
   tfrt::outs().flush();
+  return Chain();
 }
 
 static PartialTensorShape TsBuildPartialShape(ArrayAttribute<ssize_t> shape) {
@@ -79,9 +81,10 @@ static PartialTensorShape TsBuildUnrankedPartialShape() {
   return PartialTensorShape(llvm::None);
 }
 
-static void TsPrintPartialShape(Argument<PartialTensorShape> arg) {
+static Chain TsPrintPartialShape(Argument<PartialTensorShape> arg) {
   tfrt::outs() << "partial_tensor_shape = " << *arg << '\n';
   tfrt::outs().flush();
+  return Chain();
 }
 
 static Expected<TensorShape> TsToShape(const PartialTensorShape& arg) {

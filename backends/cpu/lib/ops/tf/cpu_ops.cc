@@ -183,7 +183,7 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfMeanOp");
       break;
-#define DTYPE_FLOAT(ENUM)                                               \
+#define DTYPE_NUMERIC(ENUM)                                             \
   case DType::ENUM:                                                     \
     chain = cpu::Mean<EigenTypeForDTypeKind<DType::ENUM>>(              \
         input, helper->positive_reduction_indices, output.getPointer(), \

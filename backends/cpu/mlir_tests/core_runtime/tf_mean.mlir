@@ -53,3 +53,19 @@ func @mean_keep_dims() -> !tfrt.chain {
   tfrt.return %ch_2 : !tfrt.chain
 }
 
+// CHECK: --- Running 'mean_i32'
+func @mean_i32() -> !tfrt.chain {
+  %ch_1 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch_1 "cpu"
+
+  %input_1 = corert.executeop(%cpu) "tf.Const"()
+    { dtype = i32, value = dense<[[[[1], [2]], [[3], [4]]]]> : tensor<1x2x2x1xi32> } : 1
+  %input_2 = corert.executeop(%cpu) "tf.Const"()
+    { dtype = i32, value = dense<[1, 2]> : tensor<2xi32> } : 1
+  %output = corert.executeop(%cpu) "tf.Mean"(%input_1, %input_2)
+    { T = i32, Tidx = i32 } : 1
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [2]
+  %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
+  tfrt.return %ch_2 : !tfrt.chain
+}

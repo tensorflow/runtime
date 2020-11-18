@@ -498,8 +498,8 @@ filegroup(
         "include/tfrt/tensor/opdefs/tensor.td",
         "include/tfrt/tensor/opdefs/tensor_shape_base.td",
         "include/tfrt/tfrt_op_base.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
         "@llvm-project//mlir:include/mlir/IR/OpBase.td",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
     ],
     visibility = [":friends"],
 )
@@ -533,7 +533,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -579,7 +579,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -600,7 +600,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -621,7 +621,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -642,7 +642,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -663,7 +663,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -684,7 +684,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -762,7 +762,7 @@ gentbl(
         ":OpBaseTdFiles",
         "include/tfrt/core_runtime/opdefs/corert_base.td",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -809,7 +809,7 @@ gentbl(
         ":OpBaseTdFiles",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
         "include/tfrt/core_runtime/opdefs/corert_base.td",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -944,7 +944,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -985,7 +985,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 
@@ -1246,7 +1246,7 @@ gentbl(
     td_srcs = [
         ":OpBaseTdFiles",
         "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
-        "@llvm-project//mlir:include/mlir/Interfaces/SideEffectInterfaces.td",
+        "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
 

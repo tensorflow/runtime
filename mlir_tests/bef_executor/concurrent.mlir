@@ -18,6 +18,7 @@
 // RUN: bef_executor -work_queue_type=mstd $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // Asynchronously increment %counter once.
+// CHECK-LABEL: async_incs
 func @async_incs(%counter : !test.atomic.i32, %ch : !tfrt.chain) -> !tfrt.chain {
   %ch_ret = tfrt_test.do.async %counter, %ch : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain) {
     %ch2 = "tfrt_test.atomic.inc.i32"(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> !tfrt.chain
@@ -39,6 +40,7 @@ func @nested_async_incs(%counter : !test.atomic.i32, %ch : !tfrt.chain) -> !tfrt
 }
 
 // This test that all atomic increments scheduled to run asynchronously complete.
+// CHECK-LABEL: async_incs_complete
 func @async_incs_complete() {
   %loop_count = tfrt.constant.i32 1024
   %counter = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
@@ -63,22 +65,21 @@ func @async_incs_complete() {
 
 // This test that all atomic increments scheduled to run asynchronously complete
 // after HostContext::Quiesce.
+// CHECK-LABEL: async_incs_complete_after_quiesce
 func @async_incs_complete_after_quiesce() {
   %loop_count = tfrt.constant.i32 1024
   %counter = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
 
-  %res = tfrt.repeat.i32 %loop_count, %counter : !test.atomic.i32 {
-    %ch = tfrt.new.chain
+  %ch = tfrt.new.chain
+  %dispatch_ch, %res = tfrt.repeat.i32 %loop_count, %ch, %counter : !tfrt.chain, !test.atomic.i32 {
     %async_ret_ch = tfrt.call @async_incs(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain)
-    tfrt.return %counter : !test.atomic.i32
+    tfrt.return %ch, %counter : !tfrt.chain, !test.atomic.i32
   }
 
   // Call HostContext::Quiesce to ensure all pending work complete.
-  "tfrt_test.quiesce"() : () -> ()
+  %quiesce_done = "tfrt_test.quiesce"(%dispatch_ch) : (!tfrt.chain) -> (!tfrt.chain)
 
-  // Note that the input chain is a new chain.
-  %new_ch = tfrt.new.chain
-  %v:2 = "tfrt_test.atomic.get.i32"(%counter, %new_ch)
+  %v:2 = "tfrt_test.atomic.get.i32"(%counter, %quiesce_done)
      : (!test.atomic.i32, !tfrt.chain) -> (i32, !tfrt.chain)
 
   // CHECK: int32 = 1024
@@ -88,6 +89,7 @@ func @async_incs_complete_after_quiesce() {
 }
 
 // This test that all atomic increments scheduled to run asynchronously complete.
+// CHECK-LABEL: nested_async_incs_complete
 func @nested_async_incs_complete() {
   %loop_count = tfrt.constant.i32 1024
   %counter = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
@@ -112,22 +114,21 @@ func @nested_async_incs_complete() {
 
 // This test that all atomic increments scheduled to run asynchronously complete
 // after HostContext::Quiesce.
+// CHECK-LABEL: nested_async_incs_complete_after_quiesce
 func @nested_async_incs_complete_after_quiesce() {
   %loop_count = tfrt.constant.i32 1024
   %counter = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
 
-  %res = tfrt.repeat.i32 %loop_count, %counter : !test.atomic.i32 {
-    %ch = tfrt.new.chain
+  %ch = tfrt.new.chain
+  %dispatch_ch, %res = tfrt.repeat.i32 %loop_count, %ch, %counter : !tfrt.chain, !test.atomic.i32 {
     %async_ret_ch = tfrt.call @nested_async_incs(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain)
-    tfrt.return %counter : !test.atomic.i32
+    tfrt.return %ch, %counter : !tfrt.chain, !test.atomic.i32
   }
 
   // Call HostContext::Quiesce to ensure all pending work completes.
-  "tfrt_test.quiesce"() : () -> ()
+  %quiesce_done = "tfrt_test.quiesce"(%dispatch_ch) : (!tfrt.chain) -> (!tfrt.chain)
 
-  // Note that the input chain is a new chain.
-  %new_ch = tfrt.new.chain
-  %v:2 = "tfrt_test.atomic.get.i32"(%counter, %new_ch)
+  %v:2 = "tfrt_test.atomic.get.i32"(%counter, %quiesce_done)
      : (!test.atomic.i32, !tfrt.chain) -> (i32, !tfrt.chain)
 
   // CHECK: int32 = 1024

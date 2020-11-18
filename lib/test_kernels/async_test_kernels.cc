@@ -108,8 +108,10 @@ static void TestBlockingUSleep(Argument<int32_t> sleep_time_us_arg,
 }
 
 // Test-only.
-static void TestQuiesce(const ExecutionContext& exec_ctx) {
+static void TestQuiesce(Argument<Chain> in_ch, Result<Chain> out_ch,
+                        const ExecutionContext& exec_ctx) {
   exec_ctx.host()->Quiesce();
+  out_ch.Emplace();
 }
 
 // Return a chain to signal the availability of the arguments.

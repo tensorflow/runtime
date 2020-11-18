@@ -136,3 +136,12 @@ func @test_async_copy_2() -> i32 {
   tfrt.return %copy : i32
 }
 // CHECK: 'test_async_copy_2' returned 43
+
+// CHECK-LABEL: --- Running 'test_as_chain'
+func @test_as_chain() -> !tfrt.chain {
+  %c43 = tfrt.constant.i32 43
+  %ch = "tfrt_test.as_chain"(%c43) : (i32) -> !tfrt.chain
+
+  // CHECK: 'test_as_chain' returned !tfrt.chain
+  tfrt.return %ch : !tfrt.chain
+}

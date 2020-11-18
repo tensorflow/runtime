@@ -112,6 +112,14 @@ static void TestQuiesce(const ExecutionContext& exec_ctx) {
   exec_ctx.host()->Quiesce();
 }
 
+// Return a chain to signal the availability of the arguments.
+static AsyncValueRef<Chain> TestAsChain(RemainingArguments args,
+                                        const ExecutionContext& exec_ctx) {
+  auto chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
+  RunWhenReady(args.values(), [chain = chain.CopyRef()]() { chain.emplace(); });
+  return chain;
+}
+
 static void TestReportErrorConcreteAsync(Argument<int32_t> in,
                                          Result<int32_t> out,
                                          const ExecutionContext& exec_ctx,
@@ -150,6 +158,7 @@ static void TestReportIndirectErrorAsync(Argument<int32_t> in,
 void RegisterAsyncTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.do.async", TFRT_KERNEL(TestDoAsync));
   registry->AddKernel("tfrt_test.quiesce", TFRT_KERNEL(TestQuiesce));
+  registry->AddKernel("tfrt_test.as_chain", TFRT_KERNEL(TestAsChain));
   registry->AddKernel("tfrt_test.usleep", TFRT_KERNEL(TestUSleep));
   registry->AddKernel("tfrt_test.blocking.usleep",
                       TFRT_KERNEL(TestBlockingUSleep));

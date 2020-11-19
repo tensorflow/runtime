@@ -536,5 +536,19 @@ def GetDummyRemoteChainOp : DistOp<"get_dummy_remote_chain"> {
   let assemblyFormat = "attr-dict";
 }
 
+def GetRemoteObjectIdFromTHOp :  DistOp<"get_remote_object_id_from_th"> {
+  let summary = "tfrt_dist.get_remote_object_id_from_th";
+  let description = [{
+    Get the remote object id from a TensorHandle. It should throw error if the
+    TensorHandle does not wrap around a RemoteTensor.
+
+    Example:
+      %result = tfrt_dist.get_remote_object_id_from_th %tensor_handle
+  }];
+
+  let arguments = (ins CoreRT_TensorHandleType);
+  let results = (outs RemoteObjectIdType : $result);
+  let assemblyFormat = "operands attr-dict";
+}
 
 #endif  // DISTRIBUTED_OPS

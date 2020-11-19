@@ -201,6 +201,17 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "support/ref_count_test",
+    srcs = [
+        "support/ref_count_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "support/variant_test",
     srcs = [
         "support/variant_test.cc",

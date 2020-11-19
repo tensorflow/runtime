@@ -508,4 +508,33 @@ def SetChainForTaskHandleOp : DistOp<"set_chain_for_task_handle"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def GetDistributedContextOp :  DistOp<"get_distributed_context"> {
+  let summary = "tfrt_dist.get_distributed_context";
+  let description = [{
+    Get a DistributedContext from the ExecutionContext.
+
+    Example:
+      %dist_context = tfrt_dist.get_distributed_context
+  }];
+
+  let arguments = (ins);
+  let results = (outs DistributedContextType : $result);
+  let assemblyFormat = "attr-dict";
+}
+
+// TODO(donglin): Remove this op once we can use tfrt_dist.get_chain_for_host
+// to get a remote chain for a given host.
+def GetDummyRemoteChainOp : DistOp<"get_dummy_remote_chain"> {
+  let summary = "tfrt_test.get_dummy_remote_chain";
+
+  let description = [{
+    Get a dummy remote chain that can be used in tests.
+  }];
+
+  let arguments = (ins);
+  let results = (outs RemoteObjectIdType : $remote_chain);
+  let assemblyFormat = "attr-dict";
+}
+
+
 #endif  // DISTRIBUTED_OPS

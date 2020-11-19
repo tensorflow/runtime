@@ -18,7 +18,7 @@
 // RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'dnn_pooling_test'
-func @dnn_pooling_test() {
+func @dnn_pooling_test() -> !tfrt.chain {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
@@ -219,5 +219,6 @@ func @dnn_pooling_test() {
   // Manual inspection shows that they match.
 
   %ch46 = tfrt_cuda.allocator.destroy %allocator, %ch45
-  tfrt.return
+
+  tfrt.return %ch46 : !tfrt.chain
 }

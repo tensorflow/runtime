@@ -96,8 +96,16 @@ __global__ void __launch_bounds__(1024)
   // read_idx = warp_idx * 33 + lane_idx
   int read_idx = thread_idx + warp_idx;
   T value = buffer[read_idx];
+
+  // Eigen::half support implicit conversion to float, which results in
+  // ambiguous call to __shfl_down_sync. So we cast to the __half directly in
+  // this case.
+  using U = typename std::conditional<std::is_same<T, Eigen::half>::value,
+                                      __half, T>::type;
+
   for (int offset = 1; offset < 32; offset += offset)
-    value = reduce(value, static_cast<T>(__shfl_down_sync(~0u, value, offset)));
+    value = reduce(value, static_cast<T>(__shfl_down_sync(
+                              ~0u, static_cast<U>(value), offset)));
   if (lane_idx == 0) {
     int inner_idx = (blockIdx.x * 32) + warp_idx;
     if (inner_idx < inner_dim_size) {

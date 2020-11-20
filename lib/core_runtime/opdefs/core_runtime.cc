@@ -219,8 +219,6 @@ static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
 }
 static ParseResult parseExecuteOpSeq(OpAsmParser &parser,
                                      OperationState &result) {
-  // ExecuteOpSeq is nonstrict.
-  result.addAttribute("bef.nonstrict", parser.getBuilder().getUnitAttr());
   return ParseExecuteOpImpl(parser, result, /*num_chains=*/1,
                             /*has_func_attr=*/true);
 }

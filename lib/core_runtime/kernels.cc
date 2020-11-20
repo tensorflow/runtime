@@ -217,42 +217,32 @@ static llvm::Expected<TensorHandle> CreateDenseTensor(
   return TensorHandle(host->GetHostDeviceRef(), metadata, std::move(dht));
 }
 
+static llvm::Expected<CoreRuntimeOp> GetCoreRuntimeOp(
+    string_view op_name, OpHandler *op_handler,
+    const ExecutionContext &exec_ctx) {
+  auto *host = exec_ctx.host();
+  auto *core_rt = CoreRuntime::GetFromHostContext(host);
+  if (!core_rt) return MakeStringError("no CoreRuntime available");
+
+  return core_rt->MakeOp(op_name, op_handler);
+}
+
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
 static void ExecuteOp(Argument<OpHandler *> op_handler, RemainingArguments args,
                       RemainingResults results, AggregateAttr op_attr_array,
                       AggregateAttr op_func_attr_array, StringAttr op_name,
                       KernelErrorHandler handler,
                       const ExecutionContext &exec_ctx) {
-  auto *host = exec_ctx.host();
-  auto *core_rt = CoreRuntime::GetFromHostContext(host);
-  if (!core_rt) return handler.ReportError("no CoreRuntime available");
-
-  auto expected_op = core_rt->MakeOp(op_name.GetValue(), op_handler.get());
+  auto expected_op =
+      GetCoreRuntimeOp(op_name.GetValue(), op_handler.get(), exec_ctx);
   if (!expected_op) return handler.ReportError(StrCat(expected_op.takeError()));
 
   for (int b = 0, e = results.size(); b < e; ++b)
     results.AllocateAt<TensorHandle>(b);
 
   ExecuteOpImpl(std::move(expected_op.get()), args.values(),
-                /*op_chain =*/nullptr, results.values(), op_attr_array,
+                /*op_chain=*/nullptr, results.values(), op_attr_array,
                 op_func_attr_array, exec_ctx);
-}
-
-// Synchronous version of ExecuteOp.
-static Error ExecuteOpSync(SyncArgument<OpHandler *> op_handler,
-                           RepeatedSyncArguments<TensorHandle> args,
-                           SyncKernelFrame *frame, AggregateAttr op_attr_array,
-                           StringAttr op_name,
-                           const ExecutionContext &exec_ctx) {
-  auto *host = exec_ctx.host();
-  auto *core_rt = CoreRuntime::GetFromHostContext(host);
-  if (!core_rt) return MakeStringError("no CoreRuntime available");
-
-  auto expected_op = core_rt->MakeOp(op_name.GetValue(), op_handler.get());
-  if (!expected_op) return MakeStringError(expected_op.takeError());
-  ExecuteOpImplSync(expected_op.get(), args,
-                    /*op_chain =*/nullptr, frame, op_attr_array, exec_ctx);
-  return Error::success();
 }
 
 // ExecuteOpSeq executes the `op_name` operation on the `op_handler`. It takes
@@ -266,87 +256,32 @@ static void ExecuteOpSeq(Argument<OpHandler *> op_handler,
                          AggregateAttr op_func_attr_array, StringAttr op_name,
                          KernelErrorHandler handler,
                          const ExecutionContext &exec_ctx) {
-  auto *host = exec_ctx.host();
-  auto *core_rt = CoreRuntime::GetFromHostContext(host);
-  if (!core_rt) return handler.ReportError("no CoreRuntime available");
+  auto expected_op =
+      GetCoreRuntimeOp(op_name.GetValue(), op_handler.get(), exec_ctx);
+  if (!expected_op) return handler.ReportError(StrCat(expected_op.takeError()));
 
   for (int b = 0, e = results.size(); b < e; ++b)
     results.AllocateAt<TensorHandle>(b);
 
-  SmallVector<AsyncValue *, 4> async_args;
-  if (!op_handler.value()->IsConcrete())
-    async_args.push_back(op_handler.value());
-  for (auto *arg_av : args.values())
-    if (!arg_av->IsConcrete()) async_args.push_back(arg_av);
+  auto op_chain = in_op_chain.ValueRef();
+  ExecuteOpImpl(std::move(expected_op.get()), args.values(), &op_chain,
+                results.values(), op_attr_array, op_func_attr_array, exec_ctx);
+  out_op_chain.Set(std::move(op_chain));
+}
 
-  // If all arguments except in_op_chain are ready, we can just execute the op.
-  if (async_args.empty()) {
-    auto expected_op = core_rt->MakeOp(op_name.GetValue(), op_handler.get());
-    if (!expected_op)
-      return handler.ReportError(StrCat(expected_op.takeError()));
+// Synchronous version of ExecuteOp.
+static Error ExecuteOpSync(SyncArgument<OpHandler *> op_handler,
+                           RepeatedSyncArguments<TensorHandle> args,
+                           SyncKernelFrame *frame, AggregateAttr op_attr_array,
+                           StringAttr op_name,
+                           const ExecutionContext &exec_ctx) {
+  auto expected_op =
+      GetCoreRuntimeOp(op_name.GetValue(), op_handler.get(), exec_ctx);
 
-    auto op_chain = in_op_chain.ValueRef();
-    ExecuteOpImpl(std::move(expected_op.get()), args.values(), &op_chain,
-                  results.values(), op_attr_array, op_func_attr_array,
-                  exec_ctx);
-    out_op_chain.Set(std::move(op_chain));
-    return;
-  }
-
-  // Otherwise, we need to create references to all arguments and asynchronouly
-  // execute the op when they are ready.
-
-  SmallVector<AsyncValueRef<TensorHandle>, 4> arg_refs;
-  for (auto *av : args.values()) {
-    arg_refs.push_back(AsyncValueRef<TensorHandle>(FormRef(av)));
-  }
-
-  SmallVector<RCReference<AsyncValue>, 4> result_refs;
-  for (auto &av : results.values()) {
-    result_refs.push_back(av.CopyRef());
-  }
-
-  RunWhenReady(
-      async_args,
-      [core_rt, op_handler = op_handler.ValueRef(),
-       op_chain = in_op_chain.ValueRef(), arg_refs = std::move(arg_refs),
-       result_refs = std::move(result_refs),
-       out_op_chain = out_op_chain.Allocate(), op_name = op_name.GetValue(),
-       op_attr_array, op_func_attr_array, exec_ctx]() mutable {
-        auto propgate_error = [&](const DecodedDiagnostic &diag) {
-          out_op_chain.SetError(diag);
-          for (auto &result_ref : result_refs) result_ref->SetError(diag);
-        };
-
-        if (op_handler.IsError()) return propgate_error(op_handler.GetError());
-        if (op_chain.IsError()) return propgate_error(op_chain.GetError());
-
-        auto expected_op = core_rt->MakeOp(op_name, op_handler.get());
-        if (!expected_op)
-          return propgate_error(
-              EmitError(exec_ctx, StrCat(expected_op.takeError())));
-
-        SmallVector<AsyncValue *, 4> arg_avs;
-        for (const auto &arg_ref : arg_refs) {
-          if (arg_ref.IsError()) return propgate_error(arg_ref.GetError());
-          arg_avs.push_back(arg_ref.GetAsyncValue());
-        }
-
-        ExecuteOpImpl(std::move(expected_op.get()), arg_avs, &op_chain,
-                      result_refs, op_attr_array, op_func_attr_array, exec_ctx);
-
-        auto *op_chain_av = op_chain.GetAsyncValue();
-        op_chain_av->AndThen([op_chain = std::move(op_chain),
-                              out_op_chain = out_op_chain.CopyRef()]() {
-          // TODO(chky): we should have a version of AndThen that passes the
-          // resolved state into the waiter.
-          if (op_chain.IsError()) {
-            out_op_chain.SetError(op_chain.GetError());
-          } else {
-            out_op_chain.emplace();
-          }
-        });
-      });
+  if (!expected_op) return MakeStringError(expected_op.takeError());
+  ExecuteOpImplSync(expected_op.get(), args,
+                    /*op_chain=*/nullptr, frame, op_attr_array, exec_ctx);
+  return Error::success();
 }
 
 // ExecuteOp executes the `op_name` operation on the `op_handler`.
@@ -365,8 +300,8 @@ static void ExecuteCoreRuntimeOp(Argument<CoreRuntimeOp> op,
     results.AllocateAt<TensorHandle>(b);
 
   ExecuteOpImpl(std::move(op.get()), args.values(),
-                /*op_chain =*/nullptr, results.values(), op_attrs,
-                op_func_attrs, exec_ctx);
+                /*op_chain=*/nullptr, results.values(), op_attrs, op_func_attrs,
+                exec_ctx);
 }
 
 static tfrt::Expected<CoreRuntimeOp> MakeCompositeOp(
@@ -593,7 +528,7 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
 
     // NOTE(fishx): Right now, we will try to implicitly transfer the
     // condition tensor to cpu and read its value. However, in the
-    // future, we should try not do implicitly copy here. Instead, we
+    // future, we should try not do implicit copy here. Instead, we
     // should let the compiler insert transfer kernel explicitly.
     AsyncValueRef<HostTensor> condition_host_tensor =
         AsyncValueRef<HostTensor>(ConvertTensor(

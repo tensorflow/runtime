@@ -205,6 +205,7 @@ tfrt_cc_library(
         "include/tfrt/support/mutex.h",
         "include/tfrt/support/op_registry_impl.h",
         "include/tfrt/support/philox_random.h",
+        "include/tfrt/support/pointer_util.h",
         "include/tfrt/support/random_util.h",
         "include/tfrt/support/ranges.h",
         "include/tfrt/support/ranges_util.h",

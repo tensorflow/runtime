@@ -158,6 +158,16 @@ static void DnnSetStream(Argument<gpu::stream::OwningDnnHandle> dnn_handle,
   out_chain.Set(in_chain);
 }
 
+static void DnnGetStream(Argument<gpu::stream::OwningDnnHandle> dnn_handle,
+                         Argument<Chain> in_chain,
+                         Result<gpu::stream::Stream> out_stream,
+                         Result<Chain> out_chain, KernelErrorHandler handler) {
+  auto stream = gpu::stream::DnnGetStream(dnn_handle->get());
+  if (!stream) return REPORT_ERROR(handler, stream.takeError());
+  out_stream.Emplace(std::move(*stream));
+  out_chain.Set(in_chain);
+}
+
 static void DnnCreatePoolingDescriptor(
     Argument<gpu::stream::Context> context, Argument<uint32_t> mode,
     Argument<uint32_t> nan_propagation,
@@ -310,6 +320,8 @@ void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_destroy", TFRT_KERNEL(DnnDestroy));
 
   kernel_reg->AddKernel("tfrt_cuda.dnn.set_stream", TFRT_KERNEL(DnnSetStream));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.get_stream", TFRT_KERNEL(DnnGetStream));
 
   kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create_pooling_descriptor",
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));

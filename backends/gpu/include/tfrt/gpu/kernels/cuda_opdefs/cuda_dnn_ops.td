@@ -62,6 +62,31 @@ def DnnCreateOp : CUDA_Op<"dnn.create"> {
                 );
 }
 
+def DnnSetStream : CUDA_Op<"dnn.set_stream"> {
+  let summary = "tfrt_cuda.dnn.set_stream operation";
+  let description = [{
+    tfrt_cuda.dnn.set_stream sets the user's stream in the DNN handle.
+    The new stream will be used to launch DNN GPU kernels or to synchronize
+    to this stream when DNN kernels are launched in the internal streams.
+    If the DNN library stream is not set, all kernels use the default (NULL)
+    stream. Setting the user stream in the DNN handle guarantees the
+    issue-order execution of DNN calls and other GPU kernels launched in the
+    same stream.
+
+    Example:
+    %ch2 = tfrt_cuda.dnn.set_stream %dnn_handle, %stream, %ch1
+
+  }];
+  let arguments = (ins
+                   DnnHandleType,
+                   StreamType,
+                   TFRT_ChainType
+                  );
+  let results = (outs
+                 TFRT_ChainType
+                );
+}
+
 def DnnDestroyOp : CUDA_Op<"dnn.destroy"> {
   let summary = "tfrt_cuda dnn.destroy operation";
   let description = [{

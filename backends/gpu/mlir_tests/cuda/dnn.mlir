@@ -121,7 +121,9 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %ch11 = "tfrt_dht.set_tensor_with_values.f32"(%gradient, %ch10, %o00, %o01, %o02, %o03, %o04, %o05, %o06, %o07, %o08, %o09, %o10, %o11, %o12, %o13, %o14, %o15, %o16, %o17, %o18, %o19, %o20, %o21, %o22, %o23, %o24, %o25, %o26, %o27, %o28, %o29, %o30, %o31, %o32, %o33, %o34, %o35):(!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
   %ch12 = tfrt_dht.print_tensor %gradient, %ch11
 
-  %cudnn, %ch14 = tfrt_cuda.dnn.create %context, %ch12
+  %cudnn, %ch14_1 = tfrt_cuda.dnn.create %context, %ch12
+
+  %ch14 = tfrt_cuda.dnn.set_stream %cudnn, %stream, %ch14_1
 
   %dim0 = tfrt.constant.i32 3
   %dim1 = tfrt.constant.i32 3

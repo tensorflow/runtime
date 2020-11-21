@@ -123,7 +123,8 @@ func @dnn_pooling_test() -> !tfrt.chain {
 
   %cudnn, %ch14_1 = tfrt_cuda.dnn.create %context, %ch12
 
-  %ch14 = tfrt_cuda.dnn.set_stream %cudnn, %stream, %ch14_1
+  %ch14_2 = tfrt_cuda.dnn.set_stream %cudnn, %stream, %ch14_1
+  %stream1, %ch14 = tfrt_cuda.dnn.get_stream %cudnn, %ch14_2
 
   %dim0 = tfrt.constant.i32 3
   %dim1 = tfrt.constant.i32 3

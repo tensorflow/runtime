@@ -87,6 +87,27 @@ def DnnSetStream : CUDA_Op<"dnn.set_stream"> {
                 );
 }
 
+def DnnGetStream : CUDA_Op<"dnn.get_stream"> {
+  let summary = "tfrt_cuda.dnn.get_stream operation";
+  let description = [{
+    tfrt_cuda.dnn.get_stream retrieves the user stream programmed in the DNN
+    handle. When the user's stream was not set in the DNN handle, this function
+    reports the null-stream.
+
+    Example:
+    %stream, %ch2 = tfrt_cuda.dnn.get_stream %dnn_handle, %ch1
+
+  }];
+  let arguments = (ins
+                   DnnHandleType,
+                   TFRT_ChainType
+                  );
+  let results = (outs
+                 StreamType,
+                 TFRT_ChainType
+                );
+}
+
 def DnnDestroyOp : CUDA_Op<"dnn.destroy"> {
   let summary = "tfrt_cuda dnn.destroy operation";
   let description = [{

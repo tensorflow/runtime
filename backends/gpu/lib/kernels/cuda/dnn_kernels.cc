@@ -149,6 +149,15 @@ static void DnnDestroy(Argument<gpu::stream::OwningDnnHandle> dnn_handle,
   out_chain.Set(in_chain);
 }
 
+static void DnnSetStream(Argument<gpu::stream::OwningDnnHandle> dnn_handle,
+                         Argument<gpu::stream::OwningStream> stream,
+                         Argument<Chain> in_chain, Result<Chain> out_chain,
+                         KernelErrorHandler handler) {
+  if (auto error = gpu::stream::DnnSetStream(dnn_handle->get(), stream->get()))
+    return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
 static void DnnCreatePoolingDescriptor(
     Argument<gpu::stream::Context> context, Argument<uint32_t> mode,
     Argument<uint32_t> nan_propagation,
@@ -164,30 +173,31 @@ static void DnnCreatePoolingDescriptor(
     return REPORT_ERROR(
         handler,
         "DnnCreatePoolingDescriptor: window_dimensions is not an I32 tensor.");
-  auto win_dim = GetTensorData<int>(window_dimensions);
-  if (!win_dim)
+  auto window_dimensions_data = GetTensorData<int>(window_dimensions);
+  if (!window_dimensions_data)
     return REPORT_ERROR(
         handler,
         "DnnCreatePoolingDescriptor: window_dimensions is not a 1D tensor.");
   if (paddings.dtype().kind() != tfrt::DType::I32)
     return REPORT_ERROR(
         handler, "DnnSetPoolingDescriptor: paddings is not an I32 tensor.");
-  auto pddngs = GetTensorData<int>(paddings);
-  if (!pddngs)
+  auto paddings_data = GetTensorData<int>(paddings);
+  if (!paddings_data)
     return REPORT_ERROR(
         handler, "DnnSetPoolingDescriptor: paddings is not a 1D tensor.");
   if (strides.dtype().kind() != tfrt::DType::I32)
     return REPORT_ERROR(
         handler, "DnnCreatePoolingDescriptor: strides is not an I32 tensor.");
-  auto strds = GetTensorData<int>(strides);
-  if (!strds)
+  auto strides_data = GetTensorData<int>(strides);
+  if (!strides_data)
     return REPORT_ERROR(
         handler, "DnnCreatePoolingDescriptor: strides is not a 1D tensor.");
   if (auto error = gpu::stream::DnnSetPoolingDescriptor(
           *current, descriptor.get().get(),
           IntToDnnPoolingMode(mode.get()).get(),
-          IntToDnnNanPropagation(nan_propagation.get()).get(), win_dim.get(),
-          pddngs.get(), strds.get()))
+          IntToDnnNanPropagation(nan_propagation.get()).get(),
+          window_dimensions_data.get(), paddings_data.get(),
+          strides_data.get()))
     return REPORT_ERROR(handler, std::move(error));
   dnn_pooling_descriptor.Emplace(std::move(*descriptor));
   out_chain.Set(in_chain);
@@ -214,20 +224,20 @@ static void DnnCreateTensorDescriptor(
   if (dimensions.dtype().kind() != tfrt::DType::I32)
     return REPORT_ERROR(
         handler, "DnnCreateTensorDescriptor: dimensions is not an I32 tensor.");
-  auto dim = GetTensorData<int>(dimensions);
-  if (!dim)
+  auto dimensions_data = GetTensorData<int>(dimensions);
+  if (!dimensions_data)
     return REPORT_ERROR(
         handler, "DnnCreateTensorDescriptor: dimensions is not a 1D tensor.");
   if (strides.dtype().kind() != tfrt::DType::I32)
     return REPORT_ERROR(
         handler, "DnnCreateTensorDescriptor: strides is not an I32 tensor.");
-  auto strds = GetTensorData<int>(strides);
-  if (!strds)
+  auto strides_data = GetTensorData<int>(strides);
+  if (!strides_data)
     return REPORT_ERROR(
         handler, "DnnCreateTensorDescriptor: strides is not a 1D tensor.");
   if (auto error = gpu::stream::DnnSetTensorDescriptor(
           descriptor.get().get(), IntToDnnDataType(data_type.get()).get(),
-          dim.get(), strds.get()))
+          dimensions_data.get(), strides_data.get()))
     return REPORT_ERROR(handler, std::move(error));
   dnn_tensor_descriptor.Emplace(std::move(*descriptor));
   out_chain.Set(in_chain);
@@ -298,6 +308,8 @@ void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create", TFRT_KERNEL(DnnCreate));
 
   kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_destroy", TFRT_KERNEL(DnnDestroy));
+
+  kernel_reg->AddKernel("tfrt_cuda.dnn.set_stream", TFRT_KERNEL(DnnSetStream));
 
   kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create_pooling_descriptor",
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));

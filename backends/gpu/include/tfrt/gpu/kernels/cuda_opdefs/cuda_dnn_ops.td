@@ -33,10 +33,10 @@ def DnnHandleType : OpaqueType<"tfrt_cuda", "dnn_handle", "!trft_cuda.dnn_handle
 def DnnPoolingDescriptorType : OpaqueType<"tfrt_cuda", "dnn_pooling_descriptor", "!trft_cuda.dnn_pooling_descriptor type">;
 def DnnTensorDescriptorType : OpaqueType<"tfrt_cuda", "dnn_tensor_descriptor", "!trft_cuda.dnn_tensor_descriptor type">;
 
-def DnnCreateOp : CUDA_Op<"dnn.dnn_create"> {
-  let summary = "tfrt_cuda dnn.dnn_create operation";
+def DnnCreateOp : CUDA_Op<"dnn.create"> {
+  let summary = "tfrt_cuda dnn.create operation";
   let description = [{
-    tfrt_cuda.dnn.dnn_create initializes the DNN library and creates a handle to an
+    tfrt_cuda.dnn.create initializes the DNN library and creates a handle to an
     opaque structure holding the DNN library context. It allocates hardware
     resources on the host and device and must be called prior to making any
     other DNN library calls.
@@ -49,7 +49,7 @@ def DnnCreateOp : CUDA_Op<"dnn.dnn_create"> {
     %index = tfrt.constant.i32 0
     %device, %ch3 = tfrt_cuda.device.get %index, %ch2
     %context, %ch4 = tfrt_cuda_test.context.get %device, %ch3
-    %cudnn, %ch5 = tfrt_cuda.dnn.dnn_create %context, %ch4
+    %cudnn, %ch5 = tfrt_cuda.dnn.create %context, %ch4
 
   }];
   let arguments = (ins
@@ -62,15 +62,15 @@ def DnnCreateOp : CUDA_Op<"dnn.dnn_create"> {
                 );
 }
 
-def DnnDestroyOp : CUDA_Op<"dnn.dnn_destroy"> {
-  let summary = "tfrt_cuda dnn.dnn_destroy operation";
+def DnnDestroyOp : CUDA_Op<"dnn.destroy"> {
+  let summary = "tfrt_cuda dnn.destroy operation";
   let description = [{
-    tfrt_cuda.dnn.dnn_destroy releases the resources used by the DNN handle.
+    tfrt_cuda.dnn.destroy releases the resources used by the DNN handle.
     This function is usually the last call with a particular handle to the DNN
     handle.
 
     Example:
-    %ch3 = tfrt_cuda.dnn.dnn_destroy %dnn_handle, %ch2
+    %ch3 = tfrt_cuda.dnn.destroy %dnn_handle, %ch2
 
   }];
   let arguments = (ins
@@ -82,10 +82,10 @@ def DnnDestroyOp : CUDA_Op<"dnn.dnn_destroy"> {
                 );
 }
 
-def DnnCreatePoolingDescriptorOp : CUDA_Op<"dnn.dnn_create_pooling_descriptor"> {
-  let summary = "tfrt_cuda dnn.dnn_create_pooling_descriptor operation";
+def DnnCreatePoolingDescriptorOp : CUDA_Op<"dnn.create_pooling_descriptor"> {
+  let summary = "tfrt_cuda dnn.create_pooling_descriptor operation";
   let description = [{
-    tfrt_cuda.dnn.dnn_create_pooling_descriptor creates a pooling descriptor object
+    tfrt_cuda.dnn.create_pooling_descriptor creates a pooling descriptor object
     by allocating the memory needed to hold its opaque structure then it 
     initializes created pooling descriptor object.
 
@@ -116,7 +116,7 @@ def DnnCreatePoolingDescriptorOp : CUDA_Op<"dnn.dnn_create_pooling_descriptor"> 
     %ch17 = "tfrt_dht.set_tensor_with_values.i32"(%strides, %ch16, %s0, %s1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
     %mode = tfrt.constant.ui32 0
     %nan_propagation = tfrt.constant.ui32 0
-    %pooling_desc, %ch18 = tfrt_cuda.dnn.dnn_create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
+    %pooling_desc, %ch18 = tfrt_cuda.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
 
   }];
   let arguments = (ins
@@ -134,14 +134,14 @@ def DnnCreatePoolingDescriptorOp : CUDA_Op<"dnn.dnn_create_pooling_descriptor"> 
                 );
 }
 
-def DnnDestroyPoolingDescriptorOp : CUDA_Op<"dnn.dnn_destroy_pooling_descriptor"> {
-  let summary = "tfrt_cuda dnn.dnn_destroy_pooling_descriptor operation";
+def DnnDestroyPoolingDescriptorOp : CUDA_Op<"dnn.destroy_pooling_descriptor"> {
+  let summary = "tfrt_cuda dnn.destroy_pooling_descriptor operation";
   let description = [{
-    tfrt_cuda.dnn.dnn_destroy_pooling_descriptor destroys a previously created
+    tfrt_cuda.dnn.destroy_pooling_descriptor destroys a previously created
     pooling descriptor object.
 
     Example:
-    %ch5 = tfrt_cuda.dnn.dnn_destroy_pooling_descriptor %dnn_pooling_descriptor, %ch4
+    %ch5 = tfrt_cuda.dnn.destroy_pooling_descriptor %dnn_pooling_descriptor, %ch4
 
   }];
   let arguments = (ins
@@ -153,10 +153,10 @@ def DnnDestroyPoolingDescriptorOp : CUDA_Op<"dnn.dnn_destroy_pooling_descriptor"
                 );
 }
 
-def DnnCreateTensorDescriptorOp : CUDA_Op<"dnn.dnn_create_tensor_descriptor"> {
-  let summary = "tfrt_cuda dnn.dnn_create_tensor_descriptor operation";
+def DnnCreateTensorDescriptorOp : CUDA_Op<"dnn.create_tensor_descriptor"> {
+  let summary = "tfrt_cuda dnn.create_tensor_descriptor operation";
   let description = [{
-    tfrt_cuda.dnn.dnn_create_tensor_descriptor creates a generic tensor
+    tfrt_cuda.dnn.create_tensor_descriptor creates a generic tensor
     descriptor object by allocating the memory needed to hold its opaque
     structure. The data is initialized to provided values.
 
@@ -186,7 +186,7 @@ def DnnCreateTensorDescriptorOp : CUDA_Op<"dnn.dnn_create_tensor_descriptor"> {
     %stride_out = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
     %ch24 = "tfrt_dht.set_tensor_with_values.i32"(%stride_out, %ch23, %sout0, %sout1, %sout2, %sout3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
     %data_type_out = tfrt.constant.ui32 0
-    %out_desc, %ch25 = tfrt_cuda.dnn.dnn_set_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
+    %out_desc, %ch25 = tfrt_cuda.dnn.set_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
 
   }];
   let arguments = (ins
@@ -202,14 +202,14 @@ def DnnCreateTensorDescriptorOp : CUDA_Op<"dnn.dnn_create_tensor_descriptor"> {
                 );
 }
 
-def DnnDestroyTensorDescriptorOp : CUDA_Op<"dnn.dnn_destroy_tensor_descriptor"> {
-  let summary = "tfrt_cuda dnn.dnn_destroy_tensor_descriptor operation";
+def DnnDestroyTensorDescriptorOp : CUDA_Op<"dnn.destroy_tensor_descriptor"> {
+  let summary = "tfrt_cuda dnn.destroy_tensor_descriptor operation";
   let description = [{
-    tfrt_cuda.dnn.dnn_destroy_tensor_descriptor destroys a previously created tensor
+    tfrt_cuda.dnn.destroy_tensor_descriptor destroys a previously created tensor
     descriptor object.
 
     Example:
-    %ch3 = tfrt_cuda.dnn.dnn_destroy_tensor_descriptor %dnn_tensor_descriptor, %ch4
+    %ch3 = tfrt_cuda.dnn.destroy_tensor_descriptor %dnn_tensor_descriptor, %ch4
 
   }];
   let arguments = (ins

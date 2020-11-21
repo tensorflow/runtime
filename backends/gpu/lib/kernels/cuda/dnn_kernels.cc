@@ -315,24 +315,24 @@ static void DnnPoolingBackward(
 }
 
 void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create", TFRT_KERNEL(DnnCreate));
+  kernel_reg->AddKernel("tfrt_cuda.dnn.create", TFRT_KERNEL(DnnCreate));
 
-  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_destroy", TFRT_KERNEL(DnnDestroy));
+  kernel_reg->AddKernel("tfrt_cuda.dnn.destroy", TFRT_KERNEL(DnnDestroy));
 
   kernel_reg->AddKernel("tfrt_cuda.dnn.set_stream", TFRT_KERNEL(DnnSetStream));
 
   kernel_reg->AddKernel("tfrt_cuda.dnn.get_stream", TFRT_KERNEL(DnnGetStream));
 
-  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create_pooling_descriptor",
+  kernel_reg->AddKernel("tfrt_cuda.dnn.create_pooling_descriptor",
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));
 
-  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_destroy_pooling_descriptor",
+  kernel_reg->AddKernel("tfrt_cuda.dnn.destroy_pooling_descriptor",
                         TFRT_KERNEL(DnnDestroyPoolingDescriptor));
 
-  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_create_tensor_descriptor",
+  kernel_reg->AddKernel("tfrt_cuda.dnn.create_tensor_descriptor",
                         TFRT_KERNEL(DnnCreateTensorDescriptor));
 
-  kernel_reg->AddKernel("tfrt_cuda.dnn.dnn_destroy_tensor_descriptor",
+  kernel_reg->AddKernel("tfrt_cuda.dnn.destroy_tensor_descriptor",
                         TFRT_KERNEL(DnnDestroyTensorDescriptor));
 
   kernel_reg->AddKernel("tfrt_cuda.dnn.pooling_forward",

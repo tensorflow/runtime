@@ -363,6 +363,17 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "support/bef_reader_test",
+    srcs = ["support/bef_reader_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_runtime/concurrent_work_queue_test",
     srcs = ["host_runtime/concurrent_work_queue_test.cc"],
     deps = [

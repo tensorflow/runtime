@@ -243,14 +243,29 @@ void ExecuteOp::getOpAttrs(
     SmallVectorImpl<std::pair<StringRef, Attribute>> *op_attrs) {
   assert(op_attrs);
   op_attrs->clear();
-  auto op_attr_array = this->op_attrs().getValue();
+  ArrayRef<Attribute> op_attr_array = this->op_attrs().getValue();
 
   Builder builder(getContext());
-  for (auto iter : op_attr_array) {
-    auto key_value = iter.cast<ArrayAttr>().getValue();
+  for (Attribute iter : op_attr_array) {
+    ArrayRef<Attribute> key_value = iter.cast<ArrayAttr>().getValue();
     StringRef key = key_value[0].cast<StringAttr>().getValue();
     Attribute value = key_value[1];
     op_attrs->push_back({key, value});
+  }
+}
+
+void ExecuteOp::getOpFuncAttrs(
+    SmallVectorImpl<std::pair<StringRef, Attribute>> *op_func_attrs) {
+  assert(op_func_attrs);
+  op_func_attrs->clear();
+  ArrayRef<Attribute> op_func_attr_array = this->op_func_attrs().getValue();
+
+  Builder builder(getContext());
+  for (Attribute iter : op_func_attr_array) {
+    ArrayRef<Attribute> key_value = iter.cast<ArrayAttr>().getValue();
+    StringRef key = key_value[0].cast<StringAttr>().getValue();
+    Attribute value = key_value[1];
+    op_func_attrs->push_back({key, value});
   }
 }
 

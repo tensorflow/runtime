@@ -146,6 +146,8 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait
 
   let extraClassDeclaration = [{
     void getOpAttrs(SmallVectorImpl<std::pair<StringRef, Attribute>>* op_attrs);
+
+    void getOpFuncAttrs(SmallVectorImpl<std::pair<StringRef, Attribute>>* op_func_attrs);
   }];
 
   let builders = [

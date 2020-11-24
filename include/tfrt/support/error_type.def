@@ -28,6 +28,7 @@ ERROR_TYPE(Unknown)
 ERROR_TYPE(InvalidArgument)
 ERROR_TYPE(DeadlineExceeded)
 ERROR_TYPE(NotFound)
+ERROR_TYPE(FailedPrecondition)
 ERROR_TYPE(OutOfRange)
 ERROR_TYPE(Unimplemented)
 

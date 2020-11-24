@@ -44,11 +44,11 @@ func @basic.i1() -> i1 {
 
   %zero = tfrt.constant.i1 0
   // CHECK: int1 = 0
-  tfrt.print.i1 %zero, %ch0
+  %ch1 = tfrt.print.i1 %zero, %ch0
 
   %one = tfrt.constant.i1 1
   // CHECK: int1 = 1
-  tfrt.print.i1 %one, %ch0
+  %ch2 = tfrt.print.i1 %one, %ch1
 
   // CHECK: 'basic.i1' returned 1
   tfrt.return %one : i1
@@ -61,35 +61,35 @@ func @basic.i32() -> i32 {
   %ch0 = tfrt.new.chain
 
   // CHECK: int32 = 42
-  tfrt.print.i32 %x, %ch0
+  %ch1 = tfrt.print.i32 %x, %ch0
 
   %c1 = tfrt.constant.i32 1
   // CHECK: int32 = 1
-  tfrt.print.i32 %c1, %ch0
+  %ch2 = tfrt.print.i32 %c1, %ch1
 
   %y = tfrt.add.i32 %x, %c1
   // CHECK: int32 = 43
-  tfrt.print.i32 %y, %ch0
+  %ch3 = tfrt.print.i32 %y, %ch2
 
   %quot, %rem = tfrt.div.i32 %y, %x
   // CHECK: int32 = 1
-  tfrt.print.i32 %quot, %ch0
+  %ch4 = tfrt.print.i32 %quot, %ch3
   // CHECK: int32 = 1
-  tfrt.print.i32 %rem, %ch0
+  %ch5 = tfrt.print.i32 %rem, %ch4
 
   %y1, %y2, %y3 = tfrt_test.count3.i32 %y
   // CHECK: int32 = 44
-  tfrt.print.i32 %y1, %ch0
+  %ch6 = tfrt.print.i32 %y1, %ch5
 
   // CHECK: int32 = 45
-  tfrt.print.i32 %y2, %ch0
+  %ch7 = tfrt.print.i32 %y2, %ch6
 
   // CHECK: int32 = 46
-  tfrt.print.i32 %y3, %ch0
+  %ch8 = tfrt.print.i32 %y3, %ch7
 
   %y4 = "tfrt_test.copy.with_delay.i32"(%y3) : (i32) -> i32
   // CHECK: int32 = 46
-  tfrt.print.i32 %y4, %ch0
+  %ch9 = tfrt.print.i32 %y4, %ch8
 
   // CHECK: 'basic.i32' returned 43
   tfrt.return %y : i32
@@ -113,19 +113,19 @@ func @basic.i64() -> i64 {
   %ch0 = tfrt.new.chain
 
   // CHECK: int64 = 42
-  tfrt.print.i64 %x, %ch0
+  %ch1 = tfrt.print.i64 %x, %ch0
 
   %c1 = tfrt.constant.i64 1
   // CHECK: int64 = 1
-  tfrt.print.i64 %c1, %ch0
+  %ch2 = tfrt.print.i64 %c1, %ch1
 
   %y = tfrt.add.i64 %x, %c1
   // CHECK: int64 = 43
-  tfrt.print.i64 %y, %ch0
+  %ch3 = tfrt.print.i64 %y, %ch2
 
   %z = "tfrt_test.copy.with_delay.i64"(%y) : (i64) -> i64
   // CHECK: int64 = 43
-  tfrt.print.i64 %z, %ch0
+  %ch4 = tfrt.print.i64 %z, %ch3
 
   // CHECK: 'basic.i64' returned 43
   tfrt.return %z : i64
@@ -137,16 +137,16 @@ func @basic.f32() -> f32 {
 
   %zero = tfrt.constant.f32 0.0
   // CHECK: f32 = 0.000000
-  tfrt.print.f32 %zero, %ch0
+  %ch1 = tfrt.print.f32 %zero, %ch0
 
   %one = tfrt.constant.f32 1.0
   // CHECK: f32 = 1.000000
-  tfrt.print.f32 %one, %ch0
+  %ch2 = tfrt.print.f32 %one, %ch1
 
   %six = tfrt.constant.f32 6.0
   %seven = tfrt.add.f32 %one, %six
   // CHECK: f32 = 7.000000
-  tfrt.print.f32 %seven, %ch0
+  %ch3 = tfrt.print.f32 %seven, %ch2
 
   // CHECK: 'basic.f32' returned 1.0
   tfrt.return %one : f32
@@ -158,16 +158,16 @@ func @basic.f64() -> f64 {
 
   %zero = tfrt.constant.f64 0.0
   // CHECK: f64 = 0.000000
-  tfrt.print.f64 %zero, %ch0
+  %ch1 = tfrt.print.f64 %zero, %ch0
 
   %one = tfrt.constant.f64 1.0
   // CHECK: f64 = 1.000000
-  tfrt.print.f64 %one, %ch0
+  %ch2 = tfrt.print.f64 %one, %ch1
 
   %six = tfrt.constant.f64 6.0
   %seven = tfrt.add.f64 %one, %six
   // CHECK: f64 = 7.000000
-  tfrt.print.f64 %seven, %ch0
+  %ch3 = tfrt.print.f64 %seven, %ch2
 
   // CHECK: 'basic.f64' returned 1.0
   tfrt.return %one : f64
@@ -401,13 +401,13 @@ func @nested_array() {
   %a, %b, %c, %d = "tfrt_test.flat"() { value = [["string", [1 : i32, 0 : i32]], [1.0 : f32]]} : () -> (!tfrt.string, i32, i32, f32)
 
   // CHECK: string = string
-  "tfrt_test.print_string"(%a, %ch0) : (!tfrt.string, !tfrt.chain) -> (!tfrt.chain)
+  %ch1 = "tfrt_test.print_string"(%a, %ch0) : (!tfrt.string, !tfrt.chain) -> (!tfrt.chain)
   // CHECK: int32 = 1
-  tfrt.print.i32 %b, %ch0
+  %ch2 = tfrt.print.i32 %b, %ch1
   // CHECK: int32 = 0
-  tfrt.print.i32 %c, %ch0
+  %ch3 = tfrt.print.i32 %c, %ch2
   // CHECK: f32 = 1.000000
-  tfrt.print.f32 %d, %ch0
+  %ch4 = tfrt.print.f32 %d, %ch3
 
   tfrt.return
 }

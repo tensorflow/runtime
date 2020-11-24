@@ -43,7 +43,7 @@ func @cast_f16() -> !tfrt.chain {
     "tfrt_test.cast"(%half_result) { type = "f32" } : 1
 
   // CHECK: shape = [1, 1], values = [0.000000e+00]
-  %ch2 = "corert.print_tensorhandle"(%float_result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch2 = "corert.print_tensorhandle"(%float_result, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch2 : !tfrt.chain
 }

@@ -51,7 +51,7 @@ func @basic_test_matmul_f32() -> !tfrt.chain {
     {transpose_a = false, transpose_b = false}: 1
 
   // CHECK: shape = [1, 1], values = [1.310720e+05]
-  %ch7 = "corert.print_tensorhandle"(%result2, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch7 = "corert.print_tensorhandle"(%result2, %ch5) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch7 : !tfrt.chain
 }
@@ -158,7 +158,7 @@ func @basic_test_matmul_i32() -> !tfrt.chain {
     {transpose_a = false, transpose_b = false}: 1
 
   // CHECK: shape = [1, 1], values = [131072]
-  %ch7 = "corert.print_tensorhandle"(%result2, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch7 = "corert.print_tensorhandle"(%result2, %ch5) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch7 : !tfrt.chain
 }
@@ -182,21 +182,21 @@ func @basic_test_ops() -> !tfrt.chain {
   %result2 = corert.executeop(%cpu) "tfrt_test.equal"(%a_handle, %result1) : 1
 
   // CHECK: shape = [1, 4], values = [0, 1, 0, 1]
-  %ch5 = "corert.print_tensorhandle"(%result2, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch5 = "corert.print_tensorhandle"(%result2, %ch3) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   // argmax op.
   %result3 = corert.executeop(%cpu)
     "tfrt_test.argmax"(%a_handle) { axis = 1 : i32 } : 1
 
   // CHECK: shape = [1], values = [2]
-  %ch7 = "corert.print_tensorhandle"(%result3, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch7 = "corert.print_tensorhandle"(%result3, %ch5) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   // reduce_mean op.
   %result4 = corert.executeop(%cpu)
     "tfrt_test.reduce_mean"(%result3) { axis = 0 : i32 } : 1
 
   // CHECK: shape = [], values = [2]
-  %ch9 = "corert.print_tensorhandle"(%result4, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch9 = "corert.print_tensorhandle"(%result4, %ch7) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch9 : !tfrt.chain
 }

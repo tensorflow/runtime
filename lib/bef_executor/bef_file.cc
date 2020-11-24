@@ -686,16 +686,18 @@ Error SyncBEFFunction::Init() {
     return format_error("Failed to read num_kernels");
 
   kernel_offsets_.reserve(num_kernels);
-  for (size_t kernel_index = 0; kernel_index < num_kernels; ++kernel_index) {
-    size_t offset, num_operands;
+
+  size_t offset, num_operands;
+
+  // Skip the first kernel which is the pseudo kernel used in BEF executor.
+  if (reader.ReadInt(&offset) || reader.ReadInt(&num_operands))
+    return format_error("Failed to read kernel offset or num_operands");
+
+  for (size_t kernel_index = 1; kernel_index < num_kernels; ++kernel_index) {
     if (reader.ReadInt(&offset) || reader.ReadInt(&num_operands))
       return format_error("Failed to read kernel offset or num_operands");
 
-    if (num_arguments() == 0 || kernel_index != 0) {
-      // Only insert if it is not the first kernel which is an argument pseudo
-      // kernel when there are arguments.
-      kernel_offsets_.push_back(offset);
-    }
+    kernel_offsets_.push_back(offset);
   }
 
   // Read the result registers.

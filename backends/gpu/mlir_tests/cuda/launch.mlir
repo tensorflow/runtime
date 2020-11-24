@@ -73,10 +73,10 @@ func @vector_add_kernel() {
 
 
   // Extract buffers.
-  %x_host_buffer, %ch11 = tfrt_dht.get_buffer %x_host, %ch7
+  %x_host_buffer, %ch11 = tfrt_dht.get_buffer %x_host, %ch10
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
   %ch12 = tfrt_dht.print_buffer %x_host_buffer, %ch11
-  %y_host_buffer, %ch13 = tfrt_dht.get_buffer %y_host, %ch9
+  %y_host_buffer, %ch13 = tfrt_dht.get_buffer %y_host, %ch12
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
   %ch14 = tfrt_dht.print_buffer %y_host_buffer, %ch13
 

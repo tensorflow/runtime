@@ -1422,10 +1422,11 @@ class BEFFunctionEmitter : public BEFFileEmitter {
 
  private:
   void EmitRegisterTable(mlir::Block* block, BEFFileEmitter* register_types);
-  void EmitKernelResultUsers(mlir::Value result, BEFFileEmitter* kernel_list,
+  template <typename UserRange>
+  void EmitKernelResultUsers(UserRange users, BEFFileEmitter* kernel_list,
                              BEFFileEmitter* kernel_body) const;
-  void EmitArgumentsPseudoOp(mlir::Block* block,
-                             BEFFileEmitter* kernel_list) const;
+  void EmitArgumentsPseudoKernel(mlir::Block* block,
+                                 BEFFileEmitter* kernel_list) const;
   void EmitKernel(mlir::Operation* op, BEFFileEmitter* kernel_list,
                   BEFFileEmitter* attribute_names) const;
 
@@ -1433,6 +1434,15 @@ class BEFFunctionEmitter : public BEFFileEmitter {
     auto it = register_number_.find(reg);
     assert(it != register_number_.end() && "Unknown register");
     return it->second;
+  }
+
+  unsigned GetPseudoResultRegisterNumber() const {
+    return register_number_.size();
+  }
+
+  void Reset() {
+    register_number_.clear();
+    kernel_index_.clear();
   }
 
   llvm::DenseMap<mlir::Value, unsigned> register_number_;
@@ -1445,6 +1455,8 @@ class BEFFunctionEmitter : public BEFFileEmitter {
 void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
                                       BEFFileEmitter* attribute_names,
                                       BEFFileEmitter* register_types) {
+  Reset();
+
   assert(llvm::hasSingleElement(*region) && "should have a single block");
   auto& block = region->front();
 
@@ -1455,12 +1467,8 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
   // Emit the register table.
   EmitRegisterTable(&block, register_types);
 
-  // Get a dense numbering of kernels.
-  unsigned num_kernels = 0;
-
-  // If the function has arguments, we emit a pseudo-op that provides the
-  // argument values.
-  if (block.getNumArguments() != 0) ++num_kernels;
+  // Get a dense numbering of kernels, including the pseudo kernel.
+  unsigned num_kernels = 1;
 
   for (auto& op : block.getOperations()) {
     if (!IsReturn(&op)) kernel_index_[&op] = num_kernels++;
@@ -1476,19 +1484,21 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 
   attribute_names->EmitInt(num_kernels);
 
-  // If we have arguments, emit a pseudo op (with no opcode) that produces the
-  // registers on entry to the function.
-  if (block.getNumArguments() != 0) {
-    // Offset of the kernel in the list.
-    EmitInt(kernel_list.size());
-    // Pseudo has zero operands that need to be available.
-    EmitInt(0);
+  // Before we emit all the kernels, we always emit a pseudo kernel (with no
+  // kernel_code) that is the entry to the other kernels. Specifically, its
+  // users are:
+  //  1) kernels that are using function arguments, and
+  //  2) kernels that take no kernel arguments.
 
-    EmitArgumentsPseudoOp(&block, &kernel_list);
+  // Offset of the kernel in the list.
+  EmitInt(kernel_list.size());
+  // Pseudo has zero operands that need to be available.
+  EmitInt(0);
 
-    // Pseudo is not non-strict. And pseudo op has no attributes.
-    attribute_names->EmitByte(static_cast<uint8_t>(SpecialAttribute::kUnknown));
-  }
+  EmitArgumentsPseudoKernel(&block, &kernel_list);
+
+  // Pseudo is not non-strict. And pseudo op has no attributes.
+  attribute_names->EmitByte(static_cast<uint8_t>(SpecialAttribute::kUnknown));
 
   for (auto& op : block) {
     // Return kernels get special processing.
@@ -1575,11 +1585,12 @@ void BEFFunctionEmitter::EmitRegisterTable(mlir::Block* block,
   register_types->EmitEmitter(reg_type_table);
 }
 
+template <typename UserRange>
 void BEFFunctionEmitter::EmitKernelResultUsers(
-    mlir::Value result, BEFFileEmitter* kernel_list,
+    UserRange users, BEFFileEmitter* kernel_list,
     BEFFileEmitter* kernel_body) const {
   int num_users = 0;
-  for (auto* user : result.getUsers()) {
+  for (auto* user : users) {
     // Ignore the 'return' op, it gets special handling.
     if (IsReturn(user)) continue;
 
@@ -1591,7 +1602,7 @@ void BEFFunctionEmitter::EmitKernelResultUsers(
   kernel_list->EmitInt4(num_users);
 }
 
-void BEFFunctionEmitter::EmitArgumentsPseudoOp(
+void BEFFunctionEmitter::EmitArgumentsPseudoKernel(
     mlir::Block* block, BEFFileEmitter* kernel_list) const {
   // This kernel starts with a dummy code and a dummy location. And this kernel
   // only has results and used_bys in its body.
@@ -1606,16 +1617,28 @@ void BEFFunctionEmitter::EmitArgumentsPseudoOp(
   kernel_list->EmitInt4(0);
   // functions
   kernel_list->EmitInt4(0);
-  // results
-  kernel_list->EmitInt4(block->getNumArguments());
+  // results, including the special result for ops with no operands.
+  kernel_list->EmitInt4(block->getNumArguments() + 1);
   // special_metadata
   kernel_list->EmitInt4(0);
 
   BEFFileEmitter kernel_body;
+  // The first result is the pseudo result used to trigger execution of kernels
+  // with no operands.
+  kernel_body.EmitInt4(GetPseudoResultRegisterNumber());
   for (auto arg : block->getArguments())
     kernel_body.EmitInt4(GetRegisterNumber(arg));
+
+  // We also emit all operations with no operands as users for the special
+  // result.
+  llvm::SmallVector<mlir::Operation*, 4> ready_kernels;
+  for (auto& op : *block) {
+    if (op.getNumOperands() == 0) ready_kernels.push_back(&op);
+  }
+  EmitKernelResultUsers(ready_kernels, kernel_list, &kernel_body);
+
   for (auto arg : block->getArguments())
-    EmitKernelResultUsers(arg, kernel_list, &kernel_body);
+    EmitKernelResultUsers(arg.getUsers(), kernel_list, &kernel_body);
 
   assert(kernel_list->size() % kKernelEntryAlignment == 0);
   assert(kernel_body.GetRequiredAlignment() == kKernelEntryAlignment);
@@ -1696,7 +1719,7 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
 
   // Then results with the kernels that use them.
   for (auto result : op->getResults())
-    EmitKernelResultUsers(result, kernel_list, &kernel_body);
+    EmitKernelResultUsers(result.getUsers(), kernel_list, &kernel_body);
 
   assert(kernel_list->size() % kKernelEntryAlignment == 0);
   assert(kernel_body.size() == 0 ||

@@ -206,7 +206,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file);
   ~BEFExecutor();
 
-  void Execute(bool has_arguments_pseudo_kernel);
+  void Execute();
 
  private:
   void DecrementArgumentsNotReadyCounts(SmallVectorImpl<unsigned>* kernel_ids);
@@ -247,8 +247,13 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 
 // Enqueue the users of the result for later processing. If a result has no
 // users, it will be skipped. If the kernel immediately completed a result, then
-// we can mark all kernels using it as ready to go, otherwise we need to enqueue
-// them on their unavailable operands.
+// we can mark all kernels using it as ready to go by pushing it to
+// `kernel_ids`, otherwise we need to enqueue them on their unavailable
+// operands. The `result` can be nullptr and in that case it is treated as an
+// available result.
+//
+// TODO(tfrt-devs): Consider using an always-ready async value for this case
+// instead of passing nullptr.
 void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
                                  int result_number, AsyncValue* result,
                                  int* entry_offset,
@@ -257,7 +262,7 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
   auto num_used_bys = kernel.num_used_bys(result_number);
   // Skip current result if there is no user.
   if (num_used_bys == 0) {
-    MaybeAddRefForResult(result);
+    if (result) MaybeAddRefForResult(result);
     return;
   }
 
@@ -267,7 +272,8 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
 
   assert(!used_bys.empty());
 
-  auto state = result->state();
+  auto state = result ? result->state()
+                      : AsyncValue::State(AsyncValue::State::kConcrete);
 
   // If this result has error, then we can accelerate error propagation by
   // making any using kernel ready.
@@ -294,7 +300,13 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
   // then we can immediately process any using kernel as part of our visit
   // here. Just add it to the worklist for processing, to avoid recursion.
   if (state.IsAvailable()) {
-    kernel_ids->append(used_bys.begin(), used_bys.end());
+    // Append the users in reversed order. This is not necessary and in fact any
+    // order here should work. The reversed order is used here because many
+    // existing tests relies on this implicit order.
+    //
+    // TODO(b/173798236): Consider introducing a randomization logic here in
+    // debug mode to trigger errors in tests that relies on the implicit order.
+    kernel_ids->append(used_bys.rbegin(), used_bys.rend());
     return;
   }
 
@@ -336,7 +348,13 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
   // As in BEFExecutor's constructor, we reserve some extra space to
   // accommodate growth for users of results of these kernels.
   using_kernel_ids.reserve(used_bys.size() + 4);
-  using_kernel_ids.append(used_bys.begin(), used_bys.end());
+  // Append the users in reversed order. This is not necessary and in fact any
+  // order here should work. The reversed order is used here because many
+  // existing tests relies on this implicit order.
+  //
+  // TODO(b/173798236): Consider introducing a randomization logic here in debug
+  // mode to trigger errors in tests that relies on the implicit order.
+  using_kernel_ids.append(used_bys.rbegin(), used_bys.rend());
 
   // Process the whole batch when this result becomes available.
   result->AndThen(
@@ -346,13 +364,13 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
       });
 }
 
-// Process the arguments pseudo kernel and enqueue the users of these arguments.
+// Process the arguments pseudo kernel and enqueue the ready users of these
+// arguments to `kernel_ids`. For non-ready users (eg. the function argument is
+// unavailable), it sets up AndThen() callback to call
+// DecrementArgumentsNotReadyCounts when the result is ready.
 void BEFExecutor::ProcessArgumentsPseudoKernel(
     SmallVectorImpl<unsigned>* kernel_ids) {
-  assert(!kernel_ids->empty());
-  assert(kernel_ids->back() == 0);
-  // Remove the first kernel that is argument pseudo kernel.
-  kernel_ids->pop_back();
+  assert(kernel_ids->empty());
 
   BEFKernel kernel(kernels().data());
 
@@ -366,11 +384,20 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
   // The kernel body of argument pseudo kernel contains only results and
   // used_bys.
   auto results = kernel.GetKernelEntries(0, kernel.num_results());
+
   // Move offset to the start of used_bys.
   int used_by_offset = results.size();
-  for (int result_number = 0; result_number < results.size(); ++result_number) {
+
+  // The first result is the pseudo result to trigger execution of the kernels
+  // with no operands.
+  assert(!results.empty());
+  assert(results.front() == register_array.size());
+  ProcessUsedBys(kernel, /*kernel_id=*/-1, /*result_number=*/0,
+                 /*result=*/nullptr, &used_by_offset, kernel_ids);
+
+  for (int result_number = 1; result_number < results.size(); ++result_number) {
     auto& result_register = register_array[results[result_number]];
-    // TODO(chky): mlir_to_bef should not emit used args.
+    // TODO(chky): mlir_to_bef should not emit unused args.
     if (result_register.user_count == 0) continue;
 
     AsyncValue* result = GetRegisterValue(result_register);
@@ -559,34 +586,28 @@ BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file)
 
 BEFExecutor::~BEFExecutor() {}
 
-void BEFExecutor::Execute(bool has_arguments_pseudo_kernel) {
+void BEFExecutor::Execute() {
   MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array = kernel_infos();
 
-  // InitializeKernels initialized each KernelInfo::arguments_not_ready to one
-  // plus the number of arguments. This means that as we walk the list to drop
-  // the argument count, if we hit zero then it is time for us to trigger the
+  // Each KernelInfo::arguments_not_ready to the number of arguments (or one for
+  // kernels with no arguments). This means that as we walk the list to drop the
+  // argument count, if we hit zero then it is time for us to trigger the
   // computation. This arrangement is nice because any sync or async kernel that
   // immediately produces results will immediately unblock subsequent kernels to
   // be run by the primary host thread, which results in zero thread hops, clean
   // top-down execution semantics (very cache friendly), and results in all the
   // atomics staying in that cores' cache.
   SmallVector<unsigned, 16> kernel_ids_to_visit;
+
   // If a kernel's result has multiple uses, DecrementArgumentsNotReadyCounts
   // pops one kernel_id and pushes multiple user kernel_ids, increasing the size
   // of kernel_ids_to_visit. We reserve some extra space to accommodate this
   // growth.
   kernel_ids_to_visit.reserve(kernel_array.size() + 4);
-  // Reverse indices in kernel_ids_to_visit because
-  // DecrementArgumentsNotReadyCounts processes its argument from back to front.
-  for (unsigned i = 0, e = kernel_array.size(); i != e; ++i) {
-    kernel_ids_to_visit.push_back(e - i - 1);
-  }
 
-  // The first kernel can be a pseudo kernel provides the arguments, which gets
+  // The first kernel is a pseudo kernel that provides the arguments, which gets
   // special handling.
-  if (has_arguments_pseudo_kernel) {
-    ProcessArgumentsPseudoKernel(&kernel_ids_to_visit);
-  }
+  ProcessArgumentsPseudoKernel(&kernel_ids_to_visit);
 
   DecrementArgumentsNotReadyCounts(&kernel_ids_to_visit);
 }
@@ -635,7 +656,7 @@ void BEFExecutor::Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
   InitializeArgumentRegisters(arguments, register_array);
 
   // Kick off BEF execution starting from ready kernels.
-  exec->Execute(!arguments.empty());
+  exec->Execute();
 
   // Populate the function result AsyncValues (results).
   //

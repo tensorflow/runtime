@@ -35,7 +35,7 @@ func @memcpy_host_to_device_and_back_test() {
   %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
   %host_buffer, %ch12 = tfrt_dht.get_buffer %host_tensor, %ch1
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
-  %ch13 = tfrt_dht.print_buffer %host_buffer, %ch1
+  %ch13 = tfrt_dht.print_buffer %host_buffer, %ch11
 
   // Copy host to device.
   %ch20 = tfrt_cuda.mem.copy_host_to_device %context, %device_buffer, %host_buffer, %size, %stream, %ch10
@@ -57,7 +57,7 @@ func @memcpy_host_to_device_and_back_test() {
   // buffer stays alive for the duration of the copy.
   // TODO(iga): Add EventMgr and extend the life of host buffer inside memcpy.
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
-  %ch51 = tfrt_dht.print_buffer %host_buffer, %ch42
+  %ch51 = tfrt_dht.print_buffer %host_buffer, %ch50
 
   %ch60 = tfrt_cuda.allocator.destroy %allocator, %ch50
   tfrt.return

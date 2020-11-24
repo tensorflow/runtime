@@ -69,14 +69,17 @@ func @if_non_strict() {
   %v2 = "tfrt_test.async_add.i32"(%c1, %c1) : (i32, i32) -> i32
 
   // This is a *non-strict* if.
-  tfrt.if %true, %c1, %v2 : (i32, i32) -> () {
+  %ch1 = tfrt.if %true, %c1, %v2 : (i32, i32) -> (!tfrt.chain) {
     // Note: these prints are intentionally unsequenced so we can test which
     // async values get resolved first.
     %ch3 = tfrt.new.chain
     // We are non-strict, so c1 is ready now and v2 will be resolved later.
-    tfrt.print.i32 %c1, %ch3
+    %ch4 = tfrt.print.i32 %c1, %ch3
     tfrt.print.i32 %v2, %ch3
-    tfrt.return
+    tfrt.return %ch4 : !tfrt.chain
+  } else {
+    %ch3 = tfrt.new.chain
+    tfrt.return %ch3 : !tfrt.chain
   }
 
   // Because the if is non-strict, it immediately invokes its body, which
@@ -85,7 +88,7 @@ func @if_non_strict() {
 
   // CHECK-NEXT: int32 = 1
   // CHECK-NEXT: hello host executor!
-  %ch2 = "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
+  %ch2 = "tfrt_test.print_hello"(%ch1) : (!tfrt.chain) -> !tfrt.chain
   // CHECK-NEXT: int32 = 2
 
   tfrt.return

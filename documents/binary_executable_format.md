@@ -343,6 +343,12 @@ The Kernel Table for a function is a count of kernels, an offset (from the end
 of the Kernel Table) of the start of the kernel, and the number of operands that
 the kernel has.
 
+The kernel list that is following the Kernel Table contains all the kernels used
+in this function. Note that every function has a pseudo kernel that is the
+single entry point to the rest of the kernels. Specifially, a pseudo kernel
+defines registers for function arguments and a pseudo register that is
+conceptually used by kernels that takes no arguments.
+
 The result registers specify the register values to return, and must align with
 the function result types from the
 [FunctionIndex section](#functionindex-section).

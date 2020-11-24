@@ -142,10 +142,10 @@ func @controlflow_repeat_cancel() -> i32 {
 
   %repeat_result = tfrt.repeat.i32 %count, %index : i32 {
     %ch0 = tfrt.new.chain
-    tfrt.print.i32 %index, %ch0
+    %ch = tfrt.print.i32 %index, %ch0
 
     %one = tfrt.constant.i32 1
-    %cond = "tfrt.lessequal.i32"(%one, %index) : (i32, i32) -> (i1)
+    %cond = "tfrt.lessequal.i32"(%one, %index, %ch) : (i32, i32, !tfrt.chain) -> (i1)
 
     // Cancel when the loop index reaches 1.
     %x = tfrt.if %cond, %one : (i32) -> i32 {

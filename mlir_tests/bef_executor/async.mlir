@@ -27,20 +27,18 @@ func @async_add() {
   %c1 = tfrt.constant.i32 1
 
   // CHECK: int32 = 42
-  tfrt.print.i32 %x, %ch0
+  %ch1 = tfrt.print.i32 %x, %ch0
 
   %y = tfrt_test.do.async %x, %c1 : (i32, i32) -> (i32) {
     %y_res = tfrt.add.i32 %x, %c1
     tfrt.return %y_res : i32
   }
 
-  tfrt.print.i32 %y, %ch0
+  // CHECK-NEXT: int32 = 42
+  // CHECK-NEXT: int32 = 43
+  %ch2 = tfrt.print.i32 %x, %ch1
+  %ch3 = tfrt.print.i32 %y, %ch2
 
-  // CHECK: int32 = 42
-  tfrt.print.i32 %x, %ch0
-
-  // 43 is printed after async_add.i32 completes.
-  // CHECK: int32 = 43
   tfrt.return
 }
 

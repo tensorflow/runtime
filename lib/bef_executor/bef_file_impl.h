@@ -200,7 +200,8 @@ class SyncBEFFunction final : public BEFFunction {
   ArrayRef<uint32_t> kernels_;
 
   // This is an array of offsets for all of the kernels in this function,
-  // indexed by the kernel number.
+  // indexed by the kernel number. This does not include the pseudo kernel as it
+  // is not used in the interpreter.
   SmallVector<uint32_t, 8> kernel_offsets_;
 
   // This is an array of register index for the result registers.
@@ -244,10 +245,13 @@ class BEFFileImpl : public BEFFile {
     unsigned offset;
     std::atomic<int> arguments_not_ready;
 
-    // We initialize the ready list to "num_operands + 1" so we can drop the
-    // last count in the executor constructor.
+    // We initialize the ready list to at least 1 so that kernels with no
+    // operands can be triggered by the pseudo kernel.
+    //
+    // TODO(b/173800007): Add perf benchmark to illustrate the improvement from
+    // the reduced number of kernel enqueues.
     KernelInfo(unsigned offset, unsigned num_operands)
-        : offset(offset), arguments_not_ready(num_operands + 1) {}
+        : offset(offset), arguments_not_ready(std::max(1u, num_operands)) {}
   };
 
   using RegisterInfoArray = BEFInfoArray<BEFFileImpl::RegisterInfo, 24>;

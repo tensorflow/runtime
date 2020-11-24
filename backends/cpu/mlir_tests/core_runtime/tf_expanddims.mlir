@@ -44,12 +44,10 @@ func @expand_dims_i32() -> !tfrt.chain{
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 1, 3]
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 3, 1]
   %ch_print_cpu_0 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_0) : 0
-  %ch_print_cpu_1 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_1) : 0
-  %ch_print_cpu_2 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_2) : 0
+  %ch_print_cpu_1 = corert.executeop.seq(%cpu, %ch_print_cpu_0) "tfrt_test.print"(%cpu_handle_result_1) : 0
+  %ch_print_cpu_2 = corert.executeop.seq(%cpu, %ch_print_cpu_1) "tfrt_test.print"(%cpu_handle_result_2) : 0
 
-  %ch_print_cpu = tfrt.merge.chains %ch_print_cpu_0, %ch_print_cpu_1, %ch_print_cpu_2
-
-  tfrt.return %ch_print_cpu : !tfrt.chain
+  tfrt.return %ch_print_cpu_2 : !tfrt.chain
 }
 
 // CHECK: --- Running 'expand_dims_string'
@@ -74,10 +72,8 @@ func @expand_dims_string() -> !tfrt.chain{
   // CHECK: StringHostTensor shape = [2, 1, 3]
   // CHECK: StringHostTensor shape = [2, 3, 1]
   %ch_print_cpu_0 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_0) : 0
-  %ch_print_cpu_1 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_1) : 0
-  %ch_print_cpu_2 = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_2) : 0
+  %ch_print_cpu_1 = corert.executeop.seq(%cpu, %ch_print_cpu_0) "tfrt_test.print"(%cpu_handle_result_1) : 0
+  %ch_print_cpu_2 = corert.executeop.seq(%cpu, %ch_print_cpu_1) "tfrt_test.print"(%cpu_handle_result_2) : 0
 
-  %ch_print_cpu = tfrt.merge.chains %ch_print_cpu_0, %ch_print_cpu_1, %ch_print_cpu_2
-
-  tfrt.return %ch_print_cpu : !tfrt.chain
+  tfrt.return %ch_print_cpu_2 : !tfrt.chain
 }

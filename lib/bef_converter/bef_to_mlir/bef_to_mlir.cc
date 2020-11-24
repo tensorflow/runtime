@@ -1420,23 +1420,20 @@ mlir::LogicalResult BEFFunctionReader::ReadKernels(ArrayRef<uint32_t> kernels,
   if (!attribute_names->ReadInt(&num_kernels))
     assert(num_kernels == kernel_table_.size());
 
-  int kernel_start = 0;
-  if (!block->getArguments().empty()) {
-    // Reads the first op as arguments pseudo op which only defines the argument
-    // registers.
-    kernel_start = 1;
-    if (mlir::failed(
-            ReadArgumentsPseudoKernel(kernels, block->getArguments()))) {
-      EmitError(bef_file_.location, "Failed to read pseudo.");
-      return mlir::failure();
-    }
+  // Reads the first op as arguments pseudo op which defines the argument
+  // registers if there is any.
+  int kernel_start = 1;
 
-    // pseudo op must not be bef.nonstrict.
-    uint8_t pseudo_op_non_strict;
-    if (attribute_names->ReadByte(&pseudo_op_non_strict))
-      assert(static_cast<SpecialAttribute>(pseudo_op_non_strict) ==
-             SpecialAttribute::kUnknown);
+  if (mlir::failed(ReadArgumentsPseudoKernel(kernels, block->getArguments()))) {
+    EmitError(bef_file_.location, "Failed to read pseudo.");
+    return mlir::failure();
   }
+
+  // pseudo op must not be bef.nonstrict.
+  uint8_t pseudo_op_non_strict;
+  if (attribute_names->ReadByte(&pseudo_op_non_strict))
+    assert(static_cast<SpecialAttribute>(pseudo_op_non_strict) ==
+           SpecialAttribute::kUnknown);
 
   for (int i = kernel_start; i < kernel_table_.size(); ++i) {
     auto offset = kernel_table_[i].offset;
@@ -1475,12 +1472,15 @@ mlir::LogicalResult BEFFunctionReader::ReadArgumentsPseudoKernel(
   assert(kernel.num_arguments() == 0);
   assert(kernel.num_attributes() == 0);
   assert(kernel.num_functions() == 0);
-  assert(kernel.num_results() == entry_arguments.size() &&
+  assert(kernel.num_results() == entry_arguments.size() + 1 &&
          "PseudoOp not found for function args.");
 
   // Read results.
   int entry_offset = 0;
-  auto results = kernel.GetKernelEntries(entry_offset, kernel.num_results());
+  // Here we skip the first result as this is the pseudo result that is used by
+  // kernels with no operands.
+  auto results =
+      kernel.GetKernelEntries(entry_offset, kernel.num_results()).drop_front();
   for (int i = 0; i < results.size(); ++i) {
     auto arg = entry_arguments[i];
 

@@ -31,9 +31,9 @@ func @forward_unary_op_argument() {
 
   // CHECK: DenseHostTensor: buffer=[[ADDR:.*]]
   %ch1    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%operand) : 0
-  %result = corert.executeop(%cpu) "tf.Log"(%operand) : 1
+  %ch2, %result = corert.executeop.seq(%cpu, %ch1) "tf.Log"(%operand) : 1
   // CHECK: DenseHostTensor: buffer=[[ADDR]]
-  %ch2    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%result) : 0
+  %ch3    = corert.executeop.seq(%cpu, %ch2) "tfrt_test.print_address"(%result) : 0
 
   tfrt.return
 }
@@ -48,10 +48,10 @@ func @do_not_forward_unary_op_argument() {
 
   // CHECK: DenseHostTensor: buffer=[[ADDR:.*]]
   %ch1     = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%operand) : 0
-  %result0 = corert.executeop(%cpu) "tf.Log"(%operand) : 1
-  %result1 = corert.executeop(%cpu) "tf.Log"(%operand) : 1
+  %ch2, %result0 = corert.executeop.seq(%cpu, %ch1) "tf.Log"(%operand) : 1
+  %ch3, %result1 = corert.executeop.seq(%cpu, %ch2) "tf.Log"(%operand) : 1
   // CHECK-NOT: DenseHostTensor: buffer=[[ADDR]]
-  %ch2     = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%result0) : 0
+  %ch4     = corert.executeop.seq(%cpu, %ch1) "tfrt_test.print_address"(%result0) : 0
 
   tfrt.return
 }
@@ -68,9 +68,9 @@ func @forward_binary_op_lhs_argument() {
 
   // CHECK: DenseHostTensor: buffer=[[ADDR:.*]]
   %ch1    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%operand0) : 0
-  %result = corert.executeop(%cpu) "tf.Mul"(%operand0, %operand1) : 1
+  %ch2, %result = corert.executeop.seq(%cpu, %ch1) "tf.Mul"(%operand0, %operand1) : 1
   // CHECK: DenseHostTensor: buffer=[[ADDR]]
-  %ch2    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%result) : 0
+  %ch3    = corert.executeop.seq(%cpu, %ch2) "tfrt_test.print_address"(%result) : 0
 
   tfrt.return
 }
@@ -87,10 +87,10 @@ func @forward_binary_op_rhs_argument() {
 
   // CHECK: DenseHostTensor: buffer=[[ADDR:.*]]
   %ch1    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%operand1) : 0
-  %result = corert.executeop(%cpu) "tf.Mul"(%operand0, %operand1) : 1
-  %log    = corert.executeop(%cpu) "tf.Log"(%operand0) : 1
+  %ch2, %result = corert.executeop.seq(%cpu, %ch1) "tf.Mul"(%operand0, %operand1) : 1
+  %ch3, %log    = corert.executeop.seq(%cpu, %ch2) "tf.Log"(%operand0) : 1
   // CHECK: DenseHostTensor: buffer=[[ADDR]]
-  %ch2    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%result) : 0
+  %ch4    = corert.executeop.seq(%cpu, %ch1) "tfrt_test.print_address"(%result) : 0
 
   tfrt.return
 }
@@ -110,13 +110,13 @@ func @do_not_forward_binary_op_arguments() {
   %ch1    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%operand0) : 0
   %ch2    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%operand1) : 0
 
-  %result = corert.executeop(%cpu) "tf.Mul"(%operand0, %operand1) : 1
-  %log0   = corert.executeop(%cpu) "tf.Log"(%operand0) : 1
-  %log1   = corert.executeop(%cpu) "tf.Log"(%operand1) : 1
+  %ch3, %result = corert.executeop.seq(%cpu, %ch2) "tf.Mul"(%operand0, %operand1) : 1
+  %ch4, %log0   = corert.executeop.seq(%cpu, %ch3) "tf.Log"(%operand0) : 1
+  %ch5, %log1   = corert.executeop.seq(%cpu, %ch4) "tf.Log"(%operand1) : 1
 
   // CHECK-NOT: DenseHostTensor: buffer=[[ADDR0]]
   // CHECK-NOT: DenseHostTensor: buffer=[[ADDR1]]
-  %ch3    = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print_address"(%result) : 0
+  %ch6    = corert.executeop.seq(%cpu, %ch2) "tfrt_test.print_address"(%result) : 0
 
   tfrt.return
 }

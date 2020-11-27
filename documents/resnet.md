@@ -44,9 +44,9 @@ First, download `resnet50_graph_inference_tensors.btf` from Google Drive
 [here](https://drive.google.com/file/d/1ReGkWkGlf9q48fauP-uhApRuoZFn1i8F/view?usp=sharing)
 to the directory `integrationtest/resnet/test_data/`.
 
-Then modify `integrationtest/resnet/BUILD` to un-comment the line that contains
-`resnet50_graph_inference_tensors.btf` and remove the line that contains
-`resnet50_graph_inference.mlir` in the `exclude` section.
+Then modify `//integrationtest/resnet/BUILD` to un-comment the line that
+contains `resnet50_graph_inference_tensors.btf` and remove the line that
+contains `resnet50_graph_inference.mlir` in the `exclude` section.
 
 Lastly, execute the command below to run the test.
 

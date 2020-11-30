@@ -101,8 +101,8 @@ TEST_F(BefReaderTest, ReadIntFromEmptyFile) {
 //   0x81 0x82 0x03 --> 3B integer, value = (1 << 14) + (2 << 7) + 3 = 16643
 TEST_F(BefReaderTest, ReadIntOneByte) {
   // A sucessful case for an 1 byte integer.
-  ArrayRef<uint8_t> ar = {0x01};
-  BEFReader reader(ar);
+  uint8_t file_content[] = {0x01};
+  BEFReader reader{file_content};
   size_t value = 0;
   EXPECT_FALSE(reader.ReadInt(&value));
   EXPECT_EQ(0x01, value);
@@ -111,8 +111,8 @@ TEST_F(BefReaderTest, ReadIntOneByte) {
 
 TEST_F(BefReaderTest, ReadIntTwoBytes) {
   // A sucessful case for a 2 byte integer.
-  ArrayRef<uint8_t> ar = {0x81, 0x02};
-  BEFReader reader(ar);
+  uint8_t file_content[] = {0x81, 0x02};
+  BEFReader reader{file_content};
   size_t value = 0;
   EXPECT_FALSE(reader.ReadInt(&value));
   EXPECT_EQ(130, value);
@@ -121,8 +121,8 @@ TEST_F(BefReaderTest, ReadIntTwoBytes) {
 
 TEST_F(BefReaderTest, ReadIntTwoBytesFailure) {
   // Should fail: two bytes are expected but only one byte exists.
-  ArrayRef<uint8_t> ar = {0x81};
-  BEFReader reader(ar);
+  uint8_t file_content[] = {0x81};
+  BEFReader reader{file_content};
   size_t value = 0;
   EXPECT_TRUE(reader.ReadInt(&value));
   EXPECT_TRUE(reader.Empty());
@@ -130,8 +130,8 @@ TEST_F(BefReaderTest, ReadIntTwoBytesFailure) {
 
 TEST_F(BefReaderTest, ReadIntThreeBytes) {
   // A sucessful case for a 3 byte integer.
-  ArrayRef<uint8_t> ar = {0x81, 0x82, 0x03};
-  BEFReader reader(ar);
+  uint8_t file_content[] = {0x81, 0x82, 0x03};
+  BEFReader reader{file_content};
   size_t value = 0;
   EXPECT_FALSE(reader.ReadInt(&value));
   EXPECT_EQ(16643, value);

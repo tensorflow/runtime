@@ -99,29 +99,6 @@ AsyncValue* GetOrCreateRegisterValue(BEFFileImpl::RegisterInfo* reg,
   }
 }
 
-// This method makes kernels with error input immediately ready for processing
-// by setting their arguments_not_ready count to 1. This allows faster error
-// propagation than having these kernels wait for all inputs to be available.
-// And it also saves memory by reducing lifetime of error values.
-//
-// Because this is a slow path that is run only when input value has
-// error, we want it out of line.
-LLVM_ATTRIBUTE_NOINLINE
-void SetKernelsWithErrorInputReady(
-    MutableArrayRef<BEFFileImpl::KernelInfo> kernel_infos,
-    ArrayRef<uint32_t> kernels_with_error_input) {
-  for (auto kernel_id : kernels_with_error_input) {
-    auto& arguments_not_ready = kernel_infos[kernel_id].arguments_not_ready;
-    int not_ready_count = arguments_not_ready.load(std::memory_order_acquire);
-    while (not_ready_count > 1) {
-      if (arguments_not_ready.compare_exchange_weak(not_ready_count, 1,
-                                                    std::memory_order_release,
-                                                    std::memory_order_acquire))
-        break;
-    }
-  }
-}
-
 AsyncValue* SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
                              AsyncValue* new_value,
                              bool* register_already_set) {
@@ -275,25 +252,18 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
   auto state = result ? result->state()
                       : AsyncValue::State(AsyncValue::State::kConcrete);
 
-  // If this result has error, then we can accelerate error propagation by
-  // making any using kernel ready.
-  //
-  // This check is done intentionally after checking for IsConcrete()
-  // so that in the normal path we call AsyncValue::state() only once.
-  if (state.IsError()) {
 #ifdef DEBUG_BEF_EXECUTOR
-    if (kernel_id >= 0) {
-      std::string error_message;
-      llvm::raw_string_ostream os(error_message);
-      os << result->GetError();
-      DEBUG_PRINT(
-          "Kernel %d %s got error: %s\n", kernel_id,
-          location_handler_->BefFile()->GetKernelName(kernel.kernel_code()),
-          os.str().c_str());
-    }
-#endif
-    SetKernelsWithErrorInputReady(kernel_infos(), used_bys);
+  // Print the error in debug mode.
+  if (state.IsError() && kernel_id >= 0) {
+    std::string error_message;
+    llvm::raw_string_ostream os(error_message);
+    os << result->GetError();
+    DEBUG_PRINT(
+        "Kernel %d %s got error: %s\n", kernel_id,
+        location_handler_->BefFile()->GetKernelName(kernel.kernel_code()),
+        os.str().c_str());
   }
+#endif
 
   // If this result is already available (because the kernel produced its
   // result synchronously, or because the worker thread beat our thread)

@@ -123,6 +123,46 @@ TEST(ValueTest, OutOfPlace) {
   ASSERT_FALSE(v2.HasValue());
 }
 
+TEST(ValueTest, PointerPayload) {
+  int a = 2;
+  Value v1{&a, Value::PointerPayload{}};
+
+  ASSERT_EQ(v1.get<int>(), 2);
+  ASSERT_EQ(&v1.get<int>(), &a);
+  ASSERT_TRUE(v1.IsType<int>());
+  ASSERT_FALSE(v1.IsType<float>());
+
+  // Test set to a non-pointer-payload.
+  v1.set(3);
+
+  ASSERT_EQ(v1.get<int>(), 3);
+  ASSERT_NE(&v1.get<int>(), &a);
+  ASSERT_TRUE(v1.IsType<int>());
+  ASSERT_FALSE(v1.IsType<float>());
+
+  // Test set to a pointer-payload.
+  v1.set(&a, Value::PointerPayload{});
+  ASSERT_EQ(v1.get<int>(), 2);
+  ASSERT_EQ(&v1.get<int>(), &a);
+  ASSERT_TRUE(v1.IsType<int>());
+  ASSERT_FALSE(v1.IsType<float>());
+
+  // Test move construction.
+  Value v2{std::move(v1)};
+  ASSERT_EQ(v2.get<int>(), 2);
+  ASSERT_EQ(&v2.get<int>(), &a);
+  ASSERT_TRUE(v2.IsType<int>());
+  ASSERT_FALSE(v2.IsType<float>());
+  ASSERT_FALSE(v1.HasValue());  // NOLINT Disable use after move warning
+
+  // Test move assignment.
+  v1 = std::move(v2);
+  ASSERT_EQ(v1.get<int>(), 2);
+  ASSERT_EQ(&v1.get<int>(), &a);
+  ASSERT_TRUE(v1.IsType<int>());
+  ASSERT_FALSE(v1.IsType<float>());
+}
+
 struct AbstractBase {
   virtual ~AbstractBase() = default;
   virtual int value() const = 0;

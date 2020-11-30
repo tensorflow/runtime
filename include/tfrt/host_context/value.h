@@ -36,6 +36,7 @@ template <class T>
 class InPlaceTypeTraits;
 template <class T>
 class OutOfPlaceTypeTraits;
+class PointerPayloadTypeTraits;
 }  // namespace internal
 
 // Value is a type-erased data type for representing synchronous values and is
@@ -56,6 +57,12 @@ class OutOfPlaceTypeTraits;
 //   with a heap allocation.
 // * For non-moveable types regardless of size, the payload is stored out of
 //   place with a heap allocation.
+//
+// The Value class also allows storing a non-owning non-const pointer to the
+// payload. This allows the client to use Value without copying/moving the
+// payload into the Value object. Note that Value does not allow storing const
+// pointer (trying to do so will cause a compiler error), as this is
+// incompatible with Value::get() which return a non-const ref to the payload.
 //
 // Unlike std::any, Value supports getting a reference to the base class of the
 // stored type. For example, the following code works:
@@ -85,6 +92,8 @@ class OutOfPlaceTypeTraits;
 // the interoperation of TFRT interpreter and executor.
 class Value {
  public:
+  struct PointerPayload {};
+
   // Value is default constructible. The payload is unset in the default
   // constructed Value.
   Value() = default;
@@ -100,6 +109,12 @@ class Value {
   // Construct Value and store `t` as the payload.
   template <typename T>
   explicit Value(T&& t);
+
+  // Construct Value that stores a pointer to the payload. With Value(ptr,
+  // PointerPayload{}), Value::get() returns a ref to the pointee object. This
+  // is unlike Value(ptr) where Value::get() returns a ref to the pointer.
+  template <typename T>
+  explicit Value(T* t, PointerPayload);
 
   ~Value();
 
@@ -121,6 +136,9 @@ class Value {
   // set() stores the argument `t` as the payload of Value.
   template <typename T>
   void set(T&& t);
+
+  template <typename T>
+  void set(T* t, PointerPayload);
 
   // Reset the Value object to empty.
   void reset();
@@ -165,6 +183,8 @@ class Value {
 
   template <class T>
   friend class internal::OutOfPlaceTypeTraits;
+
+  friend class internal::PointerPayloadTypeTraits;
 
   template <typename T, typename... Args>
   void fill(Args&&... args);
@@ -236,6 +256,24 @@ struct OutOfPlaceTypeTraits {
   }
 };
 
+struct PointerPayloadTypeTraits {
+  // Clear the payload in `v`. `v` should be non-empty.
+  static void Clear(Value* v) {
+    assert(v->HasValue());
+    v->traits_ = nullptr;
+  }
+
+  // Move construct `from` to `to`. `to` should be an empty Value and `from`
+  // should be a non-empty Value.
+  static void MoveConstruct(Value* to, Value* from) {
+    assert(!to->HasValue() && from->HasValue());
+
+    to->value_ = from->value_;
+    to->traits_ = from->traits_;
+    from->traits_ = nullptr;
+  }
+};
+
 struct TypeTraits {
   using ClearFn = void (*)(Value*);
   using MoveConstructFn = void (*)(Value*, Value*);
@@ -248,16 +286,34 @@ struct TypeTraits {
     clear = &TypeTraitFns::Clear;
     move_construct = &TypeTraitFns::MoveConstruct;
     is_polymorphic = std::is_polymorphic<T>::value;
+    is_pointer_payload = false;
+  }
+
+  template <typename T>
+  TypeTraits(TypeTag<T>, Value::PointerPayload) {
+    using TypeTraitFns = PointerPayloadTypeTraits;
+    clear = &TypeTraitFns::Clear;
+    move_construct = &TypeTraitFns::MoveConstruct;
+    is_polymorphic = std::is_polymorphic<T>::value;
+    is_pointer_payload = true;
   }
 
   ClearFn clear;
   MoveConstructFn move_construct;
   bool is_polymorphic;
+  bool is_pointer_payload;
 };
 
 template <typename T>
 TypeTraits* GetTypeTraits() {
   static TypeTraits* traits = new TypeTraits(TypeTag<T>());
+  return traits;
+}
+
+template <typename T>
+TypeTraits* GetTypeTraits(Value::PointerPayload) {
+  static TypeTraits* traits =
+      new TypeTraits(TypeTag<T>(), Value::PointerPayload{});
   return traits;
 }
 
@@ -267,6 +323,10 @@ template <typename T>
 Value::Value(T&& t) {
   fill<T>(std::forward<T>(t));
 }
+
+template <typename T>
+Value::Value(T* t, PointerPayload)
+    : value_{t}, traits_{internal::GetTypeTraits<T>(PointerPayload{})} {}
 
 inline Value::Value(Value&& v) {
   if (v.HasValue()) v.traits_->move_construct(this, &v);
@@ -300,6 +360,13 @@ void Value::emplace(Args&&... args) {
   fill<T>(std::forward<Args>(args)...);
 }
 
+template <typename T>
+void Value::set(T* t, PointerPayload) {
+  reset();
+  value_ = t;
+  traits_ = internal::GetTypeTraits<T>(PointerPayload{});
+}
+
 // set() stores the argument `t` as the payload of Value.
 template <typename T>
 void Value::set(T&& t) {
@@ -328,7 +395,10 @@ inline void Value::reset() {
 
 template <typename T>
 bool Value::IsType() const {
-  return internal::GetTypeTraits<T>() == traits_;
+  if (traits_->is_pointer_payload)
+    return internal::GetTypeTraits<T>(PointerPayload{}) == traits_;
+  else
+    return internal::GetTypeTraits<T>() == traits_;
 }
 
 template <typename T, typename std::enable_if<MaybeBase<T>::value>::type*>

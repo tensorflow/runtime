@@ -56,6 +56,18 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "host_context/location_test",
+    srcs = [
+        "host_context/location_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_context/request_context_test",
     srcs = [
         "host_context/request_context_test.cc",

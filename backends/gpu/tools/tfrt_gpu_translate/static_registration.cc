@@ -18,7 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "mlir/IR/Module.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/Translation.h"
 #include "tfrt/bef_converter/bef_to_mlir_translate.h"
 #include "tfrt/bef_converter/mlir_to_bef_translate.h"

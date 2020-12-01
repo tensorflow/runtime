@@ -25,8 +25,7 @@
 #define TFRT_BACKENDS_CPU_JIT_CONTRACTION_OUTPUT_KERNEL_BUILDER_H_
 
 #include "llvm/Support/Error.h"
-#include "mlir/IR/Function.h"
-#include "mlir/IR/Module.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/support/forward_decls.h"
 

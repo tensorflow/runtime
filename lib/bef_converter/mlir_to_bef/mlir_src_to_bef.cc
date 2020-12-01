@@ -23,8 +23,8 @@
 #include "tfrt/bef_converter/mlir_src_to_bef.h"
 
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/Module.h"
 #include "mlir/Parser.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"
 #include "tfrt/init_tfrt_dialects.h"

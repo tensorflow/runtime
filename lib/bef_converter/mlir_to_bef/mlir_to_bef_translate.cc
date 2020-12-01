@@ -20,7 +20,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "llvm/Support/CommandLine.h"
-#include "mlir/IR/Module.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"
 #include "tfrt/support/aligned_buffer.h"
 

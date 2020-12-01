@@ -25,7 +25,7 @@
 #include <string>
 
 #include "llvm/ADT/SmallVector.h"
-#include "mlir/IR/Module.h"
+#include "mlir/IR/BuiltinOps.h"
 
 namespace tfrt {
 // A simple compiler pass interface. This is meant to provide temporary

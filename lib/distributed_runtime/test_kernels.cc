@@ -20,8 +20,8 @@
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
+#include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
-#include "mlir/IR/Module.h"
 #include "mlir/Parser.h"
 #include "tfrt/compiler/compiler_pass.h"
 #include "tfrt/distributed_runtime/callback_registry.h"

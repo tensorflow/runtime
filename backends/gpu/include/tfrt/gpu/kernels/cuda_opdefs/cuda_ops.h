@@ -42,10 +42,10 @@ class CUDADialect : public Dialect {
   explicit CUDADialect(MLIRContext* context);
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.h.inc"
-
 }  // namespace cuda
 }  // namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.h.inc"
 
 #endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_OPS_H_

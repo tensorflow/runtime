@@ -48,12 +48,12 @@ CUDADialect::CUDADialect(MLIRContext *context)
       >();
 }
 
+}  // namespace cuda
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.cpp.inc"
-
-}  // namespace cuda
-}  // namespace tfrt

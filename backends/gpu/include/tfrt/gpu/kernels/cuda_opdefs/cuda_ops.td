@@ -14,7 +14,7 @@
 
 //===- cuda_ops.td --------------------------------------------------------===//
 //
-// CUDA based CUDA pperation definitions.
+// CUDA based CUDA operation definitions.
 //
 // The same ops should be implementable with a ROCm backend as well.
 // Current doc strings refer to CUDA only.
@@ -25,6 +25,7 @@
 #else
 #define CUDA_OPS
 
+include "mlir/IR/OpBase.td"
 include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"

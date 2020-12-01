@@ -22,15 +22,13 @@
 
 #include "tfrt/host_context/host_buffer.h"
 
-#include <cstdint>
-
-#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "tfrt/host_context/host_allocator.h"
 
+namespace tfrt {
 namespace {
 
-class TestAllocator : public tfrt::HostAllocator {
+class TestAllocator : public HostAllocator {
  public:
   explicit TestAllocator(std::unique_ptr<HostAllocator> allocator)
       : allocator_(std::move(allocator)) {}
@@ -54,30 +52,60 @@ class TestAllocator : public tfrt::HostAllocator {
   int64_t bytes_allocated_ = 0;
 };
 
-TEST(HostBufferTest, Alignment) {
-  auto is_aligned = [](void* ptr, size_t alignment) {
+class HostBufferTest : public ::testing::Test {
+ protected:
+  HostBufferTest() : malloc_allocator_{CreateMallocAllocator()} {}
+
+  static bool IsAligned(void* ptr, size_t alignment) {
     return reinterpret_cast<std::uintptr_t>(ptr) % alignment == 0;
-  };
+  }
 
-  auto allocator = tfrt::CreateMallocAllocator();
+  std::unique_ptr<HostAllocator> malloc_allocator_;
+};
 
+TEST_F(HostBufferTest, Alignment) {
   for (auto alignment : {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024}) {
     auto host_buffer =
-        tfrt::HostBuffer::CreateUninitialized(10, alignment, allocator.get());
-    EXPECT_TRUE(is_aligned(host_buffer->data(), alignment));
+        HostBuffer::CreateUninitialized(10, alignment, malloc_allocator_.get());
+    EXPECT_TRUE(IsAligned(host_buffer->data(), alignment));
   }
 }
 
-TEST(HostBufferTest, MemoryLeak) {
-  TestAllocator allocator(tfrt::CreateMallocAllocator());
+TEST_F(HostBufferTest, MemoryLeak) {
+  TestAllocator allocator(CreateMallocAllocator());
 
   for (auto alignment : {1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024}) {
     auto host_buffer =
-        tfrt::HostBuffer::CreateUninitialized(10, alignment, &allocator);
+        HostBuffer::CreateUninitialized(10, alignment, &allocator);
 
     host_buffer.reset();
     EXPECT_FALSE(allocator.HasMemory());
   }
 }
 
+const size_t kTestAllocSize = 1024 * 1024;
+const size_t kTestAlignment = 64;
+TEST_F(HostBufferTest, CreateUninitialized) {
+  RCReference<HostBuffer> host_buffer = HostBuffer::CreateUninitialized(
+      kTestAllocSize, kTestAlignment, malloc_allocator_.get());
+
+  memset(host_buffer->data(), 0, kTestAllocSize);
+
+  EXPECT_EQ(kTestAllocSize, host_buffer->size());
+  EXPECT_TRUE(IsAligned(host_buffer->data(), kTestAlignment));
+  EXPECT_TRUE(host_buffer->IsExclusiveDataOwner());
+}
+
+TEST_F(HostBufferTest, CreateFromExternal) {
+  RCReference<HostBuffer> parent_buffer = HostBuffer::CreateUninitialized(
+      kTestAllocSize, kTestAlignment, malloc_allocator_.get());
+
+  RCReference<HostBuffer> child_buffer = HostBuffer::CreateFromExternal(
+      std::move(parent_buffer), kTestAllocSize / 2, kTestAllocSize / 2);
+
+  EXPECT_EQ(kTestAllocSize / 2, child_buffer->size());
+  EXPECT_TRUE(child_buffer->IsExclusiveDataOwner());
+}
+
 }  // namespace
+}  // namespace tfrt

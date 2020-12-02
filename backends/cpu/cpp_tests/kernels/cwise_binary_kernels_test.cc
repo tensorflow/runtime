@@ -21,10 +21,12 @@
 #include "../../lib/kernels/cwise_binary_kernels.h"
 
 #include "benchmark/benchmark.h"
+#include "gtest/gtest.h"
 #include "tfrt/common/ops/tf/bcast.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/latch.h"
@@ -44,8 +46,10 @@ std::unique_ptr<HostContext> CreateTestHostContext(int num_threads) {
 void BinaryKernel(benchmark::State& state, int num_threads,
                   const TensorShape& lhs_shape, const TensorShape& rhs_shape) {
   auto host = CreateTestHostContext(num_threads);
-  ExecutionContext exec_ctx(
-      RequestContext::Create(host.get(), /*resource_context=*/nullptr));
+  Expected<RCReference<RequestContext>> req_ctx =
+      RequestContextBuilder(host.get(), /*resource_context=*/nullptr).build();
+  ASSERT_FALSE(!req_ctx);
+  ExecutionContext exec_ctx(std::move(*req_ctx));
 
   TensorShape res_shape = GetBroadcastedShape(lhs_shape, rhs_shape).get();
 

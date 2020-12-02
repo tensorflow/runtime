@@ -44,17 +44,18 @@ std::unique_ptr<HostContext> CreateTestHostContext(int num_threads) {
 TEST(RequestDeadlineTrackerTest, CancelRequest) {
   std::unique_ptr<HostContext> host = CreateTestHostContext(1);
   RequestDeadlineTracker req_deadline_tracker{host.get()};
-  RCReference<RequestContext> req_ctx =
-      RequestContext::Create(host.get(), /*resource_context=*/nullptr);
+  Expected<RCReference<RequestContext>> req_ctx =
+      RequestContextBuilder(host.get(), /*resource_context=*/nullptr).build();
+  ASSERT_FALSE(!req_ctx);
 
   std::chrono::system_clock::time_point deadline =
       std::chrono::system_clock::now() + 1s;
-  req_deadline_tracker.CancelRequestOnDeadline(deadline, req_ctx.CopyRef());
+  req_deadline_tracker.CancelRequestOnDeadline(deadline, req_ctx->CopyRef());
 
   std::this_thread::sleep_for(2s);
 
   // Check if RequestContext's is_cancelled_ flag is set.
-  ASSERT_TRUE(req_ctx->IsCancelled());
+  ASSERT_TRUE((*req_ctx)->IsCancelled());
 }
 
 }  // namespace

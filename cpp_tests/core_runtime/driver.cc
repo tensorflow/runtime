@@ -75,9 +75,12 @@ void CoreRuntimeCpuDriver::Execute(string_view op_name,
                                    MutableArrayRef<TensorHandle> args,
                                    const OpAttrsRef& attrs,
                                    MutableArrayRef<TensorHandle> results) {
-  RCReference<RequestContext> req_ctx =
-      RequestContext::Create(GetHostContext(), &resource_context_);
-  Execute(ExecutionContext(std::move(req_ctx)), op_name, args, attrs, results);
+  Expected<RCReference<RequestContext>> req_ctx =
+      tfrt::RequestContextBuilder(GetHostContext(), &resource_context_).build();
+  if (!req_ctx)
+    TFRT_LOG(FATAL) << "Failed to build a RequestContext: "
+                    << req_ctx.takeError();
+  Execute(ExecutionContext(std::move(*req_ctx)), op_name, args, attrs, results);
 }
 
 void CoreRuntimeCpuDriver::Execute(const ExecutionContext& exec_ctx,
@@ -119,11 +122,14 @@ ExecutionContext CoreRuntimeCpuDriver::CreateExecutionContext(
     const char* filename, int line_number) {
   locations_.push_back({filename, line_number});
 
-  RCReference<RequestContext> req_ctx =
-      RequestContext::Create(GetHostContext(), &resource_context_);
+  auto req_ctx =
+      tfrt::RequestContextBuilder(GetHostContext(), &resource_context_).build();
+  if (!req_ctx)
+    TFRT_LOG(FATAL) << "Failed to build a RequestContext: "
+                    << req_ctx.takeError();
   Location location(this, /*data=*/locations_.size() - 1);
 
-  return ExecutionContext{std::move(req_ctx), location};
+  return ExecutionContext{std::move(*req_ctx), location};
 }
 
 DecodedLocation CoreRuntimeCpuDriver::DecodeLocation(Location loc) const {

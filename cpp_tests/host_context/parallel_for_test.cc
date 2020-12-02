@@ -33,8 +33,10 @@
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/support/latch.h"
 #include "tfrt/support/mutex.h"
+#include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 
@@ -48,8 +50,10 @@ static std::unique_ptr<HostContext> CreateTestHostContext(int num_threads) {
 }
 
 static ExecutionContext CreateTestExecutionContext(HostContext* host) {
-  auto request_ctx = RequestContext::Create(host, nullptr);
-  return ExecutionContext{std::move(request_ctx)};
+  Expected<RCReference<RequestContext>> request_ctx =
+      RequestContextBuilder(host, /*resource_context=*/nullptr).build();
+  EXPECT_FALSE(!request_ctx);
+  return ExecutionContext{std::move(*request_ctx)};
 }
 
 TEST(ParallelForTest, FixedBlockSize) {

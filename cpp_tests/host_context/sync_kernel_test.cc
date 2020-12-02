@@ -78,9 +78,9 @@ class SyncKernelTest : public ::testing::Test {
   HostContext host_context_{[](const DecodedDiagnostic&) {},
                             CreateMallocAllocator(),
                             CreateSingleThreadedWorkQueue()};
-  RCReference<RequestContext> req_ctx_ =
-      RequestContext::Create(&host_context_, /*resource_context=*/nullptr);
-  ExecutionContext exec_ctx_{req_ctx_.CopyRef()};
+  ExecutionContext exec_ctx_{std::move(
+      *RequestContextBuilder(&host_context_, /*resource_context=*/nullptr)
+           .build())};
 
   // Tests can use up to 16 registers.
   SmallVector<const void*, 16> attributes_;

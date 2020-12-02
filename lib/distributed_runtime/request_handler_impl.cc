@@ -217,10 +217,14 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
 
   // TODO(bramandia): Propagate RequestContext from the request.
   ResourceContext resource_context;
-  RCReference<tfrt::RequestContext> req_ctx =
-      RequestContext::Create(host_ctx(), &resource_context);
-
-  tfrt::ExecutionContext exec_ctx{std::move(req_ctx)};
+  Expected<RCReference<RequestContext>> req_ctx =
+      RequestContextBuilder(host_ctx(), &resource_context).build();
+  if (!req_ctx) {
+    done(llvm::make_error<UnknownErrorInfo>(
+        StrCat("Failed to build RequestContext ", req_ctx.takeError())));
+    return;
+  }
+  tfrt::ExecutionContext exec_ctx{std::move(*req_ctx)};
 
   RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
   SmallVector<AsyncValue*, 4> arguments;

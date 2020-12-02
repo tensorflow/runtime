@@ -25,6 +25,7 @@
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/diagnostic.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -36,110 +37,103 @@ namespace {
 
 static constexpr ResourceContext* kNoResourceCtx = nullptr;
 
-std::unique_ptr<HostContext> CreateTestHostContext() {
-  return std::make_unique<HostContext>([](const DecodedDiagnostic&) {},
-                                       CreateMallocAllocator(),
-                                       CreateSingleThreadedWorkQueue());
-}
+class BufferForwardingTest : public ::testing::Test {
+ protected:
+  BufferForwardingTest() {}
 
-TEST(BufferForwarding, SameShapeSameType) {
-  auto host_ptr = CreateTestHostContext();
-  HostContext* host = host_ptr.get();
-  ExecutionContext exec_ctx(RequestContext::Create(host, kNoResourceCtx));
+  HostContext host_ctx_{[](const DecodedDiagnostic&) {},
+                        CreateMallocAllocator(),
+                        CreateSingleThreadedWorkQueue()};
+  ExecutionContext exec_ctx_{
+      std::move(*RequestContextBuilder(&host_ctx_, kNoResourceCtx).build())};
+};
 
+TEST_F(BufferForwardingTest, SameShapeSameType) {
   TensorShape shape({1, 2, 3});
 
   TensorMetadata input_md(GetDType<float>(), shape);
   TensorMetadata output_md(GetDType<float>(), shape);
 
-  auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(input_md, host);
+  auto dht =
+      DenseHostTensor::MakeConstructedAsyncValueRef(input_md, &host_ctx_);
   ASSERT_TRUE(dht.IsUnique());
 
   Argument<DenseHostTensor> arg(dht.GetAsyncValue());
 
   {  // Forwards argument to output.
-    auto fwd = ForwardInputOrAllocateOutput(exec_ctx, output_md, arg);
+    auto fwd = ForwardInputOrAllocateOutput(exec_ctx_, output_md, arg);
     ASSERT_EQ(fwd.get().data(), dht.get().data());
   }
 
   {  // AsyncValue becomes not unique.
     auto copy = dht.CopyRef();
-    auto fwd = ForwardInputOrAllocateOutput(exec_ctx, output_md, arg);
+    auto fwd = ForwardInputOrAllocateOutput(exec_ctx_, output_md, arg);
     ASSERT_NE(fwd.get().data(), dht.get().data());
   }
 
   {  // DenseHostTensor becomes not unique (not exclusive data owner).
     auto copy = dht.get().CopyRef();
-    auto fwd = ForwardInputOrAllocateOutput(exec_ctx, output_md, arg);
+    auto fwd = ForwardInputOrAllocateOutput(exec_ctx_, output_md, arg);
     ASSERT_NE(fwd.get().data(), dht.get().data());
   }
 }
 
-TEST(BufferForwarding, SameShapeDifferentType) {
-  auto host_ptr = CreateTestHostContext();
-  HostContext* host = host_ptr.get();
-  ExecutionContext exec_ctx(RequestContext::Create(host, kNoResourceCtx));
-
+TEST_F(BufferForwardingTest, SameShapeDifferentType) {
   TensorShape shape({1, 2, 3});
 
   TensorMetadata input_md(GetDType<float>(), shape);
   TensorMetadata output_md(GetDType<int32_t>(), shape);
 
-  auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(input_md, host);
+  auto dht =
+      DenseHostTensor::MakeConstructedAsyncValueRef(input_md, &host_ctx_);
   ASSERT_TRUE(dht.IsUnique());
 
   Argument<DenseHostTensor> arg(dht.GetAsyncValue());
-  auto fwd = ForwardInputOrAllocateOutput(exec_ctx, output_md, arg);
+  auto fwd = ForwardInputOrAllocateOutput(exec_ctx_, output_md, arg);
   ASSERT_NE(fwd.get().data(), dht.get().data());
 }
 
-TEST(BufferForwarding, DifferentShapeSameType) {
-  auto host_ptr = CreateTestHostContext();
-  HostContext* host = host_ptr.get();
-  ExecutionContext exec_ctx(RequestContext::Create(host, kNoResourceCtx));
-
+TEST_F(BufferForwardingTest, DifferentShapeSameType) {
   TensorShape shape_in({1, 2, 3});
   TensorShape shape_out({4, 5, 6});
 
   TensorMetadata input_md(GetDType<float>(), shape_in);
   TensorMetadata output_md(GetDType<float>(), shape_out);
 
-  auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(input_md, host);
+  auto dht =
+      DenseHostTensor::MakeConstructedAsyncValueRef(input_md, &host_ctx_);
   ASSERT_TRUE(dht.IsUnique());
 
   Argument<DenseHostTensor> arg(dht.GetAsyncValue());
-  auto fwd = ForwardInputOrAllocateOutput(exec_ctx, output_md, arg);
+  auto fwd = ForwardInputOrAllocateOutput(exec_ctx_, output_md, arg);
   ASSERT_NE(fwd.get().data(), dht.get().data());
 }
 
-TEST(BufferForwarding, SlicedBuffer) {
-  auto host_ptr = CreateTestHostContext();
-  HostContext* host = host_ptr.get();
-  ExecutionContext exec_ctx(RequestContext::Create(host, kNoResourceCtx));
-
+TEST_F(BufferForwardingTest, SlicedBuffer) {
   TensorShape shape({1, 2, 3});
   TensorMetadata input_md(GetDType<float>(), shape);
   TensorMetadata output_md(GetDType<float>(), shape);
 
-  auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(input_md, host);
+  auto dht =
+      DenseHostTensor::MakeConstructedAsyncValueRef(input_md, &host_ctx_);
   ASSERT_TRUE(dht.IsUnique());
 
   // Slice a DenseHostTensor of the same type and shape.
   auto sliced_buffer = HostBuffer::CreateFromExternal(dht->buffer().CopyRef(),
                                                       0, dht->buffer()->size());
   auto sliced_dht = MakeAvailableAsyncValueRef<DenseHostTensor>(
-      host, input_md, std::move(sliced_buffer));
+      &host_ctx_, input_md, std::move(sliced_buffer));
 
   Argument<DenseHostTensor> arg(sliced_dht.GetAsyncValue());
 
   {  // We can't forward slice buffer if `dht` is still alive.
-    auto fwd = ForwardInputOrAllocateOutput(exec_ctx, output_md, arg);
+    auto fwd = ForwardInputOrAllocateOutput(exec_ctx_, output_md, arg);
     ASSERT_NE(fwd.get().data(), dht.get().data());
   }
 
   {  // When `dht` releases the buffer `sliced_dht` become exclusive data owner.
     void* data_ptr = dht->ReleaseBuffer()->data();
-    auto fwd = ForwardInputOrAllocateOutput(exec_ctx, output_md, arg);
+    auto fwd = ForwardInputOrAllocateOutput(exec_ctx_, output_md, arg);
     ASSERT_EQ(fwd.get().data(), data_ptr);
   }
 }

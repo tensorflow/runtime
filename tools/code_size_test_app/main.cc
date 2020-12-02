@@ -98,8 +98,14 @@ int main(int argc, char** argv) {
     llvm::SmallVector<tfrt::RCReference<tfrt::AsyncValue>, 4> results;
     results.resize(fn->result_types().size());
 
-    tfrt::ExecutionContext exec_ctx{
-        tfrt::RequestContext::Create(&host, /*resource_context=*/nullptr)};
+    tfrt::Expected<tfrt::RCReference<tfrt::RequestContext>> req_ctx =
+        tfrt::RequestContextBuilder(&host, /*resource_context=*/nullptr)
+            .build();
+    if (!req_ctx) {
+      fprintf(stderr, "Failed to build a RequestContext.\n");
+      abort();
+    }
+    tfrt::ExecutionContext exec_ctx{std::move(*req_ctx)};
     fn->Execute(exec_ctx, /*arguments=*/{}, results);
 
     // Block until the function results are fully resolved.

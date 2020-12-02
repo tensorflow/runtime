@@ -22,6 +22,28 @@ tfrt_cc_library(
 )
 
 tfrt_cc_test(
+    name = "host_context/async_value_ref_test",
+    srcs = ["host_context/async_value_ref_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
+    name = "host_context/async_value_test",
+    srcs = ["host_context/async_value_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_context/host_buffer_test",
     srcs = [
         "host_context/host_buffer_test.cc",
@@ -351,17 +373,6 @@ tfrt_cc_test(
         "@tf_runtime//:support",
         "@tf_runtime//backends/cpu:core_runtime_alwayslink",
         "@tf_runtime//backends/cpu:test_ops_alwayslink",
-    ],
-)
-
-tfrt_cc_test(
-    name = "host_runtime/async_value_test",
-    srcs = ["host_runtime/async_value_test.cc"],
-    deps = [
-        ":common",
-        "@com_google_googletest//:gtest_main",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
     ],
 )
 

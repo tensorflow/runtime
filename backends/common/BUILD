@@ -95,7 +95,14 @@ tfrt_cc_library(
         "@eigen_archive//:eigen3",
         "@tf_runtime//:dtype",
         "@tf_runtime//:support",
-    ],
+    ] + select({
+        "@tf_runtime//:is_build_env_google": [
+            # TODO(b/161569340): Short-term fix. Remove.
+            "//third_party/tensorflow/core/platform:types",
+            "//third_party/tensorflow/core/platform:mutex",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 # Depending on a build configuration Eigen kernels library might use different
@@ -129,16 +136,19 @@ tfrt_cc_library(
         "include/tfrt/common/compat/eigen/tensor_types.h",
         "include/tfrt/common/compat/eigen/thread_pool_device.h",
     ],
-    defines = [
-        "EIGEN_MUTEX=std::mutex",
-        "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
-        "EIGEN_CONDVAR=std::condition_variable",
-        "EIGEN_AVOID_STL_ARRAY",
-    ] +
-    # Custom contraction kernel defines.
-    select({
+    defines = select({
+        "@tf_runtime//:is_build_env_google": [],
+        "//conditions:default": [
+            # TODO(b/161569340): Short-term fix. Remove.
+            "EIGEN_MUTEX=std::mutex",
+            "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
+            "EIGEN_CONDVAR=std::condition_variable",
+            "EIGEN_AVOID_STL_ARRAY",
+        ],
+    }) + select({
         ":disable_eigen_mkldnn_contraction_kernel": [],
         "//conditions:default": [
+            # Custom contraction kernel defines.
             "TFRT_EIGEN_USE_CUSTOM_CONTRACTION_KERNEL",
             "TFRT_EIGEN_USE_MKLDNN_CONTRACTION_KERNEL",
         ],
@@ -151,11 +161,17 @@ tfrt_cc_library(
         "@tf_runtime//:tensor",
         "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
-    ] +
-    # Custom contraction kernel dependencies.
-    select({
+    ] + select({
+        "@tf_runtime//:is_build_env_google": [
+            # TODO(b/161569340): Short-term fix. Remove.
+            "//third_party/tensorflow/core/platform:types",
+            "//third_party/tensorflow/core/platform:mutex",
+        ],
+        "//conditions:default": [],
+    }) + select({
         ":disable_eigen_mkldnn_contraction_kernel": [],
         "//conditions:default": [
+            # Custom contraction kernel dependencies.
             "@mkl_dnn//:mkldnn_single_threaded",
         ],
     }),

@@ -1,6 +1,10 @@
 load(":build_defs.bzl", "tfrt_cc_library")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_setting")
+load(
+    "@bazel_skylib//rules:common_settings.bzl",
+    "bool_flag",
+    "string_setting",
+)
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
 
 package(
@@ -20,42 +24,21 @@ exports_files([
     "LICENSE",
 ])
 
-# Setting to distinguish google-internal builds from open-source builds.
 string_setting(
     name = "build_env",
     build_setting_default = "oss",
-    values = [
-        "google",
-        "oss",
-    ],
     visibility = ["//visibility:private"],
 )
 
-# Setting whether to build in google environment. Use this in `select()`
-# statements to conditionally provide different attributes for google and
-# open-source builds.
+# Whether to build in google environment.
 config_setting(
     name = "is_build_env_google",
     flag_values = {":build_env": "google"},
     visibility = ["//visibility:public"],
 )
 
-# Flag to build tf_runtime with std::thread/mutex instead of ABSL's:
-# bazel build --@tf_runtime//:std_thread
-# This is the default and only valid option in open-source.
-bool_flag(
-    name = "std_thread",
-    build_setting_default = True,
-)
-
-# Setting whether to use std::thread/mutex instead of ABSL's.
-config_setting(
-    name = "use_std_thread",
-    flag_values = {":std_thread": "True"},
-)
-
 # To build tf_runtime without RTTI/exceptions, use:
-# bazel build --no@tf_runtime//:rtti_and_exceptions
+# bazel build --config=disable_rtti_and_exceptions
 bool_flag(
     name = "rtti_and_exceptions",
     build_setting_default = True,
@@ -64,17 +47,14 @@ bool_flag(
 
 config_setting(
     name = "disable_rtti_and_exceptions",
-    flag_values = {"rtti_and_exceptions": "False"},
+    flag_values = {"rtti_and_exceptions": "false"},
     visibility = ["//visibility:public"],
 )
 
 # Config setting to conditionally link GPU targets.
 alias(
     name = "gpu_enabled",
-    actual = select({
-        ":is_build_env_google": "//tools/cc_target_os:linux-google",
-        "//conditions:default": "@rules_cuda//cuda:cuda_enabled",
-    }),
+    actual = "@rules_cuda//cuda:cuda_enabled",
 )
 
 tfrt_cc_library(
@@ -170,21 +150,21 @@ tfrt_cc_library(
     ],
 )
 
-# Generates 'mutex.h' and `thread_environment.h` based on the :std_thread flag.
+# Generates 'mutex.h' and `thread_environment.h` based on the build_env flag.
 # This avoids a (non-transitive) copts setting to include one or the other
 # header file by the preprocessor.
 [
     genrule(
         name = out_name,
         srcs = select({
-            ":use_std_thread": ["include/tfrt/support/" + std_name],
-            "//conditions:default": ["include/tfrt/support/" + absl_name],
+            ":is_build_env_google": ["include/tfrt/support/" + google_name],
+            "//conditions:default": ["include/tfrt/support/" + default_name],
         }),
         outs = ["include/tfrt/support/" + out_name],
         cmd = "cp $< $@",
         visibility = ["//visibility:private"],
     )
-    for (out_name, absl_name, std_name) in [
+    for (out_name, google_name, default_name) in [
         ("mutex.h", "absl_mutex.h", "std_mutex.h"),
         ("thread_environment.h", "thread_environment_google.h", "thread_environment_std.h"),
     ]
@@ -248,12 +228,12 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
     ] + select({
-        ":use_std_thread": [],
-        "//conditions:default": [
+        ":is_build_env_google": [
             "//third_party/absl/synchronization",
             "//third_party/absl/time",
             "//thread",
         ],
+        "//conditions:default": [],
     }),
 )
 

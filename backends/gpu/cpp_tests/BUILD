@@ -24,10 +24,7 @@ tfrt_cc_test(
         "@tf_runtime//:support",
         "@tf_runtime//backends/gpu:gpu_stream_wrapper",
         "@tf_runtime//cpp_tests:common",
-    ] + select({
-        "@tf_runtime//:is_build_env_google": ["//base:heap-checker"],
-        "//conditions:default": [],
-    }),
+    ],
 )
 
 tfrt_cc_test(

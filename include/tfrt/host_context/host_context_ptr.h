@@ -47,7 +47,7 @@ class HostContextPtr {
 
   HostContext* get() const;
 
-  explicit operator bool() const { return index_ == kDummyIndex; }
+  explicit operator bool() const { return index_ != kDummyIndex; }
 
  private:
   friend class HostContext;

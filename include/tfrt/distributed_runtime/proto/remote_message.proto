@@ -44,6 +44,12 @@ message CloseContextRequest {
 
 message CloseContextResponse {}
 
+message KeepAliveRequest {
+  fixed64 context_id = 1;
+}
+
+message KeepAliveResponse {}
+
 message SendDataRequest {
   fixed64 context_id = 1;
   string instance_key = 2;
@@ -64,6 +70,7 @@ message RegisterFunctionRequest {
 message RegisterFunctionResponse {
   repeated string output_device = 1;
 }
+
 message RemoteObjectIdProto {
   uint64 prefix_id = 1;
   uint64 local_id = 2;
@@ -88,6 +95,7 @@ message RemoteExecuteRequest {
 message RemoteExecuteResponse {
   repeated bytes metadata = 1;
 }
+
 message DeleteRemoteObjectsRequest {
   fixed64 context_id = 1;
 

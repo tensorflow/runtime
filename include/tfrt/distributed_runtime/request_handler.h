@@ -58,6 +58,9 @@ class RequestHandlerInterface {
   virtual void HandleDeleteRemoteObjects(
       const DeleteRemoteObjectsRequest* request,
       DeleteRemoteObjectsResponse* response, CallbackFn done) = 0;
+
+  virtual Error HandleKeepAlive(const KeepAliveRequest* request,
+                                KeepAliveResponse* response) = 0;
 };
 
 }  // namespace tfrt

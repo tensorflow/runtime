@@ -167,6 +167,11 @@ class HostContext {
 
   ConcurrentWorkQueue& work_queue() const { return *work_queue_; }
 
+  //===--------------------------------------------------------------------===//
+  // TimerQueue
+  //===--------------------------------------------------------------------===//
+  TimerQueue* GetTimerQueue() { return &timer_queue_; }
+
  private:
   friend class HostContextPtr;
   friend class RequestDeadlineTracker;
@@ -196,11 +201,6 @@ class HostContext {
 
   SharedContext& GetOrCreateSharedContext(int shared_context_id,
                                           SharedContextFactory factory);
-
-  //===--------------------------------------------------------------------===//
-  // TimerQueue
-  //===--------------------------------------------------------------------===//
-  TimerQueue* GetTimerQueue() { return &timer_queue_; }
 
   KernelRegistry registry_;
   DeviceManager device_mgr_;

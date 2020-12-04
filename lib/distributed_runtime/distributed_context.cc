@@ -122,7 +122,12 @@ RemoteClientInterface* DistributedContext::GetRemoteClient(
 void DistributedContext::CreateRemoteContexts(
     DistributedContext::CallbackFn done_callback) {
   // Reference-counted done callback is invoked after all remote calls finish
-  auto rc_done = TakeRef(new RefCountedCallback(std::move(done_callback)));
+  auto rc_done = TakeRef(new RefCountedCallback(
+      [this, done = std::move(done_callback)](Error e) mutable {
+        done(std::move(e));
+        SendKeepAlive(
+            server_context_->GetConfiguration().context_gc_timeout_secs / 2);
+      }));
 
   // Base request contains information that is the shared by all the requests
   // sent to different tasks, including the cluster configuration and collective
@@ -200,6 +205,12 @@ Error DistributedContext::AddReadyChain(TaskHandle task_handle,
 
 void DistributedContext::CloseRemoteContexts(
     DistributedContext::CallbackFn done_callback) {
+  {
+    mutex_lock l(keep_alive_mu_);
+    if (keep_alive_timer_.get() != nullptr) {
+      GetHostContext()->GetTimerQueue()->CancelTimer(keep_alive_timer_);
+    }
+  }
   // Reference-counted done callback is invoked after all remote calls finish
   auto rc_done = TakeRef(new RefCountedCallback(std::move(done_callback)));
 
@@ -227,6 +238,33 @@ llvm::DenseMap<TaskHandle, RemoteObjectId>
 DistributedContext::RemoteReadyChains() {
   mutex_lock l(ready_chains_mu_);
   return ready_chains_;
+}
+
+void DistributedContext::SendKeepAlive(int delay_secs) {
+  auto keep_alive_fn = [this, delay_secs]() mutable {
+    auto done = TakeRef(new RefCountedCallback([this, delay_secs](Error e) {
+      if (e) {
+        TFRT_LOG(ERROR) << "Error in DistributedContext::SendKeepAlive: "
+                        << StrCat(e);
+      }
+      SendKeepAlive(delay_secs);
+    }));
+    auto request = std::make_shared<KeepAliveRequest>();
+    request->set_context_id(context_id_);
+    auto response = std::make_shared<KeepAliveResponse>();
+
+    mutex_lock l(remote_clients_mu_);
+    for (const auto& pair : remote_clients_) {
+      pair.second->KeepAliveAsync(
+          request.get(), response.get(),
+          [request, response, done = done.CopyRef()](Error e) {
+            done->UpdateState(std::move(e));
+          });
+    }
+  };
+  mutex_lock l(keep_alive_mu_);
+  keep_alive_timer_ = GetHostContext()->GetTimerQueue()->ScheduleTimer(
+      std::chrono::seconds(delay_secs), keep_alive_fn);
 }
 
 }  // namespace tfrt

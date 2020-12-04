@@ -140,6 +140,10 @@ class DistributedContext {
 
   Error AddReadyChain(TaskHandle task_handle, const RemoteObjectIdProto& chain);
 
+  // Periodically schedule functions to send KeepAlive messages to remote
+  // distributed contexts created by `CreateRemoteContexts`.
+  void SendKeepAlive(int delay_secs);
+
   const uint64_t context_id_;
   ServerContext* const server_context_;
 
@@ -161,6 +165,9 @@ class DistributedContext {
   mutex ready_chains_mu_;
   llvm::DenseMap<TaskHandle, RemoteObjectId> ready_chains_
       TFRT_GUARDED_BY(ready_chains_mu_);
+
+  mutex keep_alive_mu_;
+  TimerQueue::TimerHandle keep_alive_timer_ TFRT_GUARDED_BY(keep_alive_mu_);
 };
 
 }  // namespace tfrt

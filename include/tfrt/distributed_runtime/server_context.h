@@ -42,6 +42,9 @@ class DistributedContextConfiguration;
 // Configurations that should be set at server startup time.
 struct ServerContextConfiguration {
   FabricCommunicatorConfiguration fabric_configuration;
+
+  // Timeout for garbage collecting inactive distributed contexts.
+  int context_gc_timeout_secs = 600;
 };
 
 // ServerContext constructs and owns fabric communicators.
@@ -76,6 +79,10 @@ class ServerContext {
 
   Error CloseDistributedContext(uint64_t context_id) TFRT_EXCLUDES(context_mu_);
 
+  // Track the last access time of the specified context. The context will be
+  // garbage collected for inactivity.
+  Error TrackContextAccessTime(uint64_t context_id);
+
   RequestHandlerInterface* GetRequestHandler() const {
     return request_handler_.get();
   }
@@ -91,6 +98,15 @@ class ServerContext {
   FabricCommunicator* GetOrCreateFabricCommunicatorUnsafe()
       TFRT_REQUIRES(communicator_mutex_);
 
+  // Update the last access time of distributed context.
+  void RecordContextAccess(uint64_t context_id) const
+      TFRT_REQUIRES(context_mu_);
+
+  // Periodically schedule functions to garbage collect inactive distributed
+  // contexts with the specified delay. Once called, the functions will be
+  // continuously scheduled until `context_gc_timer` is cancelled.
+  void GarbageCollectInactiveDistributedContexts(int delay_secs);
+
   HostContext* const host_context_;
   const ServerContextConfiguration configuration_;
   std::unique_ptr<RequestHandlerInterface> request_handler_;
@@ -99,7 +115,17 @@ class ServerContext {
       TFRT_GUARDED_BY(communicator_mutex_);
 
   mutable mutex context_mu_;
-  llvm::DenseMap<uint64_t, AsyncValueRef<DistributedContext>> dist_contexts_;
+  llvm::DenseMap<uint64_t, AsyncValueRef<DistributedContext>> dist_contexts_
+      TFRT_GUARDED_BY(context_mu_);
+  mutable llvm::DenseMap<uint64_t, std::chrono::system_clock::time_point>
+      context_last_access_times_ TFRT_GUARDED_BY(context_mu_);
+
+  mutex context_gc_timer_mu_;
+  // A timer handle tracking the next scheduled function for garbage collecting
+  // inactive distributed context. When the function gets executed, this timer
+  // handle will be automatically renewed to track the next scheduled function.
+  TimerQueue::TimerHandle context_gc_timer_
+      TFRT_GUARDED_BY(context_gc_timer_mu_);
 };
 
 }  // namespace tfrt

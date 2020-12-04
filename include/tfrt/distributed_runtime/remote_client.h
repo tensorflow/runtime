@@ -76,6 +76,11 @@ class RemoteClientInterface {
   virtual void DeleteRemoteObjectsAsync(
       const DeleteRemoteObjectsRequest* request,
       DeleteRemoteObjectsResponse* response, CallbackFn done) = 0;
+
+  // Update the last active time of the remote DistributedContext to prevent it
+  // from being garbage collected by the remote host.
+  virtual void KeepAliveAsync(const KeepAliveRequest* request,
+                              KeepAliveResponse* response, CallbackFn done) = 0;
 };
 
 }  // namespace tfrt

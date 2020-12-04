@@ -92,6 +92,11 @@ class TestRequestHandler : public RequestHandlerInterface {
     cond_.notify_one();
   }
 
+  Error HandleKeepAlive(const KeepAliveRequest* request,
+                        KeepAliveResponse* response) final {
+    return handler_->HandleKeepAlive(request, response);
+  }
+
   void ProcessNextRequest(llvm::unique_function<void()> fn) {
     auto invocation = std::make_shared<Invocation>();
     {

@@ -85,6 +85,9 @@ class RequestHandler : public RequestHandlerInterface {
                                  DeleteRemoteObjectsResponse* response,
                                  CallbackFn done) final;
 
+  Error HandleKeepAlive(const KeepAliveRequest* request,
+                        KeepAliveResponse* response) final;
+
  private:
   HostContext* host_ctx() { return server_context_->GetHostContext(); }
 
@@ -106,6 +109,8 @@ Error RequestHandler::HandleCreateContext(const CreateContextRequest* request,
   if (!context) {
     return context.takeError();
   }
+  Error error = server_context_->TrackContextAccessTime(request->context_id());
+  if (error) return error;
   ToProto(context.get()->LocalReadyChain(), response->mutable_ready_chain());
   return Error::success();
 }
@@ -347,6 +352,13 @@ void RequestHandler::HandleDeleteRemoteObjects(
   }
   RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
   done(manager->DeleteRemoteObjects(ids));
+}
+
+Error RequestHandler::HandleKeepAlive(const KeepAliveRequest* request,
+                                      KeepAliveResponse* response) {
+  auto expected = server_context_->GetDistributedContext(request->context_id());
+  if (!expected) return expected.takeError();
+  return Error::success();
 }
 }  // namespace
 

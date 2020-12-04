@@ -22,7 +22,7 @@ func @hello() {
   %chain = tfrt.new.chain
 
   // Create a string containing "hello world" and store it in %hello.
-  %hello = "tfrt_test.get_string"() { string_attr = "hello world" } : () -> !tfrt.string
+  %hello = "tfrt_test.get_string"() { value = "hello world" } : () -> !tfrt.string
 
   // Print the string in %hello.
   "tfrt_test.print_string"(%hello, %chain) : (!tfrt.string, !tfrt.chain) -> !tfrt.chain
@@ -44,9 +44,9 @@ after each `:` specifies the types involved:
     manage dependencies. For detailed explanation, see the
     [Explicit Dependency Management in TFRT documentation](explicit_dependency.md).
 
-`tfrt_test.get_string`'s `string_attr` is an *attribute*, not an *argument*.
+`tfrt_test.get_string`'s `value` is an *attribute*, not an *argument*.
 Attributes are compile-time constants, while arguments are only available at
-runtime upon kernel/function invocation. In the above example, the `string_attr`
+runtime upon kernel/function invocation. In the above example, the `value`
 attribute has the value `hello world`.
 
 `tfrt.return` is a special form that specifies the function's return values,

@@ -97,11 +97,21 @@ tfrt_cc_library(
         ":tests_and_tools",
     ],
     deps = [
-        ":cuda_stubs",
         ":hip_stubs",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
-    ],
+    ] + select({
+        "@tf_runtime//:is_build_env_google": [
+            # CUDA libraries are statically linked.
+            "//platforms/gpus/cuda/dynamic_libcuda",
+            "@cuda_headers//:cublas_static",
+            "@cuda_headers//:cuda_headers",
+            "@cuda_headers//:cudart_static",
+            "@cuda_headers//:cusolver_static",
+            "@cudnn_headers//:cudnn",
+        ],
+        "//conditions:default": [":cuda_stubs"],
+    }),
 )
 
 tfrt_cc_library(
@@ -573,12 +583,16 @@ cuda_library(
         "lib/ops/tf/pad_op.cu.cc",
     ],
     hdrs = ["lib/ops/tf/pad_op.h"],
-    defines = [
-        "EIGEN_MUTEX=std::mutex",
-        "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
-        "EIGEN_CONDVAR=std::condition_variable",
-        "EIGEN_AVOID_STL_ARRAY",
-    ],
+    defines = select({
+        "@tf_runtime//:is_build_env_google": [],
+        "//conditions:default": [
+            # TODO(b/161569340): Short-term fix. Remove
+            "EIGEN_MUTEX=std::mutex",
+            "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
+            "EIGEN_CONDVAR=std::condition_variable",
+            "EIGEN_AVOID_STL_ARRAY",
+        ],
+    }),
     deps = [
         ":blas_support",
         ":gpu_device_eigen_support",

@@ -44,6 +44,18 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "host_context/host_allocator_test",
+    srcs = [
+        "host_context/host_allocator_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_context/host_buffer_test",
     srcs = [
         "host_context/host_buffer_test.cc",

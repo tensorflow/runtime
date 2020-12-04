@@ -249,7 +249,7 @@ def GetTaskHandleOp : DistOp<"get_task_handle"> {
 
   let arguments = (ins
     DistributedContextType:$context,
-    TFRT_StringType:$task_name
+    StrAttr:$task_name
   );
   let results = (outs TaskHandleType);
   let assemblyFormat = "operands attr-dict";

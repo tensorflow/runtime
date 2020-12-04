@@ -153,9 +153,9 @@ int FindMyIndex(
 }
 
 TaskHandle GetTaskHandle(Argument<DistributedContext> dist_context,
-                         Argument<std::string> task_name,
+                         StringAttribute task_name,
                          const ExecutionContext& exec_ctx) {
-  return dist_context->GetTaskHandle(*task_name);
+  return dist_context->GetTaskHandle(task_name.get());
 }
 
 template <typename T>

@@ -34,6 +34,7 @@
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/distributed_runtime/remote_tensor.h"
 #include "tfrt/host_context/async_dispatch.h"
+#include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
@@ -717,6 +718,11 @@ AsyncValueRef<Chain> SetChainForTaskHandle(
   return MakeAvailableAsyncValueRef<Chain>(exec_ctx.host());
 }
 
+AsyncValueRef<Chain> GetDistributedContext(const ExecutionContext& exec_ctx) {
+  return MakeErrorAsyncValueRef(
+      exec_ctx.host(), DecodedDiagnostic("this kernel is not implemented"));
+}
+
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -748,6 +754,8 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(GetChainForTaskHandle));
   registry->AddKernel("tfrt_dist.set_chain_for_task_handle",
                       TFRT_KERNEL(SetChainForTaskHandle));
+  registry->AddKernel("tfrt_dist.get_distributed_context",
+                      TFRT_KERNEL(GetDistributedContext));
 }
 
 }  // namespace tfrt

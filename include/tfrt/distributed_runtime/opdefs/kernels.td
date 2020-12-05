@@ -318,18 +318,18 @@ def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {
     A specification contains a list of output devices.
 
     Example:
-      %spec = tfrt_dist.create_remote_execute_spec %device_name1 %device_name2
+      %spec = tfrt_dist.create_remote_execute_spec {output_devices = ["device_name1", "device_name2"]}
   }];
 
   let arguments = (ins
-    Variadic<TFRT_StringType>:$output_devices
+    StrArrayAttr:$output_devices
   );
   let results = (outs
     RemoteExecuteSpecType:$out_spec
   );
 
   let printer = [{ return tfrt::dist::print(p, *this); }];
-  let parser = [{ return tfrt::dist::parse$cppClass(parser, result); }];
+  let assemblyFormat = "attr-dict";
 }
 
 

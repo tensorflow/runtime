@@ -76,10 +76,6 @@ static Type GetRemoteObjectIdType(Builder *builder) {
   return builder->getType<tfrt::dist::RemoteObjectIdType>();
 }
 
-static void print(OpAsmPrinter &p, CreateRemoteExecuteSpecOp op) {
-  p << "tfrt_dist.create_remote_execute_spec(" << op.output_devices() << ")";
-}
-
 static ParseResult parseCreateConfigurations(OpAsmParser &parser,
                                              OperationState &result) {
   auto &builder = parser.getBuilder();
@@ -95,22 +91,6 @@ static ParseResult parseCreateConfigurations(OpAsmParser &parser,
   auto configuration_type = GetDistributedContextConfigurationType(&builder);
 
   result.types.append(num_results, configuration_type);
-
-  return success();
-}
-
-static ParseResult parseCreateRemoteExecuteSpecOp(OpAsmParser &parser,
-                                                  OperationState &result) {
-  auto &builder = parser.getBuilder();
-
-  SmallVector<OpAsmParser::OperandType, 4> inputs;
-  if (parser.parseOperandList(inputs, -1, OpAsmParser::Delimiter::Paren)) {
-    return failure();
-  }
-  if (parser.resolveOperands(inputs, GetStringType(&builder), result.operands))
-    return failure();
-
-  result.types.append(1, GetRemoteExecuteSpecType(&builder));
 
   return success();
 }

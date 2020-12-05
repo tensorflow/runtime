@@ -26,6 +26,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/bef_executor/bef_file.h"
+#include "tfrt/bef_executor/bef_interpreter.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/function.h"
@@ -301,12 +302,11 @@ static Error TestSyncBenchmark(RemainingSyncArguments args,
     func_args.emplace_back(args[i]);
   }
 
+  BEFInterpreter interpreter{*fn};
+
   while (bm_stats.MoreRun()) {
     bm_stats.StartRun();
-    // TODO(jingdong): Expose BEFInterpreter and SyncBEFFunction so we can
-    // factor the warm up cost out of the benchmark to make the benchmark
-    // results more accurate.
-    auto error = ExecuteSyncBEFFunction(*fn, exec_ctx, func_args, {});
+    auto error = interpreter.Execute(exec_ctx, func_args, {});
     bm_stats.StopRun();
     if (error) return error;
   }

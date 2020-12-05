@@ -18,8 +18,11 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "tfrt/bef_executor/bef_interpreter.h"
+
 #include <cstdint>
 #include <cstdio>
+#include <memory>
 
 #include "bef_file_impl.h"
 #include "llvm/ADT/ArrayRef.h"
@@ -38,11 +41,11 @@ namespace tfrt {
 /// concurrent control flow constructs.
 //
 // BEFInterpreter is thread-compatible.
-class BEFInterpreter final {
+class BEFInterpreterImpl final {
  public:
   // `func` must out-live the BEFInterpreter object, as BEFInterpreter only
   // keeps a reference to `func`.
-  explicit BEFInterpreter(const SyncBEFFunction& func);
+  explicit BEFInterpreterImpl(const Function& func);
 
   Error Execute(const ExecutionContext& exec_ctx, ArrayRef<Value*> arguments,
                 ArrayRef<Value*> results);
@@ -87,7 +90,21 @@ class BEFInterpreter final {
 // Core interpreter logic
 //===----------------------------------------------------------------------===//
 
-BEFInterpreter::BEFInterpreter(const SyncBEFFunction& func) : func_{func} {
+BEFInterpreter::BEFInterpreter(const Function& func)
+    : impl_{std::make_unique<BEFInterpreterImpl>(
+          static_cast<const SyncBEFFunction&>(func))} {}
+
+BEFInterpreter::~BEFInterpreter() {}
+
+Error BEFInterpreter::Execute(const ExecutionContext& exec_ctx,
+                              ArrayRef<Value*> arguments,
+                              ArrayRef<Value*> results) {
+  return impl_->Execute(exec_ctx, arguments, results);
+}
+
+BEFInterpreterImpl::BEFInterpreterImpl(const Function& func)
+    : func_{static_cast<const SyncBEFFunction&>(func)} {
+  assert(func.function_kind() == FunctionKind::kSyncBEFFunction);
   auto register_infos = func_.register_infos();
 
   size_t num_registers = register_infos.size();
@@ -118,7 +135,7 @@ BEFInterpreter::BEFInterpreter(const SyncBEFFunction& func) : func_{func} {
   SetupKernelEntries();
 }
 
-void BEFInterpreter::SetupKernelEntries() {
+void BEFInterpreterImpl::SetupKernelEntries() {
   SmallVector<int, 16> user_counts;
 
   auto register_infos = func_.register_infos();
@@ -201,8 +218,8 @@ void BEFInterpreter::SetupKernelEntries() {
   }
 }
 
-void BEFInterpreter::SetupRegisters(ArrayRef<Value*> arguments,
-                                    ArrayRef<Value*> results) {
+void BEFInterpreterImpl::SetupRegisters(ArrayRef<Value*> arguments,
+                                        ArrayRef<Value*> results) {
   // Set up argument Value
   for (size_t i = 0; i < arguments.size(); ++i) {
     assert(func_.register_infos()[i].is_arg_or_result);
@@ -221,9 +238,9 @@ void BEFInterpreter::SetupRegisters(ArrayRef<Value*> arguments,
   }
 }
 
-Error BEFInterpreter::Execute(const ExecutionContext& exec_ctx,
-                              ArrayRef<Value*> arguments,
-                              ArrayRef<Value*> results) {
+Error BEFInterpreterImpl::Execute(const ExecutionContext& exec_ctx,
+                                  ArrayRef<Value*> arguments,
+                                  ArrayRef<Value*> results) {
   assert(arguments.size() == func_.num_arguments() &&
          "incorrect number of arguments passed to function call");
   assert(results.size() == func_.num_results() &&
@@ -285,7 +302,7 @@ Error BEFInterpreter::Execute(const ExecutionContext& exec_ctx,
 Error SyncBEFFunction::SyncExecute(const ExecutionContext& exec_ctx,
                                    ArrayRef<Value*> arguments,
                                    ArrayRef<Value*> results) const {
-  BEFInterpreter interpreter{*this};
+  BEFInterpreterImpl interpreter{*this};
   return interpreter.Execute(exec_ctx, arguments, results);
 }
 

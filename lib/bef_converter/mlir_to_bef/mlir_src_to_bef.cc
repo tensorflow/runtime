@@ -36,19 +36,30 @@ static void registerMlirDialects(mlir::DialectRegistry& registry) {
   registry.insert<mlir::StandardOpsDialect>();
 }
 
-BEFBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
-                              bool disable_optional_sections) {
-  // Create MLIR module from the request.
-  mlir::MLIRContext context;
+static BEFBuffer ConvertMLIRSrcToBEFImpl(string_view mlir_src,
+                                         bool disable_optional_sections,
+                                         mlir::MLIRContext* context) {
+  context->allowUnregisteredDialects();
+  registerMlirDialects(context->getDialectRegistry());
 
-  context.allowUnregisteredDialects();
-  registerMlirDialects(context.getDialectRegistry());
-
-  auto module = mlir::parseSourceString(mlir_src, &context);
+  auto module = mlir::parseSourceString(mlir_src, context);
 
   if (!module) return {};
 
   return ConvertMLIRToBEF(module.get(), disable_optional_sections);
+}
+
+BEFBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
+                              bool disable_optional_sections,
+                              mlir::MLIRContext* context) {
+  if (context) {
+    return ConvertMLIRSrcToBEFImpl(mlir_src, disable_optional_sections,
+                                   context);
+  } else {
+    mlir::MLIRContext local_context;
+    return ConvertMLIRSrcToBEFImpl(mlir_src, disable_optional_sections,
+                                   &local_context);
+  }
 }
 
 }  // namespace tfrt

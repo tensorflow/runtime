@@ -26,16 +26,23 @@
 #include "tfrt/bef_converter/bef_buffer.h"
 #include "tfrt/support/forward_decls.h"
 
+namespace mlir {
+class MLIRContext;
+}
 namespace tfrt {
 
 // This function converts the specified MLIR source containing a host executor
 // compatible program to the BinaryExecutableFormat (BEF) format, which is the
-// low level format that the executor takes.
+// low level format that the executor takes. The client can create an
+// MLIRContext and add custom dialects if needed. Otherwise, the function will
+// use an MLIRContext and configure it with the default TFRT dialects for the
+// conversion.
 //
 // On error, this emits the error message through the MLIR error handler, and
 // returns an empty AlignedBuffer.
 BEFBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
-                              bool disable_optional_sections);
+                              bool disable_optional_sections,
+                              mlir::MLIRContext* context = nullptr);
 
 }  // namespace tfrt
 

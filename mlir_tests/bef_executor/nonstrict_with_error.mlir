@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Not running 'call_print.i32' because it has arguments
 func @call_print.i32 (%x: i32, %y: i32) {

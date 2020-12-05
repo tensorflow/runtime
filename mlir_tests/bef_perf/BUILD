@@ -17,6 +17,7 @@ py_library(
 
 tfrt_py_binary(
     name = "bef_perf",
+    testonly = True,
     srcs = ["bef_perf.py"],
     data = [
         "@tf_runtime//tools:bef_executor",

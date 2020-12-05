@@ -14,8 +14,8 @@
 
 // Test both serial and concurrent workqueues: all tests should be determinstic.
 
-// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
-// RUN: bef_executor -work_queue_type=mstd $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite -work_queue_type=mstd $(bef_name %s) | FileCheck %s --dump-input=fail
 
 // Asynchronously increment %counter once.
 // CHECK-LABEL: async_incs

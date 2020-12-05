@@ -56,6 +56,7 @@ tfrt_cc_binary(
 
 tfrt_cc_library(
     name = "bef_executor_lib",
+    testonly = True,
     srcs = [
         "bef_executor/main.cc",
     ],
@@ -70,9 +71,11 @@ tfrt_cc_library(
 
 # Op/Kernel dependencies belong here rather than directly adding them in
 # tools:bef_executor. This ensures other bef_executor binaries can easily use
-# the same kernels as tools:bef_executor
+# the same kernels as tools:bef_executor[_lite]
+#
+# This build target contains kernels that are lightweight to build.
 tfrt_cc_library(
-    name = "bef_executor_kernels",
+    name = "bef_executor_lightweight_kernels",
     visibility = [":friends"],
     deps = [
         "@tf_runtime//:basic_kernels_alwayslink",
@@ -81,12 +84,9 @@ tfrt_cc_library(
         "@tf_runtime//:io_alwayslink",
         "@tf_runtime//:tensor_alwayslink",
         "@tf_runtime//:test_kernels_alwayslink",
-        "@tf_runtime//backends/common:eigen_kernels_alwayslink",
-        "@tf_runtime//backends/common:eigen_ops_alwayslink",
         "@tf_runtime//backends/cpu:cpu_kernels_alwayslink",
         "@tf_runtime//backends/cpu:core_runtime_alwayslink",
         "@tf_runtime//backends/cpu:test_ops_alwayslink",
-        "@tf_runtime//backends/cpu:tf_ops_alwayslink",
     ] + select({
         "@tf_runtime//:gpu_enabled": [
             "@tf_runtime//backends/gpu:cuda_alwayslink",
@@ -97,6 +97,17 @@ tfrt_cc_library(
         ],
         "//conditions:default": [],
     }),
+)
+
+# This build target contains kernels that are expensive to build.
+tfrt_cc_library(
+    name = "bef_executor_expensive_kernels",
+    visibility = [":friends"],
+    deps = [
+        "@tf_runtime//backends/common:eigen_kernels_alwayslink",
+        "@tf_runtime//backends/common:eigen_ops_alwayslink",
+        "@tf_runtime//backends/cpu:tf_ops_alwayslink",
+    ],
 )
 
 # Op/Kernel dependencies belong here rather than directly adding them in
@@ -111,12 +122,28 @@ tfrt_cc_library(
 )
 
 tfrt_cc_binary(
-    name = "bef_executor",
+    name = "bef_executor_lite",
+    testonly = True,
     visibility = [":friends"],
     deps = [
         ":bef_executor_jit_kernels",
-        ":bef_executor_kernels",
         ":bef_executor_lib",
+        ":bef_executor_lightweight_kernels",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:simple_tracing_sink_alwayslink",
+    ],
+)
+
+# This one contains eigen-based CPU kernels that are expensive to build.
+tfrt_cc_binary(
+    name = "bef_executor",
+    testonly = True,
+    visibility = [":friends"],
+    deps = [
+        ":bef_executor_expensive_kernels",
+        ":bef_executor_jit_kernels",
+        ":bef_executor_lib",
+        ":bef_executor_lightweight_kernels",
         "@tf_runtime//:dtype",
         "@tf_runtime//:simple_tracing_sink_alwayslink",
     ],

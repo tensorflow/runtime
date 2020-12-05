@@ -123,3 +123,35 @@ func @test_many_attributes() -> i32 attributes {tfrt.sync} {
   // CHECK-NEXT: 'test_many_attributes' returned 165
   tfrt.return %x : i32
 }
+
+func @test_sync_add(%a: i32, %b: i32) -> i32 attributes {tfrt.sync} {
+  %c = "tfrt.add_s.i32"(%a, %b) : (i32, i32) -> i32
+  tfrt.return %c : i32
+}
+
+func @test_sync_add_mul(%a: i32, %b: i32) -> (i32, i32) attributes {tfrt.sync} {
+  %c = "tfrt.add_s.i32"(%a, %b) : (i32, i32) -> i32
+  %d = "tfrt.mul_s.i32"(%a, %b) : (i32, i32) -> i32
+  tfrt.return %c, %d : i32, i32
+}
+
+func @test_invoke_sync_function() -> i32 {
+  %a = tfrt.constant.i32 2
+  %b = tfrt.constant.i32 3
+
+  %ch0 = tfrt.new.chain
+
+  %c = "tfrt_test.invoke_sync_function.i32_i32.i32"(%a, %b) {fn = @test_sync_add}: (i32, i32) -> i32
+  // CHECK: int32 = 5
+  %ch1 = tfrt.print.i32 %c, %ch0
+
+  %d, %e = "tfrt_test.invoke_sync_function.i32_i32.i32_i32"(%a, %b) {fn = @test_sync_add_mul}: (i32, i32) -> (i32, i32)
+
+  // CHECK: int32 = 5
+  %ch2 = tfrt.print.i32 %d, %ch1
+  // CHECK: int32 = 6
+  %ch3 = tfrt.print.i32 %e, %ch2
+
+  // CHECK: 'test_invoke_sync_function' returned 5
+  tfrt.return %c : i32
+}

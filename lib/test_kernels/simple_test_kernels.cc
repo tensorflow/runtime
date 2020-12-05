@@ -19,6 +19,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm_derived/Support/raw_ostream.h"
+#include "tfrt/bef_executor/function_util.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -354,6 +355,21 @@ static llvm::Expected<Chain> TestUniqueLoc(StringAttribute name,
   return Chain();
 }
 
+// Test for invoking a sync function that takes two int arguments and return a
+// int value.
+static Expected<int> TestInvokeSyncFunction(int a, int b,
+                                            Attribute<Function> fn,
+                                            const ExecutionContext& exec_ctx) {
+  return InvokeSyncFunction<int>(*fn, exec_ctx, a, b);
+}
+
+// Test for invoking a sync function that takes two int arguments and return two
+// int values.
+static Expected<std::tuple<int, int>> TestInvokeSyncFunctionTwoReturnValues(
+    int a, int b, Attribute<Function> fn, const ExecutionContext& exec_ctx) {
+  return InvokeSyncFunction<int, int>(*fn, exec_ctx, a, b);
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -375,6 +391,11 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.const_dense_attr",
                       TFRT_KERNEL(TestConstDenseAttr));
   registry->AddKernel("tfrt_test.unique_loc", TFRT_KERNEL(TestUniqueLoc));
+
+  registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32",
+                      TFRT_KERNEL(TestInvokeSyncFunction));
+  registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32_i32",
+                      TFRT_KERNEL(TestInvokeSyncFunctionTwoReturnValues));
 
   registry->AddSyncKernel("tfrt_test.sync.const_dense_attr",
                           TFRT_SYNC_KERNEL(TestConstDenseAttr));

@@ -297,6 +297,7 @@ tfrt_cc_library(
     ],
     hdrs = [
         "include/tfrt/bef_executor/bef_file.h",
+        "include/tfrt/bef_executor/function_util.h",
         "include/tfrt/support/bef_encoding.h",
     ],
     visibility = [":friends"],

@@ -174,7 +174,6 @@ class HostContext {
 
  private:
   friend class HostContextPtr;
-  friend class RequestDeadlineTracker;
 
   // Factory function for creating a SharedContext.
   using SharedContextFactory = std::unique_ptr<SharedContext> (*)(HostContext*);

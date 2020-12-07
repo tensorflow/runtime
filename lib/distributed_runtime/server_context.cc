@@ -171,6 +171,7 @@ void ServerContext::GarbageCollectInactiveDistributedContexts(int delay_secs) {
         }
       }
     }
+    gc_contexts.clear();
     GarbageCollectInactiveDistributedContexts(delay_secs);
   };
   mutex_lock l(context_gc_timer_mu_);

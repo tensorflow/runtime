@@ -132,6 +132,16 @@ class DeviceManager {
     return RCReference<T>();
   }
 
+  // Return a string that lists all the devices in the device manager.
+  std::string DebugString() {
+    std::string out;
+    mutex_lock l(mu_);
+    for (const auto& it : device_map_) {
+      out += it.first().str() + "\n";
+    }
+    return out;
+  }
+
  private:
   DeviceManager() = default;
   friend class HostContext;

@@ -111,6 +111,7 @@ void SetUpOpFuncAttrs(AggregateAttr op_func_attr_array, OpAttrs *op_attrs) {
     op_attrs->SetFunc(key, {string_attr});
   }
 }
+
 void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
                    AsyncValueRef<Chain> *op_chain,
                    MutableArrayRef<RCReference<AsyncValue>> results,

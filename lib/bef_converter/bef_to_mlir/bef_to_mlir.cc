@@ -1430,7 +1430,7 @@ mlir::LogicalResult BEFFunctionReader::ReadKernels(ArrayRef<uint32_t> kernels,
 
   // pseudo op must not be bef.nonstrict.
   uint8_t pseudo_op_non_strict;
-  if (attribute_names->ReadByte(&pseudo_op_non_strict))
+  if (!attribute_names->ReadByte(&pseudo_op_non_strict))
     assert(static_cast<SpecialAttribute>(pseudo_op_non_strict) ==
            SpecialAttribute::kUnknown);
 

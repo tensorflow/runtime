@@ -15,9 +15,6 @@
 # Clang 9 is required.
 build --client_env=CC=clang
 
-# Remove -Wc++14-compat once C++17 is allowed.
-build --copt=-Wc++14-compat
-
 # Disable warnings we don't care about.
 build --copt=-Wno-unused-local-typedef
 

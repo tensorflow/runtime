@@ -2,6 +2,12 @@ load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library", "tfrt_cc_test")
 
 licenses(["notice"])
 
+package(
+    # Don't enable because the internal gtest headers use c++17.
+    # default_copts = ["-Wc++14-compat"],
+    default_visibility = [":__subpackages__"],
+)
+
 tfrt_cc_library(
     name = "common",
     testonly = True,

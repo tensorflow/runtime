@@ -36,7 +36,7 @@ TEST(ValueTest, InPlace) {
   ASSERT_FALSE(v0_moved.HasValue());
 
   Value v1{2};
-  static_assert(Value::IsInPlace<int>());
+  static_assert(Value::IsInPlace<int>(), "");
 
   ASSERT_TRUE(v1.HasValue());
   ASSERT_EQ(v1.get<int>(), 2);
@@ -87,8 +87,8 @@ struct BigType2 {
 
   bool operator==(int a) const { return v == a; }
 };
-static_assert(!Value::IsInPlace<BigType1>());
-static_assert(!Value::IsInPlace<BigType2>());
+static_assert(!Value::IsInPlace<BigType1>(), "");
+static_assert(!Value::IsInPlace<BigType2>(), "");
 
 TEST(ValueTest, OutOfPlace) {
   Value v1{0};

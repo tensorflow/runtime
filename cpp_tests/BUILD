@@ -192,6 +192,17 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "tensor/tensor_shape_test",
+    srcs = [
+        "tensor/tensor_shape_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_context/sync_kernel_test",
     srcs = [
         "host_context/sync_kernel_test.cc",

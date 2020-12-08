@@ -222,11 +222,27 @@ void TensorShape::GetDimensions(MutableArrayRef<ssize_t> result) const {
   }
 }
 
+void TensorShape::GetStrides(MutableArrayRef<ssize_t> result) const {
+  GetDimensions(result);
+  ssize_t multiplier = 1;
+  for (int i = GetRank() - 1; i >= 0; --i) {
+    ssize_t dim_size = result[i];
+    result[i] = multiplier;
+    multiplier *= dim_size;
+  }
+};
+
 // Return all of the dimensions in this TensorShape in a way that is easy to
 // process.
 void TensorShape::GetDimensions(SmallVectorImpl<ssize_t>* result) const {
   result->resize(GetRank());
   GetDimensions(*result);
+}
+
+// Return strides of this TensorShape in a way that is easy to process.
+void TensorShape::GetStrides(SmallVectorImpl<ssize_t>* result) const {
+  result->resize(GetRank());
+  GetStrides(*result);
 }
 
 ssize_t TensorShape::GetDimensionSize(int dim_idx) const {

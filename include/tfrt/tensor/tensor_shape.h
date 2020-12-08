@@ -84,6 +84,25 @@ class TensorShape {
 
   void GetDimensions(MutableArrayRef<ssize_t> result) const;
 
+  // Return strides of this TensorShape assuming that the data is in row major
+  // layout (the last dimension is contiguous in memory).
+  //
+  // See address calculation section for details:
+  // https://en.wikipedia.org/wiki/Row-_and_column-major_order
+  void GetStrides(SmallVectorImpl<ssize_t>* result) const;
+
+  template <size_t N>
+  void GetStrides(ssize_t (&result)[N]) const {
+    GetStrides(MutableArrayRef<ssize_t>(result, N));
+  }
+
+  template <size_t N>
+  void GetStrides(std::array<ssize_t, N>* result) const {
+    GetStrides(MutableArrayRef<ssize_t>(result->data(), N));
+  }
+
+  void GetStrides(MutableArrayRef<ssize_t> result) const;
+
   // `dim_idx` must be less than GetRank().
   ssize_t GetDimensionSize(int dim_idx) const;
 

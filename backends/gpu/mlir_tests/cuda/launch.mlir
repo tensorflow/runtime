@@ -67,7 +67,7 @@ func @vector_add_kernel() {
   %ch8 = tfrt_dht.print_tensor %x_host, %ch7
 
   %y_host = tfrt_dht.create_uninitialized_tensor.f32.1 [8 : i64]
-  %ch9 = tfrt_dht.fill_tensor_with_constant.f32 %y_host, %ch5 1.0 : f32
+  %ch9 = tfrt_dht.fill_tensor_with_constant.f32 %y_host, %ch8 1.0 : f32
   // CHECK: shape = [8], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %ch10 = tfrt_dht.print_tensor %y_host, %ch9
 
@@ -81,28 +81,28 @@ func @vector_add_kernel() {
   %ch14 = tfrt_dht.print_buffer %y_host_buffer, %ch13
 
   %size = tfrt.constant.i64 32
-  %x_device, %ch15 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch2
-  %y_device, %ch16 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch2
+  %x_device, %ch15 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch14
+  %y_device, %ch16 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch15
 
   // Copy host to device.
-  %ch17 = tfrt_cuda.mem.copy_host_to_device %context, %x_device, %x_host_buffer, %size, %stream, %ch7
-  %ch23 = tfrt_cuda.mem.copy_host_to_device %context, %y_device, %y_host_buffer, %size, %stream, %ch9
+  %ch17 = tfrt_cuda.mem.copy_host_to_device %context, %x_device, %x_host_buffer, %size, %stream, %ch16
+  %ch18 = tfrt_cuda.mem.copy_host_to_device %context, %y_device, %y_host_buffer, %size, %stream, %ch17
 
   %one = tfrt.constant.ui32 1
   %eight = tfrt.constant.ui32 8
   %shared_mem_size = tfrt.constant.ui32 0
   %len = tfrt.constant.i32 8
 
-  %ch_kernel = tfrt_cuda.launch %ch6 %context %eight %one %one
+  %ch_kernel = tfrt_cuda.launch %ch18 %context %eight %one %one
                            %eight %one %one %shared_mem_size %stream
                            { function_handle = 0: ui64 }
                            (%len, %x_device, %y_device) :
                              (i32, !tfrt_cuda.buffer, !tfrt_cuda.buffer)
 
   // Copy back to host buffer and synchronize.
-  %ch24 = tfrt_cuda.mem.copy_device_to_host %context, %y_host_buffer, %y_device,
+  %ch19 = tfrt_cuda.mem.copy_device_to_host %context, %y_host_buffer, %y_device,
                                        %size, %stream, %ch_kernel
-  %sync_ch = tfrt_cuda.stream.synchronize %stream, %ch24
+  %sync_ch = tfrt_cuda.stream.synchronize %stream, %ch19
 
   // CHECK: shape = [8], values = [2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00]
   %ch25 = tfrt_dht.print_tensor %y_host, %sync_ch

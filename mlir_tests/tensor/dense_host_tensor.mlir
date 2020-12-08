@@ -102,7 +102,7 @@ func @tensor_from_buffer() {
   %b, %c4 = tfrt_dht.make_tensor.f32 %buf, %shape, %c1
 
   // CHECK: shape = [4, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
-  %c5 = tfrt_dht.print_tensor %b, %c1
+  %c5 = tfrt_dht.print_tensor %b, %c2
 
   tfrt.return
 }

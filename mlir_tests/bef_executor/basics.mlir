@@ -39,7 +39,7 @@ func @three_print_error() {
 }
 
 // CHECK-LABEL: --- Running 'basic.i1'
-func @basic.i1() -> i1 {
+func @basic.i1() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.i1 0
@@ -50,12 +50,11 @@ func @basic.i1() -> i1 {
   // CHECK: int1 = 1
   %ch2 = tfrt.print.i1 %one, %ch1
 
-  // CHECK: 'basic.i1' returned 1
-  tfrt.return %one : i1
+  tfrt.return %ch2 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'basic.i32'
-func @basic.i32() -> i32 {
+func @basic.i32() -> !tfrt.chain {
   %x = tfrt.constant.i32 42
 
   %ch0 = tfrt.new.chain
@@ -91,8 +90,7 @@ func @basic.i32() -> i32 {
   // CHECK: int32 = 46
   %ch9 = tfrt.print.i32 %y4, %ch8
 
-  // CHECK: 'basic.i32' returned 43
-  tfrt.return %y : i32
+  tfrt.return %ch9 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'divide_by_zero.i32'
@@ -107,7 +105,7 @@ func @divide_by_zero.i32() -> i32 {
 }
 
 // CHECK-LABEL: --- Running 'basic.i64'
-func @basic.i64() -> i64 {
+func @basic.i64() -> !tfrt.chain {
   %x = tfrt.constant.i64 42
 
   %ch0 = tfrt.new.chain
@@ -127,12 +125,11 @@ func @basic.i64() -> i64 {
   // CHECK: int64 = 43
   %ch4 = tfrt.print.i64 %z, %ch3
 
-  // CHECK: 'basic.i64' returned 43
-  tfrt.return %z : i64
+  tfrt.return %ch4 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'basic.f32'
-func @basic.f32() -> f32 {
+func @basic.f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f32 0.0
@@ -148,12 +145,11 @@ func @basic.f32() -> f32 {
   // CHECK: f32 = 7.000000
   %ch3 = tfrt.print.f32 %seven, %ch2
 
-  // CHECK: 'basic.f32' returned 1.0
-  tfrt.return %one : f32
+  tfrt.return %ch3 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'basic.f64'
-func @basic.f64() -> f64 {
+func @basic.f64() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %zero = tfrt.constant.f64 0.0
@@ -169,8 +165,7 @@ func @basic.f64() -> f64 {
   // CHECK: f64 = 7.000000
   %ch3 = tfrt.print.f64 %seven, %ch2
 
-  // CHECK: 'basic.f64' returned 1.0
-  tfrt.return %one : f64
+  tfrt.return %ch3 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'basic_strings'
@@ -191,10 +186,10 @@ func @basic_strings() {
 }
 
 // CHECK-LABEL: --- Not running 'call_print.i32' because it has arguments
-func @call_print.i32(%x: i32) {
+func @call_print.i32(%x: i32) -> !tfrt.chain {
   %ch0 = tfrt.new.chain
-  tfrt.print.i32 %x, %ch0
-  tfrt.return
+  %ch1 = tfrt.print.i32 %x, %ch0
+  tfrt.return %ch1 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Not running 'add_one' because it has arguments
@@ -205,20 +200,18 @@ func @add_one(%x: i32) -> i32 {
 }
 
 // CHECK-LABEL: --- Running 'caller'
-func @caller() {
+func @caller() -> !tfrt.chain {
   %c1 = tfrt.constant.i32 1
 
   // CHECK-NEXT: int32 = 1
-  tfrt.call @call_print.i32(%c1) : (i32) -> ()
+  %ch0 = tfrt.call @call_print.i32(%c1) : (i32) -> (!tfrt.chain)
 
   %x = tfrt.call @add_one(%c1) : (i32) -> i32
 
-  %ch0 = tfrt.new.chain
-
   // CHECK-NEXT: int32 = 2
-  tfrt.print.i32 %x, %ch0
+  %ch1 = tfrt.print.i32 %x, %ch0
 
-  tfrt.return
+  tfrt.return %ch1 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'test_error_result'
@@ -277,12 +270,12 @@ func @test_partial_fail() -> !tfrt.chain {
 
   %ch0 = tfrt.new.chain
   // CHECK: int32 = 1
-  tfrt.print.i32 %x, %ch0
-  // This tfrt.print.i32 does not run. BEFExecutor automatically propagates the
-  // error in %y to %ch1.
-  %ch1 = tfrt.print.i32 %y, %ch0
+  %ch1 = tfrt.print.i32 %x, %ch0
 
-  tfrt.return %ch1 : !tfrt.chain
+  // CHECK-NOT: int32
+  %ch2 = tfrt.print.i32 %y, %ch1
+
+  tfrt.return %ch2 : !tfrt.chain
 }
 // CHECK-NEXT: 'test_partial_fail' returned <<error: something bad happened>>
 

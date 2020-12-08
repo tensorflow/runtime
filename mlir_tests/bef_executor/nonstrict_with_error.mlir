@@ -15,23 +15,24 @@
 // RUN: bef_executor_lite $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Not running 'call_print.i32' because it has arguments
-func @call_print.i32 (%x: i32, %y: i32) {
-  %ch0 = tfrt.new.chain
-  %ch1 = tfrt.print.i32 %x, %ch0
-  %ch2 = tfrt.print.i32 %y, %ch0
-  tfrt.return
+func @call_print.i32 (%ch: !tfrt.chain, %x: i32, %y: i32) -> (!tfrt.chain, !tfrt.chain) {
+  %ch1 = tfrt.print.i32 %x, %ch
+  %ch2 = tfrt.print.i32 %y, %ch
+  tfrt.return %ch1, %ch2 : !tfrt.chain, !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'call_test'
-func @call_test () {
+func @call_test () -> !tfrt.chain {
   %v1 = tfrt.constant.i32 42
   %v2 = tfrt.constant.i32 64
   %x = "tfrt_test.fail" () : () -> i32 // expected-error {{something bad happened}}
+  %ch = tfrt.new.chain
+
   // CHECK-NEXT: int32 = 42
-  tfrt.call @call_print.i32 (%v1, %x) : (i32, i32) -> ()
   // CHECK-NEXT: int32 = 64
-  tfrt.call @call_print.i32 (%x, %v2) : (i32, i32) -> ()
-  tfrt.return
+  %ch1, %ch2 = tfrt.call @call_print.i32 (%ch, %v1, %x) : (!tfrt.chain, i32, i32) -> (!tfrt.chain, !tfrt.chain)
+  %ch3, %ch4 = tfrt.call @call_print.i32 (%ch1, %x, %v2) : (!tfrt.chain, i32, i32) -> (!tfrt.chain, !tfrt.chain)
+  tfrt.return %ch4 : !tfrt.chain
 }
 
 // tfrt.if is invoked since it's a non-strict kernel, which is executed even when

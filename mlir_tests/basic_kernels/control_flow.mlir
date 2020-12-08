@@ -85,15 +85,15 @@ func @controlflow_repeat2() {
 
 // CHECK-LABEL: --- Running 'controlflow_repeat5'
 func @controlflow_repeat5() {
+  %ch0 = tfrt.new.chain
   %count = tfrt.constant.i32 5
-  tfrt.repeat.i32 %count {
-    %ch0 = tfrt.new.chain
-    "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
+  %ch1 = tfrt.repeat.i32 %count, %ch0 : !tfrt.chain {
+    %ch1 = "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
 
     %x = tfrt.constant.i32 0
-    tfrt.print.i32 %x, %ch0
+    %ch2 = tfrt.print.i32 %x, %ch1
 
-    tfrt.return
+    tfrt.return %ch2 : !tfrt.chain
   }
 
   // CHECK-NEXT: hello host executor!
@@ -108,7 +108,6 @@ func @controlflow_repeat5() {
   // CHECK-NEXT: int32 = 0
 
   %x = tfrt.constant.i32 -1
-  %ch1 = tfrt.new.chain
 
   // CHECK-NEXT: int32 = -1
   tfrt.print.i32 %x, %ch1
@@ -137,27 +136,26 @@ func @controlflow_repeat_large() {
 
 // CHECK-LABEL: --- Running 'controlflow_repeat_cancel'
 func @controlflow_repeat_cancel() -> i32 {
+  %ch0 = tfrt.new.chain
   %count = tfrt.constant.i32 5
   %index = tfrt.constant.i32 0
 
-  %repeat_result = tfrt.repeat.i32 %count, %index : i32 {
-    %ch0 = tfrt.new.chain
+  %ch1, %repeat_result = tfrt.repeat.i32 %count, %ch0, %index : !tfrt.chain, i32 {
     %ch = tfrt.print.i32 %index, %ch0
 
     %one = tfrt.constant.i32 1
     %cond = "tfrt.lessequal.i32"(%one, %index, %ch) : (i32, i32, !tfrt.chain) -> (i1)
 
     // Cancel when the loop index reaches 1.
-    %x = tfrt.if %cond, %one : (i32) -> i32 {
-      %ch1 = tfrt.new.chain
-      %x, %ch2 = "tfrt_test.cancel"(%ch1) : (!tfrt.chain) -> (i32, !tfrt.chain)
-      tfrt.return %x : i32
+    %ch1, %x = tfrt.if %cond, %ch, %one : (!tfrt.chain, i32) -> (!tfrt.chain, i32) {
+      %x, %ch1 = "tfrt_test.cancel"(%ch) : (!tfrt.chain) -> (i32, !tfrt.chain)
+      tfrt.return %ch1, %x : !tfrt.chain, i32
     } else {
-      tfrt.return %one : i32
+      tfrt.return %ch, %one : !tfrt.chain, i32
     }
 
     %next_index = tfrt.add.i32 %index, %x
-    tfrt.return %next_index : i32
+    tfrt.return %ch1, %next_index : !tfrt.chain, i32
   }
 
   // CHECK-NEXT: int32 = 0
@@ -165,7 +163,6 @@ func @controlflow_repeat_cancel() -> i32 {
 
   // The following ops are skipped due to cancel.
   %x = tfrt.constant.i32 -1
-  %ch1 = tfrt.new.chain
   tfrt.print.i32 %x, %ch1
 
   tfrt.return %repeat_result : i32

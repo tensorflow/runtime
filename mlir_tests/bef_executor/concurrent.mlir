@@ -63,31 +63,6 @@ func @async_incs_complete() {
   tfrt.return
 }
 
-// This test that all atomic increments scheduled to run asynchronously complete
-// after HostContext::Quiesce.
-// CHECK-LABEL: async_incs_complete_after_quiesce
-func @async_incs_complete_after_quiesce() {
-  %loop_count = tfrt.constant.i32 1024
-  %counter = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
-
-  %ch = tfrt.new.chain
-  %dispatch_ch, %res = tfrt.repeat.i32 %loop_count, %ch, %counter : !tfrt.chain, !test.atomic.i32 {
-    %async_ret_ch = tfrt.call @async_incs(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain)
-    tfrt.return %ch, %counter : !tfrt.chain, !test.atomic.i32
-  }
-
-  // Call HostContext::Quiesce to ensure all pending work complete.
-  %quiesce_done = "tfrt_test.quiesce"(%dispatch_ch) : (!tfrt.chain) -> (!tfrt.chain)
-
-  %v:2 = "tfrt_test.atomic.get.i32"(%counter, %quiesce_done)
-     : (!test.atomic.i32, !tfrt.chain) -> (i32, !tfrt.chain)
-
-  // CHECK: int32 = 1024
-  tfrt.print.i32 %v#0, %v#1
-
-  tfrt.return
-}
-
 // This test that all atomic increments scheduled to run asynchronously complete.
 // CHECK-LABEL: nested_async_incs_complete
 func @nested_async_incs_complete() {
@@ -111,32 +86,6 @@ func @nested_async_incs_complete() {
 
   tfrt.return
 }
-
-// This test that all atomic increments scheduled to run asynchronously complete
-// after HostContext::Quiesce.
-// CHECK-LABEL: nested_async_incs_complete_after_quiesce
-func @nested_async_incs_complete_after_quiesce() {
-  %loop_count = tfrt.constant.i32 1024
-  %counter = "tfrt_test.atomic.create.i32"() : () -> !test.atomic.i32
-
-  %ch = tfrt.new.chain
-  %dispatch_ch, %res = tfrt.repeat.i32 %loop_count, %ch, %counter : !tfrt.chain, !test.atomic.i32 {
-    %async_ret_ch = tfrt.call @nested_async_incs(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain)
-    tfrt.return %ch, %counter : !tfrt.chain, !test.atomic.i32
-  }
-
-  // Call HostContext::Quiesce to ensure all pending work completes.
-  %quiesce_done = "tfrt_test.quiesce"(%dispatch_ch) : (!tfrt.chain) -> (!tfrt.chain)
-
-  %v:2 = "tfrt_test.atomic.get.i32"(%counter, %quiesce_done)
-     : (!test.atomic.i32, !tfrt.chain) -> (i32, !tfrt.chain)
-
-  // CHECK: int32 = 1024
-  tfrt.print.i32 %v#0, %v#1
-
-  tfrt.return
-}
-
 
 // These test blocking work queue.
 // CHECK-LABEL: --- Running 'simple_blocking_sleep'

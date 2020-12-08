@@ -21,7 +21,7 @@
 // RUN: bef_executor --work_queue_type=mstd:8 $(bef_name %s) | FileCheck %s --dump-input=always
 
 // CHECK-LABEL: --- Running 'test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001'
-func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() {
+func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -99,19 +99,19 @@ func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() {
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp0, %ch3
+  %ch6 = tfrt.print.i1 %cmp0, %ch3
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp1, %ch4
+  %ch7 = tfrt.print.i1 %cmp1, %ch6
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp2, %ch5
+  %ch8 = tfrt.print.i1 %cmp2, %ch7
 
-  tfrt.return
+  tfrt.return %ch8 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'test_batch_norm_grad_in_2x2x2x4_epsilon_0.001'
-func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() {
+func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -189,19 +189,19 @@ func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() {
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp0, %ch3
+  %ch6 = tfrt.print.i1 %cmp0, %ch3
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp1, %ch4
+  %ch7 = tfrt.print.i1 %cmp1, %ch6
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp2, %ch5
+  %ch8 = tfrt.print.i1 %cmp2, %ch7
 
-  tfrt.return
+  tfrt.return %ch8 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'test_batch_norm_grad_in_4x4x4x32_epsilon_0.01'
-func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() {
+func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -279,19 +279,19 @@ func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() {
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp0, %ch3
+  %ch6 = tfrt.print.i1 %cmp0, %ch3
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp1, %ch4
+  %ch7 = tfrt.print.i1 %cmp1, %ch6
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp2, %ch5
+  %ch8 = tfrt.print.i1 %cmp2, %ch7
 
-  tfrt.return
+  tfrt.return %ch8 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001'
-func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() {
+func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   %path = "tfrt_test.get_string"() {
@@ -369,13 +369,13 @@ func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() {
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp0, %ch3
+  %ch6 = tfrt.print.i1 %cmp0, %ch3
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp1, %ch4
+  %ch7 = tfrt.print.i1 %cmp1, %ch6
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp2, %ch5
+  %ch8 = tfrt.print.i1 %cmp2, %ch7
 
-  tfrt.return
+  tfrt.return %ch8 : !tfrt.chain
 }

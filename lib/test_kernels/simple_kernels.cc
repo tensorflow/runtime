@@ -153,6 +153,14 @@ static Chain TestPrintHello() {
   return Chain();
 }
 
+static int32_t TestGetThreadId(Argument<Chain> chain,
+                               const ExecutionContext& exec_ctx) {
+  static std::atomic<int> next_id{0};
+  thread_local const int my_id = next_id.fetch_add(1);
+
+  return my_id;
+}
+
 // Compute the sum of the input args
 static void TestSum(RepeatedArguments<int32_t> args, Result<int32_t> result) {
   assert(args.size() > 0);
@@ -209,6 +217,7 @@ static void TestIdentity(Argument<Chain>, RemainingArguments args,
 void RegisterSimpleKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.identity", TFRT_KERNEL(TestIdentity));
   registry->AddKernel("tfrt_test.print_hello", TFRT_KERNEL(TestPrintHello));
+  registry->AddKernel("tfrt_test.get_thread_id", TFRT_KERNEL(TestGetThreadId));
   registry->AddKernel("tfrt_test.sum", TFRT_KERNEL(TestSum));
   registry->AddKernel("tfrt_test.share_to_two", TFRT_KERNEL(TestShareToTwo));
   registry->AddKernel("tfrt_test.memory_leak_one_int32",

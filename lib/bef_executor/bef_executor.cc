@@ -25,8 +25,8 @@
 #include "bef_file_impl.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
-#include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/location.h"
@@ -99,9 +99,12 @@ AsyncValue* GetOrCreateRegisterValue(BEFFileImpl::RegisterInfo* reg,
   }
 }
 
-AsyncValue* SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
-                             AsyncValue* new_value,
-                             bool* register_already_set) {
+// Take one reference to `new_value` and set it in the register. It returns one
+// reference to the AsyncValue in the register so that the caller can still
+// access it. The final AsyncValue inside this register may be different from
+// `new_value` in case that there is an existing indirect async value.
+RCReference<AsyncValue> SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
+                                         RCReference<AsyncValue> new_value) {
   assert(reg->user_count > 0 &&
          "No need to set register value if it is not being used by anyone.");
   // Atomically set reg->value to new_value.
@@ -109,33 +112,35 @@ AsyncValue* SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
   // Speculatively set refcount in the expectation that compare_exchange
   // succeeds (see b/142802684). Specifically:
   // Add user_count refs to new_value. Corresponding DropRefs will occur as
-  // it's used. new_value already has +1 reference. So add (user_count - 1)
-  // more refs, bringing its effective refcount to +(user_count).
+  // it's used.
   //
-  // Setting a register counts as an additional use (+1), but we are setting
-  // the register right now (-1), so we can skip that AddRef/DropRef pair.
-  new_value->AddRef(reg->user_count - 1);
+  // Note that the caller thread (ie. producer) may still use `new_value` after
+  // this call, so we keep this additional reference, which brings the refcount
+  // to (user_count + 1).
+  new_value->AddRef(reg->user_count);
 
-  if (!COMPARE_EXCHANGE_STRONG(reg, existing, new_value)) {
+  if (!COMPARE_EXCHANGE_STRONG(reg, existing, new_value.get())) {
     // If there was already a value in it, it must be a IndirectAsyncValue. We
     // set the IndirectAsyncValue to point to the result.
     auto indirect_value = cast<IndirectAsyncValue>(existing);
 
     // Speculative AddRef above proved unneeded, so revert it.
-    new_value->DropRef(reg->user_count - 1);
+    new_value->DropRef(reg->user_count);
 
     // Give our +1 reference to 'new_value' to the indirect_value, since we are
     // not storing it in our register file.
-    indirect_value->ForwardTo(TakeRef(new_value));
+    indirect_value->ForwardTo(std::move(new_value));
 
-    // Setting a register counts as an additional use. Signal caller to DropRef
-    // after the caller finished using the returned pointer.
-    *register_already_set = true;
-
-    return existing;
+    // If it is an indirect async value, its refcount is created to be
+    // (user_count + 1) in GetOrCreateRegisterValue(). The additional reference
+    // is to ensure it is alive for the caller thread (ie. producer) in case it
+    // still need to access this AsyncValue after this call.
+    //
+    // Please Refer to async_value.md#setting-a-register-counts-as-a-use for
+    // detailed explantations.
+    return TakeRef(existing);
   }
 
-  *register_already_set = false;
   return new_value;
 }
 
@@ -186,11 +191,28 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   void Execute();
 
  private:
-  void DecrementArgumentsNotReadyCounts(SmallVectorImpl<unsigned>* kernel_ids);
-  void ProcessArgumentsPseudoKernel(SmallVectorImpl<unsigned>* kernel_ids);
+  // Iteratively process ready kernels in `ready_kernel_ids` and inserts ready
+  // users back for next round of processing, until there are no more ready
+  // kernels.
+  void ProcessReadyKernels(SmallVectorImpl<unsigned>* ready_kernel_ids);
+
+  // Process the first pseudo kernel and populate its ready users in
+  // `ready_kernel_ids`.
+  void ProcessArgumentsPseudoKernel(
+      SmallVectorImpl<unsigned>* ready_kernel_ids);
+
+  // Process a single kernel specified by `kernel_id`, and populate the ready
+  // users in `ready_kernel_ids`.
+  void ProcessReadyKernel(unsigned kernel_id,
+                          SmallVectorImpl<unsigned>* ready_kernel_ids);
+
   void ProcessUsedBys(const BEFKernel& kernel, int kernel_id, int result_number,
                       AsyncValue* result, int* entry_offset,
-                      SmallVectorImpl<unsigned>* kernel_ids);
+                      SmallVectorImpl<unsigned>* ready_kernel_ids);
+
+  void DecrementReadyCountAndEnqueue(
+      ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids);
+
   void MaybeAddRefForResult(AsyncValue* result);
   HostContext* GetHost() const { return exec_ctx_.host(); }
   BEFFileImpl* BefFile() const { return location_handler_->BefFile(); }
@@ -222,10 +244,24 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 // Core executor logic
 //===----------------------------------------------------------------------===//
 
+void BEFExecutor::DecrementReadyCountAndEnqueue(
+    ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids) {
+  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array = kernel_infos();
+  // TODO(b/173798236): Consider introducing a randomization logic here in mode
+  // to trigger errors in tests that relies on the implicit order.
+  for (unsigned user_id : users) {
+    if (kernel_array[user_id].arguments_not_ready.fetch_sub(1) == 1) {
+      // TODO(tfrt-devs): Consider launching execution here immediately instead
+      // of materialize it in `ready_kernel_ids`.
+      ready_kernel_ids->push_back(user_id);
+    }
+  }
+}
+
 // Enqueue the users of the result for later processing. If a result has no
 // users, it will be skipped. If the kernel immediately completed a result, then
 // we can mark all kernels using it as ready to go by pushing it to
-// `kernel_ids`, otherwise we need to enqueue them on their unavailable
+// `ready_kernel_ids`, otherwise we need to enqueue them on their unavailable
 // operands. The `result` can be nullptr and in that case it is treated as an
 // available result.
 //
@@ -234,7 +270,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
                                  int result_number, AsyncValue* result,
                                  int* entry_offset,
-                                 SmallVectorImpl<unsigned>* kernel_ids) {
+                                 SmallVectorImpl<unsigned>* ready_kernel_ids) {
   // Find used_by entries for this result.
   auto num_used_bys = kernel.num_used_bys(result_number);
   // Skip current result if there is no user.
@@ -270,13 +306,7 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
   // then we can immediately process any using kernel as part of our visit
   // here. Just add it to the worklist for processing, to avoid recursion.
   if (state.IsAvailable()) {
-    // Append the users in reversed order. This is not necessary and in fact any
-    // order here should work. The reversed order is used here because many
-    // existing tests relies on this implicit order.
-    //
-    // TODO(b/173798236): Consider introducing a randomization logic here in
-    // debug mode to trigger errors in tests that relies on the implicit order.
-    kernel_ids->append(used_bys.rbegin(), used_bys.rend());
+    DecrementReadyCountAndEnqueue(used_bys, ready_kernel_ids);
     return;
   }
 
@@ -286,61 +316,25 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
   // Keep this executor alive until the kernel runs.
   AddRef();
 
-  // We could just add one "AndThen" closure for each use, which would be
-  // fine in the case where results have one use, but it would result in
-  // needless work for cases where there are multiple users of the same
-  // result.
-  //
-  // It is better to make an SmallVector of things to update when the
-  // result becomes available, but that isn't great because it makes the
-  // capture list too large for the inline representation of an
-  // std::function - forcing an allocation in the path of the common case.
-  // Handle this by just handling the two cases explicitly.
-  if (used_bys.size() == 1) {
-    // Single result case - build the SmallVector inside of the closure to
-    // reduce the size of the capture list.
-
-    auto used_by = used_bys.front();
-
-    result->AndThen([this, used_by]() {
-      // When the result becomes available, we process the using kernel.
-      SmallVector<unsigned, 4> using_kernel_id;
-      using_kernel_id.push_back(used_by);
-      this->DecrementArgumentsNotReadyCounts(&using_kernel_id);
-      this->DropRef();
-    });
-    return;
-  }
-
-  // Otherwise, build a list of values outside of the capture list and
-  // process it in one go.
-  SmallVector<unsigned, 8> using_kernel_ids;
-  // As in BEFExecutor's constructor, we reserve some extra space to
-  // accommodate growth for users of results of these kernels.
-  using_kernel_ids.reserve(used_bys.size() + 4);
-  // Append the users in reversed order. This is not necessary and in fact any
-  // order here should work. The reversed order is used here because many
-  // existing tests relies on this implicit order.
-  //
-  // TODO(b/173798236): Consider introducing a randomization logic here in debug
-  // mode to trigger errors in tests that relies on the implicit order.
-  using_kernel_ids.append(used_bys.rbegin(), used_bys.rend());
-
-  // Process the whole batch when this result becomes available.
-  result->AndThen(
-      [this, using_kernel_ids = std::move(using_kernel_ids)]() mutable {
-        this->DecrementArgumentsNotReadyCounts(&using_kernel_ids);
-        this->DropRef();
-      });
+  // Process the whole batch when this result becomes available. Note that we
+  // capture `used_bys` which is an ArrayRef instead of copying the content.
+  // This is fine because the underlying BEF file is supposed to be alive when
+  // the BEF executor is alive.
+  result->AndThen([this, used_bys]() mutable {
+    SmallVector<unsigned, 4> ready_kernel_ids;
+    this->DecrementReadyCountAndEnqueue(used_bys, &ready_kernel_ids);
+    this->ProcessReadyKernels(&ready_kernel_ids);
+    this->DropRef();
+  });
 }
 
 // Process the arguments pseudo kernel and enqueue the ready users of these
-// arguments to `kernel_ids`. For non-ready users (eg. the function argument is
-// unavailable), it sets up AndThen() callback to call
-// DecrementArgumentsNotReadyCounts when the result is ready.
+// arguments to `ready_kernel_ids`. For non-ready users (eg. the function
+// argument is unavailable), it sets up AndThen() callback to call
+// ProcessReadyKernels() when the result is ready.
 void BEFExecutor::ProcessArgumentsPseudoKernel(
-    SmallVectorImpl<unsigned>* kernel_ids) {
-  assert(kernel_ids->empty());
+    SmallVectorImpl<unsigned>* ready_kernel_ids) {
+  assert(ready_kernel_ids->empty());
 
   BEFKernel kernel(kernels().data());
 
@@ -362,8 +356,9 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
   // with no operands.
   assert(!results.empty());
   assert(results.front() == register_array.size());
+
   ProcessUsedBys(kernel, /*kernel_id=*/-1, /*result_number=*/0,
-                 /*result=*/nullptr, &used_by_offset, kernel_ids);
+                 /*result=*/nullptr, &used_by_offset, ready_kernel_ids);
 
   for (int result_number = 1; result_number < results.size(); ++result_number) {
     auto& result_register = register_array[results[result_number]];
@@ -375,7 +370,7 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
 
     // Process users of this result.
     ProcessUsedBys(kernel, /*kernel_id=*/-1, result_number, result,
-                   &used_by_offset, kernel_ids);
+                   &used_by_offset, ready_kernel_ids);
   }
 }
 
@@ -389,159 +384,178 @@ void BEFExecutor::MaybeAddRefForResult(AsyncValue* result) {
   }
 }
 
-/// Decrement arguments_not_ready counters for the specified kernels by one,
-/// executing them if they are now ready to run. This processes the kernels
-/// from the end of the vector to the start - worklist style.
-void BEFExecutor::DecrementArgumentsNotReadyCounts(
-    SmallVectorImpl<unsigned>* kernel_ids) {
+// Process the kernel for `kernel_id` and populate `ready_kernel_ids` with ready
+// users.
+void BEFExecutor::ProcessReadyKernel(
+    unsigned kernel_id, SmallVectorImpl<unsigned>* ready_kernel_ids) {
+  MutableArrayRef<BEFFileImpl::RegisterInfo> register_array = register_infos();
+
+  assert(kernel_infos()[kernel_id].offset % kKernelEntryAlignment == 0);
+  BEFKernel kernel(kernels().data() +
+                   kernel_infos()[kernel_id].offset / kKernelEntryAlignment);
+
+  // Process the kernel record to get information about what argument
+  // registers, result registers, and attributes should be passed.
   KernelFrameBuilder kernel_frame(exec_ctx_);
   kernel_frame.SetAttributeSection(BefFile()->attribute_section_);
 
-  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array = kernel_infos();
-  MutableArrayRef<BEFFileImpl::RegisterInfo> register_array = register_infos();
+  // Keep track of whether we saw any error arguments. If so, we propagate
+  // the error to the results automatically. Initialize it with the cancel
+  // async value if the execution has been canceled.
+  AsyncValue* any_error_argument = exec_ctx_.GetCancelAsyncValue();
 
-  while (!kernel_ids->empty()) {
-    auto kernel_id = kernel_ids->pop_back_val();
-    assert(kernel_id < kernel_array.size() && "invalid kernel ID");
+  // Find the kernel implementation of this kernel.
+  AsyncKernelImplementation kernel_fn =
+      BefFile()->GetAsyncKernel(kernel.kernel_code());
 
-    // Decrement the count and see if we're ready to run.  If not, then we're
-    // done with the kernel.
-    if (kernel_array[kernel_id].arguments_not_ready.fetch_sub(1) != 1) continue;
+  // Check the low bit of special_metadata, which indicates if the kernel
+  // is non-strict.
+  bool is_nonstrict_kernel =
+      static_cast<bool>(kernel.special_metadata() &
+                        static_cast<uint32_t>(SpecialAttribute::kNonStrict));
+  DEBUG_PRINT("Run %skernel %u %s\n", is_nonstrict_kernel ? "non-strict " : "",
+              kernel_id, BefFile()->GetKernelName(kernel.kernel_code()));
 
-    assert(kernel_array[kernel_id].offset % kKernelEntryAlignment == 0);
-    BEFKernel kernel(kernels().data() +
-                     kernel_array[kernel_id].offset / kKernelEntryAlignment);
+  // Set up operands.
+  int entry_offset = 0;
+  auto arguments =
+      kernel.GetKernelEntries(entry_offset, kernel.num_arguments());
+  for (auto reg_idx : arguments) {
+    BEFFileImpl::RegisterInfo& reg = register_array[reg_idx];
 
-    // Keep track of whether we saw any error arguments. If so, we propagate the
-    // error to the results automatically. Initialize it with the cancel async
-    // value if the execution has been canceled.
-    AsyncValue* any_error_argument = exec_ctx_.GetCancelAsyncValue();
-
-    // Process the kernel record to get information about what argument
-    // registers, result registers, and attributes should be passed.
-    kernel_frame.Reset();
-
-    // Find the kernel implementation of this kernel.
-    AsyncKernelImplementation kernel_fn =
-        BefFile()->GetAsyncKernel(kernel.kernel_code());
-
-    // Check the low bit of special_metadata, which indicates if the kernel
-    // is non-strict.
-    bool is_nonstrict_kernel =
-        static_cast<bool>(kernel.special_metadata() &
-                          static_cast<uint32_t>(SpecialAttribute::kNonStrict));
-    DEBUG_PRINT("Run %skernel %u %s\n",
-                is_nonstrict_kernel ? "non-strict " : "", kernel_id,
-                BefFile()->GetKernelName(kernel.kernel_code()));
-
-    // Set up operands.
-    int entry_offset = 0;
-    auto arguments =
-        kernel.GetKernelEntries(entry_offset, kernel.num_arguments());
-    for (auto reg_idx : arguments) {
-      BEFFileImpl::RegisterInfo& reg = register_array[reg_idx];
-
-      // The argument register may not be available if this is a non-strict
-      // kernel that is starting before all operands are available. In that
-      // case, we use an IndirectAsyncValue so it can be resolved later.
-      AsyncValue* value = GetOrCreateRegisterValue(&reg, GetHost());
-      // TODO(b/142757465): remove arguments_and_results_ vector in
-      // AsyncKernelFrame.
-      kernel_frame.AddArg(value);
-      if (value->IsError()) any_error_argument = value;
-    }
-
+    // The argument register may not be available if this is a non-strict
+    // kernel that is starting before all operands are available. In that
+    // case, we use an IndirectAsyncValue so it can be resolved later.
+    AsyncValue* value = GetOrCreateRegisterValue(&reg, GetHost());
     // TODO(b/142757465): remove arguments_and_results_ vector in
     // AsyncKernelFrame.
-    kernel_frame.SetNumResults(kernel.num_results());
+    kernel_frame.AddArg(value);
+    if (value->IsError()) any_error_argument = value;
+  }
 
-    // Set up attributes.
-    entry_offset += arguments.size();
-    auto attributes =
-        kernel.GetKernelEntries(entry_offset, kernel.num_attributes());
-    for (auto attribute_offset : attributes) {
-      // We pass the pointer here because this attribute could be an array of
-      // size 0.
-      kernel_frame.AddAttribute(BefFile()->attribute_section_.data() +
-                                attribute_offset);
+  // TODO(b/142757465): remove arguments_and_results_ vector in
+  // AsyncKernelFrame.
+  kernel_frame.SetNumResults(kernel.num_results());
+
+  // Set up attributes.
+  entry_offset += arguments.size();
+  auto attributes =
+      kernel.GetKernelEntries(entry_offset, kernel.num_attributes());
+  for (auto attribute_offset : attributes) {
+    // We pass the pointer here because this attribute could be an array of
+    // size 0.
+    kernel_frame.AddAttribute(BefFile()->attribute_section_.data() +
+                              attribute_offset);
+  }
+
+  // Set up functions.
+  entry_offset += attributes.size();
+  auto functions =
+      kernel.GetKernelEntries(entry_offset, kernel.num_functions());
+  for (auto fn_idx : functions) {
+    // Functions are passed as their corresponding `Function`.
+    kernel_frame.AddAttribute(BefFile()->functions_[fn_idx].get());
+  }
+
+  // If all arguments are good or if the kernel is non-strict, run the
+  // function.
+  if (any_error_argument == nullptr || is_nonstrict_kernel) {
+    // Get the location to pass down to the kernels so they can report an
+    // error.
+    kernel_frame.SetLocation(
+        {location_handler_.get(), kernel.kernel_location()});
+
+    // kernel_fn should populate results in kernel_frame with pointers to
+    // AsyncValue before it returns.
+    {
+      TFRT_TRACE_SCOPE(Default, BefFile()->GetKernelName(kernel.kernel_code()));
+      kernel_fn(&kernel_frame);
+    }
+  } else {
+    // Otherwise, automatically propagate errors to the result values.
+    for (size_t i = 0, e = kernel_frame.GetNumResults(); i != e; ++i) {
+      kernel_frame.SetResultAt(i, FormRef(any_error_argument));
+    }
+  }
+
+  // Now that the kernel had a chance to look at the arguments, we're done
+  // with them, so they can potentially be deallocated if this was the last
+  // kernel to use them.
+  for (auto* arg : kernel_frame.GetArguments()) arg->DropRef();
+
+  // The following loop iterates over all results of the kernel. If a result
+  // has no users, it will be skipped. If the kernel immediately completed a
+  // result, then we can mark all kernels using it as ready to go, otherwise
+  // we need to enqueue them on their unavailable operands.
+
+  // Move entry offset to start of results.
+  entry_offset += functions.size();
+  auto results = kernel.GetKernelEntries(entry_offset, kernel.num_results());
+  // Move entry offset to start of all used_bys.
+  entry_offset += results.size();
+
+  for (int result_number = 0; result_number < results.size(); ++result_number) {
+    auto& result_register = register_array[results[result_number]];
+
+    // This kernel is not a pesudo kernel, assert the result register is
+    // either unset or an IndirectAsyncValue.
+    assert(GetRegisterValue(result_register) == nullptr ||
+           GetRegisterValue(result_register)->IsUnresolvedIndirect());
+
+    // Copy back the result AsyncValue to this result register.
+    AsyncValue* result = kernel_frame.GetResultAt(result_number);
+    assert(result && "Kernel did not set result AsyncValue");
+    if (result_register.user_count == 0) {
+      MaybeAddRefForResult(result);
+      // If no one uses this result, skip storing the value in the register.
+      // We must drop our +1 ref.
+      result->DropRef();
+      continue;
     }
 
-    // Set up functions.
-    entry_offset += attributes.size();
-    auto functions =
-        kernel.GetKernelEntries(entry_offset, kernel.num_functions());
-    for (auto fn_idx : functions) {
-      // Functions are passed as their corresponding `Function`.
-      kernel_frame.AddAttribute(BefFile()->functions_[fn_idx].get());
+    // Pin this register to the current thread to ensure that it is alive.
+    // Note that SetRegisterValue() will publish this AsyncValue to other
+    // threads and they may DropRef() at any point of time after calling
+    // SetRegisterValue(). So we hold an additional reference here.
+    //
+    // TODO(tfrt-devs): Consider moving the call SetRegisterValue() to
+    // ProcessUsedBys() after the last use of this AsyncValue, so that we
+    // don't need this extra reference counting in some cases.
+    RCReference<AsyncValue> register_value =
+        SetRegisterValue(&result_register, TakeRef(result));
+
+    // Process users of this result.
+    ProcessUsedBys(kernel, kernel_id, result_number, register_value.get(),
+                   &entry_offset, ready_kernel_ids);
+  }
+}
+
+// Iteratively process ready kernels in `ready_kernel_ids` and inserts ready
+// users back for next round of processing, until there are no more ready
+// kernels.
+void BEFExecutor::ProcessReadyKernels(
+    SmallVectorImpl<unsigned>* ready_kernel_ids) {
+  while (!ready_kernel_ids->empty()) {
+    // If there are more than one ready kernel, except the first one, we
+    // evaluate each of these kernels and their dependents in a separate thread.
+    for (unsigned kernel_id : llvm::drop_begin(*ready_kernel_ids, 1)) {
+      AddRef();
+      EnqueueWork(exec_ctx_, [this, kernel_id]() {
+        // We create a new list with capacity of 4 here because
+        // ProcessReadyKernels() will iteratively process the kernels and their
+        // dependents by adding ready kernels to `ready_kernel_ids`.
+        SmallVector<unsigned, 4> ready_kernel_ids = {kernel_id};
+        this->ProcessReadyKernels(&ready_kernel_ids);
+        this->DropRef();
+      });
     }
 
-    // If all arguments are good or if the kernel is non-strict, run the
-    // function.
-    if (any_error_argument == nullptr || is_nonstrict_kernel) {
-      // Get the location to pass down to the kernels so they can report an
-      // error.
-      kernel_frame.SetLocation(
-          {location_handler_.get(), kernel.kernel_location()});
-
-      // kernel_fn should populate results in kernel_frame with pointers to
-      // AsyncValue before it returns.
-      {
-        TFRT_TRACE_SCOPE(Default,
-                         BefFile()->GetKernelName(kernel.kernel_code()));
-        kernel_fn(&kernel_frame);
-      }
-    } else {
-      // Otherwise, automatically propagate errors to the result values.
-      for (size_t i = 0, e = kernel_frame.GetNumResults(); i != e; ++i) {
-        kernel_frame.SetResultAt(i, FormRef(any_error_argument));
-      }
-    }
-
-    // Now that the kernel had a chance to look at the arguments, we're done
-    // with them, so they can potentially be deallocated if this was the last
-    // kernel to use them.
-    for (auto* arg : kernel_frame.GetArguments()) arg->DropRef();
-
-    // The following loop iterates over all results of the kernel. If a result
-    // has no users, it will be skipped. If the kernel immediately completed a
-    // result, then we can mark all kernels using it as ready to go, otherwise
-    // we need to enqueue them on their unavailable operands.
-
-    // Move entry offset to start of results.
-    entry_offset += functions.size();
-    auto results = kernel.GetKernelEntries(entry_offset, kernel.num_results());
-    // Move entry offset to start of all used_bys.
-    entry_offset += results.size();
-    for (int result_number = 0; result_number < results.size();
-         ++result_number) {
-      auto& result_register = register_array[results[result_number]];
-
-      // This kernel is not a pesudo kernel, assert the result register is
-      // either unset or an IndirectAsyncValue.
-      assert(GetRegisterValue(result_register) == nullptr ||
-             GetRegisterValue(result_register)->IsUnresolvedIndirect());
-
-      // Copy back the result AsyncValue to this result register.
-      AsyncValue* result = kernel_frame.GetResultAt(result_number);
-      assert(result && "Kernel did not set result AsyncValue");
-      if (result_register.user_count == 0) {
-        MaybeAddRefForResult(result);
-        // If no one uses this result, skip storing the value in the register.
-        // We must drop our +1 ref.
-        result->DropRef();
-        continue;
-      }
-
-      bool register_already_set;
-      auto* register_value =
-          SetRegisterValue(&result_register, result, &register_already_set);
-      // Process users of this result.
-      ProcessUsedBys(kernel, kernel_id, result_number, register_value,
-                     &entry_offset, kernel_ids);
-
-      // DropRef since we no longer need the IndirectAsyncValue in the register.
-      if (register_already_set) register_value->DropRef();
-    }
+    // For the first ready kernel, we dispatch it inline.
+    unsigned first_kernel_id = ready_kernel_ids->front();
+    // Clear the work list so that ready users can be populated for the next
+    // round of processing.
+    ready_kernel_ids->clear();
+    ProcessReadyKernel(first_kernel_id, ready_kernel_ids);
   }
 }
 
@@ -557,29 +571,26 @@ BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file)
 BEFExecutor::~BEFExecutor() {}
 
 void BEFExecutor::Execute() {
-  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array = kernel_infos();
-
   // Each KernelInfo::arguments_not_ready to the number of arguments (or one for
   // kernels with no arguments). This means that as we walk the list to drop the
   // argument count, if we hit zero then it is time for us to trigger the
   // computation. This arrangement is nice because any sync or async kernel that
   // immediately produces results will immediately unblock subsequent kernels to
-  // be run by the primary host thread, which results in zero thread hops, clean
-  // top-down execution semantics (very cache friendly), and results in all the
-  // atomics staying in that cores' cache.
-  SmallVector<unsigned, 16> kernel_ids_to_visit;
+  // be run. And some of the subsequent kernels can be run in the same thread,
+  // which results in fewer thread hops, clean top-down execution semantics
+  // (very cache friendly), and results in all the atomics staying in that
+  // cores' cache, if these benefits outweigh the latency improvement from
+  // launching these kernels in different threads.
+  SmallVector<unsigned, 4> ready_kernel_ids;
 
-  // If a kernel's result has multiple uses, DecrementArgumentsNotReadyCounts
-  // pops one kernel_id and pushes multiple user kernel_ids, increasing the size
-  // of kernel_ids_to_visit. We reserve some extra space to accommodate this
-  // growth.
-  kernel_ids_to_visit.reserve(kernel_array.size() + 4);
+  // The first kernel (kernel_id == 0) is a pseudo kernel that provides the
+  // arguments, which gets special handling.
+  ProcessArgumentsPseudoKernel(&ready_kernel_ids);
 
-  // The first kernel is a pseudo kernel that provides the arguments, which gets
-  // special handling.
-  ProcessArgumentsPseudoKernel(&kernel_ids_to_visit);
-
-  DecrementArgumentsNotReadyCounts(&kernel_ids_to_visit);
+  // After ProcessArgumentsPseudoKernel() returns, `ready_kernel_ids` is
+  // populated with available kernels. Then we start processing by calling
+  // ProcessReadyKernels().
+  ProcessReadyKernels(&ready_kernel_ids);
 }
 
 // Set RegisterInfo::value for argument registers.

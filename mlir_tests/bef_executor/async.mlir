@@ -45,29 +45,27 @@ func @async_add() {
 // CHECK-LABEL: -- Running 'async_repeat2'
 func @async_repeat2() {
   %count = tfrt.constant.i32 2
+  %ch = tfrt.new.chain
 
-  tfrt.repeat.i32 %count {
-    tfrt_test.do.async : () -> () {
-      %ch0 = tfrt.new.chain
-      "tfrt_test.print_hello"(%ch0) : (!tfrt.chain) -> !tfrt.chain
+  %ch3 = tfrt.repeat.i32 %count, %ch : !tfrt.chain {
+    %async_ch = tfrt_test.do.async %ch : (!tfrt.chain) -> (!tfrt.chain) {
+      %ch1 = "tfrt_test.print_hello"(%ch) : (!tfrt.chain) -> !tfrt.chain
 
       %x = tfrt.constant.i32 0
-      tfrt.print.i32 %x, %ch0
-      tfrt.return
+      %ch2 = tfrt.print.i32 %x, %ch1
+      tfrt.return %ch2 : !tfrt.chain
     }
-    tfrt.return
+    tfrt.return %async_ch : !tfrt.chain
   }
 
-  %ch3 = tfrt.new.chain
-
   %x = tfrt.constant.i32 -1
-  // CHECK-NEXT: int32 = -1
   tfrt.print.i32 %x, %ch3
 
   // CHECK-NEXT: hello host executor!
   // CHECK-NEXT: int32 = 0
   // CHECK-NEXT: hello host executor!
   // CHECK-NEXT: int32 = 0
+  // CHECK-NEXT: int32 = -1
   tfrt.return
 }
 

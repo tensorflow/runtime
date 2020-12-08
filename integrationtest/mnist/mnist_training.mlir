@@ -138,9 +138,9 @@ func @mnist_training() {
     tfrt.if %cond, %activation_1, %expected_result, %c6 : (!t.tensor, !t.tensor, !tfrt.chain) -> () {
       %cmp, %c28 = "tfrt_dht.tensor_allclose.1000ulp.f32"(%expected_result, %activation_1, %c6) : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
       // CHECK: int1 = 1
-      %c29 = "tfrt.print.i1"(%cmp, %c6) : (i1, !tfrt.chain) -> !tfrt.chain
-      %c30 = tfrt_dht.print_tensor %activation_1, %c6
-      %c31 = tfrt_dht.print_tensor %expected_result, %c6
+      %c29 = "tfrt.print.i1"(%cmp, %c28) : (i1, !tfrt.chain) -> !tfrt.chain
+      %c30 = tfrt_dht.print_tensor %activation_1, %c29
+      %c31 = tfrt_dht.print_tensor %expected_result, %c30
       tfrt.return
     }
 
@@ -157,19 +157,18 @@ func @mnist_training() {
 
     // Update W_1. Gradient descent implemented with GEMM: C = alpha * A * B + beta * C
     // Reference: http://cs231n.stanford.edu/handouts/linear-backprop.pdf
-    %c12 = "tfrt_test.tensor_transpose.f32"(%activation_0, %transposed_activation_0, %c2) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
-    %c13 = tfrt.merge.chains %c8, %c12
+    %c12 = "tfrt_test.tensor_transpose.f32"(%activation_0, %transposed_activation_0, %c4) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     // Calculate transpose of W_1 before W_1 gets updated.
     %c14 = "tfrt_test.tensor_transpose.f32"(%w_1, %transposed_w_1, %c0) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
-    %c15 = tfrt.merge.chains %c8, %c14
+    %c15 = tfrt.merge.chains %c8, %c12, %c14
 
     // Update W_1.
-    %c16 = "eigen.matmul.f32"(%minus_lr_constant, %transposed_activation_0, %gradient, %one, %w_1, %c13) : (f32, !t.tensor, !t.tensor, f32, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c16 = "eigen.matmul.f32"(%minus_lr_constant, %transposed_activation_0, %gradient, %one, %w_1, %c15) : (f32, !t.tensor, !t.tensor, f32, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     // Calculate gradient(a0).
     %c17 = "eigen.matmul.f32"(%one, %gradient, %transposed_w_1, %zero, %gradient_a0, %c15) : (f32, !t.tensor, !t.tensor, f32, !t.tensor, !tfrt.chain) -> !tfrt.chain
-    %c18 = tfrt.merge.chains %c2, %c17
+    %c18 = tfrt.merge.chains %c4, %c17
     %c19 = "tfrt_test.relu_grad_inplace.f32"(%activation_0, %gradient_a0, %c18) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     // Update b_0.
@@ -182,7 +181,8 @@ func @mnist_training() {
     %c24 = tfrt.merge.chains %c19, %c23
     %c25 = "eigen.matmul.f32"(%minus_lr_constant, %transposed_input_image, %gradient_a0, %one, %w_0, %c24) : (f32, !t.tensor, !t.tensor, f32, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    tfrt.return %c25 : !tfrt.chain
+    %c_done = tfrt.merge.chains %c28, %c11, %c16, %c22, %c25
+    tfrt.return %c_done : !tfrt.chain
   }
 
   tfrt.return

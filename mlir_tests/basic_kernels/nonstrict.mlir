@@ -22,14 +22,14 @@
 // CHECK-LABEL: --- Not running 'callee' because it has arguments
 
 // This function prints the values as they arrive.
-func @callee(%x: i32, %y: i32, %z: i32) {
+func @callee(%x: i32, %y: i32, %z: i32) -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
-  tfrt.print.i32 %x, %ch0
-  tfrt.print.i32 %y, %ch0
-  tfrt.print.i32 %z, %ch0
+  %ch1 = tfrt.print.i32 %x, %ch0
+  %ch2 = tfrt.print.i32 %y, %ch1
+  %ch3 = tfrt.print.i32 %z, %ch2
 
-  tfrt.return
+  tfrt.return %ch0 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'call_non_strict'
@@ -41,14 +41,12 @@ func @call_non_strict() {
   %v3 = "tfrt_test.async_add.i32"(%c1, %v2) : (i32, i32) -> i32
 
   // CHECK-NEXT: int32 = 1
-  tfrt.call @callee(%c1, %v2, %v3) : (i32, i32, i32) -> ()
+  %ch = tfrt.call @callee(%c1, %v2, %v3) : (i32, i32, i32) -> (!tfrt.chain)
 
   %c5 = tfrt.constant.i32 5
 
-  %ch0 = tfrt.new.chain
-
   // CHECK-NEXT: int32 = 5
-  tfrt.print.i32 %c5, %ch0
+  tfrt.print.i32 %c5, %ch
 
   // CHECK-NEXT: int32 = 2
   // CHECK-NEXT: int32 = 3

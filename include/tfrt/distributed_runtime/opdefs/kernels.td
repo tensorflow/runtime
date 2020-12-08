@@ -322,14 +322,14 @@ def CreateRemoteExecuteSpecOp :  DistOp<"create_remote_execute_spec"> {
   }];
 
   let arguments = (ins
+    TFRT_ChainType:$in_ch,
     StrArrayAttr:$output_devices
   );
   let results = (outs
     RemoteExecuteSpecType:$out_spec
   );
 
-  let printer = [{ return tfrt::dist::print(p, *this); }];
-  let assemblyFormat = "attr-dict";
+  let assemblyFormat = "operands attr-dict";
 }
 
 

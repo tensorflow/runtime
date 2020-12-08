@@ -521,7 +521,8 @@ void RegisterTFFunctionKernel(Chain ch, DistributedContext* dist_context,
 }
 
 AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
-    AggregateAttr inputs, const ExecutionContext& exec_ctx) {
+    Argument<Chain> in_ch, AggregateAttr inputs,
+    const ExecutionContext& exec_ctx) {
   llvm::SmallVector<RCReference<Device>, 4> output_devices;
   output_devices.reserve(inputs.GetNumElements());
   for (int i = 0, e = inputs.GetNumElements(); i < e; ++i) {

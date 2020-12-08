@@ -65,6 +65,10 @@ void ExecuteOpImplSync(const CoreRuntimeOp &op,
                        AggregateAttr op_attr_array,
                        const ExecutionContext &exec_ctx);
 
+void AsyncWaitForResultsFromTensorHandles(
+    MutableArrayRef<RCReference<AsyncValue>> results,
+    MutableArrayRef<TensorHandle> result_ths);
+
 }  // namespace tfrt
 
 #endif  // TFRT_CORE_RUNTIME_EXECUTE_OP_IMPL_H_

@@ -28,13 +28,13 @@
 #include "llvm/ADT/PointerIntPair.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/tensor/tensor.h"
 #include "tfrt/tensor/tensor_metadata.h"
 #include "tfrt/tensor/tensor_type_registration.h"
 
 namespace tfrt {
 
 class Device;
-class Tensor;
 
 // An opaque representation of a rectangular tensor computed by the host/device
 // runtime.
@@ -102,11 +102,18 @@ class TensorHandle final {
   }
 
   bool IsMetadataAvailable() const {
-    return IsMetadataInline() || async_metadata_.IsConcrete();
+    // TODO(tfrt-devs): In the future improvement of TensorHandle semantics, we
+    // should remove the async_metadata_ field. Because we should always get the
+    // metadata from the tensor unless the metadata is already available, in
+    // which case the metadata should be provided to the c'tor at the
+    // construction time.
+    return IsMetadataInline() || async_metadata_.IsConcrete() ||
+           GetAsyncTensor()->IsConcrete();
   }
 
   bool IsMetadataError() const {
-    return !IsMetadataInline() && async_metadata_.IsError();
+    return !IsMetadataInline() && async_metadata_.IsError() &&
+           GetAsyncTensor()->IsError();
   }
 
   const AsyncValueRef<TensorMetadata>& GetAsyncMetadata() const;
@@ -116,7 +123,8 @@ class TensorHandle final {
   const TensorMetadata& GetAvailableMetadata() const {
     assert(IsValid());
     if (IsMetadataInline()) return inlined_metadata_;
-    return async_metadata_.get();
+    if (async_metadata_.IsConcrete()) return async_metadata_.get();
+    return GetAsyncTensor()->get<Tensor>().metadata();
   }
 
   // Returns nullptr if handle is in an invalid state.

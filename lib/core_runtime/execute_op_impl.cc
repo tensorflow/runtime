@@ -112,6 +112,38 @@ void SetUpOpFuncAttrs(AggregateAttr op_func_attr_array, OpAttrs *op_attrs) {
   }
 }
 
+void AsyncWaitForResultsFromTensorHandles(
+    MutableArrayRef<RCReference<AsyncValue>> results,
+    MutableArrayRef<TensorHandle> result_ths) {
+  // Return all of the TensorHandles in AsyncValue's.
+  for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
+    auto &th_ref = result_ths[i];
+    auto *tensor_av = th_ref.GetAsyncTensor();
+
+    // Only set the AsyncValue of TensorHandle to be available when the
+    // underlying tensor is available. This is to avoid unnecessary async
+    // dispatches in BEF execution.
+    auto state = tensor_av->state();
+    if (state.IsError()) {
+      // Here we don't propagate errors to all results. We just faithfully
+      // propagate the results from the op implementation. It is up to the op
+      // implementation on how to set errors in its results.
+      results[i]->SetError(tensor_av->GetError());
+    } else if (state.IsAvailable()) {
+      results[i]->emplace<TensorHandle>(std::move(th_ref));
+    } else {
+      tensor_av->AndThen([tensor_av, result = results[i].CopyRef(),
+                          th_ref = std::move(th_ref)]() mutable {
+        if (tensor_av->IsError()) {
+          result->SetError(tensor_av->GetError());
+          return;
+        }
+        result->emplace<TensorHandle>(std::move(th_ref));
+      });
+    }
+  }
+}
+
 void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
                    AsyncValueRef<Chain> *op_chain,
                    MutableArrayRef<RCReference<AsyncValue>> results,
@@ -144,33 +176,7 @@ void ExecuteOpImpl(CoreRuntimeOp op, ArrayRef<AsyncValue *> args,
 
   op(exec_ctx, th_args, OpAttrsRef(op_attrs), result_ths, op_chain);
 
-  // Return all of the TensorHandles in AsyncValue's.
-  for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
-    auto &th_ref = result_ths[i];
-    auto *tensor_av = th_ref.GetAsyncTensor();
-
-    // Only set the AsyncValue of TensorHandle to be available when the
-    // underlying tensor is available. This is to avoid unnecessary async
-    // dispatches in BEF execution.
-    auto state = tensor_av->state();
-    if (state.IsError()) {
-      // Here we don't propagate errors to all results. We just faithfully
-      // propagate the results from the op implementation. It is up to the op
-      // implementation on how to set errors in its results.
-      results[i]->SetError(tensor_av->GetError());
-    } else if (state.IsAvailable()) {
-      results[i]->emplace<TensorHandle>(std::move(th_ref));
-    } else {
-      tensor_av->AndThen([tensor_av, result = results[i].CopyRef(),
-                          th_ref = std::move(th_ref)]() mutable {
-        if (tensor_av->IsError()) {
-          result->SetError(tensor_av->GetError());
-          return;
-        }
-        result->emplace<TensorHandle>(std::move(th_ref));
-      });
-    }
-  }
+  AsyncWaitForResultsFromTensorHandles(results, result_ths);
 }
 
 void ExecuteOpImplSync(const CoreRuntimeOp &op,

@@ -124,9 +124,9 @@ void DistributedContext::CreateRemoteContexts(
   // Reference-counted done callback is invoked after all remote calls finish
   auto rc_done = TakeRef(new RefCountedCallback(
       [this, done = std::move(done_callback)](Error e) mutable {
-        done(std::move(e));
         SendKeepAlive(
             server_context_->GetConfiguration().context_gc_timeout_secs / 2);
+        done(std::move(e));
       }));
 
   // Base request contains information that is the shared by all the requests

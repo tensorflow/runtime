@@ -324,7 +324,7 @@ void InterleaveDatasetIterator::MaybeScheduleBackgroundTask(
     // output_buffer_front_.
 
     auto host = exec_ctx.host();
-    auto callback = [exec_ctx, host, callback_count,
+    auto callback = [exec_ctx, callback_count,
                      iterator = FormRef(this)]() mutable {
       if (callback_count >= MAX_RECURSIVE_CALLS) {
         EnqueueWork(exec_ctx, [exec_ctx, iterator = std::move(iterator)] {

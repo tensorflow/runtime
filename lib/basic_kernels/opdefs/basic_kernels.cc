@@ -134,19 +134,6 @@ static ParseResult parseConstantOp(Type attrType, OpAsmParser &parser,
   return success();
 }
 
-/// The constant op requires an attribute, and furthermore requires that it
-/// matches the return type.
-static LogicalResult verifyBoolConstant(Operation *op) {
-  auto value = op->getAttr("value");
-  if (!value) return op->emitOpError("requires a 'value' attribute");
-
-  auto bool_attr = value.dyn_cast<BoolAttr>();
-  if (!bool_attr)
-    return op->emitOpError("unsupported 'value' attribute: ") << value;
-
-  return success();
-}
-
 static LogicalResult verifyIntegerConstant(Operation *op,
                                            int expected_bitwidth) {
   auto value = op->getAttr("value");

@@ -93,7 +93,7 @@ void ShuffleDatasetIterator::MaybeScheduleBackgroundTask(
   // ensures in-order delivery since at most one thread can take value from the
   // input_iterator_ and update the output value in the output_buffer_.
   auto host = exec_ctx.host();
-  auto callback = [exec_ctx, host, callback_count,
+  auto callback = [exec_ctx, callback_count,
                    iterator = FormRef(this)]() mutable {
     if (callback_count >= MAX_RECURSIVE_CALLS) {
       EnqueueWork(exec_ctx, [exec_ctx, iterator = std::move(iterator)] {

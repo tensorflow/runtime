@@ -52,28 +52,8 @@ DistributedDialect::DistributedDialect(MLIRContext *context)
       >();
 }
 
-static Type GetContextType(Builder *builder) {
-  return builder->getType<tfrt::dist::DistributedContextType>();
-}
-
-static Type GetStringType(Builder *builder) {
-  return builder->getType<tfrt::StringType>();
-}
-
-static Type GetRemoteExecuteSpecType(Builder *builder) {
-  return builder->getType<tfrt::dist::RemoteExecuteSpecType>();
-}
-
-static Type GetChainType(Builder *builder) {
-  return builder->getType<ChainType>();
-}
-
 static Type GetDistributedContextConfigurationType(Builder *builder) {
   return builder->getType<tfrt::dist::DistributedContextConfigurationType>();
-}
-
-static Type GetRemoteObjectIdType(Builder *builder) {
-  return builder->getType<tfrt::dist::RemoteObjectIdType>();
 }
 
 static ParseResult parseCreateConfigurations(OpAsmParser &parser,

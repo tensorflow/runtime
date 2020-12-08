@@ -213,6 +213,11 @@ class Resource {
   Resource(CudaT ptr) : pair_(ptr, Platform::CUDA) {}
   Resource(HipT ptr) : pair_(ptr, Platform::ROCm) {}
   // Required for std::unique_ptr<Resource>.
+  Resource& operator=(std::nullptr_t) {
+    pair_.setPointer(nullptr);
+    return *this;
+  }
+  // Required for std::unique_ptr<Resource>.
   operator bool() const { return *this != nullptr; }
   operator CudaT() const {
     assert(platform() == Platform::CUDA);

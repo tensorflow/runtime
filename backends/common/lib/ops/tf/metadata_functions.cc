@@ -181,7 +181,7 @@ static Expected<TensorMetadata> TfShapeOpMd(const TensorMetadata& input,
   auto dtype = OpAttrTypeToDType(out_type);
 
   if (dtype.kind() != DType::I32 && dtype.kind() != DType::I64)
-    return MakeStringError("Unsupported `out_type` value: ", dtype.kind());
+    return MakeStringError("Unsupported `out_type` value: ", dtype);
 
   return TensorMetadata(dtype, ArrayRef<ssize_t>{input.shape.GetRank()});
 }

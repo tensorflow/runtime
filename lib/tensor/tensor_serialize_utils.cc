@@ -23,6 +23,7 @@
 
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/attribute_utils.h"
+#include "tfrt/host_context/host_context.h"
 #include "tfrt/support/byte_order.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -108,39 +109,87 @@ char* WriteUint64(uint64_t value, char* location) {
   return location + sizeof(uint64_t);
 }
 
-std::string SerializeTensorMetadata(const TensorMetadata& md) {
-  std::string buffer;
-  buffer.resize(sizeof(uint64_t) * (md.shape.GetRank() + 1));
-  char* pos = &buffer[0];
+void SerializeTensorMetadataInternal(const TensorMetadata& md, char* pos) {
   pos = WriteUint64(static_cast<uint64_t>(md.dtype.kind()), pos);
   SmallVector<ssize_t, 4> dimensions;
   md.shape.GetDimensions(&dimensions);
   for (int i = 0; i < dimensions.size(); ++i) {
     pos = WriteUint64(dimensions[i], pos);
   }
+}
+
+std::string SerializeTensorMetadata(const TensorMetadata& md) {
+  std::string buffer;
+  buffer.resize(sizeof(uint64_t) * (md.shape.GetRank() + 1));
+  SerializeTensorMetadataInternal(md, &buffer[0]);
   return buffer;
+}
+
+llvm::Expected<TensorMetadata> DeserializeTensorMetadataInternal(
+    const char* pos, size_t size) {
+  ASSERT_LITTLE_ENDIAN();
+  DType::Kind kind =
+      static_cast<DType::Kind>(*reinterpret_cast<const uint64_t*>(pos));
+  pos += sizeof(uint64_t);
+  const int num_dimensions = size / 8 - 1;
+  SmallVector<ssize_t, 4> dimensions;
+  dimensions.reserve(num_dimensions);
+  for (int i = 0; i < num_dimensions; ++i) {
+    dimensions.push_back(*reinterpret_cast<const uint64_t*>(pos));
+    pos += sizeof(uint64_t);
+  }
+  TensorShape shape(dimensions);
+  TensorMetadata md(DType(kind), shape);
+  return md;
 }
 
 llvm::Expected<TensorMetadata> DeserializeTensorMetadata(
     string_view serialized) {
   ASSERT_LITTLE_ENDIAN();
-  const char* pos = serialized.data();
-  DType::Kind kind =
-      static_cast<DType::Kind>(*reinterpret_cast<const uint64_t*>(pos));
-  pos += sizeof(uint64_t);
-
-  const int num_elements = serialized.size() / 8 - 1;
-  SmallVector<ssize_t, 4> dimensions;
-  dimensions.reserve(num_elements);
-  for (int i = 0; i < num_elements; ++i) {
-    dimensions.push_back(*reinterpret_cast<const uint64_t*>(pos));
-    pos += sizeof(uint64_t);
-  }
-
-  TensorShape shape(dimensions);
-  TensorMetadata md(DType(kind), shape);
-
-  return md;
+  return DeserializeTensorMetadataInternal(serialized.data(),
+                                           serialized.size());
 }
 
+llvm::Expected<llvm::SmallVector<RCReference<HostBuffer>, 4>>
+SerializeDenseHostTensor(const DenseHostTensor& dht, HostContext* host) {
+  SmallVector<RCReference<HostBuffer>, 4> buffers;
+  // A DenseHostTensor has 2 elements: tensor metadata and tensor buffer.
+  buffers.reserve(2);
+  const auto& md = dht.metadata();
+  // Serialized metadata consists of
+  // - dimension (obtained by GetRank())
+  // - tensor kind (hence +1)
+  size_t md_size = sizeof(uint64_t) * (md.shape.GetRank() + 1);
+  auto md_buffer = tfrt::HostBuffer::CreateUninitialized(
+      /*size=*/md_size + sizeof(uint64_t), /*alignment=*/1, host->allocator());
+  if (!md_buffer) {
+    return MakeStringError("error serializing DenseHostTensor");
+  }
+  // TODO(pisong): remove this when recv_bytes uses Payload
+  WriteUint64(md_size, reinterpret_cast<char*>(md_buffer->data()));
+  SerializeTensorMetadataInternal(
+      md, reinterpret_cast<char*>(md_buffer->data()) + sizeof(uint64_t));
+  buffers.push_back(md_buffer.CopyRef());
+  buffers.push_back(dht.buffer().CopyRef());
+  return std::move(buffers);
+}
+
+llvm::Expected<DenseHostTensor> DeserializeDenseHostTensor(
+    const std::string& serialized, HostContext* host) {
+  const char* pos = serialized.data();
+  size_t md_size = *reinterpret_cast<const uint64_t*>(pos);
+  pos += sizeof(uint64_t);
+  TensorMetadata md = DeserializeTensorMetadataInternal(pos, md_size).get();
+  auto result_alloc = DenseHostTensor::CreateUninitialized(md, host);
+  if (!result_alloc) {
+    return MakeStringError("error deserializing DenseHostTensor");
+  }
+  auto& dht = result_alloc.getValue();
+
+  // TODO(pisong): Avoid copying after changing request_handler_impl,
+  // callback registry to use Payload, and recv_bytes to return Payload.
+  std::memcpy(dht.data(), serialized.data() + md_size + sizeof(uint64_t),
+              md.GetHostSizeInBytes());
+  return std::move(dht);
+}
 }  // namespace tfrt

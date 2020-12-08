@@ -53,7 +53,7 @@ message KeepAliveResponse {}
 message SendDataRequest {
   fixed64 context_id = 1;
   string instance_key = 2;
-  bytes payload = 3;
+  repeated bytes payload = 3;
 }
 
 message SendDataResponse {}

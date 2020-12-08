@@ -128,7 +128,11 @@ Error RequestHandler::HandleSendData(const SendDataRequest* request,
 
   InstanceKey key = request->instance_key();
   // TODO(ayushd): avoid string copy
-  auto* payload = new std::string(request->payload());
+  // TODO(pisong): change this to Payload and use Payload in CallbackRegistry
+  auto* payload = new std::string();
+  for (size_t i = 0; i < request->payload_size(); ++i) {
+    payload->append(request->payload()[i]);
+  }
   dist_context->GetCallbackRegistry()->SetValue(
       key, std::unique_ptr<std::string>(payload));
   return Error::success();

@@ -1161,6 +1161,7 @@ tfrt_cc_library(
         "include/tfrt/distributed_runtime/distributed_context.h",
         "include/tfrt/distributed_runtime/fabric_communicator.h",
         "include/tfrt/distributed_runtime/function_cache.h",
+        "include/tfrt/distributed_runtime/payload.h",
         "include/tfrt/distributed_runtime/remote_chain_manager.h",
         "include/tfrt/distributed_runtime/remote_client.h",
         "include/tfrt/distributed_runtime/remote_device.h",

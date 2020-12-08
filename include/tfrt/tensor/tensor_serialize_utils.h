@@ -28,6 +28,7 @@
 #include <cstdint>
 
 #include "llvm/ADT/ArrayRef.h"
+#include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/dense_view.h"
@@ -55,6 +56,12 @@ std::string SerializeTensorMetadata(const TensorMetadata& md);
 
 llvm::Expected<TensorMetadata> DeserializeTensorMetadata(
     string_view serialized);
+
+llvm::Expected<llvm::SmallVector<RCReference<HostBuffer>, 4>>
+SerializeDenseHostTensor(const DenseHostTensor& dht, HostContext* host);
+
+llvm::Expected<DenseHostTensor> DeserializeDenseHostTensor(
+    const std::string& serialized, HostContext* host);
 
 }  // namespace tfrt
 

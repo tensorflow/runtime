@@ -27,6 +27,7 @@
 #include "tfrt/distributed_runtime/distributed_context.h"
 #include "tfrt/distributed_runtime/distributed_kernels.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
+#include "tfrt/distributed_runtime/payload.h"
 #include "tfrt/distributed_runtime/proto/remote_message.pb.h"
 #include "tfrt/distributed_runtime/remote_chain_manager.h"
 #include "tfrt/distributed_runtime/remote_client.h"
@@ -242,7 +243,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
     request->set_instance_key(next_step_key);
 
     if (step == 0) {
-      request->set_payload(split_data.data(), split_data.size());
+      request->add_payload(split_data.data(), split_data.size());
       neighbor_client->SendDataAsync(
           request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
@@ -270,7 +271,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
               std::copy(callback_value->begin(), callback_value->end(),
                         const_cast<char*>(out_split.begin()));
             }
-            request->set_payload(callback_value->data(),
+            request->add_payload(callback_value->data(),
                                  callback_value->size());
             neighbor_client->SendDataAsync(
                 request.get(), response.get(),
@@ -293,7 +294,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
             std::copy(callback_value->begin(), callback_value->end(),
                       const_cast<char*>(out_split.begin()));
             if (step < kLastGatherStep) {
-              request->set_payload(callback_value->data(),
+              request->add_payload(callback_value->data(),
                                    callback_value->size());
               neighbor_client->SendDataAsync(
                   request.get(), response.get(),
@@ -394,7 +395,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
     if (my_task == sender) {
       // A Sender sends data to its neighbor.
       auto payload = GetSplit<T>(in_tensor, kGroupSize, num_elements, i);
-      request->set_payload(payload.data(), payload.size());
+      request->add_payload(payload.data(), payload.size());
       neighbor_client->SendDataAsync(
           request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
@@ -416,7 +417,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
                           GetSplit<T>(in_tensor, kGroupSize, num_elements, i)
                               .begin()));
             if (neighbor_task != sender) {
-              request->set_payload(data->data(), data->size());
+              request->add_payload(data->data(), data->size());
               neighbor_client->SendDataAsync(
                   request.get(), response.get(),
                   [request = std::move(request), response = std::move(response),
@@ -725,6 +726,63 @@ AsyncValueRef<Chain> GetDistributedContext(const ExecutionContext& exec_ctx) {
       exec_ctx.host(), DecodedDiagnostic("this kernel is not implemented"));
 }
 
+void SendBytes(Argument<DistributedContext> dist_context,
+               Argument<TaskHandle> receiver_task,
+               Argument<InstanceKey> instance_key, Argument<Payload> serialized,
+               Result<Chain> out_chain, const ExecutionContext& exec_ctx) {
+  auto out_chain_indirect = out_chain.Allocate();
+  auto request = std::make_unique<SendDataRequest>();
+  auto response = std::make_unique<SendDataResponse>();
+  request->set_context_id(dist_context->GetContextId());
+  request->set_instance_key(*instance_key);
+  const int kNumBuffers = serialized->buffers.size();
+  // TODO(pisong): avoid copying here
+  for (size_t i = 0; i < kNumBuffers; ++i) {
+    request->add_payload(serialized->buffers[i]->data(),
+                         serialized->buffers[i]->size());
+  }
+  dist_context->GetRemoteClient(*receiver_task)
+      ->SendDataAsync(
+          request.get(), response.get(),
+          [request = std::move(request), response = std::move(response),
+           dist_context = dist_context.ValueRef(),
+           out_chain = out_chain_indirect.CopyRef()](Error e) {
+            if (e) {
+              out_chain.SetError(e);
+            } else {
+              out_chain.emplace();
+            }
+          });
+}
+
+void RecvBytes(Argument<DistributedContext> dist_context,
+               Argument<TaskHandle> sender_task,
+               Argument<InstanceKey> instance_key,
+               Result<std::string> serialized,
+               const ExecutionContext& exec_ctx) {
+  auto on_done = [serialized = serialized.Allocate()](
+                     const InstanceKey&,
+                     CallbackRegistry::CallbackValue value) {
+    serialized.emplace(*value);
+  };
+  CallbackRegistry* registry = dist_context->GetCallbackRegistry();
+  registry->SetCallback(*instance_key, std::move(on_done));
+}
+
+void Serialize(Argument<DenseHostTensor> dht, Argument<Chain> chain,
+               Result<Payload> serialized_dht,
+               const ExecutionContext& exec_ctx) {
+  auto buffers = SerializeDenseHostTensor(dht.get(), exec_ctx.host());
+  serialized_dht.Emplace(Payload(std::move(buffers.get())));
+}
+
+void Deserialize(Argument<std::string> serialized_dht,
+                 Result<DenseHostTensor> dht,
+                 const ExecutionContext& exec_ctx) {
+  auto t = DeserializeDenseHostTensor(serialized_dht.get(), exec_ctx.host());
+  dht.Emplace(std::move(*t));
+}
+
 }  // namespace
 
 //===----------------------------------------------------------------------===//
@@ -758,6 +816,10 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(SetChainForTaskHandle));
   registry->AddKernel("tfrt_dist.get_distributed_context",
                       TFRT_KERNEL(GetDistributedContext));
+  registry->AddKernel("tfrt_dist.send_bytes", TFRT_KERNEL(SendBytes));
+  registry->AddKernel("tfrt_dist.recv_bytes", TFRT_KERNEL(RecvBytes));
+  registry->AddKernel("tfrt_dist.serialize", TFRT_KERNEL(Serialize));
+  registry->AddKernel("tfrt_dist.deserialize", TFRT_KERNEL(Deserialize));
 }
 
 }  // namespace tfrt

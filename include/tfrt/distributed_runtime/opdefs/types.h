@@ -69,6 +69,12 @@ class RemoteChainManagerType
   using Base::Base;
 };
 
+class PayloadType
+    : public mlir::Type::TypeBase<PayloadType, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
 }  // namespace dist
 }  // namespace tfrt
 

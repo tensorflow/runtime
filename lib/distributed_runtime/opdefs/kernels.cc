@@ -44,7 +44,7 @@ DistributedDialect::DistributedDialect(MLIRContext *context)
   allowUnknownOperations();
   addTypes<DistributedContextType, DistributedContextConfigurationType,
            TaskHandleType, RemoteObjectIdType, RemoteExecuteSpecType,
-           RemoteChainManagerType>();
+           RemoteChainManagerType, PayloadType>();
 
   addOperations<
 #define GET_OP_LIST
@@ -86,6 +86,7 @@ mlir::Type DistributedDialect::parseType(mlir::DialectAsmParser &parser) const {
     return RemoteExecuteSpecType::get(getContext());
   if (spec == "remote_chain_manager")
     return RemoteChainManagerType::get(getContext());
+  if (spec == "payload") return PayloadType::get(getContext());
 
   mlir::Location loc = parser.getEncodedSourceLoc(parser.getNameLoc());
   mlir::emitError(loc) << "unknown tfrt_dist type " << spec;
@@ -106,6 +107,8 @@ void DistributedDialect::printType(mlir::Type type,
     printer << "remote_execute_spec";
   } else if (type.isa<RemoteChainManagerType>()) {
     printer << "remote_chain_manager";
+  } else if (type.isa<PayloadType>()) {
+    printer << "payload";
   } else {
     llvm_unreachable("unknown dist type");
   }

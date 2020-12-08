@@ -61,6 +61,10 @@ def RemoteChainManagerType :
   Type<CPred<"$_self.isa<tfrt::dist::RemoteChainManagerType>()">, "!tfrt_dist.remote_chain_manager type">,
   BuildableType<"$_builder.getType<tfrt::dist::RemoteChainManagerType>()">;
 
+def PayloadType :
+  Type<CPred<"$_self.isa<tfrt::dist::PayloadType>()">, "!tfrt_dist.payload type">,
+  BuildableType<"$_builder.getType<tfrt::dist::PayloadType>()">;
+
 // Base class for the operation in this dialect
 class DistOp<string mnemonic, list<OpTrait> traits = []>
     : Op<DistDialect, mnemonic, !listconcat(traits, [IsolatedFromAbove])> {
@@ -550,5 +554,47 @@ def GetRemoteObjectIdFromTHOp :  DistOp<"get_remote_object_id_from_th"> {
   let results = (outs RemoteObjectIdType : $result);
   let assemblyFormat = "operands attr-dict";
 }
+
+def SendBytesOp :  DistOp<"send_bytes"> {
+  let summary = "tfrt_dist.send_bytes operation";
+  let description = [{
+    Sends serialized data.
+
+    Example:
+      %chain = tfrt_dist.send_bytes %context %receiver_task %key %serialized_payload
+  }];
+
+  let arguments = (ins
+    DistributedContextType:$context,
+    TaskHandleType:$host_task,
+    TFRT_StringType:$instance_key,
+    PayloadType:$serialized_payload
+  );
+  let results = (outs
+    TFRT_ChainType:$out_op_chain
+  );
+  let assemblyFormat = "operands attr-dict";
+}
+
+def ReceiveBytesOp :  DistOp<"recv_bytes"> {
+  let summary = "tfrt_dist.recv_bytes operation";
+  let description = [{
+    Receives serialized data.
+
+    Example:
+      %serialized_payload = tfrt_dist.recv_bytes %context %sender_task %key
+  }];
+
+  let arguments = (ins
+    DistributedContextType:$context,
+    TaskHandleType:$host_task,
+    TFRT_StringType:$instance_key
+  );
+  let results = (outs
+    TFRT_StringType:$serialized
+  );
+  let assemblyFormat = "operands attr-dict";
+}
+
 
 #endif  // DISTRIBUTED_OPS

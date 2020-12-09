@@ -28,6 +28,7 @@
 #include <memory>
 #include <vector>
 
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/support/mutex.h"
 #include "thread_annotations.h"
 
@@ -81,6 +82,12 @@ class ConcurrentVector {
     auto state = State::Decode(state_.load(std::memory_order_acquire));
     assert(index < state.size);
     return all_allocated_elements_[state.last_allocated][index];
+  }
+
+  ArrayRef<T> ToArrayRef() {
+    auto state = State::Decode(state_.load(std::memory_order_acquire));
+    auto& storage = all_allocated_elements_[state.last_allocated];
+    return ArrayRef<T>(&storage[0], &storage[state.size]);
   }
 
   // Return the number of elements currently valid in this vector.  The vector

@@ -254,6 +254,9 @@ class Resource {
 // Non-owning handles of GPU resources.
 using Context = Resource<CUcontext, hipCtx_t>;
 using Module = Resource<CUmodule, hipModule_t>;
+// Note: does not support CU_STREAM_LEGACY (0x1) or CU_STREAM_PER_THREAD (0x2).
+// Those special handle values use the lower two bits and therefore interfere
+// with PointerIntPair. Will fail runtime asserts if used.
 using Stream = Resource<CUstream, hipStream_t>;
 using Event = Resource<CUevent, hipEvent_t>;
 using Function = Resource<CUfunction, hipFunction_t>;

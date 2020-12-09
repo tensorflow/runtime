@@ -1,9 +1,6 @@
 {
    "header":"external/cuda_headers/cuda/cuda.h",
    "extra_args":["-Iexternal/local_cuda/cuda/include"],
-   "return_type":"CUresult",
-   "calling_conv":"CUDAAPI",
-   "not_found_error":"CUDA_ERROR_SHARED_OBJECT_SYMBOL_NOT_FOUND",
    "functions":[
       "cuInit",
       "cuGetErrorName",

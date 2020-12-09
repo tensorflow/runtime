@@ -4,9 +4,6 @@
      "-Iexternal/cuda_headers/cuda",
      "-Iexternal/local_cuda/cuda/include"
    ],
-   "return_type":"cudnnStatus_t",
-   "calling_conv":"CUDNNWINAPI",
-   "not_found_error":"CUDNN_STATUS_NOT_INITIALIZED",
    "functions":[
       "cudnnQueryRuntimeError",
       "cudnnGetProperty",

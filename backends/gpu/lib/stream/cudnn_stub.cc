@@ -18,18 +18,28 @@
 // loaded from the real library.
 //
 //===----------------------------------------------------------------------===//
-#include <dlfcn.h>
 
 #include "cudnn.h"  // from @cudnn_headers
-#include "tfrt/support/logging.h"
+#include "symbol_loader.h"
 
-static void* LoadSymbol(const char* symbol_name) {
-  static void* handle = [&] {
-    auto ptr = dlopen("libcudnn.so", RTLD_LAZY);
-    if (!ptr) TFRT_LOG_ERROR << "Failed to load libcudnn.so";
-    return ptr;
-  }();
-  return handle ? dlsym(handle, symbol_name) : nullptr;
+// Memoizes load of the .so for this CUDA library.
+static void *LoadSymbol(const char *symbol_name) {
+  static SymbolLoader loader("libcudnn.so");
+  return loader.GetAddressOfSymbol(symbol_name);
+}
+
+template <typename Func>
+static Func *GetFunctionPointer(const char *symbol_name, Func *func = nullptr) {
+  return reinterpret_cast<Func *>(LoadSymbol(symbol_name));
+}
+
+// Calls function 'symbol_name' in shared library with 'args'.
+// TODO(csigg): Change to 'auto Func' when C++17 is allowed.
+template <typename Func, Func, typename... Args>
+static cudnnStatus_t DynamicCall(const char *symbol_name, Args &&...args) {
+  static auto func_ptr = GetFunctionPointer<Func>(symbol_name);
+  if (!func_ptr) return CUDNN_STATUS_NOT_INITIALIZED;
+  return func_ptr(std::forward<Args>(args)...);
 }
 
 #define CUDNNWINAPI
@@ -37,11 +47,10 @@ static void* LoadSymbol(const char* symbol_name) {
 extern "C" {
 #include "cudnn_stub.cc.inc"
 
-const char* CUDNNWINAPI cudnnGetErrorString(cudnnStatus_t status) {
-  using FuncPtr = const char*(CUDNNWINAPI*)(cudnnStatus_t);
-  static auto func_ptr =
-      reinterpret_cast<FuncPtr>(LoadSymbol("cudnnGetErrorString"));
-  if (!func_ptr) return nullptr;
+const char *CUDNNWINAPI cudnnGetErrorString(cudnnStatus_t status) {
+  static auto func_ptr = reinterpret_cast<decltype(cudnnGetErrorString) *>(
+      LoadSymbol("cudnnGetErrorString"));
+  if (!func_ptr) return "FAILED_TO_LOAD_FUNCTION_SYMBOL";
   return func_ptr(status);
 }
-}
+}  // extern "C"

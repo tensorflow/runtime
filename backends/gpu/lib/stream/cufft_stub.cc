@@ -18,24 +18,33 @@
 // loaded from the real library.
 //
 //===----------------------------------------------------------------------===//
-#include <dlfcn.h>
 
 #include "cufft.h"    // from @cuda_headers
 #include "cufftXt.h"  // from @cuda_headers
-#include "tfrt/support/forward_decls.h"
-#include "tfrt/support/logging.h"
+#include "symbol_loader.h"
 
-static void *LoadSymbol(tfrt::string_view symbol_name) {
-  static void *handle = [&] {
-    auto ptr = dlopen("libcufft.so", RTLD_LAZY);
-    if (!ptr) TFRT_LOG_ERROR << "Failed to load libcufft.so";
-    return ptr;
-  }();
-  return handle ? dlsym(handle, symbol_name.data()) : nullptr;
+// Memoizes load of the .so for this CUDA library.
+static void *LoadSymbol(const char *symbol_name) {
+  static SymbolLoader loader("libcufft.so");
+  return loader.GetAddressOfSymbol(symbol_name);
+}
+
+template <typename Func>
+static Func *GetFunctionPointer(const char *symbol_name, Func *func = nullptr) {
+  return reinterpret_cast<Func *>(LoadSymbol(symbol_name));
+}
+
+// Calls function 'symbol_name' in shared library with 'args'.
+// TODO(csigg): Change to 'auto Func' when C++17 is allowed.
+template <typename Func, Func, typename... Args>
+static cufftResult_t DynamicCall(const char *symbol_name, Args &&...args) {
+  static auto func_ptr = GetFunctionPointer<Func>(symbol_name);
+  if (!func_ptr) return CUFFT_SETUP_FAILED;
+  return func_ptr(std::forward<Args>(args)...);
 }
 
 extern "C" {
 
 #include "cufft_stub.cc.inc"
 #include "cufftxt_stub.cc.inc"
-}
+}  // extern "C"

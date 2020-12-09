@@ -18,18 +18,28 @@
 // loaded from the real library.
 //
 //===----------------------------------------------------------------------===//
-#include <dlfcn.h>
 
 #include "cublas.h"  // from @cuda_headers
-#include "tfrt/support/logging.h"
+#include "symbol_loader.h"
 
+// Memoizes load of the .so for this CUDA library.
 static void *LoadSymbol(const char *symbol_name) {
-  static void *handle = [&] {
-    auto ptr = dlopen("libcublas.so", RTLD_LAZY);
-    if (!ptr) TFRT_LOG_ERROR << "Failed to load libcublas.so";
-    return ptr;
-  }();
-  return handle ? dlsym(handle, symbol_name) : nullptr;
+  static SymbolLoader loader("libcublas.so");
+  return loader.GetAddressOfSymbol(symbol_name);
+}
+
+template <typename Func>
+static Func *GetFunctionPointer(const char *symbol_name, Func *func = nullptr) {
+  return reinterpret_cast<Func *>(LoadSymbol(symbol_name));
+}
+
+// Calls function 'symbol_name' in shared library with 'args'.
+// TODO(csigg): Change to 'auto Func' when C++17 is allowed.
+template <typename Func, Func, typename... Args>
+static cublasStatus_t DynamicCall(const char *symbol_name, Args &&...args) {
+  static auto func_ptr = GetFunctionPointer<Func>(symbol_name);
+  if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
+  return func_ptr(std::forward<Args>(args)...);
 }
 
 #define CUBLASWINAPI
@@ -43,13 +53,8 @@ cublasStatus_t CUBLASWINAPI cublasHgemm(
     const __half *A, int lda, const __half *B, int ldb,
     const __half *beta, /* host or device pointer */
     __half *C, int ldc) {
-  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
-      cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
-      const __half *, const __half *, int, const __half *, int, const __half *,
-      __half *, int);
-  static auto func_ptr = reinterpret_cast<FuncPtr>(LoadSymbol("cublasHgemm"));
-  if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
-  return func_ptr(handle, transa, transb, m, n, k, alpha, A, lda, B, ldb, beta,
-                  C, ldc);
+  return DynamicCall<decltype(cublasHgemm), cublasHgemm>(
+      "cublasHgemm", handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
+      beta, C, ldc);
 }
-}
+}  // extern "C"

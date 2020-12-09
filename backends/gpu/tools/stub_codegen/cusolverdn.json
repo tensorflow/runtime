@@ -1,9 +1,6 @@
 {
    "header":"external/cuda_headers/cuda/cusolverDn.h",
    "extra_args":["-Iexternal/local_cuda/cuda/include"],
-   "return_type":"cusolverStatus_t",
-   "calling_conv":"CUSOLVERAPI",
-   "not_found_error":"CUSOLVER_STATUS_NOT_INITIALIZED",
    "functions":[
       "cusolverDnCreate",
       "cusolverDnDestroy",

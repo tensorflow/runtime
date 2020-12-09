@@ -50,6 +50,7 @@ tfrt_cc_library(
         "lib/stream/cudnn_stub.cc",
         "lib/stream/cufft_stub.cc",
         "lib/stream/cusolver_stub.cc",
+        "lib/stream/symbol_loader.h",
     ],
     visibility = ["//visibility:private"],
     deps = [
@@ -59,6 +60,7 @@ tfrt_cc_library(
         "@cudnn_headers",
         "@tf_runtime//:support",
         "@tf_runtime//third_party/cuda:stub_inc",
+        "@llvm-project//llvm:Support",
     ],
 )
 

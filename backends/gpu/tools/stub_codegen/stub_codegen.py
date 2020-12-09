@@ -35,12 +35,10 @@ def main():
 
   config = json.load(args.input)
 
+  # See e.g. backends/gpu/lib/stream/cuda_stub.cc
   function_impl = """
-  using FuncPtr = %s (%s *)({1});
-  static auto func_ptr = reinterpret_cast<FuncPtr>(LoadSymbol("{0}"));
-  if (!func_ptr) return %s;
-  return func_ptr({2});""" % (config['return_type'], config['calling_conv'],
-                              config['not_found_error'])
+    return DynamicCall<decltype({0}), {0}>({1});
+  """
 
   index = clang.cindex.Index.create()
   translation_unit = index.parse(config['header'], args=config['extra_args'])
@@ -61,10 +59,9 @@ def main():
       end = cursor.extent.end.offset
       declaration = file.read()[start:end]
 
-    arg_types = [arg.type.spelling for arg in cursor.get_arguments()]
     arg_names = [arg.spelling for arg in cursor.get_arguments()]
-    implementation = function_impl.format(cursor.spelling, ', '.join(arg_types),
-                                          ', '.join(arg_names))
+    implementation = function_impl.format(
+        cursor.spelling, ', '.join(['"%s"' % cursor.spelling] + arg_names))
 
     args.output.write('%s {%s\n}\n\n' % (declaration, implementation))
 

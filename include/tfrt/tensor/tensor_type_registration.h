@@ -56,7 +56,8 @@ class TensorType {
   int8_t tensor_type_id_;
 };
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, TensorType tensor_type);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              const TensorType& tensor_type);
 
 TensorType RegisterStaticTensorType(string_view tensor_type_name);
 TensorType GetStaticTensorType(string_view tensor_type_name);

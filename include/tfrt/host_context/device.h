@@ -51,6 +51,8 @@ class DeviceType {
     return this == &other;
   }
 
+  static const DeviceType& kUnknownDeviceType;
+
  private:
   friend DeviceTypeRegistry;
 
@@ -64,6 +66,8 @@ class DeviceType {
 class Device : public ReferenceCounted<Device> {
  public:
   Device(const DeviceType& type, string_view name) : type_(type), name_(name) {
+    assert(!(type == DeviceType::kUnknownDeviceType) &&
+           "device type can not be Unknown");
     assert(!name_.empty() && "Cannot create a Device with empty device name");
   }
 

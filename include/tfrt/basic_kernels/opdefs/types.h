@@ -39,6 +39,18 @@ class StringType
   using Base::Base;
 };
 
+class TensorTypeType : public mlir::Type::TypeBase<TensorTypeType, mlir::Type,
+                                                   mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
+class DeviceType
+    : public mlir::Type::TypeBase<DeviceType, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
 }  // namespace tfrt
 
 #endif  // TFRT_BASIC_KERNELS_OPDEFS_TYPES_H_

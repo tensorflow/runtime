@@ -18,6 +18,7 @@
 
 include "tfrt/tfrt_op_base.td"
 include "tfrt/core_runtime/opdefs/corert_base.td"
+include "tfrt/tensor/opdefs/tensor.td"
 include "tfrt/core_runtime/opdefs/corert_traits.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
@@ -303,6 +304,26 @@ def CoreRt_WhileOp : CoreRT_Op<"while"> {
   let assemblyFormat = [{
       $a_cond_fn $b_body_fn `(` $in_op_chain (`,` $fn_operands^)? `)` attr-dict `:` `(` type($fn_outputs) `)`
     }];
+}
+
+// TODO(donglin): remove this kernel after we have implmented the long term
+// solution to get dst tensor type in a compiler pass.
+def CoreRT_GetDstTensorTypeOp : CoreRT_Op<"get_dst_tensor_type"> {
+  let summary = "Get the type of the tensor to be used on the dst_device";
+  let description = [{
+    Get the type of the tensor to be used on the dst_device.
+
+    Example:
+      %result = corert.get_dst_tensor_type %src_tensor_handle, %dst_device
+  }];
+
+  let arguments = (ins
+    CoreRT_TensorHandleType:$src_tensor_handle,
+    TFRT_DeviceType:$dst_device
+  );
+  let results = (outs TFRT_TensorTypeType:$result);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
 }
 
 #endif

@@ -40,7 +40,7 @@ const DeviceType& DeviceTypeRegistry::GetDeviceType(string_view type) const {
       return dt;
     }
   }
-  llvm_unreachable("invalid device type");
+  return DeviceType::kUnknownDeviceType;
 }
 
 DeviceTypeRegistry* DeviceTypeRegistry::GetStaticDeviceTypeRegistry() {
@@ -56,4 +56,8 @@ const DeviceType& RegisterDeviceType(string_view type) {
 const DeviceType& GetStaticDeviceType(string_view type) {
   return DeviceTypeRegistry::GetStaticDeviceTypeRegistry()->GetDeviceType(type);
 }
+
+const DeviceType& DeviceType::kUnknownDeviceType =
+    RegisterDeviceType("Unknown");
+
 }  // namespace tfrt

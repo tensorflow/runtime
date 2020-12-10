@@ -81,7 +81,10 @@ TensorType TensorTypeRegistry::GetRegisteredTensorType(
   mutex_lock l(mu_);
   llvm::StringMap<int8_t>::const_iterator itr =
       name_to_id_map_.find(tensor_type_name);
-  assert((itr != name_to_id_map_.end()) && "Invalid tensor type name");
+  if (itr == name_to_id_map_.end()) {
+    return TensorType::kUnknownTensorType;
+  }
+
   return TensorType(itr->second);
 }
 

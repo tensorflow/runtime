@@ -759,6 +759,48 @@ static void CoreRtWhileLoop(RemainingArguments args, RemainingResults results,
                            std::move(result_refs));
 }
 
+static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
+    const TensorHandle &tensor_handle, const RCReference<Device> &dst_device,
+    const ExecutionContext &exec_ctx) {
+  static TensorType dense_cpu_type = TensorTraits<DenseHostTensor>::kTensorType;
+  static TensorType dense_gpu_type = GetStaticTensorType("DenseGpu");
+  static TensorType dense_tpu_type = GetStaticTensorType("DenseTpu");
+  static const DeviceType &cpu_device = GetStaticDeviceType("cpu");
+  static const DeviceType &gpu_device = GetStaticDeviceType("gpu");
+  static const DeviceType &tpu_device = GetStaticDeviceType("tpu");
+
+  auto result = MakeUnconstructedAsyncValueRef<TensorType>(exec_ctx.host());
+  auto tensor = AsyncValueRef<Tensor>(FormRef(tensor_handle.GetAsyncTensor()));
+
+  AsyncValue *tensor_ptr = tensor.GetAsyncValue();
+  tensor_ptr->AndThen([result = result.CopyRef(), tensor = std::move(tensor),
+                       dst_device = dst_device.CopyRef(), exec_ctx]() {
+    TensorType dst_tensor_type = TensorType::kUnknownTensorType;
+    TensorType src_tensor_type = tensor->tensor_type();
+    const DeviceType &dst_device_type = dst_device->type();
+    // The kernel currently assumes that all tensors are dense tensor.
+    if (dst_device_type == cpu_device) {
+      dst_tensor_type = dense_cpu_type;
+    } else if (dst_device_type == gpu_device) {
+      dst_tensor_type = dense_gpu_type;
+    } else if (dst_device_type == tpu_device) {
+      dst_tensor_type = dense_tpu_type;
+    }
+
+    if (dst_tensor_type == TensorType::kUnknownTensorType) {
+      auto diag = EmitError(
+          exec_ctx,
+          StrCat("failed to find dst device type for src_tensor_type=",
+                 src_tensor_type.name(),
+                 " and dst_device_type=", dst_device_type.name()));
+      result.SetError(diag);
+    } else {
+      result.emplace(dst_tensor_type);
+    }
+  });
+  return result;
+}
+
 //===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//
@@ -837,6 +879,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.cond", TFRT_KERNEL(CoreRtConditional));
   registry->AddKernel("corert.transfer", TFRT_KERNEL(TransferToDevice));
   registry->AddKernel("corert.while", TFRT_KERNEL(CoreRtWhileLoop));
+  registry->AddKernel("corert.get_dst_tensor_type",
+                      TFRT_KERNEL(CoreRtGetDstTensorType));
 
   registry->AddSyncKernel("corert_sync.print_tensorhandle",
                           TFRT_SYNC_KERNEL(PrintTensorHandleSync));

@@ -27,6 +27,7 @@
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/tensor/tensor_type_registration.h"
 #include "tfrt/test_kernels.h"
 
 namespace tfrt {
@@ -212,6 +213,11 @@ static void TestIdentity(Argument<Chain>, RemainingArguments args,
   }
 }
 
+static Chain TestPrintTensorType(const TensorType& tensor_type) {
+  tfrt::outs() << "tensor_type = " << tensor_type.name() << '\n';
+  return Chain();
+}
+
 }  // namespace
 
 void RegisterSimpleKernels(KernelRegistry* registry) {
@@ -228,6 +234,8 @@ void RegisterSimpleKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestCopyWithDelay<int32_t>));
   registry->AddKernel("tfrt_test.copy.with_delay.i64",
                       TFRT_KERNEL(TestCopyWithDelay<int64_t>));
+  registry->AddKernel("tfrt_test.print_tensor_type",
+                      TFRT_KERNEL(TestPrintTensorType));
 
   SetupStringRegistry(registry);
   SetupValueTrackingRegistry(registry);

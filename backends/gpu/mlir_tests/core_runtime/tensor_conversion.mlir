@@ -77,3 +77,24 @@ func @invalid_transfer() -> !tfrt.chain {
 
   tfrt.return %ch1 : !tfrt.chain
 }
+
+// CHECK-LABEL: --- Running 'test_get_dst_tensor_type'
+func @test_get_dst_tensor_type() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
+  %cpu_handle = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    {shape = [1, 2], values = [0 : i64, 0 : i64] } : 1
+
+  %cpu_device = "tfrt.get_device"(%ch0) {device_name="CPU:0"} : (!tfrt.chain) -> !tfrt.device
+  %gpu_device = "tfrt.get_device"(%ch0) {device_name="GPU:0"} : (!tfrt.chain) -> !tfrt.device
+
+  %result_1 = corert.get_dst_tensor_type %cpu_handle, %cpu_device
+  // CHECK-NEXT: tensor_type = DenseHost
+  %ch1 = "tfrt_test.print_tensor_type"(%result_1, %ch0) : (!tfrt.tensor_type, !tfrt.chain) -> (!tfrt.chain)
+
+  %result_2 = corert.get_dst_tensor_type %cpu_handle, %gpu_device
+  // CHECK-NEXT: tensor_type = DenseGpu
+  %ch2 = "tfrt_test.print_tensor_type"(%result_2, %ch1) : (!tfrt.tensor_type, !tfrt.chain) -> (!tfrt.chain)
+
+  tfrt.return %ch2 : !tfrt.chain
+}

@@ -45,4 +45,12 @@ def TFRT_StringType :
     Type<CPred<"$_self.isa<tfrt::StringType>()">, "!tfrt.string type">,
     BuildableType<"$_builder.getType<tfrt::StringType>()">;
 
+def TFRT_TensorTypeType :
+    Type<CPred<"$_self.isa<tfrt::TensorTypeType>()">, "!tfrt.tensor_type type">,
+    BuildableType<"$_builder.getType<tfrt::TensorTypeType>()">;
+
+def TFRT_DeviceType :
+    Type<CPred<"$_self.isa<tfrt::DeviceType>()">, "!tfrt.device type">,
+    BuildableType<"$_builder.getType<tfrt::DeviceType>()">;
+
 #endif  // TFRT_BASE

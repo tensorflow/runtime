@@ -56,7 +56,7 @@ static ParseResult parseCallOp(OpAsmParser &parser, OperationState &result) {
 }
 
 static void print(OpAsmPrinter &p, CallOp op) {
-  p << "tfrt.call " << op.getAttr("callee") << '(';
+  p << "tfrt.call " << op->getAttr("callee") << '(';
   p.printOperands(op.getOperands());
   p << ')';
   p.printOptionalAttrDict(op.getAttrs(),
@@ -67,11 +67,11 @@ static void print(OpAsmPrinter &p, CallOp op) {
 
 static LogicalResult verify(CallOp op) {
   // Check that the callee attribute was specified.
-  auto fnAttr = op.getAttrOfType<FlatSymbolRefAttr>("callee");
+  auto fnAttr = op->getAttrOfType<FlatSymbolRefAttr>("callee");
   if (!fnAttr)
     return op.emitOpError("requires a 'callee' symbol reference attribute");
   auto fn =
-      op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
+      op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
   if (!fn)
     return op.emitOpError() << "'" << fnAttr.getValue()
                             << "' does not reference a valid function";
@@ -407,21 +407,21 @@ void print(OpAsmPrinter &p, IfOp op) {
 
 static LogicalResult verify(CondOp op) {
   // Check that the true/false function attributes are specified.
-  auto trueFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("a_true_fn");
+  auto trueFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("a_true_fn");
   if (!trueFnAttr)
     return op.emitOpError("requires a 'a_true_fn' symbol reference attribute");
 
-  auto falseFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("b_false_fn");
+  auto falseFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("b_false_fn");
   if (!falseFnAttr)
     return op.emitOpError("requires a 'a_false_fn' symbol reference attribute");
 
-  auto trueFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+  auto trueFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
       trueFnAttr.getValue());
   if (!trueFn)
     return op.emitOpError() << "'" << trueFnAttr.getValue()
                             << "' does not reference a valid function";
 
-  auto falseFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+  auto falseFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
       falseFnAttr.getValue());
   if (!falseFn)
     return op.emitOpError() << "'" << falseFnAttr.getValue()
@@ -708,11 +708,11 @@ static void print(OpAsmPrinter &p, ParallelCallI32Op op) {
 
 static LogicalResult verify(ParallelCallI32Op op) {
   // Check that the callee attribute was specified.
-  auto fnAttr = op.getAttrOfType<FlatSymbolRefAttr>("callee");
+  auto fnAttr = op->getAttrOfType<FlatSymbolRefAttr>("callee");
   if (!fnAttr)
     return op.emitOpError("requires a 'callee' symbol reference attribute");
   auto fn =
-      op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
+      op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
   if (!fn)
     return op.emitOpError() << "'" << fnAttr.getValue()
                             << "' does not reference a valid function";
@@ -775,7 +775,7 @@ static void print(OpAsmPrinter &p, ReturnOp op) {
 
 static LogicalResult verify(ReturnOp op) {
   // The parent is often a 'func' but not always.
-  auto function = dyn_cast<FuncOp>(op.getParentOp());
+  auto function = dyn_cast<FuncOp>(op->getParentOp());
 
   // We allow tfrt.return in arbitrary control flow structures.
   if (!function) return success();
@@ -788,7 +788,7 @@ static LogicalResult verify(ReturnOp op) {
            << " operands, but enclosing function returns " << results.size();
 
   for (unsigned i = 0, e = results.size(); i != e; ++i)
-    if (op.getOperand(i).getType() != results[i])
+    if (op->getOperand(i).getType() != results[i])
       return op.emitError()
              << "type of return operand " << i << " ("
              << op.getOperand(i).getType()

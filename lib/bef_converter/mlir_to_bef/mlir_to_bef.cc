@@ -292,10 +292,10 @@ static bool IsReturn(mlir::Operation* op) {
 }
 
 static bool IsNativeFunc(mlir::FuncOp op) {
-  return !!op.getAttr("tfrt.native");
+  return !!op->getAttr("tfrt.native");
 }
 
-static bool IsSyncFunc(mlir::FuncOp op) { return !!op.getAttr("tfrt.sync"); }
+static bool IsSyncFunc(mlir::FuncOp op) { return !!op->getAttr("tfrt.sync"); }
 
 static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   // Emit information about the type of the function.

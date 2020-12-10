@@ -208,7 +208,7 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
   p << "tfrt_test.benchmark ";
 
   // Print the name attribute, e.g "add.i32"
-  auto name_attr = op.getAttr("name");
+  auto name_attr = op->getAttr("name");
   p << name_attr;
 
   // Print the operands and types, e.g. (%c : i32, %d : f32)
@@ -346,7 +346,7 @@ static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
   p << "tfrt_test.sync_benchmark ";
 
   // Print the target benchmark function
-  p << op.getAttr("target_fn");
+  p << op->getAttr("target_fn");
 
   // Print the operands and types, e.g. (%c : i32, %d : f32)
   p << '(';

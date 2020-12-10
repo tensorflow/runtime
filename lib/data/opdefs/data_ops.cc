@@ -147,7 +147,7 @@ static ParseResult parseEnumerateIteratorOp(OpAsmParser &parser,
 
 // Verify that the signature of the functino matches the operands and results.
 static LogicalResult verify(EnumerateIteratorOp op) {
-  auto module = op.getParentOfType<ModuleOp>();
+  auto module = op->getParentOfType<ModuleOp>();
   auto function = module.lookupSymbol<FuncOp>(op.function());
   if (!function) {
     return op.emitOpError("function refers to an undefined function: ")

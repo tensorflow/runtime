@@ -81,7 +81,7 @@ static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
 
 static void print(OpAsmPrinter &p, ExecuteOp op) {
   p << "corert_sync.executeop(" << op.op_handler() << ") "
-    << op.getAttr("op_name") << '(' << op.operands() << ')';
+    << op->getAttr("op_name") << '(' << op.operands() << ')';
 
   corert::PrintExecuteOpImpl(p, op);
   if (!op.results().empty()) p << " : " << op.results().size();

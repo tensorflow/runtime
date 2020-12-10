@@ -222,7 +222,7 @@ static ParseResult parseExecuteOpSeq(OpAsmParser &parser,
                             /*has_func_attr=*/true);
 }
 static void print(OpAsmPrinter &p, ExecuteOp op) {
-  p << "corert.executeop(" << op.op_handler() << ") " << op.getAttr("op_name")
+  p << "corert.executeop(" << op.op_handler() << ") " << op->getAttr("op_name")
     << '(' << op.operands() << ')';
 
   PrintExecuteOpImpl(p, op);
@@ -231,7 +231,7 @@ static void print(OpAsmPrinter &p, ExecuteOp op) {
 }
 static void print(OpAsmPrinter &p, ExecuteOpSeq op) {
   p << "corert.executeop.seq(" << op.op_handler() << ", " << op.in_op_chain()
-    << ") " << op.getAttr("op_name") << '(' << op.operands() << ')';
+    << ") " << op->getAttr("op_name") << '(' << op.operands() << ')';
 
   PrintExecuteOpImpl(p, op);
   PrintExecuteOpFuncAttribute(p, op);

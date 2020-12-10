@@ -57,4 +57,47 @@ cublasStatus_t CUBLASWINAPI cublasHgemm(
       "cublasHgemm", handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
       beta, C, ldc);
 }
+
+// cuBLAS broke backwards compatibility from v10 to v11 by changing the
+// computeType argument from cudaDataType to cublasComputeType_t. This function
+// implements the v10 interface in a forward-compatible way if the stub is
+// compiled with v11 headers.
+CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmEx_v10(
+    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
+    int m, int n, int k, const void *alpha, /* host or device pointer */
+    const void *A, cudaDataType Atype, int lda, const void *B,
+    cudaDataType Btype, int ldb, const void *beta, /* host or device pointer */
+    void *C, cudaDataType Ctype, int ldc, cudaDataType computeType,
+    cublasGemmAlgo_t algo) {
+  static auto func_ptr = LoadSymbol("cublasGemmEx");
+  if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
+  static auto version_pair = [&] {
+    int version = 0;
+    auto status = cublasGetVersion_v2(handle, &version);
+    return std::make_pair(version, status);
+  }();
+  if (version_pair.second != CUBLAS_STATUS_SUCCESS) return version_pair.second;
+  if (version_pair.first >= 11000) {
+#if CUBLAS_VERSION_MAJOR >= 11
+    cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
+    auto status =
+        cublasMigrateComputeType(handle, computeType, &migratedComputeType);
+    if (status != CUBLAS_STATUS_SUCCESS) return status;
+    using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+        cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
+        const void *, const void *, cudaDataType, int, const void *,
+        cudaDataType, int, const void *, void *, cudaDataType, int,
+        cublasComputeType_t, cublasGemmAlgo_t);
+    return reinterpret_cast<FuncPtr>(func_ptr)(
+        handle, transa, transb, m, n, k, alpha, A, Atype, lda, B, Btype, ldb,
+        beta, C, Ctype, ldc, migratedComputeType, algo);
+#else
+    return CUBLAS_STATUS_NOT_SUPPORTED;
+#endif
+  }
+  return reinterpret_cast<decltype(cublasGemmEx_v10) *>(func_ptr)(
+      handle, transa, transb, m, n, k, alpha, A, Atype, lda, B, Btype, ldb,
+      beta, C, Ctype, ldc, computeType, algo);
+}
+
 }  // extern "C"

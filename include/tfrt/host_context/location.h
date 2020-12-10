@@ -56,6 +56,8 @@ class Location {
 
   DecodedLocation Decode() const;
 
+  const LocationHandler *GetHandler() const { return handler_; }
+
   // Opaque implementation details of this location, only interpretable by the
   // location handler.
   intptr_t data = 0;

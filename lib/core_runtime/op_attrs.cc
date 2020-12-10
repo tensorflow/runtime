@@ -204,6 +204,9 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
 // Return the name of the specified attribute type, e.g. "I32".
 const char *GetNameString(OpAttrType type) {
   switch (type) {
+    default:
+      llvm_unreachable("unsupported attribute type");
+      break;
     case OpAttrType::DTYPE:
       return "DTYPE";
     case OpAttrType::AGGREGATE:
@@ -224,9 +227,11 @@ const char *GetNameString(OpAttrType type) {
       return "COMPLEX64";
     case OpAttrType::COMPLEX128:
       return "COMPLEX128";
+    // following two types are not natively supported in TFRT.
     case OpAttrType::UNSUPPORTED_RESOURCE:
+      return "RESOURCE";
     case OpAttrType::UNSUPPORTED_VARIANT:
-      llvm_unreachable("unsupported attribute type");
+      return "VARIANT";
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
     return #ENUM;

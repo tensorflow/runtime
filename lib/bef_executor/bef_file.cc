@@ -461,6 +461,10 @@ RCReference<BEFFile> BEFFile::Open(ArrayRef<uint8_t> file,
   return bef_rc;
 }
 
+DecodedLocation BEFLocationHandler::DecodeLocation(Location loc) const {
+  return bef_file_->DecodeLocation(loc.data);
+}
+
 BEFFileImpl::BEFFileImpl(std::function<void(DecodedDiagnostic)> error_handler)
     : error_handler_(error_handler) {}
 

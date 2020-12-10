@@ -146,26 +146,6 @@ RCReference<AsyncValue> SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
 
 }  // namespace
 
-class BEFLocationHandler final : public LocationHandler,
-                                 public ReferenceCounted<BEFLocationHandler> {
- public:
-  BEFLocationHandler(HostContext* host, BEFFileImpl* bef_file)
-      : host_{host}, bef_file_(FormRef(bef_file)) {}
-
-  void Destroy() { host_->Destruct(this); }
-
-  DecodedLocation DecodeLocation(Location loc) const override {
-    return bef_file_->DecodeLocation(loc.data);
-  }
-
-  BEFFileImpl* BefFile() const { return bef_file_.get(); }
-
- private:
-  friend class ReferenceCounted<BEFLocationHandler>;
-  HostContext* host_;
-  RCReference<BEFFileImpl> bef_file_;
-};
-
 /// A BEFExecutor runs a BEF function containing a stream of asynchronous
 /// kernels. Multiple executors can be active at one time, e.g. due to
 /// concurrent control flow constructs.
@@ -213,9 +193,8 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   void DecrementReadyCountAndEnqueue(
       ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids);
 
-  void MaybeAddRefForResult(AsyncValue* result);
   HostContext* GetHost() const { return exec_ctx_.host(); }
-  BEFFileImpl* BefFile() const { return location_handler_->BefFile(); }
+  BEFFileImpl* BefFile() const { return bef_file_.get(); }
 
   ArrayRef<uint32_t> kernels() { return function_info_.kernels; }
 
@@ -236,8 +215,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   /// Decoded BEFFunction
   BEFFileImpl::FunctionInfo function_info_;
 
-  /// Make sure location handler is alive as long as there is pending execution.
-  RCReference<BEFLocationHandler> location_handler_;
+  RCReference<BEFFileImpl> bef_file_;
 };
 
 //===----------------------------------------------------------------------===//
@@ -275,7 +253,6 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
   auto num_used_bys = kernel.num_used_bys(result_number);
   // Skip current result if there is no user.
   if (num_used_bys == 0) {
-    if (result) MaybeAddRefForResult(result);
     return;
   }
 
@@ -294,10 +271,9 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
     std::string error_message;
     llvm::raw_string_ostream os(error_message);
     os << result->GetError();
-    DEBUG_PRINT(
-        "Kernel %d %s got error: %s\n", kernel_id,
-        location_handler_->BefFile()->GetKernelName(kernel.kernel_code()),
-        os.str().c_str());
+    DEBUG_PRINT("Kernel %d %s got error: %s\n", kernel_id,
+                BefFile()->GetKernelName(kernel.kernel_code()),
+                os.str().c_str());
   }
 #endif
 
@@ -371,16 +347,6 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
     // Process users of this result.
     ProcessUsedBys(kernel, /*kernel_id=*/-1, result_number, result,
                    &used_by_offset, ready_kernel_ids);
-  }
-}
-
-// Extends the lifetime of location_handler_ as long as there are unavailable
-// results. This is to ensure location_handler_ remains valid in asynchronous
-// kernels. This approach works because reporting an error requires at least one
-// unavailable result.
-void BEFExecutor::MaybeAddRefForResult(AsyncValue* result) {
-  if (!result->IsAvailable()) {
-    result->AndThen([handler = location_handler_.CopyRef()]() {});
   }
 }
 
@@ -463,7 +429,7 @@ void BEFExecutor::ProcessReadyKernel(
     // Get the location to pass down to the kernels so they can report an
     // error.
     kernel_frame.SetLocation(
-        {location_handler_.get(), kernel.kernel_location()});
+        {BefFile()->location_handler(), kernel.kernel_location()});
 
     // kernel_fn should populate results in kernel_frame with pointers to
     // AsyncValue before it returns.
@@ -506,7 +472,6 @@ void BEFExecutor::ProcessReadyKernel(
     AsyncValue* result = kernel_frame.GetResultAt(result_number);
     assert(result && "Kernel did not set result AsyncValue");
     if (result_register.user_count == 0) {
-      MaybeAddRefForResult(result);
       // If no one uses this result, skip storing the value in the register.
       // We must drop our +1 ref.
       result->DropRef();
@@ -564,9 +529,7 @@ void BEFExecutor::ProcessReadyKernels(
 //===----------------------------------------------------------------------===//
 
 BEFExecutor::BEFExecutor(ExecutionContext exec_ctx, BEFFileImpl* bef_file)
-    : exec_ctx_(std::move(exec_ctx)),
-      location_handler_(TakeRef(exec_ctx_.host()->Construct<BEFLocationHandler>(
-          exec_ctx_.host(), bef_file))) {}
+    : exec_ctx_(std::move(exec_ctx)), bef_file_(FormRef(bef_file)) {}
 
 BEFExecutor::~BEFExecutor() {}
 

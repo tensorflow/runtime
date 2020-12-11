@@ -326,4 +326,23 @@ def CoreRT_GetDstTensorTypeOp : CoreRT_Op<"get_dst_tensor_type"> {
   let verifier = ?;
 }
 
+def CoreRT_TransferOp : CoreRT_Op<"transfer"> {
+  let summary = "Transfer a TensorHandle to the specified device";
+  let description = [{
+    Transfer a TensorHandle to the specified device.
+
+    Example:
+      %dst_th = corert.transfer %src_th {device="CPU:0", dst_tensor_type_name="DenseHost"}
+  }];
+
+  let arguments = (ins
+    CoreRT_TensorHandleType:$src,
+    TFRT_DeviceType:$device,
+    TFRT_TensorTypeType:$dst_tensor_type
+  );
+  let results = (outs CoreRT_TensorHandleType:$result);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
 #endif

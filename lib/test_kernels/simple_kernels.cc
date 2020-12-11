@@ -218,6 +218,10 @@ static Chain TestPrintTensorType(const TensorType& tensor_type) {
   return Chain();
 }
 
+static TensorType TestGetStaticTensorType(StringAttribute tensor_type) {
+  return GetStaticTensorType(tensor_type.get());
+}
+
 }  // namespace
 
 void RegisterSimpleKernels(KernelRegistry* registry) {
@@ -236,6 +240,8 @@ void RegisterSimpleKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestCopyWithDelay<int64_t>));
   registry->AddKernel("tfrt_test.print_tensor_type",
                       TFRT_KERNEL(TestPrintTensorType));
+  registry->AddKernel("tfrt_test.get_static_tensor_type",
+                      TFRT_KERNEL(TestGetStaticTensorType));
 
   SetupStringRegistry(registry);
   SetupValueTrackingRegistry(registry);

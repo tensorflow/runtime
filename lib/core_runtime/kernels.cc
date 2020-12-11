@@ -559,9 +559,8 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
 // argument.
 static Expected<TensorHandle> TransferToDevice(
     const TensorHandle &src, const RCReference<Device> &device,
-    StringAttribute dst_tensor_type_name, const ExecutionContext &exec_ctx) {
-  return src.TransferTo(exec_ctx, device.CopyRef(),
-                        GetStaticTensorType(dst_tensor_type_name));
+    const TensorType &dst_tensor_type_name, const ExecutionContext &exec_ctx) {
+  return src.TransferTo(exec_ctx, device.CopyRef(), dst_tensor_type_name);
 }
 
 // Forward declaration for use in CoreRtWhileLoopIterationImpl.

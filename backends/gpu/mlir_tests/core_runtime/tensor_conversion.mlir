@@ -38,16 +38,16 @@ func @round_trip_transfer() -> !tfrt.chain {
       { dtype = f32, value = dense<1.0> : tensor<1x1x2x2xf32> } : 1
 
   // DHT->DGT
-  %th0_gpu = "corert.transfer"(%th0_cpu, %gpu_device) {dst_tensor_type_name="DenseGpu"}
-    : (!corert.tensorhandle, !tfrt.device) -> !corert.tensorhandle
+  %th0_tensor_type = corert.get_dst_tensor_type %th0_cpu, %gpu_device
+  %th0_gpu = corert.transfer %th0_cpu, %gpu_device, %th0_tensor_type
 
   // CHECK: DenseGpuTensor<dtype=F32, shape=[1, 1, 2, 2], pointer={{0x[[:xdigit:]]*}} (CUDA)>
   %ch1 = "corert.print_tensorhandle"(%th0_gpu, %ch0)
     : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   // DGT->DHT
-  %th1_cpu = "corert.transfer"(%th0_cpu, %cpu_device) {dst_tensor_type_name="DenseHost"}
-    : (!corert.tensorhandle, !tfrt.device) -> !corert.tensorhandle
+  %th1_tensor_type = corert.get_dst_tensor_type %th0_cpu, %cpu_device
+  %th1_cpu = corert.transfer %th0_cpu, %cpu_device, %th1_tensor_type
 
   // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %ch2 = "corert.print_tensorhandle"(%th1_cpu, %ch1)
@@ -66,10 +66,12 @@ func @invalid_transfer() -> !tfrt.chain {
   %th0_gpu = corert.executeop(%gpu_handler) "tf.Const"()
       { dtype = f32, value = dense<1.0> : tensor<1x1x2x2xf32> } : 1
 
+  %th0_tensor_type = "tfrt_test.get_static_tensor_type"()
+    { tensor_type = "StringHost" } : () -> !tfrt.tensor_type
+
   // DGT->SHT is not supported yet
   // expected-error @+1 {{runtime error: cannot find conversion function}}
-  %th0_cpu = "corert.transfer"(%th0_gpu, %cpu_device) {dst_tensor_type_name="StringHost"}
-    : (!corert.tensorhandle, !tfrt.device) -> !corert.tensorhandle
+  %th0_cpu = corert.transfer %th0_gpu, %cpu_device, %th0_tensor_type
 
   // CHECK: Error TensorHandle: 'cannot find conversion function for [DenseGpu]->[StringHost]'
   %ch1 = "corert.print_tensorhandle"(%th0_cpu, %ch0)

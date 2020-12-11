@@ -38,6 +38,9 @@ class RequestHandlerInterface {
  public:
   virtual ~RequestHandlerInterface() {}
 
+  virtual Error HandleGetDevices(const GetDevicesRequest* request,
+                                 GetDevicesResponse* response) = 0;
+
   virtual Error HandleCreateContext(const CreateContextRequest* request,
                                     CreateContextResponse* response) = 0;
 

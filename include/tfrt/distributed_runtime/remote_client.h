@@ -43,6 +43,11 @@ class RemoteClientInterface {
   // If invoked with network error, the response message will be empty.
   using CallbackFn = llvm::unique_function<void(Error error)>;
 
+  // Get device information on remote task.
+  virtual void GetDevicesAsync(const GetDevicesRequest* request,
+                               GetDevicesResponse* response,
+                               CallbackFn done) = 0;
+
   // Create a DistributedContext on the remote task. If the remote task already
   // has a context with the requested context_id, the done callback will be
   // invoked with DistributedContextAlreadyExists error.

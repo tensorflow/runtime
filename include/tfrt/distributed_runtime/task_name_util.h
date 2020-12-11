@@ -34,6 +34,11 @@ class TaskNameUtil {
   // e.g., "/job:worker/task:1"
   static std::string ConcatTaskName(string_view job_name, int task_id);
 
+  // Concatenate job name, task id, and device name to get fully specified
+  // device name, e.g., "/job:worker/task:1/device:CPU:0"
+  static std::string ConcatDeviceName(string_view job_name, int task_id,
+                                      string_view device_name);
+
   // Parse a full task name (e.g., "/job:worker/task:1") to extract the job name
   // (e.g., "worker") and task id (e.g., 1)
   //

@@ -1148,6 +1148,7 @@ tfrt_cc_library(
         "lib/distributed_runtime/distributed_context.cc",
         "lib/distributed_runtime/function_cache.cc",
         "lib/distributed_runtime/remote_chain_manager.cc",
+        "lib/distributed_runtime/remote_device.cc",
         "lib/distributed_runtime/remote_object_manager.cc",
         "lib/distributed_runtime/remote_tensor.cc",
         "lib/distributed_runtime/request_handler_impl.cc",

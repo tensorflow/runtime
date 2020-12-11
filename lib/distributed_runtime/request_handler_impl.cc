@@ -40,6 +40,7 @@
 #include "tfrt/distributed_runtime/request_handler.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
+#include "tfrt/host_context/device.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
@@ -63,6 +64,9 @@ class RequestHandler : public RequestHandlerInterface {
   explicit RequestHandler(ServerContext* server_context)
       : server_context_(server_context) {}
   ~RequestHandler() override{};
+
+  Error HandleGetDevices(const GetDevicesRequest* request,
+                         GetDevicesResponse* response) final;
 
   Error HandleCreateContext(const CreateContextRequest* request,
                             CreateContextResponse* response) final;
@@ -94,6 +98,17 @@ class RequestHandler : public RequestHandlerInterface {
   ServerContext* server_context_;
 };
 
+Error RequestHandler::HandleGetDevices(const GetDevicesRequest* request,
+                                       GetDevicesResponse* response) {
+  auto devices = host_ctx()->GetDeviceManager()->ListDevices<Device>();
+  for (auto& d : devices) {
+    auto* device_info = response->add_devices();
+    device_info->set_name(d->name().str());
+    device_info->set_type(d->type().name().str());
+  }
+  return Error::success();
+}
+
 Error RequestHandler::HandleCreateContext(const CreateContextRequest* request,
                                           CreateContextResponse* response) {
   auto expected = server_context_->GetDistributedContext(request->context_id());
@@ -109,9 +124,21 @@ Error RequestHandler::HandleCreateContext(const CreateContextRequest* request,
   if (!context) {
     return context.takeError();
   }
+  DistributedContext* dist_context = context.get();
+  for (const auto& device_info : request->devices()) {
+    TaskHandle task_handle = dist_context->GetTaskHandle(device_info.name());
+    auto expected =
+        NewRemoteDevice(device_info.name(), device_info.type(), task_handle);
+    if (expected) {
+      dist_context->GetRemoteDeviceManager()->MaybeAddDevice(
+          TakeRef(expected.get()));
+    } else {
+      return expected.takeError();
+    }
+  }
   Error error = server_context_->TrackContextAccessTime(request->context_id());
   if (error) return error;
-  ToProto(context.get()->LocalReadyChain(), response->mutable_ready_chain());
+  ToProto(dist_context->LocalReadyChain(), response->mutable_ready_chain());
   return Error::success();
 }
 
@@ -251,7 +278,8 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
     for (int i = 0; i < request->output_size(); ++i) {
       auto& id = request->output(i).id();
       RCReference<Device> device =
-          host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device());
+          dist_context->GetRemoteDeviceManager()->GetDeviceRef<Device>(
+              id.device());
       if (device.get() == nullptr) {
         done(llvm::make_error<DeviceNotFoundErrorInfo>(
             StrCat("Can't find device: ", id.device())));
@@ -274,7 +302,8 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
     auto& id = request->input(i);
 
     RCReference<Device> device =
-        host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device());
+        dist_context->GetRemoteDeviceManager()->GetDeviceRef<Device>(
+            id.device());
     if (device.get() == nullptr) {
       done(llvm::make_error<DeviceNotFoundErrorInfo>(
           StrCat("Can't find device: ", id.device())));
@@ -292,7 +321,8 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
   for (int i = 0; i < request->output_size(); ++i) {
     auto& id = request->output(i).id();
     RCReference<Device> device =
-        host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device());
+        dist_context->GetRemoteDeviceManager()->GetDeviceRef<Device>(
+            id.device());
     if (device.get() == nullptr) {
       done(llvm::make_error<DeviceNotFoundErrorInfo>(
           StrCat("Can't find device: ", id.device())));
@@ -346,7 +376,8 @@ void RequestHandler::HandleDeleteRemoteObjects(
   llvm::SmallVector<RemoteObjectId, 4> ids;
   for (const RemoteObjectIdProto& id : request->input()) {
     RCReference<Device> device =
-        host_ctx()->GetDeviceManager()->GetDeviceRef<Device>(id.device());
+        dist_context->GetRemoteDeviceManager()->GetDeviceRef<Device>(
+            id.device());
     if (device.get() == nullptr) {
       done(llvm::make_error<DeviceNotFoundErrorInfo>(
           StrCat("Can't find device: ", id.device())));

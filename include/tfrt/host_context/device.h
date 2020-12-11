@@ -46,9 +46,9 @@ class DeviceType {
   string_view name() const { return name_; }
 
   bool operator==(const DeviceType& other) const {
-    // We can compare their address directly because all instances are managed
-    // by DeviceTypeRegistry.
-    return this == &other;
+    // Safe to compare by their names because all instances are uniquely
+    // registered to DeviceTypeRegistry.
+    return name_ == other.name_;
   }
 
   static const DeviceType& kUnknownDeviceType;
@@ -59,7 +59,7 @@ class DeviceType {
   // It is hidden because all instances are managed by DeviceTypeRegistry.
   explicit DeviceType(string_view name) : name_(name) {}
 
-  std::string name_;
+  const std::string name_;
 };
 
 // Represents a device that a tensor can be placed on. E.g. "gpu:0", "tpu:1".
@@ -92,6 +92,7 @@ class Device : public ReferenceCounted<Device> {
 // A central place to manage all active devices. Thread-safe.
 class DeviceManager {
  public:
+  DeviceManager() = default;
   ~DeviceManager() = default;
   DeviceManager(const DeviceManager&) = delete;
   DeviceManager& operator=(const DeviceManager&) = delete;
@@ -136,6 +137,19 @@ class DeviceManager {
     return RCReference<T>();
   }
 
+  // Return a list of devices.
+  template <typename T,
+            std::enable_if_t<std::is_base_of<Device, T>::value, int> = 0>
+  llvm::SmallVector<RCReference<T>, 4> ListDevices() const {
+    llvm::SmallVector<RCReference<T>, 4> devices;
+    devices.reserve(device_map_.size());
+    mutex_lock l(mu_);
+    for (auto& it : device_map_) {
+      devices.push_back(it.second.CopyRef());
+    }
+    return devices;
+  }
+
   // Return a string that lists all the devices in the device manager.
   std::string DebugString() {
     std::string out;
@@ -147,9 +161,6 @@ class DeviceManager {
   }
 
  private:
-  DeviceManager() = default;
-  friend class HostContext;
-
   mutable mutex mu_;
   llvm::StringMap<RCReference<Device>> device_map_ TFRT_GUARDED_BY(mu_);
 };

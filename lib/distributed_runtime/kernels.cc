@@ -484,8 +484,7 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
             out->SetError(DecodedDiagnostic(std::move(e)));
           } else {
             if (need_compilation) {
-              DeviceManager* manager =
-                  dist_context->GetHostContext()->GetDeviceManager();
+              DeviceManager* manager = dist_context->GetRemoteDeviceManager();
               llvm::SmallVector<RCReference<Device>, 4> output_devices;
               output_devices.reserve(response->output_device_size());
               for (int i = 0; i < response->output_device_size(); i++) {
@@ -522,7 +521,7 @@ void RegisterTFFunctionKernel(Chain ch, DistributedContext* dist_context,
 }
 
 AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
-    Argument<Chain> in_ch, AggregateAttr inputs,
+    DistributedContext* dist_context, AggregateAttr inputs,
     const ExecutionContext& exec_ctx) {
   llvm::SmallVector<RCReference<Device>, 4> output_devices;
   output_devices.reserve(inputs.GetNumElements());
@@ -530,7 +529,8 @@ AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
     const std::string& device_str =
         inputs.GetAttributeOfType<StringAttr>(i).GetValue().str();
     RCReference<Device> device =
-        exec_ctx.host()->GetDeviceManager()->GetDeviceRef<Device>(device_str);
+        dist_context->GetRemoteDeviceManager()->GetDeviceRef<Device>(
+            device_str);
     if (device.get() == nullptr) {
       TFRT_LOG(ERROR) << "Can't find device: " << device_str;
       return MakeErrorAsyncValueRef(exec_ctx.host(),

@@ -31,6 +31,11 @@ std::string TaskNameUtil::ConcatTaskName(string_view job_name, int task_id) {
   return StrCat("/job:", job_name, "/task:", task_id);
 }
 
+std::string TaskNameUtil::ConcatDeviceName(string_view job_name, int task_id,
+                                           string_view device_name) {
+  return StrCat("/job:", job_name, "/task:", task_id, "/device:", device_name);
+}
+
 // Regex pattern for an acceptable task name.
 constexpr char kTaskNameRegex[] =
     "^/job:([a-zA-Z][_a-zA-Z0-9]*)/task:([0-9]|[1-9][0-9]+).*$";

@@ -16,8 +16,7 @@
 
 //===- remote_device.h - Remote Device --------------------------*- C++ -*-===//
 //
-// This file defines RemoteCpuDevice which represents a Cpu Device in a remote
-// worker
+// This file defines remote devices, which represent devices on remote tasks.
 //
 //===----------------------------------------------------------------------===//
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_DEVICE_H_
@@ -25,19 +24,14 @@
 
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/support/error_util.h"
+#include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
-class RemoteCpuDevice : public Device, public DeviceTraits<RemoteCpuDevice> {
+class RemoteDevice : public Device {
  public:
-  static const char* type_name() {
-    static constexpr char kName[] = "remote_cpu";
-    return kName;
-  }
-
-  explicit RemoteCpuDevice(string_view name, TaskHandle task_handle)
-      : Device(kDeviceType, name), task_handle_(task_handle) {}
-
-  ~RemoteCpuDevice() override {}
+  RemoteDevice(const DeviceType& type, string_view name, TaskHandle task_handle)
+      : Device(type, name), task_handle_(task_handle) {}
 
   TaskHandle GetTaskHandle() const { return task_handle_; }
 
@@ -45,6 +39,39 @@ class RemoteCpuDevice : public Device, public DeviceTraits<RemoteCpuDevice> {
   // The remote task where this device resides.
   TaskHandle task_handle_;
 };
+
+class RemoteCpuDevice : public RemoteDevice,
+                        public DeviceTraits<RemoteCpuDevice> {
+ public:
+  static const char* type_name() {
+    static constexpr char kName[] = "remote_cpu";
+    return kName;
+  }
+
+  explicit RemoteCpuDevice(string_view name, TaskHandle task_handle)
+      : RemoteDevice(kDeviceType, name, task_handle) {}
+
+  ~RemoteCpuDevice() override {}
+};
+
+class RemoteTpuDevice : public RemoteDevice,
+                        public DeviceTraits<RemoteTpuDevice> {
+ public:
+  static const char* type_name() {
+    static constexpr char kName[] = "remote_tpu";
+    return kName;
+  }
+
+  explicit RemoteTpuDevice(string_view name, TaskHandle task_handle)
+      : RemoteDevice(kDeviceType, name, task_handle) {}
+
+  ~RemoteTpuDevice() override {}
+};
+
+// TODO(tfrt-dev): Add remote GPU device when there are valid use cases.
+
+Expected<Device*> NewRemoteDevice(string_view name, string_view type,
+                                  TaskHandle task_handle);
 
 }  // namespace tfrt
 

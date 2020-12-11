@@ -114,11 +114,16 @@ class DistributedContext {
     return remote_manager_.get();
   }
 
+  DeviceManager* GetRemoteDeviceManager() { return &cluster_device_mgr_; }
+
   FunctionCache* GetFunctionCache() const { return function_cache_.get(); }
 
   RemoteClientInterface* GetRemoteClient(TaskHandle task_handle);
 
   using CallbackFn = llvm::unique_function<void(Error)>;
+
+  // Get device information on remote tasks.
+  void GetRemoteDevices(CallbackFn done_callback);
 
   // Create contexts on remote tasks. The callback will be invoked after all
   // remote calls finish.
@@ -155,6 +160,13 @@ class DistributedContext {
   mutex remote_clients_mu_;
   llvm::DenseMap<TaskHandle, std::unique_ptr<RemoteClientInterface>>
       remote_clients_ TFRT_GUARDED_BY(remote_clients_mu_);
+
+  // Cluster device manager contains RemoteDevice instances for devices in all
+  // tasks of this cluster. Note that for every local device, there is a
+  // corresponding RemoteDevice instance in this manager as well.
+  // The cluster device manager should be kept symmetric across the distributed
+  // context in all tasks of the cluster.
+  DeviceManager cluster_device_mgr_;
 
   std::unique_ptr<RemoteObjectManager> remote_manager_;
   std::unique_ptr<CallbackRegistry> callback_registry_;

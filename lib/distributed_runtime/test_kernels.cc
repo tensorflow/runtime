@@ -55,6 +55,11 @@ class TestRequestHandler : public RequestHandlerInterface {
       : handler_(NewRequestHandler(server_context)) {}
   ~TestRequestHandler() final {}
 
+  Error HandleGetDevices(const GetDevicesRequest* request,
+                         GetDevicesResponse* response) final {
+    return handler_->HandleGetDevices(request, response);
+  }
+
   Error HandleCreateContext(const CreateContextRequest* request,
                             CreateContextResponse* response) final {
     return handler_->HandleCreateContext(request, response);
@@ -174,8 +179,8 @@ void TestCreateDistributedContext(RemainingArguments configurations,
   Expected<DistributedContext*> dist_context_or_error =
       servers[0]->CreateDistributedContext(0, configuration);
   if (!dist_context_or_error) {
+    Error error = dist_context_or_error.takeError();
     for (int i = 0; i < servers.size(); ++i) {
-      Error error = dist_context_or_error.takeError();
       distributed_contexts[i] =
           MakeErrorAsyncValueRef(exec_ctx.host(), DecodedDiagnostic(error));
     }
@@ -185,22 +190,31 @@ void TestCreateDistributedContext(RemainingArguments configurations,
   for (int i = 0; i < servers.size(); ++i) {
     outputs.push_back(distributed_contexts.AllocateIndirectResultAt(i));
   }
-  // Create other distributed context for remote servers.
-  dist_context_or_error.get()->CreateRemoteContexts(
-      [servers, outputs = std::move(outputs)](Error error) mutable {
-        TFRT_LOG(ERROR) << "Create remote context!";
-        for (int i = 0; i < outputs.size(); ++i) {
-          if (error) {
-            outputs[i]->SetError(DecodedDiagnostic(error));
-          } else {
-            AsyncValueRef<DistributedContext> c =
-                servers[i]->GetDistributedContextAsyncValue(0);
-            TFRT_LOG(ERROR) << "Create remote context! " << c->GetTaskName();
-            outputs[i]->ForwardTo(
-                servers[i]->GetDistributedContextAsyncValue(0));
-          }
+  DistributedContext* dist_context = dist_context_or_error.get();
+  // Get device info on remote servers.
+  dist_context->GetRemoteDevices([dist_context, servers,
+                                  outputs =
+                                      std::move(outputs)](Error error) mutable {
+    if (error) {
+      for (int i = 0; i < outputs.size(); i++) {
+        outputs[i]->SetError(DecodedDiagnostic(error));
+      }
+      return;
+    }
+    // Create other distributed context for remote servers.
+    dist_context->CreateRemoteContexts([servers, outputs = std::move(outputs)](
+                                           Error error) mutable {
+      for (int i = 0; i < outputs.size(); ++i) {
+        if (error) {
+          outputs[i]->SetError(DecodedDiagnostic(error));
+        } else {
+          AsyncValueRef<DistributedContext> c =
+              servers[i]->GetDistributedContextAsyncValue(0);
+          outputs[i]->ForwardTo(servers[i]->GetDistributedContextAsyncValue(0));
         }
-      });
+      }
+    });
+  });
 }
 
 void TestCloseDistributedContext(Argument<DistributedContext> dist_context,

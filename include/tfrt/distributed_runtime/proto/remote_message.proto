@@ -24,6 +24,17 @@ package tfrt;
 
 import "include/tfrt/distributed_runtime/proto/cluster_config.proto";
 
+message DeviceInfo {
+  string name = 1;
+  string type = 2;
+}
+
+message GetDevicesRequest {}
+
+message GetDevicesResponse {
+  repeated DeviceInfo devices = 1;
+}
+
 message CreateContextRequest {
   // Unique ID for the DistributedContext to be created.
   // This ID will be used for all subsequent communications in this distributed
@@ -32,6 +43,9 @@ message CreateContextRequest {
 
   // Configuration of the cluster and the role (job, task) of the target host.
   DistributedContextConfiguration dist_config = 2;
+
+  // List of remote device information in the cluster.
+  repeated DeviceInfo devices = 3;
 }
 
 message CreateContextResponse {

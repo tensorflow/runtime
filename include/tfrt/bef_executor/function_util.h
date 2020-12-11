@@ -29,13 +29,14 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/bef_executor/bef_file.h"
+#include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/value.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {
 
-// A utility function to make invoking a tfrt::Function synchronously, similar
+// A utility function to make invoking a sync tfrt::Function, similar
 // to invoking a C++ function.
 //
 // Example:
@@ -145,6 +146,47 @@ Expected<std::tuple<Results...>> InvokeSyncFunction(
         &result_values, std::make_index_sequence<NResults>{});
   }
 }
+
+// Another utility function to make invoking a sync tfrt::Function.
+//
+// Example:
+//
+// SyncFunctionRunner<float(int, int)> func{func, host_ctx, resource_ctx};
+//
+// Expected<float> result = func.run(int1, int2);
+
+template <typename>
+class SyncFunctionRunner;
+
+template <typename R, typename... Args>
+class SyncFunctionRunner<R(Args...)> {
+  using RunReturnT =
+      std::conditional_t<std::is_void<R>::value, Error, Expected<R>>;
+
+ public:
+  SyncFunctionRunner(const Function* function, HostContext* host,
+                     ResourceContext* resource_ctx)
+      : function_{function}, host_{host}, resource_ctx_{resource_ctx} {
+    assert(function_->function_kind() == tfrt::FunctionKind::kSyncBEFFunction);
+  }
+
+  RunReturnT run(Args... args) const {
+    auto req_ctx = RequestContextBuilder(host_, resource_ctx_).build();
+    if (!req_ctx) {
+      return MakeStringError("Failed to make RequestContext ",
+                             req_ctx.takeError());
+    }
+
+    ExecutionContext exec_ctx{std::move(*req_ctx)};
+    return InvokeSyncFunction<R>(*function_, std::move(exec_ctx),
+                                 std::move(args)...);
+  }
+
+ private:
+  const Function* function_;
+  HostContext* host_;
+  ResourceContext* resource_ctx_;
+};
 
 }  // namespace tfrt
 

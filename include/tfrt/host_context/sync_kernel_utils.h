@@ -159,6 +159,7 @@ class RepeatedSyncArguments {
     Iterator operator+(size_t offset) const {
       return Iterator{index_ + offset, parent_};
     }
+    size_t operator-(Iterator it) const { return index_ - it.index_; }
 
    private:
     size_t index_;

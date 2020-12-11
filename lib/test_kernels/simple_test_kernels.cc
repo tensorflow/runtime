@@ -370,6 +370,27 @@ static Expected<std::tuple<int, int>> TestInvokeSyncFunctionTwoReturnValues(
   return InvokeSyncFunction<int, int>(*fn, exec_ctx, a, b);
 }
 
+// Test for invoking a sync function with SyncFunctionRunner that takes two int
+// arguments and return a int value.
+static Expected<int> TestSyncFunctionRunner(int a, int b,
+                                            Attribute<Function> fn,
+                                            const ExecutionContext& exec_ctx) {
+  SyncFunctionRunner<float(int, int)> func{&fn.get(), exec_ctx.host(),
+                                           exec_ctx.resource_context()};
+
+  return func.run(a, b);
+}
+
+// Test for invoking a sync function with SyncFunctionRunner that takes two int
+// arguments and return two int values.
+static Expected<std::tuple<int, int>> TestSyncFunctionRunnerTwoReturnValues(
+    int a, int b, Attribute<Function> fn, const ExecutionContext& exec_ctx) {
+  SyncFunctionRunner<std::tuple<float, float>(int, int)> func{
+      &fn.get(), exec_ctx.host(), exec_ctx.resource_context()};
+
+  return func.run(a, b);
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -396,6 +417,11 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestInvokeSyncFunction));
   registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32_i32",
                       TFRT_KERNEL(TestInvokeSyncFunctionTwoReturnValues));
+
+  registry->AddKernel("tfrt_test.sync_function_runner.i32_i32.i32",
+                      TFRT_KERNEL(TestSyncFunctionRunner));
+  registry->AddKernel("tfrt_test.sync_function_runner.i32_i32.i32_i32",
+                      TFRT_KERNEL(TestSyncFunctionRunnerTwoReturnValues));
 
   registry->AddSyncKernel("tfrt_test.sync.const_dense_attr",
                           TFRT_SYNC_KERNEL(TestConstDenseAttr));

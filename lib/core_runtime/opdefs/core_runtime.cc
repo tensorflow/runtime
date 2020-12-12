@@ -296,21 +296,21 @@ OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
 
 static LogicalResult verify(CondOp op) {
   // Check that the true/false function attributes are specified.
-  auto trueFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("a_true_fn");
+  auto trueFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("a_true_fn");
   if (!trueFnAttr)
     return op.emitOpError("requires a 'a_true_fn' symbol reference attribute");
 
-  auto falseFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("b_false_fn");
+  auto falseFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("b_false_fn");
   if (!falseFnAttr)
     return op.emitOpError("requires a 'a_false_fn' symbol reference attribute");
 
-  auto trueFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+  auto trueFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
       trueFnAttr.getValue());
   if (!trueFn)
     return op.emitOpError() << "'" << trueFnAttr.getValue()
                             << "' does not reference a valid function";
 
-  auto falseFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+  auto falseFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
       falseFnAttr.getValue());
   if (!falseFn)
     return op.emitOpError() << "'" << falseFnAttr.getValue()
@@ -356,21 +356,21 @@ static LogicalResult verify(CondOp op) {
 
 static LogicalResult verify(WhileOp op) {
   // Check that the cond and body function attributes are specified.
-  auto condFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("a_cond_fn");
+  auto condFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("a_cond_fn");
   if (!condFnAttr)
     return op.emitOpError("requires a 'a_cond_fn' symbol reference attribute");
 
-  auto bodyFnAttr = op.getAttrOfType<FlatSymbolRefAttr>("b_body_fn");
+  auto bodyFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("b_body_fn");
   if (!bodyFnAttr)
     return op.emitOpError("requires a 'b_body_fn' symbol reference attribute");
 
-  auto condFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+  auto condFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
       condFnAttr.getValue());
   if (!condFn)
     return op.emitOpError() << "'" << condFnAttr.getValue()
                             << "' does not reference a valid function";
 
-  auto bodyFn = op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+  auto bodyFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
       bodyFnAttr.getValue());
   if (!bodyFn)
     return op.emitOpError() << "'" << bodyFnAttr.getValue()

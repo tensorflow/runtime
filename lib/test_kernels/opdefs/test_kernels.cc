@@ -379,12 +379,12 @@ static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
 }
 
 static LogicalResult verify(SyncBenchmarkOp op) {
-  auto fnAttr = op.getAttrOfType<FlatSymbolRefAttr>("target_fn");
+  auto fnAttr = op->getAttrOfType<FlatSymbolRefAttr>("target_fn");
   if (!fnAttr)
     return op.emitOpError("requires a 'target_fn' symbol reference attribute");
 
   auto fn =
-      op.getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
+      op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(fnAttr.getValue());
   if (!fn)
     return op.emitOpError() << "'" << fnAttr.getValue()
                             << "' does not reference a valid function";

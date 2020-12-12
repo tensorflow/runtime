@@ -695,7 +695,7 @@ static void print(OpAsmPrinter &p, ParallelCallI32Op op) {
   p.printOperand(op.getOperand(2));
   p << " ";
 
-  p << op.getAttr("callee");
+  p << op->getAttr("callee");
   p << '(';
   p.printOperands(llvm::drop_begin(op.getOperands(), 3));
   p << ')';

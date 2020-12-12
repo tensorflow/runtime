@@ -79,7 +79,7 @@ static ParseResult parseCreateUninitTensorOp(OpAsmParser &parser,
 template <typename CreateUninitTensorOp>
 static void printCreateUninitTensorOp(OpAsmPrinter &p,
                                       CreateUninitTensorOp op) {
-  p << CreateUninitTensorOp::getOperationName() << " " << op.getAttr("shape");
+  p << CreateUninitTensorOp::getOperationName() << " " << op->getAttr("shape");
 }
 
 //===----------------------------------------------------------------------===//
@@ -107,7 +107,7 @@ template <typename FillTensorOp>
 static void printFillTensorOp(OpAsmPrinter &p, FillTensorOp op) {
   p << FillTensorOp::getOperationName() << " ";
   p.printOperands(op.getOperands());
-  p << " " << op.getAttr("value");
+  p << " " << op->getAttr("value");
 }
 
 //===----------------------------------------------------------------------===//
@@ -135,7 +135,7 @@ template <typename SetTensorOp>
 static void printSetTensorOp(OpAsmPrinter &p, SetTensorOp op) {
   p << SetTensorOp::getOperationName() << " ";
   p.printOperands(op.getOperands());
-  p << " " << op.getAttr("values");
+  p << " " << op->getAttr("values");
 }
 }  // namespace dht
 }  // namespace tfrt

@@ -23,11 +23,64 @@
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_CLIENT_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_CLIENT_H_
 
+#include "llvm/ADT/FunctionExtras.h"
+#include "llvm/Support/Error.h"
 #include "tfrt/distributed_runtime/proto/remote_message.pb.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/mutex.h"
 #include "tfrt/support/ref_count.h"
+#include "tfrt/support/thread_annotations.h"
 
 namespace tfrt {
+
+class RemoteCallContext {
+ public:
+  using CancelCallback = llvm::unique_function<void()>;
+
+  // TODO(haoyuzhang): consider preventing callers from invoking StartCancel,
+  // SetCancelCallback, etc. on the default RemoteCallContext instance.
+  static RemoteCallContext* GetDefault() {
+    // Default to no retries and unlimited timeout.
+    static RemoteCallContext* default_ctx =
+        new RemoteCallContext(/*max_retries=*/0, /*timeout_ms=*/0);
+    return default_ctx;
+  }
+
+  RemoteCallContext(uint32_t max_retries, uint64_t timeout_ms)
+      : max_retries_(max_retries), timeout_ms_(timeout_ms) {}
+
+  uint32_t GetMaxRetries() const { return max_retries_; }
+  uint64_t GetTimeoutMs() const { return timeout_ms_; }
+
+  void SetCancelCallback(CancelCallback callback) {
+    mutex_lock l(mu_);
+    cancel_cb_ = std::move(callback);
+  }
+
+  void StartCancel() {
+    mutex_lock l(mu_);
+    if (cancel_cb_) {
+      cancel_cb_();
+    }
+  }
+
+  void ClearCancelCallback() {
+    mutex_lock l(mu_);
+    cancel_cb_ = CancelCallback();
+  }
+
+ private:
+  // Number of maximum retries if the RPC call fails.
+  const uint32_t max_retries_;
+
+  // Remote call timeout in milliseconds.
+  // If set to 0, there is no timeout for the remote call.
+  const uint64_t timeout_ms_;
+
+  mutex mu_;
+  // Callback function when this remote call is cancelled.
+  CancelCallback cancel_cb_ TFRT_GUARDED_BY(mu_);
+};
 
 class RemoteClientInterface {
  public:
@@ -43,49 +96,41 @@ class RemoteClientInterface {
   // If invoked with network error, the response message will be empty.
   using CallbackFn = llvm::unique_function<void(Error error)>;
 
+#define CLIENT_METHOD(method)                                \
+  virtual void method##Async(RemoteCallContext* call_ctx,    \
+                             const method##Request* request, \
+                             method##Response* response, CallbackFn done) = 0;
+
   // Get device information on remote task.
-  virtual void GetDevicesAsync(const GetDevicesRequest* request,
-                               GetDevicesResponse* response,
-                               CallbackFn done) = 0;
+  CLIENT_METHOD(GetDevices);
 
   // Create a DistributedContext on the remote task. If the remote task already
   // has a context with the requested context_id, the done callback will be
   // invoked with DistributedContextAlreadyExists error.
-  virtual void CreateContextAsync(const CreateContextRequest* request,
-                                  CreateContextResponse* response,
-                                  CallbackFn done) = 0;
+  CLIENT_METHOD(CreateContext);
 
   // Close DistributedContext on the remote task. If the remote task does not
   // have a context with the requested context_id, the done callback will be
   // invoked with InvalidDistributedContextId error.
-  virtual void CloseContextAsync(const CloseContextRequest* request,
-                                 CloseContextResponse* response,
-                                 CallbackFn done) = 0;
+  CLIENT_METHOD(CloseContext);
 
-  virtual void SendDataAsync(const SendDataRequest* request,
-                             SendDataResponse* response, CallbackFn done) = 0;
-
-  virtual void RegisterFunctionAsync(const RegisterFunctionRequest* request,
-                                     RegisterFunctionResponse* response,
-                                     CallbackFn done) = 0;
+  CLIENT_METHOD(SendData);
+  CLIENT_METHOD(RegisterFunction);
 
   // The callback will be invoked once a response is received from the
   // destination. This might not mean the actual execution has completed in
   // the destination.
-  virtual void RemoteExecuteAsync(const RemoteExecuteRequest* request,
-                                  RemoteExecuteResponse* response,
-                                  CallbackFn done) = 0;
+  CLIENT_METHOD(RemoteExecute);
 
   // Delete Remote objects on remote location. The callback will be invoked
   // after the deletion has completed on remote location.
-  virtual void DeleteRemoteObjectsAsync(
-      const DeleteRemoteObjectsRequest* request,
-      DeleteRemoteObjectsResponse* response, CallbackFn done) = 0;
+  CLIENT_METHOD(DeleteRemoteObjects);
 
   // Update the last active time of the remote DistributedContext to prevent it
   // from being garbage collected by the remote host.
-  virtual void KeepAliveAsync(const KeepAliveRequest* request,
-                              KeepAliveResponse* response, CallbackFn done) = 0;
+  CLIENT_METHOD(KeepAlive);
+
+#undef CLIENT_METHOD
 };
 
 }  // namespace tfrt

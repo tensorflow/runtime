@@ -127,11 +127,15 @@ void DistributedContext::GetRemoteDevices(
   auto request = std::make_shared<GetDevicesRequest>();
   for (const auto& job_config : dist_config_.cluster_config().jobs()) {
     for (const auto& task : job_config.tasks()) {
+      // As the first round of RPCs for cluster initialization, the GetDevices
+      // RPCs are given a large limit of max_retries to allow remote workers
+      // to start after the client.
+      RemoteCallContext call_ctx(/*max_retries=*/64, /*timeout_ms=*/0);
       TaskHandle task_handle = GetTaskHandle(job_config.name(), task.first);
       RemoteClientInterface* client = GetRemoteClient(task_handle);
       auto response = std::make_unique<GetDevicesResponse>();
       client->GetDevicesAsync(
-          request.get(), response.get(),
+          &call_ctx, request.get(), response.get(),
           [request, response = std::move(response), rc_done = rc_done.CopyRef(),
            this, job_name = job_config.name(), task_id = task.first,
            task_handle](Error e) mutable {
@@ -207,7 +211,7 @@ void DistributedContext::CreateRemoteContexts(
       RemoteClientInterface* client = GetRemoteClient(task_handle);
       auto response = std::make_unique<CreateContextResponse>();
       client->CreateContextAsync(
-          request.get(), response.get(),
+          RemoteCallContext::GetDefault(), request.get(), response.get(),
           [this, task_handle, base_request, request = std::move(request),
            response = std::move(response),
            rc_done = rc_done.CopyRef()](Error e) mutable {
@@ -273,7 +277,7 @@ void DistributedContext::CloseRemoteContexts(
       RemoteClientInterface* client = GetRemoteClient(task_handle);
       auto response = std::make_shared<CloseContextResponse>();
       client->CloseContextAsync(
-          request.get(), response.get(),
+          RemoteCallContext::GetDefault(), request.get(), response.get(),
           [request, response, rc_done = rc_done.CopyRef()](Error e) mutable {
             rc_done->UpdateState(std::move(e));
           });
@@ -303,7 +307,7 @@ void DistributedContext::SendKeepAlive(int delay_secs) {
     mutex_lock l(remote_clients_mu_);
     for (const auto& pair : remote_clients_) {
       pair.second->KeepAliveAsync(
-          request.get(), response.get(),
+          RemoteCallContext::GetDefault(), request.get(), response.get(),
           [request, response, done = done.CopyRef()](Error e) {
             done->UpdateState(std::move(e));
           });

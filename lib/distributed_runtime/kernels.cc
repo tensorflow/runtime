@@ -245,7 +245,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
     if (step == 0) {
       request->add_payload(split_data.data(), split_data.size());
       neighbor_client->SendDataAsync(
-          request.get(), response.get(),
+          RemoteCallContext::GetDefault(), request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
            refcounted_done = refcounted_done.CopyRef()](Error e) {
             refcounted_done->UpdateState(std::move(e));
@@ -274,7 +274,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
             request->add_payload(callback_value->data(),
                                  callback_value->size());
             neighbor_client->SendDataAsync(
-                request.get(), response.get(),
+                RemoteCallContext::GetDefault(), request.get(), response.get(),
                 [request = std::move(request), response = std::move(response),
                  refcounted_done = refcounted_done.CopyRef()](Error e) mutable {
                   refcounted_done->UpdateState(std::move(e));
@@ -297,7 +297,8 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
               request->add_payload(callback_value->data(),
                                    callback_value->size());
               neighbor_client->SendDataAsync(
-                  request.get(), response.get(),
+                  RemoteCallContext::GetDefault(), request.get(),
+                  response.get(),
                   [request = std::move(request), response = std::move(response),
                    refcounted_done =
                        refcounted_done.CopyRef()](Error e) mutable {
@@ -397,7 +398,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
       auto payload = GetSplit<T>(in_tensor, kGroupSize, num_elements, i);
       request->add_payload(payload.data(), payload.size());
       neighbor_client->SendDataAsync(
-          request.get(), response.get(),
+          RemoteCallContext::GetDefault(), request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
            refcounted_done = refcounted_done.CopyRef()](Error e) {
             refcounted_done->UpdateState(std::move(e));
@@ -419,7 +420,8 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
             if (neighbor_task != sender) {
               request->add_payload(data->data(), data->size());
               neighbor_client->SendDataAsync(
-                  request.get(), response.get(),
+                  RemoteCallContext::GetDefault(), request.get(),
+                  response.get(),
                   [request = std::move(request), response = std::move(response),
                    refcounted_done = refcounted_done.CopyRef()](Error e) {
                     refcounted_done->UpdateState(std::move(e));
@@ -477,7 +479,7 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
                          out = out.CopyRef()]() mutable {
     auto response = std::make_unique<RegisterFunctionResponse>();
     remote_client->RegisterFunctionAsync(
-        request.get(), response.get(),
+        RemoteCallContext::GetDefault(), request.get(), response.get(),
         [request = std::move(request), response = std::move(response),
          need_compilation, dist_context, out = out.CopyRef()](Error e) mutable {
           if (e) {
@@ -648,7 +650,7 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
                          remote_objs = std::move(remote_objs)]() mutable {
     auto response = std::make_unique<RemoteExecuteResponse>();
     remote_client->RemoteExecuteAsync(
-        request.get(), response.get(),
+        RemoteCallContext::GetDefault(), request.get(), response.get(),
         [request = std::move(request), response = std::move(response),
          out_chain = out_chain.CopyRef(), remote_objs = std::move(remote_objs),
          host_context = dist_context->GetHostContext()](Error e) mutable {
@@ -743,7 +745,7 @@ void SendBytes(Argument<DistributedContext> dist_context,
   }
   dist_context->GetRemoteClient(*receiver_task)
       ->SendDataAsync(
-          request.get(), response.get(),
+          RemoteCallContext::GetDefault(), request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
            dist_context = dist_context.ValueRef(),
            out_chain = out_chain_indirect.CopyRef()](Error e) {

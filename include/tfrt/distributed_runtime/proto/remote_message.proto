@@ -110,6 +110,34 @@ message RemoteExecuteResponse {
   repeated bytes metadata = 1;
 }
 
+// EXPERIMENTAL
+message RemoteOpIntAttribute {
+  string name = 1;
+  repeated int64 value = 2;
+  bool is_array = 3;
+}
+
+message RemoteExecuteOpRequest {
+  fixed64 context_id = 1;
+  string op_handler_name = 2;
+  string op_name = 3;
+
+  // Input and output chain on the remote side.
+  RemoteObjectIdProto in_chain = 4;
+  RemoteObjectIdProto out_chain = 5;
+
+  // Data inputs and outputs.
+  repeated RemoteObjectIdProto input = 6;
+  repeated RemoteExecuteOutput output = 7;
+
+  // Op attributes.  EXPERIMENTAL.
+  repeated RemoteOpIntAttribute attributes = 8;
+}
+
+message RemoteExecuteOpResponse {
+  repeated bytes metadata = 1;
+}
+
 message DeleteRemoteObjectsRequest {
   fixed64 context_id = 1;
 

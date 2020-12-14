@@ -97,6 +97,12 @@ class TestRequestHandler : public RequestHandlerInterface {
     cond_.notify_one();
   }
 
+  void HandleRemoteExecuteOp(const RemoteExecuteOpRequest* request,
+                             RemoteExecuteOpResponse* response,
+                             CallbackFn done) final {
+    return handler_->HandleRemoteExecuteOp(request, response, std::move(done));
+  }
+
   Error HandleKeepAlive(const KeepAliveRequest* request,
                         KeepAliveResponse* response) final {
     return handler_->HandleKeepAlive(request, response);
@@ -288,6 +294,17 @@ void TestRegisterFakeCompilerPass(RemainingArguments inputs,
       new FakeCompilerPass(compiled_program.get(), output_devices));
 }
 
+Expected<RCReference<Device>> TestGetRemoteDevice(
+    DistributedContext* dist_ctx, StringAttribute device_name,
+    const ExecutionContext& exec_ctx) {
+  auto remote_device = dist_ctx->GetRemoteDeviceManager()->GetDeviceRef<Device>(
+      device_name.get());
+  if (!remote_device) {
+    return MakeStringError("cannot find remote device ", device_name.get());
+  }
+  return std::move(remote_device);
+}
+
 }  // namespace
 
 void RegisterDistributedTestKernels(KernelRegistry* registry) {
@@ -305,6 +322,8 @@ void RegisterDistributedTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestPrintRemoteExecuteSpec));
   registry->AddKernel("tfrt_dist.test_register_fake_compiler_pass",
                       TFRT_KERNEL(TestRegisterFakeCompilerPass));
+  registry->AddKernel("tfrt_dist.test_get_remote_device",
+                      TFRT_KERNEL(TestGetRemoteDevice));
 }
 
 }  // namespace tfrt

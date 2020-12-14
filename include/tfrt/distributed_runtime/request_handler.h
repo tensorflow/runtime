@@ -58,6 +58,10 @@ class RequestHandlerInterface {
                                    RemoteExecuteResponse* response,
                                    CallbackFn done) = 0;
 
+  virtual void HandleRemoteExecuteOp(const RemoteExecuteOpRequest* request,
+                                     RemoteExecuteOpResponse* response,
+                                     CallbackFn done) = 0;
+
   virtual void HandleDeleteRemoteObjects(
       const DeleteRemoteObjectsRequest* request,
       DeleteRemoteObjectsResponse* response, CallbackFn done) = 0;

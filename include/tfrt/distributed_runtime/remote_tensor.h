@@ -36,6 +36,8 @@ class RemoteTensor : public Tensor, public TensorTraits<RemoteTensor> {
 
   static const char* name() { return "Remote"; }
 
+  const RemoteObjectId& remote_object_id() { return remote_object_id_; }
+
  private:
   RemoteObjectId remote_object_id_;
 };

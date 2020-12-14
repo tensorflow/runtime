@@ -122,6 +122,10 @@ class RemoteClientInterface {
   // the destination.
   CLIENT_METHOD(RemoteExecute);
 
+  // Execute a single op on a remote device.  The callback is invoked when
+  // execution completes on the remote side.
+  CLIENT_METHOD(RemoteExecuteOp);
+
   // Delete Remote objects on remote location. The callback will be invoked
   // after the deletion has completed on remote location.
   CLIENT_METHOD(DeleteRemoteObjects);

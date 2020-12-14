@@ -854,76 +854,135 @@ llvm::Expected<OwningModule> ModuleLoadData(CurrentContext current,
 
 namespace {
 
-struct CudaModuleLoadOptions {
-  explicit CudaModuleLoadOptions(const ModuleLoadOptions& in_options) {
-    if (in_options.info_log_buffer) {
-      options.push_back(CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES);
-      option_values.push_back(
-          reinterpret_cast<void*>(in_options.info_log_buffer->size()));
+template <Platform kPlatform>
+constexpr std::conditional_t<kPlatform == Platform::CUDA, CUjit_option,
+                             hipJitOption>
+EnumSwitch(CUjit_option cuda_opt, hipJitOption hip_opt);
 
-      options.push_back(CU_JIT_INFO_LOG_BUFFER);
-      option_values.push_back(
-          const_cast<char*>(in_options.info_log_buffer->data()));
-    }
-    if (in_options.error_log_buffer) {
-      options.push_back(CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES);
-      option_values.push_back(
-          reinterpret_cast<void*>(in_options.error_log_buffer->size()));
+template <>
+constexpr CUjit_option EnumSwitch<Platform::CUDA>(CUjit_option cuda_opt,
+                                                  hipJitOption hip_opt) {
+  return cuda_opt;
+}
 
-      options.push_back(CU_JIT_ERROR_LOG_BUFFER);
-      option_values.push_back(
-          const_cast<char*>(in_options.error_log_buffer->data()));
-    }
-    if (in_options.log_verbose) {
-      options.push_back(CU_JIT_LOG_VERBOSE);
-      option_values.push_back(reinterpret_cast<void*>(*in_options.log_verbose));
-    }
+template <>
+constexpr hipJitOption EnumSwitch<Platform::ROCm>(CUjit_option cuda_opt,
+                                                  hipJitOption hip_opt) {
+  return hip_opt;
+}
 
-    if (in_options.fallback_strategy) {
-      options.push_back(CU_JIT_FALLBACK_STRATEGY);
-      option_values.push_back(
-          reinterpret_cast<void*>(*in_options.fallback_strategy));
-    }
-  }
+template <Platform kPlatform>
+class JitOptions {
+ private:
+  static_assert(kPlatform != Platform::NONE,
+                "NONE platform cannot have JIT options.");
 
-  llvm::SmallVector<CUjit_option, 4> options;
-  llvm::SmallVector<void*, 4> option_values;
+ public:
+  using OptionType = std::conditional_t<kPlatform == Platform::CUDA,
+                                        CUjit_option, hipJitOption>;
+
+  static constexpr OptionType kInfoLogBuffer =
+      EnumSwitch<kPlatform>(CU_JIT_INFO_LOG_BUFFER, hipJitOptionInfoLogBuffer);
+  static constexpr OptionType kInfoLogBufferSize = EnumSwitch<kPlatform>(
+      CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES, hipJitOptionInfoLogBufferSizeBytes);
+  static constexpr OptionType kErrorLogBuffer = EnumSwitch<kPlatform>(
+      CU_JIT_ERROR_LOG_BUFFER, hipJitOptionErrorLogBuffer);
+  static constexpr OptionType kErrorLogBufferSize = EnumSwitch<kPlatform>(
+      CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES, hipJitOptionErrorLogBufferSizeBytes);
+  static constexpr OptionType kLogVerbose =
+      EnumSwitch<kPlatform>(CU_JIT_LOG_VERBOSE, hipJitOptionLogVerbose);
+  static constexpr OptionType kFallbackStrategy = EnumSwitch<kPlatform>(
+      CU_JIT_FALLBACK_STRATEGY, hipJitOptionFallbackStrategy);
 };
 
-struct HipModuleLoadOptions {
-  explicit HipModuleLoadOptions(const ModuleLoadOptions& in_options) {
-    if (in_options.info_log_buffer) {
-      options.push_back(hipJitOptionInfoLogBufferSizeBytes);
-      option_values.push_back(
-          reinterpret_cast<void*>(in_options.info_log_buffer->size()));
+// Avoid C++14 linkage issues by explicitly defining the values outside the
+// class.
+// TODO(imintz): Replace with inline constants when c++17.
+template <Platform P>
+constexpr typename JitOptions<P>::OptionType JitOptions<P>::kInfoLogBuffer;
+template <Platform P>
+constexpr typename JitOptions<P>::OptionType JitOptions<P>::kInfoLogBufferSize;
+template <Platform P>
+constexpr typename JitOptions<P>::OptionType JitOptions<P>::kErrorLogBuffer;
+template <Platform P>
+constexpr typename JitOptions<P>::OptionType JitOptions<P>::kErrorLogBufferSize;
+template <Platform P>
+constexpr typename JitOptions<P>::OptionType JitOptions<P>::kLogVerbose;
+template <Platform P>
+constexpr typename JitOptions<P>::OptionType JitOptions<P>::kFallbackStrategy;
 
-      options.push_back(hipJitOptionInfoLogBuffer);
-      option_values.push_back(
-          const_cast<char*>(in_options.info_log_buffer->data()));
+template <Platform kPlatform>
+class RawModuleLoadOptions {
+ public:
+  explicit RawModuleLoadOptions(const ModuleLoadOptions& in_options) {
+    // Sufficiently large  buffer size used for recording info/error logs.
+    constexpr size_t kBufferSize = 4096;
+
+    if (in_options.info_log_buffer != nullptr) {
+      options_.push_back(JitOptions<kPlatform>::kInfoLogBufferSize);
+      // CUDA writes the number of bytes written back into the options array, so
+      // record the position of the size value for write-back on cleanup.
+      info_log_buffer_size_opt_index_ = option_values_.size();
+      option_values_.push_back(reinterpret_cast<void*>(kBufferSize));
+
+      info_log_ = in_options.info_log_buffer;
+      info_log_->resize(kBufferSize);
+      options_.push_back(JitOptions<kPlatform>::kInfoLogBuffer);
+      option_values_.push_back(const_cast<char*>(info_log_->data()));
     }
-    if (in_options.error_log_buffer) {
-      options.push_back(hipJitOptionErrorLogBufferSizeBytes);
-      option_values.push_back(
-          reinterpret_cast<void*>(in_options.error_log_buffer->size()));
+    if (in_options.error_log_buffer != nullptr) {
+      options_.push_back(JitOptions<kPlatform>::kErrorLogBufferSize);
+      error_log_buffer_size_opt_index_ = option_values_.size();
+      option_values_.push_back(reinterpret_cast<void*>(kBufferSize));
 
-      options.push_back(hipJitOptionErrorLogBuffer);
-      option_values.push_back(
-          const_cast<char*>(in_options.error_log_buffer->data()));
+      error_log_ = in_options.error_log_buffer;
+      error_log_->resize(kBufferSize);
+      options_.push_back(JitOptions<kPlatform>::kErrorLogBuffer);
+      option_values_.push_back(const_cast<char*>(error_log_->data()));
     }
     if (in_options.log_verbose) {
-      options.push_back(hipJitOptionLogVerbose);
-      option_values.push_back(reinterpret_cast<void*>(*in_options.log_verbose));
+      options_.push_back(JitOptions<kPlatform>::kLogVerbose);
+      option_values_.push_back(
+          const_cast<int*>(in_options.log_verbose.getPointer()));
     }
 
     if (in_options.fallback_strategy) {
-      options.push_back(hipJitOptionFallbackStrategy);
-      option_values.push_back(
+      options_.push_back(JitOptions<kPlatform>::kFallbackStrategy);
+      option_values_.push_back(
           reinterpret_cast<void*>(*in_options.fallback_strategy));
     }
   }
 
-  llvm::SmallVector<hipJitOption, 4> options;
-  llvm::SmallVector<void*, 4> option_values;
+  ~RawModuleLoadOptions() { MaybeUpdateLogBufferLengths(); }
+
+  using OptionT = std::conditional_t<kPlatform == Platform::CUDA, CUjit_option,
+                                     hipJitOption>;
+
+  llvm::ArrayRef<OptionT> options() const { return options_; }
+  llvm::ArrayRef<void*> option_values() const { return option_values_; }
+
+ private:
+  // The CUDA interface writes the log output size at the address of the input
+  // length. This method is used to mask this interface and make it appear more
+  // sane.
+  void MaybeUpdateLogBufferLengths() {
+    if (info_log_) {
+      info_log_->resize(reinterpret_cast<size_t>(
+          option_values_[info_log_buffer_size_opt_index_]));
+    }
+    if (error_log_) {
+      error_log_->resize(reinterpret_cast<size_t>(
+          option_values_[error_log_buffer_size_opt_index_]));
+    }
+  }
+
+  llvm::SmallVector<OptionT, 4> options_;
+  llvm::SmallVector<void*, 4> option_values_;
+
+  std::string* info_log_;
+  int info_log_buffer_size_opt_index_ = -1;
+  std::string* error_log_;
+  int error_log_buffer_size_opt_index_ = -1;
 };
 
 }  // namespace
@@ -934,14 +993,14 @@ llvm::Expected<OwningModule> ModuleLoadDataEx(
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA: {
-      CudaModuleLoadOptions parsed_opts(options);
-      return CuModuleLoadDataEx(current, image, parsed_opts.options,
-                                parsed_opts.option_values);
+      RawModuleLoadOptions<Platform::CUDA> parsed_opts(options);
+      return CuModuleLoadDataEx(current, image, parsed_opts.options(),
+                                parsed_opts.option_values());
     }
     case Platform::ROCm: {
-      HipModuleLoadOptions parsed_opts(options);
-      return HipModuleLoadDataEx(current, image, parsed_opts.options,
-                                 parsed_opts.option_values);
+      RawModuleLoadOptions<Platform::ROCm> parsed_opts(options);
+      return HipModuleLoadDataEx(current, image, parsed_opts.options(),
+                                 parsed_opts.option_values());
     }
     default:
       return InvalidPlatform(platform);

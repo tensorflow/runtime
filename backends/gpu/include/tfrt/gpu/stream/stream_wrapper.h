@@ -674,8 +674,11 @@ llvm::Expected<OwningModule> ModuleLoadData(CurrentContext current,
                                             const void* image);
 
 struct ModuleLoadOptions {
-  llvm::Optional<llvm::ArrayRef<char>> info_log_buffer;
-  llvm::Optional<llvm::ArrayRef<char>> error_log_buffer;
+  // If set, the string will be resized automatically.
+  std::string* info_log_buffer;
+  // If set, the string will be resized automatically.
+  std::string* error_log_buffer;
+
   llvm::Optional<int> log_verbose;
 
   enum class FallbackStrategy { kPreferPtx, kPreferBinary };

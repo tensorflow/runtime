@@ -25,6 +25,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/logging.h"
 
 namespace tfrt {
 namespace gpu {
@@ -99,6 +100,27 @@ class MultiDeviceModuleTableImpl : public MultiDeviceModuleTable {
 
 }  // namespace
 
+// Wrapper for module loading that prints logs when in debug mode.
+static llvm::Expected<stream::OwningModule> LoadModule(
+    stream::CurrentContext current, const char* module_data) {
+#ifdef NDEBUG
+  return stream::ModuleLoadData(current, module_data);
+#else
+  std::string info_log;
+  std::string error_log;
+
+  stream::ModuleLoadOptions options{&info_log, &error_log, 1};
+  auto maybe_module = stream::ModuleLoadDataEx(current, module_data, options);
+  if (!info_log.empty()) {
+    TFRT_LOG_INFO << "CUDA JIT info Log: " << info_log;
+  }
+  if (!maybe_module) {
+    TFRT_LOG_ERROR << "CUDA JIT error Log: " << error_log;
+  }
+  return maybe_module;
+#endif
+}
+
 static bool IsCString(string_view s) { return s.back() == 0; }
 
 /*static*/ std::unique_ptr<MultiDeviceModuleTable>
@@ -126,7 +148,7 @@ MultiDeviceModuleTable::Create() {
   for (const auto& module_spec : spec.modules) {
     TFRT_ASSIGN_OR_RETURN(
         std::back_inserter(modules),
-        stream::ModuleLoadData(current, AS_CSTR(module_spec.module_data)));
+        LoadModule(current, AS_CSTR(module_spec.module_data)));
     for (string_view function_symbol : module_spec.function_symbols) {
       TFRT_ASSIGN_OR_RETURN(
           std::back_inserter(functions),

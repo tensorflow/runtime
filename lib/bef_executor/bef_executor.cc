@@ -99,12 +99,11 @@ AsyncValue* GetOrCreateRegisterValue(BEFFileImpl::RegisterInfo* reg,
   }
 }
 
-// Take one reference to `new_value` and set it in the register. It returns one
-// reference to the AsyncValue in the register so that the caller can still
-// access it. The final AsyncValue inside this register may be different from
-// `new_value` in case that there is an existing indirect async value.
-RCReference<AsyncValue> SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
-                                         RCReference<AsyncValue> new_value) {
+// Take one reference to `new_value` and set it in the register. The final
+// AsyncValue inside this register may be different from `new_value` in case
+// that there is an existing indirect async value.
+void SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
+                      RCReference<AsyncValue> result) {
   assert(reg->user_count > 0 &&
          "No need to set register value if it is not being used by anyone.");
   // Atomically set reg->value to new_value.
@@ -114,34 +113,58 @@ RCReference<AsyncValue> SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
   // Add user_count refs to new_value. Corresponding DropRefs will occur as
   // it's used.
   //
-  // Note that the caller thread (ie. producer) may still use `new_value` after
-  // this call, so we keep this additional reference, which brings the refcount
-  // to (user_count + 1).
-  new_value->AddRef(reg->user_count);
+  // Note that new_value already has +1 reference. So add (user_count - 1)
+  // more refs, bringing its effective refcount to +(user_count).
+  auto* new_value = result.release();
+  new_value->AddRef(reg->user_count - 1);
 
-  if (!COMPARE_EXCHANGE_STRONG(reg, existing, new_value.get())) {
+  if (!COMPARE_EXCHANGE_STRONG(reg, existing, new_value)) {
     // If there was already a value in it, it must be a IndirectAsyncValue. We
     // set the IndirectAsyncValue to point to the result.
     auto indirect_value = cast<IndirectAsyncValue>(existing);
 
     // Speculative AddRef above proved unneeded, so revert it.
-    new_value->DropRef(reg->user_count);
+    new_value->DropRef(reg->user_count - 1);
 
     // Give our +1 reference to 'new_value' to the indirect_value, since we are
     // not storing it in our register file.
-    indirect_value->ForwardTo(std::move(new_value));
+    indirect_value->ForwardTo(TakeRef(new_value));
 
     // If it is an indirect async value, its refcount is created to be
     // (user_count + 1) in GetOrCreateRegisterValue(). The additional reference
-    // is to ensure it is alive for the caller thread (ie. producer) in case it
-    // still need to access this AsyncValue after this call.
+    // is to ensure it is alive for the caller thread (ie. producer). Now that
+    // the producer has done with this async value, we can drop the reference.
     //
     // Please Refer to async_value.md#setting-a-register-counts-as-a-use for
     // detailed explantations.
-    return TakeRef(existing);
+    existing->DropRef();
   }
+}
 
-  return new_value;
+void DebugPrintError(const BEFKernel& kernel, unsigned kernel_id,
+                     AsyncValue* result) {
+#ifdef DEBUG_BEF_EXECUTOR
+  // Print the error in debug mode.
+  if (result->IsError()) {
+    std::string error_message;
+    llvm::raw_string_ostream os(error_message);
+    os << result->GetError();
+    DEBUG_PRINT("Kernel %d %s got error: %s\n", kernel_id,
+                BefFile()->GetKernelName(kernel.kernel_code()),
+                os.str().c_str());
+  }
+#endif
+}
+
+llvm::ArrayRef<unsigned> GetNextUsedBys(const BEFKernel& kernel,
+                                        int result_number, int* entry_offset) {
+  // Find used_by entries for this result.
+  auto num_used_bys = kernel.num_used_bys(result_number);
+  auto used_bys = kernel.GetKernelEntries(*entry_offset, num_used_bys);
+  // Move entry offset to used_bys for next result.
+  *entry_offset += num_used_bys;
+
+  return used_bys;
 }
 
 }  // namespace
@@ -186,9 +209,24 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   void ProcessReadyKernel(unsigned kernel_id,
                           SmallVectorImpl<unsigned>* ready_kernel_ids);
 
-  void ProcessUsedBys(const BEFKernel& kernel, int kernel_id, int result_number,
-                      AsyncValue* result, int* entry_offset,
-                      SmallVectorImpl<unsigned>* ready_kernel_ids);
+  // Enqueue the `users` of the `result` for later processing. If the result has
+  // no users, it will be skipped. If the result is immediately available, then
+  // we push them to `ready_kernel_ids`, otherwise we need to enqueue them into
+  // this unavailable result. This function also publish the `result` to the
+  // corresponding `result_register` so that the subscribers can use it.
+  void ProcessUsedBysAndSetRegister(llvm::ArrayRef<unsigned> users,
+                                    SmallVectorImpl<unsigned>* ready_kernel_ids,
+                                    RCReference<AsyncValue> result,
+                                    BEFFileImpl::RegisterInfo* result_register);
+
+  // Enqueue the `users` for the pseudo kernel's `result` for later processing.
+  // Different from ProcessUsedBysAndSetRegister(), it does not take ownership
+  // of the `result` and does not publish it to the corresponding register,
+  // because the `result` is a function argument and the register has been set
+  // up in BEFExecutor::Execute().
+  void ProcessPseudoKernelUsedBys(llvm::ArrayRef<unsigned> users,
+                                  SmallVectorImpl<unsigned>* ready_kernel_ids,
+                                  AsyncValue* result);
 
   void DecrementReadyCountAndEnqueue(
       ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids);
@@ -236,53 +274,70 @@ void BEFExecutor::DecrementReadyCountAndEnqueue(
   }
 }
 
-// Enqueue the users of the result for later processing. If a result has no
-// users, it will be skipped. If the kernel immediately completed a result, then
-// we can mark all kernels using it as ready to go by pushing it to
-// `ready_kernel_ids`, otherwise we need to enqueue them on their unavailable
-// operands. The `result` can be nullptr and in that case it is treated as an
-// available result.
-//
-// TODO(tfrt-devs): Consider using an always-ready async value for this case
-// instead of passing nullptr.
-void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
-                                 int result_number, AsyncValue* result,
-                                 int* entry_offset,
-                                 SmallVectorImpl<unsigned>* ready_kernel_ids) {
-  // Find used_by entries for this result.
-  auto num_used_bys = kernel.num_used_bys(result_number);
-  // Skip current result if there is no user.
-  if (num_used_bys == 0) {
+// Enqueue the `users` of the `result` for later processing. If the result has
+// no users, it will be skipped. If the result is immediately available, then we
+// push them to `ready_kernel_ids`, otherwise we need to enqueue them into this
+// unavailable result. This function also publish the `result` to the
+// corresponding `result_register` so that the subscribers can use it.
+void BEFExecutor::ProcessUsedBysAndSetRegister(
+    llvm::ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids,
+    RCReference<AsyncValue> result,
+    BEFFileImpl::RegisterInfo* result_register) {
+  if (users.empty()) {
+    SetRegisterValue(result_register, std::move(result));
     return;
   }
 
-  auto used_bys = kernel.GetKernelEntries(*entry_offset, num_used_bys);
-  // Move entry offset to used_bys for next result.
-  *entry_offset += num_used_bys;
-
-  assert(!used_bys.empty());
-
-  auto state = result ? result->state()
-                      : AsyncValue::State(AsyncValue::State::kConcrete);
-
-#ifdef DEBUG_BEF_EXECUTOR
-  // Print the error in debug mode.
-  if (state.IsError() && kernel_id >= 0) {
-    std::string error_message;
-    llvm::raw_string_ostream os(error_message);
-    os << result->GetError();
-    DEBUG_PRINT("Kernel %d %s got error: %s\n", kernel_id,
-                BefFile()->GetKernelName(kernel.kernel_code()),
-                os.str().c_str());
-  }
-#endif
-
-  // If this result is already available (because the kernel produced its
-  // result synchronously, or because the worker thread beat our thread)
-  // then we can immediately process any using kernel as part of our visit
-  // here. Just add it to the worklist for processing, to avoid recursion.
+  auto state = result->state();
   if (state.IsAvailable()) {
-    DecrementReadyCountAndEnqueue(used_bys, ready_kernel_ids);
+    // SetRegisterValue() must be done before DecrementReadyCountAndEnqueue()
+    // because as soon as we decrement a kernel's ready count, it might be
+    // executed in another thread.
+    SetRegisterValue(result_register, std::move(result));
+    DecrementReadyCountAndEnqueue(users, ready_kernel_ids);
+    return;
+  }
+
+  // Otherwise, the kernel is going to produce its result asynchronously -
+  // we process the user whenever the value becomes available.
+
+  // Keep this executor alive until the kernel runs.
+  AddRef();
+
+  // Process the whole batch when this result becomes available. Note that
+  // we capture `users` which is an ArrayRef instead of copying the
+  // content. This is fine because the underlying BEF file is supposed to be
+  // alive when the BEF executor is alive.
+  auto* result_ptr = result.get();
+  result_ptr->AndThen(
+      [this, users, result_register, result = std::move(result)]() mutable {
+        SmallVector<unsigned, 4> ready_kernel_ids;
+        // SetRegisterValue() must be done before
+        // DecrementReadyCountAndEnqueue() because as soon as we decrement a
+        // kernel's ready count, it might be executed in another thread.
+        SetRegisterValue(result_register, std::move(result));
+        this->DecrementReadyCountAndEnqueue(users, &ready_kernel_ids);
+        this->ProcessReadyKernels(&ready_kernel_ids);
+        this->DropRef();
+      });
+}
+
+// Enqueue the `users` for the pseudo kernel's `result` for later processing.
+// Different from ProcessUsedBysAndSetRegister(), it does not take ownership of
+// the `result` and does not publish it to the corresponding register, because
+// the `result` is a function argument and the register has been set up in
+// BEFExecutor::Execute().
+//
+// TODO(tfrt-devs): Consider also setting the argument register here so that we
+// can unify ProcessUsedBysAndSetRegister() and ProcessPseudoKernelUsedBys().
+void BEFExecutor::ProcessPseudoKernelUsedBys(
+    llvm::ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids,
+    AsyncValue* result) {
+  if (users.empty()) return;
+
+  auto state = result->state();
+  if (state.IsAvailable()) {
+    DecrementReadyCountAndEnqueue(users, ready_kernel_ids);
     return;
   }
 
@@ -293,12 +348,12 @@ void BEFExecutor::ProcessUsedBys(const BEFKernel& kernel, int kernel_id,
   AddRef();
 
   // Process the whole batch when this result becomes available. Note that we
-  // capture `used_bys` which is an ArrayRef instead of copying the content.
-  // This is fine because the underlying BEF file is supposed to be alive when
-  // the BEF executor is alive.
-  result->AndThen([this, used_bys]() mutable {
+  // capture `users` which is an ArrayRef instead of copying the content. This
+  // is fine because the underlying BEF file is supposed to be alive when the
+  // BEF executor is alive.
+  result->AndThen([this, users]() {
     SmallVector<unsigned, 4> ready_kernel_ids;
-    this->DecrementReadyCountAndEnqueue(used_bys, &ready_kernel_ids);
+    this->DecrementReadyCountAndEnqueue(users, &ready_kernel_ids);
     this->ProcessReadyKernels(&ready_kernel_ids);
     this->DropRef();
   });
@@ -333,8 +388,9 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
   assert(!results.empty());
   assert(results.front() == register_array.size());
 
-  ProcessUsedBys(kernel, /*kernel_id=*/-1, /*result_number=*/0,
-                 /*result=*/nullptr, &used_by_offset, ready_kernel_ids);
+  // Process the pseudo result first, which has no corresponding AsyncValue.
+  auto used_bys = GetNextUsedBys(kernel, /*result_number=*/0, &used_by_offset);
+  DecrementReadyCountAndEnqueue(used_bys, ready_kernel_ids);
 
   for (int result_number = 1; result_number < results.size(); ++result_number) {
     auto& result_register = register_array[results[result_number]];
@@ -344,9 +400,10 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
     AsyncValue* result = GetRegisterValue(result_register);
     assert(result && "Argument AsyncValue is not set.");
 
+    auto used_bys = GetNextUsedBys(kernel, result_number, &used_by_offset);
+
     // Process users of this result.
-    ProcessUsedBys(kernel, /*kernel_id=*/-1, result_number, result,
-                   &used_by_offset, ready_kernel_ids);
+    ProcessPseudoKernelUsedBys(used_bys, ready_kernel_ids, result);
   }
 }
 
@@ -478,20 +535,13 @@ void BEFExecutor::ProcessReadyKernel(
       continue;
     }
 
-    // Pin this register to the current thread to ensure that it is alive.
-    // Note that SetRegisterValue() will publish this AsyncValue to other
-    // threads and they may DropRef() at any point of time after calling
-    // SetRegisterValue(). So we hold an additional reference here.
-    //
-    // TODO(tfrt-devs): Consider moving the call SetRegisterValue() to
-    // ProcessUsedBys() after the last use of this AsyncValue, so that we
-    // don't need this extra reference counting in some cases.
-    RCReference<AsyncValue> register_value =
-        SetRegisterValue(&result_register, TakeRef(result));
+    DebugPrintError(kernel, kernel_id, result);
+
+    auto used_bys = GetNextUsedBys(kernel, result_number, &entry_offset);
 
     // Process users of this result.
-    ProcessUsedBys(kernel, kernel_id, result_number, register_value.get(),
-                   &entry_offset, ready_kernel_ids);
+    ProcessUsedBysAndSetRegister(used_bys, ready_kernel_ids, TakeRef(result),
+                                 &result_register);
   }
 }
 

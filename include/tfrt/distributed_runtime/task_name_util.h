@@ -39,6 +39,9 @@ class TaskNameUtil {
   static std::string ConcatDeviceName(string_view job_name, int task_id,
                                       string_view device_name);
 
+  // Maybe strip the job name and task name from device name.
+  static std::string StripDevicePrefix(string_view device_name);
+
   // Parse a full task name (e.g., "/job:worker/task:1") to extract the job name
   // (e.g., "worker") and task id (e.g., 1)
   //

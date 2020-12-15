@@ -60,7 +60,8 @@ DistributedContext::DistributedContext(
   // the fully specified device name to the remote device manager.
   for (auto& device : local_device_mgr->ListDevices<Device>()) {
     const std::string& device_name = TaskNameUtil::ConcatDeviceName(
-        dist_config_.job_name(), dist_config_.task_id(), device->name());
+        dist_config_.job_name(), dist_config_.task_id(),
+        TaskNameUtil::StripDevicePrefix(device->name()));
     auto remote_device =
         NewRemoteDevice(device_name, device->type().name(), task_handle);
     cluster_device_mgr_.MaybeAddDevice(TakeRef(remote_device.get()));
@@ -144,8 +145,9 @@ void DistributedContext::GetRemoteDevices(
               return;
             }
             for (const auto& device_info : response->devices()) {
-              std::string device_name = TaskNameUtil::ConcatDeviceName(
-                  job_name, task_id, device_info.name());
+              const std::string device_name = TaskNameUtil::ConcatDeviceName(
+                  job_name, task_id,
+                  TaskNameUtil::StripDevicePrefix(device_info.name()));
               auto expected =
                   NewRemoteDevice(device_name, device_info.type(), task_handle);
               if (expected) {

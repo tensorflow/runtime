@@ -27,13 +27,24 @@
 #include "tfrt/support/string_util.h"
 
 namespace tfrt {
+static const char kDevicePrefix[] = "/device:";
+
 std::string TaskNameUtil::ConcatTaskName(string_view job_name, int task_id) {
   return StrCat("/job:", job_name, "/task:", task_id);
 }
 
 std::string TaskNameUtil::ConcatDeviceName(string_view job_name, int task_id,
                                            string_view device_name) {
-  return StrCat("/job:", job_name, "/task:", task_id, "/device:", device_name);
+  return StrCat("/job:", job_name, "/task:", task_id, kDevicePrefix,
+                device_name);
+}
+
+std::string TaskNameUtil::StripDevicePrefix(string_view device_name) {
+  std::size_t pos = device_name.find(kDevicePrefix);
+  if (pos != std::string::npos) {
+    return device_name.substr(pos + strlen(kDevicePrefix)).str();
+  }
+  return device_name.str();
 }
 
 // Regex pattern for an acceptable task name.

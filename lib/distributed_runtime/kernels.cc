@@ -723,9 +723,11 @@ AsyncValueRef<Chain> SetChainForTaskHandle(
   return MakeAvailableAsyncValueRef<Chain>(exec_ctx.host());
 }
 
-AsyncValueRef<Chain> GetDistributedContext(const ExecutionContext& exec_ctx) {
-  return MakeErrorAsyncValueRef(
-      exec_ctx.host(), DecodedDiagnostic("this kernel is not implemented"));
+AsyncValueRef<DistributedContext> GetDistributedContext(
+    const ExecutionContext& exec_ctx) {
+  return exec_ctx.request_ctx()
+      ->GetData<AsyncValueRef<DistributedContext>>()
+      .CopyRef();
 }
 
 void SendBytes(Argument<DistributedContext> dist_context,

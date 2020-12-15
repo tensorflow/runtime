@@ -206,7 +206,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 
   // Process a single kernel specified by `kernel_id`, and populate the ready
   // users in `ready_kernel_ids`.
-  void ProcessReadyKernel(unsigned kernel_id,
+  void ProcessReadyKernel(unsigned kernel_id, KernelFrameBuilder* kernel_frame,
                           SmallVectorImpl<unsigned>* ready_kernel_ids);
 
   // Enqueue the `users` of the `result` for later processing. If the result has
@@ -410,17 +410,13 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
 // Process the kernel for `kernel_id` and populate `ready_kernel_ids` with ready
 // users.
 void BEFExecutor::ProcessReadyKernel(
-    unsigned kernel_id, SmallVectorImpl<unsigned>* ready_kernel_ids) {
+    unsigned kernel_id, KernelFrameBuilder* kernel_frame,
+    SmallVectorImpl<unsigned>* ready_kernel_ids) {
   MutableArrayRef<BEFFileImpl::RegisterInfo> register_array = register_infos();
 
   assert(kernel_infos()[kernel_id].offset % kKernelEntryAlignment == 0);
   BEFKernel kernel(kernels().data() +
                    kernel_infos()[kernel_id].offset / kKernelEntryAlignment);
-
-  // Process the kernel record to get information about what argument
-  // registers, result registers, and attributes should be passed.
-  KernelFrameBuilder kernel_frame(exec_ctx_);
-  kernel_frame.SetAttributeSection(BefFile()->attribute_section_);
 
   // Keep track of whether we saw any error arguments. If so, we propagate
   // the error to the results automatically. Initialize it with the cancel
@@ -452,13 +448,13 @@ void BEFExecutor::ProcessReadyKernel(
     AsyncValue* value = GetOrCreateRegisterValue(&reg, GetHost());
     // TODO(b/142757465): remove arguments_and_results_ vector in
     // AsyncKernelFrame.
-    kernel_frame.AddArg(value);
+    kernel_frame->AddArg(value);
     if (value->IsError()) any_error_argument = value;
   }
 
   // TODO(b/142757465): remove arguments_and_results_ vector in
   // AsyncKernelFrame.
-  kernel_frame.SetNumResults(kernel.num_results());
+  kernel_frame->SetNumResults(kernel.num_results());
 
   // Set up attributes.
   entry_offset += arguments.size();
@@ -467,8 +463,8 @@ void BEFExecutor::ProcessReadyKernel(
   for (auto attribute_offset : attributes) {
     // We pass the pointer here because this attribute could be an array of
     // size 0.
-    kernel_frame.AddAttribute(BefFile()->attribute_section_.data() +
-                              attribute_offset);
+    kernel_frame->AddAttribute(BefFile()->attribute_section_.data() +
+                               attribute_offset);
   }
 
   // Set up functions.
@@ -477,7 +473,7 @@ void BEFExecutor::ProcessReadyKernel(
       kernel.GetKernelEntries(entry_offset, kernel.num_functions());
   for (auto fn_idx : functions) {
     // Functions are passed as their corresponding `Function`.
-    kernel_frame.AddAttribute(BefFile()->functions_[fn_idx].get());
+    kernel_frame->AddAttribute(BefFile()->functions_[fn_idx].get());
   }
 
   // If all arguments are good or if the kernel is non-strict, run the
@@ -485,26 +481,26 @@ void BEFExecutor::ProcessReadyKernel(
   if (any_error_argument == nullptr || is_nonstrict_kernel) {
     // Get the location to pass down to the kernels so they can report an
     // error.
-    kernel_frame.SetLocation(
+    kernel_frame->SetLocation(
         {BefFile()->location_handler(), kernel.kernel_location()});
 
     // kernel_fn should populate results in kernel_frame with pointers to
     // AsyncValue before it returns.
     {
       TFRT_TRACE_SCOPE(Default, BefFile()->GetKernelName(kernel.kernel_code()));
-      kernel_fn(&kernel_frame);
+      kernel_fn(kernel_frame);
     }
   } else {
     // Otherwise, automatically propagate errors to the result values.
-    for (size_t i = 0, e = kernel_frame.GetNumResults(); i != e; ++i) {
-      kernel_frame.SetResultAt(i, FormRef(any_error_argument));
+    for (size_t i = 0, e = kernel_frame->GetNumResults(); i != e; ++i) {
+      kernel_frame->SetResultAt(i, FormRef(any_error_argument));
     }
   }
 
   // Now that the kernel had a chance to look at the arguments, we're done
   // with them, so they can potentially be deallocated if this was the last
   // kernel to use them.
-  for (auto* arg : kernel_frame.GetArguments()) arg->DropRef();
+  for (auto* arg : kernel_frame->GetArguments()) arg->DropRef();
 
   // The following loop iterates over all results of the kernel. If a result
   // has no users, it will be skipped. If the kernel immediately completed a
@@ -526,7 +522,7 @@ void BEFExecutor::ProcessReadyKernel(
            GetRegisterValue(result_register)->IsUnresolvedIndirect());
 
     // Copy back the result AsyncValue to this result register.
-    AsyncValue* result = kernel_frame.GetResultAt(result_number);
+    AsyncValue* result = kernel_frame->GetResultAt(result_number);
     assert(result && "Kernel did not set result AsyncValue");
     if (result_register.user_count == 0) {
       // If no one uses this result, skip storing the value in the register.
@@ -550,6 +546,11 @@ void BEFExecutor::ProcessReadyKernel(
 // kernels.
 void BEFExecutor::ProcessReadyKernels(
     SmallVectorImpl<unsigned>* ready_kernel_ids) {
+  // Process the kernel record to get information about what argument
+  // registers, result registers, and attributes should be passed.
+  KernelFrameBuilder kernel_frame(exec_ctx_);
+  kernel_frame.SetAttributeSection(BefFile()->attribute_section_);
+
   while (!ready_kernel_ids->empty()) {
     // If there are more than one ready kernel, except the first one, we
     // evaluate each of these kernels and their dependents in a separate thread.
@@ -567,10 +568,15 @@ void BEFExecutor::ProcessReadyKernels(
 
     // For the first ready kernel, we dispatch it inline.
     unsigned first_kernel_id = ready_kernel_ids->front();
+
     // Clear the work list so that ready users can be populated for the next
     // round of processing.
     ready_kernel_ids->clear();
-    ProcessReadyKernel(first_kernel_id, ready_kernel_ids);
+
+    // Reset the kernel frame for the current kernel invocation.
+    kernel_frame.Reset();
+
+    ProcessReadyKernel(first_kernel_id, &kernel_frame, ready_kernel_ids);
   }
 }
 

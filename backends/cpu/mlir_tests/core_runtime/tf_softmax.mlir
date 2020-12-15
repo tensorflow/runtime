@@ -83,7 +83,7 @@ func @test_log_softmax_higher_rank_f32() -> !tfrt.chain {
   %cpu_handle_result = corert.executeop(%cpu) "tf.LogSoftmax"(%operand_0) : 1
 
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 2, 2]
-  // CHECK-SAME: [-1.313262e+00, -3.132616e-01, -1.313262e+00, -3.132616e-01, -1.313262e+00, -3.132616e-01, -1.313262e+00, -3.132616e-01]
+  // CHECK-SAME: [-1.313262e+00, -3.13261{{.}}e-01, -1.313262e+00, -3.13261{{.}}e-01, -1.313262e+00, -3.13261{{.}}e-01, -1.313262e+00, -3.13261{{.}}e-01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

@@ -20,7 +20,7 @@
 #include "tfrt/core_runtime/opdefs/sync/core_runtime.h"
 
 #include "mlir/IR/Builders.h"
-#include "mlir/IR/StandardTypes.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 #include "tfrt/core_runtime/opdefs/corert_utils.h"
 #include "tfrt/core_runtime/opdefs/types.h"

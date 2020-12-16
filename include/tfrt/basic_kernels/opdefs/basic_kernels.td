@@ -458,4 +458,22 @@ def PrintI64Op : PrintOp<"i64", I64>;
 def PrintF32Op : PrintOp<"f32", F32>;
 def PrintF64Op : PrintOp<"f64", F64>;
 
+def GetDeviceOp : TFRT_Op<"get_device"> {
+  let summary = "Get the device object from the given device name";
+  let description = [{
+    Get the device object from the given device name.
+
+    Example:
+      %result = tfrt.get_device %chain { device_name="GPU:0" }
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$chain_in,
+    StrAttr:$device_name
+  );
+  let results = (outs TFRT_DeviceType:$result);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
 #endif  // BASIC_OPS

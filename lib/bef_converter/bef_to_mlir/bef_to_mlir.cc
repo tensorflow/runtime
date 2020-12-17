@@ -1050,7 +1050,7 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
   func_op.getBody().takeBody(*region);
 
   if (bef_function.IsSyncFunction()) {
-    func_op.setAttr("tfrt.sync", mlir::UnitAttr::get(&context_));
+    func_op->setAttr("tfrt.sync", mlir::UnitAttr::get(&context_));
   }
   return func_op;
 }
@@ -1061,7 +1061,7 @@ mlir::FuncOp BEFToMLIRConverter::CreateNativeFuncOp(
   auto type = mlir::FunctionType::get(bef_function.argument_types,
                                       bef_function.result_types, &context_);
   auto func_op = mlir::FuncOp::create(location, bef_function.name, type);
-  func_op.setAttr("tfrt.native", mlir::UnitAttr::get(&context_));
+  func_op->setAttr("tfrt.native", mlir::UnitAttr::get(&context_));
   func_op.setPrivate();
   return func_op;
 }

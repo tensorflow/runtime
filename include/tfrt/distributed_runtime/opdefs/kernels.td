@@ -131,6 +131,31 @@ foreach dtype = ["i32", "f32"] in {
   def Dist_BroadcastOp_#dtype : BroadcastOp<dtype>;
 }
 
+class AllGatherFixedShapeOp<string dtype> : DistOp<"cpu.allgather_fixed_shape." # dtype> {
+  let summary = "dist.cpu.allgather_fixed_shape operation";
+
+  let description = [{
+    An operation to perform an allgather primitive on tensors of the same shape.
+
+    Example:
+      %out_chain = dist.cpu.allgather_fixed_shape.i32 %context, %collective_group_name, %instance_id, %input, %output, %in_chain
+  }];
+
+  let arguments = (ins
+    DistributedContextType,
+    TFRT_StringType,
+    TFRT_StringType,
+    TensorType,
+    TensorType,
+    TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = "operands attr-dict";
+}
+
+foreach dtype = ["i32", "f32"] in {
+  def Dist_AllGatherFixedShapeOp_#dtype : AllGatherFixedShapeOp<dtype>;
+}
+
 // Test kernels
 // TODO(ayushd): Implement set_up_from_string, create_collective_group kernels
 def CreateConfigurations : DistOp<"test_create_configurations"> {

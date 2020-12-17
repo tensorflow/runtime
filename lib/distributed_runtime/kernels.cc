@@ -450,6 +450,131 @@ void Broadcast(Argument<DistributedContext> dist_context,
   });
 }
 
+// AllGather functionality for both AllGatherFixed and AllGatherAny.
+// For AllGatherFixed, sizes will be empty.
+// For AllGatherAny, sizes will be non-empty.
+template <typename T>
+void DoAllGather(const ExecutionContext& exec_ctx,
+                 AsyncValueRef<DistributedContext> dist_ctx,
+                 const InstanceKey& instance_key,
+                 const CollectiveGroup& collective_group, const int my_index,
+                 const DenseHostTensor& in_tensor, DenseHostTensor& out_tensor,
+                 RCReference<RefCountedCallback> refcounted_done,
+                 MutableArrayRef<size_t> sizes = {}) {
+  const auto kGroupSize = collective_group.members.size();
+  const auto kNeighborIndex = (my_index + 1) % kGroupSize;
+  const auto kNeighborId = collective_group.members[kNeighborIndex];
+  const auto kPrefix = collective_group.name;
+  const auto kContextId = dist_ctx->GetContextId();
+  auto in_tensor_ref =
+      llvm::StringRef(reinterpret_cast<const char*>(in_tensor.data()),
+                      in_tensor.DataSizeInBytes());
+  auto out_tensor_ref = reinterpret_cast<char*>(out_tensor.data());
+  const auto num_elements = in_tensor.NumElements();
+  auto* registry = dist_ctx->GetCallbackRegistry();
+  RemoteClientInterface* neighbor_client =
+      dist_ctx->GetRemoteClient(kNeighborId);
+
+  for (size_t ring_order = 0; ring_order < kGroupSize; ++ring_order) {
+    const auto chunk_key = StepKey(kPrefix, instance_key, ring_order);
+    const size_t pos =
+        sizes.empty() ? ring_order * num_elements : sizes[ring_order];
+    auto request = std::make_unique<SendDataRequest>();
+    auto response = std::make_unique<SendDataResponse>();
+    request->set_context_id(kContextId);
+    request->set_instance_key(StepKey(kPrefix, chunk_key, kNeighborIndex));
+    if (my_index == ring_order) {
+      std::copy(in_tensor_ref.begin(), in_tensor_ref.end(),
+                out_tensor_ref + pos * sizeof(T));
+      request->add_payload(in_tensor_ref.data(), in_tensor_ref.size());
+      neighbor_client->SendDataAsync(
+          RemoteCallContext::GetDefault(), request.get(), response.get(),
+          [request = std::move(request), response = std::move(response),
+           refcounted_done = refcounted_done.CopyRef()](Error e) {
+            refcounted_done->UpdateState(std::move(e));
+          });
+
+    } else {
+      registry->SetCallback(
+          StepKey(kPrefix, chunk_key, my_index),
+          [ring_order, out_tensor_ref, pos, kNeighborIndex, neighbor_client,
+           request = std::move(request), response = std::move(response),
+           refcounted_done = refcounted_done.CopyRef()](
+              const InstanceKey&,
+              CallbackRegistry::CallbackValue callback_value) mutable {
+            // A neighbor receives data and forwards it to its neighbor.
+            std::copy(callback_value->begin(), callback_value->end(),
+                      out_tensor_ref + pos * sizeof(T));
+            if (ring_order != kNeighborIndex) {
+              request->add_payload(callback_value->data(),
+                                   callback_value->size());
+              neighbor_client->SendDataAsync(
+                  RemoteCallContext::GetDefault(), request.get(),
+                  response.get(),
+                  [request = std::move(request), response = std::move(response),
+                   refcounted_done = refcounted_done.CopyRef()](Error e) {
+                    refcounted_done->UpdateState(std::move(e));
+                  });
+            }
+          });
+    }
+  }
+}
+
+template <typename T>
+void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
+                         Argument<std::string> collective_group_name,
+                         Argument<InstanceKey> instance_key,
+                         Argument<DenseHostTensor> in_tensor,
+                         Argument<DenseHostTensor> out_tensor,
+                         Argument<Chain> in_chain, Result<Chain> out_chain,
+                         const ExecutionContext& exec_ctx) {
+  auto out_chain_indirect = out_chain.Allocate();
+  const auto& collective_group =
+      dist_ctx->GetCollectiveGroup(collective_group_name.get());
+  int my_index =
+      FindMyIndex(collective_group.members, dist_ctx->GetTaskHandle());
+  if (my_index == -1) {
+    out_chain_indirect.SetError(
+        "This worker is not part of the collective group ");
+    return;
+  }
+  auto* registry = dist_ctx->GetCallbackRegistry();
+  auto done = [out_tensor = out_tensor.ValueRef(), registry,
+               instance_key = *instance_key,
+               out_chain = std::move(out_chain_indirect),
+               dist_ctx = dist_ctx.ValueRef()](Error e) mutable {
+    if (e) {
+      out_chain.SetError(e);
+    } else {
+      out_chain.emplace();
+    }
+    registry->SetValue(instance_key, /*value=*/nullptr);
+  };
+  auto refcounted_done = TakeRef(
+      new RefCountedCallback([host = dist_ctx->GetHostContext(), exec_ctx,
+                              done = std::move(done)](Error e) mutable {
+        if (host->IsInWorkerThread()) {
+          done(std::move(e));
+        } else {
+          EnqueueWork(exec_ctx,
+                      [done = std::move(done), e = std::move(e)]() mutable {
+                        done(std::move(e));
+                      });
+        }
+      }));
+
+  EnqueueWork(exec_ctx, [exec_ctx, my_index, instance_key = *instance_key,
+                         collective_group, dist_ctx = dist_ctx.ValueRef(),
+                         in_tensor_ref = in_tensor.ValueRef(),
+                         out_tensor_ref = out_tensor.ValueRef(),
+                         refcounted_done = refcounted_done.CopyRef()] {
+    DoAllGather<T>(exec_ctx, dist_ctx.CopyRef(), instance_key, collective_group,
+                   my_index, in_tensor_ref.get(), out_tensor_ref.get(),
+                   refcounted_done.CopyRef());
+  });
+}
+
 void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
                                 const TaskHandle receiver,
                                 RemainingResults results,
@@ -802,6 +927,10 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(Broadcast<float>));
   registry->AddKernel("tfrt_dist.cpu.broadcast.i32",
                       TFRT_KERNEL(Broadcast<int32_t>));
+  registry->AddKernel("tfrt_dist.cpu.allgather_fixed_shape.f32",
+                      TFRT_KERNEL(AllGatherFixedShape<float>));
+  registry->AddKernel("tfrt_dist.cpu.allgather_fixed_shape.i32",
+                      TFRT_KERNEL(AllGatherFixedShape<int32_t>));
   registry->AddKernel("tfrt_dist.create_remote_execute_spec",
                       TFRT_KERNEL(CreateRemoteExecuteSpec));
   registry->AddKernel("tfrt_dist.remote_execute",

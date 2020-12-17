@@ -64,8 +64,8 @@ func @return(%arg: i32) -> i32 {
 
 // CHECK-LABEL: func @constant(
 func @constant() {
-  // CHECK-NEXT: %0 = tfrt.constant.i1 0
-  %a = tfrt.constant.i1 0
+  // CHECK-NEXT: %0 = tfrt.constant.i1 false
+  %a = tfrt.constant.i1 false
   // CHECK-NEXT: %1 = tfrt.constant.i32 41
   %b = tfrt.constant.i32 41
   // CHECK-NEXT: %2 = tfrt.constant.f32 1.000000e-01

@@ -16,10 +16,10 @@
 
 // CHECK-LABEL: func @integer1.constant() -> i1
 func @integer1.constant() -> i1 {
-  // CHECK-NEXT: [[REG:%.*]] = tfrt.constant.i1 1
+  // CHECK-NEXT: [[REG:%.*]] = tfrt.constant.i1 true
   // CHECK-NEXT: tfrt.return [[REG]] : i1
 
-  %x = tfrt.constant.i1 1
+  %x = tfrt.constant.i1 true
   tfrt.return %x : i1
 }
 

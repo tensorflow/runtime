@@ -26,6 +26,7 @@
 
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 // A simple compiler pass interface. This is meant to provide temporary
@@ -34,14 +35,17 @@ namespace tfrt {
 // ready.
 class CompilerPass {
  public:
-  virtual ~CompilerPass() {}
-
   struct CompilationOutput {
     mlir::OwningModuleRef module;
     llvm::SmallVector<std::string, 4> output_devices;
   };
+
+  virtual ~CompilerPass() {}
+
+  virtual mlir::OwningModuleRef ParseMlirProgram(
+      string_view program, mlir::MLIRContext* context) const = 0;
   virtual llvm::Expected<CompilationOutput> Compile(
-      mlir::ModuleOp module) const = 0;
+      mlir::ModuleOp module, mlir::MLIRContext* context) const = 0;
 };
 
 void RegisterCompilerPass(const std::string& name, CompilerPass*);

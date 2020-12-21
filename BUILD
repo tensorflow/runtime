@@ -1250,6 +1250,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:StandardOps",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
     ],
 )

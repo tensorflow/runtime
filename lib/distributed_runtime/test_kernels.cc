@@ -20,6 +20,7 @@
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser.h"
@@ -261,15 +262,26 @@ class FakeCompilerPass : public CompilerPass {
   ~FakeCompilerPass() override {}
   FakeCompilerPass(string_view compiled_program,
                    const llvm::SmallVector<std::string, 4>& output_devices)
-      : compiled_program_(compiled_program), output_devices_(output_devices) {
-    RegisterTFRTDialects(context_.getDialectRegistry());
-    context_.allowUnregisteredDialects();
+      : compiled_program_(compiled_program), output_devices_(output_devices) {}
+
+  mlir::OwningModuleRef ParseMlirProgram(
+      string_view program, mlir::MLIRContext* context) const override {
+    tfrt::RegisterTFRTDialects(context->getDialectRegistry());
+    context->getDialectRegistry().insert<mlir::StandardOpsDialect>();
+    context->allowUnregisteredDialects();
+
+    TFRT_DLOG(INFO) << "Parsing: " << program;
+
+    return mlir::parseSourceString(program, context);
   }
 
   llvm::Expected<CompilationOutput> Compile(
-      mlir::ModuleOp module) const override {
+      mlir::ModuleOp module, mlir::MLIRContext* context) const override {
+    RegisterTFRTDialects(context->getDialectRegistry());
+    context->allowUnregisteredDialects();
+
     CompilationOutput output;
-    output.module = mlir::parseSourceString(compiled_program_, &context_);
+    output.module = mlir::parseSourceString(compiled_program_, context);
     output.output_devices = output_devices_;
 
     return std::move(output);
@@ -281,10 +293,9 @@ class FakeCompilerPass : public CompilerPass {
   llvm::SmallVector<std::string, 4> output_devices_;
 };
 
-void TestRegisterFakeCompilerPass(RemainingArguments inputs,
-                                  StringAttribute compiled_program,
-                                  StringAttribute compiler_pass_name,
-                                  const ExecutionContext& exec_ctx) {
+AsyncValueRef<Chain> TestRegisterFakeCompilerPass(
+    RemainingArguments inputs, StringAttribute compiled_program,
+    StringAttribute compiler_pass_name, const ExecutionContext& exec_ctx) {
   llvm::SmallVector<std::string, 4> output_devices;
   for (int i = 0; i < inputs.size(); ++i) {
     output_devices.push_back(inputs[i]->get<std::string>());
@@ -292,6 +303,7 @@ void TestRegisterFakeCompilerPass(RemainingArguments inputs,
   RegisterCompilerPass(
       compiler_pass_name.str(),
       new FakeCompilerPass(compiled_program.get(), output_devices));
+  return GetReadyChain(exec_ctx.host());
 }
 
 Expected<RCReference<Device>> TestGetRemoteDevice(

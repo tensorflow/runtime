@@ -192,6 +192,8 @@ def RegisterFakeCompilerPass : DistOp<"test_register_fake_compiler_pass"> {
     Variadic<TFRT_StringType>:$output_devices
   );
 
+  let results = (outs TFRT_ChainType : $chain);
+
   let assemblyFormat = [{
       $compiler_pass_name $compiled_program `(` $output_devices `)` attr-dict
   }];

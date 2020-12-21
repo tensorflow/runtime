@@ -23,10 +23,6 @@
 
 #include "llvm/Support/Error.h"
 #include "llvm/Support/raw_ostream.h"
-#include "mlir/Dialect/StandardOps/IR/Ops.h"
-#include "mlir/IR/BuiltinOps.h"
-#include "mlir/IR/MLIRContext.h"
-#include "mlir/Parser.h"
 #include "tfrt/bef_converter/mlir_src_to_bef.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"
 #include "tfrt/bef_executor/bef_file.h"
@@ -55,7 +51,7 @@
 
 namespace tfrt {
 namespace {
-const char* kCompilerPassName = "partition_tf_dialect";
+const char* kCompilerPassName = "tfrt";
 void ToProto(const RemoteObjectId& id, RemoteObjectIdProto* proto) {
   proto->set_prefix_id(id.prefix_id);
   proto->set_local_id(id.local_id);
@@ -179,41 +175,41 @@ void RequestHandler::HandleRegisterFunction(
   if (!expected) done(expected.takeError());
   DistributedContext* dist_context = expected.get();
 
+  const CompilerPass* pass = GetCompilerPass(kCompilerPassName);
   BEFBuffer bef_buffer;
+  if (pass == nullptr) {
+    done(llvm::make_error<NotFoundErrorInfo>(
+        StrCat("Compiler pass not found for program: ",
+               request->program_name()),
+        dist_context->GetTaskName()));
+    return;
+  }
+  mlir::MLIRContext context;
+  mlir::OwningModuleRef module =
+      pass->ParseMlirProgram(request->program(), &context);
+  if (!module) {
+    done(llvm::make_error<MalformattedMlirFileErrorInfo>(
+        StrCat("Failed parsing program:", request->program_name()),
+        dist_context->GetTaskName()));
+    return;
+  };
   if (request->need_compilation()) {
-    // Create MLIR module from the request.
-    mlir::MLIRContext context;
-    context.allowUnregisteredDialects();
-    auto module = mlir::parseSourceString(request->program(), &context);
-
-    const CompilerPass* pass = GetCompilerPass(kCompilerPassName);
-    if (pass == nullptr) {
-      TFRT_LOG(ERROR) << "Not implemented";
-      done(llvm::make_error<NotFoundErrorInfo>(
-          StrCat("Compiler pass not found for program: ",
-                 request->program_name()),
-          dist_context->GetTaskName()));
-      return;
-    }
     llvm::Expected<CompilerPass::CompilationOutput> output_or =
-        pass->Compile(module.get());
+        pass->Compile(module.get(), &context);
     if (!output_or) {
       done(llvm::make_error<CompilationFailedErrorInfo>(
           StrCat("Failed to convert MLIR to BEF: ", request->program_name()),
           dist_context->GetTaskName()));
       return;
     }
-
     CompilerPass::CompilationOutput output = std::move(output_or.get());
-    bef_buffer = ConvertMLIRToBEF(output.module.get(),
-                                  /* disable_optional_sections = */ true);
     for (const auto& output_device : output.output_devices) {
       response->add_output_device(output_device);
     }
-  } else {
-    bef_buffer = ConvertMLIRSrcToBEF(request->program(),
-                                     /* disable_optional_sections = */ true);
+    module = std::move(output.module);
   }
+  bef_buffer = ConvertMLIRToBEF(module.get(),
+                                /* disable_optional_sections = */ true);
   if (bef_buffer.empty()) {
     done(llvm::make_error<MalformattedMlirFileErrorInfo>(
         StrCat("Failed to convert MLIR to BEF: ", request->program_name()),

@@ -66,6 +66,41 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "async_runtime",
+    srcs = [
+        "lib/jit/async_runtime.cc",
+    ],
+    hdrs = [
+        "include/tfrt/cpu/jit/async_runtime.h",
+    ],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:mlir_async_runtime_api",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "async_runtime_api",
+    srcs = [
+        "lib/jit/async_runtime_api.cc",
+    ],
+    hdrs = [
+        "include/tfrt/cpu/jit/async_runtime_api.h",
+    ],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":async_runtime",
+        "@llvm-project//llvm:OrcJIT",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
     name = "jit_contraction_output_kernel",
     srcs = [
         "lib/jit/contraction_output_kernel.cc",

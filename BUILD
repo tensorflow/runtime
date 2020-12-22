@@ -1362,3 +1362,43 @@ tfrt_cc_library(
         "@llvm-project//mlir:StandardOps",
     ],
 )
+
+gentbl(
+    name = "tpu_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/tpu/opdefs/tpu_ops.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/tpu/opdefs/tpu_ops_opdefs.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/tpu/opdefs/tpu_ops.td",
+    td_includes = ["include"],
+    td_srcs = [
+        ":OpBaseTdFiles",
+        "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
+    ],
+)
+
+tfrt_cc_library(
+    name = "tpu_opdefs",
+    srcs = [
+        "lib/tpu/opdefs/tpu_ops.cc",
+    ],
+    hdrs = [
+        "include/tfrt/tpu/opdefs/tpu_ops.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":basic_kernels_opdefs",
+        ":core_runtime_opdefs",
+        ":tensor_opdefs",
+        ":tpu_opdefs_inc_gen",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)

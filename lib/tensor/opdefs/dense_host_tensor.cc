@@ -67,7 +67,7 @@ static Type getTensorType(mlir::MLIRContext *context) {
 static ParseResult parseCreateUninitTensorOp(OpAsmParser &parser,
                                              OperationState &result) {
   // Shape is a list of i64.
-  Type attrType = IntegerType::get(64, result.getContext());
+  Type attrType = IntegerType::get(result.getContext(), 64);
   auto tensorType = getTensorType(result.getContext());
 
   Attribute valueAttr;

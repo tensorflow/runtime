@@ -96,10 +96,7 @@ static LogicalResult verify(CallOp op) {
 }
 
 mlir::FunctionType CallOp::getCalleeType() {
-  SmallVector<Type, 4> resultTypes(getResultTypes().begin(),
-                                   getResultTypes().end());
-  SmallVector<Type, 8> argTypes(getOperandTypes());
-  return FunctionType::get(argTypes, resultTypes, getContext());
+  return FunctionType::get(getContext(), getOperandTypes(), getResultTypes());
 }
 
 // Verify that the specified region contains a tfrt.return operation with the
@@ -170,7 +167,7 @@ ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
 
   auto body_operands = llvm::makeArrayRef(operands).drop_front();
   auto body_types = types.getInputs();
-  auto i1_type = IntegerType::get(1, result.getContext());
+  auto i1_type = IntegerType::get(result.getContext(), 1);
   if (parser.resolveOperand(operands[0], i1_type, result.operands) ||
       parser.resolveOperands(body_operands, types.getInputs(), type_loc,
                              result.operands))
@@ -311,7 +308,7 @@ static ParseResult parseRepeatI32Op(OpAsmParser &parser,
     return parser.emitError(parser.getCurrentLocation(), "expected trip count");
 
   auto loop_operands = llvm::makeArrayRef(operands).drop_front();
-  auto i32_type = IntegerType::get(32, result.getContext());
+  auto i32_type = IntegerType::get(result.getContext(), 32);
 
   if (parser.resolveOperand(operands[0], i32_type, result.operands) ||
       parser.resolveOperands(loop_operands, types, type_loc, result.operands))
@@ -391,7 +388,7 @@ static ParseResult parseParallelForI32Op(OpAsmParser &parser,
   if (parser.parseOptionalColonTypeList(types)) return failure();
 
   // Resolve parsed parallel for bounds operands ...
-  auto i32_type = IntegerType::get(32, result.getContext());
+  auto i32_type = IntegerType::get(result.getContext(), 32);
   if (parser.resolveOperand(start, i32_type, result.operands) ||
       parser.resolveOperand(end, i32_type, result.operands) ||
       parser.resolveOperand(block_size, i32_type, result.operands)) {
@@ -494,7 +491,7 @@ static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
   if (parser.parseOptionalColonTypeList(types)) return failure();
 
   // Resolve parsed parallel call bounds operands ...
-  auto i32_type = IntegerType::get(32, result.getContext());
+  auto i32_type = IntegerType::get(result.getContext(), 32);
   if (parser.resolveOperand(start, i32_type, result.operands) ||
       parser.resolveOperand(end, i32_type, result.operands) ||
       parser.resolveOperand(block_size, i32_type, result.operands)) {
@@ -550,7 +547,7 @@ static LogicalResult verify(ParallelCallI32Op op) {
   if (fnType.getNumInputs() != op.getNumOperands() - 1)
     return op.emitOpError("incorrect number of callee operands");
 
-  auto i32_type = IntegerType::get(32, op.getContext());
+  auto i32_type = IntegerType::get(op.getContext(), 32);
   for (unsigned i = 0; i != 2; ++i) {
     if (fnType.getInput(i) != i32_type)
       return op.emitOpError("callee must take stard and end indices first");

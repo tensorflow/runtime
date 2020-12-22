@@ -1043,8 +1043,8 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
                                           return_op.operand_type_end());
 
   // If it is a named function, create a top level mlir function.
-  auto function_type = mlir::FunctionType::get(bef_function.argument_types,
-                                               result_types, &context_);
+  auto function_type = mlir::FunctionType::get(
+      &context_, bef_function.argument_types, result_types);
   auto func_op =
       mlir::FuncOp::create(location, bef_function.name, function_type);
   func_op.getBody().takeBody(*region);
@@ -1058,8 +1058,8 @@ mlir::FuncOp BEFToMLIRConverter::CreateBEFFuncOp(
 mlir::FuncOp BEFToMLIRConverter::CreateNativeFuncOp(
     const mlir::Location& location, const BEFFunction& bef_function) {
   assert(bef_function.kind == FunctionKind::kNativeFunction);
-  auto type = mlir::FunctionType::get(bef_function.argument_types,
-                                      bef_function.result_types, &context_);
+  auto type = mlir::FunctionType::get(&context_, bef_function.argument_types,
+                                      bef_function.result_types);
   auto func_op = mlir::FuncOp::create(location, bef_function.name, type);
   func_op->setAttr("tfrt.native", mlir::UnitAttr::get(&context_));
   func_op.setPrivate();
@@ -1300,10 +1300,9 @@ mlir::IntegerAttr BEFAttributeReader::ReadIntegerAttribute(BEFReader* reader,
     value = value | (static_cast<uint64_t>(byte) << (8 * i));
   }
   return mlir::IntegerAttr::get(
-      mlir::IntegerType::get(bit_width,
+      mlir::IntegerType::get(&context_, bit_width,
                              is_unsigned ? mlir::IntegerType::Unsigned
-                                         : mlir::IntegerType::Signless,
-                             &context_),
+                                         : mlir::IntegerType::Signless),
       value);
 }
 
@@ -1560,7 +1559,7 @@ mlir::Operation* BEFFunctionReader::ReadKernel(ArrayRef<uint32_t> kernels,
     auto attr = bef_file_.GetAttribute(attribute_offset);
     if (!attr)
       // Use dummy values for unknown attributes.
-      attr = mlir::IntegerAttr::get(mlir::IntegerType::get(32, &context_),
+      attr = mlir::IntegerAttr::get(mlir::IntegerType::get(&context_, 32),
                                     0xdeadbeef);
 
     state.addAttribute(attr_name, attr);

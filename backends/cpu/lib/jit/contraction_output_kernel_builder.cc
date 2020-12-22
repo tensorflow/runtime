@@ -69,7 +69,7 @@ FuncOp CreateOutputKernelFunc(ModuleOp module, string_view function_name,
   MLIRContext* ctx = module.getContext();
 
   auto f32_ty = FloatType::getF32(ctx);
-  auto i64_ty = IntegerType::get(64, ctx);
+  auto i64_ty = IntegerType::get(ctx, 64);
 
   std::array<int64_t, 2> dynamic_dims = {ShapedType::kDynamicSize,
                                          ShapedType::kDynamicSize};
@@ -89,7 +89,7 @@ FuncOp CreateOutputKernelFunc(ModuleOp module, string_view function_name,
   auto builder = OpBuilder::atBlockBegin(module.getBody());
   auto function =
       builder.create<FuncOp>(FILELOC(ctx), unique_function_name,
-                             mlir::FunctionType::get(arg_types, {}, ctx));
+                             mlir::FunctionType::get(ctx, arg_types, {}));
   function.addEntryBlock();
 
   return function;

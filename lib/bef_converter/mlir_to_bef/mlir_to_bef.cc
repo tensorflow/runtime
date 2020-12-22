@@ -314,7 +314,7 @@ static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   SmallVector<mlir::Type, 4> results;
   for (auto op : last_op.getOperands()) results.push_back(op.getType());
 
-  return mlir::FunctionType::get(inputs, results, region->getContext());
+  return mlir::FunctionType::get(region->getContext(), inputs, results);
 }
 
 static bool IsOpAttrsTyped(mlir::Operation* op) {

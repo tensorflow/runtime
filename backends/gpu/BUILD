@@ -81,6 +81,16 @@ tfrt_cc_library(
     ],
 )
 
+# This is a backward compartible wrapper for cublasGemmEx to support
+# cuBLAS v10 and v11 builds.
+tfrt_cc_library(
+    name = "cublas_compat",
+    srcs = ["lib/stream/cublas_compat.cc"],
+    deps = [
+        "@local_cuda//:cuda_headers",
+    ],
+)
+
 tfrt_cc_library(
     name = "gpu_stream_wrapper",
     srcs = [
@@ -128,6 +138,7 @@ tfrt_cc_library(
             "@cuda_headers//:cudart_static",
             "@cuda_headers//:cusolver_static",
             "@cudnn_headers//:cudnn",
+            ":cublas_compat",
         ],
         "//conditions:default": [":cuda_stubs"],
     }),

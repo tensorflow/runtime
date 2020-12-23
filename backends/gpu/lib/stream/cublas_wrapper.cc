@@ -1688,6 +1688,32 @@ llvm::Error CublasZtrmm(CurrentContext current, cublasHandle_t handle,
                                  ToCuda(alpha), ToCuda(A), lda, ToCuda(B), ldb,
                                  ToCuda(C), ldc));
 }
+
+// Following function is defined in cublas_stub.cc
+// backward compartible wrapper for the cublasGemmEx
+// to accomodate for the API change between cuBLAS v10 and v11.
+extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmEx_v10(
+    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
+    int m, int n, int k, const void* alpha, /* host or device pointer */
+    const void* A, cudaDataType Atype, int lda, const void* B,
+    cudaDataType Btype, int ldb, const void* beta, /* host or device pointer */
+    void* C, cudaDataType Ctype, int ldc, cudaDataType computeType,
+    cublasGemmAlgo_t algo);
+
+llvm::Error CublasGemmEx(CurrentContext current, cublasHandle_t handle,
+                         cublasOperation_t transa, cublasOperation_t transb,
+                         int m, int n, int k, Pointer<const void> alpha,
+                         Pointer<const void> A, cudaDataType Atype, int lda,
+                         Pointer<const void> B, cudaDataType Btype, int ldb,
+                         Pointer<const void> beta, Pointer<void> C,
+                         cudaDataType Ctype, int ldc, cudaDataType computeType,
+                         cublasGemmAlgo_t algo) {
+  CheckCudaContext(current);
+  return TO_ERROR(cublasGemmEx_v10(handle, transa, transb, m, n, k,
+                                   ToCuda(alpha), ToCuda(A), Atype, lda,
+                                   ToCuda(B), Btype, ldb, ToCuda(beta),
+                                   ToCuda(C), Ctype, ldc, computeType, algo));
+}
 }  // namespace stream
 }  // namespace gpu
 }  // namespace tfrt

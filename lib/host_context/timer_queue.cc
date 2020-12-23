@@ -24,6 +24,7 @@ namespace tfrt {
 
 TimerQueue::TimerQueue() {
   // Start the timer thread.
+  // TODO(tfrt-devs): use alternative to std::thread in google-internal build.
   timer_thread_ = std::thread([this]() { TimerThreadRun(); });
 }
 

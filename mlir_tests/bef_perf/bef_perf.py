@@ -58,7 +58,6 @@ from mlir_tests.bef_perf.benchmark_utils import Env  # from @tf_runtime
 assert sys.version_info >= (3, 5), \
     'Detected Python version %s. Please use Python >= 3.5.' % sys.version
 
-TFRT_DIR = ''
 BUILD_DIR = 'bazel-bin'
 
 
@@ -140,11 +139,11 @@ def main():
       help='Type of work queue (s(default), mstd, ...)')
   parser.add_argument(
       '--tfrt_translate',
-      default=os.path.join(BUILD_DIR, TFRT_DIR, 'tools/tfrt_translate'),
+      default=os.path.join(BUILD_DIR, 'tools/tfrt_translate'),
       help='Path to tfrt_translate')
   parser.add_argument(
       '--bef_executor',
-      default=os.path.join(BUILD_DIR, TFRT_DIR, 'tools/bef_executor'),
+      default=os.path.join(BUILD_DIR, 'tools/bef_executor'),
       help='Path to bef_executor')
 
   args = parser.parse_args()

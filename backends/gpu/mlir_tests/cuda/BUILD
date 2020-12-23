@@ -5,6 +5,7 @@ licenses(["notice"])
 glob_tfrt_lit_tests(
     data = [":test_utilities"],
     default_tags = ["requires-gpu-nvidia"],
+    # copybara:uncomment driver = "@tf_runtime//backends/gpu/mlir_tests:run_lit.sh",
     tfrt_translate = "@tf_runtime//backends/gpu:tfrt_gpu_translate",
 )
 

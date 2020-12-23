@@ -17,7 +17,10 @@ tfrt_cc_library(
     ],
     visibility = [
         ":__subpackages__",
+        # copybara:uncomment "//third_party/tensorflow/core/runtime_fallback:__subpackages__",
+        # copybara:uncomment "//third_party/tensorflow/core/tfrt:__subpackages__",
         "@tf_runtime//backends/gpu/cpp_tests:__subpackages__",
+        # copybara:uncomment "//third_party/tf_runtime_google/cpp_tests:__subpackages__",
     ],
     deps = [
         "@com_google_googletest//:gtest",
@@ -340,6 +343,7 @@ tfrt_cc_library(
     ],
     visibility = [
         ":__subpackages__",
+        # copybara:uncomment "//third_party/tf_runtime_google/cpp_tests:__subpackages__",
     ],
     deps = [
         "@com_google_googletest//:gtest",

@@ -3,6 +3,7 @@ load("@tf_runtime//:build_defs.bzl", "tfrt_cc_test")
 licenses(["reciprocal"])
 
 package(
+    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
     default_visibility = ["@tf_runtime//:friends"],
 )
 

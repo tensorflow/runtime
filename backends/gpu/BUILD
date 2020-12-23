@@ -1,11 +1,16 @@
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
 load(
+    # copybara:uncomment_begin
+    # "@cuda_headers//:build_defs.bzl",
+    # copybara:uncomment_end_and_comment_begin
     "@rules_cuda//cuda:defs.bzl",
+    # copybara:comment_end
     "cuda_library",
 )
 
 package(
+    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
     default_visibility = [":__subpackages__"],
 )
 
@@ -14,10 +19,17 @@ licenses(["notice"])
 package_group(
     name = "tests_and_tools",
     packages = [
+        # copybara:uncomment_begin
+        # "@tf_runtime//backends/gpu/...",
+        # # Authorized users go here.
+        # "@tf_runtime//tools/...",
+        # "@tf_runtime//cpp_tests/...",
+        # copybara:uncomment_end_and_comment_begin
         "//backends/gpu/...",
         # Authorized users go here.
         "//tools/...",
         "//cpp_tests/...",
+        # copybara:comment_end
     ],
 )
 
@@ -55,9 +67,14 @@ tfrt_cc_library(
     visibility = ["//visibility:private"],
     deps = [
         # No CUDA shared object dependencies, they are dynamically loaded.
+        # copybara:uncomment_begin
+        # "@cuda_headers//:cuda_headers",
+        # "@cudnn_headers//:cudnn_header",
+        # copybara:uncomment_end_and_comment_begin
         # TODO(csigg): change to @cuda_headers once crt is included.
         "@local_cuda//:cuda_headers",
         "@cudnn_headers",
+        # copybara:comment_end
         "@tf_runtime//:support",
         "@tf_runtime//third_party/cuda:stub_inc",
         "@llvm-project//llvm:Support",

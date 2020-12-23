@@ -1,9 +1,13 @@
 load(":build_defs.bzl", "tfrt_cc_library")
+
+# copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_setting")
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
+# copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
+    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
     default_visibility = [":__subpackages__"],
 )
 
@@ -23,7 +27,11 @@ exports_files([
 # Setting to distinguish google-internal builds from open-source builds.
 string_setting(
     name = "build_env",
+    # copybara:uncomment_begin
+    # build_setting_default = "google",
+    # copybara:uncomment_end_and_comment_begin
     build_setting_default = "oss",
+    # copybara:comment_end
     values = [
         "google",
         "oss",
@@ -45,7 +53,11 @@ config_setting(
 # This is the default and only valid option in open-source.
 bool_flag(
     name = "std_thread",
+    # copybara:uncomment_begin
+    # build_setting_default = False,
+    # copybara:uncomment_end_and_comment_begin
     build_setting_default = True,
+    # copybara:comment_end
 )
 
 # Setting whether to use std::thread/mutex instead of ABSL's.
@@ -71,8 +83,24 @@ config_setting(
 # Config setting to conditionally link GPU targets.
 alias(
     name = "gpu_enabled",
+    # copybara:uncomment_begin
+    # actual = "//tools/cc_target_os:linux-google",
+    # copybara:uncomment_end_and_comment_begin
     actual = "@rules_cuda//cuda:cuda_enabled",
+    # copybara:comment_end
 )
+
+# copybara:uncomment_begin
+# ncl_test(
+#     name = "tf_host_runtime_blueprint_test",
+#     srcs = ["tf_host_runtime.blueprint"],
+#     data = [
+#         ":bluze.textproto",
+#         "//devtools/blueprint/bluze/public:bluze_ncl",
+#         "//devtools/blueprint/ncl:sanitizer",
+#     ],
+# )
+# copybara:uncomment_end
 
 tfrt_cc_library(
     name = "profiled_allocator",
@@ -921,6 +949,16 @@ tfrt_cc_library(
     ],
 )
 
+# copybara:uncomment_begin
+# py_library(
+#     name = "btf_writer",
+#     srcs = ["utils/btf_writer.py"],
+#     srcs_version = "PY3",
+#     visibility = [":friends"],
+#     deps = ["//third_party/py/numpy"],
+# )
+# copybara:uncomment_end
+
 tfrt_cc_library(
     name = "test_kernels",
     srcs = [
@@ -1204,6 +1242,7 @@ tfrt_cc_library(
 proto_library(
     name = "cluster_config_proto",
     srcs = ["include/tfrt/distributed_runtime/proto/cluster_config.proto"],
+    # copybara:uncomment cc_api_version = 2,
     visibility = [":friends"],
 )
 
@@ -1216,6 +1255,7 @@ cc_proto_library(
 proto_library(
     name = "remote_message_proto",
     srcs = ["include/tfrt/distributed_runtime/proto/remote_message.proto"],
+    # copybara:uncomment cc_api_version = 2,
     visibility = [":friends"],
     deps = [":cluster_config_proto"],
 )

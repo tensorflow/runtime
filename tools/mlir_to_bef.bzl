@@ -42,6 +42,7 @@ def glob_tfrt_lit_tests(
         data = [],
         default_size = "small",
         default_tags = [],
+        # copybara:uncomment driver = "@tf_runtime//mlir_tests:run_lit.sh",
         exclude = [],
         # Do not run "tfrt_translate -mlir-to-bef" on these files.
         no_bef_translation = [],
@@ -59,15 +60,24 @@ def glob_tfrt_lit_tests(
         exclude_directories = 1,
     )
 
+    # copybara:uncomment_begin
+    # # TODO(csigg): Change to `select()` once lit_test supports it.
+    # data = data + ["@llvm-project//mlir:run_lit.sh"]
+    # copybara:uncomment_end
+
     # Pass generated .bef files to glob_lit_tests as per_test_extra_data.
     per_test_extra_data = {}
     for mlir_file in mlir_files:
         bef_file = mlir_to_bef(mlir_file, tfrt_translate)
         per_test_extra_data[mlir_file] = [bef_file]
 
+        # Generate mpm files to allow running tests on production machines (e.g. borg)
+        # copybara:uncomment mlir_to_mpm(mlir_file, bef_file, data)
+
     glob_lit_tests(
         data = data,
         per_test_extra_data = per_test_extra_data,
+        # copybara:uncomment driver = driver,
         test_file_exts = ["mlir"],
         default_size = default_size,
         default_tags = default_tags,

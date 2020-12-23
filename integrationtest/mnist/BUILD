@@ -13,6 +13,19 @@ glob_tfrt_lit_tests(
     default_tags = ["integration_test"],
 )
 
+# copybara:uncomment_begin
+# # pickle to btf conversion is internal.
+# genrule(
+#     name = "format_mnist_btf",
+#     srcs = ["test_data/mnist_tensors.pickle"],
+#     outs = ["mnist_tensors.btf"],
+#     cmd = """
+#     $(location //third_party/tf_runtime/utils/mnist:convert_from_pickle_to_btf.par) \
+#     --output_file $@ --input_files $(SRCS)""",
+#     exec_tools = ["@tf_runtime//utils/mnist:convert_from_pickle_to_btf.par"],
+# )
+# copybara:uncomment_end
+
 # Bundle together all of the test utilities that are used by tests.
 filegroup(
     name = "test_utilities",

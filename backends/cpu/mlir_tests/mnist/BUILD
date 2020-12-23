@@ -4,6 +4,7 @@ licenses(["notice"])
 
 package(default_visibility = [
     "@tf_runtime//:__subpackages__",
+    # copybara:uncomment "//third_party/tf_runtime_google:__subpackages__",
 ])
 
 exports_files([

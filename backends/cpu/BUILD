@@ -1,6 +1,8 @@
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
+# copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
+    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
     default_visibility = [":__subpackages__"],
 )
 
@@ -271,3 +273,58 @@ tfrt_cc_library(
         "@tf_runtime//backends/common:tf_bcast",
     ],
 )
+
+# copybara:uncomment_begin
+# # temporarily remove. TODO(donglin): enable proto and image to OSS.
+# tfrt_cc_library(
+#     name = "proto",
+#     srcs = [
+#         "lib/kernels/proto/proto_kernels.cc",
+#     ],
+#     alwayslink_static_registration_src = "lib/kernels/proto/static_registration.cc",
+#     defines = ["GOOGLE_PROTOBUF_NO_RTTI=1"],
+#     visibility = ["@tf_runtime//:friends"],
+#     deps = [
+#         ":lib_cc_proto",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tracing",
+#     ],
+# )
+#
+# cc_proto_library(
+#     name = "lib_cc_proto",
+#     deps = [":lib_proto"],
+# )
+#
+# proto_library(
+#     name = "lib_proto",
+#     srcs = ["include/tfrt/cpu/kernels/proto/example.proto"],
+#     cc_api_version = 2,
+# )
+#
+# tfrt_cc_library(
+#     name = "image",
+#     srcs = [
+#         "lib/kernels/image/image_kernels.cc",
+#         "lib/kernels/image/jpeg/jpeg_handle.cc",
+#         "lib/kernels/image/jpeg/jpeg_handle.h",
+#         "lib/kernels/image/jpeg/jpeg_mem.cc",
+#         "lib/kernels/image/jpeg/jpeg_mem.h",
+#         "lib/kernels/image/resize_bilinear_op.cc",
+#         "lib/kernels/image/resize_bilinear_op.h",
+#     ],
+#     alwayslink_static_registration_src = "lib/kernels/image/static_registration.cc",
+#     visibility = ["@tf_runtime//:friends"],
+#     deps = [
+#         "//third_party/libjpeg_turbo:jpeg",
+#         "@llvm-project//llvm:Support",
+#         "@tf_runtime//:dtype",
+#         "@tf_runtime//:hostcontext",
+#         "@tf_runtime//:support",
+#         "@tf_runtime//:tensor",
+#         "@tf_runtime//:tracing",
+#     ],
+# )
+# copybara:uncomment_end

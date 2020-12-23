@@ -2,7 +2,12 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
 
 package(
+    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
+    # copybara:uncomment_begin
+    # default_visibility = ["@tf_runtime//:__subpackages__"],
+    # copybara:uncomment_end_and_comment_begin
     default_visibility = ["//:__subpackages__"],
+    # copybara:comment_end
 )
 
 licenses(["notice"])
@@ -11,6 +16,12 @@ package_group(
     name = "friends",
     packages = [
         "//...",
+        # copybara:uncomment_begin
+        # # Authorized users go here.
+        # "//third_party/tf_runtime_google/...",
+        # "//third_party/tensorflow/core/runtime_fallback/...",
+        # "//third_party/tensorflow/lite/experimental/tf_runtime/...",
+        # copybara:uncomment_end
     ],
 )
 
@@ -53,6 +64,18 @@ tfrt_cc_binary(
         "@tf_runtime//:tensor",
     ],
 )
+
+# copybara:uncomment_begin
+# py_test(
+#     name = "btf_info_test",
+#     srcs = ["btf_info_tool/btf_info_test.py"],
+#     python_version = "PY3",
+#     deps = [
+#         ":btf_info",
+#         "@tf_runtime//:btf_writer",
+#     ],
+# )
+# copybara:uncomment_end
 
 tfrt_cc_library(
     name = "bef_executor_lib",
@@ -150,8 +173,7 @@ tfrt_cc_binary(
 )
 
 # Command to build the code_size_test_driver manually:
-# bazel build --config=code_size_test
-#     //tools:code_size_test_driver
+# bazel build --config=code_size_test tools:code_size_test_driver
 #
 # In order to build for Android, add '--config=android_arm64'.
 tfrt_cc_binary(

@@ -68,7 +68,7 @@ tfrt_cc_library(
     deps = [
         # No CUDA shared object dependencies, they are dynamically loaded.
         # copybara:uncomment_begin
-        # "@cuda_headers//:cuda_headers",
+        # "@cuda_headers",
         # "@cudnn_headers//:cudnn_header",
         # copybara:uncomment_end_and_comment_begin
         # TODO(csigg): change to @cuda_headers once crt is included.
@@ -81,14 +81,13 @@ tfrt_cc_library(
     ],
 )
 
-# This is a backward compartible wrapper for cublasGemmEx to support
+# This is a backward compatible wrapper for cublasGemmEx to support
 # cuBLAS v10 and v11 builds.
 tfrt_cc_library(
     name = "cublas_compat",
     srcs = ["lib/stream/cublas_compat.cc"],
-    deps = [
-        "@local_cuda//:cuda_headers",
-    ],
+    tags = ["manual"],
+    deps = ["@cuda_headers"],
 )
 
 tfrt_cc_library(
@@ -134,7 +133,7 @@ tfrt_cc_library(
             # CUDA libraries are statically linked.
             "//platforms/gpus/cuda/dynamic_libcuda",
             "@cuda_headers//:cublas_static",
-            "@cuda_headers//:cuda_headers",
+            "@cuda_headers",
             "@cuda_headers//:cudart_static",
             "@cuda_headers//:cusolver_static",
             "@cudnn_headers//:cudnn",

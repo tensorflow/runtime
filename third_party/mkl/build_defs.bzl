@@ -104,7 +104,7 @@ def mkl_deps():
       inclusion in the deps attribute of rules.
     """
     return select({
-        str(Label("//third_party/mkl_dnn:build_with_mkl_dnn_only")): ["@mkl_dnn"],
+        str(Label("//third_party/mkl_dnn:build_with_mkl_dnn_only")): ["@mkl_dnn//:mkl_dnn"],
         str(Label("//third_party/mkl_dnn:build_with_mkl_dnn_v1_only")): ["@mkl_dnn_v1//:mkl_dnn"],
         str(Label("//third_party/mkl:build_with_mkl_ml_only")): ["//third_party/mkl:intel_binary_blob"],
         str(Label("//third_party/mkl:build_with_mkl")): [

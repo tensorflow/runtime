@@ -46,7 +46,7 @@ func @memcpy_host_to_device_and_back_test() {
   %ch31 = tfrt_cuda.mem.copy_device_to_host %context, %result_host_buffer, %device_buffer, %size, %stream, %ch20
 
   // Create, record, and poll an event to make sure copy back to host completed.
-  %event, %ch40 = tfrt_cuda.event.create %context, %ch2
+  %event = tfrt_cuda.event.create %context
   %ch41 = tfrt_cuda.event.record %event, %stream, %ch31
   %ch42 = tfrt_cuda.event.poll %event, %ch41
 

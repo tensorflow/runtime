@@ -96,14 +96,13 @@ def StreamSynchronizeOp : CUDA_Op<"stream.synchronize"> {
 def EventCreateOp : CUDA_Op<"event.create"> {
   let summary = "cuda event.create operation";
   let description = [{
-    tfrt_cuda.event.create creates a CUDA event.
+    tfrt_cuda.event.create creates a CUDA event in the provided context..
 
     Example:
-      %ch1 = tfrt.new.chain
-      %event, %ch2 = tfrt_cuda.event.create %context %ch1
+      %event = tfrt_cuda.event.create %context
   }];
-  let arguments = (ins ContextType, TFRT_ChainType);
-  let results = (outs EventType, TFRT_ChainType);
+  let arguments = (ins ContextType);
+  let results = (outs EventType);
 }
 
 def EventRecordOp : CUDA_Op<"event.record"> {

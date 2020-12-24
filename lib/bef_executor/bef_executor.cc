@@ -546,6 +546,8 @@ void BEFExecutor::ProcessReadyKernel(
 // kernels.
 void BEFExecutor::ProcessReadyKernels(
     SmallVectorImpl<unsigned>* ready_kernel_ids) {
+  TFRT_TRACE_SCOPE(Default, "BEFExecutor::ProcessReadyKernels");
+
   // Process the kernel record to get information about what argument
   // registers, result registers, and attributes should be passed.
   KernelFrameBuilder kernel_frame(exec_ctx_);

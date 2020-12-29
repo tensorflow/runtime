@@ -46,13 +46,6 @@ class RequestContext : public ReferenceCounted<RequestContext> {
  public:
   using ContextData = MapByType<RequestContext>;
 
-  // Deprecated. Use RequestContextBuilder instead.
-  //
-  // TODO(tfrt-dev): Convert all clients to use RequestConcontextBuilder and
-  // remove this function.
-  static RCReference<RequestContext> Create(HostContext* host,
-                                            ResourceContext* resource_context,
-                                            int64_t id = 0);
   ~RequestContext();
 
   bool IsCancelled() const { return GetCancelAsyncValue(); }

@@ -476,9 +476,14 @@ void RequestHandler::HandleRemoteExecuteOp(
 
     // TODO(bramandia): Propagate RequestContext from the request.
     ResourceContext resource_context;
-    RCReference<tfrt::RequestContext> req_ctx =
-        RequestContext::Create(host_ctx, &resource_context);
-    tfrt::ExecutionContext exec_ctx{std::move(req_ctx)};
+    Expected<RCReference<tfrt::RequestContext>> req_ctx =
+        RequestContextBuilder(host_ctx, &resource_context).build();
+    if (!req_ctx) {
+      done(llvm::make_error<UnknownErrorInfo>(
+          StrCat("Failed to build RequestContext ", req_ctx.takeError())));
+      return;
+    }
+    tfrt::ExecutionContext exec_ctx{std::move(*req_ctx)};
 
     // Setup op attributes.
     OpAttrs op_attrs;

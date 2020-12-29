@@ -57,13 +57,4 @@ Expected<RCReference<RequestContext>> RequestContextBuilder::build() && {
                                     std::move(context_data_), id_));
 };
 
-RCReference<RequestContext> RequestContext::Create(
-    HostContext* host, ResourceContext* resource_context, int64_t id) {
-  auto req_ctx = RequestContextBuilder(host, resource_context, id).build();
-  if (req_ctx) return std::move(*req_ctx);
-
-  // TODO(tfrt-dev): Refactor all the clients to handle the failures properly.
-  llvm_unreachable("Failed to build RequestContext.");
-}
-
 }  // namespace tfrt

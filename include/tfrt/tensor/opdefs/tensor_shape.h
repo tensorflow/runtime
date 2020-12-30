@@ -23,6 +23,7 @@
 #ifndef TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_H_
 #define TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_H_
 
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"

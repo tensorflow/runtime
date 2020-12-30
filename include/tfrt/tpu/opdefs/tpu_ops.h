@@ -22,6 +22,7 @@
 #ifndef TFRT_TPU_OPDEFS_TPU_OPS_H_
 #define TFRT_TPU_OPDEFS_TPU_OPS_H_
 
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 #include "tfrt/tensor/opdefs/tensor.h"

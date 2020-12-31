@@ -54,14 +54,13 @@ class AsyncToken : public ::tfrt::cpu::jit::AsyncRuntimeObject {
 };
 
 class AsyncGroup : public ::tfrt::cpu::jit::AsyncRuntimeObject {
-  static constexpr int kInitCapacity = 16;
   using AsyncTokens = ::tfrt::ConcurrentVector<AsyncToken*>;
   using AsyncRuntime = ::tfrt::cpu::jit::AsyncRuntime;
 
  public:
   explicit AsyncGroup(AsyncRuntime* runtime)
       : runtime_(runtime),
-        async_tokens_(std::make_unique<AsyncTokens>(kInitCapacity)) {}
+        async_tokens_(std::make_unique<AsyncTokens>(/*initial_capacity=*/16)) {}
 
   ~AsyncGroup() override {
     for (auto* obj : async_tokens_->ToArrayRef()) runtime_->DropRef(obj);

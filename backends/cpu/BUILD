@@ -1,3 +1,4 @@
+load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
@@ -271,6 +272,76 @@ tfrt_cc_library(
         "@tf_runtime//:tensor",
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:tf_bcast",
+    ],
+)
+
+gentbl(
+    name = "cpurt_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/cpu/jit/opdefs/cpurt_ops.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/cpu/jit/opdefs/cpurt_ops.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/cpu/jit/opdefs/cpurt_ops.td",
+    td_includes = ["include"],
+    td_srcs = [
+        "@tf_runtime//:OpBaseTdFiles",
+    ],
+)
+
+tfrt_cc_library(
+    name = "cpurt_opdefs",
+    srcs = ["lib/jit/opdefs/cpurt_ops.cc"],
+    hdrs = ["include/tfrt/cpu/jit/opdefs/cpurt_ops.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":cpurt_opdefs_inc_gen",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@tf_runtime//:basic_kernels_opdefs",
+        "@tf_runtime//:tensor_opdefs",
+    ],
+)
+
+tfrt_cc_library(
+    name = "cpurt_kernels",
+    srcs = ["lib/jit/cpurt_kernels.cc"],
+    alwayslink_static_registration_src = "lib/jit/static_registration.cc",
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":async_runtime",
+        ":async_runtime_api",
+        "@llvm-project//llvm:OrcJIT",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Affine",
+        "@llvm-project//mlir:Async",
+        "@llvm-project//mlir:AsyncToLLVM",
+        "@llvm-project//mlir:AsyncTransforms",
+        "@llvm-project//mlir:ExecutionEngine",
+        "@llvm-project//mlir:ExecutionEngineUtils",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:LLVMDialect",
+        "@llvm-project//mlir:LLVMTransforms",
+        "@llvm-project//mlir:LinalgOps",
+        "@llvm-project//mlir:LinalgTransforms",
+        "@llvm-project//mlir:MlirJitRunner",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:SCFDialect",
+        "@llvm-project//mlir:SCFToStandard",
+        "@llvm-project//mlir:StandardOps",
+        "@llvm-project//mlir:StandardOpsTransforms",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Transforms",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
     ],
 )
 

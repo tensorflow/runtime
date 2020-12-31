@@ -1379,6 +1379,7 @@ tfrt_cc_library(
         ":tensor_opdefs",
         ":test_kernels_opdefs",
         "@llvm-project//mlir:IR",
+        "@tf_runtime//backends/cpu:cpurt_opdefs",
     ],
 )
 

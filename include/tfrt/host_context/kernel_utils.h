@@ -392,6 +392,10 @@ class RemainingAttributes {
     return StringAttribute(remaining_attributes_[i]);
   }
 
+  CompilationUnitAttribute GetCompilationUnitAttribute(size_t i) const {
+    return CompilationUnitAttribute(remaining_attributes_[i]);
+  }
+
   template <typename T>
   ArrayAttribute<T> GetArrayAttribute(size_t i) const {
     return ArrayAttribute<T>(remaining_attributes_[i]);
@@ -793,6 +797,23 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
       static_assert(const_idx != -1,
                     "Do not place StringAttribute after RemainingAttributes");
       StringAttribute arg = frame->GetStringAttribute(const_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<
+          in_idx, out_idx, const_idx + 1, has_kernel_error, has_in_chain>(
+          frame, pargs..., arg);
+    }
+  };
+
+  // Like the above, but for compilation units.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<CompilationUnitAttribute, Tail...> {
+    template <int in_idx, int out_idx, int const_idx, bool has_kernel_error,
+              bool has_in_chain, typename... PreviousArgs>
+    static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(
+          const_idx != -1,
+          "Do not place CompilationUnitAttribute after RemainingAttributes");
+      CompilationUnitAttribute arg =
+          frame->GetCompilationUnitAttribute(const_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
           in_idx, out_idx, const_idx + 1, has_kernel_error, has_in_chain>(
           frame, pargs..., arg);

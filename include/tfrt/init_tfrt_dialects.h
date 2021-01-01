@@ -27,7 +27,13 @@
 
 namespace tfrt {
 
+// Registers dialects that can be used in executed MLIR functions (functions
+// with operations that will be translated to BEF kernel calls).
 void RegisterTFRTDialects(mlir::DialectRegistry &registry);
+
+// Registers dialects that can be used in compiled MLIR modules (blobs of IR
+// embedded into the executed MLIR/BEF programs).
+void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry);
 
 }  // namespace tfrt
 

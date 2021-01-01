@@ -312,12 +312,10 @@ static Expected<CompilationResult> CompileKernelMlirModule(
   // Setup LLVM target for code generation.
   InitializeCompiler();
 
-  // MemoryBuffer requires null terminated input data.
-  std::string mlir_module_str = mlir_module.str();
-  auto buffer = llvm::MemoryBuffer::getMemBuffer(mlir_module_str, "<unknown>");
-
   llvm::SourceMgr source_mgr;
-  source_mgr.AddNewSourceBuffer(std::move(buffer), llvm::SMLoc());
+  source_mgr.AddNewSourceBuffer(
+      llvm::MemoryBuffer::getMemBuffer(mlir_module, "<unknown>"),
+      llvm::SMLoc());
 
   // Register MLIR dialects supported by the compiled kernels.
   mlir::MLIRContext context;
@@ -362,8 +360,14 @@ static Expected<CompilationResult> CompileKernelMlirModule(
 }
 
 static AsyncValueRef<CompilationResult> Compile(
-    StringAttribute mlir_module, const ExecutionContext& exec_ctx) {
+    CompilationUnitAttribute kernel, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
+
+  // We only support functions nested in top level compiled module.
+  if (kernel.nested_symbols().size() != 1) {
+    return EmitErrorAsync(
+        exec_ctx, "compiled kernel must be referenced by one nested symbol");
+  }
 
   ResourceContext* res_ctx = exec_ctx.resource_context();
   auto* compilation_cache =
@@ -379,8 +383,10 @@ static AsyncValueRef<CompilationResult> Compile(
   CompilationOptions opts;
   opts.num_worker_threads = host->GetNumWorkerThreads();
 
+  string_view entrypoint = kernel.nested_symbols()[0];
+  string_view module = kernel.serialized_operation();
   Expected<CompilationResult> compiled =
-      CompileKernelMlirModule(mlir_module.get(), "main", opts);
+      CompileKernelMlirModule(module, entrypoint, opts);
 
   // Failed to compile kernel source.
   if (auto err = compiled.takeError())

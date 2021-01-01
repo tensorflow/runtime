@@ -28,8 +28,10 @@ namespace tfrt {
 namespace {
 
 static mlir::TranslateFromMLIRRegistration registration(
-    "mlir-to-bef", MLIRToBEFTranslate,
-    [](mlir::DialectRegistry& registry) { RegisterTFRTDialects(registry); });
+    "mlir-to-bef", MLIRToBEFTranslate, [](mlir::DialectRegistry& registry) {
+      RegisterTFRTDialects(registry);
+      RegisterTFRTCompiledDialects(registry);
+    });
 
 }  // namespace
 }  // namespace tfrt

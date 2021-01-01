@@ -15,6 +15,28 @@
 // RUN: bef_executor $(bef_name %s)                          | FileCheck %s
 // RUN: bef_executor $(bef_name %s) --work_queue_type=mstd:8 | FileCheck %s
 
+// Define A+B (f32) kernel in Linalg dialect.
+module @add_f32_kernel attributes { tfrt.compiled } {
+  func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) -> !async.token {
+    %token = async.execute {
+      linalg.generic {
+        indexing_maps = [affine_map<(d0, d1) -> (d0, d1)>,
+                         affine_map<(d0, d1) -> (d0, d1)>],
+        iterator_types = ["parallel", "parallel"]
+      }
+        ins(%input: memref<?x?xf32>)
+        outs(%output : memref<?x?xf32>)
+      {
+        ^bb0(%in: f32, %out: f32):
+          %0 = addf %in, %in : f32
+          linalg.yield %0 : f32
+      }
+      async.yield
+    }
+    return %token : !async.token
+  }
+}
+
 // CHECK: --- Running 'compiled_add_f32'
 func @compiled_add_f32() {
   %ch0 = tfrt.new.chain
@@ -31,9 +53,7 @@ func @compiled_add_f32() {
   %expected_ready = tfrt_dht.fill_tensor_with_constant.f32 %expected, %ch0 2.0 : f32
 
   // Compile simple addition implemented as a Linalg generic operation.
-  %compilation_result = cpurt.compile { mlir_module =
-    "#map0 = affine_map<(d0, d1) -> (d0, d1)>\0A\0Afunc @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) -> !async.token {\0A\0A  %token = async.execute {\0A    linalg.generic {\0A      indexing_maps = [#map0, #map0],\0A      iterator_types = [\"parallel\", \"parallel\"]\0A    }\0A      ins(%input: memref<?x?xf32>)\0A      outs(%output : memref<?x?xf32>)\0A    {\0A      ^bb0(%in: f32, %out: f32):\0A        %0 = addf %in, %in : f32\0A        linalg.yield %0 : f32\0A    }\0A async.yield  }\0A  return %token : !async.token\0A}\0A"
-  }
+  %compilation_result = cpurt.compile { kernel = @add_f32_kernel::@main }
 
   // Execute compiled kernel with tensor operands.
   %executed = cpurt.execute %compilation_result[%input_ready](%input, %output) : !t.tensor, !t.tensor

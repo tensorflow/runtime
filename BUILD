@@ -1378,7 +1378,11 @@ tfrt_cc_library(
         ":distributed_kernels_opdefs",
         ":tensor_opdefs",
         ":test_kernels_opdefs",
+        "@llvm-project//mlir:Affine",
+        "@llvm-project//mlir:Async",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:LinalgOps",
+        "@llvm-project//mlir:StandardOps",
         "@tf_runtime//backends/cpu:cpurt_opdefs",
     ],
 )

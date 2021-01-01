@@ -97,6 +97,62 @@ class StringAttribute {
   string_view value_;
 };
 
+// Compilation unit attribute decodes serialized MLIR module and a compilation
+// target symbol (function name).
+class CompilationUnitAttribute {
+ public:
+  explicit CompilationUnitAttribute(const void* value) {
+    ASSERT_LITTLE_ENDIAN();
+
+    // Returns the pointer after skipping encoded size entry.
+    auto move_to_next_size = [](const void* ptr) -> const void* {
+      size_t skip_bytes = GetBEFArraySizeSize(ptr);
+      const uint8_t* next_ptr = static_cast<const uint8_t*>(ptr) - skip_bytes;
+      return static_cast<const void*>(next_ptr);
+    };
+
+    // Decode the sizes of all attributes parts.
+    const void* ptr = value;
+
+    size_t root_symbol_len = DecodeArraySizeFromBEFAttributes(ptr);
+    ptr = move_to_next_size(ptr);
+
+    size_t num_nested_symbols = DecodeArraySizeFromBEFAttributes(ptr);
+    ptr = move_to_next_size(ptr);
+
+    llvm::SmallVector<size_t, 4> nested_symbols_len(num_nested_symbols);
+    for (int i = 0; i < num_nested_symbols; ++i) {
+      nested_symbols_len[i] = DecodeArraySizeFromBEFAttributes(ptr);
+      ptr = move_to_next_size(ptr);
+    }
+
+    size_t serialized_operation_len = DecodeArraySizeFromBEFAttributes(ptr);
+
+    // The base of the attribute payload.
+    const char* base = static_cast<const char*>(value);
+
+    root_symbol_ = {base, root_symbol_len};
+    size_t offset = root_symbol_len;
+
+    for (int i = 0; i < num_nested_symbols; ++i) {
+      size_t len = nested_symbols_len[i];
+      nested_symbols_.emplace_back(base + offset, len);
+      offset += len;
+    }
+
+    serialized_operation_ = {base + offset, serialized_operation_len};
+  }
+
+  string_view root_symbol() const { return root_symbol_; }
+  ArrayRef<string_view> nested_symbols() const { return nested_symbols_; }
+  string_view serialized_operation() const { return serialized_operation_; }
+
+ private:
+  string_view root_symbol_;
+  llvm::SmallVector<string_view, 4> nested_symbols_;
+  string_view serialized_operation_;
+};
+
 // Kernels should use this so we know it has an array attribute.
 template <typename T>
 class ArrayAttribute {

@@ -28,10 +28,12 @@
 
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Optional.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/MathExtras.h"
+#include "llvm/Support/SourceMgr.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -188,6 +190,23 @@ mlir::LogicalResult ReadIntArray(BEFReader* reader,
   return mlir::success();
 }
 
+// This class keeps track of all serialized compilation units referenced by
+// SymbolRef attributes in the bef file.
+class BEFCompilationUnits {
+ public:
+  void AddCompilationUnit(mlir::Location loc, string_view compilation_unit) {
+    compilation_units_.insert({loc, compilation_unit});
+  }
+
+  const llvm::SetVector<std::pair<mlir::Location, string_view>>&
+  compilation_units() const {
+    return compilation_units_;
+  }
+
+ private:
+  llvm::SetVector<std::pair<mlir::Location, string_view>> compilation_units_;
+};
+
 // This class reads a BEF file and converts it to a mlir module.
 class BEFToMLIRConverter {
  public:
@@ -221,6 +240,10 @@ class BEFToMLIRConverter {
   mlir::LogicalResult ResolveFunctions(BEFFunctionContext* function_context,
                                        mlir::ModuleOp module);
 
+  // Adds all compilation units found through the SymbolRef attributes to the
+  // module (adds modules with `tfrt.compiled` attribute).
+  mlir::LogicalResult AddCompilationUnits(mlir::ModuleOp module);
+
  private:
   // Reads the next available section. Unrecognized sections are dropped
   // silently.
@@ -248,6 +271,7 @@ class BEFToMLIRConverter {
 
   BEFReader file_reader_;
   BEFFile bef_file_;
+  BEFCompilationUnits compilation_units_;
   mlir::MLIRContext& context_;
 };
 
@@ -328,9 +352,11 @@ size_t GetDTypeByteSize(DType::Kind dtype) {
 class BEFAttributeReader {
  public:
   BEFAttributeReader(ArrayRef<uint8_t> attributes, const BEFFile& bef_file,
+                     BEFCompilationUnits* compilation_units,
                      mlir::MLIRContext* context)
       : attributes_(attributes),
         bef_file_(bef_file),
+        compilation_units_(*compilation_units),
         context_(*context),
         builder_(context) {}
 
@@ -361,6 +387,9 @@ class BEFAttributeReader {
   // Reads a type attribute.
   mlir::TypeAttr ReadTypeAttribute(BEFReader* reader);
 
+  // Reads a symbol ref attribute.
+  mlir::SymbolRefAttr ReadSymbolRefAttribute(BEFReader* reader);
+
   // Reads an array attribute with elements of type `element_type`.
   mlir::ArrayAttr ReadArrayAttribute(BEFReader* reader,
                                      BEFAttributeType element_type);
@@ -390,8 +419,23 @@ class BEFAttributeReader {
     return value;
   }
 
+  // Reads the number of bytes used for encoding length using modified VBR
+  // encoding.
+  size_t ReadLengthSize(size_t offset) {
+    assert(offset > 0);
+    offset--;
+    size_t size = 1;
+    while ((attributes_[offset] & 0x80) != 0) {
+      size++;
+      assert(offset > 0);
+      offset--;
+    }
+    return size;
+  }
+
   ArrayRef<uint8_t> attributes_;
   const BEFFile& bef_file_;
+  BEFCompilationUnits& compilation_units_;
   mlir::MLIRContext& context_;
   mlir::Builder builder_;
 };
@@ -908,7 +952,8 @@ mlir::LogicalResult BEFToMLIRConverter::ReadAttributes(
   size_t num_attributes;
   if (attribute_types_reader.ReadInt(&num_attributes)) return mlir::failure();
 
-  BEFAttributeReader attribute_reader(attributes, bef_file_, &context_);
+  BEFAttributeReader attribute_reader(attributes, bef_file_,
+                                      &compilation_units_, &context_);
   for (int i = 0; i < num_attributes; ++i) {
     // Read the offset and attribute_type of the attribute in attribute types
     // section and find out the corresponding attribute in attributes section.
@@ -1111,6 +1156,31 @@ mlir::LogicalResult BEFToMLIRConverter::ResolveFunctions(
   return mlir::success();
 }
 
+mlir::LogicalResult BEFToMLIRConverter::AddCompilationUnits(
+    mlir::ModuleOp module) {
+  for (auto& compilation_unit : compilation_units_.compilation_units()) {
+    mlir::Location loc = compilation_unit.first;
+    string_view blob = compilation_unit.second;
+
+    llvm::SourceMgr source_mgr;
+    source_mgr.AddNewSourceBuffer(
+        llvm::MemoryBuffer::getMemBuffer(blob, "<unknown>"), llvm::SMLoc());
+
+    // Parse a compilation unit source code into the MLIR Module.
+    mlir::OwningModuleRef compilation_unit_module(
+        mlir::parseSourceFile(source_mgr, &context_));
+    if (!compilation_unit_module) {
+      EmitError(loc, "Failed to parse compilation unit.");
+      return mlir::failure();
+    }
+
+    // Add parsed module to the top level module operation.
+    module.insert(module.getBodyRegion().getBlocks().begin()->begin(),
+                  compilation_unit_module.release());
+  }
+  return mlir::success();
+}
+
 mlir::Attribute BEFAttributeReader::ReadAttribute(
     BEFAttributeType attribute_type, bool typed, size_t offset) {
   // Aggregate and dense attrs are emitted as typed attributes currently.
@@ -1138,6 +1208,9 @@ mlir::Attribute BEFAttributeReader::ReadAttribute(
 
   if (attribute_type == BEFAttributeType::kType)
     return ReadTypeAttribute(reader);
+
+  if (attribute_type == BEFAttributeType::kSymbolRef)
+    return ReadSymbolRefAttribute(reader);
 
   EmitError(bef_file_.location, "Unknown attribute type");
   return {};
@@ -1264,6 +1337,49 @@ mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
     default:
       llvm_unreachable("unsupported type attribute.");
   }
+}
+
+mlir::SymbolRefAttr BEFAttributeReader::ReadSymbolRefAttribute(
+    BEFReader* reader) {
+  assert(reader->file().data() > attributes_.data());
+  size_t offset = reader->file().data() - attributes_.data();
+
+  auto root_symbol_len = ReadLength(offset);
+  offset -= ReadLengthSize(offset);
+
+  auto num_nested_symbols = ReadLength(offset);
+  offset -= ReadLengthSize(offset);
+
+  llvm::SmallVector<size_t, 4> nested_symbol_len(num_nested_symbols);
+  for (int i = 0; i < num_nested_symbols; ++i) {
+    nested_symbol_len[i] = ReadLength(offset);
+    offset -= ReadLengthSize(offset);
+  }
+
+  auto serialized_operation_len = ReadLength(offset);
+
+  // Base of the attribute payload.
+  offset = reader->file().data() - attributes_.data();
+  const char* base = reinterpret_cast<const char*>(&attributes_[offset]);
+
+  // Root symbol name.
+  string_view root = {base, root_symbol_len};
+  base += root_symbol_len;
+
+  // Nested symbols.
+  llvm::SmallVector<mlir::FlatSymbolRefAttr, 4> nested(num_nested_symbols);
+  for (int i = 0; i < num_nested_symbols; ++i) {
+    string_view name{base, nested_symbol_len[i]};
+    nested[i] = mlir::FlatSymbolRefAttr::get(name, &context_);
+    base += nested_symbol_len[i];
+  }
+
+  // Serialized operation.
+  string_view serialized_operation{base, serialized_operation_len};
+  compilation_units_.AddCompilationUnit(bef_file_.location,
+                                        serialized_operation);
+
+  return mlir::SymbolRefAttr::get(root, nested, &context_);
 }
 
 mlir::ArrayAttr BEFAttributeReader::ReadArrayAttribute(
@@ -1693,6 +1809,10 @@ mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
   mlir::OwningModuleRef module(mlir::ModuleOp::create(location));
   if (mlir::failed(converter.ResolveFunctions(&function_context, module.get())))
     return emit_error("Failed to resolve functions.");
+
+  // And finally add all compilation units as nested modules.
+  if (mlir::failed(converter.AddCompilationUnits(module.get())))
+    return emit_error("Failed to add compilation units.");
 
   return module;
 }

@@ -22,6 +22,10 @@
 
 #include "tfrt/init_tfrt_dialects.h"
 
+#include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Dialect/Async/IR/Async.h"
+#include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 #include "tfrt/core_runtime/opdefs/sync/core_runtime.h"
@@ -52,6 +56,12 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
   registry.insert<dist::DistributedDialect>();
   registry.insert<t::TensorDialect>();
   registry.insert<ht::HostTensorDialect>();
+}
+
+void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
+  registry.insert<mlir::StandardOpsDialect>();
+  registry.insert<mlir::async::AsyncDialect>();
+  registry.insert<mlir::linalg::LinalgDialect>();
 }
 
 }  // namespace tfrt

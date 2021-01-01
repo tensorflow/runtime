@@ -61,13 +61,16 @@ def CompileOp : CPURT_Op<"compile"> {
     Example:
 
     ```mlir
-      %compilation_result = cpurt.compile { mlir_module =
-        "<serialized mlir module with a kernel entrypoint function>"
+      module @kernel attributes { tfrt.compiled } {
+        func @main(...) {
+        }
       }
+
+      %compilation_result = cpurt.compile { kernel = @kernel::@main }
     ```
   }];
 
-  let arguments = (ins StrAttr:$mlir_module);
+  let arguments = (ins SymbolRefAttr:$kernel);
   let results = (outs CompilationResultType);
   let assemblyFormat = "attr-dict";
 }

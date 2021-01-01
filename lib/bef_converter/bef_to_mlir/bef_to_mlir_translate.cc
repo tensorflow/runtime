@@ -33,6 +33,7 @@ namespace tfrt {
 mlir::OwningModuleRef BEFToMLIRTranslate(llvm::SourceMgr &source_mgr,
                                          mlir::MLIRContext *context) {
   RegisterTFRTDialects(context->getDialectRegistry());
+  RegisterTFRTCompiledDialects(context->getDialectRegistry());
   for (const auto &dialect_name : context->getAvailableDialects()) {
     context->getOrLoadDialect(dialect_name);
   }

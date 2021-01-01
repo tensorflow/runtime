@@ -178,6 +178,8 @@ enum class BEFAttributeType : uint16_t {
 
   kShape,
 
+  kSymbolRef,
+
   kFirstScalarType = kFirstDataType,
   kLastScalarType = kShape,
 
@@ -234,6 +236,10 @@ inline bool IsDataTypeAttribute(BEFAttributeType type) {
 
 inline bool IsFuncAttribute(BEFAttributeType type) {
   return type == BEFAttributeType::kFunc;
+}
+
+inline bool IsSymbolRefAttribute(BEFAttributeType type) {
+  return type == BEFAttributeType::kSymbolRef;
 }
 
 inline BEFAttributeType GetDenseAttributeType(DType::Kind element_type) {

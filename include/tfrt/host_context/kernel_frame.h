@@ -124,6 +124,10 @@ class AsyncKernelFrame {
     return StringAttribute(GetAttributes()[index]);
   }
 
+  CompilationUnitAttribute GetCompilationUnitAttribute(int index) const {
+    return CompilationUnitAttribute(GetAttributes()[index]);
+  }
+
   // Get the number of results.
   int GetNumResults() const { return num_results_; }
 

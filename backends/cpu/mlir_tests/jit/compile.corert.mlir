@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=always
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=always
 
 module @add_f32_kernel attributes { tfrt.compiled } {
   func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) -> !async.token {
@@ -35,33 +35,36 @@ module @add_f32_kernel attributes { tfrt.compiled } {
   }
 }
 
-// CHECK: --- Running 'BM_compiled_add_f32'
-func @BM_compiled_add_f32() {
+func @register_op_handlers_cpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
+  corert.register_op_handler %cpu "cpu"
+  tfrt.return
+}
+
+// CHECK: --- Running 'compiled_add_f32'
+func @compiled_add_f32() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
-  // Allocate and initialize input tensor.
-  %input = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
-  %input_ready = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
+  %operand = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
+    { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : 1
 
-  // Allocate uninitialized output tensor.
-  %output = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
+  // Output shape is the same as the input shape.
+  %out_shape = "corert.tensorhandle_to_shape"(%operand, %ch0)
+    : (!corert.tensorhandle, !tfrt.chain) -> !ts.shape
 
   // Compile simple addition implemented as a Linalg generic operation.
   %compilation_result = cpurt.compile { kernel = @add_f32_kernel::@main }
 
-  // Run compiled kernel benchmark.
-  tfrt_test.benchmark "BM_compiled_add_f32"(
-      %compilation_result : !cpurt.compilation_result,
-      %input_ready        : !tfrt.chain,
-      %input              : !t.tensor,
-      %output             : !t.tensor
-  )
-  duration_secs = 3, max_count = 100000, num_warmup_runs = 10
-  {
-    %executed = cpurt.execute %compilation_result[%input_ready]
-                (%input, %output : !t.tensor, !t.tensor)
-    tfrt.return %executed : !tfrt.chain
-  }
+  // Execute compiled kernel with tensor handle operands.
+  %result = cpurt.corert.execute %compilation_result
+           (%operand : !corert.tensorhandle)
+           (%out_shape : !ts.shape) -> !corert.tensorhandle
 
-  tfrt.return
+  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3]
+  // CHECK-SAME: values = [-2.000000e+00, -1.000000e+00, 0.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00]
+  %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%result) : 0
+
+  tfrt.return %ch_print_cpu : !tfrt.chain
 }

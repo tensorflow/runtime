@@ -56,7 +56,8 @@ func @compiled_add_f32() {
   %compilation_result = cpurt.compile { kernel = @add_f32_kernel::@main }
 
   // Execute compiled kernel with tensor operands.
-  %executed = cpurt.execute %compilation_result[%input_ready](%input, %output) : !t.tensor, !t.tensor
+  %executed = cpurt.execute %compilation_result[%input_ready]
+                (%input, %output : !t.tensor, !t.tensor)
 
   // Wait for the execution completion and compare result with expected.
   %cmp, %cmp_ch = "tfrt_dht.tensor_allclose.f32"(%expected, %output, %executed)

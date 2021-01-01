@@ -29,7 +29,9 @@
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
+#include "tfrt/core_runtime/opdefs/types.h"
 #include "tfrt/tensor/opdefs/tensor.h"
+#include "tfrt/tensor/opdefs/tensor_shape.h"
 
 namespace tfrt {
 namespace cpu {

@@ -292,6 +292,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         "@tf_runtime//:OpBaseTdFiles",
+        "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
     ],
 )
 
@@ -305,6 +306,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:basic_kernels_opdefs",
+        "@tf_runtime//:core_runtime_opdefs",
         "@tf_runtime//:tensor_opdefs",
     ],
 )
@@ -339,6 +341,8 @@ tfrt_cc_library(
         "@llvm-project//mlir:StandardOpsTransforms",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Transforms",
+        "@tf_runtime//:core_runtime",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",

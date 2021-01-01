@@ -23,6 +23,8 @@
 #define CPURT_OPS
 
 include "tfrt/basic_kernels/opdefs/tfrt_base.td"
+include "tfrt/core_runtime/opdefs/corert_base.td"
+include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/tensor/opdefs/tensor.td"
 
 //===----------------------------------------------------------------------===//
@@ -94,7 +96,7 @@ def ExecuteOp : CPURT_Op<"execute"> {
       // Wait for the completion of previous operation and execute compiled
       // kernel.
       %executed = cpurt.execute %compilation_result[%buffers_ready]
-                  (%tensor0, %tensor1) : !t.tensor, !t.tensor
+                  (%tensor0, %tensor1 : !t.tensor, !t.tensor)
     ```
   }];
 
@@ -109,7 +111,59 @@ def ExecuteOp : CPURT_Op<"execute"> {
   );
 
   let assemblyFormat = [{
-    $compilation_result `[` $in_chain `]` `(` $operands `)` attr-dict `:` type($operands)
+    $compilation_result `[` $in_chain `]`
+    `(` $operands `:` type($operands) `)`
+    attr-dict
+  }];
+}
+
+def CoreRtExecuteOp : CPURT_Op<"corert.execute", [AttrSizedOperandSegments]> {
+  let summary = "cpurt execute operation with CoreRT interop";
+  let description = [{
+    cpurt.corert.execute executes compiled binary produced by the cpurt.compiled
+    operation with provided tensor handle operands, and returns a tensor handle
+    for each result.
+
+    For each result, this kernel will allocate a tensor with the given shape and
+    pass it to the compiled kernel as an output buffer argument.
+
+    Example:
+
+    ```mlir
+      // Compiled kernel function has two buffer arguments. Second buffer
+      // argument will be allocated based on the shape argument passed to the
+      // `cpurt.corert.execute` kernel.
+      module @kernel attributes { tfrt.compiled } {
+        func @main(%in : memref<?xf32>, %out : memref<?xf32>) {
+        }
+      }
+
+      %compilation_result = cpurt.compile { kernel = @kernel::@main }
+
+      %input = ... : !corert.tensorhandle  // input tensor
+      %shape = ... : !ts.shape             // shape of the `%result` tensor
+
+      %result = cpurt.corert.execute %compilation_result
+                  (%input : !corert.tensorhandle)
+                  (%shape : !ts.shape) -> !corert.tensorhandle
+    ```
+  }];
+
+  let arguments = (ins
+    CompilationResultType:$compilation_result,
+    Variadic<CoreRT_TensorHandleType>:$operands,
+    Variadic<TS_Shape>:$shapes
+  );
+
+  let results = (outs
+    Variadic<CoreRT_TensorHandleType>:$results
+  );
+
+  let assemblyFormat = [{
+    $compilation_result
+    `(` $operands `:` type($operands) `)`
+    `(` $shapes   `:` type($shapes)   `)`
+    attr-dict `->` type($results)
   }];
 }
 

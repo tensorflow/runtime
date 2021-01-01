@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=always
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=always
 
 module @add_f32_kernel attributes { tfrt.compiled } {
   func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) -> !async.token {
@@ -35,16 +35,27 @@ module @add_f32_kernel attributes { tfrt.compiled } {
   }
 }
 
+func @register_op_handlers_cpu() {
+  %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
+  corert.register_op_handler %cpu "cpu"
+  tfrt.return
+}
+
 // CHECK: --- Running 'BM_compiled_add_f32'
 func @BM_compiled_add_f32() {
   %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
 
   // Allocate and initialize input tensor.
-  %input = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
-  %input_ready = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
+  %input_tensor = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
+  %input_ready = tfrt_dht.fill_tensor_with_constant.f32 %input_tensor, %ch0 1.0 : f32
+  %input = "corert.ht_to_tensorhandle" (%input_tensor, %input_ready):
+    (!t.tensor, !tfrt.chain) -> !corert.tensorhandle
 
-  // Allocate uninitialized output tensor.
-  %output = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
+  // Output shape is the same as the input shape.
+  %out_shape = "corert.tensorhandle_to_shape"(%input, %ch0)
+    : (!corert.tensorhandle, !tfrt.chain) -> !ts.shape
 
   // Compile simple addition implemented as a Linalg generic operation.
   %compilation_result = cpurt.compile { kernel = @add_f32_kernel::@main }
@@ -52,15 +63,15 @@ func @BM_compiled_add_f32() {
   // Run compiled kernel benchmark.
   tfrt_test.benchmark "BM_compiled_add_f32"(
       %compilation_result : !cpurt.compilation_result,
-      %input_ready        : !tfrt.chain,
-      %input              : !t.tensor,
-      %output             : !t.tensor
+      %input              : !corert.tensorhandle,
+      %out_shape          : !ts.shape
   )
   duration_secs = 3, max_count = 100000, num_warmup_runs = 10
   {
-    %executed = cpurt.execute %compilation_result[%input_ready]
-                (%input, %output : !t.tensor, !t.tensor)
-    tfrt.return %executed : !tfrt.chain
+    %result = cpurt.corert.execute %compilation_result
+           (%input : !corert.tensorhandle)
+           (%out_shape : !ts.shape) -> !corert.tensorhandle
+    tfrt.return %result : !corert.tensorhandle
   }
 
   tfrt.return

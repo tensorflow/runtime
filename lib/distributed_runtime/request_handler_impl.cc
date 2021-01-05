@@ -64,17 +64,19 @@ class RequestHandler : public RequestHandlerInterface {
       : server_context_(server_context) {}
   ~RequestHandler() override{};
 
-  Error HandleGetDevices(const GetDevicesRequest* request,
-                         GetDevicesResponse* response) final;
+  void HandleGetDevices(const GetDevicesRequest* request,
+                        GetDevicesResponse* response, CallbackFn done) final;
 
-  Error HandleCreateContext(const CreateContextRequest* request,
-                            CreateContextResponse* response) final;
+  void HandleCreateContext(const CreateContextRequest* request,
+                           CreateContextResponse* response,
+                           CallbackFn done) final;
 
-  Error HandleCloseContext(const CloseContextRequest* request,
-                           CloseContextResponse* response) final;
+  void HandleCloseContext(const CloseContextRequest* request,
+                          CloseContextResponse* response,
+                          CallbackFn done) final;
 
-  Error HandleSendData(const SendDataRequest* request,
-                       SendDataResponse* response) final;
+  void HandleSendData(const SendDataRequest* request,
+                      SendDataResponse* response, CallbackFn done) final;
 
   void HandleRegisterFunction(const RegisterFunctionRequest* request,
                               RegisterFunctionResponse* response,
@@ -92,8 +94,8 @@ class RequestHandler : public RequestHandlerInterface {
                                  DeleteRemoteObjectsResponse* response,
                                  CallbackFn done) final;
 
-  Error HandleKeepAlive(const KeepAliveRequest* request,
-                        KeepAliveResponse* response) final;
+  void HandleKeepAlive(const KeepAliveRequest* request,
+                       KeepAliveResponse* response, CallbackFn done) final;
 
  private:
   HostContext* host_ctx() { return server_context_->GetHostContext(); }
@@ -101,31 +103,35 @@ class RequestHandler : public RequestHandlerInterface {
   ServerContext* server_context_;
 };
 
-Error RequestHandler::HandleGetDevices(const GetDevicesRequest* request,
-                                       GetDevicesResponse* response) {
+void RequestHandler::HandleGetDevices(const GetDevicesRequest* request,
+                                      GetDevicesResponse* response,
+                                      CallbackFn done) {
   auto devices = host_ctx()->GetDeviceManager()->ListDevices<Device>();
   for (auto& d : devices) {
     auto* device_info = response->add_devices();
     device_info->set_name(d->name().str());
     device_info->set_type(d->type().name().str());
   }
-  return Error::success();
+  done(Error::success());
 }
 
-Error RequestHandler::HandleCreateContext(const CreateContextRequest* request,
-                                          CreateContextResponse* response) {
+void RequestHandler::HandleCreateContext(const CreateContextRequest* request,
+                                         CreateContextResponse* response,
+                                         CallbackFn done) {
   auto expected = server_context_->GetDistributedContext(request->context_id());
   if (expected) {
-    return llvm::make_error<DistributedContextAlreadyExistsErrorInfo>(
+    done(llvm::make_error<DistributedContextAlreadyExistsErrorInfo>(
         StrCat("Failed to create DistributedContext: the context with id <",
-               request->context_id(), "> already exists."));
+               request->context_id(), "> already exists.")));
+    return;
   }
 
   Expected<DistributedContext*> context =
       server_context_->CreateDistributedContext(request->context_id(),
                                                 request->dist_config());
   if (!context) {
-    return context.takeError();
+    done(context.takeError());
+    return;
   }
   DistributedContext* dist_context = context.get();
   for (const auto& device_info : request->devices()) {
@@ -136,24 +142,33 @@ Error RequestHandler::HandleCreateContext(const CreateContextRequest* request,
       dist_context->GetRemoteDeviceManager()->MaybeAddDevice(
           TakeRef(expected.get()));
     } else {
-      return expected.takeError();
+      done(expected.takeError());
+      return;
     }
   }
   Error error = server_context_->TrackContextAccessTime(request->context_id());
-  if (error) return error;
+  if (error) {
+    done(std::move(error));
+    return;
+  }
   ToProto(dist_context->LocalReadyChain(), response->mutable_ready_chain());
-  return Error::success();
+  done(Error::success());
 }
 
-Error RequestHandler::HandleCloseContext(const CloseContextRequest* request,
-                                         CloseContextResponse* response) {
-  return server_context_->CloseDistributedContext(request->context_id());
+void RequestHandler::HandleCloseContext(const CloseContextRequest* request,
+                                        CloseContextResponse* response,
+                                        CallbackFn done) {
+  done(server_context_->CloseDistributedContext(request->context_id()));
 }
 
-Error RequestHandler::HandleSendData(const SendDataRequest* request,
-                                     SendDataResponse* response) {
+void RequestHandler::HandleSendData(const SendDataRequest* request,
+                                    SendDataResponse* response,
+                                    CallbackFn done) {
   auto expected = server_context_->GetDistributedContext(request->context_id());
-  if (!expected) return expected.takeError();
+  if (!expected) {
+    done(expected.takeError());
+    return;
+  }
   DistributedContext* dist_context = expected.get();
 
   InstanceKey key = request->instance_key();
@@ -165,7 +180,7 @@ Error RequestHandler::HandleSendData(const SendDataRequest* request,
   }
   dist_context->GetCallbackRegistry()->SetValue(
       key, std::unique_ptr<std::string>(payload));
-  return Error::success();
+  done(Error::success());
 }
 
 void RequestHandler::HandleRegisterFunction(
@@ -574,11 +589,15 @@ void RequestHandler::HandleDeleteRemoteObjects(
   done(manager->DeleteRemoteObjects(ids));
 }
 
-Error RequestHandler::HandleKeepAlive(const KeepAliveRequest* request,
-                                      KeepAliveResponse* response) {
+void RequestHandler::HandleKeepAlive(const KeepAliveRequest* request,
+                                     KeepAliveResponse* response,
+                                     CallbackFn done) {
   auto expected = server_context_->GetDistributedContext(request->context_id());
-  if (!expected) return expected.takeError();
-  return Error::success();
+  if (expected) {
+    done(Error::success());
+  } else {
+    done(expected.takeError());
+  }
 }
 }  // namespace
 

@@ -56,38 +56,22 @@ class TestRequestHandler : public RequestHandlerInterface {
       : handler_(NewRequestHandler(server_context)) {}
   ~TestRequestHandler() final {}
 
-  Error HandleGetDevices(const GetDevicesRequest* request,
-                         GetDevicesResponse* response) final {
-    return handler_->HandleGetDevices(request, response);
+#define TEST_HANDLE_METHOD(method)                                         \
+  void Handle##method(const method##Request* request,                      \
+                      method##Response* response, CallbackFn done) final { \
+    handler_->Handle##method(request, response, std::move(done));          \
   }
 
-  Error HandleCreateContext(const CreateContextRequest* request,
-                            CreateContextResponse* response) final {
-    return handler_->HandleCreateContext(request, response);
-  }
+  TEST_HANDLE_METHOD(GetDevices);
+  TEST_HANDLE_METHOD(CreateContext);
+  TEST_HANDLE_METHOD(CloseContext);
+  TEST_HANDLE_METHOD(SendData);
+  TEST_HANDLE_METHOD(RegisterFunction);
+  TEST_HANDLE_METHOD(DeleteRemoteObjects);
+  TEST_HANDLE_METHOD(RemoteExecuteOp);
+  TEST_HANDLE_METHOD(KeepAlive);
 
-  Error HandleCloseContext(const CloseContextRequest* request,
-                           CloseContextResponse* response) final {
-    return handler_->HandleCloseContext(request, response);
-  }
-
-  Error HandleSendData(const SendDataRequest* request,
-                       SendDataResponse* response) final {
-    return handler_->HandleSendData(request, response);
-  }
-
-  void HandleRegisterFunction(const RegisterFunctionRequest* request,
-                              RegisterFunctionResponse* response,
-                              CallbackFn done) final {
-    return handler_->HandleRegisterFunction(request, response, std::move(done));
-  }
-
-  void HandleDeleteRemoteObjects(const DeleteRemoteObjectsRequest* request,
-                                 DeleteRemoteObjectsResponse* response,
-                                 CallbackFn done) final {
-    return handler_->HandleDeleteRemoteObjects(request, response,
-                                               std::move(done));
-  }
+#undef TEST_HANDLE_METHOD
 
   void HandleRemoteExecute(const RemoteExecuteRequest* request,
                            RemoteExecuteResponse* response,
@@ -96,17 +80,6 @@ class TestRequestHandler : public RequestHandlerInterface {
     Invocation invocation{request, response, std::move(done)};
     invocations_.push(std::move(invocation));
     cond_.notify_one();
-  }
-
-  void HandleRemoteExecuteOp(const RemoteExecuteOpRequest* request,
-                             RemoteExecuteOpResponse* response,
-                             CallbackFn done) final {
-    return handler_->HandleRemoteExecuteOp(request, response, std::move(done));
-  }
-
-  Error HandleKeepAlive(const KeepAliveRequest* request,
-                        KeepAliveResponse* response) final {
-    return handler_->HandleKeepAlive(request, response);
   }
 
   void ProcessNextRequest(llvm::unique_function<void()> fn) {

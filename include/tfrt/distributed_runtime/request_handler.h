@@ -38,17 +38,20 @@ class RequestHandlerInterface {
  public:
   virtual ~RequestHandlerInterface() {}
 
-  virtual Error HandleGetDevices(const GetDevicesRequest* request,
-                                 GetDevicesResponse* response) = 0;
+  virtual void HandleGetDevices(const GetDevicesRequest* request,
+                                GetDevicesResponse* response,
+                                CallbackFn done) = 0;
 
-  virtual Error HandleCreateContext(const CreateContextRequest* request,
-                                    CreateContextResponse* response) = 0;
+  virtual void HandleCreateContext(const CreateContextRequest* request,
+                                   CreateContextResponse* response,
+                                   CallbackFn done) = 0;
 
-  virtual Error HandleCloseContext(const CloseContextRequest* request,
-                                   CloseContextResponse* response) = 0;
+  virtual void HandleCloseContext(const CloseContextRequest* request,
+                                  CloseContextResponse* response,
+                                  CallbackFn done) = 0;
 
-  virtual Error HandleSendData(const SendDataRequest* request,
-                               SendDataResponse* response) = 0;
+  virtual void HandleSendData(const SendDataRequest* request,
+                              SendDataResponse* response, CallbackFn done) = 0;
 
   virtual void HandleRegisterFunction(const RegisterFunctionRequest* request,
                                       RegisterFunctionResponse* response,
@@ -66,8 +69,9 @@ class RequestHandlerInterface {
       const DeleteRemoteObjectsRequest* request,
       DeleteRemoteObjectsResponse* response, CallbackFn done) = 0;
 
-  virtual Error HandleKeepAlive(const KeepAliveRequest* request,
-                                KeepAliveResponse* response) = 0;
+  virtual void HandleKeepAlive(const KeepAliveRequest* request,
+                               KeepAliveResponse* response,
+                               CallbackFn done) = 0;
 };
 
 }  // namespace tfrt

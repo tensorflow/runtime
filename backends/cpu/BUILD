@@ -350,7 +350,21 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "cpurt_kernels",
     srcs = ["lib/jit/cpurt_kernels.cc"],
-    alwayslink_static_registration_src = "lib/jit/static_registration.cc",
+    alwayslink_static_registration_src = "lib/jit/cpurt_kernels_registration.cc",
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":cpurt",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_library(
+    name = "cpurt_corert_kernels",
+    srcs = ["lib/jit/cpurt_corert_kernels.cc"],
+    alwayslink_static_registration_src = "lib/jit/cpurt_corert_kernels_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":cpurt",

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The TensorFlow Runtime Authors
+ * Copyright 2021 The TensorFlow Runtime Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-//===- static_registration.cc ---------------------------------------------===//
+//===- cpurt_kernels_registration.cc --------------------------------------===//
 //
-// This file uses a static constructor to automatically register all of the
-// kernels in this directory.  This can be used to simplify clients that don't
-// care about selective registration of kernels.
+// This file uses a static constructor to automatically register all of CpuRT
+// native kernels (kernels for graph execution).
 //
 //===----------------------------------------------------------------------===//
 

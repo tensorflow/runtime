@@ -140,6 +140,7 @@ tfrt_cc_library(
     name = "bef_executor_jit_kernels",
     visibility = [":friends"],
     deps = [
+        "@tf_runtime//backends/cpu:cpurt_corert_kernels_alwayslink",
         "@tf_runtime//backends/cpu:cpurt_kernels_alwayslink",
         "@tf_runtime//backends/cpu:tf_jit_ops_alwayslink",
     ],

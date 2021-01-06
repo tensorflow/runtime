@@ -173,13 +173,17 @@ void RequestHandler::HandleSendData(const SendDataRequest* request,
 
   InstanceKey key = request->instance_key();
   // TODO(ayushd): avoid string copy
-  // TODO(pisong): change this to Payload and use Payload in CallbackRegistry
-  auto* payload = new std::string();
+  llvm::SmallVector<RCReference<HostBuffer>, 4> buffers;
   for (size_t i = 0; i < request->payload_size(); ++i) {
-    payload->append(request->payload()[i]);
+    auto buffer = tfrt::HostBuffer::CreateUninitialized(
+        request->payload(i).size(), 1,
+        server_context_->GetHostContext()->allocator());
+    std::copy(request->payload(i).begin(), request->payload(i).end(),
+              static_cast<char*>(buffer->data()));
+    buffers.push_back(std::move(buffer));
   }
-  dist_context->GetCallbackRegistry()->SetValue(
-      key, std::unique_ptr<std::string>(payload));
+  dist_context->GetCallbackRegistry()->SetValue(key,
+                                                Payload(std::move(buffers)));
   done(Error::success());
 }
 

@@ -28,17 +28,22 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "tfrt/distributed_runtime/payload.h"
 
 namespace tfrt {
 namespace {
 
-std::unique_ptr<std::string> CreateTestData(const size_t size,
-                                            const uint8_t initial_value) {
-  auto data = std::make_unique<std::string>(size, '\0');
+Payload CreateTestPayload(const size_t size) {
+  llvm::SmallVector<RCReference<HostBuffer>, 4> buffers;
+  llvm::SmallVector<uint8_t, 4> data;
   for (auto i = 0; i < size; ++i) {
-    (*data)[i] = i;
+    data.push_back(i);
   }
-  return data;
+  auto data_buffer = data.data();
+  auto buffer = tfrt::HostBuffer::CreateFromExternal(
+      data_buffer, size, [data = std::move(data)](void*, size_t) {});
+  buffers.push_back(std::move(buffer));
+  return Payload(std::move(buffers));
 }
 
 TEST(CallbackRegistry, ValueThenCallback) {
@@ -47,25 +52,24 @@ TEST(CallbackRegistry, ValueThenCallback) {
 
   InstanceKey key = "key";
   const size_t data_size = 10;
-  auto data_ptr1 = CreateTestData(data_size, /*initial_value=*/0);
-  auto data_ptr2 = CreateTestData(data_size, /*initial_value=*/data_size);
+  auto payload1 = CreateTestPayload(data_size);
+  auto payload2 = CreateTestPayload(data_size);
 
-  auto callback = [&n_calls, data_size](const InstanceKey& key,
-                                        std::unique_ptr<std::string> value) {
+  auto callback = [&n_calls, data_size](const InstanceKey& key, Payload value) {
     n_calls++;
-    EXPECT_EQ(value->size(), data_size);
+    EXPECT_EQ(value.buffers[0]->size(), data_size);
     for (auto i = 0; i < data_size; ++i) {
-      EXPECT_EQ(static_cast<uint8_t>((*value)[i]), i);
+      EXPECT_EQ(static_cast<uint8_t*>(value.buffers[0]->data())[i], i);
     }
   };
 
-  rendezvous_registry.SetValue(key, std::move(data_ptr1));
+  rendezvous_registry.SetValue(key, std::move(payload1));
   ASSERT_EQ(n_calls.load(), 0);
 
   rendezvous_registry.SetCallback(key, callback);
   ASSERT_EQ(n_calls.load(), 1);
 
-  rendezvous_registry.SetValue(key, std::move(data_ptr2));
+  rendezvous_registry.SetValue(key, std::move(payload2));
   ASSERT_EQ(n_calls.load(), 1);
 }
 
@@ -75,21 +79,20 @@ TEST(CallbackRegistry, CallbackThenValue) {
 
   InstanceKey key = "key";
   const size_t data_size = 20;
-  auto data_ptr = CreateTestData(data_size, /*initial_value=*/0);
+  auto payload = CreateTestPayload(data_size);
 
-  auto callback = [&n_calls, data_size](const InstanceKey& key,
-                                        std::unique_ptr<std::string> value) {
+  auto callback = [&n_calls, data_size](const InstanceKey& key, Payload value) {
     n_calls++;
-    EXPECT_EQ(value->size(), data_size);
+    EXPECT_EQ(value.buffers[0]->size(), data_size);
     for (auto i = 0; i < data_size; ++i) {
-      EXPECT_EQ(static_cast<uint8_t>((*value)[i]), i);
+      EXPECT_EQ(static_cast<uint8_t*>(value.buffers[0]->data())[i], i);
     }
   };
 
   rendezvous_registry.SetCallback(key, callback);
   ASSERT_EQ(n_calls.load(), 0);
 
-  rendezvous_registry.SetValue(key, std::move(data_ptr));
+  rendezvous_registry.SetValue(key, std::move(payload));
   ASSERT_EQ(n_calls.load(), 1);
 
   rendezvous_registry.SetCallback(key, callback);
@@ -102,18 +105,17 @@ TEST(CallbackRegistry, MultipleCalls) {
 
   InstanceKey key1 = "key1";
   InstanceKey key2 = "key2";
-  std::unique_ptr<std::string> data_ptr1;
-  std::unique_ptr<std::string> data_ptr2;
+  Payload payload1 = Payload({});
+  Payload payload2 = Payload({});
 
-  auto callback = [&n_calls](const InstanceKey& key,
-                             std::unique_ptr<std::string> data_ptr) {
+  auto callback = [&n_calls](const InstanceKey& key, Payload payload) {
     n_calls++;
   };
 
-  rendezvous_registry.SetValue(key1, std::move(data_ptr1));
+  rendezvous_registry.SetValue(key1, std::move(payload1));
   ASSERT_EQ(n_calls.load(), 0);
 
-  rendezvous_registry.SetValue(key2, std::move(data_ptr2));
+  rendezvous_registry.SetValue(key2, std::move(payload2));
   ASSERT_EQ(n_calls.load(), 0);
 
   rendezvous_registry.SetCallback(key1, callback);

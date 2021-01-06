@@ -619,7 +619,7 @@ def ReceiveBytesOp :  DistOp<"recv_bytes"> {
     TFRT_StringType:$instance_key
   );
   let results = (outs
-    TFRT_StringType:$serialized
+    PayloadType:$serialized
   );
   let assemblyFormat = "operands attr-dict";
 }

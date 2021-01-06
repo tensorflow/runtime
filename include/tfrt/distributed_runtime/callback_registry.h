@@ -26,6 +26,7 @@
 
 #include "llvm/ADT/StringMap.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
+#include "tfrt/distributed_runtime/payload.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/mutex.h"
 
@@ -36,7 +37,7 @@ namespace tfrt {
 // own it until a callback is set.
 class CallbackRegistry {
  public:
-  using CallbackValue = std::unique_ptr<std::string>;
+  using CallbackValue = Payload;
   using Callback =
       llvm::unique_function<void(const InstanceKey&, CallbackValue)>;
 
@@ -49,11 +50,11 @@ class CallbackRegistry {
   void SetCallback(const InstanceKey& key, Callback callback);
 
  private:
-  using ValueMap = llvm::StringMap<std::unique_ptr<std::string>>;
+  using ValueMap = llvm::StringMap<CallbackValue>;
   using CallbackMap = llvm::StringMap<Callback>;
 
   void ExecuteCallback(const InstanceKey& key, Callback* callback,
-                       std::unique_ptr<std::string> value);
+                       CallbackValue value);
   // Print the registry state - for debugging.
   void DebugDump();
 

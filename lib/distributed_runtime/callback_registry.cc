@@ -58,7 +58,7 @@ void CallbackRegistry::ExecuteCallback(const InstanceKey& key,
 
 void CallbackRegistry::SetCallback(const InstanceKey& key, Callback callback) {
   bool execute_callback = false;
-  CallbackValue value;
+  CallbackValue value = Payload({});
   CallbackMap::iterator callback_iter;
   {
     mutex_lock lock(hashmap_mutex_);

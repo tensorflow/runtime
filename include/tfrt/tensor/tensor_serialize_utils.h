@@ -61,7 +61,8 @@ llvm::Expected<llvm::SmallVector<RCReference<HostBuffer>, 4>>
 SerializeDenseHostTensor(const DenseHostTensor& dht, HostContext* host);
 
 llvm::Expected<DenseHostTensor> DeserializeDenseHostTensor(
-    const std::string& serialized, HostContext* host);
+    const llvm::SmallVector<RCReference<HostBuffer>, 4>& serialized,
+    HostContext* host);
 
 }  // namespace tfrt
 

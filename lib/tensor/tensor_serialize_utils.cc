@@ -161,35 +161,24 @@ SerializeDenseHostTensor(const DenseHostTensor& dht, HostContext* host) {
   // - tensor kind (hence +1)
   size_t md_size = sizeof(uint64_t) * (md.shape.GetRank() + 1);
   auto md_buffer = tfrt::HostBuffer::CreateUninitialized(
-      /*size=*/md_size + sizeof(uint64_t), /*alignment=*/1, host->allocator());
+      /*size=*/md_size, /*alignment=*/1, host->allocator());
   if (!md_buffer) {
     return MakeStringError("error serializing DenseHostTensor");
   }
-  // TODO(pisong): remove this when recv_bytes uses Payload
-  WriteUint64(md_size, reinterpret_cast<char*>(md_buffer->data()));
-  SerializeTensorMetadataInternal(
-      md, reinterpret_cast<char*>(md_buffer->data()) + sizeof(uint64_t));
+  SerializeTensorMetadataInternal(md, static_cast<char*>(md_buffer->data()));
   buffers.push_back(md_buffer.CopyRef());
   buffers.push_back(dht.buffer().CopyRef());
   return std::move(buffers);
 }
 
 llvm::Expected<DenseHostTensor> DeserializeDenseHostTensor(
-    const std::string& serialized, HostContext* host) {
-  const char* pos = serialized.data();
-  size_t md_size = *reinterpret_cast<const uint64_t*>(pos);
-  pos += sizeof(uint64_t);
-  TensorMetadata md = DeserializeTensorMetadataInternal(pos, md_size).get();
-  auto result_alloc = DenseHostTensor::CreateUninitialized(md, host);
-  if (!result_alloc) {
-    return MakeStringError("error deserializing DenseHostTensor");
-  }
-  auto& dht = result_alloc.getValue();
-
-  // TODO(pisong): Avoid copying after changing request_handler_impl,
-  // callback registry to use Payload, and recv_bytes to return Payload.
-  std::memcpy(dht.data(), serialized.data() + md_size + sizeof(uint64_t),
-              md.GetHostSizeInBytes());
+    const llvm::SmallVector<RCReference<HostBuffer>, 4>& serialized,
+    HostContext* host) {
+  TensorMetadata md =
+      DeserializeTensorMetadataInternal(
+          static_cast<char*>(serialized[0]->data()), serialized[0]->size())
+          .get();
+  auto dht = DenseHostTensor(md, serialized[1].CopyRef());
   return std::move(dht);
 }
 }  // namespace tfrt

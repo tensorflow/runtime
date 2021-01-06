@@ -261,21 +261,23 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
            kGroupSize, refcounted_done = refcounted_done.CopyRef()](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
+            RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
             // Scatter aggregates the results with the local buffer.
-            reduction_fn(const_cast<char*>(callback_value->data()),
+            reduction_fn(static_cast<char*>(data->data()),
                          const_cast<char*>(in_split.data()), in_split.size());
 
             if (step == kLastScatterStep) {
-              final_fn(const_cast<char*>(callback_value->data()),
-                       in_split.size(), kGroupSize);
-              std::copy(callback_value->begin(), callback_value->end(),
+              final_fn(static_cast<char*>(data->data()), in_split.size(),
+                       kGroupSize);
+              std::copy(static_cast<char*>(data->data()),
+                        static_cast<char*>(data->data()) + data->size(),
                         const_cast<char*>(out_split.begin()));
             }
-            request->add_payload(callback_value->data(),
-                                 callback_value->size());
+            request->add_payload(data->data(), data->size());
             neighbor_client->SendDataAsync(
                 RemoteCallContext::GetDefault(), request.get(), response.get(),
                 [request = std::move(request), response = std::move(response),
+                 callback_value = std::move(callback_value),
                  refcounted_done = refcounted_done.CopyRef()](Error e) mutable {
                   refcounted_done->UpdateState(std::move(e));
                 });
@@ -290,16 +292,18 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
            neighbor_client, refcounted_done = refcounted_done.CopyRef()](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
+            RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
             // Gather assigns the incoming data to the local buffer
-            std::copy(callback_value->begin(), callback_value->end(),
+            std::copy(static_cast<char*>(data->data()),
+                      static_cast<char*>(data->data()) + data->size(),
                       const_cast<char*>(out_split.begin()));
             if (step < kLastGatherStep) {
-              request->add_payload(callback_value->data(),
-                                   callback_value->size());
+              request->add_payload(data->data(), data->size());
               neighbor_client->SendDataAsync(
                   RemoteCallContext::GetDefault(), request.get(),
                   response.get(),
                   [request = std::move(request), response = std::move(response),
+                   callback_value = std::move(callback_value),
                    refcounted_done =
                        refcounted_done.CopyRef()](Error e) mutable {
                     refcounted_done->UpdateState(std::move(e));
@@ -411,9 +415,11 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
            response = std::move(response),
            refcounted_done = refcounted_done.CopyRef()](
               const InstanceKey&,
-              CallbackRegistry::CallbackValue data) mutable {
+              CallbackRegistry::CallbackValue callback_value) mutable {
+            RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
             // A neighbor receives data and forwards it to its neighbor.
-            std::copy(data->begin(), data->end(),
+            std::copy(static_cast<char*>(data->data()),
+                      static_cast<char*>(data->data()) + data->size(),
                       const_cast<char*>(
                           GetSplit<T>(in_tensor, kGroupSize, num_elements, i)
                               .begin()));
@@ -423,6 +429,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
                   RemoteCallContext::GetDefault(), request.get(),
                   response.get(),
                   [request = std::move(request), response = std::move(response),
+                   callback_value = std::move(callback_value),
                    refcounted_done = refcounted_done.CopyRef()](Error e) {
                     refcounted_done->UpdateState(std::move(e));
                   });
@@ -502,16 +509,18 @@ void DoAllGather(const ExecutionContext& exec_ctx,
            refcounted_done = refcounted_done.CopyRef()](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
+            RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
             // A neighbor receives data and forwards it to its neighbor.
-            std::copy(callback_value->begin(), callback_value->end(),
+            std::copy(static_cast<char*>(data->data()),
+                      static_cast<char*>(data->data()) + data->size(),
                       out_tensor_ref + pos * sizeof(T));
             if (ring_order != kNeighborIndex) {
-              request->add_payload(callback_value->data(),
-                                   callback_value->size());
+              request->add_payload(data->data(), data->size());
               neighbor_client->SendDataAsync(
                   RemoteCallContext::GetDefault(), request.get(),
                   response.get(),
                   [request = std::move(request), response = std::move(response),
+                   callback_value = std::move(callback_value),
                    refcounted_done = refcounted_done.CopyRef()](Error e) {
                     refcounted_done->UpdateState(std::move(e));
                   });
@@ -539,9 +548,7 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
         "This worker is not part of the collective group ");
     return;
   }
-  auto* registry = dist_ctx->GetCallbackRegistry();
-  auto done = [out_tensor = out_tensor.ValueRef(), registry,
-               instance_key = *instance_key,
+  auto done = [out_tensor = out_tensor.ValueRef(), instance_key = *instance_key,
                out_chain = std::move(out_chain_indirect),
                dist_ctx = dist_ctx.ValueRef()](Error e) mutable {
     if (e) {
@@ -549,7 +556,6 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
     } else {
       out_chain.emplace();
     }
-    registry->SetValue(instance_key, /*value=*/nullptr);
   };
   auto refcounted_done = TakeRef(
       new RefCountedCallback([host = dist_ctx->GetHostContext(), exec_ctx,
@@ -865,7 +871,6 @@ void SendBytes(Argument<DistributedContext> dist_context,
   request->set_context_id(dist_context->GetContextId());
   request->set_instance_key(*instance_key);
   const int kNumBuffers = serialized->buffers.size();
-  // TODO(pisong): avoid copying here
   for (size_t i = 0; i < kNumBuffers; ++i) {
     request->add_payload(serialized->buffers[i]->data(),
                          serialized->buffers[i]->size());
@@ -886,13 +891,12 @@ void SendBytes(Argument<DistributedContext> dist_context,
 
 void RecvBytes(Argument<DistributedContext> dist_context,
                Argument<TaskHandle> sender_task,
-               Argument<InstanceKey> instance_key,
-               Result<std::string> serialized,
+               Argument<InstanceKey> instance_key, Result<Payload> serialized,
                const ExecutionContext& exec_ctx) {
   auto on_done = [serialized = serialized.Allocate()](
                      const InstanceKey&,
                      CallbackRegistry::CallbackValue value) {
-    serialized.emplace(*value);
+    serialized.emplace(std::move(value));
   };
   CallbackRegistry* registry = dist_context->GetCallbackRegistry();
   registry->SetCallback(*instance_key, std::move(on_done));
@@ -905,10 +909,10 @@ void Serialize(Argument<DenseHostTensor> dht, Argument<Chain> chain,
   serialized_dht.Emplace(Payload(std::move(buffers.get())));
 }
 
-void Deserialize(Argument<std::string> serialized_dht,
-                 Result<DenseHostTensor> dht,
+void Deserialize(Argument<Payload> serialized_dht, Result<DenseHostTensor> dht,
                  const ExecutionContext& exec_ctx) {
-  auto t = DeserializeDenseHostTensor(serialized_dht.get(), exec_ctx.host());
+  auto t =
+      DeserializeDenseHostTensor(serialized_dht.get().buffers, exec_ctx.host());
   dht.Emplace(std::move(*t));
 }
 

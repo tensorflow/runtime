@@ -312,9 +312,9 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "cpurt_kernels",
-    srcs = ["lib/jit/cpurt_kernels.cc"],
-    alwayslink_static_registration_src = "lib/jit/static_registration.cc",
+    name = "cpurt",
+    srcs = ["lib/jit/cpurt.cc"],
+    hdrs = ["include/tfrt/cpu/jit/cpurt.h"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":async_runtime",
@@ -341,6 +341,19 @@ tfrt_cc_library(
         "@llvm-project//mlir:StandardOpsTransforms",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Transforms",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_library(
+    name = "cpurt_kernels",
+    srcs = ["lib/jit/cpurt_kernels.cc"],
+    alwayslink_static_registration_src = "lib/jit/static_registration.cc",
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":cpurt",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",

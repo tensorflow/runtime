@@ -78,7 +78,7 @@ CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmEx_v10(
   }();
   if (version_pair.second != CUBLAS_STATUS_SUCCESS) return version_pair.second;
   if (version_pair.first >= 11000) {
-#if CUBLAS_VERSION_MAJOR >= 11
+#if CUBLAS_VER_MAJOR >= 11
     cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
     auto status =
         cublasMigrateComputeType(handle, computeType, &migratedComputeType);

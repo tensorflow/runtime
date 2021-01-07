@@ -167,6 +167,7 @@
       "cublasStrmm_v2",
       "cublasDtrmm_v2",
       "cublasCtrmm_v2",
-      "cublasZtrmm_v2"
+      "cublasZtrmm_v2",
+      "cublasGetMathMode"
    ]
 }

@@ -251,11 +251,17 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
   DistributedContext* dist_context = expected.get();
 
   FunctionCache* function_cache = dist_context->GetFunctionCache();
-  auto cached_bef = function_cache->Prepare(request->program_name());
-  RCReference<BEFFile>& bef_file = cached_bef.bef_file;
-  if (bef_file.get() == nullptr) {
+  FunctionCache::CachedBEF* cached_bef =
+      function_cache->Prepare(request->program_name());
+  if (cached_bef == nullptr) {
     done(llvm::make_error<InvalidArgumentErrorInfo>(
         StrCat("Can't find program: [", request->program_name(), "]")));
+    return;
+  }
+  RCReference<BEFFile>& bef_file = cached_bef->bef_file;
+  if (bef_file.get() == nullptr) {
+    done(llvm::make_error<InvalidArgumentErrorInfo>(
+        StrCat("Can't find function: [", request->program_name(), "]")));
     return;
   }
 
@@ -290,13 +296,13 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
   arguments.reserve(fn->argument_types().size());
   arguments_ref.reserve(fn->argument_types().size());
   // Allow the first argument to be `DistributedContext`.
-  if (cached_bef.require_distributed_context) {
+  if (cached_bef->require_distributed_context) {
     AsyncValue* dist_context_arg =
         server_context_->GetDistributedContextAsyncValue(request->context_id())
             .GetAsyncValue();
     arguments.push_back(dist_context_arg);
   }
-  if (cached_bef.require_preallocated_outputs) {
+  if (cached_bef->require_preallocated_outputs) {
     for (int i = 0; i < request->output_size(); ++i) {
       auto& id = request->output(i).id();
       RCReference<Device> device =

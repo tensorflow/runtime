@@ -48,17 +48,12 @@ class FunctionCache {
   // A struct representing a BEFFile and the respective buffer.
   struct CachedBEF {
     CachedBEF() {}
-    CachedBEF(const CachedBEF& cached_bef)
-        : bef_file(cached_bef.bef_file.CopyRef()),
-          require_distributed_context(cached_bef.require_distributed_context),
-          require_preallocated_outputs(
-              cached_bef.require_preallocated_outputs) {}
 
     RCReference<BEFFile> bef_file;
     bool require_distributed_context = false;
     bool require_preallocated_outputs = false;
   };
-  CachedBEF Prepare(const std::string& program_name);
+  CachedBEF* Prepare(const std::string& program_name);
 
  private:
   HostContext* host_;

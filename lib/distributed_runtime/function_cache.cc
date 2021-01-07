@@ -74,14 +74,14 @@ Error FunctionCache::Register(const std::string& program_name,
   return Error::success();
 }
 
-FunctionCache::CachedBEF FunctionCache::Prepare(
+FunctionCache::CachedBEF* FunctionCache::Prepare(
     const std::string& program_name) {
   mutex_lock lock(cached_bef_mutex_);
   auto iter = cached_bef_.find(program_name);
   if (iter != cached_bef_.end()) {
-    return iter->second.second;
+    return &iter->second.second;
   }
-  return CachedBEF();
+  return nullptr;
 }
 
 }  // namespace tfrt

@@ -30,7 +30,7 @@ include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
 
 def BlasCreateOp : CUDA_Op<"blas.create"> {
-  let summary = "cuda blas.create operation";
+  let summary = "tfrt_cuda blas.create operation";
   let description = [{
     tfrt_cuda.blas.create creates a handle to the BLAS library context
 
@@ -41,7 +41,7 @@ def BlasCreateOp : CUDA_Op<"blas.create"> {
 }
 
 def BlasSetStreamOp : CUDA_Op<"blas.set_stream"> {
-  let summary = "cuda blas.set_stream operation";
+  let summary = "tfrt_cuda blas.set_stream operation";
   let description = [{
     tfrt_cuda.blas.set_stream sets the BLAS library stream.
 
@@ -53,7 +53,7 @@ def BlasSetStreamOp : CUDA_Op<"blas.set_stream"> {
 }
 
 def BlasSaxpyOp : CUDA_Op<"blas.axpy.f32"> {
-  let summary = "cuda blas.axpy.f32 operation";
+  let summary = "tfrt_cuda blas.axpy.f32 operation";
   let description = [{
     tfrt_cuda.blas.axpy.f32 call BLAS saxpy function.
   }];
@@ -64,7 +64,7 @@ def BlasSaxpyOp : CUDA_Op<"blas.axpy.f32"> {
 }
 
 def BlasSgemmOp : CUDA_Op<"blas.gemm.f32"> {
-  let summary = "cuda blas.gemm.f32 operation";
+  let summary = "tfrt_cuda blas.gemm.f32 operation";
   let description = [{
     tfrt_cuda.blas.gemm.f32 calls BLAS sgemm function.
   }];
@@ -73,6 +73,27 @@ def BlasSgemmOp : CUDA_Op<"blas.gemm.f32"> {
                    I32:$m, I32:$n, I32:$k, F32:$alpha, BufferType:$A, I32:$lda,
                    BufferType:$B, I32:$ldb, F32:$beta, BufferType:$C, I32:$ldc,
                    TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
+}
+
+def BlasGemmExOp : CUDA_Op<"blas.gemm.ex"> {
+  let summary = "tfrt_cuda blas.gemm.ex operation";
+  let description = [{
+    tfrt_cuda.blas.gemm.ex This kernel is an extension of blas.gemm.<t> kernels
+                           that allows the user to individually specify the
+                           data types for each of the A, B and C matrices,
+                           the precision of computation and the GEMM
+                           algorithm to be run.
+  }];
+  let arguments = (ins ContextType, CublasHandleType,
+                   I32:$transa, I32:$transb,
+                   I32:$m, I32:$n, I32:$k,
+                   F32:$alpha,
+                   BufferType:$A, I32:$Atype, I32:$lda,
+                   BufferType:$B, I32:$Btype, I32:$ldb,
+                   F32:$beta,
+                   BufferType:$C, I32:$Ctype, I32:$ldc,
+                   I32:$computeType, I32:$algo, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 

@@ -21,6 +21,7 @@
 #include "llvm/Support/Errc.h"
 #include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/stream/blas_wrapper.h"
+#include "tfrt/gpu/stream/cublas_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 
@@ -99,6 +100,41 @@ static llvm::Expected<gpu::stream::BlasOperation> SafeIntToBlasOperation(
   return blas_operation;
 }
 
+static llvm::Expected<cublasOperation_t> SafeIntToCublasOperation(
+    int32_t operation) {
+  auto cublas_operation = static_cast<cublasOperation_t>(operation);
+  if ((cublas_operation > cublasOperation_t::CUBLAS_OP_CONJG) ||
+      (cublas_operation < cublasOperation_t::CUBLAS_OP_N)) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Invalid CublasOperation value: %d",
+                                   operation);
+  }
+  return cublas_operation;
+}
+
+static llvm::Expected<cudaDataType> SafeIntToCublasDataType(int32_t data_type) {
+  auto cublas_data_type = static_cast<cudaDataType>(data_type);
+  if ((cublas_data_type > cudaDataType::CUDA_C_32U) ||
+      (cublas_data_type < cudaDataType::CUDA_R_32F)) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Invalid CublasDataType value: %d",
+                                   data_type);
+  }
+  return cublas_data_type;
+}
+
+static llvm::Expected<cublasGemmAlgo_t> SafeIntToCublasGemmAlgo(int32_t algo) {
+  auto cublas_algo = static_cast<cublasGemmAlgo_t>(algo);
+  if ((cublas_algo > cublasGemmAlgo_t::CUBLAS_GEMM_ALGO15_TENSOR_OP) ||
+      (cublas_algo < cublasGemmAlgo_t::CUBLAS_GEMM_DFALT) ||
+      ((cublas_algo > cublasGemmAlgo_t::CUBLAS_GEMM_ALGO23) &&
+       (cublas_algo < cublasGemmAlgo_t::CUBLAS_GEMM_DEFAULT_TENSOR_OP))) {
+    return llvm::createStringError(llvm::errc::invalid_argument,
+                                   "Invalid CublasGemmAlgo value: %d", algo);
+  }
+  return cublas_algo;
+}
+
 static void BlasSgemm(Argument<gpu::stream::Context> context,
                       Argument<gpu::stream::OwningBlasHandle> cublas_handle,
                       Argument<int32_t> transa, Argument<int32_t> transb,
@@ -131,12 +167,66 @@ static void BlasSgemm(Argument<gpu::stream::Context> context,
   out_chain.Set(in_chain);
 }
 
+// This function eventually need to make two separate calls to CublasGemmEx and
+// corresponding ROCm function, as wrapper BlassGemmEx for CUDA/ROCm is not
+// feasible due to mismatch in APIs (algo specification parameter).  Right now
+// only CublasGemmEx call is supported.
+static void BlasGemmEx(
+    Argument<gpu::stream::Context> context,
+    Argument<gpu::stream::OwningBlasHandle> cublas_handle,
+    Argument<int32_t> transa, Argument<int32_t> transb, Argument<int32_t> m,
+    Argument<int32_t> n, Argument<int32_t> k, Argument<float> alpha,
+    Argument<RCReference<gpu::GpuBuffer>> A, Argument<int32_t> Atype,
+    Argument<int32_t> lda, Argument<RCReference<gpu::GpuBuffer>> B,
+    Argument<int32_t> Btype, Argument<int32_t> ldb, Argument<float> beta,
+    Argument<RCReference<gpu::GpuBuffer>> C, Argument<int32_t> Ctype,
+    Argument<int32_t> ldc, Argument<int32_t> computeType,
+    Argument<int32_t> algo, Argument<Chain> in_chain, Result<Chain> out_chain,
+    KernelErrorHandler handler) {
+  auto current = gpu::stream::CtxSetCurrent(*context);
+  if (!current) return REPORT_ERROR(handler, current.takeError());
+  Pointer<const float> alpha_ptr(&(*alpha), context->platform());
+  Pointer<const float> beta_ptr(&(*beta), context->platform());
+
+  auto transa_blas = SafeIntToCublasOperation(*transa);
+  if (!transa_blas) return REPORT_ERROR(handler, transa_blas.takeError());
+
+  auto transb_blas = SafeIntToCublasOperation(*transb);
+  if (!transb_blas) return REPORT_ERROR(handler, transb_blas.takeError());
+
+  auto Atype_blas = SafeIntToCublasDataType(*Atype);
+  if (!Atype_blas) return REPORT_ERROR(handler, Atype_blas.takeError());
+
+  auto Btype_blas = SafeIntToCublasDataType(*Btype);
+  if (!Btype_blas) return REPORT_ERROR(handler, Btype_blas.takeError());
+
+  auto Ctype_blas = SafeIntToCublasDataType(*Ctype);
+  if (!Ctype_blas) return REPORT_ERROR(handler, Ctype_blas.takeError());
+
+  auto computeType_blas = SafeIntToCublasDataType(*computeType);
+  if (!computeType_blas)
+    return REPORT_ERROR(handler, computeType_blas.takeError());
+
+  auto algo_blas = SafeIntToCublasGemmAlgo(*algo);
+  if (!algo_blas) return REPORT_ERROR(handler, algo_blas.takeError());
+
+  llvm::Error error = gpu::stream::CublasGemmEx(
+      *current, cublas_handle->get(), *transa_blas, *transb_blas, *m, *n, *k,
+      alpha_ptr, Pointer<const float>(A->get()->pointer()), *Atype_blas, *lda,
+      Pointer<const float>(B->get()->pointer()), *Btype_blas, *ldb, beta_ptr,
+      Pointer<float>(C->get()->pointer()), *Ctype_blas, *ldc, *computeType_blas,
+      *algo_blas);
+  if (error) return REPORT_ERROR(handler, std::move(error));
+  out_chain.Set(in_chain);
+}
+
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.blas.create", TFRT_KERNEL(BlasCreate));
   kernel_reg->AddKernel("tfrt_cuda.blas.set_stream",
                         TFRT_KERNEL(BlasSetStream));
   kernel_reg->AddKernel("tfrt_cuda.blas.axpy.f32", TFRT_KERNEL(BlasSaxpy));
   kernel_reg->AddKernel("tfrt_cuda.blas.gemm.f32", TFRT_KERNEL(BlasSgemm));
+  kernel_reg->AddKernel("tfrt_cuda.blas.gemm.ex", TFRT_KERNEL(BlasGemmEx));
 }
 }  // namespace cuda
 }  // namespace tfrt

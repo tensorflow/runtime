@@ -47,6 +47,36 @@ CUDADialect::CUDADialect(MLIRContext *context)
       >();
 }
 
+namespace conversion {
+
+CUDA_ConversionDialect::CUDA_ConversionDialect(MLIRContext *context)
+    : Dialect(/*name*/ "tfrt_cuda_conversion", context,
+              TypeID::get<CUDA_ConversionDialect>()) {
+  allowUnknownTypes();
+  allowUnknownOperations();
+
+  addOperations<
+#define GET_OP_LIST
+#include "tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.cpp.inc"
+      >();
+}
+
+mlir::OpFoldResult CastAnyToAnyOp::fold(
+    llvm::ArrayRef<mlir::Attribute> operands) {
+  // Casting from type A to type B, and then casting back to type A can be
+  // folded away.
+  mlir::Type output_type = output().getType();
+
+  CastAnyToAnyOp input_op = input().getDefiningOp<CastAnyToAnyOp>();
+  if (!input_op) return nullptr;
+
+  mlir::Value indirect_input = input_op.input();
+  if (indirect_input.getType() == output_type) return indirect_input;
+  return nullptr;
+}
+
+}  // namespace conversion
+
 }  // namespace cuda
 }  // namespace tfrt
 
@@ -56,3 +86,6 @@ CUDADialect::CUDADialect(MLIRContext *context)
 
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.cpp.inc"
+
+#define GET_OP_CLASSES
+#include "tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.cpp.inc"

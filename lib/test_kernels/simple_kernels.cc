@@ -26,6 +26,7 @@
 
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/tensor_type_registration.h"
 #include "tfrt/test_kernels.h"
@@ -83,6 +84,8 @@ static std::string FormatString(const std::string& path_format,
 
 static void SetupStringRegistry(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.get_string", TFRT_KERNEL(TestGetString));
+  registry->AddSyncKernel("tfrt_test.get_string_sync",
+                          TFRT_SYNC_KERNEL(TestGetString));
   registry->AddKernel("tfrt_test.print_string", TFRT_KERNEL(TestPrintString));
   registry->AddKernel("tfrt_test.append_string", TFRT_KERNEL(TestAppendString));
   registry->AddKernel("tfrt_test.string_equal", TFRT_KERNEL(TestStringEqual));

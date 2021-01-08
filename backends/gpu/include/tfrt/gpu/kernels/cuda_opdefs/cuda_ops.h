@@ -42,10 +42,24 @@ class CUDADialect : public Dialect {
   explicit CUDADialect(MLIRContext* context);
 };
 
+namespace conversion {
+
+// Dialect for cuda conversion helper operations.
+class CUDA_ConversionDialect : public Dialect {
+ public:
+  static StringRef getDialectNamespace() { return "tfrt_cuda_conversion"; }
+  explicit CUDA_ConversionDialect(MLIRContext* context);
+};
+
+}  // namespace conversion
+
 }  // namespace cuda
 }  // namespace tfrt
 
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.h.inc"
+
+#define GET_OP_CLASSES
+#include "tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.h.inc"
 
 #endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_OPS_H_

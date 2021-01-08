@@ -83,11 +83,15 @@ tfrt_cc_library(
 
 # This is a backward compatible wrapper for cublasGemmEx to support
 # cuBLAS v10 and v11 builds.
+# This target is used in internal build only.
 tfrt_cc_library(
     name = "cublas_compat",
     srcs = ["lib/stream/cublas_compat.cc"],
     tags = ["manual"],
-    deps = ["@cuda_headers"],
+    deps = [
+        "@cuda_headers",
+        "@cuda_headers//:cublas_static",
+    ],
 )
 
 tfrt_cc_library(
@@ -690,6 +694,29 @@ gentbl(
 )
 
 gentbl(
+    name = "cuda_conversion_helper_opdefs_inc_gen",
+    tbl_outs = [
+        (
+            "-gen-op-decls",
+            "include/tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.h.inc",
+        ),
+        (
+            "-gen-op-defs",
+            "include/tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_ops.td",
+    td_includes = [
+        "include",
+        "backends/gpu/include",
+    ],
+    td_srcs = [
+        "@tf_runtime//:OpBaseTdFiles",
+    ],
+)
+
+gentbl(
     name = "cuda_test_opdefs_inc_gen",
     tbl_outs = [
         (
@@ -723,6 +750,7 @@ tfrt_cc_library(
     ],
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        ":cuda_conversion_helper_opdefs_inc_gen",
         ":cuda_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",

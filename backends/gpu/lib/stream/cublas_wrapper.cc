@@ -1714,6 +1714,52 @@ llvm::Error CublasGemmEx(CurrentContext current, cublasHandle_t handle,
                                    ToCuda(B), Btype, ldb, ToCuda(beta),
                                    ToCuda(C), Ctype, ldc, computeType, algo));
 }
+
+extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmBatchedEx_v10(
+    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
+    int m, int n, int k, const void* alpha, /* host or device pointer */
+    const void* Aarray[], cudaDataType Atype, int lda, const void* Barray[],
+    cudaDataType Btype, int ldb, const void* beta, /* host or device pointer */
+    void* Carray[], cudaDataType Ctype, int ldc, int batchCount,
+    cudaDataType computeType, cublasGemmAlgo_t algo);
+
+llvm::Error CublasGemmBatchedEx(
+    CurrentContext current, cublasHandle_t handle, cublasOperation_t transa,
+    cublasOperation_t transb, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void*> Aarray, cudaDataType Atype, int lda,
+    Pointer<const void*> Barray, cudaDataType Btype, int ldb,
+    Pointer<const void> beta, Pointer<void*> Carray, cudaDataType Ctype,
+    int ldc, int batchCount, cudaDataType computeType, cublasGemmAlgo_t algo) {
+  CheckCudaContext(current);
+  return TO_ERROR(cublasGemmBatchedEx_v10(
+      handle, transa, transb, m, n, k, ToCuda(alpha), ToCuda(Aarray), Atype,
+      lda, ToCuda(Barray), Btype, ldb, ToCuda(beta), ToCuda(Carray), Ctype, ldc,
+      batchCount, computeType, algo));
+}
+extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmStridedBatchedEx_v10(
+    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
+    int m, int n, int k, const void* alpha, /* host or device pointer */
+    const void* A, cudaDataType Atype, int lda, int64_t strideA, const void* B,
+    cudaDataType Btype, int ldb, int64_t strideB,
+    const void* beta, /* host or device pointer */
+    void* C, cudaDataType Ctype, int ldc, int64_t strideC, int batchCount,
+    cudaDataType computeType, cublasGemmAlgo_t algo);
+
+llvm::Error CublasGemmStridedBatchedEx(
+    CurrentContext current, cublasHandle_t handle, cublasOperation_t transa,
+    cublasOperation_t transb, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void> A, cudaDataType Atype, int lda, int64_t strideA,
+    Pointer<const void> B, cudaDataType Btype, int ldb, int64_t strideB,
+    Pointer<const void> beta, Pointer<void> C, cudaDataType Ctype, int ldc,
+    int64_t strideC, int batchCount, cudaDataType computeType,
+    cublasGemmAlgo_t algo) {
+  CheckCudaContext(current);
+  return TO_ERROR(cublasGemmStridedBatchedEx_v10(
+      handle, transa, transb, m, n, k, ToCuda(alpha), ToCuda(A), Atype, lda,
+      strideA, ToCuda(B), Btype, ldb, strideB, ToCuda(beta), ToCuda(C), Ctype,
+      ldc, strideC, batchCount, computeType, algo));
+}
+
 }  // namespace stream
 }  // namespace gpu
 }  // namespace tfrt

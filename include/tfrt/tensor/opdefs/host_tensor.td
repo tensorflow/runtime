@@ -44,7 +44,7 @@ def HostTensor_Dialect : Dialect {
 def HostBufferType : DialectType<HostTensor_Dialect,
     CPred<"$_self.isa<::tfrt::ht::HostBufferType>()">, "!ht.host_buffer type">,
     BuildableType<"$_builder.getType<::tfrt::ht::HostBufferType>()"> {
-  let typeDescription = [{
+  let description = [{
     `!ht.host_buffer type` represents a host buffer.
   }];
 }

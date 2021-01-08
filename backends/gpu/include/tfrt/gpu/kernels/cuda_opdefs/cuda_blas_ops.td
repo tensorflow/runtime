@@ -97,4 +97,17 @@ def BlasGemmExOp : CUDA_Op<"blas.gemm.ex"> {
   let results = (outs TFRT_ChainType);
 }
 
+// TODO(b/175169391): Remove this Op once the tfrt_cuda dialect moves from
+// async to sync Ops.
+def BlasSyncSgemmOp : CUDA_Op<"blas.sync.gemm.f32"> {
+  let summary = "cuda blas.sync.gemm.f32 operation";
+  let description = [{
+    tfrt_cuda.blas.sync.gemm.f32 calls BLAS sgemm function.
+  }];
+  let arguments = (ins ContextType, CublasHandleType, StreamType,
+                   I32:$transa, I32:$transb,
+                   I32:$m, I32:$n, I32:$k, F32:$alpha, BufferType:$A, I32:$lda,
+                   BufferType:$B, I32:$ldb, F32:$beta, BufferType:$C, I32:$ldc);
+}
+
 #endif  // CUDA_OPS

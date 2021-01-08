@@ -278,5 +278,17 @@ def GetStringOp : Test_Op<"get_string"> {
   let verifier = ?;
 }
 
+def GetStringSyncOp : Test_Op<"get_string_sync"> {
+  let summary = "tfrt_test.get_string_sync";
+  let description = [{
+    Get a !tfrt.string value from the given string attribute.
+  }];
+
+  let arguments = (ins StrAttr:$value);
+  let results = (outs TFRT_StringType);
+  let assemblyFormat = "attr-dict";
+  let verifier = ?;
+}
+
 
 #endif  // TEST_OPS

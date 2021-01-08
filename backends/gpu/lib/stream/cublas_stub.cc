@@ -100,4 +100,85 @@ CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmEx_v10(
       beta, C, Ctype, ldc, computeType, algo);
 }
 
+CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmBatchedEx_v10(
+    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
+    int m, int n, int k, const void *alpha, /* host or device pointer */
+    const void *Aarray[], cudaDataType Atype, int lda, const void *Barray[],
+    cudaDataType Btype, int ldb, const void *beta, /* host or device pointer */
+    void *Carray[], cudaDataType Ctype, int ldc, int batchCount,
+    cudaDataType computeType, cublasGemmAlgo_t algo) {
+  static auto func_ptr = LoadSymbol("cublasGemmBatchedEx");
+  if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
+  static auto version_pair = [&] {
+    int version = 0;
+    auto status = cublasGetVersion_v2(handle, &version);
+    return std::make_pair(version, status);
+  }();
+  if (version_pair.second != CUBLAS_STATUS_SUCCESS) return version_pair.second;
+  if (version_pair.first >= 11000) {
+#if CUBLAS_VER_MAJOR >= 11
+    cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
+    auto status =
+        cublasMigrateComputeType(handle, computeType, &migratedComputeType);
+    if (status != CUBLAS_STATUS_SUCCESS) return status;
+    using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+        cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
+        const void *, const void *[], cudaDataType, int, const void *[],
+        cudaDataType, int, const void *, void *[], cudaDataType, int, int,
+        cublasComputeType_t, cublasGemmAlgo_t);
+    return reinterpret_cast<FuncPtr>(func_ptr)(
+        handle, transa, transb, m, n, k, alpha, Aarray, Atype, lda, Barray,
+        Btype, ldb, beta, Carray, Ctype, ldc, batchCount, migratedComputeType,
+        algo);
+#else
+    return CUBLAS_STATUS_NOT_SUPPORTED;
+#endif
+  }
+  return reinterpret_cast<decltype(cublasGemmBatchedEx_v10) *>(func_ptr)(
+      handle, transa, transb, m, n, k, alpha, Aarray, Atype, lda, Barray, Btype,
+      ldb, beta, Carray, Ctype, ldc, batchCount, computeType, algo);
+}
+
+CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmStridedBatchedEx_v10(
+    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
+    int m, int n, int k, const void *alpha, /* host or device pointer */
+    const void *A, cudaDataType Atype, int lda, int64_t strideA, const void *B,
+    cudaDataType Btype, int ldb, int64_t strideB,
+    const void *beta, /* host or device pointer */
+    void *C, cudaDataType Ctype, int ldc, int64_t strideC, int batchCount,
+    cudaDataType computeType, cublasGemmAlgo_t algo) {
+  static auto func_ptr = LoadSymbol("cublasGemmStridedBatchedEx");
+  if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
+  static auto version_pair = [&] {
+    int version = 0;
+    auto status = cublasGetVersion_v2(handle, &version);
+    return std::make_pair(version, status);
+  }();
+  if (version_pair.second != CUBLAS_STATUS_SUCCESS) return version_pair.second;
+  if (version_pair.first >= 11000) {
+#if CUBLAS_VER_MAJOR >= 11
+    cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
+    auto status =
+        cublasMigrateComputeType(handle, computeType, &migratedComputeType);
+    if (status != CUBLAS_STATUS_SUCCESS) return status;
+    using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+        cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
+        const void *, const void *, cudaDataType, int, long long int,
+        const void *, cudaDataType, int, long long int, const void *, void *,
+        cudaDataType, int, long long int, int, cublasComputeType_t,
+        cublasGemmAlgo_t);
+    return reinterpret_cast<FuncPtr>(func_ptr)(
+        handle, transa, transb, m, n, k, alpha, A, Atype, lda, strideA, B,
+        Btype, ldb, strideB, beta, C, Ctype, ldc, strideC, batchCount,
+        migratedComputeType, algo);
+#else
+    return CUBLAS_STATUS_NOT_SUPPORTED;
+#endif
+  }
+  return reinterpret_cast<decltype(cublasGemmStridedBatchedEx_v10) *>(func_ptr)(
+      handle, transa, transb, m, n, k, alpha, A, Atype, lda, strideA, B, Btype,
+      ldb, strideB, beta, C, Ctype, ldc, strideC, batchCount, computeType,
+      algo);
+}
+
 }  // extern "C"

@@ -808,7 +808,21 @@ llvm::Error CublasGemmEx(CurrentContext current, cublasHandle_t handle,
                          Pointer<const void> beta, Pointer<void> C,
                          cudaDataType Ctype, int ldc, cudaDataType computeType,
                          cublasGemmAlgo_t algo);
-
+llvm::Error CublasGemmBatchedEx(
+    CurrentContext current, cublasHandle_t handle, cublasOperation_t transa,
+    cublasOperation_t transb, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void*> Aarray, cudaDataType Atype, int lda,
+    Pointer<const void*> Barray, cudaDataType Btype, int ldb,
+    Pointer<const void> beta, Pointer<void*> Carray, cudaDataType Ctype,
+    int ldc, int batchCount, cudaDataType computeType, cublasGemmAlgo_t algo);
+llvm::Error CublasGemmStridedBatchedEx(
+    CurrentContext current, cublasHandle_t handle, cublasOperation_t transa,
+    cublasOperation_t transb, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void> A, cudaDataType Atype, int lda, int64_t strideA,
+    Pointer<const void> B, cudaDataType Btype, int ldb, int64_t strideB,
+    Pointer<const void> beta, Pointer<void> C, cudaDataType Ctype, int ldc,
+    int64_t strideC, int batchCount, cudaDataType computeType,
+    cublasGemmAlgo_t algo);
 }  // namespace stream
 }  // namespace gpu
 }  // namespace tfrt

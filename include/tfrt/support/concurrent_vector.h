@@ -84,7 +84,7 @@ class ConcurrentVector {
     return all_allocated_elements_[state.last_allocated][index];
   }
 
-  ArrayRef<T> ToArrayRef() {
+  ArrayRef<T> ToArrayRef() const {
     auto state = State::Decode(state_.load(std::memory_order_acquire));
     auto& storage = all_allocated_elements_[state.last_allocated];
     return ArrayRef<T>(&storage[0], &storage[state.size]);

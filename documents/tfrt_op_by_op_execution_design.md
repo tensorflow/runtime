@@ -61,15 +61,15 @@ specific accelerators that will run the computation. Kernels can do tensor
 computation as well. In a kernel, a tensor can either be an immutable value or a
 mutable buffer.
 
-Host Runtime provides the notion of kernel and mechanisms for executing kernel
-graphs. Host Runtime also provides a few basic building blocks like
-[Threading Model](tfrt_host_runtime_design.md#threading-model) and
-[Memory Allocation](tfrt_host_runtime_design.md#memory-allocation).
-
 Core Runtime provides the notion of op and a C++ API for the programmers to
 execute the ops. This op execution API is equivalent to the
 [`TFE_Execute`](https://github.com/tensorflow/tensorflow/blob/master/tensorflow/c/eager/c_api.h)
 API in the current TF eager runtime.
+
+Host Runtime provides the notion of kernel and mechanisms for executing kernel
+graphs. Host Runtime also provides a few basic building blocks like
+[Threading Model](tfrt_host_runtime_design.md#threading-model) and
+[Memory Allocation](tfrt_host_runtime_design.md#memory-allocation).
 
 ## Requirements
 

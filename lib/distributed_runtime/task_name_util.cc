@@ -27,15 +27,26 @@
 #include "tfrt/support/string_util.h"
 
 namespace tfrt {
+static std::string* g_task_prefix = new std::string("/task:");
+// Regex pattern for an acceptable task name.
+static std::string* g_task_name_regex = new std::string(
+    "^/job:([a-zA-Z][_a-zA-Z0-9]*)/task:([0-9]|[1-9][0-9]+).*$");
+
+void TaskNameUtil::SetUseReplicaInTaskName() {
+  *g_task_prefix = "/replica:0/task:";
+  *g_task_name_regex =
+      "^/job:([a-zA-Z][_a-zA-Z0-9]*)/replica:0/task:([0-9]|[1-9][0-9]+).*$";
+}
+
 static const char kDevicePrefix[] = "/device:";
 
 std::string TaskNameUtil::ConcatTaskName(string_view job_name, int task_id) {
-  return StrCat("/job:", job_name, "/task:", task_id);
+  return StrCat("/job:", job_name, *g_task_prefix, task_id);
 }
 
 std::string TaskNameUtil::ConcatDeviceName(string_view job_name, int task_id,
                                            string_view device_name) {
-  return StrCat("/job:", job_name, "/task:", task_id, kDevicePrefix,
+  return StrCat("/job:", job_name, *g_task_prefix, task_id, kDevicePrefix,
                 device_name);
 }
 
@@ -47,13 +58,9 @@ std::string TaskNameUtil::StripDevicePrefix(string_view device_name) {
   return device_name.str();
 }
 
-// Regex pattern for an acceptable task name.
-constexpr char kTaskNameRegex[] =
-    "^/job:([a-zA-Z][_a-zA-Z0-9]*)/task:([0-9]|[1-9][0-9]+).*$";
-
 Error TaskNameUtil::ParseTaskName(string_view task_name,
                                   std::string* out_job_name, int* out_task_id) {
-  llvm::Regex regex(kTaskNameRegex);
+  llvm::Regex regex(*g_task_name_regex);
   llvm::SmallVector<llvm::StringRef, 2> matches;
   std::string error_message;
   if (!regex.match(task_name, &matches, &error_message)) {

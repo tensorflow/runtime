@@ -53,6 +53,9 @@ class TaskNameUtil {
   // * Device info is optional and will be ignored in parsing task names
   static Error ParseTaskName(string_view task_name, std::string* out_job_name,
                              int* out_task_id);
+
+  // If this is called, "/replica:0" will be added as prefix of task_name.
+  static void SetUseReplicaInTaskName();
 };
 }  // namespace tfrt
 

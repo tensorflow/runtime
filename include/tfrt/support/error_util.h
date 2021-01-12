@@ -114,6 +114,7 @@ class TupleErrorInfo : public llvm::ErrorInfo<TupleErrorInfo<Args...>> {
 
  public:
   // Required field for all ErrorInfo derivatives.
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static char ID;
 
   explicit TupleErrorInfo(Args... args) : tuple_(std::forward<Args>(args)...) {}

@@ -105,6 +105,7 @@ struct PointerLikeTypeTraits<__half *> {
     return static_cast<__half *>(ptr);
   }
   // CUDA's __half (defined in vector_types.h) is aligned to 2 bytes.
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr int NumLowBitsAvailable = 1;
 };
 template <>
@@ -114,6 +115,7 @@ struct PointerLikeTypeTraits<__half2 *> {
     return static_cast<__half2 *>(ptr);
   }
   // CUDA's __half2 (defined in vector_types.h) is aligned to 4 bytes.
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr int NumLowBitsAvailable = 2;
 };
 // Define pointer traits for incomplete vector types.
@@ -124,6 +126,7 @@ struct PointerLikeTypeTraits<float2 *> {
     return static_cast<float2 *>(ptr);
   }
   // CUDA's float2 (defined in vector_types.h) is aligned to 8 bytes.
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr int NumLowBitsAvailable = 3;
 };
 template <>
@@ -133,6 +136,7 @@ struct PointerLikeTypeTraits<double2 *> {
     return static_cast<double2 *>(ptr);
   }
   // CUDA's double2 (defined in vector_types.h) is aligned to 16 bytes.
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr int NumLowBitsAvailable = 4;
 };
 }  // namespace llvm

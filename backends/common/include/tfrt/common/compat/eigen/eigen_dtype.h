@@ -48,6 +48,7 @@ struct PointerLikeTypeTraits<Eigen::half *> {
     return static_cast<Eigen::half *>(ptr);
   }
   // alignof(Eigen::half) == 2 (defined in Eigen/src/Core/arch/Default/Half.h).
+  // NOLINTNEXTLINE(readability-identifier-naming)
   static constexpr int NumLowBitsAvailable = 2;
 };
 }  // namespace llvm

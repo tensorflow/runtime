@@ -391,6 +391,26 @@ static Expected<std::tuple<int, int>> TestSyncFunctionRunnerTwoReturnValues(
   return func.run(a, b);
 }
 
+static Chain TestPrintTypedAttr(tfrt::Chain in_ch,
+                                RemainingAttributes attributes) {
+  for (int i = 0; i < attributes.size(); ++i) {
+    auto attr = attributes.GetTypedAttr(i);
+    if (auto i64_attr = attr.dyn_cast<I64Attr>()) {
+      tfrt::outs() << "I64: " << i64_attr.GetValue() << "\n";
+    } else if (auto f32_attr = attr.dyn_cast<F32Attr>()) {
+      tfrt::outs() << "F32: " << f32_attr.GetValue() << "\n";
+    } else if (auto i1_attr = attr.dyn_cast<I1Attr>()) {
+      tfrt::outs() << "I1: " << i1_attr.GetValue() << "\n";
+    } else {
+      // TODO(tfrt-devs): Test more typed attrs.
+      tfrt::outs() << "unknown attr\n";
+    }
+  }
+  tfrt::outs().flush();
+
+  return Chain();
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -412,6 +432,8 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.const_dense_attr",
                       TFRT_KERNEL(TestConstDenseAttr));
   registry->AddKernel("tfrt_test.unique_loc", TFRT_KERNEL(TestUniqueLoc));
+  registry->AddKernel("tfrt_test.print_typed_attr",
+                      TFRT_KERNEL(TestPrintTypedAttr));
 
   registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32",
                       TFRT_KERNEL(TestInvokeSyncFunction));

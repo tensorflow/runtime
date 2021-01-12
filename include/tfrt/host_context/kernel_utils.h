@@ -405,6 +405,10 @@ class RemainingAttributes {
     return AggregateAttr(remaining_attributes_[i]);
   }
 
+  TypedAttrBase GetTypedAttr(size_t i) const {
+    return TypedAttrBase(remaining_attributes_[i]);
+  }
+
  private:
   ArrayRef<uint8_t> attribute_section_;
   ArrayRef<const void*> remaining_attributes_;
@@ -836,6 +840,18 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
           frame, pargs..., arg);
     }
   };
+
+  template <typename... Tail>
+  struct SyncKernelCallHelper<I64Attr, Tail...>
+      : SyncKernelCallTypedAttrHelper<I64Attr, Tail...> {};
+
+  template <typename... Tail>
+  struct SyncKernelCallHelper<F32Attr, Tail...>
+      : SyncKernelCallTypedAttrHelper<F32Attr, Tail...> {};
+
+  template <typename... Tail>
+  struct SyncKernelCallHelper<I1Attr, Tail...>
+      : SyncKernelCallTypedAttrHelper<I1Attr, Tail...> {};
 
   // Like the above, but for StringAttr.
   template <typename... Tail>

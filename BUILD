@@ -1003,6 +1003,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
+        "include/tfrt/core_runtime/opdefs/corert_traits.td",
         "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
@@ -1018,6 +1019,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
+        ":core_runtime_opdefs",
         ":tensor_opdefs",
         ":test_kernels_opdefs_inc_gen",
         "@llvm-project//mlir:IR",

@@ -23,6 +23,7 @@
 #define TEST_OPS
 
 include "tfrt/tfrt_op_base.td"
+include "tfrt/core_runtime/opdefs/corert_traits.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // "tfrt_test. dialect
@@ -290,5 +291,13 @@ def GetStringSyncOp : Test_Op<"get_string_sync"> {
   let verifier = ?;
 }
 
+def PrintTypedAttrOp : Test_Op<"print_typed_attr", [CoreRT_TypedAttributeTrait]> {
+  let summary = "tfrt_test.print_typed_attr";
+
+  let arguments = (ins TFRT_ChainType:$in_ch);
+  let results = (outs TFRT_ChainType:$out_ch);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
 
 #endif  // TEST_OPS

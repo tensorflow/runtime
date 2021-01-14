@@ -1736,6 +1736,7 @@ llvm::Error CublasGemmBatchedEx(
       lda, ToCuda(Barray), Btype, ldb, ToCuda(beta), ToCuda(Carray), Ctype, ldc,
       batchCount, computeType, algo));
 }
+
 extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmStridedBatchedEx_v10(
     cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
     int m, int n, int k, const void* alpha, /* host or device pointer */

@@ -97,6 +97,31 @@ def BlasGemmExOp : CUDA_Op<"blas.gemm.ex"> {
   let results = (outs TFRT_ChainType);
 }
 
+def BlasGemmStridedBatchedExOp : CUDA_Op<"blas.gemm.strided.batched.ex"> {
+  let summary = "tfrt_cuda blas.gemm.batched.ex operation";
+  let description = [{
+    tfrt_cuda.blas.gemm.ex This kernel is an extension of blas.gemm.ex that
+                           performs the matrix-matrix multiplication of a batch
+                           of matrices and allows the individual specification
+                           of the data types for each of the A, B and C matrix
+                           arrays, the precision of computation and the GEMM
+                           algorithm to be run. Address offsets strideA,
+                           strideB and strideC determine the locations of input
+                           and output matrices in future instances
+  }];
+  let arguments = (ins ContextType, CublasHandleType,
+                   I32:$transa, I32:$transb,
+                   I32:$m, I32:$n, I32:$k,
+                   F32:$alpha,
+                   BufferType:$A, I32:$Atype, I32:$lda, I64:$strideA,
+                   BufferType:$B, I32:$Btype, I32:$ldb, I64:$strideB,
+                   F32:$beta,
+                   BufferType:$C, I32:$Ctype, I32:$ldc, I64:$strideC,
+                   I32:$batch_count,
+                   I32:$computeType, I32:$algo, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
+}
+
 // TODO(b/175169391): Remove this Op once the tfrt_cuda dialect moves from
 // async to sync Ops.
 def BlasSyncSgemmOp : CUDA_Op<"blas.sync.gemm.f32"> {

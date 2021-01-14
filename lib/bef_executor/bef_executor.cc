@@ -141,21 +141,6 @@ void SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
   }
 }
 
-void DebugPrintError(const BEFKernel& kernel, unsigned kernel_id,
-                     AsyncValue* result) {
-#ifdef DEBUG_BEF_EXECUTOR
-  // Print the error in debug mode.
-  if (result->IsError()) {
-    std::string error_message;
-    llvm::raw_string_ostream os(error_message);
-    os << result->GetError();
-    DEBUG_PRINT("Kernel %d %s got error: %s\n", kernel_id,
-                BefFile()->GetKernelName(kernel.kernel_code()),
-                os.str().c_str());
-  }
-#endif
-}
-
 llvm::ArrayRef<unsigned> GetNextUsedBys(const BEFKernel& kernel,
                                         int result_number, int* entry_offset) {
   // Find used_by entries for this result.
@@ -243,6 +228,9 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   MutableArrayRef<BEFFileImpl::KernelInfo> kernel_infos() {
     return function_info_.kernel_infos.mutable_array();
   }
+
+  void DebugPrintError(const BEFKernel& kernel, unsigned kernel_id,
+                       AsyncValue* result);
 
  private:
   friend class ReferenceCounted<BEFExecutor>;
@@ -405,6 +393,21 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
     // Process users of this result.
     ProcessPseudoKernelUsedBys(used_bys, ready_kernel_ids, result);
   }
+}
+
+void BEFExecutor::DebugPrintError(const BEFKernel& kernel, unsigned kernel_id,
+                                  AsyncValue* result) {
+#ifdef DEBUG_BEF_EXECUTOR
+  // Print the error in debug mode.
+  if (result->IsError()) {
+    std::string error_message;
+    llvm::raw_string_ostream os(error_message);
+    os << result->GetError();
+    DEBUG_PRINT("Kernel %d %s got error: %s\n", kernel_id,
+                BefFile()->GetKernelName(kernel.kernel_code()),
+                os.str().c_str());
+  }
+#endif
 }
 
 // Process the kernel for `kernel_id` and populate `ready_kernel_ids` with ready

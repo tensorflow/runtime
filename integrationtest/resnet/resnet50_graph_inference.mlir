@@ -1331,7 +1331,7 @@ func @resnet50() {
 
     %c2 = "eigen.conv2d.f32"(%tensor_1_0, %tensor_2_0, %tensor_2_1, %c1) { padding = "valid", strides = [2 : i64, 2 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c3 = "eigen.batch_norm.f32"(%tensor_2_1, %tensor_3_0, %tensor_3_1, %tensor_3_2, %tensor_3_3, %c2) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c3 = "eigen.batch_norm.f32"(%tensor_2_1, %tensor_3_0, %tensor_3_1, %tensor_3_2, %tensor_3_3, %c2) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c4 = "tfrt_test.relu_inplace.f32"(%tensor_2_1, %c3) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
@@ -1339,13 +1339,13 @@ func @resnet50() {
 
     %c6 = "eigen.conv2d.f32"(%tensor_5_0, %tensor_6_0, %tensor_6_1, %c5) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c7 = "eigen.batch_norm.f32"(%tensor_6_1, %tensor_7_0, %tensor_7_1, %tensor_7_2, %tensor_7_3, %c6) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c7 = "eigen.batch_norm.f32"(%tensor_6_1, %tensor_7_0, %tensor_7_1, %tensor_7_2, %tensor_7_3, %c6) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c8 = "tfrt_test.relu_inplace.f32"(%tensor_6_1, %c7) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c9 = "eigen.conv2d.f32"(%tensor_6_1, %tensor_9_0, %tensor_9_1, %c8) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c10 = "eigen.batch_norm.f32"(%tensor_9_1, %tensor_10_0, %tensor_10_1, %tensor_10_2, %tensor_10_3, %c9) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c10 = "eigen.batch_norm.f32"(%tensor_9_1, %tensor_10_0, %tensor_10_1, %tensor_10_2, %tensor_10_3, %c9) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c11 = "tfrt_test.relu_inplace.f32"(%tensor_9_1, %c10) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
@@ -1353,9 +1353,9 @@ func @resnet50() {
 
     %c13 = "eigen.conv2d.f32"(%tensor_5_0, %tensor_13_0, %tensor_13_1, %c5) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c14 = "eigen.batch_norm.f32"(%tensor_12_1, %tensor_14_0, %tensor_14_1, %tensor_14_2, %tensor_14_3, %c12) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c14 = "eigen.batch_norm.f32"(%tensor_12_1, %tensor_14_0, %tensor_14_1, %tensor_14_2, %tensor_14_3, %c12) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c15 = "eigen.batch_norm.f32"(%tensor_13_1, %tensor_15_0, %tensor_15_1, %tensor_15_2, %tensor_15_3, %c13) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c15 = "eigen.batch_norm.f32"(%tensor_13_1, %tensor_15_0, %tensor_15_1, %tensor_15_2, %tensor_15_3, %c13) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c16 = tfrt.merge.chains %c14, %c15
     %c17 = "tfrt_test.add_inplace.f32"(%tensor_13_1, %tensor_12_1, %c16) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1364,19 +1364,19 @@ func @resnet50() {
 
     %c19 = "eigen.conv2d.f32"(%tensor_12_1, %tensor_18_0, %tensor_18_1, %c18) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c20 = "eigen.batch_norm.f32"(%tensor_18_1, %tensor_19_0, %tensor_19_1, %tensor_19_2, %tensor_19_3, %c19) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c20 = "eigen.batch_norm.f32"(%tensor_18_1, %tensor_19_0, %tensor_19_1, %tensor_19_2, %tensor_19_3, %c19) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c21 = "tfrt_test.relu_inplace.f32"(%tensor_18_1, %c20) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c22 = "eigen.conv2d.f32"(%tensor_18_1, %tensor_21_0, %tensor_21_1, %c21) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c23 = "eigen.batch_norm.f32"(%tensor_21_1, %tensor_22_0, %tensor_22_1, %tensor_22_2, %tensor_22_3, %c22) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c23 = "eigen.batch_norm.f32"(%tensor_21_1, %tensor_22_0, %tensor_22_1, %tensor_22_2, %tensor_22_3, %c22) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c24 = "tfrt_test.relu_inplace.f32"(%tensor_21_1, %c23) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c25 = "eigen.conv2d.f32"(%tensor_21_1, %tensor_24_0, %tensor_24_1, %c24) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c26 = "eigen.batch_norm.f32"(%tensor_24_1, %tensor_25_0, %tensor_25_1, %tensor_25_2, %tensor_25_3, %c25) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c26 = "eigen.batch_norm.f32"(%tensor_24_1, %tensor_25_0, %tensor_25_1, %tensor_25_2, %tensor_25_3, %c25) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c27 = tfrt.merge.chains %c18, %c26
     %c28 = "tfrt_test.add_inplace.f32"(%tensor_12_1, %tensor_24_1, %c27) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1385,19 +1385,19 @@ func @resnet50() {
 
     %c30 = "eigen.conv2d.f32"(%tensor_24_1, %tensor_28_0, %tensor_28_1, %c29) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c31 = "eigen.batch_norm.f32"(%tensor_28_1, %tensor_29_0, %tensor_29_1, %tensor_29_2, %tensor_29_3, %c30) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c31 = "eigen.batch_norm.f32"(%tensor_28_1, %tensor_29_0, %tensor_29_1, %tensor_29_2, %tensor_29_3, %c30) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c32 = "tfrt_test.relu_inplace.f32"(%tensor_28_1, %c31) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c33 = "eigen.conv2d.f32"(%tensor_28_1, %tensor_31_0, %tensor_31_1, %c32) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c34 = "eigen.batch_norm.f32"(%tensor_31_1, %tensor_32_0, %tensor_32_1, %tensor_32_2, %tensor_32_3, %c33) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c34 = "eigen.batch_norm.f32"(%tensor_31_1, %tensor_32_0, %tensor_32_1, %tensor_32_2, %tensor_32_3, %c33) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c35 = "tfrt_test.relu_inplace.f32"(%tensor_31_1, %c34) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c36 = "eigen.conv2d.f32"(%tensor_31_1, %tensor_34_0, %tensor_34_1, %c35) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c37 = "eigen.batch_norm.f32"(%tensor_34_1, %tensor_35_0, %tensor_35_1, %tensor_35_2, %tensor_35_3, %c36) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c37 = "eigen.batch_norm.f32"(%tensor_34_1, %tensor_35_0, %tensor_35_1, %tensor_35_2, %tensor_35_3, %c36) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c38 = tfrt.merge.chains %c29, %c37
     %c39 = "tfrt_test.add_inplace.f32"(%tensor_24_1, %tensor_34_1, %c38) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1406,13 +1406,13 @@ func @resnet50() {
 
     %c41 = "eigen.conv2d.f32"(%tensor_34_1, %tensor_38_0, %tensor_38_1, %c40) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c42 = "eigen.batch_norm.f32"(%tensor_38_1, %tensor_39_0, %tensor_39_1, %tensor_39_2, %tensor_39_3, %c41) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c42 = "eigen.batch_norm.f32"(%tensor_38_1, %tensor_39_0, %tensor_39_1, %tensor_39_2, %tensor_39_3, %c41) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c43 = "tfrt_test.relu_inplace.f32"(%tensor_38_1, %c42) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c44 = "eigen.conv2d.f32"(%tensor_38_1, %tensor_41_0, %tensor_41_1, %c43) { padding = "same", strides = [2 : i64, 2 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c45 = "eigen.batch_norm.f32"(%tensor_41_1, %tensor_42_0, %tensor_42_1, %tensor_42_2, %tensor_42_3, %c44) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c45 = "eigen.batch_norm.f32"(%tensor_41_1, %tensor_42_0, %tensor_42_1, %tensor_42_2, %tensor_42_3, %c44) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c46 = "tfrt_test.relu_inplace.f32"(%tensor_41_1, %c45) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
@@ -1420,9 +1420,9 @@ func @resnet50() {
 
     %c48 = "eigen.conv2d.f32"(%tensor_34_1, %tensor_45_0, %tensor_45_1, %c40) { padding = "valid", strides = [2 : i64, 2 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c49 = "eigen.batch_norm.f32"(%tensor_44_1, %tensor_46_0, %tensor_46_1, %tensor_46_2, %tensor_46_3, %c47) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c49 = "eigen.batch_norm.f32"(%tensor_44_1, %tensor_46_0, %tensor_46_1, %tensor_46_2, %tensor_46_3, %c47) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c50 = "eigen.batch_norm.f32"(%tensor_45_1, %tensor_47_0, %tensor_47_1, %tensor_47_2, %tensor_47_3, %c48) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c50 = "eigen.batch_norm.f32"(%tensor_45_1, %tensor_47_0, %tensor_47_1, %tensor_47_2, %tensor_47_3, %c48) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c51 = tfrt.merge.chains %c49, %c50
     %c52 = "tfrt_test.add_inplace.f32"(%tensor_45_1, %tensor_44_1, %c51) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1431,19 +1431,19 @@ func @resnet50() {
 
     %c54 = "eigen.conv2d.f32"(%tensor_44_1, %tensor_50_0, %tensor_50_1, %c53) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c55 = "eigen.batch_norm.f32"(%tensor_50_1, %tensor_51_0, %tensor_51_1, %tensor_51_2, %tensor_51_3, %c54) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c55 = "eigen.batch_norm.f32"(%tensor_50_1, %tensor_51_0, %tensor_51_1, %tensor_51_2, %tensor_51_3, %c54) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c56 = "tfrt_test.relu_inplace.f32"(%tensor_50_1, %c55) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c57 = "eigen.conv2d.f32"(%tensor_50_1, %tensor_53_0, %tensor_53_1, %c56) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c58 = "eigen.batch_norm.f32"(%tensor_53_1, %tensor_54_0, %tensor_54_1, %tensor_54_2, %tensor_54_3, %c57) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c58 = "eigen.batch_norm.f32"(%tensor_53_1, %tensor_54_0, %tensor_54_1, %tensor_54_2, %tensor_54_3, %c57) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c59 = "tfrt_test.relu_inplace.f32"(%tensor_53_1, %c58) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c60 = "eigen.conv2d.f32"(%tensor_53_1, %tensor_56_0, %tensor_56_1, %c59) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c61 = "eigen.batch_norm.f32"(%tensor_56_1, %tensor_57_0, %tensor_57_1, %tensor_57_2, %tensor_57_3, %c60) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c61 = "eigen.batch_norm.f32"(%tensor_56_1, %tensor_57_0, %tensor_57_1, %tensor_57_2, %tensor_57_3, %c60) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c62 = tfrt.merge.chains %c53, %c61
     %c63 = "tfrt_test.add_inplace.f32"(%tensor_44_1, %tensor_56_1, %c62) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1452,19 +1452,19 @@ func @resnet50() {
 
     %c65 = "eigen.conv2d.f32"(%tensor_56_1, %tensor_60_0, %tensor_60_1, %c64) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c66 = "eigen.batch_norm.f32"(%tensor_60_1, %tensor_61_0, %tensor_61_1, %tensor_61_2, %tensor_61_3, %c65) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c66 = "eigen.batch_norm.f32"(%tensor_60_1, %tensor_61_0, %tensor_61_1, %tensor_61_2, %tensor_61_3, %c65) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c67 = "tfrt_test.relu_inplace.f32"(%tensor_60_1, %c66) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c68 = "eigen.conv2d.f32"(%tensor_60_1, %tensor_63_0, %tensor_63_1, %c67) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c69 = "eigen.batch_norm.f32"(%tensor_63_1, %tensor_64_0, %tensor_64_1, %tensor_64_2, %tensor_64_3, %c68) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c69 = "eigen.batch_norm.f32"(%tensor_63_1, %tensor_64_0, %tensor_64_1, %tensor_64_2, %tensor_64_3, %c68) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c70 = "tfrt_test.relu_inplace.f32"(%tensor_63_1, %c69) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c71 = "eigen.conv2d.f32"(%tensor_63_1, %tensor_66_0, %tensor_66_1, %c70) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c72 = "eigen.batch_norm.f32"(%tensor_66_1, %tensor_67_0, %tensor_67_1, %tensor_67_2, %tensor_67_3, %c71) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c72 = "eigen.batch_norm.f32"(%tensor_66_1, %tensor_67_0, %tensor_67_1, %tensor_67_2, %tensor_67_3, %c71) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c73 = tfrt.merge.chains %c64, %c72
     %c74 = "tfrt_test.add_inplace.f32"(%tensor_56_1, %tensor_66_1, %c73) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1473,19 +1473,19 @@ func @resnet50() {
 
     %c76 = "eigen.conv2d.f32"(%tensor_66_1, %tensor_70_0, %tensor_70_1, %c75) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c77 = "eigen.batch_norm.f32"(%tensor_70_1, %tensor_71_0, %tensor_71_1, %tensor_71_2, %tensor_71_3, %c76) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c77 = "eigen.batch_norm.f32"(%tensor_70_1, %tensor_71_0, %tensor_71_1, %tensor_71_2, %tensor_71_3, %c76) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c78 = "tfrt_test.relu_inplace.f32"(%tensor_70_1, %c77) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c79 = "eigen.conv2d.f32"(%tensor_70_1, %tensor_73_0, %tensor_73_1, %c78) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c80 = "eigen.batch_norm.f32"(%tensor_73_1, %tensor_74_0, %tensor_74_1, %tensor_74_2, %tensor_74_3, %c79) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c80 = "eigen.batch_norm.f32"(%tensor_73_1, %tensor_74_0, %tensor_74_1, %tensor_74_2, %tensor_74_3, %c79) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c81 = "tfrt_test.relu_inplace.f32"(%tensor_73_1, %c80) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c82 = "eigen.conv2d.f32"(%tensor_73_1, %tensor_76_0, %tensor_76_1, %c81) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c83 = "eigen.batch_norm.f32"(%tensor_76_1, %tensor_77_0, %tensor_77_1, %tensor_77_2, %tensor_77_3, %c82) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c83 = "eigen.batch_norm.f32"(%tensor_76_1, %tensor_77_0, %tensor_77_1, %tensor_77_2, %tensor_77_3, %c82) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c84 = tfrt.merge.chains %c75, %c83
     %c85 = "tfrt_test.add_inplace.f32"(%tensor_66_1, %tensor_76_1, %c84) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1494,13 +1494,13 @@ func @resnet50() {
 
     %c87 = "eigen.conv2d.f32"(%tensor_76_1, %tensor_80_0, %tensor_80_1, %c86) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c88 = "eigen.batch_norm.f32"(%tensor_80_1, %tensor_81_0, %tensor_81_1, %tensor_81_2, %tensor_81_3, %c87) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c88 = "eigen.batch_norm.f32"(%tensor_80_1, %tensor_81_0, %tensor_81_1, %tensor_81_2, %tensor_81_3, %c87) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c89 = "tfrt_test.relu_inplace.f32"(%tensor_80_1, %c88) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c90 = "eigen.conv2d.f32"(%tensor_80_1, %tensor_83_0, %tensor_83_1, %c89) { padding = "same", strides = [2 : i64, 2 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c91 = "eigen.batch_norm.f32"(%tensor_83_1, %tensor_84_0, %tensor_84_1, %tensor_84_2, %tensor_84_3, %c90) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c91 = "eigen.batch_norm.f32"(%tensor_83_1, %tensor_84_0, %tensor_84_1, %tensor_84_2, %tensor_84_3, %c90) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c92 = "tfrt_test.relu_inplace.f32"(%tensor_83_1, %c91) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
@@ -1508,9 +1508,9 @@ func @resnet50() {
 
     %c94 = "eigen.conv2d.f32"(%tensor_76_1, %tensor_87_0, %tensor_87_1, %c86) { padding = "valid", strides = [2 : i64, 2 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c95 = "eigen.batch_norm.f32"(%tensor_86_1, %tensor_88_0, %tensor_88_1, %tensor_88_2, %tensor_88_3, %c93) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c95 = "eigen.batch_norm.f32"(%tensor_86_1, %tensor_88_0, %tensor_88_1, %tensor_88_2, %tensor_88_3, %c93) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c96 = "eigen.batch_norm.f32"(%tensor_87_1, %tensor_89_0, %tensor_89_1, %tensor_89_2, %tensor_89_3, %c94) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c96 = "eigen.batch_norm.f32"(%tensor_87_1, %tensor_89_0, %tensor_89_1, %tensor_89_2, %tensor_89_3, %c94) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c97 = tfrt.merge.chains %c95, %c96
     %c98 = "tfrt_test.add_inplace.f32"(%tensor_87_1, %tensor_86_1, %c97) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1519,19 +1519,19 @@ func @resnet50() {
 
     %c100 = "eigen.conv2d.f32"(%tensor_86_1, %tensor_92_0, %tensor_92_1, %c99) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c101 = "eigen.batch_norm.f32"(%tensor_92_1, %tensor_93_0, %tensor_93_1, %tensor_93_2, %tensor_93_3, %c100) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c101 = "eigen.batch_norm.f32"(%tensor_92_1, %tensor_93_0, %tensor_93_1, %tensor_93_2, %tensor_93_3, %c100) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c102 = "tfrt_test.relu_inplace.f32"(%tensor_92_1, %c101) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c103 = "eigen.conv2d.f32"(%tensor_92_1, %tensor_95_0, %tensor_95_1, %c102) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c104 = "eigen.batch_norm.f32"(%tensor_95_1, %tensor_96_0, %tensor_96_1, %tensor_96_2, %tensor_96_3, %c103) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c104 = "eigen.batch_norm.f32"(%tensor_95_1, %tensor_96_0, %tensor_96_1, %tensor_96_2, %tensor_96_3, %c103) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c105 = "tfrt_test.relu_inplace.f32"(%tensor_95_1, %c104) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c106 = "eigen.conv2d.f32"(%tensor_95_1, %tensor_98_0, %tensor_98_1, %c105) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c107 = "eigen.batch_norm.f32"(%tensor_98_1, %tensor_99_0, %tensor_99_1, %tensor_99_2, %tensor_99_3, %c106) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c107 = "eigen.batch_norm.f32"(%tensor_98_1, %tensor_99_0, %tensor_99_1, %tensor_99_2, %tensor_99_3, %c106) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c108 = tfrt.merge.chains %c99, %c107
     %c109 = "tfrt_test.add_inplace.f32"(%tensor_86_1, %tensor_98_1, %c108) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1540,19 +1540,19 @@ func @resnet50() {
 
     %c111 = "eigen.conv2d.f32"(%tensor_98_1, %tensor_102_0, %tensor_102_1, %c110) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c112 = "eigen.batch_norm.f32"(%tensor_102_1, %tensor_103_0, %tensor_103_1, %tensor_103_2, %tensor_103_3, %c111) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c112 = "eigen.batch_norm.f32"(%tensor_102_1, %tensor_103_0, %tensor_103_1, %tensor_103_2, %tensor_103_3, %c111) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c113 = "tfrt_test.relu_inplace.f32"(%tensor_102_1, %c112) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c114 = "eigen.conv2d.f32"(%tensor_102_1, %tensor_105_0, %tensor_105_1, %c113) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c115 = "eigen.batch_norm.f32"(%tensor_105_1, %tensor_106_0, %tensor_106_1, %tensor_106_2, %tensor_106_3, %c114) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c115 = "eigen.batch_norm.f32"(%tensor_105_1, %tensor_106_0, %tensor_106_1, %tensor_106_2, %tensor_106_3, %c114) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c116 = "tfrt_test.relu_inplace.f32"(%tensor_105_1, %c115) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c117 = "eigen.conv2d.f32"(%tensor_105_1, %tensor_108_0, %tensor_108_1, %c116) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c118 = "eigen.batch_norm.f32"(%tensor_108_1, %tensor_109_0, %tensor_109_1, %tensor_109_2, %tensor_109_3, %c117) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c118 = "eigen.batch_norm.f32"(%tensor_108_1, %tensor_109_0, %tensor_109_1, %tensor_109_2, %tensor_109_3, %c117) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c119 = tfrt.merge.chains %c110, %c118
     %c120 = "tfrt_test.add_inplace.f32"(%tensor_98_1, %tensor_108_1, %c119) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1561,19 +1561,19 @@ func @resnet50() {
 
     %c122 = "eigen.conv2d.f32"(%tensor_108_1, %tensor_112_0, %tensor_112_1, %c121) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c123 = "eigen.batch_norm.f32"(%tensor_112_1, %tensor_113_0, %tensor_113_1, %tensor_113_2, %tensor_113_3, %c122) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c123 = "eigen.batch_norm.f32"(%tensor_112_1, %tensor_113_0, %tensor_113_1, %tensor_113_2, %tensor_113_3, %c122) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c124 = "tfrt_test.relu_inplace.f32"(%tensor_112_1, %c123) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c125 = "eigen.conv2d.f32"(%tensor_112_1, %tensor_115_0, %tensor_115_1, %c124) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c126 = "eigen.batch_norm.f32"(%tensor_115_1, %tensor_116_0, %tensor_116_1, %tensor_116_2, %tensor_116_3, %c125) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c126 = "eigen.batch_norm.f32"(%tensor_115_1, %tensor_116_0, %tensor_116_1, %tensor_116_2, %tensor_116_3, %c125) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c127 = "tfrt_test.relu_inplace.f32"(%tensor_115_1, %c126) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c128 = "eigen.conv2d.f32"(%tensor_115_1, %tensor_118_0, %tensor_118_1, %c127) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c129 = "eigen.batch_norm.f32"(%tensor_118_1, %tensor_119_0, %tensor_119_1, %tensor_119_2, %tensor_119_3, %c128) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c129 = "eigen.batch_norm.f32"(%tensor_118_1, %tensor_119_0, %tensor_119_1, %tensor_119_2, %tensor_119_3, %c128) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c130 = tfrt.merge.chains %c121, %c129
     %c131 = "tfrt_test.add_inplace.f32"(%tensor_108_1, %tensor_118_1, %c130) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1582,19 +1582,19 @@ func @resnet50() {
 
     %c133 = "eigen.conv2d.f32"(%tensor_118_1, %tensor_122_0, %tensor_122_1, %c132) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c134 = "eigen.batch_norm.f32"(%tensor_122_1, %tensor_123_0, %tensor_123_1, %tensor_123_2, %tensor_123_3, %c133) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c134 = "eigen.batch_norm.f32"(%tensor_122_1, %tensor_123_0, %tensor_123_1, %tensor_123_2, %tensor_123_3, %c133) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c135 = "tfrt_test.relu_inplace.f32"(%tensor_122_1, %c134) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c136 = "eigen.conv2d.f32"(%tensor_122_1, %tensor_125_0, %tensor_125_1, %c135) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c137 = "eigen.batch_norm.f32"(%tensor_125_1, %tensor_126_0, %tensor_126_1, %tensor_126_2, %tensor_126_3, %c136) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c137 = "eigen.batch_norm.f32"(%tensor_125_1, %tensor_126_0, %tensor_126_1, %tensor_126_2, %tensor_126_3, %c136) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c138 = "tfrt_test.relu_inplace.f32"(%tensor_125_1, %c137) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c139 = "eigen.conv2d.f32"(%tensor_125_1, %tensor_128_0, %tensor_128_1, %c138) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c140 = "eigen.batch_norm.f32"(%tensor_128_1, %tensor_129_0, %tensor_129_1, %tensor_129_2, %tensor_129_3, %c139) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c140 = "eigen.batch_norm.f32"(%tensor_128_1, %tensor_129_0, %tensor_129_1, %tensor_129_2, %tensor_129_3, %c139) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c141 = tfrt.merge.chains %c132, %c140
     %c142 = "tfrt_test.add_inplace.f32"(%tensor_118_1, %tensor_128_1, %c141) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1603,19 +1603,19 @@ func @resnet50() {
 
     %c144 = "eigen.conv2d.f32"(%tensor_128_1, %tensor_132_0, %tensor_132_1, %c143) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c145 = "eigen.batch_norm.f32"(%tensor_132_1, %tensor_133_0, %tensor_133_1, %tensor_133_2, %tensor_133_3, %c144) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c145 = "eigen.batch_norm.f32"(%tensor_132_1, %tensor_133_0, %tensor_133_1, %tensor_133_2, %tensor_133_3, %c144) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c146 = "tfrt_test.relu_inplace.f32"(%tensor_132_1, %c145) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c147 = "eigen.conv2d.f32"(%tensor_132_1, %tensor_135_0, %tensor_135_1, %c146) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c148 = "eigen.batch_norm.f32"(%tensor_135_1, %tensor_136_0, %tensor_136_1, %tensor_136_2, %tensor_136_3, %c147) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c148 = "eigen.batch_norm.f32"(%tensor_135_1, %tensor_136_0, %tensor_136_1, %tensor_136_2, %tensor_136_3, %c147) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c149 = "tfrt_test.relu_inplace.f32"(%tensor_135_1, %c148) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c150 = "eigen.conv2d.f32"(%tensor_135_1, %tensor_138_0, %tensor_138_1, %c149) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c151 = "eigen.batch_norm.f32"(%tensor_138_1, %tensor_139_0, %tensor_139_1, %tensor_139_2, %tensor_139_3, %c150) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c151 = "eigen.batch_norm.f32"(%tensor_138_1, %tensor_139_0, %tensor_139_1, %tensor_139_2, %tensor_139_3, %c150) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c152 = tfrt.merge.chains %c143, %c151
     %c153 = "tfrt_test.add_inplace.f32"(%tensor_128_1, %tensor_138_1, %c152) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1624,13 +1624,13 @@ func @resnet50() {
 
     %c155 = "eigen.conv2d.f32"(%tensor_138_1, %tensor_142_0, %tensor_142_1, %c154) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c156 = "eigen.batch_norm.f32"(%tensor_142_1, %tensor_143_0, %tensor_143_1, %tensor_143_2, %tensor_143_3, %c155) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c156 = "eigen.batch_norm.f32"(%tensor_142_1, %tensor_143_0, %tensor_143_1, %tensor_143_2, %tensor_143_3, %c155) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c157 = "tfrt_test.relu_inplace.f32"(%tensor_142_1, %c156) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c158 = "eigen.conv2d.f32"(%tensor_142_1, %tensor_145_0, %tensor_145_1, %c157) { padding = "same", strides = [2 : i64, 2 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c159 = "eigen.batch_norm.f32"(%tensor_145_1, %tensor_146_0, %tensor_146_1, %tensor_146_2, %tensor_146_3, %c158) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c159 = "eigen.batch_norm.f32"(%tensor_145_1, %tensor_146_0, %tensor_146_1, %tensor_146_2, %tensor_146_3, %c158) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c160 = "tfrt_test.relu_inplace.f32"(%tensor_145_1, %c159) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
@@ -1638,9 +1638,9 @@ func @resnet50() {
 
     %c162 = "eigen.conv2d.f32"(%tensor_138_1, %tensor_149_0, %tensor_149_1, %c154) { padding = "valid", strides = [2 : i64, 2 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c163 = "eigen.batch_norm.f32"(%tensor_148_1, %tensor_150_0, %tensor_150_1, %tensor_150_2, %tensor_150_3, %c161) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c163 = "eigen.batch_norm.f32"(%tensor_148_1, %tensor_150_0, %tensor_150_1, %tensor_150_2, %tensor_150_3, %c161) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c164 = "eigen.batch_norm.f32"(%tensor_149_1, %tensor_151_0, %tensor_151_1, %tensor_151_2, %tensor_151_3, %c162) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c164 = "eigen.batch_norm.f32"(%tensor_149_1, %tensor_151_0, %tensor_151_1, %tensor_151_2, %tensor_151_3, %c162) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c165 = tfrt.merge.chains %c163, %c164
     %c166 = "tfrt_test.add_inplace.f32"(%tensor_149_1, %tensor_148_1, %c165) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1649,19 +1649,19 @@ func @resnet50() {
 
     %c168 = "eigen.conv2d.f32"(%tensor_148_1, %tensor_154_0, %tensor_154_1, %c167) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c169 = "eigen.batch_norm.f32"(%tensor_154_1, %tensor_155_0, %tensor_155_1, %tensor_155_2, %tensor_155_3, %c168) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c169 = "eigen.batch_norm.f32"(%tensor_154_1, %tensor_155_0, %tensor_155_1, %tensor_155_2, %tensor_155_3, %c168) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c170 = "tfrt_test.relu_inplace.f32"(%tensor_154_1, %c169) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c171 = "eigen.conv2d.f32"(%tensor_154_1, %tensor_157_0, %tensor_157_1, %c170) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c172 = "eigen.batch_norm.f32"(%tensor_157_1, %tensor_158_0, %tensor_158_1, %tensor_158_2, %tensor_158_3, %c171) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c172 = "eigen.batch_norm.f32"(%tensor_157_1, %tensor_158_0, %tensor_158_1, %tensor_158_2, %tensor_158_3, %c171) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c173 = "tfrt_test.relu_inplace.f32"(%tensor_157_1, %c172) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c174 = "eigen.conv2d.f32"(%tensor_157_1, %tensor_160_0, %tensor_160_1, %c173) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c175 = "eigen.batch_norm.f32"(%tensor_160_1, %tensor_161_0, %tensor_161_1, %tensor_161_2, %tensor_161_3, %c174) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c175 = "eigen.batch_norm.f32"(%tensor_160_1, %tensor_161_0, %tensor_161_1, %tensor_161_2, %tensor_161_3, %c174) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c176 = tfrt.merge.chains %c167, %c175
     %c177 = "tfrt_test.add_inplace.f32"(%tensor_148_1, %tensor_160_1, %c176) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
@@ -1670,19 +1670,19 @@ func @resnet50() {
 
     %c179 = "eigen.conv2d.f32"(%tensor_160_1, %tensor_164_0, %tensor_164_1, %c178) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c180 = "eigen.batch_norm.f32"(%tensor_164_1, %tensor_165_0, %tensor_165_1, %tensor_165_2, %tensor_165_3, %c179) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c180 = "eigen.batch_norm.f32"(%tensor_164_1, %tensor_165_0, %tensor_165_1, %tensor_165_2, %tensor_165_3, %c179) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c181 = "tfrt_test.relu_inplace.f32"(%tensor_164_1, %c180) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c182 = "eigen.conv2d.f32"(%tensor_164_1, %tensor_167_0, %tensor_167_1, %c181) { padding = "same", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c183 = "eigen.batch_norm.f32"(%tensor_167_1, %tensor_168_0, %tensor_168_1, %tensor_168_2, %tensor_168_3, %c182) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c183 = "eigen.batch_norm.f32"(%tensor_167_1, %tensor_168_0, %tensor_168_1, %tensor_168_2, %tensor_168_3, %c182) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c184 = "tfrt_test.relu_inplace.f32"(%tensor_167_1, %c183) : (!t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c185 = "eigen.conv2d.f32"(%tensor_167_1, %tensor_170_0, %tensor_170_1, %c184) { padding = "valid", strides = [1 : i64, 1 : i64] } :  (!t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
-    %c186 = "eigen.batch_norm.f32"(%tensor_170_1, %tensor_171_0, %tensor_171_1, %tensor_171_2, %tensor_171_3, %c185) { epsilon = [0.000010 : f32] } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
+    %c186 = "eigen.batch_norm.f32"(%tensor_170_1, %tensor_171_0, %tensor_171_1, %tensor_171_2, %tensor_171_3, %c185) { epsilon = 0.000010 : f32 } :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain
 
     %c187 = tfrt.merge.chains %c178, %c186
     %c188 = "tfrt_test.add_inplace.f32"(%tensor_160_1, %tensor_170_1, %c187) : (!t.tensor, !t.tensor, !tfrt.chain) -> !tfrt.chain

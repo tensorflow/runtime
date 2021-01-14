@@ -82,7 +82,7 @@ func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() -> !tfrt.chain {
       %output_grad, %input, %gamma, %mean, %var, %ch0, %input_grad,
       %gamma_grad, %beta_grad
     )
-    { epsilon = [0.0001 : f32] }
+    { epsilon = 0.0001 : f32 }
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
         !t.tensor, !tfrt.chain, !t.tensor, !t.tensor, !t.tensor)
        -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
@@ -172,7 +172,7 @@ func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() -> !tfrt.chain {
       %output_grad, %input, %gamma, %mean, %var, %ch0, %input_grad,
       %gamma_grad, %beta_grad
     )
-    { epsilon = [0.001 : f32] }
+    { epsilon = 0.001 : f32 }
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
         !t.tensor, !tfrt.chain, !t.tensor, !t.tensor, !t.tensor)
        -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
@@ -262,7 +262,7 @@ func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() -> !tfrt.chain {
       %output_grad, %input, %gamma, %mean, %var, %ch0, %input_grad,
       %gamma_grad, %beta_grad
     )
-    { epsilon = [0.01 : f32] }
+    { epsilon = 0.01 : f32 }
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
         !t.tensor, !tfrt.chain, !t.tensor, !t.tensor, !t.tensor)
        -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
@@ -352,7 +352,7 @@ func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() -> !tfrt.chain {
       %output_grad, %input, %gamma, %mean, %var, %ch0, %input_grad,
       %gamma_grad, %beta_grad
     )
-    { epsilon = [0.0001 : f32] }
+    { epsilon = 0.0001 : f32 }
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
         !t.tensor, !tfrt.chain, !t.tensor, !t.tensor, !t.tensor)
        -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)

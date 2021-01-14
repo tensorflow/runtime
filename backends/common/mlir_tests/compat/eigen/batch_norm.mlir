@@ -50,7 +50,7 @@ func @test_batch_norm_in_1x1x1x8_epsilon_0.0001() {
     : (!tfrt.string, i32) -> (!t.tensor)
 
   %ch2 = "eigen.batch_norm.f32"(%input, %gamma, %beta, %mean, %var, %ch0)
-    { epsilon = [0.0001 : f32] }
+    { epsilon = 0.0001 : f32 }
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
         !t.tensor, !tfrt.chain) -> !tfrt.chain
 
@@ -97,7 +97,7 @@ func @test_batch_norm_in_1x1x2x4_epsilon_0.0001() {
     : (!tfrt.string, i32) -> (!t.tensor)
 
   %ch2 = "eigen.batch_norm.f32"(%input, %gamma, %beta, %mean, %var, %ch0)
-    { epsilon = [0.0001 : f32] }
+    { epsilon = 0.0001 : f32 }
     :  (!t.tensor, !t.tensor, !t.tensor, !t.tensor,
         !t.tensor, !tfrt.chain) -> !tfrt.chain
 

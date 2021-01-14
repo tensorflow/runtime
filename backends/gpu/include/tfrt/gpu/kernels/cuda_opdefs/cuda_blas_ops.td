@@ -29,6 +29,9 @@ include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
 
+def AnyCublasDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
+                                   AnyUnsignedInteger]>;
+
 def BlasCreateOp : CUDA_Op<"blas.create"> {
   let summary = "tfrt_cuda blas.create operation";
   let description = [{
@@ -125,7 +128,7 @@ def BlasGemmStridedBatchedExOp : CUDA_Op<"blas.gemm.strided.batched.ex"> {
 // TODO(b/175169391): Remove this Op once the tfrt_cuda dialect moves from
 // async to sync Ops.
 def BlasSyncSgemmOp : CUDA_Op<"blas.sync.gemm.f32"> {
-  let summary = "cuda blas.sync.gemm.f32 operation";
+  let summary = "tfrt_cuda blas.sync.gemm.f32 operation";
   let description = [{
     tfrt_cuda.blas.sync.gemm.f32 calls BLAS sgemm function.
   }];
@@ -133,6 +136,21 @@ def BlasSyncSgemmOp : CUDA_Op<"blas.sync.gemm.f32"> {
                    I32:$transa, I32:$transb,
                    I32:$m, I32:$n, I32:$k, F32:$alpha, BufferType:$A, I32:$lda,
                    BufferType:$B, I32:$ldb, F32:$beta, BufferType:$C, I32:$ldc);
+}
+
+// TODO(b/175169391): Remove this Op once the tfrt_cuda dialect moves from
+// async to sync Ops.
+def BlasSyncGemmExOp : Op<CUDA_Dialect, "blas.sync.gemm_ex"> {
+  let summary = "tfrt_cuda blas.sync.gemm_ex operation";
+  let description = [{
+    tfrt_cuda.blas.gemm_ex calls BLAS GemmEx function.
+  }];
+  let arguments = (ins ContextType, CublasHandleType, StreamType, I32:$transa,
+                   I32:$transb, I32:$m, I32:$n, I32:$k,
+                   AnyCublasDataType:$alpha, BufferType:$A, I32:$Atype,
+                   I32:$lda, BufferType:$B, I32:$Btype, I32:$ldb,
+                   AnyCublasDataType:$beta, BufferType:$C, I32:$Ctype, I32:$ldc,
+                   I32:$algorithm, I32Attr:$computeType);
 }
 
 #endif  // CUDA_OPS

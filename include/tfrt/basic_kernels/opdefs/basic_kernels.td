@@ -73,6 +73,20 @@ def ConstantF64Op : ConstantOp<"f64", F64, F64Attr>;
 def ConstantUI32Op : ConstantOp<"ui32", UI32, UI32Attr>;
 def ConstantUI64Op : ConstantOp<"ui64", UI64, UI64Attr>;
 
+class ConstantComplexOp<string suffix, Type baseType, Attr attr>
+  : TFRT_Op<"constant.complex" # suffix, [NoSideEffect]> {
+  let summary = "host executor complex constant value constructor";
+
+  let arguments = (ins attr:$real, attr:$imaginary);
+  let results = (outs Complex<baseType>);
+  let assemblyFormat = "$real `,` $imaginary attr-dict";
+  let verifier = ?;
+}
+
+def ConstantComplexF32Op : ConstantComplexOp<"64", F32, F32Attr>;
+def ConstantComplexF64Op : ConstantComplexOp<"128", F64, F64Attr>;
+
+
 // TODO(tf-runtime-team): Consider reusing op defitions for sync/async ops.
 // TODO(tf-runtime-team): Consider create `tfrt_sync` dialect.
 class SyncConstantOp<string suffix, Type baseType, Attr attr>

@@ -304,7 +304,7 @@ static bool IsNativeFunc(mlir::FuncOp op) {
 static bool IsSyncFunc(mlir::FuncOp op) { return !!op->getAttr("tfrt.sync"); }
 
 static bool IsCompiledModule(mlir::ModuleOp op) {
-  return !!op.getAttr("tfrt.compiled");
+  return !!op->getAttr("tfrt.compiled");
 }
 
 // Returs true if the operation is inside the compiled module or the compiled

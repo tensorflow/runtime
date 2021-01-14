@@ -135,10 +135,22 @@ class AllGatherFixedShapeOp<string dtype> : DistOp<"cpu.allgather_fixed_shape." 
   let summary = "dist.cpu.allgather_fixed_shape operation";
 
   let description = [{
-    An operation to perform an allgather primitive on tensors of the same shape.
+    An operation to perform an allgather primitive on tensors of the same shape
+    on a given axis.
 
     Example:
-      %out_chain = dist.cpu.allgather_fixed_shape.i32 %context, %collective_group_name, %instance_id, %input, %output, %in_chain
+      %out_chain = dist.cpu.allgather_fixed_shape.i32 %context, %collective_group_name, %instance_id, %input, %output, %axis, %in_chain
+
+    Examples on how axis is used:
+    Suppose worker0 with t0 and worker1 with t1 perform an AllGather.
+      t0 = [[0,1],[2,3]] dimension = 2x2
+      t1 = [[40,50],[60,70]] dimension = 2x2
+     * case axis = 0 means gathering on the 0th axis
+        output dimension = 4x2
+        result = [[0,1],[2,3],[40,50],[60,70]]
+     * case axis = 1 means gathering on the 1st axis
+        output dimension = 2x4
+        result = [[0,1,40,50],[2,3,60,70]]
   }];
 
   let arguments = (ins
@@ -147,6 +159,7 @@ class AllGatherFixedShapeOp<string dtype> : DistOp<"cpu.allgather_fixed_shape." 
     TFRT_StringType,
     TensorType,
     TensorType,
+    I64,
     TFRT_ChainType);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";

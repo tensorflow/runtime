@@ -458,16 +458,40 @@ void Broadcast(Argument<DistributedContext> dist_context,
 }
 
 // AllGather functionality for both AllGatherFixed and AllGatherAny.
-// For AllGatherFixed, sizes will be empty.
-// For AllGatherAny, sizes will be non-empty.
+// All dimensions must be equal except the axis.
+
+// axis: the dimension to all_gather on
+// offsets[i]: position to copy worker_i's tensor into out_tensor
+// step_sizes[i]: # elements of worker_i's tensor to be copied for each offset
+
+// Example:
+//   t0 = [[0,1],[2,3]] dimension = 2x2
+//   t1 = [[40,50],[60,70]] dimension = 2x2
+//  * case axis = 0,
+//     offsets = [[0],[4]] means
+//      - worker_0's tensor should be copied to position 0 in out_tensor
+//      - worker_1's tensor should be copied to position 4 in out_tensor
+//     step_sizes = [4, 4] means
+//      - worker_0's tensor should be copied 4 elements for each offset
+//      - worker_1's tensor should be copied 4 elements for each offset
+//     result = [[0,1],[2,3],[40,50],[60,70]] dimension = 4x2
+//  * case axis = 1
+//     offsets = [[0,4],[2,6]] means
+//      - worker_0's tensor should be copied to position 0 and 4 in out_tensor
+//      - worker_1's tensor should be copied to position 2 and 6 in out_tensor
+//     step_sizes = [2,2] means
+//      - worker_0's tensor should be copied 2 elements for each offset
+//      - worker_1's tensor should be copied 2 elements for each offset
+//     result = [[0,1,40,50],[2,3,60,70]] dimension = 2x4
 template <typename T>
-void DoAllGather(const ExecutionContext& exec_ctx,
-                 AsyncValueRef<DistributedContext> dist_ctx,
-                 const InstanceKey& instance_key,
-                 const CollectiveGroup& collective_group, const int my_index,
-                 const DenseHostTensor& in_tensor, DenseHostTensor& out_tensor,
-                 RCReference<RefCountedCallback> refcounted_done,
-                 MutableArrayRef<size_t> sizes = {}) {
+void DoAllGather(
+    const ExecutionContext& exec_ctx,
+    AsyncValueRef<DistributedContext> dist_ctx, const InstanceKey& instance_key,
+    const CollectiveGroup& collective_group, const int my_index,
+    const DenseHostTensor& in_tensor, DenseHostTensor& out_tensor,
+    RCReference<RefCountedCallback> refcounted_done, const size_t axis,
+    const llvm::SmallVector<llvm::SmallVector<size_t, 4>, 4>& offsets,
+    const llvm::SmallVector<size_t, 4>& step_sizes) {
   const auto kGroupSize = collective_group.members.size();
   const auto kNeighborIndex = (my_index + 1) % kGroupSize;
   const auto kNeighborId = collective_group.members[kNeighborIndex];
@@ -477,22 +501,23 @@ void DoAllGather(const ExecutionContext& exec_ctx,
       llvm::StringRef(reinterpret_cast<const char*>(in_tensor.data()),
                       in_tensor.DataSizeInBytes());
   auto out_tensor_ref = reinterpret_cast<char*>(out_tensor.data());
-  const auto num_elements = in_tensor.NumElements();
   auto* registry = dist_ctx->GetCallbackRegistry();
   RemoteClientInterface* neighbor_client =
       dist_ctx->GetRemoteClient(kNeighborId);
 
   for (size_t ring_order = 0; ring_order < kGroupSize; ++ring_order) {
     const auto chunk_key = StepKey(kPrefix, instance_key, ring_order);
-    const size_t pos =
-        sizes.empty() ? ring_order * num_elements : sizes[ring_order];
     auto request = std::make_unique<SendDataRequest>();
     auto response = std::make_unique<SendDataResponse>();
     request->set_context_id(kContextId);
     request->set_instance_key(StepKey(kPrefix, chunk_key, kNeighborIndex));
     if (my_index == ring_order) {
-      std::copy(in_tensor_ref.begin(), in_tensor_ref.end(),
-                out_tensor_ref + pos * sizeof(T));
+      const char* src_pos = in_tensor_ref.data();
+      for (size_t i = 0; i < offsets[my_index].size(); ++i) {
+        std::copy(src_pos, src_pos + step_sizes[my_index] * sizeof(T),
+                  out_tensor_ref + offsets[my_index][i] * sizeof(T));
+        src_pos += step_sizes[my_index] * sizeof(T);
+      }
       request->add_payload(in_tensor_ref.data(), in_tensor_ref.size());
       neighbor_client->SendDataAsync(
           RemoteCallContext::GetDefault(), request.get(), response.get(),
@@ -504,16 +529,20 @@ void DoAllGather(const ExecutionContext& exec_ctx,
     } else {
       registry->SetCallback(
           StepKey(kPrefix, chunk_key, my_index),
-          [ring_order, out_tensor_ref, pos, kNeighborIndex, neighbor_client,
-           request = std::move(request), response = std::move(response),
+          [ring_order, offsets, step_sizes, out_tensor_ref, kNeighborIndex,
+           neighbor_client, request = std::move(request),
+           response = std::move(response),
            refcounted_done = refcounted_done.CopyRef()](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
             RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
             // A neighbor receives data and forwards it to its neighbor.
-            std::copy(static_cast<char*>(data->data()),
-                      static_cast<char*>(data->data()) + data->size(),
-                      out_tensor_ref + pos * sizeof(T));
+            const char* src_pos = static_cast<char*>(data->data());
+            for (size_t i = 0; i < offsets[ring_order].size(); ++i) {
+              std::copy(src_pos, src_pos + step_sizes[ring_order] * sizeof(T),
+                        out_tensor_ref + offsets[ring_order][i] * sizeof(T));
+              src_pos += step_sizes[ring_order] * sizeof(T);
+            }
             if (ring_order != kNeighborIndex) {
               request->add_payload(data->data(), data->size());
               neighbor_client->SendDataAsync(
@@ -536,7 +565,8 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
                          Argument<InstanceKey> instance_key,
                          Argument<DenseHostTensor> in_tensor,
                          Argument<DenseHostTensor> out_tensor,
-                         Argument<Chain> in_chain, Result<Chain> out_chain,
+                         Argument<int64_t> axis, Argument<Chain> in_chain,
+                         Result<Chain> out_chain,
                          const ExecutionContext& exec_ctx) {
   auto out_chain_indirect = out_chain.Allocate();
   const auto& collective_group =
@@ -548,6 +578,7 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
         "This worker is not part of the collective group ");
     return;
   }
+  const auto kGroupSize = collective_group.members.size();
   auto done = [out_tensor = out_tensor.ValueRef(), instance_key = *instance_key,
                out_chain = std::move(out_chain_indirect),
                dist_ctx = dist_ctx.ValueRef()](Error e) mutable {
@@ -570,14 +601,96 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
         }
       }));
 
+  // Compute offsets and step_sizes for all workers
+  // offsets: offsets in output tensor for each tensor
+  // step_sizes: # of elements to be copied for each offset
+  // Example:
+  //    t0 = [[0,1,2],[3,4,5]] dimension = 2x3
+  //    t0 = [[60,70,80],[90,100,110] dimension = 2x3
+  llvm::SmallVector<llvm::SmallVector<size_t, 4>, 4> offsets;
+  llvm::SmallVector<size_t, 4> step_sizes;
+  size_t num_elements = in_tensor->NumElements();
+  if (*axis == 0) {
+    // if axis = 0, whole tensor (# elements = 6) is concat after one another
+    // offsets = [[0],[6]]
+    // step_sizes = [6,6]
+    // result = [[0,1,2],[3,4,5],[60,70,80],[90,100,110]] dimension = 4x3
+    size_t pos = 0;
+    for (size_t i = 0; i < kGroupSize; ++i) {
+      step_sizes.push_back(num_elements);
+      offsets.push_back({pos});
+      pos += num_elements;
+    }
+  } else {
+    // otherwise, more work to be done to figure out the offsets and step_sizes
+    // as we no longer simply concat the whole tensor.
+    // offsets = [[0,6],[3,9]]
+    // step_sizes = [3,3]
+    // For worker_0's tensor, it is split into 2 chunks of 3 elements each.
+    //   each chunk should be copied into out_tensor at position 0 and 6.
+    // For worker_1's tensor, it is split into 2 chunks of 3 elements each.
+    //   each chunk should be copied into out_tensor at position 3 and 9.
+    // result = [[0,1,2,60,70,80],[3,4,5,90,100,110]] dimension = 2x6
+    llvm::SmallVector<ssize_t, 4> in_dimension;
+    in_tensor->shape().GetDimensions(&in_dimension);
+    llvm::SmallVector<ssize_t, 4> out_dimension;
+    out_tensor->shape().GetDimensions(&out_dimension);
+    // step_size refers to # of elements of input tensor to be copied into the
+    // output tensor for each offset. step_size is determined by the axis.
+    //
+    // step_size = dimension[axis] * dimension[axis+1] * ... * dimension[n-1]
+    // when n is the # of dimensions.
+    // In other words, step_size is the product of dimensions starting from the
+    // axis to the end.
+    //
+    // Why this works:
+    // To gather on axis k means to gather all elements starting from that axis.
+    //
+    // Example:
+    //    t0 has dimension 2x3
+    //    t1 has dimension 2x3.
+    //    Gathering on axis 0: step_size = dimension[0] * dimension[1] = 2*3 = 6
+    //      This means the whole tensor is copied into the output after another.
+    //    Gathering on axis 1: step_size = dimension[1] = 3
+    //      This means 3 elements from each tensor is copied for each offset.
+    size_t step_size = 1;
+    size_t interval = 1;
+    for (size_t j = *axis; j < in_dimension.size(); ++j) {
+      if (j != *axis && in_dimension[j] != out_dimension[j]) {
+        out_chain_indirect.SetError(
+            "Incorrect output dimension. All dimensions in the output must be "
+            "equal except the axis.");
+        return;
+      }
+      step_size *= in_dimension[j];
+      interval *= out_dimension[j];
+    }
+    size_t pos = 0;
+    for (size_t i = 0; i < kGroupSize; ++i) {
+      step_sizes.push_back(step_size);
+      size_t num_offsets = num_elements / step_size;
+      llvm::SmallVector<size_t, 4> offset;
+      size_t each_offset = pos;
+      for (size_t l = 0; l < num_offsets; ++l) {
+        offset.push_back(each_offset);
+        each_offset += interval;
+      }
+      offsets.push_back(offset);
+      pos += step_size;
+    }
+  }
+
   EnqueueWork(exec_ctx, [exec_ctx, my_index, instance_key = *instance_key,
-                         collective_group, dist_ctx = dist_ctx.ValueRef(),
+                         axis = *axis, collective_group,
+                         dist_ctx = dist_ctx.ValueRef(),
                          in_tensor_ref = in_tensor.ValueRef(),
                          out_tensor_ref = out_tensor.ValueRef(),
-                         refcounted_done = refcounted_done.CopyRef()] {
+                         refcounted_done = refcounted_done.CopyRef(),
+                         offsets = std::move(offsets),
+                         step_sizes = std::move(step_sizes)] {
     DoAllGather<T>(exec_ctx, dist_ctx.CopyRef(), instance_key, collective_group,
                    my_index, in_tensor_ref.get(), out_tensor_ref.get(),
-                   refcounted_done.CopyRef());
+                   refcounted_done.CopyRef(), axis, offsets, step_sizes);
   });
 }
 

@@ -43,7 +43,7 @@ void SetAsyncRuntimeContext(AsyncRuntime* runtime);
 
 // Converts MLIR Async Runtime token into the TFRT async chain, and drops the
 // reference count on the token.
-AsyncValueRef<Chain> ConverAsyncTokenToChain(AsyncRuntime::AsyncToken* token);
+AsyncValueRef<Chain> ConverAsyncTokenToChain(AsyncRuntime::Token* token);
 
 // Builds a symbol map from the Async Runtime API functions/
 llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(

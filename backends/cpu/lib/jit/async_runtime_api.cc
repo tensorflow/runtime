@@ -51,7 +51,7 @@ void SetAsyncRuntimeContext(AsyncRuntime *runtime) {
 }
 
 // Converts MLIR Async Runtime token into the TFRT async chain.
-AsyncValueRef<Chain> ConverAsyncTokenToChain(AsyncRuntime::AsyncToken *token) {
+AsyncValueRef<Chain> ConverAsyncTokenToChain(AsyncRuntime::Token *token) {
   auto *async_value = AsyncRuntime::GetAsyncValue(token);
   auto out_chain = AsyncValueRef<Chain>(FormRef(async_value));
   AsyncRuntime::DropRef(AsyncRuntime::ToAsyncRuntimeObject(token));
@@ -70,14 +70,24 @@ llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(
   bind("mlirAsyncRuntimeAddRef", &mlir::runtime::mlirAsyncRuntimeAddRef);
   bind("mlirAsyncRuntimeDropRef", &mlir::runtime::mlirAsyncRuntimeDropRef);
   bind("mlirAsyncRuntimeExecute", &mlir::runtime::mlirAsyncRuntimeExecute);
+  bind("mlirAsyncRuntimeGetValueStorage",
+       &mlir::runtime::mlirAsyncRuntimeGetValueStorage);
   bind("mlirAsyncRuntimeCreateToken",
        &mlir::runtime::mlirAsyncRuntimeCreateToken);
+  bind("mlirAsyncRuntimeCreateValue",
+       &mlir::runtime::mlirAsyncRuntimeCreateValue);
   bind("mlirAsyncRuntimeEmplaceToken",
        &mlir::runtime::mlirAsyncRuntimeEmplaceToken);
+  bind("mlirAsyncRuntimeEmplaceValue",
+       &mlir::runtime::mlirAsyncRuntimeEmplaceValue);
   bind("mlirAsyncRuntimeAwaitToken",
        &mlir::runtime::mlirAsyncRuntimeAwaitToken);
+  bind("mlirAsyncRuntimeAwaitValue",
+       &mlir::runtime::mlirAsyncRuntimeAwaitValue);
   bind("mlirAsyncRuntimeAwaitTokenAndExecute",
        &mlir::runtime::mlirAsyncRuntimeAwaitTokenAndExecute);
+  bind("mlirAsyncRuntimeAwaitValueAndExecute",
+       &mlir::runtime::mlirAsyncRuntimeAwaitValueAndExecute);
   bind("mlirAsyncRuntimeCreateGroup",
        &mlir::runtime::mlirAsyncRuntimeCreateGroup);
   bind("mlirAsyncRuntimeAddTokenToGroup",
@@ -125,6 +135,13 @@ AsyncToken *mlirAsyncRuntimeCreateToken() {
   return token;
 }
 
+// Creates a new `async.value` in not-ready state.
+AsyncValue *mlirAsyncRuntimeCreateValue(int32_t size) {
+  AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  AsyncValue *value = runtime->CreateValue(size, /*alignment=*/64);
+  return value;
+}
+
 // Create a new `async.group` in empty state.
 AsyncGroup *mlirAsyncRuntimeCreateGroup() {
   AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
@@ -140,7 +157,7 @@ int64_t mlirAsyncRuntimeAddTokenToGroup(AsyncToken *token, AsyncGroup *group) {
 // Switches `async.token` to ready state and runs all awaiters.
 void mlirAsyncRuntimeEmplaceToken(AsyncToken *token) {
   AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
-  runtime->EmplaceToken(token);
+  runtime->SetAvailable(token);
 }
 
 void mlirAsyncRuntimeAwaitToken(AsyncToken *token) {
@@ -151,6 +168,21 @@ void mlirAsyncRuntimeAwaitToken(AsyncToken *token) {
 void mlirAsyncRuntimeAwaitAllInGroup(AsyncGroup *group) {
   AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
   runtime->AwaitGroup(group);
+}
+
+ValueStorage mlirAsyncRuntimeGetValueStorage(AsyncValue *value) {
+  AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  return runtime->GetValueStorage(value);
+}
+
+void mlirAsyncRuntimeEmplaceValue(AsyncValue *value) {
+  AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  runtime->SetAvailable(value);
+}
+
+void mlirAsyncRuntimeAwaitValue(AsyncValue *value) {
+  AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  runtime->AwaitValue(value);
 }
 
 void mlirAsyncRuntimeExecute(CoroHandle handle, CoroResume resume) {
@@ -165,6 +197,15 @@ void mlirAsyncRuntimeAwaitTokenAndExecute(AsyncToken *token, CoroHandle handle,
                                           CoroResume resume) {
   AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
   runtime->AwaitToken(token, [handle, resume, runtime]() {
+    ::tfrt::cpu::jit::SetAsyncRuntimeContext(runtime);
+    (*resume)(handle);
+  });
+}
+
+void mlirAsyncRuntimeAwaitValueAndExecute(AsyncValue *value, CoroHandle handle,
+                                          CoroResume resume) {
+  AsyncRuntime *runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  runtime->AwaitValue(value, [handle, resume, runtime]() {
     ::tfrt::cpu::jit::SetAsyncRuntimeContext(runtime);
     (*resume)(handle);
   });

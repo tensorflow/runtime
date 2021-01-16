@@ -42,30 +42,43 @@ class AsyncRuntimeObject;
 
 class AsyncRuntime {
  public:
-  using AsyncToken = ::mlir::runtime::AsyncToken;
-  using AsyncGroup = ::mlir::runtime::AsyncGroup;
+  using Token = ::mlir::runtime::AsyncToken;
+  using Value = ::mlir::runtime::AsyncValue;
+  using Group = ::mlir::runtime::AsyncGroup;
 
   explicit AsyncRuntime(HostContext* host_context)
       : host_context_(host_context) {}
 
   // Creates a new token in not-ready state.
-  AsyncToken* CreateToken();
+  Token* CreateToken();
 
-  // Emplaces the token and runs all the awaiters waiting for the token.
-  void EmplaceToken(AsyncToken* token);
+  // Switched the token to the available state and runs all the awaiters.
+  void SetAvailable(Token* token);
 
   // Blocks the caller thread until the token becomes ready.
-  void AwaitToken(AsyncToken* token);
+  void AwaitToken(Token* token);
+
+  // Creates a new value in not-ready state with a storage of the given size.
+  Value* CreateValue(size_t size, size_t alignment);
+
+  // Returns a pointer to the async value storage.
+  void* GetValueStorage(Value* value);
+
+  // Switches the value to the available state and runs all the awaiters.
+  void SetAvailable(Value* value);
+
+  // Blocks the caller thread until the value becomes ready.
+  void AwaitValue(Value* value);
 
   // Creates a new empty group.
-  AsyncGroup* CreateGroup();
+  Group* CreateGroup();
 
   // Adds `token` to the `group`.
-  size_t AddTokenToGroup(AsyncGroup* group, AsyncToken* token);
+  size_t AddTokenToGroup(Group* group, Token* token);
 
   // Blocks the caller thread until the group becomes ready (all tokens that
   // were added to the group are emplaced).
-  void AwaitGroup(AsyncGroup* group);
+  void AwaitGroup(Group* group);
 
   // Execute the callable `f` on a thread managed by the runtime.
   template <typename F>
@@ -74,23 +87,28 @@ class AsyncRuntime {
   // Await operation that do not block the caller thread, but instead execute
   // the callable `F` when the token/group become ready.
   template <typename F>
-  void AwaitToken(AsyncToken* token, F&& f);
+  void AwaitToken(Token* token, F&& f);
   template <typename F>
-  void AwaitGroup(AsyncGroup* group, F&& f);
+  void AwaitValue(Value* value, F&& f);
+  template <typename F>
+  void AwaitGroup(Group* group, F&& f);
 
   // Extracts async value that is owned by the token.
-  static AsyncValue* GetAsyncValue(AsyncToken* token);
+  static AsyncValue* GetAsyncValue(Token* token);
+
+  // Extracts async value that is owned by the value.
+  static AsyncValue* GetAsyncValue(Value* value);
 
   // Extracts async values that are owned by the tokens added to the group.
-  static SmallVector<AsyncValue*, 4> GetAsyncValues(AsyncGroup* group);
+  static SmallVector<AsyncValue*, 4> GetAsyncValues(Group* group);
 
   // Reference counting operations for the runtime objects.
   static void AddRef(AsyncRuntimeObject* obj, unsigned count = 1);
   static void DropRef(AsyncRuntimeObject* obj, unsigned count = 1);
 
-  // Convert AsyncToken*/AsyncGroup* to AsyncRuntimeObject*;
-  static AsyncRuntimeObject* ToAsyncRuntimeObject(AsyncToken* token);
-  static AsyncRuntimeObject* ToAsyncRuntimeObject(AsyncGroup* group);
+  // Convert Token/Value/Group to AsyncRuntimeObject*;
+  static AsyncRuntimeObject* ToAsyncRuntimeObject(Token* token);
+  static AsyncRuntimeObject* ToAsyncRuntimeObject(Group* group);
 
  private:
   HostContext* host_context_;  // must outlive *this
@@ -108,12 +126,17 @@ void AsyncRuntime::Execute(F&& f) {
 }
 
 template <typename F>
-void AsyncRuntime::AwaitToken(AsyncToken* token, F&& f) {
+void AsyncRuntime::AwaitToken(Token* token, F&& f) {
   AsyncRuntime::GetAsyncValue(token)->AndThen(std::forward<F>(f));
 }
 
 template <typename F>
-void AsyncRuntime::AwaitGroup(AsyncGroup* group, F&& f) {
+void AsyncRuntime::AwaitValue(Value* value, F&& f) {
+  AsyncRuntime::GetAsyncValue(value)->AndThen(std::forward<F>(f));
+}
+
+template <typename F>
+void AsyncRuntime::AwaitGroup(Group* group, F&& f) {
   RunWhenReady(AsyncRuntime::GetAsyncValues(group), std::forward<F>(f));
 }
 

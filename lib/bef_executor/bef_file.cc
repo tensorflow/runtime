@@ -426,6 +426,8 @@ bool BEFFileReader::ReadFunctionIndexSection() {
 }
 
 // BEFFile / BEFFileImpl Implementation
+BEFFile::BEFFile(std::unique_ptr<LocationHandler> location_handler)
+    : location_handler_(std::move(location_handler)) {}
 
 BEFFile::~BEFFile() {}
 
@@ -466,7 +468,8 @@ DecodedLocation BEFLocationHandler::DecodeLocation(Location loc) const {
 }
 
 BEFFileImpl::BEFFileImpl(std::function<void(DecodedDiagnostic)> error_handler)
-    : error_handler_(error_handler) {}
+    : BEFFile(std::make_unique<BEFLocationHandler>(this)),
+      error_handler_(error_handler) {}
 
 BEFFileImpl::~BEFFileImpl() {}
 

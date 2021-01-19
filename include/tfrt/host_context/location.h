@@ -72,13 +72,9 @@ class LocationHandler {
  public:
   virtual DecodedLocation DecodeLocation(Location loc) const = 0;
 
- protected:
-  // This intentionally does not have a virtual destructor, since the object
-  // should never be destroyed through this.
-  ~LocationHandler() {}
-
- private:
-  virtual void VtableAnchor();
+  // ~LocationHandler() is defined in lib/host_context/host_context.cc as the
+  // key method.
+  virtual ~LocationHandler();
 };
 
 inline DecodedLocation Location::Decode() const {

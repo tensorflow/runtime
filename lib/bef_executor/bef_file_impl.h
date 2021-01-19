@@ -321,8 +321,6 @@ class BEFFileImpl : public BEFFile {
 
   ArrayRef<uint8_t> function_section() const { return function_section_; }
 
-  LocationHandler* location_handler() { return &location_handler_; }
-
   ErrorHandler error_handler_;
 
   ArrayRef<uint8_t> location_filenames_section_;
@@ -341,9 +339,6 @@ class BEFFileImpl : public BEFFile {
   // Maps from kernel_id to the name of the kernel. Only nonempty when
   // debugging.
   std::vector<const char*> kernel_names_;
-
- private:
-  BEFLocationHandler location_handler_{this};
 };
 
 }  // namespace tfrt

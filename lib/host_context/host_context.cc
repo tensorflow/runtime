@@ -31,7 +31,7 @@
 
 namespace tfrt {
 
-void LocationHandler::VtableAnchor() {}
+LocationHandler::~LocationHandler() {}
 
 std::atomic<int> HostContext::num_shared_context_types_{0};
 static std::atomic<int> next_host_context_index{0};

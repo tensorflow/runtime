@@ -25,6 +25,7 @@
 #define TFRT_BEF_EXECUTOR_BEF_FILE_H_
 
 #include <functional>
+#include <memory>
 
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
@@ -36,12 +37,15 @@ class DecodedDiagnostic;
 class Function;
 class HostAllocator;
 class KernelRegistry;
+class LocationHandler;
 
 // Instances of this class represent a BEF file in memory.  The in-memory
 // representation of BEF files is HostContext independent, allowing reuse across
 // multiple contexts if desired.
 class BEFFile : public ReferenceCounted<BEFFile> {
  public:
+  BEFFile(std::unique_ptr<LocationHandler> location_handler);
+
   typedef std::function<void(DecodedDiagnostic)> ErrorHandler;
 
   // Open and read a BEF file, setting up our internal state and returning a
@@ -63,7 +67,12 @@ class BEFFile : public ReferenceCounted<BEFFile> {
   // found in this BEF file.
   const Function* GetFunction(string_view function_name) const;
 
+  LocationHandler* location_handler() const { return location_handler_.get(); }
+
   virtual ~BEFFile() = 0;
+
+ private:
+  std::unique_ptr<LocationHandler> location_handler_;
 };
 
 // Execute SyncBEFFunction synchronously. Return excution error in the Error

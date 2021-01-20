@@ -44,14 +44,13 @@
 
 namespace tfrt {
 
-namespace internal {
-template <typename T>
-class ConcreteAsyncValue;
-}
 class HostContext;
 class NotifierListNode;
 
 namespace internal {
+
+template <typename T>
+class ConcreteAsyncValue;
 
 template <typename T>
 constexpr bool kMaybeBase = std::is_class<T>::value && !std::is_final<T>::value;
@@ -267,20 +266,23 @@ class AsyncValue {
   using Destructor = size_t (*)(AsyncValue*, bool);
 
   template <typename T>
-  AsyncValue(HostContextPtr host, Kind kind, State state, TypeTag<T>)
+  AsyncValue(HostContextPtr host, Kind kind, State state, bool is_refcounted,
+             TypeTag<T>)
       : host_context_(host),
         kind_(kind),
         has_vtable_(std::is_polymorphic<T>()),
+        is_refcounted_(is_refcounted),
         type_id_(GetTypeId<T>()),
         waiters_and_state_(WaitersAndState(nullptr, state)) {
     if (AsyncValueAllocationTrackingEnabled())
       total_allocated_async_values_.fetch_add(1, std::memory_order_relaxed);
   }
 
-  AsyncValue(HostContextPtr host, Kind kind, State state)
+  AsyncValue(HostContextPtr host, Kind kind, State state, bool is_refcounted)
       : host_context_(host),
         kind_(kind),
         has_vtable_(false),
+        is_refcounted_(is_refcounted),
         type_id_(0),
         waiters_and_state_(WaitersAndState(nullptr, state)) {
     if (AsyncValueAllocationTrackingEnabled())
@@ -331,7 +333,7 @@ class AsyncValue {
   // be one plus the index of this TypeInfo object in the TypeInfo table.
   //
   // This should only be called from the initializer for the static
-  // ConcreteAsyncValue concreate_type_id_ field.
+  // ConcreteAsyncValue concrete_type_id_ field.
   template <typename T>
   static uint16_t CreateTypeInfoAndReturnTypeId() {
     return CreateTypeInfoAndReturnTypeIdImpl(
@@ -349,8 +351,11 @@ class AsyncValue {
   // has_vtable_ to a global vector<bool> indexed by type_id_.
   const bool has_vtable_ : 1;
 
+  // When is_refcounted_ is false, AddRef and DropRef have no effect.
+  const bool is_refcounted_ : 1;
+
   // Unused padding bits.
-  unsigned unused_ : 5;
+  unsigned unused_ : 4;
 
   // This is a 16-bit value that identifies the type.
   uint16_t type_id_ = 0;
@@ -451,15 +456,21 @@ class ConcreteAsyncValue : public AsyncValue {
   // constructed and available for consumption.
   struct ConcretePayload {};
 
+  // Tag type for making an un-refcounted ConcreteAsyncValue with the underlying
+  // value constructed and available for consumption.
+  struct UnRefCountedConcretePayload {};
+
   // Make a ConcreteAsyncValue with kUnconstructed state.
   explicit ConcreteAsyncValue(HostContextPtr host, UnconstructedPayload)
-      : AsyncValue(host, Kind::kConcrete, State::kUnconstructed, TypeTag<T>()) {
+      : AsyncValue(host, Kind::kConcrete, State::kUnconstructed,
+                   /*is_refcounted=*/true, TypeTag<T>()) {
     VerifyOffsets();
   }
 
   // Make a ConcreteAsyncValue with kError state.
   explicit ConcreteAsyncValue(HostContextPtr host, DecodedDiagnostic diagnostic)
-      : AsyncValue(host, Kind::kConcrete, State::kError, TypeTag<T>()) {
+      : AsyncValue(host, Kind::kConcrete, State::kError,
+                   /*is_refcounted=*/true, TypeTag<T>()) {
     error_ = new DecodedDiagnostic(std::move(diagnostic));
     VerifyOffsets();
   }
@@ -468,7 +479,8 @@ class ConcreteAsyncValue : public AsyncValue {
   template <typename... Args>
   explicit ConcreteAsyncValue(HostContextPtr host, ConstructedPayload,
                               Args&&... args)
-      : AsyncValue(host, Kind::kConcrete, State::kConstructed, TypeTag<T>()) {
+      : AsyncValue(host, Kind::kConcrete, State::kConstructed,
+                   /*is_refcounted=*/true, TypeTag<T>()) {
     new (&data_) T(std::forward<Args>(args)...);
   }
 
@@ -476,7 +488,20 @@ class ConcreteAsyncValue : public AsyncValue {
   template <typename... Args>
   explicit ConcreteAsyncValue(HostContextPtr host, ConcretePayload,
                               Args&&... args)
-      : AsyncValue(host, Kind::kConcrete, State::kConcrete, TypeTag<T>()) {
+      : AsyncValue(host, Kind::kConcrete, State::kConcrete,
+                   /*is_refcounted=*/true, TypeTag<T>()) {
+    new (&data_) T(std::forward<Args>(args)...);
+  }
+
+  // Make an un-refcounted ConcreteAsyncValue with kConcrete state. AddRef and
+  // DropRef have no effect on ConcreteAsyncValues produced by this constructor.
+  // These ConcreteAsyncValue must be destroyed conventionally, rather than with
+  // DropRef.
+  template <typename... Args>
+  explicit ConcreteAsyncValue(HostContextPtr host, UnRefCountedConcretePayload,
+                              Args&&... args)
+      : AsyncValue(host, Kind::kConcrete, State::kConcrete,
+                   /*is_refcounted=*/false, TypeTag<T>()) {
     new (&data_) T(std::forward<Args>(args)...);
   }
 
@@ -575,7 +600,8 @@ class IndirectAsyncValue : public AsyncValue {
 
  public:
   explicit IndirectAsyncValue(HostContextPtr host)
-      : AsyncValue(host, Kind::kIndirect, State::kUnconstructed) {}
+      : AsyncValue(host, Kind::kIndirect, State::kUnconstructed,
+                   /*is_refcounted=*/true) {}
 
   IndirectAsyncValue* AddRef() { return AddRef(1); }
   IndirectAsyncValue* AddRef(uint32_t count) {
@@ -644,7 +670,7 @@ inline bool AsyncValue::IsUnresolvedIndirect() const {
 }
 
 inline AsyncValue* AsyncValue::AddRef(uint32_t count) {
-  if (count > 0) {
+  if (is_refcounted_ && count > 0) {
     assert(refcount_.load(std::memory_order_relaxed) > 0);
     // Increasing the reference counter can always be done with
     // memory_order_relaxed: New references to an object can only be formed from
@@ -656,6 +682,8 @@ inline AsyncValue* AsyncValue::AddRef(uint32_t count) {
 }
 
 inline void AsyncValue::DropRef(uint32_t count) {
+  if (!is_refcounted_) return;
+
   assert(refcount_.load(std::memory_order_relaxed) > 0);
   // We expect that `count` argument will often equal the actual reference count
   // here; optimize for that.

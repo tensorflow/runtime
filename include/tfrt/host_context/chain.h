@@ -45,7 +45,8 @@ class ReadyChain {
   }
 
   AsyncValueRef<Chain> GetReadyChain(HostContext* host) {
-    return all_ready_chains_[HostContextPtr(host).index()].CopyRef();
+    return AsyncValueRef<Chain>(
+        FormRef(all_ready_chains_[HostContextPtr(host).index()].get()));
   }
 
  private:
@@ -55,7 +56,9 @@ class ReadyChain {
 
   void Construct(HostContext* host) {
     all_ready_chains_[HostContextPtr(host).index()] =
-        MakeAvailableAsyncValueRef<Chain>(host);
+        std::make_unique<internal::ConcreteAsyncValue<Chain>>(
+            host,
+            internal::ConcreteAsyncValue<Chain>::UnRefCountedConcretePayload{});
   }
 
   void Destruct(HostContext* host) {
@@ -64,10 +67,15 @@ class ReadyChain {
 
   // Store a ready chain for each HostContext to avoid repeated creations of
   // ready chains on the heap.
-  AsyncValueRef<Chain> all_ready_chains_[HostContextPtr::kDummyIndex];
+  std::unique_ptr<internal::ConcreteAsyncValue<Chain>>
+      all_ready_chains_[HostContextPtr::kDummyIndex];
 };
 
 AsyncValueRef<Chain> GetReadyChain(HostContext* host);
+
+// Specialization of MakeAvailableAsyncValueRef<Chain> that calls GetReadyChain.
+template <>
+AsyncValueRef<Chain> MakeAvailableAsyncValueRef<Chain>(HostContext* host);
 
 }  // namespace tfrt
 

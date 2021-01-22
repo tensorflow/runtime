@@ -649,13 +649,13 @@ static void CoreRtWhileLoopIteration(
                            body_fn_ref = std::move(body_fn_ref),
                            arg_refs = std::move(arg_refs),
                            result_refs = std::move(result_refs)]() mutable {
+    if (ReturnAfterHandlingError(condition_tensorhandle_ref.get(), result_refs))
+      return;
+
     assert(condition_chain_ref->IsType<Chain>() &&
            "Cond function did not return a chain");
     assert(condition_tensorhandle_ref->IsType<TensorHandle>() &&
            "Cond function did not return a TensorHandle");
-
-    if (ReturnAfterHandlingError(condition_tensorhandle_ref.get(), result_refs))
-      return;
 
     auto &condition_tensorhandle =
         condition_tensorhandle_ref->get<TensorHandle>();

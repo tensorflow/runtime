@@ -40,6 +40,8 @@
 
 namespace tfrt {
 
+class Function;
+
 // AsyncKernelFrame captures the states associated with a kernel invocation,
 // including the input arguments, attributes, result values, location and host
 // context. AsyncKernelFrame is constructed by the kernel caller (currently only
@@ -75,7 +77,7 @@ class AsyncKernelFrame {
   // Get the argument at the given index as AsyncValue*.
   AsyncValue* GetArgAt(int index) const {
     assert(index < GetNumArgs());
-    return async_value_or_attrs_[index].async_value;
+    return arguments_and_results_[index];
   }
 
   // Get all arguments.
@@ -83,49 +85,51 @@ class AsyncKernelFrame {
     return GetAsyncValues(0, num_arguments_);
   }
 
-  // Get all attributes.
-  ArrayRef<const void*> GetAttributes() const {
-    if (async_value_or_attrs_.empty()) return {};
-
-    return llvm::makeArrayRef(
-        &async_value_or_attrs_[num_arguments_ + num_results_].attr,
-        GetNumAttributes());
+  // Get the attribute at the given index.
+  const void* GetAttribute(int index) const {
+    return attribute_section_.data() + attribute_offsets_[index];
   }
 
   // Get the number of attributes.
-  int GetNumAttributes() const {
-    return async_value_or_attrs_.size() - num_arguments_ - num_results_;
+  int GetNumAttributes() const { return attribute_offsets_.size(); }
+
+  // Get the function at the given index.
+  const Function* GetFunction(int index) const {
+    return functions_[function_indices_[index]].get();
   }
+
+  // Get the number of functions.
+  int GetNumFunctions() const { return function_indices_.size(); }
 
   // Get the attribute at the given index as type T.
   // TODO(jingdong): Disable const char*.
   template <typename T>
   Attribute<T> GetAttributeAt(int index) const {
     assert(index < GetNumAttributes());
-    return Attribute<T>(GetAttributes()[index]);
+    return Attribute<T>(GetAttribute(index));
   }
 
   AggregateAttr GetAggregateAttr(int index) const {
     assert(index < GetNumAttributes());
-    return AggregateAttr(GetAttributes()[index]);
+    return AggregateAttr(GetAttribute(index));
   }
 
   // Get the array attribute at the given index as type T.
   template <typename T>
   ArrayAttribute<T> GetArrayAttributeAt(int index) const {
     assert(index < GetNumAttributes());
-    return ArrayAttribute<T>(GetAttributes()[index]);
+    return ArrayAttribute<T>(GetAttribute(index));
   }
 
   // Get array attribute as a string. Equivalent to
   // GetArrayAttributeAt<char>, except that this returns StringRef instead
   // of ArrayRef<char>.
   StringAttribute GetStringAttribute(int index) const {
-    return StringAttribute(GetAttributes()[index]);
+    return StringAttribute(GetAttribute(index));
   }
 
   CompilationUnitAttribute GetCompilationUnitAttribute(int index) const {
-    return CompilationUnitAttribute(GetAttributes()[index]);
+    return CompilationUnitAttribute(GetAttribute(index));
   }
 
   // Get the number of results.
@@ -163,8 +167,7 @@ class AsyncKernelFrame {
   // Set the result at the given index with the given AsyncValue.
   void SetResultAt(int index, RCReference<AsyncValue> value) {
     assert(index < num_results_ && "Invalid result index");
-    AsyncValue*& result =
-        async_value_or_attrs_[num_arguments_ + index].async_value;
+    AsyncValue*& result = arguments_and_results_[num_arguments_ + index];
     assert(!result && "Result is not nullptr");
     result = value.release();
   }
@@ -222,38 +225,31 @@ class AsyncKernelFrame {
                    int num_results) const;
 
  protected:
-  union AsyncValueOrAttribute {
-    AsyncValue* async_value;
-    const void* attr;
-  };
-
   ArrayRef<AsyncValue*> GetAsyncValues(size_t from, size_t length) const {
-    assert((from + length) <= (num_arguments_ + num_results_));
+    assert((from + length) <= arguments_and_results_.size());
 
-    if (length == 0) return {};
-
-    return llvm::makeArrayRef(&(async_value_or_attrs_[from].async_value),
-                              length);
+    return llvm::makeArrayRef(arguments_and_results_.data() + from, length);
   }
 
   MutableArrayRef<AsyncValue*> GetMutableAsyncValues(size_t from,
                                                      size_t length) {
-    assert((from + length) <= (num_arguments_ + num_results_));
+    assert((from + length) <= arguments_and_results_.size());
 
-    if (length == 0) return {};
-
-    return llvm::makeMutableArrayRef(&(async_value_or_attrs_[from].async_value),
+    return llvm::makeMutableArrayRef(arguments_and_results_.data() + from,
                                      length);
   }
 
-  // This SmallVector stores the kernel argument AsyncValues, result
-  // AsyncValues, and attributes in order.
-  SmallVector<AsyncValueOrAttribute, 8> async_value_or_attrs_;
+  // This SmallVector stores the kernel argument AsyncValues and result
+  // AsyncValues in order.
+  SmallVector<AsyncValue*, 8> arguments_and_results_;
+
   int num_arguments_ = 0;
-  // num_results is set to -1 so we can check that AddAttribute() is called
-  // after SetNumResults.
-  int num_results_ = -1;
+  int num_results_ = 0;
+
   ArrayRef<uint8_t> attribute_section_;
+  ArrayRef<uint32_t> attribute_offsets_;
+  ArrayRef<uint32_t> function_indices_;
+  ArrayRef<std::unique_ptr<Function>> functions_;
   ExecutionContext exec_ctx_;
 };
 
@@ -276,35 +272,39 @@ class KernelFrameBuilder : public AsyncKernelFrame {
   // Get result AsyncValue at the given index.
   AsyncValue* GetResultAt(int index) const { return GetResults()[index]; }
 
+  // TODO(tfrt-devs): Consider keeping BEFFile* in the kernel frame directly
+  // instead of keeping individual fields.
   void SetAttributeSection(ArrayRef<uint8_t> attribute_section) {
     attribute_section_ = attribute_section;
+  }
+  void SetFunctions(ArrayRef<std::unique_ptr<Function>> functions) {
+    functions_ = functions;
   }
 
   // Add a new argument to the AsyncKernelFrame.
   void AddArg(AsyncValue* async_value) {
-    assert(num_results_ == -1 &&
+    assert(num_results_ == 0 &&
            "Must call AddArg before calling SetNumResults");
-    AsyncValueOrAttribute value;
-    value.async_value = async_value;
-    async_value_or_attrs_.push_back(value);
+    arguments_and_results_.push_back(async_value);
     ++num_arguments_;
   }
 
-  // Add a new attribute to the AsyncKernelFrame.
-  void AddAttribute(const void* attr) {
-    assert(num_results_ != -1 &&
-           "Must call SetNumResults before calling AddAttribute");
-    AsyncValueOrAttribute value;
-    value.attr = attr;
-    async_value_or_attrs_.push_back(value);
+  // Add all attributes to the AsyncKernelFrame.
+  void SetAttributes(ArrayRef<uint32_t> attribute_offsets) {
+    attribute_offsets_ = attribute_offsets;
+  }
+
+  // Add all functions to the AsyncKernelFrame.
+  void SetFunctionIndices(ArrayRef<uint32_t> function_indices) {
+    function_indices_ = function_indices;
   }
 
   // Set the number of results expected.
   void SetNumResults(size_t n) {
-    assert(num_arguments_ == async_value_or_attrs_.size());
-    assert(num_results_ == -1);
+    assert(num_arguments_ == arguments_and_results_.size());
+    assert(num_results_ == 0);
     num_results_ = n;
-    async_value_or_attrs_.resize(async_value_or_attrs_.size() + n);
+    arguments_and_results_.resize(arguments_and_results_.size() + n);
   }
 
   // Set the location.
@@ -312,11 +312,11 @@ class KernelFrameBuilder : public AsyncKernelFrame {
     exec_ctx_.set_location(location);
   }
 
-  // Clear all fields.
-  void Reset() {
-    async_value_or_attrs_.clear();
+  // Clear arguments and results.
+  void ResetArgumentsAndResults() {
+    arguments_and_results_.clear();
     num_arguments_ = 0;
-    num_results_ = -1;
+    num_results_ = 0;
   }
 };
 
@@ -336,21 +336,20 @@ class RAIIKernelFrame : public AsyncKernelFrame {
   RAIIKernelFrame(RAIIKernelFrame&& that) : AsyncKernelFrame(std::move(that)) {}
 
   ~RAIIKernelFrame() {
-    // async_value_or_attrs_ is empty when this object has been moved from.
-    if (!async_value_or_attrs_.empty()) DropRefAll();
+    if (!arguments_and_results_.empty()) DropRefAll();
   }
 
  private:
   // Increment the refcounts of all arguments and results.
   void AddRefAll() const {
-    for (auto* v : GetAsyncValues(0, num_arguments_ + num_results_)) {
+    for (auto* v : arguments_and_results_) {
       v->AddRef();
     }
   }
 
   // Decrement the refcounts of all arguments and results.
   void DropRefAll() const {
-    for (auto* v : GetAsyncValues(0, num_arguments_ + num_results_)) {
+    for (auto* v : arguments_and_results_) {
       v->DropRef();
     }
   }

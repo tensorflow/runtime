@@ -463,21 +463,13 @@ void BEFExecutor::ProcessReadyKernel(
   entry_offset += arguments.size();
   auto attributes =
       kernel.GetKernelEntries(entry_offset, kernel.num_attributes());
-  for (auto attribute_offset : attributes) {
-    // We pass the pointer here because this attribute could be an array of
-    // size 0.
-    kernel_frame->AddAttribute(BefFile()->attribute_section_.data() +
-                               attribute_offset);
-  }
+  kernel_frame->SetAttributes(attributes);
 
   // Set up functions.
   entry_offset += attributes.size();
-  auto functions =
+  auto function_indices =
       kernel.GetKernelEntries(entry_offset, kernel.num_functions());
-  for (auto fn_idx : functions) {
-    // Functions are passed as their corresponding `Function`.
-    kernel_frame->AddAttribute(BefFile()->functions_[fn_idx].get());
-  }
+  kernel_frame->SetFunctionIndices(function_indices);
 
   // If all arguments are good or if the kernel is non-strict, run the
   // function.
@@ -511,7 +503,7 @@ void BEFExecutor::ProcessReadyKernel(
   // we need to enqueue them on their unavailable operands.
 
   // Move entry offset to start of results.
-  entry_offset += functions.size();
+  entry_offset += function_indices.size();
   auto results = kernel.GetKernelEntries(entry_offset, kernel.num_results());
   // Move entry offset to start of all used_bys.
   entry_offset += results.size();
@@ -555,6 +547,7 @@ void BEFExecutor::ProcessReadyKernels(
   // registers, result registers, and attributes should be passed.
   KernelFrameBuilder kernel_frame(exec_ctx_);
   kernel_frame.SetAttributeSection(BefFile()->attribute_section_);
+  kernel_frame.SetFunctions(BefFile()->functions_);
 
   while (!ready_kernel_ids->empty()) {
     // If there are more than one ready kernel, except the first one, we
@@ -578,8 +571,9 @@ void BEFExecutor::ProcessReadyKernels(
     // round of processing.
     ready_kernel_ids->clear();
 
-    // Reset the kernel frame for the current kernel invocation.
-    kernel_frame.Reset();
+    // Reset the arguments and results in the kernel frame for the current
+    // kernel invocation.
+    kernel_frame.ResetArgumentsAndResults();
 
     ProcessReadyKernel(first_kernel_id, &kernel_frame, ready_kernel_ids);
   }

@@ -21,6 +21,14 @@ load(":dependencies.bzl", "tfrt_dependencies")
 
 tfrt_dependencies()
 
+load("@bazel_skylib//lib:versions.bzl", "versions")
+
+versions.check(minimum_bazel_version = "4.0.0")
+
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
+protobuf_deps()
+
 load("@rules_cuda//cuda:dependencies.bzl", "rules_cuda_dependencies")
 
 rules_cuda_dependencies()

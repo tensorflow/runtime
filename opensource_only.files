@@ -1,4 +1,5 @@
 .bazelrc
+.bazelversion
 CODEOWNERS
 WORKSPACE
 backends/gpu/tools/stub_codegen/BUILD

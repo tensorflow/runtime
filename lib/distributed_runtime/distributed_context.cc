@@ -37,6 +37,7 @@
 #include "tfrt/distributed_runtime/task_name_util.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/refcounted_callback.h"
 
@@ -162,12 +163,17 @@ void DistributedContext::GetRemoteDevices(
 }
 
 void DistributedContext::CreateRemoteContexts(
-    DistributedContext::CallbackFn done_callback) {
+    RemoteInitMode mode, DistributedContext::CallbackFn done_callback) {
   // Reference-counted done callback is invoked after all remote calls finish
   auto rc_done = TakeRef(new RefCountedCallback(
-      [this, done = std::move(done_callback)](Error e) mutable {
-        SendKeepAlive(
-            server_context_->GetConfiguration().context_gc_timeout_secs / 2);
+      [this, mode, done = std::move(done_callback)](Error e) mutable {
+        // Only send keep-alive to prevent remote context timeout if not created
+        // in multi-client mode (otherwise, the context is owned by the remote
+        // client and will not be subject to garbage collection).
+        if (mode == RemoteInitMode::SINGLE_CLIENT) {
+          SendKeepAlive(
+              server_context_->GetConfiguration().context_gc_timeout_secs / 2);
+        }
         done(std::move(e));
       }));
 
@@ -208,6 +214,7 @@ void DistributedContext::CreateRemoteContexts(
       for (auto& device : *base_request->mutable_devices()) {
         request->mutable_devices()->AddAllocated(&device);
       }
+      request->set_is_multi_client(mode == RemoteInitMode::MULTI_CLIENT);
 
       TaskHandle task_handle = GetTaskHandle(job_config.name(), task.first);
       RemoteClientInterface* client = GetRemoteClient(task_handle);
@@ -254,6 +261,61 @@ Error DistributedContext::AddReadyChain(TaskHandle task_handle,
   mutex_lock l(ready_chains_mu_);
   ready_chains_.insert({task_handle, ready_chain});
   return Error::success();
+}
+
+namespace {
+void RemoteObjectIdToProto(RemoteObjectId& obj_id, RemoteObjectIdProto* proto) {
+  proto->set_device(obj_id.device->name().str());
+  proto->set_prefix_id(obj_id.prefix_id);
+  proto->set_local_id(obj_id.local_id);
+}
+}  // namespace
+
+void DistributedContext::BroadcastRemoteReadyChains(
+    DistributedContext::CallbackFn done_callback) {
+  // Reference-counted done callback is invoked after all remote calls finish
+  auto rc_done = TakeRef(new RefCountedCallback(std::move(done_callback)));
+  // Create a copy of remote ready chains to avoid frequent mutex locking when
+  // constructng the reqeust.
+  auto ready_chain_objs = RemoteReadyChains();
+
+  auto request = std::make_shared<SendReadyChainsRequest>();
+  request->set_context_id(context_id_);
+  for (const auto& job_config : dist_config_.cluster_config().jobs()) {
+    for (const auto& task : job_config.tasks()) {
+      auto ready_chain = request->add_ready_chains();
+      TaskHandle task_handle = GetTaskHandle(job_config.name(), task.first);
+      if (task_handle == GetTaskHandle()) {
+        RemoteObjectIdToProto(*local_ready_chain_, ready_chain);
+      } else {
+        auto it = ready_chain_objs.find(task_handle);
+        if (it == ready_chain_objs.end()) {
+          rc_done->UpdateState(llvm::make_error<UnknownErrorInfo>(StrCat(
+              "Missing remote ready chain from ",
+              TaskNameUtil::ConcatTaskName(job_config.name(), task.first))));
+        } else {
+          RemoteObjectIdToProto(it->getSecond(), ready_chain);
+        }
+      }
+    }
+  }
+
+  for (const auto& job_config : dist_config_.cluster_config().jobs()) {
+    for (const auto& task : job_config.tasks()) {
+      if (job_config.name() == dist_config_.job_name() &&
+          task.first == dist_config_.task_id()) {
+        continue;
+      }
+      TaskHandle task_handle = GetTaskHandle(job_config.name(), task.first);
+      RemoteClientInterface* client = GetRemoteClient(task_handle);
+      auto response = std::make_shared<SendReadyChainsResponse>();
+      client->SendReadyChainsAsync(
+          RemoteCallContext::GetDefault(), request.get(), response.get(),
+          [request, response, rc_done = rc_done.CopyRef()](Error e) mutable {
+            rc_done->UpdateState(std::move(e));
+          });
+    }
+  }
 }
 
 void DistributedContext::CloseRemoteContexts(

@@ -39,6 +39,9 @@ message JobConfiguration {
 message ClusterConfiguration {
   // List of jobs in this cluster.
   repeated JobConfiguration jobs = 1;
+
+  // Leader task name for multi-client cluster.
+  string lead_task_name = 2;
 }
 
 message CollectiveGroupConfiguration {

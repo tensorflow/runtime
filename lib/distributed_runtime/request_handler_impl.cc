@@ -33,6 +33,7 @@
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
+#include "tfrt/distributed_runtime/distributed_init_helper.h"
 #include "tfrt/distributed_runtime/function_cache.h"
 #include "tfrt/distributed_runtime/proto/remote_message.pb.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
@@ -75,6 +76,10 @@ class RequestHandler : public RequestHandlerInterface {
                           CloseContextResponse* response,
                           CallbackFn done) final;
 
+  void HandleSendReadyChains(const SendReadyChainsRequest* request,
+                             SendReadyChainsResponse* response,
+                             CallbackFn done) final;
+
   void HandleSendData(const SendDataRequest* request,
                       SendDataResponse* response, CallbackFn done) final;
 
@@ -115,20 +120,21 @@ void RequestHandler::HandleGetDevices(const GetDevicesRequest* request,
   done(Error::success());
 }
 
-void RequestHandler::HandleCreateContext(const CreateContextRequest* request,
-                                         CreateContextResponse* response,
-                                         CallbackFn done) {
-  auto expected = server_context_->GetDistributedContext(request->context_id());
+void HandleCreateContextInternal(ServerContext* server_context,
+                                 const CreateContextRequest* request,
+                                 CreateContextResponse* response,
+                                 CallbackFn done, bool is_multi_client) {
+  const uint64_t ctx_id = request->context_id();
+  auto expected = server_context->GetDistributedContext(ctx_id);
   if (expected) {
     done(llvm::make_error<DistributedContextAlreadyExistsErrorInfo>(
         StrCat("Failed to create DistributedContext: the context with id <",
-               request->context_id(), "> already exists.")));
+               ctx_id, "> already exists.")));
     return;
   }
 
   Expected<DistributedContext*> context =
-      server_context_->CreateDistributedContext(request->context_id(),
-                                                request->dist_config());
+      server_context->CreateDistributedContext(ctx_id, request->dist_config());
   if (!context) {
     done(context.takeError());
     return;
@@ -146,19 +152,83 @@ void RequestHandler::HandleCreateContext(const CreateContextRequest* request,
       return;
     }
   }
-  Error error = server_context_->TrackContextAccessTime(request->context_id());
-  if (error) {
-    done(std::move(error));
-    return;
+  // Only track and GC expired context if its not created in multi-client mode
+  if (!is_multi_client) {
+    if (Error e = server_context->TrackContextAccessTime(ctx_id)) {
+      done(std::move(e));
+      return;
+    }
   }
   ToProto(dist_context->LocalReadyChain(), response->mutable_ready_chain());
   done(Error::success());
+}
+
+void RequestHandler::HandleCreateContext(const CreateContextRequest* request,
+                                         CreateContextResponse* response,
+                                         CallbackFn done) {
+  if (request->is_multi_client()) {
+    auto remote_cb = [server_context = server_context_, request, response,
+                      done = std::move(done)]() mutable -> Error {
+      auto helper = server_context->GetDistributedInitHelper();
+      if (!helper->IsConfigCompatible(request->dist_config())) {
+        const std::string& error_msg = StrCat(
+            "Incompatible distributed configuration when initializing "
+            "multi-client distributed context. Expecting ",
+            helper->GetLocalConfig().DebugString(), ", got ",
+            request->dist_config().DebugString());
+        done(llvm::make_error<InvalidArgumentErrorInfo>(error_msg));
+        return llvm::make_error<InvalidArgumentErrorInfo>(error_msg);
+      }
+      HandleCreateContextInternal(server_context, request, response,
+                                  std::move(done), request->is_multi_client());
+      return Error::success();
+    };
+    server_context_->GetDistributedInitHelper()->RegisterRemoteCallback(
+        std::move(remote_cb));
+  } else {
+    HandleCreateContextInternal(server_context_, request, response,
+                                std::move(done), request->is_multi_client());
+  }
 }
 
 void RequestHandler::HandleCloseContext(const CloseContextRequest* request,
                                         CloseContextResponse* response,
                                         CallbackFn done) {
   done(server_context_->CloseDistributedContext(request->context_id()));
+}
+
+void RequestHandler::HandleSendReadyChains(
+    const SendReadyChainsRequest* request, SendReadyChainsResponse* response,
+    CallbackFn done) {
+  auto expected = server_context_->GetDistributedContext(request->context_id());
+  if (!expected) {
+    done(expected.takeError());
+    return;
+  }
+  DistributedContext* context = expected.get();
+  auto wrapped_done = [this, context, done = std::move(done)](Error e) mutable {
+    if (auto* helper = server_context_->GetDistributedInitHelper()) {
+      if (e) {
+        helper->Complete(llvm::make_error<UnknownErrorInfo>(
+            "Failed to finalize multi-client distributed context "
+            "initialization with remote ready chains."));
+      } else {
+        helper->Complete(context);
+      }
+    }
+    done(std::move(e));
+  };
+
+  for (const auto& ready_chain : request->ready_chains()) {
+    TaskHandle task_handle = context->GetTaskHandle(ready_chain.device());
+    // Do not add remote chain for the local task
+    if (task_handle == context->GetTaskHandle()) continue;
+    if (Error error = context->AddReadyChain(task_handle, ready_chain)) {
+      wrapped_done(std::move(error));
+      return;
+    }
+  }
+  wrapped_done(Error::success());
 }
 
 void RequestHandler::HandleSendData(const SendDataRequest* request,

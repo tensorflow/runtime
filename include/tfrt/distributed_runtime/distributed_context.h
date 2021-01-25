@@ -66,6 +66,8 @@ struct CollectiveGroup {
 //   * Clients for communicating with other peers in the cluster
 class DistributedContext {
  public:
+  enum RemoteInitMode { SINGLE_CLIENT, MULTI_CLIENT };
+
   DistributedContext(uint64_t context_id, ServerContext* server,
                      DistributedContextConfiguration configuration);
   ~DistributedContext();
@@ -126,8 +128,13 @@ class DistributedContext {
   void GetRemoteDevices(CallbackFn done_callback);
 
   // Create contexts on remote tasks. The callback will be invoked after all
-  // remote calls finish.
-  void CreateRemoteContexts(CallbackFn done_callback);
+  // remote calls finish. This method should be invoked on the single client,
+  // or the lead task in multi-client cluster.
+  void CreateRemoteContexts(RemoteInitMode mode, CallbackFn done_callback);
+
+  // Broadcast remote chains collected from all tasks. The callback will be
+  // invoked after all remote calls finish.
+  void BroadcastRemoteReadyChains(CallbackFn done_callback);
 
   // Close contexts on remote tasks. The callback will be invoked after all
   // remote calls finish.
@@ -139,11 +146,11 @@ class DistributedContext {
   }
   llvm::DenseMap<TaskHandle, RemoteObjectId> RemoteReadyChains();
 
+  Error AddReadyChain(TaskHandle task_handle, const RemoteObjectIdProto& chain);
+
  private:
   llvm::StringMap<CollectiveGroup> InitializeCollectiveGroups(
       const DistributedContextConfiguration&);
-
-  Error AddReadyChain(TaskHandle task_handle, const RemoteObjectIdProto& chain);
 
   // Periodically schedule functions to send KeepAlive messages to remote
   // distributed contexts created by `CreateRemoteContexts`.

@@ -46,6 +46,9 @@ message CreateContextRequest {
 
   // List of remote device information in the cluster.
   repeated DeviceInfo devices = 3;
+
+  // Whether creating context in multi-client mode.
+  bool is_multi_client = 4;
 }
 
 message CreateContextResponse {
@@ -57,6 +60,13 @@ message CloseContextRequest {
 }
 
 message CloseContextResponse {}
+
+message SendReadyChainsRequest {
+  fixed64 context_id = 1;
+  repeated RemoteObjectIdProto ready_chains = 2;
+}
+
+message SendReadyChainsResponse {}
 
 message KeepAliveRequest {
   fixed64 context_id = 1;

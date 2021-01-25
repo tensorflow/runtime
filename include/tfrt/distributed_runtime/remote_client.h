@@ -114,6 +114,11 @@ class RemoteClientInterface {
   // invoked with InvalidDistributedContextId error.
   CLIENT_METHOD(CloseContext);
 
+  // Broadcast the remote ready chains to all tasks in the cluster. This should
+  // be used by the multi-client leader task to share the collected remote ready
+  // chains to all non-leader tasks.
+  CLIENT_METHOD(SendReadyChains);
+
   CLIENT_METHOD(SendData);
   CLIENT_METHOD(RegisterFunction);
 

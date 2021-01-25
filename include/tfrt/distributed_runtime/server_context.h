@@ -38,6 +38,7 @@ class FabricCommunicator;
 class RequestHandlerInterface;
 class DistributedContext;
 class DistributedContextConfiguration;
+class DistributedInitHelper;
 
 // Configurations that should be set at server startup time.
 struct ServerContextConfiguration {
@@ -87,6 +88,10 @@ class ServerContext {
     return request_handler_.get();
   }
 
+  DistributedInitHelper* GetDistributedInitHelper() {
+    return init_helper_.get();
+  }
+
   void ShutDown();
 
  protected:
@@ -110,6 +115,7 @@ class ServerContext {
   HostContext* const host_context_;
   const ServerContextConfiguration configuration_;
   std::unique_ptr<RequestHandlerInterface> request_handler_;
+  std::unique_ptr<DistributedInitHelper> const init_helper_;
   mutex communicator_mutex_;
   std::unique_ptr<FabricCommunicator> fabric_communicator_
       TFRT_GUARDED_BY(communicator_mutex_);

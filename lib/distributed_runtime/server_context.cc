@@ -24,6 +24,7 @@
 
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/distributed_context.h"
+#include "tfrt/distributed_runtime/distributed_init_helper.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 #include "tfrt/distributed_runtime/request_handler.h"
@@ -32,13 +33,16 @@
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/mutex.h"
+#include "tfrt/support/random_util.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 
 ServerContext::ServerContext(HostContext* host_context,
                              ServerContextConfiguration configuration)
-    : host_context_{host_context}, configuration_{std::move(configuration)} {
+    : host_context_{host_context},
+      configuration_{std::move(configuration)},
+      init_helper_{std::make_unique<DistributedInitHelper>(this)} {
   request_handler_ = NewRequestHandler(this);
   GetOrCreateFabricCommunicator();
   GarbageCollectInactiveDistributedContexts(

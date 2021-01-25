@@ -50,6 +50,10 @@ class RequestHandlerInterface {
                                   CloseContextResponse* response,
                                   CallbackFn done) = 0;
 
+  virtual void HandleSendReadyChains(const SendReadyChainsRequest* request,
+                                     SendReadyChainsResponse* response,
+                                     CallbackFn done) = 0;
+
   virtual void HandleSendData(const SendDataRequest* request,
                               SendDataResponse* response, CallbackFn done) = 0;
 

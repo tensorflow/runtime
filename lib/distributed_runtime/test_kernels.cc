@@ -66,6 +66,7 @@ class TestRequestHandler : public RequestHandlerInterface {
   TEST_HANDLE_METHOD(CreateContext);
   TEST_HANDLE_METHOD(CloseContext);
   TEST_HANDLE_METHOD(SendData);
+  TEST_HANDLE_METHOD(SendReadyChains);
   TEST_HANDLE_METHOD(RegisterFunction);
   TEST_HANDLE_METHOD(DeleteRemoteObjects);
   TEST_HANDLE_METHOD(RemoteExecuteOp);
@@ -172,29 +173,31 @@ void TestCreateDistributedContext(RemainingArguments configurations,
   }
   DistributedContext* dist_context = dist_context_or_error.get();
   // Get device info on remote servers.
-  dist_context->GetRemoteDevices([dist_context, servers,
-                                  outputs =
-                                      std::move(outputs)](Error error) mutable {
-    if (error) {
-      for (int i = 0; i < outputs.size(); i++) {
-        outputs[i]->SetError(DecodedDiagnostic(error));
-      }
-      return;
-    }
-    // Create other distributed context for remote servers.
-    dist_context->CreateRemoteContexts([servers, outputs = std::move(outputs)](
-                                           Error error) mutable {
-      for (int i = 0; i < outputs.size(); ++i) {
+  dist_context->GetRemoteDevices(
+      [dist_context, servers,
+       outputs = std::move(outputs)](Error error) mutable {
         if (error) {
-          outputs[i]->SetError(DecodedDiagnostic(error));
-        } else {
-          AsyncValueRef<DistributedContext> c =
-              servers[i]->GetDistributedContextAsyncValue(0);
-          outputs[i]->ForwardTo(servers[i]->GetDistributedContextAsyncValue(0));
+          for (int i = 0; i < outputs.size(); i++) {
+            outputs[i]->SetError(DecodedDiagnostic(error));
+          }
+          return;
         }
-      }
-    });
-  });
+        // Create other distributed context for remote servers.
+        dist_context->CreateRemoteContexts(
+            DistributedContext::RemoteInitMode::SINGLE_CLIENT,
+            [servers, outputs = std::move(outputs)](Error error) mutable {
+              for (int i = 0; i < outputs.size(); ++i) {
+                if (error) {
+                  outputs[i]->SetError(DecodedDiagnostic(error));
+                } else {
+                  AsyncValueRef<DistributedContext> c =
+                      servers[i]->GetDistributedContextAsyncValue(0);
+                  outputs[i]->ForwardTo(
+                      servers[i]->GetDistributedContextAsyncValue(0));
+                }
+              }
+            });
+      });
 }
 
 void TestCloseDistributedContext(Argument<DistributedContext> dist_context,

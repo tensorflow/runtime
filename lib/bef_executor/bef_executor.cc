@@ -102,8 +102,8 @@ AsyncValue* GetOrCreateRegisterValue(BEFFileImpl::RegisterInfo* reg,
 // Take one reference to `new_value` and set it in the register. The final
 // AsyncValue inside this register may be different from `new_value` in case
 // that there is an existing indirect async value.
-void SetRegisterValue(BEFFileImpl::RegisterInfo* reg,
-                      RCReference<AsyncValue> result) {
+LLVM_ATTRIBUTE_ALWAYS_INLINE void SetRegisterValue(
+    BEFFileImpl::RegisterInfo* reg, RCReference<AsyncValue> result) {
   assert(reg->user_count > 0 &&
          "No need to set register value if it is not being used by anyone.");
   // Atomically set reg->value to new_value.
@@ -267,22 +267,25 @@ void BEFExecutor::DecrementReadyCountAndEnqueue(
 // push them to `ready_kernel_ids`, otherwise we need to enqueue them into this
 // unavailable result. This function also publish the `result` to the
 // corresponding `result_register` so that the subscribers can use it.
-void BEFExecutor::ProcessUsedBysAndSetRegister(
+LLVM_ATTRIBUTE_ALWAYS_INLINE void BEFExecutor::ProcessUsedBysAndSetRegister(
     llvm::ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids,
     RCReference<AsyncValue> result,
     BEFFileImpl::RegisterInfo* result_register) {
-  if (users.empty()) {
-    SetRegisterValue(result_register, std::move(result));
-    return;
-  }
-
-  auto state = result->state();
-  if (state.IsAvailable()) {
+  // If the result is available, we can set the register and schedule ready
+  // users immediately.
+  if (result->IsAvailable()) {
     // SetRegisterValue() must be done before DecrementReadyCountAndEnqueue()
     // because as soon as we decrement a kernel's ready count, it might be
     // executed in another thread.
     SetRegisterValue(result_register, std::move(result));
     DecrementReadyCountAndEnqueue(users, ready_kernel_ids);
+    return;
+  }
+
+  // If the result is unavailable but has no users, we just need to set the
+  // register which should be only used as the function result.
+  if (users.empty()) {
+    SetRegisterValue(result_register, std::move(result));
     return;
   }
 
@@ -321,13 +324,17 @@ void BEFExecutor::ProcessUsedBysAndSetRegister(
 void BEFExecutor::ProcessPseudoKernelUsedBys(
     llvm::ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids,
     AsyncValue* result) {
-  if (users.empty()) return;
-
-  auto state = result->state();
-  if (state.IsAvailable()) {
+  // If the result is available, we can schedule ready users immediately.
+  if (result->IsAvailable()) {
     DecrementReadyCountAndEnqueue(users, ready_kernel_ids);
     return;
   }
+
+  // If the result is unavailable but has users, we don't need to do anything.
+  //
+  // TODO(tfrt-devs): Consider eliminating unused function arguments in the
+  // compiler, as it is pointless to process unused arguments in runtime.
+  if (users.empty()) return;
 
   // Otherwise, the kernel is going to produce its result asynchronously -
   // we process the user whenever the value becomes available.

@@ -42,6 +42,7 @@
 #include "tfrt/support/refcounted_callback.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
+#include "tfrt/tensor/dense_host_tensor_view.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
 namespace tfrt {
@@ -565,7 +566,7 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
                          Argument<InstanceKey> instance_key,
                          Argument<DenseHostTensor> in_tensor,
                          Argument<DenseHostTensor> out_tensor,
-                         Argument<int64_t> axis, Argument<Chain> in_chain,
+                         Argument<size_t> axis, Argument<Chain> in_chain,
                          Result<Chain> out_chain,
                          const ExecutionContext& exec_ctx) {
   auto out_chain_indirect = out_chain.Allocate();
@@ -654,6 +655,18 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
     //    Gathering on axis 1: step_size = dimension[1] = 3
     //      This means 3 elements from each tensor is copied for each offset.
     size_t step_size = 1;
+    // interval refers to the distance between offsets.
+    // interval is determined by the axis and output dimension.
+    //
+    // interval = out_dim[axis] * out_dim[axis+1] * ... * out_dim[n-1]
+    // when n is the # of dimensions and
+    // out_dim is the dimension of output tensor
+    //
+    // Why we need this:
+    // When gathering on a non-zero axis, a tensor is split into chunks. Each
+    // chunk, whose size is step_size, is copied into the output tensor at some
+    // offset. Each offset is some distance apart from each other. The distance
+    // is referred to as interval.
     size_t interval = 1;
     for (size_t j = *axis; j < in_dimension.size(); ++j) {
       if (j != *axis && in_dimension[j] != out_dimension[j]) {
@@ -692,6 +705,227 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
                    my_index, in_tensor_ref.get(), out_tensor_ref.get(),
                    refcounted_done.CopyRef(), axis, offsets, step_sizes);
   });
+}
+
+template <typename T>
+void DoAllGatherAnyShape(const ExecutionContext& exec_ctx,
+                         AsyncValueRef<DistributedContext> dist_ctx,
+                         const InstanceKey& instance_key,
+                         const CollectiveGroup& collective_group,
+                         const int my_index, const DenseHostTensor& in_tensor,
+                         AsyncValueRef<DenseHostTensor> out_tensor,
+                         DenseHostTensor& shapes_tensor,
+                         MutableDHTArrayView<ssize_t> shape_tensor_view,
+                         AsyncValueRef<Chain> out_chain, size_t axis,
+                         size_t kGroupSize, size_t kRank) {
+  llvm::SmallVector<llvm::SmallVector<size_t, 4>, 4> offsets;
+  llvm::SmallVector<size_t, 4> step_sizes;
+  llvm::SmallVector<ssize_t, 4> dimensions;
+  llvm::SmallVector<ssize_t, 4> tensor_sizes;
+  size_t gathered_dimension = 0;
+  DHTArrayView<size_t> shapes_array(&shapes_tensor);
+  // This is to check that all tensors have the same rank.
+  // E.g. AllGather on tensors of shape 2x2 and 2x2x2 does not make sense.
+  if (shapes_array.NumElements() / kGroupSize != kRank) {
+    out_chain.SetError("All workers must have tensors of the same rank.");
+    return;
+  }
+  // This goes through the participating shapes and compute the following.
+  // - dimension of output tensor
+  // - number of elements in each participating tensor
+  // - step_size for each tensor
+  for (size_t i = 0; i < kGroupSize; ++i) {
+    size_t num_element = 1;
+    size_t step_size = 1;
+    for (size_t j = 0; j < kRank; ++j) {
+      // This refers to i-th tensor's j-th dimension.
+      // Example:
+      //   Suppose there are 2 tensors to be gathered.
+      //   T0 has shape 1x2 and T1 has shape 1x3.
+      //   Then, we have
+      //      shapes_array = [1,2,1,3]
+      //   dim is used to access T0's 1,2 and T1's 1,3.
+      size_t dim = kRank * i + j;
+      if (j != axis) {
+        if (shapes_array[dim] != shape_tensor_view.Elements()[j]) {
+          out_chain.SetError(
+              "All dimensions in the input must be equal except the axis");
+          return;
+        }
+      } else {
+        gathered_dimension += shapes_array[dim];
+      }
+      num_element *= shapes_array[dim];
+      if (j >= axis) {
+        step_size *= shapes_array[dim];
+      }
+    }
+    tensor_sizes.push_back(num_element);
+    step_sizes.push_back(step_size);
+  }
+  // Create a vector of output dimension
+  for (size_t l = 0; l < kRank; ++l) {
+    if (l != axis) {
+      dimensions.push_back(shape_tensor_view.Elements()[l]);
+    } else {
+      dimensions.push_back(gathered_dimension);
+    }
+  }
+  // Compute an interval (distance between offsets).
+  // See line 658 for more details.
+  size_t interval = 1;
+  for (size_t m = axis; m < kRank; ++m) {
+    interval *= dimensions[m];
+  }
+  // For each participating tensor, compute offsets (positions to be copied to
+  // in output tensor)
+  size_t pos = 0;
+  for (size_t n = 0; n < kGroupSize; ++n) {
+    llvm::SmallVector<size_t, 4> offset;
+    size_t num_offsets = tensor_sizes[n] / step_sizes[n];
+    size_t each_offset = pos;
+    for (size_t o = 0; o < num_offsets; ++o) {
+      offset.push_back(each_offset);
+      each_offset += interval;
+    }
+    offsets.push_back(offset);
+    pos += step_sizes[n];
+  }
+  // Create an output tensor
+  TensorShape shape(dimensions);
+  TensorMetadata md(in_tensor.metadata().dtype, shape);
+  auto output_tensor =
+      DenseHostTensor::MakeConstructedAsyncValueRef(md, exec_ctx.host());
+
+  auto done = [output_tensor = output_tensor.CopyRef(),
+               out_chain = std::move(out_chain),
+               out_tensor = std::move(out_tensor),
+               dist_ctx = dist_ctx.CopyRef()](Error e) mutable {
+    if (e) {
+      out_chain.SetError(e);
+    } else {
+      out_chain.emplace();
+      out_tensor.emplace(std::move(output_tensor.get()));
+    }
+  };
+
+  auto refcounted_done = TakeRef(
+      new RefCountedCallback([host = dist_ctx->GetHostContext(), exec_ctx,
+                              done = std::move(done)](Error e) mutable {
+        if (host->IsInWorkerThread()) {
+          done(std::move(e));
+        } else {
+          EnqueueWork(exec_ctx,
+                      [done = std::move(done), e = std::move(e)]() mutable {
+                        done(std::move(e));
+                      });
+        }
+      }));
+
+  // Do a final AllGather
+  EnqueueWork(exec_ctx, [exec_ctx, my_index, instance_key, axis,
+                         collective_group, dist_ctx = dist_ctx.CopyRef(),
+                         in_tensor_ref = in_tensor.CopyRef(),
+                         output_tensor = output_tensor.CopyRef(),
+                         refcounted_done = refcounted_done.CopyRef(),
+                         offsets = std::move(offsets),
+                         step_sizes = std::move(step_sizes)] {
+    DoAllGather<T>(exec_ctx, dist_ctx.CopyRef(), instance_key, collective_group,
+                   my_index, in_tensor_ref.CopyRef(), output_tensor.get(),
+                   refcounted_done.CopyRef(), axis, offsets, step_sizes);
+  });
+}
+
+template <typename T>
+void AllGatherAnyShape(Argument<DistributedContext> dist_ctx,
+                       Argument<std::string> collective_group_name,
+                       Argument<InstanceKey> instance_key,
+                       Argument<DenseHostTensor> in_tensor,
+                       Argument<size_t> axis, Argument<Chain> in_chain,
+                       Result<Chain> out_chain,
+                       Result<DenseHostTensor> out_tensor,
+                       const ExecutionContext& exec_ctx) {
+  auto out_chain_indirect = out_chain.Allocate();
+  const auto& collective_group =
+      dist_ctx->GetCollectiveGroup(collective_group_name.get());
+  int my_index =
+      FindMyIndex(collective_group.members, dist_ctx->GetTaskHandle());
+  if (my_index == -1) {
+    out_chain_indirect.SetError(
+        "This worker is not part of the collective group ");
+    return;
+  }
+  auto out_tensor_indirect = out_tensor.Allocate();
+  const auto kGroupSize = collective_group.members.size();
+  const auto gather_shapes_key = StepKey("gather_shapes", *instance_key, 0);
+
+  // Make a tensor consisting of my own shape.
+  // GetRank() gives the number of dimensions
+  const auto kRank = in_tensor->metadata().shape.GetRank();
+  TensorMetadata shape_md(GetDType<ssize_t>(), {1, kRank});
+  auto shape_tensor = tfrt::DenseHostTensor::MakeConstructedAsyncValueRef(
+      shape_md, exec_ctx.host());
+  MutableDHTArrayView<ssize_t> shape_tensor_view(&shape_tensor.get());
+  in_tensor->shape().GetDimensions(shape_tensor_view.Elements());
+
+  // Make a tensor to store all tensors' shapes.
+  TensorMetadata shapes_md(GetDType<size_t>(),
+                           {static_cast<int64_t>(kGroupSize), kRank});
+  auto shapes_tensor = tfrt::DenseHostTensor::MakeConstructedAsyncValueRef(
+      shapes_md, exec_ctx.host());
+
+  auto do_final_allgather =
+      [exec_ctx, kGroupSize, kRank, shape_tensor_view, my_index,
+       collective_group, instance_key = *instance_key, axis = *axis,
+       dist_ctx = dist_ctx.ValueRef(), shapes_tensor = shapes_tensor.CopyRef(),
+       shape_tensor = shape_tensor.CopyRef(), in_tensor = in_tensor.ValueRef(),
+       out_chain = std::move(out_chain_indirect),
+       out_tensor = std::move(out_tensor_indirect)](Error e) mutable {
+        DoAllGatherAnyShape<T>(exec_ctx, dist_ctx.CopyRef(), instance_key,
+                               collective_group, my_index, in_tensor.get(),
+                               out_tensor.CopyRef(), shapes_tensor.get(),
+                               shape_tensor_view, out_chain.CopyRef(), axis,
+                               kGroupSize, kRank);
+      };
+
+  auto refcounted_done_gather_sizes = TakeRef(new RefCountedCallback(
+      [host = dist_ctx->GetHostContext(), exec_ctx,
+       do_final_allgather = std::move(do_final_allgather)](Error e) mutable {
+        if (host->IsInWorkerThread()) {
+          do_final_allgather(std::move(e));
+        } else {
+          EnqueueWork(exec_ctx,
+                      [done = std::move(do_final_allgather),
+                       e = std::move(e)]() mutable { done(std::move(e)); });
+        }
+      }));
+
+  // Do an AllGather to gather the sizes of all tensors.
+  llvm::SmallVector<llvm::SmallVector<size_t, 4>, 4> gather_size_offsets;
+  gather_size_offsets.reserve(kGroupSize);
+  llvm::SmallVector<size_t, 4> gather_size_step_sizes;
+  gather_size_step_sizes.reserve(kGroupSize);
+  size_t gather_size_offset = 0;
+  for (size_t i = 0; i < kGroupSize; ++i) {
+    gather_size_offsets.push_back({gather_size_offset});
+    gather_size_step_sizes.push_back(kRank);
+    gather_size_offset += kRank;
+  }
+
+  EnqueueWork(
+      exec_ctx,
+      [exec_ctx, my_index, gather_shapes_key, collective_group,
+       shape_tensor = shape_tensor.CopyRef(),
+       shapes_tensor = shapes_tensor.CopyRef(), dist_ctx = dist_ctx.ValueRef(),
+       refcounted_done_gather_sizes = refcounted_done_gather_sizes.CopyRef(),
+       gather_size_offsets = std::move(gather_size_offsets),
+       gather_size_step_sizes = std::move(gather_size_step_sizes)] {
+        DoAllGather<size_t>(exec_ctx, dist_ctx.CopyRef(), gather_shapes_key,
+                            collective_group, my_index, shape_tensor.get(),
+                            shapes_tensor.get(),
+                            refcounted_done_gather_sizes.CopyRef(), /*axis=*/0,
+                            gather_size_offsets, gather_size_step_sizes);
+      });
 }
 
 void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
@@ -1048,6 +1282,10 @@ void RegisterDistributedKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(AllGatherFixedShape<float>));
   registry->AddKernel("tfrt_dist.cpu.allgather_fixed_shape.i32",
                       TFRT_KERNEL(AllGatherFixedShape<int32_t>));
+  registry->AddKernel("tfrt_dist.cpu.allgather_any_shape.f32",
+                      TFRT_KERNEL(AllGatherAnyShape<float>));
+  registry->AddKernel("tfrt_dist.cpu.allgather_any_shape.i32",
+                      TFRT_KERNEL(AllGatherAnyShape<int32_t>));
   registry->AddKernel("tfrt_dist.create_remote_execute_spec",
                       TFRT_KERNEL(CreateRemoteExecuteSpec));
   registry->AddKernel("tfrt_dist.remote_execute",

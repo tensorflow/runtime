@@ -159,7 +159,7 @@ class AllGatherFixedShapeOp<string dtype> : DistOp<"cpu.allgather_fixed_shape." 
     TFRT_StringType,
     TensorType,
     TensorType,
-    I64,
+    UI64,
     TFRT_ChainType);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
@@ -167,6 +167,46 @@ class AllGatherFixedShapeOp<string dtype> : DistOp<"cpu.allgather_fixed_shape." 
 
 foreach dtype = ["i32", "f32"] in {
   def Dist_AllGatherFixedShapeOp_#dtype : AllGatherFixedShapeOp<dtype>;
+}
+
+class AllGatherAnyShapeOp<string dtype> : DistOp<"cpu.allgather_any_shape." # dtype> {
+  let summary = "dist.cpu.allgather_any_shape operation";
+
+  let description = [{
+    An operation to perform an allgather primitive on tensors of variable shapes
+    on a given axis. All dimensions except the axis must be equal.
+
+    Example: out_chain, %output = tfrt_dist.cpu.allgather_any_shape.i32 %context, %collective_group_name, %instance_id, %input, %axis, %in_chain
+
+    Examples on how axis is used:
+    Suppose worker0 with t0 and worker1 with t1 perform an AllGather.
+      t0 = [[0,1],[2,3]] dimension = 2x2
+      t1 = [[40],[60]] dimension = 2x1
+    Only AllGather on axis = 1 is allowed.
+      output dimension = 2x3
+      result = [[0,1,40],[2,3,60]]
+
+    Suppose worker0 with t0 and worker1 with t1 perform an AllGather.
+      t0 = [[0,1],[2,3]] dimension = 2x2
+      t1 = [[40,50]] dimension = 1x2
+    Only AllGather on axis = 0 is allowed.
+      output dimension = 3x2
+      result = [[0,1],[2,3],[40,50]]
+  }];
+
+  let arguments = (ins
+    DistributedContextType,
+    TFRT_StringType,
+    TFRT_StringType,
+    TensorType,
+    UI64,
+    TFRT_ChainType);
+  let results = (outs TFRT_ChainType, TensorType);
+  let assemblyFormat = "operands attr-dict";
+}
+
+foreach dtype = ["i32", "f32"] in {
+  def Dist_AllGatherAnyShapeOp_#dtype : AllGatherAnyShapeOp<dtype>;
 }
 
 // Test kernels

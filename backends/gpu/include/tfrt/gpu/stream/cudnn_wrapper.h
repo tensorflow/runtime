@@ -96,6 +96,7 @@ struct CudnnActivationDescriptorData {
 struct CudnnDropoutDescriptorData {
   float dropout;
   Pointer<void> states;
+  size_t state_size;
   uint64_t seed;
 };
 struct CudnnRnnDescriptorData {
@@ -608,13 +609,15 @@ llvm::Expected<size_t> CudnnGetRnnTrainingReserveSize(
 llvm::Expected<Pointer<void>> CudnnGetRnnLinLayerMatrixParams(
     cudnnHandle_t handle, cudnnRNNDescriptor_t rnn_descriptor, int pseudo_layer,
     cudnnTensorDescriptor_t tensor_descriptor,
-    const cudnnFilterDescriptor_t filter_descriptor, Pointer<void> weights,
-    int layer_index, cudnnFilterDescriptor_t matrix_descriptor);
+    const cudnnFilterDescriptor_t filter_descriptor,
+    Pointer<const void> weights, int layer_index,
+    cudnnFilterDescriptor_t matrix_descriptor);
 llvm::Expected<Pointer<void>> CudnnGetRnnLinLayerBiasParams(
     cudnnHandle_t handle, cudnnRNNDescriptor_t rnn_descriptor, int pseudo_layer,
     cudnnTensorDescriptor_t tensor_descriptor,
-    const cudnnFilterDescriptor_t filter_descriptor, Pointer<void> weights,
-    int layer_index, cudnnFilterDescriptor_t bias_descriptor);
+    const cudnnFilterDescriptor_t filter_descriptor,
+    Pointer<const void> weights, int layer_index,
+    cudnnFilterDescriptor_t bias_descriptor);
 
 llvm::Expected<OwningPersistentRnnPlan> CudnnCreatePersistentRnnPlan(
     cudnnRNNDescriptor_t descriptor, int batch_size, cudnnDataType_t data_type);

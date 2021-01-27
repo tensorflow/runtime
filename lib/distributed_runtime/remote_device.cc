@@ -77,6 +77,11 @@ class RemoteDeviceMaker {
         [](string_view name, TaskHandle task_handle) {
           return new RemoteTpuDevice(name, task_handle);
         });
+    remote_device_type_func_.try_emplace(
+        RemoteTpuSystemDevice::type_name(),
+        [](string_view name, TaskHandle task_handle) {
+          return new RemoteTpuSystemDevice(name, task_handle);
+        });
   }
   llvm::StringMap<MakeRemoteDeviceFunc> remote_device_type_func_;
 };

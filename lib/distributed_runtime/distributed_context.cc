@@ -65,6 +65,7 @@ DistributedContext::DistributedContext(
         TaskNameUtil::StripDevicePrefix(device->name()));
     auto remote_device =
         NewRemoteDevice(device_name, device->type().name(), task_handle);
+    TFRT_DLOG_IF(FATAL, !remote_device) << StrCat(remote_device.takeError());
     cluster_device_mgr_.MaybeAddDevice(TakeRef(remote_device.get()));
   }
 

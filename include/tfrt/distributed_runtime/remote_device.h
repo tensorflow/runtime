@@ -68,6 +68,22 @@ class RemoteTpuDevice : public RemoteDevice,
   ~RemoteTpuDevice() override {}
 };
 
+// This is a vritual device. If a host has TPU connected, it will have one
+// instance of this device. Current TF has the same design.
+class RemoteTpuSystemDevice : public RemoteDevice,
+                              public DeviceTraits<RemoteTpuSystemDevice> {
+ public:
+  static const char* type_name() {
+    static constexpr char kName[] = "remote_tpu_system";
+    return kName;
+  }
+
+  explicit RemoteTpuSystemDevice(string_view name, TaskHandle task_handle)
+      : RemoteDevice(kDeviceType, name, task_handle) {}
+
+  ~RemoteTpuSystemDevice() override {}
+};
+
 // TODO(tfrt-dev): Add remote GPU device when there are valid use cases.
 
 Expected<Device*> NewRemoteDevice(string_view name, string_view type,

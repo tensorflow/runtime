@@ -455,11 +455,12 @@ void BEFExecutor::ProcessReadyKernel(
     // The argument register may not be available if this is a non-strict
     // kernel that is starting before all operands are available. In that
     // case, we use an IndirectAsyncValue so it can be resolved later.
-    AsyncValue* value = GetOrCreateRegisterValue(&reg, GetHost());
+    RCReference<AsyncValue> value =
+        TakeRef(GetOrCreateRegisterValue(&reg, GetHost()));
     // TODO(b/142757465): remove arguments_and_results_ vector in
     // AsyncKernelFrame.
-    kernel_frame->AddArg(value);
-    if (value->IsError()) any_error_argument = value;
+    if (value->IsError()) any_error_argument = value.get();
+    kernel_frame->AddArg(std::move(value));
   }
 
   // TODO(b/142757465): remove arguments_and_results_ vector in
@@ -499,10 +500,7 @@ void BEFExecutor::ProcessReadyKernel(
     }
   }
 
-  // Now that the kernel had a chance to look at the arguments, we're done
-  // with them, so they can potentially be deallocated if this was the last
-  // kernel to use them.
-  for (auto* arg : kernel_frame->GetArguments()) arg->DropRef();
+  kernel_frame->ResetArguments();
 
   // The following loop iterates over all results of the kernel. If a result
   // has no users, it will be skipped. If the kernel immediately completed a
@@ -524,21 +522,21 @@ void BEFExecutor::ProcessReadyKernel(
            GetRegisterValue(result_register)->IsUnresolvedIndirect());
 
     // Copy back the result AsyncValue to this result register.
-    AsyncValue* result = kernel_frame->GetResultAt(result_number);
+    RCReference<AsyncValue> result =
+        kernel_frame->ReleaseResultAt(result_number);
     assert(result && "Kernel did not set result AsyncValue");
     if (result_register.user_count == 0) {
       // If no one uses this result, skip storing the value in the register.
-      // We must drop our +1 ref.
-      result->DropRef();
+      // Note the reference to `result` will be dropped.
       continue;
     }
 
-    DebugPrintError(kernel, kernel_id, result);
+    DebugPrintError(kernel, kernel_id, result.get());
 
     auto used_bys = GetNextUsedBys(kernel, result_number, &entry_offset);
 
     // Process users of this result.
-    ProcessUsedBysAndSetRegister(used_bys, ready_kernel_ids, TakeRef(result),
+    ProcessUsedBysAndSetRegister(used_bys, ready_kernel_ids, std::move(result),
                                  &result_register);
   }
 }
@@ -577,10 +575,6 @@ void BEFExecutor::ProcessReadyKernels(
     // Clear the work list so that ready users can be populated for the next
     // round of processing.
     ready_kernel_ids->clear();
-
-    // Reset the arguments and results in the kernel frame for the current
-    // kernel invocation.
-    kernel_frame.ResetArgumentsAndResults();
 
     ProcessReadyKernel(first_kernel_id, &kernel_frame, ready_kernel_ids);
   }

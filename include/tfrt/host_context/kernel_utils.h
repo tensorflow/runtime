@@ -285,10 +285,8 @@ class RepeatedArguments {
 template <typename T>
 class Result {
  public:
-  explicit Result(HostContext* host, AsyncValue** result)
-      : host_(host), result_(result) {
-    assert(*result == nullptr);
-  }
+  explicit Result(HostContext* host, RCReference<AsyncValue>* result)
+      : host_(host), result_(*result) {}
 
   // Construct the result in place.
   template <typename... Args>
@@ -297,41 +295,29 @@ class Result {
   }
 
   // Use this argument as a result without a deep copy.
-  void Set(Argument<T> argument) {
-    assert(*result_ == nullptr);
-    argument.value()->AddRef();
-    *result_ = argument.value();
-  }
+  void Set(Argument<T> argument) { result_ = FormRef(argument.value()); }
 
-  void Set(RCReference<AsyncValue> value) {
-    assert(*result_ == nullptr);
-    *result_ = value.release();
-  }
+  void Set(RCReference<AsyncValue> value) { result_ = std::move(value); }
 
-  void Set(AsyncValueRef<T> value) {
-    assert(*result_ == nullptr);
-    *result_ = value.release();
-  }
+  void Set(AsyncValueRef<T> value) { result_ = std::move(value); }
 
   AsyncValueRef<T> Allocate() {
-    assert(*result_ == nullptr);
     auto result = MakeUnconstructedAsyncValueRef<T>(host_);
     // result_ is stored in AsyncKernelFrame and needs a +1 ref count.
-    *result_ = result.CopyRef().release();
+    result_ = result.CopyRef();
     return result;
   }
 
   RCReference<IndirectAsyncValue> AllocateIndirect() {
-    assert(*result_ == nullptr);
     auto result = MakeIndirectAsyncValue(host_);
     // result_ is stored in AsyncKernelFrame and needs a +1 ref count.
-    *result_ = result.CopyRef().release();
+    result_ = result.CopyRef();
     return result;
   }
 
  private:
   HostContext* host_;
-  AsyncValue** result_;
+  RCReference<AsyncValue>& result_;
 };
 
 // RemainingResults collects all remaining results in a MutableArrayRef. There
@@ -743,50 +729,13 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
       static_assert(func_idx == 0,
                     "Arguments and results should appear before funtions.");
 
-      MutableArrayRef<AsyncValue*> returned_results =
+      MutableArrayRef<RCReference<AsyncValue>> results =
           frame->GetResults().drop_front(out_idx);
 
-      SmallVector<RCReference<AsyncValue>, 4> result_values;
-      result_values.resize(returned_results.size());
-
-      RemainingResults remaining_results(frame->GetHostContext(),
-                                         result_values);
+      RemainingResults remaining_results(frame->GetHostContext(), results);
       SyncKernelCallHelper<Tail...>::template Invoke<
           in_idx, -1, const_idx, func_idx, has_kernel_error, has_in_chain>(
           frame, pargs..., remaining_results);
-
-      bool overwrote_result = false;
-      for (size_t i = 0, e = result_values.size(); i != e; ++i) {
-        // In error cases, ReportError() may have filled in the kernel frame's
-        // results already with errors.  We only want to overwrite these if
-        // returned_results has valid results.
-        if (auto* result = result_values[i].release()) {
-          if (returned_results[i]) {
-            assert(returned_results[i]->IsError() &&
-                   "shouldn't overwrite a normal value result");
-            returned_results[i]->DropRef();
-            overwrote_result = true;
-          }
-          returned_results[i] = result;
-        }
-      }
-
-      // If we overwrote a result an error result, make sure there is at least
-      // one error result left - otherwise this will have masked the error
-      // entirely.
-#ifndef NDEBUG
-      if (overwrote_result) {
-        bool had_error = false;
-        for (auto& result : frame->GetResults())
-          if (result->IsError()) {
-            had_error = true;
-            break;
-          }
-        assert(had_error &&
-               "RemainingResults kernel overwrote all the errors with "
-               "normal results");
-      }
-#endif
     }
   };
 

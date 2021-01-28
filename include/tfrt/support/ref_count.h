@@ -162,15 +162,29 @@ class RCReference {
     swap(pointer_, other.pointer_);
   }
 
- private:
-  template <typename R>
-  friend class RCReference;
+  friend bool operator==(const RCReference& ref, std::nullptr_t) {
+    return ref.pointer_ == nullptr;
+  }
+  friend bool operator==(std::nullptr_t, const RCReference& ref) {
+    return ref.pointer_ == nullptr;
+  }
+  friend bool operator!=(const RCReference& ref, std::nullptr_t) {
+    return ref.pointer_ != nullptr;
+  }
+  friend bool operator!=(std::nullptr_t, const RCReference& ref) {
+    return ref.pointer_ != nullptr;
+  }
+
   template <typename R>
   friend RCReference<R> FormRef(R*);
   template <typename R>
   friend RCReference<R> TakeRef(R*);
 
+ private:
   T* pointer_;
+
+  template <typename R>
+  friend class RCReference;
 };
 
 // Add a new reference to the specified pointer.

@@ -132,8 +132,9 @@ static void Conv2DGradFilter(ArgumentView<DHTIndexableView<T, 4>> output_grad,
   Eigen::array<ssize_t, 4> convolution_shuffle = {1, 2, 0, 3};
   auto convolution_shuffled = convolution.shuffle(convolution_shuffle);
 
-  auto on_done = [chain = chain_out.Allocate(),
-                  frame = RAIIKernelFrame(*frame)]() { chain.emplace(); };
+  auto on_done = [chain = chain_out.Allocate(), frame = *frame]() {
+    chain.emplace();
+  };
 
   AsyncAssign(exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
               std::move(filter_grad_t), std::move(convolution_shuffled),

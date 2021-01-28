@@ -429,3 +429,21 @@ func @test_identity() {
   tfrt.print.i32 %y, %ch
   tfrt.return
 }
+
+// CHECK-LABEL: --- Running 'test_multi_arg_result'
+func @test_multi_arg_result() -> !tfrt.chain {
+  %x = tfrt.constant.i32 1
+  %y = tfrt.constant.i32 2
+  %z = tfrt.constant.i32 3
+
+  %x1, %y1, %z1 = "tfrt_test.multi_arg_result"(%x, %y, %z) : (i32, i32, i32) -> (i32, i32, i32)
+
+  // CHECK: int32 = 1
+  // CHECK: int32 = 2
+  // CHECK: int32 = 3
+  %ch = tfrt.new.chain
+  %ch1 = tfrt.print.i32 %x1, %ch
+  %ch2 = tfrt.print.i32 %y1, %ch1
+  %ch3 = tfrt.print.i32 %z1, %ch2
+  tfrt.return %ch3 : !tfrt.chain
+}

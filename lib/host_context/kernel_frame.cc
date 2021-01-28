@@ -35,7 +35,7 @@ void AsyncKernelFrame::ReportError(string_view msg) {
   for (auto& result : GetResults()) {
     if (!result) {
       // Must AddRef on each iteration.
-      result = error_value.CopyRef().release();
+      result = error_value.CopyRef();
       has_set_error = true;
     } else if (result->IsUnavailable()) {
       result->SetError(error_value->GetError());

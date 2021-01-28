@@ -59,8 +59,9 @@ void MatMul(Argument<T> alpha, ArgumentView<DHTIndexableView<T, 2>> a,
   // Contraction dimension.
   Eigen::array<Eigen::IndexPair<Eigen::Index>, 1> contract_dim({1, 0});
 
-  auto on_done = [chain = chain_out.Allocate(),
-                  frame = RAIIKernelFrame(*frame)]() { chain.emplace(); };
+  auto on_done = [chain = chain_out.Allocate(), frame = *frame]() {
+    chain.emplace();
+  };
 
   auto in0 = AsEigenConstTensor(a.get());
   auto in1 = AsEigenConstTensor(b.get());

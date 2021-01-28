@@ -411,6 +411,14 @@ static Chain TestPrintTypedAttr(tfrt::Chain in_ch,
   return Chain();
 }
 
+static void TestMultiArgResult(RemainingArguments args,
+                               RemainingResults results) {
+  assert(args.size() == results.size());
+  for (int i = 0; i < args.size(); ++i) {
+    results[i] = FormRef(args[i]);
+  }
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -434,6 +442,8 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.unique_loc", TFRT_KERNEL(TestUniqueLoc));
   registry->AddKernel("tfrt_test.print_typed_attr",
                       TFRT_KERNEL(TestPrintTypedAttr));
+  registry->AddKernel("tfrt_test.multi_arg_result",
+                      TFRT_KERNEL(TestMultiArgResult));
 
   registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32",
                       TFRT_KERNEL(TestInvokeSyncFunction));

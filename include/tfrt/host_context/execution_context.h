@@ -175,10 +175,19 @@ class ExecutionContext {
   ExecutionContext(const ExecutionContext& exec_ctx)
       : request_ctx_{exec_ctx.request_ctx_.CopyRef()},
         location_{exec_ctx.location()} {}
-
   ExecutionContext(ExecutionContext&& exec_ctx)
       : request_ctx_{std::move(exec_ctx.request_ctx_)},
         location_{exec_ctx.location()} {}
+  ExecutionContext& operator=(const ExecutionContext& exec_ctx) {
+    request_ctx_ = exec_ctx.request_ctx_.CopyRef();
+    location_ = exec_ctx.location();
+    return *this;
+  }
+  ExecutionContext& operator=(ExecutionContext&& exec_ctx) {
+    request_ctx_ = std::move(exec_ctx.request_ctx_);
+    location_ = exec_ctx.location();
+    return *this;
+  }
 
   Location location() const { return location_; }
   HostContext* host() const { return request_ctx_->host(); }

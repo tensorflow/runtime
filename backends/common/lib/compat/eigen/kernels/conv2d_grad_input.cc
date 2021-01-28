@@ -130,8 +130,9 @@ static void Conv2DGradInput(ArgumentView<DHTIndexableView<T, 4>> output_grad,
                          /*inflations=*/grad_params.inflations);
   // clang-format on
 
-  auto on_done = [chain = chain_out.Allocate(),
-                  frame = RAIIKernelFrame(*frame)]() { chain.emplace(); };
+  auto on_done = [chain = chain_out.Allocate(), frame = *frame]() {
+    chain.emplace();
+  };
 
   AsyncAssign(exec_ctx.host()->GetOrCreateSharedContext<EigenHostContext>(),
               std::move(input_grad_t), std::move(convolution),

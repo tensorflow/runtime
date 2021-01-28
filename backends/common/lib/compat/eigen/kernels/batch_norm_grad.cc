@@ -137,7 +137,7 @@ static void BatchNormGrad(
   auto input_scaled = input_centered * (coef0.eval().broadcast(bcast_spec));
 
   // Allocate output chains for all results, because they must be not null
-  // before we construct RAIIKernelFrame below.
+  // before we copy the kernel frame below.
   auto input_grad_ready = input_grad_chain.Allocate();
   auto gamma_grad_ready = gamma_grad_chain.Allocate();
   auto beta_grad_ready = beta_grad_chain.Allocate();
@@ -146,15 +146,17 @@ static void BatchNormGrad(
   auto gamma_grad_expr = (output_grad_t * input_scaled).sum(reduce_dims);
 
   AsyncAssign(ctx, std::move(gamma_grad_t), std::move(gamma_grad_expr),
-              [chain = std::move(gamma_grad_ready),
-               frame = RAIIKernelFrame(*frame)]() { chain.emplace(); });
+              [chain = std::move(gamma_grad_ready), frame = *frame]() {
+                chain.emplace();
+              });
 
   //=== beta/offset gradient ----------------------------------------------===//
   auto output_grad_sum = output_grad_t.sum(reduce_dims);
 
   AsyncAssign(ctx, std::move(beta_grad_t), output_grad_sum,
-              [chain = std::move(beta_grad_ready),
-               frame = RAIIKernelFrame(*frame)]() { chain.emplace(); });
+              [chain = std::move(beta_grad_ready), frame = *frame]() {
+                chain.emplace();
+              });
 
   //=== input gradient ----------------------------------------------------===//
   auto output_grad_sum_one_by_depth =
@@ -175,8 +177,9 @@ static void BatchNormGrad(
       coef1 * (output_grad_centered - input_centered * coef2);
 
   AsyncAssign(ctx, std::move(input_grad_t), std::move(input_grad_expr),
-              [chain = std::move(input_grad_ready),
-               frame = RAIIKernelFrame(*frame)]() { chain.emplace(); });
+              [chain = std::move(input_grad_ready), frame = *frame]() {
+                chain.emplace();
+              });
 }
 
 }  // namespace compat

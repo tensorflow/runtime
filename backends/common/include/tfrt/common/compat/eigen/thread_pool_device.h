@@ -186,8 +186,7 @@ void AsyncAssign(const EigenHostContext& ctx, Output out, Expr expr,
 //
 // WARNING: Caller is responsible for capturing all reference-counted object
 // required for the duration of Eigen expression evaluation (lifetime extension)
-// into an instance of `ArgLifetimeExtension` (see `KeepBuffers` or
-// `RAIIKernelFrame`).
+// into an instance of `ArgLifetimeExtension` (see `KeepBuffers`).
 //
 // Example:
 //

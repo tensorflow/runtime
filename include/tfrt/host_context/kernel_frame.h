@@ -57,6 +57,26 @@ class AsyncKernelFrame {
   explicit AsyncKernelFrame(ExecutionContext exec_ctx)
       : exec_ctx_{std::move(exec_ctx)} {}
 
+  AsyncKernelFrame(const AsyncKernelFrame& other) : exec_ctx_(other.exec_ctx_) {
+    AssignFields(other);
+  }
+  AsyncKernelFrame& operator=(const AsyncKernelFrame& other) {
+    exec_ctx_ = other.exec_ctx_;
+    AssignFields(other);
+    return *this;
+  }
+  AsyncKernelFrame(AsyncKernelFrame&& other)
+      : exec_ctx_(std::move(other.exec_ctx_)) {
+    AssignFields(std::move(other));
+  }
+  AsyncKernelFrame& operator=(AsyncKernelFrame&& other) {
+    exec_ctx_ = std::move(other.exec_ctx_);
+    AssignFields(std::move(other));
+    return *this;
+  }
+
+  ~AsyncKernelFrame() { ResetArguments(); }
+
   const ExecutionContext& GetExecutionContext() const { return exec_ctx_; }
   HostContext* GetHostContext() const { return exec_ctx_.host(); }
 
@@ -66,7 +86,7 @@ class AsyncKernelFrame {
   ArrayRef<uint8_t> GetAttributeSection() const { return attribute_section_; }
 
   // Get the number of arguments.
-  int GetNumArgs() const { return num_arguments_; }
+  int GetNumArgs() const { return arguments_.size(); }
 
   // Get the argument at the given index as type T.
   template <typename T>
@@ -77,13 +97,11 @@ class AsyncKernelFrame {
   // Get the argument at the given index as AsyncValue*.
   AsyncValue* GetArgAt(int index) const {
     assert(index < GetNumArgs());
-    return arguments_and_results_[index];
+    return arguments_[index];
   }
 
   // Get all arguments.
-  ArrayRef<AsyncValue*> GetArguments() const {
-    return GetAsyncValues(0, num_arguments_);
-  }
+  ArrayRef<AsyncValue*> GetArguments() const { return arguments_; }
 
   // Get the attribute at the given index.
   const void* GetAttribute(int index) const {
@@ -133,7 +151,7 @@ class AsyncKernelFrame {
   }
 
   // Get the number of results.
-  int GetNumResults() const { return num_results_; }
+  int GetNumResults() const { return results_.size(); }
 
   // Emplace construct the result at index 0.
   template <typename T, typename... Args>
@@ -166,10 +184,10 @@ class AsyncKernelFrame {
 
   // Set the result at the given index with the given AsyncValue.
   void SetResultAt(int index, RCReference<AsyncValue> value) {
-    assert(index < num_results_ && "Invalid result index");
-    AsyncValue*& result = arguments_and_results_[num_arguments_ + index];
+    assert(index < results_.size() && "Invalid result index");
+    RCReference<AsyncValue>& result = results_[index];
     assert(!result && "Result is not nullptr");
-    result = value.release();
+    result = std::move(value);
   }
 
   template <typename T>
@@ -186,14 +204,10 @@ class AsyncKernelFrame {
   }
 
   // Get all results as an immutable ArrayRef
-  ArrayRef<AsyncValue*> GetResults() const {
-    return GetAsyncValues(num_arguments_, num_results_);
-  }
+  ArrayRef<RCReference<AsyncValue>> GetResults() const { return results_; }
 
   // Get all results as MutableArrayRef.
-  MutableArrayRef<AsyncValue*> GetResults() {
-    return GetMutableAsyncValues(num_arguments_, num_results_);
-  }
+  MutableArrayRef<RCReference<AsyncValue>> GetResults() { return results_; }
 
   // Example usage:
   //
@@ -224,27 +238,23 @@ class AsyncKernelFrame {
   void AssertArity(int num_arguments, int num_attributes,
                    int num_results) const;
 
+  // Clear arguments.
+  void ResetArguments() {
+    for (auto* arg : arguments_) arg->DropRef();
+    arguments_.clear();
+  }
+
  protected:
-  ArrayRef<AsyncValue*> GetAsyncValues(size_t from, size_t length) const {
-    assert((from + length) <= arguments_and_results_.size());
+  // Assign each member except ExecutionContext.
+  void AssignFields(const AsyncKernelFrame& other);
+  void AssignFields(AsyncKernelFrame&& other);
 
-    return llvm::makeArrayRef(arguments_and_results_.data() + from, length);
-  }
-
-  MutableArrayRef<AsyncValue*> GetMutableAsyncValues(size_t from,
-                                                     size_t length) {
-    assert((from + length) <= arguments_and_results_.size());
-
-    return llvm::makeMutableArrayRef(arguments_and_results_.data() + from,
-                                     length);
-  }
-
-  // This SmallVector stores the kernel argument AsyncValues and result
-  // AsyncValues in order.
-  SmallVector<AsyncValue*, 8> arguments_and_results_;
-
-  int num_arguments_ = 0;
-  int num_results_ = 0;
+  // AsyncValues of `arguments_` are owned by AsyncKernelFrame.
+  //
+  // TODO(tfrt-devs): Use RCReference<AsyncValue> instead of AsyncValue* so
+  // the ownership is clearer.
+  SmallVector<AsyncValue*, 8> arguments_;
+  SmallVector<RCReference<AsyncValue>, 8> results_;
 
   ArrayRef<uint8_t> attribute_section_;
   ArrayRef<uint32_t> attribute_offsets_;
@@ -253,24 +263,55 @@ class AsyncKernelFrame {
   ExecutionContext exec_ctx_;
 };
 
+inline void AsyncKernelFrame::AssignFields(const AsyncKernelFrame& other) {
+  for (auto* arg : arguments_) arg->DropRef();
+  arguments_ = other.arguments_;
+  for (auto* arg : arguments_) arg->AddRef();
+
+  assert(results_.empty());
+  results_.reserve(other.results_.size());
+  for (auto& result : other.results_) results_.push_back(result.CopyRef());
+
+  attribute_section_ = other.attribute_section_;
+  attribute_offsets_ = other.attribute_offsets_;
+  function_indices_ = other.function_indices_;
+  functions_ = other.functions_;
+}
+
+inline void AsyncKernelFrame::AssignFields(AsyncKernelFrame&& other) {
+  for (auto* arg : arguments_) arg->DropRef();
+  arguments_ = std::move(other.arguments_);
+  results_ = std::move(other.results_);
+
+  attribute_section_ = other.attribute_section_;
+  attribute_offsets_ = other.attribute_offsets_;
+  function_indices_ = other.function_indices_;
+  functions_ = other.functions_;
+}
+
 // KernelFrameBuilder is used by the kernel caller to construct a
 // AsyncKernelFrame object without exposing the builder methods to the kernel
 // implementation.
 //
-// As an optimization, AsyncKernelFrame stores arguments, attributes, and
-// results in a single SmallVector. As a result, to initialize a
-// AsyncKernelFrame, this class requires that the client performs the following
-// actions in order:
-// 1. Adds the arguments (using AddArg()),
-// 2. Set the number of results (using SetNumResults())
-// 3. Add the attributes (using AddAttribute())
+// This class requires that the client performs the following in order:
+// 1. Add args (using AddArg()) and set the number of results (using
+//    SetNumResults()),
+// 2. call the kernel,
+// 3. reset arguments (using ResetArguments()) and release results (using
+//    ReleaseResultAt()).
 class KernelFrameBuilder : public AsyncKernelFrame {
  public:
   explicit KernelFrameBuilder(ExecutionContext exec_ctx)
       : AsyncKernelFrame{std::move(exec_ctx)} {}
 
   // Get result AsyncValue at the given index.
-  AsyncValue* GetResultAt(int index) const { return GetResults()[index]; }
+  const RCReference<AsyncValue>& GetResultAt(int index) const {
+    return results_[index];
+  }
+
+  RCReference<AsyncValue> ReleaseResultAt(int index) {
+    return std::move(results_[index]);
+  }
 
   // TODO(tfrt-devs): Consider keeping BEFFile* in the kernel frame directly
   // instead of keeping individual fields.
@@ -282,11 +323,8 @@ class KernelFrameBuilder : public AsyncKernelFrame {
   }
 
   // Add a new argument to the AsyncKernelFrame.
-  void AddArg(AsyncValue* async_value) {
-    assert(num_results_ == 0 &&
-           "Must call AddArg before calling SetNumResults");
-    arguments_and_results_.push_back(async_value);
-    ++num_arguments_;
+  void AddArg(RCReference<AsyncValue> async_value) {
+    arguments_.push_back(async_value.release());
   }
 
   // Add all attributes to the AsyncKernelFrame.
@@ -300,58 +338,11 @@ class KernelFrameBuilder : public AsyncKernelFrame {
   }
 
   // Set the number of results expected.
-  void SetNumResults(size_t n) {
-    assert(num_arguments_ == arguments_and_results_.size());
-    assert(num_results_ == 0);
-    num_results_ = n;
-    arguments_and_results_.resize(arguments_and_results_.size() + n);
-  }
+  void SetNumResults(size_t n) { results_.resize(n); }
 
   // Set the location.
   void SetLocation(const Location& location) {
     exec_ctx_.set_location(location);
-  }
-
-  // Clear arguments and results.
-  void ResetArgumentsAndResults() {
-    arguments_and_results_.clear();
-    num_arguments_ = 0;
-    num_results_ = 0;
-  }
-};
-
-// RAIIKernelFrame is like AsyncKernelFrame, but adds a ref to each contained
-// value upon construction, and drops the refs on destruction. This is useful
-// when implementing async kernels.
-class RAIIKernelFrame : public AsyncKernelFrame {
- public:
-  RAIIKernelFrame() = delete;
-  RAIIKernelFrame(const AsyncKernelFrame& frame) : AsyncKernelFrame(frame) {
-    AddRefAll();
-  }
-
-  RAIIKernelFrame(const RAIIKernelFrame& that) : AsyncKernelFrame(that) {
-    AddRefAll();
-  }
-  RAIIKernelFrame(RAIIKernelFrame&& that) : AsyncKernelFrame(std::move(that)) {}
-
-  ~RAIIKernelFrame() {
-    if (!arguments_and_results_.empty()) DropRefAll();
-  }
-
- private:
-  // Increment the refcounts of all arguments and results.
-  void AddRefAll() const {
-    for (auto* v : arguments_and_results_) {
-      v->AddRef();
-    }
-  }
-
-  // Decrement the refcounts of all arguments and results.
-  void DropRefAll() const {
-    for (auto* v : arguments_and_results_) {
-      v->DropRef();
-    }
   }
 };
 
@@ -359,7 +350,7 @@ class RAIIKernelFrame : public AsyncKernelFrame {
 
 inline void AsyncKernelFrame::AssertArity(int num_arguments, int num_attributes,
                                           int num_results) const {
-  assert(num_arguments_ == num_arguments);
+  assert(arguments_.size() == num_arguments);
   assert(GetNumAttributes() == num_attributes);
   assert(GetNumResults() == num_results);
 }

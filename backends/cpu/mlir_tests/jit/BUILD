@@ -3,9 +3,10 @@ load("@tf_runtime//tools:mlir_to_bef.bzl", "glob_tfrt_lit_tests")
 licenses(["notice"])
 
 # CPU tests
-glob_tfrt_lit_tests(
-    data = [":test_utilities"],
-)
+# TODO(b/178705662): re-enable these
+# glob_tfrt_lit_tests(
+#     data = [":test_utilities"],
+# )
 
 # Bundle together all of the test utilities that are used by tests.
 filegroup(

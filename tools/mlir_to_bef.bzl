@@ -51,9 +51,6 @@ def glob_tfrt_lit_tests(
         tfrt_translate = ""):
     """Run mlir_to_bef on all .mlir files and invoke glob_lit_tests."""
 
-    # TODO(b/178705662): re-enable lit tests in OSS.
-    return  # copybara:comment
-
     if tfrt_translate == "":
         tfrt_translate = "@tf_runtime//tools:tfrt_translate"
 

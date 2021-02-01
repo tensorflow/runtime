@@ -10,7 +10,6 @@ load(
 )
 
 package(
-    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
     default_visibility = [":__subpackages__"],
 )
 

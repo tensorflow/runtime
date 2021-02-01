@@ -2,7 +2,6 @@ load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
 
 package(
-    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
     # copybara:uncomment_begin
     # default_visibility = ["@tf_runtime//:__subpackages__"],
     # copybara:uncomment_end_and_comment_begin

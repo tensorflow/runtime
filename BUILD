@@ -7,7 +7,6 @@ load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
-    # copybara:uncomment(no default_copts) default_copts = ["-Wc++14-compat"],
     default_visibility = [":__subpackages__"],
 )
 

@@ -62,7 +62,7 @@ class GpuOpHandler : public OpHandler {
 
   GpuDispatchContext MakeGpuDispatchContext();
 
-  RCReference<GpuDevice> GetDeviceRef() { return device_.CopyRef(); }
+  RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
 
  private:
   const GpuOpRegistry op_registry_;
@@ -91,9 +91,10 @@ struct GpuOpHandlerTraits {
   }
 
   // TODO(b/168609399): design a proper way to obtain device for result tensors.
-  static Expected<RCReference<Device>> GetResultDevice(
-      GpuOpHandler* gpu_op_handler, AsyncValueRef<Tensor> result_tensor_av_ref,
-      const ExecutionContext& exec_ctx) {
+  static Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
+  GetResultDevice(GpuOpHandler* gpu_op_handler,
+                  const AsyncValueRef<Tensor>& result_tensor_av,
+                  const ExecutionContext& exec_ctx) {
     return gpu_op_handler->GetDeviceRef();
   }
 };

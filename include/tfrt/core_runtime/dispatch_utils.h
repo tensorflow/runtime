@@ -72,9 +72,10 @@ namespace tfrt {
 //   // Obtain the device for where the result tensor locates at.  The device
 //   // can be either specified or inferred from result Tensors
 //   // (e.g. RuntimeFallbackTensor).
-//   static Expected<RCReference<Device>> GetResultDevice(
+//   static Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
+//   GetResultDevice(
 //       [const OpHandlerInfoTy& op_handler_info,]
-//       AsyncValueRef<Tensor> result_tensor_av,
+//       const AsyncValueRef<Tensor>& result_tensor_av,
 //       const ExecutionContext& exec_ctx);
 // };
 //
@@ -535,22 +536,35 @@ bool ExecuteOnOpHandlerImpl(
       std::move(op_handler_info));
 
   for (size_t i = 0, e = results.size(); i != e; ++i) {
-    auto result_device = OpHandlerTraits::GetResultDevice(
-        op_handler_info, result_tensor_avs[i].CopyRef(), invocation.exec_ctx);
-    if (!result_device) {
-      auto diag = result_tensor_avs[i].GetError();
-      RCReference<AsyncValue> error_av =
-          MakeErrorAsyncValueRef(invocation.exec_ctx.host(), std::move(diag));
-      results[i] = tfrt::TensorHandle::CreateError(std::move(error_av));
+    Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
+        result_device = OpHandlerTraits::GetResultDevice(
+            op_handler_info, result_tensor_avs[i], invocation.exec_ctx);
+    if (result_device.is<AsyncValueRef<RCReference<Device>>>() &&
+        result_device.get<AsyncValueRef<RCReference<Device>>>().IsError()) {
+      results[i] = tfrt::TensorHandle::CreateError(
+          result_device.get<AsyncValueRef<RCReference<Device>>>()
+              .ReleaseRCRef());
       continue;
     }
-    if (op_entry.metadata_fn) {
-      results[i] = TensorHandle(std::move(result_device.get()), result_mds[i],
-                                std::move(result_tensor_avs[i]));
-    } else {
-      results[i] = TensorHandle(std::move(result_device.get()),
-                                std::move(result_md_avs[i]),
-                                std::move(result_tensor_avs[i]));
+    if (op_entry.metadata_fn && result_device.is<RCReference<Device>>()) {
+      results[i] =
+          TensorHandle(std::move(result_device.get<RCReference<Device>>()),
+                       result_mds[i], std::move(result_tensor_avs[i]));
+    } else if (op_entry.metadata_fn &&
+               result_device.is<AsyncValueRef<RCReference<Device>>>()) {
+      results[i] = TensorHandle(
+          std::move(result_device.get<AsyncValueRef<RCReference<Device>>>()),
+          result_mds[i], std::move(result_tensor_avs[i]));
+    } else if (!op_entry.metadata_fn &&
+               result_device.is<RCReference<Device>>()) {
+      results[i] = TensorHandle(
+          std::move(result_device.get<RCReference<Device>>()),
+          std::move(result_md_avs[i]), std::move(result_tensor_avs[i]));
+    } else if (!op_entry.metadata_fn &&
+               result_device.is<AsyncValueRef<RCReference<Device>>>()) {
+      results[i] = TensorHandle(
+          std::move(result_device.get<AsyncValueRef<RCReference<Device>>>()),
+          std::move(result_md_avs[i]), std::move(result_tensor_avs[i]));
     }
   }
 

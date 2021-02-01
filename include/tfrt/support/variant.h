@@ -67,8 +67,9 @@ class Variant {
     new (&storage_) Type0();
   }
 
+  // Support implicit conversion from T to Variant.
   template <typename T, std::enable_if_t<!IsVariant<T>, int> = 0>
-  explicit Variant(T&& t) {
+  Variant(T&& t) {
     fillValue(std::forward<T>(t));
   }
 

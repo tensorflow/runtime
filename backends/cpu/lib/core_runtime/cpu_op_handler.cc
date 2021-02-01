@@ -188,9 +188,10 @@ struct CpuOpHandlerTraits {
     op_entry.dispatch_fn(exec_ctx, inputs, attrs, result_mds, results, chain);
   }
 
-  static Expected<RCReference<Device>> GetResultDevice(
-      CpuOpHandler* cpu_op_handler, AsyncValueRef<Tensor> result_tensor_av_ref,
-      const ExecutionContext& exec_ctx) {
+  static Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
+  GetResultDevice(CpuOpHandler* cpu_op_handler,
+                  const AsyncValueRef<Tensor>& result_tensor_av,
+                  const ExecutionContext& exec_ctx) {
     return cpu_op_handler->GetDeviceRef();
   }
 };

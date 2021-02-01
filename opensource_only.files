@@ -23,8 +23,6 @@ third_party/mlir/linalggen.bzl
 third_party/mlir/tblgen.bzl
 third_party/mlir/test.BUILD
 third_party/py-cpuinfo.BUILD
-third_party/remote_config/BUILD
-third_party/remote_config/common.bzl
 third_party/rules_cuda/WORKSPACE
 third_party/rules_cuda/cuda/BUILD
 third_party/rules_cuda/cuda/defs.bzl

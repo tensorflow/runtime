@@ -42,7 +42,9 @@ void TensorConversionFnRegistry::AddTensorConversionFn(ConversionKey key,
                                                        TensorConversionFn fn) {
   bool added = conversion_fn_map_.try_emplace(key, fn).second;
   (void)added;
-  assert(added && "Re-registered existing TensorConversionFn");
+  TFRT_DLOG_IF(FATAL, !added)
+      << "Re-registered existing TensorConversionFn for key "
+      << key.src_tensor_type << " -> " << key.dst_tensor_type;
 }
 
 TensorConversionFn TensorConversionFnRegistry::GetTensorConversionFn(

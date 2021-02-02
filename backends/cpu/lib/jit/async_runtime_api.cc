@@ -22,8 +22,6 @@
 
 #include "tfrt/cpu/jit/async_runtime_api.h"
 
-#ifdef MLIR_ASYNCRUNTIME_DEFINE_FUNCTIONS
-
 #include <iostream>
 
 #include "tfrt/cpu/jit/async_runtime.h"
@@ -232,5 +230,3 @@ void mlirAsyncRuntimePrintCurrentThreadId() {
 
 }  // namespace runtime
 }  // namespace mlir
-
-#endif  // MLIR_ASYNCRUNTIME_DEFINE_FUNCTIONS

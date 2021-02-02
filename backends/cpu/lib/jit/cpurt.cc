@@ -213,6 +213,9 @@ static mlir::LogicalResult LowerToLlvm(mlir::MLIRContext* context,
   fpm.addPass(mlir::createAsyncRefCountingOptimizationPass());
   fpm.addPass(mlir::createStdExpandOpsPass());
 
+  // Lower from hight level async operations to async runtime.
+  pm.addPass(mlir::createAsyncToAsyncRuntimePass());
+
   // Lower everything down to LLVM dialect.
   mlir::LowerToLLVMOptions lower_to_llvm_opts;
   pm.addPass(mlir::createConvertAsyncToLLVMPass());

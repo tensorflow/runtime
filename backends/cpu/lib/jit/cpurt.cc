@@ -59,7 +59,7 @@ namespace tfrt {
 namespace cpu {
 namespace jit {
 
-// Enable IR pringing during the kernel compilation pipeline execution.
+// Enable IR printing during the kernel compilation pipeline execution.
 static bool DebugCpurtCompile() {
 #if defined(DEBUG_CPURT)
   return true;
@@ -76,7 +76,7 @@ using CallFrame = CompilationResult::CallFrame;
 //----------------------------------------------------------------------------//
 
 // Converts Tensor to Memref argument for supported tensor types. Returns
-// error othwrwise.
+// error otherwise.
 static Expected<MemrefArg> ConvertTensorToMemrefArg(const Tensor& tensor) {
   if (auto* dht = dyn_cast<DenseHostTensor>(&tensor)) {
     MemrefArg memref;
@@ -213,7 +213,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::MLIRContext* context,
   fpm.addPass(mlir::createAsyncRefCountingOptimizationPass());
   fpm.addPass(mlir::createStdExpandOpsPass());
 
-  // Lower from hight level async operations to async runtime.
+  // Lower from high level async operations to async runtime.
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());
 
   // Lower everything down to LLVM dialect.

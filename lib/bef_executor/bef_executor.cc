@@ -442,8 +442,13 @@ void BEFExecutor::ProcessReadyKernel(
   bool is_nonstrict_kernel =
       static_cast<bool>(kernel.special_metadata() &
                         static_cast<uint32_t>(SpecialAttribute::kNonStrict));
+
+#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
+  const auto kernel_name = BefFile()->GetKernelName(kernel.kernel_code());
+#endif
+
   DEBUG_PRINT("Run %skernel %u %s\n", is_nonstrict_kernel ? "non-strict " : "",
-              kernel_id, BefFile()->GetKernelName(kernel.kernel_code()));
+              kernel_id, kernel_name);
 
   // Set up operands.
   int entry_offset = 0;
@@ -490,7 +495,7 @@ void BEFExecutor::ProcessReadyKernel(
     // kernel_fn should populate results in kernel_frame with pointers to
     // AsyncValue before it returns.
     {
-      TFRT_TRACE_SCOPE(Default, BefFile()->GetKernelName(kernel.kernel_code()));
+      TFRT_TRACE_SCOPE(Default, kernel_name);
       kernel_fn(kernel_frame);
     }
   } else {

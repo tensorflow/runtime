@@ -243,6 +243,10 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
   size_t num_kernels;
   if (reader.ReadInt(&num_kernels)) return format_error();
 
+#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
+  bef_file_->kernel_names_.reserve(num_kernels);
+#endif
+
   bef_file_->kernels_.reserve(num_kernels);
   while (num_kernels--) {
     // Each kernel is encoded as an offset into the string table of the
@@ -257,6 +261,10 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
     // If this is an unknown kernel, bail out.
     const char* kernel_name = reinterpret_cast<const char*>(
         &bef_file_->string_section_[kernel_name_offset]);
+
+#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
+    bef_file_->kernel_names_.push_back(kernel_name);
+#endif
 
     auto kernel = registry_.GetKernel(kernel_name);
     if (kernel.is<Monostate>()) {
@@ -588,33 +596,12 @@ DecodedLocation BEFFileImpl::DecodeLocation(size_t location_position_offset) {
   return result;
 }
 
-const char* BEFFileImpl::GetKernelName(size_t kernel_id) {
-  // If this is the first time we've been called, decode kernels_section_ and
-  // initialize kernel_names_.
-  if (kernel_names_.empty()) {
-    BEFReader reader(kernels_section_);
-
-    size_t num_kernels;
-    if (reader.ReadInt(&num_kernels)) return "(failed to decode num_kernels)";
-
-    kernel_names_.reserve(num_kernels);
-    while (num_kernels--) {
-      size_t kernel_name_offset;
-
-      const char* kernel_name = "(failed to read kernel_name)";
-      if (!reader.ReadInt(&kernel_name_offset) &&
-          kernel_name_offset < string_section_.size())
-        kernel_name =
-            reinterpret_cast<const char*>(&string_section_[kernel_name_offset]);
-
-      kernel_names_.push_back(kernel_name);
-    }
-  }
-
-  if (kernel_id >= kernel_names_.size()) return "(invalid kernel_id)";
-
-  return kernel_names_[kernel_id];
+#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
+const char* BEFFileImpl::GetKernelName(size_t kernel_id) const {
+  return (kernel_id >= kernel_names_.size()) ? "(invalid kernel_id)"
+                                             : kernel_names_[kernel_id];
 }
+#endif
 
 // Read a list of function names out of the BEF file function index.
 void BEFFile::GetFunctionList(SmallVectorImpl<const Function*>* results) const {

@@ -303,9 +303,10 @@ class BEFFileImpl : public BEFFile {
   // a DecodedDiagnostic.
   DecodedLocation DecodeLocation(size_t location_position_offset);
 
-  // Only used for debugging. Populates kernel_names_ on first call, which is
-  // slow.
-  const char* GetKernelName(size_t kernel_id);
+#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
+  // Only used for debugging and tracing.
+  const char* GetKernelName(size_t kernel_id) const;
+#endif
 
   AsyncKernelImplementation GetAsyncKernel(uint32_t kernel_code) const {
     KernelImplementation kernel_impl = kernels_[kernel_code];
@@ -336,9 +337,10 @@ class BEFFileImpl : public BEFFile {
   llvm::StringMap<size_t> function_symbol_table_;
   SmallVector<std::unique_ptr<Function>, 8> functions_;
 
-  // Maps from kernel_id to the name of the kernel. Only nonempty when
-  // debugging.
+#if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
+  // Maps from kernel_id to the name of the kernel.
   std::vector<const char*> kernel_names_;
+#endif
 };
 
 }  // namespace tfrt

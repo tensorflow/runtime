@@ -207,7 +207,8 @@ AsyncValueRef<R> ParallelFor::Execute(
       // their asynchronous results are completed. When all block results are
       // ready, call `on_done` function to compute a value for `result`.
       [ctx = std::move(ctx)]() mutable -> void {
-        RunWhenReady(ctx->BlockResults(), [ctx = std::move(ctx)]() {
+        llvm::SmallVector<AsyncValue*, 32> block_results = ctx->BlockResults();
+        RunWhenReady(block_results, [ctx = std::move(ctx)]() {
           R result = ctx->on_done(ctx->block_results);
           ctx->result.emplace(std::move(result));
         });

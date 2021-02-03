@@ -326,6 +326,7 @@ tfrt_cc_test(
     srcs = [
         "support/thread_local_test.cc",
     ],
+    tags = ["no_oss"],  # TODO(b/178142173)
     deps = [
         "@com_google_googletest//:gtest_main",
         "@tf_runtime//:support",

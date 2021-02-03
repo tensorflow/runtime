@@ -71,6 +71,7 @@ tfrt_cc_test(
         "event_manager_test.cc",
     ],
     tags = [
+        "no_oss",
         "noasan",
         "nomsan",
         "requires-gpu-nvidia",

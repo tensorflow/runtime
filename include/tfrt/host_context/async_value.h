@@ -91,6 +91,9 @@ class AsyncValue {
   // Currently an IndirectAsyncValue is available if and only if it is resolved.
   bool IsUnresolvedIndirect() const;
 
+  // Return reference count. This should be used for testing and debugging only.
+  uint32_t NumRef() const { return refcount_.load(std::memory_order_acquire); }
+
   // Return true if reference count is 1.
   bool IsUnique() const {
     return refcount_.load(std::memory_order_acquire) == 1;

@@ -81,6 +81,9 @@ class ReferenceCounted {
     if (ref_count_.fetch_sub(1) == 1) static_cast<SubClass*>(this)->Destroy();
   }
 
+  // Return reference count. This should be used for testing and debugging only.
+  uint32_t NumRef() const { return ref_count_.load(); }
+
   // Return true if reference count is 1.
   bool IsUnique() const { return ref_count_.load() == 1; }
 

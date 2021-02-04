@@ -1005,7 +1005,6 @@ class BEFModuleEmitter : public BEFFileEmitter {
   void EmitTypes();
   void EmitFunctions(BEFFileEmitter* attribute_names,
                      BEFFileEmitter* register_types);
-  void EmitFunctionIndex();
   void EmitAttributeTypes(const BEFFileEmitter& attribute_types);
   void EmitAttributeNames(const BEFFileEmitter& attribute_names);
   void EmitRegisterTypes(const BEFFileEmitter& register_types);
@@ -1950,12 +1949,14 @@ void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
     }
   }
 
-  EmitSection(BEFSectionID::kFunctions, functions_section);
-}
-
-void BEFModuleEmitter::EmitFunctionIndex() {
+  // TODO(hyojun): Reduce the increased peak memory usage for keeping
+  // function_index_section and functions_section to write the FunctionIndex
+  // section before the Functions section.
+  // We could improve it by changing the format of FunctionIndex section to
+  // use FIXED32 (or FIXED64) instead of VBR integer for function offsets.
+  // Or, we could introduce FunctionOffsetTable section, which could be placed
+  // after Functions section.
   auto function_index = entity_index_.GetFunctionIndex();
-
   BEFFileEmitter function_index_section;
 
   // Count of the number of functions that exist.
@@ -1978,6 +1979,7 @@ void BEFModuleEmitter::EmitFunctionIndex() {
   }
 
   EmitSection(BEFSectionID::kFunctionIndex, function_index_section);
+  EmitSection(BEFSectionID::kFunctions, functions_section);
 }
 
 void BEFModuleEmitter::EmitAttributeTypes(
@@ -2024,7 +2026,6 @@ AlignedBuffer<8> ConvertMLIRToBEF(mlir::ModuleOp module,
   emitter.EmitKernels();
   emitter.EmitTypes();
   emitter.EmitFunctions(&attribute_names, &register_types);
-  emitter.EmitFunctionIndex();
 
   if (!disable_optional_sections) {
     emitter.EmitAttributeTypes(attribute_types);

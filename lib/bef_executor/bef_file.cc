@@ -134,15 +134,15 @@ bool BEFFileReader::ReadNextSection() {
       SkipPast(section_data);
       break;
 
+    case BEFSectionID::kFunctionIndex:
+      bef_file_->function_index_section_ = section_data;
+      SkipPast(section_data);
+      break;
+
     // We just remember the locations of the Functions section - it is directly
     // indexed with a byte offset from the FunctionIndex section.
     case BEFSectionID::kFunctions:
       bef_file_->function_section_ = section_data;
-      SkipPast(section_data);
-      break;
-
-    case BEFSectionID::kFunctionIndex:
-      bef_file_->function_index_section_ = section_data;
       SkipPast(section_data);
       break;
   }

@@ -81,12 +81,12 @@ enum class BEFSectionID : uint8_t {
   // types present, followed by a list of indices into the string table.
   kTypes = 6,
 
-  // The functions section contains the bodies of executable code fragments.
-  kFunctions = 7,
-
   // The function index section provides a symbol table and metadata about the
   // functions in this BEFFile.
-  kFunctionIndex = 8,
+  kFunctionIndex = 7,
+
+  // The functions section contains the bodies of executable code fragments.
+  kFunctions = 8,
 
   // The attribute types section provides type information for each attribute in
   // attributes section. It is an optional section and will be ignored by

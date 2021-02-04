@@ -289,6 +289,33 @@ laid out exactly the same as the [Kernels section](#kernels-section). The
 [Functions section](#functions-section) uses Indexes into this section to
 specify types of registers.
 
+### FunctionIndex Section
+
+#### Grammar
+
+```none
+  FUNCTION_INDEX_SECTION ::= INTEGER<"NumFunctions"> FUNCTION_ENTRY*
+  FUNCTION_ENTRY         ::= BYTE<"FunctionKind"> OFFSET<"Function"> \
+                             OFFSET<"Name"> INTEGER<"NumArguments"> \
+                             INDEX<"Type">* INTEGER<"NumResults"> INDEX<"Type">*
+```
+
+The FunctionIndex section defines a table of functions in the BEF file, one for
+each function, including the kind of this function (defined in
+[`bef_encoding.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/support/bef_encoding.h)),
+an Offset into the [Functions Section](#functions-section), a name (an Offset
+into the [Strings section](#strings-section), which may be an empty string), and
+a list of argument and result types.
+
+#### Rationale
+
+This defines a symbol table for the BEF file, allowing clients to look up
+functions by name. While we could intersperse this information into the
+[Functions section](#functions-section) itself, doing so would require the
+reader to make a pass over all of the functions ahead of time. We'd prefer to
+have a quick index that the reader can scan at load time, deferring processing
+of any individual function until it is needed.
+
 ### Functions Section
 
 #### Grammar
@@ -410,33 +437,6 @@ that get passed to a kernel implementation function. When the kernel completes,
 the UsedBy records allow us to efficiently trigger execution of data dependent
 kernels if they are ready, by decrementing the "NumOperands" field for the
 kernel.
-
-### FunctionIndex Section
-
-#### Grammar
-
-```none
-  FUNCTION_INDEX_SECTION ::= INTEGER<"NumFunctions"> FUNCTION_ENTRY*
-  FUNCTION_ENTRY         ::= BYTE<"FunctionKind"> OFFSET<"Function"> \
-                             OFFSET<"Name"> INTEGER<"NumArguments"> \
-                             INDEX<"Type">* INTEGER<"NumResults"> INDEX<"Type">*
-```
-
-The FunctionIndex section defines a table of functions in the BEF file, one for
-each function, including the kind of this function (defined in
-[`bef_encoding.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/support/bef_encoding.h)),
-an Offset into the [Functions Section](#functions-section), a name (an Offset
-into the [Strings section](#strings-section), which may be an empty string), and
-a list of argument and result types.
-
-#### Rationale
-
-This defines a symbol table for the BEF file, allowing clients to look up
-functions by name. While we could intersperse this information into the
-[Functions section](#functions-section) itself, doing so would require the
-reader to make a pass over all of the functions ahead of time. We'd prefer to
-have a quick index that the reader can scan at load time, deferring processing
-of any individual function until it is needed.
 
 ### AttributeTypes Section
 

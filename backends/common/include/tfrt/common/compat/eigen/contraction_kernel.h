@@ -21,12 +21,12 @@
 // multiply together blocks of the original tensors).
 //
 // 1) Default.
-//    Use MKL-DNN single threaded sgemm for float, and Eigen for everything
-//    else. The MKL-DNN kernels are generated at runtime and use
+//    Use DNNL single threaded sgemm for float, and Eigen for everything
+//    else. The DNNL kernels are generated at runtime and use
 //    avx/avx2/fma/avx512 based on cpu status registers
 //    (https://en.wikipedia.org/wiki/CPUID).
 //
-// 2) No MKL-DNN: --define disable_eigen_mkldnn_contraction_kernel=true.
+// 2) No DNNL: --define disable_eigen_mkldnn_contraction_kernel=true.
 //    This header will not define any custom contraction kernels, and Eigen will
 //    use the default Eigen::internal::gebp_kernel.
 //
@@ -43,7 +43,7 @@
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
 
 #if defined(TFRT_EIGEN_USE_MKLDNN_CONTRACTION_KERNEL)
-#include "mkldnn.h"  // from @mkl_dnn
+#include "dnnl.h"  // from @dnnl
 #endif
 
 #include "tfrt/support/msan.h"
@@ -126,7 +126,7 @@ struct gemm_pack_colmajor_block<Scalar, IndexType, DataMapper,
 
 #endif  // TFRT_EIGEN_USE_CUSTOM_CONTRACTION_KERNEL
 
-// Use MKL-DNN sgemm as an Eigen contraction kernel.
+// Use DNNL sgemm as an Eigen contraction kernel.
 //
 // To disable it build with:
 //   "--define disable_eigen_mkldnn_contraction_kernel=true"
@@ -134,15 +134,15 @@ struct gemm_pack_colmajor_block<Scalar, IndexType, DataMapper,
 
 template <typename Scalar, typename IndexType, typename OutputMapper,
           bool ConjugateLhs = false, bool ConjugateRhs = false>
-struct mkldnn_gemm_kernel;
+struct dnnl_gemm_kernel;
 
-// mkldnn_gemm_kernel for floats defined as a thin layer on top of mkldnn_sgemm.
+// dnnl_gemm_kernel for floats defined as a thin layer on top of dnnl_sgemm.
 template <typename IndexType, typename OutputMapper, bool ConjugateLhs,
           bool ConjugateRhs>
-struct mkldnn_gemm_kernel</*Scalar=*/float, IndexType, OutputMapper,
-                          ConjugateLhs, ConjugateRhs> {
-  static_assert(!ConjugateLhs, "MKL-DNN kernel doesn't support ConjugateLhs");
-  static_assert(!ConjugateRhs, "MKL-DNN kernel doesn't support ConjugateRhs");
+struct dnnl_gemm_kernel</*Scalar=*/float, IndexType, OutputMapper, ConjugateLhs,
+                        ConjugateRhs> {
+  static_assert(!ConjugateLhs, "DNNL kernel doesn't support ConjugateLhs");
+  static_assert(!ConjugateRhs, "DNNL kernel doesn't support ConjugateRhs");
 
   static constexpr int kComputeStrideFromBlockDimensions = -1;
 
@@ -172,9 +172,15 @@ struct mkldnn_gemm_kernel</*Scalar=*/float, IndexType, OutputMapper,
     ldB = ldB == kComputeStrideFromBlockDimensions ? k : ldB;
     const int ldC = static_cast<int>(output.stride());
 
-    mkldnn_status_t st = mkldnn_sgemm(
-        &transposeA, &transposeB, &m, &n, &k, &alpha, blockA, &ldA, blockB,
-        &ldB, &beta, const_cast<ResScalar*>(output.data()), &ldC);
+    // DNNL takes row-major matrices. Our packed column-major matrices can be
+    // viewed as a transposed row-major matrix, i.e., C_colmajor = C_rowmajor^T.
+    // C_colmajor = C_rowmajor^T = (A_rowmajor * B_rowmajor)^T
+    //                           = B_rowmajor^T * A_rowmajor^T
+    //                           = B_colmajor * A_colmajor
+    // So we can just swap the input matrices A and B for DNNL.
+    dnnl_status_t st =
+        dnnl_sgemm(transposeB, transposeA, n, m, k, alpha, blockB, ldB, blockA,
+                   ldA, beta, const_cast<ResScalar*>(output.data()), ldC);
     assert(st == 0);
 
 #if defined(MEMORY_SANITIZER)
@@ -191,15 +197,15 @@ struct mkldnn_gemm_kernel</*Scalar=*/float, IndexType, OutputMapper,
   }
 };
 
-// For mkldnn_sgemm having the right dimensions (especially for small matrices)
+// For dnnl_sgemm having the right dimensions (especially for small matrices)
 // is more important than fitting all the working set in L1/L2 caches.
 // TODO(ezhulenev): Develop better heuristics.
 template <typename IndexType, int sharding_type>
 class TensorContractionBlocking<float, float, float, IndexType, sharding_type> {
-  // For now MKL-DNN has only mkldnn_sgemm (gemm for floats).
+  // For now DNNL has only dnnl_sgemm (gemm for floats).
   using Scalar = float;
 
-  // Adjust the block sizes to work well with MKL-DNN kernels.
+  // Adjust the block sizes to work well with DNNL kernels.
 
   // Multiply default choice of block size along M and N dimensions.
   // TODO(ezhulenev): Explore if this can work in general (kScaleM=2.0 worked
@@ -207,10 +213,10 @@ class TensorContractionBlocking<float, float, float, IndexType, sharding_type> {
   static constexpr float kScaleM = 1.5;
   static constexpr float kScaleN = 1.0;
 
-  // MKL-DNN Avx/Avx2/Avx512 unroll factors are: 8/16/48.
+  // DNNL Avx/Avx2/Avx512 unroll factors are: 8/16/48.
   static constexpr IndexType kUnrollM = 48;
 
-  // MKL-DNN Avx/Avx2/Avx512 unroll factors are: 6/6/8.
+  // DNNL Avx/Avx2/Avx512 unroll factors are: 6/6/8.
   static constexpr IndexType kUnrollN = 24;
 
  public:
@@ -230,7 +236,7 @@ class TensorContractionBlocking<float, float, float, IndexType, sharding_type> {
     if (kc_ <= 0 || mc_ <= 0 || nc_ <= 0) return;
 
     // If we are using default Eigen gebp kernel, there is no need to adjust the
-    // block sizes for MKL-DNN.
+    // block sizes for DNNL.
     if (!UseCustomContractionKernelsTFRT()) return;
 
     // 2. And refine them to work well with mkldnn sgemm.
@@ -406,7 +412,7 @@ struct GemmKernelProvider {
 template <typename IndexType, typename OutputMapper>
 struct GemmKernelProvider<float, float, float, IndexType, OutputMapper> {
   enum { Defined = 1 };
-  using GemmKernel = mkldnn_gemm_kernel<float, IndexType, OutputMapper>;
+  using GemmKernel = dnnl_gemm_kernel<float, IndexType, OutputMapper>;
 };
 
 // Tensor contraction kernel that can fallback on Eigen gebp_kernel at runtime.

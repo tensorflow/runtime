@@ -76,14 +76,14 @@ def tfrt_dependencies():
     )
 
     maybe(
-        name = "mkl_dnn",
+        name = "dnnl",
         repo_rule = http_archive,
-        build_file = "@tf_runtime//third_party/mkl_dnn:BUILD.mkl_dnn",
-        sha256 = "ed56652dd237deb86ee9bf102c18de5f2625c059e5ab1d7512c8dc01e316b694",
-        strip_prefix = "mkl-dnn-0.21.2",
+        build_file = "@tf_runtime//third_party/dnnl:BUILD",
+        sha256 = "5369f7b2f0b52b40890da50c0632c3a5d1082d98325d0f2bff125d19d0dcaa1d",
+        strip_prefix = "oneDNN-1.6.4",
         urls = [
-            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/intel/mkl-dnn/archive/v0.21.2.tar.gz",
-            "https://github.com/intel/mkl-dnn/archive/v0.21.2.tar.gz",
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/oneapi-src/oneDNN/archive/v1.6.4.tar.gz",
+            "https://github.com/oneapi-src/oneDNN/archive/v1.6.4.tar.gz",
         ],
     )
 

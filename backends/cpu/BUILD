@@ -264,7 +264,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/kernels/tf/static_registration.cc",
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        "@mkl_dnn//:mkldnn_single_threaded",
+        "@dnnl//:dnnl_single_threaded",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

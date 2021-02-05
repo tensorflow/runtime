@@ -27,7 +27,7 @@
 // iOS, ARM and PPC CPUs, etc...), and to be able to fallback on default Eigen
 // contraction kernel at runtime.
 //
-// MKL-DNN contraction kernel might generate different results depending on the
+// DNNL contraction kernel might generate different results depending on the
 // available CPU instructions (avx2, avx512, etc...) and this might be
 // undesirable for tests based on golden data. Whether or not having such tests
 // is a good idea is a separate topic.

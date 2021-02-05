@@ -172,7 +172,7 @@ tfrt_cc_library(
         ":disable_eigen_mkldnn_contraction_kernel": [],
         "//conditions:default": [
             # Custom contraction kernel dependencies.
-            "@mkl_dnn//:mkldnn_single_threaded",
+            "@dnnl//:dnnl_single_threaded",
         ],
     }),
 )

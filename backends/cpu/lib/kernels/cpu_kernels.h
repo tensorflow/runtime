@@ -25,7 +25,7 @@
 
 #include <type_traits>
 
-#include "mkldnn.h"  // from @mkl_dnn
+#include "dnnl.h"  // from @dnnl
 #include "tfrt/common/compat/eigen/eigen_kernel.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
@@ -83,10 +83,8 @@ inline void MatMul2DKernel<float>(float alpha, DHTIndexableView<float, 2> A,
                                   DHTIndexableView<float, 2> B, float beta,
                                   MutableDHTIndexableView<float, 2>& C,
                                   bool transpose_a, bool transpose_b) {
-  // MKL-DNN sgemm computes C = alpha * A @ B + beta * C, assuming all matrices
-  // are column-major. MLIR tensors are row-major. We compute,
-  //   C_rowmajor = C_colmajor^T = B_colmajor^T * A_colmajor^T,
-  // feeding in B_rowmajor for B_colmajor^T and A_rowmajor for A_colmajor^T.
+  // DNNL sgemm computes C = alpha * A @ B + beta * C, assuming all matrices
+  // are row-major.
   // TODO(penporn): Support column-major when MLIR has column-major.
 
   // trans_a = 'N' or 'n',  op( A ) = A.
@@ -132,12 +130,9 @@ inline void MatMul2DKernel<float>(float alpha, DHTIndexableView<float, 2> A,
   int ldb = transpose_b ? k : n;
   int ldc = n;
 
-  // MKL DNN only supports the Fortran api and requires column major while we
-  // use row major so we reverse the order A and B.
-  mkldnn_status_t status =
-      mkldnn_sgemm(&trans_b, &trans_a, &n, &m, &k, &alpha, B.data(), &ldb,
-                   A.data(), &lda, &beta, C.data(), &ldc);
-  assert(status == mkldnn_status_t::mkldnn_success);
+  dnnl_status_t status = dnnl_sgemm(trans_a, trans_b, m, n, k, alpha, A.data(),
+                                    lda, B.data(), ldb, beta, C.data(), ldc);
+  assert(status == dnnl_status_t::dnnl_success);
 
   // assert is a no-op in optimized mode so we add this to avoid compiler's
   // unused-variable error.

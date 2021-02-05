@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     // failed (in most cases, it is expected to fail). Instead, we check if the
     // diagnostics were produced as expected.
     SourceMgrDiagnosticVerifierHandler sourceMgrHandler(sourceMgr, &context);
-    (*translationRequested)(sourceMgr, os, &context);
+    (void)(*translationRequested)(sourceMgr, os, &context);
     return sourceMgrHandler.verify();
   };
 

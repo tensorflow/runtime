@@ -22,6 +22,7 @@
 
 #include <sys/types.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 
@@ -29,6 +30,7 @@
 #include "tfrt/core_runtime/tensor_handle.h"
 #include "tfrt/cpu/jit/cpurt.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
@@ -52,74 +54,128 @@ namespace cpu {
 namespace jit {
 
 // -------------------------------------------------------------------------- //
+// Compile compilation unit attribute to an executable result.
+// -------------------------------------------------------------------------- //
+
+static AsyncValueRef<CompilationResult> Compile(
+    CompilationUnitAttribute kernel, const ExecutionContext& exec_ctx) {
+  HostContext* host = exec_ctx.host();
+
+  // We only support functions nested in top level compiled module.
+  if (kernel.nested_symbols().size() != 1)
+    return EmitErrorAsync(
+        exec_ctx, "compiled kernel must be referenced by one nested symbol");
+
+  ResourceContext* res_ctx = exec_ctx.resource_context();
+  auto* compilation_cache =
+      res_ctx->GetOrCreateResource<CompilationResultCache>("cpurt.cache", host);
+
+  // TODO(ezhulenev): Compute cache key based on the content of MLIR module.
+  intptr_t key = exec_ctx.location().data;
+
+  // Return compiled kernel from the cache.
+  if (auto compiled = compilation_cache->Find(key)) return compiled;
+
+  CompilationOptions opts;
+  // Create an async task for each worker thread.
+  opts.num_worker_threads = host->GetNumWorkerThreads();
+  opts.execution_mode = ExecutionMode::kCoreRt;
+
+  string_view entrypoint = kernel.nested_symbols()[0];
+  string_view module = kernel.serialized_operation();
+  Expected<CompilationResult> compiled =
+      CompileKernelMlirModule(module, entrypoint, opts);
+
+  // Failed to compile kernel source.
+  if (auto err = compiled.takeError())
+    return EmitErrorAsync(exec_ctx, std::move(err));
+
+  // Update the compilation cache and return the result.
+  return compilation_cache->Insert(key, std::move(*compiled));
+}
+
+// -------------------------------------------------------------------------- //
 // Execute compiled CPURT kernels with CoreRT interop.
 // -------------------------------------------------------------------------- //
 
 static void CoreRtExecute(Argument<CompilationResult> compilation_result,
-                          RemainingArguments args, RemainingResults results,
-                          DenseAttr operand_sizes,
+                          RepeatedArguments<TensorHandle> operands,
+                          RemainingResults results,
                           const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  // Extract tensor handle and tensor shape operands.
-  DenseView operand_sizes_view = CreateDenseView(operand_sizes);
-  ArrayRef<int32_t> operand_sizes_flat = operand_sizes_view.GetFlat<int32_t>();
+  // Forward all results to an error async value built from the `err`.
+  auto allocate_errors = [&](Error err) -> void {
+    auto async_error = EmitErrorAsync(exec_ctx, std::move(err));
+    for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
+  };
 
-  assert(operand_sizes_flat.size() == 3);
-  int32_t num_tensor_handle_args = operand_sizes_flat[1];
-  int32_t num_shape_args = operand_sizes_flat[2];
+  // Verify that compilation result signature is compatible with CoreRT.
+  if (auto err = CompilationResult::VerifyEntrypointSignature(
+          compilation_result->signature(), ExecutionMode::kCoreRt))
+    return allocate_errors(std::move(err));
 
-  // Split arguments into handles and shapes.
-  RepeatedArguments<TensorHandle> tensor_handles(
-      args.values().take_front(num_tensor_handle_args));
-  RepeatedArguments<TensorShape> tensor_shapes(
-      args.values().drop_front(num_tensor_handle_args));
-  assert(results.size() == tensor_shapes.size());
+  // Extract tensors from tensor handle operands to pass them as the compiled
+  // kernel arguments.
+  SmallVector<AsyncValue*, 4> tensor_operands(operands.size());
+  for (int i = 0; i < operands.size(); ++i)
+    tensor_operands[i] = operands[i].GetAsyncTensor();
 
-  // Allocate TensorHandles for all results based on the shape arguments.
-  for (int i = 0; i < tensor_shapes.size(); ++i) {
-    TensorShape& shape = tensor_shapes[i];
+  // Allocate storage for compiled kernel results.
+  SmallVector<RCReference<AsyncValue>, 4> kernel_ret;
+  int num_results = compilation_result->signature().getNumResults();
+  kernel_ret.reserve(num_results);
+  for (int i = 0; i < num_results; ++i) kernel_ret.emplace_back();
 
-    // TODO(ezhulenev): Infer result dtype from the compiled kernel signature,
-    // for now always assume F32 data type.
-    TensorMetadata metadata(DType(DType::F32), shape);
+  // Execute compiled kernel and get back raw return values that we'll need to
+  // wrap into TensorHandles later on.
+  auto err =
+      compilation_result->Execute(RepeatedArguments<Tensor>(tensor_operands),
+                                  RemainingResults(host, kernel_ret), exec_ctx);
 
-    auto dht = DenseHostTensor::MakeConstructedAsyncValueRef(metadata, host);
-    results.AllocateAt<TensorHandle>(i)->emplace<TensorHandle>(
-        host->GetHostDeviceRef(), metadata, std::move(dht));
-  }
+  // If execution failed allocate errors at each result slot.
+  if (err) return allocate_errors(std::move(err));
 
-  // Convert all tensor handle arguments and results to tensors (buffers) that
-  // will be passed to the compiled kernel.
-  SmallVector<AsyncValue*, 4> tensor_operands;
+  // Compiled kernel should populate all expected results.
+  assert(llvm::all_of(kernel_ret, [](RCReference<AsyncValue>& ref) -> bool {
+    return ref.get() != nullptr;
+  }));
 
-  // Process all TensorHandle arguments.
-  for (int i = 0; i < num_tensor_handle_args; ++i) {
-    TensorHandle& hdl = args[i]->get<TensorHandle>();
-    tensor_operands.push_back(hdl.GetAsyncTensor());
-  }
+  // If we have unavailable kernel results we'll need to extend operands
+  // lifetime.
+  bool unavailable_kernel_ret = false;
 
-  // Process all TensorHandle results.
-  for (int i = 0; i < num_shape_args; ++i) {
-    TensorHandle& hdl = results[i]->get<TensorHandle>();
-    tensor_operands.push_back(hdl.GetAsyncTensor());
-  }
+  // Convert Tensors returned from compiled kernel to TensorHandles.
+  for (size_t i = 0; i < results.size(); ++i) {
+    const RCReference<AsyncValue>& handle = results.AllocateAt<TensorHandle>(i);
+    AsyncValue* ret = kernel_ret[i].get();
 
-  // Call compiled kernel with tensor operands.
-  auto chain = compilation_result->Execute(
-      RepeatedArguments<Tensor>(tensor_operands), exec_ctx);
-
-  // Keep args and results alive until the execution is completed.
-  chain.AndThen([args = RCArray<AsyncValue>(args.values()),
-                 results = RCArray<AsyncValue>(results.values())]() {
-    for (int i = 0; i < results.size(); ++i) {
-      AsyncValue* result = results[i]->get<TensorHandle>().GetAsyncTensor();
-      result->SetStateConcrete();
+    // Fast path when Tensor (and tensor metadata) is available synchronously.
+    if (ret->IsAvailable()) {
+      Tensor& tensor = ret->get<Tensor>();
+      results.AllocateAt<TensorHandle>(i)->emplace<TensorHandle>(
+          host->GetHostDeviceRef(), tensor.metadata(),
+          AsyncValueRef<Tensor>(kernel_ret[i].CopyRef()));
+      continue;
     }
-  });
+
+    // Slow path when result Tensor is not available synchronously.
+    unavailable_kernel_ret = true;
+    ret->AndThen([host, hdl = handle.CopyRef(),
+                  ref = kernel_ret[i].CopyRef()]() mutable {
+      Tensor& tensor = ref->get<Tensor>();
+      hdl->emplace<TensorHandle>(host->GetHostDeviceRef(), tensor.metadata(),
+                                 AsyncValueRef<Tensor>(std::move(ref)));
+    });
+  }
+
+  // Keep operands alive if we have unavailable results.
+  if (unavailable_kernel_ret)
+    RunWhenReady(kernel_ret, [o = RCArray<AsyncValue>(operands.values())] {});
 }
 
 void RegisterCpuRuntimeCoreRtKernels(KernelRegistry* registry) {
+  registry->AddKernel("cpurt.corert.compile", TFRT_KERNEL(Compile));
   registry->AddKernel("cpurt.corert.execute", TFRT_KERNEL(CoreRtExecute));
 }
 

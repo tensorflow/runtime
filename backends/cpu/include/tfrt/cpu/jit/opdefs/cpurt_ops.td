@@ -60,6 +60,18 @@ def CompileOp : CPURT_Op<"compile"> {
     cpurt.compile compiles a mlir CPU program to the executable binary format
     using LLVM JIT APIs and returns a cached compilationresult.
 
+    Compiled kernels support limited function signatures:
+
+    1. Arguments must be ranked memrefs, and execute kernel converts dense
+       tensors to memrefs when calls compiled kernels.
+
+    2. Return values must be !async.token or !async.value of ranked memrefs.
+       Async tokens converted to !tfrt.chain values, and async memrefs converted
+       to dense host tensors.
+
+       CoreRT execute operation also converts returned tensors into the CoreRT
+       tensor handles.
+
     Example:
 
     ```mlir
@@ -76,6 +88,8 @@ def CompileOp : CPURT_Op<"compile"> {
   let results = (outs CompilationResultType);
   let assemblyFormat = "attr-dict";
 }
+
+
 
 def ExecuteOp : CPURT_Op<"execute"> {
   let summary = "cpurt execute operation";
@@ -96,7 +110,7 @@ def ExecuteOp : CPURT_Op<"execute"> {
       // Wait for the completion of previous operation and execute compiled
       // kernel.
       %executed = cpurt.execute %compilation_result[%buffers_ready]
-                  (%tensor0, %tensor1 : !t.tensor, !t.tensor)
+                  (%tensor0, %tensor1) : (!t.tensor, !t.tensor) -> !tfrt.chain
     ```
   }];
 
@@ -107,17 +121,35 @@ def ExecuteOp : CPURT_Op<"execute"> {
   );
 
   let results = (outs
-    TFRT_ChainType:$out_chain
+    Variadic<AnyType>:$results
   );
 
   let assemblyFormat = [{
     $compilation_result `[` $in_chain `]`
-    `(` $operands `:` type($operands) `)`
-    attr-dict
+    `(` $operands `)` attr-dict `:`
+    functional-type($operands, $results)
   }];
 }
 
-def CoreRtExecuteOp : CPURT_Op<"corert.execute", [AttrSizedOperandSegments]> {
+//===----------------------------------------------------------------------===//
+// TFRT CPU Runtime op definitions for CoreRT interop.
+//===----------------------------------------------------------------------===//
+
+def CoreRtCompileOp : CPURT_Op<"corert.compile"> {
+  let summary = "cpurt compile operation with CoreRT interop";
+  let description = [{
+    cpurt.corert.compile is almost identical to the cpurt.compile op, it only
+    does additional compiled kernel verification to ensure that returned types
+    could be converted to TensorHandles (return values must be async values of
+    ranked memref type, async tokens are not supported).
+  }];
+
+  let arguments = (ins SymbolRefAttr:$kernel);
+  let results = (outs CompilationResultType);
+  let assemblyFormat = "attr-dict";
+}
+
+def CoreRtExecuteOp : CPURT_Op<"corert.execute"> {
   let summary = "cpurt execute operation with CoreRT interop";
   let description = [{
     cpurt.corert.execute executes compiled binary produced by the cpurt.compiled
@@ -151,8 +183,7 @@ def CoreRtExecuteOp : CPURT_Op<"corert.execute", [AttrSizedOperandSegments]> {
 
   let arguments = (ins
     CompilationResultType:$compilation_result,
-    Variadic<CoreRT_TensorHandleType>:$operands,
-    Variadic<TS_Shape>:$shapes
+    Variadic<CoreRT_TensorHandleType>:$operands
   );
 
   let results = (outs
@@ -161,9 +192,8 @@ def CoreRtExecuteOp : CPURT_Op<"corert.execute", [AttrSizedOperandSegments]> {
 
   let assemblyFormat = [{
     $compilation_result
-    `(` $operands `:` type($operands) `)`
-    `(` $shapes   `:` type($shapes)   `)`
-    attr-dict `->` type($results)
+    `(` $operands `)` attr-dict `:`
+    functional-type($operands, $results)
   }];
 }
 

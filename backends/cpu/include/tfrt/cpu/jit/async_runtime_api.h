@@ -43,7 +43,14 @@ void SetAsyncRuntimeContext(AsyncRuntime* runtime);
 
 // Converts MLIR Async Runtime token into the TFRT async chain, and drops the
 // reference count on the token.
-AsyncValueRef<Chain> ConverAsyncTokenToChain(AsyncRuntime::Token* token);
+AsyncValueRef<Chain> ConvertAsyncTokenToChain(AsyncRuntime::Token* token);
+
+// Extracts a payload from the MLIR Async Runtime `value` and emplaces it into
+// the TFRT async value `dst` using a user provided emplace function. Drops the
+// reference on the runtime value after it is no longer needed.
+void ExtractAsyncValue(
+    AsyncRuntime::Value* value, AsyncValue* dst,
+    llvm::function_ref<void(void* storage, AsyncValue* dst)> emplace_fn);
 
 // Builds a symbol map from the Async Runtime API functions/
 llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(

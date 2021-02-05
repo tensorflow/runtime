@@ -26,6 +26,8 @@
 #define TFRT_BACKENDS_CPU_JIT_CPURT_H_
 
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
+#include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/MLIRContext.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -40,10 +42,17 @@ namespace jit {
 // Forward declare the result of compiling MLIR module to the executable.
 class CompilationResult;
 
+// Depending on the compilation mode compiled kernel supports different subsets
+// of returend types, e.g. for CoreRT compiled kernel can only return memrefs,
+// because only memrefs can be converted to TensorHandles.
+enum class ExecutionMode { kNative, kCoreRt };
+
 struct CompilationOptions {
   // The number of worker threads (host context concurrent work queue size) that
   // can be used for parallelizing compute intensive parts of the kernel.
   int num_worker_threads;
+
+  ExecutionMode execution_mode;
 
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
@@ -59,18 +68,39 @@ Expected<CompilationResult> CompileKernelMlirModule(
 // Result of compiling MLIR module to executable kernel function.
 //----------------------------------------------------------------------------//
 
+// TODO(ezhulenev): Compilation result does not need to keep MLIRContext alive,
+// it only needs the entrypoint FunctionType. Implement a function to "clone"
+// signature type into the new MLIRContext, because original context potentially
+// can have large constant attribute that will waste the memory.
+//
+// Another option is to write custom type class to store signature type, because
+// the number of supported types is relatively small.
+
 class CompilationResult {
  public:
-  CompilationResult(string_view entrypoint,
-                    std::unique_ptr<mlir::ExecutionEngine> engine)
-      : engine_(std::move(engine)), fptr_(*engine_->lookup(entrypoint)) {
+  CompilationResult(std::unique_ptr<mlir::MLIRContext> context,
+                    std::unique_ptr<mlir::ExecutionEngine> engine,
+                    mlir::FunctionType signature, string_view entrypoint)
+      : context_(std::move(context)),
+        engine_(std::move(engine)),
+        signature_(signature),
+        fptr_(*engine_->lookup(entrypoint)) {
     assert(fptr_ != nullptr && "entrypoint was not found");
   }
 
-  // Execute compiled function with given Tensor operands. Returns error async
-  // value if operands are not compatible with compiled function signature.
-  AsyncValueRef<Chain> Execute(RepeatedArguments<Tensor> operands,
-                               const ExecutionContext& exec_ctx) const;
+  // Verifies that all types in the entrypoint function signature are supported
+  // at runtime and we know how to pass arguments and fetch results.
+  static Error VerifyEntrypointSignature(mlir::FunctionType signature,
+                                         ExecutionMode mode);
+
+  // Executes compiled function with given Tensor operands. Allocates async
+  // value in the `results` for each compiled function returned value. If
+  // operands passed at runtime are not compatible with the compiled function
+  // signature returns an error.
+  Error Execute(RepeatedArguments<Tensor> operands, RemainingResults results,
+                const ExecutionContext& exec_ctx) const;
+
+  mlir::FunctionType signature() const;
 
   // Tensor operands converted to compiled function memref operands.
   struct MemrefArg {
@@ -80,21 +110,24 @@ class CompilationResult {
     SmallVector<ssize_t, 4> strides;
   };
 
-  // CallFrame provides a pointer-stable storage for packed function arguments.
+  // CallFrame provides a pointer-stable storage for packed function arguments
+  // and returned values that we pass to the compiled function.
   struct CallFrame {
-    // For now we only support functions that return async tokens, which at
-    // runtime is represented as a void pointer.
-    using ReturnType = void*;
+    // For now we only support functions that return async tokens or async
+    // values, which at runtime are represented as a void pointer.
+    using AsyncRet = void*;
 
-    llvm::SmallVector<MemrefArg, 4> memrefs;
-    ReturnType return_value;
+    llvm::SmallVector<MemrefArg, 4> memref_args;
+    llvm::SmallVector<AsyncRet, 4> async_rets;
   };
 
  private:
   // Pointer to a compiled kernel function.
   using KernelFunctionPtr = void (*)(void**);
 
+  std::unique_ptr<mlir::MLIRContext> context_;
   std::unique_ptr<mlir::ExecutionEngine> engine_;
+  mlir::FunctionType signature_;
   KernelFunctionPtr fptr_;
 };
 

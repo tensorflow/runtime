@@ -61,9 +61,6 @@ class AsyncRuntime {
   // Creates a new value in not-ready state with a storage of the given size.
   Value* CreateValue(size_t size, size_t alignment);
 
-  // Returns a pointer to the async value storage.
-  void* GetValueStorage(Value* value);
-
   // Switches the value to the available state and runs all the awaiters.
   void SetAvailable(Value* value);
 
@@ -93,11 +90,14 @@ class AsyncRuntime {
   template <typename F>
   void AwaitGroup(Group* group, F&& f);
 
+  // Returns a pointer to the async value storage.
+  static void* GetStorage(Value* value);
+
+  // Extracts async value that holds a chain owned by the value.
+  static AsyncValue* GetAsyncValue(Value* value);
+
   // Extracts async value that is owned by the token.
   static AsyncValue* GetAsyncValue(Token* token);
-
-  // Extracts async value that is owned by the value.
-  static AsyncValue* GetAsyncValue(Value* value);
 
   // Extracts async values that are owned by the tokens added to the group.
   static SmallVector<AsyncValue*, 4> GetAsyncValues(Group* group);
@@ -108,6 +108,7 @@ class AsyncRuntime {
 
   // Convert Token/Value/Group to AsyncRuntimeObject*;
   static AsyncRuntimeObject* ToAsyncRuntimeObject(Token* token);
+  static AsyncRuntimeObject* ToAsyncRuntimeObject(Value* value);
   static AsyncRuntimeObject* ToAsyncRuntimeObject(Group* group);
 
  private:

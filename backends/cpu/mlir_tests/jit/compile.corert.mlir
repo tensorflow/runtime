@@ -12,11 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=always
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu  \
+// RUN:   $(bef_name %s) | FileCheck %s
 
-module @add_f32_kernel attributes { tfrt.compiled } {
-  func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) -> !async.token {
-    %token = async.execute {
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu \
+// RUN:              --work_queue_type=mstd:8                      \
+// RUN:   $(bef_name %s) | FileCheck %s
+
+module @kernels attributes { tfrt.compiled } {
+  func @main(%input: memref<?x?xf32>) -> !async.value<memref<?x?xf32>> {
+    %c0 = constant 0 : index
+    %c1 = constant 1 : index
+    %0 = dim %input, %c0 : memref<?x?xf32>
+    %1 = dim %input, %c1 : memref<?x?xf32>
+
+    %token, %value = async.execute -> !async.value<memref<?x?xf32>> {
+      %output = alloc(%0, %1) : memref<?x?xf32>
+
       linalg.generic {
         indexing_maps = [affine_map<(d0, d1) -> (d0, d1)>,
                          affine_map<(d0, d1) -> (d0, d1)>],
@@ -26,44 +38,44 @@ module @add_f32_kernel attributes { tfrt.compiled } {
         outs(%output : memref<?x?xf32>)
       {
         ^bb0(%in: f32, %out: f32):
-          %0 = addf %in, %in : f32
-          linalg.yield %0 : f32
+          %2 = addf %in, %in : f32
+          linalg.yield %2 : f32
       }
-      async.yield
+
+      async.yield %output : memref<?x?xf32>
     }
-    return %token : !async.token
+
+    return %value : !async.value<memref<?x?xf32>>
   }
 }
 
 func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler
-  %cpu = "corert.create_cpu_op_handler"(%null) : (!corert.ophandler) -> !corert.ophandler
+  %cpu = "corert.create_cpu_op_handler"(%null)
+         : (!corert.ophandler) -> !corert.ophandler
   corert.register_op_handler %cpu "cpu"
   tfrt.return
 }
 
-// CHECK: --- Running 'compiled_add_f32'
-func @compiled_add_f32() -> !tfrt.chain {
+// CHECK: --- Running 'compiled_add_f32_corert'
+func @compiled_add_f32_corert() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %cpu = corert.get_op_handler %ch0 "cpu"
 
   %operand = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
-    { shape = [2, 3], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 1.5 : f32] } : 1
-
-  // Output shape is the same as the input shape.
-  %out_shape = "corert.tensorhandle_to_shape"(%operand, %ch0)
-    : (!corert.tensorhandle, !tfrt.chain) -> !ts.shape
+    { values = [-1.0: f32, -0.5: f32, 0.0: f32, 0.5: f32, 1.0: f32, 1.5: f32],
+      shape = [2, 3] } : 1
 
   // Compile simple addition implemented as a Linalg generic operation.
-  %compilation_result = cpurt.compile { kernel = @add_f32_kernel::@main }
+  %compilation_result = cpurt.corert.compile { kernel = @kernels::@main }
 
   // Execute compiled kernel with tensor handle operands.
-  %result = cpurt.corert.execute %compilation_result
-           (%operand : !corert.tensorhandle)
-           (%out_shape : !ts.shape) -> !corert.tensorhandle
+  %result = cpurt.corert.execute %compilation_result (%operand)
+              : (!corert.tensorhandle) -> !corert.tensorhandle
 
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 3]
-  // CHECK-SAME: values = [-2.000000e+00, -1.000000e+00, 0.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00]
+  // CHECK-SAME: values =
+  // CHECK-SAME: -2.0{{.*}}, -1.0{{.*}}, 0.0{{.*}}, 1.0{{.*}}, 2.0{{.*}}, 3.0{{.*}}
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

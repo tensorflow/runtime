@@ -27,6 +27,7 @@
 
 #include "tfrt/cpu/jit/cpurt.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
@@ -56,10 +57,9 @@ static AsyncValueRef<CompilationResult> Compile(
   HostContext* host = exec_ctx.host();
 
   // We only support functions nested in top level compiled module.
-  if (kernel.nested_symbols().size() != 1) {
+  if (kernel.nested_symbols().size() != 1)
     return EmitErrorAsync(
         exec_ctx, "compiled kernel must be referenced by one nested symbol");
-  }
 
   ResourceContext* res_ctx = exec_ctx.resource_context();
   auto* compilation_cache =
@@ -71,9 +71,10 @@ static AsyncValueRef<CompilationResult> Compile(
   // Return compiled kernel from the cache.
   if (auto compiled = compilation_cache->Find(key)) return compiled;
 
-  // Create an async task for each worker thread.
   CompilationOptions opts;
+  // Create an async task for each worker thread.
   opts.num_worker_threads = host->GetNumWorkerThreads();
+  opts.execution_mode = ExecutionMode::kNative;
 
   string_view entrypoint = kernel.nested_symbols()[0];
   string_view module = kernel.serialized_operation();
@@ -92,13 +93,21 @@ static AsyncValueRef<CompilationResult> Compile(
 // Execute compiled CPURT kernels.
 // -------------------------------------------------------------------------- //
 
-static AsyncValueRef<Chain> Execute(
-    Argument<CompilationResult> compilation_result, Argument<Chain> in_chain,
-    RepeatedArguments<Tensor> operands, const ExecutionContext& exec_ctx) {
-  auto chain = compilation_result->Execute(operands, exec_ctx);
-  // Keep operands alive until the execution is completed.
-  chain.AndThen([operands = RCArray<AsyncValue>(operands.values())] {});
-  return chain;
+static void Execute(Argument<CompilationResult> compilation_result,
+                    Argument<Chain> in_chain,
+                    RepeatedArguments<Tensor> operands,
+                    RemainingResults results,
+                    const ExecutionContext& exec_ctx) {
+  // If execution failed allocate errors at each result slot.
+  if (auto err = compilation_result->Execute(operands, results, exec_ctx)) {
+    auto async_error = EmitErrorAsync(exec_ctx, std::move(err));
+    for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
+    return;
+  }
+
+  // Keep operands alive if we have unavailable results.
+  RunWhenReady(results.values(),
+               [operands = RCArray<AsyncValue>(operands.values())] {});
 }
 
 void RegisterCpuRuntimeKernels(KernelRegistry* registry) {

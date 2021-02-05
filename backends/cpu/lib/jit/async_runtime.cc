@@ -123,12 +123,16 @@ namespace tfrt {
 namespace cpu {
 namespace jit {
 
-/*static*/ AsyncValue* AsyncRuntime::GetAsyncValue(AsyncRuntime::Token* token) {
-  return token->GetAsyncValue();
+/*static*/ void* AsyncRuntime::GetStorage(Value* value) {
+  return value->GetHostBuffer().data();
 }
 
 /*static*/ AsyncValue* AsyncRuntime::GetAsyncValue(AsyncRuntime::Value* value) {
   return value->GetAsyncValue();
+}
+
+/*static*/ AsyncValue* AsyncRuntime::GetAsyncValue(AsyncRuntime::Token* token) {
+  return token->GetAsyncValue();
 }
 
 /*static*/ SmallVector<AsyncValue*, 4> AsyncRuntime::GetAsyncValues(
@@ -150,6 +154,12 @@ namespace jit {
     AsyncRuntime::Token* token) {
   return static_cast<AsyncRuntimeObject*>(token);
 }
+
+/*static*/ AsyncRuntimeObject* AsyncRuntime::ToAsyncRuntimeObject(
+    AsyncRuntime::Value* value) {
+  return static_cast<AsyncRuntimeObject*>(value);
+}
+
 /*static*/ AsyncRuntimeObject* AsyncRuntime::ToAsyncRuntimeObject(
     AsyncRuntime::Group* group) {
   return static_cast<AsyncRuntimeObject*>(group);
@@ -191,10 +201,6 @@ AsyncRuntime::Value* AsyncRuntime::CreateValue(size_t size, size_t alignment) {
   // asynchronous operation is completed.
   AddRef(value);
   return value;
-}
-
-void* AsyncRuntime::GetValueStorage(Value* value) {
-  return value->GetHostBuffer().data();
 }
 
 void AsyncRuntime::SetAvailable(AsyncRuntime::Value* value) {

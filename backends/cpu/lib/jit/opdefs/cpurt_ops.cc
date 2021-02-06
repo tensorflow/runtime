@@ -44,7 +44,6 @@ namespace jit {
 CpuRuntimeDialect::CpuRuntimeDialect(MLIRContext *context)
     : Dialect(/*name*/ "cpurt", context, TypeID::get<CpuRuntimeDialect>()) {
   allowUnknownTypes();
-  allowUnknownOperations();
 
   addOperations<
 #define GET_OP_LIST

@@ -28,6 +28,7 @@
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
+#include "mlir/Pass/PassManager.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -56,6 +57,13 @@ struct CompilationOptions {
 
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
+
+  // Register dialects that are allowed in the serialized module.
+  llvm::function_ref<void(mlir::DialectRegistry&)> register_dialects;
+
+  // Register a pass pipeline that lowers serialized module from high level
+  // dialects to the dialects supported by the CPURT lowering to LLVM.
+  llvm::function_ref<void(mlir::OpPassManager&)> register_pass_pipeline;
 };
 
 // Compiles a kernel defined by the serialized MLIR module to the executable

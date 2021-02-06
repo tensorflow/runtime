@@ -361,11 +361,36 @@ static void InitializeCompiler() {
   (void)initialized;
 }
 
+static void SetupPassDebugging(mlir::MLIRContext* context,
+                               mlir::PassManager& pm) {
+  // Print IR after all passes.
+  if (DebugCpurtCompile()) {
+    context->disableMultithreading();
+    pm.enableIRPrinting([](mlir::Pass*, mlir::Operation*) { return false; },
+                        [](mlir::Pass*, mlir::Operation*) { return true; },
+                        /*printModuleScope=*/true,
+                        /*printAfterOnlyOnChange=*/false, llvm::errs());
+  }
+}
+
+// Runs the custom pipeline that lowers loaded module to dialects supported by
+// the CPURT (Linalg on buffers).
+static mlir::LogicalResult LowerToCpurt(mlir::ModuleOp module,
+                                        const CompilationOptions& opts) {
+  if (!opts.register_pass_pipeline) return mlir::success();
+
+  mlir::PassManager pm(module.getContext());
+  SetupPassDebugging(module.getContext(), pm);
+  opts.register_pass_pipeline(pm);
+  return pm.run(module);
+}
+
 // Runs the pipeline to lower kernel IR to LLVM dialect.
-static mlir::LogicalResult LowerToLlvm(mlir::MLIRContext* context,
-                                       mlir::ModuleOp module,
+static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
                                        const CompilationOptions& opts) {
-  mlir::PassManager pm(context);
+  mlir::PassManager pm(module.getContext());
+  SetupPassDebugging(module.getContext(), pm);
+
   pm.addPass(mlir::createInlinerPass());
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
@@ -377,7 +402,10 @@ static mlir::LogicalResult LowerToLlvm(mlir::MLIRContext* context,
   // operations to actually execute them in parallel using the async runtime.
   mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
   fpm.addPass(mlir::createConvertLinalgToParallelLoopsPass());
-  fpm.addPass(mlir::createAsyncParallelForPass(opts.num_worker_threads));
+  // TODO(ezhulenev): Currently async.execute region can call a function with
+  // an async.await inside, and this leads to blocking await inside a thread
+  // managed by the concurrent work queue.
+  // fpm.addPass(mlir::createAsyncParallelForPass(opts.num_worker_threads));
   fpm.addPass(mlir::createAsyncRefCountingPass());
   fpm.addPass(mlir::createAsyncRefCountingOptimizationPass());
   fpm.addPass(mlir::createStdExpandOpsPass());
@@ -391,16 +419,27 @@ static mlir::LogicalResult LowerToLlvm(mlir::MLIRContext* context,
   pm.addPass(mlir::createLowerToCFGPass());
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));
 
-  // Print IR after all passes.
-  if (DebugCpurtCompile()) {
-    context->disableMultithreading();
-    pm.enableIRPrinting([](mlir::Pass*, mlir::Operation*) { return false; },
-                        [](mlir::Pass*, mlir::Operation*) { return true; },
-                        /*printModuleScope=*/true,
-                        /*printAfterOnlyOnChange=*/false, llvm::errs());
-  }
-
   return pm.run(module);
+}
+
+static Expected<mlir::FuncOp> ResolveEntrypointFunction(
+    mlir::ModuleOp module, string_view entrypoint,
+    const CompilationOptions& opts) {
+  // Find the original entryupoint function.
+  auto entry_func = module.lookupSymbol<mlir::FuncOp>(entrypoint);
+  if (!entry_func) return MakeStringError("entrypoint function not found");
+
+  // Maybe resolve the corert entrypoint function referenced by the original
+  // entrypoint function.
+  if (opts.execution_mode == ExecutionMode::kCoreRt)
+    if (auto ref = entry_func->getAttrOfType<mlir::SymbolRefAttr>(
+            "cpurt.corert.entrypoint")) {
+      auto corert_func = module.lookupSymbol<mlir::FuncOp>(ref);
+      if (!corert_func) return MakeStringError("entrypoint function not found");
+      return corert_func;
+    }
+
+  return entry_func;
 }
 
 Expected<CompilationResult> CompileKernelMlirModule(
@@ -411,33 +450,52 @@ Expected<CompilationResult> CompileKernelMlirModule(
 
   llvm::SourceMgr source_mgr;
   source_mgr.AddNewSourceBuffer(
-      llvm::MemoryBuffer::getMemBuffer(mlir_module, "<unknown>"),
+      llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
       llvm::SMLoc());
 
-  // Register MLIR dialects supported by the compiled kernels.
   auto context = std::make_unique<mlir::MLIRContext>();
+
+  // Register MLIR dialects supported by the compiled kernels.
   context->getDialectRegistry()
       .insert<mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
               mlir::scf::SCFDialect, mlir::StandardOpsDialect,
               mlir::LLVM::LLVMDialect>();
 
+  // Register additional dialects provided via compilation options.
+  if (opts.register_dialects)
+    opts.register_dialects(context->getDialectRegistry());
+
+  // Collect all diagnostics emited while lowering kernel module to LLVM.
+  std::string diagnostic_str;
+  llvm::raw_string_ostream os(diagnostic_str);
+  mlir::SourceMgrDiagnosticHandler handler(source_mgr, context.get(), os);
+
+  auto error = [&](string_view message) -> llvm::Error {
+    return MakeStringError(message, ":\n", diagnostic_str);
+  };
+
   // Parse a kernel source code into the MLIR Module.
   mlir::OwningModuleRef module(
       mlir::parseSourceFile(source_mgr, context.get()));
-  if (!module) return MakeStringError("failed to parse kernel source");
+  if (!module) return error("failed to parse kernel source");
+
+  // Lower loaded module to dialects supported by the CPURT to LLVM pipeline.
+  if (failed(LowerToCpurt(*module, opts)))
+    return error("failed to lower module to CPURT dialects");
 
   // Verify entrypoint function signature.
-  auto entry_func = module->lookupSymbol<mlir::FuncOp>(entrypoint);
-  if (!entry_func) return MakeStringError("entrypoint function not found");
+  auto entry_func = ResolveEntrypointFunction(*module, entrypoint, opts);
+  if (auto err = entry_func.takeError()) return std::move(err);
 
-  mlir::FunctionType entry_signature = entry_func.getType();
+  std::string entry_name = entry_func->getName().str();
+  mlir::FunctionType entry_signature = entry_func->getType();
   if (auto err = CompilationResult::VerifyEntrypointSignature(
           entry_signature, opts.execution_mode))
     return std::move(err);
 
   // Lower kernel IR from high level dialects to the MLIR LLVM Dialect.
-  if (failed(LowerToLlvm(context.get(), *module, opts)))
-    return MakeStringError("Failed to lower module to LLVM");
+  if (failed(LowerToLlvm(*module, opts)))
+    return error("failed to lower module to LLVM");
 
   // Prepare JIT target machine for code generation.
   auto builder = llvm::orc::JITTargetMachineBuilder::detectHost();
@@ -464,7 +522,7 @@ Expected<CompilationResult> CompileKernelMlirModule(
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);
 
   return CompilationResult(std::move(context), std::move(*engine),
-                           entry_signature, entrypoint);
+                           entry_signature, entry_name);
 }
 
 }  // namespace jit

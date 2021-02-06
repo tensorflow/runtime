@@ -274,6 +274,17 @@ tfrt_cc_library(
     ],
 )
 
+filegroup(
+    name = "cpurt_ops_td_files",
+    srcs = [
+        "include/tfrt/cpu/jit/opdefs/cpurt_base.td",
+        "include/tfrt/cpu/jit/opdefs/cpurt_ops.td",
+        "@tf_runtime//:OpBaseTdFiles",
+        "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
+    ],
+    visibility = ["@tf_runtime//:friends"],
+)
+
 gentbl(
     name = "cpurt_opdefs_inc_gen",
     tbl_outs = [
@@ -288,11 +299,11 @@ gentbl(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/cpu/jit/opdefs/cpurt_ops.td",
-    td_includes = ["include"],
-    td_srcs = [
-        "@tf_runtime//:OpBaseTdFiles",
-        "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
+    td_includes = [
+        "include",
+        "backends/cpu/include",
     ],
+    td_srcs = [":cpurt_ops_td_files"],
 )
 
 tfrt_cc_library(

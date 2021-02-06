@@ -24,27 +24,8 @@
 
 include "tfrt/basic_kernels/opdefs/tfrt_base.td"
 include "tfrt/core_runtime/opdefs/corert_base.td"
-include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/tensor/opdefs/tensor.td"
-
-//===----------------------------------------------------------------------===//
-// TFRT CPU Runtime dialect definitions
-//===----------------------------------------------------------------------===//
-
-def TFRT_CPURT_Dialect : Dialect {
-  let name = "cpurt";
-
-  let description = [{
-    The CPU runtime dialect.
-
-    This dialect contains common CPU runtime operations.
-  }];
-
-  let cppNamespace = "::tfrt::cpu::jit";
-}
-
-def CompilationResultType : OpaqueType<"cpurt", "compilation_result",
-                                       "!cpurt.compilation_result type">;
+include "tfrt/cpu/jit/opdefs/cpurt_base.td"
 
 //===----------------------------------------------------------------------===//
 // TFRT CPU Runtime op definitions

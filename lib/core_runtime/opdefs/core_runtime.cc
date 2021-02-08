@@ -193,18 +193,18 @@ void ExecuteOp::build(OpBuilder &builder, OperationState &state,
   for (const auto &named_attr : op_attrs) {
     auto name = builder.getStringAttr(named_attr.first);
     SmallVector<Attribute, 2> key_value{name, named_attr.second};
-    attrs.push_back(ArrayAttr::get(key_value, builder.getContext()));
+    attrs.push_back(ArrayAttr::get(builder.getContext(), key_value));
   }
 
   SmallVector<Attribute, 4> func_attrs;
   for (const auto &named_attr : op_func_attrs) {
     auto name = builder.getStringAttr(named_attr.first);
     SmallVector<Attribute, 2> key_value{name, named_attr.second};
-    func_attrs.push_back(ArrayAttr::get(key_value, builder.getContext()));
+    func_attrs.push_back(ArrayAttr::get(builder.getContext(), key_value));
   }
 
-  auto attr = ArrayAttr::get(attrs, builder.getContext());
-  auto func_attr = ArrayAttr::get(func_attrs, builder.getContext());
+  auto attr = ArrayAttr::get(builder.getContext(), attrs);
+  auto func_attr = ArrayAttr::get(builder.getContext(), func_attrs);
   build(builder, state, results, op_handler, operands, attr, func_attr,
         op_name);
 }

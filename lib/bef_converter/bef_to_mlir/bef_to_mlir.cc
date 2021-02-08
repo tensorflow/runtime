@@ -1270,7 +1270,7 @@ mlir::Attribute BEFAttributeReader::ReadFixedAttribute(
 mlir::Attribute BEFAttributeReader::ReadBoolAttribute(BEFReader* reader) {
   uint8_t byte;
   if (reader->ReadByte(&byte)) return {};
-  return mlir::BoolAttr::get(static_cast<bool>(byte), &context_);
+  return mlir::BoolAttr::get(&context_, static_cast<bool>(byte));
 }
 
 mlir::StringAttr BEFAttributeReader::ReadStringAttribute(BEFReader* reader) {
@@ -1279,8 +1279,8 @@ mlir::StringAttr BEFAttributeReader::ReadStringAttribute(BEFReader* reader) {
 
   auto length = ReadLength(offset);
   auto string_attr = mlir::StringAttr::get(
-      string_view(reinterpret_cast<const char*>(&attributes_[offset]), length),
-      &context_);
+      &context_,
+      string_view(reinterpret_cast<const char*>(&attributes_[offset]), length));
   return string_attr;
 }
 
@@ -1370,7 +1370,7 @@ mlir::SymbolRefAttr BEFAttributeReader::ReadSymbolRefAttribute(
   llvm::SmallVector<mlir::FlatSymbolRefAttr, 4> nested(num_nested_symbols);
   for (int i = 0; i < num_nested_symbols; ++i) {
     string_view name{base, nested_symbol_len[i]};
-    nested[i] = mlir::FlatSymbolRefAttr::get(name, &context_);
+    nested[i] = mlir::FlatSymbolRefAttr::get(&context_, name);
     base += nested_symbol_len[i];
   }
 
@@ -1379,7 +1379,7 @@ mlir::SymbolRefAttr BEFAttributeReader::ReadSymbolRefAttribute(
   compilation_units_.AddCompilationUnit(bef_file_.location,
                                         serialized_operation);
 
-  return mlir::SymbolRefAttr::get(root, nested, &context_);
+  return mlir::SymbolRefAttr::get(&context_, root, nested);
 }
 
 mlir::ArrayAttr BEFAttributeReader::ReadArrayAttribute(
@@ -1389,14 +1389,14 @@ mlir::ArrayAttr BEFAttributeReader::ReadArrayAttribute(
   size_t offset = reader->file().data() - attributes_.data();
 
   auto length = ReadLength(offset);
-  if (length == 0) return mlir::ArrayAttr::get({}, &context_);
+  if (length == 0) return mlir::ArrayAttr::get(&context_, {});
 
   SmallVector<mlir::Attribute, 8> elements;
   elements.reserve(length);
   for (int i = 0; i < length; ++i)
     elements.push_back(ReadFixedAttribute(reader, element_type));
 
-  return mlir::ArrayAttr::get(elements, &context_);
+  return mlir::ArrayAttr::get(&context_, elements);
 }
 
 mlir::IntegerAttr BEFAttributeReader::ReadIntegerAttribute(BEFReader* reader,
@@ -1691,7 +1691,7 @@ mlir::Operation* BEFFunctionReader::ReadKernel(ArrayRef<uint32_t> kernels,
     if (bef_function->IsNamedFunction()) {
       // If it is a named function, then it is a function reference.
       state.addAttribute(
-          "callee", mlir::SymbolRefAttr::get(bef_function->name, &context_));
+          "callee", mlir::SymbolRefAttr::get(&context_, bef_function->name));
     } else {
       // Otherwise, it is a nested region. Add placeholder here and will be
       // resolved later.

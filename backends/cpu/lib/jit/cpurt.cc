@@ -51,6 +51,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/cpu/jit/async_runtime.h"
 #include "tfrt/cpu/jit/async_runtime_api.h"
@@ -352,6 +353,27 @@ AsyncValueRef<CompilationResult> CompilationResultCache::Insert(
 // functions at runtime.
 //----------------------------------------------------------------------------//
 
+namespace {
+// Expands operations that could not be lowered to LLVM direcly.
+struct ExpandOpsPass
+    : public mlir::PassWrapper<ExpandOpsPass, mlir::FunctionPass> {
+  void runOnFunction() override;
+};
+}  // namespace
+
+void ExpandOpsPass::runOnFunction() {
+  mlir::MLIRContext* ctx = &getContext();
+  mlir::OwningRewritePatternList patterns;
+  mlir::populateExpandTanhPattern(patterns, ctx);
+  if (failed(mlir::applyPatternsAndFoldGreedily(getOperation(),
+                                                std::move(patterns))))
+    signalPassFailure();
+}
+
+std::unique_ptr<ExpandOpsPass> CreateExpandOpsPass() {
+  return std::make_unique<ExpandOpsPass>();
+}
+
 static void InitializeCompiler() {
   static const bool initialized = ([] {
     llvm::InitializeNativeTarget();
@@ -409,6 +431,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   fpm.addPass(mlir::createAsyncRefCountingPass());
   fpm.addPass(mlir::createAsyncRefCountingOptimizationPass());
   fpm.addPass(mlir::createStdExpandOpsPass());
+  fpm.addPass(CreateExpandOpsPass());
 
   // Lower from high level async operations to async runtime.
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());

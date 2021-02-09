@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate --bef-to-mlir $(bef_name %s)
-/// | tfrt_opt -allow-unregistered-dialect
-/// | FileCheck %s --dump-input=fail
+// RUN: tfrt_translate --bef-to-mlir $(bef_name %s) \
+// RUN: | tfrt_opt -allow-unregistered-dialect \
+// RUN: | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: func private @some_func
 // CHECK-SAME: tfrt.native

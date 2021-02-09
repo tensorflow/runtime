@@ -36,6 +36,9 @@ TEST_P(Test, DnnHandel) {
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   EXPECT_TRUE(IsSuccess(DnnCreate(current).takeError()));
+  TFRT_ASSERT_AND_ASSIGN(auto handle, DnnCreate(current));
+  EXPECT_TRUE(IsSuccess(
+      DnnCreateConvolutionDescriptor(current.platform()).takeError()));
 }
 
 }  // namespace stream

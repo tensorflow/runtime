@@ -23,6 +23,7 @@
 #define TFRT_GPU_STREAM_DNN_WRAPPER_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 
 #include "tfrt/gpu/stream/stream_wrapper.h"
@@ -72,11 +73,6 @@ enum class DnnRnnMode {
   kRnnTanh,
   kLstm,
   kGru,
-};
-
-enum class DnnFoldingDirection {
-  kTransformFold,
-  kTransformUnfold,
 };
 
 enum class DnnOpTensorOp {
@@ -234,6 +230,12 @@ struct DnnPoolingDescriptorData {
   DnnNanPropagation nan_propagation;
 };
 
+struct DnnLibraryVersion {
+  int major;
+  int minor;
+  int patch;
+};
+
 struct DnnActivationDescriptorData {
   DnnActivationMode mode;
   DnnNanPropagation nan_propagation;
@@ -266,14 +268,6 @@ using DnnPersistentRnnPlan =
     Resource<cudnnPersistentRNNPlan_t, miopenPersistentRNNPlan_t>;
 using DnnOpTensorDescriptor =
     Resource<cudnnOpTensorDescriptor_t, miopenOpTensorDescriptor_t>;
-using DnnTensorTransformDescriptor =
-    Resource<cudnnTensorTransformDescriptor_t,
-             miopenTensorTransformDescriptor_t>;
-using DnnReduceTensorDescriptor =
-    Resource<cudnnReduceTensorDescriptor_t, miopenReduceTensorDescriptor_t>;
-using DnnReduceTensorDescriptorData =
-    Resource<cudnnReduceTensorDescriptor_t, miopenReduceTensorDescriptor_t>;
-using DnnRuntimeTag = Resource<cudnnRuntimeTag_t, miopenRuntimeTag_t>;
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.
@@ -367,6 +361,8 @@ struct DnnRnnDescriptorData {
   DnnDataType math_precision;
 };
 
+llvm::Expected<DnnLibraryVersion> DnnGetVersion(Platform platform);
+
 llvm::Expected<OwningDnnHandle> DnnCreate(CurrentContext current);
 llvm::Error DnnDestroy(DnnHandle handle);
 llvm::Error DnnSetStream(DnnHandle handle, Stream stream);
@@ -398,6 +394,19 @@ llvm::Expected<OwningDnnActivationDescriptor> DnnCreateActivationDescriptor(
     Platform platform);
 llvm::Error DnnDestroyActivationDescriptor(DnnActivationDescriptor descriptor);
 
+llvm::Error DnnOpTensor(CurrentContext current, DnnHandle handle,
+                        DnnOpTensorDescriptor op_tensor_desc,
+                        Pointer<const void> alpha1, DnnTensorDescriptor a_desc,
+                        Pointer<const void> a, Pointer<const void> alpha2,
+                        DnnTensorDescriptor b_desc, Pointer<const void> b,
+                        Pointer<const void> beta, DnnTensorDescriptor c_desc,
+                        Pointer<void> c);
+llvm::Error DnnSetTensor(CurrentContext current, DnnHandle handle,
+                         DnnTensorDescriptor y_desc, Pointer<void> y,
+                         Pointer<const void> value_ptr);
+llvm::Error DnnScaleTensor(CurrentContext current, DnnHandle handle,
+                           DnnTensorDescriptor y_desc, Pointer<void> y,
+                           Pointer<const void> alpha);
 llvm::Expected<OwningDnnFilterDescriptor> DnnCreateFilterDescriptor(
     Platform platform);
 llvm::Error DnnDestroyFilterDescriptor(DnnFilterDescriptor descriptor);
@@ -410,8 +419,6 @@ llvm::Expected<OwningDnnRnnDescriptor> DnnCreateRnnDescriptor(
     Platform platform);
 llvm::Error DnnDestroyRnnDescriptor(DnnRnnDescriptor descriptor);
 
-llvm::Expected<OwningPersistentRnnPlan> DnnCreatePersistentRnnPlan(
-    DnnRnnDescriptor descriptor, int batch_size, DnnDataType data_type);
 llvm::Error DnnDestroyPersistentRnnPlan(DnnPersistentRnnPlan plan);
 
 llvm::Error DnnSetPoolingDescriptor(CurrentContext current,
@@ -421,6 +428,24 @@ llvm::Error DnnSetPoolingDescriptor(CurrentContext current,
                                     llvm::ArrayRef<int> window_dimensions,
                                     llvm::ArrayRef<int> paddings,
                                     llvm::ArrayRef<int> strides);
+
+llvm::Expected<DnnMathType> DnnGetConvolutionMathType(
+    DnnConvolutionDescriptor descriptor);
+llvm::Error DnnSetConvolutionGroupCount(DnnConvolutionDescriptor descriptor,
+                                        int group_count);
+llvm::Expected<int> DnnGetConvolutionGroupCount(
+    DnnConvolutionDescriptor descriptor);
+llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
+DnnGetConvolutionForwardOutputDim(DnnConvolutionDescriptor conv_desc,
+                                  DnnTensorDescriptor input_tensor_desc,
+                                  DnnFilterDescriptor filter_desc);
+llvm::Error DnnConvolutionBackwardBias(
+    CurrentContext current, DnnHandle handle, Pointer<const void> alpha,
+    DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    Pointer<const void> beta, DnnTensorDescriptor db_desc, Pointer<void> db);
+llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
+DnnGetPoolingForwardOutputDim(const DnnPoolingDescriptor pooling_desc,
+                              const DnnTensorDescriptor input_tensor_desc);
 llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
                               const DnnPoolingDescriptor pooling_desc,
                               Pointer<const void> alpha,
@@ -438,6 +463,34 @@ llvm::Error DnnPoolingBackward(
     Pointer<const void> beta, const DnnTensorDescriptor dx_desc,
     Pointer<void> dx);
 
+llvm::Error DnnActivationForward(CurrentContext current, DnnHandle handle,
+                                 DnnActivationDescriptor activation_desc,
+                                 Pointer<const void> alpha,
+                                 const DnnTensorDescriptor x_desc,
+                                 Pointer<const void> x,
+                                 Pointer<const void> beta,
+                                 const DnnTensorDescriptor y_desc,
+                                 Pointer<void> y);
+llvm::Error DnnActivationBackward(
+    CurrentContext current, DnnHandle handle,
+    DnnActivationDescriptor activation_desc, Pointer<const void> alpha,
+    const DnnTensorDescriptor y_desc, Pointer<const void> y,
+    const DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    const DnnTensorDescriptor x_desc, Pointer<const void> x,
+    Pointer<const void> beta, const DnnTensorDescriptor dx_desc,
+    Pointer<void> dx);
+llvm::Error DnnBatchNormalizationForwardInference(
+    CurrentContext current, DnnHandle handle, DnnBatchNormMode mode,
+    Pointer<const void> alpha, Pointer<const void> beta,
+    DnnTensorDescriptor x_desc, Pointer<const void> x,
+    DnnTensorDescriptor y_desc, Pointer<void> y,
+    DnnTensorDescriptor bn_scale_bias_mean_var_desc,
+    Pointer<const void> bn_scale, Pointer<const void> bn_bias,
+    Pointer<const void> estimated_mean, Pointer<const void> estimated_variance,
+    double epsilon);
+llvm::Expected<size_t> DnnDropoutGetStatesSize(DnnHandle handle);
+llvm::Expected<size_t> DnnDropoutGetReserveSpaceSize(CurrentContext current,
+                                                     DnnTensorDescriptor xdesc);
 llvm::Error DnnRnnForwardInference(
     CurrentContext current, DnnHandle handle, DnnRnnDescriptor rnn_descriptor,
     llvm::ArrayRef<DnnTensorDescriptor> input_descriptors,

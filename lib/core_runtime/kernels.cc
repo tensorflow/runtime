@@ -563,6 +563,12 @@ static Expected<TensorHandle> TransferToDevice(
   return src.TransferTo(exec_ctx, device.CopyRef(), dst_tensor_type_name);
 }
 
+static Expected<TensorHandle> TransferToDeviceInferredType(
+    const TensorHandle &src, const RCReference<Device> &device,
+    const ExecutionContext &exec_ctx) {
+  return src.TransferToInferredType(exec_ctx, device.CopyRef());
+}
+
 // Forward declaration for use in CoreRtWhileLoopIterationImpl.
 static void CoreRtWhileLoopIteration(
     const ExecutionContext &exec_ctx, RCReference<const Function> cond_fn_ref,
@@ -877,6 +883,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(ConstStringTensor));
   registry->AddKernel("corert.cond", TFRT_KERNEL(CoreRtConditional));
   registry->AddKernel("corert.transfer", TFRT_KERNEL(TransferToDevice));
+  registry->AddKernel("corert.transfer_inferred_tensortype",
+                      TFRT_KERNEL(TransferToDeviceInferredType));
   registry->AddKernel("corert.while", TFRT_KERNEL(CoreRtWhileLoop));
   registry->AddKernel("corert.get_dst_tensor_type",
                       TFRT_KERNEL(CoreRtGetDstTensorType));

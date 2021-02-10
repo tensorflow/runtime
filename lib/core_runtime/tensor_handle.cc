@@ -32,6 +32,25 @@
 
 namespace tfrt {
 
+namespace {
+
+// TODO(b/179863362): Support inferring more tensor types for different device
+// types.
+// Infer the destination tensor type for TransferTo. Input device is the
+// destination device, and input tensor is the source tensor.
+inline TensorType InferDstTensorTypeFromDevice(const Device& device,
+                                               const Tensor& tensor) {
+  TensorType dst_tensor_type = tensor.tensor_type();
+  if (device.type() == GetStaticDeviceType("gpu")) {
+    dst_tensor_type = tfrt::GetStaticTensorType("DenseGpu");
+  } else if (device.type() == GetStaticDeviceType("tpu")) {
+    dst_tensor_type = tfrt::GetStaticTensorType("DenseTpu");
+  }
+  return dst_tensor_type;
+}
+
+}  // namespace
+
 TensorHandle::TensorHandle(AsyncValueRef<RCReference<Device>> async_device,
                            AsyncValueRef<TensorMetadata> async_metadata,
                            AsyncValueRef<Tensor> tensor) {
@@ -244,6 +263,60 @@ TensorHandle TensorHandle::TransferToSameDevice(
   } else {
     return TensorHandle(GetAsyncDevice().CopyRef(),
                         GetAsyncMetadata().CopyRef(), std::move(result_tensor));
+  }
+}
+
+TensorHandle TensorHandle::TransferToInferredType(
+    const ExecutionContext& exec_ctx, RCReference<Device> dst) const {
+  HostContext* host = exec_ctx.host();
+  AsyncValueRef<Tensor> result_tensor;
+
+  if (GetAsyncTensor()->IsError()) {
+    return TensorHandle(AsyncValueRef<TensorHandle>(FormRef(GetAsyncTensor())));
+  }
+  if (GetAsyncTensor()->IsAvailable() && IsDeviceAvailable()) {
+    const Device& src = *GetAvailableDevice();
+    auto& tensor = GetAsyncTensor()->get<Tensor>();
+    if (dst.get() == &src) return CopyRef();
+    TensorType dst_tensor_type = InferDstTensorTypeFromDevice(*dst, tensor);
+    result_tensor = ConvertTensor(exec_ctx, tensor, src, *dst, dst_tensor_type);
+  } else {
+    RCReference<IndirectAsyncValue> result_ind_av =
+        MakeIndirectAsyncValue(host);
+    result_tensor = AsyncValueRef<Tensor>(result_ind_av.CopyRef());
+    SmallVector<AsyncValue*, 2> async_values;
+    async_values.push_back(GetAsyncTensor());
+    if (!IsDeviceAvailable()) {
+      async_values.push_back(GetAsyncDevice().GetAsyncValue());
+    }
+    RunWhenReady(async_values, [th = CopyRef(),
+                                result_ind_av = std::move(result_ind_av),
+                                dst = dst.CopyRef(), exec_ctx]() {
+      if (th.IsDeviceError()) {
+        result_ind_av->ForwardTo(th.GetAsyncDevice().CopyRCRef());
+        return;
+      }
+      if (th.GetAsyncTensor()->IsError()) {
+        result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+        return;
+      }
+      auto& tensor = th.GetAsyncTensor()->get<Tensor>();
+      if (dst.get() == th.GetAvailableDevice().get()) {
+        result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+      } else {
+        TensorType dst_tensor_type = InferDstTensorTypeFromDevice(*dst, tensor);
+        result_ind_av->ForwardTo(ConvertTensor(
+            exec_ctx, tensor, *th.GetAvailableDevice(), *dst, dst_tensor_type));
+      }
+    });
+  }
+
+  if (IsMetadataAvailable()) {
+    return TensorHandle(std::move(dst), GetAvailableMetadata(),
+                        std::move(result_tensor));
+  } else {
+    return TensorHandle(std::move(dst), GetAsyncMetadata().CopyRef(),
+                        std::move(result_tensor));
   }
 }
 

@@ -345,4 +345,23 @@ def CoreRT_TransferOp : CoreRT_Op<"transfer"> {
   let verifier = ?;
 }
 
+def CoreRT_TransferInferredTensortypeOp : CoreRT_Op<"transfer_inferred_tensortype"> {
+  let summary = "Transfer a TensorHandle to the specified device";
+  let description = [{
+    Transfer a TensorHandle to the specified device. Destination tensor type
+    is inferred.
+
+    Example:
+      %dst_th = corert.transfer_inferred_type %src_th {device="CPU:0"}
+  }];
+
+  let arguments = (ins
+    CoreRT_TensorHandleType:$src,
+    TFRT_DeviceType:$device
+  );
+  let results = (outs CoreRT_TensorHandleType:$result);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
 #endif

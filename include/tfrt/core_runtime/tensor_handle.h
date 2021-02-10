@@ -163,6 +163,10 @@ class TensorHandle final {
   TensorHandle TransferToSameDevice(const ExecutionContext& exec_ctx,
                                     TensorType dst_tensor_type) const;
 
+  // Destination tensor type is inferred from device.
+  TensorHandle TransferToInferredType(const ExecutionContext& exec_ctx,
+                                      RCReference<Device> dst) const;
+
  private:
   friend raw_ostream& operator<<(raw_ostream& os, const TensorHandle& handle);
 

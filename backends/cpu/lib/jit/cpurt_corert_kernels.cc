@@ -77,9 +77,7 @@ static AsyncValueRef<CompilationResult> Compile(
   if (auto compiled = compilation_cache->Find(key)) return compiled;
 
   CompilationOptions opts;
-  // Create an async task for each worker thread.
   opts.num_worker_threads = host->GetNumWorkerThreads();
-  opts.execution_mode = ExecutionMode::kCoreRt;
 
   string_view entrypoint = kernel.nested_symbols()[0];
   string_view module = kernel.serialized_operation();
@@ -98,28 +96,44 @@ static AsyncValueRef<CompilationResult> Compile(
 // Execute compiled CPURT kernels with CoreRT interop.
 // -------------------------------------------------------------------------- //
 
+static Error ConvertTensorHandleOperandsToMemrefDesc(
+    mlir::FunctionType signature, RepeatedArguments<TensorHandle> operands,
+    SmallVectorImpl<MemrefDesc>* memrefs) {
+  assert(memrefs->empty() && "memrefs must be empty");
+  memrefs->reserve(operands.size());
+
+  for (unsigned i = 0; i < operands.size(); ++i) {
+    auto memref_ty = signature.getInput(i).cast<mlir::MemRefType>();
+    if (!memref_ty)
+      return MakeStringError("expected memref operand at #", i,
+                             ", got: ", signature.getInput(i));
+
+    auto memref = ConvertTensorToMemrefDesc(
+        memref_ty, operands[i].GetAsyncTensor()->get<Tensor>());
+    if (auto err = memref.takeError()) return err;
+    memrefs->push_back(*memref);
+  }
+
+  return Error::success();
+}
+
 static void CoreRtExecute(Argument<CompilationResult> compilation_result,
                           RepeatedArguments<TensorHandle> operands,
                           RemainingResults results,
                           const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  // Forward all results to an error async value built from the `err`.
-  auto allocate_errors = [&](Error err) -> void {
-    auto async_error = EmitErrorAsync(exec_ctx, std::move(err));
-    for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
-  };
-
   // Verify that compilation result signature is compatible with CoreRT.
   if (auto err = CompilationResult::VerifyEntrypointSignature(
-          compilation_result->signature(), ExecutionMode::kCoreRt))
-    return allocate_errors(std::move(err));
+          compilation_result->signature()))
+    return EmitErrors(results, std::move(err), exec_ctx);
 
   // Extract tensors from tensor handle operands to pass them as the compiled
   // kernel arguments.
-  SmallVector<AsyncValue*, 4> tensor_operands(operands.size());
-  for (int i = 0; i < operands.size(); ++i)
-    tensor_operands[i] = operands[i].GetAsyncTensor();
+  SmallVector<MemrefDesc, 4> memrefs;
+  if (auto err = ConvertTensorHandleOperandsToMemrefDesc(
+          compilation_result->signature(), operands, &memrefs))
+    return EmitErrors(results, std::move(err), exec_ctx);
 
   // Allocate storage for compiled kernel results.
   SmallVector<RCReference<AsyncValue>, 4> kernel_ret;
@@ -129,12 +143,10 @@ static void CoreRtExecute(Argument<CompilationResult> compilation_result,
 
   // Execute compiled kernel and get back raw return values that we'll need to
   // wrap into TensorHandles later on.
-  auto err =
-      compilation_result->Execute(RepeatedArguments<Tensor>(tensor_operands),
-                                  RemainingResults(host, kernel_ret), exec_ctx);
-
-  // If execution failed allocate errors at each result slot.
-  if (err) return allocate_errors(std::move(err));
+  ReturnValueConverter converter({host, kernel_ret});
+  converter.AddConversion(ReturnDenseHostTensor);
+  if (auto err = compilation_result->Execute(memrefs, converter, exec_ctx))
+    return;
 
   // Compiled kernel should populate all expected results.
   assert(llvm::all_of(kernel_ret, [](RCReference<AsyncValue>& ref) -> bool {

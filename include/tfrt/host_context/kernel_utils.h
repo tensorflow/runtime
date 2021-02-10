@@ -355,6 +355,10 @@ class RemainingResults {
     return indirect;
   }
 
+  void EmitErrorAt(int index, string_view message) {
+    remaining_results_[index] = MakeErrorAsyncValueRef(host_, message);
+  }
+
  private:
   HostContext* host_;
   MutableArrayRef<RCReference<AsyncValue>> remaining_results_;

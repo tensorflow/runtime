@@ -58,6 +58,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
 
@@ -74,7 +75,6 @@ static bool DebugCpurtCompile() {
 #endif
 }
 
-using MemrefArg = CompilationResult::MemrefArg;
 using CallFrame = CompilationResult::CallFrame;
 
 //----------------------------------------------------------------------------//
@@ -95,18 +95,17 @@ static bool IsValidMemref(mlir::Type type) {
   return elt.isF32();
 }
 
-static bool IsValidRetType(mlir::Type type, ExecutionMode mode) {
-  // Both native and CoreRT execution modes support async memrefs.
+static bool IsValidRetType(mlir::Type type) {
+  if (type.isa<mlir::async::TokenType>()) return true;
+
   if (auto value = type.dyn_cast<mlir::async::ValueType>())
     return IsValidMemref(value.getValueType());
 
-  // In native execution mode compiled kernel can also return async tokens to
-  // signal kernel completion if it is bufferized.
-  return mode == ExecutionMode::kNative && type.isa<mlir::async::TokenType>();
+  return false;
 }
 
 /*static*/ Error CompilationResult::VerifyEntrypointSignature(
-    mlir::FunctionType signature, ExecutionMode mode) {
+    mlir::FunctionType signature) {
   // Arguments must be ranked memrefs of supported types.
   for (unsigned i = 0; i < signature.getNumInputs(); ++i)
     if (!IsValidMemref(signature.getInput(i)))
@@ -114,55 +113,58 @@ static bool IsValidRetType(mlir::Type type, ExecutionMode mode) {
 
   // Return value must be async tokens or async values of valid memrefs.
   for (unsigned i = 0; i < signature.getNumResults(); ++i)
-    if (!IsValidRetType(signature.getResult(i), mode))
-      return MakeStringError("result #", i,
-                             " must be an async value of ranked memref type or "
-                             "async token (only in native execution mode)");
+    if (!IsValidRetType(signature.getResult(i)))
+      return MakeStringError(
+          "result #", i,
+          " must be an async value of ranked memref type or async token");
 
   return Error::success();
 }
 
-static Error VerifyTensorOperand(mlir::MemRefType memref_type,
-                                 const DenseHostTensor* tensor) {
-  if (tensor->shape().GetRank() != memref_type.getRank())
-    return MakeStringError("operand rank does not match expected input rank: ",
-                           tensor->shape().GetRank(), " vs ",
-                           memref_type.getRank());
+// -------------------------------------------------------------------------- //
+// Converting from runtime buffers (aka Tensors) to Memref descriptors.
+// -------------------------------------------------------------------------- //
 
-  for (unsigned d = 0; d < tensor->shape().GetRank(); ++d) {
-    ssize_t tensor_dim = tensor->shape().GetDimensionSize(d);
-    ssize_t memref_dim = memref_type.getDimSize(d);
-    if (tensor_dim != memref_dim && !memref_type.isDynamicDim(d))
+Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref) {
+  if (memref.sizes.size() != type.getRank())
+    return MakeStringError("operand rank does not match expected input rank: ",
+                           memref.sizes.size(), " vs ", type.getRank());
+
+  for (unsigned d = 0; d < memref.sizes.size(); ++d) {
+    ssize_t operand_dim = memref.sizes[d];
+    ssize_t memref_dim = type.getDimSize(d);
+    if (operand_dim != memref_dim && !type.isDynamicDim(d))
       return MakeStringError("operand dimension #", d,
                              " does not match expected input dimension: ",
-                             tensor_dim, " vs ", memref_dim);
+                             operand_dim, " vs ", memref_dim);
   }
 
+  // TODO(ezhulenev): Verify memref element type.
   return Error::success();
 }
 
-// Converts Tensor to Memref argument for supported tensor types. Returns
-// error otherwise.
-static Expected<MemrefArg> ConvertTensorToMemrefArg(mlir::Type type,
-                                                    const Tensor& tensor) {
-  auto memref_type = type.cast<mlir::MemRefType>();
-
+Expected<MemrefDesc> ConvertTensorToMemrefDesc(mlir::MemRefType type,
+                                               const Tensor& tensor) {
   if (auto* dht = dyn_cast<DenseHostTensor>(&tensor)) {
-    if (auto err = VerifyTensorOperand(memref_type, dht)) return std::move(err);
-    MemrefArg memref;
+    MemrefDesc memref;
     memref.data = const_cast<void*>(dht->data());
     memref.offset = 0;
     dht->shape().GetDimensions(&memref.sizes);
     dht->shape().GetStrides(&memref.strides);
+    if (auto err = VerifyMemrefOperand(type, memref)) return std::move(err);
     return memref;
   }
 
   return MakeStringError("unsupported tensor type: ", tensor.tensor_type());
 }
 
+// -------------------------------------------------------------------------- //
+// Helper functions to pack compiled kernel operands.
+// -------------------------------------------------------------------------- //
+
 // Unpack `memref` argument into pointers to the data to be compatible with
 // compiled MLIR function ABI.
-static void AddMemrefArgument(const MemrefArg& memref,
+static void AddMemrefArgument(const MemrefDesc& memref,
                               llvm::SmallVectorImpl<void*>* args) {
   assert(memref.sizes.size() == memref.strides.size());
   auto add_arg = [&](const void* p) { args->push_back(const_cast<void*>(p)); };
@@ -183,7 +185,7 @@ static void AddMemrefArgument(const MemrefArg& memref,
 // pointers are pointing to the arguments that are stored in the CallFrame
 // instance. See mlir::ExecutionEngine `packFunctionArguments` for the details.
 static Expected<llvm::SmallVector<void*, 32>> InitializeCallFrame(
-    mlir::FunctionType signature, RepeatedArguments<Tensor> operands,
+    mlir::FunctionType signature, ArrayRef<MemrefDesc> operands,
     CallFrame* call_frame) {
   llvm::SmallVector<void*, 32> args;
 
@@ -193,12 +195,9 @@ static Expected<llvm::SmallVector<void*, 32>> InitializeCallFrame(
         "number of operands must match the number of inputs: ", operands.size(),
         " vs ", signature.getNumInputs());
 
-  // Pack all Tensor operands as memref arguments.
-  for (unsigned i = 0; i < operands.size(); ++i) {
-    Expected<MemrefArg> memref =
-        ConvertTensorToMemrefArg(signature.getInput(i), operands[i]);
-    if (auto err = memref.takeError()) return std::move(err);
-    call_frame->memref_args.push_back(*memref);
+  // Pack all Memref operands as pointers to the call frame arguments.
+  for (const MemrefDesc& desc : operands) {
+    call_frame->memref_args.emplace_back(desc);
     AddMemrefArgument(call_frame->memref_args.back(), &args);
   }
 
@@ -216,76 +215,86 @@ static Expected<llvm::SmallVector<void*, 32>> InitializeCallFrame(
 
 // Extracts ranked memref from the async value storage, and emplaces it as a
 // DenseHostTensor into the `dst` async value.
-template <typename T, int rank>
-static void EmplaceDenseHostTensor(void* storage, AsyncValue* dst) {
-  auto* memref = static_cast<StridedMemRefType<T, rank>*>(storage);
+//
+// TODO(ezhulenev): Currently this emplacer transfers ownership of the memref
+// to the DenseHostTensor. This is not correct in general, because memref
+// does not imply ownership, for example it can be one of the forwarded inputs
+// or a global memref that is owned by the compiled kernel.
+struct EmplaceDenseHostTensor {
+  using ResultType = DenseHostTensor;
 
-  TensorMetadata metadata(GetDType<T>(), memref->sizes);
-  dst->emplace<DenseHostTensor>(
-      metadata, HostBuffer::CreateFromExternal(
-                    memref->data, metadata.GetHostSizeInBytes(),
-                    [ptr = memref->basePtr](void*, size_t) { free(ptr); }));
-}
+  template <typename T, int rank>
+  static void Emplace(void* storage, AsyncValue* dst) {
+    auto* memref = static_cast<StridedMemRefType<T, rank>*>(storage);
 
-static void ReturnChain(RemainingResults results, unsigned result_index,
-                        void* ret) {
+    TensorMetadata metadata(GetDType<T>(), memref->sizes);
+    dst->emplace<DenseHostTensor>(
+        metadata, HostBuffer::CreateFromExternal(
+                      memref->data, metadata.GetHostSizeInBytes(),
+                      [ptr = memref->basePtr](void*, size_t) { free(ptr); }));
+  }
+};
+
+mlir::LogicalResult ReturnChain(RemainingResults results, unsigned result_index,
+                                mlir::Type type, void* ret) {
+  if (!type.isa<mlir::async::TokenType>()) return mlir::failure();
+
   auto* token = static_cast<mlir::runtime::AsyncToken*>(ret);
   results[result_index] = ConvertAsyncTokenToChain(token);
+  return mlir::success();
 }
 
-static void ReturnDenseHostTensor(RemainingResults results,
-                                  unsigned result_index,
-                                  mlir::async::ValueType value_type,
-                                  void* ret) {
-  auto* value = static_cast<mlir::runtime::AsyncValue*>(ret);
-  auto& dht = results.AllocateAt<DenseHostTensor>(result_index);
+mlir::LogicalResult ReturnDenseHostTensor(RemainingResults results,
+                                          unsigned result_index,
+                                          mlir::Type type, void* ret) {
+  return ReturnStridedMemRef<EmplaceDenseHostTensor>(results, result_index,
+                                                     type, ret);
+}
 
-  // We already verified that return value is an async value of memref.
-  auto memref = value_type.getValueType().cast<mlir::MemRefType>();
-  auto element_type = memref.getElementType();
+ReturnValueConverter::ReturnValueConverter(RemainingResults results)
+    : results_(results) {
+  AddConversion([](RemainingResults results, unsigned i, mlir::Type t, void*) {
+    results.EmitErrorAt(i, StrCat("unsupported return type: ", t));
+    return mlir::failure();
+  });
+}
 
-  // Dispatch to the correct extract function based on rank.
-  auto rank_dispatch = [&](auto type_tag) {
-    using T = decltype(type_tag);
-    int64_t rank = memref.getRank();
+mlir::LogicalResult ReturnValueConverter::ReturnValue(unsigned result_index,
+                                                      mlir::Type type,
+                                                      void* ret) const {
+  for (auto& convert : llvm::reverse(conversion_callbacks_))
+    if (mlir::succeeded(convert(results_, result_index, type, ret)))
+      return mlir::success();
+  return mlir::failure();
+}
 
-    if (rank == 1)
-      ExtractAsyncValue(value, dht.get(), EmplaceDenseHostTensor<T, 1>);
-    else if (rank == 2)
-      ExtractAsyncValue(value, dht.get(), EmplaceDenseHostTensor<T, 2>);
-    else if (rank == 3)
-      ExtractAsyncValue(value, dht.get(), EmplaceDenseHostTensor<T, 3>);
-    else if (rank == 4)
-      ExtractAsyncValue(value, dht.get(), EmplaceDenseHostTensor<T, 4>);
-    else if (rank == 5)
-      ExtractAsyncValue(value, dht.get(), EmplaceDenseHostTensor<T, 5>);
-    else
-      // TODO(ezhulenev): Because ExtractAsyncValue takes a llvm::function_ref
-      // we can't pass a runtime arguments to emplace functions via lambda
-      // capture, because the value might become available asynchronously and
-      // this will lead to use after free. Consider adding an std::function
-      // alternative for ranks higher then 5? Lambdas with small captures should
-      // be stack allocated anyway, however it is implementation defined.
-      dht->SetError({"unsupported rank", ErrorCode::kInvalidArgument});
-  };
-
-  // Dispatch based on the memref element type.
-  if (element_type.isF32())
-    rank_dispatch(float{});
-  else
-    dht->SetError({"unsupported element type", ErrorCode::kInvalidArgument});
+void ReturnValueConverter::EmitErrors(RCReference<ErrorAsyncValue>& error) {
+  for (size_t i = 0; i < results_.size(); ++i) results_[i] = error.CopyRef();
 }
 
 // -------------------------------------------------------------------------- //
 // Execute compiled function with kernel operands.
 // -------------------------------------------------------------------------- //
 
+void EmitErrors(RemainingResults results, Error error,
+                const ExecutionContext& exec_ctx) {
+  auto async_error = EmitErrorAsync(exec_ctx, std::move(error));
+  for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
+}
+
+Error EmitErrors(ReturnValueConverter results, Error error,
+                 const ExecutionContext& exec_ctx) {
+  auto async_error = EmitErrorAsync(exec_ctx, StrCat(error));
+  results.EmitErrors(async_error);
+  return error;
+}
+
 // TODO(ezhulenev): Execute should override alloc/free function calls used by
 // codegened kernels to allocate/deallocate memrefs at runtime to use the host
 // context allocator.
 
-Error CompilationResult::Execute(RepeatedArguments<Tensor> operands,
-                                 RemainingResults results,
+Error CompilationResult::Execute(ArrayRef<MemrefDesc> operands,
+                                 ReturnValueConverter results,
                                  const ExecutionContext& exec_ctx) const {
   // CallFrame can be allocated on the stack because compiled function will
   // unpack all the arguments it needs, and async regions will not access
@@ -296,7 +305,8 @@ Error CompilationResult::Execute(RepeatedArguments<Tensor> operands,
   // pointer. See mlir::ExecutionEngine `packFunctionArguments` for the details.
   Expected<llvm::SmallVector<void*, 32>> args =
       InitializeCallFrame(signature_, operands, &call_frame);
-  if (auto err = args.takeError()) return err;
+  if (auto err = args.takeError())
+    return EmitErrors(results, std::move(err), exec_ctx);
 
   // Set the AsyncRuntime context to be used by all async tasks.
   ResourceContext* res_ctx = exec_ctx.resource_context();
@@ -307,19 +317,19 @@ Error CompilationResult::Execute(RepeatedArguments<Tensor> operands,
   // Call the compiled function.
   (*fptr_)(args->data());
 
-  // Unpack compiled function return values into results.
-  for (unsigned i = 0; i < signature_.getNumResults(); ++i) {
-    mlir::Type type = signature_.getResult(i);
+  // Convert compiled function return values into results.
+  auto ret_types = signature_.getResults();
+  bool converted = llvm::all_of(llvm::enumerate(ret_types), [&](auto tuple) {
+    unsigned i = tuple.index();
+    mlir::Type type = tuple.value();
+    void* ret = call_frame.async_rets[i];
+    return mlir::succeeded(results.ReturnValue(i, type, ret));
+  });
 
-    if (type.isa<mlir::async::TokenType>())
-      ReturnChain(results, i, call_frame.async_rets[i]);
-    else if (auto value_type = type.dyn_cast<mlir::async::ValueType>())
-      ReturnDenseHostTensor(results, i, value_type, call_frame.async_rets[i]);
-    else
-      return MakeStringError("unsupported return type: ", type);
-  }
-
-  return Error::success();
+  if (!converted)
+    return MakeStringError("failed to convert all returned values");
+  else
+    return Error::success();
 }
 
 mlir::FunctionType CompilationResult::signature() const { return signature_; }
@@ -446,21 +456,19 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 }
 
 static Expected<mlir::FuncOp> ResolveEntrypointFunction(
-    mlir::ModuleOp module, string_view entrypoint,
-    const CompilationOptions& opts) {
+    mlir::ModuleOp module, string_view entrypoint) {
   // Find the original entryupoint function.
   auto entry_func = module.lookupSymbol<mlir::FuncOp>(entrypoint);
   if (!entry_func) return MakeStringError("entrypoint function not found");
 
   // Maybe resolve the corert entrypoint function referenced by the original
   // entrypoint function.
-  if (opts.execution_mode == ExecutionMode::kCoreRt)
-    if (auto ref = entry_func->getAttrOfType<mlir::SymbolRefAttr>(
-            "cpurt.corert.entrypoint")) {
-      auto corert_func = module.lookupSymbol<mlir::FuncOp>(ref);
-      if (!corert_func) return MakeStringError("entrypoint function not found");
-      return corert_func;
-    }
+  if (auto ref = entry_func->getAttrOfType<mlir::SymbolRefAttr>(
+          "cpurt.corert.entrypoint")) {
+    auto corert_func = module.lookupSymbol<mlir::FuncOp>(ref);
+    if (!corert_func) return MakeStringError("entrypoint function not found");
+    return corert_func;
+  }
 
   return entry_func;
 }
@@ -507,13 +515,12 @@ Expected<CompilationResult> CompileKernelMlirModule(
     return error("failed to lower module to CPURT dialects");
 
   // Verify entrypoint function signature.
-  auto entry_func = ResolveEntrypointFunction(*module, entrypoint, opts);
+  auto entry_func = ResolveEntrypointFunction(*module, entrypoint);
   if (auto err = entry_func.takeError()) return std::move(err);
 
   std::string entry_name = entry_func->getName().str();
   mlir::FunctionType entry_signature = entry_func->getType();
-  if (auto err = CompilationResult::VerifyEntrypointSignature(
-          entry_signature, opts.execution_mode))
+  if (auto err = CompilationResult::VerifyEntrypointSignature(entry_signature))
     return std::move(err);
 
   // Lower kernel IR from high level dialects to the MLIR LLVM Dialect.

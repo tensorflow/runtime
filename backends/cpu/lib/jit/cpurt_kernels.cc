@@ -72,9 +72,7 @@ static AsyncValueRef<CompilationResult> Compile(
   if (auto compiled = compilation_cache->Find(key)) return compiled;
 
   CompilationOptions opts;
-  // Create an async task for each worker thread.
   opts.num_worker_threads = host->GetNumWorkerThreads();
-  opts.execution_mode = ExecutionMode::kNative;
 
   string_view entrypoint = kernel.nested_symbols()[0];
   string_view module = kernel.serialized_operation();
@@ -93,17 +91,43 @@ static AsyncValueRef<CompilationResult> Compile(
 // Execute compiled CPURT kernels.
 // -------------------------------------------------------------------------- //
 
+static Error ConvertTensorOperandsToMemrefDesc(
+    mlir::FunctionType signature, RepeatedArguments<Tensor> operands,
+    SmallVectorImpl<MemrefDesc>* memrefs) {
+  assert(memrefs->empty() && "memrefs must be empty");
+  memrefs->reserve(operands.size());
+
+  for (unsigned i = 0; i < operands.size(); ++i) {
+    auto memref_ty = signature.getInput(i).dyn_cast<mlir::MemRefType>();
+    if (!memref_ty)
+      return MakeStringError("expected memref operand at #", i,
+                             ", got: ", signature.getInput(i));
+
+    auto memref = ConvertTensorToMemrefDesc(memref_ty, operands[i]);
+    if (auto err = memref.takeError()) return err;
+    memrefs->push_back(*memref);
+  }
+
+  return Error::success();
+}
+
 static void Execute(Argument<CompilationResult> compilation_result,
                     Argument<Chain> in_chain,
                     RepeatedArguments<Tensor> operands,
                     RemainingResults results,
                     const ExecutionContext& exec_ctx) {
-  // If execution failed allocate errors at each result slot.
-  if (auto err = compilation_result->Execute(operands, results, exec_ctx)) {
-    auto async_error = EmitErrorAsync(exec_ctx, std::move(err));
-    for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
+  // Extract Memrefs from Tensor operands.
+  SmallVector<MemrefDesc, 4> memrefs;
+  if (auto err = ConvertTensorOperandsToMemrefDesc(
+          compilation_result->signature(), operands, &memrefs))
+    return EmitErrors(results, std::move(err), exec_ctx);
+
+  // If execution failed errors will be automatically allocated for all results.
+  ReturnValueConverter converter(results);
+  converter.AddConversion(ReturnDenseHostTensor);
+  converter.AddConversion(ReturnChain);
+  if (auto err = compilation_result->Execute(memrefs, converter, exec_ctx))
     return;
-  }
 
   // Keep operands alive if we have unavailable results.
   RunWhenReady(results.values(),

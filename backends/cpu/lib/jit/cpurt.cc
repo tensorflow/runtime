@@ -484,17 +484,16 @@ Expected<CompilationResult> CompileKernelMlirModule(
       llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
       llvm::SMLoc());
 
-  auto context = std::make_unique<mlir::MLIRContext>();
-
   // Register MLIR dialects supported by the compiled kernels.
-  context->getDialectRegistry()
-      .insert<mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
-              mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-              mlir::LLVM::LLVMDialect>();
+  mlir::DialectRegistry registry;
+  registry.insert<mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
+                  mlir::scf::SCFDialect, mlir::StandardOpsDialect,
+                  mlir::LLVM::LLVMDialect>();
 
   // Register additional dialects provided via compilation options.
-  if (opts.register_dialects)
-    opts.register_dialects(context->getDialectRegistry());
+  if (opts.register_dialects) opts.register_dialects(registry);
+
+  auto context = std::make_unique<mlir::MLIRContext>(registry);
 
   // Collect all diagnostics emited while lowering kernel module to LLVM.
   std::string diagnostic_str;

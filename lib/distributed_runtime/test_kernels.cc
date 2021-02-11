@@ -242,8 +242,10 @@ class FakeCompilerPass : public CompilerPass {
 
   mlir::OwningModuleRef ParseMlirProgram(
       string_view program, mlir::MLIRContext* context) const override {
-    tfrt::RegisterTFRTDialects(context->getDialectRegistry());
-    context->getDialectRegistry().insert<mlir::StandardOpsDialect>();
+    mlir::DialectRegistry registry;
+    tfrt::RegisterTFRTDialects(registry);
+    registry.insert<mlir::StandardOpsDialect>();
+    context->appendDialectRegistry(registry);
     context->allowUnregisteredDialects();
 
     TFRT_DLOG(INFO) << "Parsing: " << program;
@@ -253,7 +255,9 @@ class FakeCompilerPass : public CompilerPass {
 
   llvm::Expected<CompilationOutput> Compile(
       mlir::ModuleOp module, mlir::MLIRContext* context) const override {
-    RegisterTFRTDialects(context->getDialectRegistry());
+    mlir::DialectRegistry registry;
+    RegisterTFRTDialects(registry);
+    context->appendDialectRegistry(registry);
     context->allowUnregisteredDialects();
 
     CompilationOutput output;

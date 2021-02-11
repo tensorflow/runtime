@@ -39,8 +39,10 @@ static void registerMlirDialects(mlir::DialectRegistry& registry) {
 static BEFBuffer ConvertMLIRSrcToBEFImpl(string_view mlir_src,
                                          bool disable_optional_sections,
                                          mlir::MLIRContext* context) {
+  mlir::DialectRegistry registry;
+  registerMlirDialects(registry);
   context->allowUnregisteredDialects();
-  registerMlirDialects(context->getDialectRegistry());
+  context->appendDialectRegistry(registry);
 
   auto module = mlir::parseSourceString(mlir_src, context);
 

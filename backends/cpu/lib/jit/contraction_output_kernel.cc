@@ -313,10 +313,10 @@ Expected<CompiledContractionOutputKernel> Compile(
   llvm::SourceMgr source_mgr;
   source_mgr.AddNewSourceBuffer(std::move(buffer), llvm::SMLoc());
 
-  mlir::MLIRContext context;
-  context.getDialectRegistry()
-      .insert<mlir::LLVM::LLVMDialect, mlir::scf::SCFDialect,
-              mlir::StandardOpsDialect>();
+  mlir::DialectRegistry registry;
+  registry.insert<mlir::LLVM::LLVMDialect, mlir::scf::SCFDialect,
+                  mlir::StandardOpsDialect>();
+  mlir::MLIRContext context(registry);
   mlir::OwningModuleRef module(mlir::parseSourceFile(source_mgr, &context));
   if (!module) {
     return MakeStringError("Failed to parse kernel source");

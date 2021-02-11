@@ -36,8 +36,9 @@ static mlir::TranslateFromMLIRRegistration mlir_to_bef_registration(
 
 static mlir::TranslateToMLIRRegistration bef_to_mlir_registration(
     "bef-to-mlir", [](llvm::SourceMgr &source_mgr, mlir::MLIRContext *context) {
-      auto &registry = context->getDialectRegistry();
+      mlir::DialectRegistry registry;
       registry.insert<tfrt::cuda::CUDADialect>();
       registry.insert<tfrt::cuda::CUDATestDialect>();
+      context->appendDialectRegistry(registry);
       return tfrt::BEFToMLIRTranslate(source_mgr, context);
     });

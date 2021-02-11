@@ -60,7 +60,6 @@ class TFRT_CAPABILITY("mutex") mutex {
 // Wrap std::unique_lock<std::mutex> with support for thread annotations.
 class TFRT_SCOPED_CAPABILITY mutex_lock {
  public:
-  // NOLINTNEXTLINE(google-runtime-references)
   explicit mutex_lock(mutex& mu) TFRT_ACQUIRE(mu) : unique_lock_(mu.mu_) {}
   ~mutex_lock() TFRT_RELEASE() {}
 
@@ -81,16 +80,13 @@ class condition_variable {
   condition_variable(const condition_variable&) = delete;
   condition_variable& operator=(const condition_variable&) = delete;
 
-  // NOLINTNEXTLINE(google-runtime-references)
   void wait(mutex_lock& mu) { cv_.wait(mu.unique_lock_); }
 
   template <class Predicate>
-  // NOLINTNEXTLINE(google-runtime-references)
   void wait(mutex_lock& mu, Predicate pred) {
     cv_.wait(mu.unique_lock_, pred);
   }
   template <class Clock, class Duration, class Predicate>
-  // NOLINTNEXTLINE(google-runtime-references)
   bool wait_until(mutex_lock& mu,
                   const std::chrono::time_point<Clock, Duration>& timeout_time,
                   Predicate pred) {
@@ -98,7 +94,6 @@ class condition_variable {
   }
 
   template <class Clock, class Duration>
-  // NOLINTNEXTLINE(google-runtime-references)
   bool wait_until(
       mutex_lock& mu,
       const std::chrono::time_point<Clock, Duration>& timeout_time) {

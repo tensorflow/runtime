@@ -56,7 +56,6 @@ class TFRT_CAPABILITY("mutex") mutex {
 
 class TFRT_SCOPED_CAPABILITY mutex_lock {
  public:
-  // NOLINTNEXTLINE(google-runtime-references)
   explicit mutex_lock(mutex& mu) TFRT_ACQUIRE(mu) : mu_(&mu.mu_) {
     mu_->Lock();
   }
@@ -79,17 +78,14 @@ class condition_variable {
   condition_variable(const condition_variable&) = delete;
   condition_variable& operator=(const condition_variable&) = delete;
 
-  // NOLINTNEXTLINE(google-runtime-references)
   void wait(mutex_lock& mu) TFRT_NO_THREAD_SAFETY_ANALYSIS { cv_.Wait(mu.mu_); }
 
   template <class Predicate>
-  // NOLINTNEXTLINE(google-runtime-references)
   void wait(mutex_lock& mu, Predicate pred) TFRT_NO_THREAD_SAFETY_ANALYSIS {
     while (!pred()) wait(mu);
   }
 
   template <class Clock, class Duration, class Predicate>
-  // NOLINTNEXTLINE(google-runtime-references)
   bool wait_until(mutex_lock& mu,
                   const std::chrono::time_point<Clock, Duration>& timeout_time,
                   Predicate pred) TFRT_NO_THREAD_SAFETY_ANALYSIS {
@@ -111,7 +107,6 @@ class condition_variable {
   }
 
   template <class Clock, class Duration>
-  // NOLINTNEXTLINE(google-runtime-references)
   bool wait_until(mutex_lock& mu,
                   const std::chrono::time_point<Clock, Duration>& timeout_time)
       TFRT_NO_THREAD_SAFETY_ANALYSIS {

@@ -103,45 +103,6 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "jit_contraction_output_kernel",
-    srcs = [
-        "lib/jit/contraction_output_kernel.cc",
-        "lib/jit/contraction_output_kernel_builder.cc",
-    ],
-    hdrs = [
-        "include/tfrt/cpu/jit/contraction_output_kernel.h",
-        "include/tfrt/cpu/jit/contraction_output_kernel_builder.h",
-    ],
-    visibility = ["@tf_runtime//:friends"],
-    deps = [
-        "@llvm-project//llvm:OrcJIT",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:Affine",
-        "@llvm-project//mlir:AllPassesAndDialectsNoRegistration",
-        "@llvm-project//mlir:EDSC",
-        "@llvm-project//mlir:ExecutionEngine",
-        "@llvm-project//mlir:ExecutionEngineUtils",
-        "@llvm-project//mlir:IR",
-        "@llvm-project//mlir:LLVMDialect",
-        "@llvm-project//mlir:LLVMTransforms",
-        "@llvm-project//mlir:MlirJitRunner",
-        "@llvm-project//mlir:Parser",
-        "@llvm-project//mlir:Pass",
-        "@llvm-project//mlir:SCFDialect",
-        "@llvm-project//mlir:SCFToStandard",
-        "@llvm-project//mlir:StandardOps",
-        "@llvm-project//mlir:Support",
-        "@llvm-project//mlir:Transforms",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-    ],
-)
-
-tfrt_cc_library(
     name = "buffer_forwarding",
     srcs = ["lib/ops/tf/buffer_forwarding.cc"],
     hdrs = ["lib/ops/tf/buffer_forwarding.h"],
@@ -197,36 +158,6 @@ tfrt_cc_library(
         ":buffer_forwarding",
         ":core_runtime",
         ":cpu_kernels",
-        ":jit_contraction_output_kernel",
-        ":type_dispatch",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:core_runtime",
-        "@tf_runtime//:dtype",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigencompat",
-        "@tf_runtime//backends/common:tf_metadata_functions",
-    ],
-)
-
-tfrt_cc_library(
-    name = "tf_jit_ops",
-    srcs = [
-        "lib/ops/tf/cpu_jit_ops.cc",
-        "lib/ops/tf/matmul_jit_fusion_ops.cc",
-        "lib/ops/tf/matmul_jit_fusion_ops.h",
-    ],
-    hdrs = [
-        "include/tfrt/cpu/ops/tf/cpu_jit_ops.h",
-    ],
-    alwayslink_static_registration_src = "lib/ops/tf/static_registration_jit.cc",
-    visibility = ["@tf_runtime//:friends"],
-    deps = [
-        ":buffer_forwarding",
-        ":core_runtime",
-        ":cpu_kernels",
-        ":jit_contraction_output_kernel",
         ":type_dispatch",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",

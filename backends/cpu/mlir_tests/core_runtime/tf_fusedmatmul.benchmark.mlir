@@ -54,37 +54,3 @@ func @BM_FusedMatMulBiasRelu_256x256x256_f32() {
 
   tfrt.return
 }
-
-// CHECK-LABEL: --- Running 'BM_JitFusedMatMulBiasRelu_256x256x256_f32'
-func @BM_JitFusedMatMulBiasRelu_256x256x256_f32() {
-  %ch0 = tfrt.new.chain
-  %cpu = corert.get_op_handler %ch0 "cpu"
-
-  %lhs = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
-    { shape = [256, 256], values = [1.0 : f32] } : 1
-
-  %rhs = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
-    { shape = [256, 256], values = [1.0 : f32] } : 1
-
-  %bias = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
-    { shape = [256], values = [1.0 : f32] } : 1
-
-  tfrt_test.benchmark "BM_JitFusedMatMulBiasRelu_256x256x256_f32"(
-      %cpu     : !corert.ophandler,
-      %lhs     : !corert.tensorhandle,
-      %rhs     : !corert.tensorhandle,
-      %bias    : !corert.tensorhandle
-  )
-  duration_secs = 5, max_count = 1000000, num_warmup_runs = 10
-  {
-    %result  = corert.executeop(%cpu)
-      "tf._JitFusedMatMul"(%lhs, %rhs, %bias) {
-        fusion = ["BiasAdd", "Relu"],
-        transpose_a = false, transpose_b = false
-      } : 1
-
-    tfrt.return %result : !corert.tensorhandle
-  }
-
-  tfrt.return
-}

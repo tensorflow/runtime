@@ -1385,6 +1385,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:Async",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:LinalgOps",
+        "@llvm-project//mlir:MathDialect",
         "@llvm-project//mlir:StandardOps",
         "@tf_runtime//backends/cpu:cpurt_opdefs",
     ],

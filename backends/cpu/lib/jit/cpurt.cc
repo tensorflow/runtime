@@ -39,6 +39,8 @@
 #include "mlir/Dialect/Linalg/IR/LinalgOps.h"
 #include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
 #include "mlir/Dialect/Linalg/Passes.h"
+#include "mlir/Dialect/Math/IR/Math.h"
+#include "mlir/Dialect/Math/Transforms/Passes.h"
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/StandardOps/Transforms/Passes.h"
@@ -488,7 +490,7 @@ Expected<CompilationResult> CompileKernelMlirModule(
   mlir::DialectRegistry registry;
   registry.insert<mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
                   mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-                  mlir::LLVM::LLVMDialect>();
+                  mlir::LLVM::LLVMDialect, mlir::math::MathDialect>();
 
   // Register additional dialects provided via compilation options.
   if (opts.register_dialects) opts.register_dialects(registry);

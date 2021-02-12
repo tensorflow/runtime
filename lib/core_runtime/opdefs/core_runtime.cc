@@ -286,12 +286,26 @@ LogicalResult ExecuteOp::fold(ArrayRef<Attribute> operands,
   return failure();
 }
 
+//===----------------------------------------------------------------------===//
+// ConstDenseTensorOp
+//===----------------------------------------------------------------------===//
+
 OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
+  assert(operands.empty() && "constant has no operands");
   return value();
 }
 
 //===----------------------------------------------------------------------===//
-// CondOp
+// ConstStringTensorOp
+//===----------------------------------------------------------------------===//
+
+OpFoldResult ConstStringTensorOp::fold(ArrayRef<Attribute> operands) {
+  assert(operands.empty() && "constant has no operands");
+  return value();
+}
+
+//===----------------------------------------------------------------------===//
+// CoreRt_CondOp
 //===----------------------------------------------------------------------===//
 
 static LogicalResult verify(CondOp op) {
@@ -351,7 +365,7 @@ static LogicalResult verify(CondOp op) {
 }
 
 //===----------------------------------------------------------------------===//
-// WhileOp
+// CoreRt_WhileOp
 //===----------------------------------------------------------------------===//
 
 static LogicalResult verify(WhileOp op) {

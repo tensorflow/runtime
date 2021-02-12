@@ -62,7 +62,7 @@ foreach dtype = ["ui8", "ui16", "ui32", "ui64",
 
 def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor",
     [ConstantLike, NoSideEffect, CoreRT_TypedAttributeTrait]> {
-  let summary = "Create a constant host tensor.";
+  let summary = "Create a constant dense host tensor.";
   let description = [{
     ConstDenseTensorOp creates a constant dense host tensor.
 
@@ -86,7 +86,7 @@ def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor",
 }
 
 def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
-    [NoSideEffect, CoreRT_TypedAttributeTrait]> {
+    [ConstantLike, NoSideEffect, CoreRT_TypedAttributeTrait]> {
   let summary = "Create a constant string host tensor.";
   let description = [{
     ConstStringTensorOp creates a constant string host tensor.
@@ -107,6 +107,8 @@ def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
   let assemblyFormat = "attr-dict";
 
   let verifier = ?;
+
+  let hasFolder = 1;
 }
 
 def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait]> {

@@ -117,9 +117,10 @@ defined in
 #### Grammar
 
 ```none
-  BEF_FILE     ::= `0x0B` `0xEF` SECTION*
+  BEF_FILE     ::= `0x0B` `0xEF` FORMAT_VERSION_NUMBER SECTION*
 
-  SECTION_DATA ::= FORMAT_VERSION_SECTION
+  FORMAT_VERSION_NUMBER ::= `0x00`
+
   SECTION_DATA ::= LOCATION_FILENAMES_SECTION
   SECTION_DATA ::= LOCATION_POSITIONS_SECTION
   SECTION_DATA ::= STRINGS_SECTION
@@ -137,24 +138,14 @@ defined in
 ```
 
 The top level structure of the file is a two-byte "magic number" of `0x0BEF`
-followed by a list of sections.
+followed by one byte sized FORMAT_VERSION_NUMBER and a list of sections.
+
+The current FORMAT_VERSION_NUMBER is 0, and will be increased when BEF format is
+changed.
 
 The reader skips over unknown sections, which could be useful for future
 evolution of the format, e.g. if we want to store extra metadata in the BEF
 format for some purpose.
-
-### FormatVersion Section
-
-#### Grammar
-
-```none
-  FORMAT_VERSION_SECTION ::= `0x00`
-```
-
-The FormatVersion section contains a single byte, the version number (0).
-
-TODO: We should switch to a magic number of `0xBEF0` and use the `0` as a
-version number.
 
 ### LocationFilenames Section
 

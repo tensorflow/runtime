@@ -67,7 +67,6 @@ class BEFFileReader : public BEFReader {
  private:
   bool ReadFunctionIndexSectionInternal(
       SmallVectorImpl<FunctionIndex>* function_indices);
-  bool ReadFormatVersionSection();
   bool DiagnoseUnknownKernel(size_t kernel_idx, const char* kernel_name,
                              HostAllocator* host_allocator);
 
@@ -92,10 +91,6 @@ bool BEFFileReader::ReadNextSection() {
   switch (static_cast<BEFSectionID>(section_id)) {
     default:
       SkipPast(section_data);
-      break;
-
-    case BEFSectionID::kFormatVersion:
-      if (ReadFormatVersionSection()) return true;
       break;
 
     case tfrt::BEFSectionID::kLocationFilenames:
@@ -151,18 +146,6 @@ bool BEFFileReader::ReadNextSection() {
   // doing so will lead to consistency errors downstream.
   if (file().begin() != section_data.end())
     return bef_file_->EmitFormatError("unexpected data in BEF section"), true;
-  return false;
-}
-
-bool BEFFileReader::ReadFormatVersionSection() {
-  // In the case of the FormatVersion section, we verify that we have a
-  // supported version.
-  uint8_t version;
-  if (ReadByte(&version) || version != kBEFVersion0)
-    return bef_file_->EmitFormatError("BEF file has unknown version number"),
-           true;
-
-  // TODO: Should have per-file location info in the header.
   return false;
 }
 
@@ -454,6 +437,12 @@ RCReference<BEFFile> BEFFile::Open(ArrayRef<uint8_t> file,
   if (reader.ReadByte(&header[0]) || reader.ReadByte(&header[1]) ||
       header[0] != kBEFMagic1 || header[1] != kBEFMagic2) {
     bef_impl->EmitFormatError("invalid BEF file header detected");
+    return {};
+  }
+
+  uint8_t format_version;
+  if (reader.ReadByte(&format_version) || format_version != kBEFVersion0) {
+    bef_impl->EmitFormatError("Unknown BEF format version detected");
     return {};
   }
 

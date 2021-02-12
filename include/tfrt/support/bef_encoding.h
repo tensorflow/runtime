@@ -51,57 +51,53 @@ enum : uint8_t {
 // <BEFSectionID> <length> <... data ...>
 //
 enum class BEFSectionID : uint8_t {
-  // The FormatVersion section has a single byte payload which is the version
-  // number.
-  kFormatVersion = 0,
-
   // This is a list of filenames used for location information.  This is kept
   // in a separate section from other strings because we don't expect it to be
   // frequently accessed.
-  kLocationFilenames = 1,
+  kLocationFilenames = 0,
 
   // This is a list of positions referred to by location information.  Each
   // position is a triple of FilenameIndex, line, column, and offsets into this
   // section are used by location references.
-  kLocationPositions = 2,
+  kLocationPositions = 1,
 
   // The strings section contains NUL terminated strings, indexed by the offset
   // into the table. This is used for type references and function names.
-  kStrings = 3,
+  kStrings = 2,
 
   // The attributes section contains the attributes referenced by the program.
-  kAttributes = 4,
+  kAttributes = 3,
 
   // The kernels section defines a dense numbering for kernels.  It is a
   // count of the number of kernels present, followed by a list of indices
   // into the string table.
-  kKernels = 5,
+  kKernels = 4,
 
   // The types section defines a dense numbering for types.  It is the count of
   // types present, followed by a list of indices into the string table.
-  kTypes = 6,
+  kTypes = 5,
 
   // The function index section provides a symbol table and metadata about the
   // functions in this BEFFile.
-  kFunctionIndex = 7,
+  kFunctionIndex = 6,
 
   // The functions section contains the bodies of executable code fragments.
-  kFunctions = 8,
+  kFunctions = 7,
 
   // The attribute types section provides type information for each attribute in
   // attributes section. It is an optional section and will be ignored by
   // executor. It will be used for converting BEF back to mlir.
-  kAttributeTypes = 9,
+  kAttributeTypes = 8,
 
   // The attribute names section provides names of attributes for each kernel.
   // It is an optional section and will be ignored by executor. It will be used
   // for converting BEF back to mlir.
-  kAttributeNames = 10,
+  kAttributeNames = 9,
 
   // The register types section provides type information for each register in
   // each function. It is an optional section and will be ignored by executor.
   // It will be used for converting BEF back to mlir.
-  kRegisterTypes = 11,
+  kRegisterTypes = 10,
 
   // kNumSectionIDs is the number of section ids in a BEF file including
   // optional sections.

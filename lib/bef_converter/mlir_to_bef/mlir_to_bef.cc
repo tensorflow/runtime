@@ -997,7 +997,6 @@ class BEFModuleEmitter : public BEFFileEmitter {
     return entities_.Collect(module_, collect_attribute_types_and_names);
   }
 
-  void EmitFormatVersion();
   void EmitLocationInfo();
   void EmitStrings();
   void EmitAttributes(BEFFileEmitter* attribute_types);
@@ -1014,11 +1013,6 @@ class BEFModuleEmitter : public BEFFileEmitter {
   EntityTable entities_;
   EntityIndex entity_index_;
 };
-
-void BEFModuleEmitter::EmitFormatVersion() {
-  uint8_t version = kBEFVersion0;
-  EmitSection(BEFSectionID::kFormatVersion, version);
-}
 
 void BEFModuleEmitter::EmitLocationInfo() {
   BEFFileEmitter filenames_section;
@@ -2011,15 +2005,14 @@ AlignedBuffer<8> ConvertMLIRToBEF(mlir::ModuleOp module,
       LogicalResult::Failure)
     return {};
 
-  // Magic number at the start of the file.
-  emitter.EmitBytes({kBEFMagic1, kBEFMagic2});
+  // Emit magic numbers and format version.
+  emitter.EmitBytes({kBEFMagic1, kBEFMagic2, kBEFVersion0});
 
   BEFFileEmitter attribute_types;
   BEFFileEmitter attribute_names;
   BEFFileEmitter register_types;
 
   // Emit each section of the file.
-  emitter.EmitFormatVersion();
   emitter.EmitLocationInfo();
   emitter.EmitStrings();
   emitter.EmitAttributes(&attribute_types);

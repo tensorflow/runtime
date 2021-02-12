@@ -218,7 +218,6 @@ class BEFToMLIRConverter {
   // properties in `bef_file_`.
   mlir::LogicalResult ReadHeader();
   mlir::LogicalResult ReadSections(BEFSections* sections);
-  mlir::LogicalResult ReadFormatVersion(ArrayRef<uint8_t> format_version);
   mlir::LogicalResult ReadLocationFilenames(
       ArrayRef<uint8_t> location_filenames);
   mlir::LogicalResult ReadLocationPositions(
@@ -843,7 +842,11 @@ mlir::LogicalResult BEFToMLIRConverter::ReadHeader() {
   uint8_t byte;
   if (file_reader_.ReadByte(&byte) || (byte != kBEFMagic1) ||
       file_reader_.ReadByte(&byte) || (byte != kBEFMagic2)) {
+    EmitError(bef_file_.location, "Invalid BEF file header detected");
     return mlir::failure();
+  }
+  if (file_reader_.ReadByte(&byte) || (byte != kBEFVersion0)) {
+    EmitError(bef_file_.location, "Unknown BEF format version detected");
   }
   return mlir::success();
 }
@@ -871,16 +874,6 @@ mlir::LogicalResult BEFToMLIRConverter::ReadNextSection(BEFSections* sections) {
     return mlir::failure();
   file_reader_.SkipPast(section_data);
   sections->Set(static_cast<BEFSectionID>(section_id), section_data);
-  return mlir::success();
-}
-
-mlir::LogicalResult BEFToMLIRConverter::ReadFormatVersion(
-    ArrayRef<uint8_t> format_version) {
-  // Read and check the version byte.
-  BEFReader format_version_reader(format_version);
-  uint8_t version;
-  if (format_version_reader.ReadByte(&version) || version != kBEFVersion0)
-    return mlir::failure();
   return mlir::success();
 }
 
@@ -1772,9 +1765,6 @@ mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
 
   // The first phase processes all sections and saves types, names and
   // attributes.
-  if (mlir::failed(converter.ReadFormatVersion(
-          sections.Get(BEFSectionID::kFormatVersion))))
-    return emit_error("Invalid BEF version.");
   if (mlir::failed(converter.ReadLocationFilenames(
           sections.Get(BEFSectionID::kLocationFilenames))))
     return emit_error("Invalid LocationFilenames section.");

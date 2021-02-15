@@ -304,8 +304,8 @@ class OpAttrs final {
 
   // Support string_views as aliases of ArrayRef<char> in Get/Set.
   bool SetFunc(string_view attr_name, FunctionAttribute value) {
-    auto ar{ArrayRef<char>(value.func_name.data(), value.func_name.size())};
-    return SetRaw(attr_name, ar.data(), ar.size(), OpAttrType::FUNC);
+    return SetRaw(attr_name, value.func_name.data(), value.func_name.size(),
+                  OpAttrType::FUNC);
   }
 
   bool GetFuncName(string_view attr_name, string_view* value) const {

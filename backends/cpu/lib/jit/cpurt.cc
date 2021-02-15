@@ -53,6 +53,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Target/LLVMIR.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/cpu/jit/async_runtime.h"
@@ -490,7 +491,8 @@ Expected<CompilationResult> CompileKernelMlirModule(
   mlir::DialectRegistry registry;
   registry.insert<mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
                   mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-                  mlir::LLVM::LLVMDialect, mlir::math::MathDialect>();
+                  mlir::math::MathDialect>();
+  mlir::registerLLVMDialectTranslation(registry);
 
   // Register additional dialects provided via compilation options.
   if (opts.register_dialects) opts.register_dialects(registry);

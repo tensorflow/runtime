@@ -7,7 +7,7 @@ cuda_library(
     target_compatible_with = requires_cuda_enabled(),
 )
 
-# Run with e.g. 'bazel run --config=cuda //examples:hello_cuda'
+# Run with 'bazel run --cuda //examples:hello_cuda'
 cc_binary(
     name = "hello_cuda",
     srcs = ["main.cc"],

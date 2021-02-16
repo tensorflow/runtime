@@ -7,7 +7,7 @@ clang.
 The CUDA example program in this repository can be run with:
 
 ```
-bazel run --config=cuda //examples:hello_cuda
+bazel run --cuda //examples:hello_cuda
 ```
 
 For this, [rules_cc](https://github.com/bazelbuild/rules_cc)'s auto-configured

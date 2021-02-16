@@ -12,8 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Clang 9 is required.
-build --repo_env=CC=clang
+build --config=clang  # By default, build with clang.
+
+# Build with clang.
+build:clang --repo_env=CC=clang
+build:clang --@rules_cuda//cuda:compiler=clang
+
+# Build with gcc.
+build:gcc --repo_env=CC=gcc-7  # Ubuntu 18.04 ships with gcc 7.4.
+build:gcc --@rules_cuda//cuda:compiler=nvcc
 
 # Disable warnings we don't care about.
 build --copt=-Wno-unused-local-typedef
@@ -39,7 +46,6 @@ build --@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs
 build --copt=-U_FORTIFY_SOURCE  # TODO(csigg): fix and remove
 
 # CUDA support
-build:cuda --@rules_cuda//cuda:compiler=clang  # Use clang to compile CUDA code.
 build:cuda --@rules_cuda//cuda:enable_cuda  # Link //backends/gpu to //tools targets.
 test:cuda  --test_env=CUDA_CACHE_DISABLE=1  # Do not cache CUDA JIT
 test:cuda  --test_strategy=exclusive  # Run tests serially to avoid GPU OOM.

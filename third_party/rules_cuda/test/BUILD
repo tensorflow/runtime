@@ -19,7 +19,6 @@ cuda_runtime_test(
 cuda_library(
     name = "cuda_test_library",
     srcs = ["test.cu.cc"],
-    tags = ["manual"],
 )
 
 cuda_library_test(
@@ -28,7 +27,7 @@ cuda_library_test(
 )
 
 test_suite(
-    name = "rules_cuda_test_suite",
+    name = "test",
     tests = [
         ":cuda_library_test",
         ":cuda_runtime_test",

@@ -13,7 +13,4 @@
 // limitations under the License.
 #include "kernel.h"
 
-int main() {
-  Launch();
-  return 1;
-}
+int main() { Launch(); }

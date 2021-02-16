@@ -3,13 +3,31 @@ package(
 )
 
 filegroup(
+  name = "compiler_deps",
+  srcs = glob([
+    "cuda/version.txt",
+    "cuda/bin/**",
+    "cuda/lib64/**",
+    "cuda/nvvm/**",
+  ]),
+)
+
+# TODO: Remove, see third_party/cuda:BUILD
+alias(
     name = "header_files",
+    actual = ":_cuda_header_files",
+    visibility = ["@tf_runtime//third_party/cuda:__pkg__"],
+)
+
+filegroup(
+    name = "_cuda_header_files",
     srcs = glob(["cuda/include/**"]),
+    visibility = ["//visibility:private"],
 )
 
 cc_library(
     name = "cuda_headers",
-    hdrs = [":header_files"],
+    hdrs = [":_cuda_header_files"],
     includes = ["cuda/include"],
 )
 
@@ -28,6 +46,8 @@ cc_library(
 cc_library(
     name = "cuda_runtime",
     srcs = glob(["cuda/lib64/libcudart.so.*"]),
+    hdrs = [":_cuda_header_files"],
+    includes = ["cuda/include"],
     linkopts = [
         "-ldl",
         "-lpthread",
@@ -41,6 +61,8 @@ cc_library(
 cc_library(
     name = "cuda_runtime_static",
     srcs = ["cuda/lib64/libcudart_static.a"],
+    hdrs = [":_cuda_header_files"],
+    includes = ["cuda/include"],
     linkopts = [
         "-ldl",
         "-lpthread",

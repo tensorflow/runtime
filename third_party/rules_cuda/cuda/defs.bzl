@@ -1,6 +1,6 @@
-"""CUDA rules for Bazel."""
+"""cuda_library() macro wrapping a cc_library() target."""
 
-load("@local_cuda//:defs.bzl", "cuda_path")
+load("@local_cuda//:defs.bzl", "if_local_cuda")
 
 cuda_targets = [
     "sm_30",
@@ -16,48 +16,55 @@ cuda_targets = [
     "sm_70",
     "sm_72",
     "sm_75",
+    "sm_80",
 ]
 
-CudaInfo = provider(fields = ["value"])
+CudaTargetsInfo = provider(
+    "Provides a list of CUDA targets to compile for.",
+    fields = {"cuda_targets": "List of CUDA targets to compile for."},
+)
 
-def cuda_library(name, copts = [], deps = [], features = [], exec_compatible_with = [], **kwargs):
+def cuda_library(name, **kwargs):
     """Macro wrapping a cc_library which can contain CUDA device code.
 
     Args:
-      name: forwarded to cc_library.
-      copts: forwarded to cc_library.
-      deps: forwarded to cc_library.
-      features: forwarded to cc_library.
-      exec_compatible_with: forwarded to cc_library.
+      name: target name.
       **kwargs: forwarded to cc_library.
     """
 
-    cuda_copts = ["-x", "cuda", "--cuda-path=%s" % cuda_path]
-    for cuda_target in cuda_targets:
-        cuda_copts += select({
-            "@rules_cuda//cuda:cuda_target_%s_enabled" % cuda_target: [
-                "--cuda-gpu-arch=%s " % cuda_target,
+    # Add targets to 'srcs' that fail to execute with a descriptive error
+    # message if the current configuration doesn't support cuda_library targets.
+    srcs = kwargs.pop("srcs", []) + if_local_cuda(
+        select({
+            "@rules_cuda//cuda:cuda_toolchain_detected": [],
+            "//conditions:default": [
+                "@rules_cuda//cuda:unsupported_cuda_toolchain_error",
             ],
-            "//conditions:default": [],
-        })
+        }),
+        ["@rules_cuda//cuda:no_cuda_toolkit_error"],
+    )
 
-    cuda_features = ["-use_header_modules"]
+    deps = kwargs.pop("deps", []) + ["@rules_cuda//cuda:cuda_runtime"]
+
+    features = kwargs.pop("features", []) + ["cuda", "-use_header_modules"]
     if kwargs.get("textual_hdrs", None):
-        features.extend(["-layering_check", "-parse_headers"])
+        features += ["-layering_check", "-parse_headers"]
 
     native.cc_library(
         name = name,
-        copts = copts + cuda_copts,
-        deps = deps + ["@rules_cuda//cuda:cuda_runtime"],
-        features = features + cuda_features,
-        exec_compatible_with = exec_compatible_with + [
-            "@rules_cuda//cuda:requires_local_cuda",
-            "@rules_cuda//cuda:requires_cuda_targets",
-            # A clang compiler is required to interpret the copts above.
-            # The auto-detected local toolchain does not set this constraint
-            # value though, and this repository doesn't want to get into the
-            # business of defining and registring toolchains.
-            # "@bazel_tools//tools/cpp:clang",
-        ],
+        srcs = srcs,
+        deps = deps,
+        features = features,
         **kwargs
     )
+
+def requires_cuda_enabled():
+    """Returns constraint_setting that is not satisfied unless :is_cuda_enabled.
+
+    Add to 'target_compatible_with' attribute to mark a target incompatible when
+    @rules_cuda//cuda:enable_cuda is not set. Incompatible targets are excluded
+    from bazel target wildcards and fail to build if requested explicitly."""
+    return select({
+        "@rules_cuda//cuda:is_cuda_enabled": [],
+        "//conditions:default": ["@platforms//:incompatible"],
+    })

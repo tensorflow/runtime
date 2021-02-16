@@ -17,6 +17,12 @@
 
 workspace(name = "tf_runtime")
 
+# Bazel rules to build CUDA targets.
+local_repository(
+    name = "rules_cuda",
+    path = "third_party/rules_cuda",
+)
+
 load(":dependencies.bzl", "tfrt_dependencies")
 
 tfrt_dependencies()
@@ -29,6 +35,7 @@ load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
 
 protobuf_deps()
 
-load("@rules_cuda//cuda:dependencies.bzl", "rules_cuda_dependencies")
+load("@rules_cc//cc:repositories.bzl", "rules_cc_toolchains")
 
-rules_cuda_dependencies()
+rules_cc_toolchains()
+

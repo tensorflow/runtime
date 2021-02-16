@@ -85,7 +85,7 @@ alias(
     # copybara:uncomment_begin
     # actual = "//tools/cc_target_os:linux-google",
     # copybara:uncomment_end_and_comment_begin
-    actual = "@rules_cuda//cuda:cuda_enabled",
+    actual = "@rules_cuda//cuda:is_cuda_enabled",
     # copybara:comment_end
 )
 

@@ -26,6 +26,7 @@ third_party/rules_cuda/WORKSPACE
 third_party/rules_cuda/cuda/BUILD
 third_party/rules_cuda/cuda/defs.bzl
 third_party/rules_cuda/cuda/dependencies.bzl
+third_party/rules_cuda/cuda/toolchain.bzl
 third_party/rules_cuda/examples/BUILD
 third_party/rules_cuda/private/BUILD.local_cuda
 third_party/rules_cuda/private/build.bzl

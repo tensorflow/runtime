@@ -311,11 +311,9 @@ Error CompilationResult::Execute(ArrayRef<MemrefDesc> operands,
   if (auto err = args.takeError())
     return EmitErrors(results, std::move(err), exec_ctx);
 
-  // Set the AsyncRuntime context to be used by all async tasks.
-  ResourceContext* res_ctx = exec_ctx.resource_context();
-  AsyncRuntime* runtime = res_ctx->GetOrCreateResource<AsyncRuntime>(
-      "cpurt.runtime", exec_ctx.host());
-  SetAsyncRuntimeContext(runtime);
+  // Set the AsyncRuntime host context to be used by all async tasks spawned
+  // by the compiled kernel function.
+  SetAsyncRuntimeHostContext(exec_ctx.host());
 
   // Call the compiled function.
   (*fptr_)(args->data());

@@ -46,6 +46,7 @@ class AsyncRuntime {
   using Value = ::mlir::runtime::AsyncValue;
   using Group = ::mlir::runtime::AsyncGroup;
 
+  AsyncRuntime() : host_context_(nullptr) {}
   explicit AsyncRuntime(HostContext* host_context)
       : host_context_(host_context) {}
 
@@ -110,6 +111,8 @@ class AsyncRuntime {
   static AsyncRuntimeObject* ToAsyncRuntimeObject(Token* token);
   static AsyncRuntimeObject* ToAsyncRuntimeObject(Value* value);
   static AsyncRuntimeObject* ToAsyncRuntimeObject(Group* group);
+
+  HostContext* host_context() const { return host_context_; }
 
  private:
   HostContext* host_context_;  // must outlive *this

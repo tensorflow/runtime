@@ -121,6 +121,7 @@ class AsyncRuntime {
 // A base class for all Async dialect types reference counted at runtime.
 class AsyncRuntimeObject : public ::tfrt::ReferenceCounted<AsyncRuntimeObject> {
  public:
+  using ReferenceCounted::ReferenceCounted;  // inherit constructors
   virtual ~AsyncRuntimeObject() = default;
 };
 

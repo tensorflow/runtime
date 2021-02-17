@@ -41,28 +41,32 @@
 namespace mlir {
 namespace runtime {
 
-class AsyncToken : public ::tfrt::cpu::jit::AsyncRuntimeObject {
-  using AsyncRuntime = ::tfrt::cpu::jit::AsyncRuntime;
+using tfrt::AsyncValueRef;
+using tfrt::HostBuffer;
+using tfrt::RCReference;
+using tfrt::cpu::jit::AsyncRuntime;
+using tfrt::cpu::jit::AsyncRuntimeObject;
 
+class AsyncToken : public AsyncRuntimeObject {
  public:
-  explicit AsyncToken(tfrt::AsyncValueRef<tfrt::Chain> chain)
-      : chain_(std::move(chain)) {}
+  explicit AsyncToken(AsyncValueRef<tfrt::Chain> chain, unsigned ref_count = 1)
+      : AsyncRuntimeObject(ref_count), chain_(std::move(chain)) {}
 
-  ::tfrt::AsyncValue* GetAsyncValue() const { return chain_.GetAsyncValue(); }
+  tfrt::AsyncValue* GetAsyncValue() const { return chain_.GetAsyncValue(); }
 
  private:
-  tfrt::AsyncValueRef<tfrt::Chain> chain_;
+  AsyncValueRef<tfrt::Chain> chain_;
 };
 
-class AsyncValue : public tfrt::cpu::jit::AsyncRuntimeObject {
-  using AsyncRuntime = tfrt::cpu::jit::AsyncRuntime;
-
+class AsyncValue : public AsyncRuntimeObject {
  public:
-  explicit AsyncValue(tfrt::RCReference<tfrt::HostBuffer> host_buffer,
-                      tfrt::AsyncValueRef<tfrt::Chain> chain)
-      : host_buffer_(std::move(host_buffer)), chain_(std::move(chain)) {}
+  explicit AsyncValue(RCReference<HostBuffer> host_buffer,
+                      AsyncValueRef<tfrt::Chain> chain, unsigned ref_count = 1)
+      : AsyncRuntimeObject(ref_count),
+        host_buffer_(std::move(host_buffer)),
+        chain_(std::move(chain)) {}
 
-  tfrt::HostBuffer& GetHostBuffer() const { return *host_buffer_; }
+  HostBuffer& GetHostBuffer() const { return *host_buffer_; }
   tfrt::AsyncValue* GetAsyncValue() const { return chain_.GetAsyncValue(); }
 
  private:
@@ -70,21 +74,21 @@ class AsyncValue : public tfrt::cpu::jit::AsyncRuntimeObject {
   // In most of the cases what we need here is an AsyncValue of "inlined
   // storage" that can fit memref descriptor of rank 4 (maybe 5) without heap
   // allocation (see StridedMemRefType in CRunnerUtils.h).
-  tfrt::RCReference<tfrt::HostBuffer> host_buffer_;
+  RCReference<tfrt::HostBuffer> host_buffer_;
   // TODO(ezhulenev): In case of runtime async values the lifetime of a chain_
   // is the same as the parent object, and tfrt::AsycValue can be allocated on
   // the stack (see example in cl/316296982). For tokens we can "extract" the
   // chain by copying it, and it can outlive the runtime token.
-  tfrt::AsyncValueRef<tfrt::Chain> chain_;
+  AsyncValueRef<tfrt::Chain> chain_;
 };
 
-class AsyncGroup : public ::tfrt::cpu::jit::AsyncRuntimeObject {
-  using AsyncTokens = ::tfrt::ConcurrentVector<AsyncToken*>;
-  using AsyncRuntime = ::tfrt::cpu::jit::AsyncRuntime;
+class AsyncGroup : public AsyncRuntimeObject {
+  using AsyncTokens = tfrt::ConcurrentVector<AsyncToken*>;
 
  public:
-  explicit AsyncGroup(AsyncRuntime* runtime)
-      : runtime_(runtime),
+  explicit AsyncGroup(AsyncRuntime* runtime, unsigned ref_count = 1)
+      : AsyncRuntimeObject(ref_count),
+        runtime_(runtime),
         async_tokens_(std::make_unique<AsyncTokens>(/*initial_capacity=*/16)) {}
 
   ~AsyncGroup() override {
@@ -98,7 +102,7 @@ class AsyncGroup : public ::tfrt::cpu::jit::AsyncRuntimeObject {
 
   size_t size() const { return async_tokens_->size(); }
 
-  llvm::SmallVector<::tfrt::AsyncValue*, 4> GetAsyncValues() const {
+  llvm::SmallVector<tfrt::AsyncValue*, 4> GetAsyncValues() const {
     auto tokens = llvm::map_range(
         async_tokens_->ToArrayRef(),
         [](AsyncToken* token) { return token->GetAsyncValue(); });
@@ -167,14 +171,12 @@ namespace jit {
 
 AsyncRuntime::Token* AsyncRuntime::CreateToken() {
   auto chain = MakeConstructedAsyncValueRef<Chain>(host_context_);
-  auto* token = new AsyncRuntime::Token(std::move(chain));
   // AsyncRuntime::Token created with a reference count of 2 because it will be
   // returned to the `async.execute` caller and also will be later on emplaced
   // by the asynchronously executed task. If the caller immediately will drop
   // its reference we must ensure that the token will be alive until the
   // asynchronous operation is completed.
-  AddRef(token);
-  return token;
+  return new AsyncRuntime::Token(std::move(chain), /*ref_count=*/2);
 }
 
 void AsyncRuntime::SetAvailable(AsyncRuntime::Token* token) {
@@ -193,14 +195,13 @@ AsyncRuntime::Value* AsyncRuntime::CreateValue(size_t size, size_t alignment) {
   auto buffer = HostBuffer::CreateUninitialized(size, alignment,
                                                 host_context_->allocator());
   auto chain = MakeConstructedAsyncValueRef<Chain>(host_context_);
-  auto* value = new AsyncRuntime::Value(std::move(buffer), std::move(chain));
   // AsyncRuntime::Value created with a reference count of 2 because it will be
   // returned to the `async.execute` caller and also will be later on emplaced
   // by the asynchronously executed task. If the caller immediately will drop
   // its reference we must ensure that the token will be alive until the
   // asynchronous operation is completed.
-  AddRef(value);
-  return value;
+  return new AsyncRuntime::Value(std::move(buffer), std::move(chain),
+                                 /*ref_count=*/2);
 }
 
 void AsyncRuntime::SetAvailable(AsyncRuntime::Value* value) {

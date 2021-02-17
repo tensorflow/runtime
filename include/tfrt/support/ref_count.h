@@ -62,7 +62,11 @@ inline void DropNumReferenceCountedObjects() {}
 template <typename SubClass>
 class ReferenceCounted {
  public:
-  ReferenceCounted() : ref_count_(1) { AddNumReferenceCountedObjects(); }
+  ReferenceCounted() : ReferenceCounted(1) {}
+  explicit ReferenceCounted(unsigned ref_count) : ref_count_(ref_count) {
+    AddNumReferenceCountedObjects();
+  }
+
   ~ReferenceCounted() {
     assert(ref_count_.load() == 0 &&
            "Shouldn't destroy a reference counted object with references!");

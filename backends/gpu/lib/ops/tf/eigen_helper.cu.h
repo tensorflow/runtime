@@ -235,7 +235,7 @@ Expected<DenseGpuTensor> ComputeOpViaEigen(
     return std::move(error);
   }
 
-  return result_tensor;
+  return std::move(result_tensor);
 }
 
 }  // namespace gpu

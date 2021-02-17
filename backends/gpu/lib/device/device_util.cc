@@ -40,7 +40,7 @@ llvm::Expected<RCReference<GpuDevice>> GetOrCreateGpuDevice(string_view name,
   auto existing_device =
       host->GetDeviceManager()->GetDeviceRef<GpuDevice>(name);
   if (existing_device) {
-    return existing_device;
+    return std::move(existing_device);
   }
   auto gpu_device = TakeRef(new GpuDevice(name, gpu_ordinal));
   if (auto error = gpu_device->Initialize()) {

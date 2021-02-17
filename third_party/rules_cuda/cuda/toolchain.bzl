@@ -40,6 +40,7 @@ def _nvcc_cuda_toolchain_config(cuda_targets, nvcc, compiler_path):
         "--x=cu",
         "--compiler-bindir=" + compiler_path,
         "--forward-unknown-to-host-compiler",
+        "--expt-relaxed-constexpr",
     ]
     gencode_format = "--generate-code=arch=compute_{0},code={1}_{0}"
     for cuda_target in cuda_targets:

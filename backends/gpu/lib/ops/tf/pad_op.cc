@@ -146,7 +146,7 @@ llvm::Expected<DenseGpuTensor> EnqueueGpuPadOp(
   DenseGpuTensor result(result_md.shape, result_md.dtype, std::move(buffer));
 
   CallOperate(dctx, input, paddings, &result);
-  return result;
+  return std::move(result);
 }
 
 static llvm::Expected<DenseGpuTensor> GpuPadOp(

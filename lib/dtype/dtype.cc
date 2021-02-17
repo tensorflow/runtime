@@ -77,9 +77,11 @@ size_t DType::GetHostSize() const {
       return ~size_t(0);
     case Unsupported:
     case Resource:
-    case Variant:
       assert(0 && "unsupported dtype has no size");
       return ~size_t(0);
+    case Variant:
+      // Using size of HostBuffer.
+      return size_t(64);
     case String:
       assert(0 &&
              "GetHostSize() is not expected to be called with string type");
@@ -107,9 +109,10 @@ size_t DType::GetHostAlignment() const {
       return ~size_t(0);
     case Unsupported:
     case Resource:
-    case Variant:
       assert(0 && "unspupported dtype has no alignment");
       return ~size_t(0);
+    case Variant:
+      return alignof(std::max_align_t);
     case String:
       assert(
           0 &&

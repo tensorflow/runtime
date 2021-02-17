@@ -35,7 +35,7 @@ static Func *GetFunctionPointer(const char *symbol_name, Func *func = nullptr) {
 
 // Calls function 'symbol_name' in shared library with 'args'.
 // TODO(csigg): Change to 'auto Func' when C++17 is allowed.
-template <typename Func, Func, typename... Args>
+template <typename Func, Func *, typename... Args>
 static cusolverStatus_t DynamicCall(const char *symbol_name, Args &&...args) {
   static auto func_ptr = GetFunctionPointer<Func>(symbol_name);
   if (!func_ptr) return CUSOLVER_STATUS_NOT_INITIALIZED;

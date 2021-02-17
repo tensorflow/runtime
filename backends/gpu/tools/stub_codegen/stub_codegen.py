@@ -37,7 +37,7 @@ def main():
 
   # See e.g. backends/gpu/lib/stream/cuda_stub.cc
   function_impl = """
-    return DynamicCall<decltype({0}), {0}>({1});
+    return DynamicCall<decltype({0}), &{0}>({1});
   """
 
   index = clang.cindex.Index.create()

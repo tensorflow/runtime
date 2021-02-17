@@ -159,7 +159,7 @@ llvm::Expected<OwningContext> HipDevicePrimaryCtxRetain(Device device) {
   hipCtx_t hip_ctx;
   RETURN_IF_ERROR(hipDevicePrimaryCtxRetain(&hip_ctx, ToHip(device)));
   kContextTls.hip_may_skip_set_ctx = true;
-  return OwningContext({hip_ctx});
+  return OwningContext(hip_ctx);
 }
 
 llvm::Error HipDevicePrimaryCtxRelease(Device device) {
@@ -202,7 +202,7 @@ llvm::Expected<OwningContext> HipCtxCreate(hipDeviceFlags_t flags,
   RETURN_IF_ERROR(hipCtxCreate(&kContextTls.hip_ctx, flags, ToHip(device)));
   kContextTls.platform = Platform::ROCm;
   kContextTls.hip_may_skip_set_ctx = true;
-  return OwningContext({kContextTls.hip_ctx});
+  return OwningContext(kContextTls.hip_ctx);
 }
 
 llvm::Error HipCtxDestroy(hipCtx_t context) {

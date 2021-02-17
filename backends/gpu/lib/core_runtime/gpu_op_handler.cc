@@ -136,7 +136,7 @@ Expected<CoreRuntimeOp> GpuOpHandler::MakeOp(string_view op_name) {
         // GPU OpHandler should associate a GPU device.
         assert(this->device_);
 
-        return ExecuteOnOpHandler<GpuOpHandlerTraits>(
+        return (void)ExecuteOnOpHandler<GpuOpHandlerTraits>(
             /*update_chain=*/false, invocation, *op_entry, this);
       },
       /*is_fallback=*/false, /*device=*/device_.CopyRef(),

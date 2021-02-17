@@ -146,6 +146,26 @@ class SyncMakeTensorOp<string dtype>
   let assemblyFormat = "operands attr-dict";
 }
 
+def SyncGetBufferSliceOp : DHT_Sync_Op<"get_buffer_slice"> {
+  let summary = "tfrt_dht_sync.get_buffer_slice operation";
+
+  let description = [{
+    An operation that gets a slice of a buffer.
+    It takes in the parent buffer and the size and offset of the new buffer. It
+    returns a buffer that points to the data allocated by the parent buffer.
+
+    Example:
+      %parent_buf = tfrt_dht.allocate %parent_size, %alignment
+      %offset = tfrt.constant.i64 0
+      %size = tfrt.constant.i64 64
+      %buf_a = tfrt_dht.get_buffer_slice %parent_buf, %offset, %size
+  }];
+
+  let arguments = (ins HostBufferType, I64, I64);
+  let results = (outs HostBufferType);
+  let assemblyFormat = "operands attr-dict";
+}
+
 // Instantiate for each dtype and rank pair.
 foreach dtype = ["ui8", "ui16", "ui32", "ui64", "i32", "f32", "i64", "bool", "complex64", "complex128"] in {
   foreach rank = [0, 1, 2, 3, 4] in {

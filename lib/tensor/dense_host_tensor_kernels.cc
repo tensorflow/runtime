@@ -326,6 +326,8 @@ void RegisterDenseHostTensorKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_dht.no_op_ht", TFRT_KERNEL(NoOpHostTensor));
   registry->AddKernel("tfrt_dht.get_buffer", TFRT_KERNEL(GetBuffer));
   registry->AddKernel("tfrt_dht.get_buffer_slice", TFRT_KERNEL(GetBufferSlice));
+  registry->AddSyncKernel("tfrt_dht_sync.get_buffer_slice",
+                          TFRT_SYNC_KERNEL(GetBufferSlice));
   registry->AddKernel("tfrt_dht.print_buffer", TFRT_KERNEL(PrintBuffer));
 }
 

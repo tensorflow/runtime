@@ -202,6 +202,19 @@ class BEFKernel {
         num_results());
   }
 
+  bool HasDebugInfo() const {
+    return static_cast<bool>(
+        special_metadata() &
+        static_cast<uint32_t>(SpecialAttribute::kHasDebugInfo));
+  }
+
+  uint32_t GetDebugInfoOffset() const {
+    assert(HasDebugInfo() && "Try to access a nonexistent debug info.");
+    return *reinterpret_cast<const uint32_t*>(body_start_ + num_arguments() +
+                                              num_attributes() +
+                                              num_functions() + num_results());
+  }
+
  private:
   const BEFKernelHeader* header_;
   // The result table contains the list of NumUsedBys.

@@ -23,6 +23,7 @@
 
 #include "bef_file_impl.h"
 #include "tfrt/host_context/async_value.h"
+#include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/native_function.h"
@@ -138,6 +139,11 @@ bool BEFFileReader::ReadNextSection() {
     // indexed with a byte offset from the FunctionIndex section.
     case BEFSectionID::kFunctions:
       bef_file_->function_section_ = section_data;
+      SkipPast(section_data);
+      break;
+
+    case BEFSectionID::kDebugInfo:
+      bef_file_->debug_info_section_ = section_data;
       SkipPast(section_data);
       break;
   }
@@ -591,6 +597,28 @@ const char* BEFFileImpl::GetKernelName(size_t kernel_id) const {
                                              : kernel_names_[kernel_id];
 }
 #endif
+
+llvm::Optional<DebugInfoEntry> BEFFileImpl::DecodeDebugInfo(
+    BEFKernel* kernel) const {
+  auto* impl = static_cast<const BEFFileImpl*>(this);
+
+  // Check whether the offset is valid.
+  if (!kernel || !kernel->HasDebugInfo()) {
+    return llvm::None;
+  }
+  auto debug_info_offset = kernel->GetDebugInfoOffset();
+  if (debug_info_offset >= impl->debug_info_section_.size()) {
+    return llvm::None;
+  }
+
+  BEFReader reader(impl->debug_info_section_);
+  reader.SkipOffset(debug_info_offset);
+
+  DebugInfoEntry debug_info = reinterpret_cast<const char*>(
+      &impl->debug_info_section_[debug_info_offset]);
+
+  return debug_info;
+}
 
 // Read a list of function names out of the BEF file function index.
 void BEFFile::GetFunctionList(SmallVectorImpl<const Function*>* results) const {

@@ -99,6 +99,10 @@ enum class BEFSectionID : uint8_t {
   // It will be used for converting BEF back to mlir.
   kRegisterTypes = 10,
 
+  // The debug info section contains extra metadata for tracing and debugging
+  // purposes only.
+  kDebugInfo = 11,
+
   // kNumSectionIDs is the number of section ids in a BEF file including
   // optional sections.
   kNumSectionIDs,
@@ -117,6 +121,9 @@ enum class SpecialAttribute : uint8_t {
   // This is the bef.nonstrict attribute, which indicates a kernel is runnable
   // when one of its operands becomes available.
   kNonStrict = 1,
+
+  // This attribute indicates whether a kernel has a debug info available.
+  kHasDebugInfo = 2,
 };
 
 // This enum defined the function kind.

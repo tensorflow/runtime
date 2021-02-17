@@ -47,6 +47,7 @@
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/traits.h"
 #include "tfrt/core_runtime/opdefs/types.h"
+#include "tfrt/host_context/debug_info.h"
 #include "tfrt/support/aligned_buffer.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/error_util.h"
@@ -410,6 +411,8 @@ struct EntityTable {
   typedef std::tuple<unsigned, unsigned, unsigned> LocationTuple;
   llvm::DenseMap<mlir::Operation*, LocationTuple> location_positions;
 
+  llvm::DenseMap<mlir::Operation*, DebugInfoEntry> debug_info;
+
  public:
   LogicalResult Collect(mlir::ModuleOp module,
                         bool collect_attribute_types_and_names);
@@ -429,6 +432,8 @@ struct EntityTable {
   unsigned GetKernelID(mlir::Operation* kernel) const;
 
   void AddLocation(mlir::Operation* op);
+
+  void AddDebugInfo(mlir::Operation* op);
 
   void AddAttributeType(mlir::Attribute attr);
 };
@@ -529,14 +534,49 @@ unsigned EntityTable::GetKernelID(mlir::Operation* kernel) const {
   return it->second;
 }
 
+void EntityTable::AddDebugInfo(mlir::Operation* op) {
+  auto debug_info_location = op->getLoc();
+
+  // If the location is a FusedLoc, look for a NameLoc among its children.
+  // TODO(b/180438663): Handle cases where there are multiple NameLoc.
+  if (auto fused_loc = debug_info_location.dyn_cast<mlir::FusedLoc>()) {
+    for (auto& location : fused_loc.getLocations()) {
+      if (auto named_loc = location.dyn_cast<mlir::NameLoc>()) {
+        debug_info_location = location;
+        break;
+      }
+    }
+  }
+
+  if (auto named_loc = debug_info_location.dyn_cast<mlir::NameLoc>()) {
+    DebugInfoEntry debug_info_entry = named_loc.getName().c_str();
+    auto r = debug_info.try_emplace(op, debug_info_entry);
+    assert(r.second);
+    (void)r;
+  }
+}
+
 void EntityTable::AddLocation(mlir::Operation* op) {
-  auto loc = op->getLoc();
+  auto file_line_col_location = op->getLoc();
   string_view filename = "";
   unsigned line = 0, col = 0;
-  if (auto file_line_col = loc.dyn_cast<mlir::FileLineColLoc>()) {
-    filename = file_line_col.getFilename();
-    line = file_line_col.getLine();
-    col = file_line_col.getColumn();
+
+  // If the location is a FusedLoc, look for a FileLineColLoc among its
+  // children.
+  // TODO(b/180438663): Handle cases where there are multiple FileLineColLoc.
+  if (auto fused_loc = file_line_col_location.dyn_cast<mlir::FusedLoc>()) {
+    for (auto& location : fused_loc.getLocations()) {
+      if (auto loc = location.dyn_cast<mlir::FileLineColLoc>()) {
+        file_line_col_location = loc;
+        break;
+      }
+    }
+  }
+
+  if (auto loc = file_line_col_location.dyn_cast<mlir::FileLineColLoc>()) {
+    filename = loc.getFilename();
+    line = loc.getLine();
+    col = loc.getColumn();
   }
 
   auto next_filename_index = location_filenames.size();
@@ -594,6 +634,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
     }
 
     AddLocation(op);
+    AddDebugInfo(op);
 
     auto* cur_region = op->getParentRegion();
 
@@ -826,6 +867,19 @@ class EntityIndex {
     return loc_it->second;
   }
 
+  void AddDebugInfoOffset(mlir::Operation* op, size_t offset) {
+    debug_info_offset_[op] = offset;
+  }
+
+  llvm::Optional<size_t> GetDebugInfoOffset(mlir::Operation* op) const {
+    auto loc_it = debug_info_offset_.find(op);
+    if (loc_it != debug_info_offset_.end()) {
+      return loc_it->second;
+    } else {
+      return llvm::None;
+    }
+  }
+
  private:
   llvm::StringMap<unsigned> strings_;
   llvm::DenseMap<mlir::Attribute, unsigned> attribute_offsets_;
@@ -838,6 +892,10 @@ class EntityIndex {
 
   // This is the location of the offsets into the section.
   llvm::DenseMap<mlir::Operation*, size_t> location_position_offsets_;
+
+  // This is the offset of associated entry in the debug info section (if any)
+  // kNoDebugInfoEntryOffset represents no entry.
+  llvm::DenseMap<mlir::Operation*, DebugInfoOffset> debug_info_offset_;
 };
 
 }  // namespace
@@ -998,6 +1056,7 @@ class BEFModuleEmitter : public BEFFileEmitter {
   }
 
   void EmitLocationInfo();
+  void EmitDebugInfo();
   void EmitStrings();
   void EmitAttributes(BEFFileEmitter* attribute_types);
   void EmitKernels();
@@ -1037,6 +1096,23 @@ void BEFModuleEmitter::EmitLocationInfo() {
   }
 
   EmitSection(BEFSectionID::kLocationPositions, positions_section);
+}
+
+void BEFModuleEmitter::EmitDebugInfo() {
+  BEFFileEmitter debug_info_section;
+
+  for (const auto& entry : entities_.debug_info) {
+    auto& op = entry.getFirst();
+    auto& debug_info = entry.getSecond();
+
+    entity_index_.AddDebugInfoOffset(op, debug_info_section.size());
+    debug_info_section.EmitBytes(
+        {reinterpret_cast<const uint8_t*>(debug_info.data()),
+         debug_info.size()});
+    debug_info_section.EmitByte(0);
+  }
+
+  EmitSection(BEFSectionID::kDebugInfo, debug_info_section);
 }
 
 void BEFModuleEmitter::EmitStrings() {
@@ -1913,12 +1989,21 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   for (auto result : op->getResults())
     kernel_body.EmitInt4(GetRegisterNumber(result));
 
+  auto debug_info_offset = entity_index_.GetDebugInfoOffset(op);
+  if (debug_info_offset.hasValue()) {
+    special_attribute |= static_cast<uint32_t>(SpecialAttribute::kHasDebugInfo);
+  }
+
   // Emit non-strict flag to special_metadata field of kernel header.
   kernel_list->EmitInt4(special_attribute);
 
   // Then results with the kernels that use them.
   for (auto result : op->getResults())
     EmitKernelResultUsers(result.getUsers(), kernel_list, &kernel_body);
+
+  if (debug_info_offset.hasValue()) {
+    kernel_body.EmitInt4(debug_info_offset.getValue());
+  }
 
   assert(kernel_list->size() % kKernelEntryAlignment == 0);
   assert(kernel_body.size() == 0 ||
@@ -2014,6 +2099,7 @@ AlignedBuffer<8> ConvertMLIRToBEF(mlir::ModuleOp module,
 
   // Emit each section of the file.
   emitter.EmitLocationInfo();
+  emitter.EmitDebugInfo();
   emitter.EmitStrings();
   emitter.EmitAttributes(&attribute_types);
   emitter.EmitKernels();

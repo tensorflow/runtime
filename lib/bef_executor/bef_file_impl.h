@@ -31,6 +31,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/bef_executor/bef_file.h"
+#include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/location.h"
@@ -224,7 +225,7 @@ class BEFLocationHandler final : public LocationHandler {
 // This class is the implementation details behind the BEFFile::Open method,
 // which maintains all the state necessary for the BEFExecutor.  It is fully
 // public because it is a private implementation detail within this library.
-class BEFFileImpl : public BEFFile {
+class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
  public:
   ~BEFFileImpl() override;
 
@@ -303,6 +304,8 @@ class BEFFileImpl : public BEFFile {
   // a DecodedDiagnostic.
   DecodedLocation DecodeLocation(size_t location_position_offset);
 
+  llvm::Optional<DebugInfoEntry> DecodeDebugInfo(BEFKernel*) const override;
+
 #if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
   // Only used for debugging and tracing.
   const char* GetKernelName(size_t kernel_id) const;
@@ -327,6 +330,7 @@ class BEFFileImpl : public BEFFile {
   ArrayRef<uint8_t> location_filenames_section_;
   ArrayRef<uint8_t> location_positions_section_;
   ArrayRef<uint8_t> string_section_;
+  ArrayRef<uint8_t> debug_info_section_;
   ArrayRef<uint8_t> attribute_section_;
   ArrayRef<uint8_t> kernels_section_;
   ArrayRef<uint8_t> types_section_;

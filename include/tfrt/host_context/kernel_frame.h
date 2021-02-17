@@ -32,6 +32,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/attribute_utils.h"
+#include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
@@ -82,6 +83,8 @@ class AsyncKernelFrame {
 
   // Get the location.
   Location GetLocation() const { return exec_ctx_.location(); }
+
+  DebugInfo GetDebugInfo() const { return debug_info_; }
 
   ArrayRef<uint8_t> GetAttributeSection() const { return attribute_section_; }
 
@@ -260,6 +263,7 @@ class AsyncKernelFrame {
   ArrayRef<uint32_t> attribute_offsets_;
   ArrayRef<uint32_t> function_indices_;
   ArrayRef<std::unique_ptr<Function>> functions_;
+  DebugInfo debug_info_;
   ExecutionContext exec_ctx_;
 };
 
@@ -344,6 +348,8 @@ class KernelFrameBuilder : public AsyncKernelFrame {
   void SetLocation(const Location& location) {
     exec_ctx_.set_location(location);
   }
+
+  void SetDebugInfo(const DebugInfo& debug_info) { debug_info_ = debug_info; }
 };
 
 // Implementation details

@@ -492,6 +492,11 @@ void BEFExecutor::ProcessReadyKernel(
     kernel_frame->SetLocation(
         {BefFile()->location_handler(), kernel.kernel_location()});
 
+#if !defined(TFRT_DISABLE_TRACING)
+    // Pass down debug info to kernels.
+    kernel_frame->SetDebugInfo({bef_file_.get(), &kernel});
+#endif
+
     // kernel_fn should populate results in kernel_frame with pointers to
     // AsyncValue before it returns.
     {

@@ -132,6 +132,7 @@ defined in
   SECTION_DATA ::= ATTRIBUTE_TYPES_SECTION
   SECTION_DATA ::= ATTRIBUTE_NAMES_SECTION
   SECTION_DATA ::= REGISTER_TYPES_SECTION
+  SECTION_DATA ::= DEBUG_INFO_SECTION
 
   // Unknown section.
   SECTION_DATA ::= BYTE*
@@ -199,6 +200,25 @@ by an Offset from the start of the section.
 Note: This format doesn't support embedded NULL strings, which is sufficient for
 the existing use cases. We could switch to modified Pascal strings if embeded
 NULL characters become important for something (at a space/complexity cost).
+
+### Debug Info Section
+
+#### Grammar
+
+```none
+  DEBUG_INFO_SECTION ::= NULL_TERMINATED_STRING*
+```
+
+This section contains a list of NULL terminated entries used for debug info
+references in the file. These are referenced by Offsets from the start of the
+Debug Info section.
+
+#### Rationale
+
+We choose to store these separately from the string table, because these
+locations are only ever decoded for tracing purposes. There is no reason to
+dirty data cache lines with them, and we expect no reuse with other general
+strings.
 
 ### Attributes Section
 
@@ -389,13 +409,13 @@ allow the use of kernel indexes.
   KERNEL_HEADER      ::= FIXED32<"KernelCode"> FIXED32<"KernelLocation"> \
                          FIXED32<"NumArguments"> FIXED32<"NumAttributes"> \
                          FIXED32<"NumFunctions"> FIXED32<"NumResults"> \
-                         FIXED32<"SpecialMetadata"> \
+                         FIXED32<"SpecialMetadata">
 
   KERNEL_RESULT_TABLE::= FIXED32<"NumUsedBys">*
 
   KERNEL_BODY        ::= FIXED32<KernelArgument>* FIXED32<KernelAttribute>* \
                          FIXED32<KernelFunction>* FIXED32<KernelResult>* \
-                         FIXED32<KernelUsedBy>*
+                         FIXED32<KernelUsedBy>* FIXED32<"DebugInfo">?
 ```
 
 Each instance of a kernel includes a kernel header, a result table and a kernel
@@ -404,7 +424,8 @@ defined by the Kernels section), a location (an offset into the
 [LocationPositions section](#locationpositions-section)) the numbers of
 arguments, attributes, functions and results in the kernel body, and a special
 metadata field. Currently the special metadata encodes if the kernel is
-non-strict in the lowest bit (`0x00000001` indicates non-strict kernel).
+non-strict in the lowest bit (`0x00000001` indicates non-strict kernel), as well
+as whether the kernel has debug info in `0x00000010` bit.
 
 The result table contains NumResults fixed32 integers, indicating the number of
 users for each corresponding result. The kernel body consists of zero or more
@@ -419,7 +440,9 @@ of 'result' records. For example, if there are two results, A and B, and A has
 one user (a0) and B has two users (b0, b1), then FIXED32<"NumResults"> will be
 `0x00000002`, followed by two FIXED32<"NumUsedBys">, `0x00000001` `0x00000002`;
 and in the kernel body there will be three "used by" records, a0, b0 and b1,
-consecutively.
+consecutively. If the debug info bit is set in special metadata, the kernel body
+includes a FIXED32<"DebugInfo"> which is an offset into the
+[Debug Info section](#debug-info-section)
 
 #### Rationale
 

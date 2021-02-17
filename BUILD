@@ -142,6 +142,7 @@ tfrt_cc_library(
         "include/tfrt/host_context/attribute_utils.h",
         "include/tfrt/host_context/chain.h",
         "include/tfrt/host_context/concurrent_work_queue.h",
+        "include/tfrt/host_context/debug_info.h",
         "include/tfrt/host_context/device.h",
         "include/tfrt/host_context/diagnostic.h",
         "include/tfrt/host_context/execution_context.h",
@@ -450,6 +451,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "mlirtobef",
     srcs = [
+        "include/tfrt/host_context/debug_info.h",
         "lib/bef_converter/mlir_to_bef/mlir_to_bef.cc",
     ],
     hdrs = [

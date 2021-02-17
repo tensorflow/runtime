@@ -23,6 +23,7 @@
 #ifndef TFRT_HOST_CONTEXT_EXECUTION_CONTEXT_H_
 #define TFRT_HOST_CONTEXT_EXECUTION_CONTEXT_H_
 
+#include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/resource_context.h"
 #include "tfrt/support/map_by_type.h"

@@ -419,6 +419,16 @@ static void TestMultiArgResult(RemainingArguments args,
   }
 }
 
+template <typename T>
+static void TestPrintDebugInfo(T* frame) {
+  auto debug_info = frame->GetDebugInfo();
+  if (auto debug_info_entry = debug_info.GetDebugInfo()) {
+    tfrt::outs() << debug_info_entry.getValue() << "\n";
+  } else {
+    tfrt::outs() << "Kernel has no debug info\n";
+  }
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -444,7 +454,11 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestPrintTypedAttr));
   registry->AddKernel("tfrt_test.multi_arg_result",
                       TFRT_KERNEL(TestMultiArgResult));
-
+  registry->AddKernel("tfrt_test.print_debug_info",
+                      TFRT_KERNEL(TestPrintDebugInfo<AsyncKernelFrame>));
+  registry->AddSyncKernel(
+      "tfrt_test.sync_print_debug_info",
+      TFRT_SYNC_KERNEL(TestPrintDebugInfo<SyncKernelFrame>));
   registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32",
                       TFRT_KERNEL(TestInvokeSyncFunction));
   registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32_i32",

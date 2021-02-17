@@ -28,6 +28,7 @@
 #define TFRT_CORE_RUNTIME_OP_UTILS_H_
 
 #include <tuple>
+#include <type_traits>
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/Error.h"
@@ -109,8 +110,7 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
       const ExecutionContext& exec_ctx, ArrayRef<TensorMetadata> arguments,
       const OpAttrsRef& attrs, MutableArrayRef<TensorMetadata> results) {
     return HandleReturn(
-        MetadataFnCallHelper<Args..., TypeTag<int>>::template Invoke<0, 0,
-                                                                     false>(
+        MetadataFnCallHelper<Args..., void>::template Invoke<0, 0, false>(
             arguments, attrs, results, exec_ctx),
         results, exec_ctx);
   }
@@ -311,10 +311,11 @@ struct MetadataFnImpl<ReturnT (*)(Args...), impl_fn> {
   };
 
   // Base case: No arguments left.
-  // TypeTag<T> is a dummy template parameter to work around the restriction
-  // of GCC that fully specialized template is not allowed in a template class.
+  // The trailing template argument works around around the restriction of GCC
+  // not being fully C++14 compliant and not allowing fully specialized
+  // templates in class scope.
   template <typename T>
-  struct MetadataFnCallHelper<TypeTag<T>> {
+  struct MetadataFnCallHelper<T> {
     template <int arg_idx, int result_idx, bool has_attrs,
               typename... PreviousArgs>
     static ReturnT Invoke(ArrayRef<TensorMetadata> arguments,
@@ -347,9 +348,8 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                      ArrayRef<TensorMetadata> result_mds,
                      MutableArrayRef<RCReference<AsyncValue>> results,
                      AsyncValueRef<Chain>* chain) {
-    DispatchFnCallHelper<true, Args..., TypeTag<int>>::template Invoke<
-        0, 0, 0, false, false>(ctx, arguments, attrs, result_mds, results,
-                               chain, exec_ctx);
+    DispatchFnCallHelper<Args..., void>::template Invoke<0, 0, 0, false, false>(
+        ctx, arguments, attrs, result_mds, results, chain, exec_ctx);
   }
 
   // If DeviceContext is HostContext, avoid adding HostContext as an
@@ -362,22 +362,12 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                      ArrayRef<TensorMetadata> result_mds,
                      MutableArrayRef<RCReference<AsyncValue>> results,
                      AsyncValueRef<Chain>* chain) {
-    DispatchFnCallHelper<true, Args..., TypeTag<int>>::template Invoke<
-        0, 0, 0, false, false>(exec_ctx.host(), arguments, attrs, result_mds,
-                               results, chain, exec_ctx);
+    DispatchFnCallHelper<Args..., void>::template Invoke<0, 0, 0, false, false>(
+        exec_ctx.host(), arguments, attrs, result_mds, results, chain,
+        exec_ctx);
   }
 
  protected:
-  // Helper that introspects the DispatchFn's arguments to derive the signature
-  // and pass arguments, attributes, results, out_chain and location to impl_fn.
-  // Works by recursively unpacking the DispatchFn's arguments.
-  //
-  // NOTE(fishx): The specification will only be used if Enable is true. We use
-  // it to achieve similar functionality as std::enable_if, which we cannot use
-  // due to the repeated types.
-  template <bool Enable, typename... RemainingArgs>
-  struct DispatchFnCallHelper;
-
   // The return value is AsyncValueRef<T>.
   template <int result_idx, bool has_chain, typename T>
   struct DispatchReturnHelper {
@@ -517,9 +507,15 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
          0)...};
   }
 
+  // Helper that introspects the DispatchFn's arguments to derive the signature
+  // and pass arguments, attributes, results, out_chain and location to impl_fn.
+  // Works by recursively unpacking the DispatchFn's arguments.
+  template <typename... RemainingArgs>
+  struct DispatchFnCallHelper;
+
   // Specialization for passing OpAttrsRef.
   template <typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, const OpAttrsRef&, RemainingArgs...> {
+  struct DispatchFnCallHelper<const OpAttrsRef&, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -535,7 +531,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                     "Do not place OpAttrsRef after result Tensor");
       static_assert(md_idx == 0,
                     "Do not place OpAttrsRef after result Metadata");
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, true, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           attrs);
@@ -544,7 +540,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing a Metadata result.
   template <typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, const TensorMetadata&, RemainingArgs...> {
+  struct DispatchFnCallHelper<const TensorMetadata&, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -559,7 +555,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
       static_assert(!has_chain, "Do not place result Metadata after chain");
       assert(md_idx < result_mds.size());
       const TensorMetadata& md = result_mds[md_idx];
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx + 1, has_attrs, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           md);
@@ -568,8 +564,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing a Tensor result.
   template <typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, RCReference<AsyncValue>*,
-                              RemainingArgs...> {
+  struct DispatchFnCallHelper<RCReference<AsyncValue>*, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -582,7 +577,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
       static_assert(!has_chain, "Do not place result Tensor after chain");
       assert(result_idx < results.size());
       RCReference<AsyncValue>* arg = &results[result_idx];
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx, result_idx + 1, md_idx, has_attrs, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           arg);
@@ -591,7 +586,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing out_chain.
   template <typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, AsyncValueRef<Chain>*, RemainingArgs...> {
+  struct DispatchFnCallHelper<AsyncValueRef<Chain>*, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -602,7 +597,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        const ExecutionContext& exec_ctx,
                        const PreviousArgs&... pargs) {
       static_assert(!has_chain, "Do not place more than one chain");
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, has_attrs, true>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           chain);
@@ -611,7 +606,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing const ExecutionContext&.
   template <typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, const ExecutionContext&, RemainingArgs...> {
+  struct DispatchFnCallHelper<const ExecutionContext&, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -621,7 +616,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        AsyncValueRef<Chain>* chain,
                        const ExecutionContext& exec_ctx,
                        const PreviousArgs&... pargs) {
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, has_attrs, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           exec_ctx);
@@ -630,8 +625,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing DeviceContext*.
   template <typename... RemainingArgs>
-  struct DispatchFnCallHelper<!std::is_same<DeviceContext, HostContext>::value,
-                              DeviceContext*, RemainingArgs...> {
+  struct DispatchFnCallHelper<DeviceContext*, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -641,7 +635,9 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
                        AsyncValueRef<Chain>* chain,
                        const ExecutionContext& exec_ctx,
                        const PreviousArgs&... pargs) {
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      static_assert(!std::is_same<DeviceContext, HostContext>::value,
+                    "Does not support host context");
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx, result_idx, md_idx, has_attrs, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           ctx);
@@ -650,7 +646,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing a Tensor pointer argument.
   template <typename Head, typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, Head*, RemainingArgs...> {
+  struct DispatchFnCallHelper<Head*, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -673,7 +669,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
       // The CPU device will implicitly convert argument for us in the future.
       Head& arg = arguments[arg_idx]->get<Head>();
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx + 1, result_idx, md_idx, has_attrs, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           &arg);
@@ -682,7 +678,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing a const ref Tensor argument.
   template <typename Head, typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, const Head&, RemainingArgs...> {
+  struct DispatchFnCallHelper<const Head&, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -705,7 +701,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
       // The CPU device will implicitly convert argument for us in the future.
       Head& arg = arguments[arg_idx]->get<Head>();
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx + 1, result_idx, md_idx, has_attrs, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           arg);
@@ -714,7 +710,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing an argument.
   template <typename Head, typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, Argument<Head>, RemainingArgs...> {
+  struct DispatchFnCallHelper<Argument<Head>, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -737,7 +733,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
       // The CPU device will implicitly convert argument for us in the future.
       Argument<Head> arg(arguments[arg_idx]);
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           arg_idx + 1, result_idx, md_idx, has_attrs, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           arg);
@@ -746,7 +742,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing an optional ref Tensor argument.
   template <typename Head, typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, OptionalOpArg<Head>, RemainingArgs...> {
+  struct DispatchFnCallHelper<OptionalOpArg<Head>, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -780,12 +776,12 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
         Head* arg = &arguments[arg_idx]->get<Head>();
         // TODO(b/146386166): Emit error instead of assert().
         assert(arg && "requires Tensor input");
-        DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+        DispatchFnCallHelper<RemainingArgs...>::template Invoke<
             -1, result_idx, md_idx, has_attrs, has_chain>(
             ctx, arguments, attrs, result_mds, results, chain, exec_ctx,
             pargs..., arg);
       } else {
-        DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+        DispatchFnCallHelper<RemainingArgs...>::template Invoke<
             -1, result_idx, md_idx, has_attrs, has_chain>(
             ctx, arguments, attrs, result_mds, results, chain, exec_ctx,
             pargs..., OptionalOpArg<Head>());
@@ -795,7 +791,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
   // Specialization for passing a variadic ref Tensor argument.
   template <typename Head, typename... RemainingArgs>
-  struct DispatchFnCallHelper<true, RepeatedArguments<Head>, RemainingArgs...> {
+  struct DispatchFnCallHelper<RepeatedArguments<Head>, RemainingArgs...> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,
@@ -825,7 +821,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
 
       assert(arg_idx <= arguments.size());
       ArrayRef<AsyncValue*> var_tensor_args = arguments.drop_front(arg_idx);
-      DispatchFnCallHelper<true, RemainingArgs...>::template Invoke<
+      DispatchFnCallHelper<RemainingArgs...>::template Invoke<
           -1, result_idx, md_idx, has_attrs, has_chain>(
           ctx, arguments, attrs, result_mds, results, chain, exec_ctx, pargs...,
           RepeatedArguments<Head>(var_tensor_args));
@@ -833,10 +829,11 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
   };
 
   // Base case: No arguments left.
-  // TypeTag<T> is a dummy template parameter to work around the restriction
-  // of GCC that fully specialized template is not allowed in a template class.
+  // The trailing template argument works around around the restriction of GCC
+  // not being fully C++14 compliant and not allowing fully specialized
+  // templates in class scope.
   template <typename T>
-  struct DispatchFnCallHelper<true, TypeTag<T>> {
+  struct DispatchFnCallHelper<T> {
     template <int arg_idx, int result_idx, int md_idx, bool has_attrs,
               bool has_chain, typename... PreviousArgs>
     static void Invoke(DeviceContext* ctx, ArrayRef<AsyncValue*> arguments,

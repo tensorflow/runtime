@@ -189,8 +189,8 @@ void SyncMatMul2D(T alpha, DHTIndexableView<T, 2> A, DHTIndexableView<T, 2> B,
 // Computes B = Relu(A).
 // TODO(haoliang): Unify `Relu` and `SyncRelu` with a template function.
 template <typename T>
-static AsyncValueRef<Chain> Relu(const DenseHostTensor& A, DenseHostTensor* B,
-                                 const ExecutionContext& exec_ctx) {
+AsyncValueRef<Chain> Relu(const DenseHostTensor& A, DenseHostTensor* B,
+                          const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) { return a.cwiseMax(static_cast<T>(0)); };
   return ::tfrt::compat::UnaryEigenKernelAsync<T, T>(A, B, std::move(fn),
                                                      exec_ctx);
@@ -198,8 +198,8 @@ static AsyncValueRef<Chain> Relu(const DenseHostTensor& A, DenseHostTensor* B,
 
 // Computes B = Relu(A) in sync style.
 template <typename T>
-static llvm::Error SyncRelu(const DenseHostTensor& A, DenseHostTensor* B,
-                            const ExecutionContext& exec_ctx) {
+llvm::Error SyncRelu(const DenseHostTensor& A, DenseHostTensor* B,
+                     const ExecutionContext& exec_ctx) {
   auto fn = [](auto& a, auto& b) { return a.cwiseMax(static_cast<T>(0)); };
   return ::tfrt::compat::UnaryEigenKernel<T, T>(A, B, std::move(fn), exec_ctx);
 }
@@ -209,10 +209,10 @@ static llvm::Error SyncRelu(const DenseHostTensor& A, DenseHostTensor* B,
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-static AsyncValueRef<Chain> Mean(const DenseHostTensor& input,
-                                 ArrayRef<int32_t> reduction_indices,
-                                 DenseHostTensor* output,
-                                 const ExecutionContext& exec_ctx) {
+AsyncValueRef<Chain> Mean(const DenseHostTensor& input,
+                          ArrayRef<int32_t> reduction_indices,
+                          DenseHostTensor* output,
+                          const ExecutionContext& exec_ctx) {
   auto mean = [&](auto input_rank_tag,
                   auto reduction_rank_tag) -> AsyncValueRef<Chain> {
     constexpr int input_rank = decltype(input_rank_tag)::value;
@@ -271,10 +271,10 @@ static AsyncValueRef<Chain> Mean(const DenseHostTensor& input,
 // A special case of tf.add where bias is restricted to be 1-D.
 // Currently only support NHWC data format.
 template <typename T, size_t RANK>
-static AsyncValueRef<Chain> BiasAdd(const DenseHostTensor& input,
-                                    const DenseHostTensor& bias,
-                                    DenseHostTensor* output,
-                                    const ExecutionContext& exec_ctx) {
+AsyncValueRef<Chain> BiasAdd(const DenseHostTensor& input,
+                             const DenseHostTensor& bias,
+                             DenseHostTensor* output,
+                             const ExecutionContext& exec_ctx) {
   DHTIndexableView<T, RANK> input_view(&input);
   MutableDHTIndexableView<T, RANK> output_view(output);
   DHTIndexableView<T, 1> bias_view(&bias);

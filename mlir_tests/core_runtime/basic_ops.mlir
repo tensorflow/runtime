@@ -542,3 +542,55 @@ func @control_flow_while_loop_error() {
 
   tfrt.return
 }
+
+func @branch0(%arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!corert.tensorhandle) {
+  %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
+  %res = corert.executeop(%cpu) "tfrt_test.add"(%arg0, %arg1) : 1
+  tfrt.return %res : !corert.tensorhandle
+}
+
+func @branch1(%arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!corert.tensorhandle) {
+  %ch0 = tfrt.new.chain
+  %cpu = corert.get_op_handler %ch0 "cpu"
+  %th = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1], values = [4 : i32] } : 1
+  %add0 = corert.executeop(%cpu) "tfrt_test.add"(%arg0, %arg1) : 1
+  %res = corert.executeop(%cpu) "tfrt_test.add"(%add0, %th) : 1
+  tfrt.return %res : !corert.tensorhandle
+}
+
+// CHECK-LABEL: --- Running 'test_control_flow_case'
+func @test_control_flow_case() {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %branch_index0_th = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1], values = [0 : i32] } : 1
+
+  %branch_index0 = corert.tensorhandle_to_int32 %branch_index0_th
+
+  %branch_index1_th = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1], values = [1 : i32] } : 1
+
+  %branch_index1 = corert.tensorhandle_to_int32 %branch_index1_th
+
+  %arg0 = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1], values = [2 : i32] } : 1
+
+  %arg1 = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1], values = [4 : i32] } : 1
+
+  %res0 = tfrt.case %branch_index0 [@branch0, @branch1] (%arg0, %arg1) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [1], values = [6]
+  %ch1 = "corert.print_tensorhandle"(%res0, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  %res1 = tfrt.case %branch_index1 [@branch0, @branch1] (%arg0, %arg1) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
+
+  // CHECK: DenseHostTensor dtype = I32, shape = [1], values = [10]
+  %ch2 = "corert.print_tensorhandle"(%res1, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+
+  tfrt.return
+}

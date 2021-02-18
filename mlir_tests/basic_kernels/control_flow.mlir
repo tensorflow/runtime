@@ -222,3 +222,39 @@ func @if_test_with_func() {
 
   tfrt.return
 }
+
+func @branch0(%arg: i32) -> i32 {
+  %one = tfrt.constant.i32 2
+  %res = tfrt.add.i32 %arg, %one
+  tfrt.return %res : i32
+}
+
+func @branch1(%arg: i32) -> i32 {
+  %two = tfrt.constant.i32 3
+  %res = tfrt.add.i32 %arg, %two
+  tfrt.return %res : i32
+}
+
+// tfrt.case tests.
+// CHECK-LABEL: --- Running 'tfrt_case_test'
+func @tfrt_case_test() {
+  %ch0 = tfrt.new.chain
+
+  %branch_index = tfrt.constant.i32 0
+
+  %arg = tfrt.constant.i32 40
+
+  %res = tfrt.case %branch_index [@branch0, @branch1] (%arg) :  (i32) -> (i32)
+
+  // CHECK: int32 = 42
+  %ch1 = tfrt.print.i32 %res, %ch0
+
+  %branch_index1 = tfrt.constant.i32 1
+
+  %res1 = tfrt.case %branch_index1 [@branch0, @branch1] (%arg) :  (i32) -> (i32)
+
+  // CHECK: int32 = 43
+  %ch2 = tfrt.print.i32 %res1, %ch1
+
+  tfrt.return
+}

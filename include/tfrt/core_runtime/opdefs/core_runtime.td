@@ -366,4 +366,19 @@ def CoreRT_TransferInferredTensortypeOp : CoreRT_Op<"transfer_inferred_tensortyp
   let verifier = ?;
 }
 
+def CoreRT_TensorHandleToIntOp : CoreRT_Op<"tensorhandle_to_int32"> {
+  let summary = "Cast a TensorHandle to int32.";
+  let description = [{
+    Cast a TensorHandle to int32.
+
+    Example:
+      %one = corert.tensorhandle_to_int32 %src_th
+  }];
+
+  let arguments = (ins CoreRT_TensorHandleType:$src);
+  let results = (outs I32:$result);
+  let assemblyFormat = "operands attr-dict";
+  let verifier = ?;
+}
+
 #endif

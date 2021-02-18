@@ -753,6 +753,15 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
             AddAttributeType(attr.second);
           }
 
+          // Skip collecting array of function attributes.
+          auto array_attr = attr.second.dyn_cast<mlir::ArrayAttr>();
+          if (array_attr) {
+            if (!array_attr.empty() &&
+                array_attr.begin()->dyn_cast<mlir::SymbolRefAttr>()) {
+              continue;
+            }
+          }
+
           // We ignore the name of attributes, they just get passed as
           // arguments.
           if (is_op_attrs_typed)
@@ -1953,6 +1962,21 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
       special_attribute |= static_cast<uint32_t>(SpecialAttribute::kNonStrict);
       continue;
     }
+
+    // Emit array of function attributes.
+    if (auto array_fn_attr =
+            attr_name_pair.second.dyn_cast<mlir::ArrayAttr>()) {
+      if (!array_fn_attr.empty() &&
+          array_fn_attr.begin()->dyn_cast<mlir::FlatSymbolRefAttr>()) {
+        for (auto fn : array_fn_attr) {
+          num_input_functions++;
+          input_function_emitter.EmitInt4(entities_.GetFunctionNamed(
+              fn.dyn_cast<mlir::FlatSymbolRefAttr>().getValue()));
+        }
+        continue;
+      }
+    }
+
     if (auto fn_attr =
             attr_name_pair.second.dyn_cast<mlir::FlatSymbolRefAttr>()) {
       // Function references are output as regions.

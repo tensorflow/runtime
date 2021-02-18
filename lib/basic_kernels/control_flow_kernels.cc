@@ -22,6 +22,7 @@
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/support/rc_array.h"
 #include "tfrt/support/ref_count.h"
 
@@ -44,6 +45,98 @@ static void TFRTCall(RemainingArguments args, RemainingResults results,
          "result count mismatch");
 
   fn->Execute(exec_ctx, args.values(), results.values());
+}
+
+static void TFRTCase(RemainingArguments args, RemainingResults results,
+                     RemainingFunctions branches,
+                     const ExecutionContext& exec_ctx) {
+  // The first argument is branch index, which must present.
+  assert(args.size() >= 1);
+
+  auto case_impl = [exec_ctx](
+                       SmallVector<const Function*, 4> branches,
+                       AsyncValue* branch_index_av, ArrayRef<AsyncValue*> args,
+                       MutableArrayRef<RCReference<AsyncValue>> results) {
+    assert(branch_index_av->IsAvailable());
+    // If we have an error, propagate to all the results.
+    if (branch_index_av->IsError()) {
+      for (auto& result : results) result = FormRef(branch_index_av);
+      return;
+    }
+
+    // Otherwise obtain the branch index and execute the branch.
+    int branch_index = branch_index_av->get<int>();
+    // Check if index is valid.
+    if (branch_index < 0 || branch_index >= branches.size()) {
+      auto error = EmitErrorAsync(
+          exec_ctx,
+          tfrt::StrCat("branch_index invalid. branch index: ", branch_index,
+                       " # branches: ", branches.size()),
+          tfrt::ErrorCode::kInvalidArgument);
+      for (auto& result : results) result = error.CopyRef();
+    }
+    branches[branch_index]->Execute(exec_ctx, args.drop_front(), results);
+  };
+
+  // If branch_index is available, try to dispatch the branch right away.
+  AsyncValue* branch_index_av = args[0];
+  if (branch_index_av->IsAvailable()) {
+    // Obtain the branches from RemainingAttributes.
+    SmallVector<const Function*, 4> branch_vector;
+    branch_vector.reserve(branches.size());
+    for (int i = 0, e = branches.size(); i != e; ++i)
+      branch_vector.push_back(&(*branches.Get(i)));
+    case_impl(branch_vector, branch_index_av, args.values(), results.values());
+    return;
+  }
+
+  // Copy `args` and add a ref to each arg. These refs will be dropped when the
+  // RCArray is destroyed. arg_refs is captured by the lambda so the kernel's
+  // arguments will be available when the closure runs.
+  RCArray<AsyncValue> arg_refs(args.values());
+
+  SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs;
+  result_refs.reserve(results.size());
+  for (int i = 0, e = results.size(); i != e; ++i) {
+    auto result = results.AllocateIndirectResultAt(i);
+    // To ensure the results live long enough to be filled in by our deferred
+    // evaluation, we keep the RCReferences holding the results.
+    result_refs.push_back(std::move(result));
+  }
+
+  // Copy `branches` and add a ref to each branch, which is captured by the
+  // lambda so the function pointers to the branches will be available when the
+  // closure runs.
+  SmallVector<RCReference<const Function>, 4> branch_refs;
+  branch_refs.reserve(branches.size());
+  for (int i = 0, e = branches.size(); i != e; ++i) {
+    const Function* branch = &(*branches.Get(i));
+    branch_refs.push_back(FormRef(branch));
+  }
+
+  // Dispatch when the branch index becomes available.
+  branch_index_av->AndThen([case_impl, branch_refs = std::move(branch_refs),
+                            branch_index_av = std::move(branch_index_av),
+                            arg_refs = std::move(arg_refs),
+                            result_refs = std::move(result_refs)] {
+    assert(arg_refs[0]->IsAvailable() &&
+           "We must have the branch index by now");
+
+    SmallVector<RCReference<AsyncValue>, 8> results;
+    results.resize(result_refs.size());
+
+    SmallVector<const Function*, 4> branch_vector;
+    branch_vector.reserve(branch_refs.size());
+    for (int i = 0, e = branch_refs.size(); i != e; ++i)
+      branch_vector.push_back(branch_refs[i].get());
+    case_impl(branch_vector, branch_index_av, arg_refs.values(), results);
+
+    // Forward result_refs to results. This transfers the +1 results returned by
+    // Execute to the ForwardTo call.
+    for (int i = 0, e = result_refs.size(); i != e; ++i) {
+      result_refs[i]->ForwardTo(std::move(results[i]));
+    }
+  });
 }
 
 // tfrt.if dispatches to a 'true' or 'false' function based on a condition.
@@ -321,6 +414,7 @@ void RegisterControlFlowKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt.call", TFRT_KERNEL(TFRTCall));
   registry->AddKernel("tfrt.if", TFRT_KERNEL(TFRTIf));
   registry->AddKernel("tfrt.cond", TFRT_KERNEL(TFRTIf));
+  registry->AddKernel("tfrt.case", TFRT_KERNEL(TFRTCase));
 }
 
 }  // namespace tfrt

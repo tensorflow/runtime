@@ -413,6 +413,29 @@ class RemainingAttributes {
   int attr_begin_ = 0;
 };
 
+// Similar to ReminingAttributes, RemainingFunctions collects all functions.
+// There can be at most one RemainingFunctions, and it must appear after
+// all other Attribute<Function>.
+class RemainingFunctions {
+ public:
+  explicit RemainingFunctions(AsyncKernelFrame* kernel_frame, int func_begin)
+      : kernel_frame_(kernel_frame), func_begin_(func_begin) {
+    assert(kernel_frame_);
+    assert(kernel_frame_->GetNumFunctions() >= func_begin_);
+  }
+
+  size_t size() const { return kernel_frame_->GetNumFunctions() - func_begin_; }
+
+  Attribute<Function> Get(size_t i) const {
+    return Attribute<Function>(
+        static_cast<const void*>(kernel_frame_->GetFunction(i + func_begin_)));
+  }
+
+ private:
+  AsyncKernelFrame* kernel_frame_ = nullptr;
+  int func_begin_ = 0;
+};
+
 // Kernels can take one of these if they need to report runtime errors.
 class KernelErrorHandler {
  public:
@@ -894,6 +917,21 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
+  template <typename... Tail>
+  struct SyncKernelCallHelper<RemainingFunctions, Tail...> {
+    template <int in_idx, int out_idx, int const_idx, int func_idx,
+              bool has_kernel_error, bool has_in_chain,
+              typename... PreviousArgs>
+    static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(func_idx != -1,
+                    "Do not use more than one RemainingFunctions");
+      RemainingFunctions remaining_functions(frame, func_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<
+          in_idx, out_idx, const_idx, /*func_idx=*/-1, has_kernel_error,
+          has_in_chain>(frame, pargs..., remaining_functions);
+    }
+  };
+
   // If this kernel can fail, pass it an error argument.
   template <typename... Tail>
   struct SyncKernelCallHelper<KernelErrorHandler, Tail...> {
@@ -1030,7 +1068,8 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
              "Extra arguments passed to kernel.");
       assert(const_idx == frame->GetNumAttributes() ||
              const_idx == -1 && "Extra attributes passed to kernel.");
-      assert(func_idx == frame->GetNumFunctions());
+      assert(func_idx == frame->GetNumFunctions() ||
+             func_idx == -1 && "Extra functions passed to kernel.");
       SyncKernelReturnHelper<has_kernel_error, Return>::Invoke(frame, pargs...);
     }
   };

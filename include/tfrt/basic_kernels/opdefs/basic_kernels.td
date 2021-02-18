@@ -103,6 +103,38 @@ def SyncConstantI64Op : SyncConstantOp<"i64", I64, I64Attr>;
 def SyncConstantF32Op : SyncConstantOp<"f32", F32, F32Attr>;
 def SyncConstantF64Op : SyncConstantOp<"f64", F64, F64Attr>;
 
+def CaseOp : TFRT_Op<"case"> {
+  let summary = "An n-way switch statement which calls a single branch function.";
+  let description = [{
+    An n-way switch statement, implementing the following:
+        ```
+        switch (branch_index) {
+          case 0:
+            output = branches[0](input);
+            break;
+          case 1:
+            output = branches[1](input);
+            break;
+          ...
+          case [[nbranches-1]]:
+          default:
+            output = branches[nbranches-1](input);
+            break;
+        }
+        ```
+  }];
+
+  let arguments = (ins I32:$branch_index,
+                       ArrayAttr:$branches,
+                       Variadic<AnyType>:$branch_operands);
+
+  let results = (outs Variadic<AnyType>:$branch_outputs);
+  let assemblyFormat = [{
+    $branch_index $branches `(` $branch_operands `)` attr-dict `:` `(` type($branch_operands) `)` `->` `(` type($branch_outputs) `)`
+  }];
+  let verifier = ?;
+}
+
 def IfOp : TFRT_Op<"if"> {
   let summary = "if operation";
   let description = [{

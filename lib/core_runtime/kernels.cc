@@ -806,6 +806,56 @@ static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
   return result;
 }
 
+// Convert a TensorHandle to a single integer (compiler should ensure the
+// TensorHandle is a dense tensor with a single value). This kernel is
+// specifically a helper for obtaining the index value of `tf.Case` op.
+static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
+    const TensorHandle &src, const ExecutionContext &exec_ctx) {
+  auto get_index = [exec_ctx](AsyncValue *src_av,
+                              AsyncValueRef<int32_t> result) {
+    if (src_av->IsError()) {
+      result.SetError(src_av->GetError().message);
+    } else {
+      assert(src_av->IsAvailable() && "Tensor should be available.");
+      // Check the validity of the index.
+      if (!src_av->IsType<DenseHostTensor>() &&
+          src_av->get<DenseHostTensor>().dtype() != GetDType<int32_t>()) {
+        result.SetError(
+            {"Expecting a DenseHostTensor of int32 as branch index.",
+             ErrorCode::kInvalidArgument});
+      } else if (src_av->get<DenseHostTensor>().shape() != TensorShape{1}) {
+        result.SetError(
+            {"The tensor should have only one element, which is the index.",
+             ErrorCode::kInvalidArgument});
+      } else {
+        auto *index_ptr = src_av->get<DenseHostTensor>().data();
+        int index = *reinterpret_cast<int32_t *>(index_ptr);
+        result.emplace(index);
+      }
+    }
+  };
+
+  AsyncValue *src_av = src.GetAsyncTensor();
+
+  if (src_av->IsAvailable()) {
+    auto result = MakeUnconstructedAsyncValueRef<int32_t>(exec_ctx.host());
+    get_index(src_av, result.CopyRef());
+    return result;
+  } else {
+    RCReference<IndirectAsyncValue> result_ind_av =
+        MakeIndirectAsyncValue(exec_ctx.host());
+    auto result = AsyncValueRef<int32_t>(result_ind_av.CopyRef());
+    src_av->AndThen([src_av = FormRef(src_av), get_index,
+                     result_ind_av = std::move(result_ind_av), exec_ctx] {
+      auto result_value =
+          MakeUnconstructedAsyncValueRef<int32_t>(exec_ctx.host());
+      get_index(src_av.get(), result_value.CopyRef());
+      result_ind_av->ForwardTo(FormRef(result_value.GetAsyncValue()));
+    });
+    return result;
+  }
+}
+
 //===----------------------------------------------------------------------===//
 // Registration
 //===----------------------------------------------------------------------===//
@@ -888,6 +938,8 @@ void RegisterCoreRuntimeKernels(KernelRegistry *registry) {
   registry->AddKernel("corert.while", TFRT_KERNEL(CoreRtWhileLoop));
   registry->AddKernel("corert.get_dst_tensor_type",
                       TFRT_KERNEL(CoreRtGetDstTensorType));
+  registry->AddKernel("corert.tensorhandle_to_int32",
+                      TFRT_KERNEL(CoreRtTensorHandleToInt32));
 
   registry->AddSyncKernel("corert_sync.print_tensorhandle",
                           TFRT_SYNC_KERNEL(PrintTensorHandleSync));

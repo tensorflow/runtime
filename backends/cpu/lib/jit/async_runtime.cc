@@ -21,7 +21,9 @@
 
 #include "tfrt/cpu/jit/async_runtime.h"
 
+#include <cstddef>
 #include <memory>
+#include <type_traits>
 
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -43,14 +45,17 @@ namespace runtime {
 
 using tfrt::AsyncValueRef;
 using tfrt::HostBuffer;
+using tfrt::HostContext;
+using tfrt::MakeConstructedAsyncValueRef;
 using tfrt::RCReference;
 using tfrt::cpu::jit::AsyncRuntime;
 using tfrt::cpu::jit::AsyncRuntimeObject;
 
 class AsyncToken : public AsyncRuntimeObject {
  public:
-  explicit AsyncToken(AsyncValueRef<tfrt::Chain> chain, unsigned ref_count = 1)
-      : AsyncRuntimeObject(ref_count), chain_(std::move(chain)) {}
+  explicit AsyncToken(HostContext* host, unsigned ref_count = 1)
+      : AsyncRuntimeObject(ref_count),
+        chain_(MakeConstructedAsyncValueRef<tfrt::Chain>(host)) {}
 
   tfrt::AsyncValue* GetAsyncValue() const { return chain_.GetAsyncValue(); }
 
@@ -60,26 +65,52 @@ class AsyncToken : public AsyncRuntimeObject {
 
 class AsyncValue : public AsyncRuntimeObject {
  public:
-  explicit AsyncValue(RCReference<HostBuffer> host_buffer,
-                      AsyncValueRef<tfrt::Chain> chain, unsigned ref_count = 1)
+  explicit AsyncValue(HostContext* host, size_t size, size_t alignment,
+                      unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
-        host_buffer_(std::move(host_buffer)),
-        chain_(std::move(chain)) {}
+        storage_(Storage::CanStoreInline(size, alignment)
+                     ? MakeConstructedAsyncValueRef<Storage>(host)
+                     : MakeConstructedAsyncValueRef<Storage>(host, host, size,
+                                                             alignment)) {}
 
-  HostBuffer& GetHostBuffer() const { return *host_buffer_; }
-  tfrt::AsyncValue* GetAsyncValue() const { return chain_.GetAsyncValue(); }
+  void* GetStorage() const {
+    if (storage_->is_inline) return &storage_->inline_buffer;
+    return storage_->host_buffer->data();
+  }
+
+  tfrt::AsyncValue* GetAsyncValue() const { return storage_.GetAsyncValue(); }
 
  private:
-  // TODO(ezhulenev): HostBuffer s overkill for the average async value usage.
-  // In most of the cases what we need here is an AsyncValue of "inlined
-  // storage" that can fit memref descriptor of rank 4 (maybe 5) without heap
-  // allocation (see StridedMemRefType in CRunnerUtils.h).
-  RCReference<tfrt::HostBuffer> host_buffer_;
-  // TODO(ezhulenev): In case of runtime async values the lifetime of a chain_
-  // is the same as the parent object, and tfrt::AsycValue can be allocated on
-  // the stack (see example in cl/316296982). For tokens we can "extract" the
-  // chain by copying it, and it can outlive the runtime token.
-  AsyncValueRef<tfrt::Chain> chain_;
+  // If the requested async value storage is small, use the inlined storage,
+  // fallback on the HostBuffer if the requested storage size is large.
+  struct Storage {
+    static const int kSize = 128;  // enough to fit memref descriptor of rank 5
+    static const int kAlign = alignof(std::max_align_t);
+
+    Storage() : is_inline(true) {}
+    Storage(HostContext* host, size_t size, size_t alignment)
+        : is_inline(false),
+          host_buffer(HostBuffer::CreateUninitialized(size, alignment,
+                                                      host->allocator())
+                          .release()) {}
+
+    ~Storage() {
+      if (!is_inline) host_buffer->DropRef();
+    }
+
+    static bool CanStoreInline(size_t size, size_t alignment) {
+      assert(llvm::isPowerOf2_32(alignment));
+      return size <= kSize && alignment <= kAlign;
+    }
+
+    bool is_inline;
+    union {
+      std::aligned_storage<kSize, kAlign>::type inline_buffer;
+      tfrt::HostBuffer* host_buffer;
+    };
+  };
+
+  AsyncValueRef<Storage> storage_;
 };
 
 class AsyncGroup : public AsyncRuntimeObject {
@@ -128,7 +159,7 @@ namespace cpu {
 namespace jit {
 
 /*static*/ void* AsyncRuntime::GetStorage(Value* value) {
-  return value->GetHostBuffer().data();
+  return value->GetStorage();
 }
 
 /*static*/ AsyncValue* AsyncRuntime::GetAsyncValue(AsyncRuntime::Value* value) {
@@ -170,13 +201,12 @@ namespace jit {
 }
 
 AsyncRuntime::Token* AsyncRuntime::CreateToken() {
-  auto chain = MakeConstructedAsyncValueRef<Chain>(host_context_);
   // AsyncRuntime::Token created with a reference count of 2 because it will be
   // returned to the `async.execute` caller and also will be later on emplaced
   // by the asynchronously executed task. If the caller immediately will drop
   // its reference we must ensure that the token will be alive until the
   // asynchronous operation is completed.
-  return new AsyncRuntime::Token(std::move(chain), /*ref_count=*/2);
+  return new AsyncRuntime::Token(host_context_, /*ref_count=*/2);
 }
 
 void AsyncRuntime::SetAvailable(AsyncRuntime::Token* token) {
@@ -192,15 +222,12 @@ void AsyncRuntime::AwaitToken(AsyncRuntime::Token* token) {
 }
 
 AsyncRuntime::Value* AsyncRuntime::CreateValue(size_t size, size_t alignment) {
-  auto buffer = HostBuffer::CreateUninitialized(size, alignment,
-                                                host_context_->allocator());
-  auto chain = MakeConstructedAsyncValueRef<Chain>(host_context_);
   // AsyncRuntime::Value created with a reference count of 2 because it will be
   // returned to the `async.execute` caller and also will be later on emplaced
   // by the asynchronously executed task. If the caller immediately will drop
   // its reference we must ensure that the token will be alive until the
   // asynchronous operation is completed.
-  return new AsyncRuntime::Value(std::move(buffer), std::move(chain),
+  return new AsyncRuntime::Value(host_context_, size, alignment,
                                  /*ref_count=*/2);
 }
 

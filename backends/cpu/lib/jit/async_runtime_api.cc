@@ -22,6 +22,7 @@
 
 #include "tfrt/cpu/jit/async_runtime_api.h"
 
+#include <cstddef>
 #include <iostream>
 
 #include "tfrt/cpu/jit/async_runtime.h"
@@ -161,22 +162,19 @@ void mlirAsyncRuntimeDropRef(RefCountedObjPtr ptr, int32_t count) {
 // Create a new `async.token` in not-ready state.
 AsyncToken *mlirAsyncRuntimeCreateToken() {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
-  AsyncToken *token = runtime.CreateToken();
-  return token;
+  return runtime.CreateToken();
 }
 
 // Creates a new `async.value` in not-ready state.
 AsyncValue *mlirAsyncRuntimeCreateValue(int32_t size) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
-  AsyncValue *value = runtime.CreateValue(size, /*alignment=*/64);
-  return value;
+  return runtime.CreateValue(size, /*alignment=*/alignof(std::max_align_t));
 }
 
 // Create a new `async.group` in empty state.
 AsyncGroup *mlirAsyncRuntimeCreateGroup() {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
-  AsyncGroup *group = runtime.CreateGroup();
-  return group;
+  return runtime.CreateGroup();
 }
 
 int64_t mlirAsyncRuntimeAddTokenToGroup(AsyncToken *token, AsyncGroup *group) {

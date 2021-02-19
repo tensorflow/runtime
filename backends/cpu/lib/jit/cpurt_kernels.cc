@@ -124,8 +124,8 @@ static void Execute(Argument<CompilationResult> compilation_result,
 
   // If execution failed errors will be automatically allocated for all results.
   ReturnValueConverter converter(results);
-  converter.AddConversion(ReturnDenseHostTensor);
-  converter.AddConversion(ReturnChain);
+  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor);
+  converter.AddConversion(ReturnAsyncToken);
   if (auto err = compilation_result->Execute(memrefs, converter, exec_ctx))
     return;
 

@@ -123,11 +123,6 @@ static void CoreRtExecute(Argument<CompilationResult> compilation_result,
                           const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  // Verify that compilation result signature is compatible with CoreRT.
-  if (auto err = CompilationResult::VerifyEntrypointSignature(
-          compilation_result->signature()))
-    return EmitErrors(results, std::move(err), exec_ctx);
-
   // Extract tensors from tensor handle operands to pass them as the compiled
   // kernel arguments.
   SmallVector<MemrefDesc, 4> memrefs;
@@ -144,9 +139,12 @@ static void CoreRtExecute(Argument<CompilationResult> compilation_result,
   // Execute compiled kernel and get back raw return values that we'll need to
   // wrap into TensorHandles later on.
   ReturnValueConverter converter({host, kernel_ret});
-  converter.AddConversion(ReturnDenseHostTensor);
-  if (auto err = compilation_result->Execute(memrefs, converter, exec_ctx))
-    return;
+  converter.AddConversion(ReturnMemrefAsDenseHostTensor);
+  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor);
+  // We skip error handling at this point and rely on error forwarding to the
+  // kernel results below.
+  auto err = compilation_result->Execute(memrefs, converter, exec_ctx);
+  (void)err;
 
   // Compiled kernel should populate all expected results.
   assert(llvm::all_of(kernel_ret, [](RCReference<AsyncValue>& ref) -> bool {
@@ -162,10 +160,16 @@ static void CoreRtExecute(Argument<CompilationResult> compilation_result,
     const RCReference<AsyncValue>& handle = results.AllocateAt<TensorHandle>(i);
     AsyncValue* ret = kernel_ret[i].get();
 
+    // Fast path for forwarding errors to TensorHandle results.
+    if (ret->IsError()) {
+      results[i] = FormRef(ret);
+      continue;
+    }
+
     // Fast path when Tensor (and tensor metadata) is available synchronously.
     if (ret->IsAvailable()) {
       Tensor& tensor = ret->get<Tensor>();
-      results.AllocateAt<TensorHandle>(i)->emplace<TensorHandle>(
+      handle->emplace<TensorHandle>(
           host->GetHostDeviceRef(), tensor.metadata(),
           AsyncValueRef<Tensor>(kernel_ret[i].CopyRef()));
       continue;
@@ -173,11 +177,11 @@ static void CoreRtExecute(Argument<CompilationResult> compilation_result,
 
     // Slow path when result Tensor is not available synchronously.
     unavailable_kernel_ret = true;
-    ret->AndThen([host, hdl = handle.CopyRef(),
+    ret->AndThen([host, handle = handle.CopyRef(),
                   ref = kernel_ret[i].CopyRef()]() mutable {
       Tensor& tensor = ref->get<Tensor>();
-      hdl->emplace<TensorHandle>(host->GetHostDeviceRef(), tensor.metadata(),
-                                 AsyncValueRef<Tensor>(std::move(ref)));
+      handle->emplace<TensorHandle>(host->GetHostDeviceRef(), tensor.metadata(),
+                                    AsyncValueRef<Tensor>(std::move(ref)));
     });
   }
 

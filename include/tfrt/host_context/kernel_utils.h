@@ -355,6 +355,13 @@ class RemainingResults {
     return indirect;
   }
 
+  template <typename T, typename... Args>
+  const void EmplaceAt(int index, Args&&... args) {
+    assert(!remaining_results_[index]);
+    remaining_results_[index] =
+        MakeAvailableAsyncValueRef<T>(host_, std::forward<Args>(args)...);
+  }
+
   void EmitErrorAt(int index, string_view message) {
     remaining_results_[index] = MakeErrorAsyncValueRef(host_, message);
   }

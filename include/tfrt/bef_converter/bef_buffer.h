@@ -24,11 +24,12 @@
 #define TFRT_BEF_CONVERTER_BEF_BUFFER_H_
 
 #include "tfrt/support/aligned_buffer.h"
+#include "tfrt/support/bef_reader.h"
 
 namespace tfrt {
 
 // Buffer for storing BEF binary.
-using BEFBuffer = AlignedBuffer<8>;
+using BEFBuffer = AlignedBuffer<BefGetRequiredAlignment()>;
 
 }  // namespace tfrt
 

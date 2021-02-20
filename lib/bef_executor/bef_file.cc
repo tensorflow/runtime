@@ -435,6 +435,14 @@ RCReference<BEFFile> BEFFile::Open(ArrayRef<uint8_t> file,
   auto* bef_impl = new BEFFileImpl(error_handler);
   auto bef_rc = TakeRef(bef_impl);
 
+  if (reinterpret_cast<uintptr_t>(file.data()) % BefGetRequiredAlignment() !=
+      0) {
+    bef_impl->EmitFormatError(
+        StrCat("The BEF file memory should be aligned by ",
+               BefGetRequiredAlignment()));
+    return {};
+  }
+
   BEFFileReader reader(file, registry, bef_impl);
 
   uint8_t header[2];

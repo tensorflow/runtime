@@ -33,6 +33,9 @@
 
 namespace tfrt {
 
+// A BEF file should be loaded to a buffer aligned by 8.
+constexpr size_t BefGetRequiredAlignment() { return 8; }
+
 // This class contains the low-level decoder helpers for processing a BEF file.
 //
 // The reader methods in this class pervasively return a boolean value, and

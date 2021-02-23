@@ -32,10 +32,6 @@ namespace tfrt {
 class MallocAllocator : public HostAllocator {
   // Allocate the specified number of bytes with the specified alignment.
   void* AllocateBytes(size_t size, size_t alignment) override {
-    if (alignment <= 8) return malloc(size);
-
-    // aligned_alloc requires the size to be a multiple of the alignment.
-    size = llvm::alignTo(size, alignment, /*skew=*/0);
     return AlignedAlloc(alignment, size);
   }
 

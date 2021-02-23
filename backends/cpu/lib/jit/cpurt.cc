@@ -268,9 +268,19 @@ struct ConvertDenseHostTensor {
   using ResultType = DenseHostTensor;
 
   template <typename T, int rank>
+  static ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
+    return memref->sizes;
+  }
+
+  template <typename T>
+  static ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
+    return {};
+  }
+
+  template <typename T, int rank>
   static DenseHostTensor Convert(void* memref_ptr) {
     auto* memref = static_cast<StridedMemRefType<T, rank>*>(memref_ptr);
-    TensorMetadata metadata(GetDType<T>(), memref->sizes);
+    TensorMetadata metadata(GetDType<T>(), Sizes(memref));
     return DenseHostTensor(
         metadata, HostBuffer::CreateFromExternal(
                       memref->data, metadata.GetHostSizeInBytes(),

@@ -29,7 +29,6 @@
 #include <type_traits>
 
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
-#include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
@@ -153,7 +152,9 @@ mlir::LogicalResult ReturnStridedMemref(RemainingResults results,
           result_index, Converter::template Convert<T, rank>(result_ptr));
     };
 
-    if (rank == 1)
+    if (rank == 0)
+      convert_and_emplace(std::integral_constant<int, 0>{});
+    else if (rank == 1)
       convert_and_emplace(std::integral_constant<int, 1>{});
     else if (rank == 2)
       convert_and_emplace(std::integral_constant<int, 2>{});
@@ -167,7 +168,8 @@ mlir::LogicalResult ReturnStridedMemref(RemainingResults results,
       // TODO(ezhulenev): To simplify conversion from a void* pointer to memref
       // descriptor we rely on the StridedMemrefType<T, rank> and dispatch
       // only up to a fixed rank.
-      results.EmitErrorAt(result_index, "unsupported rank");
+      results.EmitErrorAt(result_index,
+                          StrCat("unsupported returned memref rank: ", rank));
   };
 
   // Dispatch based on the memref element type.
@@ -175,7 +177,9 @@ mlir::LogicalResult ReturnStridedMemref(RemainingResults results,
   if (element_type.isF32())
     rank_dispatch(float{});
   else
-    results.EmitErrorAt(result_index, "unsupported element type");
+    results.EmitErrorAt(
+        result_index,
+        StrCat("unsupported returned memref element type: ", element_type));
 
   return mlir::success();
 }
@@ -209,26 +213,32 @@ mlir::LogicalResult ReturnAsyncStridedMemref(RemainingResults results,
   // Load the pointer to the async value from a pointer to result storage.
   void* ret = *reinterpret_cast<void**>(result_ptr);
   auto* value = static_cast<mlir::runtime::AsyncValue*>(ret);
-  auto& dst = results.AllocateAt<ResultType>(result_index);
 
   // We already verified that return value is an async value of memref.
   auto memref = value_type.getValueType().cast<mlir::MemRefType>();
+
+  // Allocate constructed async value to be returned to the caller.
+  auto dst = [&]() -> AsyncValue* {
+    return results.AllocateAt<ResultType>(result_index).get();
+  };
 
   // Dispatch to the correct extract function based on rank.
   auto rank_dispatch = [&](auto type_tag) {
     using T = decltype(type_tag);
     int64_t rank = memref.getRank();
 
-    if (rank == 1)
-      ExtractAsyncValue(value, dst.get(), internal::Emplace<Converter, T, 1>);
+    if (rank == 0)
+      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 0>);
+    else if (rank == 1)
+      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 1>);
     else if (rank == 2)
-      ExtractAsyncValue(value, dst.get(), internal::Emplace<Converter, T, 2>);
+      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 2>);
     else if (rank == 3)
-      ExtractAsyncValue(value, dst.get(), internal::Emplace<Converter, T, 3>);
+      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 3>);
     else if (rank == 4)
-      ExtractAsyncValue(value, dst.get(), internal::Emplace<Converter, T, 4>);
+      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 4>);
     else if (rank == 5)
-      ExtractAsyncValue(value, dst.get(), internal::Emplace<Converter, T, 5>);
+      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 5>);
     else
       // TODO(ezhulenev): Because ExtractAsyncValue takes a llvm::function_ref
       // we can't pass a runtime arguments to emplace functions via lambda
@@ -236,7 +246,8 @@ mlir::LogicalResult ReturnAsyncStridedMemref(RemainingResults results,
       // this will lead to use after free. Consider adding an std::function
       // alternative for ranks higher then 5? Lambdas with small captures should
       // be stack allocated anyway, however it is implementation defined.
-      dst->SetError({"unsupported rank", ErrorCode::kInvalidArgument});
+      results.EmitErrorAt(result_index,
+                          StrCat("unsupported returned memref rank: ", rank));
   };
 
   // Dispatch based on the memref element type.
@@ -244,7 +255,9 @@ mlir::LogicalResult ReturnAsyncStridedMemref(RemainingResults results,
   if (element_type.isF32())
     rank_dispatch(float{});
   else
-    dst->SetError({"unsupported element type", ErrorCode::kInvalidArgument});
+    results.EmitErrorAt(
+        result_index,
+        StrCat("unsupported returned memref element type: ", element_type));
 
   return mlir::success();
 }

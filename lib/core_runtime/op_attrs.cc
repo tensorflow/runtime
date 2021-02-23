@@ -26,6 +26,7 @@
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/support/alloc.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
@@ -570,7 +571,7 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
   }
 
   // Now that we know the size, create the result.
-  auto *raw_memory = malloc(alloc_size);
+  auto *raw_memory = AlignedAlloc(alignof(ImmutableOpAttrs), alloc_size);
   auto *result = new (raw_memory) ImmutableOpAttrs(sorted_attrs.size());
 
   char *data_ptr = static_cast<char *>(raw_memory) + sizeof(ImmutableOpAttrs) +

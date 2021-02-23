@@ -543,21 +543,19 @@ func @control_flow_while_loop_error() {
   tfrt.return
 }
 
-func @branch0(%arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!corert.tensorhandle) {
-  %ch0 = tfrt.new.chain
+func @branch0(%ch0: !tfrt.chain, %arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch0 "cpu"
   %res = corert.executeop(%cpu) "tfrt_test.add"(%arg0, %arg1) : 1
-  tfrt.return %res : !corert.tensorhandle
+  tfrt.return %ch0, %res : !tfrt.chain, !corert.tensorhandle
 }
 
-func @branch1(%arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!corert.tensorhandle) {
-  %ch0 = tfrt.new.chain
+func @branch1(%ch0: !tfrt.chain, %arg0: !corert.tensorhandle, %arg1: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
   %cpu = corert.get_op_handler %ch0 "cpu"
   %th = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1], values = [4 : i32] } : 1
   %add0 = corert.executeop(%cpu) "tfrt_test.add"(%arg0, %arg1) : 1
   %res = corert.executeop(%cpu) "tfrt_test.add"(%add0, %th) : 1
-  tfrt.return %res : !corert.tensorhandle
+  tfrt.return %ch0, %res : !tfrt.chain, !corert.tensorhandle
 }
 
 // CHECK-LABEL: --- Running 'test_control_flow_case'
@@ -582,15 +580,15 @@ func @test_control_flow_case() {
   %arg1 = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1], values = [4 : i32] } : 1
 
-  %res0 = tfrt.case %branch_index0 [@branch0, @branch1] (%arg0, %arg1) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
+  %ch1, %res0 = tfrt.case %branch_index0 [@branch0, @branch1] (%ch0, %arg0, %arg1) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
 
   // CHECK: DenseHostTensor dtype = I32, shape = [1], values = [6]
-  %ch1 = "corert.print_tensorhandle"(%res0, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch2 = "corert.print_tensorhandle"(%res0, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
-  %res1 = tfrt.case %branch_index1 [@branch0, @branch1] (%arg0, %arg1) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
+  %ch3, %res1 = tfrt.case %branch_index1 [@branch0, @branch1] (%ch2, %arg0, %arg1) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
 
   // CHECK: DenseHostTensor dtype = I32, shape = [1], values = [10]
-  %ch2 = "corert.print_tensorhandle"(%res1, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch4 = "corert.print_tensorhandle"(%res1, %ch3) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return
 }

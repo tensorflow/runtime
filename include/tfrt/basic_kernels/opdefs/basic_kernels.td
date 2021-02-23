@@ -122,15 +122,18 @@ def CaseOp : TFRT_Op<"case"> {
             break;
         }
         ```
+    Example: %ch1, %res = tfrt.case %branch_idx [@branch0, @branch1] (%ch0, %arg0, %arg1) : (i32, i32) -> i32
   }];
 
   let arguments = (ins I32:$branch_index,
                        ArrayAttr:$branches,
+                       TFRT_ChainType:$in_op_chain,
                        Variadic<AnyType>:$branch_operands);
 
-  let results = (outs Variadic<AnyType>:$branch_outputs);
+  let results = (outs TFRT_ChainType:$out_op_chain,
+                      Variadic<AnyType>:$branch_outputs);
   let assemblyFormat = [{
-    $branch_index $branches `(` $branch_operands `)` attr-dict `:` `(` type($branch_operands) `)` `->` `(` type($branch_outputs) `)`
+    $branch_index $branches `(` $in_op_chain (`,` $branch_operands^)? `)` attr-dict `:` `(` type($branch_operands) `)` `->` `(` type($branch_outputs) `)`
   }];
   let verifier = ?;
 }

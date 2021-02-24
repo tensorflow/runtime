@@ -823,7 +823,8 @@ static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
         result.SetError(
             {"Expecting a DenseHostTensor of int32 as branch index.",
              ErrorCode::kInvalidArgument});
-      } else if (src_av->get<DenseHostTensor>().shape() != TensorShape{1}) {
+      } else if (src_av->get<DenseHostTensor>().shape().GetRank() != 0 &&
+                 src_av->get<DenseHostTensor>().shape() != TensorShape{1}) {
         result.SetError(
             {"The tensor should have only one element, which is the index.",
              ErrorCode::kInvalidArgument});

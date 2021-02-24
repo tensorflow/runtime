@@ -4613,8 +4613,8 @@ filegroup(
     srcs = [
         "include/mlir/Dialect/Linalg/IR/LinalgBase.td",
         "include/mlir/Dialect/Linalg/IR/LinalgSparseOps.td",
-        "include/mlir/Interfaces/ViewLikeInterface.td",
         ":OpBaseTdFiles",
+        ":SideEffectTdFiles",
     ],
 )
 

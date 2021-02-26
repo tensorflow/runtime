@@ -85,8 +85,9 @@ def ConstDenseTensorOp : CoreRT_Op<"const_dense_tensor",
   let hasFolder = 1;
 }
 
+// TODO(b/181257202): This should be `ConstantLike`.
 def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
-    [ConstantLike, NoSideEffect, CoreRT_TypedAttributeTrait]> {
+    [NoSideEffect, CoreRT_TypedAttributeTrait]> {
   let summary = "Create a constant string host tensor.";
   let description = [{
     ConstStringTensorOp creates a constant string host tensor.
@@ -107,8 +108,6 @@ def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
   let assemblyFormat = "attr-dict";
 
   let verifier = ?;
-
-  let hasFolder = 1;
 }
 
 def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait]> {

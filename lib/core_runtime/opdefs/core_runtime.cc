@@ -296,15 +296,6 @@ OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
 }
 
 //===----------------------------------------------------------------------===//
-// ConstStringTensorOp
-//===----------------------------------------------------------------------===//
-
-OpFoldResult ConstStringTensorOp::fold(ArrayRef<Attribute> operands) {
-  assert(operands.empty() && "constant has no operands");
-  return value();
-}
-
-//===----------------------------------------------------------------------===//
 // CoreRt_CondOp
 //===----------------------------------------------------------------------===//
 

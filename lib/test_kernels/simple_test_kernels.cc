@@ -420,13 +420,14 @@ static void TestMultiArgResult(RemainingArguments args,
 }
 
 template <typename T>
-static void TestPrintDebugInfo(T* frame) {
+static Chain TestPrintDebugInfo(T* frame) {
   auto debug_info = frame->GetDebugInfo();
   if (auto debug_info_entry = debug_info.GetDebugInfo()) {
     tfrt::outs() << debug_info_entry.getValue() << "\n";
   } else {
     tfrt::outs() << "Kernel has no debug info\n";
   }
+  return Chain();
 }
 
 void RegisterSimpleTestKernels(KernelRegistry* registry) {

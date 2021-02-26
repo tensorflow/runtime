@@ -213,9 +213,14 @@ class BEFKernel {
 
   uint32_t GetDebugInfoOffset() const {
     assert(HasDebugInfo() && "Try to access a nonexistent debug info.");
-    return *reinterpret_cast<const uint32_t*>(body_start_ + num_arguments() +
-                                              num_attributes() +
-                                              num_functions() + num_results());
+    auto kernel_body_offset = body_start_ + num_arguments() + num_attributes() +
+                              num_functions() + num_results();
+    for (size_t i = 0; i < num_results(); i++) {
+      kernel_body_offset += num_used_bys(i);
+    }
+    auto debug_info_offset =
+        *reinterpret_cast<const uint32_t*>(kernel_body_offset);
+    return debug_info_offset;
   }
 
  private:

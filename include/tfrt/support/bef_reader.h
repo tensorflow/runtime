@@ -84,6 +84,14 @@ class BEFReader {
     return false;
   }
 
+  bool ReadInt4(uint32_t* value) {
+    if (ReadAlignment(4) || file_.size() < 4) return true;
+    ASSERT_LITTLE_ENDIAN();
+    *value = *reinterpret_cast<const uint32_t*>(file_.data());
+    SkipOffset(4);
+    return false;
+  }
+
   bool ReadInt8(uint64_t* value) {
     if (ReadAlignment(8) || file_.size() < 8) return true;
     ASSERT_LITTLE_ENDIAN();

@@ -926,11 +926,6 @@ class BEFFileEmitter : public BEFEmitter {
   BEFFileEmitter(const BEFFileEmitter&) = delete;
   BEFFileEmitter& operator=(const BEFFileEmitter&) = delete;
 
-  // Emit a vbr encoded integer with low byte first
-  void EmitIntLowByteFirst(size_t value) {
-    EmitBEFArrayLength(value, &result_);
-  }
-
   void EmitSection(BEFSectionID section_id,
                    llvm::ArrayRef<uint8_t> section_data,
                    unsigned alignment = 1) {
@@ -1544,7 +1539,7 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
     BEFAttributeEmitter attribute_emitter(compilation_units_);
     attribute_emitter.EmitAttribute(attr);
 
-    // Emit size information in reversed VBR form for untyped array and string
+    // Emit size information in fixed32 form for untyped array and string
     // attributes.
     if (IsArrayAttribute(attribute_type) ||
         (IsDataTypeAttribute(attribute_type) &&
@@ -1557,71 +1552,46 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
         len = attr.cast<mlir::StringAttr>().getValue().size();
       }
 
-      size_t size_start = size();
-      // Emit the number of elements first and then emit all of the attributes
-      // consecutively, returning the offset of the first element in the
-      // attribute array.
-      EmitIntLowByteFirst(len);
-      size_t size_end = size();
-
-      EmitAlignment(attribute_emitter.GetRequiredAlignment());
-      offset = size();
-      EmitEmitter(attribute_emitter);
-
-      // If there is a gap between the size and the first attribute value, we
-      // move the size to be immediately before the first attribute value to
-      // remove the gap.
-      if (size_end < offset) {
-        MoveResult(offset - (size_end - size_start), size_start,
-                   size_end - size_start);
-        // Set the unused bytes to the dummy byte
-        SetResult(size_start, kDummyByte, offset - size_end);
+      // Emit dummy bytes for alignment:
+      //  1. offset should be aligned by 4 to emit fixed32 formatted len.
+      //  2. the first entry of array should be properly aligned.
+      const unsigned array_alignment = attribute_emitter.GetRequiredAlignment();
+      if (array_alignment > alignof(uint32_t)) {
+        EmitAlignment(array_alignment,
+                      CalculateAlignmentPaddingSize(size(), alignof(uint32_t),
+                                                    array_alignment));
+      } else {
+        EmitAlignment(alignof(uint32_t), CalculateAlignmentPaddingSize(
+                                             size(), 0, alignof(uint32_t)));
       }
 
+      offset = size();
+      assert(offset % alignof(uint32_t) == 0);
+      EmitInt4(len);
+      assert(size() % array_alignment == 0);
+      EmitEmitter(attribute_emitter);
     } else if (IsSymbolRefAttribute(attribute_type)) {
-      // Emit size information in reversed VBR form for the SymbolRef and
+      offset = size();
+
+      // Emit size information in VBR form for the SymbolRef and
       // serialized compilation unit.
       auto symbol = attr.cast<mlir::SymbolRefAttr>();
 
       // Length of the root symbol name.
-      size_t root_ref_len = symbol.getRootReference().size();
+      EmitInt(symbol.getRootReference().size());
 
       // Lengths of the nested symbols names.
       size_t num_nested_refs = symbol.getNestedReferences().size();
+      EmitInt(num_nested_refs);
       llvm::SmallVector<size_t, 4> nested_ref_len(num_nested_refs);
       for (size_t i = 0; i < num_nested_refs; ++i)
-        nested_ref_len[i] = symbol.getNestedReferences()[i].getValue().size();
+        EmitInt(symbol.getNestedReferences()[i].getValue().size());
 
       // Length of the serialized compilation unit.
-      size_t compilation_unit_len =
-          compilation_units_.SerializedOperationSize(symbol);
-
-      // Encode lengths of symbols and compilation unit in reverse order,
-      // returning the offset of the root symbol name in the attribute array.
-      size_t size_start = size();
-
-      EmitIntLowByteFirst(compilation_unit_len);
-      for (int i = num_nested_refs - 1; i >= 0; --i)
-        EmitIntLowByteFirst(nested_ref_len[i]);
-      EmitIntLowByteFirst(num_nested_refs);
-      EmitIntLowByteFirst(root_ref_len);
-
-      size_t size_end = size();
+      EmitInt(compilation_units_.SerializedOperationSize(symbol));
 
       EmitAlignment(attribute_emitter.GetRequiredAlignment());
-      offset = size();
       EmitEmitter(attribute_emitter);
-
-      // If there is a gap between the size and the first attribute value, we
-      // move the size to be immediately before the first attribute value to
-      // remove the gap.
-      if (size_end < offset) {
-        MoveResult(offset - (size_end - size_start), size_start,
-                   size_end - size_start);
-        // Set the unused bytes to the dummy byte
-        SetResult(size_start, kDummyByte, offset - size_end);
-      }
-
     } else {
       EmitAlignment(attribute_emitter.GetRequiredAlignment());
       offset = size();

@@ -70,6 +70,10 @@ static void TestCancel(Argument<Chain> chain_in, Result<int> int_out,
   chain_out.Set(chain_in);
 }
 
+static Expected<Chain> TestErrorChain(const Chain& in_ch) {
+  return tfrt::MakeStringError("error chain");
+}
+
 // This kernel expects a nested array attribute in the form:
 //  [["string", [0 : i32, 1 : i32]], [1.0 : f32]]
 // , and return a result for each leaf value.
@@ -434,6 +438,7 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
   registry->AddKernel("tfrt_test.cancel", TFRT_KERNEL(TestCancel));
+  registry->AddKernel("tfrt_test.error_chain", TFRT_KERNEL(TestErrorChain));
   registry->AddKernel("tfrt_test.flat", TFRT_KERNEL(TestFlat));
   registry->AddKernel("tfrt_test.async_value_get",
                       TFRT_KERNEL(TestAsyncValueGet));

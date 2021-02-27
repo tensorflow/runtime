@@ -225,19 +225,15 @@ func @tensorhandle_error_test() -> i32 {
   %one = tfrt.constant.i32 1
   %cpu = corert.get_op_handler %ch0 "cpu"
 
-  %tensor = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
-  %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %tensor, %ch0 1 : i32
+  // expected-error @+1 {{invalid tensorhandle}}
+  %handle = "tfrt_test.error_tensorhandle"() : () -> !corert.tensorhandle
 
-  // expected-error @+1 {{invalid tensor metadata}}
-  %handle = "tfrt_test.tensorhandle_with_error_metadata"(%tensor, %ch1)
-    : (!t.tensor, !tfrt.chain) -> !corert.tensorhandle
-
-  %shape = "corert.tensorhandle_to_shape"(%handle, %ch1)
+  %shape = "corert.tensorhandle_to_shape"(%handle, %ch0)
     : (!corert.tensorhandle, !tfrt.chain) -> !ts.shape
 
   // This line should not be executed because its input %shape has error.
   // It is validated by the CHECK-NEXT below.
-  %ch2 = "tfrt_dht.print_tensor_shape"(%shape, %ch1) : (!ts.shape, !tfrt.chain) -> !tfrt.chain
+  %ch1 = "tfrt_dht.print_tensor_shape"(%shape, %ch0) : (!ts.shape, !tfrt.chain) -> !tfrt.chain
 
   // CHECK-NEXT: 'tensorhandle_error_test' returned 1
   tfrt.return %one : i32
@@ -448,16 +444,13 @@ func @control_flow_conditional_error() {
   %b_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [2, 2], values = [2 : i32] } : 1
 
-  %tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [1 : i64]
-  %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %tensor, %ch0 1 : i32
-  // expected-error @+1 {{invalid tensor metadata}}
-  %erroneous_handle = "tfrt_test.tensorhandle_with_error_metadata"(%tensor, %ch1)
-    : (!t.tensor, !tfrt.chain) -> !corert.tensorhandle
+  // expected-error @+1 {{invalid tensorhandle}}
+  %erroneous_handle = "tfrt_test.error_tensorhandle"() : () -> !corert.tensorhandle
 
-  %ch2, %result = corert.cond %erroneous_handle @return_first @return_second (%ch1, %a_handle, %b_handle) : (!corert.tensorhandle)
+  %ch1, %result = corert.cond %erroneous_handle @return_first @return_second (%ch0, %a_handle, %b_handle) : (!corert.tensorhandle)
 
   // CHECK-NOT: DenseHostTensor dtype = I32
-  %ch3 = "corert.print_tensorhandle"(%result, %ch2) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
+  %ch2 = "corert.print_tensorhandle"(%result, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return
 }
@@ -531,14 +524,41 @@ func @control_flow_while_loop_error() {
 
   %cpu = corert.get_op_handler %ch0 "cpu"
 
-  %tensor = tfrt_dht.create_uninitialized_tensor.i32.2 [1 : i64, 1 : i64]
-  %ch1 = tfrt_dht.fill_tensor_with_constant.i32 %tensor, %ch0 -9 : i32
-  // expected-error @+1 {{invalid tensor metadata}}
-  %a_handle = "tfrt_test.tensorhandle_with_error_metadata"(%tensor, %ch1)
-    : (!t.tensor, !tfrt.chain) -> !corert.tensorhandle
+  // expected-error @+1 {{invalid tensorhandle}}
+  %a_handle = "tfrt_test.error_tensorhandle"() : () -> !corert.tensorhandle
 
   // CHECK-NOT: DenseHostTensor dtype = I32
-  %ch2, %result = corert.while @while_cond_add1 @while_body_add2 (%ch1, %a_handle) : (!corert.tensorhandle)
+  %ch1, %result = corert.while @while_cond_add1 @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle)
+
+  tfrt.return
+}
+
+func @while_cond_error(%in: !tfrt.chain, %x: !corert.tensorhandle) -> (!tfrt.chain, !corert.tensorhandle) {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %result = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [1 : i32] } : 1
+
+  // expected-error @+1 {{error chain}}
+  %error_chain = "tfrt_test.error_chain"(%ch0) : (!tfrt.chain) -> !tfrt.chain
+
+  tfrt.return %error_chain, %result : !tfrt.chain, !corert.tensorhandle
+}
+
+
+// CHECK-LABEL: --- Running 'control_flow_while_loop_error_in_cond'
+func @control_flow_while_loop_error_in_cond() {
+  %ch0 = tfrt.new.chain
+
+  %cpu = corert.get_op_handler %ch0 "cpu"
+
+  %a_handle = corert.executeop(%cpu)
+    "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [-9 : i32] } : 1
+
+  // CHECK-NOT: DenseHostTensor dtype = I32
+  %ch1, %result = corert.while @while_cond_error @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle)
 
   tfrt.return
 }

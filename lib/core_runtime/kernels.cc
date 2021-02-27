@@ -382,27 +382,50 @@ static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
   }
 }
 
-// Returns true if any errors were propagated to the results.
+// Returns true if any errors were propagated to the results. The results will
+// be all set to errors if any of the inputs are errors. However, not all
+// results are set to errors immediately after detecting input errors. What this
+// function does is:
+//  1) For the first result, it is only set to error when all inputs are
+//  available.
+//  2) For the rest of results, they are set to errors immediately.
+// The rationale here is that errors should be treated as one kind of data, and
+// in data flow execution, it is expected that results are only ready after all
+// inputs are ready. In other words, this is to provide a natural exeuction
+// model that is easy to eg. manage resources.
 static bool ReturnAfterHandlingError(
-    AsyncValue *condition,
+    AsyncValue *condition, ArrayRef<AsyncValue *> args,
     MutableArrayRef<RCReference<IndirectAsyncValue>> results) {
+  if (!condition->IsError()) return false;
+
   // If we have an error, then we can force propagate errors to all the
   // results.
-  if (condition->IsError()) {
-    for (auto &result : results) result->ForwardTo(FormRef(condition));
-    return true;
+
+  if (results.empty()) return true;
+
+  auto error = condition->GetError();
+
+  // For the first result, we wait for all the arguments to be ready, so that
+  // all outstanding execution will finish.
+  RunWhenReady(args, [error, result = results[0].CopyRef()]() mutable {
+    result->SetError(error);
+  });
+
+  // For the other results, we just set them to error, for fast error
+  // propagation.
+  for (int i = 1; i < results.size(); ++i) {
+    results[i]->SetError(error);
   }
 
-  if (condition->IsType<TensorHandle>() &&
-      condition->get<TensorHandle>().IsError()) {
-    for (auto &result : results) {
-      result->ForwardTo(
-          FormRef(condition->get<TensorHandle>().GetErrorAsyncValue()));
-    }
-    return true;
-  }
+  return true;
+}
 
-  return false;
+static bool ReturnAfterHandlingError(
+    AsyncValue *condition, ArrayRef<RCReference<AsyncValue>> args,
+    MutableArrayRef<RCReference<IndirectAsyncValue>> results) {
+  SmallVector<AsyncValue *, 4> arg_avs;
+  for (auto &arg_ref : args) arg_avs.push_back(arg_ref.get());
+  return ReturnAfterHandlingError(condition, arg_avs, results);
 }
 
 static llvm::Expected<bool> GetTensorPredicateValue(const Tensor &tensor) {
@@ -506,23 +529,23 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
                                        arg_refs = std::move(arg_refs),
                                        result_refs =
                                            std::move(result_refs)]() mutable {
-    if (ReturnAfterHandlingError(condition_tensorhandle_ptr, result_refs))
+    if (ReturnAfterHandlingError(condition_tensorhandle_ptr, arg_refs.values(),
+                                 result_refs))
       return;
+
     auto &condition_tensorhandle =
         condition_tensorhandle_ptr->get<TensorHandle>();
     AsyncValue *condition_async_tensor =
         condition_tensorhandle.GetAsyncTensor();
-    assert(condition_async_tensor->IsAvailable());
-    if (ReturnAfterHandlingError(condition_async_tensor, result_refs)) return;
 
-    if (condition_tensorhandle.IsDeviceError()) {
-      auto has_error = ReturnAfterHandlingError(
-          condition_tensorhandle.GetAsyncDevice().GetAsyncValue(), result_refs);
-      assert(has_error);
-      (void)has_error;
-      return;
-    }
+    // In graph mode, we maintain the invariant that if any fields of the
+    // TensorHandle are errors, then the AsyncValue containing the TensorHandle
+    // is set to error.
+    assert(condition_async_tensor->IsAvailable());
+    assert(!condition_async_tensor->IsError());
     assert(condition_tensorhandle.IsDeviceAvailable());
+    assert(!condition_tensorhandle.IsDeviceError());
+
     auto &src_device_ref = condition_tensorhandle.GetAvailableDevice();
     auto &tensor = condition_async_tensor->get<Tensor>();
 
@@ -544,7 +567,7 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
          false_fn_ref = std::move(false_fn_ref), arg_refs = std::move(arg_refs),
          result_refs = std::move(result_refs)]() mutable {
           if (ReturnAfterHandlingError(condition_host_tensor.GetAsyncValue(),
-                                       result_refs))
+                                       arg_refs.values(), result_refs))
             return;
 
           if_impl(*condition_host_tensor, true_fn_ref.get(), false_fn_ref.get(),
@@ -591,9 +614,7 @@ static void CoreRtWhileLoopIterationImpl(
     // function.
     RCReference<ErrorAsyncValue> error_value =
         EmitErrorAsync(exec_ctx, StrCat(predicate.takeError()));
-    for (auto &result : result_refs) {
-      result->SetError(error_value->GetError());
-    }
+    ReturnAfterHandlingError(error_value.get(), arg_refs, result_refs);
     return;
   }
 
@@ -629,15 +650,6 @@ static void CoreRtWhileLoopIteration(
     RCReference<const Function> body_fn_ref,
     SmallVector<RCReference<AsyncValue>, 4> arg_refs,
     SmallVector<RCReference<IndirectAsyncValue>, 4> result_refs) {
-  if (auto cancel_av = exec_ctx.GetCancelAsyncValue()) {
-    // Cancellation detected. Set results to the cancel async value, and break
-    // out.
-    for (auto &result : result_refs) {
-      result->ForwardTo(FormRef(cancel_av));
-    }
-    return;
-  }
-
   // TODO(hanbinyoon): Look for ways to avoid allocating this args SmallVector
   // on each iteration of the loop. For example, consider the reuse of
   // passed_args in TFRTRepeatI32Block().
@@ -655,9 +667,14 @@ static void CoreRtWhileLoopIteration(
                            body_fn_ref = std::move(body_fn_ref),
                            arg_refs = std::move(arg_refs),
                            result_refs = std::move(result_refs)]() mutable {
-    if (ReturnAfterHandlingError(condition_tensorhandle_ref.get(), result_refs))
+    if (ReturnAfterHandlingError(condition_tensorhandle_ref.get(), arg_refs,
+                                 result_refs) ||
+        ReturnAfterHandlingError(condition_chain_ref.get(), arg_refs,
+                                 result_refs))
       return;
 
+    // Check type after handling errors as the type information may not be
+    // correct if it is an error.
     assert(condition_chain_ref->IsType<Chain>() &&
            "Cond function did not return a chain");
     assert(condition_tensorhandle_ref->IsType<TensorHandle>() &&
@@ -667,16 +684,15 @@ static void CoreRtWhileLoopIteration(
         condition_tensorhandle_ref->get<TensorHandle>();
     AsyncValue *condition_async_tensor =
         condition_tensorhandle.GetAsyncTensor();
-    if (ReturnAfterHandlingError(condition_async_tensor, result_refs)) return;
 
-    if (condition_tensorhandle.IsDeviceError()) {
-      auto has_error = ReturnAfterHandlingError(
-          condition_tensorhandle.GetAsyncDevice().GetAsyncValue(), result_refs);
-      assert(has_error);
-      (void)has_error;
-      return;
-    }
+    // In graph mode, we maintain the invariant that if any fields of the
+    // TensorHandle are errors, then the AsyncValue containing the TensorHandle
+    // is set to error.
+    assert(condition_async_tensor->IsAvailable());
+    assert(!condition_async_tensor->IsError());
     assert(condition_tensorhandle.IsDeviceAvailable());
+    assert(!condition_tensorhandle.IsDeviceError());
+
     auto &src_device_ref = condition_tensorhandle.GetAvailableDevice();
 
     auto &tensor = condition_async_tensor->get<Tensor>();
@@ -696,7 +712,7 @@ static void CoreRtWhileLoopIteration(
          body_fn_ref = std::move(body_fn_ref), arg_refs = std::move(arg_refs),
          result_refs = std::move(result_refs)]() mutable {
           if (ReturnAfterHandlingError(condition_host_tensor.GetAsyncValue(),
-                                       result_refs))
+                                       arg_refs, result_refs))
             return;
 
           CoreRtWhileLoopIterationImpl(

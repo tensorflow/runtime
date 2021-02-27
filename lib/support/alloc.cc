@@ -26,7 +26,7 @@
 namespace tfrt {
 
 void* AlignedAlloc(size_t alignment, size_t size) {
-  if (alignment < alignof(void*)) return std::malloc(size);
+  if (alignment <= alignof(void*)) return std::malloc(size);
   size = (size + alignment - 1) / alignment * alignment;
 
 #if defined(__ANDROID__) || defined(OS_ANDROID)

@@ -98,9 +98,9 @@ static ParseResult parseDoAsyncOp(OpAsmParser &parser, OperationState &result) {
 static void print(OpAsmPrinter &p, DoAsyncOp op) {
   p << "tfrt_test.do.async ";
   p.printOperands(op.getOperands());
-  if (!op.getAttrs().empty()) {
+  if (!op->getAttrs().empty()) {
     p << " attributes ";
-    p.printOptionalAttrDict(op.getAttrs());
+    p.printOptionalAttrDict(op->getAttrs());
   }
   p << " : (";
   interleaveComma(op.getOperandTypes(), p);
@@ -222,7 +222,7 @@ static void print(OpAsmPrinter &p, BenchmarkOp op) {
   bool need_comma = false;
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
-  for (auto &name_attr : op.getAttrs()) {
+  for (auto &name_attr : op->getAttrs()) {
     auto id = name_attr.first;
     if (id == "name") continue;
 
@@ -359,7 +359,7 @@ static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
   bool need_comma = false;
 
   // Print the attributes, e.g. max_count = 100, duration_secs = 1
-  for (auto &name_attr : op.getAttrs()) {
+  for (auto &name_attr : op->getAttrs()) {
     auto id = name_attr.first;
     if (id == "target_fn") continue;
 

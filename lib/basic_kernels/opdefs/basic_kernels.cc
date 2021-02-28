@@ -59,7 +59,7 @@ static void print(OpAsmPrinter &p, CallOp op) {
   p << "tfrt.call " << op->getAttr("callee") << '(';
   p.printOperands(op.getOperands());
   p << ')';
-  p.printOptionalAttrDict(op.getAttrs(),
+  p.printOptionalAttrDict(op->getAttrs(),
                           /*elidedAttrs=*/{"callee", "bef.nonstrict"});
   p << " : ";
   p.printType(op.getCalleeType());
@@ -205,8 +205,8 @@ ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
 void print(OpAsmPrinter &p, IfOp op) {
   p << "tfrt.if ";
   p.printOperands(op.getOperands());
-  if (!op.getAttrs().empty()) {
-    p.printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"bef.nonstrict"});
+  if (!op->getAttrs().empty()) {
+    p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"bef.nonstrict"});
   }
   p << " : (";
   interleaveComma(llvm::drop_begin(op.getOperandTypes(), 1), p);
@@ -323,8 +323,8 @@ static ParseResult parseRepeatI32Op(OpAsmParser &parser,
 static void print(OpAsmPrinter &p, RepeatI32Op op) {
   p << "tfrt.repeat.i32 ";
   p.printOperands(op.getOperands());
-  if (!op.getAttrs().empty()) {
-    p.printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"bef.nonstrict"});
+  if (!op->getAttrs().empty()) {
+    p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"bef.nonstrict"});
   }
   if (op.getNumOperands() > 1) {
     p << " : ";

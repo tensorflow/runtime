@@ -49,7 +49,7 @@ TpuRuntimeDialect::TpuRuntimeDialect(MLIRContext *context)
 }
 
 static Type GetStringType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("hex"), "string");
+  return OpaqueType::get(builder->getIdentifier("hex"), "string");
 }
 
 static Type GetChainType(Builder *builder) {
@@ -57,43 +57,35 @@ static Type GetChainType(Builder *builder) {
 }
 
 static Type GetTensorHandleType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("corert"),
-                                      "tensor_handle");
+  return OpaqueType::get(builder->getIdentifier("corert"), "tensor_handle");
 }
 
 static Type GetDenseTensorType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("tpurt"),
-                                      "dense_tensor");
+  return OpaqueType::get(builder->getIdentifier("tpurt"), "dense_tensor");
 }
 
 static Type GetCompilationResultType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("tpurt"),
-                                      "compilation_result");
+  return OpaqueType::get(builder->getIdentifier("tpurt"), "compilation_result");
 }
 
 static Type GetLoadedProgramType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("tpurt"),
-                                      "loaded_program");
+  return OpaqueType::get(builder->getIdentifier("tpurt"), "loaded_program");
 }
 
 static Type GetXlaShapeType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("tpurt"),
-                                      "xla_shape");
+  return OpaqueType::get(builder->getIdentifier("tpurt"), "xla_shape");
 }
 
 static Type GetCoreLocationType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("tpurt"),
-                                      "core_location");
+  return OpaqueType::get(builder->getIdentifier("tpurt"), "core_location");
 }
 
 static Type GetSystemType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("tpurt"),
-                                      "system");
+  return OpaqueType::get(builder->getIdentifier("tpurt"), "system");
 }
 
 static Type GetResourceManagerType(Builder *builder) {
-  return builder->getType<OpaqueType>(builder->getIdentifier("tpurt"),
-                                      "resource_manager");
+  return OpaqueType::get(builder->getIdentifier("tpurt"), "resource_manager");
 }
 
 //===----------------------------------------------------------------------===//

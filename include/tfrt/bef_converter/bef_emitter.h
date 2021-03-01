@@ -52,14 +52,7 @@ class BEFEmitter {
 
   void OverwriteBytes(size_t offset, const void* data, size_t size);
 
-  // Emit dummy bytes to meet the alignment constraint.
   void EmitAlignment(unsigned alignment);
-
-  // This function is used to emit alignment paddings when there is a prefix.
-  // The count value should be given to meet the alignment constraint
-  // after emitting the alignment paddings and prefix. The given alignment
-  // is used to keep track of the maximum alignment constraint.
-  void EmitAlignment(unsigned alignment, unsigned count);
 
   // Emit a guaranteed 2-byte integer aligned to 2 bytes, allowing this to be
   // directly mapped into the target process in little-endian form.

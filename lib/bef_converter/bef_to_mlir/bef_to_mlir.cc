@@ -1268,12 +1268,12 @@ mlir::Attribute BEFAttributeReader::ReadBoolAttribute(BEFReader* reader) {
 
 mlir::StringAttr BEFAttributeReader::ReadStringAttribute(BEFReader* reader) {
   assert(reader->file().data() > attributes_.data());
-  uint32_t length;
-  reader->ReadInt4(&length);
+  size_t offset = reader->file().data() - attributes_.data();
+
+  auto length = ReadLength(offset);
   auto string_attr = mlir::StringAttr::get(
       &context_,
-      string_view(reinterpret_cast<const char*>(reader->file().data()),
-                  length));
+      string_view(reinterpret_cast<const char*>(&attributes_[offset]), length));
   return string_attr;
 }
 
@@ -1334,22 +1334,26 @@ mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
 
 mlir::SymbolRefAttr BEFAttributeReader::ReadSymbolRefAttribute(
     BEFReader* reader) {
-  size_t root_symbol_len;
-  reader->ReadInt(&root_symbol_len);
+  assert(reader->file().data() > attributes_.data());
+  size_t offset = reader->file().data() - attributes_.data();
 
-  size_t num_nested_symbols;
-  reader->ReadInt(&num_nested_symbols);
+  auto root_symbol_len = ReadLength(offset);
+  offset -= ReadLengthSize(offset);
+
+  auto num_nested_symbols = ReadLength(offset);
+  offset -= ReadLengthSize(offset);
 
   llvm::SmallVector<size_t, 4> nested_symbol_len(num_nested_symbols);
   for (int i = 0; i < num_nested_symbols; ++i) {
-    reader->ReadInt(&nested_symbol_len[i]);
+    nested_symbol_len[i] = ReadLength(offset);
+    offset -= ReadLengthSize(offset);
   }
 
-  size_t serialized_operation_len;
-  reader->ReadInt(&serialized_operation_len);
+  auto serialized_operation_len = ReadLength(offset);
 
   // Base of the attribute payload.
-  const char* base = reinterpret_cast<const char*>(reader->file().data());
+  offset = reader->file().data() - attributes_.data();
+  const char* base = reinterpret_cast<const char*>(&attributes_[offset]);
 
   // Root symbol name.
   string_view root = {base, root_symbol_len};
@@ -1375,9 +1379,9 @@ mlir::ArrayAttr BEFAttributeReader::ReadArrayAttribute(
     BEFReader* reader, BEFAttributeType element_type) {
   assert(IsFixedAttribute(element_type));
   assert(reader->file().data() > attributes_.data());
+  size_t offset = reader->file().data() - attributes_.data();
 
-  uint32_t length;
-  reader->ReadInt4(&length);
+  auto length = ReadLength(offset);
   if (length == 0) return mlir::ArrayAttr::get(&context_, {});
 
   SmallVector<mlir::Attribute, 8> elements;

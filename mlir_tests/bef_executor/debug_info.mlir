@@ -36,6 +36,9 @@ func @debug_info() {
   "tfrt_test.print_debug_info"(%ch) : (!tfrt.chain) -> (!tfrt.chain)
                                       loc("foo/bar")
 
+  // CHECK: foo
+  "tfrt_test.print_debug_info"() : () -> (!tfrt.chain)
+                                   loc(callsite("foo" at "bar.py":42:314))
 
   tfrt.return
 }
@@ -62,6 +65,10 @@ func @debug_info_sync()  attributes {tfrt.sync} {
   // CHECK: foo/bar
   "tfrt_test.sync_print_debug_info"(%ch) : (!tfrt.chain) -> (!tfrt.chain)
                                            loc("foo/bar")
+
+  // CHECK: foo
+  "tfrt_test.sync_print_debug_info"() : () -> (!tfrt.chain)
+                                        loc(callsite("foo" at "bar.py":42:314))
 
   tfrt.return
 }

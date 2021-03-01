@@ -548,6 +548,14 @@ void EntityTable::AddDebugInfo(mlir::Operation* op) {
     }
   }
 
+  // If the location is a CallSiteLoc, look whether the callee is a NameLoc.
+  if (auto call_site = debug_info_location.dyn_cast<mlir::CallSiteLoc>()) {
+    const auto& location = call_site.getCallee();
+    if (auto named_loc = location.dyn_cast<mlir::NameLoc>()) {
+      debug_info_location = location;
+    }
+  }
+
   if (auto named_loc = debug_info_location.dyn_cast<mlir::NameLoc>()) {
     DebugInfoEntry debug_info_entry = named_loc.getName().c_str();
     auto r = debug_info.try_emplace(op, debug_info_entry);

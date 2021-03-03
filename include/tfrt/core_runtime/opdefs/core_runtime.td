@@ -94,6 +94,11 @@ def ConstStringTensorOp : CoreRT_Op<"const_string_tensor",
 
     Example:
       %tensor_handle = corert.const_string_tensor {shape = [1, 2], value = ["const", "string"]}
+
+    Note: if the entries in `value` are all the same, we can just keep one copy.
+      In other words, the following two lines are effectively the same.
+      %tensor_handle = corert.const_string_tensor {shape = [1, 2], value = ["string", "string"]}
+      %tensor_handle = corert.const_string_tensor {shape = [1, 2], value = ["string"]}
   }];
 
   let arguments = (ins

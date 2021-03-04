@@ -362,7 +362,7 @@ def ReturnOp : TFRT_Op<"return", [Terminator]> {
   let arguments = (ins Variadic<AnyType>:$operands);
 
   let builders = [
-    OpBuilderDAG<(ins),
+    OpBuilder<(ins),
     [{ build($_builder, $_state, llvm::None); }]>];
 }
 

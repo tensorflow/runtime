@@ -180,7 +180,7 @@ static LogicalResult verify(EnumerateIteratorOp op) {
   // can be compared for the compatibility. The op result types, function result
   // types, and final function input types, should all match.
   constexpr int kNumTypeLists = 3;
-  const std::array<std::pair<std::string, ArrayRef<Type>>, kNumTypeLists>
+  const std::array<std::pair<std::string, TypeRange>, kNumTypeLists>
       type_lists = {{
           {"op results", op.getResultTypes()},
           {"function results", function_type.getResults()},

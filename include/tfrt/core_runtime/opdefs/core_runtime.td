@@ -158,7 +158,7 @@ def ExecuteOp : CoreRT_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeTrait
   }];
 
   let builders = [
-    OpBuilderDAG<(ins "ArrayRef<Type>":$results, "Value":$op_handler,
+    OpBuilder<(ins "TypeRange":$results, "Value":$op_handler,
       "ValueRange":$operands,
       "ArrayRef<std::pair<StringRef, Attribute>>":$op_attrs,
       "ArrayRef<std::pair<StringRef, Attribute>>":$op_func_attrs,

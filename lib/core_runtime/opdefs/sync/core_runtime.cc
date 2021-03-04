@@ -56,8 +56,7 @@ Operation *CoreRTSyncDialect::materializeConstant(OpBuilder &builder,
 }
 
 void ExecuteOp::build(OpBuilder &builder, OperationState &state,
-                      ArrayRef<Type> results, Value op_handler,
-                      ValueRange operands,
+                      TypeRange results, Value op_handler, ValueRange operands,
                       ArrayRef<std::pair<StringRef, Attribute>> op_attrs,
                       StringRef op_name) {
   SmallVector<Attribute, 4> attrs;

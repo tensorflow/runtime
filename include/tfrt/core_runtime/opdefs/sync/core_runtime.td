@@ -129,7 +129,7 @@ def ExecuteOp : CoreRTSync_Op<"executeop", [NoSideEffect, CoreRT_TypedAttributeT
   }];
 
   let builders = [
-    OpBuilderDAG<(ins "ArrayRef<Type>":$results, "Value":$device,
+    OpBuilder<(ins "TypeRange":$results, "Value":$device,
       "ValueRange":$operands,
       "ArrayRef<std::pair<StringRef, Attribute>>":$op_attrs,
       "StringRef":$op_name)>];

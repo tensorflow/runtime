@@ -686,7 +686,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
           for (auto iter : llvm::enumerate(last_op.getOperands())) {
             auto index = iter.index();
             const auto& operand = iter.value();
-            if (operand.getKind() == mlir::Value::Kind::BlockArgument) {
+            if (operand.isa<mlir::BlockArgument>()) {
               last_op.emitError() << "return value " << index
                                   << " is an argument in a sync function";
               result = LogicalResult::Failure;

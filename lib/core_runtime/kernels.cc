@@ -799,8 +799,11 @@ static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
     TensorType dst_tensor_type = TensorType::kUnknownTensorType;
     TensorType src_tensor_type = tensor->tensor_type();
     const DeviceType &dst_device_type = dst_device->type();
-    // The kernel currently assumes that all tensors are dense tensor.
-    if (dst_device_type == cpu_device) {
+    if (tensor->dtype().IsUnsupported()) {
+      // Note: we will use fallback tensor type for tensor with unsupported
+      // data type.
+      dst_tensor_type = src_tensor_type;
+    } else if (dst_device_type == cpu_device) {
       dst_tensor_type = dense_cpu_type;
     } else if (dst_device_type == gpu_device) {
       dst_tensor_type = dense_gpu_type;

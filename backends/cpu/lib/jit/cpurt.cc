@@ -440,24 +440,24 @@ AsyncValueRef<CompilationResult> CompilationResultCache::Insert(
 //----------------------------------------------------------------------------//
 
 namespace {
-// Expands operations that could not be lowered to LLVM direcly.
-struct ExpandOpsPass
-    : public mlir::PassWrapper<ExpandOpsPass, mlir::FunctionPass> {
+// Expand math operations to fast polynomial approximations.
+struct MathApproximationPass
+    : public mlir::PassWrapper<MathApproximationPass, mlir::FunctionPass> {
   void runOnFunction() override;
 };
 }  // namespace
 
-void ExpandOpsPass::runOnFunction() {
+void MathApproximationPass::runOnFunction() {
   mlir::MLIRContext* ctx = &getContext();
   mlir::OwningRewritePatternList patterns;
-  mlir::populateExpandTanhPattern(patterns, ctx);
+  mlir::populateMathPolynomialApproximationPatterns(patterns, ctx);
   if (failed(mlir::applyPatternsAndFoldGreedily(getOperation(),
                                                 std::move(patterns))))
     signalPassFailure();
 }
 
-std::unique_ptr<ExpandOpsPass> CreateExpandOpsPass() {
-  return std::make_unique<ExpandOpsPass>();
+std::unique_ptr<MathApproximationPass> CreateMathApproximationPass() {
+  return std::make_unique<MathApproximationPass>();
 }
 
 static void InitializeCompiler() {
@@ -517,7 +517,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   fpm.addPass(mlir::createAsyncRefCountingPass());
   fpm.addPass(mlir::createAsyncRefCountingOptimizationPass());
   fpm.addPass(mlir::createStdExpandOpsPass());
-  fpm.addPass(CreateExpandOpsPass());
+  fpm.addPass(CreateMathApproximationPass());
 
   // Lower from high level async operations to async runtime.
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());

@@ -316,25 +316,11 @@ bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
       OpAttrsRawEntry::GetNumElements(num_elements) * type_size;
   bool is_array = num_elements >= 0;
   bool is_small = type_size <= sizeof(void *);
-  if (is_array || !is_small) {
-    // If we have an array attribute, then we need to emit the array size before
-    // the data, so it can be interpreted directly as a BEF array constant.
-    SmallVector<uint8_t, 4> array_size;
-    size_t array_size_space = 0;
-    if (is_array) {
-      EmitBEFArrayLength(size_t(num_elements), &array_size);
-      array_size_space =
-          size_t(llvm::alignTo(array_size.size(), type_alignment));
-    }
 
-    void *our_data =
-        allocator_.Allocate(array_size_space + bytes_to_copy, type_alignment);
-    void *element_ptr = static_cast<char *>(our_data) + array_size_space;
-
-    // If there is an array size, copy it right before the elements.
-    if (array_size_space)
-      memcpy(static_cast<char *>(element_ptr) - array_size.size(),
-             array_size.data(), array_size.size());
+  // bytes_to_copy can be 0 for an empty array.
+  if ((is_array && bytes_to_copy > 0) || !is_small) {
+    void *our_data = allocator_.Allocate(bytes_to_copy, type_alignment);
+    void *element_ptr = static_cast<char *>(our_data);
 
     // Copy the element(s) themselves.
     memcpy(element_ptr, data, bytes_to_copy);
@@ -344,10 +330,12 @@ bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
   } else {
     // If it is a small scalar, copy the data to the inlined buffer.
     assert(type_alignment <= alignof(void *));
-    assert(type_size <= sizeof(void *));
+    assert(bytes_to_copy <= sizeof(void *));
     entry.array_size =
         OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/true);
-    memcpy(entry.buffer, data, bytes_to_copy);
+    if (bytes_to_copy > 0) {
+      memcpy(entry.buffer, data, bytes_to_copy);
+    }
   }
 
   entry.name = entry_it_pair.first->first().data();
@@ -473,12 +461,6 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
   // Otherwise we have non-standard attribute, then we need to copy the array to
   // OpAttrs' inlined buffer.
 
-  // If we have an array attribute, then we need to emit the array size before
-  // the data, so it can be interpreted directly as a BEF array constant.
-  SmallVector<uint8_t, 4> array_size;
-  if (is_array) EmitBEFArrayLength(size_t(num_elements), &array_size);
-  inline_buffer_used_ += array_size.size();
-
   // Then we hold the data. Round the element pointer up to the alignment
   // boundary required by type so we can figure out where we will be inserting
   // it.
@@ -497,13 +479,6 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
     return out_of_line_representation_->SetRaw(attr_name, data, num_elements,
                                                type);
   }
-
-  // If this is an array of values, copy the array size immediately before the
-  // element data.
-  if (!array_size.empty())
-    memcpy(dest_pointer - array_size.size(), array_size.data(),
-           array_size.size());
-
   memcpy(dest_pointer, data, bytes_to_copy);
 
   // Fill in the attribute entry.
@@ -555,10 +530,6 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
     // Space for the name and null terminator.
     alloc_size += strlen(entry->name) + 1;
 
-    // If this is an array attribute, then we need to emit the BEF array size.
-    // It will have the same size as the array size in the source.
-    if (entry->IsArray()) alloc_size += GetBEFArraySizeSize(entry->data);
-
     // Round up to the required alignment.
     auto size_type_alignment =
         GetHostSizeAndAlignment(entry->data, entry->type);
@@ -598,13 +569,6 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
     auto type_alignment = size_and_alignment.second;
 
     if (src_entry.IsArray() || type_size > sizeof(void *)) {
-      // If this is an array entry, we need space for the array size.
-      size_t array_size_size = 0;
-      if (src_entry.IsArray()) {
-        array_size_size = GetBEFArraySizeSize(src_entry.data);
-        data_ptr += array_size_size;
-      }
-
       // Round up to the required alignment.
       data_ptr = reinterpret_cast<char *>(
           llvm::alignTo(reinterpret_cast<uint64_t>(data_ptr), type_alignment));
@@ -612,9 +576,8 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
       // Copy over the elements, including the array_size if present.
       size_t elements_size =
           OpAttrsRawEntry::DecodeArraySize(src_entry.array_size) * type_size;
-      memcpy(data_ptr - array_size_size,
-             static_cast<const char *>(src_entry.data) - array_size_size,
-             elements_size + array_size_size);
+      memcpy(data_ptr, static_cast<const char *>(src_entry.data),
+             elements_size);
 
       // Remember that this is where the element is.
       result_entry.data = data_ptr;

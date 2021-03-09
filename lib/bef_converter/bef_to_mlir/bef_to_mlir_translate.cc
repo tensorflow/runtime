@@ -43,7 +43,7 @@ mlir::OwningModuleRef BEFToMLIRTranslate(llvm::SourceMgr &source_mgr,
   const llvm::MemoryBuffer *input =
       source_mgr.getMemoryBuffer(source_mgr.getMainFileID());
   mlir::Location location =
-      mlir::FileLineColLoc::get(input->getBufferIdentifier(), 0, 0, context);
+      mlir::FileLineColLoc::get(context, input->getBufferIdentifier(), 0, 0);
 
   source_mgr.setDiagHandler([](const llvm::SMDiagnostic &diag, void *) {
     llvm::SMDiagnostic bef_diag(diag.getFilename(), diag.getKind(),

@@ -923,8 +923,8 @@ mlir::LogicalResult BEFToMLIRConverter::ReadLocationPositions(
 
     // Populates `bef_file_` with locations.
     bef_file_.location_positions.insert(
-        {offset, mlir::FileLineColLoc::get(*filename, line_number,
-                                           column_number, &context_)});
+        {offset, mlir::FileLineColLoc::get(&context_, *filename, line_number,
+                                           column_number)});
   }
   return mlir::success();
 }

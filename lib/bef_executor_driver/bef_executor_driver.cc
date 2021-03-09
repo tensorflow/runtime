@@ -100,11 +100,11 @@ int RunBefExecutor(
     auto decoded_loc = diag.location;
     if (decoded_loc) {
       auto loc =
-          mlir::FileLineColLoc::get(decoded_loc->filename, decoded_loc->line,
-                                    decoded_loc->column, &context);
+          mlir::FileLineColLoc::get(&context, decoded_loc->filename,
+                                    decoded_loc->line, decoded_loc->column);
       emitError(loc) << message;
     } else {
-      auto loc = mlir::FileLineColLoc::get("", 0, 0, &context);
+      auto loc = mlir::FileLineColLoc::get(&context, "", 0, 0);
       emitError(loc) << message;
     }
   };

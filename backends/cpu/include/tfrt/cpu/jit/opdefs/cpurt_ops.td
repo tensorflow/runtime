@@ -35,6 +35,38 @@ class CPURT_Op<string mnemonic, list<OpTrait> traits = []> :
       Op<TFRT_CPURT_Dialect, mnemonic, traits> {
 }
 
+//===----------------------------------------------------------------------===//
+// TFRT CPU Runtime op definitions to facilitate runtime lowerings.
+//===----------------------------------------------------------------------===//
+
+def CallOp : CPURT_Op<"call"> {
+  let summary = "cpurt function call operation";
+  let description = [{
+    This operation is used in graph rewrites to call compiled functions. This
+    operation is expanded into the pair of compile/execute operations during
+    lowering (depending on execution mode it can be graph or corert operations).
+  }];
+
+  let arguments = (ins
+    SymbolRefAttr:$callee,
+    Variadic<AnyType>:$operands
+  );
+
+  let results = (outs
+    Variadic<AnyType>:$results
+  );
+
+  let assemblyFormat = [{
+    `(` $operands `)` attr-dict `:` functional-type($operands, $results)
+  }];
+
+  // TODO(ezhulenev): Add a verifier for callee.
+}
+
+//===----------------------------------------------------------------------===//
+// TFRT CPU Runtime op definitions for native graph execution.
+//===----------------------------------------------------------------------===//
+
 def CompileOp : CPURT_Op<"compile"> {
   let summary = "cpurt compile operation";
   let description = [{

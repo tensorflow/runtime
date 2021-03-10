@@ -717,6 +717,11 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
 
       // Keep track of any attributes used by this op.
       for (auto attr : op->getAttrs()) {
+        // Skip cost attribute which is not used in runtime execution.
+        //
+        // TODO(tfrt-devs): Use attribute interface instead of hardcoding here.
+        if (attr.first == "_tfrt_cost") continue;
+
         // If this is a special attribute, ignore it.
         if (ClassifyAttribute(attr.first.strref()) !=
             SpecialAttribute::kUnknown)
@@ -1964,6 +1969,11 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   uint32_t special_attribute = 0;
   bool is_op_attrs_typed = IsOpAttrsTyped(op);
   for (auto attr_name_pair : op->getAttrs()) {
+    // Skip cost attribute which is not used in runtime execution.
+    //
+    // TODO(tfrt-devs): Use attribute interface instead of hardcoding here.
+    if (attr_name_pair.first == "_tfrt_cost") continue;
+
     // Emit a flag in kernel header to indicate that the kernel is non-strict.
     if (ClassifyAttribute(attr_name_pair.first.strref()) ==
         SpecialAttribute::kNonStrict) {

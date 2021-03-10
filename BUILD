@@ -591,10 +591,12 @@ tfrt_cc_library(
     srcs = [
         "lib/basic_kernels/opdefs/basic_kernels.cc",
         "lib/basic_kernels/opdefs/tfrt_base.cc",
+        "lib/basic_kernels/opdefs/tfrt_traits.cc",
     ],
     hdrs = [
         "include/tfrt/basic_kernels/opdefs/basic_kernels.h",
         "include/tfrt/basic_kernels/opdefs/tfrt_base.h",
+        "include/tfrt/basic_kernels/opdefs/tfrt_traits.h",
         "include/tfrt/basic_kernels/opdefs/types.h",
     ],
     visibility = [":friends"],

@@ -300,4 +300,20 @@ def PrintTypedAttrOp : Test_Op<"print_typed_attr", [CoreRT_TypedAttributeTrait]>
   let verifier = ?;
 }
 
+def TestCostOp : Test_Op<"test_cost", [TFRT_CostTrait, CoreRT_TypedAttributeTrait]> {
+  let summary = "tfrt_test.test_cost";
+
+  let arguments = (ins
+    TFRT_ChainType:$in_ch,
+    I64Attr:$id,
+    I64Attr:$_tfrt_cost
+  );
+
+  let results = (outs TFRT_ChainType:$out_ch);
+
+  let assemblyFormat = "operands attr-dict";
+
+  let verifier = ?;
+}
+
 #endif  // TEST_OPS

@@ -434,6 +434,13 @@ static Chain TestPrintDebugInfo(T* frame) {
   return Chain();
 }
 
+static Chain TestCost(tfrt::Chain in_ch, I64Attr id) {
+  tfrt::outs() << "id: " << id.GetValue() << "\n";
+  tfrt::outs().flush();
+
+  return Chain();
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -458,6 +465,7 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.unique_loc", TFRT_KERNEL(TestUniqueLoc));
   registry->AddKernel("tfrt_test.print_typed_attr",
                       TFRT_KERNEL(TestPrintTypedAttr));
+  registry->AddKernel("tfrt_test.test_cost", TFRT_KERNEL(TestCost));
   registry->AddKernel("tfrt_test.multi_arg_result",
                       TFRT_KERNEL(TestMultiArgResult));
   registry->AddKernel("tfrt_test.print_debug_info",

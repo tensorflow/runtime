@@ -116,4 +116,11 @@ void BEFEmitter::EmitAlignment(unsigned alignment) {
   required_alignment_ = std::max(required_alignment_, alignment);
 }
 
+void BEFEmitter::EmitAlignment(unsigned alignment, unsigned count) {
+  while (count--) EmitByte(kDummyByte);
+
+  // Keep track of the maximum required alignment.
+  required_alignment_ = std::max(required_alignment_, alignment);
+}
+
 }  // namespace tfrt

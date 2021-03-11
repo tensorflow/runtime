@@ -103,34 +103,24 @@ class CompilationUnitAttribute {
  public:
   explicit CompilationUnitAttribute(const void* value) {
     ASSERT_LITTLE_ENDIAN();
+    const auto* ptr = static_cast<const uint8_t*>(value);
 
-    // Returns the pointer after skipping encoded size entry.
-    auto move_to_next_size = [](const void* ptr) -> const void* {
-      size_t skip_bytes = GetBEFArraySizeSize(ptr);
-      const uint8_t* next_ptr = static_cast<const uint8_t*>(ptr) - skip_bytes;
-      return static_cast<const void*>(next_ptr);
-    };
+    size_t root_symbol_len;
+    ptr = ReadVbrInt(ptr, &root_symbol_len);
 
-    // Decode the sizes of all attributes parts.
-    const void* ptr = value;
-
-    size_t root_symbol_len = DecodeArraySizeFromBEFAttributes(ptr);
-    ptr = move_to_next_size(ptr);
-
-    size_t num_nested_symbols = DecodeArraySizeFromBEFAttributes(ptr);
-    ptr = move_to_next_size(ptr);
+    size_t num_nested_symbols;
+    ptr = ReadVbrInt(ptr, &num_nested_symbols);
 
     llvm::SmallVector<size_t, 4> nested_symbols_len(num_nested_symbols);
     for (int i = 0; i < num_nested_symbols; ++i) {
-      nested_symbols_len[i] = DecodeArraySizeFromBEFAttributes(ptr);
-      ptr = move_to_next_size(ptr);
+      ptr = ReadVbrInt(ptr, &nested_symbols_len[i]);
     }
 
-    size_t serialized_operation_len = DecodeArraySizeFromBEFAttributes(ptr);
+    size_t serialized_operation_len;
+    ptr = ReadVbrInt(ptr, &serialized_operation_len);
 
     // The base of the attribute payload.
-    const char* base = static_cast<const char*>(value);
-
+    const char* base = reinterpret_cast<const char*>(ptr);
     root_symbol_ = {base, root_symbol_len};
     size_t offset = root_symbol_len;
 

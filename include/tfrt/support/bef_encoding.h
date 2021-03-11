@@ -28,6 +28,8 @@
 #include <cstdint>
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/Alignment.h"
+#include "llvm/Support/MathExtras.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -283,32 +285,55 @@ inline BEFAttributeType GetBEFAttributeType<DType::Kind>() {
   return BEFAttributeType::kType;
 }
 
-// Given a pointer to the start of an array of BEF attributes, decode the
-// size information that is stored in reverse order immediately preceding it.
-static inline size_t DecodeArraySizeFromBEFAttributes(const void* data) {
-  const uint8_t* len_ptr = static_cast<const uint8_t*>(data) - 1;
-  size_t size = 0;
-  bool more_bytes;
+// Read an integer encoded in VBR format from the given pointer.
+// It returns the updated pointer after reading a VBR integer.
+inline const uint8_t* ReadVbrInt(const uint8_t* ptr, size_t* out) {
+  *out = 0;
+  uint8_t onebyte;
   do {
-    more_bytes = (len_ptr[0] & 0x80) != 0;
-    size <<= 7;
-    size |= len_ptr[0] & 0x7F;
-    --len_ptr;
-  } while (more_bytes);
-  return size;
+    onebyte = *ptr++;
+    *out <<= 7;
+    *out |= onebyte & 0x7f;
+  } while (onebyte & 0x80);
+  return ptr;
 }
 
+// Check if the given alignment is valid. Valid alignments are 1, 2, 4, 8, ...
+inline bool IsValidAlignment(unsigned alignment) {
+  return llvm::isPowerOf2_32(alignment);
+}
+
+// Calculate required byte size of alignment padding for the given offset when
+// there is a prefix.
+//
+// Examples,
+//   CalculateAlignmentPaddingSize(0, 1, 4) should return 3.
+//   CalculateAlignmentPaddingSize(1, 1, 4) should return 2.
+//   CalculatePaddingSize(3, 2, 8) should return 3.
+inline size_t CalculateAlignmentPaddingSize(size_t offset, unsigned prefix_size,
+                                            unsigned alignment) {
+  return llvm::offsetToAlignment(offset + prefix_size, llvm::Align(alignment));
+}
+
+// Return the expected length of VBR integer.
+//   E.g., 1 when 0   <= value < 128
+//         2 when 128 <= value < 16384
+inline size_t GetSizeOfVbrInt(size_t value) {
+  return (value < 0x80) ? 1 : GetSizeOfVbrInt(value >> 7) + 1;
+}
+
+// An array starts with its length encoded in fixed32 integer format.
 template <typename T>
-static inline ArrayRef<T> DecodeArrayFromBEFAttributes(const void* ptr) {
-  const uint8_t* data = reinterpret_cast<const uint8_t*>(ptr);
-  size_t size = DecodeArraySizeFromBEFAttributes(data);
+ArrayRef<T> DecodeArrayFromBEFAttributes(const void* ptr) {
+  size_t size;
+  const uint8_t* data = ReadVbrInt(static_cast<const uint8_t*>(ptr), &size);
   return ArrayRef<T>(reinterpret_cast<const T*>(data), size);
 }
 
 // Return the number of bytes preceding the data pointer that correspond to the
 // BEF array size.  This is the size of the size of the array - the number of
 // bytes occupied by the VBR encoded array size.
-static inline size_t GetBEFArraySizeSize(const void* data) {
+inline size_t GetBEFArraySizeSize(const void* data) {
   const uint8_t* len_ptr = static_cast<const uint8_t*>(data) - 1;
   size_t size = 1;
   while (true) {
@@ -322,7 +347,7 @@ static inline size_t GetBEFArraySizeSize(const void* data) {
 // Emit the specified array length into the indicated vector, which should be
 // a SmallVector<uint8_t>, vector<uint8_t> or equivalent.
 template <typename VectorType>
-static inline void EmitBEFArrayLength(size_t value, VectorType* byte_vector) {
+void EmitBEFArrayLength(size_t value, VectorType* byte_vector) {
   byte_vector->push_back(uint8_t(value & 0x7F));
   value >>= 7;
   while (value != 0) {

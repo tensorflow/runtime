@@ -126,7 +126,7 @@ Expected<Result> InvokeSyncFunction(const Function& function,
           function, exec_ctx, &result_values, std::forward<Args>(args)...)) {
     return std::move(error);
   } else {
-    return result_values[0].get<Result>();
+    return std::move(result_values[0].get<Result>());
   }
 }
 

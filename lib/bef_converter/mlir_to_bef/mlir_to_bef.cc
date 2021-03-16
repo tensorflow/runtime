@@ -945,21 +945,27 @@ class BEFFileEmitter : public BEFEmitter {
     // Section start with an identifier.
     result_.push_back(static_cast<uint8_t>(section_id));
 
-    bool has_alignment = alignment > 1;
+    // LENGTH_AND_ALIGNMENT ::= (SECTION_LENGTH << 1) | (SECTION_ALIGNMENT_FLAG)
+    const auto shifted_section_length = (section_data.size() << 1);
+    bool length_emitted = false;
+    if (alignment > 1) {
+      auto offset = size() + GetSizeOfVbrInt(shifted_section_length);
+      if (offset % alignment != 0) {
+        // Emit section length with alignment constraint.
+        EmitInt(shifted_section_length | 1);
+        EmitByte(alignment);
 
-    // Then have a length along with a bit indicating whether and alignment is
-    // present.
-    EmitInt((section_data.size() << 1) | (has_alignment ? 1 : 0));
+        // Move up to the right alignment for the section data.
+        EmitAlignment(alignment);
 
-    // TODO(tfrt-devs): In the case where we already happen to be aligned,
-    // we could save N bytes of output by noticing that we're already aligned,
-    // propagating the alignment to our container, but not emitting the
-    // alignment marker or the fill bytes.
-    if (has_alignment) {
-      EmitByte(alignment);
+        // Mark that the section length has been emitted.
+        length_emitted = true;
+      }
+    }
 
-      // Move up to the right alignment for the section data.
-      EmitAlignment(alignment);
+    if (!length_emitted) {
+      // Emit section length without alignment constraint.
+      EmitInt(shifted_section_length);
     }
 
     // Then have the payload data.

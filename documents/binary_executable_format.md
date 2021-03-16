@@ -96,8 +96,9 @@ and for dealing with that "random file someone sent you".
 
 ```none
   SECTION                ::= SECTION_HEADER SECTION_DATA
-  SECTION_HEADER         ::= SECTION_ID INTEGER<"Length"> SECTION_BODY_ALIGNMENT?
+  SECTION_HEADER         ::= SECTION_ID INTEGER<LENGTH_AND_ALIGNMENT> SECTION_BODY_ALIGNMENT?
   SECTION_ID             ::= BYTE
+  LENGTH_AND_ALIGNMENT   ::= (SECTION_LENGTH << 1) | (SECTION_ALIGNMENT_FLAG)
   SECTION_BODY_ALIGNMENT ::= BYTE<"Alignment"> BYTE<"AlignmentPadding">*
 ```
 
@@ -111,6 +112,12 @@ Section IDs and other fundamental constants are defined in
 and utilities for decoding the basic file structures like VBR integers are
 defined in
 [`bef_reader.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/support/bef_reader.h).
+
+The LENGTH_AND_ALIGNMENT contains SECTION_LENGTH and SECTION_ALIGNMENT_FLAG. The
+SECTION_LENGTH contains one bit shifted value of the section length and the
+SECTION_ALIGNMENT_FLAG (0 bit) indicates if SECTION_BODY_ALIGNMENT exists or
+not; 0 means the section body starts immediately and 1 means
+SECTION_BODY_ALIGNMENT follows.
 
 ## Top Level Structure
 

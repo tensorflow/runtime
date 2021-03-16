@@ -24,6 +24,7 @@
 #ifndef TFRT_HOST_CONTEXT_SYNC_KERNEL_UTILS_H_
 #define TFRT_HOST_CONTEXT_SYNC_KERNEL_UTILS_H_
 
+#include <cstdint>
 #include <type_traits>
 
 #include "llvm/Support/Error.h"
@@ -33,6 +34,7 @@
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/sync_kernel_frame.h"
 #include "tfrt/host_context/value.h"
+#include "tfrt/support/ranges.h"
 #include "tfrt/support/type_traits.h"
 
 namespace tfrt {
@@ -128,60 +130,47 @@ class RemainingSyncArguments {
   ArrayRef<Value*> registers_;
 };
 
+namespace detail {
+// For use by RepeatedSyncArguments below.
+struct RepeatedSyncArgumentsBase {
+  const uint32_t* reg_indices;
+  Value* const* registers;
+  bool operator==(const RepeatedSyncArgumentsBase& b) const {
+    return reg_indices == b.reg_indices && registers == b.registers;
+  }
+};
+}  // namespace detail
+
 // RepeatedArguments collects all remaining arguments of the same type in an
 // ArrayRef. There can be at most one RemainingArguments/RepeatedArguments, and
 // it must appear after all other Arguments.
 template <typename T>
-class RepeatedSyncArguments {
+class RepeatedSyncArguments
+    : public IndexedAccessorRangeBase<RepeatedSyncArguments<T>,
+                                      detail::RepeatedSyncArgumentsBase, T> {
+  using IndexBaseT = detail::RepeatedSyncArgumentsBase;
+  using RangeBaseT =
+      IndexedAccessorRangeBase<RepeatedSyncArguments<T>,
+                               detail::RepeatedSyncArgumentsBase, T>;
+
  public:
-  class Iterator {
-   public:
-    using iterator_category = std::random_access_iterator_tag;
-    using value_type = T;
-    using difference_type = ssize_t;
-    using pointer = T*;
-    using reference = T&;
-
-    Iterator(size_t index, const RepeatedSyncArguments* parent)
-        : index_{index}, parent_{parent} {}
-
-    T& operator*() const { return (*parent_)[index_]; }
-    T* operator->() const { return &(*parent_)[index_]; }
-
-    bool operator==(Iterator other) const { return index_ == other.index_; }
-    bool operator!=(Iterator other) const { return index_ != other.index_; }
-
-    Iterator& operator++() {
-      ++index_;
-      return *this;
-    }
-
-    Iterator operator+(size_t offset) const {
-      return Iterator{index_ + offset, parent_};
-    }
-    size_t operator-(Iterator it) const { return index_ - it.index_; }
-
-   private:
-    size_t index_;
-    const RepeatedSyncArguments* parent_;
-  };
-
   RepeatedSyncArguments(ArrayRef<uint32_t> reg_indices,
                         ArrayRef<Value*> registers)
-      : reg_indices_{reg_indices}, registers_{registers} {}
-
-  size_t size() const { return reg_indices_.size(); }
-  T& operator[](size_t i) const {
-    return registers_[reg_indices_[i]]->template get<T>();
-  }
-
-  // Enable the ranged-for usage, e.g. for (auto& v : repeated_arguments) {...}
-  Iterator begin() const { return Iterator{0, this}; }
-  Iterator end() const { return Iterator{reg_indices_.size(), this}; }
+      : RangeBaseT(IndexBaseT{reg_indices.data(), registers.data()},
+                   reg_indices.size()) {}
 
  private:
-  ArrayRef<uint32_t> reg_indices_;
-  ArrayRef<Value*> registers_;
+  // See `llvm::detail::indexed_accessor_range_base` for details.
+  static IndexBaseT offset_base(const IndexBaseT& base, ptrdiff_t index) {
+    return IndexBaseT{base.reg_indices + index, base.registers};
+  }
+  // See `llvm::detail::indexed_accessor_range_base` for details.
+  static T& dereference_iterator(const IndexBaseT& base, ptrdiff_t index) {
+    return base.registers[base.reg_indices[index]]->get<T>();
+  }
+
+  // Allow access to `offset_base` and `dereference_iterator`.
+  friend RangeBaseT;
 };
 
 // This class is an implementation detail of TFRT_SYNC_KERNEL.

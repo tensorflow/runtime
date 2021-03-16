@@ -28,6 +28,8 @@
 #include <cstddef>
 #include <iterator>
 
+#include "llvm/ADT/STLExtras.h"
+
 namespace tfrt {
 namespace views {
 
@@ -69,6 +71,15 @@ CountedView<IteratorT> Counted(IteratorT it, size_t count) {
 }
 
 }  // namespace views
+
+// Base class to implement range that is based on indexing into a BaseT.
+// See `llvm::detail::indexed_accessor_range_base` for details.
+template <typename DerivedT, typename BaseT, typename T,
+          typename PointerT = T *, typename ReferenceT = T &>
+using IndexedAccessorRangeBase =
+    llvm::detail::indexed_accessor_range_base<DerivedT, BaseT, T, PointerT,
+                                              ReferenceT>;
+
 }  // namespace tfrt
 
 #endif  // TFRT_SUPPORT_RANGES_H_

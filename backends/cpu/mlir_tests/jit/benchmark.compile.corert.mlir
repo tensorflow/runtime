@@ -18,11 +18,11 @@ module @kernels attributes { tfrt.compiled } {
   func @main(%input: memref<?x?xf32>) -> !async.value<memref<?x?xf32>> {
     %c0 = constant 0 : index
     %c1 = constant 1 : index
-    %0 = dim %input, %c0 : memref<?x?xf32>
-    %1 = dim %input, %c1 : memref<?x?xf32>
+    %0 = memref.dim %input, %c0 : memref<?x?xf32>
+    %1 = memref.dim %input, %c1 : memref<?x?xf32>
 
     %token, %value = async.execute -> !async.value<memref<?x?xf32>> {
-      %output = alloc(%0, %1) : memref<?x?xf32>
+      %output = memref.alloc(%0, %1) : memref<?x?xf32>
 
       linalg.generic {
         indexing_maps = [affine_map<(d0, d1) -> (d0, d1)>,

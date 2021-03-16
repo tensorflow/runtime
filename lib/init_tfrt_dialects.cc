@@ -26,6 +26,7 @@
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
 #include "mlir/Dialect/Math/IR/Math.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
@@ -64,6 +65,7 @@ void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
   registry.insert<mlir::async::AsyncDialect>();
   registry.insert<mlir::linalg::LinalgDialect>();
   registry.insert<mlir::math::MathDialect>();
+  registry.insert<mlir::memref::MemRefDialect>();
 }
 
 }  // namespace tfrt

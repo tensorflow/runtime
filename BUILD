@@ -1362,6 +1362,26 @@ tfrt_cc_library(
     ],
 )
 
+tfrt_cc_library(
+    name = "stream_analysis",
+    srcs = ["lib/compiler/stream_analysis.cc"],
+    hdrs = ["include/tfrt/compiler/stream_analysis.h"],
+    deps = [
+        ":basic_kernels_opdefs",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+tfrt_cc_library(
+    name = "print_stream_pass",
+    srcs = ["lib/compiler/print_stream_pass.cc"],
+    deps = [
+        ":stream_analysis",
+        "@llvm-project//mlir:Pass",
+    ],
+    alwayslink = 1,
+)
+
 bzl_library(
     name = "build_defs_bzl",
     srcs = ["build_defs.bzl"],

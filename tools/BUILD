@@ -32,6 +32,7 @@ tfrt_cc_binary(
     deps = [
         "@llvm-project//mlir:MlirOptLib",
         "@tf_runtime//:init_tfrt_dialects",
+        "@tf_runtime//:print_stream_pass",
     ],
 )
 

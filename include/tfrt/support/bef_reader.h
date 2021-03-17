@@ -39,7 +39,7 @@ constexpr size_t BefGetRequiredAlignment() { return 8; }
 // This class contains the low-level decoder helpers for processing a BEF file.
 //
 // The reader methods in this class pervasively return a boolean value, and
-// treats "true" as failure - without returning an error.
+// treats "false" as failure - without returning an error.
 class BEFReader {
  public:
   explicit BEFReader(ArrayRef<uint8_t> file) : file_(file) {}
@@ -64,37 +64,29 @@ class BEFReader {
 
   // Read a single byte from the stream.
   bool ReadByte(uint8_t* value) {
-    if (file_.empty()) return true;
+    if (file_.empty()) return false;
     *value = file_.front();
     file_ = file_.drop_front();
-    return false;
+    return true;
   }
 
   // Read a VBR encoded integer from the byte stream.
-  bool ReadInt(size_t* value) {
+  bool ReadVbrInt(size_t* value) {
     uint8_t next_byte;
-    if (ReadByte(&next_byte)) return true;
+    if (!ReadByte(&next_byte)) return false;
 
     *value = (next_byte & 127);
     while ((next_byte & 128) != 0) {
-      if (ReadByte(&next_byte)) return true;
+      if (!ReadByte(&next_byte)) return false;
 
       *value = (*value << 7) | size_t(next_byte & 127);
     }
-    return false;
-  }
-
-  bool ReadInt8(uint64_t* value) {
-    if (ReadAlignment(8) || file_.size() < 8) return true;
-    ASSERT_LITTLE_ENDIAN();
-    *value = *reinterpret_cast<const uint64_t*>(file_.data());
-    SkipOffset(8);
-    return false;
+    return true;
   }
 
   bool ReadSection(uint8_t* section_id, ArrayRef<uint8_t>* data) {
     size_t length;
-    if (ReadByte(section_id) || ReadInt(&length)) return true;
+    if (!ReadByte(section_id) || !ReadVbrInt(&length)) return false;
 
     // The low bit of the size is a boolean indicating whether there is an
     // alignment byte + padding present.
@@ -109,26 +101,26 @@ class BEFReader {
       };
 
       uint8_t alignment;
-      if (ReadByte(&alignment) || !is_power_of_2(alignment) ||
-          ReadAlignment(alignment)) {
-        return true;
+      if (!ReadByte(&alignment) || !is_power_of_2(alignment) ||
+          !ReadAlignment(alignment)) {
+        return false;
       }
     }
 
     // Okay, the returned data is whatever is left now.
-    if (length > file_.size()) return true;
+    if (length > file_.size()) return false;
 
     *data = file_.take_front(length);
-    return false;
+    return true;
   }
 
   // Skip over bytes until reaching the specified alignment.
   bool ReadAlignment(unsigned alignment) {
     uint8_t padding;
-    while (uintptr_t(file_.data()) & (uintptr_t(alignment) - 1))
-      if (ReadByte(&padding)) return true;
+    while (reinterpret_cast<uintptr_t>(file_.data()) & (alignment - 1))
+      if (!ReadByte(&padding)) return false;
 
-    return false;
+    return true;
   }
 
  private:

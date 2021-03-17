@@ -52,8 +52,8 @@ struct FunctionIndex {
 // constructor uses these (combined with the kernel registry) to resolve and
 // build the tables in BEFFile that the executor walks.
 //
-// The convention here is that these functions return false on success and emit
-// an error message and return true on failure.
+// These functions return true on success.
+// When a failure occurs, emit an error message and return false.
 class BEFFileReader : public BEFReader {
  public:
   BEFFileReader(ArrayRef<uint8_t> file, const KernelRegistry& registry,
@@ -83,9 +83,9 @@ bool BEFFileReader::ReadNextSection() {
   uint8_t section_id;
   ArrayRef<uint8_t> section_data;
 
-  if (ReadSection(&section_id, &section_data)) {
+  if (!ReadSection(&section_id, &section_data)) {
     bef_file_->EmitFormatError("BEF file section header corrupted");
-    return true;
+    return false;
   }
 
   // Process the sections we know about, skip the ones we don't.
@@ -150,9 +150,11 @@ bool BEFFileReader::ReadNextSection() {
 
   // Make sure the section reader consumed the right number of bytes.  Not
   // doing so will lead to consistency errors downstream.
-  if (file().begin() != section_data.end())
-    return bef_file_->EmitFormatError("unexpected data in BEF section"), true;
-  return false;
+  if (file().begin() != section_data.end()) {
+    bef_file_->EmitFormatError("unexpected data in BEF section");
+    return false;
+  }
+  return true;
 }
 
 // BEF files can refer to arbitrary kernels, which get resolved at load time
@@ -172,9 +174,9 @@ bool BEFFileReader::DiagnoseUnknownKernel(size_t kernel_idx,
   // This gets run before the functionindex is processed, but we want to use it
   // below.
   SmallVector<FunctionIndex, 8> function_indices;
-  if (ReadFunctionIndexSectionInternal(&function_indices)) {
+  if (!ReadFunctionIndexSectionInternal(&function_indices)) {
     bef_file_->EmitFormatError(error_message.c_str());
-    return true;
+    return false;
   }
 
   // The unknown kernel must be referenced by some function in the program,
@@ -210,27 +212,27 @@ bool BEFFileReader::DiagnoseUnknownKernel(size_t kernel_idx,
         auto decoded_loc = bef_file_->DecodeLocation(kernel.kernel_location());
         bef_file_->error_handler_(
             DecodedDiagnostic(decoded_loc, error_message));
-        return true;
+        return false;
       }
     }
   }
 
   bef_file_->EmitFormatError(error_message.c_str());
-  return true;
+  return false;
 }
 
 // Read the Kernels section from a BEF file, resolving the kernels and
-// returning false on success.  Emit an error and return true on failure.
+// returning true on success.  Emit an error and return false on failure.
 bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
   auto format_error = [&]() -> bool {
     bef_file_->EmitFormatError("invalid Kernels section in BEF file");
-    return true;
+    return false;
   };
 
   BEFReader reader(bef_file_->kernels_section_);
 
   size_t num_kernels;
-  if (reader.ReadInt(&num_kernels)) return format_error();
+  if (!reader.ReadVbrInt(&num_kernels)) return format_error();
 
 #if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
   bef_file_->kernel_names_.reserve(num_kernels);
@@ -243,7 +245,7 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
     size_t kernel_name_offset;
 
     // Make sure the kernel name is valid.
-    if (reader.ReadInt(&kernel_name_offset) ||
+    if (!reader.ReadVbrInt(&kernel_name_offset) ||
         kernel_name_offset >= bef_file_->string_section_.size())
       return format_error();
 
@@ -265,21 +267,21 @@ bool BEFFileReader::ReadKernelsSection(HostAllocator* host_allocator) {
     bef_file_->kernels_.push_back(kernel);
   }
 
-  return false;
+  return true;
 }
 
 // Read the Types section from a BEF file, resolving the types and returning
 // false on success.  Emit an error and return true on failure.
 bool BEFFileReader::ReadTypesSection() {
   auto format_error = [&]() -> bool {
-    return bef_file_->EmitFormatError("invalid Types section in BEF file"),
-           true;
+    bef_file_->EmitFormatError("invalid Types section in BEF file");
+    return false;
   };
 
   BEFReader reader(bef_file_->types_section_);
 
   size_t num_types;
-  if (reader.ReadInt(&num_types)) return format_error();
+  if (!reader.ReadVbrInt(&num_types)) return format_error();
 
   bef_file_->type_names_.reserve(num_types);
   while (num_types--) {
@@ -287,7 +289,7 @@ bool BEFFileReader::ReadTypesSection() {
     size_t type_name_offset;
 
     // Make sure the kernel name is valid.
-    if (reader.ReadInt(&type_name_offset) ||
+    if (!reader.ReadVbrInt(&type_name_offset) ||
         type_name_offset >= bef_file_->string_section_.size())
       return format_error();
 
@@ -300,7 +302,7 @@ bool BEFFileReader::ReadTypesSection() {
     bef_file_->type_names_.push_back(type_name);
   }
 
-  return false;
+  return true;
 }
 
 // Read the FunctionIndex section from a BEF file, and put the information into
@@ -310,7 +312,7 @@ bool BEFFileReader::ReadFunctionIndexSectionInternal(
   BEFReader reader(bef_file_->function_index_section_);
 
   size_t num_functions;
-  if (reader.ReadInt(&num_functions)) return true;
+  if (!reader.ReadVbrInt(&num_functions)) return false;
 
   // bef_file_->functions_.reserve(num_functions);
   function_indices->clear();
@@ -323,55 +325,55 @@ bool BEFFileReader::ReadFunctionIndexSectionInternal(
     auto& function_index = function_indices->back();
 
     uint8_t function_kind;
-    if (reader.ReadByte(&function_kind) ||
-        reader.ReadInt(&function_index.function_offset) ||
-        reader.ReadInt(&function_index.name_offset) ||
+    if (!reader.ReadByte(&function_kind) ||
+        !reader.ReadVbrInt(&function_index.function_offset) ||
+        !reader.ReadVbrInt(&function_index.name_offset) ||
         function_index.name_offset >= bef_file_->string_section_.size()) {
-      return true;
+      return false;
     }
 
     function_index.kind = static_cast<FunctionKind>(function_kind);
 
     // Read the argument types.
     size_t num_args;
-    if (reader.ReadInt(&num_args)) return true;
+    if (!reader.ReadVbrInt(&num_args)) return false;
 
     while (num_args--) {
       size_t arg_type;
-      if (reader.ReadInt(&arg_type)) return true;
+      if (!reader.ReadVbrInt(&arg_type)) return false;
 
-      if (arg_type >= bef_file_->type_names_.size()) return true;
+      if (arg_type >= bef_file_->type_names_.size()) return false;
       function_index.arguments.push_back(bef_file_->type_names_[arg_type]);
     }
 
     // Read the result types.
     size_t num_results;
-    if (reader.ReadInt(&num_results)) return true;
+    if (!reader.ReadVbrInt(&num_results)) return false;
 
     while (num_results--) {
       size_t result_type;
-      if (reader.ReadInt(&result_type)) return true;
+      if (!reader.ReadVbrInt(&result_type)) return false;
 
-      if (result_type >= bef_file_->type_names_.size()) return true;
+      if (result_type >= bef_file_->type_names_.size()) return false;
       function_index.results.push_back(bef_file_->type_names_[result_type]);
     }
   }
 
-  return false;
+  return true;
 }
 
 // Read the FunctionIndex section from a BEF file, building the functions_ table
-// and the function_symbol_table_, and returning false on success. Emit an error
-// and return true on failure.
+// and the function_symbol_table_, and returning true on success. Emit an error
+// and return false on failure.
 bool BEFFileReader::ReadFunctionIndexSection() {
   auto format_error = [&](auto&&... args) -> bool {
     bef_file_->EmitFormatError(
         StrCat("invalid FunctionIndex section in BEF file: ", args...));
-    return true;
+    return false;
   };
 
   SmallVector<FunctionIndex, 8> function_indices;
-  if (ReadFunctionIndexSectionInternal(&function_indices))
+  if (!ReadFunctionIndexSectionInternal(&function_indices))
     return format_error("Failed to read the FunctionIndex section");
 
   bef_file_->functions_.reserve(function_indices.size());
@@ -419,7 +421,7 @@ bool BEFFileReader::ReadFunctionIndexSection() {
     }
   }
 
-  return false;
+  return true;
 }
 
 // BEFFile / BEFFileImpl Implementation
@@ -448,26 +450,26 @@ RCReference<BEFFile> BEFFile::Open(ArrayRef<uint8_t> file,
   uint8_t header[2];
 
   // Make sure the file has a header.
-  if (reader.ReadByte(&header[0]) || reader.ReadByte(&header[1]) ||
+  if (!reader.ReadByte(&header[0]) || !reader.ReadByte(&header[1]) ||
       header[0] != kBEFMagic1 || header[1] != kBEFMagic2) {
     bef_impl->EmitFormatError("invalid BEF file header detected");
     return {};
   }
 
   uint8_t format_version;
-  if (reader.ReadByte(&format_version) || format_version != kBEFVersion0) {
+  if (!reader.ReadByte(&format_version) || format_version != kBEFVersion0) {
     bef_impl->EmitFormatError("Unknown BEF format version detected");
     return {};
   }
 
   while (!reader.Empty()) {
-    if (reader.ReadNextSection()) return {};
+    if (!reader.ReadNextSection()) return {};
   }
 
   // Now that we've figured out the contents of the sections, resolve some
   // things.
-  if (reader.ReadKernelsSection(host_allocator) || reader.ReadTypesSection() ||
-      reader.ReadFunctionIndexSection())
+  if (!reader.ReadKernelsSection(host_allocator) ||
+      !reader.ReadTypesSection() || !reader.ReadFunctionIndexSection())
     return {};
 
   // Now that we decoded the whole thing, return the BEFFile to the caller.
@@ -507,7 +509,7 @@ bool BEFFileImpl::ReadFunction(size_t function_offset,
 
   // First we have the location info and register info table.
   size_t num_registers;
-  if (reader.ReadInt(location_offset) || reader.ReadInt(&num_registers))
+  if (!reader.ReadVbrInt(location_offset) || !reader.ReadVbrInt(&num_registers))
     return format_error();
 
   function_info->register_infos.resize(num_registers, host_allocator);
@@ -516,21 +518,21 @@ bool BEFFileImpl::ReadFunction(size_t function_offset,
   unsigned register_idx = 0;
   while (num_registers--) {
     size_t user_count;
-    if (reader.ReadInt(&user_count)) return format_error();
+    if (!reader.ReadVbrInt(&user_count)) return format_error();
     new (register_info_ptr + register_idx) RegisterInfo(user_count);
     ++register_idx;
   }
 
   // Next we have the kernel index table.
   size_t num_kernels;
-  if (reader.ReadInt(&num_kernels)) return format_error();
+  if (!reader.ReadVbrInt(&num_kernels)) return format_error();
 
   function_info->kernel_infos.resize(num_kernels, host_allocator);
   auto* kernel_info_ptr = function_info->kernel_infos.mutable_array().data();
   unsigned kernel_idx = 0;
   while (num_kernels--) {
     size_t offset, num_operands;
-    if (reader.ReadInt(&offset) || reader.ReadInt(&num_operands))
+    if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands))
       return format_error();
     new (kernel_info_ptr + kernel_idx)
         KernelInfo(unsigned(offset), unsigned(num_operands));
@@ -541,13 +543,13 @@ bool BEFFileImpl::ReadFunction(size_t function_offset,
   result_regs->reserve(results.size());
   for (unsigned i = 0, e = results.size(); i != e; ++i) {
     size_t result_reg;
-    if (reader.ReadInt(&result_reg) || result_reg >= num_registers)
+    if (!reader.ReadVbrInt(&result_reg) || result_reg >= num_registers)
       return format_error();
     result_regs->push_back(result_reg);
   }
 
   // Kernels are aligned to kKernelEntryAlignment.
-  if (reader.ReadAlignment(kKernelEntryAlignment)) return format_error();
+  if (!reader.ReadAlignment(kKernelEntryAlignment)) return format_error();
 
   // We found the start of our kernel section.
   function_info->kernels = llvm::makeArrayRef(
@@ -570,8 +572,8 @@ DecodedLocation BEFFileImpl::DecodeLocation(size_t location_position_offset) {
   reader.SkipOffset(location_position_offset);
 
   size_t file_idx, line, column;
-  if (reader.ReadInt(&file_idx) || reader.ReadInt(&line) ||
-      reader.ReadInt(&column))
+  if (!reader.ReadVbrInt(&file_idx) || !reader.ReadVbrInt(&line) ||
+      !reader.ReadVbrInt(&column))
     return result;
 
   result.line = line;
@@ -680,13 +682,14 @@ Error SyncBEFFunction::Init() {
   // First we have the location info and register info table.
   size_t num_registers;
   size_t location_offset;
-  if (reader.ReadInt(&location_offset) || reader.ReadInt(&num_registers))
+  if (!reader.ReadVbrInt(&location_offset) ||
+      !reader.ReadVbrInt(&num_registers))
     return format_error("Failed to read location_offset or num_registers");
 
   register_infos_.reserve(num_registers);
   for (size_t reg_index = 0; reg_index < num_registers; ++reg_index) {
     size_t user_count;
-    if (reader.ReadInt(&user_count))
+    if (!reader.ReadVbrInt(&user_count))
       return format_error("Failed to read register user_count");
 
     bool is_arg = (reg_index < num_arguments());
@@ -701,7 +704,7 @@ Error SyncBEFFunction::Init() {
 
   // Next we have the kernel index table.
   size_t num_kernels;
-  if (reader.ReadInt(&num_kernels))
+  if (!reader.ReadVbrInt(&num_kernels))
     return format_error("Failed to read num_kernels");
 
   kernel_offsets_.reserve(num_kernels);
@@ -709,11 +712,11 @@ Error SyncBEFFunction::Init() {
   size_t offset, num_operands;
 
   // Skip the first kernel which is the pseudo kernel used in BEF executor.
-  if (reader.ReadInt(&offset) || reader.ReadInt(&num_operands))
+  if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands))
     return format_error("Failed to read kernel offset or num_operands");
 
   for (size_t kernel_index = 1; kernel_index < num_kernels; ++kernel_index) {
-    if (reader.ReadInt(&offset) || reader.ReadInt(&num_operands))
+    if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands))
       return format_error("Failed to read kernel offset or num_operands");
 
     kernel_offsets_.push_back(offset);
@@ -724,7 +727,7 @@ Error SyncBEFFunction::Init() {
   result_regs_.reserve(num_results);
   for (unsigned i = 0, e = num_results; i != e; ++i) {
     size_t result_reg;
-    if (reader.ReadInt(&result_reg) || result_reg >= num_registers)
+    if (!reader.ReadVbrInt(&result_reg) || result_reg >= num_registers)
       return format_error("Failed to read result_reg");
     result_regs_.push_back(result_reg);
 
@@ -739,7 +742,7 @@ Error SyncBEFFunction::Init() {
   }
 
   // Kernels are aligned to kKernelEntryAlignment.
-  if (reader.ReadAlignment(kKernelEntryAlignment))
+  if (!reader.ReadAlignment(kKernelEntryAlignment))
     return format_error("Failed to align BEF to kKernelEntryAlignment");
 
   // We found the start of our kernel section.

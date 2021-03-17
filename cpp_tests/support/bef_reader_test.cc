@@ -14,7 +14,7 @@
 
 //===- bef_reader_test.cc ---------------------------------------*- C++ -*-===//
 //
-// Unit test for BefReader
+// Unit test for BEFReader
 //
 //===----------------------------------------------------------------------===//
 
@@ -79,20 +79,20 @@ TEST_F(BefReaderTest, ReadByte) {
   BEFReader reader(array_ref_);
   uint8_t value;
   for (uint8_t i = 0; i < kBufferSize; ++i) {
-    EXPECT_FALSE(reader.ReadByte(&value));
+    EXPECT_TRUE(reader.ReadByte(&value));
     EXPECT_EQ(i, value);
   }
-  EXPECT_TRUE(reader.ReadByte(&value));
+  EXPECT_FALSE(reader.ReadByte(&value));
 }
 
 TEST_F(BefReaderTest, ReadIntFromEmptyFile) {
   ArrayRef<uint8_t> ar = {};
   BEFReader reader(ar);
   size_t value = 0;
-  EXPECT_TRUE(reader.ReadInt(&value));
+  EXPECT_FALSE(reader.ReadVbrInt(&value));
 }
 
-// ReadInt() uses Variable Byte Rate (VBR) encoding to read an integer.
+// ReadVbrInt() uses Variable Byte Rate (VBR) encoding to read an integer.
 // Only 7 LSB bits are used as interger payload
 // while the MSB bit is used to indicate there is more byte.
 // e.g.,
@@ -104,7 +104,7 @@ TEST_F(BefReaderTest, ReadIntOneByte) {
   uint8_t file_content[] = {0x01};
   BEFReader reader{file_content};
   size_t value = 0;
-  EXPECT_FALSE(reader.ReadInt(&value));
+  EXPECT_TRUE(reader.ReadVbrInt(&value));
   EXPECT_EQ(0x01, value);
   EXPECT_TRUE(reader.Empty());
 }
@@ -114,7 +114,7 @@ TEST_F(BefReaderTest, ReadIntTwoBytes) {
   uint8_t file_content[] = {0x81, 0x02};
   BEFReader reader{file_content};
   size_t value = 0;
-  EXPECT_FALSE(reader.ReadInt(&value));
+  EXPECT_TRUE(reader.ReadVbrInt(&value));
   EXPECT_EQ(130, value);
   EXPECT_TRUE(reader.Empty());
 }
@@ -124,7 +124,7 @@ TEST_F(BefReaderTest, ReadIntTwoBytesFailure) {
   uint8_t file_content[] = {0x81};
   BEFReader reader{file_content};
   size_t value = 0;
-  EXPECT_TRUE(reader.ReadInt(&value));
+  EXPECT_FALSE(reader.ReadVbrInt(&value));
   EXPECT_TRUE(reader.Empty());
 }
 
@@ -133,7 +133,7 @@ TEST_F(BefReaderTest, ReadIntThreeBytes) {
   uint8_t file_content[] = {0x81, 0x82, 0x03};
   BEFReader reader{file_content};
   size_t value = 0;
-  EXPECT_FALSE(reader.ReadInt(&value));
+  EXPECT_TRUE(reader.ReadVbrInt(&value));
   EXPECT_EQ(16643, value);
 }
 
@@ -141,7 +141,7 @@ TEST_F(BefReaderTest, ReadAlignmentAlreadyAligned) {
   BEFReader reader(array_ref_);
 
   // The buffer is already aligned.
-  EXPECT_FALSE(reader.ReadAlignment(8));
+  EXPECT_TRUE(reader.ReadAlignment(8));
   const ArrayRef<uint8_t> reader_file = reader.file();
   EXPECT_EQ(array_ref_, reader_file);
 }
@@ -153,7 +153,7 @@ TEST_F(BefReaderTest, ReadAlignment) {
   reader.SkipOffset(1);
 
   // Should skip 7 bytes for 8 byte alignment.
-  EXPECT_FALSE(reader.ReadAlignment(8));
+  EXPECT_TRUE(reader.ReadAlignment(8));
 
   const ArrayRef<uint8_t> reader_file = reader.file();
   EXPECT_EQ(ArrayRef<uint8_t>({8, 9}), reader_file);
@@ -162,24 +162,7 @@ TEST_F(BefReaderTest, ReadAlignment) {
 TEST_F(BefReaderTest, ReadAlignmentNotEnoughBytes) {
   BEFReader reader(array_ref_);
   reader.SkipOffset(9);
-  EXPECT_TRUE(reader.ReadAlignment(8));
-}
-
-TEST_F(BefReaderTest, ReadInt8NotEnoughBytes) {
-  BEFReader reader(array_ref_);
-
-  reader.SkipOffset(1);
-
-  // ReadInt8() should fail becuase there are only 2 bytes remaining.
-  uint64_t large_value;
-  EXPECT_TRUE(reader.ReadInt8(&large_value));
-}
-
-TEST_F(BefReaderTest, ReadInt8) {
-  BEFReader reader(array_ref_);
-  uint64_t large_value;
-  EXPECT_FALSE(reader.ReadInt8(&large_value));
-  EXPECT_EQ(0x0706050403020100, large_value);
+  EXPECT_FALSE(reader.ReadAlignment(8));
 }
 
 TEST_F(BefReaderTest, ReadSectionEmptyFile) {
@@ -188,7 +171,7 @@ TEST_F(BefReaderTest, ReadSectionEmptyFile) {
 
   uint8_t section_id;
   ArrayRef<uint8_t> section;
-  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
+  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
 }
 
 TEST_F(BefReaderTest, ReadSectionNoLength) {
@@ -197,7 +180,7 @@ TEST_F(BefReaderTest, ReadSectionNoLength) {
 
   uint8_t section_id;
   ArrayRef<uint8_t> section;
-  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
+  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
 }
 
 TEST_F(BefReaderTest, ReadSectionNoAlignmentNotEnough) {
@@ -207,7 +190,7 @@ TEST_F(BefReaderTest, ReadSectionNoAlignmentNotEnough) {
 
   uint8_t section_id;
   ArrayRef<uint8_t> section;
-  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
+  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
 }
 
 TEST_F(BefReaderTest, ReadSectionNoAlignment) {
@@ -217,7 +200,7 @@ TEST_F(BefReaderTest, ReadSectionNoAlignment) {
 
   uint8_t section_id;
   ArrayRef<uint8_t> section;
-  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
+  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
   EXPECT_EQ(0, section_id);
   EXPECT_TRUE(section.equals({2, 3, 4}));
 }
@@ -229,7 +212,7 @@ TEST_F(BefReaderTest, ReadSectionAlignmentNotExist) {
 
   uint8_t section_id;
   ArrayRef<uint8_t> section;
-  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
+  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
 }
 
 TEST_F(BefReaderTest, ReadSectionWithInvalidAlignment) {
@@ -240,7 +223,7 @@ TEST_F(BefReaderTest, ReadSectionWithInvalidAlignment) {
 
   uint8_t section_id;
   ArrayRef<uint8_t> section;
-  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
+  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
 }
 
 TEST_F(BefReaderTest, ReadSectionWithAlignmentNotEnough) {
@@ -250,7 +233,7 @@ TEST_F(BefReaderTest, ReadSectionWithAlignmentNotEnough) {
   BEFReader reader(array_ref_);
   uint8_t section_id;
   ArrayRef<uint8_t> section;
-  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
+  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
 }
 
 TEST_F(BefReaderTest, ReadSectionWithAlignment) {
@@ -262,7 +245,7 @@ TEST_F(BefReaderTest, ReadSectionWithAlignment) {
   uint8_t section_id;
   ArrayRef<uint8_t> section;
 
-  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
+  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
   EXPECT_EQ(0, section_id);
   EXPECT_TRUE(section.equals({8, 9}));
 }
@@ -276,7 +259,7 @@ TEST_F(BefReaderTest, ReadSectionWithAlignmentSmallerSize) {
   uint8_t section_id;
   ArrayRef<uint8_t> section;
 
-  EXPECT_FALSE(reader.ReadSection(&section_id, &section));
+  EXPECT_TRUE(reader.ReadSection(&section_id, &section));
   EXPECT_EQ(0, section_id);
   EXPECT_TRUE(section.equals({8}));
 }

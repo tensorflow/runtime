@@ -179,12 +179,12 @@ void EmitWarning(mlir::Location loc, string_view message) {
 mlir::LogicalResult ReadIntArray(BEFReader* reader,
                                  std::vector<size_t>* items) {
   size_t num_items;
-  if (reader->ReadInt(&num_items)) return mlir::failure();
+  if (!reader->ReadVbrInt(&num_items)) return mlir::failure();
   items->clear();
   items->reserve(num_items);
   for (int i = 0; i < num_items; ++i) {
     size_t item;
-    if (reader->ReadInt(&item)) return mlir::failure();
+    if (!reader->ReadVbrInt(&item)) return mlir::failure();
     items->push_back(item);
   }
   return mlir::success();
@@ -840,12 +840,12 @@ class BEFFunctionReader {
 mlir::LogicalResult BEFToMLIRConverter::ReadHeader() {
   // Read magic number.
   uint8_t byte;
-  if (file_reader_.ReadByte(&byte) || (byte != kBEFMagic1) ||
-      file_reader_.ReadByte(&byte) || (byte != kBEFMagic2)) {
+  if (!file_reader_.ReadByte(&byte) || (byte != kBEFMagic1) ||
+      !file_reader_.ReadByte(&byte) || (byte != kBEFMagic2)) {
     EmitError(bef_file_.location, "Invalid BEF file header detected");
     return mlir::failure();
   }
-  if (file_reader_.ReadByte(&byte) || (byte != kBEFVersion0)) {
+  if (!file_reader_.ReadByte(&byte) || (byte != kBEFVersion0)) {
     EmitError(bef_file_.location, "Unknown BEF format version detected");
   }
   return mlir::success();
@@ -870,7 +870,7 @@ mlir::LogicalResult BEFToMLIRConverter::ReadSections(BEFSections* sections) {
 mlir::LogicalResult BEFToMLIRConverter::ReadNextSection(BEFSections* sections) {
   uint8_t section_id;
   ArrayRef<uint8_t> section_data;
-  if (file_reader_.ReadSection(&section_id, &section_data))
+  if (!file_reader_.ReadSection(&section_id, &section_data))
     return mlir::failure();
   file_reader_.SkipPast(section_data);
   sections->Set(static_cast<BEFSectionID>(section_id), section_data);
@@ -912,9 +912,9 @@ mlir::LogicalResult BEFToMLIRConverter::ReadLocationPositions(
     size_t offset = original_size - location_positions_reader.file().size();
 
     // Read the filename index, line number and column number.
-    if (location_positions_reader.ReadInt(&location_filename_index) ||
-        location_positions_reader.ReadInt(&line_number) ||
-        location_positions_reader.ReadInt(&column_number))
+    if (!location_positions_reader.ReadVbrInt(&location_filename_index) ||
+        !location_positions_reader.ReadVbrInt(&line_number) ||
+        !location_positions_reader.ReadVbrInt(&column_number))
       return mlir::failure();
 
     // Find the filename string in LocationFilenames section.
@@ -943,7 +943,8 @@ mlir::LogicalResult BEFToMLIRConverter::ReadAttributes(
 
   BEFReader attribute_types_reader(attribute_types);
   size_t num_attributes;
-  if (attribute_types_reader.ReadInt(&num_attributes)) return mlir::failure();
+  if (!attribute_types_reader.ReadVbrInt(&num_attributes))
+    return mlir::failure();
 
   BEFAttributeReader attribute_reader(attributes, bef_file_,
                                       &compilation_units_, &context_);
@@ -953,8 +954,8 @@ mlir::LogicalResult BEFToMLIRConverter::ReadAttributes(
     size_t offset;
 
     AttributeTag attr_tag;
-    if (attribute_types_reader.ReadInt(&offset) ||
-        attribute_types_reader.ReadInt(&attr_tag.data))
+    if (!attribute_types_reader.ReadVbrInt(&offset) ||
+        !attribute_types_reader.ReadVbrInt(&attr_tag.data))
       return mlir::failure();
 
     bef_file_.attributes.insert(
@@ -998,13 +999,14 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctionIndex(
     ArrayRef<uint8_t> function_index) {
   BEFReader function_index_reader(function_index);
   size_t function_count;
-  if (function_index_reader.ReadInt(&function_count)) return mlir::failure();
+  if (!function_index_reader.ReadVbrInt(&function_count))
+    return mlir::failure();
   for (int i = 0; i < function_count; ++i) {
     uint8_t function_kind;
     size_t function_offset, name_offset;
-    if (function_index_reader.ReadByte(&function_kind) ||
-        function_index_reader.ReadInt(&function_offset) ||
-        function_index_reader.ReadInt(&name_offset))
+    if (!function_index_reader.ReadByte(&function_kind) ||
+        !function_index_reader.ReadVbrInt(&function_offset) ||
+        !function_index_reader.ReadVbrInt(&name_offset))
       return mlir::failure();
 
     // Add this function to `bef_file_`.
@@ -1042,12 +1044,12 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctions(
   BEFReader attribute_names_reader(attribute_names);
   if (!attribute_names_reader.Empty()) {
     size_t num_attribute_tables;
-    (void)attribute_names_reader.ReadInt(&num_attribute_tables);
+    attribute_names_reader.ReadVbrInt(&num_attribute_tables);
   }
   BEFReader register_types_reader(register_types);
   if (!register_types_reader.Empty()) {
     size_t num_reg_type_tables;
-    (void)register_types_reader.ReadInt(&num_reg_type_tables);
+    register_types_reader.ReadVbrInt(&num_reg_type_tables);
   }
 
   // Process all functions.
@@ -1262,14 +1264,14 @@ mlir::Attribute BEFAttributeReader::ReadFixedAttribute(
 
 mlir::Attribute BEFAttributeReader::ReadBoolAttribute(BEFReader* reader) {
   uint8_t byte;
-  if (reader->ReadByte(&byte)) return {};
+  if (!reader->ReadByte(&byte)) return {};
   return mlir::BoolAttr::get(&context_, static_cast<bool>(byte));
 }
 
 mlir::StringAttr BEFAttributeReader::ReadStringAttribute(BEFReader* reader) {
   assert(reader->file().data() > attributes_.data());
   size_t length;
-  reader->ReadInt(&length);
+  reader->ReadVbrInt(&length);
   auto string_attr = mlir::StringAttr::get(
       &context_,
       string_view(reinterpret_cast<const char*>(reader->file().data()),
@@ -1279,7 +1281,7 @@ mlir::StringAttr BEFAttributeReader::ReadStringAttribute(BEFReader* reader) {
 
 mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
   uint8_t byte;
-  if (reader->ReadByte(&byte)) return {};
+  if (!reader->ReadByte(&byte)) return {};
   auto kind = static_cast<DType::Kind>(byte);
 
   mlir::Builder builder(&context_);
@@ -1335,18 +1337,18 @@ mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
 mlir::SymbolRefAttr BEFAttributeReader::ReadSymbolRefAttribute(
     BEFReader* reader) {
   size_t root_symbol_len;
-  reader->ReadInt(&root_symbol_len);
+  reader->ReadVbrInt(&root_symbol_len);
 
   size_t num_nested_symbols;
-  reader->ReadInt(&num_nested_symbols);
+  reader->ReadVbrInt(&num_nested_symbols);
 
   llvm::SmallVector<size_t, 4> nested_symbol_len(num_nested_symbols);
   for (int i = 0; i < num_nested_symbols; ++i) {
-    reader->ReadInt(&nested_symbol_len[i]);
+    reader->ReadVbrInt(&nested_symbol_len[i]);
   }
 
   size_t serialized_operation_len;
-  reader->ReadInt(&serialized_operation_len);
+  reader->ReadVbrInt(&serialized_operation_len);
 
   // Base of the attribute payload.
   const char* base = reinterpret_cast<const char*>(reader->file().data());
@@ -1376,7 +1378,7 @@ mlir::ArrayAttr BEFAttributeReader::ReadArrayAttribute(
   assert(IsFixedAttribute(element_type));
 
   size_t length;
-  reader->ReadInt(&length);
+  reader->ReadVbrInt(&length);
   if (length == 0) return mlir::ArrayAttr::get(&context_, {});
 
   SmallVector<mlir::Attribute, 8> elements;
@@ -1400,7 +1402,7 @@ mlir::IntegerAttr BEFAttributeReader::ReadIntegerAttribute(BEFReader* reader,
   uint64_t value = 0;
   for (int i = 0; i < num_bytes; ++i) {
     uint8_t byte;
-    if (reader->ReadByte(&byte)) return {};
+    if (!reader->ReadByte(&byte)) return {};
     value = value | (static_cast<uint64_t>(byte) << (8 * i));
   }
   return mlir::IntegerAttr::get(
@@ -1432,7 +1434,7 @@ BEFFunctionReader::ReadFunction(BEFReader* attribute_names,
 
   // Read function location.
   size_t location_position_offset;
-  if (function_reader_.ReadInt(&location_position_offset))
+  if (!function_reader_.ReadVbrInt(&location_position_offset))
     return emit_error("Failed to read function location");
   auto location = bef_file_.GetLocationPosition(location_position_offset);
   if (!location) return emit_error("Failed to read function location");
@@ -1452,7 +1454,7 @@ BEFFunctionReader::ReadFunction(BEFReader* attribute_names,
   block->addArguments(bef_function_.argument_types);
 
   // Kernels are 4-byte aligned.
-  if (function_reader_.ReadAlignment(kKernelEntryAlignment) ||
+  if (!function_reader_.ReadAlignment(kKernelEntryAlignment) ||
       mlir::failed(ReadKernels(
           llvm::makeArrayRef(
               reinterpret_cast<const uint32_t*>(
@@ -1495,11 +1497,11 @@ mlir::LogicalResult BEFFunctionReader::ReadRegisterTable(
 
 mlir::LogicalResult BEFFunctionReader::ReadKernelTable() {
   size_t num_kernels;
-  if (function_reader_.ReadInt(&num_kernels)) return mlir::failure();
+  if (!function_reader_.ReadVbrInt(&num_kernels)) return mlir::failure();
   for (int i = 0; i < num_kernels; ++i) {
     KernelTableEntry entry;
-    if (function_reader_.ReadInt(&entry.offset) ||
-        function_reader_.ReadInt(&entry.num_operands))
+    if (!function_reader_.ReadVbrInt(&entry.offset) ||
+        !function_reader_.ReadVbrInt(&entry.num_operands))
       return mlir::failure();
     kernel_table_.push_back(entry);
   }
@@ -1509,7 +1511,7 @@ mlir::LogicalResult BEFFunctionReader::ReadKernelTable() {
 mlir::LogicalResult BEFFunctionReader::ReadResultRegs() {
   for (int i = 0; i < bef_function_.result_types.size(); ++i) {
     size_t register_index;
-    if (function_reader_.ReadInt(&register_index)) return mlir::failure();
+    if (!function_reader_.ReadVbrInt(&register_index)) return mlir::failure();
     result_regs_.push_back(register_index);
   }
   return mlir::success();
@@ -1519,7 +1521,7 @@ mlir::LogicalResult BEFFunctionReader::ReadKernels(ArrayRef<uint32_t> kernels,
                                                    BEFReader* attribute_names,
                                                    mlir::Block* block) {
   size_t num_kernels;
-  if (!attribute_names->ReadInt(&num_kernels))
+  if (attribute_names->ReadVbrInt(&num_kernels))
     assert(num_kernels == kernel_table_.size());
 
   // Reads the first op as arguments pseudo op which defines the argument
@@ -1645,7 +1647,7 @@ mlir::Operation* BEFFunctionReader::ReadKernel(ArrayRef<uint32_t> kernels,
     // Assign a dummy name first and it will be overwritten if there is a valid
     // one.
     std::string attr_name = std::string("attr") + llvm::utostr(i);
-    if (!attribute_names->ReadInt(&attribute_name_offset)) {
+    if (attribute_names->ReadVbrInt(&attribute_name_offset)) {
       if (auto n = bef_file_.GetString(attribute_name_offset)) {
         attr_name = std::string(*n);
       }

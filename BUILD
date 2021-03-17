@@ -469,6 +469,7 @@ tfrt_cc_library(
         ":bef_attr_encoder",
         ":bef_emitter",
         ":core_runtime_opdefs",
+        ":stream_analysis",
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",

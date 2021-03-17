@@ -531,11 +531,12 @@ bool BEFFileImpl::ReadFunction(size_t function_offset,
   auto* kernel_info_ptr = function_info->kernel_infos.mutable_array().data();
   unsigned kernel_idx = 0;
   while (num_kernels--) {
-    size_t offset, num_operands;
-    if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands))
+    size_t offset, num_operands, stream_id;
+    if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands) ||
+        !reader.ReadVbrInt(&stream_id))
       return format_error();
     new (kernel_info_ptr + kernel_idx)
-        KernelInfo(unsigned(offset), unsigned(num_operands));
+        KernelInfo(offset, stream_id, num_operands);
     ++kernel_idx;
   }
 
@@ -709,14 +710,16 @@ Error SyncBEFFunction::Init() {
 
   kernel_offsets_.reserve(num_kernels);
 
-  size_t offset, num_operands;
+  size_t offset, num_operands, stream_id;
 
   // Skip the first kernel which is the pseudo kernel used in BEF executor.
-  if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands))
+  if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands) ||
+      !reader.ReadVbrInt(&stream_id))
     return format_error("Failed to read kernel offset or num_operands");
 
   for (size_t kernel_index = 1; kernel_index < num_kernels; ++kernel_index) {
-    if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands))
+    if (!reader.ReadVbrInt(&offset) || !reader.ReadVbrInt(&num_operands) ||
+        !reader.ReadVbrInt(&stream_id))
       return format_error("Failed to read kernel offset or num_operands");
 
     kernel_offsets_.push_back(offset);

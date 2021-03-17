@@ -257,6 +257,7 @@ class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
   // This struct is defined here, because ReadFunction() below will populate it.
   struct KernelInfo {
     unsigned offset;
+    unsigned stream_id;
     std::atomic<int> arguments_not_ready;
 
     // We initialize the ready list to at least 1 so that kernels with no
@@ -264,8 +265,10 @@ class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
     //
     // TODO(b/173800007): Add perf benchmark to illustrate the improvement from
     // the reduced number of kernel enqueues.
-    KernelInfo(unsigned offset, unsigned num_operands)
-        : offset(offset), arguments_not_ready(std::max(1u, num_operands)) {}
+    KernelInfo(unsigned offset, unsigned stream_id, unsigned num_operands)
+        : offset(offset),
+          stream_id(stream_id),
+          arguments_not_ready(std::max(1u, num_operands)) {}
   };
 
   using RegisterInfoArray = BEFInfoArray<BEFFileImpl::RegisterInfo, 24>;

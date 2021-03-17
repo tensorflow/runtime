@@ -371,7 +371,8 @@ control flow and other concepts that occur with MLIR regions.
   REGISTER_ENTRY ::= INTEGER<"NumUses">
 
   KERNEL_TABLE   ::= INTEGER<"NumKernels"> KERNEL_ENTRY*
-  KERNEL_ENTRY   ::= (OFFSET<"KernelOffset"> INTEGER<"NumOperands">)
+  KERNEL_ENTRY   ::= OFFSET<"KernelOffset"> INTEGER<"NumOperands"> \
+                     INTEGER<"StreamId">
 
   RESULT_REGS    ::= INDEX<"Register">*
 ```
@@ -385,8 +386,10 @@ The Register Table is a count of registers, and an entry for each register -
 indicating the number of kernels in this section that use the register.
 
 The Kernel Table for a function is a count of kernels, an offset (from the end
-of the Kernel Table) of the start of the kernel, and the number of operands that
-the kernel has.
+of the Kernel Table) of the start of the kernel, the number of operands that the
+kernel has, and a stream id that is used to help runtime scheduling decisions,
+e.g. successive kernels with the same stream id can be executed in the same
+thread.
 
 The kernel list that is following the Kernel Table contains all the kernels used
 in this function. Note that every function has a pseudo kernel that is the

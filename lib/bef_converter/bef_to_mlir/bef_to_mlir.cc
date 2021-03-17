@@ -1499,10 +1499,15 @@ mlir::LogicalResult BEFFunctionReader::ReadKernelTable() {
   size_t num_kernels;
   if (!function_reader_.ReadVbrInt(&num_kernels)) return mlir::failure();
   for (int i = 0; i < num_kernels; ++i) {
+    // stream_id is not needed to reconstruct the MLIR function.
+    size_t stream_id = 0;
+
     KernelTableEntry entry;
     if (!function_reader_.ReadVbrInt(&entry.offset) ||
-        !function_reader_.ReadVbrInt(&entry.num_operands))
+        !function_reader_.ReadVbrInt(&entry.num_operands) ||
+        !function_reader_.ReadVbrInt(&stream_id))
       return mlir::failure();
+
     kernel_table_.push_back(entry);
   }
   return mlir::success();

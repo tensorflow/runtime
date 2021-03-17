@@ -44,6 +44,7 @@
 #include "mlir/IR/OperationSupport.h"
 #include "tfrt/bef_converter/bef_attr_encoder.h"
 #include "tfrt/bef_converter/bef_emitter.h"
+#include "tfrt/compiler/stream_analysis.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/traits.h"
 #include "tfrt/core_runtime/opdefs/types.h"
@@ -1743,6 +1744,15 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 
   attribute_names->EmitInt(num_kernels);
 
+  // Perform stream analysis to get stream information for this function.
+  //
+  // TODO(chky): This analysis is better performed at compiler side. However,
+  // due to the limitation that asynchrony is implicit at compile-time the only
+  // choice to integrate with BEF executor is to perform analysis in MLIRToBEF.
+  // Once we make asynchrony explicit at compile-time, we should be able to move
+  // this analysis out.
+  compiler::StreamAnalysis stream_analysis(block);
+
   // Before we emit all the kernels, we always emit a pseudo kernel (with no
   // kernel_code) that is the entry to the other kernels. Specifically, its
   // users are:
@@ -1753,6 +1763,8 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
   EmitInt(kernel_list.size());
   // Pseudo has zero operands that need to be available.
   EmitInt(0);
+  // The pseudo kernel is always in the root stream.
+  EmitInt(stream_analysis.GetRootStream().id());
 
   EmitArgumentsPseudoKernel(&block, &kernel_list);
 
@@ -1783,6 +1795,10 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
       num_operands_before_running = 1;
 
     EmitInt(num_operands_before_running);
+
+    // Emit stream id from stream analysis.
+    const auto& stream = stream_analysis.GetStream(&op);
+    EmitInt(stream.id());
 
     EmitKernel(&op, &kernel_list, attribute_names);
   }

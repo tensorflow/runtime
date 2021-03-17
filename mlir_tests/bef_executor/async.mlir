@@ -78,9 +78,9 @@ func @call_async_add.i32(%x: i32, %y: i32) -> i32 {
 
 // CHECK-LABEL: --- Running 'async_add.i32_caller'
 func @async_add.i32_caller() {
+  %ch = tfrt.new.chain
   %x = tfrt.constant.i32 42
   %c1 = tfrt.constant.i32 1
-  %ch = tfrt.new.chain
 
   // CHECK: int32 = 42
   tfrt.print.i32 %x, %ch

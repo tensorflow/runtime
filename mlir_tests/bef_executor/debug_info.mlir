@@ -12,35 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail --dump-input-filter=all
 
 // CHECK: --- Running 'debug_info':
-func @debug_info() {
+func @debug_info() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
+
   // CHECK: myNameScope0/MySimpleKernel0
-  "tfrt_test.print_debug_info"() : () -> (!tfrt.chain) loc(#loc0)
+  %ch1 = "tfrt_test.print_debug_info"(%ch0) : (!tfrt.chain) -> (!tfrt.chain) loc(#loc0)
 
   // CHECK: Kernel has no debug info
-  "tfrt_test.print_debug_info"() : () -> (!tfrt.chain)
+  %ch2 = "tfrt_test.print_debug_info"(%ch1) : (!tfrt.chain) -> (!tfrt.chain)
 
   // CHECK: myNameScope1/MySimpleKernel1
-  "tfrt_test.print_debug_info"() : () -> (!tfrt.chain)
+  %ch3 = "tfrt_test.print_debug_info"(%ch2) : (!tfrt.chain) -> (!tfrt.chain)
                                    loc("myNameScope1/MySimpleKernel1")
 
   // CHECK: foo
-  "tfrt_test.print_debug_info"() : () -> (!tfrt.chain) loc(fused["foo", "bar"])
+  %ch4 = "tfrt_test.print_debug_info"(%ch3) : (!tfrt.chain) -> (!tfrt.chain) loc(fused["foo", "bar"])
 
   // CHECK: bar
-  %ch = "tfrt_test.print_debug_info"() : () -> (!tfrt.chain)
+  %ch5 = "tfrt_test.print_debug_info"(%ch4) : (!tfrt.chain) -> (!tfrt.chain)
                                          loc(fused["foo.py":42:314, "bar"])
   // CHECK: foo/bar
-  "tfrt_test.print_debug_info"(%ch) : (!tfrt.chain) -> (!tfrt.chain)
+  %ch6 = "tfrt_test.print_debug_info"(%ch5) : (!tfrt.chain) -> (!tfrt.chain)
                                       loc("foo/bar")
 
   // CHECK: foo
-  "tfrt_test.print_debug_info"() : () -> (!tfrt.chain)
+  %ch7 = "tfrt_test.print_debug_info"(%ch6) : (!tfrt.chain) -> (!tfrt.chain)
                                    loc(callsite("foo" at "bar.py":42:314))
 
-  tfrt.return
+  tfrt.return %ch7 : !tfrt.chain
 }
 
 // CHECK: --- Running 'debug_info_sync':

@@ -152,6 +152,88 @@ llvm::ArrayRef<unsigned> GetNextUsedBys(const BEFKernel& kernel,
   return used_bys;
 }
 
+// ReadyKernelQueue is used for managing ready-to-run kernels in one sequential
+// path.
+class ReadyKernelQueue {
+ public:
+  // Constructs an empty queue with `stream_id`.
+  ReadyKernelQueue(int stream_id,
+                   MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array)
+      : stream_id_(stream_id), kernel_array_(kernel_array) {}
+
+  // Constructs a queue using `kernel_ids`. The stream id is randomly picked
+  // from the `kernel_ids`.
+  ReadyKernelQueue(MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array,
+                   std::vector<unsigned> kernel_ids)
+      : kernel_array_(kernel_array) {
+    assert(!kernel_ids.empty());
+
+    // Using the stream id of the first kernel.
+    stream_id_ = kernel_array[kernel_ids[0]].stream_id;
+
+    // Move kernels with the same stream id to `inline_kernel_ids_` and others
+    // to `outline_kernel_ids_`. This recursively partitions the kernel_ids by
+    // stream_id, by filtering out kernels that match stream_id on each
+    // iteration, dumping the remaining kernels into outline_kernels, then later
+    // creating another queue for outline_kernels, filtering out kernels that
+    // match the next stream_id, etc.
+    //
+    // TODO(chky): Consider partitioning kernel_ids for each stream_id instead
+    // of partitioning into only inline and outline groups.
+    inline_kernel_ids_ = std::move(kernel_ids);
+    auto outline_iter = std::partition(
+        inline_kernel_ids_.begin(), inline_kernel_ids_.end(),
+        [&](unsigned kernel_id) {
+          assert(kernel_id < kernel_array_.size());
+          return kernel_array_[kernel_id].stream_id == stream_id_;
+        });
+    outline_kernel_ids_.assign(outline_iter, inline_kernel_ids_.end());
+    inline_kernel_ids_.resize(
+        std::distance(inline_kernel_ids_.begin(), outline_iter));
+  }
+
+  // Decrement the ready counts for `kernel_ids` and put them in the queue.
+  // Depending on their stream_id, they will be either put in the inline queue
+  // for inline execution or outline queue for launching to a separate thread.
+  LLVM_ATTRIBUTE_ALWAYS_INLINE void DecrementReadyCountAndEnqueue(
+      ArrayRef<unsigned> kernel_ids) {
+    // TODO(b/173798236): Consider introducing a randomization logic here in
+    // mode to trigger errors in tests that relies on the implicit order.
+    for (unsigned kernel_id : kernel_ids) {
+      assert(kernel_id < kernel_array_.size());
+      auto& kernel_info = kernel_array_[kernel_id];
+      if (kernel_info.arguments_not_ready.fetch_sub(1) == 1) {
+        if (kernel_info.stream_id == stream_id_) {
+          inline_kernel_ids_.push_back(kernel_id);
+        } else {
+          outline_kernel_ids_.push_back(kernel_id);
+        }
+      }
+    }
+  }
+
+  // `inline_kernel_ids` contains the kernels to be executed in the same thread.
+  std::vector<unsigned>& inline_kernel_ids() { return inline_kernel_ids_; }
+
+  // `outline_kernel_ids` contains the kernels to be launched to a separate
+  // thread.
+  std::vector<unsigned>& outline_kernel_ids() { return outline_kernel_ids_; }
+
+  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array() const {
+    return kernel_array_;
+  }
+
+  // The stream id for this sequence.
+  int stream_id() const { return stream_id_; }
+
+ private:
+  int stream_id_;
+  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array_;
+
+  std::vector<unsigned> inline_kernel_ids_;
+  std::vector<unsigned> outline_kernel_ids_;
+};
+
 }  // namespace
 
 /// A BEFExecutor runs a BEF function containing a stream of asynchronous
@@ -179,28 +261,27 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   void Execute();
 
  private:
-  // Iteratively process ready kernels in `ready_kernel_ids` and inserts ready
+  // Iteratively process ready kernels in `ready_kernel_queue` and inserts ready
   // users back for next round of processing, until there are no more ready
   // kernels.
-  void ProcessReadyKernels(SmallVectorImpl<unsigned>* ready_kernel_ids);
+  void ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue);
 
   // Process the first pseudo kernel and populate its ready users in
-  // `ready_kernel_ids`.
-  void ProcessArgumentsPseudoKernel(
-      SmallVectorImpl<unsigned>* ready_kernel_ids);
+  // `ready_kernel_queue`.
+  void ProcessArgumentsPseudoKernel(ReadyKernelQueue& ready_kernel_queue);
 
   // Process a single kernel specified by `kernel_id`, and populate the ready
-  // users in `ready_kernel_ids`.
+  // users in `ready_kernel_queue`.
   void ProcessReadyKernel(unsigned kernel_id, KernelFrameBuilder* kernel_frame,
-                          SmallVectorImpl<unsigned>* ready_kernel_ids);
+                          ReadyKernelQueue& ready_kernel_queue);
 
   // Enqueue the `users` of the `result` for later processing. If the result has
   // no users, it will be skipped. If the result is immediately available, then
-  // we push them to `ready_kernel_ids`, otherwise we need to enqueue them into
-  // this unavailable result. This function also publish the `result` to the
-  // corresponding `result_register` so that the subscribers can use it.
+  // we push them to `ready_kernel_queue`, otherwise we need to enqueue them
+  // into this unavailable result. This function also publish the `result` to
+  // the corresponding `result_register` so that the subscribers can use it.
   void ProcessUsedBysAndSetRegister(llvm::ArrayRef<unsigned> users,
-                                    SmallVectorImpl<unsigned>* ready_kernel_ids,
+                                    ReadyKernelQueue& ready_kernel_queue,
                                     RCReference<AsyncValue> result,
                                     BEFFileImpl::RegisterInfo* result_register);
 
@@ -210,11 +291,12 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
   // because the `result` is a function argument and the register has been set
   // up in BEFExecutor::Execute().
   void ProcessPseudoKernelUsedBys(llvm::ArrayRef<unsigned> users,
-                                  SmallVectorImpl<unsigned>* ready_kernel_ids,
+                                  ReadyKernelQueue& ready_kernel_queue,
                                   AsyncValue* result);
 
-  void DecrementReadyCountAndEnqueue(
-      ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids);
+  // Enqueue `kernel_ids` to the concurrent work queue so that they can be
+  // executed in a dfferent thread in parallel.
+  void EnqueueReadyKernels(std::vector<unsigned> kernel_ids);
 
   HostContext* GetHost() const { return exec_ctx_.host(); }
   BEFFileImpl* BefFile() const { return bef_file_.get(); }
@@ -248,27 +330,15 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 // Core executor logic
 //===----------------------------------------------------------------------===//
 
-void BEFExecutor::DecrementReadyCountAndEnqueue(
-    ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids) {
-  MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array = kernel_infos();
-  // TODO(b/173798236): Consider introducing a randomization logic here in mode
-  // to trigger errors in tests that relies on the implicit order.
-  for (unsigned user_id : users) {
-    if (kernel_array[user_id].arguments_not_ready.fetch_sub(1) == 1) {
-      // TODO(tfrt-devs): Consider launching execution here immediately instead
-      // of materialize it in `ready_kernel_ids`.
-      ready_kernel_ids->push_back(user_id);
-    }
-  }
-}
+constexpr int kPseudoKernelId = 0;
 
 // Enqueue the `users` of the `result` for later processing. If the result has
 // no users, it will be skipped. If the result is immediately available, then we
-// push them to `ready_kernel_ids`, otherwise we need to enqueue them into this
-// unavailable result. This function also publish the `result` to the
+// push them to `ready_kernel_queue`, otherwise we need to enqueue them into
+// this unavailable result. This function also publish the `result` to the
 // corresponding `result_register` so that the subscribers can use it.
 LLVM_ATTRIBUTE_ALWAYS_INLINE void BEFExecutor::ProcessUsedBysAndSetRegister(
-    llvm::ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids,
+    llvm::ArrayRef<unsigned> users, ReadyKernelQueue& ready_kernel_queue,
     RCReference<AsyncValue> result,
     BEFFileImpl::RegisterInfo* result_register) {
   // If the result is available, we can set the register and schedule ready
@@ -278,7 +348,7 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE void BEFExecutor::ProcessUsedBysAndSetRegister(
     // because as soon as we decrement a kernel's ready count, it might be
     // executed in another thread.
     SetRegisterValue(result_register, std::move(result));
-    DecrementReadyCountAndEnqueue(users, ready_kernel_ids);
+    ready_kernel_queue.DecrementReadyCountAndEnqueue(users);
     return;
   }
 
@@ -300,17 +370,18 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE void BEFExecutor::ProcessUsedBysAndSetRegister(
   // content. This is fine because the underlying BEF file is supposed to be
   // alive when the BEF executor is alive.
   auto* result_ptr = result.get();
-  result_ptr->AndThen(
-      [this, users, result_register, result = std::move(result)]() mutable {
-        SmallVector<unsigned, 4> ready_kernel_ids;
-        // SetRegisterValue() must be done before
-        // DecrementReadyCountAndEnqueue() because as soon as we decrement a
-        // kernel's ready count, it might be executed in another thread.
-        SetRegisterValue(result_register, std::move(result));
-        this->DecrementReadyCountAndEnqueue(users, &ready_kernel_ids);
-        this->ProcessReadyKernels(&ready_kernel_ids);
-        this->DropRef();
-      });
+  result_ptr->AndThen([this, stream_id = ready_kernel_queue.stream_id(), users,
+                       result_register, result = std::move(result)]() mutable {
+    ReadyKernelQueue ready_kernel_queue(stream_id, kernel_infos());
+
+    // SetRegisterValue() must be done before
+    // DecrementReadyCountAndEnqueue() because as soon as we decrement a
+    // kernel's ready count, it might be executed in another thread.
+    SetRegisterValue(result_register, std::move(result));
+    ready_kernel_queue.DecrementReadyCountAndEnqueue(users);
+    this->ProcessReadyKernels(ready_kernel_queue);
+    this->DropRef();
+  });
 }
 
 // Enqueue the `users` for the pseudo kernel's `result` for later processing.
@@ -322,11 +393,11 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE void BEFExecutor::ProcessUsedBysAndSetRegister(
 // TODO(tfrt-devs): Consider also setting the argument register here so that we
 // can unify ProcessUsedBysAndSetRegister() and ProcessPseudoKernelUsedBys().
 void BEFExecutor::ProcessPseudoKernelUsedBys(
-    llvm::ArrayRef<unsigned> users, SmallVectorImpl<unsigned>* ready_kernel_ids,
+    llvm::ArrayRef<unsigned> users, ReadyKernelQueue& ready_kernel_queue,
     AsyncValue* result) {
   // If the result is available, we can schedule ready users immediately.
   if (result->IsAvailable()) {
-    DecrementReadyCountAndEnqueue(users, ready_kernel_ids);
+    ready_kernel_queue.DecrementReadyCountAndEnqueue(users);
     return;
   }
 
@@ -347,20 +418,22 @@ void BEFExecutor::ProcessPseudoKernelUsedBys(
   // is fine because the underlying BEF file is supposed to be alive when the
   // BEF executor is alive.
   result->AndThen([this, users]() {
-    SmallVector<unsigned, 4> ready_kernel_ids;
-    this->DecrementReadyCountAndEnqueue(users, &ready_kernel_ids);
-    this->ProcessReadyKernels(&ready_kernel_ids);
+    ReadyKernelQueue ready_kernel_queue(
+        kernel_infos()[kPseudoKernelId].stream_id, kernel_infos());
+    ready_kernel_queue.DecrementReadyCountAndEnqueue(users);
+    this->ProcessReadyKernels(ready_kernel_queue);
     this->DropRef();
   });
 }
 
 // Process the arguments pseudo kernel and enqueue the ready users of these
-// arguments to `ready_kernel_ids`. For non-ready users (eg. the function
+// arguments to `ready_kernel_queue`. For non-ready users (eg. the function
 // argument is unavailable), it sets up AndThen() callback to call
 // ProcessReadyKernels() when the result is ready.
 void BEFExecutor::ProcessArgumentsPseudoKernel(
-    SmallVectorImpl<unsigned>* ready_kernel_ids) {
-  assert(ready_kernel_ids->empty());
+    ReadyKernelQueue& ready_kernel_queue) {
+  assert(ready_kernel_queue.inline_kernel_ids().empty());
+  assert(ready_kernel_queue.outline_kernel_ids().empty());
 
   BEFKernel kernel(kernels().data());
 
@@ -385,7 +458,7 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
 
   // Process the pseudo result first, which has no corresponding AsyncValue.
   auto used_bys = GetNextUsedBys(kernel, /*result_number=*/0, &used_by_offset);
-  DecrementReadyCountAndEnqueue(used_bys, ready_kernel_ids);
+  ready_kernel_queue.DecrementReadyCountAndEnqueue(used_bys);
 
   for (int result_number = 1; result_number < results.size(); ++result_number) {
     auto& result_register = register_array[results[result_number]];
@@ -398,7 +471,7 @@ void BEFExecutor::ProcessArgumentsPseudoKernel(
     auto used_bys = GetNextUsedBys(kernel, result_number, &used_by_offset);
 
     // Process users of this result.
-    ProcessPseudoKernelUsedBys(used_bys, ready_kernel_ids, result);
+    ProcessPseudoKernelUsedBys(used_bys, ready_kernel_queue, result);
   }
 }
 
@@ -417,11 +490,11 @@ void BEFExecutor::DebugPrintError(const BEFKernel& kernel, unsigned kernel_id,
 #endif
 }
 
-// Process the kernel for `kernel_id` and populate `ready_kernel_ids` with ready
-// users.
-void BEFExecutor::ProcessReadyKernel(
-    unsigned kernel_id, KernelFrameBuilder* kernel_frame,
-    SmallVectorImpl<unsigned>* ready_kernel_ids) {
+// Process the kernel for `kernel_id` and populate `ready_kernel_queue` with
+// ready users.
+void BEFExecutor::ProcessReadyKernel(unsigned kernel_id,
+                                     KernelFrameBuilder* kernel_frame,
+                                     ReadyKernelQueue& ready_kernel_queue) {
   MutableArrayRef<BEFFileImpl::RegisterInfo> register_array = register_infos();
 
   assert(kernel_infos()[kernel_id].offset % kKernelEntryAlignment == 0);
@@ -546,16 +619,27 @@ void BEFExecutor::ProcessReadyKernel(
     auto used_bys = GetNextUsedBys(kernel, result_number, &entry_offset);
 
     // Process users of this result.
-    ProcessUsedBysAndSetRegister(used_bys, ready_kernel_ids, std::move(result),
-                                 &result_register);
+    ProcessUsedBysAndSetRegister(used_bys, ready_kernel_queue,
+                                 std::move(result), &result_register);
   }
 }
 
-// Iteratively process ready kernels in `ready_kernel_ids` and inserts ready
+// Enqueue `kernel_ids` to the concurrent work queue so that they can be
+// executed in a dfferent thread in parallel.
+LLVM_ATTRIBUTE_NOINLINE void BEFExecutor::EnqueueReadyKernels(
+    std::vector<unsigned> kernel_ids) {
+  AddRef();
+  EnqueueWork(exec_ctx_, [this, kernel_ids = std::move(kernel_ids)]() mutable {
+    ReadyKernelQueue ready_kernel_queue(kernel_infos(), std::move(kernel_ids));
+    ProcessReadyKernels(ready_kernel_queue);
+    DropRef();
+  });
+}
+
+// Iteratively process ready kernels in `ready_kernel_queue` and inserts ready
 // users back for next round of processing, until there are no more ready
 // kernels.
-void BEFExecutor::ProcessReadyKernels(
-    SmallVectorImpl<unsigned>* ready_kernel_ids) {
+void BEFExecutor::ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue) {
   TFRT_TRACE_SCOPE(Default, "BEFExecutor::ProcessReadyKernels");
 
   // Process the kernel record to get information about what argument
@@ -564,29 +648,29 @@ void BEFExecutor::ProcessReadyKernels(
   kernel_frame.SetAttributeSection(BefFile()->attribute_section_);
   kernel_frame.SetFunctions(BefFile()->functions_);
 
-  while (!ready_kernel_ids->empty()) {
-    // If there are more than one ready kernel, except the first one, we
-    // evaluate each of these kernels and their dependents in a separate thread.
-    for (unsigned kernel_id : llvm::drop_begin(*ready_kernel_ids, 1)) {
-      AddRef();
-      EnqueueWork(exec_ctx_, [this, kernel_id]() {
-        // We create a new list with capacity of 4 here because
-        // ProcessReadyKernels() will iteratively process the kernels and their
-        // dependents by adding ready kernels to `ready_kernel_ids`.
-        SmallVector<unsigned, 4> ready_kernel_ids = {kernel_id};
-        this->ProcessReadyKernels(&ready_kernel_ids);
-        this->DropRef();
-      });
+  if (!ready_kernel_queue.outline_kernel_ids().empty()) {
+    EnqueueReadyKernels(std::move(ready_kernel_queue.outline_kernel_ids()));
+  }
+  assert(ready_kernel_queue.outline_kernel_ids().empty());
+
+  // The loop below process inline kernels in a breadth-first order, so that
+  // independent sequences can be launched as early as possible. Outline kernels
+  // are enqueued to the concurrent work queue immediately.
+
+  std::vector<unsigned> buffer;
+  while (!ready_kernel_queue.inline_kernel_ids().empty()) {
+    assert(buffer.empty());
+
+    buffer.swap(ready_kernel_queue.inline_kernel_ids());
+    for (unsigned kernel_id : buffer) {
+      ProcessReadyKernel(kernel_id, &kernel_frame, ready_kernel_queue);
+
+      if (!ready_kernel_queue.outline_kernel_ids().empty()) {
+        EnqueueReadyKernels(std::move(ready_kernel_queue.outline_kernel_ids()));
+      }
+      assert(ready_kernel_queue.outline_kernel_ids().empty());
     }
-
-    // For the first ready kernel, we dispatch it inline.
-    unsigned first_kernel_id = ready_kernel_ids->front();
-
-    // Clear the work list so that ready users can be populated for the next
-    // round of processing.
-    ready_kernel_ids->clear();
-
-    ProcessReadyKernel(first_kernel_id, &kernel_frame, ready_kernel_ids);
+    buffer.clear();
   }
 }
 
@@ -610,16 +694,17 @@ void BEFExecutor::Execute() {
   // (very cache friendly), and results in all the atomics staying in that
   // cores' cache, if these benefits outweigh the latency improvement from
   // launching these kernels in different threads.
-  SmallVector<unsigned, 4> ready_kernel_ids;
+  ReadyKernelQueue ready_kernel_queue(kernel_infos()[kPseudoKernelId].stream_id,
+                                      kernel_infos());
 
   // The first kernel (kernel_id == 0) is a pseudo kernel that provides the
   // arguments, which gets special handling.
-  ProcessArgumentsPseudoKernel(&ready_kernel_ids);
+  ProcessArgumentsPseudoKernel(ready_kernel_queue);
 
-  // After ProcessArgumentsPseudoKernel() returns, `ready_kernel_ids` is
+  // After ProcessArgumentsPseudoKernel() returns, `ready_kernel_queue` is
   // populated with available kernels. Then we start processing by calling
   // ProcessReadyKernels().
-  ProcessReadyKernels(&ready_kernel_ids);
+  ProcessReadyKernels(ready_kernel_queue);
 }
 
 // Set RegisterInfo::value for argument registers.

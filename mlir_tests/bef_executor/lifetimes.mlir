@@ -12,39 +12,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite $(bef_name %s) | FileCheck %s --dump-input=fail --dump-input-filter=all
 
 // CHECK-LABEL: --- Running 'test_linear'
 func @test_linear() {
   %ch0 = tfrt.new.chain
 
+  // Enqueuing 1, 2, 4. Since we are using single-threaded work queue, they are
+  // executed immediately.
   // CHECK-NEXT: constructed vt.value(1)
   // CHECK-NEXT: move constructed vt.value(1)
-  %v1 = "vt.constant"() { value = 1 : i32 } : () -> !vt.value
-
   // CHECK-NEXT: constructed vt.value(2)
   // CHECK-NEXT: move constructed vt.value(2)
-  %v2 = "vt.constant"() { value = 2 : i32 } : () -> !vt.value
-
-  // CHECK-NEXT: constructed vt.value(3)
-  // CHECK-NEXT: move constructed vt.value(3)
-  %r = "vt.add"(%v1, %v2) : (!vt.value,  !vt.value) -> !vt.value
-  // CHECK-NEXT: destroyed vt.value(1)
-  // CHECK-NEXT: destroyed vt.value(2)
-
-  // CHECK-NEXT: print vt_value(3)
-  "vt.print"(%r, %ch0) : (!vt.value, !tfrt.chain) -> (!tfrt.chain)
-  // CHECK-NEXT: destroyed vt.value(3)
-
   // CHECK-NEXT: constructed vt.value(4)
   // CHECK-NEXT: move constructed vt.value(4)
-  "vt.constant"() { value = 4 : i32 } : () -> !vt.value
   // CHECK-NEXT: destroyed vt.value(4)
+  // 3 is executed inline after executing 1 and 2.
+  // CHECK-NEXT: constructed vt.value(3)
+  // CHECK-NEXT: move constructed vt.value(3)
+  // CHECK-NEXT: destroyed vt.value(1)
+  // CHECK-NEXT: destroyed vt.value(2)
+  // CHECK-NEXT: print vt_value(3)
+  // CHECK-NEXT: destroyed vt.value(3)
 
+  // inline executing 5 after entry.
   // CHECK-NEXT: constructed vt.value(5)
   // CHECK-NEXT: move constructed vt.value(5)
-  "vt.constant"() { value = 5 : i32 } : () -> !vt.value
   // CHECK-NEXT: destroyed vt.value(5)
+
+  %v1 = "vt.constant"() { value = 1 : i32 } : () -> !vt.value
+  %v2 = "vt.constant"() { value = 2 : i32 } : () -> !vt.value
+  %r = "vt.add"(%v1, %v2) : (!vt.value,  !vt.value) -> !vt.value
+  "vt.print"(%r, %ch0) : (!vt.value, !tfrt.chain) -> (!tfrt.chain)
+  "vt.constant"() { value = 4 : i32 } : () -> !vt.value
+  "vt.constant"() { value = 5 : i32 } : () -> !vt.value
+
   tfrt.return
 }
 

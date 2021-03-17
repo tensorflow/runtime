@@ -29,7 +29,7 @@ func @callee(%x: i32, %y: i32, %z: i32) -> !tfrt.chain {
   %ch2 = tfrt.print.i32 %y, %ch1
   %ch3 = tfrt.print.i32 %z, %ch2
 
-  tfrt.return %ch0 : !tfrt.chain
+  tfrt.return %ch1 : !tfrt.chain
 }
 
 // CHECK-LABEL: --- Running 'call_non_strict'
@@ -73,7 +73,7 @@ func @if_non_strict() {
     %ch3 = tfrt.new.chain
     // We are non-strict, so c1 is ready now and v2 will be resolved later.
     %ch4 = tfrt.print.i32 %c1, %ch3
-    tfrt.print.i32 %v2, %ch3
+    tfrt.print.i32 %v2, %ch4
     tfrt.return %ch4 : !tfrt.chain
   } else {
     %ch3 = tfrt.new.chain

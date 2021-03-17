@@ -61,7 +61,7 @@ func @tensor_equal() {
   %cmp, %c2 = tfrt_dht.tensor_equal.i32 %a, %a, %c1
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp, %c0
+  %ch = tfrt.print.i1 %cmp, %c0
 
   %b = tfrt_dht.create_uninitialized_tensor.i32.2 [3 : i64, 2 : i64]
   %c3 = tfrt_dht.fill_tensor_with_constant.i32 %b, %c0 1 : i32
@@ -69,7 +69,7 @@ func @tensor_equal() {
   %cmp2, %c4 = tfrt_dht.tensor_equal.i32 %a, %b, %c3
 
   // CHECK: int1 = 0
-  tfrt.print.i1 %cmp2, %c4
+  tfrt.print.i1 %cmp2, %ch
 
   tfrt.return
 }

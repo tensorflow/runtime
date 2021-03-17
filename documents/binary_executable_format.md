@@ -481,24 +481,18 @@ in bef_encoding.h.
 
 ```none
   ATTRIBUTE_NAMES_SECTION ::= INTEGER<"NumFunctions"> KERNEL_TABLE*
-  KERNEL_TABLE            ::= INTEGER<"NumKernels"> KERNEL_ENTRY*
-  KERNEL_ENTRY            ::= SPECIAL_ATTRIBUTE OFFSET<"AttributeName">*
-  SPECIAL_ATTRIBUTE       ::= BYTE
+  KERNEL_TABLE            ::= INTEGER<"NumKernels"> OFFSET<"AttributeName">*
 ```
 
-TODO(tfrt-devs): Remove the special_attribute byte and update `tfrt_translate`
-since we record special attributes in non-optional sections.
-
-The AttributeNames sections is an optional secton which is not needed for BEF
+The AttributeNames sections is an optional section which is not needed for BEF
 execution, but this section is necessary for bef-to-mlir conversion. This
 section describes the attribute names used by each kernel. There is a 1:1
 mapping between Kernel Table in this section and Function Entries in
 [FunctionIndex section](#functionindex-section). And there is a 1:1 mapping
-between kernel entries in this secion and kernel entries in Functions section's
-kernel table. Each kernel entry contains a SPECIAL_ATTRIBUTE and any number of
-AttributeNames. SPECIAL_ATTRIBUTE describes the special BEF attribute (eg.
-bef.nonstrict) and AttributeName is an offset to Strings section that specifies
-the name of the attribute used by this kernel.
+between kernel entries in this section and kernel entries in Functions section's
+kernel table. Each kernel entry contains any number of AttributeNames.
+AttributeName is an offset to Strings section that specifies the name of the
+attribute used by this kernel.
 
 ### RegisterTypes Section
 

@@ -1756,9 +1756,6 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 
   EmitArgumentsPseudoKernel(&block, &kernel_list);
 
-  // Pseudo is not non-strict. And pseudo op has no attributes.
-  attribute_names->EmitByte(static_cast<uint8_t>(SpecialAttribute::kUnknown));
-
   for (auto& op : block) {
     // Return kernels get special processing.
     if (IsReturn(&op)) {
@@ -1786,14 +1783,6 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
       num_operands_before_running = 1;
 
     EmitInt(num_operands_before_running);
-
-    if (is_non_strict) {
-      attribute_names->EmitByte(
-          static_cast<uint8_t>(SpecialAttribute::kNonStrict));
-    } else {
-      attribute_names->EmitByte(
-          static_cast<uint8_t>(SpecialAttribute::kUnknown));
-    }
 
     EmitKernel(&op, &kernel_list, attribute_names);
   }

@@ -1531,12 +1531,6 @@ mlir::LogicalResult BEFFunctionReader::ReadKernels(ArrayRef<uint32_t> kernels,
     return mlir::failure();
   }
 
-  // pseudo op must not be bef.nonstrict.
-  uint8_t pseudo_op_non_strict;
-  if (!attribute_names->ReadByte(&pseudo_op_non_strict))
-    assert(static_cast<SpecialAttribute>(pseudo_op_non_strict) ==
-           SpecialAttribute::kUnknown);
-
   for (int i = kernel_start; i < kernel_table_.size(); ++i) {
     auto offset = kernel_table_[i].offset;
     auto* op = ReadKernel(kernels, offset, attribute_names);
@@ -1636,13 +1630,9 @@ mlir::Operation* BEFFunctionReader::ReadKernel(ArrayRef<uint32_t> kernels,
     state.operands.push_back(value);
   }
 
-  // Resolve special attributes
-  uint8_t special_attribute;
-  if (!attribute_names->ReadByte(&special_attribute)) {
-    if (static_cast<SpecialAttribute>(special_attribute) ==
-        SpecialAttribute::kNonStrict) {
-      state.addAttribute("bef.nonstrict", mlir::UnitAttr::get(&context_));
-    }
+  if ((kernel.special_metadata() &
+       static_cast<uint32_t>(SpecialAttribute::kNonStrict)) != 0) {
+    state.addAttribute("bef.nonstrict", mlir::UnitAttr::get(&context_));
   }
 
   // Resolve attributes

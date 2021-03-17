@@ -13,6 +13,22 @@ TFRT follows the
 [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html)
 unless an exception is listed below.
 
+## Test file location
+
+For code under different projects, we place test files with different
+conventions.
+
+-   For code under Tensorflow project, we put the test files along with the
+    implementation files, so that we align with the rest of the Tensorflow
+    project. For example,
+    [this folder](https://github.com/tensorflow/tensorflow/tree/master/tensorflow/core/common_runtime)
+    contains both the implementation files and the corresponding test files.
+
+-   For code under TFRT project, we put the test files under dedicated test
+    folders to align with the MLIR/LLVM convention. For example,
+    [`cpp_tests`](https://github.com/tensorflow/runtime/tree/master/cpp_tests)
+    contains the C++ tests.
+
 ## Relative include paths
 
 Unlike the Google style guide, which recommends include path relative to project

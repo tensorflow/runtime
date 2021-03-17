@@ -168,6 +168,7 @@ tfrt_cc_library(
         "include/tfrt/host_context/value.h",
     ],
     alwayslink_static_registration_src = "lib/host_context/static_registration.cc",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":support",
@@ -189,6 +190,7 @@ tfrt_cc_library(
         "include/tfrt/support/forward_decls.h",
         "include/tfrt/support/fp16.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         "@llvm-project//llvm:Support",
@@ -207,6 +209,7 @@ tfrt_cc_library(
         }),
         outs = ["include/tfrt/support/" + out_name],
         cmd = "cp $< $@",
+        # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
         visibility = ["//visibility:private"],
     )
     for (out_name, absl_name, std_name) in [
@@ -267,6 +270,7 @@ tfrt_cc_library(
         "include/tfrt/support/type_traits.h",
         "include/tfrt/support/variant.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":dtype",
@@ -290,6 +294,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/tracing/tracing.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":support",
@@ -329,6 +334,7 @@ tfrt_cc_library(
         "include/tfrt/bef_executor/function_util.h",
         "include/tfrt/support/bef_encoding.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":dtype",

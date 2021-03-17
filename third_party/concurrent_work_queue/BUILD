@@ -26,6 +26,7 @@ filegroup(
         "lib/task_queue.h",
         "lib/work_queue_base.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 )
 
 filegroup(
@@ -34,6 +35,7 @@ filegroup(
         "lib/multi_threaded_work_queue.cc",
         "lib/task_queue.cc",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 )
 
 tfrt_cc_test(

@@ -25,11 +25,13 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "in_place",
     hdrs = ["include/llvm_derived/Support/in_place.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
 )
 
 tfrt_cc_library(
     name = "unique_any",
     hdrs = ["include/llvm_derived/Support/unique_any.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":in_place",
     ],

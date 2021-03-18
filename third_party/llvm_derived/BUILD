@@ -16,6 +16,7 @@ tfrt_cc_library(
     name = "raw_ostream",
     srcs = ["lib/Support/raw_ostream.cpp"],
     hdrs = ["include/llvm_derived/Support/raw_ostream.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "@llvm-project//llvm:Support",
         "@llvm-project//llvm:config",

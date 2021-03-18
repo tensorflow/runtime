@@ -405,6 +405,7 @@ tfrt_cc_library(
         "include/tfrt/tensor/tensor_type_registration.h",
     ],
     alwayslink_static_registration_src = "lib/tensor/static_registration.cc",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":dtype",
@@ -947,6 +948,7 @@ tfrt_cc_library(
         "include/tfrt/core_runtime/tensor_handle.h",
     ],
     alwayslink_static_registration_src = "lib/core_runtime/static_registration.cc",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":dtype",

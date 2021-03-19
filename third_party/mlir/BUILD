@@ -2218,7 +2218,6 @@ cc_library(
 cc_library(
     name = "GPUToGPURuntimeTransforms",
     srcs = [
-        "lib/Conversion/GPUCommon/ConvertKernelFuncToBlob.cpp",
         "lib/Conversion/GPUCommon/ConvertLaunchFuncToRuntimeCalls.cpp",
         "lib/Conversion/PassDetail.h",
     ],
@@ -5309,6 +5308,7 @@ cc_library(
         ":IR",
         ":LinalgOps",
         ":MathDialect",
+        ":MemRefDialect",
         ":Pass",
         ":StandardOps",
         ":TosaDialect",

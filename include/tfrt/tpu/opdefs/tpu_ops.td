@@ -241,7 +241,8 @@ def ExecuteAndUpdateVariablesOp : TPU_Op<"execute_and_update_variables"> {
   );
 
   let results = (outs
-    TFRT_ChainType:$out_chain
+    TFRT_ChainType:$out_chain,
+    Variadic<AnyType>:$results
   );
 
   let assemblyFormat = [{

@@ -368,7 +368,7 @@ static void CudaLaunch(
     return;
   }
   const gpu::MultiDeviceModuleTable& multi_device_module_table =
-      *(multi_device_module_table_or.getValue()->get());
+      *(*multi_device_module_table_or.getValue());
   const auto module_table = multi_device_module_table.GetTable(*device);
   if (!module_table) {
     REPORT_ERROR(

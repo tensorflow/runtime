@@ -51,9 +51,13 @@ namespace jit {
 class CompilationResult;
 
 struct CompilationOptions {
+  // Byte alignment for allocated memrefs. Depending on the compiler flags
+  // Tensorflow requires tensors to be aligned on 16, 32 or 64 bytes.
+  int alignment = 0;
+
   // The number of worker threads (host context concurrent work queue size) that
   // can be used for parallelizing compute intensive parts of the kernel.
-  int num_worker_threads;
+  int num_worker_threads = 0;
 
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;

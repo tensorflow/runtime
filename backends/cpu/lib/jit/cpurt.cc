@@ -446,6 +446,14 @@ struct MathApproximationPass
     : public mlir::PassWrapper<MathApproximationPass, mlir::FunctionPass> {
   void runOnFunction() override;
 };
+
+// Add alignment attribute to all `alloc` operations.
+struct AlignedAllocationsPass
+    : public mlir::PassWrapper<AlignedAllocationsPass, mlir::FunctionPass> {
+  explicit AlignedAllocationsPass(int64_t alignment) : alignment(alignment) {}
+  void runOnFunction() override;
+  int64_t alignment;
+};
 }  // namespace
 
 void MathApproximationPass::runOnFunction() {
@@ -459,6 +467,25 @@ void MathApproximationPass::runOnFunction() {
 
 std::unique_ptr<MathApproximationPass> CreateMathApproximationPass() {
   return std::make_unique<MathApproximationPass>();
+}
+
+void AlignedAllocationsPass::runOnFunction() {
+  assert(alignment >= 0 && "alignment must be larger or equal to 0");
+  if (alignment == 0) return;
+
+  auto i64 = mlir::IntegerType::get(&getContext(), 64);
+  auto alignment_attr = mlir::IntegerAttr::get(i64, alignment);
+
+  getFunction().walk([&](mlir::memref::AllocOp alloc) {
+    // Add alignment attribute only if the allocation has smaller alignment.
+    if (alloc.alignment().hasValue() && *alloc.alignment() < alignment)
+      alloc.alignmentAttr(alignment_attr);
+  });
+}
+
+std::unique_ptr<AlignedAllocationsPass> CreateAlignedAllocationsPass(
+    int64_t alignment) {
+  return std::make_unique<AlignedAllocationsPass>(alignment);
 }
 
 static void InitializeCompiler() {
@@ -519,6 +546,9 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   fpm.addPass(mlir::createAsyncRefCountingOptimizationPass());
   fpm.addPass(mlir::createStdExpandOpsPass());
   fpm.addPass(CreateMathApproximationPass());
+
+  // Add alignment attribute to all memref allocations.
+  fpm.addPass(CreateAlignedAllocationsPass(opts.alignment));
 
   // Lower from high level async operations to async runtime.
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());

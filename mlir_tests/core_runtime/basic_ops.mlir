@@ -415,7 +415,7 @@ func @control_flow_conditional() {
   %true_handle = corert.executeop(%cpu)
     "tfrt_test.create_dense_tensor"() { shape = [1], values = [1 : i32] } : 1
 
-  %true_res:2 = corert.cond %true_handle @return_first @return_second (%ch0, %a_handle, %b_handle) : (!corert.tensorhandle)
+  %true_res:2 = corert.cond %true_handle @return_first @return_second (%ch0, %a_handle, %b_handle) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
 
   // CHECK: DenseHostTensor dtype = I32, shape = [2, 2], values = [1, 1, 1, 1]
   %ch2 = "corert.print_tensorhandle"(%true_res#1, %true_res#0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
@@ -425,7 +425,7 @@ func @control_flow_conditional() {
 
   %false_handle_unresolved = corert.executeop(%cpu) "tfrt_test.async.noop_no_md"(%false_handle) : 1
 
-  %false_res:2 = corert.cond %false_handle_unresolved @return_first @return_second (%ch2, %a_handle, %b_handle) : (!corert.tensorhandle)
+  %false_res:2 = corert.cond %false_handle_unresolved @return_first @return_second (%ch2, %a_handle, %b_handle) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
 
   // CHECK: DenseHostTensor dtype = I32, shape = [2, 2], values = [2, 2, 2, 2]
   %ch3 = "corert.print_tensorhandle"(%false_res#1, %false_res#0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
@@ -447,7 +447,7 @@ func @control_flow_conditional_error() {
   // expected-error @+1 {{invalid tensorhandle}}
   %erroneous_handle = "tfrt_test.error_tensorhandle"() : () -> !corert.tensorhandle
 
-  %ch1, %result = corert.cond %erroneous_handle @return_first @return_second (%ch0, %a_handle, %b_handle) : (!corert.tensorhandle)
+  %ch1, %result = corert.cond %erroneous_handle @return_first @return_second (%ch0, %a_handle, %b_handle) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
 
   // CHECK-NOT: DenseHostTensor dtype = I32
   %ch2 = "corert.print_tensorhandle"(%result, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
@@ -512,7 +512,7 @@ func @control_flow_while_loop() {
   // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-5]
   // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-3]
   // CHECK-NEXT: DenseHostTensor dtype = I32, shape = [1, 1], values = [-1]
-  %ch1, %result = corert.while @while_cond_add1 @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle)
+  %ch1, %result = corert.while @while_cond_add1 @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle) -> (!corert.tensorhandle)
 
   tfrt.return
 }
@@ -528,7 +528,7 @@ func @control_flow_while_loop_error() {
   %a_handle = "tfrt_test.error_tensorhandle"() : () -> !corert.tensorhandle
 
   // CHECK-NOT: DenseHostTensor dtype = I32
-  %ch1, %result = corert.while @while_cond_add1 @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle)
+  %ch1, %result = corert.while @while_cond_add1 @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle) -> (!corert.tensorhandle)
 
   tfrt.return
 }
@@ -558,7 +558,7 @@ func @control_flow_while_loop_error_in_cond() {
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [-9 : i32] } : 1
 
   // CHECK-NOT: DenseHostTensor dtype = I32
-  %ch1, %result = corert.while @while_cond_error @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle)
+  %ch1, %result = corert.while @while_cond_error @while_body_add2 (%ch0, %a_handle) : (!corert.tensorhandle) -> (!corert.tensorhandle)
 
   tfrt.return
 }

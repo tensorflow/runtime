@@ -270,12 +270,12 @@ def CoreRt_CondOp : CoreRT_Op<"cond"> {
                        FlatSymbolRefAttr:$a_true_fn,
                        FlatSymbolRefAttr:$b_false_fn,
                        TFRT_ChainType:$in_op_chain,
-                       Variadic<CoreRT_TensorHandleType>:$fn_operands);
+                       Variadic<AnyType>:$fn_operands);
   let results = (outs TFRT_ChainType:$out_op_chain,
-                      Variadic<CoreRT_TensorHandleType>:$fn_outputs);
+                      Variadic<AnyType>:$fn_outputs);
   // TODO(b/161008370): Add bef.nonstrict.
   let assemblyFormat = [{
-      $cond $a_true_fn $b_false_fn `(` $in_op_chain (`,` $fn_operands^)? `)` attr-dict `:` `(` type($fn_outputs) `)`
+      $cond $a_true_fn $b_false_fn `(` $in_op_chain (`,` $fn_operands^)? `)` attr-dict `:` `(` type($fn_operands) `)` `->` `(` type($fn_outputs) `)`
     }];
 }
 
@@ -303,12 +303,12 @@ def CoreRt_WhileOp : CoreRT_Op<"while"> {
   let arguments = (ins FlatSymbolRefAttr:$a_cond_fn,
                        FlatSymbolRefAttr:$b_body_fn,
                        TFRT_ChainType:$in_op_chain,
-                       Variadic<CoreRT_TensorHandleType>:$fn_operands);
+                       Variadic<AnyType>:$fn_operands);
   let results = (outs TFRT_ChainType:$out_op_chain,
-                      Variadic<CoreRT_TensorHandleType>:$fn_outputs);
+                      Variadic<AnyType>:$fn_outputs);
   // TODO(b/161008370): Add bef.nonstrict.
   let assemblyFormat = [{
-      $a_cond_fn $b_body_fn `(` $in_op_chain (`,` $fn_operands^)? `)` attr-dict `:` `(` type($fn_outputs) `)`
+      $a_cond_fn $b_body_fn `(` $in_op_chain (`,` $fn_operands^)? `)` attr-dict `:` `(` type($fn_operands) `)` `->` `(` type($fn_outputs) `)`
     }];
 }
 

@@ -99,7 +99,7 @@ func @func_with_control_flow(%ch: !tfrt.chain, %arg : !corert.tensorhandle) -> (
 
   %async_handle = corert.executeop(%cpu) "tfrt_test.async.noop"(%arg) : 1
 
-  %result:2 = corert.cond %async_handle @return_first @return_second (%ch, %a_handle, %b_handle) : (!corert.tensorhandle)
+  %result:2 = corert.cond %async_handle @return_first @return_second (%ch, %a_handle, %b_handle) : (!corert.tensorhandle, !corert.tensorhandle) -> (!corert.tensorhandle)
 
   tfrt.return %result#0, %result#1 : !tfrt.chain, !corert.tensorhandle
 }
@@ -122,4 +122,3 @@ func @corert.composite_op_async_output() -> !tfrt.chain {
 
   tfrt.return %ch1 : !tfrt.chain
 }
-

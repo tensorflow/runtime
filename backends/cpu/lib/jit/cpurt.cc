@@ -282,7 +282,10 @@ struct ConvertDenseHostTensor {
   template <typename T, int rank>
   static DenseHostTensor Convert(void* memref_ptr) {
     auto* memref = static_cast<StridedMemRefType<T, rank>*>(memref_ptr);
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(memref, sizeof(StridedMemRefType<T, rank>));
     TensorMetadata metadata(GetDType<T>(), Sizes(memref));
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(memref->data,
+                                    metadata.GetHostSizeInBytes());
     return DenseHostTensor(
         metadata, HostBuffer::CreateFromExternal(
                       memref->data, metadata.GetHostSizeInBytes(),
@@ -296,6 +299,7 @@ mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
   if (!type.isa<mlir::async::TokenType>()) return mlir::failure();
 
   // Load the pointer to the async token from a pointer to result storage.
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(result_ptr, sizeof(void*));
   void* ret = *reinterpret_cast<void**>(result_ptr);
   auto* token = static_cast<mlir::runtime::AsyncToken*>(ret);
   results[result_index] = ConvertAsyncTokenToChain(token);

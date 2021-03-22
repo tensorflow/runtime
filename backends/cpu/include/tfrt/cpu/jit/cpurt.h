@@ -38,6 +38,7 @@
 #include "tfrt/cpu/jit/async_runtime_api.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/msan.h"
 
 namespace tfrt {
 
@@ -215,6 +216,7 @@ mlir::LogicalResult ReturnAsyncStridedMemref(RemainingResults results,
   if (!value_type) return mlir::failure();
 
   // Load the pointer to the async value from a pointer to result storage.
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(result_ptr, sizeof(void*));
   void* ret = *reinterpret_cast<void**>(result_ptr);
   auto* value = static_cast<mlir::runtime::AsyncValue*>(ret);
 

@@ -41,20 +41,21 @@ func @compiled_add_f32_buffers() {
 
   // Allocate and initialize input tensor.
   %input = tfrt_dht.create_uninitialized_tensor.f32.2 [16 : i64, 16 : i64]
-  %input_ready = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
+  %ch1 = tfrt_dht.fill_tensor_with_constant.f32 %input, %ch0 1.0 : f32
 
-  // Allocate uninitialized output tensor.
+  // Allocate and initialize output tensor (to suppress msan warnings).
   %output = tfrt_dht.create_uninitialized_tensor.f32.2 [16 : i64, 16 : i64]
+  %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %output, %ch1 1.0 : f32
 
   // Allocate and initialize expected tensor.
   %expected = tfrt_dht.create_uninitialized_tensor.f32.2 [16 : i64, 16 : i64]
-  %expected_ready = tfrt_dht.fill_tensor_with_constant.f32 %expected, %ch0 2.0 : f32
+  %ch3 = tfrt_dht.fill_tensor_with_constant.f32 %expected, %ch2 2.0 : f32
 
   // Compile simple addition implemented as a Linalg generic operation.
   %compilation_result = cpurt.compile { kernel = @kernels::@main }
 
   // Execute compiled kernel with tensor operands.
-  %executed = cpurt.execute %compilation_result[%input_ready](%input, %output)
+  %executed = cpurt.execute %compilation_result[%ch3](%input, %output)
               : (!t.tensor, !t.tensor) -> !tfrt.chain
 
   // Wait for the execution completion and compare result with expected.

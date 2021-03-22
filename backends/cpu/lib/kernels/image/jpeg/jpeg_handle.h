@@ -26,6 +26,7 @@ limitations under the License.
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_JPEG_JPEG_HANDLE_H_
 
 #include <cstdint>
+#include <cstdio>
 
 extern "C" {
 #include "third_party/libjpeg_turbo/jerror.h"

@@ -464,9 +464,8 @@ struct AlignedAllocationsPass
 }  // namespace
 
 void MathApproximationPass::runOnFunction() {
-  mlir::MLIRContext* ctx = &getContext();
-  mlir::OwningRewritePatternList patterns;
-  mlir::populateMathPolynomialApproximationPatterns(patterns, ctx);
+  mlir::OwningRewritePatternList patterns(&getContext());
+  mlir::populateMathPolynomialApproximationPatterns(patterns);
   if (failed(mlir::applyPatternsAndFoldGreedily(getOperation(),
                                                 std::move(patterns))))
     signalPassFailure();

@@ -30,9 +30,11 @@
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/TargetSelect.h"
+#include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
 #include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
+#include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/Passes.h"
@@ -46,6 +48,7 @@
 #include "mlir/Dialect/SCF/SCF.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/StandardOps/Transforms/Passes.h"
+#include "mlir/Dialect/Vector/VectorOps.h"
 #include "mlir/ExecutionEngine/CRunnerUtils.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/ExecutionEngine/OptUtils.h"
@@ -558,9 +561,14 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());
 
   // Lower everything down to LLVM dialect.
-  mlir::LowerToLLVMOptions lower_to_llvm_opts;
   pm.addPass(mlir::createConvertAsyncToLLVMPass());
+  pm.addPass(mlir::createLowerAffinePass());
   pm.addPass(mlir::createLowerToCFGPass());
+
+  mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
+  pm.addPass(mlir::createConvertVectorToLLVMPass());
+
+  mlir::LowerToLLVMOptions lower_to_llvm_opts;
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));
 
   return pm.run(module);
@@ -597,9 +605,10 @@ Expected<CompilationResult> CompileKernelMlirModule(
 
   // Register MLIR dialects supported by the compiled kernels.
   mlir::DialectRegistry registry;
-  registry.insert<mlir::async::AsyncDialect, mlir::linalg::LinalgDialect,
-                  mlir::memref::MemRefDialect, mlir::scf::SCFDialect,
-                  mlir::StandardOpsDialect, mlir::math::MathDialect>();
+  registry.insert<mlir::AffineDialect, mlir::async::AsyncDialect,
+                  mlir::linalg::LinalgDialect, mlir::memref::MemRefDialect,
+                  mlir::scf::SCFDialect, mlir::StandardOpsDialect,
+                  mlir::math::MathDialect, mlir::vector::VectorDialect>();
   mlir::registerLLVMDialectTranslation(registry);
 
   // Register additional dialects provided via compilation options.

@@ -1,3 +1,4 @@
+.bazelignore
 .bazelrc
 .bazelversion
 CODEOWNERS

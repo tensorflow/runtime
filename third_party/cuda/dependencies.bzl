@@ -26,7 +26,7 @@ def _cuda_headers_impl(repository_ctx):
         strip_prefix = "{name}-{tag}".format(name = name, tag = tag)
         _download_nvidia_headers(repository_ctx, "cuda", url, sha256, strip_prefix)
 
-    repository_ctx.symlink(Label("@//third_party/cuda:cuda_headers.BUILD"), "BUILD")
+    repository_ctx.symlink(Label("//third_party/cuda:cuda_headers.BUILD"), "BUILD")
 
 def _cudnn_headers_impl(repository_ctx):
     tag = "v7.6.5"
@@ -35,7 +35,7 @@ def _cudnn_headers_impl(repository_ctx):
     sha256 = "ef45f4649328da678285b8ce589a8296cedcc93819ffdbb5eea5346a0619a766"
     _download_nvidia_headers(repository_ctx, "cudnn", url, sha256, strip_prefix)
 
-    repository_ctx.symlink(Label("@//third_party/cuda:cudnn_headers.BUILD"), "BUILD")
+    repository_ctx.symlink(Label("//third_party/cuda:cudnn_headers.BUILD"), "BUILD")
 
 _cuda_headers = repository_rule(
     implementation = _cuda_headers_impl,

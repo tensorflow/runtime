@@ -15,14 +15,23 @@
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:utils.bzl", "maybe")
-load("@rules_cuda//cuda:dependencies.bzl", "rules_cuda_dependencies")
 load("@tf_runtime//third_party:repo.bzl", "tfrt_http_archive")
 load("@tf_runtime//third_party/cuda:dependencies.bzl", "cuda_dependencies")
+
+def _rules_cuda_impl(repository_ctx):
+    workspace = Label("@tf_runtime//third_party:rules_cuda/WORKSPACE")
+    path = repository_ctx.path(workspace).dirname
+    repository_ctx.symlink(path, "")
+
+_rules_cuda = repository_rule(
+    implementation = _rules_cuda_impl,
+    local = True,
+)
 
 def tfrt_dependencies():
     """Loads TFRT external dependencies into WORKSPACE."""
 
-    rules_cuda_dependencies()
+    _rules_cuda(name = "rules_cuda")
 
     cuda_dependencies()
 
@@ -106,9 +115,9 @@ def tfrt_dependencies():
         repo_rule = tfrt_http_archive,
         sha256 = "bf0e5070b4b99240183b29df78155eee335885e53a8af8683964579c214ad301",
         strip_prefix = "protobuf-3.14.0",
-        system_build_file = "//third_party/systemlibs:protobuf.BUILD",
+        system_build_file = "@tf_runtime//third_party/systemlibs:protobuf.BUILD",
         system_link_files = {
-            "//third_party/systemlibs:protobuf.bzl": "protobuf.bzl",
+            "@tf_runtime//third_party/systemlibs:protobuf.bzl": "protobuf.bzl",
         },
         urls = [
             "https://storage.googleapis.com/mirror.tensorflow.org/github.com/protocolbuffers/protobuf/archive/v3.14.0.zip",
@@ -119,8 +128,8 @@ def tfrt_dependencies():
     maybe(
         name = "cub_archive",
         repo_rule = tfrt_http_archive,
-        build_file = "//third_party:cub/BUILD",
-        patch_file = "//third_party:cub/pr170.patch",
+        build_file = "@tf_runtime//third_party:cub/BUILD",
+        patch_file = "@tf_runtime//third_party:cub/pr170.patch",
         sha256 = "6bfa06ab52a650ae7ee6963143a0bbc667d6504822cbd9670369b598f18c58c3",
         strip_prefix = "cub-1.8.0",
         urls = [
@@ -132,10 +141,10 @@ def tfrt_dependencies():
     maybe(
         name = "zlib",
         repo_rule = tfrt_http_archive,
-        build_file = "//third_party:zlib.BUILD",
+        build_file = "@tf_runtime//third_party:zlib.BUILD",
         sha256 = "c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1",
         strip_prefix = "zlib-1.2.11",
-        system_build_file = "//third_party/systemlibs:zlib.BUILD",
+        system_build_file = "@tf_runtime//third_party/systemlibs:zlib.BUILD",
         urls = [
             "https://storage.googleapis.com/mirror.tensorflow.org/zlib.net/zlib-1.2.11.tar.gz",
             "https://zlib.net/zlib-1.2.11.tar.gz",
@@ -151,5 +160,5 @@ def tfrt_dependencies():
             "https://storage.googleapis.com/mirror.tensorflow.org/pypi.python.org/packages/source/p/py-cpuinfo/py-cpuinfo-0.2.3.tar.gz",
             "https://pypi.python.org/packages/source/p/py-cpuinfo/py-cpuinfo-0.2.3.tar.gz",
         ],
-        build_file = "//third_party:py-cpuinfo.BUILD",
+        build_file = "@tf_runtime//third_party:py-cpuinfo.BUILD",
     )

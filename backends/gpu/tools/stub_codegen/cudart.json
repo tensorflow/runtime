@@ -18,6 +18,7 @@
       "cudaFuncSetSharedMemConfig",
       "cudaFuncGetAttributes",
       "cudaFuncSetAttribute",
+      "cudaSetDevice",
       "cudaStreamSynchronize",
       "cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags"
    ]

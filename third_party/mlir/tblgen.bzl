@@ -326,8 +326,6 @@ def gentbl(
     # drop this hardcoded include.
     hardcoded_includes = [
         "external/llvm-project/mlir/include",
-        "external/tf_runtime/include",
-        "external/org_tensorflow",
     ]
 
     for (opts_string, out) in tbl_outs:

@@ -249,7 +249,6 @@ Error BEFInterpreterImpl::Execute(const ExecutionContext& exec_ctx,
   SetupRegisters(arguments, results);
 
   SyncKernelFrameBuilder kernel_frame(registers_, exec_ctx);
-  auto debug_info_decoder = this->func_.bef_file();
   // Walk through each kernel entry and invoke each kernel sequentially.
   for (auto& kernel_entry : kernel_entries_) {
     BEFKernel kernel(kernel_entry.kernel_start);
@@ -259,10 +258,6 @@ Error BEFInterpreterImpl::Execute(const ExecutionContext& exec_ctx,
         attribute_pool_.data() + kernel_entry.attribute_start,
         kernel_entry.num_attributes));
     kernel_frame.SetResults(kernel.GetResults());
-
-#if !defined(TFRT_DISABLE_TRACING)
-    kernel_frame.SetDebugInfo({debug_info_decoder, &kernel});
-#endif
 
     kernel_entry.kernel_fn(&kernel_frame);
 

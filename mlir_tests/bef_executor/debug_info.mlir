@@ -45,34 +45,4 @@ func @debug_info() -> !tfrt.chain {
   tfrt.return %ch7 : !tfrt.chain
 }
 
-// CHECK: --- Running 'debug_info_sync':
-func @debug_info_sync()  attributes {tfrt.sync} {
-  // CHECK: myNameScope0/MySimpleKernel0
-  "tfrt_test.sync_print_debug_info"() : () -> (!tfrt.chain) loc(#loc0)
-
-  // CHECK: Kernel has no debug info
-  "tfrt_test.sync_print_debug_info"() : () -> (!tfrt.chain)
-
-  // CHECK: myNameScope1/MySimpleKernel1
-  "tfrt_test.sync_print_debug_info"() : () -> (!tfrt.chain)
-                                        loc("myNameScope1/MySimpleKernel1")
-
-  // CHECK: foo
-  "tfrt_test.sync_print_debug_info"() : () -> (!tfrt.chain)
-                                        loc(fused["foo", "bar"])
-
-  // CHECK: bar
-  %ch = "tfrt_test.sync_print_debug_info"() : () -> (!tfrt.chain)
-                                              loc(fused["foo.py":42:314, "bar"])
-  // CHECK: foo/bar
-  "tfrt_test.sync_print_debug_info"(%ch) : (!tfrt.chain) -> (!tfrt.chain)
-                                           loc("foo/bar")
-
-  // CHECK: foo
-  "tfrt_test.sync_print_debug_info"() : () -> (!tfrt.chain)
-                                        loc(callsite("foo" at "bar.py":42:314))
-
-  tfrt.return
-}
-
 #loc0 = loc("myNameScope0/MySimpleKernel0")

@@ -175,22 +175,27 @@ class ExecutionContext {
 
   ExecutionContext(const ExecutionContext& exec_ctx)
       : request_ctx_{exec_ctx.request_ctx_.CopyRef()},
-        location_{exec_ctx.location()} {}
+        location_{exec_ctx.location()},
+        debug_info_({exec_ctx.debug_info()}) {}
   ExecutionContext(ExecutionContext&& exec_ctx)
       : request_ctx_{std::move(exec_ctx.request_ctx_)},
-        location_{exec_ctx.location()} {}
+        location_{exec_ctx.location()},
+        debug_info_({exec_ctx.debug_info()}) {}
   ExecutionContext& operator=(const ExecutionContext& exec_ctx) {
     request_ctx_ = exec_ctx.request_ctx_.CopyRef();
     location_ = exec_ctx.location();
+    debug_info_ = exec_ctx.debug_info();
     return *this;
   }
   ExecutionContext& operator=(ExecutionContext&& exec_ctx) {
     request_ctx_ = std::move(exec_ctx.request_ctx_);
     location_ = exec_ctx.location();
+    debug_info_ = exec_ctx.debug_info();
     return *this;
   }
 
   Location location() const { return location_; }
+  DebugInfo debug_info() const { return debug_info_; }
   HostContext* host() const { return request_ctx_->host(); }
   bool IsCancelled() const { return request_ctx_->IsCancelled(); }
   ErrorAsyncValue* GetCancelAsyncValue() const {
@@ -198,6 +203,8 @@ class ExecutionContext {
   }
 
   void set_location(Location location) { location_ = location; }
+  void set_debug_info(DebugInfo debug_info) { debug_info_ = debug_info; }
+
   RequestContext* request_ctx() const { return request_ctx_.get(); }
 
   ResourceContext* resource_context() const {
@@ -207,6 +214,7 @@ class ExecutionContext {
  private:
   RCReference<RequestContext> request_ctx_;
   Location location_;
+  DebugInfo debug_info_;
 };
 
 }  // namespace tfrt

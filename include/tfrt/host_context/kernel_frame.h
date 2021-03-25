@@ -84,7 +84,7 @@ class AsyncKernelFrame {
   // Get the location.
   Location GetLocation() const { return exec_ctx_.location(); }
 
-  DebugInfo GetDebugInfo() const { return debug_info_; }
+  DebugInfo GetDebugInfo() const { return exec_ctx_.debug_info(); }
 
   ArrayRef<uint8_t> GetAttributeSection() const { return attribute_section_; }
 
@@ -263,7 +263,6 @@ class AsyncKernelFrame {
   ArrayRef<uint32_t> attribute_offsets_;
   ArrayRef<uint32_t> function_indices_;
   ArrayRef<std::unique_ptr<Function>> functions_;
-  DebugInfo debug_info_;
   ExecutionContext exec_ctx_;
 };
 
@@ -349,7 +348,9 @@ class KernelFrameBuilder : public AsyncKernelFrame {
     exec_ctx_.set_location(location);
   }
 
-  void SetDebugInfo(const DebugInfo& debug_info) { debug_info_ = debug_info; }
+  void SetDebugInfo(const DebugInfo& debug_info) {
+    exec_ctx_.set_debug_info(debug_info);
+  }
 };
 
 // Implementation details

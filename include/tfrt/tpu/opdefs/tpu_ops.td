@@ -189,12 +189,17 @@ def ExecuteOp : TPU_Op<"execute"> {
   let arguments = (ins
     LoadedProgram:$loaded_program,
     CoreLocationType:$core_location,
-    Variadic<DenseTensorType>:$operands
+    Variadic<DenseTensorType>:$operands,
+    I1Attr:$use_core_selector
   );
 
   let results = (outs
     Variadic<DenseTensorType>:$results
   );
+
+  let assemblyFormat = [{
+    $loaded_program`,` $core_location` ` `(` $operands `)` attr-dict `:` functional-type($operands, results)
+  }];
 }
 
 def ExecuteV2Op : TPU_Op<"execute_v2"> {

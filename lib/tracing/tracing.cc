@@ -28,22 +28,6 @@ namespace tfrt {
 namespace tracing {
 TracingSink::~TracingSink() = default;
 
-void TracingSink::RecordTracingEvent(const char* name) {
-  RecordTracingEvent(string_view(name));
-}
-
-void TracingSink::RecordTracingEvent(std::string&& name) {
-  RecordTracingEvent(string_view(name));
-}
-
-void TracingSink::PushTracingScope(const char* name) {
-  PushTracingScope(string_view(name));
-}
-
-void TracingSink::PushTracingScope(std::string&& name) {
-  PushTracingScope(string_view(name));
-}
-
 TracingSink* internal::kTracingSink = nullptr;
 std::atomic<int> internal::kIsTracingEnabled(0);
 std::atomic<TracingLevel> internal::kTracingLevel(TracingLevel::Default);

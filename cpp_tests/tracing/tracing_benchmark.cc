@@ -45,19 +45,12 @@ class BenchmarkTracingSink : TracingSink {
     tfrt::tracing::RequestTracing(false);
     EXPECT_FALSE(IsTracingEnabled());
     EXPECT_EQ(num_completed_, num_scopes_ + num_ranges_);
-    TFRT_LOG(INFO) << "Recorded " << num_events_ << " events, " << num_scopes_
-                   << " scopes, " << num_ranges_ << " ranges.";
   }
-  Error RequestTracing(bool enable) override {
-    TFRT_LOG(INFO) << "Tracing enable: " << enable;
-    return Error::success();
-  }
-  void RecordTracingEvent(string_view) override { ++num_events_; }
-  void RecordTracingEvent(const char*) override { ++num_events_; }
-  void RecordTracingEvent(std::string&&) override { ++num_events_; }
-  void PushTracingScope(string_view) override { ++num_scopes_; }
-  void PushTracingScope(const char*) override { ++num_scopes_; }
-  void PushTracingScope(std::string&&) override { ++num_scopes_; }
+  Error RequestTracing(bool enable) override { return Error::success(); }
+
+ public:
+  void RecordTracingEvent(NameGenerator gen_name) override { ++num_events_; }
+  void PushTracingScope(NameGenerator gen_name) override { ++num_scopes_; }
   void PopTracingScope() override { ++num_completed_; }
 
  private:
@@ -69,7 +62,9 @@ class BenchmarkTracingSink : TracingSink {
 
 void BM_EmptyLoop(benchmark::State& state) {
   BenchmarkTracingSink sink;
+  uint64_t dummy = 0;
   for (auto _ : state) {
+    dummy++;
   }
 }
 BENCHMARK(BM_EmptyLoop);
@@ -77,7 +72,7 @@ BENCHMARK(BM_EmptyLoop);
 void BM_TracingEvents(benchmark::State& state) {
   BenchmarkTracingSink sink;
   for (auto _ : state) {
-    RecordTracingEvent(TracingLevel::Default, "event");
+    RecordTracingEvent(TracingLevel::Default, [] { return "event"; });
   }
 }
 BENCHMARK(BM_TracingEvents);
@@ -86,7 +81,7 @@ void BM_StrCatTracingEvents(benchmark::State& state) {
   BenchmarkTracingSink sink;
   for (auto _ : state) {
     RecordTracingEvent(TracingLevel::Default,
-                       [&] { return StrCat("event", ""); });
+                       [] { return StrCat("event", ""); });
   }
 }
 BENCHMARK(BM_StrCatTracingEvents);
@@ -94,7 +89,7 @@ BENCHMARK(BM_StrCatTracingEvents);
 void BM_TracingScopes(benchmark::State& state) {
   BenchmarkTracingSink sink;
   for (auto _ : state) {
-    TracingScope(TracingLevel::Default, "scope");
+    TracingScope(TracingLevel::Default, [] { return "scope"; });
   }
 }
 BENCHMARK(BM_TracingScopes);
@@ -107,6 +102,23 @@ void BM_StrCatTracingScopes(benchmark::State& state) {
 }
 BENCHMARK(BM_StrCatTracingScopes);
 
+void BM_InactiveTracingEvents(benchmark::State& state) {
+  BenchmarkTracingSink sink;
+  tfrt::tracing::SetTracingLevel(tfrt::tracing::TracingLevel::Default);
+  for (auto _ : state) {
+    TFRT_TRACE_EVENT(Debug, "event");
+  }
+}
+BENCHMARK(BM_InactiveTracingEvents);
+
+void BM_InactiveTracingScopes(benchmark::State& state) {
+  BenchmarkTracingSink sink;
+  tfrt::tracing::SetTracingLevel(tfrt::tracing::TracingLevel::Default);
+  for (auto _ : state) {
+    TFRT_TRACE_SCOPE(Debug, "scope");
+  }
+}
+BENCHMARK(BM_InactiveTracingScopes);
 }  // namespace
 }  // namespace tracing
 }  // namespace tfrt

@@ -34,6 +34,8 @@ namespace tracing {
 
 class TracingSink {
  public:
+  using NameGenerator = llvm::function_ref<std::string()>;
+
   virtual ~TracingSink();
 
   // This function is called before trace recording is enabled and after trace
@@ -43,20 +45,16 @@ class TracingSink {
   virtual Error RequestTracing(bool enable) = 0;
 
   // Records an instant event for the calling thread.
-  virtual void RecordTracingEvent(string_view name) = 0;
+  virtual void RecordTracingEvent(NameGenerator gen_name) = 0;
+
   // Pushes a tracing scope to the calling thread's stack.
-  virtual void PushTracingScope(string_view name) = 0;
+  virtual void PushTracingScope(NameGenerator gen_name) = 0;
   // Ends the tracing scope from top of the calling thread's stack.
   // May be called after trace recording has been disabled.
   virtual void PopTracingScope() = 0;
 
   // The following functions forward to the above. Derived classes can override
   // them as an optimization if their sinks consume the corresponding type.
-
-  virtual void RecordTracingEvent(const char* name);
-  virtual void RecordTracingEvent(std::string&& name);
-  virtual void PushTracingScope(const char* name);
-  virtual void PushTracingScope(std::string&& name);
 };
 
 // When choosing a level, use
@@ -115,25 +113,10 @@ class TracingRequester {
 };
 
 // Functions to add a tracing event.
-inline void RecordTracingEvent(TracingLevel level, const char* name) {
+inline void RecordTracingEvent(TracingLevel level,
+                               TracingSink::NameGenerator gen_name) {
   if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
-    internal::kTracingSink->RecordTracingEvent(name);
-  }
-}
-inline void RecordTracingEvent(TracingLevel level, string_view name) {
-  if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
-    internal::kTracingSink->RecordTracingEvent(name);
-  }
-}
-inline void RecordTracingEvent(TracingLevel level, std::string&& name) {
-  if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
-    internal::kTracingSink->RecordTracingEvent(std::move(name));
-  }
-}
-template <typename F>
-void RecordTracingEvent(TracingLevel level, F&& get_name) {
-  if (IsTracingEnabled() && IsAboveTracingLevel(level)) {
-    internal::kTracingSink->RecordTracingEvent(get_name());
+    internal::kTracingSink->RecordTracingEvent(gen_name);
   }
 }
 
@@ -144,22 +127,9 @@ class TracingScope {
   TracingScope& operator=(const TracingScope&) = delete;
 
  public:
-  TracingScope(TracingLevel level, const char* name)
+  TracingScope(TracingLevel level, TracingSink::NameGenerator get_name)
       : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
-    if (enabled_) internal::kTracingSink->PushTracingScope(name);
-  }
-  TracingScope(TracingLevel level, string_view name)
-      : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
-    if (enabled_) internal::kTracingSink->PushTracingScope(name);
-  }
-  TracingScope(TracingLevel level, std::string&& name)
-      : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
-    if (enabled_) internal::kTracingSink->PushTracingScope(std::move(name));
-  }
-  template <typename F>
-  TracingScope(TracingLevel level, F&& get_name)
-      : enabled_(IsTracingEnabled() && IsAboveTracingLevel(level)) {
-    if (enabled_) internal::kTracingSink->PushTracingScope(get_name());
+    if (enabled_) internal::kTracingSink->PushTracingScope(get_name);
   }
 
   ~TracingScope() {

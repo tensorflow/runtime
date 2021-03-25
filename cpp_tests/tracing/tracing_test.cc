@@ -35,18 +35,16 @@ using ::testing::Matcher;
 using ::testing::StrEq;
 using ::testing::TypedEq;
 
+MATCHER_P(FunctionReturns, value, "") { return arg() == value; }
+
 class MockTracingSink : TracingSink {
  public:
   MockTracingSink() { RegisterTracingSink(this); }
 
   MOCK_METHOD(Error, RequestTracing, (bool enable), (override));
-  MOCK_METHOD(void, RecordTracingEvent, (string_view), (override));
-  MOCK_METHOD(void, RecordTracingEvent, (const char*), (override));
-  MOCK_METHOD(void, RecordTracingEvent, (std::string &&), (override));
-
-  MOCK_METHOD(void, PushTracingScope, (string_view), (override));
-  MOCK_METHOD(void, PushTracingScope, (const char*), (override));
-  MOCK_METHOD(void, PushTracingScope, (std::string &&), (override));
+  MOCK_METHOD(void, RecordTracingEvent, (TracingSink::NameGenerator),
+              (override));
+  MOCK_METHOD(void, PushTracingScope, (TracingSink::NameGenerator), (override));
   MOCK_METHOD(void, PopTracingScope, (), (override));
 };
 
@@ -79,45 +77,33 @@ TEST(TracingTest, Events) {
   InSequence seq;
   MockTracingSink sink;
 
-  EXPECT_CALL(sink,
-              RecordTracingEvent(TypedEq<const char*>("event0")))
+  SetTracingLevel(TracingLevel::Default);
+
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event0")))
       .Times(0);  // Should not call before tracing is enabled.
-  RecordTracingEvent(TracingLevel::Default, "event0");
+  RecordTracingEvent(TracingLevel::Default, [] { return "event0"; });
 
   EXPECT_CALL(sink, RequestTracing(true));
   RequestTracing(true);
 
-  EXPECT_CALL(sink, RecordTracingEvent(TypedEq<const char*>("event1")));
-  RecordTracingEvent(TracingLevel::Default, "event1");
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event1")));
+  RecordTracingEvent(TracingLevel::Default, [] { return "event1"; });
 
-  EXPECT_CALL(sink, RecordTracingEvent(TypedEq<string_view>("event2")));
-  RecordTracingEvent(TracingLevel::Default, string_view("event2"));
-
-  // TypedEq<std::string&&> doesn't compile before gtest v1.10.
-  EXPECT_CALL(sink,
-              RecordTracingEvent(Matcher<std::string&&>(StrEq("event3"))));
-  RecordTracingEvent(TracingLevel::Default, std::string("event3"));
-
-  SetTracingLevel(TracingLevel::Verbose);
-
-  EXPECT_CALL(sink,
-              RecordTracingEvent(TypedEq<const char*>("event4")))
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event2")))
       .Times(0);  // Should not call after tracing is disabled.
-  RecordTracingEvent(TracingLevel::Debug, "event4");
+  RecordTracingEvent(TracingLevel::Debug, [] { return "event2"; });
 
-  EXPECT_CALL(sink, RecordTracingEvent(TypedEq<const char*>("event5")));
-  RecordTracingEvent(TracingLevel::Verbose, "event5");
+  SetTracingLevel(TracingLevel::Debug);
 
-  EXPECT_CALL(sink, RecordTracingEvent(TypedEq<const char*>("event6")));
-  RecordTracingEvent(TracingLevel::Default, "event6");
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event3")));
+  RecordTracingEvent(TracingLevel::Debug, [] { return "event3"; });
 
   EXPECT_CALL(sink, RequestTracing(false));
   RequestTracing(false);
 
-  EXPECT_CALL(sink,
-              RecordTracingEvent(TypedEq<const char*>("event7")))
+  EXPECT_CALL(sink, RecordTracingEvent(FunctionReturns("event4")))
       .Times(0);  // Should not call after tracing is disabled.
-  RecordTracingEvent(TracingLevel::Default, "event7");
+  RecordTracingEvent(TracingLevel::Debug, [] { return "event4"; });
 }
 
 TEST(TracingTest, Scopes) {
@@ -127,53 +113,39 @@ TEST(TracingTest, Scopes) {
   InSequence seq;
   MockTracingSink sink;
 
-  EXPECT_CALL(sink, PushTracingScope(TypedEq<const char*>("scope0")))
+  SetTracingLevel(TracingLevel::Default);
+
+  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope0")))
       .Times(0);  // Should not call before tracing is enabled.
   // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Default, "scope0");
+  TracingScope(TracingLevel::Default, [] { return "scope0"; });
 
   EXPECT_CALL(sink, RequestTracing(true));
   RequestTracing(true);
 
-  EXPECT_CALL(sink, PushTracingScope(TypedEq<const char*>("scope1")));
+  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope1")));
   EXPECT_CALL(sink, PopTracingScope());
   // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Default, "scope1");
+  TracingScope(TracingLevel::Default, [] { return "scope1"; });
 
-  EXPECT_CALL(sink, PushTracingScope(TypedEq<string_view>("scope2")));
+  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope2"))).Times(0);
+  // NOLINTNEXTLINE(bugprone-unused-raii)
+  TracingScope(TracingLevel::Debug, [] { return "scope2"; });
+
+  SetTracingLevel(TracingLevel::Debug);
+
+  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope3")));
   EXPECT_CALL(sink, PopTracingScope());
   // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Default, string_view("scope2"));
-
-  // TypedEq<std::string&&> doesn't compile before gtest v1.10.
-  EXPECT_CALL(sink, PushTracingScope(Matcher<std::string&&>(StrEq("scope3"))));
-  EXPECT_CALL(sink, PopTracingScope());
-  // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Default, std::string("scope3"));
-
-  SetTracingLevel(TracingLevel::Verbose);
-
-  EXPECT_CALL(sink, PushTracingScope(TypedEq<const char*>("scope4"))).Times(0);
-  // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Debug, "scope4");
-
-  EXPECT_CALL(sink, PushTracingScope(TypedEq<const char*>("scope5")));
-  EXPECT_CALL(sink, PopTracingScope());
-  // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Verbose, "scope5");
-
-  EXPECT_CALL(sink, PushTracingScope(TypedEq<const char*>("scope6")));
-  EXPECT_CALL(sink, PopTracingScope());
-  // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Default, "scope6");
+  TracingScope(TracingLevel::Debug, [] { return "scope3"; });
 
   EXPECT_CALL(sink, RequestTracing(false));
   RequestTracing(false);
 
-  EXPECT_CALL(sink, PushTracingScope(TypedEq<const char*>("scope7")))
-      .Times(0);  // Should not call after tracing is disabled.
+  EXPECT_CALL(sink, PushTracingScope(FunctionReturns("scope4"))).Times(0);
+  EXPECT_CALL(sink, PopTracingScope()).Times(0);
   // NOLINTNEXTLINE(bugprone-unused-raii)
-  TracingScope(TracingLevel::Default, "scope7");
+  TracingScope(TracingLevel::Debug, [] { return "scope4"; });
 }
 
 }  // namespace

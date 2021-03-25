@@ -108,21 +108,13 @@ Error SimpleTracingSink::RequestTracing(bool enable) {
   return Error::success();
 }
 
-void SimpleTracingSink::RecordTracingEvent(string_view name) {
-  GetTracingStorage().RecordEvent(std::string(name));
+void SimpleTracingSink::RecordTracingEvent(
+    TracingSink::NameGenerator gen_name) {
+  GetTracingStorage().PushScope(gen_name());
 }
-void SimpleTracingSink::RecordTracingEvent(std::string&& name) {
-  GetTracingStorage().RecordEvent(std::move(name));
+void SimpleTracingSink::PushTracingScope(TracingSink::NameGenerator gen_name) {
+  GetTracingStorage().PushScope(gen_name());
 }
-
-void SimpleTracingSink::PushTracingScope(string_view name) {
-  GetTracingStorage().PushScope(std::string(name));
-}
-
-void SimpleTracingSink::PushTracingScope(std::string&& name) {
-  GetTracingStorage().PushScope(std::move(name));
-}
-
 void SimpleTracingSink::PopTracingScope() { GetTracingStorage().PopScope(); }
 
 }  // namespace tracing

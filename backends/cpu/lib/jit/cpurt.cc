@@ -567,7 +567,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
   pm.addPass(mlir::createConvertVectorToLLVMPass());
 
-  mlir::LowerToLLVMOptions lower_to_llvm_opts;
+  mlir::LowerToLLVMOptions lower_to_llvm_opts(module.getContext());
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));
 
   return pm.run(module);

@@ -162,6 +162,51 @@ llvm::Expected<int> CusolverDnZpotrf(CurrentContext current,
   return devInfo;
 }
 
+llvm::Expected<int> CusolverDnSpotrfBufferSize(CurrentContext current,
+                                               cusolverDnHandle_t handle,
+                                               cublasFillMode_t uplo, int n,
+                                               Pointer<float> A, int lda) {
+  CheckCudaContext(current);
+  int Lwork;
+  RETURN_IF_ERROR(
+      cusolverDnSpotrf_bufferSize(handle, uplo, n, ToCuda(A), lda, &Lwork));
+  return Lwork;
+}
+
+llvm::Expected<int> CusolverDnDpotrfBufferSize(CurrentContext current,
+                                               cusolverDnHandle_t handle,
+                                               cublasFillMode_t uplo, int n,
+                                               Pointer<double> A, int lda) {
+  CheckCudaContext(current);
+  int Lwork;
+  RETURN_IF_ERROR(
+      cusolverDnDpotrf_bufferSize(handle, uplo, n, ToCuda(A), lda, &Lwork));
+  return Lwork;
+}
+
+llvm::Expected<int> CusolverDnCpotrfBufferSize(CurrentContext current,
+                                               cusolverDnHandle_t handle,
+                                               cublasFillMode_t uplo, int n,
+                                               Pointer<cuComplex> A, int lda) {
+  CheckCudaContext(current);
+  int Lwork;
+  RETURN_IF_ERROR(
+      cusolverDnCpotrf_bufferSize(handle, uplo, n, ToCuda(A), lda, &Lwork));
+  return Lwork;
+}
+
+llvm::Expected<int> CusolverDnZpotrfBufferSize(CurrentContext current,
+                                               cusolverDnHandle_t handle,
+                                               cublasFillMode_t uplo, int n,
+                                               Pointer<cuDoubleComplex> A,
+                                               int lda) {
+  CheckCudaContext(current);
+  int Lwork;
+  RETURN_IF_ERROR(
+      cusolverDnZpotrf_bufferSize(handle, uplo, n, ToCuda(A), lda, &Lwork));
+  return Lwork;
+}
+
 }  // namespace stream
 }  // namespace gpu
 }  // namespace tfrt

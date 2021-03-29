@@ -66,6 +66,23 @@ llvm::Expected<int> CusolverDnZpotrf(CurrentContext current,
                                      Pointer<cuDoubleComplex> A, int lda,
                                      Pointer<cuDoubleComplex> Workspace,
                                      int Lwork);
+llvm::Expected<int> CusolverDnSpotrfBufferSize(CurrentContext current,
+                                               cusolverDnHandle_t handle,
+                                               cublasFillMode_t uplo, int n,
+                                               Pointer<float> A, int lda);
+llvm::Expected<int> CusolverDnDpotrfBufferSize(CurrentContext current,
+                                               cusolverDnHandle_t handle,
+                                               cublasFillMode_t uplo, int n,
+                                               Pointer<double> A, int lda);
+llvm::Expected<int> CusolverDnCpotrfBufferSize(CurrentContext current,
+                                               cusolverDnHandle_t handle,
+                                               cublasFillMode_t uplo, int n,
+                                               Pointer<cuComplex> A, int lda);
+llvm::Expected<int> CusolverDnZpotrfBufferSize(CurrentContext current,
+                                               cusolverDnHandle_t handle,
+                                               cublasFillMode_t uplo, int n,
+                                               Pointer<cuDoubleComplex> A,
+                                               int lda);
 
 }  // namespace stream
 }  // namespace gpu

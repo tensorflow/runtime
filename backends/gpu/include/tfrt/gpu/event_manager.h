@@ -39,6 +39,17 @@ class Chain;
 
 namespace gpu {
 
+// A ref-counted owned GPU event.
+class RcEvent : public ReferenceCounted<RcEvent> {
+ public:
+  explicit RcEvent(stream::OwningEvent event) : event_(std::move(event)) {}
+
+  stream::Event get() const { return event_.get(); }
+
+ private:
+  stream::OwningEvent event_;
+};
+
 // EventManager implements efficient waiting and polling for events. The
 // EventManager maintains a single thread dedicated to event polling.
 class EventManager {
@@ -50,7 +61,7 @@ class EventManager {
   // event has been reported. The AsyncValueRef will be constructed within a
   // Task in the ConcurrentWorkQueue, so standard async considerations (i.e. no
   // blocking within a CWQ task) apply.
-  AsyncValueRef<Chain> Synchronize(RCReference<stream::RcEvent> event);
+  AsyncValueRef<Chain> Synchronize(RCReference<RcEvent> event);
 
  private:
   // Worker thread function. If there are events in the events_ queue, queries
@@ -67,7 +78,7 @@ class EventManager {
 
   struct EventRecord {
     llvm::PointerIntPair<AsyncValue*, 2, RecordStatus> pending_async_value;
-    RCReference<stream::RcEvent> event;
+    RCReference<RcEvent> event;
   };
 
   HostContext& host_context_;

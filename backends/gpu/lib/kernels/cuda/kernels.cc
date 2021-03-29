@@ -22,6 +22,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/gpu/event_manager.h"
 #include "tfrt/gpu/memory/caching_gpu_allocator.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/module_table.h"
@@ -108,25 +109,25 @@ static void CudaStreamSynchronize(Argument<gpu::stream::OwningStream> stream,
 //
 // Result: new cuda event.
 static void CudaEventCreate(Argument<gpu::stream::Context> context,
-                            Result<RCReference<gpu::stream::RcEvent>> out_event,
+                            Result<RCReference<gpu::RcEvent>> out_event,
                             KernelErrorHandler handler) {
   auto current = gpu::stream::CtxSetCurrent(*context);
   if (!current) return REPORT_ERROR(handler, current.takeError());
   auto event = gpu::stream::EventCreate(
       *current, gpu::stream::EventFlags::DISABLE_TIMING);
   if (!event) return REPORT_ERROR(handler, event.takeError());
-  out_event.Emplace(TakeRef(new gpu::stream::RcEvent(std::move(*event))));
+  out_event.Emplace(TakeRef(new gpu::RcEvent(std::move(*event))));
 }
 
 // tfrt_cuda.event.create creates a new cuda event.
 //
 // Result: new cuda event.
-static void CudaEventRecord(Argument<RCReference<gpu::stream::RcEvent>> event,
+static void CudaEventRecord(Argument<RCReference<gpu::RcEvent>> event,
                             Argument<gpu::stream::OwningStream> stream,
                             Argument<Chain> in_chain, Result<Chain> out_chain,
                             KernelErrorHandler handler) {
   llvm::Error record_error =
-      gpu::stream::EventRecord(event->get()->resource(), stream->get());
+      gpu::stream::EventRecord(event->get()->get(), stream->get());
   if (record_error) return REPORT_ERROR(handler, std::move(record_error));
   out_chain.Set(in_chain);
 }
@@ -136,11 +137,11 @@ static void CudaEventRecord(Argument<RCReference<gpu::stream::RcEvent>> event,
 // Result: Sets the output chain when the event has been reached, i.e.
 // all work scheduled prior to the last call to tfrt_cuda.event.record has been
 // completed
-static void CudaEventPoll(Argument<RCReference<gpu::stream::RcEvent>> event,
+static void CudaEventPoll(Argument<RCReference<gpu::RcEvent>> event,
                           Argument<Chain> in_chain, Result<Chain> out_chain,
                           AsyncKernelFrame* in_frame) {
   // TODO(b/146084342): Implement this with an efficient EventMgr.
-  llvm::Error error = gpu::stream::EventSynchronize(event->get()->resource());
+  llvm::Error error = gpu::stream::EventSynchronize(event->get()->get());
   if (error)
     return REPORT_ERROR(KernelErrorHandler(in_frame), std::move(error));
   out_chain.Set(in_chain);

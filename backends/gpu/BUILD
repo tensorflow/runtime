@@ -789,6 +789,7 @@ tfrt_cc_library(
     alwayslink_static_registration_src = "lib/kernels/cuda/static_registration.cc",
     visibility = [":tests_and_tools"],
     deps = [
+        ":gpu_event_manager",
         ":gpu_memory",
         ":gpu_stream_wrapper",
         ":gpu_tensor",

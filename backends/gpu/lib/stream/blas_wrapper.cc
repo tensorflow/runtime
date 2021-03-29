@@ -25,7 +25,6 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/stream/cublas_wrapper.h"
-#include "tfrt/support/string_util.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {

@@ -32,19 +32,40 @@ namespace stream {
 
 struct CusolverErrorData {
   cusolverStatus_t result;
-  const char* expr;
+  const char *expr;
   StackTrace stack_trace;
 };
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CusolverErrorData& data);
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+                              const CusolverErrorData &data);
 // Wraps a cusolverStatus_t into an llvm::ErrorInfo.
 using CusolverErrorInfo = TupleErrorInfo<CusolverErrorData>;
-cusolverStatus_t GetResult(const CusolverErrorInfo& info);
+cusolverStatus_t GetResult(const CusolverErrorInfo &info);
 
 llvm::Expected<OwningSolverDnHandle> CusolverDnCreate(CurrentContext current);
 llvm::Error CusolverDnDestroy(cusolverDnHandle_t handle);
 llvm::Error CusolverDnSetStream(cusolverDnHandle_t handle, cudaStream_t stream);
 llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle);
+llvm::Expected<int> CusolverDnSpotrf(CurrentContext current,
+                                     cusolverDnHandle_t handle,
+                                     cublasFillMode_t uplo, int n,
+                                     Pointer<float> A, int lda,
+                                     Pointer<float> Workspace, int Lwork);
+llvm::Expected<int> CusolverDnDpotrf(CurrentContext current,
+                                     cusolverDnHandle_t handle,
+                                     cublasFillMode_t uplo, int n,
+                                     Pointer<double> A, int lda,
+                                     Pointer<double> Workspace, int Lwork);
+llvm::Expected<int> CusolverDnCpotrf(CurrentContext current,
+                                     cusolverDnHandle_t handle,
+                                     cublasFillMode_t uplo, int n,
+                                     Pointer<cuComplex> A, int lda,
+                                     Pointer<cuComplex> Workspace, int Lwork);
+llvm::Expected<int> CusolverDnZpotrf(CurrentContext current,
+                                     cusolverDnHandle_t handle,
+                                     cublasFillMode_t uplo, int n,
+                                     Pointer<cuDoubleComplex> A, int lda,
+                                     Pointer<cuDoubleComplex> Workspace,
+                                     int Lwork);
 
 }  // namespace stream
 }  // namespace gpu

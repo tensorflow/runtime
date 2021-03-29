@@ -42,7 +42,7 @@ namespace tfrt {
 namespace gpu {
 namespace stream {
 
-static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+static llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
                                      cusolverStatus_t status) {
   switch (status) {
     case CUSOLVER_STATUS_SUCCESS:
@@ -75,19 +75,19 @@ static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
   }
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CusolverErrorData& data) {
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
+                              const CusolverErrorData &data) {
   os << "'" << data.expr << "': " << data.result;
   if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
   return os;
 }
 
-cusolverStatus_t GetResult(const CusolverErrorInfo& info) {
+cusolverStatus_t GetResult(const CusolverErrorInfo &info) {
   return info.get<CusolverErrorData>().result;
 }
 
 template <typename T>
-static T* ToCuda(Pointer<T> ptr) {
+static T *ToCuda(Pointer<T> ptr) {
   return ptr.raw(Platform::CUDA);
 }
 
@@ -111,6 +111,55 @@ llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle) {
   cudaStream_t stream = nullptr;
   RETURN_IF_ERROR(cusolverDnGetStream(handle, &stream));
   return Stream(stream);
+}
+
+llvm::Expected<int> CusolverDnSpotrf(CurrentContext current,
+                                     cusolverDnHandle_t handle,
+                                     cublasFillMode_t uplo, int n,
+                                     Pointer<float> A, int lda,
+                                     Pointer<float> Workspace, int Lwork) {
+  CheckCudaContext(current);
+  int devInfo = 0;
+  RETURN_IF_ERROR(cusolverDnSpotrf(handle, uplo, n, ToCuda(A), lda,
+                                   ToCuda(Workspace), Lwork, &devInfo));
+  return devInfo;
+}
+
+llvm::Expected<int> CusolverDnDpotrf(CurrentContext current,
+                                     cusolverDnHandle_t handle,
+                                     cublasFillMode_t uplo, int n,
+                                     Pointer<double> A, int lda,
+                                     Pointer<double> Workspace, int Lwork) {
+  CheckCudaContext(current);
+  int devInfo = 0;
+  RETURN_IF_ERROR(cusolverDnDpotrf(handle, uplo, n, ToCuda(A), lda,
+                                   ToCuda(Workspace), Lwork, &devInfo));
+  return devInfo;
+}
+
+llvm::Expected<int> CusolverDnCpotrf(CurrentContext current,
+                                     cusolverDnHandle_t handle,
+                                     cublasFillMode_t uplo, int n,
+                                     Pointer<cuComplex> A, int lda,
+                                     Pointer<cuComplex> Workspace, int Lwork) {
+  CheckCudaContext(current);
+  int devInfo = 0;
+  RETURN_IF_ERROR(cusolverDnCpotrf(handle, uplo, n, ToCuda(A), lda,
+                                   ToCuda(Workspace), Lwork, &devInfo));
+  return devInfo;
+}
+
+llvm::Expected<int> CusolverDnZpotrf(CurrentContext current,
+                                     cusolverDnHandle_t handle,
+                                     cublasFillMode_t uplo, int n,
+                                     Pointer<cuDoubleComplex> A, int lda,
+                                     Pointer<cuDoubleComplex> Workspace,
+                                     int Lwork) {
+  CheckCudaContext(current);
+  int devInfo = 0;
+  RETURN_IF_ERROR(cusolverDnZpotrf(handle, uplo, n, ToCuda(A), lda,
+                                   ToCuda(Workspace), Lwork, &devInfo));
+  return devInfo;
 }
 
 }  // namespace stream

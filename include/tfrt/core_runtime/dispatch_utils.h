@@ -276,6 +276,13 @@ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunction() {
   }
 }
 
+// Generate a Debug String for a given Op
+std::string GetOpDebugString(string_view op_name,
+                             ArrayRef<RCReference<AsyncValue>>& inputs,
+                             const OpAttrsRef& attrs,
+                             ArrayRef<TensorMetadata>& result_mds,
+                             const ExecutionContext& execution_context);
+
 template <typename OpHandlerTraits>
 /*static*/ void AsyncOpDispatcher<OpHandlerTraits>::RunDispatchFunctionSync(
     typename OpHandlerTraits::OpEntryTy& op_entry,
@@ -310,8 +317,12 @@ template <typename OpHandlerTraits>
   // Finally, run the dispatch function.
   AsyncValueRef<Chain> op_chain;
   {
-    TFRT_TRACE_SCOPE(Default, StrCat("RunDispatch: ", op_entry.op_name));
-
+    TFRT_TRACE_SCOPE(
+        Default,
+        tfrt::tracing::IsAboveTracingLevel(tracing::TracingLevel::Debug)
+            ? GetOpDebugString(op_entry.op_name, inputs, attrs, result_mds,
+                               exec_ctx)
+            : StrCat("RunDispatch: ", op_entry.op_name));
     OpHandlerTraits::Dispatch(op_entry, op_handler_info, arg_tensors, attrs,
                               result_mds, *results, &op_chain, exec_ctx);
   }

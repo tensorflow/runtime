@@ -321,6 +321,20 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "debug_tracing_sink",
+    srcs = [
+        "lib/tracing/debug_tracing_sink.cc",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":support",
+        ":tracing",
+        "@llvm-project//llvm:Support",
+    ],
+    alwayslink = 1,
+)
+
+tfrt_cc_library(
     name = "befexecutor",
     srcs = [
         "lib/bef_executor/bef_executor.cc",

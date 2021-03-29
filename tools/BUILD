@@ -202,3 +202,16 @@ bzl_library(
     srcs = ["mlir_to_bef.bzl"],
     visibility = ["//visibility:private"],
 )
+
+tfrt_cc_binary(
+    name = "bef_executor_debug_tracing",
+    testonly = True,
+    deps = [
+        ":bef_executor_jit_kernels",
+        ":bef_executor_lib",
+        ":bef_executor_lightweight_kernels",
+        ":bef_executor_lite",
+        "@tf_runtime//:debug_tracing_sink",
+        "@tf_runtime//:dtype",
+    ],
+)

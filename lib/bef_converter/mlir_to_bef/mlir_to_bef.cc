@@ -1478,7 +1478,7 @@ void BEFTypedAttributeEmitter::EmitShapeAttribute(
     return;
   }
 
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   auto error = encoder.EncodeUnrankedShapeAttr();
   assert(!error);
   (void)error;
@@ -1492,7 +1492,7 @@ void BEFTypedAttributeEmitter::EmitRankedShapeAttribute(
 
   ArrayRef<int64_t> shape = shape_attr.getShape();
 
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   auto error = encoder.EncodeRankedShapeAttr(shape);
   assert(!error);
   (void)error;

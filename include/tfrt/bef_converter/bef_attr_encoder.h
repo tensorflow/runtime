@@ -32,7 +32,9 @@ namespace tfrt {
 // TODO(zhangqiaorjc): Unify with BEFTypedAttributeEmitter.
 // Consider a more open design using ADL. Encoder functions can be made free
 // functions inside headers for TensorShape, and other user defined types.
-class BEFTypedAttributeEncoder : public BEFEmitter {
+
+// This class serializes BEF attributes.
+class BefAttrEncoder : public BEFEmitter {
  public:
   llvm::Error EncodeUnrankedShapeAttr();
   llvm::Error EncodeRankedShapeAttr(ArrayRef<int64_t> dims);

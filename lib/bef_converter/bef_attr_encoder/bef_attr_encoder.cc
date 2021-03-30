@@ -42,8 +42,7 @@ BEFShapeType GetBEFShapeType(int rank) {
 
 }  // namespace
 
-void BEFTypedAttributeEncoder::EncodeAttrBase(BEFAttributeType type,
-                                              size_t byte_count) {
+void BefAttrEncoder::EncodeAttrBase(BEFAttributeType type, size_t byte_count) {
   BEFAttrBase base;
   base.type = type;
   SetBEFAttrByteCount(byte_count, &base);
@@ -52,22 +51,20 @@ void BEFTypedAttributeEncoder::EncodeAttrBase(BEFAttributeType type,
                                sizeof(base)));
 }
 
-void BEFTypedAttributeEncoder::EncodeShapeAttrBase(size_t byte_count,
-                                                   int rank) {
+void BefAttrEncoder::EncodeShapeAttrBase(size_t byte_count, int rank) {
   EncodeAttrBase(BEFAttributeType::kShape, byte_count);
   EmitByte(static_cast<uint8_t>(GetBEFShapeType(rank)));
   EmitByte(kDummyByte);
   EmitInt2(rank);
 }
 
-llvm::Error BEFTypedAttributeEncoder::EncodeUnrankedShapeAttr() {
+llvm::Error BefAttrEncoder::EncodeUnrankedShapeAttr() {
   EmitAlignment(alignof(BEFShapeAttr));
   EncodeShapeAttrBase(/*byte_count=*/sizeof(BEFShapeAttr), /*rank=*/-1);
   return llvm::Error::success();
 }
 
-llvm::Error BEFTypedAttributeEncoder::EncodeRankedShapeAttr(
-    ArrayRef<int64_t> dims) {
+llvm::Error BefAttrEncoder::EncodeRankedShapeAttr(ArrayRef<int64_t> dims) {
   size_t rank = dims.size();
 
   // If rank is 0, the shape attribute is emitted as BEFShapeAttr instead of
@@ -89,7 +86,7 @@ llvm::Error BEFTypedAttributeEncoder::EncodeRankedShapeAttr(
   return llvm::Error::success();
 }
 
-llvm::Error BEFTypedAttributeEncoder::EncodeStringAttr(string_view sv) {
+llvm::Error BefAttrEncoder::EncodeStringAttr(string_view sv) {
   size_t length = sv.size();
   size_t byte_count = sizeof(BEFAttrBase) + sizeof(uint8_t) * length;
   // Here we directly cast the DType::Kind to BEFAttributeType. This is fine as
@@ -104,7 +101,7 @@ llvm::Error BEFTypedAttributeEncoder::EncodeStringAttr(string_view sv) {
   return llvm::Error::success();
 }
 
-llvm::Error BEFTypedAttributeEncoder::EncodeFuncAttr(string_view sv) {
+llvm::Error BefAttrEncoder::EncodeFuncAttr(string_view sv) {
   size_t length = sv.size();
   size_t byte_count = sizeof(BEFAttrBase) + sizeof(uint8_t) * length;
   // Here we directly cast the BEFDataType to BEFAttributeType. This is fine as
@@ -123,7 +120,7 @@ llvm::Error BEFTypedAttributeEncoder::EncodeFuncAttr(string_view sv) {
 // Encode a list of attributes as an aggregate attribute in BEF. The `emitter`
 // will be called with the indices sequentially and is expected to emit the
 // bytes for this element and return the offset.
-llvm::Error BEFTypedAttributeEncoder::EncodeListAttr(
+llvm::Error BefAttrEncoder::EncodeListAttr(
     size_t num_elements,
     llvm::function_ref<llvm::Expected<BEFAggregateAttrOffset32_t>(int)>
         emitter) {
@@ -157,12 +154,12 @@ llvm::Error BEFTypedAttributeEncoder::EncodeListAttr(
   return llvm::Error::success();
 }
 
-llvm::Error BEFTypedAttributeEncoder::EncodeShapeListAttr(const int64_t** dims,
-                                                          const int* num_dims,
-                                                          int num_values) {
+llvm::Error BefAttrEncoder::EncodeShapeListAttr(const int64_t** dims,
+                                                const int* num_dims,
+                                                int num_values) {
   return EncodeListAttr(
       num_values, [&](int index) -> llvm::Expected<BEFAggregateAttrOffset32_t> {
-        BEFTypedAttributeEncoder elem_encoder;
+        BefAttrEncoder elem_encoder;
         if (num_dims[index] < 0) {
           if (auto error = elem_encoder.EncodeUnrankedShapeAttr())
             return std::move(error);
@@ -177,11 +174,12 @@ llvm::Error BEFTypedAttributeEncoder::EncodeShapeListAttr(const int64_t** dims,
       });
 }
 
-llvm::Error BEFTypedAttributeEncoder::EncodeStringListAttr(
-    const void* const* values, const size_t* lengths, int num_values) {
+llvm::Error BefAttrEncoder::EncodeStringListAttr(const void* const* values,
+                                                 const size_t* lengths,
+                                                 int num_values) {
   return EncodeListAttr(
       num_values, [&](int index) -> llvm::Expected<BEFAggregateAttrOffset32_t> {
-        BEFTypedAttributeEncoder elem_encoder;
+        BefAttrEncoder elem_encoder;
         if (auto error = elem_encoder.EncodeStringAttr(string_view(
                 static_cast<const char*>(values[index]), lengths[index]))) {
           return std::move(error);
@@ -193,11 +191,12 @@ llvm::Error BEFTypedAttributeEncoder::EncodeStringListAttr(
       });
 }
 
-llvm::Error BEFTypedAttributeEncoder::EncodeFuncListAttr(
-    const void* const* values, const size_t* lengths, int num_values) {
+llvm::Error BefAttrEncoder::EncodeFuncListAttr(const void* const* values,
+                                               const size_t* lengths,
+                                               int num_values) {
   return EncodeListAttr(
       num_values, [&](int index) -> llvm::Expected<BEFAggregateAttrOffset32_t> {
-        BEFTypedAttributeEncoder elem_encoder;
+        BefAttrEncoder elem_encoder;
         if (auto error = elem_encoder.EncodeFuncAttr(string_view(
                 static_cast<const char*>(values[index]), lengths[index]))) {
           return std::move(error);

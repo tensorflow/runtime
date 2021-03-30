@@ -37,7 +37,7 @@ namespace {
 TEST(BEFAttrEncoderTest, EncodeZeroShape) {
   int64_t dims[1];
 
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 0)));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
@@ -50,7 +50,7 @@ TEST(BEFAttrEncoderTest, EncodeZeroShape) {
 }
 
 TEST(BEFAttrEncoderTest, EncodeUnrankedShape) {
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
 
   AlignedBuffer<8> buf = encoder.TakeResult();
@@ -62,7 +62,7 @@ TEST(BEFAttrEncoderTest, EncodeUnrankedShape) {
 TEST(BEFAttrEncoderTest, EncodeRankedShape) {
   int64_t dims[3] = {1, 2, 3};
 
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 3)));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
@@ -85,7 +85,7 @@ TEST(BEFAttrEncoderTest, EncodeShapeList) {
 
   int sizes[4] = {1, 2, 3, -1};
 
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeShapeListAttr(dims, sizes, 4));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
@@ -116,7 +116,7 @@ TEST(BEFAttrEncoderTest, EncodeShapeList) {
 }
 
 TEST(BEFAttrEncoderTest, EncodeEmptyString) {
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   std::string empty_string = "";
   ASSERT_TRUE(!encoder.EncodeStringAttr(string_view(empty_string.data(), 0)));
 
@@ -127,7 +127,7 @@ TEST(BEFAttrEncoderTest, EncodeEmptyString) {
 }
 
 TEST(BEFAttrEncoderTest, EncodeString) {
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   std::string sample_string = "tfrt";
   ASSERT_TRUE(!encoder.EncodeStringAttr(
       string_view(sample_string.data(), sample_string.size())));
@@ -150,7 +150,7 @@ TEST(BEFAttrEncoderTest, EncodeStringList) {
 
   size_t sizes[3] = {a.size(), b.size(), c.size()};
 
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeStringListAttr(values, sizes, 3));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
@@ -183,7 +183,7 @@ TEST(BEFAttrEncoderTest, EncodeFuncList) {
 
   size_t sizes[3] = {a.size(), b.size(), c.size()};
 
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeFuncListAttr(values, sizes, 3));
 
   AlignedBuffer<8> buf = encoder.TakeResult();

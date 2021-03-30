@@ -241,7 +241,7 @@ void BM_OpAttrGetBool(benchmark::State& state) {
 BENCHMARK(BM_OpAttrGetBool);
 
 void BM_OpAttrSetUnrankedShape(benchmark::State& state) {
-  tfrt::BEFTypedAttributeEncoder encoder;
+  tfrt::BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
   auto buf = encoder.TakeResult();
 
@@ -255,7 +255,7 @@ BENCHMARK(BM_OpAttrSetUnrankedShape);
 
 void BM_OpAttrSetRankedShape(benchmark::State& state) {
   int64_t dims[2] = {2, 2};
-  tfrt::BEFTypedAttributeEncoder encoder;
+  tfrt::BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2)));
   auto buf = encoder.TakeResult();
 
@@ -270,7 +270,7 @@ BENCHMARK(BM_OpAttrSetRankedShape);
 void BM_OpAttrGetUnrankedShape(benchmark::State& state) {
   tfrt::OpAttrs attrs;
 
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
   auto buf = encoder.TakeResult();
   tfrt::ShapeAttr shape_attr(buf.data());
@@ -286,7 +286,7 @@ void BM_OpAttrGetRankedShape(benchmark::State& state) {
   tfrt::OpAttrs attrs;
 
   int64_t dims[2] = {2, 2};
-  BEFTypedAttributeEncoder encoder;
+  BefAttrEncoder encoder;
   ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2)));
   auto buf = encoder.TakeResult();
   tfrt::ShapeAttr shape_attr(buf.data());

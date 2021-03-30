@@ -89,6 +89,7 @@ enum hipError_t {
   hipErrorHostMemoryAlreadyRegistered = 712,
   hipErrorHostMemoryNotRegistered = 713,
   hipErrorLaunchFailure = 719,
+  hipErrorCooperativeLaunchTooLarge = 720,
   hipErrorNotSupported = 801,
   hipErrorUnknown = 999,
   hipErrorRuntimeMemory = 1052,
@@ -135,30 +136,20 @@ enum hipDeviceAttribute_t {
   hipDeviceAttributeHdpRegFlushCntl,
   hipDeviceAttributeMaxPitch,
   hipDeviceAttributeTextureAlignment,
+  hipDeviceAttributeTexturePitchAlignment,
   hipDeviceAttributeKernelExecTimeout,
   hipDeviceAttributeCanMapHostMemory,
   hipDeviceAttributeEccEnabled,
-};
-
-enum hipJitOption {
-  hipJitOptionMaxRegisters = 0,
-  hipJitOptionThreadsPerBlock,
-  hipJitOptionWallTime,
-  hipJitOptionInfoLogBuffer,
-  hipJitOptionInfoLogBufferSizeBytes,
-  hipJitOptionErrorLogBuffer,
-  hipJitOptionErrorLogBufferSizeBytes,
-  hipJitOptionOptimizationLevel,
-  hipJitOptionTargetFromContext,
-  hipJitOptionTarget,
-  hipJitOptionFallbackStrategy,
-  hipJitOptionGenerateDebugInfo,
-  hipJitOptionLogVerbose,
-  hipJitOptionGenerateLineInfo,
-  hipJitOptionCacheMode,
-  hipJitOptionSm3xOpt,
-  hipJitOptionFastCompile,
-  hipJitOptionNumOptions
+  hipDeviceAttributeCooperativeMultiDeviceUnmatchedFunc,
+  hipDeviceAttributeCooperativeMultiDeviceUnmatchedGridDim,
+  hipDeviceAttributeCooperativeMultiDeviceUnmatchedBlockDim,
+  hipDeviceAttributeCooperativeMultiDeviceUnmatchedSharedMem,
+  hipDeviceAttributeAsicRevision,
+  hipDeviceAttributeManagedMemory,
+  hipDeviceAttributeDirectManagedMemAccessFromHost,
+  hipDeviceAttributeConcurrentManagedAccess,
+  hipDeviceAttributePageableMemoryAccess,
+  hipDeviceAttributePageableMemoryAccessUsesHostPageTables,
 };
 
 enum hipMemcpyKind {
@@ -185,6 +176,27 @@ enum hipFunction_attribute {
 
 enum hipLimit_t {
   hipLimitMallocHeapSize = 0x02,
+};
+
+enum hipJitOption {
+  hipJitOptionMaxRegisters = 0,
+  hipJitOptionThreadsPerBlock,
+  hipJitOptionWallTime,
+  hipJitOptionInfoLogBuffer,
+  hipJitOptionInfoLogBufferSizeBytes,
+  hipJitOptionErrorLogBuffer,
+  hipJitOptionErrorLogBufferSizeBytes,
+  hipJitOptionOptimizationLevel,
+  hipJitOptionTargetFromContext,
+  hipJitOptionTarget,
+  hipJitOptionFallbackStrategy,
+  hipJitOptionGenerateDebugInfo,
+  hipJitOptionLogVerbose,
+  hipJitOptionGenerateLineInfo,
+  hipJitOptionCacheMode,
+  hipJitOptionSm3xOpt,
+  hipJitOptionFastCompile,
+  hipJitOptionNumOptions,
 };
 
 enum hipFuncCache_t {
@@ -249,8 +261,8 @@ hipError_t hipMalloc(void** ptr, size_t size);
 
 hipError_t hipHostMalloc(void** ptr, size_t size, unsigned int flags);
 
-hipError_t hipMallocManaged(void** devPtr, size_t size,
-                            unsigned int flags __dparm(0));
+hipError_t hipMallocManaged(void** dev_ptr, size_t size,
+                            unsigned int flags __dparm(hipMemAttachGlobal));
 
 hipError_t hipHostGetDevicePointer(void** devPtr, void* hstPtr,
                                    unsigned int flags);
@@ -369,12 +381,10 @@ hipError_t hipLaunchCooperativeKernel(const void* f, dim3 gridDim,
                                       unsigned int sharedMemBytes,
                                       hipStream_t stream);
 
-hipError_t hipOccupancyMaxPotentialBlockSize(int32_t* gridSize,
-                                             int32_t* blockSize,
-                                             hipFunction_t f,
-                                             size_t dynSharedMemPerBlk,
-                                             uint32_t blockSizeLimit);
-
 hipError_t hipOccupancyMaxActiveBlocksPerMultiprocessor(
-    int32_t* numBlocks, hipFunction_t f, uint32_t blockSize,
-    size_t dynSharedMemPerBlk);
+    int* numBlocks, const void* f, int blockSize, size_t dynSharedMemPerBlk);
+
+hipError_t hipOccupancyMaxPotentialBlockSize(int* gridSize, int* blockSize,
+                                             const void* f,
+                                             size_t dynSharedMemPerBlk,
+                                             int blockSizeLimit);

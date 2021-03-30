@@ -20,21 +20,30 @@
 //===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/hip_stub.h"
 
-#include <dlfcn.h>
+#include "symbol_loader.h"
 
-#include "tfrt/support/logging.h"
+// Memoizes load of the .so for this ROCm library.
+static void *LoadSymbol(const char *symbol_name) {
+  static SymbolLoader loader("libcuda.so");
+  return loader.GetAddressOfSymbol(symbol_name);
+}
 
-static void* LoadSymbol(const char* symbol_name) {
-  static void* handle = [&] {
-    auto ptr = dlopen("librocm.so", RTLD_LAZY);
-    if (!ptr) TFRT_LOG_ERROR << "Failed to load librocm.so";
-    return ptr;
-  }();
-  return handle ? dlsym(handle, symbol_name) : nullptr;
+template <typename Func>
+static Func *GetFunctionPointer(const char *symbol_name, Func *func = nullptr) {
+  return reinterpret_cast<Func *>(LoadSymbol(symbol_name));
+}
+
+// Calls function 'symbol_name' in shared library with 'args'.
+// TODO(csigg): Change to 'auto Func' when C++17 is allowed.
+template <typename Func, Func *, typename... Args>
+static hipError_t DynamicCall(const char *symbol_name, Args &&...args) {
+  static auto func_ptr = GetFunctionPointer<Func>(symbol_name);
+  if (!func_ptr) return hipErrorSharedObjectInitFailed;
+  return func_ptr(std::forward<Args>(args)...);
 }
 
 #define __dparm(x)
-#define DEPRECATED(x)
+#define DEPRECATED(x) [[deprecated]]
 
 extern "C" {
 #include "hip_stub.cc.inc"
@@ -43,18 +52,15 @@ extern "C" {
 // The functions below have a different return type and therefore don't fit
 // the code generator patterns.
 
-const char* hipGetErrorName(hipError_t hip_error) {
-  using FuncPtr = const char* (*)(hipError_t);
-  static auto func_ptr =
-      reinterpret_cast<FuncPtr>(LoadSymbol("hipGetErrorName"));
-  if (!func_ptr) return nullptr;
+const char *hipGetErrorName(hipError_t hip_error) {
+  static auto func_ptr = GetFunctionPointer("hipGetErrorName", hipGetErrorName);
+  if (!func_ptr) return "FAILED_TO_LOAD_FUNCTION_SYMBOL";
   return func_ptr(hip_error);
 }
 
-const char* hipGetErrorString(hipError_t hip_error) {
-  using FuncPtr = const char* (*)(hipError_t);
+const char *hipGetErrorString(hipError_t hip_error) {
   static auto func_ptr =
-      reinterpret_cast<FuncPtr>(LoadSymbol("hipGetErrorString"));
-  if (!func_ptr) return nullptr;
+      GetFunctionPointer("hipGetErrorString", hipGetErrorString);
+  if (!func_ptr) return "FAILED_TO_LOAD_FUNCTION_SYMBOL";
   return func_ptr(hip_error);
 }

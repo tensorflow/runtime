@@ -13,10 +13,10 @@ licenses(["notice"])
             "@local_cuda//:header_files",
         ],
         outs = ["include/%s_stub.cc.inc" % api],
-        cmd = "$(location //backends/gpu/tools/stub_codegen) " +
+        cmd = "$(location //backends/gpu/tools/stub_codegen:impl_codegen) " +
               "$(location //backends/gpu/tools/stub_codegen:%s.json) " % api +
               "$(OUTS)",
-        tools = ["//backends/gpu/tools/stub_codegen"],
+        tools = ["//backends/gpu/tools/stub_codegen:impl_codegen"],
     )
     for api in [
         "cublas",

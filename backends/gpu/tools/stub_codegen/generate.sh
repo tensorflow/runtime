@@ -16,17 +16,20 @@
 
 # Generate stub code from HIP headers.
 # It's safe to ignore some errors about missing clib includes.
+# Note: the paths in this script need manual fixing to work in OSS.
 
-# Build the tool and clang.
-bazel build //third_party/tf_runtime/backends/gpu/tools/stub_codegen \
-  //third_party/llvm/llvm-project/clang:clang
+# Build the tools and generate the HIP header.
+bazel build --nocheck_visibility \
+  //third_party/tf_runtime/backends/gpu/tools/stub_codegen:header_codegen \
+  //third_party/tf_runtime/backends/gpu/tools/stub_codegen:impl_codegen \
+  //third_party/amdgpu/rocm_hip:gen_hip_prof_str
 
-TOOL_PATH="./bazel-bin/third_party/tf_runtime/backends/gpu/tools/stub_codegen/stub_codegen"
-
-# Generate HIP files
+# Generate header and implementation files.
 HDR_PATH="third_party/tf_runtime/third_party/hip/%s_stub.h.inc"
 SRC_PATH="third_party/tf_runtime/third_party/hip/%s_stub.cc.inc"
 for API in "hip"; do
-   $TOOL_PATH --api $API --header | clang-format > $(printf $HDR_PATH $API)
-   $TOOL_PATH --api $API          | clang-format > $(printf $SRC_PATH $API)
+   ./bazel-bin/third_party/tf_runtime/backends/gpu/tools/stub_codegen/header_codegen \
+       $(dirname $0)/$API.json | clang-format > $(printf $HDR_PATH $API)
+   ./bazel-bin/third_party/tf_runtime/backends/gpu/tools/stub_codegen/impl_codegen \
+       $(dirname $0)/$API.json | clang-format > $(printf $SRC_PATH $API)
 done

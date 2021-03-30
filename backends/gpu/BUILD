@@ -32,6 +32,15 @@ package_group(
     ],
 )
 
+tfrt_cc_library(
+    name = "symbol_loader",
+    hdrs = ["lib/stream/symbol_loader.h"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:support",
+    ],
+)
+
 # Generated API headers and implementations for HIP libraries.
 # Note: Only gpu_stream_wrapper should depend on hip_stubs.
 tfrt_cc_library(
@@ -44,7 +53,7 @@ tfrt_cc_library(
     visibility = ["//visibility:private"],
     deps = [
         # No HIP shared object dependencies, they are dynamically loaded.
-        "@tf_runtime//:support",
+        ":symbol_loader",
         "@tf_runtime//third_party/hip:stub_inc",
     ],
 )
@@ -61,11 +70,11 @@ tfrt_cc_library(
         "lib/stream/cudnn_stub.cc",
         "lib/stream/cufft_stub.cc",
         "lib/stream/cusolver_stub.cc",
-        "lib/stream/symbol_loader.h",
     ],
     visibility = ["//visibility:private"],
     deps = [
         # No CUDA shared object dependencies, they are dynamically loaded.
+        ":symbol_loader",
         # copybara:uncomment_begin
         # "@cuda_headers",
         # "@cudnn_headers//:cudnn_header",
@@ -74,9 +83,7 @@ tfrt_cc_library(
         "@local_cuda//:cuda_headers",
         "@cudnn_headers",
         # copybara:comment_end
-        "@tf_runtime//:support",
         "@tf_runtime//third_party/cuda:stub_inc",
-        "@llvm-project//llvm:Support",
     ],
 )
 

@@ -45,7 +45,7 @@ def main():
 
   for diag in translation_unit.diagnostics:
     if diag.severity in [diag.Warning, diag.Fatal]:
-      sys.stderr.write(str(diag))
+      sys.stderr.write(str(diag) + '\n')
 
   for cursor in translation_unit.cursor.get_children():
     if cursor.kind != clang.cindex.CursorKind.FUNCTION_DECL:

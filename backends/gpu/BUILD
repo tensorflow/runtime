@@ -42,13 +42,17 @@ tfrt_cc_library(
 )
 
 # Generated API headers and implementations for HIP libraries.
-# Note: Only gpu_stream_wrapper should depend on hip_stubs.
+# Note: Only gpu_stream_wrapper should depend on rocm_stubs.
 tfrt_cc_library(
-    name = "hip_stubs",
-    srcs = ["lib/stream/hip_stub.cc"],
+    name = "rocm_stubs",
+    srcs = [
+        "lib/stream/hip_stub.cc",
+        "lib/stream/rocblas_stub.cc",
+    ],
     hdrs = [
         "include/tfrt/gpu/stream/hip_forwards.h",
         "include/tfrt/gpu/stream/hip_stub.h",
+        "include/tfrt/gpu/stream/rocblas_stub.h",
     ],
     visibility = ["//visibility:private"],
     deps = [
@@ -113,6 +117,7 @@ tfrt_cc_library(
         "lib/stream/dnn_wrapper.cc",
         "lib/stream/hash_utils.cc",
         "lib/stream/hip_wrapper.cc",
+        "lib/stream/rocblas_wrapper.cc",
         "lib/stream/solver_wrapper.cc",
         "lib/stream/stream_wrapper.cc",
         "lib/stream/wrapper_detail.h",
@@ -128,6 +133,7 @@ tfrt_cc_library(
         "include/tfrt/gpu/stream/dnn_wrapper.h",
         "include/tfrt/gpu/stream/hash_utils.h",
         "include/tfrt/gpu/stream/hip_wrapper.h",
+        "include/tfrt/gpu/stream/rocblas_wrapper.h",
         "include/tfrt/gpu/stream/solver_wrapper.h",
         "include/tfrt/gpu/stream/stream_wrapper.h",
     ],
@@ -135,7 +141,7 @@ tfrt_cc_library(
         ":tests_and_tools",
     ],
     deps = [
-        ":hip_stubs",
+        ":rocm_stubs",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
     ] + select({

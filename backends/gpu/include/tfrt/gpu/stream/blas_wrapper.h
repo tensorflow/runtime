@@ -36,8 +36,6 @@ enum class BlasOperation {
   kNone = 0,
   kTranspose = 1,
   kConjugateTranspose = 2,
-  kHermitianTranspose = kConjugateTranspose,
-  kConjugate = 3,
 };
 
 // Non-owning handles of GPU resources.

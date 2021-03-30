@@ -91,7 +91,7 @@ static void BlasSaxpy(Argument<gpu::stream::Context> context,
 static llvm::Expected<gpu::stream::BlasOperation> SafeIntToBlasOperation(
     int32_t operation) {
   auto blas_operation = static_cast<gpu::stream::BlasOperation>(operation);
-  if (blas_operation > gpu::stream::BlasOperation::kConjugate) {
+  if (blas_operation > gpu::stream::BlasOperation::kConjugateTranspose) {
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "Invalid BlasOperation value: %d",
                                    operation);

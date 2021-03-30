@@ -25,6 +25,8 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/stream/cublas_wrapper.h"
+#include "tfrt/gpu/stream/rocblas_stub.h"
+#include "tfrt/gpu/stream/rocblas_wrapper.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -38,11 +40,21 @@ static constexpr auto ToCuda(BlasOperation operation) {
       return CUBLAS_OP_N;
     case BlasOperation::kTranspose:
       return CUBLAS_OP_T;
-    // CONJUGATE_TRANSPOSE and HERMITIAN_TRANSPOSE both have the same value
     case BlasOperation::kConjugateTranspose:
       return CUBLAS_OP_C;
-    case BlasOperation::kConjugate:
-      return CUBLAS_OP_CONJG;
+  }
+  llvm_unreachable(
+      StrCat("Unrecognized BlasOperation value: ", operation).c_str());
+}
+
+static constexpr auto ToRocm(BlasOperation operation) {
+  switch (operation) {
+    case BlasOperation::kNone:
+      return rocblas_operation_none;
+    case BlasOperation::kTranspose:
+      return rocblas_operation_transpose;
+    case BlasOperation::kConjugateTranspose:
+      return rocblas_operation_conjugate_transpose;
   }
   llvm_unreachable(
       StrCat("Unrecognized BlasOperation value: ", operation).c_str());
@@ -58,7 +70,7 @@ llvm::Expected<OwningBlasHandle> BlasCreate(CurrentContext current) {
     case Platform::CUDA:
       return CublasCreate(current);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocblasCreate(current);
     default:
       return InvalidPlatform(platform);
   }
@@ -70,7 +82,7 @@ llvm::Error BlasDestroy(BlasHandle handle) {
     case Platform::CUDA:
       return CublasDestroy(handle);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocblasDestroy(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -82,7 +94,7 @@ llvm::Error BlasSetStream(BlasHandle handle, Stream stream) {
     case Platform::CUDA:
       return CublasSetStream(handle, stream);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocblasSetStream(handle, stream);
     default:
       return InvalidPlatform(platform);
   }
@@ -94,7 +106,7 @@ llvm::Expected<Stream> BlasGetStream(BlasHandle handle) {
     case Platform::CUDA:
       return CublasGetStream(handle);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocblasGetStream(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -108,7 +120,7 @@ llvm::Error BlasSaxpy(CurrentContext current, BlasHandle handle, int n,
     case Platform::CUDA:
       return CublasSaxpy(current, handle, n, alpha, x, incx, y, incy);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocblasSaxpy(current, handle, n, alpha, x, incx, y, incy);
     default:
       return InvalidPlatform(platform);
   }
@@ -125,7 +137,8 @@ llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
       return CublasSgemm(current, handle, ToCuda(transa), ToCuda(transb), m, n,
                          k, alpha, A, lda, B, ldb, beta, C, ldc);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocblasSgemm(current, handle, ToRocm(transa), ToRocm(transb), m, n,
+                          k, alpha, A, lda, B, ldb, beta, C, ldc);
     default:
       return InvalidPlatform(platform);
   }

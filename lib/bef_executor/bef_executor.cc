@@ -573,7 +573,7 @@ void BEFExecutor::ProcessReadyKernel(unsigned kernel_id,
     // kernel_fn should populate results in kernel_frame with pointers to
     // AsyncValue before it returns.
     {
-      TFRT_TRACE_SCOPE(Default, kernel_name);
+      TFRT_TRACE_SCOPE(Debug, kernel_name);
       kernel_fn(kernel_frame);
     }
   } else {
@@ -640,7 +640,7 @@ LLVM_ATTRIBUTE_NOINLINE void BEFExecutor::EnqueueReadyKernels(
 // users back for next round of processing, until there are no more ready
 // kernels.
 void BEFExecutor::ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue) {
-  TFRT_TRACE_SCOPE(Default, "BEFExecutor::ProcessReadyKernels");
+  TFRT_TRACE_SCOPE(Verbose, "BEFExecutor::ProcessReadyKernels");
 
   // Process the kernel record to get information about what argument
   // registers, result registers, and attributes should be passed.

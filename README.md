@@ -83,13 +83,13 @@ file.
 #### Install Bazel
 
 To build TFRT, you need to install Bazel. TFRT is built and verified with Bazel
-2.0.0 to 3.1.0. Follow
+4.0.0. Follow
 [the Bazel installation instructions](https://docs.bazel.build/versions/master/install-ubuntu.html)
 to install Bazel. Verify the installation with
 
 ```shell
 $ bazel --version
-bazel 3.1.0
+bazel 4.0.0
 ```
 
 #### Install clang

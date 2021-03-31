@@ -324,7 +324,8 @@ static tfrt::Expected<OpHandler *> GetOpHandlerSync(
   if (auto *op_handler = runtime->GetOpHandler(op_handler_name.get())) {
     return op_handler;
   }
-  return tfrt::MakeStringError("op_handler not found.");
+  return tfrt::MakeStringError("op_handler [", op_handler_name.get(),
+                               "] not found.");
 }
 
 static tfrt::Expected<OpHandler *> GetOpHandler(

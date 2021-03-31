@@ -24,12 +24,14 @@
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_handler.h"
 #include "tfrt/core_runtime/tensor_handle.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 
@@ -118,29 +120,42 @@ void AsyncWaitForResultsFromTensorHandles(
   // Return all of the TensorHandles in AsyncValue's.
   for (size_t i = 0, e = result_ths.size(); i != e; ++i) {
     auto &th_ref = result_ths[i];
-    auto *tensor_av = th_ref.GetAsyncTensor();
+
+    SmallVector<RCReference<AsyncValue>, 3> async_avs;
+    if (!th_ref.GetAsyncTensor()->IsAvailable()) {
+      async_avs.push_back(FormRef(th_ref.GetAsyncTensor()));
+    }
+    if (!th_ref.IsDeviceAvailable()) {
+      async_avs.push_back(th_ref.GetAsyncDevice().CopyRCRef());
+    }
+    if (!th_ref.IsMetadataAvailable()) {
+      async_avs.push_back(th_ref.GetAsyncMetadata().CopyRCRef());
+    }
 
     // Only set the AsyncValue of TensorHandle to be available when the
     // underlying tensor is available. This is to avoid unnecessary async
     // dispatches in BEF execution.
-    auto state = tensor_av->state();
-    if (state.IsError()) {
-      // Here we don't propagate errors to all results. We just faithfully
-      // propagate the results from the op implementation. It is up to the op
-      // implementation on how to set errors in its results.
-      results[i]->SetError(tensor_av->GetError());
-    } else if (state.IsAvailable()) {
-      results[i]->emplace<TensorHandle>(std::move(th_ref));
-    } else {
-      tensor_av->AndThen([tensor_av, result = results[i].CopyRef(),
-                          th_ref = std::move(th_ref)]() mutable {
-        if (tensor_av->IsError()) {
-          result->SetError(tensor_av->GetError());
-          return;
-        }
-        result->emplace<TensorHandle>(std::move(th_ref));
-      });
+    if (async_avs.empty()) {
+      if (th_ref.GetAsyncTensor()->IsError()) {
+        // Here we don't propagate errors to all results. We just faithfully
+        // propagate the results from the op implementation. It is up to the op
+        // implementation on how to set errors in its results.
+        results[i]->SetError(th_ref.GetAsyncTensor()->GetError());
+      } else {
+        results[i]->emplace<TensorHandle>(std::move(th_ref));
+      }
+      continue;
     }
+
+    // The result tensor handle is not fully ready yet.
+    RunWhenReady(async_avs, [result = results[i].CopyRef(),
+                             th_ref = std::move(th_ref)]() mutable {
+      if (th_ref.GetAsyncTensor()->IsError()) {
+        result->SetError(th_ref.GetAsyncTensor()->GetError());
+        return;
+      }
+      result->emplace<TensorHandle>(std::move(th_ref));
+    });
   }
 }
 

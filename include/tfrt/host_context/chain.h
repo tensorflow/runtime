@@ -68,7 +68,7 @@ class ReadyChain {
   // Store a ready chain for each HostContext to avoid repeated creations of
   // ready chains on the heap.
   std::unique_ptr<internal::ConcreteAsyncValue<Chain>>
-      all_ready_chains_[HostContextPtr::kDummyIndex];
+      all_ready_chains_[HostContextPtr::kCompacity];
 };
 
 AsyncValueRef<Chain> GetReadyChain(HostContext* host);

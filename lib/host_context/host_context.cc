@@ -35,7 +35,7 @@ LocationHandler::~LocationHandler() {}
 
 std::atomic<int> HostContext::num_shared_context_types_{0};
 static std::atomic<int> next_host_context_index{0};
-HostContext* HostContext::all_host_contexts_[HostContextPtr::kDummyIndex];
+HostContext* HostContext::all_host_contexts_[HostContextPtr::kCompacity];
 const char* const HostContext::kDefaultHostDeviceName = "CPU:0";
 
 HostContext::HostContext(
@@ -48,7 +48,7 @@ HostContext::HostContext(
       work_queue_(std::move(work_queue)),
       shared_context_mgr_(std::make_unique<SharedContextManager>(this)),
       instance_ptr_{next_host_context_index.fetch_add(1)} {
-  assert(instance_index() < HostContextPtr::kDummyIndex &&
+  assert(!all_host_contexts_[instance_index()] &&
          "Created too many HostContext instances");
   all_host_contexts_[instance_index()] = this;
   ReadyChain::Get().Construct(this);

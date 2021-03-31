@@ -29,7 +29,6 @@ HostContextPtr::HostContextPtr(HostContext* host)
     : HostContextPtr{host->instance_ptr()} {}
 
 HostContext* HostContextPtr::get() const {
-  assert(index_ != kDummyIndex);
   return HostContext::GetHostContextByIndex(index_);
 }
 

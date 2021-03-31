@@ -185,11 +185,9 @@ class HostContext {
   static int DenseIdForSharedContext();
 
   static std::atomic<int> num_shared_context_types_;
-  // kDummyIndex is reserved as a dummy index in HostContextPtr.
-  static HostContext* all_host_contexts_[HostContextPtr::kDummyIndex];
+  static HostContext* all_host_contexts_[HostContextPtr::kCompacity];
 
   static HostContext* GetHostContextByIndex(int index) {
-    assert(index < HostContextPtr::kDummyIndex);
     assert(all_host_contexts_[index]);
     return all_host_contexts_[index];
   }

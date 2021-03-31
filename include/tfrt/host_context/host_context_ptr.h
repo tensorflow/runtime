@@ -39,7 +39,6 @@ class HostContextPtr {
  public:
   // Implicitly convert HostContext* to HostContextPtr.
   HostContextPtr(HostContext* host);  // NOLINT
-  HostContextPtr() = default;
 
   HostContext* operator->() const { return get(); }
 
@@ -47,19 +46,24 @@ class HostContextPtr {
 
   HostContext* get() const;
 
-  explicit operator bool() const { return index_ != kDummyIndex; }
-
  private:
   friend class HostContext;
   friend class ReadyChain;
 
-  explicit HostContextPtr(int index) : index_{static_cast<uint8_t>(index)} {
-    assert(index < kDummyIndex);
-  }
+  explicit HostContextPtr(int index)
+      : index_{static_cast<uint8_t>(index % kCompacity)} {}
   uint8_t index() const { return index_; }
 
-  static constexpr uint8_t kDummyIndex = 255;
-  const uint8_t index_ = kDummyIndex;
+  // Today we use a circular queue for HostContext and we can create up to 256
+  // instances. However, if index 0 is active and index 1 is destroyed, we still
+  // cannot reuse buffer of index 1 to create new host context.
+  // But we think it is good enough for now, since production use cases are
+  // unlikely to create more than 256 host context. Only unit tests can create
+  // many host context but tests usually clean up the host context after each
+  // test method.
+  // TODO(b/184199682): Allow finding the next availab
+  static constexpr int kCompacity = 256;
+  const uint8_t index_ = 0;
 };
 
 }  // namespace tfrt

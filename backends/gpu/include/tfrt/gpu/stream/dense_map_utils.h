@@ -24,6 +24,7 @@
 #define TFRT_GPU_STREAM_DENSE_MAP_UTILS_H_
 
 #include "llvm/ADT/DenseMapInfo.h"
+#include "tfrt/gpu/stream/hash_utils.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 
 namespace llvm {
@@ -37,7 +38,9 @@ struct DenseMapInfo<tfrt::gpu::stream::Stream> {
   static inline Stream getTombstoneKey() {
     return Stream(DenseMapInfo<void*>::getTombstoneKey());
   }
-  static unsigned getHashValue(const Stream& s) { return s.hash(); }
+  static unsigned getHashValue(const Stream& stream) {
+    return std::hash<Stream>{}(stream);
+  }
   static bool isEqual(const Stream& lhs, const Stream& rhs) {
     return lhs == rhs;
   }

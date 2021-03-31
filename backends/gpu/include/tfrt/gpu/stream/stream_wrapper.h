@@ -236,10 +236,6 @@ class Resource {
   bool operator==(Resource other) const { return pair_ == other.pair_; }
   bool operator!=(Resource other) const { return pair_ != other.pair_; }
 
-  size_t hash() const noexcept {
-    return std::hash<void*>()(pair_.getOpaqueValue());
-  }
-
  private:
   llvm::PointerIntPair<void*, 2, Platform> pair_;
 
@@ -247,6 +243,43 @@ class Resource {
                                        const Resource& resource) {
     return os << resource.pair_.getPointer() << " (" << resource.platform()
               << ")";
+  }
+  friend class std::hash<Resource>;
+};
+
+// Enum union type.
+template <typename CudaT, typename HipT>
+class Enum {
+  using ValueType = std::common_type_t<std::underlying_type_t<CudaT>,
+                                       std::underlying_type_t<HipT>>;
+
+ public:
+  Enum() : value_(0), platform_(Platform::NONE) {}
+  Enum(CudaT value)
+      : value_(static_cast<ValueType>(value)), platform_(Platform::CUDA) {}
+  Enum(HipT value)
+      : value_(static_cast<ValueType>(value)), platform_(Platform::ROCm) {}
+  operator CudaT() const {
+    assert(platform_ == Platform::CUDA);
+    return static_cast<CudaT>(value_);
+  }
+  operator HipT() const {
+    assert(platform_ == Platform::ROCm);
+    return static_cast<HipT>(value_);
+  }
+  Platform platform() const { return platform_; }
+  bool operator==(Enum other) const {
+    return value_ == other.value_ && platform_ == other.platform_;
+  }
+  bool operator!=(Enum other) const { return !(*this == other); }
+
+ private:
+  ValueType value_;
+  Platform platform_;
+
+  friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                       const Enum& pair) {
+    return os << pair.value_ << " (" << pair.platform_ << ")";
   }
 };
 

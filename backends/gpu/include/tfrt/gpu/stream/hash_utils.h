@@ -29,12 +29,12 @@
 namespace std {
 template <>
 struct hash<tfrt::gpu::stream::Device> {
-  size_t operator()(const tfrt::gpu::stream::Device& x) const noexcept;
+  size_t operator()(const tfrt::gpu::stream::Device& device) const noexcept;
 };
 
 template <>
 struct hash<tfrt::gpu::stream::Stream> {
-  size_t operator()(const tfrt::gpu::stream::Stream& x) const noexcept;
+  size_t operator()(const tfrt::gpu::stream::Stream& stream) const noexcept;
 };
 }  // namespace std
 

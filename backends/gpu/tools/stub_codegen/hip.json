@@ -4,8 +4,8 @@
       "-D__HIP__",
       "-I.",
       "-Ithird_party/llvm/llvm-project/clang/lib/Headers",
-      "-Ibazel-genfiles"
-      "-ferror-limit=0",
+      "-Ibazel-genfiles",
+      "-ferror-limit=0"
    ],
    "enums":[
       "hipError_t",

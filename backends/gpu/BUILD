@@ -47,11 +47,13 @@ tfrt_cc_library(
     name = "rocm_stubs",
     srcs = [
         "lib/stream/hip_stub.cc",
+        "lib/stream/miopen_stub.cc",
         "lib/stream/rocblas_stub.cc",
     ],
     hdrs = [
         "include/tfrt/gpu/stream/hip_forwards.h",
         "include/tfrt/gpu/stream/hip_stub.h",
+        "include/tfrt/gpu/stream/miopen_stub.h",
         "include/tfrt/gpu/stream/rocblas_stub.h",
     ],
     visibility = ["//visibility:private"],

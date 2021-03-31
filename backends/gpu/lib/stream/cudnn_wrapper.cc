@@ -153,6 +153,11 @@ static void CudnnCallback(cudnnSeverity_t /*severity*/, void* /*user_data*/,
   }
 }
 
+void internal::CudnnPersistentRnnPlanDeleter::operator()(
+    cudnnPersistentRNNPlan_t plan) const {
+  LogIfError(CudnnDestroyPersistentRnnPlan(plan));
+}
+
 llvm::Expected<cudnnStatus_t> CudnnQueryRuntimeError(cudnnHandle_t handle,
                                                      cudnnErrQueryMode_t mode,
                                                      cudnnRuntimeTag_t* tag) {
@@ -1332,13 +1337,13 @@ llvm::Expected<Pointer<void>> CudnnGetRnnLinLayerBiasParams(
   return Pointer<void>(bias_ptr, Platform::CUDA);
 }
 
-llvm::Expected<OwningPersistentRnnPlan> CudnnCreatePersistentRnnPlan(
+llvm::Expected<OwningCudnnPersistentRnnPlan> CudnnCreatePersistentRnnPlan(
     cudnnRNNDescriptor_t descriptor, int batch_size,
     cudnnDataType_t data_type) {
   cudnnPersistentRNNPlan_t plan = nullptr;
   RETURN_IF_ERROR(
       cudnnCreatePersistentRNNPlan(descriptor, batch_size, data_type, &plan));
-  return OwningPersistentRnnPlan(plan);
+  return OwningCudnnPersistentRnnPlan(plan);
 }
 
 llvm::Error CudnnDestroyPersistentRnnPlan(cudnnPersistentRNNPlan_t plan) {

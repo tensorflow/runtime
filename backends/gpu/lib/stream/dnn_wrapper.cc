@@ -112,10 +112,6 @@ static auto ToCuda(DnnActivationDescriptor desc) {
   return static_cast<cudnnActivationDescriptor_t>(desc);
 }
 
-static auto ToCuda(DnnOpTensorDescriptor dir) {
-  return static_cast<cudnnOpTensorDescriptor_t>(dir);
-}
-
 static constexpr auto ToCuda(DnnBatchNormMode mode) {
   return static_cast<cudnnBatchNormMode_t>(mode);
 }
@@ -177,10 +173,6 @@ void internal::DnnDropoutDescriptorDeleter::operator()(
 void internal::DnnRnnDescriptorDeleter::operator()(
     DnnRnnDescriptor descriptor) const {
   LogIfError(DnnDestroyRnnDescriptor(descriptor));
-}
-void internal::DnnPersistentRnnPlanDeleter::operator()(
-    DnnPersistentRnnPlan plan) const {
-  LogIfError(DnnDestroyPersistentRnnPlan(plan));
 }
 
 llvm::Expected<DnnLibraryVersion> DnnGetVersion(Platform platform) {
@@ -388,26 +380,6 @@ llvm::Expected<OwningDnnActivationDescriptor> DnnCreateActivationDescriptor(
   }
 }
 
-llvm::Error DnnOpTensor(CurrentContext current, DnnHandle handle,
-                        DnnOpTensorDescriptor op_tensor_desc,
-                        Pointer<const void> alpha1, DnnTensorDescriptor a_desc,
-                        Pointer<const void> a, Pointer<const void> alpha2,
-                        DnnTensorDescriptor b_desc, Pointer<const void> b,
-                        Pointer<const void> beta, DnnTensorDescriptor c_desc,
-                        Pointer<void> c) {
-  auto platform = handle.platform();
-  switch (platform) {
-    case Platform::CUDA:
-      return CudnnOpTensor(current, handle, ToCuda(op_tensor_desc), alpha1,
-                           ToCuda(a_desc), a, alpha2, ToCuda(b_desc), b, beta,
-                           ToCuda(c_desc), c);
-    case Platform::ROCm:
-      return UnsupportedPlatform(platform);
-    default:
-      return InvalidPlatform(platform);
-  }
-}
-
 llvm::Error DnnSetTensor(CurrentContext current, DnnHandle handle,
                          DnnTensorDescriptor y_desc, Pointer<void> y,
                          Pointer<const void> value_ptr) {
@@ -513,18 +485,6 @@ llvm::Error DnnDestroyRnnDescriptor(DnnRnnDescriptor descriptor) {
   switch (platform) {
     case Platform::CUDA:
       return CudnnDestroyRnnDescriptor(descriptor);
-    case Platform::ROCm:
-      return UnsupportedPlatform(platform);
-    default:
-      return InvalidPlatform(platform);
-  }
-}
-
-llvm::Error DnnDestroyPersistentRnnPlan(DnnPersistentRnnPlan plan) {
-  auto platform = plan.platform();
-  switch (platform) {
-    case Platform::CUDA:
-      return CudnnDestroyPersistentRnnPlan(plan);
     case Platform::ROCm:
       return UnsupportedPlatform(platform);
     default:

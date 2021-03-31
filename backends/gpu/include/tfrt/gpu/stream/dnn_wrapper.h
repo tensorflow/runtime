@@ -260,14 +260,10 @@ using DnnPoolingDescriptor =
 using DnnActivationDescriptor =
     Resource<cudnnActivationDescriptor_t, miopenActivationDescriptor_t>;
 using DnnFilterDescriptor =
-    Resource<cudnnFilterDescriptor_t, miopenFilterDescriptor_t>;
+    Resource<cudnnFilterDescriptor_t, miopenTensorDescriptor_t>;
 using DnnDropoutDescriptor =
     Resource<cudnnDropoutDescriptor_t, miopenDropoutDescriptor_t>;
 using DnnRnnDescriptor = Resource<cudnnRNNDescriptor_t, miopenRNNDescriptor_t>;
-using DnnPersistentRnnPlan =
-    Resource<cudnnPersistentRNNPlan_t, miopenPersistentRNNPlan_t>;
-using DnnOpTensorDescriptor =
-    Resource<cudnnOpTensorDescriptor_t, miopenOpTensorDescriptor_t>;
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.
@@ -303,10 +299,6 @@ struct DnnRnnDescriptorDeleter {
   using pointer = DnnRnnDescriptor;
   void operator()(DnnRnnDescriptor descriptor) const;
 };
-struct DnnPersistentRnnPlanDeleter {
-  using pointer = DnnPersistentRnnPlan;
-  void operator()(DnnPersistentRnnPlan plan) const;
-};
 }  // namespace internal
 
 // RAII wrappers for resources. Instances own the underlying resource.
@@ -330,8 +322,6 @@ using OwningDnnDropoutDescriptor =
     internal::OwningResource<internal::DnnDropoutDescriptorDeleter>;
 using OwningDnnRnnDescriptor =
     internal::OwningResource<internal::DnnRnnDescriptorDeleter>;
-using OwningPersistentRnnPlan =
-    internal::OwningResource<internal::DnnPersistentRnnPlanDeleter>;
 
 // Return types for functions returning multiple values.
 struct DnnTensorDescriptorData {
@@ -394,13 +384,6 @@ llvm::Expected<OwningDnnActivationDescriptor> DnnCreateActivationDescriptor(
     Platform platform);
 llvm::Error DnnDestroyActivationDescriptor(DnnActivationDescriptor descriptor);
 
-llvm::Error DnnOpTensor(CurrentContext current, DnnHandle handle,
-                        DnnOpTensorDescriptor op_tensor_desc,
-                        Pointer<const void> alpha1, DnnTensorDescriptor a_desc,
-                        Pointer<const void> a, Pointer<const void> alpha2,
-                        DnnTensorDescriptor b_desc, Pointer<const void> b,
-                        Pointer<const void> beta, DnnTensorDescriptor c_desc,
-                        Pointer<void> c);
 llvm::Error DnnSetTensor(CurrentContext current, DnnHandle handle,
                          DnnTensorDescriptor y_desc, Pointer<void> y,
                          Pointer<const void> value_ptr);
@@ -418,8 +401,6 @@ llvm::Error DnnDestroyDropoutDescriptor(DnnDropoutDescriptor descriptor);
 llvm::Expected<OwningDnnRnnDescriptor> DnnCreateRnnDescriptor(
     Platform platform);
 llvm::Error DnnDestroyRnnDescriptor(DnnRnnDescriptor descriptor);
-
-llvm::Error DnnDestroyPersistentRnnPlan(DnnPersistentRnnPlan plan);
 
 llvm::Error DnnSetPoolingDescriptor(CurrentContext current,
                                     DnnPoolingDescriptor descriptor,

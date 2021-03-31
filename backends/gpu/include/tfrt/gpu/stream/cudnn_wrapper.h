@@ -23,6 +23,7 @@
 #define TFRT_GPU_STREAM_CUDNN_WRAPPER_H_
 
 #include "cudnn.h"  // from @cudnn_headers
+#include "tfrt/gpu/stream/cuda_forwards.h"
 #include "tfrt/gpu/stream/dnn_wrapper.h"
 #include "tfrt/support/error_util.h"
 
@@ -43,6 +44,16 @@ using CudnnErrorInfo = TupleErrorInfo<CudnnErrorData>;
 cudnnStatus_t GetResult(const CudnnErrorInfo& info);
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t dtype);
+
+namespace internal {
+struct CudnnPersistentRnnPlanDeleter {
+  using pointer = cudnnPersistentRNNPlan_t;
+  void operator()(cudnnPersistentRNNPlan_t plan) const;
+};
+}  // namespace internal
+
+using OwningCudnnPersistentRnnPlan =
+    internal::OwningResource<internal::CudnnPersistentRnnPlanDeleter>;
 
 // Return types for functions returning multiple values.
 struct CudnnTensorDescriptorData {
@@ -619,7 +630,7 @@ llvm::Expected<Pointer<void>> CudnnGetRnnLinLayerBiasParams(
     Pointer<const void> weights, int layer_index,
     cudnnFilterDescriptor_t bias_descriptor);
 
-llvm::Expected<OwningPersistentRnnPlan> CudnnCreatePersistentRnnPlan(
+llvm::Expected<OwningCudnnPersistentRnnPlan> CudnnCreatePersistentRnnPlan(
     cudnnRNNDescriptor_t descriptor, int batch_size, cudnnDataType_t data_type);
 llvm::Error CudnnDestroyPersistentRnnPlan(cudnnPersistentRNNPlan_t plan);
 llvm::Error CudnnSetPersistentRnnPlan(cudnnRNNDescriptor_t descriptor,

@@ -63,6 +63,9 @@ def main():
       return
 
     enum = cursor.spelling
+    if enum == typedef:
+      return  # Pure enum has already been visited.
+
     if not any(x in config['enums'] for x in [enum, typedef]):
       return
 

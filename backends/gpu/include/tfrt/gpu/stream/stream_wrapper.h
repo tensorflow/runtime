@@ -247,25 +247,38 @@ class Resource {
   friend class std::hash<Resource>;
 };
 
+template <Platform platform>
+using PlatformType = std::integral_constant<Platform, platform>;
+
+using CudaPlatformType = PlatformType<Platform::CUDA>;
+using RocmPlatformType = PlatformType<Platform::ROCm>;
+
+template <typename T, typename Tag>
+using TagPlatformType = PlatformType<Platform::NONE>;
+
 // Enum union type.
-template <typename CudaT, typename HipT>
+//
+// For a CUDA/ROCm pair of enums with different enumerators, instantiate
+// this template with an opaque tag type (e.g. `struct FooTag;`) and specialize
+// the TagPlatformType template alias in the CUDA/ROCm wrapper header, e.g.:
+// template <> using TagPlatformType<cudaFooEnum, FooTag> = CudaPlatformType;
+template <typename Tag>
 class Enum {
-  using ValueType = std::common_type_t<std::underlying_type_t<CudaT>,
-                                       std::underlying_type_t<HipT>>;
+  template <typename T, typename Tag_>
+  using IsCudaOrRocm =
+      std::enable_if<TagPlatformType<T, Tag_>::value != Platform::NONE>*;
 
  public:
   Enum() : value_(0), platform_(Platform::NONE) {}
-  Enum(CudaT value)
-      : value_(static_cast<ValueType>(value)), platform_(Platform::CUDA) {}
-  Enum(HipT value)
-      : value_(static_cast<ValueType>(value)), platform_(Platform::ROCm) {}
-  operator CudaT() const {
-    assert(platform_ == Platform::CUDA);
-    return static_cast<CudaT>(value_);
-  }
-  operator HipT() const {
-    assert(platform_ == Platform::ROCm);
-    return static_cast<HipT>(value_);
+  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = nullptr>
+  Enum(T value)
+      : value_(static_cast<int>(value)),
+        platform_(TagPlatformType<T, Tag_>::value) {}
+  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = nullptr>
+  operator T() const {
+    using PlatformType = TagPlatformType<T, Tag_>;
+    assert(platform_ == PlatformType::value);
+    return static_cast<T>(value_);
   }
   Platform platform() const { return platform_; }
   bool operator==(Enum other) const {
@@ -274,7 +287,7 @@ class Enum {
   bool operator!=(Enum other) const { return !(*this == other); }
 
  private:
-  ValueType value_;
+  int value_;
   Platform platform_;
 
   friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os,

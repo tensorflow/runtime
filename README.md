@@ -83,36 +83,36 @@ file.
 #### Install Bazel
 
 To build TFRT, you need to install Bazel. TFRT is built and verified with Bazel
-2.0.0 to 3.1.0. Follow
+4.0. Follow
 [the Bazel installation instructions](https://docs.bazel.build/versions/master/install-ubuntu.html)
 to install Bazel. Verify the installation with
 
 ```shell
 $ bazel --version
-bazel 3.1.0
+bazel 4.0.0
 ```
 
 #### Install clang
 
 Follow [the clang installation instructions](https://apt.llvm.org/) to install
 clang. The automatic installation script that installs clang, lldb, and lld, is
-recommended. TFRT is built and verified with 9.0.0 and above.
+recommended. TFRT is built and verified with clang 11.1.
 
 If you have multiple versions of clang installed, ensure that the correct
 version of clang is the default. On Ubuntu based systems, you can use
 `update-alternatives` to select the default version. The following example
-commands assume you installed clang-9:
+commands assume you installed clang-11:
 
 ```shell
-$ sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-9 9
-$ sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-9 9
+$ sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-11 11
+$ sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-11 11
 ```
 
 Verify the installation with
 
 ```shell
 $ clang --version
-clang version 9.0.1-6
+clang version 11.1.0
 ```
 
 #### Install libstdc++
@@ -121,11 +121,11 @@ TFRT requires libstdc++8 or greater. Check clang's selected version with
 
 ```shell
 $ clang++ -v |& grep "Selected GCC"
-Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/9
+Selected GCC installation: /usr/bin/../lib/gcc/x86_64-linux-gnu/10
 ```
 
-In the example above, the *9* at the end of the path indicates that clang will
-use libstdc++<em>9</em>, which is compatible with TFRT.
+In the example above, the *10* at the end of the path indicates that clang will
+use libstdc++<em>10</em>, which is compatible with TFRT.
 
 If you need to upgrade, the easiest way is to install gcc-8. Run the following
 command to install:
@@ -154,17 +154,17 @@ $ pip3 install clang
 Alternatively, you can use apt and add the install location to sys.path with
 
 ```shell
-$ apt-get install -y python3-clang-10
+$ apt-get install -y python3-clang-11
 $ echo '/usr/lib/python3/dist-packages' > "$(python3 -m site --user-site)/dist-packages.pth"
 ```
 
-Install NVIDIA's CUDA Toolkit v10.2 (see
+Install NVIDIA's CUDA Toolkit v11.2 (see
 [installation guide](https://docs.nvidia.com/cuda/cuda-installation-guide-linux)
 for details) in a single directory from NVIDIA’s `.run` package with
 
 ```shell
-$ wget http://developer.download.nvidia.com/compute/cuda/10.2/Prod/local_installers/cuda_10.2.89_440.33.01_linux.run
-$ sudo sh cuda_10.2.89_440.33.01_linux.run --silent --toolkit --toolkitpath=<path>
+$ wget http://developer.download.nvidia.com/compute/cuda/11.2.2/local_installers/cuda_11.2.2_460.32.03_linux.run
+$ sudo sh cuda_11.2.2_460.32.03_linux.run --toolkit --installpath=<path>
 ```
 
 Register the path to CUDA shared objects with
@@ -174,14 +174,18 @@ $ sudo echo '<path>/lib64' > '/etc/ld.so.conf.d/cuda.conf'
 $ sudo ldconfig
 ```
 
-Install NVIDIA's cuDNN v7.6 libraries (see
+Install NVIDIA's cuDNN libraries (see
 [installation guide](http://docs.nvidia.com/deeplearning/sdk/cudnn-install) for
 details) with
 
 ```shell
-$ wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
-$ sudo apt install ./libcudnn7_7.6.5.32-1+cuda10.2_amd64.deb
+$ wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1604/x86_64/libcudnn8_8.0.4.30-1+cuda11.1_amd64.deb
+$ sudo apt install ./libcudnn8_8.0.4.30-1+cuda11.1_amd64.deb
 ```
+
+**Note:** The above package is intended for CUDA 11.1, but is compatible with
+CUDA 11.2. TFRT is built and verified with cuDNN 8.1 for CUDA 11.2. Access to
+that package requires a (free) NVIDIA developer account.
 
 ### Building and running TFRT
 

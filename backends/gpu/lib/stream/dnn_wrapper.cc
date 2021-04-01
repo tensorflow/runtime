@@ -33,7 +33,7 @@ namespace gpu {
 namespace stream {
 
 // Convert DNN wrapper enums to cuDNN enums.
-static constexpr auto ToCuda(DnnDataType data_type) {
+static cudnnDataType_t ToCuda(DnnDataType data_type) {
   switch (data_type) {
     case DnnDataType::kFloat:
       return CUDNN_DATA_FLOAT;
@@ -57,7 +57,7 @@ static constexpr auto ToCuda(DnnDataType data_type) {
   llvm_unreachable(StrCat("Unrecognized DnnDataType: ", data_type).c_str());
 }
 
-static constexpr cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
+static cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
   switch (mode) {
     case DnnPoolingMode::kPoolingMax:
       return CUDNN_POOLING_MAX;
@@ -71,7 +71,7 @@ static constexpr cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
   llvm_unreachable(StrCat("Unrecognized DnnPoolingMode mode: ", mode).c_str());
 }
 
-static constexpr auto ToCuda(DnnNanPropagation nan) {
+static cudnnNanPropagation_t ToCuda(DnnNanPropagation nan) {
   switch (nan) {
     case DnnNanPropagation::kNotPropagateNan:
       return CUDNN_NOT_PROPAGATE_NAN;
@@ -80,21 +80,6 @@ static constexpr auto ToCuda(DnnNanPropagation nan) {
   }
   llvm_unreachable(StrCat("Unrecognized DnnNanPropagation nan: ", nan).c_str());
 }
-
-/*
-static constexpr auto ToCuda(DnnTensorFormat format) {
-  return static_cast<cudnnTensorFormat_t>(format);
-}
-static constexpr auto ToCuda(DnnRnnInputMode mode) {
-  return static_cast<cudnnRNNInputMode_t>(mode);
-}
-static constexpr auto ToCuda(DnnDirectionMode mode) {
-  return static_cast<cudnnDirectionMode_t>(mode);
-}
-static constexpr auto ToCuda(DnnRnnMode mode) {
-  return static_cast<cudnnRNNMode_t>(mode);
-}
-*/
 
 static auto ToCuda(DnnTensorDescriptor desc) {
   return static_cast<cudnnTensorDescriptor_t>(desc);

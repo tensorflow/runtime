@@ -34,7 +34,7 @@ namespace gpu {
 namespace stream {
 
 // Convert BLAS wrapper enums to cuBLAS enums.
-static constexpr auto ToCuda(BlasOperation operation) {
+static cublasOperation_t ToCuda(BlasOperation operation) {
   switch (operation) {
     case BlasOperation::kNone:
       return CUBLAS_OP_N;
@@ -47,7 +47,7 @@ static constexpr auto ToCuda(BlasOperation operation) {
       StrCat("Unrecognized BlasOperation value: ", operation).c_str());
 }
 
-static constexpr auto ToRocm(BlasOperation operation) {
+static rocblas_operation ToRocm(BlasOperation operation) {
   switch (operation) {
     case BlasOperation::kNone:
       return rocblas_operation_none;

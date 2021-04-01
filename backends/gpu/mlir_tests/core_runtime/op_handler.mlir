@@ -38,7 +38,7 @@ func @get_gpu_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
 
 // CHECK-LABEL: --- Not running 'failed_gpu_get_op_handler' because it has arguments.
 func @failed_gpu_get_op_handler(%ch0: !tfrt.chain) -> !tfrt.chain {
-  // expected-error @+1 {{runtime error: op_handler [gpu0] not found}}
+  // expected-error @+1 {{runtime error: op_handler not found}}
   %gpu0 = corert.get_op_handler %ch0 "gpu0"
   %ch1 = tfrt.new.chain
   tfrt.return %ch1 : !tfrt.chain

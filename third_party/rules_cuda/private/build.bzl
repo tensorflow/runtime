@@ -1,6 +1,7 @@
 """Private code for CUDA rules."""
 
 load("//cuda:defs.bzl", "CudaTargetsInfo", "cuda_targets")
+load("//cuda:toolchain.bzl", "CudaToolchainInfo")
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain")
 load("@bazel_skylib//rules:common_settings.bzl", "BuildSettingInfo")
 load("@local_cuda//:defs.bzl", "if_local_cuda")
@@ -62,8 +63,12 @@ report_error = rule(
 def _cuda_toolchain_info_impl(ctx):
     return [
         DefaultInfo(files = depset([ctx.file._nvcc] if ctx.file._nvcc else [])),
-        ctx.attr._compiler[BuildSettingInfo],
-        ctx.attr._cuda_targets[CudaTargetsInfo],
+        CudaToolchainInfo(
+            nvcc = ctx.file._nvcc,
+            compiler = ctx.attr._compiler[BuildSettingInfo].value,
+            cuda_targets = ctx.attr._cuda_targets[CudaTargetsInfo].cuda_targets,
+            copts = ctx.attr._copts[BuildSettingInfo].value,
+        ),
     ]
 
 # A rule that encapsulates the information to pass to cuda_toolchain_config.
@@ -82,5 +87,7 @@ cuda_toolchain_info = rule(
             cfg = "host",
         ),
         "_compiler": attr.label(default = Label("//cuda:compiler")),
+        "_copts": attr.label(default = Label("//cuda:copts")),
     },
+    provides = [CudaToolchainInfo],
 )

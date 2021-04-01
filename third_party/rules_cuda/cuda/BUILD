@@ -7,7 +7,12 @@ load(
     "report_error",
 )
 load("@bazel_skylib//lib:selects.bzl", "selects")
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_flag")
+load(
+    "@bazel_skylib//rules:common_settings.bzl",
+    "bool_flag",
+    "string_flag",
+    "string_list_flag",
+)
 load("@local_cuda//:defs.bzl", "if_local_cuda")
 
 package(default_visibility = ["//visibility:public"])
@@ -75,6 +80,12 @@ string_flag(
         "nvcc",
         "clang",
     ],
+)
+
+# Command line flag for copts to add to cuda_library() compile command.
+string_list_flag(
+    name = "copts",
+    build_setting_default = [],
 )
 
 # Command line flag to specify the CUDA runtime. Use this target as CUDA

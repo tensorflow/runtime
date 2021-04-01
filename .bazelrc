@@ -17,6 +17,7 @@ build --config=clang  # By default, build with clang.
 # Build with clang.
 build:clang --repo_env=CC=clang
 build:clang --@rules_cuda//cuda:compiler=clang
+build:clang --@rules_cuda//cuda:copts=-Wno-unknown-cuda-version
 
 # Build with gcc (and nvcc).
 build:gcc --repo_env=CC=gcc-7  # Ubuntu 18.04 ships with gcc 7.4.
@@ -24,7 +25,8 @@ build:gcc --config=nvcc
 
 # Build with CUDA device code with nvcc.
 build:nvcc --@rules_cuda//cuda:compiler=nvcc
-build:nvcc --repo_env=BAZEL_CXXOPTS=  # Prevent nvcc warning: 'std' redefinition.
+build:nvcc --repo_env=BAZEL_CXXOPTS=  # Prevent warning: 'std' redefinition.
+build:nvcc --@rules_cuda//cuda:copts=--expt-relaxed-constexpr
 
 # Disable warnings we don't care about.
 build --copt=-Wno-unused-local-typedef

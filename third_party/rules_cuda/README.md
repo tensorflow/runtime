@@ -66,6 +66,8 @@ The normal `bazel build` command allows configuring a few properties of the
     is `"sm_52"`. For details, please consult the
     [--cuda-gpu-arch](https://llvm.org/docs/CompileCudaWithLLVM.html#invoking-clang)
     clang flag.
+*   `--@rules_cuda//cuda:copts=...`: comma-separated list of arguments to add to
+    cuda_library() compile commands.
 *   `--@rules_cuda//cuda:cuda_runtime=<label>`: configures the CUDA runtime
     target. The default is `"@local_cuda//:cuda_runtime_static"`. This target is
     implicitly added as a dependency to cuda_library() targets.

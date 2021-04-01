@@ -1071,7 +1071,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
 
       assert((in_idx == frame->GetNumArgs() || in_idx == -1 ||
               (!has_in_chain && in_idx == frame->GetNumArgs() - 1 &&
-               frame->GetArgAt(in_idx)->IsType<Chain>())) &&
+               frame->GetArgAt(in_idx)->template IsType<Chain>())) &&
              "Extra arguments passed to kernel.");
       assert(const_idx == frame->GetNumAttributes() ||
              const_idx == -1 && "Extra attributes passed to kernel.");

@@ -61,7 +61,8 @@ class HostContextPtr {
   // unlikely to create more than 256 host context. Only unit tests can create
   // many host context but tests usually clean up the host context after each
   // test method.
-  // TODO(b/184199682): Allow finding the next availab
+  // TODO(b/184199682): Allow finding the next available index instead of only
+  // checking the next index.
   static constexpr int kCompacity = 256;
   const uint8_t index_ = 0;
 };

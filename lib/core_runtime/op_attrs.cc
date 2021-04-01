@@ -530,6 +530,9 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
     // Space for the name and null terminator.
     alloc_size += strlen(entry->name) + 1;
 
+    // For an inlined entry, no additional memory is needed.
+    if (entry->IsScalarAndInlined()) continue;
+
     // Round up to the required alignment.
     auto size_type_alignment =
         GetHostSizeAndAlignment(entry->data, entry->type);
@@ -586,6 +589,9 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
       memcpy(result_entry.buffer, src_entry.buffer, sizeof(void *));
     }
   }
+
+  // Make sure the memory usage is same as expected.
+  assert(data_ptr == static_cast<char *>(raw_memory) + alloc_size);
 
   return TakeRef(result);
 }

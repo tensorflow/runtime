@@ -65,6 +65,13 @@ const char *CUDARTAPI cudaGetErrorString(cudaError_t error) {
 
 // Following are private symbols in libcudart required for kernel registration.
 
+char CUDARTAPI __cudaInitModule(void **fatCubinHandle) {
+  static auto func_ptr =
+      GetFunctionPointer("__cudaInitModule", __cudaInitModule);
+  if (!func_ptr) return 0;
+  return func_ptr(fatCubinHandle);
+}
+
 void CUDARTAPI __cudaRegisterFunction(void **fatCubinHandle,
                                       const char *hostFun, char *deviceFun,
                                       const char *deviceName, int thread_limit,

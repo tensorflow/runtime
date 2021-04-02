@@ -43,6 +43,19 @@ miopenStatus_t GetResult(const MiopenErrorInfo& info);
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t dtype);
 
+template <>
+struct PlatformTypeTraits<miopenDataType_t, DnnDataTypeTag>
+    : public RocmPlatformType {};
+template <>
+struct PlatformTypeTraits<uint64_t, DnnConvFwdAlgoTag>
+    : public RocmPlatformType {};
+template <>
+struct PlatformTypeTraits<uint64_t, DnnConvBwdDataAlgoTag>
+    : public RocmPlatformType {};
+template <>
+struct PlatformTypeTraits<uint64_t, DnnConvBwdWeightsAlgoTag>
+    : public RocmPlatformType {};
+
 // Return types for functions returning multiple values.
 struct MiopenTensorDescriptorData {
   miopenDataType_t data_type;

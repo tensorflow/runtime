@@ -102,31 +102,6 @@ llvm::Expected<gpu::stream::DnnNanPropagation> IntToDnnNanPropagation(
   }
 }
 
-llvm::Expected<gpu::stream::DnnDataType> IntToDnnDataType(uint32_t data_type) {
-  switch (data_type) {
-    case 0:
-      return gpu::stream::DnnDataType::kFloat;
-    case 1:
-      return gpu::stream::DnnDataType::kDouble;
-    case 2:
-      return gpu::stream::DnnDataType::kHalf;
-    case 3:
-      return gpu::stream::DnnDataType::kInt8;
-    case 4:
-      return gpu::stream::DnnDataType::kInt32;
-    case 5:
-      return gpu::stream::DnnDataType::kInt8x4;
-    case 6:
-      return gpu::stream::DnnDataType::kUint8;
-    case 7:
-      return gpu::stream::DnnDataType::kUint8x4;
-    case 8:
-      return gpu::stream::DnnDataType::kInt8x32;
-    default:
-      return MakeStringError("UI32 data_type out of range for enum cast");
-  }
-}
-
 using ::tfrt::gpu::stream::Pointer;
 
 static void DnnCreate(Argument<gpu::stream::Context> context,
@@ -245,9 +220,11 @@ static void DnnCreateTensorDescriptor(
   if (!strides_data)
     return REPORT_ERROR(
         handler, "DnnCreateTensorDescriptor: strides is not a 1D tensor.");
+  gpu::stream::DnnPlatformDataType platform_data_type(data_type.get(),
+                                                      context.get().platform());
   if (auto error = gpu::stream::DnnSetTensorDescriptor(
-          descriptor.get().get(), IntToDnnDataType(data_type.get()).get(),
-          dimensions_data.get(), strides_data.get()))
+          descriptor.get().get(), platform_data_type, dimensions_data.get(),
+          strides_data.get()))
     return REPORT_ERROR(handler, std::move(error));
   dnn_tensor_descriptor.Emplace(std::move(*descriptor));
   out_chain.Set(in_chain);

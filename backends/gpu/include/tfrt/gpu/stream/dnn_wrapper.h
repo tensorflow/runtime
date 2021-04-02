@@ -34,23 +34,27 @@ namespace stream {
 
 constexpr int kDnnDimMax() { return 8; }
 
-enum class DnnErrQueryMode {
-  kRawcode,
-  kNonblocking,
-  kBlocking,
-};
-
+// Data types that are common across cuDNN and MIOpen.
 enum class DnnDataType {
   kFloat,
-  kDouble,
   kHalf,
   kInt8,
   kInt32,
   kInt8x4,
-  kUint8,
-  kUint8x4,
-  kInt8x32,
+  kBfloat16,
+  kUnknown,
 };
+
+struct DnnDataTypeTag;
+// Data type enum (platform-discriminated).
+using DnnPlatformDataType = Enum<DnnDataTypeTag>;
+
+// Returns kUnknown if data_type is not supported on both platforms.
+DnnDataType GetDnnDataType(DnnPlatformDataType data_type);
+// data_type is not allowed to be DnnDataType::kUnknown,
+// platform is not allowed to be Platform::NONE.
+DnnPlatformDataType GetDnnPlatformDataType(DnnDataType data_type,
+                                           Platform platform);
 
 enum class DnnTensorFormat {
   kNchw,
@@ -208,6 +212,20 @@ enum class DnnRNNClipMode {
   kRnnClipMinmax,  // enables LSTM cell clipping
 };
 
+// Convolution algorithm ids (platform-discriminated).
+struct DnnConvFwdAlgoTag {
+  using type = uint64_t;
+};
+struct DnnConvBwdDataAlgoTag {
+  using type = uint64_t;
+};
+struct DnnConvBwdWeightsAlgoTag {
+  using type = uint64_t;
+};
+using DnnConvFwdAlgo = Enum<DnnConvFwdAlgoTag>;
+using DnnConvBwdDataAlgo = Enum<DnnConvBwdDataAlgoTag>;
+using DnnConvBwdWeightsAlgo = Enum<DnnConvBwdWeightsAlgoTag>;
+
 struct DnnOpTensorDescriptorData {
   DnnOpTensorOp op;
   DnnDataType math_type;
@@ -325,7 +343,7 @@ using OwningDnnRnnDescriptor =
 
 // Return types for functions returning multiple values.
 struct DnnTensorDescriptorData {
-  DnnDataType data_type;
+  DnnPlatformDataType data_type;
   llvm::SmallVector<int, kDnnDimMax()> dimensions;
   llvm::SmallVector<int, kDnnDimMax()> strides;
 };
@@ -363,7 +381,7 @@ llvm::Expected<OwningDnnTensorDescriptor> DnnCreateTensorDescriptor(
 llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor);
 
 llvm::Error DnnSetTensorDescriptor(DnnTensorDescriptor descriptor,
-                                   DnnDataType data_type,
+                                   DnnPlatformDataType data_type,
                                    llvm::ArrayRef<int> dimensions,
                                    llvm::ArrayRef<int> strides);
 

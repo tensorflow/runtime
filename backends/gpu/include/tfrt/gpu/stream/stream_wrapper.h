@@ -253,30 +253,40 @@ using PlatformType = std::integral_constant<Platform, platform>;
 using CudaPlatformType = PlatformType<Platform::CUDA>;
 using RocmPlatformType = PlatformType<Platform::ROCm>;
 
+// Maps a platform-specific type T for some Tag to CUDA or ROCm.
 template <typename T, typename Tag>
-using TagPlatformType = PlatformType<Platform::NONE>;
+struct PlatformTypeTraits : public PlatformType<Platform::NONE> {};
 
 // Enum union type.
 //
 // For a CUDA/ROCm pair of enums with different enumerators, instantiate
 // this template with an opaque tag type (e.g. `struct FooTag;`) and specialize
-// the TagPlatformType template alias in the CUDA/ROCm wrapper header, e.g.:
-// template <> using TagPlatformType<cudaFooEnum, FooTag> = CudaPlatformType;
+// the PlatformTypeTraits template alias in the CUDA/ROCm wrapper header, e.g.:
+// template <> using PlatformTypeTraits<cudaFooEnum, FooTag> = CudaPlatformType;
+//
+// Tag may define a 'type' member to override the value's type (default is int).
 template <typename Tag>
 class Enum {
   template <typename T, typename Tag_>
   using IsCudaOrRocm =
-      std::enable_if<TagPlatformType<T, Tag_>::value != Platform::NONE>*;
+      std::enable_if<PlatformTypeTraits<T, Tag_>::value != Platform::NONE>*;
+
+  template <typename T>
+  static constexpr auto get_value_type(T*) -> typename T::type;
+  static constexpr auto get_value_type(...) -> int;  // defaults to int.
+  using ValueType = decltype(get_value_type(std::declval<Tag*>()));
 
  public:
   Enum() : value_(0), platform_(Platform::NONE) {}
+  Enum(ValueType value, Platform platform)
+      : value_(value), platform_(platform) {}
   template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = nullptr>
   Enum(T value)
       : value_(static_cast<int>(value)),
-        platform_(TagPlatformType<T, Tag_>::value) {}
+        platform_(PlatformTypeTraits<T, Tag_>::value) {}
   template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = nullptr>
   operator T() const {
-    using PlatformType = TagPlatformType<T, Tag_>;
+    using PlatformType = PlatformTypeTraits<T, Tag_>;
     assert(platform_ == PlatformType::value);
     return static_cast<T>(value_);
   }
@@ -287,7 +297,7 @@ class Enum {
   bool operator!=(Enum other) const { return !(*this == other); }
 
  private:
-  int value_;
+  ValueType value_;
   Platform platform_;
 
   friend llvm::raw_ostream& operator<<(llvm::raw_ostream& os,

@@ -45,6 +45,20 @@ cudnnStatus_t GetResult(const CudnnErrorInfo& info);
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t dtype);
 
+template <>
+struct PlatformTypeTraits<cudnnDataType_t, DnnDataTypeTag>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<cudnnConvolutionFwdAlgo_t, DnnConvFwdAlgoTag>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<cudnnConvolutionBwdDataAlgo_t, DnnConvBwdDataAlgoTag>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<cudnnConvolutionBwdFilterAlgo_t,
+                          DnnConvBwdWeightsAlgoTag> : public CudaPlatformType {
+};
+
 namespace internal {
 struct CudnnPersistentRnnPlanDeleter {
   using pointer = cudnnPersistentRNNPlan_t;

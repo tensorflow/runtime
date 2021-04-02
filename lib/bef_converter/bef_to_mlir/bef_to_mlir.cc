@@ -318,34 +318,6 @@ mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
   }
 }
 
-size_t GetDTypeByteSize(DType::Kind dtype) {
-  switch (dtype) {
-    case DType::I1:
-    case DType::I8:
-    case DType::UI8:
-      return 1;
-    case DType::I16:
-    case DType::UI16:
-    case DType::BF16:
-    case DType::F16:
-      return 2;
-    case DType::I32:
-    case DType::UI32:
-    case DType::F32:
-      return 4;
-    case DType::I64:
-    case DType::UI64:
-    case DType::F64:
-    case DType::Complex64:
-      return 8;
-    case DType::Complex128:
-      return 16;
-    default:
-      break;
-  }
-  llvm_unreachable("unsupported data type");
-}
-
 // This reads attributes from attributes sections with the type information from
 // attribute types section.
 class BEFAttributeReader {

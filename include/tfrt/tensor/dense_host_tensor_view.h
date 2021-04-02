@@ -51,6 +51,9 @@ class DHTArrayView {
   // Used by Argument<> to get the underlying type.
   using UnderlyingT = DenseHostTensor;
 
+  // Used by ::testing::ElementsAre to get the underlying type.
+  using value_type = DType;
+
   /*implicit*/ DHTArrayView(const DenseHostTensor* dht) : dht_(*dht) {
     assert(GetDType<DType>() == dht->dtype() && "Incorrect dtype for tensor");
   }

@@ -21,6 +21,7 @@ package_group(
         # copybara:uncomment_begin
         # "@tf_runtime//backends/gpu/...",
         # # Authorized users go here.
+        # "//platforms/xla/tests/gpu/...",
         # "@tf_runtime//tools/...",
         # "@tf_runtime//cpp_tests/...",
         # copybara:uncomment_end_and_comment_begin
@@ -181,6 +182,7 @@ tfrt_cc_library(
         "include/tfrt/gpu/memory/gpu_buffer.h",
         "include/tfrt/gpu/memory/sub_allocator.h",
     ],
+    visibility = [":tests_and_tools"],
     deps = [
         ":gpu_stream_wrapper",
         "@llvm-project//llvm:Support",

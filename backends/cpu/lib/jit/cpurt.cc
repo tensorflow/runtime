@@ -620,8 +620,8 @@ Expected<CompilationResult> CompileKernelMlirModule(
   llvm::raw_string_ostream os(diagnostic_str);
   mlir::SourceMgrDiagnosticHandler handler(source_mgr, context.get(), os);
 
-  auto error = [&](string_view message) -> llvm::Error {
-    return MakeStringError(message, ":\n", diagnostic_str);
+  auto error = [&](auto original_error) -> llvm::Error {
+    return MakeStringError(original_error, ":\n", diagnostic_str);
   };
 
   // Parse a kernel source code into the MLIR Module.
@@ -666,7 +666,7 @@ Expected<CompilationResult> CompileKernelMlirModule(
   auto engine =
       mlir::ExecutionEngine::create(*module, /*llvmModuleBuilder=*/nullptr,
                                     transformer, opts.jit_code_opt_level, libs);
-  if (!engine) return engine.takeError();
+  if (!engine) return error(engine.takeError());
 
   // Register Async Runtime API intrinsics.
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);

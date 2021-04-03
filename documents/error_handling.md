@@ -1,8 +1,8 @@
 # Error Handling
 
 <!--* freshness: {
-  owner: 'lauj'
-  reviewed: '2020-05-04'
+  owner: 'chky'
+  reviewed: '2021-04-02'
 } *-->
 
 <!-- TOC -->

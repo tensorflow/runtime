@@ -1,8 +1,8 @@
 # Binary Tensor Format
 
 <!--* freshness: {
-  owner: 'lauj'
-  reviewed: '2020-09-02'
+  owner: 'jingdong'
+  reviewed: '2021-04-02'
 } *-->
 
 <!-- TOC -->

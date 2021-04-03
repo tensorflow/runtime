@@ -1,7 +1,7 @@
 # TFRT Tutorial
 
 <!--* freshness: {
-  owner: 'lauj'
+  owner: 'jingdong'
   reviewed: '2020-11-03'
 } *-->
 

@@ -220,10 +220,10 @@ static void DnnCreateTensorDescriptor(
   if (!strides_data)
     return REPORT_ERROR(
         handler, "DnnCreateTensorDescriptor: strides is not a 1D tensor.");
-  gpu::stream::DnnPlatformDataType platform_data_type(data_type.get(),
-                                                      context.get().platform());
+  gpu::stream::DnnDataType dnn_data_type(data_type.get(),
+                                         context.get().platform());
   if (auto error = gpu::stream::DnnSetTensorDescriptor(
-          descriptor.get().get(), platform_data_type, dimensions_data.get(),
+          descriptor.get().get(), dnn_data_type, dimensions_data.get(),
           strides_data.get()))
     return REPORT_ERROR(handler, std::move(error));
   dnn_tensor_descriptor.Emplace(std::move(*descriptor));

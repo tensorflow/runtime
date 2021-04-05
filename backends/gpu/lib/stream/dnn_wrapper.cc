@@ -33,114 +33,6 @@ namespace tfrt {
 namespace gpu {
 namespace stream {
 
-// Convert DNN wrapper enums to cuDNN/MIOpen enums.
-static cudnnDataType_t ToCuda(DnnDataType data_type) {
-  switch (data_type) {
-    case DnnDataType::kFloat:
-      return CUDNN_DATA_FLOAT;
-    case DnnDataType::kHalf:
-      return CUDNN_DATA_HALF;
-    case DnnDataType::kInt8:
-      return CUDNN_DATA_INT8;
-    case DnnDataType::kInt32:
-      return CUDNN_DATA_INT32;
-    case DnnDataType::kInt8x4:
-      return CUDNN_DATA_INT8x4;
-#if CUDNN_VERSION >= 8100
-    case DnnDataType::kBfloat16:
-      return CUDNN_DATA_BFLOAT16;
-#endif
-    case DnnDataType::kUnknown:
-      llvm_unreachable("Cannot convert DnnDataType::kUnknown");
-    default:
-      llvm_unreachable(StrCat("Unrecognized DnnDataType: ", data_type).c_str());
-  }
-}
-
-static constexpr auto ToDnn(cudnnDataType_t data_type) {
-  switch (data_type) {
-    case CUDNN_DATA_FLOAT:
-      return DnnDataType::kFloat;
-    case CUDNN_DATA_HALF:
-      return DnnDataType::kHalf;
-    case CUDNN_DATA_INT8:
-      return DnnDataType::kInt8;
-    case CUDNN_DATA_INT32:
-      return DnnDataType::kInt32;
-    case CUDNN_DATA_INT8x4:
-      return DnnDataType::kInt8x4;
-#if CUDNN_VERSION >= 8100
-    case CUDNN_DATA_BFLOAT16:
-      return DnnDataType::kBfloat16;
-#endif
-    default:
-      return DnnDataType::kUnknown;
-  }
-}
-
-static miopenDataType_t ToRocm(DnnDataType data_type) {
-  switch (data_type) {
-    case DnnDataType::kFloat:
-      return miopenFloat;
-    case DnnDataType::kHalf:
-      return miopenHalf;
-    case DnnDataType::kInt8:
-      return miopenInt8;
-    case DnnDataType::kInt32:
-      return miopenInt32;
-    case DnnDataType::kInt8x4:
-      return miopenInt8x4;
-    case DnnDataType::kBfloat16:
-      return miopenBFloat16;
-    case DnnDataType::kUnknown:
-      llvm_unreachable("Cannot convert DnnDataType::kUnknown");
-    default:
-      llvm_unreachable(StrCat("Unrecognized DnnDataType: ", data_type).c_str());
-  }
-}
-
-static constexpr auto ToDnn(miopenDataType_t data_type) {
-  switch (data_type) {
-    case miopenFloat:
-      return DnnDataType::kFloat;
-    case miopenHalf:
-      return DnnDataType::kHalf;
-    case miopenInt8:
-      return DnnDataType::kInt8;
-    case miopenInt32:
-      return DnnDataType::kInt32;
-    case miopenInt8x4:
-      return DnnDataType::kInt8x4;
-    case miopenBFloat16:
-      return DnnDataType::kBfloat16;
-    default:
-      return DnnDataType::kUnknown;
-  }
-}
-
-DnnDataType GetDnnDataType(DnnPlatformDataType data_type) {
-  switch (data_type.platform()) {
-    case Platform::CUDA:
-      return ToDnn(static_cast<cudnnDataType_t>(data_type));
-    case Platform::ROCm:
-      return ToDnn(static_cast<miopenDataType_t>(data_type));
-    default:
-      return DnnDataType::kUnknown;
-  }
-}
-
-DnnPlatformDataType GetDnnPlatformDataType(DnnDataType data_type,
-                                           Platform platform) {
-  switch (platform) {
-    case Platform::CUDA:
-      return ToCuda(data_type);
-    case Platform::ROCm:
-      return ToRocm(data_type);
-    default:
-      return DnnPlatformDataType();
-  }
-}
-
 static cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
   switch (mode) {
     case DnnPoolingMode::kPoolingMax:
@@ -182,22 +74,6 @@ llvm::SmallVector<cudnnTensorDescriptor_t, kTensorDescriptorArraySize> ToCuda(
   cudnn_descriptors.reserve(dnn_descriptors.size());
   copy(dnn_descriptors, std::back_inserter(cudnn_descriptors));
   return cudnn_descriptors;
-}
-
-static DnnTensorDescriptorData ToDnn(CudnnTensorDescriptorData data) {
-  DnnTensorDescriptorData dnn_data;
-  dnn_data.data_type = ToDnn(data.data_type);
-  dnn_data.dimensions = data.dimensions;
-  dnn_data.strides = data.strides;
-  return dnn_data;
-}
-
-static DnnTensorDescriptorData ToDnn(MiopenTensorDescriptorData data) {
-  DnnTensorDescriptorData dnn_data;
-  dnn_data.data_type = ToDnn(data.data_type);
-  dnn_data.dimensions = data.dimensions;
-  dnn_data.strides = data.strides;
-  return dnn_data;
 }
 
 void internal::DnnHandleDeleter::operator()(DnnHandle handle) const {
@@ -333,17 +209,24 @@ llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor) {
 
 llvm::Expected<DnnTensorDescriptorData> DnnGetTensorDescriptor(
     DnnTensorDescriptor descriptor) {
+  auto to_dnn = [](auto data) {
+    DnnTensorDescriptorData dnn_data;
+    dnn_data.data_type = data.data_type;
+    dnn_data.dimensions = data.dimensions;
+    dnn_data.strides = data.strides;
+    return dnn_data;
+  };
   auto platform = descriptor.platform();
   switch (platform) {
     case Platform::CUDA: {
       auto data = CudnnGetTensorDescriptor(descriptor);
       if (!data) return data.takeError();
-      return ToDnn(*data);
+      return to_dnn(*data);
     }
     case Platform::ROCm: {
       auto data = MiopenGetTensorDescriptor(descriptor);
       if (!data) return data.takeError();
-      return ToDnn(*data);
+      return to_dnn(*data);
     }
     default:
       return InvalidPlatform(platform);
@@ -351,7 +234,7 @@ llvm::Expected<DnnTensorDescriptorData> DnnGetTensorDescriptor(
 }
 
 llvm::Error DnnSetTensorDescriptor(DnnTensorDescriptor descriptor,
-                                   DnnPlatformDataType data_type,
+                                   DnnDataType data_type,
                                    llvm::ArrayRef<int> dimensions,
                                    llvm::ArrayRef<int> strides) {
   auto platform = descriptor.platform();

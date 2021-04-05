@@ -34,27 +34,9 @@ namespace stream {
 
 constexpr int kDnnDimMax() { return 8; }
 
-// Data types that are common across cuDNN and MIOpen.
-enum class DnnDataType {
-  kFloat,
-  kHalf,
-  kInt8,
-  kInt32,
-  kInt8x4,
-  kBfloat16,
-  kUnknown,
-};
-
 struct DnnDataTypeTag;
 // Data type enum (platform-discriminated).
-using DnnPlatformDataType = Enum<DnnDataTypeTag>;
-
-// Returns kUnknown if data_type is not supported on both platforms.
-DnnDataType GetDnnDataType(DnnPlatformDataType data_type);
-// data_type is not allowed to be DnnDataType::kUnknown,
-// platform is not allowed to be Platform::NONE.
-DnnPlatformDataType GetDnnPlatformDataType(DnnDataType data_type,
-                                           Platform platform);
+using DnnDataType = Enum<DnnDataTypeTag>;
 
 enum class DnnTensorFormat {
   kNchw,
@@ -226,12 +208,6 @@ using DnnConvFwdAlgo = Enum<DnnConvFwdAlgoTag>;
 using DnnConvBwdDataAlgo = Enum<DnnConvBwdDataAlgoTag>;
 using DnnConvBwdWeightsAlgo = Enum<DnnConvBwdWeightsAlgoTag>;
 
-struct DnnOpTensorDescriptorData {
-  DnnOpTensorOp op;
-  DnnDataType math_type;
-  DnnNanPropagation nan_propagation;
-};
-
 struct DnnConvolutionDescriptorData {
   llvm::SmallVector<int, kDnnDimMax()> paddings;
   llvm::SmallVector<int, kDnnDimMax()> filter_strides;
@@ -258,13 +234,6 @@ struct DnnActivationDescriptorData {
   DnnActivationMode mode;
   DnnNanPropagation nan_propagation;
   double coefficient;
-};
-
-struct DnnRnnClipData {
-  DnnRNNClipMode mode;
-  DnnNanPropagation nan_propagation;
-  double left_clip;
-  double right_clip;
 };
 
 // Non-owning handles of GPU resources.
@@ -343,7 +312,7 @@ using OwningDnnRnnDescriptor =
 
 // Return types for functions returning multiple values.
 struct DnnTensorDescriptorData {
-  DnnPlatformDataType data_type;
+  DnnDataType data_type;
   llvm::SmallVector<int, kDnnDimMax()> dimensions;
   llvm::SmallVector<int, kDnnDimMax()> strides;
 };
@@ -381,7 +350,7 @@ llvm::Expected<OwningDnnTensorDescriptor> DnnCreateTensorDescriptor(
 llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor);
 
 llvm::Error DnnSetTensorDescriptor(DnnTensorDescriptor descriptor,
-                                   DnnPlatformDataType data_type,
+                                   DnnDataType data_type,
                                    llvm::ArrayRef<int> dimensions,
                                    llvm::ArrayRef<int> strides);
 

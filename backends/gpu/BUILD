@@ -570,7 +570,6 @@ cuda_library(
         "lib/ops/tf/dnn_ops.cu.cc",
     ],
     hdrs = ["lib/ops/tf/dnn_ops_cu.h"],
-    features = ["-parse_headers"],  # See b/152520254
     deps = [
         ":gpu_memory",
         ":gpu_stream_wrapper",

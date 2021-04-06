@@ -90,10 +90,18 @@ inline bool IsAboveTracingLevel(TracingLevel level) {
   return static_cast<int>(current_level) >= static_cast<int>(level);
 }
 
+inline TracingLevel GetCurrentTracingLevel() {
+  auto current_level = internal::kTracingLevel.load(std::memory_order_acquire);
+  return current_level;
+}
+
 #else  // TFRT_DISABLE_TRACING
 // Always return false because tracing is disabled at compile time.
 constexpr inline bool IsTracingEnabled() { return false; }
 constexpr inline bool IsAboveTracingLevel(TracingLevel) { return false; }
+constexpr inline TracingLevel GetCurrentTracingLevel() {
+  return TracingLevel::Default;
+}
 
 #endif
 

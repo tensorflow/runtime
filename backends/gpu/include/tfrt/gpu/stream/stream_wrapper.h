@@ -269,7 +269,7 @@ template <typename Tag>
 class Enum {
   template <typename T, typename Tag_>
   using IsCudaOrRocm =
-      std::enable_if<PlatformTypeTraits<T, Tag_>::value != Platform::NONE>*;
+      std::enable_if_t<PlatformTypeTraits<T, Tag_>::value != Platform::NONE>*;
 
   template <typename T>
   static constexpr auto get_value_type(T*) -> typename T::type;

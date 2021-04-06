@@ -143,7 +143,7 @@ def BlasSyncSgemmOp : CUDA_Op<"blas.sync.gemm.f32"> {
 def BlasSyncGemmExOp : Op<CUDA_Dialect, "blas.sync.gemm_ex"> {
   let summary = "tfrt_cuda blas.sync.gemm_ex operation";
   let description = [{
-    tfrt_cuda.blas.gemm_ex calls BLAS GemmEx function.
+    tfrt_cuda.blas.sync.gemm_ex calls BLAS GemmEx function.
   }];
   let arguments = (ins ContextType, CublasHandleType, StreamType, I32:$transa,
                    I32:$transb, I32:$m, I32:$n, I32:$k,

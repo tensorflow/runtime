@@ -407,10 +407,30 @@ llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
 DnnGetConvolutionForwardOutputDim(DnnConvolutionDescriptor conv_desc,
                                   DnnTensorDescriptor input_tensor_desc,
                                   DnnFilterDescriptor filter_desc);
-llvm::Error DnnConvolutionBackwardBias(
-    CurrentContext current, DnnHandle handle, Pointer<const void> alpha,
-    DnnTensorDescriptor dy_desc, Pointer<const void> dy,
-    Pointer<const void> beta, DnnTensorDescriptor db_desc, Pointer<void> db);
+llvm::Error DnnConvolutionForward(
+    CurrentContext current, DnnHandle handle, DnnTensorDescriptor x_desc,
+    Pointer<const void> x, DnnFilterDescriptor w_desc, Pointer<const void> w,
+    DnnConvolutionDescriptor conv_desc, DnnConvFwdAlgo algo,
+    Pointer<void> work_space, size_t work_space_size_in_bytes,
+    DnnTensorDescriptor y_desc, Pointer<void> y);
+llvm::Error DnnConvolutionBackwardData(
+    CurrentContext current, DnnHandle handle, DnnFilterDescriptor w_desc,
+    Pointer<const void> w, DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    DnnConvolutionDescriptor conv_desc, DnnConvBwdDataAlgo algo,
+    Pointer<void> work_space, size_t work_space_size_in_bytes,
+    DnnTensorDescriptor dx_desc, Pointer<void> dx);
+llvm::Error DnnConvolutionBackwardFilter(
+    CurrentContext current, DnnHandle handle, DnnTensorDescriptor x_desc,
+    Pointer<const void> x, DnnTensorDescriptor dy_desc, Pointer<const void> dy,
+    DnnConvolutionDescriptor conv_desc, DnnConvBwdWeightsAlgo algo,
+    Pointer<void> work_space, size_t work_space_size_in_bytes,
+    Pointer<const void> beta, DnnFilterDescriptor dw_desc, Pointer<void> dw);
+llvm::Error DnnConvolutionBackwardBias(CurrentContext current, DnnHandle handle,
+                                       Pointer<const void> alpha,
+                                       DnnTensorDescriptor dy_desc,
+                                       Pointer<const void> dy,
+                                       DnnTensorDescriptor db_desc,
+                                       Pointer<void> db);
 llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
 DnnGetPoolingForwardOutputDim(const DnnPoolingDescriptor pooling_desc,
                               const DnnTensorDescriptor input_tensor_desc);

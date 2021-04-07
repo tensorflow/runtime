@@ -22,20 +22,8 @@
 #include <memory>
 #include <string>
 
-#include "kernels.h"
-#include "llvm/ADT/ArrayRef.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/raw_ostream.h"
-#include "llvm_derived/Support/raw_ostream.h"
-#include "tfrt/dtype/dtype.h"
-#include "tfrt/gpu/memory/caching_gpu_allocator.h"
-#include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/module_table.h"
-#include "tfrt/gpu/stream/cuda_wrapper.h"
 #include "tfrt/gpu/stream/dnn_wrapper.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
-#include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
@@ -291,32 +279,44 @@ static void DnnPoolingBackward(
   out_chain.Set(in_chain);
 }
 
+llvm::Expected<std::tuple<>> DnnConvolutionForward(
+    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const gpu::stream::OwningDnnTensorDescriptor& x_desc,
+    const RCReference<gpu::GpuBuffer>& x,
+    const gpu::stream::OwningDnnFilterDescriptor& w_desc,
+    const RCReference<gpu::GpuBuffer>& w,
+    const gpu::stream::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
+    const RCReference<gpu::GpuBuffer>& work_space,
+    const gpu::stream::OwningDnnTensorDescriptor& y_desc,
+    const RCReference<gpu::GpuBuffer>& y) {
+  auto current = gpu::stream::CtxSetCurrent(context);
+  if (!current) return current.takeError();
+  auto algo_dnn = gpu::stream::DnnConvFwdAlgo(algo, current->platform());
+  return gpu::stream::DnnConvolutionForward(
+      *current, handle.get(), x_desc.get(), x->pointer(), w_desc.get(),
+      w->pointer(), conv_desc.get(), algo_dnn, work_space->pointer(),
+      work_space->size(), y_desc.get(), y->pointer());
+}
+
 void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.dnn.create", TFRT_KERNEL(DnnCreate));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.destroy", TFRT_KERNEL(DnnDestroy));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.set_stream", TFRT_KERNEL(DnnSetStream));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.get_stream", TFRT_KERNEL(DnnGetStream));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.create_pooling_descriptor",
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.destroy_pooling_descriptor",
                         TFRT_KERNEL(DnnDestroyPoolingDescriptor));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.create_tensor_descriptor",
                         TFRT_KERNEL(DnnCreateTensorDescriptor));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.destroy_tensor_descriptor",
                         TFRT_KERNEL(DnnDestroyTensorDescriptor));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.pooling_forward",
                         TFRT_KERNEL(DnnPoolingForward));
-
   kernel_reg->AddKernel("tfrt_cuda.dnn.pooling_backward",
                         TFRT_KERNEL(DnnPoolingBackward));
+  kernel_reg->AddKernel("tfrt_cuda.dnn.convolution_forward",
+                        TFRT_KERNEL(DnnConvolutionForward));
 }
 
 }  // namespace cuda

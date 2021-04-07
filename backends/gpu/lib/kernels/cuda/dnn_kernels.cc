@@ -298,6 +298,25 @@ llvm::Expected<std::tuple<>> DnnConvolutionForward(
       work_space->size(), y_desc.get(), y->pointer());
 }
 
+llvm::Expected<std::tuple<>> DnnConvolutionBackwardData(
+    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const gpu::stream::OwningDnnFilterDescriptor& w_desc,
+    const RCReference<gpu::GpuBuffer>& w,
+    const gpu::stream::OwningDnnTensorDescriptor& dy_desc,
+    const RCReference<gpu::GpuBuffer>& dy,
+    const gpu::stream::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
+    const RCReference<gpu::GpuBuffer>& work_space,
+    const gpu::stream::OwningDnnTensorDescriptor& dx_desc,
+    const RCReference<gpu::GpuBuffer>& dx) {
+  auto current = gpu::stream::CtxSetCurrent(context);
+  if (!current) return current.takeError();
+  auto algo_dnn = gpu::stream::DnnConvBwdDataAlgo(algo, current->platform());
+  return gpu::stream::DnnConvolutionBackwardData(
+      *current, handle.get(), w_desc.get(), w->pointer(), dy_desc.get(),
+      dy->pointer(), conv_desc.get(), algo_dnn, work_space->pointer(),
+      work_space->size(), dx_desc.get(), dx->pointer());
+}
+
 void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.dnn.create", TFRT_KERNEL(DnnCreate));
   kernel_reg->AddKernel("tfrt_cuda.dnn.destroy", TFRT_KERNEL(DnnDestroy));
@@ -317,6 +336,8 @@ void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(DnnPoolingBackward));
   kernel_reg->AddKernel("tfrt_cuda.dnn.convolution_forward",
                         TFRT_KERNEL(DnnConvolutionForward));
+  kernel_reg->AddKernel("tfrt_cuda.dnn.convolution_backward_data",
+                        TFRT_KERNEL(DnnConvolutionBackwardData));
 }
 
 }  // namespace cuda

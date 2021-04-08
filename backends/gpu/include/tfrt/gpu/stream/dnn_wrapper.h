@@ -420,7 +420,7 @@ llvm::Error DnnConvolutionBackwardFilter(
     Pointer<const void> x, DnnTensorDescriptor dy_desc, Pointer<const void> dy,
     DnnConvolutionDescriptor conv_desc, DnnConvBwdWeightsAlgo algo,
     Pointer<void> work_space, size_t work_space_size_in_bytes,
-    Pointer<const void> beta, DnnFilterDescriptor dw_desc, Pointer<void> dw);
+    DnnFilterDescriptor dw_desc, Pointer<void> dw);
 llvm::Error DnnConvolutionBackwardBias(CurrentContext current, DnnHandle handle,
                                        Pointer<const void> alpha,
                                        DnnTensorDescriptor dy_desc,

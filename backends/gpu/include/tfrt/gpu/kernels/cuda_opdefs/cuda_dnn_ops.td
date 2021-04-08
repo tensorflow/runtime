@@ -374,4 +374,32 @@ def DnnConvolutionBackwardDataOp : CUDA_Op<"dnn.convolution_backward_data"> {
                    BufferType:$dx);
 }
 
+// TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
+// async to sync Ops.
+def DnnConvolutionBackwardFilterOp : CUDA_Op<"dnn.convolution_backward_filter"> {
+  let summary = "tfrt_cuda dnn.convolution_backward_filter operation";
+  let description = [{
+    tfrt_cuda.dnn.convolution_backward_filter computes the convolution weight
+                                              (filter) gradient of the tensor
+                                              dy, where y is the output of the
+                                              forward convolution in
+                                              tfrt_cuda.dnn.convolution_forward.
+                                              It uses the specified algo, and
+                                              returns the results in the output
+                                              tensor dw.
+}];
+  let arguments = (ins ContextType:$context,
+                   DnnHandleType:$handle,
+                   DnnTensorDescriptorType:$x_desc,
+                   BufferType:$x,
+                   DnnTensorDescriptorType:$dy_desc,
+                   BufferType:$dy,
+                   DnnConvolutionDescriptorType:$conv_desc,
+                   UI64:$algo,
+                   BufferType:$work_space,
+                   DnnFilterDescriptorType:$dw_desc,
+                   BufferType:$dw);
+}
+
+
 #endif  // CUDA_DNN_OPS

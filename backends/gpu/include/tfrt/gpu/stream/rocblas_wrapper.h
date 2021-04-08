@@ -37,6 +37,9 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
 using RocblasErrorInfo = TupleErrorInfo<RocblasErrorData>;
 rocblas_status GetResult(const RocblasErrorInfo& info);
 
+// Convert BLAS wrapper enums to rocBLAS enums.
+rocblas_operation ToRocblas(BlasOperation operation);
+
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current);
 llvm::Error RocblasDestroy(rocblas_handle handle);
 llvm::Error RocblasSetStream(rocblas_handle handle, hipStream_t stream);

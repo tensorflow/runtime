@@ -83,6 +83,19 @@ static T* ToCuda(Pointer<T> ptr) {
   return ptr.raw(Platform::CUDA);
 }
 
+cublasOperation_t ToCublas(BlasOperation operation) {
+  switch (operation) {
+    case BlasOperation::kNone:
+      return CUBLAS_OP_N;
+    case BlasOperation::kTranspose:
+      return CUBLAS_OP_T;
+    case BlasOperation::kConjugateTranspose:
+      return CUBLAS_OP_C;
+  }
+  llvm_unreachable(
+      StrCat("Unrecognized BlasOperation value: ", operation).c_str());
+}
+
 llvm::Expected<OwningBlasHandle> CublasCreate(CurrentContext current) {
   CheckCudaContext(current);
   cublasHandle_t handle = nullptr;

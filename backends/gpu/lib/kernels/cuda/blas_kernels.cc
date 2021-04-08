@@ -86,28 +86,9 @@ static void BlasSaxpy(Argument<gpu::stream::Context> context,
   out_chain.Set(in_chain);
 }
 
-static llvm::Expected<gpu::stream::BlasOperation> SafeIntToBlasOperation(
-    int32_t operation) {
-  auto blas_operation = static_cast<gpu::stream::BlasOperation>(operation);
-  if (blas_operation > gpu::stream::BlasOperation::kConjugateTranspose) {
-    return llvm::createStringError(llvm::errc::invalid_argument,
-                                   "Invalid BlasOperation value: %d",
-                                   operation);
-  }
-
-  return blas_operation;
-}
-
-static llvm::Expected<cublasOperation_t> SafeIntToCublasOperation(
-    int32_t operation) {
-  auto cublas_operation = static_cast<cublasOperation_t>(operation);
-  if ((cublas_operation > cublasOperation_t::CUBLAS_OP_CONJG) ||
-      (cublas_operation < cublasOperation_t::CUBLAS_OP_N)) {
-    return llvm::createStringError(llvm::errc::invalid_argument,
-                                   "Invalid CublasOperation value: %d",
-                                   operation);
-  }
-  return cublas_operation;
+static gpu::stream::BlasOperation ToBlasOperation(bool transpose) {
+  return transpose ? gpu::stream::BlasOperation::kTranspose
+                   : gpu::stream::BlasOperation::kNone;
 }
 
 static llvm::Expected<cudaDataType> SafeIntToCublasDataType(int32_t data_type) {
@@ -135,7 +116,6 @@ static llvm::Expected<cublasGemmAlgo_t> SafeIntToCublasGemmAlgo(int32_t algo) {
 
 static void BlasSgemm(Argument<gpu::stream::Context> context,
                       Argument<gpu::stream::OwningBlasHandle> cublas_handle,
-                      Argument<int32_t> transa, Argument<int32_t> transb,
                       Argument<int32_t> m, Argument<int32_t> n,
                       Argument<int32_t> k, Argument<float> alpha,
                       Argument<RCReference<gpu::GpuBuffer>> A,
@@ -144,21 +124,17 @@ static void BlasSgemm(Argument<gpu::stream::Context> context,
                       Argument<int32_t> ldb, Argument<float> beta,
                       Argument<RCReference<gpu::GpuBuffer>> C,
                       Argument<int32_t> ldc, Argument<Chain> in_chain,
-                      Result<Chain> out_chain, KernelErrorHandler handler) {
+                      Result<Chain> out_chain, Attribute<bool> transa,
+                      Attribute<bool> transb, KernelErrorHandler handler) {
   auto current = gpu::stream::CtxSetCurrent(*context);
   if (!current) return REPORT_ERROR(handler, current.takeError());
   Pointer<const float> alpha_ptr(&(*alpha), context->platform());
   Pointer<const float> beta_ptr(&(*beta), context->platform());
 
-  auto transa_blas = SafeIntToBlasOperation(*transa);
-  if (!transa_blas) return REPORT_ERROR(handler, transa_blas.takeError());
-
-  auto transb_blas = SafeIntToBlasOperation(*transb);
-  if (!transb_blas) return REPORT_ERROR(handler, transb_blas.takeError());
-
   llvm::Error error = gpu::stream::BlasSgemm(
-      *current, cublas_handle->get(), *transa_blas, *transb_blas, *m, *n, *k,
-      alpha_ptr, Pointer<const float>(A->get()->pointer()), *lda,
+      *current, cublas_handle->get(), ToBlasOperation(*transa),
+      ToBlasOperation(*transb), *m, *n, *k, alpha_ptr,
+      Pointer<const float>(A->get()->pointer()), *lda,
       Pointer<const float>(B->get()->pointer()), *ldb, beta_ptr,
       Pointer<float>(C->get()->pointer()), *ldc);
   if (error) return REPORT_ERROR(handler, std::move(error));
@@ -169,28 +145,29 @@ static void BlasSgemm(Argument<gpu::stream::Context> context,
 // corresponding ROCm function, as wrapper BlassGemmEx for CUDA/ROCm is not
 // feasible due to mismatch in APIs (algo specification parameter).  Right now
 // only CublasGemmEx call is supported.
-static void BlasGemmEx(
-    Argument<gpu::stream::Context> context,
-    Argument<gpu::stream::OwningBlasHandle> cublas_handle,
-    Argument<int32_t> transa, Argument<int32_t> transb, Argument<int32_t> m,
-    Argument<int32_t> n, Argument<int32_t> k, Argument<float> alpha,
-    Argument<RCReference<gpu::GpuBuffer>> A, Argument<int32_t> Atype,
-    Argument<int32_t> lda, Argument<RCReference<gpu::GpuBuffer>> B,
-    Argument<int32_t> Btype, Argument<int32_t> ldb, Argument<float> beta,
-    Argument<RCReference<gpu::GpuBuffer>> C, Argument<int32_t> Ctype,
-    Argument<int32_t> ldc, Argument<int32_t> computeType,
-    Argument<int32_t> algo, Argument<Chain> in_chain, Result<Chain> out_chain,
-    KernelErrorHandler handler) {
+static void BlasGemmEx(Argument<gpu::stream::Context> context,
+                       Argument<gpu::stream::OwningBlasHandle> cublas_handle,
+
+                       Argument<int32_t> m, Argument<int32_t> n,
+                       Argument<int32_t> k, Argument<float> alpha,
+                       Argument<RCReference<gpu::GpuBuffer>> A,
+                       Argument<int32_t> Atype, Argument<int32_t> lda,
+                       Argument<RCReference<gpu::GpuBuffer>> B,
+                       Argument<int32_t> Btype, Argument<int32_t> ldb,
+                       Argument<float> beta,
+                       Argument<RCReference<gpu::GpuBuffer>> C,
+                       Argument<int32_t> Ctype, Argument<int32_t> ldc,
+                       Argument<int32_t> computeType, Argument<int32_t> algo,
+                       Argument<Chain> in_chain, Result<Chain> out_chain,
+                       Attribute<bool> transa, Attribute<bool> transb,
+                       KernelErrorHandler handler) {
   auto current = gpu::stream::CtxSetCurrent(*context);
   if (!current) return REPORT_ERROR(handler, current.takeError());
   Pointer<const float> alpha_ptr(&(*alpha), context->platform());
   Pointer<const float> beta_ptr(&(*beta), context->platform());
 
-  auto transa_blas = SafeIntToCublasOperation(*transa);
-  if (!transa_blas) return REPORT_ERROR(handler, transa_blas.takeError());
-
-  auto transb_blas = SafeIntToCublasOperation(*transb);
-  if (!transb_blas) return REPORT_ERROR(handler, transb_blas.takeError());
+  auto transa_cublas = ToCublas(ToBlasOperation(*transa));
+  auto transb_cublas = ToCublas(ToBlasOperation(*transb));
 
   auto Atype_blas = SafeIntToCublasDataType(*Atype);
   if (!Atype_blas) return REPORT_ERROR(handler, Atype_blas.takeError());
@@ -209,7 +186,7 @@ static void BlasGemmEx(
   if (!algo_blas) return REPORT_ERROR(handler, algo_blas.takeError());
 
   llvm::Error error = gpu::stream::CublasGemmEx(
-      *current, cublas_handle->get(), *transa_blas, *transb_blas, *m, *n, *k,
+      *current, cublas_handle->get(), transa_cublas, transb_cublas, *m, *n, *k,
       alpha_ptr, Pointer<const float>(A->get()->pointer()), *Atype_blas, *lda,
       Pointer<const float>(B->get()->pointer()), *Btype_blas, *ldb, beta_ptr,
       Pointer<float>(C->get()->pointer()), *Ctype_blas, *ldc, *computeType_blas,
@@ -225,22 +202,19 @@ static void BlasGemmEx(
 static llvm::Expected<std::tuple<>> BlasSyncGemmEx(
     gpu::stream::Context context,
     const gpu::stream::OwningBlasHandle& cublas_handle,
-    const gpu::stream::OwningStream& stream, int32_t transa, int32_t transb,
-    int32_t m, int32_t n, int32_t k, float alpha,
-    const RCReference<gpu::GpuBuffer>& A, int32_t Atype, int32_t lda,
-    const RCReference<gpu::GpuBuffer>& B, int32_t Btype, int32_t ldb,
-    float beta, const RCReference<gpu::GpuBuffer>& C, int32_t Ctype,
-    int32_t ldc, int32_t algo, Attribute<int32_t> computeType) {
+    const gpu::stream::OwningStream& stream, int32_t m, int32_t n, int32_t k,
+    float alpha, const RCReference<gpu::GpuBuffer>& A, int32_t Atype,
+    int32_t lda, const RCReference<gpu::GpuBuffer>& B, int32_t Btype,
+    int32_t ldb, float beta, const RCReference<gpu::GpuBuffer>& C,
+    int32_t Ctype, int32_t ldc, int32_t algo, Attribute<int32_t> computeType,
+    Attribute<bool> transa, Attribute<bool> transb) {
   auto current = gpu::stream::CtxSetCurrent(context);
   if (!current) return current.takeError();
   Pointer<const float> alpha_ptr(&alpha, context.platform());
   Pointer<const float> beta_ptr(&beta, context.platform());
 
-  auto transa_blas = SafeIntToCublasOperation(transa);
-  if (!transa_blas) return transa_blas.takeError();
-
-  auto transb_blas = SafeIntToCublasOperation(transb);
-  if (!transb_blas) return transb_blas.takeError();
+  auto transa_cublas = ToCublas(ToBlasOperation(*transa));
+  auto transb_cublas = ToCublas(ToBlasOperation(*transb));
 
   auto Atype_blas = SafeIntToCublasDataType(Atype);
   if (!Atype_blas) return Atype_blas.takeError();
@@ -262,7 +236,7 @@ static llvm::Expected<std::tuple<>> BlasSyncGemmEx(
     return std::move(error);
 
   if (auto error = gpu::stream::CublasGemmEx(
-          *current, cublas_handle.get(), *transa_blas, *transb_blas, m, n, k,
+          *current, cublas_handle.get(), transa_cublas, transb_cublas, m, n, k,
           alpha_ptr, Pointer<const float>(A->pointer()), *Atype_blas, lda,
           Pointer<const float>(B->pointer()), *Btype_blas, ldb, beta_ptr,
           Pointer<float>(C->pointer()), *Ctype_blas, ldc, *computeType_blas,
@@ -274,8 +248,7 @@ static llvm::Expected<std::tuple<>> BlasSyncGemmEx(
 
 static void BlasGemmStridedBatchedEx(
     Argument<gpu::stream::Context> context,
-    Argument<gpu::stream::OwningBlasHandle> cublas_handle,
-    Argument<int32_t> transa, Argument<int32_t> transb, Argument<int32_t> m,
+    Argument<gpu::stream::OwningBlasHandle> cublas_handle, Argument<int32_t> m,
     Argument<int32_t> n, Argument<int32_t> k, Argument<float> alpha,
     Argument<RCReference<gpu::GpuBuffer>> A, Argument<int32_t> Atype,
     Argument<int32_t> lda, Argument<int64_t> strideA,
@@ -285,17 +258,15 @@ static void BlasGemmStridedBatchedEx(
     Argument<int32_t> ldc, Argument<int64_t> strideC,
     Argument<int32_t> batch_count, Argument<int32_t> computeType,
     Argument<int32_t> algo, Argument<Chain> in_chain, Result<Chain> out_chain,
+    Attribute<bool> transa, Attribute<bool> transb,
     KernelErrorHandler handler) {
   auto current = gpu::stream::CtxSetCurrent(*context);
   if (!current) return REPORT_ERROR(handler, current.takeError());
   Pointer<const float> alpha_ptr(&(*alpha), context->platform());
   Pointer<const float> beta_ptr(&(*beta), context->platform());
 
-  auto transa_blas = SafeIntToCublasOperation(*transa);
-  if (!transa_blas) return REPORT_ERROR(handler, transa_blas.takeError());
-
-  auto transb_blas = SafeIntToCublasOperation(*transb);
-  if (!transb_blas) return REPORT_ERROR(handler, transb_blas.takeError());
+  auto transa_cublas = ToCublas(ToBlasOperation(*transa));
+  auto transb_cublas = ToCublas(ToBlasOperation(*transb));
 
   auto Atype_blas = SafeIntToCublasDataType(*Atype);
   if (!Atype_blas) return REPORT_ERROR(handler, Atype_blas.takeError());
@@ -314,7 +285,7 @@ static void BlasGemmStridedBatchedEx(
   if (!algo_blas) return REPORT_ERROR(handler, algo_blas.takeError());
 
   llvm::Error error = gpu::stream::CublasGemmStridedBatchedEx(
-      *current, cublas_handle->get(), *transa_blas, *transb_blas, *m, *n, *k,
+      *current, cublas_handle->get(), transa_cublas, transb_cublas, *m, *n, *k,
       alpha_ptr, Pointer<const float>(A->get()->pointer()), *Atype_blas, *lda,
       *strideA, Pointer<const float>(B->get()->pointer()), *Btype_blas, *ldb,
       *strideB, beta_ptr, Pointer<float>(C->get()->pointer()), *Ctype_blas,

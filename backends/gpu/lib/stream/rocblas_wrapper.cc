@@ -89,6 +89,19 @@ static T* ToRocm(Pointer<T> ptr) {
   return ptr.raw(Platform::ROCm);
 }
 
+rocblas_operation ToRocblas(BlasOperation operation) {
+  switch (operation) {
+    case BlasOperation::kNone:
+      return rocblas_operation_none;
+    case BlasOperation::kTranspose:
+      return rocblas_operation_transpose;
+    case BlasOperation::kConjugateTranspose:
+      return rocblas_operation_conjugate_transpose;
+  }
+  llvm_unreachable(
+      StrCat("Unrecognized BlasOperation value: ", operation).c_str());
+}
+
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current) {
   CheckHipContext(current);
   rocblas_handle handle = nullptr;

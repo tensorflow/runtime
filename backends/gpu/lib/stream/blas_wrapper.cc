@@ -29,33 +29,6 @@ namespace tfrt {
 namespace gpu {
 namespace stream {
 
-// Convert BLAS wrapper enums to cuBLAS enums.
-static cublasOperation_t ToCuda(BlasOperation operation) {
-  switch (operation) {
-    case BlasOperation::kNone:
-      return CUBLAS_OP_N;
-    case BlasOperation::kTranspose:
-      return CUBLAS_OP_T;
-    case BlasOperation::kConjugateTranspose:
-      return CUBLAS_OP_C;
-  }
-  llvm_unreachable(
-      StrCat("Unrecognized BlasOperation value: ", operation).c_str());
-}
-
-static rocblas_operation ToRocm(BlasOperation operation) {
-  switch (operation) {
-    case BlasOperation::kNone:
-      return rocblas_operation_none;
-    case BlasOperation::kTranspose:
-      return rocblas_operation_transpose;
-    case BlasOperation::kConjugateTranspose:
-      return rocblas_operation_conjugate_transpose;
-  }
-  llvm_unreachable(
-      StrCat("Unrecognized BlasOperation value: ", operation).c_str());
-}
-
 void internal::BlasHandleDeleter::operator()(BlasHandle handle) const {
   LogIfError(BlasDestroy(handle));
 }
@@ -130,11 +103,11 @@ llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CublasSgemm(current, handle, ToCuda(transa), ToCuda(transb), m, n,
-                         k, alpha, A, lda, B, ldb, beta, C, ldc);
+      return CublasSgemm(current, handle, ToCublas(transa), ToCublas(transb), m,
+                         n, k, alpha, A, lda, B, ldb, beta, C, ldc);
     case Platform::ROCm:
-      return RocblasSgemm(current, handle, ToRocm(transa), ToRocm(transb), m, n,
-                          k, alpha, A, lda, B, ldb, beta, C, ldc);
+      return RocblasSgemm(current, handle, ToRocblas(transa), ToRocblas(transb),
+                          m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
     default:
       return InvalidPlatform(platform);
   }

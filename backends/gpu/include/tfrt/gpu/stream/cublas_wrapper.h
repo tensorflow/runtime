@@ -37,6 +37,9 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
 using CublasErrorInfo = TupleErrorInfo<CublasErrorData>;
 cublasStatus_t GetResult(const CublasErrorInfo& info);
 
+// Convert BLAS wrapper enums to cuBLAS enums.
+cublasOperation_t ToCublas(BlasOperation operation);
+
 llvm::Expected<OwningBlasHandle> CublasCreate(CurrentContext current);
 llvm::Error CublasDestroy(cublasHandle_t handle);
 llvm::Expected<int> CublasGetVersion(cublasHandle_t handle);

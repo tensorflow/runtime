@@ -72,7 +72,7 @@ def BlasSgemmOp : CUDA_Op<"blas.gemm.f32"> {
     tfrt_cuda.blas.gemm.f32 calls BLAS sgemm function.
   }];
   let arguments = (ins ContextType, CublasHandleType,
-                   I32:$transa, I32:$transb,
+                   BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k, F32:$alpha, BufferType:$A, I32:$lda,
                    BufferType:$B, I32:$ldb, F32:$beta, BufferType:$C, I32:$ldc,
                    TFRT_ChainType);
@@ -89,7 +89,7 @@ def BlasGemmExOp : CUDA_Op<"blas.gemm.ex"> {
                            algorithm to be run.
   }];
   let arguments = (ins ContextType, CublasHandleType,
-                   I32:$transa, I32:$transb,
+                   BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k,
                    F32:$alpha,
                    BufferType:$A, I32:$Atype, I32:$lda,
@@ -113,7 +113,7 @@ def BlasGemmStridedBatchedExOp : CUDA_Op<"blas.gemm.strided.batched.ex"> {
                            and output matrices in future instances
   }];
   let arguments = (ins ContextType, CublasHandleType,
-                   I32:$transa, I32:$transb,
+                   BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k,
                    F32:$alpha,
                    BufferType:$A, I32:$Atype, I32:$lda, I64:$strideA,
@@ -133,7 +133,7 @@ def BlasSyncSgemmOp : CUDA_Op<"blas.sync.gemm.f32"> {
     tfrt_cuda.blas.sync.gemm.f32 calls BLAS sgemm function.
   }];
   let arguments = (ins ContextType, CublasHandleType, StreamType,
-                   I32:$transa, I32:$transb,
+                   BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k, F32:$alpha, BufferType:$A, I32:$lda,
                    BufferType:$B, I32:$ldb, F32:$beta, BufferType:$C, I32:$ldc);
 }
@@ -145,12 +145,17 @@ def BlasSyncGemmExOp : Op<CUDA_Dialect, "blas.sync.gemm_ex"> {
   let description = [{
     tfrt_cuda.blas.sync.gemm_ex calls BLAS GemmEx function.
   }];
-  let arguments = (ins ContextType, CublasHandleType, StreamType, I32:$transa,
-                   I32:$transb, I32:$m, I32:$n, I32:$k,
+  // Note: keep the attributes alphabetically sorted, because BEF encodes them
+  // in the getAttrs() order, which is sorted only if getAttrDictionary() is
+  // called before. See b/184656568.
+  // TODO(csigg): Investigate whether MLIR would want a stable attribute order.
+  let arguments = (ins ContextType, CublasHandleType, StreamType,
+                   I32:$m, I32:$n, I32:$k,
                    AnyCublasDataType:$alpha, BufferType:$A, I32:$Atype,
                    I32:$lda, BufferType:$B, I32:$Btype, I32:$ldb,
                    AnyCublasDataType:$beta, BufferType:$C, I32:$Ctype, I32:$ldc,
-                   I32:$algorithm, I32Attr:$computeType);
+                   I32:$algorithm, I32Attr:$computeType,
+                   BoolAttr:$transa, BoolAttr:$transb);
 }
 
 #endif  // CUDA_OPS

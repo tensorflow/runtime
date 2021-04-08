@@ -92,11 +92,10 @@ func @cublas_gemm() -> !tfrt.chain {
   %cha1 = tfrt_dht.set_tensor_with_constant_values.f32 %tensor_C, %cha0 [0.0 : f32, 0.0 : f32, 0.0 : f32, 0.0 : f32]
   %gpu_buffer_C, %cha2 = tfrt_cuda_test.copy_tensor_host_to_device %context, %allocator, %stream, %tensor_C, %cha1
 
-  %no_transpose = tfrt.constant.i32 0
   %dim = tfrt.constant.i32 2
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 1.0
-  %cha3 = tfrt_cuda.blas.gemm.f32 %context, %cublas_handle, %no_transpose, %no_transpose, %dim, %dim, %dim, %alpha, %gpu_buffer_A, %dim, %gpu_buffer_B, %dim, %beta, %gpu_buffer_C, %dim, %cha2
+  %cha3 = tfrt_cuda.blas.gemm.f32 %context, %cublas_handle, %dim, %dim, %dim, %alpha, %gpu_buffer_A, %dim, %gpu_buffer_B, %dim, %beta, %gpu_buffer_C, %dim, %cha2 { transa = false, transb = false }
 
   %chb0 = tfrt.merge.chains %cha3
 
@@ -135,13 +134,12 @@ func @cublas_gemm_ex() -> !tfrt.chain {
   %cha1 = tfrt_dht.set_tensor_with_constant_values.f32 %tensor_C, %cha0 [0.0 : f32, 0.0 : f32, 0.0 : f32, 0.0 : f32]
   %gpu_buffer_C, %cha2 = tfrt_cuda_test.copy_tensor_host_to_device %context, %allocator, %stream, %tensor_C, %cha1
 
-  %no_transpose = tfrt.constant.i32 0
   %dim = tfrt.constant.i32 2
   %type = tfrt.constant.i32 0
   %algo = tfrt.constant.i32 0
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 1.0
-  %cha3 = tfrt_cuda.blas.gemm.ex %context, %cublas_handle, %no_transpose, %no_transpose, %dim, %dim, %dim, %alpha, %gpu_buffer_A, %type, %dim, %gpu_buffer_B, %type, %dim, %beta, %gpu_buffer_C, %type, %dim, %type, %algo, %cha2
+  %cha3 = tfrt_cuda.blas.gemm.ex %context, %cublas_handle, %dim, %dim, %dim, %alpha, %gpu_buffer_A, %type, %dim, %gpu_buffer_B, %type, %dim, %beta, %gpu_buffer_C, %type, %dim, %type, %algo, %cha2 { transa = false, transb = false }
 
   %chb0 = tfrt.merge.chains %cha3
 
@@ -180,7 +178,6 @@ func @cublas_gemm_strided_batched_ex() -> !tfrt.chain {
   %cha1 = tfrt_dht.set_tensor_with_constant_values.f32 %tensor_C, %cha0 [0.0 : f32, 0.0 : f32, 0.0 : f32, 0.0 : f32]
   %gpu_buffer_C, %cha2 = tfrt_cuda_test.copy_tensor_host_to_device %context, %allocator, %stream, %tensor_C, %cha1
 
-  %no_transpose = tfrt.constant.i32 0
   %dim = tfrt.constant.i32 2
   %type = tfrt.constant.i32 0
   %algo = tfrt.constant.i32 0
@@ -188,7 +185,7 @@ func @cublas_gemm_strided_batched_ex() -> !tfrt.chain {
   %beta = tfrt.constant.f32 1.0
   %batch_count = tfrt.constant.i32 1
   %stride = tfrt.constant.i64 1
-  %cha3 = tfrt_cuda.blas.gemm.strided.batched.ex %context, %cublas_handle, %no_transpose, %no_transpose, %dim, %dim, %dim, %alpha, %gpu_buffer_A, %type, %dim, %stride, %gpu_buffer_B, %type, %dim, %stride, %beta, %gpu_buffer_C, %type, %dim, %stride, %batch_count, %type, %algo, %cha2
+  %cha3 = tfrt_cuda.blas.gemm.strided.batched.ex %context, %cublas_handle, %dim, %dim, %dim, %alpha, %gpu_buffer_A, %type, %dim, %stride, %gpu_buffer_B, %type, %dim, %stride, %beta, %gpu_buffer_C, %type, %dim, %stride, %batch_count, %type, %algo, %cha2 { transa = false, transb = false }
 
   %chb0 = tfrt.merge.chains %cha3
 

@@ -20,6 +20,7 @@
 #include <memory>
 #include <string>
 
+#include "tfrt/gpu/stream/cudnn_wrapper.h"
 #include "tfrt/gpu/stream/dnn_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -334,6 +335,35 @@ llvm::Expected<std::tuple<>> DnnConvolutionBackwardFilter(
       work_space->size(), dw_desc.get(), dw->pointer());
 }
 
+// This is CUDA specific kernel, there is no ROCm counterpart.
+llvm::Expected<std::tuple<>> CudnnConvolutionBiasActivationForward(
+    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const RCReference<gpu::GpuBuffer>& alpha1,
+    const gpu::stream::OwningDnnTensorDescriptor& x_desc,
+    const RCReference<gpu::GpuBuffer>& x,
+    const gpu::stream::OwningDnnFilterDescriptor& w_desc,
+    const RCReference<gpu::GpuBuffer>& w,
+    const gpu::stream::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
+    const RCReference<gpu::GpuBuffer>& work_space,
+    const RCReference<gpu::GpuBuffer>& alpha2,
+    const gpu::stream::OwningDnnTensorDescriptor& z_desc,
+    const RCReference<gpu::GpuBuffer>& z,
+    const gpu::stream::OwningDnnTensorDescriptor& bias_desc,
+    const RCReference<gpu::GpuBuffer>& bias,
+    const gpu::stream::OwningDnnActivationDescriptor& activation_desc,
+    const gpu::stream::OwningDnnTensorDescriptor& y_desc,
+    const RCReference<gpu::GpuBuffer>& y) {
+  auto current = gpu::stream::CtxSetCurrent(context);
+  if (!current) return current.takeError();
+  auto algo_dnn = static_cast<cudnnConvolutionFwdAlgo_t>(algo);
+  return gpu::stream::CudnnConvolutionBiasActivationForward(
+      *current, handle.get(), alpha1->pointer(), x_desc.get(), x->pointer(),
+      w_desc.get(), w->pointer(), conv_desc.get(), algo_dnn,
+      work_space->pointer(), work_space->size(), alpha2->pointer(),
+      z_desc.get(), z->pointer(), bias_desc.get(), bias->pointer(),
+      activation_desc.get(), y_desc.get(), y->pointer());
+}
+
 void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.dnn.create", TFRT_KERNEL(DnnCreate));
   kernel_reg->AddKernel("tfrt_cuda.dnn.destroy", TFRT_KERNEL(DnnDestroy));
@@ -357,6 +387,8 @@ void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(DnnConvolutionBackwardData));
   kernel_reg->AddKernel("tfrt_cuda.dnn.convolution_backward_filter",
                         TFRT_KERNEL(DnnConvolutionBackwardFilter));
+  kernel_reg->AddKernel("tfrt_cuda.dnn.convolution_bias_activation_forward",
+                        TFRT_KERNEL(CudnnConvolutionBiasActivationForward));
 }
 
 }  // namespace cuda

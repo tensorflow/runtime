@@ -29,11 +29,13 @@ include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
 
+def DnnActivationDescriptorType : OpaqueType<"tfrt_cuda", "dnn_activation_descriptor", "!trft_cuda.dnn_activation_descriptor type">;
 def DnnConvolutionDescriptorType : OpaqueType<"tfrt_cuda", "dnn_convolution_descriptor", "!trft_cuda.dnn_convolution_descriptor type">;
 def DnnFilterDescriptorType : OpaqueType<"tfrt_cuda", "dnn_filter_descriptor", "!trft_cuda.dnn_filter_descriptor type">;
 def DnnHandleType : OpaqueType<"tfrt_cuda", "dnn_handle", "!trft_cuda.dnn_handle type">;
 def DnnPoolingDescriptorType : OpaqueType<"tfrt_cuda", "dnn_pooling_descriptor", "!trft_cuda.dnn_pooling_descriptor type">;
 def DnnTensorDescriptorType : OpaqueType<"tfrt_cuda", "dnn_tensor_descriptor", "!trft_cuda.dnn_tensor_descriptor type">;
+
 
 def DnnCreateOp : CUDA_Op<"dnn.create"> {
   let summary = "tfrt_cuda dnn.create operation";
@@ -399,6 +401,39 @@ def DnnConvolutionBackwardFilterOp : CUDA_Op<"dnn.convolution_backward_filter"> 
                    BufferType:$work_space,
                    DnnFilterDescriptorType:$dw_desc,
                    BufferType:$dw);
+}
+
+// TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
+// async to sync Ops.
+def CudnnConvolutionBiasActivationForwardOp :
+             CUDA_Op<"dnn.convolution_bias_activation_forward"> {
+  let summary =
+    "tfrt_cuda dnn.convolution_bias_activation_forward operation";
+  let description = [{
+    tfrt_cuda.dnn.convolution_bias_activation_forward applies a bias and then
+                        an activation to the convolutions or cross-correlations
+                        of tfrt_cuda.dnn.convolution_forward, returning results
+                        in y. The full computation follows the equation
+                        y = act ( alpha1 * conv(x) + alpha2 * z + bias ).
+  }];
+  let arguments = (ins ContextType:$context,
+                   DnnHandleType:$handle,
+                   BufferType:$alpha1,
+                   DnnTensorDescriptorType:$x_desc,
+                   BufferType:$x,
+                   DnnFilterDescriptorType:$w_desc,
+                   BufferType:$w,
+                   DnnConvolutionDescriptorType:$conv_desc,
+                   UI64:$algo,
+                   BufferType:$work_space,
+                   BufferType:$alpha2,
+                   DnnTensorDescriptorType:$z_desc,
+                   BufferType:$z,
+                   DnnTensorDescriptorType:$bias_desc,
+                   BufferType:$bias,
+                   DnnActivationDescriptorType:$activation_desc,
+                   DnnTensorDescriptorType:$y_desc,
+                   BufferType:$y);
 }
 
 

@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- gpu_dispatch_context.h -----------------------------------*- C++ -*-===//
-//
 // This file declares GpuDispatchContext which holds information needed by
 // GPU dispatch functions.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_CORE_RUNTIME_GPU_DISPATCH_CONTEXT_H_
 #define TFRT_GPU_CORE_RUNTIME_GPU_DISPATCH_CONTEXT_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- bef_encoding_test.cc -------------------------------------*- C++ -*-===//
-//
 // Unit test for the functions defined in bef_encoding.h
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/bef_encoding.h"
 

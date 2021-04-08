@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-//===- basic_kernels.h - Interface to basic_kernels library -----*- C++ -*-===//
+// Interface to basic_kernels library
 //
 // This library contains basic operations that are used by many different
 // clients of the host executor, including basic control flow and scalar
 // arithmetic.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BASIC_KERNELS_BASIC_KERNELS_H_
 #define TFRT_BASIC_KERNELS_BASIC_KERNELS_H_

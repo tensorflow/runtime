@@ -15,8 +15,6 @@
 //===- pad_op.cu.cc - Instantiates tf.Pad GPU functors ---------*- C++ -*--===//
 //
 // Instantiates templated functors used in implementation of tf.Pad op on GPU.
-//
-//===----------------------------------------------------------------------===//
 #include "pad_op.h"
 
 #include <iostream>  // some eigen header use std::cerr without including it.

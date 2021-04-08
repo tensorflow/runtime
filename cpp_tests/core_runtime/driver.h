@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- driver.h - CoreRuntime Driver in C++ ---------------------*- C++ -*-===//
+// CoreRuntime Driver in C++
 //
 // This file defines a simple Driver that allows executing op-by-op using
 // CoreRuntime API in C++.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_EXAMPLES_CORE_RUNTIME_DRIVER_H_
 #define TFRT_EXAMPLES_CORE_RUNTIME_DRIVER_H_
 

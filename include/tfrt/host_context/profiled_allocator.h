@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- profiled_allocator.h - Profiled Memory Allocator ---------*- C++ -*-===//
+// Profiled Memory Allocator
 //
 // This file implements a profiling host memory allocator that does a memory
 // leak check and prints allocation statistics when destroyed.
-//
-//===----------------------------------------------------------------------===//
 
 #include <memory>
 

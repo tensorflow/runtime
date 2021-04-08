@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- async_value_test.cc --------------------------------------*- C++ -*-===//
-//
 // This file contains unit tests for TFRT AsyncValue class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/async_value.h"
 

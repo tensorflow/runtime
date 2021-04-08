@@ -16,8 +16,6 @@
 //
 // This file implements a profiling host memory allocator that does a memory
 // leak check and prints allocation statistics when destroyed.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/profiled_allocator.h"
 

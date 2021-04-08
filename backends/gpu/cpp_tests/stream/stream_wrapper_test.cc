@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- stream_wrapper_test.cc -----------------------------------*- C++ -*-===//
-//
 // Unit test for stream wrapper (abstraction layer for CUDA and HIP).
-//
-//===----------------------------------------------------------------------===//
 #include <ostream>
 
 #include "common.h"

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- contraction_kernel.cc ------------------------------------*- C++ -*-===//
-//
 // Runtime check for disabling custom contraction kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/common/compat/eigen/contraction_kernel.h"
 

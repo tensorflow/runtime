@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dataset.cc ---------------------------------------------------------===//
-//
 // This file implements functions needed by the data pipeline library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/data/dataset.h"
 

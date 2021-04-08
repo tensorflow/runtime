@@ -15,8 +15,6 @@
 //===- diagnostic.cc - Decoded diagnostic abstraction ---------------------===//
 //
 // This file implements the decoded diagnostic abstraction.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/diagnostic.h"
 

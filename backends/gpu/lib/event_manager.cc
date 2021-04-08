@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- event_manager.cc - Utility for CUDA/HIP event waiting  ---*- C++ -*-===//
+// Utility for CUDA/HIP event waiting
 //
 // This file implements the EventManager class that can be used to get
 // notification on the host when some GPU events have been reached.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/event_manager.h"
 

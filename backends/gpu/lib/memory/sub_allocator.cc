@@ -15,8 +15,6 @@
 //===- sub_allocator.cc - SubAllocator -------------------------*- C++ -*--===//
 //
 // This file implements the C++ interface to CUDA caching allocator.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/memory/sub_allocator.h"
 
 #include <llvm/Support/Errc.h>

@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- metadata_functions.cc - Metadata functions for TF ops ----*- C++ -*-===//
+// Metadata functions for TF ops
 //
 // This file contains Metadata functions for TF ops.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/common/ops/tf/metadata_functions.h"
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- op_handler.h ---------------------------------------------*- C++ -*-===//
-//
 // This file declares OpHandler, responsible for eagerly executing ops.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_OP_HANDLER_H_
 #define TFRT_CORE_RUNTIME_OP_HANDLER_H_

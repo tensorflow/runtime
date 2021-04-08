@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- kernel_registry.cc -------------------------------------------------===//
-//
 // This file implements the KernelRegistry.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/kernel_registry.h"
 

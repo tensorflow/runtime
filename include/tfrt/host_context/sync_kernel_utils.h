@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- sync_kernel_utils.h - Helpers for defining sync kernels --*- C++ -*-===//
+// Helpers for defining sync kernels
 //
 // This file declares simple helper routines to make it easier to write
 // synchronous kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_SYNC_KERNEL_UTILS_H_
 #define TFRT_HOST_CONTEXT_SYNC_KERNEL_UTILS_H_

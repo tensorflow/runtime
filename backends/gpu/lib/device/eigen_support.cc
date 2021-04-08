@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- eigen_support.cc -----------------------------------------*- C++ -*-===//
-//
 // This file declares some helpers that tfrt::GpuDevice uses to interact with
 // Eigen.
-//
-//===----------------------------------------------------------------------===//
 
 #include "eigen_support.h"
 

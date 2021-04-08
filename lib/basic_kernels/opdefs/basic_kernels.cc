@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- basic_kernels.cc ---------------------------------------------------===//
-//
 // This file implements MLIR operation functions for the basic_kernels library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 

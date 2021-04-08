@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- coo_host_tensor.h ----------------------------------------*- C++ -*-===//
-//
 // MLIR op definitions for COO host tensor dialects.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_OPDEFS_COO_HOST_TENSOR_H_
 #define TFRT_TENSOR_OPDEFS_COO_HOST_TENSOR_H_

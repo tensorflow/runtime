@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- shuffle_dataset.h ----------------------------------------*- C++ -*-===//
-//
 // This file declares the ShuffleDataset class which wraps around another
 // Dataset instance and shuffles its values before outputting those values.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_SHUFFLE_DATASET_H_
 #define TFRT_DATA_SHUFFLE_DATASET_H_

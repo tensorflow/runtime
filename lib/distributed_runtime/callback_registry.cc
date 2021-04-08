@@ -17,8 +17,6 @@
 //===- callback_registry.cc - Callback Registry ---------------------------===//
 //
 // This file contains the implementation of callback registry.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/callback_registry.h"
 

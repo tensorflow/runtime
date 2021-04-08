@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- types.h --------------------------------------------------*- C++ -*-===//
-//
 // This file declares types for the 'tfrt_dist' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_OPDEFS_TYPES_H_
 #define TFRT_DISTRIBUTED_RUNTIME_OPDEFS_TYPES_H_

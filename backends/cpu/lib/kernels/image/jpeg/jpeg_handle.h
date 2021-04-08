@@ -13,14 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-//===- jpeg_handle.h --------------------------------------------*- C++ -*-===//
-//
 // This file declares the functions and structures for memory I/O with libjpeg.
 // These functions are not meant to be used directly, see jpeg_mem.h instead.
 //
 // Based on tensorflow/core/lib/jpeg/jpeg_handle.h
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_JPEG_JPEG_HANDLE_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_JPEG_JPEG_HANDLE_H_

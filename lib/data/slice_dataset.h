@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- slice_dataset.h ------------------------------------------*- C++ -*-===//
-//
 // This file declares SliceDataset class which wraps around a vector of
 // elements.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_SLICE_DATASET_H_
 #define TFRT_DATA_SLICE_DATASET_H_

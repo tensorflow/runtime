@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- host_context_ptr.h - Compact pointer to HostContext ------*- C++ -*-===//
+// Compact pointer to HostContext
 //
 // This file declares HostContextPtr, a compact pointer representation for
 // HostContext.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_HOST_CONTEXT_PTR_H_
 #define TFRT_HOST_CONTEXT_HOST_CONTEXT_PTR_H_

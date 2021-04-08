@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- fp16.h ---------------------------------------------------*- C++ -*-===//
-//
 // This file defines the half precision floating type: fp16.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_FP16_H_
 #define TFRT_SUPPORT_FP16_H_

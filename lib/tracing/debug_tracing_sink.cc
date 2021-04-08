@@ -15,8 +15,6 @@
 //===- debug_tracing_sink.cc - An implementation of Debug Tracing Sink ----===//
 //
 // This file implements a debug tracing sink which prints activities to stdout.
-//
-//===----------------------------------------------------------------------===//
 
 #include <string>
 

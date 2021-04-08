@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- coo_host_tensor.cc -------------------------------------------------===//
-//
 // This file implements MLIR operations for the COO host tensor dialects.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/opdefs/coo_host_tensor.h"
 

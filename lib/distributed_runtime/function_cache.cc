@@ -17,8 +17,6 @@
 //===- function_cache.cc - Function Cache ----------------*- C++ -*--------===//
 //
 // Contains implementation of FunctionCache class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/function_cache.h"
 

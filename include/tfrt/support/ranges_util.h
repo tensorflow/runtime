@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- ranges_util.h --------------------------------------------*- C++ -*-===//
-//
 // This file introduces utilities for working with ranges.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_RANGES_UTIL_H_
 #define TFRT_SUPPORT_RANGES_UTIL_H_

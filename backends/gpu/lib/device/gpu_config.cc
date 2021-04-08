@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- gpu_config.cc ------------------------------------------------------===//
-//
 // This file implements various helpers to configure GPU OpHandler.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/device/gpu_config.h"
 

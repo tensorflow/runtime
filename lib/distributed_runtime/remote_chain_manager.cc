@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- remote_chain_manager.cc - RemoteChainManager -------------*- C++ -*-===//
+// RemoteChainManager
 //
 // This file contains an implementation of RemoteChainManager.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/remote_chain_manager.h"
 

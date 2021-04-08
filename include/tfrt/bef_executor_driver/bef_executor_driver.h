@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- bef_executor_driver.h - Executor Test Driver Library -----*- C++ -*-===//
+// Executor Test Driver Library
 //
 // This file declares the interface for test driver library for the bef
 // executor.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_EXECUTOR_DRIVER_BEF_EXECUTOR_DRIVER_H_
 #define TFRT_BEF_EXECUTOR_DRIVER_BEF_EXECUTOR_DRIVER_H_

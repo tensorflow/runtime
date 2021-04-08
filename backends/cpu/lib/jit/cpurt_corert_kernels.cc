@@ -17,8 +17,6 @@
 //===- cpurt_corert_kernels.cc - CpuRT <-> CoreRT kernels -----------------===//
 //
 // C++ kernels for the CpuRT <-> CoreRT interop.
-//
-//===----------------------------------------------------------------------===//
 
 #include <sys/types.h>
 

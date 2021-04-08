@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- alloc.h --------------------------------------------------*- C++ -*-===//
-//
 // This file declares AlignedAlloc() for allocating dynamic buffer with
 // explicit alignment.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_SUPPORT_ALLOC_H_
 #define TFRT_SUPPORT_ALLOC_H_
 

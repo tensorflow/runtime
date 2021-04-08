@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- gpu_allocator.h - GPU memory allocator -------------------*- C++ -*-===//
+// GPU memory allocator
 //
 // This file defines the abstract interface for a GPU memory allocator
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_MEMORY_GPU_ALLOCATOR_H_
 #define TFRT_GPU_MEMORY_GPU_ALLOCATOR_H_
 

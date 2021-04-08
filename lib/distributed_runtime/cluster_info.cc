@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cluster_info.cc ----------------------------------------------------===//
-//
 // Defines the cluster info type.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/cluster_info.h"
 

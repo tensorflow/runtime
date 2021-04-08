@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- async_value_ref.cc - RCReference<AsyncValue> wrapper -----*- C++ -*-===//
+// RCReference<AsyncValue> wrapper
 //
 // This file implements AsyncValueRef.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/async_value_ref.h"
 

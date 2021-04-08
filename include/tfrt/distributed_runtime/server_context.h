@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- server_context.h - Server Context ------------------------*- C++ -*-===//
+// Server Context
 //
 // This file declares ServerContext, which constructs and owns fabric
 // communicator.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_SERVER_CONTEXT_H_
 #define TFRT_DISTRIBUTED_RUNTIME_SERVER_CONTEXT_H_

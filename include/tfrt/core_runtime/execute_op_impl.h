@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- execute_op_impl.h ----------------------------------------*- C++ -*-===//
-//
 // This library contains the implementations of corert.executeop.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_EXECUTE_OP_IMPL_H_
 #define TFRT_CORE_RUNTIME_EXECUTE_OP_IMPL_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- debug_info.h ---------------------------------------------*- C++ -*-===//
-//
 // This file declares some utilities to access and distribute debug info.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_HOST_CONTEXT_DEBUG_INFO_H_
 #define TFRT_HOST_CONTEXT_DEBUG_INFO_H_
 

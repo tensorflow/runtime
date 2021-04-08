@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- zero_padding.h -------------------------------------------*- C++ -*-===//
-//
 // Pad input tensor with zeroes.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_ZERO_PADDING_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_ZERO_PADDING_H_

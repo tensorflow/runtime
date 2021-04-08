@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- function.h -----------------------------------------------*- C++ -*-===//
-//
 // This file declares the Function type.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_FUNCTION_H_
 #define TFRT_HOST_CONTEXT_FUNCTION_H_

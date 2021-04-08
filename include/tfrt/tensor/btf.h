@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- btf.h ----------------------------------------------------*- C++ -*-===//
-//
 // This file contains constants and functions related to BTF (Binary Tensor
 // Format).
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_BTF_H_
 #define TFRT_TENSOR_BTF_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dense_host_tensor_sync.cc ------------------------------------------===//
-//
 // This file implements MLIR operations for the dense host tensor sync dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/opdefs/dense_host_tensor_sync.h"
 

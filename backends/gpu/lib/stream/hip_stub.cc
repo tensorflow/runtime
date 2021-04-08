@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- hip_stub.cc ----------------------------------------------*- C++ -*-===//
-//
 // Implementation of the HIP API forwarding calls to symbols dynamically loaded
 // from the real library.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/hip_stub.h"
 
 #include "symbol_loader.h"

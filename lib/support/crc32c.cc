@@ -15,8 +15,6 @@
 //===- crc32c.cc - crc32c Utilities ---------------------------------------===//
 //
 // This file defines C++ utility functions for crc32c
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/crc32c.h"
 

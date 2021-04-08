@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dispatch_utils.h -----------------------------------------*- C++ -*-===//
-//
 // This file contains op handler agnostic helpers for executing dispatching ops.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_DISPATCH_UTILS_H_
 #define TFRT_CORE_RUNTIME_DISPATCH_UTILS_H_

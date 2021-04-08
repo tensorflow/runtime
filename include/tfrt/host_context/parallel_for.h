@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- parallel_for.h -------------------------------------------*- C++ -*-===//
-//
 // Parallel algorithms for the HostContext.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_PARALLEL_FOR_H_
 #define TFRT_SUPPORT_PARALLEL_FOR_H_

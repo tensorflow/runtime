@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- op_handler_kernels.h - Kernel interface to OpHandlers ----*- C++ -*-===//
+// Kernel interface to OpHandlers
 //
 // This file contains helpers that register TFRT Kernels for creating a GPU
 // OpHandler.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_CORE_RUNTIME_OP_HANDLER_KERNELS_H_
 #define TFRT_BACKENDS_CPU_CORE_RUNTIME_OP_HANDLER_KERNELS_H_

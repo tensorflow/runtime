@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- float_kernels.cc ---------------------------------------------------===//
-//
 // This file implements host executor kernels for floating point types.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/basic_kernels/basic_kernels.h"
 #include "tfrt/host_context/kernel_utils.h"

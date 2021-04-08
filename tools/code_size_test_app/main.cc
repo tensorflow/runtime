@@ -17,8 +17,6 @@
 // This file builds a minimal-sized binary that links trivial kernels and the
 // simplest core components to run a fibonacci computation. It is used to track
 // the code size of a deployed binary on mobile environment.
-//
-//===----------------------------------------------------------------------===//
 
 #include <cstdio>
 

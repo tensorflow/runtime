@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cluster_info_test.cc -------------------------------------*- C++ -*-===//
-//
 // Unit test for ClusterInfo.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/cluster_info.h"
 

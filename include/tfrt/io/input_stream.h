@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- input_stream.h -------------------------------------------*- C++ -*-===//
-//
 // This file declares the interface to read bytes from an IO source.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_IO_INPUT_STREAM_H_
 #define TFRT_IO_INPUT_STREAM_H_

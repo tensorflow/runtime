@@ -7,8 +7,6 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- work_queue_base.h ----------------------------------------*- C++ -*-===//
-//
 // Base class for concurrent work queue implementation. Derived work queues
 // define how pending tasks are stored and how stealing algorithm works.
 //
@@ -47,8 +45,6 @@
 //    // are used as an initial seed for per-thread random number generation.
 //    static uint64_t ThisThreadIdHash() {... }
 //  }
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_WORK_QUEUE_BASE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_WORK_QUEUE_BASE_H_

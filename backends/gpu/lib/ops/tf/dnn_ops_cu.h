@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dnn_ops_cu.h ---------------------------------------------*- C++ -*-===//
-//
 // Declares interface for calling hand-written DNN related CUDA kernels.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_DNN_OPS_CU_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_DNN_OPS_CU_H_
 

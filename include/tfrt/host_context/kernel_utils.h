@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-//===- kernel_utils.h - Helpers for kernels implementations -----*- C++ -*-===//
+// Helpers for kernels implementations
 //
 // This file declares simple helper routines to make it easier to write kernels.
 // Because this is part of host_context, this is intended to be small and simple
 // things and is nearly header-only.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_KERNEL_UTILS_H_
 #define TFRT_HOST_CONTEXT_KERNEL_UTILS_H_

@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- bef_file.h -----------------------------------------------*- C++ -*-===//
-//
 // This file declares constants used when interfacing with the "Binary Executor
 // Format" (BEF) files.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_EXECUTOR_BEF_FILE_H_
 #define TFRT_BEF_EXECUTOR_BEF_FILE_H_

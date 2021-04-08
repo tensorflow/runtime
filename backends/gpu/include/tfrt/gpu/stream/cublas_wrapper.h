@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cublas_wrapper.h -----------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the cuBLAS API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_CUBLAS_WRAPPER_H_
 #define TFRT_GPU_STREAM_CUBLAS_WRAPPER_H_
 

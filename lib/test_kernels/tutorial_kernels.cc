@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tutorial_kernels.cc ------------------------------------------------===//
-//
 // Sample kernels defined in tutorial.md, added here for testing.
-//
-//===----------------------------------------------------------------------===//
 
 #include <cstdio>
 

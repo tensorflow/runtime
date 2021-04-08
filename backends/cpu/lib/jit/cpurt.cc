@@ -18,8 +18,6 @@
 //
 // Support library for implementing TFRT kernels that do JIT compilation using
 // MLIR framework.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/jit/cpurt.h"
 

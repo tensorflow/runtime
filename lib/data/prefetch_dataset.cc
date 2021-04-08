@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- prefetch_dataset.h ---------------------------------------*- C++ -*-===//
-//
 // This file declares PrefetchDataset class which wraps around another dataset
 // instance and prefetches elements from the underlying dataset in an internal
 // buffer.
-//
-//===----------------------------------------------------------------------===//
 #include "prefetch_dataset.h"
 
 namespace tfrt {

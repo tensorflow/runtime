@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dtype.h --------------------------------------------------*- C++ -*-===//
-//
 // This file defines the DType enum and helpers for working with it.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DTYPE_DTYPE_H_
 #define TFRT_DTYPE_DTYPE_H_

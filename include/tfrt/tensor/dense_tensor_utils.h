@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dense_tensor_utils.h -------------------------------------*- C++ -*-===//
-//
 // This file defines a few helper methods for DenseHostTensor.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_TENSOR_DENSE_TENSOR_UTILS_H_
 #define TFRT_TENSOR_DENSE_TENSOR_UTILS_H_
 

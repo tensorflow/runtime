@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- device.h - device abstraction ----------------------------*- C++ -*-===//
+// device abstraction
 //
 // Device is a low level abstraction that represents a physical compute device
 // (e.g. CPU, GPU, TPU), to be used in both op-by-op and graph execution.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_HOST_CONTEXT_DEVICE_H_
 #define TFRT_HOST_CONTEXT_DEVICE_H_
 

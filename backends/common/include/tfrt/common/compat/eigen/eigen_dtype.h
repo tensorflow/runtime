@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- eigen_dtype.h --------------------------------------------*- C++ -*-===//
-//
 // This file defines DTypes supported by Eigen.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_DTYPE_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_DTYPE_H_
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tile_kernel.h --------------------------------------------*- C++ -*-===//
-//
 // Tensorflow Tile kernel implementation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_TILE_KERNEL_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_TILE_KERNEL_H_

@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- hash_util.h - Hashing Utilities --------------------------*- C++ -*-===//
+// Hashing Utilities
 //
 // This file declares hashing utilities.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_SUPPORT_HASH_UTIL_H_
 #define TFRT_SUPPORT_HASH_UTIL_H_
 

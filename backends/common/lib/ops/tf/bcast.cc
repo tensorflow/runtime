@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- bcast.cc -------------------------------------------------*- C++ -*-===//
-//
 // Helper functions for Tensorflow broadcasting rules.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/common/ops/tf/bcast.h"
 

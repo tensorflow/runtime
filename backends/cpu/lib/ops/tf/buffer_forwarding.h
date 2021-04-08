@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- buffer_forwarding.h - ------------------------------------*- C++ -*-===//
-//
 // Tensorflow operations input buffer forwarding.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_BUFFER_FORWARDING_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_BUFFER_FORWARDING_H_

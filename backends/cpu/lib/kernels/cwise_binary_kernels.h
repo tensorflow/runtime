@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cwise_binary_kernels.h -----------------------------------*- C++ -*-===//
-//
 // Coefficient wise binary kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CWISE_BINARY_KERNELS_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CWISE_BINARY_KERNELS_H_

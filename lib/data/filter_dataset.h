@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- filter_dataset.h -----------------------------------------*- C++ -*-===//
-//
 // This file declares FilterDataset class which wraps around another Dataset
 // instance and outputs those elements from the underlying dataset which satisfy
 // a user-defined filter function.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DATA_FILTER_DATASET_H_
 #define TFRT_LIB_DATA_FILTER_DATASET_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- ranges_test.cc -------------------------------------------*- C++ -*-===//
-//
 // Tests related to ranges.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/support/ranges.h"
 
 #include "gmock/gmock.h"

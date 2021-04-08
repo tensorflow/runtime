@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-//===- async_value.h - Generic future type used by HostContext --*- C++ -*-===//
+// Generic future type used by HostContext
 //
 // This file declares AsyncValue, a generic "future" type that can be fulfilled
 // by an asynchronously provided value or an error.  This is called AsyncValue
 // instead of 'future' because there are many different types of futures
 // (including std::future) which do not share the same characteristics of this
 // type.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_ASYNC_VALUE_H_
 #define TFRT_HOST_CONTEXT_ASYNC_VALUE_H_

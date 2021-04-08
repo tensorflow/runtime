@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cusolver_wrapper.h ---------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the cuSOLVER API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_CUSOLVER_WRAPPER_H_
 #define TFRT_GPU_STREAM_CUSOLVER_WRAPPER_H_
 

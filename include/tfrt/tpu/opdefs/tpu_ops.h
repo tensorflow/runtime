@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tpu_ops.h - MLIR op definitions for tpu_ops library ------*- C++ -*-===//
+// MLIR op definitions for tpu_ops library
 //
 // This file declares the 'tpu' dialect as well as the operators that make up
 // the tpu_ops library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TPU_OPDEFS_TPU_OPS_H_
 #define TFRT_TPU_OPDEFS_TPU_OPS_H_

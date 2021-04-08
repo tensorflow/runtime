@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- compiler_pass.h - Compiler Pass --------------------------*- C++ -*-===//
+// Compiler Pass
 //
 // This file declares CompilerPass interface.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_COMPILER_COMPILER_PASS_H_
 #define TFRT_COMPILER_COMPILER_PASS_H_
 

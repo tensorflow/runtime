@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- error_test.cc --------------------------------------------*- C++ -*-===//
-//
 // Tests related to error handling.
-//
-//===----------------------------------------------------------------------===//
 #include "llvm/Support/Error.h"
 
 #include "benchmark/benchmark.h"

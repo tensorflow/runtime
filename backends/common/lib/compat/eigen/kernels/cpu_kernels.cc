@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cpu_kernels.cc -----------------------------------------------------===//
-//
 // This file registers a few kernels implemented using the Eigen library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "batch_norm.h"
 #include "conv2d.h"

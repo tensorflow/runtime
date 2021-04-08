@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- event_manager_test.cc ------------------------------------*- C++ -*-===//
-//
 // Unit test for GPU EventManager
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/event_manager.h"
 
 #include <math.h>

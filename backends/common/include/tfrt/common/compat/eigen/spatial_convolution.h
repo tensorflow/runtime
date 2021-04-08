@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- spatial_convolution.h ------------------------------------*- C++ -*-===//
-//
 // Spatial convolution implemented with Eigen expressions.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_SPATIAL_CONVOLUTION_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_SPATIAL_CONVOLUTION_H_

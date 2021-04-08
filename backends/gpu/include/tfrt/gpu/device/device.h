@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- device.h -------------------------------------------------*- C++ -*-===//
-//
 // This file declares GpuDevice which holds GPU device specific information.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_DEVICE_DEVICE_H_
 #define TFRT_GPU_DEVICE_DEVICE_H_

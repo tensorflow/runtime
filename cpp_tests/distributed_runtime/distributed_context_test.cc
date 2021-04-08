@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- distributed_context_test.cc ------------------------------*- C++ -*-===//
-//
 // Unit test for DistributedContext.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/distributed_context.h"
 

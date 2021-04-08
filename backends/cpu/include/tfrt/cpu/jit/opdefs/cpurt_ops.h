@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cpurt_ops.h ----------------------------------------------*- C++ -*-===//
-//
 // CPU Runtime Operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_JIT_CPURT_OPS_H_
 #define TFRT_BACKENDS_CPU_JIT_CPURT_OPS_H_

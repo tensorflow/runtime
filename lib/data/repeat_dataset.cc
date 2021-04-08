@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- repeat_dataset.cc ----------------------------------------*- C++ -*-===//
-//
 // This file implements RepeatDataset class which wraps around another Dataset
 // instance and repeats it a specified number of times.
-//
-//===----------------------------------------------------------------------===//
 
 #include "repeat_dataset.h"
 

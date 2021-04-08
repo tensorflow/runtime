@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- static_registration.cc ---------------------------------------------===//
-//
 // This file uses a static constructor to automatically register the simple
 // tracing sink.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tracing/simple_tracing_sink/simple_tracing_sink.h"
 #include "tfrt/tracing/tracing.h"

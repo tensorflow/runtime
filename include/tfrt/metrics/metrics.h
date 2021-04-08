@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- metrics.h ------------------------------------------------*- C++ -*-===//
-//
 // This file declares global functions to create metrics.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_METRICS_METRICS_H_
 #define TFRT_METRICS_METRICS_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test_kernels.cc ----------------------------------------------------===//
-//
 // This file implements MLIR operation functions for the test_kernels library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/test_kernels/opdefs/test_kernels.h"
 

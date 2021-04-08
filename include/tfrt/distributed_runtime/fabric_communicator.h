@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- fabric_communicator.h - Fabric Communicator --------------*- C++ -*-===//
+// Fabric Communicator
 //
 // This file declares Fabric Communicator, which represents the network layer.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_FABRIC_COMMUNICATOR_H_
 #define TFRT_DISTRIBUTED_RUNTIME_FABRIC_COMMUNICATOR_H_

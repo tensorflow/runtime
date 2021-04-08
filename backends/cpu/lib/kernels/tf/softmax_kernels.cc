@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- softmax_kernels.cc - -------------------------------------*- C++ -*-===//
-//
 // Softmax Tensorflow kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../softmax_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"

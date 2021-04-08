@@ -18,8 +18,6 @@
 //
 // This file contains implementation of GetCompilerPass and
 // RegisterCompilerPass.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/compiler/compiler_pass.h"
 
 namespace tfrt {

@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- gpu_allocator.cc - GPU memory allocator ------------------*- C++ -*-===//
+// GPU memory allocator
 //
 // This file defines kAlignment constant for the abstract GPU memory allocator
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/memory/gpu_allocator.h"
 

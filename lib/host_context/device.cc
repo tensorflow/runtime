@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- device.cc ------------------------------------------------*- C++ -*-===//
-//
 // This file contains implementation of Device abstraction.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/device.h"
 

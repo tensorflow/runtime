@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- philox_random_test.cc ------------------------------------*- C++ -*-===//
-//
 // Tests related to the philox random number generator.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/philox_random.h"
 

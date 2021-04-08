@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- btf.cc ---------------------------------------------------*- C++ -*-===//
-//
 // This file contains functions related to BTF (Binary Tensor Format)
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/btf.h"
 

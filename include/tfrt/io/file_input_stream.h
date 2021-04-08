@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- file_input_stream.h --------------------------------------*- C++ -*-===//
-//
 // This file declares the FileInputStream class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_IO_FILE_INPUT_STREAM_H_
 #define TFRT_IO_FILE_INPUT_STREAM_H_

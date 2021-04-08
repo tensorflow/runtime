@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- image_kernels.cc ---------------------------------------------------===//
-//
 // This file implements kernels that process images.
-//
-//===----------------------------------------------------------------------===//
 
 #include "jpeg/jpeg_mem.h"
 #include "resize_bilinear_op.h"

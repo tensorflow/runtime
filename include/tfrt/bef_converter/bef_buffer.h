@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- bef_buffer.h ---------------------------------------------*- C++ -*-===//
-//
 // This file declares a buffer type for storing BEF binary.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_CONVERTER_BEF_BUFFER_H_
 #define TFRT_BEF_CONVERTER_BEF_BUFFER_H_

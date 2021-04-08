@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- test_util.h ----------------------------------------------*- C++ -*-===//
-//
 // This file defines utilities related to setting up unit tests.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_CPP_TESTS_TEST_UTIL_H_
 #define TFRT_CPP_TESTS_TEST_UTIL_H_
 

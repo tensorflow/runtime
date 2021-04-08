@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- crc32c.h - crc32c Utilities ------------------------------*- C++ -*-===//
+// crc32c Utilities
 //
 // This file declares crc32c utils.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_CRC32C_H_
 #define TFRT_SUPPORT_CRC32C_H_

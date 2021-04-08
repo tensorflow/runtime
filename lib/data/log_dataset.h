@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- log_dataset.h --------------------------------------------*- C++ -*-===//
-//
 // This file declares the LogDataset class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DATA_LOG_DATASET_H_
 #define TFRT_LIB_DATA_LOG_DATASET_H_

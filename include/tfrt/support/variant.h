@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- variant.h ------------------------------------------------*- C++ -*-===//
-//
 // This file implements the variant data structure similar to std::variant in
 // C++17.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_SUPPORT_VARIANT_H_
 #define TFRT_SUPPORT_VARIANT_H_
 

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- conversion_registry.h ------------------------------------*- C++ -*-===//
-//
 // This file defines Tensor Conversion Function and its registry.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_TENSOR_CONVERSION_REGISTRY_H_
 #define TFRT_TENSOR_CONVERSION_REGISTRY_H_
 

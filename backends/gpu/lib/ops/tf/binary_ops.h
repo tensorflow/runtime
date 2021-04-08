@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- binary_ops.h ---------------------------------------------*- C++ -*-===//
-//
 // Collates list of all binary TF operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_BINARY_OPS_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_BINARY_OPS_H_

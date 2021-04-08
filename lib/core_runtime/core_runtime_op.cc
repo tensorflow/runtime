@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- core_runtime_op.cc -------------------------------------------------===//
-//
 // This file implements the CoreRuntimeOp class.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/core_runtime/core_runtime_op.h"
 
 #include "tfrt/core_runtime/op_attrs.h"

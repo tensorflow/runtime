@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- value_test.cc --------------------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT Tensor.
-//
-//===----------------------------------------------------------------------===//
 
 #include "gtest/gtest.h"
 #include "tfrt/host_context/host_allocator.h"

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- conv2d_shape_functions.cc --------------------------------*- C++ -*-===//
-//
 // Collection of helper shape functions for Conv2D kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "conv2d_shape_functions.h"
 

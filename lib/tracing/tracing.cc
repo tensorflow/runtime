@@ -15,8 +15,6 @@
 //===- tracing.cc - Tracing API -------------------------------------------===//
 //
 // This file implements the tracing library.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/tracing/tracing.h"
 
 #include <cassert>

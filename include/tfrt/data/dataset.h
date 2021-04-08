@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dataset.h ------------------------------------------------*- C++ -*-===//
-//
 // This file declares abstract classes needed by the data pipeline library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DATA_DATASET_H_
 #define TFRT_LIB_DATA_DATASET_H_

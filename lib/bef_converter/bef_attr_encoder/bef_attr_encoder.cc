@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- bef_attr_encoder.cc ------------------------------------------------===//
-//
 // This file defines the BEF Attr Encoder library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/bef_converter/bef_attr_encoder.h"
 

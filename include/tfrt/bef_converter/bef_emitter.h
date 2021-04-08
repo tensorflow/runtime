@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- bef_emitter.h - BEFEmitter -------------------------------*- C++ -*-===//
+// BEFEmitter
 //
 // This file defines the BEFEmitter that emits bytes into an aligned buffer.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_CONVERTER_BEF_EMITTER_H_
 #define TFRT_BEF_CONVERTER_BEF_EMITTER_H_

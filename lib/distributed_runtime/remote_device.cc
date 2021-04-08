@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- remote_device.cc -----------------------------------------*- C++ -*-===//
-//
 // This file contains implementation of creating remote devices.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/remote_device.h"
 

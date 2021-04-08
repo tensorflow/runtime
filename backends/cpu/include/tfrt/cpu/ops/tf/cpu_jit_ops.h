@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- cpu_jit_ops.h - CPU JIT implementation of TensorFlow ops -*- C++ -*-===//
+// CPU JIT implementation of TensorFlow ops
 //
 // This file contains helpers that register CPU specific JIT-compiled ops.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_CPU_JIT_OPS_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_CPU_JIT_OPS_H_

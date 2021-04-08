@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- location.h -----------------------------------------------*- C++ -*-===//
-//
 // This file declares some routines for working with diagnostics: it declares
 // the Location class, which is the primary encoded form of a location, as well
 // as the LocationHandler class which decodes them.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_LOCATION_H_
 #define TFRT_HOST_CONTEXT_LOCATION_H_

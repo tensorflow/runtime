@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tile_kernels.cc - ----------------------------------------*- C++ -*-===//
-//
 // Tile Tensorflow kernel implementations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "./tile_kernel.h"
 

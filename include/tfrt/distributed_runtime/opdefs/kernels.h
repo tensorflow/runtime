@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- kernels.h - MLIR op defs for dist dialect ----------------*- C++ -*-===//
+// MLIR op defs for dist dialect
 //
 // This file declares the 'dist' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DIST_OPDEFS_DIST_H_
 #define TFRT_DIST_OPDEFS_DIST_H_

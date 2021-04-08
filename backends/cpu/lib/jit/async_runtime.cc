@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- async_runtime.cc -----------------------------------------*- C++ -*-===//
-//
 // MLIR Async Runtime implemented on top of TFRT HostContext and host
 // concurrency primitives.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/jit/async_runtime.h"
 

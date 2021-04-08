@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- coo_host_tensor_kernels.cc -----------------------------------------===//
-//
 // This file implements kernels for handling COO host tensors.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm/Support/Error.h"
 #include "tfrt/core_runtime/op_attrs.h"

@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- forward_decls.h ------------------------------------------*- C++ -*-===//
-//
 // This file forward declares tfrt/support's template types. This
 // file should not include any files from tfrt/support.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_FORWARD_DECLS_H_
 #define TFRT_SUPPORT_FORWARD_DECLS_H_

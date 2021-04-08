@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- binary_ops.cu.cc -----------------------------------------*- C++ -*-===//
-//
 // Collates list of all binary TF operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "eigen_helper.cu.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"

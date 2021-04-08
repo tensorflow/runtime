@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- concat_kernel.h ------------------------------------------*- C++ -*-===//
-//
 // Tensorflow Concat kernel implementation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CONCAT_KERNEL_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CONCAT_KERNEL_H_

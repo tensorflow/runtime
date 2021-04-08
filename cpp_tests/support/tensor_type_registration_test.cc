@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tensor_type_registration.cc ------------------------------*- C++ -*-===//
-//
 // Unit test for TensorTypeRegistration.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/tensor/tensor_type_registration.h"
 
 #include <complex>

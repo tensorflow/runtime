@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- kernels.h - CUDA runtime interface -----------------------*- C++ -*-===//
+// CUDA runtime interface
 //
 // This file declares the C++ functions that implement the kernels provided by
 // the TFRT CUDA runtime.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_KERNELS_H_
 #define TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_KERNELS_H_
 

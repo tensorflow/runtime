@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cuda_wrapper.h -------------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the CUDA API adding llvm::Error and explicit context.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_CUDA_WRAPPER_H_
 #define TFRT_GPU_STREAM_CUDA_WRAPPER_H_
 

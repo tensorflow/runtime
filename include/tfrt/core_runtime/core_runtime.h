@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- core_runtime.h -------------------------------------------*- C++ -*-===//
-//
 // This defines CoreRuntime, the primary op-level interface to TFRT.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_CORE_RUNTIME_H_
 #define TFRT_CORE_RUNTIME_CORE_RUNTIME_H_

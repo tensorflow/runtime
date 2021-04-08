@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- btf_reader_util.h ----------------------------------------*- C++ -*-===//
-//
 // This file contains utilities for reading BTF (Binary Tensor Format).
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_BTF_READER_UTIL_H_
 #define TFRT_TENSOR_BTF_READER_UTIL_H_

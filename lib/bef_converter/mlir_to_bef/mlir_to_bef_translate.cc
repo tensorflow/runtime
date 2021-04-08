@@ -17,8 +17,6 @@
 // This file implements the registration for the mlir-to-bef converter in MLIR
 // Translate infrastructure.  It opens up an mlir file specified on the command
 // line and converts it to a bef file at specified location.
-//
-//===----------------------------------------------------------------------===//
 #include "llvm/Support/CommandLine.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"

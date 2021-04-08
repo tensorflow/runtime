@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- op_handler_kernels.cc ----------------------------------------------===//
-//
 // This file contains TFRT kernels to register CPU and Null OpHandler.
-//
-//===----------------------------------------------------------------------===//
 
 #include "op_handler_kernels.h"
 

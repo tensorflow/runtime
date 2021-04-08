@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dnn_wrapper.h --------------------------------------------*- C++ -*-===//
-//
 // Thin abstraction layer for cuDNN and MIOpen.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_DNN_WRAPPER_H_
 #define TFRT_GPU_STREAM_DNN_WRAPPER_H_
 

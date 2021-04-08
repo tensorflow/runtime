@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- block_allocator_test.cc ----------------------------------*- C++ -*-===//
-//
 // Unit test for block allocator.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/memory/block_allocator.h"
 
 #include <llvm/Support/Errc.h>

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dtype.cc -----------------------------------------------------------===//
-//
 // This file implements DType class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/dtype/dtype.h"
 

@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- dense_host_tensor.h - op definitions for dht dialect -----*- C++ -*-===//
+// op definitions for dht dialect
 //
 // This file declares the 'dht' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_H_
 #define TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_H_

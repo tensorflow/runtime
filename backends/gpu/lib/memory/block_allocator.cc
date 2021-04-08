@@ -15,8 +15,6 @@
 //===- block_allocator.cc - BlockAllocator ---------------------*- C++ -*--===//
 //
 // This file implements the C++ interface to CUDA caching allocator.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/memory/block_allocator.h"
 

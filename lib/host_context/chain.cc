@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//===- chain.cc - Control dependence representation -------------*- C++ -*-===//
+// Control dependence representation
 //
 // This file implements GetReadyChain(), a free function version of the
 // ReadyChain method to get an AsyncValueRef to a Chain for the given

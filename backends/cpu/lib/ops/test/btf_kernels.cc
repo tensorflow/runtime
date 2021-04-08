@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- btf_kernels.cc -----------------------------------------------------===//
-//
 // This file implements kernels for reading tensors from file.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/ops/test/cpu_ops_and_kernels.h"
 #include "tfrt/host_context/kernel_registry.h"

@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- cpurt_kernels_registration.cc --------------------------------------===//
-//
 // This file uses a static constructor to automatically register all of CpuRT
 // native kernels (kernels for graph execution).
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/kernel_registry.h"
 

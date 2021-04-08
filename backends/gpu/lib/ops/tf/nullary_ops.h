@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- nullary_ops.h --------------------------------------------*- C++ -*-===//
-//
 // Collates list of all nullary TF operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_NULLARY_OPS_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_NULLARY_OPS_H_

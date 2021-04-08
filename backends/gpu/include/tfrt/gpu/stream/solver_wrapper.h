@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- solver_wrapper.h -----------------------------------------*- C++ -*-===//
-//
 // Thin abstraction layer for cuSOLVER and rocSOLVER.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_SOLVER_WRAPPER_H_
 #define TFRT_GPU_STREAM_SOLVER_WRAPPER_H_
 

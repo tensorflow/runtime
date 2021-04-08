@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- batch_norm.h ---------------------------------------------*- C++ -*-===//
-//
 // Batch normalization kernels implemented with Eigen.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_BATCH_NORM_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_BATCH_NORM_H_

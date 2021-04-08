@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- simple_test_kernels.cc ---------------------------------------------===//
-//
 // This library contains test kernels needed by example_kernels unit tests.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/bef_executor/function_util.h"

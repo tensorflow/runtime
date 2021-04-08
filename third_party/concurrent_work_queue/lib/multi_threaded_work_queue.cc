@@ -2,12 +2,8 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- non_blocking_work_queue.cc -------------------------------*- C++ -*-===//
-//
 // Concurrent Work Queue implementation composed from a blocking and
 // non-blocking work queues.
-//
-//===----------------------------------------------------------------------===//
 
 #include <memory>
 #include <thread>

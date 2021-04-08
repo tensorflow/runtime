@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- host_buffer.h - Reference counted host buffer ------------*- C++ -*-===//
+// Reference counted host buffer
 //
 // This file declares HostBuffer.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_HOST_BUFFER_H_
 #define TFRT_HOST_CONTEXT_HOST_BUFFER_H_

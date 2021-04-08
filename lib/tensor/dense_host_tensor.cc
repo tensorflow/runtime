@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dense_host_tensor.cc -----------------------------------------------===//
-//
 // This file implements DenseHostTensor.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/dense_host_tensor.h"
 

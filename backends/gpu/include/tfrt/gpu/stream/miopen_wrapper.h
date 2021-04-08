@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- miopen_wrapper.h -----------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the MIOpen API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_MIOPEN_WRAPPER_H_
 #define TFRT_GPU_STREAM_MIOPEN_WRAPPER_H_
 

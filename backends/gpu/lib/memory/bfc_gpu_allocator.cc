@@ -15,8 +15,6 @@
 //===- caching_gpu_allocator.cc - CUDA CachingGpuAllocator  ---------------===//
 //
 // This file implements the C++ interface to CUDA caching allocator.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/memory/bfc_gpu_allocator.h"
 

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- metrics.cc ---------------------------------------------------------===//
-//
 // This file defines global functions to create metrics.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/metrics/metrics.h"
 

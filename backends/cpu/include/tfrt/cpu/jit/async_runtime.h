@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- async_runtime.h ------------------------------------------*- C++ -*-===//
-//
 // MLIR Async Runtime implemented on top of TFRT HostContext and host
 // concurrency primitives.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_H_
 #define TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_H_

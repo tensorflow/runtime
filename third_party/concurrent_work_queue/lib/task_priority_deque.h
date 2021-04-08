@@ -7,8 +7,6 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- task_priority_deque.h ------------------------------------*- C++ -*-===//
-//
 // TaskPriorityDeque is an extension of the TaskDeque with a support of three
 // levels of task priorities: Low, Default, Hight.
 //
@@ -24,8 +22,6 @@
 // per priority + 20 bits for the modification counter).
 //
 // See task_deque.h for the base algorithm description.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_PRIORITY_DEQUE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_PRIORITY_DEQUE_H_

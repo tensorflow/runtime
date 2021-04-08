@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- shuffle_dataset.cc ---------------------------------------*- C++ -*-===//
-//
 // This file defines the ShuffleDataset class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "shuffle_dataset.h"
 

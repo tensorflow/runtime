@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cpurt_ops.cc -------------------------------------------------------===//
-//
 // This file implements MLIR operations for the TFRT CPU Runtime dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/jit/opdefs/cpurt_ops.h"
 

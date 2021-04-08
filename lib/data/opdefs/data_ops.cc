@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- data_ops.cc --------------------------------------------------------===//
-//
 // This file implements MLIR operation functions for the data library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/data/opdefs/data_ops.h"
 

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- reduction_ops.cu.cc --------------------------------------*- C++ -*-===//
-//
 // Implementations of TF reduction ops.
-//
-//===----------------------------------------------------------------------===//
 
 #include <cstddef>
 #include <iterator>

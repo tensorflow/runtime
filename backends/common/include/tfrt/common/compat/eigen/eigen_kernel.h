@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- eigen_kernel.h -------------------------------------------*- C++ -*-===//
-//
 // This file defines helper functions for writing Eigen-based kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_KERNEL_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_KERNEL_H_

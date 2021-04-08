@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- remote_op_handler.h --------------------------------------*- C++ -*-===//
-//
 // This file declares CreateRemoteOpHandler, which creates Remote Op Handler
 // responsible for executing ops on remote device.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_KERNELS_REMOTE_OP_HANDLER_H_
 #define TFRT_DISTRIBUTED_KERNELS_REMOTE_OP_HANDLER_H_

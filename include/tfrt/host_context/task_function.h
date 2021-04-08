@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- task_function.h - Task Function Abstraction --------------*- C++ -*-===//
+// Task Function Abstraction
 //
 // This file defines the TaskFunction class for representing work queue tasks.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_TASK_FUNCTION_H_
 #define TFRT_HOST_CONTEXT_TASK_FUNCTION_H_

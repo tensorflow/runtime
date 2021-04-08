@@ -15,8 +15,6 @@
 //===- matmul.cc -------------------------------------------------*- C++-*-===//
 //
 // Matrix multiplication kernels implemented with Eigen.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/common/compat/eigen/contraction_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_kernel.h"

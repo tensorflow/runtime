@@ -7,8 +7,6 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- task_deque.h ---------------------------------------------*- C++ -*-===//
-//
 // TaskDeque is a fixed-size, partially non-blocking deque of Task items.
 // Operations on front of the queue must be done by a single thread (owner),
 // operations on back of the queue can be done by multiple threads concurrently.
@@ -34,8 +32,6 @@
 //
 //   (2) "Non-Blocking Steal-Half Work Queues"
 //       Danny Hendler, Nir Shavit
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_DEQUE_H_

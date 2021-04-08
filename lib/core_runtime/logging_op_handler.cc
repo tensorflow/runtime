@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- logging_op_handler.cc ----------------------------------------------===//
-//
 // This file implements the LoggingOpHandler class and the hooks to create it.
-//
-//===----------------------------------------------------------------------===//
 
 #include <unistd.h>
 

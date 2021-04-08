@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- io.cc ----------------------------------------------------*- C++ -*-===//
-//
 // This file implements PrefetchingIterator, a helper class for building IO
 // iterators.
-//
-//===----------------------------------------------------------------------===//
 
 #include "io.h"
 

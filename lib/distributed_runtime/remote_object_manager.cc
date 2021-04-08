@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- remote_object_manager.cc -------------------------------------------===//
-//
 // This file implements RemoteObjectManager.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/remote_object_manager.h"
 

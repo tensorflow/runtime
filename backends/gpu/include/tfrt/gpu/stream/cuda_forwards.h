@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cuda_forwards.h ------------------------------------------*- C++ -*-===//
-//
 // Forward-declares CUDA API types used in platform-agnostic wrapper headers.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_CUDA_FORWARDS_H_
 #define TFRT_GPU_STREAM_CUDA_FORWARDS_H_
 

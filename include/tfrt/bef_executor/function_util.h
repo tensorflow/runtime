@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- function_util.h - Utility for invoking BEF Functions -----*- C++ -*-===//
+// Utility for invoking BEF Functions
 //
 // This file implements utility functions to make invoking BEF Functions easy
 // when the caller knows the static signature of the function.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_EXECUTOR_FUNCTION_UTIL_H_
 #define TFRT_BEF_EXECUTOR_FUNCTION_UTIL_H_

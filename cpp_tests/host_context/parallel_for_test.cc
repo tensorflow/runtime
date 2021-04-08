@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- parallel_for_test.cc -------------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT parallel algorithms.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/parallel_for.h"
 

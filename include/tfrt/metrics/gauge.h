@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- gauge.h --------------------------------------------------*- C++ -*-===//
-//
 // This file declares the Gauge metric interface.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_METRICS_GAUGE_H_
 #define TFRT_METRICS_GAUGE_H_

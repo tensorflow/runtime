@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- static_registration.cc ---------------------------------------------===//
-//
 // This file uses a static constructor to automatically register gpu device.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/device/conversion_function.h"
 #include "tfrt/host_context/device.h"

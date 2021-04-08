@@ -15,8 +15,6 @@
 //===- pad_op.cc - Implements tf.pad on GPU --------------------*- C++ -*--===//
 //
 // Implements tf.Pad on GPU.
-//
-//===----------------------------------------------------------------------===//
 #include "pad_op.h"
 
 #define EIGEN_USE_GPU

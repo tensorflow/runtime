@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- host_tensor.h --------------------------------------------*- C++ -*-===//
-//
 // MLIR op definitions for host tensor dialects.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_OPDEFS_HOST_TENSOR_H_
 #define TFRT_TENSOR_OPDEFS_HOST_TENSOR_H_

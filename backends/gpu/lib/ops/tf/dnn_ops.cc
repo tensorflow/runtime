@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dnn_ops.cc -----------------------------------------------*- C++ -*-===//
-//
 // Collates list of all TF DNN operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "dnn_ops.h"
 

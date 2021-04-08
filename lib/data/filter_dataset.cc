@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- filter_dataset.cc ----------------------------------------*- C++ -*-===//
-//
 // This file implements FilterDataset class which wraps around another Dataset
 // instance and outputs those elements from the underlying dataset which satisfy
 // a user-defined filter function.
-//
-//===----------------------------------------------------------------------===//
 
 #include "filter_dataset.h"
 

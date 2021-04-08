@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- file_system.h --------------------------------------------*- C++ -*-===//
-//
 // This file declares the interface to manage files in a file system.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_IO_FILE_SYSTEM_H_
 #define TFRT_IO_FILE_SYSTEM_H_

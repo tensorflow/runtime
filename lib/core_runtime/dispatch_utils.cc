@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dispatch_utils.cc ----------------------------------------*- C++ -*-===//
-//
 // This file contains some common op handler agnostic utilities for executing
 // metadata and dispatch functions.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/core_runtime/dispatch_utils.h"
 

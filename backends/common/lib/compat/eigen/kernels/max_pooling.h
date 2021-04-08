@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- max_pooling.h --------------------------------------------*- C++ -*-===//
-//
 // Max Pooling 2D implemented with Eigen.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_MAX_POOLING_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_MAX_POOLING_H_

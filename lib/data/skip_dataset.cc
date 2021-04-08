@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- skip_dataset.cc ----------------------------------------------------===//
-//
 // This file implements SkipDataset class which wraps around another Dataset
 // instance and skips a specified number of elements from that dataset.
-//
-//===----------------------------------------------------------------------===//
 
 #include "skip_dataset.h"
 

@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cublas_stub.cc -------------------------------------------*- C++ -*-===//
-//
 // Implementation of the cuBLAS API forwarding calls to symbols dynamically
 // loaded from the real library.
-//
-//===----------------------------------------------------------------------===//
 
 // This is a backward compartible wrapper for cublasGemmEx to support
 // cuBLAS v10 and v11 builds.

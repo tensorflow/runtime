@@ -15,8 +15,6 @@
 //===- Mlir-Opt utility ---------------------------------------------------===//
 //
 // Load MLIR and apply required passes on it.
-//
-//===----------------------------------------------------------------------===//
 
 #include "mlir/Support/MlirOptMain.h"
 #include "tfrt/init_tfrt_dialects.h"

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- random_util.h --------------------------------------------*- C++ -*-===//
-//
 // Declares a random 64-bit number generator.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_RANDOM_H_
 #define TFRT_SUPPORT_RANDOM_H_

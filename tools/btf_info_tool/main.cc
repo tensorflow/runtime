@@ -17,8 +17,6 @@
 //===- BTF Inspector Utility ----------------------------------------------===//
 //
 // This file prints the contents of a BTF file to stdout.
-//
-//===----------------------------------------------------------------------===//
 
 #include <fcntl.h>
 #include <sys/mman.h>

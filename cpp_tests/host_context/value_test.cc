@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- value_test.cc --------------------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT Value.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/value.h"
 

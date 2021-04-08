@@ -7,8 +7,6 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- event_count.h --------------------------------------------*- C++ -*-===//
-//
 // EventCount allows to wait for arbitrary predicates in non-blocking
 // algorithms. Think of condition variable, but wait predicate does not need to
 // be protected by a mutex.
@@ -48,8 +46,6 @@
 // and won't block, or notifying thread will see state_ change and will unblock
 // the waiter, or both. But it can't happen that both threads don't see each
 // other changes, which would lead to deadlock.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_EVENT_COUNT_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_EVENT_COUNT_H_

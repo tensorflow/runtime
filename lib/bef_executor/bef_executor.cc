@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- bef_executor.cc ----------------------------------------------------===//
-//
 // This file implements the Executor for BEF files.
-//
-//===----------------------------------------------------------------------===//
 
 #include <atomic>
 #include <cstdint>

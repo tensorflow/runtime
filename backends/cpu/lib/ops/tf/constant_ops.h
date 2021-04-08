@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- constant_ops.h - -----------------------------------------*- C++ -*-===//
-//
 // Tensorflow constant operation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_CONSTANT_OPS_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_CONSTANT_OPS_H_

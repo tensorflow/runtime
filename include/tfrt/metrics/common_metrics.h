@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- common_metrics.h -----------------------------------------*- C++ -*-===//
-//
 // This file provides methods to define a few common TFRT metrics.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_METRICS_COMMON_METRICS_H_
 #define TFRT_METRICS_COMMON_METRICS_H_

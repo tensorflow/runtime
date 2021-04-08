@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- type_dispatch.cc -----------------------------------------*- C++ -*-===//
-//
 //  Unit tests for type based Tf ops dispatching.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../../../lib/ops/tf/type_dispatch.h"
 

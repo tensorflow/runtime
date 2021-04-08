@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- partial_packets.h ----------------------------------------*- C++ -*-===//
-//
 // This file defines helper functions for loading partial packets from Eigen
 // expression evaluators.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_PARTIAL_PACKETS_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_PARTIAL_PACKETS_H_

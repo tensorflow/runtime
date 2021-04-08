@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tf/gpu/gpu_ops.cc ----------------------------------------*- C++ -*-===//
-//
 // This file defines dispatch functions for GPU implementation of TF ops.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/ops/tf/gpu_ops.h"
 

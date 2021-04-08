@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cublas_stub.cc -------------------------------------------*- C++ -*-===//
-//
 // Implementation of the cuBLAS API forwarding calls to symbols dynamically
 // loaded from the real library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "cublas.h"  // from @cuda_headers
 #include "symbol_loader.h"

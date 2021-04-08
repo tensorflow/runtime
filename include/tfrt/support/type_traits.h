@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- type_traits.h --------------------------------------------*- C++ -*-===//
-//
 // This file defines type traits related utilities.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_TYPE_TRAITS_H_
 #define TFRT_SUPPORT_TYPE_TRAITS_H_

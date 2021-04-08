@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- op_attr_type.h -------------------------------------------*- C++ -*-===//
-//
 // This file declares OpAttrType and helpers.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_OP_ATTR_TYPE_H_
 #define TFRT_CORE_RUNTIME_OP_ATTR_TYPE_H_

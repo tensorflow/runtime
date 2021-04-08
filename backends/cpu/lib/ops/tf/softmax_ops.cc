@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- softmax_ops.cc - -----------------------------------------*- C++ -*-===//
-//
 // Softmax and LogSoftmax Tensorflow operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "softmax_ops.h"
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- error_util.h ---------------------------------------------*- C++ -*-===//
-//
 // This file defines utilities related to error handling in tests.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_CPP_TESTS_ERROR_UTIL_H_
 #define TFRT_CPP_TESTS_ERROR_UTIL_H_
 

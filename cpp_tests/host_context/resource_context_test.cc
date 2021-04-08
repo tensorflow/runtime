@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- resource_context_test.cc ---------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT ResourceContext.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/resource_context.h"
 

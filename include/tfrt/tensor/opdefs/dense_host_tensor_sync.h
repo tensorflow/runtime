@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- dense_host_tensor_sync.h - op defs for dht sync dialect --*- C++ -*-===//
+// op defs for dht sync dialect
 //
 // This file declares the 'tfrt_dht_sync' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_
 #define TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_

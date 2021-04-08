@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- test_kernels.h - Interface to test_kernels library -------*- C++ -*-===//
+// Interface to test_kernels library
 //
 // This declares the interfaces to register the kernels used by the
 // host-executor testing tool.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TEST_KERNELS_H_
 #define TFRT_TEST_KERNELS_H_

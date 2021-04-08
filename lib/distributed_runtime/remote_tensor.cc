@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- remote_tensor.cc ---------------------------------------------------===//
-//
 // This file implements Remote Tensor.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/remote_tensor.h"
 

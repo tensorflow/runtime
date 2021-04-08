@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- location_test.cc -----------------------------------------*- C++ -*-===//
-//
 // Unit tests for TFRT Location and LocationHandler classes.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/location.h"
 

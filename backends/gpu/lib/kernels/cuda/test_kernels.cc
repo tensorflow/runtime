@@ -15,8 +15,6 @@
 //===- test_kernels.cc - CUDA runtime interface ---------------------------===//
 //
 // This file defines the C++ functions that implement the test CUDA kernels
-//
-//===----------------------------------------------------------------------===//
 #include "test_kernels.h"
 
 #include <unordered_map>

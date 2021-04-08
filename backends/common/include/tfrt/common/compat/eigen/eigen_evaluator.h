@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-//===- eigen_evaluator.h ----------------------------------------*- C++ -*-===//
-//
 // This file implements AsyncEigenEvaluator and SyncEigenEvaluator.
 // AsyncEigenEvaluator and SyncEigenEvaluator have the same interface and are
 // intended to be used a template argument to give the user function both the
 // async and sync evaluation semantitc.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_EVAULATOR_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_EVAULATOR_H_

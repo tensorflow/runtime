@@ -12,11 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- matmul_op.cc - Implements tf.matmul on GPU --------------*- C++ -*--===//
-//
-//
-//===----------------------------------------------------------------------===//
-#include "matmul_op.h"
+//===- matmul_op.cc - Implements tf.matmul on GPU --------------*- C++
+//-*--===#include "matmul_op.h"
 
 #include <immintrin.h>
 

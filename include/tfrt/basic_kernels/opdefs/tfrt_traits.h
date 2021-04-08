@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tfrt_traits.h --------------------------------------------*- C++ -*-===//
-//
 // This file declares traits for the 'tfrt' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BASIC_KERNELS_OPDEFS_TFRT_TRAITS_H_
 #define TFRT_BASIC_KERNELS_OPDEFS_TFRT_TRAITS_H_

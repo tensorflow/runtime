@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- pad_op.h - Declares a function to register tf.Pad op -----*- C++ -*-===//
+// Declares a function to register tf.Pad op
 //
 // Declares a function to register tf.Pad implementation on GPU.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_PAD_OP_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_PAD_OP_H_
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- wrapper_detail.h -----------------------------------------*- C++ -*-===//
-//
 // Internal header for stream wrapper implementation.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_GPU_LIB_STREAM_WRAPPER_DETAIL_H_
 #define TFRT_BACKENDS_GPU_LIB_STREAM_WRAPPER_DETAIL_H_
 

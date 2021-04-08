@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tile_op.h - ----------------------------------------------*- C++ -*-===//
-//
 // Tensorflow Tile operation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_TILE_OP_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_TILE_OP_H_

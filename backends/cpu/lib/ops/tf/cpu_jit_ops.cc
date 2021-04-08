@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tf/cpu_jit_ops.cc ----------------------------------------*- C++ -*-===//
-//
 // Tensorflow CPU JIT operations registration.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/ops/tf/cpu_jit_ops.h"
 

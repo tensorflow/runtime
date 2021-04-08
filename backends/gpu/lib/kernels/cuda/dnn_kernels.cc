@@ -16,8 +16,6 @@
 //
 // This file defines the C++ functions that implement the kernels provided by
 // the TFRT CUDA runtime.
-//
-//===----------------------------------------------------------------------===//
 #include <cstdint>
 #include <memory>
 #include <string>

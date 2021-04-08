@@ -15,8 +15,6 @@
 //===- host_allocator.cc - Host Memory Allocator Abstraction --------------===//
 //
 // This file implements the generic interface for host memory allocators.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/host_allocator.h"
 

@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cufft_stub.cc --------------------------------------------*- C++ -*-===//
-//
 // Implementation of the cuFFT API forwarding calls to symbols dynamically
 // loaded from the real library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "cufft.h"    // from @cuda_headers
 #include "cufftXt.h"  // from @cuda_headers

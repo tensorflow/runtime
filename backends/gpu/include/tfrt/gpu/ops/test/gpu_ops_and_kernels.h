@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- gpu_ops_and_kernels.h - GPU specific ops and kernels -----*- C++ -*-===//
+// GPU specific ops and kernels
 //
 // This file contains helpers that register GPU specific ops and TFRT kernels.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_OPS_TEST_GPU_OPS_AND_KERNELS_H_
 #define TFRT_GPU_OPS_TEST_GPU_OPS_AND_KERNELS_H_
 

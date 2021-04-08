@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- remote_device.h - Remote Device --------------------------*- C++ -*-===//
+// Remote Device
 //
 // This file defines remote devices, which represent devices on remote tasks.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_DEVICE_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_DEVICE_H_
 

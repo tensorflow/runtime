@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-//===- gpu_op_utils.h - Helpers for gpu op implementations ------*- C++ -*-===//
+// Helpers for gpu op implementations
 //
 // This file declares simple helper routines to make it easier to write
 // gpu dispatch function for a op. This is intended to be small and
 // simple things and is nearly header-only.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_CORE_RUNTIME_GPU_OP_UTILS_H_
 #define TFRT_GPU_CORE_RUNTIME_GPU_OP_UTILS_H_

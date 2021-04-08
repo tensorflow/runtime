@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- interleave_dataset.h -------------------------------------*- C++ -*-===//
-//
 // This file declares InterleaveDataset class, which applies a function to its
 // input to create a dataset per input element, and interleaves the results of
 // these datasets.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DATA_INTERLEAVE_DATASET_H_
 #define TFRT_LIB_DATA_INTERLEAVE_DATASET_H_

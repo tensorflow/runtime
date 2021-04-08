@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- core_runtime/kernels.cc --------------------------------------------===//
-//
 // This library contains kernels that allows the bef_executor to drive the core
 // runtime.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/core_runtime/kernels.h"
 

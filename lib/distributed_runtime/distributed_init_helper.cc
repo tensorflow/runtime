@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- distributed_init_helper.cc - Distributed Init Helper -----*- C++ -*-===//
+// Distributed Init Helper
 //
 // This file contains the implementation of DistributedInitHelper.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/distributed_init_helper.h"
 

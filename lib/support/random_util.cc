@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- random_util.cc -------------------------------------------*- C++ -*-===//
-//
 // This file implements random number generator.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/random_util.h"
 

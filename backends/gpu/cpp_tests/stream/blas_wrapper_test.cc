@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- blas_wrapper_test.cc -------------------------------------*- C++ -*-===//
-//
 // Unit test for BLAS wrapper (abstraction layer for cuBLAS and rocmBLAS).
-//
-//===----------------------------------------------------------------------===//
 
 #include "common.h"
 #include "gtest/gtest.h"

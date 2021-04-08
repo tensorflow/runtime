@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- rocblas_wrapper.h ----------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the rocBLAS API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_ROCBLAS_WRAPPER_H_
 #define TFRT_GPU_STREAM_ROCBLAS_WRAPPER_H_
 

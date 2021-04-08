@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- file_system.cc -----------------------------------------------------===//
-//
 // This file implements the FileSystemRegistry class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/io/file_system.h"
 

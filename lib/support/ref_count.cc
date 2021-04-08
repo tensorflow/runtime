@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- ref_count.cc ---------------------------------------------*- C++ -*-===//
-//
 // This file holds the global counter for the number of
 // reference_counted_objects.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/ref_count.h"
 

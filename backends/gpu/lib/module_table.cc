@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- module_table.cc ------------------------------------------*- C++ -*-===//
-//
 // Implementation of the ModuleTable used to load and track CUDA modules.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/module_table.h"
 
 #include "llvm/ADT/STLExtras.h"

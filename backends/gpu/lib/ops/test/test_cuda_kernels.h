@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- test_cuda_kernels.h --------------------------------------*- C++ -*-===//
-//
 // This file exports CUDA kernels for some test.* ops.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TEST_TEST_CUDA_KERNELS_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TEST_TEST_CUDA_KERNELS_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tensor_handle.cc -----------------------------------------*- C++ -*-===//
-//
 // This file defines tensor handle.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/core_runtime/tensor_handle.h"
 

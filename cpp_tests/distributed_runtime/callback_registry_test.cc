@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- callback_registry_test.cc --------------------------------*- C++ -*-===//
-//
 // Unit test for CallbackRegistry.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/callback_registry.h"
 

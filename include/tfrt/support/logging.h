@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- logging.h ------------------------------------------------*- C++ -*-===//
-//
 // This file declares the logging library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_LOGGING_H_
 #define TFRT_SUPPORT_LOGGING_H_

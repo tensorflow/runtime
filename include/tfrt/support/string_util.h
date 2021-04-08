@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- string_util.h --------------------------------------------*- C++ -*-===//
-//
 // This file introduces utility functions related to string manipulation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_STRING_UTIL_H_
 #define TFRT_SUPPORT_STRING_UTIL_H_

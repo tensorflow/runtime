@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- gpu_buffer_test.cc ---------------------------------------*- C++ -*-===//
-//
 // Unit test for GpuBuffer.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/memory/gpu_buffer.h"
 
 #include <llvm/Support/Errc.h>

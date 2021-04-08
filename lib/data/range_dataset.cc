@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- range_dataset.cc -----------------------------------------*- C++ -*-===//
-//
 // This file implements RangeDataset class which yields a step-separated range
 // of values.
-//
-//===----------------------------------------------------------------------===//
 
 #include "range_dataset.h"
 

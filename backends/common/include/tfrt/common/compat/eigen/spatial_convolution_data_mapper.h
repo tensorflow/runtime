@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-//===- spatial_convolution_data_mapper.h ------------------------*- C++ -*-===//
-//
 // Provide optimized Eigen contraction data mappers for extracting image patches
 // from the underlying tensor expression. We do this by "pattern matching" on a
 // spatial convolution tensor expression AST (defined in spatial_convolution.h)
 // via Eigen template specialization.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_SPATIAL_CONVOLUTION_DATA_MAPPER_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_SPATIAL_CONVOLUTION_DATA_MAPPER_H_

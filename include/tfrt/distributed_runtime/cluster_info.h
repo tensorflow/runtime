@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cluster_info.h -------------------------------------------*- C++ -*-===//
-//
 // Declares ClusterInfo which holds the tasks and their name and address info.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_TASK_UTIL_H_
 #define TFRT_DISTRIBUTED_RUNTIME_TASK_UTIL_H_

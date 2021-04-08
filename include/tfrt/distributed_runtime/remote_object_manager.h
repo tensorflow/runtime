@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- remote_object_manager.h - Remote Object Manager ----------*- C++ -*-===//
+// Remote Object Manager
 //
 // This file declares RemoteObjectManager which manages remote objects stored
 // locally as well as allocates unique RemoteObjectId.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_OBJECT_MANAGER_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_OBJECT_MANAGER_H_
 

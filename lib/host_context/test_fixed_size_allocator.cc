@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test_fixed_size_allocator.cc ---------------------------------------===//
-//
 // This file implements a subclass of the MallocAllocator which can be used to
 // test graceful failure handling.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/support/logging.h"

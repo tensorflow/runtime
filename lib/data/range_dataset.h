@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- range_dataset.h ------------------------------------------*- C++ -*-===//
-//
 // This file declares RangeDataset class which yields a step-separated range of
 // values.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DATA_RANGE_DATASET_H_
 #define TFRT_LIB_DATA_RANGE_DATASET_H_

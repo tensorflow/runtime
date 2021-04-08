@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dnn_wrapper.cc -------------------------------------------*- C++ -*-===//
-//
 // Thin abstraction layer for cuDNN and MIOpen.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/dnn_wrapper.h"
 
 #include "library_types.h"

@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- matmul_op.h - Declares a function to register tf.matmul --*- C++ -*-===//
+// Declares a function to register tf.matmul
 //
 // Declares a function to register tf.matmul implementation on GPU.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_MATMUL_OP_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_MATMUL_OP_H_
 

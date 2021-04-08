@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- examples_ops.cc ----------------------------------------------------===//
-//
 // This file defines some example op implementations in the "tfrt_test."
 // namespace.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../../kernels/cpu_kernels.h"
 #include "llvm/Support/Casting.h"

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- conv2d.h -------------------------------------------------*- C++ -*-===//
-//
 // Conv2D kernel implementation using Eigen contraction.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_CONV2D_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_CONV2D_H_

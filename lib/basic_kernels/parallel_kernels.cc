@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- parallel_kernels.cc ------------------------------------------------===//
-//
 // This file implements core parallel kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include <cstddef>
 #include <cstdint>

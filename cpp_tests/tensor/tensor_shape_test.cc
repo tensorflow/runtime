@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tensor_shape_test.cc -------------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT TensorShape.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/tensor_shape.h"
 

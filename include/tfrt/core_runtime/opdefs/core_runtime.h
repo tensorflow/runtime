@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- core_runtime.h - op definitions for core runtime kernels -*- C++ -*-===//
+// op definitions for core runtime kernels
 //
 // This file declares the 'corert' dialect as well as the operators that make up
 // the core_runtime kernel library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_OPDEFS_CORE_RUNTIME_H_
 #define TFRT_CORE_RUNTIME_OPDEFS_CORE_RUNTIME_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- blas_wrapper.cc ------------------------------------------*- C++ -*-===//
-//
 // Thin abstraction layer for cuBLAS and MIOpen.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/blas_wrapper.h"
 
 #include "cublas.h"  // from @cuda_headers

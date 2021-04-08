@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- type_name.h ----------------------------------------------*- C++ -*-===//
-//
 // This file declares TypeName.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_TYPE_NAME_H_
 #define TFRT_HOST_CONTEXT_TYPE_NAME_H_

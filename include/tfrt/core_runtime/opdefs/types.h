@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- types.h --------------------------------------------------*- C++ -*-===//
-//
 // This file declares types for the 'corert' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TF_RUNTIME_INCLUDE_TFRT_CORE_RUNTIME_OPDEFS_TYPES_H_
 #define TF_RUNTIME_INCLUDE_TFRT_CORE_RUNTIME_OPDEFS_TYPES_H_

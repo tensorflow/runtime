@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- stream_analysis.cc -------------------------------------------------===//
-//
 // This implements StreamAnalysis that analyzes sequential regions of a graph.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/compiler/stream_analysis.h"
 

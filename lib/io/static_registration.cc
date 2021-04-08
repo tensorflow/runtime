@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- static_registration.cc ---------------------------------------------===//
-//
 // This file uses a static constructor to register file systems.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/io/file_system.h"
 

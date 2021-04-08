@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- integer_kernels.cc -------------------------------------------------===//
-//
 // This file implements a host executor kernels for integer types.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/basic_kernels/basic_kernels.h"

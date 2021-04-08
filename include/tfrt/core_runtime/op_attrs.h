@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-//===- op_attrs.h -----------------------------------------------*- C++ -*-===//
-//
 // This file declares the OpAttrs interface.  OpAttrs is the primary class used
 // by clients of the CoreRuntime API when executing ops.  It is intended to live
 // on the stack, and includes significant internal storage to make op execution
 // efficient in the common case.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_OP_ATTRS_H_
 #define TFRT_CORE_RUNTIME_OP_ATTRS_H_

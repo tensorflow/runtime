@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- request_deadline_tracker.h -------------------------------*- C++ -*-===//
-//
 // This file declares RequestDeadlineTracker.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_REQUEST_DEADLINE_TRACKER_H_
 #define TFRT_HOST_CONTEXT_REQUEST_DEADLINE_TRACKER_H_

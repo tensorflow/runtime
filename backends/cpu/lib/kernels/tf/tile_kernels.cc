@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tile_kernels.cc - ----------------------------------------*- C++ -*-===//
-//
 // Tile Tensorflow kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../tile_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"

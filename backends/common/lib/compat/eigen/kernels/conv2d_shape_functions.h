@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- conv2d_shape_functions.h ---------------------------------*- C++ -*-===//
-//
 // Collection of helper shape functions for Conv2D kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_CONV2D_SHAPE_FUNCTIONS_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_KERNELS_CONV2D_SHAPE_FUNCTIONS_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cuda_ops.cc --------------------------------------------------------===//
-//
 // This file implements MLIR operations for the cuda_ops library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops.h"
 

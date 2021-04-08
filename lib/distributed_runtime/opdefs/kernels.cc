@@ -15,8 +15,6 @@
 //===-_kernels.cc ---------------------------------------------------------===//
 //
 // This file implements MLIR operations for the distributed dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/opdefs/kernels.h"
 

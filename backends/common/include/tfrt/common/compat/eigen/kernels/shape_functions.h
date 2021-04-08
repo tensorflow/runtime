@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- shape_functions.h ----------------------------------------*- C++ -*-===//
-//
 // Collection of helper functions to compute and validate tensor shapes.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_KERNELS_SHAPE_FUNCTIONS_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_KERNELS_SHAPE_FUNCTIONS_H_

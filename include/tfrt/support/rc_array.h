@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- rc_array.h -----------------------------------------------*- C++ -*-===//
-//
 // A helper class for working with an array of reference counted types.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_RC_ARRAY_H_
 #define TFRT_SUPPORT_RC_ARRAY_H_

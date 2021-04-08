@@ -78,19 +78,6 @@ provide you the symbols of `bar.h`*.
     inherently part of the AsyncValueRef concept, the clients that include
     `async_value_ref.h` should not need to include `async_value.h`.
 
-## File headers
-
-All source files start with a file header. The first and the last line of the
-file header must have exactly 80 characters. That header should look like this:
-
-```c++
-//===- HostAllocator.h - Host Memory Allocator Abstraction ------*- C++ -*-===//
-//
-// This file declares the generic interface for host memory allocators.
-//
-//===----------------------------------------------------------------------===//
-```
-
 ## Capitalization for acronyms
 
 You should capitialize the first letter for acronyms. In particular, a

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- thread_local_test.cc -------------------------------------*- C++ -*-===//
-//
 // Tests for tfrt::ThreadLocal implementation.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/thread_local.h"
 

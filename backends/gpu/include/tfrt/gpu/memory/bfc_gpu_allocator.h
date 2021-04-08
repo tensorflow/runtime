@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- bfc_gpu_allocator.h - BFC GPU allocator ------------------*- C++ -*-===//
+// BFC GPU allocator
 //
 // This file defines the interface for a BFC GPU memory allocator.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_MEMORY_BFC_GPU_ALLOCATOR_H_
 #define TFRT_GPU_MEMORY_BFC_GPU_ALLOCATOR_H_
 

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cusolver_wrapper.cc --------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the cuSOLVER API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/cusolver_wrapper.h"
 
 #include "llvm/Support/Errc.h"

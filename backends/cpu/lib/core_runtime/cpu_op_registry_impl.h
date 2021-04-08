@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- cpu_op_registry_impl.h -----------------------------------*- C++ -*-===//
-//
 // This file declares CpuOpRegistry::Impl for use by the registry and the
 // CPU device.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_CORE_RUNTIME_CPU_OP_REGISTRY_IMPL_H_
 #define TFRT_BACKENDS_CPU_LIB_CORE_RUNTIME_CPU_OP_REGISTRY_IMPL_H_

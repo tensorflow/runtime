@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- cpurt_corert_kernels_registration.cc -------------------------------===//
-//
 // This file uses a static constructor to automatically register CpuRT kernels
 // that could handle CoreRt TensorHandle inputs. These kernels depend on the
 // CoreRT library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/kernel_registry.h"
 

@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- async_kernels.cc ---------------------------------------------------===//
-//
 // This file implements a few simple classes of asynchronous kernels for
 // testing.
-//
-//===----------------------------------------------------------------------===//
 
 #include <chrono>
 #include <random>

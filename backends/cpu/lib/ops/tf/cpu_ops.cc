@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tf/cpu_ops.cc --------------------------------------------*- C++ -*-===//
-//
 // This file defines dispatch functions for CPU implementation of TF ops.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/ops/tf/cpu_ops.h"
 

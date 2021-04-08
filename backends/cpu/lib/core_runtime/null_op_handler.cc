@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- null_op_handler.cc -------------------------------------------------===//
-//
 // This file implements the NullOpHandler, which always fails on op execution.
 // It is the default fallback op handler.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/core_runtime/null_op_handler.h"
 

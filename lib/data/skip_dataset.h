@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- skip_dataset.h -------------------------------------------*- C++ -*-===//
-//
 // This file declares SkipDataset class which wraps around another Dataset
 // instance and skips a specified number of elements from that dataset.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_SKIP_DATASET_H_
 #define TFRT_DATA_SKIP_DATASET_H_

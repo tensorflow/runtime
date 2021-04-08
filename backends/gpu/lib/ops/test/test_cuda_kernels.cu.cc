@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test_cuda_kernels.cc -----------------------------------------------===//
-//
 // This file contains CUDA kernels for some test.* ops.
-//
-//===----------------------------------------------------------------------===//
 
 #include "test_cuda_kernels.h"
 

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- core_runtime/test_kernels.cc ---------------------------------------===//
-//
 // This library contains test kernels needed by core runtime unit tests.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/core_runtime/kernels.h"

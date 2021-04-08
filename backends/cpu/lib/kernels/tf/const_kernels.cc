@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- const_kernels.cc - ---------------------------------------*- C++ -*-===//
-//
 // const Tensorflow kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/sync_kernel_utils.h"
 #include "tfrt/tensor/dense_host_tensor.h"

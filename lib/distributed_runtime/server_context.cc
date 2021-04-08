@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- server_context.cc - Server Context -----------------------*- C++ -*-===//
+// Server Context
 //
 // This file contains the implementation of server context.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/server_context.h"
 

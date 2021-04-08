@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- atomic_test_kernels.cc ---------------------------------------------===//
-//
 // This file implements atomic kernels, useful for writing tests for various
 // concurrency situations.
-//
-//===----------------------------------------------------------------------===//
 
 #include <atomic>
 

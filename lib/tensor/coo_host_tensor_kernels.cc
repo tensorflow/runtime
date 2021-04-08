@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- coo_host_tensor_kernels.cc -------------------------------*- c++ -*-===//
-//
 // This file defines the kernels for COO sparse host tensors.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/tensor/coo_host_tensor.h"

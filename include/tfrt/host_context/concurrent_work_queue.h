@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- concurrent_work_queue.h - Work Queue Abstraction ---------*- C++ -*-===//
+// Work Queue Abstraction
 //
 // This file declares the generic interface for concurrent work queue
 // abstractions.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_CONCURRENT_WORK_QUEUE_H_
 #define TFRT_HOST_CONTEXT_CONCURRENT_WORK_QUEUE_H_

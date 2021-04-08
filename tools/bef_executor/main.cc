@@ -16,8 +16,6 @@
 //
 // This file parses command-line options and runs a given mlir file using test
 // driver library.
-//
-//===----------------------------------------------------------------------===//
 
 #include <string>
 

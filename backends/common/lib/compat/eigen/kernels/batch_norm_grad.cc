@@ -15,8 +15,6 @@
 //===- batch_norm_grad.cc ----------------------------------------*- C++-*-===//
 //
 // Batch normalization gradient kernels implemented with Eigen.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"

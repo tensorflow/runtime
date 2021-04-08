@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- concat_op.cc - -------------------------------------------*- C++ -*-===//
-//
 // Tensorflow Concat operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "concat_op.h"
 

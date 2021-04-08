@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- concurrent_work_queue_test.cc --------------------------------------===//
-//
 // This file contains unit tests for tfrt::SingleThreadedWorkQueue
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/concurrent_work_queue.h"
 

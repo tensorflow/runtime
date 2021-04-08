@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tfrt_traits.cc -----------------------------------------------------===//
-//
 // This file implements MLIR traits for the `tfrt` dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/basic_kernels/opdefs/tfrt_traits.h"
 

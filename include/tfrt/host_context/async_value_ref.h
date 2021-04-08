@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//===- async_value_ref.h - RCReference<AsyncValue> wrapper ------*- C++ -*-===//
+// RCReference<AsyncValue> wrapper
 //
 // AsyncValueRef<T> is an alias for RCReference<AsyncValue> that carries payload
 // type information. The user does not need to pass the payload data type to
@@ -23,8 +23,6 @@
 // Like RCReference<AsyncValue>, it represents one reference on the underlying
 // AsyncValue. When a callee returns an AsyncValueRef to a caller, the callee
 // also transfers their ownership of a reference on the underlying AsyncValue.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_
 #define TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_

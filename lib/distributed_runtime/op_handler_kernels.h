@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- op_handler_kernels.h -------------------------------------*- C++ -*-===//
-//
 // This file contains helpers that register TFRT kernels for creating
 // RemoteOpHandler.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DISTRIBUTED_RUNTIME_OP_HANDLER_KERNELS_H_
 #define TFRT_LIB_DISTRIBUTED_RUNTIME_OP_HANDLER_KERNELS_H_

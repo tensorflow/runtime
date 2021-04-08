@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- thread_pool_device.h -------------------------------------*- C++ -*-===//
-//
 // This file implements wrapping of HostContext into an Eigen ThreadPoolDevice,
 // that can be later used to parallelize Eigen expression evaluation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_THREAD_POOL_DEVICE_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_THREAD_POOL_DEVICE_H_

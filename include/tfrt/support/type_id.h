@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- type_id.h ------------------------------------------------*- C++ -*-===//
-//
 // This file defines a mapping from type to numeric id.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_TYPE_ID_H_
 #define TFRT_SUPPORT_TYPE_ID_H_

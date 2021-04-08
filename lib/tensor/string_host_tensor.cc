@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- string_host_tensor.cc ----------------------------------------------===//
-//
 // This file implements StringHostTensor.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/string_host_tensor.h"
 

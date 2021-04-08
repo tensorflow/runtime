@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- map_by_type_test.cc --------------------------------------*- C++ -*-===//
-//
 // Tests related to MapByType
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/support/map_by_type.h"
 
 #include "gmock/gmock.h"

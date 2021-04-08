@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- caching_gpu_allocator.h - GPU caching allocator ----------*- C++ -*-===//
+// GPU caching allocator
 //
 // This file defines the interface for a caching GPU memory allocator.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_MEMORY_CACHING_GPU_ALLOCATOR_H_
 #define TFRT_GPU_MEMORY_CACHING_GPU_ALLOCATOR_H_
 

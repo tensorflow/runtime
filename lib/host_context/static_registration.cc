@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- static_registration.cc -----------------------------------*- C++ -*-===//
-//
 // This file implements the work queue factories and registers them.
-//
-//===----------------------------------------------------------------------===//
 #include <cstddef>
 #include <string>
 #include <thread>

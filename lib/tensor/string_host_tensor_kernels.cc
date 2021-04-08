@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- string_host_tensor_kernels.cc --------------------------------------===//
-//
 // This file defines the kernels for string host tensors.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/string_host_tensor_kernels.h"
 

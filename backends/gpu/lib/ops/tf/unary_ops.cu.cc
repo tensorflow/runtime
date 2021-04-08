@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- unary_ops.cu.cc ------------------------------------------*- C++ -*-===//
-//
 // Collates list of all unary TF operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "eigen_helper.cu.h"
 #include "tfrt/core_runtime/op_attrs.h"

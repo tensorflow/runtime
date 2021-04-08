@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- softmax_kernel.h -----------------------------------------*- C++ -*-===//
-//
 // Softmax and LogSoftmax kernels implementation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_SOFTMAX_KERNEL_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_SOFTMAX_KERNEL_H_

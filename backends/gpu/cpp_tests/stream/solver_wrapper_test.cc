@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- solver_wrapper_test.cc -----------------------------------*- C++ -*-===//
-//
 // Unit test for SOLVER wrapper (abstraction layer for cuSOLVER and rocmSOLVER).
-//
-//===----------------------------------------------------------------------===//
 
 #include "common.h"
 #include "gtest/gtest.h"

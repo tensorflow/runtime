@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cudnn_wrapper.cc -----------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the cuDNN API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/cudnn_wrapper.h"
 
 #include <cstdlib>

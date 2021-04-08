@@ -15,8 +15,6 @@
 //===- BEF to MLIR translation registration -------------------------------===//
 //
 // This file registrates BEF to MLIR translation.
-//
-//===----------------------------------------------------------------------===//
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Translation.h"
 #include "tfrt/bef_converter/bef_to_mlir_translate.h"

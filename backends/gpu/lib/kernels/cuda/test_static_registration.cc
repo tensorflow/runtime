@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test_static_registration.cc ----------------------------------------===//
-//
 // This file uses a static constructor to automatically register all of the
 // CUDA test kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/kernel_registry.h"
 

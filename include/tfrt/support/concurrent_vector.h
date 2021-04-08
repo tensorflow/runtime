@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- concurrent_vector.h --------------------------------------*- C++ -*-===//
-//
 // A concurent sequential container optimized for read access.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_CONCURRENT_VECTOR_H_
 #define TFRT_SUPPORT_CONCURRENT_VECTOR_H_

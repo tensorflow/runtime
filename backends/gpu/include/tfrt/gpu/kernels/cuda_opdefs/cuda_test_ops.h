@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- cuda_test_ops.h - MLIR op defs for testing cuda library --*- C++ -*-===//
+// MLIR op defs for testing cuda library
 //
 // This file declares test-only operations for CUDA
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_TEST_OPS_H_
 #define TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_TEST_OPS_H_

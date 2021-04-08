@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- repeat_dataset.h -----------------------------------------*- C++ -*-===//
-//
 // This file declares RepeatDataset class which wraps around another Dataset
 // instance and repeats it a specified number of times.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_REPEAT_DATASET_H_
 #define TFRT_DATA_REPEAT_DATASET_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- bf16.h ---------------------------------------------------*- C++ -*-===//
-//
 // This file defines the 16-bit brain floating type: bf16.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_BF16_H_
 #define TFRT_SUPPORT_BF16_H_

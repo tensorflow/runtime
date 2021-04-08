@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- async_runtime_api.cc -------------------------------------*- C++ -*-===//
-//
 // MLIR Async Runtime API integration with TFRT based AsyncRuntime.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/jit/async_runtime_api.h"
 

@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-//===- timer_queue.h - Timer Queue ------------------------------*- C++ -*-===//
+// Timer Queue
 //
 // This file declares TimerQueue, a priority queue to keep track of pending
 // timers. The queue is keyed by timer deadline (the sooner it expires, the
 // higher the priority). On timer expiration, it calls the associated callback.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_TIMER_QUEUE_H_
 #define TFRT_HOST_CONTEXT_TIMER_QUEUE_H_

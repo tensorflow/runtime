@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- bef_file_impl.h ------------------------------------------*- C++ -*-===//
-//
 // This file declares BEFFileImpl - the implementation details behind a BEFFile.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_BEF_EXECUTOR_BEF_FILE_IMPL_H_
 #define TFRT_LIB_BEF_EXECUTOR_BEF_FILE_IMPL_H_

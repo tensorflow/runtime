@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tf_record_dataset.cc -----------------------------------------------===//
-//
 // This file implements TFRecordDataset class which reads records from TFRecord
 // files into strings.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tf_record_dataset.h"
 

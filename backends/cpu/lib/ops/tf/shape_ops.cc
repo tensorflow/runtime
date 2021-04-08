@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- shape_ops.cc - -------------------------------------------*- C++ -*-===//
-//
 // Tensorflow shape related operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "shape_ops.h"
 

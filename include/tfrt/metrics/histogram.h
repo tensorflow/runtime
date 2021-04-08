@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- histogram.h ----------------------------------------------*- C++ -*-===//
-//
 // This file declares the Histogram metric interface.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_METRICS_HISTOGRAM_H_
 #define TFRT_METRICS_HISTOGRAM_H_

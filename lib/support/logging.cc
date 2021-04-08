@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- logging.cc -----------------------------------------------*- C++ -*-===//
-//
 // This file defines the logging methods.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/logging.h"
 

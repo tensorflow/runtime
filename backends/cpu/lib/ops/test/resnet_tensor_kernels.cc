@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- resnet_tensor_kernels.cc ---------------------------------*- C++ -*-===//
-//
 // This file defines the tensor kernels for resnet.
-//
-//===----------------------------------------------------------------------===//
 
 #include <cmath>
 

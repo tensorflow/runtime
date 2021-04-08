@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- resource_context.h ---------------------------------------*- C++ -*-===//
-//
 // This file declares ResourceContext - a type-erased container for storing and
 // retrieving resources.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_RESOURCE_CONTEXT_H_
 #define TFRT_HOST_CONTEXT_RESOURCE_CONTEXT_H_

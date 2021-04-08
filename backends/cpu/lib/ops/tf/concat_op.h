@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- concat_op.h - --------------------------------------------*- C++ -*-===//
-//
 // Tensorflow Concat operation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_CONCAT_OP_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_CONCAT_OP_H_

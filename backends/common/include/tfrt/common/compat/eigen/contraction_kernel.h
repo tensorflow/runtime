@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-//===- contraction_kernel.h -------------------------------------*- C++ -*-===//
-//
 // Depending on a build configuration this header provides a custom kernel for
 // Eigen tensor contractions (small matrix multiplication kernel used to
 // multiply together blocks of the original tensors).
@@ -32,8 +30,6 @@
 //
 // If you use `tensor.contract(other_tensor)` in your code, you must include
 // this header to get the benefit of custom contraction kernel.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_CONTRACTION_KERNEL_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_CONTRACTION_KERNEL_H_

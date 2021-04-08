@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- hip_stub.h -----------------------------------------------*- C++ -*-===//
-//
 // Mostly auto-generated HIP API header.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_HIP_STUB_H_
 #define TFRT_GPU_STREAM_HIP_STUB_H_
 

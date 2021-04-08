@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- timer_queue.cc - Timer Queue -----------------------------*- C++ -*-===//
+// Timer Queue
 //
 // This file implements TimerQueue.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/timer_queue.h"
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cwise_unary_ops.cc - -------------------------------------*- C++ -*-===//
-//
 // Coefficient wise unary Tensorflow operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_CWISE_UNARY_OPS_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_CWISE_UNARY_OPS_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- async_dispatch.h -----------------------------------------*- C++ -*-===//
-//
 // This file declares functions related to asynchronous work dispatching.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_
 #define TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_

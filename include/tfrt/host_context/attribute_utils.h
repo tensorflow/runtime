@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- attribute_utils.h - Helpers for BEF Attributes -----------*- C++ -*-===//
+// Helpers for BEF Attributes
 //
 // This file declares helper routines for reading BEF Attributes.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_ATTRIBUTE_UTILS_H_
 #define TFRT_HOST_CONTEXT_ATTRIBUTE_UTILS_H_

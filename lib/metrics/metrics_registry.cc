@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- metrics_registry.cc ------------------------------------------------===//
-//
 // This file defines functions to register the MetricsRegistry instance.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/metrics/metrics_registry.h"
 

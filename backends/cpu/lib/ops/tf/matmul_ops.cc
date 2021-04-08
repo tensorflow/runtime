@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- matmul_ops.cc - ------------------------------------------*- C++ -*-===//
-//
 // Tensorflow MatMul operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "matmul_ops.h"
 

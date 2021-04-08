@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- instantiate_test_suite.cc --------------------------------*- C++ -*-===//
-//
 // Instantiates parameterized GPU wrapper tests for each platform.
-//
-//===----------------------------------------------------------------------===//
 #include "common.h"
 #include "gtest/gtest.h"
 #include "llvm/Support/raw_ostream.h"

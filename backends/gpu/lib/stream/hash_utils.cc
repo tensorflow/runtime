@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- hash_utils.cc - Defines std::hash specializations --------*- C++ -*-===//
+// Defines std::hash specializations
 //
 // Defines std::hash specializations for some tfrt::gpu::stream types.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/stream/hash_utils.h"
 

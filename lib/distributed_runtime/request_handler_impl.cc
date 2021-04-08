@@ -17,8 +17,6 @@
 //===- request_handler_impl.cc - Request Handler ---------*- C++ -*--------===//
 //
 // This file contains implementation of RequestHandler class.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/distributed_runtime/request_handler_impl.h"
 
 #include "llvm/Support/Error.h"

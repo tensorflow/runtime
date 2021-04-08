@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- device/device_util.cc ----------------------------------------------===//
-//
 // This file implements GPU device util functions for managing GPU devices.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/device/device_util.h"
 
 #include <memory>

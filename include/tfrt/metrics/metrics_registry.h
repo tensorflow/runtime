@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- metrics_registry.h ---------------------------------------*- C++ -*-===//
-//
 // This file declares the MetricsRegistry interface.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_METRICS_METRICS_REGISTRY_H_
 #define TFRT_METRICS_METRICS_REGISTRY_H_

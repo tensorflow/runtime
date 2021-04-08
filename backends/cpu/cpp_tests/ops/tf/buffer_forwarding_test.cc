@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- buffer_forwarding_test.cc --------------------------------*- C++ -*-===//
-//
 //  Tensorflow operations buffer forwarding unit tests.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../../../lib/ops/tf/buffer_forwarding.h"
 

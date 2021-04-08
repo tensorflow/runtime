@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- task_name_utils.cc -------------------------------------------------===//
-//
 // Defines utils for task name conversions.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/task_name_util.h"
 

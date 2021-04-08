@@ -15,8 +15,6 @@
 //===- bef_interpreter.cc--------------------------------------------------===//
 //
 // This file implements the Interpreter for BEF files.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/bef_executor/bef_interpreter.h"
 

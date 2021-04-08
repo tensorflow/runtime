@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- control_flow_kernels.cc --------------------------------------------===//
-//
 // This file implements core control flow related kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/function.h"

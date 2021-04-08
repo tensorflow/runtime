@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- request_handler.h - Request Handler ----------------------*- C++ -*-===//
+// Request Handler
 //
 // This file declares RequestHandler, which implements logic to send data, and
 // register and execute programs.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_H_

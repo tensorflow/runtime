@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- tensor_serialize_utils.h ---------------------------------*- C++ -*-===//
-//
 // This file declares serialization and deserialization utils for DenseElement
 // attributes.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_BEF_SERIALIZE_H_
 #define TFRT_SUPPORT_BEF_SERIALIZE_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- reduction_ops.h ------------------------------------------*- C++ -*-===//
-//
 // Collates list of all TF reduction operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_REDUCTION_OPS_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_REDUCTION_OPS_H_

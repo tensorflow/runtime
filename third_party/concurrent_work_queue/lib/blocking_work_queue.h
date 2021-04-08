@@ -2,15 +2,11 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- blocking_work_queue.h ------------------------------------*- C++ -*-===//
-//
 // Work queue implementation based on non-blocking concurrency primitives
 // optimized for IO and mostly blocking tasks.
 //
 // This work queue uses TaskQueue for storing pending tasks. Tasks executed
 // in mostly FIFO order, which is optimal for IO tasks.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_BLOCKING_WORK_QUEUE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_BLOCKING_WORK_QUEUE_H_

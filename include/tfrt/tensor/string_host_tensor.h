@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- string_host_tensor.h -------------------------------------*- C++ -*-===//
-//
 // This file defines the StringHostTensor class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_STRING_HOST_TENSOR_H_
 #define TFRT_TENSOR_STRING_HOST_TENSOR_H_

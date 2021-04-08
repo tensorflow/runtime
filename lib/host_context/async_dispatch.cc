@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- async_dispatch.cc --------------------------------------------------===//
-//
 // This file implements functions related to asynchronous work dispatching.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/async_dispatch.h"
 

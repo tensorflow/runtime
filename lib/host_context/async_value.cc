@@ -15,8 +15,6 @@
 //===- async_value.cc - Generic future type used by HostContext -----------===//
 //
 // This file implements AsyncValue.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "tfrt/host_context/async_value_ref.h"

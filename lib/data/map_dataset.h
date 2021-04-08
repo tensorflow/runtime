@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- map_dataset.h --------------------------------------------*- C++ -*-===//
-//
 // This file declares MapDataset class which wraps around another Dataset
 // instance and transforms the element before returning it to the caller.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DATA_MAP_DATASET_H_
 #define TFRT_LIB_DATA_MAP_DATASET_H_

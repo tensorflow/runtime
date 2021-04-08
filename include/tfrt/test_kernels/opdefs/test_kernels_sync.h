@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- test_kernels_sync.h --------------------------------------*- C++ -*-===//
-//
 // MLIR op definitions for sync test kernels.
 // This file declares the 'tfrt_test_sync' dialect as well as the operators in
 // the test_kernels_sync library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_SYNC_H_
 #define TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_SYNC_H_

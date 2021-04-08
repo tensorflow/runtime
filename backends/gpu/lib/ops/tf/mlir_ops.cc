@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- mlir_ops.cu.cc -------------------------------------------*- C++ -*-===//
-//
 // Collates list of all TF operations with pre-generated GPU code.
-//
-//===----------------------------------------------------------------------===//
 
 #include "mlir_ops.h"
 

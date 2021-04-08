@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- pointer_util.h -------------------------------------------*- C++ -*-===//
-//
 // This file introduces utilities for working with pointer.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_POINTER_UTIL_H_
 #define TFRT_SUPPORT_POINTER_UTIL_H_

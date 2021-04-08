@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test_kernels.cc ----------------------------------------------------===//
-//
 // This file implements kernels for testing distributed kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"

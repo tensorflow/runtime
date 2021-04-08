@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tensor_metadata.h ----------------------------------------*- C++ -*-===//
-//
 // This file defines the TensorMetadata struct.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_TENSORMETADATA_H_
 #define TFRT_TENSOR_TENSORMETADATA_H_

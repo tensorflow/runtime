@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tensor_shape.h -------------------------------------------*- C++ -*-===//
-//
 // This file defines the TensorShape class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_TENSOR_SHAPE_H_
 #define TFRT_TENSOR_TENSOR_SHAPE_H_

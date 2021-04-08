@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- tfrt_base.h - MLIR opdefs for tfrt dialect ---------------*- C++ -*-===//
+// MLIR opdefs for tfrt dialect
 //
 // This file declares the 'tfrt' dialect.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BASIC_KERNELS_OPDEFS_TFRT_BASE_H_
 #define TFRT_BASIC_KERNELS_OPDEFS_TFRT_BASE_H_
 

@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-//===- stream_analysis.h ----------------------------------------*- C++ -*-===//
-//
 // StreamAnalysis: Given an MLIR module in TFRT dialects and a cost_threshold as
 // a module attribute, it produces stream assignment for each operations. The
 // runtime can use this stream assignment as a hint for more efficient execution
@@ -47,8 +45,6 @@
 //        stream.
 //
 // TODO(chky): Add g3doc and link it here.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_COMPILER_STREAM_ANALYSIS_H_
 #define TFRT_COMPILER_STREAM_ANALYSIS_H_

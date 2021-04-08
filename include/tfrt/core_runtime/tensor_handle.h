@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tensor_handle.h ------------------------------------------*- C++ -*-===//
-//
 // This file declares the TensorHandle interface.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_TENSOR_HANDLE_H_
 #define TFRT_CORE_RUNTIME_TENSOR_HANDLE_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- core_runtime_op.h ----------------------------------------*- C++ -*-===//
-//
 // This file declares CoreRuntimeOp, responsible for executing ops.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_CORE_RUNTIME_CORE_RUNTIME_OP_H_
 #define TFRT_CORE_RUNTIME_CORE_RUNTIME_OP_H_
 

@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- remote_tensor.h - Remote Tensor --------------------------*- C++ -*-===//
+// Remote Tensor
 //
 // This file defines RemoteTensor which represents Tensor in remote worker.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_TENSOR_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_TENSOR_H_
 

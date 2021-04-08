@@ -15,8 +15,6 @@
 //===- simple_tracing_sink.cc - A Simple implementation of Tracing Sink ---===//
 //
 // This file implements a simple tracing sink which prints activities to stderr.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tracing/simple_tracing_sink/simple_tracing_sink.h"
 

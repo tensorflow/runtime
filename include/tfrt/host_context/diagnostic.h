@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- diagnostic.h - Decoded diagnostic abstraction ------------*- C++ -*-===//
+// Decoded diagnostic abstraction
 //
 // This file declares DecodedDiagnostic.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_DIAGNOSTIC_H_
 #define TFRT_HOST_CONTEXT_DIAGNOSTIC_H_

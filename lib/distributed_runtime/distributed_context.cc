@@ -17,8 +17,6 @@
 //===- distributed_context.cc - Distributed Context ------*- C++ -*--------===//
 //
 // Contains implementation of DistributedContext class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/distributed_runtime/distributed_context.h"
 

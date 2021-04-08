@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- host_context.h - CPU thread and memory abstraction -------*- C++ -*-===//
+// CPU thread and memory abstraction
 //
 // This file declares HostContext.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_HOST_CONTEXT_H_
 #define TFRT_HOST_CONTEXT_HOST_CONTEXT_H_

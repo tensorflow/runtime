@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- core_runtime/kernels.h - Kernel interface to CoreRuntime -*- C++ -*-===//
+// Kernel interface to CoreRuntime
 //
 // This library contains kernels that allows the bef_executor to drive the core
 // runtime.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_KERNELS_H_
 #define TFRT_CORE_RUNTIME_KERNELS_H_

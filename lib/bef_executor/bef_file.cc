@@ -16,8 +16,6 @@
 //
 // This file implements the BEFFile class, which works with the 'Binary Executor
 // Format' in memory for use primarily by the BEFExecutor.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/bef_executor/bef_file.h"
 

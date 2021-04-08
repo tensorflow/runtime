@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dense_host_tensor_kernels.cc -----------------------------*- C++ -*-===//
-//
 // This file defines the kernels for dense host tensors.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/dense_host_tensor_kernels.h"
 

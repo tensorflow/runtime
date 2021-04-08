@@ -13,14 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-//===- jpeg_handle.cc -----------------------------------------------------===//
-//
 // This file defines functions to compress and uncompress JPEG data to and from
 // memory, as well as some direct manipulations of JPEG string.
 //
 // Based on tensorflow/core/lib/jpeg/jpeg_mem.cc
-//
-//===----------------------------------------------------------------------===//
 
 #include "jpeg_mem.h"
 

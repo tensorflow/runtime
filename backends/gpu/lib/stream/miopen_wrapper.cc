@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- miopen_wrapper.cc ----------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the MIOpen API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/miopen_wrapper.h"
 
 #include <cstddef>

@@ -2,11 +2,7 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- task_priority_deque_test.cc ------------------------------*- C++ -*-===//
-//
 // Unit tests and benchmarks for TaskPriorityDeque.
-//
-//===----------------------------------------------------------------------===//
 
 #include "task_priority_deque.h"
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dense_host_tensor.h --------------------------------------*- C++ -*-===//
-//
 // This file defines the DenseHostTensor class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_DENSE_HOST_TENSOR_H_
 #define TFRT_TENSOR_DENSE_HOST_TENSOR_H_

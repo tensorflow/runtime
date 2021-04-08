@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- buffered_file_input_stream.h -----------------------------*- C++ -*-===//
-//
 // This file declares the BufferedInputStream class which buffers data from
 // another input stream.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_IO_BUFFERED_INPUT_STREAM_H_
 #define TFRT_IO_BUFFERED_INPUT_STREAM_H_

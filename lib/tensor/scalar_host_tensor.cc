@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- scalar_host_tensor.cc ----------------------------------------------===//
-//
 // This file implements ScalarHostTensor.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/scalar_host_tensor.h"
 

@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- gpu_op_registry_impl.h -----------------------------------*- C++ -*-===//
-//
 // This file declares GpuOpRegistry::Impl for use by the registry and the
 // GPU device.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_CORE_RUNTIME_GPU_OP_REGISTRY_IMPL_H_
 #define TFRT_BACKENDS_GPU_LIB_CORE_RUNTIME_GPU_OP_REGISTRY_IMPL_H_

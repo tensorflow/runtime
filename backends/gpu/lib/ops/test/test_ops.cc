@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test/gpu/test_ops.cc -------------------------------------*- C++ -*-===//
-//
 // This file defines dispatch functions for GPU test operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include <cstdint>
 #include <limits>

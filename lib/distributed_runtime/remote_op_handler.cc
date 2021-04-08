@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- remote_op_handler.cc - RemoteOpHandler -------------------*- C++ -*-===//
+// RemoteOpHandler
 //
 // This file contains an implementation of RemoteOpHandler.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/core_runtime/op_attrs.h"

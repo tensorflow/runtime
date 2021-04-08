@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- map_dataset.cc -------------------------------------------*- C++ -*-===//
-//
 // This file implements MapDataset class which wraps around another Dataset
 // instance and transforms the element before returning it to the caller.
-//
-//===----------------------------------------------------------------------===//
 
 #include "map_dataset.h"
 

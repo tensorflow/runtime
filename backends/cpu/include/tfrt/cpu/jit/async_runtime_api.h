@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- async_runtime_api.h --------------------------------------*- C++ -*-===//
-//
 // MLIR Async Runtime API integration with TFRT based AsyncRuntime.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_API_H_
 #define TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_API_H_

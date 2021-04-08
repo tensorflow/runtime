@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tensor_type_registration.h -------------------------------*- C++ -*-===//
-//
 // This file defines Tensor type and its registration.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_TENSOR_TYPE_REGISTRATION_H_
 #define TFRT_TENSOR_TENSOR_TYPE_REGISTRATION_H_

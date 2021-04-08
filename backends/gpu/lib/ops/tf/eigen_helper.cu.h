@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- eigen_helper.cu.h - --------------------------------------*- C++ -*-===//
-//
 // This file has some utilities to implement ops using Eigen.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_EIGEN_HELPER_CU_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_EIGEN_HELPER_CU_H_

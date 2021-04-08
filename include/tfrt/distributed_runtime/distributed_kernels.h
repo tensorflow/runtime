@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- distributed_runtime/distributed_kernels.h ----------------*- C++ -*-===//
-//
 // Kernel interface to distributed runtime. This library contains kernels that
 // allow the bef_executor to drive the distributed runtime.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_DISTRIBUTED_KERNELS_H_
 #define TFRT_DISTRIBUTED_RUNTIME_DISTRIBUTED_KERNELS_H_

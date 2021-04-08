@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- module_table_test.cc -------------------------------------*- C++ -*-===//
-//
 // Unit test for GPU ModuleTable.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/module_table.h"
 
 #include "gmock/gmock.h"

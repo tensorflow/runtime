@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- shape_functions.cc -------------------------------------------------===//
-//
 // Collection of helper functions to compute and validate tensor shapes.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/common/compat/eigen/kernels/shape_functions.h"
 

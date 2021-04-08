@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-//===- bcast.h --------------------------------------------------*- C++ -*-===//
-//
 // Helper functions for Tensorflow broadcasting rules.
 //
 // Refer to https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html for
 // the exact broadcasting behavior.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_OPS_TF_BCAST_H_
 #define TFRT_BACKENDS_COMMON_OPS_TF_BCAST_H_

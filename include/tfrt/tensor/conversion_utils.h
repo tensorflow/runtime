@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- conversion_utils.h ---------------------------------------*- C++ -*-===//
-//
 // This file defines macro to make it easier to write conversion function. This
 // is intended to be small and simple things and is nearly header-only.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_TENSOR_CONVERSION_UTILS_H_
 #define TFRT_TENSOR_CONVERSION_UTILS_H_
 

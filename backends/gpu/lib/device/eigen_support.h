@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- eigen_support.h ------------------------------------------*- C++ -*-===//
-//
 // This file declares some helpers that tfrt::GpuDevice uses to interact with
 // Eigen.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_DEVICE_EIGEN_SUPPORT_H_
 #define TFRT_BACKENDS_GPU_LIB_DEVICE_EIGEN_SUPPORT_H_

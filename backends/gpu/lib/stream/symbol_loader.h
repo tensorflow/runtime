@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- symbol_loader.h ------------------------------------------*- C++ -*-===//
-//
 // Loads a symbol from a shared library.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_GPU_LIB_STREAM_SYMBOL_LOADER_H_
 #define TFRT_BACKENDS_GPU_LIB_STREAM_SYMBOL_LOADER_H_
 

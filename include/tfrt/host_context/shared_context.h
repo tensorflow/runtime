@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- shared_context.h - Shared context abstraction ------------*- C++ -*-===//
+// Shared context abstraction
 //
 // This file declares SharedContext.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_SHARED_CONTEXT_H_
 #define TFRT_HOST_CONTEXT_SHARED_CONTEXT_H_

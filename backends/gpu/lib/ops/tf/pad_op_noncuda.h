@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- pad_op_noncuda.h - Declares helpers for tf.Pad op --------*- C++ -*-===//
+// Declares helpers for tf.Pad op
 //
 // Declares a function to call tf.Pad implementation on GPU.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_PAD_OP_NONCUDA_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_PAD_OP_NONCUDA_H_
 

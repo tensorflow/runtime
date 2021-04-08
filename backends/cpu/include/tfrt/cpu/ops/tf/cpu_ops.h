@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- cpu_ops.h - CPU implementation of TensorFlow operations --*- C++ -*-===//
+// CPU implementation of TensorFlow operations
 //
 // This file contains helpers that register CPU specific ops.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_CPU_OPS_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_CPU_OPS_H_

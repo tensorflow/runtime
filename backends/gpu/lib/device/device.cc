@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- device.cc ----------------------------------------------------------===//
-//
 // This file implements GPU device.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/device/device.h"
 
 #include "eigen_support.h"

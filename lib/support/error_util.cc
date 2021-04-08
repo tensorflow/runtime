@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- error_util.cc --------------------------------------------*- C++ -*-===//
-//
 // This file defines error utils.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/error_util.h"
 

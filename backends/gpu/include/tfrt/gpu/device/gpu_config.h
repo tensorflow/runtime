@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- gpu_config.h ---------------------------------------------*- C++ -*-===//
-//
 // This file defines various helpers to configure GPU OpHandler.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_DEVICE_GPU_CONFIG_H_
 #define TFRT_GPU_DEVICE_GPU_CONFIG_H_
 

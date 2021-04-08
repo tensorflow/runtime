@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-//===- sync_kernel_frame.h - Data for sync kernel invocation ----*- C++ -*-===//
+// Data for sync kernel invocation
 //
 // This file implements SyncKernelFrame which captures argument, result, and
 // other related information provided to synchronous kernels on kernel
 // invocation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_SYNC_KERNEL_FRAME_H_
 #define TFRT_HOST_CONTEXT_SYNC_KERNEL_FRAME_H_

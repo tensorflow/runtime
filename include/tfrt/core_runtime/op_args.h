@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- op_args.h ------------------------------------------------*- C++ -*-===//
-//
 // This file defines supporting classes for op arguments.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_OP_ARGS_H_
 #define TFRT_CORE_RUNTIME_OP_ARGS_H_

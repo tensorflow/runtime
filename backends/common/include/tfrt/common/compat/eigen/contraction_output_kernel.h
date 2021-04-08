@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-//===- contraction_output_kernel.h ------------------------------*- C++ -*-===//
-//
 // Eigen Tensor contraction output kernel is a mechanism to fuse any
 // element-wise operations into the Tensor contraction expression.
 //
@@ -63,8 +61,6 @@
 //   Example: For matrix multiplication [8x32] * [32x64], each output block
 //   column will correspond to a MatMul output row of size 64 (because
 //   DenseHostTensor uses row major storage order).
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_CONTRACTION_OUTPUT_KERNEL_H_
 #define TFRT_BACKENDS_COMMON_LIB_COMPAT_EIGEN_CONTRACTION_OUTPUT_KERNEL_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- ref_count.h ----------------------------------------------*- C++ -*-===//
-//
 // Helpers and utilities for working with reference counted types.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_REF_COUNT_H_
 #define TFRT_SUPPORT_REF_COUNT_H_

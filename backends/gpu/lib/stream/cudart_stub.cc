@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cudart_stub.cc -------------------------------------------*- C++ -*-===//
-//
 // Implementation of the CUDA runtime API forwarding calls to symbols
 // dynamically loaded from the real library.
-//
-//===----------------------------------------------------------------------===//
 
 #include <utility>
 

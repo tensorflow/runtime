@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dnn_ops_util.h -------------------------------------------*- C++ -*-===//
-//
 // Helpers for DNN ops.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_OPS_TF_DNN_OPS_UTIL_H_
 #define TFRT_BACKENDS_COMMON_OPS_TF_DNN_OPS_UTIL_H_

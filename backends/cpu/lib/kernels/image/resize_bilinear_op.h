@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- resize_bilinear_op.h -------------------------------------*- C++ -*-===//
-//
 // This file implements the functions to resize image.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_RESIZE_BILINEAR_OP_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_RESIZE_BILINEAR_OP_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- mlir_ops.h -----------------------------------------------*- C++ -*-===//
-//
 // Collates list of all TF operations with pre-generated GPU code.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_MLIR_OPS_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_MLIR_OPS_H_

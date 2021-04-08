@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- request_deadline_tracker_test.cc -------------------------*- C++ -*-===//
-//
 // Unit test for TFRT RequestDeadlineTracker.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/request_deadline_tracker.h"
 

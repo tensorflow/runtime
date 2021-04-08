@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- bef_reader.h ---------------------------------------------*- C++ -*-===//
-//
 // This file implements low-level decoder helpers for working with "Binary
 // Executor Format" (BEF) files.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_BEF_READER_H_
 #define TFRT_SUPPORT_BEF_READER_H_

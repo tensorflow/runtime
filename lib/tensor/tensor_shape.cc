@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tensor_shape.cc ----------------------------------------------------===//
-//
 // This file implements TensorShape.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/tensor_shape.h"
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dense_host_tensor_test.cc --------------------------------*- C++ -*-===//
-//
 // Unit test for DenseHostTensor.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/dense_host_tensor.h"
 

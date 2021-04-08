@@ -13,14 +13,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-//===- jpeg_handle.cc -----------------------------------------------------===//
-//
 // This file implements a memory destination for libjpeg. The design is similar
 // to jdatadst.c in libjpeg.
 //
 // Based on tensorflow/core/lib/jpeg/jpeg_handle.cc
-//
-//===----------------------------------------------------------------------===//
 
 #include "jpeg_handle.h"
 

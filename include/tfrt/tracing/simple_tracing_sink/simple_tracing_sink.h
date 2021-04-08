@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- simple_tracing_sink.h - Xprof Tracing Consumer -----------*- C++ -*-===//
+// Xprof Tracing Consumer
 //
 // This file declares a simple tracing consumer.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TRACING_SIMPLE_TRACING_SINK_H_
 #define TFRT_TRACING_SIMPLE_TRACING_SINK_H_

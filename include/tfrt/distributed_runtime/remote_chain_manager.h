@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- remote_chain_manager.h - Remote Chain Manager ------------*- C++ -*-===//
+// Remote Chain Manager
 //
 // This file declares RemoteChainManager. RemoteChainManager manages a single
 // chain for every host.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_CHAIN_MANAGER_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_CHAIN_MANAGER_H_

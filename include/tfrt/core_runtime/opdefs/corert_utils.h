@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- corert_utils.h -------------------------------------------*- C++ -*-===//
-//
 // This file declares utils for both 'corert' and 'corert_sync'dialect.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_CORE_RUNTIME_OPDEFS_CORERT_UTILS_H_
 #define TFRT_CORE_RUNTIME_OPDEFS_CORERT_UTILS_H_
 

@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- null_op_handler.h ----------------------------------------*- C++ -*-===//
-//
 // This file declares the CreateNullOpHandler. NullOpHandler always fails on op
 // execution. It is the default fallback op handler.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_CORE_RUNTIME_NULL_OP_HANDLER_H_
 #define TFRT_BACKENDS_CPU_CORE_RUNTIME_NULL_OP_HANDLER_H_

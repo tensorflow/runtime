@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- host_buffer_test.cc --------------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT HostBuffer.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/host_buffer.h"
 

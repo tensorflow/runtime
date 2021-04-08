@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- gpu_op_handler.h -----------------------------------------*- C++ -*-===//
-//
 // This file declares CreateGpuOpHandler, which creates GpuOpHandler,
 // responsible for executing ops on GPU.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_CORE_RUNTIME_GPU_OP_HANDLER_H_
 #define TFRT_BACKENDS_GPU_CORE_RUNTIME_GPU_OP_HANDLER_H_

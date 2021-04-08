@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- task_name_util.h -----------------------------------------*- C++ -*-===//
-//
 // Declares utils for concatenating and parsing task names.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_TASK_NAME_UTIL_H_
 #define TFRT_DISTRIBUTED_RUNTIME_TASK_NAME_UTIL_H_

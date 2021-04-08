@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- scalar_host_tensor.h -------------------------------------*- C++ -*-===//
-//
 // This file defines the AnyScalarHostTensor template and ScalarHostTensor
 // class.  These represent a scalar value broadcasted to a tensor shape.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_SCALAR_HOST_TENSOR_H_
 #define TFRT_TENSOR_SCALAR_HOST_TENSOR_H_

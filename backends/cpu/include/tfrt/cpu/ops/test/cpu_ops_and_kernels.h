@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- cpu_ops_and_kernels.h - CPU specific ops and kernels -----*- C++ -*-===//
+// CPU specific ops and kernels
 //
 // This file contains helpers that register CPU specific ops and TFRT kernels.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_CPU_OPS_TEST_CPU_OPS_AND_KERNELS_H_
 #define TFRT_BACKENDS_CPU_OPS_TEST_CPU_OPS_AND_KERNELS_H_
 

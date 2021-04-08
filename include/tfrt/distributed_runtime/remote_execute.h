@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- remote_execute.h - Helper classes for remote execute -----*- C++ -*-===//
+// Helper classes for remote execute
 //
 // This file defines list of helper classes that are common for remote
 // execution.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_EXECUTE_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_EXECUTE_H_
 

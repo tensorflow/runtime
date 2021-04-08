@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- variant_test.cc ------------------------------------------*- C++ -*-===//
-//
 // Tests related to variant.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/support/variant.h"
 
 #include "gmock/gmock.h"

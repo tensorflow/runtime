@@ -15,8 +15,6 @@
 //===- host_context.cc - CPU thread and memory abstraction ----------------===//
 //
 // This file implements the generic interface for thread pool abstractions.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/host_context.h"
 

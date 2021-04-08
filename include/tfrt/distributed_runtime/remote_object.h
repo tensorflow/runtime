@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- remote_object.h - Remote Object --------------------------*- C++ -*-===//
+// Remote Object
 //
 // This file defines RemoteObjectId which is a unique ID for a remote object.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_OBJECT_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_OBJECT_H_
 

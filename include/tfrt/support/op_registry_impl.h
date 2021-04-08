@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- op_registry_impl.h ---------------------------------------*- C++ -*-===//
-//
 // This file declares OpRegistryImpl.  OpRegistryImpl aims to reduce boilerplate
 // for device specific operation registry implementations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_OP_REGISTRY_IMPL_H_
 #define TFRT_SUPPORT_OP_REGISTRY_IMPL_H_

@@ -16,8 +16,6 @@
 //
 // This file implements classes that can be used to hold CUDA buffers
 // and tensors.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/memory/gpu_buffer.h"
 

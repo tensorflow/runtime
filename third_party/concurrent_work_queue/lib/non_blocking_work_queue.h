@@ -7,8 +7,6 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- non_blocking_work_queue.h --------------------------------*- C++ -*-===//
-//
 // Work queue implementation based on non-blocking concurrency primitives
 // optimized for CPU intensive non-blocking compute tasks.
 //
@@ -22,8 +20,6 @@
 //
 //   "Thread Scheduling for Multiprogrammed Multiprocessors"
 //   Nimar S. Arora, Robert D. Blumofe, C. Greg Plaxton
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_NON_BLOCKING_WORK_QUEUE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_NON_BLOCKING_WORK_QUEUE_H_

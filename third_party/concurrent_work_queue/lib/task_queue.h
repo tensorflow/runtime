@@ -2,8 +2,6 @@
 // Public License v. 2.0. If a copy of the MPL was not distributed
 // with this file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-//===- task_queue.h ---------------------------------------------*- C++ -*-===//
-//
 // TaskQueue is a fixed-size, non-blocking FIFO queue of Task items.
 //
 // This queue is not strictly lock-free (system as a whole moves forward
@@ -22,8 +20,6 @@
 //
 // Based on "Bounded MPMC queue":
 // http://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_QUEUE_H_
 #define TFRT_THIRD_PARTY_CONCURRENT_WORK_QUEUE_TASK_QUEUE_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- kernel_registry.h ----------------------------------------*- C++ -*-===//
-//
 // This file declares KernelRegistry.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_KERNEL_REGISTRY_H_
 #define TFRT_HOST_CONTEXT_KERNEL_REGISTRY_H_

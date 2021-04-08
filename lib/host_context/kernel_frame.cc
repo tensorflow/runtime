@@ -16,8 +16,6 @@
 //
 // This file implements AsyncKernelFrame which captures argument, result, and
 // other related information provided to kernels on kernel invocation.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/kernel_frame.h"
 

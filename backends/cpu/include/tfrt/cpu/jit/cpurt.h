@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- cpurt.h --------------------------------------------------*- C++ -*-===//
-//
 // Support library for implementing TFRT kernels that do JIT compilation using
 // MLIR framework (generating kernels at runtime from hight level MLIR
 // dialects, e.g. generating dense linear algebra kernels from Linalg dialect).
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_JIT_CPURT_H_
 #define TFRT_BACKENDS_CPU_JIT_CPURT_H_

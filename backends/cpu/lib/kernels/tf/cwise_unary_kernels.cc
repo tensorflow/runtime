@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cwise_unary_kernels.cc - ---------------------------------*- C++ -*-===//
-//
 // Column wise unary Tensorflow kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_KERNELS_TF_CWISE_UNARY_OPS_H_
 #define TFRT_BACKENDS_CPU_KERNELS_TF_CWISE_UNARY_OPS_H_

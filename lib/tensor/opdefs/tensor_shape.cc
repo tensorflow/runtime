@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tensor_shape.cc ----------------------------------------------------===//
-//
 // This file implements MLIR operation functions for the tensor shape dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/opdefs/tensor_shape.h"
 

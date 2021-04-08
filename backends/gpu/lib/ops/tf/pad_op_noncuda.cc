@@ -16,8 +16,6 @@
 //
 // Implements utilities to call tf.Pad op. This calls into EnqueueGpuPadOp from
 // `tf_gpu_pad_op` cuda_library target. This avoids header clash between cudnn
-//
-//===----------------------------------------------------------------------===//
 #include "pad_op_noncuda.h"
 
 #include "pad_op.h"

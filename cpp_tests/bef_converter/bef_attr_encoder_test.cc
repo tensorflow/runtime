@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- bef_attr_encoder_test.cc ---------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT BEFAttrEncoder.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/bef_converter/bef_attr_encoder.h"
 

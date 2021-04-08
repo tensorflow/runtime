@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- tensor_types.h -------------------------------------------*- C++ -*-===//
-//
 // This file implements TFRT HostTensor conversion to an Eigen TensorMap that
 // could be used in Eigen expressions.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_COMPAT_EIGEN_TENSOR_TYPES_H_
 #define TFRT_BACKENDS_COMMON_COMPAT_EIGEN_TENSOR_TYPES_H_

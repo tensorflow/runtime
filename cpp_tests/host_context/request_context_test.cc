@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- resource_context_test.cc ---------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT RequestContext.
-//
-//===----------------------------------------------------------------------===//
 
 #include "gtest/gtest.h"
 #include "tfrt/host_context/concurrent_work_queue.h"

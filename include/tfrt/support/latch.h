@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- latch.h --------------------------------------------------*- C++ -*-===//
-//
 // Downward counter of type ptrdiff_t which can be used for thread
 // synchronization. It has an API compatible with std::latch (C++ 20).
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_LATCH_H_
 #define TFRT_HOST_CONTEXT_LATCH_H_

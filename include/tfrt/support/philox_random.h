@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-//===- philox_random.h ------------------------------------------*- C++ -*-===//
-//
 // This file implements the Philox algorithm to generate random numbers in
 // parallel.
 // Salmon et al. SC 2011. Parallel random numbers: as easy as 1, 2, 3.
 //   http://www.thesalmons.org/john/random123/papers/random123sc11.pdf
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_PHILOX_RANDOM_H_
 #define TFRT_SUPPORT_PHILOX_RANDOM_H_

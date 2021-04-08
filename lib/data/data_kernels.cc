@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- data_kernels.cc ----------------------------------------------------===//
-//
 // This file implements data kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "batch_dataset.h"
 #include "filter_dataset.h"

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//===- chain.h - Control dependence representation --------------*- C++ -*-===//
+// Control dependence representation
 //
 // Chain is a control dependence between kernels. Its runtime representation is
 // a zero sized value.

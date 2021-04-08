@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cwise_binary_kernels.cc - --------------------------------*- C++ -*-===//
-//
 // Column wise binary Tensorflow kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../cwise_binary_kernels.h"
 

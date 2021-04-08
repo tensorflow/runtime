@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- buffer_forwarding.cc -------------------------------------*- C++ -*-===//
-//
 // Tensorflow operations input buffer forwarding.
-//
-//===----------------------------------------------------------------------===//
 
 #include "buffer_forwarding.h"
 

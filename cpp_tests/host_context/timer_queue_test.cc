@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- host_context_test.cc -------------------------------------*- C++ -*-===//
-//
 // Unit test for TFRT TimerQueue.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/timer_queue.h"
 

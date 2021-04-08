@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tensor_serialize_utils.cc ------------------------------------------===//
-//
 // This file defines serialization and deserialization utils for DenseElement
 // attributes.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/tensor_serialize_utils.h"
 

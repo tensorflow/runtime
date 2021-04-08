@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-//===- data_ops.h -----------------------------------------------*- C++ -*-===//
-//
 // MLIR opdefs for data library.
 //
 // This file declares the 'data' dialect as well as the operators that make up
 // the data library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_OPDEFS_DATA_OPS_H_
 #define TFRT_DATA_OPDEFS_DATA_OPS_H_

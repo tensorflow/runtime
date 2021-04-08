@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- execution_context.cc -------------------------------------*- C++ -*-===//
-//
 // This file implements ExecutionContext.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/execution_context.h"
 

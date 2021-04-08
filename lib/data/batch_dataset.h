@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- batch_dataset.h ------------------------------------------*- C++ -*-===//
-//
 // This file declares BatchDataset class which wraps around another Dataset
 // instance and batches the underlying elements before returning them via
 // GetNext().
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_BATCH_DATASET_H_
 #define TFRT_DATA_BATCH_DATASET_H_

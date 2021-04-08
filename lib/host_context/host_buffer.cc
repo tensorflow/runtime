@@ -15,8 +15,6 @@
 //===- host_buffer.cc - HostBuffer implementation -------------------------===//
 //
 // This file implements the HostBuffer type.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/host_buffer.h"
 

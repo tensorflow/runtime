@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- test_kernels.h - MLIR op definitions for test_kernels ----*- C++ -*-===//
+// MLIR op definitions for test_kernels
 //
 // This file declares the 'test' dialect as well as the operators in the
 // test_kernels library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_H_
 #define TFRT_TEST_KERNELS_OPDEFS_TEST_KERNELS_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- tensor.h -------------------------------------------------*- C++ -*-===//
-//
 // This file defines the Tensor, TensorLayout, and TensorMetadata types.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_TENSOR_H_
 #define TFRT_TENSOR_TENSOR_H_

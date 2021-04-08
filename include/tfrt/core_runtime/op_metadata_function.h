@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- op_metadata_function.h -----------------------------------*- C++ -*-===//
-//
 // Declares the signature for metadata functions.  Metadata functions are
 // executed synchronously by CoreRuntime to perform shape inference and error
 // checking.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_OP_METADATA_FUNCTION_H_
 #define TFRT_CORE_RUNTIME_OP_METADATA_FUNCTION_H_

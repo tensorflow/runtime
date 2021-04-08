@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dnn_ops.h ------------------------------------------------*- C++ -*-===//
-//
 // Collates list of all TF DNN operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_DNN_OPS_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_DNN_OPS_H_

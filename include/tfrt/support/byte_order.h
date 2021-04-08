@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- byte_order.h ---------------------------------------------*- C++ -*-===//
-//
 // This file contains defines, macros, and constants related to byte order.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_BYTE_ORDER_H_
 #define TFRT_SUPPORT_BYTE_ORDER_H_

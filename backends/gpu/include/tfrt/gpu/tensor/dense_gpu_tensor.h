@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- dense_gpu_tensor.h - Types for holding dense GPU memory --*- C++ -*-===//
+// Types for holding dense GPU memory
 //
 // This file declares classes that can be used to hold dense GPU memory.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_TENSOR_DENSE_GPU_TENSOR_H_
 #define TFRT_GPU_TENSOR_DENSE_GPU_TENSOR_H_
 

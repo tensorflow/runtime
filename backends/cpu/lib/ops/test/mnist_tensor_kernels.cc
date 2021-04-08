@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- mnist_tensor_kernels.cc --------------------------------------------===//
-//
 // This file defines the tensor kernels for mnist.
-//
-//===----------------------------------------------------------------------===//
 
 #include <cstdint>
 #include <limits>

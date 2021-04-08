@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- print_stream_pass.cc -----------------------------------------------===//
-//
 // This implements PrintStreamPass for testing StreamAnalysis.
-//
-//===----------------------------------------------------------------------===//
 
 #include "mlir/Pass/Pass.h"
 #include "tfrt/compiler/stream_analysis.h"

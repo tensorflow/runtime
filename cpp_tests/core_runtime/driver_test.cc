@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- driver_test.cc -------------------------------------------*- C++ -*-===//
-//
 // This file is a simple example showing how to use core_runtime API to execute
 // some simple ops.
-//
-//===----------------------------------------------------------------------===//
 
 #include "driver.h"
 

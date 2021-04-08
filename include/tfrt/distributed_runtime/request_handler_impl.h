@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- request_handler_impl.h -----------------------------------*- C++ -*-===//
-//
 // This file declares public function to create RequestHandler implementation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_IMPL_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REQUEST_HANDLER_IMPL_H_

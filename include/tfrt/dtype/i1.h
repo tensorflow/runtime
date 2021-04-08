@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- i1.h -----------------------------------------------------*- C++ -*-===//
-//
 // This file defines the single byte integer type: i1.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_I1_H_
 #define TFRT_SUPPORT_I1_H_

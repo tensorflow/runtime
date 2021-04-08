@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- test_kernels.h - CUDA testing kernels --------------------*- C++ -*-===//
+// CUDA testing kernels
 //
 // This file declares the C++ functions that implement CUDA test-only kernels.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_TEST_KERNELS_H_
 #define TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_TEST_KERNELS_H_
 

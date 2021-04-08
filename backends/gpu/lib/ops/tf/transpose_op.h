@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- transpose_op.h -------------------------------------------*- C++ -*-===//
-//
 // TF Transpose op.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_TRANSPOSE_OP_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_TRANSPOSE_OP_H_

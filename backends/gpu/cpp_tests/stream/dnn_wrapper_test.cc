@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dnn_wrapper_test.cc --------------------------------------*- C++ -*-===//
-//
 // Unit test for DNN wrapper (abstraction layer for cuDNN and MIOpen).
-//
-//===----------------------------------------------------------------------===//
 
 #include "common.h"
 #include "gtest/gtest.h"

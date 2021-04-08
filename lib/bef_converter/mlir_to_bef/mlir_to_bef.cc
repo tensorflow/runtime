@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- mlir_to_bef.cc -----------------------------------------------------===//
-//
 // This file implements the main entrypoints for the MLIRToBEF library.
 // The converter is implemented in three phases.  The first phase identifies all
 // of the strings and attributes that need to be emitted to the string/attribute

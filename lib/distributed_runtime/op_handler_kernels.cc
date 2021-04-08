@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- op_handler_kernels.cc ------------------------------------*- C++ -*-===//
-//
 // This file contains TFRT kernels for creating RemoteOpHandler.
-//
-//===----------------------------------------------------------------------===//
 
 #include "op_handler_kernels.h"
 

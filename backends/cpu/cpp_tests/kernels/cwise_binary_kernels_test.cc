@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cwise_binary_kernel_test.cc ------------------------------*- C++ -*-===//
-//
 //  Column wise binary kernels tests and benchmarks.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../../lib/kernels/cwise_binary_kernels.h"
 

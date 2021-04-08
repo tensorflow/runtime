@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- sub_allocator.h - GPU caching allocator ------------------*- C++ -*-===//
+// GPU caching allocator
 //
 // This file defines the GPU CUDA sub allocator.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_MEMORY_SUB_ALLOCATOR_H_
 #define TFRT_GPU_MEMORY_SUB_ALLOCATOR_H_
 

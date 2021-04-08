@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tracing_benchmark.cc -------------------------------------*- C++ -*-===//
-//
 // Benchmark measuring tracing overhead.
-//
-//===----------------------------------------------------------------------===//
 
 #include <chrono>
 #include <future>

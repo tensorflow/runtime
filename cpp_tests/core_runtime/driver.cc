@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- driver.cc ----------------------------------------------------------===//
-//
 // This file implements the CoreRuntimeCpuDriver.
-//
-//===----------------------------------------------------------------------===//
 #include "driver.h"
 
 #include "tfrt/core_runtime/core_runtime_op.h"

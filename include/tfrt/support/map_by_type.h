@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- map_by_type.h --------------------------------------------*- C++ -*-===//
-//
 // This file defines a container type that can store arbitrary data type keyed
 // by the data type.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_MAP_BY_TYPE_H_
 #define TFRT_SUPPORT_MAP_BY_TYPE_H_

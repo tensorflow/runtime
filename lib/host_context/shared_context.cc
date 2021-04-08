@@ -15,8 +15,6 @@
 //===- shared_context.cc - Shared context abstraction ---------------------===//
 //
 // This file implements SharedContext.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/shared_context.h"
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- op_invocation.h ------------------------------------------*- C++ -*-===//
-//
 // This file declares and implements OpInvocation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_OP_INVOCATION_H_
 #define TFRT_CORE_RUNTIME_OP_INVOCATION_H_

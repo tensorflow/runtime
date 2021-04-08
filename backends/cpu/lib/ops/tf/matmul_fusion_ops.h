@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- matmul_fusion_ops.h - ------------------------------------*- C++ -*-===//
-//
 // Tensorflow MatMul fusion operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_MATMUL_FUSION_OPS_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_MATMUL_FUSION_OPS_H_

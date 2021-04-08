@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- function_cache.h - Function Cache ------------------------*- C++ -*-===//
+// Function Cache
 //
 // This file declares FunctionCache, which caches the programs that are
 // registered and instantiated from remote requests.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_FUNCTION_CACHE_H_
 #define TFRT_DISTRIBUTED_RUNTIME_FUNCTION_CACHE_H_

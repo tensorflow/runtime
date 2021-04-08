@@ -15,8 +15,6 @@
 //===- crc32c_accelerate.cc - crc32c Utilities ----------------------------===//
 //
 // This file defines C++ utility functions for crc32c accelerate.
-//
-//===----------------------------------------------------------------------===//
 
 #include <stddef.h>
 #include <stdint.h>

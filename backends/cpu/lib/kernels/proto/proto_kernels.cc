@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- proto_kernels.cc ---------------------------------------------------===//
-//
 // This file implements protobuf-related kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/kernels/proto/example.proto.h"
 #include "tfrt/host_context/async_dispatch.h"

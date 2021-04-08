@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- stack_trace.cc -------------------------------------------*- C++ -*-===//
-//
 // This file implements capturing and printing stack traces.
-//
-//===----------------------------------------------------------------------===//
 #include <cstdint>
 #include <string>
 

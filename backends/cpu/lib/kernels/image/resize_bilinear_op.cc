@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- resize_bilinear_op.cc ----------------------------------------------===//
-//
 // This file declaress the functions to resize image.
-//
-//===----------------------------------------------------------------------===//
 
 #include "resize_bilinear_op.h"
 

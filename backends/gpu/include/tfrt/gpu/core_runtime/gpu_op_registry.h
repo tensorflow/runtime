@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- gpu_op_registry.h ----------------------------------------*- C++ -*-===//
-//
 // This file declares GpuOpRegistry, which maps an op to an optional metadata
 // function (the "shape" function that also produces layout and dtype) and a
 // kernel dispatch function.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_CORE_RUNTIME_GPU_OP_REGISTRY_H_
 #define TFRT_GPU_CORE_RUNTIME_GPU_OP_REGISTRY_H_

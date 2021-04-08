@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- nullary_ops.cc -------------------------------------------*- C++ -*-===//
-//
 // Collates list of all nullary TF operations.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"

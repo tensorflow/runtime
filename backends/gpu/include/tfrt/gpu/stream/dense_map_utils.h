@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- dense_map_utils.h - Defines DenseMapInfo specializations -*- C++ -*-===//
+// Defines DenseMapInfo specializations
 //
 // Defines specializations for llvm::DenseMapInfo. This allows some gpu::stream
 // classes to be used as keys in llvm::DenseMap.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_DENSE_MAP_UTILS_H_
 #define TFRT_GPU_STREAM_DENSE_MAP_UTILS_H_
 

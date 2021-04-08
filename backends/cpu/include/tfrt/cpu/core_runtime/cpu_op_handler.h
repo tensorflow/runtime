@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- cpu_op_handler.h -----------------------------------------*- C++ -*-===//
-//
 // This file declares CreateCpuOpHandler, which creates CPU Op Handler
 // responsible for executing ops on CPU.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_CORE_RUNTIME_CPU_OP_HANDLER_H_
 #define TFRT_BACKENDS_CPU_CORE_RUNTIME_CPU_OP_HANDLER_H_

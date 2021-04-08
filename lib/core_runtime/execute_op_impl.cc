@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- execute_op_impl.cc -------------------------------------------------===//
-//
 // This library contains implementations for corert.executeop.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/core_runtime/execute_op_impl.h"
 

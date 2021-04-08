@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- file_input_stream.cc -----------------------------------------------===//
-//
 // This file implements the FileInputStream class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/io/file_input_stream.h"
 

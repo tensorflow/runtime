@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dense_view.h ---------------------------------------------*- C++ -*-===//
-//
 // This file defines class DenseView and class template DenseTensorView.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_DENSE_VIEW_H_
 #define TFRT_TENSOR_DENSE_VIEW_H_

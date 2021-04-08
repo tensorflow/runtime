@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- common.h -------------------------------------------------*- C++ -*-===//
-//
 // Unit test helpers for GPU wrapper tests.
-//
-//===----------------------------------------------------------------------===//
 #ifndef THIRD_PARTY_TF_RUNTIME_CPP_TESTS_GPU_STREAM_COMMON_H_
 #define THIRD_PARTY_TF_RUNTIME_CPP_TESTS_GPU_STREAM_COMMON_H_
 

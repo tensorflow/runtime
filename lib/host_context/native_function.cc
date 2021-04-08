@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- native_function.cc -------------------------------------------------===//
-//
 // This file implements class NativeFunction.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/native_function.h"
 

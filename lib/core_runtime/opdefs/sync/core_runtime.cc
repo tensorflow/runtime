@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- core_runtime.cc ----------------------------------------------------===//
-//
 // This file implements MLIR operation functions for 'corert_sync' dialect.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/core_runtime/opdefs/sync/core_runtime.h"
 
 #include "mlir/IR/Builders.h"

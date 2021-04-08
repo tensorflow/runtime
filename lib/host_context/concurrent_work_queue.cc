@@ -16,8 +16,6 @@
 //
 // This file defines the generic interface for concurrent work queue
 // abstractions.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/concurrent_work_queue.h"
 

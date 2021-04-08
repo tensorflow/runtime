@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- alloc.cc -----------------------------------------------------------===//
-//
 // This file defines AlignedAlloc() for allocating dynamic buffer with
 // explicit alignment.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/alloc.h"
 

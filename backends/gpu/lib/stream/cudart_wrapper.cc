@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cudart_wrapper.cc ----------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the CUDA runtime API adding llvm::Error and explicit
 // context.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/cudart_wrapper.h"
 
 #include "llvm/Support/Errc.h"

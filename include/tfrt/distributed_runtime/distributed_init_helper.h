@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- distributed_init_helper.h - Distributed Init Helper ------*- C++ -*-===//
+// Distributed Init Helper
 //
 // Declares DistributedInitHelper, which drives the process of initializing
 // single- and multi-client distributed contexts.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_MULTI_CLIENT_INIT_HELPER_H_
 #define TFRT_DISTRIBUTED_RUNTIME_MULTI_CLIENT_INIT_HELPER_H_

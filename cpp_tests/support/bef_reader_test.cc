@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- bef_reader_test.cc ---------------------------------------*- C++ -*-===//
-//
 // Unit test for BEFReader
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/bef_reader.h"
 

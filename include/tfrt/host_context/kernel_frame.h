@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- kernel_frame.h - Information for kernel invocation -------*- C++ -*-===//
+// Information for kernel invocation
 //
 // This file implements AsyncKernelFrame which captures argument, result, and
 // other related information provided to kernels on kernel invocation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_KERNEL_CONTEXT_H_
 #define TFRT_HOST_CONTEXT_KERNEL_CONTEXT_H_

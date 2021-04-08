@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cudnn_wrapper.h ------------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the cuDNN API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_CUDNN_WRAPPER_H_
 #define TFRT_GPU_STREAM_CUDNN_WRAPPER_H_
 

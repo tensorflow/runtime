@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-//===- op_utils.h - Helpers for op implementations --------------*- C++ -*-===//
+// Helpers for op implementations
 //
 // This file declares simple helper routines to make it easier to write metadata
 // function and dispatch function for a op. This is intended to be small and
 // simple things and is nearly header-only.
-//
-//===----------------------------------------------------------------------===//
 
 // TODO(fishx): Split this file into metadata_utils.h and dispatch_utils.h.
 

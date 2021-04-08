@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- posix_file_system.h --------------------------------------*- C++ -*-===//
-//
 // This file declares the PosixFileSystem class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_IO_POSIX_FILE_SYSTEM_H_
 #define TFRT_LIB_IO_POSIX_FILE_SYSTEM_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- device_kernels.cc -------------------------------------------------===//
-//
 // This file implements host executor kernels for devices.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/basic_kernels/basic_kernels.h"
 #include "tfrt/host_context/attribute_utils.h"

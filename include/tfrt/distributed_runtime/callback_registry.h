@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- callback_registry.h - Callback Registry ------------------*- C++ -*-===//
+// Callback Registry
 //
 // This file declares Callback Registry.  The Callback Registry enables
 // asynchronously invoking a callback with a value corresponding to a key.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_CALLBACK_REGISTRY_H_
 #define TFRT_DISTRIBUTED_RUNTIME_CALLBACK_REGISTRY_H_

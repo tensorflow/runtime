@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- constant_ops.cc - ----------------------------------------*- C++ -*-===//
-//
 // Tensorflow constant operation.
-//
-//===----------------------------------------------------------------------===//
 
 #include "constant_ops.h"
 

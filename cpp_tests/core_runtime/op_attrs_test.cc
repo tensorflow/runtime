@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- op_attrs_test.cc -----------------------------------------*- C++ -*-===//
-//
 // This file has unit tests for tfrt::OpAttrs.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/core_runtime/op_attrs.h"
 

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- core_runtime.cc ----------------------------------------------------===//
-//
 // This file implements MLIR operation functions for the core runtime library.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 
 #include "llvm/ADT/STLExtras.h"

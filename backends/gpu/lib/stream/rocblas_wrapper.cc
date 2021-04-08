@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- rocblas_wrapper.cc ---------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the rocBLAS API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/rocblas_wrapper.h"
 
 #include "llvm/Support/Errc.h"

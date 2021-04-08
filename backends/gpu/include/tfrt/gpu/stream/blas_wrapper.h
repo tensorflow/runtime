@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- blas_wrapper.h -------------------------------------------*- C++ -*-===//
-//
 // Thin abstraction layer for cuBLAS and MIOpen.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_BLAS_WRAPPER_H_
 #define TFRT_GPU_STREAM_BLAS_WRAPPER_H_
 

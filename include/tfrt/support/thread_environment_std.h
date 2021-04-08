@@ -14,14 +14,10 @@
  * limitations under the License.
  */
 
-//===- thread_environment_std.h ---------------------------------*- C++ -*-===//
-//
 // ThreadingEnvironment defines how to start, join and detatch threads in
 // the blocking and non-blocking work queues.
 //
 // Uses std::thread implementation.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_THREAD_ENVIRONMENT_STD_H_
 #define TFRT_SUPPORT_THREAD_ENVIRONMENT_STD_H_

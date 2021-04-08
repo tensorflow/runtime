@@ -15,8 +15,6 @@
 //===- MLIR translation ---------------------------------------------------===//
 //
 // Register translation functions for gpu dialects.
-//
-//===----------------------------------------------------------------------===//
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Translation.h"

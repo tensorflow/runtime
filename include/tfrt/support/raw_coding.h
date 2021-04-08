@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- raw_coding.h - Utilities to decode unsigned integer ------*- C++ -*-===//
+// Utilities to decode unsigned integer
 //
 // This file provides utilities to decode unsigned integer.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_RAW_CODING_H_
 #define TFRT_SUPPORT_RAW_CODING_H_

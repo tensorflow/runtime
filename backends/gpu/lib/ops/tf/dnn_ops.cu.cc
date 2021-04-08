@@ -15,8 +15,6 @@
 //===- dnn_ops.cu.cc --- Implements DNN related CUDA kernels ---*- C++ -*--===//
 //
 // Implements hand-written CUDA kernels useful for DNN ops.
-//
-//===----------------------------------------------------------------------===//
 #include "dnn_ops_cu.h"
 //
 #include "tfrt/common/ops/tf/dnn_ops_util.h"

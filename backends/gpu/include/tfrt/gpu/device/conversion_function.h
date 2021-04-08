@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- conversion_function.h ------------------------------------*- C++ -*-===//
-//
 // This file declares GPU tensor util functions for copying between gpu and
 // host.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_CORE_RUNTIME_TENSOR_UTIL_H_
 #define TFRT_GPU_CORE_RUNTIME_TENSOR_UTIL_H_

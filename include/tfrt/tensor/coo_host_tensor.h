@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- coo_host_tensor.h ----------------------------------------*- C++ -*-===//
-//
 // This file define the CooHostTensor class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_COO_HOST_TENSOR_H_
 #define TFRT_TENSOR_COO_HOST_TENSOR_H_

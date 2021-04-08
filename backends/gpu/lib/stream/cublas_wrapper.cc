@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cublas_wrapper.cc ----------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the cuBLAS API adding llvm::Error.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/stream/cublas_wrapper.h"
 
 #include "llvm/Support/Errc.h"

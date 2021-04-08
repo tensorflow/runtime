@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- benchmark_kernels.cc -----------------------------------------------===//
-//
 // This file implements ops for benchmarking BEFExecutor
-//
-//===----------------------------------------------------------------------===//
 
 #include <cassert>
 #include <chrono>

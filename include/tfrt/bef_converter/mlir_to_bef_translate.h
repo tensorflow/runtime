@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- mlir_to_bef_translate.h ----------------------------------*- C++ -*-===//
-//
 // This file declares the translation function for MLIRToBEF.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_CONVERTER_MLIR_TO_BEF_TRANSLATE_H_
 #define TFRT_BEF_CONVERTER_MLIR_TO_BEF_TRANSLATE_H_

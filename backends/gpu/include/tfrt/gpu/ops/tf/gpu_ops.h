@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- gpu_ops.h - GPU implementation of TensorFlow operations --*- C++ -*-===//
+// GPU implementation of TensorFlow operations
 //
 // This file contains helpers that register GPU specific ops and TFRT kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_OPS_TF_GPU_OPS_H_
 #define TFRT_GPU_OPS_TF_GPU_OPS_H_

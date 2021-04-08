@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-//===- interleave_dataset.cc ------------------------------------*- C++ -*-===//
-//
 // This file implements InterleaveDataset class, which  applies a function to
 // its input to create a dataset per input element, and interleaves the results
 // of these datasets.
-//
-//===----------------------------------------------------------------------===//
 
 #include "interleave_dataset.h"
 

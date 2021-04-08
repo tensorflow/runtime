@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- host_allocator.h - Host Memory Allocator Abstraction -----*- C++ -*-===//
+// Host Memory Allocator Abstraction
 //
 // This file declares the generic interface for host memory allocators.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_HOST_ALLOCATOR_H_
 #define TFRT_HOST_CONTEXT_HOST_ALLOCATOR_H_

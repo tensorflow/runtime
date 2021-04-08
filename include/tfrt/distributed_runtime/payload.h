@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- payload.h - Payload --------------------------------------*- C++ -*-===//
+// Payload
 //
 // This file declares Payload for sending & receiving.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef THIRD_PARTY_TF_DISTRIBUTED_RUNTIME_PAYLOAD_H_
 #define THIRD_PARTY_TF_DISTRIBUTED_RUNTIME_PAYLOAD_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- aligned_buffer_test.cc -----------------------------------*- C++ -*-===//
-//
 // Unit test for AlignedBuffer
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/aligned_buffer.h"
 

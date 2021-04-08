@@ -12,13 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tensor_shape_kernels.cc --------------------------------------------===//
-//
 // This file implements a few kernels that manipulate TensorShapes.  These may
 // themselves eventually be useful, but for right now they are primarily
 // intended for testing.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"

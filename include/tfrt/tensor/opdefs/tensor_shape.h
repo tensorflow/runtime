@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- tensor_shape.h - MLIR op definitions for ts dialect ------*- C++ -*-===//
+// MLIR op definitions for ts dialect
 //
 // This file declares the 'ts' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_H_
 #define TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test/metadata/test_ops.cc --------------------------------*- C++ -*-===//
-//
 // This file defines the metadata functions for the test ops dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/common/ops/test/metadata_functions.h"
 #include "tfrt/core_runtime/op_utils.h"

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- posix_file_system.cc -----------------------------------------------===//
-//
 // This file implements the PosixFileSystem class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "posix_file_system.h"
 

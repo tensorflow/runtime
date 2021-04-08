@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- tensor_shape_sync.h - MLIR op definitions for ts dialect -*- C++ -*-===//
+// MLIR op definitions for ts dialect
 //
 // This file declares the 'ts_sync' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_SYNC_H_
 #define TFRT_TENSOR_OPDEFS_TENSOR_SHAPE_SYNC_H_

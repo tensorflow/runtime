@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-//===- blas_support.h - Wrappers for BLAS -----------------------*- C++ -*-===//
+// Wrappers for BLAS
 //
 // This file declares utilities for conveniently calling BLAS functions.
 // In the future, it will also be a place to deal with BLAS library bugs and
 // differences between library versions.
 //
 // Currently, only cuBLAS is supported.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_BLAS_SUPPORT_H_
 #define TFRT_GPU_BLAS_SUPPORT_H_
 

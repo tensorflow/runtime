@@ -17,8 +17,6 @@
 // This file implements a mlir translation for the bef-to-mlir converter. It
 // opens up an BEF file specified on the command line and converts it to a mlir
 // file at specified location.
-//
-//===----------------------------------------------------------------------===//
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
 #include "llvm/Support/raw_ostream.h"

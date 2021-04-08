@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- softmax_ops.h - ---=====----------------------------------*- C++ -*-===//
+// ---=====
 //
 // Softmax and LogSoftmax Tensorflow operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_SOFTMAX_OP_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_SOFTMAX_OP_H_

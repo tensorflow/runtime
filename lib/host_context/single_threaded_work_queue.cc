@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- single_threaded_work_queue.cc --------------------------------------===//
-//
 // This file implements a single threaded work queue.
-//
-//===----------------------------------------------------------------------===//
 
 #include <atomic>
 #include <vector>

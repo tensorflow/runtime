@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- dense_host_tensor_kernels.h ------------------------------*- C++ -*-===//
-//
 // This file declares a few kernels for dense host tensor.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_DENSE_HOST_TENSOR_KERNELS_H_
 #define TFRT_TENSOR_DENSE_HOST_TENSOR_KERNELS_H_

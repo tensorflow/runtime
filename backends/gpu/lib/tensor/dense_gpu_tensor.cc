@@ -15,8 +15,6 @@
 //===- dense_gpu_tensor.cc - CUDA tensor implementation -------------------===//
 //
 // This file implements the DenseGpuTensor class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 

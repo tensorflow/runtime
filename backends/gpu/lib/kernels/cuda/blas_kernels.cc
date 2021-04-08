@@ -12,12 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- blas_kernels.cc - BLAS kernels ---------------------------*- C++ -*-===//
+// BLAS kernels
 //
 // This file defines the C++ functions that implement the BLAS kernels provided
 // by the TFRT CUDA runtime.
-//
-//===----------------------------------------------------------------------===//
 #include "llvm/Support/Errc.h"
 #include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/stream/blas_wrapper.h"

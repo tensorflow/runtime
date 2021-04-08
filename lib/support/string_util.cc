@@ -17,8 +17,6 @@ limitations under the License.
 // This file implements various string utility functions.
 //
 // Based on tensorflow/core/platform/numbers.cc
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/support/string_util.h"
 
 #include "llvm/Support/Format.h"

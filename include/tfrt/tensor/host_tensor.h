@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- host_tensor.h --------------------------------------------*- C++ -*-===//
-//
 // This file defines the HostTensor class, which is a subclass of Tensor for
 // those that live in host memory.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_HOST_TENSOR_H_
 #define TFRT_TENSOR_HOST_TENSOR_H_

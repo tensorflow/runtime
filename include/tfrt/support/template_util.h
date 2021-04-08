@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- template_util.h ------------------------------------------*- C++ -*-===//
-//
 // This file provides templates to define typenames.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_TEMPLATE_UTIL_H_
 #define TFRT_SUPPORT_TEMPLATE_UTIL_H_

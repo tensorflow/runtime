@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- ranges.h -------------------------------------------------*- C++ -*-===//
-//
 // This file implements the ranges concept similar to the one available in
 // C++20.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_RANGES_H_
 #define TFRT_SUPPORT_RANGES_H_

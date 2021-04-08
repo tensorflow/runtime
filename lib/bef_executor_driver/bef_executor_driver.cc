@@ -16,8 +16,6 @@
 //
 // This file implements the test driver library for the bef executor. It opens
 // up a given mlir file and then runs it with a host executor.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/bef_executor_driver/bef_executor_driver.h"
 
 #include <limits>

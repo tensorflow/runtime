@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- tracing.h - Tracing API ----------------------------------*- C++ -*-===//
+// Tracing API
 //
 // This file declares the tracing library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TRACING_TRACING_H_
 #define TFRT_TRACING_TRACING_H_

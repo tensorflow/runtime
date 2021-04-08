@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- bef_attr_encoder.h ---------------------------------------*- C++ -*-===//
-//
 // This file declares the interface to the BEF Attr Encoder library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_CONVERTER_BEF_ATTR_ENCODER_H_
 #define TFRT_BEF_CONVERTER_BEF_ATTR_ENCODER_H_

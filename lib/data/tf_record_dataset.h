@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- tf_record_dataset.h --------------------------------------*- C++ -*-===//
-//
 // This file declares TFRecordDataset class which reads records from TFRecord
 // files into strings.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DATA_TF_RECORD_DATASET_H_
 #define TFRT_LIB_DATA_TF_RECORD_DATASET_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- simple_kernels.cc --------------------------------------------------===//
-//
 // This file implements a few simple classes of synchronous kernels for testing.
-//
-//===----------------------------------------------------------------------===//
 
 #include <fstream>
 #include <iterator>

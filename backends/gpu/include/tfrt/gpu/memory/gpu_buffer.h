@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- gpu_buffer.h - Types for holding GPU memory --------------*- C++ -*-===//
+// Types for holding GPU memory
 //
 // This file declares classes that can be used to hold CUDA buffers
 // and tensors.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_MEMORY_GPU_BUFFER_H_
 #define TFRT_GPU_MEMORY_GPU_BUFFER_H_
 

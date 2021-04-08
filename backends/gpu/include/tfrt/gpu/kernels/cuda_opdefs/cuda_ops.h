@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- cuda_ops.h - MLIR op definitions for cuda_ops library ----*- C++ -*-===//
+// MLIR op definitions for cuda_ops library
 //
 // This file declares the 'cuda' dialect as well as the operators that make up
 // the cuda_ops library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_OPS_H_
 #define TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_OPS_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tpu_ops.cc ---------------------------------------------------------===//
-//
 // This file implements MLIR operations for the tpu_ops library.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tpu/opdefs/tpu_ops.h"
 

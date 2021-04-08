@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cpu_kernels.h --------------------------------------------*- C++ -*-===//
-//
 // This file defines cpu kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CPU_KERNELS_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CPU_KERNELS_H_

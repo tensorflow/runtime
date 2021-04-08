@@ -12,11 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- bef_interpreter.h - Synchronous function interpreter -----*- C++ -*-===//
+// Synchronous function interpreter
 //
 // This file declares the BEFInterpreter class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_EXECUTOR_BEF_INTERPRETER_H_
 #define TFRT_BEF_EXECUTOR_BEF_INTERPRETER_H_

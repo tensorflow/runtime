@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- ref_count_test.cc ----------------------------------------*- C++ -*-===//
-//
 // Unit test for ReferenceCounted and RCReference classes
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/ref_count.h"
 

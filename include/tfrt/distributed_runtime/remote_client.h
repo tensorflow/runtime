@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- remote_client.h ------------------------------------------*- C++ -*-===//
-//
 // This file declares remote client interface.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_REMOTE_CLIENT_H_
 #define TFRT_DISTRIBUTED_RUNTIME_REMOTE_CLIENT_H_

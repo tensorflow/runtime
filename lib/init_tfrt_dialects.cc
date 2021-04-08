@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- init_tfrt_dialects.cc ----------------------------------------------===//
-//
 // This defines a helper to register all TFRT dialects.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/init_tfrt_dialects.h"
 

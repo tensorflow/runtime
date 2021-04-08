@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-//===- stream_wrapper.h -----------------------------------------*- C++ -*-===//
-//
 // Thin abstraction layer for CUDA and HIP.
 //
 // The stream wrapper provides a safer and more convenient access to CUDA and
@@ -86,8 +84,6 @@
 // Retrieving the underlying raw pointer or device ID requires specifying the
 // target platform (which is again checked in debug builds). The platform
 // specific APIs do this for the user.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_STREAM_WRAPPER_H_
 #define TFRT_GPU_STREAM_STREAM_WRAPPER_H_
 

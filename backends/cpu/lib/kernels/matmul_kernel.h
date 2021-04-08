@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- matmul_kernel.h ------------------------------------------*- C++ -*-===//
-//
 // MatMul + Fusion kernel implementation (fusion added via output kernel).
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_MATMUL_KERNEL_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_MATMUL_KERNEL_H_

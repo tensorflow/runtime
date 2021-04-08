@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cpu_op_registry.cc ---------------------------------------*- C++ -*-===//
-//
 // This file implements the CpuOpRegistry.
-//
-//===----------------------------------------------------------------------===//
 
 #include <vector>
 

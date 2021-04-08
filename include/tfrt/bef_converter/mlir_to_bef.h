@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- mlir_to_bef.h --------------------------------------------*- C++ -*-===//
-//
 // This file declares the interface to the MLIRToBEF library.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BEF_CONVERTER_MLIR_TO_BEF_H_
 #define TFRT_BEF_CONVERTER_MLIR_TO_BEF_H_

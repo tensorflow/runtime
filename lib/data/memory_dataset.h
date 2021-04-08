@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- memory_dataset.h -----------------------------------------*- C++ -*-===//
-//
 // This file declares MemoryDataset class.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_MEMORY_DATASET_H_
 #define TFRT_DATA_MEMORY_DATASET_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- parallel_for.cc ------------------------------------------*- C++ -*-===//
-//
 // Parallel algorithms implementation for the HostContext.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/parallel_for.h"
 

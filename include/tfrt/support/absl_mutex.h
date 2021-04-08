@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-//===- mutex.h --------------------------------------------------*- C++ -*-===//
-//
 // Wrappers around std::{mutex,unique_lock,condition_variable} with support for
 // thread safety annotations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_ABSL_MUTEX_H_
 #define TFRT_SUPPORT_ABSL_MUTEX_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- tensor_type_registration.cc ----------------------------------------===//
-//
 // This file implements Tensor type and its registration.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/tensor_type_registration.h"
 

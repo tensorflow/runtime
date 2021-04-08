@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- shape_ops.h - --------------------------------------------*- C++ -*-===//
-//
 // Tensorflow shape related operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_SHAPE_OPS_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_SHAPE_OPS_H_

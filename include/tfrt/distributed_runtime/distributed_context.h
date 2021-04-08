@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-//===- distributed_context.h - Distributed Context --------------*- C++ -*-===//
+// Distributed Context
 //
 // Declares DistributedContext, which represents the server-side state (tasks,
 // remote objects, function registry, etc.) associated with a distributed
 // execution environment.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_DISTRIBUTED_CONTEXT_H_
 #define TFRT_DISTRIBUTED_RUNTIME_DISTRIBUTED_CONTEXT_H_

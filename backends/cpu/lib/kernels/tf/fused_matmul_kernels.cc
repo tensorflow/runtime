@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- fused_matmul_kernels.cc - --------------------------------*- C++ -*-===//
-//
 // FusedMatmul Tensorflow kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../fused_matmul_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"

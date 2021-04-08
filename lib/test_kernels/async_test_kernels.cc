@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- async_test_kernels.cc ----------------------------------------------===//
-//
 // This library contains test kernels needed by example_kernels unit tests.
-//
-//===----------------------------------------------------------------------===//
 
 #include <thread>
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- refcounted_callback.h ------------------------------------*- C++ -*-===//
-//
 // Defines ref-counted callback.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_REFCOUNTED_CALLBACK_H_
 #define TFRT_SUPPORT_REFCOUNTED_CALLBACK_H_

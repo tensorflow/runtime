@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- concat_kernels.cc - --------------------------------------*- C++ -*-===//
-//
 // Concat Tensorflow kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "../concat_kernel.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"

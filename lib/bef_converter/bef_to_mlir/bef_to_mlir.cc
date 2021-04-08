@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- bef_to_mlir.cc -----------------------------------------------------===//
-//
 // This file implements ConvertBEFToMLIR for the BEFToMLIR library.
 // The converter is implemented in three phases. The first phase reads all
 // BEF sections other than the Functions section and keeps all strings, types,
@@ -21,8 +19,6 @@
 // all the functions and converts them to MLIR regions without resolving nested
 // regions. The third phases resolves all functions as either top level MLIR
 // functions or nested regions, and returns the MLIR module.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/bef_converter/bef_to_mlir.h"
 

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test_native_functions.cc -------------------------------------------===//
-//
 // This file implements a few native functions for testing.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/chain.h"

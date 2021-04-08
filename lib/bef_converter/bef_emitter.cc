@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- bef_emitter.cc -----------------------------------------------------===//
-//
 // This file defines the BEFEmitter that emits bytes into an aligned buffer.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/bef_converter/bef_emitter.h"
 

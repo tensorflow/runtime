@@ -13,16 +13,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-//===- jpeg_mem.h -----------------------------------------------*- C++ -*-===//
-//
 // This file defines functions to compress and uncompress JPEG files
 // to and from memory. It provides interfaces for raw images
 // (data array and size fields).
 // Direct manipulation of JPEG strings are supplied: Flip, Rotate, Crop.
 //
 // Based on tensorflow/core/lib/jpeg/jpeg_mem.h
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_JPEG_JPEG_MEM_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_IMAGE_JPEG_JPEG_MEM_H_

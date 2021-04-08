@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- runtime_wrapper_test.cc ----------------------------------*- C++ -*-===//
-//
 // Unit test for runtime API (abstraction layer for CUDA and HIP runtime).
-//
-//===----------------------------------------------------------------------===//
 
 #include "common.h"
 #include "gtest/gtest.h"

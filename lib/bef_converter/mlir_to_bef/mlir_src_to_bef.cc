@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- mlir_src_to_bef.cc ---------------------------------------*- C++ -*-===//
-//
 // This file implements a utility function to convert MLIR source code to BEF.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/bef_converter/mlir_src_to_bef.h"
 

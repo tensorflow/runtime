@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- attributes.h ---------------------------------------------*- C++ -*-===//
-//
 // This file declares attributes for the 'corert' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_OPDEFS_ATTRIBUTES_H_
 #define TFRT_CORE_RUNTIME_OPDEFS_ATTRIBUTES_H_

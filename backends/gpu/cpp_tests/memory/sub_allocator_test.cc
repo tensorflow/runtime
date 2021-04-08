@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- sub_allocator_test.cc ------------------------------------*- C++ -*-===//
-//
 // Unit test for SubAllocator.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/gpu/memory/sub_allocator.h"
 
 #include <llvm/Support/Errc.h>

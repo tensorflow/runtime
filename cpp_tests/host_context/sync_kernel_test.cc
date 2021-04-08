@@ -17,8 +17,6 @@
 //===- sync_kernel_test.cc ---------------------------------------*- C++-*-===//
 //
 // Unit test for TFRT sync kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #include "gtest/gtest.h"
 #include "tfrt/host_context/concurrent_work_queue.h"

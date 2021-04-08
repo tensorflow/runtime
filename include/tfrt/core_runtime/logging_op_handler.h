@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- logging_op_handler.h -------------------------------------*- C++ -*-===//
-//
 // This file declares create functions for LogginOpHandler.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_CORE_RUNTIME_LOGGING_OP_HANDLER_H_
 #define TFRT_CORE_RUNTIME_LOGGING_OP_HANDLER_H_

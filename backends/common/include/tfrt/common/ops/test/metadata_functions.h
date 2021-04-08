@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- metadata_functions.h - Metadata functions for test ops ---*- C++ -*-===//
+// Metadata functions for test ops
 //
 // This file exports device agnostic metadata functions for test ops.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_COMMON_OPS_TEST_METADATA_FUNCTIONS_H_
 #define TFRT_BACKENDS_COMMON_OPS_TEST_METADATA_FUNCTIONS_H_

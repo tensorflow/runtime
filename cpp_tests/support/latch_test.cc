@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- latch_test.cc --------------------------------------------*- C++ -*-===//
-//
 // Tests for tfrt::latch implementation.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/support/latch.h"
 

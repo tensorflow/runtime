@@ -12,15 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- module_table.h -------------------------------------------*- C++ -*-===//
-//
 // ModuleTable is a resource used to load and keep track of CUDA modules and
 // their functions.
 //
 // All functions from all modules are stored in a flat array that is indexed by
 // their absolute order within the Spec provided at creation time.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_GPU_MODULE_TABLE_H_
 #define TFRT_GPU_MODULE_TABLE_H_

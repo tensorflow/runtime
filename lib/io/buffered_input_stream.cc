@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- buffered_input_stream.cc -------------------------------------------===//
-//
 // This file implements the BufferedInputStream class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/io/buffered_input_stream.h"
 

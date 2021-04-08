@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-//===- value.h - Generic synchronous value type -----------------*- C++ -*-===//
+// Generic synchronous value type
 //
 // This file declares Value, a generic type-erased value type designed for use
 // for synchronous kernels and TFRT interpreter.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_VALUE_H_
 #define TFRT_HOST_CONTEXT_VALUE_H_

@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- coo_host_tensor.cc -------------------------------------------------===//
-//
 // This file implements the CooHostTensor class.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/tensor/coo_host_tensor.h"
 

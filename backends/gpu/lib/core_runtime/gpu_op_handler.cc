@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- gpu_op_handler.cc --------------------------------------------------===//
-//
 // This file implements the GpuOpHandler.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/core_runtime/gpu_op_handler.h"
 

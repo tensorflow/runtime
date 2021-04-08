@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dnn_ops_util.cc ------------------------------------------*- C++ -*-===//
-//
 // Helpers for DNN ops.
-//
-//===----------------------------------------------------------------------===//
 #include "tfrt/common/ops/tf/dnn_ops_util.h"
 
 #include "llvm/ADT/ArrayRef.h"

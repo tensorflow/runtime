@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- cwise_unary_kernels.h ------------------------------------*- C++ -*-===//
-//
 // Coefficient wise unary kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CWISE_UNARY_KERNELS_H_
 #define TFRT_BACKENDS_CPU_LIB_KERNELS_CPU_CWISE_UNARY_KERNELS_H_

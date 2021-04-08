@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- native_function.h ----------------------------------------*- C++ -*-===//
-//
 // This file declares class NativeFunction.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_HOST_CONTEXT_NATIVE_FUNCTION_H_
 #define TFRT_HOST_CONTEXT_NATIVE_FUNCTION_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- device_util.h --------------------------------------------*- C++ -*-===//
-//
 // This file declares GPU device util functions for managing GPU devices.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_DEVICE_DEVICE_UTIL_H_
 #define TFRT_GPU_DEVICE_DEVICE_UTIL_H_
 

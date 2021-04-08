@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- transpose_op.cu.cc ---------------------------------------*- C++ -*-===//
-//
 // Implementations of TF Transpose op.
-//
-//===----------------------------------------------------------------------===//
 
 #include "transpose_op.h"
 

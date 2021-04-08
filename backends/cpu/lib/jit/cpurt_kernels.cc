@@ -17,8 +17,6 @@
 //===- cpurt_kernels.cc - CPURT kernels -----------------------------------===//
 //
 // This file defines the C++ kernels for the CPURT dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #include <sys/types.h>
 

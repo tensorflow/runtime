@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- types.h --------------------------------------------------*- C++ -*-===//
-//
 // This file declares types for the 'tfrt' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BASIC_KERNELS_OPDEFS_TYPES_H_
 #define TFRT_BASIC_KERNELS_OPDEFS_TYPES_H_

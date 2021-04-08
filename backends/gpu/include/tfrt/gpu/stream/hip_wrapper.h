@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- hip_wrapper.h --------------------------------------------*- C++ -*-===//
-//
 // Thin wrapper around the HIP API adding llvm::Error and explicit context.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_STREAM_HIP_WRAPPER_H_
 #define TFRT_GPU_STREAM_HIP_WRAPPER_H_
 

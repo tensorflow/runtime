@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- unary_ops.h ----------------------------------------------*- C++ -*-===//
-//
 // Collates list of all unary TF operations.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_UNARY_OPS_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_UNARY_OPS_H_

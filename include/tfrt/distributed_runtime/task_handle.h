@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- task_handle.h - Fabric Communicator ----------------------*- C++ -*-===//
+// Fabric Communicator
 //
 // This file declares TaskHandle, an opaque handle representing a task.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DISTRIBUTED_RUNTIME_TASK_HANDLE_H_
 #define TFRT_DISTRIBUTED_RUNTIME_TASK_HANDLE_H_

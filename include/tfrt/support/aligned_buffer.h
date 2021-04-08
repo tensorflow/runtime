@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- aligned_buffer.h -----------------------------------------*- C++ -*-===//
-//
 // This file declares AlignedAllocator and AlignedBuffer.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_ALIGNED_BUFFER_H_
 #define TFRT_SUPPORT_ALIGNED_BUFFER_H_

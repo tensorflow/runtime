@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- device/conversion_function.cc --------------------------------------===//
-//
 // This file implements GPU tensor conversion functions for copying between gpu
 // and host.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/gpu/device/conversion_function.h"
 

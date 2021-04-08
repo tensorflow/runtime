@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- host_allocator_test.cc -----------------------------------*- C++ -*-===//
-//
 // Unit tests for TFRT HostAllocator and HostArray classes.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/host_context/host_allocator.h"
 

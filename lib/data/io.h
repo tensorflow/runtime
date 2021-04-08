@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- io.h -----------------------------------------------------*- C++ -*-===//
-//
 // Helper classes for building IO iterators.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_LIB_DATA_IO_H_
 #define TFRT_LIB_DATA_IO_H_

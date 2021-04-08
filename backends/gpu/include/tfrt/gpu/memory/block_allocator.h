@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- block_allocator.h - BlockAllocator  ----------------------*- C++ -*-===//
+// BlockAllocator
 //
 // This file defines the interface for a block caching GPU memory allocator.
-//
-//===----------------------------------------------------------------------===//
 #ifndef TFRT_GPU_MEMORY_BLOCK_ALLOCATOR_H_
 #define TFRT_GPU_MEMORY_BLOCK_ALLOCATOR_H_
 

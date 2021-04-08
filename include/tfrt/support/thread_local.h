@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-//===- thread_local.h -------------------------------------------*- C++ -*-===//
-//
 // Thread local container that does not depend on `thread_local` storage.
 //
 // Unlike thread local storage, objects managed by a ThreadLocal instance are
@@ -53,8 +51,6 @@
 // If threads #1 and #2 happened to have the same thread id they will get a
 // reference to the same element. However it is guaranteed that the element
 // will not be shared between threads running concurrently.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_SUPPORT_THREAD_LOCAL_H_
 #define TFRT_SUPPORT_THREAD_LOCAL_H_

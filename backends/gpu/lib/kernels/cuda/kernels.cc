@@ -16,8 +16,6 @@
 //
 // This file defines the C++ functions that implement the kernels provided by
 // the TFRT CUDA runtime.
-//
-//===----------------------------------------------------------------------===//
 
 #include "llvm/Support/raw_ostream.h"
 #include "llvm_derived/Support/raw_ostream.h"

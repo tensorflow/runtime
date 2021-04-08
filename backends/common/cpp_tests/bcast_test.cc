@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- bcast_test.cc --------------------------------------------*- C++ -*-===//
-//
 // Unit test TF broadcasting rules.
-//
-//===----------------------------------------------------------------------===//
 
 #include "tfrt/common/ops/tf/bcast.h"
 

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- string_host_tensor_kernels.h -----------------------------*- C++ -*-===//
-//
 // This file declares kernels for string host tensor.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_TENSOR_STRING_HOST_TENSOR_KERNELS_H_
 #define TFRT_TENSOR_STRING_HOST_TENSOR_KERNELS_H_

@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-//===- types.h --------------------------------------------------*- C++ -*-===//
-//
 // This file declares types for the 'data' dialect.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_DATA_OPDEFS_TYPES_H_
 #define TFRT_DATA_OPDEFS_TYPES_H_

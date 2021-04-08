@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-//===- type_dispatch.h - ---=====--------------------------------*- C++ -*-===//
+// ---=====
 //
 // Helper functions to do Tf ops type based dispatching.
-//
-//===----------------------------------------------------------------------===//
 
 #ifndef TFRT_BACKENDS_CPU_OPS_TF_DISPATCH_OP_H_
 #define TFRT_BACKENDS_CPU_OPS_TF_DISPATCH_OP_H_

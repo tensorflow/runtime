@@ -118,8 +118,8 @@ class raw_fd_ostream : public llvm::raw_pwrite_stream {
 };
 #endif  // !_WIN32
 
-// Drop in replacement for tfrt::outs() and llvm::errs() since tfrt::outs uses
-// raw_fd_ostream, which introduces unecessary dependencies and is hurtful
+// Drop in replacement for llvm::outs() and llvm::errs() since those use
+// llvm::raw_fd_ostream, which introduces unecessary dependencies and is hurtful
 // to tfrt binary size.
 
 // This returns a reference to a raw_ostream for standard output.

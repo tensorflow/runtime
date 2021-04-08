@@ -20,9 +20,9 @@ func @noop_kernel() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
-  %stream, %ch5 = tfrt_cuda.stream.create %context, %ch2
+  %stream = tfrt_cuda.stream.create %context, %ch2
 
   // PTX for empty kernel.
   %ch6 = tfrt_cuda.module.load_static %context, %ch2
@@ -48,9 +48,9 @@ func @vector_add_kernel() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
-  %stream, %ch5 = tfrt_cuda.stream.create %context, %ch2
+  %stream = tfrt_cuda.stream.create %context, %ch2
   %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
 
   // PTX for empty kernel.
@@ -62,7 +62,7 @@ func @vector_add_kernel() {
 
   // Create source dense host tensors.
   %x_host = tfrt_dht.create_uninitialized_tensor.f32.1 [8 : i64]
-  %ch7 = tfrt_dht.fill_tensor_with_constant.f32 %x_host, %ch5 1.0 : f32
+  %ch7 = tfrt_dht.fill_tensor_with_constant.f32 %x_host, %ch2 1.0 : f32
   // CHECK: shape = [8], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %ch8 = tfrt_dht.print_tensor %x_host, %ch7
 

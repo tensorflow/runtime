@@ -20,17 +20,17 @@ func @memcpy_host_to_device_and_back_test() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch4 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
   %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
-  %stream, %ch6 = tfrt_cuda.stream.create %context, %ch2
+  %stream = tfrt_cuda.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 32
   %device_buffer, %ch7 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch2
 
   // Create source dense host tensor.
   %host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [8 : i64]
-  %ch10 = tfrt_dht.fill_tensor_with_constant.i32 %host_tensor, %ch6 1 : i32
+  %ch10 = tfrt_dht.fill_tensor_with_constant.i32 %host_tensor, %ch2 1 : i32
   // CHECK: shape = [8], values = [1, 1, 1, 1, 1, 1, 1, 1]
   %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
   %host_buffer, %ch12 = tfrt_dht.get_buffer %host_tensor, %ch1
@@ -48,7 +48,7 @@ func @memcpy_host_to_device_and_back_test() {
   // Create, record, and poll an event to make sure copy back to host completed.
   %event = tfrt_cuda.event.create %context
   %ch41 = tfrt_cuda.event.record %event, %stream, %ch31
-  %ch42 = tfrt_cuda.event.poll %event, %ch41
+  %ch42 = tfrt_cuda.event.synchronize %event, %ch41
 
   // CHECK: shape = [2, 4], values = [1, 1, 1, 1, 1, 1, 1, 1]
   %ch50 = tfrt_dht.print_tensor %result_host_tensor, %ch42

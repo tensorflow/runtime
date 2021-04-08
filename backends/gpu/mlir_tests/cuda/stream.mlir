@@ -20,10 +20,10 @@ func @stream_create_test() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch4 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
   %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
-  %stream, %ch6 = tfrt_cuda.stream.create %context, %ch2
+  %stream = tfrt_cuda.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 64
   %buffer, %ch7 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch2
@@ -45,11 +45,11 @@ func @stream_create_synchronize() {
   %ch2 = tfrt_cuda.init %ch1
 
   %index = tfrt.constant.i32 0
-  %device, %ch4 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
 
-  %stream, %ch6 = tfrt_cuda.stream.create %context, %ch2
-  %ch7 = tfrt_cuda.stream.synchronize %stream, %ch6
+  %stream = tfrt_cuda.stream.create %context, %ch2
+  %ch7 = tfrt_cuda.stream.synchronize %stream, %ch2
 
   tfrt.return
 }
@@ -59,13 +59,13 @@ func @make_tensor_from_smaller_buffer_should_fail() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch4 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
   %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
-  %stream, %ch6 = tfrt_cuda.stream.create %context, %ch2
+  %stream = tfrt_cuda.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 64
-  %buffer, %ch7 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch6
+  %buffer, %ch7 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch2
 
   %shape = ts.build_shape [5 : i64, 4 : i64]
   // expected-error @+1 {{tfrt_cuda.tensor.make failed: buffer_size (64) is not equal to the number of elements in shape ([5, 4]) times element size (4)}}

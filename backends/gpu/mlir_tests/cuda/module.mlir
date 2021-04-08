@@ -20,7 +20,7 @@ func @module_load_static_test() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
 
   // PTX for empty kernel.
@@ -38,7 +38,7 @@ func @module_load_static_bad_ptx_test() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
 
   // expected-error @+1 {{CUDA_ERROR_INVALID_IMAGE}}
@@ -55,7 +55,7 @@ func @module_load_static_neg_func_count_test() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
 
   // expected-error @+1 {{CUDA module table spec is malformed; Invalid function count (-1) specified for module 0}}
@@ -72,7 +72,7 @@ func @module_load_static_bad_func_count_test() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
 
   // expected-error @+1 {{CUDA module table spec is malformed; Number of entries in function count list doesn't match number of modules; 2 vs 1}}
@@ -89,7 +89,7 @@ func @module_load_static_twice_test() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
 
   %ch5 = tfrt_cuda.module.load_static %context, %ch4

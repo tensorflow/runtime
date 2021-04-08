@@ -49,9 +49,9 @@ def DnnCreateOp : CUDA_Op<"dnn.create"> {
     %ch1 = tfrt.new.chain
     %ch2 = tfrt_cuda.init %ch1
     %index = tfrt.constant.i32 0
-    %device, %ch3 = tfrt_cuda.device.get %index, %ch2
-    %context, %ch4 = tfrt_cuda_test.context.get %device, %ch3
-    %cudnn, %ch5 = tfrt_cuda.dnn.create %context, %ch4
+    %device = tfrt_cuda.device.get %index, %ch1
+    %context, %ch4 = tfrt_cuda_test.context.get %device, %ch1
+    %cudnn, %ch5 = tfrt_cuda.dnn.create %context, %ch1
 
   }];
   let arguments = (ins

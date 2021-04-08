@@ -56,10 +56,10 @@ def DeviceGetOp : CUDA_Op<"device.get"> {
       %ch1 = tfrt.new.chain
       %ch2 = tfrt_cuda.init %ch1
       %index = tfrt.constant.i32 0
-      %device, %ch3 = tfrt_cuda.device.get %index, %ch2
+      %device = tfrt_cuda.device.get %index, %ch2
   }];
   let arguments = (ins I32, TFRT_ChainType);
-  let results = (outs DeviceType, TFRT_ChainType);
+  let results = (outs DeviceType);
 }
 
 def StreamCreateOp : CUDA_Op<"stream.create"> {
@@ -71,22 +71,21 @@ def StreamCreateOp : CUDA_Op<"stream.create"> {
 
     Example:
       %ch1 = tfrt.new.chain
-      %stream, %ch2 = tfrt_cuda.stream.create %context, %ch1
+      %stream = tfrt_cuda.stream.create %context, %ch1
   }];
   let arguments = (ins ContextType, TFRT_ChainType);
-  let results = (outs StreamType, TFRT_ChainType);
+  let results = (outs StreamType);
 }
 
 def StreamSynchronizeOp : CUDA_Op<"stream.synchronize"> {
   let summary = "cuda stream.synchronize operation";
   let description = [{
-    tfrt_cuda.stream.synchronize waits until all stream's tasks are completed.
+    tfrt_cuda.stream.synchronize waits until all the work scheduled on the
+    stream has completed.
 
-    This op will block caller thread, and is not intended for use in production.
-    It is only intended for tests and benchmarks. Production users must use cuda
-    events (see `tfrt_cuda.event.*` ops defined below).
+    This op will set the returned chain when the stream has been synchronized.
 
-    Example:
+Example:
       %synced = tfrt_cuda.stream.synchronize %stream, %ch
   }];
   let arguments = (ins StreamType, TFRT_ChainType);
@@ -96,7 +95,7 @@ def StreamSynchronizeOp : CUDA_Op<"stream.synchronize"> {
 def EventCreateOp : CUDA_Op<"event.create"> {
   let summary = "cuda event.create operation";
   let description = [{
-    tfrt_cuda.event.create creates a CUDA event in the provided context..
+    tfrt_cuda.event.create creates a CUDA event in the provided context.
 
     Example:
       %event = tfrt_cuda.event.create %context
@@ -118,18 +117,17 @@ def EventRecordOp : CUDA_Op<"event.record"> {
   let results = (outs TFRT_ChainType);
 }
 
-def EventPollOp : CUDA_Op<"event.poll"> {
-  let summary = "cuda event.poll operation";
+def EventPollOp : CUDA_Op<"event.synchronize"> {
+  let summary = "cuda event.synchronize operation";
   let description = [{
-    tfrt_cuda.event.poll polls for completion of work recorded in the given event.
+    tfrt_cuda.event.synchronize waits for the completion of work captured by the
+    event.
 
-    This op will set the returned chain when the event has been reached.
-    An example implementation is to call cuEventQuery on the given
-    event periodically.
+    This op will set the returned chain when the event has been synchronized.
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_cuda.event.poll %event %ch1
+      %ch2 = tfrt_cuda.event.synchronize %event %ch1
   }];
   let arguments = (ins EventType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);

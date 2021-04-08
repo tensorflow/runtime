@@ -27,6 +27,7 @@
 #include "tfrt/gpu/stream/cuda_wrapper.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
+#include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -57,92 +58,98 @@ static void ReportErrorInternal(KernelErrorHandler error_handler,
   ReportErrorInternal(error_handler, error, __FILE__, __LINE__)
 
 // tfrt_cuda.init initializes CUDA driver.
-static void CudaInit(Argument<Chain> in_chain, Result<Chain> out_chain,
-                     KernelErrorHandler handler) {
-  llvm::Error result = gpu::stream::Init(gpu::stream::Platform::CUDA);
-  if (result) return REPORT_ERROR(handler, std::move(result));
-  out_chain.Set(in_chain);
+static Error CudaInitSync() {
+  return gpu::stream::Init(gpu::stream::Platform::CUDA);
+}
+static Expected<Chain> CudaInitAsync(Chain chain) {
+  if (auto error = CudaInitSync()) return std::move(error);
+  return chain;
 }
 
 // tfrt_cuda.device.get returns the CUDA Device at the given index.
-static void CudaDeviceGet(Argument<int32_t> ordinal, Argument<Chain> in_chain,
-                          Result<gpu::stream::Device> out_device,
-                          Result<Chain> out_chain, KernelErrorHandler handler) {
-  auto device = gpu::stream::DeviceGet(gpu::stream::Platform::CUDA, *ordinal);
-  if (!device) return REPORT_ERROR(handler, device.takeError());
-  out_device.Emplace(device.get());
-  out_chain.Set(in_chain);
+static Expected<gpu::stream::Device> CudaDeviceGet(int32_t ordinal) {
+  return gpu::stream::DeviceGet(gpu::stream::Platform::CUDA, ordinal);
 }
 
 // tfrt_cuda.stream.create creates a new stream that does not implicitly
 // synchronize with stream 0.
-static void CudaStreamCreate(Argument<gpu::stream::Context> context,
-                             Argument<Chain> in_chain,
-                             Result<gpu::stream::OwningStream> out_stream,
-                             Result<Chain> out_chain,
-                             KernelErrorHandler handler) {
+static Expected<gpu::stream::OwningStream> CudaStreamCreate(
+    Argument<gpu::stream::Context> context) {
   auto current = gpu::stream::CtxSetCurrent(*context);
-  if (!current) return REPORT_ERROR(handler, current.takeError());
-  auto stream = gpu::stream::StreamCreate(
-      *current, gpu::stream::StreamFlags::NON_BLOCKING);
-  if (!stream) return REPORT_ERROR(handler, stream.takeError());
-  out_stream.Emplace(std::move(*stream));
-  out_chain.Set(in_chain);
+  if (!current) return current.takeError();
+  return gpu::stream::StreamCreate(*current,
+                                   gpu::stream::StreamFlags::NON_BLOCKING);
 }
 
 // tfrt_cuda.stream.synchronize waits until all stream's tasks are completed.
 //
 // Result: Sets the output chain when all tasks submitted on a stream are
 // completed. This kernel will block the caller thread.
-static void CudaStreamSynchronize(Argument<gpu::stream::OwningStream> stream,
-                                  Argument<Chain> in_chain,
-                                  Result<Chain> out_chain,
-                                  KernelErrorHandler handler) {
-  llvm::Error error = gpu::stream::StreamSynchronize(stream->get());
-  if (error) return REPORT_ERROR(handler, std::move(error));
-  out_chain.Set(in_chain);
+static Error CudaStreamSynchronizeSync(
+    const gpu::stream::OwningStream& stream) {
+  return gpu::stream::StreamSynchronize(stream.get());
+}
+static void CudaStreamSynchronizeAsync(
+    Argument<gpu::stream::OwningStream> stream, Chain in_chain,
+    Result<Chain> out_chain, const ExecutionContext& exec_ctx) {
+  auto result = out_chain.Allocate();
+  bool enqueued = EnqueueBlockingWork(
+      exec_ctx, [result = result.CopyRef(), stream = stream.ValueRef(),
+                 in_chain = in_chain]() mutable {
+        if (auto error = CudaStreamSynchronizeSync(*stream))
+          return result.SetError(StrCat(error));
+        result.emplace(in_chain);
+      });
+  if (!enqueued) return result.SetError("Failed to enqueue blocking work.");
 }
 
 // tfrt_cuda.event.create creates a new cuda event.
 //
 // Result: new cuda event.
-static void CudaEventCreate(Argument<gpu::stream::Context> context,
-                            Result<RCReference<gpu::RcEvent>> out_event,
-                            KernelErrorHandler handler) {
-  auto current = gpu::stream::CtxSetCurrent(*context);
-  if (!current) return REPORT_ERROR(handler, current.takeError());
-  auto event = gpu::stream::EventCreate(
-      *current, gpu::stream::EventFlags::DISABLE_TIMING);
-  if (!event) return REPORT_ERROR(handler, event.takeError());
-  out_event.Emplace(TakeRef(new gpu::RcEvent(std::move(*event))));
+static Expected<gpu::stream::OwningEvent> CudaEventCreate(
+    gpu::stream::Context context) {
+  auto current = gpu::stream::CtxSetCurrent(context);
+  if (!current) return current.takeError();
+  return gpu::stream::EventCreate(*current,
+                                  gpu::stream::EventFlags::DISABLE_TIMING);
 }
 
 // tfrt_cuda.event.create creates a new cuda event.
 //
 // Result: new cuda event.
-static void CudaEventRecord(Argument<RCReference<gpu::RcEvent>> event,
-                            Argument<gpu::stream::OwningStream> stream,
-                            Argument<Chain> in_chain, Result<Chain> out_chain,
-                            KernelErrorHandler handler) {
-  llvm::Error record_error =
-      gpu::stream::EventRecord(event->get()->get(), stream->get());
-  if (record_error) return REPORT_ERROR(handler, std::move(record_error));
-  out_chain.Set(in_chain);
+static Error CudaEventRecordSync(const gpu::stream::OwningEvent& event,
+                                 const gpu::stream::OwningStream& stream) {
+  return gpu::stream::EventRecord(event.get(), stream.get());
+}
+static Expected<Chain> CudaEventRecordAsync(
+    const gpu::stream::OwningEvent& event,
+    const gpu::stream::OwningStream& stream, Chain chain) {
+  if (auto error = CudaEventRecordSync(event, stream)) return std::move(error);
+  return chain;
 }
 
-// tfrt_cuda.event.poll polls for event being reached.
-//
-// Result: Sets the output chain when the event has been reached, i.e.
-// all work scheduled prior to the last call to tfrt_cuda.event.record has been
-// completed
-static void CudaEventPoll(Argument<RCReference<gpu::RcEvent>> event,
-                          Argument<Chain> in_chain, Result<Chain> out_chain,
-                          AsyncKernelFrame* in_frame) {
-  // TODO(b/146084342): Implement this with an efficient EventMgr.
-  llvm::Error error = gpu::stream::EventSynchronize(event->get()->get());
-  if (error)
-    return REPORT_ERROR(KernelErrorHandler(in_frame), std::move(error));
-  out_chain.Set(in_chain);
+// tfrt_cuda.event.synchronize sets the output chain when the event has been
+// reached, i.e. all work scheduled prior to the last call to
+// tfrt_cuda.event.record has been completed.
+static Error CudaEventSynchronizeSync(const gpu::stream::OwningEvent& event) {
+  return gpu::stream::EventSynchronize(event.get());
+}
+static void CudaEventSynchronizeAsync(Argument<gpu::stream::OwningEvent> event,
+                                      Chain in_chain, Result<Chain> out_chain,
+                                      const ExecutionContext& exec_ctx) {
+  auto result = out_chain.Allocate();
+  // Check if event has already completed and we can skip enqueuing work.
+  auto ready = gpu::stream::EventQuery(event->get());
+  if (!ready) return result.SetError(StrCat(ready.takeError()));
+  if (*ready) return result.emplace(in_chain);
+  bool enqueued = EnqueueBlockingWork(
+      exec_ctx, [result = result.CopyRef(), event = event.ValueRef(),
+                 in_chain = in_chain]() mutable {
+        if (auto error = CudaEventSynchronizeSync(*event))
+          return result.SetError(StrCat(error));
+        result.emplace(in_chain);
+      });
+  if (!enqueued) return result.SetError("Failed to enqueue blocking work.");
 }
 
 // tfrt_cuda.allocator.create creates a new allocator.
@@ -416,16 +423,18 @@ static void CudaLaunch(
 }
 
 void RegisterCudaKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("tfrt_cuda.init", TFRT_KERNEL(CudaInit));
+  kernel_reg->AddKernel("tfrt_cuda.init", TFRT_KERNEL(CudaInitAsync));
   kernel_reg->AddKernel("tfrt_cuda.device.get", TFRT_KERNEL(CudaDeviceGet));
   kernel_reg->AddKernel("tfrt_cuda.stream.create",
                         TFRT_KERNEL(CudaStreamCreate));
   kernel_reg->AddKernel("tfrt_cuda.stream.synchronize",
-                        TFRT_KERNEL(CudaStreamSynchronize));
+                        TFRT_KERNEL(CudaStreamSynchronizeAsync));
 
   kernel_reg->AddKernel("tfrt_cuda.event.create", TFRT_KERNEL(CudaEventCreate));
-  kernel_reg->AddKernel("tfrt_cuda.event.record", TFRT_KERNEL(CudaEventRecord));
-  kernel_reg->AddKernel("tfrt_cuda.event.poll", TFRT_KERNEL(CudaEventPoll));
+  kernel_reg->AddKernel("tfrt_cuda.event.record",
+                        TFRT_KERNEL(CudaEventRecordAsync));
+  kernel_reg->AddKernel("tfrt_cuda.event.synchronize",
+                        TFRT_KERNEL(CudaEventSynchronizeAsync));
 
   kernel_reg->AddKernel("tfrt_cuda.allocator.create",
                         TFRT_KERNEL(CudaAllocatorCreate));

@@ -22,10 +22,10 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
-  %device, %ch4 = tfrt_cuda.device.get %index, %ch2
+  %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
   %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
-  %stream, %ch6 = tfrt_cuda.stream.create %context, %ch2
+  %stream = tfrt_cuda.stream.create %context, %ch2
 
   %k_in_size = tfrt.constant.i32 36  //  2 * 2 * 3 * 3
   %k_out_size = tfrt.constant.i32 4  //  2 * 2 * 1 * 1
@@ -68,7 +68,7 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %i34 = tfrt.constant.f32 0.647885
   %i35 = tfrt.constant.f32 0.257522
   %input = tfrt_dht.create_uninitialized_tensor.f32.4 [2 : i64, 2 : i64, 3 : i64, 3 : i64]
-  %ch7 = "tfrt_dht.set_tensor_with_values.f32"(%input, %ch6, %i00, %i01, %i02, %i03, %i04, %i05, %i06, %i07, %i08, %i09, %i10, %i11, %i12, %i13, %i14, %i15, %i16, %i17, %i18, %i19, %i20, %i21, %i22, %i23, %i24, %i25, %i26, %i27, %i28, %i29, %i30, %i31, %i32, %i33, %i34, %i35): (!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
+  %ch7 = "tfrt_dht.set_tensor_with_values.f32"(%input, %ch2, %i00, %i01, %i02, %i03, %i04, %i05, %i06, %i07, %i08, %i09, %i10, %i11, %i12, %i13, %i14, %i15, %i16, %i17, %i18, %i19, %i20, %i21, %i22, %i23, %i24, %i25, %i26, %i27, %i28, %i29, %i30, %i31, %i32, %i33, %i34, %i35): (!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
   %ch8 = tfrt_dht.print_tensor %input, %ch7
 
   // Expected output tensor

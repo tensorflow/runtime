@@ -473,6 +473,8 @@ tfrt_cc_library(
     name = "mlirtobef",
     srcs = [
         "include/tfrt/host_context/debug_info.h",
+        "lib/bef_converter/mlir_to_bef/bef_compilation_units.cc",
+        "lib/bef_converter/mlir_to_bef/bef_compilation_units.h",
         "lib/bef_converter/mlir_to_bef/mlir_to_bef.cc",
     ],
     hdrs = [

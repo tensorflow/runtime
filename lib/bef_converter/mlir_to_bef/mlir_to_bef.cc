@@ -27,6 +27,7 @@
 
 #include <cstring>
 
+#include "bef_compilation_units.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -302,25 +303,6 @@ static bool IsNativeFunc(mlir::FuncOp op) {
 }
 
 static bool IsSyncFunc(mlir::FuncOp op) { return !!op->getAttr("tfrt.sync"); }
-
-static bool IsCompiledModule(mlir::ModuleOp op) {
-  return !!op->getAttr("tfrt.compiled");
-}
-
-// Returs true if the operation is inside the compiled module or the compiled
-// module itself. Compiled modules passed to BEF kernels as serialized MLIR
-// blobs, and we do not need to encode any operations in them as BEF.
-static bool IsInCompiledModule(mlir::Operation* op) {
-  mlir::ModuleOp parent_module = dyn_cast<mlir::ModuleOp>(op);
-  if (!parent_module) parent_module = op->getParentOfType<mlir::ModuleOp>();
-
-  while (parent_module) {
-    if (IsCompiledModule(parent_module)) return true;
-    parent_module = parent_module->getParentOfType<mlir::ModuleOp>();
-  }
-
-  return false;
-}
 
 static mlir::FunctionType GetRegionFunctionType(mlir::Region* region) {
   // Emit information about the type of the function.
@@ -626,7 +608,7 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
 
         // Ignore operations inside compiled modules. Symbol references into the
         // compiled modules passes to kernels as a compilation unit attribute.
-        if (IsInCompiledModule(op)) return;
+        if (BefCompilationUnits::IsInCompiledModule(op)) return;
 
         // The return op gets special handling, ensure it is at the end of its
         // enclosing block.
@@ -750,7 +732,8 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
               auto* module_op = module.getOperation();
               auto* sym_op =
                   mlir::SymbolTable::lookupSymbolIn(module_op, sym_attr);
-              if (sym_op && IsInCompiledModule(sym_op)) return llvm::None;
+              if (sym_op && BefCompilationUnits::IsInCompiledModule(sym_op))
+                return llvm::None;
 
               return sym_attr;
             };
@@ -984,93 +967,6 @@ constexpr uint32_t BEFFileEmitter::kDummyPseudoKernelLocation;
 
 }  // namespace
 
-// Resolve the properties of compilation units in the top level Module
-// operation. Compilation units are functions in modules with `tfrt.compiled`
-// attribute, which will be compiled at runtime by the BEF program, and passed
-// as compilation unit attributes (serialized MLIR).
-class BEFCompilationUnits {
- public:
-  explicit BEFCompilationUnits(mlir::ModuleOp module) : module_(module) {}
-
-  size_t SerializedSymbolSize(mlir::SymbolRefAttr symbol);
-  size_t SerializedOperationSize(mlir::SymbolRefAttr symbol);
-
-  ArrayRef<uint8_t> SerializedSymbolData(mlir::SymbolRefAttr symbol);
-  ArrayRef<uint8_t> SerializedOperationData(mlir::SymbolRefAttr symbol);
-
- private:
-  struct Serialized {
-    size_t symbol_size;     // size of the serialized symbol name
-    size_t operation_size;  // size of the serialized operation
-    std::string data;       // symbol_ref + operation
-  };
-
-  const Serialized& Serialize(mlir::SymbolRefAttr symbol);
-
-  mlir::ModuleOp module_;
-  llvm::DenseMap<mlir::Attribute, Serialized> serialized_;
-};
-
-size_t BEFCompilationUnits::SerializedSymbolSize(mlir::SymbolRefAttr symbol) {
-  return Serialize(symbol).symbol_size;
-}
-
-size_t BEFCompilationUnits::SerializedOperationSize(
-    mlir::SymbolRefAttr symbol) {
-  return Serialize(symbol).operation_size;
-}
-
-ArrayRef<uint8_t> BEFCompilationUnits::SerializedSymbolData(
-    mlir::SymbolRefAttr symbol) {
-  auto& serialized = Serialize(symbol);
-  string_view str = serialized.data;
-  return {reinterpret_cast<const uint8_t*>(str.data()), serialized.symbol_size};
-}
-
-ArrayRef<uint8_t> BEFCompilationUnits::SerializedOperationData(
-    mlir::SymbolRefAttr symbol) {
-  auto& serialized = Serialize(symbol);
-  string_view str = serialized.data;
-  return {reinterpret_cast<const uint8_t*>(str.data()) + serialized.symbol_size,
-          serialized.operation_size};
-}
-
-const BEFCompilationUnits::Serialized& BEFCompilationUnits::Serialize(
-    mlir::SymbolRefAttr symbol) {
-  auto* op = mlir::SymbolTable::lookupSymbolIn(module_.getOperation(), symbol);
-  assert(IsInCompiledModule(op));
-
-  // Check if the referenced symbol already serialized.
-  auto it = serialized_.find(symbol);
-  if (it != serialized_.end()) return it->getSecond();
-
-  // Serialize and keep compiled module that defines the symbol.
-  auto parent_module = op->getParentOfType<mlir::ModuleOp>();
-  assert(IsCompiledModule(parent_module));
-
-  std::string str;
-  llvm::raw_string_ostream os(str);
-
-  // Print symbol names.
-  os << symbol.getRootReference();
-  for (auto nested_ref : symbol.getNestedReferences())
-    os << nested_ref.getValue();
-
-  size_t symbol_size = str.size();
-
-  // Use generic form to print the module and improve BEF portability. The
-  // pretty print is less stable from a syntax point of view.
-  mlir::OpPrintingFlags flags;
-  flags.printGenericOpForm();
-  parent_module.print(os, flags);
-
-  size_t operation_size = str.size() - symbol_size;
-
-  Serialized serialized{symbol_size, operation_size, std::move(str)};
-  auto inserted = serialized_.insert({symbol, std::move(serialized)});
-  return inserted.first->getSecond();
-}
-
 // This is the emitter that builds a BEF into an std::vector.
 class BEFModuleEmitter : public BEFFileEmitter {
  public:
@@ -1167,7 +1063,7 @@ void BEFModuleEmitter::EmitStrings() {
 // This emits attributes without any type or size information.
 class BEFAttributeEmitter : public BEFEmitter {
  public:
-  explicit BEFAttributeEmitter(BEFCompilationUnits& compilation_units)
+  explicit BEFAttributeEmitter(BefCompilationUnits* compilation_units)
       : compilation_units_(compilation_units) {}
 
   void EmitAttribute(mlir::Attribute attr);
@@ -1183,7 +1079,7 @@ class BEFAttributeEmitter : public BEFEmitter {
   void EmitFloatAttribute(mlir::FloatAttr attr);
 
  private:
-  BEFCompilationUnits& compilation_units_;
+  BefCompilationUnits* compilation_units_;
 };
 
 void BEFAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
@@ -1287,8 +1183,8 @@ void BEFAttributeEmitter::EmitArrayAttribute(mlir::ArrayAttr array_attr) {
 
 void BEFAttributeEmitter::EmitSymbolRefAttribute(
     mlir::SymbolRefAttr symbol_ref_attr) {
-  EmitBytes(compilation_units_.SerializedSymbolData(symbol_ref_attr));
-  EmitBytes(compilation_units_.SerializedOperationData(symbol_ref_attr));
+  EmitBytes(compilation_units_->SerializedSymbolData(symbol_ref_attr));
+  EmitBytes(compilation_units_->SerializedOperationData(symbol_ref_attr));
   EmitByte(0);
 }
 
@@ -1298,7 +1194,7 @@ void BEFAttributeEmitter::EmitSymbolRefAttribute(
 // higher level than BEF.
 class BEFTypedAttributeEmitter : public BEFEmitter {
  public:
-  explicit BEFTypedAttributeEmitter(BEFCompilationUnits& compilation_units)
+  explicit BEFTypedAttributeEmitter(BefCompilationUnits* compilation_units)
       : compilation_units_(compilation_units) {
     // Typed attributes should be at least aligned to alignof(BEFAttrBase).
     EmitAlignment(alignof(BEFAttrBase));
@@ -1313,7 +1209,7 @@ class BEFTypedAttributeEmitter : public BEFEmitter {
   void EmitShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
   void EmitRankedShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
 
-  BEFCompilationUnits& compilation_units_;
+  BefCompilationUnits* compilation_units_;
 };
 
 void BEFTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
@@ -1501,10 +1397,10 @@ void BEFTypedAttributeEmitter::EmitRankedShapeAttribute(
 // This is the emitter that builds the attributes section of a BEF.
 class BEFAttributesEmitter : public BEFFileEmitter {
  public:
-  BEFAttributesEmitter(BEFCompilationUnits* compilation_units,
+  BEFAttributesEmitter(BefCompilationUnits* compilation_units,
                        EntityIndex* entity_index,
                        BEFFileEmitter* attribute_type_emitter)
-      : compilation_units_(*compilation_units),
+      : compilation_units_(compilation_units),
         entity_index_(*entity_index),
         attribute_type_emitter_(*attribute_type_emitter),
         num_attributes_(0) {}
@@ -1522,7 +1418,7 @@ class BEFAttributesEmitter : public BEFFileEmitter {
     attribute_type_emitter_.EmitInt(attr_tag.data);
   }
 
-  BEFCompilationUnits& compilation_units_;
+  BefCompilationUnits* compilation_units_;
   EntityIndex& entity_index_;
   BEFFileEmitter& attribute_type_emitter_;
 
@@ -1595,7 +1491,7 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
         EmitInt(symbol.getNestedReferences()[i].getValue().size());
 
       // Length of the serialized compilation unit.
-      EmitInt(compilation_units_.SerializedOperationSize(symbol));
+      EmitInt(compilation_units_->SerializedOperationSize(symbol));
 
       EmitAlignment(attribute_emitter.GetRequiredAlignment());
       EmitEmitter(attribute_emitter);
@@ -1615,7 +1511,7 @@ void BEFModuleEmitter::EmitAttributes(BEFFileEmitter* attribute_types) {
   // order they were found.
 
   // Keep track of all compilation units in the module.
-  BEFCompilationUnits compilation_units(module_);
+  BefCompilationUnits compilation_units(module_);
 
   // Emit attributes and record them in EntityIndex. Nested array attributes
   // will be traversed recursively and their elements will be emitted and

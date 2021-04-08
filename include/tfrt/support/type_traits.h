@@ -83,6 +83,18 @@ template <typename T, typename... Us>
 struct TupleHasType<T, std::tuple<Us...>>
     : disjunction<std::is_same<T, Us>...> {};
 
+// Check if a type is found in the give type list.
+//
+// Example:
+// static_assert(IsOneOfTypes<T, int, float>());
+template <typename...>
+struct IsOneOfTypes : std::false_type {};
+
+template <typename T, typename U, typename... Types>
+struct IsOneOfTypes<T, U, Types...>
+    : std::conditional_t<std::is_same<T, U>::value, std::true_type,
+                         IsOneOfTypes<T, Types...>> {};
+
 // The detector pattern in C++ that can be used for checking whether a type has
 // a specific property, e.g. whether an internal type is present or whether a
 // particular operation is valid.

@@ -478,8 +478,8 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // This is the main entry point that gets registered as a kernel.
   static void Invoke(AsyncKernelFrame* frame) {
     SyncKernelCallHelper<Args..., TypeTag<int>>::template Invoke<
-        /*in_idx=*/0, /*out_idx=*/0, /*const_idx=*/0, /*func_idx=*/0,
-        /*has_kernel_error=*/false, /*has_in_chain=*/false>(frame);
+        /*arg_idx=*/0, /*result_idx=*/0, /*attr_idx=*/0, /*func_idx=*/0,
+        /*has_kernel_error_handler=*/false, /*has_in_chain=*/false>(frame);
   }
 
  private:
@@ -498,11 +498,11 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
 
   // Casts the return value of the kernel, if non-void. Otherwise ignores the
   // return value.
-  template <bool has_kernel_error, typename T>
+  template <bool has_kernel_error_handler, typename T>
   struct SyncKernelReturnHelper {
     static void Invoke(AsyncKernelFrame* frame, const Args&... args) {
       static_assert(
-          !has_kernel_error,
+          !has_kernel_error_handler,
           "Do not return by value when using KernelErrorHandler. Set the "
           "kernel's return value with Result<> instead. "
           "Bad: Chain my_kernel(KernelErrorHandler handler). "
@@ -512,8 +512,8 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
-  template <bool has_kernel_error>
-  struct SyncKernelReturnHelper<has_kernel_error, void> {
+  template <bool has_kernel_error_handler>
+  struct SyncKernelReturnHelper<has_kernel_error_handler, void> {
     static void Invoke(AsyncKernelFrame* frame, const Args&... args) {
       impl_fn(args...);
     }
@@ -543,7 +543,8 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // AsyncKernelFrame.
   template <typename T>
   static void HandleReturn(AsyncKernelFrame* frame, T&& t) {
-    assert(frame->GetNumResults() == 1 && "Extra results passed to kernel.");
+    assert(frame->GetNumResults() == 1 &&
+           "Incorrect number of results passed to kernel.");
     StoreResultAt(frame, 0, std::forward<T>(t));
   }
 
@@ -639,41 +640,41 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // Specialization to cast a single input argument (Head).
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<Argument<Head>, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(in_idx != -1,
+      static_assert(arg_idx != -1,
                     "Do not place Arguments after RemainingArguments");
-      static_assert(out_idx == 0, "Arguments should appear before results.");
-      static_assert(const_idx == 0,
+      static_assert(result_idx == 0, "Arguments should appear before results.");
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       static_assert(func_idx == 0,
                     "Arguments and results should appear before functions.");
-      Argument<Head> arg(frame->GetArgAt(in_idx));
+      Argument<Head> arg(frame->GetArgAt(arg_idx));
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx + 1, out_idx, const_idx, func_idx, has_kernel_error,
+          arg_idx + 1, result_idx, attr_idx, func_idx, has_kernel_error_handler,
           (has_in_chain || std::is_same<Head, Chain>())>(frame, pargs..., arg);
     }
   };
 
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<ArgumentView<Head>, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(in_idx != -1,
+      static_assert(arg_idx != -1,
                     "Do not place ArgumentViews after RemainingArguments");
-      static_assert(out_idx == 0,
+      static_assert(result_idx == 0,
                     "ArgumentViews should appear before results.");
-      static_assert(const_idx == 0,
+      static_assert(attr_idx == 0,
                     "ArgumentViews should appear before attributes.");
       static_assert(func_idx == 0,
                     "ArgumentViews should appear before funtions.");
-      ArgumentView<Head> arg(frame->GetArgAt(in_idx));
+      ArgumentView<Head> arg(frame->GetArgAt(arg_idx));
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx + 1, out_idx, const_idx, func_idx, has_kernel_error,
+          arg_idx + 1, result_idx, attr_idx, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -682,24 +683,24 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // remaining arguments. Useful for variadic kernels.
   template <typename... Tail>
   struct SyncKernelCallHelper<RemainingArguments, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(
-          in_idx != -1,
+          arg_idx != -1,
           "Do not use more than one RemainingArguments/RepeatedArguments");
-      static_assert(out_idx == 0, "Arguments should appear before results.");
-      static_assert(const_idx == 0,
+      static_assert(result_idx == 0, "Arguments should appear before results.");
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       static_assert(func_idx == 0,
                     "Arguments and results should appear before funtions.");
       RemainingArguments remaining_arguments(
-          frame->GetArguments().drop_front(in_idx));
+          frame->GetArguments().drop_front(arg_idx));
 
       SyncKernelCallHelper<Tail...>::template Invoke<
-          -1, out_idx, const_idx, func_idx, has_kernel_error, has_in_chain>(
-          frame, pargs..., remaining_arguments);
+          -1, result_idx, attr_idx, func_idx, has_kernel_error_handler,
+          has_in_chain>(frame, pargs..., remaining_arguments);
     }
   };
 
@@ -707,42 +708,43 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // remaining arguments. Useful for variadic kernels.
   template <typename T, typename... Tail>
   struct SyncKernelCallHelper<RepeatedArguments<T>, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(
-          in_idx != -1,
+          arg_idx != -1,
           "Do not use more than one RemainingArguments/RepeatedArguments");
-      static_assert(out_idx == 0, "Arguments should appear before results.");
-      static_assert(const_idx == 0,
+      static_assert(result_idx == 0, "Arguments should appear before results.");
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       static_assert(func_idx == 0,
                     "Arguments and results should appear before funtions.");
       RepeatedArguments<T> repeated_arguments(
-          frame->GetArguments().drop_front(in_idx));
+          frame->GetArguments().drop_front(arg_idx));
       SyncKernelCallHelper<Tail...>::template Invoke<
-          -1, out_idx, const_idx, func_idx, has_kernel_error, has_in_chain>(
-          frame, pargs..., repeated_arguments);
+          -1, result_idx, attr_idx, func_idx, has_kernel_error_handler,
+          has_in_chain>(frame, pargs..., repeated_arguments);
     }
   };
 
   // Specialization to cast a single result argument (Head).
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<Result<Head>, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(out_idx != -1,
+      static_assert(result_idx != -1,
                     "Do not place Results after RemainingResults");
-      static_assert(const_idx == 0,
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       static_assert(func_idx == 0,
                     "Arguments and results should appear before funtions.");
-      Result<Head> arg(frame->GetHostContext(), &frame->GetResults()[out_idx]);
+      Result<Head> arg(frame->GetHostContext(),
+                       &frame->GetResults()[result_idx]);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx + 1, const_idx, func_idx, has_kernel_error,
+          arg_idx, result_idx + 1, attr_idx, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -751,38 +753,39 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // remaining results. Useful for variadic kernels.
   template <typename... Tail>
   struct SyncKernelCallHelper<RemainingResults, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(out_idx != -1, "Do not use more than one RemainingResults");
-      static_assert(const_idx == 0,
+      static_assert(result_idx != -1,
+                    "Do not use more than one RemainingResults");
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       static_assert(func_idx == 0,
                     "Arguments and results should appear before funtions.");
 
       MutableArrayRef<RCReference<AsyncValue>> results =
-          frame->GetResults().drop_front(out_idx);
+          frame->GetResults().drop_front(result_idx);
 
       RemainingResults remaining_results(frame->GetHostContext(), results);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, -1, const_idx, func_idx, has_kernel_error, has_in_chain>(
-          frame, pargs..., remaining_results);
+          arg_idx, -1, attr_idx, func_idx, has_kernel_error_handler,
+          has_in_chain>(frame, pargs..., remaining_results);
     }
   };
 
   // Specialization to cast a single attribute (Head).
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<Attribute<Head>, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx != -1,
+      static_assert(attr_idx != -1,
                     "Do not place Attributes after RemainingAttributes");
-      Attribute<Head> arg = frame->GetAttributeAt<Head>(const_idx);
+      Attribute<Head> arg = frame->GetAttributeAt<Head>(attr_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          arg_idx, result_idx, attr_idx + 1, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -790,14 +793,14 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // Specialization to cast a function.
   template <typename... Tail>
   struct SyncKernelCallHelper<Attribute<Function>, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
       Attribute<Function> arg(
           static_cast<const void*>(frame->GetFunction(func_idx)));
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx, func_idx + 1, has_kernel_error,
+          arg_idx, result_idx, attr_idx, func_idx + 1, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -805,15 +808,15 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // Like the above, but for arrays.
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<ArrayAttribute<Head>, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx != -1,
+      static_assert(attr_idx != -1,
                     "Do not place ArrayAttribute after RemainingAttributes");
-      ArrayAttribute<Head> arg = frame->GetArrayAttributeAt<Head>(const_idx);
+      ArrayAttribute<Head> arg = frame->GetArrayAttributeAt<Head>(attr_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          arg_idx, result_idx, attr_idx + 1, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -821,15 +824,15 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // Like the above, but for strings.
   template <typename... Tail>
   struct SyncKernelCallHelper<StringAttribute, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx != -1,
+      static_assert(attr_idx != -1,
                     "Do not place StringAttribute after RemainingAttributes");
-      StringAttribute arg = frame->GetStringAttribute(const_idx);
+      StringAttribute arg = frame->GetStringAttribute(attr_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          arg_idx, result_idx, attr_idx + 1, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -837,17 +840,17 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // Like the above, but for compilation units.
   template <typename... Tail>
   struct SyncKernelCallHelper<CompilationUnitAttribute, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(
-          const_idx != -1,
+          attr_idx != -1,
           "Do not place CompilationUnitAttribute after RemainingAttributes");
       CompilationUnitAttribute arg =
-          frame->GetCompilationUnitAttribute(const_idx);
+          frame->GetCompilationUnitAttribute(attr_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          arg_idx, result_idx, attr_idx + 1, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -857,15 +860,15 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   struct SyncKernelCallTypedAttrHelper {
     static_assert(std::is_base_of<TypedAttrBase, TypedAttrT>::value,
                   "TypedAttrT must be derived from class TypedAttrBase");
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx != -1,
+      static_assert(attr_idx != -1,
                     "Do not place typed attributes after RemainingAttributes");
-      TypedAttrT arg(frame->GetAttribute(const_idx));
+      TypedAttrT arg(frame->GetAttribute(attr_idx));
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          arg_idx, result_idx, attr_idx + 1, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -909,43 +912,45 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
 
   template <typename... Tail>
   struct SyncKernelCallHelper<RemainingAttributes, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx != -1,
+      static_assert(attr_idx != -1,
                     "Do not use more than one RemainingAttributes");
-      RemainingAttributes remaining_attributes(frame, const_idx);
+      RemainingAttributes remaining_attributes(frame, attr_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, /*const_idx=*/-1, func_idx, has_kernel_error,
-          has_in_chain>(frame, pargs..., remaining_attributes);
+          arg_idx, result_idx, /*attr_idx=*/-1, func_idx,
+          has_kernel_error_handler, has_in_chain>(frame, pargs...,
+                                                  remaining_attributes);
     }
   };
 
   template <typename... Tail>
   struct SyncKernelCallHelper<RemainingFunctions, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
       static_assert(func_idx != -1,
                     "Do not use more than one RemainingFunctions");
       RemainingFunctions remaining_functions(frame, func_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx, /*func_idx=*/-1, has_kernel_error,
-          has_in_chain>(frame, pargs..., remaining_functions);
+          arg_idx, result_idx, attr_idx, /*func_idx=*/-1,
+          has_kernel_error_handler, has_in_chain>(frame, pargs...,
+                                                  remaining_functions);
     }
   };
 
   // If this kernel can fail, pass it an error argument.
   template <typename... Tail>
   struct SyncKernelCallHelper<KernelErrorHandler, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx, func_idx, true, has_in_chain>(
+          arg_idx, result_idx, attr_idx, func_idx, true, has_in_chain>(
           frame, pargs..., KernelErrorHandler(frame));
     }
   };
@@ -953,26 +958,26 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   // If this kernel requires ExecutionContext, pass it as an argument.
   template <typename... Tail>
   struct SyncKernelCallHelper<const ExecutionContext&, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx, func_idx, has_kernel_error, has_in_chain>(
-          frame, pargs..., frame->GetExecutionContext());
+          arg_idx, result_idx, attr_idx, func_idx, has_kernel_error_handler,
+          has_in_chain>(frame, pargs..., frame->GetExecutionContext());
     }
   };
 
   // If this kernel requires the frame for some reason, pass it as an argument.
   template <typename... Tail>
   struct SyncKernelCallHelper<AsyncKernelFrame*, Tail...> {
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx, out_idx, const_idx, func_idx, has_kernel_error, has_in_chain>(
-          frame, pargs..., frame);
+          arg_idx, result_idx, attr_idx, func_idx, has_kernel_error_handler,
+          has_in_chain>(frame, pargs..., frame);
     }
   };
 
@@ -983,22 +988,22 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
                   "HostContext* is not allowed as a kernel argument. Use const "
                   "ExecutionContext& instead.");
 
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(in_idx != -1,
+      static_assert(arg_idx != -1,
                     "Do not place Arguments after RemainingArguments");
-      static_assert(out_idx == 0, "Arguments should appear before results.");
-      static_assert(const_idx == 0,
+      static_assert(result_idx == 0, "Arguments should appear before results.");
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       static_assert(func_idx == 0,
                     "Arguments and results should appear before functions.");
       static_assert(!std::is_same<Head, Chain>(),
                     "Do not pass Chain as pointer.");
-      auto* arg = &frame->GetArgAt<Head>(in_idx);
+      auto* arg = &frame->GetArgAt<Head>(arg_idx);
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx + 1, out_idx, const_idx, func_idx, has_kernel_error,
+          arg_idx + 1, result_idx, attr_idx, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
     }
   };
@@ -1018,22 +1023,22 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
       return value->get<ArgT>();
     }
 
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(in_idx != -1,
+      static_assert(arg_idx != -1,
                     "Do not place Arguments after RemainingArguments");
-      static_assert(out_idx == 0, "Arguments should appear before results.");
-      static_assert(const_idx == 0,
+      static_assert(result_idx == 0, "Arguments should appear before results.");
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       static_assert(func_idx == 0,
                     "Arguments and results should appear before functions.");
-      auto* async_value = frame->GetArgAt(in_idx);
+      auto* async_value = frame->GetArgAt(arg_idx);
       auto&& arg = GetArg<ArgT>(async_value, IsViewT<ArgT>());
 
       SyncKernelCallHelper<Tail...>::template Invoke<
-          in_idx + 1, out_idx, const_idx, func_idx, has_kernel_error,
+          arg_idx + 1, result_idx, attr_idx, func_idx, has_kernel_error_handler,
           (has_in_chain || std::is_same<ArgT, Chain>())>(frame, pargs..., arg);
     }
   };
@@ -1044,38 +1049,39 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   template <typename T>
   struct SyncKernelCallHelper<TypeTag<T>> {
     // Verify the result index for non-void Return type
-    template <typename ReturnT, int out_idx>
+    template <typename ReturnT, int result_idx>
     struct AssertIndex {
       static void Verify(AsyncKernelFrame* frame) {
-        static_assert(out_idx == 0,
+        static_assert(result_idx == 0,
                       "Don't mix return by value and Result<> syntax.");
       }
     };
 
     // Verify the result index for void Return type.
-    template <int out_idx>
-    struct AssertIndex<void, out_idx> {
+    template <int result_idx>
+    struct AssertIndex<void, result_idx> {
       static void Verify(AsyncKernelFrame* frame) {
-        assert((out_idx == frame->GetNumResults() || out_idx == -1) &&
+        assert((result_idx == frame->GetNumResults() || result_idx == -1) &&
                "Extra results passed to kernel.");
       }
     };
 
-    template <int in_idx, int out_idx, int const_idx, int func_idx,
-              bool has_kernel_error, bool has_in_chain,
+    template <int arg_idx, int result_idx, int attr_idx, int func_idx,
+              bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
     static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      AssertIndex<Return, out_idx>::Verify(frame);
+      AssertIndex<Return, result_idx>::Verify(frame);
 
-      assert((in_idx == frame->GetNumArgs() || in_idx == -1 ||
-              (!has_in_chain && in_idx == frame->GetNumArgs() - 1 &&
-               frame->GetArgAt(in_idx)->template IsType<Chain>())) &&
+      assert((arg_idx == frame->GetNumArgs() || arg_idx == -1 ||
+              (!has_in_chain && arg_idx == frame->GetNumArgs() - 1 &&
+               frame->GetArgAt(arg_idx)->template IsType<Chain>())) &&
              "Extra arguments passed to kernel.");
-      assert(const_idx == frame->GetNumAttributes() ||
-             const_idx == -1 && "Extra attributes passed to kernel.");
+      assert(attr_idx == frame->GetNumAttributes() ||
+             attr_idx == -1 && "Extra attributes passed to kernel.");
       assert(func_idx == frame->GetNumFunctions() ||
              func_idx == -1 && "Extra functions passed to kernel.");
-      SyncKernelReturnHelper<has_kernel_error, Return>::Invoke(frame, pargs...);
+      SyncKernelReturnHelper<has_kernel_error_handler, Return>::Invoke(
+          frame, pargs...);
     }
   };
 };

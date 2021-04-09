@@ -282,10 +282,10 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   // Specialization to cast a single attribute (Head).
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<Attribute<Head>, Tail...> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      Attribute<Head> arg = frame->GetAttributeAt<Head>(const_idx);
-      SyncKernelCallHelper<Tail...>::template Invoke<in_idx, const_idx + 1>(
+      Attribute<Head> arg = frame->GetAttributeAt<Head>(attr_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<arg_idx, attr_idx + 1>(
           frame, pargs..., arg);
     }
   };
@@ -293,10 +293,10 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   // Like the above, but for arrays.
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<ArrayAttribute<Head>, Tail...> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      ArrayAttribute<Head> arg = frame->GetArrayAttributeAt<Head>(const_idx);
-      SyncKernelCallHelper<Tail...>::template Invoke<in_idx, const_idx + 1>(
+      ArrayAttribute<Head> arg = frame->GetArrayAttributeAt<Head>(attr_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<arg_idx, attr_idx + 1>(
           frame, pargs..., arg);
     }
   };
@@ -304,10 +304,10 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   // Like the above, but for strings.
   template <typename... Tail>
   struct SyncKernelCallHelper<StringAttribute, Tail...> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      StringAttribute arg = frame->GetStringAttribute(const_idx);
-      SyncKernelCallHelper<Tail...>::template Invoke<in_idx, const_idx + 1>(
+      StringAttribute arg = frame->GetStringAttribute(attr_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<arg_idx, attr_idx + 1>(
           frame, pargs..., arg);
     }
   };
@@ -317,10 +317,10 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   struct SyncKernelCallTypedAttrHelper {
     static_assert(std::is_base_of<TypedAttrBase, TypedAttrT>::value,
                   "TypedAttrT must be derived from class TypedAttrBase");
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      TypedAttrT arg(frame->GetAttributeAt(const_idx));
-      SyncKernelCallHelper<Tail...>::template Invoke<in_idx, const_idx + 1>(
+      TypedAttrT arg(frame->GetAttributeAt(attr_idx));
+      SyncKernelCallHelper<Tail...>::template Invoke<arg_idx, attr_idx + 1>(
           frame, pargs..., arg);
     }
   };
@@ -353,9 +353,9 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   // If this kernel requires ExecutionContext, pass it as an argument.
   template <typename... Tail>
   struct SyncKernelCallHelper<const ExecutionContext&, Tail...> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      SyncKernelCallHelper<Tail...>::template Invoke<in_idx, const_idx>(
+      SyncKernelCallHelper<Tail...>::template Invoke<arg_idx, attr_idx>(
           frame, pargs..., frame->GetExecutionContext());
     }
   };
@@ -363,12 +363,12 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   // Specialization to cast a single input argument (Head).
   template <typename Head, typename... Tail>
   struct SyncKernelCallHelper<SyncArgument<Head>, Tail...> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx == 0,
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
-      SyncArgument<Head> arg(frame->GetArgAt(in_idx));
-      SyncKernelCallHelper<Tail...>::template Invoke<in_idx + 1, const_idx>(
+      SyncArgument<Head> arg(frame->GetArgAt(arg_idx));
+      SyncKernelCallHelper<Tail...>::template Invoke<arg_idx + 1, attr_idx>(
           frame, pargs..., arg);
     }
   };
@@ -380,12 +380,12 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
                   "HostContext* is not allowed as a kernel argument. Use const "
                   "ExecutionContext& instead.");
 
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(const_idx == 0,
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
-      auto* arg = &frame->GetArgAt<Head>(in_idx);
-      SyncKernelCallHelper<Tail...>::template Invoke<in_idx + 1, const_idx>(
+      auto* arg = &frame->GetArgAt<Head>(arg_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<arg_idx + 1, attr_idx>(
           frame, pargs..., arg);
     }
   };
@@ -405,17 +405,17 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
       return value->get<ArgT>();
     }
 
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(in_idx != -1,
+      static_assert(arg_idx != -1,
                     "Do not place Arguments after "
                     "RemainingSyncArguments/RepeatedSyncArguments");
-      static_assert(const_idx == 0,
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
-      auto* value = frame->GetArgAt(in_idx);
+      auto* value = frame->GetArgAt(arg_idx);
       auto&& arg = GetArg<ArgT>(value, IsViewT<ArgT>());
 
-      SyncKernelCallHelper<Tail...>::template Invoke<in_idx + 1, const_idx>(
+      SyncKernelCallHelper<Tail...>::template Invoke<arg_idx + 1, attr_idx>(
           frame, pargs..., arg);
     }
   };
@@ -424,17 +424,17 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   // remaining arguments. Useful for variadic kernels.
   template <typename... Tail>
   struct SyncKernelCallHelper<RemainingSyncArguments, Tail...> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(in_idx != -1,
+      static_assert(arg_idx != -1,
                     "Do not use more than one "
                     "RemainingSyncArguments/RepeatedSyncArguments");
-      static_assert(const_idx == 0,
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       RemainingSyncArguments remaining_arguments(
-          frame->GetArguments().drop_front(in_idx), frame->GetRegisters());
+          frame->GetArguments().drop_front(arg_idx), frame->GetRegisters());
 
-      SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
+      SyncKernelCallHelper<Tail...>::template Invoke<-1, attr_idx>(
           frame, pargs..., remaining_arguments);
     }
   };
@@ -443,26 +443,26 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   // remaining arguments. Useful for variadic kernels.
   template <typename T, typename... Tail>
   struct SyncKernelCallHelper<RepeatedSyncArguments<T>, Tail...> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      static_assert(in_idx != -1,
+      static_assert(arg_idx != -1,
                     "Do not use more than one "
                     "RemainingSyncArguments/RepeatedSyncArguments");
-      static_assert(const_idx == 0,
+      static_assert(attr_idx == 0,
                     "Arguments and results should appear before attributes.");
       RepeatedSyncArguments<T> repeated_arguments(
-          frame->GetArguments().drop_front(in_idx), frame->GetRegisters());
+          frame->GetArguments().drop_front(arg_idx), frame->GetRegisters());
 
-      SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
+      SyncKernelCallHelper<Tail...>::template Invoke<-1, attr_idx>(
           frame, pargs..., repeated_arguments);
     }
   };
 
   template <typename... Tail>
   struct SyncKernelCallHelper<SyncKernelFrame*, Tail...> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      SyncKernelCallHelper<Tail...>::template Invoke<-1, const_idx>(
+      SyncKernelCallHelper<Tail...>::template Invoke<-1, attr_idx>(
           frame, pargs..., frame);
     }
   };
@@ -472,11 +472,11 @@ struct TfrtSyncKernelImpl<Return (*)(Args...), impl_fn> {
   // of GCC that fully specialized template is not allowed in a template class.
   template <typename T>
   struct SyncKernelCallHelper<TypeTag<T>> {
-    template <int in_idx, int const_idx, typename... PreviousArgs>
+    template <int arg_idx, int attr_idx, typename... PreviousArgs>
     static void Invoke(SyncKernelFrame* frame, const PreviousArgs&... pargs) {
-      assert((in_idx == -1 || in_idx == frame->GetNumArgs()) &&
+      assert((arg_idx == -1 || arg_idx == frame->GetNumArgs()) &&
              "Extra arguments passed to kernel.");
-      assert(const_idx == frame->GetNumAttributes() &&
+      assert(attr_idx == frame->GetNumAttributes() &&
              "Extra attributes passed to kernel.");
       SyncKernelReturnHelper<Return>::Invoke(frame, pargs...);
     }

@@ -14,48 +14,48 @@
  * limitations under the License.
  */
 
-// This file defines the BEFEmitter that emits bytes into an aligned buffer.
+// This file defines the BefEmitter that emits bytes into an aligned buffer.
 
 #include "tfrt/bef_converter/bef_emitter.h"
 
 namespace tfrt {
 
-const size_t BEFEmitter::kMaxAlignment;
-const uint8_t BEFEmitter::kDummyByte;
+const size_t BefEmitter::kMaxAlignment;
+const uint8_t BefEmitter::kDummyByte;
 
-void BEFEmitter::MoveResult(size_t dst_offset, size_t src_offset, size_t size) {
+void BefEmitter::MoveResult(size_t dst_offset, size_t src_offset, size_t size) {
   memmove(result_.data() + dst_offset, result_.data() + src_offset, size);
 }
 
-void BEFEmitter::SetResult(size_t offset, uint8_t value, size_t size) {
+void BefEmitter::SetResult(size_t offset, uint8_t value, size_t size) {
   memset(result_.data() + offset, value, size);
 }
 
 // Our fundamental unit is a bytestream, but we want to be able to emit large
 // values as well.  We use a VBR encoding, where the high bit set indicates
 // that this is only a portion of the value.
-void BEFEmitter::EmitIntImpl(size_t value, bool is_high_part) {
-  if ((value >> 7) != 0) EmitIntImpl(value >> 7, /*is_high_part=*/true);
+void BefEmitter::EmitVbrIntImpl(size_t value, bool is_high_part) {
+  if ((value >> 7) != 0) EmitVbrIntImpl(value >> 7, /*is_high_part=*/true);
 
   result_.push_back(
       static_cast<uint8_t>((value & 127) | (is_high_part ? 128 : 0)));
 }
 
-void BEFEmitter::EmitRepeatedByte(uint8_t byte, int repeats) {
+void BefEmitter::EmitRepeatedByte(uint8_t byte, int repeats) {
   for (int i = 0; i < repeats; ++i) result_.push_back(byte);
 }
 
-void BEFEmitter::EmitRepeatedDummyByte(int repeats) {
+void BefEmitter::EmitRepeatedDummyByte(int repeats) {
   EmitRepeatedByte(kDummyByte, repeats);
 }
 
-void BEFEmitter::EmitBytes(llvm::ArrayRef<uint8_t> bytes) {
+void BefEmitter::EmitBytes(llvm::ArrayRef<uint8_t> bytes) {
   result_.insert(result_.end(), bytes.begin(), bytes.end());
 }
 
 // Emit a guaranteed 2-byte integer aligned to 2 bytes, allowing this to be
 // directly mapped into the target process in little-endian form.
-void BEFEmitter::EmitInt2(uint16_t value) {
+void BefEmitter::EmitInt2(uint16_t value) {
   EmitAlignment(2);
   uint8_t data[] = {uint8_t(value & 0xFF), uint8_t((value >> 8) & 0xFF)};
   EmitBytes(data);
@@ -63,7 +63,7 @@ void BEFEmitter::EmitInt2(uint16_t value) {
 
 // Emit a guaranteed 4-byte integer aligned to 4 bytes, allowing this to be
 // directly mapped into the target process in little-endian form.
-void BEFEmitter::EmitInt4(uint32_t value) {
+void BefEmitter::EmitInt4(uint32_t value) {
   EmitAlignment(4);
   uint8_t data[] = {uint8_t(value & 0xFF), uint8_t((value >> 8) & 0xFF),
                     uint8_t((value >> 16) & 0xFF),
@@ -73,7 +73,7 @@ void BEFEmitter::EmitInt4(uint32_t value) {
 
 // Emit a guaranteed 8-byte integer aligned to 8 bytes, allowing this to be
 // directly mapped into the target process in little-endian form.
-void BEFEmitter::EmitInt8(uint64_t value) {
+void BefEmitter::EmitInt8(uint64_t value) {
   EmitAlignment(8);
   uint8_t data[] = {
       uint8_t(value & 0xFF),         uint8_t((value >> 8) & 0xFF),
@@ -83,17 +83,17 @@ void BEFEmitter::EmitInt8(uint64_t value) {
   EmitBytes(data);
 }
 
-void BEFEmitter::OverwriteBytes(size_t offset, const void* data, size_t size) {
+void BefEmitter::OverwriteBytes(size_t offset, const void* data, size_t size) {
   assert(offset + size <= result_.size());
   std::memcpy(&result_[offset], data, size);
 }
 
-void BEFEmitter::EmitEmitter(const BEFEmitter& emitter) {
+void BefEmitter::EmitEmitter(const BefEmitter& emitter) {
   EmitAlignment(emitter.GetRequiredAlignment());
   EmitBytes(emitter.result_);
 }
 
-void BEFEmitter::EmitAlignment(unsigned alignment) {
+void BefEmitter::EmitAlignment(unsigned alignment) {
   // Alignment of 0 and 1 is a noop.
   if (alignment < 2) return;
 
@@ -112,7 +112,7 @@ void BEFEmitter::EmitAlignment(unsigned alignment) {
   required_alignment_ = std::max(required_alignment_, alignment);
 }
 
-void BEFEmitter::EmitAlignment(unsigned alignment, unsigned count) {
+void BefEmitter::EmitAlignment(unsigned alignment, unsigned count) {
   while (count--) EmitByte(kDummyByte);
 
   // Keep track of the maximum required alignment.

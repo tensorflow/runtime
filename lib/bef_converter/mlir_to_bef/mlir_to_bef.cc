@@ -915,7 +915,7 @@ namespace {
 // this tracks the alignment requirement of the contents.  If this is a
 // subsection of the file, then the enclosing container is required to provide
 // at least this alignment.
-class BEFFileEmitter : public BEFEmitter {
+class BEFFileEmitter : public BefEmitter {
  public:
   static constexpr uint32_t kDummyPseudoKernelCode = 0xABABABAB;
   static constexpr uint32_t kDummyPseudoKernelLocation = 0xCDCDCDCD;
@@ -937,7 +937,7 @@ class BEFFileEmitter : public BEFEmitter {
       auto offset = size() + GetSizeOfVbrInt(shifted_section_length);
       if (offset % alignment != 0) {
         // Emit section length with alignment constraint.
-        EmitInt(shifted_section_length | 1);
+        EmitVbrInt(shifted_section_length | 1);
         EmitByte(alignment);
 
         // Move up to the right alignment for the section data.
@@ -950,7 +950,7 @@ class BEFFileEmitter : public BEFEmitter {
 
     if (!length_emitted) {
       // Emit section length without alignment constraint.
-      EmitInt(shifted_section_length);
+      EmitVbrInt(shifted_section_length);
     }
 
     // Then have the payload data.
@@ -1011,9 +1011,9 @@ void BEFModuleEmitter::EmitLocationInfo() {
     mlir::Operation* op = iter.first;
     auto position = iter.second;
     entity_index_.AddLocationPosition(op, positions_section.size());
-    positions_section.EmitInt(std::get<0>(position));
-    positions_section.EmitInt(std::get<1>(position));
-    positions_section.EmitInt(std::get<2>(position));
+    positions_section.EmitVbrInt(std::get<0>(position));
+    positions_section.EmitVbrInt(std::get<1>(position));
+    positions_section.EmitVbrInt(std::get<2>(position));
   }
 
   EmitSection(BEFSectionID::kLocationPositions, positions_section);
@@ -1061,7 +1061,7 @@ void BEFModuleEmitter::EmitStrings() {
 }
 
 // This emits attributes without any type or size information.
-class BEFAttributeEmitter : public BEFEmitter {
+class BEFAttributeEmitter : public BefEmitter {
  public:
   explicit BEFAttributeEmitter(BefCompilationUnits* compilation_units)
       : compilation_units_(compilation_units) {}
@@ -1192,7 +1192,7 @@ void BEFAttributeEmitter::EmitSymbolRefAttribute(
 //
 // TODO(chky): Factor out this class to a standalone library as this should be
 // higher level than BEF.
-class BEFTypedAttributeEmitter : public BEFEmitter {
+class BEFTypedAttributeEmitter : public BefEmitter {
  public:
   explicit BEFTypedAttributeEmitter(BefCompilationUnits* compilation_units)
       : compilation_units_(compilation_units) {
@@ -1414,8 +1414,8 @@ class BEFAttributesEmitter : public BEFFileEmitter {
                          bool typed) {
     AttributeTag attr_tag(attribute_type, typed);
 
-    attribute_type_emitter_.EmitInt(offset);
-    attribute_type_emitter_.EmitInt(attr_tag.data);
+    attribute_type_emitter_.EmitVbrInt(offset);
+    attribute_type_emitter_.EmitVbrInt(attr_tag.data);
   }
 
   BefCompilationUnits* compilation_units_;
@@ -1470,7 +1470,7 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
                     CalculateAlignmentPaddingSize(size(), GetSizeOfVbrInt(len),
                                                   array_alignment));
       offset = size();
-      EmitInt(len);
+      EmitVbrInt(len);
       assert(size() % array_alignment == 0);
       EmitEmitter(attribute_emitter);
     } else if (IsSymbolRefAttribute(attribute_type)) {
@@ -1481,17 +1481,17 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
       auto symbol = attr.cast<mlir::SymbolRefAttr>();
 
       // Length of the root symbol name.
-      EmitInt(symbol.getRootReference().size());
+      EmitVbrInt(symbol.getRootReference().size());
 
       // Lengths of the nested symbols names.
       size_t num_nested_refs = symbol.getNestedReferences().size();
-      EmitInt(num_nested_refs);
+      EmitVbrInt(num_nested_refs);
       llvm::SmallVector<size_t, 4> nested_ref_len(num_nested_refs);
       for (size_t i = 0; i < num_nested_refs; ++i)
-        EmitInt(symbol.getNestedReferences()[i].getValue().size());
+        EmitVbrInt(symbol.getNestedReferences()[i].getValue().size());
 
       // Length of the serialized compilation unit.
-      EmitInt(compilation_units_->SerializedOperationSize(symbol));
+      EmitVbrInt(compilation_units_->SerializedOperationSize(symbol));
 
       EmitAlignment(attribute_emitter.GetRequiredAlignment());
       EmitEmitter(attribute_emitter);
@@ -1526,7 +1526,7 @@ void BEFModuleEmitter::EmitAttributes(BEFFileEmitter* attribute_types) {
     attributes_section.EmitAttribute(attr, /* typed = */ true);
   }
 
-  attribute_types->EmitInt(attributes_section.GetNumAttributes());
+  attribute_types->EmitVbrInt(attributes_section.GetNumAttributes());
   attribute_types->EmitEmitter(attribute_type_emitter);
 
   EmitSection(BEFSectionID::kAttributes, attributes_section);
@@ -1537,11 +1537,11 @@ void BEFModuleEmitter::EmitKernels() {
   // order they were found.
   BEFFileEmitter ops_section;
   // Count of the number of kernels that exist.
-  ops_section.EmitInt(entities_.kernels.size());
+  ops_section.EmitVbrInt(entities_.kernels.size());
 
   for (auto op : entities_.kernels) {
     auto index = entity_index_.GetStringOffset(op);
-    ops_section.EmitInt(index);
+    ops_section.EmitVbrInt(index);
   }
 
   EmitSection(BEFSectionID::kKernels, ops_section);
@@ -1553,7 +1553,7 @@ void BEFModuleEmitter::EmitTypes() {
   BEFFileEmitter types_section;
 
   // Count of the number of types that exist.
-  types_section.EmitInt(entities_.types.size());
+  types_section.EmitVbrInt(entities_.types.size());
 
   // Emit the index of the name of the types.
   for (auto type : entities_.types) {
@@ -1561,7 +1561,7 @@ void BEFModuleEmitter::EmitTypes() {
     llvm::raw_svector_ostream os(result_str);
     type.print(os);
     auto index = entity_index_.GetStringOffset(os.str());
-    types_section.EmitInt(index);
+    types_section.EmitVbrInt(index);
   }
 
   EmitSection(BEFSectionID::kTypes, types_section);
@@ -1619,7 +1619,7 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 
   auto location_offset =
       entity_index_.GetLocationPositionOffset(region->getParentOp());
-  EmitInt(location_offset);
+  EmitVbrInt(location_offset);
 
   // Emit the register table.
   EmitRegisterTable(&block, register_types);
@@ -1633,13 +1633,13 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 
   // Emit a count of kernels, then the offset of each kernel (from the
   // start of the kernel list) then each kernel is emitted in turn.
-  EmitInt(num_kernels);
+  EmitVbrInt(num_kernels);
 
   mlir::Operation* return_op = nullptr;
 
   BEFFileEmitter kernel_list;
 
-  attribute_names->EmitInt(num_kernels);
+  attribute_names->EmitVbrInt(num_kernels);
 
   // Perform stream analysis to get stream information for this function.
   //
@@ -1657,11 +1657,11 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
   //  2) kernels that take no kernel arguments.
 
   // Offset of the kernel in the list.
-  EmitInt(kernel_list.size());
+  EmitVbrInt(kernel_list.size());
   // Pseudo has zero operands that need to be available.
-  EmitInt(0);
+  EmitVbrInt(0);
   // The pseudo kernel is always in the root stream.
-  EmitInt(stream_analysis.GetRootStream().id());
+  EmitVbrInt(stream_analysis.GetRootStream().id());
 
   EmitArgumentsPseudoKernel(&block, &kernel_list);
 
@@ -1681,7 +1681,7 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
       }
 
     // Offset of the kernel in the list.
-    EmitInt(kernel_list.size());
+    EmitVbrInt(kernel_list.size());
     // Number of operands that need to be available before it is ready to go.
     auto num_operands_before_running = op.getNumOperands();
 
@@ -1691,11 +1691,11 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
     if (is_non_strict && num_operands_before_running)
       num_operands_before_running = 1;
 
-    EmitInt(num_operands_before_running);
+    EmitVbrInt(num_operands_before_running);
 
     // Emit stream id from stream analysis.
     const auto& stream = stream_analysis.GetStream(&op);
-    EmitInt(stream.id());
+    EmitVbrInt(stream.id());
 
     EmitKernel(&op, &kernel_list, attribute_names);
   }
@@ -1703,7 +1703,7 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
   // Emit the result registers list at the end of the KERNEL_TABLE if present.
   if (return_op) {
     for (auto operand : return_op->getOperands()) {
-      EmitInt(GetRegisterNumber(operand));
+      EmitVbrInt(GetRegisterNumber(operand));
     }
   }
 
@@ -1723,10 +1723,10 @@ void BEFFunctionEmitter::EmitRegisterTable(mlir::Block* block,
 
   auto emit_register = [&](mlir::Value reg) {
     // Then the use-count.
-    reg_table.EmitInt(std::distance(reg.use_begin(), reg.use_end()));
+    reg_table.EmitVbrInt(std::distance(reg.use_begin(), reg.use_end()));
 
     // Emit the type index into register types section.
-    reg_type_table.EmitInt(entities_.GetTypeIndex(reg.getType()));
+    reg_type_table.EmitVbrInt(entities_.GetTypeIndex(reg.getType()));
 
     register_number_[reg] = num_registers++;
   };
@@ -1737,12 +1737,12 @@ void BEFFunctionEmitter::EmitRegisterTable(mlir::Block* block,
     for (auto result : op.getResults()) emit_register(result);
 
   // Emit the number of registers, then the register table.
-  EmitInt(num_registers);
+  EmitVbrInt(num_registers);
   EmitEmitter(reg_table);
 
   // Emit the number of registers, then the register type table in register
   // types section.
-  register_types->EmitInt(num_registers);
+  register_types->EmitVbrInt(num_registers);
   register_types->EmitEmitter(reg_type_table);
 }
 
@@ -1866,7 +1866,7 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
       input_function_emitter.EmitInt4(
           entities_.GetFunctionNamed(fn_attr.getValue()));
     } else {
-      attribute_names->EmitInt(
+      attribute_names->EmitVbrInt(
           entity_index_.GetOptionalStringOffset(attr_name_pair.first));
       num_input_attributes++;
 
@@ -1922,8 +1922,8 @@ void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
                                      BEFFileEmitter* register_types) {
   BEFFunctionEmitter functions_section(entities_, entity_index_);
 
-  attribute_names->EmitInt(entities_.functions.size());
-  register_types->EmitInt(entities_.functions.size());
+  attribute_names->EmitVbrInt(entities_.functions.size());
+  register_types->EmitVbrInt(entities_.functions.size());
   for (auto function_entry : entities_.functions) {
     // Remember that we emitted this region to this offset.
     entity_index_.AddFunction(function_entry.name, functions_section.size(),
@@ -1945,22 +1945,22 @@ void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
   BEFFileEmitter function_index_section;
 
   // Count of the number of functions that exist.
-  function_index_section.EmitInt(function_index.size());
+  function_index_section.EmitVbrInt(function_index.size());
 
   for (const auto& entry : function_index) {
     function_index_section.EmitByte(static_cast<uint8_t>(entry.kind));
-    function_index_section.EmitInt(entry.function_offset);
-    function_index_section.EmitInt(entry.name_offset);
+    function_index_section.EmitVbrInt(entry.function_offset);
+    function_index_section.EmitVbrInt(entry.name_offset);
 
     // Arguments.
-    function_index_section.EmitInt(entry.type.getInputs().size());
+    function_index_section.EmitVbrInt(entry.type.getInputs().size());
     for (auto type : entry.type.getInputs())
-      function_index_section.EmitInt(entities_.GetTypeIndex(type));
+      function_index_section.EmitVbrInt(entities_.GetTypeIndex(type));
 
     // Results.
-    function_index_section.EmitInt(entry.type.getResults().size());
+    function_index_section.EmitVbrInt(entry.type.getResults().size());
     for (auto type : entry.type.getResults())
-      function_index_section.EmitInt(entities_.GetTypeIndex(type));
+      function_index_section.EmitVbrInt(entities_.GetTypeIndex(type));
   }
 
   EmitSection(BEFSectionID::kFunctionIndex, function_index_section);

@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-// BEFEmitter
-//
-// This file defines the BEFEmitter that emits bytes into an aligned buffer.
+// This file defines the BefEmitter that emits bytes into an aligned buffer.
 
 #ifndef TFRT_BEF_CONVERTER_BEF_EMITTER_H_
 #define TFRT_BEF_CONVERTER_BEF_EMITTER_H_
@@ -28,14 +26,14 @@
 
 namespace tfrt {
 
-class BEFEmitter {
+class BefEmitter {
  public:
   // TODO(zhangqiaorjc): Consider making alignment a template parameter.
   static const size_t kMaxAlignment = 8;
 
-  BEFEmitter() {}
-  BEFEmitter(const BEFEmitter&) = delete;
-  BEFEmitter& operator=(const BEFEmitter&) = delete;
+  BefEmitter() {}
+  BefEmitter(const BefEmitter&) = delete;
+  BefEmitter& operator=(const BefEmitter&) = delete;
 
   // Return the alignment required by this chunk of a BEF file.
   unsigned GetRequiredAlignment() const { return required_alignment_; }
@@ -72,16 +70,20 @@ class BEFEmitter {
   void EmitInt8(uint64_t value);
 
   // Emit a vbr encoded integer of arbitrary width.
-  void EmitInt(size_t value) { EmitIntImpl(value, false); }
+  void EmitVbrInt(size_t value) { EmitVbrIntImpl(value, false); }
 
   // Many parts of the emitter logic includes forward references into stuff
   // that hasn't been emitted and has variable size.  This is handled by making
   // nested emitters.  This helper function emits the subpieces once they are
   // constructed, ensuring that alignment requirements of the nested emitter
   // are maintained correctly.
-  void EmitEmitter(const BEFEmitter& emitter);
+  void EmitEmitter(const BefEmitter& emitter);
 
+  // Return the underlying buffer with ownership transfer.
   tfrt::AlignedBuffer<kMaxAlignment> TakeResult() { return std::move(result_); }
+
+  // Return the referece of the underlying buffer without ownership transfer.
+  const tfrt::AlignedBuffer<kMaxAlignment>& result() const { return result_; }
 
   // Move size bytes in the result from src_offset to dst_offset.
   void MoveResult(size_t dst_offset, size_t src_offset, size_t size);
@@ -92,7 +94,7 @@ class BEFEmitter {
  protected:
   static const uint8_t kDummyByte = 0xCC;
 
-  void EmitIntImpl(size_t value, bool is_high_part);
+  void EmitVbrIntImpl(size_t value, bool is_high_part);
   // Keep track of the alignment required for the start of this object.
   unsigned required_alignment_ = 1;
   tfrt::AlignedBuffer<kMaxAlignment> result_;

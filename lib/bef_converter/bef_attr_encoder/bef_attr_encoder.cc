@@ -126,7 +126,7 @@ llvm::Error BefAttrEncoder::EncodeListAttr(
           ? sizeof(BEFAggregateAttr) +
                 sizeof(BEFAggregateAttrOffset32_t) * (num_elements - 1)
           : sizeof(BEFAggregateAttr);
-  EmitRepeatedByte(BEFEmitter::kDummyByte, header_size);
+  EmitRepeatedByte(BefEmitter::kDummyByte, header_size);
 
   BEFAggregateAttr header;
   header.base.type = BEFAttributeType::kAggregate;

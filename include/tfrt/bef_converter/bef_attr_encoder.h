@@ -30,7 +30,7 @@ namespace tfrt {
 // functions inside headers for TensorShape, and other user defined types.
 
 // This class serializes BEF attributes.
-class BefAttrEncoder : public BEFEmitter {
+class BefAttrEncoder : public BefEmitter {
  public:
   llvm::Error EncodeUnrankedShapeAttr();
   llvm::Error EncodeRankedShapeAttr(ArrayRef<int64_t> dims);

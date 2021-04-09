@@ -35,10 +35,10 @@ func @noop_kernel() {
   %grid_dim = tfrt.constant.ui32 1
   %shared_mem_size = tfrt.constant.ui32 0
 
-  %ch7 = tfrt_cuda.launch %ch6 %context
+  %ch7 = tfrt_cuda.launch %context
                      %grid_dim %grid_dim %grid_dim
                      %blk_dim %blk_dim %blk_dim
-                     %shared_mem_size %stream { function_handle = 0: ui64 }
+                     %shared_mem_size %stream %ch6 { function_handle = 0: ui64 }
 
   tfrt.return
 }
@@ -51,7 +51,7 @@ func @vector_add_kernel() {
   %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
   %stream = tfrt_cuda.stream.create %context, %ch2
-  %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
+  %allocator = tfrt_cuda.allocator.create %context, %ch2
 
   // PTX for empty kernel.
   %ch6 = tfrt_cuda.module.load_static %context, %ch2
@@ -93,8 +93,8 @@ func @vector_add_kernel() {
   %shared_mem_size = tfrt.constant.ui32 0
   %len = tfrt.constant.i32 8
 
-  %ch_kernel = tfrt_cuda.launch %ch18 %context %eight %one %one
-                           %eight %one %one %shared_mem_size %stream
+  %ch_kernel = tfrt_cuda.launch %context %eight %one %one
+                           %eight %one %one %shared_mem_size %stream %ch18
                            { function_handle = 0: ui64 }
                            (%len, %x_device, %y_device) :
                              (i32, !tfrt_cuda.buffer, !tfrt_cuda.buffer)

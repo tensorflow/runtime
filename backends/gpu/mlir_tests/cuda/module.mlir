@@ -98,7 +98,7 @@ func @module_load_static_twice_test() {
            functions = [ "Kernel" ]
          }
 
-  // expected-error @+1 {{Unable to load CUDA module table. Table has already been created for device 0}}
+  // expected-error @+1 {{Unable to load module table. Table has already been created for device 0}}
   %ch6 = tfrt_cuda.module.load_static %context, %ch5
          { modules = [".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry Kernel() { ret; }" ],
            funcs_per_module = [1 : i32],

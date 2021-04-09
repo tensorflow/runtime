@@ -140,10 +140,10 @@ def AllocatorCreateOp : CUDA_Op<"allocator.create"> {
 
     Example:
       %ch1 = tfrt.new.chain
-      %allocator, %ch2 = tfrt_cuda.allocator.create %context, %ch1
+      %allocator = tfrt_cuda.allocator.create %context, %ch1
   }];
   let arguments = (ins ContextType, TFRT_ChainType);
-  let results = (outs AllocatorType, TFRT_ChainType);
+  let results = (outs AllocatorType);
 }
 
 def AllocatorDestroyOp : CUDA_Op<"allocator.destroy"> {
@@ -178,18 +178,18 @@ def MemAllocateOp : CUDA_Op<"mem.allocate"> {
     pattern will result in undefined behavior:
 
       %buf, %ch1 = tfrt_cuda.mem.allocate %stream1, %size, %ch0
-      tfrt_cuda.launch %stream1, %kernel_reading_buf, %buf, %ch1
-      tfrt_cuda.launch %stream2, %another_kernel_reading_buf, %buf, %ch1
+      tfrt_cuda.launch %stream1, %kernel_reading_buf, %buf, %ch0
+      tfrt_cuda.launch %stream2, %another_kernel_reading_buf, %buf, %ch0
 
     Users must add synchronization to make sure use on stream2 happens after
     everything that was on stream1, at the time of allocation, has finished, e.g.
 
       %buf, %ch1 = tfrt_cuda.mem.allocate %stream1, %size, %ch0
-      %event, %ch2 = tfrt_cuda.event.create %ch1
-      %ch3 = tfrt_cuda.event.record %stream1, %event, %ch2
-      tfrt_cuda.launch %stream1, %kernel_reading_buf, %buf
-      %ch4 = tfrt_cuda.event.wait %stream2, %event, %ch3
-      tfrt_cuda.launch %stream2, %another_kernel_reading_buf, %buf, %ch4
+      %event = tfrt_cuda.event.create %ch0
+      %ch2 = tfrt_cuda.event.record %stream1, %event, %ch1
+      tfrt_cuda.launch %stream1, %kernel_reading_buf, %buf, %ch0
+      %ch3 = tfrt_cuda.stream.wait %stream2, %event, %ch2
+      tfrt_cuda.launch %stream2, %another_kernel_reading_buf, %buf, %ch3
 
     Example:
       %ch0 = tfrt.new.chain
@@ -319,15 +319,14 @@ def Launch : CUDA_Op<"launch"> {
     function loaded via tfrt_cuda.module.load_static.
 
     Example:
-      %ch1 = tfrt_cuda.launch %ch0 %ctx
+      %ch1 = tfrt_cuda.launch %ctx
                          %grid_dim_x %grid_dim_y %grid_dim_z
                          %block_dim_x %block_dim_y %block_dim_z
-                         %shared_memory_size_bytes %stream
+                         %shared_memory_size_bytes %stream %chain
                          { function_handle = 21 : ui64 }
                          (%arg0, %arg1, ..., %argN) : (<type0>, <type1>, ... <typeN>)
   }];
   let arguments = (ins
-    TFRT_ChainType:$in_chain,
     ContextType:$ctx,
     UI32:$grid_dim_x,
     UI32:$grid_dim_y,
@@ -337,14 +336,17 @@ def Launch : CUDA_Op<"launch"> {
     UI32:$block_dim_z,
     UI32:$shared_memory_size_bytes,
     StreamType:$stream,
-    Variadic<AnyTypeOf<[BufferType, AnyFloat, AnyInteger]>>:$args,
-    UI64Attr:$function_handle
+    TFRT_ChainType:$in_chain,
+    UI64Attr:$function_handle,
+    Variadic<AnyTypeOf<[BufferType, AnyFloat, AnyInteger]>>:$args
   );
   let results = (outs TFRT_ChainType:$out_chain);
   let assemblyFormat = [{
-    $in_chain $ctx $grid_dim_x $grid_dim_y $grid_dim_z
-        $block_dim_x  $block_dim_y  $block_dim_z  $shared_memory_size_bytes
-        $stream attr-dict ( `(` $args^ `)`  `:` `(` type($args) `)`  )?
+    $ctx $grid_dim_x $grid_dim_y $grid_dim_z
+        $block_dim_x  $block_dim_y  $block_dim_z
+        $shared_memory_size_bytes $stream $in_chain
+        attr-dict
+        ( `(` $args^ `)`  `:` `(` type($args) `)`  )?
   }];
 }
 

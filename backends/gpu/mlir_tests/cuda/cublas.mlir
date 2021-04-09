@@ -37,10 +37,10 @@ func @cublas_axpy() -> !tfrt.chain {
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch1
   %context, %ch3 = tfrt_cuda_test.context.get %device, %ch1
-  %allocator, %ch4 = tfrt_cuda.allocator.create %context, %ch3
-  %stream = tfrt_cuda.stream.create %context, %ch4
+  %allocator = tfrt_cuda.allocator.create %context, %ch1
+  %stream = tfrt_cuda.stream.create %context, %ch1
   %cublas_handle = tfrt_cuda.blas.create %context
-  %ch6 = tfrt_cuda.blas.set_stream %cublas_handle, %stream, %ch4
+  %ch6 = tfrt_cuda.blas.set_stream %cublas_handle, %stream, %ch1
 
   %cha0 = tfrt.merge.chains %ch6
 
@@ -81,10 +81,10 @@ func @cublas_gemm() -> !tfrt.chain {
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch1
   %context, %ch3 = tfrt_cuda_test.context.get %device, %ch1
-  %allocator, %ch4 = tfrt_cuda.allocator.create %context, %ch3
-  %stream = tfrt_cuda.stream.create %context, %ch4
+  %allocator = tfrt_cuda.allocator.create %context, %ch1
+  %stream = tfrt_cuda.stream.create %context, %ch1
   %cublas_handle = tfrt_cuda.blas.create %context
-  %ch6 = tfrt_cuda.blas.set_stream %cublas_handle, %stream, %ch4
+  %ch6 = tfrt_cuda.blas.set_stream %cublas_handle, %stream, %ch1
 
   %gpu_buffer_A, %gpu_buffer_B, %cha0 = tfrt.call @create_two_tensors_on_gpu(%context, %allocator, %stream, %ch6) : (!tfrt_cuda.context, !tfrt_cuda.allocator, !tfrt_cuda.stream, !tfrt.chain) -> (!tfrt_cuda.buffer, !tfrt_cuda.buffer, !tfrt.chain)
 
@@ -123,10 +123,10 @@ func @cublas_gemm_ex() -> !tfrt.chain {
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch1
   %context, %ch3 = tfrt_cuda_test.context.get %device, %ch1
-  %allocator, %ch4 = tfrt_cuda.allocator.create %context, %ch3
-  %stream = tfrt_cuda.stream.create %context, %ch4
+  %allocator = tfrt_cuda.allocator.create %context, %ch1
+  %stream = tfrt_cuda.stream.create %context, %ch1
   %cublas_handle = tfrt_cuda.blas.create %context
-  %ch6 = tfrt_cuda.blas.set_stream %cublas_handle, %stream, %ch4
+  %ch6 = tfrt_cuda.blas.set_stream %cublas_handle, %stream, %ch1
 
   %gpu_buffer_A, %gpu_buffer_B, %cha0 = tfrt.call @create_two_tensors_on_gpu(%context, %allocator, %stream, %ch6) : (!tfrt_cuda.context, !tfrt_cuda.allocator, !tfrt_cuda.stream, !tfrt.chain) -> (!tfrt_cuda.buffer, !tfrt_cuda.buffer, !tfrt.chain)
 
@@ -167,10 +167,10 @@ func @cublas_gemm_strided_batched_ex() -> !tfrt.chain {
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch1
   %context, %ch3 = tfrt_cuda_test.context.get %device, %ch1
-  %allocator, %ch4 = tfrt_cuda.allocator.create %context, %ch3
-  %stream = tfrt_cuda.stream.create %context, %ch4
+  %allocator = tfrt_cuda.allocator.create %context, %ch1
+  %stream = tfrt_cuda.stream.create %context, %ch1
   %cublas_handle = tfrt_cuda.blas.create %context
-  %ch6 = tfrt_cuda.blas.set_stream %cublas_handle, %stream, %ch4
+  %ch6 = tfrt_cuda.blas.set_stream %cublas_handle, %stream, %ch1
 
   %gpu_buffer_A, %gpu_buffer_B, %cha0 = tfrt.call @create_two_tensors_on_gpu(%context, %allocator, %stream, %ch6) : (!tfrt_cuda.context, !tfrt_cuda.allocator, !tfrt_cuda.stream, !tfrt.chain) -> (!tfrt_cuda.buffer, !tfrt_cuda.buffer, !tfrt.chain)
 

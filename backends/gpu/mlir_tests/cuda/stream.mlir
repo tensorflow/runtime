@@ -22,7 +22,7 @@ func @stream_create_test() {
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
-  %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
+  %allocator = tfrt_cuda.allocator.create %context, %ch2
   %stream = tfrt_cuda.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 64
@@ -61,7 +61,7 @@ func @make_tensor_from_smaller_buffer_should_fail() {
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
-  %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
+  %allocator = tfrt_cuda.allocator.create %context, %ch2
   %stream = tfrt_cuda.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 64

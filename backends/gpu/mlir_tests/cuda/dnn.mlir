@@ -24,7 +24,7 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch2
   %context, %ch5 = tfrt_cuda_test.context.get %device, %ch2
-  %allocator, %ch_alloc = tfrt_cuda.allocator.create %context, %ch2
+  %allocator = tfrt_cuda.allocator.create %context, %ch2
   %stream = tfrt_cuda.stream.create %context, %ch2
 
   %k_in_size = tfrt.constant.i32 36  //  2 * 2 * 3 * 3

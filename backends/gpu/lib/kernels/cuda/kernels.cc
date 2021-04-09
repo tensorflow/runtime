@@ -17,7 +17,9 @@
 // This file defines the C++ functions that implement the kernels provided by
 // the TFRT CUDA runtime.
 
-#include "llvm/Support/raw_ostream.h"
+#include <tuple>
+
+#include "llvm/Support/Error.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/gpu/event_manager.h"
@@ -38,25 +40,6 @@ namespace cuda {
 
 constexpr string_view kModuleTableResource = "cuda_module_table_resource";
 
-// Overloaded helpers for the REPORT_ERROR macro. Allows the macro to use either
-// strings or llvm::Errors.
-static void ReportErrorInternal(KernelErrorHandler error_handler,
-                                string_view error_message, string_view file,
-                                int line) {
-  return error_handler.ReportError(file, ':', line, ' ', error_message);
-}
-
-static void ReportErrorInternal(KernelErrorHandler error_handler,
-                                llvm::Error error, string_view file, int line) {
-  llvm::handleAllErrors(std::move(error), [&](const llvm::ErrorInfoBase& info) {
-    ReportErrorInternal(error_handler, info.message(), file, line);
-  });
-}
-
-// Convert 'error' to string and report to 'error_handler'.
-#define REPORT_ERROR(error_handler, error) \
-  ReportErrorInternal(error_handler, error, __FILE__, __LINE__)
-
 // tfrt_cuda.init initializes CUDA driver.
 static Error CudaInitSync() {
   return gpu::stream::Init(gpu::stream::Platform::CUDA);
@@ -74,8 +57,8 @@ static Expected<gpu::stream::Device> CudaDeviceGet(int32_t ordinal) {
 // tfrt_cuda.stream.create creates a new stream that does not implicitly
 // synchronize with stream 0.
 static Expected<gpu::stream::OwningStream> CudaStreamCreate(
-    Argument<gpu::stream::Context> context) {
-  auto current = gpu::stream::CtxSetCurrent(*context);
+    gpu::stream::Context context) {
+  auto current = gpu::stream::CtxSetCurrent(context);
   if (!current) return current.takeError();
   return gpu::stream::StreamCreate(*current,
                                    gpu::stream::StreamFlags::NON_BLOCKING);
@@ -155,233 +138,220 @@ static void CudaEventSynchronizeAsync(Argument<gpu::stream::OwningEvent> event,
 // tfrt_cuda.allocator.create creates a new allocator.
 //
 // Result: new allocator.
-static void CudaAllocatorCreate(
-    Argument<gpu::stream::Context> context, Argument<Chain> in_chain,
-    Result<std::unique_ptr<gpu::GpuAllocator>> out_allocator,
-    Result<Chain> out_chain) {
-  out_allocator.Emplace(std::make_unique<gpu::CachingGpuAllocator>());
-  out_chain.Set(in_chain);
+static std::unique_ptr<gpu::GpuAllocator> CudaAllocatorCreate(
+    gpu::stream::Context) {
+  return std::make_unique<gpu::CachingGpuAllocator>();
 }
 
 // tfrt_cuda.allocator.destroy destroys an allocator.
-static void CudaAllocatorDestroy(
-    Argument<std::unique_ptr<gpu::GpuAllocator>> allocator,
-    Argument<Chain> in_chain, Result<Chain> out_chain) {
+static void CudaAllocatorDestroySync(
+    Argument<std::unique_ptr<gpu::GpuAllocator>> allocator) {
   allocator->reset();
-  out_chain.Set(in_chain);
+}
+static Chain CudaAllocatorDestroyAsync(
+    Argument<std::unique_ptr<gpu::GpuAllocator>> allocator, Chain chain) {
+  CudaAllocatorDestroySync(std::move(allocator));
+  return chain;
 }
 
 // tfrt_cuda.mem.allocate allocates a new CUDA buffer.
-static void CudaMemAllocate(
-    Argument<std::unique_ptr<gpu::GpuAllocator>> allocator,
-    Argument<gpu::stream::OwningStream> stream, Argument<int64_t> size,
-    Argument<Chain> in_chain, Result<RCReference<gpu::GpuBuffer>> out_buffer,
-    Result<Chain> out_chain, KernelErrorHandler handler) {
-  auto buffer = (*allocator)->Allocate(*size, stream->get());
-  if (!buffer) return REPORT_ERROR(handler, buffer.takeError());
-  out_buffer.Emplace(std::move(*buffer));
-  out_chain.Set(in_chain);
+static Expected<RCReference<gpu::GpuBuffer>> CudaMemAllocateSync(
+    const std::unique_ptr<gpu::GpuAllocator>& allocator,
+    const gpu::stream::OwningStream& stream, int64_t size) {
+  return allocator->Allocate(size, stream.get());
+}
+static Expected<std::tuple<RCReference<gpu::GpuBuffer>, Chain>>
+CudaMemAllocateAsync(const std::unique_ptr<gpu::GpuAllocator>& allocator,
+                     const gpu::stream::OwningStream& stream, int64_t size,
+                     Chain chain) {
+  auto alloc = CudaMemAllocateSync(allocator, stream, size);
+  if (!alloc) return alloc.takeError();
+  return std::make_tuple(std::move(*alloc), chain);
 }
 
 // tfrt_cuda.mem.print_metadata prints `buffer`'s metadata.
-static void CudaMemPrintMetadata(Argument<RCReference<gpu::GpuBuffer>> buffer,
-                                 Argument<Chain> in_chain,
-                                 Result<Chain> out_chain) {
+static void CudaMemPrintMetadataSync(
+    const RCReference<gpu::GpuBuffer>& buffer) {
   // The check for buffer validity is not done intentionally. Printing invalid
   // buffers can be useful for debugging.
-  tfrt::outs() << *buffer.get() << "\n";
-  tfrt::outs().flush();
-  out_chain.Set(in_chain);
+  (tfrt::outs() << *buffer << "\n").flush();
+}
+static Chain CudaMemPrintMetadataAsync(
+    const RCReference<gpu::GpuBuffer>& buffer, Chain chain) {
+  CudaMemPrintMetadataSync(buffer);
+  return chain;
 }
 
 // tfrt_cuda.tensor.make makes a tensor from the given shape and buffer.
 // It is specialized for each supported DType.
 template <typename T>
-static void CudaTensorMake(Argument<RCReference<gpu::GpuBuffer>> buffer,
-                           Argument<TensorShape> shape,
-                           Argument<Chain> in_chain,
-                           Result<gpu::DenseGpuTensor> tensor,
-                           Result<Chain> out_chain,
-                           KernelErrorHandler handler) {
-  if (!buffer.get()->IsValid()) {
-    REPORT_ERROR(handler,
-                 "Cannot make tensor from invalid (moved from?) buffer");
-    return;
+static Expected<gpu::DenseGpuTensor> CudaTensorMakeSync(
+    RCReference<gpu::GpuBuffer> buffer, TensorShape shape) {
+  if (!buffer->IsValid()) {
+    return MakeStringError(
+        "Cannot make tensor from invalid (moved from?) buffer");
   }
-  if (buffer.get()->size() !=
-      shape->GetNumElements() * GetDType<T>().GetHostSize()) {
-    std::string error_msg;
-    llvm::raw_string_ostream ss(error_msg);
-    ss << "tfrt_cuda.tensor.make failed: buffer_size (" << buffer.get()->size()
-       << ") is not equal to the number of elements in shape (" << *shape
-       << ") times element size (" << GetDType<T>().GetHostSize() << ")";
-    REPORT_ERROR(handler, ss.str());
-    return;
+  if (buffer->size() != shape.GetNumElements() * GetDType<T>().GetHostSize()) {
+    return MakeStringError(
+        "tfrt_cuda.tensor.make failed: buffer_size (", buffer->size(),
+        ") is not equal to the number of elements in shape (", shape,
+        ") times element size (", GetDType<T>().GetHostSize(), ")");
   }
-  tensor.Emplace(*shape, GetDType<T>(), std::move(*buffer));
-  out_chain.Set(in_chain);
+  return gpu::DenseGpuTensor(shape, GetDType<T>(), std::move(buffer));
+}
+template <typename T>
+static Expected<std::tuple<gpu::DenseGpuTensor, Chain>> CudaTensorMakeAsync(
+    Argument<RCReference<gpu::GpuBuffer>> buffer, TensorShape shape,
+    Chain chain) {
+  auto tensor = CudaTensorMakeSync<T>(std::move(*buffer), shape);
+  if (!tensor) return tensor.takeError();
+  return std::make_tuple(std::move(*tensor), chain);
 }
 
 // tfrt_cuda.tensor.print_metadata prints `tensor`'s metadata.
-static void CudaTensorPrintMetadata(Argument<gpu::DenseGpuTensor> tensor,
-                                    Argument<Chain> in_chain,
-                                    Result<Chain> out_chain,
-                                    KernelErrorHandler handler) {
-  tfrt::outs() << *tensor << "\n";
-  tfrt::outs().flush();
-  out_chain.Set(in_chain);
+static void CudaTensorPrintMetadataSync(const gpu::DenseGpuTensor& tensor) {
+  (tfrt::outs() << tensor << "\n").flush();
+}
+static Chain CudaTensorPrintMetadataAsync(const gpu::DenseGpuTensor& tensor,
+                                          Chain chain) {
+  CudaTensorPrintMetadataSync(tensor);
+  return chain;
+}
+
+static Error CheckMemcpySizes(size_t dst_size, size_t src_size,
+                              int64_t copy_size) {
+  if (src_size < copy_size) {
+    return MakeStringError("source buffer is smaller (", src_size,
+                           ") than number of bytes to copy (", copy_size, ")");
+  }
+  if (dst_size < copy_size) {
+    return MakeStringError("destination buffer is smaller (", dst_size,
+                           ") than number of bytes to copy (", copy_size, ")");
+  }
+  return Error::success();
 }
 
 // tfrt_cuda.mem.copy_host_to_device copies memory from host to device.
-static void CudaMemcpyHtoD(Argument<gpu::stream::Context> context,
-                           Argument<RCReference<gpu::GpuBuffer>> dst,
-                           Argument<RCReference<HostBuffer>> src,
-                           Argument<int64_t> bytes_count,
-                           Argument<gpu::stream::OwningStream> stream,
-                           Argument<Chain> in_chain, Result<Chain> out_chain,
-                           KernelErrorHandler handler) {
-  if (dst.get()->size() < *bytes_count) {
-    REPORT_ERROR(handler,
-                 tfrt::StrCat("tfrt_cuda.mem.copy_host_to_device failed: "
-                              "destination buffer size (",
-                              dst.get()->size(),
-                              ") is less than number of bytes to copy (",
-                              *bytes_count, ")"));
-    return;
-  }
-  if (src.get()->size() < *bytes_count) {
-    REPORT_ERROR(
-        handler,
-        tfrt::StrCat(
-            "tfrt_cuda.mem.copy_host_to_device failed: source buffer size (",
-            src.get()->size(), ") is less than number of bytes to copy (",
-            *bytes_count, ")"));
-    return;
-  }
-  auto current = gpu::stream::CtxSetCurrent(*context);
-  if (!current) return REPORT_ERROR(handler, current.takeError());
-  llvm::Error error =
-      MemcpyAsync(*current, dst.get()->pointer(),
-                  gpu::stream::Pointer<const void>(src.get()->data(),
-                                                   gpu::stream::Platform::CUDA),
-                  *bytes_count, stream->get());
-  if (error) return REPORT_ERROR(handler, std::move(error));
-  out_chain.Set(in_chain);
+static Error CudaMemcpyHtoDSync(gpu::stream::Context context,
+                                const RCReference<gpu::GpuBuffer>& dst,
+                                const RCReference<HostBuffer>& src,
+                                int64_t bytes_count,
+                                const gpu::stream::OwningStream& stream) {
+  if (auto error = CheckMemcpySizes(dst->size(), src->size(), bytes_count))
+    return error;
+  auto current = gpu::stream::CtxSetCurrent(context);
+  if (!current) return current.takeError();
+  return gpu::stream::MemcpyAsync(
+      *current, dst->pointer(),
+      gpu::stream::Pointer<const void>(src->data(), context.platform()),
+      bytes_count, stream.get());
+}
+static Expected<Chain> CudaMemcpyHtoDAsync(
+    gpu::stream::Context context, const RCReference<gpu::GpuBuffer>& dst,
+    const RCReference<HostBuffer>& src, int64_t bytes_count,
+    const gpu::stream::OwningStream& stream, Chain chain) {
+  if (auto error = CudaMemcpyHtoDSync(context, dst, src, bytes_count, stream))
+    return std::move(error);
+  return chain;
 }
 
-// tfrt_cuda.mem.copy_device_to_host copies memory from device to host.
-static void CudaMemcpyDtoH(Argument<gpu::stream::Context> context,
-                           Argument<RCReference<HostBuffer>> dst,
-                           Argument<RCReference<gpu::GpuBuffer>> src,
-                           Argument<int64_t> bytes_count,
-                           Argument<gpu::stream::OwningStream> stream,
-                           Argument<Chain> in_chain, Result<Chain> out_chain,
-                           KernelErrorHandler handler) {
-  if (dst.get()->size() < *bytes_count) {
-    REPORT_ERROR(handler,
-                 tfrt::StrCat("tfrt_cuda.mem.copy_device_to_host failed: "
-                              "destination buffer size (",
-                              dst.get()->size(),
-                              ") is less than number of bytes to copy (",
-                              *bytes_count, ")"));
-    return;
-  }
-  if (src.get()->size() < *bytes_count) {
-    REPORT_ERROR(
-        handler,
-        tfrt::StrCat(
-            "tfrt_cuda.mem.copy_device_to_host failed: source buffer size (",
-            src.get()->size(), ") is less than number of bytes to copy (",
-            *bytes_count, ")"));
-    return;
-  }
-  auto current = gpu::stream::CtxSetCurrent(*context);
-  if (!current) return REPORT_ERROR(handler, current.takeError());
-  llvm::Error error =
-      MemcpyAsync(*current,
-                  gpu::stream::Pointer<void>(dst.get()->data(),
-                                             gpu::stream::Platform::CUDA),
-
-                  src.get()->pointer(), *bytes_count, stream->get());
-  if (error) return REPORT_ERROR(handler, std::move(error));
-  out_chain.Set(in_chain);
+// tfrt_cuda.mem.copy_host_to_device copies memory from host to device.
+static Error CudaMemcpyDtoHSync(gpu::stream::Context context,
+                                const RCReference<HostBuffer>& dst,
+                                const RCReference<gpu::GpuBuffer>& src,
+                                int64_t bytes_count,
+                                const gpu::stream::OwningStream& stream) {
+  if (auto error = CheckMemcpySizes(dst->size(), src->size(), bytes_count))
+    return error;
+  auto current = gpu::stream::CtxSetCurrent(context);
+  if (!current) return current.takeError();
+  return gpu::stream::MemcpyAsync(
+      *current, gpu::stream::Pointer<void>(dst->data(), context.platform()),
+      src->pointer(), bytes_count, stream.get());
+}
+static Expected<Chain> CudaMemcpyDtoHAsync(
+    gpu::stream::Context context, const RCReference<HostBuffer>& dst,
+    const RCReference<gpu::GpuBuffer>& src, int64_t bytes_count,
+    const gpu::stream::OwningStream& stream, Chain chain) {
+  if (auto error = CudaMemcpyDtoHSync(context, dst, src, bytes_count, stream))
+    return std::move(error);
+  return chain;
 }
 
-static void CudaModuleLoadStatic(Argument<gpu::stream::Context> context,
-                                 Argument<Chain> in_chain,
-                                 Result<Chain> out_chain,
-                                 // Note: Attributes must be in alphabetical
-                                 // order (see b/140896071).
-                                 ArrayAttribute<int32_t> funcs_per_module,
-                                 AggregateAttr functions, AggregateAttr modules,
-                                 const ExecutionContext& exec_ctx,
-                                 KernelErrorHandler handler) {
-  auto current = gpu::stream::CtxSetCurrent(*context);
-  if (!current) return REPORT_ERROR(handler, current.takeError());
+static Error CudaModuleLoadStaticSync(gpu::stream::Context context,
+                                      // Note: Attributes must be in
+                                      // alphabetical order (see b/140896071).
+                                      ArrayAttribute<int32_t> funcs_per_module,
+                                      AggregateAttr functions,
+                                      AggregateAttr modules,
+                                      const ExecutionContext& exec_ctx) {
+  auto current = gpu::stream::CtxSetCurrent(context);
+  if (!current) return current.takeError();
 
   auto device = gpu::stream::CtxGetDevice(*current);
-  if (!device) return REPORT_ERROR(handler, device.takeError());
+  if (!device) return device.takeError();
 
   auto multi_device_module_table =
       exec_ctx.resource_context()
           ->GetOrCreateResource<std::unique_ptr<gpu::MultiDeviceModuleTable>>(
               kModuleTableResource, gpu::MultiDeviceModuleTable::Create());
   if (multi_device_module_table->get()->GetTable(*device).hasValue()) {
-    return REPORT_ERROR(handler,
-                        StrCat("Unable to load CUDA module table. Table has "
-                               "already been created for device ",
-                               device->id(current->platform())));
+    return MakeStringError(
+        "Unable to load module table. Table has already been created for "
+        "device ",
+        *device);
   }
   auto parsed_spec =
       gpu::ParseModuleTableSpec(modules, funcs_per_module, functions);
-  if (!parsed_spec) return REPORT_ERROR(handler, parsed_spec.takeError());
+  if (!parsed_spec) return parsed_spec.takeError();
 
   auto module_table = gpu::ModuleTable::Create(*current, *parsed_spec);
-  if (!module_table) return REPORT_ERROR(handler, module_table.takeError());
+  if (!module_table) return module_table.takeError();
 
-  if (auto error = multi_device_module_table->get()->AddTable(
-          *device, std::move(*module_table))) {
-    return REPORT_ERROR(handler, std::move(error));
-  }
-
-  out_chain.Set(in_chain);
+  return multi_device_module_table->get()->AddTable(*device,
+                                                    std::move(*module_table));
+}
+static Expected<Chain> CudaModuleLoadStaticAsync(
+    gpu::stream::Context context, Chain chain,
+    // Note: Attributes must be in
+    // alphabetical order (see b/140896071).
+    ArrayAttribute<int32_t> funcs_per_module, AggregateAttr functions,
+    AggregateAttr modules, const ExecutionContext& exec_ctx) {
+  if (auto error = CudaModuleLoadStaticSync(context, funcs_per_module,
+                                            functions, modules, exec_ctx))
+    return std::move(error);
+  return chain;
 }
 
-static void CudaLaunch(
-    Argument<Chain> in_chain, Argument<gpu::stream::Context> context,
-    Argument<uint32_t> grid_dim_x, Argument<uint32_t> grid_dim_y,
-    Argument<uint32_t> grid_dim_z, Argument<uint32_t> block_dim_x,
-    Argument<uint32_t> block_dim_y, Argument<uint32_t> block_dim_z,
-    Argument<uint32_t> shared_memory_size_bytes,
-    Argument<gpu::stream::OwningStream> stream, RemainingArguments args,
-    Result<Chain> out_chain, Attribute<gpu::ModuleFuncHandle> function_handle,
-    const ExecutionContext& exec_ctx, KernelErrorHandler handler) {
-  auto current = gpu::stream::CtxSetCurrent(*context);
-  if (!current) return REPORT_ERROR(handler, current.takeError());
+static Error CudaLaunchSync(gpu::stream::Context context, uint32_t grid_dim_x,
+                            uint32_t grid_dim_y, uint32_t grid_dim_z,
+                            uint32_t block_dim_x, uint32_t block_dim_y,
+                            uint32_t block_dim_z,
+                            uint32_t shared_memory_size_bytes,
+                            const gpu::stream::OwningStream& stream,
+                            RemainingArguments args,
+                            Attribute<gpu::ModuleFuncHandle> function_handle,
+                            const ExecutionContext& exec_ctx) {
+  auto current = gpu::stream::CtxSetCurrent(context);
+  if (!current) return current.takeError();
 
   auto device = gpu::stream::CtxGetDevice(*current);
-  if (!device) return REPORT_ERROR(handler, device.takeError());
-
-  const int device_ordinal = device->id(current->platform());
+  if (!device) return device.takeError();
 
   auto multi_device_module_table_or =
       exec_ctx.resource_context()
           ->GetResource<std::unique_ptr<gpu::MultiDeviceModuleTable>>(
               kModuleTableResource);
   if (!multi_device_module_table_or.hasValue()) {
-    REPORT_ERROR(handler,
-                 "CUDA module table has not been initialized for any device");
-    return;
+    return MakeStringError(
+        "CUDA module table has not been initialized for any device");
   }
   const gpu::MultiDeviceModuleTable& multi_device_module_table =
       *(*multi_device_module_table_or.getValue());
   const auto module_table = multi_device_module_table.GetTable(*device);
   if (!module_table) {
-    REPORT_ERROR(
-        handler,
-        StrCat("CUDA module table has not been initialized for device ",
-               device_ordinal));
-    return;
+    return MakeStringError(
+        "CUDA module table has not been initialized for device ", *device);
   }
 
   // Kernel params are a vector of pointers to the kernel args, so we must first
@@ -390,14 +360,12 @@ static void CudaLaunch(
   arg_values.reserve(args.size());
   for (const auto& arg : args.values()) {
     if (arg->IsType<RCReference<gpu::GpuBuffer>>()) {
-      arg_values.push_back(reinterpret_cast<uintptr_t>(
-          arg->get<RCReference<gpu::GpuBuffer>>()->pointer().raw()));
+      auto pointer = arg->get<RCReference<gpu::GpuBuffer>>()->pointer();
+      arg_values.push_back(reinterpret_cast<uintptr_t>(pointer.raw()));
     } else if (arg->IsType<int32_t>()) {
       arg_values.push_back(arg->get<int32_t>());
     } else {
-      REPORT_ERROR(handler,
-                   "Unsupported argument type provided to tfrt_cuda.launch.");
-      return;
+      return MakeStringError("Unsupported argument type");
     }
   }
 
@@ -405,21 +373,28 @@ static void CudaLaunch(
   // TODO(idan): Consider using packed params interface.
   llvm::SmallVector<void*, 16> arg_pointers;
   arg_pointers.reserve(args.size());
-  for (auto& arg_value : arg_values) {
-    arg_pointers.push_back(&arg_value);
-  }
+  for (auto& arg_value : arg_values) arg_pointers.push_back(&arg_value);
 
   gpu::stream::Function func_ptr =
       (*module_table)->GetFunction(function_handle.get());
-  llvm::Error error = gpu::stream::LaunchKernel(
-      *current, func_ptr, grid_dim_x.get(), grid_dim_y.get(), grid_dim_z.get(),
-      block_dim_x.get(), block_dim_y.get(), block_dim_z.get(),
-      shared_memory_size_bytes.get(), stream->get(), arg_pointers,
-      llvm::ArrayRef<void*>{});
-
-  if (error) return REPORT_ERROR(handler, std::move(error));
-
-  out_chain.Set(in_chain);
+  return gpu::stream::LaunchKernel(
+      *current, func_ptr, grid_dim_x, grid_dim_y, grid_dim_z, block_dim_x,
+      block_dim_y, block_dim_z, shared_memory_size_bytes, stream.get(),
+      arg_pointers, llvm::ArrayRef<void*>{});
+}
+static Expected<Chain> CudaLaunchAsync(
+    gpu::stream::Context context, uint32_t grid_dim_x, uint32_t grid_dim_y,
+    uint32_t grid_dim_z, uint32_t block_dim_x, uint32_t block_dim_y,
+    uint32_t block_dim_z, uint32_t shared_memory_size_bytes,
+    const gpu::stream::OwningStream& stream, Chain chain,
+    RemainingArguments args, Attribute<gpu::ModuleFuncHandle> function_handle,
+    const ExecutionContext& exec_ctx) {
+  if (auto error = CudaLaunchSync(context, grid_dim_x, grid_dim_y, grid_dim_z,
+                                  block_dim_x, block_dim_y, block_dim_z,
+                                  shared_memory_size_bytes, stream, args,
+                                  function_handle, exec_ctx))
+    return std::move(error);
+  return chain;
 }
 
 void RegisterCudaKernels(KernelRegistry* kernel_reg) {
@@ -439,33 +414,34 @@ void RegisterCudaKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.allocator.create",
                         TFRT_KERNEL(CudaAllocatorCreate));
   kernel_reg->AddKernel("tfrt_cuda.allocator.destroy",
-                        TFRT_KERNEL(CudaAllocatorDestroy));
+                        TFRT_KERNEL(CudaAllocatorDestroyAsync));
 
-  kernel_reg->AddKernel("tfrt_cuda.mem.allocate", TFRT_KERNEL(CudaMemAllocate));
+  kernel_reg->AddKernel("tfrt_cuda.mem.allocate",
+                        TFRT_KERNEL(CudaMemAllocateAsync));
   kernel_reg->AddKernel("tfrt_cuda.mem.print_metadata",
-                        TFRT_KERNEL(CudaMemPrintMetadata));
+                        TFRT_KERNEL(CudaMemPrintMetadataAsync));
 
   kernel_reg->AddKernel("tfrt_cuda.tensor.make.i8",
-                        TFRT_KERNEL(CudaTensorMake<int8_t>));
+                        TFRT_KERNEL(CudaTensorMakeAsync<int8_t>));
   kernel_reg->AddKernel("tfrt_cuda.tensor.make.i32",
-                        TFRT_KERNEL(CudaTensorMake<int32_t>));
+                        TFRT_KERNEL(CudaTensorMakeAsync<int32_t>));
   kernel_reg->AddKernel("tfrt_cuda.tensor.make.i64",
-                        TFRT_KERNEL(CudaTensorMake<int64_t>));
+                        TFRT_KERNEL(CudaTensorMakeAsync<int64_t>));
   kernel_reg->AddKernel("tfrt_cuda.tensor.make.f32",
-                        TFRT_KERNEL(CudaTensorMake<float>));
+                        TFRT_KERNEL(CudaTensorMakeAsync<float>));
   kernel_reg->AddKernel("tfrt_cuda.tensor.make.f64",
-                        TFRT_KERNEL(CudaTensorMake<double>));
+                        TFRT_KERNEL(CudaTensorMakeAsync<double>));
 
   kernel_reg->AddKernel("tfrt_cuda.tensor.print_metadata",
-                        TFRT_KERNEL(CudaTensorPrintMetadata));
+                        TFRT_KERNEL(CudaTensorPrintMetadataAsync));
   kernel_reg->AddKernel("tfrt_cuda.mem.copy_host_to_device",
-                        TFRT_KERNEL(CudaMemcpyHtoD));
+                        TFRT_KERNEL(CudaMemcpyHtoDAsync));
   kernel_reg->AddKernel("tfrt_cuda.mem.copy_device_to_host",
-                        TFRT_KERNEL(CudaMemcpyDtoH));
+                        TFRT_KERNEL(CudaMemcpyDtoHAsync));
 
   kernel_reg->AddKernel("tfrt_cuda.module.load_static",
-                        TFRT_KERNEL(CudaModuleLoadStatic));
-  kernel_reg->AddKernel("tfrt_cuda.launch", TFRT_KERNEL(CudaLaunch));
+                        TFRT_KERNEL(CudaModuleLoadStaticAsync));
+  kernel_reg->AddKernel("tfrt_cuda.launch", TFRT_KERNEL(CudaLaunchAsync));
 }
 
 }  // namespace cuda

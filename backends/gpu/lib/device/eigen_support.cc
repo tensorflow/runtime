@@ -56,15 +56,14 @@ class EigenStreamInterface : public Eigen::StreamInterface {
 };
 }  // namespace
 
-namespace detail {
-void EigenStreamInterfaceDeleter::operator()(
+void internal::EigenStreamInterfaceDeleter::operator()(
     ::Eigen::StreamInterface* interface) const {
   delete interface;
 }
-void EigenGpuDeviceDeleter::operator()(::Eigen::GpuDevice* device) const {
+void internal::EigenGpuDeviceDeleter::operator()(
+    ::Eigen::GpuDevice* device) const {
   delete device;
 }
-}  // namespace detail
 
 OwningEigenStreamInterface CreateEigenStreamInterface(stream::Stream stream) {
   return OwningEigenStreamInterface(new EigenStreamInterface(stream));

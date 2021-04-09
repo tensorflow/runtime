@@ -128,7 +128,7 @@ class RemainingSyncArguments {
   ArrayRef<Value*> registers_;
 };
 
-namespace detail {
+namespace internal {
 // For use by RepeatedSyncArguments below.
 struct RepeatedSyncArgumentsBase {
   const uint32_t* reg_indices;
@@ -137,7 +137,7 @@ struct RepeatedSyncArgumentsBase {
     return reg_indices == b.reg_indices && registers == b.registers;
   }
 };
-}  // namespace detail
+}  // namespace internal
 
 // RepeatedArguments collects all remaining arguments of the same type in an
 // ArrayRef. There can be at most one RemainingArguments/RepeatedArguments, and
@@ -145,11 +145,11 @@ struct RepeatedSyncArgumentsBase {
 template <typename T>
 class RepeatedSyncArguments
     : public IndexedAccessorRangeBase<RepeatedSyncArguments<T>,
-                                      detail::RepeatedSyncArgumentsBase, T> {
-  using IndexBaseT = detail::RepeatedSyncArgumentsBase;
+                                      internal::RepeatedSyncArgumentsBase, T> {
+  using IndexBaseT = internal::RepeatedSyncArgumentsBase;
   using RangeBaseT =
       IndexedAccessorRangeBase<RepeatedSyncArguments<T>,
-                               detail::RepeatedSyncArgumentsBase, T>;
+                               internal::RepeatedSyncArgumentsBase, T>;
 
  public:
   RepeatedSyncArguments(ArrayRef<uint32_t> reg_indices,

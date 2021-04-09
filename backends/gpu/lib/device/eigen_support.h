@@ -34,7 +34,7 @@ struct GpuDevice;
 
 namespace tfrt {
 namespace gpu {
-namespace detail {
+namespace internal {
 // Use custom deleters so we don't need to include Eigen headers.
 struct EigenStreamInterfaceDeleter {
   void operator()(::Eigen::StreamInterface* interface) const;
@@ -43,13 +43,13 @@ struct EigenGpuDeviceDeleter {
   void operator()(::Eigen::GpuDevice* device) const;
 };
 
-}  // namespace detail
+}  // namespace internal
 
 using OwningEigenStreamInterface =
     std::unique_ptr<::Eigen::StreamInterface,
-                    detail::EigenStreamInterfaceDeleter>;
+                    internal::EigenStreamInterfaceDeleter>;
 using OwningEigenGpuDevice =
-    std::unique_ptr<::Eigen::GpuDevice, detail::EigenGpuDeviceDeleter>;
+    std::unique_ptr<::Eigen::GpuDevice, internal::EigenGpuDeviceDeleter>;
 
 // Creates and returns an owning handle to an Eigen::StreamInterface instance,
 // which wraps the GPU stream 'stream'.

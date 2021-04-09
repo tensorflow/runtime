@@ -135,7 +135,9 @@ def BlasSyncSgemmOp : CUDA_Op<"blas.sync.gemm.f32"> {
   let arguments = (ins ContextType, CublasHandleType, StreamType,
                    BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k, F32:$alpha, BufferType:$A, I32:$lda,
-                   BufferType:$B, I32:$ldb, F32:$beta, BufferType:$C, I32:$ldc);
+                   BufferType:$B, I32:$ldb, F32:$beta, BufferType:$C, I32:$ldc,
+                   TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
 }
 
 // TODO(b/175169391): Remove this Op once the tfrt_cuda dialect moves from
@@ -154,8 +156,9 @@ def BlasSyncGemmExOp : Op<CUDA_Dialect, "blas.sync.gemm_ex"> {
                    AnyCublasDataType:$alpha, BufferType:$A, I32:$Atype,
                    I32:$lda, BufferType:$B, I32:$Btype, I32:$ldb,
                    AnyCublasDataType:$beta, BufferType:$C, I32:$Ctype, I32:$ldc,
-                   I32:$algorithm, I32Attr:$computeType,
+                   I32:$algorithm, TFRT_ChainType, I32Attr:$computeType,
                    BoolAttr:$transa, BoolAttr:$transb);
+  let results = (outs TFRT_ChainType);
 }
 
 #endif  // CUDA_OPS

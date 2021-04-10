@@ -16,6 +16,7 @@
 //
 // This file defines the C++ functions that implement the BLAS kernels provided
 // by the TFRT CUDA runtime.
+#include "kernels.h"
 #include "llvm/Support/Errc.h"
 #include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/stream/blas_wrapper.h"
@@ -237,38 +238,24 @@ static Error BlasGemmStridedBatchedEx(
       *computeType_blas, *algo_blas);
 }
 
-namespace {
-// Helper for TFRT_ASYNC_OF macro below.
-template <typename F, F>
-struct Async;
-template <typename... Args, Error (*sync_func_ptr)(Args...)>
-struct Async<Error (*)(Args...), sync_func_ptr> {
-  static Expected<Chain> Invoke(Args... args) {
-    if (auto error = sync_func_ptr(std::forward<Args>(args)...))
-      return std::move(error);
-    return Chain{};
-  }
-};
-}  // namespace
-
-// Produces an asynchronous kernel implementation returning a Expected<Chain>
-// from synchronous kernel implementation returning an Error.
-#define TFRT_ASYNC_OF(sync_func) Async<decltype(&sync_func), &sync_func>::Invoke
+#define TFRT_WITH_CHAIN_RESULT(sync_func) \
+  internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
 
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.blas.create", TFRT_KERNEL(BlasCreate));
   kernel_reg->AddKernel("tfrt_cuda.blas.set_stream",
-                        TFRT_KERNEL(TFRT_ASYNC_OF(BlasSetStream)));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSetStream)));
   kernel_reg->AddKernel("tfrt_cuda.blas.axpy.f32",
-                        TFRT_KERNEL(TFRT_ASYNC_OF(BlasSaxpy)));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSaxpy)));
   kernel_reg->AddKernel("tfrt_cuda.blas.gemm.f32",
-                        TFRT_KERNEL(TFRT_ASYNC_OF(BlasSgemm)));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSgemm)));
   kernel_reg->AddKernel("tfrt_cuda.blas.gemm.ex",
-                        TFRT_KERNEL(TFRT_ASYNC_OF(BlasGemmEx)));
-  kernel_reg->AddKernel("tfrt_cuda.blas.gemm.strided.batched.ex",
-                        TFRT_KERNEL(TFRT_ASYNC_OF(BlasGemmStridedBatchedEx)));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasGemmEx)));
+  kernel_reg->AddKernel(
+      "tfrt_cuda.blas.gemm.strided.batched.ex",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasGemmStridedBatchedEx)));
   kernel_reg->AddKernel("tfrt_cuda.blas.sync.gemm_ex",
-                        TFRT_KERNEL(TFRT_ASYNC_OF(BlasSyncGemmEx)));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSyncGemmEx)));
 }
 }  // namespace cuda
 }  // namespace tfrt

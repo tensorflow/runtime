@@ -56,14 +56,8 @@ def DnnCreateOp : CUDA_Op<"dnn.create"> {
     %cudnn, %ch5 = tfrt_cuda.dnn.create %context, %ch1
 
   }];
-  let arguments = (ins
-                   ContextType,
-                   TFRT_ChainType
-                  );
-  let results = (outs
-                 DnnHandleType,
-                 TFRT_ChainType
-                );
+  let arguments = (ins ContextType, TFRT_ChainType);
+  let results = (outs DnnHandleType);
 }
 
 def DnnSetStream : CUDA_Op<"dnn.set_stream"> {
@@ -81,14 +75,8 @@ def DnnSetStream : CUDA_Op<"dnn.set_stream"> {
     %ch2 = tfrt_cuda.dnn.set_stream %dnn_handle, %stream, %ch1
 
   }];
-  let arguments = (ins
-                   DnnHandleType,
-                   StreamType,
-                   TFRT_ChainType
-                  );
-  let results = (outs
-                 TFRT_ChainType
-                );
+  let arguments = (ins DnnHandleType, StreamType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
 }
 
 def DnnGetStream : CUDA_Op<"dnn.get_stream"> {
@@ -102,14 +90,8 @@ def DnnGetStream : CUDA_Op<"dnn.get_stream"> {
     %stream, %ch2 = tfrt_cuda.dnn.get_stream %dnn_handle, %ch1
 
   }];
-  let arguments = (ins
-                   DnnHandleType,
-                   TFRT_ChainType
-                  );
-  let results = (outs
-                 StreamType,
-                 TFRT_ChainType
-                );
+  let arguments = (ins DnnHandleType, TFRT_ChainType);
+  let results = (outs StreamType);
 }
 
 def DnnDestroyOp : CUDA_Op<"dnn.destroy"> {
@@ -123,13 +105,8 @@ def DnnDestroyOp : CUDA_Op<"dnn.destroy"> {
     %ch3 = tfrt_cuda.dnn.destroy %dnn_handle, %ch2
 
   }];
-  let arguments = (ins
-                   DnnHandleType,
-                   TFRT_ChainType
-                  );
-  let results = (outs
-                 TFRT_ChainType
-                );
+  let arguments = (ins DnnHandleType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
 }
 
 def DnnCreatePoolingDescriptorOp : CUDA_Op<"dnn.create_pooling_descriptor"> {
@@ -169,19 +146,9 @@ def DnnCreatePoolingDescriptorOp : CUDA_Op<"dnn.create_pooling_descriptor"> {
     %pooling_desc, %ch18 = tfrt_cuda.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
 
   }];
-  let arguments = (ins
-                   ContextType,
-                   UI32,
-                   UI32,
-                   TensorType,
-                   TensorType,
-                   TensorType,
-                   TFRT_ChainType
-                   );
-  let results = (outs
-                 DnnPoolingDescriptorType,
-                 TFRT_ChainType
-                );
+  let arguments = (ins ContextType, UI32, UI32, TensorType, TensorType,
+                   TensorType, TFRT_ChainType);
+  let results = (outs DnnPoolingDescriptorType);
 }
 
 def DnnDestroyPoolingDescriptorOp : CUDA_Op<"dnn.destroy_pooling_descriptor"> {
@@ -194,13 +161,8 @@ def DnnDestroyPoolingDescriptorOp : CUDA_Op<"dnn.destroy_pooling_descriptor"> {
     %ch5 = tfrt_cuda.dnn.destroy_pooling_descriptor %dnn_pooling_descriptor, %ch4
 
   }];
-  let arguments = (ins
-                   DnnPoolingDescriptorType,
-                   TFRT_ChainType
-                  );
-  let results = (outs
-                 TFRT_ChainType
-                );
+  let arguments = (ins DnnPoolingDescriptorType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
 }
 
 def DnnCreateTensorDescriptorOp : CUDA_Op<"dnn.create_tensor_descriptor"> {
@@ -239,17 +201,8 @@ def DnnCreateTensorDescriptorOp : CUDA_Op<"dnn.create_tensor_descriptor"> {
     %out_desc, %ch25 = tfrt_cuda.dnn.set_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
 
   }];
-  let arguments = (ins
-                   ContextType,
-                   UI32,
-                   TensorType,
-                   TensorType,
-                   TFRT_ChainType
-                  );
-  let results = (outs
-                 DnnTensorDescriptorType,
-                 TFRT_ChainType
-                );
+  let arguments = (ins ContextType, UI32, TensorType, TensorType, TFRT_ChainType);
+  let results = (outs DnnTensorDescriptorType);
 }
 
 def DnnDestroyTensorDescriptorOp : CUDA_Op<"dnn.destroy_tensor_descriptor"> {
@@ -262,13 +215,8 @@ def DnnDestroyTensorDescriptorOp : CUDA_Op<"dnn.destroy_tensor_descriptor"> {
     %ch3 = tfrt_cuda.dnn.destroy_tensor_descriptor %dnn_tensor_descriptor, %ch4
 
   }];
-  let arguments = (ins
-                   DnnTensorDescriptorType,
-                   TFRT_ChainType
-                  );
-  let results = (outs
-                 TFRT_ChainType
-                );
+  let arguments = (ins DnnTensorDescriptorType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
 }
 
 def DnnPoolingForwardOp : CUDA_Op<"dnn.pooling_forward"> {
@@ -347,6 +295,7 @@ def DnnConvolutionForwardOp : CUDA_Op<"dnn.convolution_forward"> {
                    BufferType:$work_space,
                    DnnTensorDescriptorType:$y_desc,
                    BufferType:$y);
+  let results = (outs TFRT_ChainType);
 }
 
 // TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
@@ -374,6 +323,7 @@ def DnnConvolutionBackwardDataOp : CUDA_Op<"dnn.convolution_backward_data"> {
                    BufferType:$work_space,
                    DnnTensorDescriptorType:$dx_desc,
                    BufferType:$dx);
+  let results = (outs TFRT_ChainType);
 }
 
 // TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
@@ -401,6 +351,7 @@ def DnnConvolutionBackwardFilterOp : CUDA_Op<"dnn.convolution_backward_filter"> 
                    BufferType:$work_space,
                    DnnFilterDescriptorType:$dw_desc,
                    BufferType:$dw);
+  let results = (outs TFRT_ChainType);
 }
 
 // TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
@@ -434,6 +385,7 @@ def CudnnConvolutionBiasActivationForwardOp :
                    DnnActivationDescriptorType:$activation_desc,
                    DnnTensorDescriptorType:$y_desc,
                    BufferType:$y);
+  let results = (outs TFRT_ChainType);
 }
 
 

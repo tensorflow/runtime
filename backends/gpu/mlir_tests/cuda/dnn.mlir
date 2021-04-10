@@ -121,15 +121,15 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %ch11 = "tfrt_dht.set_tensor_with_values.f32"(%gradient, %ch10, %o00, %o01, %o02, %o03, %o04, %o05, %o06, %o07, %o08, %o09, %o10, %o11, %o12, %o13, %o14, %o15, %o16, %o17, %o18, %o19, %o20, %o21, %o22, %o23, %o24, %o25, %o26, %o27, %o28, %o29, %o30, %o31, %o32, %o33, %o34, %o35):(!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
   %ch12 = tfrt_dht.print_tensor %gradient, %ch11
 
-  %cudnn, %ch14_1 = tfrt_cuda.dnn.create %context, %ch12
+  %cudnn = tfrt_cuda.dnn.create %context, %ch12
 
-  %ch14_2 = tfrt_cuda.dnn.set_stream %cudnn, %stream, %ch14_1
-  %stream1, %ch14 = tfrt_cuda.dnn.get_stream %cudnn, %ch14_2
+  %ch13 = tfrt_cuda.dnn.set_stream %cudnn, %stream, %ch12
+  %stream1 = tfrt_cuda.dnn.get_stream %cudnn, %ch13
 
   %dim0 = tfrt.constant.i32 3
   %dim1 = tfrt.constant.i32 3
   %window_dimensions = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
-  %ch15 = "tfrt_dht.set_tensor_with_values.i32"(%window_dimensions, %ch14, %dim0, %dim1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
+  %ch15 = "tfrt_dht.set_tensor_with_values.i32"(%window_dimensions, %ch13, %dim0, %dim1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
   %p0 = tfrt.constant.i32 0
   %p1 = tfrt.constant.i32 0
   %paddings = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
@@ -140,14 +140,14 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %ch17 = "tfrt_dht.set_tensor_with_values.i32"(%strides, %ch16, %s0, %s1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
   %mode = tfrt.constant.ui32 0
   %nan_propagation = tfrt.constant.ui32 0
-  %pooling_desc, %ch18 = tfrt_cuda.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
+  %pooling_desc = tfrt_cuda.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
 
   %din0 = tfrt.constant.i32 2
   %din1 = tfrt.constant.i32 2
   %din2 = tfrt.constant.i32 10
   %din3 = tfrt.constant.i32 10
   %dim_in = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
-  %ch19 = "tfrt_dht.set_tensor_with_values.i32"(%dim_in, %ch18, %din0, %din1, %din2, %din3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
+  %ch19 = "tfrt_dht.set_tensor_with_values.i32"(%dim_in, %ch17, %din0, %din1, %din2, %din3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
   %sin0 = tfrt.constant.i32 200
   %sin1 = tfrt.constant.i32 100
   %sin2 = tfrt.constant.i32 10
@@ -155,14 +155,14 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %stride_in = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
   %ch20 = "tfrt_dht.set_tensor_with_values.i32"(%stride_in, %ch19, %sin0, %sin1, %sin2, %sin3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
   %data_type_in = tfrt.constant.ui32 0
-  %in_desc, %ch21 = tfrt_cuda.dnn.create_tensor_descriptor %context, %data_type_in, %dim_in, %stride_in, %ch20
+  %in_desc = tfrt_cuda.dnn.create_tensor_descriptor %context, %data_type_in, %dim_in, %stride_in, %ch20
 
   %dout0 = tfrt.constant.i32 2
   %dout1 = tfrt.constant.i32 2
   %dout2 = tfrt.constant.i32 8
   %dout3 = tfrt.constant.i32 8
   %dim_out = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
-  %ch23 = "tfrt_dht.set_tensor_with_values.i32"(%dim_out, %ch21, %dout0, %dout1, %dout2, %dout3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
+  %ch23 = "tfrt_dht.set_tensor_with_values.i32"(%dim_out, %ch20, %dout0, %dout1, %dout2, %dout3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
   %sout0 = tfrt.constant.i32 128
   %sout1 = tfrt.constant.i32 64
   %sout2 = tfrt.constant.i32 8
@@ -170,7 +170,7 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %stride_out = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
   %ch24 = "tfrt_dht.set_tensor_with_values.i32"(%stride_out, %ch23, %sout0, %sout1, %sout2, %sout3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
   %data_type_out = tfrt.constant.ui32 0
-  %out_desc, %ch25 = tfrt_cuda.dnn.create_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
+  %out_desc = tfrt_cuda.dnn.create_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
 
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 0.0
@@ -178,7 +178,7 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %kinsize = tfrt.constant.i64 144  //  (2 * 2 * 3 * 3) * (size of f32 = 4);
   %koutsize = tfrt.constant.i64 16  //  (2 * 2 * 1 * 1) * (size of f32 = 4);
 
-  %input_device_buffer, %ch26 = tfrt_cuda.mem.allocate %allocator, %stream, %kinsize, %ch25
+  %input_device_buffer, %ch26 = tfrt_cuda.mem.allocate %allocator, %stream, %kinsize, %ch24
   %output_device_buffer, %ch27 = tfrt_cuda.mem.allocate %allocator, %stream, %koutsize, %ch26
 
   %host_input_buffer, %ch28 = tfrt_dht.get_buffer %input, %ch27

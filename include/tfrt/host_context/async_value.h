@@ -109,10 +109,14 @@ class AsyncValue {
   void DropRef() { DropRef(1); }
   void DropRef(uint32_t count);
 
-  // Return the stored value as type T. Requires that the state be constructed
-  // or concrete and that T be the exact type or a base type of the payload type
-  // of this AsyncValue. When T is a base type of the payload type, the
-  // following additional conditions are required:
+  // Return the stored value as type T. For the consumer of the AsyncValue, this
+  // requires that the state be `kConcrete`. For the producer of the AsyncValue,
+  // the state may also be `constructed`, as long as the producer can ensure
+  // race-free access to the data (e.g. no concurrent writes and reads and no
+  // concurrent changing the state to `kError). For both cases, T must be the
+  // exact type or a base type of the payload type of this AsyncValue. When T is
+  // a base type of the payload type, the following additional conditions are
+  // required:
   // 1) Both the payload type and T are polymorphic (have virtual function) or
   //    neither are.
   // 2) The payload type does not use multiple inheritance.

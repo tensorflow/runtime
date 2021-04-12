@@ -52,7 +52,7 @@ void MatMul2DKernel(T alpha, DHTIndexableView<T, 2> A, DHTIndexableView<T, 2> B,
                     T beta, MutableDHTIndexableView<T, 2>& C, bool transpose_a,
                     bool transpose_b) {
   T zero = static_cast<T>(0);
-  // TODO(zhangqiaorjc): Handle transpose.
+  // TODO(tfrt-dev): Handle transpose.
   assert(transpose_a == false);
   assert(transpose_b == false);
   size_t rows = C.FixedShape()[0];

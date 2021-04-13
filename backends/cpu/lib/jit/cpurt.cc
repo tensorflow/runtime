@@ -57,10 +57,10 @@
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Target/LLVMIR/Dialect/AMX/AMXToLLVMIRTranslation.h"
-#include "mlir/Target/LLVMIR/Dialect/AVX512/AVX512ToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/ArmNeon/ArmNeonToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMArmSVE/LLVMArmSVEToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -542,24 +542,31 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // TODO(ezhulenev): Move this to a pipeline exposed upstream when it will
   // stabilize, e.g. `LinalgToAsyncRuntime`.
 
-  // Convert all linalg operations to parallel loops, and then add async
-  // operations to actually execute them in parallel using the async runtime.
-  mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
-  fpm.addPass(mlir::createConvertLinalgToParallelLoopsPass());
-  // TODO(ezhulenev): Currently async.execute region can call a function with
-  // an async.await inside, and this leads to blocking await inside a thread
-  // managed by the concurrent work queue.
-  // fpm.addPass(mlir::createAsyncParallelForPass(opts.num_worker_threads));
-  fpm.addPass(mlir::createAsyncRefCountingPass());
-  fpm.addPass(mlir::createAsyncRefCountingOptimizationPass());
-  fpm.addPass(mlir::createStdExpandOpsPass());
-  fpm.addPass(CreateMathApproximationPass());
+  {
+    // Convert all linalg operations to parallel loops, and then add async
+    // operations to actually execute them in parallel using the async runtime.
+    mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
+    fpm.addPass(mlir::createConvertLinalgToParallelLoopsPass());
+    // TODO(ezhulenev): Currently async.execute region can call a function with
+    // an async.await inside, and this leads to blocking await inside a thread
+    // managed by the concurrent work queue.
+    // fpm.addPass(mlir::createAsyncParallelForPass(opts.num_worker_threads));
+    fpm.addPass(mlir::createStdExpandOpsPass());
+    fpm.addPass(CreateMathApproximationPass());
 
-  // Add alignment attribute to all memref allocations.
-  fpm.addPass(CreateAlignedAllocationsPass(opts.alignment));
+    // Add alignment attribute to all memref allocations.
+    fpm.addPass(CreateAlignedAllocationsPass(opts.alignment));
+  }
 
   // Lower from high level async operations to async runtime.
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());
+
+  {
+    // Add async.runtime reference counting operations.
+    mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
+    fpm.addPass(mlir::createAsyncRuntimeRefCountingPass());
+    fpm.addPass(mlir::createAsyncRuntimeRefCountingOptPass());
+  }
 
   // Lower everything down to LLVM dialect.
   pm.addPass(mlir::createConvertAsyncToLLVMPass());
@@ -613,9 +620,9 @@ Expected<CompilationResult> CompileKernelMlirModule(
   // Register MLIR dialects that can be translated to LLVM IR.
   mlir::registerArmNeonDialectTranslation(registry);
   mlir::registerAMXDialectTranslation(registry);
-  mlir::registerAVX512DialectTranslation(registry);
   mlir::registerLLVMArmSVEDialectTranslation(registry);
   mlir::registerLLVMDialectTranslation(registry);
+  mlir::registerX86VectorDialectTranslation(registry);
 
   // Register additional dialects provided via compilation options.
   if (opts.register_dialects) opts.register_dialects(registry);

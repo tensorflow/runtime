@@ -24,6 +24,7 @@
 #include "tfrt/host_context/kernel_utils.h"
 
 namespace tfrt {
+namespace gpu {
 
 static Expected<OpHandler *> CreateGpuOpHandlerKernel(
     int gpu_ordinal, Argument<OpHandler *> fallback,
@@ -31,8 +32,8 @@ static Expected<OpHandler *> CreateGpuOpHandlerKernel(
   auto *runtime = CoreRuntime::GetFromHostContext(exec_ctx.host());
   assert(runtime);
   auto device_name = StrCat("GPU:", gpu_ordinal);
-  auto gpu = gpu::GetOrCreateGpuDevice(device_name, gpu_ordinal,
-                                       runtime->GetHostContext());
+  auto gpu =
+      GetOrCreateGpuDevice(device_name, gpu_ordinal, runtime->GetHostContext());
   if (!gpu) return gpu.takeError();
   return CreateGpuOpHandler(runtime, std::move(gpu.get()), fallback.get());
 }
@@ -45,4 +46,5 @@ void RegisterGpuOpHandlerKernels(KernelRegistry *registry) {
                       TFRT_KERNEL(CreateGpuOpHandlerKernel));
 }
 
+}  // namespace gpu
 }  // namespace tfrt

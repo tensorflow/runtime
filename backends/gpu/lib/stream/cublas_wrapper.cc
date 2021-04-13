@@ -36,7 +36,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                                      cublasStatus_t status) {
@@ -1770,6 +1770,6 @@ llvm::Error CublasGemmStridedBatchedEx(
       ldc, strideC, batchCount, computeType, algo));
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

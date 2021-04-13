@@ -38,7 +38,7 @@ EventManager::EventManager(HostContext& host_context)
 
 AsyncValueRef<Chain> EventManager::Synchronize(RCReference<RcEvent> event) {
   // Check if the event is already ready.
-  auto query_result = stream::EventQuery(event->get());
+  auto query_result = wrapper::EventQuery(event->get());
   if (!query_result) {
     return MakeErrorAsyncValueRef(&host_context_,
                                   StrCat("EventManager error querying event: ",
@@ -84,7 +84,7 @@ void EventManager::PollEvents() {
       {
         mutex_lock lock(events_mutex_);
         for (auto& event_record : events_) {
-          auto query_result = stream::EventQuery(event_record.event->get());
+          auto query_result = wrapper::EventQuery(event_record.event->get());
           if (!query_result) {
             // Report errors immediately
             event_record.pending_async_value.getPointer()->SetError(

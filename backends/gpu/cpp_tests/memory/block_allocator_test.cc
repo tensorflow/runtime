@@ -31,7 +31,7 @@ namespace gpu {
 class BlockAllocatorTest : public ::testing::TestWithParam<SubAllocator> {
  protected:
   void SetUp() override {
-    ASSERT_TRUE(IsSuccess(Init(gpu::stream::Platform::CUDA)));
+    ASSERT_TRUE(IsSuccess(Init(wrapper::Platform::CUDA)));
   }
   llvm::Error ValidateBuffer(const gpu::GpuBuffer* buffer, size_t expected_size,
                              uintptr_t expected_address) {
@@ -46,7 +46,7 @@ class BlockAllocatorTest : public ::testing::TestWithParam<SubAllocator> {
                         buffer->size()));
     }
     const auto address = reinterpret_cast<uintptr_t>(
-        buffer->pointer().raw(gpu::stream::Platform::CUDA));
+        buffer->pointer().raw(wrapper::Platform::CUDA));
     if (address != expected_address) {
       return llvm::createStringError(
           llvm::errc::invalid_argument,
@@ -65,14 +65,13 @@ class BlockAllocatorTest : public ::testing::TestWithParam<SubAllocator> {
 
 TEST_P(BlockAllocatorTest, SingleStreamTest) {
   BlockAllocator block_allocator = CreateSimpleBlockAllocator();
-  TFRT_ASSERT_AND_ASSIGN(auto device,
-                         DeviceGet(gpu::stream::Platform::CUDA, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(wrapper::Platform::CUDA, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
   TFRT_ASSERT_AND_ASSIGN(auto current_context,
-                         gpu::stream::CtxSetCurrent(context.get()));
+                         wrapper::CtxSetCurrent(context.get()));
   TFRT_ASSERT_AND_ASSIGN(
-      auto stream, gpu::stream::StreamCreate(
-                       current_context, gpu::stream::StreamFlags::DEFAULT));
+      auto stream,
+      wrapper::StreamCreate(current_context, wrapper::StreamFlags::DEFAULT));
   // Validate that two buffers pointing at different blocks
   // can exists at the same time.
   {
@@ -123,18 +122,17 @@ TEST_P(BlockAllocatorTest, SingleStreamTest) {
 
 TEST_P(BlockAllocatorTest, MultipleStreamsTest) {
   BlockAllocator block_allocator = CreateSimpleBlockAllocator();
-  TFRT_ASSERT_AND_ASSIGN(auto device,
-                         DeviceGet(gpu::stream::Platform::CUDA, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(wrapper::Platform::CUDA, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
   TFRT_ASSERT_AND_ASSIGN(auto current_context,
-                         gpu::stream::CtxSetCurrent(context.get()));
+                         wrapper::CtxSetCurrent(context.get()));
 
   TFRT_ASSERT_AND_ASSIGN(
-      auto stream_one, gpu::stream::StreamCreate(
-                           current_context, gpu::stream::StreamFlags::DEFAULT));
+      auto stream_one,
+      wrapper::StreamCreate(current_context, wrapper::StreamFlags::DEFAULT));
   TFRT_ASSERT_AND_ASSIGN(
-      auto stream_two, gpu::stream::StreamCreate(
-                           current_context, gpu::stream::StreamFlags::DEFAULT));
+      auto stream_two,
+      wrapper::StreamCreate(current_context, wrapper::StreamFlags::DEFAULT));
   {
     size_t buffer_size = 256;
     TFRT_ASSERT_AND_ASSIGN(
@@ -157,7 +155,7 @@ TEST_P(BlockAllocatorTest, MultipleStreamsTest) {
 
 INSTANTIATE_TEST_SUITE_P(
     BaseTestCases, BlockAllocatorTest,
-    ::testing::Values(SubAllocator(gpu::stream::Platform::CUDA)));
+    ::testing::Values(SubAllocator(wrapper::Platform::CUDA)));
 
 }  // namespace gpu
 }  // namespace tfrt

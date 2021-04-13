@@ -28,8 +28,8 @@
 namespace llvm {
 
 template <>
-struct DenseMapInfo<tfrt::gpu::stream::Stream> {
-  using Stream = tfrt::gpu::stream::Stream;
+struct DenseMapInfo<tfrt::gpu::wrapper::Stream> {
+  using Stream = tfrt::gpu::wrapper::Stream;
   static inline Stream getEmptyKey() {
     return Stream(DenseMapInfo<void*>::getEmptyKey());
   }

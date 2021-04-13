@@ -40,12 +40,12 @@ namespace gpu {
 // A ref-counted owned GPU event.
 class RcEvent : public ReferenceCounted<RcEvent> {
  public:
-  explicit RcEvent(stream::OwningEvent event) : event_(std::move(event)) {}
+  explicit RcEvent(wrapper::OwningEvent event) : event_(std::move(event)) {}
 
-  stream::Event get() const { return event_.get(); }
+  wrapper::Event get() const { return event_.get(); }
 
  private:
-  stream::OwningEvent event_;
+  wrapper::OwningEvent event_;
 };
 
 // EventManager implements efficient waiting and polling for events. The

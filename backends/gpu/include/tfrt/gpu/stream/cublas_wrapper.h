@@ -24,7 +24,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 struct CublasErrorData {
   cublasStatus_t result;
@@ -822,7 +822,7 @@ llvm::Error CublasGemmStridedBatchedEx(
     Pointer<const void> beta, Pointer<void> C, cudaDataType Ctype, int ldc,
     int64_t strideC, int batchCount, cudaDataType computeType,
     cublasGemmAlgo_t algo);
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

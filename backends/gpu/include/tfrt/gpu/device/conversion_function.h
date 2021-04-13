@@ -26,7 +26,6 @@
 namespace tfrt {
 
 class HostContext;
-class GpuDispatchContext;
 template <typename T>
 class AsyncValueRef;
 class DenseHostTensor;
@@ -35,14 +34,15 @@ class TensorConversionFnRegistry;
 namespace gpu {
 
 class GpuAllocator;
+class GpuDispatchContext;
 class DenseGpuTensor;
 
 AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
-    stream::CurrentContext current_context, stream::Stream stream,
+    wrapper::CurrentContext current_context, wrapper::Stream stream,
     const DenseGpuTensor& tensor, HostContext* host);
 
 Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
-    stream::CurrentContext current_context, stream::Stream stream,
+    wrapper::CurrentContext current_context, wrapper::Stream stream,
     GpuAllocator* allocator, const DenseHostTensor& tensor, HostContext* host);
 
 void RegisterGpuTensorConversionFn(TensorConversionFnRegistry* registry);

@@ -25,16 +25,16 @@ static size_t HashCombine(size_t x, size_t y) {
 
 namespace std {
 
-size_t hash<tfrt::gpu::stream::Device>::operator()(
-    const tfrt::gpu::stream::Device& device) const noexcept {
+size_t hash<tfrt::gpu::wrapper::Device>::operator()(
+    const tfrt::gpu::wrapper::Device& device) const noexcept {
   auto platform = device.platform();
   auto id = device.id(platform);
   return HashCombine(std::hash<decltype(id)>{}(id),
                      std::hash<decltype(platform)>{}(platform));
 }
 
-size_t hash<tfrt::gpu::stream::Stream>::operator()(
-    const tfrt::gpu::stream::Stream& stream) const noexcept {
+size_t hash<tfrt::gpu::wrapper::Stream>::operator()(
+    const tfrt::gpu::wrapper::Stream& stream) const noexcept {
   return std::hash<void*>{}(stream.pair_.getOpaqueValue());
 }
 

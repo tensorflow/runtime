@@ -28,7 +28,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 struct CudartErrorData {
   cudaError_t result;
@@ -129,7 +129,7 @@ llvm::Error CudaLaunchCooperativeKernel(CurrentContext current,
                                      stream);
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

@@ -60,10 +60,10 @@ class ModuleTable {
   // sort of global indexing is easier. We may want to add a separate lookup
   // function based on module index and relative function index.
   static llvm::Expected<std::unique_ptr<ModuleTable>> Create(
-      stream::CurrentContext current, const Spec& spec);
+      wrapper::CurrentContext current, const Spec& spec);
 
   // Retrieves function pointer for the given handle.
-  virtual stream::Function GetFunction(ModuleFuncHandle handle) const = 0;
+  virtual wrapper::Function GetFunction(ModuleFuncHandle handle) const = 0;
 };
 
 // Parses a raw attributes as ModuleTable::Spec. The source AggregateAttrs
@@ -96,13 +96,13 @@ class MultiDeviceModuleTable {
   // Takes ownership of a ModuleTable and associates it with the device id of
   // the provided device.
   // invalid_argument error if the device already has an associated table.
-  virtual llvm::Error AddTable(const stream::Device& device,
+  virtual llvm::Error AddTable(const wrapper::Device& device,
                                std::unique_ptr<ModuleTable> table) = 0;
 
   // Returns the ModuleTable associated with the device, or None if the device
   // has not yet been associated with a ModuleTable.
   virtual llvm::Optional<const ModuleTable*> GetTable(
-      const stream::Device& device) const = 0;
+      const wrapper::Device& device) const = 0;
 };
 
 }  // namespace gpu

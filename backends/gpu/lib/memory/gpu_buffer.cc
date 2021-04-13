@@ -25,14 +25,14 @@
 namespace tfrt {
 namespace gpu {
 
-GpuBuffer::GpuBuffer(gpu::stream::Pointer<void> pointer, size_t size,
+GpuBuffer::GpuBuffer(wrapper::Pointer<void> pointer, size_t size,
                      GpuAllocator* allocator)
     : pointer_(pointer),
       size_(size),
       has_allocator_(true),
       allocator_(allocator) {}
 
-GpuBuffer::GpuBuffer(gpu::stream::Pointer<void> pointer, size_t size,
+GpuBuffer::GpuBuffer(wrapper::Pointer<void> pointer, size_t size,
                      Deallocator deallocator)
     : pointer_(pointer),
       size_(size),

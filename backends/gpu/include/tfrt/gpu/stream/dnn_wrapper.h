@@ -26,7 +26,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 constexpr int kDnnDimMax() { return 8; }
 
@@ -504,7 +504,7 @@ llvm::Error DnnRnnForwardTraining(
     Pointer<void> workspace, size_t workspace_size_bytes,
     Pointer<void> reserve_space, size_t reserve_space_size_in_bytes);
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

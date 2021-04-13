@@ -36,18 +36,18 @@ CachingGpuAllocator::CachingGpuAllocator(AsyncValueRef<GpuContext> context)
 CachingGpuAllocator::~CachingGpuAllocator() = default;
 
 llvm::Expected<RCReference<gpu::GpuBuffer>> CachingGpuAllocator::Allocate(
-    size_t size, gpu::stream::Stream stream) {
+    size_t size, wrapper::Stream stream) {
   // FIXME(sanjoy): context handling needs to be cleaned up.  We should not be
   // calling CuStreamGetCtx here.
-  auto context = gpu::stream::CuStreamGetCtx(stream);
+  auto context = wrapper::CuStreamGetCtx(stream);
   if (!context) {
     return llvm::createStringError(
         llvm::errc::invalid_argument,
         "Failed to get context associated with the stream.");
   }
 
-  llvm::Expected<stream::CurrentContext> current_context =
-      gpu::stream::CtxGetCurrent();
+  llvm::Expected<wrapper::CurrentContext> current_context =
+      wrapper::CtxGetCurrent();
   if (!current_context) {
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "Could not get a context.");
@@ -55,13 +55,13 @@ llvm::Expected<RCReference<gpu::GpuBuffer>> CachingGpuAllocator::Allocate(
 
   assert(current_context->context() == *context);
 
-  auto device_memory = gpu::stream::MemAlloc(*current_context, size);
+  auto device_memory = wrapper::MemAlloc(*current_context, size);
   if (!device_memory) {
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "Failed to allocate device memory.");
   }
   // Explicitly release memory to avoid automatic deallocation.
-  gpu::stream::Pointer<void> pointer = device_memory->release();
+  wrapper::Pointer<void> pointer = device_memory->release();
 
   allocations_.insert({pointer, context.get()});
   return TakeRef(new gpu::GpuBuffer(pointer, size, this));
@@ -73,16 +73,16 @@ void CachingGpuAllocator::Deallocate(const gpu::GpuBuffer& buffer) {
   assert(it != allocations_.end());
   // FIXME(sanjoy): context handling needs to be cleaned up.  We should not be
   // calling CuStreamGetCtx here.
-  stream::CurrentContext current_context =
-      die_if_error(gpu::stream::CtxGetCurrent());
+  wrapper::CurrentContext current_context =
+      die_if_error(wrapper::CtxGetCurrent());
   assert(current_context.context() == it->second);
-  die_if_error(gpu::stream::CtxSynchronize(current_context));
-  die_if_error(gpu::stream::MemFree(it->first));
+  die_if_error(wrapper::CtxSynchronize(current_context));
+  die_if_error(wrapper::MemFree(it->first));
   allocations_.erase(it);
 }
 
 llvm::Error CachingGpuAllocator::RecordUsage(const gpu::GpuBuffer&,
-                                             gpu::stream::Stream) {
+                                             wrapper::Stream) {
   // Since the current simple implementation synchronizes the whole context,
   // we do not care what other streams the buffer was used on.
   return llvm::Error::success();

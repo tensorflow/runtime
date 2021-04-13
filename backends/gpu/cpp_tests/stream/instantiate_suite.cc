@@ -19,7 +19,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 INSTANTIATE_TEST_SUITE_P(Suite, Test,
                          testing::Values(Platform::CUDA /*, Platform::ROCm*/),
@@ -30,6 +30,6 @@ INSTANTIATE_TEST_SUITE_P(Suite, Test,
                            return oss.str();
                          });
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

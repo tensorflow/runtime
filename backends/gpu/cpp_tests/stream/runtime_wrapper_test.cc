@@ -21,7 +21,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 TEST_F(Test, RuntimeInitCUDA) {
   EXPECT_TRUE(IsSuccess(CuInit()));
@@ -46,6 +46,6 @@ TEST_F(Test, DevicePropertiesCUDA) {
   ASSERT_GT(dev_props.major, 0);
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

@@ -18,6 +18,7 @@
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
 
 namespace tfrt {
+namespace gpu {
 
 // ComputeBinaryElementwiseOpViaEigen<Functor, K0, K1, K2> is a TFRT kernel for
 // an operation implemented by the Eigen functor `Functor` and supports DType
@@ -52,4 +53,5 @@ void RegisterBinaryGpuTfOps(GpuOpRegistry* registry) {
                                           Eigen::internal::scalar_sum_op,
                                           DType::F16, DType::F32, DType::F64>));
 }
+}  // namespace gpu
 }  // namespace tfrt

@@ -53,7 +53,7 @@ using OwningEigenGpuDevice =
 
 // Creates and returns an owning handle to an Eigen::StreamInterface instance,
 // which wraps the GPU stream 'stream'.
-OwningEigenStreamInterface CreateEigenStreamInterface(stream::Stream stream);
+OwningEigenStreamInterface CreateEigenStreamInterface(wrapper::Stream stream);
 
 // Creates and returns an owning handle to an Eigen::GpuDevice instance,
 // which launches GPU kernels on the GPU stream wrapped by 'interface'.

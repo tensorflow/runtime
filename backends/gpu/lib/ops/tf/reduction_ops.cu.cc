@@ -168,10 +168,6 @@ struct Multiplies {
   T multiplier;
 };
 
-ssize_t NumBlocks(ssize_t num_elements, ssize_t elements_per_block) {
-  return (num_elements + elements_per_block - 1) / elements_per_block;
-}
-
 // Minimalistic output iterator adaptor for CUB reductions. Transforms values
 // before assigning to pointee.
 template <typename Iterator, typename TransformOp>
@@ -205,11 +201,12 @@ class TransformOutputIterator {
   Iterator iterator_;
   TransformOp transform_;
 };
+}  // namespace
 
 template <typename T, typename ReduceOp, typename TransformOp>
-llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input, T* output,
-                          int in_size, T init, ReduceOp reduce,
-                          TransformOp transform) {
+static llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input,
+                                 T* output, int in_size, T init,
+                                 ReduceOp reduce, TransformOp transform) {
   size_t temp_storage_bytes = 0;
   TransformOutputIterator<T*, TransformOp> output_iter(output, transform);
 
@@ -218,8 +215,8 @@ llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input, T* output,
         temp_storage_ptr, temp_storage_bytes, input, output_iter, in_size,
         reduce, init, dctx->stream());
     if (result != cudaSuccess)
-      return llvm::make_error<stream::CudartErrorInfo>(
-          stream::CudartErrorData{result, "cub::DeviceReduce::Reduce"});
+      return llvm::make_error<wrapper::CudartErrorInfo>(
+          wrapper::CudartErrorData{result, "cub::DeviceReduce::Reduce"});
     return llvm::Error::success();
   };
 
@@ -234,23 +231,29 @@ llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input, T* output,
   return launch(GetRawPointer<void>(*tmp_buffer));
 }
 
+static ssize_t NumBlocks(ssize_t num_elements, ssize_t elements_per_block) {
+  return (num_elements + elements_per_block - 1) / elements_per_block;
+}
+
 template <typename T, typename ReduceOp, typename TransformOp>
-llvm::Error OuterReduction(GpuDispatchContext* dctx, const T* input, T* output,
-                           ssize_t outer_dim_size, ssize_t inner_dim_size,
-                           T init, ReduceOp reduce, TransformOp transform) {
+static llvm::Error OuterReduction(GpuDispatchContext* dctx, const T* input,
+                                  T* output, ssize_t outer_dim_size,
+                                  ssize_t inner_dim_size, T init,
+                                  ReduceOp reduce, TransformOp transform) {
   ssize_t threads_per_block = 128;
   ssize_t num_blocks = NumBlocks(inner_dim_size, threads_per_block);
 
-  return stream::CudaLaunchKernel(
+  return wrapper::CudaLaunchKernel(
       dctx->current_context(), &OuterReductionKernel<T, ReduceOp, TransformOp>,
       num_blocks, threads_per_block, 0, dctx->stream(), input, output,
       outer_dim_size, inner_dim_size, init, reduce, transform);
 }
 
 template <typename T, typename ReduceOp, typename TransformOp>
-llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input, T* output,
-                           ssize_t outer_dim_size, ssize_t inner_dim_size,
-                           T init, ReduceOp reduce, TransformOp transform) {
+static llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input,
+                                  T* output, ssize_t outer_dim_size,
+                                  ssize_t inner_dim_size, T init,
+                                  ReduceOp reduce, TransformOp transform) {
   // For small inner dimension it's more efficient to compute reduction with a
   // custom CUDA kernel that does row-per-warp reduction.
   // TODO(ezhulenev): Benchmark if it's still true with latest CUB and GPUs.
@@ -259,7 +262,7 @@ llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input, T* output,
     const int warps_per_block = threads_per_block / kWarpSize;
     const int num_blocks = NumBlocks(outer_dim_size, warps_per_block);
 
-    return stream::CudaLaunchKernel(
+    return wrapper::CudaLaunchKernel(
         dctx->current_context(),
         &InnerReductionKernel<T, ReduceOp, TransformOp>, num_blocks,
         threads_per_block, 0, dctx->stream(), input, output, outer_dim_size,
@@ -283,8 +286,9 @@ llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input, T* output,
         /*num_segments=*/outer_dim_size, offset_iter, offset_iter + 1, reduce,
         init, dctx->stream());
     if (result != cudaSuccess)
-      return llvm::make_error<stream::CudartErrorInfo>(stream::CudartErrorData{
-          result, "cub::DeviceSegmentedReduce::Reduce"});
+      return llvm::make_error<wrapper::CudartErrorInfo>(
+          wrapper::CudartErrorData{result,
+                                   "cub::DeviceSegmentedReduce::Reduce"});
     return llvm::Error::success();
   };
 
@@ -301,16 +305,17 @@ llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input, T* output,
 }
 
 template <typename T, typename ReduceOp, typename TransformOp>
-llvm::Error MiddleDimReduction(GpuDispatchContext* dctx, const T* input,
-                               T* output, ssize_t outer_dim_size,
-                               ssize_t middle_dim_size, ssize_t inner_dim_size,
-                               T init, ReduceOp reduce, TransformOp transform) {
+static llvm::Error MiddleDimReduction(GpuDispatchContext* dctx, const T* input,
+                                      T* output, ssize_t outer_dim_size,
+                                      ssize_t middle_dim_size,
+                                      ssize_t inner_dim_size, T init,
+                                      ReduceOp reduce, TransformOp transform) {
   auto grid_width = static_cast<unsigned>(NumBlocks(inner_dim_size, 32));
   dim3 grid_dim = {grid_width, static_cast<unsigned>(outer_dim_size), 1};
   dim3 block_dim = {1024, 1, 1};
   size_t shared_memory_size_bytes = 0;
   auto stream = static_cast<CUstream>(dctx->stream());
-  return stream::CudaLaunchKernel(
+  return wrapper::CudaLaunchKernel(
       dctx->current_context(), MiddleReductionKernel<T, ReduceOp, TransformOp>,
       grid_dim, block_dim, shared_memory_size_bytes, stream, input, output,
       middle_dim_size, inner_dim_size, init, reduce, transform);
@@ -326,7 +331,7 @@ using ReductionDims3 = struct {
   ssize_t outer_dim_size, middle_dim_size, inner_dim_size;
 };
 
-llvm::Optional<ReductionDims2> IsOuterReduction(
+static llvm::Optional<ReductionDims2> IsOuterReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
   // View input tensor as a 2d tensor: [outer_dims_size, inner_dims_size].
   ssize_t outer_dims_size = 1;
@@ -348,7 +353,7 @@ llvm::Optional<ReductionDims2> IsOuterReduction(
   return {{outer_dims_size, inner_dims_size}};
 }
 
-llvm::Optional<ReductionDims2> IsInnerReduction(
+static llvm::Optional<ReductionDims2> IsInnerReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
   // View input tensor as a 2d tensor: [outer_dims_size, inner_dims_size].
   ssize_t outer_dims_size = 1;
@@ -371,7 +376,7 @@ llvm::Optional<ReductionDims2> IsInnerReduction(
   return {{outer_dims_size, inner_dims_size}};
 }
 
-llvm::Optional<ReductionDims3> IsMiddleReduction(
+static llvm::Optional<ReductionDims3> IsMiddleReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
   ssize_t outer_dim_size = 1;
   for (int i = 0; i < reduction_indices.front(); ++i)
@@ -388,10 +393,10 @@ llvm::Optional<ReductionDims3> IsMiddleReduction(
 }
 
 template <typename T, typename ReduceOp, typename TransformOp>
-llvm::Error Reduce(GpuDispatchContext* dctx, const DenseGpuTensor& input,
-                   const GpuBuffer& output, const TensorMetadata& out_md,
-                   ArrayRef<int32_t> reduction_indices, T init, ReduceOp reduce,
-                   TransformOp transform) {
+static llvm::Error Reduce(GpuDispatchContext* dctx, const DenseGpuTensor& input,
+                          const GpuBuffer& output, const TensorMetadata& out_md,
+                          ArrayRef<int32_t> reduction_indices, T init,
+                          ReduceOp reduce, TransformOp transform) {
   auto input_ptr = GetRawPointer<const T>(input);
   auto output_ptr = GetRawPointer<T>(output);
 
@@ -424,9 +429,11 @@ llvm::Error Reduce(GpuDispatchContext* dctx, const DenseGpuTensor& input,
 //===----------------------------------------------------------------------===//
 
 template <typename T>
-llvm::Error ReduceMean(GpuDispatchContext* dctx, const DenseGpuTensor& input,
-                       const GpuBuffer& output, const TensorMetadata& out_md,
-                       ArrayRef<int32_t> reduction_indices) {
+static llvm::Error ReduceMean(GpuDispatchContext* dctx,
+                              const DenseGpuTensor& input,
+                              const GpuBuffer& output,
+                              const TensorMetadata& out_md,
+                              ArrayRef<int32_t> reduction_indices) {
   // Number of input elements per output element.
   ssize_t num_reduced = input.NumElements() / out_md.shape.GetNumElements();
   return Reduce(dctx, input, output, out_md, reduction_indices, T{0},
@@ -512,9 +519,6 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOp(
   return ComputeMeanGpuOpImpl(dctx, input, reduction_indices, result_md);
 }
 
-}  // namespace
-}  // namespace gpu
-
 void RegisterReductionGpuTfOps(GpuOpRegistry* registry) {
   registry->AddOp("tf.Mean", TFRT_GPU_OP(gpu::ComputeMeanGpuOp));
 
@@ -524,4 +528,5 @@ void RegisterReductionGpuTfOps(GpuOpRegistry* registry) {
                   {"reduction_indices"});
 }
 
+}  // namespace gpu
 }  // namespace tfrt

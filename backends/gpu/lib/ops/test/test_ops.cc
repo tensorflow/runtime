@@ -34,17 +34,16 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
-using gpu::stream::OwningEvent;
-
+namespace gpu {
 // TODO(tfrt-devs): CoreRT device (corert.executeop) takes TensorHandle
 // inputs, and produce TensorHandle outputs. This operation simply passes input
 // to output. This op must not be used in production, it's for tests and
 // benchmarks only. Figure out how to express side-effectful operations that do
 // not need tensors.
-static llvm::Expected<gpu::DenseGpuTensor> GpuStreamSynchronize(
-    GpuDispatchContext* dctx, const gpu::DenseGpuTensor& input,
+static llvm::Expected<DenseGpuTensor> GpuStreamSynchronize(
+    GpuDispatchContext* dctx, const DenseGpuTensor& input,
     const TensorMetadata& result_md) {
-  if (auto err = gpu::stream::StreamSynchronize(dctx->stream())) {
+  if (auto err = wrapper::StreamSynchronize(dctx->stream())) {
     return std::move(err);
   }
   return input.CopyRef();
@@ -56,36 +55,35 @@ ReturnMultipleResultsMD() {
                          TensorMetadata(DType(DType::F32), {}));
 }
 
-static llvm::Expected<std::tuple<gpu::DenseGpuTensor, gpu::DenseGpuTensor>>
+static llvm::Expected<std::tuple<DenseGpuTensor, DenseGpuTensor>>
 ReturnMultipleResults(GpuDispatchContext* dctx,
                       const TensorMetadata& result_md0,
                       const TensorMetadata& result_md1) {
-  llvm::Expected<RCReference<gpu::GpuBuffer>> buffer_or_error0 =
+  llvm::Expected<RCReference<GpuBuffer>> buffer_or_error0 =
       dctx->allocator()->Allocate(
           /*size=*/result_md0.GetHostSizeInBytes(), dctx->stream());
   if (!buffer_or_error0) return buffer_or_error0.takeError();
-  RCReference<gpu::GpuBuffer> buffer0 = std::move(*buffer_or_error0);
+  RCReference<GpuBuffer> buffer0 = std::move(*buffer_or_error0);
 
-  llvm::Expected<RCReference<gpu::GpuBuffer>> buffer_or_error1 =
+  llvm::Expected<RCReference<GpuBuffer>> buffer_or_error1 =
       dctx->allocator()->Allocate(
           /*size=*/result_md1.GetHostSizeInBytes(), dctx->stream());
   if (!buffer_or_error1) return buffer_or_error1.takeError();
-  RCReference<gpu::GpuBuffer> buffer1 = std::move(*buffer_or_error1);
+  RCReference<GpuBuffer> buffer1 = std::move(*buffer_or_error1);
 
-  return std::make_tuple(gpu::DenseGpuTensor(result_md0.shape, result_md0.dtype,
-                                             std::move(buffer0)),
-                         gpu::DenseGpuTensor(result_md1.shape, result_md1.dtype,
-                                             std::move(buffer1)));
+  return std::make_tuple(
+      DenseGpuTensor(result_md0.shape, result_md0.dtype, std::move(buffer0)),
+      DenseGpuTensor(result_md1.shape, result_md1.dtype, std::move(buffer1)));
 }
 
-static llvm::Expected<std::tuple<gpu::DenseGpuTensor, gpu::DenseGpuTensor>>
+static llvm::Expected<std::tuple<DenseGpuTensor, DenseGpuTensor>>
 ReturnMultipleResultsWithError(GpuDispatchContext* dctx,
                                const TensorMetadata& result_md0,
                                const TensorMetadata& result_md1) {
   return MakeStringError("error from ReturnMultipleResultsWithError op");
 }
 
-static llvm::Expected<gpu::DenseGpuTensor> CreateDenseTensorOp(
+static llvm::Expected<DenseGpuTensor> CreateDenseTensorOp(
     GpuDispatchContext* dctx, const OpAttrsRef& attrs,
     const TensorMetadata& result_md, const ExecutionContext& exec_ctx) {
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
@@ -117,22 +115,22 @@ static llvm::Expected<gpu::DenseGpuTensor> CreateDenseTensorOp(
   }
 
   DenseHostTensor tensor{result_md, std::move(host_buffer)};
-  return gpu::ConvertDenseHostTensorToDenseGpuTensor(
+  return ConvertDenseHostTensorToDenseGpuTensor(
       dctx->current_context(), dctx->stream(), dctx->allocator(), tensor,
       exec_ctx.host());
 }
 
 static AsyncValueRef<DenseHostTensor> GpuTensorToHostTensorOp(
-    GpuDispatchContext* dctx, const gpu::DenseGpuTensor& input,
+    GpuDispatchContext* dctx, const DenseGpuTensor& input,
     const TensorMetadata& result_md, const ExecutionContext& exec_ctx) {
-  return gpu::ConvertDenseGpuTensorToDenseHostTensor(
+  return ConvertDenseGpuTensorToDenseHostTensor(
       dctx->current_context(), dctx->stream(), input, exec_ctx.host());
 }
 
-static llvm::Expected<gpu::DenseGpuTensor> DHTToGpuTensorOp(
+static llvm::Expected<DenseGpuTensor> DHTToGpuTensorOp(
     GpuDispatchContext* dctx, const DenseHostTensor& input,
     const TensorMetadata& result_md, const ExecutionContext& exec_ctx) {
-  return gpu::ConvertDenseHostTensorToDenseGpuTensor(
+  return ConvertDenseHostTensorToDenseGpuTensor(
       dctx->current_context(), dctx->stream(), dctx->allocator(), input,
       exec_ctx.host());
 }
@@ -180,9 +178,8 @@ static void PrintOp(const Tensor& input) {
 }
 
 // A simple op for testing OptionalOpArg.
-static gpu::DenseGpuTensor TestOptionalArgOp(
-    const gpu::DenseGpuTensor& input,
-    OptionalOpArg<gpu::DenseGpuTensor> input2) {
+static DenseGpuTensor TestOptionalArgOp(const DenseGpuTensor& input,
+                                        OptionalOpArg<DenseGpuTensor> input2) {
   if (input2) {
     return input2->CopyRef();
   } else {
@@ -192,9 +189,8 @@ static gpu::DenseGpuTensor TestOptionalArgOp(
 
 // A simple op for testing VariadicArgOp.
 // TODO(tfrt-devs): Allow variadic output.
-static gpu::DenseGpuTensor TestVariadicArgOp(
-    const gpu::DenseGpuTensor& input,
-    RepeatedArguments<gpu::DenseGpuTensor> input2) {
+static DenseGpuTensor TestVariadicArgOp(
+    const DenseGpuTensor& input, RepeatedArguments<DenseGpuTensor> input2) {
   if (input2.size() > 0) {
     return input2[0].CopyRef();
   } else {
@@ -243,4 +239,5 @@ void RegisterTestGPUOps(GpuOpRegistry* registry) {
                           TFRT_METADATA(ReturnMultipleResultsMD));
   RegisterTestCudaKernelsGpuOps(registry);
 }
+}  // namespace gpu
 }  // namespace tfrt

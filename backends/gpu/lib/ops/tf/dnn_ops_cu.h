@@ -31,8 +31,8 @@ class GpuBuffer;
 // `input_filter` is assumed to be in HWIO layout.
 // If `channel_order` is ChannelFirst, does HWIO -> OIHW transform.
 // If `channel_order` is ChannelLast, does HWIO -> OHWI transform.
-llvm::Error TransformFilterTensor(stream::CurrentContext current,
-                                  const stream::Stream& stream,
+llvm::Error TransformFilterTensor(wrapper::CurrentContext current,
+                                  const wrapper::Stream& stream,
                                   ChannelOrder channel_order,
                                   const DenseGpuTensor& input_filter,
                                   GpuBuffer* output_filter);
@@ -43,7 +43,7 @@ llvm::Error TransformFilterTensor(stream::CurrentContext current,
 enum class FusedBatchNormActivationMode { kIdentity, kRelu };
 
 llvm::Error FusedBatchNormEx(
-    stream::CurrentContext current, const stream::Stream& stream,
+    wrapper::CurrentContext current, const wrapper::Stream& stream,
     ChannelOrder channel_order, const DenseGpuTensor& input,
     const DenseGpuTensor& scale, const DenseGpuTensor& bias,
     const DenseGpuTensor& mean, const DenseGpuTensor& variance,

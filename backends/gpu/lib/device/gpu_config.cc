@@ -30,14 +30,14 @@ namespace {
 
 class GpuResourcesMap {
  public:
-  void SetResources(stream::Device device, GpuResources resources) {
+  void SetResources(wrapper::Device device, GpuResources resources) {
     mutex_lock lock(mu_);
     auto it = map_.emplace(std::make_pair(device, std::move(resources)));
     static_cast<void>(it);
     assert(it.second && "Only one set of resources per gpu ordinal is allowed");
   }
 
-  llvm::Optional<GpuResources> GetResources(stream::Device device) {
+  llvm::Optional<GpuResources> GetResources(wrapper::Device device) {
     mutex_lock lock(mu_);
     auto it = map_.find(device);
     if (it != map_.end()) {
@@ -48,7 +48,7 @@ class GpuResourcesMap {
 
  private:
   mutable mutex mu_;
-  std::unordered_map<stream::Device, GpuResources> map_;
+  std::unordered_map<wrapper::Device, GpuResources> map_;
 };
 
 }  // namespace
@@ -60,11 +60,11 @@ GpuResourcesMap* GetGpuResourcesMap() {
   return registry;
 }
 
-void SetTfrtGpuResources(stream::Device device, GpuResources resources) {
+void SetTfrtGpuResources(wrapper::Device device, GpuResources resources) {
   GetGpuResourcesMap()->SetResources(device, resources);
 }
 
-llvm::Optional<GpuResources> GetTfrtGpuResources(stream::Device device) {
+llvm::Optional<GpuResources> GetTfrtGpuResources(wrapper::Device device) {
   return GetGpuResourcesMap()->GetResources(device);
 }
 

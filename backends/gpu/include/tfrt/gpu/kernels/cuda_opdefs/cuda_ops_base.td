@@ -54,7 +54,7 @@ def CUDA_Dialect : Dialect {
     This dialect contains common CUDA operations.
   }];
 
-  let cppNamespace = "tfrt::cuda";
+  let cppNamespace = "tfrt::gpu";
 }
 
 // Base class for CUDA dialect ops.

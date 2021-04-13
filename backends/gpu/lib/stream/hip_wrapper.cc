@@ -38,7 +38,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const HipErrorData& data) {
   os << "'" << data.expr << "': ";
@@ -607,6 +607,6 @@ void CheckHipContext(CurrentContext) {
 #endif
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

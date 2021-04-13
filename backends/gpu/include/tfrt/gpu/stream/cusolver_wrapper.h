@@ -24,7 +24,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 struct CusolverErrorData {
   cusolverStatus_t result;
@@ -80,7 +80,7 @@ llvm::Expected<int> CusolverDnZpotrfBufferSize(CurrentContext current,
                                                Pointer<cuDoubleComplex> A,
                                                int lda);
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

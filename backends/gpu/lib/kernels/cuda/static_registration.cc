@@ -19,7 +19,7 @@
 #include "tfrt/host_context/kernel_registry.h"
 
 namespace tfrt {
-namespace cuda {
+namespace gpu {
 
 void RegisterCudaKernels(KernelRegistry* kernel_reg);
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg);
@@ -32,5 +32,5 @@ TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaBlasKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaDnnKernels);
 
 }  // namespace kernels
-}  // namespace cuda
+}  // namespace gpu
 }  // namespace tfrt

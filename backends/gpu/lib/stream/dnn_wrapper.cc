@@ -27,7 +27,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 static cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
   switch (mode) {
@@ -840,6 +840,6 @@ llvm::Error DnnRnnForwardTraining(
   }
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

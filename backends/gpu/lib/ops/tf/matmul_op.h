@@ -23,19 +23,16 @@
 #include "tfrt/gpu/blas_support.h"
 
 namespace tfrt {
-class GpuOpRegistry;
-
 namespace gpu {
+class GpuOpRegistry;
 class DenseGpuTensor;
 class GpuBuffer;
 
-llvm::Error RunCublasGemm(stream::CurrentContext current,
-                          stream::BlasHandle handle, bool transpose_a,
+llvm::Error RunCublasGemm(wrapper::CurrentContext current,
+                          wrapper::BlasHandle handle, bool transpose_a,
                           bool transpose_b, const DenseGpuTensor& a,
                           const DenseGpuTensor& b, GpuBuffer* result);
 }  // namespace gpu
-
-void RegisterMatmulGpuTfOps(GpuOpRegistry* registry);
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_GPU_LIB_OPS_TF_MATMUL_OP_H_

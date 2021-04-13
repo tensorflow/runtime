@@ -34,14 +34,14 @@
 namespace tfrt {
 namespace gpu {
 
-using gpu::stream::EventFlags;
-using gpu::stream::EventRecord;
-using gpu::stream::EventSynchronize;
-using gpu::stream::OwningEvent;
-using gpu::stream::Pointer;
+using wrapper::EventFlags;
+using wrapper::EventRecord;
+using wrapper::EventSynchronize;
+using wrapper::OwningEvent;
+using wrapper::Pointer;
 
 AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
-    stream::CurrentContext current_context, stream::Stream stream,
+    wrapper::CurrentContext current_context, wrapper::Stream stream,
     const DenseGpuTensor& gpu_tensor, HostContext* host) {
   llvm::Optional<DenseHostTensor> result_or_error =
       DenseHostTensor::CreateUninitialized(gpu_tensor.metadata(), host);
@@ -102,7 +102,7 @@ DenseGpuTensorToDenseHostTensorConversionFn(const DenseGpuTensor& tensor,
 }
 
 Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
-    stream::CurrentContext current_context, stream::Stream stream,
+    wrapper::CurrentContext current_context, wrapper::Stream stream,
     GpuAllocator* allocator, const DenseHostTensor& tensor, HostContext* host) {
   size_t size_in_bytes = tensor.metadata().GetHostSizeInBytes();
 

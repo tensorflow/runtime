@@ -25,7 +25,7 @@
 #include "tfrt/tensor/opdefs/tensor.h"
 
 namespace tfrt {
-namespace cuda {
+namespace gpu {
 
 //===----------------------------------------------------------------------===//
 // CUDADialect Dialect
@@ -73,7 +73,7 @@ mlir::OpFoldResult CastAnyToAnyOp::fold(
 
 }  // namespace conversion
 
-}  // namespace cuda
+}  // namespace gpu
 }  // namespace tfrt
 
 //===----------------------------------------------------------------------===//

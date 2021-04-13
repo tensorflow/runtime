@@ -36,7 +36,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                                      rocblas_status status) {
@@ -1689,6 +1689,6 @@ llvm::Error RocblasZtrmm(CurrentContext current, rocblas_handle handle,
                                 ToRocm(alpha), ToRocm(A), lda, ToRocm(B), ldb));
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

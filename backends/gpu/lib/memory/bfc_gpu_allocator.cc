@@ -33,13 +33,13 @@
 
 namespace tfrt {
 namespace gpu {
-BfcGpuAllocator::BfcGpuAllocator(const stream::CurrentContext& current)
+BfcGpuAllocator::BfcGpuAllocator(const wrapper::CurrentContext& current)
     : context_(current.context()) {
   llvm::ExitOnError die_if_error;
-  stream::MemoryInfo mem_info = die_if_error(stream::MemGetInfo(current));
+  wrapper::MemoryInfo mem_info = die_if_error(wrapper::MemGetInfo(current));
   gpu_memory_size_ =
       static_cast<uint64_t>(static_cast<float>(mem_info.free_bytes) * 0.50);
-  base_ptr_ = die_if_error(stream::MemAlloc(current, gpu_memory_size_));
+  base_ptr_ = die_if_error(wrapper::MemAlloc(current, gpu_memory_size_));
 
   // Create a bunch of bins of various good sizes.
 
@@ -58,7 +58,7 @@ BfcGpuAllocator::BfcGpuAllocator(const stream::CurrentContext& current)
   // Create one large chunk for the whole memory space that will
   // be chunked later.
   BfcGpuAllocator::Chunk* c = new BfcGpuAllocator::Chunk();
-  stream::Pointer<void> p = base_ptr_.get();
+  wrapper::Pointer<void> p = base_ptr_.get();
   c->ptr = p.raw(p.platform());
   c->size = gpu_memory_size_;
   c->in_use = false;
@@ -72,7 +72,7 @@ BfcGpuAllocator::BfcGpuAllocator(const stream::CurrentContext& current)
 }
 
 llvm::Expected<RCReference<gpu::GpuBuffer>> BfcGpuAllocator::Allocate(
-    size_t num_bytes, gpu::stream::Stream stream) {
+    size_t num_bytes, wrapper::Stream stream) {
   TFRT_TRACE_SCOPE(Default, "BfcGpuAllocator::Allocate");
   // First, always allocate memory of at least 256 bytes, and always
   // allocate multiples of 256 bytes so all memory addresses are
@@ -125,7 +125,7 @@ llvm::Expected<RCReference<gpu::GpuBuffer>> BfcGpuAllocator::Allocate(
         }
 
         return TakeRef(new gpu::GpuBuffer(
-            stream::Pointer<void>(chunk->ptr, stream.platform()), num_bytes,
+            wrapper::Pointer<void>(chunk->ptr, stream.platform()), num_bytes,
             this));
       }
     }
@@ -186,7 +186,7 @@ void BfcGpuAllocator::Deallocate(const gpu::GpuBuffer& buffer) {
 }
 
 llvm::Error BfcGpuAllocator::RecordUsage(const gpu::GpuBuffer& buffer,
-                                         gpu::stream::Stream stream) {
+                                         wrapper::Stream stream) {
   llvm_unreachable("RecordUsage is not implemented.");
 }
 

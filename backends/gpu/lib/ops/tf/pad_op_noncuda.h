@@ -27,10 +27,10 @@ namespace tfrt {
 class DenseView;
 class TensorMetadata;
 class OpAttrsRef;
-class GpuDispatchContext;
 
 namespace gpu {
 
+class GpuDispatchContext;
 class DenseGpuTensor;
 
 llvm::Expected<DenseGpuTensor> CallGpuPadOp(GpuDispatchContext* dctx,

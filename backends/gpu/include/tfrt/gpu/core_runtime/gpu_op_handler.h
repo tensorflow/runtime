@@ -26,11 +26,15 @@
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
+namespace gpu {
 class GpuDevice;
 
 llvm::Expected<OpHandler*> CreateGpuOpHandler(CoreRuntime* runtime,
                                               RCReference<GpuDevice> device,
                                               OpHandler* fallback);
+}  // namespace gpu
+
+using gpu::CreateGpuOpHandler;  // TODO(b/185219734): fix call sites.
 
 }  // namespace tfrt
 

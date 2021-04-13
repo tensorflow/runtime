@@ -20,9 +20,11 @@
 #define TFRT_BACKENDS_GPU_LIB_OPS_TEST_TEST_CUDA_KERNELS_H_
 
 namespace tfrt {
+namespace gpu {
 
 void RegisterTestCudaKernelsGpuOps(class GpuOpRegistry* registry);
 
+}  // namespace gpu
 }  // namespace tfrt
 
 #endif  // TFRT_LIB_OPS_TEST_GPU_TEST_CUDA_KERNELS_H_

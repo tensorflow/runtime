@@ -27,7 +27,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 void internal::BlasHandleDeleter::operator()(BlasHandle handle) const {
   LogIfError(BlasDestroy(handle));
@@ -113,6 +113,6 @@ llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
   }
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

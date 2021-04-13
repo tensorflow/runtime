@@ -34,55 +34,55 @@ class ModuleTable;
 
 class GpuContext {
  public:
-  explicit GpuContext(gpu::stream::OwningContext context);
+  explicit GpuContext(wrapper::OwningContext context);
   ~GpuContext();
 
   GpuContext(GpuContext&&) = default;
   GpuContext& operator=(GpuContext&&) = default;
 
-  const gpu::stream::OwningContext& operator->() const { return context_; }
-  gpu::stream::Context get() const { return context_.get(); }
+  const wrapper::OwningContext& operator->() const { return context_; }
+  wrapper::Context get() const { return context_.get(); }
 
   Error SetModuleTable(std::unique_ptr<gpu::ModuleTable> table);
   const gpu::ModuleTable* GetModuleTable() const { return table_.get(); }
 
  private:
-  gpu::stream::OwningContext context_;
+  wrapper::OwningContext context_;
   std::unique_ptr<gpu::ModuleTable> table_;
 };
 
 class GpuStream {
  public:
   explicit GpuStream(AsyncValueRef<GpuContext> context,
-                     gpu::stream::OwningStream stream);
+                     wrapper::OwningStream stream);
   ~GpuStream();
 
   GpuStream(GpuStream&&) = default;
   GpuStream& operator=(GpuStream&&) = default;
 
-  const gpu::stream::OwningStream& operator->() const { return stream_; }
-  gpu::stream::Stream get() const { return stream_.get(); }
+  const wrapper::OwningStream& operator->() const { return stream_; }
+  wrapper::Stream get() const { return stream_.get(); }
 
  private:
   AsyncValueRef<GpuContext> context_;
-  gpu::stream::OwningStream stream_;
+  wrapper::OwningStream stream_;
 };
 
 class GpuEvent {
  public:
   explicit GpuEvent(AsyncValueRef<GpuContext> context,
-                    gpu::stream::OwningEvent Eventevent);
+                    wrapper::OwningEvent Eventevent);
   ~GpuEvent();
 
   GpuEvent(GpuEvent&&) = default;
   GpuEvent& operator=(GpuEvent&&) = default;
 
-  const gpu::stream::OwningEvent& operator->() const { return event_; }
-  gpu::stream::Event get() const { return event_.get(); }
+  const wrapper::OwningEvent& operator->() const { return event_; }
+  wrapper::Event get() const { return event_.get(); }
 
  private:
   AsyncValueRef<GpuContext> context_;
-  gpu::stream::OwningEvent event_;
+  wrapper::OwningEvent event_;
 };
 
 }  // namespace gpu

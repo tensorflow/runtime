@@ -36,7 +36,7 @@ def CUDA_Conversion_Dialect : Dialect {
     the tfrt_cuda dialect.
   }];
 
-  let cppNamespace = "tfrt::cuda::conversion";
+  let cppNamespace = "tfrt::gpu::conversion";
 }
 
 def CastAnyToAnyOp : Op<CUDA_Conversion_Dialect, "cast_any_to_any"> {

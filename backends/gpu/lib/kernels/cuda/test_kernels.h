@@ -24,11 +24,11 @@ namespace tfrt {
 
 class KernelRegistry;
 
-namespace cuda {
+namespace gpu {
 
 void RegisterTestCudaKernels(KernelRegistry* kernel_reg);
 
-}  // namespace cuda
+}  // namespace gpu
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_TEST_KERNELS_H_

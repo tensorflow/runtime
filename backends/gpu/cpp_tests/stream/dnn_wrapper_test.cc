@@ -21,7 +21,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 TEST_P(Test, DnnHandel) {
   auto platform = GetParam();
@@ -37,6 +37,6 @@ TEST_P(Test, DnnHandel) {
       DnnCreateConvolutionDescriptor(current.platform()).takeError()));
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

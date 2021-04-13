@@ -36,9 +36,7 @@ def CUDA_Test_Dialect : Dialect {
     This dialect contains common CUDA operations.
   }];
 
-  // TODO(tfrt-devs): using ::tfrt::cuda here so that we don't need to wrap
-  // generated code with tfrt::cuda namespace manually.
-  let cppNamespace = "cuda";
+  let cppNamespace = "tfrt::gpu";
 }
 
 // Base class for CUDA test dialect ops.

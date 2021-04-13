@@ -426,7 +426,6 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "tf_gpu_nullary_ops",
     srcs = ["lib/ops/tf/nullary_ops.cc"],
-    hdrs = ["lib/ops/tf/nullary_ops.h"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
@@ -444,7 +443,6 @@ tfrt_cc_library(
 cuda_library(
     name = "tf_gpu_transpose_op",
     srcs = ["lib/ops/tf/transpose_op.cu.cc"],
-    hdrs = ["lib/ops/tf/transpose_op.h"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
@@ -466,7 +464,6 @@ cuda_library(
         "lib/ops/tf/eigen_helper.cu.h",
         "lib/ops/tf/reduction_ops.cu.cc",
     ],
-    hdrs = ["lib/ops/tf/reduction_ops.h"],
     deps = [
         "@tf_runtime//:core_runtime",
         ":gpu_op_handler",
@@ -492,7 +489,6 @@ cuda_library(
         "lib/ops/tf/eigen_helper.cu.h",
         "lib/ops/tf/unary_ops.cu.cc",
     ],
-    hdrs = ["lib/ops/tf/unary_ops.h"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
@@ -524,7 +520,6 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "tf_gpu_mlir_ops",
     srcs = ["lib/ops/tf/mlir_ops.cc"],
-    hdrs = ["lib/ops/tf/mlir_ops.h"],
     deps = [
         ":generated_kernel_images",
         ":gpu_memory",
@@ -545,7 +540,6 @@ tfrt_cc_library(
     srcs = [
         "lib/ops/tf/dnn_ops.cc",
     ],
-    hdrs = ["lib/ops/tf/dnn_ops.h"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
@@ -590,7 +584,6 @@ cuda_library(
         "lib/ops/tf/binary_ops.cu.cc",
         "lib/ops/tf/eigen_helper.cu.h",
     ],
-    hdrs = ["lib/ops/tf/binary_ops.h"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",

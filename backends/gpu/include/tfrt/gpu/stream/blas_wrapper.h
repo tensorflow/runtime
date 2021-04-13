@@ -26,7 +26,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 enum class BlasOperation {
   kNone = 0,
@@ -66,7 +66,7 @@ llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
                       int lda, Pointer<const float> B, int ldb,
                       Pointer<const float> beta, Pointer<float> C, int ldc);
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

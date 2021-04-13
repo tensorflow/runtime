@@ -28,7 +28,7 @@ namespace gpu {
 namespace {
 class EigenStreamInterface : public Eigen::StreamInterface {
  public:
-  explicit EigenStreamInterface(stream::Stream stream)
+  explicit EigenStreamInterface(wrapper::Stream stream)
       : stream_(static_cast<gpuStream_t>(stream)) {
     Eigen::initializeDeviceProp();
   }
@@ -65,7 +65,7 @@ void internal::EigenGpuDeviceDeleter::operator()(
   delete device;
 }
 
-OwningEigenStreamInterface CreateEigenStreamInterface(stream::Stream stream) {
+OwningEigenStreamInterface CreateEigenStreamInterface(wrapper::Stream stream) {
   return OwningEigenStreamInterface(new EigenStreamInterface(stream));
 }
 

@@ -25,7 +25,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 // Non-owning handles of GPU resources.
 using SolverDnHandle = Resource<cusolverDnHandle_t, rocsolver_handle>;
@@ -52,7 +52,7 @@ llvm::Error SolverDnDestroy(SolverDnHandle handle);
 llvm::Error SolverDnSetStream(SolverDnHandle handle, Stream stream);
 llvm::Expected<Stream> SolverDnGetStream(SolverDnHandle handle);
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

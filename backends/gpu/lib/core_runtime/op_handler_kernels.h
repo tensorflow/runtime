@@ -24,9 +24,9 @@
 
 namespace tfrt {
 class KernelRegistry;
-
+namespace gpu {
 void RegisterGpuOpHandlerKernels(KernelRegistry* registry);
-
+}  // namespace gpu
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_CPU_CORE_RUNTIME_OP_HANDLER_KERNELS_H_

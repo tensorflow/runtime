@@ -32,40 +32,40 @@ namespace gpu {
 
 // TODO(iga): TFRT does not support complex numbers yet. Add specializations for
 // them when complex types are defined.
-inline llvm::Error CublasGemm(stream::CurrentContext current,
+inline llvm::Error CublasGemm(wrapper::CurrentContext current,
                               cublasHandle_t handle, cublasOperation_t transa,
                               cublasOperation_t transb, int m, int n, int k,
-                              stream::Pointer<const float> alpha,
-                              stream::Pointer<const float> A, int lda,
-                              stream::Pointer<const float> B, int ldb,
-                              stream::Pointer<const float> beta,
-                              stream::Pointer<float> C, int ldc) {
-  return stream::CublasSgemm(current, handle, transa, transb, m, n, k, alpha, A,
-                             lda, B, ldb, beta, C, ldc);
+                              wrapper::Pointer<const float> alpha,
+                              wrapper::Pointer<const float> A, int lda,
+                              wrapper::Pointer<const float> B, int ldb,
+                              wrapper::Pointer<const float> beta,
+                              wrapper::Pointer<float> C, int ldc) {
+  return wrapper::CublasSgemm(current, handle, transa, transb, m, n, k, alpha,
+                              A, lda, B, ldb, beta, C, ldc);
 }
 
-inline llvm::Error CublasGemm(stream::CurrentContext current,
+inline llvm::Error CublasGemm(wrapper::CurrentContext current,
                               cublasHandle_t handle, cublasOperation_t transa,
                               cublasOperation_t transb, int m, int n, int k,
-                              stream::Pointer<const double> alpha,
-                              stream::Pointer<const double> A, int lda,
-                              stream::Pointer<const double> B, int ldb,
-                              stream::Pointer<const double> beta,
-                              stream::Pointer<double> C, int ldc) {
-  return stream::CublasDgemm(current, handle, transa, transb, m, n, k, alpha, A,
-                             lda, B, ldb, beta, C, ldc);
+                              wrapper::Pointer<const double> alpha,
+                              wrapper::Pointer<const double> A, int lda,
+                              wrapper::Pointer<const double> B, int ldb,
+                              wrapper::Pointer<const double> beta,
+                              wrapper::Pointer<double> C, int ldc) {
+  return wrapper::CublasDgemm(current, handle, transa, transb, m, n, k, alpha,
+                              A, lda, B, ldb, beta, C, ldc);
 }
 
-inline llvm::Error CublasGemm(stream::CurrentContext current,
+inline llvm::Error CublasGemm(wrapper::CurrentContext current,
                               cublasHandle_t handle, cublasOperation_t transa,
                               cublasOperation_t transb, int m, int n, int k,
-                              stream::Pointer<const __half> alpha,
-                              stream::Pointer<const __half> A, int lda,
-                              stream::Pointer<const __half> B, int ldb,
-                              stream::Pointer<const __half> beta,
-                              stream::Pointer<__half> C, int ldc) {
-  return stream::CublasHgemm(current, handle, transa, transb, m, n, k, alpha, A,
-                             lda, B, ldb, beta, C, ldc);
+                              wrapper::Pointer<const __half> alpha,
+                              wrapper::Pointer<const __half> A, int lda,
+                              wrapper::Pointer<const __half> B, int ldb,
+                              wrapper::Pointer<const __half> beta,
+                              wrapper::Pointer<__half> C, int ldc) {
+  return wrapper::CublasHgemm(current, handle, transa, transb, m, n, k, alpha,
+                              A, lda, B, ldb, beta, C, ldc);
 }
 
 }  // namespace gpu

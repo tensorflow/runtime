@@ -40,7 +40,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                                      miopenStatus_t status) {
@@ -372,6 +372,6 @@ llvm::Error MiopenConvolutionBackwardWeightsImmediate(
       ToRocm(dw), ToRocm(work_space), work_space_size_in_bytes, solution));
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

@@ -47,20 +47,20 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
       frozen_attrs.GetAsserting<tfrt::DenseAttr>("value");
 
   auto dense_view = CreateDenseView(dense_attr);
-  stream::Pointer<const void> memcpy_src(dense_view.data(),
-                                         dctx->current_context().platform());
-  if (auto error = stream::MemcpyAsync(dctx->current_context(),
-                                       /*dst=*/buffer->pointer(),
-                                       /*src=*/memcpy_src, size_in_bytes,
-                                       dctx->stream())) {
+  wrapper::Pointer<const void> memcpy_src(dense_view.data(),
+                                          dctx->current_context().platform());
+  if (auto error = wrapper::MemcpyAsync(dctx->current_context(),
+                                        /*dst=*/buffer->pointer(),
+                                        /*src=*/memcpy_src, size_in_bytes,
+                                        dctx->stream())) {
     return std::move(error);
   }
 
   TFRT_ASSIGN_OR_RETURN(
-      auto event, stream::EventCreate(dctx->current_context(),
-                                      stream::EventFlags::DISABLE_TIMING));
+      auto event, wrapper::EventCreate(dctx->current_context(),
+                                       wrapper::EventFlags::DISABLE_TIMING));
 
-  if (auto error = stream::EventRecord(event.get(), dctx->stream()))
+  if (auto error = wrapper::EventRecord(event.get(), dctx->stream()))
     return std::move(error);
 
   // `frozen_attrs` needs to live until the memcpy is done.
@@ -69,7 +69,7 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
       [frozen_attrs = std::move(frozen_attrs), event = std::move(event)] {
         // FIXME(sanjoy): How do we handle an error from EventSynchronize here?
         llvm::ExitOnError die_if_error;
-        die_if_error(stream::EventSynchronize(event.get()));
+        die_if_error(wrapper::EventSynchronize(event.get()));
       });
   if (!work_enqueued)
     return MakeStringError("enqueue to blocking work queue failed");
@@ -77,10 +77,9 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
   return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
 }
 
-}  // namespace gpu
-
 void RegisterNullaryGpuTfOps(GpuOpRegistry* registry) {
   registry->AddOp("tf.Const", TFRT_GPU_OP(gpu::GpuConstOp), {"value"});
 }
 
+}  // namespace gpu
 }  // namespace tfrt

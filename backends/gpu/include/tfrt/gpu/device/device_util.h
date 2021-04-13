@@ -22,9 +22,9 @@
 
 namespace tfrt {
 class HostContext;
-class GpuDevice;
 
 namespace gpu {
+class GpuDevice;
 
 // Create and return a GPU device. If the device has been created before
 // return the existing device directly. Thread-safe.

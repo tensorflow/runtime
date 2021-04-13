@@ -32,9 +32,6 @@ class GpuDevice;
 namespace tfrt {
 namespace gpu {
 class GpuAllocator;
-}  // namespace gpu
-
-using gpu::stream::CurrentContext;
 
 class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
  public:
@@ -50,7 +47,7 @@ class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
   // The inputs to the GPU dispatch function are available for reading on this
   // stream.  The outputs from the dispatch must also be ready for reading on
   // this stream.
-  gpu::stream::Stream stream() const;
+  wrapper::Stream stream() const;
 
   // Allocator for allocating GPU device memory.
   gpu::GpuAllocator* allocator() const;
@@ -59,20 +56,24 @@ class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
   Eigen::GpuDevice* eigen_gpu_device() const;
 
   // GPU BLAS library handle. Used to launch BLAS routines.
-  gpu::stream::BlasHandle blas_handle() const;
+  wrapper::BlasHandle blas_handle() const;
 
   // GPU DNN library handle. Used to launch convolutions etc.
-  gpu::stream::DnnHandle dnn_handle() const;
+  wrapper::DnnHandle dnn_handle() const;
 
   // Create a current context. It is usually called inside the dispatch
-  // function.  See the documentation for gpu::stream::CurrentContext for more
+  // function. See the documentation for wrapper::CurrentContext for more
   // details.
-  gpu::stream::CurrentContext CreateContext() const;
+  wrapper::CurrentContext CreateContext() const;
 
  private:
   class Impl;
   std::unique_ptr<Impl> impl_;
 };
+}  // namespace gpu
+
+using GpuDevice = gpu::GpuDevice;  // TODO(b/185219734): fix call sites.
+
 }  // namespace tfrt
 
 #endif  // TFRT_GPU_DEVICE_DEVICE_H_

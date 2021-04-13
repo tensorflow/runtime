@@ -20,6 +20,7 @@
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
 
 namespace tfrt {
+namespace gpu {
 namespace {
 
 // TODO(timshen): add Eigen::internal::functor_traits for performance.
@@ -164,4 +165,5 @@ void RegisterUnaryGpuTfOps(GpuOpRegistry* registry) {
                    gpu::FunctorSignature<Eigen::half, Eigen::half>>::Invoke),
       {"Truncate"});
 }
+}  // namespace gpu
 }  // namespace tfrt

@@ -33,9 +33,9 @@
 #include "unsupported/Eigen/CXX11/src/Tensor/TensorDeviceGpu.h"  // from @eigen_archive
 
 namespace tfrt {
-namespace {
-typedef cudaStream_t gpuStream_t;
-typedef cudaDeviceProp gpuDeviceProp_t;
+namespace gpu {
+using gpuStream_t = cudaStream_t;
+using gpuDeviceProp_t = cudaDeviceProp;
 
 template <typename T>
 using AlignedEigenVector =
@@ -43,25 +43,25 @@ using AlignedEigenVector =
                      Eigen::Aligned>;
 
 template <typename T>
-AlignedEigenVector<T> FlattenDenseGpuTensor(const gpu::DenseGpuTensor& dgt) {
-  gpu::stream::Pointer<void> pointer = dgt.buffer().pointer();
+static AlignedEigenVector<T> FlattenDenseGpuTensor(const DenseGpuTensor& dgt) {
+  wrapper::Pointer<void> pointer = dgt.buffer().pointer();
   return AlignedEigenVector<T>(
       reinterpret_cast<T*>(pointer.raw(pointer.platform())), dgt.NumElements());
 }
 
 template <typename T>
-AlignedEigenVector<T> FlattenDenseGpuTensor(gpu::DenseGpuTensor* dgt) {
-  gpu::stream::Pointer<void> pointer = dgt->buffer().pointer();
+static AlignedEigenVector<T> FlattenDenseGpuTensor(DenseGpuTensor* dgt) {
+  wrapper::Pointer<void> pointer = dgt->buffer().pointer();
   return AlignedEigenVector<T>(
       reinterpret_cast<T*>(pointer.raw(pointer.platform())),
       dgt->NumElements());
 }
 
 template <typename T>
-void AddTensorsGeneric(Eigen::GpuDevice& device,
-                       const gpu::DenseGpuTensor& lhs_tensor,
-                       const gpu::DenseGpuTensor& rhs_tensor,
-                       gpu::DenseGpuTensor* result_tensor) {
+static void AddTensorsGeneric(Eigen::GpuDevice& device,
+                              const DenseGpuTensor& lhs_tensor,
+                              const DenseGpuTensor& rhs_tensor,
+                              DenseGpuTensor* result_tensor) {
   AlignedEigenVector<T> lhs = FlattenDenseGpuTensor<T>(lhs_tensor);
   AlignedEigenVector<T> rhs = FlattenDenseGpuTensor<T>(rhs_tensor);
   AlignedEigenVector<T> result = FlattenDenseGpuTensor<T>(result_tensor);
@@ -69,9 +69,10 @@ void AddTensorsGeneric(Eigen::GpuDevice& device,
   result.device(device) = lhs + rhs;
 }
 
-void AddTensors(Eigen::GpuDevice& device, const gpu::DenseGpuTensor& lhs_tensor,
-                const gpu::DenseGpuTensor& rhs_tensor,
-                gpu::DenseGpuTensor* result_tensor) {
+static void AddTensors(Eigen::GpuDevice& device,
+                       const DenseGpuTensor& lhs_tensor,
+                       const DenseGpuTensor& rhs_tensor,
+                       DenseGpuTensor* result_tensor) {
   switch (lhs_tensor.dtype().kind()) {
     default:
       assert(0 && "shape function failure");
@@ -84,27 +85,27 @@ void AddTensors(Eigen::GpuDevice& device, const gpu::DenseGpuTensor& lhs_tensor,
   }
 }
 
-Expected<gpu::DenseGpuTensor> GpuAddOp(GpuDispatchContext* dctx,
-                                       const gpu::DenseGpuTensor& tensor_a,
-                                       const gpu::DenseGpuTensor& tensor_b,
-                                       const OpAttrsRef& attrs,
-                                       const TensorMetadata& result_md) {
+static Expected<DenseGpuTensor> GpuAddOp(GpuDispatchContext* dctx,
+                                         const DenseGpuTensor& tensor_a,
+                                         const DenseGpuTensor& tensor_b,
+                                         const OpAttrsRef& attrs,
+                                         const TensorMetadata& result_md) {
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
 
-  TFRT_ASSIGN_OR_RETURN(RCReference<gpu::GpuBuffer> buffer,
+  TFRT_ASSIGN_OR_RETURN(RCReference<GpuBuffer> buffer,
                         dctx->allocator()->Allocate(
                             /*size=*/size_in_bytes, dctx->stream()));
 
   auto result =
-      gpu::DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
+      DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
 
   AddTensors(*dctx->eigen_gpu_device(), tensor_a, tensor_b, &result);
 
   return std::move(result);
 }
-}  // namespace
 
 void RegisterTestCudaKernelsGpuOps(GpuOpRegistry* registry) {
   registry->AddOp("tfrt_test.add", TFRT_GPU_OP(GpuAddOp));
 }
+}  // namespace gpu
 }  // namespace tfrt

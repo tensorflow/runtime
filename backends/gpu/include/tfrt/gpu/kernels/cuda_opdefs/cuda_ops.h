@@ -31,7 +31,7 @@
 using namespace mlir;
 
 namespace tfrt {
-namespace cuda {
+namespace gpu {
 
 // Dialect for cuda operations.
 class CUDADialect : public Dialect {
@@ -51,7 +51,7 @@ class CUDA_ConversionDialect : public Dialect {
 
 }  // namespace conversion
 
-}  // namespace cuda
+}  // namespace gpu
 }  // namespace tfrt
 
 #define GET_OP_CLASSES
@@ -59,5 +59,14 @@ class CUDA_ConversionDialect : public Dialect {
 
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.h.inc"
+
+// TODO(b/185219734): fix call sites.
+namespace tfrt {
+namespace cuda {
+namespace conversion = gpu::conversion;
+using CUDADialect = gpu::CUDADialect;
+using BlasSyncGemmExOp = gpu::BlasSyncGemmExOp;
+}  // namespace cuda
+}  // namespace tfrt
 
 #endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_OPS_H_

@@ -25,7 +25,7 @@
 #include "tfrt/tensor/opdefs/tensor.h"
 
 namespace tfrt {
-namespace cuda {
+namespace gpu {
 
 //===----------------------------------------------------------------------===//
 // CUDADialect Dialect
@@ -44,12 +44,12 @@ CUDATestDialect::CUDATestDialect(MLIRContext *context)
       >();
 }
 
+}  // namespace gpu
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/cuda_opdefs/cuda_test_opdefs.cpp.inc"
-
-}  // namespace cuda
-}  // namespace tfrt

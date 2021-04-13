@@ -29,7 +29,7 @@
 using namespace mlir;
 
 namespace tfrt {
-namespace cuda {
+namespace gpu {
 
 // Dialect for cuda_test operations.
 class CUDATestDialect : public Dialect {
@@ -38,10 +38,16 @@ class CUDATestDialect : public Dialect {
   explicit CUDATestDialect(MLIRContext* context);
 };
 
+}  // namespace gpu
+
+// TODO(b/185219734): fix call sites.
+namespace cuda {
+using CUDATestDialect = gpu::CUDATestDialect;
+}  // namespace cuda
+
+}  // namespace tfrt
+
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/cuda_opdefs/cuda_test_opdefs.h.inc"
-
-}  // namespace cuda
-}  // namespace tfrt
 
 #endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_TEST_OPS_H_

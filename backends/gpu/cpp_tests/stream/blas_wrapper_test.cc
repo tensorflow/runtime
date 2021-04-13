@@ -21,7 +21,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 TEST_P(Test, BlasHandel) {
   auto platform = GetParam();
@@ -34,6 +34,6 @@ TEST_P(Test, BlasHandel) {
   EXPECT_TRUE(IsSuccess(BlasCreate(current).takeError()));
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

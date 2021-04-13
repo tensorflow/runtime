@@ -36,7 +36,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 static llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
                                      cusolverStatus_t status) {
@@ -203,6 +203,6 @@ llvm::Expected<int> CusolverDnZpotrfBufferSize(CurrentContext current,
   return Lwork;
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

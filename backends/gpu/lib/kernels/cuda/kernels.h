@@ -28,7 +28,7 @@ namespace tfrt {
 
 class KernelRegistry;
 
-namespace cuda {
+namespace gpu {
 
 void RegisterCudaKernels(KernelRegistry* kernel_reg);
 
@@ -55,7 +55,7 @@ struct WithChainResult<void (*)(Args...), sync_func_ptr> {
 };
 }  // namespace internal
 
-}  // namespace cuda
+}  // namespace gpu
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_KERNELS_H_

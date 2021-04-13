@@ -98,7 +98,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 // Enum of the abstracted platforms.
 enum class Platform {
   NONE,
@@ -823,7 +823,10 @@ llvm::Error LaunchCooperativeKernel(CurrentContext current, Function function,
       block_dim[1], block_dim[2], shared_memory_size_bytes, stream, arg_ptrs);
 }
 
-}  // namespace stream
+}  // namespace wrapper
+
+namespace stream = wrapper;  // TODO(b/185219734): fix call sites.
+
 }  // namespace gpu
 }  // namespace tfrt
 

@@ -14,8 +14,6 @@
 
 // Collates list of all TF DNN operations.
 
-#include "dnn_ops.h"
-
 #include <numeric>
 #include <unordered_map>
 
@@ -64,14 +62,14 @@ struct TensorDescriptorData {
   llvm::SmallVector<int, 4> dimensions;
   llvm::SmallVector<int, 4> strides;
 };
-bool operator==(const TensorDescriptorData& left,
-                const TensorDescriptorData& right) {
+static bool operator==(const TensorDescriptorData& left,
+                       const TensorDescriptorData& right) {
   return left.dtype == right.dtype && left.dimensions == right.dimensions &&
          left.strides == right.strides;
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const TensorDescriptorData& data) {
+static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                                     const TensorDescriptorData& data) {
   os << "TensorDescriptor<dtype=" << data.dtype << ", dimensions=["
      << Join(data.dimensions, ", ") << "]"
      << ", strides=[" << Join(data.strides, ", ") << "]>";
@@ -106,19 +104,21 @@ static llvm::Expected<TensorDescriptorData> GetTensorDescriptorData(
   return result;
 }
 
-static llvm::Expected<stream::OwningDnnTensorDescriptor> CreateTensorDescriptor(
-    const TensorDescriptorData& data) {
-  TFRT_ASSIGN_OR_RETURN(auto descriptor, stream::CudnnCreateTensorDescriptor());
-  if (auto error = stream::CudnnSetTensorDescriptor(
+static llvm::Expected<wrapper::OwningDnnTensorDescriptor>
+CreateTensorDescriptor(const TensorDescriptorData& data) {
+  TFRT_ASSIGN_OR_RETURN(auto descriptor,
+                        wrapper::CudnnCreateTensorDescriptor());
+  if (auto error = wrapper::CudnnSetTensorDescriptor(
           descriptor.get(), data.dtype, data.dimensions, data.strides))
     return std::move(error);
   return std::move(descriptor);
 }
 
-static llvm::Expected<stream::OwningDnnFilterDescriptor> CreateFilterDescriptor(
-    cudnnDataType_t dtype, ChannelOrder channel_order,
-    llvm::ArrayRef<int> dimensions) {
-  TFRT_ASSIGN_OR_RETURN(auto descriptor, stream::CudnnCreateFilterDescriptor());
+static llvm::Expected<wrapper::OwningDnnFilterDescriptor>
+CreateFilterDescriptor(cudnnDataType_t dtype, ChannelOrder channel_order,
+                       llvm::ArrayRef<int> dimensions) {
+  TFRT_ASSIGN_OR_RETURN(auto descriptor,
+                        wrapper::CudnnCreateFilterDescriptor());
   auto layout = [&] {
     switch (channel_order) {
       case ChannelOrder::ChannelFirst:
@@ -127,8 +127,8 @@ static llvm::Expected<stream::OwningDnnFilterDescriptor> CreateFilterDescriptor(
         return CUDNN_TENSOR_NHWC;
     }
   }();
-  if (auto error = stream::CudnnSetFilterDescriptor(descriptor.get(), dtype,
-                                                    layout, dimensions))
+  if (auto error = wrapper::CudnnSetFilterDescriptor(descriptor.get(), dtype,
+                                                     layout, dimensions))
     return std::move(error);
   return std::move(descriptor);
 }
@@ -166,8 +166,8 @@ union ScalingFactor {
     }
   }
 
-  stream::Pointer<const void> pointer(stream::Platform platform) const {
-    return stream::Pointer<const void>(this, platform);
+  wrapper::Pointer<const void> pointer(wrapper::Platform platform) const {
+    return wrapper::Pointer<const void>(this, platform);
   }
 
  private:
@@ -175,8 +175,10 @@ union ScalingFactor {
   double double_value;
 };
 
-llvm::Expected<FusedBatchNormActivationMode> ParseFusedBatchNormActivationMode(
-    string_view mode) {
+}  // namespace
+
+static llvm::Expected<FusedBatchNormActivationMode>
+ParseFusedBatchNormActivationMode(string_view mode) {
   if (mode == "Identity") {
     return FusedBatchNormActivationMode::kIdentity;
   } else if (mode == "Relu") {
@@ -186,8 +188,6 @@ llvm::Expected<FusedBatchNormActivationMode> ParseFusedBatchNormActivationMode(
         "ParseFusedBatchNormActivationMode does not support mode: ", mode);
   }
 }
-
-}  // namespace
 
 // A helper function to read the default algorithm for cudnnConvolutionForward.
 // Returns None if default is not specified.
@@ -403,8 +403,8 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
   if (conv_dtype == CUDNN_DATA_HALF) conv_dtype = CUDNN_DATA_FLOAT;
 
   TFRT_ASSIGN_OR_RETURN(auto conv_desc,
-                        stream::CudnnCreateConvolutionDescriptor());
-  if (auto error = stream::CudnnSetConvolutionDescriptor(
+                        wrapper::CudnnCreateConvolutionDescriptor());
+  if (auto error = wrapper::CudnnSetConvolutionDescriptor(
           conv_desc.get(), ToIntVec(paddings),
           ToIntVec(windowed_output_data.strides),
           ToIntVec(windowed_output_data.dilations), CUDNN_CROSS_CORRELATION,
@@ -412,8 +412,8 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
     return std::move(error);
 
   // Opt-in to use tensor cores. This might be overwritten below.
-  if (auto error = stream::CudnnSetConvolutionMathType(conv_desc.get(),
-                                                       CUDNN_TENSOR_OP_MATH))
+  if (auto error = wrapper::CudnnSetConvolutionMathType(conv_desc.get(),
+                                                        CUDNN_TENSOR_OP_MATH))
     return std::move(error);
 
   cudnnConvolutionFwdAlgo_t algo;
@@ -427,7 +427,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
     algo = *default_algo;
     TFRT_ASSIGN_OR_RETURN(
         workspace_size_bytes,
-        stream::CudnnGetConvolutionForwardWorkspaceSize(
+        wrapper::CudnnGetConvolutionForwardWorkspaceSize(
             dctx->dnn_handle(), input_desc.get(), filter_desc.get(),
             conv_desc.get(), output_desc.get(), algo));
   } else {
@@ -446,7 +446,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
       }
       TFRT_ASSIGN_OR_RETURN(
           auto algo_perfs,
-          stream::CudnnFindConvolutionForwardAlgorithm(
+          wrapper::CudnnFindConvolutionForwardAlgorithm(
               dctx->current_context(), dctx->dnn_handle(), input_desc.get(),
               input_ptr, filter_desc.get(), temp_buffer->pointer(),
               conv_desc.get(), output_desc.get(), output_buffer->pointer(), 1,
@@ -458,15 +458,15 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
     }
     algo = std::get<cudnnConvolutionFwdAlgo_t>(it->second);
     workspace_size_bytes = std::get<size_t>(it->second);
-    if (auto error = stream::CudnnSetConvolutionMathType(
+    if (auto error = wrapper::CudnnSetConvolutionMathType(
             conv_desc.get(), std::get<cudnnMathType_t>(it->second)))
       return std::move(error);
   }
 
   TFRT_ASSIGN_OR_RETURN(
-      auto workspace_ptr, [&]() -> llvm::Expected<stream::Pointer<void>> {
+      auto workspace_ptr, [&]() -> llvm::Expected<wrapper::Pointer<void>> {
         if (workspace_size_bytes == 0)
-          return stream::Pointer<void>(nullptr, platform);
+          return wrapper::Pointer<void>(nullptr, platform);
         if (!workspace_buffer ||
             workspace_buffer->size() < workspace_size_bytes) {
           TFRT_ASSIGN_OR_RETURN(workspace_buffer,
@@ -476,7 +476,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
         return workspace_buffer->pointer();
       }());
 
-  if (auto error = stream::CudnnConvolutionForward(
+  if (auto error = wrapper::CudnnConvolutionForward(
           dctx->current_context(), dctx->dnn_handle(), alpha.pointer(platform),
           input_desc.get(), input_ptr, filter_desc.get(),
           temp_buffer->pointer(), conv_desc.get(), algo, workspace_ptr,
@@ -531,8 +531,8 @@ static llvm::Expected<DenseGpuTensor> ComputeMaxPoolGpuOp(
   if (auto error = CheckPadding(windowed_output_data)) return std::move(error);
 
   TFRT_ASSIGN_OR_RETURN(auto pooling_desc,
-                        stream::CudnnCreatePoolingDescriptor());
-  if (auto error = stream::CudnnSetPoolingDescriptor(
+                        wrapper::CudnnCreatePoolingDescriptor());
+  if (auto error = wrapper::CudnnSetPoolingDescriptor(
           pooling_desc.get(), CUDNN_POOLING_MAX, CUDNN_NOT_PROPAGATE_NAN,
           ToIntVec(llvm::makeArrayRef(filter_dims).drop_front(2)),
           // Use 'paddings_before' (equal to or one smaller than
@@ -550,7 +550,7 @@ static llvm::Expected<DenseGpuTensor> ComputeMaxPoolGpuOp(
   auto beta = ScalingFactor(0.0, output_data.dtype);
   auto platform = dctx->dnn_handle().platform();
 
-  if (auto error = stream::CudnnPoolingForward(
+  if (auto error = wrapper::CudnnPoolingForward(
           dctx->current_context(), dctx->dnn_handle(), pooling_desc.get(),
           alpha.pointer(platform), input_desc.get(), input.buffer().pointer(),
           beta.pointer(platform), output_desc.get(), output_buffer->pointer()))
@@ -597,7 +597,7 @@ static llvm::Expected<DenseGpuTensor> ComputeSoftMaxGpuOp(
   auto beta = ScalingFactor(0.0, output_data.dtype);
   auto platform = dctx->dnn_handle().platform();
 
-  if (auto error = stream::CudnnSoftmaxForward(
+  if (auto error = wrapper::CudnnSoftmaxForward(
           dctx->current_context(), dctx->dnn_handle(), CUDNN_SOFTMAX_FAST,
           CUDNN_SOFTMAX_MODE_INSTANCE, alpha.pointer(platform),
           input_desc.get(), input.buffer().pointer(), beta.pointer(platform),
@@ -678,7 +678,7 @@ ComputeBatchNormGpuOp(GpuDispatchContext* dctx, const DenseGpuTensor& input,
   auto beta = ScalingFactor(0.0, output_data.dtype);
   auto platform = dctx->dnn_handle().platform();
 
-  if (auto error = stream::CudnnBatchNormalizationForwardInference(
+  if (auto error = wrapper::CudnnBatchNormalizationForwardInference(
           dctx->current_context(), dctx->dnn_handle(), CUDNN_BATCHNORM_SPATIAL,
           alpha.pointer(platform), beta.pointer(platform), input_desc.get(),
           input.buffer().pointer(), output_desc.get(), output_buffer->pointer(),
@@ -748,8 +748,6 @@ FusedBatchNormExOp(GpuDispatchContext* dctx, const DenseGpuTensor& input,
       DenseGpuTensor(result_md.shape, result_md.dtype, dummy_buffer.CopyRef()));
 }
 
-}  // namespace gpu
-
 void RegisterDnnGpuTfOps(GpuOpRegistry* registry) {
   // TODO(fishx): Add attribute names to the registry.
   registry->AddOp(
@@ -766,4 +764,6 @@ void RegisterDnnGpuTfOps(GpuOpRegistry* registry) {
   registry->AddOp("tf._FusedBatchNormEx", TFRT_GPU_OP(gpu::FusedBatchNormExOp),
                   {"epsilon", "activation_mode", "data_format"});
 }
+
+}  // namespace gpu
 }  // namespace tfrt

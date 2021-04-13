@@ -31,7 +31,7 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 
 namespace tfrt {
-namespace cuda {
+namespace gpu {
 
 // Convert 'error' to string and report to 'out'.
 static void ReportError(KernelErrorHandler out, llvm::Error error) {
@@ -43,21 +43,23 @@ static void ReportError(KernelErrorHandler out, llvm::Error error) {
 // Convenience function that copies a host tensor to the device and returns a
 // buffer pointing to the newly allocated memory. The intended purpose of this
 // function is to make writing unit tests simpler
-static void TestCpyTensorHtoD(
-    Argument<gpu::GpuContext> context,
-    Argument<std::unique_ptr<gpu::GpuAllocator>> allocator,
-    Argument<gpu::GpuStream> stream, Argument<DenseHostTensor> src,
-    Argument<Chain> in_chain, Result<RCReference<gpu::GpuBuffer>> out_buffer,
-    Result<Chain> out_chain, KernelErrorHandler handler) {
+static void TestCpyTensorHtoD(Argument<GpuContext> context,
+                              Argument<std::unique_ptr<GpuAllocator>> allocator,
+                              Argument<GpuStream> stream,
+                              Argument<DenseHostTensor> src,
+                              Argument<Chain> in_chain,
+                              Result<RCReference<GpuBuffer>> out_buffer,
+                              Result<Chain> out_chain,
+                              KernelErrorHandler handler) {
   size_t tensor_size = src->DataSizeInBytes();
   auto buffer = (*allocator)->Allocate(tensor_size, stream->get());
   if (!buffer) return ReportError(handler, buffer.takeError());
 
-  auto current = gpu::stream::CtxSetCurrent(context->get());
+  auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return ReportError(handler, current.takeError());
   llvm::Error error = Memcpy(
       *current, buffer.get()->pointer(),
-      gpu::stream::Pointer<const void>(src->data(), context->get().platform()),
+      wrapper::Pointer<const void>(src->data(), context->get().platform()),
       tensor_size);
   if (error) return ReportError(handler, std::move(error));
   out_buffer.Emplace(std::move(*buffer));
@@ -69,5 +71,5 @@ void RegisterTestCudaKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(TestCpyTensorHtoD));
 }
 
-}  // namespace cuda
+}  // namespace gpu
 }  // namespace tfrt

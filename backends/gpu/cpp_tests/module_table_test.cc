@@ -28,14 +28,14 @@ namespace {
 class ModuleTableTest : public testing::Test {
  protected:
   void SetUp() override {
-    ASSERT_TRUE(IsSuccess(Init(stream::Platform::CUDA)));
-    TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(stream::Platform::CUDA));
+    ASSERT_TRUE(IsSuccess(Init(wrapper::Platform::CUDA)));
+    TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(wrapper::Platform::CUDA));
     ASSERT_GT(count, 0);
-    TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(stream::Platform::CUDA, 0));
+    TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(wrapper::Platform::CUDA, 0));
     TFRT_ASSERT_AND_ASSIGN(context_, DevicePrimaryCtxRetain(device));
   }
 
-  stream::OwningContext context_;
+  wrapper::OwningContext context_;
 };
 
 TEST_F(ModuleTableTest, SingleModuleSingleKernel) {
@@ -53,12 +53,12 @@ TEST_F(ModuleTableTest, SingleModuleSingleKernel) {
   TFRT_ASSERT_AND_ASSIGN(auto module_table,
                          gpu::ModuleTable::Create(current, spec));
   auto function = module_table->GetFunction(ModuleFuncHandle{0});
-  auto stream = stream::Stream(nullptr, stream::Platform::CUDA);
+  auto stream = wrapper::Stream(nullptr, wrapper::Platform::CUDA);
   EXPECT_TRUE(
       IsSuccess(LaunchKernel(current, function, /*grid_dim=*/{{1, 1, 1}},
                              /*block_dim=*/{{1, 1, 1}},
                              /*shared_memory_size_bytes=*/0, stream)));
-  EXPECT_TRUE(IsSuccess(stream::CtxSynchronize(current)));
+  EXPECT_TRUE(IsSuccess(wrapper::CtxSynchronize(current)));
 }
 
 // PTX for module containing trivial saxpy and vector addition kernels.
@@ -170,28 +170,28 @@ TEST_F(ModuleTableTest, SingleModuleMultiKernel) {
 
   TFRT_ASSERT_AND_ASSIGN(
       auto stream,
-      stream::StreamCreate(current, stream::StreamFlags::NON_BLOCKING));
+      wrapper::StreamCreate(current, wrapper::StreamFlags::NON_BLOCKING));
 
   constexpr int kVecSize{1024 * 1024};
   constexpr int kVecBytes{kVecSize * sizeof(float)};
   TFRT_ASSERT_AND_ASSIGN(
-      stream::HostMemory<float> x,
-      stream::MemHostAlloc<float>(current, kVecSize,
-                                  stream::MemHostAllocFlags::DEVICEMAP));
+      wrapper::HostMemory<float> x,
+      wrapper::MemHostAlloc<float>(current, kVecSize,
+                                   wrapper::MemHostAllocFlags::DEVICEMAP));
   TFRT_ASSERT_AND_ASSIGN(
-      stream::HostMemory<float> y,
-      stream::MemHostAlloc<float>(current, kVecSize,
-                                  stream::MemHostAllocFlags::DEVICEMAP));
+      wrapper::HostMemory<float> y,
+      wrapper::MemHostAlloc<float>(current, kVecSize,
+                                   wrapper::MemHostAllocFlags::DEVICEMAP));
 
   for (int i = 0; i < kVecSize; ++i) {
     x.get().raw()[i] = i;
     y.get().raw()[i] = -i;
   }
 
-  TFRT_ASSERT_AND_ASSIGN(auto x_dev, stream::MemHostGetDevicePointer(x.get()));
-  TFRT_ASSERT_AND_ASSIGN(auto y_dev, stream::MemHostGetDevicePointer(y.get()));
-  TFRT_ASSERT_AND_ASSIGN(stream::DeviceMemory<float> z_dev,
-                         stream::MemAlloc<float>(current, kVecSize));
+  TFRT_ASSERT_AND_ASSIGN(auto x_dev, wrapper::MemHostGetDevicePointer(x.get()));
+  TFRT_ASSERT_AND_ASSIGN(auto y_dev, wrapper::MemHostGetDevicePointer(y.get()));
+  TFRT_ASSERT_AND_ASSIGN(wrapper::DeviceMemory<float> z_dev,
+                         wrapper::MemAlloc<float>(current, kVecSize));
 
   // First we do z <- x + y
   EXPECT_TRUE(IsSuccess(
@@ -208,10 +208,10 @@ TEST_F(ModuleTableTest, SingleModuleMultiKernel) {
                    alpha, x_dev.raw(), y_dev.raw())));
 
   // Copy z_dev to x.
-  ASSERT_TRUE(IsSuccess(stream::MemcpyAsync(current, x.get(), z_dev.get(),
-                                            kVecBytes, stream.get())));
+  ASSERT_TRUE(IsSuccess(wrapper::MemcpyAsync(current, x.get(), z_dev.get(),
+                                             kVecBytes, stream.get())));
 
-  ASSERT_TRUE(IsSuccess(stream::StreamSynchronize(stream.get())));
+  ASSERT_TRUE(IsSuccess(wrapper::StreamSynchronize(stream.get())));
 
   for (int i = 0; i < kVecSize; ++i) {
     // Since z was x + y and x = -y, then z should be all zeros.
@@ -332,33 +332,33 @@ TEST_F(ModuleTableTest, MultiModuleMultiKernel) {
 
   TFRT_ASSERT_AND_ASSIGN(
       auto stream,
-      stream::StreamCreate(current, stream::StreamFlags::NON_BLOCKING));
+      wrapper::StreamCreate(current, wrapper::StreamFlags::NON_BLOCKING));
 
   constexpr int kVecSize{1024 * 1024};
   constexpr int kVecBytes{kVecSize * sizeof(float)};
   TFRT_ASSERT_AND_ASSIGN(
-      stream::HostMemory<float> x,
-      stream::MemHostAlloc<float>(current, kVecSize,
-                                  stream::MemHostAllocFlags::DEVICEMAP));
+      wrapper::HostMemory<float> x,
+      wrapper::MemHostAlloc<float>(current, kVecSize,
+                                   wrapper::MemHostAllocFlags::DEVICEMAP));
   TFRT_ASSERT_AND_ASSIGN(
-      stream::HostMemory<float> y,
-      stream::MemHostAlloc<float>(current, kVecSize,
-                                  stream::MemHostAllocFlags::DEVICEMAP));
+      wrapper::HostMemory<float> y,
+      wrapper::MemHostAlloc<float>(current, kVecSize,
+                                   wrapper::MemHostAllocFlags::DEVICEMAP));
 
   TFRT_ASSERT_AND_ASSIGN(
-      stream::HostMemory<float> add_result,
-      stream::MemHostAlloc<float>(current, kVecSize,
-                                  stream::MemHostAllocFlags::DEFAULT));
+      wrapper::HostMemory<float> add_result,
+      wrapper::MemHostAlloc<float>(current, kVecSize,
+                                   wrapper::MemHostAllocFlags::DEFAULT));
 
   for (int i = 0; i < kVecSize; ++i) {
     x.get().raw()[i] = i;
     y.get().raw()[i] = -i;
   }
 
-  TFRT_ASSERT_AND_ASSIGN(auto x_dev, stream::MemHostGetDevicePointer(x.get()));
-  TFRT_ASSERT_AND_ASSIGN(auto y_dev, stream::MemHostGetDevicePointer(y.get()));
-  TFRT_ASSERT_AND_ASSIGN(stream::DeviceMemory<float> z_dev,
-                         stream::MemAlloc<float>(current, kVecSize));
+  TFRT_ASSERT_AND_ASSIGN(auto x_dev, wrapper::MemHostGetDevicePointer(x.get()));
+  TFRT_ASSERT_AND_ASSIGN(auto y_dev, wrapper::MemHostGetDevicePointer(y.get()));
+  TFRT_ASSERT_AND_ASSIGN(wrapper::DeviceMemory<float> z_dev,
+                         wrapper::MemAlloc<float>(current, kVecSize));
 
   // First we do z <- x + y
   EXPECT_TRUE(IsSuccess(
@@ -368,7 +368,7 @@ TEST_F(ModuleTableTest, MultiModuleMultiKernel) {
                    x_dev.raw(), y_dev.raw(), z_dev.get().raw())));
 
   // Copy out z to add_result.
-  ASSERT_TRUE(IsSuccess(stream::MemcpyAsync(
+  ASSERT_TRUE(IsSuccess(wrapper::MemcpyAsync(
       current, add_result.get(), z_dev.get(), kVecBytes, stream.get())));
 
   // Then z <- y - x, which should be -2x.
@@ -387,10 +387,10 @@ TEST_F(ModuleTableTest, MultiModuleMultiKernel) {
                    alpha, x_dev.raw(), y_dev.raw())));
 
   // Copy out z to x.
-  ASSERT_TRUE(IsSuccess(stream::MemcpyAsync(current, x.get(), z_dev.get(),
-                                            kVecBytes, stream.get())));
+  ASSERT_TRUE(IsSuccess(wrapper::MemcpyAsync(current, x.get(), z_dev.get(),
+                                             kVecBytes, stream.get())));
 
-  ASSERT_TRUE(IsSuccess(stream::StreamSynchronize(stream.get())));
+  ASSERT_TRUE(IsSuccess(wrapper::StreamSynchronize(stream.get())));
 
   for (int i = 0; i < kVecSize; ++i) {
     // Since z was x + y and x = -y, then z should be all zeros.
@@ -412,15 +412,15 @@ TEST_F(ModuleTableTest, MultiModuleMultiKernel) {
 TEST_F(ModuleTableTest, MultiDeviceModuleTable) {
   class DummyModuleTable : public ModuleTable {
    public:
-    stream::Function GetFunction(ModuleFuncHandle handle) const override {
+    wrapper::Function GetFunction(ModuleFuncHandle handle) const override {
       return {};
     }
   };
 
-  std::array<stream::Device, 3> device{
-      stream::Device(0, stream::Platform::CUDA),
-      stream::Device(1, stream::Platform::CUDA),
-      stream::Device(2, stream::Platform::CUDA),
+  std::array<wrapper::Device, 3> device{
+      wrapper::Device(0, wrapper::Platform::CUDA),
+      wrapper::Device(1, wrapper::Platform::CUDA),
+      wrapper::Device(2, wrapper::Platform::CUDA),
   };
   std::array<std::unique_ptr<ModuleTable>, 3> owned_module_tables{
       std::make_unique<DummyModuleTable>(),

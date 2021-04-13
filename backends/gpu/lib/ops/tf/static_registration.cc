@@ -20,4 +20,4 @@
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/ops/tf/gpu_ops.h"
 
-TFRT_STATIC_GPU_OP_REGISTRATION(tfrt::RegisterTfGpuOps);
+TFRT_STATIC_GPU_OP_REGISTRATION(tfrt::gpu::RegisterTfGpuOps);

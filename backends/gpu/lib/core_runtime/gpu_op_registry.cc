@@ -19,6 +19,7 @@
 #include "gpu_op_registry_impl.h"
 
 namespace tfrt {
+namespace gpu {
 
 GpuOpRegistry::GpuOpRegistry() : impl_(std::make_unique<Impl>()) {}
 
@@ -63,4 +64,5 @@ void RegisterStaticGpuOps(GpuOpRegistry* op_reg) {
   }
 }
 
+}  // namespace gpu
 }  // namespace tfrt

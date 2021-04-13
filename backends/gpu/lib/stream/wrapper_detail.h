@@ -23,7 +23,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 // Per thread context state which is kept in sync with CUDA's and HIP's internal
 // state.
 extern thread_local struct ContextTls {
@@ -103,7 +103,7 @@ llvm::Error InvalidPlatform(Platform platform);
 // Return error that platform is unsupported.
 llvm::Error UnsupportedPlatform(Platform platform);
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

@@ -26,7 +26,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 // Cast stream wrapper flags to CUDA enums.
 static constexpr auto ToCuda(CtxFlags flag) {
@@ -1232,6 +1232,6 @@ static_assert(hipMemAttachGlobal == ToHip(MemAttachFlags::GLOBAL), "");
 static_assert(hipMemAttachHost == ToHip(MemAttachFlags::HOST), "");
 // clang-format on
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

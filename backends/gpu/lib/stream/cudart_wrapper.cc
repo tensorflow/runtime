@@ -37,7 +37,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                               const CudartErrorData& data) {
@@ -141,6 +141,6 @@ llvm::Error CudaFuncSetAttribute(CurrentContext current, const void* function,
   return TO_ERROR(cudaFuncSetAttribute(function, attribute, value));
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

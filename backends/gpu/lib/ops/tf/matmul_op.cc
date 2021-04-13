@@ -43,8 +43,8 @@ template <typename T>
 class ConstValue {
  public:
   explicit ConstValue(double value) : value_(static_cast<T>(value)) {}
-  auto pointer(stream::Platform platform) const {
-    return stream::Pointer<const T>(&value_, platform);
+  auto pointer(wrapper::Platform platform) const {
+    return wrapper::Pointer<const T>(&value_, platform);
   }
 
  private:
@@ -58,8 +58,8 @@ class ConstValue<__half> {
   explicit ConstValue(double value)
       : value_(
             _cvtss_sh(static_cast<float>(value), _MM_FROUND_TO_NEAREST_INT)) {}
-  auto pointer(stream::Platform platform) const {
-    return stream::Pointer<const __half>(
+  auto pointer(wrapper::Platform platform) const {
+    return wrapper::Pointer<const __half>(
         reinterpret_cast<const __half*>(&value_), platform);
   }
 
@@ -69,8 +69,8 @@ class ConstValue<__half> {
 }  // namespace
 
 template <typename T>
-static llvm::Error CallCublasGemm(stream::CurrentContext current,
-                                  stream::BlasHandle handle, bool transpose_a,
+static llvm::Error CallCublasGemm(wrapper::CurrentContext current,
+                                  wrapper::BlasHandle handle, bool transpose_a,
                                   bool transpose_b, uint64_t m, uint64_t k,
                                   uint64_t n, const gpu::DenseGpuTensor& a,
                                   const gpu::DenseGpuTensor& b,
@@ -84,15 +84,15 @@ static llvm::Error CallCublasGemm(stream::CurrentContext current,
                     transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
                     n, m, k,
                     ConstValue<T>(1.0).pointer(handle.platform()),
-                    static_cast<stream::Pointer<const T>>(b.buffer().pointer()), transpose_b ? k : n,
-                    static_cast<stream::Pointer<const T>>(a.buffer().pointer()), transpose_a ? m : k,
+                    static_cast<wrapper::Pointer<const T>>(b.buffer().pointer()), transpose_b ? k : n,
+                    static_cast<wrapper::Pointer<const T>>(a.buffer().pointer()), transpose_a ? m : k,
                     ConstValue<T>(0.0).pointer(handle.platform()),
-                    static_cast<stream::Pointer<T>>(result->pointer()), n);
+                    static_cast<wrapper::Pointer<T>>(result->pointer()), n);
   // clang-format on
 }
 
-llvm::Error RunCublasGemm(stream::CurrentContext current,
-                          stream::BlasHandle handle, bool transpose_a,
+llvm::Error RunCublasGemm(wrapper::CurrentContext current,
+                          wrapper::BlasHandle handle, bool transpose_a,
                           bool transpose_b, const gpu::DenseGpuTensor& a,
                           const gpu::DenseGpuTensor& b, GpuBuffer* result) {
   const int a_matching_dim = transpose_a ? 0 : 1;
@@ -140,8 +140,8 @@ static llvm::Expected<DenseGpuTensor> GpuMatmulOp(
     // output shape is [x, y] where x and y are non-zero, so we fill
     // the output with zeros.
     if (auto error =
-            stream::MemsetD8Async(dctx->current_context(), buffer->pointer(), 0,
-                                  size_in_bytes, dctx->stream())) {
+            wrapper::MemsetD8Async(dctx->current_context(), buffer->pointer(),
+                                   0, size_in_bytes, dctx->stream())) {
       return std::move(error);
     }
     return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
@@ -162,11 +162,10 @@ static llvm::Expected<DenseGpuTensor> GpuMatmulOp(
   return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
 }
 
-}  // namespace gpu
-
 void RegisterMatmulGpuTfOps(GpuOpRegistry* registry) {
   registry->AddOp("tf.MatMul", TFRT_GPU_OP(gpu::GpuMatmulOp),
                   {"transpose_a", "transpose_b"});
 }
 
+}  // namespace gpu
 }  // namespace tfrt

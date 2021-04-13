@@ -176,8 +176,6 @@ static llvm::Expected<DenseGpuTensor> GpuPadFoldedOp(
   return EnqueueGpuPadOp(dctx, input, paddings, result_md);
 }
 
-}  // namespace gpu
-
 void RegisterPadGpuTfOps(GpuOpRegistry* registry) {
   registry->AddOp("tf.Pad", TFRT_GPU_OP(gpu::GpuPadOp));
 
@@ -186,4 +184,5 @@ void RegisterPadGpuTfOps(GpuOpRegistry* registry) {
   registry->AddOp("_tf.Pad", TFRT_GPU_OP(gpu::GpuPadFoldedOp), {"paddings"});
 }
 
+}  // namespace gpu
 }  // namespace tfrt

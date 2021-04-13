@@ -29,7 +29,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 // Google Test outputs to std::ostream. Provide ADL'able overloads.
 template <typename T>
@@ -41,7 +41,7 @@ std::ostream& operator<<(std::ostream& os, T item) {
 
 class Test : public testing::TestWithParam<Platform> {};
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

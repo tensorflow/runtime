@@ -34,18 +34,18 @@ namespace gpu {
 // SubAllocator provides the actual device allocation logic.
 class SubAllocator {
  public:
-  explicit SubAllocator(gpu::stream::Platform platform) : platform_(platform) {}
+  explicit SubAllocator(wrapper::Platform platform) : platform_(platform) {}
 
-  gpu::stream::Platform platform() const { return platform_; }
+  wrapper::Platform platform() const { return platform_; }
 
-  llvm::Expected<gpu::stream::Pointer<void>> Allocate(
-      size_t size, gpu::stream::Stream stream);
-  void Deallocate(gpu::stream::Pointer<void> pointer);
+  llvm::Expected<wrapper::Pointer<void>> Allocate(size_t size,
+                                                  wrapper::Stream stream);
+  void Deallocate(wrapper::Pointer<void> pointer);
 
  private:
   uintptr_t next_addr_ = 1;
 
-  gpu::stream::Platform platform_;
+  wrapper::Platform platform_;
 };
 
 }  // namespace gpu

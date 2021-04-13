@@ -36,8 +36,7 @@ std::ostream& operator<<(std::ostream& os, T item) {
   return os;
 }
 
-class SubAllocatorTest
-    : public ::testing::TestWithParam<gpu::stream::Platform> {};
+class SubAllocatorTest : public ::testing::TestWithParam<wrapper::Platform> {};
 
 TEST_P(SubAllocatorTest, GetPlatformTest) {
   EXPECT_EQ(SubAllocator(GetParam()).platform(), GetParam());
@@ -49,24 +48,22 @@ TEST_P(SubAllocatorTest, SingleStreamTest) {
   SubAllocator sub_allocator(GetParam());
   {
     TFRT_ASSERT_AND_ASSIGN(
-        auto pointer,
-        sub_allocator.Allocate(kBlockSize, gpu::stream::Stream()));
+        auto pointer, sub_allocator.Allocate(kBlockSize, wrapper::Stream()));
     uintptr_t address =
-        reinterpret_cast<uintptr_t>(pointer.raw(gpu::stream::Platform::CUDA));
+        reinterpret_cast<uintptr_t>(pointer.raw(wrapper::Platform::CUDA));
     ASSERT_EQ(address, kAlignment);
   }
   {
     TFRT_ASSERT_AND_ASSIGN(
-        auto pointer,
-        sub_allocator.Allocate(kBlockSize, gpu::stream::Stream()));
+        auto pointer, sub_allocator.Allocate(kBlockSize, wrapper::Stream()));
     uintptr_t address =
-        reinterpret_cast<uintptr_t>(pointer.raw(gpu::stream::Platform::CUDA));
+        reinterpret_cast<uintptr_t>(pointer.raw(wrapper::Platform::CUDA));
     ASSERT_EQ(address, 512 + kAlignment);
   }
 }
 
 INSTANTIATE_TEST_SUITE_P(BaseTestCases, SubAllocatorTest,
-                         ::testing::Values(gpu::stream::Platform::CUDA));
+                         ::testing::Values(wrapper::Platform::CUDA));
 
 }  // namespace gpu
 }  // namespace tfrt

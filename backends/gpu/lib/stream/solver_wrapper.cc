@@ -24,7 +24,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 void internal::SolverDnHandleDeleter::operator()(SolverDnHandle handle) const {
   LogIfError(SolverDnDestroy(handle));
@@ -78,6 +78,6 @@ llvm::Expected<Stream> SolverDnGetStream(SolverDnHandle handle) {
   }
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

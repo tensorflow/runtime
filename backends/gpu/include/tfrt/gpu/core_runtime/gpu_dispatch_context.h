@@ -31,6 +31,7 @@ class GpuDevice;
 }
 
 namespace tfrt {
+namespace gpu {
 class GpuDispatchContext {
  public:
   explicit GpuDispatchContext(const GpuDevice* device)
@@ -45,7 +46,7 @@ class GpuDispatchContext {
   // The inputs to the GPU dispatch function are available for reading on this
   // stream.  The outputs from the dispatch must also be ready for reading on
   // this stream.
-  gpu::stream::Stream stream() const { return stream_; }
+  wrapper::Stream stream() const { return stream_; }
 
   // Allocator for allocating GPU device memory.
   gpu::GpuAllocator* allocator() const { return allocator_; }
@@ -54,29 +55,28 @@ class GpuDispatchContext {
   Eigen::GpuDevice* eigen_gpu_device() const { return eigen_gpu_device_; }
 
   // GPU BLAS library handle. Used to launch BLAS routines.
-  gpu::stream::BlasHandle blas_handle() const { return blas_handle_; }
+  wrapper::BlasHandle blas_handle() const { return blas_handle_; }
 
   // GPU DNN library handle. Used to launch convolutions etc.
-  gpu::stream::DnnHandle dnn_handle() const { return dnn_handle_; }
+  wrapper::DnnHandle dnn_handle() const { return dnn_handle_; }
 
   // The GPU device sets the current context before calling into the dispatch
-  // function.  See the documentation for gpu::stream::CurrentContext for more
+  // function.  See the documentation for wrapper::CurrentContext for more
   // details.
-  gpu::stream::CurrentContext current_context() const {
-    return current_context_;
-  }
+  wrapper::CurrentContext current_context() const { return current_context_; }
 
   const GpuDevice& device() const { return *device_; }
 
  private:
   const GpuDevice* device_;
-  gpu::stream::Stream stream_;
-  gpu::GpuAllocator* allocator_;
+  wrapper::Stream stream_;
+  GpuAllocator* allocator_;
   Eigen::GpuDevice* eigen_gpu_device_;
-  gpu::stream::BlasHandle blas_handle_;
-  gpu::stream::DnnHandle dnn_handle_;
-  gpu::stream::CurrentContext current_context_;
+  wrapper::BlasHandle blas_handle_;
+  wrapper::DnnHandle dnn_handle_;
+  wrapper::CurrentContext current_context_;
 };
+}  // namespace gpu
 }  // namespace tfrt
 
 #endif  // TFRT_GPU_CORE_RUNTIME_GPU_DISPATCH_CONTEXT_H_

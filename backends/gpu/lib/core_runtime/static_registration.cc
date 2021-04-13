@@ -21,7 +21,7 @@
 #include "tfrt/host_context/kernel_registry.h"
 
 namespace tfrt {
-
+namespace gpu {
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuOpHandlerKernels);
-
+}  // namespace gpu
 }  // namespace tfrt

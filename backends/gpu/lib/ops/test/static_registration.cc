@@ -21,6 +21,7 @@
 #include "tfrt/gpu/ops/test/gpu_ops_and_kernels.h"
 
 namespace tfrt {
+namespace gpu {
 static void RegisterMetadataFn(GpuOpRegistry* registry) {
   for (const std::pair<llvm::StringRef, OpMetadataFn>& md_function :
        GetAllTestMetadataFunctions()) {
@@ -31,4 +32,5 @@ static void RegisterMetadataFn(GpuOpRegistry* registry) {
 TFRT_STATIC_GPU_OP_REGISTRATION(RegisterTestGPUOps);
 TFRT_STATIC_GPU_OP_REGISTRATION(RegisterMetadataFn);
 
+}  // namespace gpu
 }  // namespace tfrt

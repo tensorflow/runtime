@@ -39,15 +39,15 @@ class CachingGpuAllocator : public GpuAllocator {
   ~CachingGpuAllocator() override;
 
   llvm::Expected<RCReference<gpu::GpuBuffer>> Allocate(
-      size_t size, gpu::stream::Stream stream) override;
+      size_t size, wrapper::Stream stream) override;
 
   void Deallocate(const gpu::GpuBuffer& buffer) override;
 
   llvm::Error RecordUsage(const gpu::GpuBuffer& buffer,
-                          gpu::stream::Stream stream) override;
+                          wrapper::Stream stream) override;
 
  private:
-  std::map<gpu::stream::Pointer<void>, gpu::stream::Context> allocations_;
+  std::map<wrapper::Pointer<void>, wrapper::Context> allocations_;
   AsyncValueRef<GpuContext> context_;
 };
 

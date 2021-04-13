@@ -42,23 +42,22 @@ class BlockAllocator : public gpu::GpuAllocator {
       : sub_allocator_(sub_allocator) {}
 
   llvm::Expected<RCReference<gpu::GpuBuffer>> Allocate(
-      size_t size, gpu::stream::Stream stream) override;
+      size_t size, wrapper::Stream stream) override;
 
   void Deallocate(const gpu::GpuBuffer& buffer) override;
 
   llvm::Error RecordUsage(const gpu::GpuBuffer& buffer,
-                          gpu::stream::Stream stream) override;
+                          wrapper::Stream stream) override;
 
  private:
   // Represents a block of device memory.
   struct Block {
-    Block(gpu::stream::Stream stream, gpu::stream::Pointer<void> pointer,
-          size_t size)
+    Block(wrapper::Stream stream, wrapper::Pointer<void> pointer, size_t size)
         : stream(stream), pointer(pointer), size(size), allocated(false) {}
     // Defines the stream associated with this block.
-    gpu::stream::Stream stream;
+    wrapper::Stream stream;
     // Defines the device memory pointer;
-    gpu::stream::Pointer<void> pointer;
+    wrapper::Pointer<void> pointer;
     // Defines the block size.
     size_t size;
     // Defines whether this block is in use.
@@ -68,7 +67,7 @@ class BlockAllocator : public gpu::GpuAllocator {
   using BlockList = std::vector<Block>;
 
   // Returns an existing free block and removes it from the block pool.
-  llvm::Expected<Block> FindFreeBlock(size_t size, gpu::stream::Stream stream);
+  llvm::Expected<Block> FindFreeBlock(size_t size, wrapper::Stream stream);
 
   // Bring an allocated block from the allocated blocks map back
   // to the block pool.

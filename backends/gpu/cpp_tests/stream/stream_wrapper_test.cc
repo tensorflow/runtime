@@ -24,7 +24,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 static testing::AssertionResult IsInvalidContextError(llvm::Error&& error) {
   if (!error) return testing::AssertionFailure() << error;
   return IsSuccess(llvm::handleErrors(
@@ -677,6 +677,6 @@ TEST_P(Test, MemGetAddressRange) {
   EXPECT_EQ(size_bytes, range.size_bytes);
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

@@ -37,28 +37,28 @@ namespace tfrt {
 namespace gpu {
 
 struct StreamAndBuffers {
-  StreamAndBuffers(stream::CurrentContext current, size_t size) : size(size) {
+  StreamAndBuffers(wrapper::CurrentContext current, size_t size) : size(size) {
     TFRT_ASSIGN_OR_DIE(stream,
-                       StreamCreate(current, stream::StreamFlags::DEFAULT));
+                       StreamCreate(current, wrapper::StreamFlags::DEFAULT));
     TFRT_ASSIGN_OR_DIE(gpu_buf, MemAlloc(current, size));
     TFRT_ASSIGN_OR_DIE(
         host_buf_src,
-        MemHostAlloc(current, size, stream::MemHostAllocFlags::DEFAULT));
+        MemHostAlloc(current, size, wrapper::MemHostAllocFlags::DEFAULT));
     TFRT_ASSIGN_OR_DIE(
         host_buf_dst,
-        MemHostAlloc(current, size, stream::MemHostAllocFlags::DEFAULT));
+        MemHostAlloc(current, size, wrapper::MemHostAllocFlags::DEFAULT));
     std::memset(host_buf_src.get().raw(), 'z', size);
     std::memset(host_buf_dst.get().raw(), 0, size);
   }
 
-  void H2D(stream::CurrentContext current, stream::Event event) {
+  void H2D(wrapper::CurrentContext current, wrapper::Event event) {
     EXPECT_TRUE(
         IsSuccess(MemcpyAsync(current, /*dst=*/gpu_buf.get(),
                               /*src=*/host_buf_src.get(), size, stream.get())));
     EXPECT_TRUE(IsSuccess(EventRecord(event, stream.get())));
   }
 
-  void D2H(stream::CurrentContext current, stream::Event event) {
+  void D2H(wrapper::CurrentContext current, wrapper::Event event) {
     EXPECT_TRUE(
         IsSuccess(MemcpyAsync(current, /*dst=*/host_buf_dst.get(),
                               /*src=*/gpu_buf.get(), size, stream.get())));
@@ -76,21 +76,21 @@ struct StreamAndBuffers {
   }
 
   size_t size;
-  stream::OwningStream stream;
-  stream::DeviceMemory<void> gpu_buf;
-  stream::HostMemory<void> host_buf_src;
-  stream::HostMemory<void> host_buf_dst;
+  wrapper::OwningStream stream;
+  wrapper::DeviceMemory<void> gpu_buf;
+  wrapper::HostMemory<void> host_buf_src;
+  wrapper::HostMemory<void> host_buf_dst;
 };
 
-static RCReference<RcEvent> CreateRcEvent(stream::CurrentContext current) {
-  stream::OwningEvent event =
-      std::move(*EventCreate(current, stream::EventFlags::DISABLE_TIMING));
+static RCReference<RcEvent> CreateRcEvent(wrapper::CurrentContext current) {
+  wrapper::OwningEvent event =
+      std::move(*EventCreate(current, wrapper::EventFlags::DISABLE_TIMING));
   return TakeRef(new RcEvent(std::move(event)));
 }
 
 class EventManagerTest : public ::testing::Test {
  protected:
-  EventManagerTest() : platform_(stream::Platform::CUDA) {}
+  EventManagerTest() : platform_(wrapper::Platform::CUDA) {}
   void SetUp() override {
     ASSERT_TRUE(IsSuccess(Init(platform_)));
     TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform_));
@@ -102,8 +102,8 @@ class EventManagerTest : public ::testing::Test {
   // Use 32 MB for copies so that they usually don't complete immediately.
   const size_t kBufferSize = 32 << 20;
 
-  stream::Platform platform_;
-  stream::OwningContext context_;
+  wrapper::Platform platform_;
+  wrapper::OwningContext context_;
 };
 
 static std::unique_ptr<HostContext> CreateHostContext() {
@@ -239,7 +239,7 @@ TEST_F(EventManagerTest, TestCallSynchronizeFromAndThen) {
 }
 
 void BM_EventEnqueue(benchmark::State& state) {
-  stream::Platform platform(stream::Platform::CUDA);
+  wrapper::Platform platform(wrapper::Platform::CUDA);
   ASSERT_TRUE(IsSuccess(Init(platform)));
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
@@ -253,7 +253,7 @@ void BM_EventEnqueue(benchmark::State& state) {
   StreamAndBuffers sb(current, /*size=*/4);
   auto event = CreateRcEvent(current);
 
-  ASSERT_TRUE(IsSuccess(stream::EventRecord(event->get(), sb.stream.get())));
+  ASSERT_TRUE(IsSuccess(wrapper::EventRecord(event->get(), sb.stream.get())));
 
   host_context->Await(manager.Synchronize(event.CopyRef()).CopyRCRef());
   for (auto _ : state) {
@@ -263,7 +263,7 @@ void BM_EventEnqueue(benchmark::State& state) {
 }
 
 void BM_ManyThreadsManyStreams(benchmark::State& state) {
-  stream::Platform platform(stream::Platform::CUDA);
+  wrapper::Platform platform(wrapper::Platform::CUDA);
   ASSERT_TRUE(IsSuccess(Init(platform)));
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
@@ -299,7 +299,7 @@ void BM_ManyThreadsManyStreams(benchmark::State& state) {
 }
 
 void BM_MoreStreamsThanThreads(benchmark::State& state) {
-  stream::Platform platform(stream::Platform::CUDA);
+  wrapper::Platform platform(wrapper::Platform::CUDA);
   ASSERT_TRUE(IsSuccess(Init(platform)));
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
@@ -336,7 +336,7 @@ void BM_MoreStreamsThanThreads(benchmark::State& state) {
 }
 
 void BM_MultipleEventsPerStream(benchmark::State& state) {
-  stream::Platform platform(stream::Platform::CUDA);
+  wrapper::Platform platform(wrapper::Platform::CUDA);
   ASSERT_TRUE(IsSuccess(Init(platform)));
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);

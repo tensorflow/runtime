@@ -49,19 +49,19 @@ class GpuBuffer : public ReferenceCounted<GpuBuffer> {
   // deallocated using `allocator` when destroyed.
   // `pointer` must have been obtained from the `allocator`.
   // Prefer using GpuAllocator::Allocate instead of creating buffers manually.
-  GpuBuffer(gpu::stream::Pointer<void> pointer, size_t size,
+  GpuBuffer(wrapper::Pointer<void> pointer, size_t size,
             GpuAllocator* allocator);
 
   using Deallocator = llvm::unique_function<void(GpuBuffer* buffer)>;
   // Create a GpuBuffer by taking ownership of an externally allocated GPU
   // buffer. `deallocator` is called with `pointer` and `size` as arguments when
   // we destroy this buffer.
-  GpuBuffer(gpu::stream::Pointer<void> pointer, size_t size,
+  GpuBuffer(wrapper::Pointer<void> pointer, size_t size,
             Deallocator deallocator);
 
   ~GpuBuffer();
 
-  const gpu::stream::Pointer<void>& pointer() const { return pointer_; }
+  const wrapper::Pointer<void>& pointer() const { return pointer_; }
 
   // Returns the number of `bytes` held by this buffer.
   size_t size() const { return size_; }
@@ -70,7 +70,7 @@ class GpuBuffer : public ReferenceCounted<GpuBuffer> {
 
  private:
   // Pointer value of 0 means that the buffer is not pointing to valid memory.
-  gpu::stream::Pointer<void> pointer_;
+  wrapper::Pointer<void> pointer_;
 
   // Size of this buffer in bytes, i.e. number of bytes in the GPU memory that
   // this buffer represents.

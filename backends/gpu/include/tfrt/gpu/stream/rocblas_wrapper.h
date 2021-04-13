@@ -24,7 +24,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 struct RocblasErrorData {
   rocblas_status result;
@@ -803,7 +803,7 @@ llvm::Error RocblasZtrmm(CurrentContext current, rocblas_handle handle,
                          int n, Pointer<const rocblas_double_complex> alpha,
                          Pointer<const rocblas_double_complex> A, int lda,
                          Pointer<rocblas_double_complex> B, int ldb);
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

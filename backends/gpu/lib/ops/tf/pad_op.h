@@ -26,13 +26,13 @@
 
 namespace tfrt {
 
-class GpuDispatchContext;
 class DenseView;
 class TensorMetadata;
 class OpAttrsRef;
 
 namespace gpu {
 
+class GpuDispatchContext;
 class DenseGpuTensor;
 
 namespace functor {
@@ -73,10 +73,6 @@ llvm::Expected<DenseGpuTensor> EnqueueGpuPadOp(GpuDispatchContext* dctx,
                                                const TensorMetadata& result_md);
 
 }  // namespace gpu
-
-class GpuOpRegistry;
-
-void RegisterPadGpuTfOps(GpuOpRegistry* registry);
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_GPU_LIB_OPS_TF_PAD_OP_H_

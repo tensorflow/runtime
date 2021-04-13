@@ -14,8 +14,6 @@
 
 // Implementations of TF Transpose op.
 
-#include "transpose_op.h"
-
 #include "llvm/Support/Error.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/core_runtime/op_attrs.h"
@@ -110,13 +108,15 @@ struct CoalescedDimsAndPerm {
   SmallVector<ssize_t, 8> perm;
 };
 
+}  // namespace
+
 // Helper function that takes a tensor shape, a permutation, combines the
 // neighboring shapes if their indices in the permutation are consecutive.
 // The function outputs the combined shape and new permutation.
 // Example: Tensor shape {2, 3, 4, 5, 120} and permutation {0, 4, 1, 2, 3} will
 // produce new shape {2, 60, 120} and new permutation {0, 2, 1}.
-CoalescedDimsAndPerm CoalesceTranspose(const TensorShape& shape,
-                                       ArrayRef<ssize_t> perm) {
+static CoalescedDimsAndPerm CoalesceTranspose(const TensorShape& shape,
+                                              ArrayRef<ssize_t> perm) {
   assert(shape.GetRank() == perm.size());
 
   if (shape.GetRank() == 1) return {{shape.GetDimensionSize(0)}, {perm[0]}};
@@ -161,10 +161,9 @@ CoalescedDimsAndPerm CoalesceTranspose(const TensorShape& shape,
   return merged;
 }
 
-llvm::Error DispatchTrivialTranspose(GpuDispatchContext* dctx, DType dtype,
-                                     const GpuBuffer& input,
-                                     const GpuBuffer& output,
-                                     const CoalescedDimsAndPerm& transpose) {
+static llvm::Error DispatchTrivialTranspose(
+    GpuDispatchContext* dctx, DType dtype, const GpuBuffer& input,
+    const GpuBuffer& output, const CoalescedDimsAndPerm& transpose) {
   assert(transpose.dims.size() == 2 && transpose.perm.size() == 2);
 
   ssize_t height = transpose.dims[0];
@@ -176,7 +175,7 @@ llvm::Error DispatchTrivialTranspose(GpuDispatchContext* dctx, DType dtype,
 
   auto launch = [&](auto type_tag) {
     using T = decltype(type_tag);
-    return stream::CudaLaunchKernel(
+    return wrapper::CudaLaunchKernel(
         dctx->current_context(), &Transpose2DCoalesced<T>, grid, threads,
         shared_memory_size_bytes, dctx->stream(), GetRawPointer<T>(output),
         GetRawPointer<T>(input), width, height);
@@ -202,11 +201,11 @@ llvm::Error DispatchTrivialTranspose(GpuDispatchContext* dctx, DType dtype,
   return llvm::Error::success();
 }
 
-llvm::Error DispatchSwapDims1And2In3(GpuDispatchContext* dctx, DType dtype,
-                                     const GpuBuffer& input,
-                                     const GpuBuffer& output,
+static llvm::Error DispatchSwapDims1And2In3(
+    GpuDispatchContext* dctx, DType dtype, const GpuBuffer& input,
+    const GpuBuffer& output,
 
-                                     const CoalescedDimsAndPerm& transpose) {
+    const CoalescedDimsAndPerm& transpose) {
   assert(transpose.dims.size() == 3 && transpose.perm.size() == 3);
 
   ssize_t planes = transpose.dims[0];
@@ -219,7 +218,7 @@ llvm::Error DispatchSwapDims1And2In3(GpuDispatchContext* dctx, DType dtype,
 
   auto launch = [&](auto type_tag) {
     using T = decltype(type_tag);
-    return stream::CudaLaunchKernel(
+    return wrapper::CudaLaunchKernel(
         dctx->current_context(), &SwapDims1And2In3<T>, grid, threads,
         shared_memory_size_bytes, dctx->stream(), GetRawPointer<T>(output),
         GetRawPointer<T>(input), planes, width, height);
@@ -244,8 +243,6 @@ llvm::Error DispatchSwapDims1And2In3(GpuDispatchContext* dctx, DType dtype,
 
   return llvm::Error::success();
 }
-
-}  // namespace
 
 static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpImpl(
     GpuDispatchContext* dctx, const DenseGpuTensor& input,
@@ -332,8 +329,6 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpFolded(
   return ComputeTransposeGpuOpImpl(dctx, input, perm, result_md);
 }
 
-}  // namespace gpu
-
 void RegisterTransposeGpuTfOps(GpuOpRegistry* registry) {
   registry->AddOp("tf.Transpose", TFRT_GPU_OP(gpu::ComputeTransposeGpuOp));
 
@@ -343,4 +338,5 @@ void RegisterTransposeGpuTfOps(GpuOpRegistry* registry) {
                   TFRT_GPU_OP(gpu::ComputeTransposeGpuOpFolded), {"perm"});
 }
 
+}  // namespace gpu
 }  // namespace tfrt

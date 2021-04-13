@@ -24,9 +24,11 @@
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
+namespace gpu {
 class GpuOpRegistry;
 
 void RegisterTfGpuOps(GpuOpRegistry* registry);
+}  // namespace gpu
 }  // namespace tfrt
 
 #endif  // TFRT_GPU_OPS_TF_GPU_OPS_H_

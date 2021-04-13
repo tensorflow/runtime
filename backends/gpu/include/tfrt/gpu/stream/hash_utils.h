@@ -26,13 +26,13 @@
 
 namespace std {
 template <>
-struct hash<tfrt::gpu::stream::Device> {
-  size_t operator()(const tfrt::gpu::stream::Device& device) const noexcept;
+struct hash<tfrt::gpu::wrapper::Device> {
+  size_t operator()(const tfrt::gpu::wrapper::Device& device) const noexcept;
 };
 
 template <>
-struct hash<tfrt::gpu::stream::Stream> {
-  size_t operator()(const tfrt::gpu::stream::Stream& stream) const noexcept;
+struct hash<tfrt::gpu::wrapper::Stream> {
+  size_t operator()(const tfrt::gpu::wrapper::Stream& stream) const noexcept;
 };
 }  // namespace std
 

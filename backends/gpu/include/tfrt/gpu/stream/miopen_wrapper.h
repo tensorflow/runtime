@@ -24,7 +24,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 struct MiopenErrorData {
   miopenStatus_t result;
@@ -165,7 +165,7 @@ llvm::Error MiopenConvolutionBackwardWeightsImmediate(
     Pointer<void> dw, Pointer<void> work_space, size_t work_space_size_in_bytes,
     uint64_t solution);
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt
 

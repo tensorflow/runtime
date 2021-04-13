@@ -28,15 +28,15 @@ static mlir::TranslateFromMLIRRegistration mlir_to_bef_registration(
     "mlir-to-bef", tfrt::MLIRToBEFTranslate,
     [](mlir::DialectRegistry &registry) {
       tfrt::RegisterTFRTDialects(registry);
-      registry.insert<tfrt::cuda::CUDADialect>();
-      registry.insert<tfrt::cuda::CUDATestDialect>();
+      registry.insert<tfrt::gpu::CUDADialect>();
+      registry.insert<tfrt::gpu::CUDATestDialect>();
     });
 
 static mlir::TranslateToMLIRRegistration bef_to_mlir_registration(
     "bef-to-mlir", [](llvm::SourceMgr &source_mgr, mlir::MLIRContext *context) {
       mlir::DialectRegistry registry;
-      registry.insert<tfrt::cuda::CUDADialect>();
-      registry.insert<tfrt::cuda::CUDATestDialect>();
+      registry.insert<tfrt::gpu::CUDADialect>();
+      registry.insert<tfrt::gpu::CUDATestDialect>();
       context->appendDialectRegistry(registry);
       return tfrt::BEFToMLIRTranslate(source_mgr, context);
     });

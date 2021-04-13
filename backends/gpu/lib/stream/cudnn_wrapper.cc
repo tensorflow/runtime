@@ -40,7 +40,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                                      cudnnStatus_t status) {
@@ -1417,6 +1417,6 @@ llvm::Error CudnnRnnForwardTraining(
       reserve_space_size_in_bytes));
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

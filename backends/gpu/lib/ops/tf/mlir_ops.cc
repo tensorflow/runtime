@@ -14,8 +14,6 @@
 
 // Collates list of all TF operations with pre-generated GPU code.
 
-#include "mlir_ops.h"
-
 #include <numeric>
 #include <unordered_map>
 
@@ -47,13 +45,13 @@ static auto AllocateBuffer(GpuDispatchContext* dctx, const DType& dtype,
 // Loads a CUDA module from an cubin or fatbin image.
 class ModuleLoader {
   struct ContextHash {
-    size_t operator()(const stream::Context& context) const {
+    size_t operator()(const wrapper::Context& context) const {
       switch (context.platform()) {
-        case stream::Platform::CUDA:
+        case wrapper::Platform::CUDA:
           return std::hash<CUcontext>()(static_cast<CUcontext>(context));
-        case stream::Platform::ROCm:
+        case wrapper::Platform::ROCm:
           return std::hash<hipCtx_t>()(static_cast<hipCtx_t>(context));
-        case stream::Platform::NONE:
+        case wrapper::Platform::NONE:
           return 0;
       }
     }
@@ -62,13 +60,13 @@ class ModuleLoader {
  public:
   explicit ModuleLoader(const void* image) : image_(image) {}
 
-  llvm::Expected<stream::Function> GetFunction(GpuDispatchContext* dctx,
-                                               const char* func_name) {
+  llvm::Expected<wrapper::Function> GetFunction(GpuDispatchContext* dctx,
+                                                const char* func_name) {
     auto ctx = dctx->current_context().context();
     auto it = functions_.find(ctx);
     if (it == functions_.end()) {
       auto module = LoadModule(dctx, image_);
-      stream::Function function = GetFunction(module.get(), func_name);
+      wrapper::Function function = GetFunction(module.get(), func_name);
       if (function) modules_.push_back(std::move(module));
       // Add function even if it's null because the error won't change.
       it = functions_.emplace_hint(it, ctx, function);
@@ -79,8 +77,8 @@ class ModuleLoader {
 
  private:
   // Reports errors directly and always returns a (potentially null) module.
-  static stream::OwningModule LoadModule(GpuDispatchContext* dctx,
-                                         const void* image) {
+  static wrapper::OwningModule LoadModule(GpuDispatchContext* dctx,
+                                          const void* image) {
     static const size_t kLogBufferSize = 64 * 1024;
     std::array<char, kLogBufferSize> log_buffer = {};
     std::vector<CUjit_option> jit_options = {CU_JIT_FALLBACK_STRATEGY,
@@ -100,18 +98,19 @@ class ModuleLoader {
     return nullptr;
   }
 
-  static stream::Function GetFunction(stream::Module module,
-                                      const char* func_name) {
+  static wrapper::Function GetFunction(wrapper::Module module,
+                                       const char* func_name) {
     if (!module) return {};
-    auto function_or_error = stream::CuModuleGetFunction(module, func_name);
+    auto function_or_error = wrapper::CuModuleGetFunction(module, func_name);
     if (function_or_error) return *function_or_error;
     TFRT_LOG(ERROR) << function_or_error.takeError();
     return {};
   }
 
   const void* image_;  // Not owning.
-  std::vector<stream::OwningModule> modules_;
-  std::unordered_map<stream::Context, stream::Function, ContextHash> functions_;
+  std::vector<wrapper::OwningModule> modules_;
+  std::unordered_map<wrapper::Context, wrapper::Function, ContextHash>
+      functions_;
 };
 
 template <size_t N>
@@ -124,7 +123,7 @@ struct MemRefArgument {
 };
 
 template <size_t N>
-MemRefArgument<N> MakeMemRefArgument(stream::Pointer<const void> ptr,
+MemRefArgument<N> MakeMemRefArgument(wrapper::Pointer<const void> ptr,
                                      const std::array<ssize_t, N>& dimensions) {
   assert(dimensions.size() == N);
   MemRefArgument<N> result = {nullptr, ptr.raw(), 0};
@@ -163,7 +162,7 @@ static llvm::Expected<DenseGpuTensor> ComputeBiasAddGpuOp(
                         AllocateBuffer(dctx, result_md.dtype, result_md.shape));
 
   TFRT_ASSIGN_OR_RETURN(
-      auto function, [&]() -> llvm::Expected<stream::Function> {
+      auto function, [&]() -> llvm::Expected<wrapper::Function> {
         switch (input.dtype().kind()) {
           case DType::F16: {
             static ModuleLoader module_loader(kBiasAddF16Kernel);
@@ -222,7 +221,7 @@ static llvm::Expected<DenseGpuTensor> ComputeReluGpuOp(
                         AllocateBuffer(dctx, result_md.dtype, result_md.shape));
 
   TFRT_ASSIGN_OR_RETURN(
-      auto function, [&]() -> llvm::Expected<stream::Function> {
+      auto function, [&]() -> llvm::Expected<wrapper::Function> {
         switch (input.dtype().kind()) {
           case DType::F16: {
             static ModuleLoader module_loader(kReluF16Kernel);
@@ -265,10 +264,10 @@ static llvm::Expected<DenseGpuTensor> ComputeReluGpuOp(
   return DenseGpuTensor(result_md.shape, result_md.dtype,
                         std::move(output_buffer));
 }
-}  // namespace gpu
 
 void RegisterMlirGpuTfOps(GpuOpRegistry* registry) {
-  registry->AddOp("tf.BiasAdd", TFRT_GPU_OP(gpu::ComputeBiasAddGpuOp));
-  registry->AddOp("tf.Relu", TFRT_GPU_OP(gpu::ComputeReluGpuOp));
+  registry->AddOp("tf.BiasAdd", TFRT_GPU_OP(ComputeBiasAddGpuOp));
+  registry->AddOp("tf.Relu", TFRT_GPU_OP(ComputeReluGpuOp));
 }
+}  // namespace gpu
 }  // namespace tfrt

@@ -36,7 +36,7 @@
 
 namespace tfrt {
 namespace gpu {
-namespace stream {
+namespace wrapper {
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                               const CudaErrorData& data) {
@@ -742,6 +742,6 @@ void CheckCudaContext(CurrentContext) {
 #endif
 }
 
-}  // namespace stream
+}  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

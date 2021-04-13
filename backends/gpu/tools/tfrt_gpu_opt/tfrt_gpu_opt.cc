@@ -24,7 +24,7 @@
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
-  registry.insert<tfrt::cuda::CUDADialect>();
-  registry.insert<tfrt::cuda::CUDATestDialect>();
+  registry.insert<tfrt::gpu::CUDADialect>();
+  registry.insert<tfrt::gpu::CUDATestDialect>();
   return failed(mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry));
 }

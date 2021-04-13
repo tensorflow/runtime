@@ -29,27 +29,27 @@ namespace {
 
 class ModuleTableImpl : public ModuleTable {
  public:
-  ModuleTableImpl(std::vector<stream::OwningModule> modules,
-                  std::vector<stream::Function> functions)
+  ModuleTableImpl(std::vector<wrapper::OwningModule> modules,
+                  std::vector<wrapper::Function> functions)
       : modules_(std::move(modules)), functions_(std::move(functions)) {}
 
-  stream::Function GetFunction(ModuleFuncHandle handle) const override {
+  wrapper::Function GetFunction(ModuleFuncHandle handle) const override {
     return functions_.at(handle.raw());
   }
 
  private:
   // RAII handles to the modules. These are not accessed after initalization and
   // are stored purely for lifetime management.
-  const std::vector<stream::OwningModule> modules_;
+  const std::vector<wrapper::OwningModule> modules_;
 
   // Table of loaded function pointers.
-  const std::vector<stream::Function> functions_;
+  const std::vector<wrapper::Function> functions_;
 };
 
 // Maintains a sorted vector of mappings from device_id to module table.
 class MultiDeviceModuleTableImpl : public MultiDeviceModuleTable {
  public:
-  llvm::Error AddTable(const stream::Device& device,
+  llvm::Error AddTable(const wrapper::Device& device,
                        std::unique_ptr<ModuleTable> table) override {
     const int device_id = device.id(device.platform());
     Entry to_insert{device_id, std::move(table)};
@@ -68,7 +68,7 @@ class MultiDeviceModuleTableImpl : public MultiDeviceModuleTable {
   }
 
   llvm::Optional<const ModuleTable*> GetTable(
-      const stream::Device& device) const override {
+      const wrapper::Device& device) const override {
     const int device_id = device.id(device.platform());
     auto it = std::lower_bound(tables_.begin(), tables_.end(), Entry{device_id},
                                CompareEntries{});
@@ -97,16 +97,16 @@ class MultiDeviceModuleTableImpl : public MultiDeviceModuleTable {
 }  // namespace
 
 // Wrapper for module loading that prints logs when in debug mode.
-static llvm::Expected<stream::OwningModule> LoadModule(
-    stream::CurrentContext current, const char* module_data) {
+static llvm::Expected<wrapper::OwningModule> LoadModule(
+    wrapper::CurrentContext current, const char* module_data) {
 #ifdef NDEBUG
-  return stream::ModuleLoadData(current, module_data);
+  return wrapper::ModuleLoadData(current, module_data);
 #else
   std::string info_log;
   std::string error_log;
 
-  stream::ModuleLoadOptions options{&info_log, &error_log, 1};
-  auto maybe_module = stream::ModuleLoadDataEx(current, module_data, options);
+  wrapper::ModuleLoadOptions options{&info_log, &error_log, 1};
+  auto maybe_module = wrapper::ModuleLoadDataEx(current, module_data, options);
   if (!info_log.empty()) {
     TFRT_LOG_INFO << "CUDA JIT info Log: " << info_log;
   }
@@ -129,16 +129,16 @@ MultiDeviceModuleTable::Create() {
 #define AS_CSTR(s) (IsCString(s) ? s.data() : s.str().c_str())
 
 /*static*/ llvm::Expected<std::unique_ptr<ModuleTable>> ModuleTable::Create(
-    stream::CurrentContext current, const ModuleTable::Spec& spec) {
+    wrapper::CurrentContext current, const ModuleTable::Spec& spec) {
   const int module_count = spec.modules.size();
   int function_count = 0;
   for (const auto& module_spec : spec.modules) {
     function_count += module_spec.function_symbols.size();
   }
 
-  std::vector<stream::OwningModule> modules;
+  std::vector<wrapper::OwningModule> modules;
   modules.reserve(module_count);
-  std::vector<stream::Function> functions;
+  std::vector<wrapper::Function> functions;
   functions.reserve(function_count);
 
   for (const auto& module_spec : spec.modules) {
@@ -148,8 +148,8 @@ MultiDeviceModuleTable::Create() {
     for (string_view function_symbol : module_spec.function_symbols) {
       TFRT_ASSIGN_OR_RETURN(
           std::back_inserter(functions),
-          stream::ModuleGetFunction(modules.back().get(),
-                                    AS_CSTR(function_symbol)));
+          wrapper::ModuleGetFunction(modules.back().get(),
+                                     AS_CSTR(function_symbol)));
     }
   }
 

@@ -31,7 +31,7 @@ namespace gpu {
 class GpuBufferTest : public ::testing::TestWithParam<SubAllocator> {
  protected:
   void SetUp() override {
-    ASSERT_TRUE(IsSuccess(Init(gpu::stream::Platform::CUDA)));
+    ASSERT_TRUE(IsSuccess(Init(wrapper::Platform::CUDA)));
   }
 
   BlockAllocator CreateSimpleBlockAllocator() {
@@ -43,14 +43,13 @@ class GpuBufferTest : public ::testing::TestWithParam<SubAllocator> {
 
 TEST_P(GpuBufferTest, Basic) {
   BlockAllocator block_allocator = CreateSimpleBlockAllocator();
-  TFRT_ASSERT_AND_ASSIGN(auto device,
-                         DeviceGet(gpu::stream::Platform::CUDA, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(wrapper::Platform::CUDA, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
   TFRT_ASSERT_AND_ASSIGN(auto current_context,
-                         gpu::stream::CtxSetCurrent(context.get()));
+                         wrapper::CtxSetCurrent(context.get()));
   TFRT_ASSERT_AND_ASSIGN(
-      auto stream, gpu::stream::StreamCreate(
-                       current_context, gpu::stream::StreamFlags::DEFAULT));
+      auto stream,
+      wrapper::StreamCreate(current_context, wrapper::StreamFlags::DEFAULT));
   {
     // Allocation and deallocation via GpuAllocator.
     size_t buffer_size = 512;
@@ -74,7 +73,7 @@ TEST_P(GpuBufferTest, Basic) {
 
 INSTANTIATE_TEST_SUITE_P(
     BaseTestCases, GpuBufferTest,
-    ::testing::Values(SubAllocator(gpu::stream::Platform::CUDA)));
+    ::testing::Values(SubAllocator(wrapper::Platform::CUDA)));
 
 }  // namespace gpu
 }  // namespace tfrt

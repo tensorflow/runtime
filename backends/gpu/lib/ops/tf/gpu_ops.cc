@@ -19,13 +19,6 @@
 #include <cstdint>
 #include <limits>
 
-#include "binary_ops.h"
-#include "dnn_ops.h"
-#include "matmul_op.h"
-#include "mlir_ops.h"
-#include "nullary_ops.h"
-#include "pad_op.h"
-#include "reduction_ops.h"
 #include "tfrt/common/ops/tf/metadata_functions.h"
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/core_runtime/op_attrs.h"
@@ -36,23 +29,34 @@
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/tensor/dense_host_tensor.h"
-#include "transpose_op.h"
-#include "unary_ops.h"
 
 namespace tfrt {
+namespace gpu {
+
+void RegisterBinaryGpuTfOps(GpuOpRegistry* registry);
+void RegisterDnnGpuTfOps(GpuOpRegistry* registry);
+void RegisterMatmulGpuTfOps(GpuOpRegistry* registry);
+void RegisterMlirGpuTfOps(GpuOpRegistry* registry);
+void RegisterNullaryGpuTfOps(GpuOpRegistry* registry);
+void RegisterPadGpuTfOps(GpuOpRegistry* registry);
+void RegisterReductionGpuTfOps(GpuOpRegistry* registry);
+void RegisterTransposeGpuTfOps(GpuOpRegistry* registry);
+void RegisterUnaryGpuTfOps(GpuOpRegistry* registry);
+
 void RegisterTfGpuOps(GpuOpRegistry* registry) {
   for (const std::pair<llvm::StringRef, OpMetadataFn>& md_function :
        GetAllTFMetadataFunctions()) {
     registry->AddMetadataFn(md_function.first, md_function.second);
   }
-  RegisterNullaryGpuTfOps(registry);
-  RegisterUnaryGpuTfOps(registry);
   RegisterBinaryGpuTfOps(registry);
   RegisterDnnGpuTfOps(registry);
   RegisterMatmulGpuTfOps(registry);
   RegisterMlirGpuTfOps(registry);
+  RegisterNullaryGpuTfOps(registry);
   RegisterPadGpuTfOps(registry);
   RegisterReductionGpuTfOps(registry);
   RegisterTransposeGpuTfOps(registry);
+  RegisterUnaryGpuTfOps(registry);
 }
+}  // namespace gpu
 }  // namespace tfrt

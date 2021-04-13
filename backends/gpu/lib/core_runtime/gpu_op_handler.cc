@@ -44,9 +44,10 @@
 namespace tfrt {
 class AsyncValue;
 class Chain;
-class GpuOpRegistry;
 class Tensor;
-using gpu::stream::OwningEvent;
+
+namespace gpu {
+class GpuOpRegistry;
 
 class GpuOpHandler : public OpHandler {
  public:
@@ -139,4 +140,5 @@ Expected<CoreRuntimeOp> GpuOpHandler::MakeOp(string_view op_name) {
       /*arg_tensor_type=*/GetStaticTensorType("DenseGpu"));
 }
 
+}  // namespace gpu
 }  // namespace tfrt

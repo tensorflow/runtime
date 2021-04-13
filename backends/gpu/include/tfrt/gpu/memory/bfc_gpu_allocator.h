@@ -44,18 +44,18 @@ namespace gpu {
 // all requests to allocate GPU memory go through this interface.
 class BfcGpuAllocator : public gpu::GpuAllocator {
  public:
-  explicit BfcGpuAllocator(const stream::CurrentContext& current);
+  explicit BfcGpuAllocator(const wrapper::CurrentContext& current);
 
   // BfcGpuAllocator does not support streams. If it is asked to allocate
   // something on a stream different from the stream of any previous
   // allocations, the allocation request will fail.
   llvm::Expected<RCReference<gpu::GpuBuffer>> Allocate(
-      size_t num_bytes, gpu::stream::Stream stream) override;
+      size_t num_bytes, wrapper::Stream stream) override;
 
   void Deallocate(const gpu::GpuBuffer& buffer) override;
 
   llvm::Error RecordUsage(const gpu::GpuBuffer& buffer,
-                          gpu::stream::Stream stream) override;
+                          wrapper::Stream stream) override;
 
  private:
   struct Bin;
@@ -126,9 +126,9 @@ class BfcGpuAllocator : public gpu::GpuAllocator {
   }
 
   // Structures immutable after construction
-  stream::Context context_;
+  wrapper::Context context_;
   // The base pointer where all the GPU memory begins.
-  stream::DeviceMemory<void> base_ptr_;
+  wrapper::DeviceMemory<void> base_ptr_;
   uint64_t gpu_memory_size_ = 0;
 
   // Map from bin size to Bin
@@ -147,7 +147,7 @@ class BfcGpuAllocator : public gpu::GpuAllocator {
   //  - the allocator is not notified when the stream is destroyed. So, the
   //  synchronization can happen after the stream is destroyed causing
   //  segfault.
-  gpu::stream::Stream stream_ TFRT_GUARDED_BY(mu_);
+  wrapper::Stream stream_ TFRT_GUARDED_BY(mu_);
 };
 
 }  // namespace gpu

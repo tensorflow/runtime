@@ -24,7 +24,7 @@
 #include "tfrt/support/op_registry_impl.h"
 
 namespace tfrt {
-
+namespace gpu {
 struct GpuOpFlags {};
 
 // This is the pImpl implementation details for GpuOpRegistry.
@@ -34,6 +34,7 @@ struct GpuOpRegistry::Impl final
 using GpuOpEntry =
     OpRegistryImpl<OpMetadataFn, GpuDispatchFn, GpuOpFlags>::OpEntry;
 
+}  // namespace gpu
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_GPU_LIB_CORE_RUNTIME_GPU_OP_REGISTRY_IMPL_H_

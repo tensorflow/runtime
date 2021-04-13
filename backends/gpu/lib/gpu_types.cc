@@ -22,7 +22,7 @@
 
 namespace tfrt {
 namespace gpu {
-GpuContext::GpuContext(gpu::stream::OwningContext context)
+GpuContext::GpuContext(wrapper::OwningContext context)
     : context_(std::move(context)) {}
 
 GpuContext::~GpuContext() = default;
@@ -37,13 +37,13 @@ Error GpuContext::SetModuleTable(std::unique_ptr<gpu::ModuleTable> table) {
 }
 
 GpuStream::GpuStream(AsyncValueRef<GpuContext> context,
-                     gpu::stream::OwningStream stream)
+                     wrapper::OwningStream stream)
     : context_(std::move(context)), stream_(std::move(stream)) {}
 
 GpuStream::~GpuStream() = default;
 
 GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
-                   gpu::stream::OwningEvent event)
+                   wrapper::OwningEvent event)
     : context_(std::move(context)), event_(std::move(event)) {}
 
 GpuEvent::~GpuEvent() = default;

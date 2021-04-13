@@ -25,21 +25,21 @@ namespace tfrt {
 namespace gpu {
 
 using GpuAllocatorFactory =
-    std::function<tfrt::gpu::GpuAllocator*(const tfrt::gpu::stream::Context&)>;
+    std::function<GpuAllocator*(const wrapper::Context&)>;
 
 struct GpuResources {
   // Either CUcontext or hipCtx_t.
-  stream::Context gpu_context;
+  wrapper::Context gpu_context;
   // Caller needs to ensure that the factory always returns the same allocator
   // for the given context, instead of creating a new one each time.
   GpuAllocatorFactory allocator_factory;
   // A stream pointer (either a CUstream or hipStream_t).
-  stream::Stream stream;
+  wrapper::Stream stream;
 };
 
-void SetTfrtGpuResources(stream::Device device, GpuResources resources);
+void SetTfrtGpuResources(wrapper::Device device, GpuResources resources);
 
-llvm::Optional<GpuResources> GetTfrtGpuResources(stream::Device device);
+llvm::Optional<GpuResources> GetTfrtGpuResources(wrapper::Device device);
 
 }  // namespace gpu
 }  // namespace tfrt

@@ -50,7 +50,7 @@ class GpuAllocator {
   // has finished. This can result in extra synchronization and some overheads,
   // especially when operating close to memory capacity.
   virtual llvm::Expected<RCReference<GpuBuffer>> Allocate(
-      size_t size, gpu::stream::Stream stream) = 0;
+      size_t size, wrapper::Stream stream) = 0;
 
   // Lets the allocator know that the space identified by `buffer` will
   // not be used in the future. Users are permitted to call this method
@@ -67,7 +67,7 @@ class GpuAllocator {
   // that point and synchronize to it (instead of top-of-the-stream during
   // Deallocate()) to know when it is safe to reuse the buffer.
   virtual llvm::Error RecordUsage(const GpuBuffer& buffer,
-                                  gpu::stream::Stream stream) = 0;
+                                  wrapper::Stream stream) = 0;
 };
 
 }  // namespace gpu

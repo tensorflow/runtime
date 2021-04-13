@@ -34,6 +34,8 @@ class OpAttrsRef;
 class OpHandler;
 class TensorHandle;
 class TensorMetadata;
+
+namespace gpu {
 class GpuDispatchContext;
 
 using GpuDispatchFn = void (*)(const ExecutionContext& exec_ctx,
@@ -82,7 +84,7 @@ class GpuOpRegistry {
   TFRT_STATIC_GPU_OP_REGISTRATION__(FUNC, N)
 #define TFRT_STATIC_GPU_OP_REGISTRATION__(FUNC, N)      \
   static bool tfrt_static_op_##N##_registered_ = []() { \
-    ::tfrt::AddStaticGpuOpRegistration(FUNC);           \
+    AddStaticGpuOpRegistration(FUNC);                   \
     return true;                                        \
   }()
 
@@ -102,6 +104,10 @@ void RegisterStaticGpuOps(GpuOpRegistry* op_reg);
 // op_handler is owned by CoreRuntime, just like all op_handlers.
 tfrt::Expected<OpHandler*> CreateGpuOpHandler(GpuOpRegistry&& op_registry,
                                               CoreRuntime* runtime);
+
+}  // namespace gpu
+
+using gpu::CreateGpuOpHandler;  // TODO(b/185219734): fix call sites.
 
 }  // namespace tfrt
 

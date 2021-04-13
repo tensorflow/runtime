@@ -21,6 +21,7 @@
 #include <string>
 
 #include "kernels.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/stream/cudnn_wrapper.h"
 #include "tfrt/gpu/stream/dnn_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
@@ -75,8 +76,8 @@ llvm::Expected<gpu::stream::DnnNanPropagation> IntToDnnNanPropagation(
 using ::tfrt::gpu::stream::Pointer;
 
 static Expected<gpu::stream::OwningDnnHandle> DnnCreate(
-    gpu::stream::Context context) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+    const gpu::GpuContext& context) {
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
   return gpu::stream::DnnCreate(*current);
 }
@@ -86,7 +87,7 @@ static Error DnnDestroy(Argument<gpu::stream::OwningDnnHandle> dnn_handle) {
 }
 
 static Error DnnSetStream(const gpu::stream::OwningDnnHandle& dnn_handle,
-                          const gpu::stream::OwningStream& stream) {
+                          const gpu::GpuStream& stream) {
   return gpu::stream::DnnSetStream(dnn_handle.get(), stream.get());
 }
 
@@ -96,14 +97,14 @@ static Expected<gpu::stream::Stream> DnnGetStream(
 }
 
 static Expected<gpu::stream::OwningDnnPoolingDescriptor>
-DnnCreatePoolingDescriptor(gpu::stream::Context context, uint32_t mode,
+DnnCreatePoolingDescriptor(const gpu::GpuContext& context, uint32_t mode,
                            uint32_t nan_propagation,
                            const DenseHostTensor& window_dimensions,
                            const DenseHostTensor& paddings,
                            const DenseHostTensor& strides) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   auto descriptor =
-      gpu::stream::DnnCreatePoolingDescriptor(current->platform());
+      gpu::stream::DnnCreatePoolingDescriptor(context->platform());
   if (!descriptor) return descriptor.takeError();
   if (window_dimensions.dtype().kind() != tfrt::DType::I32)
     return MakeStringError(
@@ -141,11 +142,11 @@ static Error DnnDestroyPoolingDescriptor(
 }
 
 static Expected<gpu::stream::OwningDnnTensorDescriptor>
-DnnCreateTensorDescriptor(gpu::stream::Context context, uint32_t data_type,
+DnnCreateTensorDescriptor(const gpu::GpuContext& context, uint32_t data_type,
                           const DenseHostTensor& dimensions,
                           const DenseHostTensor& strides) {
-  auto current = gpu::stream::CtxSetCurrent(context);
-  auto descriptor = gpu::stream::DnnCreateTensorDescriptor(current->platform());
+  auto current = gpu::stream::CtxSetCurrent(context.get());
+  auto descriptor = gpu::stream::DnnCreateTensorDescriptor(context->platform());
   if (!descriptor) return descriptor.takeError();
   if (dimensions.dtype().kind() != tfrt::DType::I32)
     return MakeStringError(
@@ -161,7 +162,8 @@ DnnCreateTensorDescriptor(gpu::stream::Context context, uint32_t data_type,
   if (!strides_data)
     return MakeStringError(
         "DnnCreateTensorDescriptor: strides is not a 1D tensor.");
-  gpu::stream::DnnDataType dnn_data_type(data_type, context.platform());
+  gpu::stream::DnnDataType dnn_data_type(static_cast<int>(data_type),
+                                         context->platform());
   if (auto error = gpu::stream::DnnSetTensorDescriptor(
           descriptor->get(), dnn_data_type, dimensions_data.get(),
           strides_data.get()))
@@ -175,16 +177,16 @@ static Error DnnDestroyTensorDescriptor(
 }
 
 static Error DnnPoolingForward(
-    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const gpu::GpuContext& context, const gpu::stream::OwningDnnHandle& handle,
     const gpu::stream::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const gpu::stream::OwningDnnTensorDescriptor& x_desc,
     const RCReference<gpu::GpuBuffer>& x, float beta,
     const gpu::stream::OwningDnnTensorDescriptor& y_desc,
     const RCReference<gpu::GpuBuffer>& y) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  Pointer<const void> alpha_ptr(&alpha, context.platform());
-  Pointer<const void> beta_ptr(&beta, context.platform());
+  Pointer<const void> alpha_ptr(&alpha, context->platform());
+  Pointer<const void> beta_ptr(&beta, context->platform());
 
   return tfrt::gpu::stream::DnnPoolingForward(
       *current, handle.get(), pooling_desc.get(), alpha_ptr, x_desc.get(),
@@ -192,7 +194,7 @@ static Error DnnPoolingForward(
 }
 
 static Error DnnPoolingBackward(
-    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const gpu::GpuContext& context, const gpu::stream::OwningDnnHandle& handle,
     const gpu::stream::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const gpu::stream::OwningDnnTensorDescriptor& y_desc,
     const RCReference<gpu::GpuBuffer>& y,
@@ -202,10 +204,10 @@ static Error DnnPoolingBackward(
     const RCReference<gpu::GpuBuffer>& x, float beta,
     const gpu::stream::OwningDnnTensorDescriptor& dx_desc,
     const RCReference<gpu::GpuBuffer>& dx) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  Pointer<const void> alpha_ptr(&alpha, context.platform());
-  Pointer<const void> beta_ptr(&beta, context.platform());
+  Pointer<const void> alpha_ptr(&alpha, context->platform());
+  Pointer<const void> beta_ptr(&beta, context->platform());
 
   return gpu::stream::DnnPoolingBackward(
       *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
@@ -214,7 +216,7 @@ static Error DnnPoolingBackward(
 }
 
 Error DnnConvolutionForward(
-    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const gpu::GpuContext& context, const gpu::stream::OwningDnnHandle& handle,
     const gpu::stream::OwningDnnTensorDescriptor& x_desc,
     const RCReference<gpu::GpuBuffer>& x,
     const gpu::stream::OwningDnnFilterDescriptor& w_desc,
@@ -223,9 +225,9 @@ Error DnnConvolutionForward(
     const RCReference<gpu::GpuBuffer>& work_space,
     const gpu::stream::OwningDnnTensorDescriptor& y_desc,
     const RCReference<gpu::GpuBuffer>& y) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  auto algo_dnn = gpu::stream::DnnConvFwdAlgo(algo, current->platform());
+  auto algo_dnn = gpu::stream::DnnConvFwdAlgo(algo, context->platform());
   return gpu::stream::DnnConvolutionForward(
       *current, handle.get(), x_desc.get(), x->pointer(), w_desc.get(),
       w->pointer(), conv_desc.get(), algo_dnn, work_space->pointer(),
@@ -233,7 +235,7 @@ Error DnnConvolutionForward(
 }
 
 Error DnnConvolutionBackwardData(
-    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const gpu::GpuContext& context, const gpu::stream::OwningDnnHandle& handle,
     const gpu::stream::OwningDnnFilterDescriptor& w_desc,
     const RCReference<gpu::GpuBuffer>& w,
     const gpu::stream::OwningDnnTensorDescriptor& dy_desc,
@@ -242,9 +244,9 @@ Error DnnConvolutionBackwardData(
     const RCReference<gpu::GpuBuffer>& work_space,
     const gpu::stream::OwningDnnTensorDescriptor& dx_desc,
     const RCReference<gpu::GpuBuffer>& dx) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  auto algo_dnn = gpu::stream::DnnConvBwdDataAlgo(algo, current->platform());
+  auto algo_dnn = gpu::stream::DnnConvBwdDataAlgo(algo, context->platform());
   return gpu::stream::DnnConvolutionBackwardData(
       *current, handle.get(), w_desc.get(), w->pointer(), dy_desc.get(),
       dy->pointer(), conv_desc.get(), algo_dnn, work_space->pointer(),
@@ -252,7 +254,7 @@ Error DnnConvolutionBackwardData(
 }
 
 Error DnnConvolutionBackwardFilter(
-    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const gpu::GpuContext& context, const gpu::stream::OwningDnnHandle& handle,
     const gpu::stream::OwningDnnTensorDescriptor& x_desc,
     const RCReference<gpu::GpuBuffer>& x,
     const gpu::stream::OwningDnnTensorDescriptor& dy_desc,
@@ -261,9 +263,9 @@ Error DnnConvolutionBackwardFilter(
     const RCReference<gpu::GpuBuffer>& work_space,
     const gpu::stream::OwningDnnFilterDescriptor& dw_desc,
     const RCReference<gpu::GpuBuffer>& dw) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  auto algo_dnn = gpu::stream::DnnConvBwdWeightsAlgo(algo, current->platform());
+  auto algo_dnn = gpu::stream::DnnConvBwdWeightsAlgo(algo, context->platform());
   return gpu::stream::DnnConvolutionBackwardFilter(
       *current, handle.get(), x_desc.get(), x->pointer(), dy_desc.get(),
       dy->pointer(), conv_desc.get(), algo_dnn, work_space->pointer(),
@@ -272,7 +274,7 @@ Error DnnConvolutionBackwardFilter(
 
 // This is CUDA specific kernel, there is no ROCm counterpart.
 Error CudnnConvolutionBiasActivationForward(
-    gpu::stream::Context context, const gpu::stream::OwningDnnHandle& handle,
+    const gpu::GpuContext& context, const gpu::stream::OwningDnnHandle& handle,
     const RCReference<gpu::GpuBuffer>& alpha1,
     const gpu::stream::OwningDnnTensorDescriptor& x_desc,
     const RCReference<gpu::GpuBuffer>& x,
@@ -288,7 +290,7 @@ Error CudnnConvolutionBiasActivationForward(
     const gpu::stream::OwningDnnActivationDescriptor& activation_desc,
     const gpu::stream::OwningDnnTensorDescriptor& y_desc,
     const RCReference<gpu::GpuBuffer>& y) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
   auto algo_dnn = static_cast<cudnnConvolutionFwdAlgo_t>(algo);
   return gpu::stream::CudnnConvolutionBiasActivationForward(

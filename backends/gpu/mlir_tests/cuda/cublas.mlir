@@ -36,7 +36,7 @@ func @cublas_axpy() -> !tfrt.chain {
   %ch1 = tfrt_cuda.init %ch0
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch1
-  %context, %ch3 = tfrt_cuda_test.context.get %device, %ch1
+  %context = tfrt_cuda.context.create %device, %ch1
   %allocator = tfrt_cuda.allocator.create %context, %ch1
   %stream = tfrt_cuda.stream.create %context, %ch1
   %cublas_handle = tfrt_cuda.blas.create %context
@@ -80,7 +80,7 @@ func @cublas_gemm() -> !tfrt.chain {
   %ch1 = tfrt_cuda.init %ch0
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch1
-  %context, %ch3 = tfrt_cuda_test.context.get %device, %ch1
+  %context = tfrt_cuda.context.create %device, %ch1
   %allocator = tfrt_cuda.allocator.create %context, %ch1
   %stream = tfrt_cuda.stream.create %context, %ch1
   %cublas_handle = tfrt_cuda.blas.create %context
@@ -122,7 +122,7 @@ func @cublas_gemm_ex() -> !tfrt.chain {
   %ch1 = tfrt_cuda.init %ch0
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch1
-  %context, %ch3 = tfrt_cuda_test.context.get %device, %ch1
+  %context = tfrt_cuda.context.create %device, %ch1
   %allocator = tfrt_cuda.allocator.create %context, %ch1
   %stream = tfrt_cuda.stream.create %context, %ch1
   %cublas_handle = tfrt_cuda.blas.create %context
@@ -166,7 +166,7 @@ func @cublas_gemm_strided_batched_ex() -> !tfrt.chain {
   %ch1 = tfrt_cuda.init %ch0
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch1
-  %context, %ch3 = tfrt_cuda_test.context.get %device, %ch1
+  %context = tfrt_cuda.context.create %device, %ch1
   %allocator = tfrt_cuda.allocator.create %context, %ch1
   %stream = tfrt_cuda.stream.create %context, %ch1
   %cublas_handle = tfrt_cuda.blas.create %context

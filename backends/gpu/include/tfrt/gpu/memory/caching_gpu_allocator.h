@@ -25,14 +25,19 @@
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 namespace gpu {
+class GpuContext;
 
 // CachingGpuAllocator is thread-safe.
 class CachingGpuAllocator : public GpuAllocator {
  public:
+  explicit CachingGpuAllocator(AsyncValueRef<GpuContext> context);
+  ~CachingGpuAllocator() override;
+
   llvm::Expected<RCReference<gpu::GpuBuffer>> Allocate(
       size_t size, gpu::stream::Stream stream) override;
 
@@ -43,6 +48,7 @@ class CachingGpuAllocator : public GpuAllocator {
 
  private:
   std::map<gpu::stream::Pointer<void>, gpu::stream::Context> allocations_;
+  AsyncValueRef<GpuContext> context_;
 };
 
 }  // namespace gpu

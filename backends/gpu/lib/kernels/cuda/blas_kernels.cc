@@ -18,6 +18,7 @@
 // by the TFRT CUDA runtime.
 #include "kernels.h"
 #include "llvm/Support/Errc.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/stream/blas_wrapper.h"
 #include "tfrt/gpu/stream/cublas_wrapper.h"
@@ -30,25 +31,25 @@ namespace cuda {
 using ::tfrt::gpu::stream::Pointer;
 
 static Expected<gpu::stream::OwningBlasHandle> BlasCreate(
-    gpu::stream::Context context) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+    const gpu::GpuContext& context) {
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
   return gpu::stream::BlasCreate(*current);
 }
 
 static Error BlasSetStream(const gpu::stream::OwningBlasHandle& cublas_handle,
-                           const gpu::stream::OwningStream& stream) {
+                           const gpu::GpuStream& stream) {
   return gpu::stream::BlasSetStream(cublas_handle.get(), stream.get());
 }
 
-static Error BlasSaxpy(gpu::stream::Context context,
+static Error BlasSaxpy(const gpu::GpuContext& context,
                        const gpu::stream::OwningBlasHandle& cublas_handle,
                        int32_t n, float alpha,
                        const RCReference<gpu::GpuBuffer>& x, int32_t incx,
                        const RCReference<gpu::GpuBuffer>& y, int32_t incy) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  Pointer<const float> alpha_ptr(&alpha, context.platform());
+  Pointer<const float> alpha_ptr(&alpha, context->platform());
 
   return gpu::stream::BlasSaxpy(*current, cublas_handle.get(), n, alpha_ptr,
                                 Pointer<const float>(x->pointer()), incx,
@@ -83,7 +84,7 @@ static llvm::Expected<cublasGemmAlgo_t> SafeIntToCublasGemmAlgo(int32_t algo) {
   return cublas_algo;
 }
 
-static Error BlasSgemm(gpu::stream::Context context,
+static Error BlasSgemm(const gpu::GpuContext& context,
                        const gpu::stream::OwningBlasHandle& cublas_handle,
                        int32_t m, int32_t n, int32_t k, float alpha,
                        const RCReference<gpu::GpuBuffer>& A, int32_t lda,
@@ -91,10 +92,10 @@ static Error BlasSgemm(gpu::stream::Context context,
                        float beta, const RCReference<gpu::GpuBuffer>& C,
                        int32_t ldc, Attribute<bool> transa,
                        Attribute<bool> transb) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  Pointer<const float> alpha_ptr(&alpha, context.platform());
-  Pointer<const float> beta_ptr(&beta, context.platform());
+  Pointer<const float> alpha_ptr(&alpha, context->platform());
+  Pointer<const float> beta_ptr(&beta, context->platform());
 
   return gpu::stream::BlasSgemm(*current, cublas_handle.get(),
                                 ToBlasOperation(*transa),
@@ -108,7 +109,7 @@ static Error BlasSgemm(gpu::stream::Context context,
 // corresponding ROCm function, as wrapper BlassGemmEx for CUDA/ROCm is not
 // feasible due to mismatch in APIs (algo specification parameter).  Right now
 // only CublasGemmEx call is supported.
-static Error BlasGemmEx(gpu::stream::Context context,
+static Error BlasGemmEx(const gpu::GpuContext& context,
                         const gpu::stream::OwningBlasHandle& cublas_handle,
                         int32_t m, int32_t n, int32_t k, float alpha,
                         const RCReference<gpu::GpuBuffer>& A, int32_t Atype,
@@ -117,10 +118,10 @@ static Error BlasGemmEx(gpu::stream::Context context,
                         const RCReference<gpu::GpuBuffer>& C, int32_t Ctype,
                         int32_t ldc, int32_t computeType, int32_t algo,
                         Attribute<bool> transa, Attribute<bool> transb) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  Pointer<const float> alpha_ptr(&alpha, context.platform());
-  Pointer<const float> beta_ptr(&beta, context.platform());
+  Pointer<const float> alpha_ptr(&alpha, context->platform());
+  Pointer<const float> beta_ptr(&beta, context->platform());
 
   auto transa_cublas = ToCublas(ToBlasOperation(*transa));
   auto transb_cublas = ToCublas(ToBlasOperation(*transb));
@@ -152,10 +153,10 @@ static Error BlasGemmEx(gpu::stream::Context context,
 // TfrtKernelImpl::HandleReturn does not overload for that. Until we have
 // decided whether async kernels are allowed to have no return values (not even
 // a chain), simply return an empty tuple.
-static Error BlasSyncGemmEx(gpu::stream::Context context,
+static Error BlasSyncGemmEx(const gpu::GpuContext& context,
                             const gpu::stream::OwningBlasHandle& cublas_handle,
-                            const gpu::stream::OwningStream& stream, int32_t m,
-                            int32_t n, int32_t k, float alpha,
+                            const gpu::GpuStream& stream, int32_t m, int32_t n,
+                            int32_t k, float alpha,
                             const RCReference<gpu::GpuBuffer>& A, int32_t Atype,
                             int32_t lda, const RCReference<gpu::GpuBuffer>& B,
                             int32_t Btype, int32_t ldb, float beta,
@@ -163,10 +164,10 @@ static Error BlasSyncGemmEx(gpu::stream::Context context,
                             int32_t ldc, int32_t algo,
                             Attribute<int32_t> computeType,
                             Attribute<bool> transa, Attribute<bool> transb) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  Pointer<const float> alpha_ptr(&alpha, context.platform());
-  Pointer<const float> beta_ptr(&beta, context.platform());
+  Pointer<const float> alpha_ptr(&alpha, context->platform());
+  Pointer<const float> beta_ptr(&beta, context->platform());
 
   auto transa_cublas = ToCublas(ToBlasOperation(*transa));
   auto transb_cublas = ToCublas(ToBlasOperation(*transb));
@@ -199,7 +200,7 @@ static Error BlasSyncGemmEx(gpu::stream::Context context,
 }
 
 static Error BlasGemmStridedBatchedEx(
-    gpu::stream::Context context,
+    const gpu::GpuContext& context,
     const gpu::stream::OwningBlasHandle& cublas_handle, int32_t m, int32_t n,
     int32_t k, float alpha, const RCReference<gpu::GpuBuffer>& A, int32_t Atype,
     int32_t lda, int64_t strideA, const RCReference<gpu::GpuBuffer>& B,
@@ -207,10 +208,10 @@ static Error BlasGemmStridedBatchedEx(
     const RCReference<gpu::GpuBuffer>& C, int32_t Ctype, int32_t ldc,
     int64_t strideC, int32_t batch_count, int32_t computeType, int32_t algo,
     Attribute<bool> transa, Attribute<bool> transb) {
-  auto current = gpu::stream::CtxSetCurrent(context);
+  auto current = gpu::stream::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  Pointer<const float> alpha_ptr(&alpha, context.platform());
-  Pointer<const float> beta_ptr(&beta, context.platform());
+  Pointer<const float> alpha_ptr(&alpha, context->platform());
+  Pointer<const float> beta_ptr(&beta, context->platform());
 
   auto transa_cublas = ToCublas(ToBlasOperation(*transa));
   auto transb_cublas = ToCublas(ToBlasOperation(*transb));

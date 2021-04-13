@@ -21,6 +21,7 @@
 #include <cstdint>
 
 #include "llvm/Support/Errc.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/stream/cuda_wrapper.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
@@ -28,6 +29,11 @@
 
 namespace tfrt {
 namespace gpu {
+
+CachingGpuAllocator::CachingGpuAllocator(AsyncValueRef<GpuContext> context)
+    : context_(std::move(context)) {}
+
+CachingGpuAllocator::~CachingGpuAllocator() = default;
 
 llvm::Expected<RCReference<gpu::GpuBuffer>> CachingGpuAllocator::Allocate(
     size_t size, gpu::stream::Stream stream) {

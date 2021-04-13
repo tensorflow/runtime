@@ -86,6 +86,7 @@ class ModuleFuncHandle {
 
 // MultiDeviceModuleTable is a map from Device to ModuleTable indexed by device
 // id.
+// TODO(csigg): Remove, modules are per context, not per device.
 class MultiDeviceModuleTable {
  public:
   static std::unique_ptr<MultiDeviceModuleTable> Create();

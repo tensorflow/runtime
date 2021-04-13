@@ -49,25 +49,6 @@ class CUDA_Test_Op<string mnemonic, list<OpTrait> traits = []> :
 }
 
 
-def TestContextGetOp : CUDA_Test_Op<"context.get"> {
-  let summary = "tfrt_cuda_test context.get operation";
-  let description = [{
-    tfrt_cuda_test.context.get returns a CUDA context for the given device.
-
-    The returned context does not need to be destroyed or released and user
-    can assume that it will outlive the function where it is used.
-
-    Example:
-      %ch1 = tfrt.new.chain
-      %ch2 = cuda.init %ch1
-      %index = tfrt.constant.i32 0
-      %device, %ch3 = cuda.device.get %index, %ch2
-      %ctx, %ch4 = tfrt_cuda_test.context.get %device, %ch2
-  }];
-  let arguments = (ins DeviceType, TFRT_ChainType);
-  let results = (outs ContextType, TFRT_ChainType);
-}
-
 def TestCpyTensorHtoDOp : CUDA_Test_Op<"copy_tensor_host_to_device"> {
   let summary = "tfrt_cuda_test copy_tensor_host_to_device operation";
   let description = [{

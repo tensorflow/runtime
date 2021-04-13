@@ -232,6 +232,9 @@ class Resource {
   bool operator==(Resource other) const { return pair_ == other.pair_; }
   bool operator!=(Resource other) const { return pair_ != other.pair_; }
 
+  // For member access from std::unique_ptr.
+  const Resource* operator->() const { return this; }
+
  private:
   llvm::PointerIntPair<void*, 2, Platform> pair_;
 

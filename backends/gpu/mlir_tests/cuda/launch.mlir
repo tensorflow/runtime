@@ -21,7 +21,7 @@ func @noop_kernel() {
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch2
-  %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
+  %context = tfrt_cuda.context.create %device, %ch2
   %stream = tfrt_cuda.stream.create %context, %ch2
 
   // PTX for empty kernel.
@@ -49,7 +49,7 @@ func @vector_add_kernel() {
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch2
-  %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
+  %context = tfrt_cuda.context.create %device, %ch2
   %stream = tfrt_cuda.stream.create %context, %ch2
   %allocator = tfrt_cuda.allocator.create %context, %ch2
 

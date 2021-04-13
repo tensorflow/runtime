@@ -62,6 +62,22 @@ def DeviceGetOp : CUDA_Op<"device.get"> {
   let results = (outs DeviceType);
 }
 
+def ContextCreateOp : CUDA_Op<"context.create"> {
+  let summary = "tfrt_cuda.context.create operation";
+  let description = [{
+    tfrt_cuda.context.create returns a CUDA context for the given device.
+
+    Example:
+      %ch1 = tfrt.new.chain
+      %ch2 = cuda.init %ch1
+      %index = tfrt.constant.i32 0
+      %device = cuda.device.get %index, %ch1
+      %ctx = tfrt_cuda.context.create %device, %ch1
+  }];
+  let arguments = (ins DeviceType, TFRT_ChainType);
+  let results = (outs ContextType);
+}
+
 def StreamCreateOp : CUDA_Op<"stream.create"> {
   let summary = "cuda stream.create operation";
   let description = [{
@@ -280,7 +296,7 @@ def MemcpyDtoHOp : CUDA_Op<"mem.copy_device_to_host"> {
   let results = (outs TFRT_ChainType);
 }
 
-def ModuleLoadStatic : CUDA_Op<"module.load_static"> {
+def ModuleLoadStaticOp : CUDA_Op<"module.load_static"> {
   let summary = "Loads a set of CUBIN or PTX modules.";
   let description = [{
     tfrt_cuda.module.load_static loads a fixed set of CUBIN or PTX modules.
@@ -310,7 +326,7 @@ def ModuleLoadStatic : CUDA_Op<"module.load_static"> {
   let assemblyFormat = "operands attr-dict";
 }
 
-def Launch : CUDA_Op<"launch"> {
+def LaunchOp : CUDA_Op<"launch"> {
   let summary = "Launches a kernel";
   let description = [{
     tfrt_cuda.launch invokes the provided kernel on a the provided stream.

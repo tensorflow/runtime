@@ -185,6 +185,7 @@ tfrt_cc_library(
     visibility = [":tests_and_tools"],
     deps = [
         ":gpu_stream_wrapper",
+        ":gpu_types",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -811,6 +812,7 @@ tfrt_cc_library(
         ":gpu_memory",
         ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_types",
         ":module_table",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:dtype",
@@ -832,6 +834,7 @@ tfrt_cc_library(
     deps = [
         ":gpu_memory",
         ":gpu_stream_wrapper",
+        ":gpu_types",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -875,6 +878,18 @@ tfrt_cc_library(
     deps = [
         ":gpu_stream_wrapper",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "gpu_types",
+    srcs = ["lib/gpu_types.cc"],
+    hdrs = ["include/tfrt/gpu/gpu_types.h"],
+    deps = [
+        ":gpu_stream_wrapper",
+        ":module_table",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
     ],

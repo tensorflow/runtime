@@ -21,7 +21,7 @@ func @event_create_test() {
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch2
-  %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
+  %context = tfrt_cuda.context.create %device, %ch2
   %event = tfrt_cuda.event.create %context
 
   tfrt.return
@@ -33,7 +33,7 @@ func @event_record_and_poll_test() {
   %ch2 = tfrt_cuda.init %ch1
   %index = tfrt.constant.i32 0
   %device = tfrt_cuda.device.get %index, %ch2
-  %context, %ch4 = tfrt_cuda_test.context.get %device, %ch2
+  %context = tfrt_cuda.context.create %device, %ch2
   %stream = tfrt_cuda.stream.create %context, %ch2
 
   %event = tfrt_cuda.event.create %context

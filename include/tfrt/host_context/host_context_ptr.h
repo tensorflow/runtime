@@ -25,9 +25,36 @@
 #include <cassert>
 #include <cstdint>
 
+#include "tfrt/support/mutex.h"
+
 namespace tfrt {
 
 class HostContext;
+class HostContextPtr;
+
+// HostContextPool manages all the live HostContext instances. It limits the
+// number of live HostContext instances to 256 to allow referecing a HostContext
+// with a 1-byte int. This is used to keep sizeof(HostContextPtr) to 1 byte.
+class HostContextPool {
+ public:
+  static constexpr int kCompacity = 256;
+
+  static HostContextPool& instance() {
+    static HostContextPool* pool = new HostContextPool();
+    return *pool;
+  }
+
+  HostContextPtr AllocateForHostContext(HostContext* host);
+  void FreeHostContext(HostContext* host);
+
+  HostContext* GetHostContextByIndex(int index) const;
+
+ private:
+  HostContextPool() = default;
+
+  mutable mutex mutex_;
+  std::array<HostContext*, kCompacity> all_host_contexts_;
+};
 
 // HostContextPtr implements a compact pointer for a HostContext by storing the
 // instance index of the HostContext object. It is intended to be used in places
@@ -45,23 +72,14 @@ class HostContextPtr {
   HostContext* get() const;
 
  private:
-  friend class HostContext;
+  friend class HostContextPool;
   friend class ReadyChain;
 
-  explicit HostContextPtr(int index)
-      : index_{static_cast<uint8_t>(index % kCompacity)} {}
+  explicit HostContextPtr(int index) : index_{static_cast<uint8_t>(index)} {
+    assert(index < HostContextPool::kCompacity);
+  }
   uint8_t index() const { return index_; }
 
-  // Today we use a circular queue for HostContext and we can create up to 256
-  // instances. However, if index 0 is active and index 1 is destroyed, we still
-  // cannot reuse buffer of index 1 to create new host context.
-  // But we think it is good enough for now, since production use cases are
-  // unlikely to create more than 256 host context. Only unit tests can create
-  // many host context but tests usually clean up the host context after each
-  // test method.
-  // TODO(b/184199682): Allow finding the next available index instead of only
-  // checking the next index.
-  static constexpr int kCompacity = 256;
   const uint8_t index_ = 0;
 };
 

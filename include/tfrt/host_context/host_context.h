@@ -172,6 +172,7 @@ class HostContext {
 
  private:
   friend class HostContextPtr;
+  friend class HostContextPool;
 
   // Factory function for creating a SharedContext.
   using SharedContextFactory = std::unique_ptr<SharedContext> (*)(HostContext*);
@@ -183,15 +184,7 @@ class HostContext {
   static int DenseIdForSharedContext();
 
   static std::atomic<int> num_shared_context_types_;
-  static HostContext* all_host_contexts_[HostContextPtr::kCompacity];
 
-  static HostContext* GetHostContextByIndex(int index) {
-    assert(all_host_contexts_[index]);
-    return all_host_contexts_[index];
-  }
-
-  // Index into all_host_contexts_
-  int instance_index() const { return instance_ptr_.index(); }
   HostContextPtr instance_ptr() const { return instance_ptr_; }
 
   SharedContext& GetOrCreateSharedContext(int shared_context_id,

@@ -23,11 +23,38 @@
 
 namespace tfrt {
 
+HostContextPtr HostContextPool::AllocateForHostContext(HostContext* host) {
+  mutex_lock lock(mutex_);
+
+  for (int i = 0; i < all_host_contexts_.size(); ++i) {
+    if (!all_host_contexts_[i]) {
+      all_host_contexts_[i] = host;
+      return HostContextPtr{i};
+    }
+  }
+
+  llvm_unreachable("Created too many HostContext instances");
+}
+
+void HostContextPool::FreeHostContext(HostContext* host) {
+  mutex_lock lock(mutex_);
+  all_host_contexts_[host->instance_ptr().index()] = nullptr;
+}
+
+HostContext* HostContextPool::GetHostContextByIndex(int index) const {
+  // Note that we do not need to lock the mutex here as
+  // all_host_contexts_[index] is guranteed to filled when this function is
+  // called.
+  assert(index < all_host_contexts_.size());
+  assert(all_host_contexts_[index]);
+  return all_host_contexts_[index];
+}
+
 HostContextPtr::HostContextPtr(HostContext* host)
     : HostContextPtr{host->instance_ptr()} {}
 
 HostContext* HostContextPtr::get() const {
-  return HostContext::GetHostContextByIndex(index_);
+  return HostContextPool::instance().GetHostContextByIndex(index_);
 }
 
 }  // namespace tfrt

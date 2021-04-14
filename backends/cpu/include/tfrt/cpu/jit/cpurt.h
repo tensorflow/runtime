@@ -44,8 +44,119 @@ class Tensor;
 namespace cpu {
 namespace jit {
 
-// Forward declare the result of compiling MLIR module to the executable.
-class CompilationResult;
+// TODO(b/184896224): Documentation below is forward looking and does not
+// represent what is ready today. Currently JitExecutable will only specialize
+// to the shapes of the inputs.
+
+// Compiled module example:
+//
+//   module @kernel attributes { tfrt.compiled, cpurt.entrypoint = @main } {
+//     func @main(
+//       %input0: memref<?x?xf32>,
+//       %input1: memref<?x?xf32> { cpurt.specialize.shape = "<strategy>" },
+//       %perm: memref<4xi32>     { cpurt.specialize.value = "<strategy>" }
+//     ) -> !async.value<memref<?x?xf32>> {
+//       ...
+//       return %result : !async.value<memref<?x?xf32>>
+//     }
+//   }
+//
+// Compiled function might require specialization of some of its arguments at
+// runtime to the concrete shape or value that is only available at runtime.
+//
+// If no function arguments have a hard requirement to be specialized at
+// runtime, compiler will compile the generic function, and use it at runtime to
+// execute for inputs of all shapes and values.
+//
+// (a) Shape specialization:
+//
+//     %arg : <type> { cpurt.specialize.shape = "<strategy>" }
+//
+//     Shape of the runtime argument will be used to specialize the compiled
+//     function, if this shape seen the first time, it will trigger function
+//     recompilation.
+//
+//     Strategy:
+//       - "enabled"   Shape can be used for the specialization but not required
+//                     for the compilation.
+//       - "required"  Function must be specialized for concrete shape of the
+//                     argument.
+//       - "disabled"  Never specialize for the shape of the argument (e.g. it
+//                     is known that the shape varies a lot).
+//
+// (b) Value specialization:
+//
+//     %arg : <type> { cpurt.specialize.value = "<strategy>" }
+//
+//     Runtime value will be sunk into the body of a function as a constant,
+//     and the function will be recompiled. For example this can be used to sink
+//     reduction dimensions to generate more efficient code.
+//
+//     Value specialization is only supported for the integer data type, in
+//     practice it should be reduction dimension, dimension permutation, or any
+//     similar value that does not change often, and is required for generating
+//     efficient code.
+//
+//     Strategy:
+//       - "enabled"   Value can be used for the specialization but not required
+//                     for the compilation.
+//       - "required"  Function must be specialized for concrete value of the
+//                     argument.
+//       - "disabled"  Never specialize for the value of the argument (e.g. it
+//                     is known that the value varies a lot).
+//
+//
+//  Shape and value specialization example:
+//
+//    // Computes `%arg0` mean value over the axis specified by the `%arg1`.
+//    // See: https://www.tensorflow.org/api_docs/python/tf/math/reduce_mean
+//    func @mean(%arg0: tensor<?x?xf32>, %arg1: tensor<f32>) -> tensor<?xf32> {
+//      %0 = "tf.Mean(%arg0, %arg1)
+//             : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
+//      return %0: tensor<?xf32>
+//    }
+//
+//  Shape specialization to input shapes: [tensor<4x8xf32>, tensor<f32>]
+//
+//    func @mean(%arg0: tensor<4x8xf32>, %arg1: tensor<i32>) -> tensor<?xf32> {
+//      %0 = "tf.Mean(%arg0, %arg1)
+//             : (tensor<4x8xf32>, tensor<i32>) -> tensor<?xf32>
+//      return %0: tensor<?xf32>
+//    }
+//
+//    Shape specialization in this particular case doesn't bring much
+//    improvement, because without knowing the reduction axis we can't infer
+//    any new information from the input shape alone.
+//
+//  Value specialization to input values: [ <skip-f32-input>, dense<1 : i32> ]
+//
+//    func @mean(%arg0: tensor<4x8xf32>) -> tensor<4xf32> {
+//      %0 = "tf.Constant" { value = dense<1 : i32>} -> tensor<i32>
+//      %1 = "tf.Mean(%arg0, %0)
+//             : (tensor<4x8xf32>, tensor<i32>) -> tensor<4xf32>
+//      return %1 : ensor<4xf32>
+//    }
+//
+//    By specializing function to the concrete value of the second argument, by
+//    sinking it into the function body we can infer the output shape. Also this
+//    information allows to statically choose reduction implementation optimized
+//    for reducing along the inner most dimension.
+//
+//    Furthermore static information about reduction axis allows to lower mean
+//    operation to Linalg generic operation. Dynamic reduction axis is not
+//    representable in Linalg, and would require multi-versioning and dynamic
+//    dispatch at runtime.
+
+// Forward declare the JitExecutable class that itself is not an executable, but
+// owns one (or many) executables compiled for different shapes or values of the
+// arguments. It is responsible for lazy compilation of executables for the
+// concrete shapes or values if needed.
+class JitExecutable;
+
+// Forward declare the Executable class that represents a fully compiled module,
+// which in practice means that it has a function pointer to the compiled
+// function, and knows how to execute it, and return results to the caller.
+class Executable;
 
 struct CompilationOptions {
   // Byte alignment for allocated memrefs. Depending on the compiler flags
@@ -62,37 +173,44 @@ struct CompilationOptions {
   // Register dialects that are allowed in the serialized module.
   llvm::function_ref<void(mlir::DialectRegistry&)> register_dialects;
 
-  // Register a pass pipeline that lowers serialized module from high level
-  // dialects to the dialects supported by the CPURT lowering to LLVM.
+  // Register a pass pipeline that lowers compiled module from high level
+  // dialects to the dialects supported by the CPURT lowering to LLVM. In the
+  // Tensorflow use case this pipeline lowers from Tensorflow dialect down to
+  // the Linalg on buffers via the MHLO->Linalg lowering.
   llvm::function_ref<void(mlir::OpPassManager&)> register_pass_pipeline;
 };
 
-// Compiles a kernel defined by the serialized MLIR module to the executable
-// compilation result.
-Expected<CompilationResult> CompileKernelMlirModule(
-    string_view mlir_module, string_view entrypoint,
-    const CompilationOptions& opts);
+// Creates a JitExecutable from the serialized MLIR module. Compiles a default
+// executable if compiled module does not have a requirement to specialize shape
+// or value for any of the arguments.
+Expected<JitExecutable> CreateJitExecutable(string_view mlir_module,
+                                            string_view entrypoint,
+                                            const CompilationOptions& opts);
 
 //----------------------------------------------------------------------------//
 // Types for passing compiled kernel arguments and passing back results.
 //----------------------------------------------------------------------------//
 
 struct MemrefDesc {
+  // TODO(ezhulenev): Add dtype so that VerifyMemrefOperand can check it.
   void* data;
   ssize_t offset;
   SmallVector<ssize_t, 4> sizes;
   SmallVector<ssize_t, 4> strides;
 };
 
+raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
+
 // Verifies that the runtime buffer is compatible with the memref type (same
 // rank and statically known dimensions are matched with the runtime
 // dimensions).
 Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref);
+Error VerifyMemrefOperand(mlir::RankedTensorType type, MemrefDesc memref);
 
-// Converts tfrt Tensor to the Memref Descriptor and verifies that the Tensor
-// value is compatible with the memref type.
-Expected<MemrefDesc> ConvertTensorToMemrefDesc(mlir::MemRefType type,
-                                               const Tensor& tensor);
+// Converts tfrt Tensor to the Memref descriptor if concrete Tensor type is
+// supported (currently only DenseHostTensor can be converted). Returns error
+// otherwise.
+Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor);
 
 //----------------------------------------------------------------------------//
 // Conversions from compiled kernel results to the TFRT AsyncValues.
@@ -304,33 +422,40 @@ class ReturnValueConverter {
 };
 
 //----------------------------------------------------------------------------//
-// Result of compiling MLIR module to executable kernel function.
+// Helper functions for handling errors at runtime.
 //----------------------------------------------------------------------------//
 
 // Constructs error async value from the `error` and returns it for all results.
 void EmitErrors(RemainingResults results, Error error,
                 const ExecutionContext& exec_ctx);
+
+// Constructs error async value from the `error` and returns it for all results.
+// Returns the original error to the caller.
 Error EmitErrors(ReturnValueConverter results, Error error,
                  const ExecutionContext& exec_ctx);
 
-// TODO(ezhulenev): Compilation result does not need to keep MLIRContext alive,
-// it only needs the entrypoint FunctionType. Implement a function to "clone"
+//----------------------------------------------------------------------------//
+// Result of compiling MLIR module to executable kernel function.
+//----------------------------------------------------------------------------//
+
+// TODO(ezhulenev): Executable does not need to keep MLIRContext alive, it only
+// needs the entrypoint FunctionType. Implement a function to "clone"
 // signature type into the new MLIRContext, because original context potentially
 // can have large constant attribute that will waste the memory.
 //
 // Another option is to write custom type class to store signature type, because
 // the number of supported types is relatively small.
 
-class CompilationResult {
+class Executable {
  public:
   // Forward declare struct defined below.
   struct ResultsMemoryLayout;
   struct CallFrame;
 
-  CompilationResult(std::unique_ptr<mlir::MLIRContext> context,
-                    std::unique_ptr<mlir::ExecutionEngine> engine,
-                    mlir::FunctionType signature, string_view entrypoint,
-                    ResultsMemoryLayout results_memory_layout)
+  Executable(std::unique_ptr<mlir::MLIRContext> context,
+             std::unique_ptr<mlir::ExecutionEngine> engine,
+             mlir::FunctionType signature, string_view entrypoint,
+             ResultsMemoryLayout results_memory_layout)
       : context_(std::move(context)),
         engine_(std::move(engine)),
         signature_(signature),
@@ -415,20 +540,98 @@ class CompilationResult {
 };
 
 //----------------------------------------------------------------------------//
-// Cache all compilation results in the resource context owned by the host.
+// JitExecutable to manage multiple compiled executables.
 //----------------------------------------------------------------------------//
 
-class CompilationResultCache {
+// JitExecutable owns a default executable compiled from the MLIR module (if it
+// does not require to be specialized), and orchestrates on-demand
+// re-compilation for specific argument shapes and values.
+class JitExecutable {
  public:
-  explicit CompilationResultCache(HostContext* host) : host_(host) {}
-  AsyncValueRef<CompilationResult> Find(intptr_t key) const;
-  AsyncValueRef<CompilationResult> Insert(intptr_t key,
-                                          CompilationResult compilation_result);
+  static constexpr const char* const kSpecializeShape =
+      "cpurt.specialize.shape";
+  static constexpr const char* const kSpecializeValue =
+      "cpurt.specialize.value";
+
+  static Expected<JitExecutable> Instantiate(
+      string_view mlir_module, string_view entrypoint,
+      const CompilationOptions& compilation_opts);
+
+  // Returns default executable that accepts all compatible operands (operands
+  // rank and all static dimensions should match the operands).
+  const Executable* DefaultExecutable() const;
+
+  // Returns an executable that may be specialized for the operands shape or
+  // values. Can return default executable if no specialization is required, or
+  // specialized executable is not available.
+  //
+  // Returns an error if compilation of the specialized executable failed, and
+  // does not fallback on the default executable, because it must mean that the
+  // default executable will fail at runtime.
+  //
+  // TODO(ezhulenev): This function should return AsyncValueRef<Executable*>
+  // because if default executable is not available, re-compilation should not
+  // block the caller thread.
+  Expected<const Executable*> GetExecutable(ArrayRef<MemrefDesc> operands);
+
+  // JitExecutable is move-only type.
+  JitExecutable(const JitExecutable&) = delete;
+  JitExecutable(JitExecutable&&) = default;
+
+ private:
+  JitExecutable(string_view mlir_module, string_view entrypoint,
+                CompilationOptions compilation_opts,
+                Optional<Executable> default_executable = {});
+
+  // We do not use Expected<Executable> here because we need a mechanism to
+  // copy an error, and this is not possible using the Expected API.
+  struct ExecutableOrError {
+    explicit ExecutableOrError(Error error)
+        : error(std::move(error)), executable(llvm::None) {}
+    explicit ExecutableOrError(Executable executable)
+        : error(Error::success()), executable(std::move(executable)) {}
+
+    Error error;
+    Optional<Executable> executable;
+  };
+
+  // Because mutex is not copyable or movable keep specialized executables map
+  // guarded by a mutex on the heap in a dedicated struct.
+  struct Specializations {
+    tfrt::mutex mu;
+    // TODO(ezhulenev): Select a different type of key, that would completely
+    // eliminate the possibility of a hash collision (currently it is zero for
+    // all practical purposes, but in theory it is still possible).
+    llvm::DenseMap<llvm::hash_code, ExecutableOrError> executables
+        TFRT_GUARDED_BY(mu);
+  };
+
+  std::string mlir_module_;
+  std::string entrypoint_;
+  CompilationOptions compilation_opts_;
+
+  // Default executable that was not specialized to any of the arguments.
+  Optional<Executable> default_executable_;
+
+  // Executables specialized for the arguments shapes or/and values.
+  std::unique_ptr<Specializations> specializations_;
+};
+
+//----------------------------------------------------------------------------//
+// Cache all JitExecutables in the resource context owned by the host.
+//----------------------------------------------------------------------------//
+
+class JitExecutableCache {
+ public:
+  explicit JitExecutableCache(HostContext* host) : host_(host) {}
+  AsyncValueRef<JitExecutable> Find(intptr_t key) const;
+  AsyncValueRef<JitExecutable> Insert(intptr_t key,
+                                      JitExecutable jit_executable);
 
  private:
   HostContext* host_;
   mutable tfrt::mutex mu_;
-  llvm::DenseMap<intptr_t, AsyncValueRef<CompilationResult>> cache_
+  llvm::DenseMap<intptr_t, AsyncValueRef<JitExecutable>> cache_
       TFRT_GUARDED_BY(mu_);
 };
 

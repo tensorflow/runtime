@@ -55,8 +55,8 @@ namespace jit {
 // Compile compilation unit attribute to an executable result.
 // -------------------------------------------------------------------------- //
 
-static AsyncValueRef<CompilationResult> Compile(
-    CompilationUnitAttribute kernel, const ExecutionContext& exec_ctx) {
+static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
+                                            const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
   // We only support functions nested in top level compiled module.
@@ -65,29 +65,30 @@ static AsyncValueRef<CompilationResult> Compile(
         exec_ctx, "compiled kernel must be referenced by one nested symbol");
 
   ResourceContext* res_ctx = exec_ctx.resource_context();
-  auto* compilation_cache =
-      res_ctx->GetOrCreateResource<CompilationResultCache>("cpurt.cache", host);
+  auto* jit_executable_cache =
+      res_ctx->GetOrCreateResource<JitExecutableCache>("cpurt.cache", host);
 
-  // TODO(ezhulenev): Compute cache key based on the content of MLIR module.
+  // TODO(ezhulenev): Compute cache key based on the content of MLIR module, or
+  // better keep module fingerprint in the BEF file.
   intptr_t key = exec_ctx.location().data;
 
-  // Return compiled kernel from the cache.
-  if (auto compiled = compilation_cache->Find(key)) return compiled;
+  // Maybe return JitExecutable from the cache.
+  if (auto cached = jit_executable_cache->Find(key)) return cached;
 
   CompilationOptions opts;
   opts.num_worker_threads = host->GetNumWorkerThreads();
 
   string_view entrypoint = kernel.nested_symbols()[0];
   string_view module = kernel.serialized_operation();
-  Expected<CompilationResult> compiled =
-      CompileKernelMlirModule(module, entrypoint, opts);
 
-  // Failed to compile kernel source.
-  if (auto err = compiled.takeError())
+  // Instantiate new JitExecutable from the MLIR source.
+  Expected<JitExecutable> jit_executable =
+      JitExecutable::Instantiate(module, entrypoint, opts);
+  if (auto err = jit_executable.takeError())
     return EmitErrorAsync(exec_ctx, std::move(err));
 
-  // Update the compilation cache and return the result.
-  return compilation_cache->Insert(key, std::move(*compiled));
+  // Update the JitExecutable cache and return the result.
+  return jit_executable_cache->Insert(key, std::move(*jit_executable));
 }
 
 // -------------------------------------------------------------------------- //
@@ -95,19 +96,14 @@ static AsyncValueRef<CompilationResult> Compile(
 // -------------------------------------------------------------------------- //
 
 static Error ConvertTensorHandleOperandsToMemrefDesc(
-    mlir::FunctionType signature, RepeatedArguments<TensorHandle> operands,
+    RepeatedArguments<TensorHandle> operands,
     SmallVectorImpl<MemrefDesc>* memrefs) {
   assert(memrefs->empty() && "memrefs must be empty");
   memrefs->reserve(operands.size());
 
   for (unsigned i = 0; i < operands.size(); ++i) {
-    auto memref_ty = signature.getInput(i).cast<mlir::MemRefType>();
-    if (!memref_ty)
-      return MakeStringError("expected memref operand at #", i,
-                             ", got: ", signature.getInput(i));
-
-    auto memref = ConvertTensorToMemrefDesc(
-        memref_ty, operands[i].GetAsyncTensor()->get<Tensor>());
+    const Tensor& tensor = operands[i].GetAsyncTensor()->get<Tensor>();
+    Expected<MemrefDesc> memref = ConvertTensorToMemrefDesc(tensor);
     if (auto err = memref.takeError()) return err;
     memrefs->push_back(*memref);
   }
@@ -115,7 +111,7 @@ static Error ConvertTensorHandleOperandsToMemrefDesc(
   return Error::success();
 }
 
-static void CoreRtExecute(Argument<CompilationResult> compilation_result,
+static void CoreRtExecute(Argument<JitExecutable> jit_executable,
                           RepeatedArguments<TensorHandle> operands,
                           RemainingResults results,
                           const ExecutionContext& exec_ctx) {
@@ -124,15 +120,18 @@ static void CoreRtExecute(Argument<CompilationResult> compilation_result,
   // Extract tensors from tensor handle operands to pass them as the compiled
   // kernel arguments.
   SmallVector<MemrefDesc, 4> memrefs;
-  if (auto err = ConvertTensorHandleOperandsToMemrefDesc(
-          compilation_result->signature(), operands, &memrefs))
+  if (auto err = ConvertTensorHandleOperandsToMemrefDesc(operands, &memrefs))
+    return EmitErrors(results, std::move(err), exec_ctx);
+
+  // Get an executable that might be specialized to the operands.
+  Expected<const Executable*> executable =
+      jit_executable->GetExecutable(memrefs);
+  if (auto err = executable.takeError())
     return EmitErrors(results, std::move(err), exec_ctx);
 
   // Allocate storage for compiled kernel results.
   SmallVector<RCReference<AsyncValue>, 4> kernel_ret;
-  int num_results = compilation_result->signature().getNumResults();
-  kernel_ret.reserve(num_results);
-  for (int i = 0; i < num_results; ++i) kernel_ret.emplace_back();
+  kernel_ret.resize((*executable)->signature().getNumResults());
 
   // Execute compiled kernel and get back raw return values that we'll need to
   // wrap into TensorHandles later on.
@@ -141,7 +140,7 @@ static void CoreRtExecute(Argument<CompilationResult> compilation_result,
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor);
   // We skip error handling at this point and rely on error forwarding to the
   // kernel results below.
-  auto err = compilation_result->Execute(memrefs, converter, exec_ctx);
+  auto err = (*executable)->Execute(memrefs, converter, exec_ctx);
   (void)err;
 
   // Compiled kernel should populate all expected results.

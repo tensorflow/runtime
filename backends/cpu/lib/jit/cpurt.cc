@@ -15,14 +15,16 @@
  */
 
 //===- cpurt.cc - ---------------------------------------------------------===//
-//
 // Support library for implementing TFRT kernels that do JIT compilation using
 // MLIR framework.
+//===----------------------------------------------------------------------===//
 
 #include "tfrt/cpu/jit/cpurt.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <numeric>
 
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
@@ -69,6 +71,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/error_util.h"
+#include "tfrt/support/mutex.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
@@ -86,8 +89,25 @@ static bool DebugCpurtCompile() {
 #endif
 }
 
-using CallFrame = CompilationResult::CallFrame;
-using ResultsMemoryLayout = CompilationResult::ResultsMemoryLayout;
+using CallFrame = Executable::CallFrame;
+using ResultsMemoryLayout = Executable::ResultsMemoryLayout;
+
+raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
+  auto print_arr = [&](string_view name, ArrayRef<ssize_t> arr) {
+    os << " " << name << ": [";
+    if (!arr.empty()) {
+      os << arr[0];
+      for (int i = 1; i < arr.size(); ++i) os << ", " << arr[i];
+    }
+    os << "]";
+  };
+
+  os << "MemrefDesc: offset: " << desc.offset;
+  print_arr("sizes", desc.sizes);
+  print_arr("strides", desc.strides);
+
+  return os;
+}
 
 //----------------------------------------------------------------------------//
 // Verify compiled function signature and pre-compute memory layout for results.
@@ -116,7 +136,7 @@ static Error VerifyEntrypointOperands(mlir::FunctionType signature) {
   return Error::success();
 }
 
-Expected<ResultsMemoryLayout> CompilationResult::VerifyEntrypointSignature(
+Expected<ResultsMemoryLayout> Executable::VerifyEntrypointSignature(
     mlir::FunctionType signature) {
   // Check if function operands are compatible with code generation.
   if (auto err = VerifyEntrypointOperands(signature)) return std::move(err);
@@ -179,33 +199,39 @@ Expected<ResultsMemoryLayout> CompilationResult::VerifyEntrypointSignature(
 // Converting from runtime buffers (aka Tensors) to Memref descriptors.
 // -------------------------------------------------------------------------- //
 
-Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref) {
+static Error VerifyMemrefOperand(mlir::ShapedType type, MemrefDesc memref) {
   if (memref.sizes.size() != type.getRank())
     return MakeStringError("operand rank does not match expected input rank: ",
                            memref.sizes.size(), " vs ", type.getRank());
 
   for (unsigned d = 0; d < memref.sizes.size(); ++d) {
     ssize_t operand_dim = memref.sizes[d];
-    ssize_t memref_dim = type.getDimSize(d);
-    if (operand_dim != memref_dim && !type.isDynamicDim(d))
+    ssize_t expected_dim = type.getDimSize(d);
+    if (operand_dim != expected_dim && !type.isDynamicDim(d))
       return MakeStringError("operand dimension #", d,
                              " does not match expected input dimension: ",
-                             operand_dim, " vs ", memref_dim);
+                             operand_dim, " vs ", expected_dim);
   }
 
-  // TODO(ezhulenev): Verify memref element type.
+  // TODO(ezhulenev): Verify operand element type.
   return Error::success();
 }
 
-Expected<MemrefDesc> ConvertTensorToMemrefDesc(mlir::MemRefType type,
-                                               const Tensor& tensor) {
+Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref) {
+  return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
+}
+
+Error VerifyMemrefOperand(mlir::RankedTensorType type, MemrefDesc memref) {
+  return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
+}
+
+Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
   if (auto* dht = dyn_cast<DenseHostTensor>(&tensor)) {
     MemrefDesc memref;
     memref.data = const_cast<void*>(dht->data());
     memref.offset = 0;
     dht->shape().GetDimensions(&memref.sizes);
     dht->shape().GetStrides(&memref.strides);
-    if (auto err = VerifyMemrefOperand(type, memref)) return std::move(err);
     return memref;
   }
 
@@ -213,7 +239,7 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(mlir::MemRefType type,
 }
 
 // -------------------------------------------------------------------------- //
-// CompilationResult CallFrame initialization.
+// Executable CallFrame initialization.
 // -------------------------------------------------------------------------- //
 
 // Unpack `memref` argument into pointers to the data to be compatible with
@@ -230,23 +256,34 @@ static void AddMemrefArgument(const MemrefDesc& memref,
   auto* storage = &(*args)[size];
   auto add_arg = [&](const void* p) {
     *storage = const_cast<void*>(p);
-    storage++;
+    ++storage;
   };
 
   add_arg(&memref.data);  // memref.basePtr
   add_arg(&memref.data);  // memref.data
   add_arg(&memref.offset);
-  for (int i = 0; i < rank; ++i) add_arg(&memref.sizes[i]);
-  for (int i = 0; i < rank; ++i) add_arg(&memref.strides[i]);
+  for (const ssize_t& size : memref.sizes) add_arg(&size);
+  for (const ssize_t& stride : memref.strides) add_arg(&stride);
 }
 
-Error CompilationResult::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
-                                             CallFrame* call_frame) const {
+Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
+                                      CallFrame* call_frame) const {
   // Make sure that we call the kernel with the correct number of operands.
   if (operands.size() != signature_.getNumInputs())
     return MakeStringError(
         "number of operands must match the number of inputs: ", operands.size(),
         " vs ", signature_.getNumInputs());
+
+  // Verify that all operands passed at runtime are compatible with compiled
+  // function signature.
+  for (int i = 0; i < operands.size(); ++i) {
+    if (auto memref_ty = signature_.getInput(i).dyn_cast<mlir::MemRefType>()) {
+      if (auto err = VerifyMemrefOperand(memref_ty, operands[i])) return err;
+    } else {
+      return MakeStringError("expected memref operand at #", i,
+                             ", got: ", signature_.getInput(i));
+    }
+  }
 
   // Pack all Memref operands as pointers to the call frame arguments.
   for (const MemrefDesc& desc : operands)
@@ -261,7 +298,7 @@ Error CompilationResult::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
 }
 
 // -------------------------------------------------------------------------- //
-// CompilationResult return values unpacking.
+// Executable return values unpacking.
 // -------------------------------------------------------------------------- //
 
 // Converts StridedMemref to the DenseHostTensor. This struct satisfies
@@ -349,8 +386,8 @@ void ReturnValueConverter::EmitErrors(RCReference<ErrorAsyncValue>& error) {
   for (size_t i = 0; i < results_.size(); ++i) results_[i] = error.CopyRef();
 }
 
-Error CompilationResult::ReturnResults(const ReturnValueConverter& results,
-                                       CallFrame* call_frame) const {
+Error Executable::ReturnResults(const ReturnValueConverter& results,
+                                CallFrame* call_frame) const {
   auto ret_types = signature_.getResults();
 
   bool converted = llvm::all_of(llvm::enumerate(ret_types), [&](auto tuple) {
@@ -387,9 +424,9 @@ Error EmitErrors(ReturnValueConverter results, Error error,
 // codegened kernels to allocate/deallocate memrefs at runtime to use the host
 // context allocator.
 
-Error CompilationResult::Execute(ArrayRef<MemrefDesc> operands,
-                                 const ReturnValueConverter& results,
-                                 const ExecutionContext& exec_ctx) const {
+Error Executable::Execute(ArrayRef<MemrefDesc> operands,
+                          const ReturnValueConverter& results,
+                          const ExecutionContext& exec_ctx) const {
   // CallFrame can be allocated on the stack because compiled function will
   // unpack all the arguments it needs, and async regions will not access
   // the data after the initial function will return the result.
@@ -408,8 +445,8 @@ Error CompilationResult::Execute(ArrayRef<MemrefDesc> operands,
   return Error::success();
 }
 
-void CompilationResult::Execute(const ExecutionContext& exec_ctx,
-                                CallFrame* call_frame) const {
+void Executable::Execute(const ExecutionContext& exec_ctx,
+                         CallFrame* call_frame) const {
   // Set the AsyncRuntime host context to be used by all async tasks spawned
   // by the compiled kernel function.
   SetAsyncRuntimeHostContext(exec_ctx.host());
@@ -418,31 +455,7 @@ void CompilationResult::Execute(const ExecutionContext& exec_ctx,
   (*fptr_)(call_frame->args.data());
 }
 
-mlir::FunctionType CompilationResult::signature() const { return signature_; }
-
-//----------------------------------------------------------------------------//
-// CompilationResultCache implementation.
-//----------------------------------------------------------------------------//
-
-AsyncValueRef<CompilationResult> CompilationResultCache::Find(
-    intptr_t key) const {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  if (it != cache_.end()) return it->second.CopyRef();
-  return AsyncValueRef<CompilationResult>();
-}
-
-AsyncValueRef<CompilationResult> CompilationResultCache::Insert(
-    intptr_t key, CompilationResult compilation_result) {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  if (it != cache_.end()) return it->second.CopyRef();
-
-  auto emplaced =
-      cache_.try_emplace(key, MakeAvailableAsyncValueRef<CompilationResult>(
-                                  host_, std::move(compilation_result)));
-  return emplaced.first->getSecond().CopyRef();
-}
+mlir::FunctionType Executable::signature() const { return signature_; }
 
 //----------------------------------------------------------------------------//
 // Setup MLIR pass pipeline to lower to LLVM dialect, and use ORC JIT to codegen
@@ -582,6 +595,85 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   return pm.run(module);
 }
 
+//----------------------------------------------------------------------------//
+// JitCompilationContext to manage specialization and compilation.
+//----------------------------------------------------------------------------//
+
+namespace {
+// JitCompilationContext manages parsing, specialization and compilation of a
+// single compiled module. It owns the MLIR context where the module is created,
+// and handlers to capture all diagnostics messages.
+class JitCompilationContext {
+ public:
+  // Instantiates JIT compilation context from the serialized mlir source.
+  static Expected<std::unique_ptr<JitCompilationContext>> Instantiate(
+      const CompilationOptions& opts, string_view mlir_module);
+
+  // Makes an executable from the JIT compilation context. This is the end of
+  // life for the compilation context, it effectively converts the MLIR module
+  // to the executable (function pointer) using LLVM JIT code generation.
+  static Expected<Executable> Compile(
+      std::unique_ptr<JitCompilationContext> ctx, string_view entrypoint);
+
+  template <typename OriginalError>
+  llvm::Error Error(OriginalError original_error) {
+    return MakeStringError(original_error, ":\n", diagnostic_);
+  }
+
+  mlir::ModuleOp module() const {
+    assert(module_ && "failed to parse the mlir module");
+    return *module_;
+  }
+
+  // Specialize compiled module to the operands: update all unknown dimensions
+  // with concrete values. Returns error if operands are not compatible with
+  // compiled module entrypoint signature.
+  // TODO(ezhulenev): Support sinking small constants into the function body.
+  llvm::Error Specialize(ArrayRef<MemrefDesc> operands, string_view entrypoint);
+
+  const CompilationOptions& options() const { return opts_; }
+
+ private:
+  JitCompilationContext(const CompilationOptions& opts,
+                        string_view mlir_module);
+
+  CompilationOptions opts_;
+  std::unique_ptr<mlir::MLIRContext> context_;
+  std::string diagnostic_;
+  llvm::raw_string_ostream diagnostic_os_;
+  llvm::SourceMgr source_mgr_;
+  mlir::SourceMgrDiagnosticHandler handler_;
+  mlir::OwningModuleRef module_;  // can be null if failed to parse the module
+};
+}  // namespace
+
+// Creates a new MLIR Context and registers all the dialects that are expected
+// in the compiled module.
+static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
+    const CompilationOptions& opts) {
+  mlir::DialectRegistry registry;
+
+  // Register MLIR dialects supported by the compiled kernels.
+  registry.insert<mlir::AffineDialect, mlir::async::AsyncDialect,
+                  mlir::linalg::LinalgDialect, mlir::memref::MemRefDialect,
+                  mlir::scf::SCFDialect, mlir::StandardOpsDialect,
+                  mlir::math::MathDialect, mlir::vector::VectorDialect>();
+
+  // Register MLIR dialects that can be translated to LLVM IR.
+  mlir::registerArmNeonDialectTranslation(registry);
+  mlir::registerAMXDialectTranslation(registry);
+  mlir::registerLLVMArmSVEDialectTranslation(registry);
+  mlir::registerLLVMDialectTranslation(registry);
+  mlir::registerX86VectorDialectTranslation(registry);
+
+  // Register additional dialects provided via compilation options.
+  if (opts.register_dialects) opts.register_dialects(registry);
+
+  return std::make_unique<mlir::MLIRContext>(registry);
+}
+
+// TODO(b/182944250): `cpurt.corert.entrypoint` indirection must go away with a
+// support of async function.
 static Expected<mlir::FuncOp> ResolveEntrypointFunction(
     mlir::ModuleOp module, string_view entrypoint) {
   // Find the original entryupoint function.
@@ -600,66 +692,47 @@ static Expected<mlir::FuncOp> ResolveEntrypointFunction(
   return entry_func;
 }
 
-Expected<CompilationResult> CompileKernelMlirModule(
-    string_view mlir_module, string_view entrypoint,
-    const CompilationOptions& opts) {
-  // Setup LLVM target for code generation.
-  InitializeCompiler();
-
-  llvm::SourceMgr source_mgr;
-  source_mgr.AddNewSourceBuffer(
+JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
+                                             string_view mlir_module)
+    : opts_(opts),
+      context_(CreateMlirContext(opts_)),
+      diagnostic_os_(diagnostic_),
+      handler_(source_mgr_, context_.get()) {
+  source_mgr_.AddNewSourceBuffer(
       llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
       llvm::SMLoc());
+  module_ = mlir::parseSourceFile(source_mgr_, context_.get());
+}
 
-  // Register MLIR dialects supported by the compiled kernels.
-  mlir::DialectRegistry registry;
-  registry.insert<mlir::AffineDialect, mlir::async::AsyncDialect,
-                  mlir::linalg::LinalgDialect, mlir::memref::MemRefDialect,
-                  mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-                  mlir::math::MathDialect, mlir::vector::VectorDialect>();
-  // Register MLIR dialects that can be translated to LLVM IR.
-  mlir::registerArmNeonDialectTranslation(registry);
-  mlir::registerAMXDialectTranslation(registry);
-  mlir::registerLLVMArmSVEDialectTranslation(registry);
-  mlir::registerLLVMDialectTranslation(registry);
-  mlir::registerX86VectorDialectTranslation(registry);
+/*static*/ Expected<std::unique_ptr<JitCompilationContext>>
+JitCompilationContext::Instantiate(const CompilationOptions& opts,
+                                   string_view mlir_module) {
+  std::unique_ptr<JitCompilationContext> context(
+      new JitCompilationContext(opts, mlir_module));
+  if (!context->module_)
+    return context->Error("failed to parse the mlir source");
+  return {std::move(context)};
+}
 
-  // Register additional dialects provided via compilation options.
-  if (opts.register_dialects) opts.register_dialects(registry);
-
-  auto context = std::make_unique<mlir::MLIRContext>(registry);
-
-  // Collect all diagnostics emited while lowering kernel module to LLVM.
-  std::string diagnostic_str;
-  llvm::raw_string_ostream os(diagnostic_str);
-  mlir::SourceMgrDiagnosticHandler handler(source_mgr, context.get(), os);
-
-  auto error = [&](auto original_error) -> llvm::Error {
-    return MakeStringError(original_error, ":\n", diagnostic_str);
-  };
-
-  // Parse a kernel source code into the MLIR Module.
-  mlir::OwningModuleRef module(
-      mlir::parseSourceFile(source_mgr, context.get()));
-  if (!module) return error("failed to parse kernel source");
-
+/*static*/ Expected<Executable> JitCompilationContext::Compile(
+    std::unique_ptr<JitCompilationContext> ctx, string_view entrypoint) {
   // Lower loaded module to dialects supported by the CPURT to LLVM pipeline.
-  if (failed(LowerToCpurt(*module, opts)))
-    return error("failed to lower module to CPURT dialects");
+  if (failed(LowerToCpurt(ctx->module(), ctx->options())))
+    return ctx->Error("failed to lower module to CPURT dialects");
 
   // Verify entrypoint function signature.
-  auto entry_func = ResolveEntrypointFunction(*module, entrypoint);
+  auto entry_func = ResolveEntrypointFunction(ctx->module(), entrypoint);
   if (auto err = entry_func.takeError()) return std::move(err);
 
   std::string entry_name = entry_func->getName().str();
   mlir::FunctionType entry_signature = entry_func->getType();
   auto results_memory_layout =
-      CompilationResult::VerifyEntrypointSignature(entry_signature);
+      Executable::VerifyEntrypointSignature(entry_signature);
   if (auto err = results_memory_layout.takeError()) return std::move(err);
 
   // Lower kernel IR from high level dialects to the MLIR LLVM Dialect.
-  if (failed(LowerToLlvm(*module, opts)))
-    return error("failed to lower module to LLVM");
+  if (failed(LowerToLlvm(ctx->module(), ctx->options())))
+    return ctx->Error("failed to lower module to LLVM");
 
   // Prepare JIT target machine for code generation.
   auto builder = llvm::orc::JITTargetMachineBuilder::detectHost();
@@ -677,17 +750,246 @@ Expected<CompilationResult> CompileKernelMlirModule(
                                                      target_machine->get());
 
   // Build MLIR exection engine.
-  auto engine =
-      mlir::ExecutionEngine::create(*module, /*llvmModuleBuilder=*/nullptr,
-                                    transformer, opts.jit_code_opt_level, libs);
-  if (!engine) return error(engine.takeError());
+  auto engine = mlir::ExecutionEngine::create(
+      ctx->module(), /*llvmModuleBuilder=*/nullptr, transformer,
+      ctx->options().jit_code_opt_level, libs);
+  if (!engine) return ctx->Error(engine.takeError());
 
   // Register Async Runtime API intrinsics.
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);
 
-  return CompilationResult(std::move(context), std::move(*engine),
-                           entry_signature, entry_name,
-                           std::move(*results_memory_layout));
+  return Executable(std::move(ctx->context_), std::move(*engine),
+                    entry_signature, entry_name,
+                    std::move(*results_memory_layout));
+}
+
+// Return input `type` specialized to memref descriptor operand.
+static llvm::Expected<mlir::Type> SpecializeType(mlir::Type type,
+                                                 const MemrefDesc& operand) {
+  if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
+    if (auto err = VerifyMemrefOperand(memref, operand)) return std::move(err);
+    return mlir::MemRefType::get(operand.sizes, memref.getElementType());
+  }
+
+  if (auto tensor = type.dyn_cast<mlir::RankedTensorType>()) {
+    if (auto err = VerifyMemrefOperand(tensor, operand)) return std::move(err);
+    return mlir::RankedTensorType::get(operand.sizes, tensor.getElementType());
+  }
+
+  return MakeStringError("Unsupported input type: ", type);
+}
+
+llvm::Error JitCompilationContext::Specialize(ArrayRef<MemrefDesc> operands,
+                                              string_view entrypoint) {
+  mlir::FuncOp func = module_->lookupSymbol<mlir::FuncOp>(entrypoint);
+  if (!func) return MakeStringError("Entrypoint not found: ", entrypoint);
+
+  unsigned num_inputs = func.getNumArguments();
+
+  // Specialize all function inputs to the given operands.
+  llvm::SmallVector<mlir::Type> specialized_inputs(num_inputs);
+  for (unsigned i = 0; i < num_inputs; ++i) {
+    auto specialized = SpecializeType(func.getType().getInput(i), operands[i]);
+    if (auto err = specialized.takeError()) return err;
+    specialized_inputs[i] = *specialized;
+  }
+
+  // Update function type to a new specialized one.
+  auto specialized = mlir::FunctionType::get(
+      func.getContext(), specialized_inputs, func.getType().getResults());
+  func.setType(specialized);
+
+  // Update function entry block arguments.
+  mlir::Block& entry_block = func.getBlocks().front();
+
+  // Forward original block arguments to arguments with specialized type.
+  for (int i = 0; i < num_inputs; ++i) {
+    mlir::BlockArgument arg = entry_block.addArgument(specialized_inputs[i]);
+    entry_block.getArgument(i).replaceAllUsesWith(arg);
+  }
+
+  // Erase all the original block arguments.
+  llvm::SmallVector<unsigned> erase_block_args(num_inputs);
+  std::iota(erase_block_args.begin(), erase_block_args.end(), 0);
+  entry_block.eraseArguments(erase_block_args);
+
+  return Error::success();
+}
+
+//----------------------------------------------------------------------------//
+// JitExecutable implementation.
+//----------------------------------------------------------------------------//
+
+// Returns true if module requires argument specialization to be compiled.
+static Expected<bool> IsSpecializationOnly(mlir::ModuleOp module,
+                                           string_view entrypoint) {
+  auto func = ResolveEntrypointFunction(module, entrypoint);
+  if (auto err = func.takeError()) return std::move(err);
+
+  auto is_required = [](mlir::Attribute attr) -> bool {
+    auto str = attr.dyn_cast_or_null<mlir::StringAttr>();
+    return str && str.getValue() == "required";
+  };
+
+  // Check if any of the arguments require shape or value specialization.
+  for (int i = 0; i < func->getNumArguments(); ++i) {
+    auto shape = func->getArgAttr(i, JitExecutable::kSpecializeShape);
+    auto value = func->getArgAttr(i, JitExecutable::kSpecializeShape);
+    if (is_required(shape) || is_required(value)) return true;
+  }
+
+  return false;
+}
+
+/*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
+    string_view mlir_module, string_view entrypoint,
+    const CompilationOptions& compilation_opts) {
+  // Set up LLVM target for code generation.
+  InitializeCompiler();
+
+  // Try to instantiate compilation context from the mlir source.
+  Expected<std::unique_ptr<JitCompilationContext>> ctx =
+      JitCompilationContext::Instantiate(compilation_opts, mlir_module);
+  if (auto err = ctx.takeError()) return std::move(err);
+
+  // Check if the module requires specialization to be compiled.
+  Expected<bool> required_specialization =
+      IsSpecializationOnly((*ctx)->module(), entrypoint);
+  if (auto err = required_specialization.takeError()) return std::move(err);
+
+  // If the module must be specialized, return JitExecutable without a default
+  // compiled executable.
+  if (*required_specialization)
+    return MakeStringError("specialization not supported");
+
+  // Otherwise try to compile the default executable.
+  Expected<Executable> executable =
+      JitCompilationContext::Compile(std::move(*ctx), entrypoint);
+  if (auto err = executable.takeError()) return std::move(err);
+
+  return JitExecutable(mlir_module, entrypoint, compilation_opts,
+                       std::move(*executable));
+}
+
+JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
+                             CompilationOptions compilation_opts,
+                             Optional<Executable> default_executable)
+    : mlir_module_(mlir_module.str()),
+      entrypoint_(entrypoint.str()),
+      compilation_opts_(std::move(compilation_opts)),
+      default_executable_(std::move(default_executable)),
+      specializations_(std::make_unique<Specializations>()) {}
+
+const Executable* JitExecutable::DefaultExecutable() const {
+  return default_executable_.hasValue() ? &*default_executable_ : nullptr;
+}
+
+// Implement `hash_value` to rely on the ADL lookup for the MemrefDesc type.
+static llvm::hash_code hash_value(const MemrefDesc& memref) {
+  // We currently do not support non-contiguous memrefs as operands, so we do
+  // not need to hash memref strides.
+  return llvm::hash_combine(
+      memref.sizes.size(),
+      llvm::hash_combine_range(memref.sizes.begin(), memref.sizes.end()));
+}
+
+// TODO(ezhulenev): Current implementation unnecessarily blocks if the
+// specialization is not available, however it can fallback on default
+// executable if it is available. Also the fast path should be free of mutex to
+// find the pre-compiled specialization. Maybe use atomic pointers (multiple
+// atomic pointers?) to keep the most commonly used specialization available
+// without grabbing a mutex and doing lookup in the DenseMap.
+//
+// TODO(ezhulenev): The number of specializations should be bounded, ideally we
+// should only keep N most common specializations, and for everything else
+// fall back on the default executable. However what to do if default executable
+// is not available, and the number of specializations is above N?
+Expected<const Executable*> JitExecutable::GetExecutable(
+    ArrayRef<MemrefDesc> operands) {
+  llvm::hash_code hash = llvm::hash_value(operands);
+
+  // Convert ExecutableOrError to the function result.
+  auto convert = [](ExecutableOrError& value) -> Expected<const Executable*> {
+    // Only error or executable must be available.
+    bool is_error = static_cast<bool>(value.error);
+    assert(is_error != value.executable.hasValue());
+
+    if (is_error)
+      return MakeStringError("Compilation of specialized function failed: ",
+                             StrCat(value.error));
+
+    return value.executable.getPointer();
+  };
+
+  // Reduce the scope of the lock to ensure that compilation happens without
+  // holding the lock.
+  {
+    tfrt::mutex_lock lock(specializations_->mu);
+    auto it = specializations_->executables.find(hash);
+    if (it != specializations_->executables.end())
+      return convert(it->getSecond());
+  }
+
+  // Try to instantiate compilation context from the mlir source.
+  Expected<std::unique_ptr<JitCompilationContext>> ctx =
+      JitCompilationContext::Instantiate(compilation_opts_, mlir_module_);
+  if (auto err = ctx.takeError()) {
+    assert(false && "parsing mlir module must always succeed at this point");
+    return std::move(err);
+  }
+
+  // Specialize executable to the concrete operands.
+  if (auto err = (*ctx)->Specialize(operands, entrypoint_))
+    return MakeStringError("Failed to specialize executable: ", err);
+
+  // Compile the specialized executable.
+  Expected<Executable> executable =
+      JitCompilationContext::Compile(std::move(*ctx), entrypoint_);
+
+  // Update the specialized executables cache with an error or the value.
+  tfrt::mutex_lock lock(specializations_->mu);
+
+  // Concurrent thread updated the cache before us.
+  auto it = specializations_->executables.find(hash);
+  if (it != specializations_->executables.end())
+    return convert(it->getSecond());
+
+  // Update the cache with a compilation error.
+  if (auto err = executable.takeError()) {
+    auto emplaced =
+        specializations_->executables.try_emplace(hash, std::move(err));
+    assert(emplaced.second && "error must be successfully emplaced");
+    return convert(emplaced.first->getSecond());
+  }
+
+  // Or update the cache with a compiled executable.
+  auto emplaced =
+      specializations_->executables.try_emplace(hash, std::move(*executable));
+  assert(emplaced.second && "executable must be successfully emplaced");
+  return convert(emplaced.first->getSecond());
+}
+
+//----------------------------------------------------------------------------//
+// JitExecutableCache implementation.
+//----------------------------------------------------------------------------//
+
+AsyncValueRef<JitExecutable> JitExecutableCache::Find(intptr_t key) const {
+  tfrt::mutex_lock lock(mu_);
+  auto it = cache_.find(key);
+  if (it != cache_.end()) return it->second.CopyRef();
+  return AsyncValueRef<JitExecutable>();
+}
+
+AsyncValueRef<JitExecutable> JitExecutableCache::Insert(
+    intptr_t key, JitExecutable jit_executable) {
+  tfrt::mutex_lock lock(mu_);
+  auto it = cache_.find(key);
+  if (it != cache_.end()) return it->second.CopyRef();
+
+  auto emplaced =
+      cache_.try_emplace(key, MakeAvailableAsyncValueRef<JitExecutable>(
+                                  host_, std::move(jit_executable)));
+  return emplaced.first->getSecond().CopyRef();
 }
 
 }  // namespace jit

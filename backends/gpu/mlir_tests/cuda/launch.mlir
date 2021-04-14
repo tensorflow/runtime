@@ -24,21 +24,21 @@ func @noop_kernel() {
   %context = tfrt_cuda.context.create %device, %ch2
   %stream = tfrt_cuda.stream.create %context, %ch2
 
-  // PTX for empty kernel.
-  %ch6 = tfrt_cuda.module.load_static %context, %ch2
-         { modules = [".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry Kernel() { ret; }" ],
-           funcs_per_module = [1 : i32],
-           functions = [ "Kernel" ]
-         }
+  %func = tfrt_cuda.function.load %context, %ch2 {
+    // PTX for empty_kernel.
+    data = ".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry empty_kernel() { ret; }\00",
+    key = 0 : ui64,
+    name = "empty_kernel\00"
+  }
 
   %blk_dim = tfrt.constant.ui32 1
   %grid_dim = tfrt.constant.ui32 1
   %shared_mem_size = tfrt.constant.ui32 0
 
-  %ch7 = tfrt_cuda.launch %context
-                     %grid_dim %grid_dim %grid_dim
-                     %blk_dim %blk_dim %blk_dim
-                     %shared_mem_size %stream %ch6 { function_handle = 0: ui64 }
+  %ch7 = tfrt_cuda.function.launch %stream, %func,
+             blocks in (%grid_dim, %grid_dim, %grid_dim),
+             threads in (%blk_dim, %blk_dim, %blk_dim),
+             %shared_mem_size, %ch2
 
   tfrt.return
 }
@@ -53,12 +53,12 @@ func @vector_add_kernel() {
   %stream = tfrt_cuda.stream.create %context, %ch2
   %allocator = tfrt_cuda.allocator.create %context, %ch2
 
-  // PTX for empty kernel.
-  %ch6 = tfrt_cuda.module.load_static %context, %ch2
-         { modules = [".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry vector_add(\n.param .u32 vector_add_param_0,\n.param .u64 vector_add_param_1,\n.param .u64 vector_add_param_2\n)\n{\n.reg .pred 	%p<2>;\n.reg .f32 	%f<4>;\n.reg .b32 	%r<6>;\n.reg .b64 	%rd<8>;\nld.param.u32 	%r2, [vector_add_param_0];\nld.param.u64 	%rd1, [vector_add_param_1];\nld.param.u64 	%rd2, [vector_add_param_2];\nmov.u32 	%r3, %ctaid.x;\nmov.u32 	%r4, %ntid.x;\nmov.u32 	%r5, %tid.x;\nmad.lo.s32 	%r1, %r4, %r3, %r5;\nsetp.ge.s32	%p1, %r1, %r2;\n@%p1 bra 	BB0_2;\n\ncvta.to.global.u64 	%rd3, %rd2;\ncvta.to.global.u64 	%rd4, %rd1;\nmul.wide.s32 	%rd5, %r1, 4;\nadd.s64 	%rd6, %rd4, %rd5;\nadd.s64 	%rd7, %rd3, %rd5;\nld.global.f32 	%f1, [%rd7];\nld.global.f32 	%f2, [%rd6];\nadd.f32 	%f3, %f2, %f1;\nst.global.f32 	[%rd7], %f3;\nBB0_2:\nret;\n}\n" ],
-           funcs_per_module = [1 : i32],
-           functions = [ "vector_add" ]
-         }
+  %func = tfrt_cuda.function.load %context, %ch2 {
+    // PTX for vector_add.
+    data = ".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry vector_add(\n.param .u32 vector_add_param_0,\n.param .u64 vector_add_param_1,\n.param .u64 vector_add_param_2\n)\n{\n.reg .pred 	%p<2>;\n.reg .f32 	%f<4>;\n.reg .b32 	%r<6>;\n.reg .b64 	%rd<8>;\nld.param.u32 	%r2, [vector_add_param_0];\nld.param.u64 	%rd1, [vector_add_param_1];\nld.param.u64 	%rd2, [vector_add_param_2];\nmov.u32 	%r3, %ctaid.x;\nmov.u32 	%r4, %ntid.x;\nmov.u32 	%r5, %tid.x;\nmad.lo.s32 	%r1, %r4, %r3, %r5;\nsetp.ge.s32	%p1, %r1, %r2;\n@%p1 bra 	BB0_2;\n\ncvta.to.global.u64 	%rd3, %rd2;\ncvta.to.global.u64 	%rd4, %rd1;\nmul.wide.s32 	%rd5, %r1, 4;\nadd.s64 	%rd6, %rd4, %rd5;\nadd.s64 	%rd7, %rd3, %rd5;\nld.global.f32 	%f1, [%rd7];\nld.global.f32 	%f2, [%rd6];\nadd.f32 	%f3, %f2, %f1;\nst.global.f32 	[%rd7], %f3;\nBB0_2:\nret;\n}\n\00",
+    key = 1 : ui64,
+    name = "vector_add\00"
+  }
 
   // Create source dense host tensors.
   %x_host = tfrt_dht.create_uninitialized_tensor.f32.1 [8 : i64]
@@ -93,11 +93,11 @@ func @vector_add_kernel() {
   %shared_mem_size = tfrt.constant.ui32 0
   %len = tfrt.constant.i32 8
 
-  %ch_kernel = tfrt_cuda.launch %context %eight %one %one
-                           %eight %one %one %shared_mem_size %stream %ch18
-                           { function_handle = 0: ui64 }
-                           (%len, %x_device, %y_device) :
-                             (i32, !tfrt_cuda.buffer, !tfrt_cuda.buffer)
+  %ch_kernel = tfrt_cuda.function.launch %stream, %func,
+                   blocks in (%eight, %one, %one),
+                   threads in (%eight, %one, %one),
+                   %shared_mem_size, %ch18,
+                   args(%len, %x_device, %y_device) : (i32, !tfrt_cuda.buffer, !tfrt_cuda.buffer)
 
   // Copy back to host buffer and synchronize.
   %ch19 = tfrt_cuda.mem.copy_device_to_host %context, %y_host_buffer, %y_device,

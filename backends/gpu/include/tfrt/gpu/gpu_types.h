@@ -21,8 +21,10 @@
 #ifndef TFRT_GPU_GPU_TYPES_H_
 #define TFRT_GPU_GPU_TYPES_H_
 
+#include <cstdint>
 #include <memory>
 
+#include "llvm/ADT/DenseMap.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/forward_decls.h"
@@ -30,7 +32,8 @@
 
 namespace tfrt {
 namespace gpu {
-class ModuleTable;
+
+using GpuFunction = wrapper::Function;
 
 class GpuContext {
  public:
@@ -43,12 +46,13 @@ class GpuContext {
   const wrapper::OwningContext& operator->() const { return context_; }
   wrapper::Context get() const { return context_.get(); }
 
-  Error SetModuleTable(std::unique_ptr<gpu::ModuleTable> table);
-  const gpu::ModuleTable* GetModuleTable() const { return table_.get(); }
+  Expected<GpuFunction> GetFunction(uint64_t key, string_view data,
+                                    string_view name);
 
  private:
   wrapper::OwningContext context_;
-  std::unique_ptr<gpu::ModuleTable> table_;
+  llvm::DenseMap<uint64_t, std::pair<wrapper::OwningModule, GpuFunction>>
+      functions_;
 };
 
 class GpuStream {
@@ -62,6 +66,8 @@ class GpuStream {
 
   const wrapper::OwningStream& operator->() const { return stream_; }
   wrapper::Stream get() const { return stream_.get(); }
+
+  wrapper::Context context() const { return context_->get(); }
 
  private:
   AsyncValueRef<GpuContext> context_;

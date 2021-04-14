@@ -42,6 +42,8 @@ def AllocatorType : OpaqueType<"tfrt_cuda", "allocator", "!tfrt_cuda.allocator t
 // Buffer represents a CUDA device memory buffer.
 def BufferType : OpaqueType<"tfrt_cuda", "buffer", "!tfrt_cuda.buffer type">;
 
+def GPU_FunctionType : OpaqueType<"tfrt_cuda", "function", "!tfrt_cuda.function type">;
+
 def CublasHandleType : OpaqueType<"tfrt_cuda", "blas_handle", "!tfrt_cuda.blas_handle type">;
 
 // "tfrt_cuda" dialect

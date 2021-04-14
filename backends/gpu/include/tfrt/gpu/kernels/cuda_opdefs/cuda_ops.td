@@ -296,54 +296,49 @@ def MemcpyDtoHOp : CUDA_Op<"mem.copy_device_to_host"> {
   let results = (outs TFRT_ChainType);
 }
 
-def ModuleLoadStaticOp : CUDA_Op<"module.load_static"> {
-  let summary = "Loads a set of CUBIN or PTX modules.";
+def FunctionLoadOp : CUDA_Op<"function.load"> {
+  let summary = "Loads a device function.";
   let description = [{
-    tfrt_cuda.module.load_static loads a fixed set of CUBIN or PTX modules.
+    tfrt_cuda.function.load loads GPU device function from a binary blob.
 
-    These modules are kept in a table that persists for the lifetime of the
-    BEF execution (as a Resource). Repeated invocations of this function for the
-    same device causes a runtime error.
+    The function is cached in the context for better performance. The key needs
+    to be unique across all modules loaded into a context.
+
+    Both data and name attribute must be explicitly null-terminated.
 
     Example:
-      %ch1 = tfrt_cuda.module.load_static %ctx %chain {
-        modules = ["some ptx", "or cubin"],
-        funs_per_module = [2, 1],
-        functions = ["ptxFunc0", "ptxFunc1", "cubinFunc0"]
+      %function = tfrt_cuda.function.load %ctx, %chain {
+        data = "null-terminated device function blob, e.g. PTX",
+        key = 1234,
+        name = "kernel\00",
       }
-
-      Subsequent tfrt_cuda.launch calls can reference ptxFunc0, ptxFunc1, and
-      cubinFunc0 as 0, 1, and 2 respectively.
   }];
   let arguments = (ins
     ContextType:$ctx,
     TFRT_ChainType:$in_chain,
-    StrArrayAttr:$modules,
-    I32ArrayAttr:$funcs_per_module,
-    StrArrayAttr:$functions
+    StrAttr:$data,
+    UI64Attr:$key,
+    StrAttr:$name
   );
-  let results = (outs TFRT_ChainType:$out_chain);
+  let results = (outs GPU_FunctionType);
   let assemblyFormat = "operands attr-dict";
 }
 
-def LaunchOp : CUDA_Op<"launch"> {
-  let summary = "Launches a kernel";
+def LaunchOp : CUDA_Op<"function.launch"> {
+  let summary = "Launches a device function.";
   let description = [{
-    tfrt_cuda.launch invokes the provided kernel on a the provided stream.
-
-    The function attribute used by this kernel must refer to the index of a
-    function loaded via tfrt_cuda.module.load_static.
+    tfrt_cuda.function.launch invokes the provided device function on a stream.
 
     Example:
-      %ch1 = tfrt_cuda.launch %ctx
-                         %grid_dim_x %grid_dim_y %grid_dim_z
-                         %block_dim_x %block_dim_y %block_dim_z
-                         %shared_memory_size_bytes %stream %chain
-                         { function_handle = 21 : ui64 }
-                         (%arg0, %arg1, ..., %argN) : (<type0>, <type1>, ... <typeN>)
+      %ch1 = tfrt_cuda.function.launch %stream, %function,
+                 blocks in (%grid_dim_x %grid_dim_y %grid_dim_z),
+                 threads in (%block_dim_x %block_dim_y %block_dim_z),
+                 %shared_memory_size_bytes, %chain,
+                 args(%arg0, %arg1, ..., %argN) : (<type0>, <type1>, ... <typeN>)
   }];
   let arguments = (ins
-    ContextType:$ctx,
+    StreamType:$stream,
+    GPU_FunctionType:$function,
     UI32:$grid_dim_x,
     UI32:$grid_dim_y,
     UI32:$grid_dim_z,
@@ -351,18 +346,16 @@ def LaunchOp : CUDA_Op<"launch"> {
     UI32:$block_dim_y,
     UI32:$block_dim_z,
     UI32:$shared_memory_size_bytes,
-    StreamType:$stream,
     TFRT_ChainType:$in_chain,
-    UI64Attr:$function_handle,
     Variadic<AnyTypeOf<[BufferType, AnyFloat, AnyInteger]>>:$args
   );
   let results = (outs TFRT_ChainType:$out_chain);
   let assemblyFormat = [{
-    $ctx $grid_dim_x $grid_dim_y $grid_dim_z
-        $block_dim_x  $block_dim_y  $block_dim_z
-        $shared_memory_size_bytes $stream $in_chain
-        attr-dict
-        ( `(` $args^ `)`  `:` `(` type($args) `)`  )?
+    $stream`,` $function`,`
+    `blocks` `in` ` ` `(`$grid_dim_x`,` $grid_dim_y`,` $grid_dim_z`)``,`
+    `threads` `in` ` ` `(`$block_dim_x`,`  $block_dim_y`,`  $block_dim_z`)``,`
+    $shared_memory_size_bytes`,` $in_chain
+    ( `,` `args``(` $args^ `)`  `:` `(` type($args) `)`  )? attr-dict
   }];
 }
 

@@ -29,11 +29,11 @@
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/memory/caching_gpu_allocator.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/module_table.h"
 #include "tfrt/gpu/stream/cuda_wrapper.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/host_context/async_dispatch.h"
+#include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
@@ -288,50 +288,21 @@ static Expected<Chain> CudaMemcpyDtoHAsync(const GpuContext& context,
   return chain;
 }
 
-static Error CudaModuleLoadStaticSync(Argument<GpuContext> context,
-                                      // Note: Attributes must be in
-                                      // alphabetical order (see b/140896071).
-                                      ArrayAttribute<int32_t> funcs_per_module,
-                                      AggregateAttr functions,
-                                      AggregateAttr modules,
-                                      const ExecutionContext& exec_ctx) {
-  auto current = wrapper::CtxSetCurrent(context->get());
-  if (!current) return current.takeError();
-
-  auto parsed_spec = ParseModuleTableSpec(modules, funcs_per_module, functions);
-  if (!parsed_spec) return parsed_spec.takeError();
-
-  auto module_table = ModuleTable::Create(*current, *parsed_spec);
-  if (!module_table) return module_table.takeError();
-
-  return context->SetModuleTable(std::move(*module_table));
-}
-static Expected<Chain> CudaModuleLoadStaticAsync(
-    Argument<GpuContext> context, Chain chain,
-    // Note: Attributes must be in
-    // alphabetical order (see b/140896071).
-    ArrayAttribute<int32_t> funcs_per_module, AggregateAttr functions,
-    AggregateAttr modules, const ExecutionContext& exec_ctx) {
-  if (auto error = CudaModuleLoadStaticSync(context, funcs_per_module,
-                                            functions, modules, exec_ctx))
-    return std::move(error);
-  return chain;
+static Expected<wrapper::Function> CudaFunctionLoad(
+    Argument<GpuContext> context,
+    // Note: Attributes must be in alphabetical order (see b/140896071).
+    StringAttribute data, Attribute<uint64_t> key, StringAttribute name) {
+  return context->GetFunction(key.get(), data.get(), name.get());
 }
 
-static Error CudaLaunchSync(const GpuContext& context, uint32_t grid_dim_x,
-                            uint32_t grid_dim_y, uint32_t grid_dim_z,
-                            uint32_t block_dim_x, uint32_t block_dim_y,
-                            uint32_t block_dim_z,
-                            uint32_t shared_memory_size_bytes,
-                            const GpuStream& stream, RemainingArguments args,
-                            Attribute<ModuleFuncHandle> function_handle,
-                            const ExecutionContext& exec_ctx) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+static Error CudaFunctionLaunch(const GpuStream& stream, GpuFunction function,
+                                uint32_t grid_dim_x, uint32_t grid_dim_y,
+                                uint32_t grid_dim_z, uint32_t block_dim_x,
+                                uint32_t block_dim_y, uint32_t block_dim_z,
+                                uint32_t shared_memory_size_bytes, Chain chain,
+                                RemainingArguments args) {
+  auto current = wrapper::CtxSetCurrent(stream.context());
   if (!current) return current.takeError();
-
-  auto* module_table = context.GetModuleTable();
-  if (!module_table)
-    return MakeStringError("No module table for context", context.get());
 
   // Kernel params are a vector of pointers to the kernel args, so we must first
   // materialize the kernel arg values.
@@ -354,25 +325,10 @@ static Error CudaLaunchSync(const GpuContext& context, uint32_t grid_dim_x,
   arg_pointers.reserve(args.size());
   for (auto& arg_value : arg_values) arg_pointers.push_back(&arg_value);
 
-  wrapper::Function func_ptr = module_table->GetFunction(function_handle.get());
-  return wrapper::LaunchKernel(
-      *current, func_ptr, grid_dim_x, grid_dim_y, grid_dim_z, block_dim_x,
-      block_dim_y, block_dim_z, shared_memory_size_bytes, stream.get(),
-      arg_pointers, llvm::ArrayRef<void*>{});
-}
-static Expected<Chain> CudaLaunchAsync(
-    const GpuContext& context, uint32_t grid_dim_x, uint32_t grid_dim_y,
-    uint32_t grid_dim_z, uint32_t block_dim_x, uint32_t block_dim_y,
-    uint32_t block_dim_z, uint32_t shared_memory_size_bytes,
-    const GpuStream& stream, Chain chain, RemainingArguments args,
-    Attribute<ModuleFuncHandle> function_handle,
-    const ExecutionContext& exec_ctx) {
-  if (auto error = CudaLaunchSync(context, grid_dim_x, grid_dim_y, grid_dim_z,
-                                  block_dim_x, block_dim_y, block_dim_z,
-                                  shared_memory_size_bytes, stream, args,
-                                  function_handle, exec_ctx))
-    return std::move(error);
-  return chain;
+  return wrapper::LaunchKernel(*current, function, grid_dim_x, grid_dim_y,
+                               grid_dim_z, block_dim_x, block_dim_y,
+                               block_dim_z, shared_memory_size_bytes,
+                               stream.get(), arg_pointers, {});
 }
 
 #define TFRT_WITH_CHAIN_RESULT(sync_func) \
@@ -423,9 +379,11 @@ void RegisterCudaKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.mem.copy_device_to_host",
                         TFRT_KERNEL(CudaMemcpyDtoHAsync));
 
-  kernel_reg->AddKernel("tfrt_cuda.module.load_static",
-                        TFRT_KERNEL(CudaModuleLoadStaticAsync));
-  kernel_reg->AddKernel("tfrt_cuda.launch", TFRT_KERNEL(CudaLaunchAsync));
+  kernel_reg->AddKernel("tfrt_cuda.function.load",
+                        TFRT_KERNEL(CudaFunctionLoad));
+  kernel_reg->AddKernel(
+      "tfrt_cuda.function.launch",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaFunctionLaunch)));
 }
 
 }  // namespace gpu

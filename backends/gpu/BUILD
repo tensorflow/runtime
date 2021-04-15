@@ -116,6 +116,7 @@ tfrt_cc_library(
         "lib/stream/cuda_wrapper.cc",
         "lib/stream/cudart_wrapper.cc",
         "lib/stream/cudnn_wrapper.cc",
+        "lib/stream/cufft_wrapper.cc",
         "lib/stream/cusolver_wrapper.cc",
         "lib/stream/dnn_wrapper.cc",
         "lib/stream/hash_utils.cc",
@@ -132,6 +133,7 @@ tfrt_cc_library(
         "include/tfrt/gpu/stream/cuda_wrapper.h",
         "include/tfrt/gpu/stream/cudart_wrapper.h",
         "include/tfrt/gpu/stream/cudnn_wrapper.h",
+        "include/tfrt/gpu/stream/cufft_wrapper.h",
         "include/tfrt/gpu/stream/cusolver_wrapper.h",
         "include/tfrt/gpu/stream/dense_map_utils.h",
         "include/tfrt/gpu/stream/dnn_wrapper.h",
@@ -152,13 +154,14 @@ tfrt_cc_library(
     ] + select({
         "@tf_runtime//:is_build_env_google": [
             # CUDA libraries are statically linked.
+            ":cublas_compat",
             "//platforms/gpus/cuda/dynamic_libcuda",
             "@cuda_headers//:cublas_static",
             "@cuda_headers",
             "@cuda_headers//:cudart_static",
+            "@cuda_headers//:cufft_static",
             "@cuda_headers//:cusolver_static",
             "@cudnn_headers//:cudnn",
-            ":cublas_compat",
         ],
         "//conditions:default": [":cuda_stubs"],
     }),

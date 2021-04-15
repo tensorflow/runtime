@@ -82,6 +82,9 @@ using cusolverDnHandle_t = struct cusolverDnContext *;
 using syevjInfo_t = struct syevjInfo *;
 using gesvdjInfo_t = struct gesvdjInfo *;
 
+// Forward declaration of cuFFT types.
+using cufftHandle = int;
+
 // Forward declarations of half types.
 struct __half;
 struct __half2;

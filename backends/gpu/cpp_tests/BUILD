@@ -7,6 +7,7 @@ tfrt_cc_test(
     srcs = [
         "stream/blas_wrapper_test.cc",
         "stream/common.h",
+        "stream/cufft_wrapper_test.cc",
         "stream/dnn_wrapper_test.cc",
         "stream/instantiate_suite.cc",
         "stream/runtime_wrapper_test.cc",
@@ -19,11 +20,11 @@ tfrt_cc_test(
         "requires-gpu-nvidia",
     ],
     deps = [
-        "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
-        "@tf_runtime//:support",
         "@tf_runtime//backends/gpu:gpu_stream_wrapper",
         "@tf_runtime//cpp_tests:common",
+        "@tf_runtime//:support",
+        "@com_google_googletest//:gtest_main",
     ] + select({
         "@tf_runtime//:is_build_env_google": ["//third_party/absl/debugging:leak_check"],
         "//conditions:default": [],

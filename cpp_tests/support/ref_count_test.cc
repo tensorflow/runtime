@@ -47,19 +47,19 @@ TEST(RefCountTest, ReferenceCountedIsNotUnique) {
 }
 
 TEST(RefCountTest, RCReferenceBasic) {
-  RCReference<WrappedInt32> rwi = TakeRef(new WrappedInt32(123));
+  RCReference<WrappedInt32> rwi = MakeRef<WrappedInt32>(123);
   EXPECT_EQ(123, rwi->value());
   EXPECT_TRUE(rwi->IsUnique());
 }
 
 TEST(RefCountTest, RCReferenceReset) {
-  RCReference<WrappedInt32> rwi = TakeRef(new WrappedInt32(123));
+  RCReference<WrappedInt32> rwi = MakeRef<WrappedInt32>(123);
   rwi.reset();
   EXPECT_FALSE(rwi);
 }
 
 TEST(RefCountTest, RCReferenceRelease) {
-  RCReference<WrappedInt32> rwi = TakeRef(new WrappedInt32(123));
+  RCReference<WrappedInt32> rwi = MakeRef<WrappedInt32>(123);
   WrappedInt32* wi = rwi.release();
   EXPECT_FALSE(rwi);
   EXPECT_EQ(123, wi->value());
@@ -67,14 +67,14 @@ TEST(RefCountTest, RCReferenceRelease) {
 }
 
 TEST(RefCountTest, RCReferenceMove) {
-  RCReference<WrappedInt32> rwi = TakeRef(new WrappedInt32(123));
+  RCReference<WrappedInt32> rwi = MakeRef<WrappedInt32>(123);
   RCReference<WrappedInt32> rwi_moved(std::move(rwi));
   EXPECT_TRUE(rwi_moved->IsUnique());
   EXPECT_EQ(123, rwi_moved->value());
 }
 
 TEST(RefCountTest, RCReferenceCopy) {
-  RCReference<WrappedInt32> rwi = TakeRef(new WrappedInt32(123));
+  RCReference<WrappedInt32> rwi = MakeRef<WrappedInt32>(123);
   RCReference<WrappedInt32> rwi_copied = rwi.CopyRef();
 
   EXPECT_FALSE(rwi->IsUnique());
@@ -85,8 +85,8 @@ TEST(RefCountTest, RCReferenceCopy) {
 }
 
 TEST(RefCountTest, RCReferenceSwap) {
-  RCReference<WrappedInt32> rwi_a = TakeRef(new WrappedInt32(123));
-  RCReference<WrappedInt32> rwi_b = TakeRef(new WrappedInt32(456));
+  RCReference<WrappedInt32> rwi_a = MakeRef<WrappedInt32>(123);
+  RCReference<WrappedInt32> rwi_b = MakeRef<WrappedInt32>(456);
 
   rwi_a.swap(rwi_b);
 
@@ -95,8 +95,8 @@ TEST(RefCountTest, RCReferenceSwap) {
 }
 
 TEST(RefCountTest, RCReferenceGlobalSwap) {
-  RCReference<WrappedInt32> rwi_a = TakeRef(new WrappedInt32(123));
-  RCReference<WrappedInt32> rwi_b = TakeRef(new WrappedInt32(456));
+  RCReference<WrappedInt32> rwi_a = MakeRef<WrappedInt32>(123);
+  RCReference<WrappedInt32> rwi_b = MakeRef<WrappedInt32>(456);
 
   swap(rwi_a, rwi_b);
 

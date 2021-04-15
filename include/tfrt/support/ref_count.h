@@ -214,6 +214,12 @@ RCReference<T> RCReference<T>::CopyRef() const {
   return FormRef(get());
 }
 
+// Create a new reference counted object, similar to std::make_shared.
+template <typename T, typename... Args>
+RCReference<T> MakeRef(Args&&... args) {
+  auto t = new T(std::forward<Args>(args)...);
+  return TakeRef(t);
+}
 // For ADL style swap.
 template <typename T>
 void swap(RCReference<T>& a, RCReference<T>& b) {

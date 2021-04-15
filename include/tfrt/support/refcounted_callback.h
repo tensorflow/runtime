@@ -35,10 +35,10 @@ namespace tfrt {
 // when it gets destructed (i.e., loses the last reference).
 //
 // Example:
-//   auto rc_done = TakeRef(new RefCountedCallback([...](Error e) mutable {
+//   auto rc_done = MakeRef<RefCountedCallback>([...](Error e) mutable {
 //       if (e) ...
 //       ...
-//     }));
+//     });
 //   InvokeAsyncFunction(..., [rc_done = rc_done.CopyRef()](Error e) mutable {
 //       rc_done->UpdateState(std::move(e));
 //     });

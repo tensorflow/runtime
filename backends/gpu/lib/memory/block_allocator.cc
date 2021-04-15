@@ -42,7 +42,7 @@ llvm::Expected<RCReference<gpu::GpuBuffer>> BlockAllocator::Allocate(
                                 block->pointer.raw(sub_allocator_->platform())),
                             *block);
 
-  return TakeRef(new GpuBuffer(block->pointer, block->size, this));
+  return MakeRef<GpuBuffer>(block->pointer, block->size, this);
 }
 
 void BlockAllocator::Deallocate(const gpu::GpuBuffer& buffer) {

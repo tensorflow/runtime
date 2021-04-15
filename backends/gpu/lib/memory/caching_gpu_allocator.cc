@@ -64,7 +64,7 @@ llvm::Expected<RCReference<gpu::GpuBuffer>> CachingGpuAllocator::Allocate(
   wrapper::Pointer<void> pointer = device_memory->release();
 
   allocations_.insert({pointer, context.get()});
-  return TakeRef(new gpu::GpuBuffer(pointer, size, this));
+  return MakeRef<gpu::GpuBuffer>(pointer, size, this);
 }
 
 void CachingGpuAllocator::Deallocate(const gpu::GpuBuffer& buffer) {

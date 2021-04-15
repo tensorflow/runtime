@@ -62,10 +62,13 @@ class TimerQueue {
   // A reference counted timer, which has a deadline and a callback function.
   class TimerEntry : public ReferenceCounted<TimerEntry> {
    public:
+    TimerEntry(TimePoint deadline, TimerCallback timer_callback)
+        : deadline_(deadline), timer_callback_(std::move(timer_callback)) {}
+
     // Factory method to create a timer. Meant for internal usage only.
     static RCReference<TimerEntry> Create(TimePoint deadline,
                                           TimerCallback timer_callback) {
-      return TakeRef(new TimerEntry{deadline, std::move(timer_callback)});
+      return MakeRef<TimerEntry>(deadline, std::move(timer_callback));
     }
 
     struct TimerEntryCompare {
@@ -77,8 +80,6 @@ class TimerQueue {
 
    private:
     friend class TimerQueue;
-    TimerEntry(TimePoint deadline, TimerCallback timer_callback)
-        : deadline_(deadline), timer_callback_(std::move(timer_callback)) {}
     TimePoint deadline_;
     TimerCallback timer_callback_;
     std::atomic<bool> cancelled_{false};

@@ -884,7 +884,7 @@ void AllGatherAnyShape(Argument<DistributedContext> dist_ctx,
                                kGroupSize, kRank);
       };
 
-  auto refcounted_done_gather_sizes = TakeRef(new RefCountedCallback(
+  auto refcounted_done_gather_sizes = MakeRef<RefCountedCallback>(
       [host = dist_ctx->GetHostContext(), exec_ctx,
        do_final_allgather = std::move(do_final_allgather)](Error e) mutable {
         if (host->IsInWorkerThread()) {
@@ -894,7 +894,7 @@ void AllGatherAnyShape(Argument<DistributedContext> dist_ctx,
                       [done = std::move(do_final_allgather),
                        e = std::move(e)]() mutable { done(std::move(e)); });
         }
-      }));
+      });
 
   // Do an AllGather to gather the sizes of all tensors.
   llvm::SmallVector<llvm::SmallVector<size_t, 4>, 4> gather_size_offsets;

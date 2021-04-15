@@ -46,7 +46,7 @@ HostContext::HostContext(
       instance_ptr_{HostContextPool::instance().AllocateForHostContext(this)} {
   ReadyChain::Get().Construct(this);
   host_device_ =
-      device_mgr_.MaybeAddDevice(TakeRef(new CpuDevice(host_device_name)));
+      device_mgr_.MaybeAddDevice(MakeRef<CpuDevice>(host_device_name));
 }
 
 HostContext::HostContext(

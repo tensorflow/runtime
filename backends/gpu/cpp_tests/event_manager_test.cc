@@ -85,7 +85,7 @@ struct StreamAndBuffers {
 static RCReference<RcEvent> CreateRcEvent(wrapper::CurrentContext current) {
   wrapper::OwningEvent event =
       std::move(*EventCreate(current, wrapper::EventFlags::DISABLE_TIMING));
-  return TakeRef(new RcEvent(std::move(event)));
+  return MakeRef<RcEvent>(std::move(event));
 }
 
 class EventManagerTest : public ::testing::Test {

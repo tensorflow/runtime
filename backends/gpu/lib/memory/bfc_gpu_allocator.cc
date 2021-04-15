@@ -124,9 +124,9 @@ llvm::Expected<RCReference<gpu::GpuBuffer>> BfcGpuAllocator::Allocate(
           SplitChunk(chunk, rounded_bytes);
         }
 
-        return TakeRef(new gpu::GpuBuffer(
+        return MakeRef<gpu::GpuBuffer>(
             wrapper::Pointer<void>(chunk->ptr, stream.platform()), num_bytes,
-            this));
+            this);
       }
     }
   }

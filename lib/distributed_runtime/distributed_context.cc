@@ -72,7 +72,7 @@ DistributedContext::DistributedContext(
       dist_config_.job_name(), dist_config_.task_id(),
       HostContext::kDefaultHostDeviceName);
   RCReference<Device> cpu_device = cluster_device_mgr_.MaybeAddDevice(
-      TakeRef(new RemoteCpuDevice(host_cpu_device_name, task_handle)));
+      MakeRef<RemoteCpuDevice>(host_cpu_device_name, task_handle));
   assert(cpu_device);
   if (cpu_device.get() != nullptr) {
     local_ready_chain_ = std::make_unique<RemoteObjectId>(
@@ -123,7 +123,7 @@ RemoteClientInterface* DistributedContext::GetRemoteClient(
 void DistributedContext::GetRemoteDevices(
     DistributedContext::CallbackFn done_callback) {
   // Reference-counted done callback is invoked after all remote calls finish
-  auto rc_done = TakeRef(new RefCountedCallback(std::move(done_callback)));
+  auto rc_done = MakeRef<RefCountedCallback>(std::move(done_callback));
 
   auto request = std::make_shared<GetDevicesRequest>();
   for (const auto& job_config : dist_config_.cluster_config().jobs()) {
@@ -164,7 +164,7 @@ void DistributedContext::GetRemoteDevices(
 void DistributedContext::CreateRemoteContexts(
     RemoteInitMode mode, DistributedContext::CallbackFn done_callback) {
   // Reference-counted done callback is invoked after all remote calls finish
-  auto rc_done = TakeRef(new RefCountedCallback(
+  auto rc_done = MakeRef<RefCountedCallback>(
       [this, mode, done = std::move(done_callback)](Error e) mutable {
         // Only send keep-alive to prevent remote context timeout if not created
         // in multi-client mode (otherwise, the context is owned by the remote
@@ -174,7 +174,7 @@ void DistributedContext::CreateRemoteContexts(
               server_context_->GetConfiguration().context_gc_timeout_secs / 2);
         }
         done(std::move(e));
-      }));
+      });
 
   // Base request contains information that is the shared by all the requests
   // sent to different tasks, including the cluster configuration and collective
@@ -273,7 +273,7 @@ void RemoteObjectIdToProto(RemoteObjectId& obj_id, RemoteObjectIdProto* proto) {
 void DistributedContext::BroadcastRemoteReadyChains(
     DistributedContext::CallbackFn done_callback) {
   // Reference-counted done callback is invoked after all remote calls finish
-  auto rc_done = TakeRef(new RefCountedCallback(std::move(done_callback)));
+  auto rc_done = MakeRef<RefCountedCallback>(std::move(done_callback));
   // Create a copy of remote ready chains to avoid frequent mutex locking when
   // constructng the reqeust.
   auto ready_chain_objs = RemoteReadyChains();
@@ -326,7 +326,7 @@ void DistributedContext::CloseRemoteContexts(
     }
   }
   // Reference-counted done callback is invoked after all remote calls finish
-  auto rc_done = TakeRef(new RefCountedCallback(std::move(done_callback)));
+  auto rc_done = MakeRef<RefCountedCallback>(std::move(done_callback));
 
   auto request = std::make_shared<CloseContextRequest>();
   request->set_context_id(context_id_);
@@ -356,13 +356,13 @@ DistributedContext::RemoteReadyChains() {
 
 void DistributedContext::SendKeepAlive(int delay_secs) {
   auto keep_alive_fn = [this, delay_secs]() mutable {
-    auto done = TakeRef(new RefCountedCallback([this, delay_secs](Error e) {
+    auto done = MakeRef<RefCountedCallback>([this, delay_secs](Error e) {
       if (e) {
         TFRT_LOG(ERROR) << "Error in DistributedContext::SendKeepAlive: "
                         << StrCat(e);
       }
       SendKeepAlive(delay_secs);
-    }));
+    });
     auto request = std::make_shared<KeepAliveRequest>();
     request->set_context_id(context_id_);
     auto response = std::make_shared<KeepAliveResponse>();

@@ -71,9 +71,6 @@ class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
   std::unique_ptr<Impl> impl_;
 };
 }  // namespace gpu
-
-using GpuDevice = gpu::GpuDevice;  // TODO(b/185219734): fix call sites.
-
 }  // namespace tfrt
 
 #endif  // TFRT_GPU_DEVICE_DEVICE_H_

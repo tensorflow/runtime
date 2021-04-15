@@ -33,9 +33,6 @@ llvm::Expected<OpHandler*> CreateGpuOpHandler(CoreRuntime* runtime,
                                               RCReference<GpuDevice> device,
                                               OpHandler* fallback);
 }  // namespace gpu
-
-using gpu::CreateGpuOpHandler;  // TODO(b/185219734): fix call sites.
-
 }  // namespace tfrt
 
 #endif  // TFRT_BACKENDS_GPU_CORE_RUNTIME_GPU_OP_HANDLER_H_

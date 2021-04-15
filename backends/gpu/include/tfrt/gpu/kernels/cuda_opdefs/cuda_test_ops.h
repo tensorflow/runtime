@@ -39,12 +39,6 @@ class CUDATestDialect : public Dialect {
 };
 
 }  // namespace gpu
-
-// TODO(b/185219734): fix call sites.
-namespace cuda {
-using CUDATestDialect = gpu::CUDATestDialect;
-}  // namespace cuda
-
 }  // namespace tfrt
 
 #define GET_OP_CLASSES

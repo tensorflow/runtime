@@ -14,7 +14,7 @@
 
 // Defines std::hash specializations
 //
-// Defines std::hash specializations for some tfrt::gpu::stream types.
+// Defines std::hash specializations for some tfrt::gpu::wrapper types.
 
 #include "tfrt/gpu/stream/hash_utils.h"
 

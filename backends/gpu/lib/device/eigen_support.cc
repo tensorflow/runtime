@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This file declares some helpers that tfrt::GpuDevice uses to interact with
-// Eigen.
+// This file declares some helpers that tfrt::gpu::GpuDevice uses to interact
+// with Eigen.
 
 #include "eigen_support.h"
 

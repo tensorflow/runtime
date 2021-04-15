@@ -106,9 +106,6 @@ tfrt::Expected<OpHandler*> CreateGpuOpHandler(GpuOpRegistry&& op_registry,
                                               CoreRuntime* runtime);
 
 }  // namespace gpu
-
-using gpu::CreateGpuOpHandler;  // TODO(b/185219734): fix call sites.
-
 }  // namespace tfrt
 
 #endif  // TFRT_GPU_CORE_RUNTIME_GPU_OP_REGISTRY_H_

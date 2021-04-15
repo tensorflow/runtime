@@ -824,9 +824,6 @@ llvm::Error LaunchCooperativeKernel(CurrentContext current, Function function,
 }
 
 }  // namespace wrapper
-
-namespace stream = wrapper;  // TODO(b/185219734): fix call sites.
-
 }  // namespace gpu
 }  // namespace tfrt
 

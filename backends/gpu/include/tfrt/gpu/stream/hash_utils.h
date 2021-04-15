@@ -16,7 +16,7 @@
 
 // Declares std::hash specializations
 //
-// Declares std::hash specializations for some tfrt::gpu::stream types.
+// Declares std::hash specializations for some tfrt::gpu::wrapper types.
 #ifndef TFRT_GPU_STREAM_HASH_UTILS_H_
 #define TFRT_GPU_STREAM_HASH_UTILS_H_
 

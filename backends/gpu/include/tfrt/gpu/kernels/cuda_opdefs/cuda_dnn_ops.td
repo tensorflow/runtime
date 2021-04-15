@@ -29,15 +29,15 @@ include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
 
-def DnnActivationDescriptorType : OpaqueType<"tfrt_cuda", "dnn_activation_descriptor", "!trft_cuda.dnn_activation_descriptor type">;
-def DnnConvolutionDescriptorType : OpaqueType<"tfrt_cuda", "dnn_convolution_descriptor", "!trft_cuda.dnn_convolution_descriptor type">;
-def DnnFilterDescriptorType : OpaqueType<"tfrt_cuda", "dnn_filter_descriptor", "!trft_cuda.dnn_filter_descriptor type">;
-def DnnHandleType : OpaqueType<"tfrt_cuda", "dnn_handle", "!trft_cuda.dnn_handle type">;
-def DnnPoolingDescriptorType : OpaqueType<"tfrt_cuda", "dnn_pooling_descriptor", "!trft_cuda.dnn_pooling_descriptor type">;
-def DnnTensorDescriptorType : OpaqueType<"tfrt_cuda", "dnn_tensor_descriptor", "!trft_cuda.dnn_tensor_descriptor type">;
+def GPU_DnnActivationDescriptorType : GPU_Type<"dnn_activation_descriptor">;
+def GPU_DnnConvolutionDescriptorType : GPU_Type<"dnn_convolution_descriptor">;
+def GPU_DnnFilterDescriptorType : GPU_Type<"dnn_filter_descriptor">;
+def GPU_DnnHandleType : GPU_Type<"dnn_handle">;
+def GPU_DnnPoolingDescriptorType : GPU_Type<"dnn_pooling_descriptor">;
+def GPU_DnnTensorDescriptorType : GPU_Type<"dnn_tensor_descriptor">;
 
 
-def DnnCreateOp : CUDA_Op<"dnn.create"> {
+def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
   let summary = "tfrt_cuda dnn.create operation";
   let description = [{
     tfrt_cuda.dnn.create initializes the DNN library and creates a handle to an
@@ -56,11 +56,11 @@ def DnnCreateOp : CUDA_Op<"dnn.create"> {
     %cudnn, %ch5 = tfrt_cuda.dnn.create %context, %ch1
 
   }];
-  let arguments = (ins ContextType, TFRT_ChainType);
-  let results = (outs DnnHandleType);
+  let arguments = (ins GPU_ContextType, TFRT_ChainType);
+  let results = (outs GPU_DnnHandleType);
 }
 
-def DnnSetStream : CUDA_Op<"dnn.set_stream"> {
+def GPU_DnnSetStream : GPU_Op<"dnn.set_stream"> {
   let summary = "tfrt_cuda.dnn.set_stream operation";
   let description = [{
     tfrt_cuda.dnn.set_stream sets the user's stream in the DNN handle.
@@ -75,11 +75,11 @@ def DnnSetStream : CUDA_Op<"dnn.set_stream"> {
     %ch2 = tfrt_cuda.dnn.set_stream %dnn_handle, %stream, %ch1
 
   }];
-  let arguments = (ins DnnHandleType, StreamType, TFRT_ChainType);
+  let arguments = (ins GPU_DnnHandleType, GPU_StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def DnnGetStream : CUDA_Op<"dnn.get_stream"> {
+def GPU_DnnGetStream : GPU_Op<"dnn.get_stream"> {
   let summary = "tfrt_cuda.dnn.get_stream operation";
   let description = [{
     tfrt_cuda.dnn.get_stream retrieves the user stream programmed in the DNN
@@ -90,11 +90,11 @@ def DnnGetStream : CUDA_Op<"dnn.get_stream"> {
     %stream, %ch2 = tfrt_cuda.dnn.get_stream %dnn_handle, %ch1
 
   }];
-  let arguments = (ins DnnHandleType, TFRT_ChainType);
-  let results = (outs StreamType);
+  let arguments = (ins GPU_DnnHandleType, TFRT_ChainType);
+  let results = (outs GPU_StreamType);
 }
 
-def DnnDestroyOp : CUDA_Op<"dnn.destroy"> {
+def GPU_DnnDestroyOp : GPU_Op<"dnn.destroy"> {
   let summary = "tfrt_cuda dnn.destroy operation";
   let description = [{
     tfrt_cuda.dnn.destroy releases the resources used by the DNN handle.
@@ -105,11 +105,11 @@ def DnnDestroyOp : CUDA_Op<"dnn.destroy"> {
     %ch3 = tfrt_cuda.dnn.destroy %dnn_handle, %ch2
 
   }];
-  let arguments = (ins DnnHandleType, TFRT_ChainType);
+  let arguments = (ins GPU_DnnHandleType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def DnnCreatePoolingDescriptorOp : CUDA_Op<"dnn.create_pooling_descriptor"> {
+def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
   let summary = "tfrt_cuda dnn.create_pooling_descriptor operation";
   let description = [{
     tfrt_cuda.dnn.create_pooling_descriptor creates a pooling descriptor object
@@ -146,12 +146,12 @@ def DnnCreatePoolingDescriptorOp : CUDA_Op<"dnn.create_pooling_descriptor"> {
     %pooling_desc, %ch18 = tfrt_cuda.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
 
   }];
-  let arguments = (ins ContextType, UI32, UI32, TensorType, TensorType,
+  let arguments = (ins GPU_ContextType, UI32, UI32, TensorType, TensorType,
                    TensorType, TFRT_ChainType);
-  let results = (outs DnnPoolingDescriptorType);
+  let results = (outs GPU_DnnPoolingDescriptorType);
 }
 
-def DnnDestroyPoolingDescriptorOp : CUDA_Op<"dnn.destroy_pooling_descriptor"> {
+def GPU_DnnDestroyPoolingDescriptorOp : GPU_Op<"dnn.destroy_pooling_descriptor"> {
   let summary = "tfrt_cuda dnn.destroy_pooling_descriptor operation";
   let description = [{
     tfrt_cuda.dnn.destroy_pooling_descriptor destroys a previously created
@@ -161,11 +161,11 @@ def DnnDestroyPoolingDescriptorOp : CUDA_Op<"dnn.destroy_pooling_descriptor"> {
     %ch5 = tfrt_cuda.dnn.destroy_pooling_descriptor %dnn_pooling_descriptor, %ch4
 
   }];
-  let arguments = (ins DnnPoolingDescriptorType, TFRT_ChainType);
+  let arguments = (ins GPU_DnnPoolingDescriptorType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def DnnCreateTensorDescriptorOp : CUDA_Op<"dnn.create_tensor_descriptor"> {
+def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
   let summary = "tfrt_cuda dnn.create_tensor_descriptor operation";
   let description = [{
     tfrt_cuda.dnn.create_tensor_descriptor creates a generic tensor
@@ -201,11 +201,11 @@ def DnnCreateTensorDescriptorOp : CUDA_Op<"dnn.create_tensor_descriptor"> {
     %out_desc, %ch25 = tfrt_cuda.dnn.set_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
 
   }];
-  let arguments = (ins ContextType, UI32, TensorType, TensorType, TFRT_ChainType);
-  let results = (outs DnnTensorDescriptorType);
+  let arguments = (ins GPU_ContextType, UI32, TensorType, TensorType, TFRT_ChainType);
+  let results = (outs GPU_DnnTensorDescriptorType);
 }
 
-def DnnDestroyTensorDescriptorOp : CUDA_Op<"dnn.destroy_tensor_descriptor"> {
+def GPU_DnnDestroyTensorDescriptorOp : GPU_Op<"dnn.destroy_tensor_descriptor"> {
   let summary = "tfrt_cuda dnn.destroy_tensor_descriptor operation";
   let description = [{
     tfrt_cuda.dnn.destroy_tensor_descriptor destroys a previously created tensor
@@ -215,11 +215,11 @@ def DnnDestroyTensorDescriptorOp : CUDA_Op<"dnn.destroy_tensor_descriptor"> {
     %ch3 = tfrt_cuda.dnn.destroy_tensor_descriptor %dnn_tensor_descriptor, %ch4
 
   }];
-  let arguments = (ins DnnTensorDescriptorType, TFRT_ChainType);
+  let arguments = (ins GPU_DnnTensorDescriptorType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
-def DnnPoolingForwardOp : CUDA_Op<"dnn.pooling_forward"> {
+def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
   let summary = "tfrt_cuda dnn.pooling_forward operation";
   let description = [{
     tfrt_cuda.dnn.pooling_forward computes pooling of input values (meaning,
@@ -231,21 +231,21 @@ def DnnPoolingForwardOp : CUDA_Op<"dnn.pooling_forward"> {
 
 }];
   let arguments = (ins
-                   ContextType,
-                   DnnHandleType,
-                   DnnPoolingDescriptorType,
+                   GPU_ContextType,
+                   GPU_DnnHandleType,
+                   GPU_DnnPoolingDescriptorType,
                    F32,
-                   DnnTensorDescriptorType,
-                   BufferType,
+                   GPU_DnnTensorDescriptorType,
+                   GPU_BufferType,
                    F32,
-                   DnnTensorDescriptorType,
-                   BufferType,
+                   GPU_DnnTensorDescriptorType,
+                   GPU_BufferType,
                    TFRT_ChainType
                   );
   let results = (outs TFRT_ChainType);
 }
 
-def DnnPoolingBackwardOp : CUDA_Op<"dnn.pooling_backward"> {
+def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
   let summary = "tfrt_cuda dnn.pooling_backward operation";
   let description = [{
     tfrt_cuda.dnn.pooling_backward computes the gradient of a pooling operation.
@@ -254,19 +254,19 @@ def DnnPoolingBackwardOp : CUDA_Op<"dnn.pooling_backward"> {
     %ch42 = tfrt_cuda.dnn.pooling_backward %context, %cudnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
 
   }];
-  let arguments = (ins ContextType,
-                   DnnHandleType,
-                   DnnPoolingDescriptorType,
+  let arguments = (ins GPU_ContextType,
+                   GPU_DnnHandleType,
+                   GPU_DnnPoolingDescriptorType,
                    F32,
-                   DnnTensorDescriptorType,
-                   BufferType,
-                   DnnTensorDescriptorType,
-                   BufferType,
-                   DnnTensorDescriptorType,
-                   BufferType,
+                   GPU_DnnTensorDescriptorType,
+                   GPU_BufferType,
+                   GPU_DnnTensorDescriptorType,
+                   GPU_BufferType,
+                   GPU_DnnTensorDescriptorType,
+                   GPU_BufferType,
                    F32,
-                   DnnTensorDescriptorType,
-                   BufferType,
+                   GPU_DnnTensorDescriptorType,
+                   GPU_BufferType,
                    TFRT_ChainType
                   );
   let results = (outs TFRT_ChainType);
@@ -274,7 +274,7 @@ def DnnPoolingBackwardOp : CUDA_Op<"dnn.pooling_backward"> {
 
 // TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
 // async to sync Ops.
-def DnnConvolutionForwardOp : CUDA_Op<"dnn.convolution_forward"> {
+def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
   let summary = "tfrt_cuda dnn.convolution_forward operation";
   let description = [{
     tfrt_cuda.dnn.convolution_forward executes convolutions or
@@ -284,23 +284,23 @@ def DnnConvolutionForwardOp : CUDA_Op<"dnn.convolution_forward"> {
                                       used to scale the input tensor and the
                                       output tensor respectively.
   }];
-  let arguments = (ins ContextType:$context,
-                   DnnHandleType:$handle,
-                   DnnTensorDescriptorType:$x_desc,
-                   BufferType:$x,
-                   DnnFilterDescriptorType:$w_desc,
-                   BufferType:$w,
-                   DnnConvolutionDescriptorType:$conv_desc,
+  let arguments = (ins GPU_ContextType:$context,
+                   GPU_DnnHandleType:$handle,
+                   GPU_DnnTensorDescriptorType:$x_desc,
+                   GPU_BufferType:$x,
+                   GPU_DnnFilterDescriptorType:$w_desc,
+                   GPU_BufferType:$w,
+                   GPU_DnnConvolutionDescriptorType:$conv_desc,
                    UI64:$algo,
-                   BufferType:$work_space,
-                   DnnTensorDescriptorType:$y_desc,
-                   BufferType:$y);
+                   GPU_BufferType:$work_space,
+                   GPU_DnnTensorDescriptorType:$y_desc,
+                   GPU_BufferType:$y);
   let results = (outs TFRT_ChainType);
 }
 
 // TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
 // async to sync Ops.
-def DnnConvolutionBackwardDataOp : CUDA_Op<"dnn.convolution_backward_data"> {
+def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
   let summary = "tfrt_cuda dnn.convolution_backward_data operation";
   let description = [{
     tfrt_cuda.dnn.convolution_backward_data computes the convolution data
@@ -312,23 +312,23 @@ def DnnConvolutionBackwardDataOp : CUDA_Op<"dnn.convolution_backward_data"> {
                                             returns the results in the output
                                             tensor dx.
 }];
-  let arguments = (ins ContextType:$context,
-                   DnnHandleType:$handle,
-                   DnnFilterDescriptorType:$w_desc,
-                   BufferType:$w,
-                   DnnTensorDescriptorType:$dy_desc,
-                   BufferType:$dy,
-                   DnnConvolutionDescriptorType:$conv_desc,
+  let arguments = (ins GPU_ContextType:$context,
+                   GPU_DnnHandleType:$handle,
+                   GPU_DnnFilterDescriptorType:$w_desc,
+                   GPU_BufferType:$w,
+                   GPU_DnnTensorDescriptorType:$dy_desc,
+                   GPU_BufferType:$dy,
+                   GPU_DnnConvolutionDescriptorType:$conv_desc,
                    UI64:$algo,
-                   BufferType:$work_space,
-                   DnnTensorDescriptorType:$dx_desc,
-                   BufferType:$dx);
+                   GPU_BufferType:$work_space,
+                   GPU_DnnTensorDescriptorType:$dx_desc,
+                   GPU_BufferType:$dx);
   let results = (outs TFRT_ChainType);
 }
 
 // TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
 // async to sync Ops.
-def DnnConvolutionBackwardFilterOp : CUDA_Op<"dnn.convolution_backward_filter"> {
+def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter"> {
   let summary = "tfrt_cuda dnn.convolution_backward_filter operation";
   let description = [{
     tfrt_cuda.dnn.convolution_backward_filter computes the convolution weight
@@ -340,24 +340,24 @@ def DnnConvolutionBackwardFilterOp : CUDA_Op<"dnn.convolution_backward_filter"> 
                                               returns the results in the output
                                               tensor dw.
 }];
-  let arguments = (ins ContextType:$context,
-                   DnnHandleType:$handle,
-                   DnnTensorDescriptorType:$x_desc,
-                   BufferType:$x,
-                   DnnTensorDescriptorType:$dy_desc,
-                   BufferType:$dy,
-                   DnnConvolutionDescriptorType:$conv_desc,
+  let arguments = (ins GPU_ContextType:$context,
+                   GPU_DnnHandleType:$handle,
+                   GPU_DnnTensorDescriptorType:$x_desc,
+                   GPU_BufferType:$x,
+                   GPU_DnnTensorDescriptorType:$dy_desc,
+                   GPU_BufferType:$dy,
+                   GPU_DnnConvolutionDescriptorType:$conv_desc,
                    UI64:$algo,
-                   BufferType:$work_space,
-                   DnnFilterDescriptorType:$dw_desc,
-                   BufferType:$dw);
+                   GPU_BufferType:$work_space,
+                   GPU_DnnFilterDescriptorType:$dw_desc,
+                   GPU_BufferType:$dw);
   let results = (outs TFRT_ChainType);
 }
 
 // TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
 // async to sync Ops.
-def CudnnConvolutionBiasActivationForwardOp :
-             CUDA_Op<"dnn.convolution_bias_activation_forward"> {
+def GPU_DnnConvolutionBiasActivationForwardOp :
+             GPU_Op<"dnn.convolution_bias_activation_forward"> {
   let summary =
     "tfrt_cuda dnn.convolution_bias_activation_forward operation";
   let description = [{
@@ -367,24 +367,24 @@ def CudnnConvolutionBiasActivationForwardOp :
                         in y. The full computation follows the equation
                         y = act ( alpha1 * conv(x) + alpha2 * z + bias ).
   }];
-  let arguments = (ins ContextType:$context,
-                   DnnHandleType:$handle,
-                   BufferType:$alpha1,
-                   DnnTensorDescriptorType:$x_desc,
-                   BufferType:$x,
-                   DnnFilterDescriptorType:$w_desc,
-                   BufferType:$w,
-                   DnnConvolutionDescriptorType:$conv_desc,
+  let arguments = (ins GPU_ContextType:$context,
+                   GPU_DnnHandleType:$handle,
+                   GPU_BufferType:$alpha1,
+                   GPU_DnnTensorDescriptorType:$x_desc,
+                   GPU_BufferType:$x,
+                   GPU_DnnFilterDescriptorType:$w_desc,
+                   GPU_BufferType:$w,
+                   GPU_DnnConvolutionDescriptorType:$conv_desc,
                    UI64:$algo,
-                   BufferType:$work_space,
-                   BufferType:$alpha2,
-                   DnnTensorDescriptorType:$z_desc,
-                   BufferType:$z,
-                   DnnTensorDescriptorType:$bias_desc,
-                   BufferType:$bias,
-                   DnnActivationDescriptorType:$activation_desc,
-                   DnnTensorDescriptorType:$y_desc,
-                   BufferType:$y);
+                   GPU_BufferType:$work_space,
+                   GPU_BufferType:$alpha2,
+                   GPU_DnnTensorDescriptorType:$z_desc,
+                   GPU_BufferType:$z,
+                   GPU_DnnTensorDescriptorType:$bias_desc,
+                   GPU_BufferType:$bias,
+                   GPU_DnnActivationDescriptorType:$activation_desc,
+                   GPU_DnnTensorDescriptorType:$y_desc,
+                   GPU_BufferType:$y);
   let results = (outs TFRT_ChainType);
 }
 

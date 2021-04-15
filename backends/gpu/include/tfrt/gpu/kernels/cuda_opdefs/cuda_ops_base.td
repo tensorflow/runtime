@@ -14,7 +14,7 @@
 
 //===- cuda_ops_base.td ---------------------------------------------------===//
 //
-// CUDA type definitions.
+// GPU dialect and type definitions.
 //
 //===----------------------------------------------------------------------===//
 
@@ -22,48 +22,37 @@
 #else
 #define CUDA_OPS_BASE
 
-// Type definitions.
-
-// Device is the physical CUDA device.
-def DeviceType : OpaqueType<"tfrt_cuda", "device", "!tfrt_cuda.device type">;
-
-// Context holds state that provides the context for executing kernels,
-// allocating memory, and other CUDA operations.
-// This Context is analogous to CUcontext.
-def ContextType : OpaqueType<"tfrt_cuda", "context", "!tfrt_cuda.context type">;
-
-// Stream represents a CUDA Stream.
-def StreamType : OpaqueType<"tfrt_cuda", "stream", "!tfrt_cuda.stream type">;
-
-def EventType : OpaqueType<"tfrt_cuda", "event", "!tfrt_cuda.event type">;
-
-def AllocatorType : OpaqueType<"tfrt_cuda", "allocator", "!tfrt_cuda.allocator type">;
-
-// Buffer represents a CUDA device memory buffer.
-def BufferType : OpaqueType<"tfrt_cuda", "buffer", "!tfrt_cuda.buffer type">;
-
-def GPU_FunctionType : OpaqueType<"tfrt_cuda", "function", "!tfrt_cuda.function type">;
-
-def CublasHandleType : OpaqueType<"tfrt_cuda", "blas_handle", "!tfrt_cuda.blas_handle type">;
-
 // "tfrt_cuda" dialect
-def CUDA_Dialect : Dialect {
+def GPU_Dialect : Dialect {
   let name = "tfrt_cuda";
 
   let description = [{
-    The CUDA dialect.
+    The GPU dialect.
 
-    This dialect contains common CUDA operations.
+    This dialect contains common GPU operations for CUDA and ROCm.
   }];
 
   let cppNamespace = "tfrt::gpu";
 }
 
-// Base class for CUDA dialect ops.
-class CUDA_Op<string mnemonic, list<OpTrait> traits = []> :
-    Op<CUDA_Dialect, mnemonic, traits> {
+// Base class for GPU dialect ops.
+class GPU_Op<string mnemonic, list<OpTrait> traits = []> :
+    Op<GPU_Dialect, mnemonic, traits> {
 
   let assemblyFormat = "operands attr-dict";
 }
+
+// Type definitions.
+
+class GPU_Type<string name> :
+    OpaqueType<"tfrt_cuda", name, !strconcat("!tfrt_cuda.", name, " type")> {}
+
+def GPU_AllocatorType : GPU_Type<"allocator">;
+def GPU_BufferType : GPU_Type<"buffer">;
+def GPU_ContextType : GPU_Type<"context">;
+def GPU_DeviceType : GPU_Type<"device">;
+def GPU_EventType : GPU_Type<"event">;
+def GPU_FunctionType : GPU_Type<"function">;
+def GPU_StreamType : GPU_Type<"stream">;
 
 #endif  // CUDA_OPS_BASE

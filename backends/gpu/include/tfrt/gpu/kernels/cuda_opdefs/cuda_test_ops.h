@@ -34,7 +34,7 @@ namespace gpu {
 // Dialect for cuda_test operations.
 class CUDATestDialect : public Dialect {
  public:
-  static StringRef getDialectNamespace() { return "tfrt_cuda_test"; }
+  static StringRef getDialectNamespace() { return "tfrt_gpu_test"; }
   explicit CUDATestDialect(MLIRContext* context);
 };
 

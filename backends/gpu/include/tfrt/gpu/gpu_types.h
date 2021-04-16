@@ -16,7 +16,7 @@
 
 // MLIR op types for cuda_ops library
 //
-// This file declares the types used in the `tfrt_cuda` dialect.
+// This file declares the types used in the `tfrt_gpu` dialect.
 
 #ifndef TFRT_GPU_GPU_TYPES_H_
 #define TFRT_GPU_GPU_TYPES_H_

@@ -299,37 +299,37 @@ Error CudnnConvolutionBiasActivationForward(
   internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
 
 void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("tfrt_cuda.dnn.create", TFRT_KERNEL(DnnCreate));
-  kernel_reg->AddKernel("tfrt_cuda.dnn.destroy",
+  kernel_reg->AddKernel("tfrt_gpu.dnn.create", TFRT_KERNEL(DnnCreate));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.destroy",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnDestroy)));
-  kernel_reg->AddKernel("tfrt_cuda.dnn.set_stream",
+  kernel_reg->AddKernel("tfrt_gpu.dnn.set_stream",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnSetStream)));
-  kernel_reg->AddKernel("tfrt_cuda.dnn.get_stream", TFRT_KERNEL(DnnGetStream));
-  kernel_reg->AddKernel("tfrt_cuda.dnn.create_pooling_descriptor",
+  kernel_reg->AddKernel("tfrt_gpu.dnn.get_stream", TFRT_KERNEL(DnnGetStream));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.create_pooling_descriptor",
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));
   kernel_reg->AddKernel(
-      "tfrt_cuda.dnn.destroy_pooling_descriptor",
+      "tfrt_gpu.dnn.destroy_pooling_descriptor",
       TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnDestroyPoolingDescriptor)));
-  kernel_reg->AddKernel("tfrt_cuda.dnn.create_tensor_descriptor",
+  kernel_reg->AddKernel("tfrt_gpu.dnn.create_tensor_descriptor",
                         TFRT_KERNEL(DnnCreateTensorDescriptor));
   kernel_reg->AddKernel(
-      "tfrt_cuda.dnn.destroy_tensor_descriptor",
+      "tfrt_gpu.dnn.destroy_tensor_descriptor",
       TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnDestroyTensorDescriptor)));
-  kernel_reg->AddKernel("tfrt_cuda.dnn.pooling_forward",
+  kernel_reg->AddKernel("tfrt_gpu.dnn.pooling_forward",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnPoolingForward)));
   kernel_reg->AddKernel(
-      "tfrt_cuda.dnn.pooling_backward",
+      "tfrt_gpu.dnn.pooling_backward",
       TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnPoolingBackward)));
   kernel_reg->AddKernel(
-      "tfrt_cuda.dnn.convolution_forward",
+      "tfrt_gpu.dnn.convolution_forward",
       TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnConvolutionForward)));
   kernel_reg->AddKernel(
-      "tfrt_cuda.dnn.convolution_backward_data",
+      "tfrt_gpu.dnn.convolution_backward_data",
       TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnConvolutionBackwardData)));
   kernel_reg->AddKernel(
-      "tfrt_cuda.dnn.convolution_backward_filter",
+      "tfrt_gpu.dnn.convolution_backward_filter",
       TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnConvolutionBackwardFilter)));
-  kernel_reg->AddKernel("tfrt_cuda.dnn.convolution_bias_activation_forward",
+  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_bias_activation_forward",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(
                             CudnnConvolutionBiasActivationForward)));
 }

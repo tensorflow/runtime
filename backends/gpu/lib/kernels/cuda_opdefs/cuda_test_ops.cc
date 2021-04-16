@@ -32,7 +32,7 @@ namespace gpu {
 //===----------------------------------------------------------------------===//
 
 CUDATestDialect::CUDATestDialect(MLIRContext *context)
-    : Dialect(/*name*/ "tfrt_cuda_test", context,
+    : Dialect(/*name*/ "tfrt_gpu_test", context,
               TypeID::get<CUDATestDialect>()) {
   context->getOrLoadDialect<tfrt::t::TensorDialect>();
   allowUnknownTypes();

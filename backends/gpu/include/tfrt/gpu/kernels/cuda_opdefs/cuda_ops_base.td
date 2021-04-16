@@ -22,9 +22,9 @@
 #else
 #define CUDA_OPS_BASE
 
-// "tfrt_cuda" dialect
+// "tfrt_gpu" dialect
 def GPU_Dialect : Dialect {
-  let name = "tfrt_cuda";
+  let name = "tfrt_gpu";
 
   let description = [{
     The GPU dialect.
@@ -45,7 +45,7 @@ class GPU_Op<string mnemonic, list<OpTrait> traits = []> :
 // Type definitions.
 
 class GPU_Type<string name> :
-    OpaqueType<"tfrt_cuda", name, !strconcat("!tfrt_cuda.", name, " type")> {}
+    OpaqueType<"tfrt_gpu", name, !strconcat("!tfrt_gpu.", name, " type")> {}
 
 def GPU_AllocatorType : GPU_Type<"allocator">;
 def GPU_BufferType : GPU_Type<"buffer">;

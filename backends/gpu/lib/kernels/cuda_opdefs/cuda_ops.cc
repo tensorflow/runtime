@@ -32,7 +32,7 @@ namespace gpu {
 //===----------------------------------------------------------------------===//
 
 CUDADialect::CUDADialect(MLIRContext *context)
-    : Dialect(/*name*/ "tfrt_cuda", context, TypeID::get<CUDADialect>()) {
+    : Dialect(/*name*/ "tfrt_gpu", context, TypeID::get<CUDADialect>()) {
   context->getOrLoadDialect<tfrt::t::TensorDialect>();
   allowUnknownTypes();
   allowUnknownOperations();
@@ -46,7 +46,7 @@ CUDADialect::CUDADialect(MLIRContext *context)
 namespace conversion {
 
 CUDA_ConversionDialect::CUDA_ConversionDialect(MLIRContext *context)
-    : Dialect(/*name*/ "tfrt_cuda_conversion", context,
+    : Dialect(/*name*/ "tfrt_gpu_conversion", context,
               TypeID::get<CUDA_ConversionDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();

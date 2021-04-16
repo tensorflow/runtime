@@ -25,7 +25,7 @@ func @register_op_handlers_gpu() {
 // CHECK: --- Running 'BM_Tf_Conv2d_1x256x56x56_3x3_256_f32'
 func @BM_Tf_Conv2d_1x256x56x56_3x3_256_f32() {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = tfrt_cuda.init %ch_epoch
+  %ch_cuda_init = tfrt_gpu.init %ch_epoch
   %gpu = corert.get_op_handler %ch_cuda_init "gpu"
 
   %input = corert.executeop(%gpu) "tfrt_test.create_dense_tensor"()
@@ -62,7 +62,7 @@ func @BM_Tf_Conv2d_1x256x56x56_3x3_256_f32() {
 // CHECK: --- Running 'BM_Tf_Conv2d_1x56x56x256_3x3_256_f16'
 func @BM_Tf_Conv2d_1x56x56x256_3x3_256_f16() {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = tfrt_cuda.init %ch_epoch
+  %ch_cuda_init = tfrt_gpu.init %ch_epoch
   %gpu = corert.get_op_handler %ch_cuda_init "gpu"
 
   %input_f32 = corert.executeop(%gpu) "tfrt_test.create_dense_tensor"()
@@ -105,7 +105,7 @@ func @BM_Tf_Conv2d_1x56x56x256_3x3_256_f16() {
 // CHECK: --- Running 'BM_Tf_Conv2d_1x56x56x256_1x1_256_f16'
 func @BM_Tf_Conv2d_1x56x56x256_1x1_256_f16() {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = tfrt_cuda.init %ch_epoch
+  %ch_cuda_init = tfrt_gpu.init %ch_epoch
   %gpu = corert.get_op_handler %ch_cuda_init "gpu"
 
   %input_f32 = corert.executeop(%gpu) "tfrt_test.create_dense_tensor"()

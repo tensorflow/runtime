@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Implementation of the types used in the tfrt_cuda dialect.
+// Implementation of the types used in the tfrt_gpu dialect.
 #include "tfrt/gpu/gpu_types.h"
 
 #include "tfrt/gpu/stream/stream_wrapper.h"

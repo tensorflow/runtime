@@ -36,7 +36,7 @@ namespace gpu {
 // Dialect for cuda operations.
 class CUDADialect : public Dialect {
  public:
-  static StringRef getDialectNamespace() { return "tfrt_cuda"; }
+  static StringRef getDialectNamespace() { return "tfrt_gpu"; }
   explicit CUDADialect(MLIRContext* context);
 };
 
@@ -45,7 +45,7 @@ namespace conversion {
 // Dialect for cuda conversion helper operations.
 class CUDA_ConversionDialect : public Dialect {
  public:
-  static StringRef getDialectNamespace() { return "tfrt_cuda_conversion"; }
+  static StringRef getDialectNamespace() { return "tfrt_gpu_conversion"; }
   explicit CUDA_ConversionDialect(MLIRContext* context);
 };
 

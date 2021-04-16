@@ -15,7 +15,7 @@
 //===- cuda_conversion_ops.td ---------------------------------------------------------===//
 //
 // Operations used by the Dialect Conversion framework when lowering to the
-// tfrt_cuda dialect. These ops only exist during the conversion process, and
+// tfrt_gpu dialect. These ops only exist during the conversion process, and
 // so don't map to kernels.
 //
 //===----------------------------------------------------------------------===//
@@ -27,25 +27,25 @@ include "mlir/IR/OpBase.td"
 include "tfrt/tfrt_op_base.td"
 
 def CUDA_Conversion_Dialect : Dialect {
-  let name = "tfrt_cuda_conversion";
+  let name = "tfrt_gpu_conversion";
 
   let description = [{
     The CUDA conversion dialect.
 
     This dialect is used by the Dialect Conversion framework when lowering to
-    the tfrt_cuda dialect.
+    the tfrt_gpu dialect.
   }];
 
   let cppNamespace = "tfrt::gpu::conversion";
 }
 
 def CastAnyToAnyOp : Op<CUDA_Conversion_Dialect, "cast_any_to_any"> {
-  let summary = "tfrt_cuda cast_any_to_any";
+  let summary = "tfrt_gpu cast_any_to_any";
   let description = [{
-    tfrt_cuda.cast_any_to_any casts any type to any other type.
+    tfrt_gpu.cast_any_to_any casts any type to any other type.
 
     This op is used by the Dialect Conversion framework when lowering to the
-    tfrt_cuda dialect. This op should only exist during the conversion process,
+    tfrt_gpu dialect. This op should only exist during the conversion process,
     and so doesn't map to an implementation.
   }];
 

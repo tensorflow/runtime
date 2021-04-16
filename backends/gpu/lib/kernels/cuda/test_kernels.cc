@@ -67,7 +67,7 @@ static void TestCpyTensorHtoD(Argument<GpuContext> context,
 }
 
 void RegisterTestCudaKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("tfrt_cuda_test.copy_tensor_host_to_device",
+  kernel_reg->AddKernel("tfrt_gpu_test.copy_tensor_host_to_device",
                         TFRT_KERNEL(TestCpyTensorHtoD));
 }
 

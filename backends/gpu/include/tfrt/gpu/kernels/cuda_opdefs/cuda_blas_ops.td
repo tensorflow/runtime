@@ -34,9 +34,9 @@ def GPU_AnyBlasDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
                                    AnyUnsignedInteger]>;
 
 def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
-  let summary = "tfrt_cuda blas.create operation";
+  let summary = "tfrt_gpu blas.create operation";
   let description = [{
-    tfrt_cuda.blas.create creates a handle to the BLAS library context
+    tfrt_gpu.blas.create creates a handle to the BLAS library context
 
     This will be explicitly passed to every subsequent BLAS library call.
   }];
@@ -45,9 +45,9 @@ def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
 }
 
 def GPU_BlasSetStreamOp : GPU_Op<"blas.set_stream"> {
-  let summary = "tfrt_cuda blas.set_stream operation";
+  let summary = "tfrt_gpu blas.set_stream operation";
   let description = [{
-    tfrt_cuda.blas.set_stream sets the BLAS library stream.
+    tfrt_gpu.blas.set_stream sets the BLAS library stream.
 
     All subsequent BLAS calls will execute on the set stream (until
     blas.set_stream is called with a different stream).
@@ -57,9 +57,9 @@ def GPU_BlasSetStreamOp : GPU_Op<"blas.set_stream"> {
 }
 
 def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy.f32"> {
-  let summary = "tfrt_cuda blas.axpy.f32 operation";
+  let summary = "tfrt_gpu blas.axpy.f32 operation";
   let description = [{
-    tfrt_cuda.blas.axpy.f32 call BLAS saxpy function.
+    tfrt_gpu.blas.axpy.f32 call BLAS saxpy function.
   }];
   let arguments = (ins GPU_ContextType, GPU_BlasHandleType, I32:$n, F32:$alpha,
                    GPU_BufferType:$x, I32:$incx, GPU_BufferType:$y, I32:$incy,
@@ -68,9 +68,9 @@ def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy.f32"> {
 }
 
 def GPU_BlasSgemmOp : GPU_Op<"blas.gemm.f32"> {
-  let summary = "tfrt_cuda blas.gemm.f32 operation";
+  let summary = "tfrt_gpu blas.gemm.f32 operation";
   let description = [{
-    tfrt_cuda.blas.gemm.f32 calls BLAS sgemm function.
+    tfrt_gpu.blas.gemm.f32 calls BLAS sgemm function.
   }];
   let arguments = (ins GPU_ContextType, GPU_BlasHandleType,
                    BoolAttr:$transa, BoolAttr:$transb,
@@ -81,9 +81,9 @@ def GPU_BlasSgemmOp : GPU_Op<"blas.gemm.f32"> {
 }
 
 def GPU_BlasGemmExOp : GPU_Op<"blas.gemm.ex"> {
-  let summary = "tfrt_cuda blas.gemm.ex operation";
+  let summary = "tfrt_gpu blas.gemm.ex operation";
   let description = [{
-    tfrt_cuda.blas.gemm.ex This kernel is an extension of blas.gemm.<t> kernels
+    tfrt_gpu.blas.gemm.ex This kernel is an extension of blas.gemm.<t> kernels
                            that allows the user to individually specify the
                            data types for each of the A, B and C matrices,
                            the precision of computation and the GEMM
@@ -102,9 +102,9 @@ def GPU_BlasGemmExOp : GPU_Op<"blas.gemm.ex"> {
 }
 
 def GPU_BlasGemmStridedBatchedExOp : GPU_Op<"blas.gemm.strided.batched.ex"> {
-  let summary = "tfrt_cuda blas.gemm.batched.ex operation";
+  let summary = "tfrt_gpu blas.gemm.batched.ex operation";
   let description = [{
-    tfrt_cuda.blas.gemm.ex This kernel is an extension of blas.gemm.ex that
+    tfrt_gpu.blas.gemm.ex This kernel is an extension of blas.gemm.ex that
                            performs the matrix-matrix multiplication of a batch
                            of matrices and allows the individual specification
                            of the data types for each of the A, B and C matrix
@@ -126,12 +126,12 @@ def GPU_BlasGemmStridedBatchedExOp : GPU_Op<"blas.gemm.strided.batched.ex"> {
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/175169391): Remove this Op once the tfrt_cuda dialect moves from
+// TODO(b/175169391): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_BlasSyncSgemmOp : GPU_Op<"blas.sync.gemm.f32"> {
-  let summary = "tfrt_cuda blas.sync.gemm.f32 operation";
+  let summary = "tfrt_gpu blas.sync.gemm.f32 operation";
   let description = [{
-    tfrt_cuda.blas.sync.gemm.f32 calls BLAS sgemm function.
+    tfrt_gpu.blas.sync.gemm.f32 calls BLAS sgemm function.
   }];
   let arguments = (ins GPU_ContextType, GPU_BlasHandleType, GPU_StreamType,
                    BoolAttr:$transa, BoolAttr:$transb,
@@ -141,12 +141,12 @@ def GPU_BlasSyncSgemmOp : GPU_Op<"blas.sync.gemm.f32"> {
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/175169391): Remove this Op once the tfrt_cuda dialect moves from
+// TODO(b/175169391): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_BlasSyncGemmExOp : Op<GPU_Dialect, "blas.sync.gemm_ex"> {
-  let summary = "tfrt_cuda blas.sync.gemm_ex operation";
+  let summary = "tfrt_gpu blas.sync.gemm_ex operation";
   let description = [{
-    tfrt_cuda.blas.sync.gemm_ex calls BLAS GemmEx function.
+    tfrt_gpu.blas.sync.gemm_ex calls BLAS GemmEx function.
   }];
   // Note: keep the attributes alphabetically sorted, because BEF encodes them
   // in the getAttrs() order, which is sorted only if getAttrDictionary() is

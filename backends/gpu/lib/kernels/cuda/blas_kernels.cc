@@ -236,19 +236,19 @@ static Error BlasGemmStridedBatchedEx(
   internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
 
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("tfrt_cuda.blas.create", TFRT_KERNEL(BlasCreate));
-  kernel_reg->AddKernel("tfrt_cuda.blas.set_stream",
+  kernel_reg->AddKernel("tfrt_gpu.blas.create", TFRT_KERNEL(BlasCreate));
+  kernel_reg->AddKernel("tfrt_gpu.blas.set_stream",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSetStream)));
-  kernel_reg->AddKernel("tfrt_cuda.blas.axpy.f32",
+  kernel_reg->AddKernel("tfrt_gpu.blas.axpy.f32",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSaxpy)));
-  kernel_reg->AddKernel("tfrt_cuda.blas.gemm.f32",
+  kernel_reg->AddKernel("tfrt_gpu.blas.gemm.f32",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSgemm)));
-  kernel_reg->AddKernel("tfrt_cuda.blas.gemm.ex",
+  kernel_reg->AddKernel("tfrt_gpu.blas.gemm.ex",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasGemmEx)));
   kernel_reg->AddKernel(
-      "tfrt_cuda.blas.gemm.strided.batched.ex",
+      "tfrt_gpu.blas.gemm.strided.batched.ex",
       TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasGemmStridedBatchedEx)));
-  kernel_reg->AddKernel("tfrt_cuda.blas.sync.gemm_ex",
+  kernel_reg->AddKernel("tfrt_gpu.blas.sync.gemm_ex",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSyncGemmEx)));
 }
 }  // namespace gpu

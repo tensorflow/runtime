@@ -18,15 +18,15 @@
 // CHECK-LABEL: --- Running 'memcpy_host_to_device_and_back_test'
 func @memcpy_host_to_device_and_back_test() {
   %ch1 = tfrt.new.chain
-  %ch2 = tfrt_cuda.init %ch1
+  %ch2 = tfrt_gpu.init %ch1
   %index = tfrt.constant.i32 0
-  %device = tfrt_cuda.device.get %index, %ch2
-  %context = tfrt_cuda.context.create %device, %ch2
-  %allocator = tfrt_cuda.allocator.create %context, %ch2
-  %stream = tfrt_cuda.stream.create %context, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2
+  %context = tfrt_gpu.context.create %device, %ch2
+  %allocator = tfrt_gpu.allocator.create %context, %ch2
+  %stream = tfrt_gpu.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 32
-  %device_buffer, %ch7 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch2
+  %device_buffer, %ch7 = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
 
   // Create source dense host tensor.
   %host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [8 : i64]
@@ -38,17 +38,17 @@ func @memcpy_host_to_device_and_back_test() {
   %ch13 = tfrt_dht.print_buffer %host_buffer, %ch11
 
   // Copy host to device.
-  %ch20 = tfrt_cuda.mem.copy_host_to_device %context, %device_buffer, %host_buffer, %size, %stream, %ch10
+  %ch20 = tfrt_gpu.mem.copy_host_to_device %context, %device_buffer, %host_buffer, %size, %stream, %ch10
 
   // Create resulting dense host tensor, get its buffer, and copy back to host.
   %result_host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64, 4 : i64]
   %result_host_buffer, %ch30 = tfrt_dht.get_buffer %result_host_tensor, %ch1
-  %ch31 = tfrt_cuda.mem.copy_device_to_host %context, %result_host_buffer, %device_buffer, %size, %stream, %ch20
+  %ch31 = tfrt_gpu.mem.copy_device_to_host %context, %result_host_buffer, %device_buffer, %size, %stream, %ch20
 
   // Create, record, and poll an event to make sure copy back to host completed.
-  %event = tfrt_cuda.event.create %context
-  %ch41 = tfrt_cuda.event.record %event, %stream, %ch31
-  %ch42 = tfrt_cuda.event.synchronize %event, %ch41
+  %event = tfrt_gpu.event.create %context
+  %ch41 = tfrt_gpu.event.record %event, %stream, %ch31
+  %ch42 = tfrt_gpu.event.synchronize %event, %ch41
 
   // CHECK: shape = [2, 4], values = [1, 1, 1, 1, 1, 1, 1, 1]
   %ch50 = tfrt_dht.print_tensor %result_host_tensor, %ch42
@@ -59,6 +59,6 @@ func @memcpy_host_to_device_and_back_test() {
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
   %ch51 = tfrt_dht.print_buffer %host_buffer, %ch50
 
-  %ch60 = tfrt_cuda.allocator.destroy %allocator, %ch50
+  %ch60 = tfrt_gpu.allocator.destroy %allocator, %ch50
   tfrt.return
 }

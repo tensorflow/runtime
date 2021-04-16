@@ -38,9 +38,9 @@ def GPU_DnnTensorDescriptorType : GPU_Type<"dnn_tensor_descriptor">;
 
 
 def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
-  let summary = "tfrt_cuda dnn.create operation";
+  let summary = "tfrt_gpu dnn.create operation";
   let description = [{
-    tfrt_cuda.dnn.create initializes the DNN library and creates a handle to an
+    tfrt_gpu.dnn.create initializes the DNN library and creates a handle to an
     opaque structure holding the DNN library context. It allocates hardware
     resources on the host and device and must be called prior to making any
     other DNN library calls.
@@ -49,11 +49,11 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
 
     Example:
     %ch1 = tfrt.new.chain
-    %ch2 = tfrt_cuda.init %ch1
+    %ch2 = tfrt_gpu.init %ch1
     %index = tfrt.constant.i32 0
-    %device = tfrt_cuda.device.get %index, %ch1
-    %context, %ch4 = tfrt_cuda_test.context.get %device, %ch1
-    %cudnn, %ch5 = tfrt_cuda.dnn.create %context, %ch1
+    %device = tfrt_gpu.device.get %index, %ch1
+    %context, %ch4 = tfrt_gpu_test.context.get %device, %ch1
+    %cudnn, %ch5 = tfrt_gpu.dnn.create %context, %ch1
 
   }];
   let arguments = (ins GPU_ContextType, TFRT_ChainType);
@@ -61,9 +61,9 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
 }
 
 def GPU_DnnSetStream : GPU_Op<"dnn.set_stream"> {
-  let summary = "tfrt_cuda.dnn.set_stream operation";
+  let summary = "tfrt_gpu.dnn.set_stream operation";
   let description = [{
-    tfrt_cuda.dnn.set_stream sets the user's stream in the DNN handle.
+    tfrt_gpu.dnn.set_stream sets the user's stream in the DNN handle.
     The new stream will be used to launch DNN GPU kernels or to synchronize
     to this stream when DNN kernels are launched in the internal streams.
     If the DNN library stream is not set, all kernels use the default (NULL)
@@ -72,7 +72,7 @@ def GPU_DnnSetStream : GPU_Op<"dnn.set_stream"> {
     same stream.
 
     Example:
-    %ch2 = tfrt_cuda.dnn.set_stream %dnn_handle, %stream, %ch1
+    %ch2 = tfrt_gpu.dnn.set_stream %dnn_handle, %stream, %ch1
 
   }];
   let arguments = (ins GPU_DnnHandleType, GPU_StreamType, TFRT_ChainType);
@@ -80,14 +80,14 @@ def GPU_DnnSetStream : GPU_Op<"dnn.set_stream"> {
 }
 
 def GPU_DnnGetStream : GPU_Op<"dnn.get_stream"> {
-  let summary = "tfrt_cuda.dnn.get_stream operation";
+  let summary = "tfrt_gpu.dnn.get_stream operation";
   let description = [{
-    tfrt_cuda.dnn.get_stream retrieves the user stream programmed in the DNN
+    tfrt_gpu.dnn.get_stream retrieves the user stream programmed in the DNN
     handle. When the user's stream was not set in the DNN handle, this function
     reports the null-stream.
 
     Example:
-    %stream, %ch2 = tfrt_cuda.dnn.get_stream %dnn_handle, %ch1
+    %stream, %ch2 = tfrt_gpu.dnn.get_stream %dnn_handle, %ch1
 
   }];
   let arguments = (ins GPU_DnnHandleType, TFRT_ChainType);
@@ -95,14 +95,14 @@ def GPU_DnnGetStream : GPU_Op<"dnn.get_stream"> {
 }
 
 def GPU_DnnDestroyOp : GPU_Op<"dnn.destroy"> {
-  let summary = "tfrt_cuda dnn.destroy operation";
+  let summary = "tfrt_gpu dnn.destroy operation";
   let description = [{
-    tfrt_cuda.dnn.destroy releases the resources used by the DNN handle.
+    tfrt_gpu.dnn.destroy releases the resources used by the DNN handle.
     This function is usually the last call with a particular handle to the DNN
     handle.
 
     Example:
-    %ch3 = tfrt_cuda.dnn.destroy %dnn_handle, %ch2
+    %ch3 = tfrt_gpu.dnn.destroy %dnn_handle, %ch2
 
   }];
   let arguments = (ins GPU_DnnHandleType, TFRT_ChainType);
@@ -110,9 +110,9 @@ def GPU_DnnDestroyOp : GPU_Op<"dnn.destroy"> {
 }
 
 def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
-  let summary = "tfrt_cuda dnn.create_pooling_descriptor operation";
+  let summary = "tfrt_gpu dnn.create_pooling_descriptor operation";
   let description = [{
-    tfrt_cuda.dnn.create_pooling_descriptor creates a pooling descriptor object
+    tfrt_gpu.dnn.create_pooling_descriptor creates a pooling descriptor object
     by allocating the memory needed to hold its opaque structure then it
     initializes created pooling descriptor object.
 
@@ -143,7 +143,7 @@ def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
     %ch17 = "tfrt_dht.set_tensor_with_values.i32"(%strides, %ch16, %s0, %s1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
     %mode = tfrt.constant.ui32 0
     %nan_propagation = tfrt.constant.ui32 0
-    %pooling_desc, %ch18 = tfrt_cuda.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
+    %pooling_desc, %ch18 = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
 
   }];
   let arguments = (ins GPU_ContextType, UI32, UI32, TensorType, TensorType,
@@ -152,13 +152,13 @@ def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
 }
 
 def GPU_DnnDestroyPoolingDescriptorOp : GPU_Op<"dnn.destroy_pooling_descriptor"> {
-  let summary = "tfrt_cuda dnn.destroy_pooling_descriptor operation";
+  let summary = "tfrt_gpu dnn.destroy_pooling_descriptor operation";
   let description = [{
-    tfrt_cuda.dnn.destroy_pooling_descriptor destroys a previously created
+    tfrt_gpu.dnn.destroy_pooling_descriptor destroys a previously created
     pooling descriptor object.
 
     Example:
-    %ch5 = tfrt_cuda.dnn.destroy_pooling_descriptor %dnn_pooling_descriptor, %ch4
+    %ch5 = tfrt_gpu.dnn.destroy_pooling_descriptor %dnn_pooling_descriptor, %ch4
 
   }];
   let arguments = (ins GPU_DnnPoolingDescriptorType, TFRT_ChainType);
@@ -166,9 +166,9 @@ def GPU_DnnDestroyPoolingDescriptorOp : GPU_Op<"dnn.destroy_pooling_descriptor">
 }
 
 def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
-  let summary = "tfrt_cuda dnn.create_tensor_descriptor operation";
+  let summary = "tfrt_gpu dnn.create_tensor_descriptor operation";
   let description = [{
-    tfrt_cuda.dnn.create_tensor_descriptor creates a generic tensor
+    tfrt_gpu.dnn.create_tensor_descriptor creates a generic tensor
     descriptor object by allocating the memory needed to hold its opaque
     structure. The data is initialized to provided values.
 
@@ -198,7 +198,7 @@ def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
     %stride_out = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
     %ch24 = "tfrt_dht.set_tensor_with_values.i32"(%stride_out, %ch23, %sout0, %sout1, %sout2, %sout3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
     %data_type_out = tfrt.constant.ui32 0
-    %out_desc, %ch25 = tfrt_cuda.dnn.set_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
+    %out_desc, %ch25 = tfrt_gpu.dnn.set_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
 
   }];
   let arguments = (ins GPU_ContextType, UI32, TensorType, TensorType, TFRT_ChainType);
@@ -206,13 +206,13 @@ def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
 }
 
 def GPU_DnnDestroyTensorDescriptorOp : GPU_Op<"dnn.destroy_tensor_descriptor"> {
-  let summary = "tfrt_cuda dnn.destroy_tensor_descriptor operation";
+  let summary = "tfrt_gpu dnn.destroy_tensor_descriptor operation";
   let description = [{
-    tfrt_cuda.dnn.destroy_tensor_descriptor destroys a previously created tensor
+    tfrt_gpu.dnn.destroy_tensor_descriptor destroys a previously created tensor
     descriptor object.
 
     Example:
-    %ch3 = tfrt_cuda.dnn.destroy_tensor_descriptor %dnn_tensor_descriptor, %ch4
+    %ch3 = tfrt_gpu.dnn.destroy_tensor_descriptor %dnn_tensor_descriptor, %ch4
 
   }];
   let arguments = (ins GPU_DnnTensorDescriptorType, TFRT_ChainType);
@@ -220,14 +220,14 @@ def GPU_DnnDestroyTensorDescriptorOp : GPU_Op<"dnn.destroy_tensor_descriptor"> {
 }
 
 def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
-  let summary = "tfrt_cuda dnn.pooling_forward operation";
+  let summary = "tfrt_gpu dnn.pooling_forward operation";
   let description = [{
-    tfrt_cuda.dnn.pooling_forward computes pooling of input values (meaning,
+    tfrt_gpu.dnn.pooling_forward computes pooling of input values (meaning,
     the maximum or average of several adjacent values) to produce an
     output with smaller height and/or width.
 
     Example:
-    %ch33 = tfrt_cuda.dnn.pooling_forward %context, %cudnn, %pooling_desc, %alpha, %in_desc, %input_device_buffer, %beta, %out_desc, %output_device_buffer, %ch32
+    %ch33 = tfrt_gpu.dnn.pooling_forward %context, %cudnn, %pooling_desc, %alpha, %in_desc, %input_device_buffer, %beta, %out_desc, %output_device_buffer, %ch32
 
 }];
   let arguments = (ins
@@ -246,12 +246,12 @@ def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
 }
 
 def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
-  let summary = "tfrt_cuda dnn.pooling_backward operation";
+  let summary = "tfrt_gpu dnn.pooling_backward operation";
   let description = [{
-    tfrt_cuda.dnn.pooling_backward computes the gradient of a pooling operation.
+    tfrt_gpu.dnn.pooling_backward computes the gradient of a pooling operation.
 
     Example:
-    %ch42 = tfrt_cuda.dnn.pooling_backward %context, %cudnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
+    %ch42 = tfrt_gpu.dnn.pooling_backward %context, %cudnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
 
   }];
   let arguments = (ins GPU_ContextType,
@@ -272,12 +272,12 @@ def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
+// TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
-  let summary = "tfrt_cuda dnn.convolution_forward operation";
+  let summary = "tfrt_gpu dnn.convolution_forward operation";
   let description = [{
-    tfrt_cuda.dnn.convolution_forward executes convolutions or
+    tfrt_gpu.dnn.convolution_forward executes convolutions or
                                       cross-correlations over x using filters
                                       specified with w, returning results in y.
                                       Scaling factors alpha and beta can be
@@ -298,16 +298,16 @@ def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
+// TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
-  let summary = "tfrt_cuda dnn.convolution_backward_data operation";
+  let summary = "tfrt_gpu dnn.convolution_backward_data operation";
   let description = [{
-    tfrt_cuda.dnn.convolution_backward_data computes the convolution data
+    tfrt_gpu.dnn.convolution_backward_data computes the convolution data
                                             gradient of the tensor dy, where y
                                             is the output of the forward
                                             convolution in
-                                            tfrt_cuda.dnn.convolution_forward.
+                                            tfrt_gpu.dnn.convolution_forward.
                                             It uses the specified algo, and
                                             returns the results in the output
                                             tensor dx.
@@ -326,16 +326,16 @@ def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
+// TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter"> {
-  let summary = "tfrt_cuda dnn.convolution_backward_filter operation";
+  let summary = "tfrt_gpu dnn.convolution_backward_filter operation";
   let description = [{
-    tfrt_cuda.dnn.convolution_backward_filter computes the convolution weight
+    tfrt_gpu.dnn.convolution_backward_filter computes the convolution weight
                                               (filter) gradient of the tensor
                                               dy, where y is the output of the
                                               forward convolution in
-                                              tfrt_cuda.dnn.convolution_forward.
+                                              tfrt_gpu.dnn.convolution_forward.
                                               It uses the specified algo, and
                                               returns the results in the output
                                               tensor dw.
@@ -354,16 +354,16 @@ def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/184675727): Remove this Op once the tfrt_cuda dialect moves from
+// TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_DnnConvolutionBiasActivationForwardOp :
              GPU_Op<"dnn.convolution_bias_activation_forward"> {
   let summary =
-    "tfrt_cuda dnn.convolution_bias_activation_forward operation";
+    "tfrt_gpu dnn.convolution_bias_activation_forward operation";
   let description = [{
-    tfrt_cuda.dnn.convolution_bias_activation_forward applies a bias and then
+    tfrt_gpu.dnn.convolution_bias_activation_forward applies a bias and then
                         an activation to the convolutions or cross-correlations
-                        of tfrt_cuda.dnn.convolution_forward, returning results
+                        of tfrt_gpu.dnn.convolution_forward, returning results
                         in y. The full computation follows the equation
                         y = act ( alpha1 * conv(x) + alpha2 * z + bias ).
   }];

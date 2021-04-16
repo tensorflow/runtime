@@ -35,13 +35,13 @@ include "tfrt/gpu/kernels/cuda_opdefs/cuda_dnn_ops.td"
 def GPU_InitOp : GPU_Op<"init"> {
   let summary = "cuda init operation";
   let description = [{
-    tfrt_cuda.init initializes the underlying CUDA driver API.
+    tfrt_gpu.init initializes the underlying CUDA driver API.
 
     Must be called before all other CUDA operations.
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_cuda.init %ch1
+      %ch2 = tfrt_gpu.init %ch1
   }];
   let arguments = (ins TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -50,29 +50,29 @@ def GPU_InitOp : GPU_Op<"init"> {
 def GPU_DeviceGetOp : GPU_Op<"device.get"> {
   let summary = "cuda device.get operation";
   let description = [{
-    tfrt_cuda.device.get returns the CUDA Device at the given index.
+    tfrt_gpu.device.get returns the CUDA Device at the given index.
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_cuda.init %ch1
+      %ch2 = tfrt_gpu.init %ch1
       %index = tfrt.constant.i32 0
-      %device = tfrt_cuda.device.get %index, %ch2
+      %device = tfrt_gpu.device.get %index, %ch2
   }];
   let arguments = (ins I32, TFRT_ChainType);
   let results = (outs GPU_DeviceType);
 }
 
 def GPU_ContextCreateOp : GPU_Op<"context.create"> {
-  let summary = "tfrt_cuda.context.create operation";
+  let summary = "tfrt_gpu.context.create operation";
   let description = [{
-    tfrt_cuda.context.create returns a CUDA context for the given device.
+    tfrt_gpu.context.create returns a CUDA context for the given device.
 
     Example:
       %ch1 = tfrt.new.chain
       %ch2 = cuda.init %ch1
       %index = tfrt.constant.i32 0
       %device = cuda.device.get %index, %ch1
-      %ctx = tfrt_cuda.context.create %device, %ch1
+      %ctx = tfrt_gpu.context.create %device, %ch1
   }];
   let arguments = (ins GPU_DeviceType, TFRT_ChainType);
   let results = (outs GPU_ContextType);
@@ -81,13 +81,13 @@ def GPU_ContextCreateOp : GPU_Op<"context.create"> {
 def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
   let summary = "cuda stream.create operation";
   let description = [{
-    tfrt_cuda.stream.create creates a CUDA stream in the given context.
+    tfrt_gpu.stream.create creates a CUDA stream in the given context.
 
     Created stream does not perform implicit synchronization with stream 0.
 
     Example:
       %ch1 = tfrt.new.chain
-      %stream = tfrt_cuda.stream.create %context, %ch1
+      %stream = tfrt_gpu.stream.create %context, %ch1
   }];
   let arguments = (ins GPU_ContextType, TFRT_ChainType);
   let results = (outs GPU_StreamType);
@@ -96,13 +96,13 @@ def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
 def GPU_StreamSynchronizeOp : GPU_Op<"stream.synchronize"> {
   let summary = "cuda stream.synchronize operation";
   let description = [{
-    tfrt_cuda.stream.synchronize waits until all the work scheduled on the
+    tfrt_gpu.stream.synchronize waits until all the work scheduled on the
     stream has completed.
 
     This op will set the returned chain when the stream has been synchronized.
 
 Example:
-      %synced = tfrt_cuda.stream.synchronize %stream, %ch
+      %synced = tfrt_gpu.stream.synchronize %stream, %ch
   }];
   let arguments = (ins GPU_StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -111,10 +111,10 @@ Example:
 def GPU_EventCreateOp : GPU_Op<"event.create"> {
   let summary = "cuda event.create operation";
   let description = [{
-    tfrt_cuda.event.create creates a CUDA event in the provided context.
+    tfrt_gpu.event.create creates a CUDA event in the provided context.
 
     Example:
-      %event = tfrt_cuda.event.create %context
+      %event = tfrt_gpu.event.create %context
   }];
   let arguments = (ins GPU_ContextType);
   let results = (outs GPU_EventType);
@@ -123,11 +123,11 @@ def GPU_EventCreateOp : GPU_Op<"event.create"> {
 def GPU_EventRecordOp : GPU_Op<"event.record"> {
   let summary = "cuda event.record operation";
   let description = [{
-    tfrt_cuda.event.record records a CUDA event on the given stream.
+    tfrt_gpu.event.record records a CUDA event on the given stream.
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_cuda.event.record %event, %stream, %ch1
+      %ch2 = tfrt_gpu.event.record %event, %stream, %ch1
   }];
   let arguments = (ins GPU_EventType, GPU_StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -136,14 +136,14 @@ def GPU_EventRecordOp : GPU_Op<"event.record"> {
 def GPU_EventPollOp : GPU_Op<"event.synchronize"> {
   let summary = "cuda event.synchronize operation";
   let description = [{
-    tfrt_cuda.event.synchronize waits for the completion of work captured by the
+    tfrt_gpu.event.synchronize waits for the completion of work captured by the
     event.
 
     This op will set the returned chain when the event has been synchronized.
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_cuda.event.synchronize %event %ch1
+      %ch2 = tfrt_gpu.event.synchronize %event %ch1
   }];
   let arguments = (ins GPU_EventType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -152,11 +152,11 @@ def GPU_EventPollOp : GPU_Op<"event.synchronize"> {
 def GPU_AllocatorCreateOp : GPU_Op<"allocator.create"> {
   let summary = "cuda allocator.create operation";
   let description = [{
-    tfrt_cuda.allocator.create creates an allocator for the given context.
+    tfrt_gpu.allocator.create creates an allocator for the given context.
 
     Example:
       %ch1 = tfrt.new.chain
-      %allocator = tfrt_cuda.allocator.create %context, %ch1
+      %allocator = tfrt_gpu.allocator.create %context, %ch1
   }];
   let arguments = (ins GPU_ContextType, TFRT_ChainType);
   let results = (outs GPU_AllocatorType);
@@ -165,11 +165,11 @@ def GPU_AllocatorCreateOp : GPU_Op<"allocator.create"> {
 def GPU_AllocatorDestroyOp : GPU_Op<"allocator.destroy"> {
   let summary = "cuda allocator.destroy operation";
   let description = [{
-    tfrt_cuda.allocator.destroy destroys an allocator.
+    tfrt_gpu.allocator.destroy destroys an allocator.
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_cuda.allocator.destroy %allocator, %ch1
+      %ch2 = tfrt_gpu.allocator.destroy %allocator, %ch1
   }];
   let arguments = (ins GPU_AllocatorType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -178,7 +178,7 @@ def GPU_AllocatorDestroyOp : GPU_Op<"allocator.destroy"> {
 def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
   let summary = "cuda allocate operation";
   let description = [{
-    tfrt_cuda.mem.allocate allocates a buffer of device memory.
+    tfrt_gpu.mem.allocate allocates a buffer of device memory.
 
     Allocation is associated with a "primary" stream. For best performance,
     the allocated buffer should be used primarily on the primary stream.
@@ -193,23 +193,23 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
     when both accesses are reads or writes. For example, the following usage
     pattern will result in undefined behavior:
 
-      %buf, %ch1 = tfrt_cuda.mem.allocate %stream1, %size, %ch0
-      tfrt_cuda.launch %stream1, %kernel_reading_buf, %buf, %ch0
-      tfrt_cuda.launch %stream2, %another_kernel_reading_buf, %buf, %ch0
+      %buf, %ch1 = tfrt_gpu.mem.allocate %stream1, %size, %ch0
+      tfrt_gpu.launch %stream1, %kernel_reading_buf, %buf, %ch0
+      tfrt_gpu.launch %stream2, %another_kernel_reading_buf, %buf, %ch0
 
     Users must add synchronization to make sure use on stream2 happens after
     everything that was on stream1, at the time of allocation, has finished, e.g.
 
-      %buf, %ch1 = tfrt_cuda.mem.allocate %stream1, %size, %ch0
-      %event = tfrt_cuda.event.create %ch0
-      %ch2 = tfrt_cuda.event.record %stream1, %event, %ch1
-      tfrt_cuda.launch %stream1, %kernel_reading_buf, %buf, %ch0
-      %ch3 = tfrt_cuda.stream.wait %stream2, %event, %ch2
-      tfrt_cuda.launch %stream2, %another_kernel_reading_buf, %buf, %ch3
+      %buf, %ch1 = tfrt_gpu.mem.allocate %stream1, %size, %ch0
+      %event = tfrt_gpu.event.create %ch0
+      %ch2 = tfrt_gpu.event.record %stream1, %event, %ch1
+      tfrt_gpu.launch %stream1, %kernel_reading_buf, %buf, %ch0
+      %ch3 = tfrt_gpu.stream.wait %stream2, %event, %ch2
+      tfrt_gpu.launch %stream2, %another_kernel_reading_buf, %buf, %ch3
 
     Example:
       %ch0 = tfrt.new.chain
-      %buffer, %ch1 = tfrt_cuda.mem.allocate %stream, %size, %ch0
+      %buffer, %ch1 = tfrt_gpu.mem.allocate %stream, %size, %ch0
   }];
   let arguments = (ins GPU_AllocatorType, GPU_StreamType, I64:$size, TFRT_ChainType);
   let results = (outs GPU_BufferType, TFRT_ChainType);
@@ -218,11 +218,11 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
 def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {
   let summary = "cuda mem.print operation";
   let description = [{
-    tfrt_cuda.mem.print_metadata prints a CUDA buffer metadata
+    tfrt_gpu.mem.print_metadata prints a CUDA buffer metadata
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_cuda.mem.print_metadata %buffer %ch1
+      %ch2 = tfrt_gpu.mem.print_metadata %buffer %ch1
   }];
   let arguments = (ins GPU_BufferType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -231,16 +231,16 @@ def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {
 class TensorMakeOp<string dtype> : GPU_Op<"tensor.make." # dtype> {
   let summary = "cuda tensor.make operation";
   let description = [{
-    tfrt_cuda.tensor.make makes a tensor from the given buffer
+    tfrt_gpu.tensor.make makes a tensor from the given buffer
 
     The size of the buffer must match the size needed to hold the tensor,
     i.e. the number of elements, of requested dtype, in the given shape.
 
     Example:
       %ch0 = tfrt.new.chain
-      %buffer, %ch1 = tfrt_cuda.mem.allocate %stream, %size, %ch0
+      %buffer, %ch1 = tfrt_gpu.mem.allocate %stream, %size, %ch0
       %shape = ts.build_shape [2 : i32, 4 : i32]
-      %tensor, %ch2 = tfrt_cuda.tensor.make.f32 %buffer %shape %ch1
+      %tensor, %ch2 = tfrt_gpu.tensor.make.f32 %buffer %shape %ch1
   }];
   let arguments = (ins GPU_BufferType, TS_Shape, TFRT_ChainType);
   let results = (outs TensorType, TFRT_ChainType);
@@ -253,11 +253,11 @@ foreach dtype = ["i8", "i32", "i64", "f32", "f64"] in {
 def GPU_TensorPrintOp : GPU_Op<"tensor.print_metadata"> {
   let summary = "cuda tensor.print_metadata operation";
   let description = [{
-    tfrt_cuda.tensor.print prints a CUDA tensor metadata
+    tfrt_gpu.tensor.print prints a CUDA tensor metadata
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_cuda.tensor.print_metadata %tensor, %ch1
+      %ch2 = tfrt_gpu.tensor.print_metadata %tensor, %ch1
   }];
   let arguments = (ins TensorType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -266,14 +266,14 @@ def GPU_TensorPrintOp : GPU_Op<"tensor.print_metadata"> {
 def GPU_MemcpyHtoDOp : GPU_Op<"mem.copy_host_to_device"> {
   let summary = "cuda mem.copy_host_to_device operation";
   let description = [{
-    tfrt_cuda.mem.copy_host_to_device copies memory from host to device.
+    tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
 
     At this time, the user must make sure that host buffer is not deleted
     until the copy completes.
     TODO(iga): Extend the life automatically
 
     Example:
-      %ch1 = tfrt_cuda.mem.copy_host_to_device %ctx, %dst_buf, %src_buf, %count_bytes, %stream, %ch0
+      %ch1 = tfrt_gpu.mem.copy_host_to_device %ctx, %dst_buf, %src_buf, %count_bytes, %stream, %ch0
   }];
   let arguments = (ins GPU_ContextType, GPU_BufferType:$dst, HostBufferType:$src, I64, GPU_StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -282,7 +282,7 @@ def GPU_MemcpyHtoDOp : GPU_Op<"mem.copy_host_to_device"> {
 def GPU_MemcpyDtoHOp : GPU_Op<"mem.copy_device_to_host"> {
   let summary = "cuda mem.copy_device_to_host operation";
   let description = [{
-    tfrt_cuda.mem.copy_device_to_host copies memory from device to host.
+    tfrt_gpu.mem.copy_device_to_host copies memory from device to host.
 
     At this time, the user must make sure that host buffer is not deleted
     until the copy completes. This should happen naturally since the user
@@ -290,7 +290,7 @@ def GPU_MemcpyDtoHOp : GPU_Op<"mem.copy_device_to_host"> {
     TODO(iga): Add extend the life automatically
 
     Example:
-      %ch1 = tfrt_cuda.mem.copy_device_to_host %ctx, %dst_buf, %src_buf, %count_bytes, %stream, %ch0
+      %ch1 = tfrt_gpu.mem.copy_device_to_host %ctx, %dst_buf, %src_buf, %count_bytes, %stream, %ch0
   }];
   let arguments = (ins GPU_ContextType, HostBufferType:$dst, GPU_BufferType:$src, I64, GPU_StreamType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -299,7 +299,7 @@ def GPU_MemcpyDtoHOp : GPU_Op<"mem.copy_device_to_host"> {
 def GPU_FunctionLoadOp : GPU_Op<"function.load"> {
   let summary = "Loads a device function.";
   let description = [{
-    tfrt_cuda.function.load loads GPU device function from a binary blob.
+    tfrt_gpu.function.load loads GPU device function from a binary blob.
 
     The function is cached in the context for better performance. The key needs
     to be unique across all modules loaded into a context.
@@ -307,7 +307,7 @@ def GPU_FunctionLoadOp : GPU_Op<"function.load"> {
     Both data and name attribute must be explicitly null-terminated.
 
     Example:
-      %function = tfrt_cuda.function.load %ctx, %chain {
+      %function = tfrt_gpu.function.load %ctx, %chain {
         data = "null-terminated device function blob, e.g. PTX",
         key = 1234,
         name = "kernel\00",
@@ -326,10 +326,10 @@ def GPU_FunctionLoadOp : GPU_Op<"function.load"> {
 def GPU_LaunchOp : GPU_Op<"function.launch"> {
   let summary = "Launches a device function.";
   let description = [{
-    tfrt_cuda.function.launch invokes the provided device function on a stream.
+    tfrt_gpu.function.launch invokes the provided device function on a stream.
 
     Example:
-      %ch1 = tfrt_cuda.function.launch %stream, %function,
+      %ch1 = tfrt_gpu.function.launch %stream, %function,
                  blocks in (%grid_dim_x %grid_dim_y %grid_dim_z),
                  threads in (%block_dim_x %block_dim_y %block_dim_z),
                  %shared_memory_size_bytes, %chain,

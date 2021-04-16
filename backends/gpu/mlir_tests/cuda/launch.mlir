@@ -18,13 +18,13 @@
 // CHECK-LABEL: --- Running 'noop_kernel'
 func @noop_kernel() {
   %ch1 = tfrt.new.chain
-  %ch2 = tfrt_cuda.init %ch1
+  %ch2 = tfrt_gpu.init %ch1
   %index = tfrt.constant.i32 0
-  %device = tfrt_cuda.device.get %index, %ch2
-  %context = tfrt_cuda.context.create %device, %ch2
-  %stream = tfrt_cuda.stream.create %context, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2
+  %context = tfrt_gpu.context.create %device, %ch2
+  %stream = tfrt_gpu.stream.create %context, %ch2
 
-  %func = tfrt_cuda.function.load %context, %ch2 {
+  %func = tfrt_gpu.function.load %context, %ch2 {
     // PTX for empty_kernel.
     data = ".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry empty_kernel() { ret; }\00",
     key = 0 : ui64,
@@ -35,7 +35,7 @@ func @noop_kernel() {
   %grid_dim = tfrt.constant.ui32 1
   %shared_mem_size = tfrt.constant.ui32 0
 
-  %ch7 = tfrt_cuda.function.launch %stream, %func,
+  %ch7 = tfrt_gpu.function.launch %stream, %func,
              blocks in (%grid_dim, %grid_dim, %grid_dim),
              threads in (%blk_dim, %blk_dim, %blk_dim),
              %shared_mem_size, %ch2
@@ -46,14 +46,14 @@ func @noop_kernel() {
 // CHECK-LABEL: --- Running 'vector_add_kernel'
 func @vector_add_kernel() {
   %ch1 = tfrt.new.chain
-  %ch2 = tfrt_cuda.init %ch1
+  %ch2 = tfrt_gpu.init %ch1
   %index = tfrt.constant.i32 0
-  %device = tfrt_cuda.device.get %index, %ch2
-  %context = tfrt_cuda.context.create %device, %ch2
-  %stream = tfrt_cuda.stream.create %context, %ch2
-  %allocator = tfrt_cuda.allocator.create %context, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2
+  %context = tfrt_gpu.context.create %device, %ch2
+  %stream = tfrt_gpu.stream.create %context, %ch2
+  %allocator = tfrt_gpu.allocator.create %context, %ch2
 
-  %func = tfrt_cuda.function.load %context, %ch2 {
+  %func = tfrt_gpu.function.load %context, %ch2 {
     // PTX for vector_add.
     data = ".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry vector_add(\n.param .u32 vector_add_param_0,\n.param .u64 vector_add_param_1,\n.param .u64 vector_add_param_2\n)\n{\n.reg .pred 	%p<2>;\n.reg .f32 	%f<4>;\n.reg .b32 	%r<6>;\n.reg .b64 	%rd<8>;\nld.param.u32 	%r2, [vector_add_param_0];\nld.param.u64 	%rd1, [vector_add_param_1];\nld.param.u64 	%rd2, [vector_add_param_2];\nmov.u32 	%r3, %ctaid.x;\nmov.u32 	%r4, %ntid.x;\nmov.u32 	%r5, %tid.x;\nmad.lo.s32 	%r1, %r4, %r3, %r5;\nsetp.ge.s32	%p1, %r1, %r2;\n@%p1 bra 	BB0_2;\n\ncvta.to.global.u64 	%rd3, %rd2;\ncvta.to.global.u64 	%rd4, %rd1;\nmul.wide.s32 	%rd5, %r1, 4;\nadd.s64 	%rd6, %rd4, %rd5;\nadd.s64 	%rd7, %rd3, %rd5;\nld.global.f32 	%f1, [%rd7];\nld.global.f32 	%f2, [%rd6];\nadd.f32 	%f3, %f2, %f1;\nst.global.f32 	[%rd7], %f3;\nBB0_2:\nret;\n}\n\00",
     key = 1 : ui64,
@@ -81,33 +81,33 @@ func @vector_add_kernel() {
   %ch14 = tfrt_dht.print_buffer %y_host_buffer, %ch13
 
   %size = tfrt.constant.i64 32
-  %x_device, %ch15 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch14
-  %y_device, %ch16 = tfrt_cuda.mem.allocate %allocator, %stream, %size, %ch15
+  %x_device, %ch15 = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch14
+  %y_device, %ch16 = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch15
 
   // Copy host to device.
-  %ch17 = tfrt_cuda.mem.copy_host_to_device %context, %x_device, %x_host_buffer, %size, %stream, %ch16
-  %ch18 = tfrt_cuda.mem.copy_host_to_device %context, %y_device, %y_host_buffer, %size, %stream, %ch17
+  %ch17 = tfrt_gpu.mem.copy_host_to_device %context, %x_device, %x_host_buffer, %size, %stream, %ch16
+  %ch18 = tfrt_gpu.mem.copy_host_to_device %context, %y_device, %y_host_buffer, %size, %stream, %ch17
 
   %one = tfrt.constant.ui32 1
   %eight = tfrt.constant.ui32 8
   %shared_mem_size = tfrt.constant.ui32 0
   %len = tfrt.constant.i32 8
 
-  %ch_kernel = tfrt_cuda.function.launch %stream, %func,
+  %ch_kernel = tfrt_gpu.function.launch %stream, %func,
                    blocks in (%eight, %one, %one),
                    threads in (%eight, %one, %one),
                    %shared_mem_size, %ch18,
-                   args(%len, %x_device, %y_device) : (i32, !tfrt_cuda.buffer, !tfrt_cuda.buffer)
+                   args(%len, %x_device, %y_device) : (i32, !tfrt_gpu.buffer, !tfrt_gpu.buffer)
 
   // Copy back to host buffer and synchronize.
-  %ch19 = tfrt_cuda.mem.copy_device_to_host %context, %y_host_buffer, %y_device,
+  %ch19 = tfrt_gpu.mem.copy_device_to_host %context, %y_host_buffer, %y_device,
                                        %size, %stream, %ch_kernel
-  %sync_ch = tfrt_cuda.stream.synchronize %stream, %ch19
+  %sync_ch = tfrt_gpu.stream.synchronize %stream, %ch19
 
   // CHECK: shape = [8], values = [2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00]
   %ch25 = tfrt_dht.print_tensor %y_host, %sync_ch
 
-  %allocd_ch = tfrt_cuda.allocator.destroy %allocator, %sync_ch
+  %allocd_ch = tfrt_gpu.allocator.destroy %allocator, %sync_ch
 
   tfrt.return
 }

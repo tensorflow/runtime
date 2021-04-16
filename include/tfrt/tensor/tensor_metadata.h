@@ -32,8 +32,12 @@ struct TensorMetadata {
   TensorMetadata(DType dtype, const TensorShape& shape)
       : shape(shape), dtype(dtype) {}
 
-  TensorMetadata(DType dtype, ArrayRef<ssize_t> shape)
-      : shape(TensorShape(shape)), dtype(dtype) {}
+  template <typename T = int64_t>
+  TensorMetadata(DType dtype, ArrayRef<T> shape) : shape(shape), dtype(dtype) {}
+
+  template <typename Container>
+  TensorMetadata(DType dtype, const Container& shape)
+      : TensorMetadata(dtype, llvm::makeArrayRef(shape)) {}
 
   bool IsValid() const { return dtype.IsValid(); }
   bool IsInvalid() const { return dtype.IsInvalid(); }

@@ -407,7 +407,7 @@ class DenseAttr : public internal::AttrHeaderBase<DenseAttr, BEFDenseAttr> {
 
   DType::Kind dtype() const { return GetDataType(type()); }
 
-  llvm::ArrayRef<ssize_t> shape() const {
+  llvm::ArrayRef<int64_t> shape() const {
     const auto* bytes = static_cast<const uint8_t*>(data());
     const auto& header = this->header();
 

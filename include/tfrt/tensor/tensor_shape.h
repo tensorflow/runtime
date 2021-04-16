@@ -46,7 +46,13 @@ void RegisterTensorShapeKernels(KernelRegistry* registry);
 class TensorShape {
  public:
   /// Create a TensorShape with the specified dimensions.
-  explicit TensorShape(ArrayRef<ssize_t> dims);
+  template <typename T = ssize_t>
+  explicit TensorShape(ArrayRef<T> dims);
+
+  template <typename Container>
+  explicit TensorShape(const Container& dims)
+      : TensorShape(llvm::makeArrayRef(dims)) {}
+
   TensorShape(const TensorShape& rhs);
   TensorShape(TensorShape&& rhs);
   TensorShape& operator=(const TensorShape& rhs);
@@ -247,6 +253,81 @@ class PartialTensorShape {
 static_assert(sizeof(TensorShape) == 16, "TensorShape should not grow");
 
 raw_ostream& operator<<(raw_ostream& os, const TensorShape& value);
+
+template <typename T>
+inline TensorShape::TensorShape(ArrayRef<T> dims) {
+  assert(dims.size() < 256 && "Can only handle rank up to 255");
+  auto rank = static_cast<uint8_t>(dims.size());
+
+  // We zero-initialize to ensure the representation value is determinsitic.
+  memset(&representation_, 0, sizeof(representation_));
+
+  // This code aims to make the common rep16 case perform the fewest comparisons
+  // by speculating it will be fine.  It is slightly slower for rep32, and makes
+  // the worst case scenario do the most comparisons.
+  size_t next_dim = 0;
+
+  // Scan all the dims breaking out if a dim is found larger than 16-bit.
+  while (true) {
+    if (next_dim == rank) {
+      // Ok, all the dims fit in 16-bits.  We can use the Rep16 format if we
+      // have 7 or fewer dims.
+      if (rank > 7) break;
+
+      for (size_t i = 0; i != rank; ++i) {
+        representation_.rep16.dims[i] = uint16_t(dims[i]);
+      }
+      representation_.rep16.kind = RepKind::kRep16;
+      representation_.rep16.rank = rank;
+      return;
+    }
+
+    // If this dimension fits in 16 bits, then keep scanning.
+    auto this_dim = dims[next_dim];
+    if (uint16_t(this_dim) != this_dim) break;
+    ++next_dim;
+  }
+
+  // Okay, we found a dimension too big to fit into rep16 - check for rep32.
+  while (true) {
+    if (next_dim == rank) {
+      // Ok, all the dims fit in 32-bits.  We can use the Rep32 format if we
+      // have 4 or fewer dims and if the last dim fits in 16-bits.
+      if (rank > 4 || (rank == 4 && uint16_t(dims[3]) != dims[3])) break;
+      representation_.rep32.rank = rank;
+      representation_.rep32.kind = RepKind::kRep32;
+      switch (rank) {
+        case 4:
+          representation_.rep32.dim3 = uint16_t(dims[3]);
+          LLVM_FALLTHROUGH;
+        case 3:
+          representation_.rep32.dims[2] = dims[2];
+          LLVM_FALLTHROUGH;
+        case 2:
+          representation_.rep32.dims[1] = dims[1];
+          LLVM_FALLTHROUGH;
+        case 1:
+          representation_.rep32.dims[0] = dims[0];
+          break;
+        default:
+          assert(0 && "unreachable");
+      }
+      return;
+    }
+
+    // If this dimension fits in 32 bits, then keep scanning.
+    auto this_dim = dims[next_dim];
+    if (uint32_t(this_dim) != this_dim) break;
+    ++next_dim;
+  }
+
+  // Otherwise, nothing fits, use the most general representation.
+  auto* elts = new size_t[rank];
+  memcpy(elts, dims.data(), sizeof(size_t) * rank);
+  representation_.rep_external.dims = elts;
+  representation_.rep_external.rank = rank;
+  representation_.rep_external.kind = RepKind::kRepExternal;
+}
 
 // Return the storage representation for this TensorShape.
 inline TensorShape::RepKind TensorShape::GetRepresentationKind() const {

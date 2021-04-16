@@ -30,7 +30,7 @@ class DenseTensorView;
 // DenseView is a view to any densely laid out data with a shape.
 class DenseView {
  public:
-  explicit DenseView(DType dtype, ArrayRef<ssize_t> shape, const void* data)
+  explicit DenseView(DType dtype, ArrayRef<int64_t> shape, const void* data)
       : metadata_(dtype, shape), data_(data) {}
 
   const TensorMetadata& metadata() const { return metadata_; }

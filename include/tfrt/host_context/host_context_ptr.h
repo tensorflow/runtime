@@ -22,6 +22,7 @@
 #ifndef TFRT_HOST_CONTEXT_HOST_CONTEXT_PTR_H_
 #define TFRT_HOST_CONTEXT_HOST_CONTEXT_PTR_H_
 
+#include <array>
 #include <cassert>
 #include <cstdint>
 

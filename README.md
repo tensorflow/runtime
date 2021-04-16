@@ -637,10 +637,8 @@ contributions. Once we are ready, we will update this page.
 
 ## Continuous build status
 
-Build Type          | Status
-------------------- | ------
-**Linux CPU clang** | [![Status](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-cpu-clang.svg)](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-cpu-clang.html)
-**Linux CPU GCC**   | [![Status](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-cpu-gcc.svg)](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-cpu-gcc.html)
+[![Status](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-clang.svg)](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-clang.html)
+[![Status](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-gcc.svg)](https://storage.googleapis.com/tensorflow-kokoro-build-badges/tf_runtime/ubuntu-gcc.html)
 
 ## Contact
 

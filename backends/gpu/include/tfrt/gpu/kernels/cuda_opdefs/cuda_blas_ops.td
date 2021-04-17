@@ -40,20 +40,8 @@ def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
 
     This will be explicitly passed to every subsequent BLAS library call.
   }];
-  let arguments = (ins GPU_ContextType);
+  let arguments = (ins GPU_StreamType, TFRT_ChainType);
   let results = (outs GPU_BlasHandleType);
-}
-
-def GPU_BlasSetStreamOp : GPU_Op<"blas.set_stream"> {
-  let summary = "tfrt_gpu blas.set_stream operation";
-  let description = [{
-    tfrt_gpu.blas.set_stream sets the BLAS library stream.
-
-    All subsequent BLAS calls will execute on the set stream (until
-    blas.set_stream is called with a different stream).
-  }];
-  let arguments = (ins GPU_BlasHandleType, GPU_StreamType, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
 }
 
 def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy.f32"> {
@@ -61,7 +49,7 @@ def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy.f32"> {
   let description = [{
     tfrt_gpu.blas.axpy.f32 call BLAS saxpy function.
   }];
-  let arguments = (ins GPU_ContextType, GPU_BlasHandleType, I32:$n, F32:$alpha,
+  let arguments = (ins GPU_BlasHandleType, I32:$n, F32:$alpha,
                    GPU_BufferType:$x, I32:$incx, GPU_BufferType:$y, I32:$incy,
                    TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -72,7 +60,7 @@ def GPU_BlasSgemmOp : GPU_Op<"blas.gemm.f32"> {
   let description = [{
     tfrt_gpu.blas.gemm.f32 calls BLAS sgemm function.
   }];
-  let arguments = (ins GPU_ContextType, GPU_BlasHandleType,
+  let arguments = (ins GPU_BlasHandleType,
                    BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k, F32:$alpha, GPU_BufferType:$A, I32:$lda,
                    GPU_BufferType:$B, I32:$ldb, F32:$beta, GPU_BufferType:$C, I32:$ldc,
@@ -89,7 +77,7 @@ def GPU_BlasGemmExOp : GPU_Op<"blas.gemm.ex"> {
                            the precision of computation and the GEMM
                            algorithm to be run.
   }];
-  let arguments = (ins GPU_ContextType, GPU_BlasHandleType,
+  let arguments = (ins GPU_BlasHandleType,
                    BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k,
                    F32:$alpha,
@@ -113,7 +101,7 @@ def GPU_BlasGemmStridedBatchedExOp : GPU_Op<"blas.gemm.strided.batched.ex"> {
                            strideB and strideC determine the locations of input
                            and output matrices in future instances
   }];
-  let arguments = (ins GPU_ContextType, GPU_BlasHandleType,
+  let arguments = (ins GPU_BlasHandleType,
                    BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k,
                    F32:$alpha,
@@ -133,7 +121,7 @@ def GPU_BlasSyncSgemmOp : GPU_Op<"blas.sync.gemm.f32"> {
   let description = [{
     tfrt_gpu.blas.sync.gemm.f32 calls BLAS sgemm function.
   }];
-  let arguments = (ins GPU_ContextType, GPU_BlasHandleType, GPU_StreamType,
+  let arguments = (ins GPU_BlasHandleType,
                    BoolAttr:$transa, BoolAttr:$transb,
                    I32:$m, I32:$n, I32:$k, F32:$alpha, GPU_BufferType:$A, I32:$lda,
                    GPU_BufferType:$B, I32:$ldb, F32:$beta, GPU_BufferType:$C, I32:$ldc,
@@ -148,11 +136,21 @@ def GPU_BlasSyncGemmExOp : Op<GPU_Dialect, "blas.sync.gemm_ex"> {
   let description = [{
     tfrt_gpu.blas.sync.gemm_ex calls BLAS GemmEx function.
   }];
-  // Note: keep the attributes alphabetically sorted, because BEF encodes them
-  // in the getAttrs() order, which is sorted only if getAttrDictionary() is
-  // called before. See b/184656568.
-  // TODO(csigg): Investigate whether MLIR would want a stable attribute order.
-  let arguments = (ins GPU_ContextType, GPU_BlasHandleType, GPU_StreamType,
+  // TODO(b/185235413): Remove when the op is built with the new operands everywhere.
+  let builders = [
+    OpBuilder<(ins "::mlir::Type":$resultType,
+               "::mlir::Value":$context, "::mlir::Value":$handle, "::mlir::Value":$stream,
+               "::mlir::Value":$m, "::mlir::Value":$n, "::mlir::Value":$k,
+               "::mlir::Value":$alpha, "::mlir::Value":$A, "::mlir::Value":$Atype, "::mlir::Value":$lda,
+               "::mlir::Value":$B, "::mlir::Value":$Btype, "::mlir::Value":$ldb,
+               "::mlir::Value":$beta, "::mlir::Value":$C, "::mlir::Value":$Ctype, "::mlir::Value":$ldc,
+               "::mlir::Value":$algorithm, "::mlir::Value":$chain, "uint32_t":$computeType,
+               "bool":$transa, "bool":$transb), [{
+      build($_builder, $_state, resultType, handle, m, n, k, alpha, A, Atype, lda, B,
+          Btype, ldb, beta, C, Ctype, ldc, algorithm, chain, computeType, transa, transb);
+    }]>
+  ];
+  let arguments = (ins GPU_BlasHandleType,
                    I32:$m, I32:$n, I32:$k, GPU_AnyBlasDataType:$alpha,
                    GPU_BufferType:$A, I32:$Atype, I32:$lda, GPU_BufferType:$B,
                    I32:$Btype, I32:$ldb, GPU_AnyBlasDataType:$beta,

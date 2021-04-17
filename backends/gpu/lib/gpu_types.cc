@@ -15,6 +15,8 @@
 // Implementation of the types used in the tfrt_gpu dialect.
 #include "tfrt/gpu/gpu_types.h"
 
+#include "tfrt/gpu/stream/blas_wrapper.h"
+#include "tfrt/gpu/stream/dnn_wrapper.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
@@ -87,5 +89,18 @@ GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
     : context_(std::move(context)), event_(std::move(event)) {}
 
 GpuEvent::~GpuEvent() = default;
+
+GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuStream> stream,
+                             wrapper::OwningBlasHandle handle)
+    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+
+GpuBlasHandle::~GpuBlasHandle() = default;
+
+GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuStream> stream,
+                           wrapper::OwningDnnHandle handle)
+    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+
+GpuDnnHandle::~GpuDnnHandle() = default;
+
 }  // namespace gpu
 }  // namespace tfrt

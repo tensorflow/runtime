@@ -74,24 +74,14 @@ static llvm::Expected<wrapper::DnnNanPropagation> IntToDnnNanPropagation(
   }
 }
 
-static Expected<wrapper::OwningDnnHandle> DnnCreate(const GpuContext& context) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+static Expected<GpuDnnHandle> DnnCreate(Argument<GpuStream> stream) {
+  auto current = wrapper::CtxSetCurrent(stream->context());
   if (!current) return current.takeError();
-  return wrapper::DnnCreate(*current);
-}
-
-static Error DnnDestroy(Argument<wrapper::OwningDnnHandle> dnn_handle) {
-  return wrapper::DnnDestroy(dnn_handle->release());
-}
-
-static Error DnnSetStream(const wrapper::OwningDnnHandle& dnn_handle,
-                          const GpuStream& stream) {
-  return wrapper::DnnSetStream(dnn_handle.get(), stream.get());
-}
-
-static Expected<wrapper::Stream> DnnGetStream(
-    const wrapper::OwningDnnHandle& dnn_handle) {
-  return wrapper::DnnGetStream(dnn_handle.get());
+  auto handle = wrapper::DnnCreate(*current);
+  if (!handle) return handle.takeError();
+  if (auto error = wrapper::DnnSetStream(handle->get(), stream->get()))
+    return std::move(error);
+  return GpuDnnHandle(stream.ValueRef(), std::move(*handle));
 }
 
 static Expected<wrapper::OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
@@ -122,6 +112,7 @@ static Expected<wrapper::OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
   if (!strides_data)
     return MakeStringError(
         "DnnCreatePoolingDescriptor: strides is not a 1D tensor.");
+  // TODO(csigg): Do we need a current context for this call?
   if (auto error = wrapper::DnnSetPoolingDescriptor(
           *current, descriptor.get().get(), IntToDnnPoolingMode(mode).get(),
           IntToDnnNanPropagation(nan_propagation).get(),
@@ -131,15 +122,10 @@ static Expected<wrapper::OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
   return std::move(*descriptor);
 }
 
-static Error DnnDestroyPoolingDescriptor(
-    Argument<wrapper::OwningDnnPoolingDescriptor> descriptor) {
-  return wrapper::DnnDestroyPoolingDescriptor(descriptor->release());
-}
-
 static Expected<wrapper::OwningDnnTensorDescriptor> DnnCreateTensorDescriptor(
     const GpuContext& context, uint32_t data_type,
     const DenseHostTensor& dimensions, const DenseHostTensor& strides) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+  // TODO(csigg): Change context argument to platform attribute.
   auto descriptor = wrapper::DnnCreateTensorDescriptor(context->platform());
   if (!descriptor) return descriptor.takeError();
   if (dimensions.dtype().kind() != tfrt::DType::I32)
@@ -165,22 +151,17 @@ static Expected<wrapper::OwningDnnTensorDescriptor> DnnCreateTensorDescriptor(
   return std::move(*descriptor);
 }
 
-static Error DnnDestroyTensorDescriptor(
-    Argument<wrapper::OwningDnnTensorDescriptor> descriptor) {
-  return wrapper::DnnDestroyTensorDescriptor(descriptor->release());
-}
-
 static Error DnnPoolingForward(
-    const GpuContext& context, const wrapper::OwningDnnHandle& handle,
+    const GpuDnnHandle& handle,
     const wrapper::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
     const RCReference<GpuBuffer>& x, float beta,
     const wrapper::OwningDnnTensorDescriptor& y_desc,
     const RCReference<GpuBuffer>& y) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+  auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
-  wrapper::Pointer<const void> alpha_ptr(&alpha, context->platform());
-  wrapper::Pointer<const void> beta_ptr(&beta, context->platform());
+  wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
+  wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
 
   return wrapper::DnnPoolingForward(*current, handle.get(), pooling_desc.get(),
                                     alpha_ptr, x_desc.get(), x->pointer(),
@@ -188,7 +169,7 @@ static Error DnnPoolingForward(
 }
 
 static Error DnnPoolingBackward(
-    const GpuContext& context, const wrapper::OwningDnnHandle& handle,
+    const GpuDnnHandle& handle,
     const wrapper::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const wrapper::OwningDnnTensorDescriptor& y_desc,
     const RCReference<GpuBuffer>& y,
@@ -198,10 +179,10 @@ static Error DnnPoolingBackward(
     const RCReference<GpuBuffer>& x, float beta,
     const wrapper::OwningDnnTensorDescriptor& dx_desc,
     const RCReference<GpuBuffer>& dx) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+  auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
-  wrapper::Pointer<const void> alpha_ptr(&alpha, context->platform());
-  wrapper::Pointer<const void> beta_ptr(&beta, context->platform());
+  wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
+  wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
 
   return wrapper::DnnPoolingBackward(
       *current, handle.get(), pooling_desc.get(), alpha_ptr, y_desc.get(),
@@ -210,7 +191,7 @@ static Error DnnPoolingBackward(
 }
 
 Error DnnConvolutionForward(
-    const GpuContext& context, const wrapper::OwningDnnHandle& handle,
+    const GpuDnnHandle& handle,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
     const RCReference<GpuBuffer>& x,
     const wrapper::OwningDnnFilterDescriptor& w_desc,
@@ -219,9 +200,9 @@ Error DnnConvolutionForward(
     const RCReference<GpuBuffer>& work_space,
     const wrapper::OwningDnnTensorDescriptor& y_desc,
     const RCReference<GpuBuffer>& y) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+  auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
-  auto algo_dnn = wrapper::DnnConvFwdAlgo(algo, context->platform());
+  auto algo_dnn = wrapper::DnnConvFwdAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionForward(
       *current, handle.get(), x_desc.get(), x->pointer(), w_desc.get(),
       w->pointer(), conv_desc.get(), algo_dnn, work_space->pointer(),
@@ -229,7 +210,7 @@ Error DnnConvolutionForward(
 }
 
 Error DnnConvolutionBackwardData(
-    const GpuContext& context, const wrapper::OwningDnnHandle& handle,
+    const GpuDnnHandle& handle,
     const wrapper::OwningDnnFilterDescriptor& w_desc,
     const RCReference<GpuBuffer>& w,
     const wrapper::OwningDnnTensorDescriptor& dy_desc,
@@ -238,9 +219,9 @@ Error DnnConvolutionBackwardData(
     const RCReference<GpuBuffer>& work_space,
     const wrapper::OwningDnnTensorDescriptor& dx_desc,
     const RCReference<GpuBuffer>& dx) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+  auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
-  auto algo_dnn = wrapper::DnnConvBwdDataAlgo(algo, context->platform());
+  auto algo_dnn = wrapper::DnnConvBwdDataAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionBackwardData(
       *current, handle.get(), w_desc.get(), w->pointer(), dy_desc.get(),
       dy->pointer(), conv_desc.get(), algo_dnn, work_space->pointer(),
@@ -248,7 +229,7 @@ Error DnnConvolutionBackwardData(
 }
 
 Error DnnConvolutionBackwardFilter(
-    const GpuContext& context, const wrapper::OwningDnnHandle& handle,
+    const GpuDnnHandle& handle,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
     const RCReference<GpuBuffer>& x,
     const wrapper::OwningDnnTensorDescriptor& dy_desc,
@@ -257,9 +238,9 @@ Error DnnConvolutionBackwardFilter(
     const RCReference<GpuBuffer>& work_space,
     const wrapper::OwningDnnFilterDescriptor& dw_desc,
     const RCReference<GpuBuffer>& dw) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+  auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
-  auto algo_dnn = wrapper::DnnConvBwdWeightsAlgo(algo, context->platform());
+  auto algo_dnn = wrapper::DnnConvBwdWeightsAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionBackwardFilter(
       *current, handle.get(), x_desc.get(), x->pointer(), dy_desc.get(),
       dy->pointer(), conv_desc.get(), algo_dnn, work_space->pointer(),
@@ -268,8 +249,7 @@ Error DnnConvolutionBackwardFilter(
 
 // This is CUDA specific kernel, there is no ROCm counterpart.
 Error CudnnConvolutionBiasActivationForward(
-    const GpuContext& context, const wrapper::OwningDnnHandle& handle,
-    const RCReference<GpuBuffer>& alpha1,
+    const GpuDnnHandle& handle, const RCReference<GpuBuffer>& alpha1,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
     const RCReference<GpuBuffer>& x,
     const wrapper::OwningDnnFilterDescriptor& w_desc,
@@ -284,7 +264,7 @@ Error CudnnConvolutionBiasActivationForward(
     const wrapper::OwningDnnActivationDescriptor& activation_desc,
     const wrapper::OwningDnnTensorDescriptor& y_desc,
     const RCReference<GpuBuffer>& y) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+  auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   auto algo_dnn = static_cast<cudnnConvolutionFwdAlgo_t>(algo);
   return wrapper::CudnnConvolutionBiasActivationForward(
@@ -300,21 +280,10 @@ Error CudnnConvolutionBiasActivationForward(
 
 void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.dnn.create", TFRT_KERNEL(DnnCreate));
-  kernel_reg->AddKernel("tfrt_gpu.dnn.destroy",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnDestroy)));
-  kernel_reg->AddKernel("tfrt_gpu.dnn.set_stream",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnSetStream)));
-  kernel_reg->AddKernel("tfrt_gpu.dnn.get_stream", TFRT_KERNEL(DnnGetStream));
   kernel_reg->AddKernel("tfrt_gpu.dnn.create_pooling_descriptor",
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.dnn.destroy_pooling_descriptor",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnDestroyPoolingDescriptor)));
   kernel_reg->AddKernel("tfrt_gpu.dnn.create_tensor_descriptor",
                         TFRT_KERNEL(DnnCreateTensorDescriptor));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.dnn.destroy_tensor_descriptor",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnDestroyTensorDescriptor)));
   kernel_reg->AddKernel("tfrt_gpu.dnn.pooling_forward",
                         TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnPoolingForward)));
   kernel_reg->AddKernel(

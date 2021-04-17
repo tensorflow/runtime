@@ -25,6 +25,8 @@
 #include <memory>
 
 #include "llvm/ADT/DenseMap.h"
+#include "tfrt/gpu/stream/blas_wrapper.h"
+#include "tfrt/gpu/stream/dnn_wrapper.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/forward_decls.h"
@@ -77,7 +79,7 @@ class GpuStream {
 class GpuEvent {
  public:
   explicit GpuEvent(AsyncValueRef<GpuContext> context,
-                    wrapper::OwningEvent Eventevent);
+                    wrapper::OwningEvent event);
   ~GpuEvent();
 
   GpuEvent(GpuEvent&&) = default;
@@ -89,6 +91,44 @@ class GpuEvent {
  private:
   AsyncValueRef<GpuContext> context_;
   wrapper::OwningEvent event_;
+};
+
+class GpuBlasHandle {
+ public:
+  explicit GpuBlasHandle(AsyncValueRef<GpuStream> stream,
+                         wrapper::OwningBlasHandle handle);
+  ~GpuBlasHandle();
+
+  GpuBlasHandle(GpuBlasHandle&&) = default;
+  GpuBlasHandle& operator=(GpuBlasHandle&&) = default;
+
+  const wrapper::OwningBlasHandle& operator->() const { return handle_; }
+  wrapper::BlasHandle get() const { return handle_.get(); }
+
+  wrapper::Context context() const { return stream_->context(); }
+
+ private:
+  AsyncValueRef<GpuStream> stream_;
+  wrapper::OwningBlasHandle handle_;
+};
+
+class GpuDnnHandle {
+ public:
+  explicit GpuDnnHandle(AsyncValueRef<GpuStream> stream,
+                        wrapper::OwningDnnHandle handle);
+  ~GpuDnnHandle();
+
+  GpuDnnHandle(GpuDnnHandle&&) = default;
+  GpuDnnHandle& operator=(GpuDnnHandle&&) = default;
+
+  const wrapper::OwningDnnHandle& operator->() const { return handle_; }
+  wrapper::DnnHandle get() const { return handle_.get(); }
+
+  wrapper::Context context() const { return stream_->context(); }
+
+ private:
+  AsyncValueRef<GpuStream> stream_;
+  wrapper::OwningDnnHandle handle_;
 };
 
 }  // namespace gpu

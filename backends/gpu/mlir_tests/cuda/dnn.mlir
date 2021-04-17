@@ -18,7 +18,7 @@
 // RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'dnn_pooling_test'
-func @dnn_pooling_test() -> !tfrt.chain {
+func @dnn_pooling_test() {
   %ch1 = tfrt.new.chain
   %ch2 = tfrt_gpu.init %ch1
   %index = tfrt.constant.i32 0
@@ -121,15 +121,12 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %ch11 = "tfrt_dht.set_tensor_with_values.f32"(%gradient, %ch10, %o00, %o01, %o02, %o03, %o04, %o05, %o06, %o07, %o08, %o09, %o10, %o11, %o12, %o13, %o14, %o15, %o16, %o17, %o18, %o19, %o20, %o21, %o22, %o23, %o24, %o25, %o26, %o27, %o28, %o29, %o30, %o31, %o32, %o33, %o34, %o35):(!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
   %ch12 = tfrt_dht.print_tensor %gradient, %ch11
 
-  %cudnn = tfrt_gpu.dnn.create %context, %ch12
-
-  %ch13 = tfrt_gpu.dnn.set_stream %cudnn, %stream, %ch12
-  %stream1 = tfrt_gpu.dnn.get_stream %cudnn, %ch13
+  %dnn = tfrt_gpu.dnn.create %stream, %ch12
 
   %dim0 = tfrt.constant.i32 3
   %dim1 = tfrt.constant.i32 3
   %window_dimensions = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
-  %ch15 = "tfrt_dht.set_tensor_with_values.i32"(%window_dimensions, %ch13, %dim0, %dim1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
+  %ch15 = "tfrt_dht.set_tensor_with_values.i32"(%window_dimensions, %ch12, %dim0, %dim1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
   %p0 = tfrt.constant.i32 0
   %p1 = tfrt.constant.i32 0
   %paddings = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
@@ -192,7 +189,7 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %output_host_buffer, %ch31 = tfrt_dht.get_buffer %output_tensor, %ch30
   %ch32 = tfrt_gpu.mem.copy_host_to_device %context, %output_device_buffer, %output_host_buffer, %koutsize, %stream, %ch31
 
-  %ch33 = tfrt_gpu.dnn.pooling_forward %context, %cudnn, %pooling_desc, %alpha, %in_desc, %input_device_buffer, %beta, %out_desc, %output_device_buffer, %ch32
+  %ch33 = tfrt_gpu.dnn.pooling_forward %dnn, %pooling_desc, %alpha, %in_desc, %input_device_buffer, %beta, %out_desc, %output_device_buffer, %ch32
 
   %ch34 = tfrt_gpu.mem.copy_device_to_host %context, %output_host_buffer, %output_device_buffer, %koutsize, %stream, %ch33
 
@@ -210,7 +207,7 @@ func @dnn_pooling_test() -> !tfrt.chain {
   %in_grad_host_buffer, %ch40 = tfrt_dht.get_buffer %in_grad_tensor, %ch39
   %ch41 = tfrt_gpu.mem.copy_host_to_device %context, %in_grad_device_buffer, %in_grad_host_buffer, %kinsize, %stream, %ch40
 
-  %ch42 = tfrt_gpu.dnn.pooling_backward %context, %cudnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
+  %ch42 = tfrt_gpu.dnn.pooling_backward %dnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
 
   %ch43 = tfrt_gpu.mem.copy_device_to_host %context, %in_grad_host_buffer, %in_grad_device_buffer, %kinsize, %stream, %ch42
 
@@ -223,5 +220,5 @@ func @dnn_pooling_test() -> !tfrt.chain {
 
   %ch46 = tfrt_gpu.allocator.destroy %allocator, %ch45
 
-  tfrt.return %ch46 : !tfrt.chain
+  tfrt.return
 }

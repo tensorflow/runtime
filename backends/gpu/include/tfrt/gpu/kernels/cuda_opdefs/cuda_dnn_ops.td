@@ -56,57 +56,8 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
     %cudnn, %ch5 = tfrt_gpu.dnn.create %context, %ch1
 
   }];
-  let arguments = (ins GPU_ContextType, TFRT_ChainType);
+  let arguments = (ins GPU_StreamType, TFRT_ChainType);
   let results = (outs GPU_DnnHandleType);
-}
-
-def GPU_DnnSetStream : GPU_Op<"dnn.set_stream"> {
-  let summary = "tfrt_gpu.dnn.set_stream operation";
-  let description = [{
-    tfrt_gpu.dnn.set_stream sets the user's stream in the DNN handle.
-    The new stream will be used to launch DNN GPU kernels or to synchronize
-    to this stream when DNN kernels are launched in the internal streams.
-    If the DNN library stream is not set, all kernels use the default (NULL)
-    stream. Setting the user stream in the DNN handle guarantees the
-    issue-order execution of DNN calls and other GPU kernels launched in the
-    same stream.
-
-    Example:
-    %ch2 = tfrt_gpu.dnn.set_stream %dnn_handle, %stream, %ch1
-
-  }];
-  let arguments = (ins GPU_DnnHandleType, GPU_StreamType, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
-def GPU_DnnGetStream : GPU_Op<"dnn.get_stream"> {
-  let summary = "tfrt_gpu.dnn.get_stream operation";
-  let description = [{
-    tfrt_gpu.dnn.get_stream retrieves the user stream programmed in the DNN
-    handle. When the user's stream was not set in the DNN handle, this function
-    reports the null-stream.
-
-    Example:
-    %stream, %ch2 = tfrt_gpu.dnn.get_stream %dnn_handle, %ch1
-
-  }];
-  let arguments = (ins GPU_DnnHandleType, TFRT_ChainType);
-  let results = (outs GPU_StreamType);
-}
-
-def GPU_DnnDestroyOp : GPU_Op<"dnn.destroy"> {
-  let summary = "tfrt_gpu dnn.destroy operation";
-  let description = [{
-    tfrt_gpu.dnn.destroy releases the resources used by the DNN handle.
-    This function is usually the last call with a particular handle to the DNN
-    handle.
-
-    Example:
-    %ch3 = tfrt_gpu.dnn.destroy %dnn_handle, %ch2
-
-  }];
-  let arguments = (ins GPU_DnnHandleType, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
 }
 
 def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
@@ -151,20 +102,6 @@ def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
   let results = (outs GPU_DnnPoolingDescriptorType);
 }
 
-def GPU_DnnDestroyPoolingDescriptorOp : GPU_Op<"dnn.destroy_pooling_descriptor"> {
-  let summary = "tfrt_gpu dnn.destroy_pooling_descriptor operation";
-  let description = [{
-    tfrt_gpu.dnn.destroy_pooling_descriptor destroys a previously created
-    pooling descriptor object.
-
-    Example:
-    %ch5 = tfrt_gpu.dnn.destroy_pooling_descriptor %dnn_pooling_descriptor, %ch4
-
-  }];
-  let arguments = (ins GPU_DnnPoolingDescriptorType, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
 def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
   let summary = "tfrt_gpu dnn.create_tensor_descriptor operation";
   let description = [{
@@ -205,20 +142,6 @@ def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
   let results = (outs GPU_DnnTensorDescriptorType);
 }
 
-def GPU_DnnDestroyTensorDescriptorOp : GPU_Op<"dnn.destroy_tensor_descriptor"> {
-  let summary = "tfrt_gpu dnn.destroy_tensor_descriptor operation";
-  let description = [{
-    tfrt_gpu.dnn.destroy_tensor_descriptor destroys a previously created tensor
-    descriptor object.
-
-    Example:
-    %ch3 = tfrt_gpu.dnn.destroy_tensor_descriptor %dnn_tensor_descriptor, %ch4
-
-  }];
-  let arguments = (ins GPU_DnnTensorDescriptorType, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
 def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
   let summary = "tfrt_gpu dnn.pooling_forward operation";
   let description = [{
@@ -231,7 +154,6 @@ def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
 
 }];
   let arguments = (ins
-                   GPU_ContextType,
                    GPU_DnnHandleType,
                    GPU_DnnPoolingDescriptorType,
                    F32,
@@ -254,8 +176,7 @@ def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
     %ch42 = tfrt_gpu.dnn.pooling_backward %context, %cudnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
 
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_DnnHandleType,
+  let arguments = (ins GPU_DnnHandleType,
                    GPU_DnnPoolingDescriptorType,
                    F32,
                    GPU_DnnTensorDescriptorType,
@@ -284,8 +205,7 @@ def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
                                       used to scale the input tensor and the
                                       output tensor respectively.
   }];
-  let arguments = (ins GPU_ContextType:$context,
-                   GPU_DnnHandleType:$handle,
+  let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_DnnTensorDescriptorType:$x_desc,
                    GPU_BufferType:$x,
                    GPU_DnnFilterDescriptorType:$w_desc,
@@ -312,8 +232,7 @@ def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
                                             returns the results in the output
                                             tensor dx.
 }];
-  let arguments = (ins GPU_ContextType:$context,
-                   GPU_DnnHandleType:$handle,
+  let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_DnnFilterDescriptorType:$w_desc,
                    GPU_BufferType:$w,
                    GPU_DnnTensorDescriptorType:$dy_desc,
@@ -340,8 +259,7 @@ def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter
                                               returns the results in the output
                                               tensor dw.
 }];
-  let arguments = (ins GPU_ContextType:$context,
-                   GPU_DnnHandleType:$handle,
+  let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_DnnTensorDescriptorType:$x_desc,
                    GPU_BufferType:$x,
                    GPU_DnnTensorDescriptorType:$dy_desc,
@@ -367,8 +285,7 @@ def GPU_DnnConvolutionBiasActivationForwardOp :
                         in y. The full computation follows the equation
                         y = act ( alpha1 * conv(x) + alpha2 * z + bias ).
   }];
-  let arguments = (ins GPU_ContextType:$context,
-                   GPU_DnnHandleType:$handle,
+  let arguments = (ins GPU_DnnHandleType:$handle,
                    GPU_BufferType:$alpha1,
                    GPU_DnnTensorDescriptorType:$x_desc,
                    GPU_BufferType:$x,

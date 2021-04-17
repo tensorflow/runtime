@@ -136,20 +136,6 @@ def GPU_BlasSyncGemmExOp : Op<GPU_Dialect, "blas.sync.gemm_ex"> {
   let description = [{
     tfrt_gpu.blas.sync.gemm_ex calls BLAS GemmEx function.
   }];
-  // TODO(b/185235413): Remove when the op is built with the new operands everywhere.
-  let builders = [
-    OpBuilder<(ins "::mlir::Type":$resultType,
-               "::mlir::Value":$context, "::mlir::Value":$handle, "::mlir::Value":$stream,
-               "::mlir::Value":$m, "::mlir::Value":$n, "::mlir::Value":$k,
-               "::mlir::Value":$alpha, "::mlir::Value":$A, "::mlir::Value":$Atype, "::mlir::Value":$lda,
-               "::mlir::Value":$B, "::mlir::Value":$Btype, "::mlir::Value":$ldb,
-               "::mlir::Value":$beta, "::mlir::Value":$C, "::mlir::Value":$Ctype, "::mlir::Value":$ldc,
-               "::mlir::Value":$algorithm, "::mlir::Value":$chain, "uint32_t":$computeType,
-               "bool":$transa, "bool":$transb), [{
-      build($_builder, $_state, resultType, handle, m, n, k, alpha, A, Atype, lda, B,
-          Btype, ldb, beta, C, Ctype, ldc, algorithm, chain, computeType, transa, transb);
-    }]>
-  ];
   let arguments = (ins GPU_BlasHandleType,
                    I32:$m, I32:$n, I32:$k, GPU_AnyBlasDataType:$alpha,
                    GPU_BufferType:$A, I32:$Atype, I32:$lda, GPU_BufferType:$B,

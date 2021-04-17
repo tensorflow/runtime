@@ -60,7 +60,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Target/LLVMIR/Dialect/AMX/AMXToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/ArmNeon/ArmNeonToLLVMIRTranslation.h"
-#include "mlir/Target/LLVMIR/Dialect/LLVMArmSVE/LLVMArmSVEToLLVMIRTranslation.h"
+#include "mlir/Target/LLVMIR/Dialect/ArmSVE/ArmSVEToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/LLVMIR/LLVMToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Dialect/X86Vector/X86VectorToLLVMIRTranslation.h"
 #include "mlir/Target/LLVMIR/Export.h"
@@ -662,7 +662,7 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
   // Register MLIR dialects that can be translated to LLVM IR.
   mlir::registerArmNeonDialectTranslation(registry);
   mlir::registerAMXDialectTranslation(registry);
-  mlir::registerLLVMArmSVEDialectTranslation(registry);
+  mlir::registerArmSVEDialectTranslation(registry);
   mlir::registerLLVMDialectTranslation(registry);
   mlir::registerX86VectorDialectTranslation(registry);
 

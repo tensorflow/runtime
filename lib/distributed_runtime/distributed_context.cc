@@ -204,14 +204,15 @@ void DistributedContext::CreateRemoteContexts(
       auto* request_dist_config = request->mutable_dist_config();
       request_dist_config->set_job_name(job_config.name());
       request_dist_config->set_task_id(task.first);
-      request_dist_config->set_allocated_cluster_config(
+      request_dist_config->unsafe_arena_set_allocated_cluster_config(
           base_request->mutable_dist_config()->mutable_cluster_config());
       for (auto& cg :
            *base_request->mutable_dist_config()->mutable_collective_groups()) {
-        request_dist_config->mutable_collective_groups()->AddAllocated(&cg);
+        request_dist_config->mutable_collective_groups()
+            ->UnsafeArenaAddAllocated(&cg);
       }
       for (auto& device : *base_request->mutable_devices()) {
-        request->mutable_devices()->AddAllocated(&device);
+        request->mutable_devices()->UnsafeArenaAddAllocated(&device);
       }
       request->set_is_multi_client(mode == RemoteInitMode::MULTI_CLIENT);
 
@@ -233,14 +234,15 @@ void DistributedContext::CreateRemoteContexts(
             // `collective_groups`. Release these fields from `request` so that
             // these fields are not destructed multiple times.
             auto request_dist_config = request->mutable_dist_config();
-            request_dist_config->release_cluster_config();
+            request_dist_config->unsafe_arena_release_cluster_config();
             const int n_groups = request_dist_config->collective_groups_size();
             for (int i = 0; i < n_groups; i++) {
-              request_dist_config->mutable_collective_groups()->ReleaseLast();
+              request_dist_config->mutable_collective_groups()
+                  ->UnsafeArenaReleaseLast();
             }
             const int n_devices = request->devices_size();
             for (int i = 0; i < n_devices; i++) {
-              request->mutable_devices()->ReleaseLast();
+              request->mutable_devices()->UnsafeArenaReleaseLast();
             }
           });
     }

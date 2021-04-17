@@ -45,11 +45,7 @@ namespace tfrt {
 namespace gpu {
 
 // tfrt_gpu.init initializes CUDA driver.
-static Error CudaInitSync() { return wrapper::Init(wrapper::Platform::CUDA); }
-static Expected<Chain> CudaInitAsync(Chain chain) {
-  if (auto error = CudaInitSync()) return std::move(error);
-  return chain;
-}
+static Error CudaInit() { return wrapper::Init(wrapper::Platform::CUDA); }
 
 // tfrt_gpu.device.get returns the CUDA Device at the given index.
 static Expected<wrapper::Device> CudaDeviceGet(int32_t ordinal) {
@@ -111,15 +107,8 @@ static Expected<GpuEvent> CudaEventCreate(Argument<GpuContext> context) {
 // tfrt_gpu.event.create creates a new cuda event.
 //
 // Result: new cuda event.
-static Error CudaEventRecordSync(const GpuEvent& event,
-                                 const GpuStream& stream) {
+static Error CudaEventRecord(const GpuEvent& event, const GpuStream& stream) {
   return wrapper::EventRecord(event.get(), stream.get());
-}
-static Expected<Chain> CudaEventRecordAsync(const GpuEvent& event,
-                                            const GpuStream& stream,
-                                            Chain chain) {
-  if (auto error = CudaEventRecordSync(event, stream)) return std::move(error);
-  return chain;
 }
 
 // tfrt_gpu.event.synchronize sets the output chain when the event has been
@@ -155,47 +144,32 @@ static std::unique_ptr<GpuAllocator> CudaAllocatorCreate(
 }
 
 // tfrt_gpu.allocator.destroy destroys an allocator.
-static void CudaAllocatorDestroySync(
+static void CudaAllocatorDestroy(
     Argument<std::unique_ptr<GpuAllocator>> allocator) {
   allocator->reset();
 }
-static Chain CudaAllocatorDestroyAsync(
-    Argument<std::unique_ptr<GpuAllocator>> allocator, Chain chain) {
-  CudaAllocatorDestroySync(std::move(allocator));
-  return chain;
-}
 
 // tfrt_gpu.mem.allocate allocates a new CUDA buffer.
-static Expected<RCReference<GpuBuffer>> CudaMemAllocateSync(
+static Expected<std::tuple<RCReference<GpuBuffer>>> CudaMemAllocate(
     const std::unique_ptr<GpuAllocator>& allocator, const GpuStream& stream,
     int64_t size) {
-  return allocator->Allocate(size, stream.get());
-}
-static Expected<std::tuple<RCReference<GpuBuffer>, Chain>> CudaMemAllocateAsync(
-    const std::unique_ptr<GpuAllocator>& allocator, const GpuStream& stream,
-    int64_t size, Chain chain) {
-  auto alloc = CudaMemAllocateSync(allocator, stream, size);
-  if (!alloc) return alloc.takeError();
-  return std::make_tuple(std::move(*alloc), chain);
+  auto buffer = allocator->Allocate(size, stream.get());
+  if (!buffer) return buffer.takeError();
+  return std::make_tuple(std::move(*buffer));
 }
 
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.
-static void CudaMemPrintMetadataSync(const RCReference<GpuBuffer>& buffer) {
+static void CudaMemPrintMetadata(const RCReference<GpuBuffer>& buffer) {
   // The check for buffer validity is not done intentionally. Printing invalid
   // buffers can be useful for debugging.
   (tfrt::outs() << *buffer << "\n").flush();
-}
-static Chain CudaMemPrintMetadataAsync(const RCReference<GpuBuffer>& buffer,
-                                       Chain chain) {
-  CudaMemPrintMetadataSync(buffer);
-  return chain;
 }
 
 // tfrt_gpu.tensor.make makes a tensor from the given shape and buffer.
 // It is specialized for each supported DType.
 template <typename T>
-static Expected<DenseGpuTensor> CudaTensorMakeSync(
-    RCReference<GpuBuffer> buffer, TensorShape shape) {
+static Expected<std::tuple<DenseGpuTensor>> CudaTensorMake(
+    const RCReference<GpuBuffer>& buffer, TensorShape shape) {
   if (!buffer->IsValid()) {
     return MakeStringError(
         "Cannot make tensor from invalid (moved from?) buffer");
@@ -206,24 +180,13 @@ static Expected<DenseGpuTensor> CudaTensorMakeSync(
         ") is not equal to the number of elements in shape (", shape,
         ") times element size (", GetDType<T>().GetHostSize(), ")");
   }
-  return DenseGpuTensor(shape, GetDType<T>(), std::move(buffer));
-}
-template <typename T>
-static Expected<std::tuple<DenseGpuTensor, Chain>> CudaTensorMakeAsync(
-    Argument<RCReference<GpuBuffer>> buffer, TensorShape shape, Chain chain) {
-  auto tensor = CudaTensorMakeSync<T>(std::move(*buffer), shape);
-  if (!tensor) return tensor.takeError();
-  return std::make_tuple(std::move(*tensor), chain);
+  return std::make_tuple(
+      DenseGpuTensor(shape, GetDType<T>(), buffer.CopyRef()));
 }
 
 // tfrt_gpu.tensor.print_metadata prints `tensor`'s metadata.
-static void CudaTensorPrintMetadataSync(const DenseGpuTensor& tensor) {
+static void CudaTensorPrintMetadata(const DenseGpuTensor& tensor) {
   (tfrt::outs() << tensor << "\n").flush();
-}
-static Chain CudaTensorPrintMetadataAsync(const DenseGpuTensor& tensor,
-                                          Chain chain) {
-  CudaTensorPrintMetadataSync(tensor);
-  return chain;
 }
 
 static Error CheckMemcpySizes(size_t dst_size, size_t src_size,
@@ -240,10 +203,10 @@ static Error CheckMemcpySizes(size_t dst_size, size_t src_size,
 }
 
 // tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
-static Error CudaMemcpyHtoDSync(const GpuContext& context,
-                                const RCReference<GpuBuffer>& dst,
-                                const RCReference<HostBuffer>& src,
-                                int64_t bytes_count, const GpuStream& stream) {
+static Error CudaMemcpyHtoD(const GpuContext& context,
+                            const RCReference<GpuBuffer>& dst,
+                            const RCReference<HostBuffer>& src,
+                            int64_t bytes_count, const GpuStream& stream) {
   if (auto error = CheckMemcpySizes(dst->size(), src->size(), bytes_count))
     return error;
   auto current = wrapper::CtxSetCurrent(context.get());
@@ -253,22 +216,12 @@ static Error CudaMemcpyHtoDSync(const GpuContext& context,
       wrapper::Pointer<const void>(src->data(), context->platform()),
       bytes_count, stream.get());
 }
-static Expected<Chain> CudaMemcpyHtoDAsync(const GpuContext& context,
-                                           const RCReference<GpuBuffer>& dst,
-                                           const RCReference<HostBuffer>& src,
-                                           int64_t bytes_count,
-                                           const GpuStream& stream,
-                                           Chain chain) {
-  if (auto error = CudaMemcpyHtoDSync(context, dst, src, bytes_count, stream))
-    return std::move(error);
-  return chain;
-}
 
 // tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
-static Error CudaMemcpyDtoHSync(const GpuContext& context,
-                                const RCReference<HostBuffer>& dst,
-                                const RCReference<GpuBuffer>& src,
-                                int64_t bytes_count, const GpuStream& stream) {
+static Error CudaMemcpyDtoH(const GpuContext& context,
+                            const RCReference<HostBuffer>& dst,
+                            const RCReference<GpuBuffer>& src,
+                            int64_t bytes_count, const GpuStream& stream) {
   if (auto error = CheckMemcpySizes(dst->size(), src->size(), bytes_count))
     return error;
   auto current = wrapper::CtxSetCurrent(context.get());
@@ -276,16 +229,6 @@ static Error CudaMemcpyDtoHSync(const GpuContext& context,
   return wrapper::MemcpyAsync(
       *current, wrapper::Pointer<void>(dst->data(), context->platform()),
       src->pointer(), bytes_count, stream.get());
-}
-static Expected<Chain> CudaMemcpyDtoHAsync(const GpuContext& context,
-                                           const RCReference<HostBuffer>& dst,
-                                           const RCReference<GpuBuffer>& src,
-                                           int64_t bytes_count,
-                                           const GpuStream& stream,
-                                           Chain chain) {
-  if (auto error = CudaMemcpyDtoHSync(context, dst, src, bytes_count, stream))
-    return std::move(error);
-  return chain;
 }
 
 static Expected<wrapper::Function> CudaFunctionLoad(
@@ -335,7 +278,8 @@ static Error CudaFunctionLaunch(const GpuStream& stream, GpuFunction function,
   internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
 
 void RegisterCudaKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("tfrt_gpu.init", TFRT_KERNEL(CudaInitAsync));
+  kernel_reg->AddKernel("tfrt_gpu.init",
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaInit)));
   kernel_reg->AddKernel("tfrt_gpu.device.get", TFRT_KERNEL(CudaDeviceGet));
   kernel_reg->AddKernel("tfrt_gpu.context.create",
                         TFRT_KERNEL(CudaContextCreate));
@@ -347,37 +291,45 @@ void RegisterCudaKernels(KernelRegistry* kernel_reg) {
 
   kernel_reg->AddKernel("tfrt_gpu.event.create", TFRT_KERNEL(CudaEventCreate));
   kernel_reg->AddKernel("tfrt_gpu.event.record",
-                        TFRT_KERNEL(CudaEventRecordAsync));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaEventRecord)));
   kernel_reg->AddKernel("tfrt_gpu.event.synchronize",
                         TFRT_KERNEL(CudaEventSynchronizeAsync));
 
   kernel_reg->AddKernel("tfrt_gpu.allocator.create",
                         TFRT_KERNEL(CudaAllocatorCreate));
-  kernel_reg->AddKernel("tfrt_gpu.allocator.destroy",
-                        TFRT_KERNEL(CudaAllocatorDestroyAsync));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.allocator.destroy",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaAllocatorDestroy)));
 
   kernel_reg->AddKernel("tfrt_gpu.mem.allocate",
-                        TFRT_KERNEL(CudaMemAllocateAsync));
-  kernel_reg->AddKernel("tfrt_gpu.mem.print_metadata",
-                        TFRT_KERNEL(CudaMemPrintMetadataAsync));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemAllocate)));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.mem.print_metadata",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemPrintMetadata)));
 
-  kernel_reg->AddKernel("tfrt_gpu.tensor.make.i8",
-                        TFRT_KERNEL(CudaTensorMakeAsync<int8_t>));
-  kernel_reg->AddKernel("tfrt_gpu.tensor.make.i32",
-                        TFRT_KERNEL(CudaTensorMakeAsync<int32_t>));
-  kernel_reg->AddKernel("tfrt_gpu.tensor.make.i64",
-                        TFRT_KERNEL(CudaTensorMakeAsync<int64_t>));
-  kernel_reg->AddKernel("tfrt_gpu.tensor.make.f32",
-                        TFRT_KERNEL(CudaTensorMakeAsync<float>));
-  kernel_reg->AddKernel("tfrt_gpu.tensor.make.f64",
-                        TFRT_KERNEL(CudaTensorMakeAsync<double>));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.tensor.make.i8",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<int8_t>)));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.tensor.make.i32",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<int32_t>)));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.tensor.make.i64",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<int64_t>)));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.tensor.make.f32",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<float>)));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.tensor.make.f64",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<double>)));
 
-  kernel_reg->AddKernel("tfrt_gpu.tensor.print_metadata",
-                        TFRT_KERNEL(CudaTensorPrintMetadataAsync));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.tensor.print_metadata",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorPrintMetadata)));
   kernel_reg->AddKernel("tfrt_gpu.mem.copy_host_to_device",
-                        TFRT_KERNEL(CudaMemcpyHtoDAsync));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemcpyHtoD)));
   kernel_reg->AddKernel("tfrt_gpu.mem.copy_device_to_host",
-                        TFRT_KERNEL(CudaMemcpyDtoHAsync));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemcpyDtoH)));
 
   kernel_reg->AddKernel("tfrt_gpu.function.load",
                         TFRT_KERNEL(CudaFunctionLoad));

@@ -53,6 +53,17 @@ struct WithChainResult<void (*)(Args...), sync_func_ptr> {
     return Chain{};
   }
 };
+// Add chain to Expected<tuple<...>>.
+template <typename... Args, typename... Res,
+          Expected<std::tuple<Res...>> (*sync_func_ptr)(Args...)>
+struct WithChainResult<Expected<std::tuple<Res...>> (*)(Args...),
+                       sync_func_ptr> {
+  static Expected<std::tuple<Res..., Chain>> Invoke(Args... args) {
+    auto tuple = sync_func_ptr(std::forward<Args>(args)...);
+    if (!tuple) return tuple.takeError();
+    return std::tuple_cat(std::move(*tuple), std::make_tuple(Chain{}));
+  }
+};
 }  // namespace internal
 
 }  // namespace gpu

@@ -265,11 +265,6 @@ class AsyncValue {
 
   friend class HostContext;
   friend class IndirectAsyncValue;
-  // Destructor returns the size of the derived AsyncValue to be deallocated.
-  // The second bool argument indicates whether to destruct the AsyncValue
-  // object or simply destroy the payloads.
-  using Destructor = size_t (*)(AsyncValue*, bool);
-
   template <typename T>
   AsyncValue(HostContextPtr host, Kind kind, State state, bool is_refcounted,
              TypeTag<T>)
@@ -342,10 +337,8 @@ class AsyncValue {
   template <typename T>
   static uint16_t CreateTypeInfoAndReturnTypeId() {
     return CreateTypeInfoAndReturnTypeIdImpl(
-        DestructorFn<internal::ConcreteAsyncValue<T>>);
+        MakeTypeInfo<internal::ConcreteAsyncValue<T>>());
   }
-
-  static uint16_t CreateTypeInfoAndReturnTypeIdImpl(Destructor destructor);
 
   std::atomic<uint32_t> refcount_{1};
   const HostContextPtr host_context_;
@@ -394,33 +387,55 @@ class AsyncValue {
   /// We assume (and static_assert) that this is the offset of
   /// ConcreteAsyncValue::data_, which is the same as the offset of
   /// ConcreteAsyncValue::error_.
-  static constexpr int kDataOrErrorOffset = 16;
+  static constexpr int kDataOffset = 16;
 
  private:
-  template <typename T>
-  const T& GetConcreteValue() const;
+  // Information about a ConcreteAsyncValue<T> subclass.
+  struct TypeInfo {
+    // Destructor returns the size of the derived AsyncValue to be deallocated.
+    // The second bool argument indicates whether to destruct the AsyncValue
+    // object or simply destroy the payloads.
+    using DestructorFn = size_t (*)(AsyncValue*, bool);
+    using GetErrorFn = const DecodedDiagnostic& (*)(const AsyncValue*);
+    using SetErrorFn = void (*)(AsyncValue*, DecodedDiagnostic diag);
+    using HasDataFn = bool (*)(const AsyncValue*);
+
+    DestructorFn destructor;
+    GetErrorFn get_error;
+    SetErrorFn set_error;
+    HasDataFn has_data;
+  };
 
   // The destructor function for a derived AsyncValue. The `destroys_object`
   // argument indicates whether to destruct the AsyncValue object or simply
   // destroy the payloads.
   template <typename Derived>
-  static size_t DestructorFn(AsyncValue* v, bool destroys_object) {
-    if (destroys_object) {
-      static_cast<Derived*>(v)->~Derived();
-    } else {
-      static_cast<Derived*>(v)->Destroy();
-    }
-    return sizeof(Derived);
+  static TypeInfo MakeTypeInfo() {
+    return TypeInfo{
+        [](AsyncValue* v, bool destroys_object) {
+          if (destroys_object) {
+            static_cast<Derived*>(v)->~Derived();
+          } else {
+            static_cast<Derived*>(v)->Destroy();
+          }
+          return sizeof(Derived);
+        },
+        [](const AsyncValue* v) -> const DecodedDiagnostic& {
+          return static_cast<const Derived*>(v)->GetError();
+        },
+        [](AsyncValue* v, DecodedDiagnostic diag) {
+          static_cast<Derived*>(v)->SetError(std::move(diag));
+        },
+        [](const AsyncValue* v) {
+          return static_cast<const Derived*>(v)->HasData();
+        },
+    };
   }
 
-  // Information about a ConcreteAsyncValue<T> subclass.
-  struct TypeInfo {
-    Destructor destructor;
-  };
+  static uint16_t CreateTypeInfoAndReturnTypeIdImpl(const TypeInfo& type_info);
 
-  static_assert(sizeof(TypeInfo) == 8 || sizeof(void*) != 8,
-                "We force sizeof(TypeInfo) to be 8 bytes so that x86 complex"
-                "addressing modes can address into TypeInfoTable");
+  template <typename T>
+  const T& GetConcreteValue() const;
 
   // Get the TypeInfo instance for this AsyncValue.
   const TypeInfo& GetTypeInfo() const;
@@ -445,6 +460,19 @@ static_assert(sizeof(AsyncValue) == 16 || sizeof(void*) != 8,
               "Unexpected size for AsyncValue");
 
 namespace internal {
+
+// Under the normal behavior, if an AsyncValue is in kConstructed state (i.e.
+// the payload data is constructed), it will destruct the payload data when the
+// AsyncValue enters the error state (e.g. on AsyncValue::SetError()).
+//
+// However, for the payload types that inherit from
+// `KeepAsyncValuePayloadOnError`, AsyncValue exhibits a different behavior: the
+// payload value if constructed will be kept valid when the AsyncValue goes into
+// the error state. This behavior is intended for use only in the TpuRuntime
+// code. All the other code shall *not* use this behavior. We keep this struct
+// in the `internal` namespace to indicate this restriction.
+struct KeepAsyncValuePayloadOnError {};
+
 // Subclass for storing the payload of the AsyncValue
 template <typename T>
 class ConcreteAsyncValue : public AsyncValue {
@@ -475,8 +503,8 @@ class ConcreteAsyncValue : public AsyncValue {
   // Make a ConcreteAsyncValue with kError state.
   explicit ConcreteAsyncValue(HostContextPtr host, DecodedDiagnostic diagnostic)
       : AsyncValue(host, Kind::kConcrete, State::kError,
-                   /*is_refcounted=*/true, TypeTag<T>()) {
-    error_ = new DecodedDiagnostic(std::move(diagnostic));
+                   /*is_refcounted=*/true, TypeTag<T>()),
+        data_store_{std::move(diagnostic)} {
     VerifyOffsets();
   }
 
@@ -485,18 +513,16 @@ class ConcreteAsyncValue : public AsyncValue {
   explicit ConcreteAsyncValue(HostContextPtr host, ConstructedPayload,
                               Args&&... args)
       : AsyncValue(host, Kind::kConcrete, State::kConstructed,
-                   /*is_refcounted=*/true, TypeTag<T>()) {
-    new (&data_) T(std::forward<Args>(args)...);
-  }
+                   /*is_refcounted=*/true, TypeTag<T>()),
+        data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
 
   // Make a ConcreteAsyncValue with kConcrete state.
   template <typename... Args>
   explicit ConcreteAsyncValue(HostContextPtr host, ConcretePayload,
                               Args&&... args)
       : AsyncValue(host, Kind::kConcrete, State::kConcrete,
-                   /*is_refcounted=*/true, TypeTag<T>()) {
-    new (&data_) T(std::forward<Args>(args)...);
-  }
+                   /*is_refcounted=*/true, TypeTag<T>()),
+        data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
 
   // Make an un-refcounted ConcreteAsyncValue with kConcrete state. AddRef and
   // DropRef have no effect on ConcreteAsyncValues produced by this constructor.
@@ -506,43 +532,38 @@ class ConcreteAsyncValue : public AsyncValue {
   explicit ConcreteAsyncValue(HostContextPtr host, UnRefCountedConcretePayload,
                               Args&&... args)
       : AsyncValue(host, Kind::kConcrete, State::kConcrete,
-                   /*is_refcounted=*/false, TypeTag<T>()) {
-    new (&data_) T(std::forward<Args>(args)...);
-  }
+                   /*is_refcounted=*/false, TypeTag<T>()),
+        data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
 
   ~ConcreteAsyncValue() { Destroy(); }
 
   // Return the underlying error. IsError() must return true.
   const DecodedDiagnostic& GetError() const {
     assert(IsError());
-    return *error_;
+    return data_store_.error();
   }
 
   void SetError(DecodedDiagnostic diag_in) {
-    auto s = state();
-    assert(s == State::kUnconstructed || s == State::kConstructed);
-    if (s == State::kConstructed) {
-      data_.~T();
-    }
-    error_ = new DecodedDiagnostic(std::move(diag_in));
+    data_store_.SetError(state(), std::move(diag_in));
     NotifyAvailable(State::kError);
   }
 
   const T& get() const {
-    assert(IsConcrete());
-    return data_;
+    assert(HasData());
+    return data_store_.data();
   }
 
   T& get() {
-    assert(IsConcrete());
-    return data_;
+    assert(HasData());
+    return data_store_.data();
   }
 
   // Construct the payload of the AsyncValue in place and change its state to
-  // kConcrete. Requires that this AsyncValue previously have state unavailable.
+  // kConcrete. Requires that this AsyncValue previously have state
+  // unavailable.
   template <typename... Args>
   void emplace(Args&&... args) {
-    new (&data_) T(std::forward<Args>(args)...);
+    data_store_.EmplaceData(std::forward<Args>(args)...);
     NotifyAvailable(State::kConcrete);
   }
 
@@ -553,29 +574,126 @@ class ConcreteAsyncValue : public AsyncValue {
  private:
   friend class AsyncValue;
 
-  union {
+  // Data and error layout when the payload does not inherit from
+  // KeepAsyncValuePayloadOnError. This type destructs the payload value on
+  // error. It never keeps both data and error alive at the same time.
+  union DataOrError {
+    DataOrError() {}
+
+    explicit DataOrError(DecodedDiagnostic diagnostic)
+        : error_{new DecodedDiagnostic(std::move(diagnostic))} {}
+
+    template <typename... Args>
+    explicit DataOrError(TypeTag<T>, Args&&... args)
+        : data_{std::forward<Args>(args)...} {}
+
+    ~DataOrError() {}
+
+    void Destroy(State s) {
+      if (s == State::kError) {
+        delete error_;
+      } else if (s == State::kConstructed || s == State::kConcrete) {
+        data_.~T();
+      }
+    }
+
+    void SetError(State s, DecodedDiagnostic diag) {
+      assert(s == State::kUnconstructed || s == State::kConstructed);
+      if (s == State::kConstructed) {
+        data_.~T();
+      }
+      error_ = new DecodedDiagnostic(std::move(diag));
+    }
+
+    template <typename... Args>
+    void EmplaceData(Args&&... args) {
+      new (&data_) T(std::forward<Args>(args)...);
+    }
+
+    bool HasData(State s) const {
+      return s == State::kConstructed || s == State::kConcrete;
+    }
+
+    DecodedDiagnostic& error() { return *error_; }
+    T& data() { return data_; }
+    const DecodedDiagnostic& error() const { return *error_; }
+    const T& data() const { return data_; }
+
+   private:
+    friend class ConcreteAsyncValue;
     DecodedDiagnostic* error_;
     T data_;
   };
 
-  void Destroy() {
-    auto s = state();
-    if (s == State::kError) {
-      delete error_;
-    } else if (s == State::kConstructed || s == State::kConcrete) {
-      data_.~T();
+  // Data and error layout when the payload inherits from
+  // KeepAsyncValuePayloadOnError. This type does to destruct the payload value
+  // on error. It may keep both data and error alive at the same time.
+  struct DataAndError {
+    explicit DataAndError(DecodedDiagnostic diag) { SetError(diag); }
+
+    template <typename... Args>
+    explicit DataAndError(TypeTag<T>, Args&&... args) {
+      EmplaceData(std::forward<Args>(args)...);
     }
-  }
+
+    void Destroy(State s) {
+      delete error_and_has_data_.getPointer();
+
+      if (HasData()) data().~T();
+      error_and_has_data_.setPointerAndInt(nullptr, false);
+    }
+
+    void SetError(State s, DecodedDiagnostic diag) {
+      assert(!HasError());
+      error_and_has_data_.setPointer(new DecodedDiagnostic(std::move(diag)));
+    }
+
+    template <typename... Args>
+    void EmplaceData(Args&&... args) {
+      assert(!HasData());
+      new (&data_) T(std::forward<Args>(args)...);
+      error_and_has_data_.setInt(true);
+    }
+
+    T& data() { return *reinterpret_cast<T*>(&data_); }
+    const T& data() const { return *reinterpret_cast<const T*>(&data_); }
+
+    bool HasData(State s) const { return HasData(); }
+    bool HasData() const { return error_and_has_data_.getInt(); }
+    bool HasError() const {
+      return error_and_has_data_.getPointer() != nullptr;
+    }
+    const DecodedDiagnostic& error() const {
+      return *error_and_has_data_.getPointer();
+    }
+    DecodedDiagnostic& error() { return *error_and_has_data_.getPointer(); }
+
+   private:
+    friend class ConcreteAsyncValue;
+    using StorageT = std::aligned_storage<sizeof(T), alignof(T)>;
+    using ErrorPtrAndBool = llvm::PointerIntPair<DecodedDiagnostic*, 1, bool>;
+
+    StorageT data_;
+    ErrorPtrAndBool error_and_has_data_;
+  };
+
+  using DataStoreT = std::conditional_t<
+      std::is_base_of<KeepAsyncValuePayloadOnError, T>::value, DataAndError,
+      DataOrError>;
+  DataStoreT data_store_;
+
+  void Destroy() { data_store_.Destroy(state()); }
+  bool HasData() const { return data_store_.HasData(state()); }
 
   static void VerifyOffsets() {
-    static_assert(offsetof(ConcreteAsyncValue<T>, data_) ==
-                      AsyncValue::kDataOrErrorOffset,
+    static_assert(offsetof(ConcreteAsyncValue<T>, data_store_.data_) ==
+                      AsyncValue::kDataOffset,
                   "Offset of ConcreteAsyncValue::data_ is assumed to be "
-                  "AsyncValue::kDataOrErrorOffset == 16");
-    static_assert(offsetof(ConcreteAsyncValue<T>, error_) ==
-                      AsyncValue::kDataOrErrorOffset,
+                  "AsyncValue::kDataOffset == 16");
+    static_assert(offsetof(ConcreteAsyncValue<T>, data_store_.error_) ==
+                      AsyncValue::kDataOffset,
                   "Offset of ConcreteAsyncValue::error_ is assumed to be "
-                  "AsyncValue::kDataOrErrorOffset == 16");
+                  "AsyncValue::kDataOffset == 16");
   }
 
   static const uint16_t concrete_type_id_;
@@ -691,9 +809,9 @@ inline void AsyncValue::DropRef(uint32_t count) {
 
   assert(refcount_.load(std::memory_order_relaxed) > 0);
   // We expect that `count` argument will often equal the actual reference count
-  // here; optimize for that.
-  // If `count` == reference count, only an acquire barrier is needed
-  // to prevent the effects of the deletion from leaking before this point.
+  // here; optimize for that. If `count` == reference count, only an acquire
+  // barrier is needed to prevent the effects of the deletion from leaking
+  // before this point.
   auto is_last_ref = refcount_.load(std::memory_order_acquire) == count;
   if (!is_last_ref) {
     // If `count` != reference count, a release barrier is needed in
@@ -716,7 +834,7 @@ const T& AsyncValue::GetConcreteValue() const {
   assert(IsTypeIdCompatible<T>() && "Incorrect accessor");
 
   const char* this_ptr = reinterpret_cast<const char*>(this);
-  return *reinterpret_cast<const T*>(this_ptr + AsyncValue::kDataOrErrorOffset);
+  return *reinterpret_cast<const T*>(this_ptr + AsyncValue::kDataOffset);
 }
 
 template <typename T>
@@ -726,7 +844,7 @@ const T& AsyncValue::get() const {
 
   switch (kind()) {
     case Kind::kConcrete:
-      TFRT_DLOG_IF(FATAL, s != State::kConstructed && s != State::kConcrete)
+      TFRT_DLOG_IF(FATAL, !GetTypeInfo().has_data(this))
           << "Cannot call get() when ConcreteAsyncValue isn't "
              "constructed; state: "
           << s;
@@ -764,10 +882,7 @@ inline const DecodedDiagnostic* AsyncValue::GetErrorIfPresent() const {
   switch (kind()) {
     case Kind::kConcrete: {
       if (state() != State::kError) return nullptr;
-
-      const char* this_ptr = reinterpret_cast<const char*>(this);
-      return *reinterpret_cast<const DecodedDiagnostic* const*>(
-          this_ptr + AsyncValue::kDataOrErrorOffset);
+      return &GetTypeInfo().get_error(this);
     }
     case Kind::kIndirect: {
       auto* iv_value = cast<IndirectAsyncValue>(this)->value_;

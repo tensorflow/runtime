@@ -108,5 +108,45 @@ TEST_F(AsyncValueTest, AddAndDropRef) {
   value->DropRef();
 }
 
+TEST_F(AsyncValueTest, KeepPayloadOnError) {
+  int payload_value = 0;
+
+  struct Payload : internal::KeepAsyncValuePayloadOnError {
+    explicit Payload(int* value) : value{value} { *value = 1; }
+    ~Payload() { *value = 2; }
+
+    int* value;
+  };
+
+  {
+    // Test non-error case.
+    AsyncValueRef<Payload> value = MakeConstructedAsyncValueRef<Payload>(
+        host_context_.get(), &payload_value);
+
+    EXPECT_EQ(1, *value->value);
+
+    value.SetStateConcrete();
+
+    EXPECT_EQ(1, *value->value);
+    EXPECT_TRUE(!value.IsError());
+  }
+  EXPECT_EQ(2, payload_value);
+
+  {
+    // Test error case.
+    AsyncValueRef<Payload> value = MakeConstructedAsyncValueRef<Payload>(
+        host_context_.get(), &payload_value);
+
+    EXPECT_TRUE(!value.IsError());
+
+    value.SetError("error");
+
+    EXPECT_EQ(1, *value->value);
+    EXPECT_TRUE(value.IsError());
+    EXPECT_EQ("error", value.GetError().message);
+  }
+
+  EXPECT_EQ(2, payload_value);
+}
 }  // namespace
 }  // namespace tfrt

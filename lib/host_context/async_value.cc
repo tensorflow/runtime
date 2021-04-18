@@ -41,8 +41,7 @@ class NotifierListNode {
 };
 
 /*static*/ uint16_t AsyncValue::CreateTypeInfoAndReturnTypeIdImpl(
-    Destructor destructor) {
-  TypeInfo type_info{destructor};
+    const TypeInfo& type_info) {
   size_t type_id = GetTypeInfoTableSingleton()->emplace_back(type_info) + 1;
   // Detect overflow.
   assert(type_id < std::numeric_limits<uint16_t>::max() &&
@@ -153,20 +152,8 @@ void AsyncValue::EnqueueWaiter(llvm::unique_function<void()>&& waiter,
 }
 
 void AsyncValue::SetError(DecodedDiagnostic diag_in) {
-  auto s = state();
-  assert(s == State::kUnconstructed || s == State::kConstructed);
-
   if (kind() == Kind::kConcrete) {
-    if (s == State::kConstructed) {
-      // ~AsyncValue erases type_id_ and makes a few assertion on real
-      // destruction, but this AsyncValue is still alive.
-      GetTypeInfo().destructor(this, /*destroys_object=*/false);
-    }
-    char* this_ptr = reinterpret_cast<char*>(this);
-    auto& error = *reinterpret_cast<DecodedDiagnostic**>(
-        this_ptr + AsyncValue::kDataOrErrorOffset);
-    error = new DecodedDiagnostic(std::move(diag_in));
-    NotifyAvailable(State::kError);
+    GetTypeInfo().set_error(this, std::move(diag_in));
   } else {
     assert(kind() == Kind::kIndirect);
     auto error_av =

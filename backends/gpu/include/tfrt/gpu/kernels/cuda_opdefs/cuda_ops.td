@@ -28,9 +28,10 @@
 include "mlir/IR/OpBase.td"
 include "tfrt/tfrt_op_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_blas_ops.td"
 include "tfrt/gpu/kernels/cuda_opdefs/cuda_dnn_ops.td"
+include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
+include "tfrt/gpu/kernels/cuda_opdefs/cuda_solver_ops.td"
 
 def GPU_InitOp : GPU_Op<"init"> {
   let summary = "cuda init operation";

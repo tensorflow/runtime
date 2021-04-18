@@ -24,12 +24,14 @@ namespace gpu {
 void RegisterCudaKernels(KernelRegistry* kernel_reg);
 void RegisterCudaBlasKernels(KernelRegistry* kernel_reg);
 void RegisterCudaDnnKernels(KernelRegistry* kernel_reg);
+void RegisterCudaSolverKernels(KernelRegistry* kernel_reg);
 
 namespace kernels {
 
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaBlasKernels);
 TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaDnnKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaSolverKernels);
 
 }  // namespace kernels
 }  // namespace gpu

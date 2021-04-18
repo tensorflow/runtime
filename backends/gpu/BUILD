@@ -701,9 +701,10 @@ gentbl(
     ],
     td_srcs = [
         "@tf_runtime//:OpBaseTdFiles",
-        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td",
         "include/tfrt/gpu/kernels/cuda_opdefs/cuda_blas_ops.td",
         "include/tfrt/gpu/kernels/cuda_opdefs/cuda_dnn_ops.td",
+        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td",
+        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_solver_ops.td",
     ],
 )
 
@@ -800,6 +801,7 @@ tfrt_cc_library(
         "lib/kernels/cuda/dnn_kernels.cc",
         "lib/kernels/cuda/kernels.cc",
         "lib/kernels/cuda/kernels.h",
+        "lib/kernels/cuda/solver_kernels.cc",
     ],
     alwayslink_static_registration_src = "lib/kernels/cuda/static_registration.cc",
     visibility = [":tests_and_tools"],

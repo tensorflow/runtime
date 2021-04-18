@@ -19,6 +19,7 @@
 #define TFRT_GPU_STREAM_CUSOLVER_WRAPPER_H_
 
 #include "cusolverDn.h"  // from @cuda_headers
+#include "tfrt/gpu/stream/blas_wrapper.h"
 #include "tfrt/gpu/stream/solver_wrapper.h"
 #include "tfrt/support/error_util.h"
 
@@ -41,27 +42,23 @@ llvm::Expected<OwningSolverDnHandle> CusolverDnCreate(CurrentContext current);
 llvm::Error CusolverDnDestroy(cusolverDnHandle_t handle);
 llvm::Error CusolverDnSetStream(cusolverDnHandle_t handle, cudaStream_t stream);
 llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle);
-llvm::Expected<int> CusolverDnSpotrf(CurrentContext current,
-                                     cusolverDnHandle_t handle,
-                                     cublasFillMode_t uplo, int n,
-                                     Pointer<float> A, int lda,
-                                     Pointer<float> Workspace, int Lwork);
-llvm::Expected<int> CusolverDnDpotrf(CurrentContext current,
-                                     cusolverDnHandle_t handle,
-                                     cublasFillMode_t uplo, int n,
-                                     Pointer<double> A, int lda,
-                                     Pointer<double> Workspace, int Lwork);
-llvm::Expected<int> CusolverDnCpotrf(CurrentContext current,
-                                     cusolverDnHandle_t handle,
-                                     cublasFillMode_t uplo, int n,
-                                     Pointer<cuComplex> A, int lda,
-                                     Pointer<cuComplex> Workspace, int Lwork);
-llvm::Expected<int> CusolverDnZpotrf(CurrentContext current,
-                                     cusolverDnHandle_t handle,
-                                     cublasFillMode_t uplo, int n,
-                                     Pointer<cuDoubleComplex> A, int lda,
-                                     Pointer<cuDoubleComplex> Workspace,
-                                     int Lwork);
+llvm::Error CusolverDnSpotrf(CurrentContext current, cusolverDnHandle_t handle,
+                             cublasFillMode_t uplo, int n, Pointer<float> A,
+                             int lda, Pointer<float> Workspace, int Lwork,
+                             Pointer<int> devInfo);
+llvm::Error CusolverDnDpotrf(CurrentContext current, cusolverDnHandle_t handle,
+                             cublasFillMode_t uplo, int n, Pointer<double> A,
+                             int lda, Pointer<double> Workspace, int Lwork,
+                             Pointer<int> devInfo);
+llvm::Error CusolverDnCpotrf(CurrentContext current, cusolverDnHandle_t handle,
+                             cublasFillMode_t uplo, int n, Pointer<cuComplex> A,
+                             int lda, Pointer<cuComplex> Workspace, int Lwork,
+                             Pointer<int> devInfo);
+llvm::Error CusolverDnZpotrf(CurrentContext current, cusolverDnHandle_t handle,
+                             cublasFillMode_t uplo, int n,
+                             Pointer<cuDoubleComplex> A, int lda,
+                             Pointer<cuDoubleComplex> Workspace, int Lwork,
+                             Pointer<int> devInfo);
 llvm::Expected<int> CusolverDnSpotrfBufferSize(CurrentContext current,
                                                cusolverDnHandle_t handle,
                                                cublasFillMode_t uplo, int n,

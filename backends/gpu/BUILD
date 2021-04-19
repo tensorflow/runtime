@@ -128,7 +128,6 @@ tfrt_cc_library(
         "lib/wrapper/wrapper_detail.h",
     ],
     hdrs = [
-        "include/tfrt/gpu/stream/stream_wrapper.h",
         "include/tfrt/gpu/wrapper/blas_wrapper.h",
         "include/tfrt/gpu/wrapper/cublas_wrapper.h",
         "include/tfrt/gpu/wrapper/cuda_wrapper.h",

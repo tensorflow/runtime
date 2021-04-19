@@ -100,7 +100,7 @@ func @bm_mnist() {
   %ch5 = tfrt_dht.fill_tensor_with_constant.f32 %test_input_features, %ch0 1.0 : f32
   %test_input_labels = tfrt_dht.create_uninitialized_tensor.i32.1 [100 : i64]
   %ch6 = tfrt_dht.fill_tensor_with_constant.i32 %test_input_labels, %ch0 7 : i32
-  %ch7 = tfrt.merge.chains %ch1, %ch2, %ch3, %ch4, %ch5, %ch6
+  %ch7 = tfrt.merge.chains %ch1, %ch2, %ch3, %ch4, %ch5, %ch6 : !tfrt.chain, !tfrt.chain, !tfrt.chain, !tfrt.chain, !tfrt.chain, !tfrt.chain
 
   tfrt_test.benchmark "bm_mnist"(
       %w1 : !t.tensor,

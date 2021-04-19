@@ -87,7 +87,7 @@ func @test_batch_norm_grad_in_2x1x1x8_epsilon_0.0001() -> !tfrt.chain {
         !t.tensor, !tfrt.chain, !t.tensor, !t.tensor, !t.tensor)
        -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
 
-  %ch2 = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta
+  %ch2 = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta : !tfrt.chain, !tfrt.chain, !tfrt.chain
 
   %cmp0, %ch3 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
@@ -177,7 +177,7 @@ func @test_batch_norm_grad_in_2x2x2x4_epsilon_0.001() -> !tfrt.chain {
         !t.tensor, !tfrt.chain, !t.tensor, !t.tensor, !t.tensor)
        -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
 
-  %ch2 = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta
+  %ch2 = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta : !tfrt.chain, !tfrt.chain, !tfrt.chain
 
   %cmp0, %ch3 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
@@ -267,7 +267,7 @@ func @test_batch_norm_grad_in_4x4x4x32_epsilon_0.01() -> !tfrt.chain {
         !t.tensor, !tfrt.chain, !t.tensor, !t.tensor, !t.tensor)
        -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
 
-  %ch2 = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta
+  %ch2 = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta : !tfrt.chain, !tfrt.chain, !tfrt.chain
 
   %cmp0, %ch3 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
@@ -357,7 +357,7 @@ func @test_batch_norm_grad_in_8x4x4x64_epsilon_0.0001() -> !tfrt.chain {
         !t.tensor, !tfrt.chain, !t.tensor, !t.tensor, !t.tensor)
        -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
 
-  %ch2 = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta
+  %ch2 = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta : !tfrt.chain, !tfrt.chain, !tfrt.chain
 
   %cmp0, %ch3 = "tfrt_dht.tensor_allclose.100000ulp.f32"(%expected_input_grad, %input_grad, %ch2)
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)

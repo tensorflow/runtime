@@ -84,7 +84,7 @@ func @merge(%ch0: !tfrt.chain) -> !tfrt.chain {
   // Since %ch3 has the highest cost path from root, %ch6 is merged to the
   // stream of %ch3.
   // expected-remark@+1 {{stream id: 0, stream cost: 36, parent stream: -1}}
-  %ch6 = tfrt.merge.chains %ch1, %ch2, %ch3, %ch4, %ch5
+  %ch6 = tfrt.merge.chains %ch1, %ch2, %ch3, %ch4, %ch5 : !tfrt.chain, !tfrt.chain, !tfrt.chain, !tfrt.chain, !tfrt.chain
   // expected-remark@+1 {{stream id: 0, stream cost: 36, parent stream: -1}}
   tfrt.return %ch6 : !tfrt.chain
 }

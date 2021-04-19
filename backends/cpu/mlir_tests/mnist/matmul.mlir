@@ -96,7 +96,7 @@ func @BM_test_matmul_f32() {
   %b = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
   %ch2 = tfrt_dht.fill_tensor_with_constant.f32 %b, %ch0 1.0 : f32
   %c = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
-  %ch3 = tfrt.merge.chains %ch1, %ch2
+  %ch3 = tfrt.merge.chains %ch1, %ch2 : !tfrt.chain, !tfrt.chain
 
   tfrt_test.benchmark "BM_test_matmul_f32"(
       %zero : f32,

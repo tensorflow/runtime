@@ -49,7 +49,7 @@ func @async_incs_complete() {
   %res:2 = tfrt.repeat.i32 %loop_count, %merged_chain, %counter : !tfrt.chain, !test.atomic.i32 {
     %ch = tfrt.new.chain
     %async_ret_ch = tfrt.call @async_incs(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain)
-    %ret_merged_chain = tfrt.merge.chains %merged_chain, %async_ret_ch
+    %ret_merged_chain = tfrt.merge.chains %merged_chain, %async_ret_ch : !tfrt.chain, !tfrt.chain
     tfrt.return %ret_merged_chain, %counter : !tfrt.chain, !test.atomic.i32
   }
 
@@ -73,7 +73,7 @@ func @nested_async_incs_complete() {
   %res:2 = tfrt.repeat.i32 %loop_count, %merged_chain, %counter : !tfrt.chain, !test.atomic.i32 {
     %ch = tfrt.new.chain
     %async_ret_ch = tfrt.call @nested_async_incs(%counter, %ch) : (!test.atomic.i32, !tfrt.chain) -> (!tfrt.chain)
-    %ret_merged_chain = tfrt.merge.chains %merged_chain, %async_ret_ch
+    %ret_merged_chain = tfrt.merge.chains %merged_chain, %async_ret_ch : !tfrt.chain, !tfrt.chain
     tfrt.return %ret_merged_chain, %counter : !tfrt.chain, !test.atomic.i32
   }
 

@@ -227,8 +227,8 @@ def NewChainOp : TFRT_Op<"new.chain", [NoSideEffect]> {
 def MergeChainsOp : TFRT_Op<"merge.chains", [NoSideEffect]> {
   let summary = "host executor merge chain";
   let description = [{
-    The "tfrt.merge.chains" operation merges variadic number of !tfrt.chain inputs
-    and outputs a single !tfrt.chain output.
+    The "tfrt.merge.chains" operation merges variadic number of inputs and
+    outputs a single !tfrt.chain output.
 
     Example:
 
@@ -238,9 +238,9 @@ def MergeChainsOp : TFRT_Op<"merge.chains", [NoSideEffect]> {
         %merged_c = tfrt.merge.chains %c1, %c2, %c3
   }];
 
-  let arguments = (ins Variadic<TFRT_ChainType>:$chains);
+  let arguments = (ins Variadic<AnyType>:$inputs);
   let results = (outs TFRT_ChainType);
-  let assemblyFormat = "$chains attr-dict";
+  let assemblyFormat = "$inputs attr-dict `:` type($inputs)";
   let verifier = ?;
 }
 

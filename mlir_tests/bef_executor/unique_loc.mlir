@@ -19,7 +19,7 @@ func @unique_loc_test() -> !tfrt.chain {
   %ch0 = "tfrt_test.unique_loc"() {name = "a"} : () -> !tfrt.chain loc(unknown)
   %ch1 = "tfrt_test.unique_loc"() {name = "b"} : () -> !tfrt.chain loc(unknown)
   %ch2 = "tfrt_test.unique_loc"() {name = "c"} : () -> !tfrt.chain loc(unknown)
-  %ch = tfrt.merge.chains %ch0, %ch1, %ch2
+  %ch = tfrt.merge.chains %ch0, %ch1, %ch2 : !tfrt.chain, !tfrt.chain, !tfrt.chain
   // CHECK-NOT: returned <<error
   tfrt.return %ch : !tfrt.chain
 }

@@ -32,7 +32,7 @@ func @test_tensor_kernels() {
   %ch1_1 = "tfrt_dht.set_tensor_with_constant_values.i32"(%b, %ch0)
     { values = [1 : i32, -1 : i32, 1 : i32, -1 : i32, 1 : i32, -1 : i32] } :
     (!t.tensor, !tfrt.chain) -> !tfrt.chain
-  %ch2 = tfrt.merge.chains %ch1_0, %ch1_1
+  %ch2 = tfrt.merge.chains %ch1_0, %ch1_1 : !tfrt.chain, !tfrt.chain
 
   %c = "tfrt_dht.create_uninitialized_tensor.i32.2"() { shape = [2 : i64, 2 : i64] } :
     () -> !t.tensor

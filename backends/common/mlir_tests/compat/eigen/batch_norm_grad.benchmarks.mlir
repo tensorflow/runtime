@@ -66,7 +66,7 @@ func @BM_BatchNormGrad_8x32x32x128() {
     { shape = [128 : i64] }
     : () -> !t.tensor
 
-  %init = tfrt.merge.chains %ch0, %ch1, %ch2, %ch3, %ch4, %ch5
+  %init = tfrt.merge.chains %ch0, %ch1, %ch2, %ch3, %ch4, %ch5 : !tfrt.chain, !tfrt.chain, !tfrt.chain, !tfrt.chain, !tfrt.chain, !tfrt.chain
 
   tfrt_test.benchmark "BM_BatchNormGrad_8x32x32x128"(
       %output_grad : !t.tensor,
@@ -91,7 +91,7 @@ func @BM_BatchNormGrad_8x32x32x128() {
           !t.tensor, !t.tensor, !t.tensor
          ) -> (!tfrt.chain, !tfrt.chain, !tfrt.chain)
 
-      %done = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta
+      %done = tfrt.merge.chains %ch_in, %ch_gamma, %ch_beta : !tfrt.chain, !tfrt.chain, !tfrt.chain
       tfrt.return %done : !tfrt.chain
   }
 

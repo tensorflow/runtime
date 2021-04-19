@@ -32,7 +32,7 @@ func @print_thread_id() -> !tfrt.chain {
   %ch1 = tfrt.print.i32 %t0, %ch0
   %ch2 = tfrt.print.i32 %t1, %ch1
 
-  %ch3 = tfrt.merge.chains %ch1, %ch2
+  %ch3 = tfrt.merge.chains %ch1, %ch2 : !tfrt.chain, !tfrt.chain
 
   tfrt.return %ch3 : !tfrt.chain
 }
@@ -52,7 +52,7 @@ func @breadth_first() -> !tfrt.chain {
   %ch2 = tfrt_test.test_cost %ch0 {id = 1 : i64, _tfrt_cost = 1 : i64}
   %ch3 = tfrt_test.test_cost %ch1 {id = 2 : i64, _tfrt_cost = 100 : i64}
 
-  %ch4 = tfrt.merge.chains %ch2, %ch3
+  %ch4 = tfrt.merge.chains %ch2, %ch3 : !tfrt.chain, !tfrt.chain
   tfrt.return %ch4: !tfrt.chain
 }
 

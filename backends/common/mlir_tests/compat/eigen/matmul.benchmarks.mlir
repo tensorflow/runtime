@@ -31,7 +31,7 @@ func @BM_MatMul_512x512x512_f32() {
 
   // Shape: [512, 512].
   %c = tfrt_dht.create_uninitialized_tensor.f32.2 [512 : i64, 512 : i64]
-  %ch3 = tfrt.merge.chains %ch1, %ch2
+  %ch3 = tfrt.merge.chains %ch1, %ch2 : !tfrt.chain, !tfrt.chain
 
   tfrt_test.benchmark "BM_MatMul_512x512x512_f32"(
       %zero : f32,
@@ -69,7 +69,7 @@ func @BM_MatMul_1024x1024x1024_f32() {
 
   // Shape: [1024, 1024].
   %c = tfrt_dht.create_uninitialized_tensor.f32.2 [1024 : i64, 1024 : i64]
-  %ch3 = tfrt.merge.chains %ch1, %ch2
+  %ch3 = tfrt.merge.chains %ch1, %ch2 : !tfrt.chain, !tfrt.chain
 
   tfrt_test.benchmark "BM_MatMul_1024x1024x1024_f32"(
       %zero : f32,

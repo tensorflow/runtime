@@ -20,8 +20,8 @@
 #include "llvm/Support/Errc.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/memory/gpu_buffer.h"
-#include "tfrt/gpu/stream/blas_wrapper.h"
-#include "tfrt/gpu/stream/cublas_wrapper.h"
+#include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
 

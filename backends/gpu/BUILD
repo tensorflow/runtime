@@ -35,7 +35,7 @@ package_group(
 
 tfrt_cc_library(
     name = "symbol_loader",
-    hdrs = ["lib/stream/symbol_loader.h"],
+    hdrs = ["lib/wrapper/symbol_loader.h"],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
@@ -43,19 +43,19 @@ tfrt_cc_library(
 )
 
 # Generated API headers and implementations for HIP libraries.
-# Note: Only gpu_stream_wrapper should depend on rocm_stubs.
+# Note: Only gpu_wrapper should depend on rocm_stubs.
 tfrt_cc_library(
     name = "rocm_stubs",
     srcs = [
-        "lib/stream/hip_stub.cc",
-        "lib/stream/miopen_stub.cc",
-        "lib/stream/rocblas_stub.cc",
+        "lib/wrapper/hip_stub.cc",
+        "lib/wrapper/miopen_stub.cc",
+        "lib/wrapper/rocblas_stub.cc",
     ],
     hdrs = [
-        "include/tfrt/gpu/stream/hip_forwards.h",
-        "include/tfrt/gpu/stream/hip_stub.h",
-        "include/tfrt/gpu/stream/miopen_stub.h",
-        "include/tfrt/gpu/stream/rocblas_stub.h",
+        "include/tfrt/gpu/wrapper/hip_forwards.h",
+        "include/tfrt/gpu/wrapper/hip_stub.h",
+        "include/tfrt/gpu/wrapper/miopen_stub.h",
+        "include/tfrt/gpu/wrapper/rocblas_stub.h",
     ],
     visibility = ["//visibility:private"],
     deps = [
@@ -66,17 +66,17 @@ tfrt_cc_library(
 )
 
 # Generated API implementations for CUDA libraries.
-# Note: Only gpu_stream_wrapper should depend on cuda_stubs, and
+# Note: Only gpu_wrapper should depend on cuda_stubs, and
 # --@rules_cuda//cuda:cuda_runtime should be set to this target.
 tfrt_cc_library(
     name = "cuda_stubs",
     srcs = [
-        "lib/stream/cublas_stub.cc",
-        "lib/stream/cuda_stub.cc",
-        "lib/stream/cudart_stub.cc",
-        "lib/stream/cudnn_stub.cc",
-        "lib/stream/cufft_stub.cc",
-        "lib/stream/cusolver_stub.cc",
+        "lib/wrapper/cublas_stub.cc",
+        "lib/wrapper/cuda_stub.cc",
+        "lib/wrapper/cudart_stub.cc",
+        "lib/wrapper/cudnn_stub.cc",
+        "lib/wrapper/cufft_stub.cc",
+        "lib/wrapper/cusolver_stub.cc",
     ],
     visibility = ["//visibility:private"],
     deps = [
@@ -99,7 +99,7 @@ tfrt_cc_library(
 # This target is used in internal build only.
 tfrt_cc_library(
     name = "cublas_compat",
-    srcs = ["lib/stream/cublas_compat.cc"],
+    srcs = ["lib/wrapper/cublas_compat.cc"],
     tags = ["manual"],
     deps = [
         "@cuda_headers",
@@ -108,41 +108,42 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "gpu_stream_wrapper",
+    name = "gpu_wrapper",
     srcs = [
-        "include/tfrt/gpu/stream/cuda_forwards.h",
-        "lib/stream/blas_wrapper.cc",
-        "lib/stream/cublas_wrapper.cc",
-        "lib/stream/cuda_wrapper.cc",
-        "lib/stream/cudart_wrapper.cc",
-        "lib/stream/cudnn_wrapper.cc",
-        "lib/stream/cufft_wrapper.cc",
-        "lib/stream/cusolver_wrapper.cc",
-        "lib/stream/dnn_wrapper.cc",
-        "lib/stream/hash_utils.cc",
-        "lib/stream/hip_wrapper.cc",
-        "lib/stream/miopen_wrapper.cc",
-        "lib/stream/rocblas_wrapper.cc",
-        "lib/stream/solver_wrapper.cc",
-        "lib/stream/stream_wrapper.cc",
-        "lib/stream/wrapper_detail.h",
+        "include/tfrt/gpu/wrapper/cuda_forwards.h",
+        "lib/wrapper/blas_wrapper.cc",
+        "lib/wrapper/cublas_wrapper.cc",
+        "lib/wrapper/cuda_wrapper.cc",
+        "lib/wrapper/cudart_wrapper.cc",
+        "lib/wrapper/cudnn_wrapper.cc",
+        "lib/wrapper/cufft_wrapper.cc",
+        "lib/wrapper/cusolver_wrapper.cc",
+        "lib/wrapper/dnn_wrapper.cc",
+        "lib/wrapper/hash_utils.cc",
+        "lib/wrapper/hip_wrapper.cc",
+        "lib/wrapper/miopen_wrapper.cc",
+        "lib/wrapper/rocblas_wrapper.cc",
+        "lib/wrapper/solver_wrapper.cc",
+        "lib/wrapper/stream_wrapper.cc",
+        "lib/wrapper/wrapper_detail.h",
     ],
     hdrs = [
-        "include/tfrt/gpu/stream/blas_wrapper.h",
-        "include/tfrt/gpu/stream/cublas_wrapper.h",
-        "include/tfrt/gpu/stream/cuda_wrapper.h",
-        "include/tfrt/gpu/stream/cudart_wrapper.h",
-        "include/tfrt/gpu/stream/cudnn_wrapper.h",
-        "include/tfrt/gpu/stream/cufft_wrapper.h",
-        "include/tfrt/gpu/stream/cusolver_wrapper.h",
-        "include/tfrt/gpu/stream/dense_map_utils.h",
-        "include/tfrt/gpu/stream/dnn_wrapper.h",
-        "include/tfrt/gpu/stream/hash_utils.h",
-        "include/tfrt/gpu/stream/hip_wrapper.h",
-        "include/tfrt/gpu/stream/miopen_wrapper.h",
-        "include/tfrt/gpu/stream/rocblas_wrapper.h",
-        "include/tfrt/gpu/stream/solver_wrapper.h",
         "include/tfrt/gpu/stream/stream_wrapper.h",
+        "include/tfrt/gpu/wrapper/blas_wrapper.h",
+        "include/tfrt/gpu/wrapper/cublas_wrapper.h",
+        "include/tfrt/gpu/wrapper/cuda_wrapper.h",
+        "include/tfrt/gpu/wrapper/cudart_wrapper.h",
+        "include/tfrt/gpu/wrapper/cudnn_wrapper.h",
+        "include/tfrt/gpu/wrapper/cufft_wrapper.h",
+        "include/tfrt/gpu/wrapper/cusolver_wrapper.h",
+        "include/tfrt/gpu/wrapper/dense_map_utils.h",
+        "include/tfrt/gpu/wrapper/dnn_wrapper.h",
+        "include/tfrt/gpu/wrapper/hash_utils.h",
+        "include/tfrt/gpu/wrapper/hip_wrapper.h",
+        "include/tfrt/gpu/wrapper/miopen_wrapper.h",
+        "include/tfrt/gpu/wrapper/rocblas_wrapper.h",
+        "include/tfrt/gpu/wrapper/solver_wrapper.h",
+        "include/tfrt/gpu/wrapper/stream_wrapper.h",
     ],
     visibility = [
         ":tests_and_tools",
@@ -187,8 +188,8 @@ tfrt_cc_library(
     ],
     visibility = [":tests_and_tools"],
     deps = [
-        ":gpu_stream_wrapper",
         ":gpu_types",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -209,7 +210,7 @@ tfrt_cc_library(
     ],
     deps = [
         ":gpu_memory",
-        ":gpu_stream_wrapper",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
     ],
@@ -243,7 +244,7 @@ tfrt_cc_library(
         "include/tfrt/gpu/event_manager.h",
     ],
     deps = [
-        ":gpu_stream_wrapper",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -274,8 +275,8 @@ tfrt_cc_library(
         ":gpu_config",
         ":gpu_device_alwayslink",
         ":gpu_memory",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -306,8 +307,8 @@ tfrt_cc_library(
         ":gpu_config",
         ":gpu_device_eigen_support",
         ":gpu_memory",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
@@ -321,8 +322,8 @@ tfrt_cc_library(
     srcs = ["lib/device/eigen_support.cc"],
     hdrs = ["lib/device/eigen_support.h"],
     deps = [
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@cuda_headers",
         "@eigen_archive//:eigen3",
         "@tf_runtime//:dtype",
@@ -385,7 +386,7 @@ tfrt_cc_library(
         "include/tfrt/gpu/blas_support.h",
     ],
     deps = [
-        ":gpu_stream_wrapper",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -403,8 +404,8 @@ tfrt_cc_library(
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         ":tf_gpu_binary_ops",
         ":tf_gpu_dnn_ops",
         ":tf_gpu_matmul_op",
@@ -432,8 +433,8 @@ tfrt_cc_library(
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -449,8 +450,8 @@ cuda_library(
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -472,7 +473,7 @@ cuda_library(
         ":gpu_op_handler",
         ":gpu_memory",
         ":gpu_tensor",
-        ":gpu_stream_wrapper",
+        ":gpu_wrapper",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//:support",
@@ -527,8 +528,8 @@ tfrt_cc_library(
         ":generated_kernel_images",
         ":gpu_memory",
         ":gpu_op_handler",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -546,8 +547,8 @@ tfrt_cc_library(
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         ":pad_op_noncuda",
         ":tf_gpu_dnn_ops_cu",
         ":tf_gpu_matmul_op",  # TODO(iga): For GEMM-calling utility only.
@@ -570,8 +571,8 @@ cuda_library(
     hdrs = ["lib/ops/tf/dnn_ops_cu.h"],
     deps = [
         ":gpu_memory",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:dtype",
         "@tf_runtime//:support",
@@ -610,8 +611,8 @@ tfrt_cc_library(
         ":blas_support",
         ":gpu_memory",
         ":gpu_op_handler",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
@@ -645,8 +646,8 @@ cuda_library(
         ":gpu_device_eigen_support",
         ":gpu_memory",
         ":gpu_op_handler",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
+        ":gpu_wrapper",
         "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
@@ -808,9 +809,9 @@ tfrt_cc_library(
     deps = [
         ":gpu_event_manager",
         ":gpu_memory",
-        ":gpu_stream_wrapper",
         ":gpu_tensor",
         ":gpu_types",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
@@ -830,8 +831,8 @@ tfrt_cc_library(
     visibility = [":tests_and_tools"],
     deps = [
         ":gpu_memory",
-        ":gpu_stream_wrapper",
         ":gpu_types",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -873,7 +874,7 @@ tfrt_cc_library(
     srcs = ["lib/gpu_types.cc"],
     hdrs = ["include/tfrt/gpu/gpu_types.h"],
     deps = [
-        ":gpu_stream_wrapper",
+        ":gpu_wrapper",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

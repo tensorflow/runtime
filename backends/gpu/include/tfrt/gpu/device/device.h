@@ -20,9 +20,9 @@
 #define TFRT_GPU_DEVICE_DEVICE_H_
 
 #include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/stream/blas_wrapper.h"
-#include "tfrt/gpu/stream/dnn_wrapper.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/dnn_wrapper.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/host_context/device.h"
 
 namespace Eigen {

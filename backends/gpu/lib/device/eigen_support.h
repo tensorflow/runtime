@@ -24,8 +24,8 @@
 
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 
 namespace Eigen {
 class StreamInterface;

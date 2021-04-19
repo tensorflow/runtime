@@ -22,8 +22,8 @@
 #include <cstdint>
 
 #include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/stream/cuda_wrapper.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/cuda_wrapper.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {

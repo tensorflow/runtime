@@ -21,7 +21,7 @@
 #include "tfrt/gpu/device/gpu_config.h"
 #include "tfrt/gpu/memory/bfc_gpu_allocator.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/stream/cublas_wrapper.h"
+#include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
 

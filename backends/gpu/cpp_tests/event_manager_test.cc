@@ -23,7 +23,7 @@
 #include "benchmark/benchmark.h"
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/error_util.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/concurrent_work_queue.h"

@@ -15,9 +15,9 @@
 // Implementation of the types used in the tfrt_gpu dialect.
 #include "tfrt/gpu/gpu_types.h"
 
-#include "tfrt/gpu/stream/blas_wrapper.h"
-#include "tfrt/gpu/stream/dnn_wrapper.h"
 #include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
 

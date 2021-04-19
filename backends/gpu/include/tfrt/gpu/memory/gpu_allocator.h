@@ -22,7 +22,7 @@
 
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/memory/gpu_buffer.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {

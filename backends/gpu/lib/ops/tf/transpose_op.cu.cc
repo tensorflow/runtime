@@ -20,8 +20,8 @@
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
-#include "tfrt/gpu/stream/cudart_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
+#include "tfrt/gpu/wrapper/cudart_wrapper.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
 

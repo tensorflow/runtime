@@ -41,8 +41,8 @@
 // "C" is still alive.
 //
 // This used to be a problem when "C" contained a GpuDispatchContext since
-// GpuDispatchContext contains a gpu::stream::CurrentContext.  The right H2D
-// copy would then try to CtxSetCurrent while the gpu::stream::CurrentContext
+// GpuDispatchContext contains a gpu::wrapper::CurrentContext.  The right H2D
+// copy would then try to CtxSetCurrent while the gpu::wrapper::CurrentContext
 // from the left H2D copy was still alive.
 
 func @register_op_handlers_gpu() {

@@ -25,7 +25,7 @@
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/raw_ostream.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {

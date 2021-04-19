@@ -22,9 +22,9 @@
 
 #include "tfrt/gpu/device/device.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/stream/blas_wrapper.h"
-#include "tfrt/gpu/stream/dnn_wrapper.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/dnn_wrapper.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 
 namespace Eigen {
 class GpuDevice;

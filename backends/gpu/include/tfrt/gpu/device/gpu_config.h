@@ -19,7 +19,7 @@
 #define TFRT_GPU_DEVICE_GPU_CONFIG_H_
 
 #include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 
 namespace tfrt {
 namespace gpu {

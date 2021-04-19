@@ -20,7 +20,7 @@
 
 #include "llvm/ADT/Optional.h"
 #include "tfrt/gpu/memory/bfc_gpu_allocator.h"
-#include "tfrt/gpu/stream/hash_utils.h"
+#include "tfrt/gpu/wrapper/hash_utils.h"
 #include "tfrt/support/mutex.h"
 
 namespace tfrt {

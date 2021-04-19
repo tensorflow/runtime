@@ -20,7 +20,7 @@
 #ifndef TFRT_GPU_CORE_RUNTIME_TENSOR_UTIL_H_
 #define TFRT_GPU_CORE_RUNTIME_TENSOR_UTIL_H_
 
-#include "tfrt/gpu/stream/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {

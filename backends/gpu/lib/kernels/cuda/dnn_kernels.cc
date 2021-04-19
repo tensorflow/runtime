@@ -22,9 +22,9 @@
 
 #include "kernels.h"
 #include "tfrt/gpu/gpu_types.h"
-#include "tfrt/gpu/stream/cudnn_wrapper.h"
-#include "tfrt/gpu/stream/dnn_wrapper.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
+#include "tfrt/gpu/wrapper/cudnn_wrapper.h"
+#include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Thin abstraction layer for CUDA and HIP.
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+// Thin abstraction layer for CUDA and HIP driver API.
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
@@ -128,7 +128,7 @@ void internal::ContextDeleter::operator()(Context context) const {
               return llvm::Error(std::move(info));
             auto device = CuCtxGetDevice(context);
             if (!device) return device.takeError();
-            return CuDevicePrimaryCtxRelease(*device);
+            return CuDevicePrimaryCtxRelease({*device, Platform::CUDA});
           }));
     case Platform::ROCm:
       return LogIfError(llvm::handleErrors(
@@ -137,7 +137,7 @@ void internal::ContextDeleter::operator()(Context context) const {
               return llvm::Error(std::move(info));
             auto device = HipCtxGetDevice(context);
             if (!device) return device.takeError();
-            return HipDevicePrimaryCtxRelease(*device);
+            return HipDevicePrimaryCtxRelease({*device, Platform::ROCm});
           }));
     default:
       return;
@@ -755,7 +755,8 @@ llvm::Error MemcpyPeer(Pointer<void> dst_ptr, Context dst_ctx,
       if (!dst_dev) return dst_dev.takeError();
       auto src_dev = HipCtxGetDevice(static_cast<hipCtx_t>(src_ctx));
       if (!src_dev) return src_dev.takeError();
-      return HipMemcpyPeer(dst_ptr, *dst_dev, src_ptr, *src_dev, count_bytes);
+      return HipMemcpyPeer(dst_ptr, {*dst_dev, Platform::ROCm}, src_ptr,
+                           {*src_dev, Platform::ROCm}, count_bytes);
     }
     default:
       return InvalidPlatform(platform);
@@ -775,8 +776,9 @@ llvm::Error MemcpyPeerAsync(Pointer<void> dst_ptr, Context dst_ctx,
       if (!dst_dev) return dst_dev.takeError();
       auto src_dev = HipCtxGetDevice(static_cast<hipCtx_t>(src_ctx));
       if (!src_dev) return src_dev.takeError();
-      return HipMemcpyPeerAsync(dst_ptr, *dst_dev, src_ptr, *src_dev,
-                                count_bytes, stream);
+      return HipMemcpyPeerAsync(dst_ptr, {*dst_dev, Platform::ROCm}, src_ptr,
+                                {*src_dev, Platform::ROCm}, count_bytes,
+                                stream);
     }
     default:
       return InvalidPlatform(platform);

@@ -17,7 +17,6 @@
 #include "common.h"
 #include "gtest/gtest.h"
 #include "tfrt/gpu/wrapper/cusolver_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 
 namespace tfrt {
 namespace gpu {

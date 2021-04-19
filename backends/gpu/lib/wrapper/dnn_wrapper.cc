@@ -22,7 +22,6 @@
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {

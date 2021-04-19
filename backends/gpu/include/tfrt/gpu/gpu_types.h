@@ -25,9 +25,9 @@
 #include <memory>
 
 #include "llvm/ADT/DenseMap.h"
-#include "tfrt/gpu/stream/stream_wrapper.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"

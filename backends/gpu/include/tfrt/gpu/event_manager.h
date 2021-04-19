@@ -25,7 +25,7 @@
 #include <thread>
 
 #include "llvm/ADT/PointerIntPair.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/thread_annotations.h"

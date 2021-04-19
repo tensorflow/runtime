@@ -24,7 +24,6 @@
 #include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 
 namespace tfrt {
 namespace gpu {

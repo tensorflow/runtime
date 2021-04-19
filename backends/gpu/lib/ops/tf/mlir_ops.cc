@@ -29,7 +29,6 @@
 #include "tfrt/gpu/ops/tf/relu_f64_kernel.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/tensor/tensor_metadata.h"

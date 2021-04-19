@@ -41,6 +41,8 @@
       "hipCtxCreate",
       "hipCtxDestroy",
       "hipCtxGetCurrent",
+      "hipCtxPushCurrent",
+      "hipCtxPopCurrent",
       "hipCtxSetCurrent",
       "hipCtxGetApiVersion",
       "hipCtxGetDevice",

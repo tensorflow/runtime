@@ -19,6 +19,6 @@
 #ifndef TFRT_GPU_STREAM_STREAM_WRAPPER_H_
 #define TFRT_GPU_STREAM_STREAM_WRAPPER_H_
 
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 #endif  // TFRT_GPU_STREAM_STREAM_WRAPPER_H_

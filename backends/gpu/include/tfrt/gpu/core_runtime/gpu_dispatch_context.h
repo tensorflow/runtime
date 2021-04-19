@@ -24,7 +24,7 @@
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 namespace Eigen {
 class GpuDevice;

@@ -23,7 +23,7 @@
 
 #include "llvm/ADT/DenseMapInfo.h"
 #include "tfrt/gpu/wrapper/hash_utils.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace llvm {
 

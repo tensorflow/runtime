@@ -257,6 +257,18 @@ hipError_t hipCtxGetCurrent(hipCtx_t* ctx) {
 }
 
 DEPRECATED(DEPRECATED_MSG)
+hipError_t hipCtxPushCurrent(hipCtx_t ctx) {
+  return DynamicCall<decltype(hipCtxPushCurrent), &hipCtxPushCurrent>(
+      "hipCtxPushCurrent", ctx);
+}
+
+DEPRECATED(DEPRECATED_MSG)
+hipError_t hipCtxPopCurrent(hipCtx_t* ctx) {
+  return DynamicCall<decltype(hipCtxPopCurrent), &hipCtxPopCurrent>(
+      "hipCtxPopCurrent", ctx);
+}
+
+DEPRECATED(DEPRECATED_MSG)
 hipError_t hipCtxGetDevice(hipDevice_t* device) {
   return DynamicCall<decltype(hipCtxGetDevice), &hipCtxGetDevice>(
       "hipCtxGetDevice", device);

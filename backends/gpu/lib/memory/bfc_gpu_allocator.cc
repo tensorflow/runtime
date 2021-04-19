@@ -25,7 +25,6 @@
 #include "llvm/Support/Error.h"
 #include "llvm/Support/ErrorHandling.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/support/string_util.h"

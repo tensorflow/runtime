@@ -31,7 +31,6 @@
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/kernel_registry.h"

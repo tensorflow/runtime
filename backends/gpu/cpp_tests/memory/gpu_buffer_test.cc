@@ -24,6 +24,7 @@
 #include "llvm/Support/raw_os_ostream.h"
 #include "tfrt/cpp_tests/error_util.h"
 #include "tfrt/gpu/memory/block_allocator.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 namespace tfrt {
 namespace gpu {

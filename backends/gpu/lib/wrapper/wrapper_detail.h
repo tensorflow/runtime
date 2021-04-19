@@ -19,7 +19,7 @@
 #define TFRT_BACKENDS_GPU_LIB_STREAM_WRAPPER_DETAIL_H_
 
 #include "llvm/Support/Error.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace tfrt {
 namespace gpu {
@@ -66,8 +66,8 @@ extern thread_local struct ContextTls {
 } kContextTls;
 
 // Get device of context which may not be current.
-llvm::Expected<Device> CuCtxGetDevice(CUcontext context);
-llvm::Expected<Device> HipCtxGetDevice(hipCtx_t);
+llvm::Expected<CUdevice> CuCtxGetDevice(CUcontext context);
+llvm::Expected<hipDevice_t> HipCtxGetDevice(hipCtx_t);
 
 // Check that the current context's platform and internal API state matches.
 // Report a fatal error otherwise.

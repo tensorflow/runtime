@@ -30,7 +30,6 @@
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
 

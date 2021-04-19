@@ -712,17 +712,17 @@ llvm::Expected<MaxPotentialBlockSize> CuOccupancyMaxPotentialBlockSizeWithFlags(
 
 // Definitions from wrapper_detail.h.
 
-llvm::Expected<Device> CuCtxGetDevice(CUcontext context) {
+llvm::Expected<CUdevice> CuCtxGetDevice(CUcontext context) {
   CUdevice device;
   if (kContextTls.cuda_ctx == context) {
     RETURN_IF_ERROR(cuCtxGetDevice(&device));
   } else {
-    RETURN_IF_ERROR(cuCtxSetCurrent(context));
+    RETURN_IF_ERROR(cuCtxPushCurrent(context));
     auto result = cuCtxGetDevice(&device);
-    RETURN_IF_ERROR(cuCtxSetCurrent(kContextTls.cuda_ctx));
+    RETURN_IF_ERROR(cuCtxPopCurrent(nullptr));
     RETURN_IF_ERROR(result);
   }
-  return Device(device, Platform::CUDA);
+  return device;
 }
 
 void CheckCudaContext(CurrentContext) {

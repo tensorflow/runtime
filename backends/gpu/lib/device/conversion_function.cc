@@ -20,7 +20,7 @@
 #include "tfrt/gpu/device/device.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/execution_context.h"

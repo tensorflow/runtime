@@ -26,7 +26,7 @@
 
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/ref_count.h"

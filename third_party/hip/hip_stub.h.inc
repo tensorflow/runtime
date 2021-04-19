@@ -325,6 +325,12 @@ DEPRECATED(DEPRECATED_MSG)
 hipError_t hipCtxGetCurrent(hipCtx_t* ctx);
 
 DEPRECATED(DEPRECATED_MSG)
+hipError_t hipCtxPushCurrent(hipCtx_t ctx);
+
+DEPRECATED(DEPRECATED_MSG)
+hipError_t hipCtxPopCurrent(hipCtx_t* ctx);
+
+DEPRECATED(DEPRECATED_MSG)
 hipError_t hipCtxGetDevice(hipDevice_t* device);
 
 DEPRECATED(DEPRECATED_MSG)

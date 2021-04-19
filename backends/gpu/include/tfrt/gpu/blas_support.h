@@ -25,7 +25,6 @@
 #define TFRT_GPU_BLAS_SUPPORT_H_
 
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 
 namespace tfrt {
 namespace gpu {

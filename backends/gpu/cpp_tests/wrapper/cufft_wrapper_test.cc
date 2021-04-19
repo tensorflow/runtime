@@ -24,7 +24,6 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "tfrt/cpp_tests/error_util.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 
 #define TFRT_ASSERT_OK(expr) ASSERT_TRUE(IsSuccess(expr))
 

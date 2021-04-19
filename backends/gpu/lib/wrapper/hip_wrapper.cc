@@ -20,7 +20,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/hip_stub.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 #include "wrapper_detail.h"
 
 #define RETURN_IF_ERROR(expr)                              \
@@ -577,17 +577,17 @@ llvm::Expected<MaxPotentialBlockSize> HipOccupancyMaxPotentialBlockSize(
 
 // Definitions from wrapper_detail.h.
 
-llvm::Expected<Device> HipCtxGetDevice(hipCtx_t context) {
+llvm::Expected<hipDevice_t> HipCtxGetDevice(hipCtx_t context) {
   hipDevice_t device;
   if (kContextTls.hip_ctx == context) {
     RETURN_IF_ERROR(hipCtxGetDevice(&device));
   } else {
-    RETURN_IF_ERROR(hipCtxSetCurrent(context));
+    RETURN_IF_ERROR(hipCtxPushCurrent(context));
     auto result = hipCtxGetDevice(&device);
-    RETURN_IF_ERROR(hipCtxSetCurrent(kContextTls.hip_ctx));
+    RETURN_IF_ERROR(hipCtxPopCurrent(nullptr));
     RETURN_IF_ERROR(result);
   }
-  return Device(device, Platform::ROCm);
+  return device;
 }
 
 void CheckHipContext(CurrentContext) {

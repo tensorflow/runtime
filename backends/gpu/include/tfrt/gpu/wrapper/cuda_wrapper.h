@@ -22,7 +22,7 @@
 #include <memory>
 
 #include "cuda.h"  // from @cuda_headers
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {

@@ -22,7 +22,7 @@
 
 #include <functional>
 
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 namespace std {
 template <>

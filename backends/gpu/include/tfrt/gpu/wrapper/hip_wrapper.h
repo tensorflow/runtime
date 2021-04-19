@@ -21,8 +21,8 @@
 #include <cstddef>
 #include <memory>
 
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/hip_stub.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {

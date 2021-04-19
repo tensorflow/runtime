@@ -19,7 +19,7 @@
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_DNN_OPS_CU_H_
 
 #include "tfrt/common/ops/tf/dnn_ops_util.h"
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace tfrt {
 namespace gpu {

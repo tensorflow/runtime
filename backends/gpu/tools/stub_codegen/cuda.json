@@ -25,6 +25,8 @@
       "cuCtxDestroy_v2",
       "cuCtxGetCurrent",
       "cuCtxSetCurrent",
+      "cuCtxPushCurrent_v2",
+      "cuCtxPopCurrent_v2",
       "cuCtxSynchronize",
       "cuCtxGetApiVersion",
       "cuCtxGetDevice",

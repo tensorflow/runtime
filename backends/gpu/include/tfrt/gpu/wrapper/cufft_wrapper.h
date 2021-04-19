@@ -19,7 +19,7 @@
 
 #include "cufft.h"    // from @cuda_headers
 #include "cufftXt.h"  // from @cuda_headers
-#include "tfrt/gpu/wrapper/stream_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/support/error_util.h"
 
 namespace tfrt {

@@ -74,22 +74,38 @@ class ReferenceCounted {
   ReferenceCounted& operator=(const ReferenceCounted&) = delete;
 
   // Add a new reference to this object.
-  void AddRef() { ref_count_.fetch_add(1); }
+  void AddRef() {
+    assert(ref_count_.load(std::memory_order_relaxed) >= 1);
+    // It is OK to use std::memory_order_relaxed here as it does not affect the
+    // ownership state of the object.
+    ref_count_.fetch_add(1, std::memory_order_relaxed);
+  }
 
   // Drop a reference to this object, potentially deallocating it.
   void DropRef() {
-    if (ref_count_.fetch_sub(1) == 1) static_cast<SubClass*>(this)->Destroy();
+    assert(ref_count_.load(std::memory_order_relaxed) > 0);
+
+    // If ref_count_==1, this object is owned only by the caller. Bypass a
+    // locked op in that case.
+    if (ref_count_.load(std::memory_order_acquire) == 1 ||
+        ref_count_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+      // Make assert in ~ReferenceCounted happy
+      assert((ref_count_.store(0, std::memory_order_relaxed), true));
+      static_cast<SubClass*>(this)->Destroy();
+    }
   }
 
   // Return reference count. This should be used for testing and debugging only.
   uint32_t NumRef() const { return ref_count_.load(); }
 
   // Return true if reference count is 1.
-  bool IsUnique() const { return ref_count_.load() == 1; }
+  bool IsUnique() const {
+    return ref_count_.load(std::memory_order_acquire) == 1;
+  }
 
  protected:
-  // Subclasses are allowed to customize this, but the default implementation
-  // of Destroy() just deletes the pointer.
+  // Subclasses are allowed to customize this, but the default implementation of
+  // Destroy() just deletes the pointer.
   void Destroy() { delete static_cast<SubClass*>(this); }
 
  private:

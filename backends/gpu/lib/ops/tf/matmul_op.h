@@ -26,12 +26,12 @@ namespace tfrt {
 namespace gpu {
 class GpuOpRegistry;
 class DenseGpuTensor;
-class GpuBuffer;
+class GpuCrtBuffer;
 
 llvm::Error RunCublasGemm(wrapper::CurrentContext current,
                           wrapper::BlasHandle handle, bool transpose_a,
                           bool transpose_b, const DenseGpuTensor& a,
-                          const DenseGpuTensor& b, GpuBuffer* result);
+                          const DenseGpuTensor& b, GpuCrtBuffer* result);
 }  // namespace gpu
 }  // namespace tfrt
 

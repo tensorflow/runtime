@@ -36,17 +36,17 @@ namespace gpu {
 
 // BlockAllocator is the default TFRT CUDA allocator.
 // BlockAllocator is thread-safe.
-class BlockAllocator : public gpu::GpuAllocator {
+class BlockAllocator : public gpu::GpuCrtAllocator {
  public:
   explicit BlockAllocator(SubAllocator* sub_allocator)
       : sub_allocator_(sub_allocator) {}
 
-  llvm::Expected<RCReference<gpu::GpuBuffer>> Allocate(
+  llvm::Expected<RCReference<gpu::GpuCrtBuffer>> Allocate(
       size_t size, wrapper::Stream stream) override;
 
-  void Deallocate(const gpu::GpuBuffer& buffer) override;
+  void Deallocate(const gpu::GpuCrtBuffer& buffer) override;
 
-  llvm::Error RecordUsage(const gpu::GpuBuffer& buffer,
+  llvm::Error RecordUsage(const gpu::GpuCrtBuffer& buffer,
                           wrapper::Stream stream) override;
 
  private:

@@ -34,7 +34,7 @@ CachingGpuAllocator::CachingGpuAllocator(AsyncValueRef<GpuContext> context)
 
 CachingGpuAllocator::~CachingGpuAllocator() = default;
 
-llvm::Expected<RCReference<gpu::GpuBuffer>> CachingGpuAllocator::Allocate(
+llvm::Expected<RCReference<gpu::GpuCrtBuffer>> CachingGpuAllocator::Allocate(
     size_t size, wrapper::Stream stream) {
   // FIXME(sanjoy): context handling needs to be cleaned up.  We should not be
   // calling CuStreamGetCtx here.
@@ -63,10 +63,10 @@ llvm::Expected<RCReference<gpu::GpuBuffer>> CachingGpuAllocator::Allocate(
   wrapper::Pointer<void> pointer = device_memory->release();
 
   allocations_.insert({pointer, context.get()});
-  return MakeRef<gpu::GpuBuffer>(pointer, size, this);
+  return MakeRef<gpu::GpuCrtBuffer>(pointer, size, this);
 }
 
-void CachingGpuAllocator::Deallocate(const gpu::GpuBuffer& buffer) {
+void CachingGpuAllocator::Deallocate(const gpu::GpuCrtBuffer& buffer) {
   llvm::ExitOnError die_if_error;
   auto it = allocations_.find(buffer.pointer());
   assert(it != allocations_.end());
@@ -80,7 +80,7 @@ void CachingGpuAllocator::Deallocate(const gpu::GpuBuffer& buffer) {
   allocations_.erase(it);
 }
 
-llvm::Error CachingGpuAllocator::RecordUsage(const gpu::GpuBuffer&,
+llvm::Error CachingGpuAllocator::RecordUsage(const gpu::GpuCrtBuffer&,
                                              wrapper::Stream) {
   // Since the current simple implementation synchronizes the whole context,
   // we do not care what other streams the buffer was used on.

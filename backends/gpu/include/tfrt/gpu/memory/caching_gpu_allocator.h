@@ -33,17 +33,17 @@ namespace gpu {
 class GpuContext;
 
 // CachingGpuAllocator is thread-safe.
-class CachingGpuAllocator : public GpuAllocator {
+class CachingGpuAllocator : public GpuCrtAllocator {
  public:
   explicit CachingGpuAllocator(AsyncValueRef<GpuContext> context);
   ~CachingGpuAllocator() override;
 
-  llvm::Expected<RCReference<gpu::GpuBuffer>> Allocate(
+  llvm::Expected<RCReference<gpu::GpuCrtBuffer>> Allocate(
       size_t size, wrapper::Stream stream) override;
 
-  void Deallocate(const gpu::GpuBuffer& buffer) override;
+  void Deallocate(const gpu::GpuCrtBuffer& buffer) override;
 
-  llvm::Error RecordUsage(const gpu::GpuBuffer& buffer,
+  llvm::Error RecordUsage(const gpu::GpuCrtBuffer& buffer,
                           wrapper::Stream stream) override;
 
  private:

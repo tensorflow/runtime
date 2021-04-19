@@ -59,17 +59,17 @@ static llvm::Expected<std::tuple<DenseGpuTensor, DenseGpuTensor>>
 ReturnMultipleResults(GpuDispatchContext* dctx,
                       const TensorMetadata& result_md0,
                       const TensorMetadata& result_md1) {
-  llvm::Expected<RCReference<GpuBuffer>> buffer_or_error0 =
+  llvm::Expected<RCReference<GpuCrtBuffer>> buffer_or_error0 =
       dctx->allocator()->Allocate(
           /*size=*/result_md0.GetHostSizeInBytes(), dctx->stream());
   if (!buffer_or_error0) return buffer_or_error0.takeError();
-  RCReference<GpuBuffer> buffer0 = std::move(*buffer_or_error0);
+  RCReference<GpuCrtBuffer> buffer0 = std::move(*buffer_or_error0);
 
-  llvm::Expected<RCReference<GpuBuffer>> buffer_or_error1 =
+  llvm::Expected<RCReference<GpuCrtBuffer>> buffer_or_error1 =
       dctx->allocator()->Allocate(
           /*size=*/result_md1.GetHostSizeInBytes(), dctx->stream());
   if (!buffer_or_error1) return buffer_or_error1.takeError();
-  RCReference<GpuBuffer> buffer1 = std::move(*buffer_or_error1);
+  RCReference<GpuCrtBuffer> buffer1 = std::move(*buffer_or_error1);
 
   return std::make_tuple(
       DenseGpuTensor(result_md0.shape, result_md0.dtype, std::move(buffer0)),

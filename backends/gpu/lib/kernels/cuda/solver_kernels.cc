@@ -69,7 +69,7 @@ llvm::Expected<int32_t> SolverDnSpotrfBufferSize(
     Argument<GpuContext> context,
     const wrapper::OwningSolverDnHandle& cusolver_handle,
     Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuBuffer>> A, Argument<int32_t> lda,
+    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
     Argument<Chain> in_chain) {
   auto current = wrapper::CtxSetCurrent(context.get().get());
   if (!current) return current.takeError();
@@ -86,7 +86,7 @@ llvm::Expected<int32_t> SolverDnDpotrfBufferSize(
     Argument<GpuContext> context,
     const wrapper::OwningSolverDnHandle& cusolver_handle,
     Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuBuffer>> A, Argument<int32_t> lda,
+    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
     Argument<Chain> in_chain) {
   auto current = wrapper::CtxSetCurrent(context.get().get());
   if (!current) return current.takeError();
@@ -103,7 +103,7 @@ llvm::Expected<int32_t> SolverDnCpotrfBufferSize(
     Argument<GpuContext> context,
     const wrapper::OwningSolverDnHandle& cusolver_handle,
     Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuBuffer>> A, Argument<int32_t> lda,
+    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
     Argument<Chain> in_chain) {
   auto current = wrapper::CtxSetCurrent(context.get().get());
   if (!current) return current.takeError();
@@ -120,7 +120,7 @@ llvm::Expected<int32_t> SolverDnZpotrfBufferSize(
     Argument<GpuContext> context,
     const wrapper::OwningSolverDnHandle& cusolver_handle,
     Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuBuffer>> A, Argument<int32_t> lda,
+    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
     Argument<Chain> in_chain) {
   auto current = wrapper::CtxSetCurrent(context.get().get());
   if (!current) return current.takeError();
@@ -142,9 +142,9 @@ Expected<Chain> SolverDnSpotrf(
     Argument<GpuContext> context,
     const wrapper::OwningSolverDnHandle& cusolver_handle,
     Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuBuffer>> A, Argument<int32_t> lda,
-    Argument<RCReference<GpuBuffer>> Workspace, Argument<int32_t> Lwork,
-    Argument<RCReference<GpuBuffer>> devInfo, Argument<Chain> in_chain) {
+    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
+    Argument<RCReference<GpuCrtBuffer>> Workspace, Argument<int32_t> Lwork,
+    Argument<RCReference<GpuCrtBuffer>> devInfo, Argument<Chain> in_chain) {
   auto current = wrapper::CtxSetCurrent(context.get().get());
   if (!current) return current.takeError();
 
@@ -164,9 +164,9 @@ Expected<Chain> SolverDnDpotrf(
     Argument<GpuContext> context,
     const wrapper::OwningSolverDnHandle& cusolver_handle,
     Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuBuffer>> A, Argument<int32_t> lda,
-    Argument<RCReference<GpuBuffer>> Workspace, Argument<int32_t> Lwork,
-    Argument<RCReference<GpuBuffer>> devInfo, Argument<Chain> in_chain) {
+    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
+    Argument<RCReference<GpuCrtBuffer>> Workspace, Argument<int32_t> Lwork,
+    Argument<RCReference<GpuCrtBuffer>> devInfo, Argument<Chain> in_chain) {
   auto current = wrapper::CtxSetCurrent(context.get().get());
   if (!current) return current.takeError();
 
@@ -186,9 +186,9 @@ Expected<Chain> SolverDnCpotrf(
     Argument<GpuContext> context,
     const wrapper::OwningSolverDnHandle& cusolver_handle,
     Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuBuffer>> A, Argument<int32_t> lda,
-    Argument<RCReference<GpuBuffer>> Workspace, Argument<int32_t> Lwork,
-    Argument<RCReference<GpuBuffer>> devInfo, Argument<Chain> in_chain) {
+    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
+    Argument<RCReference<GpuCrtBuffer>> Workspace, Argument<int32_t> Lwork,
+    Argument<RCReference<GpuCrtBuffer>> devInfo, Argument<Chain> in_chain) {
   auto current = wrapper::CtxSetCurrent(context.get().get());
   if (!current) return current.takeError();
 
@@ -208,9 +208,9 @@ Expected<Chain> SolverDnZpotrf(
     Argument<GpuContext> context,
     const wrapper::OwningSolverDnHandle& cusolver_handle,
     Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuBuffer>> A, Argument<int32_t> lda,
-    Argument<RCReference<GpuBuffer>> Workspace, Argument<int32_t> Lwork,
-    Argument<RCReference<GpuBuffer>> devInfo, Argument<Chain> in_chain) {
+    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
+    Argument<RCReference<GpuCrtBuffer>> Workspace, Argument<int32_t> Lwork,
+    Argument<RCReference<GpuCrtBuffer>> devInfo, Argument<Chain> in_chain) {
   auto current = wrapper::CtxSetCurrent(context.get().get());
   if (!current) return current.takeError();
 

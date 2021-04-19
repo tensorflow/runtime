@@ -23,7 +23,7 @@
 namespace tfrt {
 namespace gpu {
 
-const size_t GpuAllocator::kAlignment;
+const size_t GpuCrtAllocator::kAlignment;
 
 }  // namespace gpu
 }  // namespace tfrt

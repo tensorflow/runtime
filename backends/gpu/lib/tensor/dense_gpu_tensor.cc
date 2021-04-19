@@ -28,11 +28,11 @@ namespace tfrt {
 namespace gpu {
 
 DenseGpuTensor::DenseGpuTensor(const TensorShape& shape, DType dtype,
-                               RCReference<GpuBuffer> buffer)
+                               RCReference<GpuCrtBuffer> buffer)
     : DenseGpuTensor(TensorMetadata(dtype, shape), std::move(buffer)) {}
 
 DenseGpuTensor::DenseGpuTensor(const TensorMetadata& metadata,
-                               RCReference<GpuBuffer> buffer)
+                               RCReference<GpuCrtBuffer> buffer)
     : Tensor(metadata), buffer_(std::move(buffer)) {}
 
 void DenseGpuTensor::Print(llvm::raw_ostream& os) const {

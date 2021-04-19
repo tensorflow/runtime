@@ -222,7 +222,7 @@ static llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input,
   // Get required amount of temp storage.
   if (auto err = launch(nullptr)) return std::move(err);
 
-  TFRT_ASSIGN_OR_RETURN(RCReference<GpuBuffer> tmp_buffer,
+  TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> tmp_buffer,
                         dctx->allocator()->Allocate(
                             /*size=*/temp_storage_bytes, dctx->stream()));
 
@@ -294,7 +294,7 @@ static llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input,
   // Get required amount of temp storage.
   if (auto err = launch(nullptr)) return std::move(err);
 
-  llvm::Expected<RCReference<GpuBuffer>> tmp_buffer_or_error =
+  llvm::Expected<RCReference<GpuCrtBuffer>> tmp_buffer_or_error =
       dctx->allocator()->Allocate(
           /*size=*/sizeof(uint8_t), dctx->stream());
   if (!tmp_buffer_or_error) return tmp_buffer_or_error.takeError();
@@ -393,7 +393,8 @@ static llvm::Optional<ReductionDims3> IsMiddleReduction(
 
 template <typename T, typename ReduceOp, typename TransformOp>
 static llvm::Error Reduce(GpuDispatchContext* dctx, const DenseGpuTensor& input,
-                          const GpuBuffer& output, const TensorMetadata& out_md,
+                          const GpuCrtBuffer& output,
+                          const TensorMetadata& out_md,
                           ArrayRef<int32_t> reduction_indices, T init,
                           ReduceOp reduce, TransformOp transform) {
   auto input_ptr = GetRawPointer<const T>(input);
@@ -430,7 +431,7 @@ static llvm::Error Reduce(GpuDispatchContext* dctx, const DenseGpuTensor& input,
 template <typename T>
 static llvm::Error ReduceMean(GpuDispatchContext* dctx,
                               const DenseGpuTensor& input,
-                              const GpuBuffer& output,
+                              const GpuCrtBuffer& output,
                               const TensorMetadata& out_md,
                               ArrayRef<int32_t> reduction_indices) {
   // Number of input elements per output element.

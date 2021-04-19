@@ -31,7 +31,7 @@ class GpuDevice;
 
 namespace tfrt {
 namespace gpu {
-class GpuAllocator;
+class GpuCrtAllocator;
 
 class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
  public:
@@ -50,7 +50,7 @@ class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
   wrapper::Stream stream() const;
 
   // Allocator for allocating GPU device memory.
-  gpu::GpuAllocator* allocator() const;
+  gpu::GpuCrtAllocator* allocator() const;
 
   // Eigen GPU device. Used to launch Eigen kernels.
   Eigen::GpuDevice* eigen_gpu_device() const;

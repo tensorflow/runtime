@@ -24,7 +24,7 @@
 namespace tfrt {
 namespace gpu {
 class DenseGpuTensor;
-class GpuBuffer;
+class GpuCrtBuffer;
 
 // Transposes `input_filter` according to `channel_order` and writes the
 // output into `output_filter` buffer.
@@ -35,7 +35,7 @@ llvm::Error TransformFilterTensor(wrapper::CurrentContext current,
                                   const wrapper::Stream& stream,
                                   ChannelOrder channel_order,
                                   const DenseGpuTensor& input_filter,
-                                  GpuBuffer* output_filter);
+                                  GpuCrtBuffer* output_filter);
 
 // FusedBatchNormEx op supports side inputs and activations:
 //   (1) batch_norm + activation
@@ -48,7 +48,7 @@ llvm::Error FusedBatchNormEx(
     const DenseGpuTensor& scale, const DenseGpuTensor& bias,
     const DenseGpuTensor& mean, const DenseGpuTensor& variance,
     const DenseGpuTensor* side_input, float epsilon,
-    FusedBatchNormActivationMode activation_mode, GpuBuffer* output_buffer);
+    FusedBatchNormActivationMode activation_mode, GpuCrtBuffer* output_buffer);
 
 }  // namespace gpu
 }  // namespace tfrt

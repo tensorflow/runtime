@@ -70,14 +70,14 @@ BfcGpuAllocator::BfcGpuAllocator(const wrapper::CurrentContext& current)
   ReassignChunkToBin(c);
 }
 
-llvm::Expected<RCReference<gpu::GpuBuffer>> BfcGpuAllocator::Allocate(
+llvm::Expected<RCReference<gpu::GpuCrtBuffer>> BfcGpuAllocator::Allocate(
     size_t num_bytes, wrapper::Stream stream) {
   TFRT_TRACE_SCOPE(Default, "BfcGpuAllocator::Allocate");
   // First, always allocate memory of at least 256 bytes, and always
   // allocate multiples of 256 bytes so all memory addresses are
   // nicely byte aligned.
   static_assert(
-      GpuAllocator::kAlignment <= 256,
+      GpuCrtAllocator::kAlignment <= 256,
       "BfcGpuAllocator does not support alignment to more than 256 bytes");
   size_t rounded_bytes = (256 * ((num_bytes + 255) / 256));
   if (rounded_bytes == 0) {
@@ -123,7 +123,7 @@ llvm::Expected<RCReference<gpu::GpuBuffer>> BfcGpuAllocator::Allocate(
           SplitChunk(chunk, rounded_bytes);
         }
 
-        return MakeRef<gpu::GpuBuffer>(
+        return MakeRef<gpu::GpuCrtBuffer>(
             wrapper::Pointer<void>(chunk->ptr, stream.platform()), num_bytes,
             this);
       }
@@ -167,7 +167,7 @@ void BfcGpuAllocator::SplitChunk(BfcGpuAllocator::Chunk* c, size_t num_bytes) {
   ReassignChunkToBin(c);
 }
 
-void BfcGpuAllocator::Deallocate(const gpu::GpuBuffer& buffer) {
+void BfcGpuAllocator::Deallocate(const gpu::GpuCrtBuffer& buffer) {
   mutex_lock l(mu_);
 
   // Find the chunk from the ptr.
@@ -184,7 +184,7 @@ void BfcGpuAllocator::Deallocate(const gpu::GpuBuffer& buffer) {
   MaybeCoalesce(c);
 }
 
-llvm::Error BfcGpuAllocator::RecordUsage(const gpu::GpuBuffer& buffer,
+llvm::Error BfcGpuAllocator::RecordUsage(const gpu::GpuCrtBuffer& buffer,
                                          wrapper::Stream stream) {
   llvm_unreachable("RecordUsage is not implemented.");
 }

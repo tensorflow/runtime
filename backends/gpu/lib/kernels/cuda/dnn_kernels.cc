@@ -155,9 +155,9 @@ static Error DnnPoolingForward(
     const GpuDnnHandle& handle,
     const wrapper::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
-    const RCReference<GpuBuffer>& x, float beta,
+    const RCReference<GpuCrtBuffer>& x, float beta,
     const wrapper::OwningDnnTensorDescriptor& y_desc,
-    const RCReference<GpuBuffer>& y) {
+    const RCReference<GpuCrtBuffer>& y) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
@@ -172,13 +172,13 @@ static Error DnnPoolingBackward(
     const GpuDnnHandle& handle,
     const wrapper::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const wrapper::OwningDnnTensorDescriptor& y_desc,
-    const RCReference<GpuBuffer>& y,
+    const RCReference<GpuCrtBuffer>& y,
     const wrapper::OwningDnnTensorDescriptor& dy_desc,
-    const RCReference<GpuBuffer>& dy,
+    const RCReference<GpuCrtBuffer>& dy,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
-    const RCReference<GpuBuffer>& x, float beta,
+    const RCReference<GpuCrtBuffer>& x, float beta,
     const wrapper::OwningDnnTensorDescriptor& dx_desc,
-    const RCReference<GpuBuffer>& dx) {
+    const RCReference<GpuCrtBuffer>& dx) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
@@ -193,13 +193,13 @@ static Error DnnPoolingBackward(
 Error DnnConvolutionForward(
     const GpuDnnHandle& handle,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
-    const RCReference<GpuBuffer>& x,
+    const RCReference<GpuCrtBuffer>& x,
     const wrapper::OwningDnnFilterDescriptor& w_desc,
-    const RCReference<GpuBuffer>& w,
+    const RCReference<GpuCrtBuffer>& w,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
-    const RCReference<GpuBuffer>& work_space,
+    const RCReference<GpuCrtBuffer>& work_space,
     const wrapper::OwningDnnTensorDescriptor& y_desc,
-    const RCReference<GpuBuffer>& y) {
+    const RCReference<GpuCrtBuffer>& y) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   auto algo_dnn = wrapper::DnnConvFwdAlgo(algo, handle->platform());
@@ -212,13 +212,13 @@ Error DnnConvolutionForward(
 Error DnnConvolutionBackwardData(
     const GpuDnnHandle& handle,
     const wrapper::OwningDnnFilterDescriptor& w_desc,
-    const RCReference<GpuBuffer>& w,
+    const RCReference<GpuCrtBuffer>& w,
     const wrapper::OwningDnnTensorDescriptor& dy_desc,
-    const RCReference<GpuBuffer>& dy,
+    const RCReference<GpuCrtBuffer>& dy,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
-    const RCReference<GpuBuffer>& work_space,
+    const RCReference<GpuCrtBuffer>& work_space,
     const wrapper::OwningDnnTensorDescriptor& dx_desc,
-    const RCReference<GpuBuffer>& dx) {
+    const RCReference<GpuCrtBuffer>& dx) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   auto algo_dnn = wrapper::DnnConvBwdDataAlgo(algo, handle->platform());
@@ -231,13 +231,13 @@ Error DnnConvolutionBackwardData(
 Error DnnConvolutionBackwardFilter(
     const GpuDnnHandle& handle,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
-    const RCReference<GpuBuffer>& x,
+    const RCReference<GpuCrtBuffer>& x,
     const wrapper::OwningDnnTensorDescriptor& dy_desc,
-    const RCReference<GpuBuffer>& dy,
+    const RCReference<GpuCrtBuffer>& dy,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
-    const RCReference<GpuBuffer>& work_space,
+    const RCReference<GpuCrtBuffer>& work_space,
     const wrapper::OwningDnnFilterDescriptor& dw_desc,
-    const RCReference<GpuBuffer>& dw) {
+    const RCReference<GpuCrtBuffer>& dw) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   auto algo_dnn = wrapper::DnnConvBwdWeightsAlgo(algo, handle->platform());
@@ -249,21 +249,21 @@ Error DnnConvolutionBackwardFilter(
 
 // This is CUDA specific kernel, there is no ROCm counterpart.
 Error CudnnConvolutionBiasActivationForward(
-    const GpuDnnHandle& handle, const RCReference<GpuBuffer>& alpha1,
+    const GpuDnnHandle& handle, const RCReference<GpuCrtBuffer>& alpha1,
     const wrapper::OwningDnnTensorDescriptor& x_desc,
-    const RCReference<GpuBuffer>& x,
+    const RCReference<GpuCrtBuffer>& x,
     const wrapper::OwningDnnFilterDescriptor& w_desc,
-    const RCReference<GpuBuffer>& w,
+    const RCReference<GpuCrtBuffer>& w,
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
-    const RCReference<GpuBuffer>& work_space,
-    const RCReference<GpuBuffer>& alpha2,
+    const RCReference<GpuCrtBuffer>& work_space,
+    const RCReference<GpuCrtBuffer>& alpha2,
     const wrapper::OwningDnnTensorDescriptor& z_desc,
-    const RCReference<GpuBuffer>& z,
+    const RCReference<GpuCrtBuffer>& z,
     const wrapper::OwningDnnTensorDescriptor& bias_desc,
-    const RCReference<GpuBuffer>& bias,
+    const RCReference<GpuCrtBuffer>& bias,
     const wrapper::OwningDnnActivationDescriptor& activation_desc,
     const wrapper::OwningDnnTensorDescriptor& y_desc,
-    const RCReference<GpuBuffer>& y) {
+    const RCReference<GpuCrtBuffer>& y) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   auto algo_dnn = static_cast<cudnnConvolutionFwdAlgo_t>(algo);

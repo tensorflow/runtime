@@ -162,8 +162,8 @@ static CoalescedDimsAndPerm CoalesceTranspose(const TensorShape& shape,
 }
 
 static llvm::Error DispatchTrivialTranspose(
-    GpuDispatchContext* dctx, DType dtype, const GpuBuffer& input,
-    const GpuBuffer& output, const CoalescedDimsAndPerm& transpose) {
+    GpuDispatchContext* dctx, DType dtype, const GpuCrtBuffer& input,
+    const GpuCrtBuffer& output, const CoalescedDimsAndPerm& transpose) {
   assert(transpose.dims.size() == 2 && transpose.perm.size() == 2);
 
   ssize_t height = transpose.dims[0];
@@ -202,8 +202,8 @@ static llvm::Error DispatchTrivialTranspose(
 }
 
 static llvm::Error DispatchSwapDims1And2In3(
-    GpuDispatchContext* dctx, DType dtype, const GpuBuffer& input,
-    const GpuBuffer& output,
+    GpuDispatchContext* dctx, DType dtype, const GpuCrtBuffer& input,
+    const GpuCrtBuffer& output,
 
     const CoalescedDimsAndPerm& transpose) {
   assert(transpose.dims.size() == 3 && transpose.perm.size() == 3);

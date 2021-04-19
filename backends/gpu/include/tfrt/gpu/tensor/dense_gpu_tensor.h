@@ -37,9 +37,10 @@ namespace gpu {
 class DenseGpuTensor final : public Tensor,
                              public TensorTraits<DenseGpuTensor> {
  public:
-  DenseGpuTensor(const TensorMetadata& metadata, RCReference<GpuBuffer> buffer);
+  DenseGpuTensor(const TensorMetadata& metadata,
+                 RCReference<GpuCrtBuffer> buffer);
   DenseGpuTensor(const TensorShape& shape, DType dtype,
-                 RCReference<GpuBuffer> buffer);
+                 RCReference<GpuCrtBuffer> buffer);
 
   DenseGpuTensor(const DenseGpuTensor& b) = delete;
   DenseGpuTensor& operator=(const DenseGpuTensor& b) = delete;
@@ -68,12 +69,12 @@ class DenseGpuTensor final : public Tensor,
 
   void Print(llvm::raw_ostream& os) const override;
 
-  GpuBuffer& buffer() const { return *buffer_; }
+  GpuCrtBuffer& buffer() const { return *buffer_; }
 
-  RCReference<GpuBuffer> CopyBufferRef() const { return buffer_.CopyRef(); }
+  RCReference<GpuCrtBuffer> CopyBufferRef() const { return buffer_.CopyRef(); }
 
  private:
-  RCReference<GpuBuffer> buffer_;
+  RCReference<GpuCrtBuffer> buffer_;
 };
 
 template <typename T>

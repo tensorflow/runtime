@@ -67,8 +67,8 @@ TEST_P(GpuBufferTest, Basic) {
     // deallocator.
     auto buffer_ptr = buffer.get();
     auto buffer2 =
-        MakeRef<GpuBuffer>(buffer_ptr->pointer(), buffer_ptr->size(),
-                           [buffer = std::move(buffer)](GpuBuffer*) {});
+        MakeRef<GpuCrtBuffer>(buffer_ptr->pointer(), buffer_ptr->size(),
+                              [buffer = std::move(buffer)](GpuCrtBuffer*) {});
   }
 }
 

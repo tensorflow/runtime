@@ -103,14 +103,15 @@ DenseGpuTensorToDenseHostTensorConversionFn(const DenseGpuTensor& tensor,
 
 Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
     wrapper::CurrentContext current_context, wrapper::Stream stream,
-    GpuAllocator* allocator, const DenseHostTensor& tensor, HostContext* host) {
+    GpuCrtAllocator* allocator, const DenseHostTensor& tensor,
+    HostContext* host) {
   size_t size_in_bytes = tensor.metadata().GetHostSizeInBytes();
 
-  llvm::Expected<RCReference<gpu::GpuBuffer>> buffer_or_error =
+  llvm::Expected<RCReference<gpu::GpuCrtBuffer>> buffer_or_error =
       allocator->Allocate(
           /*size=*/size_in_bytes, stream);
   if (!buffer_or_error) return buffer_or_error.takeError();
-  RCReference<gpu::GpuBuffer> buffer = std::move(*buffer_or_error);
+  RCReference<gpu::GpuCrtBuffer> buffer = std::move(*buffer_or_error);
 
   Pointer<const void> memcpy_src(tensor.data(), current_context.platform());
   if (auto error = MemcpyAsync(current_context, /*dst=*/buffer->pointer(),

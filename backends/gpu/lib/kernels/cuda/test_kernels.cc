@@ -42,14 +42,12 @@ static void ReportError(KernelErrorHandler out, llvm::Error error) {
 // Convenience function that copies a host tensor to the device and returns a
 // buffer pointing to the newly allocated memory. The intended purpose of this
 // function is to make writing unit tests simpler
-static void TestCpyTensorHtoD(Argument<GpuContext> context,
-                              Argument<std::unique_ptr<GpuAllocator>> allocator,
-                              Argument<GpuStream> stream,
-                              Argument<DenseHostTensor> src,
-                              Argument<Chain> in_chain,
-                              Result<RCReference<GpuBuffer>> out_buffer,
-                              Result<Chain> out_chain,
-                              KernelErrorHandler handler) {
+static void TestCpyTensorHtoD(
+    Argument<GpuContext> context,
+    Argument<std::unique_ptr<GpuCrtAllocator>> allocator,
+    Argument<GpuStream> stream, Argument<DenseHostTensor> src,
+    Argument<Chain> in_chain, Result<RCReference<GpuCrtBuffer>> out_buffer,
+    Result<Chain> out_chain, KernelErrorHandler handler) {
   size_t tensor_size = src->DataSizeInBytes();
   auto buffer = (*allocator)->Allocate(tensor_size, stream->get());
   if (!buffer) return ReportError(handler, buffer.takeError());

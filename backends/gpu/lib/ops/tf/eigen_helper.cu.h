@@ -215,7 +215,7 @@ Expected<DenseGpuTensor> ComputeOpViaEigen(
   size_t size_in_bytes =
       result_md.dtype.GetHostSize() * result_md.shape.GetNumElements();
 
-  TFRT_ASSIGN_OR_RETURN(RCReference<gpu::GpuBuffer> result_buffer,
+  TFRT_ASSIGN_OR_RETURN(RCReference<gpu::GpuCrtBuffer> result_buffer,
                         dctx->allocator()->Allocate(
                             /*size=*/size_in_bytes, dctx->stream()));
 

@@ -137,20 +137,20 @@ static void CudaEventSynchronizeAsync(Argument<GpuEvent> event, Chain in_chain,
 // tfrt_gpu.allocator.create creates a new allocator.
 //
 // Result: new allocator.
-static std::unique_ptr<GpuAllocator> CudaAllocatorCreate(
+static std::unique_ptr<GpuCrtAllocator> CudaAllocatorCreate(
     Argument<GpuContext> context) {
   return std::make_unique<CachingGpuAllocator>(context.ValueRef());
 }
 
 // tfrt_gpu.allocator.destroy destroys an allocator.
 static void CudaAllocatorDestroy(
-    Argument<std::unique_ptr<GpuAllocator>> allocator) {
+    Argument<std::unique_ptr<GpuCrtAllocator>> allocator) {
   allocator->reset();
 }
 
 // tfrt_gpu.mem.allocate allocates a new CUDA buffer.
-static Expected<std::tuple<RCReference<GpuBuffer>>> CudaMemAllocate(
-    const std::unique_ptr<GpuAllocator>& allocator, const GpuStream& stream,
+static Expected<std::tuple<RCReference<GpuCrtBuffer>>> CudaMemAllocate(
+    const std::unique_ptr<GpuCrtAllocator>& allocator, const GpuStream& stream,
     int64_t size) {
   auto buffer = allocator->Allocate(size, stream.get());
   if (!buffer) return buffer.takeError();
@@ -158,7 +158,7 @@ static Expected<std::tuple<RCReference<GpuBuffer>>> CudaMemAllocate(
 }
 
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.
-static void CudaMemPrintMetadata(const RCReference<GpuBuffer>& buffer) {
+static void CudaMemPrintMetadata(const RCReference<GpuCrtBuffer>& buffer) {
   // The check for buffer validity is not done intentionally. Printing invalid
   // buffers can be useful for debugging.
   (tfrt::outs() << *buffer << "\n").flush();
@@ -168,7 +168,7 @@ static void CudaMemPrintMetadata(const RCReference<GpuBuffer>& buffer) {
 // It is specialized for each supported DType.
 template <typename T>
 static Expected<std::tuple<DenseGpuTensor>> CudaTensorMake(
-    const RCReference<GpuBuffer>& buffer, TensorShape shape) {
+    const RCReference<GpuCrtBuffer>& buffer, TensorShape shape) {
   if (!buffer->IsValid()) {
     return MakeStringError(
         "Cannot make tensor from invalid (moved from?) buffer");
@@ -203,7 +203,7 @@ static Error CheckMemcpySizes(size_t dst_size, size_t src_size,
 
 // tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
 static Error CudaMemcpyHtoD(const GpuContext& context,
-                            const RCReference<GpuBuffer>& dst,
+                            const RCReference<GpuCrtBuffer>& dst,
                             const RCReference<HostBuffer>& src,
                             int64_t bytes_count, const GpuStream& stream) {
   if (auto error = CheckMemcpySizes(dst->size(), src->size(), bytes_count))
@@ -219,7 +219,7 @@ static Error CudaMemcpyHtoD(const GpuContext& context,
 // tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
 static Error CudaMemcpyDtoH(const GpuContext& context,
                             const RCReference<HostBuffer>& dst,
-                            const RCReference<GpuBuffer>& src,
+                            const RCReference<GpuCrtBuffer>& src,
                             int64_t bytes_count, const GpuStream& stream) {
   if (auto error = CheckMemcpySizes(dst->size(), src->size(), bytes_count))
     return error;
@@ -251,8 +251,8 @@ static Error CudaFunctionLaunch(const GpuStream& stream, GpuFunction function,
   llvm::SmallVector<uintptr_t, 16> arg_values;
   arg_values.reserve(args.size());
   for (const auto& arg : args.values()) {
-    if (arg->IsType<RCReference<GpuBuffer>>()) {
-      auto pointer = arg->get<RCReference<GpuBuffer>>()->pointer();
+    if (arg->IsType<RCReference<GpuCrtBuffer>>()) {
+      auto pointer = arg->get<RCReference<GpuCrtBuffer>>()->pointer();
       arg_values.push_back(reinterpret_cast<uintptr_t>(pointer.raw()));
     } else if (arg->IsType<int32_t>()) {
       arg_values.push_back(arg->get<int32_t>());

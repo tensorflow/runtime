@@ -33,7 +33,7 @@ class TensorConversionFnRegistry;
 
 namespace gpu {
 
-class GpuAllocator;
+class GpuCrtAllocator;
 class GpuDispatchContext;
 class DenseGpuTensor;
 
@@ -43,7 +43,8 @@ AsyncValueRef<DenseHostTensor> ConvertDenseGpuTensorToDenseHostTensor(
 
 Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
     wrapper::CurrentContext current_context, wrapper::Stream stream,
-    GpuAllocator* allocator, const DenseHostTensor& tensor, HostContext* host);
+    GpuCrtAllocator* allocator, const DenseHostTensor& tensor,
+    HostContext* host);
 
 void RegisterGpuTensorConversionFn(TensorConversionFnRegistry* registry);
 

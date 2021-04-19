@@ -49,7 +49,7 @@ class GpuDispatchContext {
   wrapper::Stream stream() const { return stream_; }
 
   // Allocator for allocating GPU device memory.
-  gpu::GpuAllocator* allocator() const { return allocator_; }
+  gpu::GpuCrtAllocator* allocator() const { return allocator_; }
 
   // Eigen GPU device. Used to launch Eigen kernels.
   Eigen::GpuDevice* eigen_gpu_device() const { return eigen_gpu_device_; }
@@ -70,7 +70,7 @@ class GpuDispatchContext {
  private:
   const GpuDevice* device_;
   wrapper::Stream stream_;
-  GpuAllocator* allocator_;
+  GpuCrtAllocator* allocator_;
   Eigen::GpuDevice* eigen_gpu_device_;
   wrapper::BlasHandle blas_handle_;
   wrapper::DnnHandle dnn_handle_;

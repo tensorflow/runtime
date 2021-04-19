@@ -282,7 +282,7 @@ struct TransformFilter {
   llvm::Error operator()(wrapper::CurrentContext current,
                          const wrapper::Stream& stream,
                          ChannelOrder channel_order, const DenseGpuTensor& in,
-                         GpuBuffer* out) {
+                         GpuCrtBuffer* out) {
     Dimension<3> combined_dims;
     combined_dims[0] = in.shape().GetDimensionSize(0);  // spatial dimensions
     for (int i = 1; i < 2; i++) {
@@ -505,13 +505,16 @@ __global__ void FusedBatchNormInferenceMetaKernel(
 // with side input and activation.
 template <typename T, typename U>
 struct FusedBatchNormInferenceFunctor {
-  llvm::Error operator()(
-      wrapper::CurrentContext current, const wrapper::Stream& stream,
-      ChannelOrder channel_order, const DenseGpuTensor& input,
-      const DenseGpuTensor& scale, const DenseGpuTensor& bias,
-      const DenseGpuTensor& mean, const DenseGpuTensor& variance,
-      const DenseGpuTensor* side_input, float epsilon,
-      FusedBatchNormActivationMode activation_mode, GpuBuffer* output_buffer) {
+  llvm::Error operator()(wrapper::CurrentContext current,
+                         const wrapper::Stream& stream,
+                         ChannelOrder channel_order,
+                         const DenseGpuTensor& input,
+                         const DenseGpuTensor& scale,
+                         const DenseGpuTensor& bias, const DenseGpuTensor& mean,
+                         const DenseGpuTensor& variance,
+                         const DenseGpuTensor* side_input, float epsilon,
+                         FusedBatchNormActivationMode activation_mode,
+                         GpuCrtBuffer* output_buffer) {
     int32_t count = input.NumElements();
     if (count == 0) return llvm::Error::success();
 
@@ -605,7 +608,7 @@ llvm::Error TransformFilterTensor(wrapper::CurrentContext current,
                                   const wrapper::Stream& stream,
                                   ChannelOrder channel_order,
                                   const DenseGpuTensor& input_filter,
-                                  GpuBuffer* output_filter) {
+                                  GpuCrtBuffer* output_filter) {
   switch (input_filter.dtype().kind()) {
 #define DTYPE_NUMERIC(ENUM)                                                 \
   case DType::ENUM: {                                                       \
@@ -625,7 +628,7 @@ llvm::Error FusedBatchNormEx(
     const DenseGpuTensor& scale, const DenseGpuTensor& bias,
     const DenseGpuTensor& mean, const DenseGpuTensor& variance,
     const DenseGpuTensor* side_input, float epsilon,
-    FusedBatchNormActivationMode activation_mode, GpuBuffer* output_buffer) {
+    FusedBatchNormActivationMode activation_mode, GpuCrtBuffer* output_buffer) {
   switch (input.dtype().kind()) {
     case DType::F16: {
       auto functor = FusedBatchNormInferenceFunctor<Eigen::half, float>();

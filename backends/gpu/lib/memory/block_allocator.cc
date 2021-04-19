@@ -25,7 +25,7 @@
 namespace tfrt {
 namespace gpu {
 
-llvm::Expected<RCReference<gpu::GpuBuffer>> BlockAllocator::Allocate(
+llvm::Expected<RCReference<gpu::GpuCrtBuffer>> BlockAllocator::Allocate(
     size_t size, wrapper::Stream stream) {
   auto block = FindFreeBlock(size, stream);
   if (!block) {
@@ -42,16 +42,16 @@ llvm::Expected<RCReference<gpu::GpuBuffer>> BlockAllocator::Allocate(
                                 block->pointer.raw(sub_allocator_->platform())),
                             *block);
 
-  return MakeRef<GpuBuffer>(block->pointer, block->size, this);
+  return MakeRef<GpuCrtBuffer>(block->pointer, block->size, this);
 }
 
-void BlockAllocator::Deallocate(const gpu::GpuBuffer& buffer) {
+void BlockAllocator::Deallocate(const gpu::GpuCrtBuffer& buffer) {
   assert(buffer.IsValid());
   FreeBlock(reinterpret_cast<uintptr_t>(
       buffer.pointer().raw(sub_allocator_->platform())));
 }
 
-llvm::Error BlockAllocator::RecordUsage(const gpu::GpuBuffer&,
+llvm::Error BlockAllocator::RecordUsage(const gpu::GpuCrtBuffer&,
                                         wrapper::Stream) {
   // Nothing to do here, this allocator is currently just a stub.
   return llvm::Error::success();

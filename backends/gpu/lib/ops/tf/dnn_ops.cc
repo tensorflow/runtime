@@ -418,7 +418,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
 
   cudnnConvolutionFwdAlgo_t algo;
   size_t workspace_size_bytes = 0;
-  RCReference<GpuBuffer> workspace_buffer;
+  RCReference<GpuCrtBuffer> workspace_buffer;
 
   // TODO(tfrt-devs): Instead of reading default algorithms from an
   // environment variable, we need to pass these options explicitly through op

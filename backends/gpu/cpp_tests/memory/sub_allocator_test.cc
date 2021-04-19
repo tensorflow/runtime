@@ -44,7 +44,7 @@ TEST_P(SubAllocatorTest, GetPlatformTest) {
 
 TEST_P(SubAllocatorTest, SingleStreamTest) {
   size_t kBlockSize = 512;
-  size_t kAlignment = GpuAllocator::kAlignment;
+  size_t kAlignment = GpuCrtAllocator::kAlignment;
   SubAllocator sub_allocator(GetParam());
   {
     TFRT_ASSERT_AND_ASSIGN(

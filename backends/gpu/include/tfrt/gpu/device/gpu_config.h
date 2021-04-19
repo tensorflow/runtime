@@ -25,7 +25,7 @@ namespace tfrt {
 namespace gpu {
 
 using GpuAllocatorFactory =
-    std::function<GpuAllocator*(const wrapper::Context&)>;
+    std::function<GpuCrtAllocator*(const wrapper::Context&)>;
 
 struct GpuResources {
   // Either CUcontext or hipCtx_t.

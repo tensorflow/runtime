@@ -30,8 +30,8 @@ namespace gpu {
 
 llvm::Expected<wrapper::Pointer<void>> SubAllocator::Allocate(
     size_t size, wrapper::Stream stream) {
-  size_t mask = GpuAllocator::kAlignment - 1;
-  if (GpuAllocator::kAlignment & mask) {
+  size_t mask = GpuCrtAllocator::kAlignment - 1;
+  if (GpuCrtAllocator::kAlignment & mask) {
     return llvm::createStringError(llvm::errc::invalid_argument,
                                    "Alignment must be power of two.");
   }

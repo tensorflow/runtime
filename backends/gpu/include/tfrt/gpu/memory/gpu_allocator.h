@@ -29,7 +29,7 @@ namespace tfrt {
 namespace gpu {
 
 // GpuAllocator implementations are expected to be thread-safe.
-class GpuAllocator {
+class GpuCrtAllocator {
  public:
   // Buffers returned by subclasses must be aligned at least to `kAlignment`.
   // NOTE: Kernels should not assume that all buffers passed in will be aligned
@@ -37,7 +37,7 @@ class GpuAllocator {
   // less aligned parts of it to kernels.
   static const size_t kAlignment = 256;
 
-  virtual ~GpuAllocator() = default;
+  virtual ~GpuCrtAllocator() = default;
 
   // Allocates a buffer of at least `size` bytes.
   // Allocated buffer is associated with `stream`.
@@ -49,13 +49,13 @@ class GpuAllocator {
   // (i.e. returned from Allocate() again) until the use on a non-primary stream
   // has finished. This can result in extra synchronization and some overheads,
   // especially when operating close to memory capacity.
-  virtual llvm::Expected<RCReference<GpuBuffer>> Allocate(
+  virtual llvm::Expected<RCReference<GpuCrtBuffer>> Allocate(
       size_t size, wrapper::Stream stream) = 0;
 
   // Lets the allocator know that the space identified by `buffer` will
   // not be used in the future. Users are permitted to call this method
   // before already scheduled computation completes.
-  virtual void Deallocate(const GpuBuffer& buffer) = 0;
+  virtual void Deallocate(const GpuCrtBuffer& buffer) = 0;
 
   // Users must call this method if the `buffer` is used on a `stream` that
   // is different from the primary stream, i.e. the stream that was passed
@@ -66,9 +66,12 @@ class GpuAllocator {
   // user can notify us right after the last usage, we can create an event at
   // that point and synchronize to it (instead of top-of-the-stream during
   // Deallocate()) to know when it is safe to reuse the buffer.
-  virtual llvm::Error RecordUsage(const GpuBuffer& buffer,
+  virtual llvm::Error RecordUsage(const GpuCrtBuffer& buffer,
                                   wrapper::Stream stream) = 0;
 };
+
+// TODO(b/185219734): Remove.
+using GpuAllocator = GpuCrtAllocator;
 
 }  // namespace gpu
 }  // namespace tfrt

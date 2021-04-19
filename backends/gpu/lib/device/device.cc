@@ -60,7 +60,7 @@ class GpuDevice::Impl {
   gpu::OwningEigenStreamInterface eigen_stream_interface_;
   gpu::OwningEigenGpuDevice eigen_gpu_device_;
 
-  std::unique_ptr<gpu::GpuAllocator> allocator_;
+  std::unique_ptr<gpu::GpuCrtAllocator> allocator_;
 };
 
 llvm::Error GpuDevice::Impl::Initialize() {
@@ -76,7 +76,7 @@ llvm::Error GpuDevice::Impl::Initialize() {
     TFRT_ASSIGN_OR_RETURN(auto current, CtxSetCurrent(context_));
     current_context.emplace(current);
 
-    allocator_ = std::unique_ptr<gpu::GpuAllocator>(
+    allocator_ = std::unique_ptr<gpu::GpuCrtAllocator>(
         gpu_resources->allocator_factory(context_));
 
     stream_ = gpu_resources->stream;
@@ -90,8 +90,8 @@ llvm::Error GpuDevice::Impl::Initialize() {
                           StreamCreate(current, wrapper::StreamFlags::DEFAULT));
     stream_ = owned_stream_.get();
 
-    allocator_ =
-        std::unique_ptr<gpu::GpuAllocator>(new gpu::BfcGpuAllocator(current));
+    allocator_ = std::unique_ptr<gpu::GpuCrtAllocator>(
+        new gpu::BfcGpuAllocator(current));
   }
 
   eigen_stream_interface_ = gpu::CreateEigenStreamInterface(stream_);
@@ -120,7 +120,7 @@ llvm::Error GpuDevice::Initialize() { return impl_->Initialize(); }
 
 wrapper::Stream GpuDevice::stream() const { return impl_->stream_; }
 
-gpu::GpuAllocator* GpuDevice::allocator() const {
+gpu::GpuCrtAllocator* GpuDevice::allocator() const {
   return impl_->allocator_.get();
 }
 

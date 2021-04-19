@@ -25,21 +25,21 @@
 namespace tfrt {
 namespace gpu {
 
-GpuBuffer::GpuBuffer(wrapper::Pointer<void> pointer, size_t size,
-                     GpuAllocator* allocator)
+GpuCrtBuffer::GpuCrtBuffer(wrapper::Pointer<void> pointer, size_t size,
+                           GpuCrtAllocator* allocator)
     : pointer_(pointer),
       size_(size),
       has_allocator_(true),
       allocator_(allocator) {}
 
-GpuBuffer::GpuBuffer(wrapper::Pointer<void> pointer, size_t size,
-                     Deallocator deallocator)
+GpuCrtBuffer::GpuCrtBuffer(wrapper::Pointer<void> pointer, size_t size,
+                           Deallocator deallocator)
     : pointer_(pointer),
       size_(size),
       has_allocator_(false),
       deallocator_(std::move(deallocator)) {}
 
-GpuBuffer::~GpuBuffer() {
+GpuCrtBuffer::~GpuCrtBuffer() {
   if (has_allocator_) {
     if (allocator_ != nullptr) {
       allocator_->Deallocate(*this);
@@ -50,7 +50,8 @@ GpuBuffer::~GpuBuffer() {
   }
 }
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const GpuBuffer& buffer) {
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              const GpuCrtBuffer& buffer) {
   os << "GpuBuffer<pointer=" << buffer.pointer() << ", size=" << buffer.size()
      << ">";
   return os;

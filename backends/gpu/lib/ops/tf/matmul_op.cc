@@ -74,7 +74,7 @@ static llvm::Error CallCublasGemm(wrapper::CurrentContext current,
                                   bool transpose_b, uint64_t m, uint64_t k,
                                   uint64_t n, const gpu::DenseGpuTensor& a,
                                   const gpu::DenseGpuTensor& b,
-                                  GpuBuffer* result) {
+                                  GpuCrtBuffer* result) {
   TFRT_TRACE_SCOPE(Default, "CublasGemm");
   // Blas expects matrices in column major.
   // Use C' = B' x A' (' stands for transpose)
@@ -94,7 +94,7 @@ static llvm::Error CallCublasGemm(wrapper::CurrentContext current,
 llvm::Error RunCublasGemm(wrapper::CurrentContext current,
                           wrapper::BlasHandle handle, bool transpose_a,
                           bool transpose_b, const gpu::DenseGpuTensor& a,
-                          const gpu::DenseGpuTensor& b, GpuBuffer* result) {
+                          const gpu::DenseGpuTensor& b, GpuCrtBuffer* result) {
   const int a_matching_dim = transpose_a ? 0 : 1;
   const int b_matching_dim = transpose_b ? 1 : 0;
   const int a_remaining_dim = 1 - a_matching_dim;
@@ -127,7 +127,7 @@ static llvm::Expected<DenseGpuTensor> GpuMatmulOp(
   TFRT_TRACE_SCOPE(Default, "GpuMatmulOp");
 
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
-  TFRT_ASSIGN_OR_RETURN(RCReference<GpuBuffer> buffer,
+  TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> buffer,
                         dctx->allocator()->Allocate(
                             /*size=*/size_in_bytes, dctx->stream()));
 

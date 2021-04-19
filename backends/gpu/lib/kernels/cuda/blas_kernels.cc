@@ -39,8 +39,8 @@ static Expected<GpuBlasHandle> BlasCreate(Argument<GpuStream> stream) {
 }
 
 static Error BlasSaxpy(const GpuBlasHandle& handle, int32_t n, float alpha,
-                       const RCReference<GpuBuffer>& x, int32_t incx,
-                       const RCReference<GpuBuffer>& y, int32_t incy) {
+                       const RCReference<GpuCrtBuffer>& x, int32_t incx,
+                       const RCReference<GpuCrtBuffer>& y, int32_t incy) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   wrapper::Pointer<const float> alpha_ptr(&alpha, handle->platform());
@@ -79,9 +79,10 @@ static llvm::Expected<cublasGemmAlgo_t> SafeIntToCublasGemmAlgo(int32_t algo) {
 }
 
 static Error BlasSgemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
-                       int32_t k, float alpha, const RCReference<GpuBuffer>& A,
-                       int32_t lda, const RCReference<GpuBuffer>& B,
-                       int32_t ldb, float beta, const RCReference<GpuBuffer>& C,
+                       int32_t k, float alpha,
+                       const RCReference<GpuCrtBuffer>& A, int32_t lda,
+                       const RCReference<GpuCrtBuffer>& B, int32_t ldb,
+                       float beta, const RCReference<GpuCrtBuffer>& C,
                        int32_t ldc, Attribute<bool> transa,
                        Attribute<bool> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
@@ -102,11 +103,11 @@ static Error BlasSgemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
 // feasible due to mismatch in APIs (algo specification parameter).  Right now
 // only CublasGemmEx call is supported.
 static Error BlasGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
-                        int32_t k, float alpha, const RCReference<GpuBuffer>& A,
-                        int32_t Atype, int32_t lda,
-                        const RCReference<GpuBuffer>& B, int32_t Btype,
-                        int32_t ldb, float beta,
-                        const RCReference<GpuBuffer>& C, int32_t Ctype,
+                        int32_t k, float alpha,
+                        const RCReference<GpuCrtBuffer>& A, int32_t Atype,
+                        int32_t lda, const RCReference<GpuCrtBuffer>& B,
+                        int32_t Btype, int32_t ldb, float beta,
+                        const RCReference<GpuCrtBuffer>& C, int32_t Ctype,
                         int32_t ldc, int32_t computeType, int32_t algo,
                         Attribute<bool> transa, Attribute<bool> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
@@ -146,10 +147,10 @@ static Error BlasGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
 // a chain), simply return an empty tuple.
 static Error BlasSyncGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
                             int32_t k, float alpha,
-                            const RCReference<GpuBuffer>& A, int32_t Atype,
-                            int32_t lda, const RCReference<GpuBuffer>& B,
+                            const RCReference<GpuCrtBuffer>& A, int32_t Atype,
+                            int32_t lda, const RCReference<GpuCrtBuffer>& B,
                             int32_t Btype, int32_t ldb, float beta,
-                            const RCReference<GpuBuffer>& C, int32_t Ctype,
+                            const RCReference<GpuCrtBuffer>& C, int32_t Ctype,
                             int32_t ldc, int32_t algo,
                             Attribute<int32_t> computeType,
                             Attribute<bool> transa, Attribute<bool> transb) {
@@ -186,12 +187,12 @@ static Error BlasSyncGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
 
 static Error BlasGemmStridedBatchedEx(
     const GpuBlasHandle& handle, int32_t m, int32_t n, int32_t k, float alpha,
-    const RCReference<GpuBuffer>& A, int32_t Atype, int32_t lda,
-    int64_t strideA, const RCReference<GpuBuffer>& B, int32_t Btype,
-    int32_t ldb, int64_t strideB, float beta, const RCReference<GpuBuffer>& C,
-    int32_t Ctype, int32_t ldc, int64_t strideC, int32_t batch_count,
-    int32_t computeType, int32_t algo, Attribute<bool> transa,
-    Attribute<bool> transb) {
+    const RCReference<GpuCrtBuffer>& A, int32_t Atype, int32_t lda,
+    int64_t strideA, const RCReference<GpuCrtBuffer>& B, int32_t Btype,
+    int32_t ldb, int64_t strideB, float beta,
+    const RCReference<GpuCrtBuffer>& C, int32_t Ctype, int32_t ldc,
+    int64_t strideC, int32_t batch_count, int32_t computeType, int32_t algo,
+    Attribute<bool> transa, Attribute<bool> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   wrapper::Pointer<const float> alpha_ptr(&alpha, handle->platform());

@@ -70,9 +70,6 @@ class GpuCrtAllocator {
                                   wrapper::Stream stream) = 0;
 };
 
-// TODO(b/185219734): Remove.
-using GpuAllocator = GpuCrtAllocator;
-
 }  // namespace gpu
 }  // namespace tfrt
 

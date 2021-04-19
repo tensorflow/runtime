@@ -97,9 +97,6 @@ T* GetRawPointer(const GpuCrtBuffer& buffer) {
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
                               const GpuCrtBuffer& buffer);
 
-// TODO(b/185219734): Remove.
-using GpuBuffer = GpuCrtBuffer;
-
 }  // namespace gpu
 }  // namespace tfrt
 

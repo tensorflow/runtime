@@ -62,6 +62,7 @@ tfrt_cc_test(
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//backends/gpu:gpu_memory",
+        "@tf_runtime//backends/gpu:gpu_wrapper",
         "@tf_runtime//cpp_tests:common",
     ],
 )
@@ -103,6 +104,7 @@ tfrt_cc_test(
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//backends/gpu:gpu_memory",
+        "@tf_runtime//backends/gpu:gpu_wrapper",
         "@tf_runtime//cpp_tests:common",
     ],
 )

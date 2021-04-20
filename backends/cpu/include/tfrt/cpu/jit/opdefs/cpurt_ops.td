@@ -70,10 +70,10 @@ def CallOp : CPURT_Op<"call"> {
 def CompileOp : CPURT_Op<"compile"> {
   let summary = "cpurt compile operation";
   let description = [{
-    cpurt.compile compiles a mlir CPU program to the executable binary format
-    using LLVM JIT APIs and returns a cached compilationresult.
+    `cpurt.compile` compiles a mlir CPU program to the cpurt JIT executable
+    using LLVM JIT APIs and returns a cached `!cpurt.jit_executable` result.
 
-    Compiled kernels support limited function signatures:
+    JIT executables support limited function signatures:
 
     1. Arguments must be ranked memrefs, and execute kernel converts dense
        tensors to memrefs when calls compiled kernels.
@@ -93,12 +93,12 @@ def CompileOp : CPURT_Op<"compile"> {
         }
       }
 
-      %compilation_result = cpurt.compile { kernel = @kernel::@main }
+      %executable = cpurt.compile { kernel = @kernel::@main }
     ```
   }];
 
   let arguments = (ins SymbolRefAttr:$kernel);
-  let results = (outs CompilationResultType);
+  let results = (outs JitExecutableType);
   let assemblyFormat = "attr-dict";
 }
 
@@ -107,10 +107,13 @@ def CompileOp : CPURT_Op<"compile"> {
 def ExecuteOp : CPURT_Op<"execute"> {
   let summary = "cpurt execute operation";
   let description = [{
-    cpurt.execute executes compiled binary produced by the cpurt.compiled
-    operation with provided operands. It takes an async chain as a dependency
-    (all operands are ready), and returns and async chain that signals execution
-    completion (all results are ready).
+    `cpurt.execute` takes an executable produced by the `cpurt.compile`
+    operation and executes it with provided operands. It takes an async chain as
+    a dependency (all operands are ready).
+
+    Values returned from the compiled function converted to TFRT types:
+      1. `!async.token` converted to `!tfrt.chain`
+      2. `!async.value<memref<...>>` (or `memref<...>`) converted to `!t.tensor`
 
     Example:
 
@@ -122,13 +125,13 @@ def ExecuteOp : CPURT_Op<"execute"> {
 
       // Wait for the completion of previous operation and execute compiled
       // kernel.
-      %executed = cpurt.execute %compilation_result[%buffers_ready]
+      %executed = cpurt.execute %executable [%buffers_ready]
                   (%tensor0, %tensor1) : (!t.tensor, !t.tensor) -> !tfrt.chain
     ```
   }];
 
   let arguments = (ins
-    CompilationResultType:$compilation_result,
+    JitExecutableType:$jit_executable,
     TFRT_ChainType:$in_chain,
     Variadic<TensorType>:$operands
   );
@@ -138,8 +141,7 @@ def ExecuteOp : CPURT_Op<"execute"> {
   );
 
   let assemblyFormat = [{
-    $compilation_result `[` $in_chain `]`
-    `(` $operands `)` attr-dict `:`
+    $jit_executable `[` $in_chain `]` `(` $operands `)` attr-dict `:`
     functional-type($operands, $results)
   }];
 }
@@ -151,51 +153,28 @@ def ExecuteOp : CPURT_Op<"execute"> {
 def CoreRtCompileOp : CPURT_Op<"corert.compile"> {
   let summary = "cpurt compile operation with CoreRT interop";
   let description = [{
-    cpurt.corert.compile is almost identical to the cpurt.compile op, it only
+    `cpurt.corert.compile` is almost identical to the cpurt.compile op, it only
     does additional compiled kernel verification to ensure that returned types
     could be converted to TensorHandles (return values must be async values of
     ranked memref type, async tokens are not supported).
   }];
 
   let arguments = (ins SymbolRefAttr:$kernel);
-  let results = (outs CompilationResultType);
+  let results = (outs JitExecutableType);
   let assemblyFormat = "attr-dict";
 }
 
 def CoreRtExecuteOp : CPURT_Op<"corert.execute"> {
   let summary = "cpurt execute operation with CoreRT interop";
   let description = [{
-    cpurt.corert.execute executes compiled binary produced by the cpurt.compiled
-    operation with provided tensor handle operands, and returns a tensor handle
-    for each result.
-
-    For each result, this kernel will allocate a tensor with the given shape and
-    pass it to the compiled kernel as an output buffer argument.
-
-    Example:
-
-    ```mlir
-      // Compiled kernel function has two buffer arguments. Second buffer
-      // argument will be allocated based on the shape argument passed to the
-      // `cpurt.corert.execute` kernel.
-      module @kernel attributes { tfrt.compiled } {
-        func @main(%in : memref<?xf32>, %out : memref<?xf32>) {
-        }
-      }
-
-      %compilation_result = cpurt.compile { kernel = @kernel::@main }
-
-      %input = ... : !corert.tensorhandle  // input tensor
-      %shape = ... : !ts.shape             // shape of the `%result` tensor
-
-      %result = cpurt.corert.execute %compilation_result
-                  (%input : !corert.tensorhandle)
-                  (%shape : !ts.shape) -> !corert.tensorhandle
-    ```
+    `cpurt.corert.execute` provides integration with the CoreRT by taking
+    `!corert.tensorhandle` operands and automatically converting all returned
+    tensors to the CoreRT tensor handles, so that the user program does not
+    have to do explicit `handle <-> tensor` conversions.
   }];
 
   let arguments = (ins
-    CompilationResultType:$compilation_result,
+    JitExecutableType:$jit_executable,
     Variadic<CoreRT_TensorHandleType>:$operands
   );
 
@@ -204,8 +183,7 @@ def CoreRtExecuteOp : CPURT_Op<"corert.execute"> {
   );
 
   let assemblyFormat = [{
-    $compilation_result
-    `(` $operands `)` attr-dict `:`
+    $jit_executable `(` $operands `)` attr-dict `:`
     functional-type($operands, $results)
   }];
 }

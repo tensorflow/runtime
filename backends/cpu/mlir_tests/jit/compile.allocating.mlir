@@ -54,10 +54,10 @@ func @compiled_add_f32_tensors() {
   %expected_ready = tfrt_dht.fill_tensor_with_constant.f32 %expected, %ch0 2.0 : f32
 
   // Compile simple addition implemented as a Linalg generic operation.
-  %compilation_result = cpurt.compile { kernel = @kernels::@main }
+  %executable = cpurt.compile { kernel = @kernels::@main }
 
   // Execute compiled kernel with tensor operands.
-  %executed, %output = cpurt.execute %compilation_result[%input_ready](%input)
+  %executed, %output = cpurt.execute %executable[%input_ready](%input)
               : (!t.tensor) -> (!tfrt.chain, !t.tensor)
 
   // Wait for the execution completion and compare result with expected.

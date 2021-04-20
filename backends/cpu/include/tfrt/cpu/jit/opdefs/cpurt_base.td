@@ -38,8 +38,8 @@ def TFRT_CPURT_Dialect : Dialect {
   let cppNamespace = "::tfrt::cpu::jit";
 }
 
-def CompilationResultType : OpaqueType<"cpurt", "compilation_result",
-                                       "!cpurt.compilation_result type">;
+def JitExecutableType : OpaqueType<"cpurt", "jit_executable",
+                                   "!cpurt.jit_executable type">;
 
 
 #endif // CPURT_BASE

@@ -20,6 +20,7 @@
 //===----------------------------------------------------------------------===//
 #include <cstdint>
 
+#include "kernels.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/gpu_types.h"
@@ -51,86 +52,75 @@ static llvm::Expected<cublasFillMode_t> SafeIntToCublasFillMode(
 }
 
 static llvm::Expected<wrapper::OwningSolverDnHandle> SolverDnCreate(
-    Argument<GpuContext> context, Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+    const GpuContext& context) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
   return wrapper::SolverDnCreate(current.get());
 }
 
-Expected<Chain> SolverDnSetStream(
-    const wrapper::OwningSolverDnHandle& solver_handle,
-    const wrapper::OwningStream& stream, Argument<Chain> in_chain) {
-  auto result = wrapper::SolverDnSetStream(solver_handle.get(), stream.get());
-  if (!result) return std::move(result);
-  return in_chain.get();
+Error SolverDnSetStream(const wrapper::OwningSolverDnHandle& solver_handle,
+                        const wrapper::OwningStream& stream) {
+  return wrapper::SolverDnSetStream(solver_handle.get(), stream.get());
 }
 
 llvm::Expected<int32_t> SolverDnSpotrfBufferSize(
-    Argument<GpuContext> context,
-    const wrapper::OwningSolverDnHandle& cusolver_handle,
-    Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
-    Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+    const GpuContext& context,
+    const wrapper::OwningSolverDnHandle& cusolver_handle, int32_t uplo,
+    int32_t n, const RCReference<GpuCrtBuffer>& A, int32_t lda) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
-  auto uplo_solver = SafeIntToCublasFillMode(*uplo);
+  auto uplo_solver = SafeIntToCublasFillMode(uplo);
   if (!uplo_solver) return uplo_solver.takeError();
 
   return wrapper::CusolverDnSpotrfBufferSize(
-      current.get(), cusolver_handle.get(), *uplo_solver, *n,
-      wrapper::Pointer<float>(A->get()->pointer()), *lda);
+      current.get(), cusolver_handle.get(), *uplo_solver, n,
+      wrapper::Pointer<float>(A->pointer()), lda);
 }
 
 llvm::Expected<int32_t> SolverDnDpotrfBufferSize(
-    Argument<GpuContext> context,
-    const wrapper::OwningSolverDnHandle& cusolver_handle,
-    Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
-    Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+    const GpuContext& context,
+    const wrapper::OwningSolverDnHandle& cusolver_handle, int32_t uplo,
+    int32_t n, const RCReference<GpuCrtBuffer>& A, int32_t lda) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
-  auto uplo_solver = SafeIntToCublasFillMode(*uplo);
+  auto uplo_solver = SafeIntToCublasFillMode(uplo);
   if (!uplo_solver) return uplo_solver.takeError();
 
   return wrapper::CusolverDnDpotrfBufferSize(
-      current.get(), cusolver_handle.get(), *uplo_solver, *n,
-      wrapper::Pointer<double>(A->get()->pointer()), *lda);
+      current.get(), cusolver_handle.get(), *uplo_solver, n,
+      wrapper::Pointer<double>(A->pointer()), lda);
 }
 
 llvm::Expected<int32_t> SolverDnCpotrfBufferSize(
-    Argument<GpuContext> context,
-    const wrapper::OwningSolverDnHandle& cusolver_handle,
-    Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
-    Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+    const GpuContext& context,
+    const wrapper::OwningSolverDnHandle& cusolver_handle, int32_t uplo,
+    int32_t n, const RCReference<GpuCrtBuffer>& A, int32_t lda) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
-  auto uplo_solver = SafeIntToCublasFillMode(*uplo);
+  auto uplo_solver = SafeIntToCublasFillMode(uplo);
   if (!uplo_solver) return uplo_solver.takeError();
 
   return wrapper::CusolverDnCpotrfBufferSize(
-      current.get(), cusolver_handle.get(), *uplo_solver, *n,
-      wrapper::Pointer<cuComplex>(A->get()->pointer()), *lda);
+      current.get(), cusolver_handle.get(), *uplo_solver, n,
+      wrapper::Pointer<cuComplex>(A->pointer()), lda);
 }
 
 llvm::Expected<int32_t> SolverDnZpotrfBufferSize(
-    Argument<GpuContext> context,
-    const wrapper::OwningSolverDnHandle& cusolver_handle,
-    Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
-    Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+    const GpuContext& context,
+    const wrapper::OwningSolverDnHandle& cusolver_handle, int32_t uplo,
+    int32_t n, const RCReference<GpuCrtBuffer>& A, int32_t lda) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
-  auto uplo_solver = SafeIntToCublasFillMode(*uplo);
+  auto uplo_solver = SafeIntToCublasFillMode(uplo);
   if (!uplo_solver) return uplo_solver.takeError();
 
   return wrapper::CusolverDnZpotrfBufferSize(
-      current.get(), cusolver_handle.get(), *uplo_solver, *n,
-      wrapper::Pointer<cuDoubleComplex>(A->get()->pointer()), *lda);
+      current.get(), cusolver_handle.get(), *uplo_solver, n,
+      wrapper::Pointer<cuDoubleComplex>(A->pointer()), lda);
 }
 
 // These functions eventually need to make two separate calls to
@@ -138,114 +128,109 @@ llvm::Expected<int32_t> SolverDnZpotrfBufferSize(
 // SolverDn<t>potrf for CUDA/ROCm is not feasible due to mismatch in APIs
 // (Cusolver requires use of CusolverDn<t>potrf_bufferSize). Right now only
 // CusolverDn<t>potrf calls are supported.
-Expected<Chain> SolverDnSpotrf(
-    Argument<GpuContext> context,
-    const wrapper::OwningSolverDnHandle& cusolver_handle,
-    Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
-    Argument<RCReference<GpuCrtBuffer>> Workspace, Argument<int32_t> Lwork,
-    Argument<RCReference<GpuCrtBuffer>> devInfo, Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+Error SolverDnSpotrf(const GpuContext& context,
+                     const wrapper::OwningSolverDnHandle& cusolver_handle,
+                     int32_t uplo, int32_t n,
+                     const RCReference<GpuCrtBuffer>& A, int32_t lda,
+                     const RCReference<GpuCrtBuffer>& Workspace, int32_t Lwork,
+                     const RCReference<GpuCrtBuffer>& devInfo) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
-  auto uplo_solver = SafeIntToCublasFillMode(*uplo);
+  auto uplo_solver = SafeIntToCublasFillMode(uplo);
   if (!uplo_solver) return uplo_solver.takeError();
 
-  auto result = wrapper::CusolverDnSpotrf(
-      current.get(), cusolver_handle.get(), *uplo_solver, *n,
-      wrapper::Pointer<float>(A->get()->pointer()), *lda,
-      wrapper::Pointer<float>(Workspace->get()->pointer()), *Lwork,
-      wrapper::Pointer<int>(devInfo->get()->pointer()));
-  if (!result) return std::move(result);
-  return in_chain.get();
+  return wrapper::CusolverDnSpotrf(
+      current.get(), cusolver_handle.get(), *uplo_solver, n,
+      wrapper::Pointer<float>(A->pointer()), lda,
+      wrapper::Pointer<float>(Workspace->pointer()), Lwork,
+      wrapper::Pointer<int>(devInfo->pointer()));
 }
 
-Expected<Chain> SolverDnDpotrf(
-    Argument<GpuContext> context,
-    const wrapper::OwningSolverDnHandle& cusolver_handle,
-    Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
-    Argument<RCReference<GpuCrtBuffer>> Workspace, Argument<int32_t> Lwork,
-    Argument<RCReference<GpuCrtBuffer>> devInfo, Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+Error SolverDnDpotrf(const GpuContext& context,
+                     const wrapper::OwningSolverDnHandle& cusolver_handle,
+                     int32_t uplo, int32_t n,
+                     const RCReference<GpuCrtBuffer>& A, int32_t lda,
+                     const RCReference<GpuCrtBuffer>& Workspace, int32_t Lwork,
+                     const RCReference<GpuCrtBuffer>& devInfo) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
-  auto uplo_solver = SafeIntToCublasFillMode(*uplo);
+  auto uplo_solver = SafeIntToCublasFillMode(uplo);
   if (!uplo_solver) return uplo_solver.takeError();
 
-  auto result = wrapper::CusolverDnDpotrf(
-      current.get(), cusolver_handle.get(), *uplo_solver, *n,
-      wrapper::Pointer<double>(A->get()->pointer()), *lda,
-      wrapper::Pointer<double>(Workspace->get()->pointer()), *Lwork,
-      wrapper::Pointer<int>(devInfo->get()->pointer()));
-  if (!result) return std::move(result);
-  return in_chain.get();
+  return wrapper::CusolverDnDpotrf(
+      current.get(), cusolver_handle.get(), *uplo_solver, n,
+      wrapper::Pointer<double>(A->pointer()), lda,
+      wrapper::Pointer<double>(Workspace->pointer()), Lwork,
+      wrapper::Pointer<int>(devInfo->pointer()));
 }
 
-Expected<Chain> SolverDnCpotrf(
-    Argument<GpuContext> context,
-    const wrapper::OwningSolverDnHandle& cusolver_handle,
-    Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
-    Argument<RCReference<GpuCrtBuffer>> Workspace, Argument<int32_t> Lwork,
-    Argument<RCReference<GpuCrtBuffer>> devInfo, Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+Error SolverDnCpotrf(const GpuContext& context,
+                     const wrapper::OwningSolverDnHandle& cusolver_handle,
+                     int32_t uplo, int32_t n,
+                     const RCReference<GpuCrtBuffer>& A, int32_t lda,
+                     const RCReference<GpuCrtBuffer>& Workspace, int32_t Lwork,
+                     const RCReference<GpuCrtBuffer>& devInfo) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
-  auto uplo_solver = SafeIntToCublasFillMode(*uplo);
+  auto uplo_solver = SafeIntToCublasFillMode(uplo);
   if (!uplo_solver) return uplo_solver.takeError();
 
-  auto result = wrapper::CusolverDnCpotrf(
-      current.get(), cusolver_handle.get(), *uplo_solver, *n,
-      wrapper::Pointer<cuComplex>(A->get()->pointer()), *lda,
-      wrapper::Pointer<cuComplex>(Workspace->get()->pointer()), *Lwork,
-      wrapper::Pointer<int>(devInfo->get()->pointer()));
-  if (!result) return std::move(result);
-  return in_chain.get();
+  return wrapper::CusolverDnCpotrf(
+      current.get(), cusolver_handle.get(), *uplo_solver, n,
+      wrapper::Pointer<cuComplex>(A->pointer()), lda,
+      wrapper::Pointer<cuComplex>(Workspace->pointer()), Lwork,
+      wrapper::Pointer<int>(devInfo->pointer()));
 }
 
-Expected<Chain> SolverDnZpotrf(
-    Argument<GpuContext> context,
-    const wrapper::OwningSolverDnHandle& cusolver_handle,
-    Argument<int32_t> uplo, Argument<int32_t> n,
-    Argument<RCReference<GpuCrtBuffer>> A, Argument<int32_t> lda,
-    Argument<RCReference<GpuCrtBuffer>> Workspace, Argument<int32_t> Lwork,
-    Argument<RCReference<GpuCrtBuffer>> devInfo, Argument<Chain> in_chain) {
-  auto current = wrapper::CtxSetCurrent(context.get().get());
+Error SolverDnZpotrf(const GpuContext& context,
+                     const wrapper::OwningSolverDnHandle& cusolver_handle,
+                     int32_t uplo, int32_t n,
+                     const RCReference<GpuCrtBuffer>& A, int32_t lda,
+                     const RCReference<GpuCrtBuffer>& Workspace, int32_t Lwork,
+                     const RCReference<GpuCrtBuffer>& devInfo) {
+  auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
-  auto uplo_solver = SafeIntToCublasFillMode(*uplo);
+  auto uplo_solver = SafeIntToCublasFillMode(uplo);
   if (!uplo_solver) return uplo_solver.takeError();
 
-  auto result = wrapper::CusolverDnZpotrf(
-      current.get(), cusolver_handle.get(), *uplo_solver, *n,
-      wrapper::Pointer<cuDoubleComplex>(A->get()->pointer()), *lda,
-      wrapper::Pointer<cuDoubleComplex>(Workspace->get()->pointer()), *Lwork,
-      wrapper::Pointer<int>(devInfo->get()->pointer()));
-  if (!result) return std::move(result);
-  return in_chain.get();
+  return wrapper::CusolverDnZpotrf(
+      current.get(), cusolver_handle.get(), *uplo_solver, n,
+      wrapper::Pointer<cuDoubleComplex>(A->pointer()), lda,
+      wrapper::Pointer<cuDoubleComplex>(Workspace->pointer()), Lwork,
+      wrapper::Pointer<int>(devInfo->pointer()));
 }
+
+#define TFRT_WITH_CHAIN_RESULT(sync_func) \
+  internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
 
 void RegisterCudaSolverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_cuda.solver.create", TFRT_KERNEL(SolverDnCreate));
   kernel_reg->AddKernel("tfrt_cuda.solver.set_stream",
-                        TFRT_KERNEL(SolverDnSetStream));
-  kernel_reg->AddKernel("tfrt_cuda.solver.dn.s.portf.buffer_size",
-                        TFRT_KERNEL(SolverDnSpotrfBufferSize));
-  kernel_reg->AddKernel("tfrt_cuda.solver.dn.d.portf.buffer_size",
-                        TFRT_KERNEL(SolverDnDpotrfBufferSize));
-  kernel_reg->AddKernel("tfrt_cuda.solver.dn.c.portf.buffer_size",
-                        TFRT_KERNEL(SolverDnCpotrfBufferSize));
-  kernel_reg->AddKernel("tfrt_cuda.solver.dn.z.portf.buffer_size",
-                        TFRT_KERNEL(SolverDnZpotrfBufferSize));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnSetStream)));
+  kernel_reg->AddKernel(
+      "tfrt_cuda.solver.dn.s.portf.buffer_size",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnSpotrfBufferSize)));
+  kernel_reg->AddKernel(
+      "tfrt_cuda.solver.dn.d.portf.buffer_size",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnDpotrfBufferSize)));
+  kernel_reg->AddKernel(
+      "tfrt_cuda.solver.dn.c.portf.buffer_size",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnCpotrfBufferSize)));
+  kernel_reg->AddKernel(
+      "tfrt_cuda.solver.dn.z.portf.buffer_size",
+      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnZpotrfBufferSize)));
   kernel_reg->AddKernel("tfrt_cuda.solver.dn.s.portf",
-                        TFRT_KERNEL(SolverDnSpotrf));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnSpotrf)));
   kernel_reg->AddKernel("tfrt_cuda.solver.dn.d.portf",
-                        TFRT_KERNEL(SolverDnDpotrf));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnDpotrf)));
   kernel_reg->AddKernel("tfrt_cuda.solver.dn.c.portf",
-                        TFRT_KERNEL(SolverDnCpotrf));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnCpotrf)));
   kernel_reg->AddKernel("tfrt_cuda.solver.dn.z.portf",
-                        TFRT_KERNEL(SolverDnZpotrf));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(SolverDnZpotrf)));
 }
 
 }  // namespace gpu

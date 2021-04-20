@@ -149,12 +149,10 @@ static void CudaAllocatorDestroy(
 }
 
 // tfrt_gpu.mem.allocate allocates a new CUDA buffer.
-static Expected<std::tuple<RCReference<GpuCrtBuffer>>> CudaMemAllocate(
+static Expected<RCReference<GpuCrtBuffer>> CudaMemAllocate(
     const std::unique_ptr<GpuCrtAllocator>& allocator, const GpuStream& stream,
     int64_t size) {
-  auto buffer = allocator->Allocate(size, stream.get());
-  if (!buffer) return buffer.takeError();
-  return std::make_tuple(std::move(*buffer));
+  return allocator->Allocate(size, stream.get());
 }
 
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.
@@ -164,10 +162,9 @@ static void CudaMemPrintMetadata(const RCReference<GpuCrtBuffer>& buffer) {
   (tfrt::outs() << *buffer << "\n").flush();
 }
 
-// tfrt_gpu.tensor.make makes a tensor from the given shape and buffer.
-// It is specialized for each supported DType.
+// tfrt_gpu.tensor.make creates a tensor of type T from a shape and buffer.
 template <typename T>
-static Expected<std::tuple<DenseGpuTensor>> CudaTensorMake(
+static Expected<DenseGpuTensor> CudaTensorMake(
     const RCReference<GpuCrtBuffer>& buffer, TensorShape shape) {
   if (!buffer->IsValid()) {
     return MakeStringError(
@@ -179,8 +176,7 @@ static Expected<std::tuple<DenseGpuTensor>> CudaTensorMake(
         ") is not equal to the number of elements in shape (", shape,
         ") times element size (", GetDType<T>().GetHostSize(), ")");
   }
-  return std::make_tuple(
-      DenseGpuTensor(shape, GetDType<T>(), buffer.CopyRef()));
+  return DenseGpuTensor(shape, GetDType<T>(), buffer.CopyRef());
 }
 
 // tfrt_gpu.tensor.print_metadata prints `tensor`'s metadata.

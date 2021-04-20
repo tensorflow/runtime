@@ -697,7 +697,7 @@ JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
     : opts_(opts),
       context_(CreateMlirContext(opts_)),
       diagnostic_os_(diagnostic_),
-      handler_(source_mgr_, context_.get()) {
+      handler_(source_mgr_, context_.get(), diagnostic_os_) {
   source_mgr_.AddNewSourceBuffer(
       llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
       llvm::SMLoc());

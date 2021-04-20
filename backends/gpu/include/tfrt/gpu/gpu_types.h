@@ -35,7 +35,9 @@
 namespace tfrt {
 namespace gpu {
 
+// Types that do not need a wrapper class go here.
 using GpuFunction = wrapper::Function;
+using GpuPointer = wrapper::Pointer<void>;
 
 class GpuContext {
  public:
@@ -91,6 +93,74 @@ class GpuEvent {
  private:
   AsyncValueRef<GpuContext> context_;
   wrapper::OwningEvent event_;
+};
+
+// GpuAllocator base class.
+class GpuAllocator {
+  friend class GpuBuffer;
+
+ public:
+  // Buffers returned by subclasses must be aligned at least to `kAlignment`.
+  // NOTE: Kernels should not assume that all buffers passed in will be aligned
+  // at least to `kAlignment`. Compiler can allocate a large buffer and pass
+  // less aligned parts of it to kernels.
+  static const size_t kAlignment = 256;
+
+  explicit GpuAllocator(AsyncValueRef<GpuContext> context);
+  virtual ~GpuAllocator();
+
+  GpuAllocator(GpuAllocator&&) = default;
+  GpuAllocator& operator=(GpuAllocator&&) = default;
+
+  wrapper::Context context() const { return context_->get(); }
+
+ private:
+  // Allocates memory of at least `size` bytes. If `stream` is the default, the
+  // memory is accessible on any stream. Otherwise, accessing the memory on
+  // other streams requires synchronization.
+  virtual Expected<GpuPointer> Allocate(size_t size, wrapper::Stream stream);
+
+  // Deallocates memory. If `stream` is not the default, any other stream
+  // accessing the memory needs to be to be synchronized with `stream`.
+  virtual Error Deallocate(GpuPointer pointer, wrapper::Stream stream);
+
+ private:
+  AsyncValueRef<GpuContext> context_;
+};
+
+// GpuBuffer owns a range of GPU memory produced by a GpuAllocator.
+class GpuBuffer {
+  // Creates a buffer with base `pointer`, holding `size` bytes, that will be
+  // deallocated using `allocator` when destroyed.
+  GpuBuffer(AsyncValueRef<GpuAllocator> allocator, GpuPointer pointer,
+            size_t size);
+
+ public:
+  GpuBuffer();
+  ~GpuBuffer();
+
+  GpuBuffer(GpuBuffer&& buffer);
+  GpuBuffer& operator=(GpuBuffer&& buffer);
+
+  // Creates a buffer of at least `size` bytes. If `stream` is the default, the
+  // buffer is accessible on any stream. Otherwise, accessing the buffer on
+  // other streams requires synchronization.
+  static Expected<GpuBuffer> Allocate(AsyncValueRef<GpuAllocator> allocator,
+                                      size_t size, wrapper::Stream stream = {});
+
+  // Deallocates the buffer. If `stream` is not the default, any other stream
+  // accessing the buffer needs to be to be synchronized with `stream`.
+  Error Deallocate(wrapper::Stream stream = {});
+
+  explicit operator bool() const { return pointer_ != nullptr; }
+  wrapper::Pointer<void> pointer() const { return pointer_; }
+  size_t size() const { return size_; }
+  const GpuAllocator& allocator() const { return *allocator_; }
+
+ private:
+  AsyncValueRef<GpuAllocator> allocator_;
+  wrapper::Pointer<void> pointer_;
+  size_t size_ = 0;
 };
 
 class GpuBlasHandle {

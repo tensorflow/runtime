@@ -24,13 +24,11 @@
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/gpu_types.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/cusolver_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
-#include "tfrt/host_context/sync_kernel_utils.h"
 
 namespace tfrt {
 namespace gpu {
@@ -66,7 +64,7 @@ Error SolverDnSetStream(const wrapper::OwningSolverDnHandle& solver_handle,
 llvm::Expected<int32_t> SolverDnSpotrfBufferSize(
     const GpuContext& context,
     const wrapper::OwningSolverDnHandle& cusolver_handle, int32_t uplo,
-    int32_t n, const RCReference<GpuCrtBuffer>& A, int32_t lda) {
+    int32_t n, const GpuBuffer& A, int32_t lda) {
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
@@ -75,13 +73,13 @@ llvm::Expected<int32_t> SolverDnSpotrfBufferSize(
 
   return wrapper::CusolverDnSpotrfBufferSize(
       current.get(), cusolver_handle.get(), *uplo_solver, n,
-      wrapper::Pointer<float>(A->pointer()), lda);
+      wrapper::Pointer<float>(A.pointer()), lda);
 }
 
 llvm::Expected<int32_t> SolverDnDpotrfBufferSize(
     const GpuContext& context,
     const wrapper::OwningSolverDnHandle& cusolver_handle, int32_t uplo,
-    int32_t n, const RCReference<GpuCrtBuffer>& A, int32_t lda) {
+    int32_t n, const GpuBuffer& A, int32_t lda) {
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
@@ -90,13 +88,13 @@ llvm::Expected<int32_t> SolverDnDpotrfBufferSize(
 
   return wrapper::CusolverDnDpotrfBufferSize(
       current.get(), cusolver_handle.get(), *uplo_solver, n,
-      wrapper::Pointer<double>(A->pointer()), lda);
+      wrapper::Pointer<double>(A.pointer()), lda);
 }
 
 llvm::Expected<int32_t> SolverDnCpotrfBufferSize(
     const GpuContext& context,
     const wrapper::OwningSolverDnHandle& cusolver_handle, int32_t uplo,
-    int32_t n, const RCReference<GpuCrtBuffer>& A, int32_t lda) {
+    int32_t n, const GpuBuffer& A, int32_t lda) {
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
@@ -105,13 +103,13 @@ llvm::Expected<int32_t> SolverDnCpotrfBufferSize(
 
   return wrapper::CusolverDnCpotrfBufferSize(
       current.get(), cusolver_handle.get(), *uplo_solver, n,
-      wrapper::Pointer<cuComplex>(A->pointer()), lda);
+      wrapper::Pointer<cuComplex>(A.pointer()), lda);
 }
 
 llvm::Expected<int32_t> SolverDnZpotrfBufferSize(
     const GpuContext& context,
     const wrapper::OwningSolverDnHandle& cusolver_handle, int32_t uplo,
-    int32_t n, const RCReference<GpuCrtBuffer>& A, int32_t lda) {
+    int32_t n, const GpuBuffer& A, int32_t lda) {
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
@@ -120,7 +118,7 @@ llvm::Expected<int32_t> SolverDnZpotrfBufferSize(
 
   return wrapper::CusolverDnZpotrfBufferSize(
       current.get(), cusolver_handle.get(), *uplo_solver, n,
-      wrapper::Pointer<cuDoubleComplex>(A->pointer()), lda);
+      wrapper::Pointer<cuDoubleComplex>(A.pointer()), lda);
 }
 
 // These functions eventually need to make two separate calls to
@@ -130,10 +128,9 @@ llvm::Expected<int32_t> SolverDnZpotrfBufferSize(
 // CusolverDn<t>potrf calls are supported.
 Error SolverDnSpotrf(const GpuContext& context,
                      const wrapper::OwningSolverDnHandle& cusolver_handle,
-                     int32_t uplo, int32_t n,
-                     const RCReference<GpuCrtBuffer>& A, int32_t lda,
-                     const RCReference<GpuCrtBuffer>& Workspace, int32_t Lwork,
-                     const RCReference<GpuCrtBuffer>& devInfo) {
+                     int32_t uplo, int32_t n, const GpuBuffer& A, int32_t lda,
+                     const GpuBuffer& Workspace, int32_t Lwork,
+                     const GpuBuffer& devInfo) {
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
@@ -142,17 +139,16 @@ Error SolverDnSpotrf(const GpuContext& context,
 
   return wrapper::CusolverDnSpotrf(
       current.get(), cusolver_handle.get(), *uplo_solver, n,
-      wrapper::Pointer<float>(A->pointer()), lda,
-      wrapper::Pointer<float>(Workspace->pointer()), Lwork,
-      wrapper::Pointer<int>(devInfo->pointer()));
+      wrapper::Pointer<float>(A.pointer()), lda,
+      wrapper::Pointer<float>(Workspace.pointer()), Lwork,
+      wrapper::Pointer<int>(devInfo.pointer()));
 }
 
 Error SolverDnDpotrf(const GpuContext& context,
                      const wrapper::OwningSolverDnHandle& cusolver_handle,
-                     int32_t uplo, int32_t n,
-                     const RCReference<GpuCrtBuffer>& A, int32_t lda,
-                     const RCReference<GpuCrtBuffer>& Workspace, int32_t Lwork,
-                     const RCReference<GpuCrtBuffer>& devInfo) {
+                     int32_t uplo, int32_t n, const GpuBuffer& A, int32_t lda,
+                     const GpuBuffer& Workspace, int32_t Lwork,
+                     const GpuBuffer& devInfo) {
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
@@ -161,17 +157,16 @@ Error SolverDnDpotrf(const GpuContext& context,
 
   return wrapper::CusolverDnDpotrf(
       current.get(), cusolver_handle.get(), *uplo_solver, n,
-      wrapper::Pointer<double>(A->pointer()), lda,
-      wrapper::Pointer<double>(Workspace->pointer()), Lwork,
-      wrapper::Pointer<int>(devInfo->pointer()));
+      wrapper::Pointer<double>(A.pointer()), lda,
+      wrapper::Pointer<double>(Workspace.pointer()), Lwork,
+      wrapper::Pointer<int>(devInfo.pointer()));
 }
 
 Error SolverDnCpotrf(const GpuContext& context,
                      const wrapper::OwningSolverDnHandle& cusolver_handle,
-                     int32_t uplo, int32_t n,
-                     const RCReference<GpuCrtBuffer>& A, int32_t lda,
-                     const RCReference<GpuCrtBuffer>& Workspace, int32_t Lwork,
-                     const RCReference<GpuCrtBuffer>& devInfo) {
+                     int32_t uplo, int32_t n, const GpuBuffer& A, int32_t lda,
+                     const GpuBuffer& Workspace, int32_t Lwork,
+                     const GpuBuffer& devInfo) {
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
@@ -180,17 +175,16 @@ Error SolverDnCpotrf(const GpuContext& context,
 
   return wrapper::CusolverDnCpotrf(
       current.get(), cusolver_handle.get(), *uplo_solver, n,
-      wrapper::Pointer<cuComplex>(A->pointer()), lda,
-      wrapper::Pointer<cuComplex>(Workspace->pointer()), Lwork,
-      wrapper::Pointer<int>(devInfo->pointer()));
+      wrapper::Pointer<cuComplex>(A.pointer()), lda,
+      wrapper::Pointer<cuComplex>(Workspace.pointer()), Lwork,
+      wrapper::Pointer<int>(devInfo.pointer()));
 }
 
 Error SolverDnZpotrf(const GpuContext& context,
                      const wrapper::OwningSolverDnHandle& cusolver_handle,
-                     int32_t uplo, int32_t n,
-                     const RCReference<GpuCrtBuffer>& A, int32_t lda,
-                     const RCReference<GpuCrtBuffer>& Workspace, int32_t Lwork,
-                     const RCReference<GpuCrtBuffer>& devInfo) {
+                     int32_t uplo, int32_t n, const GpuBuffer& A, int32_t lda,
+                     const GpuBuffer& Workspace, int32_t Lwork,
+                     const GpuBuffer& devInfo) {
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
 
@@ -199,9 +193,9 @@ Error SolverDnZpotrf(const GpuContext& context,
 
   return wrapper::CusolverDnZpotrf(
       current.get(), cusolver_handle.get(), *uplo_solver, n,
-      wrapper::Pointer<cuDoubleComplex>(A->pointer()), lda,
-      wrapper::Pointer<cuDoubleComplex>(Workspace->pointer()), Lwork,
-      wrapper::Pointer<int>(devInfo->pointer()));
+      wrapper::Pointer<cuDoubleComplex>(A.pointer()), lda,
+      wrapper::Pointer<cuDoubleComplex>(Workspace.pointer()), Lwork,
+      wrapper::Pointer<int>(devInfo.pointer()));
 }
 
 #define TFRT_WITH_CHAIN_RESULT(sync_func) \

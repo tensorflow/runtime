@@ -374,7 +374,7 @@ class Pointer {
     assert(pair_.getInt() == platform);
     return pointer();
   }
-  T* raw() const { return pointer(); }
+  T* raw() const { return pointer(); }  // TODO(csigg): Remove.
   Platform platform() const { return pair_.getInt(); }
 
   Pointer operator+(std::ptrdiff_t offset) const {

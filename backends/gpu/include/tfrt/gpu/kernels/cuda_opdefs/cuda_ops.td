@@ -163,19 +163,6 @@ def GPU_AllocatorCreateOp : GPU_Op<"allocator.create"> {
   let results = (outs GPU_AllocatorType);
 }
 
-def GPU_AllocatorDestroyOp : GPU_Op<"allocator.destroy"> {
-  let summary = "cuda allocator.destroy operation";
-  let description = [{
-    tfrt_gpu.allocator.destroy destroys an allocator.
-
-    Example:
-      %ch1 = tfrt.new.chain
-      %ch2 = tfrt_gpu.allocator.destroy %allocator, %ch1
-  }];
-  let arguments = (ins GPU_AllocatorType, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
 def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
   let summary = "cuda allocate operation";
   let description = [{
@@ -194,14 +181,14 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
     when both accesses are reads or writes. For example, the following usage
     pattern will result in undefined behavior:
 
-      %buf, %ch1 = tfrt_gpu.mem.allocate %stream1, %size, %ch0
+      %buf = tfrt_gpu.mem.allocate %stream1, %size, %ch0
       tfrt_gpu.launch %stream1, %kernel_reading_buf, %buf, %ch0
       tfrt_gpu.launch %stream2, %another_kernel_reading_buf, %buf, %ch0
 
     Users must add synchronization to make sure use on stream2 happens after
     everything that was on stream1, at the time of allocation, has finished, e.g.
 
-      %buf, %ch1 = tfrt_gpu.mem.allocate %stream1, %size, %ch0
+      %buf = tfrt_gpu.mem.allocate %stream1, %size, %ch0
       %event = tfrt_gpu.event.create %ch0
       %ch2 = tfrt_gpu.event.record %stream1, %event, %ch1
       tfrt_gpu.launch %stream1, %kernel_reading_buf, %buf, %ch0
@@ -210,10 +197,10 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
 
     Example:
       %ch0 = tfrt.new.chain
-      %buffer, %ch1 = tfrt_gpu.mem.allocate %stream, %size, %ch0
+      %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch0
   }];
   let arguments = (ins GPU_AllocatorType, GPU_StreamType, I64:$size, TFRT_ChainType);
-  let results = (outs GPU_BufferType, TFRT_ChainType);
+  let results = (outs GPU_BufferType);
 }
 
 def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {

@@ -59,8 +59,6 @@ func @blas_axpy() {
   // CHECK-SAME: values = [3.000000e+00, 5.000000e+00, 7.000000e+00, 9.000000e+00]
   %ch5 = tfrt_dht.print_tensor %result_tensor, %ch4
 
-  %ch6 = tfrt_gpu.allocator.destroy %allocator, %ch5
-
   tfrt.return
 }
 
@@ -96,8 +94,6 @@ func @blas_gemm() {
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
   %ch7 = tfrt_dht.print_tensor %result_tensor, %ch6
-
-  %ch8 = tfrt_gpu.allocator.destroy %allocator, %ch7
 
   tfrt.return
 }
@@ -136,8 +132,6 @@ func @blas_gemm_ex() {
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
   %ch7 = tfrt_dht.print_tensor %result_tensor, %ch6
-
-  %ch8 = tfrt_gpu.allocator.destroy %allocator, %ch7
 
   tfrt.return
 }
@@ -178,8 +172,6 @@ func @blas_gemm_strided_batched_ex() {
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
   %ch7 = tfrt_dht.print_tensor %result_tensor, %ch6
-
-  %ch8 = tfrt_gpu.allocator.destroy %allocator, %ch7
 
   tfrt.return
 }

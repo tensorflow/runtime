@@ -861,6 +861,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "cuda_test",
     srcs = [
+        "lib/kernels/cuda/kernels.h",
         "lib/kernels/cuda/test_kernels.cc",
         "lib/kernels/cuda/test_kernels.h",
     ],

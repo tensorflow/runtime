@@ -175,10 +175,10 @@ func @dnn_pooling_test() {
   %kinsize = tfrt.constant.i64 144  //  (2 * 2 * 3 * 3) * (size of f32 = 4);
   %koutsize = tfrt.constant.i64 16  //  (2 * 2 * 1 * 1) * (size of f32 = 4);
 
-  %input_device_buffer, %ch26 = tfrt_gpu.mem.allocate %allocator, %stream, %kinsize, %ch24
-  %output_device_buffer, %ch27 = tfrt_gpu.mem.allocate %allocator, %stream, %koutsize, %ch26
+  %input_device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %kinsize, %ch24
+  %output_device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %koutsize, %ch24
 
-  %host_input_buffer, %ch28 = tfrt_dht.get_buffer %input, %ch27
+  %host_input_buffer, %ch28 = tfrt_dht.get_buffer %input, %ch24
   %ch29 = tfrt_gpu.mem.copy_host_to_device %context, %input_device_buffer, %host_input_buffer, %kinsize, %stream, %ch28
 
   %output_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [2 : i64, 2 : i64, 1 : i64, 1 : i64]
@@ -200,9 +200,9 @@ func @dnn_pooling_test() {
   // CHECK: shape = [2, 2, 1, 1], values = [5.493110e-01, 7.370000e-02, 2.388026e+00, 2.402000e+00]
   %ch36 = tfrt_dht.print_tensor %output_tensor, %ch35
 
-  %in_grad_device_buffer, %ch37 = tfrt_gpu.mem.allocate %allocator, %stream, %kinsize, %ch36
+  %in_grad_device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %kinsize, %ch36
   %in_grad_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [2 : i64, 2 : i64, 3 : i64, 3 : i64]
-  %ch38 = tfrt_dht.fill_tensor_with_constant.f32 %in_grad_tensor, %ch37 0.0 : f32
+  %ch38 = tfrt_dht.fill_tensor_with_constant.f32 %in_grad_tensor, %ch36 0.0 : f32
   %ch39 = tfrt_dht.print_tensor %in_grad_tensor, %ch38
   %in_grad_host_buffer, %ch40 = tfrt_dht.get_buffer %in_grad_tensor, %ch39
   %ch41 = tfrt_gpu.mem.copy_host_to_device %context, %in_grad_device_buffer, %in_grad_host_buffer, %kinsize, %stream, %ch40
@@ -217,8 +217,6 @@ func @dnn_pooling_test() {
   %ch45 = tfrt_dht.print_tensor %in_grad_tensor, %ch44
   // TODO(gkg): How to compare with some epsilon two F32 tensors?
   // Manual inspection shows that they match.
-
-  %ch46 = tfrt_gpu.allocator.destroy %allocator, %ch45
 
   tfrt.return
 }

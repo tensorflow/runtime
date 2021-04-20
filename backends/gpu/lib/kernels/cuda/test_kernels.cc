@@ -19,10 +19,9 @@
 
 #include <unordered_map>
 
+#include "kernels.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/gpu_types.h"
-#include "tfrt/gpu/memory/gpu_allocator.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -42,30 +41,30 @@ static void ReportError(KernelErrorHandler out, llvm::Error error) {
 // Convenience function that copies a host tensor to the device and returns a
 // buffer pointing to the newly allocated memory. The intended purpose of this
 // function is to make writing unit tests simpler
-static void TestCpyTensorHtoD(
-    Argument<GpuContext> context,
-    Argument<std::unique_ptr<GpuCrtAllocator>> allocator,
-    Argument<GpuStream> stream, Argument<DenseHostTensor> src,
-    Argument<Chain> in_chain, Result<RCReference<GpuCrtBuffer>> out_buffer,
-    Result<Chain> out_chain, KernelErrorHandler handler) {
-  size_t tensor_size = src->DataSizeInBytes();
-  auto buffer = (*allocator)->Allocate(tensor_size, stream->get());
-  if (!buffer) return ReportError(handler, buffer.takeError());
-
-  auto current = wrapper::CtxSetCurrent(context->get());
-  if (!current) return ReportError(handler, current.takeError());
-  llvm::Error error = Memcpy(
-      *current, buffer.get()->pointer(),
-      wrapper::Pointer<const void>(src->data(), context->get().platform()),
-      tensor_size);
-  if (error) return ReportError(handler, std::move(error));
-  out_buffer.Emplace(std::move(*buffer));
-  out_chain.Set(in_chain);
+static Expected<GpuBuffer> TestCpyTensorHtoD(const GpuContext& context,
+                                             Argument<GpuAllocator> allocator,
+                                             const GpuStream& stream,
+                                             const DenseHostTensor& src) {
+  size_t size_bytes = src.DataSizeInBytes();
+  auto buffer =
+      GpuBuffer::Allocate(allocator.ValueRef(), size_bytes, stream.get());
+  if (!buffer) return buffer.takeError();
+  auto current = wrapper::CtxSetCurrent(context.get());
+  if (!current) return current.takeError();
+  if (auto error = wrapper::Memcpy(
+          *current, buffer->pointer(),
+          wrapper::Pointer<const void>(src.data(), context->platform()),
+          size_bytes))
+    return std::move(error);
+  return buffer;
 }
+
+#define TFRT_WITH_CHAIN_RESULT(sync_func) \
+  internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
 
 void RegisterTestCudaKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu_test.copy_tensor_host_to_device",
-                        TFRT_KERNEL(TestCpyTensorHtoD));
+                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(TestCpyTensorHtoD)));
 }
 
 }  // namespace gpu

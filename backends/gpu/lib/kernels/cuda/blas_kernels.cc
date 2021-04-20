@@ -19,7 +19,6 @@
 #include "kernels.h"
 #include "llvm/Support/Errc.h"
 #include "tfrt/gpu/gpu_types.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
@@ -39,15 +38,15 @@ static Expected<GpuBlasHandle> BlasCreate(Argument<GpuStream> stream) {
 }
 
 static Error BlasSaxpy(const GpuBlasHandle& handle, int32_t n, float alpha,
-                       const RCReference<GpuCrtBuffer>& x, int32_t incx,
-                       const RCReference<GpuCrtBuffer>& y, int32_t incy) {
+                       const GpuBuffer& x, int32_t incx, const GpuBuffer& y,
+                       int32_t incy) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
   wrapper::Pointer<const float> alpha_ptr(&alpha, handle->platform());
 
   return wrapper::BlasSaxpy(*current, handle.get(), n, alpha_ptr,
-                            wrapper::Pointer<const float>(x->pointer()), incx,
-                            wrapper::Pointer<float>(y->pointer()), incy);
+                            wrapper::Pointer<const float>(x.pointer()), incx,
+                            wrapper::Pointer<float>(y.pointer()), incy);
 }
 
 static wrapper::BlasOperation ToBlasOperation(bool transpose) {
@@ -79,11 +78,9 @@ static llvm::Expected<cublasGemmAlgo_t> SafeIntToCublasGemmAlgo(int32_t algo) {
 }
 
 static Error BlasSgemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
-                       int32_t k, float alpha,
-                       const RCReference<GpuCrtBuffer>& A, int32_t lda,
-                       const RCReference<GpuCrtBuffer>& B, int32_t ldb,
-                       float beta, const RCReference<GpuCrtBuffer>& C,
-                       int32_t ldc, Attribute<bool> transa,
+                       int32_t k, float alpha, const GpuBuffer& A, int32_t lda,
+                       const GpuBuffer& B, int32_t ldb, float beta,
+                       const GpuBuffer& C, int32_t ldc, Attribute<bool> transa,
                        Attribute<bool> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
@@ -92,9 +89,9 @@ static Error BlasSgemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
 
   return wrapper::BlasSgemm(*current, handle.get(), ToBlasOperation(*transa),
                             ToBlasOperation(*transb), m, n, k, alpha_ptr,
-                            wrapper::Pointer<const float>(A->pointer()), lda,
-                            wrapper::Pointer<const float>(B->pointer()), ldb,
-                            beta_ptr, wrapper::Pointer<float>(C->pointer()),
+                            wrapper::Pointer<const float>(A.pointer()), lda,
+                            wrapper::Pointer<const float>(B.pointer()), ldb,
+                            beta_ptr, wrapper::Pointer<float>(C.pointer()),
                             ldc);
 }
 
@@ -103,12 +100,11 @@ static Error BlasSgemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
 // feasible due to mismatch in APIs (algo specification parameter).  Right now
 // only CublasGemmEx call is supported.
 static Error BlasGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
-                        int32_t k, float alpha,
-                        const RCReference<GpuCrtBuffer>& A, int32_t Atype,
-                        int32_t lda, const RCReference<GpuCrtBuffer>& B,
+                        int32_t k, float alpha, const GpuBuffer& A,
+                        int32_t Atype, int32_t lda, const GpuBuffer& B,
                         int32_t Btype, int32_t ldb, float beta,
-                        const RCReference<GpuCrtBuffer>& C, int32_t Ctype,
-                        int32_t ldc, int32_t computeType, int32_t algo,
+                        const GpuBuffer& C, int32_t Ctype, int32_t ldc,
+                        int32_t computeType, int32_t algo,
                         Attribute<bool> transa, Attribute<bool> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
@@ -135,10 +131,10 @@ static Error BlasGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
 
   return wrapper::CublasGemmEx(
       *current, handle.get(), transa_cublas, transb_cublas, m, n, k, alpha_ptr,
-      wrapper::Pointer<const float>(A->pointer()), *Atype_blas, lda,
-      wrapper::Pointer<const float>(B->pointer()), *Btype_blas, ldb, beta_ptr,
-      wrapper::Pointer<float>(C->pointer()), *Ctype_blas, ldc,
-      *computeType_blas, *algo_blas);
+      wrapper::Pointer<const float>(A.pointer()), *Atype_blas, lda,
+      wrapper::Pointer<const float>(B.pointer()), *Btype_blas, ldb, beta_ptr,
+      wrapper::Pointer<float>(C.pointer()), *Ctype_blas, ldc, *computeType_blas,
+      *algo_blas);
 }
 
 // Note: return type should really just be llvm::Error, but
@@ -146,13 +142,11 @@ static Error BlasGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
 // decided whether async kernels are allowed to have no return values (not even
 // a chain), simply return an empty tuple.
 static Error BlasSyncGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
-                            int32_t k, float alpha,
-                            const RCReference<GpuCrtBuffer>& A, int32_t Atype,
-                            int32_t lda, const RCReference<GpuCrtBuffer>& B,
+                            int32_t k, float alpha, const GpuBuffer& A,
+                            int32_t Atype, int32_t lda, const GpuBuffer& B,
                             int32_t Btype, int32_t ldb, float beta,
-                            const RCReference<GpuCrtBuffer>& C, int32_t Ctype,
-                            int32_t ldc, int32_t algo,
-                            Attribute<int32_t> computeType,
+                            const GpuBuffer& C, int32_t Ctype, int32_t ldc,
+                            int32_t algo, Attribute<int32_t> computeType,
                             Attribute<bool> transa, Attribute<bool> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
@@ -179,19 +173,18 @@ static Error BlasSyncGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
 
   return wrapper::CublasGemmEx(
       *current, handle.get(), transa_cublas, transb_cublas, m, n, k, alpha_ptr,
-      wrapper::Pointer<const float>(A->pointer()), *Atype_blas, lda,
-      wrapper::Pointer<const float>(B->pointer()), *Btype_blas, ldb, beta_ptr,
-      wrapper::Pointer<float>(C->pointer()), *Ctype_blas, ldc,
-      *computeType_blas, *algo_blas);
+      wrapper::Pointer<const float>(A.pointer()), *Atype_blas, lda,
+      wrapper::Pointer<const float>(B.pointer()), *Btype_blas, ldb, beta_ptr,
+      wrapper::Pointer<float>(C.pointer()), *Ctype_blas, ldc, *computeType_blas,
+      *algo_blas);
 }
 
 static Error BlasGemmStridedBatchedEx(
     const GpuBlasHandle& handle, int32_t m, int32_t n, int32_t k, float alpha,
-    const RCReference<GpuCrtBuffer>& A, int32_t Atype, int32_t lda,
-    int64_t strideA, const RCReference<GpuCrtBuffer>& B, int32_t Btype,
-    int32_t ldb, int64_t strideB, float beta,
-    const RCReference<GpuCrtBuffer>& C, int32_t Ctype, int32_t ldc,
-    int64_t strideC, int32_t batch_count, int32_t computeType, int32_t algo,
+    const GpuBuffer& A, int32_t Atype, int32_t lda, int64_t strideA,
+    const GpuBuffer& B, int32_t Btype, int32_t ldb, int64_t strideB, float beta,
+    const GpuBuffer& C, int32_t Ctype, int32_t ldc, int64_t strideC,
+    int32_t batch_count, int32_t computeType, int32_t algo,
     Attribute<bool> transa, Attribute<bool> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
@@ -218,10 +211,10 @@ static Error BlasGemmStridedBatchedEx(
 
   return wrapper::CublasGemmStridedBatchedEx(
       *current, handle.get(), transa_cublas, transb_cublas, m, n, k, alpha_ptr,
-      wrapper::Pointer<const float>(A->pointer()), *Atype_blas, lda, strideA,
-      wrapper::Pointer<const float>(B->pointer()), *Btype_blas, ldb, strideB,
-      beta_ptr, wrapper::Pointer<float>(C->pointer()), *Ctype_blas, ldc,
-      strideC, batch_count, *computeType_blas, *algo_blas);
+      wrapper::Pointer<const float>(A.pointer()), *Atype_blas, lda, strideA,
+      wrapper::Pointer<const float>(B.pointer()), *Btype_blas, ldb, strideB,
+      beta_ptr, wrapper::Pointer<float>(C.pointer()), *Ctype_blas, ldc, strideC,
+      batch_count, *computeType_blas, *algo_blas);
 }
 
 #define TFRT_WITH_CHAIN_RESULT(sync_func) \

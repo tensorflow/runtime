@@ -27,8 +27,7 @@
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/gpu/event_manager.h"
 #include "tfrt/gpu/gpu_types.h"
-#include "tfrt/gpu/memory/caching_gpu_allocator.h"
-#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -137,36 +136,32 @@ static void CudaEventSynchronizeAsync(Argument<GpuEvent> event, Chain in_chain,
 // tfrt_gpu.allocator.create creates a new allocator.
 //
 // Result: new allocator.
-static std::unique_ptr<GpuCrtAllocator> CudaAllocatorCreate(
+static Expected<GpuAllocator> CudaAllocatorCreate(
     Argument<GpuContext> context) {
-  return std::make_unique<CachingGpuAllocator>(context.ValueRef());
-}
-
-// tfrt_gpu.allocator.destroy destroys an allocator.
-static void CudaAllocatorDestroy(
-    Argument<std::unique_ptr<GpuCrtAllocator>> allocator) {
-  allocator->reset();
+  return GpuAllocator(context.ValueRef());
 }
 
 // tfrt_gpu.mem.allocate allocates a new CUDA buffer.
-static Expected<RCReference<GpuCrtBuffer>> CudaMemAllocate(
-    const std::unique_ptr<GpuCrtAllocator>& allocator, const GpuStream& stream,
-    int64_t size) {
-  return allocator->Allocate(size, stream.get());
+static Expected<GpuBuffer> CudaMemAllocate(Argument<GpuAllocator> allocator,
+                                           const GpuStream& stream,
+                                           int64_t size) {
+  return GpuBuffer::Allocate(allocator.ValueRef(), size, stream.get());
 }
 
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.
-static void CudaMemPrintMetadata(const RCReference<GpuCrtBuffer>& buffer) {
+static void CudaMemPrintMetadata(const GpuBuffer& buffer) {
   // The check for buffer validity is not done intentionally. Printing invalid
   // buffers can be useful for debugging.
-  (tfrt::outs() << *buffer << "\n").flush();
+  tfrt::outs() << "GpuBuffer<pointer=" << buffer.pointer()
+               << ", size=" << buffer.size() << ">";
+  tfrt::outs().flush();
 }
 
 // tfrt_gpu.tensor.make creates a tensor of type T from a shape and buffer.
 template <typename T>
-static Expected<DenseGpuTensor> CudaTensorMake(
-    const RCReference<GpuCrtBuffer>& buffer, TensorShape shape) {
-  if (!buffer->IsValid()) {
+static Expected<DenseGpuTensor> CudaTensorMake(Argument<GpuBuffer> buffer,
+                                               TensorShape shape) {
+  if (!*buffer) {
     return MakeStringError(
         "Cannot make tensor from invalid (moved from?) buffer");
   }
@@ -176,7 +171,13 @@ static Expected<DenseGpuTensor> CudaTensorMake(
         ") is not equal to the number of elements in shape (", shape,
         ") times element size (", GetDType<T>().GetHostSize(), ")");
   }
-  return DenseGpuTensor(shape, GetDType<T>(), buffer.CopyRef());
+  GpuCrtBuffer::Deallocator deallocator(
+      [buffer = buffer.ValueRef()](GpuCrtBuffer*) {
+        if (auto error = buffer->Deallocate()) TFRT_LOG(ERROR) << error;
+      });
+  auto crt_buffer = TakeRef(new GpuCrtBuffer(buffer->pointer(), buffer->size(),
+                                             std::move(deallocator)));
+  return DenseGpuTensor(shape, GetDType<T>(), std::move(crt_buffer));
 }
 
 // tfrt_gpu.tensor.print_metadata prints `tensor`'s metadata.
@@ -198,16 +199,15 @@ static Error CheckMemcpySizes(size_t dst_size, size_t src_size,
 }
 
 // tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
-static Error CudaMemcpyHtoD(const GpuContext& context,
-                            const RCReference<GpuCrtBuffer>& dst,
+static Error CudaMemcpyHtoD(const GpuContext& context, const GpuBuffer& dst,
                             const RCReference<HostBuffer>& src,
                             int64_t bytes_count, const GpuStream& stream) {
-  if (auto error = CheckMemcpySizes(dst->size(), src->size(), bytes_count))
+  if (auto error = CheckMemcpySizes(dst.size(), src->size(), bytes_count))
     return error;
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
   return wrapper::MemcpyAsync(
-      *current, dst->pointer(),
+      *current, dst.pointer(),
       wrapper::Pointer<const void>(src->data(), context->platform()),
       bytes_count, stream.get());
 }
@@ -215,15 +215,15 @@ static Error CudaMemcpyHtoD(const GpuContext& context,
 // tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
 static Error CudaMemcpyDtoH(const GpuContext& context,
                             const RCReference<HostBuffer>& dst,
-                            const RCReference<GpuCrtBuffer>& src,
-                            int64_t bytes_count, const GpuStream& stream) {
-  if (auto error = CheckMemcpySizes(dst->size(), src->size(), bytes_count))
+                            const GpuBuffer& src, int64_t bytes_count,
+                            const GpuStream& stream) {
+  if (auto error = CheckMemcpySizes(dst->size(), src.size(), bytes_count))
     return error;
   auto current = wrapper::CtxSetCurrent(context.get());
   if (!current) return current.takeError();
-  return wrapper::MemcpyAsync(
-      *current, wrapper::Pointer<void>(dst->data(), context->platform()),
-      src->pointer(), bytes_count, stream.get());
+  return wrapper::MemcpyAsync(*current,
+                              GpuPointer(dst->data(), context->platform()),
+                              src.pointer(), bytes_count, stream.get());
 }
 
 static Expected<wrapper::Function> CudaFunctionLoad(
@@ -247,8 +247,8 @@ static Error CudaFunctionLaunch(const GpuStream& stream, GpuFunction function,
   llvm::SmallVector<uintptr_t, 16> arg_values;
   arg_values.reserve(args.size());
   for (const auto& arg : args.values()) {
-    if (arg->IsType<RCReference<GpuCrtBuffer>>()) {
-      auto pointer = arg->get<RCReference<GpuCrtBuffer>>()->pointer();
+    if (arg->IsType<GpuBuffer>()) {
+      auto pointer = arg->get<GpuBuffer>().pointer();
       arg_values.push_back(reinterpret_cast<uintptr_t>(pointer.raw()));
     } else if (arg->IsType<int32_t>()) {
       arg_values.push_back(arg->get<int32_t>());
@@ -292,12 +292,8 @@ void RegisterCudaKernels(KernelRegistry* kernel_reg) {
 
   kernel_reg->AddKernel("tfrt_gpu.allocator.create",
                         TFRT_KERNEL(CudaAllocatorCreate));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.allocator.destroy",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaAllocatorDestroy)));
 
-  kernel_reg->AddKernel("tfrt_gpu.mem.allocate",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemAllocate)));
+  kernel_reg->AddKernel("tfrt_gpu.mem.allocate", TFRT_KERNEL(CudaMemAllocate));
   kernel_reg->AddKernel(
       "tfrt_gpu.mem.print_metadata",
       TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemPrintMetadata)));

@@ -81,12 +81,12 @@ func @vector_add_kernel() {
   %ch14 = tfrt_dht.print_buffer %y_host_buffer, %ch13
 
   %size = tfrt.constant.i64 32
-  %x_device, %ch15 = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch14
-  %y_device, %ch16 = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch15
+  %x_device = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch14
+  %y_device = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch14
 
   // Copy host to device.
-  %ch17 = tfrt_gpu.mem.copy_host_to_device %context, %x_device, %x_host_buffer, %size, %stream, %ch16
-  %ch18 = tfrt_gpu.mem.copy_host_to_device %context, %y_device, %y_host_buffer, %size, %stream, %ch17
+  %ch17 = tfrt_gpu.mem.copy_host_to_device %context, %x_device, %x_host_buffer, %size, %stream, %ch14
+  %ch18 = tfrt_gpu.mem.copy_host_to_device %context, %y_device, %y_host_buffer, %size, %stream, %ch14
 
   %one = tfrt.constant.ui32 1
   %eight = tfrt.constant.ui32 8
@@ -106,8 +106,6 @@ func @vector_add_kernel() {
 
   // CHECK: shape = [8], values = [2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00]
   %ch25 = tfrt_dht.print_tensor %y_host, %sync_ch
-
-  %allocd_ch = tfrt_gpu.allocator.destroy %allocator, %sync_ch
 
   tfrt.return
 }

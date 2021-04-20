@@ -34,11 +34,8 @@ class Chain;
 class ExecutionContext;
 namespace gpu {
 
-namespace stream {
-class Device;
-}  // namespace stream
-
-class GpuCrtBuffer;
+class GpuAllocator;
+class GpuBuffer;
 class GpuBlasHandle;
 class GpuStream;
 class GpuContext;
@@ -46,26 +43,25 @@ class GpuContext;
 // A thin wrapper of GPU stream and handles that are associated with this
 // stream. All instances of this class should be created by System.
 class Stream {
- public:
-  static Expected<Stream> Create(ExecutionContext& exec_ctx, int gpu_ordinal);
+  Stream(HostContext* host_ctx, wrapper::OwningContext context,
+         wrapper::OwningStream stream, wrapper::OwningBlasHandle blas_handle);
 
-  Stream(AsyncValueRef<GpuContext> context, AsyncValueRef<GpuStream> stream,
-         AsyncValueRef<GpuBlasHandle> blas_handle, int gpu_ordinal)
-      : context_(std::move(context)),
-        stream_(std::move(stream)),
-        blas_handle_(std::move(blas_handle)),
-        gpu_ordinal_(gpu_ordinal) {}
+ public:
+  Stream(Stream&&) = default;
+  Stream& operator=(Stream&&) = default;
+
+  static Expected<Stream> Create(HostContext* host_ctx, int gpu_ordinal);
 
   AsyncValueRef<GpuContext>& GetContext() { return context_; }
+  AsyncValueRef<GpuAllocator>& GetAllocator() { return allocator_; }
   AsyncValueRef<GpuStream>& GetStream() { return stream_; }
   AsyncValueRef<GpuBlasHandle>& GetBlasHandle() { return blas_handle_; }
-  int GetOrdinal() { return gpu_ordinal_; }
 
  private:
   AsyncValueRef<GpuContext> context_;
+  AsyncValueRef<GpuAllocator> allocator_;
   AsyncValueRef<GpuStream> stream_;
   AsyncValueRef<GpuBlasHandle> blas_handle_;
-  int gpu_ordinal_;
 };
 
 // A thin wrapper of TFRT callable GPU Function. The function should be
@@ -91,22 +87,11 @@ class Program {
 // TODO(fishx): Assess if we should expose GPU Event as well.
 class System {
  public:
-  System(const System&) = delete;
-  System(System&&) = default;
-
-  System& operator=(const System&) = delete;
-  System& operator=(System&&) = delete;
-
-  ~System() = default;
-
   // Initialize all GPU devices that are connected. It uses <prefix><ordinal> as
   // the name of each GPU devices.
   static AsyncValueRef<System> Initialize(wrapper::Platform platform,
                                           llvm::StringRef prefix,
                                           HostContext* host);
-
-  explicit System(SmallVectorImpl<RCReference<GpuDevice>>&& devices)
-      : devices_(std::move(devices)) {}
 
   // Create a new stream for given gpu_ordinal. Don't deallocate the stream if
   // there are pending kernels that haven't been scheduled on the stream. This
@@ -118,41 +103,39 @@ class System {
   // Allocate a new GPU buffer using the allocator associate to the gpu device.
   // Return an async value because lowered tfrt function is an asynchronous
   // function which requires all arguments are async value.
-  AsyncValueRef<RCReference<GpuCrtBuffer>> Allocate(ExecutionContext& exec_ctx,
-                                                    Stream& stream,
-                                                    size_t size);
+  AsyncValueRef<GpuBuffer> Allocate(ExecutionContext& exec_ctx, Stream& stream,
+                                    size_t size);
 
   // Transfer data from host to device. The output chain is ready when the copy
   // has been schedule on the stream. When the chain is ready we cannot
   // deallocate the src buffer since the copy hasn't finished yet.
   // TODO(fishx):  Introduce another chain to track when we can deallocate src
   // buffer.
-  AsyncValueRef<Chain> TransferToDevice(
-      ExecutionContext& exec_ctx, Stream& stream,
-      AsyncValueRef<RCReference<GpuCrtBuffer>> dst, ArrayRef<uint8_t> src,
-      AsyncValueRef<Chain> chain);
+  AsyncValueRef<Chain> TransferToDevice(ExecutionContext& exec_ctx,
+                                        Stream& stream,
+                                        AsyncValueRef<GpuBuffer> dst,
+                                        ArrayRef<uint8_t> src,
+                                        AsyncValueRef<Chain> chain);
 
   // Transfer data from device to host. The output chain is ready when the copy
   // is finished.
   // TODO(fishx): Consider introduce another chain to indicate the copy has been
   // schedule on the stream.
-  AsyncValueRef<Chain> TransferFromDevice(
-      ExecutionContext& exec_ctx, Stream& stream, MutableArrayRef<uint8_t> dst,
-      AsyncValueRef<RCReference<GpuCrtBuffer>> src, AsyncValueRef<Chain> chain);
+  AsyncValueRef<Chain> TransferFromDevice(ExecutionContext& exec_ctx,
+                                          Stream& stream,
+                                          MutableArrayRef<uint8_t> dst,
+                                          AsyncValueRef<GpuBuffer> src,
+                                          AsyncValueRef<Chain> chain);
 
   // TODO(fishx): Introduce method for d2d data transfer.
 
   // Execute the lowered GPU Function on given stream. The output chain is ready
   // when the all gpu kernels have been dispatched on the stream.
-  AsyncValueRef<Chain> Execute(
-      ExecutionContext& exec_ctx, Program& program, Stream& stream,
-      ArrayRef<AsyncValueRef<RCReference<GpuCrtBuffer>>> inputs,
-      ArrayRef<AsyncValueRef<RCReference<GpuCrtBuffer>>> outputs,
-      AsyncValueRef<Chain> chain);
-
- private:
-  // This vector maintains GPU Context of all GPU devices.
-  SmallVector<RCReference<GpuDevice>, 4> devices_;
+  AsyncValueRef<Chain> Execute(ExecutionContext& exec_ctx, Program& program,
+                               Stream& stream,
+                               ArrayRef<AsyncValueRef<GpuBuffer>> inputs,
+                               ArrayRef<AsyncValueRef<GpuBuffer>> outputs,
+                               AsyncValueRef<Chain> chain);
 };
 
 }  // namespace gpu

@@ -26,7 +26,7 @@ func @memcpy_host_to_device_and_back_test() {
   %stream = tfrt_gpu.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 32
-  %device_buffer, %ch7 = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
+  %device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
 
   // Create source dense host tensor.
   %host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [8 : i64]
@@ -59,6 +59,5 @@ func @memcpy_host_to_device_and_back_test() {
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
   %ch51 = tfrt_dht.print_buffer %host_buffer, %ch50
 
-  %ch60 = tfrt_gpu.allocator.destroy %allocator, %ch50
   tfrt.return
 }

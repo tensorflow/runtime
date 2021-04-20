@@ -26,7 +26,7 @@ func @stream_create_test() {
   %stream = tfrt_gpu.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 64
-  %buffer, %ch7 = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
+  %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
   // CHECK: GpuBuffer<pointer={{0x[[:xdigit:]]*}} (CUDA), size=64>
   %ch8 = tfrt_gpu.mem.print_metadata %buffer, %ch2
 
@@ -35,7 +35,6 @@ func @stream_create_test() {
   // CHECK: DenseGpuTensor<dtype=F64, shape=[2, 4], pointer={{0x[[:xdigit:]]*}} (CUDA)>
   %ch10 = tfrt_gpu.tensor.print_metadata %tensor, %ch9
 
-  %ch11 = tfrt_gpu.allocator.destroy %allocator, %ch10
   tfrt.return
 }
 
@@ -65,13 +64,12 @@ func @make_tensor_from_smaller_buffer_should_fail() {
   %stream = tfrt_gpu.stream.create %context, %ch2
 
   %size = tfrt.constant.i64 64
-  %buffer, %ch7 = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
+  %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
 
   %shape = ts.build_shape [5 : i64, 4 : i64]
   // expected-error @+1 {{tfrt_gpu.tensor.make failed: buffer_size (64) is not equal to the number of elements in shape ([5, 4]) times element size (4)}}
-  %tensor, %ch8 = tfrt_gpu.tensor.make.i32 %buffer, %shape, %ch7
+  %tensor, %ch8 = tfrt_gpu.tensor.make.i32 %buffer, %shape, %ch2
 
-  %ch10 = tfrt_gpu.allocator.destroy %allocator, %ch8
   tfrt.return
 }
 

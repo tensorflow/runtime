@@ -89,6 +89,64 @@ GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
 
 GpuEvent::~GpuEvent() = default;
 
+GpuAllocator::GpuAllocator(AsyncValueRef<GpuContext> context)
+    : context_(std::move(context)) {}
+
+GpuAllocator::~GpuAllocator() = default;
+
+Expected<GpuPointer> GpuAllocator::Allocate(size_t size, wrapper::Stream) {
+  auto current = wrapper::CtxSetCurrent(context_->get());
+  if (!current) return current.takeError();
+  auto memory = wrapper::MemAlloc(*current, size);
+  if (!memory) return memory.takeError();
+  return memory->release();
+}
+
+Error GpuAllocator::Deallocate(GpuPointer pointer, wrapper::Stream) {
+  return wrapper::MemFree(pointer);
+}
+
+GpuBuffer::GpuBuffer(AsyncValueRef<GpuAllocator> allocator, GpuPointer pointer,
+                     size_t size)
+    : allocator_(std::move(allocator)), pointer_(pointer), size_(size) {}
+
+GpuBuffer::GpuBuffer() = default;
+
+GpuBuffer::~GpuBuffer() {
+  if (auto error = Deallocate()) TFRT_LOG(ERROR) << error;
+}
+
+GpuBuffer::GpuBuffer(GpuBuffer&& buffer)
+    : allocator_(std::move(buffer.allocator_)),
+      pointer_(buffer.pointer_),
+      size_(buffer.size_) {
+  buffer.pointer_ = nullptr;
+  buffer.size_ = 0;
+}
+
+GpuBuffer& GpuBuffer::operator=(GpuBuffer&& buffer) {
+  if (auto error = Deallocate()) TFRT_LOG(ERROR) << error;
+  allocator_ = std::move(buffer.allocator_);
+  std::swap(pointer_, buffer.pointer_);
+  std::swap(size_, buffer.size_);
+  return *this;
+}
+
+Expected<GpuBuffer> GpuBuffer::Allocate(AsyncValueRef<GpuAllocator> allocator,
+                                        size_t size, wrapper::Stream stream) {
+  auto pointer = allocator->Allocate(size, stream);
+  if (!pointer) return pointer.takeError();
+  return GpuBuffer(std::move(allocator), *pointer, size);
+}
+
+Error GpuBuffer::Deallocate(wrapper::Stream stream) {
+  size_ = 0;
+  if (!pointer_) return Error::success();  // Skip virtual function call.
+  auto pointer = pointer_;
+  pointer_ = GpuPointer();
+  return allocator_->Deallocate(pointer, stream);
+}
+
 GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuStream> stream,
                              wrapper::OwningBlasHandle handle)
     : stream_(std::move(stream)), handle_(std::move(handle)) {}

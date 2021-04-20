@@ -33,6 +33,24 @@ package_group(
     ],
 )
 
+package_group(
+    name = "xla_friends",
+    packages = [
+        # copybara:uncomment_begin
+        # "@tf_runtime//backends/gpu/...",
+        # # Authorized users go here.
+        # "//platforms/xla/tests/gpu/...",
+        # "//third_party/tensorflow/compiler/xla/service/gpu/...",
+        # "@tf_runtime//cpp_tests/...",
+        # "//learning/brain/experimental/tfrt/cpp_tests/...",
+        # copybara:uncomment_end_and_comment_begin
+        "//backends/gpu/...",
+        # Authorized users go here.
+        "//cpp_tests/...",
+        # copybara:comment_end
+    ],
+)
+
 tfrt_cc_library(
     name = "symbol_loader",
     hdrs = ["lib/wrapper/symbol_loader.h"],
@@ -314,6 +332,25 @@ tfrt_cc_library(
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_library(
+    name = "gpu_system",
+    srcs = [
+        "lib/system/system.cc",
+    ],
+    hdrs = [
+        "include/tfrt/gpu/system/system.h",
+    ],
+    visibility = [":xla_friends"],
+    deps = [
+        ":gpu_device",
+        ":gpu_types",
+        ":gpu_wrapper",
+        "@tf_runtime//:befexecutor",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
     ],
 )
 

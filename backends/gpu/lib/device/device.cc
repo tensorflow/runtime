@@ -142,5 +142,9 @@ wrapper::CurrentContext GpuDevice::CreateContext() const {
   return die_if_error(CtxSetCurrent(impl_->context_));
 }
 
+llvm::Expected<wrapper::CurrentContext> GpuDevice::SetCurrentContext() const {
+  return CtxSetCurrent(impl_->context_);
+}
+
 }  // namespace gpu
 }  // namespace tfrt

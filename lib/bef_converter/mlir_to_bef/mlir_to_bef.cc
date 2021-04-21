@@ -234,10 +234,23 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
   if (auto dense_elements_attr = attr.dyn_cast<mlir::DenseElementsAttr>()) {
     auto element_type = ConvertMLIRDataTypeToTFRTDType(
         dense_elements_attr.getType().getElementType());
-    if (element_type == DType::Unsupported)
-      return BEFAttributeType::kUnsupported;
+    // We only support dense attributes with dtype element type. The exception
+    // is that we don't support string dtype, because strings have variable
+    // size.
+    //
+    // TODO(tfrt-devs): Consider supporting string elements in the dense
+    // attribute.
+    if (element_type == DType::UI8 || element_type == DType::UI16 ||
+        element_type == DType::UI32 || element_type == DType::UI64 ||
+        element_type == DType::I1 || element_type == DType::I8 ||
+        element_type == DType::I16 || element_type == DType::I32 ||
+        element_type == DType::I64 || element_type == DType::BF16 ||
+        element_type == DType::F16 || element_type == DType::F32 ||
+        element_type == DType::F64 || element_type == DType::Complex64 ||
+        element_type == DType::Complex128)
+      return GetDenseAttributeType(element_type);
 
-    return GetDenseAttributeType(element_type);
+    return BEFAttributeType::kUnsupported;
   }
 
   // We support arrays of supported attribute values.
@@ -1341,19 +1354,30 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
 
   BEFAttributeEmitter elements(compilation_units_);
 
-  if (element_type == DType::Complex64 || element_type == DType::Complex128) {
-    if (element_type == DType::Complex64) {
-      elements.EmitAlignment(alignof(std::complex<float>));
-    } else {
-      elements.EmitAlignment(alignof(std::complex<double>));
+  if (element_type == DType::I1) {
+    // Each element of mlir::DenseElementsAttr with I1 element type occupies
+    // only 1 bit for space efficiency, while in BEF, we prefer runtime
+    // efficiency and each I1 value occupies 1 byte. So we need to convert the
+    // bit to byte here instead of direct memcpy.
+    //
+    // TODO(tfrt-dev): Consider a more efficient way of emitting I1 dense
+    // elements attr.
+    for (bool attr : dense_elements_attr.getBoolValues()) {
+      elements.EmitBoolAttribute(attr);
     }
-    ArrayRef<char> raw_data = dense_elements_attr.getRawData();
-    elements.EmitBytes(llvm::makeArrayRef(
-        reinterpret_cast<const uint8_t*>(raw_data.data()), raw_data.size()));
   } else {
-    // TODO(tfrt-dev): Use raw data directly for dense elements.
-    for (auto attr : dense_elements_attr.getAttributeValues()) {
-      elements.EmitAttribute(attr);
+    elements.EmitAlignment(DType(element_type).GetHostAlignment());
+    ArrayRef<char> raw_data = dense_elements_attr.getRawData();
+
+    // mlir::DenseElementsAttr only stores one element when it is splat (ie. all
+    // elements are the same). However, we don't have this optimization in BEF.
+    // So we need to materialize all elements in this case.
+    //
+    // TODO(tfrt-devs): Consider adding splat optimization in BEF.
+    for (int i = 0;
+         i < (dense_elements_attr.isSplat() ? header.num_elements : 1); ++i) {
+      elements.EmitBytes(llvm::makeArrayRef(
+          reinterpret_cast<const uint8_t*>(raw_data.data()), raw_data.size()));
     }
   }
 

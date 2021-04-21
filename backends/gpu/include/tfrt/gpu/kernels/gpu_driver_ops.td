@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cuda_ops.td --------------------------------------------------------===//
+//===- gpu_ops.td --------------------------------------------------------===//
 //
 // CUDA based CUDA operation definitions.
 //
@@ -21,17 +21,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef CUDA_OPS
+#ifdef GPU_DRIVER_OPS
 #else
-#define CUDA_OPS
+#define GPU_DRIVER_OPS
 
-include "mlir/IR/OpBase.td"
-include "tfrt/tfrt_op_base.td"
+include "tfrt/gpu/kernels/gpu_ops_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_blas_ops.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_dnn_ops.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_solver_ops.td"
+
+def GPU_DeviceType : GPU_Type<"device">;
+def GPU_EventType : GPU_Type<"event">;
+def GPU_FunctionType : GPU_Type<"function">;
 
 def GPU_InitOp : GPU_Op<"init"> {
   let summary = "cuda init operation";
@@ -346,4 +345,4 @@ def GPU_LaunchOp : GPU_Op<"function.launch"> {
   }];
 }
 
-#endif  // CUDA_OPS
+#endif  // GPU_OPS

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cuda_ops.td ---------------------------------------------------------===//
+//===- gpu_ops.td ---------------------------------------------------------===//
 //
 // CUDA based operation definitions.
 //
@@ -21,13 +21,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef CUDA_BLAS_OPS
+#ifdef GPU_BLAS_OPS
 #else
-#define CUDA_BLAS_OPS
+#define GPU_BLAS_OPS
 
-include "tfrt/tfrt_op_base.td"
-include "tfrt/tensor/opdefs/tensor_shape_base.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
+include "tfrt/gpu/kernels/gpu_ops_base.td"
 
 def GPU_BlasHandleType : GPU_Type<"blas_handle">;
 def GPU_AnyBlasDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
@@ -146,4 +144,4 @@ def GPU_BlasSyncGemmExOp : Op<GPU_Dialect, "blas.sync.gemm_ex"> {
   let results = (outs TFRT_ChainType);
 }
 
-#endif  // CUDA_OPS
+#endif  // GPU_OPS

@@ -12,19 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- Mlir-Opt utility ---------------------------------------------------===//
+//===- gpu_ops.td --------------------------------------------------------===//
 //
-// Load MLIR and apply required passes on it.
+// CUDA based CUDA operation definitions.
+//
+// The same ops should be implementable with a ROCm backend as well.
+// Current doc strings refer to CUDA only.
+//
+//===----------------------------------------------------------------------===//
 
-#include "mlir/Support/MlirOptMain.h"
-#include "tfrt/gpu/kernels/gpu_ops.h"
-#include "tfrt/gpu/kernels/gpu_test_ops.h"
-#include "tfrt/init_tfrt_dialects.h"
+#ifdef GPU_OPS
+#else
+#define GPU_OPS
 
-int main(int argc, char **argv) {
-  mlir::DialectRegistry registry;
-  tfrt::RegisterTFRTDialects(registry);
-  registry.insert<tfrt::gpu::GpuDialect>();
-  registry.insert<tfrt::gpu::GpuTestDialect>();
-  return failed(mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry));
-}
+include "tfrt/gpu/kernels/gpu_blas_ops.td"
+include "tfrt/gpu/kernels/gpu_dnn_ops.td"
+include "tfrt/gpu/kernels/gpu_driver_ops.td"
+include "tfrt/gpu/kernels/gpu_ops_base.td"
+include "tfrt/gpu/kernels/gpu_solver_ops.td"
+
+#endif  // GPU_OPS

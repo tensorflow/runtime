@@ -20,13 +20,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef CUDA_CONVERSION_HELPER_OPS
-#define CUDA_CONVERSION_HELPER_OPS
+#ifndef GPU_CONVERSION_HELPER_OPS
+#define GPU_CONVERSION_HELPER_OPS
 
-include "mlir/IR/OpBase.td"
 include "tfrt/tfrt_op_base.td"
 
-def CUDA_Conversion_Dialect : Dialect {
+def GPU_Conversion_Dialect : Dialect {
   let name = "tfrt_gpu_conversion";
 
   let description = [{
@@ -39,7 +38,7 @@ def CUDA_Conversion_Dialect : Dialect {
   let cppNamespace = "tfrt::gpu::conversion";
 }
 
-def CastAnyToAnyOp : Op<CUDA_Conversion_Dialect, "cast_any_to_any"> {
+def CastAnyToAnyOp : Op<GPU_Conversion_Dialect, "cast_any_to_any"> {
   let summary = "tfrt_gpu cast_any_to_any";
   let description = [{
     tfrt_gpu.cast_any_to_any casts any type to any other type.
@@ -55,4 +54,4 @@ def CastAnyToAnyOp : Op<CUDA_Conversion_Dialect, "cast_any_to_any"> {
   let hasFolder = 1;
 }
 
-#endif  // CUDA_CONVERSION_HELPER_OPS
+#endif  // GPU_CONVERSION_HELPER_OPS

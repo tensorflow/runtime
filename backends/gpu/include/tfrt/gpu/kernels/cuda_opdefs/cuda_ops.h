@@ -22,42 +22,7 @@
 #ifndef TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_OPS_H_
 #define TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_OPS_H_
 
-#include "mlir/IR/Dialect.h"
-#include "mlir/IR/OpDefinition.h"
-#include "tfrt/tensor/opdefs/host_tensor.h"
-#include "tfrt/tensor/opdefs/tensor.h"
-#include "tfrt/tensor/opdefs/tensor_shape.h"
-
-using namespace mlir;
-
-namespace tfrt {
-namespace gpu {
-
-// Dialect for cuda operations.
-class CUDADialect : public Dialect {
- public:
-  static StringRef getDialectNamespace() { return "tfrt_gpu"; }
-  explicit CUDADialect(MLIRContext* context);
-};
-
-namespace conversion {
-
-// Dialect for cuda conversion helper operations.
-class CUDA_ConversionDialect : public Dialect {
- public:
-  static StringRef getDialectNamespace() { return "tfrt_gpu_conversion"; }
-  explicit CUDA_ConversionDialect(MLIRContext* context);
-};
-
-}  // namespace conversion
-
-}  // namespace gpu
-}  // namespace tfrt
-
-#define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.h.inc"
-
-#define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.h.inc"
+// TODO(b/185219734): Remove this file.
+#include "../gpu_ops.h"
 
 #endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_OPS_H_

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cuda_solver_ops.td -------------------------------------------------===//
+//===- gpu_solver_ops.td -------------------------------------------------===//
 //
 // CUDA (cu)SOLVER based operation definitions.
 //
@@ -21,22 +21,20 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef CUDA_SOLVER_OPS
+#ifdef GPU_SOLVER_OPS
 #else
-#define CUDA_SOLVER_OPS
+#define GPU_SOLVER_OPS
 
-include "tfrt/tfrt_op_base.td"
-include "tfrt/tensor/opdefs/tensor_shape_base.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
+include "tfrt/gpu/kernels/gpu_ops_base.td"
 
 def GPU_SolverHandleType : GPU_Type<"solver_handle">;
 def GPU_AnySolverDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
                                    AnyUnsignedInteger]>;
 
 def SolverDnCreateOp : GPU_Op<"solver.create"> {
-  let summary = "tfrt_cuda solver.create operation";
+  let summary = "tfrt_gpu solver.create operation";
   let description = [{
-    tfrt_cuda.solver.create creates a handle to the SOLVER library context
+    tfrt_gpu.solver.create creates a handle to the SOLVER library context
 
     This will be explicitly passed to every subsequent SOLVER library call.
   }];
@@ -45,9 +43,9 @@ def SolverDnCreateOp : GPU_Op<"solver.create"> {
 }
 
 def SolverDnSetStreamOp : GPU_Op<"solver.set_stream"> {
-  let summary = "tfrt_cuda solver.set_stream operation";
+  let summary = "tfrt_gpu solver.set_stream operation";
   let description = [{
-    tfrt_cuda.solver.set_stream sets the SOLVER library stream.
+    tfrt_gpu.solver.set_stream sets the SOLVER library stream.
 
     All subsequent SOLVER calls will execute on the set stream (until
     solver.set_stream is called with a different stream).
@@ -57,9 +55,9 @@ def SolverDnSetStreamOp : GPU_Op<"solver.set_stream"> {
 }
 
 def SolverDnSpotrfBufferSizeOp : GPU_Op<"solver.dn.s.portf.buffer_size"> {
-  let summary = "tfrt_cuda solver.dn.s.portf.buffer_size operation";
+  let summary = "tfrt_gpu solver.dn.s.portf.buffer_size operation";
   let description = [{
-    tfrt_cuda.solver.dn.s.portf.buffer_size These helper kernels calculate the
+    tfrt_gpu.solver.dn.s.portf.buffer_size These helper kernels calculate the
                                             necessary size of work buffers for
                                             solver.dn.s.portf.
                                             "s" stands for the float type.
@@ -74,9 +72,9 @@ def SolverDnSpotrfBufferSizeOp : GPU_Op<"solver.dn.s.portf.buffer_size"> {
 }
 
 def SolverDnDpotrfBufferSizeOp : GPU_Op<"solver.dn.d.portf.buffer_size"> {
-  let summary = "tfrt_cuda solver.dn.d.portf.buffer_size operation";
+  let summary = "tfrt_gpu solver.dn.d.portf.buffer_size operation";
   let description = [{
-    tfrt_cuda.solver.dn.d.portf.buffer_size These helper kernels calculate the
+    tfrt_gpu.solver.dn.d.portf.buffer_size These helper kernels calculate the
                                             necessary size of work buffers for
                                             solver.dn.d.portf.
                                             "d" stands for the double type.
@@ -91,9 +89,9 @@ def SolverDnDpotrfBufferSizeOp : GPU_Op<"solver.dn.d.portf.buffer_size"> {
 }
 
 def SolverDnCpotrfBufferSizeOp : GPU_Op<"solver.dn.c.portf.buffer_size"> {
-  let summary = "tfrt_cuda solver.dn.c.portf.buffer_size operation";
+  let summary = "tfrt_gpu solver.dn.c.portf.buffer_size operation";
   let description = [{
-    tfrt_cuda.solver.dn.c.portf.buffer_size These helper kernels calculate the
+    tfrt_gpu.solver.dn.c.portf.buffer_size These helper kernels calculate the
                                             necessary size of work buffers for
                                             solver.dn.c.portf.
                                             "c" stands for the Complex type.
@@ -108,9 +106,9 @@ def SolverDnCpotrfBufferSizeOp : GPU_Op<"solver.dn.c.portf.buffer_size"> {
 }
 
 def SolverDnZpotrfBufferSizeOp : GPU_Op<"solver.dn.z.portf.buffer_size"> {
-  let summary = "tfrt_cuda solver.dn.z.portf.buffer_size operation";
+  let summary = "tfrt_gpu solver.dn.z.portf.buffer_size operation";
   let description = [{
-    tfrt_cuda.solver.dn.z.portf.buffer_size These helper kernels calculate the
+    tfrt_gpu.solver.dn.z.portf.buffer_size These helper kernels calculate the
                                             necessary size of work buffers for
                                             solver.dn.z.portf.
                                             "z" stands for the DoubleComplex
@@ -126,9 +124,9 @@ def SolverDnZpotrfBufferSizeOp : GPU_Op<"solver.dn.z.portf.buffer_size"> {
 }
 
 def SolverDnSpotrfOp : GPU_Op<"solver.dn.s.portf"> {
-  let summary = "tfrt_cuda solver.dn.s.portf operation";
+  let summary = "tfrt_gpu solver.dn.s.portf operation";
   let description = [{
-    tfrt_cuda.solver.dn.s.portf This kernel computes the Cholesky factorization
+    tfrt_gpu.solver.dn.s.portf This kernel computes the Cholesky factorization
                                 of a Hermitian positive-definite matrix. Data
                                 types are real valued single precision.
   }];
@@ -146,9 +144,9 @@ def SolverDnSpotrfOp : GPU_Op<"solver.dn.s.portf"> {
 }
 
 def SolverDnDpotrfOp : GPU_Op<"solver.dn.d.portf"> {
-  let summary = "tfrt_cuda solver.dn.d.portf operation";
+  let summary = "tfrt_gpu solver.dn.d.portf operation";
   let description = [{
-    tfrt_cuda.solver.dn.d.portf This kernel computes the Cholesky factorization
+    tfrt_gpu.solver.dn.d.portf This kernel computes the Cholesky factorization
                                 of a Hermitian positive-definite matrix. Data
                                 types are real valued double precision.
   }];
@@ -166,9 +164,9 @@ def SolverDnDpotrfOp : GPU_Op<"solver.dn.d.portf"> {
 }
 
 def SolverDnCpotrfOp : GPU_Op<"solver.dn.c.portf"> {
-  let summary = "tfrt_cuda solver.dn.c.portf operation";
+  let summary = "tfrt_gpu solver.dn.c.portf operation";
   let description = [{
-    tfrt_cuda.solver.dn.c.portf This kernel computes the Cholesky factorization
+    tfrt_gpu.solver.dn.c.portf This kernel computes the Cholesky factorization
                                 of a Hermitian positive-definite matrix. Data
                                 types are complex valued single precision.
   }];
@@ -186,9 +184,9 @@ def SolverDnCpotrfOp : GPU_Op<"solver.dn.c.portf"> {
 }
 
 def SolverDnZpotrfOp : GPU_Op<"solver.dn.z.portf"> {
-  let summary = "tfrt_cuda solver.dn.z.portf operation";
+  let summary = "tfrt_gpu solver.dn.z.portf operation";
   let description = [{
-    tfrt_cuda.solver.dn.z.portf This kernel computes the Cholesky factorization
+    tfrt_gpu.solver.dn.z.portf This kernel computes the Cholesky factorization
                                 of a Hermitian positive-definite matrix. Data
                                 types are complex valued double precision.
   }];
@@ -205,4 +203,4 @@ def SolverDnZpotrfOp : GPU_Op<"solver.dn.z.portf"> {
   let results = (outs TFRT_ChainType);
 }
 
-#endif  // CUDA_SOLVER_OPS
+#endif  // GPU_SOLVER_OPS

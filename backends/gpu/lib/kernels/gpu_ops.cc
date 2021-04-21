@@ -14,7 +14,7 @@
 
 // This file implements MLIR operations for the cuda_ops library.
 
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops.h"
+#include "tfrt/gpu/kernels/gpu_ops.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -28,32 +28,32 @@ namespace tfrt {
 namespace gpu {
 
 //===----------------------------------------------------------------------===//
-// CUDADialect Dialect
+// GpuDialect Dialect
 //===----------------------------------------------------------------------===//
 
-CUDADialect::CUDADialect(MLIRContext *context)
-    : Dialect(/*name*/ "tfrt_gpu", context, TypeID::get<CUDADialect>()) {
+GpuDialect::GpuDialect(MLIRContext *context)
+    : Dialect(/*name*/ "tfrt_gpu", context, TypeID::get<GpuDialect>()) {
   context->getOrLoadDialect<tfrt::t::TensorDialect>();
   allowUnknownTypes();
   allowUnknownOperations();
 
   addOperations<
 #define GET_OP_LIST
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.cpp.inc"
+#include "tfrt/gpu/kernels/gpu_opdefs.cpp.inc"
       >();
 }
 
 namespace conversion {
 
-CUDA_ConversionDialect::CUDA_ConversionDialect(MLIRContext *context)
+GpuConversionDialect::GpuConversionDialect(MLIRContext *context)
     : Dialect(/*name*/ "tfrt_gpu_conversion", context,
-              TypeID::get<CUDA_ConversionDialect>()) {
+              TypeID::get<GpuConversionDialect>()) {
   allowUnknownTypes();
   allowUnknownOperations();
 
   addOperations<
 #define GET_OP_LIST
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.cpp.inc"
+#include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc"
       >();
 }
 
@@ -81,7 +81,7 @@ mlir::OpFoldResult CastAnyToAnyOp::fold(
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.cpp.inc"
+#include "tfrt/gpu/kernels/gpu_opdefs.cpp.inc"
 
 #define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.cpp.inc"
+#include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc"

@@ -18,8 +18,8 @@
 //
 // This file declares test-only operations for CUDA
 
-#ifndef TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_TEST_OPS_H_
-#define TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_TEST_OPS_H_
+#ifndef TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_TEST_OPS_H_
+#define TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_TEST_OPS_H_
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
@@ -31,17 +31,17 @@ using namespace mlir;
 namespace tfrt {
 namespace gpu {
 
-// Dialect for cuda_test operations.
-class CUDATestDialect : public Dialect {
+// Dialect for gpu_test operations.
+class GpuTestDialect : public Dialect {
  public:
   static StringRef getDialectNamespace() { return "tfrt_gpu_test"; }
-  explicit CUDATestDialect(MLIRContext* context);
+  explicit GpuTestDialect(MLIRContext* context);
 };
 
 }  // namespace gpu
 }  // namespace tfrt
 
 #define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_test_opdefs.h.inc"
+#include "tfrt/gpu/kernels/gpu_test_opdefs.h.inc"
 
-#endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_CUDA_TEST_OPS_H_
+#endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_TEST_OPS_H_

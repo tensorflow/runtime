@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cuda_ops_base.td ---------------------------------------------------===//
+//===- gpu_ops_base.td ---------------------------------------------------===//
 //
 // GPU dialect and type definitions.
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef CUDA_OPS_BASE
+#ifdef GPU_OPS_BASE
 #else
-#define CUDA_OPS_BASE
+#define GPU_OPS_BASE
+
+include "tfrt/tfrt_op_base.td"
 
 // "tfrt_gpu" dialect
 def GPU_Dialect : Dialect {
@@ -50,9 +52,6 @@ class GPU_Type<string name> :
 def GPU_AllocatorType : GPU_Type<"allocator">;
 def GPU_BufferType : GPU_Type<"buffer">;
 def GPU_ContextType : GPU_Type<"context">;
-def GPU_DeviceType : GPU_Type<"device">;
-def GPU_EventType : GPU_Type<"event">;
-def GPU_FunctionType : GPU_Type<"function">;
 def GPU_StreamType : GPU_Type<"stream">;
 
-#endif  // CUDA_OPS_BASE
+#endif  // GPU_OPS_BASE

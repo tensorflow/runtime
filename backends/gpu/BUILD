@@ -713,53 +713,54 @@ tfrt_cc_library(
 )
 
 filegroup(
-    name = "cuda_test_opdefs_ops",
+    name = "gpu_test_opdefs_ops",
     srcs = [
-        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_test_ops.h",
+        "include/tfrt/gpu/kernels/gpu_test_ops.h",
     ],
 )
 
 gentbl(
-    name = "cuda_opdefs_inc_gen",
+    name = "gpu_opdefs_inc_gen",
     tbl_outs = [
         (
             "-gen-op-decls",
-            "include/tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.h.inc",
+            "include/tfrt/gpu/kernels/gpu_opdefs.h.inc",
         ),
         (
             "-gen-op-defs",
-            "include/tfrt/gpu/kernels/cuda_opdefs/cuda_opdefs.cpp.inc",
+            "include/tfrt/gpu/kernels/gpu_opdefs.cpp.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops.td",
+    td_file = "include/tfrt/gpu/kernels/gpu_ops.td",
     td_includes = [
         "include",
         "backends/gpu/include",
     ],
     td_srcs = [
         "@tf_runtime//:OpBaseTdFiles",
-        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_blas_ops.td",
-        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_dnn_ops.td",
-        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td",
-        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_solver_ops.td",
+        "include/tfrt/gpu/kernels/gpu_blas_ops.td",
+        "include/tfrt/gpu/kernels/gpu_dnn_ops.td",
+        "include/tfrt/gpu/kernels/gpu_driver_ops.td",
+        "include/tfrt/gpu/kernels/gpu_ops_base.td",
+        "include/tfrt/gpu/kernels/gpu_solver_ops.td",
     ],
 )
 
 gentbl(
-    name = "cuda_conversion_helper_opdefs_inc_gen",
+    name = "gpu_conversion_helper_opdefs_inc_gen",
     tbl_outs = [
         (
             "-gen-op-decls",
-            "include/tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.h.inc",
+            "include/tfrt/gpu/kernels/gpu_conversion_helper_opdefs.h.inc",
         ),
         (
             "-gen-op-defs",
-            "include/tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_opdefs.cpp.inc",
+            "include/tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/gpu/kernels/cuda_opdefs/cuda_conversion_helper_ops.td",
+    td_file = "include/tfrt/gpu/kernels/gpu_conversion_helper_ops.td",
     td_includes = [
         "include",
         "backends/gpu/include",
@@ -770,41 +771,49 @@ gentbl(
 )
 
 gentbl(
-    name = "cuda_test_opdefs_inc_gen",
+    name = "gpu_test_opdefs_inc_gen",
     tbl_outs = [
         (
             "-gen-op-decls",
-            "include/tfrt/gpu/kernels/cuda_opdefs/cuda_test_opdefs.h.inc",
+            "include/tfrt/gpu/kernels/gpu_test_opdefs.h.inc",
         ),
         (
             "-gen-op-defs",
-            "include/tfrt/gpu/kernels/cuda_opdefs/cuda_test_opdefs.cpp.inc",
+            "include/tfrt/gpu/kernels/gpu_test_opdefs.cpp.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
-    td_file = "include/tfrt/gpu/kernels/cuda_opdefs/cuda_test_ops.td",
+    td_file = "include/tfrt/gpu/kernels/gpu_test_ops.td",
     td_includes = [
         "include",
         "backends/gpu/include",
     ],
     td_srcs = [
         "@tf_runtime//:OpBaseTdFiles",
-        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td",
+        "include/tfrt/gpu/kernels/gpu_ops_base.td",
     ],
+)
+
+# TODO(b/185219734): remove
+alias(
+    name = "cuda_opdefs",
+    actual = ":gpu_opdefs",
+    visibility = ["@tf_runtime//:friends"],
 )
 
 tfrt_cc_library(
-    name = "cuda_opdefs",
+    name = "gpu_opdefs",
     srcs = [
-        "lib/kernels/cuda_opdefs/cuda_ops.cc",
+        "lib/kernels/gpu_ops.cc",
     ],
     hdrs = [
         "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops.h",
+        "include/tfrt/gpu/kernels/gpu_ops.h",
     ],
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        ":cuda_conversion_helper_opdefs_inc_gen",
-        ":cuda_opdefs_inc_gen",
+        ":gpu_conversion_helper_opdefs_inc_gen",
+        ":gpu_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:basic_kernels_opdefs",
@@ -813,18 +822,18 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "cuda_test_opdefs",
+    name = "gpu_test_opdefs",
     srcs = [
-        "lib/kernels/cuda_opdefs/cuda_test_ops.cc",
+        "lib/kernels/gpu_test_ops.cc",
     ],
     hdrs = [
-        ":cuda_test_opdefs_ops",
+        ":gpu_test_opdefs_ops",
     ],
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        ":cuda_opdefs",
-        ":cuda_opdefs_inc_gen",
-        ":cuda_test_opdefs_inc_gen",
+        ":gpu_opdefs",
+        ":gpu_opdefs_inc_gen",
+        ":gpu_test_opdefs_inc_gen",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:basic_kernels_opdefs",
@@ -833,15 +842,15 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "cuda",
+    name = "gpu_kernels",
     srcs = [
-        "lib/kernels/cuda/blas_kernels.cc",
-        "lib/kernels/cuda/dnn_kernels.cc",
-        "lib/kernels/cuda/kernels.cc",
-        "lib/kernels/cuda/kernels.h",
-        "lib/kernels/cuda/solver_kernels.cc",
+        "lib/kernels/blas_kernels.cc",
+        "lib/kernels/dnn_kernels.cc",
+        "lib/kernels/kernels.cc",
+        "lib/kernels/kernels.h",
+        "lib/kernels/solver_kernels.cc",
     ],
-    alwayslink_static_registration_src = "lib/kernels/cuda/static_registration.cc",
+    alwayslink_static_registration_src = "lib/kernels/static_registration.cc",
     visibility = [":tests_and_tools"],
     deps = [
         ":gpu_event_manager",
@@ -859,13 +868,13 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "cuda_test",
+    name = "gpu_test_kernels",
     srcs = [
-        "lib/kernels/cuda/kernels.h",
-        "lib/kernels/cuda/test_kernels.cc",
-        "lib/kernels/cuda/test_kernels.h",
+        "lib/kernels/kernels.h",
+        "lib/kernels/test_kernels.cc",
+        "lib/kernels/test_kernels.h",
     ],
-    alwayslink_static_registration_src = "lib/kernels/cuda/test_static_registration.cc",
+    alwayslink_static_registration_src = "lib/kernels/test_static_registration.cc",
     visibility = [":tests_and_tools"],
     deps = [
         ":gpu_memory",
@@ -883,8 +892,8 @@ tfrt_cc_binary(
     srcs = ["tools/tfrt_gpu_opt/tfrt_gpu_opt.cc"],
     visibility = [":tests_and_tools"],
     deps = [
-        ":cuda_opdefs",
-        ":cuda_test_opdefs",
+        ":gpu_opdefs",
+        ":gpu_test_opdefs",
         "@llvm-project//mlir:MlirOptLib",
         "@tf_runtime//:init_tfrt_dialects",
     ],
@@ -895,8 +904,8 @@ tfrt_cc_binary(
     srcs = ["tools/tfrt_gpu_translate/static_registration.cc"],
     visibility = [":tests_and_tools"],
     deps = [
-        ":cuda_opdefs",
-        ":cuda_test_opdefs",
+        ":gpu_opdefs",
+        ":gpu_test_opdefs",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Translation",

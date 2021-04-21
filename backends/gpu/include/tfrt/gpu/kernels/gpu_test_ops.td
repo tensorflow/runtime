@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cuda_test_ops.td ---------------------------------------------------===//
+//===- gpu_test_ops.td ---------------------------------------------------===//
 //
 // Operation and dialect definitions for GPU tests.
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef CUDA_TEST_OPS
+#ifdef GPU_TEST_OPS
 #else
-#define CUDA_TEST_OPS
+#define GPU_TEST_OPS
 
-include "tfrt/tfrt_op_base.td"
-include "tfrt/tensor/opdefs/tensor_shape_base.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
+include "tfrt/gpu/kernels/gpu_ops_base.td"
 
 // "tfrt_gpu_test" dialect
 def GPU_TEST_Dialect : Dialect {
@@ -63,4 +61,4 @@ def GPU_TEST_TestCpyTensorHtoDOp : GPU_TEST_Op<"copy_tensor_host_to_device"> {
   let results = (outs GPU_BufferType, TFRT_ChainType);
 }
 
-#endif  // CUDA_TEST_OPS
+#endif  // GPU_TEST_OPS

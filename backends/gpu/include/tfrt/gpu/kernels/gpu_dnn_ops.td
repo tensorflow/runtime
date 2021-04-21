@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- cuda_dnn_ops.td ----------------------------------------------------===//
+//===- gpu_dnn_ops.td ----------------------------------------------------===//
 //
 // CUDA based CUDA operation definitions.
 //
@@ -21,13 +21,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef CUDA_DNN_OPS
+#ifdef GPU_DNN_OPS
 #else
-#define CUDA_DNN_OPS
+#define GPU_DNN_OPS
 
-include "tfrt/tfrt_op_base.td"
-include "tfrt/tensor/opdefs/tensor_shape_base.td"
-include "tfrt/gpu/kernels/cuda_opdefs/cuda_ops_base.td"
+include "tfrt/gpu/kernels/gpu_ops_base.td"
 
 def GPU_DnnActivationDescriptorType : GPU_Type<"dnn_activation_descriptor">;
 def GPU_DnnConvolutionDescriptorType : GPU_Type<"dnn_convolution_descriptor">;
@@ -306,4 +304,4 @@ def GPU_DnnConvolutionBiasActivationForwardOp :
 }
 
 
-#endif  // CUDA_DNN_OPS
+#endif  // GPU_DNN_OPS

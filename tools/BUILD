@@ -113,8 +113,8 @@ tfrt_cc_library(
         "@tf_runtime//backends/cpu:test_ops_alwayslink",
     ] + select({
         "@tf_runtime//:gpu_enabled": [
-            "@tf_runtime//backends/gpu:cuda_alwayslink",
-            "@tf_runtime//backends/gpu:cuda_test_alwayslink",
+            "@tf_runtime//backends/gpu:gpu_kernels_alwayslink",
+            "@tf_runtime//backends/gpu:gpu_test_kernels_alwayslink",
             "@tf_runtime//backends/gpu:gpu_op_handler_alwayslink",
             "@tf_runtime//backends/gpu:gpu_test_ops_alwayslink",
             "@tf_runtime//backends/gpu:gpu_tf_ops_alwayslink",

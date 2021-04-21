@@ -14,7 +14,7 @@
 
 // This file implements MLIR operations for the cuda_test_ops library.
 
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_test_ops.h"
+#include "tfrt/gpu/kernels/gpu_test_ops.h"
 
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -28,19 +28,19 @@ namespace tfrt {
 namespace gpu {
 
 //===----------------------------------------------------------------------===//
-// CUDADialect Dialect
+// GpuDialect Dialect
 //===----------------------------------------------------------------------===//
 
-CUDATestDialect::CUDATestDialect(MLIRContext *context)
+GpuTestDialect::GpuTestDialect(MLIRContext *context)
     : Dialect(/*name*/ "tfrt_gpu_test", context,
-              TypeID::get<CUDATestDialect>()) {
+              TypeID::get<GpuTestDialect>()) {
   context->getOrLoadDialect<tfrt::t::TensorDialect>();
   allowUnknownTypes();
   allowUnknownOperations();
 
   addOperations<
 #define GET_OP_LIST
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_test_opdefs.cpp.inc"
+#include "tfrt/gpu/kernels/gpu_test_opdefs.cpp.inc"
       >();
 }
 
@@ -52,4 +52,4 @@ CUDATestDialect::CUDATestDialect(MLIRContext *context)
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
-#include "tfrt/gpu/kernels/cuda_opdefs/cuda_test_opdefs.cpp.inc"
+#include "tfrt/gpu/kernels/gpu_test_opdefs.cpp.inc"

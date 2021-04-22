@@ -794,22 +794,10 @@ gentbl(
     ],
 )
 
-# TODO(b/185219734): remove
-alias(
-    name = "cuda_opdefs",
-    actual = ":gpu_opdefs",
-    visibility = ["@tf_runtime//:friends"],
-)
-
 tfrt_cc_library(
     name = "gpu_opdefs",
-    srcs = [
-        "lib/kernels/gpu_ops.cc",
-    ],
-    hdrs = [
-        "include/tfrt/gpu/kernels/cuda_opdefs/cuda_ops.h",
-        "include/tfrt/gpu/kernels/gpu_ops.h",
-    ],
+    srcs = ["lib/kernels/gpu_ops.cc"],
+    hdrs = ["include/tfrt/gpu/kernels/gpu_ops.h"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":gpu_conversion_helper_opdefs_inc_gen",

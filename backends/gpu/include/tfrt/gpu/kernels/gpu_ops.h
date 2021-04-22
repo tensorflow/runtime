@@ -40,8 +40,6 @@ class GpuDialect : public Dialect {
   explicit GpuDialect(MLIRContext* context);
 };
 
-using CUDADialect = GpuDialect;  // TODO(b/185219734): Remove
-
 namespace conversion {
 
 // Dialect for cuda conversion helper operations.
@@ -50,9 +48,6 @@ class GpuConversionDialect : public Dialect {
   static StringRef getDialectNamespace() { return "tfrt_gpu_conversion"; }
   explicit GpuConversionDialect(MLIRContext* context);
 };
-
-// TODO(b/185219734): Remove
-using CUDA_ConversionDialect = GpuConversionDialect;
 
 }  // namespace conversion
 

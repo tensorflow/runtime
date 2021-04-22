@@ -26,15 +26,30 @@ namespace {
 
 constexpr mlir::Operation* kRootOperation = nullptr;
 
-int64_t GetCostThresholdFromModule(mlir::ModuleOp op) {
+int64_t GetCostThresholdForBlock(mlir::Block& block) {
   // default cost threshold is set to a lowest possible value, to disable any
   // merging of streams.
   static constexpr int64_t kDefaultCostThreshold = 1;
 
-  if (auto attr = op->getAttrOfType<mlir::IntegerAttr>("tfrt.cost_threshold")) {
+  auto* parent = block.getParentOp();
+
+  // Try to use function-level cost threshold first.
+  if (auto func = llvm::dyn_cast<mlir::FuncOp>(parent)) {
+    if (auto attr =
+            func->getAttrOfType<mlir::IntegerAttr>("tfrt.cost_threshold")) {
+      return std::max(kDefaultCostThreshold, attr.getInt());
+    }
+  }
+
+  // If there is no function-level cost threshold, use module-level cost
+  // threshold.
+  auto module = parent->getParentOfType<mlir::ModuleOp>();
+  if (auto attr =
+          module->getAttrOfType<mlir::IntegerAttr>("tfrt.cost_threshold")) {
     return std::max(kDefaultCostThreshold, attr.getInt());
   }
 
+  // Otherwise, use default cost threshold.
   return kDefaultCostThreshold;
 }
 
@@ -291,8 +306,7 @@ void StreamAnalysis::FinalizeStreams(mlir::Block& block) {
 }
 
 void StreamAnalysis::AnalyzeBlock(mlir::Block& block) {
-  cost_threshold_ = GetCostThresholdFromModule(
-      block.getParentOp()->getParentOfType<mlir::ModuleOp>());
+  cost_threshold_ = GetCostThresholdForBlock(block);
   ScheduleOpForwardPass(block);
   BuildStreamBackwardPass(block);
   FinalizeStreams(block);

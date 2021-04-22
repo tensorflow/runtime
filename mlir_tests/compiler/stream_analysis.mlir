@@ -16,35 +16,35 @@
 
 module attributes {tfrt.cost_threshold = 10 : i64} {
 
-// expected-remark@+1 {{stream id: 0, stream cost: 51, parent stream: -1}}
-func @stream(%a: i32, %b: i32) -> i32 {
-  // stream 0 cost = 1 (root) + 10 (%a0) + 10 (%a1) + 10 (%a2) + 10 (%result) + 10 (return)
-  // stream 1 cost = 10 (%b0) + 10 (%b1) + 10 (%b2)
+// expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: -1}}
+func @stream(%a: i32, %b: i32) -> i32 attributes {tfrt.cost_threshold = 5} {
+  // stream 0 cost = 1 (root) + 5 (%a0) + 5 (%a1) + 5 (%a2) + 5 (%result) + 5 (return)
+  // stream 1 cost = 5 (%b0) + 5 (%b1) + 5 (%b2)
 
   // %a0, %a1 and %a2 has data dependencies. So even though each of them
   // are above cost threshold, they are merged to the same stream.
-  // expected-remark@+1 {{stream id: 0, stream cost: 51, parent stream: -1}}
+  // expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: -1}}
   %a0 = tfrt.constant.i32 1
-  // expected-remark@+1 {{stream id: 0, stream cost: 51, parent stream: -1}}
+  // expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: -1}}
   %a1 = "tfrt.add.i32"(%a, %a0) : (i32, i32) -> i32
-  // expected-remark@+1 {{stream id: 0, stream cost: 51, parent stream: -1}}
+  // expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: -1}}
   %a2 = "tfrt.add.i32"(%a, %a1) : (i32, i32) -> i32
 
   // %b0, %b1 and %b2 has data dependencies. So even though each of them
   // are above cost threshold, they are merged to the same stream.
-  // expected-remark@+1 {{stream id: 1, stream cost: 30, parent stream: 0}}
+  // expected-remark@+1 {{stream id: 1, stream cost: 15, parent stream: 0}}
   %b0 = tfrt.constant.i32 2
-  // expected-remark@+1 {{stream id: 1, stream cost: 30, parent stream: 0}}
+  // expected-remark@+1 {{stream id: 1, stream cost: 15, parent stream: 0}}
   %b1 = "tfrt.add.i32"(%b, %b0) : (i32, i32) -> i32
-  // expected-remark@+1 {{stream id: 1, stream cost: 30, parent stream: 0}}
+  // expected-remark@+1 {{stream id: 1, stream cost: 15, parent stream: 0}}
   %b2 = "tfrt.add.i32"(%b, %b1) : (i32, i32) -> i32
 
   // %a2 and %b2 are equvalent path from root in costs, so we randomly pick
   // one stream to merge into.
-  // expected-remark@+1 {{stream id: 0, stream cost: 51, parent stream: -1}}
+  // expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: -1}}
   %result = "tfrt.add.i32"(%a2, %b2) : (i32, i32) -> i32
 
-  // expected-remark@+1 {{stream id: 0, stream cost: 51, parent stream: -1}}
+  // expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: -1}}
   tfrt.return %result : i32
 }
 

@@ -17,10 +17,10 @@ package_group(
         "//...",
         # copybara:uncomment_begin
         # # Authorized users go here.
+        # "//learning/brain/mobile/lite/tf_runtime/...",
         # "//third_party/tf_runtime_google/...",
         # "//third_party/tensorflow/compiler/mlir/tfrt/...",
         # "//third_party/tensorflow/core/runtime_fallback/...",
-        # "//third_party/tensorflow/lite/experimental/tf_runtime/...",
         # copybara:uncomment_end
     ],
 )

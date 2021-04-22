@@ -32,6 +32,7 @@
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
+#include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
 #include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
@@ -113,18 +114,10 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
 // Verify compiled function signature and pre-compute memory layout for results.
 //----------------------------------------------------------------------------//
 
-// TODO(ezhulenev): Currently codegen supports only F32 data type for
-// simplicity. Add support for all other number data types when the overall
-// code structure will become stable.
-
 // TODO(ezhulenev): Add support UnrankedMemrefType arguments and results.
-
 static bool IsValidMemref(mlir::Type type) {
   auto memref = type.dyn_cast<mlir::MemRefType>();
-  if (!memref) return false;
-
-  mlir::Type elt = memref.getElementType();
-  return elt.isF32();
+  return static_cast<bool>(memref);
 }
 
 // Verifies that all function operands are supported at runtime.
@@ -582,6 +575,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   }
 
   // Lower everything down to LLVM dialect.
+  pm.addPass(mlir::createConvertLinalgToLLVMPass());
   pm.addPass(mlir::createConvertAsyncToLLVMPass());
   pm.addPass(mlir::createLowerAffinePass());
   pm.addPass(mlir::createLowerToCFGPass());

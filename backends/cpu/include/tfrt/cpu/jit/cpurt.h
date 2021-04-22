@@ -293,12 +293,17 @@ mlir::LogicalResult ReturnStridedMemref(RemainingResults results,
 
   // Dispatch based on the memref element type.
   auto element_type = memref.getElementType();
-  if (element_type.isF32())
+
+  // TODO(ezhulenev): Add support for all data types.
+  if (element_type.isF32()) {
     rank_dispatch(float{});
-  else
+  } else if (element_type.isInteger(32)) {
+    rank_dispatch(int32_t{});
+  } else {
     results.EmitErrorAt(
         result_index,
         StrCat("unsupported returned memref element type: ", element_type));
+  }
 
   return mlir::success();
 }

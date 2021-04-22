@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- kernels.cc - CUDA runtime interface --------------------------------===//
-//
-// This file defines the C++ functions that implement the kernels provided by
-// the TFRT CUDA runtime.
-
-#include "kernels.h"
-
+// This file implements the tfrt_gpu kernels that talk to the driver API.
 #include <memory>
 #include <tuple>
 
+#include "kernels_detail.h"
 #include "llvm/Support/Error.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/dtype/dtype.h"
@@ -33,7 +28,6 @@
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/kernel_registry.h"
-#include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -269,12 +263,9 @@ static Error CudaFunctionLaunch(const GpuStream& stream, GpuFunction function,
                                stream.get(), arg_pointers, {});
 }
 
-#define TFRT_WITH_CHAIN_RESULT(sync_func) \
-  internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
-
-void RegisterCudaKernels(KernelRegistry* kernel_reg) {
+void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.init",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaInit)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaInit));
   kernel_reg->AddKernel("tfrt_gpu.device.get", TFRT_KERNEL(CudaDeviceGet));
   kernel_reg->AddKernel("tfrt_gpu.context.create",
                         TFRT_KERNEL(CudaContextCreate));
@@ -286,7 +277,7 @@ void RegisterCudaKernels(KernelRegistry* kernel_reg) {
 
   kernel_reg->AddKernel("tfrt_gpu.event.create", TFRT_KERNEL(CudaEventCreate));
   kernel_reg->AddKernel("tfrt_gpu.event.record",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaEventRecord)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaEventRecord));
   kernel_reg->AddKernel("tfrt_gpu.event.synchronize",
                         TFRT_KERNEL(CudaEventSynchronizeAsync));
 
@@ -294,39 +285,31 @@ void RegisterCudaKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(CudaAllocatorCreate));
 
   kernel_reg->AddKernel("tfrt_gpu.mem.allocate", TFRT_KERNEL(CudaMemAllocate));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.mem.print_metadata",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemPrintMetadata)));
+  kernel_reg->AddKernel("tfrt_gpu.mem.print_metadata",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaMemPrintMetadata));
 
-  kernel_reg->AddKernel(
-      "tfrt_gpu.tensor.make.i8",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<int8_t>)));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.tensor.make.i32",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<int32_t>)));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.tensor.make.i64",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<int64_t>)));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.tensor.make.f32",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<float>)));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.tensor.make.f64",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorMake<double>)));
+  kernel_reg->AddKernel("tfrt_gpu.tensor.make.i8",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaTensorMake<int8_t>));
+  kernel_reg->AddKernel("tfrt_gpu.tensor.make.i32",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaTensorMake<int32_t>));
+  kernel_reg->AddKernel("tfrt_gpu.tensor.make.i64",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaTensorMake<int64_t>));
+  kernel_reg->AddKernel("tfrt_gpu.tensor.make.f32",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaTensorMake<float>));
+  kernel_reg->AddKernel("tfrt_gpu.tensor.make.f64",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaTensorMake<double>));
 
-  kernel_reg->AddKernel(
-      "tfrt_gpu.tensor.print_metadata",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaTensorPrintMetadata)));
+  kernel_reg->AddKernel("tfrt_gpu.tensor.print_metadata",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaTensorPrintMetadata));
   kernel_reg->AddKernel("tfrt_gpu.mem.copy_host_to_device",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemcpyHtoD)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaMemcpyHtoD));
   kernel_reg->AddKernel("tfrt_gpu.mem.copy_device_to_host",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaMemcpyDtoH)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaMemcpyDtoH));
 
   kernel_reg->AddKernel("tfrt_gpu.function.load",
                         TFRT_KERNEL(CudaFunctionLoad));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.function.launch",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(CudaFunctionLaunch)));
+  kernel_reg->AddKernel("tfrt_gpu.function.launch",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CudaFunctionLaunch));
 }
 
 }  // namespace gpu

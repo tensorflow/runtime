@@ -28,6 +28,7 @@
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
+#include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
@@ -199,6 +200,25 @@ class GpuDnnHandle {
  private:
   AsyncValueRef<GpuStream> stream_;
   wrapper::OwningDnnHandle handle_;
+};
+
+class GpuSolverHandle {
+ public:
+  explicit GpuSolverHandle(AsyncValueRef<GpuStream> stream,
+                           wrapper::OwningSolverHandle handle);
+  ~GpuSolverHandle();
+
+  GpuSolverHandle(GpuSolverHandle&&) = default;
+  GpuSolverHandle& operator=(GpuSolverHandle&&) = default;
+
+  const wrapper::OwningSolverHandle& operator->() const { return handle_; }
+  wrapper::SolverHandle get() const { return handle_.get(); }
+
+  wrapper::Context context() const { return stream_->context(); }
+
+ private:
+  AsyncValueRef<GpuStream> stream_;
+  wrapper::OwningSolverHandle handle_;
 };
 
 }  // namespace gpu

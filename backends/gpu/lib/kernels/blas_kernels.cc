@@ -12,17 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// BLAS kernels
-//
-// This file defines the C++ functions that implement the BLAS kernels provided
-// by the TFRT CUDA runtime.
-#include "kernels.h"
+// This file implements the tfrt_gpu.blas kernels.
+#include "kernels_detail.h"
 #include "llvm/Support/Errc.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
-#include "tfrt/host_context/kernel_utils.h"
 
 namespace tfrt {
 namespace gpu {
@@ -217,22 +213,19 @@ static Error BlasGemmStridedBatchedEx(
       batch_count, *computeType_blas, *algo_blas);
 }
 
-#define TFRT_WITH_CHAIN_RESULT(sync_func) \
-  internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
-
-void RegisterCudaBlasKernels(KernelRegistry* kernel_reg) {
+void RegisterGpuBlasKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.blas.create", TFRT_KERNEL(BlasCreate));
   kernel_reg->AddKernel("tfrt_gpu.blas.axpy.f32",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSaxpy)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(BlasSaxpy));
   kernel_reg->AddKernel("tfrt_gpu.blas.gemm.f32",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSgemm)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(BlasSgemm));
   kernel_reg->AddKernel("tfrt_gpu.blas.gemm.ex",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasGemmEx)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(BlasGemmEx));
   kernel_reg->AddKernel(
       "tfrt_gpu.blas.gemm.strided.batched.ex",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasGemmStridedBatchedEx)));
+      TFRT_KERNEL_WITH_CHAIN_RESULT(BlasGemmStridedBatchedEx));
   kernel_reg->AddKernel("tfrt_gpu.blas.sync.gemm_ex",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(BlasSyncGemmEx)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(BlasSyncGemmEx));
 }
 }  // namespace gpu
 }  // namespace tfrt

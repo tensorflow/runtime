@@ -14,9 +14,10 @@
 
 // Unit test for SOLVER wrapper (abstraction layer for cuSOLVER and rocmSOLVER).
 
+#include "tfrt/gpu/wrapper/solver_wrapper.h"
+
 #include "common.h"
 #include "gtest/gtest.h"
-#include "tfrt/gpu/wrapper/cusolver_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
@@ -30,7 +31,7 @@ TEST_P(Test, SolverDnHandel) {
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-  EXPECT_TRUE(IsSuccess(SolverDnCreate(current).takeError()));
+  EXPECT_TRUE(IsSuccess(SolverCreate(current).takeError()));
 }
 
 }  // namespace wrapper

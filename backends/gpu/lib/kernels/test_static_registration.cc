@@ -13,18 +13,18 @@
 // limitations under the License.
 
 // This file uses a static constructor to automatically register all of the
-// CUDA test kernels.
+// tfrt_gpu_test kernels.
 
 #include "tfrt/host_context/kernel_registry.h"
 
 namespace tfrt {
 namespace gpu {
 
-void RegisterTestCudaKernels(KernelRegistry* kernel_reg);
+void RegisterGpuTestKernels(KernelRegistry* kernel_reg);
 
 namespace kernels {
 
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterTestCudaKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuTestKernels);
 
 }  // namespace kernels
 }  // namespace gpu

@@ -87,11 +87,11 @@ static T *ToCuda(Pointer<T> ptr) {
   return ptr.raw(Platform::CUDA);
 }
 
-llvm::Expected<OwningSolverDnHandle> CusolverDnCreate(CurrentContext current) {
+llvm::Expected<OwningSolverHandle> CusolverDnCreate(CurrentContext current) {
   CheckCudaContext(current);
   cusolverDnHandle_t handle = nullptr;
   RETURN_IF_ERROR(cusolverDnCreate(&handle));
-  return OwningSolverDnHandle(handle);
+  return OwningSolverHandle(handle);
 }
 
 llvm::Error CusolverDnDestroy(cusolverDnHandle_t handle) {
@@ -109,47 +109,47 @@ llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle) {
   return Stream(stream);
 }
 
-llvm::Error CusolverDnSpotrf(CurrentContext current, cusolverDnHandle_t handle,
-                             cublasFillMode_t uplo, int n, Pointer<float> A,
-                             int lda, Pointer<float> Workspace, int Lwork,
-                             Pointer<int> devInfo) {
+llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
+                            cublasFillMode_t uplo, int n, Pointer<float> A,
+                            int lda, Pointer<float> Workspace, int Lwork,
+                            Pointer<int> devInfo) {
   CheckCudaContext(current);
   return TO_ERROR(cusolverDnSpotrf(handle, uplo, n, ToCuda(A), lda,
                                    ToCuda(Workspace), Lwork, ToCuda(devInfo)));
 }
 
-llvm::Error CusolverDnDpotrf(CurrentContext current, cusolverDnHandle_t handle,
-                             cublasFillMode_t uplo, int n, Pointer<double> A,
-                             int lda, Pointer<double> Workspace, int Lwork,
-                             Pointer<int> devInfo) {
+llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
+                            cublasFillMode_t uplo, int n, Pointer<double> A,
+                            int lda, Pointer<double> Workspace, int Lwork,
+                            Pointer<int> devInfo) {
   CheckCudaContext(current);
   return TO_ERROR(cusolverDnDpotrf(handle, uplo, n, ToCuda(A), lda,
                                    ToCuda(Workspace), Lwork, ToCuda(devInfo)));
 }
 
-llvm::Error CusolverDnCpotrf(CurrentContext current, cusolverDnHandle_t handle,
-                             cublasFillMode_t uplo, int n, Pointer<cuComplex> A,
-                             int lda, Pointer<cuComplex> Workspace, int Lwork,
-                             Pointer<int> devInfo) {
+llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
+                            cublasFillMode_t uplo, int n, Pointer<cuComplex> A,
+                            int lda, Pointer<cuComplex> Workspace, int Lwork,
+                            Pointer<int> devInfo) {
   CheckCudaContext(current);
   return TO_ERROR(cusolverDnCpotrf(handle, uplo, n, ToCuda(A), lda,
                                    ToCuda(Workspace), Lwork, ToCuda(devInfo)));
 }
 
-llvm::Error CusolverDnZpotrf(CurrentContext current, cusolverDnHandle_t handle,
-                             cublasFillMode_t uplo, int n,
-                             Pointer<cuDoubleComplex> A, int lda,
-                             Pointer<cuDoubleComplex> Workspace, int Lwork,
-                             Pointer<int> devInfo) {
+llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
+                            cublasFillMode_t uplo, int n,
+                            Pointer<cuDoubleComplex> A, int lda,
+                            Pointer<cuDoubleComplex> Workspace, int Lwork,
+                            Pointer<int> devInfo) {
   CheckCudaContext(current);
   return TO_ERROR(cusolverDnZpotrf(handle, uplo, n, ToCuda(A), lda,
                                    ToCuda(Workspace), Lwork, ToCuda(devInfo)));
 }
 
-llvm::Expected<int> CusolverDnSpotrfBufferSize(CurrentContext current,
-                                               cusolverDnHandle_t handle,
-                                               cublasFillMode_t uplo, int n,
-                                               Pointer<float> A, int lda) {
+llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
+                                              cusolverDnHandle_t handle,
+                                              cublasFillMode_t uplo, int n,
+                                              Pointer<float> A, int lda) {
   CheckCudaContext(current);
   int Lwork;
   RETURN_IF_ERROR(
@@ -157,10 +157,10 @@ llvm::Expected<int> CusolverDnSpotrfBufferSize(CurrentContext current,
   return Lwork;
 }
 
-llvm::Expected<int> CusolverDnDpotrfBufferSize(CurrentContext current,
-                                               cusolverDnHandle_t handle,
-                                               cublasFillMode_t uplo, int n,
-                                               Pointer<double> A, int lda) {
+llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
+                                              cusolverDnHandle_t handle,
+                                              cublasFillMode_t uplo, int n,
+                                              Pointer<double> A, int lda) {
   CheckCudaContext(current);
   int Lwork;
   RETURN_IF_ERROR(
@@ -168,10 +168,10 @@ llvm::Expected<int> CusolverDnDpotrfBufferSize(CurrentContext current,
   return Lwork;
 }
 
-llvm::Expected<int> CusolverDnCpotrfBufferSize(CurrentContext current,
-                                               cusolverDnHandle_t handle,
-                                               cublasFillMode_t uplo, int n,
-                                               Pointer<cuComplex> A, int lda) {
+llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
+                                              cusolverDnHandle_t handle,
+                                              cublasFillMode_t uplo, int n,
+                                              Pointer<cuComplex> A, int lda) {
   CheckCudaContext(current);
   int Lwork;
   RETURN_IF_ERROR(
@@ -179,11 +179,11 @@ llvm::Expected<int> CusolverDnCpotrfBufferSize(CurrentContext current,
   return Lwork;
 }
 
-llvm::Expected<int> CusolverDnZpotrfBufferSize(CurrentContext current,
-                                               cusolverDnHandle_t handle,
-                                               cublasFillMode_t uplo, int n,
-                                               Pointer<cuDoubleComplex> A,
-                                               int lda) {
+llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
+                                              cusolverDnHandle_t handle,
+                                              cublasFillMode_t uplo, int n,
+                                              Pointer<cuDoubleComplex> A,
+                                              int lda) {
   CheckCudaContext(current);
   int Lwork;
   RETURN_IF_ERROR(

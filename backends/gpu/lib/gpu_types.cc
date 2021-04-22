@@ -159,5 +159,11 @@ GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuStream> stream,
 
 GpuDnnHandle::~GpuDnnHandle() = default;
 
+GpuSolverHandle::GpuSolverHandle(AsyncValueRef<GpuStream> stream,
+                                 wrapper::OwningSolverHandle handle)
+    : stream_(std::move(stream)), handle_(std::move(handle)) {}
+
+GpuSolverHandle::~GpuSolverHandle() = default;
+
 }  // namespace gpu
 }  // namespace tfrt

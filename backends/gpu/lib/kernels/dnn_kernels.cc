@@ -12,19 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- dnn_kernels.cc - CUDA runtime interface ----------------------------===//
-//
-// This file defines the C++ functions that implement the kernels provided by
-// the TFRT CUDA runtime.
+// This file implements the tfrt_gpu.dnn kernels.
 #include <cstdint>
 #include <memory>
 #include <string>
 
-#include "kernels.h"
+#include "kernels_detail.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
-#include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
 #include "tfrt/tensor/tensor_type_registration.h"
@@ -255,32 +251,27 @@ Error CudnnConvolutionBiasActivationForward(
       y_desc.get(), y.pointer());
 }
 
-#define TFRT_WITH_CHAIN_RESULT(sync_func) \
-  internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
-
-void RegisterCudaDnnKernels(KernelRegistry* kernel_reg) {
+void RegisterGpuDnnKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.dnn.create", TFRT_KERNEL(DnnCreate));
   kernel_reg->AddKernel("tfrt_gpu.dnn.create_pooling_descriptor",
                         TFRT_KERNEL(DnnCreatePoolingDescriptor));
   kernel_reg->AddKernel("tfrt_gpu.dnn.create_tensor_descriptor",
                         TFRT_KERNEL(DnnCreateTensorDescriptor));
   kernel_reg->AddKernel("tfrt_gpu.dnn.pooling_forward",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnPoolingForward)));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.dnn.pooling_backward",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnPoolingBackward)));
-  kernel_reg->AddKernel(
-      "tfrt_gpu.dnn.convolution_forward",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnConvolutionForward)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(DnnPoolingForward));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.pooling_backward",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(DnnPoolingBackward));
+  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_forward",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(DnnConvolutionForward));
   kernel_reg->AddKernel(
       "tfrt_gpu.dnn.convolution_backward_data",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnConvolutionBackwardData)));
+      TFRT_KERNEL_WITH_CHAIN_RESULT(DnnConvolutionBackwardData));
   kernel_reg->AddKernel(
       "tfrt_gpu.dnn.convolution_backward_filter",
-      TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(DnnConvolutionBackwardFilter)));
-  kernel_reg->AddKernel("tfrt_gpu.dnn.convolution_bias_activation_forward",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(
-                            CudnnConvolutionBiasActivationForward)));
+      TFRT_KERNEL_WITH_CHAIN_RESULT(DnnConvolutionBackwardFilter));
+  kernel_reg->AddKernel(
+      "tfrt_gpu.dnn.convolution_bias_activation_forward",
+      TFRT_KERNEL_WITH_CHAIN_RESULT(CudnnConvolutionBiasActivationForward));
 }
 
 }  // namespace gpu

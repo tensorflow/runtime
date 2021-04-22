@@ -26,11 +26,11 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-void internal::SolverDnHandleDeleter::operator()(SolverDnHandle handle) const {
-  LogIfError(SolverDnDestroy(handle));
+void internal::SolverHandleDeleter::operator()(SolverHandle handle) const {
+  LogIfError(SolverDestroy(handle));
 }
 
-llvm::Expected<OwningSolverDnHandle> SolverDnCreate(CurrentContext current) {
+llvm::Expected<OwningSolverHandle> SolverCreate(CurrentContext current) {
   auto platform = current.platform();
   switch (platform) {
     case Platform::CUDA:
@@ -42,7 +42,7 @@ llvm::Expected<OwningSolverDnHandle> SolverDnCreate(CurrentContext current) {
   }
 }
 
-llvm::Error SolverDnDestroy(SolverDnHandle handle) {
+llvm::Error SolverDestroy(SolverHandle handle) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
@@ -54,7 +54,7 @@ llvm::Error SolverDnDestroy(SolverDnHandle handle) {
   }
 }
 
-llvm::Error SolverDnSetStream(SolverDnHandle handle, Stream stream) {
+llvm::Error SolverSetStream(SolverHandle handle, Stream stream) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
@@ -66,7 +66,7 @@ llvm::Error SolverDnSetStream(SolverDnHandle handle, Stream stream) {
   }
 }
 
-llvm::Expected<Stream> SolverDnGetStream(SolverDnHandle handle) {
+llvm::Expected<Stream> SolverGetStream(SolverHandle handle) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:

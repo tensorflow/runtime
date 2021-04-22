@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-// CUDA runtime interface
-//
-// This file declares the C++ functions that implement the kernels provided by
-// the TFRT CUDA runtime.
+// Helpers for tfrt_gpu kernel implementations.
 #ifndef TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_KERNELS_H_
 #define TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_KERNELS_H_
 
 #include "tfrt/host_context/chain.h"
+#include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/forward_decls.h"
 
+// TFRT_KERNEL_WITH_CHAIN_RESULT wraps the TFRT_KERNEL macro to add a return
+// chain to the kernel implementation.
+#define TFRT_KERNEL_WITH_CHAIN_RESULT(sync_func) \
+  TFRT_KERNEL(                                   \
+      internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke)
+
 namespace tfrt {
-
-class KernelRegistry;
-
 namespace gpu {
-
-void RegisterCudaKernels(KernelRegistry* kernel_reg);
-
 namespace internal {
+
 // Helper template that provides an async kernel implementation from a sync one.
 template <typename F, F>
 struct WithChainResult;
+
 // Return a Chain instead of void.
 template <typename... Args, void (*sync_func_ptr)(Args...)>
 struct WithChainResult<void (*)(Args...), sync_func_ptr> {
@@ -44,6 +44,7 @@ struct WithChainResult<void (*)(Args...), sync_func_ptr> {
     return Chain{};
   }
 };
+
 // Return an Expected<Chain> instead of an Error.
 template <typename... Args, Error (*sync_func_ptr)(Args...)>
 struct WithChainResult<Error (*)(Args...), sync_func_ptr> {
@@ -53,7 +54,8 @@ struct WithChainResult<Error (*)(Args...), sync_func_ptr> {
     return Chain{};
   }
 };
-// Return Expected<tuple<T, Chain> instead of Expected<T>.
+
+// Return Expected<tuple<T, Chain>> instead of Expected<T>.
 template <typename... Args, typename Result,
           Expected<Result> (*sync_func_ptr)(Args...)>
 struct WithChainResult<Expected<Result> (*)(Args...), sync_func_ptr> {
@@ -63,6 +65,7 @@ struct WithChainResult<Expected<Result> (*)(Args...), sync_func_ptr> {
     return std::make_tuple(std::move(*result), Chain{});
   }
 };
+
 // Return Expected<tuple<..., Chain>> instead of Expecte<tuple<...>>.
 template <typename... Args, typename... Results,
           Expected<std::tuple<Results...>> (*sync_func_ptr)(Args...)>
@@ -74,8 +77,8 @@ struct WithChainResult<Expected<std::tuple<Results...>> (*)(Args...),
     return std::tuple_cat(std::move(*tuple), std::make_tuple(Chain{}));
   }
 };
-}  // namespace internal
 
+}  // namespace internal
 }  // namespace gpu
 }  // namespace tfrt
 

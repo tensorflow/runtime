@@ -38,20 +38,8 @@ def SolverDnCreateOp : GPU_Op<"solver.create"> {
 
     This will be explicitly passed to every subsequent SOLVER library call.
   }];
-  let arguments = (ins GPU_ContextType, TFRT_ChainType);
+  let arguments = (ins GPU_StreamType, TFRT_ChainType);
   let results = (outs GPU_SolverHandleType);
-}
-
-def SolverDnSetStreamOp : GPU_Op<"solver.set_stream"> {
-  let summary = "tfrt_gpu solver.set_stream operation";
-  let description = [{
-    tfrt_gpu.solver.set_stream sets the SOLVER library stream.
-
-    All subsequent SOLVER calls will execute on the set stream (until
-    solver.set_stream is called with a different stream).
-  }];
-  let arguments = (ins GPU_SolverHandleType, GPU_StreamType, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
 }
 
 def SolverDnSpotrfBufferSizeOp : GPU_Op<"solver.dn.s.portf.buffer_size"> {
@@ -62,8 +50,7 @@ def SolverDnSpotrfBufferSizeOp : GPU_Op<"solver.dn.s.portf.buffer_size"> {
                                             solver.dn.s.portf.
                                             "s" stands for the float type.
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_SolverHandleType,
+  let arguments = (ins GPU_SolverHandleType:$handle,
                    I32:$uplo,
                    I32:$n,
                    GPU_BufferType:$A,
@@ -79,8 +66,7 @@ def SolverDnDpotrfBufferSizeOp : GPU_Op<"solver.dn.d.portf.buffer_size"> {
                                             solver.dn.d.portf.
                                             "d" stands for the double type.
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_SolverHandleType,
+  let arguments = (ins GPU_SolverHandleType:$handle,
                    I32:$uplo,
                    I32:$n,
                    GPU_BufferType:$A,
@@ -96,8 +82,7 @@ def SolverDnCpotrfBufferSizeOp : GPU_Op<"solver.dn.c.portf.buffer_size"> {
                                             solver.dn.c.portf.
                                             "c" stands for the Complex type.
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_SolverHandleType,
+  let arguments = (ins GPU_SolverHandleType:$handle,
                    I32:$uplo,
                    I32:$n,
                    GPU_BufferType:$A,
@@ -114,8 +99,7 @@ def SolverDnZpotrfBufferSizeOp : GPU_Op<"solver.dn.z.portf.buffer_size"> {
                                             "z" stands for the DoubleComplex
                                             type.
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_SolverHandleType,
+  let arguments = (ins GPU_SolverHandleType:$handle,
                    I32:$uplo,
                    I32:$n,
                    GPU_BufferType:$A,
@@ -130,8 +114,7 @@ def SolverDnSpotrfOp : GPU_Op<"solver.dn.s.portf"> {
                                 of a Hermitian positive-definite matrix. Data
                                 types are real valued single precision.
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_SolverHandleType,
+  let arguments = (ins GPU_SolverHandleType:$handle,
                    I32:$uplo,
                    I32:$n,
                    GPU_BufferType:$A,
@@ -150,8 +133,7 @@ def SolverDnDpotrfOp : GPU_Op<"solver.dn.d.portf"> {
                                 of a Hermitian positive-definite matrix. Data
                                 types are real valued double precision.
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_SolverHandleType,
+  let arguments = (ins GPU_SolverHandleType:$handle,
                    I32:$uplo,
                    I32:$n,
                    GPU_BufferType:$A,
@@ -170,8 +152,7 @@ def SolverDnCpotrfOp : GPU_Op<"solver.dn.c.portf"> {
                                 of a Hermitian positive-definite matrix. Data
                                 types are complex valued single precision.
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_SolverHandleType,
+  let arguments = (ins GPU_SolverHandleType:$handle,
                    I32:$uplo,
                    I32:$n,
                    GPU_BufferType:$A,
@@ -190,8 +171,7 @@ def SolverDnZpotrfOp : GPU_Op<"solver.dn.z.portf"> {
                                 of a Hermitian positive-definite matrix. Data
                                 types are complex valued double precision.
   }];
-  let arguments = (ins GPU_ContextType,
-                   GPU_SolverHandleType,
+  let arguments = (ins GPU_SolverHandleType:$handle,
                    I32:$uplo,
                    I32:$n,
                    GPU_BufferType:$A,

@@ -12,19 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test_kernels.cc - CUDA runtime interface ---------------------------===//
-//
-// This file defines the C++ functions that implement the test CUDA kernels
+// This file implements the tfrt_gpu_test kernels.
 #include "test_kernels.h"
 
 #include <unordered_map>
 
-#include "kernels.h"
+#include "kernels_detail.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
-#include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 
@@ -59,12 +56,9 @@ static Expected<GpuBuffer> TestCpyTensorHtoD(const GpuContext& context,
   return buffer;
 }
 
-#define TFRT_WITH_CHAIN_RESULT(sync_func) \
-  internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke
-
-void RegisterTestCudaKernels(KernelRegistry* kernel_reg) {
+void RegisterGpuTestKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu_test.copy_tensor_host_to_device",
-                        TFRT_KERNEL(TFRT_WITH_CHAIN_RESULT(TestCpyTensorHtoD)));
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(TestCpyTensorHtoD));
 }
 
 }  // namespace gpu

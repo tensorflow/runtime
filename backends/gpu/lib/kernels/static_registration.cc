@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // This file uses a static constructor to automatically register all of the
-// kernels in this directory.  This can be used to simplify clients that don't
+// tfrt_gpu kernels.  This can be used to simplify clients that don't
 // care about selective registration of kernels.
 
 #include "tfrt/host_context/kernel_registry.h"
@@ -21,17 +21,17 @@
 namespace tfrt {
 namespace gpu {
 
-void RegisterCudaKernels(KernelRegistry* kernel_reg);
-void RegisterCudaBlasKernels(KernelRegistry* kernel_reg);
-void RegisterCudaDnnKernels(KernelRegistry* kernel_reg);
-void RegisterCudaSolverKernels(KernelRegistry* kernel_reg);
+void RegisterGpuDriverKernels(KernelRegistry* kernel_reg);
+void RegisterGpuBlasKernels(KernelRegistry* kernel_reg);
+void RegisterGpuDnnKernels(KernelRegistry* kernel_reg);
+void RegisterGpuSolverKernels(KernelRegistry* kernel_reg);
 
 namespace kernels {
 
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaBlasKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaDnnKernels);
-TFRT_STATIC_KERNEL_REGISTRATION(RegisterCudaSolverKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuDriverKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuBlasKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuDnnKernels);
+TFRT_STATIC_KERNEL_REGISTRATION(RegisterGpuSolverKernels);
 
 }  // namespace kernels
 }  // namespace gpu

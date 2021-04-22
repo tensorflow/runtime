@@ -28,13 +28,13 @@ namespace gpu {
 namespace wrapper {
 
 // Non-owning handles of GPU resources.
-using SolverDnHandle = Resource<cusolverDnHandle_t, rocsolver_handle>;
+using SolverHandle = Resource<cusolverDnHandle_t, rocsolver_handle>;
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.
-struct SolverDnHandleDeleter {
-  using pointer = SolverDnHandle;
-  void operator()(SolverDnHandle handle) const;
+struct SolverHandleDeleter {
+  using pointer = SolverHandle;
+  void operator()(SolverHandle handle) const;
 };
 }  // namespace internal
 
@@ -44,13 +44,13 @@ struct SolverDnHandleDeleter {
 //
 // Use get() and release() to access the non-owning handle, please use with
 // appropriate care.
-using OwningSolverDnHandle =
-    internal::OwningResource<internal::SolverDnHandleDeleter>;
+using OwningSolverHandle =
+    internal::OwningResource<internal::SolverHandleDeleter>;
 
-llvm::Expected<OwningSolverDnHandle> SolverDnCreate(CurrentContext current);
-llvm::Error SolverDnDestroy(SolverDnHandle handle);
-llvm::Error SolverDnSetStream(SolverDnHandle handle, Stream stream);
-llvm::Expected<Stream> SolverDnGetStream(SolverDnHandle handle);
+llvm::Expected<OwningSolverHandle> SolverCreate(CurrentContext current);
+llvm::Error SolverDestroy(SolverHandle handle);
+llvm::Error SolverSetStream(SolverHandle handle, Stream stream);
+llvm::Expected<Stream> SolverGetStream(SolverHandle handle);
 
 }  // namespace wrapper
 }  // namespace gpu

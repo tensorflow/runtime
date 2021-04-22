@@ -834,8 +834,8 @@ tfrt_cc_library(
     srcs = [
         "lib/kernels/blas_kernels.cc",
         "lib/kernels/dnn_kernels.cc",
-        "lib/kernels/kernels.cc",
-        "lib/kernels/kernels.h",
+        "lib/kernels/driver_kernels.cc",
+        "lib/kernels/kernels_detail.h",
         "lib/kernels/solver_kernels.cc",
     ],
     alwayslink_static_registration_src = "lib/kernels/static_registration.cc",
@@ -858,7 +858,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "gpu_test_kernels",
     srcs = [
-        "lib/kernels/kernels.h",
+        "lib/kernels/kernels_detail.h",
         "lib/kernels/test_kernels.cc",
         "lib/kernels/test_kernels.h",
     ],

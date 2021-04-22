@@ -26,7 +26,7 @@ class KernelRegistry;
 
 namespace gpu {
 
-void RegisterTestCudaKernels(KernelRegistry* kernel_reg);
+void RegisterGpuTestKernels(KernelRegistry* kernel_reg);
 
 }  // namespace gpu
 }  // namespace tfrt

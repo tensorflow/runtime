@@ -25,8 +25,7 @@ func @register_op_handlers_gpu() {
 // CHECK: --- Running 'BM_Tf_BiasAdd_1x1001_f32'
 func @BM_Tf_BiasAdd_1x1001_f32() {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = tfrt_gpu.init %ch_epoch
-  %gpu = corert.get_op_handler %ch_cuda_init "gpu"
+  %gpu = corert.get_op_handler %ch_epoch "gpu"
 
   %input = corert.executeop(%gpu) "tfrt_test.create_dense_tensor"()
     { shape = [1, 1001], values = [1.0 : f32] } : 1

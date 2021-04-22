@@ -17,10 +17,9 @@
 
 // CHECK-LABEL: --- Running 'stream_create_test'
 func @stream_create_test() {
-  %ch1 = tfrt.new.chain
-  %ch2 = tfrt_gpu.init %ch1
+  %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
   %context = tfrt_gpu.context.create %device, %ch2
   %allocator = tfrt_gpu.allocator.create %context, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2
@@ -31,20 +30,18 @@ func @stream_create_test() {
   %ch8 = tfrt_gpu.mem.print_metadata %buffer, %ch2
 
   %shape = ts.build_shape [2 : i64, 4 : i64]
-  %tensor, %ch9 = tfrt_gpu.tensor.make.f64 %buffer, %shape, %ch8
+  %tensor = tfrt_gpu.tensor.make.f64 %buffer, %shape, %ch8
   // CHECK: DenseGpuTensor<dtype=F64, shape=[2, 4], pointer={{0x[[:xdigit:]]*}} (CUDA)>
-  %ch10 = tfrt_gpu.tensor.print_metadata %tensor, %ch9
+  %ch10 = tfrt_gpu.tensor.print_metadata %tensor, %ch8
 
   tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'stream_create_synchronize'
 func @stream_create_synchronize() {
-  %ch1 = tfrt.new.chain
-  %ch2 = tfrt_gpu.init %ch1
-
+  %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
   %context = tfrt_gpu.context.create %device, %ch2
 
   %stream = tfrt_gpu.stream.create %context, %ch2
@@ -55,10 +52,9 @@ func @stream_create_synchronize() {
 
 // CHECK-LABEL: --- Running 'make_tensor_from_smaller_buffer_should_fail'
 func @make_tensor_from_smaller_buffer_should_fail() {
-  %ch1 = tfrt.new.chain
-  %ch2 = tfrt_gpu.init %ch1
+  %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
   %context = tfrt_gpu.context.create %device, %ch2
   %allocator = tfrt_gpu.allocator.create %context, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2
@@ -68,7 +64,7 @@ func @make_tensor_from_smaller_buffer_should_fail() {
 
   %shape = ts.build_shape [5 : i64, 4 : i64]
   // expected-error @+1 {{tfrt_gpu.tensor.make failed: buffer_size (64) is not equal to the number of elements in shape ([5, 4]) times element size (4)}}
-  %tensor, %ch8 = tfrt_gpu.tensor.make.i32 %buffer, %shape, %ch2
+  %tensor = tfrt_gpu.tensor.make.i32 %buffer, %shape, %ch2
 
   tfrt.return
 }

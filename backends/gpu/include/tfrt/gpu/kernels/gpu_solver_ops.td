@@ -32,7 +32,6 @@ def GPU_AnySolverDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
                                    AnyUnsignedInteger]>;
 
 def SolverDnCreateOp : GPU_Op<"solver.create"> {
-  let summary = "tfrt_gpu solver.create operation";
   let description = [{
     tfrt_gpu.solver.create creates a handle to the SOLVER library context
 
@@ -43,7 +42,6 @@ def SolverDnCreateOp : GPU_Op<"solver.create"> {
 }
 
 def SolverDnSpotrfBufferSizeOp : GPU_Op<"solver.dn.s.portf.buffer_size"> {
-  let summary = "tfrt_gpu solver.dn.s.portf.buffer_size operation";
   let description = [{
     tfrt_gpu.solver.dn.s.portf.buffer_size These helper kernels calculate the
                                             necessary size of work buffers for
@@ -59,7 +57,6 @@ def SolverDnSpotrfBufferSizeOp : GPU_Op<"solver.dn.s.portf.buffer_size"> {
 }
 
 def SolverDnDpotrfBufferSizeOp : GPU_Op<"solver.dn.d.portf.buffer_size"> {
-  let summary = "tfrt_gpu solver.dn.d.portf.buffer_size operation";
   let description = [{
     tfrt_gpu.solver.dn.d.portf.buffer_size These helper kernels calculate the
                                             necessary size of work buffers for
@@ -75,7 +72,6 @@ def SolverDnDpotrfBufferSizeOp : GPU_Op<"solver.dn.d.portf.buffer_size"> {
 }
 
 def SolverDnCpotrfBufferSizeOp : GPU_Op<"solver.dn.c.portf.buffer_size"> {
-  let summary = "tfrt_gpu solver.dn.c.portf.buffer_size operation";
   let description = [{
     tfrt_gpu.solver.dn.c.portf.buffer_size These helper kernels calculate the
                                             necessary size of work buffers for
@@ -91,7 +87,6 @@ def SolverDnCpotrfBufferSizeOp : GPU_Op<"solver.dn.c.portf.buffer_size"> {
 }
 
 def SolverDnZpotrfBufferSizeOp : GPU_Op<"solver.dn.z.portf.buffer_size"> {
-  let summary = "tfrt_gpu solver.dn.z.portf.buffer_size operation";
   let description = [{
     tfrt_gpu.solver.dn.z.portf.buffer_size These helper kernels calculate the
                                             necessary size of work buffers for
@@ -108,7 +103,6 @@ def SolverDnZpotrfBufferSizeOp : GPU_Op<"solver.dn.z.portf.buffer_size"> {
 }
 
 def SolverDnSpotrfOp : GPU_Op<"solver.dn.s.portf"> {
-  let summary = "tfrt_gpu solver.dn.s.portf operation";
   let description = [{
     tfrt_gpu.solver.dn.s.portf This kernel computes the Cholesky factorization
                                 of a Hermitian positive-definite matrix. Data
@@ -127,7 +121,6 @@ def SolverDnSpotrfOp : GPU_Op<"solver.dn.s.portf"> {
 }
 
 def SolverDnDpotrfOp : GPU_Op<"solver.dn.d.portf"> {
-  let summary = "tfrt_gpu solver.dn.d.portf operation";
   let description = [{
     tfrt_gpu.solver.dn.d.portf This kernel computes the Cholesky factorization
                                 of a Hermitian positive-definite matrix. Data
@@ -146,7 +139,6 @@ def SolverDnDpotrfOp : GPU_Op<"solver.dn.d.portf"> {
 }
 
 def SolverDnCpotrfOp : GPU_Op<"solver.dn.c.portf"> {
-  let summary = "tfrt_gpu solver.dn.c.portf operation";
   let description = [{
     tfrt_gpu.solver.dn.c.portf This kernel computes the Cholesky factorization
                                 of a Hermitian positive-definite matrix. Data
@@ -165,7 +157,6 @@ def SolverDnCpotrfOp : GPU_Op<"solver.dn.c.portf"> {
 }
 
 def SolverDnZpotrfOp : GPU_Op<"solver.dn.z.portf"> {
-  let summary = "tfrt_gpu solver.dn.z.portf operation";
   let description = [{
     tfrt_gpu.solver.dn.z.portf This kernel computes the Cholesky factorization
                                 of a Hermitian positive-definite matrix. Data

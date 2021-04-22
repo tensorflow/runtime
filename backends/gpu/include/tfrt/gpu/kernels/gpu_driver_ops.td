@@ -14,10 +14,7 @@
 
 //===- gpu_ops.td --------------------------------------------------------===//
 //
-// CUDA based CUDA operation definitions.
-//
-// The same ops should be implementable with a ROCm backend as well.
-// Current doc strings refer to CUDA only.
+// tfrt_gpu dialect operation definitions.
 //
 //===----------------------------------------------------------------------===//
 
@@ -32,46 +29,27 @@ def GPU_DeviceType : GPU_Type<"device">;
 def GPU_EventType : GPU_Type<"event">;
 def GPU_FunctionType : GPU_Type<"function">;
 
-def GPU_InitOp : GPU_Op<"init"> {
-  let summary = "cuda init operation";
-  let description = [{
-    tfrt_gpu.init initializes the underlying CUDA driver API.
-
-    Must be called before all other CUDA operations.
-
-    Example:
-      %ch1 = tfrt.new.chain
-      %ch2 = tfrt_gpu.init %ch1
-  }];
-  let arguments = (ins TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
 def GPU_DeviceGetOp : GPU_Op<"device.get"> {
-  let summary = "cuda device.get operation";
   let description = [{
-    tfrt_gpu.device.get returns the CUDA Device at the given index.
+    tfrt_gpu.device.get returns the gpu device at the given index.
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_gpu.init %ch1
       %index = tfrt.constant.i32 0
-      %device = tfrt_gpu.device.get %index, %ch2
+      %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : ui32 }
   }];
-  let arguments = (ins I32, TFRT_ChainType);
+  let arguments = (ins I32, TFRT_ChainType, I32Attr:$platform);
   let results = (outs GPU_DeviceType);
 }
 
 def GPU_ContextCreateOp : GPU_Op<"context.create"> {
-  let summary = "tfrt_gpu.context.create operation";
   let description = [{
-    tfrt_gpu.context.create returns a CUDA context for the given device.
+    tfrt_gpu.context.create returns a gpu context for the given device.
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = cuda.init %ch1
       %index = tfrt.constant.i32 0
-      %device = cuda.device.get %index, %ch1
+      %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : ui32 }
       %ctx = tfrt_gpu.context.create %device, %ch1
   }];
   let arguments = (ins GPU_DeviceType, TFRT_ChainType);
@@ -79,9 +57,8 @@ def GPU_ContextCreateOp : GPU_Op<"context.create"> {
 }
 
 def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
-  let summary = "cuda stream.create operation";
   let description = [{
-    tfrt_gpu.stream.create creates a CUDA stream in the given context.
+    tfrt_gpu.stream.create creates a gpu stream in the given context.
 
     Created stream does not perform implicit synchronization with stream 0.
 
@@ -94,7 +71,6 @@ def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
 }
 
 def GPU_StreamSynchronizeOp : GPU_Op<"stream.synchronize"> {
-  let summary = "cuda stream.synchronize operation";
   let description = [{
     tfrt_gpu.stream.synchronize waits until all the work scheduled on the
     stream has completed.
@@ -109,21 +85,19 @@ Example:
 }
 
 def GPU_EventCreateOp : GPU_Op<"event.create"> {
-  let summary = "cuda event.create operation";
   let description = [{
-    tfrt_gpu.event.create creates a CUDA event in the provided context.
+    tfrt_gpu.event.create creates a gpu event in the provided context.
 
     Example:
       %event = tfrt_gpu.event.create %context
   }];
-  let arguments = (ins GPU_ContextType);
+  let arguments = (ins GPU_ContextType, TFRT_ChainType);
   let results = (outs GPU_EventType);
 }
 
 def GPU_EventRecordOp : GPU_Op<"event.record"> {
-  let summary = "cuda event.record operation";
   let description = [{
-    tfrt_gpu.event.record records a CUDA event on the given stream.
+    tfrt_gpu.event.record records a gpu event on the given stream.
 
     Example:
       %ch1 = tfrt.new.chain
@@ -134,7 +108,6 @@ def GPU_EventRecordOp : GPU_Op<"event.record"> {
 }
 
 def GPU_EventPollOp : GPU_Op<"event.synchronize"> {
-  let summary = "cuda event.synchronize operation";
   let description = [{
     tfrt_gpu.event.synchronize waits for the completion of work captured by the
     event.
@@ -150,7 +123,6 @@ def GPU_EventPollOp : GPU_Op<"event.synchronize"> {
 }
 
 def GPU_AllocatorCreateOp : GPU_Op<"allocator.create"> {
-  let summary = "cuda allocator.create operation";
   let description = [{
     tfrt_gpu.allocator.create creates an allocator for the given context.
 
@@ -163,7 +135,6 @@ def GPU_AllocatorCreateOp : GPU_Op<"allocator.create"> {
 }
 
 def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
-  let summary = "cuda allocate operation";
   let description = [{
     tfrt_gpu.mem.allocate allocates a buffer of device memory.
 
@@ -203,9 +174,8 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
 }
 
 def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {
-  let summary = "cuda mem.print operation";
   let description = [{
-    tfrt_gpu.mem.print_metadata prints a CUDA buffer metadata
+    tfrt_gpu.mem.print_metadata prints a gpu buffer metadata
 
     Example:
       %ch1 = tfrt.new.chain
@@ -216,7 +186,6 @@ def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {
 }
 
 class TensorMakeOp<string dtype> : GPU_Op<"tensor.make." # dtype> {
-  let summary = "cuda tensor.make operation";
   let description = [{
     tfrt_gpu.tensor.make makes a tensor from the given buffer
 
@@ -230,17 +199,17 @@ class TensorMakeOp<string dtype> : GPU_Op<"tensor.make." # dtype> {
       %tensor, %ch2 = tfrt_gpu.tensor.make.f32 %buffer %shape %ch1
   }];
   let arguments = (ins GPU_BufferType, TS_Shape, TFRT_ChainType);
-  let results = (outs TensorType, TFRT_ChainType);
+  let results = (outs TensorType);
 }
 
+// TODO(csigg): this should just be a type attribute.
 foreach dtype = ["i8", "i32", "i64", "f32", "f64"] in {
   def GPU_TensorMakeOp_#dtype : TensorMakeOp<dtype>;
 }
 
 def GPU_TensorPrintOp : GPU_Op<"tensor.print_metadata"> {
-  let summary = "cuda tensor.print_metadata operation";
   let description = [{
-    tfrt_gpu.tensor.print prints a CUDA tensor metadata
+    tfrt_gpu.tensor.print prints a gpu tensor metadata
 
     Example:
       %ch1 = tfrt.new.chain
@@ -251,7 +220,6 @@ def GPU_TensorPrintOp : GPU_Op<"tensor.print_metadata"> {
 }
 
 def GPU_MemcpyHtoDOp : GPU_Op<"mem.copy_host_to_device"> {
-  let summary = "cuda mem.copy_host_to_device operation";
   let description = [{
     tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
 
@@ -262,12 +230,12 @@ def GPU_MemcpyHtoDOp : GPU_Op<"mem.copy_host_to_device"> {
     Example:
       %ch1 = tfrt_gpu.mem.copy_host_to_device %ctx, %dst_buf, %src_buf, %count_bytes, %stream, %ch0
   }];
-  let arguments = (ins GPU_ContextType, GPU_BufferType:$dst, HostBufferType:$src, I64, GPU_StreamType, TFRT_ChainType);
+  let arguments = (ins GPU_BufferType:$dst, HostBufferType:$src,
+                   I64:$size_bytes, GPU_StreamType:$stream, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
 def GPU_MemcpyDtoHOp : GPU_Op<"mem.copy_device_to_host"> {
-  let summary = "cuda mem.copy_device_to_host operation";
   let description = [{
     tfrt_gpu.mem.copy_device_to_host copies memory from device to host.
 
@@ -279,12 +247,12 @@ def GPU_MemcpyDtoHOp : GPU_Op<"mem.copy_device_to_host"> {
     Example:
       %ch1 = tfrt_gpu.mem.copy_device_to_host %ctx, %dst_buf, %src_buf, %count_bytes, %stream, %ch0
   }];
-  let arguments = (ins GPU_ContextType, HostBufferType:$dst, GPU_BufferType:$src, I64, GPU_StreamType, TFRT_ChainType);
+  let arguments = (ins HostBufferType:$dst, GPU_BufferType:$src,
+                   I64:$size_bytes, GPU_StreamType:$stream, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 
 def GPU_FunctionLoadOp : GPU_Op<"function.load"> {
-  let summary = "Loads a device function.";
   let description = [{
     tfrt_gpu.function.load loads GPU device function from a binary blob.
 
@@ -311,7 +279,6 @@ def GPU_FunctionLoadOp : GPU_Op<"function.load"> {
 }
 
 def GPU_LaunchOp : GPU_Op<"function.launch"> {
-  let summary = "Launches a device function.";
   let description = [{
     tfrt_gpu.function.launch invokes the provided device function on a stream.
 

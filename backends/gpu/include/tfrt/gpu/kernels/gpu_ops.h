@@ -54,9 +54,9 @@ class GpuConversionDialect : public Dialect {
 }  // namespace gpu
 }  // namespace tfrt
 
+// TableGen'd op method declarations
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_opdefs.h.inc"
-
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.h.inc"
 

@@ -25,7 +25,7 @@
 
 include "tfrt/tfrt_op_base.td"
 
-def GPU_Conversion_Dialect : Dialect {
+def GPU_ConversionDialect : Dialect {
   let name = "tfrt_gpu_conversion";
 
   let description = [{
@@ -38,8 +38,8 @@ def GPU_Conversion_Dialect : Dialect {
   let cppNamespace = "tfrt::gpu::conversion";
 }
 
-def CastAnyToAnyOp : Op<GPU_Conversion_Dialect, "cast_any_to_any"> {
-  let summary = "tfrt_gpu cast_any_to_any";
+def GPU_CastAnyToAnyOp : Op<GPU_ConversionDialect, "cast_any_to_any"> {
+  let summary = "tfrt_gpu_convertion.cast_any_to_any operation";
   let description = [{
     tfrt_gpu.cast_any_to_any casts any type to any other type.
 

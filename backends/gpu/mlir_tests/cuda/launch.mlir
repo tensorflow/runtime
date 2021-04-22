@@ -17,10 +17,9 @@
 
 // CHECK-LABEL: --- Running 'noop_kernel'
 func @noop_kernel() {
-  %ch1 = tfrt.new.chain
-  %ch2 = tfrt_gpu.init %ch1
+  %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
   %context = tfrt_gpu.context.create %device, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2
 
@@ -45,10 +44,9 @@ func @noop_kernel() {
 
 // CHECK-LABEL: --- Running 'vector_add_kernel'
 func @vector_add_kernel() {
-  %ch1 = tfrt.new.chain
-  %ch2 = tfrt_gpu.init %ch1
+  %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
   %context = tfrt_gpu.context.create %device, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2
   %allocator = tfrt_gpu.allocator.create %context, %ch2
@@ -85,8 +83,8 @@ func @vector_add_kernel() {
   %y_device = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch14
 
   // Copy host to device.
-  %ch17 = tfrt_gpu.mem.copy_host_to_device %context, %x_device, %x_host_buffer, %size, %stream, %ch14
-  %ch18 = tfrt_gpu.mem.copy_host_to_device %context, %y_device, %y_host_buffer, %size, %stream, %ch14
+  %ch17 = tfrt_gpu.mem.copy_host_to_device %x_device, %x_host_buffer, %size, %stream, %ch14
+  %ch18 = tfrt_gpu.mem.copy_host_to_device %y_device, %y_host_buffer, %size, %stream, %ch14
 
   %one = tfrt.constant.ui32 1
   %eight = tfrt.constant.ui32 8
@@ -100,8 +98,7 @@ func @vector_add_kernel() {
                    args(%len, %x_device, %y_device) : (i32, !tfrt_gpu.buffer, !tfrt_gpu.buffer)
 
   // Copy back to host buffer and synchronize.
-  %ch19 = tfrt_gpu.mem.copy_device_to_host %context, %y_host_buffer, %y_device,
-                                       %size, %stream, %ch_kernel
+  %ch19 = tfrt_gpu.mem.copy_device_to_host %y_host_buffer, %y_device, %size, %stream, %ch_kernel
   %sync_ch = tfrt_gpu.stream.synchronize %stream, %ch19
 
   // CHECK: shape = [8], values = [2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00, 2.000000e+00]

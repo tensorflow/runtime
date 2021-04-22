@@ -32,7 +32,6 @@ def GPU_AnyBlasDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
                                    AnyUnsignedInteger]>;
 
 def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
-  let summary = "tfrt_gpu blas.create operation";
   let description = [{
     tfrt_gpu.blas.create creates a handle to the BLAS library context
 
@@ -43,7 +42,6 @@ def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
 }
 
 def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy.f32"> {
-  let summary = "tfrt_gpu blas.axpy.f32 operation";
   let description = [{
     tfrt_gpu.blas.axpy.f32 call BLAS saxpy function.
   }];
@@ -54,7 +52,6 @@ def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy.f32"> {
 }
 
 def GPU_BlasSgemmOp : GPU_Op<"blas.gemm.f32"> {
-  let summary = "tfrt_gpu blas.gemm.f32 operation";
   let description = [{
     tfrt_gpu.blas.gemm.f32 calls BLAS sgemm function.
   }];
@@ -67,7 +64,6 @@ def GPU_BlasSgemmOp : GPU_Op<"blas.gemm.f32"> {
 }
 
 def GPU_BlasGemmExOp : GPU_Op<"blas.gemm.ex"> {
-  let summary = "tfrt_gpu blas.gemm.ex operation";
   let description = [{
     tfrt_gpu.blas.gemm.ex This kernel is an extension of blas.gemm.<t> kernels
                            that allows the user to individually specify the
@@ -88,7 +84,6 @@ def GPU_BlasGemmExOp : GPU_Op<"blas.gemm.ex"> {
 }
 
 def GPU_BlasGemmStridedBatchedExOp : GPU_Op<"blas.gemm.strided.batched.ex"> {
-  let summary = "tfrt_gpu blas.gemm.batched.ex operation";
   let description = [{
     tfrt_gpu.blas.gemm.ex This kernel is an extension of blas.gemm.ex that
                            performs the matrix-matrix multiplication of a batch
@@ -115,7 +110,6 @@ def GPU_BlasGemmStridedBatchedExOp : GPU_Op<"blas.gemm.strided.batched.ex"> {
 // TODO(b/175169391): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_BlasSyncSgemmOp : GPU_Op<"blas.sync.gemm.f32"> {
-  let summary = "tfrt_gpu blas.sync.gemm.f32 operation";
   let description = [{
     tfrt_gpu.blas.sync.gemm.f32 calls BLAS sgemm function.
   }];
@@ -130,7 +124,6 @@ def GPU_BlasSyncSgemmOp : GPU_Op<"blas.sync.gemm.f32"> {
 // TODO(b/175169391): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_BlasSyncGemmExOp : Op<GPU_Dialect, "blas.sync.gemm_ex"> {
-  let summary = "tfrt_gpu blas.sync.gemm_ex operation";
   let description = [{
     tfrt_gpu.blas.sync.gemm_ex calls BLAS GemmEx function.
   }];

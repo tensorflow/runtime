@@ -76,12 +76,8 @@ mlir::OpFoldResult CastAnyToAnyOp::fold(
 }  // namespace gpu
 }  // namespace tfrt
 
-//===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
-//===----------------------------------------------------------------------===//
-
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_opdefs.cpp.inc"
-
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc"

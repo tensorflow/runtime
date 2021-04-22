@@ -44,8 +44,7 @@ func @mean_full_reduce_f32() -> !tfrt.chain {
 // CHECK: --- Running 'mean_outer_reduce_f32'
 func @mean_outer_reduce_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = tfrt_gpu.init %ch_epoch
-  %gpu = corert.get_op_handler %ch_cuda_init "gpu"
+  %gpu = corert.get_op_handler %ch_epoch "gpu"
 
   %gpu_handle_input = corert.executeop(%gpu) "tfrt_test.create_dense_tensor"()
   { shape = [2, 2, 3, 2],
@@ -71,8 +70,7 @@ func @mean_outer_reduce_f32() -> !tfrt.chain {
 // CHECK: --- Running 'mean_inner_reduce_f32'
 func @mean_inner_reduce_f32() -> !tfrt.chain {
   %ch_epoch = tfrt.new.chain
-  %ch_cuda_init = tfrt_gpu.init %ch_epoch
-  %gpu = corert.get_op_handler %ch_cuda_init "gpu"
+  %gpu = corert.get_op_handler %ch_epoch "gpu"
 
   %gpu_handle_input = corert.executeop(%gpu) "tfrt_test.create_dense_tensor"()
   { shape = [2, 2, 3, 2],

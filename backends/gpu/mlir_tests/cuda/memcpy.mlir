@@ -17,10 +17,9 @@
 
 // CHECK-LABEL: --- Running 'memcpy_host_to_device_and_back_test'
 func @memcpy_host_to_device_and_back_test() {
-  %ch1 = tfrt.new.chain
-  %ch2 = tfrt_gpu.init %ch1
+  %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
   %context = tfrt_gpu.context.create %device, %ch2
   %allocator = tfrt_gpu.allocator.create %context, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2
@@ -33,20 +32,20 @@ func @memcpy_host_to_device_and_back_test() {
   %ch10 = tfrt_dht.fill_tensor_with_constant.i32 %host_tensor, %ch2 1 : i32
   // CHECK: shape = [8], values = [1, 1, 1, 1, 1, 1, 1, 1]
   %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
-  %host_buffer, %ch12 = tfrt_dht.get_buffer %host_tensor, %ch1
+  %host_buffer, %ch12 = tfrt_dht.get_buffer %host_tensor, %ch2
   // CHECK: HostBuffer<pointer={{0x[[:xdigit:]]*}}, size=32>
   %ch13 = tfrt_dht.print_buffer %host_buffer, %ch11
 
   // Copy host to device.
-  %ch20 = tfrt_gpu.mem.copy_host_to_device %context, %device_buffer, %host_buffer, %size, %stream, %ch10
+  %ch20 = tfrt_gpu.mem.copy_host_to_device %device_buffer, %host_buffer, %size, %stream, %ch13
 
   // Create resulting dense host tensor, get its buffer, and copy back to host.
   %result_host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64, 4 : i64]
-  %result_host_buffer, %ch30 = tfrt_dht.get_buffer %result_host_tensor, %ch1
-  %ch31 = tfrt_gpu.mem.copy_device_to_host %context, %result_host_buffer, %device_buffer, %size, %stream, %ch20
+  %result_host_buffer, %ch30 = tfrt_dht.get_buffer %result_host_tensor, %ch2
+  %ch31 = tfrt_gpu.mem.copy_device_to_host %result_host_buffer, %device_buffer, %size, %stream, %ch20
 
   // Create, record, and poll an event to make sure copy back to host completed.
-  %event = tfrt_gpu.event.create %context
+  %event = tfrt_gpu.event.create %context, %ch31
   %ch41 = tfrt_gpu.event.record %event, %stream, %ch31
   %ch42 = tfrt_gpu.event.synchronize %event, %ch41
 

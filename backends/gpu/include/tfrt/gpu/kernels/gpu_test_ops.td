@@ -25,7 +25,7 @@
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 
 // "tfrt_gpu_test" dialect
-def GPU_TEST_Dialect : Dialect {
+def GPU_TestDialect : Dialect {
   let name = "tfrt_gpu_test";
 
   let description = [{
@@ -37,16 +37,8 @@ def GPU_TEST_Dialect : Dialect {
   let cppNamespace = "tfrt::gpu";
 }
 
-// Base class for CUDA test dialect ops.
-class GPU_TEST_Op<string mnemonic, list<OpTrait> traits = []> :
-    Op<GPU_TEST_Dialect, mnemonic, traits> {
-
-  let assemblyFormat = "operands attr-dict";
-}
-
-
-def GPU_TEST_TestCpyTensorHtoDOp : GPU_TEST_Op<"copy_tensor_host_to_device"> {
-  let summary = "tfrt_gpu_test copy_tensor_host_to_device operation";
+def GPU_TestCpyTensorHtoDOp : Op<GPU_TestDialect, "copy_tensor_host_to_device"> {
+  let summary = "tfrt_gpu_test.copy_tensor_host_to_device operation";
   let description = [{
     tfrt_gpu_test.copy_tensor_host_to_device copies a host tensor to the device.
 
@@ -55,10 +47,11 @@ def GPU_TEST_TestCpyTensorHtoDOp : GPU_TEST_Op<"copy_tensor_host_to_device"> {
     Example:
       %tensor = tfrt_dht.create_uninitialized_tensor.f32.1 [1 : i64]
       %ch1 = tfrt_dht.set_tensor_with_constant_values.f32 %tensor, %ch0 [1.0 : f32]
-      %gpu_buffer, %ch2 = tfrt_gpu_test.copy_tensor_host_to_device %context, %allocator, %stream, %tensor, %ch1
+      %gpu_buffer = tfrt_gpu_test.copy_tensor_host_to_device %allocator, %stream, %tensor, %ch1
   }];
-  let arguments = (ins GPU_ContextType, GPU_AllocatorType, GPU_StreamType, TensorType, TFRT_ChainType);
-  let results = (outs GPU_BufferType, TFRT_ChainType);
+  let arguments = (ins GPU_AllocatorType, GPU_StreamType, TensorType, TFRT_ChainType);
+  let results = (outs GPU_BufferType);
+  let assemblyFormat = "operands attr-dict";
 }
 
 #endif  // GPU_TEST_OPS

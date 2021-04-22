@@ -42,14 +42,14 @@ static llvm::Expected<cublasFillMode_t> SafeIntToCublasFillMode(
 }
 
 static llvm::Expected<GpuSolverHandle> SolverCreate(
-    const AsyncValueRef<GpuStream>& stream) {
+    Argument<GpuStream> stream) {
   auto current = wrapper::CtxSetCurrent(stream->context());
   if (!current) return current.takeError();
   auto handle = wrapper::SolverCreate(current.get());
   if (!handle) return handle.takeError();
   if (auto error = wrapper::SolverSetStream(handle->get(), stream->get()))
     return std::move(error);
-  return GpuSolverHandle(stream.CopyRef(), std::move(*handle));
+  return GpuSolverHandle(stream.ValueRef(), std::move(*handle));
 }
 
 template <typename T>

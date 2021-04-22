@@ -38,19 +38,18 @@ static void ReportError(KernelErrorHandler out, llvm::Error error) {
 // Convenience function that copies a host tensor to the device and returns a
 // buffer pointing to the newly allocated memory. The intended purpose of this
 // function is to make writing unit tests simpler
-static Expected<GpuBuffer> TestCpyTensorHtoD(const GpuContext& context,
-                                             Argument<GpuAllocator> allocator,
+static Expected<GpuBuffer> TestCpyTensorHtoD(Argument<GpuAllocator> allocator,
                                              const GpuStream& stream,
                                              const DenseHostTensor& src) {
   size_t size_bytes = src.DataSizeInBytes();
   auto buffer =
       GpuBuffer::Allocate(allocator.ValueRef(), size_bytes, stream.get());
   if (!buffer) return buffer.takeError();
-  auto current = wrapper::CtxSetCurrent(context.get());
+  auto current = wrapper::CtxSetCurrent(stream.context());
   if (!current) return current.takeError();
   if (auto error = wrapper::Memcpy(
           *current, buffer->pointer(),
-          wrapper::Pointer<const void>(src.data(), context->platform()),
+          wrapper::Pointer<const void>(src.data(), current->platform()),
           size_bytes))
     return std::move(error);
   return buffer;
@@ -58,7 +57,7 @@ static Expected<GpuBuffer> TestCpyTensorHtoD(const GpuContext& context,
 
 void RegisterGpuTestKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu_test.copy_tensor_host_to_device",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(TestCpyTensorHtoD));
+                        TFRT_KERNEL(TestCpyTensorHtoD));
 }
 
 }  // namespace gpu

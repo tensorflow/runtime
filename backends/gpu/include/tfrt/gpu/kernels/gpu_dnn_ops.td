@@ -36,7 +36,6 @@ def GPU_DnnTensorDescriptorType : GPU_Type<"dnn_tensor_descriptor">;
 
 
 def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
-  let summary = "tfrt_gpu dnn.create operation";
   let description = [{
     tfrt_gpu.dnn.create initializes the DNN library and creates a handle to an
     opaque structure holding the DNN library context. It allocates hardware
@@ -46,11 +45,6 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
     The DNN library handle is tied to the provided CUDA device (context).
 
     Example:
-    %ch1 = tfrt.new.chain
-    %ch2 = tfrt_gpu.init %ch1
-    %index = tfrt.constant.i32 0
-    %device = tfrt_gpu.device.get %index, %ch1
-    %context, %ch4 = tfrt_gpu_test.context.get %device, %ch1
     %cudnn, %ch5 = tfrt_gpu.dnn.create %context, %ch1
 
   }];
@@ -59,7 +53,6 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
 }
 
 def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
-  let summary = "tfrt_gpu dnn.create_pooling_descriptor operation";
   let description = [{
     tfrt_gpu.dnn.create_pooling_descriptor creates a pooling descriptor object
     by allocating the memory needed to hold its opaque structure then it
@@ -101,7 +94,6 @@ def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
 }
 
 def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
-  let summary = "tfrt_gpu dnn.create_tensor_descriptor operation";
   let description = [{
     tfrt_gpu.dnn.create_tensor_descriptor creates a generic tensor
     descriptor object by allocating the memory needed to hold its opaque
@@ -141,7 +133,6 @@ def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
 }
 
 def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
-  let summary = "tfrt_gpu dnn.pooling_forward operation";
   let description = [{
     tfrt_gpu.dnn.pooling_forward computes pooling of input values (meaning,
     the maximum or average of several adjacent values) to produce an
@@ -166,7 +157,6 @@ def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {
 }
 
 def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
-  let summary = "tfrt_gpu dnn.pooling_backward operation";
   let description = [{
     tfrt_gpu.dnn.pooling_backward computes the gradient of a pooling operation.
 
@@ -194,7 +184,6 @@ def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
 // TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
-  let summary = "tfrt_gpu dnn.convolution_forward operation";
   let description = [{
     tfrt_gpu.dnn.convolution_forward executes convolutions or
                                       cross-correlations over x using filters
@@ -219,7 +208,6 @@ def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
 // TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
-  let summary = "tfrt_gpu dnn.convolution_backward_data operation";
   let description = [{
     tfrt_gpu.dnn.convolution_backward_data computes the convolution data
                                             gradient of the tensor dy, where y
@@ -246,7 +234,6 @@ def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
 // TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
 // async to sync Ops.
 def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter"> {
-  let summary = "tfrt_gpu dnn.convolution_backward_filter operation";
   let description = [{
     tfrt_gpu.dnn.convolution_backward_filter computes the convolution weight
                                               (filter) gradient of the tensor
@@ -274,8 +261,6 @@ def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter
 // async to sync Ops.
 def GPU_DnnConvolutionBiasActivationForwardOp :
              GPU_Op<"dnn.convolution_bias_activation_forward"> {
-  let summary =
-    "tfrt_gpu dnn.convolution_bias_activation_forward operation";
   let description = [{
     tfrt_gpu.dnn.convolution_bias_activation_forward applies a bias and then
                         an activation to the convolutions or cross-correlations

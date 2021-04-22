@@ -17,26 +17,24 @@
 
 // CHECK-LABEL: --- Running 'event_create_test'
 func @event_create_test() {
-  %ch1 = tfrt.new.chain
-  %ch2 = tfrt_gpu.init %ch1
+  %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
   %context = tfrt_gpu.context.create %device, %ch2
-  %event = tfrt_gpu.event.create %context
+  %event = tfrt_gpu.event.create %context, %ch2
 
   tfrt.return
 }
 
 // CHECK-LABEL: --- Running 'event_record_and_poll_test'
 func @event_record_and_poll_test() {
-  %ch1 = tfrt.new.chain
-  %ch2 = tfrt_gpu.init %ch1
+  %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2
+  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
   %context = tfrt_gpu.context.create %device, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2
 
-  %event = tfrt_gpu.event.create %context
+  %event = tfrt_gpu.event.create %context, %ch2
   %ch7 = tfrt_gpu.event.record %event, %stream, %ch2
   %ch8 = tfrt_gpu.event.synchronize %event, %ch7
 

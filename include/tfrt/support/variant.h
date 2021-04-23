@@ -70,22 +70,22 @@ class Variant {
   }
 
   Variant(const Variant& v) {
-    visit([this](auto& t) { fillValue(t); }, v);
+    visit([this](auto&& t) { this->fillValue(t); }, v);
   }
 
   Variant(Variant&& v) {
-    visit([this](auto&& t) { fillValue(std::move(t)); }, v);
+    visit([this](auto&& t) { this->fillValue(std::move(t)); }, v);
   }
 
   ~Variant() { destroy(); }
 
   Variant& operator=(Variant&& v) {
-    visit([this](auto& t) { *this = std::move(t); }, v);
+    visit([this](auto&& t) { *this = std::move(t); }, v);
     return *this;
   }
 
   Variant& operator=(const Variant& v) {
-    visit([this](auto& t) { *this = t; }, v);
+    visit([this](auto&& t) { *this = t; }, v);
     return *this;
   }
 
@@ -152,7 +152,7 @@ class Variant {
 
   void destroy() {
     visit(
-        [](auto& t) {
+        [](auto&& t) {
           using T = std::decay_t<decltype(t)>;
           t.~T();
         },
@@ -178,22 +178,25 @@ struct Monostate {};
 
 namespace internal {
 
+// The return type when applying visitor of type `F` to a variant of type
+// `Variant`. `F()` should return the same type for all alternative types in the
+// variant.  We use the return value of `F()(FirstAlternativeType)` as the
+// return type.
 template <typename F, typename Variant>
-decltype(auto) visitHelper(
-    F&& f, Variant&& v,
-    std::integral_constant<int, std::decay_t<Variant>::kNTypes>) {
+using VariantVisitorResultT = decltype(std::declval<std::decay_t<F>>()(
+    std::declval<typename std::decay_t<Variant>::template TypeOf<0>&>()));
+
+template <typename F, typename Variant>
+auto visitHelper(F&& f, Variant&& v,
+                 std::integral_constant<int, std::decay_t<Variant>::kNTypes>)
+    -> VariantVisitorResultT<F, Variant> {
   assert(false && "Unexpected index_ in Variant");
 }
 
-// Disable clang-format as it does not format less-than (<) in the template
-// parameter properly.
-//
-// clang-format off
-template <
-    typename F, typename Variant, int N,
-    std::enable_if_t<N < std::decay_t<Variant>::kNTypes, int> = 0>
-decltype(auto) visitHelper(F&& f, Variant&& v, std::integral_constant<int, N>) {
-  // clang-format on
+template <typename F, typename Variant, int N,
+          std::enable_if_t<N<std::decay_t<Variant>::kNTypes, int> = 0> auto
+              visitHelper(F&& f, Variant&& v, std::integral_constant<int, N>)
+                  ->VariantVisitorResultT<F, Variant> {
   using VariantT = std::decay_t<Variant>;
   using T = typename VariantT::template TypeOf<N>;
   if (auto* t = v.template get_if<T>()) {
@@ -207,7 +210,7 @@ decltype(auto) visitHelper(F&& f, Variant&& v, std::integral_constant<int, N>) {
 }  // namespace internal
 
 template <typename F, typename Variant>
-decltype(auto) visit(F&& f, Variant&& v) {
+auto visit(F&& f, Variant&& v) -> internal::VariantVisitorResultT<F, Variant> {
   return internal::visitHelper(std::forward<F>(f), std::forward<Variant>(v),
                                std::integral_constant<int, 0>());
 }

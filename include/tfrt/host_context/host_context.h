@@ -163,6 +163,8 @@ class HostContext {
   RCReference<Device> GetHostDeviceRef();
   const Device& GetHostDevice();
 
+  void ResetHostDevice(CpuDevice* device);
+
   ConcurrentWorkQueue& work_queue() const { return *work_queue_; }
 
   //===--------------------------------------------------------------------===//

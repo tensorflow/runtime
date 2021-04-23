@@ -157,4 +157,8 @@ RCReference<Device> HostContext::GetHostDeviceRef() {
 
 const Device& HostContext::GetHostDevice() { return *host_device_; }
 
+void HostContext::ResetHostDevice(CpuDevice* device) {
+  host_device_.reset(device);
+}
+
 }  // namespace tfrt

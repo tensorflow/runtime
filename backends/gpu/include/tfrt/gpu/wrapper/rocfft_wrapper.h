@@ -26,16 +26,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-struct RocfftErrorData {
-  rocfft_status result;
-  const char* expr;
-  StackTrace stack_trace;
-};
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const RocfftErrorData& data);
-// Wraps a rocfft_status into an llvm::ErrorInfo.
-using RocfftErrorInfo = TupleErrorInfo<RocfftErrorData>;
-rocfft_status GetResult(const RocfftErrorInfo& info);
+extern template void internal::LogResult(llvm::raw_ostream&, rocfft_status);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocfft_status status);
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.

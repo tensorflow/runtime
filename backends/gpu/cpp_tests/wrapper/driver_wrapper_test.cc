@@ -29,12 +29,12 @@ static testing::AssertionResult IsInvalidContextError(llvm::Error&& error) {
   if (!error) return testing::AssertionFailure() << error;
   return IsSuccess(llvm::handleErrors(
       std::move(error),
-      [](std::unique_ptr<CudaErrorInfo> info) -> llvm::Error {
+      [](std::unique_ptr<ErrorInfo<CUresult>> info) -> llvm::Error {
         if (GetResult(*info) == CUDA_ERROR_INVALID_CONTEXT)
           return llvm::Error::success();
         return llvm::Error(std::move(info));
       },
-      [](std::unique_ptr<HipErrorInfo> info) -> llvm::Error {
+      [](std::unique_ptr<ErrorInfo<hipError_t>> info) -> llvm::Error {
         if (GetResult(*info) == hipErrorInvalidContext)
           return llvm::Error::success();
         return llvm::Error(std::move(info));

@@ -26,16 +26,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-struct CublasErrorData {
-  cublasStatus_t result;
-  const char* expr;
-  StackTrace stack_trace;
-};
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CublasErrorData& data);
-// Wraps a cublasStatus_t into an llvm::ErrorInfo.
-using CublasErrorInfo = TupleErrorInfo<CublasErrorData>;
-cublasStatus_t GetResult(const CublasErrorInfo& info);
+extern template void internal::LogResult(llvm::raw_ostream&, cublasStatus_t);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasStatus_t status);
 
 // Convert BLAS wrapper enums to cuBLAS enums.
 cublasOperation_t ToCublas(BlasOperation operation);

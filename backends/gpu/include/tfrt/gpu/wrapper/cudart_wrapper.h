@@ -30,16 +30,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-struct CudartErrorData {
-  cudaError_t result;
-  const char* expr;
-  StackTrace stack_trace;
-};
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CudartErrorData& data);
-// Wraps a cudaError_t into an llvm::ErrorInfo.
-using CudartErrorInfo = TupleErrorInfo<CudartErrorData>;
-cudaError_t GetResult(const CudartErrorInfo& info);
+extern template void internal::LogResult(llvm::raw_ostream&, cudaError_t);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaError_t error);
 
 // The following functions map directly to CUDA runtime calls.
 //

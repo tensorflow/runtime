@@ -21,9 +21,39 @@
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 
+#define RETURN_IF_ERROR(expr)         \
+  while (auto _result = expr) {       \
+    return MakeError(_result, #expr); \
+  }
+
+#define TO_ERROR(expr)                           \
+  [](auto _result) -> llvm::Error {              \
+    if (!_result) return llvm::Error::success(); \
+    return MakeError(_result, #expr);            \
+  }(expr)
+
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
+
+// Explicitly instantiate this definition in the implementation file for the
+// library's return status type. Requires operation<<(raw_ostream, T) to be
+// declared before this header is included.
+template <typename T>
+void internal::LogResult(llvm::raw_ostream& os, T result) {
+  os << result;
+}
+
+template <typename T>
+static T* ToCuda(Pointer<T> ptr) {
+  return ptr.raw(Platform::CUDA);
+}
+
+template <typename T>
+static T* ToRocm(Pointer<T> ptr) {
+  return ptr.raw(Platform::ROCm);
+}
+
 // Per thread context state which is kept in sync with CUDA's and HIP's internal
 // state.
 extern thread_local struct ContextTls {

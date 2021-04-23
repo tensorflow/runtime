@@ -26,16 +26,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-struct RocblasErrorData {
-  rocblas_status result;
-  const char* expr;
-  StackTrace stack_trace;
-};
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const RocblasErrorData& data);
-// Wraps a rocblas_status into an llvm::ErrorInfo.
-using RocblasErrorInfo = TupleErrorInfo<RocblasErrorData>;
-rocblas_status GetResult(const RocblasErrorInfo& info);
+extern template void internal::LogResult(llvm::raw_ostream&, rocblas_status);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status);
 
 // Convert BLAS wrapper enums to rocBLAS enums.
 rocblas_operation ToRocblas(BlasOperation operation);

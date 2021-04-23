@@ -21,25 +21,13 @@
 #include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                                   \
-  while (cusolverStatus_t _result = expr) {                     \
-    return llvm::make_error<CusolverErrorInfo>(                 \
-        CusolverErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                                     \
-  [](cusolverStatus_t _result) -> llvm::Error {                            \
-    if (_result == CUSOLVER_STATUS_SUCCESS) return llvm::Error::success(); \
-    return llvm::make_error<CusolverErrorInfo>(                            \
-        CusolverErrorData{_result, #expr, CreateStackTrace()});            \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-static llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
-                                     cusolverStatus_t status) {
+template void internal::LogResult(llvm::raw_ostream &, cusolverStatus_t);
+
+llvm::raw_ostream &operator<<(llvm::raw_ostream &os, cusolverStatus_t status) {
   switch (status) {
     case CUSOLVER_STATUS_SUCCESS:
       return os << "CUSOLVER_STATUS_SUCCESS";
@@ -69,22 +57,6 @@ static llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
       return os << llvm::formatv("cusolverStatus_t({0})",
                                  static_cast<int>(status));
   }
-}
-
-llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
-                              const CusolverErrorData &data) {
-  os << "'" << data.expr << "': " << data.result;
-  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
-  return os;
-}
-
-cusolverStatus_t GetResult(const CusolverErrorInfo &info) {
-  return info.get<CusolverErrorData>().result;
-}
-
-template <typename T>
-static T *ToCuda(Pointer<T> ptr) {
-  return ptr.raw(Platform::CUDA);
 }
 
 llvm::Expected<OwningSolverHandle> CusolverDnCreate(CurrentContext current) {

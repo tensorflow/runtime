@@ -26,6 +26,9 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+extern template void internal::LogResult(llvm::raw_ostream&, cufftResult);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cufftResult result);
+
 // Wraps a cufftHandle so that it can be used in a std::unique_ptr.
 class CufftHandle {
  public:
@@ -60,26 +63,11 @@ struct CufftHandleDeleter {
 using OwningCufftHandle =
     internal::OwningResource<internal::CufftHandleDeleter>;
 
-// Wraps the
-// [cufftResult_t](https://docs.nvidia.com/cuda/cufft/index.html#cufftresult)
-// for use in TFRT.
-struct CufftErrorData {
-  cufftResult result;
-  const char* expr;
-  StackTrace stack_trace;
-};
-
 struct CufftLibraryVersion {
   int major;
   int minor;
   int patch;
 };
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cufftResult result);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CufftErrorData& data);
-
-using CufftErrorInfo = TupleErrorInfo<CufftErrorData>;
 
 // Sets the stream for execution of cuFFT functions. Note that these functions
 // may consist of many kernel invocations.

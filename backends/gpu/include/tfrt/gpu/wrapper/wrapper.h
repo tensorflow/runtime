@@ -95,6 +95,7 @@
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/wrapper/cuda_forwards.h"
 #include "tfrt/gpu/wrapper/hip_forwards.h"
+#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace gpu {
@@ -106,6 +107,44 @@ enum class Platform {
   ROCm,
 };
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Platform platform);
+
+// Struct capturing a failed API call. T is the result code type.
+template <typename T>
+struct ErrorData {
+  T result;
+  const char* expr;
+  StackTrace stack_trace;
+};
+
+namespace internal {
+// Explicitly instantiate this declaration in the header file for the library's
+// return status type.
+template <typename T>
+void LogResult(llvm::raw_ostream& os, T result);
+}  // namespace internal
+
+// Write ErrorData to raw_ostream.
+template <typename T>
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ErrorData<T>& data) {
+  os << "'" << data.expr << "': ";
+  internal::LogResult(os, data.result);
+  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
+  return os;
+}
+
+template <typename T>
+using ErrorInfo = TupleErrorInfo<ErrorData<T>>;
+
+template <typename T>
+Error MakeError(T result, const char* expr) {
+  return llvm::make_error<ErrorInfo<T>>(
+      ErrorData<T>{result, expr, CreateStackTrace()});
+}
+
+template <typename T>
+T GetResult(const ErrorInfo<T>& info) {
+  return info.template get<ErrorData<T>>().result;
+}
 
 // Print enumerator value to os.
 template <typename E>

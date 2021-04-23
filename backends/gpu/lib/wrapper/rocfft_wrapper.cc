@@ -15,31 +15,17 @@
 // Thin wrapper around the rocFFT API adding llvm::Error.
 #include "tfrt/gpu/wrapper/rocfft_wrapper.h"
 
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
-
-#define RETURN_IF_ERROR(expr)                                 \
-  while (rocfft_status _result = expr) {                      \
-    return llvm::make_error<RocfftErrorInfo>(                 \
-        RocfftErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                                   \
-  [](rocfft_status _result) -> llvm::Error {                             \
-    if (_result == rocfft_status_success) return llvm::Error::success(); \
-    return llvm::make_error<RocfftErrorInfo>(                            \
-        RocfftErrorData{_result, #expr, CreateStackTrace()});            \
-  }(expr)
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                     rocfft_status status) {
+template void internal::LogResult(llvm::raw_ostream&, rocfft_status);
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocfft_status status) {
   switch (status) {
     case rocfft_status_success:
       return os << "rocfft_status_success";
@@ -61,22 +47,6 @@ static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
       return os << llvm::formatv("rocfft_status({0})",
                                  static_cast<int>(status));
   }
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const RocfftErrorData& data) {
-  os << "'" << data.expr << "': " << data.result;
-  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
-  return os;
-}
-
-rocfft_status GetResult(const RocfftErrorInfo& info) {
-  return info.get<RocfftErrorData>().result;
-}
-
-template <typename T>
-static T* ToRocm(Pointer<T> ptr) {
-  return ptr.raw(Platform::ROCm);
 }
 
 void internal::RocfftExecInfoDeleter::operator()(

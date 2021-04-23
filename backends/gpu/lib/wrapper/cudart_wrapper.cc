@@ -22,39 +22,22 @@
 #include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                                 \
-  while (cudaError_t _result = expr) {                        \
-    return llvm::make_error<CudartErrorInfo>(                 \
-        CudartErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                         \
-  [](cudaError_t _result) -> llvm::Error {                     \
-    if (_result == cudaSuccess) return llvm::Error::success(); \
-    return llvm::make_error<CudartErrorInfo>(                  \
-        CudartErrorData{_result, #expr, CreateStackTrace()});  \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CudartErrorData& data) {
-  os << "'" << data.expr << "': ";
-  const char* name = cudaGetErrorName(data.result);
+template void internal::LogResult(llvm::raw_ostream&, cudaError_t);
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaError_t error) {
+  const char* name = cudaGetErrorName(error);
   if (name != nullptr) {
     os << name;
   } else {
-    os << "CUDA runtime error " << static_cast<int>(data.result);
+    os << llvm::formatv("cudaError_t({0})", static_cast<int>(error));
   }
-  const char* msg = cudaGetErrorString(data.result);
+  const char* msg = cudaGetErrorString(error);
   if (msg != nullptr) os << " (" << msg << ")";
   return os;
-}
-
-cudaError_t GetResult(const CudartErrorInfo& info) {
-  return info.get<CudartErrorData>().result;
 }
 
 llvm::Error CudaFree(std::nullptr_t) { return TO_ERROR(cudaFree(nullptr)); }

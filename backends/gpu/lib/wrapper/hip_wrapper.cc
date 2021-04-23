@@ -23,47 +23,26 @@
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                              \
-  while (hipError_t _result = expr) {                      \
-    return llvm::make_error<HipErrorInfo>(                 \
-        HipErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                        \
-  [](hipError_t _result) -> llvm::Error {                     \
-    if (_result == hipSuccess) return llvm::Error::success(); \
-    return llvm::make_error<HipErrorInfo>(                    \
-        HipErrorData{_result, #expr, CreateStackTrace()});    \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const HipErrorData& data) {
-  os << "'" << data.expr << "': ";
-  const char* msg = hipGetErrorName(data.result);
+template void internal::LogResult(llvm::raw_ostream&, hipError_t);
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error) {
+  const char* msg = hipGetErrorName(error);
   if (msg != nullptr) {
     os << msg;
   } else {
-    os << "HIP error " << static_cast<int>(data.result);
+    os << llvm::formatv("hipError_t({0})", static_cast<int>(error));
   }
-  msg = hipGetErrorString(data.result);
+  msg = hipGetErrorString(error);
   if (msg != nullptr) os << " (" << msg << ")";
-  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
   return os;
 }
 
-hipError_t GetResult(const HipErrorInfo& info) {
-  return info.get<HipErrorData>().result;
-}
-
 // Convert stream wrapper types to HIP types.
-static hipDevice_t ToHip(Device device) { return device.id(Platform::ROCm); }
-template <typename T>
-static T* ToHip(Pointer<T> ptr) {
-  return ptr.raw(Platform::ROCm);
-}
+static hipDevice_t ToRocm(Device device) { return device.id(Platform::ROCm); }
 
 llvm::Error HipInit() { return TO_ERROR(hipInit(/*flags=*/0)); }
 
@@ -87,26 +66,26 @@ llvm::Expected<Device> HipDeviceGet(int ordinal) {
 
 llvm::Expected<std::string> HipDeviceGetName(Device device) {
   char name[100];
-  RETURN_IF_ERROR(hipDeviceGetName(name, sizeof(name), ToHip(device)));
+  RETURN_IF_ERROR(hipDeviceGetName(name, sizeof(name), ToRocm(device)));
   return std::string(name);
 }
 
 llvm::Expected<size_t> HipDeviceTotalMem(Device device) {
   size_t size_bytes;
-  RETURN_IF_ERROR(hipDeviceTotalMem(&size_bytes, ToHip(device)));
+  RETURN_IF_ERROR(hipDeviceTotalMem(&size_bytes, ToRocm(device)));
   return size_bytes;
 }
 
 llvm::Expected<int> HipDeviceGetAttribute(hipDeviceAttribute_t attribute,
                                           Device device) {
   int value;
-  RETURN_IF_ERROR(hipDeviceGetAttribute(&value, attribute, ToHip(device)));
+  RETURN_IF_ERROR(hipDeviceGetAttribute(&value, attribute, ToRocm(device)));
   return value;
 }
 
 llvm::Expected<std::string> HipDeviceGetPCIBusId(Device device) {
   char bus_id[100];
-  RETURN_IF_ERROR(hipDeviceGetPCIBusId(bus_id, sizeof(bus_id), ToHip(device)));
+  RETURN_IF_ERROR(hipDeviceGetPCIBusId(bus_id, sizeof(bus_id), ToRocm(device)));
   return std::string(bus_id);
 }
 
@@ -135,14 +114,14 @@ llvm::Error HipDeviceSynchronize(CurrentContext current) {
 llvm::Expected<int> HipDeviceCanAccessPeer(Device src_dev, Device dst_dev) {
   int result;
   RETURN_IF_ERROR(
-      hipDeviceCanAccessPeer(&result, ToHip(src_dev), ToHip(dst_dev)));
+      hipDeviceCanAccessPeer(&result, ToRocm(src_dev), ToRocm(dst_dev)));
   return result;
 }
 
 llvm::Error HipDeviceEnablePeerAccess(CurrentContext current,
                                       Device peer_device) {
   CheckHipContext(current);
-  return TO_ERROR(hipDeviceEnablePeerAccess(ToHip(peer_device), /*flags=*/0));
+  return TO_ERROR(hipDeviceEnablePeerAccess(ToRocm(peer_device), /*flags=*/0));
 }
 
 llvm::Error HipDeviceDisablePeerAccess(CurrentContext current,
@@ -153,14 +132,14 @@ llvm::Error HipDeviceDisablePeerAccess(CurrentContext current,
 
 llvm::Expected<OwningContext> HipDevicePrimaryCtxRetain(Device device) {
   hipCtx_t hip_ctx;
-  RETURN_IF_ERROR(hipDevicePrimaryCtxRetain(&hip_ctx, ToHip(device)));
+  RETURN_IF_ERROR(hipDevicePrimaryCtxRetain(&hip_ctx, ToRocm(device)));
   kContextTls.hip_may_skip_set_ctx = true;
   return OwningContext(hip_ctx);
 }
 
 llvm::Error HipDevicePrimaryCtxRelease(Device device) {
   if (auto has_instance = CheckNoCurrentContext()) return has_instance;
-  RETURN_IF_ERROR(hipDevicePrimaryCtxRelease(ToHip(device)));
+  RETURN_IF_ERROR(hipDevicePrimaryCtxRelease(ToRocm(device)));
   // Releasing the primary context does not change the current context, but
   // decrements the internal reference count and deactivates it iff zero.
   kContextTls.hip_may_skip_set_ctx = false;
@@ -176,18 +155,18 @@ llvm::Error HipDevicePrimaryCtxReset(Device device) {
       if (kContextTls.hip_ctx == context) return has_instance;
     }
   }
-  return TO_ERROR(hipDevicePrimaryCtxReset(ToHip(device)));
+  return TO_ERROR(hipDevicePrimaryCtxReset(ToRocm(device)));
 }
 
 llvm::Expected<ContextState> HipDevicePrimaryCtxGetState(Device device) {
   unsigned flags;
   int active;
-  RETURN_IF_ERROR(hipDevicePrimaryCtxGetState(ToHip(device), &flags, &active));
+  RETURN_IF_ERROR(hipDevicePrimaryCtxGetState(ToRocm(device), &flags, &active));
   return ContextState{static_cast<CtxFlags>(flags), active};
 }
 
 llvm::Error HipDevicePrimaryCtxSetFlags(Device device, hipDeviceFlags_t flags) {
-  return TO_ERROR(hipDevicePrimaryCtxSetFlags(ToHip(device), flags));
+  return TO_ERROR(hipDevicePrimaryCtxSetFlags(ToRocm(device), flags));
 }
 
 llvm::Expected<OwningContext> HipCtxCreate(hipDeviceFlags_t flags,
@@ -195,7 +174,7 @@ llvm::Expected<OwningContext> HipCtxCreate(hipDeviceFlags_t flags,
   // Check no instance of CurrentContext exists in this thread.
   if (auto has_instance = CheckNoCurrentContext())
     return std::move(has_instance);
-  RETURN_IF_ERROR(hipCtxCreate(&kContextTls.hip_ctx, flags, ToHip(device)));
+  RETURN_IF_ERROR(hipCtxCreate(&kContextTls.hip_ctx, flags, ToRocm(device)));
   kContextTls.platform = Platform::ROCm;
   kContextTls.hip_may_skip_set_ctx = true;
   return OwningContext(kContextTls.hip_ctx);
@@ -364,7 +343,7 @@ llvm::Expected<DeviceMemory<void>> HipMemAlloc(CurrentContext current,
 }
 
 llvm::Error HipMemFree(Pointer<void> pointer) {
-  return TO_ERROR(hipFree(ToHip(pointer)));
+  return TO_ERROR(hipFree(ToRocm(pointer)));
 }
 
 llvm::Expected<HostMemory<void>> HipMemHostAlloc(CurrentContext current,
@@ -377,7 +356,7 @@ llvm::Expected<HostMemory<void>> HipMemHostAlloc(CurrentContext current,
 }
 
 llvm::Error HipMemHostFree(Pointer<void> pointer) {
-  return TO_ERROR(hipHostFree(ToHip(pointer)));
+  return TO_ERROR(hipHostFree(ToRocm(pointer)));
 }
 
 llvm::Expected<RegisteredMemory<void>> HipMemHostRegister(
@@ -389,7 +368,7 @@ llvm::Expected<RegisteredMemory<void>> HipMemHostRegister(
 }
 
 llvm::Error HipMemHostUnregister(Pointer<void> pointer) {
-  return TO_ERROR(hipHostUnregister(ToHip(pointer)));
+  return TO_ERROR(hipHostUnregister(ToRocm(pointer)));
 }
 
 llvm::Expected<DeviceMemory<void>> HipMemAllocManaged(
@@ -404,7 +383,7 @@ llvm::Expected<Pointer<void>> HipMemHostGetDevicePointer(
     Pointer<void> host_ptr) {
   hipDeviceptr_t device_ptr;
   RETURN_IF_ERROR(
-      hipHostGetDevicePointer(&device_ptr, ToHip(host_ptr), /*flags=*/0));
+      hipHostGetDevicePointer(&device_ptr, ToRocm(host_ptr), /*flags=*/0));
   return Pointer<void>(device_ptr, Platform::ROCm);
 }
 
@@ -413,7 +392,7 @@ llvm::Expected<MemoryRange<void>> HipMemGetAddressRange(CurrentContext current,
   CheckHipContext(current);
   hipDeviceptr_t base;
   size_t size_bytes;
-  RETURN_IF_ERROR(hipMemGetAddressRange(&base, &size_bytes, ToHip(ptr)));
+  RETURN_IF_ERROR(hipMemGetAddressRange(&base, &size_bytes, ToRocm(ptr)));
   return MemoryRange<void>{{base, Platform::ROCm}, size_bytes};
 }
 
@@ -427,7 +406,7 @@ llvm::Expected<MemoryInfo> HipMemGetInfo(CurrentContext current) {
 llvm::Expected<hipPointerAttribute_t> HipPointerGetAttributes(
     Pointer<const void> ptr) {
   hipPointerAttribute_t attributes;
-  RETURN_IF_ERROR(hipPointerGetAttributes(&attributes, ToHip(ptr)));
+  RETURN_IF_ERROR(hipPointerGetAttributes(&attributes, ToRocm(ptr)));
   return attributes;
 }
 
@@ -435,56 +414,56 @@ llvm::Error HipMemcpy(CurrentContext current, Pointer<void> dst,
                       Pointer<const void> src, size_t count_bytes) {
   CheckHipContext(current);
   return TO_ERROR(
-      hipMemcpy(ToHip(dst), ToHip(src), count_bytes, hipMemcpyDefault));
+      hipMemcpy(ToRocm(dst), ToRocm(src), count_bytes, hipMemcpyDefault));
 }
 
 llvm::Error HipMemcpyAsync(CurrentContext current, Pointer<void> dst,
                            Pointer<const void> src, size_t count_bytes,
                            hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(hipMemcpyAsync(ToHip(dst), ToHip(src), count_bytes,
+  return TO_ERROR(hipMemcpyAsync(ToRocm(dst), ToRocm(src), count_bytes,
                                  hipMemcpyDefault, stream));
 }
 
 llvm::Error HipMemcpyPeer(Pointer<void> dst_ptr, Device dst_dev,
                           Pointer<const void> src_ptr, Device src_dev,
                           size_t count_bytes) {
-  return TO_ERROR(hipMemcpyPeer(ToHip(dst_ptr), ToHip(dst_dev), ToHip(src_ptr),
-                                ToHip(src_dev), count_bytes));
+  return TO_ERROR(hipMemcpyPeer(ToRocm(dst_ptr), ToRocm(dst_dev),
+                                ToRocm(src_ptr), ToRocm(src_dev), count_bytes));
 }
 
 llvm::Error HipMemcpyPeerAsync(Pointer<void> dst_ptr, Device dst_dev,
                                Pointer<const void> src_ptr, Device src_dev,
                                size_t count_bytes, hipStream_t stream) {
-  return TO_ERROR(hipMemcpyPeerAsync(ToHip(dst_ptr), ToHip(dst_dev),
-                                     ToHip(src_ptr), ToHip(src_dev),
+  return TO_ERROR(hipMemcpyPeerAsync(ToRocm(dst_ptr), ToRocm(dst_dev),
+                                     ToRocm(src_ptr), ToRocm(src_dev),
                                      count_bytes, stream));
 }
 
 llvm::Error HipMemsetD8(CurrentContext current, Pointer<void> dst,
                         std::uint8_t value, size_t count) {
   CheckHipContext(current);
-  return TO_ERROR(hipMemset(ToHip(dst), value, count));
+  return TO_ERROR(hipMemset(ToRocm(dst), value, count));
 }
 
 llvm::Error HipMemsetD32(CurrentContext current, Pointer<void> dst,
                          std::uint32_t value, size_t count) {
   CheckHipContext(current);
-  return TO_ERROR(hipMemsetD32(ToHip(dst), value, count));
+  return TO_ERROR(hipMemsetD32(ToRocm(dst), value, count));
 }
 
 llvm::Error HipMemsetD8Async(CurrentContext current, Pointer<void> dst,
                              std::uint8_t value, size_t count,
                              hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(hipMemsetAsync(ToHip(dst), value, count, stream));
+  return TO_ERROR(hipMemsetAsync(ToRocm(dst), value, count, stream));
 }
 
 llvm::Error HipMemsetD32Async(CurrentContext current, Pointer<void> dst,
                               std::uint32_t value, size_t count,
                               hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(hipMemsetD32Async(ToHip(dst), value, count, stream));
+  return TO_ERROR(hipMemsetD32Async(ToRocm(dst), value, count, stream));
 }
 
 llvm::Expected<OwningModule> HipModuleLoadData(CurrentContext current,

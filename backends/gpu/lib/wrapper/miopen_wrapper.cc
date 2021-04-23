@@ -25,25 +25,13 @@
 #include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                                 \
-  while (miopenStatus_t _result = expr) {                     \
-    return llvm::make_error<MiopenErrorInfo>(                 \
-        MiopenErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                                 \
-  [](miopenStatus_t _result) -> llvm::Error {                          \
-    if (_result == miopenStatusSuccess) return llvm::Error::success(); \
-    return llvm::make_error<MiopenErrorInfo>(                          \
-        MiopenErrorData{_result, #expr, CreateStackTrace()});          \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                     miopenStatus_t status) {
+template void internal::LogResult(llvm::raw_ostream&, miopenStatus_t);
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status) {
   switch (status) {
     case miopenStatusSuccess:
       return os << "miopenStatusSuccess";
@@ -72,44 +60,21 @@ static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t dtype) {
   switch (dtype) {
     case miopenHalf:
-      os << "miopenHalf";
-      break;
+      return os << "miopenHalf";
     case miopenFloat:
-      os << "miopenFloat";
-      break;
+      return os << "miopenFloat";
     case miopenInt32:
-      os << "miopenInt32";
-      break;
+      return os << "miopenInt32";
     case miopenInt8:
-      os << "miopenInt8";
-      break;
+      return os << "miopenInt8";
     case miopenInt8x4:
-      os << "miopenInt8x4";
-      break;
+      return os << "miopenInt8x4";
     case miopenBFloat16:
-      os << "miopenBFloat16";
-      break;
+      return os << "miopenBFloat16";
     default:
-      os << "<UNKNOWN miopenDataType_t(" << static_cast<int>(dtype) << ")>";
-      break;
+      return os << llvm::formatv("miopenDataType_t({0})",
+                                 static_cast<int>(dtype));
   }
-  return os;
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const MiopenErrorData& data) {
-  os << "'" << data.expr << "': " << data.result;
-  if (data.stack_trace) os << '\n' << data.stack_trace;
-  return os;
-}
-
-miopenStatus_t GetResult(const MiopenErrorInfo& info) {
-  return info.get<MiopenErrorData>().result;
-}
-
-template <typename T>
-static T* ToRocm(Pointer<T> ptr) {
-  return ptr.raw(Platform::ROCm);
 }
 
 llvm::Expected<DnnLibraryVersion> MiopenGetVersion() {

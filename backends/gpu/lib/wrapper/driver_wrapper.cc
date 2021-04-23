@@ -123,7 +123,8 @@ void internal::ContextDeleter::operator()(Context context) const {
       // and would need to be done when updating kContextTls and for the context
       // returned from CuStreamGetCtx(), but those should be lightweight.
       return LogIfError(llvm::handleErrors(
-          CuCtxDestroy(context), [&](std::unique_ptr<CudaErrorInfo> info) {
+          CuCtxDestroy(context),
+          [&](std::unique_ptr<ErrorInfo<CUresult>> info) {
             if (GetResult(*info) != CUDA_ERROR_INVALID_CONTEXT)
               return llvm::Error(std::move(info));
             auto device = CuCtxGetDevice(context);
@@ -132,7 +133,8 @@ void internal::ContextDeleter::operator()(Context context) const {
           }));
     case Platform::ROCm:
       return LogIfError(llvm::handleErrors(
-          HipCtxDestroy(context), [&](std::unique_ptr<HipErrorInfo> info) {
+          HipCtxDestroy(context),
+          [&](std::unique_ptr<ErrorInfo<hipError_t>> info) {
             if (GetResult(*info) != hipErrorInvalidContext)
               return llvm::Error(std::move(info));
             auto device = HipCtxGetDevice(context);

@@ -26,17 +26,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-struct MiopenErrorData {
-  miopenStatus_t result;
-  const char* expr;
-  StackTrace stack_trace;
-};
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const MiopenErrorData& data);
-// Wraps a miopenStatus_t into an llvm::ErrorInfo.
-using MiopenErrorInfo = TupleErrorInfo<MiopenErrorData>;
-miopenStatus_t GetResult(const MiopenErrorInfo& info);
-
+extern template void internal::LogResult(llvm::raw_ostream&, miopenStatus_t);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t dtype);
 
 template <>

@@ -27,18 +27,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-struct CudnnErrorData {
-  cudnnStatus_t result;
-  const char* expr;
-  std::string log;
-  StackTrace stack_trace;
-};
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CudnnErrorData& data);
-// Wraps a cudnnStatus_t into an llvm::ErrorInfo.
-using CudnnErrorInfo = TupleErrorInfo<CudnnErrorData>;
-cudnnStatus_t GetResult(const CudnnErrorInfo& info);
-
+extern template void internal::LogResult(llvm::raw_ostream&, cudnnStatus_t);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t dtype);
 
 template <>

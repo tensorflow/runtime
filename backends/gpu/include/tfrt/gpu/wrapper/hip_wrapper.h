@@ -29,15 +29,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-struct HipErrorData {
-  hipError_t result;
-  const char* expr;
-  StackTrace stack_trace;
-};
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const HipErrorData& data);
-// Wraps a hipError_t into an llvm::ErrorInfo.
-using HipErrorInfo = TupleErrorInfo<HipErrorData>;
-hipError_t GetResult(const HipErrorInfo& info);
+extern template void internal::LogResult(llvm::raw_ostream&, hipError_t);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error);
 
 // The following functions map directly to HIP calls.
 //

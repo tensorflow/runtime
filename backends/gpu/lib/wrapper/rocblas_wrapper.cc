@@ -21,25 +21,13 @@
 #include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                                  \
-  while (rocblas_status _result = expr) {                      \
-    return llvm::make_error<RocblasErrorInfo>(                 \
-        RocblasErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                                    \
-  [](rocblas_status _result) -> llvm::Error {                             \
-    if (_result == rocblas_status_success) return llvm::Error::success(); \
-    return llvm::make_error<RocblasErrorInfo>(                            \
-        RocblasErrorData{_result, #expr, CreateStackTrace()});            \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                     rocblas_status status) {
+template void internal::LogResult(llvm::raw_ostream&, rocblas_status);
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status) {
   switch (status) {
     case rocblas_status_success:
       return os << "rocblas_status_success";
@@ -71,22 +59,6 @@ static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
       return os << llvm::formatv("rocblas_status({0})",
                                  static_cast<int>(status));
   }
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const RocblasErrorData& data) {
-  os << "'" << data.expr << "': " << data.result;
-  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
-  return os;
-}
-
-rocblas_status GetResult(const RocblasErrorInfo& info) {
-  return info.get<RocblasErrorData>().result;
-}
-
-template <typename T>
-static T* ToRocm(Pointer<T> ptr) {
-  return ptr.raw(Platform::ROCm);
 }
 
 rocblas_operation ToRocblas(BlasOperation operation) {

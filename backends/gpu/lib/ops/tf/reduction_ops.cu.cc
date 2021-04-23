@@ -214,8 +214,7 @@ static llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input,
         temp_storage_ptr, temp_storage_bytes, input, output_iter, in_size,
         reduce, init, dctx->stream());
     if (result != cudaSuccess)
-      return llvm::make_error<wrapper::CudartErrorInfo>(
-          wrapper::CudartErrorData{result, "cub::DeviceReduce::Reduce"});
+      return wrapper::MakeError(result, "cub::DeviceReduce::Reduce");
     return llvm::Error::success();
   };
 
@@ -285,9 +284,7 @@ static llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input,
         /*num_segments=*/outer_dim_size, offset_iter, offset_iter + 1, reduce,
         init, dctx->stream());
     if (result != cudaSuccess)
-      return llvm::make_error<wrapper::CudartErrorInfo>(
-          wrapper::CudartErrorData{result,
-                                   "cub::DeviceSegmentedReduce::Reduce"});
+      return wrapper::MakeError(result, "cub::DeviceSegmentedReduce::Reduce");
     return llvm::Error::success();
   };
 

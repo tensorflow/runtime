@@ -21,25 +21,13 @@
 #include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                                 \
-  while (cublasStatus_t _result = expr) {                     \
-    return llvm::make_error<CublasErrorInfo>(                 \
-        CublasErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                                   \
-  [](cublasStatus_t _result) -> llvm::Error {                            \
-    if (_result == CUBLAS_STATUS_SUCCESS) return llvm::Error::success(); \
-    return llvm::make_error<CublasErrorInfo>(                            \
-        CublasErrorData{_result, #expr, CreateStackTrace()});            \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                     cublasStatus_t status) {
+template void internal::LogResult(llvm::raw_ostream&, cublasStatus_t);
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasStatus_t status) {
   switch (status) {
     case CUBLAS_STATUS_SUCCESS:
       return os << "CUBLAS_STATUS_SUCCESS";
@@ -65,22 +53,6 @@ static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
       return os << llvm::formatv("cublasStatus_t({0})",
                                  static_cast<int>(status));
   }
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CublasErrorData& data) {
-  os << "'" << data.expr << "': " << data.result;
-  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
-  return os;
-}
-
-cublasStatus_t GetResult(const CublasErrorInfo& info) {
-  return info.get<CublasErrorData>().result;
-}
-
-template <typename T>
-static T* ToCuda(Pointer<T> ptr) {
-  return ptr.raw(Platform::CUDA);
 }
 
 cublasOperation_t ToCublas(BlasOperation operation) {

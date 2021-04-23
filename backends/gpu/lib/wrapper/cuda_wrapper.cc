@@ -21,49 +21,32 @@
 #include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                               \
-  while (CUresult _result = expr) {                         \
-    return llvm::make_error<CudaErrorInfo>(                 \
-        CudaErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                          \
-  [](CUresult _result) -> llvm::Error {                         \
-    if (_result == CUDA_SUCCESS) return llvm::Error::success(); \
-    return llvm::make_error<CudaErrorInfo>(                     \
-        CudaErrorData{_result, #expr, CreateStackTrace()});     \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CudaErrorData& data) {
-  os << "'" << data.expr << "': ";
+template void internal::LogResult(llvm::raw_ostream&, CUresult);
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CUresult result) {
   const char* name = nullptr;
-  cuGetErrorName(data.result, &name);
+  cuGetErrorName(result, &name);
   if (name != nullptr) {
     os << name;
   } else {
-    os << "CUDA error " << static_cast<int>(data.result);
+    os << llvm::formatv("CUresult({0})", static_cast<int>(result));
   }
   const char* msg = nullptr;
-  cuGetErrorString(data.result, &msg);
+  cuGetErrorString(result, &msg);
   if (msg != nullptr) os << " (" << msg << ")";
-  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
   return os;
-}
-
-CUresult GetResult(const CudaErrorInfo& info) {
-  return info.get<CudaErrorData>().result;
 }
 
 // Convert stream wrapper types to CUDA types.
 static CUdevice ToCuda(Device device) { return device.id(Platform::CUDA); }
+
 template <typename T>
-static CUdeviceptr ToCuda(Pointer<T> ptr) {
-  return reinterpret_cast<CUdeviceptr>(ptr.raw(Platform::CUDA));
+static CUdeviceptr ToDevicePtr(Pointer<T> ptr) {
+  return reinterpret_cast<CUdeviceptr>(ToCuda(ptr));
 }
 
 llvm::Error CuInit() { return TO_ERROR(cuInit(/*flags=*/0)); }
@@ -401,7 +384,7 @@ llvm::Expected<DeviceMemory<void>> CuMemAlloc(CurrentContext current,
 }
 
 llvm::Error CuMemFree(Pointer<void> pointer) {
-  return TO_ERROR(cuMemFree(ToCuda(pointer)));
+  return TO_ERROR(cuMemFree(ToDevicePtr(pointer)));
 }
 
 llvm::Expected<HostMemory<void>> CuMemHostAlloc(CurrentContext current,
@@ -451,7 +434,7 @@ llvm::Expected<MemoryRange<void>> CuMemGetAddressRange(CurrentContext current,
   CheckCudaContext(current);
   CUdeviceptr base;
   size_t size_bytes;
-  RETURN_IF_ERROR(cuMemGetAddressRange(&base, &size_bytes, ToCuda(ptr)));
+  RETURN_IF_ERROR(cuMemGetAddressRange(&base, &size_bytes, ToDevicePtr(ptr)));
   return MemoryRange<void>{{reinterpret_cast<void*>(base), Platform::CUDA},
                            size_bytes};
 }
@@ -475,7 +458,7 @@ llvm::Error CuMemRangeGetAttribute(void* data, size_t data_size,
                                    CUmem_range_attribute attribute,
                                    Pointer<const void> ptr, size_t size_bytes) {
   return TO_ERROR(cuMemRangeGetAttribute(data, data_size, attribute,
-                                         ToCuda(ptr), size_bytes));
+                                         ToDevicePtr(ptr), size_bytes));
 }
 llvm::Error CuMemRangeGetAttributes(
     llvm::ArrayRef<void*> data, llvm::ArrayRef<size_t> data_sizes,
@@ -488,12 +471,12 @@ llvm::Error CuMemRangeGetAttributes(
   return TO_ERROR(cuMemRangeGetAttributes(
       const_cast<void**>(data.data()), const_cast<size_t*>(data_sizes.data()),
       const_cast<CUmem_range_attribute*>(attributes.data()), data.size(),
-      ToCuda(ptr), size_bytes));
+      ToDevicePtr(ptr), size_bytes));
 }
 
 llvm::Error CuPointerGetAttribute(void* data, CUpointer_attribute attribute,
                                   Pointer<const void> ptr) {
-  return TO_ERROR(cuPointerGetAttribute(data, attribute, ToCuda(ptr)));
+  return TO_ERROR(cuPointerGetAttribute(data, attribute, ToDevicePtr(ptr)));
 }
 
 llvm::Error CuPointerGetAttributes(
@@ -505,72 +488,74 @@ llvm::Error CuPointerGetAttributes(
   }
   return TO_ERROR(cuPointerGetAttributes(
       data.size(), const_cast<CUpointer_attribute*>(attributes.data()),
-      const_cast<void**>(data.data()), ToCuda(ptr)));
+      const_cast<void**>(data.data()), ToDevicePtr(ptr)));
 }
 
 llvm::Error CuMemcpy(CurrentContext current, Pointer<void> dst,
                      Pointer<const void> src, size_t count_bytes) {
   CheckCudaContext(current);
-  return TO_ERROR(cuMemcpy(ToCuda(dst), ToCuda(src), count_bytes));
+  return TO_ERROR(cuMemcpy(ToDevicePtr(dst), ToDevicePtr(src), count_bytes));
 }
 
 llvm::Error CuMemcpyAsync(CurrentContext current, Pointer<void> dst,
                           Pointer<const void> src, size_t count_bytes,
                           CUstream stream) {
   CheckCudaContext(current);
-  return TO_ERROR(cuMemcpyAsync(ToCuda(dst), ToCuda(src), count_bytes, stream));
+  return TO_ERROR(
+      cuMemcpyAsync(ToDevicePtr(dst), ToDevicePtr(src), count_bytes, stream));
 }
 
 llvm::Error CuMemcpyPeer(Pointer<void> dst_ptr, CUcontext dst_ctx,
                          Pointer<const void> src_ptr, CUcontext src_ctx,
                          size_t count_bytes) {
-  return TO_ERROR(cuMemcpyPeer(ToCuda(dst_ptr), dst_ctx, ToCuda(src_ptr),
-                               src_ctx, count_bytes));
+  return TO_ERROR(cuMemcpyPeer(ToDevicePtr(dst_ptr), dst_ctx,
+                               ToDevicePtr(src_ptr), src_ctx, count_bytes));
 }
 
 llvm::Error CuMemcpyPeerAsync(Pointer<void> dst_ptr, CUcontext dst_ctx,
                               Pointer<const void> src_ptr, CUcontext src_ctx,
                               size_t count_bytes, CUstream stream) {
-  return TO_ERROR(cuMemcpyPeerAsync(ToCuda(dst_ptr), dst_ctx, ToCuda(src_ptr),
-                                    src_ctx, count_bytes, stream));
+  return TO_ERROR(cuMemcpyPeerAsync(ToDevicePtr(dst_ptr), dst_ctx,
+                                    ToDevicePtr(src_ptr), src_ctx, count_bytes,
+                                    stream));
 }
 
 llvm::Error CuMemsetD8(CurrentContext current, Pointer<void> dst,
                        std::uint8_t value, size_t count) {
   CheckCudaContext(current);
-  return TO_ERROR(cuMemsetD8(ToCuda(dst), value, count));
+  return TO_ERROR(cuMemsetD8(ToDevicePtr(dst), value, count));
 }
 
 llvm::Error CuMemsetD16(CurrentContext current, Pointer<void> dst,
                         std::uint16_t value, size_t count) {
   CheckCudaContext(current);
-  return TO_ERROR(cuMemsetD16(ToCuda(dst), value, count));
+  return TO_ERROR(cuMemsetD16(ToDevicePtr(dst), value, count));
 }
 
 llvm::Error CuMemsetD32(CurrentContext current, Pointer<void> dst,
                         std::uint32_t value, size_t count) {
   CheckCudaContext(current);
-  return TO_ERROR(cuMemsetD32(ToCuda(dst), value, count));
+  return TO_ERROR(cuMemsetD32(ToDevicePtr(dst), value, count));
 }
 
 llvm::Error CuMemsetD8Async(CurrentContext current, Pointer<void> dst,
                             std::uint8_t value, size_t count, CUstream stream) {
   CheckCudaContext(current);
-  return TO_ERROR(cuMemsetD8Async(ToCuda(dst), value, count, stream));
+  return TO_ERROR(cuMemsetD8Async(ToDevicePtr(dst), value, count, stream));
 }
 
 llvm::Error CuMemsetD16Async(CurrentContext current, Pointer<void> dst,
                              std::uint16_t value, size_t count,
                              CUstream stream) {
   CheckCudaContext(current);
-  return TO_ERROR(cuMemsetD16Async(ToCuda(dst), value, count, stream));
+  return TO_ERROR(cuMemsetD16Async(ToDevicePtr(dst), value, count, stream));
 }
 
 llvm::Error CuMemsetD32Async(CurrentContext current, Pointer<void> dst,
                              std::uint32_t value, size_t count,
                              CUstream stream) {
   CheckCudaContext(current);
-  return TO_ERROR(cuMemsetD32Async(ToCuda(dst), value, count, stream));
+  return TO_ERROR(cuMemsetD32Async(ToDevicePtr(dst), value, count, stream));
 }
 
 llvm::Expected<OwningModule> CuModuleLoadDataEx(

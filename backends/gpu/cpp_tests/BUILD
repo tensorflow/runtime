@@ -9,10 +9,10 @@ tfrt_cc_test(
         "wrapper/common.h",
         "wrapper/cufft_wrapper_test.cc",
         "wrapper/dnn_wrapper_test.cc",
+        "wrapper/driver_wrapper_test.cc",
         "wrapper/instantiate_suite.cc",
         "wrapper/runtime_wrapper_test.cc",
         "wrapper/solver_wrapper_test.cc",
-        "wrapper/stream_wrapper_test.cc",
     ],
     tags = [
         "noasan",

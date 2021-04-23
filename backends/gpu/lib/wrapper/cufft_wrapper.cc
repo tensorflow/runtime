@@ -22,22 +22,11 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                                \
-  while (cufftResult _result = expr) {                       \
-    return llvm::make_error<CufftErrorInfo>(                 \
-        CufftErrorData{_result, #expr, CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                           \
-  [](cufftResult _result) -> llvm::Error {                       \
-    if (_result == CUFFT_SUCCESS) return llvm::Error::success(); \
-    return llvm::make_error<CufftErrorInfo>(                     \
-        CufftErrorData{_result, #expr, CreateStackTrace()});     \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
+
+template void internal::LogResult(llvm::raw_ostream&, cufftResult);
 
 void internal::CufftHandleDeleter::operator()(cufftHandle handle) const {
   LogIfError(CufftDestroy(handle));
@@ -291,13 +280,6 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cufftResult result) {
     default:
       return os << llvm::formatv("cufftResult({0})", static_cast<int>(result));
   }
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CufftErrorData& data) {
-  os << "'" << data.expr << ": " << data.result;
-  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
-  return os;
 }
 
 llvm::Expected<OwningCufftHandle> CufftPlan1d(int nx, cufftType type,

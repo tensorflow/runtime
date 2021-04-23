@@ -25,25 +25,13 @@
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "wrapper_detail.h"
 
-#define RETURN_IF_ERROR(expr)                                               \
-  while (cudnnStatus_t _result = expr) {                                    \
-    return llvm::make_error<CudnnErrorInfo>(                                \
-        CudnnErrorData{_result, #expr, CudnnLogTop(), CreateStackTrace()}); \
-  }
-
-#define TO_ERROR(expr)                                                      \
-  [](cudnnStatus_t _result) -> llvm::Error {                                \
-    if (_result == CUDNN_STATUS_SUCCESS) return llvm::Error::success();     \
-    return llvm::make_error<CudnnErrorInfo>(                                \
-        CudnnErrorData{_result, #expr, CudnnLogTop(), CreateStackTrace()}); \
-  }(expr)
-
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                                     cudnnStatus_t status) {
+template void internal::LogResult(llvm::raw_ostream&, cudnnStatus_t);
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status) {
   switch (status) {
     case CUDNN_STATUS_SUCCESS:
       return os << "CUDNN_STATUS_SUCCESS";
@@ -82,53 +70,27 @@ static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t dtype) {
   switch (dtype) {
     case CUDNN_DATA_FLOAT:
-      os << "CUDNN_DATA_FLOAT";
-      break;
+      return os << "CUDNN_DATA_FLOAT";
     case CUDNN_DATA_DOUBLE:
-      os << "CUDNN_DATA_DOUBLE";
-      break;
+      return os << "CUDNN_DATA_DOUBLE";
     case CUDNN_DATA_HALF:
-      os << "CUDNN_DATA_HALF";
-      break;
+      return os << "CUDNN_DATA_HALF";
     case CUDNN_DATA_INT8:
-      os << "CUDNN_DATA_INT8";
-      break;
+      return os << "CUDNN_DATA_INT8";
     case CUDNN_DATA_UINT8:
-      os << "CUDNN_DATA_UINT8";
-      break;
+      return os << "CUDNN_DATA_UINT8";
     case CUDNN_DATA_INT32:
-      os << "CUDNN_DATA_INT32";
-      break;
+      return os << "CUDNN_DATA_INT32";
     case CUDNN_DATA_INT8x4:
-      os << "CUDNN_DATA_INT8x4";
-      break;
+      return os << "CUDNN_DATA_INT8x4";
     case CUDNN_DATA_INT8x32:
-      os << "CUDNN_DATA_INT8x32";
-      break;
+      return os << "CUDNN_DATA_INT8x32";
     case CUDNN_DATA_UINT8x4:
-      os << "CUDNN_DATA_UINT8x4";
-      break;
+      return os << "CUDNN_DATA_UINT8x4";
     default:
-      os << "<UNKNOWN cudnnDataType_t(" << static_cast<int>(dtype) << ")>";
-      break;
+      return os << llvm::formatv("cudnnDataType_t({0})",
+                                 static_cast<int>(dtype));
   }
-  return os;
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
-                              const CudnnErrorData& data) {
-  os << "'" << data.expr << "': " << data.result << data.log;
-  if (data.stack_trace) os << '\n' << data.stack_trace;
-  return os;
-}
-
-cudnnStatus_t GetResult(const CudnnErrorInfo& info) {
-  return info.get<CudnnErrorData>().result;
-}
-
-template <typename T>
-static T* ToCuda(Pointer<T> ptr) {
-  return ptr.raw(Platform::CUDA);
 }
 
 // Returns reference to API log of the last cuDNN API call.

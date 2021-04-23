@@ -27,7 +27,7 @@ bazel build --nocheck_visibility \
 # Generate header and implementation files.
 HDR_PATH="third_party/tf_runtime/third_party/hip/%s_stub.h.inc"
 SRC_PATH="third_party/tf_runtime/third_party/hip/%s_stub.cc.inc"
-for API in "hip" "rocblas" "miopen"; do
+for API in "hip" "rocblas" "rocfft" "miopen"; do
    ./bazel-bin/third_party/tf_runtime/backends/gpu/tools/stub_codegen/header_codegen \
        $(dirname $0)/$API.json | clang-format > $(printf $HDR_PATH $API)
    ./bazel-bin/third_party/tf_runtime/backends/gpu/tools/stub_codegen/impl_codegen \

@@ -1,0 +1,31 @@
+{
+   "header":"third_party/amdgpu/rocFFT/include/rocfft.h",
+   "extra_args":[
+      "-I."
+   ],
+   "enums":[
+      "rocfft_array_type",
+      "rocfft_execution_mode",
+      "rocfft_precision",
+      "rocfft_result_placement",
+      "rocfft_status",
+      "rocfft_transform_type"
+   ],
+   "functions":[
+      "rocfft_cleanup",
+      "rocfft_execute",
+      "rocfft_execution_info_create",
+      "rocfft_execution_info_destroy",
+      "rocfft_execution_info_set_stream",
+      "rocfft_execution_info_set_work_buffer",
+      "rocfft_get_version_string",
+      "rocfft_plan_create",
+      "rocfft_plan_description_create",
+      "rocfft_plan_description_destroy",
+      "rocfft_plan_description_set_data_layout",
+      "rocfft_plan_destroy",
+      "rocfft_plan_get_print",
+      "rocfft_plan_get_work_buffer_size",
+      "rocfft_setup"
+   ]
+}

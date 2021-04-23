@@ -391,6 +391,16 @@ static Expected<std::tuple<int, int>> TestSyncFunctionRunnerTwoReturnValues(
   return func.run(a, b);
 }
 
+static Chain TestPrintBool(Chain in_ch, bool value) {
+  if (value) {
+    tfrt::outs() << "true\n";
+  } else {
+    tfrt::outs() << "false\n";
+  }
+
+  return Chain();
+}
+
 static Chain TestPrintTypedAttr(tfrt::Chain in_ch,
                                 RemainingAttributes attributes) {
   for (int i = 0; i < attributes.size(); ++i) {
@@ -459,6 +469,7 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.const_dense_attr",
                       TFRT_KERNEL(TestConstDenseAttr));
   registry->AddKernel("tfrt_test.unique_loc", TFRT_KERNEL(TestUniqueLoc));
+  registry->AddKernel("tfrt_test.print_bool", TFRT_KERNEL(TestPrintBool));
   registry->AddKernel("tfrt_test.print_typed_attr",
                       TFRT_KERNEL(TestPrintTypedAttr));
   registry->AddKernel("tfrt_test.test_cost", TFRT_KERNEL(TestCost));

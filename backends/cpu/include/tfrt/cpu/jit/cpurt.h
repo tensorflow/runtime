@@ -170,6 +170,9 @@ struct CompilationOptions {
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
 
+  // Disable recompilation for concrete input shapes or values.
+  bool disable_specializations = false;
+
   // Register dialects that are allowed in the serialized module.
   llvm::function_ref<void(mlir::DialectRegistry&)> register_dialects;
 

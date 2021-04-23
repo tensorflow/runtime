@@ -903,6 +903,16 @@ Expected<const Executable*> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands) {
   llvm::hash_code hash = llvm::hash_value(operands);
 
+  // Do not try to compile specialized executable if it is explicitly disabled.
+  if (compilation_opts_.disable_specializations) {
+    if (!default_executable_.hasValue())
+      return MakeStringError(
+          "jit executable specialization is disabled, but the default "
+          "executable is not available");
+
+    return &*default_executable_;
+  }
+
   // Convert ExecutableOrError to the function result.
   auto convert = [](ExecutableOrError& value) -> Expected<const Executable*> {
     // Only error or executable must be available.

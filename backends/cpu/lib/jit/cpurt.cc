@@ -492,8 +492,9 @@ void AlignedAllocationsPass::runOnFunction() {
   auto alignment_attr = mlir::IntegerAttr::get(i64, alignment);
 
   getFunction().walk([&](mlir::memref::AllocOp alloc) {
-    // Add alignment attribute only if the allocation has smaller alignment.
-    if (alloc.alignment().hasValue() && *alloc.alignment() < alignment)
+    // Add alignment attribute only if the alignment attribute is missing or the
+    // current alignment is smaller.
+    if (!alloc.alignment().hasValue() || *alloc.alignment() < alignment)
       alloc.alignmentAttr(alignment_attr);
   });
 }

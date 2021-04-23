@@ -299,18 +299,6 @@ inline bool IsValidAlignment(unsigned alignment) {
   return llvm::isPowerOf2_32(alignment);
 }
 
-// Calculate required byte size of alignment padding for the given offset when
-// there is a prefix.
-//
-// Examples,
-//   CalculateAlignmentPaddingSize(0, 1, 4) should return 3.
-//   CalculateAlignmentPaddingSize(1, 1, 4) should return 2.
-//   CalculatePaddingSize(3, 2, 8) should return 3.
-inline size_t CalculateAlignmentPaddingSize(size_t offset, unsigned prefix_size,
-                                            unsigned alignment) {
-  return llvm::offsetToAlignment(offset + prefix_size, llvm::Align(alignment));
-}
-
 // Return the expected length of VBR integer.
 //   E.g., 1 when 0   <= value < 128
 //         2 when 128 <= value < 16384

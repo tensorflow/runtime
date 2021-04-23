@@ -22,6 +22,7 @@
 #include "tfrt/bef_converter/bef_emitter.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/type_traits.h"
 
 namespace tfrt {
 
@@ -32,6 +33,26 @@ namespace tfrt {
 // This class serializes BEF attributes.
 class BefAttrEncoder : public BefEmitter {
  public:
+  // Encode a generic attribute.
+  //   Supported attribute types:
+  //     char,
+  //     uint8_t, uint16_t, uint32_t, uint64_t,
+  //     int8_t, int16_t, int32_t, int64_t,
+  //     float, double
+  template <typename T>
+  size_t EncodeAttr(T attr);
+
+  // <Array size:VBR> [array payload]*
+  // Empty element representation: Array, Aggregate, UnrankedShape
+  //    <0>
+  template <typename T>
+  size_t EncodeArrayAttr(ArrayRef<T> array);
+
+  size_t EncodeEmptyAttribute() {
+    EmitByte(0);
+    return size() - 1;
+  }
+
   // Encode a unranked shape attribute.
   size_t EncodeUnrankedShapeAttr();
 
@@ -99,7 +120,55 @@ class BefAttrEncoder : public BefEmitter {
   // shape attributes. If `rank` is a negative number, then this shape is
   // unranked.
   size_t EncodeShapeAttrBase(size_t byte_count, int rank);
+
+  template <typename T>
+  static constexpr bool kSupportedScalarAttributeType =
+      IsOneOfTypes<T, char, uint8_t, uint16_t, uint32_t, uint64_t, int8_t,
+                   int16_t, int32_t, int64_t, float, double>();
 };
+
+template <typename T>
+size_t BefAttrEncoder::EncodeAttr(T attr) {
+  static_assert(kSupportedScalarAttributeType<T>);
+
+  const auto entry_size = sizeof(attr);
+
+  // A shortcut for 1 byte sized attribute.
+  if (entry_size == 1) {
+    EmitByte(static_cast<uint8_t>(attr));
+    return size() - 1;
+  }
+
+  EmitAlignment(alignof(T));
+  const auto offset = size();
+  EmitBytes(
+      llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(&attr), entry_size));
+  return offset;
+}
+
+// <Array size:VBR> [array payload]*
+template <typename T>
+size_t BefAttrEncoder::EncodeArrayAttr(ArrayRef<T> array) {
+  static_assert(kSupportedScalarAttributeType<T>);
+
+  const auto element_count = array.size();
+
+  // Empty array attribute representation should be matched with
+  // empty aggregate attribute representation: <0>
+  if (element_count == 0) {
+    return EncodeEmptyAttribute();
+  }
+
+  EmitAlignment(alignof(T),
+                llvm::offsetToAlignment(size() + GetSizeOfVbrInt(element_count),
+                                        llvm::Align(alignof(T))));
+  const auto offset = size();
+  EmitVbrInt(element_count);
+  assert(size() % alignof(T) == 0);
+  EmitBytes(llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(array.data()),
+                               element_count * sizeof(T)));
+  return offset;
+}
 
 }  // namespace tfrt
 

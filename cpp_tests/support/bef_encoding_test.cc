@@ -17,6 +17,7 @@
 #include "tfrt/support/bef_encoding.h"
 
 #include "gtest/gtest.h"
+#include "llvm/Support/Alignment.h"
 
 namespace tfrt {
 namespace {
@@ -36,8 +37,8 @@ TEST(BefEncodingTest, CalculateAlignmentPaddingSizeWithPrefix) {
     for (unsigned alignment = 1; alignment <= kTestMaxAlignment;
          alignment *= 2) {
       for (size_t offset = 0; offset <= kTestMaxAlignment; ++offset) {
-        const unsigned padding =
-            CalculateAlignmentPaddingSize(offset, prefix_size, alignment);
+        const unsigned padding = llvm::offsetToAlignment(
+            offset + prefix_size, llvm::Align(alignment));
         auto test_offset = offset + padding;
         test_offset += prefix_size;
         EXPECT_EQ(test_offset % alignment, 0);
@@ -56,9 +57,10 @@ TEST(BefEncodingTest, CalculateAlignmentPaddingSizeForTwoAlignedPrefix) {
         for (size_t offset = 0; offset <= kTestMaxAlignment; ++offset) {
           const unsigned padding =
               (alignment >= prefix2)
-                  ? CalculateAlignmentPaddingSize(offset, prefix1 + prefix2,
-                                                  alignment)
-                  : CalculateAlignmentPaddingSize(offset, prefix1, prefix2);
+                  ? llvm::offsetToAlignment(offset + prefix1 + prefix2,
+                                            llvm::Align(alignment))
+                  : llvm::offsetToAlignment(offset + prefix1,
+                                            llvm::Align(prefix2));
           auto test_offset = offset + padding;
 
           ASSERT_EQ(test_offset % prefix1, 0);

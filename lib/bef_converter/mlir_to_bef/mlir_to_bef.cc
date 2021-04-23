@@ -33,6 +33,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/StringSwitch.h"
+#include "llvm/Support/Alignment.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/Attributes.h"
@@ -1442,8 +1443,8 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
 
       const unsigned array_alignment = attribute_emitter.GetRequiredAlignment();
       EmitAlignment(array_alignment,
-                    CalculateAlignmentPaddingSize(size(), GetSizeOfVbrInt(len),
-                                                  array_alignment));
+                    llvm::offsetToAlignment(size() + GetSizeOfVbrInt(len),
+                                            llvm::Align(array_alignment)));
       offset = size();
       EmitVbrInt(len);
       assert(size() % array_alignment == 0);

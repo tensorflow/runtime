@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// Unit test for TFRT BEFAttrEncoder.
+// Unit test for TFRT BefAttrEncoder.
 
 #include "tfrt/bef_converter/bef_attr_encoder.h"
 
@@ -30,14 +30,15 @@
 namespace tfrt {
 namespace {
 
-TEST(BEFAttrEncoderTest, EncodeZeroShape) {
+TEST(BefAttrEncoderTest, EncodeZeroShape) {
   int64_t dims[1];
 
   BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 0)));
+  const size_t offset =
+      encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 0));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  RankedShapeAttr shape_attr(buf.data());
+  RankedShapeAttr shape_attr(buf.data() + offset);
 
   ASSERT_EQ(shape_attr.size(), sizeof(BEFShapeAttr));
   ASSERT_EQ(shape_attr.GetRank(), 0);
@@ -45,24 +46,25 @@ TEST(BEFAttrEncoderTest, EncodeZeroShape) {
   ASSERT_EQ(shape.size(), 0);
 }
 
-TEST(BEFAttrEncoderTest, EncodeUnrankedShape) {
+TEST(BefAttrEncoderTest, EncodeUnrankedShape) {
   BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
+  const size_t offset = encoder.EncodeUnrankedShapeAttr();
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  ShapeAttr shape_attr(buf.data());
+  ShapeAttr shape_attr(buf.data() + offset);
 
   ASSERT_FALSE(shape_attr.HasRank());
 }
 
-TEST(BEFAttrEncoderTest, EncodeRankedShape) {
+TEST(BefAttrEncoderTest, EncodeRankedShape) {
   int64_t dims[3] = {1, 2, 3};
 
   BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 3)));
+  const size_t offset =
+      encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 3));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  RankedShapeAttr shape_attr(buf.data());
+  RankedShapeAttr shape_attr(buf.data() + offset);
 
   ASSERT_EQ(shape_attr.GetRank(), 3);
 
@@ -73,7 +75,7 @@ TEST(BEFAttrEncoderTest, EncodeRankedShape) {
   ASSERT_EQ(shape[2], 3);
 }
 
-TEST(BEFAttrEncoderTest, EncodeShapeList) {
+TEST(BefAttrEncoderTest, EncodeShapeList) {
   const int64_t a[1] = {1};
   const int64_t b[2] = {2, 3};
   const int64_t c[3] = {4, 5, 6};
@@ -82,10 +84,10 @@ TEST(BEFAttrEncoderTest, EncodeShapeList) {
   int sizes[4] = {1, 2, 3, -1};
 
   BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeShapeListAttr(dims, sizes, 4));
+  const size_t offset = encoder.EncodeShapeListAttr(dims, sizes, 4);
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  AggregateAttr aggr_attr(buf.data());
+  AggregateAttr aggr_attr(buf.data() + offset);
 
   ASSERT_EQ(aggr_attr.GetNumElements(), 4);
 
@@ -111,25 +113,26 @@ TEST(BEFAttrEncoderTest, EncodeShapeList) {
   ASSERT_FALSE(shape_d.HasRank());
 }
 
-TEST(BEFAttrEncoderTest, EncodeEmptyString) {
+TEST(BefAttrEncoderTest, EncodeEmptyString) {
   BefAttrEncoder encoder;
   std::string empty_string = "";
-  ASSERT_TRUE(!encoder.EncodeStringAttr(string_view(empty_string.data(), 0)));
+  const size_t offset =
+      encoder.EncodeStringAttr(string_view(empty_string.data(), 0));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  StringAttr string_attr(buf.data());
+  StringAttr string_attr(buf.data() + offset);
 
   ASSERT_EQ(string_attr.GetValue().size(), 0);
 }
 
-TEST(BEFAttrEncoderTest, EncodeString) {
+TEST(BefAttrEncoderTest, EncodeString) {
   BefAttrEncoder encoder;
   std::string sample_string = "tfrt";
-  ASSERT_TRUE(!encoder.EncodeStringAttr(
-      string_view(sample_string.data(), sample_string.size())));
+  const size_t offset = encoder.EncodeStringAttr(
+      string_view(sample_string.data(), sample_string.size()));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  StringAttr string_attr(buf.data());
+  StringAttr string_attr(buf.data() + offset);
 
   string_view sv = string_attr.GetValue();
 
@@ -137,7 +140,7 @@ TEST(BEFAttrEncoderTest, EncodeString) {
   ASSERT_EQ(sv, "tfrt");
 }
 
-TEST(BEFAttrEncoderTest, EncodeStringList) {
+TEST(BefAttrEncoderTest, EncodeStringList) {
   const std::string a = "hi";
   const std::string b = "tfrt";
   const std::string c = "world";
@@ -147,10 +150,10 @@ TEST(BEFAttrEncoderTest, EncodeStringList) {
   size_t sizes[3] = {a.size(), b.size(), c.size()};
 
   BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeStringListAttr(values, sizes, 3));
+  const size_t offset = encoder.EncodeStringListAttr(values, sizes, 3);
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  AggregateAttr aggr_attr(buf.data());
+  AggregateAttr aggr_attr(buf.data() + offset);
 
   ASSERT_EQ(aggr_attr.GetNumElements(), 3);
 
@@ -170,7 +173,7 @@ TEST(BEFAttrEncoderTest, EncodeStringList) {
   ASSERT_EQ(str_c, c);
 }
 
-TEST(BEFAttrEncoderTest, EncodeFuncList) {
+TEST(BefAttrEncoderTest, EncodeFuncList) {
   const std::string a = "tf";
   const std::string b = "new";
   const std::string c = "runtime";
@@ -180,10 +183,10 @@ TEST(BEFAttrEncoderTest, EncodeFuncList) {
   size_t sizes[3] = {a.size(), b.size(), c.size()};
 
   BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeFuncListAttr(values, sizes, 3));
+  const size_t offset = encoder.EncodeFuncListAttr(values, sizes, 3);
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  AggregateAttr aggr_attr(buf.data());
+  AggregateAttr aggr_attr(buf.data() + offset);
 
   ASSERT_EQ(aggr_attr.GetNumElements(), 3);
 

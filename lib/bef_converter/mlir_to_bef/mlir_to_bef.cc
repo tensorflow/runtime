@@ -1205,47 +1205,44 @@ void BEFAttributeEmitter::EmitSymbolRefAttribute(
 //
 // TODO(chky): Factor out this class to a standalone library as this should be
 // higher level than BEF.
-class BEFTypedAttributeEmitter : public BefEmitter {
+class BefTypedAttributeEmitter : public BefAttrEncoder {
  public:
-  explicit BEFTypedAttributeEmitter(BefCompilationUnits* compilation_units)
+  explicit BefTypedAttributeEmitter(BefCompilationUnits* compilation_units)
       : compilation_units_(compilation_units) {
     // Typed attributes should be at least aligned to alignof(BEFAttrBase).
     EmitAlignment(alignof(BEFAttrBase));
   }
 
-  void EmitAttribute(mlir::Attribute attr);
+  size_t EmitAttribute(mlir::Attribute attr);
 
  private:
-  void EmitAggregateAttribute(mlir::ArrayAttr aggregate_attr);
-  void EmitArrayAttribute(mlir::ArrayAttr array_attr);
-  void EmitDenseElementsAttribute(mlir::DenseElementsAttr dense_elements_attr);
-  void EmitShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
-  void EmitRankedShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
+  size_t EmitAggregateAttribute(mlir::ArrayAttr aggregate_attr);
+  size_t EmitArrayAttribute(mlir::ArrayAttr array_attr);
+  size_t EmitDenseElementsAttribute(
+      mlir::DenseElementsAttr dense_elements_attr);
+  size_t EmitShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
+  size_t EmitRankedShapeAttribute(tfrt::corert::ShapeAttr shape_attr);
 
   BefCompilationUnits* compilation_units_;
 };
 
-void BEFTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
+size_t BefTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
   auto attribute_type = GetBEFAttributeType(attr);
 
   if (attribute_type == BEFAttributeType::kAggregate) {
-    EmitAggregateAttribute(attr.cast<mlir::ArrayAttr>());
-    return;
+    return EmitAggregateAttribute(attr.cast<mlir::ArrayAttr>());
   }
 
   if (attribute_type == BEFAttributeType::kShape) {
-    EmitShapeAttribute(attr.cast<tfrt::corert::ShapeAttr>());
-    return;
+    return EmitShapeAttribute(attr.cast<tfrt::corert::ShapeAttr>());
   }
 
   if (IsArrayAttribute(attribute_type)) {
-    EmitArrayAttribute(attr.cast<mlir::ArrayAttr>());
-    return;
+    return EmitArrayAttribute(attr.cast<mlir::ArrayAttr>());
   }
 
   if (IsDenseAttribute(attribute_type)) {
-    EmitDenseElementsAttribute(attr.cast<mlir::DenseElementsAttr>());
-    return;
+    return EmitDenseElementsAttribute(attr.cast<mlir::DenseElementsAttr>());
   }
 
   // Below logic handle the cases where untyped data is immediately following
@@ -1253,7 +1250,7 @@ void BEFTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
   BEFAttributeEmitter untyped_emitter(compilation_units_);
   untyped_emitter.EmitAttribute(attr);
 
-  size_t prev_start = size();
+  const size_t offset = size();
 
   BEFAttrBase base;
   base.type = attribute_type;
@@ -1263,93 +1260,66 @@ void BEFTypedAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
   EmitAlignment(untyped_emitter.GetRequiredAlignment());
 
   size_t payload_start = size();
-  size_t byte_count = payload_start - prev_start + untyped_emitter.size();
+  size_t byte_count = payload_start - offset + untyped_emitter.size();
 
   SetBEFAttrByteCount(byte_count, &base);
 
-  OverwriteBytes(prev_start, &base, sizeof(base));
+  OverwriteBytes(offset, &base, sizeof(base));
 
   EmitEmitter(untyped_emitter);
+  return offset;
 }
 
-void BEFTypedAttributeEmitter::EmitAggregateAttribute(
+size_t BefTypedAttributeEmitter::EmitAggregateAttribute(
     mlir::ArrayAttr aggregate_attr) {
-  size_t start_offset = size();
-
-  BEFAggregateAttr header;
-  header.base.type = BEFAttributeType::kAggregate;
-  header.num_elements = AssertAttrFieldSize32(aggregate_attr.size());
-
-  size_t header_size =
-      header.num_elements > 0
-          ? sizeof(BEFAggregateAttr) +
-                sizeof(BEFAggregateAttrOffset32_t) * (header.num_elements - 1)
-          : sizeof(BEFAggregateAttr);
-
-  for (int i = 0; i < header_size; ++i) EmitBytes(kDummyByte);
+  const size_t element_count = aggregate_attr.size();
+  const size_t offset = ReserveAggregatedAttrHeader(element_count);
 
   SmallVector<BEFAggregateAttrOffset32_t, 8> offsets;
-  for (auto element : aggregate_attr) {
-    BEFTypedAttributeEmitter element_emitter(compilation_units_);
+  for (const auto& element : aggregate_attr) {
+    BefTypedAttributeEmitter element_emitter(compilation_units_);
     element_emitter.EmitAttribute(element);
     EmitAlignment(element_emitter.GetRequiredAlignment());
-    offsets.push_back(AssertAttrFieldSize32(size()));
+    offsets.push_back(AssertAttrFieldSize32(size() - offset));
     EmitEmitter(element_emitter);
   }
 
-  SetBEFAttrByteCount(size() - start_offset, &header.base);
-
-  size_t element_offset = offsetof(BEFAggregateAttr, offsets);
-  OverwriteBytes(start_offset, &header, element_offset);
-  OverwriteBytes(start_offset + element_offset, offsets.data(),
-                 sizeof(BEFAggregateAttrOffset32_t) * offsets.size());
+  EncodeCompleteAggregatedAttr(element_count, offset, offsets);
+  return offset;
 }
 
-void BEFTypedAttributeEmitter::EmitArrayAttribute(mlir::ArrayAttr array_attr) {
-  size_t start_offset = size();
+size_t BefTypedAttributeEmitter::EmitArrayAttribute(
+    mlir::ArrayAttr array_attr) {
+  const size_t element_count = array_attr.size();
+  const size_t offset = ReserveArrayAttrHeader();
 
   BEFAttributeType element_type = static_cast<BEFAttributeType>(DType::I32);
   if (!array_attr.empty()) element_type = GetBEFAttributeType(array_attr[0]);
-
-  BEFArrayAttr header;
-  header.base.type = GetArrayAttributeType(element_type);
-  header.num_elements = AssertAttrFieldSize32(array_attr.size());
-
-  // Reserve space for header.
-  for (int i = 0; i < sizeof(header); ++i) EmitBytes(kDummyByte);
 
   BEFAttributeEmitter elements(compilation_units_);
   elements.EmitArrayAttribute(array_attr);
 
   EmitAlignment(elements.GetRequiredAlignment());
-  header.element_offset = AssertAttrFieldSize32(size() - start_offset);
+  const size_t element_offset = size() - offset;
   EmitEmitter(elements);
-  SetBEFAttrByteCount(size() - start_offset, &header.base);
 
-  OverwriteBytes(start_offset, &header, sizeof(header));
+  EncodeCompleteArrayAttr(offset, element_type, element_count, element_offset);
+  return offset;
 }
 
-void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
+size_t BefTypedAttributeEmitter::EmitDenseElementsAttribute(
     mlir::DenseElementsAttr dense_elements_attr) {
-  size_t start_offset = size();
+  const auto offset = ReserveDenseAttrHeader();
 
   auto shaped_type = dense_elements_attr.getType();
   assert(shaped_type.hasRank());
   auto shape = shaped_type.getShape();
 
-  BEFDenseAttr header;
-
   DType::Kind element_type =
       ConvertMLIRDataTypeToTFRTDType(shaped_type.getElementType());
-  header.base.type = GetDenseAttributeType(element_type);
-  header.rank = AssertAttrFieldSize16(shape.size());
-  header.num_elements = AssertAttrFieldSize32(shaped_type.getNumElements());
-
-  // Reserve space for header.
-  for (int i = 0; i < sizeof(header); ++i) EmitBytes(kDummyByte);
 
   EmitAlignment(alignof(int64_t));
-  header.shape_offset = AssertAttrFieldSize16(size() - start_offset);
+  const size_t shape_offset = size() - offset;
   for (auto dim : shape) EmitInt8(dim);
 
   BEFAttributeEmitter elements(compilation_units_);
@@ -1374,48 +1344,29 @@ void BEFTypedAttributeEmitter::EmitDenseElementsAttribute(
     // So we need to materialize all elements in this case.
     //
     // TODO(tfrt-devs): Consider adding splat optimization in BEF.
-    for (int i = 0;
-         i < (dense_elements_attr.isSplat() ? header.num_elements : 1); ++i) {
+    for (int i = 0; i < (dense_elements_attr.isSplat()
+                             ? dense_elements_attr.getNumElements()
+                             : 1);
+         ++i) {
       elements.EmitBytes(llvm::makeArrayRef(
           reinterpret_cast<const uint8_t*>(raw_data.data()), raw_data.size()));
     }
   }
 
   EmitAlignment(elements.GetRequiredAlignment());
-  header.element_offset = AssertAttrFieldSize32(size() - start_offset);
+  const size_t element_offset = size() - offset;
   EmitEmitter(elements);
-  SetBEFAttrByteCount(size() - start_offset, &header.base);
 
-  OverwriteBytes(start_offset, &header, sizeof(header));
+  EncodeCompleteDenseAttr(offset, element_type, shape.size(), shape_offset,
+                          shaped_type.getNumElements(), element_offset);
+
+  return offset;
 }
 
-void BEFTypedAttributeEmitter::EmitShapeAttribute(
+size_t BefTypedAttributeEmitter::EmitShapeAttribute(
     tfrt::corert::ShapeAttr shape_attr) {
-  if (shape_attr.hasRank()) {
-    EmitRankedShapeAttribute(shape_attr);
-    return;
-  }
-
-  BefAttrEncoder encoder;
-  auto error = encoder.EncodeUnrankedShapeAttr();
-  assert(!error);
-  (void)error;
-
-  EmitEmitter(encoder);
-}
-
-void BEFTypedAttributeEmitter::EmitRankedShapeAttribute(
-    tfrt::corert::ShapeAttr shape_attr) {
-  assert(shape_attr.hasRank());
-
-  ArrayRef<int64_t> shape = shape_attr.getShape();
-
-  BefAttrEncoder encoder;
-  auto error = encoder.EncodeRankedShapeAttr(shape);
-  assert(!error);
-  (void)error;
-
-  EmitEmitter(encoder);
+  return (shape_attr.hasRank()) ? EncodeRankedShapeAttr(shape_attr.getShape())
+                                : EncodeUnrankedShapeAttr();
 }
 
 // This is the emitter that builds the attributes section of a BEF.
@@ -1463,7 +1414,7 @@ void BEFAttributesEmitter::EmitAttribute(mlir::Attribute attr, bool typed) {
     //
     // TODO(chky): clean up usage DenseAttr and AggregateAttr in native kernels
     // and remove the special handling here.
-    BEFTypedAttributeEmitter attribute_emitter(compilation_units_);
+    BefTypedAttributeEmitter attribute_emitter(compilation_units_);
     attribute_emitter.EmitAttribute(attr);
 
     EmitAlignment(attribute_emitter.GetRequiredAlignment());

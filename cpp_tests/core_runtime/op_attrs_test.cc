@@ -238,12 +238,12 @@ BENCHMARK(BM_OpAttrGetBool);
 
 void BM_OpAttrSetUnrankedShape(benchmark::State& state) {
   tfrt::BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
+  const size_t offset = encoder.EncodeUnrankedShapeAttr();
   auto buf = encoder.TakeResult();
 
   for (auto _ : state) {
     tfrt::OpAttrs attrs;
-    tfrt::ShapeAttr shape_attr(buf.data());
+    tfrt::ShapeAttr shape_attr(buf.data() + offset);
     benchmark::DoNotOptimize(attrs.Set("shape", shape_attr));
   }
 }
@@ -252,12 +252,13 @@ BENCHMARK(BM_OpAttrSetUnrankedShape);
 void BM_OpAttrSetRankedShape(benchmark::State& state) {
   int64_t dims[2] = {2, 2};
   tfrt::BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2)));
+  const size_t offset =
+      encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2));
   auto buf = encoder.TakeResult();
 
   for (auto _ : state) {
     tfrt::OpAttrs attrs;
-    tfrt::ShapeAttr shape_attr(buf.data());
+    tfrt::ShapeAttr shape_attr(buf.data() + offset);
     benchmark::DoNotOptimize(attrs.Set("shape", shape_attr));
   }
 }
@@ -266,10 +267,10 @@ BENCHMARK(BM_OpAttrSetRankedShape);
 void BM_OpAttrGetUnrankedShape(benchmark::State& state) {
   tfrt::OpAttrs attrs;
 
-  BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeUnrankedShapeAttr());
+  tfrt::BefAttrEncoder encoder;
+  const size_t offset = encoder.EncodeUnrankedShapeAttr();
   auto buf = encoder.TakeResult();
-  tfrt::ShapeAttr shape_attr(buf.data());
+  tfrt::ShapeAttr shape_attr(buf.data() + offset);
 
   attrs.Set("shape", shape_attr);
   for (auto _ : state) {
@@ -282,10 +283,11 @@ void BM_OpAttrGetRankedShape(benchmark::State& state) {
   tfrt::OpAttrs attrs;
 
   int64_t dims[2] = {2, 2};
-  BefAttrEncoder encoder;
-  ASSERT_TRUE(!encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2)));
+  tfrt::BefAttrEncoder encoder;
+  const size_t offset =
+      encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 2));
   auto buf = encoder.TakeResult();
-  tfrt::ShapeAttr shape_attr(buf.data());
+  tfrt::ShapeAttr shape_attr(buf.data() + offset);
 
   attrs.Set("shape", shape_attr);
   for (auto _ : state) {

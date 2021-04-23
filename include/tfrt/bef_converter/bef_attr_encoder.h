@@ -32,37 +32,73 @@ namespace tfrt {
 // This class serializes BEF attributes.
 class BefAttrEncoder : public BefEmitter {
  public:
-  llvm::Error EncodeUnrankedShapeAttr();
-  llvm::Error EncodeRankedShapeAttr(ArrayRef<int64_t> dims);
+  // Encode a unranked shape attribute.
+  size_t EncodeUnrankedShapeAttr();
 
-  llvm::Error EncodeShapeListAttr(const int64_t** dims, const int* num_dims,
-                                  int num_values);
+  // Encode a ranked shape attribute.
+  size_t EncodeRankedShapeAttr(ArrayRef<int64_t> dims);
 
-  llvm::Error EncodeStringAttr(string_view sv);
+  // Encode a list of shapes as an aggregate attribute.
+  size_t EncodeShapeListAttr(const int64_t** dims, const int* num_dims,
+                             int num_values);
 
-  llvm::Error EncodeStringListAttr(const void* const* values,
-                                   const size_t* lengths, int num_values);
+  // Encode a string attribute.
+  size_t EncodeStringAttr(string_view sv);
 
-  llvm::Error EncodeFuncAttr(string_view sv);
+  // Encode a list of strings as an aggregate attribute.
+  size_t EncodeStringListAttr(const void* const* values, const size_t* lengths,
+                              int num_values);
 
-  llvm::Error EncodeFuncListAttr(const void* const* values,
-                                 const size_t* lengths, int num_values);
+  // Encode a function attribute.
+  size_t EncodeFuncAttr(string_view sv);
+
+  // Encode a list of functions as an aggregate attribute.
+  size_t EncodeFuncListAttr(const void* const* values, const size_t* lengths,
+                            int num_values);
+
+  // Reserve space for the header part of an aggregate attribute.
+  size_t ReserveAggregatedAttrHeader(size_t element_count);
+
+  // Complete encoding of an aggregate attribute.
+  void EncodeCompleteAggregatedAttr(
+      size_t element_count, size_t offset,
+      ArrayRef<BEFAggregateAttrOffset32_t> offsets);
+
+  // Reserve space for the header part of an array attribute.
+  size_t ReserveArrayAttrHeader() {
+    return ReserveHeaderSpace(alignof(BEFArrayAttr), sizeof(BEFArrayAttr));
+  }
+
+  // Complete encoding of an array attribute.
+  void EncodeCompleteArrayAttr(size_t offset, BEFAttributeType element_type,
+                               size_t element_count, size_t element_offset);
+
+  // Reserve space for the header part of a dense (tensor) attribute.
+  size_t ReserveDenseAttrHeader() {
+    return ReserveHeaderSpace(alignof(BEFDenseAttr), sizeof(BEFDenseAttr));
+  }
+
+  // Complete encoding of a densor (tensor) attribute.
+  void EncodeCompleteDenseAttr(size_t offset, DType::Kind element_type,
+                               size_t rank, size_t shape_offset,
+                               size_t num_elements, size_t element_offset);
 
  private:
-  void EncodeAttrBase(BEFAttributeType type, size_t byte_count);
+  size_t ReserveHeaderSpace(size_t alignment, size_t header_size);
+
+  size_t EncodeAttrBase(BEFAttributeType type, size_t byte_count);
 
   // Encode a list of attributes as an aggregate attribute in BEF. The `emitter`
   // will be called with the indices sequentially and is expected to emit the
   // bytes for this element and return the offset.
-  llvm::Error EncodeListAttr(
+  size_t EncodeListAttr(
       size_t num_elements,
-      llvm::function_ref<llvm::Expected<BEFAggregateAttrOffset32_t>(int)>
-          emitter);
+      llvm::function_ref<BEFAggregateAttrOffset32_t(int)> emitter);
 
   // A helper function to emit the common header for both ranked and unranked
   // shape attributes. If `rank` is a negative number, then this shape is
   // unranked.
-  void EncodeShapeAttrBase(size_t byte_count, int rank);
+  size_t EncodeShapeAttrBase(size_t byte_count, int rank);
 };
 
 }  // namespace tfrt

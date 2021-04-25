@@ -1,0 +1,13 @@
+---
+version: '3.9'
+services:
+  tfrt:
+    build:
+      context: ./docker
+      args:
+        - UID=1000
+        - GID=1000
+    volumes:
+      - ./:/runtime
+    working_dir: /runtime
+    command: "/usr/bin/tail -f /dev/null"

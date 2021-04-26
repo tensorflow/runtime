@@ -282,6 +282,31 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cufftResult result) {
   }
 }
 
+llvm::Expected<LibraryVersion> CufftGetVersion() {
+  LibraryVersion version;
+  RETURN_IF_ERROR(
+      cufftGetProperty(libraryPropertyType::MAJOR_VERSION, &version.major));
+  RETURN_IF_ERROR(
+      cufftGetProperty(libraryPropertyType::MINOR_VERSION, &version.minor));
+  RETURN_IF_ERROR(
+      cufftGetProperty(libraryPropertyType::PATCH_LEVEL, &version.patch));
+  return version;
+}
+
+llvm::Expected<OwningCufftHandle> CufftCreate() {
+  cufftHandle plan;
+  RETURN_IF_ERROR(cufftCreate(&plan));
+  return OwningCufftHandle(plan);
+}
+
+llvm::Error CufftDestroy(cufftHandle plan) {
+  return TO_ERROR(cufftDestroy(plan));
+}
+
+llvm::Error CufftSetStream(cufftHandle plan, cudaStream_t stream) {
+  return TO_ERROR(cufftSetStream(plan, stream));
+}
+
 llvm::Expected<OwningCufftHandle> CufftPlan1d(int nx, cufftType type,
                                               int batch) {
   cufftHandle plan;
@@ -311,12 +336,6 @@ llvm::Expected<OwningCufftHandle> CufftPlanMany(
       &plan, options.rank, ToCufft(options.dims), ToCufft(options.input_embed),
       options.input_stride, options.input_dist, ToCufft(options.output_embed),
       options.output_stride, options.output_dist, type, batch));
-  return OwningCufftHandle(plan);
-}
-
-llvm::Expected<OwningCufftHandle> CufftCreate() {
-  cufftHandle plan;
-  RETURN_IF_ERROR(cufftCreate(&plan));
   return OwningCufftHandle(plan);
 }
 
@@ -385,32 +404,6 @@ llvm::Expected<size_t> CufftXtMakePlanMany(cufftHandle plan, int64_t batch,
       static_cast<long long>(options.output_dist), options.output_type, batch,
       &work_size, options.execution_type));
   return work_size;
-}
-
-llvm::Error CufftSetStream(cufftHandle plan, cudaStream_t stream) {
-  return TO_ERROR(cufftSetStream(plan, stream));
-}
-
-llvm::Expected<CufftLibraryVersion> CufftGetVersion(Platform platform) {
-  CufftLibraryVersion version;
-  int value = 0;
-  switch (platform) {
-    case Platform::CUDA:
-      RETURN_IF_ERROR(
-          cufftGetProperty(libraryPropertyType::MAJOR_VERSION, &value));
-      version.major = value;
-      RETURN_IF_ERROR(
-          cufftGetProperty(libraryPropertyType::MINOR_VERSION, &value));
-      version.minor = value;
-      RETURN_IF_ERROR(
-          cufftGetProperty(libraryPropertyType::PATCH_LEVEL, &value));
-      version.patch = value;
-      return version;
-    case Platform::ROCm:
-      return UnsupportedPlatform(platform);
-    default:
-      return InvalidPlatform(platform);
-  }
 }
 
 llvm::Expected<size_t> CufftEstimate1d(int nx, cufftType type, int batch) {
@@ -518,17 +511,13 @@ llvm::Error CufftEnableAutoAllocation(cufftHandle plan) {
   return TO_ERROR(cufftSetAutoAllocation(plan, 1));
 }
 
-llvm::Error CufftSetWorkArea(cufftHandle plan, void* work_area) {
-  return TO_ERROR(cufftSetWorkArea(plan, work_area));
+llvm::Error CufftSetWorkArea(cufftHandle plan, Pointer<void> work_area) {
+  return TO_ERROR(cufftSetWorkArea(plan, ToCuda(work_area)));
 }
 
 llvm::Error CufftXtSetWorkAreaPolicy(cufftHandle plan,
                                      cufftXtWorkAreaPolicy policy) {
   return TO_ERROR(cufftXtSetWorkAreaPolicy(plan, policy, nullptr));
-}
-
-llvm::Error CufftDestroy(cufftHandle plan) {
-  return TO_ERROR(cufftDestroy(plan));
 }
 
 llvm::Error CufftExecC2C(cufftHandle plan, cufftComplex* input_data,

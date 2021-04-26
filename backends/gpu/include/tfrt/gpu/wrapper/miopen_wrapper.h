@@ -31,32 +31,19 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t dtype);
 
 template <>
-struct PlatformTypeTraits<miopenDataType_t, DnnDataTypeTag>
+struct PlatformTypeTraits<DnnDataTypeTag, miopenDataType_t>
     : public RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<uint64_t, DnnConvFwdAlgoTag>
+struct PlatformTypeTraits<DnnConvFwdAlgoTag, uint64_t>
     : public RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<uint64_t, DnnConvBwdDataAlgoTag>
+struct PlatformTypeTraits<DnnConvBwdDataAlgoTag, uint64_t>
     : public RocmPlatformType {};
 template <>
-struct PlatformTypeTraits<uint64_t, DnnConvBwdWeightsAlgoTag>
+struct PlatformTypeTraits<DnnConvBwdWeightsAlgoTag, uint64_t>
     : public RocmPlatformType {};
 
-// Return types for functions returning multiple values.
-struct MiopenTensorDescriptorData {
-  miopenDataType_t data_type;
-  llvm::SmallVector<int, kDnnDimMax()> dimensions;
-  llvm::SmallVector<int, kDnnDimMax()> strides;
-};
-struct MiopenConvolutionDescriptorData {
-  llvm::SmallVector<int, kDnnDimMax()> paddings;
-  llvm::SmallVector<int, kDnnDimMax()> filter_strides;
-  llvm::SmallVector<int, kDnnDimMax()> dilations;
-  miopenConvolutionMode_t mode;
-};
-
-llvm::Expected<DnnLibraryVersion> MiopenGetVersion();
+llvm::Expected<LibraryVersion> MiopenGetVersion();
 llvm::Expected<OwningDnnHandle> MiopenCreate(CurrentContext current);
 llvm::Error MiopenDestroy(miopenHandle_t handle);
 llvm::Error MiopenSetStream(miopenHandle_t handle, hipStream_t stream);
@@ -69,7 +56,7 @@ llvm::Error MiopenSetTensorDescriptor(miopenTensorDescriptor_t descriptor,
                                       miopenDataType_t data_type,
                                       llvm::ArrayRef<int> dimensions,
                                       llvm::ArrayRef<int> strides);
-llvm::Expected<MiopenTensorDescriptorData> MiopenGetTensorDescriptor(
+llvm::Expected<DnnTensorDescriptorData> MiopenGetTensorDescriptor(
     miopenTensorDescriptor_t descriptor);
 llvm::Expected<size_t> MiopenGetTensorNumBytes(
     miopenTensorDescriptor_t descriptor);
@@ -85,7 +72,7 @@ llvm::Error MiopenInitConvolutionDescriptor(
     miopenConvolutionDescriptor_t descriptor, llvm::ArrayRef<int> pad,
     llvm::ArrayRef<int> filter_stride, llvm::ArrayRef<int> dilation,
     miopenConvolutionMode_t mode);
-llvm::Expected<MiopenConvolutionDescriptorData> MiopenGetConvolutionDescriptor(
+llvm::Expected<DnnConvolutionDescriptorData> MiopenGetConvolutionDescriptor(
     miopenConvolutionDescriptor_t descriptor);
 
 // Convolution forward.
@@ -155,6 +142,36 @@ llvm::Error MiopenConvolutionBackwardWeightsImmediate(
     miopenConvolutionDescriptor_t conv_desc, miopenTensorDescriptor_t dw_desc,
     Pointer<void> dw, Pointer<void> work_space, size_t work_space_size_in_bytes,
     uint64_t solution);
+
+llvm::Expected<OwningDnnPoolingDescriptor> MiopenCreatePoolingDescriptor();
+llvm::Error MiopenDestroyPoolingDescriptor(
+    miopenPoolingDescriptor_t descriptor);
+llvm::Error MiopenSetPoolingDescriptor(miopenPoolingDescriptor_t descriptor,
+                                       miopenPoolingMode_t mode,
+                                       llvm::ArrayRef<int> window_dimensions,
+                                       llvm::ArrayRef<int> paddings,
+                                       llvm::ArrayRef<int> strides);
+llvm::Expected<DnnPoolingDescriptorData> MiopenGetPoolingDescriptor(
+    const miopenPoolingDescriptor_t descriptor);
+llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
+MiopenGetPoolingForwardOutputDim(
+    const miopenPoolingDescriptor_t pooling_desc,
+    const miopenTensorDescriptor_t input_tensor_desc);
+llvm::Error MiopenPoolingForward(
+    CurrentContext current, miopenHandle_t handle,
+    const miopenPoolingDescriptor_t pooling_desc, Pointer<const void> alpha,
+    const miopenTensorDescriptor_t x_desc, Pointer<const void> x,
+    Pointer<const void> beta, const miopenTensorDescriptor_t y_desc,
+    Pointer<void> y, bool do_backward, Pointer<void> workspace,
+    size_t workspace_size_bytes);
+llvm::Error MiopenPoolingBackward(
+    CurrentContext current, miopenHandle_t handle,
+    const miopenPoolingDescriptor_t pooling_desc, Pointer<const void> alpha,
+    const miopenTensorDescriptor_t y_desc, Pointer<const void> y,
+    const miopenTensorDescriptor_t dy_desc, Pointer<const void> dy,
+    const miopenTensorDescriptor_t x_desc, Pointer<const void> x,
+    Pointer<const void> beta, const miopenTensorDescriptor_t dx_desc,
+    Pointer<void> dx, Pointer<void> workspace);
 
 }  // namespace wrapper
 }  // namespace gpu

@@ -32,18 +32,21 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t dtype);
 
 template <>
-struct PlatformTypeTraits<cudnnDataType_t, DnnDataTypeTag>
+struct PlatformTypeTraits<DnnDataTypeTag, cudnnDataType_t>
     : public CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<cudnnConvolutionFwdAlgo_t, DnnConvFwdAlgoTag>
+struct PlatformTypeTraits<DnnConvFwdAlgoTag, cudnnConvolutionFwdAlgo_t>
     : public CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<cudnnConvolutionBwdDataAlgo_t, DnnConvBwdDataAlgoTag>
+struct PlatformTypeTraits<DnnConvBwdDataAlgoTag, cudnnConvolutionBwdDataAlgo_t>
     : public CudaPlatformType {};
 template <>
-struct PlatformTypeTraits<cudnnConvolutionBwdFilterAlgo_t,
-                          DnnConvBwdWeightsAlgoTag> : public CudaPlatformType {
-};
+struct PlatformTypeTraits<DnnConvBwdWeightsAlgoTag,
+                          cudnnConvolutionBwdFilterAlgo_t>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<DnnNanPropagationTag, cudnnNanPropagation_t>
+    : public CudaPlatformType {};
 
 namespace internal {
 struct CudnnPersistentRnnPlanDeleter {
@@ -56,11 +59,6 @@ using OwningCudnnPersistentRnnPlan =
     internal::OwningResource<internal::CudnnPersistentRnnPlanDeleter>;
 
 // Return types for functions returning multiple values.
-struct CudnnTensorDescriptorData {
-  cudnnDataType_t data_type;
-  llvm::SmallVector<int, kDnnDimMax()> dimensions;
-  llvm::SmallVector<int, kDnnDimMax()> strides;
-};
 struct CudnnFilterDescriptorData {
   cudnnDataType_t data_type;
   cudnnTensorFormat_t format;
@@ -85,40 +83,11 @@ struct CudnnReduceTensorDescriptorData {
   bool compute_indices;
   cudnnIndicesType_t index_type;
 };
-struct CudnnConvolutionDescriptorData {
-  llvm::SmallVector<int, kDnnDimMax()> paddings;
-  llvm::SmallVector<int, kDnnDimMax()> filter_strides;
-  llvm::SmallVector<int, kDnnDimMax()> dilations;
-  cudnnConvolutionMode_t mode;
-  cudnnDataType_t math_type;
-};
-struct CudnnPoolingDescriptorData {
-  llvm::SmallVector<int, kDnnDimMax()> window_dimensions;
-  llvm::SmallVector<int, kDnnDimMax()> paddings;
-  llvm::SmallVector<int, kDnnDimMax()> strides;
-  cudnnPoolingMode_t mode;
-  cudnnNanPropagation_t nan_propagation;
-};
-struct CudnnActivationDescriptorData {
-  cudnnActivationMode_t mode;
-  cudnnNanPropagation_t nan_propagation;
-  double coefficient;
-};
 struct CudnnDropoutDescriptorData {
   float dropout;
   Pointer<void> states;
   size_t state_size;
   uint64_t seed;
-};
-struct CudnnRnnDescriptorData {
-  int hidden_size;
-  int num_layers;
-  cudnnDropoutDescriptor_t dropout_descriptor;
-  cudnnRNNInputMode_t input_mode;
-  cudnnDirectionMode_t direction;
-  cudnnRNNMode_t mode;
-  cudnnRNNAlgo_t algorithm;
-  cudnnDataType_t math_type;
 };
 struct CudnnRnnClipData {
   cudnnRNNClipMode_t mode;
@@ -130,7 +99,7 @@ struct CudnnRnnClipData {
 llvm::Expected<cudnnStatus_t> CudnnQueryRuntimeError(cudnnHandle_t handle,
                                                      cudnnErrQueryMode_t mode,
                                                      cudnnRuntimeTag_t* tag);
-llvm::Expected<int> CudnnGetProperty(libraryPropertyType type);
+llvm::Expected<LibraryVersion> CudnnGetVersion();
 llvm::Expected<OwningDnnHandle> CudnnCreate(CurrentContext current);
 llvm::Error CudnnDestroy(cudnnHandle_t handle);
 llvm::Error CudnnSetStream(cudnnHandle_t handle, cudaStream_t stream);
@@ -142,7 +111,7 @@ llvm::Error CudnnSetTensorDescriptor(cudnnTensorDescriptor_t descriptor,
                                      cudnnDataType_t data_type,
                                      llvm::ArrayRef<int> dimensions,
                                      llvm::ArrayRef<int> strides);
-llvm::Expected<CudnnTensorDescriptorData> CudnnGetTensorDescriptor(
+llvm::Expected<DnnTensorDescriptorData> CudnnGetTensorDescriptor(
     cudnnTensorDescriptor_t descriptor);
 llvm::Expected<size_t> CudnnGetTensorSizeInBytes(
     cudnnTensorDescriptor_t descriptor);
@@ -287,7 +256,7 @@ llvm::Error CudnnSetConvolutionDescriptor(
     cudnnConvolutionDescriptor_t descriptor, llvm::ArrayRef<int> pad,
     llvm::ArrayRef<int> filter_stride, llvm::ArrayRef<int> dilation,
     cudnnConvolutionMode_t mode, cudnnDataType_t compute_type);
-llvm::Expected<CudnnConvolutionDescriptorData> CudnnGetConvolutionDescriptor(
+llvm::Expected<DnnConvolutionDescriptorData> CudnnGetConvolutionDescriptor(
     cudnnConvolutionDescriptor_t descriptor);
 llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
 CudnnGetConvolutionForwardOutputDim(cudnnConvolutionDescriptor_t conv_desc,
@@ -419,7 +388,7 @@ llvm::Error CudnnSetPoolingDescriptor(cudnnPoolingDescriptor_t descriptor,
                                       llvm::ArrayRef<int> window_dimensions,
                                       llvm::ArrayRef<int> paddings,
                                       llvm::ArrayRef<int> strides);
-llvm::Expected<CudnnPoolingDescriptorData> CudnnGetPoolingDescriptor(
+llvm::Expected<DnnPoolingDescriptorData> CudnnGetPoolingDescriptor(
     const cudnnPoolingDescriptor_t descriptor);
 llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
 CudnnGetPoolingForwardOutputDim(
@@ -448,7 +417,7 @@ llvm::Error CudnnSetActivationDescriptor(cudnnActivationDescriptor_t descriptor,
                                          cudnnActivationMode_t mode,
                                          cudnnNanPropagation_t nan_propagation,
                                          double coefficient);
-llvm::Expected<CudnnActivationDescriptorData> CudnnGetActivationDescriptor(
+llvm::Expected<DnnActivationDescriptorData> CudnnGetActivationDescriptor(
     const cudnnActivationDescriptor_t activation_desc);
 llvm::Error CudnnActivationForward(CurrentContext current, cudnnHandle_t handle,
                                    cudnnActivationDescriptor_t activation_desc,
@@ -466,30 +435,6 @@ llvm::Error CudnnActivationBackward(
     const cudnnTensorDescriptor_t x_desc, Pointer<const void> x,
     Pointer<const void> beta, const cudnnTensorDescriptor_t dx_desc,
     Pointer<void> dx);
-
-llvm::Expected<OwningDnnActivationDescriptor> CudnnCreateActivationDescriptor();
-llvm::Error CudnnDestroyActivationDescriptor(
-    cudnnActivationDescriptor_t descriptor);
-llvm::Error CudnnSetActivationDescriptor(cudnnActivationDescriptor_t descriptor,
-                                         cudnnActivationMode_t mode,
-                                         cudnnNanPropagation_t nan_propagation,
-                                         double coefficient);
-llvm::Expected<CudnnActivationDescriptorData> CudnnGetActivationDescriptor(
-    const cudnnActivationDescriptor_t activation_desc);
-llvm::Error CudnnActivationForward(CurrentContext current, cudnnHandle_t handle,
-                                   cudnnActivationDescriptor_t activation_desc,
-                                   Pointer<void> alpha,
-                                   const cudnnTensorDescriptor_t x_desc,
-                                   Pointer<void> x, Pointer<void> beta,
-                                   const cudnnTensorDescriptor_t y_desc,
-                                   Pointer<void> y);
-llvm::Error CudnnActivationBackward(
-    CurrentContext current, cudnnHandle_t handle,
-    cudnnActivationDescriptor_t activation_desc, Pointer<void> alpha,
-    const cudnnTensorDescriptor_t y_desc, Pointer<void> y,
-    const cudnnTensorDescriptor_t dy_desc, Pointer<void> dy,
-    const cudnnTensorDescriptor_t x_desc, Pointer<void> x, Pointer<void> beta,
-    const cudnnTensorDescriptor_t dx_desc, Pointer<void> dx);
 
 llvm::Expected<size_t> CudnnGetBatchNormalizationForwardTrainingWorkspaceSize(
     cudnnHandle_t handle, cudnnBatchNormMode_t mode, cudnnBatchNormOps_t bn_ops,
@@ -591,6 +536,8 @@ llvm::Error CudnnSetRnnDescriptor(cudnnHandle_t handle,
                                   cudnnDirectionMode_t direction,
                                   cudnnRNNMode_t mode, cudnnRNNAlgo_t algorithm,
                                   cudnnDataType_t math_precision);
+llvm::Expected<DnnRnnDescriptorData> CudnnGetRnnDescriptor(
+    cudnnHandle_t handle, cudnnRNNDescriptor_t descriptor);
 llvm::Error CudnnSetRnnMatrixMathType(cudnnRNNDescriptor_t descriptor,
                                       cudnnMathType_t m_type);
 llvm::Expected<cudnnMathType_t> CudnnGetRnnMatrixMathType(

@@ -20,7 +20,7 @@
 #include "kernels_detail.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
-#include "tfrt/gpu/wrapper/miopen_wrapper.h"
+#include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_shape.h"
 #include "tfrt/tensor/tensor_type_registration.h"
@@ -38,6 +38,35 @@ static llvm::Expected<ArrayRef<T>> GetTensorData(const DenseHostTensor& t) {
     return tfrt::MakeStringError(
         "GetTensorData: input tensor type mismatch with desired vector type.");
   return ArrayRef<T>(static_cast<const T*>(t.data()), t.NumElements());
+}
+
+// Casting UI32 from MLIR to the proper DNN enumerator typ.
+static llvm::Expected<wrapper::DnnPoolingMode> IntToDnnPoolingMode(
+    uint32_t mode) {
+  switch (mode) {
+    case 0:
+      return wrapper::DnnPoolingMode::kPoolingMax;
+    case 1:
+      return wrapper::DnnPoolingMode::kPoolingAverageCountIncludePadding;
+    case 2:
+      return wrapper::DnnPoolingMode::kPoolingAverageCountExcludePadding;
+    case 3:
+      return wrapper::DnnPoolingMode::kPoolingMaxDeterministic;
+    default:
+      return MakeStringError("UI32 mode out of range for enum cast");
+  }
+}
+
+static llvm::Expected<wrapper::DnnNanPropagation> IntToDnnNanPropagation(
+    uint32_t nan_propagation) {
+  switch (nan_propagation) {
+    case 0:
+      return wrapper::DnnNanPropagation::kNotPropagateNan;
+    case 1:
+      return wrapper::DnnNanPropagation::kPropagateNan;
+    default:
+      return MakeStringError("UI32 nan_propagation out of range for enum cast");
+  }
 }
 
 static Expected<GpuDnnHandle> DnnCreate(Argument<GpuStream> stream) {
@@ -78,13 +107,12 @@ static Expected<wrapper::OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
   if (!strides_data)
     return MakeStringError(
         "DnnCreatePoolingDescriptor: strides is not a 1D tensor.");
-  wrapper::DnnNanPropagation cuda_nan_propagation;
-  if (current->platform() == wrapper::Platform::CUDA)
-    cuda_nan_propagation = static_cast<cudnnNanPropagation_t>(nan_propagation);
+  // TODO(csigg): Do we need a current context for this call?
   if (auto error = wrapper::DnnSetPoolingDescriptor(
-          descriptor->get(), static_cast<wrapper::DnnPoolingMode>(mode),
-          cuda_nan_propagation, window_dimensions_data.get(),
-          paddings_data.get(), strides_data.get()))
+          *current, descriptor.get().get(), IntToDnnPoolingMode(mode).get(),
+          IntToDnnNanPropagation(nan_propagation).get(),
+          window_dimensions_data.get(), paddings_data.get(),
+          strides_data.get()))
     return std::move(error);
   return std::move(*descriptor);
 }

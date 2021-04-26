@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <type_traits>
 
 #include "tfrt/gpu/wrapper/wrapper.h"
 
@@ -35,75 +34,104 @@ struct DnnDataTypeTag;
 // Data type enum (platform-discriminated).
 using DnnDataType = Enum<DnnDataTypeTag>;
 
-// Convolution algorithm ids (platform-discriminated).
-struct DnnConvFwdAlgoTag {
-  using type = uint64_t;
+enum class DnnTensorFormat {
+  kNchw,
+  kNhwc,
+  kNchwVectC,
 };
-using DnnConvFwdAlgo = Enum<DnnConvFwdAlgoTag>;
-struct DnnConvBwdDataAlgoTag {
-  using type = uint64_t;
-};
-using DnnConvBwdDataAlgo = Enum<DnnConvBwdDataAlgoTag>;
-struct DnnConvBwdWeightsAlgoTag {
-  using type = uint64_t;
-};
-using DnnConvBwdWeightsAlgo = Enum<DnnConvBwdWeightsAlgoTag>;
 
-// Only supported by cuDNN.
-struct DnnNanPropagationTag;
-using DnnNanPropagation = Enum<DnnNanPropagationTag>;
-
-enum class DnnConvolutionMode { kConvolution, kCrossCorrelation };
-
-enum class DnnRnnInputMode {  // Matches miopenRNNInputMode_t
+enum class DnnRnnInputMode {
   kLinear,
   kSkip,
 };
 
-enum class DnnDirectionMode {  // Matches miopenRNNDirectionMode_t
+enum class DnnDirectionMode {
   kUnidirectional,
   kBidirectional,
 };
 
-enum class DnnRnnMode {  // Matches miopenRNNMode_t
+enum class DnnRnnMode {
   kRnnRelu,
   kRnnTanh,
   kLstm,
   kGru,
 };
 
-enum class DnnOpTensorOp {  // Matches miopenTensorOp_t
+enum class DnnOpTensorOp {
   kOpTensorAdd,
   kOpTensorMul,
   kOpTensorMin,
   kOpTensorMax,
+  kOpTensorSqrt,
+  kOpTensorNot,
 };
 
-enum class DnnIndicesType {  // Values do not match miopenIndexType_t!
+enum class DnnReduceTensorOp {
+  kReduceTensorAdd,
+  kReduceTensorMul,
+  kReduceTensorMin,
+  kReduceTensorMax,
+  kReduceTensorAmax,
+  kReduceTensorAvg,
+  kReduceTensorNorm1,
+  kReduceTensorNorm2,
+  kReduceTensorMulNoZeros,
+};
+
+enum class DnnReduceTensorIndices {
+  kReduceTensorNoIndices,
+  kReduceTensorFlattenedIndicesw,
+};
+
+enum class DnnIndicesType {
   kDnn32BitIndices,
   kDnn64BitIndices,
   kDnn16BitIndices,
   kDnn8BitIndices,
 };
 
-enum class DnnSoftmaxAlgorithm {  // Matches miopenSoftmaxAlgorithm_t
+enum class DnnNanPropagation {
+  kNotPropagateNan,
+  kPropagateNan,
+};
+
+enum class DnnReorderType {
+  kDefaultReorder,
+  kNoReorder,
+};
+
+enum class DnnMathType {
+  kDefaultMath,
+  kTensorOpMath,
+  kTensorOpMathAllowConversion,
+};
+
+enum class DnnConvolutionMode { kConvolution, kCrossCorrelation };
+
+enum class DnnDeterminism {
+  kNonDeterministic,
+  kDeterministic,
+};
+
+enum class DnnSoftmaxAlgorithm {
   kSoftmaxFast,
   kSoftmaxAccurate,
   kSoftmaxLog,
 };
 
-enum class DnnSoftmaxMode {  // Matches miopenSoftmaxMode_t
+enum class DnnSoftmaxMode {
   kSoftmaxModeInstance,
   kSoftmaxModeChannel,
 };
 
-enum class DnnPoolingMode {  // Values do not match miopenPoolingMode_t!
+enum class DnnPoolingMode {
   kPoolingMax,
   kPoolingAverageCountIncludePadding,
   kPoolingAverageCountExcludePadding,
+  kPoolingMaxDeterministic,
 };
 
-enum class DnnActivationMode {  // Values do not match miopenActivationMode_t!
+enum class DnnActivationMode {
   kActivationSigmoid,
   kActivationRelu,
   kActivationTanh,
@@ -112,13 +140,96 @@ enum class DnnActivationMode {  // Values do not match miopenActivationMode_t!
   kActivationIdentity,
 };
 
-enum class DnnBatchNormMode {  // Matches miopenBatchNormMode_t
+enum class DnnBatchNormMode {
   // bnScale, bnBias tensor dims are 1xCxHxWx.. (one value per CHW...-slice,
   // normalized over N slice)
   kBatchnormPerActivation,
   // bnScale, bnBias tensor dims are 1xCx1x1 (one value per C-dim normalized
   // over Nx1xHxW subtensors)
   kBatchnormSpatial,
+  // bnScale, bnBias tensor dims are 1xCx1x1 (one value per C-dim normalized
+  // over Nx1xHxW subtensors). May be faster than BATCHNORM_SPATIAL but
+  // imposes some limits on the range of values
+  kBatchnormSpatialPersistent,
+};
+
+enum class DnnBatchNormOps {
+  kBatchnormOpsBn,               // do batch normalization only
+  kBatchnormOpsBnActivation,     // do batchNorm, then activation
+  kBatchnormOpsBnAddActivation,  // do batchNorm, then elemWiseAdd, then
+                                 // activation
+};
+
+enum class DnnRNNInputMode { kLinearInput, kSkipInput };
+
+enum class DnnRNNMode {
+  kRnnRelu,  // Stock RNN with ReLu activation
+  kRnnTanh,  // Stock RNN with tanh activation
+  kLstm,     // LSTM with no peephole connections
+  kGru,      // Using h' = tanh(r * Uh(t-1) + Wx) and h = (1 - z) * h' + z *
+             // h(t-1);
+};
+
+enum class DnnRNNAlgo {
+  kRnnAlgoStandard,
+  kRnnAlgoPersistStatic,
+  kRnnAlgoPersistDynamic,
+  kRnnAlgoCount,
+};
+
+enum class DnnRNNBiasMode {
+  kRnnNoBias,         // rnn cell formulas do not use biases
+  kRnnSingleInpBias,  // rnn cell formulas use one input bias in input GEMM
+  kRnnDoubleBias,     // default, rnn cell formulas use two bias vectors
+  kRnnSingleRecBias,  // rnn cell formulas use one recurrent bias in recurrent
+                      // GEMM
+};
+
+enum class DnnRNNClipMode {
+  kRnnClipNone,    // disables LSTM cell clipping
+  kRnnClipMinmax,  // enables LSTM cell clipping
+};
+
+// Convolution algorithm ids (platform-discriminated).
+struct DnnConvFwdAlgoTag {
+  using type = uint64_t;
+};
+struct DnnConvBwdDataAlgoTag {
+  using type = uint64_t;
+};
+struct DnnConvBwdWeightsAlgoTag {
+  using type = uint64_t;
+};
+using DnnConvFwdAlgo = Enum<DnnConvFwdAlgoTag>;
+using DnnConvBwdDataAlgo = Enum<DnnConvBwdDataAlgoTag>;
+using DnnConvBwdWeightsAlgo = Enum<DnnConvBwdWeightsAlgoTag>;
+
+struct DnnConvolutionDescriptorData {
+  llvm::SmallVector<int, kDnnDimMax()> paddings;
+  llvm::SmallVector<int, kDnnDimMax()> filter_strides;
+  llvm::SmallVector<int, kDnnDimMax()> dilations;
+  DnnConvolutionMode mode;
+  DnnDataType math_type;
+};
+
+struct DnnPoolingDescriptorData {
+  llvm::SmallVector<int, kDnnDimMax()> window_dimensions;
+  llvm::SmallVector<int, kDnnDimMax()> paddings;
+  llvm::SmallVector<int, kDnnDimMax()> strides;
+  DnnPoolingMode mode;
+  DnnNanPropagation nan_propagation;
+};
+
+struct DnnLibraryVersion {
+  int major;
+  int minor;
+  int patch;
+};
+
+struct DnnActivationDescriptorData {
+  DnnActivationMode mode;
+  DnnNanPropagation nan_propagation;
+  double coefficient;
 };
 
 // Non-owning handles of GPU resources.
@@ -195,34 +306,23 @@ using OwningDnnDropoutDescriptor =
 using OwningDnnRnnDescriptor =
     internal::OwningResource<internal::DnnRnnDescriptorDeleter>;
 
-struct DnnConvolutionDescriptorData {
-  llvm::SmallVector<int, kDnnDimMax()> paddings;
-  llvm::SmallVector<int, kDnnDimMax()> filter_strides;
-  llvm::SmallVector<int, kDnnDimMax()> dilations;
-  DnnConvolutionMode mode;
-  DnnDataType math_type;  // Unspecified for MIOpen.
-};
-
-struct DnnPoolingDescriptorData {
-  llvm::SmallVector<int, kDnnDimMax()> window_dimensions;
-  llvm::SmallVector<int, kDnnDimMax()> paddings;
-  llvm::SmallVector<int, kDnnDimMax()> strides;
-  DnnPoolingMode mode;
-  DnnNanPropagation nan_propagation;  // Unspecified for MIOpen.
-};
-
-struct DnnActivationDescriptorData {
-  DnnActivationMode mode;
-  DnnNanPropagation nan_propagation;  // Unspecified for MIOpen.
-  double coefficient;
-};
-
+// Return types for functions returning multiple values.
 struct DnnTensorDescriptorData {
   DnnDataType data_type;
   llvm::SmallVector<int, kDnnDimMax()> dimensions;
   llvm::SmallVector<int, kDnnDimMax()> strides;
 };
-
+struct DnnFilterDescriptorData {
+  DnnDataType data_type;
+  DnnTensorFormat format;
+  llvm::SmallVector<int, kDnnDimMax()> dimensions;
+};
+struct DnnDropoutDescriptorData {
+  float dropout;
+  Pointer<void> states;
+  size_t state_size;
+  uint64_t seed;
+};
 struct DnnRnnDescriptorData {
   int hidden_size;
   int num_layers;
@@ -231,10 +331,10 @@ struct DnnRnnDescriptorData {
   DnnDirectionMode direction;
   DnnRnnMode mode;
   int algorithm;
-  DnnDataType math_type;  // Unspecified for MIOpen.
+  DnnDataType math_precision;
 };
 
-llvm::Expected<LibraryVersion> DnnGetVersion(Platform platform);
+llvm::Expected<DnnLibraryVersion> DnnGetVersion(Platform platform);
 
 llvm::Expected<OwningDnnHandle> DnnCreate(CurrentContext current);
 llvm::Error DnnDestroy(DnnHandle handle);
@@ -249,11 +349,13 @@ llvm::Error DnnSetTensorDescriptor(DnnTensorDescriptor descriptor,
                                    DnnDataType data_type,
                                    llvm::ArrayRef<int> dimensions,
                                    llvm::ArrayRef<int> strides);
+
 llvm::Expected<DnnTensorDescriptorData> DnnGetTensorDescriptor(
     DnnTensorDescriptor descriptor);
 
 llvm::Expected<OwningDnnConvolutionDescriptor> DnnCreateConvolutionDescriptor(
     Platform platform);
+
 llvm::Error DnnDestroyConvolutionDescriptor(
     DnnConvolutionDescriptor descriptor);
 
@@ -265,6 +367,12 @@ llvm::Expected<OwningDnnActivationDescriptor> DnnCreateActivationDescriptor(
     Platform platform);
 llvm::Error DnnDestroyActivationDescriptor(DnnActivationDescriptor descriptor);
 
+llvm::Error DnnSetTensor(CurrentContext current, DnnHandle handle,
+                         DnnTensorDescriptor y_desc, Pointer<void> y,
+                         Pointer<const void> value_ptr);
+llvm::Error DnnScaleTensor(CurrentContext current, DnnHandle handle,
+                           DnnTensorDescriptor y_desc, Pointer<void> y,
+                           Pointer<const void> alpha);
 llvm::Expected<OwningDnnFilterDescriptor> DnnCreateFilterDescriptor(
     Platform platform);
 llvm::Error DnnDestroyFilterDescriptor(DnnFilterDescriptor descriptor);
@@ -277,20 +385,16 @@ llvm::Expected<OwningDnnRnnDescriptor> DnnCreateRnnDescriptor(
     Platform platform);
 llvm::Error DnnDestroyRnnDescriptor(DnnRnnDescriptor descriptor);
 
-llvm::Error DnnSetTensor(CurrentContext current, DnnHandle handle,
-                         DnnTensorDescriptor y_desc, Pointer<void> y,
-                         Pointer<const void> value_ptr);
-llvm::Error DnnScaleTensor(CurrentContext current, DnnHandle handle,
-                           DnnTensorDescriptor y_desc, Pointer<void> y,
-                           Pointer<const void> alpha);
-
-llvm::Error DnnSetPoolingDescriptor(DnnPoolingDescriptor descriptor,
+llvm::Error DnnSetPoolingDescriptor(CurrentContext current,
+                                    DnnPoolingDescriptor descriptor,
                                     DnnPoolingMode mode,
                                     DnnNanPropagation nan_propagation,
                                     llvm::ArrayRef<int> window_dimensions,
                                     llvm::ArrayRef<int> paddings,
                                     llvm::ArrayRef<int> strides);
 
+llvm::Expected<DnnMathType> DnnGetConvolutionMathType(
+    DnnConvolutionDescriptor descriptor);
 llvm::Error DnnSetConvolutionGroupCount(DnnConvolutionDescriptor descriptor,
                                         int group_count);
 llvm::Expected<int> DnnGetConvolutionGroupCount(

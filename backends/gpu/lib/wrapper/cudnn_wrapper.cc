@@ -124,15 +124,10 @@ llvm::Expected<cudnnStatus_t> CudnnQueryRuntimeError(cudnnHandle_t handle,
   return rstatus;
 }
 
-llvm::Expected<LibraryVersion> CudnnGetVersion() {
-  LibraryVersion version;
-  RETURN_IF_ERROR(
-      cudnnGetProperty(libraryPropertyType::MAJOR_VERSION, &version.major));
-  RETURN_IF_ERROR(
-      cudnnGetProperty(libraryPropertyType::MINOR_VERSION, &version.minor));
-  RETURN_IF_ERROR(
-      cudnnGetProperty(libraryPropertyType::PATCH_LEVEL, &version.patch));
-  return version;
+llvm::Expected<int> CudnnGetProperty(libraryPropertyType type) {
+  int value;
+  RETURN_IF_ERROR(cudnnGetProperty(type, &value));
+  return value;
 }
 
 llvm::Expected<OwningDnnHandle> CudnnCreate(CurrentContext current) {
@@ -200,17 +195,15 @@ llvm::Error CudnnSetTensorDescriptor(cudnnTensorDescriptor_t descriptor,
                                  dimensions.data(), strides.data()));
 }
 
-llvm::Expected<DnnTensorDescriptorData> CudnnGetTensorDescriptor(
+llvm::Expected<CudnnTensorDescriptorData> CudnnGetTensorDescriptor(
     cudnnTensorDescriptor_t descriptor) {
-  cudnnDataType_t data_type;
-  DnnTensorDescriptorData data;
+  CudnnTensorDescriptorData data;
   int rank = 0;
   data.dimensions.resize(kDnnDimMax());
   data.strides.resize(kDnnDimMax());
-  RETURN_IF_ERROR(
-      cudnnGetTensorNdDescriptor(descriptor, kDnnDimMax(), &data_type, &rank,
-                                 data.dimensions.data(), data.strides.data()));
-  data.data_type = data_type;
+  RETURN_IF_ERROR(cudnnGetTensorNdDescriptor(
+      descriptor, kDnnDimMax(), &data.data_type, &rank, data.dimensions.data(),
+      data.strides.data()));
   data.dimensions.resize(rank);
   data.strides.resize(rank);
   return data;
@@ -569,23 +562,20 @@ llvm::Error CudnnSetConvolutionDescriptor(
       mode, compute_type));
 }
 
-llvm::Expected<DnnConvolutionDescriptorData> CudnnGetConvolutionDescriptor(
+llvm::Expected<CudnnConvolutionDescriptorData> CudnnGetConvolutionDescriptor(
     cudnnConvolutionDescriptor_t descriptor) {
   int rank = 0;
-  cudnnConvolutionMode_t mode;
-  cudnnDataType_t math_type;
-  DnnConvolutionDescriptorData data;
+  CudnnConvolutionDescriptorData data;
   data.paddings.resize(kDnnDimMax());
   data.filter_strides.resize((kDnnDimMax()));
   data.dilations.resize(kDnnDimMax());
   RETURN_IF_ERROR(cudnnGetConvolutionNdDescriptor(
       descriptor, kDnnDimMax(), &rank, data.paddings.data(),
-      data.filter_strides.data(), data.dilations.data(), &mode, &math_type));
+      data.filter_strides.data(), data.dilations.data(), &data.mode,
+      &data.math_type));
   data.paddings.resize(rank);
   data.filter_strides.resize(rank);
   data.dilations.resize(rank);
-  data.mode = static_cast<DnnConvolutionMode>(mode);
-  data.math_type = math_type;
   return data;
 }
 
@@ -884,21 +874,17 @@ llvm::Error CudnnSetPoolingDescriptor(cudnnPoolingDescriptor_t descriptor,
       window_dimensions.data(), paddings.data(), strides.data()));
 }
 
-llvm::Expected<DnnPoolingDescriptorData> CudnnGetPoolingDescriptor(
+llvm::Expected<CudnnPoolingDescriptorData> CudnnGetPoolingDescriptor(
     const cudnnPoolingDescriptor_t descriptor) {
-  cudnnPoolingMode_t mode;
-  cudnnNanPropagation_t nan_propagation;
-  DnnPoolingDescriptorData data;
+  CudnnPoolingDescriptorData data;
   int rank = 0;
   data.window_dimensions.resize(kDnnDimMax());
   data.paddings.resize(kDnnDimMax());
   data.strides.resize(kDnnDimMax());
   RETURN_IF_ERROR(cudnnGetPoolingNdDescriptor(
-      descriptor, kDnnDimMax(), &mode, &nan_propagation, &rank,
+      descriptor, kDnnDimMax(), &data.mode, &data.nan_propagation, &rank,
       data.window_dimensions.data(), data.paddings.data(),
       data.strides.data()));
-  data.mode = static_cast<DnnPoolingMode>(mode);
-  data.nan_propagation = nan_propagation;
   data.window_dimensions.resize(rank);
   data.paddings.resize(rank);
   data.strides.resize(rank);
@@ -962,15 +948,11 @@ llvm::Error CudnnSetActivationDescriptor(cudnnActivationDescriptor_t descriptor,
                                                nan_propagation, coefficient));
 }
 
-llvm::Expected<DnnActivationDescriptorData> CudnnGetActivationDescriptor(
+llvm::Expected<CudnnActivationDescriptorData> CudnnGetActivationDescriptor(
     const cudnnActivationDescriptor_t activation_desc) {
-  cudnnActivationMode_t mode;
-  cudnnNanPropagation_t nan_propagation;
-  DnnActivationDescriptorData data;
+  CudnnActivationDescriptorData data;
   RETURN_IF_ERROR(cudnnGetActivationDescriptor(
-      activation_desc, &mode, &nan_propagation, &data.coefficient));
-  data.mode = static_cast<DnnActivationMode>(mode);
-  data.nan_propagation = nan_propagation;
+      activation_desc, &data.mode, &data.nan_propagation, &data.coefficient));
   return data;
 }
 
@@ -1214,28 +1196,6 @@ llvm::Error CudnnSetRnnDescriptor(cudnnHandle_t handle,
   return TO_ERROR(cudnnSetRNNDescriptor_v6(
       handle, descriptor, hidden_size, num_layers, dropout, input_mode,
       direction, mode, algorithm, math_precision));
-}
-
-llvm::Expected<DnnRnnDescriptorData> CudnnGetRnnDescriptor(
-    cudnnHandle_t handle, cudnnRNNDescriptor_t descriptor) {
-  cudnnDropoutDescriptor_t dropout_descriptor;
-  cudnnRNNInputMode_t input_mode;
-  cudnnDirectionMode_t direction;
-  cudnnRNNMode_t mode;
-  cudnnRNNAlgo_t algorithm;
-  cudnnDataType_t math_type;
-  DnnRnnDescriptorData data;
-  RETURN_IF_ERROR(cudnnGetRNNDescriptor(handle, descriptor, &data.hidden_size,
-                                        &data.num_layers, &dropout_descriptor,
-                                        &input_mode, &direction, &mode,
-                                        &algorithm, &math_type));
-  data.dropout_desc = dropout_descriptor;
-  data.input_mode = static_cast<DnnRnnInputMode>(input_mode);
-  data.direction = static_cast<DnnDirectionMode>(direction);
-  data.mode = static_cast<DnnRnnMode>(mode);
-  data.algorithm = algorithm;
-  data.math_type = math_type;
-  return data;
 }
 
 llvm::Error CudnnSetRnnMatrixMathType(cudnnRNNDescriptor_t descriptor,

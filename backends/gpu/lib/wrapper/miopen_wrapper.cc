@@ -77,11 +77,11 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t dtype) {
   }
 }
 
-llvm::Expected<LibraryVersion> MiopenGetVersion() {
+llvm::Expected<DnnLibraryVersion> MiopenGetVersion() {
   size_t major, minor, patch;
   RETURN_IF_ERROR(miopenGetVersion(&major, &minor, &patch));
-  return LibraryVersion{static_cast<int>(major), static_cast<int>(minor),
-                        static_cast<int>(patch)};
+  return DnnLibraryVersion{static_cast<int>(major), static_cast<int>(minor),
+                           static_cast<int>(patch)};
 }
 
 llvm::Expected<OwningDnnHandle> MiopenCreate(CurrentContext current) {
@@ -129,17 +129,16 @@ llvm::Error MiopenSetTensorDescriptor(miopenTensorDescriptor_t descriptor,
       const_cast<int*>(dimensions.data()), const_cast<int*>(strides.data())));
 }
 
-llvm::Expected<DnnTensorDescriptorData> MiopenGetTensorDescriptor(
+llvm::Expected<MiopenTensorDescriptorData> MiopenGetTensorDescriptor(
     miopenTensorDescriptor_t descriptor) {
+  MiopenTensorDescriptorData data;
   int rank = 0;
   RETURN_IF_ERROR(miopenGetTensorDescriptorSize(descriptor, &rank));
-  miopenDataType_t data_type;
-  DnnTensorDescriptorData data;
   data.dimensions.resize(rank);
   data.strides.resize(rank);
-  RETURN_IF_ERROR(miopenGetTensorDescriptor(
-      descriptor, &data_type, data.dimensions.data(), data.strides.data()));
-  data.data_type = data_type;
+  RETURN_IF_ERROR(miopenGetTensorDescriptor(descriptor, &data.data_type,
+                                            data.dimensions.data(),
+                                            data.strides.data()));
   return data;
 }
 
@@ -182,18 +181,16 @@ llvm::Error MiopenInitConvolutionDescriptor(
       mode));
 }
 
-llvm::Expected<DnnConvolutionDescriptorData> MiopenGetConvolutionDescriptor(
+llvm::Expected<MiopenConvolutionDescriptorData> MiopenGetConvolutionDescriptor(
     miopenConvolutionDescriptor_t descriptor) {
   int rank = 0;
-  miopenConvolutionMode_t mode;
-  DnnConvolutionDescriptorData data;
+  MiopenConvolutionDescriptorData data;
   data.paddings.resize(kDnnDimMax());
   data.filter_strides.resize((kDnnDimMax()));
   data.dilations.resize(kDnnDimMax());
   RETURN_IF_ERROR(miopenGetConvolutionNdDescriptor(
       descriptor, kDnnDimMax(), &rank, data.paddings.data(),
-      data.filter_strides.data(), data.dilations.data(), &mode));
-  data.mode = static_cast<DnnConvolutionMode>(mode);
+      data.filter_strides.data(), data.dilations.data(), &data.mode));
   data.paddings.resize(rank);
   data.filter_strides.resize(rank);
   data.dilations.resize(rank);
@@ -338,90 +335,6 @@ llvm::Error MiopenConvolutionBackwardWeightsImmediate(
   return TO_ERROR(miopenConvolutionBackwardWeightsImmediate(
       handle, dy_desc, ToRocm(dy), x_desc, ToRocm(x), conv_desc, dw_desc,
       ToRocm(dw), ToRocm(work_space), work_space_size_in_bytes, solution));
-}
-
-llvm::Expected<OwningDnnPoolingDescriptor> MiopenCreatePoolingDescriptor() {
-  miopenPoolingDescriptor_t pooling_desc;
-  RETURN_IF_ERROR(miopenCreatePoolingDescriptor(&pooling_desc));
-  return OwningDnnPoolingDescriptor(pooling_desc);
-}
-
-llvm::Error MiopenDestroyPoolingDescriptor(
-    miopenPoolingDescriptor_t descriptor) {
-  return TO_ERROR(miopenDestroyPoolingDescriptor(descriptor));
-}
-
-llvm::Error MiopenSetPoolingDescriptor(miopenPoolingDescriptor_t descriptor,
-                                       miopenPoolingMode_t mode,
-                                       llvm::ArrayRef<int> window_dimensions,
-                                       llvm::ArrayRef<int> paddings,
-                                       llvm::ArrayRef<int> strides) {
-  if (window_dimensions.size() != paddings.size() ||
-      paddings.size() != strides.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
-        "Expected window dimension, padding, and stride arrays of equal size");
-  }
-  return TO_ERROR(miopenSetNdPoolingDescriptor(
-      descriptor, mode, window_dimensions.size(),
-      const_cast<int*>(window_dimensions.data()),
-      const_cast<int*>(paddings.data()), const_cast<int*>(strides.data())));
-}
-
-llvm::Expected<DnnPoolingDescriptorData> MiopenGetPoolingDescriptor(
-    const miopenPoolingDescriptor_t descriptor) {
-  miopenPoolingMode_t mode;
-  DnnPoolingDescriptorData data;
-  int rank = 0;
-  data.window_dimensions.resize(kDnnDimMax());
-  data.paddings.resize(kDnnDimMax());
-  data.strides.resize(kDnnDimMax());
-  RETURN_IF_ERROR(miopenGetNdPoolingDescriptor(
-      descriptor, kDnnDimMax(), &mode, &rank, data.window_dimensions.data(),
-      data.paddings.data(), data.strides.data()));
-  data.mode = static_cast<DnnPoolingMode>(mode);
-  data.window_dimensions.resize(rank);
-  data.paddings.resize(rank);
-  data.strides.resize(rank);
-  return data;
-}
-
-llvm::Expected<llvm::SmallVector<int, kDnnDimMax()>>
-MiopenGetPoolingForwardOutputDim(
-    const miopenPoolingDescriptor_t pooling_desc,
-    const miopenTensorDescriptor_t input_tensor_desc) {
-  llvm::SmallVector<int, kDnnDimMax()> output_dim(kDnnDimMax());
-  RETURN_IF_ERROR(miopenGetPoolingNdForwardOutputDim(
-      pooling_desc, input_tensor_desc, kDnnDimMax(), output_dim.data()));
-  return output_dim;
-}
-
-llvm::Error MiopenPoolingForward(
-    CurrentContext current, miopenHandle_t handle,
-    const miopenPoolingDescriptor_t pooling_desc, Pointer<const void> alpha,
-    const miopenTensorDescriptor_t x_desc, Pointer<const void> x,
-    Pointer<const void> beta, const miopenTensorDescriptor_t y_desc,
-    Pointer<void> y, bool do_backward, Pointer<void> workspace,
-    size_t workspace_size_bytes) {
-  CheckHipContext(current);
-  return TO_ERROR(miopenPoolingForward(
-      handle, pooling_desc, ToRocm(alpha), x_desc, ToRocm(x), ToRocm(beta),
-      y_desc, ToRocm(y), do_backward, ToRocm(workspace), workspace_size_bytes));
-}
-
-llvm::Error MiopenPoolingBackward(
-    CurrentContext current, miopenHandle_t handle,
-    const miopenPoolingDescriptor_t pooling_desc, Pointer<const void> alpha,
-    const miopenTensorDescriptor_t y_desc, Pointer<const void> y,
-    const miopenTensorDescriptor_t dy_desc, Pointer<const void> dy,
-    const miopenTensorDescriptor_t x_desc, Pointer<const void> x,
-    Pointer<const void> beta, const miopenTensorDescriptor_t dx_desc,
-    Pointer<void> dx, Pointer<void> workspace) {
-  CheckHipContext(current);
-  return TO_ERROR(miopenPoolingBackward(
-      handle, pooling_desc, ToRocm(alpha), y_desc, ToRocm(y), dy_desc,
-      ToRocm(dy), x_desc, ToRocm(x), ToRocm(beta), dx_desc, ToRocm(dx),
-      ToRocm(workspace)));
 }
 
 }  // namespace wrapper

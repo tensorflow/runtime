@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-// Internal header for stream wrapper implementation.
+// Internal header for wrapper implementation.
 #ifndef TFRT_BACKENDS_GPU_LIB_STREAM_WRAPPER_DETAIL_H_
 #define TFRT_BACKENDS_GPU_LIB_STREAM_WRAPPER_DETAIL_H_
 
+#include <iterator>
+
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 
@@ -47,6 +50,15 @@ void internal::LogResult(llvm::raw_ostream& os, T result) {
 template <typename T>
 static T* ToCuda(Pointer<T> ptr) {
   return ptr.raw(Platform::CUDA);
+}
+
+template <typename T>
+static SmallVector<T*, 16> ToCuda(llvm::ArrayRef<Pointer<T>> ptrs) {
+  llvm::SmallVector<T*, 16> result;
+  result.reserve(ptrs.size());
+  llvm::transform(ptrs, std::back_inserter(result),
+                  [](Pointer<T> ptr) { return ptr.raw(Platform::CUDA); });
+  return result;
 }
 
 template <typename T>

@@ -26,12 +26,7 @@ namespace wrapper {
 TEST_P(Test, SolverDnHandel) {
   auto platform = GetParam();
   EXPECT_TRUE(IsSuccess(Init(platform)));
-  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
-  ASSERT_GT(count, 0);
-  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
-  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-  EXPECT_TRUE(IsSuccess(SolverCreate(current).takeError()));
+  EXPECT_TRUE(IsSuccess(SolverCreate(platform).takeError()));
 }
 
 }  // namespace wrapper

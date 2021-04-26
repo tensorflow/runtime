@@ -1707,15 +1707,16 @@ extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmBatchedEx_v10(
 llvm::Error CublasGemmBatchedEx(
     CurrentContext current, cublasHandle_t handle, cublasOperation_t transa,
     cublasOperation_t transb, int m, int n, int k, Pointer<const void> alpha,
-    Pointer<const void*> Aarray, cudaDataType Atype, int lda,
-    Pointer<const void*> Barray, cudaDataType Btype, int ldb,
-    Pointer<const void> beta, Pointer<void*> Carray, cudaDataType Ctype,
-    int ldc, int batchCount, cudaDataType computeType, cublasGemmAlgo_t algo) {
+    llvm::ArrayRef<Pointer<const void>> Aarray, cudaDataType Atype, int lda,
+    llvm::ArrayRef<Pointer<const void>> Barray, cudaDataType Btype, int ldb,
+    Pointer<const void> beta, llvm::ArrayRef<Pointer<void>> Carray,
+    cudaDataType Ctype, int ldc, int batchCount, cudaDataType computeType,
+    cublasGemmAlgo_t algo) {
   CheckCudaContext(current);
   return TO_ERROR(cublasGemmBatchedEx_v10(
-      handle, transa, transb, m, n, k, ToCuda(alpha), ToCuda(Aarray), Atype,
-      lda, ToCuda(Barray), Btype, ldb, ToCuda(beta), ToCuda(Carray), Ctype, ldc,
-      batchCount, computeType, algo));
+      handle, transa, transb, m, n, k, ToCuda(alpha), ToCuda(Aarray).data(),
+      Atype, lda, ToCuda(Barray).data(), Btype, ldb, ToCuda(beta),
+      ToCuda(Carray).data(), Ctype, ldc, batchCount, computeType, algo));
 }
 
 extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmStridedBatchedEx_v10(

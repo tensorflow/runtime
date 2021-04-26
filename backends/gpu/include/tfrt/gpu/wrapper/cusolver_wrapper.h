@@ -30,7 +30,7 @@ namespace wrapper {
 extern template void internal::LogResult(llvm::raw_ostream &, cusolverStatus_t);
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, cusolverStatus_t status);
 
-llvm::Expected<OwningSolverHandle> CusolverDnCreate(CurrentContext current);
+llvm::Expected<OwningSolverHandle> CusolverDnCreate();
 llvm::Error CusolverDnDestroy(cusolverDnHandle_t handle);
 llvm::Error CusolverDnSetStream(cusolverDnHandle_t handle, cudaStream_t stream);
 llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle);

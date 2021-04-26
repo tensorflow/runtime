@@ -59,8 +59,7 @@ llvm::raw_ostream &operator<<(llvm::raw_ostream &os, cusolverStatus_t status) {
   }
 }
 
-llvm::Expected<OwningSolverHandle> CusolverDnCreate(CurrentContext current) {
-  CheckCudaContext(current);
+llvm::Expected<OwningSolverHandle> CusolverDnCreate() {
   cusolverDnHandle_t handle = nullptr;
   RETURN_IF_ERROR(cusolverDnCreate(&handle));
   return OwningSolverHandle(handle);

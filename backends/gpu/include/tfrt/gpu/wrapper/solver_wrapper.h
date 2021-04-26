@@ -39,15 +39,10 @@ struct SolverHandleDeleter {
 }  // namespace internal
 
 // RAII wrappers for resources. Instances own the underlying resource.
-//
-// They are implemented as std::unique_ptrs with custom deleters.
-//
-// Use get() and release() to access the non-owning handle, please use with
-// appropriate care.
 using OwningSolverHandle =
     internal::OwningResource<internal::SolverHandleDeleter>;
 
-llvm::Expected<OwningSolverHandle> SolverCreate(CurrentContext current);
+llvm::Expected<OwningSolverHandle> SolverCreate(Platform platform);
 llvm::Error SolverDestroy(SolverHandle handle);
 llvm::Error SolverSetStream(SolverHandle handle, Stream stream);
 llvm::Expected<Stream> SolverGetStream(SolverHandle handle);

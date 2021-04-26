@@ -45,7 +45,7 @@ static llvm::Expected<GpuSolverHandle> SolverCreate(
     Argument<GpuStream> stream) {
   auto current = wrapper::CtxSetCurrent(stream->context());
   if (!current) return current.takeError();
-  auto handle = wrapper::SolverCreate(current.get());
+  auto handle = wrapper::SolverCreate(current->platform());
   if (!handle) return handle.takeError();
   if (auto error = wrapper::SolverSetStream(handle->get(), stream->get()))
     return std::move(error);

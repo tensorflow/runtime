@@ -204,6 +204,40 @@ def CondOp : TFRT_Op<"cond"> {
   }];
 }
 
+def WhileOp : TFRT_Op<"while"> {
+  let summary = "while operation";
+  let description = [{
+    cond: The boolean to control whether the first iteration should be
+      executed.
+    operands: The arguments to the first iteration.
+    results: The results of the last iteration. The number and types of results
+      are the same as the number and types of operands.
+    body_fn: The body function that takes the arguments and returns the results
+      and an I1 value to indicate whether next iteration should be executed.
+
+    The pseudo code:
+
+    while(cond) {
+      results, cond = body_fn(operands)
+      operands = results
+    }
+    return results
+
+  }];
+
+  let arguments = (ins I1:$cond,
+                       Variadic<AnyType>:$operands,
+                       FlatSymbolRefAttr:$body_fn);
+
+  let results = (outs Variadic<AnyType>:$results);
+
+  let assemblyFormat = [{
+    $cond $body_fn `(` $operands `)` attr-dict `:` `(` type($operands) `)` `->` `(` type($results) `)`
+  }];
+
+  let verifier = ?;
+}
+
 def NewChainOp : TFRT_Op<"new.chain", [NoSideEffect]> {
   let summary = "host executor chain constructor";
   let description = [{

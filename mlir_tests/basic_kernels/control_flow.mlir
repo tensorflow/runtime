@@ -258,3 +258,56 @@ func @tfrt_case_test() {
 
   tfrt.return
 }
+
+func @tfrt_while_body(%ch: !tfrt.chain, %iteration: i32, %arg: i32) -> (!tfrt.chain, i32, i32, i1) {
+  %one = tfrt.constant.i32 1
+  %five = tfrt.constant.i32 5
+  %next_iteration = tfrt.add.i32 %iteration, %one
+  %next_arg = tfrt.add.i32 %arg, %five
+  %next_cond = "tfrt.lessequal.i32"(%next_iteration, %five) : (i32, i32) -> (i1)
+
+  tfrt.return %ch, %next_iteration, %next_arg, %next_cond : !tfrt.chain, i32, i32, i1
+}
+
+// CHECK-LABEL: --- Running 'tfrt_while_test'
+func @tfrt_while_test() -> !tfrt.chain {
+  %ch0 = tfrt.new.chain
+
+  %cond = tfrt.constant.i1 true
+  %iteration = tfrt.constant.i32 0
+  %arg = tfrt.constant.i32 0
+
+  %ch1, %final_iteration, %final_arg = tfrt.while %cond @tfrt_while_body(%ch0, %iteration, %arg) : (!tfrt.chain, i32, i32) -> (!tfrt.chain, i32, i32)
+
+  // CHECK: int32 = 30
+  %ch2 = tfrt.print.i32 %final_arg, %ch1
+  // CHECK: int32 = 6
+  %ch3 = tfrt.print.i32 %final_iteration, %ch2
+
+  tfrt.return %ch3 : !tfrt.chain
+}
+
+func @tfrt_while_error_body(%ch: !tfrt.chain, %iteration: i32, %arg: i32) -> (!tfrt.chain, i32, i32, i1) {
+  %one = tfrt.constant.i32 1
+  %five = tfrt.constant.i32 5
+  %next_iteration = tfrt.add.i32 %iteration, %one
+  %next_arg = tfrt.add.i32 %arg, %five
+  %x, %ch1 = "tfrt_test.cancel"(%ch) : (!tfrt.chain) -> (i32, !tfrt.chain)
+  %next_cond = "tfrt.lessequal.i32"(%x, %five) : (i32, i32) -> (i1)
+
+  tfrt.return %ch1, %next_iteration, %next_arg, %next_cond : !tfrt.chain, i32, i32, i1
+}
+
+// CHECK-LABEL: --- Running 'tfrt_while_error_test'
+func @tfrt_while_error_test() -> (!tfrt.chain, i32, i32) {
+  %ch0 = tfrt.new.chain
+
+  %cond = tfrt.constant.i1 true
+  %iteration = tfrt.constant.i32 0
+  %arg = tfrt.constant.i32 0
+
+  %ch1, %final_iteration, %final_arg = tfrt.while %cond @tfrt_while_error_body(%ch0, %iteration, %arg) : (!tfrt.chain, i32, i32) -> (!tfrt.chain, i32, i32)
+
+  // CHECK: 'tfrt_while_error_test' returned <<error: Cancelled>>,<<error: Cancelled>>,<<error: Cancelled>>
+  tfrt.return %ch1, %final_iteration, %final_arg : !tfrt.chain, i32, i32
+}

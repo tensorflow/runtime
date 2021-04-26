@@ -1,6 +1,7 @@
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
 
 package(
+    # copybara:uncomment default_compatible_with = ["//buildenv/target:non_prod"],
     default_visibility = [":__subpackages__"],
 )
 

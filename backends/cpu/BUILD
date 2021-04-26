@@ -26,6 +26,7 @@ tfrt_cc_library(
         "lib/core_runtime/op_handler_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/core_runtime/static_registration.cc",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         "@llvm-project//llvm:Support",

@@ -16,9 +16,9 @@
 
 // Thin abstraction layer for CUDA and HIP.
 //
-// The stream wrapper provides a safer and more convenient access to CUDA and
-// ROCm platform APIs as a very thin layer. It also provides an abstraction
-// of the two platforms where their functionality overlap. For this, resources
+// The wrapper provides a safer and more convenient access to CUDA and ROCm
+// platform APIs as a very thin layer. It also provides an abstraction of the
+// two platforms where their functionality overlap. For this, resources
 // (contexts, streams, events, modules, buffers) are wrapped in discriminated
 // union types. The ROCm platform targets the HIP API which shares a lot of
 // commonality with CUDA (see http://www.google.com/search?q=hip+porting+guide).
@@ -209,8 +209,8 @@ using PlatformType = std::integral_constant<Platform, platform>;
 using CudaPlatformType = PlatformType<Platform::CUDA>;
 using RocmPlatformType = PlatformType<Platform::ROCm>;
 
-// Maps a platform-specific type T for some Tag to CUDA or ROCm.
-template <typename T, typename Tag>
+// Maps platform-specific type T for Tag to CUDA or ROCm.
+template <typename Tag, typename T>
 struct PlatformTypeTraits : public PlatformType<Platform::NONE> {};
 
 // Enum union type.
@@ -218,14 +218,15 @@ struct PlatformTypeTraits : public PlatformType<Platform::NONE> {};
 // For a CUDA/ROCm pair of enums with different enumerators, instantiate
 // this template with an opaque tag type (e.g. `struct FooTag;`) and specialize
 // the PlatformTypeTraits template alias in the CUDA/ROCm wrapper header, e.g.:
-// template <> using PlatformTypeTraits<cudaFooEnum, FooTag> = CudaPlatformType;
+// template <> using PlatformTypeTraits<FooTag, cudaFooEnum> = CudaPlatformType;
 //
 // Tag may define a 'type' member to override the value's type (default is int).
 template <typename Tag>
 class Enum {
   template <typename T, typename Tag_>
   using IsCudaOrRocm =
-      std::enable_if_t<PlatformTypeTraits<T, Tag_>::value != Platform::NONE>*;
+      std::enable_if_t<PlatformTypeTraits<Tag_, T>::value != Platform::NONE,
+                       int>;
 
   template <typename T>
   static constexpr auto get_value_type(T*) -> typename T::type;
@@ -233,16 +234,16 @@ class Enum {
   using ValueType = decltype(get_value_type(std::declval<Tag*>()));
 
  public:
-  Enum() : value_(0), platform_(Platform::NONE) {}
+  Enum() : Enum({}, Platform::NONE) {}
   Enum(ValueType value, Platform platform)
       : value_(value), platform_(platform) {}
-  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = nullptr>
+  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
   Enum(T value)
-      : value_(static_cast<int>(value)),
-        platform_(PlatformTypeTraits<T, Tag_>::value) {}
-  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = nullptr>
+      : Enum(static_cast<ValueType>(value),
+             PlatformTypeTraits<Tag_, T>::value) {}
+  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
   operator T() const {
-    using PlatformType = PlatformTypeTraits<T, Tag_>;
+    using PlatformType = PlatformTypeTraits<Tag_, T>;
     assert(platform_ == PlatformType::value);
     return static_cast<T>(value_);
   }
@@ -512,6 +513,12 @@ using OwningResource = std::unique_ptr<typename Deleter::pointer, Deleter>;
 // appropriate care.
 using OwningContext = internal::OwningResource<internal::ContextDeleter>;
 using OwningStream = internal::OwningResource<internal::StreamDeleter>;
+
+struct LibraryVersion {
+  int major;
+  int minor;
+  int patch;
+};
 
 }  // namespace wrapper
 }  // namespace gpu

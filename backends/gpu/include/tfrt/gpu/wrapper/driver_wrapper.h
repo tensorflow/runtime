@@ -66,7 +66,7 @@ enum class MemAttachFlags {
 namespace internal {
 template <typename E>
 using IfEnumOperators =
-    std::enable_if_t<!std::is_same<E, MemAttachFlags>::value ||
+    std::enable_if_t<std::is_same<E, CtxFlags>::value ||
                          std::is_same<E, StreamFlags>::value ||
                          std::is_same<E, EventFlags>::value ||
                          std::is_same<E, MemHostAllocFlags>::value ||

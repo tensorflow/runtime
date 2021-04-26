@@ -36,36 +36,30 @@ static cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
       return CUDNN_POOLING_AVERAGE_COUNT_INCLUDE_PADDING;
     case DnnPoolingMode::kPoolingAverageCountExcludePadding:
       return CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING;
-    case DnnPoolingMode::kPoolingMaxDeterministic:
-      return CUDNN_POOLING_MAX_DETERMINISTIC;
   }
   llvm_unreachable(StrCat("Unrecognized DnnPoolingMode mode: ", mode).c_str());
 }
 
-static cudnnNanPropagation_t ToCuda(DnnNanPropagation nan) {
-  switch (nan) {
-    case DnnNanPropagation::kNotPropagateNan:
-      return CUDNN_NOT_PROPAGATE_NAN;
-    case DnnNanPropagation::kPropagateNan:
-      return CUDNN_PROPAGATE_NAN;
+static miopenPoolingMode_t ToRocm(DnnPoolingMode mode) {
+  switch (mode) {
+    case DnnPoolingMode::kPoolingMax:
+      return miopenPoolingMax;
+    case DnnPoolingMode::kPoolingAverageCountIncludePadding:
+      return miopenPoolingAverage;
+    case DnnPoolingMode::kPoolingAverageCountExcludePadding:
+      return miopenPoolingAverageInclusive;
   }
-  llvm_unreachable(StrCat("Unrecognized DnnNanPropagation nan: ", nan).c_str());
+  llvm_unreachable(StrCat("Unrecognized DnnPoolingMode mode: ", mode).c_str());
 }
 
 static constexpr auto ToCuda(DnnBatchNormMode mode) {
   return static_cast<cudnnBatchNormMode_t>(mode);
 }
 
-// Assume that the tensor descriptor array has a small size of this constant
-// than it is possible use more efficient llvm::SmallVector instead
-// of std::vector
-static const int kTensorDescriptorArraySize = 16;
 //  Helper function to convert ArrayRef’s in Dnn wrapper to ArrayRef’s (vectors)
 //  to be used with Cudnn
-llvm::SmallVector<cudnnTensorDescriptor_t, kTensorDescriptorArraySize> ToCuda(
-    llvm::ArrayRef<DnnTensorDescriptor> dnn_descriptors) {
-  llvm::SmallVector<cudnnTensorDescriptor_t, kTensorDescriptorArraySize>
-      cudnn_descriptors;
+auto ToCuda(llvm::ArrayRef<DnnTensorDescriptor> dnn_descriptors) {
+  llvm::SmallVector<cudnnTensorDescriptor_t, 16> cudnn_descriptors;
   cudnn_descriptors.reserve(dnn_descriptors.size());
   copy(dnn_descriptors, std::back_inserter(cudnn_descriptors));
   return cudnn_descriptors;
@@ -103,28 +97,12 @@ void internal::DnnRnnDescriptorDeleter::operator()(
   LogIfError(DnnDestroyRnnDescriptor(descriptor));
 }
 
-llvm::Expected<DnnLibraryVersion> DnnGetVersion(Platform platform) {
-  DnnLibraryVersion version;
+llvm::Expected<LibraryVersion> DnnGetVersion(Platform platform) {
   switch (platform) {
     case Platform::CUDA:
-      if (auto data = CudnnGetProperty(libraryPropertyType::MAJOR_VERSION)) {
-        version.major = *data;
-      } else {
-        return data.takeError();
-      }
-      if (auto data = CudnnGetProperty(libraryPropertyType::MINOR_VERSION)) {
-        version.minor = *data;
-      } else {
-        return data.takeError();
-      }
-      if (auto data = CudnnGetProperty(libraryPropertyType::PATCH_LEVEL)) {
-        version.patch = *data;
-        return version;
-      } else {
-        return data.takeError();
-      }
+      return CudnnGetVersion();
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenGetVersion();
     default:
       return InvalidPlatform(platform);
   }
@@ -136,7 +114,7 @@ llvm::Expected<OwningDnnHandle> DnnCreate(CurrentContext current) {
     case Platform::CUDA:
       return CudnnCreate(current);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenCreate(current);
     default:
       return InvalidPlatform(platform);
   }
@@ -148,7 +126,7 @@ llvm::Error DnnDestroy(DnnHandle handle) {
     case Platform::CUDA:
       return CudnnDestroy(handle);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenDestroy(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -160,7 +138,7 @@ llvm::Error DnnSetStream(DnnHandle handle, Stream stream) {
     case Platform::CUDA:
       return CudnnSetStream(handle, stream);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenSetStream(handle, stream);
     default:
       return InvalidPlatform(platform);
   }
@@ -172,7 +150,7 @@ llvm::Expected<Stream> DnnGetStream(DnnHandle handle) {
     case Platform::CUDA:
       return CudnnGetStream(handle);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenGetStream(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -184,7 +162,7 @@ llvm::Expected<OwningDnnTensorDescriptor> DnnCreateTensorDescriptor(
     case Platform::CUDA:
       return CudnnCreateTensorDescriptor();
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenCreateTensorDescriptor();
     default:
       return InvalidPlatform(platform);
   }
@@ -196,7 +174,7 @@ llvm::Error DnnDestroyTensorDescriptor(DnnTensorDescriptor descriptor) {
     case Platform::CUDA:
       return CudnnDestroyTensorDescriptor(descriptor);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenDestroyTensorDescriptor(descriptor);
     default:
       return InvalidPlatform(platform);
   }
@@ -276,7 +254,7 @@ llvm::Expected<OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
     case Platform::CUDA:
       return CudnnCreatePoolingDescriptor();
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenCreatePoolingDescriptor();
     default:
       return InvalidPlatform(platform);
   }
@@ -288,7 +266,7 @@ llvm::Error DnnDestroyPoolingDescriptor(DnnPoolingDescriptor descriptor) {
     case Platform::CUDA:
       return CudnnDestroyPoolingDescriptor(descriptor);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenDestroyPoolingDescriptor(descriptor);
     default:
       return InvalidPlatform(platform);
   }
@@ -350,11 +328,7 @@ llvm::Expected<OwningDnnFilterDescriptor> DnnCreateFilterDescriptor(
     Platform platform) {
   switch (platform) {
     case Platform::CUDA:
-      if (auto data = CudnnCreateFilterDescriptor()) {
-        return data;
-      } else {
-        return data.takeError();
-      }
+      return CudnnCreateFilterDescriptor();
     case Platform::ROCm:
       return UnsupportedPlatform(platform);
     default:
@@ -366,11 +340,7 @@ llvm::Expected<OwningDnnDropoutDescriptor> DnnCreateDropoutDescriptor(
     Platform platform) {
   switch (platform) {
     case Platform::CUDA:
-      if (auto data = CudnnCreateDropoutDescriptor()) {
-        return data;
-      } else {
-        return data.takeError();
-      }
+      return CudnnCreateDropoutDescriptor();
     case Platform::ROCm:
       return UnsupportedPlatform(platform);
     default:
@@ -382,11 +352,7 @@ llvm::Expected<OwningDnnRnnDescriptor> DnnCreateRnnDescriptor(
     Platform platform) {
   switch (platform) {
     case Platform::CUDA:
-      if (auto data = CudnnCreateRnnDescriptor()) {
-        return data;
-      } else {
-        return data.takeError();
-      }
+      return CudnnCreateRnnDescriptor();
     case Platform::ROCm:
       return UnsupportedPlatform(platform);
     default:
@@ -430,21 +396,22 @@ llvm::Error DnnDestroyRnnDescriptor(DnnRnnDescriptor descriptor) {
   }
 }
 
-llvm::Error DnnSetPoolingDescriptor(CurrentContext current,
-                                    DnnPoolingDescriptor descriptor,
+llvm::Error DnnSetPoolingDescriptor(DnnPoolingDescriptor descriptor,
                                     DnnPoolingMode mode,
                                     DnnNanPropagation nan_propagation,
                                     llvm::ArrayRef<int> window_dimensions,
                                     llvm::ArrayRef<int> paddings,
                                     llvm::ArrayRef<int> strides) {
-  auto platform = current.platform();
+  auto platform = descriptor.platform();
   switch (platform) {
     case Platform::CUDA:
       return CudnnSetPoolingDescriptor(descriptor, ToCuda(mode),
-                                       ToCuda(nan_propagation),
-                                       window_dimensions, paddings, strides);
+                                       nan_propagation, window_dimensions,
+                                       paddings, strides);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      assert(nan_propagation.platform() == Platform::NONE);
+      return MiopenSetPoolingDescriptor(descriptor, ToRocm(mode),
+                                        window_dimensions, paddings, strides);
     default:
       return InvalidPlatform(platform);
   }
@@ -457,7 +424,7 @@ llvm::Error DnnSetConvolutionGroupCount(DnnConvolutionDescriptor descriptor,
     case Platform::CUDA:
       return CudnnSetConvolutionGroupCount(descriptor, group_count);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenSetConvolutionGroupCount(descriptor, group_count);
     default:
       return InvalidPlatform(platform);
   }
@@ -468,11 +435,7 @@ llvm::Expected<int> DnnGetConvolutionGroupCount(
   auto platform = descriptor.platform();
   switch (platform) {
     case Platform::CUDA:
-      if (auto data = CudnnGetConvolutionGroupCount(descriptor)) {
-        return *data;
-      } else {
-        return data.takeError();
-      }
+      return CudnnGetConvolutionGroupCount(descriptor);
     case Platform::ROCm:
       return UnsupportedPlatform(platform);
     default:
@@ -626,14 +589,9 @@ DnnGetPoolingForwardOutputDim(const DnnPoolingDescriptor pooling_desc,
   auto platform = pooling_desc.platform();
   switch (platform) {
     case Platform::CUDA:
-      if (auto data = CudnnGetPoolingForwardOutputDim(pooling_desc,
-                                                      input_tensor_desc)) {
-        return data;
-      } else {
-        return data.takeError();
-      }
+      return CudnnGetPoolingForwardOutputDim(pooling_desc, input_tensor_desc);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenGetPoolingForwardOutputDim(pooling_desc, input_tensor_desc);
     default:
       return InvalidPlatform(platform);
   }
@@ -652,7 +610,9 @@ llvm::Error DnnPoolingForward(CurrentContext current, DnnHandle handle,
       return CudnnPoolingForward(current, handle, pooling_desc, alpha, x_desc,
                                  x, beta, y_desc, y);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return MiopenPoolingForward(current, handle, pooling_desc, alpha, x_desc,
+                                  x, beta, y_desc, y, /*do_backward=*/false,
+                                  /*workspace=*/{}, /*workspace_size_bytes=*/0);
     default:
       return InvalidPlatform(platform);
   }
@@ -672,7 +632,10 @@ llvm::Error DnnPoolingBackward(
       return CudnnPoolingBackward(current, handle, pooling_desc, alpha, y_desc,
                                   y, dy_desc, dy, x_desc, x, beta, dx_desc, dx);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      // This assumes no workspace is required, which is probably incorrect.
+      return MiopenPoolingBackward(current, handle, pooling_desc, alpha, y_desc,
+                                   y, dy_desc, dy, x_desc, x, beta, dx_desc, dx,
+                                   /*workspace=*/{});
     default:
       return InvalidPlatform(platform);
   }

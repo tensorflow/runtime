@@ -63,23 +63,6 @@ struct CufftHandleDeleter {
 using OwningCufftHandle =
     internal::OwningResource<internal::CufftHandleDeleter>;
 
-struct CufftLibraryVersion {
-  int major;
-  int minor;
-  int patch;
-};
-
-// Sets the stream for execution of cuFFT functions. Note that these functions
-// may consist of many kernel invocations.
-llvm::Error CufftSetStream(cufftHandle plan, cudaStream_t stream);
-
-llvm::Expected<CufftLibraryVersion> CufftGetVersion(Platform platform);
-
-// Cufft can only configure plans up to 3D.
-constexpr bool IsValidFftRank(int rank) {
-  return rank == 1 || rank == 2 || rank == 3;
-}
-
 // CufftMany creates an FFT plan configuration for ranks 1, 2, or 3.
 template <typename IntT>
 struct CufftManyOptions {
@@ -112,10 +95,12 @@ struct CufftManyOptions {
   ValueType output_dist;
 };
 
-// Only 'int' is supported for options packed to
-// internal::CufftManyOptions<int> type.
-llvm::Expected<OwningCufftHandle> CufftPlanMany(
-    cufftType type, int batch, const CufftManyOptions<int>& options);
+// Cufft can only configure plans up to 3D.
+constexpr bool IsValidFftRank(int rank) {
+  return rank == 1 || rank == 2 || rank == 3;
+}
+
+llvm::Expected<LibraryVersion> CufftGetVersion();
 
 // Creates an opaque handle and allocates small data for the plan. Use
 // CufftMakePlan* to do the plan generation. (See
@@ -126,6 +111,10 @@ llvm::Expected<OwningCufftHandle> CufftCreate();
 // structures.
 llvm::Error CufftDestroy(cufftHandle plan);
 
+// Sets the stream for execution of cuFFT functions. Note that these functions
+// may consist of many kernel invocations.
+llvm::Error CufftSetStream(cufftHandle plan, cudaStream_t stream);
+
 // Creates FFT plans for the specific dimension, window dimensions, transform
 // type. (See https://docs.nvidia.com/cuda/cufft/index.html#plan-basic)
 llvm::Expected<OwningCufftHandle> CufftPlan1d(int nx, cufftType type,
@@ -133,6 +122,11 @@ llvm::Expected<OwningCufftHandle> CufftPlan1d(int nx, cufftType type,
 llvm::Expected<OwningCufftHandle> CufftPlan2d(int nx, int ny, cufftType type);
 llvm::Expected<OwningCufftHandle> CufftPlan3d(int nx, int ny, int nz,
                                               cufftType type);
+
+// Only 'int' is supported for options packed to
+// internal::CufftManyOptions<int> type.
+llvm::Expected<OwningCufftHandle> CufftPlanMany(
+    cufftType type, int batch, const CufftManyOptions<int>& options);
 
 // Following a call to CufftCreate, makes a plan for the specified signal size
 // and type. Work size contains the size(s) in bytes of the work areas for each
@@ -202,7 +196,7 @@ llvm::Expected<size_t> CufftGetSize(cufftHandle plan);
 llvm::Error CufftDisableAutoAllocation(cufftHandle plan);
 llvm::Error CufftEnableAutoAllocation(cufftHandle plan);
 
-llvm::Error CufftSetWorkArea(cufftHandle plan, void* work_area);
+llvm::Error CufftSetWorkArea(cufftHandle plan, Pointer<void> work_area);
 
 // TODO(gkg): The nvidia API currently supports an unused work_size
 // parameter. Expose this flag once there is functionality there.

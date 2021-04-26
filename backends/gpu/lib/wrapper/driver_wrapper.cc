@@ -28,43 +28,87 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-// Cast stream wrapper flags to CUDA enums.
-static constexpr auto ToCuda(CtxFlags flag) {
+#define ASSERT_EQ(x, y) \
+  static_assert(static_cast<int>(x) == static_cast<int>(y), "")
+
+// Cast driver wrapper flags to CUDA enums.
+static auto ToCuda(CtxFlags flag) {
+  ASSERT_EQ(CU_CTX_SCHED_AUTO, CtxFlags::SCHED_AUTO);
+  ASSERT_EQ(CU_CTX_SCHED_SPIN, CtxFlags::SCHED_SPIN);
+  ASSERT_EQ(CU_CTX_SCHED_YIELD, CtxFlags::SCHED_YIELD);
+  ASSERT_EQ(CU_CTX_SCHED_BLOCKING_SYNC, CtxFlags::SCHED_BLOCKING_SYNC);
+  ASSERT_EQ(CU_CTX_MAP_HOST, CtxFlags::MAP_HOST);
+  ASSERT_EQ(CU_CTX_LMEM_RESIZE_TO_MAX, CtxFlags::LMEM_RESIZE_TO_MAX);
   return static_cast<CUctx_flags>(flag);
 }
 static constexpr auto ToCuda(StreamFlags flag) {
+  ASSERT_EQ(CU_STREAM_DEFAULT, StreamFlags::DEFAULT);
+  ASSERT_EQ(CU_STREAM_NON_BLOCKING, StreamFlags::NON_BLOCKING);
   return static_cast<CUstream_flags>(flag);
 }
 static constexpr auto ToCuda(EventFlags flag) {
+  ASSERT_EQ(CU_EVENT_DEFAULT, EventFlags::DEFAULT);
+  ASSERT_EQ(CU_EVENT_BLOCKING_SYNC, EventFlags::BLOCKING_SYNC);
+  ASSERT_EQ(CU_EVENT_DISABLE_TIMING, EventFlags::DISABLE_TIMING);
+  ASSERT_EQ(CU_EVENT_INTERPROCESS, EventFlags::INTERPROCESS);
   return static_cast<CUevent_flags>(flag);
 }
 static constexpr auto ToCuda(MemHostAllocFlags flag) {
+  ASSERT_EQ(CU_MEMHOSTALLOC_DEFAULT, MemHostAllocFlags::DEFAULT);
+  ASSERT_EQ(CU_MEMHOSTALLOC_PORTABLE, MemHostAllocFlags::PORTABLE);
+  ASSERT_EQ(CU_MEMHOSTALLOC_DEVICEMAP, MemHostAllocFlags::DEVICEMAP);
+  ASSERT_EQ(CU_MEMHOSTALLOC_WRITECOMBINED, MemHostAllocFlags::WRITECOMBINED);
   return static_cast<CUmemhostalloc_flags>(flag);
 }
 static constexpr auto ToCuda(MemHostRegisterFlags flag) {
+  ASSERT_EQ(CU_MEMHOSTREGISTER_DEFAULT, MemHostRegisterFlags::DEFAULT);
+  ASSERT_EQ(CU_MEMHOSTREGISTER_PORTABLE, MemHostRegisterFlags::PORTABLE);
+  ASSERT_EQ(CU_MEMHOSTREGISTER_DEVICEMAP, MemHostRegisterFlags::DEVICEMAP);
   return static_cast<CUmemhostregister_flags>(flag);
 }
 static constexpr auto ToCuda(MemAttachFlags flag) {
+  ASSERT_EQ(CU_MEM_ATTACH_GLOBAL, MemAttachFlags::GLOBAL);
+  ASSERT_EQ(CU_MEM_ATTACH_HOST, MemAttachFlags::HOST);
   return static_cast<CUmemAttach_flags>(flag);
 }
 
-// Cast stream wrapper flags to HIP enums.
+// Cast driver wrapper flags to HIP enums.
 static constexpr auto ToHip(CtxFlags flag) {
+  ASSERT_EQ(hipDeviceScheduleAuto, CtxFlags::SCHED_AUTO);
+  ASSERT_EQ(hipDeviceScheduleSpin, CtxFlags::SCHED_SPIN);
+  ASSERT_EQ(hipDeviceScheduleYield, CtxFlags::SCHED_YIELD);
+  ASSERT_EQ(hipDeviceScheduleBlockingSync, CtxFlags::SCHED_BLOCKING_SYNC);
+  ASSERT_EQ(hipDeviceMapHost, CtxFlags::MAP_HOST);
+  ASSERT_EQ(hipDeviceLmemResizeToMax, CtxFlags::LMEM_RESIZE_TO_MAX);
   return static_cast<hipDeviceFlags_t>(flag);
 }
 static constexpr auto ToHip(StreamFlags flag) {
+  ASSERT_EQ(hipStreamDefault, StreamFlags::DEFAULT);
+  ASSERT_EQ(hipStreamNonBlocking, StreamFlags::NON_BLOCKING);
   return static_cast<hipStreamFlags_t>(flag);
 }
 static constexpr auto ToHip(EventFlags flag) {
+  ASSERT_EQ(hipEventDefault, EventFlags::DEFAULT);
+  ASSERT_EQ(hipEventBlockingSync, EventFlags::BLOCKING_SYNC);
+  ASSERT_EQ(hipEventDisableTiming, EventFlags::DISABLE_TIMING);
+  ASSERT_EQ(hipEventInterprocess, EventFlags::INTERPROCESS);
   return static_cast<hipEventFlags_t>(flag);
 }
 static constexpr auto ToHip(MemHostAllocFlags flag) {
+  ASSERT_EQ(hipHostMallocDefault, MemHostAllocFlags::DEFAULT);
+  ASSERT_EQ(hipHostMallocPortable, MemHostAllocFlags::PORTABLE);
+  ASSERT_EQ(hipHostMallocMapped, MemHostAllocFlags::DEVICEMAP);
+  ASSERT_EQ(hipHostMallocWriteCombined, MemHostAllocFlags::WRITECOMBINED);
   return static_cast<hipHostMallocFlags_t>(flag);
 }
 static constexpr auto ToHip(MemHostRegisterFlags flag) {
+  ASSERT_EQ(hipHostRegisterDefault, MemHostRegisterFlags::DEFAULT);
+  ASSERT_EQ(hipHostRegisterMapped, MemHostRegisterFlags::DEVICEMAP);
   return static_cast<hipHostRegisterFlags_t>(flag);
 }
 static constexpr auto ToHip(MemAttachFlags flag) {
+  ASSERT_EQ(hipMemAttachGlobal, MemAttachFlags::GLOBAL);
+  ASSERT_EQ(hipMemAttachHost, MemAttachFlags::HOST);
   return static_cast<hipMemAttachFlags_t>(flag);
 }
 
@@ -1166,75 +1210,6 @@ llvm::Error InvalidPlatform(Platform platform) {
 llvm::Error UnsupportedPlatform(Platform platform) {
   return CreatePlatformError("Unsupported", platform);
 }
-
-// Check that enum values are the same.
-//
-// clang-format off
-static_assert(sizeof(CUctx_flags) == sizeof(CtxFlags), "");
-static_assert(CU_CTX_SCHED_AUTO == ToCuda(CtxFlags::SCHED_AUTO), "");
-static_assert(CU_CTX_SCHED_SPIN == ToCuda(CtxFlags::SCHED_SPIN), "");
-static_assert(CU_CTX_SCHED_YIELD == ToCuda(CtxFlags::SCHED_YIELD), "");
-static_assert(CU_CTX_SCHED_BLOCKING_SYNC == ToCuda(CtxFlags::SCHED_BLOCKING_SYNC), "");
-static_assert(CU_CTX_MAP_HOST == ToCuda(CtxFlags::MAP_HOST), "");
-static_assert(CU_CTX_LMEM_RESIZE_TO_MAX == ToCuda(CtxFlags::LMEM_RESIZE_TO_MAX), "");
-
-static_assert(sizeof(CUstream_flags) == sizeof(StreamFlags), "");
-static_assert(CU_STREAM_DEFAULT == ToCuda(StreamFlags::DEFAULT), "");
-static_assert(CU_STREAM_NON_BLOCKING == ToCuda(StreamFlags::NON_BLOCKING), "");
-
-static_assert(sizeof(CUevent_flags) == sizeof(EventFlags), "");
-static_assert(CU_EVENT_DEFAULT == ToCuda(EventFlags::DEFAULT), "");
-static_assert(CU_EVENT_BLOCKING_SYNC == ToCuda(EventFlags::BLOCKING_SYNC), "");
-static_assert(CU_EVENT_DISABLE_TIMING == ToCuda(EventFlags::DISABLE_TIMING), "");
-static_assert(CU_EVENT_INTERPROCESS == ToCuda(EventFlags::INTERPROCESS), "");
-
-static_assert(sizeof(CUmemhostalloc_flags) == sizeof(MemHostAllocFlags), "");
-static_assert(CU_MEMHOSTALLOC_DEFAULT == ToCuda(MemHostAllocFlags::DEFAULT), "");
-static_assert(CU_MEMHOSTALLOC_PORTABLE == ToCuda(MemHostAllocFlags::PORTABLE), "");
-static_assert(CU_MEMHOSTALLOC_DEVICEMAP == ToCuda(MemHostAllocFlags::DEVICEMAP), "");
-static_assert(CU_MEMHOSTALLOC_WRITECOMBINED == ToCuda(MemHostAllocFlags::WRITECOMBINED), "");
-
-static_assert(sizeof(CUmemhostregister_flags) == sizeof(MemHostRegisterFlags), "");
-static_assert(CU_MEMHOSTREGISTER_DEFAULT == ToCuda(MemHostRegisterFlags::DEFAULT), "");
-static_assert(CU_MEMHOSTREGISTER_PORTABLE == ToCuda(MemHostRegisterFlags::PORTABLE), "");
-static_assert(CU_MEMHOSTREGISTER_DEVICEMAP == ToCuda(MemHostRegisterFlags::DEVICEMAP), "");
-
-static_assert(sizeof(CUmemAttach_flags) == sizeof(MemAttachFlags), "");
-static_assert(CU_MEM_ATTACH_GLOBAL == ToCuda(MemAttachFlags::GLOBAL), "");
-static_assert(CU_MEM_ATTACH_HOST == ToCuda(MemAttachFlags::HOST), "");
-
-static_assert(sizeof(hipDeviceFlags_t) == sizeof(CtxFlags), "");
-static_assert(hipDeviceScheduleAuto == ToHip(CtxFlags::SCHED_AUTO), "");
-static_assert(hipDeviceScheduleSpin == ToHip(CtxFlags::SCHED_SPIN), "");
-static_assert(hipDeviceScheduleYield == ToHip(CtxFlags::SCHED_YIELD), "");
-static_assert(hipDeviceScheduleBlockingSync == ToHip(CtxFlags::SCHED_BLOCKING_SYNC), "");
-static_assert(hipDeviceMapHost == ToHip(CtxFlags::MAP_HOST), "");
-static_assert(hipDeviceLmemResizeToMax == ToHip(CtxFlags::LMEM_RESIZE_TO_MAX), "");
-
-static_assert(sizeof(hipStreamFlags_t) == sizeof(StreamFlags), "");
-static_assert(hipStreamDefault == ToHip(StreamFlags::DEFAULT), "");
-static_assert(hipStreamNonBlocking == ToHip(StreamFlags::NON_BLOCKING), "");
-
-static_assert(sizeof(hipEventFlags_t) == sizeof(EventFlags), "");
-static_assert(hipEventDefault == ToHip(EventFlags::DEFAULT), "");
-static_assert(hipEventBlockingSync == ToHip(EventFlags::BLOCKING_SYNC), "");
-static_assert(hipEventDisableTiming == ToHip(EventFlags::DISABLE_TIMING), "");
-static_assert(hipEventInterprocess == ToHip(EventFlags::INTERPROCESS), "");
-
-static_assert(sizeof(hipHostMallocFlags_t) == sizeof(MemHostAllocFlags), "");
-static_assert(hipHostMallocDefault == ToHip(MemHostAllocFlags::DEFAULT), "");
-static_assert(hipHostMallocPortable == ToHip(MemHostAllocFlags::PORTABLE), "");
-static_assert(hipHostMallocMapped == ToHip(MemHostAllocFlags::DEVICEMAP), "");
-static_assert(hipHostMallocWriteCombined == ToHip(MemHostAllocFlags::WRITECOMBINED), "");
-
-static_assert(sizeof(hipHostRegisterFlags_t) == sizeof(MemHostRegisterFlags), "");
-static_assert(hipHostRegisterDefault == ToHip(MemHostRegisterFlags::DEFAULT), "");
-static_assert(hipHostRegisterMapped == ToHip(MemHostRegisterFlags::DEVICEMAP), "");
-
-static_assert(sizeof(hipMemAttachFlags_t) == sizeof(MemAttachFlags), "");
-static_assert(hipMemAttachGlobal == ToHip(MemAttachFlags::GLOBAL), "");
-static_assert(hipMemAttachHost == ToHip(MemAttachFlags::HOST), "");
-// clang-format on
 
 }  // namespace wrapper
 }  // namespace gpu

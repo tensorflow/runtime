@@ -41,7 +41,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CUresult result) {
   return os;
 }
 
-// Convert stream wrapper types to CUDA types.
+// Convert wrapper types to CUDA types.
 static CUdevice ToCuda(Device device) { return device.id(Platform::CUDA); }
 
 template <typename T>

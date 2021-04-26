@@ -49,44 +49,44 @@ struct PlanDescriptionDeleter {
 }  // namespace internal
 
 // RAII wrappers for resources. Instances own the underlying resource.
-//
-// They are implemented as std::unique_ptrs with custom deleters.
-//
-// Use get() and release() to access the non-owning handle, please use with
-// appropriate care.
 using OwningRocfftExecInfo =
     internal::OwningResource<internal::RocfftExecInfoDeleter>;
 using OwningRocfftPlan = internal::OwningResource<internal::RocfftPlanDeleter>;
 using OwningPlanDescription =
     internal::OwningResource<internal::PlanDescriptionDeleter>;
 
+llvm::Expected<std::string> RocfftGetVersionString(char* buf, size_t len);
 llvm::Error RocfftSetup();
 llvm::Error RocfftCleanup();
-llvm::Expected<OwningRocfftPlan> RocfftPlanCreate(
-    rocfft_result_placement placement, rocfft_transform_type transform_type,
-    rocfft_precision precision, size_t dimensions, size_t* lengths,
-    size_t number_of_transforms, rocfft_plan_description description);
-llvm::Error RocfftExecute(rocfft_plan plan, Pointer<void*> in_buffer,
-                          Pointer<void*> out_buffer,
-                          rocfft_execution_info handle);
-llvm::Error RocfftPlanDestroy(rocfft_plan plan);
+
+llvm::Expected<OwningPlanDescription> RocfftPlanDescriptionCreate();
+llvm::Error RocfftPlanDescriptionDestroy(rocfft_plan_description description);
 llvm::Error RocfftPlanDescriptionSetDataLayout(
     rocfft_plan_description description, rocfft_array_type in_array_type,
     rocfft_array_type out_array_type, size_t* in_offsets, size_t* out_offsets,
     ArrayRef<size_t> in_strides, size_t in_distance,
     ArrayRef<size_t> out_strides, size_t out_distance);
-llvm::Expected<std::string> RocfftGetVersionString(char* buf, size_t len);
+
+llvm::Expected<OwningRocfftPlan> RocfftPlanCreate(
+    rocfft_result_placement placement, rocfft_transform_type transform_type,
+    rocfft_precision precision, size_t dimensions, size_t* lengths,
+    size_t number_of_transforms, rocfft_plan_description description);
+llvm::Error RocfftPlanDestroy(rocfft_plan plan);
 llvm::Expected<size_t> RocfftPlanGetWorkBufferSize(rocfft_plan plan);
 llvm::Error RocfftPlanGetPrint(rocfft_plan plan);
-llvm::Expected<OwningPlanDescription> RocfftPlanDescriptionCreate();
-llvm::Error RocfftPlanDescriptionDestroy(rocfft_plan_description description);
+
 llvm::Expected<OwningRocfftExecInfo> RocfftExecutionInfoCreate();
 llvm::Error RocfftExecutionInfoDestroy(rocfft_execution_info handle);
+llvm::Error RocfftExecutionInfoSetStream(rocfft_execution_info handle,
+                                         Stream stream);
 llvm::Error RocfftExecutionInfoSetWorkBuffer(rocfft_execution_info info,
                                              Pointer<void> work_buffer,
                                              size_t size_in_bytes);
-llvm::Error RocfftExecutionInfoSetStream(rocfft_execution_info handle,
-                                         void* stream);
+
+llvm::Error RocfftExecute(rocfft_plan plan, Pointer<const void> in_buffer,
+                          Pointer<void> out_buffer,
+                          rocfft_execution_info handle);
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

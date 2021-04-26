@@ -41,7 +41,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error) {
   return os;
 }
 
-// Convert stream wrapper types to HIP types.
+// Convert wrapper types to HIP types.
 static hipDevice_t ToRocm(Device device) { return device.id(Platform::ROCm); }
 
 llvm::Error HipInit() { return TO_ERROR(hipInit(/*flags=*/0)); }

@@ -63,30 +63,27 @@ void internal::PlanDescriptionDeleter::operator()(
   LogIfError(RocfftPlanDescriptionDestroy(description));
 }
 
+// TOD(gkg): Figure out format of the version string, parse it and return as
+// struct RocfftLibraryVersion {int major; int minor; int patch; };
+// to be consistent with CufftGetVersion.
+llvm::Expected<std::string> RocfftGetVersionString() {
+  char buf[256];  // Minimum 30 characters per rocFFT API
+  RETURN_IF_ERROR(rocfft_get_version_string(buf, sizeof(buf)));
+  return std::string(buf);
+}
+
 llvm::Error RocfftSetup() { return TO_ERROR(rocfft_setup()); }
 
 llvm::Error RocfftCleanup() { return TO_ERROR(rocfft_cleanup()); }
 
-llvm::Expected<OwningRocfftPlan> RocfftPlanCreate(
-    rocfft_result_placement placement, rocfft_transform_type transform_type,
-    rocfft_precision precision, size_t dimensions, size_t* lengths,
-    size_t number_of_transforms, rocfft_plan_description description) {
-  rocfft_plan plan;
-  RETURN_IF_ERROR(rocfft_plan_create(&plan, placement, transform_type,
-                                     precision, dimensions, lengths,
-                                     number_of_transforms, description));
-  return OwningRocfftPlan(plan);
+llvm::Expected<OwningPlanDescription> RocfftPlanDescriptionCreate() {
+  rocfft_plan_description description;
+  RETURN_IF_ERROR(rocfft_plan_description_create(&description));
+  return OwningPlanDescription(description);
 }
 
-llvm::Error RocfftExecute(rocfft_plan plan, Pointer<void*> in_buffer,
-                          Pointer<void*> out_buffer,
-                          rocfft_execution_info handle) {
-  return TO_ERROR(
-      rocfft_execute(plan, ToRocm(in_buffer), ToRocm(out_buffer), handle));
-}
-
-llvm::Error RocfftPlanDestroy(rocfft_plan plan) {
-  return TO_ERROR(rocfft_plan_destroy(plan));
+llvm::Error RocfftPlanDescriptionDestroy(rocfft_plan_description description) {
+  return TO_ERROR(rocfft_plan_description_destroy(description));
 }
 
 llvm::Error RocfftPlanDescriptionSetDataLayout(
@@ -100,13 +97,19 @@ llvm::Error RocfftPlanDescriptionSetDataLayout(
       out_strides.data(), out_distance));
 }
 
-// TOD(gkg): Figure out format of the version string, parse it and return as
-// struct RocfftLibraryVersion {int major; int minor; int patch; };
-// to be consistent with CufftGetVersion.
-llvm::Expected<std::string> RocfftGetVersionString() {
-  char buf[256];  // Minimum 30 characters per rocFFT API
-  RETURN_IF_ERROR(rocfft_get_version_string(buf, sizeof(buf)));
-  return std::string(buf);
+llvm::Expected<OwningRocfftPlan> RocfftPlanCreate(
+    rocfft_result_placement placement, rocfft_transform_type transform_type,
+    rocfft_precision precision, size_t dimensions, size_t* lengths,
+    size_t number_of_transforms, rocfft_plan_description description) {
+  rocfft_plan plan;
+  RETURN_IF_ERROR(rocfft_plan_create(&plan, placement, transform_type,
+                                     precision, dimensions, lengths,
+                                     number_of_transforms, description));
+  return OwningRocfftPlan(plan);
+}
+
+llvm::Error RocfftPlanDestroy(rocfft_plan plan) {
+  return TO_ERROR(rocfft_plan_destroy(plan));
 }
 
 llvm::Expected<size_t> RocfftPlanGetWorkBufferSize(rocfft_plan plan) {
@@ -119,16 +122,6 @@ llvm::Error RocfftPlanGetPrint(rocfft_plan plan) {
   return TO_ERROR(rocfft_plan_get_print(plan));
 }
 
-llvm::Expected<OwningPlanDescription> RocfftPlanDescriptionCreate() {
-  rocfft_plan_description description;
-  RETURN_IF_ERROR(rocfft_plan_description_create(&description));
-  return OwningPlanDescription(description);
-}
-
-llvm::Error RocfftPlanDescriptionDestroy(rocfft_plan_description description) {
-  return TO_ERROR(rocfft_plan_description_destroy(description));
-}
-
 llvm::Expected<OwningRocfftExecInfo> RocfftExecutionInfoCreate() {
   rocfft_execution_info handle = nullptr;
   RETURN_IF_ERROR(rocfft_execution_info_create(&handle));
@@ -139,16 +132,26 @@ llvm::Error RocfftExecutionInfoDestroy(rocfft_execution_info handle) {
   return TO_ERROR(rocfft_execution_info_destroy(handle));
 }
 
+llvm::Error RocfftExecutionInfoSetStream(rocfft_execution_info handle,
+                                         Stream stream) {
+  return TO_ERROR(rocfft_execution_info_set_stream(
+      handle, static_cast<hipStream_t>(stream)));
+}
+
 llvm::Error RocfftExecutionInfoSetWorkBuffer(rocfft_execution_info info,
-                                             Pointer<void*> work_buffer,
+                                             Pointer<void> work_buffer,
                                              size_t size_in_bytes) {
   return TO_ERROR(rocfft_execution_info_set_work_buffer(
       info, ToRocm(work_buffer), size_in_bytes));
 }
 
-llvm::Error RocfftExecutionInfoSetStream(rocfft_execution_info handle,
-                                         void* stream) {
-  return TO_ERROR(rocfft_execution_info_set_stream(handle, stream));
+llvm::Error RocfftExecute(rocfft_plan plan, Pointer<const void> in_buffer,
+                          Pointer<void> out_buffer,
+                          rocfft_execution_info handle) {
+  auto rocm_in_buffer = const_cast<void*>(ToRocm(in_buffer));
+  auto rocm_out_buffer = ToRocm(out_buffer);
+  return TO_ERROR(
+      rocfft_execute(plan, &rocm_in_buffer, &rocm_out_buffer, handle));
 }
 
 }  // namespace wrapper

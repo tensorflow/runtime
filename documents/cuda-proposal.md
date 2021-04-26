@@ -2,20 +2,19 @@
 
 <!--*
 # Document freshness: For more information, see go/fresh-source.
-freshness: { owner: 'xldrx' reviewed: '2020-07-01' }
+freshness: { owner: 'xldrx' reviewed: '2021-04-26' }
 *-->
-
-<!-- Copy and paste the converted output. -->
 
 ## CUDA in TensorFlow Runtime
 
 This document describes the proposed design for supporting CUDA devices in
-TensorFlow Runtime (TFRT). Please not this is a preliminary proposal and is
-being actively subject to change.
+TensorFlow Runtime (TFRT). Please note this preliminary proposal was written in
+the early stages of the TFRT project and the overall design has changed
+considerably. We are working on an updated document.
 
 <!-- TOC -->
 
-## Introduction {#introduction}
+## Introduction
 
 TFRT supports CUDA by defining a set of ops which are collectively called the
 CUDA RunTime dialect or CRT dialect for short[^1]. This document discusses key
@@ -29,7 +28,7 @@ running on GPU. To limit the confusion we qualify the word kernel with either
 CUDA or CRT. For example, the CRT `cuda.launch` kernel can be used to launch a
 CUDA kernel.
 
-## Larger GPU Ecosystem {#larger-gpu-ecosystem}
+## Larger GPU Ecosystem
 
 In this design we are trying to expose a low level API into NVIDIA GPUs through
 CUDA.
@@ -54,7 +53,7 @@ CUDA graphs internally. From TFRT’s perspective there is no difference between
 CRT kernel that launches a single CUDA kernel and a CRT kernel that constructs
 and launches a CUDA graph.
 
-## Core Design Principles and Decisions {#core-design-principles-and-decisions}
+## Core Design Principles and Decisions
 
 The CRT dialect aims to be a thin and predictable wrapper over core CUDA APIs.
 
@@ -138,13 +137,13 @@ a few different types of programs. In the simplest case, it can contain a cuda
 kernel symbol. Then, `cuda.launch` will simply call `cudaLaunchKernel`. At the
 other extreme, it can be a host function that builds and executes a CUDA Graph.
 
-## Proposal Summary {#proposal-summary}
+## Proposal Summary
 
 In most cases, the proposal is “let's do the simplest thing that should be good
 enough and add complexity as we go”. If some term is not clear, please see the
 relevant section(s) below. We don’t define the terms here to keep it short.
 
-### CRT and New Kernels {#crt-and-new-kernels}
+### CRT and New Kernels
 
 Here are proposed design principles of CRT and new kernels:
 
@@ -166,7 +165,7 @@ Here are proposed design principles of CRT and new kernels:
 
 These principles are explained in more details in the rest of this document.
 
-## Streams {#streams}
+## Streams
 
 TensorFlow has a very specific design for using CUDA streams. There is a single
 “compute” stream, a pair of `host_to_device` and `device_to_host` streams, as
@@ -206,7 +205,7 @@ streams actually slows things down. Multiple streams are really needed only to
 express parallelism between compute and transfers as well as to run multiple
 small kernels in parallel.
 
-## Memory Management {#memory-management}
+## Memory Management
 
 ### Case Studies
 
@@ -293,7 +292,7 @@ particular, it does not attempt to wait until pending events are processed. This
 is probably because the vast majority of PyTorch use cases use a single stream
 for everything.
 
-### One Big vs On-Demand Allocation and Fragmentation {#one-big-vs-on-demand-allocation-and-fragmentation}
+### One Big vs On-Demand Allocation and Fragmentation
 
 By default, TF famously allocates most of available CUDA memory for itself in
 the very beginning, while PyTorch allocates on-demand and caches. Obvious
@@ -334,7 +333,7 @@ We are planning to adopt the on-demand allocation paradigm in CRT. If some usage
 pattern is a bad fit for on-demand allocation, users can always do a dummy huge
 allocation in the beginning to simulate the one big strategy.
 
-### Compaction {#compaction}
+### Compaction
 
 We have considered whether to support compaction, moving allocated objects
 together and to form larger contiguous empty space, and believe that the
@@ -383,7 +382,7 @@ it inevitably occurs?
 *   Users can also try to make larger parts of their programs statically shaped
     and let compilers figure out the best allocation strategy.
 
-### Allocation Order {#allocation-order}
+### Allocation Order
 
 There are different alternatives for satisfying allocation requests[^11]. For
 example, allocations can take place immediately in `cuda.mem.allocate` call or
@@ -397,7 +396,7 @@ kernel and not worry about the order of `cuda.mem.allocate` calls. In this
 section, we describe some of the inherent pros and cons of preserving the
 allocation order and propose a strategy.
 
-#### Allocate in-order within `cuda.mem.allocate` call {#allocate-in-order-within-cuda-mem-allocate-call}
+#### Allocate in-order within `cuda.mem.allocate` call
 
 This is the simplest approach. Unfortunately, CRT cannot always perform the
 allocation without blocking because it might have launched a large number of
@@ -406,7 +405,7 @@ allocation in this scenario requires waiting for kernel completion. This would
 block the calling thread and violate the BEFExecutor requirement that kernel
 functions return quickly and don’t block the calling thread.
 
-#### Allocate in-order, potentially outside of `cuda.mem.allocate` call {#allocate-in-order-potentially-outside-of-cuda-mem-allocate-call}
+#### Allocate in-order, potentially outside of `cuda.mem.allocate` call
 
 Allocating in-order greatly increases system predictability, which is an
 important feature of a low level API. Unfortunately, there are few potential
@@ -476,7 +475,7 @@ appropriate allocation scheduling by the compiler most models will OOM in the
 very beginning. This should be fairly easy for the compiler to do using standard
 techniques.
 
-#### Allocate out-of-order {#allocate-out-of-order}
+#### Allocate out-of-order
 
 In both in-order and out-of-order scenarios, we respect the fundamental
 dependencies in the computation graph. In particular, all the allocations needed
@@ -500,7 +499,7 @@ Consequently, it might be worth doing at runtime level only because actually
 doing it in the compiler can be very hard and/or result in extra overhead from
 many chains.
 
-### Proposal {#proposal}
+### Proposal
 
 We propose to start with the second approach - allocating in-order, potentially
 outside of `cuda.mem.allocate` kernel. This will make the system simpler and
@@ -517,9 +516,9 @@ optimizations e.g. allocating right before usage and coalescing allocations when
 beneficial. This will allow CRT to optimize and adopt allocation strategies as
 code and use cases evolve.
 
-## Kernel Execution {#kernel-execution}
+## Kernel Execution
 
-### Buffers or Buffer Futures {#buffers-or-buffer-futures}
+### Buffers or Buffer Futures
 
 A distinctive feature of TFRT compared to TF is that kernels are discouraged
 from allocating memory inside themselves[^12]. Consequently, kernels take all of
@@ -534,7 +533,7 @@ some work must be performed asynchronously, after a CRT kernel function returns.
 There are a couple of options for where and how asynchrony to put. They are
 effectively decided by what exactly is returned from `cuda.mem.allocate`.
 
-#### `cuda.mem.allocate` returns AsyncValue&lt;Buffer> {#cuda-mem-allocate-returns-asyncvalue<buffer>}
+#### `cuda.mem.allocate` returns AsyncValue&lt;Buffer>
 
 In this design, the buffer AsyncValue returned by `cuda.mem.allocate` will
 complete only when the allocation was actually satisfied. This design makes it
@@ -582,7 +581,7 @@ This design choice has a few potential issues:
     API that should be used not just for blocking but also for CPU heavy
     computation. Dispatch work should be added using the `AddTask` API.
 
-#### `cuda.mem.allocate` returns AsyncValue&lt;BufferFuture> {#cuda-mem-allocate-returns-asyncvalue<bufferfuture>}
+#### `cuda.mem.allocate` returns AsyncValue&lt;BufferFuture>
 
 In this design, `cuda.mem.allocate` would be synchronous, i.e. the return value
 of `cuda.mem.allocate` would be complete when it returns. Instead of returning
@@ -613,7 +612,7 @@ defer CUDA kernel launches, but it has some advantages. Advantages include:
     thread and shave off some overhead from CUDA context setting and internal
     CUDA lock contention.
 
-#### Proposal {#proposal}
+#### Proposal
 
 First, note that the designs above are not completely mutually exclusive. One
 could imagine a world where `cuda.mem.allocate` returns a BufferFuture, there is
@@ -629,9 +628,9 @@ Weighing the trade-offs discussed in previous sections and the observations
 above, we propose to start off with the first, simpler approach and consider
 adding more elements of the second one if/when actual use cases arise.
 
-### What is Inside the `launchable`? {#what-is-inside-the-launchable}
+### What is Inside the `launchable`?
 
-#### Serializability {#serializability}
+#### Serializability
 
 Early on in TFRT discussions, we discussed the question of whether a program in
 the runtime dialect should be serializable or not. In particular, can
@@ -647,7 +646,7 @@ support XLA’s CustomCall HLO instruction. At the same time, there are no
 immediate use cases requiring serializability[^14]. We will start off with
 allowing function pointers in `launchable`.
 
-#### Restrictions {#restrictions}
+#### Restrictions
 
 Allowing `launchable` to contain a function pointer is quite powerful but can
 also be dangerous if the function does something bad, e.g. call cudaDeviceReset.
@@ -666,7 +665,7 @@ some basics:
 *   `launchable` should not allocate its own memory if possible, but take device
     buffers as arguments.
 
-### Execution Order {#execution-order}
+### Execution Order
 
 The allocation blocking mechanism in TF actually does some kernel “scheduling”.
 Multiple GPU kernels can be blocked in `GPUBFCAllocator::Allocate` method. For
@@ -678,7 +677,7 @@ In CRT, if the large allocation came first, CRT will wait until it can be
 satisfied. It will not try satisfying a smaller allocation first. Also, because
 CRT launches kernels synchronously, it can’t reorder kernels like TF does.
 
-### CUDA Kernel Tracking {#cuda-kernel-tracking}
+### CUDA Kernel Tracking
 
 CUDA Kernel Tracking refers to the mechanism to track the buffers used by the
 kernel and when the kernel completes in order to decrease necessary stream
@@ -698,7 +697,7 @@ With kernel tracking, one can synchronize to the correct (or close to correct)
 point in each non-primary stream. We don’t plan to utilize kernel tracking in
 the short term in CRT.
 
-### Temporary Memory Allocation {#temporary-memory-allocation}
+### Temporary Memory Allocation
 
 Shape inference can return output shapes given the operation and input shapes.
 Knowing input and output shapes allows the compiler to allocate memory outside
@@ -717,7 +716,7 @@ kernels would need to be launched on a separate thread (because allocations can
 block) and incur the overhead or raise an OOM error from allocation request
 instead of blocking.
 
-## Buffers and Tensors {#buffers-and-tensors}
+## Buffers and Tensors
 
 Regular CUDA APIs operate on raw addresses - `CUdeviceptr`. In CUDA TFRT, we
 have two main types to represent memory.
@@ -755,7 +754,7 @@ resulting tensor takes over the memory ownership. Otherwise, the resulting
 tensor does not own its memory and it is the user’s responsibility to make sure
 the owning buffer outlives the tensor.
 
-### Memory Ownership and Types {#memory-ownership-and-types}
+### Memory Ownership and Types
 
 As described above in the current implementation, there is a single Buffer and a
 single DenseTensor class to represent objects that own memory and objects that
@@ -766,7 +765,7 @@ the function, they are fine. Having single C++ types also allows us to have a
 single MLIR type and not template the kernels. We can revisit this design
 if/when more complex use cases arise.
 
-## Memory Safety {#memory-safety}
+## Memory Safety
 
 As discussed above, CRT will support the JUQ memory lifetype model for all
 streams. In other words, the user can deallocate the buffer as soon as all the
@@ -798,9 +797,9 @@ PyTorch strategy (synchronize all non-primary streams before marking a freed
 buffer as available for reuse) and improve upon it with more advanced allocation
 algorithms and kernel tracking if/when necessary.
 
-## Misc {#misc}
+## Misc
 
-### Returning Errors from CUDA Kernels {#returning-errors-from-cuda-kernels}
+### Returning Errors from CUDA Kernels
 
 Some GPU kernels today can encounter an error on the GPU. The famous example of
 this is [tf.gather](https://www.tensorflow.org/api_docs/python/tf/gather). Its

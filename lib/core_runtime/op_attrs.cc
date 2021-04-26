@@ -711,8 +711,8 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
     case OpAttrType::SHAPE: {
       ShapeAttr shape_attr(ptr);
       os << "<";
-      if (auto ranked_shape = shape_attr.dyn_cast<RankedShapeAttr>())
-        llvm::interleave(ranked_shape.GetShape(), os, "x");
+      if (shape_attr.HasRank())
+        llvm::interleave(shape_attr.GetShape(), os, "x");
       else
         os << "*";
       os << ">";

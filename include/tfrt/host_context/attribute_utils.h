@@ -376,26 +376,12 @@ class ShapeAttr : public internal::AttrHeaderBase<ShapeAttr, BEFShapeAttr> {
   static bool classof(TypedAttrBase base) {
     return base.type() == BEFAttributeType::kShape;
   }
-};
-
-class RankedShapeAttr
-    : public internal::AttrHeaderBase<RankedShapeAttr, BEFShapeAttr> {
- public:
-  using Base::Base;
-
-  static constexpr size_t Alignment() { return alignof(int64_t); }
 
   int GetRank() const { return header().rank; }
 
   ArrayRef<int64_t> GetShape() const {
     return llvm::makeArrayRef(
         reinterpret_cast<const BEFRankedShapeAttr*>(data())->dims, GetRank());
-  }
-
-  static bool classof(TypedAttrBase base) {
-    return base.type() == BEFAttributeType::kShape &&
-           reinterpret_cast<const BEFShapeAttr*>(base.data())->shape_type ==
-               BEFShapeType::kRanked;
   }
 };
 

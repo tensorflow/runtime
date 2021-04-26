@@ -105,9 +105,8 @@ TEST(BefAttrEncoderTest, EncodeZeroShape) {
       encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 0));
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  RankedShapeAttr shape_attr(buf.data() + offset);
+  ShapeAttr shape_attr(buf.data() + offset);
 
-  EXPECT_EQ(shape_attr.size(), sizeof(BEFShapeAttr));
   EXPECT_EQ(shape_attr.GetRank(), 0);
   ArrayRef<int64_t> shape = shape_attr.GetShape();
   EXPECT_EQ(shape.size(), 0);
@@ -131,7 +130,7 @@ TEST(BefAttrEncoderTest, EncodeRankedShape) {
   const size_t offset = encoder.EncodeRankedShapeAttr(input_shape);
 
   AlignedBuffer<8> buf = encoder.TakeResult();
-  RankedShapeAttr shape_attr(buf.data() + offset);
+  ShapeAttr shape_attr(buf.data() + offset);
 
   EXPECT_EQ(shape_attr.GetRank(), 3);
 
@@ -154,15 +153,15 @@ TEST(BefAttrEncoderTest, EncodeShapeList) {
 
   EXPECT_EQ(aggr_attr.GetNumElements(), 4);
 
-  RankedShapeAttr shape_a = aggr_attr.GetAttributeOfType<RankedShapeAttr>(0);
+  ShapeAttr shape_a = aggr_attr.GetAttributeOfType<ShapeAttr>(0);
   EXPECT_THAT(shape_a.GetShape(),
               ::testing::ContainerEq(llvm::makeArrayRef(a, 1)));
 
-  RankedShapeAttr shape_b = aggr_attr.GetAttributeOfType<RankedShapeAttr>(1);
+  ShapeAttr shape_b = aggr_attr.GetAttributeOfType<ShapeAttr>(1);
   EXPECT_THAT(shape_b.GetShape(),
               ::testing::ContainerEq(llvm::makeArrayRef(b, 2)));
 
-  RankedShapeAttr shape_c = aggr_attr.GetAttributeOfType<RankedShapeAttr>(2);
+  ShapeAttr shape_c = aggr_attr.GetAttributeOfType<ShapeAttr>(2);
   EXPECT_THAT(shape_c.GetShape(),
               ::testing::ContainerEq(llvm::makeArrayRef(c, 3)));
 

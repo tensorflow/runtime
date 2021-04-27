@@ -54,6 +54,16 @@ cublasStatus_t CUBLASWINAPI cublasHgemm(
       beta, C, ldc);
 }
 
+static cublasStatus_t CublasGetVersion(cublasHandle_t handle, int *version) {
+  static auto pair = [&] {
+    int version = 0;
+    auto status = cublasGetVersion_v2(handle, &version);
+    return std::make_pair(status, version);
+  }();
+  *version = std::get<int>(pair);
+  return std::get<cublasStatus_t>(pair);
+}
+
 // cuBLAS broke backwards compatibility from v10 to v11 by changing the
 // computeType argument from cudaDataType to cublasComputeType_t. This function
 // implements the v10 interface in a forward-compatible way if the stub is
@@ -67,18 +77,14 @@ CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmEx_v10(
     cublasGemmAlgo_t algo) {
   static auto func_ptr = LoadSymbol("cublasGemmEx");
   if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
-  static auto version_pair = [&] {
-    int version = 0;
-    auto status = cublasGetVersion_v2(handle, &version);
-    return std::make_pair(version, status);
-  }();
-  if (version_pair.second != CUBLAS_STATUS_SUCCESS) return version_pair.second;
-  if (version_pair.first >= 11000) {
+  int version;
+  if (auto status = CublasGetVersion(handle, &version)) return status;
+  if (version >= 11000) {
 #if CUBLAS_VER_MAJOR >= 11
     cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
-    auto status =
-        cublasMigrateComputeType(handle, computeType, &migratedComputeType);
-    if (status != CUBLAS_STATUS_SUCCESS) return status;
+    if (auto status =
+            cublasMigrateComputeType(handle, computeType, &migratedComputeType))
+      return status;
     using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
         cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
         const void *, const void *, cudaDataType, int, const void *,
@@ -105,18 +111,14 @@ CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmBatchedEx_v10(
     cudaDataType computeType, cublasGemmAlgo_t algo) {
   static auto func_ptr = LoadSymbol("cublasGemmBatchedEx");
   if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
-  static auto version_pair = [&] {
-    int version = 0;
-    auto status = cublasGetVersion_v2(handle, &version);
-    return std::make_pair(version, status);
-  }();
-  if (version_pair.second != CUBLAS_STATUS_SUCCESS) return version_pair.second;
-  if (version_pair.first >= 11000) {
+  int version;
+  if (auto status = CublasGetVersion(handle, &version)) return status;
+  if (version >= 11000) {
 #if CUBLAS_VER_MAJOR >= 11
     cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
-    auto status =
-        cublasMigrateComputeType(handle, computeType, &migratedComputeType);
-    if (status != CUBLAS_STATUS_SUCCESS) return status;
+    if (auto status =
+            cublasMigrateComputeType(handle, computeType, &migratedComputeType))
+      return status;
     using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
         cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
         const void *, const void *[], cudaDataType, int, const void *[],
@@ -145,18 +147,14 @@ CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmStridedBatchedEx_v10(
     cudaDataType computeType, cublasGemmAlgo_t algo) {
   static auto func_ptr = LoadSymbol("cublasGemmStridedBatchedEx");
   if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
-  static auto version_pair = [&] {
-    int version = 0;
-    auto status = cublasGetVersion_v2(handle, &version);
-    return std::make_pair(version, status);
-  }();
-  if (version_pair.second != CUBLAS_STATUS_SUCCESS) return version_pair.second;
-  if (version_pair.first >= 11000) {
+  int version;
+  if (auto status = CublasGetVersion(handle, &version)) return status;
+  if (version >= 11000) {
 #if CUBLAS_VER_MAJOR >= 11
     cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
-    auto status =
-        cublasMigrateComputeType(handle, computeType, &migratedComputeType);
-    if (status != CUBLAS_STATUS_SUCCESS) return status;
+    if (auto status =
+            cublasMigrateComputeType(handle, computeType, &migratedComputeType))
+      return status;
     using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
         cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
         const void *, const void *, cudaDataType, int, long long int,

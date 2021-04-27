@@ -108,6 +108,25 @@ def SystemShutdownOp : TPU_Op<"system.shutdown"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def ConfigureAndInitializeGlobalTpuOp : TPU_Op<"system.configure_and_initialize_global_tpu"> {
+  let summary = "Initialize the TPU system";
+  let description = [{
+    tpurt.system.configure_distributed_tpu initializes the TPU system, device,
+    and ophandler, and returns a handle to the TPU topology serialized as a
+    string.  It returns a TensorHandle because it is directly consumed in upper
+    layer's code.
+
+    Example:
+      %topology = tpurt.system.configure_distributed_tpu
+  }];
+  let arguments = (ins
+    TFRT_ChainType:$in_ch,
+    StrAttr:$device
+  );
+  let results = (outs CoreRT_TensorHandleType);
+  let assemblyFormat = "operands attr-dict";
+}
+
 def ConfigureDistributedTpuOp : TPU_Op<"system.configure_distributed_tpu"> {
   let summary = "Initialize the TPU system";
   let description = [{

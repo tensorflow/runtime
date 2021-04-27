@@ -22,6 +22,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/tensor/opdefs/tensor.h"
 
 namespace tfrt {
@@ -41,6 +42,23 @@ GpuDialect::GpuDialect(MLIRContext *context)
 #define GET_OP_LIST
 #include "tfrt/gpu/kernels/gpu_opdefs.cpp.inc"
       >();
+}
+
+static ParseResult parsePlatform(OpAsmParser &parser, Attribute &attribute) {
+  StringRef name;
+  if (failed(parser.parseKeyword(&name))) return failure();
+  auto platform = wrapper::ParsePlatform(name);
+  if (!platform)
+    return parser.emitError(parser.getCurrentLocation(),
+                            toString(platform.takeError()));
+  attribute =
+      parser.getBuilder().getI32IntegerAttr(static_cast<int>(*platform));
+  return success();
+}
+
+static void printPlatform(OpAsmPrinter &printer, Operation *,
+                          IntegerAttr attribute) {
+  printer << static_cast<wrapper::Platform>(attribute.getInt());
 }
 
 namespace conversion {

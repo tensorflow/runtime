@@ -163,8 +163,7 @@ static DType::Kind ConvertMLIRDataTypeToTFRTDType(mlir::Type type) {
 static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
   // We support 1-bit (stored as 1 byte in BEF), 32-bit, and 64-bit
   // integers.
-  if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {
-    auto int_type = int_attr.getType().cast<mlir::IntegerType>();
+  if (auto int_type = attr.getType().dyn_cast<mlir::IntegerType>()) {
     if (int_type.isUnsigned()) {
       switch (int_type.getWidth()) {
         case 8:
@@ -594,8 +593,8 @@ void EntityTable::AddLocation(mlir::Operation* op) {
 }
 
 void EntityTable::AddAttributeType(mlir::Attribute attr) {
-  if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {
-    AddType(int_attr.getType());
+  if (auto int_type = attr.getType().dyn_cast<mlir::IntegerType>()) {
+    AddType(int_type);
   }
 
   if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>()) {
@@ -1083,7 +1082,6 @@ class BEFAttributeEmitter : public BefEmitter {
   void EmitAttribute(mlir::Attribute attr);
 
   void EmitBoolAttribute(bool value);
-  void EmitStandardAttribute(mlir::Attribute attr);
   void EmitStringAttribute(string_view value);
   void EmitTypeAttribute(mlir::TypeAttr type_attr);
   void EmitArrayAttribute(mlir::ArrayAttr array_attr);
@@ -1105,8 +1103,13 @@ void BEFAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
     return;
   }
 
-  if (attr.isa<mlir::IntegerAttr, mlir::FloatAttr>()) {
-    EmitStandardAttribute(attr);
+  if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {
+    EmitIntegerAttribute(int_attr.getValue());
+    return;
+  }
+
+  if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>()) {
+    EmitFloatAttribute(float_attr);
     return;
   }
 
@@ -1136,20 +1139,6 @@ void BEFAttributeEmitter::EmitAttribute(mlir::Attribute attr) {
 
 void BEFAttributeEmitter::EmitBoolAttribute(bool value) {
   EmitByte(static_cast<uint8_t>(value));
-}
-
-void BEFAttributeEmitter::EmitStandardAttribute(mlir::Attribute attr) {
-  if (auto int_attr = attr.dyn_cast<mlir::IntegerAttr>()) {
-    EmitIntegerAttribute(int_attr.getValue());
-    return;
-  }
-
-  if (auto float_attr = attr.dyn_cast<mlir::FloatAttr>()) {
-    EmitFloatAttribute(float_attr);
-    return;
-  }
-
-  llvm_unreachable("Unknown standard attribute");
 }
 
 void BEFAttributeEmitter::EmitIntegerAttribute(const llvm::APInt& value) {

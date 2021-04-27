@@ -33,7 +33,7 @@ func @create_two_tensors_on_gpu(%allocator: !tfrt_gpu.allocator, %stream: !tfrt_
 func @blas_axpy() {
   %ch1 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch1
   %context = tfrt_gpu.context.create %device, %ch1
   %allocator = tfrt_gpu.allocator.create %context, %ch1
   %stream = tfrt_gpu.stream.create %context, %ch1
@@ -64,7 +64,7 @@ func @blas_axpy() {
 func @blas_gemm() {
   %ch1 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch1
   %context = tfrt_gpu.context.create %device, %ch1
   %allocator = tfrt_gpu.allocator.create %context, %ch1
   %stream = tfrt_gpu.stream.create %context, %ch1
@@ -98,7 +98,7 @@ func @blas_gemm() {
 func @blas_gemm_ex() {
   %ch1 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch1
   %context = tfrt_gpu.context.create %device, %ch1
   %allocator = tfrt_gpu.allocator.create %context, %ch1
   %stream = tfrt_gpu.stream.create %context, %ch1
@@ -134,7 +134,7 @@ func @blas_gemm_ex() {
 func @blas_gemm_strided_batched_ex() {
   %ch1 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch1
   %context = tfrt_gpu.context.create %device, %ch1
   %allocator = tfrt_gpu.allocator.create %context, %ch1
   %stream = tfrt_gpu.stream.create %context, %ch1

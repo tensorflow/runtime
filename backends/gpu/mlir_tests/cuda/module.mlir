@@ -19,7 +19,7 @@
 func @function_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch2
   %context = tfrt_gpu.context.create %device, %ch2
 
   // PTX for empty kernel.
@@ -37,7 +37,7 @@ func @function_test() {
 func @function_bad_data_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch2
   %context = tfrt_gpu.context.create %device, %ch2
 
   // expected-error @+1 {{CUDA_ERROR_INVALID_IMAGE}}
@@ -54,7 +54,7 @@ func @function_bad_data_test() {
 func @function_bad_name_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch2
   %context = tfrt_gpu.context.create %device, %ch2
 
   // expected-error @+1 {{CUDA_ERROR_NOT_FOUND}}
@@ -71,7 +71,7 @@ func @function_bad_name_test() {
 func @function_not_null_terminated_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch2
   %context = tfrt_gpu.context.create %device, %ch2
 
   // expected-error @+1 {{data attribute must be null-terminated}}

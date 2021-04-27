@@ -19,7 +19,7 @@
 func @memcpy_host_to_device_and_back_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch2
   %context = tfrt_gpu.context.create %device, %ch2
   %allocator = tfrt_gpu.allocator.create %context, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2

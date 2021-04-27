@@ -107,6 +107,7 @@ enum class Platform {
   ROCm,
 };
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Platform platform);
+Expected<wrapper::Platform> ParsePlatform(llvm::StringRef platform);
 
 // Struct capturing a failed API call. T is the result code type.
 template <typename T>

@@ -808,6 +808,7 @@ tfrt_cc_library(
     deps = [
         ":gpu_conversion_helper_opdefs_inc_gen",
         ":gpu_opdefs_inc_gen",
+        ":gpu_wrapper",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:basic_kernels_opdefs",

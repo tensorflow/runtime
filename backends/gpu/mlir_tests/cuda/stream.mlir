@@ -19,7 +19,7 @@
 func @stream_create_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch2
   %context = tfrt_gpu.context.create %device, %ch2
   %allocator = tfrt_gpu.allocator.create %context, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2
@@ -41,7 +41,7 @@ func @stream_create_test() {
 func @stream_create_synchronize() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch2
   %context = tfrt_gpu.context.create %device, %ch2
 
   %stream = tfrt_gpu.stream.create %context, %ch2
@@ -54,7 +54,7 @@ func @stream_create_synchronize() {
 func @make_tensor_from_smaller_buffer_should_fail() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get %index, %ch2 { platform = 1 : i32 }
+  %device = tfrt_gpu.device.get CUDA, %index, %ch2
   %context = tfrt_gpu.context.create %device, %ch2
   %allocator = tfrt_gpu.allocator.create %context, %ch2
   %stream = tfrt_gpu.stream.create %context, %ch2

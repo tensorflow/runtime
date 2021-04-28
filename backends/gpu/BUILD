@@ -41,6 +41,7 @@ package_group(
         # # Authorized users go here.
         # "//platforms/xla/tests/gpu/...",
         # "//third_party/tensorflow/compiler/xla/service/gpu/...",
+        # "//third_party/tensorflow/compiler/mlir/tfrt/...",
         # "@tf_runtime//cpp_tests/...",
         # "//learning/brain/experimental/tfrt/cpp_tests/...",
         # copybara:uncomment_end_and_comment_begin

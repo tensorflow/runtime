@@ -27,11 +27,9 @@ namespace tfrt {
 
 static Chain TFRTNewChain() { return Chain(); }
 
-static void TFRTMergeChains(Argument<Chain> chain_in,
-                            RemainingArguments remaining_arguments,
-                            Result<Chain> chain_out) {
-  // We can return an arbitrary chain argument - we know that all are ready.
-  chain_out.Set(chain_in);
+static Chain TFRTMergeChains(RemainingArguments arguments) {
+  // We can directly return a chain - we know that all args are ready.
+  return Chain();
 }
 
 static void TFRTCall(RemainingArguments args, RemainingResults results,

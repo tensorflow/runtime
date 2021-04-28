@@ -311,3 +311,13 @@ func @tfrt_while_error_test() -> (!tfrt.chain, i32, i32) {
   // CHECK: 'tfrt_while_error_test' returned <<error: Cancelled>>,<<error: Cancelled>>,<<error: Cancelled>>
   tfrt.return %ch1, %final_iteration, %final_arg : !tfrt.chain, i32, i32
 }
+
+// CHECK-LABEL: --- Running 'tfrt_merge_chain_test'
+func @tfrt_merge_chain_test() -> !tfrt.chain {
+  %v = tfrt.constant.i32 0
+  %ch0 = tfrt.new.chain
+  %ch1 = tfrt.merge.chains %v, %ch0 : i32, !tfrt.chain
+
+  // CHECK: 'tfrt_merge_chain_test' returned !tfrt.chain value
+  tfrt.return %ch1 : !tfrt.chain
+}

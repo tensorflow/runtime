@@ -17,6 +17,7 @@
 
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
+#include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
 
@@ -26,6 +27,11 @@ GpuContext::GpuContext(wrapper::OwningContext context)
     : context_(std::move(context)) {}
 
 GpuContext::~GpuContext() = default;
+
+wrapper::Context GpuContext::release() {
+  functions_.clear();
+  return context_.release();
+}
 
 // Wrapper for module loading that prints logs when in debug mode.
 static llvm::Expected<wrapper::OwningModule> LoadModule(
@@ -82,6 +88,24 @@ GpuStream::GpuStream(AsyncValueRef<GpuContext> context,
     : context_(std::move(context)), stream_(std::move(stream)) {}
 
 GpuStream::~GpuStream() = default;
+
+wrapper::Stream GpuStream::release() {
+  context_.release();
+  return stream_.release();
+}
+
+BorrowedGpuStream::BorrowedGpuStream(HostContext* host,
+                                     wrapper::Context context,
+                                     wrapper::Stream stream)
+    : context_(MakeAvailableAsyncValueRef<GpuContext>(
+          host, wrapper::OwningContext(context))),
+      stream_(MakeAvailableAsyncValueRef<GpuStream>(
+          host, context_.CopyRef(), wrapper::OwningStream(stream))) {}
+
+BorrowedGpuStream::~BorrowedGpuStream() {
+  stream_->release();
+  context_->release();
+}
 
 GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
                    wrapper::OwningEvent event)

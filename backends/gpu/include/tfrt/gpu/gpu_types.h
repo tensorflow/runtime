@@ -50,6 +50,7 @@ class GpuContext {
 
   const wrapper::OwningContext& operator->() const { return context_; }
   wrapper::Context get() const { return context_.get(); }
+  wrapper::Context release();
 
   Expected<GpuFunction> GetFunction(uint64_t key, string_view data,
                                     string_view name);
@@ -71,12 +72,33 @@ class GpuStream {
 
   const wrapper::OwningStream& operator->() const { return stream_; }
   wrapper::Stream get() const { return stream_.get(); }
+  wrapper::Stream release();
 
   wrapper::Context context() const { return context_->get(); }
 
  private:
   AsyncValueRef<GpuContext> context_;
   wrapper::OwningStream stream_;
+};
+
+// Takes an existing stream and provides it as GpuStream async value without
+// taking ownership of the stream.
+class BorrowedGpuStream {
+ public:
+  // The `stream` must belong to `context`.
+  BorrowedGpuStream(HostContext* host, wrapper::Context context,
+                    wrapper::Stream stream);
+
+  BorrowedGpuStream(BorrowedGpuStream&&) = default;
+  BorrowedGpuStream& operator=(BorrowedGpuStream&&) = default;
+
+  ~BorrowedGpuStream();
+
+  operator AsyncValueRef<GpuStream>() const { return stream_.CopyRef(); }
+
+ private:
+  AsyncValueRef<GpuContext> context_;
+  AsyncValueRef<GpuStream> stream_;
 };
 
 class GpuEvent {

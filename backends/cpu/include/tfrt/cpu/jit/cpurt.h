@@ -183,13 +183,6 @@ struct CompilationOptions {
   llvm::function_ref<void(mlir::OpPassManager&)> register_pass_pipeline;
 };
 
-// Creates a JitExecutable from the serialized MLIR module. Compiles a default
-// executable if compiled module does not have a requirement to specialize shape
-// or value for any of the arguments.
-Expected<JitExecutable> CreateJitExecutable(string_view mlir_module,
-                                            string_view entrypoint,
-                                            const CompilationOptions& opts);
-
 //----------------------------------------------------------------------------//
 // Types for passing compiled kernel arguments and passing back results.
 //----------------------------------------------------------------------------//

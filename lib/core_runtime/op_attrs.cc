@@ -166,15 +166,15 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       return {sizeof(OpAttrType), alignof(OpAttrType)};
     case OpAttrType::AGGREGATE: {
       AggregateAttr aggregate_attr(data);
-      return {aggregate_attr.size(), sizeof(void *)};
+      return {aggregate_attr.GetByteSize(), aggregate_attr.Alignment()};
     }
     case OpAttrType::DENSE: {
       DenseAttr dense_attr(data);
-      return {dense_attr.size(), DenseAttr::Alignment()};
+      return {dense_attr.GetByteSize(), dense_attr.Alignment()};
     }
     case OpAttrType::SHAPE: {
       ShapeAttr shape_attr(data);
-      return {shape_attr.size(), ShapeAttr::Alignment()};
+      return {shape_attr.GetByteSize(), shape_attr.Alignment()};
     }
     case OpAttrType::FUNC:
       return {sizeof(char), alignof(char)};
@@ -196,6 +196,75 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
     return {sizeof(CPP_TYPE), alignof(CPP_TYPE)};
 #include "tfrt/core_runtime/op_attr_type.def"
   }
+}
+
+// Return the required alignment padding size to place an Op attribute.
+size_t GetAlignmentPaddingSize(const void *data, OpAttrType type,
+                               unsigned offset) {
+  size_t peak_alignment;
+  size_t prefix_size = 0;
+  switch (type) {
+    case OpAttrType::DTYPE:
+      peak_alignment = alignof(OpAttrType);
+      break;
+
+    case OpAttrType::AGGREGATE: {
+      AggregateAttr attr(data);
+      prefix_size = attr.GetPrefixSize();
+      peak_alignment = attr.Alignment();
+      break;
+    }
+
+    case OpAttrType::DENSE: {
+      DenseAttr attr(data);
+      prefix_size = attr.GetPrefixSize();
+      peak_alignment = attr.Alignment();
+      break;
+    }
+
+    case OpAttrType::SHAPE: {
+      ShapeAttr attr(data);
+      prefix_size = attr.GetPrefixSize();
+      peak_alignment = attr.Alignment();
+      break;
+    }
+
+    case OpAttrType::FUNC:
+      peak_alignment = alignof(char);
+      break;
+
+    case OpAttrType::BF16:
+      peak_alignment = alignof(bf16);
+      break;
+
+    case OpAttrType::F16:
+      peak_alignment = alignof(fp16);
+      break;
+
+    case OpAttrType::I1:
+      peak_alignment = alignof(i1);
+      break;
+
+    case OpAttrType::COMPLEX64:
+      peak_alignment = alignof(std::complex<float>);
+      break;
+
+    case OpAttrType::COMPLEX128:
+      peak_alignment = alignof(std::complex<double>);
+      break;
+
+    case OpAttrType::UNSUPPORTED_RESOURCE:
+    case OpAttrType::UNSUPPORTED_VARIANT:
+      llvm_unreachable("unsupported attribute type");
+
+#define OP_ATTR_TYPE(ENUM, CPP_TYPE)    \
+  case OpAttrType::ENUM:                \
+    peak_alignment = alignof(CPP_TYPE); \
+    break;
+#include "tfrt/core_runtime/op_attr_type.def"
+  }
+  return llvm::offsetToAlignment(offset + prefix_size,
+                                 llvm::Align(peak_alignment));
 }
 
 // Return the name of the specified attribute type, e.g. "I32".
@@ -301,37 +370,54 @@ bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
   // If it is already present, then return false to indicate a conflict.
   if (entry_it_pair.second == false) return false;
 
-  auto type_size_and_alignment = GetHostSizeAndAlignment(data, type);
+  const auto type_size_and_alignment = GetHostSizeAndAlignment(data, type);
 
   // TODO(clattner): consider unifying the logic here with OpAttrs::SetRaw.
-  auto type_size = type_size_and_alignment.first;
-  auto type_alignment = type_size_and_alignment.second;
+  const auto type_size = type_size_and_alignment.first;
+  const auto type_alignment = type_size_and_alignment.second;
+  const auto alignment_padding_size =
+      GetAlignmentPaddingSize(data, type, type_alignment);
 
   auto &entry = entry_it_pair.first->second;
-  auto bytes_to_copy =
+  const auto bytes_to_copy =
       OpAttrsRawEntry::GetNumElements(num_elements) * type_size;
-  bool is_array = num_elements >= 0;
+  const bool is_array = num_elements >= 0;
   bool is_small = type_size <= sizeof(void *);
 
-  // bytes_to_copy can be 0 for an empty array.
-  if ((is_array && bytes_to_copy > 0) || !is_small) {
-    void *our_data = allocator_.Allocate(bytes_to_copy, type_alignment);
-    void *element_ptr = static_cast<char *>(our_data);
-
-    // Copy the element(s) themselves.
-    memcpy(element_ptr, data, bytes_to_copy);
+  // The alignment_padding_size could be non zero for Shape, Dense, and
+  // Aggregate attributes.
+  if (is_array || !is_small || alignment_padding_size > 0) {
     entry.array_size =
         OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/false);
-    entry.data = element_ptr;
+
+    // Handle an empty array.
+    if (bytes_to_copy == 0) {
+      // Set entry.data with a valid address; the address will not actually
+      // used because the array length is zero.
+      entry.data = entry.buffer;
+    } else {
+      // The bytes_to_copy could be from array of fixed sized attributes
+      // or from a Dense, Shape, Aggregate attributes which cannot be an array.
+      // For the Dense, Shape, Aggregate attributes, the type_size given from
+      // GetAllocSizeAndAlignment() includes alignment_padding_size.
+
+      // TODO(hyojun): Optimize memory allocator for DiamondPacking.
+      void *our_data = allocator_.Allocate(
+          alignment_padding_size + bytes_to_copy, type_alignment);
+      void *element_ptr =
+          static_cast<char *>(our_data) + alignment_padding_size;
+
+      // Copy the element(s) themselves.
+      memcpy(element_ptr, data, bytes_to_copy);
+      entry.data = element_ptr;
+    }
   } else {
     // If it is a small scalar, copy the data to the inlined buffer.
     assert(type_alignment <= alignof(void *));
     assert(bytes_to_copy <= sizeof(void *));
     entry.array_size =
         OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/true);
-    if (bytes_to_copy > 0) {
-      memcpy(entry.buffer, data, bytes_to_copy);
-    }
+    memcpy(entry.buffer, data, bytes_to_copy);
   }
 
   entry.name = entry_it_pair.first->first().data();
@@ -433,7 +519,6 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
 
   auto type_size_and_alignment = GetHostSizeAndAlignment(data, type);
   auto type_size = type_size_and_alignment.first;
-  auto type_alignment = type_size_and_alignment.second;
 
   bool is_array = num_elements >= 0;
   bool is_small = type_size <= sizeof(void *);
@@ -444,7 +529,7 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
     auto &entry = inline_entries_[num_inline_entries_++];
     entry.name = name_pointer;
 
-    assert(type_alignment <= alignof(void *));
+    assert(type_size_and_alignment.second <= alignof(void *));
     memcpy(entry.buffer, data, type_size);
 
     // Set to inline scalar.
@@ -460,8 +545,8 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
   // Then we hold the data. Round the element pointer up to the alignment
   // boundary required by type so we can figure out where we will be inserting
   // it.
-  inline_buffer_used_ =
-      static_cast<size_t>(llvm::alignTo(inline_buffer_used_, type_alignment));
+  inline_buffer_used_ +=
+      GetAlignmentPaddingSize(data, type, inline_buffer_used_);
   auto *dest_pointer = inline_buffer_ + inline_buffer_used_;
 
   // The number of bytes is equal to the number of elements times its size.
@@ -516,6 +601,8 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
   size_t alloc_size =
       sizeof(ImmutableOpAttrs) + sizeof(OpAttrsRawEntry) * sorted_attrs.size();
 
+  size_t out_offset = alloc_size;
+
   // TODO(clattner): When coming from an inlined representation (the vastly most
   // common case, we should be able to memcpy over one big block of memory and
   // update pointers, instead of doing several small memcpy's.
@@ -525,15 +612,12 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
   for (auto *entry : sorted_attrs) {
     // Space for the name and null terminator.
     alloc_size += strlen(entry->name) + 1;
-
     // For an inlined entry, no additional memory is needed.
     if (entry->IsScalarAndInlined()) continue;
 
-    // Round up to the required alignment.
     auto size_type_alignment =
         GetHostSizeAndAlignment(entry->data, entry->type);
-    alloc_size = static_cast<size_t>(
-        llvm::alignTo(alloc_size, size_type_alignment.second));
+    alloc_size += GetAlignmentPaddingSize(entry->data, entry->type, alloc_size);
 
     // Add space for the elements.
     alloc_size += OpAttrsRawEntry::DecodeArraySize(entry->array_size) *
@@ -544,8 +628,7 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
   auto *raw_memory = AlignedAlloc(alignof(ImmutableOpAttrs), alloc_size);
   auto *result = new (raw_memory) ImmutableOpAttrs(sorted_attrs.size());
 
-  char *data_ptr = static_cast<char *>(raw_memory) + sizeof(ImmutableOpAttrs) +
-                   sizeof(OpAttrsRawEntry) * sorted_attrs.size();
+  char *data_ptr = static_cast<char *>(raw_memory);
 
   // Copy all of the attributes over.
   for (size_t i = 0, e = sorted_attrs.size(); i != e; ++i) {
@@ -557,37 +640,33 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
     result_entry.type = src_entry.type;
 
     // Copy the name over.
-    result_entry.name = data_ptr;
+    result_entry.name = data_ptr + out_offset;
     auto name_len = strlen(src_entry.name);
-    memcpy(data_ptr, src_entry.name, name_len + 1);
-    data_ptr += name_len + 1;
+    memcpy(data_ptr + out_offset, src_entry.name, name_len + 1);
+    out_offset += name_len + 1;
 
-    auto size_and_alignment =
-        GetHostSizeAndAlignment(src_entry.data, src_entry.type);
-    auto type_size = size_and_alignment.first;
-    auto type_alignment = size_and_alignment.second;
-
+    const auto type_size =
+        GetHostSizeAndAlignment(src_entry.data, src_entry.type).first;
     if (src_entry.IsArray() || type_size > sizeof(void *)) {
-      // Round up to the required alignment.
-      data_ptr = reinterpret_cast<char *>(
-          llvm::alignTo(reinterpret_cast<uint64_t>(data_ptr), type_alignment));
+      out_offset +=
+          GetAlignmentPaddingSize(src_entry.data, src_entry.type, out_offset);
 
       // Copy over the elements, including the array_size if present.
       size_t elements_size =
           OpAttrsRawEntry::DecodeArraySize(src_entry.array_size) * type_size;
-      memcpy(data_ptr, static_cast<const char *>(src_entry.data),
+      memcpy(data_ptr + out_offset, static_cast<const char *>(src_entry.data),
              elements_size);
 
       // Remember that this is where the element is.
-      result_entry.data = data_ptr;
-      data_ptr += elements_size;
+      result_entry.data = data_ptr + out_offset;
+      out_offset += elements_size;
     } else {
       memcpy(result_entry.buffer, src_entry.buffer, sizeof(void *));
     }
   }
 
   // Make sure the memory usage is same as expected.
-  assert(data_ptr == static_cast<char *>(raw_memory) + alloc_size);
+  assert(out_offset == alloc_size);
 
   return TakeRef(result);
 }

@@ -23,6 +23,7 @@
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/Alignment.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/byte_order.h"
 #include "tfrt/support/forward_decls.h"
@@ -175,7 +176,7 @@ class TypedAttrBase {
   BEFAttributeType type() const { return base_->type; }
 
   const void* data() const { return static_cast<const void*>(base_); }
-  size_t size() const { return GetBEFAttrByteCount(*base_); }
+  size_t GetByteSize() const { return GetBEFAttrByteCount(*base_); }
 
   template <typename T>
   bool isa() const {
@@ -369,7 +370,35 @@ class ShapeAttr : public internal::AttrHeaderBase<ShapeAttr, BEFShapeAttr> {
  public:
   using Base::Base;
 
-  static constexpr size_t Alignment() { return alignof(int64_t); }
+  // Return the prefix size of ShapeAttr.
+  //
+  // In DiamondPacking, the sub-elements should be placed to have only one
+  // peak alignment constraint; element size should increase then decrease.
+  // Both ascending packing (element size should always increase) and
+  // descending packing (element size should always decrease) are covered by
+  // DiamondPacking.
+  //
+  // Prefix size is defined as the total bytes before the sub entry having
+  // the peak alignment constraint.
+  //
+  //   e.g., [uint8_t, uint16_t, uint64_t, uint64_t, uint32_t]
+  //
+  //          peak_alignment = alignof(uint64_t) = 8
+  //          prefix_size    = sizeof(uint8_t) + sizeof(uint16_t) = 3
+  //
+  // The DiamondPacking provides a nice property. When we need to place
+  // an object (packed in DiamondPacking method) in memory for an arbitrary
+  // address A, we could calculate padding size P, which satisfies the following
+  // equation:
+  //
+  //       (A + P + prefix_size) % peak_alignment == 0
+  //
+  // When the object is placed at (A + P), it guarantees that
+  // all the sub element alignment constraints meet as well.
+  size_t GetPrefixSize() const { return 0; }
+
+  // Return the peak alignment constraint of ShapeAttr.
+  size_t Alignment() const { return alignof(int64_t); }
 
   bool HasRank() const { return header().shape_type == BEFShapeType::kRanked; }
 
@@ -389,7 +418,11 @@ class DenseAttr : public internal::AttrHeaderBase<DenseAttr, BEFDenseAttr> {
  public:
   using Base::Base;
 
-  static constexpr size_t Alignment() { return alignof(int64_t); }
+  // Return the prefix size of DenseAttr.
+  size_t GetPrefixSize() const { return 0; }
+
+  // Return the peak alignment constraint of DenseAttr.
+  size_t Alignment() const { return alignof(int64_t); }
 
   DType::Kind dtype() const { return GetDataType(type()); }
 
@@ -421,6 +454,12 @@ class AggregateAttr
     : public internal::AttrHeaderBase<AggregateAttr, BEFAggregateAttr> {
  public:
   using Base::Base;
+
+  // Return the prefix size of AggregateAttr.
+  size_t GetPrefixSize() const { return 0; }
+
+  // Return the peak alignment constraint of AggregateAttr.
+  size_t Alignment() const { return alignof(int64_t); }
 
   TypedAttrBase GetAttribute(int index) const {
     assert(index < GetNumElements());

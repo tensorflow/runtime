@@ -32,6 +32,7 @@
 #include "mlir/Support/LogicalResult.h"
 #include "tfrt/cpu/jit/async_runtime.h"
 #include "tfrt/cpu/jit/async_runtime_api.h"
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/msan.h"
@@ -188,7 +189,7 @@ struct CompilationOptions {
 //----------------------------------------------------------------------------//
 
 struct MemrefDesc {
-  // TODO(ezhulenev): Add dtype so that VerifyMemrefOperand can check it.
+  DType dtype;
   void* data;
   ssize_t offset;
   SmallVector<ssize_t, 4> sizes;
@@ -290,7 +291,7 @@ mlir::LogicalResult ReturnStridedMemref(RemainingResults results,
   // Dispatch based on the memref element type.
   auto element_type = memref.getElementType();
 
-  // TODO(ezhulenev): Add support for all data types.
+  // TODO(ezhulenev): Implement type dispatching to connect MLIR with TFRT.
   if (element_type.isF32()) {
     rank_dispatch(float{});
   } else if (element_type.isInteger(32)) {

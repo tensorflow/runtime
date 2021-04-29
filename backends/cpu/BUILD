@@ -297,6 +297,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:VectorToLLVM",
         "@llvm-project//mlir:X86VectorToLLVMIRTranslation",
         "@llvm-project//mlir:mlir_c_runner_utils",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",

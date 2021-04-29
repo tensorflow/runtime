@@ -193,6 +193,23 @@ Expected<ResultsMemoryLayout> Executable::VerifyEntrypointSignature(
 // Converting from runtime buffers (aka Tensors) to Memref descriptors.
 // -------------------------------------------------------------------------- //
 
+static Error VerifyDType(mlir::Type input_type, DType operand_type) {
+  assert(operand_type.kind() != DType::Invalid && "invalid operand type");
+
+  auto verify = [&](DType::Kind expected_input_type) -> Error {
+    if (operand_type.kind() != expected_input_type)
+      return MakeStringError("operand type does not match input type: ",
+                             operand_type, " vs ", expected_input_type);
+    return Error::success();
+  };
+
+  // TODO(ezhulenev): Implement type dispatching to connect MLIR with TFRT.
+  if (input_type.isF32()) return verify(DType::F32);
+  if (input_type.isInteger(32)) return verify(DType::I32);
+
+  return MakeStringError("unexpected input type: ", input_type);
+}
+
 static Error VerifyMemrefOperand(mlir::ShapedType type, MemrefDesc memref) {
   if (memref.sizes.size() != type.getRank())
     return MakeStringError("operand rank does not match expected input rank: ",
@@ -207,8 +224,7 @@ static Error VerifyMemrefOperand(mlir::ShapedType type, MemrefDesc memref) {
                              operand_dim, " vs ", expected_dim);
   }
 
-  // TODO(ezhulenev): Verify operand element type.
-  return Error::success();
+  return VerifyDType(type.getElementType(), memref.dtype);
 }
 
 Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref) {
@@ -222,6 +238,7 @@ Error VerifyMemrefOperand(mlir::RankedTensorType type, MemrefDesc memref) {
 Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
   if (auto* dht = dyn_cast<DenseHostTensor>(&tensor)) {
     MemrefDesc memref;
+    memref.dtype = dht->dtype();
     memref.data = const_cast<void*>(dht->data());
     memref.offset = 0;
     dht->shape().GetDimensions(&memref.sizes);

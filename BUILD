@@ -426,6 +426,8 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
+        ":bef_attr_encoder",
+        ":bef_emitter",
         ":dtype",
         ":hostcontext",
         ":support",
@@ -466,6 +468,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/bef_converter/bef_emitter.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":support",
@@ -558,6 +561,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/bef_converter/bef_attr_encoder.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":bef_emitter",

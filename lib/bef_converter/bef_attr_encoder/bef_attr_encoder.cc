@@ -19,6 +19,7 @@
 #include "tfrt/bef_converter/bef_attr_encoder.h"
 
 #include <cstdint>
+#include <numeric>
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Error.h"
@@ -172,6 +173,28 @@ void BefAttrEncoder::EncodeCompleteDenseAttr(size_t offset,
   header.element_offset = AssertAttrFieldSize32(element_offset);
   SetBEFAttrByteCount(size() - offset, &header.base);
   OverwriteBytes(offset, &header, sizeof(header));
+}
+
+size_t BefAttrEncoder::EncodeDenseAttr(DType::Kind element_type,
+                                       ArrayRef<int64_t> shape,
+                                       ArrayRef<uint8_t> element_payload) {
+  const size_t element_count =
+      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
+
+  // Make sure the beginning alignment.
+  std::max(alignof(int64_t), DType(element_type).GetHostAlignment());
+  const size_t offset = ReserveDenseAttrHeader();
+  EmitAlignment(alignof(int64_t));
+  const size_t shape_offset = size() - offset;
+  for (auto dim : shape) EmitInt8(dim);
+  EmitAlignment(DType(element_type).GetHostAlignment());
+  const size_t element_offset = size() - offset;
+
+  EmitBytes(element_payload);
+  EncodeCompleteDenseAttr(offset, element_type, shape.size(), shape_offset,
+                          element_count, element_offset);
+
+  return offset;
 }
 
 // Encode a list of attributes as an aggregate attribute in BEF. The `emitter`

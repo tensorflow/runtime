@@ -81,10 +81,10 @@ TEST(OpAttrsTest, DenseAttr) {
   MutableDHTArrayView<float> tensor_view(&dht);
   tensor_view.Fill(1.0f);
 
-  // `dense_attr_buffer` owns the underlying bytes.
-  std::vector<uint8_t> dense_attr_buffer =
-      SerializeDenseHostTensorToDenseAttr(dht);
-  DenseAttr dense_attr(dense_attr_buffer.data());
+  BefAttrEncoder encoder;
+  const size_t offset = SerializeDenseHostTensorToDenseAttr(dht, &encoder);
+  auto dense_attr_buffer = encoder.TakeResult();
+  DenseAttr dense_attr(dense_attr_buffer.data() + offset);
 
   // OpAttrs::Set should copy the bytes.
   auto attrs = std::make_unique<OpAttrs>();

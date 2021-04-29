@@ -104,6 +104,10 @@ class BefAttrEncoder : public BefEmitter {
                                size_t rank, size_t shape_offset,
                                size_t num_elements, size_t element_offset);
 
+  // Encode a dense attribute.
+  size_t EncodeDenseAttr(DType::Kind element_type, ArrayRef<int64_t> shape,
+                         ArrayRef<uint8_t> element_payload);
+
  private:
   size_t ReserveHeaderSpace(size_t alignment, size_t header_size);
 

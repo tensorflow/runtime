@@ -17,6 +17,7 @@
 
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
+#include "tfrt/bef_converter/bef_attr_encoder.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/host_context.h"
@@ -29,46 +30,21 @@
 
 namespace tfrt {
 
-// TODO(tfrt-devs): Consider creating a custom buffer with 8-byte
-// alignment for the tensor data instead of using std::vector<uint64_t>.
-std::vector<uint8_t> SerializeDenseHostTensorToDenseAttr(
-    const DenseHostTensor& dht) {
-  std::vector<uint8_t> data;
-
+size_t SerializeDenseHostTensorToDenseAttr(const DenseHostTensor& dht,
+                                           BefAttrEncoder* encoder) {
   const auto& md = dht.metadata();
-  const auto& buf = *dht.buffer();
-
-  BEFDenseAttr header;
-  header.base.type = GetDenseAttributeType(md.dtype.kind());
-  header.rank = AssertAttrFieldSize16(md.shape.GetRank());
-  header.num_elements = AssertAttrFieldSize32(md.shape.GetNumElements());
-
-  header.shape_offset = AssertAttrFieldSize16(
-      llvm::alignTo(sizeof(BEFDenseAttr), alignof(int64_t)));
-  data.resize(header.shape_offset, 0xCC);
+  auto element_type = md.dtype.kind();
 
   SmallVector<int64_t, 4> shape;
-  for (int i = 0; i < header.rank; ++i) {
+  for (int i = 0; i < md.shape.GetRank(); ++i) {
     shape.push_back(md.shape.GetDimensionSize(i));
   }
 
-  auto shape_buffer =
-      llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(shape.data()),
-                         shape.size() * sizeof(int64_t));
-  data.insert(data.end(), shape_buffer.begin(), shape_buffer.end());
-
-  // Always align element data to 8-byte boundary.
-  header.element_offset = llvm::alignTo(data.size(), 8);
-  data.resize(header.element_offset);
-
-  auto elements = llvm::makeArrayRef(
-      reinterpret_cast<const uint8_t*>(buf.data()), buf.size());
-  data.insert(data.end(), elements.begin(), elements.end());
-  SetBEFAttrByteCount(data.size(), &header.base);
-
-  std::memcpy(data.data(), &header, sizeof(BEFDenseAttr));
-
-  return data;
+  const size_t offset = encoder->EncodeDenseAttr(
+      element_type, llvm::makeArrayRef(shape),
+      llvm::makeArrayRef(static_cast<const uint8_t*>(dht.data()),
+                         dht.DataSizeInBytes()));
+  return offset;
 }
 
 llvm::Expected<DenseHostTensor> DeserializeDenseHostTensorFromDenseAttr(

@@ -111,11 +111,14 @@ func @blas_gemm_ex() {
   %gpu_buffer_C = tfrt_gpu_test.copy_tensor_host_to_device %allocator, %stream, %tensor_C, %ch2
 
   %dim = tfrt.constant.i32 2
-  %type = tfrt.constant.i32 0
-  %algo = tfrt.constant.i32 0
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 1.0
-  %ch4 = tfrt_gpu.blas.gemm.ex %blas, %dim, %dim, %dim, %alpha, %gpu_buffer_A, %type, %dim, %gpu_buffer_B, %type, %dim, %beta, %gpu_buffer_C, %type, %dim, %type, %algo, %ch2 { transa = false, transb = false }
+  %ch4 = tfrt_gpu.blas.gemm %blas,
+    CUBLAS_OP_N, CUBLAS_OP_N, %dim, %dim, %dim,
+    %alpha, %gpu_buffer_A, CUDA_R_32F, %dim,
+    %gpu_buffer_B, CUDA_R_32F, %dim, %beta,
+    %gpu_buffer_C, CUDA_R_32F, %dim,
+    CUDA_R_32F, CUBLAS_GEMM_ALGO0, %ch2
 
   // Copy result back
   %result_tensor = tfrt_dht.create_uninitialized_tensor.f32.2 [2: i64, 2: i64]

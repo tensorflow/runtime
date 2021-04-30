@@ -31,52 +31,6 @@ namespace wrapper {
 
 template void internal::LogResult(llvm::raw_ostream&, miopenStatus_t);
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status) {
-  switch (status) {
-    case miopenStatusSuccess:
-      return os << "miopenStatusSuccess";
-    case miopenStatusNotInitialized:
-      return os << "miopenStatusNotInitialized";
-    case miopenStatusInvalidValue:
-      return os << "miopenStatusInvalidValue";
-    case miopenStatusBadParm:
-      return os << "miopenStatusBadParm";
-    case miopenStatusAllocFailed:
-      return os << "miopenStatusAllocFailed";
-    case miopenStatusInternalError:
-      return os << "miopenStatusInternalError";
-    case miopenStatusNotImplemented:
-      return os << "miopenStatusNotImplemented";
-    case miopenStatusUnknownError:
-      return os << "miopenStatusUnknownError";
-    case miopenStatusUnsupportedOp:
-      return os << "miopenStatusUnsupportedOp";
-    default:
-      return os << llvm::formatv("miopenStatus_t({0})",
-                                 static_cast<int>(status));
-  }
-}
-
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t dtype) {
-  switch (dtype) {
-    case miopenHalf:
-      return os << "miopenHalf";
-    case miopenFloat:
-      return os << "miopenFloat";
-    case miopenInt32:
-      return os << "miopenInt32";
-    case miopenInt8:
-      return os << "miopenInt8";
-    case miopenInt8x4:
-      return os << "miopenInt8x4";
-    case miopenBFloat16:
-      return os << "miopenBFloat16";
-    default:
-      return os << llvm::formatv("miopenDataType_t({0})",
-                                 static_cast<int>(dtype));
-  }
-}
-
 Expected<miopenDataType_t> ParseMiopenDataType(llvm::StringRef name) {
   if (name == "miopenHalf") return miopenHalf;
   if (name == "miopenFloat") return miopenFloat;

@@ -25,6 +25,7 @@
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
+#include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/tensor/opdefs/host_tensor.h"
@@ -79,6 +80,9 @@ inline wrapper::Platform EnumAttr<wrapper::Platform>::FromOpaqueValue(
 
 using PlatformAttr = EnumAttr<wrapper::Platform>;
 using DnnDataTypeAttr = EnumAttr<wrapper::DnnDataType>;
+using BlasDataTypeAttr = EnumAttr<wrapper::BlasDataType>;
+using BlasOperationAttr = EnumAttr<wrapper::BlasOperation>;
+using BlasGemmAlgoAttr = EnumAttr<wrapper::BlasGemmAlgo>;
 
 namespace conversion {
 

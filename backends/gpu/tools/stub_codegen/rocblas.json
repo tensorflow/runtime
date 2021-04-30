@@ -177,6 +177,7 @@
       "rocblas_strmm",
       "rocblas_dtrmm",
       "rocblas_ctrmm",
-      "rocblas_ztrmm"
+      "rocblas_ztrmm",
+      "rocblas_gemm_ex"
    ]
 }

@@ -22,8 +22,10 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
+#include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
+#include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/tensor/opdefs/tensor.h"
 
@@ -46,26 +48,42 @@ GpuDialect::GpuDialect(MLIRContext *context)
       >();
 }
 
-template <typename T>
-static Expected<T> ParseEnum(StringRef);
-template <>
-Expected<wrapper::Platform> ParseEnum<wrapper::Platform>(StringRef name) {
-  return wrapper::ParsePlatform(name);
-}
-template <>
-Expected<wrapper::DnnDataType> ParseEnum<wrapper::DnnDataType>(StringRef name) {
-  auto cudnn_data_type = wrapper::ParseCudnnDataType(name);
-  if (cudnn_data_type) return {*cudnn_data_type};
-  auto miopen_data_type = wrapper::ParseMiopenDataType(name);
-  if (miopen_data_type) return {*miopen_data_type};
-  return joinErrors(cudnn_data_type.takeError(), miopen_data_type.takeError());
-}
+namespace {
+// Maps enum tag to CUDA and ROCm enum.
+template <typename Tag>
+struct EnumTraits;
 
-template <typename T>
-static ParseResult parseEnum(OpAsmParser &parser, EnumAttr<T> &attribute) {
+template <>
+struct EnumTraits<wrapper::DnnDataTypeTag> {
+  using cuda_type = cudnnDataType_t;
+  using rocm_type = miopenDataType_t;
+};
+
+template <>
+struct EnumTraits<wrapper::BlasDataTypeTag> {
+  using cuda_type = cublasDataType_t;
+  using rocm_type = rocblas_datatype;
+};
+
+template <>
+struct EnumTraits<wrapper::BlasOperationTag> {
+  using cuda_type = cublasOperation_t;
+  using rocm_type = rocblas_operation;
+};
+
+template <>
+struct EnumTraits<wrapper::BlasGemmAlgoTag> {
+  using cuda_type = cublasGemmAlgo_t;
+  using rocm_type = rocblas_gemm_algo;
+};
+}  // namespace
+
+template <typename T, typename F>
+static ParseResult parseEnum(OpAsmParser &parser, EnumAttr<T> &attribute,
+                             F &&parse_func) {
   StringRef name;
   if (failed(parser.parseKeyword(&name))) return failure();
-  auto value = ParseEnum<T>(name);
+  auto value = parse_func(name);
   if (!value) {
     return parser.emitError(parser.getCurrentLocation(),
                             toString(value.takeError()));
@@ -75,32 +93,49 @@ static ParseResult parseEnum(OpAsmParser &parser, EnumAttr<T> &attribute) {
 }
 
 template <typename T>
+static ParseResult parseEnum(OpAsmParser &parser, EnumAttr<T> &attribute) {
+  return parseEnum(parser, attribute,
+                   [](StringRef name) { return wrapper::Parse<T>(name); });
+}
+
+template <typename Tag>
+static ParseResult parseEnum(OpAsmParser &parser,
+                             EnumAttr<wrapper::Enum<Tag>> &attribute) {
+  auto parse_func = [](StringRef name) -> Expected<wrapper::Enum<Tag>> {
+    auto cuda_value = wrapper::Parse<typename EnumTraits<Tag>::cuda_type>(name);
+    if (cuda_value) return {*cuda_value};
+    auto rocm_value = wrapper::Parse<typename EnumTraits<Tag>::rocm_type>(name);
+    if (rocm_value) return {*rocm_value};
+    return joinErrors(cuda_value.takeError(), rocm_value.takeError());
+  };
+  return parseEnum(parser, attribute, parse_func);
+}
+
+template <typename T>
 static void printEnum(OpAsmPrinter &printer, Operation *,
                       EnumAttr<T> attribute) {
   printer << attribute.getValue();
 }
 
-// Helper function.
-template <typename CudaType, typename RocmType, typename Tag>
+template <typename Tag>
 static void printEnum(OpAsmPrinter &printer, Operation *,
                       EnumAttr<wrapper::Enum<Tag>> attribute) {
   auto value = attribute.getValue();
   switch (value.platform()) {
     case wrapper::Platform::CUDA:
-      wrapper::operator<<(printer.getStream(), static_cast<CudaType>(value));
+      wrapper::operator<<(
+          printer.getStream(),
+          static_cast<typename EnumTraits<Tag>::cuda_type>(value));
       break;
     case wrapper::Platform::ROCm:
-      wrapper::operator<<(printer.getStream(), static_cast<RocmType>(value));
+      wrapper::operator<<(
+          printer.getStream(),
+          static_cast<typename EnumTraits<Tag>::rocm_type>(value));
       break;
     case wrapper::Platform::NONE:
       printer << value.platform();
       break;
   }
-}
-
-static void printEnum(OpAsmPrinter &printer, Operation *op,
-                      DnnDataTypeAttr attribute) {
-  printEnum<cudnnDataType_t, miopenDataType_t>(printer, op, attribute);
 }
 
 namespace conversion {

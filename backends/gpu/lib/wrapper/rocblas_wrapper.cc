@@ -27,53 +27,6 @@ namespace wrapper {
 
 template void internal::LogResult(llvm::raw_ostream&, rocblas_status);
 
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status) {
-  switch (status) {
-    case rocblas_status_success:
-      return os << "rocblas_status_success";
-    case rocblas_status_invalid_handle:
-      return os << "rocblas_status_invalid_handle";
-    case rocblas_status_not_implemented:
-      return os << "rocblas_status_not_implemented";
-    case rocblas_status_invalid_pointer:
-      return os << "rocblas_status_invalid_pointer";
-    case rocblas_status_invalid_size:
-      return os << "rocblas_status_invalid_size";
-    case rocblas_status_memory_error:
-      return os << "rocblas_status_memory_error";
-    case rocblas_status_internal_error:
-      return os << "rocblas_status_internal_error";
-    case rocblas_status_perf_degraded:
-      return os << "rocblas_status_perf_degraded";
-    case rocblas_status_size_query_mismatch:
-      return os << "rocblas_status_size_query_mismatch";
-    case rocblas_status_size_increased:
-      return os << "rocblas_status_size_increased";
-    case rocblas_status_size_unchanged:
-      return os << "rocblas_status_size_unchanged";
-    case rocblas_status_invalid_value:
-      return os << "rocblas_status_invalid_value";
-    case rocblas_status_continue:
-      return os << "rocblas_status_continue";
-    default:
-      return os << llvm::formatv("rocblas_status({0})",
-                                 static_cast<int>(status));
-  }
-}
-
-rocblas_operation ToRocblas(BlasOperation operation) {
-  switch (operation) {
-    case BlasOperation::kNone:
-      return rocblas_operation_none;
-    case BlasOperation::kTranspose:
-      return rocblas_operation_transpose;
-    case BlasOperation::kConjugateTranspose:
-      return rocblas_operation_conjugate_transpose;
-  }
-  llvm_unreachable(
-      StrCat("Unrecognized BlasOperation value: ", operation).c_str());
-}
-
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current) {
   CheckHipContext(current);
   rocblas_handle handle = nullptr;
@@ -1659,6 +1612,21 @@ llvm::Error RocblasZtrmm(CurrentContext current, rocblas_handle handle,
   CheckHipContext(current);
   return TO_ERROR(rocblas_ztrmm(handle, side, uplo, trans, diag, m, n,
                                 ToRocm(alpha), ToRocm(A), lda, ToRocm(B), ldb));
+}
+
+llvm::Error RocblasGemmEx(
+    CurrentContext current, rocblas_handle handle, rocblas_operation transa,
+    rocblas_operation transb, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void> A, rocblas_datatype Atype, int lda,
+    Pointer<const void> B, rocblas_datatype Btype, int ldb,
+    Pointer<const void> beta, Pointer<const void> C, rocblas_datatype Ctype,
+    int ldc, Pointer<void> D, rocblas_datatype Dtype, int ldd,
+    rocblas_datatype computeType, rocblas_gemm_algo algo) {
+  CheckHipContext(current);
+  return TO_ERROR(rocblas_gemm_ex(
+      handle, transa, transb, m, n, k, ToRocm(alpha), ToRocm(A), Atype, lda,
+      ToRocm(B), Btype, ldb, ToRocm(beta), ToRocm(C), Ctype, ldc, ToRocm(D),
+      Dtype, ldd, computeType, algo, /*solution_index=*/0, /*flags=*/0));
 }
 
 }  // namespace wrapper

@@ -29,8 +29,27 @@ namespace wrapper {
 extern template void internal::LogResult(llvm::raw_ostream&, cublasStatus_t);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasStatus_t status);
 
-// Convert BLAS wrapper enums to cuBLAS enums.
-cublasOperation_t ToCublas(BlasOperation operation);
+template <>
+Expected<cudaDataType> Parse<cudaDataType>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value);
+
+template <>
+Expected<cublasOperation_t> Parse<cublasOperation_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasOperation_t value);
+
+template <>
+Expected<cublasGemmAlgo_t> Parse<cublasGemmAlgo_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasGemmAlgo_t value);
+
+template <>
+struct PlatformTypeTraits<BlasDataTypeTag, cudaDataType>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasOperationTag, cublasOperation_t>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasGemmAlgoTag, cublasGemmAlgo_t>
+    : public CudaPlatformType {};
 
 llvm::Expected<OwningBlasHandle> CublasCreate(CurrentContext current);
 llvm::Error CublasDestroy(cublasHandle_t handle);

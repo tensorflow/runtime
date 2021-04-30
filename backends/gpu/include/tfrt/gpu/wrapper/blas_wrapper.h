@@ -28,11 +28,13 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-enum class BlasOperation {
-  kNone = 0,
-  kTranspose = 1,
-  kConjugateTranspose = 2,
-};
+// Platform-discriminated enums.
+struct BlasDataTypeTag;
+using BlasDataType = Enum<BlasDataTypeTag>;
+struct BlasOperationTag;
+using BlasOperation = Enum<BlasOperationTag>;
+struct BlasGemmAlgoTag;
+using BlasGemmAlgo = Enum<BlasGemmAlgoTag>;
 
 // Non-owning handles of GPU resources.
 using BlasHandle = Resource<cublasHandle_t, rocblas_handle>;
@@ -65,6 +67,13 @@ llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
                       int k, Pointer<const float> alpha, Pointer<const float> A,
                       int lda, Pointer<const float> B, int ldb,
                       Pointer<const float> beta, Pointer<float> C, int ldc);
+llvm::Error BlasGemmEx(CurrentContext current, BlasHandle handle,
+                       BlasOperation transa, BlasOperation transb, int m, int n,
+                       int k, Pointer<const void> alpha, Pointer<const void> A,
+                       BlasDataType Atype, int lda, Pointer<const void> B,
+                       BlasDataType Btype, int ldb, Pointer<const void> beta,
+                       Pointer<void> C, BlasDataType Ctype, int ldc,
+                       BlasDataType computeType, BlasGemmAlgo algo);
 
 }  // namespace wrapper
 }  // namespace gpu

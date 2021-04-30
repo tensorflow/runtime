@@ -18,6 +18,7 @@
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
+#include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
 
 namespace tfrt {
@@ -45,9 +46,16 @@ static Error BlasSaxpy(const GpuBlasHandle& handle, int32_t n, float alpha,
                             wrapper::Pointer<float>(y.pointer()), incy);
 }
 
-static wrapper::BlasOperation ToBlasOperation(bool transpose) {
-  return transpose ? wrapper::BlasOperation::kTranspose
-                   : wrapper::BlasOperation::kNone;
+static wrapper::BlasOperation ToBlasOperation(bool transpose,
+                                              wrapper::Platform platform) {
+  switch (platform) {
+    case wrapper::Platform::CUDA:
+      return transpose ? CUBLAS_OP_T : CUBLAS_OP_N;
+    case wrapper::Platform::ROCm:
+      return transpose ? rocblas_operation_transpose : rocblas_operation_none;
+    case wrapper::Platform::NONE:
+      return {};
+  }
 }
 
 static llvm::Expected<cudaDataType> SafeIntToCublasDataType(int32_t data_type) {
@@ -83,60 +91,43 @@ static Error BlasSgemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
   wrapper::Pointer<const float> alpha_ptr(&alpha, handle->platform());
   wrapper::Pointer<const float> beta_ptr(&beta, handle->platform());
 
-  return wrapper::BlasSgemm(*current, handle.get(), ToBlasOperation(*transa),
-                            ToBlasOperation(*transb), m, n, k, alpha_ptr,
-                            wrapper::Pointer<const float>(A.pointer()), lda,
-                            wrapper::Pointer<const float>(B.pointer()), ldb,
-                            beta_ptr, wrapper::Pointer<float>(C.pointer()),
-                            ldc);
+  return wrapper::BlasSgemm(
+      *current, handle.get(), ToBlasOperation(*transa, current->platform()),
+      ToBlasOperation(*transb, current->platform()), m, n, k, alpha_ptr,
+      wrapper::Pointer<const float>(A.pointer()), lda,
+      wrapper::Pointer<const float>(B.pointer()), ldb, beta_ptr,
+      wrapper::Pointer<float>(C.pointer()), ldc);
 }
 
-// This function eventually need to make two separate calls to CublasGemmEx and
-// corresponding ROCm function, as wrapper BlassGemmEx for CUDA/ROCm is not
-// feasible due to mismatch in APIs (algo specification parameter).  Right now
-// only CublasGemmEx call is supported.
-static Error BlasGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
-                        int32_t k, float alpha, const GpuBuffer& A,
-                        int32_t Atype, int32_t lda, const GpuBuffer& B,
-                        int32_t Btype, int32_t ldb, float beta,
-                        const GpuBuffer& C, int32_t Ctype, int32_t ldc,
-                        int32_t computeType, int32_t algo,
-                        Attribute<bool> transa, Attribute<bool> transb) {
+static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
+                      int32_t k, float alpha, const GpuBuffer& A, int32_t lda,
+                      const GpuBuffer& B, int32_t ldb, float beta,
+                      const GpuBuffer& C, int32_t ldc,
+                      // Needs to be sorted alphabetically by attribute name!
+                      Attribute<int32_t> Atype, Attribute<int32_t> algo,
+                      Attribute<int32_t> Btype, Attribute<int32_t> Ctype,
+                      Attribute<int32_t> computeType, Attribute<int32_t> transa,
+                      Attribute<int32_t> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
-  wrapper::Pointer<const float> alpha_ptr(&alpha, handle->platform());
-  wrapper::Pointer<const float> beta_ptr(&beta, handle->platform());
 
-  auto transa_cublas = ToCublas(ToBlasOperation(*transa));
-  auto transb_cublas = ToCublas(ToBlasOperation(*transb));
+  TFRT_LOG(ERROR) << wrapper::BlasDataType::FromOpaqueValue(*Ctype) << " "
+                  << wrapper::BlasDataType::FromOpaqueValue(*computeType);
 
-  auto Atype_blas = SafeIntToCublasDataType(Atype);
-  if (!Atype_blas) return Atype_blas.takeError();
+  auto platform = current->platform();
+  wrapper::Pointer<const float> alpha_ptr(&alpha, platform);
+  wrapper::Pointer<const float> beta_ptr(&beta, platform);
 
-  auto Btype_blas = SafeIntToCublasDataType(Btype);
-  if (!Btype_blas) return Btype_blas.takeError();
-
-  auto Ctype_blas = SafeIntToCublasDataType(Ctype);
-  if (!Ctype_blas) return Ctype_blas.takeError();
-
-  auto computeType_blas = SafeIntToCublasDataType(computeType);
-  if (!computeType_blas) return computeType_blas.takeError();
-
-  auto algo_blas = SafeIntToCublasGemmAlgo(algo);
-  if (!algo_blas) return algo_blas.takeError();
-
-  return wrapper::CublasGemmEx(
-      *current, handle.get(), transa_cublas, transb_cublas, m, n, k, alpha_ptr,
-      wrapper::Pointer<const float>(A.pointer()), *Atype_blas, lda,
-      wrapper::Pointer<const float>(B.pointer()), *Btype_blas, ldb, beta_ptr,
-      wrapper::Pointer<float>(C.pointer()), *Ctype_blas, ldc, *computeType_blas,
-      *algo_blas);
+  return wrapper::BlasGemmEx(
+      *current, handle.get(), wrapper::BlasOperation::FromOpaqueValue(*transa),
+      wrapper::BlasOperation::FromOpaqueValue(*transb), m, n, k, alpha_ptr,
+      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Atype), lda,
+      B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Btype), ldb,
+      beta_ptr, C.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Ctype),
+      ldc, wrapper::BlasDataType::FromOpaqueValue(*computeType),
+      wrapper::BlasGemmAlgo::FromOpaqueValue(*algo));
 }
 
-// Note: return type should really just be llvm::Error, but
-// TfrtKernelImpl::HandleReturn does not overload for that. Until we have
-// decided whether async kernels are allowed to have no return values (not even
-// a chain), simply return an empty tuple.
 static Error BlasSyncGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
                             int32_t k, float alpha, const GpuBuffer& A,
                             int32_t Atype, int32_t lda, const GpuBuffer& B,
@@ -149,8 +140,8 @@ static Error BlasSyncGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
   wrapper::Pointer<const float> alpha_ptr(&alpha, handle->platform());
   wrapper::Pointer<const float> beta_ptr(&beta, handle->platform());
 
-  auto transa_cublas = ToCublas(ToBlasOperation(*transa));
-  auto transb_cublas = ToCublas(ToBlasOperation(*transb));
+  auto transa_blas = ToBlasOperation(*transa, current->platform());
+  auto transb_blas = ToBlasOperation(*transb, current->platform());
 
   auto Atype_blas = SafeIntToCublasDataType(Atype);
   if (!Atype_blas) return Atype_blas.takeError();
@@ -168,7 +159,7 @@ static Error BlasSyncGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
   if (!algo_blas) return algo_blas.takeError();
 
   return wrapper::CublasGemmEx(
-      *current, handle.get(), transa_cublas, transb_cublas, m, n, k, alpha_ptr,
+      *current, handle.get(), transa_blas, transb_blas, m, n, k, alpha_ptr,
       wrapper::Pointer<const float>(A.pointer()), *Atype_blas, lda,
       wrapper::Pointer<const float>(B.pointer()), *Btype_blas, ldb, beta_ptr,
       wrapper::Pointer<float>(C.pointer()), *Ctype_blas, ldc, *computeType_blas,
@@ -187,8 +178,8 @@ static Error BlasGemmStridedBatchedEx(
   wrapper::Pointer<const float> alpha_ptr(&alpha, handle->platform());
   wrapper::Pointer<const float> beta_ptr(&beta, handle->platform());
 
-  auto transa_cublas = ToCublas(ToBlasOperation(*transa));
-  auto transb_cublas = ToCublas(ToBlasOperation(*transb));
+  auto transa_blas = ToBlasOperation(*transa, current->platform());
+  auto transb_blas = ToBlasOperation(*transb, current->platform());
 
   auto Atype_blas = SafeIntToCublasDataType(Atype);
   if (!Atype_blas) return Atype_blas.takeError();
@@ -206,7 +197,7 @@ static Error BlasGemmStridedBatchedEx(
   if (!algo_blas) return algo_blas.takeError();
 
   return wrapper::CublasGemmStridedBatchedEx(
-      *current, handle.get(), transa_cublas, transb_cublas, m, n, k, alpha_ptr,
+      *current, handle.get(), transa_blas, transb_blas, m, n, k, alpha_ptr,
       wrapper::Pointer<const float>(A.pointer()), *Atype_blas, lda, strideA,
       wrapper::Pointer<const float>(B.pointer()), *Btype_blas, ldb, strideB,
       beta_ptr, wrapper::Pointer<float>(C.pointer()), *Ctype_blas, ldc, strideC,
@@ -219,8 +210,8 @@ void RegisterGpuBlasKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(BlasSaxpy));
   kernel_reg->AddKernel("tfrt_gpu.blas.gemm.f32",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(BlasSgemm));
-  kernel_reg->AddKernel("tfrt_gpu.blas.gemm.ex",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(BlasGemmEx));
+  kernel_reg->AddKernel("tfrt_gpu.blas.gemm",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(BlasGemm));
   kernel_reg->AddKernel(
       "tfrt_gpu.blas.gemm.strided.batched.ex",
       TFRT_KERNEL_WITH_CHAIN_RESULT(BlasGemmStridedBatchedEx));

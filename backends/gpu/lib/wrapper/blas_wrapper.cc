@@ -103,11 +103,34 @@ llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CublasSgemm(current, handle, ToCublas(transa), ToCublas(transb), m,
-                         n, k, alpha, A, lda, B, ldb, beta, C, ldc);
+      return CublasSgemm(current, handle, transa, transb, m, n, k, alpha, A,
+                         lda, B, ldb, beta, C, ldc);
     case Platform::ROCm:
-      return RocblasSgemm(current, handle, ToRocblas(transa), ToRocblas(transb),
-                          m, n, k, alpha, A, lda, B, ldb, beta, C, ldc);
+      return RocblasSgemm(current, handle, transa, transb, m, n, k, alpha, A,
+                          lda, B, ldb, beta, C, ldc);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error BlasGemmEx(CurrentContext current, BlasHandle handle,
+                       BlasOperation transa, BlasOperation transb, int m, int n,
+                       int k, Pointer<const void> alpha, Pointer<const void> A,
+                       BlasDataType Atype, int lda, Pointer<const void> B,
+                       BlasDataType Btype, int ldb, Pointer<const void> beta,
+                       Pointer<void> C, BlasDataType Ctype, int ldc,
+                       BlasDataType computeType, BlasGemmAlgo algo) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CublasGemmEx(current, handle, transa, transb, m, n, k, alpha, A,
+                          Atype, lda, B, Btype, ldb, beta, C, Ctype, ldc,
+                          computeType, algo);
+    case Platform::ROCm:
+      return RocblasGemmEx(current, handle, transa, transb, m, n, k, alpha, A,
+                           Atype, lda, B, Btype, ldb, beta, C, Ctype, ldc,
+                           // Note: pass C as input and output.
+                           C, Ctype, ldc, computeType, algo);
     default:
       return InvalidPlatform(platform);
   }

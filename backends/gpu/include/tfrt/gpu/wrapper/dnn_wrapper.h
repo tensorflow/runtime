@@ -31,11 +31,9 @@ namespace wrapper {
 
 constexpr int kDnnDimMax() { return 8; }
 
+// Platform-discriminated enums.
 struct DnnDataTypeTag;
-// Data type enum (platform-discriminated).
 using DnnDataType = Enum<DnnDataTypeTag>;
-
-// Convolution algorithm ids (platform-discriminated).
 struct DnnConvFwdAlgoTag {
   using type = uint64_t;
 };
@@ -48,10 +46,8 @@ struct DnnConvBwdWeightsAlgoTag {
   using type = uint64_t;
 };
 using DnnConvBwdWeightsAlgo = Enum<DnnConvBwdWeightsAlgoTag>;
-
-// Only supported by cuDNN.
 struct DnnNanPropagationTag;
-using DnnNanPropagation = Enum<DnnNanPropagationTag>;
+using DnnNanPropagation = Enum<DnnNanPropagationTag>;  // cuDNN only.
 
 enum class DnnConvolutionMode { kConvolution, kCrossCorrelation };
 

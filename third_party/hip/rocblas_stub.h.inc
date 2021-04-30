@@ -41,6 +41,7 @@ typedef enum rocblas_status_ {
   rocblas_status_size_unchanged = 10,
   rocblas_status_invalid_value = 11,
   rocblas_status_continue = 12,
+  rocblas_status_check_numerics_fail = 13,
 } rocblas_status;
 
 typedef enum rocblas_datatype_ {
@@ -940,3 +941,12 @@ rocblas_status rocblas_zgemm(rocblas_handle handle, rocblas_operation transA,
                              const rocblas_double_complex* B, rocblas_int ldb,
                              const rocblas_double_complex* beta,
                              rocblas_double_complex* C, rocblas_int ldc);
+
+rocblas_status rocblas_gemm_ex(
+    rocblas_handle handle, rocblas_operation transA, rocblas_operation transB,
+    rocblas_int m, rocblas_int n, rocblas_int k, const void* alpha,
+    const void* a, rocblas_datatype a_type, rocblas_int lda, const void* b,
+    rocblas_datatype b_type, rocblas_int ldb, const void* beta, const void* c,
+    rocblas_datatype c_type, rocblas_int ldc, void* d, rocblas_datatype d_type,
+    rocblas_int ldd, rocblas_datatype compute_type, rocblas_gemm_algo algo,
+    int32_t solution_index, uint32_t flags);

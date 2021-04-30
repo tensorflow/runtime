@@ -29,8 +29,10 @@ namespace wrapper {
 
 extern template void internal::LogResult(llvm::raw_ostream&, cudnnStatus_t);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status);
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t dtype);
-Expected<cudnnDataType_t> ParseCudnnDataType(llvm::StringRef name);
+
+template <>
+Expected<cudnnDataType_t> Parse<cudnnDataType_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t value);
 
 template <>
 struct PlatformTypeTraits<DnnDataTypeTag, cudnnDataType_t>

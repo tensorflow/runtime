@@ -29,8 +29,27 @@ namespace wrapper {
 extern template void internal::LogResult(llvm::raw_ostream&, rocblas_status);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status);
 
-// Convert BLAS wrapper enums to rocBLAS enums.
-rocblas_operation ToRocblas(BlasOperation operation);
+template <>
+Expected<rocblas_datatype> Parse<rocblas_datatype>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_datatype value);
+
+template <>
+Expected<rocblas_operation> Parse<rocblas_operation>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_operation value);
+
+template <>
+Expected<rocblas_gemm_algo> Parse<rocblas_gemm_algo>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_gemm_algo value);
+
+template <>
+struct PlatformTypeTraits<BlasDataTypeTag, rocblas_datatype>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasOperationTag, rocblas_operation>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasGemmAlgoTag, rocblas_gemm_algo>
+    : public CudaPlatformType {};
 
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current);
 llvm::Error RocblasDestroy(rocblas_handle handle);
@@ -795,6 +814,17 @@ llvm::Error RocblasZtrmm(CurrentContext current, rocblas_handle handle,
                          int n, Pointer<const rocblas_double_complex> alpha,
                          Pointer<const rocblas_double_complex> A, int lda,
                          Pointer<rocblas_double_complex> B, int ldb);
+
+llvm::Error RocblasGemmEx(CurrentContext current, rocblas_handle handle,
+                          rocblas_operation transa, rocblas_operation transb,
+                          int m, int n, int k, Pointer<const void> alpha,
+                          Pointer<const void> A, rocblas_datatype Atype,
+                          int lda, Pointer<const void> B,
+                          rocblas_datatype Btype, int ldb,
+                          Pointer<const void> beta, Pointer<const void> C,
+                          rocblas_datatype Ctype, int ldc, Pointer<void> D,
+                          rocblas_datatype Dtype, int ldd,
+                          rocblas_datatype computeType, rocblas_gemm_algo algo);
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

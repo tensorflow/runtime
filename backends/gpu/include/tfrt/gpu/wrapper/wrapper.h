@@ -253,6 +253,23 @@ class Enum {
     return value_ == other.value_ && platform_ == other.platform_;
   }
   bool operator!=(Enum other) const { return !(*this == other); }
+  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
+  bool operator==(T value) const {
+    return platform_ == PlatformTypeTraits<Tag_, T>::value && *this == value;
+  }
+  template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
+  bool operator!=(T value) const {
+    return !(*this == value);
+  }
+
+  ValueType ToOpaqueValue() const {
+    auto result = value_ << 2 | static_cast<ValueType>(platform_);
+    assert(*this == FromOpaqueValue(result) && "roundtrip failed");
+    return result;
+  }
+  static Enum FromOpaqueValue(ValueType opaque) {
+    return Enum(opaque >> 2, static_cast<Platform>(opaque & 0x3));
+  }
 
  private:
   ValueType value_;

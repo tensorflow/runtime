@@ -150,8 +150,7 @@ func @dnn_pooling_test() {
   %sin3 = tfrt.constant.i32 1
   %stride_in = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
   %ch20 = "tfrt_dht.set_tensor_with_values.i32"(%stride_in, %ch19, %sin0, %sin1, %sin2, %sin3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
-  %data_type_in = tfrt.constant.ui32 0
-  %in_desc = tfrt_gpu.dnn.create_tensor_descriptor %context, %data_type_in, %dim_in, %stride_in, %ch20
+  %in_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT, %dim_in, %stride_in, %ch20
 
   %dout0 = tfrt.constant.i32 2
   %dout1 = tfrt.constant.i32 2
@@ -165,8 +164,7 @@ func @dnn_pooling_test() {
   %sout3 = tfrt.constant.i32 1
   %stride_out = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
   %ch24 = "tfrt_dht.set_tensor_with_values.i32"(%stride_out, %ch23, %sout0, %sout1, %sout2, %sout3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
-  %data_type_out = tfrt.constant.ui32 0
-  %out_desc = tfrt_gpu.dnn.create_tensor_descriptor %context, %data_type_out, %dim_out, %stride_out, %ch24
+  %out_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT, %dim_out, %stride_out, %ch24
 
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 0.0

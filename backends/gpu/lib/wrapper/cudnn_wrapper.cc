@@ -93,6 +93,19 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnDataType_t dtype) {
   }
 }
 
+Expected<cudnnDataType_t> ParseCudnnDataType(llvm::StringRef name) {
+  if (name == "CUDNN_DATA_FLOAT") return CUDNN_DATA_FLOAT;
+  if (name == "CUDNN_DATA_DOUBLE") return CUDNN_DATA_DOUBLE;
+  if (name == "CUDNN_DATA_HALF") return CUDNN_DATA_HALF;
+  if (name == "CUDNN_DATA_INT8") return CUDNN_DATA_INT8;
+  if (name == "CUDNN_DATA_INT32") return CUDNN_DATA_INT32;
+  if (name == "CUDNN_DATA_INT8x4") return CUDNN_DATA_INT8x4;
+  if (name == "CUDNN_DATA_UINT8") return CUDNN_DATA_UINT8;
+  if (name == "CUDNN_DATA_UINT8x4") return CUDNN_DATA_UINT8x4;
+  if (name == "CUDNN_DATA_INT8x32") return CUDNN_DATA_INT8x32;
+  return MakeStringError("Unknown cudnnDataType_t: ", name);
+}
+
 // Returns reference to API log of the last cuDNN API call.
 static std::string& CudnnLogTop() {
   thread_local auto string = new std::string;

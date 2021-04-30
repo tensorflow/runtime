@@ -38,9 +38,9 @@ def GPU_DeviceGetOp : GPU_Op<"device.get"> {
       %index = tfrt.constant.i32 0
       %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : ui32 }
   }];
-  let arguments = (ins I32Attr:$platform, I32:$ordinal, TFRT_ChainType);
+  let arguments = (ins GPU_PlatformAttr:$platform, I32:$ordinal, TFRT_ChainType);
   let results = (outs GPU_DeviceType);
-  let assemblyFormat = "custom<Platform>($platform)`,` operands attr-dict";
+  let assemblyFormat = "custom<Enum>($platform)`,` operands attr-dict";
 }
 
 def GPU_ContextCreateOp : GPU_Op<"context.create"> {

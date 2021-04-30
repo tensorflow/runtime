@@ -22,8 +22,11 @@
 #ifndef TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_
 #define TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_
 
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
+#include "tfrt/gpu/wrapper/dnn_wrapper.h"
+#include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/tensor/opdefs/host_tensor.h"
 #include "tfrt/tensor/opdefs/tensor.h"
 #include "tfrt/tensor/opdefs/tensor_shape.h"
@@ -39,6 +42,43 @@ class GpuDialect : public Dialect {
   static StringRef getDialectNamespace() { return "tfrt_gpu"; }
   explicit GpuDialect(MLIRContext* context);
 };
+
+// An attribute that wrapps an I32Attr holding an enum or wrapper::Enum value.
+template <typename T>
+class EnumAttr : public Attribute {
+ public:
+  using Attribute::Attribute;
+  static EnumAttr get(MLIRContext* context, T value) {
+    return IntegerAttr::get(IntegerType::get(context, 32),
+                            APInt(32, ToOpaqueValue(value)))
+        .cast<EnumAttr>();
+  }
+  T getValue() const {
+    return FromOpaqueValue(IntegerAttr(impl).getValue().getZExtValue());
+  }
+  static bool classof(Attribute attr) {
+    IntegerAttr int_attr = attr.dyn_cast<IntegerAttr>();
+    return int_attr && int_attr.getType().isSignlessInteger(32);
+  }
+
+ private:
+  static int ToOpaqueValue(T value) { return value.ToOpaqueValue(); }
+  static T FromOpaqueValue(int opaque) { return T::FromOpaqueValue(opaque); }
+};
+
+// wrapper::Platform specialization. If there are more, SFINAE on std::is_enum.
+template <>
+inline int EnumAttr<wrapper::Platform>::ToOpaqueValue(wrapper::Platform value) {
+  return static_cast<int>(value);
+}
+template <>
+inline wrapper::Platform EnumAttr<wrapper::Platform>::FromOpaqueValue(
+    int opaque) {
+  return static_cast<wrapper::Platform>(opaque);
+}
+
+using PlatformAttr = EnumAttr<wrapper::Platform>;
+using DnnDataTypeAttr = EnumAttr<wrapper::DnnDataType>;
 
 namespace conversion {
 

@@ -54,4 +54,16 @@ def GPU_BufferType : GPU_Type<"buffer">;
 def GPU_ContextType : GPU_Type<"context">;
 def GPU_StreamType : GPU_Type<"stream">;
 
+// Attribute definitions.
+
+class GPU_WrapperAttr<string name> : DialectAttr<
+    GPU_Dialect, CPred<"$_self.isa<::tfrt::gpu::" # name # "Attr>()">> {
+  let storageType = "::tfrt::gpu::" # name # "Attr";
+  let returnType = "::tfrt::gpu::wrapper::" # name;
+  let valueType = I32;
+  let constBuilderCall = storageType # "::get($_builder.getContext(), $0)";
+}
+
+def GPU_PlatformAttr : GPU_WrapperAttr<"Platform">;
+
 #endif  // GPU_OPS_BASE

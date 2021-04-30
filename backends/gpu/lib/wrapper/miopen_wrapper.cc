@@ -77,6 +77,16 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenDataType_t dtype) {
   }
 }
 
+Expected<miopenDataType_t> ParseMiopenDataType(llvm::StringRef name) {
+  if (name == "miopenHalf") return miopenHalf;
+  if (name == "miopenFloat") return miopenFloat;
+  if (name == "miopenInt32") return miopenInt32;
+  if (name == "miopenInt8") return miopenInt8;
+  if (name == "miopenInt8x4") return miopenInt8x4;
+  if (name == "miopenBFloat16") return miopenBFloat16;
+  return MakeStringError("Unknown miopenDataType_t: ", name);
+}
+
 llvm::Expected<LibraryVersion> MiopenGetVersion() {
   size_t major, minor, patch;
   RETURN_IF_ERROR(miopenGetVersion(&major, &minor, &patch));

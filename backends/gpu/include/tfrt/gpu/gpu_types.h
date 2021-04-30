@@ -39,6 +39,7 @@ namespace gpu {
 // Types that do not need a wrapper class go here.
 using GpuFunction = wrapper::Function;
 using GpuPointer = wrapper::Pointer<void>;
+using GpuDnnTensorDesc = wrapper::OwningDnnTensorDescriptor;
 
 class GpuContext {
  public:

@@ -133,6 +133,21 @@ class AsyncKernelFrame {
     return AggregateAttr(GetAttribute(index));
   }
 
+  DenseAttr GetDenseAttr(int index) const {
+    assert(index < GetNumAttributes());
+    return DenseAttr(GetAttribute(index));
+  }
+
+  ShapeAttr GetShapeAttr(int index) const {
+    assert(index < GetNumAttributes());
+    return ShapeAttr(GetAttribute(index));
+  }
+
+  ArrayAttr GetArrayAttr(int index) const {
+    assert(index < GetNumAttributes());
+    return ArrayAttr(GetAttribute(index));
+  }
+
   // Get the array attribute at the given index as type T.
   template <typename T>
   ArrayAttribute<T> GetArrayAttributeAt(int index) const {

@@ -482,3 +482,46 @@ tfrt_cc_test(
         "@tf_runtime//:support",
     ],
 )
+
+tfrt_cc_test(
+    name = "bef_converter/bef_attr_emitter_test",
+    srcs = ["bef_converter/bef_attr_emitter_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Translation",
+        "@tf_runtime//:bef_attr_emitter",
+        "@tf_runtime//:bef_attr_encoder",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:init_tfrt_dialects",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_test(
+    name = "bef_converter/bef_attr_reader_test",
+    srcs = ["bef_converter/bef_attr_reader_test.cc"],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Translation",
+        "@tf_runtime//:bef_attr_emitter",
+        "@tf_runtime//:bef_attr_encoder",
+        "@tf_runtime//:bef_attr_reader",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:init_tfrt_dialects",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)

@@ -405,10 +405,6 @@ class RemainingAttributes {
     return AggregateAttr(GetAttribute(i));
   }
 
-  TypedAttrBase GetTypedAttr(size_t i) const {
-    return TypedAttrBase(GetAttribute(i));
-  }
-
  private:
   const void* GetAttribute(int i) const {
     return kernel_frame_->GetAttribute(i + attr_begin_);
@@ -855,6 +851,70 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
     }
   };
 
+  // Like the above, but for AggregateAttr.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<AggregateAttr, Tail...> {
+    template <int in_idx, int out_idx, int const_idx, int func_idx,
+              bool has_kernel_error, bool has_in_chain,
+              typename... PreviousArgs>
+    static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(const_idx != -1,
+                    "Do not place AggregateAttr after RemainingAttributes");
+      AggregateAttr arg = frame->GetAggregateAttr(const_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<
+          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          has_in_chain>(frame, pargs..., arg);
+    }
+  };
+
+  // Like the above, but for DenseAttr.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<DenseAttr, Tail...> {
+    template <int in_idx, int out_idx, int const_idx, int func_idx,
+              bool has_kernel_error, bool has_in_chain,
+              typename... PreviousArgs>
+    static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(const_idx != -1,
+                    "Do not place DenseAttr after RemainingAttributes");
+      DenseAttr arg = frame->GetDenseAttr(const_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<
+          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          has_in_chain>(frame, pargs..., arg);
+    }
+  };
+
+  // Like the above, but for ShapeAttr.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<ShapeAttr, Tail...> {
+    template <int in_idx, int out_idx, int const_idx, int func_idx,
+              bool has_kernel_error, bool has_in_chain,
+              typename... PreviousArgs>
+    static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(const_idx != -1,
+                    "Do not place ShapeAttr after RemainingAttributes");
+      ShapeAttr arg = frame->GetShapeAttr(const_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<
+          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          has_in_chain>(frame, pargs..., arg);
+    }
+  };
+
+  // Like the above, but for ArrayAttr.
+  template <typename... Tail>
+  struct SyncKernelCallHelper<ArrayAttr, Tail...> {
+    template <int in_idx, int out_idx, int const_idx, int func_idx,
+              bool has_kernel_error, bool has_in_chain,
+              typename... PreviousArgs>
+    static void Invoke(AsyncKernelFrame* frame, const PreviousArgs&... pargs) {
+      static_assert(const_idx != -1,
+                    "Do not place ArrayAttr after RemainingAttributes");
+      ArrayAttr arg = frame->GetArrayAttr(const_idx);
+      SyncKernelCallHelper<Tail...>::template Invoke<
+          in_idx, out_idx, const_idx + 1, func_idx, has_kernel_error,
+          has_in_chain>(frame, pargs..., arg);
+    }
+  };
+
   // Like the above, but for typed attributes.
   template <typename TypedAttrT, typename... Tail>
   struct SyncKernelCallTypedAttrHelper {
@@ -889,26 +949,6 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
   template <typename... Tail>
   struct SyncKernelCallHelper<StringAttr, Tail...>
       : SyncKernelCallTypedAttrHelper<StringAttr, Tail...> {};
-
-  // Like the above, but for DenseAttr.
-  template <typename... Tail>
-  struct SyncKernelCallHelper<DenseAttr, Tail...>
-      : SyncKernelCallTypedAttrHelper<DenseAttr, Tail...> {};
-
-  // Like the above, but for ShapeAttr.
-  template <typename... Tail>
-  struct SyncKernelCallHelper<ShapeAttr, Tail...>
-      : SyncKernelCallTypedAttrHelper<ShapeAttr, Tail...> {};
-
-  // Like the above, but for ArrayAttr.
-  template <typename... Tail>
-  struct SyncKernelCallHelper<ArrayAttr, Tail...>
-      : SyncKernelCallTypedAttrHelper<ArrayAttr, Tail...> {};
-
-  // Like the above, but for AggregateAttr.
-  template <typename... Tail>
-  struct SyncKernelCallHelper<AggregateAttr, Tail...>
-      : SyncKernelCallTypedAttrHelper<AggregateAttr, Tail...> {};
 
   template <typename... Tail>
   struct SyncKernelCallHelper<RemainingAttributes, Tail...> {

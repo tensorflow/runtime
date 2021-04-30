@@ -21,6 +21,8 @@
 #ifndef TFRT_HOST_CONTEXT_ATTRIBUTE_UTILS_H_
 #define TFRT_HOST_CONTEXT_ATTRIBUTE_UTILS_H_
 
+#include <numeric>
+
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Alignment.h"
@@ -73,6 +75,28 @@ class Attribute {
   const T& value_;
 };
 
+// Kernels should use this so we know it has an array attribute.
+template <typename T>
+class ArrayAttribute {
+ public:
+  explicit ArrayAttribute(const void* data) {
+    if (data) {
+      size_t element_count;
+      auto ptr =
+          ReadVbrInt(reinterpret_cast<const uint8_t*>(data), &element_count);
+      data_ =
+          llvm::makeArrayRef(reinterpret_cast<const T*>(ptr), element_count);
+    }
+  }
+
+  ArrayRef<T> data() const { return data_; }
+  size_t size() const { return data_.size(); }
+  const T& operator[](size_t i) const { return data_[i]; }
+
+ private:
+  ArrayRef<T> data_;
+};
+
 // Like Attribute, but specifically for strings. We use this instead of
 // Attribute<std::string> because strings are stored as character arrays and we
 // don't want unnecessary deep copies.
@@ -82,17 +106,23 @@ class Attribute {
 // provides an ArrayRef<char>.
 class StringAttribute {
  public:
+  StringAttribute() = default;
+
   explicit StringAttribute(const void* value) {
     ASSERT_LITTLE_ENDIAN();
-    auto char_array = DecodeArrayFromBEFAttributes<char>(value);
-    value_ = string_view(char_array.data(), char_array.size());
+    if (value) {
+      size_t string_length;
+      auto ptr =
+          ReadVbrInt(reinterpret_cast<const uint8_t*>(value), &string_length);
+      value_ = string_view(reinterpret_cast<const char*>(ptr), string_length);
+    }
   }
 
   string_view get() const { return value_; }
   operator string_view() const { return value_; }
   std::string str() const { return std::string(value_); }
 
- private:
+ protected:
   string_view value_;
 };
 
@@ -142,23 +172,6 @@ class CompilationUnitAttribute {
   string_view serialized_operation_;
 };
 
-// Kernels should use this so we know it has an array attribute.
-template <typename T>
-class ArrayAttribute {
- public:
-  explicit ArrayAttribute(const void* data)
-      : data_(DecodeArrayFromBEFAttributes<T>(data)) {
-    ASSERT_LITTLE_ENDIAN();
-  }
-
-  ArrayRef<T> data() const { return data_; }
-  size_t size() const { return data_.size(); }
-  const T& operator[](size_t i) const { return data_[i]; }
-
- private:
-  ArrayRef<T> data_;
-};
-
 // FunctionAttribute holds the function name. Can be extended in the future.
 struct FunctionAttribute {
   string_view func_name;
@@ -169,129 +182,97 @@ struct FunctionAttribute {
 // subclasses.
 class TypedAttrBase {
  public:
-  TypedAttrBase() = default;
-  explicit TypedAttrBase(const void* base)
-      : base_(static_cast<const BEFAttrBase*>(base)) {}
+  TypedAttrBase() : data_(nullptr) {}
 
-  BEFAttributeType type() const { return base_->type; }
+  TypedAttrBase(BEFAttributeType type, const void* data)
+      : type_(type), data_(static_cast<const uint8_t*>(data)) {}
 
-  const void* data() const { return static_cast<const void*>(base_); }
-  size_t GetByteSize() const { return GetBEFAttrByteCount(*base_); }
+  BEFAttributeType type() const {
+    if (type_ != BEFAttributeType::kArray) return type_;
+    size_t embedded_type;
+    ReadVbrInt(data_ - 2, &embedded_type);
+    return static_cast<BEFAttributeType>(embedded_type);
+  }
+
+  const void* data() const { return data_; }
 
   template <typename T>
   bool isa() const {
     return T::classof(*this);
   }
+
   template <typename T>
   T dyn_cast() const {
-    return isa<T>() ? T(base_) : T(nullptr);
+    return isa<T>() ? T(type_, data_) : T();
   }
+
   template <typename T>
   T cast() const {
     assert(isa<T>());
-    return T(base_);
+    return T(type_, data_);
   }
 
-  explicit operator bool() const { return base_ != nullptr; }
+  explicit operator bool() const { return data_ != nullptr; }
 
- private:
-  const BEFAttrBase* base_ = nullptr;
+ protected:
+  BEFAttributeType type_;
+  const uint8_t* data_ = nullptr;
 };
 
 namespace internal {
 
-// An intermediate class template that provides the header decoding method for
-// all subclasses.
-template <typename AttrClass, typename HeaderType>
-class AttrHeaderBase : public TypedAttrBase {
- public:
-  using TypedAttrBase::TypedAttrBase;
-  using Base = AttrHeaderBase;
-
-  AttrHeaderBase(const void* data) : TypedAttrBase(data) {
-    assert(data == nullptr || isa<AttrClass>());
-  }
-
- protected:
-  const HeaderType& header() const {
-    return *static_cast<const HeaderType*>(data());
-  }
-};
-
 // An intermediate class template for all fixed-width attributes. It provides
 // the common GetValue() method for all fixed-width attributes.
-template <typename DataTypeAttrClass, typename HeaderType,
-          DType::Kind DataTypeEnum, typename DataType>
-class DataTypeAttrBase : public AttrHeaderBase<DataTypeAttrClass, HeaderType> {
+template <DType::Kind DataTypeEnum, typename DataType>
+class DataTypeAttrBase : public TypedAttrBase {
  public:
-  using AttrHeaderBase<DataTypeAttrClass, HeaderType>::AttrHeaderBase;
-  using Base = DataTypeAttrBase;
+  using TypedAttrBase::TypedAttrBase;
+  explicit DataTypeAttrBase(const void* data)
+      : TypedAttrBase(static_cast<BEFAttributeType>(DataTypeEnum), data) {}
 
   DataType GetValue() const {
-    DataType value;
-    std::memcpy(&value, &this->header().data, sizeof(DataType));
-    return value;
+    return *reinterpret_cast<const DataType*>(data_);
   }
 
+  size_t GetByteSize() const { return sizeof(DataType); }
+
   static bool classof(TypedAttrBase base) {
-    return IsDataTypeAttribute(base.type()) &&
-           GetDataType(base.type()) == DataTypeEnum;
+    const auto attr_type = base.type();
+    return IsDataTypeAttribute(attr_type) &&
+           GetDataType(attr_type) == DataTypeEnum;
   }
 };
 
 }  // namespace internal
 
-class I1Attr : public internal::DataTypeAttrBase<I1Attr, BEFFixed8Attr,
-                                                 DType::I1, uint8_t> {
- public:
-  using Base::Base;
+using UI8Attr = internal::DataTypeAttrBase<DType::UI8, uint8_t>;
+using UI16Attr = internal::DataTypeAttrBase<DType::UI16, uint16_t>;
+using UI32Attr = internal::DataTypeAttrBase<DType::UI32, uint32_t>;
+using UI64Attr = internal::DataTypeAttrBase<DType::UI64, uint64_t>;
+using I8Attr = internal::DataTypeAttrBase<DType::I8, uint8_t>;
+using I16Attr = internal::DataTypeAttrBase<DType::I16, int16_t>;
+using I32Attr = internal::DataTypeAttrBase<DType::I32, int32_t>;
+using I64Attr = internal::DataTypeAttrBase<DType::I64, int64_t>;
+using F32Attr = internal::DataTypeAttrBase<DType::F32, float>;
+using F64Attr = internal::DataTypeAttrBase<DType::F64, double>;
+using BF16Attr = internal::DataTypeAttrBase<DType::BF16, int16_t>;
+using F16Attr = internal::DataTypeAttrBase<DType::F16, int16_t>;
 
-  // TODO(chky): I1Attr should return tfrt::i1 directly.
-  bool GetValue() const { return static_cast<bool>(Base::GetValue()); }
+class I1Attr : public internal::DataTypeAttrBase<DType::I1, uint8_t> {
+ public:
+  using DataTypeAttrBase::DataTypeAttrBase;
+
+  bool GetValue() const {
+    return static_cast<bool>(DataTypeAttrBase::GetValue());
+  }
 };
 
-class I8Attr : public internal::DataTypeAttrBase<I8Attr, BEFFixed8Attr,
-                                                 DType::I8, uint8_t> {
+class TypeAttr : public TypedAttrBase {
  public:
-  using Base::Base;
-};
-
-class I32Attr : public internal::DataTypeAttrBase<I32Attr, BEFFixed32Attr,
-                                                  DType::I32, int32_t> {
- public:
-  using Base::Base;
-};
-
-class F32Attr : public internal::DataTypeAttrBase<F32Attr, BEFFixed32Attr,
-                                                  DType::F32, float> {
- public:
-  using Base::Base;
-};
-
-class I64Attr : public internal::DataTypeAttrBase<I64Attr, BEFFixed64Attr,
-                                                  DType::I64, int64_t> {
- public:
-  using Base::Base;
-};
-
-class BF16Attr : public internal::DataTypeAttrBase<BF16Attr, BEFFixed16Attr,
-                                                   DType::BF16, uint16_t> {
- public:
-  using Base::Base;
-};
-
-class F64Attr : public internal::DataTypeAttrBase<F64Attr, BEFFixed64Attr,
-                                                  DType::F64, double> {
- public:
-  using Base::Base;
-};
-
-class TypeAttr : public internal::AttrHeaderBase<TypeAttr, BEFFixed8Attr> {
- public:
-  using Base::Base;
+  using TypedAttrBase::TypedAttrBase;
 
   DType::Kind GetValue() const {
-    return static_cast<DType::Kind>(header().data);
+    return *(reinterpret_cast<const DType::Kind*>(data_));
   }
 
   static bool classof(TypedAttrBase base) {
@@ -299,44 +280,61 @@ class TypeAttr : public internal::AttrHeaderBase<TypeAttr, BEFFixed8Attr> {
   }
 };
 
-class ArrayAttr : public internal::AttrHeaderBase<ArrayAttr, BEFArrayAttr> {
+class ArrayAttr : public TypedAttrBase {
  public:
-  using Base::Base;
+  using TypedAttrBase::TypedAttrBase;
+  explicit ArrayAttr(const void* data)
+      : ArrayAttr(BEFAttributeType::kArray, data) {}
+
+  ArrayAttr(BEFAttributeType type, const void* data)
+      : TypedAttrBase(type, data) {
+    if (data) {
+      element_base_ =
+          ReadVbrInt(reinterpret_cast<const uint8_t*>(data_), &element_count_);
+    }
+  }
 
   BEFAttributeType GetElementType() const {
-    return GetElementAttributeType(type());
+    return GetElementAttributeType(type_);
   }
 
-  const void* GetElements() const {
-    const auto* bytes = static_cast<const uint8_t*>(data());
-    return bytes + header().element_offset;
-  }
+  const void* GetElements() const { return element_base_; }
 
   template <typename T>
   ArrayRef<T> GetValue() const {
     // For empty arrays, we don't care the element type.
     if (GetNumElements() == 0) return {};
-    assert(GetBEFAttributeType<T>() == GetElementType());
     return llvm::makeArrayRef(static_cast<const T*>(GetElements()),
                               GetNumElements());
   }
 
-  size_t GetNumElements() const { return header().num_elements; }
+  size_t GetNumElements() const { return element_count_; }
 
   static bool classof(TypedAttrBase base) {
     return IsArrayAttribute(base.type());
   }
+
+  size_t GetByteSize() const {
+    return GetSizeOfVbrInt(static_cast<size_t>(element_count_)) +
+           GetAttributeDataTypeByteSize(GetElementAttributeType(type_)) *
+               element_count_;
+  }
+
+ protected:
+  const void* element_base_;
+  size_t element_count_;
 };
 
-class StringAttr : public internal::AttrHeaderBase<StringAttr, BEFStringAttr> {
+class StringAttr : public TypedAttrBase, public StringAttribute {
  public:
-  using Base::Base;
+  using TypedAttrBase::TypedAttrBase;
+  explicit StringAttr(const void* data)
+      : StringAttr(static_cast<BEFAttributeType>(DType::String), data) {}
 
-  string_view GetValue() const {
-    return string_view(
-        reinterpret_cast<const char*>(header().data),
-        GetBEFAttrByteCount(header().base) - sizeof(BEFAttrBase));
-  }
+  StringAttr(BEFAttributeType type, const void* data)
+      : TypedAttrBase(type, data), StringAttribute(data_) {}
+
+  string_view GetValue() const { return get(); }
 
   static bool classof(TypedAttrBase base) {
     return IsDataTypeAttribute(base.type()) &&
@@ -351,24 +349,33 @@ class StringAttr : public internal::AttrHeaderBase<StringAttr, BEFStringAttr> {
 // Currently we ignore the attributes in a TensorFlow function op, which is
 // different from current TensorFlow runtime. This is acceptable since these
 // attributes are unused.
-class FuncAttr : public internal::AttrHeaderBase<FuncAttr, BEFStringAttr> {
+class FuncAttr : private StringAttr {
  public:
-  using Base::Base;
+  explicit FuncAttr(const void* data)
+      : StringAttr(BEFAttributeType::kFunc, data) {}
 
-  string_view GetFunctionName() const {
-    return string_view(
-        reinterpret_cast<const char*>(header().data),
-        GetBEFAttrByteCount(header().base) - sizeof(BEFAttrBase));
-  }
+  FuncAttr(BEFAttributeType type, const void* data) : StringAttr(type, data) {}
+
+  string_view GetFunctionName() const { return GetValue(); }
 
   static bool classof(TypedAttrBase base) {
     return base.type() == BEFAttributeType::kFunc;
   }
 };
 
-class ShapeAttr : public internal::AttrHeaderBase<ShapeAttr, BEFShapeAttr> {
+class ShapeAttr : public TypedAttrBase {
  public:
-  using Base::Base;
+  using TypedAttrBase::TypedAttrBase;
+
+  explicit ShapeAttr(const void* data)
+      : ShapeAttr(BEFAttributeType::kShape, data) {}
+
+  ShapeAttr(BEFAttributeType type, const void* data)
+      : TypedAttrBase(type, data) {
+    if (data) {
+      shape_base_ = ReadVbrInt(reinterpret_cast<const uint8_t*>(data), &rank_);
+    }
+  }
 
   // Return the prefix size of ShapeAttr.
   //
@@ -395,92 +402,208 @@ class ShapeAttr : public internal::AttrHeaderBase<ShapeAttr, BEFShapeAttr> {
   //
   // When the object is placed at (A + P), it guarantees that
   // all the sub element alignment constraints meet as well.
-  size_t GetPrefixSize() const { return 0; }
+  size_t GetPrefixSize() const {
+    return (rank_ <= 1) ? 0 : GetSizeOfVbrInt(rank_);
+  }
 
   // Return the peak alignment constraint of ShapeAttr.
-  size_t Alignment() const { return alignof(int64_t); }
+  size_t Alignment() const { return (rank_ <= 1) ? 1 : alignof(int64_t); }
 
-  bool HasRank() const { return header().shape_type == BEFShapeType::kRanked; }
+  int GetRank() const { return static_cast<int>(rank_) - 1; }
+
+  bool HasRank() const { return rank_ > 0; }
+
+  ArrayRef<int64_t> GetShape() const {
+    const auto shape_size = (rank_) ? rank_ - 1 : 0;
+    return llvm::makeArrayRef(reinterpret_cast<const int64_t*>(shape_base_),
+                              shape_size);
+  }
 
   static bool classof(TypedAttrBase base) {
     return base.type() == BEFAttributeType::kShape;
   }
 
-  int GetRank() const { return header().rank; }
-
-  ArrayRef<int64_t> GetShape() const {
-    return llvm::makeArrayRef(
-        reinterpret_cast<const BEFRankedShapeAttr*>(data())->dims, GetRank());
+  size_t GetByteSize() const {
+    return (rank_ <= 1)
+               ? 1
+               : (rank_ - 1) * sizeof(int64_t) + GetSizeOfVbrInt(rank_);
   }
+
+ protected:
+  // To distinguish unranked shapes from zero ranked shapes,
+  // rank_ is set as follows:
+  //   rank_ == 0: unranked shape
+  //   rank_ == 1: zero ranked shape
+  //   rank_ >= 2: ranked shape ( sizeof(dimension) + 1 ).
+  size_t rank_;
+  const uint8_t* shape_base_;
 };
 
-class DenseAttr : public internal::AttrHeaderBase<DenseAttr, BEFDenseAttr> {
+class DenseAttr : public TypedAttrBase {
  public:
-  using Base::Base;
+  using TypedAttrBase::TypedAttrBase;
 
-  // Return the prefix size of DenseAttr.
-  size_t GetPrefixSize() const { return 0; }
+  explicit DenseAttr(const void* data)
+      : DenseAttr(BEFAttributeType::kDense, data) {}
 
-  // Return the peak alignment constraint of DenseAttr.
-  size_t Alignment() const { return alignof(int64_t); }
-
-  DType::Kind dtype() const { return GetDataType(type()); }
-
-  llvm::ArrayRef<int64_t> shape() const {
-    const auto* bytes = static_cast<const uint8_t*>(data());
-    const auto& header = this->header();
-
-    // BEF currently stores shapes in int64_t. In the long term, since BEF is
-    // designed to be target specific, we plan to use int32_t to store shape
-    // dimensions in BEF for 32-bit architecture.
-    return llvm::makeArrayRef(
-        reinterpret_cast<const int64_t*>(bytes + header.shape_offset),
-        header.rank);
+  DenseAttr(BEFAttributeType type, const void* data)
+      : TypedAttrBase(BEFAttributeType::kDense, data) {
+    // For an invalid/uninitialized instance, data could be set to null.
+    if (data) {
+      auto ptr = reinterpret_cast<const uint8_t*>(data);
+      dtype_ = static_cast<DType::Kind>(*ptr++);
+      ptr = ReadVbrInt(ptr, &rank_);
+      total_byte_size_ = *(reinterpret_cast<const uint32_t*>(ptr));
+      ptr += sizeof(uint32_t);
+      shape_ = llvm::makeArrayRef(reinterpret_cast<const int64_t*>(ptr), rank_);
+      element_base_ = ptr + rank_ * sizeof(int64_t);
+      header_size_ = reinterpret_cast<const uint8_t*>(element_base_) -
+                     reinterpret_cast<const uint8_t*>(data);
+    }
   }
 
-  size_t GetNumElements() const { return header().num_elements; }
+  // Return the prefix size of DenseAttr.
+  size_t GetPrefixSize() const {
+    return sizeof(DType::Kind) + GetSizeOfVbrInt(rank_) + sizeof(uint32_t);
+  }
 
-  const void* GetElements() const {
-    const auto* bytes = static_cast<const uint8_t*>(data());
-    return bytes + header().element_offset;
+  // Return the peak alignment constraint of DenseAttr.
+  size_t Alignment() const {
+    return std::max(alignof(int64_t), DType(dtype_).GetHostAlignment());
+  }
+
+  size_t GetHeaderSize() const { return header_size_; }
+
+  DType::Kind dtype() const { return dtype_; }
+
+  llvm::ArrayRef<int64_t> shape() const { return shape_; }
+
+  size_t GetNumElements() const {
+    return std::accumulate(shape_.begin(), shape_.end(), 1,
+                           std::multiplies<>());
+  }
+
+  const void* GetElements() const { return element_base_; }
+
+  ArrayRef<char> GetRawData() const {
+    return llvm::makeArrayRef(reinterpret_cast<const char*>(element_base_),
+                              total_byte_size_ - header_size_);
+  }
+
+  template <typename T>
+  const T& GetElement(size_t index) const {
+    assert(GetDType<T>().kind() == dtype_);
+    return *(reinterpret_cast<const T*>(element_base_) + index);
   }
 
   static bool classof(TypedAttrBase base) {
     return IsDenseAttribute(base.type());
   }
+
+  size_t GetByteSize() const { return total_byte_size_; }
+
+ protected:
+  DType::Kind dtype_;
+  size_t rank_;
+  size_t total_byte_size_;
+  ArrayRef<int64_t> shape_;
+  const void* element_base_;
+  size_t header_size_;
 };
 
-class AggregateAttr
-    : public internal::AttrHeaderBase<AggregateAttr, BEFAggregateAttr> {
+class AggregateAttr : public TypedAttrBase {
  public:
-  using Base::Base;
+  using TypedAttrBase::TypedAttrBase;
+
+  explicit AggregateAttr(const void* data)
+      : AggregateAttr(BEFAttributeType::kAggregate, data) {}
+
+  AggregateAttr(BEFAttributeType type, const void* data)
+      : TypedAttrBase(BEFAttributeType::kAggregate, data) {
+    if (data) {
+      size_t element_count;
+      auto ptr =
+          ReadVbrInt(reinterpret_cast<const uint8_t*>(data), &element_count);
+      if (element_count == 0) {
+        total_byte_size_ = 1;
+      } else {
+        element_types_ = llvm::makeArrayRef(
+            reinterpret_cast<const BEFAttributeType*>(ptr), element_count);
+        ptr += sizeof(uint16_t) * element_count;
+        element_offsets_ = llvm::makeArrayRef(
+            reinterpret_cast<const uint32_t*>(ptr), element_count);
+        ptr += sizeof(uint32_t) * element_count;
+        total_byte_size_ = *(reinterpret_cast<const uint32_t*>(ptr));
+      }
+    }
+  }
 
   // Return the prefix size of AggregateAttr.
-  size_t GetPrefixSize() const { return 0; }
+  size_t GetPrefixSize() const {
+    const size_t element_count = element_offsets_.size();
+    return (total_byte_size_ > 1)
+               ? GetSizeOfVbrInt(element_count) + sizeof(uint32_t) +
+                     element_count * (sizeof(uint32_t) + sizeof(uint16_t))
+               : 0;
+  }
 
   // Return the peak alignment constraint of AggregateAttr.
-  size_t Alignment() const { return alignof(int64_t); }
+  size_t Alignment() const { return kAttributeMaxAlignment; }
+
+  size_t GetNumElements() const {
+    return (total_byte_size_ > 1) ? element_offsets_.size() : 0;
+  }
+
+  // Usage example;
+  //   string_view sv = agg_attr.GetElement<StringAttr>(0).GetValue();
+  template <typename T>
+  T GetElement(int index) const {
+    assert(total_byte_size_ > 1 && index < element_offsets_.size());
+    return T(data_ + element_offsets_[index]);
+  }
+
+  BEFAttributeType GetElementType(int index) const {
+    assert(total_byte_size_ > 1 && index < element_offsets_.size());
+    return element_types_[index];
+  }
+
+  size_t GetElementOffset(int index) const {
+    assert(total_byte_size_ > 1 && index < element_offsets_.size());
+    return element_offsets_[index];
+  }
 
   TypedAttrBase GetAttribute(int index) const {
     assert(index < GetNumElements());
-    auto offset = header().offsets[index];
-    const auto* bytes = reinterpret_cast<const uint8_t*>(data());
-    return TypedAttrBase(reinterpret_cast<const BEFAttrBase*>(bytes + offset));
+    return TypedAttrBase(element_types_[index],
+                         data_ + element_offsets_[index]);
   }
 
   template <typename AttrClass>
   AttrClass GetAttributeOfType(int index) const {
-    return GetAttribute(index).cast<AttrClass>();
+    return GetElement<AttrClass>(index);
   }
-
-  size_t GetNumElements() const { return header().num_elements; }
 
   static bool classof(TypedAttrBase base) {
-    // Empty typed arrays have the same layout as empty aggregates. So it is
-    // allowed to use AggregateAttr on BEFArrayAttr that is empty.
-    return base.type() == BEFAttributeType::kAggregate ||
-           base.type() == BEFAttributeType::kEmptyArray;
+    return base.type() == BEFAttributeType::kAggregate;
   }
+
+  size_t GetByteSize() const { return total_byte_size_; }
+
+  size_t GetAlgnmentPadding(size_t offset) const {
+    const size_t element_count = element_offsets_.size();
+    return (total_byte_size_ > 1)
+               ? llvm::offsetToAlignment(
+                     offset + GetSizeOfVbrInt(element_count) +
+                         sizeof(uint32_t) +
+                         element_count * (sizeof(uint32_t) + sizeof(uint16_t)),
+                     llvm::Align(kAttributeMaxAlignment))
+               : 0;
+  }
+
+ protected:
+  uint32_t total_byte_size_;
+  ArrayRef<uint32_t> element_offsets_;
+  ArrayRef<BEFAttributeType> element_types_;
 };
 
 }  // namespace tfrt

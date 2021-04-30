@@ -26,109 +26,105 @@
 
 namespace tfrt {
 
-// TODO(zhangqiaorjc): Unify with BEFTypedAttributeEmitter.
-// Consider a more open design using ADL. Encoder functions can be made free
-// functions inside headers for TensorShape, and other user defined types.
-
-// This class serializes BEF attributes.
+// This class serializes BEF attributes by using BEFEmitter functions.
+// The functions return the beginning offsets of the encoded attributes.
+// The offsets are decided based on the alignment constraints of attributes.
 class BefAttrEncoder : public BefEmitter {
- public:
-  // Encode a generic attribute.
-  //   Supported attribute types:
-  //     char,
-  //     uint8_t, uint16_t, uint32_t, uint64_t,
-  //     int8_t, int16_t, int32_t, int64_t,
-  //     float, double
-  template <typename T>
-  size_t EncodeAttr(T attr);
-
-  // <Array size:VBR> [array payload]*
-  // Empty element representation: Array, Aggregate, UnrankedShape
-  //    <0>
-  template <typename T>
-  size_t EncodeArrayAttr(ArrayRef<T> array);
-
-  size_t EncodeEmptyAttribute() {
-    EmitByte(0);
-    return size() - 1;
-  }
-
-  // Encode a unranked shape attribute.
-  size_t EncodeUnrankedShapeAttr();
-
-  // Encode a ranked shape attribute.
-  size_t EncodeRankedShapeAttr(ArrayRef<int64_t> dims);
-
-  // Encode a list of shapes as an aggregate attribute.
-  size_t EncodeShapeListAttr(const int64_t** dims, const int* num_dims,
-                             int num_values);
-
-  // Encode a string attribute.
-  size_t EncodeStringAttr(string_view sv);
-
-  // Encode a list of strings as an aggregate attribute.
-  size_t EncodeStringListAttr(const void* const* values, const size_t* lengths,
-                              int num_values);
-
-  // Encode a function attribute.
-  size_t EncodeFuncAttr(string_view sv);
-
-  // Encode a list of functions as an aggregate attribute.
-  size_t EncodeFuncListAttr(const void* const* values, const size_t* lengths,
-                            int num_values);
-
-  // Reserve space for the header part of an aggregate attribute.
-  size_t ReserveAggregatedAttrHeader(size_t element_count);
-
-  // Complete encoding of an aggregate attribute.
-  void EncodeCompleteAggregatedAttr(
-      size_t element_count, size_t offset,
-      ArrayRef<BEFAggregateAttrOffset32_t> offsets);
-
-  // Reserve space for the header part of an array attribute.
-  size_t ReserveArrayAttrHeader() {
-    return ReserveHeaderSpace(alignof(BEFArrayAttr), sizeof(BEFArrayAttr));
-  }
-
-  // Complete encoding of an array attribute.
-  void EncodeCompleteArrayAttr(size_t offset, BEFAttributeType element_type,
-                               size_t element_count, size_t element_offset);
-
-  // Reserve space for the header part of a dense (tensor) attribute.
-  size_t ReserveDenseAttrHeader() {
-    return ReserveHeaderSpace(alignof(BEFDenseAttr), sizeof(BEFDenseAttr));
-  }
-
-  // Complete encoding of a densor (tensor) attribute.
-  void EncodeCompleteDenseAttr(size_t offset, DType::Kind element_type,
-                               size_t rank, size_t shape_offset,
-                               size_t num_elements, size_t element_offset);
-
-  // Encode a dense attribute.
-  size_t EncodeDenseAttr(DType::Kind element_type, ArrayRef<int64_t> shape,
-                         ArrayRef<uint8_t> element_payload);
-
  private:
-  size_t ReserveHeaderSpace(size_t alignment, size_t header_size);
-
-  size_t EncodeAttrBase(BEFAttributeType type, size_t byte_count);
-
-  // Encode a list of attributes as an aggregate attribute in BEF. The `emitter`
-  // will be called with the indices sequentially and is expected to emit the
-  // bytes for this element and return the offset.
-  size_t EncodeListAttr(
-      size_t num_elements,
-      llvm::function_ref<BEFAggregateAttrOffset32_t(int)> emitter);
-
-  // A helper function to emit the common header for both ranked and unranked
-  // shape attributes. If `rank` is a negative number, then this shape is
-  // unranked.
-  size_t EncodeShapeAttrBase(size_t byte_count, int rank);
-
   template <typename T>
   static constexpr bool kSupportedScalarAttributeType =
       IsOneOfTypes<T, char, uint8_t, uint16_t, uint32_t, uint64_t, int8_t,
                    int16_t, int32_t, int64_t, float, double>();
+
+ public:
+  // Encode a generic attribute.
+  //   Support the types listed by kSupportedScalarAttributeType
+  template <typename T>
+  size_t EncodeAttr(T attr);
+
+  // Encode the length of an array attribute.
+  size_t EncodeArrayAttrHeader(size_t element_count, size_t payload_alignment);
+
+  // Encode an array of generic type attributes.
+  // Support the types listed by kSupportedScalarAttributeType
+  //   Encoded format: <Array size:VBR> [array payload]*
+  template <typename T>
+  size_t EncodeArrayAttr(ArrayRef<T> array);
+
+  // Encode an empty attribute (Array, Aggregate, UnrankedShape).
+  //   Encoded format: <0>
+  size_t EncodeEmptyAttr() {
+    EmitByte(0);
+    return size() - 1;
+  }
+
+  // Encode a string attribute.
+  //   Encoded format: <length:vbr> <string payload>
+  size_t EncodeStringAttr(string_view sv) {
+    return EncodeArrayAttr(llvm::makeArrayRef(
+        reinterpret_cast<const char*>(sv.data()), sv.size()));
+  }
+
+  // Encode a function attribute.
+  //   Encoded format: <length:vbr> <function name payload>
+  size_t EncodeFuncAttr(string_view sv) {
+    return EncodeArrayAttr(llvm::makeArrayRef(
+        reinterpret_cast<const char*>(sv.data()), sv.size()));
+  }
+
+  // Encode a ranked shape attribute.
+  //   Encoded format:
+  //    <rank:vbr> [shape entry : int64]*
+  //     rank == 0 : unranked shape
+  //     rank == 1 : zero ranked shape
+  //     sizeof(dimension) == rank - 1
+  size_t EncodeRankedShapeAttr(ArrayRef<int64_t> dims);
+
+  // Encode an unranked shape attribute.
+  //   Encoded format: <0>
+  size_t EncodeUnrankedShapeAttr() { return EncodeEmptyAttr(); }
+
+  // Encode a dense attribute header.
+  //   Encoded format:
+  //    <dtype:1B> <rank:vbr> <length:4B> [shape entry : int64]* <elements>
+  size_t EncodeDenseAttrHeader(DType::Kind element_type,
+                               ArrayRef<int64_t> shape,
+                               size_t element_payload_size);
+
+  // Encode a dense attribute.
+  //   Encoded format:
+  //    <dtype:1B> <rank:vbr> <length:4B> [shape entry : int64]* <elements>
+  size_t EncodeDenseAttr(DType::Kind element_type, ArrayRef<int64_t> shape,
+                         ArrayRef<uint8_t> element_payload);
+
+  // Encode an aggregate attribute header.
+  //   Encoded format:
+  //    <EntryCount:VBR>
+  //      [element type:2B]* [element offset:4B]* <payload size:4B>
+  //      [element payloads]*
+  size_t EncodeAggregatedAttrHeader(size_t element_count, size_t* type_offset,
+                                    size_t* offset_offset);
+
+  // Encode type information and element offset to an aggregate attribute header
+  void EncodeAggregatedAttrEntryTypeAndOffset(size_t* type_offset,
+                                              size_t* offset_offset,
+                                              BEFAttributeType attribute_type,
+                                              uint32_t element_offset);
+
+  // Encode total byte size to an aggregate attribute header.
+  void EncodeAggregatedAttrLength(size_t* offset_offset, size_t offset);
+
+  // Encode a list of string attributes as an aggregate attribute.
+  size_t EncodeStringListAttr(const void* const* values, const size_t* lengths,
+                              int num_values);
+
+  // Encode a list of function attributes as an aggregate attribute.
+  size_t EncodeFuncListAttr(const void* const* values, const size_t* lengths,
+                            int num_values);
+
+  // Encode a list of shape attributes as an aggregate attribute.
+  size_t EncodeShapeListAttr(const int64_t** shapes, const int* ranks,
+                             int num_values);
 };
 
 template <typename T>
@@ -160,7 +156,7 @@ size_t BefAttrEncoder::EncodeArrayAttr(ArrayRef<T> array) {
   // Empty array attribute representation should be matched with
   // empty aggregate attribute representation: <0>
   if (element_count == 0) {
-    return EncodeEmptyAttribute();
+    return EncodeEmptyAttr();
   }
 
   EmitAlignment(alignof(T),

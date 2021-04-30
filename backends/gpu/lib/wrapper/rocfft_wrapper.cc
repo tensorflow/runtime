@@ -63,7 +63,7 @@ void internal::PlanDescriptionDeleter::operator()(
   LogIfError(RocfftPlanDescriptionDestroy(description));
 }
 
-// TOD(gkg): Figure out format of the version string, parse it and return as
+// TODO(gkg): Figure out format of the version string, parse it and return as
 // struct RocfftLibraryVersion {int major; int minor; int patch; };
 // to be consistent with CufftGetVersion.
 llvm::Expected<std::string> RocfftGetVersionString() {

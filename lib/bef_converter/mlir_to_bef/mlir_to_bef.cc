@@ -67,10 +67,6 @@ namespace {
 // structured way than a simple bool.
 enum class LogicalResult { Success, Failure };
 
-// kInvalidIndex is used when a type or string cannot be found and a dummy
-// index is required.
-constexpr unsigned kInvalidIndex = 0xFFFF;
-
 }  // namespace
 
 /// Classify this attribute, so the rest of the code can know if it gets
@@ -414,7 +410,6 @@ struct EntityTable {
 
   void AddString(string_view string);
   void AddType(mlir::Type type);
-  unsigned GetOptionalTypeIndex(mlir::Type type) const;
   unsigned GetTypeIndex(mlir::Type type) const;
 
   void AddNativeFunction(mlir::FuncOp op);
@@ -440,7 +435,6 @@ void EntityTable::AddString(string_view string) { strings[string] = 0; }
 // conversions.
 void EntityTable::AddType(mlir::Type type) {
   // Ignore the type if we've seen it before.
-  assert(types.size() != kInvalidIndex);
   if (!type_ids.insert({type, types.size()}).second) return;
   types.push_back(type);
 
@@ -449,12 +443,6 @@ void EntityTable::AddType(mlir::Type type) {
   llvm::raw_svector_ostream os(result_str);
   type.print(os);
   AddString(os.str());
-}
-
-unsigned EntityTable::GetOptionalTypeIndex(mlir::Type type) const {
-  auto it = type_ids.find(type);
-  if (it == type_ids.end()) return kInvalidIndex;
-  return it->second;
 }
 
 unsigned EntityTable::GetTypeIndex(mlir::Type type) const {
@@ -814,9 +802,12 @@ namespace {
 // each entity is assigned.
 class EntityIndex {
  public:
+  // Find `str` in the strings section and return its offset. If it is not
+  // found, return 0 instead. Note that this method is only supposed to be used
+  // for emitting optional debugging infomations.
   unsigned GetOptionalStringOffset(string_view str) const {
     auto it = strings_.find(str);
-    if (it == strings_.end()) return kInvalidIndex;
+    if (it == strings_.end()) return 0;
     return it->second;
   }
 
@@ -829,7 +820,6 @@ class EntityIndex {
 
   void AddString(string_view str, unsigned index) {
     assert(!strings_.count(str) && "string already in index");
-    assert(index != kInvalidIndex);
     strings_.insert({str, index});
   }
 

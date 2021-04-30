@@ -554,19 +554,9 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
 
 namespace {
 
-// This table is built in the second pass, keeping track of the indices that
 // each entity is assigned.
 class EntityIndex {
  public:
-  // Find `str` in the strings section and return its offset. If it is not
-  // found, return 0 instead. Note that this method is only supposed to be used
-  // for emitting optional debugging infomations.
-  unsigned GetOptionalStringOffset(string_view str) const {
-    auto it = strings_.find(str);
-    if (it == strings_.end()) return 0;
-    return it->second;
-  }
-
   unsigned GetStringOffset(string_view str) const {
     auto it = strings_.find(str);
     assert(it != strings_.end() &&
@@ -574,9 +564,9 @@ class EntityIndex {
     return it->second;
   }
 
-  void AddString(string_view str, unsigned index) {
-    assert(!strings_.count(str) && "string already in index");
-    strings_.insert({str, index});
+  void AddString(string_view str, unsigned offset) {
+    assert(!strings_.count(str) && "string already exists");
+    strings_.insert({str, offset});
   }
 
   unsigned GetAttributeOffset(mlir::Attribute attribute) const {
@@ -729,9 +719,6 @@ class BEFModuleEmitter : public BEFFileEmitter {
   void EmitTypes();
   void EmitFunctions(BEFFileEmitter* attribute_names,
                      BEFFileEmitter* register_types);
-  void EmitAttributeTypes(const BEFFileEmitter& attribute_types);
-  void EmitAttributeNames(const BEFFileEmitter& attribute_names);
-  void EmitRegisterTypes(const BEFFileEmitter& register_types);
 
  private:
   mlir::ModuleOp module_;
@@ -828,14 +815,17 @@ void BEFModuleEmitter::EmitAttributes(BEFFileEmitter* attribute_types) {
             : attributes_section.EmitAttribute(attribute_type, attr);
 
     entity_index_.AddAttributeOffset(attr, offset);
+    if (attribute_types == nullptr) continue;
 
     const size_t type_info = static_cast<size_t>(attribute_type);
     attribute_type_emitter.EmitVbrInt(offset);
     attribute_type_emitter.EmitVbrInt(type_info);
   }
 
-  attribute_types->EmitVbrInt(entities_.attributes.size());
-  attribute_types->EmitEmitter(attribute_type_emitter);
+  if (attribute_types != nullptr) {
+    attribute_types->EmitVbrInt(entities_.attributes.size());
+    attribute_types->EmitEmitter(attribute_type_emitter);
+  }
   EmitSection(BEFSectionID::kAttributes, attributes_section);
 }
 
@@ -946,7 +936,7 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
 
   BEFFileEmitter kernel_list;
 
-  attribute_names->EmitVbrInt(num_kernels);
+  if (attribute_names != nullptr) attribute_names->EmitVbrInt(num_kernels);
 
   // Perform stream analysis to get stream information for this function.
   //
@@ -1049,8 +1039,10 @@ void BEFFunctionEmitter::EmitRegisterTable(mlir::Block* block,
 
   // Emit the number of registers, then the register type table in register
   // types section.
-  register_types->EmitVbrInt(num_registers);
-  register_types->EmitEmitter(reg_type_table);
+  if (register_types != nullptr) {
+    register_types->EmitVbrInt(num_registers);
+    register_types->EmitEmitter(reg_type_table);
+  }
 }
 
 template <typename UserRange>
@@ -1172,8 +1164,10 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
       input_function_emitter.EmitInt4(
           entities_.GetFunctionNamed(fn_attr.getValue()));
     } else {
-      attribute_names->EmitVbrInt(
-          entity_index_.GetOptionalStringOffset(attr_name_pair.first));
+      if (attribute_names != nullptr) {
+        attribute_names->EmitVbrInt(
+            entity_index_.GetStringOffset(attr_name_pair.first));
+      }
       num_input_attributes++;
 
       input_attribute_emitter.EmitInt4(
@@ -1223,8 +1217,10 @@ void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
                                      BEFFileEmitter* register_types) {
   BEFFunctionEmitter functions_section(entities_, entity_index_);
 
-  attribute_names->EmitVbrInt(entities_.functions.size());
-  register_types->EmitVbrInt(entities_.functions.size());
+  if (attribute_names != nullptr)
+    attribute_names->EmitVbrInt(entities_.functions.size());
+  if (register_types != nullptr)
+    register_types->EmitVbrInt(entities_.functions.size());
   for (auto function_entry : entities_.functions) {
     // Remember that we emitted this region to this offset.
     entity_index_.AddFunction(function_entry.name, functions_section.size(),
@@ -1268,20 +1264,6 @@ void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
   EmitSection(BEFSectionID::kFunctions, functions_section);
 }
 
-void BEFModuleEmitter::EmitAttributeTypes(
-    const BEFFileEmitter& attribute_types) {
-  EmitSection(BEFSectionID::kAttributeTypes, attribute_types);
-}
-
-void BEFModuleEmitter::EmitAttributeNames(
-    const BEFFileEmitter& attribute_names) {
-  EmitSection(BEFSectionID::kAttributeNames, attribute_names);
-}
-
-void BEFModuleEmitter::EmitRegisterTypes(const BEFFileEmitter& register_types) {
-  EmitSection(BEFSectionID::kRegisterTypes, register_types);
-}
-
 // This function converts the specified MLIR module containing a host executor
 // compatible program to the BinaryExecutableFormat (BEF) format, which is the
 // low level format that the executor takes.
@@ -1308,15 +1290,20 @@ AlignedBuffer<8> ConvertMLIRToBEF(mlir::ModuleOp module,
   emitter.EmitLocationInfo();
   emitter.EmitDebugInfo();
   emitter.EmitStrings();
-  emitter.EmitAttributes(&attribute_types);
+  emitter.EmitAttributes(disable_optional_sections ? nullptr
+                                                   : &attribute_types);
   emitter.EmitKernels();
   emitter.EmitTypes();
-  emitter.EmitFunctions(&attribute_names, &register_types);
 
-  if (!disable_optional_sections) {
-    emitter.EmitAttributeTypes(attribute_types);
-    emitter.EmitAttributeNames(attribute_names);
-    emitter.EmitRegisterTypes(register_types);
+  if (disable_optional_sections) {
+    emitter.EmitFunctions(/*attribute_names=*/nullptr,
+                          /*register_types=*/nullptr);
+  } else {
+    emitter.EmitFunctions(&attribute_names, &register_types);
+
+    emitter.EmitSection(BEFSectionID::kAttributeTypes, attribute_types);
+    emitter.EmitSection(BEFSectionID::kAttributeNames, attribute_names);
+    emitter.EmitSection(BEFSectionID::kRegisterTypes, register_types);
   }
 
   // Return the result.

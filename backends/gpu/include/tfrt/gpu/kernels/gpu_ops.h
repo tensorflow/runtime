@@ -84,6 +84,42 @@ using BlasDataTypeAttr = EnumAttr<wrapper::BlasDataType>;
 using BlasOperationAttr = EnumAttr<wrapper::BlasOperation>;
 using BlasGemmAlgoAttr = EnumAttr<wrapper::BlasGemmAlgo>;
 
+// TODO(csigg): Remove temporary forward compatibility of proper tfrt_gpu types.
+inline Type GetGpuType(MLIRContext* context, StringRef name) {
+  auto dialect = Identifier::get(GpuDialect::getDialectNamespace(), context);
+  return mlir::OpaqueType::get(dialect, name);
+}
+struct DeviceType {
+  static Type get(MLIRContext* context) {
+    return GetGpuType(context, "device");
+  }
+};
+struct ContextType {
+  static Type get(MLIRContext* context) {
+    return GetGpuType(context, "context");
+  }
+};
+struct StreamType {
+  static Type get(MLIRContext* context) {
+    return GetGpuType(context, "stream");
+  }
+};
+struct AllocatorType {
+  static Type get(MLIRContext* context) {
+    return GetGpuType(context, "allocator");
+  }
+};
+struct BufferType {
+  static Type get(MLIRContext* context) {
+    return GetGpuType(context, "buffer");
+  }
+};
+struct BlasHandleType {
+  static Type get(MLIRContext* context) {
+    return GetGpuType(context, "blas_handle");
+  }
+};
+
 namespace conversion {
 
 // Dialect for cuda conversion helper operations.

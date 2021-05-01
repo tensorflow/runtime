@@ -42,6 +42,10 @@ class GpuDialect : public Dialect {
  public:
   static StringRef getDialectNamespace() { return "tfrt_gpu"; }
   explicit GpuDialect(MLIRContext* context);
+
+ private:
+  Type parseType(DialectAsmParser& parser) const override;
+  void printType(Type, DialectAsmPrinter&) const override;
 };
 
 // An attribute that wrapps an I32Attr holding an enum or wrapper::Enum value.
@@ -84,42 +88,6 @@ using BlasDataTypeAttr = EnumAttr<wrapper::BlasDataType>;
 using BlasOperationAttr = EnumAttr<wrapper::BlasOperation>;
 using BlasGemmAlgoAttr = EnumAttr<wrapper::BlasGemmAlgo>;
 
-// TODO(csigg): Remove temporary forward compatibility of proper tfrt_gpu types.
-inline Type GetGpuType(MLIRContext* context, StringRef name) {
-  auto dialect = Identifier::get(GpuDialect::getDialectNamespace(), context);
-  return mlir::OpaqueType::get(dialect, name);
-}
-struct DeviceType {
-  static Type get(MLIRContext* context) {
-    return GetGpuType(context, "device");
-  }
-};
-struct ContextType {
-  static Type get(MLIRContext* context) {
-    return GetGpuType(context, "context");
-  }
-};
-struct StreamType {
-  static Type get(MLIRContext* context) {
-    return GetGpuType(context, "stream");
-  }
-};
-struct AllocatorType {
-  static Type get(MLIRContext* context) {
-    return GetGpuType(context, "allocator");
-  }
-};
-struct BufferType {
-  static Type get(MLIRContext* context) {
-    return GetGpuType(context, "buffer");
-  }
-};
-struct BlasHandleType {
-  static Type get(MLIRContext* context) {
-    return GetGpuType(context, "blas_handle");
-  }
-};
-
 namespace conversion {
 
 // Dialect for cuda conversion helper operations.
@@ -134,7 +102,9 @@ class GpuConversionDialect : public Dialect {
 }  // namespace gpu
 }  // namespace tfrt
 
-// TableGen'd op method declarations
+// TableGen'd declarations
+#define GET_TYPEDEF_CLASSES
+#include "tfrt/gpu/kernels/gpu_typedefs.h.inc"
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_opdefs.h.inc"
 #define GET_OP_CLASSES

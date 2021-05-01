@@ -27,12 +27,22 @@
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 
-def GPU_DnnActivationDescriptorType : GPU_Type<"dnn_activation_descriptor">;
-def GPU_DnnConvolutionDescriptorType : GPU_Type<"dnn_convolution_descriptor">;
-def GPU_DnnFilterDescriptorType : GPU_Type<"dnn_filter_descriptor">;
-def GPU_DnnHandleType : GPU_Type<"dnn_handle">;
-def GPU_DnnPoolingDescriptorType : GPU_Type<"dnn_pooling_descriptor">;
-def GPU_DnnTensorDescriptorType : GPU_Type<"dnn_tensor_descriptor">;
+def GPU_DnnHandleType : GPU_Type<"DnnHandle"> { let mnemonic = "dnn.handle"; }
+def GPU_DnnActivationDescriptorType : GPU_Type<"DnnActivationDescriptor"> {
+  let mnemonic = "dnn.activation.descriptor";
+}
+def GPU_DnnConvolutionDescriptorType : GPU_Type<"DnnConvolutionDescriptor"> {
+  let mnemonic = "dnn.convolution.descriptor";
+}
+def GPU_DnnFilterDescriptorType : GPU_Type<"DnnFilterDescriptor"> {
+  let mnemonic = "dnn.filter.descriptor";
+}
+def GPU_DnnPoolingDescriptorType : GPU_Type<"DnnPoolingDescriptor"> {
+  let mnemonic = "dnn.pooling.descriptor";
+}
+def GPU_DnnTensorDescriptorType : GPU_Type<"DnnTensorDescriptor"> {
+  let mnemonic = "dnn.tensor.descriptor";
+}
 
 def GPU_DnnDataTypeAttr : GPU_WrapperAttr<"DnnDataType">;
 

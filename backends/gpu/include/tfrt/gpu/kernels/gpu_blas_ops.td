@@ -26,8 +26,14 @@
 #define GPU_BLAS_OPS
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
-def GPU_BlasHandleType : GPU_Type<"blas_handle">;
+def GPU_BlasHandleType : GPU_Type<"BlasHandle"> {
+  let mnemonic = "blas.handle";
+}
+def GPU_BlasGemmAlgoType : GPU_Type<"BlasGemmAlgo"> {
+  let mnemonic = "blas.gemm.algo";
+}
 def GPU_AnyBlasDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
                                    AnyUnsignedInteger]>;
 
@@ -67,6 +73,20 @@ def GPU_BlasSgemmOp : GPU_Op<"blas.gemm.f32"> {
   let results = (outs TFRT_ChainType);
 }
 
+def GPU_BlasGemmAlgoOp : GPU_Op<"blas.gemm.algo", [NoSideEffect]> {
+  let arguments = (ins GPU_BlasGemmAlgoAttr:$algo);
+  let results = (outs GPU_BlasGemmAlgoType);
+  let builders = [
+    OpBuilder<(ins "::tfrt::gpu::wrapper::BlasGemmAlgo":$algo),
+    [{
+      auto context = $_builder.getContext();
+      auto type = BlasGemmAlgoType::get(context);
+      auto attr = BlasGemmAlgoAttr::get(context, algo);
+      return build($_builder, $_state, type, attr);
+    }]>];
+  let assemblyFormat = "custom<Enum>($algo) attr-dict";
+}
+
 def GPU_BlasGemmOp : GPU_Op<"blas.gemm"> {
   let description = [{
     tfrt_gpu.blas.gemm This kernel is an extension of blas.gemm.<t> kernels
@@ -79,14 +99,14 @@ def GPU_BlasGemmOp : GPU_Op<"blas.gemm"> {
     GPU_BufferType:$A, GPU_BlasDataTypeAttr:$Atype, I32:$lda, GPU_BufferType:$B,
     GPU_BlasDataTypeAttr:$Btype, I32:$ldb, F32:$beta, GPU_BufferType:$C,
     GPU_BlasDataTypeAttr:$Ctype, I32:$ldc, GPU_BlasDataTypeAttr:$computeType,
-    GPU_BlasGemmAlgoAttr:$algo, TFRT_ChainType:$chain);
+    GPU_BlasGemmAlgoType:$algo, TFRT_ChainType:$chain);
 
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
     $handle`,` custom<Enum>($transa)`,` custom<Enum>($transb)`,`
     $m`,` $n`,` $k`,` $alpha`,` $A`,` custom<Enum>($Atype)`,` $lda`,` $B`,`
     custom<Enum>($Btype)`,` $ldb`,` $beta`,` $C`,` custom<Enum>($Ctype)`,`
-    $ldc`,` custom<Enum>($computeType)`,` custom<Enum>($algo)`,` $chain
+    $ldc`,` custom<Enum>($computeType)`,` $algo`,` $chain
     attr-dict
   }];
 }

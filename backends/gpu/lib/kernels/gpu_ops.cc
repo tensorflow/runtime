@@ -16,9 +16,11 @@
 
 #include "tfrt/gpu/kernels/gpu_ops.h"
 
+#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/IR/DialectImplementation.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
@@ -41,6 +43,11 @@ GpuDialect::GpuDialect(MLIRContext *context)
   context->getOrLoadDialect<tfrt::t::TensorDialect>();
   allowUnknownTypes();
   allowUnknownOperations();
+
+  addTypes<
+#define GET_TYPEDEF_LIST
+#include "tfrt/gpu/kernels/gpu_typedefs.cpp.inc"
+      >();
 
   addOperations<
 #define GET_OP_LIST
@@ -171,8 +178,23 @@ mlir::OpFoldResult CastAnyToAnyOp::fold(
 }  // namespace gpu
 }  // namespace tfrt
 
-// TableGen'd op method definitions
+// TableGen'd definitions
+#define GET_TYPEDEF_CLASSES
+#include "tfrt/gpu/kernels/gpu_typedefs.cpp.inc"
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_opdefs.cpp.inc"
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc"
+
+Type tfrt::gpu::GpuDialect::parseType(DialectAsmParser &parser) const {
+  StringRef typeTag;
+  Type genType;
+  if (succeeded(parser.parseKeyword(&typeTag)))
+    generatedTypeParser(getContext(), parser, typeTag, genType);
+  return genType;
+}
+
+void tfrt::gpu::GpuDialect::printType(Type type,
+                                      DialectAsmPrinter &printer) const {
+  (void)generatedTypePrinter(type, printer);
+}

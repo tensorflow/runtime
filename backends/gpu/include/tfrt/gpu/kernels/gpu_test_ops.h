@@ -23,6 +23,7 @@
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
+#include "tfrt/gpu/kernels/gpu_ops.h"
 #include "tfrt/tensor/opdefs/tensor.h"
 #include "tfrt/tensor/opdefs/tensor_shape.h"
 

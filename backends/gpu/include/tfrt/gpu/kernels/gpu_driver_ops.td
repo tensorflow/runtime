@@ -25,9 +25,9 @@
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
 
-def GPU_DeviceType : GPU_Type<"device">;
-def GPU_EventType : GPU_Type<"event">;
-def GPU_FunctionType : GPU_Type<"function">;
+def GPU_DeviceType : GPU_Type<"Device"> { let mnemonic = "device"; }
+def GPU_EventType : GPU_Type<"Event"> { let mnemonic = "event"; }
+def GPU_FunctionType : GPU_Type<"Function"> { let mnemonic = "function"; }
 
 def GPU_DeviceGetOp : GPU_Op<"device.get"> {
   let description = [{

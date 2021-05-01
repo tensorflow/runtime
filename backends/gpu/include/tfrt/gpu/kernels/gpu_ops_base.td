@@ -46,13 +46,15 @@ class GPU_Op<string mnemonic, list<OpTrait> traits = []> :
 
 // Type definitions.
 
-class GPU_Type<string name> :
-    OpaqueType<"tfrt_gpu", name, !strconcat("!tfrt_gpu.", name, " type")> {}
+class GPU_Type<string name, list<Trait> traits = []> :
+    TypeDef<GPU_Dialect, name, traits> {
+  let summary = !strconcat("!tfrt_gpu.", mnemonic, " type");
+}
 
-def GPU_AllocatorType : GPU_Type<"allocator">;
-def GPU_BufferType : GPU_Type<"buffer">;
-def GPU_ContextType : GPU_Type<"context">;
-def GPU_StreamType : GPU_Type<"stream">;
+def GPU_AllocatorType : GPU_Type<"Allocator"> { let mnemonic = "allocator"; }
+def GPU_BufferType : GPU_Type<"Buffer"> { let mnemonic = "buffer"; }
+def GPU_ContextType : GPU_Type<"Context"> { let mnemonic = "context"; }
+def GPU_StreamType : GPU_Type<"Stream"> { let mnemonic = "stream"; }
 
 // Attribute definitions.
 
@@ -60,7 +62,6 @@ class GPU_WrapperAttr<string name> : DialectAttr<
     GPU_Dialect, CPred<"$_self.isa<::tfrt::gpu::" # name # "Attr>()">> {
   let storageType = "::tfrt::gpu::" # name # "Attr";
   let returnType = "::tfrt::gpu::wrapper::" # name;
-  let valueType = I32;
   let constBuilderCall = storageType # "::get($_builder.getContext(), $0)";
 }
 

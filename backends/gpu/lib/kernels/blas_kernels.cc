@@ -99,15 +99,16 @@ static Error BlasSgemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
       wrapper::Pointer<float>(C.pointer()), ldc);
 }
 
+static int32_t BlasGemmAlgo(Attribute<int32_t> algo) { return *algo; }
+
 static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
                       int32_t k, float alpha, const GpuBuffer& A, int32_t lda,
                       const GpuBuffer& B, int32_t ldb, float beta,
-                      const GpuBuffer& C, int32_t ldc,
+                      const GpuBuffer& C, int32_t ldc, int32_t algo,
                       // Needs to be sorted alphabetically by attribute name!
-                      Attribute<int32_t> Atype, Attribute<int32_t> algo,
-                      Attribute<int32_t> Btype, Attribute<int32_t> Ctype,
-                      Attribute<int32_t> computeType, Attribute<int32_t> transa,
-                      Attribute<int32_t> transb) {
+                      Attribute<int32_t> Atype, Attribute<int32_t> Btype,
+                      Attribute<int32_t> Ctype, Attribute<int32_t> computeType,
+                      Attribute<int32_t> transa, Attribute<int32_t> transb) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
@@ -125,7 +126,7 @@ static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
       B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Btype), ldb,
       beta_ptr, C.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Ctype),
       ldc, wrapper::BlasDataType::FromOpaqueValue(*computeType),
-      wrapper::BlasGemmAlgo::FromOpaqueValue(*algo));
+      wrapper::BlasGemmAlgo::FromOpaqueValue(algo));
 }
 
 static Error BlasSyncGemmEx(const GpuBlasHandle& handle, int32_t m, int32_t n,
@@ -210,6 +211,7 @@ void RegisterGpuBlasKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(BlasSaxpy));
   kernel_reg->AddKernel("tfrt_gpu.blas.gemm.f32",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(BlasSgemm));
+  kernel_reg->AddKernel("tfrt_gpu.blas.gemm.algo", TFRT_KERNEL(BlasGemmAlgo));
   kernel_reg->AddKernel("tfrt_gpu.blas.gemm",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(BlasGemm));
   kernel_reg->AddKernel(

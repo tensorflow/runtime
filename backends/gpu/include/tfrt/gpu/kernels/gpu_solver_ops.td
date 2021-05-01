@@ -27,7 +27,9 @@
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 
-def GPU_SolverHandleType : GPU_Type<"solver_handle">;
+def GPU_SolverHandleType : GPU_Type<"SolverHandle"> {
+  let mnemonic = "solver.handle";
+}
 def GPU_AnySolverDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
                                    AnyUnsignedInteger]>;
 

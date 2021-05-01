@@ -176,6 +176,7 @@ tfrt_cc_library(
     ],
     visibility = [
         ":tests_and_tools",
+        ":xla_friends",
     ],
     deps = [
         ":rocm_stubs",
@@ -741,6 +742,14 @@ gentbl(
             "-gen-op-defs",
             "include/tfrt/gpu/kernels/gpu_opdefs.cpp.inc",
         ),
+        (
+            "--gen-typedef-decls",
+            "include/tfrt/gpu/kernels/gpu_typedefs.h.inc",
+        ),
+        (
+            "--gen-typedef-defs",
+            "include/tfrt/gpu/kernels/gpu_typedefs.cpp.inc",
+        ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/gpu/kernels/gpu_ops.td",
@@ -749,6 +758,7 @@ gentbl(
         "backends/gpu/include",
     ],
     td_srcs = [
+        "@llvm-project//mlir:SideEffectTdFiles",
         "@tf_runtime//:OpBaseTdFiles",
         "include/tfrt/gpu/kernels/gpu_blas_ops.td",
         "include/tfrt/gpu/kernels/gpu_dnn_ops.td",
@@ -814,6 +824,7 @@ tfrt_cc_library(
         ":gpu_conversion_helper_opdefs_inc_gen",
         ":gpu_opdefs_inc_gen",
         ":gpu_wrapper",
+        "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:basic_kernels_opdefs",

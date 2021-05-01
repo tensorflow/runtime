@@ -113,12 +113,13 @@ func @blas_gemm_ex() {
   %dim = tfrt.constant.i32 2
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 1.0
+  %algo = tfrt_gpu.blas.gemm.algo CUBLAS_GEMM_ALGO0
   %ch4 = tfrt_gpu.blas.gemm %blas,
     CUBLAS_OP_N, CUBLAS_OP_N, %dim, %dim, %dim,
     %alpha, %gpu_buffer_A, CUDA_R_32F, %dim,
     %gpu_buffer_B, CUDA_R_32F, %dim, %beta,
     %gpu_buffer_C, CUDA_R_32F, %dim,
-    CUDA_R_32F, CUBLAS_GEMM_ALGO0, %ch2
+    CUDA_R_32F, %algo, %ch2
 
   // Copy result back
   %result_tensor = tfrt_dht.create_uninitialized_tensor.f32.2 [2: i64, 2: i64]

@@ -211,10 +211,18 @@ static Error VerifyDType(mlir::Type input_type, DType operand_type) {
 }
 
 static Error VerifyMemrefOperand(mlir::ShapedType type, MemrefDesc memref) {
+  // Check that memref data type matches operand element type.
+  if (auto err = VerifyDType(type.getElementType(), memref.dtype)) return err;
+
+  // For unranked operands we only verify the element type.
+  if (!type.hasRank()) return Error::success();
+
+  // Check that memref rank is the same as operand rank.
   if (memref.sizes.size() != type.getRank())
     return MakeStringError("operand rank does not match expected input rank: ",
                            memref.sizes.size(), " vs ", type.getRank());
 
+  // Check that all statically known dimensions matches the memref dimensions.
   for (unsigned d = 0; d < memref.sizes.size(); ++d) {
     ssize_t operand_dim = memref.sizes[d];
     ssize_t expected_dim = type.getDimSize(d);
@@ -224,7 +232,7 @@ static Error VerifyMemrefOperand(mlir::ShapedType type, MemrefDesc memref) {
                              operand_dim, " vs ", expected_dim);
   }
 
-  return VerifyDType(type.getElementType(), memref.dtype);
+  return Error::success();
 }
 
 Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref) {
@@ -232,6 +240,10 @@ Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref) {
 }
 
 Error VerifyMemrefOperand(mlir::RankedTensorType type, MemrefDesc memref) {
+  return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
+}
+
+Error VerifyMemrefOperand(mlir::UnrankedTensorType type, MemrefDesc memref) {
   return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
 }
 
@@ -789,6 +801,11 @@ static llvm::Expected<mlir::Type> SpecializeType(mlir::Type type,
     return mlir::RankedTensorType::get(operand.sizes, tensor.getElementType());
   }
 
+  if (auto tensor = type.dyn_cast<mlir::UnrankedTensorType>()) {
+    if (auto err = VerifyMemrefOperand(tensor, operand)) return std::move(err);
+    return mlir::RankedTensorType::get(operand.sizes, tensor.getElementType());
+  }
+
   return MakeStringError("Unsupported input type: ", type);
 }
 
@@ -833,25 +850,110 @@ llvm::Error JitCompilationContext::Specialize(ArrayRef<MemrefDesc> operands,
 // JitExecutable implementation.
 //----------------------------------------------------------------------------//
 
-// Returns true if module requires argument specialization to be compiled.
-static Expected<bool> IsSpecializationOnly(mlir::ModuleOp module,
-                                           string_view entrypoint) {
+constexpr const char* const JitExecutable::kConstraint;
+
+static raw_ostream& operator<<(raw_ostream& os,
+                               const OperandConstraint& constraint) {
+  auto str = [](OperandConstraint constraint) -> string_view {
+    switch (constraint) {
+      case OperandConstraint::kResolved:
+        return "resolved";
+      case OperandConstraint::kRank:
+        return "rank";
+      case OperandConstraint::kShape:
+        return "shape";
+      case OperandConstraint::kValue:
+        return "value";
+      default:
+        llvm_unreachable("unknown operand constraint");
+    }
+  };
+
+  os << str(constraint);
+  return os;
+}
+
+static raw_ostream& operator<<(raw_ostream& os,
+                               ArrayRef<OperandConstraint> constraints) {
+  os << "[";
+  llvm::interleaveComma(constraints, os);
+  os << "]";
+  return os;
+}
+
+Expected<OperandConstraint> ResolveOperandConstraint(
+    OperandConstraint operand_constraint, mlir::Type operand_type) {
+  // Operand must be a shaped type: memref or tensor.
+  auto shaped = operand_type.dyn_cast<mlir::ShapedType>();
+  if (!shaped)
+    return MakeStringError("unsupported operand type: ", operand_type);
+
+  // Resolve `rank` constraint if rank is known at compile time.
+  if (operand_constraint == OperandConstraint::kRank && shaped.hasRank())
+    return OperandConstraint::kResolved;
+
+  // Resolve `shape` constraint if shape is known at compile time.
+  if (operand_constraint == OperandConstraint::kShape &&
+      shaped.hasStaticShape())
+    return OperandConstraint::kResolved;
+
+  return operand_constraint;
+}
+
+static Expected<OperandConstraint> ParseOperandConstraints(string_view str) {
+  if (str == "rank") return OperandConstraint::kRank;
+  if (str == "shape") return OperandConstraint::kShape;
+  if (str == "value") return OperandConstraint::kValue;
+  return MakeStringError("unknown operand constraint: ", str);
+}
+
+// Returns operands constraints inferred from the entrypoint signature.
+static Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
+    mlir::ModuleOp module, string_view entrypoint) {
+  llvm::SmallVector<OperandConstraint> constraints;
+
   auto func = ResolveEntrypointFunction(module, entrypoint);
   if (auto err = func.takeError()) return std::move(err);
 
-  auto is_required = [](mlir::Attribute attr) -> bool {
+  auto parse = [](mlir::Attribute attr) -> Expected<OperandConstraint> {
+    // If attribute is not defined in means that there is no operand constraint.
+    if (!attr) return OperandConstraint::kResolved;
+
+    // Otherwise try to parse constraint from the string attribute.
     auto str = attr.dyn_cast_or_null<mlir::StringAttr>();
-    return str && str.getValue() == "required";
+    if (!str)
+      return MakeStringError("unexpected ", JitExecutable::kConstraint,
+                             " attribute");
+    return ParseOperandConstraints(str.getValue());
   };
 
-  // Check if any of the arguments require shape or value specialization.
   for (int i = 0; i < func->getNumArguments(); ++i) {
-    auto shape = func->getArgAttr(i, JitExecutable::kSpecializeShape);
-    auto value = func->getArgAttr(i, JitExecutable::kSpecializeShape);
-    if (is_required(shape) || is_required(value)) return true;
+    auto operand_type = func->getType().getInput(i);
+
+    auto constraint = parse(func->getArgAttr(i, JitExecutable::kConstraint));
+    if (auto err = constraint.takeError()) return std::move(err);
+
+    auto resolved = ResolveOperandConstraint(*constraint, operand_type);
+    if (auto err = resolved.takeError()) return std::move(err);
+
+    constraints.push_back(*resolved);
   }
 
-  return false;
+  return constraints;
+}
+
+// Returns true if any of the operands have an unresolved constraint.
+static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
+  return llvm::any_of(constraints, [](OperandConstraint constraint) {
+    return constraint != OperandConstraint::kResolved;
+  });
+}
+
+// Returns true if any of the operands have an unresolved value constraint.
+static bool HasValueSpecialization(ArrayRef<OperandConstraint> constraints) {
+  return llvm::any_of(constraints, [](OperandConstraint constraint) {
+    return constraint == OperandConstraint::kValue;
+  });
 }
 
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
@@ -865,36 +967,60 @@ static Expected<bool> IsSpecializationOnly(mlir::ModuleOp module,
       JitCompilationContext::Instantiate(compilation_opts, mlir_module);
   if (auto err = ctx.takeError()) return std::move(err);
 
-  // Check if the module requires specialization to be compiled.
-  Expected<bool> required_specialization =
-      IsSpecializationOnly((*ctx)->module(), entrypoint);
-  if (auto err = required_specialization.takeError()) return std::move(err);
+  // Get resolved operands constraints for the entrypoint function.
+  auto constraints = GetOperandsConstraints((*ctx)->module(), entrypoint);
+  if (auto err = constraints.takeError()) return std::move(err);
+
+  // TODO(ezhulenev): Support specializing to operands values.
+  if (HasValueSpecialization(*constraints))
+    return MakeStringError("value constraints are not supported: ",
+                           *constraints);
 
   // If the module must be specialized, return JitExecutable without a default
   // compiled executable.
-  if (*required_specialization)
-    return MakeStringError("specialization not supported");
+  if (IsSpecializationOnly(*constraints)) {
+    // If specialization is explicitly disabled return an error, because we will
+    // never be able to compile an executable.
+    if (compilation_opts.disable_specializations)
+      return MakeStringError(
+          "compilation options disabled specialization, however operands have "
+          "unresolved constraints: ",
+          *constraints);
+
+    return JitExecutable(mlir_module, entrypoint, compilation_opts,
+                         *constraints);
+  }
 
   // Otherwise try to compile the default executable.
   Expected<Executable> executable =
       JitCompilationContext::Compile(std::move(*ctx), entrypoint);
   if (auto err = executable.takeError()) return std::move(err);
 
-  return JitExecutable(mlir_module, entrypoint, compilation_opts,
+  return JitExecutable(mlir_module, entrypoint, compilation_opts, *constraints,
                        std::move(*executable));
 }
 
 JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
                              CompilationOptions compilation_opts,
+                             ArrayRef<OperandConstraint> constraints,
                              Optional<Executable> default_executable)
     : mlir_module_(mlir_module.str()),
       entrypoint_(entrypoint.str()),
       compilation_opts_(std::move(compilation_opts)),
+      constraints_(constraints.begin(), constraints.end()),
       default_executable_(std::move(default_executable)),
       specializations_(std::make_unique<Specializations>()) {}
 
 const Executable* JitExecutable::DefaultExecutable() const {
   return default_executable_.hasValue() ? &*default_executable_ : nullptr;
+}
+
+bool JitExecutable::HasDefaultExecutable() const {
+  return default_executable_.hasValue();
+}
+
+ArrayRef<OperandConstraint> JitExecutable::constraints() const {
+  return constraints_;
 }
 
 // Implement `hash_value` to rely on the ADL lookup for the MemrefDesc type.
@@ -917,13 +1043,18 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
 // should only keep N most common specializations, and for everything else
 // fall back on the default executable. However what to do if default executable
 // is not available, and the number of specializations is above N?
+//
+// TODO(ezhulenev): Currently we always specialize operands to the shape, even
+// if operand constraint only requires rank specialization. Although it might be
+// beneficial to know the shape to do broadcasts fusion, consider not doing that
+// when it is not needed.
 Expected<const Executable*> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands) {
   llvm::hash_code hash = llvm::hash_value(operands);
 
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.disable_specializations) {
-    if (!default_executable_.hasValue())
+    if (!HasDefaultExecutable())
       return MakeStringError(
           "jit executable specialization is disabled, but the default "
           "executable is not available");

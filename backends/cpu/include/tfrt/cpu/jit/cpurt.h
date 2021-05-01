@@ -53,59 +53,53 @@ namespace jit {
 //
 //   module @kernel attributes { tfrt.compiled, cpurt.entrypoint = @main } {
 //     func @main(
-//       %input0: memref<?x?xf32>,
-//       %input1: memref<?x?xf32> { cpurt.specialize.shape = "<strategy>" },
-//       %perm: memref<4xi32>     { cpurt.specialize.value = "<strategy>" }
+//       %input0: memref<*xf32>   { cpurt.constraint = "rank"  },
+//       %input1: memref<?x?xf32> { cpurt.constraint = "shape" },
+//       %perm: memref<4xi32>     { cpurt.constraint = "value" }
 //     ) -> !async.value<memref<?x?xf32>> {
 //       ...
 //       return %result : !async.value<memref<?x?xf32>>
 //     }
 //   }
 //
-// Compiled function might require specialization of some of its arguments at
-// runtime to the concrete shape or value that is only available at runtime.
+// Compiled function can define constraints on its inputs, that must be
+// resolved before the function can be compiled. If constraints can't be
+// resolved statically from the function signature (e.g. rank is unknown), then
+// the runtime will specialize generic function to concrete operands at runtime
+// (concrete operands rank, shape or value).
 //
-// If no function arguments have a hard requirement to be specialized at
-// runtime, compiler will compile the generic function, and use it at runtime to
-// execute for inputs of all shapes and values.
+// If function inputs do not have unresolved constraints, compiler will
+// instantiate the default executable, that can take all compatible inputs
+// without recompilation.
 //
-// (a) Shape specialization:
 //
-//     %arg : <type> { cpurt.specialize.shape = "<strategy>" }
+// (a) Rank constraint:
+//
+//     %arg : tensor<*xf32> { cpurt.constraint = "rank" }
+//
+//     Before compiling the function, unranked input type will be updated to the
+//     corresponding ranked input type (e.g. unranked tensor -> ranked tensor).
+//
+// (b) Shape constraint:
+//
+//     %arg : tensor<?x?xf32> { cpurt.constraint = "shape" }
 //
 //     Shape of the runtime argument will be used to specialize the compiled
 //     function, if this shape seen the first time, it will trigger function
 //     recompilation.
 //
-//     Strategy:
-//       - "enabled"   Shape can be used for the specialization but not required
-//                     for the compilation.
-//       - "required"  Function must be specialized for concrete shape of the
-//                     argument.
-//       - "disabled"  Never specialize for the shape of the argument (e.g. it
-//                     is known that the shape varies a lot).
+// (c) Value constraint:
 //
-// (b) Value specialization:
-//
-//     %arg : <type> { cpurt.specialize.value = "<strategy>" }
+//     %reduction_dimension : tensor<i32> { cpurt.constraint = "value" }
 //
 //     Runtime value will be sunk into the body of a function as a constant,
 //     and the function will be recompiled. For example this can be used to sink
 //     reduction dimensions to generate more efficient code.
 //
-//     Value specialization is only supported for the integer data type, in
-//     practice it should be reduction dimension, dimension permutation, or any
-//     similar value that does not change often, and is required for generating
+//     Value constraint is only supported for the integer data type, in practice
+//     it should be reduction dimension, dimension permutation, or any similar
+//     value that does not change often, and is required for generating
 //     efficient code.
-//
-//     Strategy:
-//       - "enabled"   Value can be used for the specialization but not required
-//                     for the compilation.
-//       - "required"  Function must be specialized for concrete value of the
-//                     argument.
-//       - "disabled"  Never specialize for the value of the argument (e.g. it
-//                     is known that the value varies a lot).
-//
 //
 //  Shape and value specialization example:
 //
@@ -129,7 +123,7 @@ namespace jit {
 //    improvement, because without knowing the reduction axis we can't infer
 //    any new information from the input shape alone.
 //
-//  Value specialization to input values: [ <skip-f32-input>, dense<1 : i32> ]
+//  Value specialization to input values: [ <do-not-specialize>, dense<1 : i32>]
 //
 //    func @mean(%arg0: tensor<4x8xf32>) -> tensor<4xf32> {
 //      %0 = "tf.Constant" { value = dense<1 : i32>} -> tensor<i32>
@@ -202,6 +196,7 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
 // rank and statically known dimensions are matched with the runtime
 // dimensions).
 Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref);
+Error VerifyMemrefOperand(mlir::UnrankedTensorType type, MemrefDesc memref);
 Error VerifyMemrefOperand(mlir::RankedTensorType type, MemrefDesc memref);
 
 // Converts tfrt Tensor to the Memref descriptor if concrete Tensor type is
@@ -545,23 +540,54 @@ class Executable {
 // JitExecutable to manage multiple compiled executables.
 //----------------------------------------------------------------------------//
 
-// JitExecutable owns a default executable compiled from the MLIR module (if it
-// does not require to be specialized), and orchestrates on-demand
-// re-compilation for specific argument shapes and values.
+// Constraints on what operand information must be available at compile time in
+// order to successfully compile the executable:
+//
+//   `rank`  : operand must have statically known rank.
+//   `shape` : operand must have statically known shape.
+//   `value` : operand must have statically known value, and such operands
+//             replaced with constants inside the compiled function body and
+//             removed from the compiled function signature.
+//
+// If JitExecutable entrypoint function signature can't resolve all operands
+// constraints, then default executable will not be available, and the client
+// must compile a specialized version for the given operands at runtime.
+enum class OperandConstraint {
+  // Constraint was resolved based on the static information in the function
+  // signature type or it was never specified by the operand attribute.
+  kResolved = 0,
+  kRank = 1,
+  kShape = 2,
+  kValue = 3
+};
+
+// Resolve operand constraint based on the operand type, if constraint is fully
+// satisfied by the type, returns `kResolved`.
+Expected<OperandConstraint> ResolveOperandConstraint(
+    OperandConstraint operand_constraint, mlir::Type operand_type);
+
+// JitExecutable owns a default executable compiled from the MLIR module (if
+// operands constraints allow that), and orchestrates on-demand re-compilation
+// for specific argument ranks, shapes or values depending on the operands
+// constraints.
 class JitExecutable {
  public:
-  static constexpr const char* const kSpecializeShape =
-      "cpurt.specialize.shape";
-  static constexpr const char* const kSpecializeValue =
-      "cpurt.specialize.value";
+  static constexpr const char* const kConstraint = "cpurt.constraint";
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
       const CompilationOptions& compilation_opts);
 
-  // Returns default executable that accepts all compatible operands (operands
-  // rank and all static dimensions should match the operands).
+  // Returns entrypoint operands constraints after resolving them using the
+  // statically known information in the entrypoint function signature.
+  ArrayRef<OperandConstraint> constraints() const;
+
+  // Returns default executable that accepts all compatible operands
+  // (operands rank and all static dimensions should match the operands).
   const Executable* DefaultExecutable() const;
+
+  // Returns true if default executable is available.
+  bool HasDefaultExecutable() const;
 
   // Returns an executable that may be specialized for the operands shape or
   // values. Can return default executable if no specialization is required, or
@@ -583,6 +609,7 @@ class JitExecutable {
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,
                 CompilationOptions compilation_opts,
+                ArrayRef<OperandConstraint> constraints,
                 Optional<Executable> default_executable = {});
 
   // We do not use Expected<Executable> here because we need a mechanism to
@@ -611,6 +638,14 @@ class JitExecutable {
   std::string mlir_module_;
   std::string entrypoint_;
   CompilationOptions compilation_opts_;
+
+  // Entrypoint operands constraints after resolving them using the statically
+  // known information in the entrypoint function signature. If constraint
+  // specified by the argument attribute known to be statically satisfied by the
+  // operand type (e.g. rank constraint with an operand of statically known
+  // rank), then the constraint value for that operand will be updated to
+  // `kResolved`.
+  llvm::SmallVector<OperandConstraint> constraints_;
 
   // Default executable that was not specialized to any of the arguments.
   Optional<Executable> default_executable_;

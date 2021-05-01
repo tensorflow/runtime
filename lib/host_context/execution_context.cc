@@ -53,4 +53,10 @@ Expected<RCReference<RequestContext>> RequestContextBuilder::build() && {
                                     std::move(context_data_), id_));
 };
 
+ExecutionContext::ExecutionContext(RCReference<RequestContext> req_ctx,
+                                   Location location)
+    : request_ctx_{std::move(req_ctx)},
+      work_queue_(&host()->work_queue()),
+      location_{location} {}
+
 }  // namespace tfrt

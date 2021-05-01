@@ -25,18 +25,18 @@ namespace tfrt {
 
 void Await(const ExecutionContext& exec_ctx,
            ArrayRef<RCReference<AsyncValue>> values) {
-  exec_ctx.host()->Await(values);
+  exec_ctx.work_queue().Await(values);
 }
 
 void EnqueueWork(const ExecutionContext& exec_ctx,
                  llvm::unique_function<void()> work) {
-  auto& work_queue = exec_ctx.host()->work_queue();
+  auto& work_queue = exec_ctx.work_queue();
   work_queue.AddTask(exec_ctx, TaskFunction(std::move(work)));
 }
 
 bool EnqueueBlockingWork(const ExecutionContext& exec_ctx,
                          llvm::unique_function<void()> work) {
-  auto& work_queue = exec_ctx.host()->work_queue();
+  auto& work_queue = exec_ctx.work_queue();
   Optional<TaskFunction> task = work_queue.AddBlockingTask(
       exec_ctx, TaskFunction(std::move(work)), /*allow_queuing=*/true);
   return !task.hasValue();
@@ -44,7 +44,7 @@ bool EnqueueBlockingWork(const ExecutionContext& exec_ctx,
 
 bool RunBlockingWork(const ExecutionContext& exec_ctx,
                      llvm::unique_function<void()> work) {
-  auto& work_queue = exec_ctx.host()->work_queue();
+  auto& work_queue = exec_ctx.work_queue();
   Optional<TaskFunction> task = work_queue.AddBlockingTask(
       exec_ctx, TaskFunction(std::move(work)), /*allow_queuing=*/false);
   return !task.hasValue();

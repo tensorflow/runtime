@@ -29,6 +29,7 @@ namespace tfrt {
 
 class HostContext;
 class ErrorAsyncValue;
+class ConcurrentWorkQueue;
 
 // A request refers to either a BEFFunction execution or an op execution.
 // RequestContext holds per request information, such as the cancellation status
@@ -166,25 +167,28 @@ class RequestContextBuilder {
 class ExecutionContext {
  public:
   explicit ExecutionContext(RCReference<RequestContext> req_ctx,
-                            Location location = {})
-      : request_ctx_{std::move(req_ctx)}, location_{location} {}
+                            Location location = {});
 
   ExecutionContext(const ExecutionContext& exec_ctx)
       : request_ctx_{exec_ctx.request_ctx_.CopyRef()},
+        work_queue_(&exec_ctx.work_queue()),
         location_{exec_ctx.location()},
         debug_info_({exec_ctx.debug_info()}) {}
   ExecutionContext(ExecutionContext&& exec_ctx)
       : request_ctx_{std::move(exec_ctx.request_ctx_)},
+        work_queue_(&exec_ctx.work_queue()),
         location_{exec_ctx.location()},
         debug_info_({exec_ctx.debug_info()}) {}
   ExecutionContext& operator=(const ExecutionContext& exec_ctx) {
     request_ctx_ = exec_ctx.request_ctx_.CopyRef();
+    work_queue_ = &exec_ctx.work_queue();
     location_ = exec_ctx.location();
     debug_info_ = exec_ctx.debug_info();
     return *this;
   }
   ExecutionContext& operator=(ExecutionContext&& exec_ctx) {
     request_ctx_ = std::move(exec_ctx.request_ctx_);
+    work_queue_ = &exec_ctx.work_queue();
     location_ = exec_ctx.location();
     debug_info_ = exec_ctx.debug_info();
     return *this;
@@ -201,6 +205,15 @@ class ExecutionContext {
   void set_location(Location location) { location_ = location; }
   void set_debug_info(DebugInfo debug_info) { debug_info_ = debug_info; }
 
+  // Set the work queue to use for dispatching async tasks.
+  void set_work_queue(ConcurrentWorkQueue* work_queue) {
+    assert(work_queue);
+    work_queue_ = work_queue;
+  }
+
+  // Return the work queue to use for dispatching async tasks.
+  ConcurrentWorkQueue& work_queue() const { return *work_queue_; }
+
   RequestContext* request_ctx() const { return request_ctx_.get(); }
 
   ResourceContext* resource_context() const {
@@ -209,6 +222,9 @@ class ExecutionContext {
 
  private:
   RCReference<RequestContext> request_ctx_;
+  // If set, this work queue will be used for running async tasks in the
+  // execution. Otherwise, the work queue in HostContext is used.
+  ConcurrentWorkQueue* work_queue_ = nullptr;
   Location location_;
   DebugInfo debug_info_;
 };

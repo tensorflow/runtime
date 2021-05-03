@@ -214,11 +214,13 @@ filegroup(
         "@tf_runtime//:OpBaseTdFiles",
         "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
 )
 
 gentbl(
     name = "cpurt_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -242,6 +244,7 @@ tfrt_cc_library(
     name = "cpurt_opdefs",
     srcs = ["lib/jit/opdefs/cpurt_ops.cc"],
     hdrs = ["include/tfrt/cpu/jit/opdefs/cpurt_ops.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":cpurt_opdefs_inc_gen",

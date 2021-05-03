@@ -452,6 +452,7 @@ tfrt_cc_library(
         "include/tfrt/basic_kernels/basic_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/basic_kernels/static_registration.cc",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":hostcontext",
@@ -489,6 +490,7 @@ tfrt_cc_library(
         "include/tfrt/bef_converter/bef_buffer.h",
         "include/tfrt/bef_converter/mlir_to_bef.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":bef_attr_encoder",
@@ -510,6 +512,7 @@ tfrt_cc_library(
         "include/tfrt/bef_converter/mlir_to_bef_translate.h",
     ],
     alwayslink_static_registration_src = "lib/bef_converter/mlir_to_bef/static_registration.cc",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":init_tfrt_dialects",
@@ -583,6 +586,7 @@ filegroup(
         "@llvm-project//mlir:SideEffectTdFiles",
         "@llvm-project//mlir:include/mlir/IR/OpBase.td",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
 )
 
@@ -600,6 +604,7 @@ exports_files(
 
 gentbl(
     name = "basic_kernels_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -632,6 +637,7 @@ tfrt_cc_library(
         "include/tfrt/basic_kernels/opdefs/tfrt_traits.h",
         "include/tfrt/basic_kernels/opdefs/types.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs_inc_gen",
@@ -644,6 +650,7 @@ tfrt_cc_library(
 
 gentbl(
     name = "tensor_shape_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -669,6 +676,7 @@ gentbl(
 
 gentbl(
     name = "tensor_shape_sync_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -690,6 +698,7 @@ gentbl(
 
 gentbl(
     name = "tensor_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -711,6 +720,7 @@ gentbl(
 
 gentbl(
     name = "host_tensor_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -732,6 +742,7 @@ gentbl(
 
 gentbl(
     name = "dense_host_tensor_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -753,6 +764,7 @@ gentbl(
 
 gentbl(
     name = "dense_host_tensor_sync_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -774,6 +786,7 @@ gentbl(
 
 gentbl(
     name = "coo_host_tensor_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -812,6 +825,7 @@ tfrt_cc_library(
         "include/tfrt/tensor/opdefs/tensor_shape.h",
         "include/tfrt/tensor/opdefs/tensor_shape_sync.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -829,6 +843,7 @@ tfrt_cc_library(
 
 gentbl(
     name = "core_runtime_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -863,6 +878,7 @@ tfrt_cc_library(
         "include/tfrt/core_runtime/opdefs/traits.h",
         "include/tfrt/core_runtime/opdefs/types.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -876,6 +892,7 @@ tfrt_cc_library(
 
 gentbl(
     name = "core_runtime_sync_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -905,6 +922,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/core_runtime/opdefs/sync/core_runtime.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -1025,6 +1043,7 @@ tfrt_cc_library(
 
 gentbl(
     name = "test_kernels_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -1053,6 +1072,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/test_kernels/opdefs/test_kernels.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -1180,6 +1200,7 @@ tfrt_cc_library(
 
 gentbl(
     name = "data_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -1207,6 +1228,7 @@ tfrt_cc_library(
         "include/tfrt/data/opdefs/data_ops.h",
         "include/tfrt/data/opdefs/types.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -1338,6 +1360,7 @@ tfrt_cc_library(
 
 gentbl(
     name = "distributed_kernels_opdefs_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             "-gen-op-decls",
@@ -1369,6 +1392,7 @@ tfrt_cc_library(
         "include/tfrt/distributed_runtime/opdefs/kernels.h",
         "include/tfrt/distributed_runtime/opdefs/types.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
@@ -1400,6 +1424,7 @@ tfrt_cc_library(
     name = "stream_analysis",
     srcs = ["lib/compiler/stream_analysis.cc"],
     hdrs = ["include/tfrt/compiler/stream_analysis.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":basic_kernels_opdefs",
         "@llvm-project//mlir:IR",
@@ -1430,6 +1455,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/init_tfrt_dialects.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",

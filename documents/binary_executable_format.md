@@ -244,76 +244,24 @@ BEF files only support a subset of MLIR attributes, currently including:
 
 *   booleans, stored as 1-byte integers.
 *   i1 integers, stored as 1-byte integers.
-*   i8 integers, stored as 1-byte little endian integers.
-*   i16 integers, stored as 2-byte little endian integers.
 *   i32 integers, stored as 4-byte little endian integers.
 *   i64 integers, stored as 8-byte little endian integers.
-*   ui8 integers, stored as 1-byte little endian integers.
-*   ui16 integers, stored as 2-byte little endian integers.
-*   ui32 integers, stored as 4-byte little endian integers.
-*   ui64 integers, stored as 8-byte little endian integers.
-*   f16 floats, stored as IEEE half precision floats.
-*   bf16 floats, Google's custom 16-bit brain floating-points.
 *   f32 floats, stored as IEEE single precision floats.
 *   f64 floats, stored as IEEE double precision floats.
 *   type enums, stored as 1-byte integers. Currently supported type enums are
     i1, i32, i64, f32 and f64.
 *   strings, stored as arrays of bytes, not necessarily NULL terminated.
-
-    ```none
-      STRING_ATTRIBUTE ::= INTEGER<"StringLength"> BYTE*
-    ```
-
 *   dense elements, stored as shape dtype, shape rank, elements count, followed
     by shape elements and elements themselves. Each element can be any of the
     integer and float format above.
-
-    ```none
-      SHAPE_ATTRIBUTE ::= INTEGER<"Rank"> FIXED64*
-        Rank 0: unranked shape
-        Rank 1: zero ranked shape
-        Rank R: (R - 1) ranked shape
-
-      e.g.) int64 shape[1] = {4}
-            0x02  0x04 0x00 0x00 0x00 0x00 0x00 0x00 0x00
-
-    ```
-
-    Note that the Rank value 0 means a unranked shape, value 1 means a zero
-    ranked shape, and value R means a (R - 1) raked shape. This design is chosen
-    to represent unranked and ranked shapes without an additional type flag.
-
 *   arrays, all elements of which are of the same type and fixed in width (eg.
     i32, f32, type).
+*   aggregates, stored as array of i32 integers, which are offsets to other
+    constants in Attributes Section. These nested constants can be of any
+    supported attribute type including aggregates. Unlike arrays, an aggregate
+    can contain a mix of different attribute types.
 
-    ```none
-      ARRAY_ATTRIBUTE ::= INTEGER<"ElementCount"> BYTE*
-
-      e.g.) int16_t array[2] = {1, 2}
-            0x02  0x01 0x00  0x02 0x00
-    ```
-
-*   aggregates, Unlike arrays, an aggregate can contain a mix of different
-    attribute types.
-
-    ```none
-      AGGREGATE_ATTRIBUTE ::=
-         INTEGER<"ElementCount">
-         FIXED16<"ElementType">* FIXED32<"ElementOffset">*
-         FIXED32<"ByteSize">
-         BYTE*
-
-      e.g.) [ 1 : I8, 2 : I16, 3 : I32 ]
-                       0x03 0x06 0x00
-                  0x07 0x00 0x08 0x00
-                  0x21 0x00 0x00 0x00
-                  0x17 0x00 0x00 0x00
-                  0x19 0x00 0x00 0x00
-                  0x1d 0x00 0x00 0x00
-                  0x01 0xcc 0x02 0x00
-                  0xcc 0xcc 0x03 0x00
-                  0x00 0x00
-    ```
+TODO: Support 8/16-bit integers and floating point constants.
 
 #### Rationale
 

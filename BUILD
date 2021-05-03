@@ -471,7 +471,6 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
-        ":dtype",
         ":support",
         "@llvm-project//llvm:Support",
     ],
@@ -481,22 +480,19 @@ tfrt_cc_library(
     name = "mlirtobef",
     srcs = [
         "include/tfrt/host_context/debug_info.h",
-        "lib/bef_converter/mlir_to_bef/bef_attr_emitter.h",
+        "lib/bef_converter/mlir_to_bef/bef_compilation_units.cc",
         "lib/bef_converter/mlir_to_bef/bef_compilation_units.h",
         "lib/bef_converter/mlir_to_bef/mlir_to_bef.cc",
     ],
     hdrs = [
         "include/tfrt/bef_converter/bef_buffer.h",
         "include/tfrt/bef_converter/mlir_to_bef.h",
-        "include/tfrt/host_context/debug_info.h",
     ],
     visibility = [":friends"],
     deps = [
-        ":bef_attr_emitter",
         ":bef_attr_encoder",
         ":bef_emitter",
         ":core_runtime_opdefs",
-        ":dtype",
         ":stream_analysis",
         ":support",
         "@llvm-project//llvm:Support",
@@ -526,17 +522,10 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "beftomlir",
-    srcs = [
-        "lib/bef_converter/bef_to_mlir/bef_attr_reader.h",
-        "lib/bef_converter/bef_to_mlir/bef_to_mlir.cc",
-    ],
-    hdrs = [
-        "include/tfrt/bef_converter/bef_to_mlir.h",
-        "include/tfrt/host_context/attribute_utils.h",
-    ],
+    srcs = ["lib/bef_converter/bef_to_mlir/bef_to_mlir.cc"],
+    hdrs = ["include/tfrt/bef_converter/bef_to_mlir.h"],
     visibility = [":friends"],
     deps = [
-        ":bef_attr_reader",
         ":core_runtime_opdefs",
         ":support",
         "@llvm-project//llvm:Support",
@@ -1479,42 +1468,6 @@ tfrt_cc_library(
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:StandardOps",
-    ],
-)
-
-tfrt_cc_library(
-    name = "bef_attr_emitter",
-    srcs = [
-        "lib/bef_converter/mlir_to_bef/bef_attr_emitter.cc",
-        "lib/bef_converter/mlir_to_bef/bef_attr_emitter.h",
-        "lib/bef_converter/mlir_to_bef/bef_compilation_units.cc",
-        "lib/bef_converter/mlir_to_bef/bef_compilation_units.h",
-    ],
-    visibility = [":friends"],
-    deps = [
-        ":bef_attr_encoder",
-        ":bef_emitter",
-        ":core_runtime_opdefs",
-        ":support",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:IR",
-    ],
-)
-
-tfrt_cc_library(
-    name = "bef_attr_reader",
-    srcs = [
-        "lib/bef_converter/bef_to_mlir/bef_attr_reader.cc",
-        "lib/bef_converter/bef_to_mlir/bef_attr_reader.h",
-    ],
-    visibility = [":friends"],
-    deps = [
-        ":core_runtime_opdefs",
-        ":dtype",
-        ":hostcontext",
-        ":support",
-        "@llvm-project//llvm:Support",
-        "@llvm-project//mlir:IR",
     ],
 )
 

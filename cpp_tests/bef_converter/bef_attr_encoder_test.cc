@@ -35,7 +35,7 @@ template <typename T>
 void TestBasicTypeEncoding(T value) {
   BefAttrEncoder encoder;
 
-  const size_t offset = encoder.EncodeAttr(value);
+  size_t offset = encoder.EncodeAttr(value);
   auto buffer = encoder.TakeResult();
   Attribute<T> attr(buffer.data() + offset);
 
@@ -65,7 +65,7 @@ TEST(BefAttrEncoderTest, EncodeInt32ArrayAttribute) {
 
   BefAttrEncoder encoder;
 
-  const size_t offset = encoder.EncodeArrayAttr(input_array_ref);
+  size_t offset = encoder.EncodeArrayAttr(input_array_ref);
   auto buffer = encoder.TakeResult();
   ArrayAttribute<int32_t> attr(buffer.data() + offset);
   EXPECT_EQ(kTestInt32ArraySize, attr.size());
@@ -75,7 +75,7 @@ TEST(BefAttrEncoderTest, EncodeInt32ArrayAttribute) {
 TEST(BefAttrEncoderTest, EncodeEmptyArray) {
   BefAttrEncoder encoder;
 
-  const size_t offset =
+  size_t offset =
       encoder.EncodeArrayAttr(llvm::makeArrayRef(kTestInt32Array, 0));
   auto buffer = encoder.TakeResult();
   ArrayAttribute<int32_t> attr(buffer.data() + offset);
@@ -90,7 +90,7 @@ TEST(BefAttrEncoderTest, EncodeDoubleArrayAttribute) {
       llvm::makeArrayRef(kTestDoubleArray, kTestDoubleArraySize);
 
   BefAttrEncoder encoder;
-  const size_t offset = encoder.EncodeArrayAttr(input_array_ref);
+  size_t offset = encoder.EncodeArrayAttr(input_array_ref);
   auto buffer = encoder.TakeResult();
   ArrayAttribute<double> attr(buffer.data() + offset);
   EXPECT_EQ(kTestDoubleArraySize, attr.size());

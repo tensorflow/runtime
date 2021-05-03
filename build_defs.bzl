@@ -99,7 +99,7 @@ def tfrt_cc_binary(
 
 def tfrt_cc_test(
         includes = [],
-        copts = ["-Wno-private-header"],
+        copts = [],
         features = [],
         **kwargs):
     """A cc_test with tfrt-specific options."""

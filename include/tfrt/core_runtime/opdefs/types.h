@@ -56,6 +56,36 @@ class VariantType
   using Base::Base;
 };
 
+class Quint8Type
+    : public mlir::Type::TypeBase<Quint8Type, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
+class Quint16Type
+    : public mlir::Type::TypeBase<Quint16Type, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
+class Qint8Type
+    : public mlir::Type::TypeBase<Qint8Type, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
+class Qint16Type
+    : public mlir::Type::TypeBase<Qint16Type, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
+class Qint32Type
+    : public mlir::Type::TypeBase<Qint32Type, mlir::Type, mlir::TypeStorage> {
+ public:
+  using Base::Base;
+};
+
 }  // namespace corert
 }  // namespace tfrt
 

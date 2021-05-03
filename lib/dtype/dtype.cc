@@ -62,6 +62,16 @@ const char *DType::GetName() const {
       return "bf16";
     case String:
       return "str";
+    case QUI8:
+      return "quint8";
+    case QUI16:
+      return "quint16";
+    case QI8:
+      return "qint8";
+    case QI16:
+      return "qint16";
+    case QI32:
+      return "qint32";
   }
 }
 
@@ -90,6 +100,16 @@ size_t DType::GetHostSize() const {
       return sizeof(TypeForDTypeKind<DType::Complex64>);
     case Complex128:
       return sizeof(TypeForDTypeKind<DType::Complex128>);
+    case QUI8:
+      return sizeof(TypeForDTypeKind<DType::QUI8>);
+    case QUI16:
+      return sizeof(TypeForDTypeKind<DType::QUI16>);
+    case QI8:
+      return sizeof(TypeForDTypeKind<DType::QI8>);
+    case QI16:
+      return sizeof(TypeForDTypeKind<DType::QI16>);
+    case QI32:
+      return sizeof(TypeForDTypeKind<DType::QI32>);
 #define DTYPE_NUMERIC(ENUM) \
   case ENUM:                \
     return sizeof(TypeForDTypeKind<DType::ENUM>);
@@ -122,6 +142,16 @@ size_t DType::GetHostAlignment() const {
       return alignof(TypeForDTypeKind<DType::Complex64>);
     case Complex128:
       return alignof(TypeForDTypeKind<DType::Complex128>);
+    case QUI8:
+      return alignof(TypeForDTypeKind<DType::QUI8>);
+    case QUI16:
+      return alignof(TypeForDTypeKind<DType::QUI16>);
+    case QI8:
+      return alignof(TypeForDTypeKind<DType::QI8>);
+    case QI16:
+      return alignof(TypeForDTypeKind<DType::QI16>);
+    case QI32:
+      return alignof(TypeForDTypeKind<DType::QI32>);
 #define DTYPE_NUMERIC(ENUM) \
   case ENUM:                \
     return alignof(TypeForDTypeKind<DType::ENUM>);
@@ -142,6 +172,21 @@ void DType::Print(const void *data, raw_ostream &os) const {
       break;
     case DType::F16:
       os << "Does not support printing fp16.";
+      break;
+    case DType::QUI8:
+      os << *static_cast<const TypeForDTypeKind<DType::QUI8> *>(data);
+      break;
+    case DType::QI8:
+      os << *static_cast<const TypeForDTypeKind<DType::QI8> *>(data);
+      break;
+    case DType::QI16:
+      os << *static_cast<const TypeForDTypeKind<DType::QI16> *>(data);
+      break;
+    case DType::QI32:
+      os << *static_cast<const TypeForDTypeKind<DType::QI32> *>(data);
+      break;
+    case DType::QUI16:
+      os << *static_cast<const TypeForDTypeKind<DType::QUI16> *>(data);
       break;
     case DType::String:
       os << *static_cast<const TypeForDTypeKind<DType::String> *>(data);
@@ -187,6 +232,21 @@ void DType::PrintFullPrecision(const void *data, raw_ostream &os) const {
       break;
     case DType::I1:
       os << *static_cast<const TypeForDTypeKind<DType::I1> *>(data);
+      break;
+    case DType::QUI8:
+      os << *static_cast<const TypeForDTypeKind<DType::QUI8> *>(data);
+      break;
+    case DType::QI8:
+      os << *static_cast<const TypeForDTypeKind<DType::QI8> *>(data);
+      break;
+    case DType::QI16:
+      os << *static_cast<const TypeForDTypeKind<DType::QI16> *>(data);
+      break;
+    case DType::QI32:
+      os << *static_cast<const TypeForDTypeKind<DType::QI32> *>(data);
+      break;
+    case DType::QUI16:
+      os << *static_cast<const TypeForDTypeKind<DType::QUI16> *>(data);
       break;
     case DType::String:
       os << *static_cast<const TypeForDTypeKind<DType::String> *>(data);
@@ -248,15 +308,20 @@ size_t GetDTypeByteSize(DType::Kind dtype) {
     case DType::I1:
     case DType::I8:
     case DType::UI8:
+    case DType::QUI8:
+    case DType::QI8:
       return 1;
     case DType::I16:
     case DType::UI16:
     case DType::BF16:
     case DType::F16:
+    case DType::QUI16:
+    case DType::QI16:
       return 2;
     case DType::I32:
     case DType::UI32:
     case DType::F32:
+    case DType::QI32:
       return 4;
     case DType::I64:
     case DType::UI64:

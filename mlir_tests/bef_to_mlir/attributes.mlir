@@ -175,6 +175,11 @@ func @data_type_attr() {
   // CHECK: ui32
   // CHECK: ui64
   // CHECK: bf16
+  // CHECK: !corert.quint8
+  // CHECK: !corert.quint16
+  // CHECK: !corert.qint8
+  // CHECK: !corert.qint16
+  // CHECK: !corert.qint32
   // CHECK: complex<f32>
   // CHECK: complex<f64>
   // CHECK: !corert.string
@@ -193,6 +198,11 @@ func @data_type_attr() {
   "simple.op"() {type = f16} : () -> ()
   "simple.op"() {type = f32} : () -> ()
   "simple.op"() {type = f64} : () -> ()
+  "simple.op"() {type = !corert.quint8} : () -> ()
+  "simple.op"() {type = !corert.quint16} : () -> ()
+  "simple.op"() {type = !corert.qint8} : () -> ()
+  "simple.op"() {type = !corert.qint16} : () -> ()
+  "simple.op"() {type = !corert.qint32} : () -> ()
   "simple.op"() {type = complex<f32>} : () -> ()
   "simple.op"() {type = complex<f64>} : () -> ()
   "simple.op"() {type = !corert.string} : () -> ()

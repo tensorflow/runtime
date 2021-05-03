@@ -26,6 +26,7 @@
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/dtype/i1.h"
+#include "tfrt/dtype/quantized_types.h"
 #include "tfrt/support/bf16.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/fp16.h"
@@ -143,6 +144,11 @@ TFRT_DEFINE_DTYPE_INTERNAL(Complex64,
                            std::complex<float>)  // Single precision complex.
 TFRT_DEFINE_DTYPE_INTERNAL(Complex128,
                            std::complex<double>)  // Double precision complex.
+TFRT_DEFINE_DTYPE_INTERNAL(QUI8, quint8)
+TFRT_DEFINE_DTYPE_INTERNAL(QUI16, quint16)
+TFRT_DEFINE_DTYPE_INTERNAL(QI8, qint8)
+TFRT_DEFINE_DTYPE_INTERNAL(QI16, qint16)
+TFRT_DEFINE_DTYPE_INTERNAL(QI32, qint32)
 // LINT.ThenChange(//depot/tf_runtime/include/tfrt/dtype/dtype.def)
 
 #undef TFRT_DEFINE_DTYPE_INTERNAL

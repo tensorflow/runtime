@@ -272,8 +272,23 @@ func @type_attr_test() -> !tfrt.chain {
   %ch9 = "corert.op_attrs_set.dtype"(%attrs, %ch8)
     {key="ui8", value=ui8}
     : (!corert.opattrs, !tfrt.chain) -> (!tfrt.chain)
+  %ch10 = "corert.op_attrs_set.dtype"(%attrs, %ch9)
+    {key="qui8", value=!corert.quint8}
+    : (!corert.opattrs, !tfrt.chain) -> (!tfrt.chain)
+  %ch11 = "corert.op_attrs_set.dtype"(%attrs, %ch10)
+    {key="qui16", value=!corert.quint16}
+    : (!corert.opattrs, !tfrt.chain) -> (!tfrt.chain)
+  %ch12 = "corert.op_attrs_set.dtype"(%attrs, %ch11)
+    {key="qi8", value=!corert.qint8}
+    : (!corert.opattrs, !tfrt.chain) -> (!tfrt.chain)
+  %ch13 = "corert.op_attrs_set.dtype"(%attrs, %ch12)
+    {key="qi16", value=!corert.qint16}
+    : (!corert.opattrs, !tfrt.chain) -> (!tfrt.chain)
+  %ch14 = "corert.op_attrs_set.dtype"(%attrs, %ch13)
+    {key="qi32", value=!corert.qint32}
+    : (!corert.opattrs, !tfrt.chain) -> (!tfrt.chain)
 
-  // CHECK: OpAttrs contains 9 entries:
+  // CHECK: OpAttrs contains 14 entries:
   // CHECK-NEXT: 'f16' type=DTYPE value=F16
   // CHECK-NEXT: 'f32' type=DTYPE value=F32
   // CHECK-NEXT: 'f64' type=DTYPE value=F64
@@ -281,10 +296,15 @@ func @type_attr_test() -> !tfrt.chain {
   // CHECK-NEXT: 'i32' type=DTYPE value=I32
   // CHECK-NEXT: 'i64' type=DTYPE value=I64
   // CHECK-NEXT: 'i8' type=DTYPE value=I8
+  // CHECK-NEXT: 'qi16' type=DTYPE value=QI16
+  // CHECK-NEXT: 'qi32' type=DTYPE value=QI32
+  // CHECK-NEXT: 'qi8' type=DTYPE value=QI8
+  // CHECK-NEXT: 'qui16' type=DTYPE value=QUI16
+  // CHECK-NEXT: 'qui8' type=DTYPE value=QUI8
   // CHECK-NEXT: 'string' type=DTYPE value=CHAR
   // CHECK-NEXT: 'ui8' type=DTYPE value=UI8
-  %ch10 = "tfrt_test.corert.op_attrs_print"(%attrs, %ch9)
+  %ch15 = "tfrt_test.corert.op_attrs_print"(%attrs, %ch14)
     : (!corert.opattrs, !tfrt.chain) -> (!tfrt.chain)
 
-  tfrt.return %ch10 : !tfrt.chain
+  tfrt.return %ch15 : !tfrt.chain
 }

@@ -309,6 +309,16 @@ mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
       return tfrt::corert::ResourceType::get(builder->getContext());
     case DType::Variant:
       return tfrt::corert::VariantType::get(builder->getContext());
+    case DType::QUI8:
+      return tfrt::corert::Quint8Type::get(builder->getContext());
+    case DType::QUI16:
+      return tfrt::corert::Quint16Type::get(builder->getContext());
+    case DType::QI8:
+      return tfrt::corert::Qint8Type::get(builder->getContext());
+    case DType::QI16:
+      return tfrt::corert::Qint16Type::get(builder->getContext());
+    case DType::QI32:
+      return tfrt::corert::Qint32Type::get(builder->getContext());
     default:
       llvm_unreachable("unknown type attribute.");
   }
@@ -1294,6 +1304,16 @@ mlir::TypeAttr BEFAttributeReader::ReadTypeAttribute(BEFReader* reader) {
       return mlir::TypeAttr::get(tfrt::corert::ResourceType::get(&context_));
     case DType::Variant:
       return mlir::TypeAttr::get(tfrt::corert::VariantType::get(&context_));
+    case DType::QUI8:
+      return mlir::TypeAttr::get(tfrt::corert::Quint8Type::get(&context_));
+    case DType::QUI16:
+      return mlir::TypeAttr::get(tfrt::corert::Quint16Type::get(&context_));
+    case DType::QI8:
+      return mlir::TypeAttr::get(tfrt::corert::Qint8Type::get(&context_));
+    case DType::QI16:
+      return mlir::TypeAttr::get(tfrt::corert::Qint16Type::get(&context_));
+    case DType::QI32:
+      return mlir::TypeAttr::get(tfrt::corert::Qint32Type::get(&context_));
     // TODO(chky): Add missing data type cases (eg. bool) here. Currently we
     // don't have bool type in standard MLIR. Consider defining custom MLIR
     // types for these in TFRT dialect and add the cases here.

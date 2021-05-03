@@ -150,6 +150,26 @@ static DType::Kind ConvertMLIRDataTypeToTFRTDType(mlir::Type type) {
     return EncodeComplexTypeAttribute(complex_type);
   }
 
+  if (auto quantized_type = type.dyn_cast<corert::Quint8Type>()) {
+    return DType::QUI8;
+  }
+
+  if (auto quantized_type = type.dyn_cast<corert::Quint16Type>()) {
+    return DType::QUI16;
+  }
+
+  if (auto quantized_type = type.dyn_cast<corert::Qint8Type>()) {
+    return DType::QI8;
+  }
+
+  if (auto quantized_type = type.dyn_cast<corert::Qint16Type>()) {
+    return DType::QI16;
+  }
+
+  if (auto quantized_type = type.dyn_cast<corert::Qint32Type>()) {
+    return DType::QI32;
+  }
+
   llvm_unreachable("unknown type attribute");
 }
 
@@ -204,14 +224,17 @@ static BEFAttributeType GetBEFAttributeType(mlir::Attribute attr) {
     return static_cast<BEFAttributeType>(DType::String);
 
   // We support i1, i8, i16, i32, i64, ui8, ui16, ui32, ui64, bf16, f16, f32,
-  //  f64, complex64, complex128, string, resource and variant type attributes.
+  //  f64, quint8, quint16, qint8, qint16, qint32, complex64, complex128,
+  //  string, resource and variant type attributes.
   if (auto type_attr = attr.dyn_cast<mlir::TypeAttr>()) {
     auto type = type_attr.getValue();
     if (type.isInteger(1) || type.isInteger(8) || type.isInteger(16) ||
         type.isInteger(32) || type.isInteger(64) || type.isBF16() ||
         type.isF16() || type.isF32() || type.isF64() ||
         type.isa<corert::StringType>() || type.isa<corert::ResourceType>() ||
-        type.isa<corert::VariantType>())
+        type.isa<corert::VariantType>() || type.isa<corert::Quint8Type>() ||
+        type.isa<corert::Quint16Type>() || type.isa<corert::Qint8Type>() ||
+        type.isa<corert::Qint16Type>() || type.isa<corert::Qint32Type>())
       return BEFAttributeType::kType;
 
     if (auto complex_type = type.dyn_cast<mlir::ComplexType>()) {

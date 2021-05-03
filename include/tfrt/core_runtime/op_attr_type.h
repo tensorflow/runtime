@@ -23,6 +23,7 @@
 #include <complex>
 #include <utility>
 
+#include "tfrt/dtype/quantized_types.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/bf16.h"
 #include "tfrt/support/fp16.h"
@@ -45,7 +46,12 @@ enum class OpAttrType : uint8_t {
   I1,
   COMPLEX64,
   COMPLEX128,
-  // Following two attribute type can only be used as value of DTYPE.
+  // Following attribute types can only be used as value of DTYPE.
+  UNSUPPORTED_QUI8,
+  UNSUPPORTED_QUI16,
+  UNSUPPORTED_QI8,
+  UNSUPPORTED_QI16,
+  UNSUPPORTED_QI32,
   UNSUPPORTED_RESOURCE,
   UNSUPPORTED_VARIANT,
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) ENUM,

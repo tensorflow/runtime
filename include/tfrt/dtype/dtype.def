@@ -64,6 +64,16 @@ DTYPE(String,     16)
 DTYPE(Resource,   17)
 DTYPE(Variant,    18)
 
+//===----------------------------------------------------------------------===//
+// Quantized types
+//===----------------------------------------------------------------------===//
+
+DTYPE(QUI8,  19)
+DTYPE(QUI16, 20)
+DTYPE(QI8,   21)
+DTYPE(QI16,  22)
+DTYPE(QI32,  23)
+
 #undef DTYPE
 #endif
 // LINT.ThenChange(//depot/tf_runtime/include/tfrt/dtype/dtype.h)

@@ -22,6 +22,8 @@
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/core_runtime/op_attr_type.h"
+#include "tfrt/dtype/quantized_types.h"
 #include "tfrt/support/alloc.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
@@ -99,6 +101,16 @@ OpAttrType GetOpAttrTypeFromDType(DType::Kind kind) {
       return OpAttrType::UNSUPPORTED_RESOURCE;
     case DType::Variant:
       return OpAttrType::UNSUPPORTED_VARIANT;
+    case DType::QUI8:
+      return OpAttrType::UNSUPPORTED_QUI8;
+    case DType::QUI16:
+      return OpAttrType::UNSUPPORTED_QUI16;
+    case DType::QI8:
+      return OpAttrType::UNSUPPORTED_QI8;
+    case DType::QI16:
+      return OpAttrType::UNSUPPORTED_QI16;
+    case DType::QI32:
+      return OpAttrType::UNSUPPORTED_QI32;
     default:
       break;
   }
@@ -190,6 +202,11 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
       return {sizeof(std::complex<double>), alignof(std::complex<double>)};
     case OpAttrType::UNSUPPORTED_RESOURCE:
     case OpAttrType::UNSUPPORTED_VARIANT:
+    case OpAttrType::UNSUPPORTED_QUI8:
+    case OpAttrType::UNSUPPORTED_QUI16:
+    case OpAttrType::UNSUPPORTED_QI8:
+    case OpAttrType::UNSUPPORTED_QI16:
+    case OpAttrType::UNSUPPORTED_QI32:
       llvm_unreachable("unsupported attribute type");
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
@@ -255,6 +272,11 @@ size_t GetAlignmentPaddingSize(const void *data, OpAttrType type,
 
     case OpAttrType::UNSUPPORTED_RESOURCE:
     case OpAttrType::UNSUPPORTED_VARIANT:
+    case OpAttrType::UNSUPPORTED_QUI8:
+    case OpAttrType::UNSUPPORTED_QUI16:
+    case OpAttrType::UNSUPPORTED_QI8:
+    case OpAttrType::UNSUPPORTED_QI16:
+    case OpAttrType::UNSUPPORTED_QI32:
       llvm_unreachable("unsupported attribute type");
 
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE)    \
@@ -298,6 +320,16 @@ const char *GetNameString(OpAttrType type) {
       return "RESOURCE";
     case OpAttrType::UNSUPPORTED_VARIANT:
       return "VARIANT";
+    case OpAttrType::UNSUPPORTED_QUI8:
+      return "QUI8";
+    case OpAttrType::UNSUPPORTED_QUI16:
+      return "QUI16";
+    case OpAttrType::UNSUPPORTED_QI8:
+      return "QI8";
+    case OpAttrType::UNSUPPORTED_QI16:
+      return "QI16";
+    case OpAttrType::UNSUPPORTED_QI32:
+      return "QI32";
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE) \
   case OpAttrType::ENUM:             \
     return #ENUM;
@@ -821,6 +853,11 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
       break;
     case OpAttrType::UNSUPPORTED_RESOURCE:
     case OpAttrType::UNSUPPORTED_VARIANT:
+    case OpAttrType::UNSUPPORTED_QUI8:
+    case OpAttrType::UNSUPPORTED_QUI16:
+    case OpAttrType::UNSUPPORTED_QI8:
+    case OpAttrType::UNSUPPORTED_QI16:
+    case OpAttrType::UNSUPPORTED_QI32:
       llvm_unreachable("unsupported attribute type");
 #define OP_ATTR_TYPE(ENUM, CPP_TYPE)           \
   case OpAttrType::ENUM:                       \

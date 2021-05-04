@@ -59,21 +59,29 @@ llvm::Expected<OwningBlasHandle> BlasCreate(CurrentContext current);
 llvm::Error BlasDestroy(BlasHandle handle);
 llvm::Error BlasSetStream(BlasHandle handle, Stream stream);
 llvm::Expected<Stream> BlasGetStream(BlasHandle handle);
-llvm::Error BlasSaxpy(CurrentContext current, BlasHandle handle, int n,
-                      Pointer<const float> alpha, Pointer<const float> x,
-                      int incx, Pointer<float> y, int incy);
-llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
-                      BlasOperation transa, BlasOperation transb, int m, int n,
-                      int k, Pointer<const float> alpha, Pointer<const float> A,
-                      int lda, Pointer<const float> B, int ldb,
-                      Pointer<const float> beta, Pointer<float> C, int ldc);
+
+llvm::Error BlasAxpyEx(CurrentContext current, BlasHandle handle, int n,
+                       Pointer<const void> alpha, BlasDataType alphaType,
+                       Pointer<const void> x, BlasDataType typeX, int strideX,
+                       Pointer<void> y, BlasDataType typeY, int strideY,
+                       BlasDataType executionType);
+
 llvm::Error BlasGemmEx(CurrentContext current, BlasHandle handle,
-                       BlasOperation transa, BlasOperation transb, int m, int n,
+                       BlasOperation transA, BlasOperation transB, int m, int n,
                        int k, Pointer<const void> alpha, Pointer<const void> A,
-                       BlasDataType Atype, int lda, Pointer<const void> B,
-                       BlasDataType Btype, int ldb, Pointer<const void> beta,
-                       Pointer<void> C, BlasDataType Ctype, int ldc,
+                       BlasDataType typeA, int heightA, Pointer<const void> B,
+                       BlasDataType typeB, int heightB,
+                       Pointer<const void> beta, Pointer<void> C,
+                       BlasDataType typeC, int heightC,
                        BlasDataType computeType, BlasGemmAlgo algo);
+llvm::Error BlasGemmStridedBatchedEx(
+    CurrentContext current, BlasHandle handle, BlasOperation transA,
+    BlasOperation transB, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void> A, BlasDataType typeA, int heightA, int64_t strideA,
+    Pointer<const void> B, BlasDataType typeB, int heightB, int64_t strideB,
+    Pointer<const void> beta, Pointer<void> C, BlasDataType typeC, int heightC,
+    int64_t strideC, int batchCount, BlasDataType computeType,
+    BlasGemmAlgo algo);
 
 }  // namespace wrapper
 }  // namespace gpu

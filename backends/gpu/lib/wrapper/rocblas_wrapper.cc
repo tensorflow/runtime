@@ -15,10 +15,7 @@
 // Thin wrapper around the rocBLAS API adding llvm::Error.
 #include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 
-#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -58,6 +55,51 @@ llvm::Expected<rocblas_pointer_mode> RocblasGetPointerMode(
   rocblas_pointer_mode mode;
   RETURN_IF_ERROR(rocblas_get_pointer_mode(handle, &mode));
   return mode;
+}
+
+llvm::Error RocblasAxpyEx(
+    CurrentContext current, rocblas_handle handle, int n,
+    Pointer<const void> alpha, /* host or device pointer */
+    rocblas_datatype alphaType, Pointer<const void> x, rocblas_datatype typeX,
+    int strideX, Pointer<void> y, rocblas_datatype typeY, int strideY,
+    rocblas_datatype executionType) {
+  CheckHipContext(current);
+  return TO_ERROR(rocblas_axpy_ex(handle, n, ToRocm(alpha), alphaType,
+                                  ToRocm(x), typeX, strideX, ToRocm(y), typeY,
+                                  strideY, executionType));
+}
+
+llvm::Error RocblasGemmEx(
+    CurrentContext current, rocblas_handle handle, rocblas_operation transA,
+    rocblas_operation transB, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void> A, rocblas_datatype typeA, int heightA,
+    Pointer<const void> B, rocblas_datatype typeB, int heightB,
+    Pointer<const void> beta, Pointer<const void> C, rocblas_datatype typeC,
+    int heightC, Pointer<void> D, rocblas_datatype typeD, int heightD,
+    rocblas_datatype computeType, rocblas_gemm_algo algo) {
+  CheckHipContext(current);
+  return TO_ERROR(
+      rocblas_gemm_ex(handle, transA, transB, m, n, k, ToRocm(alpha), ToRocm(A),
+                      typeA, heightA, ToRocm(B), typeB, heightB, ToRocm(beta),
+                      ToRocm(C), typeC, heightC, ToRocm(D), typeD, heightD,
+                      computeType, algo, /*solution_index=*/0, /*flags=*/0));
+}
+
+llvm::Error RocblasGemmStridedBatchedEx(
+    CurrentContext current, rocblas_handle handle, rocblas_operation transA,
+    rocblas_operation transB, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void> A, rocblas_datatype typeA, int heightA, int64_t strideA,
+    Pointer<const void> B, rocblas_datatype typeB, int heightB, int64_t strideB,
+    Pointer<const void> beta, Pointer<void> C, rocblas_datatype typeC,
+    int heightC, int64_t strideC, Pointer<void> D, rocblas_datatype typeD,
+    int heightD, int64_t strideD, int batchCount, rocblas_datatype computeType,
+    rocblas_gemm_algo algo) {
+  CheckHipContext(current);
+  return TO_ERROR(rocblas_gemm_strided_batched_ex(
+      handle, transA, transB, m, n, k, ToRocm(alpha), ToRocm(A), typeA, heightA,
+      strideA, ToRocm(B), typeB, heightB, strideB, ToRocm(beta), ToRocm(C),
+      typeC, heightC, strideC, ToRocm(D), typeD, heightD, strideD, batchCount,
+      computeType, algo, /*solution_index=*/0, /*flags=*/0));
 }
 
 llvm::Error RocblasSnrm2(CurrentContext current, rocblas_handle handle, int n,
@@ -1612,21 +1654,6 @@ llvm::Error RocblasZtrmm(CurrentContext current, rocblas_handle handle,
   CheckHipContext(current);
   return TO_ERROR(rocblas_ztrmm(handle, side, uplo, trans, diag, m, n,
                                 ToRocm(alpha), ToRocm(A), lda, ToRocm(B), ldb));
-}
-
-llvm::Error RocblasGemmEx(
-    CurrentContext current, rocblas_handle handle, rocblas_operation transa,
-    rocblas_operation transb, int m, int n, int k, Pointer<const void> alpha,
-    Pointer<const void> A, rocblas_datatype Atype, int lda,
-    Pointer<const void> B, rocblas_datatype Btype, int ldb,
-    Pointer<const void> beta, Pointer<const void> C, rocblas_datatype Ctype,
-    int ldc, Pointer<void> D, rocblas_datatype Dtype, int ldd,
-    rocblas_datatype computeType, rocblas_gemm_algo algo) {
-  CheckHipContext(current);
-  return TO_ERROR(rocblas_gemm_ex(
-      handle, transa, transb, m, n, k, ToRocm(alpha), ToRocm(A), Atype, lda,
-      ToRocm(B), Btype, ldb, ToRocm(beta), ToRocm(C), Ctype, ldc, ToRocm(D),
-      Dtype, ldd, computeType, algo, /*solution_index=*/0, /*flags=*/0));
 }
 
 }  // namespace wrapper

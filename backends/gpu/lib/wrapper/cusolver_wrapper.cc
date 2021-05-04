@@ -15,7 +15,6 @@
 // Thin wrapper around the cuSOLVER API adding llvm::Error.
 #include "tfrt/gpu/wrapper/cusolver_wrapper.h"
 
-#include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
@@ -81,85 +80,91 @@ llvm::Expected<Stream> CusolverDnGetStream(cusolverDnHandle_t handle) {
 }
 
 llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t uplo, int n, Pointer<float> A,
-                            int lda, Pointer<float> Workspace, int Lwork,
-                            Pointer<int> devInfo) {
+                            cublasFillMode_t fillMode, int n, Pointer<float> A,
+                            int heightA, Pointer<float> workspace,
+                            int workspaceSize, Pointer<int> devInfo) {
   CheckCudaContext(current);
-  return TO_ERROR(cusolverDnSpotrf(handle, uplo, n, ToCuda(A), lda,
-                                   ToCuda(Workspace), Lwork, ToCuda(devInfo)));
+  return TO_ERROR(cusolverDnSpotrf(handle, fillMode, n, ToCuda(A), heightA,
+                                   ToCuda(workspace), workspaceSize,
+                                   ToCuda(devInfo)));
 }
 
 llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t uplo, int n, Pointer<double> A,
-                            int lda, Pointer<double> Workspace, int Lwork,
-                            Pointer<int> devInfo) {
+                            cublasFillMode_t fillMode, int n, Pointer<double> A,
+                            int heightA, Pointer<double> workspace,
+                            int workspaceSize, Pointer<int> devInfo) {
   CheckCudaContext(current);
-  return TO_ERROR(cusolverDnDpotrf(handle, uplo, n, ToCuda(A), lda,
-                                   ToCuda(Workspace), Lwork, ToCuda(devInfo)));
+  return TO_ERROR(cusolverDnDpotrf(handle, fillMode, n, ToCuda(A), heightA,
+                                   ToCuda(workspace), workspaceSize,
+                                   ToCuda(devInfo)));
 }
 
 llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t uplo, int n, Pointer<cuComplex> A,
-                            int lda, Pointer<cuComplex> Workspace, int Lwork,
+                            cublasFillMode_t fillMode, int n,
+                            Pointer<cuComplex> A, int heightA,
+                            Pointer<cuComplex> workspace, int workspaceSize,
                             Pointer<int> devInfo) {
   CheckCudaContext(current);
-  return TO_ERROR(cusolverDnCpotrf(handle, uplo, n, ToCuda(A), lda,
-                                   ToCuda(Workspace), Lwork, ToCuda(devInfo)));
+  return TO_ERROR(cusolverDnCpotrf(handle, fillMode, n, ToCuda(A), heightA,
+                                   ToCuda(workspace), workspaceSize,
+                                   ToCuda(devInfo)));
 }
 
 llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
-                            cublasFillMode_t uplo, int n,
-                            Pointer<cuDoubleComplex> A, int lda,
-                            Pointer<cuDoubleComplex> Workspace, int Lwork,
-                            Pointer<int> devInfo) {
+                            cublasFillMode_t fillMode, int n,
+                            Pointer<cuDoubleComplex> A, int heightA,
+                            Pointer<cuDoubleComplex> workspace,
+                            int workspaceSize, Pointer<int> devInfo) {
   CheckCudaContext(current);
-  return TO_ERROR(cusolverDnZpotrf(handle, uplo, n, ToCuda(A), lda,
-                                   ToCuda(Workspace), Lwork, ToCuda(devInfo)));
+  return TO_ERROR(cusolverDnZpotrf(handle, fillMode, n, ToCuda(A), heightA,
+                                   ToCuda(workspace), workspaceSize,
+                                   ToCuda(devInfo)));
 }
 
 llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
                                               cusolverDnHandle_t handle,
-                                              cublasFillMode_t uplo, int n,
-                                              Pointer<float> A, int lda) {
+                                              cublasFillMode_t fillMode, int n,
+                                              Pointer<float> A, int heightA) {
   CheckCudaContext(current);
-  int Lwork;
-  RETURN_IF_ERROR(
-      cusolverDnSpotrf_bufferSize(handle, uplo, n, ToCuda(A), lda, &Lwork));
-  return Lwork;
+  int workspaceSize;
+  RETURN_IF_ERROR(cusolverDnSpotrf_bufferSize(handle, fillMode, n, ToCuda(A),
+                                              heightA, &workspaceSize));
+  return workspaceSize;
 }
 
 llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
                                               cusolverDnHandle_t handle,
-                                              cublasFillMode_t uplo, int n,
-                                              Pointer<double> A, int lda) {
+                                              cublasFillMode_t fillMode, int n,
+                                              Pointer<double> A, int heightA) {
   CheckCudaContext(current);
-  int Lwork;
-  RETURN_IF_ERROR(
-      cusolverDnDpotrf_bufferSize(handle, uplo, n, ToCuda(A), lda, &Lwork));
-  return Lwork;
+  int workspaceSize;
+  RETURN_IF_ERROR(cusolverDnDpotrf_bufferSize(handle, fillMode, n, ToCuda(A),
+                                              heightA, &workspaceSize));
+  return workspaceSize;
 }
 
 llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
                                               cusolverDnHandle_t handle,
-                                              cublasFillMode_t uplo, int n,
-                                              Pointer<cuComplex> A, int lda) {
+                                              cublasFillMode_t fillMode, int n,
+                                              Pointer<cuComplex> A,
+                                              int heightA) {
   CheckCudaContext(current);
-  int Lwork;
-  RETURN_IF_ERROR(
-      cusolverDnCpotrf_bufferSize(handle, uplo, n, ToCuda(A), lda, &Lwork));
-  return Lwork;
+  int workspaceSize;
+  RETURN_IF_ERROR(cusolverDnCpotrf_bufferSize(handle, fillMode, n, ToCuda(A),
+                                              heightA, &workspaceSize));
+  return workspaceSize;
 }
 
 llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
                                               cusolverDnHandle_t handle,
-                                              cublasFillMode_t uplo, int n,
+                                              cublasFillMode_t fillMode, int n,
                                               Pointer<cuDoubleComplex> A,
-                                              int lda) {
+                                              int heightA) {
   CheckCudaContext(current);
-  int Lwork;
-  RETURN_IF_ERROR(
-      cusolverDnZpotrf_bufferSize(handle, uplo, n, ToCuda(A), lda, &Lwork));
-  return Lwork;
+  int workspaceSize;
+  RETURN_IF_ERROR(cusolverDnZpotrf_bufferSize(handle, fillMode, n, ToCuda(A),
+                                              heightA, &workspaceSize));
+  return workspaceSize;
 }
 
 }  // namespace wrapper

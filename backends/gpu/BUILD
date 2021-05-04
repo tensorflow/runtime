@@ -430,17 +430,6 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "blas_support",
-    hdrs = [
-        "include/tfrt/gpu/blas_support.h",
-    ],
-    deps = [
-        ":gpu_wrapper",
-        "@llvm-project//llvm:Support",
-    ],
-)
-
-tfrt_cc_library(
     name = "gpu_tf_ops",
     srcs = [
         "lib/ops/tf/gpu_ops.cc",
@@ -653,11 +642,13 @@ cuda_library(
 
 tfrt_cc_library(
     name = "tf_gpu_matmul_op",
-    srcs = ["lib/ops/tf/matmul_op.cc"],
+    srcs = [
+        "lib/ops/tf/blas_support.h",
+        "lib/ops/tf/matmul_op.cc",
+    ],
     hdrs = ["lib/ops/tf/matmul_op.h"],
     copts = ["-mf16c"],
     deps = [
-        ":blas_support",
         ":gpu_memory",
         ":gpu_op_handler",
         ":gpu_tensor",
@@ -676,6 +667,7 @@ tfrt_cc_library(
 cuda_library(
     name = "tf_gpu_pad_op",
     srcs = [
+        "lib/ops/tf/blas_support.h",
         "lib/ops/tf/pad_op.cc",
         "lib/ops/tf/pad_op.cu.cc",
     ],
@@ -691,7 +683,6 @@ cuda_library(
         ],
     }),
     deps = [
-        ":blas_support",
         ":gpu_device_eigen_support",
         ":gpu_memory",
         ":gpu_op_handler",

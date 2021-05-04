@@ -9,7 +9,10 @@
       "cublasGetStream_v2",
       "cublasGetPointerMode_v2",
       "cublasSetPointerMode_v2",
+      "cublasGetMathMode",
       "cublasSetMathMode",
+      "cublasAxpyEx",
+
       "cublasHnrm2_v2",
       "cublasSnrm2_v2",
       "cublasDnrm2_v2",
@@ -167,7 +170,6 @@
       "cublasStrmm_v2",
       "cublasDtrmm_v2",
       "cublasCtrmm_v2",
-      "cublasZtrmm_v2",
-      "cublasGetMathMode"
+      "cublasZtrmm_v2"
    ]
 }

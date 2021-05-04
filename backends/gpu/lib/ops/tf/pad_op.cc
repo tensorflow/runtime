@@ -22,6 +22,7 @@
 #include <iostream>  // some eigen header use std::cerr without including it.
 
 #include "../../device/eigen_support.h"
+#include "blas_support.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/common/ops/tf/dnn_ops_util.h"
@@ -29,7 +30,6 @@
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_utils.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/gpu/blas_support.h"
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"

@@ -54,17 +54,18 @@ static llvm::Expected<GpuSolverHandle> SolverCreate(
 
 template <typename T>
 llvm::Expected<int32_t> SolverPotrfBufferSize(const GpuSolverHandle& handle,
-                                              int32_t uplo, int32_t n,
-                                              const GpuBuffer& A, int32_t lda) {
+                                              int32_t fillMode, int32_t n,
+                                              const GpuBuffer& A,
+                                              int32_t heightA) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
-  auto cublas_uplo = SafeIntToCublasFillMode(uplo);
+  auto cublas_uplo = SafeIntToCublasFillMode(fillMode);
   if (!cublas_uplo) return cublas_uplo.takeError();
 
   return wrapper::CusolverDnPotrfBufferSize(
       current.get(), handle.get(), *cublas_uplo, n,
-      wrapper::Pointer<T>(A.pointer()), lda);
+      wrapper::Pointer<T>(A.pointer()), heightA);
 }
 
 // These functions eventually need to make two separate calls to
@@ -73,19 +74,20 @@ llvm::Expected<int32_t> SolverPotrfBufferSize(const GpuSolverHandle& handle,
 // (Cusolver requires use of CusolverDn<t>potrf_bufferSize). Right now only
 // CusolverDnPotrf calls are supported.
 template <typename T>
-Error SolverPotrf(const GpuSolverHandle& handle, int32_t uplo, int32_t n,
-                  const GpuBuffer& A, int32_t lda, const GpuBuffer& Workspace,
-                  int32_t Lwork, const GpuBuffer& devInfo) {
+Error SolverPotrf(const GpuSolverHandle& handle, int32_t fillMode, int32_t n,
+                  const GpuBuffer& A, int32_t heightA,
+                  const GpuBuffer& workspace, int32_t workspaceSize,
+                  const GpuBuffer& devInfo) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
-  auto cublas_uplo = SafeIntToCublasFillMode(uplo);
+  auto cublas_uplo = SafeIntToCublasFillMode(fillMode);
   if (!cublas_uplo) return cublas_uplo.takeError();
 
   return wrapper::CusolverDnPotrf(current.get(), handle.get(), *cublas_uplo, n,
-                                  wrapper::Pointer<T>(A.pointer()), lda,
-                                  wrapper::Pointer<T>(Workspace.pointer()),
-                                  Lwork,
+                                  wrapper::Pointer<T>(A.pointer()), heightA,
+                                  wrapper::Pointer<T>(workspace.pointer()),
+                                  workspaceSize,
                                   wrapper::Pointer<int>(devInfo.pointer()));
 }
 

@@ -81,56 +81,70 @@ llvm::Expected<Stream> BlasGetStream(BlasHandle handle) {
   }
 }
 
-llvm::Error BlasSaxpy(CurrentContext current, BlasHandle handle, int n,
-                      Pointer<const float> alpha, Pointer<const float> x,
-                      int incx, Pointer<float> y, int incy) {
+llvm::Error BlasAxpyEx(CurrentContext current, BlasHandle handle, int n,
+                       Pointer<const void> alpha, BlasDataType alphaType,
+                       Pointer<const void> x, BlasDataType typeX, int strideX,
+                       Pointer<void> y, BlasDataType typeY, int strideY,
+                       BlasDataType executionType) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CublasSaxpy(current, handle, n, alpha, x, incx, y, incy);
+      return CublasAxpyEx(current, handle, n, alpha, alphaType, x, typeX,
+                          strideX, y, typeY, strideY, executionType);
     case Platform::ROCm:
-      return RocblasSaxpy(current, handle, n, alpha, x, incx, y, incy);
-    default:
-      return InvalidPlatform(platform);
-  }
-}
-
-llvm::Error BlasSgemm(CurrentContext current, BlasHandle handle,
-                      BlasOperation transa, BlasOperation transb, int m, int n,
-                      int k, Pointer<const float> alpha, Pointer<const float> A,
-                      int lda, Pointer<const float> B, int ldb,
-                      Pointer<const float> beta, Pointer<float> C, int ldc) {
-  auto platform = handle.platform();
-  switch (platform) {
-    case Platform::CUDA:
-      return CublasSgemm(current, handle, transa, transb, m, n, k, alpha, A,
-                         lda, B, ldb, beta, C, ldc);
-    case Platform::ROCm:
-      return RocblasSgemm(current, handle, transa, transb, m, n, k, alpha, A,
-                          lda, B, ldb, beta, C, ldc);
+      return RocblasAxpyEx(current, handle, n, alpha, alphaType, x, typeX,
+                           strideX, y, typeY, strideY, executionType);
     default:
       return InvalidPlatform(platform);
   }
 }
 
 llvm::Error BlasGemmEx(CurrentContext current, BlasHandle handle,
-                       BlasOperation transa, BlasOperation transb, int m, int n,
+                       BlasOperation transA, BlasOperation transB, int m, int n,
                        int k, Pointer<const void> alpha, Pointer<const void> A,
-                       BlasDataType Atype, int lda, Pointer<const void> B,
-                       BlasDataType Btype, int ldb, Pointer<const void> beta,
-                       Pointer<void> C, BlasDataType Ctype, int ldc,
+                       BlasDataType typeA, int heightA, Pointer<const void> B,
+                       BlasDataType typeB, int heightB,
+                       Pointer<const void> beta, Pointer<void> C,
+                       BlasDataType typeC, int heightC,
                        BlasDataType computeType, BlasGemmAlgo algo) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
-      return CublasGemmEx(current, handle, transa, transb, m, n, k, alpha, A,
-                          Atype, lda, B, Btype, ldb, beta, C, Ctype, ldc,
-                          computeType, algo);
+      return CublasGemmEx(current, handle, transA, transB, m, n, k, alpha, A,
+                          typeA, heightA, B, typeB, heightB, beta, C, typeC,
+                          heightC, computeType, algo);
     case Platform::ROCm:
-      return RocblasGemmEx(current, handle, transa, transb, m, n, k, alpha, A,
-                           Atype, lda, B, Btype, ldb, beta, C, Ctype, ldc,
+      return RocblasGemmEx(current, handle, transA, transB, m, n, k, alpha, A,
+                           typeA, heightA, B, typeB, heightB, beta, C, typeC,
+                           heightC,
                            // Note: pass C as input and output.
-                           C, Ctype, ldc, computeType, algo);
+                           C, typeC, heightC, computeType, algo);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
+llvm::Error BlasGemmStridedBatchedEx(
+    CurrentContext current, BlasHandle handle, BlasOperation transA,
+    BlasOperation transB, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void> A, BlasDataType typeA, int heightA, int64_t strideA,
+    Pointer<const void> B, BlasDataType typeB, int heightB, int64_t strideB,
+    Pointer<const void> beta, Pointer<void> C, BlasDataType typeC, int heightC,
+    int64_t strideC, int batchCount, BlasDataType computeType,
+    BlasGemmAlgo algo) {
+  auto platform = handle.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CublasGemmStridedBatchedEx(
+          current, handle, transA, transB, m, n, k, alpha, A, typeA, heightA,
+          strideA, B, typeB, heightB, strideB, beta, C, typeC, heightC, strideC,
+          batchCount, computeType, algo);
+    case Platform::ROCm:
+      return RocblasGemmStridedBatchedEx(
+          current, handle, transA, transB, m, n, k, alpha, A, typeA, heightA,
+          strideA, B, typeB, heightB, strideB, beta, C, typeC, heightC, strideC,
+          // Note: pass C as input and output.
+          C, typeC, heightC, strideC, batchCount, computeType, algo);
     default:
       return InvalidPlatform(platform);
   }

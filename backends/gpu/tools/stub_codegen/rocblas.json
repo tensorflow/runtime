@@ -21,6 +21,10 @@
       "rocblas_get_stream",
       "rocblas_get_pointer_mode",
       "rocblas_set_pointer_mode",
+      "rocblas_axpy_ex",
+      "rocblas_gemm_ex",
+      "rocblas_gemm_strided_batched_ex"
+
       "rocblas_snrm2",
       "rocblas_dnrm2",
       "rocblas_scnrm2",
@@ -177,7 +181,6 @@
       "rocblas_strmm",
       "rocblas_dtrmm",
       "rocblas_ctrmm",
-      "rocblas_ztrmm",
-      "rocblas_gemm_ex"
+      "rocblas_ztrmm"
    ]
 }

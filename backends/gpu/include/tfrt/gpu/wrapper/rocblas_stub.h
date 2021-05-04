@@ -26,6 +26,7 @@
 
 // Declare types from rocblas.h used in rocblas_stub.h.inc.
 using rocblas_int = int;
+using rocblas_stride = int64_t;
 
 struct rocblas_half {
   uint16_t data;

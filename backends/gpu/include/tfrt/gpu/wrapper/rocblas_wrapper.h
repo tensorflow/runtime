@@ -60,6 +60,35 @@ llvm::Error RocblasSetPointerMode(rocblas_handle handle,
 llvm::Expected<rocblas_pointer_mode> RocblasGetPointerMode(
     rocblas_handle handle);
 
+llvm::Error RocblasAxpyEx(
+    CurrentContext current, rocblas_handle handle, int n,
+    Pointer<const void> alpha, /* host or device pointer */
+    rocblas_datatype alphaType, Pointer<const void> x, rocblas_datatype typeX,
+    int strideX, Pointer<void> y, rocblas_datatype typeY, int strideY,
+    rocblas_datatype executionType);
+
+llvm::Error RocblasGemmEx(CurrentContext current, rocblas_handle handle,
+                          rocblas_operation transA, rocblas_operation transB,
+                          int m, int n, int k, Pointer<const void> alpha,
+                          Pointer<const void> A, rocblas_datatype typeA,
+                          int heightA, Pointer<const void> B,
+                          rocblas_datatype typeB, int heightB,
+                          Pointer<const void> beta, Pointer<const void> C,
+                          rocblas_datatype typeC, int heightC, Pointer<void> D,
+                          rocblas_datatype typeD, int heightD,
+                          rocblas_datatype computeType, rocblas_gemm_algo algo);
+llvm::Error RocblasGemmStridedBatchedEx(
+    CurrentContext current, rocblas_handle handle, rocblas_operation transA,
+    rocblas_operation transB, int m, int n, int k, Pointer<const void> alpha,
+    Pointer<const void> A, rocblas_datatype typeA, int heightA, int64_t strideA,
+    Pointer<const void> B, rocblas_datatype typeB, int heightB, int64_t strideB,
+    Pointer<const void> beta, Pointer<void> C, rocblas_datatype typeC,
+    int heightC, int64_t strideC, Pointer<void> D, rocblas_datatype typeD,
+    int heightD, int64_t strideD, int batchCount, rocblas_datatype computeType,
+    rocblas_gemm_algo algo);
+
+// The functions below are not used and might be removed.
+
 llvm::Error RocblasSnrm2(CurrentContext current, rocblas_handle handle, int n,
                          Pointer<const float> x, int incx,
                          Pointer<float> result);
@@ -815,16 +844,6 @@ llvm::Error RocblasZtrmm(CurrentContext current, rocblas_handle handle,
                          Pointer<const rocblas_double_complex> A, int lda,
                          Pointer<rocblas_double_complex> B, int ldb);
 
-llvm::Error RocblasGemmEx(CurrentContext current, rocblas_handle handle,
-                          rocblas_operation transa, rocblas_operation transb,
-                          int m, int n, int k, Pointer<const void> alpha,
-                          Pointer<const void> A, rocblas_datatype Atype,
-                          int lda, Pointer<const void> B,
-                          rocblas_datatype Btype, int ldb,
-                          Pointer<const void> beta, Pointer<const void> C,
-                          rocblas_datatype Ctype, int ldc, Pointer<void> D,
-                          rocblas_datatype Dtype, int ldd,
-                          rocblas_datatype computeType, rocblas_gemm_algo algo);
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

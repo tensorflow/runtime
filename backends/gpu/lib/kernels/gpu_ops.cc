@@ -173,6 +173,22 @@ mlir::OpFoldResult CastAnyToAnyOp::fold(
   return nullptr;
 }
 
+void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
+  // Add a region with stream and chain block arguments.
+  auto block = [&] {
+    Region *region = result.addRegion();
+    region->emplaceBlock();
+    return region->begin();
+  }();
+  block->addArgument(builder.getType<StreamType>());
+  auto chain = block->addArgument(builder.getType<ChainType>());
+
+  // Return chain block argument.
+  OpBuilder::InsertionGuard guard(builder);
+  builder.setInsertionPointToStart(&*block);
+  builder.create<ReturnOp>(result.location, chain);
+}
+
 }  // namespace conversion
 
 }  // namespace gpu

@@ -22,6 +22,7 @@
 #ifndef TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_
 #define TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_
 
+#include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"

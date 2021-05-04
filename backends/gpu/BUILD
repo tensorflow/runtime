@@ -787,6 +787,7 @@ gentbl(
         "backends/gpu/include",
     ],
     td_srcs = [
+        "@llvm-project//mlir:GPUOpsTdFiles",
         "@tf_runtime//:OpBaseTdFiles",
     ],
 )
@@ -825,6 +826,7 @@ tfrt_cc_library(
         ":gpu_opdefs_inc_gen",
         ":gpu_wrapper",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
         "@tf_runtime//:basic_kernels_opdefs",

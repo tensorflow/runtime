@@ -206,9 +206,7 @@ AsyncValueRef<Chain> System::Execute(ExecutionContext& exec_ctx,
   auto out_chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
   RunWhenReady(
       {chain.GetAsyncValue()},
-      [exec_ctx, &program, context = stream.GetContext().CopyRef(),
-       stream = stream.GetStream().CopyRef(),
-       blas_handle = stream.GetBlasHandle().CopyRef(),
+      [exec_ctx, &program, stream = stream.GetStream().CopyRef(),
        inputs = std::move(inputs), outputs = std::move(outputs),
        chain = std::move(chain), out_chain = out_chain.CopyRef()] {
         if (chain.IsError()) return out_chain.SetError(chain.GetError());
@@ -218,13 +216,11 @@ AsyncValueRef<Chain> System::Execute(ExecutionContext& exec_ctx,
 
         // Today, lowering pass for HLO will generate BEF Function that requires
         // following arguments:
-        // {context, blas_handle, stream, ...inputs, ...outputs}
+        // {stream, ...inputs, ...outputs}
         // So we need to prepare and check the arguments first.
         SmallVector<AsyncValue*, 8> args;
         args.reserve(num_args);
 
-        args.push_back(context.GetAsyncValue());
-        args.push_back(blas_handle.GetAsyncValue());
         args.push_back(stream.GetAsyncValue());
 
         for (auto& input : inputs) {

@@ -123,7 +123,7 @@ EigenConstTensor<T, TargetRank> AsEigenConstTensor(
 
 template <typename T>
 EigenTensor<T, 1> AsEigenTensor(MutableDHTArrayView<T> tensor) {
-  return EigenTensor<T, 1>(tensor.data(), AsEigenDSizes<1>(tensor.Shape()));
+  return EigenTensor<T, 1>(tensor.data(), tensor.NumElements());
 }
 
 template <typename T, size_t TargetRank>
@@ -136,8 +136,7 @@ EigenTensor<T, TargetRank> AsEigenTensor(
 
 template <typename T>
 EigenConstTensor<T, 1> AsEigenConstTensor(DHTArrayView<T> tensor) {
-  return EigenConstTensor<T, 1>(tensor.data(),
-                                AsEigenDSizes<1>(tensor.Shape()));
+  return EigenConstTensor<T, 1>(tensor.data(), tensor.NumElements());
 }
 
 template <typename T, size_t TargetRank>

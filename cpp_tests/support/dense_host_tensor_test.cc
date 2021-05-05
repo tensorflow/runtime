@@ -47,8 +47,7 @@ TEST(DenseHostTensorTest, FillWithComplex64Type) {
   DenseHostTensor dht_b(std::move(*dht_create_res_b));
   MutableDHTArrayView<std::complex<float>> tensor_view_b(&dht_b);
   tensor_view_b.Fill({1.0, -2.0});
-  EXPECT_TRUE(AllElementsClose(DHTArrayView<std::complex<float>>(&dht_a),
-                               DHTArrayView<std::complex<float>>(&dht_b)));
+  EXPECT_TRUE(TensorApproxEqual<std::complex<float>>(dht_a, dht_b));
 }
 
 TEST(DenseHostTensorTest, FillWithComplex128Type) {
@@ -69,8 +68,7 @@ TEST(DenseHostTensorTest, FillWithComplex128Type) {
   DenseHostTensor dht_b(std::move(*dht_create_res_b));
   MutableDHTArrayView<std::complex<double>> tensor_view_b(&dht_b);
   tensor_view_b.Fill({1.0, -2.0});
-  EXPECT_TRUE(AllElementsClose(DHTArrayView<std::complex<double>>(&dht_a),
-                               DHTArrayView<std::complex<double>>(&dht_b)));
+  EXPECT_TRUE(TensorApproxEqual<std::complex<double>>(dht_a, dht_b));
 }
 
 TEST(DenseHostTensorTest, FillWithBF16Type) {

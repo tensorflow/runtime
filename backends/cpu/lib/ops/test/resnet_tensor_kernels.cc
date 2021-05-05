@@ -127,16 +127,12 @@ static AsyncValueRef<Chain> GlobalAveragePool(
 }
 
 template <typename T>
-static void Flatten(ArgumentView<MutableDHTArrayView<T>> input,
-                    ArgumentView<MutableDHTArrayView<T>> output,
-                    Argument<Chain> chain_in, Result<Chain> chain_out,
-                    KernelErrorHandler handler,
+static void Flatten(Argument<DenseHostTensor> input,
+                    Argument<DenseHostTensor> output, Argument<Chain> chain_in,
+                    Result<Chain> chain_out, KernelErrorHandler handler,
                     const ExecutionContext& exec_ctx) {
-  // shape_input has format (batch_size, height, width, in_channel_num)
-  const auto& shape_input = input->Shape();
-  // shape_output has format (batch_size, length)
-  const auto& shape_output = output->Shape();
-
+  const auto& shape_input = input->shape();
+  const auto& shape_output = output->shape();
   if (shape_input.GetNumElements() != shape_output.GetNumElements() ||
       shape_input.GetDimensionSize(0) != shape_output.GetDimensionSize(0)) {
     handler.ReportError("Flatten output shape ", shape_output,
@@ -144,8 +140,10 @@ static void Flatten(ArgumentView<MutableDHTArrayView<T>> input,
     return;
   }
 
-  std::copy(input->data(), input->data() + input->NumElements(),
-            output->data());
+  DHTArrayView<T> input_view(&*input);
+  MutableDHTArrayView<T> output_view(&*output);
+  std::copy(input_view.data(), input_view.data() + input_view.NumElements(),
+            output_view.data());
   chain_out.Set(chain_in);
 }
 

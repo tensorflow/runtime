@@ -25,10 +25,8 @@ template <typename T, size_t Rank>
 static void SparseTensorEqual(Argument<CooHostTensor> t1,
                               Argument<CooHostTensor> t2, Argument<Chain> chain,
                               Result<bool> output1, Result<Chain> output2) {
-  output1.Emplace((MutableDHTArrayView<T>(t1->Values()) ==
-                   MutableDHTArrayView<T>(t2->Values())) &&
-                  (MutableDHTArrayView<int64_t>(t1->Indices()) ==
-                   MutableDHTArrayView<int64_t>(t2->Indices())));
+  output1.Emplace(TensorApproxEqual<T>(*t1->Values(), *t2->Values()) &&
+                  TensorApproxEqual<int64_t>(*t1->Indices(), *t2->Indices()));
   // Reuse input chain.
   output2.Set(chain);
 }

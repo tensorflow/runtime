@@ -34,14 +34,14 @@ static void BatchNormGrad(
     // Inputs --------------------------------------------------------------- //
     ArgumentView<DHTIndexableView<T, 4>> output_grad,
     ArgumentView<DHTIndexableView<T, 4>> input,
-    ArgumentView<DHTArrayView<T>> gamma,  // scale
-    ArgumentView<DHTArrayView<T>> moving_mean,
-    ArgumentView<DHTArrayView<T>> moving_variance,
+    Argument<DenseHostTensor> gamma,  // scale
+    Argument<DenseHostTensor> moving_mean,
+    Argument<DenseHostTensor> moving_variance,
     Argument<Chain> chain_in,
     // Outputs -------------------------------------------------------------- //
     ArgumentView<MutableDHTIndexableView<T, 4>> input_grad,
-    ArgumentView<MutableDHTArrayView<T>> gamma_grad,  // scale_grad
-    ArgumentView<MutableDHTArrayView<T>> beta_grad,  // offset_grad
+    Argument<DenseHostTensor> gamma_grad,  // scale_grad
+    Argument<DenseHostTensor> beta_grad,  // offset_grad
     Result<Chain> input_grad_chain,
     Result<Chain> gamma_grad_chain,
     Result<Chain> beta_grad_chain,
@@ -79,19 +79,19 @@ static void BatchNormGrad(
 
   TFRT_RETURN_IF_ERROR(
       handler, CheckShapeMatch("channels dimension size", channels_shape,
-                               "gamma shape", gamma->Shape()));
+                               "gamma shape", gamma->shape()));
   TFRT_RETURN_IF_ERROR(
       handler, CheckShapeMatch("channels dimension size", channels_shape,
-                               "mean shape", moving_mean->Shape()));
+                               "mean shape", moving_mean->shape()));
   TFRT_RETURN_IF_ERROR(
       handler, CheckShapeMatch("channels dimension size", channels_shape,
-                               "variance shape", moving_variance->Shape()));
+                               "variance shape", moving_variance->shape()));
   TFRT_RETURN_IF_ERROR(
       handler, CheckShapeMatch("channels dimension size", channels_shape,
-                               "gamma_grad shape", gamma_grad->Shape()));
+                               "gamma_grad shape", gamma_grad->shape()));
   TFRT_RETURN_IF_ERROR(
       handler, CheckShapeMatch("channels dimension size", channels_shape,
-                               "beta_grad shape", beta_grad->Shape()));
+                               "beta_grad shape", beta_grad->shape()));
 
   // Flatten all outer dimensions of input{grad}/output_grad.
   const ssize_t rest_size = output_grad->NumElements() / depth;
@@ -118,13 +118,13 @@ static void BatchNormGrad(
   // Reshape input vectors into [1, depth] tensors.
   const FixedRankShape<2> one_by_depth_s = AsShape(one_by_depth);
 
-  auto gamma_t = AsEigenConstTensor(gamma.get(), one_by_depth_s);
-  auto mean_t = AsEigenConstTensor(moving_mean.get(), one_by_depth_s);
-  auto variance_t = AsEigenConstTensor(moving_variance.get(), one_by_depth_s);
+  auto gamma_t = AsEigenConstTensor<T>(&*gamma, one_by_depth_s);
+  auto mean_t = AsEigenConstTensor<T>(&*moving_mean, one_by_depth_s);
+  auto variance_t = AsEigenConstTensor<T>(&*moving_variance, one_by_depth_s);
 
   // Output gradients of [depth] shape.
-  auto gamma_grad_t = AsEigenTensor(gamma_grad.get());
-  auto beta_grad_t = AsEigenTensor(beta_grad.get());
+  auto gamma_grad_t = AsEigenTensor<T>(&*gamma_grad);
+  auto beta_grad_t = AsEigenTensor<T>(&*beta_grad);
 
   T rest_size_inv = static_cast<T>(1.0f / static_cast<T>(rest_size));
 

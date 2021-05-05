@@ -54,9 +54,6 @@ class DHTArrayView {
     assert(GetDType<DType>() == dht->dtype() && "Incorrect dtype for tensor");
   }
 
-  // The shape of this tensor.
-  const TensorShape& Shape() const { return dht_.shape(); }
-
   // Raw access to data. Typically used when dispatching to external libraries
   // (like Eigen or libxssm).
   size_t NumElements() const { return dht_.DataSizeInBytes() / sizeof(DType); }
@@ -149,6 +146,9 @@ class DHTIndexableView : public DHTArrayView<DType> {
   /*implicit*/ DHTIndexableView(const DenseHostTensor* dht)
       : DHTArrayView<DType>(dht), fixed_shape_(dht->shape()) {}
 
+  // The shape of this tensor.
+  TensorShape Shape() const { return fixed_shape_.ToTensorShape(); }
+
   // The fixed shape of this tensor.
   const FixedShapeType& FixedShape() const { return fixed_shape_; }
 
@@ -193,6 +193,9 @@ class MutableDHTIndexableView : public MutableDHTArrayView<DType> {
 
   /*implicit*/ MutableDHTIndexableView(DenseHostTensor* dht)
       : MutableDHTArrayView<DType>(dht), fixed_shape_(dht->shape()) {}
+
+  // The shape of this tensor.
+  TensorShape Shape() const { return fixed_shape_.ToTensorShape(); }
 
   // The fixed shape of this tensor.
   const FixedShapeType& FixedShape() const { return fixed_shape_; }

@@ -87,8 +87,8 @@ llvm::Error UnaryEigenKernel(
   HostContext* host = exec_ctx.host();
   auto input_view = DHTArrayView<Tin>(&input);
   auto output_view = MutableDHTArrayView<Tout>(output);
-  const TensorShape& shape_input = input_view.Shape();
-  const TensorShape& shape_output = output_view.Shape();
+  const TensorShape& shape_input = input.shape();
+  const TensorShape& shape_output = output->shape();
   if (shape_input != shape_output) {
     return MakeStringError(" tensor shape mismatch: ", shape_input, " vs. ",
                            shape_output);
@@ -113,8 +113,8 @@ AsyncValueRef<Chain> UnaryEigenKernelAsync(
   HostContext* host = exec_ctx.host();
   auto input_view = DHTArrayView<Tin>(&input);
   auto output_view = MutableDHTArrayView<Tout>(output);
-  const auto& shape_input = input_view.Shape();
-  const auto& shape_output = output_view.Shape();
+  const auto& shape_input = input.metadata().shape;
+  const auto& shape_output = output->metadata().shape;
 
   if (shape_input != shape_output) {
     return EmitErrorAsync(
@@ -168,9 +168,9 @@ AsyncValueRef<Chain> BinaryEigenKernelAsync(
   auto left_view = DHTArrayView<Tin>(&left);
   auto right_view = DHTArrayView<Tin>(&right);
   auto output_view = MutableDHTArrayView<Tout>(output);
-  const auto& shape_left = left_view.Shape();
-  const auto& shape_right = right_view.Shape();
-  const auto& shape_output = output_view.Shape();
+  const auto& shape_left = left.metadata().shape;
+  const auto& shape_right = right.metadata().shape;
+  const auto& shape_output = output->metadata().shape;
 
   if (shape_left != shape_right || shape_left != shape_output) {
     return EmitErrorAsync(exec_ctx,

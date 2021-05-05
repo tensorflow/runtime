@@ -21,22 +21,20 @@
 #include <complex>
 #include <type_traits>
 
+#include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 
 namespace tfrt {
 
 // Compares two tenors using the provided function.
 template <typename T, typename F>
-bool CompareTensors(const DHTArrayView<T> lhs, const DHTArrayView<T> rhs,
-                    F&& cmp) {
-  if (lhs.Shape() == rhs.Shape()) {
-    auto lelements = lhs.Elements();
-    auto relements = rhs.Elements();
-    assert(lelements.size() == relements.size());
-    return std::equal(lelements.begin(), lelements.end(), relements.begin(),
-                      cmp);
-  }
-  return false;
+bool TensorEqual(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
+                 F&& cmp) {
+  if (lhs.metadata() != rhs.metadata()) return false;
+  DHTArrayView<T> lhs_view(&lhs);
+  DHTArrayView<T> rhs_view(&rhs);
+  assert(lhs_view.NumElements() == rhs_view.NumElements());
+  return std::equal(lhs_view.begin(), lhs_view.end(), rhs_view.begin(), cmp);
 }
 
 // Compare floating point numbers for equality within a given ULP (units in the
@@ -74,18 +72,13 @@ bool TensorElementsClose(T x, T y) {
 }
 
 template <typename T, int ULP = 2>
-bool AllElementsClose(DHTArrayView<T> lhs, DHTArrayView<T> rhs) {
-  return CompareTensors<T>(lhs, rhs, TensorElementsClose<T, ULP>);
+bool TensorApproxEqual(const DenseHostTensor& lhs, const DenseHostTensor& rhs) {
+  return TensorEqual<T>(lhs, rhs, TensorElementsClose<T, ULP>);
 }
 
 template <typename T>
-bool operator==(const DHTArrayView<T> lhs, const DHTArrayView<T> rhs) {
-  return CompareTensors<T>(lhs, rhs, [](T x, T y) { return x == y; });
-}
-
-template <typename T>
-bool operator!=(const DHTArrayView<T> lhs, const DHTArrayView<T> rhs) {
-  return !(lhs == rhs);
+bool TensorEqual(const DenseHostTensor& lhs, const DenseHostTensor& rhs) {
+  return TensorEqual<T>(lhs, rhs, [](T x, T y) { return x == y; });
 }
 
 }  // namespace tfrt

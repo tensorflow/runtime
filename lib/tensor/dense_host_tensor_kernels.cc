@@ -200,22 +200,22 @@ static TensorShape GetDenseTensorShape(const DenseHostTensor& t) {
 }
 
 template <typename T>
-static void DenseTensorEqual(ArgumentView<MutableDHTArrayView<T>> t1,
-                             ArgumentView<MutableDHTArrayView<T>> t2,
+static void DenseTensorEqual(Argument<DenseHostTensor> t1,
+                             Argument<DenseHostTensor> t2,
                              Argument<Chain> chain, Result<bool> output1,
                              Result<Chain> output2) {
-  output1.Emplace(*t1 == *t2);
+  output1.Emplace(TensorEqual<T>(*t1, *t2));
   // Reuse input chain.
   output2.Set(chain);
 }
 
 // Returns true if two input tensors are near enough to each other.
 template <typename T, int ULP = 2>
-static void DenseTensorAllClose(ArgumentView<MutableDHTArrayView<T>> t1,
-                                ArgumentView<MutableDHTArrayView<T>> t2,
+static void DenseTensorAllClose(Argument<DenseHostTensor> t1,
+                                Argument<DenseHostTensor> t2,
                                 Argument<Chain> chain, Result<bool> output1,
                                 Result<Chain> output2) {
-  output1.Emplace(AllElementsClose<T, ULP>(*t1, *t2));
+  output1.Emplace(TensorApproxEqual<T, ULP>(*t1, *t2));
   // Reuse input chain.
   output2.Set(chain);
 }

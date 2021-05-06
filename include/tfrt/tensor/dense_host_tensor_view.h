@@ -50,11 +50,10 @@ class DHTArrayView {
   // Used by ::testing::ElementsAre to get the underlying type.
   using value_type = DType;
 
+  DHTArrayView() = default;
+
   /*implicit*/ DHTArrayView(const DenseHostTensor* dht)
-      : data_(reinterpret_cast<const DType*>(dht->data())),
-        num_elements_(dht->NumElements()) {
-    assert(GetDType<DType>() == dht->dtype() && "Incorrect dtype for tensor");
-  }
+      : data_(dht->data<DType>()), num_elements_(dht->NumElements()) {}
 
   DHTArrayView(const DType* data, size_t num_elements)
       : data_(data), num_elements_(num_elements) {}
@@ -78,8 +77,8 @@ class DHTArrayView {
   const DType& operator[](size_t idx) const { return data()[idx]; }
 
  protected:
-  const DType* data_;
-  size_t num_elements_;
+  const DType* data_ = nullptr;
+  size_t num_elements_ = 0;
 };
 
 template <typename DType>
@@ -92,6 +91,8 @@ raw_ostream& operator<<(raw_ostream& os, const DHTArrayView<DType>& t);
 template <typename DType>
 class MutableDHTArrayView : public DHTArrayView<DType> {
  public:
+  MutableDHTArrayView() = default;
+
   /*implicit*/ MutableDHTArrayView(DenseHostTensor* dht)
       : DHTArrayView<DType>(dht) {}
 
@@ -103,30 +104,25 @@ class MutableDHTArrayView : public DHTArrayView<DType> {
   void Fill(const DType& v) {
     std::fill(data(), data() + this->NumElements(), v);
   }
-  using DHTArrayView<DType>::data;
 
   // The pointer to the data. If there is no elements, the returned pointer is
   // undefined.
-  DType* data() {
+  DType* data() const {
     return const_cast<DType*>(this->DHTArrayView<DType>::data());
   }
 
-  using DHTArrayView<DType>::Elements;
-  MutableArrayRef<DType> Elements() {
+  MutableArrayRef<DType> Elements() const {
     return MutableArrayRef<DType>(data(), this->NumElements());
   }
 
   // Allow direct iteration and manipulation of the view as if it were its
   // elements.
   using iterator = typename MutableArrayRef<DType>::iterator;
-
-  using DHTArrayView<DType>::begin;
-  using DHTArrayView<DType>::end;
-  iterator begin() { return Elements().begin(); }
-  iterator end() { return Elements().end(); }
+  iterator begin() const { return Elements().begin(); }
+  iterator end() const { return Elements().end(); }
 
   using DHTArrayView<DType>::operator[];
-  DType& operator[](size_t idx) { return data()[idx]; }
+  DType& operator[](size_t idx) const { return data()[idx]; }
 };
 
 template <size_t Rank, typename... Dims>
@@ -167,16 +163,27 @@ size_t OffsetOf(const FixedRankShape<ShapeRank>& fixed_shape,
 // DenseHostTensor itself or through another view class are visible through
 // DHTIndexableView.
 template <typename DType, size_t Rank>
-class DHTIndexableView : public DHTArrayView<DType> {
+class DHTIndexableView {
  public:
+  // Used by Argument<> to get the underlying type.
+  using UnderlyingT = DenseHostTensor;
+
+  // Used by ::testing::ElementsAre to get the underlying type.
+  using value_type = DType;
+
   using FixedShapeType = FixedRankShape<Rank>;
   using CoordType = std::array<ssize_t, Rank>;
 
+  DHTIndexableView() = default;
+
   /*implicit*/ DHTIndexableView(const DenseHostTensor* dht)
-      : DHTArrayView<DType>(dht), fixed_shape_(dht->shape()) {}
+      : data_(dht->data<DType>()),
+        num_elements_(dht->NumElements()),
+        fixed_shape_(dht->shape()) {}
 
   DHTIndexableView(const DType* data, const FixedShapeType& shape)
-      : DHTArrayView<DType>(data, shape.GetNumElements()),
+      : data_(data),
+        num_elements_(shape.GetNumElements()),
         fixed_shape_(shape) {}
 
   template <typename... Dims>
@@ -184,11 +191,24 @@ class DHTIndexableView : public DHTArrayView<DType> {
       : DHTIndexableView(
             data, FixedShapeType(CoordFromDims<Rank, Dims...>(dims...))) {}
 
-  // The shape of this tensor.
-  TensorShape Shape() const { return fixed_shape_.ToTensorShape(); }
-
   // The fixed shape of this tensor.
   const FixedShapeType& FixedShape() const { return fixed_shape_; }
+
+  // Raw access to data. Typically used when dispatching to external libraries
+  // (like Eigen or libxssm).
+  size_t NumElements() const { return num_elements_; }
+
+  // The pointer to the data. If there is no elements, the returned pointer is
+  // undefined.
+  const DType* data() const { return data_; }
+
+  ArrayRef<DType> Elements() const {
+    return ArrayRef<DType>(data(), NumElements());
+  }
+
+  using const_iterator = typename ArrayRef<DType>::iterator;
+  const_iterator begin() const { return Elements().begin(); }
+  const_iterator end() const { return Elements().end(); }
 
   // Returns reference to element at the given coordinate.
   const DType& operator[](const CoordType& coord) const {
@@ -222,6 +242,8 @@ class DHTIndexableView : public DHTArrayView<DType> {
   }
 
  private:
+  const DType* data_ = nullptr;
+  size_t num_elements_ = 0;
   FixedShapeType fixed_shape_;
 };
 
@@ -230,44 +252,47 @@ class DHTIndexableView : public DHTArrayView<DType> {
 // via DenseHostTensor itself or through another view class are visible through
 // MutableDHTIndexableView.
 template <typename DType, size_t Rank>
-class MutableDHTIndexableView : public MutableDHTArrayView<DType> {
+class MutableDHTIndexableView : public DHTIndexableView<DType, Rank> {
  public:
   using FixedShapeType = FixedRankShape<Rank>;
   using CoordType = std::array<ssize_t, Rank>;
 
+  MutableDHTIndexableView() = default;
+
   /*implicit*/ MutableDHTIndexableView(DenseHostTensor* dht)
-      : MutableDHTArrayView<DType>(dht), fixed_shape_(dht->shape()) {}
+      : DHTIndexableView<DType, Rank>(dht) {}
 
   MutableDHTIndexableView(DType* data, const FixedShapeType& shape)
-      : MutableDHTArrayView<DType>(data, shape.GetNumElements()),
-        fixed_shape_(shape) {}
+      : DHTIndexableView<DType, Rank>(data, shape) {}
 
   template <typename... Dims>
   explicit MutableDHTIndexableView(DType* data, Dims... dims)
-      : MutableDHTIndexableView(
-            data, FixedShapeType(CoordFromDims<Rank, Dims...>(dims...))) {}
+      : DHTIndexableView<DType, Rank>(data, dims...) {}
 
-  // The fixed shape of this tensor.
-  const FixedShapeType& FixedShape() const { return fixed_shape_; }
+  // The pointer to the data. If there is no elements, the returned pointer is
+  // undefined.
+  DType* data() const {
+    return const_cast<DType*>(DHTIndexableView<DType, Rank>::data());
+  }
+
+  MutableArrayRef<DType> Elements() const {
+    return MutableArrayRef<DType>(data(), this->NumElements());
+  }
+
+  using iterator = typename MutableArrayRef<DType>::iterator;
+  iterator begin() const { return Elements().begin(); }
+  iterator end() const { return Elements().end(); }
 
   // Returns reference to element at the given coordinate.
-  DType& operator[](const CoordType& coord) {
-    return this->data()[OffsetOf(fixed_shape_, coord)];
-  }
-  const DType& operator[](const CoordType& coord) const {
-    return this->data()[OffsetOf(fixed_shape_, coord)];
+  DType& operator[](const CoordType& coord) const {
+    return this->data()[OffsetOf(this->FixedShape(), coord)];
   }
 
   // Convenience wrapper around operator[]. Specify the Coord as a list of index
   // arguments rather than a 'Coord'. Makes writing nested for loops much
   // easier.
   template <typename... Dims>
-  const DType& ElementAt(Dims... dims) const {
-    return (*this)[CoordFromDims<Rank, Dims...>(dims...)];
-  }
-
-  template <typename... Dims>
-  DType& ElementAt(Dims... dims) {
+  DType& ElementAt(Dims... dims) const {
     return (*this)[CoordFromDims<Rank, Dims...>(dims...)];
   }
 
@@ -277,20 +302,17 @@ class MutableDHTIndexableView : public MutableDHTArrayView<DType> {
   // slice A[1, 3] would return a 3D view.
   template <typename... PrefixDims, size_t PrefixRank = sizeof...(PrefixDims),
             size_t ChippedRank = Rank - PrefixRank>
-  MutableDHTIndexableView<DType, ChippedRank> Chip(PrefixDims... dims) {
+  MutableDHTIndexableView<DType, ChippedRank> Chip(PrefixDims... dims) const {
     static_assert(PrefixRank > 0, "prefix dimensions cannot be empty");
     static_assert(PrefixRank <= Rank, "prefix dimensions must be within rank");
     auto coord = CoordFromDims<PrefixRank, PrefixDims...>(dims...);
     FixedRankShape<ChippedRank> chipped_shape;
     for (int i = 0; i < ChippedRank; i++) {
-      chipped_shape[i] = fixed_shape_[i + PrefixRank];
+      chipped_shape[i] = this->FixedShape()[i + PrefixRank];
     }
     return MutableDHTIndexableView<DType, Rank - PrefixRank>(
-        &this->data()[OffsetOf(fixed_shape_, coord)], chipped_shape);
+        &this->data()[OffsetOf(this->FixedShape(), coord)], chipped_shape);
   }
-
- private:
-  FixedShapeType fixed_shape_;
 };
 
 }  // namespace tfrt

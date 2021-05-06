@@ -71,6 +71,18 @@ class DenseHostTensor final : public HostTensor,
     return data_->data();
   }
 
+  template <typename DType>
+  const DType* data() const {
+    assert(GetDType<DType>() == dtype() && "Incorrect dtype for tensor");
+    return reinterpret_cast<const DType*>(data());
+  }
+
+  template <typename DType>
+  DType* data() {
+    assert(GetDType<DType>() == dtype() && "Incorrect dtype for tensor");
+    return reinterpret_cast<DType*>(data());
+  }
+
   const RCReference<HostBuffer>& buffer() const { return data_; }
 
   size_t DataSizeInBytes() const {

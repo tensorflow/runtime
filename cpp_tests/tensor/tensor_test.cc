@@ -46,10 +46,20 @@ TEST(TensorTest, ChipDenseHostTensorView) {
   EXPECT_THAT(view.Chip(1, 1).Elements(), ElementsAre(3));
 
   MutableDHTIndexableView<int32_t, 2> mut_view(data.data(), 3, 2);
+  mut_view.Chip(1).ElementAt(0) = 4;
   EXPECT_THAT(mut_view.Chip(1).FixedShape(), ElementsAre(2));
-  EXPECT_THAT(mut_view.Chip(1).Elements(), ElementsAre(2, 3));
+  EXPECT_THAT(mut_view.Chip(1).Elements(), ElementsAre(4, 3));
   EXPECT_THAT(mut_view.Chip(1, 1).FixedShape(), ElementsAre());
   EXPECT_THAT(mut_view.Chip(1, 1).Elements(), ElementsAre(3));
+}
+
+TEST(TensorTest, MutableIndexableViewCanBeCastedToIndexableView) {
+  auto fn = [](const DHTIndexableView<int32_t, 2>& view) {
+    return view.ElementAt(1, 0);
+  };
+  std::array<int32_t, 6> data{0, 1, 2, 3, 4, 5};
+  MutableDHTIndexableView<int32_t, 2> mut_view(data.data(), 3, 2);
+  EXPECT_EQ(fn(mut_view), 2);
 }
 
 }  // namespace

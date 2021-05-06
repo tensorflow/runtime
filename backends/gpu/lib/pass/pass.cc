@@ -246,7 +246,6 @@ void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
 }
 
 void populateTfrtConversionPatterns(mlir::RewritePatternSet &patterns,
-                                    mlir::TypeConverter &converter,
                                     mlir::ConversionTarget &target) {
   patterns.add<UnwrapAsyncExecPattern, HoistGpuWaitsPattern>(
       patterns.getContext());

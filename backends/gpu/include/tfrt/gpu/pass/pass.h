@@ -68,6 +68,12 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
 void populateGpuAsyncConversionPatterns(mlir::RewritePatternSet& patterns,
                                         mlir::ConversionTarget& target);
 
+// Adds rewrite patterns that unwrap tfrt_gpu_conversion.async.execute ops
+// again and adds !tfrt.chain result and !tfrt.chain, !tfrt_gpu.stream arguments
+// to functions.
+void populateTfrtConversionPatterns(mlir::RewritePatternSet& patterns,
+                                    mlir::ConversionTarget& target);
+
 }  // namespace gpu
 }  // namespace tfrt
 

@@ -25,6 +25,7 @@
 
 include "tfrt/tfrt_op_base.td"
 include "mlir/Dialect/GPU/GPUBase.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def GPU_ConversionDialect : Dialect {
   let name = "tfrt_gpu_conversion";
@@ -55,15 +56,23 @@ def GPU_CastAnyToAnyOp : Op<GPU_ConversionDialect, "cast_any_to_any"> {
   let hasFolder = 1;
 }
 
+def GPU_CastOp : Op<GPU_ConversionDialect, "cast", [NoSideEffect]> {
+  let summary = "tfrt_gpu_convertion.cast operation";
+  let description = "Transient op to cast multiple inputs to one output.";
+  let arguments = (ins Variadic<AnyType>);
+  let results = (outs AnyType);
+  let hasFolder = 1;
+}
+
 def GPU_AsyncExecuteOp : Op<GPU_ConversionDialect, "async.execute",
     [GPU_AsyncOpInterface, SingleBlockImplicitTerminator<"ReturnOp">]> {
   let summary = "tfrt_gpu_conversion.async.execute operation";
   let description = [{
     tfrt_gpu_conversion.async.execute wraps a block to take and produce
-    !gpu.async.tokens (i.e. it implements the GPU_AsyncOpInterface).
+    !gpu.async.tokens (i.e. it implements the mlir::gpu::AsyncOpInterface).
 
-    The region has a single block with TFRT_Chain and GPU_AsyncToken arguments
-    and a TFRT_Chain terminator operand.
+    The region has a single block with !tfrt.chain and !gpu.async.token
+    arguments and a !tfrt.chain terminator operand.
 
     This op is used by the Dialect Conversion framework when lowering to the
     tfrt_gpu dialect. This op should only exist during the conversion process,

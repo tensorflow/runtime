@@ -173,6 +173,20 @@ mlir::OpFoldResult CastAnyToAnyOp::fold(
   return nullptr;
 }
 
+mlir::OpFoldResult CastOp::fold(llvm::ArrayRef<mlir::Attribute>) {
+  Type result_type = getResult().getType();
+
+  for (auto operand : getOperands()) {
+    mlir::ValueRange range(operand);
+    if (auto cast_op = operand.getDefiningOp<conversion::CastOp>())
+      range = cast_op.getOperands();
+    auto it = llvm::find_if(
+        range, [&](auto value) { return value.getType() == result_type; });
+    if (it != range.end()) return *it;
+  }
+  return nullptr;
+}
+
 void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
   // Add a region with stream and chain block arguments.
   auto block = [&] {

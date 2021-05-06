@@ -180,8 +180,8 @@ void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
     region->emplaceBlock();
     return region->begin();
   }();
-  block->addArgument(builder.getType<StreamType>());
   auto chain = block->addArgument(builder.getType<ChainType>());
+  block->addArgument(builder.getType<StreamType>());
 
   // Return chain block argument.
   OpBuilder::InsertionGuard guard(builder);

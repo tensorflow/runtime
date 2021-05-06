@@ -846,6 +846,22 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "gpu_passes",
+    srcs = ["lib/pass/pass.cc"],
+    hdrs = ["include/tfrt/gpu/pass/pass.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":gpu_opdefs",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Rewrite",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Transforms",
+        "@tf_runtime//:basic_kernels_opdefs",
+    ],
+)
+
+tfrt_cc_library(
     name = "gpu_kernels",
     srcs = [
         "lib/kernels/blas_kernels.cc",

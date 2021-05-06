@@ -40,7 +40,7 @@ def GPU_ConversionDialect : Dialect {
 }
 
 def GPU_CastAnyToAnyOp : Op<GPU_ConversionDialect, "cast_any_to_any"> {
-  let summary = "tfrt_gpu_convertion.cast_any_to_any operation";
+  let summary = "tfrt_gpu_conversion.cast_any_to_any operation";
   let description = [{
     tfrt_gpu_conversion.cast_any_to_any casts any type to any other type.
 
@@ -55,16 +55,11 @@ def GPU_CastAnyToAnyOp : Op<GPU_ConversionDialect, "cast_any_to_any"> {
   let hasFolder = 1;
 }
 
-def GPU_ReturnOp : Op<GPU_ConversionDialect, "return", [HasParent<"AsyncExecuteOp">,
-                                Terminator]> {
-  let arguments = (ins TFRT_ChainType);
-}
-
 def GPU_AsyncExecuteOp : Op<GPU_ConversionDialect, "async.execute",
     [GPU_AsyncOpInterface, SingleBlockImplicitTerminator<"ReturnOp">]> {
-  let summary = "tfrt_gpu_convertion.async.execute operation";
+  let summary = "tfrt_gpu_conversion.async.execute operation";
   let description = [{
-    tfrt_gpu_convertion.async.execute wraps a block to take and produce
+    tfrt_gpu_conversion.async.execute wraps a block to take and produce
     !gpu.async.tokens (i.e. it implements the GPU_AsyncOpInterface).
 
     The region has a single block with TFRT_Chain and GPU_AsyncToken arguments
@@ -81,24 +76,6 @@ def GPU_AsyncExecuteOp : Op<GPU_ConversionDialect, "async.execute",
 
   let skipDefaultBuilders = 1;
   let builders = [OpBuilder<(ins)>];
-
-  let extraClassDeclaration = [{
-    // Returns the direct parent of `op` as AsyncExecuteOp.
-    static AsyncExecuteOp getParent(Operation* op) {
-      return dyn_cast_or_null<AsyncExecuteOp>(op->getParentOp());
-    }
-
-    // Returns the stream block argument.
-    ::mlir::Value getStream() {
-      return getBody()->getArgument(0);
-    }
-
-    // Returns the chain terminator operand.
-    ::mlir::Value getChain() {
-      return getBody()->back().getOperand(0);
-    }
-  }];
-
 }
 
 #endif  // GPU_CONVERSION_HELPER_OPS

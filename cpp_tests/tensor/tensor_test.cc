@@ -16,22 +16,40 @@
 
 // Unit test for TFRT Tensor.
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "tfrt/host_context/host_allocator.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
+#include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
 namespace {
 
-TEST(TensorTest, EmptyDenseHostTensorView) {
-  auto allocator = CreateMallocAllocator();
-  auto host_buffer = HostBuffer::CreateFromExternal(/*ptr=*/nullptr, /*size=*/0,
-                                                    [](void*, size_t) {});
-  DenseHostTensor tensor(TensorMetadata(DType(DType::I32), /*shape=*/{}),
+using testing::ElementsAre;
+
+TEST(TensorTest, ScalarDenseHostTensorView) {
+  auto host_buffer = HostBuffer::CreateFromExternal(
+      /*ptr=*/nullptr, /*size=*/0, [](void*, size_t) {});
+  std::array<ssize_t, 1> dims{0};
+  DenseHostTensor tensor(TensorMetadata(DType(DType::I32), TensorShape(dims)),
                          std::move(host_buffer));
   DHTArrayView<int32_t> view(&tensor);
-
   EXPECT_TRUE(view.Elements().empty());
+}
+
+TEST(TensorTest, ChipDenseHostTensorView) {
+  std::array<int32_t, 6> data{0, 1, 2, 3, 4, 5};
+
+  DHTIndexableView<int32_t, 2> view(data.data(), 3, 2);
+  EXPECT_THAT(view.Chip(1).FixedShape(), ElementsAre(2));
+  EXPECT_THAT(view.Chip(1).Elements(), ElementsAre(2, 3));
+  EXPECT_THAT(view.Chip(1, 1).FixedShape(), ElementsAre());
+  EXPECT_THAT(view.Chip(1, 1).Elements(), ElementsAre(3));
+
+  MutableDHTIndexableView<int32_t, 2> mut_view(data.data(), 3, 2);
+  EXPECT_THAT(mut_view.Chip(1).FixedShape(), ElementsAre(2));
+  EXPECT_THAT(mut_view.Chip(1).Elements(), ElementsAre(2, 3));
+  EXPECT_THAT(mut_view.Chip(1, 1).FixedShape(), ElementsAre());
+  EXPECT_THAT(mut_view.Chip(1, 1).Elements(), ElementsAre(3));
 }
 
 }  // namespace

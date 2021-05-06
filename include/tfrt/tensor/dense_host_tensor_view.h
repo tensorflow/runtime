@@ -50,17 +50,22 @@ class DHTArrayView {
   // Used by ::testing::ElementsAre to get the underlying type.
   using value_type = DType;
 
-  /*implicit*/ DHTArrayView(const DenseHostTensor* dht) : dht_(*dht) {
+  /*implicit*/ DHTArrayView(const DenseHostTensor* dht)
+      : data_(reinterpret_cast<const DType*>(dht->data())),
+        num_elements_(dht->NumElements()) {
     assert(GetDType<DType>() == dht->dtype() && "Incorrect dtype for tensor");
   }
 
+  DHTArrayView(const DType* data, size_t num_elements)
+      : data_(data), num_elements_(num_elements) {}
+
   // Raw access to data. Typically used when dispatching to external libraries
   // (like Eigen or libxssm).
-  size_t NumElements() const { return dht_.DataSizeInBytes() / sizeof(DType); }
+  size_t NumElements() const { return num_elements_; }
 
   // The pointer to the data. If there is no elements, the returned pointer is
   // undefined.
-  const DType* data() const { return static_cast<const DType*>(dht_.data()); }
+  const DType* data() const { return data_; }
 
   ArrayRef<DType> Elements() const {
     return ArrayRef<DType>(data(), NumElements());
@@ -73,7 +78,8 @@ class DHTArrayView {
   const DType& operator[](size_t idx) const { return data()[idx]; }
 
  protected:
-  const DenseHostTensor& dht_;
+  const DType* data_;
+  size_t num_elements_;
 };
 
 template <typename DType>
@@ -89,6 +95,9 @@ class MutableDHTArrayView : public DHTArrayView<DType> {
   /*implicit*/ MutableDHTArrayView(DenseHostTensor* dht)
       : DHTArrayView<DType>(dht) {}
 
+  MutableDHTArrayView(DType* data, size_t num_elements)
+      : DHTArrayView<DType>(data, num_elements) {}
+
   // Sets all values to 'v'. Useful for operations that have some obvious
   // initializer (usually 0 or 1).
   void Fill(const DType& v) {
@@ -99,7 +108,7 @@ class MutableDHTArrayView : public DHTArrayView<DType> {
   // The pointer to the data. If there is no elements, the returned pointer is
   // undefined.
   DType* data() {
-    return const_cast<DType*>(static_cast<const DType*>(this->dht_.data()));
+    return const_cast<DType*>(this->DHTArrayView<DType>::data());
   }
 
   using DHTArrayView<DType>::Elements;
@@ -121,10 +130,30 @@ class MutableDHTArrayView : public DHTArrayView<DType> {
 };
 
 template <size_t Rank, typename... Dims>
-static std::array<size_t, Rank> CoordFromDims(Dims... dims) {
+std::array<ssize_t, Rank> CoordFromDims(Dims... dims) {
   static_assert(sizeof...(Dims) == Rank,
                 "invalid number of values in coordinate.");
-  return std::array<size_t, Rank>{static_cast<size_t>(dims)...};
+  return std::array<ssize_t, Rank>{static_cast<ssize_t>(dims)...};
+}
+
+// Returns the offset of the given coordinate in the underlying storage. If the
+// coordinates are of smaller rank than the shape, the coordinates are used as a
+// prefix and the missing trailing dimensions are filled with zeros.
+template <size_t ShapeRank, size_t CoordRank>
+size_t OffsetOf(const FixedRankShape<ShapeRank>& fixed_shape,
+                const std::array<ssize_t, CoordRank>& coord) {
+  static_assert(CoordRank <= ShapeRank,
+                "coordinates must be within shape rank");
+  size_t offset = 0;
+  size_t stride = 1;
+  for (int i = ShapeRank - 1; i >= 0; --i) {
+    if (i < CoordRank) {
+      assert(coord[i] < fixed_shape[i]);
+      offset += stride * coord[i];
+    }
+    stride *= fixed_shape[i];
+  }
+  return offset;
 }
 
 // DHTIndexableView<DType, Rank> projects a DenseHostTensor into a view that
@@ -141,10 +170,19 @@ template <typename DType, size_t Rank>
 class DHTIndexableView : public DHTArrayView<DType> {
  public:
   using FixedShapeType = FixedRankShape<Rank>;
-  using CoordType = std::array<size_t, Rank>;
+  using CoordType = std::array<ssize_t, Rank>;
 
   /*implicit*/ DHTIndexableView(const DenseHostTensor* dht)
       : DHTArrayView<DType>(dht), fixed_shape_(dht->shape()) {}
+
+  DHTIndexableView(const DType* data, const FixedShapeType& shape)
+      : DHTArrayView<DType>(data, shape.GetNumElements()),
+        fixed_shape_(shape) {}
+
+  template <typename... Dims>
+  explicit DHTIndexableView(const DType* data, Dims... dims)
+      : DHTIndexableView(
+            data, FixedShapeType(CoordFromDims<Rank, Dims...>(dims...))) {}
 
   // The shape of this tensor.
   TensorShape Shape() const { return fixed_shape_.ToTensorShape(); }
@@ -154,7 +192,7 @@ class DHTIndexableView : public DHTArrayView<DType> {
 
   // Returns reference to element at the given coordinate.
   const DType& operator[](const CoordType& coord) const {
-    return this->data()[OffsetOf(coord)];
+    return this->data()[OffsetOf(fixed_shape_, coord)];
   }
 
   // Convenience wrapper around operator[]. Specify the Coord as a list of index
@@ -165,19 +203,25 @@ class DHTIndexableView : public DHTArrayView<DType> {
     return (*this)[CoordFromDims<Rank, Dims...>(dims...)];
   }
 
- private:
-  // Returns the offset of the given coordinate in the underlying storage.
-  size_t OffsetOf(const CoordType& coord) const {
-    size_t offset = 0;
-    size_t stride = 1;
-    for (int i = Rank - 1; i >= 0; --i) {
-      assert(coord[i] < fixed_shape_[i]);
-      offset += stride * coord[i];
-      stride *= fixed_shape_[i];
+  // Chip is a special kind of slice. It indexes into the view at the given
+  // coordinate prefix and returns a view onto the remaining dimensions.
+  // It is similar to indexing into a numpy array, e.g. for a 5D ndarray A, the
+  // slice A[1, 3] would return a 3D view.
+  template <typename... PrefixDims, size_t PrefixRank = sizeof...(PrefixDims),
+            size_t ChippedRank = Rank - PrefixRank>
+  DHTIndexableView<DType, ChippedRank> Chip(PrefixDims... dims) const {
+    static_assert(PrefixRank > 0, "prefix dimensions cannot be empty");
+    static_assert(PrefixRank <= Rank, "prefix dimensions must be within rank");
+    auto coord = CoordFromDims<PrefixRank, PrefixDims...>(dims...);
+    FixedRankShape<ChippedRank> chipped_shape;
+    for (int i = 0; i < ChippedRank; i++) {
+      chipped_shape[i] = fixed_shape_[i + PrefixRank];
     }
-    return offset;
+    return DHTIndexableView<DType, Rank - PrefixRank>(
+        &this->data()[OffsetOf(fixed_shape_, coord)], chipped_shape);
   }
 
+ private:
   FixedShapeType fixed_shape_;
 };
 
@@ -189,23 +233,29 @@ template <typename DType, size_t Rank>
 class MutableDHTIndexableView : public MutableDHTArrayView<DType> {
  public:
   using FixedShapeType = FixedRankShape<Rank>;
-  using CoordType = std::array<size_t, Rank>;
+  using CoordType = std::array<ssize_t, Rank>;
 
   /*implicit*/ MutableDHTIndexableView(DenseHostTensor* dht)
       : MutableDHTArrayView<DType>(dht), fixed_shape_(dht->shape()) {}
 
-  // The shape of this tensor.
-  TensorShape Shape() const { return fixed_shape_.ToTensorShape(); }
+  MutableDHTIndexableView(DType* data, const FixedShapeType& shape)
+      : MutableDHTArrayView<DType>(data, shape.GetNumElements()),
+        fixed_shape_(shape) {}
+
+  template <typename... Dims>
+  explicit MutableDHTIndexableView(DType* data, Dims... dims)
+      : MutableDHTIndexableView(
+            data, FixedShapeType(CoordFromDims<Rank, Dims...>(dims...))) {}
 
   // The fixed shape of this tensor.
   const FixedShapeType& FixedShape() const { return fixed_shape_; }
 
   // Returns reference to element at the given coordinate.
   DType& operator[](const CoordType& coord) {
-    return this->data()[OffsetOf(coord)];
+    return this->data()[OffsetOf(fixed_shape_, coord)];
   }
   const DType& operator[](const CoordType& coord) const {
-    return this->data()[OffsetOf(coord)];
+    return this->data()[OffsetOf(fixed_shape_, coord)];
   }
 
   // Convenience wrapper around operator[]. Specify the Coord as a list of index
@@ -221,19 +271,25 @@ class MutableDHTIndexableView : public MutableDHTArrayView<DType> {
     return (*this)[CoordFromDims<Rank, Dims...>(dims...)];
   }
 
- private:
-  // Returns the offset of the given coordinate in the underlying storage.
-  size_t OffsetOf(const CoordType& coord) const {
-    size_t offset = 0;
-    size_t stride = 1;
-    for (int i = Rank - 1; i >= 0; --i) {
-      assert(coord[i] < fixed_shape_[i]);
-      offset += stride * coord[i];
-      stride *= fixed_shape_[i];
+  // Chip is a special kind of slice. It indexes into the view at the given
+  // coordinate prefix and returns a view onto the remaining dimensions.
+  // It is similar to indexing into a numpy array, e.g. for a 5D ndarray A, the
+  // slice A[1, 3] would return a 3D view.
+  template <typename... PrefixDims, size_t PrefixRank = sizeof...(PrefixDims),
+            size_t ChippedRank = Rank - PrefixRank>
+  MutableDHTIndexableView<DType, ChippedRank> Chip(PrefixDims... dims) {
+    static_assert(PrefixRank > 0, "prefix dimensions cannot be empty");
+    static_assert(PrefixRank <= Rank, "prefix dimensions must be within rank");
+    auto coord = CoordFromDims<PrefixRank, PrefixDims...>(dims...);
+    FixedRankShape<ChippedRank> chipped_shape;
+    for (int i = 0; i < ChippedRank; i++) {
+      chipped_shape[i] = fixed_shape_[i + PrefixRank];
     }
-    return offset;
+    return MutableDHTIndexableView<DType, Rank - PrefixRank>(
+        &this->data()[OffsetOf(fixed_shape_, coord)], chipped_shape);
   }
 
+ private:
   FixedShapeType fixed_shape_;
 };
 

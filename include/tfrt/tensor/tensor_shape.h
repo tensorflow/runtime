@@ -163,7 +163,8 @@ template <size_t Rank>
 class FixedRankShape {
  public:
   static constexpr size_t kRank = Rank;
-  using Dims = std::array<ssize_t, Rank>;
+  using value_type = ssize_t;
+  using Dims = std::array<value_type, Rank>;
   using const_iterator = typename Dims::const_iterator;
   using iterator = typename Dims::iterator;
 

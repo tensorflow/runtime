@@ -65,11 +65,11 @@ static void BatchNormGrad(
   // beta_grad   = sum(output_grad)
 
   TFRT_RETURN_IF_ERROR(
-      handler, CheckShapeMatch("output_grad shape", output_grad->Shape(),
-                               "input_grad shape", input_grad->Shape()));
+      handler, CheckShapeMatch("output_grad shape", output_grad->FixedShape(),
+                               "input_grad shape", input_grad->FixedShape()));
   TFRT_RETURN_IF_ERROR(
-      handler, CheckShapeMatch("input shape", input->Shape(),
-                               "input_grad shape", input_grad->Shape()));
+      handler, CheckShapeMatch("input shape", input->FixedShape(),
+                               "input_grad shape", input_grad->FixedShape()));
 
   // Data format: (batch_size, height, width, num_channels) [NHWC]
   const FixedRankShape<4>& input_grad_shape = input_grad->FixedShape();

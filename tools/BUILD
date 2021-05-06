@@ -31,6 +31,7 @@ tfrt_cc_binary(
     visibility = [":friends"],
     deps = [
         "@llvm-project//mlir:MlirOptLib",
+        "@llvm-project//mlir:Transforms",
         "@tf_runtime//:init_tfrt_dialects",
         "@tf_runtime//:print_stream_pass",
     ],

@@ -23,6 +23,7 @@
 #define BASIC_OPS
 
 include "tfrt/basic_kernels/opdefs/tfrt_base.td"
+include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
 // Base class for TFRT dialect ops.
@@ -36,7 +37,7 @@ class TFRT_Op<string mnemonic, list<OpTrait> traits = []> :
   let parser = [{ return tfrt::parse$cppClass(parser, result); }];
 }
 
-def CallOp : TFRT_Op<"call"> {
+def CallOp : TFRT_Op<"call", [CallOpInterface]> {
   let summary = "host executor call operation";
   let description = [{
     The "tfrt.call" operation represents a direct call to a function.  The
@@ -51,7 +52,14 @@ def CallOp : TFRT_Op<"call"> {
 
   let extraClassDeclaration = [{
     StringRef getCallee() { return callee(); }
-    mlir::FunctionType getCalleeType();
+    ::mlir::FunctionType getCalleeType();
+
+    // The following methods are needed by CallOpInterface.
+
+    // Gets the argument operands to the called function.
+    ::mlir::Operation::operand_range getArgOperands() { return operands(); }
+    // Returns the callee of this operation.
+    ::mlir::CallInterfaceCallable getCallableForCallee() { return calleeAttr(); }
   }];
 }
 

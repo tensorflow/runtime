@@ -16,10 +16,46 @@
 
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 
+#include "mlir/Transforms/InliningUtils.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
+
+namespace {
+
+struct TFRTInlinerInterface : public mlir::DialectInlinerInterface {
+  using DialectInlinerInterface::DialectInlinerInterface;
+
+  bool isLegalToInline(mlir::Operation *call, mlir::Operation *callable,
+                       bool would_be_cloned) const final {
+    // Currently only allow inlining callables called by tfrt.call op.
+    return llvm::isa<CallOp>(call);
+  }
+
+  bool isLegalToInline(Operation *op, Region *dest, bool would_be_cloned,
+                       BlockAndValueMapping &) const final {
+    // All TFRT dialect ops can be inlined.
+    return true;
+  }
+
+  void handleTerminator(
+      mlir::Operation *op,
+      llvm::ArrayRef<mlir::Value> values_to_replace) const final {
+    // Handle the given inlined terminator by replacing it with a new operation
+    // as necessary. Required when the region has only one block.
+    auto return_op = llvm::dyn_cast<ReturnOp>(op);
+    if (!return_op) return;
+
+    for (auto iter : llvm::zip(values_to_replace, return_op.operands())) {
+      auto original_value = std::get<0>(iter);
+      auto new_value = std::get<1>(iter);
+      original_value.replaceAllUsesWith(new_value);
+    }
+  }
+};
+
+}  // namespace
 
 //===----------------------------------------------------------------------===//
 // TFRTDialect Dialect
@@ -33,6 +69,8 @@ TFRTDialect::TFRTDialect(mlir::MLIRContext *context)
   allowUnknownOperations();
 
   addTypes<ChainType, StringType, TensorTypeType, DeviceType>();
+
+  addInterfaces<TFRTInlinerInterface>();
 
   addOperations<
 #define GET_OP_LIST

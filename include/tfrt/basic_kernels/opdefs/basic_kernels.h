@@ -25,6 +25,7 @@
 #define TFRT_BASIC_OPS_OPDEFS_BASIC_OPS_H_
 
 #include "mlir/IR/OpDefinition.h"
+#include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 

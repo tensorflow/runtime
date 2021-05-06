@@ -620,6 +620,7 @@ gentbl(
     td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
+        "@llvm-project//mlir:CallInterfacesTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
@@ -642,9 +643,11 @@ tfrt_cc_library(
     deps = [
         ":basic_kernels_opdefs_inc_gen",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:CallOpInterfaces",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
         "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Transforms",
     ],
 )
 
@@ -887,6 +890,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:SideEffects",
         "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Transforms",
     ],
 )
 

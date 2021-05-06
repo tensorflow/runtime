@@ -26,6 +26,7 @@
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Transforms/InliningUtils.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
@@ -34,6 +35,20 @@
 
 namespace tfrt {
 namespace corert {
+
+namespace {
+
+struct CoreRTInlinerInterface : public mlir::DialectInlinerInterface {
+  using DialectInlinerInterface::DialectInlinerInterface;
+
+  bool isLegalToInline(Operation *op, Region *dest, bool would_be_cloned,
+                       BlockAndValueMapping &) const final {
+    // All CoreRT dialect ops can be inlined.
+    return true;
+  }
+};
+
+}  // namespace
 
 //===----------------------------------------------------------------------===//
 // CoreRTDialect Dialect
@@ -51,6 +66,8 @@ CoreRTDialect::CoreRTDialect(MLIRContext *context)
   addTypes<StringType, TensorHandleType, OpHandlerType, ResourceType,
            VariantType, Quint8Type, Qint8Type, Qint16Type, Qint32Type,
            Quint16Type>();
+
+  addInterfaces<CoreRTInlinerInterface>();
 
   addOperations<
 #define GET_OP_LIST

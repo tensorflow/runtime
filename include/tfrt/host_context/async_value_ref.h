@@ -31,14 +31,23 @@
 #include "llvm/Support/Error.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/location.h"
+#include "tfrt/support/alloc.h"
 
 namespace tfrt {
 
+class HostContext;
 class ExecutionContext;
+
+namespace internal {
 
 // Forward declaration from host_context.h.
 template <typename T, typename... Args>
-T* HostContextConstruct(HostContext* host, Args&&... args);
+T* SimpleConstruct(Args&&... args) {
+  void* buf = AlignedAlloc(alignof(T), sizeof(T));
+  return new (buf) T(std::forward<Args>(args)...);
+}
+
+}  // namespace internal
 
 template <typename T>
 class AsyncValueRef {
@@ -182,24 +191,37 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
                                             llvm::Error error, ErrorCode code);
 
+// TODO(b/187512686): Remove the overloads of Make*AsyncValueRef() that take
+// HostContext*.
+
 // Create a ConcreteAsyncValue in error state for a specified decoded
 // diagnostic.
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
-    HostContext* host, DecodedDiagnostic diagnostic);
+    DecodedDiagnostic diagnostic);
+inline RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
+    HostContext* host, DecodedDiagnostic diagnostic) {
+  return MakeErrorAsyncValueRef(std::move(diagnostic));
+}
 
 // Create a ConcreteAsyncValue in error state for a specified error message.
-RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(HostContext* host,
-                                                    string_view message);
+RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(string_view message);
+inline RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
+    HostContext* host, string_view message) {
+  return MakeErrorAsyncValueRef(message);
+}
 
 // Allocate an unconstructed AsyncValueRef. The AsyncValueRef should be made
 // available later by invoking AsyncValueRef::emplace or
 // AsyncValueRef::SetError.
 template <typename T>
-AsyncValueRef<T> MakeUnconstructedAsyncValueRef(HostContext* host) {
+AsyncValueRef<T> MakeUnconstructedAsyncValueRef() {
   return AsyncValueRef<T>(
-      TakeRef(HostContextConstruct<internal::ConcreteAsyncValue<T>>(
-          host, host,
+      TakeRef(internal::SimpleConstruct<internal::ConcreteAsyncValue<T>>(
           typename internal::ConcreteAsyncValue<T>::UnconstructedPayload{})));
+}
+template <typename T>
+AsyncValueRef<T> MakeUnconstructedAsyncValueRef(HostContext* host) {
+  return MakeUnconstructedAsyncValueRef<T>();
 }
 
 // Allocate and construct an AsyncValueRef without making it available for
@@ -209,24 +231,30 @@ template <typename T, typename... Args>
 AsyncValueRef<T> MakeConstructedAsyncValueRef(HostContext* host,
                                               Args&&... args) {
   return AsyncValueRef<T>(
-      TakeRef(HostContextConstruct<internal::ConcreteAsyncValue<T>>(
-          host, host,
+      TakeRef(internal::SimpleConstruct<internal::ConcreteAsyncValue<T>>(
           typename internal::ConcreteAsyncValue<T>::ConstructedPayload{},
           std::forward<Args>(args)...)));
 }
 
 // Allocate and construct an available AsyncValueRef.
 template <typename T, typename... Args>
-AsyncValueRef<T> MakeAvailableAsyncValueRef(HostContext* host, Args&&... args) {
+AsyncValueRef<T> MakeAvailableAsyncValueRef(Args&&... args) {
   return AsyncValueRef<T>(
-      TakeRef(HostContextConstruct<internal::ConcreteAsyncValue<T>>(
-          host, host,
+      TakeRef(internal::SimpleConstruct<internal::ConcreteAsyncValue<T>>(
           typename internal::ConcreteAsyncValue<T>::ConcretePayload{},
           std::forward<Args>(args)...)));
 }
+template <typename T, typename... Args>
+AsyncValueRef<T> MakeAvailableAsyncValueRef(HostContext* host, Args&&... args) {
+  return MakeAvailableAsyncValueRef<T>(std::forward<Args>(args)...);
+}
 
 // Construct an empty IndirectAsyncValue, not forwarding to anything.
-RCReference<IndirectAsyncValue> MakeIndirectAsyncValue(HostContext* host);
+RCReference<IndirectAsyncValue> MakeIndirectAsyncValue();
+inline RCReference<IndirectAsyncValue> MakeIndirectAsyncValue(
+    HostContext* host) {
+  return MakeIndirectAsyncValue();
+}
 
 }  // namespace tfrt
 

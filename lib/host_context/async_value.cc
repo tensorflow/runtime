@@ -19,7 +19,6 @@
 #include "llvm/ADT/FunctionExtras.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/function.h"
-#include "tfrt/host_context/host_context.h"
 #include "tfrt/support/concurrent_vector.h"
 #include "tfrt/support/string_util.h"
 
@@ -66,20 +65,6 @@ const AsyncValue::TypeInfo& AsyncValue::GetTypeInfo() const {
   return (*type_info_table)[type_id_ - 1];
 }
 
-void AsyncValue::Destroy() {
-  if (kind() == Kind::kIndirect) {
-    // Depending on what the benchmarks say, it might make sense to remove this
-    // explicit check and instead make ~IndirectAsyncValue go through the
-    // GetTypeInfo().destructor case below.
-    static_cast<IndirectAsyncValue*>(this)->~IndirectAsyncValue();
-    GetHostContext()->DeallocateBytes(this, sizeof(IndirectAsyncValue));
-    return;
-  }
-
-  auto size = GetTypeInfo().destructor(this, /*destroys_object=*/true);
-  GetHostContext()->DeallocateBytes(this, size);
-}
-
 // This is called when the value is set into the ConcreteAsyncValue buffer, or
 // when the IndirectAsyncValue is forwarded to an available AsyncValue, and we
 // need to change our state and clear out the notifications. The current state
@@ -102,14 +87,13 @@ void AsyncValue::NotifyAvailable(State available_state) {
 }
 
 void AsyncValue::RunWaiters(NotifierListNode* list) {
-  HostContext* host = GetHostContext();
   while (list) {
     auto* node = list;
     // TODO(chky): pass state into notification_ so that waiters do not need to
     // check atomic state again.
     node->notification_();
     list = node->next_;
-    host->Destruct(node);
+    delete node;
   }
 }
 
@@ -119,7 +103,7 @@ void AsyncValue::RunWaiters(NotifierListNode* list) {
 void AsyncValue::EnqueueWaiter(llvm::unique_function<void()>&& waiter,
                                WaitersAndState old_value) {
   // Create the node for our waiter.
-  auto* node = GetHostContext()->Construct<NotifierListNode>(std::move(waiter));
+  auto* node = new NotifierListNode(std::move(waiter));
   auto old_state = old_value.getInt();
 
   // Swap the next link in. old_value.getInt() must be unavailable when
@@ -156,8 +140,7 @@ void AsyncValue::SetError(DecodedDiagnostic diag_in) {
     GetTypeInfo().set_error(this, std::move(diag_in));
   } else {
     assert(kind() == Kind::kIndirect);
-    auto error_av =
-        MakeErrorAsyncValueRef(host_context_.get(), std::move(diag_in));
+    auto error_av = MakeErrorAsyncValueRef(std::move(diag_in));
     cast<IndirectAsyncValue>(this)->ForwardTo(std::move(error_av));
   }
 }

@@ -26,6 +26,7 @@
 #include "llvm/Support/Compiler.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/host_context/host_context_ptr.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/timer_queue.h"
 

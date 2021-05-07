@@ -20,12 +20,11 @@
 
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/execution_context.h"
-#include "tfrt/host_context/host_context.h"
 
 namespace tfrt {
 
-RCReference<IndirectAsyncValue> MakeIndirectAsyncValue(HostContext* host) {
-  return TakeRef(host->Construct<IndirectAsyncValue>(host));
+RCReference<IndirectAsyncValue> MakeIndirectAsyncValue() {
+  return TakeRef(internal::SimpleConstruct<IndirectAsyncValue>());
 }
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
@@ -37,7 +36,7 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
                                             string_view message,
                                             ErrorCode code) {
   auto diag = EmitError(exec_ctx, message, code);
-  return MakeErrorAsyncValueRef(exec_ctx.host(), std::move(diag));
+  return MakeErrorAsyncValueRef(std::move(diag));
 }
 
 RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
@@ -51,17 +50,16 @@ RCReference<ErrorAsyncValue> EmitErrorAsync(const ExecutionContext& exec_ctx,
 }
 
 RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(
-    HostContext* host, DecodedDiagnostic diagnostic) {
+    DecodedDiagnostic diagnostic) {
   // Create an AsyncValue for this error condition.
   auto* error_value =
-      HostContextConstruct<ErrorAsyncValue>(host, host, std::move(diagnostic));
+      internal::SimpleConstruct<ErrorAsyncValue>(std::move(diagnostic));
 
   return TakeRef(error_value);
 }
 
-RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(HostContext* host,
-                                                    string_view message) {
-  return MakeErrorAsyncValueRef(host, DecodedDiagnostic(message));
+RCReference<ErrorAsyncValue> MakeErrorAsyncValueRef(string_view message) {
+  return MakeErrorAsyncValueRef(DecodedDiagnostic(message));
 }
 
 }  // namespace tfrt

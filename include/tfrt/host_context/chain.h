@@ -57,7 +57,6 @@ class ReadyChain {
   void Construct(HostContext* host) {
     all_ready_chains_[HostContextPtr(host).index()] =
         std::make_unique<internal::ConcreteAsyncValue<Chain>>(
-            host,
             internal::ConcreteAsyncValue<Chain>::UnRefCountedConcretePayload{});
   }
 

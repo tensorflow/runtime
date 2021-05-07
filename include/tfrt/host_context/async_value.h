@@ -33,7 +33,6 @@
 
 #include "llvm/ADT/PointerIntPair.h"
 #include "tfrt/host_context/diagnostic.h"
-#include "tfrt/host_context/host_context_ptr.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/logging.h"
@@ -42,7 +41,6 @@
 
 namespace tfrt {
 
-class HostContext;
 class NotifierListNode;
 
 namespace internal {
@@ -263,13 +261,10 @@ class AsyncValue {
   // -----------------------------------------------------------
   // Implementation details follow.  Clients should ignore them.
 
-  friend class HostContext;
   friend class IndirectAsyncValue;
   template <typename T>
-  AsyncValue(HostContextPtr host, Kind kind, State state, bool is_refcounted,
-             TypeTag<T>)
-      : host_context_(host),
-        kind_(kind),
+  AsyncValue(Kind kind, State state, bool is_refcounted, TypeTag<T>)
+      : kind_(kind),
         has_vtable_(std::is_polymorphic<T>()),
         is_refcounted_(is_refcounted),
         type_id_(GetTypeId<T>()),
@@ -278,9 +273,8 @@ class AsyncValue {
       total_allocated_async_values_.fetch_add(1, std::memory_order_relaxed);
   }
 
-  AsyncValue(HostContextPtr host, Kind kind, State state, bool is_refcounted)
-      : host_context_(host),
-        kind_(kind),
+  AsyncValue(Kind kind, State state, bool is_refcounted)
+      : kind_(kind),
         has_vtable_(false),
         is_refcounted_(is_refcounted),
         type_id_(0),
@@ -291,9 +285,6 @@ class AsyncValue {
 
   AsyncValue(const AsyncValue&) = delete;
   AsyncValue& operator=(const AsyncValue&) = delete;
-
-  HostContext* GetHostContext() const { return host_context_.get(); }
-  HostContextPtr GetHostContextPtr() const { return host_context_; }
 
   void NotifyAvailable(State available_state);
   void Destroy();
@@ -341,7 +332,6 @@ class AsyncValue {
   }
 
   std::atomic<uint32_t> refcount_{1};
-  const HostContextPtr host_context_;
 
   Kind kind_ : 2;
   // has_vtable_ has the same value for a given payload type T. If we want to
@@ -494,15 +484,15 @@ class ConcreteAsyncValue : public AsyncValue {
   struct UnRefCountedConcretePayload {};
 
   // Make a ConcreteAsyncValue with kUnconstructed state.
-  explicit ConcreteAsyncValue(HostContextPtr host, UnconstructedPayload)
-      : AsyncValue(host, Kind::kConcrete, State::kUnconstructed,
+  explicit ConcreteAsyncValue(UnconstructedPayload)
+      : AsyncValue(Kind::kConcrete, State::kUnconstructed,
                    /*is_refcounted=*/true, TypeTag<T>()) {
     VerifyOffsets();
   }
 
   // Make a ConcreteAsyncValue with kError state.
-  explicit ConcreteAsyncValue(HostContextPtr host, DecodedDiagnostic diagnostic)
-      : AsyncValue(host, Kind::kConcrete, State::kError,
+  explicit ConcreteAsyncValue(DecodedDiagnostic diagnostic)
+      : AsyncValue(Kind::kConcrete, State::kError,
                    /*is_refcounted=*/true, TypeTag<T>()),
         data_store_{std::move(diagnostic)} {
     VerifyOffsets();
@@ -510,17 +500,15 @@ class ConcreteAsyncValue : public AsyncValue {
 
   // Make a ConcreteAsyncValue with kConstructed state.
   template <typename... Args>
-  explicit ConcreteAsyncValue(HostContextPtr host, ConstructedPayload,
-                              Args&&... args)
-      : AsyncValue(host, Kind::kConcrete, State::kConstructed,
+  explicit ConcreteAsyncValue(ConstructedPayload, Args&&... args)
+      : AsyncValue(Kind::kConcrete, State::kConstructed,
                    /*is_refcounted=*/true, TypeTag<T>()),
         data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
 
   // Make a ConcreteAsyncValue with kConcrete state.
   template <typename... Args>
-  explicit ConcreteAsyncValue(HostContextPtr host, ConcretePayload,
-                              Args&&... args)
-      : AsyncValue(host, Kind::kConcrete, State::kConcrete,
+  explicit ConcreteAsyncValue(ConcretePayload, Args&&... args)
+      : AsyncValue(Kind::kConcrete, State::kConcrete,
                    /*is_refcounted=*/true, TypeTag<T>()),
         data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
 
@@ -529,9 +517,8 @@ class ConcreteAsyncValue : public AsyncValue {
   // These ConcreteAsyncValue must be destroyed conventionally, rather than with
   // DropRef.
   template <typename... Args>
-  explicit ConcreteAsyncValue(HostContextPtr host, UnRefCountedConcretePayload,
-                              Args&&... args)
-      : AsyncValue(host, Kind::kConcrete, State::kConcrete,
+  explicit ConcreteAsyncValue(UnRefCountedConcretePayload, Args&&... args)
+      : AsyncValue(Kind::kConcrete, State::kConcrete,
                    /*is_refcounted=*/false, TypeTag<T>()),
         data_store_{TypeTag<T>(), std::forward<Args>(args)...} {}
 
@@ -709,9 +696,9 @@ struct DummyValueForErrorAsyncValue {};
 class ErrorAsyncValue
     : public internal::ConcreteAsyncValue<DummyValueForErrorAsyncValue> {
  public:
-  ErrorAsyncValue(HostContextPtr host, DecodedDiagnostic diagnostic)
+  ErrorAsyncValue(DecodedDiagnostic diagnostic)
       : internal::ConcreteAsyncValue<DummyValueForErrorAsyncValue>(
-            host, std::move(diagnostic)) {}
+            std::move(diagnostic)) {}
 };
 
 // IndirectAsyncValue represents an uncomputed AsyncValue of unspecified kind
@@ -722,8 +709,8 @@ class IndirectAsyncValue : public AsyncValue {
   friend class AsyncValue;
 
  public:
-  explicit IndirectAsyncValue(HostContextPtr host)
-      : AsyncValue(host, Kind::kIndirect, State::kUnconstructed,
+  IndirectAsyncValue()
+      : AsyncValue(Kind::kIndirect, State::kUnconstructed,
                    /*is_refcounted=*/true) {}
 
   IndirectAsyncValue* AddRef() { return AddRef(1); }
@@ -914,6 +901,20 @@ void AsyncValue::AndThen(WaiterT&& waiter) {
     return;
   }
   EnqueueWaiter(std::forward<WaiterT>(waiter), old_value);
+}
+
+inline void AsyncValue::Destroy() {
+  if (kind() == Kind::kIndirect) {
+    // Depending on what the benchmarks say, it might make sense to remove this
+    // explicit check and instead make ~IndirectAsyncValue go through the
+    // GetTypeInfo().destructor case below.
+    static_cast<IndirectAsyncValue*>(this)->~IndirectAsyncValue();
+    std::free(this);
+    return;
+  }
+
+  GetTypeInfo().destructor(this, /*destroys_object=*/true);
+  std::free(this);
 }
 
 inline raw_ostream& operator<<(raw_ostream& os,

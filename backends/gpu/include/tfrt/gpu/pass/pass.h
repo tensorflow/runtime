@@ -61,6 +61,10 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
       OpTy op, mlir::Value in_chain, mlir::Value stream,
       mlir::ArrayRef<mlir::Value> operands,
       mlir::ConversionPatternRewriter& rewriter) const = 0;
+
+ protected:
+  // TODO(csigg): remove when transition has completed.
+  using MatchAndRewriteOpReturnType = mlir::Value;
 };
 
 // Adds rewrite patterns that wraps consecutive legal ops as defined by

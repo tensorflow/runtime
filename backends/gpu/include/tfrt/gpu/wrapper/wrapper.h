@@ -237,6 +237,7 @@ class Enum {
   static constexpr auto get_value_type(T*) -> typename T::type;
   static constexpr auto get_value_type(...) -> int;  // defaults to int.
   using ValueType = decltype(get_value_type(std::declval<Tag*>()));
+  using OpaqueValueType = typename std::make_unsigned<ValueType>::type;
 
  public:
   Enum() : Enum({}, Platform::NONE) {}
@@ -266,13 +267,15 @@ class Enum {
     return !(*this == value);
   }
 
-  ValueType ToOpaqueValue() const {
-    auto result = value_ << 2 | static_cast<ValueType>(platform_);
+  OpaqueValueType ToOpaqueValue() const {
+    auto result = static_cast<OpaqueValueType>(value_) << 2 |
+                  static_cast<OpaqueValueType>(platform_);
     assert(*this == FromOpaqueValue(result) && "roundtrip failed");
     return result;
   }
-  static Enum FromOpaqueValue(ValueType opaque) {
-    return Enum(opaque >> 2, static_cast<Platform>(opaque & 0x3));
+  static Enum FromOpaqueValue(OpaqueValueType opaque) {
+    return Enum(static_cast<ValueType>(opaque) >> 2,
+                static_cast<Platform>(opaque & 0x3));
   }
 
  private:

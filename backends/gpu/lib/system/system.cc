@@ -81,6 +81,11 @@ AsyncValueRef<System> System::Initialize(wrapper::Platform platform,
                                          HostContext* host) {
   if (auto error = wrapper::Init(platform))
     return tfrt::MakeErrorAsyncValueRef(host, DecodedDiagnostic(error));
+  return Instantiate(host);
+}
+
+/*static*/
+AsyncValueRef<System> System::Instantiate(HostContext* host) {
   return MakeAvailableAsyncValueRef<System>(host, System{});
 }
 
@@ -199,14 +204,15 @@ AsyncValueRef<Chain> System::TransferFromDevice(ExecutionContext& exec_ctx,
 }
 
 AsyncValueRef<Chain> System::Execute(ExecutionContext& exec_ctx,
-                                     Program& program, Stream& stream,
+                                     Program& program,
+                                     AsyncValueRef<GpuStream> stream,
                                      ArrayRef<AsyncValueRef<GpuBuffer>> inputs,
                                      ArrayRef<AsyncValueRef<GpuBuffer>> outputs,
                                      AsyncValueRef<Chain> chain) {
   auto out_chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
   RunWhenReady(
       {chain.GetAsyncValue()},
-      [exec_ctx, &program, stream = stream.GetStream().CopyRef(),
+      [exec_ctx, &program, stream = std::move(stream),
        inputs = std::move(inputs), outputs = std::move(outputs),
        chain = std::move(chain), out_chain = out_chain.CopyRef()] {
         if (chain.IsError()) return out_chain.SetError(chain.GetError());

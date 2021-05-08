@@ -871,7 +871,10 @@ tfrt_cc_library(
         "lib/kernels/solver_kernels.cc",
     ],
     alwayslink_static_registration_src = "lib/kernels/static_registration.cc",
-    visibility = [":tests_and_tools"],
+    visibility = [
+        ":tests_and_tools",
+        ":xla_friends",
+    ],
     deps = [
         ":gpu_event_manager",
         ":gpu_memory",
@@ -940,6 +943,7 @@ tfrt_cc_library(
     name = "gpu_types",
     srcs = ["lib/gpu_types.cc"],
     hdrs = ["include/tfrt/gpu/gpu_types.h"],
+    visibility = [":xla_friends"],
     deps = [
         ":gpu_wrapper",
         "@llvm-project//llvm:Support",

@@ -29,8 +29,8 @@ GpuContext::GpuContext(wrapper::OwningContext context)
 GpuContext::~GpuContext() = default;
 
 wrapper::Context GpuContext::release() {
-  functions_.clear();
-  return context_.release();
+  functions_.clear();         // Clear GpuFunction map.
+  return context_.release();  // Release OwningContext.
 }
 
 // Wrapper for module loading that prints logs when in debug mode.
@@ -90,8 +90,7 @@ GpuStream::GpuStream(AsyncValueRef<GpuContext> context,
 GpuStream::~GpuStream() = default;
 
 wrapper::Stream GpuStream::release() {
-  context_.release();
-  return stream_.release();
+  return stream_.release();  // Release OwningStream.
 }
 
 BorrowedGpuStream::BorrowedGpuStream(HostContext* host,
@@ -103,8 +102,8 @@ BorrowedGpuStream::BorrowedGpuStream(HostContext* host,
           host, context_.CopyRef(), wrapper::OwningStream(stream))) {}
 
 BorrowedGpuStream::~BorrowedGpuStream() {
-  stream_->release();
-  context_->release();
+  stream_->release();   // Release GpuStream's OwningStream.
+  context_->release();  // Release GpuContext's OwningContext.
 }
 
 GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
@@ -132,7 +131,13 @@ Error GpuAllocator::Deallocate(GpuPointer pointer, wrapper::Stream) {
 
 GpuBuffer::GpuBuffer(AsyncValueRef<GpuAllocator> allocator, GpuPointer pointer,
                      size_t size)
-    : allocator_(std::move(allocator)), pointer_(pointer), size_(size) {}
+    : deallocate_(true),
+      allocator_(std::move(allocator)),
+      pointer_(pointer),
+      size_(size) {}
+
+GpuBuffer::GpuBuffer(GpuPointer pointer, size_t size)
+    : deallocate_(false), pointer_(pointer), size_(size) {}
 
 GpuBuffer::GpuBuffer() = default;
 
@@ -141,7 +146,8 @@ GpuBuffer::~GpuBuffer() {
 }
 
 GpuBuffer::GpuBuffer(GpuBuffer&& buffer)
-    : allocator_(std::move(buffer.allocator_)),
+    : deallocate_(buffer.deallocate_),
+      allocator_(std::move(buffer.allocator_)),
       pointer_(buffer.pointer_),
       size_(buffer.size_) {
   buffer.pointer_ = nullptr;
@@ -150,6 +156,7 @@ GpuBuffer::GpuBuffer(GpuBuffer&& buffer)
 
 GpuBuffer& GpuBuffer::operator=(GpuBuffer&& buffer) {
   if (auto error = Deallocate()) TFRT_LOG(ERROR) << error;
+  deallocate_ = buffer.deallocate_;
   allocator_ = std::move(buffer.allocator_);
   std::swap(pointer_, buffer.pointer_);
   std::swap(size_, buffer.size_);
@@ -163,9 +170,14 @@ Expected<GpuBuffer> GpuBuffer::Allocate(AsyncValueRef<GpuAllocator> allocator,
   return GpuBuffer(std::move(allocator), *pointer, size);
 }
 
+GpuBuffer GpuBuffer::Borrow(GpuPointer pointer, size_t size) {
+  return GpuBuffer(pointer, size);
+}
+
 Error GpuBuffer::Deallocate(wrapper::Stream stream) {
   size_ = 0;
   if (!pointer_) return Error::success();  // Skip virtual function call.
+  if (!deallocate_) return Error::success();
   auto pointer = pointer_;
   pointer_ = GpuPointer();
   return allocator_->Deallocate(pointer, stream);

@@ -152,12 +152,17 @@ class GpuAllocator {
   AsyncValueRef<GpuContext> context_;
 };
 
-// GpuBuffer owns a range of GPU memory produced by a GpuAllocator.
+// GpuBuffer points to a range of GPU memory. It can be either owning the memory
+// (produced by a GpuAllocator) or non-owning.
 class GpuBuffer {
   // Creates a buffer with base `pointer`, holding `size` bytes, that will be
   // deallocated using `allocator` when destroyed.
   GpuBuffer(AsyncValueRef<GpuAllocator> allocator, GpuPointer pointer,
             size_t size);
+
+  // Creates a non-owning buffer with base `pointer` and `size` bytes that is
+  // not deallocated upon destruction.
+  GpuBuffer(GpuPointer pointer, size_t size);
 
  public:
   GpuBuffer();
@@ -172,6 +177,9 @@ class GpuBuffer {
   static Expected<GpuBuffer> Allocate(AsyncValueRef<GpuAllocator> allocator,
                                       size_t size, wrapper::Stream stream = {});
 
+  // Returns a non-owning buffer for a memory region that is already allocated.
+  static GpuBuffer Borrow(GpuPointer pointer, size_t size);
+
   // Deallocates the buffer. If `stream` is not the default, any other stream
   // accessing the buffer needs to be to be synchronized with `stream`.
   Error Deallocate(wrapper::Stream stream = {});
@@ -179,9 +187,9 @@ class GpuBuffer {
   explicit operator bool() const { return pointer_ != nullptr; }
   wrapper::Pointer<void> pointer() const { return pointer_; }
   size_t size() const { return size_; }
-  const GpuAllocator& allocator() const { return *allocator_; }
 
  private:
+  bool deallocate_;
   AsyncValueRef<GpuAllocator> allocator_;
   wrapper::Pointer<void> pointer_;
   size_t size_ = 0;

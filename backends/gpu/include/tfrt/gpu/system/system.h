@@ -93,6 +93,9 @@ class System {
                                           llvm::StringRef prefix,
                                           HostContext* host);
 
+  // Instantiates a System without initializing the GPU platform or devices.
+  static AsyncValueRef<System> Instantiate(HostContext* host);
+
   // Create a new stream for given gpu_ordinal. Don't deallocate the stream if
   // there are pending kernels that haven't been scheduled on the stream. This
   // can be verified by checking all chains returned by this class.
@@ -132,7 +135,7 @@ class System {
   // Execute the lowered GPU Function on given stream. The output chain is ready
   // when the all gpu kernels have been dispatched on the stream.
   AsyncValueRef<Chain> Execute(ExecutionContext& exec_ctx, Program& program,
-                               Stream& stream,
+                               AsyncValueRef<GpuStream> stream,
                                ArrayRef<AsyncValueRef<GpuBuffer>> inputs,
                                ArrayRef<AsyncValueRef<GpuBuffer>> outputs,
                                AsyncValueRef<Chain> chain);

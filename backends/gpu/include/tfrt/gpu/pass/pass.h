@@ -50,21 +50,21 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
       return rewriter.notifyMatchFailure(op, "Failed to get chain and stream.");
     auto out_chain =
         matchAndRewriteOp(op, in_chain, stream, operands, rewriter);
-    if (!out_chain) return mlir::failure();
-    internal::GpuAsyncOpConversionSetChain(out_chain, rewriter);
+    if (failed(out_chain)) return mlir::failure();
+    internal::GpuAsyncOpConversionSetChain(*out_chain, rewriter);
     return mlir::success();
   }
 
   // Lowers 'op' to schedule work on 'stream' and returns chain, or none in case
   // the rewrite failed.
-  virtual mlir::Value matchAndRewriteOp(
+  virtual mlir::FailureOr<mlir::Value> matchAndRewriteOp(
       OpTy op, mlir::Value in_chain, mlir::Value stream,
       mlir::ArrayRef<mlir::Value> operands,
       mlir::ConversionPatternRewriter& rewriter) const = 0;
 
  protected:
   // TODO(csigg): remove when transition has completed.
-  using MatchAndRewriteOpReturnType = mlir::Value;
+  using MatchAndRewriteOpReturnType = mlir::FailureOr<mlir::Value>;
 };
 
 // Adds rewrite patterns that wraps consecutive legal ops as defined by

@@ -117,8 +117,6 @@ tfrt_cc_library(
             "@tf_runtime//backends/gpu:gpu_kernels_alwayslink",
             "@tf_runtime//backends/gpu:gpu_test_kernels_alwayslink",
             "@tf_runtime//backends/gpu:gpu_op_handler_alwayslink",
-            "@tf_runtime//backends/gpu:gpu_test_ops_alwayslink",
-            "@tf_runtime//backends/gpu:gpu_tf_ops_alwayslink",
         ],
         "//conditions:default": [],
     }),
@@ -132,7 +130,13 @@ tfrt_cc_library(
         "@tf_runtime//backends/common:eigen_kernels_alwayslink",
         "@tf_runtime//backends/common:eigen_ops_alwayslink",
         "@tf_runtime//backends/cpu:tf_ops_alwayslink",
-    ],
+    ] + select({
+        "@tf_runtime//:gpu_enabled": [
+            "@tf_runtime//backends/gpu:gpu_test_ops_alwayslink",
+            "@tf_runtime//backends/gpu:gpu_tf_ops_alwayslink",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 # Op/Kernel dependencies belong here rather than directly adding them in

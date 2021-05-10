@@ -67,17 +67,14 @@ static Expected<GpuStream> GpuStreamCreate(Argument<GpuContext> context) {
 //
 // Result: Sets the output chain when all tasks submitted on a stream are
 // completed. This kernel will block the caller thread.
-static Error GpuStreamSynchronizeSync(const GpuStream& stream) {
-  return wrapper::StreamSynchronize(stream.get());
-}
-static void GpuStreamSynchronizeAsync(Argument<GpuStream> stream,
-                                      Chain in_chain, Result<Chain> out_chain,
-                                      const ExecutionContext& exec_ctx) {
+static void GpuStreamSynchronize(Argument<GpuStream> stream, Chain in_chain,
+                                 Result<Chain> out_chain,
+                                 const ExecutionContext& exec_ctx) {
   auto result = out_chain.Allocate();
   bool enqueued = EnqueueBlockingWork(
       exec_ctx, [result = result.CopyRef(), stream = stream.ValueRef(),
                  in_chain = in_chain]() mutable {
-        if (auto error = GpuStreamSynchronizeSync(*stream))
+        if (auto error = wrapper::StreamSynchronize(stream->get()))
           return result.SetError(StrCat(error));
         result.emplace(in_chain);
       });
@@ -106,12 +103,9 @@ static Error GpuEventRecord(const GpuEvent& event, const GpuStream& stream) {
 // tfrt_gpu.event.synchronize sets the output chain when the event has been
 // reached, i.e. all work scheduled prior to the last call to
 // tfrt_gpu.event.record has been completed.
-static Error GpuEventSynchronizeSync(const GpuEvent& event) {
-  return wrapper::EventSynchronize(event.get());
-}
-static void GpuEventSynchronizeAsync(Argument<GpuEvent> event, Chain in_chain,
-                                     Result<Chain> out_chain,
-                                     const ExecutionContext& exec_ctx) {
+static void GpuEventSynchronize(Argument<GpuEvent> event, Chain in_chain,
+                                Result<Chain> out_chain,
+                                const ExecutionContext& exec_ctx) {
   auto result = out_chain.Allocate();
   // Check if event has already completed and we can skip enqueuing work.
   auto ready = wrapper::EventQuery(event->get());
@@ -120,7 +114,7 @@ static void GpuEventSynchronizeAsync(Argument<GpuEvent> event, Chain in_chain,
   bool enqueued = EnqueueBlockingWork(
       exec_ctx, [result = result.CopyRef(), event = event.ValueRef(),
                  in_chain = in_chain]() mutable {
-        if (auto error = GpuEventSynchronizeSync(*event))
+        if (auto error = wrapper::EventSynchronize(event->get()))
           return result.SetError(StrCat(error));
         result.emplace(in_chain);
       });
@@ -268,13 +262,13 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
 
   kernel_reg->AddKernel("tfrt_gpu.stream.create", TFRT_KERNEL(GpuStreamCreate));
   kernel_reg->AddKernel("tfrt_gpu.stream.synchronize",
-                        TFRT_KERNEL(GpuStreamSynchronizeAsync));
+                        TFRT_KERNEL(GpuStreamSynchronize));
 
   kernel_reg->AddKernel("tfrt_gpu.event.create", TFRT_KERNEL(GpuEventCreate));
   kernel_reg->AddKernel("tfrt_gpu.event.record",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuEventRecord));
   kernel_reg->AddKernel("tfrt_gpu.event.synchronize",
-                        TFRT_KERNEL(GpuEventSynchronizeAsync));
+                        TFRT_KERNEL(GpuEventSynchronize));
 
   kernel_reg->AddKernel("tfrt_gpu.allocator.create",
                         TFRT_KERNEL(GpuAllocatorCreate));

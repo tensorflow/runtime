@@ -649,24 +649,19 @@ void BEFExecutor::ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue) {
   }
   assert(ready_kernel_queue.outline_kernel_ids().empty());
 
-  // The loop below process inline kernels in a breadth-first order, so that
-  // independent sequences can be launched as early as possible. Outline kernels
-  // are enqueued to the concurrent work queue immediately.
+  // The loop below process inline kernels in a LIFO order for cache locality.
+  // Outline kernels are enqueued to the concurrent work queue immediately.
 
-  std::vector<unsigned> buffer;
   while (!ready_kernel_queue.inline_kernel_ids().empty()) {
-    assert(buffer.empty());
+    auto kernel_id = ready_kernel_queue.inline_kernel_ids().back();
+    ready_kernel_queue.inline_kernel_ids().pop_back();
 
-    buffer.swap(ready_kernel_queue.inline_kernel_ids());
-    for (unsigned kernel_id : buffer) {
-      ProcessReadyKernel(kernel_id, &kernel_frame, ready_kernel_queue);
+    ProcessReadyKernel(kernel_id, &kernel_frame, ready_kernel_queue);
 
-      if (!ready_kernel_queue.outline_kernel_ids().empty()) {
-        EnqueueReadyKernels(std::move(ready_kernel_queue.outline_kernel_ids()));
-      }
-      assert(ready_kernel_queue.outline_kernel_ids().empty());
+    if (!ready_kernel_queue.outline_kernel_ids().empty()) {
+      EnqueueReadyKernels(std::move(ready_kernel_queue.outline_kernel_ids()));
     }
-    buffer.clear();
+    assert(ready_kernel_queue.outline_kernel_ids().empty());
   }
 }
 

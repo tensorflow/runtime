@@ -37,20 +37,17 @@ func @print_thread_id() -> !tfrt.chain {
   tfrt.return %ch3 : !tfrt.chain
 }
 
-// CHECK-LABEL: --- Running 'breadth_first'
-func @breadth_first() -> !tfrt.chain {
+// CHECK-LABEL: --- Running 'lifo_scheduling'
+func @lifo_scheduling() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
-  // The kernels of id 0 and id 1 should be executed before the kernel of id 2
-  // as id 0 and id 1 are in the same level while id 2 is one level deeper.
-  // This is to enqueue parallel sequences as early as possible.
+  // kernel 0 and kernel 2 are always executed consecutively due to lifo scheduling.
 
-  // CHECK: id: {{[01]}}
-  // CHECK: id: {{[01]}}
-  // CHECK: id: 2
+  // CHECK: id: 0
+  // CHECK-NEXT: id: 2
   %ch1 = tfrt_test.test_cost %ch0 {id = 0 : i64, _tfrt_cost = 1 : i64}
   %ch2 = tfrt_test.test_cost %ch0 {id = 1 : i64, _tfrt_cost = 1 : i64}
-  %ch3 = tfrt_test.test_cost %ch1 {id = 2 : i64, _tfrt_cost = 100 : i64}
+  %ch3 = tfrt_test.test_cost %ch1 {id = 2 : i64, _tfrt_cost = 1 : i64}
 
   %ch4 = tfrt.merge.chains %ch2, %ch3 : !tfrt.chain, !tfrt.chain
   tfrt.return %ch4: !tfrt.chain

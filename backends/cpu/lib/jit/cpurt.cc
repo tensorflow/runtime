@@ -336,7 +336,7 @@ struct ConvertDenseHostTensor {
 
   template <typename T, int rank>
   static ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
-    return memref->sizes;
+    return llvm::makeArrayRef(memref->sizes);
   }
 
   template <typename T>

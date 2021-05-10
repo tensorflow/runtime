@@ -169,8 +169,7 @@ struct FunctionAttribute {
 // subclasses.
 class TypedAttrBase {
  public:
-  TypedAttrBase() = default;
-  explicit TypedAttrBase(const void* base)
+  explicit TypedAttrBase(const void* base = nullptr)
       : base_(static_cast<const BEFAttrBase*>(base)) {}
 
   BEFAttributeType type() const { return base_->type; }
@@ -205,10 +204,9 @@ namespace internal {
 template <typename AttrClass, typename HeaderType>
 class AttrHeaderBase : public TypedAttrBase {
  public:
-  using TypedAttrBase::TypedAttrBase;
   using Base = AttrHeaderBase;
 
-  AttrHeaderBase(const void* data) : TypedAttrBase(data) {
+  AttrHeaderBase(const void* data = nullptr) : TypedAttrBase(data) {
     assert(data == nullptr || isa<AttrClass>());
   }
 

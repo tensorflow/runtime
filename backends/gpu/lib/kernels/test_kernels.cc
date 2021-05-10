@@ -28,13 +28,6 @@
 namespace tfrt {
 namespace gpu {
 
-// Convert 'error' to string and report to 'out'.
-static void ReportError(KernelErrorHandler out, llvm::Error error) {
-  llvm::handleAllErrors(std::move(error), [&](const llvm::ErrorInfoBase& info) {
-    out.ReportError(__FILE__, ':', __LINE__, ' ', info.message());
-  });
-}
-
 // Convenience function that copies a host tensor to the device and returns a
 // buffer pointing to the newly allocated memory. The intended purpose of this
 // function is to make writing unit tests simpler

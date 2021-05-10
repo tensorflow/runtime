@@ -161,7 +161,7 @@ void RepeatDatasetIterator::HandleEofAvailableInput(IterationResult input,
     input_iterator_ = parent_dataset_->input_dataset_->MakeIterator(context_);
     // All the remaining elements in the buffer must be EOF because they come
     // from the exhausted iterator. Therefore we can clear the buffer.
-    input_buffer_ = {};
+    input_buffer_ = decltype(input_buffer_){};
     return;
   }
   // The input_iterator_ has been exhausted and there is no remaining count.
@@ -176,7 +176,7 @@ void RepeatDatasetIterator::HandleEofAvailableInput(IterationResult input,
   }
   // All the remaining elements in the buffer must be EOF because they come
   // from the exhausted iterator. Therefore we can clear the buffer.
-  input_buffer_ = {};
+  input_buffer_ = decltype(input_buffer_){};
 }
 
 }  // namespace data

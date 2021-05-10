@@ -133,7 +133,7 @@ class BefAttrEncoder : public BefEmitter {
 
 template <typename T>
 size_t BefAttrEncoder::EncodeAttr(T attr) {
-  static_assert(kSupportedScalarAttributeType<T>);
+  static_assert(kSupportedScalarAttributeType<T>, "unsupported attribute");
 
   const auto entry_size = sizeof(attr);
 
@@ -153,7 +153,7 @@ size_t BefAttrEncoder::EncodeAttr(T attr) {
 // <Array size:VBR> [array payload]*
 template <typename T>
 size_t BefAttrEncoder::EncodeArrayAttr(ArrayRef<T> array) {
-  static_assert(kSupportedScalarAttributeType<T>);
+  static_assert(kSupportedScalarAttributeType<T>, "unsupported attribute");
 
   const auto element_count = array.size();
 

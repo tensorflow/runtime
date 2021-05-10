@@ -201,7 +201,7 @@ static AsyncValueRef<T> TestCopyWithDelay(Argument<T> in,
 //===----------------------------------------------------------------------===//
 template <typename T>
 std::tuple<T, T, T> TestCount3(T x) {
-  return {x + 1, x + 2, x + 3};
+  return std::make_tuple(x + 1, x + 2, x + 3);
 }
 
 static void TestIdentity(Argument<Chain>, RemainingArguments args,

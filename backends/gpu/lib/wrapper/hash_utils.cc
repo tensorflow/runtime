@@ -29,8 +29,8 @@ size_t hash<tfrt::gpu::wrapper::Device>::operator()(
     const tfrt::gpu::wrapper::Device& device) const noexcept {
   auto platform = device.platform();
   auto id = device.id(platform);
-  return HashCombine(std::hash<decltype(id)>{}(id),
-                     std::hash<decltype(platform)>{}(platform));
+  return HashCombine(std::hash<int>{}(id),
+                     std::hash<int>{}(static_cast<int>(platform)));
 }
 
 size_t hash<tfrt::gpu::wrapper::Stream>::operator()(

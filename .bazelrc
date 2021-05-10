@@ -20,7 +20,7 @@ build:clang --@rules_cuda//cuda:compiler=clang
 build:clang --@rules_cuda//cuda:copts=-Wno-unknown-cuda-version
 
 # Build with gcc (and nvcc).
-build:gcc --repo_env=CC=gcc-7  # Ubuntu 18.04 ships with gcc 7.4.
+build:gcc --repo_env=CC=gcc
 build:gcc --config=nvcc
 
 # Build with CUDA device code with nvcc.

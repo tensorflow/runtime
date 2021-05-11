@@ -68,29 +68,6 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
-    name = "event_manager_test",
-    srcs = [
-        "event_manager_test.cc",
-    ],
-    tags = [
-        "no_oss",
-        "noasan",
-        "nomsan",
-        "requires-gpu-nvidia",
-    ],
-    deps = [
-        "@com_github_google_benchmark//:benchmark_main",
-        "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-        "@tf_runtime//backends/gpu:gpu_event_manager",
-        "@tf_runtime//backends/gpu:gpu_wrapper",
-        "@tf_runtime//cpp_tests:common",
-    ],
-)
-
-tfrt_cc_test(
     name = "memory/gpu_buffer_test",
     srcs = [
         "memory/gpu_buffer_test.cc",

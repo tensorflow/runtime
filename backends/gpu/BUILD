@@ -266,22 +266,6 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "gpu_event_manager",
-    srcs = [
-        "lib/event_manager.cc",
-    ],
-    hdrs = [
-        "include/tfrt/gpu/event_manager.h",
-    ],
-    deps = [
-        ":gpu_wrapper",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//:hostcontext",
-        "@tf_runtime//:support",
-    ],
-)
-
-tfrt_cc_library(
     name = "gpu_op_handler",
     srcs = [
         "lib/core_runtime/gpu_op_handler.cc",
@@ -876,7 +860,6 @@ tfrt_cc_library(
         ":xla_friends",
     ],
     deps = [
-        ":gpu_event_manager",
         ":gpu_memory",
         ":gpu_tensor",
         ":gpu_types",

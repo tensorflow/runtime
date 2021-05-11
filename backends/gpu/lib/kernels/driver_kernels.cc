@@ -20,7 +20,6 @@
 #include "llvm/Support/Error.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/gpu/event_manager.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"

@@ -69,6 +69,8 @@ class Variant {
     fillValue(std::forward<T>(t));
   }
 
+  // TODO(b/187739825): tfrt::Variant should have trivial constructors when Ts
+  // are trivial types.
   Variant(const Variant& v) {
     visit([this](auto&& t) { this->fillValue(t); }, v);
   }

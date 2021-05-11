@@ -312,14 +312,14 @@ class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
 
   AsyncKernelImplementation GetAsyncKernel(uint32_t kernel_code) const {
     assert(kernel_code < kernels_.size());
-    KernelImplementation kernel_impl = kernels_[kernel_code];
+    const KernelImplementation& kernel_impl = kernels_[kernel_code];
     assert(kernel_impl.is<AsyncKernelImplementation>());
     return kernel_impl.get<AsyncKernelImplementation>();
   }
 
   SyncKernelImplementation GetSyncKernel(uint32_t kernel_code) const {
     assert(kernel_code < kernels_.size());
-    KernelImplementation kernel_impl = kernels_[kernel_code];
+    const KernelImplementation& kernel_impl = kernels_[kernel_code];
     assert(kernel_impl.is<SyncKernelImplementation>());
     return kernel_impl.get<SyncKernelImplementation>();
   }

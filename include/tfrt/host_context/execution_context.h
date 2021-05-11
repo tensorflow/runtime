@@ -71,12 +71,6 @@ class RequestContext : public ReferenceCounted<RequestContext> {
     return context_data_.getIfExists<T>();
   }
 
-  // TODO(b/171926578): Remove it after b/171926578 is fixed.
-  // Clear context data. This method is not thread safe and may cause race
-  // condition if it is called concurrently with other methods. The method
-  // is introduced as a temparory fix and should not be used in other cases.
-  void ClearData() { context_data_ = ContextData(); }
-
   int64_t id() const { return id_; }
 
  private:

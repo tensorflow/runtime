@@ -76,6 +76,7 @@ class GpuStream {
   wrapper::Stream release();
 
   wrapper::Context context() const { return context_->get(); }
+  AsyncValueRef<GpuContext> gpu_context() const { return context_.CopyRef(); }
 
  private:
   AsyncValueRef<GpuContext> context_;

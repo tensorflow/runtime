@@ -40,41 +40,6 @@ Program::Program(AlignedBuffer<8>&& file_buffer, llvm::StringRef function_name,
   function_ = bef_file_->GetFunction(function_name);
 }
 
-Stream::Stream(HostContext* host_ctx, wrapper::OwningContext context,
-               wrapper::OwningStream stream,
-               wrapper::OwningBlasHandle blas_handle)
-    : context_(
-          MakeAvailableAsyncValueRef<GpuContext>(host_ctx, std::move(context))),
-      allocator_(MakeAvailableAsyncValueRef<GpuAllocator>(host_ctx,
-                                                          context_.CopyRef())),
-      stream_(MakeAvailableAsyncValueRef<GpuStream>(
-          host_ctx, context_.CopyRef(), std::move(stream))),
-      blas_handle_(MakeAvailableAsyncValueRef<GpuBlasHandle>(
-          host_ctx, stream_.CopyRef(), std::move(blas_handle))) {}
-
-/*static*/
-Expected<Stream> Stream::Create(HostContext* host_ctx, int gpu_ordinal) {
-  // NOTE(fishx): Right now we create a new context for each GPU stream.
-  // TODO(tfrt-devs): Find a way to reuse the same context for multiple stream.
-  auto device = wrapper::DeviceGet(wrapper::Platform::CUDA, gpu_ordinal);
-  if (!device) return device.takeError();
-
-  auto context = wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, *device);
-  if (!context) return context.takeError();
-  auto current = wrapper::CtxSetCurrent(context->get());
-  if (!current) return current.takeError();
-  auto stream =
-      wrapper::StreamCreate(*current, wrapper::StreamFlags::NON_BLOCKING);
-  if (!stream) return stream.takeError();
-  auto blas_handle = wrapper::BlasCreate(*current);
-  if (!blas_handle) return blas_handle.takeError();
-  if (auto error = wrapper::BlasSetStream(blas_handle->get(), stream->get()))
-    return std::move(error);
-
-  return Stream(host_ctx, std::move(*context), std::move(*stream),
-                std::move(*blas_handle));
-}
-
 /*static*/
 AsyncValueRef<System> System::Initialize(wrapper::Platform platform,
                                          llvm::StringRef prefix,
@@ -89,15 +54,49 @@ AsyncValueRef<System> System::Instantiate(HostContext* host) {
   return MakeAvailableAsyncValueRef<System>(host, System{});
 }
 
-Expected<Stream> System::CreateStream(ExecutionContext& exec_ctx,
-                                      int gpu_ordinal) {
-  return Stream::Create(exec_ctx.host(), gpu_ordinal);
+AsyncValueRef<GpuStream> System::CreateStream(ExecutionContext& exec_ctx,
+                                              int gpu_ordinal) {
+  // NOTE(fishx): Right now we create a new context for each GPU stream.
+  // TODO(tfrt-devs): Find a way to reuse the same context for multiple stream.
+  auto device = wrapper::DeviceGet(wrapper::Platform::CUDA, gpu_ordinal);
+  if (!device) {
+    return MakeErrorAsyncValueRef(exec_ctx.host(),
+                                  DecodedDiagnostic(device.takeError()));
+  }
+  auto context = wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, *device);
+  if (!context) {
+    return MakeErrorAsyncValueRef(exec_ctx.host(),
+                                  DecodedDiagnostic(context.takeError()));
+  }
+  auto current = wrapper::CtxSetCurrent(context->get());
+  if (!current) {
+    return MakeErrorAsyncValueRef(exec_ctx.host(),
+                                  DecodedDiagnostic(current.takeError()));
+  }
+  auto stream =
+      wrapper::StreamCreate(*current, wrapper::StreamFlags::NON_BLOCKING);
+  if (!stream) {
+    return MakeErrorAsyncValueRef(exec_ctx.host(),
+                                  DecodedDiagnostic(stream.takeError()));
+  }
+
+  auto gpu_context = MakeAvailableAsyncValueRef<GpuContext>(
+      exec_ctx.host(), std::move(*context));
+  return tfrt::MakeAvailableAsyncValueRef<tfrt::gpu::GpuStream>(
+      exec_ctx.host(), std::move(gpu_context), std::move(*stream));
+}
+
+AsyncValueRef<GpuAllocator> System::CreateAllocator(
+    ExecutionContext& exec_ctx, AsyncValueRef<GpuStream> stream) {
+  return MakeAvailableAsyncValueRef<GpuAllocator>(exec_ctx.host(),
+                                                  stream->gpu_context());
 }
 
 AsyncValueRef<GpuBuffer> System::Allocate(ExecutionContext& exec_ctx,
-                                          Stream& stream, size_t size) {
-  auto buffer = GpuBuffer::Allocate(stream.GetAllocator().CopyRef(), size,
-                                    stream.GetStream()->get());
+                                          AsyncValueRef<GpuStream> stream,
+                                          AsyncValueRef<GpuAllocator> allocator,
+                                          size_t size) {
+  auto buffer = GpuBuffer::Allocate(std::move(allocator), size, stream->get());
   if (!buffer) {
     return MakeErrorAsyncValueRef(exec_ctx.host(),
                                   DecodedDiagnostic(buffer.takeError()));
@@ -107,51 +106,51 @@ AsyncValueRef<GpuBuffer> System::Allocate(ExecutionContext& exec_ctx,
 }
 
 AsyncValueRef<Chain> System::TransferToDevice(ExecutionContext& exec_ctx,
-                                              Stream& stream,
+                                              AsyncValueRef<GpuStream> stream,
                                               AsyncValueRef<GpuBuffer> dst,
                                               ArrayRef<uint8_t> src,
                                               AsyncValueRef<Chain> chain) {
   auto out_chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
-  RunWhenReady(
-      {dst.GetAsyncValue(), chain.GetAsyncValue()},
-      [stream = stream.GetStream().CopyRef(), dst = std::move(dst), src,
-       chain = std::move(chain), out_chain = out_chain.CopyRef()] {
-        if (dst.IsError()) return out_chain.SetError(dst.GetError());
+  RunWhenReady({dst.GetAsyncValue(), chain.GetAsyncValue()},
+               [stream = std::move(stream), dst = std::move(dst), src,
+                chain = std::move(chain), out_chain = out_chain.CopyRef()] {
+                 if (dst.IsError()) return out_chain.SetError(dst.GetError());
 
-        if (chain.IsError()) return out_chain.SetError(chain.GetError());
+                 if (chain.IsError())
+                   return out_chain.SetError(chain.GetError());
 
-        if (dst->size() < src.size()) {
-          return out_chain.SetError(tfrt::StrCat(
-              "TransferToDevice failed: "
-              "destination buffer size (",
-              dst->size(), ") is less than number of bytes to copy (",
-              src.size(), ")"));
-        }
+                 if (dst->size() < src.size()) {
+                   return out_chain.SetError(tfrt::StrCat(
+                       "TransferToDevice failed: "
+                       "destination buffer size (",
+                       dst->size(), ") is less than number of bytes to copy (",
+                       src.size(), ")"));
+                 }
 
-        auto current = wrapper::CtxSetCurrent(stream->context());
-        if (!current) return out_chain.SetError(current.takeError());
+                 auto current = wrapper::CtxSetCurrent(stream->context());
+                 if (!current) return out_chain.SetError(current.takeError());
 
-        if (auto error =
-                wrapper::MemcpyAsync(*current, dst->pointer(),
-                                     wrapper::Pointer<const void>(
-                                         static_cast<const void*>(src.data()),
-                                         wrapper::Platform::CUDA),
-                                     src.size(), stream->get()))
-          return out_chain.SetError(error);
-        out_chain.emplace();
-      });
+                 if (auto error = wrapper::MemcpyAsync(
+                         *current, dst->pointer(),
+                         wrapper::Pointer<const void>(
+                             static_cast<const void*>(src.data()),
+                             wrapper::Platform::CUDA),
+                         src.size(), stream->get()))
+                   return out_chain.SetError(error);
+                 out_chain.emplace();
+               });
   return out_chain;
 }
 
 AsyncValueRef<Chain> System::TransferFromDevice(ExecutionContext& exec_ctx,
-                                                Stream& stream,
+                                                AsyncValueRef<GpuStream> stream,
                                                 MutableArrayRef<uint8_t> dst,
                                                 AsyncValueRef<GpuBuffer> src,
                                                 AsyncValueRef<Chain> chain) {
   auto out_chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
   RunWhenReady(
       {src.GetAsyncValue(), chain.GetAsyncValue()},
-      [exec_ctx, stream = stream.GetStream().CopyRef(), dst = std::move(dst),
+      [exec_ctx, stream = std::move(stream), dst = std::move(dst),
        src = std::move(src), chain = std::move(chain),
        out_chain = out_chain.CopyRef()] {
         if (src.IsError()) return out_chain.SetError(src.GetError());

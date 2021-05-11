@@ -24,7 +24,7 @@
 
 #include <unordered_map>
 
-#include "tfrt/bef_converter/bef_buffer.h"
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/resource_context.h"
@@ -40,7 +40,7 @@ class FunctionCache {
 
   // Register the given program. A program can have multiple functions in it.
   // The program_name serves as both unique ID of this program.
-  Error Register(const std::string& program_name, BEFBuffer bef_buffer);
+  Error Register(const std::string& program_name, BefBuffer bef_buffer);
 
   // Create BEFFile corresponding to the program with the given name.
   // A struct representing a BEFFile and the respective buffer.
@@ -58,7 +58,7 @@ class FunctionCache {
 
   mutex cached_bef_mutex_;
   // Map from the program name to the CachedBEF.
-  std::unordered_map<std::string, std::pair<BEFBuffer, CachedBEF>> cached_bef_
+  std::unordered_map<std::string, std::pair<BefBuffer, CachedBEF>> cached_bef_
       TFRT_GUARDED_BY(cached_bef_mutex_);
 };
 

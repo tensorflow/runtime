@@ -23,10 +23,10 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/traits.h"
 #include "tfrt/core_runtime/opdefs/types.h"
-#include "tfrt/support/bef_encoding.h"
 
 namespace tfrt {
 

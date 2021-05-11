@@ -22,8 +22,8 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/host_context/type_name.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {

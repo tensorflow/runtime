@@ -19,8 +19,8 @@
 #ifndef TFRT_BEF_CONVERTER_BEF_ATTR_ENCODER_H_
 #define TFRT_BEF_CONVERTER_BEF_ATTR_ENCODER_H_
 
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/bef_converter/bef_emitter.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/type_traits.h"
 

@@ -21,7 +21,7 @@
 #include "tfrt/distributed_runtime/function_cache.h"
 
 #include "llvm/ADT/DenseMap.h"
-#include "tfrt/bef_converter/bef_buffer.h"
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/fabric_communicator.h"
@@ -34,7 +34,7 @@
 namespace tfrt {
 
 Error FunctionCache::Register(const std::string& program_name,
-                              BEFBuffer bef_buffer) {
+                              BefBuffer bef_buffer) {
   RCReference<BEFFile> bef_file =
       tfrt::BEFFile::Open(bef_buffer, host_->GetKernelRegistry(),
                           host_->diag_handler(), host_->allocator());

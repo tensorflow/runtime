@@ -24,8 +24,8 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/MLIRContext.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/host_context/attribute_utils.h"
-#include "tfrt/support/bef_encoding.h"
 
 namespace tfrt {
 

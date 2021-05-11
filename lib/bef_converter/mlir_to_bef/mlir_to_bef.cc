@@ -43,6 +43,7 @@
 #include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/Operation.h"
 #include "mlir/IR/OperationSupport.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/bef_converter/bef_emitter.h"
 #include "tfrt/compiler/stream_analysis.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
@@ -50,7 +51,6 @@
 #include "tfrt/core_runtime/opdefs/types.h"
 #include "tfrt/host_context/debug_info.h"
 #include "tfrt/support/aligned_buffer.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 
@@ -1270,8 +1270,8 @@ void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
 //
 // On error, this emits the error message through the MLIR error handler, and
 // returns an empty std:vector.
-AlignedBuffer<8> ConvertMLIRToBEF(mlir::ModuleOp module,
-                                  bool disable_optional_sections) {
+BefBuffer ConvertMLIRToBEF(mlir::ModuleOp module,
+                           bool disable_optional_sections) {
   BEFModuleEmitter emitter(module);
 
   // Build the entities table.

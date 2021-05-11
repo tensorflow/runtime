@@ -29,9 +29,9 @@
 #include "llvm/ADT/None.h"
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/ADT/StringRef.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/host_context/attribute_utils.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
 

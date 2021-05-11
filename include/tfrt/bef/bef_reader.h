@@ -23,14 +23,12 @@
 #include <cassert>
 
 #include "llvm/ADT/ArrayRef.h"
-#include "tfrt/support/bef_encoding.h"
+#include "tfrt/bef/bef_buffer.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/support/byte_order.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
-
-// A BEF file should be loaded to a buffer aligned by 8.
-constexpr size_t BefGetRequiredAlignment() { return 8; }
 
 // This class contains the low-level decoder helpers for processing a BEF file.
 //

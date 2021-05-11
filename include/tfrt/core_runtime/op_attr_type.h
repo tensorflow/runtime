@@ -23,8 +23,8 @@
 #include <complex>
 #include <utility>
 
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/dtype/quantized_types.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/bf16.h"
 #include "tfrt/support/fp16.h"
 

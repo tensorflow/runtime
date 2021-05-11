@@ -33,7 +33,7 @@ static void registerMlirDialects(mlir::DialectRegistry& registry) {
   registry.insert<mlir::memref::MemRefDialect, mlir::StandardOpsDialect>();
 }
 
-static BEFBuffer ConvertMLIRSrcToBEFImpl(string_view mlir_src,
+static BefBuffer ConvertMLIRSrcToBEFImpl(string_view mlir_src,
                                          bool disable_optional_sections,
                                          mlir::MLIRContext* context) {
   mlir::DialectRegistry registry;
@@ -48,7 +48,7 @@ static BEFBuffer ConvertMLIRSrcToBEFImpl(string_view mlir_src,
   return ConvertMLIRToBEF(module.get(), disable_optional_sections);
 }
 
-BEFBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
+BefBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
                               bool disable_optional_sections,
                               mlir::MLIRContext* context) {
   if (context) {

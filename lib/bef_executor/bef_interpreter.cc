@@ -25,11 +25,11 @@
 #include "bef_file_impl.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
+#include "tfrt/bef/bef_encoding.h"
+#include "tfrt/bef/bef_reader.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/sync_kernel_frame.h"
-#include "tfrt/support/bef_encoding.h"
-#include "tfrt/support/bef_reader.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {

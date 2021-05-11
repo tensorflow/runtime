@@ -234,10 +234,11 @@ tfrt_cc_library(
         "lib/support/string_util.cc",
     ],
     hdrs = [
+        "include/tfrt/bef/bef_buffer.h",
+        "include/tfrt/bef/bef_encoding.h",
+        "include/tfrt/bef/bef_reader.h",
         "include/tfrt/support/aligned_buffer.h",
         "include/tfrt/support/alloc.h",
-        "include/tfrt/support/bef_encoding.h",
-        "include/tfrt/support/bef_reader.h",
         "include/tfrt/support/bf16.h",
         "include/tfrt/support/byte_order.h",
         "include/tfrt/support/concurrent_vector.h",
@@ -348,10 +349,10 @@ tfrt_cc_library(
         "lib/bef_executor/bef_interpreter.cc",
     ],
     hdrs = [
+        "include/tfrt/bef/bef_encoding.h",
         "include/tfrt/bef_executor/bef_file.h",
         "include/tfrt/bef_executor/bef_interpreter.h",
         "include/tfrt/bef_executor/function_util.h",
-        "include/tfrt/support/bef_encoding.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
@@ -488,7 +489,6 @@ tfrt_cc_library(
         "lib/bef_converter/mlir_to_bef/mlir_to_bef.cc",
     ],
     hdrs = [
-        "include/tfrt/bef_converter/bef_buffer.h",
         "include/tfrt/bef_converter/mlir_to_bef.h",
         "include/tfrt/host_context/debug_info.h",
     ],

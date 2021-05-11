@@ -14,7 +14,7 @@
 
 // Unit test for the functions defined in bef_encoding.h
 
-#include "tfrt/support/bef_encoding.h"
+#include "tfrt/bef/bef_encoding.h"
 
 #include "gtest/gtest.h"
 #include "llvm/Support/Alignment.h"

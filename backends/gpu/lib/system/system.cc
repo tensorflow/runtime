@@ -31,7 +31,7 @@
 namespace tfrt {
 namespace gpu {
 
-Program::Program(AlignedBuffer<8>&& file_buffer, llvm::StringRef function_name,
+Program::Program(BefBuffer&& file_buffer, llvm::StringRef function_name,
                  HostContext* host)
     : file_buffer_(std::move(file_buffer)) {
   bef_file_ = tfrt::BEFFile::Open(file_buffer_, host->GetKernelRegistry(),

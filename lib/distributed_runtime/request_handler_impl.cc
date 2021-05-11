@@ -263,7 +263,7 @@ void RequestHandler::HandleRegisterFunction(
   DistributedContext* dist_context = expected.get();
 
   const CompilerPass* pass = GetCompilerPass(kCompilerPassName);
-  BEFBuffer bef_buffer;
+  BefBuffer bef_buffer;
   if (pass == nullptr) {
     done(llvm::make_error<NotFoundErrorInfo>(
         StrCat("Compiler pass not found for program: ",

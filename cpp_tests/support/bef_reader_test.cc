@@ -14,12 +14,12 @@
 
 // Unit test for BEFReader
 
-#include "tfrt/support/bef_reader.h"
+#include "tfrt/bef/bef_reader.h"
 
 #include <numeric>
 
 #include "gtest/gtest.h"
-#include "tfrt/support/aligned_buffer.h"
+#include "tfrt/bef/bef_buffer.h"
 
 namespace tfrt {
 namespace {
@@ -35,7 +35,7 @@ class BefReaderTest : public ::testing::Test {
     array_ref_ = ArrayRef<uint8_t>(aligned_buffer_);
   }
 
-  AlignedBuffer<8> aligned_buffer_;
+  BefBuffer aligned_buffer_;
   ArrayRef<uint8_t> array_ref_;
 };
 

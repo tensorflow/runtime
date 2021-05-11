@@ -40,10 +40,10 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser.h"
 #include "mlir/Support/LogicalResult.h"
+#include "tfrt/bef/bef_encoding.h"
+#include "tfrt/bef/bef_reader.h"
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/types.h"
-#include "tfrt/support/bef_encoding.h"
-#include "tfrt/support/bef_reader.h"
 #include "tfrt/support/byte_order.h"
 
 namespace tfrt {

@@ -20,13 +20,13 @@
 #include "tfrt/bef_executor/bef_file.h"
 
 #include "bef_file_impl.h"
+#include "tfrt/bef/bef_encoding.h"
+#include "tfrt/bef/bef_reader.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/native_function.h"
-#include "tfrt/support/bef_encoding.h"
-#include "tfrt/support/bef_reader.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/variant.h"
 

@@ -26,6 +26,7 @@
 #include <type_traits>
 
 #include "llvm/Support/Error.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
@@ -34,7 +35,6 @@
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/location.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/rc_array.h"
 #include "tfrt/support/type_traits.h"
 

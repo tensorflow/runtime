@@ -26,7 +26,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Alignment.h"
-#include "tfrt/support/bef_encoding.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/support/byte_order.h"
 #include "tfrt/support/forward_decls.h"
 

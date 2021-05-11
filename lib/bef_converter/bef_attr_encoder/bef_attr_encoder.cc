@@ -24,10 +24,9 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/Error.h"
-#include "tfrt/bef_converter/bef_emitter.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/attribute_utils.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 

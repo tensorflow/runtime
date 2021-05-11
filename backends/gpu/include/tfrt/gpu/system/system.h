@@ -19,11 +19,11 @@
 #ifndef TFRT_GPU_SYSTEM_SYSTEM_H_
 #define TFRT_GPU_SYSTEM_SYSTEM_H_
 
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/gpu/device/device.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
-#include "tfrt/support/aligned_buffer.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
 
@@ -44,12 +44,12 @@ class GpuStream;
 // the GPU Function.
 class Program {
  public:
-  Program(AlignedBuffer<8>&& file_buffer, llvm::StringRef function_name,
+  Program(BefBuffer&& file_buffer, llvm::StringRef function_name,
           HostContext* host);
   const Function* GetFunction() { return function_; }
 
  private:
-  AlignedBuffer<8> file_buffer_;
+  BefBuffer file_buffer_;
 
   // The ownership of this bef file isn't shared.
   RCReference<BEFFile> bef_file_;

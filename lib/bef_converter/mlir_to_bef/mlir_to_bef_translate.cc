@@ -19,8 +19,8 @@
 // line and converts it to a bef file at specified location.
 #include "llvm/Support/CommandLine.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_converter/mlir_to_bef.h"
-#include "tfrt/support/aligned_buffer.h"
 
 static llvm::cl::opt<bool> disable_optional_sections(  // NOLINT
     "disable-optional-sections",
@@ -32,7 +32,7 @@ namespace tfrt {
 
 mlir::LogicalResult MLIRToBEFTranslate(mlir::ModuleOp module,
                                        llvm::raw_ostream& output) {
-  tfrt::AlignedBuffer<8> bef_file =
+  BefBuffer bef_file =
       tfrt::ConvertMLIRToBEF(module, disable_optional_sections);
   if (bef_file.empty()) return mlir::failure();
 

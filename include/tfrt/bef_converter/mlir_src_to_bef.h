@@ -19,7 +19,7 @@
 #ifndef TFRT_BEF_CONVERTER_MLIR_SRC_TO_BEF_H_
 #define TFRT_BEF_CONVERTER_MLIR_SRC_TO_BEF_H_
 
-#include "tfrt/bef_converter/bef_buffer.h"
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace mlir {
@@ -36,7 +36,7 @@ namespace tfrt {
 //
 // On error, this emits the error message through the MLIR error handler, and
 // returns an empty AlignedBuffer.
-BEFBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
+BefBuffer ConvertMLIRSrcToBEF(string_view mlir_src,
                               bool disable_optional_sections,
                               mlir::MLIRContext* context = nullptr);
 

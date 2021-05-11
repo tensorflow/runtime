@@ -22,15 +22,12 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/MathExtras.h"
-#include "tfrt/support/aligned_buffer.h"
+#include "tfrt/bef/bef_buffer.h"
 
 namespace tfrt {
 
 class BefEmitter {
  public:
-  // TODO(zhangqiaorjc): Consider making alignment a template parameter.
-  static const size_t kMaxAlignment = 8;
-
   BefEmitter() {}
   BefEmitter(const BefEmitter&) = delete;
   BefEmitter& operator=(const BefEmitter&) = delete;
@@ -80,10 +77,10 @@ class BefEmitter {
   void EmitEmitter(const BefEmitter& emitter);
 
   // Return the underlying buffer with ownership transfer.
-  tfrt::AlignedBuffer<kMaxAlignment> TakeResult() { return std::move(result_); }
+  BefBuffer TakeResult() { return std::move(result_); }
 
   // Return the referece of the underlying buffer without ownership transfer.
-  const tfrt::AlignedBuffer<kMaxAlignment>& result() const { return result_; }
+  const BefBuffer& result() const { return result_; }
 
   // Move size bytes in the result from src_offset to dst_offset.
   void MoveResult(size_t dst_offset, size_t src_offset, size_t size);
@@ -97,7 +94,7 @@ class BefEmitter {
   void EmitVbrIntImpl(size_t value, bool is_high_part);
   // Keep track of the alignment required for the start of this object.
   unsigned required_alignment_ = 1;
-  tfrt::AlignedBuffer<kMaxAlignment> result_;
+  BefBuffer result_;
 };
 
 }  // namespace tfrt

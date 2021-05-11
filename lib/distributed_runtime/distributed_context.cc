@@ -21,7 +21,7 @@
 #include "tfrt/distributed_runtime/distributed_context.h"
 
 #include "llvm/ADT/DenseMap.h"
-#include "tfrt/bef_converter/bef_buffer.h"
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/distributed_runtime/callback_registry.h"
 #include "tfrt/distributed_runtime/cluster_info.h"

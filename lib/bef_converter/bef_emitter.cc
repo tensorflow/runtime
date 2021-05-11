@@ -20,7 +20,6 @@
 
 namespace tfrt {
 
-const size_t BefEmitter::kMaxAlignment;
 const uint8_t BefEmitter::kDummyByte;
 
 void BefEmitter::MoveResult(size_t dst_offset, size_t src_offset, size_t size) {

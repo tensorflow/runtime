@@ -28,6 +28,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Translation.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/attribute_utils.h"
@@ -35,7 +36,6 @@
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/init_tfrt_dialects.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
 

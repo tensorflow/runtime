@@ -22,10 +22,10 @@
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/MathExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/dtype/quantized_types.h"
 #include "tfrt/support/alloc.h"
-#include "tfrt/support/bef_encoding.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
 
 namespace tfrt {

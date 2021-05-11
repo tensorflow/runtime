@@ -16,17 +16,19 @@
 
 // This file declares a buffer type for storing BEF binary.
 
-#ifndef TFRT_BEF_CONVERTER_BEF_BUFFER_H_
-#define TFRT_BEF_CONVERTER_BEF_BUFFER_H_
+#ifndef TFRT_SUPPORT_BEF_BUFFER_H_
+#define TFRT_SUPPORT_BEF_BUFFER_H_
 
 #include "tfrt/support/aligned_buffer.h"
-#include "tfrt/support/bef_reader.h"
 
 namespace tfrt {
 
+// A BEF file should be loaded to a buffer aligned by 8.
+constexpr size_t BefGetRequiredAlignment() { return 8; }
+
 // Buffer for storing BEF binary.
-using BEFBuffer = AlignedBuffer<BefGetRequiredAlignment()>;
+using BefBuffer = AlignedBuffer<BefGetRequiredAlignment()>;
 
 }  // namespace tfrt
 
-#endif  // TFRT_BEF_CONVERTER_BEF_BUFFER_H_
+#endif  // TFRT_SUPPORT_BEF_BUFFER_H_

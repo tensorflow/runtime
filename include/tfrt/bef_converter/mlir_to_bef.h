@@ -22,7 +22,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "tfrt/bef_converter/bef_buffer.h"
+#include "tfrt/bef/bef_buffer.h"
 
 namespace mlir {
 class ModuleOp;
@@ -36,7 +36,7 @@ namespace tfrt {
 //
 // On error, this emits the error message through the MLIR error handler, and
 // returns an empty AlignedBuffer.
-BEFBuffer ConvertMLIRToBEF(mlir::ModuleOp module,
+BefBuffer ConvertMLIRToBEF(mlir::ModuleOp module,
                            bool disable_optional_sections);
 
 }  // namespace tfrt

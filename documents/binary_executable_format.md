@@ -108,10 +108,10 @@ over entirely by the reader) and an optional alignment for the contents of the
 section.
 
 Section IDs and other fundamental constants are defined in
-[`bef_encoding.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/support/bef_encoding.h),
+[`bef_encoding.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/bef/bef_encoding.h),
 and utilities for decoding the basic file structures like VBR integers are
 defined in
-[`bef_reader.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/support/bef_reader.h).
+[`bef_reader.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/bef/bef_reader.h).
 
 The LENGTH_AND_ALIGNMENT contains SECTION_LENGTH and SECTION_ALIGNMENT_FLAG. The
 SECTION_LENGTH contains one bit shifted value of the section length and the
@@ -320,7 +320,7 @@ specify types of registers.
 
 The FunctionIndex section defines a table of functions in the BEF file, one for
 each function, including the kind of this function (defined in
-[`bef_encoding.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/support/bef_encoding.h)),
+[`bef_encoding.h`](https://github.com/tensorflow/runtime/blob/master/include/tfrt/bef/bef_encoding.h)),
 an Offset into the [Functions Section](#functions-section), a name (an Offset
 into the [Strings section](#strings-section), which may be an empty string), and
 a list of argument and result types.

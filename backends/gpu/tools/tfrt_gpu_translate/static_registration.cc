@@ -21,7 +21,6 @@
 #include "tfrt/bef_converter/bef_to_mlir_translate.h"
 #include "tfrt/bef_converter/mlir_to_bef_translate.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"
-#include "tfrt/gpu/kernels/gpu_test_ops.h"
 #include "tfrt/init_tfrt_dialects.h"
 
 static mlir::TranslateFromMLIRRegistration mlir_to_bef_registration(
@@ -29,14 +28,12 @@ static mlir::TranslateFromMLIRRegistration mlir_to_bef_registration(
     [](mlir::DialectRegistry &registry) {
       tfrt::RegisterTFRTDialects(registry);
       registry.insert<tfrt::gpu::GpuDialect>();
-      registry.insert<tfrt::gpu::GpuTestDialect>();
     });
 
 static mlir::TranslateToMLIRRegistration bef_to_mlir_registration(
     "bef-to-mlir", [](llvm::SourceMgr &source_mgr, mlir::MLIRContext *context) {
       mlir::DialectRegistry registry;
       registry.insert<tfrt::gpu::GpuDialect>();
-      registry.insert<tfrt::gpu::GpuTestDialect>();
       context->appendDialectRegistry(registry);
       return tfrt::BEFToMLIRTranslate(source_mgr, context);
     });

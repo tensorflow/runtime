@@ -115,7 +115,6 @@ tfrt_cc_library(
     ] + select({
         "@tf_runtime//:gpu_enabled": [
             "@tf_runtime//backends/gpu:gpu_kernels_alwayslink",
-            "@tf_runtime//backends/gpu:gpu_test_kernels_alwayslink",
             "@tf_runtime//backends/gpu:gpu_op_handler_alwayslink",
         ],
         "//conditions:default": [],

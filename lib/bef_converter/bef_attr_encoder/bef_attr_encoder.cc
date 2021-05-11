@@ -22,213 +22,187 @@
 #include <numeric>
 
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/Support/Alignment.h"
 #include "llvm/Support/Error.h"
+#include "tfrt/bef_converter/bef_emitter.h"
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/support/bef_encoding.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
-namespace {
 
-BEFShapeType GetBEFShapeType(int rank) {
-  if (rank < 0) return BEFShapeType::kUnranked;
+size_t BefAttrEncoder::EncodeEmptyAttr() { return EncodeAttr<AttrSizeT>(0); }
 
-  return BEFShapeType::kRanked;
-}
+size_t BefAttrEncoder::EncodeHeader(BefAttrBase* base, uint8_t alignment,
+                                    DType::Kind element_type,
+                                    uint16_t prefix_size, AttrSizeT byte_size,
+                                    AttrSizeT emit_size) {
+  base->alignment = alignment;
+  base->element_type = element_type;
+  base->prefix_size = prefix_size;
+  base->byte_size = byte_size;
 
-}  // namespace
-
-size_t BefAttrEncoder::EncodeAttrBase(BEFAttributeType type,
-                                      size_t byte_count) {
-  BEFAttrBase base;
-  base.type = type;
-  SetBEFAttrByteCount(byte_count, &base);
-  EmitAlignment(alignof(BEFAttrBase));
-  const size_t offset = size();
-  EmitBytes(llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(&base),
-                               sizeof(base)));
+  EmitAlignment(alignment, llvm::offsetToAlignment(size() + prefix_size,
+                                                   llvm::Align(alignment)));
+  const auto offset = size();
+  EmitBytes(llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(base),
+                               sizeof(BefAttrBase) + emit_size));
   return offset;
-}
-
-size_t BefAttrEncoder::EncodeShapeAttrBase(size_t byte_count, int rank) {
-  const size_t offset = EncodeAttrBase(BEFAttributeType::kShape, byte_count);
-  EmitByte(static_cast<uint8_t>(GetBEFShapeType(rank)));
-  EmitByte(kDummyByte);
-  EmitInt2(rank);
-  return offset;
-}
-
-size_t BefAttrEncoder::EncodeUnrankedShapeAttr() {
-  EmitAlignment(alignof(BEFShapeAttr));
-  return EncodeShapeAttrBase(/*byte_count=*/sizeof(BEFShapeAttr), /*rank=*/-1);
 }
 
 size_t BefAttrEncoder::EncodeRankedShapeAttr(ArrayRef<int64_t> dims) {
-  const size_t rank = dims.size();
+  BefShapeAttr header;
 
-  // If rank is 0, the shape attribute is emitted as BEFShapeAttr instead of
-  // BEFRankedShapeAttr.
-  if (rank == 0) {
-    EmitAlignment(alignof(BEFShapeAttr));
-    return EncodeShapeAttrBase(/*byte_count=*/sizeof(BEFShapeAttr), /*rank=*/0);
+  header.rank = dims.size();
+  if (header.rank == 0) {
+    return EncodeHeader(reinterpret_cast<BefAttrBase*>(&header.base),
+                        /*alignment=*/alignof(BefAttrBase),
+                        /*element_type=*/DType::Invalid,
+                        /*prefix_size=*/0,
+                        /*byte_size=*/sizeof(BefAttrBase) + sizeof(AttrSizeT),
+                        /*emit_size=*/sizeof(AttrSizeT));
   }
-
-  // Otherwise, emit the shape with non-zero ranks as BEFRankedShapeAttr.
-  EmitAlignment(alignof(BEFRankedShapeAttr));
-  size_t byte_count = sizeof(BEFRankedShapeAttr) + sizeof(int64_t) * (rank - 1);
-  const size_t offset = EncodeShapeAttrBase(byte_count, rank);
-  // Emit the dimensions.
-  for (int64_t dim : dims) {
-    EmitInt8(dim);
-  }
-  return offset;
-}
-
-size_t BefAttrEncoder::EncodeStringAttr(string_view sv) {
-  const size_t length = sv.size();
-  const size_t byte_count = sizeof(BEFAttrBase) + sizeof(uint8_t) * length;
-  // Here we directly cast the DType::Kind to BEFAttributeType. This is fine as
-  // we explicitly reserve the entire range of valid DType::Kind values in
-  // BEFAttributeType.
-  //
-  // TODO(tfrt-dev): Revisit the design of BEFAttributeType to avoid
-  // static_cast.
   const size_t offset =
-      EncodeAttrBase(static_cast<BEFAttributeType>(DType::String), byte_count);
-  EmitBytes(
-      llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(sv.data()), length));
+      EncodeHeader(reinterpret_cast<BefAttrBase*>(&header.base),
+                   /*alignment=*/alignof(AttrShapeT),
+                   /*element_type=*/DType::Invalid,
+                   /*prefix_size=*/sizeof(BefAttrBase) + sizeof(AttrSizeT),
+                   /*byte_size=*/sizeof(BefAttrBase) + sizeof(AttrSizeT) +
+                       sizeof(AttrShapeT) * header.rank,
+                   /*emit_size=*/sizeof(AttrSizeT));
+
+  for (auto shape_entry : dims) EmitInt8(shape_entry);
+
   return offset;
 }
 
-size_t BefAttrEncoder::EncodeFuncAttr(string_view sv) {
-  const size_t length = sv.size();
-  const size_t byte_count = sizeof(BEFAttrBase) + sizeof(uint8_t) * length;
-  // Here we directly cast the BEFDataType to BEFAttributeType. This is fine as
-  // we explicitly reserve the entire range of valid BEFDataType values in
-  // BEFAttributeType.
-  //
-  const size_t offset = EncodeAttrBase(BEFAttributeType::kFunc, byte_count);
-  EmitBytes(
-      llvm::makeArrayRef(reinterpret_cast<const uint8_t*>(sv.data()), length));
+size_t BefAttrEncoder::EncodeDenseAttrHeader(DType::Kind element_type,
+                                             ArrayRef<int64_t> dims,
+                                             size_t rawdata_size) {
+  BefDenseAttr header;
+  header.rank = dims.size();
+  header.element_count =
+      std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>());
+
+  assert(header.element_count * GetDTypeByteSize(element_type) == rawdata_size);
+
+  header.element_offset =
+      BefAttrOffsetOf(BefDenseAttr, dims) + sizeof(AttrShapeT) * header.rank;
+
+  const size_t offset =
+      EncodeHeader(reinterpret_cast<BefAttrBase*>(&header.base),
+                   /*alignment=*/kAttributeTensorAlignment,
+                   /*element_type=*/element_type,
+                   /*prefix_size=*/header.element_offset,
+                   /*byte_size=*/header.element_offset + rawdata_size,
+                   /*emit_size=*/sizeof(AttrSizeT) * 3);
+
+  for (auto shape_entry : dims) EmitInt8(shape_entry);
   return offset;
-}
-
-size_t BefAttrEncoder::ReserveHeaderSpace(size_t alignment,
-                                          size_t header_size) {
-  EmitAlignment(alignment);
-  const size_t offset = size();
-  EmitRepeatedByte(BefEmitter::kDummyByte, header_size);
-  return offset;
-}
-
-size_t BefAttrEncoder::ReserveAggregatedAttrHeader(size_t element_count) {
-  const size_t header_size =
-      element_count > 0
-          ? sizeof(BEFAggregateAttr) +
-                sizeof(BEFAggregateAttrOffset32_t) * (element_count - 1)
-          : sizeof(BEFAggregateAttr);
-  return ReserveHeaderSpace(alignof(BEFAggregateAttr), header_size);
-}
-
-void BefAttrEncoder::EncodeCompleteAggregatedAttr(
-    size_t element_count, size_t offset,
-    ArrayRef<BEFAggregateAttrOffset32_t> offsets) {
-  BEFAggregateAttr header;
-  header.base.type = BEFAttributeType::kAggregate;
-  header.num_elements = AssertAttrFieldSize32(element_count);
-
-  // Reset byte_count in header.
-  SetBEFAttrByteCount(size() - offset, &header.base);
-
-  const size_t element_offset = offsetof(BEFAggregateAttr, offsets);
-  OverwriteBytes(offset, &header, element_offset);
-  OverwriteBytes(offset + element_offset, offsets.data(),
-                 sizeof(BEFAggregateAttrOffset32_t) * offsets.size());
-}
-
-void BefAttrEncoder::EncodeCompleteArrayAttr(size_t offset,
-                                             BEFAttributeType element_type,
-                                             size_t element_count,
-                                             size_t element_offset) {
-  BEFArrayAttr header;
-  header.base.type = GetArrayAttributeType(element_type);
-  header.num_elements = AssertAttrFieldSize32(element_count);
-  header.element_offset = element_offset;
-
-  SetBEFAttrByteCount(size() - offset, &header.base);
-  OverwriteBytes(offset, &header, sizeof(header));
-}
-
-void BefAttrEncoder::EncodeCompleteDenseAttr(size_t offset,
-                                             DType::Kind element_type,
-                                             size_t rank, size_t shape_offset,
-                                             size_t num_elements,
-                                             size_t element_offset) {
-  BEFDenseAttr header;
-  header.base.type = GetDenseAttributeType(element_type);
-  header.rank = AssertAttrFieldSize16(rank);
-  header.shape_offset = AssertAttrFieldSize16(shape_offset);
-  header.num_elements = AssertAttrFieldSize32(num_elements);
-  header.element_offset = AssertAttrFieldSize32(element_offset);
-  SetBEFAttrByteCount(size() - offset, &header.base);
-  OverwriteBytes(offset, &header, sizeof(header));
 }
 
 size_t BefAttrEncoder::EncodeDenseAttr(DType::Kind element_type,
-                                       ArrayRef<int64_t> shape,
+                                       ArrayRef<int64_t> dims,
                                        ArrayRef<uint8_t> element_payload) {
-  const size_t element_count =
-      std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<>());
-
-  // Make sure the beginning alignment.
-  std::max(alignof(int64_t), DType(element_type).GetHostAlignment());
-  const size_t offset = ReserveDenseAttrHeader();
-  EmitAlignment(alignof(int64_t));
-  const size_t shape_offset = size() - offset;
-  for (auto dim : shape) EmitInt8(dim);
-  EmitAlignment(DType(element_type).GetHostAlignment());
-  const size_t element_offset = size() - offset;
-
+  auto offset =
+      EncodeDenseAttrHeader(element_type, dims, element_payload.size());
   EmitBytes(element_payload);
-  EncodeCompleteDenseAttr(offset, element_type, shape.size(), shape_offset,
-                          element_count, element_offset);
-
   return offset;
+}
+
+size_t BefAttrEncoder::EncodeArrayAttrHeader(size_t element_count,
+                                             size_t payload_alignment) {
+  if (payload_alignment <= alignof(AttrSizeT)) {
+    EmitAlignment(alignof(AttrSizeT));
+  } else {
+    EmitAlignment(payload_alignment,
+                  llvm::offsetToAlignment(size() + sizeof(AttrSizeT),
+                                          llvm::Align(payload_alignment)));
+  }
+  const auto offset = size();
+  EmitInt4(element_count);
+  return offset;
+}
+
+size_t BefAttrEncoder::EncodeAggregatedAttrHeader(size_t max_alignment,
+                                                  size_t element_count,
+                                                  size_t* offset_offset) {
+  assert(element_count > 0);
+
+  BefAggregateAttr header;
+
+  header.element_count = element_count;
+  const size_t offset =
+      EncodeHeader(reinterpret_cast<BefAttrBase*>(&header),
+                   /*alignment=*/std::max(max_alignment, sizeof(AttrSizeT)),
+                   /*element_type=*/DType::Invalid,
+                   /*prefix_size=*/BefAttrOffsetOf(BefAggregateAttr, offsets) +
+                       element_count * sizeof(AttrSizeT),
+                   /*byte_size=*/0,
+                   /*emit_size=*/sizeof(AttrSizeT));
+
+  *offset_offset = size();
+  for (int i = 0; i < element_count; ++i) EmitInt4(0);
+  return offset;
+}
+
+void BefAttrEncoder::EncodeAggregatedAttrEntryTypeAndOffset(
+    size_t offset, size_t* offset_offset, BEFAttributeType attribute_type,
+    AttrSizeT element_offset) {
+  OverwriteBytes(element_offset - sizeof(BEFAttributeType), &attribute_type,
+                 sizeof(BEFAttributeType));
+  element_offset -= offset;
+  OverwriteBytes(*offset_offset, &element_offset, sizeof(element_offset));
+  *offset_offset += sizeof(element_offset);
+}
+
+void BefAttrEncoder::EncodeAggregatedAttrLength(size_t offset) {
+  const auto total_byte_size = static_cast<AttrSizeT>(size() - offset);
+  OverwriteBytes(offset + offsetof(BefAttrBase, byte_size), &total_byte_size,
+                 sizeof(total_byte_size));
 }
 
 // Encode a list of attributes as an aggregate attribute in BEF. The `emitter`
 // will be called with the indices sequentially and is expected to emit the
 // bytes for this element and return the offset.
 size_t BefAttrEncoder::EncodeListAttr(
-    size_t num_elements,
-    llvm::function_ref<BEFAggregateAttrOffset32_t(int)> emitter) {
-  const size_t offset = ReserveAggregatedAttrHeader(num_elements);
-  // Append array element to buffer.
-  SmallVector<BEFAggregateAttrOffset32_t, 8> offsets;
-  for (int i = 0; i < num_elements; ++i) {
-    offsets.push_back(emitter(i) - offset);
+    size_t num_values, BEFAttributeType type, size_t max_alignment,
+    llvm::function_ref<AttrSizeT(int)> emitter) {
+  if (num_values == 0) return EncodeEmptyAttr();
+
+  size_t offset_offset;
+  const size_t offset =
+      EncodeAggregatedAttrHeader(max_alignment, num_values, &offset_offset);
+  for (int idx = 0; idx < num_values; ++idx) {
+    // Reserve a space for BEFAttributeType (1B)
+    EmitByte(kDummyByte);
+
+    EncodeAggregatedAttrEntryTypeAndOffset(offset, &offset_offset, type,
+                                           emitter(idx));
   }
-  EncodeCompleteAggregatedAttr(num_elements, offset, offsets);
+  EncodeAggregatedAttrLength(offset);
   return offset;
 }
 
-size_t BefAttrEncoder::EncodeShapeListAttr(const int64_t** dims,
-                                           const int* num_dims,
-                                           int num_values) {
-  return EncodeListAttr(
-      num_values, [&](int index) -> BEFAggregateAttrOffset32_t {
-        return (num_dims[index] < 0) ? EncodeUnrankedShapeAttr()
+size_t BefAttrEncoder::EncodeShapeListAttr(const int64_t** shapes,
+                                           const int* ranks, int num_values) {
+  return EncodeListAttr(num_values, BEFAttributeType::kShape,
+                        alignof(AttrShapeT), [&](int index) -> AttrSizeT {
+                          return (ranks[index] < 0)
+                                     ? EncodeUnrankedShapeAttr()
                                      : EncodeRankedShapeAttr(llvm::makeArrayRef(
-                                           dims[index], num_dims[index]));
-      });
+                                           shapes[index], ranks[index]));
+                        });
 }
 
 size_t BefAttrEncoder::EncodeStringListAttr(const void* const* values,
                                             const size_t* lengths,
                                             int num_values) {
   return EncodeListAttr(
-      num_values, [&](int index) -> BEFAggregateAttrOffset32_t {
+      num_values, static_cast<BEFAttributeType>(DType::String),
+      alignof(AttrSizeT), [&](int index) -> AttrSizeT {
         return EncodeStringAttr(string_view(
             static_cast<const char*>(values[index]), lengths[index]));
       });
@@ -238,7 +212,8 @@ size_t BefAttrEncoder::EncodeFuncListAttr(const void* const* values,
                                           const size_t* lengths,
                                           int num_values) {
   return EncodeListAttr(
-      num_values, [&](int index) -> BEFAggregateAttrOffset32_t {
+      num_values, BEFAttributeType::kFunc, alignof(AttrSizeT),
+      [&](int index) -> AttrSizeT {
         return EncodeFuncAttr(string_view(
             static_cast<const char*>(values[index]), lengths[index]));
       });

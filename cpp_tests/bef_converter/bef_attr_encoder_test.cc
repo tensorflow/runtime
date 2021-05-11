@@ -35,7 +35,7 @@ template <typename T>
 void TestBasicTypeEncoding(T value) {
   BefAttrEncoder encoder;
 
-  size_t offset = encoder.EncodeAttr(value);
+  const size_t offset = encoder.EncodeAttr(value);
   auto buffer = encoder.TakeResult();
   Attribute<T> attr(buffer.data() + offset);
 
@@ -65,7 +65,7 @@ TEST(BefAttrEncoderTest, EncodeInt32ArrayAttribute) {
 
   BefAttrEncoder encoder;
 
-  size_t offset = encoder.EncodeArrayAttr(input_array_ref);
+  const size_t offset = encoder.EncodeArrayAttr(input_array_ref);
   auto buffer = encoder.TakeResult();
   ArrayAttribute<int32_t> attr(buffer.data() + offset);
   EXPECT_EQ(kTestInt32ArraySize, attr.size());
@@ -75,7 +75,7 @@ TEST(BefAttrEncoderTest, EncodeInt32ArrayAttribute) {
 TEST(BefAttrEncoderTest, EncodeEmptyArray) {
   BefAttrEncoder encoder;
 
-  size_t offset =
+  const size_t offset =
       encoder.EncodeArrayAttr(llvm::makeArrayRef(kTestInt32Array, 0));
   auto buffer = encoder.TakeResult();
   ArrayAttribute<int32_t> attr(buffer.data() + offset);
@@ -90,7 +90,7 @@ TEST(BefAttrEncoderTest, EncodeDoubleArrayAttribute) {
       llvm::makeArrayRef(kTestDoubleArray, kTestDoubleArraySize);
 
   BefAttrEncoder encoder;
-  size_t offset = encoder.EncodeArrayAttr(input_array_ref);
+  const size_t offset = encoder.EncodeArrayAttr(input_array_ref);
   auto buffer = encoder.TakeResult();
   ArrayAttribute<double> attr(buffer.data() + offset);
   EXPECT_EQ(kTestDoubleArraySize, attr.size());
@@ -104,7 +104,7 @@ TEST(BefAttrEncoderTest, EncodeZeroShape) {
   const size_t offset =
       encoder.EncodeRankedShapeAttr(llvm::makeArrayRef(dims, 0));
 
-  AlignedBuffer<8> buf = encoder.TakeResult();
+  auto buf = encoder.TakeResult();
   ShapeAttr shape_attr(buf.data() + offset);
 
   EXPECT_EQ(shape_attr.GetRank(), 0);
@@ -116,7 +116,7 @@ TEST(BefAttrEncoderTest, EncodeUnrankedShape) {
   BefAttrEncoder encoder;
   const size_t offset = encoder.EncodeUnrankedShapeAttr();
 
-  AlignedBuffer<8> buf = encoder.TakeResult();
+  auto buf = encoder.TakeResult();
   ShapeAttr shape_attr(buf.data() + offset);
 
   ASSERT_FALSE(shape_attr.HasRank());
@@ -129,7 +129,7 @@ TEST(BefAttrEncoderTest, EncodeRankedShape) {
   BefAttrEncoder encoder;
   const size_t offset = encoder.EncodeRankedShapeAttr(input_shape);
 
-  AlignedBuffer<8> buf = encoder.TakeResult();
+  auto buf = encoder.TakeResult();
   ShapeAttr shape_attr(buf.data() + offset);
 
   EXPECT_EQ(shape_attr.GetRank(), 3);
@@ -148,7 +148,7 @@ TEST(BefAttrEncoderTest, EncodeShapeList) {
   BefAttrEncoder encoder;
   const size_t offset = encoder.EncodeShapeListAttr(dims, sizes, 4);
 
-  AlignedBuffer<8> buf = encoder.TakeResult();
+  auto buf = encoder.TakeResult();
   AggregateAttr aggr_attr(buf.data() + offset);
 
   EXPECT_EQ(aggr_attr.GetNumElements(), 4);
@@ -175,7 +175,7 @@ TEST(BefAttrEncoderTest, EncodeEmptyString) {
   const size_t offset =
       encoder.EncodeStringAttr(string_view(empty_string.data(), 0));
 
-  AlignedBuffer<8> buf = encoder.TakeResult();
+  auto buf = encoder.TakeResult();
   StringAttr string_attr(buf.data() + offset);
 
   EXPECT_EQ(string_attr.GetValue().size(), 0);
@@ -187,7 +187,7 @@ TEST(BefAttrEncoderTest, EncodeString) {
   const size_t offset = encoder.EncodeStringAttr(
       string_view(sample_string.data(), sample_string.size()));
 
-  AlignedBuffer<8> buf = encoder.TakeResult();
+  auto buf = encoder.TakeResult();
   StringAttr string_attr(buf.data() + offset);
 
   string_view sv = string_attr.GetValue();
@@ -208,7 +208,7 @@ TEST(BefAttrEncoderTest, EncodeStringList) {
   BefAttrEncoder encoder;
   const size_t offset = encoder.EncodeStringListAttr(values, sizes, 3);
 
-  AlignedBuffer<8> buf = encoder.TakeResult();
+  auto buf = encoder.TakeResult();
   AggregateAttr aggr_attr(buf.data() + offset);
 
   EXPECT_EQ(aggr_attr.GetNumElements(), 3);
@@ -238,7 +238,7 @@ TEST(BefAttrEncoderTest, EncodeFuncList) {
   BefAttrEncoder encoder;
   const size_t offset = encoder.EncodeFuncListAttr(values, sizes, 3);
 
-  AlignedBuffer<8> buf = encoder.TakeResult();
+  auto buf = encoder.TakeResult();
   AggregateAttr aggr_attr(buf.data() + offset);
 
   EXPECT_EQ(aggr_attr.GetNumElements(), 3);

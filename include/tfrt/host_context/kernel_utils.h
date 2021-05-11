@@ -405,10 +405,6 @@ class RemainingAttributes {
     return AggregateAttr(GetAttribute(i));
   }
 
-  TypedAttrBase GetTypedAttr(size_t i) const {
-    return TypedAttrBase(GetAttribute(i));
-  }
-
  private:
   const void* GetAttribute(int i) const {
     return kernel_frame_->GetAttribute(i + attr_begin_);

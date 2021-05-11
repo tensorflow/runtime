@@ -109,6 +109,15 @@ enum class BEFSectionID : uint8_t {
 enum : size_t {
   // Kernels in BEF are 4-byte aligned.
   kKernelEntryAlignment = 4,
+
+  // TODO(b/184278791): apply 64byte alignment to DenseAttr raw data for eigen
+  // library.
+
+  // DenseTensor data address alignment.
+  kAttributeTensorAlignment = 8,
+
+  // Maximum attribute alignment.
+  kAttributeMaxAlignment = 8,
 };
 
 // SpecialAttribute describes the special BEF attributes of a kernel. It is a
@@ -140,52 +149,32 @@ enum class FunctionKind : uint8_t {
 
 // Below constants defines bit positions and bit sizes for different category of
 // attributes.
-enum {
-  kScalarAttributeTypeSize = 8,
-  kArrayAttributeTypeSize = 1,
-  kDenseAttributeTypeSize = 1,
-  kAggregateAttributeTypeSize = 1,
-
-  kScalarAttributeTypeShift = 0,
-  kArrayAttributeTypeShift = kScalarAttributeTypeSize,
-  kDenseAttributeTypeShift = kScalarAttributeTypeSize + kArrayAttributeTypeSize,
-  kAggregateAttributeTypeShift = kScalarAttributeTypeSize +
-                                 kArrayAttributeTypeSize +
-                                 kDenseAttributeTypeSize,
-
-  kScalarAttributeTypeMask = ((1 << kScalarAttributeTypeSize) - 1)
-                             << kScalarAttributeTypeShift,
-  kArrayAttributeTypeMask = ((1 << kArrayAttributeTypeSize) - 1)
-                            << kArrayAttributeTypeShift,
-  kDenseAttributeTypeMask = ((1 << kDenseAttributeTypeSize) - 1)
-                            << kDenseAttributeTypeShift,
-  kAggregateAttributeTypeMask = ((1 << kAggregateAttributeTypeSize) - 1)
-                                << kAggregateAttributeTypeShift,
-
-  kArrayAttributeType = 1 << kArrayAttributeTypeShift,
-  kDenseAttributeType = 1 << kDenseAttributeTypeShift,
-  kAggregateAttributeType = 1 << kAggregateAttributeTypeShift,
-};
+enum { kArrayAttributeType = 1 << 7, kScalarAttributeTypeMask = 127 };
 
 // This enum defines the attribute type.
-enum class BEFAttributeType : uint16_t {
+enum class BEFAttributeType : uint8_t {
   kUnsupported = 0,
 
   // Reserve entries for data types.
   kFirstDataType = static_cast<uint8_t>(DType::FirstDType),
   kLastDataType = static_cast<uint8_t>(DType::LastDType),
-
   kType,
 
+  kFunc,
   kShape,
 
+  kDense,
   kSymbolRef,
+  kAggregate,
+
+  kFirstElementType = kFirstDataType,
+  kLastElementType = kType,
 
   kFirstScalarType = kFirstDataType,
   kLastScalarType = kShape,
 
+  kArray = kArrayAttributeType,
   kEmptyArray = static_cast<uint8_t>(DType::I32) | kArrayAttributeType,
-
   kI8Array = static_cast<uint8_t>(DType::I8) | kArrayAttributeType,
   kI32Array = static_cast<uint8_t>(DType::I32) | kArrayAttributeType,
   kI64Array = static_cast<uint8_t>(DType::I64) | kArrayAttributeType,
@@ -193,36 +182,22 @@ enum class BEFAttributeType : uint16_t {
   kF16Array = static_cast<uint8_t>(DType::F16) | kArrayAttributeType,
   kF32Array = static_cast<uint8_t>(DType::F32) | kArrayAttributeType,
   kF64Array = static_cast<uint8_t>(DType::F64) | kArrayAttributeType,
-
   kTypeArray = kType | kArrayAttributeType,
-
-  kI1Dense = static_cast<uint8_t>(DType::I1) | kDenseAttributeType,
-  kI8Dense = static_cast<uint8_t>(DType::I8) | kDenseAttributeType,
-  kI32Dense = static_cast<uint8_t>(DType::I32) | kDenseAttributeType,
-  kI64Dense = static_cast<uint8_t>(DType::I64) | kDenseAttributeType,
-  kBF16Dense = static_cast<uint8_t>(DType::BF16) | kDenseAttributeType,
-  kF16Dense = static_cast<uint8_t>(DType::F16) | kDenseAttributeType,
-  kF32Dense = static_cast<uint8_t>(DType::F32) | kDenseAttributeType,
-  kF64Dense = static_cast<uint8_t>(DType::F64) | kDenseAttributeType,
-  kComplex64Dense =
-      static_cast<uint8_t>(DType::Complex64) | kDenseAttributeType,
-  kComplex128Dense =
-      static_cast<uint8_t>(DType::Complex128) | kDenseAttributeType,
-
-  kAggregate = kAggregateAttributeType,
-
-  kFunc,
 };
-static_assert(static_cast<uint16_t>(BEFAttributeType::kLastScalarType) <=
+
+using AttrSizeT = uint32_t;
+using AttrShapeT = int64_t;
+
+static_assert(static_cast<uint8_t>(BEFAttributeType::kAggregate) <=
                   kScalarAttributeTypeMask,
-              "Scalar attributes can only use one byte.");
+              "Non-array attributes should be represented in 7bits.");
 
 inline bool IsArrayAttribute(BEFAttributeType type) {
-  return static_cast<uint16_t>(type) & kArrayAttributeType;
+  return static_cast<uint8_t>(type) & kArrayAttributeType;
 }
 
 inline bool IsDenseAttribute(BEFAttributeType type) {
-  return static_cast<uint16_t>(type) & kDenseAttributeType;
+  return type == BEFAttributeType::kDense;
 }
 
 inline bool IsScalarAttribute(BEFAttributeType type) {
@@ -243,21 +218,23 @@ inline bool IsSymbolRefAttribute(BEFAttributeType type) {
   return type == BEFAttributeType::kSymbolRef;
 }
 
-inline BEFAttributeType GetDenseAttributeType(DType::Kind element_type) {
-  return static_cast<BEFAttributeType>(static_cast<uint16_t>(element_type) |
-                                       kDenseAttributeType);
-}
-
 inline BEFAttributeType GetElementAttributeType(BEFAttributeType type) {
-  auto r = static_cast<BEFAttributeType>(static_cast<uint16_t>(type) &
-                                         kScalarAttributeTypeMask);
-  return r;
+  return static_cast<BEFAttributeType>(static_cast<uint8_t>(type) &
+                                       kScalarAttributeTypeMask);
 }
 
 inline DType::Kind GetDataType(BEFAttributeType type) {
   auto r = GetElementAttributeType(type);
   assert(IsDataTypeAttribute(r));
   return static_cast<DType::Kind>(r);
+}
+
+inline size_t GetAttributeDataTypeByteSize(BEFAttributeType type) {
+  assert(IsArrayAttribute(type));
+  auto data_type = GetElementAttributeType(type);
+  if (data_type == BEFAttributeType::kType) return 1;
+  assert(IsDataTypeAttribute(data_type));
+  return GetDTypeByteSize(static_cast<DType::Kind>(data_type));
 }
 
 inline bool IsFixedAttribute(BEFAttributeType type) {
@@ -267,7 +244,7 @@ inline bool IsFixedAttribute(BEFAttributeType type) {
 
 inline BEFAttributeType GetArrayAttributeType(BEFAttributeType element_type) {
   assert(IsFixedAttribute(element_type));
-  return static_cast<BEFAttributeType>(static_cast<uint16_t>(element_type) |
+  return static_cast<BEFAttributeType>(static_cast<uint8_t>(element_type) |
                                        kArrayAttributeType);
 }
 
@@ -306,168 +283,69 @@ inline size_t GetSizeOfVbrInt(size_t value) {
   return (value < 0x80) ? 1 : GetSizeOfVbrInt(value >> 7) + 1;
 }
 
-// An array starts with its length encoded in fixed32 integer format.
-template <typename T>
-ArrayRef<T> DecodeArrayFromBEFAttributes(const void* ptr) {
-  size_t size;
-  const uint8_t* data = ReadVbrInt(static_cast<const uint8_t*>(ptr), &size);
-  return ArrayRef<T>(reinterpret_cast<const T*>(data), size);
+// Decode a string having AttrSizeT length as a prefix.
+inline string_view DecodeLengthPrefixedString(const void* ptr) {
+  AttrSizeT element_count;
+  std::memcpy(&element_count, ptr, sizeof(AttrSizeT));
+  return string_view(reinterpret_cast<const char*>(ptr) + sizeof(AttrSizeT),
+                     element_count);
 }
 
-// Return the number of bytes preceding the data pointer that correspond to the
-// BEF array size.  This is the size of the size of the array - the number of
-// bytes occupied by the VBR encoded array size.
-inline size_t GetBEFArraySizeSize(const void* data) {
-  const uint8_t* len_ptr = static_cast<const uint8_t*>(data) - 1;
-  size_t size = 1;
-  while (true) {
-    // Scan backwards until we find a byte with the high bit clear.
-    if ((len_ptr[0] & 0x80) == 0) return size;
-    ++size;
-    --len_ptr;
-  }
-}
-
-// Emit the specified array length into the indicated vector, which should be
-// a SmallVector<uint8_t>, vector<uint8_t> or equivalent.
-template <typename VectorType>
-void EmitBEFArrayLength(size_t value, VectorType* byte_vector) {
-  byte_vector->push_back(uint8_t(value & 0x7F));
-  value >>= 7;
-  while (value != 0) {
-    byte_vector->push_back(uint8_t((value & 0x7F) | 0x80));
-    value >>= 7;
-  }
-}
-
-struct BEFAttrBase {
-  BEFAttributeType type;
-  // The byte count for the entire content including `BEFAttrBase` and necessary
-  // alignment paddings.
-  uint16_t byte_count_high;
-  uint32_t byte_count_low;
-};
-static_assert(sizeof(BEFAttrBase) == 8, "Unexpected size of BEFAttrBase");
-static_assert(alignof(BEFAttrBase) == 4, "Unexpected alignment of BEFAttrBase");
-static_assert(std::is_standard_layout<BEFAttrBase>::value,
-              "BEFAttrBase must have standard layout");
-
-inline uint64_t GetBEFAttrByteCount(const BEFAttrBase& base) {
-  return (static_cast<uint64_t>(base.byte_count_high) << 32) |
-         base.byte_count_low;
-}
-
-inline void SetBEFAttrByteCount(uint64_t byte_count, BEFAttrBase* base) {
-  assert((byte_count >> 48) == 0);
-  base->byte_count_high = static_cast<uint16_t>(byte_count >> 32);
-  base->byte_count_low = static_cast<uint32_t>(byte_count & ((1ull << 32) - 1));
-}
-
-struct BEFFixed8Attr {
-  BEFAttrBase base;
-  uint8_t data;
+// Common attribute header for ShapeAttr, DenseAttr, AggregateAttr
+struct BefAttrBase {
+  uint8_t alignment;
+  DType::Kind element_type;
+  uint16_t prefix_size;
+  AttrSizeT byte_size;
 };
 
-struct BEFFixed16Attr {
-  BEFAttrBase base;
-  uint16_t data;
+static_assert(sizeof(BefAttrBase) == 8, "Unexpected size of BefAttrBase");
+static_assert(alignof(BefAttrBase) == 4, "Unexpected alignment of BefAttrBase");
+static_assert(std::is_standard_layout<BefAttrBase>::value,
+              "BefAttrBase must have standard layout");
+
+struct BefShapeAttr {
+  char padding[4];
+  BefAttrBase base;
+  AttrSizeT rank;
+  AttrShapeT dims[1];
 };
 
-struct BEFFixed32Attr {
-  BEFAttrBase base;
-  uint32_t data;
+static_assert(sizeof(BefShapeAttr) == 24, "Unexpected size of BefShapeAttr");
+static_assert(alignof(BefShapeAttr) == 8,
+              "Unexpected alignment of BefShapeAttr");
+static_assert(std::is_standard_layout<BefShapeAttr>::value,
+              "BefShapeAttr must have standard layout");
+
+struct BefDenseAttr {
+  char padding[4];
+  BefAttrBase base;
+  AttrSizeT element_offset;
+  AttrSizeT element_count;
+  AttrSizeT rank;
+  AttrShapeT dims[1];
 };
 
-struct BEFFixed64Attr {
-  BEFAttrBase base;
-  uint64_t data;
+static_assert(sizeof(BefDenseAttr) == 32, "Unexpected size of BefDenseAttr");
+static_assert(alignof(BefDenseAttr) == 8,
+              "Unexpected alignment of BefDenseAttr");
+static_assert(std::is_standard_layout<BefDenseAttr>::value,
+              "BefDenseAttr must have standard layout");
+
+struct BefAggregateAttr {
+  BefAttrBase base;
+  AttrSizeT element_count;
+  AttrSizeT offsets[1];
 };
 
-struct BEFStringAttr {
-  BEFAttrBase base;
-  // `data` is the start of the string.
-  uint8_t data[1];
-};
+static_assert(sizeof(BefAggregateAttr) == 16,
+              "Unexpected size of BefAggregateAttr");
+static_assert(alignof(BefAggregateAttr) == 4,
+              "Unexpected alignment of BefAggregateAttr");
+static_assert(std::is_standard_layout<BefAggregateAttr>::value,
+              "BefAggregateAttr must have standard layout");
 
-struct BEFArrayAttr {
-  BEFAttrBase base;
-  uint32_t num_elements;
-  // `offset` is byte offset from &base for the elements.
-  uint32_t element_offset;
-};
-
-enum class BEFShapeType : uint8_t {
-  kUnranked = 0,
-  kRanked,
-};
-
-struct BEFShapeAttr {
-  BEFAttrBase base;
-  BEFShapeType shape_type;
-  uint8_t padding;
-  uint16_t rank;
-};
-
-// Shape attributes in TFRT must be ranked.
-// TODO(tfrt-dev): Consider a better binary representation for ranked shape
-// attributes. Currently shapes with 0-rank are not emitted as
-// BEFRankedShapeAttr as it has at least one trailing integer for dimensions.
-struct BEFRankedShapeAttr {
-  BEFShapeAttr shape_base;
-  uint8_t paddings[4];
-  int64_t dims[1];
-};
-
-struct BEFDenseAttr {
-  BEFAttrBase base;
-  uint16_t rank;
-  // `shape_offset` is the offset from &base for the shape dimensions. It is
-  // aligned to 8-byte as dimensions are always signed 64bit integers in TFRT.
-  uint16_t shape_offset;
-  uint32_t num_elements;
-  // `element_offset` is the byte offset from &base for the elements. It should
-  // be sufficiently aligned according to data type, though it cannot be more
-  // than 8-byte aligned.
-  uint32_t element_offset;
-};
-
-using BEFAggregateAttrOffset32_t = uint32_t;
-struct BEFAggregateAttr {
-  BEFAttrBase base;
-  uint32_t num_elements;
-  // `offsets` is the start of `num_elements` 32bit-integer offsets, which are
-  // immediately followed by the corresponding elements. These elements are also
-  // typed (ie. start with BEFAttrBase).
-  BEFAggregateAttrOffset32_t offsets[1];
-};
-
-// TODO(b/168505010): The size error should be handled properly by callers
-// instead of using assert().
-inline uint16_t AssertAttrFieldSize16(size_t size) {
-  assert(size <= ((1ul << 16) - 1));
-  return static_cast<uint16_t>(size);
-}
-
-inline uint32_t AssertAttrFieldSize32(size_t size) {
-  assert(size <= ((1ul << 32) - 1));
-  return static_cast<uint32_t>(size);
-}
-
-// AttributeTag is used in optional attribute types section to indicate the
-// encoding (currently typed or untyped) of this attribute.
-struct AttributeTag {
-  AttributeTag() = default;
-  AttributeTag(BEFAttributeType attribute_type, bool typed) {
-    data = static_cast<size_t>(attribute_type) << 1;
-    if (typed) data = data | 1;
-  }
-  bool IsTyped() const { return data & 1; }
-  BEFAttributeType GetAttributeType() const {
-    return static_cast<BEFAttributeType>(data >> 1);
-  }
-
-  size_t data = 0;
-};
+#define BefAttrOffsetOf(T, D) (offsetof(T, D) - offsetof(T, base))
 
 }  // namespace tfrt
 

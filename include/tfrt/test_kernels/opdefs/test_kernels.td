@@ -12,11 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//===- test_kernels.td ----------------------------------------------------===//
-//
 // Operation definitions for test_kernels.
-//
-//===----------------------------------------------------------------------===//
 
 #ifdef TEST_OPS
 #else
@@ -288,15 +284,6 @@ def GetStringSyncOp : Test_Op<"get_string_sync"> {
   let arguments = (ins StrAttr:$value);
   let results = (outs TFRT_StringType);
   let assemblyFormat = "attr-dict";
-  let verifier = ?;
-}
-
-def PrintTypedAttrOp : Test_Op<"print_typed_attr", [CoreRT_TypedAttributeTrait]> {
-  let summary = "tfrt_test.print_typed_attr";
-
-  let arguments = (ins TFRT_ChainType:$in_ch);
-  let results = (outs TFRT_ChainType:$out_ch);
-  let assemblyFormat = "operands attr-dict";
   let verifier = ?;
 }
 

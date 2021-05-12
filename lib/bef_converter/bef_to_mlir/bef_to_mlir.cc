@@ -892,11 +892,6 @@ mlir::Operation* BEFFunctionReader::ReadKernel(ArrayRef<uint32_t> kernels,
     state.operands.push_back(value);
   }
 
-  if ((kernel.special_metadata() &
-       static_cast<uint32_t>(SpecialAttribute::kNonStrict)) != 0) {
-    state.addAttribute("bef.nonstrict", mlir::UnitAttr::get(&context_));
-  }
-
   // Resolve attributes
   entry_offset += arguments.size();
   auto attributes =

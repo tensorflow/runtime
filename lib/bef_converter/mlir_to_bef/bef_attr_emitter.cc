@@ -286,14 +286,6 @@ bool BefAttrEmitter::IsSupportedAttribute(mlir::Attribute attr) {
   return GetBefAttributeType(attr) != BEFAttributeType::kUnsupported;
 }
 
-/// Classify this attribute, so the rest of the code can know if it gets
-/// special treatment.
-SpecialAttribute BefAttrEmitter::ClassifyAttribute(string_view attr_name) {
-  return llvm::StringSwitch<SpecialAttribute>(attr_name)
-      .Case("bef.nonstrict", SpecialAttribute::kNonStrict)
-      .Default(SpecialAttribute::kUnknown);
-}
-
 size_t BefAttrEmitter::EmitAttribute(BEFAttributeType attribute_type,
                                      mlir::Attribute mlir_attr) {
   if (IsMatchedWithDType(attribute_type, DType::UI8) ||

@@ -465,11 +465,6 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
             // here.
             if (attr.first == "_tfrt_cost") continue;
 
-            // If this is a special attribute, ignore it.
-            if (BefAttrEmitter::ClassifyAttribute(attr.first.strref()) !=
-                SpecialAttribute::kUnknown)
-              continue;
-
             // Check to make sure that this is a supported attribute, if not,
             // reject it.
             if (!BefAttrEmitter::IsSupportedAttribute(attr.second) &&
@@ -969,24 +964,10 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
       continue;
     }
 
-    bool is_non_strict = false;
-    for (auto attr_and_name : op.getAttrs())
-      if (BefAttrEmitter::ClassifyAttribute(attr_and_name.first) ==
-          SpecialAttribute::kNonStrict) {
-        DEBUG_PRINT("This is a non-strict kernel.\n");
-        is_non_strict = true;
-      }
-
     // Offset of the kernel in the list.
     EmitVbrInt(kernel_list.size());
     // Number of operands that need to be available before it is ready to go.
     auto num_operands_before_running = op.getNumOperands();
-
-    // We set the number to 1 for non-strict kernels so they get kicked off
-    // as soon as any argument is avaiable.  We use 1 instead of zero because we
-    // kernels with no operands ready are likely to just wait anyway.
-    if (is_non_strict && num_operands_before_running)
-      num_operands_before_running = 1;
 
     EmitVbrInt(num_operands_before_running);
 
@@ -1136,13 +1117,6 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
     // TODO(tfrt-devs): Use attribute interface instead of hardcoding here.
     if (attr_name_pair.first == "_tfrt_cost") continue;
 
-    // Emit a flag in kernel header to indicate that the kernel is non-strict.
-    if (BefAttrEmitter::ClassifyAttribute(attr_name_pair.first.strref()) ==
-        SpecialAttribute::kNonStrict) {
-      special_attribute |= static_cast<uint32_t>(SpecialAttribute::kNonStrict);
-      continue;
-    }
-
     // Emit array of function attributes.
     if (auto array_fn_attr =
             attr_name_pair.second.dyn_cast<mlir::ArrayAttr>()) {
@@ -1195,7 +1169,7 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
     special_attribute |= static_cast<uint32_t>(SpecialAttribute::kHasDebugInfo);
   }
 
-  // Emit non-strict flag to special_metadata field of kernel header.
+  // Emit the special_metadata field of kernel header.
   kernel_list->EmitInt4(special_attribute);
 
   // Then results with the kernels that use them.

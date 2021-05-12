@@ -1143,65 +1143,6 @@ By allowing kernel to invoke the executor, we move control flow logic out of
 `BEFExecutor`’s core and into kernels, significantly reducing `BEFExecutor`’s
 complexity, and allowing for user-defined control flow.
 
-###### Non-Strict Control Flow
-
-`BEFExecutor` normally runs a kernel “strictly”, which means a kernel’s
-execution is deferred until all its arguments are available. This makes it
-easier to write a kernel, because a kernel’s arguments are all just concrete
-values - the kernel author does not have to worry about unavailable arguments.
-
-But strictness can be inefficient for kernels like `tfrt.call`, which do not
-require available arguments. An example of this inefficiency:
-
-```c++
-// Return first arg, ignore second arg.
-func @return_first_arg(%x: i32, %y: i32) -> i32 {
-  tfrt.return %x : i32
-}
-
-func @slow_call() -> i32 {
-  %x = tfrt.constant.i32 42
-  %y = tfrt.async.read.from.mars
-  // Executor defers tfrt.call until %y is available, but @return_first_arg
-  // won’t use %y!
-  %z = tfrt.call @return_first_arg(%x, %y) : (i32) -> (i32)
-
-  // Returns before %y becomes available. %z is an unavailable
-  // IndirectAsyncValue
-  tfrt.return %z : i32
-}
-```
-
-In this example, the executor must defer `tfrt.call` until `%y` becomes
-available, even though `return_first_arg` does not actually use `%y`.
-
-This can run more efficiently with non-strict execution:
-
-```c++
-func @fast_call() -> i32 {
-  %x = tfrt.constant.i32 42
-  %y = tfrt.async.read.from.mars
-  // * The calling executor invokes this nonstrict tfrt.call when any
-  //   argument is available. %x is available!
-  // * If a kernel in @return_first_arg used %y, called executor would
-  //   defer execution of that kernel until it becomes available.
-  %z = tfrt.call @return_first_arg(%x, %y) {bef.nonstrict} : (i32) -> (i32)
-
-  // Returns before %y becomes available. %z is a available
-  // ConcreteAsyncValue<int32_t>. %y is off the critical path.
-  tfrt.return %z : i32
-}
-```
-
-In this example, `tfrt.call` is nonstrict, so the executor can run
-`tfrt.call`immediately after `%x` is available. The executor does not need to
-defer `tfrt.call` until `%y` becomes available.
-
-We can safely run `tfrt.call` as a non-strict kernel because `tfrt.call`
-recursively invokes `BEFExecutor`, and `BEFExecutor` supports unavailable
-arguments - it must understand unavailable arguments to run asynchronous
-kernels.
-
 ## Current Status
 
 All the aforementioned framework components have been built. There is also

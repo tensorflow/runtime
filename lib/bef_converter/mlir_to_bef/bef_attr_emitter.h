@@ -39,9 +39,6 @@ class BefAttrEmitter : public BefAttrEncoder {
   // Check if an attribute is supported by BEF.
   static bool IsSupportedAttribute(mlir::Attribute attr);
 
-  // Classify an attribute as SpecialAttribute.
-  static SpecialAttribute ClassifyAttribute(string_view attr_name);
-
   // Emit an attribute.
   size_t EmitAttribute(mlir::Attribute mlir_attr) {
     return EmitAttribute(GetBefAttributeType(mlir_attr), mlir_attr);

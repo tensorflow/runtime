@@ -234,11 +234,11 @@ class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
   struct RegisterInfo {
     // This is the number of uses of the register in the program.  The value
     // may be deallocated when this number of uses are complete.
-    const unsigned user_count;
+    unsigned user_count = 0;
     // 'value' is not used by BEFFileImpl. BEFExecutor takes ownership of
     // RegisterInfo, and uses 'value' to track the register's contents as it
     // executes a function.
-    std::atomic<AsyncValue*> value{nullptr};
+    AsyncValue* value = nullptr;
 
     explicit RegisterInfo(unsigned user_count) : user_count(user_count) {}
   };

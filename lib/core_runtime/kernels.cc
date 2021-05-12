@@ -446,10 +446,6 @@ static llvm::Expected<bool> GetTensorPredicateValue(const Tensor &tensor) {
 // Attributes: The first attribute is the true_fn, and the second attribute is
 // the false_fn. The functions must have matching signatures, and their
 // signatures must match corert.cond's signature.
-//
-// corert.cond supports "non-strict" invocation: it is safe to invoke before all
-// its arguments are ready. The caller must set the bef.nonstrict attribute on
-// hex.if to make an invocation non-strict.
 static void CoreRtConditional(RemainingArguments args, RemainingResults results,
                               Attribute<Function> true_fn_const,
                               Attribute<Function> false_fn_const,

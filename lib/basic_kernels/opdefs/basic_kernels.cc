@@ -37,7 +37,6 @@ static ParseResult parseCallOp(OpAsmParser &parser, OperationState &result) {
   SymbolRefAttr calleeAttr;
   FunctionType calleeType;
   SmallVector<OpAsmParser::OperandType, 4> operands;
-  result.addAttribute("bef.nonstrict", parser.getBuilder().getUnitAttr());
   auto calleeLoc = parser.getNameLoc();
   if (parser.parseAttribute(calleeAttr, "callee", result.attributes) ||
       parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren) ||
@@ -55,8 +54,7 @@ static void print(OpAsmPrinter &p, CallOp op) {
   p << "tfrt.call " << op->getAttr("callee") << '(';
   p.printOperands(op.getOperands());
   p << ')';
-  p.printOptionalAttrDict(op->getAttrs(),
-                          /*elidedAttrs=*/{"callee", "bef.nonstrict"});
+  p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"callee"});
   p << " : ";
   p.printType(op.getCalleeType());
 }
@@ -147,7 +145,6 @@ ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
   SmallVector<OpAsmParser::OperandType, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
-  result.addAttribute("bef.nonstrict", parser.getBuilder().getUnitAttr());
   if (succeeded(parser.parseOptionalKeyword("attributes"))) {
     if (parser.parseOptionalAttrDict(result.attributes)) return failure();
   }
@@ -202,7 +199,7 @@ void print(OpAsmPrinter &p, IfOp op) {
   p << "tfrt.if ";
   p.printOperands(op.getOperands());
   if (!op->getAttrs().empty()) {
-    p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"bef.nonstrict"});
+    p.printOptionalAttrDict(op->getAttrs());
   }
   p << " : (";
   interleaveComma(llvm::drop_begin(op.getOperandTypes(), 1), p);
@@ -289,7 +286,6 @@ static ParseResult parseRepeatI32Op(OpAsmParser &parser,
   SmallVector<OpAsmParser::OperandType, 4> operands;
   if (parser.parseOperandList(operands)) return failure();
 
-  result.addAttribute("bef.nonstrict", parser.getBuilder().getUnitAttr());
   if (succeeded(parser.parseOptionalKeyword("attributes"))) {
     if (parser.parseOptionalAttrDict(result.attributes)) return failure();
   }
@@ -320,7 +316,7 @@ static void print(OpAsmPrinter &p, RepeatI32Op op) {
   p << "tfrt.repeat.i32 ";
   p.printOperands(op.getOperands());
   if (!op->getAttrs().empty()) {
-    p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"bef.nonstrict"});
+    p.printOptionalAttrDict(op->getAttrs());
   }
   if (op.getNumOperands() > 1) {
     p << " : ";

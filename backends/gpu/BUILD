@@ -1,4 +1,4 @@
-load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
+load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl_cc_library")
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
 load(
     # copybara:uncomment_begin
@@ -706,23 +706,23 @@ filegroup(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "gpu_opdefs_inc_gen",
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/gpu/kernels/gpu_opdefs.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/gpu/kernels/gpu_opdefs.cpp.inc",
         ),
         (
-            "--gen-typedef-decls",
+            ["--gen-typedef-decls"],
             "include/tfrt/gpu/kernels/gpu_typedefs.h.inc",
         ),
         (
-            "--gen-typedef-defs",
+            ["--gen-typedef-defs"],
             "include/tfrt/gpu/kernels/gpu_typedefs.cpp.inc",
         ),
     ],
@@ -743,15 +743,15 @@ gentbl(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "gpu_conversion_helper_opdefs_inc_gen",
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/gpu/kernels/gpu_conversion_helper_opdefs.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/gpu/kernels/gpu_conversion_helper_opdefs.cpp.inc",
         ),
     ],
@@ -767,15 +767,15 @@ gentbl(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "gpu_test_opdefs_inc_gen",
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/gpu/kernels/gpu_test_opdefs.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/gpu/kernels/gpu_test_opdefs.cpp.inc",
         ),
     ],

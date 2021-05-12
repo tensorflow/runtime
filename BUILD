@@ -3,7 +3,7 @@ load(":build_defs.bzl", "tfrt_cc_library")
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_setting")
-load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
+load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
@@ -614,16 +614,16 @@ exports_files(
     visibility = [":friends"],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "basic_kernels_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/basic_kernels/opdefs/basic_kernels.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/basic_kernels/opdefs/basic_kernels_opdefs.cpp.inc",
         ),
     ],
@@ -663,20 +663,23 @@ tfrt_cc_library(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "tensor_shape_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/tensor/opdefs/tensor_shape.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/tensor/opdefs/tensor_shape.cpp.inc",
         ),
         (
-            "-gen-dialect-decls -dialect=ts",
+            [
+                "-gen-dialect-decls",
+                "-dialect=ts",
+            ],
             "include/tfrt/tensor/opdefs/tensor_shape_dialect.h.inc",
         ),
     ],
@@ -689,16 +692,16 @@ gentbl(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "tensor_shape_sync_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/tensor/opdefs/tensor_shape_sync.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/tensor/opdefs/tensor_shape_sync.cpp.inc",
         ),
     ],
@@ -711,16 +714,16 @@ gentbl(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "tensor_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/tensor/opdefs/tensor.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/tensor/opdefs/tensor.cpp.inc",
         ),
     ],
@@ -733,16 +736,16 @@ gentbl(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "host_tensor_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/tensor/opdefs/host_tensor.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/tensor/opdefs/host_tensor.cpp.inc",
         ),
     ],
@@ -755,16 +758,16 @@ gentbl(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "dense_host_tensor_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/tensor/opdefs/dense_host_tensor.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/tensor/opdefs/dense_host_tensor.cpp.inc",
         ),
     ],
@@ -777,16 +780,16 @@ gentbl(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "dense_host_tensor_sync_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/tensor/opdefs/dense_host_tensor_sync.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/tensor/opdefs/dense_host_tensor_sync.cpp.inc",
         ),
     ],
@@ -799,16 +802,16 @@ gentbl(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "coo_host_tensor_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/tensor/opdefs/coo_host_tensor.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/tensor/opdefs/coo_host_tensor.cpp.inc",
         ),
     ],
@@ -856,16 +859,16 @@ tfrt_cc_library(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "core_runtime_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/core_runtime/opdefs/core_runtime_opdefs.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/core_runtime/opdefs/core_runtime_opdefs.cpp.inc",
         ),
     ],
@@ -906,16 +909,16 @@ tfrt_cc_library(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "core_runtime_sync_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/core_runtime/opdefs/sync/core_runtime_opdefs.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/core_runtime/opdefs/sync/core_runtime_opdefs.cpp.inc",
         ),
     ],
@@ -1057,16 +1060,16 @@ tfrt_cc_library(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "test_kernels_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/test_kernels/opdefs/test_kernels.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/test_kernels/opdefs/test_kernels_opdefs.cpp.inc",
         ),
     ],
@@ -1102,15 +1105,15 @@ tfrt_cc_library(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "test_kernels_sync_opdefs_inc_gen",
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/test_kernels/opdefs/test_kernels_sync.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/test_kernels/opdefs/test_kernels_sync_opdefs.cpp.inc",
         ),
     ],
@@ -1214,16 +1217,16 @@ tfrt_cc_library(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "data_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/data/opdefs/data_ops.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/data/opdefs/data_ops_opdefs.cpp.inc",
         ),
     ],
@@ -1374,16 +1377,16 @@ tfrt_cc_library(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "distributed_kernels_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/distributed_runtime/opdefs/kernels.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/distributed_runtime/opdefs/kernels_opdefs.cpp.inc",
         ),
     ],
@@ -1551,15 +1554,15 @@ tfrt_cc_library(
     ],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "tpu_opdefs_inc_gen",
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/tpu/opdefs/tpu_ops.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/tpu/opdefs/tpu_ops_opdefs.cpp.inc",
         ),
     ],

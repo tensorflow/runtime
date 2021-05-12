@@ -1,4 +1,4 @@
-load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl")
+load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl_cc_library")
 load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
@@ -218,16 +218,16 @@ filegroup(
     visibility = ["@tf_runtime//:friends"],
 )
 
-gentbl(
+gentbl_cc_library(
     name = "cpurt_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
-            "-gen-op-decls",
+            ["-gen-op-decls"],
             "include/tfrt/cpu/jit/opdefs/cpurt_ops.h.inc",
         ),
         (
-            "-gen-op-defs",
+            ["-gen-op-defs"],
             "include/tfrt/cpu/jit/opdefs/cpurt_ops.cpp.inc",
         ),
     ],

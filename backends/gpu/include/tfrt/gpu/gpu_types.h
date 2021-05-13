@@ -222,9 +222,6 @@ class GpuBuffer {
   static Expected<GpuBuffer> Allocate(AsyncValueRef<GpuAllocator> allocator,
                                       size_t size, wrapper::Stream stream = {});
 
-  // Returns a non-owning buffer for a memory region that is already allocated.
-  static GpuBuffer Borrow(GpuPointer pointer, size_t size);
-
   // Deallocates the buffer. If `stream` is not the default, any other stream
   // accessing the buffer needs to be to be synchronized with `stream`.
   Error Deallocate(wrapper::Stream stream = {});

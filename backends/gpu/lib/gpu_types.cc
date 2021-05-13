@@ -191,14 +191,9 @@ Expected<GpuBuffer> GpuBuffer::Allocate(AsyncValueRef<GpuAllocator> allocator,
   return GpuBuffer(std::move(allocator), *pointer, size);
 }
 
-GpuBuffer GpuBuffer::Borrow(GpuPointer pointer, size_t size) {
-  return GpuBuffer({}, pointer, size);
-}
-
 Error GpuBuffer::Deallocate(wrapper::Stream stream) {
   size_ = 0;
   if (!pointer_) return Error::success();  // Skip virtual function call.
-  if (!allocator_) return Error::success();
   auto pointer = pointer_;
   pointer_ = GpuPointer();
   return allocator_->Deallocate(pointer, stream);

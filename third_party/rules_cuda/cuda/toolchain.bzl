@@ -90,7 +90,7 @@ def cuda_toolchain_config(cuda_toolchain_info, compiler_path):
     Returns:
       Struct with features and action_configs to add to cc_toolchain_config.
     """
-    if if_local_cuda(False, True):
+    if not if_local_cuda(True, False):
         return _cuda_toolchain_config(features = [], action_configs = [])
     cuda_toolchain_info = cuda_toolchain_info[CudaToolchainInfo]
     if cuda_toolchain_info.compiler == "clang":

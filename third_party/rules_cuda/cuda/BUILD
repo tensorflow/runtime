@@ -120,7 +120,7 @@ report_error(
 report_error(
     name = "unsupported_cuda_toolchain_error",
     out = "unsupported_cuda_toolchain_error.h",
-    message = "The current cc_toolchain doesn't support feature 'cuda'.",
+    message = "The current cc_toolchain does not support feature cuda.",
 )
 
 # Target to pass through a cc_toolchain_config rule and use as first argument

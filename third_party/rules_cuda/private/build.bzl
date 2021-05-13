@@ -48,7 +48,7 @@ def _report_error_impl(ctx):
     ctx.actions.run_shell(
         outputs = [ctx.outputs.out],
         progress_message = "\n%s\n" % ctx.attr.message,
-        command = "fail",
+        command = "false \"%s\"" % ctx.attr.message,
     )
 
 # Rule which passes anlysis phase, but fails during execution with message.

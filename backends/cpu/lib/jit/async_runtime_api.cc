@@ -53,7 +53,6 @@ void SetAsyncRuntimeHostContext(HostContext *host_context) {
   async_runtime_context = AsyncRuntime(host_context);
 }
 
-// Converts MLIR Async Runtime token into the TFRT async chain.
 AsyncValueRef<Chain> ConvertAsyncTokenToChain(AsyncRuntime::Token *token) {
   auto *async_value = AsyncRuntime::GetAsyncValue(token);
   auto out_chain = AsyncValueRef<Chain>(FormRef(async_value));
@@ -61,9 +60,6 @@ AsyncValueRef<Chain> ConvertAsyncTokenToChain(AsyncRuntime::Token *token) {
   return out_chain;
 }
 
-// Extracts a payload from the MLIR Async Runtime `value` and emplaces it into
-// the TFRT async value `dst` using a user provided emplace function. Drops the
-// reference on the runtime value after it is no longer needed.
 void ExtractAsyncValue(
     AsyncRuntime::Value *value, AsyncValue *dst,
     llvm::function_ref<void(void *storage, AsyncValue *dst)> emplace_fn) {
@@ -81,6 +77,28 @@ void ExtractAsyncValue(
   async_value->AndThen([value, emplace_fn, dst = FormRef(dst)]() {
     void *storage = AsyncRuntime::GetStorage(value);
     emplace_fn(storage, dst.get());
+    AsyncRuntime::DropRef(AsyncRuntime::ToAsyncRuntimeObject(value));
+  });
+}
+
+void ExtractAsyncValue(
+    AsyncRuntime::Value *value, AsyncValue *dst, void *context,
+    llvm::function_ref<void(void *storage, AsyncValue *dst, void *context)>
+        emplace_fn) {
+  auto *async_value = AsyncRuntime::GetAsyncValue(value);
+
+  // Fast path if async value is already available.
+  if (async_value->IsAvailable()) {
+    void *storage = AsyncRuntime::GetStorage(value);
+    emplace_fn(storage, dst, context);
+    AsyncRuntime::DropRef(AsyncRuntime::ToAsyncRuntimeObject(value));
+    return;
+  }
+
+  // Wait for the async value completion, and emplace the `dst`.
+  async_value->AndThen([value, emplace_fn, context, dst = FormRef(dst)]() {
+    void *storage = AsyncRuntime::GetStorage(value);
+    emplace_fn(storage, dst.get(), context);
     AsyncRuntime::DropRef(AsyncRuntime::ToAsyncRuntimeObject(value));
   });
 }

@@ -22,6 +22,7 @@
 #define TFRT_BACKENDS_CPU_JIT_CPURT_H_
 
 #include <cstdint>
+#include <memory>
 #include <type_traits>
 
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
@@ -208,45 +209,182 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor);
 // Conversions from compiled kernel results to the TFRT AsyncValues.
 //----------------------------------------------------------------------------//
 
+// Return value converter is responsible for taking the value returned from the
+// compiled function, and converting it to the AsyncValue. Implementation (see
+// below) is relying on user defined set of conversion functions.
+class ReturnValueConverterBase {
+ public:
+  explicit ReturnValueConverterBase(RemainingResults results);
+  virtual ~ReturnValueConverterBase();
+
+  // Converts value `ret` of type `type` returned from the compiled function at
+  // `result_index` return position using registered conversion functions, and
+  // emplaces the result async value. If the conversion failed returns a failure
+  // and sets the result async value to error.
+  virtual mlir::LogicalResult ReturnValue(unsigned result_index,
+                                          mlir::Type type, void* ret) const = 0;
+
+  // Forward error to all remaining results.
+  virtual void EmitErrors(RCReference<ErrorAsyncValue>& error) const;
+
+ protected:
+  RemainingResults results() const { return results_; }
+
+ private:
+  RemainingResults results_;
+};
+
+// Return value converter class allows to register custom functions for
+// converting compiled kernel execution results to returned async values.
+template <typename ConversionContext>
+class ReturnValueConverter : public ReturnValueConverterBase {
+  static_assert(!std::is_void<ConversionContext>::value,
+                "Conversion context can't be void");
+
+ public:
+  explicit ReturnValueConverter(RemainingResults results)
+      : ReturnValueConverter(results, std::make_unique<ConversionContext>()) {}
+
+  ReturnValueConverter(RemainingResults results,
+                       std::unique_ptr<ConversionContext> context)
+      : ReturnValueConverterBase(results), context_(std::move(context)) {
+    AddConversion(UnsupportedReturnType);
+  }
+
+  ~ReturnValueConverter() override = default;
+
+  mlir::LogicalResult ReturnValue(unsigned result_index, mlir::Type type,
+                                  void* ret) const final {
+    for (auto& convert : llvm::reverse(conversion_callbacks_)) {
+      auto converted = convert(*context_, results(), result_index, type, ret);
+      if (mlir::succeeded(converted)) return mlir::success();
+    }
+    return mlir::failure();
+  }
+
+  // Adds a conversion function to this converter. Conversion callback must be
+  // convertible to the `ConversionCallbackFn` function type:
+  //
+  //   mlir::LogicalResult(const ConversionContext&, RemainingResults, unsigned,
+  //                       mlir::Type, void*)
+  //
+  // Conversion function must return `success` if it successfully handled the
+  // return type and set the result async value. If conversion function returns
+  // `failure` converter will try the next conversion function.
+  //
+  // When attempting to convert a retuned value via 'ReturnValue', the most
+  // recently added conversions will be invoked first.
+  template <typename FnT>
+  void AddConversion(FnT&& callback) {
+    conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
+  }
+
+  ConversionContext& context() { return *context_; }
+
+  // Transfers the ownership of the conversion context from this converter to
+  // the caller. It is the responsibility of the caller to extend the lifetime
+  // of the conversion context if conversion function accesses it and can be
+  // executed asynchronously when async result will become available (for
+  // example see `ReturnAsyncStridedMemref` implemented below).
+  std::unique_ptr<ConversionContext> TakeConversionContext() {
+    return std::move(context_);
+  }
+
+  ReturnValueConverter(ReturnValueConverter&&) = default;
+  ReturnValueConverter& operator=(ReturnValueConverter&&) = default;
+
+ private:
+  using ConversionCallbackFn = llvm::function_ref<mlir::LogicalResult(
+      const ConversionContext&, RemainingResults, unsigned, mlir::Type, void*)>;
+
+  // If result type was not matched by any of the user defined conversion
+  // functions we return an error to the caller.
+  static mlir::LogicalResult UnsupportedReturnType(const ConversionContext& ctx,
+                                                   RemainingResults results,
+                                                   unsigned result_index,
+                                                   mlir::Type t, const void*) {
+    results.EmitErrorAt(result_index, StrCat("unsupported return type: ", t));
+    return mlir::failure();
+  }
+
+  std::unique_ptr<ConversionContext> context_;
+  SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
+};
+
+// -------------------------------------------------------------------------- //
+// Default conversion functions that do not require conversion context.
+// -------------------------------------------------------------------------- //
+
+namespace internal {
+
 // Converts returned values of `async::TokenType` type to the async chains.
 mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
                                      unsigned result_index, mlir::Type type,
                                      void* result_ptr);
 
+// Following functions always construct a new tensor for the returned memref.
+// This is not correct in general, because returned memref can be one of the
+// original operands or global constant memref. These function must be used only
+// when it is guaranteed that the compiled region will always allocate new
+// memrefs for the results.
+
 // Converts returned values of `async<memref<...>>` type to the async values
-// of DenseHostTensor type.
+// of newly constructed DenseHostTensors.
 mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
                                                        unsigned result_index,
                                                        mlir::Type type,
                                                        void* result_ptr);
 
-// Converts returned values of `memref<...>` type to the async values of
-// DenseHostTensor type.
+// Converts returned values of `memref<...>` type to the async values of newly
+// constructed DenseHostTensors.
 mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
                                                   unsigned result_index,
                                                   mlir::Type type,
                                                   void* result_ptr);
 
+}  // namespace internal
+
+#define DECLARE_CONTEXT_ADAPTOR(NAME)                               \
+  template <typename ConversionContext>                             \
+  static mlir::LogicalResult NAME(                                  \
+      const ConversionContext&, RemainingResults results,           \
+      unsigned result_index, mlir::Type type, void* result_ptr) {   \
+    return internal::NAME(results, result_index, type, result_ptr); \
+  }
+
+DECLARE_CONTEXT_ADAPTOR(ReturnAsyncToken)
+DECLARE_CONTEXT_ADAPTOR(ReturnAsyncMemrefAsDenseHostTensor)
+DECLARE_CONTEXT_ADAPTOR(ReturnMemrefAsDenseHostTensor)
+
+#undef DECLARE_CONTEXT_ADAPTOR
+
+// -------------------------------------------------------------------------- //
+
 // Converts returned memref values to Tensors using user provided Converter
 // that must implement this concept:
 //
 // struct ConvertMemrefToTensor {
-//   using ResultType = MyTensorType;  // must be movable
+//   using ResultType        = MyTensorType;           // must be movable
+//   using ConversionContext = ConversionContextType;  // must be movable
 //
 //   template <typename T, int rank>
-//   static MyTensorType Convert(void* memref_ptr) {
+//   static MyTensorType Convert(const ConversionContext&, void* memref_ptr) {
 //     auto* memref = static_cast<StridedMemRefType<T, rank>*>(memref_ptr);
 //     return MyTensorType>(memref.basePtr, memref.data, ...);
 //   }
 // };
 //
-template <typename Converter>
-mlir::LogicalResult ReturnStridedMemref(RemainingResults results,
+template <typename Converter,
+          typename ResultType = typename Converter::ResultType,
+          typename ConversionContext = typename Converter::ConversionContext>
+mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
+                                        RemainingResults results,
                                         unsigned result_index, mlir::Type type,
                                         void* result_ptr) {
-  using ResultType = typename Converter::ResultType;
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
+  static_assert(std::is_move_constructible<ConversionContext>::value,
+                "Conversion context type must be move constructible");
 
   // Check if the type is a valid memref.
   auto memref = type.dyn_cast<mlir::MemRefType>();
@@ -260,7 +398,7 @@ mlir::LogicalResult ReturnStridedMemref(RemainingResults results,
     auto convert_and_emplace = [&](auto rank_tag) {
       constexpr int rank = decltype(rank_tag)::value;
       results.EmplaceAt<ResultType>(
-          result_index, Converter::template Convert<T, rank>(result_ptr));
+          result_index, Converter::template Convert<T, rank>(ctx, result_ptr));
     };
 
     if (rank == 0)
@@ -305,23 +443,30 @@ namespace internal {
 // Adaptor that creates a function compatible with `ExtractAsyncValue` from
 // the `Converter` concept compatible with `ReturnStridedMemref`.
 template <typename Converter, typename T, int rank>
-void Emplace(void* memref_ptr, AsyncValue* dst) {
+void Emplace(void* memref_ptr, AsyncValue* dst, void* context) {
   using ResultType = typename Converter::ResultType;
-  dst->emplace<ResultType>(Converter::template Convert<T, rank>(memref_ptr));
+  using ConversionContext = typename Converter::ConversionContext;
+
+  dst->emplace<ResultType>(Converter::template Convert<T, rank>(
+      *reinterpret_cast<const ConversionContext*>(context), memref_ptr));
 }
 
 }  // namespace internal
 
 // Converts returned async memref values to Tensors using user provided
 // Converter that must compatible with `ReturnStridedMemref` define above.
-template <typename Converter>
-mlir::LogicalResult ReturnAsyncStridedMemref(RemainingResults results,
+template <typename Converter,
+          typename ResultType = typename Converter::ResultType,
+          typename ConversionContext = typename Converter::ConversionContext>
+mlir::LogicalResult ReturnAsyncStridedMemref(const ConversionContext& ctx,
+                                             RemainingResults results,
                                              unsigned result_index,
                                              mlir::Type type,
                                              void* result_ptr) {
-  using ResultType = typename Converter::ResultType;
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
+  static_assert(std::is_move_constructible<ConversionContext>::value,
+                "Conversion context type must be move constructible");
 
   auto value_type = type.dyn_cast<mlir::async::ValueType>();
   if (!value_type) return mlir::failure();
@@ -344,18 +489,21 @@ mlir::LogicalResult ReturnAsyncStridedMemref(RemainingResults results,
     using T = decltype(type_tag);
     int64_t rank = memref.getRank();
 
+    // Pass an opaque pointer to the operands context to the emplace function.
+    void* ptr = const_cast<void*>(reinterpret_cast<const void*>(&ctx));
+
     if (rank == 0)
-      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 0>);
+      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 0>);
     else if (rank == 1)
-      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 1>);
+      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 1>);
     else if (rank == 2)
-      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 2>);
+      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 2>);
     else if (rank == 3)
-      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 3>);
+      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 3>);
     else if (rank == 4)
-      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 4>);
+      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 4>);
     else if (rank == 5)
-      ExtractAsyncValue(value, dst(), internal::Emplace<Converter, T, 5>);
+      ExtractAsyncValue(value, dst(), ptr, internal::Emplace<Converter, T, 5>);
     else
       // TODO(ezhulenev): Because ExtractAsyncValue takes a llvm::function_ref
       // we can't pass a runtime arguments to emplace functions via lambda
@@ -363,6 +511,11 @@ mlir::LogicalResult ReturnAsyncStridedMemref(RemainingResults results,
       // this will lead to use after free. Consider adding an std::function
       // alternative for ranks higher then 5? Lambdas with small captures should
       // be stack allocated anyway, however it is implementation defined.
+      //
+      // TODO(ezhulenev): Another alternative is to pass the desired result
+      // type after conversion via the conversion context. Emplace function can
+      // query all the information it needs from the conversion context, e.g.
+      // expected result type rank and data type.
       results.EmitErrorAt(result_index,
                           StrCat("unsupported returned memref rank: ", rank));
   };
@@ -379,45 +532,6 @@ mlir::LogicalResult ReturnAsyncStridedMemref(RemainingResults results,
   return mlir::success();
 }
 
-// Return value converter class allows to register custom functions for
-// converting compiled kernel execution results to returned async values.
-class ReturnValueConverter {
- public:
-  explicit ReturnValueConverter(RemainingResults results);
-
-  // Converts value `ret` of type `type` returned from the compiled function at
-  // `result_index` return position using registered conversion functions, and
-  // emplaces the result async value. If the conversion failed returns a failure
-  // and sets the result async value to error.
-  mlir::LogicalResult ReturnValue(unsigned result_index, mlir::Type type,
-                                  void* ret) const;
-
-  // Forward error to all remaining results.
-  void EmitErrors(RCReference<ErrorAsyncValue>& error);
-
-  // Adds a conversion function to this converter. Conversion callback must be
-  // convertible to the `ConversionCallbackFn` function type:
-  //   mlir::LogicalResult(RemainingResults, unsigned, mlir::Type, void*)
-  //
-  // Conversion function must return `success` if it successfully handled the
-  // return type and set the result async value. If conversion function returns
-  // `failure` converter will try the next conversion function.
-  //
-  // When attempting to convert a retuned value via 'ReturnValue', the most
-  // recently added conversions will be invoked first.
-  template <typename FnT>
-  void AddConversion(FnT&& callback) {
-    conversion_callbacks_.emplace_back(std::forward<FnT>(callback));
-  }
-
- private:
-  using ConversionCallbackFn = llvm::function_ref<mlir::LogicalResult(
-      RemainingResults, unsigned, mlir::Type, void*)>;
-
-  RemainingResults results_;
-  SmallVector<ConversionCallbackFn, 4> conversion_callbacks_;
-};
-
 //----------------------------------------------------------------------------//
 // Helper functions for handling errors at runtime.
 //----------------------------------------------------------------------------//
@@ -428,7 +542,7 @@ void EmitErrors(RemainingResults results, Error error,
 
 // Constructs error async value from the `error` and returns it for all results.
 // Returns the original error to the caller.
-Error EmitErrors(ReturnValueConverter results, Error error,
+Error EmitErrors(const ReturnValueConverterBase& results, Error error,
                  const ExecutionContext& exec_ctx);
 
 //----------------------------------------------------------------------------//
@@ -471,14 +585,14 @@ class Executable {
 
   // Converts returned values owned by the callframe using provided value
   // converter. If result conversion fails emits error async value.
-  Error ReturnResults(const ReturnValueConverter& results,
+  Error ReturnResults(const ReturnValueConverterBase& results,
                       CallFrame* call_frame) const;
 
   // Executes compiled function with given operands. If operands passed at
   // runtime are not compatible with the compiled function signature, allocates
   // error async values for each returned value.
   Error Execute(ArrayRef<MemrefDesc> operands,
-                const ReturnValueConverter& results,
+                const ReturnValueConverterBase& results,
                 const ExecutionContext& exec_ctx) const;
 
   // Executes compiled function using user provided call frame.

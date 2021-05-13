@@ -95,6 +95,11 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 // Execute compiled CPURT kernels with CoreRT interop.
 // -------------------------------------------------------------------------- //
 
+namespace {
+// We do not record any operands information for results conversion.
+struct ConversionCtx {};
+}  // namespace
+
 static Error ConvertTensorHandleOperandsToMemrefDesc(
     RepeatedArguments<TensorHandle> operands,
     SmallVectorImpl<MemrefDesc>* memrefs) {
@@ -135,9 +140,9 @@ static void CoreRtExecute(Argument<JitExecutable> jit_executable,
 
   // Execute compiled kernel and get back raw return values that we'll need to
   // wrap into TensorHandles later on.
-  ReturnValueConverter converter({host, kernel_ret});
-  converter.AddConversion(ReturnMemrefAsDenseHostTensor);
-  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor);
+  ReturnValueConverter<ConversionCtx> converter({host, kernel_ret});
+  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
+  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
   // We skip error handling at this point and rely on error forwarding to the
   // kernel results below.
   auto err = (*executable)->Execute(memrefs, converter, exec_ctx);

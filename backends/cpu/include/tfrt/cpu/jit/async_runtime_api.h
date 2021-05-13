@@ -49,6 +49,14 @@ void ExtractAsyncValue(
     AsyncRuntime::Value* value, AsyncValue* dst,
     llvm::function_ref<void(void* storage, AsyncValue* dst)> emplace_fn);
 
+// A version of the `ExtractAsyncValue` function defined above that takes an
+// additional opaque pointer that will be passed to the emplace function when
+// async value will become ready. It is the caller responsibility to ensure that
+// the pointed object will stay alive.
+void ExtractAsyncValue(
+    AsyncRuntime::Value* value, AsyncValue* dst, void* context,
+    llvm::function_ref<void(void* storage, AsyncValue* dst, void*)> emplace_fn);
+
 // Builds a symbol map from the Async Runtime API functions/
 llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(
     llvm::orc::MangleAndInterner mangle);

@@ -291,6 +291,10 @@ static void AddMemrefArgument(const MemrefDesc& memref,
 
 Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
                                       CallFrame* call_frame) const {
+  // TODO(ezhulenev): If executable is specialized for operands shapes then
+  // there is no need to verify them once more here. However currently we rely
+  // on a hash code to look up specializations, and this can lead to collisions.
+
   // Make sure that we call the kernel with the correct number of operands.
   if (operands.size() != signature_.getNumInputs())
     return MakeStringError(
@@ -324,28 +328,43 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
 // Executable return values unpacking.
 // -------------------------------------------------------------------------- //
 
+ReturnValueConverterBase::ReturnValueConverterBase(RemainingResults results)
+    : results_(results) {}
+
+ReturnValueConverterBase::~ReturnValueConverterBase() {}
+
+void ReturnValueConverterBase::EmitErrors(
+    RCReference<ErrorAsyncValue>& error) const {
+  for (size_t i = 0; i < results_.size(); ++i) results_[i] = error.CopyRef();
+}
+
+namespace {
+// Do not record any operands information for results conversion.
+struct ConversionCtx {};
+
+template <typename T, int rank>
+static ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
+  return llvm::makeArrayRef(memref->sizes);
+}
+
+template <typename T>
+static ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
+  return {};
+}
+
 // Converts StridedMemref to the DenseHostTensor. This struct satisfies
 // ReturnStridedMemref's concept (see cpurt.h).
 //
-// TODO(ezhulenev): Currently this emplacer transfers ownership of the memref
-// to the DenseHostTensor. This is not correct in general, because memref
-// does not imply ownership, for example it can be one of the forwarded inputs
-// or a global memref that is owned by the compiled kernel.
+// This converter always creates a new DenseHostTensor from the memref, and it
+// must be used only when it is guaranteed that the compiled region can't
+// return global constant memref or forward one of the operands.
 struct ConvertDenseHostTensor {
   using ResultType = DenseHostTensor;
+  using ConversionContext = ConversionCtx;
 
   template <typename T, int rank>
-  static ArrayRef<int64_t> Sizes(StridedMemRefType<T, rank>* memref) {
-    return llvm::makeArrayRef(memref->sizes);
-  }
-
-  template <typename T>
-  static ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
-    return {};
-  }
-
-  template <typename T, int rank>
-  static DenseHostTensor Convert(void* memref_ptr) {
+  static DenseHostTensor Convert(const ConversionContext& ctx,
+                                 void* memref_ptr) {
     auto* memref = static_cast<StridedMemRefType<T, rank>*>(memref_ptr);
     TFRT_MSAN_MEMORY_IS_INITIALIZED(memref, sizeof(StridedMemRefType<T, rank>));
     TensorMetadata metadata(GetDType<T>(), Sizes(memref));
@@ -357,6 +376,9 @@ struct ConvertDenseHostTensor {
                       [ptr = memref->basePtr](void*, size_t) { free(ptr); }));
   }
 };
+}  // namespace
+
+namespace internal {
 
 mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
                                      unsigned result_index, mlir::Type type,
@@ -375,56 +397,19 @@ mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
                                                        unsigned result_index,
                                                        mlir::Type type,
                                                        void* result_ptr) {
-  return ReturnAsyncStridedMemref<ConvertDenseHostTensor>(results, result_index,
-                                                          type, result_ptr);
+  return ReturnAsyncStridedMemref<ConvertDenseHostTensor>(
+      {}, results, result_index, type, result_ptr);
 }
 
 mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
                                                   unsigned result_index,
                                                   mlir::Type type,
                                                   void* result_ptr) {
-  return ReturnStridedMemref<ConvertDenseHostTensor>(results, result_index,
+  return ReturnStridedMemref<ConvertDenseHostTensor>({}, results, result_index,
                                                      type, result_ptr);
 }
 
-ReturnValueConverter::ReturnValueConverter(RemainingResults results)
-    : results_(results) {
-  AddConversion([](RemainingResults results, unsigned result_index,
-                   mlir::Type t, const void*) {
-    results.EmitErrorAt(result_index, StrCat("unsupported return type: ", t));
-    return mlir::failure();
-  });
-}
-
-mlir::LogicalResult ReturnValueConverter::ReturnValue(unsigned result_index,
-                                                      mlir::Type type,
-                                                      void* ret) const {
-  for (auto& convert : llvm::reverse(conversion_callbacks_))
-    if (mlir::succeeded(convert(results_, result_index, type, ret)))
-      return mlir::success();
-  return mlir::failure();
-}
-
-void ReturnValueConverter::EmitErrors(RCReference<ErrorAsyncValue>& error) {
-  for (size_t i = 0; i < results_.size(); ++i) results_[i] = error.CopyRef();
-}
-
-Error Executable::ReturnResults(const ReturnValueConverter& results,
-                                CallFrame* call_frame) const {
-  auto ret_types = signature_.getResults();
-
-  bool converted = llvm::all_of(llvm::enumerate(ret_types), [&](auto tuple) {
-    unsigned i = tuple.index();
-    mlir::Type type = tuple.value();
-    void* ret = &call_frame->results[results_memory_layout_.offsets[i]];
-    return mlir::succeeded(results.ReturnValue(i, type, ret));
-  });
-
-  if (!converted)
-    return MakeStringError("failed to convert all returned values");
-  else
-    return Error::success();
-}
+}  // namespace internal
 
 // -------------------------------------------------------------------------- //
 // Execute compiled function with kernel operands.
@@ -436,7 +421,7 @@ void EmitErrors(RemainingResults results, Error error,
   for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
 }
 
-Error EmitErrors(ReturnValueConverter results, Error error,
+Error EmitErrors(const ReturnValueConverterBase& results, Error error,
                  const ExecutionContext& exec_ctx) {
   auto async_error = EmitErrorAsync(exec_ctx, StrCat(error));
   results.EmitErrors(async_error);
@@ -448,7 +433,7 @@ Error EmitErrors(ReturnValueConverter results, Error error,
 // context allocator.
 
 Error Executable::Execute(ArrayRef<MemrefDesc> operands,
-                          const ReturnValueConverter& results,
+                          const ReturnValueConverterBase& results,
                           const ExecutionContext& exec_ctx) const {
   // CallFrame can be allocated on the stack because compiled function will
   // unpack all the arguments it needs, and async regions will not access
@@ -476,6 +461,23 @@ void Executable::Execute(const ExecutionContext& exec_ctx,
 
   // Call the compiled function.
   (*fptr_)(call_frame->args.data());
+}
+
+Error Executable::ReturnResults(const ReturnValueConverterBase& results,
+                                CallFrame* call_frame) const {
+  auto ret_types = signature_.getResults();
+
+  bool converted = llvm::all_of(llvm::enumerate(ret_types), [&](auto tuple) {
+    unsigned i = tuple.index();
+    mlir::Type type = tuple.value();
+    void* ret = &call_frame->results[results_memory_layout_.offsets[i]];
+    return mlir::succeeded(results.ReturnValue(i, type, ret));
+  });
+
+  if (!converted)
+    return MakeStringError("failed to convert all returned values");
+  else
+    return Error::success();
 }
 
 mlir::FunctionType Executable::signature() const { return signature_; }

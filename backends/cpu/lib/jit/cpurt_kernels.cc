@@ -90,6 +90,11 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 // Execute compiled CPURT kernels.
 // -------------------------------------------------------------------------- //
 
+namespace {
+// We do not record any operands information for results conversion.
+struct ConversionCtx {};
+}  // namespace
+
 static Error ConvertTensorOperandsToMemrefDesc(
     RepeatedArguments<Tensor> operands, SmallVectorImpl<MemrefDesc>* memrefs) {
   assert(memrefs->empty() && "memrefs must be empty");
@@ -121,9 +126,9 @@ static void Execute(Argument<JitExecutable> jit_executable,
     return EmitErrors(results, std::move(err), exec_ctx);
 
   // If execution failed errors will be automatically allocated for all results.
-  ReturnValueConverter converter(results);
-  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor);
-  converter.AddConversion(ReturnAsyncToken);
+  ReturnValueConverter<ConversionCtx> converter(results);
+  converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
+  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
 
   if (auto err = (*executable)->Execute(memrefs, converter, exec_ctx)) return;
 

@@ -53,10 +53,6 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE void SetRegisterValue(
     BEFFileImpl::RegisterInfo* reg, RCReference<AsyncValue> result) {
   assert(reg->user_count > 0 &&
          "No need to set register value if it is not being used by anyone.");
-  auto* raw = result.release();
-  // Note that `result` already has +1 reference. So add (user_count - 1) more
-  // refs, bringing its effective refcount to +(user_count).
-  raw->AddRef(reg->user_count - 1);
 
   if (reg->value) {
     // If the register already has a value, it must be a return result that is
@@ -65,14 +61,18 @@ LLVM_ATTRIBUTE_ALWAYS_INLINE void SetRegisterValue(
     // Move one reference to the indirect value. Though a register might be used
     // as multiple return results, `reg->user_count` will only include one
     // reference for all return results.
-    indirect_value->ForwardTo(TakeRef(raw));
+    indirect_value->ForwardTo(std::move(result));
     // Drop the reference of this indirect async value as it is no longer needed
     // in this function.
     indirect_value->DropRef();
+  } else {
+    auto* raw = result.release();
+    // Note that `result` already has +1 reference. So add (user_count - 1) more
+    // refs, bringing its effective refcount to +(user_count).
+    raw->AddRef(reg->user_count - 1);
+    // Set the register value for other kernels to use.
+    reg->value = raw;
   }
-
-  // Set the register value for other kernels to use.
-  reg->value = raw;
 }
 
 llvm::ArrayRef<unsigned> GetNextUsedBys(const BEFKernel& kernel,
@@ -623,21 +623,20 @@ void BEFExecutor::Execute(ExecutionContext exec_ctx, const BEFFunction& fn,
 
     if (!result_reg.value) {
       // Create an indirect async value for return results.
-      auto indirect_value = MakeIndirectAsyncValue();
-      results[i] = indirect_value.CopyRef();
-      result_reg.value = indirect_value.release();
-    } else {
-      // If the register is already populated, then multiple return results are
-      // mapped to the same register. In this case, just copy the reference of
-      // the register to the result.
-      results[i] = FormRef(result_reg.value);
-      assert(result_reg.user_count > 0);
-      // Decrement the user_count if multiple results are mapped to the
-      // same register. This is the special handling that all such return
-      // results are treated as one use, so kernels don't need to handle the
-      // such cases.
-      result_reg.user_count--;
+      auto* indirect_value = MakeIndirectAsyncValue().release();
+      // Add user_count to its refcount, which makes the total refcount
+      // (user_count + 1). The user_count is for all users including tfrt.return
+      // in the function. The additional +1 is to pin this async value for this
+      // function, in case that the external users drop the reference before the
+      // kernels in the function populates it.
+      indirect_value->AddRef(result_reg.user_count);
+      result_reg.value = indirect_value;
     }
+
+    // Now that the user_count is set up correctly (either in the current
+    // iteration or a previous iteration), we just need to take one reference
+    // for the result.
+    results[i] = TakeRef(result_reg.value);
   }
 
   // Kick off BEF execution starting from ready kernels.

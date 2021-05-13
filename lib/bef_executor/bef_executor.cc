@@ -136,7 +136,13 @@ class ReadyKernelQueue {
     for (unsigned kernel_id : kernel_ids) {
       assert(kernel_id < kernel_array_.size());
       auto& kernel_info = kernel_array_[kernel_id];
-      if (kernel_info.arguments_not_ready.fetch_sub(1) == 1) {
+      // `arguments_not_ready` must be a postive number, so if it equals 1, then
+      // this is the last producer kernel touching the consumer kernel, and we
+      // don't need to perform the expensive fetch_sub for this case.
+      auto& ready_count = kernel_info.arguments_not_ready;
+      assert(ready_count.load() > 0);
+      if (ready_count.load(std::memory_order_acquire) == 1 ||
+          ready_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
         if (kernel_info.stream_id == stream_id_) {
           inline_kernel_ids_.push_back(kernel_id);
         } else {

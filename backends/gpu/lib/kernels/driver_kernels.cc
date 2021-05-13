@@ -123,8 +123,8 @@ static void GpuEventSynchronize(Argument<GpuEvent> event, Chain in_chain,
 // tfrt_gpu.allocator.create creates a new allocator.
 //
 // Result: new allocator.
-static Expected<GpuAllocator> GpuAllocatorCreate(Argument<GpuContext> context) {
-  return GpuAllocator(context.ValueRef());
+static GpuDefaultAllocator GpuAllocatorCreate(Argument<GpuContext> context) {
+  return GpuDefaultAllocator(context.ValueRef());
 }
 
 // tfrt_gpu.mem.allocate allocates a new gpu buffer.

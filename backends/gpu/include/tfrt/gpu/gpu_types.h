@@ -131,26 +131,74 @@ class GpuAllocator {
   // less aligned parts of it to kernels.
   static const size_t kAlignment = 256;
 
-  explicit GpuAllocator(AsyncValueRef<GpuContext> context);
-  virtual ~GpuAllocator();
-
-  GpuAllocator(GpuAllocator&&) = default;
-  GpuAllocator& operator=(GpuAllocator&&) = default;
-
-  wrapper::Context context() const { return context_->get(); }
+  virtual ~GpuAllocator() = default;
 
  private:
   // Allocates memory of at least `size` bytes. If `stream` is the default, the
   // memory is accessible on any stream. Otherwise, accessing the memory on
   // other streams requires synchronization.
-  virtual Expected<GpuPointer> Allocate(size_t size, wrapper::Stream stream);
+  virtual Expected<GpuPointer> Allocate(size_t size,
+                                        wrapper::Stream stream) = 0;
 
   // Deallocates memory. If `stream` is not the default, any other stream
   // accessing the memory needs to be to be synchronized with `stream`.
-  virtual Error Deallocate(GpuPointer pointer, wrapper::Stream stream);
+  virtual Error Deallocate(GpuPointer pointer, wrapper::Stream stream) = 0;
+};
+
+class GpuDefaultAllocator : public GpuAllocator {
+ public:
+  explicit GpuDefaultAllocator(AsyncValueRef<GpuContext> context);
+
+  ~GpuDefaultAllocator() override;
+
+  GpuDefaultAllocator(GpuDefaultAllocator&&) = default;
+  GpuDefaultAllocator& operator=(GpuDefaultAllocator&&) = default;
+
+  wrapper::Context context() const { return context_->get(); }
+
+ private:
+  Expected<GpuPointer> Allocate(size_t size, wrapper::Stream stream) override;
+  Error Deallocate(GpuPointer pointer, wrapper::Stream stream) override;
 
  private:
   AsyncValueRef<GpuContext> context_;
+};
+
+// Allocator which can allocate exactly once. Holds an instance of T which could
+// be an RAII type owning the underlaying memory.
+template <typename T>
+class GpuOneShotAllocator;
+
+template <>
+class GpuOneShotAllocator<void> : public GpuAllocator {
+ public:
+  explicit GpuOneShotAllocator(GpuPointer pointer);
+
+  GpuOneShotAllocator(GpuOneShotAllocator&& other);
+  GpuOneShotAllocator& operator=(GpuOneShotAllocator&& other);
+
+ private:
+  Expected<GpuPointer> Allocate(size_t size, wrapper::Stream stream) override;
+  Error Deallocate(GpuPointer pointer, wrapper::Stream stream) override;
+
+ private:
+  GpuPointer pointer_;
+};
+
+template <typename T>
+class GpuOneShotAllocator : public GpuOneShotAllocator<void> {
+ public:
+  explicit GpuOneShotAllocator(GpuPointer pointer, T value)
+      : GpuOneShotAllocator<void>(pointer), value_(std::move(value)) {}
+
+  GpuOneShotAllocator(GpuOneShotAllocator&&) = default;
+  GpuOneShotAllocator& operator=(GpuOneShotAllocator&&) = default;
+
+  const T& value() const { return value_; }
+  T& value() { return value_; }
+
+ private:
+  T value_;
 };
 
 // GpuBuffer points to a range of GPU memory. It can be either owning the memory
@@ -160,10 +208,6 @@ class GpuBuffer {
   // deallocated using `allocator` when destroyed.
   GpuBuffer(AsyncValueRef<GpuAllocator> allocator, GpuPointer pointer,
             size_t size);
-
-  // Creates a non-owning buffer with base `pointer` and `size` bytes that is
-  // not deallocated upon destruction.
-  GpuBuffer(GpuPointer pointer, size_t size);
 
  public:
   GpuBuffer();
@@ -190,7 +234,6 @@ class GpuBuffer {
   size_t size() const { return size_; }
 
  private:
-  bool deallocate_;
   AsyncValueRef<GpuAllocator> allocator_;
   wrapper::Pointer<void> pointer_;
   size_t size_ = 0;

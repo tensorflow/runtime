@@ -88,8 +88,8 @@ AsyncValueRef<GpuStream> System::CreateStream(ExecutionContext& exec_ctx,
 
 AsyncValueRef<GpuAllocator> System::CreateAllocator(
     ExecutionContext& exec_ctx, AsyncValueRef<GpuStream> stream) {
-  return MakeAvailableAsyncValueRef<GpuAllocator>(exec_ctx.host(),
-                                                  stream->gpu_context());
+  return MakeAvailableAsyncValueRef<GpuDefaultAllocator>(exec_ctx.host(),
+                                                         stream->gpu_context());
 }
 
 AsyncValueRef<GpuBuffer> System::Allocate(ExecutionContext& exec_ctx,

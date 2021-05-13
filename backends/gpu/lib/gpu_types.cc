@@ -112,12 +112,13 @@ GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
 
 GpuEvent::~GpuEvent() = default;
 
-GpuAllocator::GpuAllocator(AsyncValueRef<GpuContext> context)
+GpuDefaultAllocator::GpuDefaultAllocator(AsyncValueRef<GpuContext> context)
     : context_(std::move(context)) {}
 
-GpuAllocator::~GpuAllocator() = default;
+GpuDefaultAllocator::~GpuDefaultAllocator() = default;
 
-Expected<GpuPointer> GpuAllocator::Allocate(size_t size, wrapper::Stream) {
+Expected<GpuPointer> GpuDefaultAllocator::Allocate(size_t size,
+                                                   wrapper::Stream) {
   auto current = wrapper::CtxSetCurrent(context_->get());
   if (!current) return current.takeError();
   auto memory = wrapper::MemAlloc(*current, size);
@@ -125,19 +126,41 @@ Expected<GpuPointer> GpuAllocator::Allocate(size_t size, wrapper::Stream) {
   return memory->release();
 }
 
-Error GpuAllocator::Deallocate(GpuPointer pointer, wrapper::Stream) {
+Error GpuDefaultAllocator::Deallocate(GpuPointer pointer, wrapper::Stream) {
   return wrapper::MemFree(pointer);
+}
+
+GpuOneShotAllocator<void>::GpuOneShotAllocator(GpuPointer pointer)
+    : pointer_(pointer) {}
+
+GpuOneShotAllocator<void>::GpuOneShotAllocator(GpuOneShotAllocator&& other)
+    : pointer_(other.pointer_) {
+  other.pointer_ = nullptr;
+}
+
+GpuOneShotAllocator<void>& GpuOneShotAllocator<void>::operator=(
+    GpuOneShotAllocator&& other) {
+  pointer_ = other.pointer_;
+  other.pointer_ = nullptr;
+  return *this;
+}
+
+Expected<GpuPointer> GpuOneShotAllocator<void>::Allocate(
+    size_t size, wrapper::Stream stream) {
+  GpuPointer result = pointer_;
+  pointer_ = nullptr;
+  return result;
+}
+
+Error GpuOneShotAllocator<void>::Deallocate(GpuPointer pointer,
+                                            wrapper::Stream stream) {
+  pointer_ = pointer;
+  return Error::success();
 }
 
 GpuBuffer::GpuBuffer(AsyncValueRef<GpuAllocator> allocator, GpuPointer pointer,
                      size_t size)
-    : deallocate_(true),
-      allocator_(std::move(allocator)),
-      pointer_(pointer),
-      size_(size) {}
-
-GpuBuffer::GpuBuffer(GpuPointer pointer, size_t size)
-    : deallocate_(false), pointer_(pointer), size_(size) {}
+    : allocator_(std::move(allocator)), pointer_(pointer), size_(size) {}
 
 GpuBuffer::GpuBuffer() = default;
 
@@ -146,8 +169,7 @@ GpuBuffer::~GpuBuffer() {
 }
 
 GpuBuffer::GpuBuffer(GpuBuffer&& buffer)
-    : deallocate_(buffer.deallocate_),
-      allocator_(std::move(buffer.allocator_)),
+    : allocator_(std::move(buffer.allocator_)),
       pointer_(buffer.pointer_),
       size_(buffer.size_) {
   buffer.pointer_ = nullptr;
@@ -156,7 +178,6 @@ GpuBuffer::GpuBuffer(GpuBuffer&& buffer)
 
 GpuBuffer& GpuBuffer::operator=(GpuBuffer&& buffer) {
   if (auto error = Deallocate()) TFRT_LOG(ERROR) << error;
-  deallocate_ = buffer.deallocate_;
   allocator_ = std::move(buffer.allocator_);
   std::swap(pointer_, buffer.pointer_);
   std::swap(size_, buffer.size_);
@@ -171,13 +192,13 @@ Expected<GpuBuffer> GpuBuffer::Allocate(AsyncValueRef<GpuAllocator> allocator,
 }
 
 GpuBuffer GpuBuffer::Borrow(GpuPointer pointer, size_t size) {
-  return GpuBuffer(pointer, size);
+  return GpuBuffer({}, pointer, size);
 }
 
 Error GpuBuffer::Deallocate(wrapper::Stream stream) {
   size_ = 0;
   if (!pointer_) return Error::success();  // Skip virtual function call.
-  if (!deallocate_) return Error::success();
+  if (!allocator_) return Error::success();
   auto pointer = pointer_;
   pointer_ = GpuPointer();
   return allocator_->Deallocate(pointer, stream);

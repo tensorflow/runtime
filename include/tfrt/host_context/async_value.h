@@ -92,7 +92,11 @@ class AsyncValue {
 
   // Return true if reference count is 1.
   bool IsUnique() const {
-    return refcount_.load(std::memory_order_acquire) == 1;
+    // Conservatively return false if it is an IndirectAsyncValue, because the
+    // refcount of an IndirectAsyncValue may not match the refcount of the
+    // underlying AsyncValue.
+    return (kind() != Kind::kIndirect) &&
+           (refcount_.load(std::memory_order_acquire) == 1);
   }
 
   // Add a new reference to this object.

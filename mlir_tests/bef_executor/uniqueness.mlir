@@ -43,3 +43,21 @@ func @test_uniqueness() -> (!tfrt.chain) {
 
   tfrt.return %ch3 : !tfrt.chain
 }
+
+// CHECK-LABEL: test_indirect_uniqueness
+func @test_indirect_uniqueness() -> (!tfrt.chain) {
+  %ch = tfrt.new.chain
+  %a = tfrt.constant.i32 100
+
+  %ia = "tfrt_test.make_indirect"(%a) : (i32) -> (i32)
+
+  // %a has not been used by tfrt.print below yet, so the indirect async value of %a must not be unique at this line.
+  %uia = "tfrt_test.get_uniqueness"(%ia) : (i32) -> (i1)
+
+  // CHECK: false
+  // CHECK-NEXT: int32 = 100
+  %ch0 = "tfrt_test.print_bool"(%ch, %uia) : (!tfrt.chain, i1) -> (!tfrt.chain)
+  %ch1 = tfrt.print.i32 %a, %ch0
+
+  tfrt.return %ch1 : !tfrt.chain
+}

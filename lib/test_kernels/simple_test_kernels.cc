@@ -434,6 +434,15 @@ static void TestGetUniqueness(RemainingArguments args,
   }
 }
 
+static void TestMakeIndirect(RemainingArguments args,
+                             RemainingResults results) {
+  for (int i = 0; i < args.size(); ++i) {
+    auto indirect = MakeIndirectAsyncValue();
+    indirect->ForwardTo(FormRef(args[i]));
+    results[i] = std::move(indirect);
+  }
+}
+
 void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.fail", TFRT_KERNEL(TestFail));
   registry->AddKernel("tfrt_test.partial_fail", TFRT_KERNEL(TestPartialFail));
@@ -460,6 +469,7 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.test_cost", TFRT_KERNEL(TestCost));
   registry->AddKernel("tfrt_test.get_uniqueness",
                       TFRT_KERNEL(TestGetUniqueness));
+  registry->AddKernel("tfrt_test.make_indirect", TFRT_KERNEL(TestMakeIndirect));
   registry->AddKernel("tfrt_test.multi_arg_result",
                       TFRT_KERNEL(TestMultiArgResult));
   registry->AddKernel("tfrt_test.print_debug_info",

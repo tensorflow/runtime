@@ -88,6 +88,7 @@ class GpuStream {
 class BorrowedGpuStream {
  public:
   // The `stream` must belong to `context`.
+  BorrowedGpuStream(wrapper::Context context, wrapper::Stream stream);
   BorrowedGpuStream(HostContext* host, wrapper::Context context,
                     wrapper::Stream stream);
 

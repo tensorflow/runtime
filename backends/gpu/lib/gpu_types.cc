@@ -93,13 +93,16 @@ wrapper::Stream GpuStream::release() {
   return stream_.release();  // Release OwningStream.
 }
 
-BorrowedGpuStream::BorrowedGpuStream(HostContext* host,
-                                     wrapper::Context context,
+BorrowedGpuStream::BorrowedGpuStream(wrapper::Context context,
                                      wrapper::Stream stream)
     : context_(MakeAvailableAsyncValueRef<GpuContext>(
-          host, wrapper::OwningContext(context))),
+          wrapper::OwningContext(context))),
       stream_(MakeAvailableAsyncValueRef<GpuStream>(
-          host, context_.CopyRef(), wrapper::OwningStream(stream))) {}
+          context_.CopyRef(), wrapper::OwningStream(stream))) {}
+
+BorrowedGpuStream::BorrowedGpuStream(HostContext*, wrapper::Context context,
+                                     wrapper::Stream stream)
+    : BorrowedGpuStream(context, stream) {}
 
 BorrowedGpuStream::~BorrowedGpuStream() {
   stream_->release();   // Release GpuStream's OwningStream.

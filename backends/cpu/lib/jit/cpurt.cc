@@ -199,13 +199,14 @@ static Error VerifyDType(mlir::Type input_type, DType operand_type) {
   auto verify = [&](DType::Kind expected_input_type) -> Error {
     if (operand_type.kind() != expected_input_type)
       return MakeStringError("operand type does not match input type: ",
-                             operand_type, " vs ", expected_input_type);
+                             operand_type, " vs ", DType(expected_input_type));
     return Error::success();
   };
 
   // TODO(ezhulenev): Implement type dispatching to connect MLIR with TFRT.
   if (input_type.isF32()) return verify(DType::F32);
   if (input_type.isInteger(32)) return verify(DType::I32);
+  if (input_type.isInteger(64)) return verify(DType::I64);
 
   return MakeStringError("unexpected input type: ", input_type);
 }

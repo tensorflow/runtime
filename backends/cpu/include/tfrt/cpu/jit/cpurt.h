@@ -429,6 +429,8 @@ mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
     rank_dispatch(float{});
   } else if (element_type.isInteger(32)) {
     rank_dispatch(int32_t{});
+  } else if (element_type.isInteger(64)) {
+    rank_dispatch(int64_t{});
   } else {
     results.EmitErrorAt(
         result_index,

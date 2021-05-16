@@ -150,6 +150,10 @@ GpuOneShotAllocator<void>& GpuOneShotAllocator<void>::operator=(
 
 Expected<GpuPointer> GpuOneShotAllocator<void>::Allocate(
     size_t size, wrapper::Stream stream) {
+  if (!pointer_) {
+    return MakeStringError(
+        "Trying to allocate from GpuOneShotAllocator with null pointer.");
+  }
   GpuPointer result = pointer_;
   pointer_ = nullptr;
   return result;

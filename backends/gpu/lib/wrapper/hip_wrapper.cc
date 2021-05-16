@@ -338,7 +338,15 @@ llvm::Expected<DeviceMemory<void>> HipMemAlloc(CurrentContext current,
                                                size_t size_bytes) {
   CheckHipContext(current);
   hipDeviceptr_t ptr;
-  RETURN_IF_ERROR(hipMalloc(&ptr, size_bytes));
+  if (auto error = TO_ERROR(hipMalloc(&ptr, size_bytes))) {
+    return llvm::handleErrors(
+        std::move(error),
+        [&](std::unique_ptr<wrapper::ErrorInfo<hipError_t>> info) {
+          return wrapper::GetResult(*info) == hipErrorOutOfMemory
+                     ? MakeOomError(current, size_bytes)
+                     : llvm::Error(std::move(info));
+        });
+  }
   return DeviceMemory<void>({ptr, Platform::ROCm});
 }
 

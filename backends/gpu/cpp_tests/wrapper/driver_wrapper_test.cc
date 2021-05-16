@@ -67,11 +67,9 @@ TEST_P(Test, TestLogError) {
   EXPECT_TRUE(IsSuccess(Init(platform)));
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
-  std::string log_string = [&] {
-    std::string buffer;
-    llvm::raw_string_ostream(buffer) << DeviceGet(platform, count).takeError();
-    return buffer;
-  }();
+  std::string log_string;
+  llvm::raw_string_ostream(log_string)
+      << DeviceGet(platform, count).takeError();
   if (platform == Platform::CUDA) {
     EXPECT_TRUE(Contains(log_string, "cuDeviceGet"));
     EXPECT_TRUE(Contains(log_string, "CUDA_ERROR_INVALID_DEVICE"));
@@ -645,7 +643,7 @@ TEST_P(Test, UnalignedPointeeType) {
 }
 
 TEST_P(Test, MemHostGetDevicePointer) {
-  auto platform = Platform::CUDA;
+  auto platform = GetParam();
   ASSERT_TRUE(IsSuccess(Init(platform)));
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
@@ -662,7 +660,7 @@ TEST_P(Test, MemHostGetDevicePointer) {
 }
 
 TEST_P(Test, MemGetAddressRange) {
-  auto platform = Platform::CUDA;
+  auto platform = GetParam();
   ASSERT_TRUE(IsSuccess(Init(platform)));
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
@@ -675,6 +673,21 @@ TEST_P(Test, MemGetAddressRange) {
   TFRT_ASSERT_AND_ASSIGN(auto range, MemGetAddressRange(current, char_ptr));
   EXPECT_EQ(char_ptr, range.base);
   EXPECT_EQ(size_bytes, range.size_bytes);
+}
+
+TEST_P(Test, OutOfMemory) {
+  auto platform = GetParam();
+  ASSERT_TRUE(IsSuccess(Init(platform)));
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
+  ASSERT_GT(count, 0);
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
+  size_t size_bytes = 1ull << 40;
+  std::string log_string;
+  llvm::raw_string_ostream(log_string)
+      << MemAlloc(current, size_bytes).takeError();
+  EXPECT_TRUE(Contains(log_string, "Out of memory trying to allocate 1.00TiB"));
 }
 
 }  // namespace wrapper

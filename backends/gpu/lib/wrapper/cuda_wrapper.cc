@@ -379,7 +379,15 @@ llvm::Expected<DeviceMemory<void>> CuMemAlloc(CurrentContext current,
                                               size_t size_bytes) {
   CheckCudaContext(current);
   CUdeviceptr ptr;
-  RETURN_IF_ERROR(cuMemAlloc(&ptr, size_bytes));
+  if (auto error = TO_ERROR(cuMemAlloc(&ptr, size_bytes))) {
+    return llvm::handleErrors(
+        std::move(error),
+        [&](std::unique_ptr<wrapper::ErrorInfo<CUresult>> info) {
+          return wrapper::GetResult(*info) == CUDA_ERROR_OUT_OF_MEMORY
+                     ? MakeOomError(current, size_bytes)
+                     : llvm::Error(std::move(info));
+        });
+  }
   return DeviceMemory<void>({reinterpret_cast<void*>(ptr), Platform::CUDA});
 }
 

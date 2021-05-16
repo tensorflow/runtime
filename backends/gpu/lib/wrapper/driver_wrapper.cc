@@ -1219,6 +1219,21 @@ llvm::Error UnsupportedPlatform(Platform platform) {
   return CreatePlatformError("Unsupported", platform);
 }
 
+llvm::Error MakeOomError(CurrentContext current, size_t size_bytes) {
+  std::string message;
+  llvm::raw_string_ostream oss(message);
+  oss << "Out of memory trying to allocate "
+      << HumanReadableNumBytes(size_bytes);
+  if (auto mem_info = wrapper::MemGetInfo(current)) {
+    oss << " (" << HumanReadableNumBytes(mem_info->free_bytes) << " of "
+        << HumanReadableNumBytes(mem_info->total_bytes) << " available)";
+  }
+  if (auto device = wrapper::CtxGetDevice(current))
+    oss << " on GPU " << *device;
+  oss << ".";
+  return MakeStringError(std::move(oss.str()));
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

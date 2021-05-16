@@ -145,6 +145,9 @@ llvm::Error InvalidPlatform(Platform platform);
 // Return error that platform is unsupported.
 llvm::Error UnsupportedPlatform(Platform platform);
 
+// Return error that allocating size_bytes failed.
+llvm::Error MakeOomError(CurrentContext current, size_t size_bytes);
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

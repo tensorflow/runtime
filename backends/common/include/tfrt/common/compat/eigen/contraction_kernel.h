@@ -51,8 +51,6 @@ namespace internal {
 
 // Returns `true` iff we can use custom contraction kernels. This is a runtime
 // check that uses environment variables.
-// TODO(b/152346987): Rename this back to UseCustomContractionKernels when TFRT
-// is open sourced.
 bool UseCustomContractionKernelsTFRT();
 
 // Pack a 2D block of a Tensor expression into a contiguous block of memory with

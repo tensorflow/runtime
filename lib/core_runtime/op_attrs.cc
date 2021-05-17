@@ -837,7 +837,6 @@ static void PrintElement(const void *ptr, OpAttrType type, raw_ostream &os) {
       assert(0 && "cannot print bf16 yet.");
       break;
     case OpAttrType::F16:
-      // TODO(b/149063226): Support FP16.
       assert(0 && "cannot print fp16 yet.");
       break;
     case OpAttrType::I1:

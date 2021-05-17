@@ -26,7 +26,6 @@
 
 namespace tfrt {
 
-// TODO(b/150232096): Simplify registration of new dtypes.
 template <DType::Kind K>
 using EigenTypeForDTypeKind =
     std::conditional_t<std::is_same<fp16, TypeForDTypeKind<K>>::value,

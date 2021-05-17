@@ -236,7 +236,6 @@ TEST_F(CpuDriverTest, CompositeOpTest) {
 
         assert(num_results == 2);
         results[0] = GetReadyChain(host).CopyRef();
-        // TODO(b/158775215): Use Test device as the result's device
         results[1] = MakeAvailableAsyncValueRef<TensorHandle>(
             host, host->GetHostDeviceRef(), a.GetAvailableMetadata(),
             std::move(result));

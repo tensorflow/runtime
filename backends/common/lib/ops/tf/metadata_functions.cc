@@ -424,7 +424,6 @@ static Expected<TensorMetadata> TfTransposeOpFoldedMd(
 
 static Expected<TensorMetadata> TfCastOpMd(const TensorMetadata& input,
                                            const OpAttrsRef& attrs) {
-  // TODO(b/149063226): Change it back to OpAttrType once we implement fp16.
   OpAttrType dest_type;
   if (!attrs.Get("DstT", &dest_type)) {
     return MakeStringError("cannot get destination type");

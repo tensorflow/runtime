@@ -50,8 +50,6 @@ static void HTToTensorHandle(Argument<HostTensor> arg, Argument<Chain> in_chain,
                              Result<TensorHandle> tensorhandle_output,
                              const ExecutionContext &exec_ctx) {
   // Since we know the Tensor is present, we can access its metadata.
-  // TODO(b/158775215): Replace the placeholder device with the device from
-  // HostTensor.
   tensorhandle_output.Emplace(exec_ctx.host()->GetHostDeviceRef(),
                               arg->metadata(), arg.ValueRef());
 }

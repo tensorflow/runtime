@@ -100,10 +100,6 @@ BorrowedGpuStream::BorrowedGpuStream(wrapper::Context context,
       stream_(MakeAvailableAsyncValueRef<GpuStream>(
           context_.CopyRef(), wrapper::OwningStream(stream))) {}
 
-BorrowedGpuStream::BorrowedGpuStream(HostContext*, wrapper::Context context,
-                                     wrapper::Stream stream)
-    : BorrowedGpuStream(context, stream) {}
-
 BorrowedGpuStream::~BorrowedGpuStream() {
   stream_->release();   // Release GpuStream's OwningStream.
   context_->release();  // Release GpuContext's OwningContext.

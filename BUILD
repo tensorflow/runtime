@@ -617,6 +617,7 @@ exports_files(
 gentbl_cc_library(
     name = "basic_kernels_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -629,7 +630,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/basic_kernels/opdefs/basic_kernels.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:CallInterfacesTdFiles",
@@ -666,6 +666,7 @@ tfrt_cc_library(
 gentbl_cc_library(
     name = "tensor_shape_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -685,7 +686,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/tensor_shape.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
@@ -695,6 +695,7 @@ gentbl_cc_library(
 gentbl_cc_library(
     name = "tensor_shape_sync_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -707,7 +708,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/tensor_shape_sync.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
@@ -717,6 +717,7 @@ gentbl_cc_library(
 gentbl_cc_library(
     name = "tensor_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -729,7 +730,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/tensor.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
@@ -739,6 +739,7 @@ gentbl_cc_library(
 gentbl_cc_library(
     name = "host_tensor_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -751,7 +752,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/host_tensor.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
@@ -761,6 +761,7 @@ gentbl_cc_library(
 gentbl_cc_library(
     name = "dense_host_tensor_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -773,7 +774,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/dense_host_tensor.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
@@ -783,6 +783,7 @@ gentbl_cc_library(
 gentbl_cc_library(
     name = "dense_host_tensor_sync_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -795,7 +796,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/dense_host_tensor_sync.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
@@ -805,6 +805,7 @@ gentbl_cc_library(
 gentbl_cc_library(
     name = "coo_host_tensor_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -817,7 +818,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/coo_host_tensor.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
     ],
@@ -862,6 +862,7 @@ tfrt_cc_library(
 gentbl_cc_library(
     name = "core_runtime_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -874,7 +875,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/core_runtime/opdefs/core_runtime.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "include/tfrt/core_runtime/opdefs/corert_base.td",
@@ -912,6 +912,7 @@ tfrt_cc_library(
 gentbl_cc_library(
     name = "core_runtime_sync_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -924,7 +925,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/core_runtime/opdefs/sync/core_runtime.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
@@ -1063,6 +1063,7 @@ tfrt_cc_library(
 gentbl_cc_library(
     name = "test_kernels_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -1075,7 +1076,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/test_kernels/opdefs/test_kernels.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
@@ -1107,6 +1107,7 @@ tfrt_cc_library(
 
 gentbl_cc_library(
     name = "test_kernels_sync_opdefs_inc_gen",
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -1119,7 +1120,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/test_kernels/opdefs/test_kernels_sync.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
@@ -1220,6 +1220,7 @@ tfrt_cc_library(
 gentbl_cc_library(
     name = "data_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -1232,7 +1233,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/data/opdefs/data_ops.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
     ],
@@ -1380,6 +1380,7 @@ tfrt_cc_library(
 gentbl_cc_library(
     name = "distributed_kernels_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -1392,9 +1393,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/distributed_runtime/opdefs/kernels.td",
-    td_includes = [
-        "include",
-    ],
     td_srcs = [
         ":OpBaseTdFiles",
         "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
@@ -1556,6 +1554,7 @@ tfrt_cc_library(
 
 gentbl_cc_library(
     name = "tpu_opdefs_inc_gen",
+    includes = ["include"],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -1568,7 +1567,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tpu/opdefs/tpu_ops.td",
-    td_includes = ["include"],
     td_srcs = [
         ":OpBaseTdFiles",
         "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",

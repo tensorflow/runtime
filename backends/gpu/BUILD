@@ -540,7 +540,6 @@ tfrt_cc_library(
         "include/tfrt/gpu/ops/tf/relu_f32_kernel.h",
         "include/tfrt/gpu/ops/tf/relu_f64_kernel.h",
     ],
-    includes = ["backends/gpu/include"],
 )
 
 tfrt_cc_library(
@@ -701,6 +700,10 @@ tfrt_cc_library(
 
 gentbl_cc_library(
     name = "gpu_opdefs_inc_gen",
+    includes = [
+        "../../include",
+        "include",
+    ],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -721,10 +724,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/gpu/kernels/gpu_ops.td",
-    td_includes = [
-        "include",
-        "backends/gpu/include",
-    ],
     td_srcs = [
         "@llvm-project//mlir:SideEffectTdFiles",
         "@tf_runtime//:OpBaseTdFiles",
@@ -738,6 +737,10 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "gpu_conversion_helper_opdefs_inc_gen",
+    includes = [
+        "../../include",
+        "include",
+    ],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -750,10 +753,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/gpu/kernels/gpu_conversion_helper_ops.td",
-    td_includes = [
-        "include",
-        "backends/gpu/include",
-    ],
     td_srcs = [
         "@llvm-project//mlir:GPUOpsTdFiles",
         "@tf_runtime//:OpBaseTdFiles",

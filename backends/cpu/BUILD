@@ -221,6 +221,10 @@ filegroup(
 gentbl_cc_library(
     name = "cpurt_opdefs_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = [
+        "../../include",
+        "include",
+    ],
     tbl_outs = [
         (
             ["-gen-op-decls"],
@@ -233,10 +237,6 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/cpu/jit/opdefs/cpurt_ops.td",
-    td_includes = [
-        "include",
-        "backends/cpu/include",
-    ],
     td_srcs = [":cpurt_ops_td_files"],
 )
 

@@ -106,9 +106,9 @@ namespace jit {
 //
 //    // Computes `%arg0` mean value over the axis specified by the `%arg1`.
 //    // See: https://www.tensorflow.org/api_docs/python/tf/math/reduce_mean
-//    func @mean(%arg0: tensor<?x?xf32>, %arg1: tensor<f32>) -> tensor<?xf32> {
+//    func @mean(%arg0: tensor<?x?xf32>, %arg1: tensor<i32>) -> tensor<?xf32> {
 //      %0 = "tf.Mean(%arg0, %arg1)
-//             : (tensor<?x?xf32>, tensor<f32>) -> tensor<?xf32>
+//             : (tensor<?x?xf32>, tensor<i32>) -> tensor<?xf32>
 //      return %0: tensor<?xf32>
 //    }
 //
@@ -130,7 +130,7 @@ namespace jit {
 //      %0 = "tf.Constant" { value = dense<1 : i32>} -> tensor<i32>
 //      %1 = "tf.Mean(%arg0, %0)
 //             : (tensor<4x8xf32>, tensor<i32>) -> tensor<4xf32>
-//      return %1 : ensor<4xf32>
+//      return %1 : tensor<4xf32>
 //    }
 //
 //    By specializing function to the concrete value of the second argument, by

@@ -777,7 +777,7 @@ JitCompilationContext::Instantiate(const CompilationOptions& opts,
   auto transformer = mlir::makeLLVMPassesTransformer(passes, /*mbOptLevel=*/2,
                                                      target_machine->get());
 
-  // Build MLIR exection engine.
+  // Build MLIR execution engine.
   auto engine = mlir::ExecutionEngine::create(
       ctx->module(), /*llvmModuleBuilder=*/nullptr, transformer,
       ctx->options().jit_code_opt_level, libs);
@@ -919,7 +919,7 @@ static Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
   if (auto err = func.takeError()) return std::move(err);
 
   auto parse = [](mlir::Attribute attr) -> Expected<OperandConstraint> {
-    // If attribute is not defined in means that there is no operand constraint.
+    // If attribute is not defined it means that there is no operand constraint.
     if (!attr) return OperandConstraint::kResolved;
 
     // Otherwise try to parse constraint from the string attribute.

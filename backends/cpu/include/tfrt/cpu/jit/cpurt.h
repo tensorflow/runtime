@@ -46,10 +46,6 @@ class Tensor;
 namespace cpu {
 namespace jit {
 
-// TODO(b/184896224): Documentation below is forward looking and does not
-// represent what is ready today. Currently JitExecutable will only specialize
-// to the shapes of the inputs.
-
 // Compiled module example:
 //
 //   module @kernel attributes { tfrt.compiled, cpurt.entrypoint = @main } {

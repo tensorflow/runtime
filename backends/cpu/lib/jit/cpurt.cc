@@ -262,6 +262,42 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
   return MakeStringError("unsupported tensor type: ", tensor.tensor_type());
 }
 
+// Gets (copies) the values from `desc`, returning them in a DenseElementsAttr.
+// If it cannot extract the values, returns an empty attribute.
+static mlir::DenseElementsAttr GetMemrefValues(
+    mlir::Builder* builder, const mlir::ShapedType& shaped_type,
+    const MemrefDesc& desc) {
+  size_t rank = desc.sizes.size();
+  if (rank != 0 && rank != 1) return {};
+
+  llvm::SmallVector<mlir::Attribute> attributes;
+  size_t num_values = rank == 0 ? 1 : desc.sizes[0];
+  switch (desc.dtype.kind()) {
+    case DType::I32: {
+      const auto* data = static_cast<TypeForDTypeKind<DType::I32>*>(desc.data);
+      for (int i = 0; i < num_values; ++i) {
+        attributes.push_back(builder->getI32IntegerAttr(data[i]));
+      }
+    } break;
+    case DType::I64: {
+      const auto* data = static_cast<TypeForDTypeKind<DType::I64>*>(desc.data);
+      for (int i = 0; i < num_values; ++i) {
+        attributes.push_back(builder->getI64IntegerAttr(data[i]));
+      }
+    } break;
+    default:
+      return {};
+  }
+  return mlir::DenseElementsAttr::get(shaped_type, attributes);
+}
+
+// Returns true if the shape is a 0/1-ranked tensor of i32/i64's.
+static bool IsSinkable(const mlir::ShapedType& shaped) {
+  return shaped && (shaped.getRank() == 0 || shaped.getRank() == 1) &&
+         (shaped.getElementType().isInteger(32) ||
+          shaped.getElementType().isInteger(64));
+}
+
 // -------------------------------------------------------------------------- //
 // Executable CallFrame initialization.
 // -------------------------------------------------------------------------- //
@@ -654,10 +690,12 @@ class JitCompilationContext {
   }
 
   // Specialize compiled module to the operands: update all unknown dimensions
-  // with concrete values. Returns error if operands are not compatible with
-  // compiled module entrypoint signature.
-  // TODO(ezhulenev): Support sinking small constants into the function body.
-  llvm::Error Specialize(ArrayRef<MemrefDesc> operands, string_view entrypoint);
+  // with concrete values and sink small constants into the function body.
+  // Returns error if operands are not compatible with compiled module
+  // entrypoint signature.
+  llvm::Error Specialize(ArrayRef<MemrefDesc> operands,
+                         ArrayRef<OperandConstraint> constraints,
+                         string_view entrypoint);
 
   const CompilationOptions& options() const { return opts_; }
 
@@ -812,8 +850,9 @@ static llvm::Expected<mlir::Type> SpecializeType(mlir::Type type,
   return MakeStringError("Unsupported input type: ", type);
 }
 
-llvm::Error JitCompilationContext::Specialize(ArrayRef<MemrefDesc> operands,
-                                              string_view entrypoint) {
+llvm::Error JitCompilationContext::Specialize(
+    ArrayRef<MemrefDesc> operands, ArrayRef<OperandConstraint> constraints,
+    string_view entrypoint) {
   mlir::FuncOp func = module_->lookupSymbol<mlir::FuncOp>(entrypoint);
   if (!func) return MakeStringError("Entrypoint not found: ", entrypoint);
 
@@ -845,6 +884,23 @@ llvm::Error JitCompilationContext::Specialize(ArrayRef<MemrefDesc> operands,
   llvm::SmallVector<unsigned> erase_block_args(num_inputs);
   std::iota(erase_block_args.begin(), erase_block_args.end(), 0);
   entry_block.eraseArguments(erase_block_args);
+
+  // Sink small constants into the function body.
+  mlir::OpBuilder builder = mlir::OpBuilder::atBlockBegin(&func.front());
+  mlir::Location loc = func.getLoc();
+  for (int i = 0; i < constraints.size(); ++i) {
+    if (constraints[i] != OperandConstraint::kValue) continue;
+    mlir::Type operand_type = func.getType().getInput(i);
+    mlir::ShapedType shaped = operand_type.dyn_cast<mlir::ShapedType>();
+    assert(IsSinkable(shaped) && "Non-sinkable operand was marked for sinking");
+    mlir::DenseElementsAttr shape_attr =
+        GetMemrefValues(&builder, shaped, operands[i]);
+    if (!shape_attr)
+      return MakeStringError("Cannot get values from operand type: ",
+                             operand_type);
+    mlir::Value cst = builder.create<mlir::ConstantOp>(loc, shaped, shape_attr);
+    entry_block.getArgument(i).replaceAllUsesWith(cst);
+  }
 
   return Error::success();
 }
@@ -884,6 +940,9 @@ static raw_ostream& operator<<(raw_ostream& os,
   return os;
 }
 
+// Returns kResolved if the constraint can be resolved at compile time.
+// Returns kValue for value specialization if it can be resolved at run time.
+// Returns an error when the constraint cannot be resolved.
 Expected<OperandConstraint> ResolveOperandConstraint(
     OperandConstraint operand_constraint, mlir::Type operand_type) {
   // Operand must be a shaped type: memref or tensor.
@@ -899,6 +958,12 @@ Expected<OperandConstraint> ResolveOperandConstraint(
   if (operand_constraint == OperandConstraint::kShape &&
       shaped.hasStaticShape())
     return OperandConstraint::kResolved;
+
+  // Leave the `value` constraint unmodified if the operand is sinkable.
+  if (operand_constraint == OperandConstraint::kValue) {
+    if (IsSinkable(shaped)) return operand_constraint;
+    return MakeStringError("Cannot sink operand type: ", operand_type);
+  }
 
   return operand_constraint;
 }
@@ -952,13 +1017,6 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   });
 }
 
-// Returns true if any of the operands have an unresolved value constraint.
-static bool HasValueSpecialization(ArrayRef<OperandConstraint> constraints) {
-  return llvm::any_of(constraints, [](OperandConstraint constraint) {
-    return constraint == OperandConstraint::kValue;
-  });
-}
-
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
     string_view mlir_module, string_view entrypoint,
     const CompilationOptions& compilation_opts) {
@@ -973,11 +1031,6 @@ static bool HasValueSpecialization(ArrayRef<OperandConstraint> constraints) {
   // Get resolved operands constraints for the entrypoint function.
   auto constraints = GetOperandsConstraints((*ctx)->module(), entrypoint);
   if (auto err = constraints.takeError()) return std::move(err);
-
-  // TODO(ezhulenev): Support specializing to operands values.
-  if (HasValueSpecialization(*constraints))
-    return MakeStringError("value constraints are not supported: ",
-                           *constraints);
 
   // If the module must be specialized, return JitExecutable without a default
   // compiled executable.
@@ -1026,6 +1079,27 @@ ArrayRef<OperandConstraint> JitExecutable::constraints() const {
   return constraints_;
 }
 
+// Hashes the given operands.
+// Note: due to value specialization, the resulting hash might depend on the
+// values (and not only on the types) of the operands.
+static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
+                                    ArrayRef<OperandConstraint> constraints) {
+  llvm::hash_code hash = llvm::hash_value(operands);
+
+  // Mix values of arguments to be sunk into the hash.
+  for (int i = 0; i < constraints.size(); ++i) {
+    if (constraints[i] != OperandConstraint::kValue) continue;
+    const MemrefDesc& operand = operands[i];
+    const auto* data = static_cast<uint8_t*>(operand.data);
+    size_t rank = operand.sizes.size();
+    assert(rank == 0 || rank == 1);
+    size_t num_values = rank == 0 ? 1 : operand.sizes[0];
+    ssize_t len = num_values * operand.dtype.GetHostSize();
+    hash = llvm::hash_combine(hash, llvm::hash_combine_range(data, data + len));
+  }
+  return hash;
+}
+
 // Implement `hash_value` to rely on the ADL lookup for the MemrefDesc type.
 static llvm::hash_code hash_value(const MemrefDesc& memref) {
   // We currently do not support non-contiguous memrefs as operands, so we do
@@ -1053,7 +1127,7 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
 // when it is not needed.
 Expected<const Executable*> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands) {
-  llvm::hash_code hash = llvm::hash_value(operands);
+  llvm::hash_code hash = HashOperands(operands, constraints_);
 
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.disable_specializations) {
@@ -1096,7 +1170,7 @@ Expected<const Executable*> JitExecutable::GetExecutable(
   }
 
   // Specialize executable to the concrete operands.
-  if (auto err = (*ctx)->Specialize(operands, entrypoint_))
+  if (auto err = (*ctx)->Specialize(operands, constraints_, entrypoint_))
     return MakeStringError("Failed to specialize executable: ", err);
 
   // Compile the specialized executable.

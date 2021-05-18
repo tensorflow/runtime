@@ -21,6 +21,7 @@
 #include <cstdio>
 
 #include "tfrt/basic_kernels/basic_kernels.h"
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
@@ -36,8 +37,8 @@
 //===----------------------------------------------------------------------===//
 
 // Read from STDIN, and remove EOF.
-std::vector<uint8_t> ReadFromStdInToBuffer() {
-  std::vector<uint8_t> buffer;
+tfrt::BefBuffer ReadFromStdInToBuffer() {
+  tfrt::BefBuffer buffer;
   buffer.reserve(1024);
   int c;
   while ((c = getchar()) != EOF) buffer.push_back(c);
@@ -60,7 +61,7 @@ int main(int argc, char** argv) {
   tfrt::RegisterIntegerKernels(host.GetMutableRegistry());
   tfrt::RegisterControlFlowKernels(host.GetMutableRegistry());
 
-  std::vector<uint8_t> buffer = ReadFromStdInToBuffer();
+  auto buffer = ReadFromStdInToBuffer();
   auto bef(tfrt::BEFFile::Open(buffer, host.GetKernelRegistry(),
                                decoded_diagnostic_handler,
                                host_allocator.get()));

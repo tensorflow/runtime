@@ -23,6 +23,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Translation.h"
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_converter/bef_to_mlir.h"
 #include "tfrt/init_tfrt_dialects.h"
 
@@ -49,9 +50,23 @@ mlir::OwningModuleRef BEFToMLIRTranslate(llvm::SourceMgr &source_mgr,
     bef_diag.print(nullptr, llvm::errs());
   });
 
-  auto bef_file = llvm::ArrayRef<uint8_t>(
-      reinterpret_cast<const uint8_t *>(input->getBufferStart()),
-      input->getBufferSize());
+  auto *buffer_start = input->getBufferStart();
+  auto buffer_size = input->getBufferSize();
+  llvm::ArrayRef<uint8_t> bef_file;
+
+  // Handle BefBuffer alignment.
+  BefBuffer aligned_bef_buffer;
+  if (reinterpret_cast<uint64_t>(buffer_start) % GetRequiredBefAlignment()) {
+    aligned_bef_buffer.resize(buffer_size);
+    std::memcpy(aligned_bef_buffer.data(), buffer_start, buffer_size);
+    bef_file = llvm::ArrayRef<uint8_t>(
+        reinterpret_cast<const uint8_t *>(aligned_bef_buffer.data()),
+        buffer_size);
+  } else {
+    bef_file = llvm::ArrayRef<uint8_t>(
+        reinterpret_cast<const uint8_t *>(buffer_start), buffer_size);
+  }
+
   if (bef_file.empty()) {
     mlir::emitError(location) << "BEF file is empty.";
     return {};

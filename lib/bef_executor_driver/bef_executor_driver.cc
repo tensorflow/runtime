@@ -18,6 +18,7 @@
 // up a given mlir file and then runs it with a host executor.
 #include "tfrt/bef_executor_driver/bef_executor_driver.h"
 
+#include <cstdint>
 #include <limits>
 
 #include "llvm/ADT/STLExtras.h"
@@ -28,6 +29,7 @@
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/FileUtilities.h"
+#include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef_executor/bef_file.h"
 #include "tfrt/core_runtime/core_runtime.h"
 #include "tfrt/core_runtime/tensor_handle.h"
@@ -135,8 +137,26 @@ int RunBefExecutor(
   // Dig the bytes out of the SourceMgr.
   auto buffer =
       source_mgr.getMemoryBuffer(source_mgr.getMainFileID())->getBuffer();
-  auto buffer_arr = llvm::ArrayRef<uint8_t>(
-      reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size());
+
+  // Handle BefBuffer alignment.
+  //   mlir::openInputFile() should return 4KB aligned buffer when a file is
+  //   memory-mapped. When the returned buffer is not aligned by 4KB, it could
+  //   be from stdin by pipe operator.
+  //   The following logic create an aligned buffer (BefBuffer),
+  //   and copy the buffer contents.
+  //   The original buffer cannot be released because of source_mgr_handler.
+  llvm::ArrayRef<uint8_t> buffer_arr;
+  BefBuffer aligned_bef_buffer;
+  if (reinterpret_cast<uint64_t>(buffer.data()) % GetRequiredBefAlignment()) {
+    aligned_bef_buffer.resize(buffer.size());
+    std::memcpy(aligned_bef_buffer.data(), buffer.data(), buffer.size());
+    buffer_arr = llvm::ArrayRef<uint8_t>(
+        reinterpret_cast<const uint8_t*>(aligned_bef_buffer.data()),
+        aligned_bef_buffer.size());
+  } else {
+    buffer_arr = llvm::ArrayRef<uint8_t>(
+        reinterpret_cast<const uint8_t*>(buffer.data()), buffer.size());
+  }
 
   std::unique_ptr<ConcurrentWorkQueue> work_queue =
       CreateWorkQueue(run_config.work_queue_type);

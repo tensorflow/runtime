@@ -19,15 +19,16 @@
 #ifndef TFRT_SUPPORT_BEF_BUFFER_H_
 #define TFRT_SUPPORT_BEF_BUFFER_H_
 
+#include "tfrt/bef/bef_encoding.h"
 #include "tfrt/support/aligned_buffer.h"
 
 namespace tfrt {
 
-// A BEF file should be loaded to a buffer aligned by 8.
-constexpr size_t BefGetRequiredAlignment() { return 8; }
+// A BEF file should be loaded to a buffer aligned by kAttributeMaxAlignment.
+constexpr size_t GetRequiredBefAlignment() { return kAttributeMaxAlignment; }
 
 // Buffer for storing BEF binary.
-using BefBuffer = AlignedBuffer<BefGetRequiredAlignment()>;
+using BefBuffer = AlignedBuffer<GetRequiredBefAlignment()>;
 
 }  // namespace tfrt
 

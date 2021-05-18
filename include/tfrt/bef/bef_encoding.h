@@ -110,9 +110,6 @@ enum : size_t {
   // Kernels in BEF are 4-byte aligned.
   kKernelEntryAlignment = 4,
 
-  // TODO(b/184278791): apply 64byte alignment to DenseAttr raw data for eigen
-  // library.
-
   // DenseTensor data address alignment.
   kAttributeTensorAlignment = 8,
 

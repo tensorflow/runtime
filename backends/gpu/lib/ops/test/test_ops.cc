@@ -96,16 +96,16 @@ static llvm::Expected<DenseGpuTensor> CreateDenseTensorOp(
   }
 
   auto values = attrs.GetRawAsserting("values");
-  if (!values.IsArray() || values.array_size == 1) {
+  if (!values.IsArray() || values.element_count == 1) {
     switch (result_md.dtype.kind()) {
       default:
         assert(0 && "invalid result_md dtype");
-#define DTYPE_NUMERIC(ENUM)                                            \
-  case DType::ENUM: {                                                  \
-    using HostType = TypeForDTypeKind<DType::ENUM>;                    \
-    auto begin = static_cast<HostType*>(host_buffer->data());          \
-    auto end = begin + result_md.shape.GetNumElements();               \
-    std::fill(begin, end, *static_cast<const HostType*>(values.data)); \
+#define DTYPE_NUMERIC(ENUM)                                                 \
+  case DType::ENUM: {                                                       \
+    using HostType = TypeForDTypeKind<DType::ENUM>;                         \
+    auto begin = static_cast<HostType*>(host_buffer->data());               \
+    auto end = begin + result_md.shape.GetNumElements();                    \
+    std::fill(begin, end, *static_cast<const HostType*>(values.GetData())); \
   } break;
 #include "tfrt/dtype/dtype.def"
     }

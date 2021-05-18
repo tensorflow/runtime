@@ -163,8 +163,8 @@ static Expected<TensorMetadata> CreateDenseTensorMD(const OpAttrsRef& attrs) {
     return MakeStringError("'values' attribute should be an array of values");
 
   TensorShape tensor_shape(shape);
-  if (values_raw->array_size != 1 &&
-      values_raw->array_size != tensor_shape.GetNumElements()) {
+  if (values_raw->element_count != 1 &&
+      values_raw->element_count != tensor_shape.GetNumElements()) {
     return MakeStringError(
         "size of 'values' must either be 1 or match num of elements.");
   }

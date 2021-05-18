@@ -40,6 +40,18 @@ namespace tfrt {
 class OpAttrsRef;
 class ImmutableOpAttrs;
 
+// Defines entry type
+//  When kExternalScalar and kExternalArray types are used,
+//  the entry data should be available during execution.
+//  Thereforethere is no need for copying the attribute data
+//  into an OpAttrs instance.
+enum OpAttrsRawEntryType : uint8_t {
+  kScalar,
+  kArray,
+  kExternalScalar,
+  kExternalArray,
+};
+
 // This describes a single attribute entry maintained by OpAttrs. It is a 'raw'
 // attribute, meaning that it is type erased and may or may not be an array.
 struct OpAttrsRawEntry final {
@@ -56,73 +68,53 @@ struct OpAttrsRawEntry final {
     char buffer[sizeof(void*)];
   };
 
-  // The value of array_size encodes either the number of array elements, or
-  // whether this raw entry contains a scalar or an object that's stored in its
-  // inline buffer or not. Note that both primitive types (int, float, bool) and
-  // composite types (DenseAttr, ShapeAttr and AggregateAttr) are inlinable
-  // depending on its size. In particular, a small composite (e.g., empty
-  // AggregateAttr) may be inlined too.
-  // 1. if array_size >=0, this attribute is an array, and array_size = num of
-  //    elements in array.
-  // 2. if array_size == kNotInlinedScalarSentinel, then this attribute is
-  //    scalar, but not stored inline.
-  // 3. if array_size == kInlinedScalarSentinel, then this attribute is scalar
-  //    and stored inline.
-  // This is sized to 56 bits to fit nicely on 64-bit systems.
-  int64_t array_size : (sizeof(void*) == 8 ? 56 : sizeof(void*) * 8);
+  // Maximum element count is 4G.
+  uint32_t element_count = 0;
+
+  // Indicates the entry is an array or not.
+  OpAttrsRawEntryType entry_type;
+
+  // Indicates that the attribute data is stored in buffer[].
+  bool is_inlined = false;
 
   // This indicates the type of the entry.
-  OpAttrType type : 8;
+  OpAttrType type;
 
-  // OpAttrs::SetRaw uses kScalarSentinel to indicate a scalar/non-array entry.
-  // This is user visible, in contrast to kNotInlinedScalarSentinel and
-  // kInlinedScalarSentinel, which indicate the inlining implementation detail.
-  static constexpr int64_t kScalarSentinel = -1;
-
-  // array_size is set to kNotInlinedScalarSentinel if the union is out of line
-  // data. Not user-facing. Implementation detail.
-  static const int64_t kNotInlinedScalarSentinel = -2;
-
-  // array_size is set to kInlinedScalarSentinel if the union is inlined buffer.
-  // Not user-facing. Implementation detail.
-  static const int64_t kInlinedScalarSentinel = -3;
-
-  // Get the actual number of elements. num_elements could be
-  // OpAttrsRawEntry::kScalarSentinel.
-  static int64_t GetNumElements(int64_t num_elements);
-
-  // Decode the array size.
-  static int64_t DecodeArraySize(int64_t encoded_array_size);
-
-  // Encode the array size.
-  static int64_t EncodeArraySize(int64_t num_elements, bool inlined);
-
-  bool IsArray() const { return array_size >= 0; }
-
-  bool IsScalarAndNotInlined() const {
-    return array_size == kNotInlinedScalarSentinel;
+  bool IsArray() const {
+    return entry_type == OpAttrsRawEntryType::kArray ||
+           entry_type == OpAttrsRawEntryType::kExternalArray;
   }
 
-  bool IsScalarAndInlined() const {
-    return array_size == kInlinedScalarSentinel;
+  bool IsExternal() const {
+    return entry_type == OpAttrsRawEntryType::kExternalScalar ||
+           entry_type == OpAttrsRawEntryType::kExternalArray;
   }
+
+  bool IsInternal() const {
+    return entry_type == OpAttrsRawEntryType::kScalar ||
+           entry_type == OpAttrsRawEntryType::kArray;
+  }
+
+  bool IsInlined() const { return is_inlined; }
 
   // Return the pointer to the underlying data.
-  const void* GetData() const { return IsScalarAndInlined() ? buffer : data; }
+  const void* GetData() const { return (is_inlined) ? buffer : data; }
 
   template <typename T,
             typename std::enable_if_t<(sizeof(T) <= sizeof(void*))>* = nullptr>
   const T& GetScalarData() const {
-    assert(IsScalarAndInlined());
+    assert(element_count == 1);
     assert(type == GetOpAttrType<T>());
+    assert(IsInlined());
     return *reinterpret_cast<const T*>(buffer);
   }
 
   template <typename T,
             typename std::enable_if_t<(sizeof(T) > sizeof(void*))>* = nullptr>
   const T& GetScalarData() const {
-    assert(IsScalarAndNotInlined());
+    assert(element_count == 1);
     assert(type == GetOpAttrType<T>());
+    assert(!IsInlined());
     return *static_cast<const T*>(data);
   }
 };
@@ -152,26 +144,41 @@ class OpAttrs final {
   // false if an attribute with the specified name already exists.
   template <typename T>
   bool Set(string_view attr_name, const T& value) {
-    return SetRaw(attr_name, &value, OpAttrsRawEntry::kScalarSentinel,
-                  GetOpAttrType<T>());
+    return SetRaw(attr_name, &value, GetOpAttrType<T>(),
+                  /*element_count=*/1, OpAttrsRawEntryType::kScalar);
   }
 
   // Overload for DenseAttr.
   bool Set(string_view attr_name, DenseAttr value) {
-    return SetRaw(attr_name, value.data(), OpAttrsRawEntry::kScalarSentinel,
-                  OpAttrType::DENSE);
+    return SetRaw(attr_name, value.data(), OpAttrType::DENSE,
+                  /*element_count=*/1, OpAttrsRawEntryType::kScalar);
+  }
+
+  bool SetExternal(string_view attr_name, DenseAttr value) {
+    return SetRaw(attr_name, value.data(), OpAttrType::DENSE,
+                  /*element_count=*/1, OpAttrsRawEntryType::kExternalScalar);
   }
 
   // Overload for ShapeAttr.
   bool Set(string_view attr_name, ShapeAttr value) {
-    return SetRaw(attr_name, value.data(), OpAttrsRawEntry::kScalarSentinel,
-                  OpAttrType::SHAPE);
+    return SetRaw(attr_name, value.data(), OpAttrType::SHAPE,
+                  /*element_count=*/1, OpAttrsRawEntryType::kScalar);
+  }
+
+  bool SetExternal(string_view attr_name, ShapeAttr value) {
+    return SetRaw(attr_name, value.data(), OpAttrType::SHAPE,
+                  /*element_count=*/1, OpAttrsRawEntryType::kExternalScalar);
   }
 
   // Overload for AggregateAttr.
   bool Set(string_view attr_name, AggregateAttr value) {
-    return SetRaw(attr_name, value.data(), OpAttrsRawEntry::kScalarSentinel,
-                  OpAttrType::AGGREGATE);
+    return SetRaw(attr_name, value.data(), OpAttrType::AGGREGATE,
+                  /*element_count=*/1, OpAttrsRawEntryType::kScalar);
+  }
+
+  bool SetExternal(string_view attr_name, AggregateAttr value) {
+    return SetRaw(attr_name, value.data(), OpAttrType::AGGREGATE,
+                  /*element_count=*/1, OpAttrsRawEntryType::kExternalScalar);
   }
 
   // Read an attribute with the specified value, returning false on failure or
@@ -236,7 +243,14 @@ class OpAttrs final {
 
   template <typename T>
   bool SetArray(string_view attr_name, ArrayRef<T> value) {
-    return SetRaw(attr_name, value.data(), value.size(), GetOpAttrType<T>());
+    return SetRaw(attr_name, value.data(), GetOpAttrType<T>(), value.size(),
+                  OpAttrsRawEntryType::kArray);
+  }
+
+  template <typename T>
+  bool SetArrayExternal(string_view attr_name, ArrayRef<T> value) {
+    return SetRaw(attr_name, value.data(), GetOpAttrType<T>(), value.size(),
+                  OpAttrsRawEntryType::kExternalArray);
   }
 
   template <typename T>
@@ -244,8 +258,8 @@ class OpAttrs final {
     const OpAttrsRawEntry* result = GetRaw(attr_name);
     if (!result || !result->IsArray() || result->type != GetOpAttrType<T>())
       return false;
-    *value = ArrayRef<T>(reinterpret_cast<const T*>(result->data),
-                         result->array_size);
+    *value = ArrayRef<T>(reinterpret_cast<const T*>(result->GetData()),
+                         result->element_count);
     return true;
   }
 
@@ -270,6 +284,11 @@ class OpAttrs final {
   // Support string_views as aliases of ArrayRef<char> in Get/Set.
   bool SetString(string_view attr_name, string_view value) {
     return SetArray(attr_name, ArrayRef<char>(value.data(), value.size()));
+  }
+
+  bool SetStringExternal(string_view attr_name, string_view value) {
+    return SetArrayExternal(attr_name,
+                            ArrayRef<char>(value.data(), value.size()));
   }
 
   bool GetString(string_view attr_name, string_view* value) const {
@@ -300,8 +319,13 @@ class OpAttrs final {
 
   // Support string_views as aliases of ArrayRef<char> in Get/Set.
   bool SetFunc(string_view attr_name, FunctionAttribute value) {
-    return SetRaw(attr_name, value.func_name.data(), value.func_name.size(),
-                  OpAttrType::FUNC);
+    return SetRaw(attr_name, value.func_name.data(), OpAttrType::FUNC,
+                  value.func_name.size(), OpAttrsRawEntryType::kArray);
+  }
+
+  bool SetFuncExternal(string_view attr_name, FunctionAttribute value) {
+    return SetRaw(attr_name, value.func_name.data(), OpAttrType::FUNC,
+                  value.func_name.size(), OpAttrsRawEntryType::kExternalArray);
   }
 
   bool GetFuncName(string_view attr_name, string_view* value) const {
@@ -310,8 +334,8 @@ class OpAttrs final {
     if (!result || !result->IsArray() || result->type != OpAttrType::FUNC)
       return false;
 
-    value_ar = ArrayRef<char>(reinterpret_cast<const char*>(result->data),
-                              result->array_size);
+    value_ar = ArrayRef<char>(reinterpret_cast<const char*>(result->GetData()),
+                              result->element_count);
     *value = string_view(value_ar.data(), value_ar.size());
     return true;
   }
@@ -347,12 +371,9 @@ class OpAttrs final {
     return *result;
   }
 
-  // Set the specified attribute.  When num_elements is equal to
-  // OpAttrsRawEntry::kScalarSentinel, this sets a scalar entry.  This
-  // returns true on success or false if an attribute with that name already
-  // exists.
-  bool SetRaw(string_view attr_name, const void* data, int64_t num_elements,
-              OpAttrType type);
+  // Set the specified attribute.
+  bool SetRaw(string_view attr_name, const void* data, OpAttrType type,
+              uint32_t element_count, OpAttrsRawEntryType entry_type);
 
   // Print the state of this attribute set, this is only intended for
   // debugging.
@@ -507,8 +528,8 @@ class OpAttrsRef {
     const OpAttrsRawEntry* result = GetRaw(attr_name);
     if (!result || !result->IsArray() || result->type != GetOpAttrType<T>())
       return false;
-    *value = ArrayRef<T>(reinterpret_cast<const T*>(result->data),
-                         result->array_size);
+    *value = ArrayRef<T>(reinterpret_cast<const T*>(result->GetData()),
+                         result->element_count);
     return true;
   }
 
@@ -561,8 +582,8 @@ class OpAttrsRef {
     if (!result || !result->IsArray() || result->type != OpAttrType::FUNC)
       return false;
 
-    value_ar = ArrayRef<char>(reinterpret_cast<const char*>(result->data),
-                              result->array_size);
+    value_ar = ArrayRef<char>(reinterpret_cast<const char*>(result->GetData()),
+                              result->element_count);
     *value = string_view(value_ar.data(), value_ar.size());
     return true;
   }

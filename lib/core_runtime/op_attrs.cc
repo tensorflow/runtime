@@ -30,38 +30,6 @@
 
 namespace tfrt {
 
-const int64_t OpAttrsRawEntry::kNotInlinedScalarSentinel;
-const int64_t OpAttrsRawEntry::kInlinedScalarSentinel;
-
-int64_t OpAttrsRawEntry::DecodeArraySize(int64_t encoded_array_size) {
-  if (encoded_array_size >= 0) return encoded_array_size;
-  if (encoded_array_size == OpAttrsRawEntry::kNotInlinedScalarSentinel ||
-      encoded_array_size == OpAttrsRawEntry::kInlinedScalarSentinel)
-    return 1;
-  llvm_unreachable("encoded_array_size should not be negative");
-}
-
-int64_t OpAttrsRawEntry::EncodeArraySize(int64_t num_elements, bool inlined) {
-  if (num_elements >= 0) return num_elements;
-  if (num_elements == OpAttrsRawEntry::kScalarSentinel && inlined)
-    return OpAttrsRawEntry::kInlinedScalarSentinel;
-  if (num_elements == OpAttrsRawEntry::kScalarSentinel && !inlined)
-    return OpAttrsRawEntry::kNotInlinedScalarSentinel;
-  if (num_elements == OpAttrsRawEntry::kInlinedScalarSentinel ||
-      num_elements == OpAttrsRawEntry::kNotInlinedScalarSentinel)
-    return num_elements;
-  llvm_unreachable("num_elements not encodable");
-}
-
-int64_t OpAttrsRawEntry::GetNumElements(int64_t num_elements) {
-  if (num_elements >= 0) return num_elements;
-  if (num_elements == OpAttrsRawEntry::kScalarSentinel ||
-      num_elements == OpAttrsRawEntry::kNotInlinedScalarSentinel ||
-      num_elements == OpAttrsRawEntry::kInlinedScalarSentinel)
-    return 1;
-  llvm_unreachable("num_elements value error");
-}
-
 OpAttrType GetOpAttrTypeFromDType(DType::Kind kind) {
   // TODO(tfrt-devs): Unify BEFAttributeType, OpAttrType and tfrt::DType.
   switch (kind) {
@@ -369,8 +337,8 @@ class OpAttrs::OutOfLineRepresentation {
     return it == entries_.end() ? nullptr : &it->second;
   }
 
-  bool SetRaw(string_view attr_name, const void *data, int64_t num_elements,
-              OpAttrType type);
+  bool SetRaw(string_view attr_name, const void *data, OpAttrType type,
+              uint32_t element_count, OpAttrsRawEntryType entry_type);
 
   size_t GetNumEntries() const { return entries_.size(); }
 
@@ -384,17 +352,21 @@ class OpAttrs::OutOfLineRepresentation {
 OpAttrs::OutOfLineRepresentation::OutOfLineRepresentation(OpAttrs *orig_attrs) {
   // We move to an out-of-line representation by copying all the entries over.
   orig_attrs->IterateEntries([&](const OpAttrsRawEntry &entry) {
-    bool success =
-        this->SetRaw(entry.name, entry.GetData(), entry.array_size, entry.type);
+    bool success = this->SetRaw(entry.name, entry.GetData(), entry.type,
+                                entry.element_count, entry.entry_type);
     assert(success && "input cannot have dupes, so collisions aren't possible");
     (void)success;
   });
 }
 
 bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
-                                              const void *data,
-                                              int64_t num_elements,
-                                              OpAttrType type) {
+                                              const void *data, OpAttrType type,
+                                              uint32_t element_count,
+                                              OpAttrsRawEntryType entry_type) {
+  // If element_count > 1, it must be an array.
+  assert(element_count <= 1 || entry_type == OpAttrsRawEntryType::kArray ||
+         entry_type == OpAttrsRawEntryType::kExternalArray);
+
   // Figure out what entry we need to fill in.
   auto entry_it_pair =
       entries_.insert(std::make_pair(attr_name, OpAttrsRawEntry()));
@@ -402,58 +374,45 @@ bool OpAttrs::OutOfLineRepresentation::SetRaw(string_view attr_name,
   // If it is already present, then return false to indicate a conflict.
   if (entry_it_pair.second == false) return false;
 
-  const auto type_size_and_alignment = GetHostSizeAndAlignment(data, type);
-
   // TODO(clattner): consider unifying the logic here with OpAttrs::SetRaw.
+  auto &entry = entry_it_pair.first->second;
+  entry.name = entry_it_pair.first->first().data();
+  entry.type = type;
+  entry.element_count = element_count;
+  entry.entry_type = entry_type;
+  entry.is_inlined = false;
+
+  // For an entry with externally allocated buffer, we can simply keep the
+  // pointer of the buffer.
+  if (entry.IsExternal()) {
+    entry.data = data;
+    return true;
+  }
+
+  const auto type_size_and_alignment = GetHostSizeAndAlignment(data, type);
   const auto type_size = type_size_and_alignment.first;
   const auto type_alignment = type_size_and_alignment.second;
   const auto alignment_padding_size =
       GetAlignmentPaddingSize(data, type, type_alignment);
 
-  auto &entry = entry_it_pair.first->second;
-  const auto bytes_to_copy =
-      OpAttrsRawEntry::GetNumElements(num_elements) * type_size;
-  const bool is_array = num_elements >= 0;
-  bool is_small = type_size <= sizeof(void *);
+  const auto payload_size = type_size * element_count;
 
-  // The alignment_padding_size could be non zero for Shape, Dense, and
-  // Aggregate attributes.
-  if (is_array || !is_small || alignment_padding_size > 0) {
-    entry.array_size =
-        OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/false);
-
-    // Handle an empty array.
-    if (bytes_to_copy == 0) {
-      // Set entry.data with a valid address; the address will not actually
-      // used because the array length is zero.
-      entry.data = entry.buffer;
-    } else {
-      // The bytes_to_copy could be from array of fixed sized attributes
-      // or from a Dense, Shape, Aggregate attributes which cannot be an array.
-      // For the Dense, Shape, Aggregate attributes, the type_size given from
-      // GetAllocSizeAndAlignment() includes alignment_padding_size.
-
-      // TODO(hyojun): Optimize memory allocator for DiamondPacking.
-      void *our_data = allocator_.Allocate(
-          alignment_padding_size + bytes_to_copy, type_alignment);
-      void *element_ptr =
-          static_cast<char *>(our_data) + alignment_padding_size;
-
-      // Copy the element(s) themselves.
-      memcpy(element_ptr, data, bytes_to_copy);
-      entry.data = element_ptr;
-    }
-  } else {
-    // If it is a small scalar, copy the data to the inlined buffer.
+  // If it is a small scalar, copy the data to the inlined buffer.
+  if (payload_size <= sizeof(void *) && alignment_padding_size == 0) {
     assert(type_alignment <= alignof(void *));
-    assert(bytes_to_copy <= sizeof(void *));
-    entry.array_size =
-        OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/true);
-    memcpy(entry.buffer, data, bytes_to_copy);
+    if (payload_size > 0) memcpy(entry.buffer, data, payload_size);
+    entry.is_inlined = true;
+    return true;
   }
 
-  entry.name = entry_it_pair.first->first().data();
-  entry.type = type;
+  // TODO(hyojun): Optimize memory allocator for DiamondPacking.
+  void *our_data = allocator_.Allocate(alignment_padding_size + payload_size,
+                                       type_alignment);
+  void *element_ptr = static_cast<char *>(our_data) + alignment_padding_size;
+
+  // Copy the element(s) themselves.
+  memcpy(element_ptr, data, payload_size);
+  entry.data = element_ptr;
   return true;
 }
 
@@ -508,15 +467,20 @@ void OpAttrs::Reset() {
   frozen_representation_.reset();
 }
 
-bool OpAttrs::SetRaw(string_view attr_name, const void *data,
-                     int64_t num_elements, OpAttrType type) {
+bool OpAttrs::SetRaw(string_view attr_name, const void *data, OpAttrType type,
+                     uint32_t element_count, OpAttrsRawEntryType entry_type) {
+  // If element_count > 1, the entry must be an array.
+  assert(element_count <= 1 || entry_type == OpAttrsRawEntryType::kArray ||
+         entry_type == OpAttrsRawEntryType::kExternalArray);
+
   // If we're mutating the set, then drop any frozen representation that may be
   // formed.
   if (frozen_representation_) frozen_representation_.reset();
 
   // If we are using an out of line representation, delegate to it.
   if (auto *out_of_line = out_of_line_representation_.get())
-    return out_of_line->SetRaw(attr_name, data, num_elements, type);
+    return out_of_line->SetRaw(attr_name, data, type, element_count,
+                               entry_type);
 
   // Otherwise, we need to find out if this entry has already been installed.
   // If so, we return failure.
@@ -529,8 +493,8 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
   // inline_entries_  then we have to move out of line.
   if (num_inline_entries_ == kInlineEntriesSize) {
     MoveOutOfLine();
-    return out_of_line_representation_->SetRaw(attr_name, data, num_elements,
-                                               type);
+    return out_of_line_representation_->SetRaw(attr_name, data, type,
+                                               element_count, entry_type);
   }
 
   // We also need space in inline_buffer_.
@@ -541,66 +505,61 @@ bool OpAttrs::SetRaw(string_view attr_name, const void *data,
   // If we are out of space, then switch to an out-of-line representation.
   if (inline_buffer_used_ > kInlineBufferSize) {
     MoveOutOfLine();
-    return out_of_line_representation_->SetRaw(attr_name, data, num_elements,
-                                               type);
+    return out_of_line_representation_->SetRaw(attr_name, data, type,
+                                               element_count, entry_type);
   }
 
   // Otherwise, we have space, so copy over the string.
   memcpy(name_pointer, attr_name.data(), attr_name_size);
   name_pointer[attr_name_size] = 0;  // Null terminate C string.
 
-  auto type_size_and_alignment = GetHostSizeAndAlignment(data, type);
-  auto type_size = type_size_and_alignment.first;
+  auto &entry = inline_entries_[num_inline_entries_++];
+  entry.name = name_pointer;
+  entry.type = type;
+  entry.element_count = element_count;
+  entry.entry_type = entry_type;
+  entry.is_inlined = false;
 
-  bool is_array = num_elements >= 0;
-  bool is_small = type_size <= sizeof(void *);
-  // If it is a small scalar, we can just copy the data to OpAttrsRawEntry's
-  // inlined buffer.
-  if (is_small && !is_array) {
-    // Fill in the attribute entry.
-    auto &entry = inline_entries_[num_inline_entries_++];
-    entry.name = name_pointer;
-
-    assert(type_size_and_alignment.second <= alignof(void *));
-    memcpy(entry.buffer, data, type_size);
-
-    // Set to inline scalar.
-    entry.array_size =
-        OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/true);
-    entry.type = type;
+  // For an entry with externally allocated buffer, we can simply keep the
+  // pointer of the buffer.
+  if (entry.IsExternal()) {
+    entry.data = data;
     return true;
   }
 
-  // Otherwise we have non-standard attribute, then we need to copy the array to
-  // OpAttrs' inlined buffer.
+  const auto type_size_and_alignment = GetHostSizeAndAlignment(data, type);
+  const auto type_size = type_size_and_alignment.first;
+  const auto type_alignment = type_size_and_alignment.second;
+  const auto alignment_padding_size =
+      GetAlignmentPaddingSize(data, type, type_alignment);
 
-  // Then we hold the data. Round the element pointer up to the alignment
-  // boundary required by type so we can figure out where we will be inserting
-  // it.
+  const auto payload_size = type_size * element_count;
+
+  // An attribute fits in the inlined buffer.
+  if (payload_size <= sizeof(void *) && alignment_padding_size == 0) {
+    assert(type_alignment <= alignof(void *));
+    if (payload_size > 0) memcpy(entry.buffer, data, payload_size);
+    entry.is_inlined = true;
+    return true;
+  }
+
+  // Otherwise, need to allocate buffer.
   inline_buffer_used_ +=
       GetAlignmentPaddingSize(data, type, inline_buffer_used_);
   auto *dest_pointer = inline_buffer_ + inline_buffer_used_;
 
-  // The number of bytes is equal to the number of elements times its size.
-  auto bytes_to_copy =
-      OpAttrsRawEntry::GetNumElements(num_elements) * type_size;
-  inline_buffer_used_ += bytes_to_copy;
+  inline_buffer_used_ += payload_size;
 
   // If we are out of space, then switch to an out-of-line representation.
   if (inline_buffer_used_ > kInlineBufferSize) {
+    --num_inline_entries_;
     MoveOutOfLine();
-    return out_of_line_representation_->SetRaw(attr_name, data, num_elements,
-                                               type);
+    return out_of_line_representation_->SetRaw(attr_name, data, type,
+                                               element_count, entry_type);
   }
-  memcpy(dest_pointer, data, bytes_to_copy);
 
-  // Fill in the attribute entry.
-  auto &entry = inline_entries_[num_inline_entries_++];
-  entry.name = name_pointer;
+  memcpy(dest_pointer, data, payload_size);
   entry.data = dest_pointer;
-  entry.array_size =
-      OpAttrsRawEntry::EncodeArraySize(num_elements, /*inlined=*/false);
-  entry.type = type;
   return true;
 }
 
@@ -644,16 +603,14 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
   for (auto *entry : sorted_attrs) {
     // Space for the name and null terminator.
     alloc_size += strlen(entry->name) + 1;
-    // For an inlined entry, no additional memory is needed.
-    if (entry->IsScalarAndInlined()) continue;
 
-    auto size_type_alignment =
-        GetHostSizeAndAlignment(entry->data, entry->type);
-    alloc_size += GetAlignmentPaddingSize(entry->data, entry->type, alloc_size);
-
-    // Add space for the elements.
-    alloc_size += OpAttrsRawEntry::DecodeArraySize(entry->array_size) *
-                  size_type_alignment.first;
+    if (entry->IsInternal()) {
+      const auto type_size =
+          GetHostSizeAndAlignment(entry->GetData(), entry->type).first;
+      alloc_size +=
+          GetAlignmentPaddingSize(entry->GetData(), entry->type, alloc_size);
+      alloc_size += entry->element_count * type_size;
+    }
   }
 
   // Now that we know the size, create the result.
@@ -668,7 +625,9 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
     auto &result_entry = result->entries_[i];
 
     // Copy simple properties.
-    result_entry.array_size = src_entry.array_size;
+    result_entry.element_count = src_entry.element_count;
+    result_entry.entry_type = src_entry.entry_type;
+    result_entry.is_inlined = src_entry.is_inlined;
     result_entry.type = src_entry.type;
 
     // Copy the name over.
@@ -677,28 +636,29 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
     memcpy(data_ptr + out_offset, src_entry.name, name_len + 1);
     out_offset += name_len + 1;
 
-    const auto type_size =
-        GetHostSizeAndAlignment(src_entry.data, src_entry.type).first;
-    if (src_entry.IsArray() || type_size > sizeof(void *)) {
-      out_offset +=
-          GetAlignmentPaddingSize(src_entry.data, src_entry.type, out_offset);
-
-      // Copy over the elements, including the array_size if present.
-      size_t elements_size =
-          OpAttrsRawEntry::DecodeArraySize(src_entry.array_size) * type_size;
-      memcpy(data_ptr + out_offset, static_cast<const char *>(src_entry.data),
-             elements_size);
-
-      // Remember that this is where the element is.
-      result_entry.data = data_ptr + out_offset;
-      out_offset += elements_size;
-    } else {
+    // For inlined buffer and externally allocated buffer,
+    // copying buffer content is enough.
+    if (src_entry.IsInlined() || src_entry.IsExternal()) {
       memcpy(result_entry.buffer, src_entry.buffer, sizeof(void *));
+      continue;
     }
-  }
 
-  // Make sure the memory usage is same as expected.
-  assert(out_offset == alloc_size);
+    // Handle internally allocated buffer case.
+    out_offset +=
+        GetAlignmentPaddingSize(src_entry.data, src_entry.type, out_offset);
+
+    // Copy over the elements.
+    const auto payload_size =
+        GetHostSizeAndAlignment(src_entry.data, src_entry.type).first *
+        src_entry.element_count;
+
+    memcpy(data_ptr + out_offset, static_cast<const char *>(src_entry.data),
+           payload_size);
+
+    // Remember that this is where the element is.
+    result_entry.data = data_ptr + out_offset;
+    out_offset += payload_size;
+  }
 
   return TakeRef(result);
 }
@@ -893,13 +853,12 @@ void OpAttrsRef::Print(raw_ostream &os) const {
     os << "  '" << entry.name << "'"
        << " type=" << GetNameString(entry.type) << " value=";
 
-    auto type_size = GetHostSizeAndAlignment(entry.data, entry.type).first;
     if (entry.IsArray()) {
-      const char *data = static_cast<const char *>(entry.data);
+      const char *data = static_cast<const char *>(entry.GetData());
       os << '[';
+      auto type_size = GetHostSizeAndAlignment(data, entry.type).first;
 
-      for (size_t i = 0, e = OpAttrsRawEntry::DecodeArraySize(entry.array_size);
-           i != e; ++i) {
+      for (size_t i = 0, e = entry.element_count; i != e; ++i) {
         // Only print the first elements of large arrays.
         if (i == 5) {
           os << "...";
@@ -909,10 +868,8 @@ void OpAttrsRef::Print(raw_ostream &os) const {
         PrintElement(data + i * type_size, entry.type, os);
       }
       os << ']';
-    } else if (type_size <= sizeof(void *)) {
-      PrintElement(entry.buffer, entry.type, os);
     } else {
-      PrintElement(entry.data, entry.type, os);
+      PrintElement(entry.GetData(), entry.type, os);
     }
     os << '\n';
   }

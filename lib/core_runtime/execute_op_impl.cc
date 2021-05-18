@@ -41,10 +41,11 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
       auto type = GetOpAttrTypeFromBEFAttributeType(
           GetElementAttributeType(attribute_type));
       auto array_attr = attr.cast<ArrayAttr>();
-      op_attrs->SetRaw(key, array_attr.GetElements(),
-                       array_attr.GetNumElements(), type);
+      op_attrs->SetRaw(key, array_attr.GetElements(), type,
+                       array_attr.GetNumElements(),
+                       OpAttrsRawEntryType::kExternalArray);
     } else if (IsDenseAttribute(attribute_type)) {
-      auto r = op_attrs->Set(key, attr.cast<DenseAttr>());
+      auto r = op_attrs->SetExternal(key, attr.cast<DenseAttr>());
       assert(r);
       (void)r;
     } else if (IsDataTypeAttribute(attribute_type)) {
@@ -65,7 +66,7 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
           op_attrs->Set(key, attr.cast<F64Attr>().GetValue());
           break;
         case DType::String:
-          op_attrs->SetString(key, attr.cast<StringAttr>().GetValue());
+          op_attrs->SetStringExternal(key, attr.cast<StringAttr>().GetValue());
           break;
         default:
           llvm_unreachable("unknown attribute type");
@@ -79,10 +80,10 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
           break;
         }
         case BEFAttributeType::kShape:
-          op_attrs->Set(key, attr.cast<ShapeAttr>());
+          op_attrs->SetExternal(key, attr.cast<ShapeAttr>());
           break;
         case BEFAttributeType::kAggregate:
-          op_attrs->Set(key, attr.cast<AggregateAttr>());
+          op_attrs->SetExternal(key, attr.cast<AggregateAttr>());
           break;
         default:
           llvm_unreachable("unknown attribute type");
@@ -104,7 +105,7 @@ void SetUpOpFuncAttrs(AggregateAttr op_func_attr_array, OpAttrs *op_attrs) {
     assert(IsDataTypeAttribute(attr.type()) &&
            GetDataType(attr.type()) == DType::String);
     auto string_attr = attr.cast<StringAttr>().GetValue();
-    op_attrs->SetFunc(key, {string_attr});
+    op_attrs->SetFuncExternal(key, {string_attr});
   }
 }
 

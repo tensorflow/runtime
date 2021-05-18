@@ -121,31 +121,31 @@ static Chain OpAttrsSetDType(Argument<OpAttrs> attrs, StringAttribute key,
 
 static Chain OpAttrsSetDense(Argument<OpAttrs> attrs, StringAttribute key,
                              DenseAttr value) {  // NOLINT
-  attrs->Set(key, value);
+  attrs->SetExternal(key, value);
   return Chain();
 }
 
 static Chain OpAttrsSetAggregate(Argument<OpAttrs> attrs, StringAttribute key,
                                  AggregateAttr value) {  // NOLINT
-  attrs->Set(key, value);
+  attrs->SetExternal(key, value);
   return Chain();
 }
 static Chain OpAttrsSetShape(Argument<OpAttrs> attrs, StringAttribute key,
                              ShapeAttr value) {  // NOLINT
-  attrs->Set(key, value);
+  attrs->SetExternal(key, value);
   return Chain();
 }
 
 template <typename T>
 static Chain OpAttrsSetArray(Argument<OpAttrs> attrs, StringAttribute key,
                              ArrayAttribute<T> value) {
-  attrs->SetArray(key, value.data());
+  attrs->SetArrayExternal(key, value.data());
   return Chain();
 }
 
 static Chain OpAttrsSetString(Argument<OpAttrs> attrs, StringAttribute key,
                               StringAttribute value) {
-  attrs->SetString(key, value.get());
+  attrs->SetStringExternal(key, value.get());
   return Chain();
 }
 

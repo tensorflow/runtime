@@ -1442,6 +1442,7 @@ tfrt_cc_library(
     srcs = ["lib/compiler/stream_analysis.cc"],
     hdrs = ["include/tfrt/compiler/stream_analysis.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
         "@llvm-project//mlir:IR",

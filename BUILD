@@ -1452,6 +1452,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "print_stream_pass",
     srcs = ["lib/compiler/print_stream_pass.cc"],
+    visibility = [":friends"],
     deps = [
         ":stream_analysis",
         "@llvm-project//mlir:Pass",

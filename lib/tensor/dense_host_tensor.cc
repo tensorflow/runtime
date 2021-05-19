@@ -30,12 +30,19 @@
 
 namespace tfrt {
 
+// Required alignment constraint for DHT data buffer.
+// Becasuse of eigen library, the alignemnt of DHT buffer should be
+// larger than or equals to EIGEN_DEFAULT_ALIGN_BYTES (16).
+constexpr size_t kTensorBufferAlignment = 16;
+
 llvm::Optional<DenseHostTensor> DenseHostTensor::CreateUninitialized(
     const TensorMetadata& metadata, HostAllocator* allocator) {
+  size_t alignment =
+      std::max(metadata.dtype.GetHostAlignment(), kTensorBufferAlignment);
   auto& shape = metadata.shape;
   auto data = HostBuffer::CreateUninitialized(
-      metadata.dtype.GetHostSize() * shape.GetNumElements(),
-      metadata.dtype.GetHostAlignment(), allocator);
+      metadata.dtype.GetHostSize() * shape.GetNumElements(), alignment,
+      allocator);
   if (!data) return llvm::None;
   return DenseHostTensor(metadata, std::move(data));
 }

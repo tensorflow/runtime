@@ -28,17 +28,17 @@ include "tfrt/tensor/opdefs/tensor_shape_base.td"
 def GPU_DeviceType : GPU_Type<"Device"> { let mnemonic = "device"; }
 def GPU_EventType : GPU_Type<"Event"> { let mnemonic = "event"; }
 def GPU_FunctionType : GPU_Type<"Function"> { let mnemonic = "function"; }
+def GPU_ModuleType : GPU_Type<"Module"> { let mnemonic = "module"; }
 
 def GPU_DeviceGetOp : GPU_Op<"device.get"> {
   let description = [{
     tfrt_gpu.device.get returns the gpu device at the given index.
 
     Example:
-      %ch1 = tfrt.new.chain
-      %index = tfrt.constant.i32 0
-      %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : ui32 }
+      %ordinal = tfrt.constant.i32 0
+      %device = tfrt_gpu.device.get CUDA, %ordinal
   }];
-  let arguments = (ins GPU_PlatformAttr:$platform, I32:$ordinal, TFRT_ChainType);
+  let arguments = (ins GPU_PlatformAttr:$platform, I32:$ordinal);
   let results = (outs GPU_DeviceType);
   let assemblyFormat = "custom<Enum>($platform)`,` operands attr-dict";
 }
@@ -48,12 +48,11 @@ def GPU_ContextCreateOp : GPU_Op<"context.create"> {
     tfrt_gpu.context.create returns a gpu context for the given device.
 
     Example:
-      %ch1 = tfrt.new.chain
-      %index = tfrt.constant.i32 0
-      %device = tfrt_gpu.device.get %index, %ch1 { platform = 1 : ui32 }
-      %ctx = tfrt_gpu.context.create %device, %ch1
+      %ordinal = tfrt.constant.i32 0
+      %device = tfrt_gpu.device.get CUDA, %ordinal
+      %ctx = tfrt_gpu.context.create %device
   }];
-  let arguments = (ins GPU_DeviceType, TFRT_ChainType);
+  let arguments = (ins GPU_DeviceType);
   let results = (outs GPU_ContextType);
 }
 
@@ -67,7 +66,7 @@ def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
       %ch1 = tfrt.new.chain
       %stream = tfrt_gpu.stream.create %context, %ch1
   }];
-  let arguments = (ins GPU_ContextType, TFRT_ChainType);
+  let arguments = (ins GPU_ContextType);
   let results = (outs GPU_StreamType);
 }
 
@@ -92,7 +91,7 @@ def GPU_EventCreateOp : GPU_Op<"event.create"> {
     Example:
       %event = tfrt_gpu.event.create %context
   }];
-  let arguments = (ins GPU_ContextType, TFRT_ChainType);
+  let arguments = (ins GPU_ContextType);
   let results = (outs GPU_EventType);
 }
 
@@ -129,9 +128,9 @@ def GPU_AllocatorCreateOp : GPU_Op<"allocator.create"> {
 
     Example:
       %ch1 = tfrt.new.chain
-      %allocator = tfrt_gpu.allocator.create %context, %ch1
+      %allocator = tfrt_gpu.allocator.create %context
   }];
-  let arguments = (ins GPU_ContextType, TFRT_ChainType);
+  let arguments = (ins GPU_ContextType);
   let results = (outs GPU_AllocatorType);
 }
 
@@ -253,29 +252,33 @@ def GPU_MemcpyDtoHOp : GPU_Op<"mem.copy_device_to_host"> {
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_FunctionLoadOp : GPU_Op<"function.load"> {
+def GPU_ModuleLoadOp : GPU_Op<"module.load"> {
   let description = [{
-    tfrt_gpu.function.load loads GPU device function from a binary blob.
+    tfrt_gpu.module.load loads GPU device module from a binary blob.
 
-    The function is cached in the context for better performance. The key needs
+    The module is cached in the context for better performance. The key needs
     to be unique across all modules loaded into a context.
 
-    Both data and name attribute must be explicitly null-terminated.
+    The data attribute must be explicitly null-terminated.
 
     Example:
-      %function = tfrt_gpu.function.load %ctx, %chain {
+      %function = tfrt_gpu.function.load %ctx {
         data = "null-terminated device function blob, e.g. PTX",
-        key = 1234,
-        name = "kernel\00",
+        key = 1234
       }
   }];
-  let arguments = (ins
-    GPU_ContextType:$ctx,
-    TFRT_ChainType:$in_chain,
-    StrAttr:$data,
-    UI64Attr:$key,
-    StrAttr:$name
-  );
+  let arguments = (ins GPU_ContextType:$ctx, StrAttr:$data, UI64Attr:$key);
+  let results = (outs GPU_ModuleType);
+}
+
+def GPU_FunctionGetOp : GPU_Op<"function.get"> {
+  let description = [{
+    tfrt_gpu.function.get retrieves a GPU device function from a module.
+
+    Example:
+      %function = tfrt_gpu.function.load %module { name = "kernel" }
+  }];
+  let arguments = (ins GPU_ModuleType:$module, StrAttr:$name);
   let results = (outs GPU_FunctionType);
 }
 

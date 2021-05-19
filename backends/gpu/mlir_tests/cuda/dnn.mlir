@@ -21,10 +21,10 @@
 func @dnn_pooling_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch2
-  %context = tfrt_gpu.context.create %device, %ch2
-  %allocator = tfrt_gpu.allocator.create %context, %ch2
-  %stream = tfrt_gpu.stream.create %context, %ch2
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+  %allocator = tfrt_gpu.allocator.create %context
+  %stream = tfrt_gpu.stream.create %context
 
   %k_in_size = tfrt.constant.i32 36  //  2 * 2 * 3 * 3
   %k_out_size = tfrt.constant.i32 4  //  2 * 2 * 1 * 1
@@ -120,7 +120,7 @@ func @dnn_pooling_test() {
   %ch11 = "tfrt_dht.set_tensor_with_values.f32"(%gradient, %ch10, %o00, %o01, %o02, %o03, %o04, %o05, %o06, %o07, %o08, %o09, %o10, %o11, %o12, %o13, %o14, %o15, %o16, %o17, %o18, %o19, %o20, %o21, %o22, %o23, %o24, %o25, %o26, %o27, %o28, %o29, %o30, %o31, %o32, %o33, %o34, %o35):(!t.tensor, !tfrt.chain, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32, f32) -> !tfrt.chain
   %ch12 = tfrt_dht.print_tensor %gradient, %ch11
 
-  %dnn = tfrt_gpu.dnn.create %stream, %ch12
+  %dnn = tfrt_gpu.dnn.create %stream
 
   %dim0 = tfrt.constant.i32 3
   %dim1 = tfrt.constant.i32 3

@@ -19,32 +19,32 @@
 func @function_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch2
-  %context = tfrt_gpu.context.create %device, %ch2
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
 
   // PTX for empty kernel.
   // Typically module loading should be done at initialization time.
-  %func = tfrt_gpu.function.load %context, %ch2 {
+  %module = tfrt_gpu.module.load %context {
     data = ".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry Kernel() { ret; }\00",
-    key = 0 : ui64,
-    name = "Kernel\00"
+    key = 0 : ui64
   }
+
+  %func = tfrt_gpu.function.get %module { name = "Kernel" }
 
   tfrt.return
 }
 
-// CHECK-LABEL: --- Running 'function_bad_data_test'
-func @function_bad_data_test() {
+// CHECK-LABEL: --- Running 'module_bad_data_test'
+func @module_bad_data_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch2
-  %context = tfrt_gpu.context.create %device, %ch2
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
 
   // expected-error @+1 {{CUDA_ERROR_INVALID_IMAGE}}
-  %func = tfrt_gpu.function.load %context, %ch2 {
+  %func = tfrt_gpu.module.load %context {
     data = "invalid image\00",
-    key = 0 : ui64,
-    name = "Kernel\00"
+    key = 0 : ui64
   }
 
   tfrt.return
@@ -54,38 +54,31 @@ func @function_bad_data_test() {
 func @function_bad_name_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch2
-  %context = tfrt_gpu.context.create %device, %ch2
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+
+  %module = tfrt_gpu.module.load %context {
+    data = ".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry Kernel() { ret; }\00",
+    key = 0 : ui64
+  }
 
   // expected-error @+1 {{CUDA_ERROR_NOT_FOUND}}
-  %func = tfrt_gpu.function.load %context, %ch2 {
-    data = ".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry Kernel() { ret; }\00",
-    key = 0 : ui64,
-    name = "Foo\00"
-  }
+  %func = tfrt_gpu.function.get %module { name = "Foo\00" }
 
   tfrt.return
 }
 
-// CHECK-LABEL: --- Running 'function_not_null_terminated_test'
-func @function_not_null_terminated_test() {
+// CHECK-LABEL: --- Running 'module_not_null_terminated_test'
+func @module_not_null_terminated_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch2
-  %context = tfrt_gpu.context.create %device, %ch2
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
 
   // expected-error @+1 {{data attribute must be null-terminated}}
-  %func0 = tfrt_gpu.function.load %context, %ch2 {
+  %module = tfrt_gpu.module.load %context {
     data = "not null-terminated",
-    key = 0 : ui64,
-    name = "\00"
-  }
-
-  // expected-error @+1 {{name attribute must be null-terminated}}
-  %func1 = tfrt_gpu.function.load %context, %ch2 {
-    data = "\00",
-    key = 0 : ui64,
-    name = "not null-terminated"
+    key = 0 : ui64
   }
 
   tfrt.return

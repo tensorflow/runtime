@@ -59,7 +59,7 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
     %cudnn, %ch5 = tfrt_gpu.dnn.create %context, %ch1
 
   }];
-  let arguments = (ins GPU_StreamType, TFRT_ChainType);
+  let arguments = (ins GPU_StreamType);
   let results = (outs GPU_DnnHandleType);
 }
 

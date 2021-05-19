@@ -53,13 +53,13 @@ class GpuContext {
   wrapper::Context get() const { return context_.get(); }
   wrapper::Context release();
 
-  Expected<GpuFunction> GetFunction(uint64_t key, string_view data,
-                                    string_view name);
+  // Load module from binary 'data' blob and return a (non-owning) reference to
+  // the module. The 'key' needs to be uniquely identify the `data` payload.
+  Expected<wrapper::Module> LoadModule(uint64_t key, string_view data);
 
  private:
   wrapper::OwningContext context_;
-  llvm::DenseMap<uint64_t, std::pair<wrapper::OwningModule, GpuFunction>>
-      functions_;
+  llvm::DenseMap<uint64_t, wrapper::OwningModule> modules_;
 };
 
 class GpuStream {
@@ -117,6 +117,22 @@ class GpuEvent {
  private:
   AsyncValueRef<GpuContext> context_;
   wrapper::OwningEvent event_;
+};
+
+class GpuModule {
+ public:
+  explicit GpuModule(AsyncValueRef<GpuContext> context, wrapper::Module module);
+  ~GpuModule();
+
+  GpuModule(GpuModule&&) = default;
+  GpuModule& operator=(GpuModule&&) = default;
+
+  const wrapper::Module* operator->() const { return &module_; }
+  wrapper::Module get() const { return module_; }
+
+ private:
+  AsyncValueRef<GpuContext> context_;
+  wrapper::Module module_;
 };
 
 // GpuAllocator base class.

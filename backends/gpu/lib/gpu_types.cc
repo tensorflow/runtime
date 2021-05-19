@@ -17,6 +17,7 @@
 
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/ref_count.h"
@@ -29,7 +30,7 @@ GpuContext::GpuContext(wrapper::OwningContext context)
 GpuContext::~GpuContext() = default;
 
 wrapper::Context GpuContext::release() {
-  functions_.clear();         // Clear GpuFunction map.
+  modules_.clear();           // Clear modules map.
   return context_.release();  // Release OwningContext.
 }
 
@@ -54,33 +55,27 @@ static llvm::Expected<wrapper::OwningModule> LoadModule(
 #endif
 }
 
-Expected<GpuFunction> GpuContext::GetFunction(uint64_t key, string_view data,
-                                              string_view name) {
-  auto it = functions_.find(key);
-  if (it != functions_.end()) {
-    // Returned cached function.
-    return std::get<GpuFunction>(it->second);
+Expected<wrapper::Module> GpuContext::LoadModule(uint64_t key,
+                                                 string_view data) {
+  auto it = modules_.find(key);
+  if (it != modules_.end()) {
+    // Returned cached module.
+    return it->second.get();
   }
 
   if (data.empty() || data.back() != 0)
     return MakeStringError("data attribute must be null-terminated");
-  if (name.empty() || name.back() != 0)
-    return MakeStringError("name attribute must be null-terminated");
 
   auto current = wrapper::CtxSetCurrent(context_.get());
   if (!current) return current.takeError();
 
-  auto module = LoadModule(*current, data);
+  auto module = gpu::LoadModule(*current, data);
   if (!module) return module.takeError();
 
-  auto function = wrapper::ModuleGetFunction(module->get(), name.data());
-  if (!function) return function.takeError();
-
-  auto pair = functions_.try_emplace(
-      key, std::make_pair(std::move(*module), *function));
+  auto pair = modules_.try_emplace(key, std::move(*module));
   assert(pair.second && "failed to insert into map");
 
-  return std::get<GpuFunction>(pair.first->second);
+  return pair.first->second.get();
 }
 
 GpuStream::GpuStream(AsyncValueRef<GpuContext> context,
@@ -110,6 +105,11 @@ GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
     : context_(std::move(context)), event_(std::move(event)) {}
 
 GpuEvent::~GpuEvent() = default;
+
+GpuModule::GpuModule(AsyncValueRef<GpuContext> context, wrapper::Module module)
+    : context_(std::move(context)), module_(std::move(module)) {}
+
+GpuModule::~GpuModule() = default;
 
 GpuDefaultAllocator::GpuDefaultAllocator(AsyncValueRef<GpuContext> context)
     : context_(std::move(context)) {}

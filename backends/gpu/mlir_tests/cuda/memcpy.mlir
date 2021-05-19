@@ -19,10 +19,10 @@
 func @memcpy_host_to_device_and_back_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch2
-  %context = tfrt_gpu.context.create %device, %ch2
-  %allocator = tfrt_gpu.allocator.create %context, %ch2
-  %stream = tfrt_gpu.stream.create %context, %ch2
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+  %allocator = tfrt_gpu.allocator.create %context
+  %stream = tfrt_gpu.stream.create %context
 
   %size = tfrt.constant.i64 32
   %device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch2
@@ -45,7 +45,7 @@ func @memcpy_host_to_device_and_back_test() {
   %ch31 = tfrt_gpu.mem.copy_device_to_host %result_host_buffer, %device_buffer, %size, %stream, %ch20
 
   // Create, record, and poll an event to make sure copy back to host completed.
-  %event = tfrt_gpu.event.create %context, %ch31
+  %event = tfrt_gpu.event.create %context
   %ch41 = tfrt_gpu.event.record %event, %stream, %ch31
   %ch42 = tfrt_gpu.event.synchronize %event, %ch41
 

@@ -211,11 +211,19 @@ static Error GpuMemcpyDtoH(const RCReference<HostBuffer>& dst,
                               src.pointer(), bytes_count, stream.get());
 }
 
-static Expected<wrapper::Function> GpuFunctionLoad(
+static Expected<GpuModule> GpuModuleLoad(
     Argument<GpuContext> context,
     // Note: Attributes must be in alphabetical order (see b/140896071).
-    StringAttribute data, Attribute<uint64_t> key, StringAttribute name) {
-  return context->GetFunction(key.get(), data.get(), name.get());
+    StringAttribute data, Attribute<uint64_t> key) {
+  auto module = context->LoadModule(key.get(), data.get());
+  if (!module) return module.takeError();
+  return GpuModule(context.ValueRef(), *module);
+}
+
+static Expected<GpuFunction> GpuFunctionGet(const GpuModule& module,
+                                            StringAttribute name) {
+  auto result = wrapper::ModuleGetFunction(module.get(), name.str().c_str());
+  return result;
 }
 
 static Error GpuFunctionLaunch(const GpuStream& stream, GpuFunction function,
@@ -294,7 +302,8 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.mem.copy_device_to_host",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemcpyDtoH));
 
-  kernel_reg->AddKernel("tfrt_gpu.function.load", TFRT_KERNEL(GpuFunctionLoad));
+  kernel_reg->AddKernel("tfrt_gpu.module.load", TFRT_KERNEL(GpuModuleLoad));
+  kernel_reg->AddKernel("tfrt_gpu.function.get", TFRT_KERNEL(GpuFunctionGet));
   kernel_reg->AddKernel("tfrt_gpu.function.launch",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuFunctionLaunch));
 }

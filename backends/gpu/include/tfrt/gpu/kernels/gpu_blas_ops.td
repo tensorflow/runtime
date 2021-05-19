@@ -47,7 +47,15 @@ def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
 
     This will be explicitly passed to every subsequent BLAS library call.
   }];
-  let arguments = (ins GPU_StreamType, TFRT_ChainType);
+
+  // Backwards compatible, taking a chain. TODO(csigg): Remove.
+  let builders = [
+    OpBuilder<(ins "::mlir::Type":$type, "::mlir::Value":$stream, "::mlir::Value"),
+    [{
+      return build($_builder, $_state, type, stream);
+    }]>];
+
+  let arguments = (ins GPU_StreamType);
   let results = (outs GPU_BlasHandleType);
 }
 

@@ -39,7 +39,7 @@ def SolverDnCreateOp : GPU_Op<"solver.create"> {
 
     This will be explicitly passed to every subsequent SOLVER library call.
   }];
-  let arguments = (ins GPU_StreamType, TFRT_ChainType);
+  let arguments = (ins GPU_StreamType);
   let results = (outs GPU_SolverHandleType);
 }
 

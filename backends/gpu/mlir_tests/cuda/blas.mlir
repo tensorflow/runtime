@@ -18,11 +18,11 @@
 func @blas_axpy() {
   %ch1 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch1
-  %context = tfrt_gpu.context.create %device, %ch1
-  %allocator = tfrt_gpu.allocator.create %context, %ch1
-  %stream = tfrt_gpu.stream.create %context, %ch1
-  %blas = tfrt_gpu.blas.create %stream, %ch1
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+  %allocator = tfrt_gpu.allocator.create %context
+  %stream = tfrt_gpu.stream.create %context
+  %blas = tfrt_gpu.blas.create %stream
 
   %buffer_length = tfrt.constant.i32 4 // [2, 2] = 4 floats
   %buffer_size_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
@@ -55,11 +55,11 @@ func @blas_axpy() {
 func @blas_gemm() {
   %ch1 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch1
-  %context = tfrt_gpu.context.create %device, %ch1
-  %allocator = tfrt_gpu.allocator.create %context, %ch1
-  %stream = tfrt_gpu.stream.create %context, %ch1
-  %blas = tfrt_gpu.blas.create %stream, %ch1
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+  %allocator = tfrt_gpu.allocator.create %context
+  %stream = tfrt_gpu.stream.create %context
+  %blas = tfrt_gpu.blas.create %stream
 
   %buffer_length = tfrt.constant.i32 4 // [2, 2] = 4 floats
   %buffer_size_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
@@ -102,11 +102,11 @@ func @blas_gemm() {
 func @blas_gemm_batched() {
   %ch1 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch1
-  %context = tfrt_gpu.context.create %device, %ch1
-  %allocator = tfrt_gpu.allocator.create %context, %ch1
-  %stream = tfrt_gpu.stream.create %context, %ch1
-  %blas = tfrt_gpu.blas.create %stream, %ch1
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+  %allocator = tfrt_gpu.allocator.create %context
+  %stream = tfrt_gpu.stream.create %context
+  %blas = tfrt_gpu.blas.create %stream
 
   %buffer_length = tfrt.constant.i32 4 // [2, 2] = 4 floats
   %buffer_size_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes

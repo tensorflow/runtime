@@ -19,9 +19,9 @@
 func @event_create_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch2
-  %context = tfrt_gpu.context.create %device, %ch2
-  %event = tfrt_gpu.event.create %context, %ch2
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+  %event = tfrt_gpu.event.create %context
 
   tfrt.return
 }
@@ -30,11 +30,11 @@ func @event_create_test() {
 func @event_record_and_poll_test() {
   %ch2 = tfrt.new.chain
   %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index, %ch2
-  %context = tfrt_gpu.context.create %device, %ch2
-  %stream = tfrt_gpu.stream.create %context, %ch2
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+  %stream = tfrt_gpu.stream.create %context
 
-  %event = tfrt_gpu.event.create %context, %ch2
+  %event = tfrt_gpu.event.create %context
   %ch7 = tfrt_gpu.event.record %event, %stream, %ch2
   %ch8 = tfrt_gpu.event.synchronize %event, %ch7
 

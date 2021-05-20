@@ -29,9 +29,7 @@ namespace {
 class EigenStreamInterface : public Eigen::StreamInterface {
  public:
   explicit EigenStreamInterface(wrapper::Stream stream)
-      : stream_(static_cast<gpuStream_t>(stream)) {
-    Eigen::initializeDeviceProp();
-  }
+      : stream_(static_cast<gpuStream_t>(stream)) {}
 
   // NB! gpuStream_t and gpuDeviceProp_t are globally typedef-ed to cudaStream_t
   // and cudaDeviceProp, or to hipStream_t and hipDeviceProp_t.  This means a
@@ -40,9 +38,7 @@ class EigenStreamInterface : public Eigen::StreamInterface {
 
   const gpuStream_t& stream() const override { return stream_; }
   const gpuDeviceProp_t& deviceProperties() const override {
-    // The m_deviceProperties array is populated by the call to
-    // Eigen::initializeDeviceProp() in the constructor.
-    return Eigen::m_deviceProperties[0];
+    return Eigen::GetGpuDeviceProperties(0);
   };
 
   // Unimplemented methods that are not yet necessary.

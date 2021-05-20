@@ -32,42 +32,6 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
-    name = "memory/sub_allocator_test",
-    srcs = [
-        "memory/sub_allocator_test.cc",
-    ],
-    tags = [
-        "noasan",
-        "requires-gpu-nvidia",
-    ],
-    deps = [
-        "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//backends/gpu:gpu_memory",
-        "@tf_runtime//cpp_tests:common",
-    ],
-)
-
-tfrt_cc_test(
-    name = "memory/block_allocator_test",
-    srcs = [
-        "memory/block_allocator_test.cc",
-    ],
-    tags = [
-        "noasan",
-        "nomsan",
-        "requires-gpu-nvidia",
-    ],
-    deps = [
-        "@com_google_googletest//:gtest_main",
-        "@llvm-project//llvm:Support",
-        "@tf_runtime//backends/gpu:gpu_memory",
-        "@tf_runtime//backends/gpu:gpu_wrapper",
-        "@tf_runtime//cpp_tests:common",
-    ],
-)
-
-tfrt_cc_test(
     name = "memory/gpu_buffer_test",
     srcs = [
         "memory/gpu_buffer_test.cc",
@@ -80,7 +44,7 @@ tfrt_cc_test(
     deps = [
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
-        "@tf_runtime//backends/gpu:gpu_memory",
+        "@tf_runtime//backends/gpu:gpu_types",
         "@tf_runtime//backends/gpu:gpu_wrapper",
         "@tf_runtime//cpp_tests:common",
     ],

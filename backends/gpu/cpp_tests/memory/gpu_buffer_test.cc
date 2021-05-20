@@ -13,8 +13,6 @@
 // limitations under the License.
 
 // Unit test for GpuBuffer.
-#include "tfrt/gpu/memory/gpu_buffer.h"
-
 #include <llvm/Support/Errc.h>
 
 #include <ostream>
@@ -23,58 +21,38 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_os_ostream.h"
 #include "tfrt/cpp_tests/error_util.h"
-#include "tfrt/gpu/memory/block_allocator.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
 
-class GpuBufferTest : public ::testing::TestWithParam<SubAllocator> {
- protected:
-  void SetUp() override {
-    ASSERT_TRUE(IsSuccess(Init(wrapper::Platform::CUDA)));
-  }
-
-  BlockAllocator CreateSimpleBlockAllocator() {
-    return BlockAllocator(&sub_allocator_);
-  }
-
-  SubAllocator sub_allocator_ = GetParam();
-};
+class GpuBufferTest : public ::testing::TestWithParam<wrapper::Platform> {};
 
 TEST_P(GpuBufferTest, Basic) {
-  BlockAllocator block_allocator = CreateSimpleBlockAllocator();
-  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(wrapper::Platform::CUDA, 0));
+  ASSERT_TRUE(IsSuccess(Init(GetParam())));
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(GetParam(), 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
-  TFRT_ASSERT_AND_ASSIGN(auto current_context,
-                         wrapper::CtxSetCurrent(context.get()));
+  wrapper::OwningStream stream;
+  {
+    TFRT_ASSERT_AND_ASSIGN(auto current, wrapper::CtxSetCurrent(context.get()));
+    TFRT_ASSERT_AND_ASSIGN(
+        stream, wrapper::StreamCreate(current, wrapper::StreamFlags::DEFAULT));
+  }
+  auto gpu_context = MakeAvailableAsyncValueRef<GpuContext>(std::move(context));
+  auto gpu_allocator =
+      MakeAvailableAsyncValueRef<GpuDefaultAllocator>(gpu_context.CopyRef());
+
+  size_t buffer_size = 512;
   TFRT_ASSERT_AND_ASSIGN(
-      auto stream,
-      wrapper::StreamCreate(current_context, wrapper::StreamFlags::DEFAULT));
-  {
-    // Allocation and deallocation via GpuAllocator.
-    size_t buffer_size = 512;
-    TFRT_ASSERT_AND_ASSIGN(auto buffer,
-                           block_allocator.Allocate(buffer_size, stream.get()));
-  }
+      auto gpu_buffer,
+      GpuBuffer::Allocate(gpu_allocator.CopyRef(), buffer_size, stream.get()));
 
-  {
-    size_t buffer_size = 512;
-    TFRT_ASSERT_AND_ASSIGN(auto buffer,
-                           block_allocator.Allocate(buffer_size, stream.get()));
-
-    // Create GpuBuffer from externally allocated buffer, and deallocate via
-    // deallocator.
-    auto buffer_ptr = buffer.get();
-    auto buffer2 =
-        MakeRef<GpuCrtBuffer>(buffer_ptr->pointer(), buffer_ptr->size(),
-                              [buffer = std::move(buffer)](GpuCrtBuffer*) {});
-  }
+  stream.reset();  // Destroy `stream` before `gpu_context`.
 }
 
-INSTANTIATE_TEST_SUITE_P(
-    BaseTestCases, GpuBufferTest,
-    ::testing::Values(SubAllocator(wrapper::Platform::CUDA)));
+INSTANTIATE_TEST_SUITE_P(BaseTestCases, GpuBufferTest,
+                         ::testing::Values(wrapper::Platform::CUDA));
 
 }  // namespace gpu
 }  // namespace tfrt

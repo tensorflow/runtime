@@ -202,19 +202,13 @@ tfrt_cc_library(
     name = "gpu_memory",
     srcs = [
         "lib/memory/bfc_gpu_allocator.cc",
-        "lib/memory/block_allocator.cc",
-        "lib/memory/caching_gpu_allocator.cc",
         "lib/memory/gpu_allocator.cc",
         "lib/memory/gpu_buffer.cc",
-        "lib/memory/sub_allocator.cc",
     ],
     hdrs = [
         "include/tfrt/gpu/memory/bfc_gpu_allocator.h",
-        "include/tfrt/gpu/memory/block_allocator.h",
-        "include/tfrt/gpu/memory/caching_gpu_allocator.h",
         "include/tfrt/gpu/memory/gpu_allocator.h",
         "include/tfrt/gpu/memory/gpu_buffer.h",
-        "include/tfrt/gpu/memory/sub_allocator.h",
     ],
     visibility = [":tests_and_tools"],
     deps = [

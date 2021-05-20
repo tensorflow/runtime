@@ -589,7 +589,8 @@ static void SetupPassDebugging(mlir::MLIRContext* context,
     pm.enableIRPrinting([](mlir::Pass*, mlir::Operation*) { return false; },
                         [](mlir::Pass*, mlir::Operation*) { return true; },
                         /*printModuleScope=*/true,
-                        /*printAfterOnlyOnChange=*/false, llvm::errs());
+                        /*printAfterOnlyOnChange=*/false,
+                        /*printAfterOnlyOnFailure=*/false, llvm::errs());
   }
 }
 

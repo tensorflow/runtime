@@ -70,6 +70,7 @@
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/cpu/jit/async_runtime.h"
 #include "tfrt/cpu/jit/async_runtime_api.h"
+#include "tfrt/cpu/jit/cpurt_support.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/error_util.h"
@@ -289,13 +290,6 @@ static mlir::DenseElementsAttr GetMemrefValues(
       return {};
   }
   return mlir::DenseElementsAttr::get(shaped_type, attributes);
-}
-
-// Returns true if the shape is a 0/1-ranked tensor of i32/i64's.
-static bool IsSinkable(const mlir::ShapedType& shaped) {
-  return shaped && (shaped.getRank() == 0 || shaped.getRank() == 1) &&
-         (shaped.getElementType().isInteger(32) ||
-          shaped.getElementType().isInteger(64));
 }
 
 // -------------------------------------------------------------------------- //
@@ -893,7 +887,8 @@ llvm::Error JitCompilationContext::Specialize(
     if (constraints[i] != OperandConstraint::kValue) continue;
     mlir::Type operand_type = func.getType().getInput(i);
     mlir::ShapedType shaped = operand_type.dyn_cast<mlir::ShapedType>();
-    assert(IsSinkable(shaped) && "Non-sinkable operand was marked for sinking");
+    assert(SupportsValueSpecialization(shaped) &&
+           "Non-sinkable operand was marked for sinking");
     mlir::DenseElementsAttr shape_attr =
         GetMemrefValues(&builder, shaped, operands[i]);
     if (!shape_attr)
@@ -962,7 +957,7 @@ Expected<OperandConstraint> ResolveOperandConstraint(
 
   // Leave the `value` constraint unmodified if the operand is sinkable.
   if (operand_constraint == OperandConstraint::kValue) {
-    if (IsSinkable(shaped)) return operand_constraint;
+    if (SupportsValueSpecialization(shaped)) return operand_constraint;
     return MakeStringError("Cannot sink operand type: ", operand_type);
   }
 

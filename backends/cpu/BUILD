@@ -264,6 +264,7 @@ tfrt_cc_library(
     deps = [
         ":async_runtime",
         ":async_runtime_api",
+        ":cpurt_support",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AMXToLLVMIRTranslation",
@@ -304,6 +305,15 @@ tfrt_cc_library(
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_library(
+    name = "cpurt_support",
+    hdrs = ["include/tfrt/cpu/jit/cpurt_support.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//mlir:IR",
     ],
 )
 

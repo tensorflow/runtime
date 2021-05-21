@@ -690,6 +690,63 @@ TEST_P(Test, OutOfMemory) {
   EXPECT_TRUE(Contains(log_string, "Out of memory trying to allocate 1.00TiB"));
 }
 
+static void CheckDanglingResources(
+    Expected<OwningContext> context,
+    std::function<llvm::Error(Context)> destroy) {
+  ASSERT_TRUE(IsSuccess(context.takeError()));
+  {
+    TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context->get()));
+    TFRT_ASSERT_AND_ASSIGN(auto stream,
+                           StreamCreate(current, StreamFlags::DEFAULT));
+    TFRT_ASSERT_AND_ASSIGN(auto event,
+                           EventCreate(current, EventFlags::DEFAULT));
+    const size_t size_bytes = 32;
+    TFRT_ASSERT_AND_ASSIGN(auto device_mem, MemAlloc(current, size_bytes));
+    TFRT_ASSERT_AND_ASSIGN(
+        auto host_mem,
+        MemHostAlloc(current, size_bytes, MemHostAllocFlags::DEFAULT));
+    char array[size_bytes];
+    TFRT_ASSERT_AND_ASSIGN(auto registered_mem,
+                           MemHostRegister(current, array, size_bytes,
+                                           MemHostRegisterFlags::DEFAULT));
+
+    // Release resources and let the driver destroy them with the context.
+    stream.release();
+    event.release();
+    device_mem.release();
+    host_mem.release();
+    registered_mem.release();
+  }
+
+  std::string log_string;
+  llvm::raw_string_ostream(log_string) << destroy(context->release());
+
+#ifndef NDEBUG  // Dangling resources are only detected in !NDEBUG builds.
+  EXPECT_TRUE(Contains(log_string, "has dangling resources"));
+  EXPECT_TRUE(Contains(log_string, "(stream)"));
+  EXPECT_TRUE(Contains(log_string, "(event)"));
+  EXPECT_TRUE(Contains(log_string, "(device memory)"));
+  EXPECT_TRUE(Contains(log_string, "(host memory)"));
+  EXPECT_TRUE(Contains(log_string, "(registered memory)"));
+#endif
+}
+
+TEST_P(Test, DanglingResources) {
+  auto platform = GetParam();
+  ASSERT_TRUE(IsSuccess(Init(platform)));
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
+  ASSERT_GT(count, 0);
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
+
+  CheckDanglingResources(CtxCreate(CtxFlags::SCHED_AUTO, device), &CtxDestroy);
+  CheckDanglingResources(DevicePrimaryCtxRetain(device), [&](Context) {
+    return DevicePrimaryCtxRelease(device);
+  });
+  CheckDanglingResources(DevicePrimaryCtxRetain(device), [&](Context) {
+    return DevicePrimaryCtxReset(device);
+  });
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

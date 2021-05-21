@@ -19,6 +19,8 @@
 #define TFRT_BACKENDS_GPU_LIB_STREAM_WRAPPER_DETAIL_H_
 
 #include <iterator>
+#include <mutex>
+#include <unordered_map>
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/Support/Error.h"
@@ -147,6 +149,58 @@ llvm::Error UnsupportedPlatform(Platform platform);
 
 // Return error that allocating size_bytes failed.
 llvm::Error MakeOomError(CurrentContext current, size_t size_bytes);
+
+// Resource types that are being tracked.
+enum class ResourceType {
+  kStream,
+  kEvent,
+  kModule,
+  kDeviceMemory,
+  kHostMemory,
+  kRegisteredMemory,
+};
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ResourceType type);
+
+// Map of resources created by the wrapper API. See CheckNoDanglingResources().
+class ResourceMap {
+  using Map = std::unordered_map<void*, std::pair<ResourceType, Context>>;
+
+  ResourceMap(Map* map, std::mutex* mutex);
+
+ public:
+  static ResourceMap Get();
+
+  void NotifyCreated(ResourceType type, void* resource);
+  void NotifyDestroyed(void* resource);
+  llvm::Error CheckNoneDangling(Context context);
+
+ private:
+  Map* map_;
+  std::lock_guard<std::mutex> lock_;
+};
+
+// Notifies that the 'resource' has been created by the current context.
+inline void NotifyResourceCreated(ResourceType type, void* resource) {
+#ifndef NDEBUG
+  ResourceMap::Get().NotifyCreated(type, resource);
+#endif
+}
+
+// Notifies that the 'resource' has destroyed.
+inline void NotifyResourceDestroyed(void* resource) {
+#ifndef NDEBUG
+  ResourceMap::Get().NotifyDestroyed(resource);
+#endif
+}
+
+// Generates an error when 'context' has live resources. The 'context' does not
+// need to be valid, this function can be called after destroying it.
+inline llvm::Error CheckNoDanglingResources(Context context) {
+#ifndef NDEBUG
+  return ResourceMap::Get().CheckNoneDangling(context);
+#endif
+  return llvm::Error::success();
+}
 
 }  // namespace wrapper
 }  // namespace gpu

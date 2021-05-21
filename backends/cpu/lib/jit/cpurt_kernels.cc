@@ -129,6 +129,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
   ReturnValueConverter<ConversionCtx> converter(results);
   converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
+  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
 
   if (auto err = (*executable)->Execute(memrefs, converter, exec_ctx)) return;
 

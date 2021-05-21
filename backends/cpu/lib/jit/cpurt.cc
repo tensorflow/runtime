@@ -383,6 +383,14 @@ static ArrayRef<int64_t> Sizes(StridedMemRefType<T, 0>* memref) {
   return {};
 }
 
+// The returned memref can point into statically allocated memory that we can't
+// pass to `free` (memref.global). The LLVM lowering of `memref.global` sets the
+// allocated pointer to the magic value 0xDEADBEEF.
+template <typename T, int rank>
+static bool IsStaticStorageDuration(StridedMemRefType<T, rank>* memref) {
+  return reinterpret_cast<std::intptr_t>(memref->basePtr) == 0xDEADBEEF;
+}
+
 // Converts StridedMemref to the DenseHostTensor. This struct satisfies
 // ReturnStridedMemref's concept (see cpurt.h).
 //
@@ -401,10 +409,15 @@ struct ConvertDenseHostTensor {
     TensorMetadata metadata(GetDType<T>(), Sizes(memref));
     TFRT_MSAN_MEMORY_IS_INITIALIZED(memref->data,
                                     metadata.GetHostSizeInBytes());
+
+    // Deallocate memref only if it has dynamic storage duration.
+    void* ptr = IsStaticStorageDuration(memref) ? nullptr : memref->basePtr;
+    HostBuffer::Deallocator deallocator = [ptr](void*, size_t) { free(ptr); };
+
     return DenseHostTensor(
-        metadata, HostBuffer::CreateFromExternal(
-                      memref->data, metadata.GetHostSizeInBytes(),
-                      [ptr = memref->basePtr](void*, size_t) { free(ptr); }));
+        metadata, HostBuffer::CreateFromExternal(memref->data,
+                                                 metadata.GetHostSizeInBytes(),
+                                                 std::move(deallocator)));
   }
 };
 }  // namespace

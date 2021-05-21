@@ -74,9 +74,9 @@ static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
                       float beta, const GpuBuffer& C, int32_t heightC,
                       wrapper::BlasGemmAlgo algo,
                       // Needs to be sorted alphabetically by attribute name!
-                      Attribute<int32_t> Atype, Attribute<int32_t> Btype,
-                      Attribute<int32_t> Ctype, Attribute<int32_t> computeType,
-                      Attribute<int32_t> transA, Attribute<int32_t> transB) {
+                      Attribute<int32_t> computeType, Attribute<int32_t> transA,
+                      Attribute<int32_t> transB, Attribute<int32_t> typeA,
+                      Attribute<int32_t> typeB, Attribute<int32_t> typeC) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
@@ -87,9 +87,9 @@ static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
   return wrapper::BlasGemmEx(
       *current, handle.get(), wrapper::BlasOperation::FromOpaqueValue(*transA),
       wrapper::BlasOperation::FromOpaqueValue(*transB), m, n, k, alpha_ptr,
-      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Atype), heightA,
-      B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Btype), heightB,
-      beta_ptr, C.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Ctype),
+      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeA), heightA,
+      B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeB), heightB,
+      beta_ptr, C.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeC),
       heightC, wrapper::BlasDataType::FromOpaqueValue(*computeType), algo);
 }
 
@@ -100,9 +100,9 @@ static Error BlasGemmBatch(
     int32_t heightC, int64_t strideC, int32_t batchCount,
     wrapper::BlasGemmAlgo algo,
     // Needs to be sorted alphabetically by attribute name!
-    Attribute<int32_t> Atype, Attribute<int32_t> Btype,
-    Attribute<int32_t> Ctype, Attribute<int32_t> computeType,
-    Attribute<int32_t> transA, Attribute<int32_t> transB) {
+    Attribute<int32_t> computeType, Attribute<int32_t> transA,
+    Attribute<int32_t> transB, Attribute<int32_t> typeA,
+    Attribute<int32_t> typeB, Attribute<int32_t> typeC) {
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
@@ -113,10 +113,10 @@ static Error BlasGemmBatch(
   return wrapper::BlasGemmStridedBatchedEx(
       *current, handle.get(), wrapper::BlasOperation::FromOpaqueValue(*transA),
       wrapper::BlasOperation::FromOpaqueValue(*transB), m, n, k, alpha_ptr,
-      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Atype), heightA,
-      strideA, B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*Btype),
+      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeA), heightA,
+      strideA, B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeB),
       heightB, strideB, beta_ptr, C.pointer(),
-      wrapper::BlasDataType::FromOpaqueValue(*Ctype), heightC, strideC,
+      wrapper::BlasDataType::FromOpaqueValue(*typeC), heightC, strideC,
       batchCount, wrapper::BlasDataType::FromOpaqueValue(*computeType), algo);
 }
 

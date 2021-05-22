@@ -39,12 +39,6 @@ __host__ __device__ T ldg(const T* ptr) {
 #endif
 }
 
-// Specialize ldg for Eigen::half.
-template <>
-__host__ __device__ Eigen::half ldg(const Eigen::half* ptr) {
-  return Eigen::half(Eigen::half_impl::raw_uint16_to_half(ldg(&ptr->x)));
-}
-
 int DivUp(int a, int b) { return (a + b - 1) / b; }
 
 template <typename T, int IndexCount, T DefaultValue>

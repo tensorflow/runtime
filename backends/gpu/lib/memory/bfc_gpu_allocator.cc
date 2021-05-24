@@ -72,6 +72,11 @@ BfcGpuAllocator::BfcGpuAllocator(const wrapper::CurrentContext& current)
 
 llvm::Expected<RCReference<gpu::GpuCrtBuffer>> BfcGpuAllocator::Allocate(
     size_t num_bytes, wrapper::Stream stream) {
+  return AllocateBuffer(num_bytes, stream);
+}
+
+llvm::Expected<RCReference<gpu::GpuCrtBuffer>> BfcGpuAllocator::AllocateBuffer(
+    size_t num_bytes, wrapper::Stream stream) {
   TFRT_TRACE_SCOPE(Default, "BfcGpuAllocator::Allocate");
   // First, always allocate memory of at least 256 bytes, and always
   // allocate multiples of 256 bytes so all memory addresses are

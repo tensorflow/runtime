@@ -52,6 +52,9 @@ class BfcGpuAllocator : public gpu::GpuCrtAllocator {
   llvm::Expected<RCReference<gpu::GpuCrtBuffer>> Allocate(
       size_t num_bytes, wrapper::Stream stream) override;
 
+  llvm::Expected<RCReference<GpuCrtBuffer>> AllocateBuffer(
+      size_t num_bytes, wrapper::Stream stream) override;
+
   void Deallocate(const gpu::GpuCrtBuffer& buffer) override;
 
   llvm::Error RecordUsage(const gpu::GpuCrtBuffer& buffer,

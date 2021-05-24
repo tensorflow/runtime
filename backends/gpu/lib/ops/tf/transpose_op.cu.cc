@@ -264,7 +264,7 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpImpl(
   }
 
   TFRT_ASSIGN_OR_RETURN(auto output_buffer,
-                        dctx->allocator()->Allocate(
+                        dctx->allocator()->AllocateBuffer(
                             /*size=*/size_in_bytes, dctx->stream()));
 
   if (is_trivial_transpose) {

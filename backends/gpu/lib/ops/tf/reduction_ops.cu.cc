@@ -216,7 +216,7 @@ static llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input,
   if (auto err = launch(nullptr)) return std::move(err);
 
   TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> tmp_buffer,
-                        dctx->allocator()->Allocate(
+                        dctx->allocator()->AllocateBuffer(
                             /*size=*/temp_storage_bytes, dctx->stream()));
 
   // Do reduction.
@@ -286,7 +286,7 @@ static llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input,
   if (auto err = launch(nullptr)) return std::move(err);
 
   llvm::Expected<RCReference<GpuCrtBuffer>> tmp_buffer_or_error =
-      dctx->allocator()->Allocate(
+      dctx->allocator()->AllocateBuffer(
           /*size=*/sizeof(uint8_t), dctx->stream());
   if (!tmp_buffer_or_error) return tmp_buffer_or_error.takeError();
 
@@ -438,7 +438,7 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpImpl(
   size_t size_in_bytes = result_md.dtype.GetHostSize() * num_result_elements;
 
   TFRT_ASSIGN_OR_RETURN(auto output_buffer,
-                        dctx->allocator()->Allocate(
+                        dctx->allocator()->AllocateBuffer(
                             /*size=*/size_in_bytes, dctx->stream()));
 
   switch (input.dtype().kind()) {

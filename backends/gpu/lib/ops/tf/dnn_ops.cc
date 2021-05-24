@@ -149,7 +149,7 @@ static auto ToIntVec(const llvm::ArrayRef<ssize_t> array) {
 
 static auto AllocateBuffer(GpuDispatchContext* dctx, const DType& dtype,
                            const TensorShape& shape) {
-  return dctx->allocator()->Allocate(
+  return dctx->allocator()->AllocateBuffer(
       shape.GetNumElements() * dtype.GetHostSize(), dctx->stream());
 }
 
@@ -438,7 +438,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
       for (size_t mega_bytes : {1024, 128, 16, 0}) {
         workspace_size_bytes = mega_bytes * 1024 * 1024;
         if (workspace_size_bytes == 0) break;
-        if (auto workspace_buffer_or_error = dctx->allocator()->Allocate(
+        if (auto workspace_buffer_or_error = dctx->allocator()->AllocateBuffer(
                 workspace_size_bytes, dctx->stream())) {
           workspace_buffer = std::move(*workspace_buffer_or_error);
           break;
@@ -470,7 +470,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
         if (!workspace_buffer ||
             workspace_buffer->size() < workspace_size_bytes) {
           TFRT_ASSIGN_OR_RETURN(workspace_buffer,
-                                dctx->allocator()->Allocate(
+                                dctx->allocator()->AllocateBuffer(
                                     workspace_size_bytes, dctx->stream()));
         }
         return workspace_buffer->pointer();

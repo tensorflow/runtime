@@ -93,7 +93,7 @@ static Expected<DenseGpuTensor> GpuAddOp(GpuDispatchContext* dctx,
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
 
   TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> buffer,
-                        dctx->allocator()->Allocate(
+                        dctx->allocator()->AllocateBuffer(
                             /*size=*/size_in_bytes, dctx->stream()));
 
   auto result =

@@ -60,13 +60,13 @@ ReturnMultipleResults(GpuDispatchContext* dctx,
                       const TensorMetadata& result_md0,
                       const TensorMetadata& result_md1) {
   llvm::Expected<RCReference<GpuCrtBuffer>> buffer_or_error0 =
-      dctx->allocator()->Allocate(
+      dctx->allocator()->AllocateBuffer(
           /*size=*/result_md0.GetHostSizeInBytes(), dctx->stream());
   if (!buffer_or_error0) return buffer_or_error0.takeError();
   RCReference<GpuCrtBuffer> buffer0 = std::move(*buffer_or_error0);
 
   llvm::Expected<RCReference<GpuCrtBuffer>> buffer_or_error1 =
-      dctx->allocator()->Allocate(
+      dctx->allocator()->AllocateBuffer(
           /*size=*/result_md1.GetHostSizeInBytes(), dctx->stream());
   if (!buffer_or_error1) return buffer_or_error1.takeError();
   RCReference<GpuCrtBuffer> buffer1 = std::move(*buffer_or_error1);

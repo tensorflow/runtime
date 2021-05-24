@@ -134,7 +134,7 @@ llvm::Expected<DenseGpuTensor> EnqueueGpuPadOp(
     const DenseView& paddings, const TensorMetadata& result_md) {
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
   TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> buffer,
-                        dctx->allocator()->Allocate(
+                        dctx->allocator()->AllocateBuffer(
                             /*size=*/size_in_bytes, dctx->stream()));
 
   if (size_in_bytes == 0) {

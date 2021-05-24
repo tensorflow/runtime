@@ -108,7 +108,7 @@ Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
   size_t size_in_bytes = tensor.metadata().GetHostSizeInBytes();
 
   llvm::Expected<RCReference<gpu::GpuCrtBuffer>> buffer_or_error =
-      allocator->Allocate(
+      allocator->AllocateBuffer(
           /*size=*/size_in_bytes, stream);
   if (!buffer_or_error) return buffer_or_error.takeError();
   RCReference<gpu::GpuCrtBuffer> buffer = std::move(*buffer_or_error);

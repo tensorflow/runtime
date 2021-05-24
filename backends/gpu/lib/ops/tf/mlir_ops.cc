@@ -37,7 +37,7 @@ namespace tfrt {
 namespace gpu {
 static auto AllocateBuffer(GpuDispatchContext* dctx, const DType& dtype,
                            const TensorShape& shape) {
-  return dctx->allocator()->Allocate(
+  return dctx->allocator()->AllocateBuffer(
       shape.GetNumElements() * dtype.GetHostSize(), dctx->stream());
 }
 

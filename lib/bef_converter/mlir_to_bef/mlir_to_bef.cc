@@ -154,12 +154,23 @@ struct EntityTable {
 
   // This is all of the filenames referred to by locations in the file.
   llvm::SmallVector<string_view, 4> location_filenames;
-  llvm::StringMap<unsigned> location_filenames_index;
+  llvm::StringMap<uint32_t> location_filenames_index;
 
   // These are the locations for all operations within the file, the first
   // element of the tuple is a index into location_filenames, the second and
   // third are line/col information.
-  typedef std::tuple<unsigned, unsigned, unsigned> LocationTuple;
+  struct LocationTuple {
+    static constexpr uint32_t kInvalidFilenameIndex =
+        std::numeric_limits<uint32_t>::max();
+    uint32_t filename_index;
+    uint32_t line;
+    uint32_t column;
+
+    bool IsValid() const {
+      return filename_index != kInvalidFilenameIndex && line >= 1 &&
+             column >= 1;
+    }
+  };
   llvm::DenseMap<mlir::Operation*, LocationTuple> location_positions;
 
   llvm::DenseMap<mlir::Operation*, DebugInfoEntry> debug_info;
@@ -309,8 +320,6 @@ void EntityTable::AddDebugInfo(mlir::Operation* op) {
 
 void EntityTable::AddLocation(mlir::Operation* op) {
   auto file_line_col_location = op->getLoc();
-  string_view filename = "";
-  unsigned line = 0, col = 0;
 
   // If the location is a FusedLoc, look for a FileLineColLoc among its
   // children.
@@ -325,20 +334,24 @@ void EntityTable::AddLocation(mlir::Operation* op) {
   }
 
   if (auto loc = file_line_col_location.dyn_cast<mlir::FileLineColLoc>()) {
-    filename = loc.getFilename();
-    line = loc.getLine();
-    col = loc.getColumn();
+    string_view filename = loc.getFilename();
+    auto next_filename_index = location_filenames.size();
+    auto it =
+        location_filenames_index.insert({filename, next_filename_index}).first;
+    if (it->second == next_filename_index)
+      location_filenames.push_back(filename);
+
+    auto r = location_positions.try_emplace(
+        op, LocationTuple{it->second, loc.getLine(), loc.getColumn()});
+    assert(r.second);
+    (void)r;
+  } else {
+    // Handle a case that there is no FileLineColLoc found.
+    auto r = location_positions.try_emplace(
+        op, LocationTuple{LocationTuple::kInvalidFilenameIndex, 0, 0});
+    assert(r.second);
+    (void)r;
   }
-
-  auto next_filename_index = location_filenames.size();
-  auto it =
-      location_filenames_index.insert({filename, next_filename_index}).first;
-  if (it->second == next_filename_index) location_filenames.push_back(filename);
-
-  auto r =
-      location_positions.try_emplace(op, LocationTuple{it->second, line, col});
-  assert(r.second);
-  (void)r;
 }
 
 void EntityTable::AddAttributeType(mlir::Attribute attr) {
@@ -599,6 +612,11 @@ class EntityIndex {
     location_position_offsets_[op] = offset;
   }
 
+  bool HasLocationPositionOffset(mlir::Operation* op) const {
+    return (location_position_offsets_.find(op) !=
+            location_position_offsets_.end());
+  }
+
   size_t GetLocationPositionOffset(mlir::Operation* op) const {
     auto loc_it = location_position_offsets_.find(op);
     assert(loc_it != location_position_offsets_.end() && "unknown location");
@@ -734,13 +752,30 @@ void BEFModuleEmitter::EmitLocationInfo() {
 
   // Emit each of the positions and remember the offsets within the section.
   BEFFileEmitter positions_section;
+
+  // First pass: handle Ops having location information.
   for (auto iter : entities_.location_positions) {
     mlir::Operation* op = iter.first;
     auto position = iter.second;
-    entity_index_.AddLocationPosition(op, positions_section.size());
-    positions_section.EmitVbrInt(std::get<0>(position));
-    positions_section.EmitVbrInt(std::get<1>(position));
-    positions_section.EmitVbrInt(std::get<2>(position));
+
+    if (position.IsValid()) {
+      entity_index_.AddLocationPosition(op, positions_section.size());
+      positions_section.EmitVbrInt(position.filename_index);
+      positions_section.EmitVbrInt(position.line);
+      positions_section.EmitVbrInt(position.column);
+    }
+  }
+
+  // Second pass: put virtual (unique) location offset for the Ops,
+  //              which do not have location information.
+  unsigned virtual_location = positions_section.size();
+  for (auto iter : entities_.location_positions) {
+    mlir::Operation* op = iter.first;
+    if (!entity_index_.HasLocationPositionOffset(op)) {
+      // TODO(b/174243587): Use simpler location position.
+      entity_index_.AddLocationPosition(op, virtual_location);
+      ++virtual_location;
+    }
   }
 
   EmitSection(BEFSectionID::kLocationPositions, positions_section);

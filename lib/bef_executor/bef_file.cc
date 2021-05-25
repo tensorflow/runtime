@@ -565,6 +565,10 @@ DecodedLocation BEFFileImpl::DecodeLocation(size_t location_position_offset) {
 
   // Read from location_positions_section_, from the specified offset.
   BEFReader reader(location_positions_section_);
+
+  // A location offset could be larger than the LocationPositionsSection size.
+  // It could happen when there was no available FileLineColLoc.
+  // Returns a default empty location.
   if (location_position_offset >= location_positions_section_.size())
     return result;
 

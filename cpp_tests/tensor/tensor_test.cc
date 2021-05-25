@@ -16,9 +16,14 @@
 
 // Unit test for TFRT Tensor.
 
+#include <memory>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "tfrt/cpp_tests/test_util.h"
+#include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
+#include "tfrt/tensor/tensor_metadata.h"
 #include "tfrt/tensor/tensor_shape.h"
 
 namespace tfrt {
@@ -60,6 +65,34 @@ TEST(TensorTest, MutableIndexableViewCanBeCastedToIndexableView) {
   std::array<int32_t, 6> data{0, 1, 2, 3, 4, 5};
   MutableDHTIndexableView<int32_t, 2> mut_view(data.data(), 3, 2);
   EXPECT_EQ(fn(mut_view), 2);
+}
+
+TEST(TensorTest, CreateScalar) {
+  auto context = CreateHostContext();
+  auto tensor = DenseHostTensor::CreateScalar(1, context.get()).getValue();
+  EXPECT_EQ(*tensor.data<int>(), 1);
+}
+
+TEST(TensorTest, CompareTensors) {
+  auto context = CreateHostContext();
+  auto a = DenseHostTensor::CreateScalar(1, context.get()).getValue();
+  auto b = DenseHostTensor::CreateScalar(1, context.get()).getValue();
+  auto c = DenseHostTensor::CreateScalar(2, context.get()).getValue();
+  auto d = DenseHostTensor::CreateScalar(2.5f, context.get()).getValue();
+  // This requires that DHT implements operator<< for std::ostream.
+  EXPECT_EQ(a, a.CopyRef());
+  EXPECT_EQ(a, b);
+  EXPECT_NE(a, c);
+  EXPECT_NE(a, d);
+}
+
+TEST(TensorTest, CreateMetadataAndComparison) {
+  auto a = TensorMetadata::Create<float>(1, 3);
+  auto b = TensorMetadata::Create<float>(1, 3);
+  auto c = TensorMetadata::Create<int>(3);
+  // This requires that `TensorMetadata` implements operator<< for std::ostream.
+  EXPECT_EQ(a, b);
+  EXPECT_NE(a, c);
 }
 
 }  // namespace

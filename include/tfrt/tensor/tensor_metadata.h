@@ -39,6 +39,13 @@ struct TensorMetadata {
   TensorMetadata(DType dtype, const Container& shape)
       : TensorMetadata(dtype, llvm::makeArrayRef(shape)) {}
 
+  template <typename DType, typename... Dims>
+  static TensorMetadata Create(Dims... dims) {
+    return TensorMetadata(
+        GetDType<DType>(),
+        std::array<ssize_t, sizeof...(Dims)>{static_cast<ssize_t>(dims)...});
+  }
+
   bool IsValid() const { return dtype.IsValid(); }
   bool IsInvalid() const { return dtype.IsInvalid(); }
 
@@ -59,6 +66,8 @@ inline bool operator!=(const TensorMetadata& lhs, const TensorMetadata& rhs) {
 }
 
 raw_ostream& operator<<(raw_ostream& os, const TensorMetadata& metadata);
+
+std::ostream& operator<<(std::ostream& o, const TensorMetadata& metadata);
 
 }  // namespace tfrt
 

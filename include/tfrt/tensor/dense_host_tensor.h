@@ -23,6 +23,7 @@
 #include "tfrt/host_context/value.h"
 #include "tfrt/tensor/conversion_registry.h"
 #include "tfrt/tensor/host_tensor.h"
+#include "tfrt/tensor/tensor_metadata.h"
 
 namespace tfrt {
 class HostContext;
@@ -55,6 +56,15 @@ class DenseHostTensor final : public HostTensor,
   static llvm::Optional<DenseHostTensor> CreateUninitialized(
       const TensorShape& shape, HostContext* host) {
     return CreateUninitialized(TensorMetadata(GetDType<T>(), shape), host);
+  }
+
+  template <typename T>
+  static llvm::Optional<DenseHostTensor> CreateScalar(T value,
+                                                      HostContext* host) {
+    auto dht_or = CreateUninitialized(TensorMetadata(GetDType<T>(), {}), host);
+    if (!dht_or.hasValue()) return dht_or;
+    *dht_or.getValue().data<T>() = value;
+    return dht_or;
   }
 
   // Make an AsyncValueRef<DenseHostTensor> with kConstructed state. This
@@ -118,6 +128,16 @@ class DenseHostTensor final : public HostTensor,
 // allocation. This limits the size of DenseHostTensor to at most 56 bytes.
 static_assert(Value::IsInPlace<DenseHostTensor>(),
               "DenseHostTensor should not cause a heap allocation in Value.");
+
+// Compares the metadata and underlying byte buffers for equality. Please see
+// `TensorApproxEqual` for tensors with floating point numbers.
+bool operator==(const DenseHostTensor& a, const DenseHostTensor& b);
+
+inline bool operator!=(const DenseHostTensor& a, const DenseHostTensor& b) {
+  return !(a == b);
+}
+
+std::ostream& operator<<(std::ostream& o, const DenseHostTensor& dht);
 
 }  // namespace tfrt
 

@@ -17,9 +17,11 @@
 #include "tfrt/tensor/dense_host_tensor.h"
 
 #include <cstddef>
+#include <cstring>
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/MD5.h"
+#include "llvm/Support/raw_os_ostream.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/device.h"
 #include "tfrt/host_context/execution_context.h"
@@ -86,6 +88,18 @@ void DenseHostTensor::Print(raw_ostream& os) const {
     os << ", ... ";
   }
   os << ']';
+}
+
+std::ostream& operator<<(std::ostream& o, const DenseHostTensor& dht) {
+  llvm::raw_os_ostream os(o);
+  os << dht;
+  return o;
+}
+
+bool operator==(const DenseHostTensor& a, const DenseHostTensor& b) {
+  return a.metadata() == b.metadata() &&
+         std::memcmp(a.data(), b.data(), a.metadata().GetHostSizeInBytes()) ==
+             0;
 }
 
 static AsyncValueRef<DenseHostTensor> ConvertDenseHostTensorToDenseHostTensor(

@@ -16,6 +16,7 @@
 
 #include "tfrt/tensor/tensor.h"
 
+#include "llvm/Support/raw_os_ostream.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/host_context.h"
@@ -33,6 +34,12 @@ raw_ostream& operator<<(raw_ostream& os, const TensorMetadata& metadata) {
   }
 
   return os << metadata.dtype << " " << metadata.shape;
+}
+
+std::ostream& operator<<(std::ostream& o, const TensorMetadata& metadata) {
+  llvm::raw_os_ostream os(o);
+  os << metadata;
+  return o;
 }
 
 }  // namespace tfrt

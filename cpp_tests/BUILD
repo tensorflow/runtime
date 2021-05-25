@@ -188,6 +188,7 @@ tfrt_cc_test(
         "tensor/tensor_test.cc",
     ],
     deps = [
+        ":common",
         "@com_google_googletest//:gtest_main",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:tensor",

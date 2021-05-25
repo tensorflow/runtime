@@ -33,8 +33,9 @@ class HostTensor : public Tensor {
   bool IsHostTensor() const override { return true; }
 
  protected:
+  HostTensor() = default;
   explicit HostTensor(const TensorMetadata& metadata) : Tensor(metadata) {}
-  ~HostTensor() = default;
+  ~HostTensor() override = default;
 };
 
 inline HostTensor::HostTensor(HostTensor&& other) = default;

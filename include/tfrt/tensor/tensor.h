@@ -76,10 +76,9 @@ class Tensor {
   Tensor(const Tensor& other) = delete;
   Tensor& operator=(const Tensor&) = delete;
 
-  explicit Tensor(const TensorMetadata& metadata) : metadata_(metadata) {
-    assert(metadata.IsValid() &&
-           "Cannot create a tensor with invalid metadata");
-  }
+  Tensor() = default;
+
+  explicit Tensor(const TensorMetadata& metadata) : metadata_(metadata) {}
 
   virtual ~Tensor();
 

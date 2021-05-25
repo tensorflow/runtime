@@ -34,6 +34,8 @@ void RegisterDenseHostTensorConversionFn(TensorConversionFnRegistry* registry);
 class DenseHostTensor final : public HostTensor,
                               public TensorTraits<DenseHostTensor> {
  public:
+  DenseHostTensor() = default;
+
   DenseHostTensor(const TensorMetadata& metadata, RCReference<HostBuffer> data)
       : HostTensor(metadata), data_(std::move(data)) {}
 

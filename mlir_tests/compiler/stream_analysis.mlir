@@ -89,4 +89,19 @@ func @merge(%ch0: !tfrt.chain) -> !tfrt.chain {
   tfrt.return %ch6 : !tfrt.chain
 }
 
+// expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1}}
+func @merge_limit(%ch0: !tfrt.chain) -> !tfrt.chain attributes {tfrt.upper_cost_threshold = 20} {
+  // expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1}}
+  %ch1 = tfrt_test.test_cost %ch0 {id = 0 : i64, _tfrt_cost = 8 : i64}
+  // expected-remark@+1 {{stream id: 1, stream cost: 17, parent stream: -1}}
+  %ch2 = tfrt_test.test_cost %ch1 {id = 1 : i64, _tfrt_cost = 8 : i64}
+  // Though %ch2 and %ch3 are dependent ops, they are in different streams because the cost exceed the upper threshold.
+  // expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: 1}}
+  %ch3 = tfrt_test.test_cost %ch2 {id = 2 : i64, _tfrt_cost = 8 : i64}
+  // expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: 1}}
+  %ch4 = tfrt_test.test_cost %ch3 {id = 3 : i64, _tfrt_cost = 8 : i64}
+  // expected-remark@+1 {{stream id: 0, stream cost: 26, parent stream: 1}}
+  tfrt.return %ch4 : !tfrt.chain
+}
+
 }

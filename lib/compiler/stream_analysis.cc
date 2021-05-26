@@ -26,31 +26,47 @@ namespace {
 
 constexpr mlir::Operation* kRootOperation = nullptr;
 
+mlir::Attribute GetOptionAttribute(mlir::Block& block,
+                                   llvm::StringRef attr_name) {
+  auto* parent = block.getParentOp();
+
+  // Try to use function-level option first.
+  if (auto func = llvm::dyn_cast<mlir::FuncOp>(parent)) {
+    if (auto attr = func->getAttr(attr_name)) {
+      return attr;
+    }
+  }
+
+  // If there is no function-level option, use module-level option.
+  auto module = parent->getParentOfType<mlir::ModuleOp>();
+  return module->getAttr(attr_name);
+}
+
 int64_t GetCostThresholdForBlock(mlir::Block& block) {
   // default cost threshold is set to a lowest possible value, to disable any
   // merging of streams.
   static constexpr int64_t kDefaultCostThreshold = 1;
 
-  auto* parent = block.getParentOp();
-
-  // Try to use function-level cost threshold first.
-  if (auto func = llvm::dyn_cast<mlir::FuncOp>(parent)) {
-    if (auto attr =
-            func->getAttrOfType<mlir::IntegerAttr>("tfrt.cost_threshold")) {
-      return std::max(kDefaultCostThreshold, attr.getInt());
-    }
-  }
-
-  // If there is no function-level cost threshold, use module-level cost
-  // threshold.
-  auto module = parent->getParentOfType<mlir::ModuleOp>();
-  if (auto attr =
-          module->getAttrOfType<mlir::IntegerAttr>("tfrt.cost_threshold")) {
+  if (auto attr = GetOptionAttribute(block, "tfrt.cost_threshold")
+                      .dyn_cast_or_null<mlir::IntegerAttr>()) {
     return std::max(kDefaultCostThreshold, attr.getInt());
   }
 
   // Otherwise, use default cost threshold.
   return kDefaultCostThreshold;
+}
+
+int64_t GetUpperCostThresholdForBlock(mlir::Block& block) {
+  // Use -1 as the default, which means there is no limit on the cost of a
+  // stream.
+  static constexpr int64_t kDefaultMaxStreamCost = -1;
+
+  if (auto attr = GetOptionAttribute(block, "tfrt.upper_cost_threshold")
+                      .dyn_cast_or_null<mlir::IntegerAttr>()) {
+    return attr.getInt();
+  }
+
+  return kDefaultMaxStreamCost;
 }
 
 }  // namespace
@@ -153,7 +169,11 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
   int64_t max_cost = 0;
 
   auto update_max_cost_stream = [&](int64_t cost, int stream_id) {
-    if (max_cost < cost) {
+    // Try to find the stream with the largest cost that is also smaller than
+    // the upper_cost_threshold among the candidates.
+    if ((options_.upper_cost_threshold < 0 ||
+         cost < options_.upper_cost_threshold) &&
+        max_cost < cost) {
       max_cost = cost;
       max_cost_stream_id = stream_id;
     }
@@ -210,28 +230,38 @@ void StreamAnalysis::BuildStreamForOp(mlir::Operation* op) {
         merged_child_stream_ids.back());
   }
 
-  // Assign the current op to the stream with the highest cost found.
   assert(op_info.stream_id < 0);
-  assert(max_cost_stream_id >= 0);
-  op_info.stream_id = max_cost_stream_id;
-  build_info_.stream_infos[max_cost_stream_id].cost += op_info.cost;
-  // Reset parent_op because we haven't found the parent_op for this newly
-  // merged stream yet.
-  build_info_.stream_infos[max_cost_stream_id].parent_op = nullptr;
 
-  // There is at most one single cheap stream (ie. the stream whose cost is
-  // below cost_threshold) left, and it must be the last one in
-  // `merged_child_stream_ids`. If there is, merge it into the current stream.
-  //
-  // TODO(chky): This effectively merges this cheap stream with the highest cost
-  // child stream for the simplicity in implementation. Consider if it should be
-  // merged to the next lowest cost child stream if there are use cases that
-  // shows the latter approach is better..
-  if (!merged_child_stream_ids.empty() &&
-      build_info_.stream_infos[merged_child_stream_ids.back()].cost <
-          GetCostThreshold() &&
-      max_cost_stream_id != merged_child_stream_ids.back()) {
-    merge_streams(merged_child_stream_ids.back(), op_info.stream_id);
+  if (max_cost_stream_id < 0) {
+    // Create a new stream for ops without if it fails to find an appropriate
+    // child stream.
+    op_info.stream_id = build_info_.stream_infos.size();
+    BuildInfo::StreamInfo stream_info;
+    stream_info.cost = op_info.cost;
+    build_info_.stream_infos.push_back(stream_info);
+  } else {
+    // Otherwise assign the current op to the stream with the highest cost
+    // found.
+    op_info.stream_id = max_cost_stream_id;
+    build_info_.stream_infos[max_cost_stream_id].cost += op_info.cost;
+    // Reset parent_op because we haven't found the parent_op for this newly
+    // merged stream yet.
+    build_info_.stream_infos[max_cost_stream_id].parent_op = nullptr;
+
+    // There is at most one single cheap stream (ie. the stream whose cost is
+    // below cost_threshold) left, and it must be the last one in
+    // `merged_child_stream_ids`. If there is, merge it into the current stream.
+    //
+    // TODO(chky): This effectively merges this cheap stream with the highest
+    // cost child stream for the simplicity in implementation. Consider if it
+    // should be merged to the next lowest cost child stream if there are use
+    // cases that shows the latter approach is better..
+    if (!merged_child_stream_ids.empty() &&
+        build_info_.stream_infos[merged_child_stream_ids.back()].cost <
+            GetCostThreshold() &&
+        max_cost_stream_id != merged_child_stream_ids.back()) {
+      merge_streams(merged_child_stream_ids.back(), op_info.stream_id);
+    }
   }
 }
 
@@ -306,7 +336,7 @@ void StreamAnalysis::FinalizeStreams(mlir::Block& block) {
 }
 
 void StreamAnalysis::AnalyzeBlock(mlir::Block& block) {
-  cost_threshold_ = GetCostThresholdForBlock(block);
+  GetOptionsForBlock(block);
   ScheduleOpForwardPass(block);
   BuildStreamBackwardPass(block);
   FinalizeStreams(block);
@@ -314,6 +344,11 @@ void StreamAnalysis::AnalyzeBlock(mlir::Block& block) {
 
 const Stream& StreamAnalysis::GetRootStream() const {
   return GetStream(kRootOperation);
+}
+
+void StreamAnalysis::GetOptionsForBlock(mlir::Block& block) {
+  options_.cost_threshold = GetCostThresholdForBlock(block);
+  options_.upper_cost_threshold = GetUpperCostThresholdForBlock(block);
 }
 
 }  // namespace compiler

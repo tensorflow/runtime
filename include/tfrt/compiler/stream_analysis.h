@@ -112,9 +112,10 @@ class StreamAnalysis {
   // the cost is larger or equal to the threshold, then it is not worth doing
   // so. Note that dependent streams can still be merged regardless of the cost.
   // It is set through the module attribute `tfrt.cost_threshold`.
-  int64_t GetCostThreshold() const { return cost_threshold_; }
+  int64_t GetCostThreshold() const { return options_.cost_threshold; }
 
  private:
+  void GetOptionsForBlock(mlir::Block& block);
   void AnalyzeBlock(mlir::Block& block);
   void ScheduleOpForwardPass(mlir::Block& block);
   void BuildStreamBackwardPass(mlir::Block& block);
@@ -158,7 +159,17 @@ class StreamAnalysis {
   };
   BuildInfo build_info_;
 
-  int64_t cost_threshold_ = 1;
+  struct Options {
+    // `cost_threshold` is the lower threshold for streams costs. We try to
+    // merge independent streams to one stream with a cost that is barely
+    // exceeding this threshold.
+    int64_t cost_threshold = 1;
+    // `upper_cost_threshold` is the upper threshold for stream costs. For
+    // dependent streams, we won't merge them if it is exceeding this threshold.
+    int64_t upper_cost_threshold = -1;
+  };
+
+  Options options_;
 
   // `streams_` contains the finalized Stream objects that contain information
   // for users to query.

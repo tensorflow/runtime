@@ -18,6 +18,7 @@
 
 #include "tfrt/compiler/stream_analysis.h"
 
+#include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_traits.h"
 
 namespace tfrt {
@@ -74,6 +75,9 @@ int64_t GetUpperCostThresholdForBlock(mlir::Block& block) {
 int64_t StreamAnalysis::GetOperationCost(mlir::Operation* op) const {
   // Root has the lowest cost.
   if (op == kRootOperation) return 1;
+
+  // A few TFRT kernels are guaranteed to be cheap.
+  if (llvm::isa<tfrt::ReturnOp, tfrt::MergeChainsOp>(op)) return 1;
 
   if (op->hasTrait<mlir::OpTrait::tfrt::CostTrait>()) {
     int64_t cost = op->getAttrOfType<mlir::IntegerAttr>("_tfrt_cost").getInt();

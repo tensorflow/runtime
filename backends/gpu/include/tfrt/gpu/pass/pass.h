@@ -66,6 +66,7 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
 // Adds rewrite patterns that wraps consecutive legal ops as defined by
 // `target` into a tfrt_gpu_conversion.async.execute op.
 void populateGpuAsyncConversionPatterns(mlir::RewritePatternSet& patterns,
+                                        mlir::TypeConverter& converter,
                                         mlir::ConversionTarget& target);
 
 // Adds rewrite patterns that unwrap tfrt_gpu_conversion.async.execute ops

@@ -208,55 +208,40 @@ AsyncValueRef<Chain> System::Execute(ExecutionContext& exec_ctx,
                                      ArrayRef<AsyncValueRef<GpuBuffer>> inputs,
                                      ArrayRef<AsyncValueRef<GpuBuffer>> outputs,
                                      AsyncValueRef<Chain> chain) {
-  auto out_chain = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
-  RunWhenReady(
-      {chain.GetAsyncValue()},
-      [exec_ctx, &program, stream = std::move(stream),
-       inputs = std::move(inputs), outputs = std::move(outputs),
-       chain = std::move(chain), out_chain = out_chain.CopyRef()] {
-        if (chain.IsError()) return out_chain.SetError(chain.GetError());
-        const Function* fn = program.GetFunction();
-        assert(fn->num_results() == 0);
-        auto num_args = fn->num_arguments();
+  const Function* fn = program.GetFunction();
+  if (fn->num_results() != 1) {
+    return MakeErrorAsyncValueRef(
+        "Failed to execute lowered function: expected one result");
+  }
 
-        // Today, lowering pass for HLO will generate BEF Function that requires
-        // following arguments:
-        // {stream, ...inputs, ...outputs}
-        // So we need to prepare and check the arguments first.
-        SmallVector<AsyncValue*, 8> args;
-        args.reserve(num_args);
+  auto num_args = fn->num_arguments();
 
-        args.push_back(stream.GetAsyncValue());
+  // Lowering pass for HLO will generate BEF Function with the following
+  // signature: {chain, stream, ...inputs, ...outputs} -> chain
+  // So we need to prepare and check the arguments first.
+  SmallVector<AsyncValue*, 8> args;
+  args.reserve(num_args);
 
-        for (auto& input : inputs) {
-          // TODO(b/184696034): Remove this once the bef function has proper
-          // output.
-          if (input.IsError()) return out_chain.SetError(chain.GetError());
-          args.push_back(input.GetAsyncValue());
-        }
-        for (auto& output : outputs) {
-          // TODO(b/184696034): Remove this once the bef function has proper
-          // output.
-          if (output.IsError()) return out_chain.SetError(output.GetError());
-          args.push_back(output.GetAsyncValue());
-        }
+  args.push_back(chain.GetAsyncValue());
+  args.push_back(stream.GetAsyncValue());
 
-        if (args.size() != num_args) {
-          return out_chain.SetError(StrCat(
-              "Failed to execute lowered function: argument size mismatch: ",
-              args.size(), " v.s. ", num_args));
-        }
+  for (auto& input : inputs) {
+    args.push_back(input.GetAsyncValue());
+  }
+  for (auto& output : outputs) {
+    args.push_back(output.GetAsyncValue());
+  }
 
-        // Right now, lowered bef function does not have output. This is
-        // incorrect. We should either add an output to indicate all gpu
-        // activities have been dispatched to stream OR we should change the
-        // lowered function to synchronous bef function.
-        // TODO(b/184696034): Fix this issue.
-        fn->Execute(exec_ctx, args, {});
+  if (args.size() != num_args) {
+    return MakeErrorAsyncValueRef(
+        StrCat("Failed to execute lowered function: argument size mismatch: ",
+               args.size(), " v.s. ", num_args));
+  }
 
-        out_chain.emplace();
-      });
-  return out_chain;
+  tfrt::RCReference<tfrt::AsyncValue> result;
+  fn->Execute(exec_ctx, args, {result});
+
+  return AsyncValueRef<Chain>(std::move(result));
 }
 
 }  // namespace gpu

@@ -15,6 +15,8 @@
 #include "tfrt/gpu/pass/pass.h"
 
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/PatternMatch.h"
@@ -58,6 +60,17 @@ struct WrapInAsyncExecPattern : public OpRewritePattern<FuncOp> {
   LogicalResult matchAndRewriteBlock(Block *block,
                                      PatternRewriter &rewriter) const;
   ConversionTarget &target;
+};
+
+// Folds a memref.view of !tfrt_gpu.buffer with zero byte_shift.
+struct FoldMemrefViewPattern
+    : public OpConversionPattern<mlir::memref::ViewOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::memref::ViewOp op, ArrayRef<Value> operands,
+      ConversionPatternRewriter &rewriter) const override;
 };
 
 // Moves the body of a tfrt_gpu_conversion.async.execute op into the parent
@@ -162,6 +175,21 @@ LogicalResult WrapInAsyncExecPattern::matchAndRewriteBlock(
   return result;
 }
 
+LogicalResult FoldMemrefViewPattern::matchAndRewrite(
+    mlir::memref::ViewOp op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  mlir::memref::ViewOpAdaptor adaptor(operands);
+  if (!adaptor.source().getType().isa<BufferType>())
+    return rewriter.notifyMatchFailure(op, "expected gpu::BufferType source");
+  auto byte_shift = adaptor.byte_shift().getDefiningOp<mlir::ConstantIndexOp>();
+  if (!byte_shift || byte_shift.getValue() != 0)
+    return rewriter.notifyMatchFailure(op, "expected const zero byte_shift");
+  if (!adaptor.sizes().empty())
+    return rewriter.notifyMatchFailure(op, "expected no sizes");
+  rewriter.replaceOp(op, {adaptor.source()});
+  return success();
+}
+
 LogicalResult UnwrapAsyncExecPattern::matchAndRewrite(
     conversion::AsyncExecuteOp op, ArrayRef<Value> operands,
     ConversionPatternRewriter &rewriter) const {
@@ -241,8 +269,10 @@ LogicalResult HoistGpuWaitsPattern::matchAndRewrite(
 }
 
 void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
+                                        mlir::TypeConverter &converter,
                                         mlir::ConversionTarget &target) {
   patterns.add<WrapInAsyncExecPattern>(patterns.getContext(), target);
+  patterns.add<FoldMemrefViewPattern>(converter, patterns.getContext());
 }
 
 void populateTfrtConversionPatterns(mlir::RewritePatternSet &patterns,

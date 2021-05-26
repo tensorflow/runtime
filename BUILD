@@ -394,6 +394,7 @@ tfrt_cc_library(
         "lib/tensor/coo_host_tensor_kernels.cc",
         "lib/tensor/dense_host_tensor.cc",
         "lib/tensor/dense_host_tensor_kernels.cc",
+        "lib/tensor/dense_tensor_utils.cc",
         "lib/tensor/scalar_host_tensor.cc",
         "lib/tensor/string_host_tensor.cc",
         "lib/tensor/string_host_tensor_kernels.cc",

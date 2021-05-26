@@ -81,6 +81,19 @@ bool TensorEqual(const DenseHostTensor& lhs, const DenseHostTensor& rhs) {
   return TensorEqual<T>(lhs, rhs, [](T x, T y) { return x == y; });
 }
 
+// Chip is a special kind of slice. It indexes into the view at the given
+// coordinate prefix and returns a view onto the remaining dimensions.
+// It is similar to indexing into a numpy array, e.g. for a 5D ndarray A, the
+// slice A[1, 3] would return a 3D view.
+DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<ssize_t> dims);
+
+// Flattens a DHT into a Rank-1 DHT that will share the underlying HostBuffer.
+DenseHostTensor Flatten(const DenseHostTensor& tensor);
+
+// Copies the data of a DHT to another DHT. Returns false if the metadatas of
+// the DHTs do not match.
+LLVM_NODISCARD bool CopyTo(const DenseHostTensor& src, DenseHostTensor* dst);
+
 }  // namespace tfrt
 
 #endif  // TFRT_TENSOR_DENSE_TENSOR_UTILS_H_

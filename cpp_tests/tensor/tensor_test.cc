@@ -23,6 +23,7 @@
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor_view.h"
+#include "tfrt/tensor/dense_tensor_utils.h"
 #include "tfrt/tensor/tensor_metadata.h"
 #include "tfrt/tensor/tensor_shape.h"
 
@@ -93,6 +94,58 @@ TEST(TensorTest, CreateMetadataAndComparison) {
   // This requires that `TensorMetadata` implements operator<< for std::ostream.
   EXPECT_EQ(a, b);
   EXPECT_NE(a, c);
+}
+
+TEST(TensorTest, ChipDenseHostTensor) {
+  auto context = CreateHostContext();
+  auto dht = DenseHostTensor::CreateUninitialized(
+                 TensorMetadata::Create<int>(3, 2), context.get())
+                 .getValue();
+  MutableDHTArrayView<int> view(&dht);
+  for (int i = 0; i < view.NumElements(); i++) {
+    view[i] = i;
+  }
+  EXPECT_THAT(view.Elements(), ElementsAre(0, 1, 2, 3, 4, 5));
+
+  auto first_slice = Chip(dht, {1});
+  MutableDHTIndexableView<int, 1> first_view(&first_slice);
+  first_view.ElementAt(0) = 12;
+  first_view.ElementAt(1) = 13;
+  EXPECT_THAT(view.Elements(), ElementsAre(0, 1, 12, 13, 4, 5));
+
+  auto second_slice = Chip(dht, {1, 1});
+  MutableDHTIndexableView<int, 0> second_view(&second_slice);
+  second_view.ElementAt() = 23;
+  EXPECT_THAT(view.Elements(), ElementsAre(0, 1, 12, 23, 4, 5));
+}
+
+TEST(TensorTest, CopyTo) {
+  auto context = CreateHostContext();
+  auto a = DenseHostTensor::CreateScalar(1, context.get()).getValue();
+  auto b = DenseHostTensor::CreateScalar(2, context.get()).getValue();
+  EXPECT_TRUE(CopyTo(a, &b));
+  EXPECT_EQ(a, b);
+  auto c = DenseHostTensor::CreateScalar(true, context.get()).getValue();
+  EXPECT_FALSE(CopyTo(a, &c));
+}
+
+TEST(TensorTest, FlattenScalar) {
+  auto context = CreateHostContext();
+  auto dht = DenseHostTensor::CreateScalar(1, context.get()).getValue();
+  EXPECT_EQ(dht.shape().GetRank(), 0);
+  auto flat = Flatten(dht);
+  EXPECT_EQ(flat.shape().GetRank(), 1);
+}
+
+TEST(TensorTest, FlattenTensor) {
+  auto context = CreateHostContext();
+  auto dht = DenseHostTensor::CreateUninitialized(
+                 TensorMetadata::Create<int>(3, 2), context.get())
+                 .getValue();
+  auto flat = Flatten(dht);
+  EXPECT_EQ(flat.shape().GetRank(), 1);
+  EXPECT_EQ(flat.shape().GetDimensionSize(0), 6);
+  EXPECT_TRUE(dht.buffer().get() == flat.buffer().get());
 }
 
 }  // namespace

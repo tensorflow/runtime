@@ -32,7 +32,6 @@
 #include "tfrt/support/error_util.h"
 #include "tfrt/tensor/tensor_shape.h"
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
-#include "unsupported/Eigen/CXX11/src/Tensor/TensorDeviceGpu.h"  // from @eigen_archive
 
 namespace tfrt {
 namespace gpu {

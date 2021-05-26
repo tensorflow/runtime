@@ -37,7 +37,7 @@
 
 #define EIGEN_USE_GPU
 
-#include "unsupported/Eigen/CXX11/src/Tensor/TensorDeviceGpu.h"  // from @eigen_archive
+#include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
 
 namespace tfrt {
 namespace gpu {

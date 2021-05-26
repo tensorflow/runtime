@@ -41,7 +41,7 @@
 #include "tfrt/support/logging.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/tensor_serialize_utils.h"
-#include "unsupported/Eigen/CXX11/src/Tensor/TensorDeviceGpu.h"  // from @eigen_archive
+#include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
 
 namespace tfrt {
 namespace gpu {

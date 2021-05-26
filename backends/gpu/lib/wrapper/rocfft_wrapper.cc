@@ -16,14 +16,14 @@
 #include "tfrt/gpu/wrapper/rocfft_wrapper.h"
 
 #include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, rocfft_status);
+template llvm::raw_ostream& internal::operator<<(
+    llvm::raw_ostream&, const ErrorData<rocfft_status>&);
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocfft_status status) {
   switch (status) {

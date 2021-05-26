@@ -14,9 +14,9 @@
 
 // Unit test for DNN wrapper (abstraction layer for cuDNN and MIOpen).
 
+#include "tfrt/gpu/wrapper/dnn_wrapper.h"
+
 #include "common.h"
-#include "gtest/gtest.h"
-#include "tfrt/gpu/wrapper/cudnn_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
@@ -30,10 +30,42 @@ TEST_P(Test, DnnHandel) {
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-  EXPECT_TRUE(IsSuccess(DnnCreate(current).takeError()));
   TFRT_ASSERT_AND_ASSIGN(auto handle, DnnCreate(current));
-  EXPECT_TRUE(IsSuccess(
-      DnnCreateConvolutionDescriptor(current.platform()).takeError()));
+}
+
+TEST_P(Test, DnnConvDesc) {
+  auto platform = GetParam();
+  TFRT_ASSERT_AND_ASSIGN(auto descriptor,
+                         DnnCreateConvolutionDescriptor(platform));
+}
+
+TEST_P(Test, DnnTensorDesc) {
+  auto platform = GetParam();
+  TFRT_ASSERT_AND_ASSIGN(auto descriptor, DnnCreateTensorDescriptor(platform));
+  EXPECT_TRUE(IsSuccess(DnnSetTensorDescriptor(descriptor.get(),
+                                               DnnDataType(0, platform),
+                                               {2, 2, 3, 1}, {1, 2, 4, 12})));
+}
+
+TEST_F(Test, CudnnLogCUDA) {
+  auto platform = Platform::CUDA;
+  EXPECT_TRUE(IsSuccess(Init(platform)));
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
+  ASSERT_GT(count, 0);
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
+  TFRT_ASSERT_AND_ASSIGN(auto handle, DnnCreate(current));
+  TFRT_ASSERT_AND_ASSIGN(auto descriptor,
+                         DnnCreateConvolutionDescriptor(platform));
+
+  std::string log_string;
+  llvm::raw_string_ostream(log_string)
+      << DnnSetConvolutionGroupCount(descriptor.get(), -1);
+  for (const char* substr : {"function cudnnSetConvolutionGroupCount() called",
+                             "groupCount: type=int; val=-1"}) {
+    EXPECT_TRUE(llvm::StringRef(log_string).contains(substr)) << log_string;
+  }
 }
 
 }  // namespace wrapper

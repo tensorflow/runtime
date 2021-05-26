@@ -23,13 +23,11 @@
 
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/hip_stub.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-extern template void internal::LogResult(llvm::raw_ostream&, hipError_t);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error);
 
 // The following functions map directly to HIP calls.

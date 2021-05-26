@@ -18,10 +18,6 @@
 #include <cstdlib>
 #include <cstring>
 
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "wrapper_detail.h"
 
@@ -29,13 +25,22 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, cudnnStatus_t);
-
-// TODO(csigg): this is no longer hooked up.
 // Returns reference to API log of the last cuDNN API call.
 static std::string& CudnnLogTop() {
   thread_local auto string = new std::string;
   return *string;
+}
+
+llvm::raw_ostream& internal::operator<<(llvm::raw_ostream& os,
+                                        const ErrorData<cudnnStatus_t>& data) {
+  operator<<<cudnnStatus_t>(os, data);
+  if (data.log.empty()) return os;
+  if (!data.stack_trace) os << '\n';
+  return os << data.log;
+}
+
+Error MakeError(cudnnStatus_t result, const char* expr) {
+  return internal::MakeError(result, expr, std::move(CudnnLogTop()));
 }
 
 // cuDNN API logging callback.
@@ -77,21 +82,18 @@ llvm::Expected<LibraryVersion> CudnnGetVersion() {
 llvm::Expected<OwningDnnHandle> CudnnCreate(CurrentContext current) {
   CheckCudaContext(current);
   auto set_callback_result = [] {
-    // Skip if a cuDNN log destination has been requested.
-    //
-    // The documentation on 'cudnnSetCallback' says that CUDNN_LOGDEST_DBG must
-    // be set. This isn't true in cuDNN 7.6.4 and rather CUDNN_LOGDEST_DBG is
-    // ignored when a callback is set. That makes more sense and I suspect a
-    // documentation bug.
-    if (std::getenv("CUDNN_LOGDEST_DBG") != nullptr)
-      return CUDNN_STATUS_SUCCESS;
+    auto env_contains = [](const char* key, const char* value) {
+      const char* env = std::getenv(key);
+      return env && !std::strcmp(env, value);
+    };
 
-    // Do not register the callback unless CUDNN_LOGINFO_DBG=1 to avoid the
+    // Do not register a callback unless 'CUDNN_LOGDEST_DBG=tfrt' to avoid
+    // interfering with logging to other destinations.
+    if (!env_contains("CUDNN_LOGDEST_DBG", "tfrt")) return CUDNN_STATUS_SUCCESS;
+
+    // Do not register the callback unless 'CUDNN_LOGINFO_DBG=1' to avoid the
     // performance penalty.
-    int cudnn_loginfo_dbg = 0;
-    if (auto value = std::getenv("CUDNN_LOGINFO_DBG"))
-      cudnn_loginfo_dbg = std::stoi(value);
-    if (cudnn_loginfo_dbg == 0) return CUDNN_STATUS_SUCCESS;
+    if (!env_contains("CUDNN_LOGINFO_DBG", "1")) return CUDNN_STATUS_SUCCESS;
 
     return cudnnSetCallback(/*mask=*/~0, nullptr, CudnnCallback);
   }();
@@ -130,9 +132,7 @@ llvm::Error CudnnSetTensorDescriptor(cudnnTensorDescriptor_t descriptor,
                                      llvm::ArrayRef<int> dimensions,
                                      llvm::ArrayRef<int> strides) {
   if (dimensions.size() != strides.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
-        "Expected dimensions and strides to be equal size");
+    return MakeStringError("Expected dimensions and strides to be equal size");
   }
   return TO_ERROR(
       cudnnSetTensorNdDescriptor(descriptor, data_type, dimensions.size(),
@@ -180,14 +180,13 @@ llvm::Error CudnnSetTensorTransformDescriptor(
     llvm::ArrayRef<int> pad_after, llvm::ArrayRef<unsigned> fold,
     cudnnFoldingDirection_t direction) {
   if (pad_before.size() != pad_after.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
+    return MakeStringError(
         "Expected before and after padding arrays of equal size");
   }
   if (!fold.empty() && fold.size() + 2 != pad_before.size()) {
-    return llvm::createStringError(llvm::errc::invalid_argument,
-                                   "Expected fold array to be empty or 2 "
-                                   "elements shorter than padding arrays");
+    return MakeStringError(
+        "Expected fold array to be empty or 2 "
+        "elements shorter than padding arrays");
   }
   return TO_ERROR(cudnnSetTensorTransformDescriptor(
       descriptor, pad_before.size(), dest_format, pad_before.data(),
@@ -499,8 +498,7 @@ llvm::Error CudnnSetConvolutionDescriptor(
     llvm::ArrayRef<int> filter_stride, llvm::ArrayRef<int> dilation,
     cudnnConvolutionMode_t mode, cudnnDataType_t compute_type) {
   if (pad.size() != filter_stride.size() || pad.size() != dilation.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
+    return MakeStringError(
         "Expected paddings, filter_strides and dilations arrays of equal size");
   }
   return TO_ERROR(cudnnSetConvolutionNdDescriptor(
@@ -814,8 +812,7 @@ llvm::Error CudnnSetPoolingDescriptor(cudnnPoolingDescriptor_t descriptor,
                                       llvm::ArrayRef<int> strides) {
   if (window_dimensions.size() != paddings.size() ||
       paddings.size() != strides.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
+    return MakeStringError(
         "Expected window dimension, padding, and stride arrays of equal size");
   }
   return TO_ERROR(cudnnSetPoolingNdDescriptor(
@@ -1313,8 +1310,7 @@ llvm::Error CudnnRnnForwardInference(
     size_t workspace_size_bytes) {
   CheckCudaContext(current);
   if (input_descriptors.size() != output_descriptors.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
+    return MakeStringError(
         "Expected input and output descriptor arrays of equal size");
   }
   return TO_ERROR(cudnnRNNForwardInference(
@@ -1346,8 +1342,7 @@ llvm::Error CudnnRnnForwardTraining(
     size_t reserve_space_size_in_bytes) {
   CheckCudaContext(current);
   if (input_descriptors.size() != output_descriptors.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
+    return MakeStringError(
         "Expected input and output descriptor arrays of equal size");
   }
   return TO_ERROR(cudnnRNNForwardTraining(

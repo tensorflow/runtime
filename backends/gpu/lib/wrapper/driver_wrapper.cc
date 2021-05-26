@@ -16,10 +16,7 @@
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/hip_wrapper.h"
 #include "tfrt/support/logging.h"
@@ -1172,8 +1169,7 @@ thread_local ContextTls kContextTls;
 llvm::Error CheckNoCurrentContext() {
 #ifndef NDEBUG
   if (kContextTls.ref_count != 0) {
-    return llvm::createStringError(
-        llvm::errc::operation_not_permitted,
+    return MakeStringError(
         "Existing CurrentContext instance(s) in same thread.");
   }
 #endif
@@ -1198,10 +1194,8 @@ void DieIfError(llvm::Error&& error) {
 
 llvm::Error CheckPlatform(Platform platform, Platform expected) {
   if (platform != expected) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
-        llvm::formatv("Expected platform to be {0}, but got {1}", expected,
-                      platform));
+    return MakeStringError(llvm::formatv(
+        "Expected platform to be {0}, but got {1}", expected, platform));
   }
   return llvm::Error::success();
 }

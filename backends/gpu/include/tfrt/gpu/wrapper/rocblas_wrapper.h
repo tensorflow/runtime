@@ -20,13 +20,11 @@
 
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/rocblas_stub.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-extern template void internal::LogResult(llvm::raw_ostream&, rocblas_status);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_status status);
 
 template <>

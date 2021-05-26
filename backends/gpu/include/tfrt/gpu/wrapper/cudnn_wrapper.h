@@ -19,15 +19,27 @@
 #define TFRT_GPU_WRAPPER_CUDNN_WRAPPER_H_
 
 #include "cudnn.h"  // from @cudnn_headers
-#include "tfrt/gpu/wrapper/cuda_forwards.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-extern template void internal::LogResult(llvm::raw_ostream&, cudnnStatus_t);
+namespace internal {
+// Specialize ErrorData to include cuDNN API log.
+template <>
+struct ErrorData<cudnnStatus_t> {
+  cudnnStatus_t result;
+  const char* expr;
+  StackTrace stack_trace;
+  std::string log;
+};
+llvm::raw_ostream& operator<<(llvm::raw_ostream&,
+                              const ErrorData<cudnnStatus_t>&);
+}  // namespace internal
+
+Error MakeError(cudnnStatus_t result, const char* expr);
+
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudnnStatus_t status);
 
 template <>

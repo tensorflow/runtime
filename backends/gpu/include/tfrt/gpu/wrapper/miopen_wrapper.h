@@ -20,13 +20,11 @@
 
 #include "miopen_stub.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-extern template void internal::LogResult(llvm::raw_ostream&, miopenStatus_t);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, miopenStatus_t status);
 
 template <>

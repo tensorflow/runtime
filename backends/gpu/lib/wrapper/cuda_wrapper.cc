@@ -15,17 +15,15 @@
 // Thin wrapper around the CUDA API adding llvm::Error and explicit context.
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, CUresult);
+template llvm::raw_ostream& internal::operator<<(llvm::raw_ostream&,
+                                                 const ErrorData<CUresult>&);
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CUresult result) {
   const char* name = nullptr;
@@ -407,9 +405,8 @@ llvm::Expected<DeviceMemory<void>> CuMemAlloc(CurrentContext current,
   if (auto error = TO_ERROR(
           cuMemAlloc(reinterpret_cast<CUdeviceptr*>(&ptr), size_bytes))) {
     return llvm::handleErrors(
-        std::move(error),
-        [&](std::unique_ptr<wrapper::ErrorInfo<CUresult>> info) {
-          return wrapper::GetResult(*info) == CUDA_ERROR_OUT_OF_MEMORY
+        std::move(error), [&](std::unique_ptr<ErrorInfo<CUresult>> info) {
+          return GetResult(*info) == CUDA_ERROR_OUT_OF_MEMORY
                      ? MakeOomError(current, size_bytes)
                      : llvm::Error(std::move(info));
         });
@@ -510,8 +507,7 @@ llvm::Error CuMemRangeGetAttributes(
     llvm::ArrayRef<CUmem_range_attribute> attributes, Pointer<const void> ptr,
     size_t size_bytes) {
   if (data.size() != data_sizes.size() || data.size() != attributes.size()) {
-    return llvm::createStringError(llvm::errc::invalid_argument,
-                                   "Mismatching array sizes");
+    return MakeStringError("Mismatching array sizes");
   }
   return TO_ERROR(cuMemRangeGetAttributes(
       const_cast<void**>(data.data()), const_cast<size_t*>(data_sizes.data()),
@@ -528,8 +524,7 @@ llvm::Error CuPointerGetAttributes(
     llvm::ArrayRef<void*> data, llvm::ArrayRef<CUpointer_attribute> attributes,
     Pointer<const void> ptr) {
   if (data.size() != attributes.size()) {
-    return llvm::createStringError(llvm::errc::invalid_argument,
-                                   "Mismatching array sizes");
+    return MakeStringError("Mismatching array sizes");
   }
   return TO_ERROR(cuPointerGetAttributes(
       data.size(), const_cast<CUpointer_attribute*>(attributes.data()),
@@ -609,8 +604,7 @@ llvm::Expected<OwningModule> CuModuleLoadDataEx(
     llvm::ArrayRef<void*> jit_option_values) {
   CheckCudaContext(current);
   if (jit_options.size() != jit_option_values.size()) {
-    return llvm::createStringError(llvm::errc::invalid_argument,
-                                   "Mismatching array sizes");
+    return MakeStringError("Mismatching array sizes");
   }
   CUmodule module;
   RETURN_IF_ERROR(

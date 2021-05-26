@@ -16,10 +16,6 @@
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 
 #include "library_types.h"
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
 #include "wrapper_detail.h"
@@ -37,7 +33,9 @@ static cudnnPoolingMode_t ToCuda(DnnPoolingMode mode) {
     case DnnPoolingMode::kPoolingAverageCountExcludePadding:
       return CUDNN_POOLING_AVERAGE_COUNT_EXCLUDE_PADDING;
   }
-  llvm_unreachable(StrCat("Unrecognized DnnPoolingMode mode: ", mode).c_str());
+  llvm_unreachable(
+      StrCat("Unrecognized DnnPoolingMode mode: ", static_cast<int>(mode))
+          .c_str());
 }
 
 static miopenPoolingMode_t ToRocm(DnnPoolingMode mode) {
@@ -49,7 +47,9 @@ static miopenPoolingMode_t ToRocm(DnnPoolingMode mode) {
     case DnnPoolingMode::kPoolingAverageCountExcludePadding:
       return miopenPoolingAverageInclusive;
   }
-  llvm_unreachable(StrCat("Unrecognized DnnPoolingMode mode: ", mode).c_str());
+  llvm_unreachable(
+      StrCat("Unrecognized DnnPoolingMode mode: ", static_cast<int>(mode))
+          .c_str());
 }
 
 static constexpr auto ToCuda(DnnBatchNormMode mode) {

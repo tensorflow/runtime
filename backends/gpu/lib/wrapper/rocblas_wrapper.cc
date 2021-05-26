@@ -15,14 +15,14 @@
 // Thin wrapper around the rocBLAS API adding llvm::Error.
 #include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 
-#include "llvm/Support/Error.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, rocblas_status);
+template llvm::raw_ostream& internal::operator<<(
+    llvm::raw_ostream&, const ErrorData<rocblas_status>&);
 
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current) {
   CheckHipContext(current);

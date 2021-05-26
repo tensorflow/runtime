@@ -113,7 +113,8 @@ template <>
 Expected<Platform> Parse<Platform>(llvm::StringRef platform);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, Platform platform);
 
-// Struct capturing a failed API call. T is the result code type.
+namespace internal {
+// Struct capturing a failed API call with result code type T.
 template <typename T>
 struct ErrorData {
   T result;
@@ -121,34 +122,31 @@ struct ErrorData {
   StackTrace stack_trace;
 };
 
-namespace internal {
-// Explicitly instantiate this declaration in the header file for the library's
-// return status type.
-template <typename T>
-void LogResult(llvm::raw_ostream& os, T result);
-}  // namespace internal
+template <typename T, typename... Args>
+Error MakeError(T result, const char* expr, Args... args) {
+  return llvm::make_error<TupleErrorInfo<ErrorData<T>>>(ErrorData<T>{
+      result, expr, CreateStackTrace(), std::forward<Args>(args)...});
+}
 
 // Write ErrorData to raw_ostream.
 template <typename T>
-llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ErrorData<T>& data) {
-  os << "'" << data.expr << "': ";
-  internal::LogResult(os, data.result);
-  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
-  return os;
-}
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, const ErrorData<T>& data);
+}  // namespace internal
 
+// llvm::ErrorInfoBase payload of errors created with 'MakeError'.
 template <typename T>
-using ErrorInfo = TupleErrorInfo<ErrorData<T>>;
+using ErrorInfo = TupleErrorInfo<internal::ErrorData<T>>;
 
+// Create error from failed API call 'expr' with returned 'result' code.
 template <typename T>
 Error MakeError(T result, const char* expr) {
-  return llvm::make_error<ErrorInfo<T>>(
-      ErrorData<T>{result, expr, CreateStackTrace()});
+  return internal::MakeError(result, expr);
 }
 
+// Return result code contained in above 'ErrorInfo'.
 template <typename T>
 T GetResult(const ErrorInfo<T>& info) {
-  return info.template get<ErrorData<T>>().result;
+  return info.template get<internal::ErrorData<T>>().result;
 }
 
 // Print enumerator value to os.

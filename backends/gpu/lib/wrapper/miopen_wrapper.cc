@@ -15,21 +15,14 @@
 // Thin wrapper around the MIOpen API adding llvm::Error.
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
 
-#include <cstddef>
-#include <cstdlib>
-#include <cstring>
-
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, miopenStatus_t);
+template llvm::raw_ostream& internal::operator<<(
+    llvm::raw_ostream&, const ErrorData<miopenStatus_t>&);
 
 Expected<miopenDataType_t> ParseMiopenDataType(llvm::StringRef name) {
   if (name == "miopenHalf") return miopenHalf;
@@ -84,9 +77,7 @@ llvm::Error MiopenSetTensorDescriptor(miopenTensorDescriptor_t descriptor,
                                       llvm::ArrayRef<int> dimensions,
                                       llvm::ArrayRef<int> strides) {
   if (dimensions.size() != strides.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
-        "Expected dimensions and strides to be equal size");
+    return MakeStringError("Expected dimensions and strides to be equal size");
   }
   return TO_ERROR(miopenSetTensorDescriptor(
       descriptor, data_type, dimensions.size(),
@@ -136,8 +127,7 @@ llvm::Error MiopenInitConvolutionDescriptor(
     llvm::ArrayRef<int> filter_stride, llvm::ArrayRef<int> dilation,
     miopenConvolutionMode_t mode) {
   if (pad.size() != filter_stride.size() || pad.size() != dilation.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
+    return MakeStringError(
         "Expected paddings, filter_strides and dilations arrays of equal size");
   }
   return TO_ERROR(miopenInitConvolutionNdDescriptor(
@@ -322,8 +312,7 @@ llvm::Error MiopenSetPoolingDescriptor(miopenPoolingDescriptor_t descriptor,
                                        llvm::ArrayRef<int> strides) {
   if (window_dimensions.size() != paddings.size() ||
       paddings.size() != strides.size()) {
-    return llvm::createStringError(
-        llvm::errc::invalid_argument,
+    return MakeStringError(
         "Expected window dimension, padding, and stride arrays of equal size");
   }
   return TO_ERROR(miopenSetNdPoolingDescriptor(

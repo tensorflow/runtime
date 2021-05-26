@@ -23,13 +23,11 @@
 
 #include "cuda.h"  // from @cuda_headers
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-extern template void internal::LogResult(llvm::raw_ostream&, CUresult);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CUresult result);
 
 // The following functions map directly to CUDA calls.

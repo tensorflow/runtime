@@ -26,7 +26,8 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, cufftResult);
+template llvm::raw_ostream& internal::operator<<(
+    llvm::raw_ostream&, const ErrorData<cufftResult_t>&);
 
 void internal::CufftHandleDeleter::operator()(cufftHandle handle) const {
   LogIfError(CufftDestroy(handle));

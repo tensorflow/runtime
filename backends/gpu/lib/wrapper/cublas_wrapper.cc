@@ -15,14 +15,14 @@
 // Thin wrapper around the cuBLAS API adding llvm::Error.
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
 
-#include "llvm/Support/Error.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, cublasStatus_t);
+template llvm::raw_ostream& internal::operator<<(
+    llvm::raw_ostream&, const ErrorData<cublasStatus_t>&);
 
 llvm::Expected<OwningBlasHandle> CublasCreate(CurrentContext current) {
   CheckCudaContext(current);

@@ -19,14 +19,12 @@
 
 #include "cufft.h"    // from @cuda_headers
 #include "cufftXt.h"  // from @cuda_headers
-#include "tfrt/gpu/wrapper/wrapper.h"
-#include "tfrt/support/error_util.h"
+#include "tfrt/gpu/wrapper/fft_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-extern template void internal::LogResult(llvm::raw_ostream&, cufftResult);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cufftResult result);
 
 // Wraps a cufftHandle so that it can be used in a std::unique_ptr.

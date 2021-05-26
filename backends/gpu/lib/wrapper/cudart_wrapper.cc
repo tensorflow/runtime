@@ -16,17 +16,15 @@
 // context.
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
 
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, cudaError_t);
+template llvm::raw_ostream& internal::operator<<(llvm::raw_ostream&,
+                                                 const ErrorData<cudaError_t>&);
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaError_t error) {
   const char* name = cudaGetErrorName(error);

@@ -41,12 +41,14 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-// Explicitly instantiate this definition in the implementation file for the
-// library's return status type. Requires operation<<(raw_ostream, T) to be
-// declared before this header is included.
+// Instantiate this template once for each concrete status code type T.
 template <typename T>
-void internal::LogResult(llvm::raw_ostream& os, T result) {
-  os << result;
+llvm::raw_ostream& internal::operator<<(llvm::raw_ostream& os,
+                                        const ErrorData<T>& data) {
+  using wrapper::operator<<;  // for T.
+  os << "'" << data.expr << "': " << data.result;
+  if (data.stack_trace) os << ", stack trace:\n" << data.stack_trace;
+  return os;
 }
 
 template <typename T>

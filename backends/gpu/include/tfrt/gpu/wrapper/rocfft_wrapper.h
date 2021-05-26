@@ -18,15 +18,13 @@
 #ifndef TFRT_GPU_STREAM_ROCFFT_WRAPPER_H_
 #define TFRT_GPU_STREAM_ROCFFT_WRAPPER_H_
 
+#include "tfrt/gpu/wrapper/fft_wrapper.h"
 #include "tfrt/gpu/wrapper/rocfft_stub.h"
-#include "tfrt/gpu/wrapper/wrapper.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-extern template void internal::LogResult(llvm::raw_ostream&, rocfft_status);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocfft_status status);
 
 namespace internal {

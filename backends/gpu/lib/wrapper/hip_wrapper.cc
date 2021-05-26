@@ -15,19 +15,16 @@
 // Thin wrapper around the HIP API adding llvm::Error and explicit context.
 #include "tfrt/gpu/wrapper/hip_wrapper.h"
 
-#include "llvm/Support/Errc.h"
-#include "llvm/Support/Error.h"
 #include "llvm/Support/FormatVariadic.h"
-#include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/hip_stub.h"
-#include "tfrt/gpu/wrapper/wrapper.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-template void internal::LogResult(llvm::raw_ostream&, hipError_t);
+template llvm::raw_ostream& internal::operator<<(llvm::raw_ostream&,
+                                                 const ErrorData<hipError_t>&);
 
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error) {
   const char* msg = hipGetErrorName(error);
@@ -364,13 +361,12 @@ llvm::Expected<DeviceMemory<void>> HipMemAlloc(CurrentContext current,
   CheckHipContext(current);
   hipDeviceptr_t ptr;
   if (auto error = TO_ERROR(hipMalloc(&ptr, size_bytes))) {
-    return llvm::handleErrors(
-        std::move(error),
-        [&](std::unique_ptr<wrapper::ErrorInfo<hipError_t>> info) {
-          return wrapper::GetResult(*info) == hipErrorOutOfMemory
-                     ? MakeOomError(current, size_bytes)
-                     : llvm::Error(std::move(info));
-        });
+    return llvm::handleErrors(std::move(error),
+                              [&](std::unique_ptr<ErrorInfo<hipError_t>> info) {
+                                return GetResult(*info) == hipErrorOutOfMemory
+                                           ? MakeOomError(current, size_bytes)
+                                           : llvm::Error(std::move(info));
+                              });
   }
   NotifyResourceCreated(ResourceType::kDeviceMemory, ptr);
   return DeviceMemory<void>({ptr, Platform::ROCm});

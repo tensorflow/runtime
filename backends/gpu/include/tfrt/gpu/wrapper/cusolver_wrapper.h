@@ -20,14 +20,11 @@
 
 #include "cusolverDn.h"  // from @cuda_headers
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
-#include "tfrt/gpu/wrapper/wrapper.h"
-#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-extern template void internal::LogResult(llvm::raw_ostream &, cusolverStatus_t);
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, cusolverStatus_t status);
 
 llvm::Expected<OwningSolverHandle> CusolverDnCreate();

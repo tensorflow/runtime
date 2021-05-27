@@ -120,6 +120,8 @@ class StreamAnalysis {
   void ScheduleOpForwardPass(mlir::Block& block);
   void BuildStreamBackwardPass(mlir::Block& block);
   void BuildStreamForOp(mlir::Operation* op);
+  void MergeInterDependentStreams(llvm::SmallVector<int, 4>& child_stream_ids);
+  void MergeStreams(int from_id, int to_id);
   void FinalizeStreams(mlir::Block& block);
   int64_t GetOperationCost(mlir::Operation* op) const;
 
@@ -134,6 +136,9 @@ class StreamAnalysis {
       // `merge_to_stream_id` is the id of the stream that this stream should be
       // merged into.
       int merge_to_stream_id = -1;
+      // `side_deps` are data dependencies from other streams instead of the
+      // parent stream.
+      llvm::SmallDenseSet<mlir::Operation*, 2> side_deps;
     };
 
     struct OpInfo {
@@ -148,6 +153,11 @@ class StreamAnalysis {
       // triggered by the current operation. This is done in
       // ScheduleOpForwardPass().
       llvm::SmallVector<mlir::Operation*, 4> scheduled_users;
+
+      // `side_defs` are the defining ops of this op's operands that are not the
+      // one triggering the execution of this op, as analyzed in
+      // ScheduleOpForwardPass().
+      llvm::SmallDenseSet<mlir::Operation*, 2> side_defs;
     };
 
     // `stream_infos` is a temporary data structure to keep stream information
@@ -156,8 +166,14 @@ class StreamAnalysis {
     // `op_map` is a temporary data structure to keep per-op information like
     // cost, its stream_id during building the stream tree.
     llvm::DenseMap<mlir::Operation*, OpInfo> op_map;
+    // Resolve the stream of `op` to the latest one. During the analysis,
+    // streams might be merged to others, so the stream_id of an op might be
+    // stale.
+    void ResolveStreamId(mlir::Operation* op);
   };
-  BuildInfo build_info_;
+
+  void AssignOpToStream(mlir::Operation* op, BuildInfo::OpInfo& op_info,
+                        int stream_id, BuildInfo::StreamInfo& stream_info);
 
   struct Options {
     // `cost_threshold` is the lower threshold for streams costs. We try to
@@ -167,8 +183,12 @@ class StreamAnalysis {
     // `upper_cost_threshold` is the upper threshold for stream costs. For
     // dependent streams, we won't merge them if it is exceeding this threshold.
     int64_t upper_cost_threshold = -1;
+    // If `merge_inter_dependent_streams` is true, when merging independent
+    // streams, it will try to merge those with inter data dependencies first.
+    bool merge_inter_dependent_streams = false;
   };
 
+  BuildInfo build_info_;
   Options options_;
 
   // `streams_` contains the finalized Stream objects that contain information

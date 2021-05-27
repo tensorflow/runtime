@@ -104,4 +104,31 @@ func @merge_limit(%ch0: !tfrt.chain) -> !tfrt.chain attributes {tfrt.upper_cost_
   tfrt.return %ch4 : !tfrt.chain
 }
 
+// expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+func @merge_inter_dependent_streams(%ch0: !tfrt.chain) -> !tfrt.chain attributes {tfrt.merge_inter_dependent_streams = true} {
+
+  // expected-remark@+1 {{stream id: 3, stream cost: 11, parent stream: 0}}
+  %ch1 = tfrt_test.test_cost %ch0 {id = 1 : i64, _tfrt_cost = 5 : i64}
+  // expected-remark@+1 {{stream id: 3, stream cost: 11, parent stream: 0}}
+  %ch2 = tfrt_test.test_cost %ch0 {id = 2 : i64, _tfrt_cost = 5 : i64}
+  // expected-remark@+1 {{stream id: 3, stream cost: 11, parent stream: 0}}
+  %ch3 = tfrt.merge.chains %ch1, %ch2 : !tfrt.chain, !tfrt.chain
+
+  // expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+  %ch4 = tfrt_test.test_cost %ch0 {id = 3 : i64, _tfrt_cost = 5 : i64}
+  // expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+  %ch5 = tfrt_test.test_cost %ch0 {id = 4 : i64, _tfrt_cost = 5 : i64}
+  // expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+  %ch6 = tfrt.merge.chains %ch4, %ch5 : !tfrt.chain, !tfrt.chain
+  // expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+  %ch7 = tfrt.merge.chains %ch4, %ch5 : !tfrt.chain, !tfrt.chain
+  // expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+  %ch8 = tfrt.merge.chains %ch6, %ch7 : !tfrt.chain, !tfrt.chain
+
+  // expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+  %ch9 = tfrt.merge.chains %ch3, %ch8 : !tfrt.chain, !tfrt.chain
+  // expected-remark@+1 {{stream id: 0, stream cost: 16, parent stream: -1}}
+  tfrt.return %ch9 : !tfrt.chain
+}
+
 }

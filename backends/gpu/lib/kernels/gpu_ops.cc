@@ -159,20 +159,6 @@ GpuConversionDialect::GpuConversionDialect(MLIRContext *context)
       >();
 }
 
-mlir::OpFoldResult CastAnyToAnyOp::fold(
-    llvm::ArrayRef<mlir::Attribute> operands) {
-  // Casting from type A to type B, and then casting back to type A can be
-  // folded away.
-  mlir::Type output_type = output().getType();
-
-  CastAnyToAnyOp input_op = input().getDefiningOp<CastAnyToAnyOp>();
-  if (!input_op) return nullptr;
-
-  mlir::Value indirect_input = input_op.input();
-  if (indirect_input.getType() == output_type) return indirect_input;
-  return nullptr;
-}
-
 mlir::OpFoldResult CastOp::fold(llvm::ArrayRef<mlir::Attribute>) {
   Type result_type = getResult().getType();
 

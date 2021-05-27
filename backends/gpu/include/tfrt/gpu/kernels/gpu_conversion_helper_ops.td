@@ -40,22 +40,6 @@ def GPU_ConversionDialect : Dialect {
   let cppNamespace = "tfrt::gpu::conversion";
 }
 
-def GPU_CastAnyToAnyOp : Op<GPU_ConversionDialect, "cast_any_to_any"> {
-  let summary = "tfrt_gpu_conversion.cast_any_to_any operation";
-  let description = [{
-    tfrt_gpu_conversion.cast_any_to_any casts any type to any other type.
-
-    This op is used by the Dialect Conversion framework when lowering to the
-    tfrt_gpu dialect. This op should only exist during the conversion process,
-    and so doesn't map to an implementation.
-  }];
-
-  let arguments = (ins AnyType:$input);
-  let results = (outs AnyType:$output);
-
-  let hasFolder = 1;
-}
-
 def GPU_CastOp : Op<GPU_ConversionDialect, "cast", [NoSideEffect]> {
   let summary = "tfrt_gpu_convertion.cast operation";
   let description = "Transient op to cast multiple inputs to one output.";

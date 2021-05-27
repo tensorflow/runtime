@@ -70,6 +70,7 @@ class AsyncValue : public AsyncRuntimeObject {
                                                              alignment)) {}
 
   void* GetStorage() const {
+    assert(!GetAsyncValue()->IsError() && "unexpected error state");
     if (storage_->is_inline) return &storage_->inline_buffer;
     return storage_->host_buffer->data();
   }
@@ -212,6 +213,19 @@ void AsyncRuntime::SetAvailable(AsyncRuntime::Token* token) {
   DropRef(token);
 }
 
+void AsyncRuntime::SetError(AsyncRuntime::Token* token) {
+  // TODO(ezhulenev): Construct a better diagnostincs when async runtime API
+  // will support passing custom error messages.
+  token->GetAsyncValue()->SetError(DecodedDiagnostic("<async runtime error>"));
+  // Async tokens created with a ref count `2` to keep token alive until the
+  // async task completes. Drop extra reference explicitly when token emplaced.
+  DropRef(token);
+}
+
+bool AsyncRuntime::IsError(AsyncRuntime::Token* token) {
+  return token->GetAsyncValue()->IsError();
+}
+
 void AsyncRuntime::AwaitToken(AsyncRuntime::Token* token) {
   std::array<RCReference<AsyncValue>, 1> ref{FormRef(token->GetAsyncValue())};
   host_context_->Await(ref);
@@ -234,6 +248,19 @@ void AsyncRuntime::SetAvailable(AsyncRuntime::Value* value) {
   DropRef(value);
 }
 
+void AsyncRuntime::SetError(AsyncRuntime::Value* value) {
+  // TODO(ezhulenev): Construct a better diagnostincs when async runtime API
+  // will support passing custom error messages.
+  value->GetAsyncValue()->SetError(DecodedDiagnostic("<async runtime error>"));
+  // Async values created with a ref count `2` to keep token alive until the
+  // async task completes. Drop extra reference explicitly when token emplaced.
+  DropRef(value);
+}
+
+bool AsyncRuntime::IsError(AsyncRuntime::Value* value) {
+  return value->GetAsyncValue()->IsError();
+}
+
 void AsyncRuntime::AwaitValue(AsyncRuntime::Value* value) {
   std::array<RCReference<AsyncValue>, 1> ref{FormRef(value->GetAsyncValue())};
   host_context_->Await(ref);
@@ -246,6 +273,11 @@ AsyncRuntime::Group* AsyncRuntime::CreateGroup() {
 size_t AsyncRuntime::AddTokenToGroup(AsyncRuntime::Group* group,
                                      AsyncRuntime::Token* token) {
   return group->AddToken(token);
+}
+
+bool AsyncRuntime::IsError(AsyncRuntime::Group* group) {
+  return llvm::any_of(group->GetAsyncValues(),
+                      [](AsyncValue* value) { return value->IsError(); });
 }
 
 void AsyncRuntime::AwaitGroup(AsyncRuntime::Group* group) {

@@ -46,14 +46,28 @@ class AsyncRuntime {
   explicit AsyncRuntime(HostContext* host_context)
       : host_context_(host_context) {}
 
+  // ------------------------------------------------------------------------ //
+  // Async Token API.
+  // ------------------------------------------------------------------------ //
+
   // Creates a new token in not-ready state.
   Token* CreateToken();
 
-  // Switched the token to the available state and runs all the awaiters.
+  // Switches the token to the available state and runs all the awaiters.
   void SetAvailable(Token* token);
+
+  // Switches the token to the error state and runs all the awaiters.
+  void SetError(Token* token);
+
+  // Returns `true` if the token is in the error state.
+  bool IsError(Token* token);
 
   // Blocks the caller thread until the token becomes ready.
   void AwaitToken(Token* token);
+
+  // ------------------------------------------------------------------------ //
+  // Async Value API.
+  // ------------------------------------------------------------------------ //
 
   // Creates a new value in not-ready state with a storage of the given size.
   Value* CreateValue(size_t size, size_t alignment);
@@ -61,8 +75,18 @@ class AsyncRuntime {
   // Switches the value to the available state and runs all the awaiters.
   void SetAvailable(Value* value);
 
+  // Switches the value to the error state and runs all the awaiters.
+  void SetError(Value* value);
+
+  // Returns `true` if the value is in the error state.
+  bool IsError(Value* value);
+
   // Blocks the caller thread until the value becomes ready.
   void AwaitValue(Value* value);
+
+  // ------------------------------------------------------------------------ //
+  // Async Group API.
+  // ------------------------------------------------------------------------ //
 
   // Creates a new empty group.
   Group* CreateGroup();
@@ -70,9 +94,17 @@ class AsyncRuntime {
   // Adds `token` to the `group`.
   size_t AddTokenToGroup(Group* group, Token* token);
 
+  // Returns `true` if the group is in the error state (any of the tokens or
+  // values added to the group is in the error state).
+  bool IsError(Group* group);
+
   // Blocks the caller thread until the group becomes ready (all tokens that
   // were added to the group are emplaced).
   void AwaitGroup(Group* group);
+
+  // ------------------------------------------------------------------------ //
+  // Execution and continuation based resumption API.
+  // ------------------------------------------------------------------------ //
 
   // Execute the callable `f` on a thread managed by the runtime.
   template <typename F>
@@ -86,6 +118,8 @@ class AsyncRuntime {
   void AwaitValue(Value* value, F&& f);
   template <typename F>
   void AwaitGroup(Group* group, F&& f);
+
+  // ------------------------------------------------------------------------ //
 
   // Returns a pointer to the async value storage.
   static void* GetStorage(Value* value);

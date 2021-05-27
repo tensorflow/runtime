@@ -123,8 +123,18 @@ llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(
        &mlir::runtime::mlirAsyncRuntimeCreateValue);
   bind("mlirAsyncRuntimeEmplaceToken",
        &mlir::runtime::mlirAsyncRuntimeEmplaceToken);
+  bind("mlirAsyncRuntimeSetTokenError",
+       &mlir::runtime::mlirAsyncRuntimeSetTokenError);
+  bind("mlirAsyncRuntimeIsTokenError",
+       &mlir::runtime::mlirAsyncRuntimeIsTokenError);
   bind("mlirAsyncRuntimeEmplaceValue",
        &mlir::runtime::mlirAsyncRuntimeEmplaceValue);
+  bind("mlirAsyncRuntimeSetValueError",
+       &mlir::runtime::mlirAsyncRuntimeSetValueError);
+  bind("mlirAsyncRuntimeIsValueError",
+       &mlir::runtime::mlirAsyncRuntimeIsValueError);
+  bind("mlirAsyncRuntimeIsGroupError",
+       &mlir::runtime::mlirAsyncRuntimeIsGroupError);
   bind("mlirAsyncRuntimeAwaitToken",
        &mlir::runtime::mlirAsyncRuntimeAwaitToken);
   bind("mlirAsyncRuntimeAwaitValue",
@@ -196,10 +206,24 @@ int64_t mlirAsyncRuntimeAddTokenToGroup(AsyncToken *token, AsyncGroup *group) {
   return runtime.AddTokenToGroup(group, token);
 }
 
-// Switches `async.token` to ready state and runs all awaiters.
+bool mlirAsyncRuntimeIsGroupError(AsyncGroup *group) {
+  AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  return runtime.IsError(group);
+}
+
 void mlirAsyncRuntimeEmplaceToken(AsyncToken *token) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
   runtime.SetAvailable(token);
+}
+
+void mlirAsyncRuntimeSetTokenError(AsyncToken *token) {
+  AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  runtime.SetError(token);
+}
+
+bool mlirAsyncRuntimeIsTokenError(AsyncToken *token) {
+  AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  return runtime.IsError(token);
 }
 
 void mlirAsyncRuntimeAwaitToken(AsyncToken *token) {
@@ -220,6 +244,16 @@ ValueStorage mlirAsyncRuntimeGetValueStorage(AsyncValue *value) {
 void mlirAsyncRuntimeEmplaceValue(AsyncValue *value) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
   runtime.SetAvailable(value);
+}
+
+void mlirAsyncRuntimeSetValueError(AsyncValue *value) {
+  AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  runtime.SetError(value);
+}
+
+bool mlirAsyncRuntimeIsValueError(AsyncValue *value) {
+  AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
+  return runtime.IsError(value);
 }
 
 void mlirAsyncRuntimeAwaitValue(AsyncValue *value) {

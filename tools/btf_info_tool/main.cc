@@ -50,31 +50,6 @@ namespace {
 llvm::cl::opt<std::string> cl_input_filename(  // NOLINT
     llvm::cl::Positional, llvm::cl::desc("<input file>"), llvm::cl::Required);
 
-DType::Kind ToDTypeKind(TensorDType type) {
-  switch (type) {
-    case TensorDType::kInt8:
-      return DType::Kind::I8;
-    case TensorDType::kInt16:
-      return DType::Kind::I16;
-    case TensorDType::kInt32:
-      return DType::Kind::I32;
-    case TensorDType::kInt64:
-      return DType::Kind::I64;
-    case TensorDType::kFloat32:
-      return DType::Kind::F32;
-    case TensorDType::kFloat64:
-      return DType::Kind::F64;
-    case TensorDType::kUInt8:
-      return DType::Kind::UI8;
-    case TensorDType::kUInt16:
-      return DType::Kind::UI16;
-    case TensorDType::kUInt32:
-      return DType::Kind::UI32;
-    case TensorDType::kUInt64:
-      return DType::Kind::UI64;
-  }
-}
-
 class BtfFile {
  public:
   // Open the given file.

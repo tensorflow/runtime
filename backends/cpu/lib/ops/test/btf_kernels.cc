@@ -17,7 +17,7 @@
 #include "tfrt/cpu/ops/test/cpu_ops_and_kernels.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/kernel_utils.h"
-#include "tfrt/tensor/btf_reader_util.h"
+#include "tfrt/tensor/btf_util.h"
 
 namespace tfrt {
 

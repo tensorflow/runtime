@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-// This file contains utilities for reading BTF (Binary Tensor Format).
+// This file contains utilities for reading and writing BTF (Binary Tensor
+// Format).
 
-#ifndef TFRT_TENSOR_BTF_READER_UTIL_H_
-#define TFRT_TENSOR_BTF_READER_UTIL_H_
+#ifndef TFRT_TENSOR_BTF_UTIL_H_
+#define TFRT_TENSOR_BTF_UTIL_H_
 
 #include <cstdint>
 #include <fstream>
+#include <vector>
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/Error.h"
@@ -40,6 +42,13 @@ namespace tfrt {
 template <typename T>
 bool ReadStream(std::istream* stream, T* value, size_t n = 1) {
   return stream->read(reinterpret_cast<char*>(value), n * sizeof(T)).good();
+}
+
+// Utility function to write n elements of data of type T to the output stream.
+template <typename T>
+bool WriteStream(std::ostream* stream, const T* value, size_t n = 1) {
+  return stream->write(reinterpret_cast<const char*>(value), n * sizeof(T))
+      .good();
 }
 
 // The DenseHostTensor parser is kept in this util library because it is used by
@@ -178,6 +187,18 @@ struct ParseDenseHostTensorTraits {
       ParseDenseHostTensorFromStream<DType_, Rank_>;
 };
 
+// Reads the TENSOR_RECORD_OFFSETs of all tensors. The stream is expected to be
+// at the beginning of the BTF-file.
+Expected<std::vector<uint64_t>> ReadBTFOffsets(std::istream* stream);
+
+// Seeks to the given offset and reads the TENSOR_RECORD as a DHT.
+Expected<DenseHostTensor> ReadDHTFromBTF(std::istream* stream, uint64_t offset,
+                                         HostContext* host);
+
+// Writes a BTF-file, with file header (offsets) and tensor records. Currently
+// only supports DenseHostTensors.
+Error WriteTensorsToBTF(std::ostream* stream, ArrayRef<const Tensor*> tensors);
+
 }  // namespace tfrt
 
-#endif  // TFRT_TENSOR_BTF_READER_UTIL_H_
+#endif  // TFRT_TENSOR_BTF_UTIL_H_

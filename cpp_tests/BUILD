@@ -25,8 +25,10 @@ tfrt_cc_library(
     deps = [
         "@com_google_googletest//:gtest",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//:dtype",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
     ],
 )
 
@@ -186,6 +188,19 @@ tfrt_cc_test(
     name = "tensor/tensor_test",
     srcs = [
         "tensor/tensor_test.cc",
+    ],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_test(
+    name = "tensor/btf_test",
+    srcs = [
+        "tensor/btf_test.cc",
     ],
     deps = [
         ":common",

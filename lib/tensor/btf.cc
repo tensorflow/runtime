@@ -17,9 +17,62 @@
 #include "tfrt/tensor/btf.h"
 
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 namespace btf {
+
+DType::Kind ToDTypeKind(TensorDType type) {
+  switch (type) {
+    case TensorDType::kInt8:
+      return DType::Kind::I8;
+    case TensorDType::kInt16:
+      return DType::Kind::I16;
+    case TensorDType::kInt32:
+      return DType::Kind::I32;
+    case TensorDType::kInt64:
+      return DType::Kind::I64;
+    case TensorDType::kFloat32:
+      return DType::Kind::F32;
+    case TensorDType::kFloat64:
+      return DType::Kind::F64;
+    case TensorDType::kUInt8:
+      return DType::Kind::UI8;
+    case TensorDType::kUInt16:
+      return DType::Kind::UI16;
+    case TensorDType::kUInt32:
+      return DType::Kind::UI32;
+    case TensorDType::kUInt64:
+      return DType::Kind::UI64;
+  }
+}
+
+Expected<TensorDType> ToTensorDType(DType::Kind type) {
+  switch (type) {
+    case DType::Kind::I8:
+      return TensorDType::kInt8;
+    case DType::Kind::I16:
+      return TensorDType::kInt16;
+    case DType::Kind::I32:
+      return TensorDType::kInt32;
+    case DType::Kind::I64:
+      return TensorDType::kInt64;
+    case DType::Kind::F32:
+      return TensorDType::kFloat32;
+    case DType::Kind::F64:
+      return TensorDType::kFloat64;
+    case DType::Kind::UI8:
+      return TensorDType::kUInt8;
+    case DType::Kind::UI16:
+      return TensorDType::kUInt16;
+    case DType::Kind::UI32:
+      return TensorDType::kUInt32;
+    case DType::Kind::UI64:
+      return TensorDType::kUInt64;
+    default:
+      return MakeStringError("failed to cast DType to TensorDType");
+  }
+}
 
 raw_ostream& operator<<(raw_ostream& os, const TensorDType& dtype) {
   switch (dtype) {

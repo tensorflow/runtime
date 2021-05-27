@@ -24,7 +24,7 @@
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/btf.h"
-#include "tfrt/tensor/btf_reader_util.h"
+#include "tfrt/tensor/btf_util.h"
 #include "tfrt/tensor/coo_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor_metadata.h"

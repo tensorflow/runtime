@@ -22,6 +22,7 @@
 
 #include <cstdint>
 
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -41,6 +42,10 @@ enum class TensorDType : uint8_t {
   kUInt32 = 8,
   kUInt64 = 9,
 };
+
+DType::Kind ToDTypeKind(TensorDType type);
+
+Expected<TensorDType> ToTensorDType(DType::Kind type);
 
 raw_ostream& operator<<(raw_ostream& os, const TensorDType& dtype);
 

@@ -8,6 +8,7 @@ load(
     # copybara:comment_end
     "cuda_library",
 )
+load("@local_cuda//:defs.bzl", "if_local_cuda")  # copybara:comment
 
 package(
     default_visibility = [":__subpackages__"],
@@ -87,8 +88,13 @@ tfrt_cc_library(
 )
 
 # Generated API implementations for CUDA libraries.
-# Note: Only gpu_wrapper should depend on cuda_stubs, and
-# --@rules_cuda//cuda:cuda_runtime should be set to this target.
+#
+# No target (with the exception of :cuda_wrapper) should explicitly depend on
+# this. It should rather be used (through .bazelrc) as
+# '--@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs'
+# which makes all cuda_library() targets implicitly depend on it.
+#
+# Not used internally, but we want to include it in CI builds.
 tfrt_cc_library(
     name = "cuda_stubs",
     srcs = [
@@ -107,12 +113,12 @@ tfrt_cc_library(
         # "@cuda_headers",
         # "@cudnn_headers//:cudnn_header",
         # copybara:uncomment_end_and_comment_begin
-        # TODO(csigg): change to @cuda_headers once crt is included.
+    ] + if_local_cuda([
         "@local_cuda//:cuda_headers",
         "@cudnn_headers",
         # copybara:comment_end
         "@tf_runtime//third_party/cuda:stub_inc",
-    ],
+    ]),  # copybara:comment_replace ],
 )
 
 # This is a backward compatible wrapper for cublasGemmEx to support

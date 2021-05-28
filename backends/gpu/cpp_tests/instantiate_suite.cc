@@ -13,22 +13,23 @@
 // limitations under the License.
 
 // Instantiates parameterized GPU wrapper tests for each platform.
+
 #include "common.h"
-#include "gtest/gtest.h"
-#include "llvm/Support/raw_ostream.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-INSTANTIATE_TEST_SUITE_P(Suite, Test,
-                         testing::Values(Platform::CUDA /*, Platform::ROCm*/),
-                         [](const auto& info) {
-                           std::string buffer;
-                           llvm::raw_string_ostream oss(buffer);
-                           oss << info.param;
-                           return oss.str();
-                         });
+static std::string ToString(const ::testing::TestParamInfo<Platform>& info) {
+  std::string buffer;
+  llvm::raw_string_ostream(buffer) << info.param;
+  return buffer;
+}
+
+// Note: ROCm platform is not fully supported yet.
+static auto kParams = testing::Values(Platform::CUDA);
+
+INSTANTIATE_TEST_SUITE_P(Suite, Test, kParams, ToString);
 
 }  // namespace wrapper
 }  // namespace gpu

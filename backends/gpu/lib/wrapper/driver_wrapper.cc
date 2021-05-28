@@ -1176,7 +1176,12 @@ llvm::Error CheckNoCurrentContext() {
   return llvm::Error::success();
 }
 
-CurrentContext CreateCurrentContext() { return CurrentContext(); }
+struct CurrentContext::Factory {
+  static CurrentContext Create() { return CurrentContext(); }
+};
+CurrentContext CreateCurrentContext() {
+  return CurrentContext::Factory::Create();
+}
 
 static void LogIfErrorImpl(llvm::Error error, Severity severity) {
   llvm::handleAllErrors(std::move(error), [&](const llvm::ErrorInfoBase& info) {

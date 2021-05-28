@@ -24,7 +24,7 @@ namespace wrapper {
 
 TEST_P(Test, DnnHandel) {
   auto platform = GetParam();
-  EXPECT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -42,14 +42,14 @@ TEST_P(Test, DnnConvDesc) {
 TEST_P(Test, DnnTensorDesc) {
   auto platform = GetParam();
   TFRT_ASSERT_AND_ASSIGN(auto descriptor, DnnCreateTensorDescriptor(platform));
-  EXPECT_TRUE(IsSuccess(DnnSetTensorDescriptor(descriptor.get(),
-                                               DnnDataType(0, platform),
-                                               {2, 2, 3, 1}, {1, 2, 4, 12})));
+  EXPECT_THAT(DnnSetTensorDescriptor(descriptor.get(), DnnDataType(0, platform),
+                                     {2, 2, 3, 1}, {1, 2, 4, 12}),
+              IsSuccess());
 }
 
 TEST_F(Test, CudnnLogCUDA) {
   auto platform = Platform::CUDA;
-  EXPECT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));

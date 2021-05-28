@@ -13,90 +13,85 @@
 // limitations under the License.
 
 // Unit test for driver wrapper (abstraction layer for CUDA and HIP).
-#include <ostream>
+
+#include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 #include "common.h"
-#include "gtest/gtest.h"
-#include "llvm/Support/FormatVariadic.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/hip_wrapper.h"
-#include "tfrt/support/logging.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
-static testing::AssertionResult IsInvalidContextError(llvm::Error&& error) {
-  if (!error) return testing::AssertionFailure() << error;
-  return IsSuccess(llvm::handleErrors(
-      std::move(error),
-      [](std::unique_ptr<ErrorInfo<CUresult>> info) -> llvm::Error {
-        if (GetResult(*info) == CUDA_ERROR_INVALID_CONTEXT)
-          return llvm::Error::success();
-        return llvm::Error(std::move(info));
-      },
-      [](std::unique_ptr<ErrorInfo<hipError_t>> info) -> llvm::Error {
-        if (GetResult(*info) == hipErrorInvalidContext)
-          return llvm::Error::success();
-        return llvm::Error(std::move(info));
-      }));
+using ::testing::AllOf;
+using ::testing::AssertionFailure;
+using ::testing::AssertionResult;
+using ::testing::AssertionSuccess;
+using ::testing::ContainsRegex;
+using ::testing::Eq;
+using ::testing::HasSubstr;
+
+static AssertionResult IsInvalidContextError(llvm::Error&& error) {
+  if (!error) return AssertionFailure() << error;
+  if (auto handled = llvm::handleErrors(
+          std::move(error),
+          [](std::unique_ptr<ErrorInfo<CUresult>> info) -> llvm::Error {
+            if (GetResult(*info) == CUDA_ERROR_INVALID_CONTEXT)
+              return llvm::Error::success();
+            return llvm::Error(std::move(info));
+          },
+          [](std::unique_ptr<ErrorInfo<hipError_t>> info) -> llvm::Error {
+            if (GetResult(*info) == hipErrorInvalidContext)
+              return llvm::Error::success();
+            return llvm::Error(std::move(info));
+          }))
+    return AssertionFailure() << handled;
+  return AssertionSuccess();
 }
 
 // Helper function to clear current context.
-static testing::AssertionResult SetNullContext(Platform platform) {
+static AssertionResult SetNullContext(Platform platform) {
   for (;;) {
     // Setting null context requires multiple tries because it may at first
     // restore a primary context.
     auto current = CtxSetCurrent({nullptr, platform});
-    if (!current) return testing::AssertionFailure() << current.takeError();
-    if (*current == nullptr) return testing::AssertionSuccess();
+    if (!current) return AssertionFailure() << current.takeError();
+    if (*current == nullptr) return AssertionSuccess();
   }
-}
-
-static ::testing::AssertionResult Contains(llvm::StringRef string,
-                                           llvm::StringRef substr) {
-  if (string.contains(substr)) {
-    return ::testing::AssertionSuccess()
-           << llvm::formatv("'{0}' contains '{1}'", string, substr).str();
-  }
-  return ::testing::AssertionFailure()
-         << llvm::formatv("'{1}' not found in '{0}'", string, substr).str();
 }
 
 TEST_P(Test, TestLogError) {
   auto platform = GetParam();
-  EXPECT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
-  std::string log_string;
-  llvm::raw_string_ostream(log_string)
-      << DeviceGet(platform, count).takeError();
+  std::string error_str = toString(DeviceGet(platform, count).takeError());
   if (platform == Platform::CUDA) {
-    EXPECT_TRUE(Contains(log_string, "cuDeviceGet"));
-    EXPECT_TRUE(Contains(log_string, "CUDA_ERROR_INVALID_DEVICE"));
-    EXPECT_TRUE(Contains(log_string, "invalid device ordinal"));
+    EXPECT_THAT(error_str, AllOf(HasSubstr("cuDeviceGet"),
+                                 HasSubstr("CUDA_ERROR_INVALID_DEVICE"),
+                                 HasSubstr("invalid device ordinal")));
   }
   if (platform == Platform::ROCm) {
-    EXPECT_TRUE(Contains(log_string, "hipDeviceGet"));
-    EXPECT_TRUE(Contains(log_string, "hipInvalidDevice"));
-    EXPECT_TRUE(Contains(log_string, "invalid device ordinal"));
+    EXPECT_THAT(error_str,
+                AllOf(HasSubstr("hipDeviceGet"), HasSubstr("hipInvalidDevice"),
+                      HasSubstr("invalid device ordinal")));
   }
 }
 
 TEST_P(Test, DriverVersionIsGreaterZero) {
   auto platform = GetParam();
-  EXPECT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto version, DriverGetVersion(platform));
   EXPECT_GT(version, 0);
 }
 
 TEST_P(Test, TestDeviceProperties) {
   auto platform = GetParam();
-  EXPECT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto name, DeviceGetName(device));
-  TFRT_LOG(INFO) << "Running on GPU 0: " << name;
   EXPECT_FALSE(name.empty());
   TFRT_ASSERT_AND_ASSIGN(auto mem_size, DeviceTotalMem(device));
   EXPECT_GT(mem_size, 0);
@@ -115,7 +110,7 @@ TEST_P(Test, TestDeviceProperties) {
 
 TEST_P(Test, CreatedContextIsCurrent) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -127,7 +122,7 @@ TEST_P(Test, CreatedContextIsCurrent) {
 
 TEST_P(Test, RetainedPrimaryContextIsNotCurrent) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   EXPECT_TRUE(SetNullContext(platform));
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
@@ -140,7 +135,7 @@ TEST_P(Test, RetainedPrimaryContextIsNotCurrent) {
 
 TEST_P(Test, TestMultipleContexts) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -156,79 +151,68 @@ TEST_P(Test, TestMultipleContexts) {
 
 TEST_P(Test, TestDestroyResourcesWithoutCurrentContext) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
 
-  DeviceMemory<void> device_ptr;
-  HostMemory<void> host_ptr;
-  DeviceMemory<void> managed_ptr;
-  RegisteredMemory<void> registered_ptr;
+  TFRT_ASSERT_AND_ASSIGN(auto device_ptr,
+                         MemAlloc(Current(), /*size_bytes=*/8));
+  TFRT_ASSERT_AND_ASSIGN(
+      auto host_ptr,
+      MemHostAlloc(Current(), /*size_bytes=*/8, MemHostAllocFlags::PORTABLE));
+  TFRT_ASSERT_AND_ASSIGN(
+      auto managed_ptr,
+      MemAllocManaged(Current(), /*size_bytes=*/8, MemAttachFlags::GLOBAL));
   char buffer[8];
+  TFRT_ASSERT_AND_ASSIGN(auto registered_ptr,
+                         MemHostRegister(Current(), buffer, sizeof(buffer),
+                                         MemHostRegisterFlags::DEVICEMAP));
 
-  {
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-    TFRT_ASSERT_AND_ASSIGN(device_ptr, MemAlloc(current, /*size_bytes=*/8));
-    TFRT_ASSERT_AND_ASSIGN(host_ptr, MemHostAlloc(current, /*size_bytes=*/8,
-                                                  MemHostAllocFlags::PORTABLE));
-    TFRT_ASSERT_AND_ASSIGN(
-        managed_ptr,
-        MemAllocManaged(current, /*size_bytes=*/8, MemAttachFlags::GLOBAL));
-    TFRT_ASSERT_AND_ASSIGN(registered_ptr,
-                           MemHostRegister(current, buffer, sizeof(buffer),
-                                           MemHostRegisterFlags::DEVICEMAP));
-  }
   EXPECT_TRUE(SetNullContext(platform));
 }
 
 TEST_P(Test, TestStreamsWithoutCurrentContext) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
 
-  OwningStream stream;
-  {
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-    TFRT_ASSERT_AND_ASSIGN(stream, StreamCreate(current, StreamFlags::DEFAULT));
-  }
+  TFRT_ASSERT_AND_ASSIGN(auto stream,
+                         StreamCreate(Current(), StreamFlags::DEFAULT));
   EXPECT_TRUE(SetNullContext(platform));
 
   TFRT_ASSERT_AND_ASSIGN(auto ready, StreamQuery(stream.get()));
   EXPECT_EQ(ready, true);
 
-  EXPECT_TRUE(IsSuccess(StreamSynchronize(stream.get())));
+  EXPECT_THAT(StreamSynchronize(stream.get()), IsSuccess());
   EXPECT_TRUE(IsInvalidContextError(StreamSynchronize({nullptr, platform})));
 }
 
 TEST_P(Test, TestEventsWithoutCurrentContext) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
 
-  OwningStream stream;
-  OwningEvent event;
-  {
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-    TFRT_ASSERT_AND_ASSIGN(stream, StreamCreate(current, StreamFlags::DEFAULT));
-    TFRT_ASSERT_AND_ASSIGN(event, EventCreate(current, EventFlags::DEFAULT));
-  }
+  TFRT_ASSERT_AND_ASSIGN(auto stream,
+                         StreamCreate(Current(), StreamFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto event,
+                         EventCreate(Current(), EventFlags::DEFAULT));
   EXPECT_TRUE(SetNullContext(platform));
 
   TFRT_ASSERT_AND_ASSIGN(auto ready, EventQuery(event.get()));
   EXPECT_EQ(ready, true);
 
-  EXPECT_TRUE(IsSuccess(EventRecord(event.get(), stream.get())));
-  EXPECT_TRUE(IsSuccess(StreamWaitEvent(stream.get(), event.get())));
+  EXPECT_THAT(EventRecord(event.get(), stream.get()), IsSuccess());
+  EXPECT_THAT(StreamWaitEvent(stream.get(), event.get()), IsSuccess());
 
-  EXPECT_TRUE(IsSuccess(EventSynchronize(event.get())));
+  EXPECT_THAT(EventSynchronize(event.get()), IsSuccess());
 
   Stream null_stream(nullptr, platform);
   EXPECT_TRUE(IsInvalidContextError(EventRecord(event.get(), null_stream)));
@@ -237,7 +221,7 @@ TEST_P(Test, TestEventsWithoutCurrentContext) {
 
 TEST_P(Test, TestContextFlags) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -250,7 +234,7 @@ TEST_P(Test, TestContextFlags) {
 
 TEST_P(Test, TestContextDevice) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -262,7 +246,7 @@ TEST_P(Test, TestContextDevice) {
 
 TEST_F(Test, TestContextLimitCUDA) {
   auto platform = Platform::CUDA;
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -270,42 +254,42 @@ TEST_F(Test, TestContextLimitCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   auto limit = CU_LIMIT_PRINTF_FIFO_SIZE;
   size_t value = 1024 * 1024;
-  EXPECT_TRUE(IsSuccess(CuCtxSetLimit(current, limit, value)));
+  EXPECT_THAT(CuCtxSetLimit(current, limit, value), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto get_value, CuCtxGetLimit(current, limit));
   EXPECT_EQ(value, get_value);
 }
 
 TEST_F(Test, TestContextCacheConfigCUDA) {
   auto platform = Platform::CUDA;
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   auto cache_cfg = CU_FUNC_CACHE_PREFER_SHARED;
-  EXPECT_TRUE(IsSuccess(CuCtxSetCacheConfig(current, cache_cfg)));
+  EXPECT_THAT(CuCtxSetCacheConfig(current, cache_cfg), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto get_cache_cfg, CuCtxGetCacheConfig(current));
   EXPECT_EQ(cache_cfg, get_cache_cfg);
 }
 
 TEST_F(Test, TestContextSharedConfigCUDA) {
   auto platform = Platform::CUDA;
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   auto shread_cfg = CU_SHARED_MEM_CONFIG_FOUR_BYTE_BANK_SIZE;
-  EXPECT_TRUE(IsSuccess(CuCtxSetSharedMemConfig(current, shread_cfg)));
+  EXPECT_THAT(CuCtxSetSharedMemConfig(current, shread_cfg), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto get_shread_cfg, CuCtxGetSharedMemConfig(current));
   EXPECT_EQ(shread_cfg, get_shread_cfg);
 }
 
 TEST_P(Test, ContextApiVersionIsGreaterZero) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -316,7 +300,7 @@ TEST_P(Test, ContextApiVersionIsGreaterZero) {
 
 TEST_P(Test, TestContextStreamPriorityRange) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -329,13 +313,13 @@ TEST_P(Test, TestContextStreamPriorityRange) {
 
 TEST_P(Test, TestPrimaryContextState) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  EXPECT_TRUE(IsSuccess(DevicePrimaryCtxReset(device)));
+  EXPECT_THAT(DevicePrimaryCtxReset(device), IsSuccess());
   auto flags = CtxFlags::SCHED_SPIN | CtxFlags::LMEM_RESIZE_TO_MAX;
-  EXPECT_TRUE(IsSuccess(DevicePrimaryCtxSetFlags(device, flags)));
+  EXPECT_THAT(DevicePrimaryCtxSetFlags(device, flags), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
   TFRT_ASSERT_AND_ASSIGN(auto state, DevicePrimaryCtxGetState(device));
   EXPECT_NE(state.active, 0);
@@ -346,12 +330,12 @@ TEST_P(Test, TestPrimaryContextState) {
 
 TEST_P(Test, TestPrimaryContextReset) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
-  EXPECT_TRUE(IsSuccess(DevicePrimaryCtxReset(device)));
+  EXPECT_THAT(DevicePrimaryCtxReset(device), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context.get()));
   ASSERT_EQ(current.platform(), platform);
 }
@@ -361,7 +345,7 @@ TEST_P(Test, TestNoCurrentContext) {
   GTEST_SKIP() << "CheckNoCurrentContext not implemented in NDEBUG builds";
 #endif
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -369,29 +353,29 @@ TEST_P(Test, TestNoCurrentContext) {
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context.get()));
   (void)current;
   // It's valid to create multiple CurrentContext instances.
-  ASSERT_TRUE(IsSuccess(CtxGetCurrent().takeError()));
+  EXPECT_THAT(CtxGetCurrent().takeError(), IsSuccess());
 
   const char* error_str = "Existing CurrentContext instance(s) in same thread.";
-  EXPECT_TRUE(IsErrorString(DevicePrimaryCtxRelease(device), error_str));
-  EXPECT_TRUE(IsErrorString(DevicePrimaryCtxReset(device), error_str));
-  EXPECT_TRUE(IsErrorString(CtxCreate(CtxFlags::SCHED_AUTO, device).takeError(),
-                            error_str));
-  EXPECT_TRUE(
-      IsErrorString(CtxSetCurrent(context.get()).takeError(), error_str));
-  EXPECT_TRUE(IsErrorString(CtxDestroy(context.get()), error_str));
+  EXPECT_THAT(toString(DevicePrimaryCtxRelease(device)), Eq(error_str));
+  EXPECT_THAT(toString(DevicePrimaryCtxReset(device)), Eq(error_str));
+  EXPECT_THAT(toString(CtxCreate(CtxFlags::SCHED_AUTO, device).takeError()),
+              Eq(error_str));
+  EXPECT_THAT(toString(CtxSetCurrent(context.get()).takeError()),
+              Eq(error_str));
+  EXPECT_THAT(toString(CtxDestroy(context.get())), Eq(error_str));
 }
 
 TEST_P(Test, TestDestroyNullResources) {
   auto platform = GetParam();
-  EXPECT_TRUE(IsSuccess(CtxDestroy({nullptr, platform})));
-  EXPECT_TRUE(IsSuccess(ModuleUnload({nullptr, platform})));
-  EXPECT_TRUE(IsSuccess(StreamDestroy({nullptr, platform})));
-  EXPECT_TRUE(IsSuccess(EventDestroy({nullptr, platform})));
+  EXPECT_THAT(CtxDestroy({nullptr, platform}), IsSuccess());
+  EXPECT_THAT(ModuleUnload({nullptr, platform}), IsSuccess());
+  EXPECT_THAT(StreamDestroy({nullptr, platform}), IsSuccess());
+  EXPECT_THAT(EventDestroy({nullptr, platform}), IsSuccess());
 }
 
 TEST_F(Test, TestModuleLoadDataCUDA) {
   auto platform = Platform::CUDA;
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -408,26 +392,24 @@ TEST_F(Test, TestModuleLoadDataCUDA) {
   int max_threads_per_block;
   int shared_mem_per_block;
   int multiprocessor_count;
-  OwningModule module;
-  {
-    TFRT_ASSERT_AND_ASSIGN(
-        max_threads_per_multiprocessor,
-        CuDeviceGetAttribute(CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,
-                             device));
-    TFRT_ASSERT_AND_ASSIGN(
-        max_threads_per_block,
-        CuDeviceGetAttribute(CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK,
-                             device));
-    TFRT_ASSERT_AND_ASSIGN(
-        shared_mem_per_block,
-        CuDeviceGetAttribute(CU_DEVICE_ATTRIBUTE_SHARED_MEMORY_PER_BLOCK,
-                             device));
-    TFRT_ASSERT_AND_ASSIGN(
-        multiprocessor_count,
-        CuDeviceGetAttribute(CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device));
 
-    // PTX string of an empty kernel.
-    const char* kernel_ptx = R"(
+  TFRT_ASSERT_AND_ASSIGN(
+      max_threads_per_multiprocessor,
+      CuDeviceGetAttribute(CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR,
+                           device));
+  TFRT_ASSERT_AND_ASSIGN(
+      max_threads_per_block,
+      CuDeviceGetAttribute(CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_BLOCK, device));
+  TFRT_ASSERT_AND_ASSIGN(
+      shared_mem_per_block,
+      CuDeviceGetAttribute(CU_DEVICE_ATTRIBUTE_SHARED_MEMORY_PER_BLOCK,
+                           device));
+  TFRT_ASSERT_AND_ASSIGN(
+      multiprocessor_count,
+      CuDeviceGetAttribute(CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT, device));
+
+  // PTX string of an empty kernel.
+  const char* kernel_ptx = R"(
         .version 6.0
         .target sm_35
         .address_size 64
@@ -436,20 +418,18 @@ TEST_F(Test, TestModuleLoadDataCUDA) {
           ret;
         })";
 
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-    // Note: requesting logs causes memory leaks.
-    TFRT_ASSERT_AND_ASSIGN(module, CuModuleLoadDataEx(current, kernel_ptx,
-                                                      jit_options, jit_values));
-  }
+  // Note: requesting logs causes memory leaks.
+  TFRT_ASSERT_AND_ASSIGN(
+      auto module,
+      CuModuleLoadDataEx(Current(), kernel_ptx, jit_options, jit_values));
+
   EXPECT_GT(strlen(log_buffer.get()), 0);
-  TFRT_LOG(INFO) << "Compilation log:\n" << log_buffer.get();
   float wall_time =
       reinterpret_cast<const std::array<float, 2>&>(jit_values[3])[0];
   EXPECT_GT(wall_time, 0.0f);
-  TFRT_LOG(INFO) << "Compilation time: " << wall_time;
 
-  EXPECT_TRUE(IsSuccess(CtxSetCurrent({nullptr, platform})
-                            .takeError()));  // Verify no context needed.
+  EXPECT_THAT(CtxSetCurrent({nullptr, platform}).takeError(),
+              IsSuccess());  // Verify no context needed.
   TFRT_ASSERT_AND_ASSIGN(auto function,
                          ModuleGetFunction(module.get(), "Kernel"));
 
@@ -481,27 +461,25 @@ TEST_F(Test, TestModuleLoadDataCUDA) {
             multiprocessor_count * max_threads_per_multiprocessor);
 
   auto stream = Stream(nullptr, platform);
-  EXPECT_TRUE(
-      IsSuccess(LaunchKernel(current, function, /*grid_dim=*/{{1, 1, 1}},
-                             /*block_dim=*/{{1, 1, 1}},
-                             /*shared_memory_size_bytes=*/0, stream)));
-  EXPECT_TRUE(IsSuccess(CtxSynchronize(current)));
+  EXPECT_THAT(LaunchKernel(current, function, /*grid_dim=*/{{1, 1, 1}},
+                           /*block_dim=*/{{1, 1, 1}},
+                           /*shared_memory_size_bytes=*/0, stream),
+              IsSuccess());
+  EXPECT_THAT(CtxSynchronize(current), IsSuccess());
 }
 
 TEST_P(Test, MemcpyRequeriesContext) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   size_t size_bytes = 1024 * 1024;
-  DeviceMemory<void> src, dst;
-  {
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-    TFRT_ASSERT_AND_ASSIGN(src, MemAlloc(current, size_bytes));
-    TFRT_ASSERT_AND_ASSIGN(dst, MemAlloc(current, size_bytes));
-  }
+
+  TFRT_ASSERT_AND_ASSIGN(auto src, MemAlloc(Current(), size_bytes));
+  TFRT_ASSERT_AND_ASSIGN(auto dst, MemAlloc(Current(), size_bytes));
+
   EXPECT_TRUE(SetNullContext(platform));
   TFRT_ASSERT_AND_ASSIGN(auto no_current, CtxGetCurrent());
   EXPECT_EQ(no_current, nullptr);
@@ -511,20 +489,17 @@ TEST_P(Test, MemcpyRequeriesContext) {
 
 TEST_P(Test, TestStreamProperties) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   auto flags = StreamFlags::NON_BLOCKING;
   int priority = -1;
-  OwningStream stream;
-  {
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-    TFRT_ASSERT_AND_ASSIGN(stream, StreamCreate(current, flags, priority));
-  }
-  EXPECT_TRUE(IsSuccess(CtxSetCurrent({nullptr, platform})
-                            .takeError()));  // Verify no context needed.
+
+  TFRT_ASSERT_AND_ASSIGN(auto stream, StreamCreate(Current(), flags, priority));
+  EXPECT_THAT(CtxSetCurrent({nullptr, platform}).takeError(),
+              IsSuccess());  // Verify no context needed.
   TFRT_ASSERT_AND_ASSIGN(auto get_priority, StreamGetPriority(stream.get()));
   EXPECT_EQ(priority, get_priority);
   TFRT_ASSERT_AND_ASSIGN(auto get_flags, StreamGetFlags(stream.get()));
@@ -533,30 +508,30 @@ TEST_P(Test, TestStreamProperties) {
 
 TEST_F(Test, TestEventsCUDA) {
   auto platform = Platform::CUDA;
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
-  OwningStream stream;
-  OwningEvent start, stop;
-  DeviceMemory<int> dst;
-  OwningModule module;
+  EXPECT_THAT(CtxGetCurrent().takeError(), IsSuccess());
+
   int expected = 1;
   int desired = 2;
-  {
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-    TFRT_ASSERT_AND_ASSIGN(stream, StreamCreate(current, StreamFlags::DEFAULT));
-    TFRT_ASSERT_AND_ASSIGN(start, EventCreate(current, EventFlags::DEFAULT));
-    TFRT_ASSERT_AND_ASSIGN(stop, EventCreate(current, EventFlags::DEFAULT));
-    EXPECT_TRUE(IsSuccess(EventRecord(start.get(), stream.get())));
-    TFRT_ASSERT_AND_ASSIGN(dst, MemAlloc<int>(current, 1));
-    EXPECT_TRUE(
-        IsSuccess(MemsetD32(current, dst.get(), /*value=*/0, /*count=*/1)));
 
-    // PTX string of a kernel which blocks until *address == expected and then
-    // writes desired to *address.
-    const char* kernel_ptx = R"(
+  TFRT_ASSERT_AND_ASSIGN(auto stream,
+                         StreamCreate(Current(), StreamFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto start,
+                         EventCreate(Current(), EventFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto stop,
+                         EventCreate(Current(), EventFlags::DEFAULT));
+  EXPECT_THAT(EventRecord(start.get(), stream.get()), IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(auto dst, MemAlloc<int>(Current(), 1));
+  EXPECT_THAT(MemsetD32(Current(), dst.get(), /*value=*/0, /*count=*/1),
+              IsSuccess());
+
+  // PTX string of a kernel which blocks until *address == expected and then
+  // writes desired to *address.
+  const char* kernel_ptx = R"(
         .version 6.0
         .target sm_35
         .address_size 64
@@ -583,23 +558,23 @@ TEST_F(Test, TestEventsCUDA) {
 
           ret;
         })";
-    TFRT_ASSERT_AND_ASSIGN(module, ModuleLoadData(current, kernel_ptx));
+  TFRT_ASSERT_AND_ASSIGN(auto module, ModuleLoadData(Current(), kernel_ptx));
 
-    TFRT_ASSERT_AND_ASSIGN(auto function,
-                           ModuleGetFunction(module.get(), "Kernel"));
-    ASSERT_NE(function, nullptr);
+  TFRT_ASSERT_AND_ASSIGN(auto function,
+                         ModuleGetFunction(module.get(), "Kernel"));
+  ASSERT_NE(function, nullptr);
 
-    // Launch kernel that blocks until 'dst' is set to 1 below.
-    EXPECT_TRUE(
-        IsSuccess(CuLaunchKernel(current, function, /*grid_dim=*/{{1, 1, 1}},
-                                 /*block_dim=*/{{1, 1, 1}},
-                                 /*shared_memory_size_bytes=*/0, stream.get(),
-                                 dst.get().raw(platform), expected, desired)));
-  }
-  EXPECT_TRUE(IsSuccess(CtxSetCurrent({nullptr, platform})
-                            .takeError()));  // Verify no context needed.
-  EXPECT_TRUE(IsSuccess(EventRecord(stop.get(), stream.get())));
-  EXPECT_TRUE(IsSuccess(EventSynchronize(start.get())));
+  // Launch kernel that blocks until 'dst' is set to 1 below.
+  EXPECT_THAT(CuLaunchKernel(Current(), function, /*grid_dim=*/{{1, 1, 1}},
+                             /*block_dim=*/{{1, 1, 1}},
+                             /*shared_memory_size_bytes=*/0, stream.get(),
+                             dst.get().raw(platform), expected, desired),
+              IsSuccess());
+
+  EXPECT_THAT(CtxSetCurrent({nullptr, platform}).takeError(),
+              IsSuccess());  // Verify no context needed.
+  EXPECT_THAT(EventRecord(stop.get(), stream.get()), IsSuccess());
+  EXPECT_THAT(EventSynchronize(start.get()), IsSuccess());
 
   bool stream_ready, event_ready;
   // Stream and event are not ready because kernel execution is blocking.
@@ -608,18 +583,18 @@ TEST_F(Test, TestEventsCUDA) {
   TFRT_ASSERT_AND_ASSIGN(event_ready, EventQuery(stop.get()));
   EXPECT_FALSE(event_ready);
 
-  {
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context.get()));
-    TFRT_ASSERT_AND_ASSIGN(auto other_stream,
-                           StreamCreate(current, StreamFlags::DEFAULT));
-    // Unblock kernel execution.
-    EXPECT_TRUE(IsSuccess(MemsetD32Async(current, dst.get(), expected,
-                                         /*count=*/1, other_stream.get())));
-  }
-  EXPECT_TRUE(IsSuccess(CtxSetCurrent({nullptr, platform})
-                            .takeError()));  // Verify no context needed.
+  EXPECT_THAT(CtxSetCurrent(context.get()).takeError(), IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(auto other_stream,
+                         StreamCreate(Current(), StreamFlags::DEFAULT));
+  // Unblock kernel execution.
+  EXPECT_THAT(MemsetD32Async(Current(), dst.get(), expected,
+                             /*count=*/1, other_stream.get()),
+              IsSuccess());
 
-  EXPECT_TRUE(IsSuccess(StreamSynchronize(stream.get())));
+  EXPECT_THAT(CtxSetCurrent({nullptr, platform}).takeError(),
+              IsSuccess());  // Verify no context needed.
+
+  EXPECT_THAT(StreamSynchronize(stream.get()), IsSuccess());
   // Stream and event are ready after stream synchronization.
   TFRT_ASSERT_AND_ASSIGN(stream_ready, StreamQuery(stream.get()));
   EXPECT_TRUE(stream_ready);
@@ -631,8 +606,8 @@ TEST_F(Test, TestEventsCUDA) {
   EXPECT_GT(time_ms, 0.0f);
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context.get()));
   int result;
-  EXPECT_TRUE(
-      IsSuccess(Memcpy(current, {&result, platform}, dst.get(), sizeof(int))));
+  EXPECT_THAT(Memcpy(current, {&result, platform}, dst.get(), sizeof(int)),
+              IsSuccess());
   EXPECT_EQ(result, desired);
 }
 
@@ -644,7 +619,7 @@ TEST_P(Test, UnalignedPointeeType) {
 
 TEST_P(Test, MemHostGetDevicePointer) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -661,7 +636,7 @@ TEST_P(Test, MemHostGetDevicePointer) {
 
 TEST_P(Test, MemGetAddressRange) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -677,7 +652,7 @@ TEST_P(Test, MemGetAddressRange) {
 
 TEST_P(Test, OutOfMemory) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
@@ -687,53 +662,54 @@ TEST_P(Test, OutOfMemory) {
   std::string log_string;
   llvm::raw_string_ostream(log_string)
       << MemAlloc(current, size_bytes).takeError();
-  EXPECT_TRUE(Contains(log_string, "Out of memory trying to allocate 1.00TiB"));
+  EXPECT_THAT(log_string,
+              HasSubstr("Out of memory trying to allocate 1.00TiB"));
 }
 
 static void CheckDanglingResources(
     Expected<OwningContext> context,
     std::function<llvm::Error(Context)> destroy) {
-  ASSERT_TRUE(IsSuccess(context.takeError()));
-  {
-    TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context->get()));
-    TFRT_ASSERT_AND_ASSIGN(auto stream,
-                           StreamCreate(current, StreamFlags::DEFAULT));
-    TFRT_ASSERT_AND_ASSIGN(auto event,
-                           EventCreate(current, EventFlags::DEFAULT));
-    const size_t size_bytes = 32;
-    TFRT_ASSERT_AND_ASSIGN(auto device_mem, MemAlloc(current, size_bytes));
-    TFRT_ASSERT_AND_ASSIGN(
-        auto host_mem,
-        MemHostAlloc(current, size_bytes, MemHostAllocFlags::DEFAULT));
-    char array[size_bytes];
-    TFRT_ASSERT_AND_ASSIGN(auto registered_mem,
-                           MemHostRegister(current, array, size_bytes,
-                                           MemHostRegisterFlags::DEFAULT));
+  EXPECT_THAT(context.takeError(), IsSuccess());
+  EXPECT_THAT(CtxSetCurrent(context->get()).takeError(), IsSuccess());
 
-    // Release resources and let the driver destroy them with the context.
-    stream.release();
-    event.release();
-    device_mem.release();
-    host_mem.release();
-    registered_mem.release();
-  }
+  TFRT_ASSERT_AND_ASSIGN(auto stream,
+                         StreamCreate(Current(), StreamFlags::DEFAULT));
+  TFRT_ASSERT_AND_ASSIGN(auto event,
+                         EventCreate(Current(), EventFlags::DEFAULT));
+  const size_t size_bytes = 32;
+  TFRT_ASSERT_AND_ASSIGN(auto device_mem, MemAlloc(Current(), size_bytes));
+  TFRT_ASSERT_AND_ASSIGN(
+      auto host_mem,
+      MemHostAlloc(Current(), size_bytes, MemHostAllocFlags::DEFAULT));
+  char array[size_bytes];
+  TFRT_ASSERT_AND_ASSIGN(auto registered_mem,
+                         MemHostRegister(Current(), array, size_bytes,
+                                         MemHostRegisterFlags::DEFAULT));
+
+  // Release resources and let the driver destroy them with the context.
+  stream.release();
+  event.release();
+  device_mem.release();
+  host_mem.release();
+  registered_mem.release();
 
   std::string log_string;
   llvm::raw_string_ostream(log_string) << destroy(context->release());
 
 #ifndef NDEBUG  // Dangling resources are only detected in !NDEBUG builds.
-  EXPECT_TRUE(Contains(log_string, "has dangling resources"));
-  EXPECT_TRUE(Contains(log_string, "(stream)"));
-  EXPECT_TRUE(Contains(log_string, "(event)"));
-  EXPECT_TRUE(Contains(log_string, "(device memory)"));
-  EXPECT_TRUE(Contains(log_string, "(host memory)"));
-  EXPECT_TRUE(Contains(log_string, "(registered memory)"));
+  EXPECT_THAT(log_string,
+              AllOf(HasSubstr("has dangling resources"),
+                    ContainsRegex("0x[0-9a-f]+ \\(stream\\)"),
+                    ContainsRegex("0x[0-9a-f]+ \\(event\\)"),
+                    ContainsRegex("0x[0-9a-f]+ \\(device memory\\)"),
+                    ContainsRegex("0x[0-9a-f]+ \\(host memory\\)"),
+                    ContainsRegex("0x[0-9a-f]+ \\(registered memory\\)")));
 #endif
 }
 
 TEST_P(Test, DanglingResources) {
   auto platform = GetParam();
-  ASSERT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));

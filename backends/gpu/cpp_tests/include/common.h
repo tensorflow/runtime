@@ -19,17 +19,15 @@
 #define THIRD_PARTY_TF_RUNTIME_CPP_TESTS_GPU_STREAM_COMMON_H_
 
 #include <ostream>
-#include <string>
 
-#include "gtest/gtest.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/raw_os_ostream.h"
 #include "tfrt/cpp_tests/error_util.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
+
+class Test : public testing::TestWithParam<wrapper::Platform> {};
 
 // Google Test outputs to std::ostream. Provide ADL'able overloads.
 template <typename T>
@@ -39,7 +37,14 @@ std::ostream& operator<<(std::ostream& os, T item) {
   return os;
 }
 
-class Test : public testing::TestWithParam<Platform> {};
+// Return the current context or die if an error occurs. This is intended for
+// passing CurrentContext instances as temporary to simplify test code. Do not
+// use unless the code following it requires zero CurrentContext instances.
+inline CurrentContext Current() {
+  auto current = CtxGetCurrent();
+  cantFail(current.takeError());
+  return *current;
+}
 
 }  // namespace wrapper
 }  // namespace gpu

@@ -281,9 +281,7 @@ tfrt_cc_library(
     ] + select({
         ":use_std_thread": [],
         "//conditions:default": [
-            # copybara:uncomment_begin
-            # # We want to have `bazel query` (sic! bazel is translated to bazel
-            # # by copybara) work for OSS, and these targets are only valid internally.
+            # copybara:uncomment_begin(internal targets, remove for bazel query)
             # "//third_party/absl/synchronization",
             # "//third_party/absl/time",
             # "//thread",

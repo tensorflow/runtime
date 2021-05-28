@@ -320,15 +320,19 @@ using Stream = Resource<CUstream, hipStream_t>;
 //
 // In NDEBUG builds, this class is trivially copyable and destructible.
 class CurrentContext {
-#ifndef NDEBUG
+#ifdef NDEBUG
+  CurrentContext() = default;
+#else
   CurrentContext();
 
  public:
   CurrentContext(const CurrentContext&);
   ~CurrentContext();
-#else
-  CurrentContext() = default;
 #endif
+
+ public:
+  // Restrict construction to implementation-defined factory.
+  struct Factory;
 
  public:
   CurrentContext& operator=(const CurrentContext&) = default;
@@ -336,9 +340,6 @@ class CurrentContext {
   Platform platform() const;
   bool operator==(std::nullptr_t) const { return context() == nullptr; }
   bool operator!=(std::nullptr_t) const { return context() != nullptr; }
-
- private:
-  friend CurrentContext CreateCurrentContext();
 };
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, CurrentContext current);
 

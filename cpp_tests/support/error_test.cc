@@ -69,8 +69,9 @@ llvm::Expected<int> ValueExpected() { return 42; }
 llvm::Expected<int> FailExpected() { return FailError(); }
 
 TEST(Test, Macros) {
-  EXPECT_TRUE(IsSuccess(SuccessError()));
-  EXPECT_FALSE(IsSuccess(FailError()));
+  // GMock checks.
+  EXPECT_THAT(SuccessError(), IsSuccess());
+  EXPECT_THAT(FailError(), IsFailure());
 
   // This works as well, but the above is clearer.
   EXPECT_FALSE(SuccessError());
@@ -78,19 +79,23 @@ TEST(Test, Macros) {
   // EXPECT_TRUE(FailError());
   EXPECT_FALSE(!FailError());
 
-  EXPECT_FALSE(IsSuccess([] {
-    if (auto error = SuccessError()) return error;
-    if (auto error = FailError()) return error;
-    return SuccessError();
-  }()));
+  EXPECT_THAT(
+      [] {
+        if (auto error = SuccessError()) return error;
+        if (auto error = FailError()) return error;
+        return SuccessError();
+      }(),
+      IsFailure());
 
-  EXPECT_FALSE(IsSuccess([] {
-    TFRT_ASSIGN_OR_RETURN(auto x, ValueExpected());
-    TFRT_ASSIGN_OR_RETURN(auto y, FailExpected());
-    (void)x;
-    (void)y;
-    return SuccessError();
-  }()));
+  EXPECT_THAT(
+      [] {
+        TFRT_ASSIGN_OR_RETURN(auto x, ValueExpected());
+        TFRT_ASSIGN_OR_RETURN(auto y, FailExpected());
+        (void)x;
+        (void)y;
+        return SuccessError();
+      }(),
+      IsFailure());
 
   TFRT_ASSERT_AND_ASSIGN(auto x, ValueExpected());
   (void)x;

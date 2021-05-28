@@ -13,30 +13,25 @@
 // limitations under the License.
 
 // Unit test for cuFFT wrapper.
-#include "tfrt/gpu/wrapper/cufft_wrapper.h"
+#include "tfrt/gpu/wrapper/fft_wrapper.h"
 
-#include <cstddef>
-#include <cstdint>
-
-#include "gmock/gmock.h"
-#include "gtest/gtest.h"
-#include "llvm/Support/Error.h"
-#include "llvm/Support/FormatVariadic.h"
-#include "tfrt/cpp_tests/error_util.h"
+#include "common.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
-
-#define TFRT_ASSERT_OK(expr) ASSERT_TRUE(IsSuccess(expr))
+#include "tfrt/gpu/wrapper/cufft_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
 namespace wrapper {
-namespace {
+using ::testing::FloatNear;
 
-TEST(CufftWrapperTest, ComplexToComplexTransform_1D) {
-  TFRT_ASSERT_OK(Init(Platform::CUDA));
-  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(Platform::CUDA));
+TEST_P(Test, Dummy) {}  // Make INSTANTIATE_TEST_SUITE_P happy.
+
+TEST_F(Test, ComplexToComplexTransform_1DCUDA) {
+  auto platform = Platform::CUDA;
+  ASSERT_THAT(Init(platform), IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
-  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(Platform::CUDA, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
 
@@ -61,37 +56,42 @@ TEST(CufftWrapperTest, ComplexToComplexTransform_1D) {
   TFRT_ASSERT_AND_ASSIGN(OwningCufftHandle plan,
                          CufftPlan1d(kWindowSize, CUFFT_C2C, /*batch=*/1));
 
-  TFRT_ASSERT_OK(CufftSetStream(plan.get(), stream.get()));
+  EXPECT_THAT(CufftSetStream(plan.get(), stream.get()), IsSuccess());
 
   // Copy data and do transform.
-  TFRT_ASSERT_OK(CuMemcpyAsync(current, device_data.get(), host_data.get(),
-                               kWindowSizeBytes, stream.get()));
-  TFRT_ASSERT_OK(CufftExecC2C(
-      plan.get(), static_cast<cufftComplex*>(device_data.get().raw()),
-      static_cast<cufftComplex*>(device_data.get().raw()),
-      FftDirection::kForward));
-  TFRT_ASSERT_OK(CufftExecC2C(
-      plan.get(), static_cast<cufftComplex*>(device_data.get().raw()),
-      static_cast<cufftComplex*>(device_data.get().raw()),
-      FftDirection::kInverse));
-  TFRT_ASSERT_OK(CuMemcpyAsync(current, host_data.get(), device_data.get(),
-                               kWindowSizeBytes, stream.get()));
+  EXPECT_THAT(CuMemcpyAsync(current, device_data.get(), host_data.get(),
+                            kWindowSizeBytes, stream.get()),
+              IsSuccess());
+  EXPECT_THAT(CufftExecC2C(plan.get(),
+                           static_cast<cufftComplex*>(device_data.get().raw()),
+                           static_cast<cufftComplex*>(device_data.get().raw()),
+                           FftDirection::kForward),
+              IsSuccess());
+  EXPECT_THAT(CufftExecC2C(plan.get(),
+                           static_cast<cufftComplex*>(device_data.get().raw()),
+                           static_cast<cufftComplex*>(device_data.get().raw()),
+                           FftDirection::kInverse),
+              IsSuccess());
+  EXPECT_THAT(CuMemcpyAsync(current, host_data.get(), device_data.get(),
+                            kWindowSizeBytes, stream.get()),
+              IsSuccess());
 
-  TFRT_ASSERT_OK(CuStreamSynchronize(stream.get()));
+  EXPECT_THAT(CuStreamSynchronize(stream.get()), IsSuccess());
 
   for (size_t i = 0; i < kWindowSize; ++i) {
     const float2 element = static_cast<cufftComplex*>(host_data.get().raw())[i];
-    EXPECT_THAT(element.x, testing::FloatNear(kWindowSize * 2 * i, 0.1));
-    EXPECT_THAT(element.y, testing::FloatNear(0, 0.1));
+    EXPECT_THAT(element.x, FloatNear(kWindowSize * 2 * i, 0.1));
+    EXPECT_THAT(element.y, FloatNear(0, 0.1));
   }
-  TFRT_ASSERT_OK(CufftDestroy(plan.get()));
+  EXPECT_THAT(CufftDestroy(plan.get()), IsSuccess());
 }
 
-TEST(CufftWrapperTest, RealToComplexTransform_1D_PlanMany) {
-  TFRT_ASSERT_OK(Init(Platform::CUDA));
-  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(Platform::CUDA));
+TEST_F(Test, RealToComplexTransform_1D_PlanManyCUDA) {
+  auto platform = Platform::CUDA;
+  ASSERT_THAT(Init(platform), IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
-  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(Platform::CUDA, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
 
@@ -132,32 +132,33 @@ TEST(CufftWrapperTest, RealToComplexTransform_1D_PlanMany) {
 
   TFRT_ASSERT_AND_ASSIGN(OwningCufftHandle plan,
                          CufftPlanMany(CUFFT_R2C, /*batch=*/1, options));
-  TFRT_ASSERT_OK(CufftSetStream(plan.get(), stream.get()));
+  EXPECT_THAT(CufftSetStream(plan.get(), stream.get()), IsSuccess());
 
   // Copy data and do transform.
-  TFRT_ASSERT_OK(CuMemcpyAsync(current, device_data.get(), host_data.get(),
-                               kWindowSizeBytesInput, stream.get()));
-  TFRT_ASSERT_OK(
+  EXPECT_THAT(CuMemcpyAsync(current, device_data.get(), host_data.get(),
+                            kWindowSizeBytesInput, stream.get()),
+              IsSuccess());
+  EXPECT_THAT(
       CufftExecR2C(plan.get(), static_cast<cufftReal*>(device_data.get().raw()),
-                   static_cast<cufftComplex*>(device_data.get().raw())));
-  TFRT_ASSERT_OK(CuMemcpyAsync(current, host_data.get(), device_data.get(),
-                               kWindowSizeBytesOutput, stream.get()));
+                   static_cast<cufftComplex*>(device_data.get().raw())),
+      IsSuccess());
+  EXPECT_THAT(CuMemcpyAsync(current, host_data.get(), device_data.get(),
+                            kWindowSizeBytesOutput, stream.get()),
+              IsSuccess());
 
-  TFRT_ASSERT_OK(CuStreamSynchronize(stream.get()));
+  EXPECT_THAT(CuStreamSynchronize(stream.get()), IsSuccess());
 
   float2* elements = static_cast<cufftComplex*>(host_data.get().raw());
-  EXPECT_THAT(
-      elements[1].y,
-      testing::FloatNear(-1 * static_cast<float>(kWindowSize) / 2, 0.1));
+  EXPECT_THAT(elements[1].y,
+              FloatNear(-1 * static_cast<float>(kWindowSize) / 2, 0.1));
   for (size_t i = 0; i < kWindowSize; ++i) {
     if (i == 1) continue;
-    EXPECT_THAT(elements[i].x, testing::FloatNear(0, 0.1));
-    EXPECT_THAT(elements[i].y, testing::FloatNear(0, 0.1));
+    EXPECT_THAT(elements[i].x, FloatNear(0, 0.1));
+    EXPECT_THAT(elements[i].y, FloatNear(0, 0.1));
   }
-  TFRT_ASSERT_OK(CufftDestroy(plan.get()));
+  EXPECT_THAT(CufftDestroy(plan.get()), IsSuccess());
 }
 
-}  // namespace
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

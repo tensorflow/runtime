@@ -25,8 +25,8 @@ namespace wrapper {
 
 TEST_P(Test, SolverDnHandel) {
   auto platform = GetParam();
-  EXPECT_TRUE(IsSuccess(Init(platform)));
-  EXPECT_TRUE(IsSuccess(SolverCreate(platform).takeError()));
+  ASSERT_THAT(Init(platform), IsSuccess());
+  EXPECT_THAT(SolverCreate(platform).takeError(), IsSuccess());
 }
 
 }  // namespace wrapper

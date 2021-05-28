@@ -15,7 +15,6 @@
 // Unit test for runtime API (abstraction layer for CUDA and HIP runtime).
 
 #include "common.h"
-#include "gtest/gtest.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
 
@@ -23,10 +22,12 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+TEST_P(Test, Dummy) {}  // Make INSTANTIATE_TEST_SUITE_P happy.
+
 TEST_F(Test, RuntimeInitCUDA) {
-  EXPECT_TRUE(IsSuccess(CuInit()));
-  EXPECT_TRUE(IsSuccess(CuCtxSetCurrent(nullptr).takeError()));
-  EXPECT_TRUE(IsSuccess(CudaFree(nullptr)));
+  EXPECT_THAT(CuInit(), IsSuccess());
+  EXPECT_THAT(CuCtxSetCurrent(nullptr).takeError(), IsSuccess());
+  EXPECT_THAT(CudaFree(nullptr), IsSuccess());
 }
 
 TEST_F(Test, RuntimeVersionCUDA) {
@@ -36,7 +37,7 @@ TEST_F(Test, RuntimeVersionCUDA) {
 
 TEST_F(Test, DevicePropertiesCUDA) {
   auto platform = Platform::CUDA;
-  EXPECT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));

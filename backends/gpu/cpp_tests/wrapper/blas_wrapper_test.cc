@@ -14,9 +14,9 @@
 
 // Unit test for BLAS wrapper (abstraction layer for cuBLAS and rocmBLAS).
 
+#include "tfrt/gpu/wrapper/blas_wrapper.h"
+
 #include "common.h"
-#include "gtest/gtest.h"
-#include "tfrt/gpu/wrapper/cublas_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
@@ -24,13 +24,13 @@ namespace wrapper {
 
 TEST_P(Test, BlasHandel) {
   auto platform = GetParam();
-  EXPECT_TRUE(IsSuccess(Init(platform)));
+  ASSERT_THAT(Init(platform), IsSuccess());
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
-  EXPECT_TRUE(IsSuccess(BlasCreate(current).takeError()));
+  EXPECT_THAT(BlasCreate(current).takeError(), IsSuccess());
 }
 
 }  // namespace wrapper

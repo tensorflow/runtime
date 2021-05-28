@@ -40,8 +40,9 @@ func @blas_axpy() {
 
   %stride = tfrt.constant.i32 1
   %alpha = tfrt.constant.f32 1.0
-  %ch7 = tfrt_gpu.blas.axpy %blas, %buffer_length, %alpha, %gpu_buffer_0,
-    CUDA_R_32F, %stride, %gpu_buffer_1, CUDA_R_32F, %stride, CUDA_R_32F, %ch6
+  %ch7 = tfrt_gpu.blas.axpy %blas, %buffer_length, %alpha, CUDA_R_32F,
+    %gpu_buffer_0, CUDA_R_32F, %stride, %gpu_buffer_1, CUDA_R_32F, %stride,
+    CUDA_R_32F, %ch6
 
   %ch8 = tfrt_gpu.mem.copy_device_to_host %host_buffer, %gpu_buffer_1, %buffer_size_bytes, %stream, %ch7
   // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]

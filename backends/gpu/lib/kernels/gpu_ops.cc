@@ -145,6 +145,103 @@ static void printEnum(OpAsmPrinter &printer, Operation *,
   }
 }
 
+static Type GetBlasDataType(MLIRContext *context, cublasDataType_t data_type) {
+  switch (data_type) {
+    case CUDA_R_32F:
+      return Float32Type::get(context);
+    case CUDA_R_64F:
+      return Float64Type::get(context);
+    default:
+      return {};
+  }
+}
+
+static Type GetBlasDataType(MLIRContext *context, rocblas_datatype data_type) {
+  switch (data_type) {
+    case rocblas_datatype_f32_r:
+      return Float32Type::get(context);
+    case rocblas_datatype_f64_r:
+      return Float64Type::get(context);
+    default:
+      return {};
+  }
+}
+
+static Type GetBlasDataType(BlasDataTypeAttr attribute) {
+  MLIRContext *context = attribute.getContext();
+  wrapper::BlasDataType value = attribute.getValue();
+  switch (value.platform()) {
+    case wrapper::Platform::CUDA:
+      return GetBlasDataType(context, static_cast<cublasDataType_t>(value));
+    case wrapper::Platform::ROCm:
+      return GetBlasDataType(context, static_cast<rocblas_datatype>(value));
+    default:
+      return {};
+  }
+}
+
+template <typename... Ts>
+static ParseResult parseBlasDataType(OpAsmParser &parser,
+                                     BlasDataTypeAttr &attribute,
+                                     Ts &...types) {
+  if (failed(parseEnum(parser, attribute))) {
+    return parser.emitError(
+        parser.getCurrentLocation(),
+        "unknown cublasDataType_t or rocblas_datatype enum");
+  }
+
+  if (auto scale_type = GetBlasDataType(attribute)) {
+    Type dummy[]{(types = scale_type)...};
+    (void)dummy;
+    return success();
+  }
+
+  return parser.emitError(
+      parser.getCurrentLocation(),
+      StrCat("could not infer type from ", attribute.getValue()));
+}
+
+template <typename... Ts>
+static void printBlasDataType(OpAsmPrinter &printer, Operation *op,
+                              BlasDataTypeAttr attribute, const Ts &...) {
+  printEnum(printer, op, attribute);
+}
+
+static bool AllEqual(ArrayRef<wrapper::BlasDataType> types) {
+  return llvm::all_of(types, [&](auto type) { return type == *types.begin(); });
+}
+
+static LogicalResult VerifyBlasSaxpyOp(BlasSaxpyOp op) {
+  if (!AllEqual({op.typeAlpha(), op.typeX(), op.typeY(), op.executionType()})) {
+    // The actual requirements of typeAlpha/typeX/typeY and executionType are
+    // less strict than this, but at the moment we only use all float or all
+    // double. Relax this check when we add support for e.g. mixed precision.
+    return op.emitOpError(
+        "typeAlpha, typeX, typeY and executionType need to match");
+  }
+  Type type_alpha = GetBlasDataType(op.typeAlphaAttr());
+  if (op.alpha().getType() != type_alpha) {
+    return op.emitOpError("alpha's type doesn't match typeAlpha");
+  }
+  return mlir::success();
+}
+
+template <class OpTy>
+static LogicalResult VerifyBlasGemmOp(OpTy op) {
+  if (!AllEqual({op.typeA(), op.typeB(), op.typeC(), op.computeType()})) {
+    // The actual requirements of typeA/typeB/typeC and computeType are less
+    // strict than this, but at the moment we only use all float or all double.
+    // Relax this check when we add support for e.g. mixed precision.
+    return op.emitOpError("typeA, typeB, typeC and computeType need to match");
+  }
+  Type compute_type = GetBlasDataType(op.computeTypeAttr());
+  if (op.alpha().getType() != compute_type ||
+      op.beta().getType() != compute_type) {
+    return op.emitOpError("alpha's or beta's type don't match computeType");
+  }
+  return mlir::success();
+}
+
 namespace conversion {
 
 GpuConversionDialect::GpuConversionDialect(MLIRContext *context)

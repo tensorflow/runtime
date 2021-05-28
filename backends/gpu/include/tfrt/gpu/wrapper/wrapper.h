@@ -258,11 +258,11 @@ class Enum {
   bool operator!=(Enum other) const { return !(*this == other); }
   template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
   bool operator==(T value) const {
-    return platform_ == PlatformTypeTraits<Tag_, T>::value && *this == value;
+    return Enum(value) == *this;
   }
   template <typename T, typename Tag_ = Tag, IsCudaOrRocm<T, Tag_> = 0>
   bool operator!=(T value) const {
-    return !(*this == value);
+    return Enum(value) != *this;
   }
 
   OpaqueValueType ToOpaqueValue() const {

@@ -984,6 +984,14 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
                   "HostContext* is not allowed as a kernel argument. Use const "
                   "ExecutionContext& instead.");
 
+    static Head* GetArg(AsyncValue* value, std::false_type) {
+      return &value->get<Head>();
+    }
+
+    static Head* GetArg(AsyncValue* value, std::true_type) {
+      return value;  // Pass in AsyncValue* directly.
+    }
+
     template <int arg_idx, int result_idx, int attr_idx, int func_idx,
               bool has_kernel_error_handler, bool has_in_chain,
               typename... PreviousArgs>
@@ -997,7 +1005,8 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
                     "Arguments and results should appear before functions.");
       static_assert(!std::is_same<Head, Chain>(),
                     "Do not pass Chain as pointer.");
-      auto* arg = &frame->GetArgAt<Head>(arg_idx);
+      Head* arg =
+          GetArg(frame->GetArgAt(arg_idx), std::is_same<Head, AsyncValue>());
       SyncKernelCallHelper<Tail...>::template Invoke<
           arg_idx + 1, result_idx, attr_idx, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);

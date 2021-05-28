@@ -49,7 +49,6 @@ def tfrt_cc_library(
         copts = [],
         features = [],
         alwayslink_static_registration_src = "",
-        alwayslink_static_registration_deps = [],
         **kwargs):
     """A cc_library with tfrt-specific options."""
     for tfrt_inc in TFRT_INCLUDES:
@@ -77,7 +76,7 @@ def tfrt_cc_library(
             srcs = [alwayslink_static_registration_src],
             # Depend on non-alwayslink target to avoid duplicate symbol linker
             # error.
-            deps = deps + alwayslink_static_registration_deps + [":" + name],
+            deps = deps + [":" + name],
             includes = TFRT_INCLUDES + includes,
             copts = TFRT_COPTS + copts,
             features = TFRT_FEATURES + features,

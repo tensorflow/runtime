@@ -17,14 +17,13 @@
 // CHECK: --- Running 'dense_array'
 func @dense_array() {
   // CHECK: Allocating 192 bytes
-  %x0 = tfrt_dht.create_uninitialized_tensor.f32.1 [32 : i64]
-
   // CHECK: Attempted to allocate 4160 bytes.
-  // expected-error @+1 {{runtime error: Cannot allocate tensor}}
-  %x1 = tfrt_dht.create_uninitialized_tensor.f32.1 [1024 : i64]
-
   // CHECK: Allocating 192 bytes
-  %x2 = tfrt_dht.create_uninitialized_tensor.f32.1 [32 : i64]
+
+  %x0 = tfrt_dht.create_uninitialized_tensor.f32.1 [32 : i64]
+  %x1 = tfrt_dht.create_uninitialized_tensor.f32.1 [32 : i64]
+  // expected-error @+1 {{runtime error: Cannot allocate tensor}}
+  %x2 = tfrt_dht.create_uninitialized_tensor.f32.1 [1024 : i64]
 
   tfrt.return
 }

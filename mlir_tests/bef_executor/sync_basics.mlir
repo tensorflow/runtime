@@ -135,7 +135,7 @@ func @test_sync_add_mul(%a: i32, %b: i32) -> (i32, i32) attributes {tfrt.sync} {
   tfrt.return %c, %d : i32, i32
 }
 
-func @test_invoke_sync_function() -> i32 {
+func @test_invoke_sync_function() -> !tfrt.chain {
   %a = tfrt.constant.i32 2
   %b = tfrt.constant.i32 3
 
@@ -152,6 +152,6 @@ func @test_invoke_sync_function() -> i32 {
   // CHECK: int32 = 6
   %ch3 = tfrt.print.i32 %e, %ch2
 
-  // CHECK: 'test_invoke_sync_function' returned 5
-  tfrt.return %c : i32
+  // CHECK: 'test_invoke_sync_function' returned !tfrt.chain
+  tfrt.return %ch3 : !tfrt.chain
 }

@@ -18,16 +18,19 @@
 func @test_linear() {
   %ch0 = tfrt.new.chain
 
-  // Enqueuing 1, 2, 4. Since we are using single-threaded work queue, they are
+  // Enqueuing 1, 5, 4. Since we are using single-threaded work queue, they are
   // executed immediately.
   // CHECK-NEXT: constructed vt.value(1)
   // CHECK-NEXT: move constructed vt.value(1)
-  // CHECK-NEXT: constructed vt.value(2)
-  // CHECK-NEXT: move constructed vt.value(2)
+  // CHECK-NEXT: constructed vt.value(5)
+  // CHECK-NEXT: move constructed vt.value(5)
+  // CHECK-NEXT: destroyed vt.value(5)
   // CHECK-NEXT: constructed vt.value(4)
   // CHECK-NEXT: move constructed vt.value(4)
   // CHECK-NEXT: destroyed vt.value(4)
-  // 3 is executed inline after executing 1 and 2.
+  // Inline executing 2, and 3 is executed inline after executing 1 and 2.
+  // CHECK-NEXT: constructed vt.value(2)
+  // CHECK-NEXT: move constructed vt.value(2)
   // CHECK-NEXT: constructed vt.value(3)
   // CHECK-NEXT: move constructed vt.value(3)
   // CHECK-NEXT: destroyed vt.value(1)
@@ -35,10 +38,6 @@ func @test_linear() {
   // CHECK-NEXT: print vt_value(3)
   // CHECK-NEXT: destroyed vt.value(3)
 
-  // inline executing 5 after entry.
-  // CHECK-NEXT: constructed vt.value(5)
-  // CHECK-NEXT: move constructed vt.value(5)
-  // CHECK-NEXT: destroyed vt.value(5)
 
   %v1 = "vt.constant"() { value = 1 : i32 } : () -> !vt.value
   %v2 = "vt.constant"() { value = 2 : i32 } : () -> !vt.value

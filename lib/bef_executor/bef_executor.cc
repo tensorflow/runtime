@@ -95,36 +95,14 @@ class ReadyKernelQueue {
                    MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array)
       : stream_id_(stream_id), kernel_array_(kernel_array) {}
 
-  // Constructs a queue using `kernel_ids`. The stream id is randomly picked
-  // from the `kernel_ids`.
-  ReadyKernelQueue(MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array,
+  // Constructs a queue using `kernel_ids`, all kernels of which belong to the
+  // same stream with `stream_id`.
+  ReadyKernelQueue(int stream_id,
+                   MutableArrayRef<BEFFileImpl::KernelInfo> kernel_array,
                    std::vector<unsigned> kernel_ids)
-      : kernel_array_(kernel_array) {
-    assert(!kernel_ids.empty());
-
-    // Using the stream id of the first kernel.
-    stream_id_ = kernel_array[kernel_ids[0]].stream_id;
-
-    // Move kernels with the same stream id to `inline_kernel_ids_` and others
-    // to `outline_kernel_ids_`. This recursively partitions the kernel_ids by
-    // stream_id, by filtering out kernels that match stream_id on each
-    // iteration, dumping the remaining kernels into outline_kernels, then later
-    // creating another queue for outline_kernels, filtering out kernels that
-    // match the next stream_id, etc.
-    //
-    // TODO(chky): Consider partitioning kernel_ids for each stream_id instead
-    // of partitioning into only inline and outline groups.
-    inline_kernel_ids_ = std::move(kernel_ids);
-    auto outline_iter = std::partition(
-        inline_kernel_ids_.begin(), inline_kernel_ids_.end(),
-        [&](unsigned kernel_id) {
-          assert(kernel_id < kernel_array_.size());
-          return kernel_array_[kernel_id].stream_id == stream_id_;
-        });
-    outline_kernel_ids_.assign(outline_iter, inline_kernel_ids_.end());
-    inline_kernel_ids_.resize(
-        std::distance(inline_kernel_ids_.begin(), outline_iter));
-  }
+      : stream_id_(stream_id),
+        kernel_array_(kernel_array),
+        inline_kernel_ids_(std::move(kernel_ids)) {}
 
   // Decrement the ready counts for `kernel_ids` and put them in the queue.
   // Depending on their stream_id, they will be either put in the inline queue
@@ -228,7 +206,7 @@ class BEFExecutor final : public ReferenceCounted<BEFExecutor> {
 
   // Enqueue `kernel_ids` to the concurrent work queue so that they can be
   // executed in a dfferent thread in parallel.
-  void EnqueueReadyKernels(std::vector<unsigned> kernel_ids);
+  void EnqueueReadyKernels(std::vector<unsigned>& kernel_ids);
 
   HostContext* GetHost() const { return exec_ctx_.host(); }
   BEFFileImpl* BefFile() const { return bef_file_.get(); }
@@ -507,13 +485,40 @@ void BEFExecutor::ProcessReadyKernel(unsigned kernel_id,
 // Enqueue `kernel_ids` to the concurrent work queue so that they can be
 // executed in a dfferent thread in parallel.
 LLVM_ATTRIBUTE_NOINLINE void BEFExecutor::EnqueueReadyKernels(
-    std::vector<unsigned> kernel_ids) {
-  AddRef();
-  EnqueueWork(exec_ctx_, [this, kernel_ids = std::move(kernel_ids)]() mutable {
-    ReadyKernelQueue ready_kernel_queue(kernel_infos(), std::move(kernel_ids));
-    ProcessReadyKernels(ready_kernel_queue);
-    DropRef();
-  });
+    std::vector<unsigned>& kernel_ids) {
+  auto kernel_array = kernel_infos();
+
+  // Sort the kernels by streams to group them.
+  std::sort(
+      kernel_ids.begin(), kernel_ids.end(), [&](unsigned x_id, unsigned y_id) {
+        assert(x_id < kernel_array.size());
+        assert(y_id < kernel_array.size());
+        return kernel_array[x_id].stream_id < kernel_array[y_id].stream_id;
+      });
+
+  // For each stream group, we enqueue the kernels to the work queue.
+  for (auto iter = kernel_ids.begin(); iter != kernel_ids.end();) {
+    int stream_id = kernel_array[*iter].stream_id;
+    auto jter = iter++;
+    for (;
+         iter != kernel_ids.end() && kernel_array[*iter].stream_id == stream_id;
+         ++iter) {
+    }
+
+    std::vector<unsigned> stream_kernel_ids(jter, iter);
+    AddRef();
+    EnqueueWork(
+        exec_ctx_,
+        [this, stream_id, kernel_ids = std::move(stream_kernel_ids)]() mutable {
+          ReadyKernelQueue ready_kernel_queue(stream_id, kernel_infos(),
+                                              std::move(kernel_ids));
+          ProcessReadyKernels(ready_kernel_queue);
+          DropRef();
+        });
+  }
+
+  // Clear the kernel_ids as they are enqueued.
+  kernel_ids.clear();
 }
 
 // Iteratively process ready kernels in `ready_kernel_queue` and inserts ready
@@ -529,7 +534,7 @@ void BEFExecutor::ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue) {
   kernel_frame.SetFunctions(BefFile()->functions_);
 
   if (!ready_kernel_queue.outline_kernel_ids().empty()) {
-    EnqueueReadyKernels(std::move(ready_kernel_queue.outline_kernel_ids()));
+    EnqueueReadyKernels(ready_kernel_queue.outline_kernel_ids());
   }
   assert(ready_kernel_queue.outline_kernel_ids().empty());
 
@@ -543,7 +548,7 @@ void BEFExecutor::ProcessReadyKernels(ReadyKernelQueue& ready_kernel_queue) {
     ProcessReadyKernel(kernel_id, &kernel_frame, ready_kernel_queue);
 
     if (!ready_kernel_queue.outline_kernel_ids().empty()) {
-      EnqueueReadyKernels(std::move(ready_kernel_queue.outline_kernel_ids()));
+      EnqueueReadyKernels(ready_kernel_queue.outline_kernel_ids());
     }
     assert(ready_kernel_queue.outline_kernel_ids().empty());
   }

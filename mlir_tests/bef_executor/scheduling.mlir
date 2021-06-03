@@ -39,18 +39,18 @@ func @print_thread_id() -> !tfrt.chain {
 
 // CHECK-LABEL: --- Running 'lifo_scheduling'
 func @lifo_scheduling() -> !tfrt.chain {
-  %ch0 = tfrt.new.chain
+  %c0 = tfrt.constant.i32 1
 
   // kernel 0 and kernel 2 are always executed consecutively due to lifo scheduling.
 
   // CHECK: id: 0
   // CHECK-NEXT: id: 2
-  %ch1 = tfrt_test.test_cost %ch0 {id = 0 : i64, _tfrt_cost = 1 : i64}
-  %ch2 = tfrt_test.test_cost %ch0 {id = 1 : i64, _tfrt_cost = 1 : i64}
-  %ch3 = tfrt_test.test_cost %ch1 {id = 2 : i64, _tfrt_cost = 1 : i64}
+  %c1 = tfrt_test.test_cost %c0 {id = 0 : i64, _tfrt_cost = 1 : i64} : i32
+  %c2 = tfrt_test.test_cost %c0 {id = 1 : i64, _tfrt_cost = 1 : i64} : i32
+  %c3 = tfrt_test.test_cost %c1 {id = 2 : i64, _tfrt_cost = 1 : i64} : i32
 
-  %ch4 = tfrt.merge.chains %ch2, %ch3 : !tfrt.chain, !tfrt.chain
-  tfrt.return %ch4: !tfrt.chain
+  %ch = tfrt.merge.chains %c2, %c3 : i32, i32
+  tfrt.return %ch: !tfrt.chain
 }
 
 }

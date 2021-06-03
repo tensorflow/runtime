@@ -420,11 +420,11 @@ static Chain TestPrintDebugInfo(T* frame) {
   return Chain();
 }
 
-static Chain TestCost(tfrt::Chain in_ch, I64Attr id) {
+static int32_t TestCost(RepeatedArguments<int32_t> args, I64Attr id) {
   tfrt::outs() << "id: " << id.GetValue() << "\n";
   tfrt::outs().flush();
 
-  return Chain();
+  return 0;
 }
 
 static void TestGetUniqueness(RemainingArguments args,

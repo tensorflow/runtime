@@ -291,14 +291,14 @@ def TestCostOp : Test_Op<"test_cost", [TFRT_CostTrait, CoreRT_TypedAttributeTrai
   let summary = "tfrt_test.test_cost";
 
   let arguments = (ins
-    TFRT_ChainType:$in_ch,
+    Variadic<AnyType>:$args,
     I64Attr:$id,
     I64Attr:$_tfrt_cost
   );
 
-  let results = (outs TFRT_ChainType:$out_ch);
+  let results = (outs I32:$result);
 
-  let assemblyFormat = "operands attr-dict";
+  let assemblyFormat = "$args attr-dict `:` type($args)";
 
   let verifier = ?;
 }

@@ -14,11 +14,10 @@
 
 // RUN: tfrt_opt -split-input-file -verify-diagnostics %s
 
-func @invalid_cost(%arg : i32) {
-  %ch0 = tfrt.new.chain
+func @invalid_cost(%arg : i32) -> i32 {
   // expected-error @+1 {{requires the cost attribute larger than 0}}
-  %ch1 = tfrt_test.test_cost %ch0 {id = 0 : i64, _tfrt_cost = 0 : i64}
-  tfrt.return %ch1 : !tfrt.chain
+  %r = tfrt_test.test_cost %arg {id = 0 : i64, _tfrt_cost = 0 : i64} : i32
+  tfrt.return %r: i32
 }
 
 // -----

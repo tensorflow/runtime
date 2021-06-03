@@ -20,6 +20,7 @@
 
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_traits.h"
+#include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
 namespace compiler {
@@ -143,7 +144,14 @@ void StreamAnalysis::ScheduleOpForwardPass(mlir::Block& block) {
         int64_t operand_cost_from_root = cost_from_root_map[def];
         assert(operand_cost_from_root > 0);
 
-        current_op_info.side_defs.insert(def);
+        // Record the data dependencies even if they are not on the path that
+        // triggers the execution. This will be used later when we are trying to
+        // merge parallel streams. Parallel streams with data dependencies will
+        // be preferred to be merged. Note that control dependencies are skipped
+        // as we prefer to merge for data dependencies.
+        if (!operand.getType().isa<tfrt::ChainType>()) {
+          current_op_info.side_defs.insert(def);
+        }
 
         if (operand_cost_from_root > parent_cost_from_root) {
           parent_op = def;

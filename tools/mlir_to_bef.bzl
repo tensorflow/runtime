@@ -40,15 +40,12 @@ def mlir_to_bef(name, tfrt_translate):
 def glob_tfrt_lit_tests(
         name = "glob_tfrt_lit_tests",
         data = [],
-        default_size = "small",
-        default_tags = [],
         # copybara:uncomment driver = "@tf_runtime//mlir_tests:run_lit.sh",
         exclude = [],
         # Do not run "tfrt_translate -mlir-to-bef" on these files.
         no_bef_translation = [],
-        size_override = {},
-        tags_override = {},
-        tfrt_translate = ""):
+        tfrt_translate = "",
+        **kwargs):
     """Run mlir_to_bef on all .mlir files and invoke glob_lit_tests."""
 
     if tfrt_translate == "":
@@ -79,9 +76,6 @@ def glob_tfrt_lit_tests(
         per_test_extra_data = per_test_extra_data,
         # copybara:uncomment driver = driver,
         test_file_exts = ["mlir"],
-        default_size = default_size,
-        default_tags = default_tags,
         exclude = exclude,
-        size_override = size_override,
-        tags_override = tags_override,
+        **kwargs
     )

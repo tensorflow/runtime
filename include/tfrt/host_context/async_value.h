@@ -268,7 +268,8 @@ class AsyncValue {
   friend class IndirectAsyncValue;
   template <typename T>
   AsyncValue(Kind kind, State state, bool is_refcounted, TypeTag<T>)
-      : kind_(kind),
+      : refcount_(is_refcounted ? 1 : 0),
+        kind_(kind),
         has_vtable_(std::is_polymorphic<T>()),
         is_refcounted_(is_refcounted),
         type_id_(GetTypeId<T>()),
@@ -278,7 +279,8 @@ class AsyncValue {
   }
 
   AsyncValue(Kind kind, State state, bool is_refcounted)
-      : kind_(kind),
+      : refcount_(is_refcounted ? 1 : 0),
+        kind_(kind),
         has_vtable_(false),
         is_refcounted_(is_refcounted),
         type_id_(0),
@@ -742,6 +744,19 @@ class IndirectAsyncValue : public AsyncValue {
   }
 
   AsyncValue* value_ = nullptr;
+};
+
+// UnRefcountedAsyncValue is not refcounted and its lifetime should be managed
+// properly by users.
+template <typename T>
+class UnRefCountedAsyncValue : public internal::ConcreteAsyncValue<T> {
+ public:
+  using Base = internal::ConcreteAsyncValue<T>;
+
+  template <typename... Args>
+  UnRefCountedAsyncValue(Args&&... args)
+      : Base(typename Base::UnRefCountedConcretePayload{},
+             std::forward<Args>(args)...) {}
 };
 
 // -----------------------------------------------------------

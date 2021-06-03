@@ -148,5 +148,27 @@ TEST_F(AsyncValueTest, KeepPayloadOnError) {
 
   EXPECT_EQ(2, payload_value);
 }
+
+TEST_F(AsyncValueTest, UnRefCountedAsyncValue) {
+  UnRefCountedAsyncValue<int32_t> unref_av(100);
+  EXPECT_FALSE(unref_av.IsUnique());
+
+  AsyncValue* av = &unref_av;
+
+  {
+    auto unref_av_ref = FormRef(av);
+    EXPECT_EQ(unref_av_ref->get<int32_t>(), 100);
+  }
+
+  {
+    auto unref_av_ref = TakeRef(av);
+    EXPECT_EQ(unref_av_ref->get<int32_t>(), 100);
+  }
+
+  EXPECT_EQ(unref_av.get(), 100);
+  unref_av.DropRef();
+  EXPECT_EQ(unref_av.get(), 100);
+}
+
 }  // namespace
 }  // namespace tfrt

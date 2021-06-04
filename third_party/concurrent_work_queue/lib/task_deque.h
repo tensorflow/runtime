@@ -39,6 +39,7 @@
 #include <array>
 #include <atomic>
 #include <cstdint>
+#include <vector>
 
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/None.h"

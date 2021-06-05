@@ -16,6 +16,8 @@
 
 #include "tfrt/gpu/kernels/gpu_ops.h"
 
+#include <iterator>
+
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -257,15 +259,15 @@ GpuConversionDialect::GpuConversionDialect(MLIRContext *context)
 }
 
 mlir::OpFoldResult CastOp::fold(llvm::ArrayRef<mlir::Attribute>) {
+  // Recursively search all defining cast ops for an operand of the result type.
   Type result_type = getResult().getType();
-
-  for (auto operand : getOperands()) {
-    mlir::ValueRange range(operand);
+  SmallVector<Value, 2> operands = getOperands();
+  while (!operands.empty()) {
+    auto operand = operands.back();
+    if (operand.getType() == result_type) return operand;
+    operands.pop_back();
     if (auto cast_op = operand.getDefiningOp<conversion::CastOp>())
-      range = cast_op.getOperands();
-    auto it = llvm::find_if(
-        range, [&](auto value) { return value.getType() == result_type; });
-    if (it != range.end()) return *it;
+      copy(cast_op.getOperands(), std::back_inserter(operands));
   }
   return nullptr;
 }

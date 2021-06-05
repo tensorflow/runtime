@@ -25,6 +25,7 @@
 include "tfrt/basic_kernels/opdefs/tfrt_base.td"
 include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
 
 // Base class for TFRT dialect ops.
 class TFRT_Op<string mnemonic, list<OpTrait> traits = []> :

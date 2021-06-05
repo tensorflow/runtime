@@ -633,6 +633,7 @@ gentbl_cc_library(
     td_srcs = [
         ":OpBaseTdFiles",
         "@llvm-project//mlir:CallInterfacesTdFiles",
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
         "@llvm-project//mlir:SideEffectTdFiles",
     ],
 )
@@ -657,6 +658,7 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:CallOpInterfaces",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:InferTypeOpInterface",
         "@llvm-project//mlir:SideEffects",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Transforms",

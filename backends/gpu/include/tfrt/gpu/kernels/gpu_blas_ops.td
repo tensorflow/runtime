@@ -70,14 +70,6 @@ def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy"> {
 def GPU_BlasGemmAlgoOp : GPU_Op<"blas.gemm.algo", [NoSideEffect]> {
   let arguments = (ins GPU_BlasGemmAlgoAttr:$algo);
   let results = (outs GPU_BlasGemmAlgoType);
-  let builders = [
-    OpBuilder<(ins "::tfrt::gpu::wrapper::BlasGemmAlgo":$algo),
-    [{
-      auto context = $_builder.getContext();
-      auto type = BlasGemmAlgoType::get(context);
-      auto attr = BlasGemmAlgoAttr::get(context, algo);
-      return build($_builder, $_state, type, attr);
-    }]>];
   let assemblyFormat = "custom<Enum>($algo) attr-dict";
 }
 

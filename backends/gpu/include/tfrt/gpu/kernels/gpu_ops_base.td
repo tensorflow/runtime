@@ -23,6 +23,7 @@
 #define GPU_OPS_BASE
 
 include "tfrt/tfrt_op_base.td"
+include "mlir/Interfaces/InferTypeOpInterface.td"
 
 // "tfrt_gpu" dialect
 def GPU_Dialect : Dialect {

@@ -50,6 +50,22 @@ func @stream_create_synchronize() {
   tfrt.return
 }
 
+// CHECK-LABEL: --- Running 'stream_wait_event'
+func @stream_wait_event() {
+  %ch0 = tfrt.new.chain
+  %index = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %index
+  %context = tfrt_gpu.context.create %device
+
+  %stream = tfrt_gpu.stream.create %context
+  %ctx = tfrt_gpu.stream.get_context %stream
+  %event = tfrt_gpu.event.create %ctx
+  %ch1 = tfrt_gpu.event.record %event, %stream, %ch0
+  %ch2 = tfrt_gpu.stream.wait %stream, %event, %ch1
+
+  tfrt.return
+}
+
 // CHECK-LABEL: --- Running 'make_tensor_from_smaller_buffer_should_fail'
 func @make_tensor_from_smaller_buffer_should_fail() {
   %ch2 = tfrt.new.chain

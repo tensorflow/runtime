@@ -64,10 +64,33 @@ def GPU_StreamCreateOp : GPU_Op<"stream.create"> {
 
     Example:
       %ch1 = tfrt.new.chain
-      %stream = tfrt_gpu.stream.create %context, %ch1
+      %stream = tfrt_gpu.stream.create %context
   }];
   let arguments = (ins GPU_ContextType);
   let results = (outs GPU_StreamType);
+}
+
+def GPU_StreamGetContextOp : GPU_Op<"stream.get_context"> {
+  let description = [{
+    tfrt_gpu.stream.get_context returns the context the stream was created with.
+
+    Example:
+      %context = tfrt_gpu.stream.get_context %stream
+  }];
+  let arguments = (ins GPU_StreamType);
+  let results = (outs GPU_ContextType);
+}
+
+def GPU_StreamWaitOp : GPU_Op<"stream.wait"> {
+  let description = [{
+    tfrt_gpu.stream.wait makes a stream wait on a gpu event.
+
+    Example:
+      %ch1 = tfrt.new.chain
+      %ch2 = tfrt_gpu.stream.wait %stream, %event, %ch1
+  }];
+  let arguments = (ins GPU_StreamType, GPU_EventType, TFRT_ChainType);
+  let results = (outs TFRT_ChainType);
 }
 
 def GPU_StreamSynchronizeOp : GPU_Op<"stream.synchronize"> {

@@ -62,6 +62,16 @@ static Expected<GpuStream> GpuStreamCreate(Argument<GpuContext> context) {
   return GpuStream(context.ValueRef(), std::move(*stream));
 }
 
+// tfrt_gpu.stream.get_context returns the context the stream was created with.
+static AsyncValueRef<GpuContext> GpuStreamGetContext(const GpuStream& stream) {
+  return stream.gpu_context();
+}
+
+// tfrt_gpu.stream.wait makes a stream wait on an event.
+static Error GpuStreamWait(const GpuStream& stream, const GpuEvent& event) {
+  return wrapper::StreamWaitEvent(stream.get(), event.get());
+}
+
 // tfrt_gpu.stream.synchronize waits until all stream's tasks are completed.
 //
 // Result: Sets the output chain when all tasks submitted on a stream are
@@ -92,9 +102,7 @@ static Expected<GpuEvent> GpuEventCreate(Argument<GpuContext> context) {
   return GpuEvent(context.ValueRef(), std::move(*event));
 }
 
-// tfrt_gpu.event.create creates a new cuda event.
-//
-// Result: new cuda event.
+// tfrt_gpu.event.record records an event on a stream.
 static Error GpuEventRecord(const GpuEvent& event, const GpuStream& stream) {
   return wrapper::EventRecord(event.get(), stream.get());
 }
@@ -268,6 +276,9 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(GpuContextCreate));
 
   kernel_reg->AddKernel("tfrt_gpu.stream.create", TFRT_KERNEL(GpuStreamCreate));
+  kernel_reg->AddKernel("tfrt_gpu.stream.get_context",
+                        TFRT_KERNEL(GpuStreamGetContext));
+  kernel_reg->AddKernel("tfrt_gpu.stream.wait", TFRT_KERNEL(GpuStreamWait));
   kernel_reg->AddKernel("tfrt_gpu.stream.synchronize",
                         TFRT_KERNEL(GpuStreamSynchronize));
 

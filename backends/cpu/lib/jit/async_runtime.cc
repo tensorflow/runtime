@@ -21,6 +21,7 @@
 #include <memory>
 #include <type_traits>
 
+#include "llvm/Support/MathExtras.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"

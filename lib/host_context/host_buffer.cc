@@ -22,6 +22,7 @@
 #include <cstdint>
 
 #include "llvm/Support/Format.h"
+#include "llvm/Support/MathExtras.h"
 #include "tfrt/host_context/host_allocator.h"
 
 namespace tfrt {

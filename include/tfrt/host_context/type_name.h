@@ -28,22 +28,22 @@ namespace tfrt {
 // name based reflection and debugging capabilities.
 class TypeName {
  public:
-  TypeName() : name(nullptr) {}
+  TypeName() : name_(nullptr) {}
   TypeName(const TypeName&) = default;
   TypeName& operator=(const TypeName&) = default;
 
-  string_view GetName() const { return name; }
+  string_view GetName() const { return name_; }
 
   bool operator==(TypeName rhs) const {
-    return name == rhs.name || strcmp(name, rhs.name) == 0;
+    return name_ == rhs.name_ || strcmp(name_, rhs.name_) == 0;
   }
 
   bool operator!=(TypeName rhs) const { return !(*this == rhs); }
 
  private:
   friend class KernelRegistry;
-  explicit TypeName(const char* name) : name(name) {}
-  const char* name;
+  explicit TypeName(const char* name) : name_(name) {}
+  const char* name_;
 };
 
 }  // namespace tfrt

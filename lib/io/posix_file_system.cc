@@ -95,11 +95,12 @@ llvm::Error PosixFileSystem::NewRandomAccessFile(
   return llvm::Error::success();
 }
 
-void RegisterPosixFileSystem(FileSystemRegistry* registry) {
+static bool kRegisterFileSystem = [] {
   auto file_system = std::make_unique<PosixFileSystem>();
   // The scheme is an empty string to be backward-compatible with TF.
-  registry->Register("", std::move(file_system));
-}
+  FileSystemRegistry::Default()->Register("", std::move(file_system));
+  return true;
+}();
 
 }  // namespace io
 }  // namespace tfrt

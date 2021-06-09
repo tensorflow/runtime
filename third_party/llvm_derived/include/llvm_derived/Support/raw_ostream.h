@@ -28,10 +28,6 @@
 
 namespace tfrt {
 
-// TODO(tfrt-devs): Port support for Windows from llvm.
-#ifdef _WIN32
-using raw_fd_ostream = llvm::raw_fd_ostream;
-#else   // !_WIN32
 //===----------------------------------------------------------------------===//
 // Lightweight File Output Streams
 //
@@ -116,7 +112,6 @@ class raw_fd_ostream : public llvm::raw_pwrite_stream {
   //
   void clear_error() { EC = std::error_code(); }
 };
-#endif  // !_WIN32
 
 // Drop in replacement for llvm::outs() and llvm::errs() since those use
 // llvm::raw_fd_ostream, which introduces unecessary dependencies and is hurtful

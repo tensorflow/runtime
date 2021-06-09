@@ -25,6 +25,8 @@ namespace tfrt {
 
 void* AlignedAlloc(size_t alignment, size_t size);
 
+void AlignedFree(void* ptr);
+
 }  // namespace tfrt
 
 #endif  // TFRT_SUPPORT_ALLOC_H_

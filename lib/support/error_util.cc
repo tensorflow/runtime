@@ -31,6 +31,10 @@ void LogIfErrorImpl(Error error, Severity severity) {
 }
 }  // namespace
 
+namespace internal {
+void UseCharPointer(char const volatile*) {}
+}  // namespace internal
+
 void LogIfError(Error&& error) {
   LogIfErrorImpl(std::move(error), Severity::ERROR);
 }

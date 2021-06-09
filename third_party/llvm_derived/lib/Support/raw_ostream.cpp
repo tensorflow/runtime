@@ -18,7 +18,37 @@
 #include "llvm_derived/Support/raw_ostream.h"
 
 #include <sys/stat.h>
-#include <unistd.h>
+
+// <fcntl.h> may provide O_BINARY.
+#if defined(HAVE_FCNTL_H)
+# include <fcntl.h>
+#endif
+
+#if defined(HAVE_UNISTD_H)
+# include <unistd.h>
+#endif
+
+#if defined(__CYGWIN__)
+#include <io.h>
+#endif
+
+#if defined(_MSC_VER)
+#include <io.h>
+#ifndef STDIN_FILENO
+# define STDIN_FILENO 0
+#endif
+#ifndef STDOUT_FILENO
+# define STDOUT_FILENO 1
+#endif
+#ifndef STDERR_FILENO
+# define STDERR_FILENO 2
+#endif
+#endif
+
+#ifdef _WIN32
+#include "llvm/Support/ConvertUTF.h"
+#include "llvm/Support/Windows/WindowsSupport.h"
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -191,7 +221,7 @@ void raw_fd_ostream::pwrite_impl(const char *Ptr, size_t Size,
 }
 
 size_t raw_fd_ostream::preferred_buffer_size() const {
-#if !defined(__minix)
+#if !defined(__minix) && !defined(_WIN32)
   // Minix has no st_blksize.
   assert(FD >= 0 && "File not yet open!");
   struct stat statbuf;

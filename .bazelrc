@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-build --config=clang  # By default, build with clang.
+#build --config=clang  # By default, build with clang.
+build --config=msvc
 
 # Build with clang.
 build:clang --repo_env=CC=clang
@@ -23,16 +24,22 @@ build:clang --@rules_cuda//cuda:copts=-Wno-unknown-cuda-version
 build:gcc --repo_env=CC=gcc
 build:gcc --config=nvcc
 
+# Build with MSVC and nvcc.
+#build:msvc --repo_env=CC=msvc
+build:msvc --config=nvcc
+
 # Build with CUDA device code with nvcc.
 build:nvcc --@rules_cuda//cuda:compiler=nvcc
 build:nvcc --repo_env=BAZEL_CXXOPTS=  # Prevent warning: 'std' redefinition.
 build:nvcc --@rules_cuda//cuda:copts=--expt-relaxed-constexpr
 
 # Disable warnings we don't care about.
-build --copt=-Wno-unused-local-typedef
+#build --copt=-Wno-unused-local-typedef
+#build --copt=-wd4624
+#build --copt=-wd4244
 
 # C++14 standard version is required.
-build --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
+#build --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
 
 # Necessary linker options.
 build --linkopt=-pthread

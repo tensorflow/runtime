@@ -34,7 +34,7 @@ class MallocAllocator : public HostAllocator {
   }
 
   // Deallocate the specified pointer that has the specified size.
-  void DeallocateBytes(void* ptr, size_t size) override { free(ptr); }
+  void DeallocateBytes(void* ptr, size_t size) override { AlignedFree(ptr); }
 };
 
 void HostAllocator::VtableAnchor() {}

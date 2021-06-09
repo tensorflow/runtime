@@ -667,11 +667,11 @@ RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {
 // ImmutableOpAttrs implementation
 //===----------------------------------------------------------------------===//
 
-// We just use malloc to allocate this, so we need to provide a custom destroy
-// hook for ReferenceCounted to use.
+// We just use AlignedAlloc to allocate this, so we need to provide a custom
+// destroy hook for ReferenceCounted to use.
 void ImmutableOpAttrs::Destroy() {
   this->~ImmutableOpAttrs();
-  free(this);
+  AlignedFree(this);
 }
 
 // Look up an attribute by name, regardless of its underlying type.

@@ -23,6 +23,7 @@
 #include <cstdint>
 
 #include "tfrt/dtype/dtype.h"
+#include "tfrt/support/byte_order.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -72,13 +73,13 @@ raw_ostream& operator<<(raw_ostream& os, const TensorLayout& layout);
 
 // Tensor header in the Binary Tensor Format. This struct has to directly map to
 // the on-disk structure of BTF files.
-struct TensorHeader {
+PACKED_STRUCT(TensorHeader {
   uint64_t rank;
   // dtype, layout and the padding together occupy 64 bits.
   TensorDType dtype;
   TensorLayout layout;
   uint8_t padding[6];
-} __attribute__((packed));
+});
 
 // Assure that the TenshorHead structure has the correct size and structures for
 // wire compatibility.

@@ -129,7 +129,7 @@ class BEFKernel {
   // kernel_location, num_arguments, num_attributes, num_functions, num_results
   // and special_metadata in BEF can be directly mapped using this struct.
   // Currently special_metadata stores the info if the kernel is non-strict.
-  struct __attribute__((packed)) BEFKernelHeader {
+  PACKED_STRUCT(BEFKernelHeader {
     uint32_t kernel_code;
     uint32_t kernel_location;
     uint32_t num_arguments;
@@ -140,7 +140,7 @@ class BEFKernel {
     // TODO(tfrt-devs): Pack the special_metadata to other fields in
     // kernel header.
     uint32_t special_metadata = 0x0;
-  };
+  });
   static_assert(sizeof(BEFKernelHeader) == 28,
                 "Unexpected size of BEFKernelHeader.");
 

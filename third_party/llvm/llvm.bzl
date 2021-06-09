@@ -305,6 +305,13 @@ win32_cmake_vars = {
 # TODO(phawkins): use a better method to select the right host triple, rather
 # than hardcoding x86_64.
 llvm_all_cmake_vars = select({
+    "@tf_runtime//:windows": cmake_var_string(
+        _dict_add(
+            cmake_vars,
+            llvm_target_cmake_vars("X86", "x86_64-pc-win32"),
+            win32_cmake_vars,
+        ),
+    ),
     "//conditions:default": cmake_var_string(
         _dict_add(
             cmake_vars,
@@ -316,13 +323,23 @@ llvm_all_cmake_vars = select({
 })
 
 llvm_linkopts = select({
+    "@tf_runtime//:windows": [],
     "//conditions:default": ["-ldl", "-lm", "-lpthread"],
 })
 
 llvm_defines = select({
+    "@tf_runtime//:windows": [
+        "_CRT_SECURE_NO_DEPRECATE",
+        "_CRT_SECURE_NO_WARNINGS",
+        "_CRT_NONSTDC_NO_DEPRECATE",
+        "_CRT_NONSTDC_NO_WARNINGS",
+        "_SCL_SECURE_NO_DEPRECATE",
+        "_SCL_SECURE_NO_WARNINGS",
+        "UNICODE",
+        "_UNICODE",
+    ],
     "//conditions:default": [],
 }) + [
-    "LLVM_ENABLE_STATS",
     "__STDC_LIMIT_MACROS",
     "__STDC_CONSTANT_MACROS",
     "__STDC_FORMAT_MACROS",
@@ -330,6 +347,53 @@ llvm_defines = select({
 ]
 
 llvm_copts = select({
+    "@tf_runtime//:windows": [
+        "-Zc:inline",
+        "-Zc:strictStrings",
+        "-Zc:rvalueCast",
+        "-Oi",
+        "-wd4141",
+        "-wd4146",
+        "-wd4180",
+        "-wd4244",
+        "-wd4258",
+        "-wd4267",
+        "-wd4291",
+        "-wd4345",
+        "-wd4351",
+        "-wd4355",
+        "-wd4456",
+        "-wd4457",
+        "-wd4458",
+        "-wd4459",
+        "-wd4503",
+        "-wd4624",
+        "-wd4722",
+        "-wd4800",
+        "-wd4100",
+        "-wd4127",
+        "-wd4512",
+        "-wd4505",
+        "-wd4610",
+        "-wd4510",
+        "-wd4702",
+        "-wd4245",
+        "-wd4706",
+        "-wd4310",
+        "-wd4701",
+        "-wd4703",
+        "-wd4389",
+        "-wd4611",
+        "-wd4805",
+        "-wd4204",
+        "-wd4577",
+        "-wd4091",
+        "-wd4592",
+        "-wd4319",
+        "-wd4324",
+        "-w14062",
+        "-we4238",
+    ],
     "//conditions:default": [],
 })
 
@@ -337,6 +401,10 @@ llvm_copts = select({
 
 def llvm_support_platform_specific_srcs_glob():
     return select({
+        "@tf_runtime//:windows": native.glob([
+            "lib/Support/Windows/*.inc",
+            "lib/Support/Windows/*.h",
+        ]),
         "//conditions:default": native.glob([
             "lib/Support/Unix/*.inc",
             "lib/Support/Unix/*.h",

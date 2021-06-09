@@ -14,7 +14,13 @@
 
 // This file implements the LoggingOpHandler class and the hooks to create it.
 
+#if defined(HAVE_UNISTD_H)
 #include <unistd.h>
+#else
+#define STDIN_FILENO 0
+#define STDOUT_FILENO 1
+#define STDERR_FILENO 2
+#endif
 
 #include <system_error>
 

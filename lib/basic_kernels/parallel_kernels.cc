@@ -42,8 +42,8 @@ static AsyncValueRef<Chain> ExecuteAsyncParallelForBody(
     HostContext* host = exec_ctx.host();
 
     // Pack parallel block arguments into async values.
-    auto start_arg = MakeAvailableAsyncValueRef<int32_t>(host, start + offset);
-    auto end_arg = MakeAvailableAsyncValueRef<int32_t>(host, end + offset);
+    auto start_arg = MakeAvailableAsyncValueRef<size_t>(host, start + offset);
+    auto end_arg = MakeAvailableAsyncValueRef<size_t>(host, end + offset);
 
     SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
                                            end_arg.GetAsyncValue()};
@@ -85,8 +85,8 @@ static AsyncValueRef<Chain> ExecuteSyncParallelForBody(
     HostContext* host = exec_ctx.host();
 
     // Pack parallel block arguments into async values.
-    auto start_arg = MakeAvailableAsyncValueRef<int32_t>(host, start + offset);
-    auto end_arg = MakeAvailableAsyncValueRef<int32_t>(host, end + offset);
+    auto start_arg = MakeAvailableAsyncValueRef<size_t>(host, start + offset);
+    auto end_arg = MakeAvailableAsyncValueRef<size_t>(host, end + offset);
 
     SmallVector<AsyncValue*, 6> fn_args = {start_arg.GetAsyncValue(),
                                            end_arg.GetAsyncValue()};

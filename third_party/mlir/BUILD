@@ -38,6 +38,65 @@ filegroup(
     ],
 )
 
+PYBIND11_COPTS = select({
+    "@tf_runtime//:windows": [
+        "-Zc:inline",
+        "-Zc:strictStrings",
+        "-Zc:rvalueCast",
+        "-Oi",
+        "-wd4141",
+        "-wd4146",
+        "-wd4180",
+        "-wd4244",
+        "-wd4258",
+        "-wd4267",
+        "-wd4291",
+        "-wd4345",
+        "-wd4351",
+        "-wd4355",
+        "-wd4456",
+        "-wd4457",
+        "-wd4458",
+        "-wd4459",
+        "-wd4503",
+        "-wd4624",
+        "-wd4722",
+        "-wd4800",
+        "-wd4100",
+        "-wd4127",
+        "-wd4512",
+        "-wd4505",
+        "-wd4610",
+        "-wd4510",
+        "-wd4702",
+        "-wd4245",
+        "-wd4706",
+        "-wd4310",
+        "-wd4701",
+        "-wd4703",
+        "-wd4389",
+        "-wd4611",
+        "-wd4805",
+        "-wd4204",
+        "-wd4577",
+        "-wd4091",
+        "-wd4592",
+        "-wd4319",
+        "-wd4324",
+        "-w14062",
+        "-we4238",
+    ],
+    "//conditions:default": [
+        "-fexceptions",
+        "-frtti",
+    ],
+})
+
+PYBIND11_FEATURES = [
+    # Cannot use header_modules (parse_headers feature fails).
+    "-use_header_modules",
+]
+
 [
     gentbl_cc_library(
         name = name + "IncGen",
@@ -210,6 +269,7 @@ cc_library(
         "include/mlir/Interfaces/FoldInterfaces.h",
     ],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":BuiltinAttributesIncGen",
         ":BuiltinDialectIncGen",
@@ -244,6 +304,7 @@ cc_library(
         "-lm",
         "-lpthread",
     ],
+    copts = PYBIND11_COPTS,
     deps = [
         ":IR",
         ":Support",
@@ -291,6 +352,7 @@ cc_library(
         "include/mlir/CAPI/Wrap.h",
     ],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":ConversionPassIncGen",
         ":IR",
@@ -313,6 +375,7 @@ cc_library(
         "include/mlir-c/Dialect/Async.h",
     ],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":Async",
         ":AsyncPassIncGen",
@@ -332,6 +395,7 @@ cc_library(
         "include/mlir-c/Dialect/Linalg.h",
     ],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":CAPIIR",
         ":LinalgOps",
@@ -351,6 +415,7 @@ cc_library(
         "include/mlir-c/Dialect/GPU.h",
     ],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":CAPIIR",
         ":GPUDialect",
@@ -370,6 +435,7 @@ cc_library(
         "include/mlir-c/Dialect/SparseTensor.h",
     ],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":CAPIIR",
         ":Pass",
@@ -385,6 +451,7 @@ cc_library(
     srcs = ["lib/CAPI/Conversion/Passes.cpp"],
     hdrs = ["include/mlir-c/Conversion.h"],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":CAPIIR",
         ":ConversionPassIncGen",
@@ -398,6 +465,7 @@ cc_library(
     srcs = ["lib/CAPI/Debug/Debug.cpp"],
     hdrs = ["include/mlir-c/Debug.h"],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":CAPIIR",
         ":Support",
@@ -413,6 +481,7 @@ cc_library(
         "include/mlir/CAPI/ExecutionEngine.h",
     ],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":CAPIIR",
         ":ExecutionEngine",
@@ -428,6 +497,7 @@ cc_library(
     srcs = ["lib/CAPI/Transforms/Passes.cpp"],
     hdrs = ["include/mlir-c/Transforms.h"],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":CAPIIR",
         ":Pass",
@@ -441,6 +511,7 @@ cc_library(
     srcs = ["lib/CAPI/Registration/Registration.cpp"],
     hdrs = ["include/mlir-c/Registration.h"],
     includes = ["include"],
+    copts = PYBIND11_COPTS,
     deps = [
         ":AllPassesAndDialects",
         ":CAPIIR",
@@ -467,6 +538,7 @@ cc_library(
         "include/mlir-c/Bindings/Python/*.h",
         "include/mlir/Bindings/Python/*.h",
     ]),
+    copts = PYBIND11_COPTS,
     deps = [
         ":CAPIIR",
         "//third_party/pybind11",
@@ -481,10 +553,7 @@ cc_library(
         exclude = ["lib/Bindings/Python/MainModule.cpp"],
     ),
     # These flags are needed for pybind11 to work.
-    copts = [
-        "-fexceptions",
-        "-frtti",
-    ],
+    copts = PYBIND11_COPTS,
     features = [
         # Cannot use header_modules (parse_headers feature fails).
         "-use_header_modules",
@@ -504,16 +573,6 @@ cc_library(
         "@llvm-project//llvm:Support",
     ],
 )
-
-PYBIND11_COPTS = [
-    "-fexceptions",
-    "-frtti",
-]
-
-PYBIND11_FEATURES = [
-    # Cannot use header_modules (parse_headers feature fails).
-    "-use_header_modules",
-]
 
 # Dynamic library with the MLIR Python extension.
 cc_binary(

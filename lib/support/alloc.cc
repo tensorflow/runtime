@@ -27,7 +27,9 @@ void* AlignedAlloc(size_t alignment, size_t size) {
 
 #if defined(__ANDROID__) || defined(OS_ANDROID)
   return memalign(alignment, size);
-#else  // !__ANDROID__ && !OS_ANDROID
+#elif defined(_WIN32)
+  return _aligned_malloc(size, alignment);
+#else
   void* ptr = nullptr;
   // posix_memalign requires that the requested alignment be at least
   // alignof(void*). In this case, fall back on malloc which should return
@@ -36,6 +38,14 @@ void* AlignedAlloc(size_t alignment, size_t size) {
     return nullptr;
   else
     return ptr;
+#endif
+}
+
+void AlignedFree(void* ptr) {
+#ifdef _WIN32
+  _aligned_free(ptr);
+#else
+  free(ptr);
 #endif
 }
 

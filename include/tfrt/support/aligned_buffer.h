@@ -40,7 +40,7 @@ struct AlignedAllocator {
     auto* ptr = AlignedAlloc(Align, n * sizeof(T));
     return static_cast<T*>(ptr);
   }
-  void deallocate(T* p, size_t) noexcept { std::free(p); }
+  void deallocate(T* p, size_t) noexcept { AlignedFree(p); }
 
   template <typename U>
   struct rebind {

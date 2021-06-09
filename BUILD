@@ -1,4 +1,4 @@
-load(":build_defs.bzl", "tfrt_cc_library")
+load(":build_defs.bzl", "tfrt_cc_library", "if_google", "if_oss")
 
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
@@ -44,6 +44,21 @@ string_setting(
 config_setting(
     name = "is_build_env_google",
     flag_values = {":build_env": "google"},
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "windows",
+    # Internal builds query the target OS.
+    flag_values = if_google(
+        {"//tools/cpp:cc_target_os": "windows"},
+        {},
+    ),
+    # OSS builds query the CPU type.
+    values = if_oss(
+        {"cpu": "x64_windows"},
+        {},
+    ),
     visibility = ["//visibility:public"],
 )
 
@@ -1153,16 +1168,22 @@ tfrt_cc_library(
         "lib/io/buffered_input_stream.cc",
         "lib/io/file_input_stream.cc",
         "lib/io/file_system.cc",
-        "lib/io/posix_file_system.cc",
-        "lib/io/posix_file_system.h",
-    ],
+    ] + select({
+        "@tf_runtime//:windows": [
+            "lib/io/windows_file_system.cc",
+            "lib/io/windows_file_system.h",
+        ],
+        "//conditions:default": [
+            "lib/io/posix_file_system.cc",
+            "lib/io/posix_file_system.h",
+        ],
+    }),
     hdrs = [
         "include/tfrt/io/buffered_input_stream.h",
         "include/tfrt/io/file_input_stream.h",
         "include/tfrt/io/file_system.h",
         "include/tfrt/io/input_stream.h",
     ],
-    alwayslink_static_registration_src = "lib/io/static_registration.cc",
     visibility = [":friends"],
     deps = [
         ":hostcontext",

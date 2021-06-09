@@ -106,7 +106,6 @@ tfrt_cc_library(
         "@tf_runtime//:basic_kernels_alwayslink",
         "@tf_runtime//:core_runtime_alwayslink",
         "@tf_runtime//:data_alwayslink",
-        "@tf_runtime//:io_alwayslink",
         "@tf_runtime//:tensor_alwayslink",
         "@tf_runtime//:test_kernels_alwayslink",
         "@tf_runtime//backends/cpu:cpu_kernels_alwayslink",

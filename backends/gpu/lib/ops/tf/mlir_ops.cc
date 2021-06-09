@@ -21,6 +21,7 @@
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/ops/tf/bias_add_f16_kernel.h"
 #include "tfrt/gpu/ops/tf/bias_add_f32_kernel.h"
 #include "tfrt/gpu/ops/tf/bias_add_f64_kernel.h"
@@ -37,8 +38,9 @@ namespace tfrt {
 namespace gpu {
 static auto AllocateBuffer(GpuDispatchContext* dctx, const DType& dtype,
                            const TensorShape& shape) {
-  return dctx->allocator()->AllocateBuffer(
-      shape.GetNumElements() * dtype.GetHostSize(), dctx->stream());
+  return GpuBuffer::Allocate(dctx->allocator(),
+                             shape.GetNumElements() * dtype.GetHostSize(),
+                             dctx->stream());
 }
 
 // Loads a CUDA module from an cubin or fatbin image.
@@ -188,7 +190,7 @@ static llvm::Expected<DenseGpuTensor> ComputeBiasAddGpuOp(
        dimensions.back()}};
   std::array<ssize_t, 1> bias_shape = {{shape[1]}};
 
-  auto output_arg = MakeMemRefArgument(output_buffer->pointer(), shape);
+  auto output_arg = MakeMemRefArgument(output_buffer.pointer(), shape);
   auto input_arg = MakeMemRefArgument(input.buffer().pointer(), shape);
   auto bias_arg = MakeMemRefArgument(bias.buffer().pointer(), bias_shape);
 
@@ -209,8 +211,9 @@ static llvm::Expected<DenseGpuTensor> ComputeBiasAddGpuOp(
           shared_memory_size_bytes, dctx->stream(), arg_ptrs, nullptr))
     return std::move(error);
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype,
-                        std::move(output_buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer)));
 }
 
 static llvm::Expected<DenseGpuTensor> ComputeReluGpuOp(
@@ -242,7 +245,7 @@ static llvm::Expected<DenseGpuTensor> ComputeReluGpuOp(
   std::array<ssize_t, 1> shape = {{input.shape().GetNumElements()}};
 
   auto input_arg = MakeMemRefArgument(input.buffer().pointer(), shape);
-  auto output_arg = MakeMemRefArgument(output_buffer->pointer(), shape);
+  auto output_arg = MakeMemRefArgument(output_buffer.pointer(), shape);
 
   llvm::SmallVector<const void*, 32> arg_ptrs;
   auto arg_ptrs_inserter = std::back_inserter(arg_ptrs);
@@ -260,8 +263,9 @@ static llvm::Expected<DenseGpuTensor> ComputeReluGpuOp(
           shared_memory_size_bytes, dctx->stream(), arg_ptrs, nullptr))
     return std::move(error);
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype,
-                        std::move(output_buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer)));
 }
 
 void RegisterMlirGpuTfOps(GpuOpRegistry* registry) {

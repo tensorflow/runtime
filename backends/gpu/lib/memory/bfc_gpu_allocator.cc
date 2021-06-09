@@ -70,14 +70,14 @@ BfcGpuAllocator::BfcGpuAllocator(const wrapper::CurrentContext& current)
   ReassignChunkToBin(c);
 }
 
-llvm::Expected<RCReference<gpu::GpuCrtBuffer>> BfcGpuAllocator::AllocateBuffer(
+llvm::Expected<gpu::GpuPointer> BfcGpuAllocator::Allocate(
     size_t num_bytes, wrapper::Stream stream) {
   TFRT_TRACE_SCOPE(Default, "BfcGpuAllocator::Allocate");
   // First, always allocate memory of at least 256 bytes, and always
   // allocate multiples of 256 bytes so all memory addresses are
   // nicely byte aligned.
   static_assert(
-      GpuCrtAllocator::kAlignment <= 256,
+      GpuAllocator::kAlignment <= 256,
       "BfcGpuAllocator does not support alignment to more than 256 bytes");
   size_t rounded_bytes = (256 * ((num_bytes + 255) / 256));
   if (rounded_bytes == 0) {
@@ -123,9 +123,7 @@ llvm::Expected<RCReference<gpu::GpuCrtBuffer>> BfcGpuAllocator::AllocateBuffer(
           SplitChunk(chunk, rounded_bytes);
         }
 
-        return MakeRef<gpu::GpuCrtBuffer>(
-            wrapper::Pointer<void>(chunk->ptr, stream.platform()), num_bytes,
-            this);
+        return wrapper::Pointer<void>(chunk->ptr, stream.platform());
       }
     }
   }
@@ -167,12 +165,12 @@ void BfcGpuAllocator::SplitChunk(BfcGpuAllocator::Chunk* c, size_t num_bytes) {
   ReassignChunkToBin(c);
 }
 
-void BfcGpuAllocator::Deallocate(const gpu::GpuCrtBuffer& buffer) {
+llvm::Error BfcGpuAllocator::Deallocate(gpu::GpuPointer pointer,
+                                        wrapper::Stream stream) {
   mutex_lock l(mu_);
 
-  // Find the chunk from the ptr.
-  auto ptr = GetRawPointer<void>(buffer);
-  auto it = ptr_to_chunk_map_.find(ptr);
+  // Find the chunk from the pointer.
+  auto it = ptr_to_chunk_map_.find(pointer.raw());
   assert(it != ptr_to_chunk_map_.end() &&
          "Asked to deallocate a pointer we never allocated");
 
@@ -182,11 +180,8 @@ void BfcGpuAllocator::Deallocate(const gpu::GpuCrtBuffer& buffer) {
 
   // Consider coalescing it.
   MaybeCoalesce(c);
-}
 
-llvm::Error BfcGpuAllocator::RecordUsage(const gpu::GpuCrtBuffer& buffer,
-                                         wrapper::Stream stream) {
-  llvm_unreachable("RecordUsage is not implemented.");
+  return llvm::Error::success();
 }
 
 // Merges c1 and c2 when c1->next is c2 and c2->prev is c1.

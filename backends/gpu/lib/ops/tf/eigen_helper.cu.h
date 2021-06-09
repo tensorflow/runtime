@@ -214,12 +214,14 @@ Expected<DenseGpuTensor> ComputeOpViaEigen(
   size_t size_in_bytes =
       result_md.dtype.GetHostSize() * result_md.shape.GetNumElements();
 
-  TFRT_ASSIGN_OR_RETURN(RCReference<gpu::GpuCrtBuffer> result_buffer,
-                        dctx->allocator()->AllocateBuffer(
-                            /*size=*/size_in_bytes, dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer result_buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/size_in_bytes, dctx->stream()));
 
-  gpu::DenseGpuTensor result_tensor(result_md.shape, result_md.dtype,
-                                    std::move(result_buffer));
+  gpu::DenseGpuTensor result_tensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(result_buffer)));
 
   // Dispatch on the Functor arity.
   auto error =

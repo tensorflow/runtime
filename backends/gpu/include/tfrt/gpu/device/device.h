@@ -19,11 +19,11 @@
 #ifndef TFRT_GPU_DEVICE_DEVICE_H_
 #define TFRT_GPU_DEVICE_DEVICE_H_
 
-#include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/support/forward_decls.h"
 
 namespace Eigen {
 class GpuDevice;
@@ -31,7 +31,7 @@ class GpuDevice;
 
 namespace tfrt {
 namespace gpu {
-class GpuCrtAllocator;
+class GpuAllocator;
 
 class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
  public:
@@ -50,7 +50,7 @@ class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
   wrapper::Stream stream() const;
 
   // Allocator for allocating GPU device memory.
-  gpu::GpuCrtAllocator* allocator() const;
+  AsyncValueRef<gpu::GpuAllocator> allocator() const;
 
   // Eigen GPU device. Used to launch Eigen kernels.
   Eigen::GpuDevice* eigen_gpu_device() const;

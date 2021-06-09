@@ -91,12 +91,14 @@ static Expected<DenseGpuTensor> GpuAddOp(GpuDispatchContext* dctx,
                                          const TensorMetadata& result_md) {
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
 
-  TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> buffer,
-                        dctx->allocator()->AllocateBuffer(
-                            /*size=*/size_in_bytes, dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/size_in_bytes, dctx->stream()));
 
   auto result =
-      DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
+      DenseGpuTensor(result_md.shape, result_md.dtype,
+                     MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
 
   AddTensors(*dctx->eigen_gpu_device(), tensor_a, tensor_b, &result);
 

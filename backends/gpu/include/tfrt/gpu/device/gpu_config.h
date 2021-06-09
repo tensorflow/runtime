@@ -18,14 +18,14 @@
 #ifndef TFRT_GPU_DEVICE_GPU_CONFIG_H_
 #define TFRT_GPU_DEVICE_GPU_CONFIG_H_
 
-#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
 
 using GpuAllocatorFactory =
-    std::function<GpuCrtAllocator*(const wrapper::Context&)>;
+    std::function<std::unique_ptr<GpuAllocator>(const wrapper::Context&)>;
 
 struct GpuResources {
   // Either CUcontext or hipCtx_t.

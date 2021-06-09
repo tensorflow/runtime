@@ -26,7 +26,7 @@
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
 #include "tfrt/gpu/device/conversion_function.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/ops/test/gpu_ops_and_kernels.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/host_context/host_context.h"
@@ -59,21 +59,23 @@ static llvm::Expected<std::tuple<DenseGpuTensor, DenseGpuTensor>>
 ReturnMultipleResults(GpuDispatchContext* dctx,
                       const TensorMetadata& result_md0,
                       const TensorMetadata& result_md1) {
-  llvm::Expected<RCReference<GpuCrtBuffer>> buffer_or_error0 =
-      dctx->allocator()->AllocateBuffer(
-          /*size=*/result_md0.GetHostSizeInBytes(), dctx->stream());
-  if (!buffer_or_error0) return buffer_or_error0.takeError();
-  RCReference<GpuCrtBuffer> buffer0 = std::move(*buffer_or_error0);
-
-  llvm::Expected<RCReference<GpuCrtBuffer>> buffer_or_error1 =
-      dctx->allocator()->AllocateBuffer(
-          /*size=*/result_md1.GetHostSizeInBytes(), dctx->stream());
-  if (!buffer_or_error1) return buffer_or_error1.takeError();
-  RCReference<GpuCrtBuffer> buffer1 = std::move(*buffer_or_error1);
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer buffer0,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/result_md0.GetHostSizeInBytes(),
+                          dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer buffer1,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/result_md1.GetHostSizeInBytes(),
+                          dctx->stream()));
 
   return std::make_tuple(
-      DenseGpuTensor(result_md0.shape, result_md0.dtype, std::move(buffer0)),
-      DenseGpuTensor(result_md1.shape, result_md1.dtype, std::move(buffer1)));
+      DenseGpuTensor(result_md0.shape, result_md0.dtype,
+                     MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer0))),
+      DenseGpuTensor(
+          result_md1.shape, result_md1.dtype,
+          MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer1))));
 }
 
 static llvm::Expected<std::tuple<DenseGpuTensor, DenseGpuTensor>>

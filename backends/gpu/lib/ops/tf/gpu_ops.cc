@@ -25,7 +25,6 @@
 #include "tfrt/core_runtime/op_utils.h"
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/tensor/dense_host_tensor.h"

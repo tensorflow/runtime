@@ -20,6 +20,7 @@
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
 #include "tfrt/support/error_util.h"
@@ -162,8 +163,8 @@ static CoalescedDimsAndPerm CoalesceTranspose(const TensorShape& shape,
 }
 
 static llvm::Error DispatchTrivialTranspose(
-    GpuDispatchContext* dctx, DType dtype, const GpuCrtBuffer& input,
-    const GpuCrtBuffer& output, const CoalescedDimsAndPerm& transpose) {
+    GpuDispatchContext* dctx, DType dtype, const GpuBuffer& input,
+    const GpuBuffer& output, const CoalescedDimsAndPerm& transpose) {
   assert(transpose.dims.size() == 2 && transpose.perm.size() == 2);
 
   ssize_t height = transpose.dims[0];
@@ -202,8 +203,8 @@ static llvm::Error DispatchTrivialTranspose(
 }
 
 static llvm::Error DispatchSwapDims1And2In3(
-    GpuDispatchContext* dctx, DType dtype, const GpuCrtBuffer& input,
-    const GpuCrtBuffer& output,
+    GpuDispatchContext* dctx, DType dtype, const GpuBuffer& input,
+    const GpuBuffer& output,
 
     const CoalescedDimsAndPerm& transpose) {
   assert(transpose.dims.size() == 3 && transpose.perm.size() == 3);
@@ -263,19 +264,20 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpImpl(
     return MakeStringError("Unsupported tf.Transpose permutation");
   }
 
-  TFRT_ASSIGN_OR_RETURN(auto output_buffer,
-                        dctx->allocator()->AllocateBuffer(
-                            /*size=*/size_in_bytes, dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer output_buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/size_in_bytes, dctx->stream()));
 
   if (is_trivial_transpose) {
     if (auto err = DispatchTrivialTranspose(dctx, input.dtype(), input.buffer(),
-                                            *output_buffer, transpose)) {
+                                            output_buffer, transpose)) {
       return std::move(err);
     }
 
   } else if (is_swap_1_and_2_in_3) {
     if (auto err = DispatchSwapDims1And2In3(dctx, input.dtype(), input.buffer(),
-                                            *output_buffer, transpose)) {
+                                            output_buffer, transpose)) {
       return std::move(err);
     }
   }
@@ -285,8 +287,9 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpImpl(
     return MakeStringError("CUDA launch error");
   }
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype,
-                        std::move(output_buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer)));
 }
 
 static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOp(

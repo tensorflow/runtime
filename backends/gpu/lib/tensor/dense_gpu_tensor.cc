@@ -19,6 +19,7 @@
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 
 #include "llvm/Support/ErrorHandling.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/ref_count.h"
@@ -28,11 +29,11 @@ namespace tfrt {
 namespace gpu {
 
 DenseGpuTensor::DenseGpuTensor(const TensorShape& shape, DType dtype,
-                               RCReference<GpuCrtBuffer> buffer)
+                               AsyncValueRef<GpuBuffer> buffer)
     : DenseGpuTensor(TensorMetadata(dtype, shape), std::move(buffer)) {}
 
 DenseGpuTensor::DenseGpuTensor(const TensorMetadata& metadata,
-                               RCReference<GpuCrtBuffer> buffer)
+                               AsyncValueRef<GpuBuffer> buffer)
     : Tensor(metadata), buffer_(std::move(buffer)) {}
 
 void DenseGpuTensor::Print(llvm::raw_ostream& os) const {

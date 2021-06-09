@@ -25,7 +25,7 @@
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/host_context.h"
@@ -74,7 +74,7 @@ static llvm::Error CallCublasGemm(wrapper::CurrentContext current,
                                   bool transpose_b, uint64_t m, uint64_t k,
                                   uint64_t n, const gpu::DenseGpuTensor& a,
                                   const gpu::DenseGpuTensor& b,
-                                  GpuCrtBuffer* result) {
+                                  const GpuBuffer& result) {
   TFRT_TRACE_SCOPE(Default, "CublasGemm");
   // Blas expects matrices in column major.
   // Use C' = B' x A' (' stands for transpose)
@@ -87,14 +87,15 @@ static llvm::Error CallCublasGemm(wrapper::CurrentContext current,
                     static_cast<wrapper::Pointer<const T>>(b.buffer().pointer()), transpose_b ? k : n,
                     static_cast<wrapper::Pointer<const T>>(a.buffer().pointer()), transpose_a ? m : k,
                     ConstValue<T>(0.0).pointer(handle.platform()),
-                    static_cast<wrapper::Pointer<T>>(result->pointer()), n);
+                    static_cast<wrapper::Pointer<T>>(result.pointer()), n);
   // clang-format on
 }
 
 llvm::Error RunCublasGemm(wrapper::CurrentContext current,
                           wrapper::BlasHandle handle, bool transpose_a,
                           bool transpose_b, const gpu::DenseGpuTensor& a,
-                          const gpu::DenseGpuTensor& b, GpuCrtBuffer* result) {
+                          const gpu::DenseGpuTensor& b,
+                          const GpuBuffer& result) {
   const int a_matching_dim = transpose_a ? 0 : 1;
   const int b_matching_dim = transpose_b ? 1 : 0;
   const int a_remaining_dim = 1 - a_matching_dim;
@@ -127,12 +128,15 @@ static llvm::Expected<DenseGpuTensor> GpuMatmulOp(
   TFRT_TRACE_SCOPE(Default, "GpuMatmulOp");
 
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
-  TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> buffer,
-                        dctx->allocator()->AllocateBuffer(
-                            /*size=*/size_in_bytes, dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/size_in_bytes, dctx->stream()));
 
   if (size_in_bytes == 0) {
-    return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
+    return DenseGpuTensor(
+        result_md.shape, result_md.dtype,
+        MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
   }
 
   if (a.shape().GetNumElements() == 0 && b.shape().GetNumElements() == 0) {
@@ -140,11 +144,13 @@ static llvm::Expected<DenseGpuTensor> GpuMatmulOp(
     // output shape is [x, y] where x and y are non-zero, so we fill
     // the output with zeros.
     if (auto error =
-            wrapper::MemsetD8Async(dctx->current_context(), buffer->pointer(),
-                                   0, size_in_bytes, dctx->stream())) {
+            wrapper::MemsetD8Async(dctx->current_context(), buffer.pointer(), 0,
+                                   size_in_bytes, dctx->stream())) {
       return std::move(error);
     }
-    return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
+    return DenseGpuTensor(
+        result_md.shape, result_md.dtype,
+        MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
   }
 
   // FIXME(iga): Handle types not supported by cuBLAS.
@@ -152,14 +158,15 @@ static llvm::Expected<DenseGpuTensor> GpuMatmulOp(
   // metadata function checks for attribute presence
   bool transpose_a = attrs.GetAsserting<bool>("transpose_a");
   bool transpose_b = attrs.GetAsserting<bool>("transpose_b");
-  if (auto error =
-          RunCublasGemm(dctx->current_context(), dctx->blas_handle(),
-                        transpose_a, transpose_b, a, b, buffer.get())) {
+  if (auto error = RunCublasGemm(dctx->current_context(), dctx->blas_handle(),
+                                 transpose_a, transpose_b, a, b, buffer)) {
     // TODO(iga): Propagate original error.
     return std::move(error);
   }
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
 }
 
 void RegisterMatmulGpuTfOps(GpuOpRegistry* registry) {

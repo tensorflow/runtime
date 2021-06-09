@@ -21,7 +21,7 @@
 #define TFRT_GPU_CORE_RUNTIME_GPU_DISPATCH_CONTEXT_H_
 
 #include "tfrt/gpu/device/device.h"
-#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
@@ -37,7 +37,6 @@ class GpuDispatchContext {
   explicit GpuDispatchContext(const GpuDevice* device)
       : device_(device),
         stream_(device->stream()),
-        allocator_(device->allocator()),
         eigen_gpu_device_(device->eigen_gpu_device()),
         blas_handle_(device->blas_handle()),
         dnn_handle_(device->dnn_handle()),
@@ -49,7 +48,9 @@ class GpuDispatchContext {
   wrapper::Stream stream() const { return stream_; }
 
   // Allocator for allocating GPU device memory.
-  gpu::GpuCrtAllocator* allocator() const { return allocator_; }
+  AsyncValueRef<gpu::GpuAllocator> allocator() const {
+    return device_->allocator();
+  }
 
   // Eigen GPU device. Used to launch Eigen kernels.
   Eigen::GpuDevice* eigen_gpu_device() const { return eigen_gpu_device_; }
@@ -70,7 +71,6 @@ class GpuDispatchContext {
  private:
   const GpuDevice* device_;
   wrapper::Stream stream_;
-  GpuCrtAllocator* allocator_;
   Eigen::GpuDevice* eigen_gpu_device_;
   wrapper::BlasHandle blas_handle_;
   wrapper::DnnHandle dnn_handle_;

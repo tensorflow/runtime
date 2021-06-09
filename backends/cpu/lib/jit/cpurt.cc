@@ -265,9 +265,9 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
 
 // Gets (copies) the values from `desc`, returning them in a DenseElementsAttr.
 // If it cannot extract the values, returns an empty attribute.
-static mlir::DenseElementsAttr GetMemrefValues(
-    mlir::Builder* builder, const mlir::ShapedType& shaped_type,
-    const MemrefDesc& desc) {
+static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
+                                               mlir::ShapedType shaped_type,
+                                               const MemrefDesc& desc) {
   size_t rank = desc.sizes.size();
   if (rank != 0 && rank != 1) return {};
 

@@ -250,6 +250,17 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "support/crc32c_test",
+    srcs = [
+        "support/crc32c_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "support/dense_host_tensor_test",
     srcs = [
         "support/dense_host_tensor_test.cc",
@@ -277,6 +288,28 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "support/hash_util_test",
+    srcs = [
+        "support/hash_util_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
+    name = "support/random_util_test",
+    srcs = [
+        "support/random_util_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "support/ranges_test",
     srcs = [
         "support/ranges_test.cc",
@@ -291,6 +324,17 @@ tfrt_cc_test(
     name = "support/ref_count_test",
     srcs = [
         "support/ref_count_test.cc",
+    ],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
+    name = "support/string_util_test",
+    srcs = [
+        "support/string_util_test.cc",
     ],
     deps = [
         "@com_google_googletest//:gtest_main",

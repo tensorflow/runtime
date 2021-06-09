@@ -88,8 +88,11 @@ std::string HumanReadableElapsedTime(double seconds) {
 
   if (seconds < 0) {
     human_readable = "-";
-    ss << "-";
     seconds = -seconds;
+  }
+
+  if (seconds == 0) {
+    return "0 s";
   }
 
   // Start with microseconds and keep going up to years. The comparisons must

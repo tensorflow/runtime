@@ -209,12 +209,7 @@ static inline uint32_t LE_LOAD32(const uint8_t *p) {
   return DecodeFixed32(reinterpret_cast<const char *>(p));
 }
 
-uint32_t Extend(uint32_t crc, const char *buf, size_t size) {
-  static bool can_accelerate = CanAccelerate();
-  if (can_accelerate) {
-    return AcceleratedExtend(crc, buf, size);
-  }
-
+uint32_t RegularExtend(uint32_t crc, const char *buf, size_t size) {
   const uint8_t *p = reinterpret_cast<const uint8_t *>(buf);
   const uint8_t *e = p + size;
   uint32_t l = crc ^ 0xffffffffu;
@@ -261,6 +256,11 @@ uint32_t Extend(uint32_t crc, const char *buf, size_t size) {
 #undef STEP4
 #undef STEP1
   return l ^ 0xffffffffu;
+}
+
+uint32_t Extend(uint32_t crc, const char *buf, size_t size) {
+  return CanAccelerate() ? AcceleratedExtend(crc, buf, size)
+                         : RegularExtend(crc, buf, size);
 }
 
 }  // namespace crc32c

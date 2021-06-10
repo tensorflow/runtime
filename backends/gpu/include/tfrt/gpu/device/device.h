@@ -61,13 +61,6 @@ class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
   // GPU DNN library handle. Used to launch convolutions etc.
   wrapper::DnnHandle dnn_handle() const;
 
-  // Create a current context. It is usually called inside the dispatch
-  // function. See the documentation for wrapper::CurrentContext for more
-  // details.
-  // TODO(b/184700486): Clean up this method and use SetCurrentContext()
-  // instead.
-  wrapper::CurrentContext CreateContext() const;
-
   // Set the context of current thread and return it. See the documentation
   // for wrapper::CurrentContext for more details.
   llvm::Expected<wrapper::CurrentContext> SetCurrentContext() const;

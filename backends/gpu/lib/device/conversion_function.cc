@@ -97,8 +97,12 @@ DenseGpuTensorToDenseHostTensorConversionFn(const DenseGpuTensor& tensor,
                                             const GpuDevice& src,
                                             const CpuDevice& dst,
                                             const ExecutionContext& exec_ctx) {
+  Expected<wrapper::CurrentContext> current_context = src.SetCurrentContext();
+  if (!current_context) {
+    return MakeErrorAsyncValueRef(StrCat(current_context.takeError()));
+  }
   return ConvertDenseGpuTensorToDenseHostTensor(
-      src.CreateContext(), src.stream(), tensor, exec_ctx.host());
+      std::move(current_context.get()), src.stream(), tensor, exec_ctx.host());
 }
 
 Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
@@ -144,9 +148,12 @@ Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
 static Expected<DenseGpuTensor> DenseHostTensorToDenseGpuTensorConversionFn(
     const DenseHostTensor& tensor, const CpuDevice& src, const GpuDevice& dst,
     const ExecutionContext& exec_ctx) {
-  return ConvertDenseHostTensorToDenseGpuTensor(dst.CreateContext(),
-                                                dst.stream(), dst.allocator(),
-                                                tensor, exec_ctx.host());
+  Expected<wrapper::CurrentContext> current_context = dst.SetCurrentContext();
+  if (!current_context) return current_context.takeError();
+
+  return ConvertDenseHostTensorToDenseGpuTensor(
+      std::move(current_context.get()), dst.stream(), dst.allocator(), tensor,
+      exec_ctx.host());
 }
 
 void RegisterGpuTensorConversionFn(TensorConversionFnRegistry* registry) {

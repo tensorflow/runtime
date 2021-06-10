@@ -57,7 +57,7 @@ class GpuOpHandler : public OpHandler {
 
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
 
-  GpuDispatchContext MakeGpuDispatchContext();
+  Expected<GpuDispatchContext> MakeGpuDispatchContext();
 
   RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
 
@@ -82,9 +82,15 @@ struct GpuOpHandlerTraits {
                        MutableArrayRef<RCReference<AsyncValue>> results,
                        AsyncValueRef<Chain>* chain,
                        const ExecutionContext& exec_ctx) {
-    GpuDispatchContext dctx = gpu_op_handler->MakeGpuDispatchContext();
-    op_entry.dispatch_fn(exec_ctx, &dctx, inputs, attrs, result_mds, results,
-                         chain);
+    llvm::Expected<GpuDispatchContext> dctx =
+        gpu_op_handler->MakeGpuDispatchContext();
+    if (!dctx) {
+      if (chain && *chain) chain->SetError(dctx.takeError());
+      return;
+    }
+
+    op_entry.dispatch_fn(exec_ctx, &dctx.get(), inputs, attrs, result_mds,
+                         results, chain);
   }
 
   // TODO(b/168609399): design a proper way to obtain device for result tensors.
@@ -117,8 +123,8 @@ GpuOpHandler::GpuOpHandler(CoreRuntime* runtime, OpHandler* fallback,
       op_registry_(std::move(op_registry)),
       device_(std::move(device)) {}
 
-GpuDispatchContext GpuOpHandler::MakeGpuDispatchContext() {
-  return GpuDispatchContext{device_.get()};
+Expected<GpuDispatchContext> GpuOpHandler::MakeGpuDispatchContext() {
+  return GpuDispatchContext::Create(device_.get());
 }
 
 Expected<CoreRuntimeOp> GpuOpHandler::MakeOp(string_view op_name) {

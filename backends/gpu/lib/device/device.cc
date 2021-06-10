@@ -169,12 +169,6 @@ wrapper::DnnHandle GpuDevice::dnn_handle() const {
   return impl_->dnn_handle_.get();
 }
 
-wrapper::CurrentContext GpuDevice::CreateContext() const {
-  // FIXME(sanjoy): Add proper error handling.
-  llvm::ExitOnError die_if_error;
-  return die_if_error(CtxSetCurrent(impl_->context_));
-}
-
 llvm::Expected<wrapper::CurrentContext> GpuDevice::SetCurrentContext() const {
   return CtxSetCurrent(impl_->context_);
 }

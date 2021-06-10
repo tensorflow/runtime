@@ -34,13 +34,17 @@ namespace tfrt {
 namespace gpu {
 class GpuDispatchContext {
  public:
-  explicit GpuDispatchContext(const GpuDevice* device)
-      : device_(device),
-        stream_(device->stream()),
-        eigen_gpu_device_(device->eigen_gpu_device()),
-        blas_handle_(device->blas_handle()),
-        dnn_handle_(device->dnn_handle()),
-        current_context_(std::move(device->CreateContext())) {}
+  static Expected<GpuDispatchContext> Create(const GpuDevice* device) {
+    if (device == nullptr) {
+      return MakeStringError("The device is null.");
+    }
+    Expected<wrapper::CurrentContext> current_context =
+        device->SetCurrentContext();
+    if (!current_context) {
+      return current_context.takeError();
+    }
+    return GpuDispatchContext(device, std::move(current_context.get()));
+  }
 
   // The inputs to the GPU dispatch function are available for reading on this
   // stream.  The outputs from the dispatch must also be ready for reading on
@@ -69,6 +73,15 @@ class GpuDispatchContext {
   const GpuDevice& device() const { return *device_; }
 
  private:
+  GpuDispatchContext(const GpuDevice* device,
+                     wrapper::CurrentContext current_context)
+      : device_(device),
+        stream_(device->stream()),
+        eigen_gpu_device_(device->eigen_gpu_device()),
+        blas_handle_(device->blas_handle()),
+        dnn_handle_(device->dnn_handle()),
+        current_context_(std::move(current_context)) {}
+
   const GpuDevice* device_;
   wrapper::Stream stream_;
   Eigen::GpuDevice* eigen_gpu_device_;

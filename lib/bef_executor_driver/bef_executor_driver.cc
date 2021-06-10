@@ -49,10 +49,9 @@
 #include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
-// TODO(jingdong): Change const Function* to const Functino& in funciton
-// argument to conform to the style guide.
+
 static void RunBefFunction(
-    HostContext* host, const Function* function,
+    HostContext* host, const Function& function,
     const std::function<llvm::Expected<ExecutionContext>(
         HostContext*, ResourceContext*)>& create_execution_context,
     bool print_error_code);
@@ -239,14 +238,14 @@ int RunBefExecutor(
   auto test_init_function = bef->GetFunction(run_config.test_init_function);
 
   if (test_init_function) {
-    RunBefFunction(host, test_init_function, create_execution_context,
+    RunBefFunction(host, *test_init_function, create_execution_context,
                    run_config.print_error_code);
   }
 
   // Loop over each of the functions, running each as a standalone testcase.
   for (auto* fn : function_list) {
     if (fn != test_init_function) {
-      RunBefFunction(host, fn, create_execution_context,
+      RunBefFunction(host, *fn, create_execution_context,
                      run_config.print_error_code);
     }
   }
@@ -277,28 +276,28 @@ static void PrintResult(const TypeName& type_name, const ValueType& result) {
 }
 
 static void RunSyncBefFunctionHelper(const ExecutionContext& exec_ctx,
-                                     const Function* function) {
-  TFRT_TRACE_SCOPE(Default, StrCat("Function: ", function->name()));
+                                     const Function& function) {
+  TFRT_TRACE_SCOPE(Default, StrCat("Function: ", function.name()));
 
   llvm::SmallVector<Value, 4> results;
-  results.resize(function->result_types().size());
+  results.resize(function.result_types().size());
 
   llvm::SmallVector<Value*, 4> result_ptrs;
   for (auto& value : results) {
     result_ptrs.emplace_back(&value);
   }
 
-  auto error = ExecuteSyncBEFFunction(*function, exec_ctx, /*arguments=*/{},
-                                      result_ptrs);
+  auto error =
+      ExecuteSyncBEFFunction(function, exec_ctx, /*arguments=*/{}, result_ptrs);
 
   // Go ahead and print out the function results that we know about.
   if (error) {
-    tfrt::outs() << "'" << function->name() << "' returned ";
+    tfrt::outs() << "'" << function.name() << "' returned ";
     tfrt::outs() << "<<error: " << error << ">>\n";
     tfrt::outs().flush();
   } else if (!results.empty()) {
-    tfrt::outs() << "'" << function->name() << "' returned ";
-    auto result_types = function->result_types();
+    tfrt::outs() << "'" << function.name() << "' returned ";
+    auto result_types = function.result_types();
 
     for (int i = 0, e = results.size(); i != e; ++i) {
       auto type_name = result_types[i];
@@ -317,23 +316,23 @@ static void RunSyncBefFunctionHelper(const ExecutionContext& exec_ctx,
 }
 
 static void RunAsyncBefFunctionHelper(const ExecutionContext& exec_ctx,
-                                      const Function* function,
+                                      const Function& function,
                                       bool print_error_code) {
-  TFRT_TRACE_SCOPE(Default, StrCat("Function: ", function->name()));
+  TFRT_TRACE_SCOPE(Default, StrCat("Function: ", function.name()));
 
   // Kick off an execution of the function body.
   llvm::SmallVector<RCReference<AsyncValue>, 4> results;
-  results.resize(function->result_types().size());
+  results.resize(function.result_types().size());
 
-  function->Execute(exec_ctx, /*arguments=*/{}, results);
+  function.Execute(exec_ctx, /*arguments=*/{}, results);
 
   // Block until the function results are fully resolved.
   exec_ctx.host()->Await(results);
 
   // Go ahead and print out the function results that we know about.
   if (!results.empty()) {
-    tfrt::outs() << "'" << function->name() << "' returned ";
-    auto result_types = function->result_types();
+    tfrt::outs() << "'" << function.name() << "' returned ";
+    auto result_types = function.result_types();
 
     for (int i = 0, e = results.size(); i != e; ++i) {
       auto type_name = result_types[i];
@@ -366,20 +365,20 @@ static void RunAsyncBefFunctionHelper(const ExecutionContext& exec_ctx,
 }
 
 static void RunBefFunction(
-    HostContext* host, const Function* function,
+    HostContext* host, const Function& function,
     const std::function<llvm::Expected<ExecutionContext>(
         HostContext*, ResourceContext*)>& create_execution_context,
     bool print_error_code) {
   // If the function takes arguments, then we can't run it from this driver.
-  if (!function->argument_types().empty()) {
-    tfrt::outs() << "--- Not running '" << function->name()
+  if (!function.argument_types().empty()) {
+    tfrt::outs() << "--- Not running '" << function.name()
                  << "' because it has arguments.\n";
     tfrt::outs().flush();
     return;
   }
 
   // Skip anonymous functions.
-  if (function->name().empty()) {
+  if (function.name().empty()) {
     return;
   }
 
@@ -389,7 +388,7 @@ static void RunBefFunction(
     before_num_values = AsyncValue::GetNumAsyncValueInstances();
 
   // Actually run the function.
-  tfrt::outs() << "--- Running '" << function->name() << "':\n";
+  tfrt::outs() << "--- Running '" << function.name() << "':\n";
   tfrt::outs().flush();
 
   {
@@ -404,7 +403,7 @@ static void RunBefFunction(
       llvm::errs() << "Failed to create execution context.\n";
       abort();
     }
-    if (function->function_kind() == FunctionKind::kSyncBEFFunction) {
+    if (function.function_kind() == FunctionKind::kSyncBEFFunction) {
       RunSyncBefFunctionHelper(exec_ctx.get(), function);
     } else {
       RunAsyncBefFunctionHelper(exec_ctx.get(), function, print_error_code);
@@ -414,7 +413,7 @@ static void RunBefFunction(
   if (AsyncValue::AsyncValueAllocationTrackingEnabled()) {
     auto after_num_values = AsyncValue::GetNumAsyncValueInstances();
     if (before_num_values != after_num_values) {
-      llvm::errs() << "Evaluation of function '" << function->name()
+      llvm::errs() << "Evaluation of function '" << function.name()
                    << "' leaked " << (after_num_values - before_num_values)
                    << " async values (before: " << before_num_values
                    << ", after: " << after_num_values << ")!\n";

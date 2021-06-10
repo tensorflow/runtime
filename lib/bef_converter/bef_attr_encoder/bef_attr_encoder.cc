@@ -72,7 +72,7 @@ size_t BefAttrEncoder::EncodeRankedShapeAttr(ArrayRef<int64_t> dims) {
                        sizeof(AttrShapeT) * header.rank,
                    /*emit_size=*/sizeof(AttrSizeT));
 
-  for (auto shape_entry : dims) EmitInt8(shape_entry);
+  for (auto shape_entry : dims) Emit<int64_t>(shape_entry);
 
   return offset;
 }
@@ -98,7 +98,7 @@ size_t BefAttrEncoder::EncodeDenseAttrHeader(DType::Kind element_type,
                    /*byte_size=*/header.element_offset + rawdata_size,
                    /*emit_size=*/sizeof(AttrSizeT) * 3);
 
-  for (auto shape_entry : dims) EmitInt8(shape_entry);
+  for (auto shape_entry : dims) Emit<int64_t>(shape_entry);
   return offset;
 }
 
@@ -121,7 +121,7 @@ size_t BefAttrEncoder::EncodeArrayAttrHeader(size_t element_count,
                                           llvm::Align(payload_alignment)));
   }
   const auto offset = size();
-  EmitInt4(element_count);
+  Emit<uint32_t>(element_count);
   return offset;
 }
 
@@ -143,7 +143,7 @@ size_t BefAttrEncoder::EncodeAggregatedAttrHeader(size_t max_alignment,
                    /*emit_size=*/sizeof(AttrSizeT));
 
   *offset_offset = size();
-  for (int i = 0; i < element_count; ++i) EmitInt4(0);
+  for (int i = 0; i < element_count; ++i) Emit<uint32_t>(0);
   return offset;
 }
 

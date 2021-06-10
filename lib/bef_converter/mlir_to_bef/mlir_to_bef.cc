@@ -1073,9 +1073,9 @@ void BEFFunctionEmitter::EmitKernelResultUsers(
     num_users++;
     auto it = kernel_index_.find(user);
     assert(it != kernel_index_.end() && "Invalid user");
-    kernel_body->EmitInt4(it->second);
+    kernel_body->Emit<uint32_t>(it->second);
   }
-  kernel_list->EmitInt4(num_users);
+  kernel_list->Emit<uint32_t>(num_users);
 }
 
 void BEFFunctionEmitter::EmitArgumentsPseudoKernel(
@@ -1084,26 +1084,26 @@ void BEFFunctionEmitter::EmitArgumentsPseudoKernel(
   // only has results and used_bys in its body.
 
   // code
-  kernel_list->EmitInt4(kDummyPseudoKernelCode);
+  kernel_list->Emit<uint32_t>(kDummyPseudoKernelCode);
   // location
-  kernel_list->EmitInt4(kDummyPseudoKernelLocation);
+  kernel_list->Emit<uint32_t>(kDummyPseudoKernelLocation);
   // arguments
-  kernel_list->EmitInt4(0);
+  kernel_list->Emit<uint32_t>(0);
   // attributes
-  kernel_list->EmitInt4(0);
+  kernel_list->Emit<uint32_t>(0);
   // functions
-  kernel_list->EmitInt4(0);
+  kernel_list->Emit<uint32_t>(0);
   // results, including the special result for ops with no operands.
-  kernel_list->EmitInt4(block->getNumArguments() + 1);
+  kernel_list->Emit<uint32_t>(block->getNumArguments() + 1);
   // special_metadata
-  kernel_list->EmitInt4(0);
+  kernel_list->Emit<uint32_t>(0);
 
   BEFFileEmitter kernel_body;
   // The first result is the pseudo result used to trigger execution of kernels
   // with no operands.
-  kernel_body.EmitInt4(GetPseudoResultRegisterNumber());
+  kernel_body.Emit<uint32_t>(GetPseudoResultRegisterNumber());
   for (auto arg : block->getArguments())
-    kernel_body.EmitInt4(GetRegisterNumber(arg));
+    kernel_body.Emit<uint32_t>(GetRegisterNumber(arg));
 
   // We also emit all operations with no operands as users for the special
   // result.
@@ -1125,20 +1125,20 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
                                     BEFFileEmitter* kernel_list,
                                     BEFFileEmitter* attribute_names) const {
   // Each kernel starts out with an opcode record.
-  kernel_list->EmitInt4(entities_.GetKernelID(op));
+  kernel_list->Emit<uint32_t>(entities_.GetKernelID(op));
 
   // Include a location.
   auto location_offset = entity_index_.GetLocationPositionOffset(op);
-  kernel_list->EmitInt4(location_offset);
+  kernel_list->Emit<uint32_t>(location_offset);
 
   // Because the numbers of each types of entries are emitted first, we use
   // another emitter to keep all entries and append them to kernel_list later.
   BEFFileEmitter kernel_body;
 
   // Then we have the arguments.
-  kernel_list->EmitInt4(op->getNumOperands());
+  kernel_list->Emit<uint32_t>(op->getNumOperands());
   for (auto operand : op->getOperands())
-    kernel_body.EmitInt4(GetRegisterNumber(operand));
+    kernel_body.Emit<uint32_t>(GetRegisterNumber(operand));
 
   // Then attributes.
   int num_input_functions = 0;
@@ -1159,7 +1159,7 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
           array_fn_attr.begin()->dyn_cast<mlir::FlatSymbolRefAttr>()) {
         for (auto fn : array_fn_attr) {
           num_input_functions++;
-          input_function_emitter.EmitInt4(entities_.GetFunctionNamed(
+          input_function_emitter.Emit<uint32_t>(entities_.GetFunctionNamed(
               fn.dyn_cast<mlir::FlatSymbolRefAttr>().getValue()));
         }
         continue;
@@ -1170,7 +1170,7 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
             attr_name_pair.second.dyn_cast<mlir::FlatSymbolRefAttr>()) {
       // Function references are output as regions.
       num_input_functions++;
-      input_function_emitter.EmitInt4(
+      input_function_emitter.Emit<uint32_t>(
           entities_.GetFunctionNamed(fn_attr.getValue()));
     } else {
       if (attribute_names != nullptr) {
@@ -1179,25 +1179,25 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
       }
       num_input_attributes++;
 
-      input_attribute_emitter.EmitInt4(
+      input_attribute_emitter.Emit<uint32_t>(
           entity_index_.GetAttributeOffset(attr_name_pair.second));
     }
   }
 
-  kernel_list->EmitInt4(num_input_attributes);
+  kernel_list->Emit<uint32_t>(num_input_attributes);
   kernel_body.EmitEmitter(input_attribute_emitter);
 
   // Then regions.
   num_input_functions += op->getNumRegions();
   for (auto& region : op->getRegions())
-    input_function_emitter.EmitInt4(entities_.GetFunctionID(region));
+    input_function_emitter.Emit<uint32_t>(entities_.GetFunctionID(region));
 
-  kernel_list->EmitInt4(num_input_functions);
+  kernel_list->Emit<uint32_t>(num_input_functions);
   kernel_body.EmitEmitter(input_function_emitter);
 
-  kernel_list->EmitInt4(op->getNumResults());
+  kernel_list->Emit<uint32_t>(op->getNumResults());
   for (auto result : op->getResults())
-    kernel_body.EmitInt4(GetRegisterNumber(result));
+    kernel_body.Emit<uint32_t>(GetRegisterNumber(result));
 
   auto debug_info_offset = entity_index_.GetDebugInfoOffset(op);
   if (debug_info_offset.hasValue()) {
@@ -1205,14 +1205,14 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   }
 
   // Emit the special_metadata field of kernel header.
-  kernel_list->EmitInt4(special_attribute);
+  kernel_list->Emit<uint32_t>(special_attribute);
 
   // Then results with the kernels that use them.
   for (auto result : op->getResults())
     EmitKernelResultUsers(result.getUsers(), kernel_list, &kernel_body);
 
   if (debug_info_offset.hasValue()) {
-    kernel_body.EmitInt4(debug_info_offset.getValue());
+    kernel_body.Emit<uint32_t>(debug_info_offset.getValue());
   }
 
   assert(kernel_list->size() % kKernelEntryAlignment == 0);

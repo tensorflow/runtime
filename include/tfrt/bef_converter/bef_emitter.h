@@ -23,6 +23,7 @@
 #include "llvm/Support/Alignment.h"
 #include "llvm/Support/MathExtras.h"
 #include "tfrt/bef/bef_buffer.h"
+#include "tfrt/support/byte_order.h"
 
 namespace tfrt {
 
@@ -39,8 +40,6 @@ class BefEmitter {
 
   void EmitByte(uint8_t byte) { result_.push_back(byte); }
   void EmitDummyByte() { result_.push_back(kDummyByte); }
-  void EmitRepeatedByte(uint8_t byte, int repeats);
-  void EmitRepeatedDummyByte(int repeats);
   void EmitBytes(llvm::ArrayRef<uint8_t> bytes);
 
   void OverwriteBytes(size_t offset, const void* data, size_t size);
@@ -54,20 +53,17 @@ class BefEmitter {
   // is used to keep track of the maximum alignment constraint.
   void EmitAlignment(unsigned alignment, unsigned count);
 
-  // Emit a guaranteed 2-byte integer aligned to 2 bytes, allowing this to be
-  // directly mapped into the target process in little-endian form.
-  void EmitInt2(uint16_t value);
-
-  // Emit a guaranteed 4-byte integer aligned to 4 bytes, allowing this to be
-  // directly mapped into the target process in little-endian form.
-  void EmitInt4(uint32_t value);
-
-  // Emit a guaranteed 8-byte integer aligned to 8 bytes, allowing this to be
-  // directly mapped into the target process in little-endian form.
-  void EmitInt8(uint64_t value);
-
   // Emit a vbr encoded integer of arbitrary width.
   void EmitVbrInt(size_t value) { EmitVbrIntImpl(value, false); }
+
+  // Emit a generic typed value: e.g., Emit<uint32_t>(val).
+  template <typename T>
+  void Emit(T value) {
+    ASSERT_LITTLE_ENDIAN();
+    EmitAlignment(alignof(T));
+    EmitBytes(
+        llvm::makeArrayRef(reinterpret_cast<uint8_t*>(&value), sizeof(T)));
+  }
 
   // Many parts of the emitter logic includes forward references into stuff
   // that hasn't been emitted and has variable size.  This is handled by making

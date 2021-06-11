@@ -385,14 +385,14 @@ size_t BefAttrEmitter::EmitDenseAttribute(BEFAttributeType attribute_type,
                                           mlir::DenseElementsAttr attr) {
   const auto shaped_type = attr.getType();
   assert(shaped_type.hasRank());
-  const DType::Kind element_type =
+  const auto element_type =
       ConvertMlirTypeToDType(shaped_type.getElementType());
 
   const size_t element_count = shaped_type.getNumElements();
 
   const size_t offset =
       EncodeDenseAttrHeader(element_type, shaped_type.getShape(),
-                            GetDTypeByteSize(element_type) * element_count);
+                            DType(element_type).GetHostSize() * element_count);
 
   if (element_type == DType::I1) {
     for (bool bool_attr : attr.getBoolValues()) {

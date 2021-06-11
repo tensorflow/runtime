@@ -106,8 +106,6 @@ struct TypeForDTypeKindInternal {};
 template <DType::Kind K>
 using TypeForDTypeKind = typename TypeForDTypeKindInternal<K>::Type;
 
-size_t GetDTypeByteSize(DType::Kind dtype);
-
 // TFRT_REGISTER_DTYPE is a macro to register a non-trivial C++ type to a DType.
 #define TFRT_REGISTER_DTYPE(CPP_TYPE, ENUM)     \
   template <>                                   \

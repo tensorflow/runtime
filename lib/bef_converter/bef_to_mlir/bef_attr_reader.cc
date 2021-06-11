@@ -222,7 +222,7 @@ mlir::Attribute BefAttrReader::ReadDenseAttribute(size_t offset) {
 
   const size_t element_count = attr.GetNumElements();
   const auto element_type = attr.dtype();
-  const auto element_size = GetDTypeByteSize(element_type);
+  const auto element_size = DType(element_type).GetHostSize();
   auto type = mlir::RankedTensorType::get(
       attr.shape(), DecodeTypeAttribute(&builder_, element_type));
 

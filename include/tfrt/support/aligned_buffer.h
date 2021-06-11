@@ -36,6 +36,13 @@ struct AlignedAllocator {
 
   using value_type = T;
 
+  constexpr AlignedAllocator() noexcept = default;
+
+  constexpr AlignedAllocator(const AlignedAllocator&) noexcept = default;
+
+  template <class Other>
+  constexpr AlignedAllocator(const AlignedAllocator<Other>&) noexcept {}
+
   T* allocate(size_t n) {
     auto* ptr = AlignedAlloc(Align, n * sizeof(T));
     return static_cast<T*>(ptr);

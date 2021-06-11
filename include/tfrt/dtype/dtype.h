@@ -96,8 +96,11 @@ raw_ostream &operator<<(raw_ostream &os, DType dtype);
 // it can only return a storage-only type.
 
 // Provide a way to get the DType for a specified C++ type at compile time.
+//
+// Explicitly delete the primary template, so an invalid type T will result in a
+// compiler error instead of link error.
 template <typename T>
-constexpr DType GetDType();
+constexpr DType GetDType() = delete;
 
 // Provide a way to get the C++ type for a specified DType Kind at compile
 // time.

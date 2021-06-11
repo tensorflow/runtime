@@ -33,7 +33,8 @@ namespace tfrt {
 class ExecutionContext;
 
 // This is a simple representation of a decoded diagnostic.
-struct DecodedDiagnostic {
+class DecodedDiagnostic {
+ public:
   // TODO(b/169618466): carry error code in llvm::Error.
   explicit DecodedDiagnostic(const Error& error);
   explicit DecodedDiagnostic(string_view message) : message(message) {}

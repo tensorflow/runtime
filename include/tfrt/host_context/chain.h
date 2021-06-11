@@ -31,7 +31,7 @@
 
 namespace tfrt {
 
-struct Chain {};
+class Chain {};
 
 class ReadyChain {
  public:

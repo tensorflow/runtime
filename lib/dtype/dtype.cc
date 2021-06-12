@@ -38,8 +38,7 @@ const char *DType::GetName() const {
     case UI64:
       return "u64";
     case I1:
-      // TODO(b/170482990): unify I1 and BOOL, use tfrt::i1 directly.
-      return "bool";
+      return "i1";
     case I8:
       return "i8";
     case I16:

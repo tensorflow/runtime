@@ -25,7 +25,6 @@
 
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
-#include "tfrt/dtype/i1.h"
 #include "tfrt/dtype/quantized_types.h"
 #include "tfrt/support/bf16.h"
 #include "tfrt/support/forward_decls.h"
@@ -43,8 +42,6 @@ class DType {
     LastDType,
     // Valid types that are not natively supported by TFRT.
     Unsupported = LastDType,
-    // TODO(b/170482990): Unify BOOL and I1.
-    BOOL = I1,
   };
 
   explicit DType() : kind_(Invalid) {}
@@ -128,9 +125,7 @@ TFRT_DEFINE_DTYPE_INTERNAL(UI8, uint8_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI16, uint16_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI32, uint32_t)
 TFRT_DEFINE_DTYPE_INTERNAL(UI64, uint64_t)
-// TODO(b/170482990): Unify I1 and BOOL, and use tfrt::i1 as the cpp type.
 TFRT_DEFINE_DTYPE_INTERNAL(I1, bool)
-// TFRT_DEFINE_DTYPE_INTERNAL(BOOL, bool)
 TFRT_DEFINE_DTYPE_INTERNAL(I8, int8_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I16, int16_t)
 TFRT_DEFINE_DTYPE_INTERNAL(I32, int32_t)

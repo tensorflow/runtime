@@ -15,7 +15,7 @@
 // RUN: tfrt_opt -split-input-file -verify-diagnostics %s
 
 func @invalid_cost(%arg : i32) -> i32 {
-  // expected-error @+1 {{requires the cost attribute larger than 0}}
+  // expected-error @+1 {{op cost value must be larger than 0}}
   %r = tfrt_test.test_cost %arg {id = 0 : i64, _tfrt_cost = 0 : i64} : i32
   tfrt.return %r: i32
 }

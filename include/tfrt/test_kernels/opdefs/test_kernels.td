@@ -19,6 +19,8 @@
 #define TEST_OPS
 
 include "tfrt/tfrt_op_base.td"
+include "tfrt/compiler/opdefs/tfrt_op_interfaces.td"
+include "tfrt/compiler/opdefs/tfrt_traits.td"
 include "tfrt/core_runtime/opdefs/corert_traits.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
@@ -287,7 +289,9 @@ def GetStringSyncOp : Test_Op<"get_string_sync"> {
   let verifier = ?;
 }
 
-def TestCostOp : Test_Op<"test_cost", [TFRT_CostTrait, CoreRT_TypedAttributeTrait]> {
+def TestCostOp : Test_Op<"test_cost", [TFRT_CostFunctionInterface,
+                                       TFRT_AttrCostTrait,
+                                       CoreRT_TypedAttributeTrait]> {
   let summary = "tfrt_test.test_cost";
 
   let arguments = (ins

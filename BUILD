@@ -642,12 +642,10 @@ tfrt_cc_library(
     srcs = [
         "lib/basic_kernels/opdefs/basic_kernels.cc",
         "lib/basic_kernels/opdefs/tfrt_base.cc",
-        "lib/basic_kernels/opdefs/tfrt_traits.cc",
     ],
     hdrs = [
         "include/tfrt/basic_kernels/opdefs/basic_kernels.h",
         "include/tfrt/basic_kernels/opdefs/tfrt_base.h",
-        "include/tfrt/basic_kernels/opdefs/tfrt_traits.h",
         "include/tfrt/basic_kernels/opdefs/types.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
@@ -1079,6 +1077,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/test_kernels/opdefs/test_kernels.td",
     td_srcs = [
         ":OpBaseTdFiles",
+        ":compiler_td_files",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
         "@llvm-project//mlir:SideEffectTdFiles",
     ],
@@ -1096,6 +1095,8 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
+        ":compiler_tfrt_op_interfaces",
+        ":compiler_tfrt_traits",
         ":core_runtime_opdefs",
         ":tensor_opdefs",
         ":test_kernels_opdefs_inc_gen",
@@ -1422,6 +1423,77 @@ tfrt_cc_library(
     ],
 )
 
+filegroup(
+    name = "compiler_td_files",
+    srcs = [
+        "include/tfrt/compiler/opdefs/tfrt_op_interfaces.td",
+        "include/tfrt/compiler/opdefs/tfrt_traits.td",
+        "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+)
+
+gentbl_cc_library(
+    name = "compiler_tfrt_op_interfaces_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            ["-gen-op-interface-decls"],
+            "include/tfrt/compiler/opdefs/tfrt_op_interfaces.h.inc",
+        ),
+        (
+            ["-gen-op-interface-defs"],
+            "include/tfrt/compiler/opdefs/tfrt_op_interfaces.cc.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/compiler/opdefs/tfrt_op_interfaces.td",
+    td_srcs = [":compiler_td_files"],
+)
+
+tfrt_cc_library(
+    name = "compiler_tfrt_op_interfaces",
+    srcs = [
+        "include/tfrt/compiler/opdefs/tfrt_op_interfaces.cc.inc",
+        "include/tfrt/compiler/opdefs/tfrt_op_interfaces.h.inc",
+        "lib/compiler/opdefs/tfrt_op_interfaces.cc",
+    ],
+    hdrs = ["include/tfrt/compiler/opdefs/tfrt_op_interfaces.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+    deps = [
+        ":compiler_tfrt_op_interfaces_inc_gen",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+gentbl_cc_library(
+    name = "compiler_tfrt_traits_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            ["-gen-op-decls"],
+            "include/tfrt/compiler/opdefs/tf_traits.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/compiler/opdefs/tfrt_traits.td",
+    td_srcs = [":compiler_td_files"],
+)
+
+tfrt_cc_library(
+    name = "compiler_tfrt_traits",
+    srcs = ["lib/compiler/opdefs/tfrt_traits.cc"],
+    hdrs = ["include/tfrt/compiler/opdefs/tfrt_traits.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+    deps = [
+        ":compiler_tfrt_traits_inc_gen",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
 tfrt_cc_library(
     name = "compiler_pass",
     srcs = [
@@ -1446,6 +1518,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
+        ":compiler_tfrt_op_interfaces",
         "@llvm-project//mlir:IR",
     ],
 )

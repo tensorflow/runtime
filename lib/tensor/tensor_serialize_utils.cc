@@ -72,11 +72,14 @@ DenseView CreateDenseView(const DenseAttr& attr) {
 
 // Write value to location in little endian manner.
 char* WriteUint64(uint64_t value, char* location) {
-  uint8_t data[] = {
-      uint8_t(value & 0xFF),         uint8_t((value >> 8) & 0xFF),
-      uint8_t((value >> 16) & 0xFF), uint8_t((value >> 24) & 0xFF),
-      uint8_t((value >> 32) & 0xFF), uint8_t((value >> 40) & 0xFF),
-      uint8_t((value >> 48) & 0xFF), uint8_t((value >> 56) & 0xFF)};
+  uint8_t data[] = {static_cast<uint8_t>(value & 0xFF),
+                    static_cast<uint8_t>((value >> 8) & 0xFF),
+                    static_cast<uint8_t>((value >> 16) & 0xFF),
+                    static_cast<uint8_t>((value >> 24) & 0xFF),
+                    static_cast<uint8_t>((value >> 32) & 0xFF),
+                    static_cast<uint8_t>((value >> 40) & 0xFF),
+                    static_cast<uint8_t>((value >> 48) & 0xFF),
+                    static_cast<uint8_t>((value >> 56) & 0xFF)};
   memcpy(location, data, sizeof(uint64_t));
   return location + sizeof(uint64_t);
 }

@@ -210,6 +210,21 @@ tfrt_cc_test(
     deps = [
         ":common",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_test(
+    name = "tensor/tensor_serialize_utils_test",
+    srcs = [
+        "tensor/tensor_serialize_utils_test.cc",
+    ],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:bef_attr_encoder",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:tensor",
     ],

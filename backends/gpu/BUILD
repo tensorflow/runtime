@@ -796,6 +796,10 @@ tfrt_cc_library(
     deps = [
         ":gpu_opdefs",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Async",
+        "@llvm-project//mlir:AsyncToLLVM",
+        "@llvm-project//mlir:AsyncTransforms",
+        "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:Rewrite",

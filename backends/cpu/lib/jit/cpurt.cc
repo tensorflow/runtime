@@ -1216,7 +1216,7 @@ Expected<const Executable*> JitExecutable::GetExecutable(
 AsyncValueRef<JitExecutable> JitExecutableCache::Find(intptr_t key) const {
   tfrt::mutex_lock lock(mu_);
   auto it = cache_.find(key);
-  if (it != cache_.end()) return it->second.CopyRef();
+  if (it != cache_.end()) return JitExecutableCache::MakeRef(it->getSecond());
   return AsyncValueRef<JitExecutable>();
 }
 
@@ -1224,12 +1224,11 @@ AsyncValueRef<JitExecutable> JitExecutableCache::Insert(
     intptr_t key, JitExecutable jit_executable) {
   tfrt::mutex_lock lock(mu_);
   auto it = cache_.find(key);
-  if (it != cache_.end()) return it->second.CopyRef();
+  if (it != cache_.end()) return JitExecutableCache::MakeRef(it->getSecond());
 
-  auto emplaced =
-      cache_.try_emplace(key, MakeAvailableAsyncValueRef<JitExecutable>(
-                                  host_, std::move(jit_executable)));
-  return emplaced.first->getSecond().CopyRef();
+  auto emplaced = cache_.try_emplace(
+      key, std::make_unique<CachedExecutable>(std::move(jit_executable)));
+  return JitExecutableCache::MakeRef(emplaced.first->getSecond());
 }
 
 }  // namespace jit

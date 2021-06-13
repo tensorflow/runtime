@@ -772,15 +772,25 @@ class JitExecutable {
 
 class JitExecutableCache {
  public:
-  explicit JitExecutableCache(HostContext* host) : host_(host) {}
+  JitExecutableCache() = default;
   AsyncValueRef<JitExecutable> Find(intptr_t key) const;
   AsyncValueRef<JitExecutable> Insert(intptr_t key,
                                       JitExecutable jit_executable);
 
  private:
-  HostContext* host_;
+  // Lifetime of the cached JitExecutables is managed by the cache, this means
+  // that the instance of the cache must outlive all pending computation, which
+  // is guaranteed by the fact that the cache is stored in the resource context.
+  using CachedExecutable = UnRefCountedAsyncValue<JitExecutable>;
+
+  static AsyncValueRef<JitExecutable> MakeRef(
+      const std::unique_ptr<CachedExecutable>& exec) {
+    return AsyncValueRef<JitExecutable>(TakeRef(exec.get()));
+  }
+
   mutable tfrt::mutex mu_;
-  llvm::DenseMap<intptr_t, AsyncValueRef<JitExecutable>> cache_
+
+  llvm::DenseMap<intptr_t, std::unique_ptr<CachedExecutable>> cache_
       TFRT_GUARDED_BY(mu_);
 };
 

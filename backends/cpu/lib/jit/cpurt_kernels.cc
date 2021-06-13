@@ -61,7 +61,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
   ResourceContext* res_ctx = exec_ctx.resource_context();
   auto* jit_executable_cache =
-      res_ctx->GetOrCreateResource<JitExecutableCache>("cpurt.cache", host);
+      res_ctx->GetOrCreateResource<JitExecutableCache>("cpurt.cache");
 
   // TODO(ezhulenev): Compute cache key based on the content of MLIR module, or
   // better keep module fingerprint in the BEF file.

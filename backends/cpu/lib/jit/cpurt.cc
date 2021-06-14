@@ -212,24 +212,30 @@ static Error VerifyDType(mlir::Type input_type, DType operand_type) {
   return MakeStringError("unexpected input type: ", input_type);
 }
 
-static Error VerifyMemrefOperand(mlir::ShapedType type, MemrefDesc memref) {
+static Error VerifyMemrefOperand(mlir::ShapedType type,
+                                 const MemrefDesc& memref) {
   // Check that memref data type matches operand element type.
   if (auto err = VerifyDType(type.getElementType(), memref.dtype)) return err;
 
   // For unranked operands we only verify the element type.
   if (!type.hasRank()) return Error::success();
 
+  ArrayRef<int64_t> expected_shape = type.getShape();
+
   // Check that memref rank is the same as operand rank.
-  if (memref.sizes.size() != type.getRank())
+  if (memref.sizes.size() != expected_shape.size())
     return MakeStringError("operand rank does not match expected input rank: ",
-                           memref.sizes.size(), " vs ", type.getRank());
+                           memref.sizes.size(), " vs ", expected_shape.size());
 
   // Check that all statically known dimensions matches the memref dimensions.
-  for (unsigned d = 0; d < memref.sizes.size(); ++d) {
-    ssize_t operand_dim = memref.sizes[d];
-    ssize_t expected_dim = type.getDimSize(d);
-    if (operand_dim != expected_dim && !type.isDynamicDim(d))
-      return MakeStringError("operand dimension #", d,
+  for (auto pair : llvm::enumerate(llvm::zip(memref.sizes, expected_shape))) {
+    ssize_t operand_dim = std::get<0>(pair.value());
+    ssize_t expected_dim = std::get<1>(pair.value());
+
+    bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
+
+    if (operand_dim != expected_dim && !is_dynamic_dim)
+      return MakeStringError("operand dimension #", pair.index(),
                              " does not match expected input dimension: ",
                              operand_dim, " vs ", expected_dim);
   }
@@ -237,15 +243,17 @@ static Error VerifyMemrefOperand(mlir::ShapedType type, MemrefDesc memref) {
   return Error::success();
 }
 
-Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref) {
+Error VerifyMemrefOperand(mlir::MemRefType type, const MemrefDesc& memref) {
   return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
 }
 
-Error VerifyMemrefOperand(mlir::RankedTensorType type, MemrefDesc memref) {
+Error VerifyMemrefOperand(mlir::RankedTensorType type,
+                          const MemrefDesc& memref) {
   return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
 }
 
-Error VerifyMemrefOperand(mlir::UnrankedTensorType type, MemrefDesc memref) {
+Error VerifyMemrefOperand(mlir::UnrankedTensorType type,
+                          const MemrefDesc& memref) {
   return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
 }
 
@@ -257,7 +265,7 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
     memref.offset = 0;
     dht->shape().GetDimensions(&memref.sizes);
     dht->shape().GetStrides(&memref.strides);
-    return memref;
+    return {std::move(memref)};
   }
 
   return MakeStringError("unsupported tensor type: ", tensor.tensor_type());
@@ -296,6 +304,21 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
 // Executable CallFrame initialization.
 // -------------------------------------------------------------------------- //
 
+// Returns the number of call frame arguments required to pass the `memref` to
+// the compiled kernel.
+static size_t GetArgsCount(const MemrefDesc& memref) {
+  // Memref layout: 2 pointers + offset + rank * (size + stride)
+  return 3 + 2 * memref.sizes.size();
+}
+
+// Returns the number of call frame arguments required to pass all operands
+// to the compiled kernel.
+static size_t GetArgsCount(ArrayRef<MemrefDesc> operands) {
+  size_t n = 0;
+  for (const MemrefDesc& memref : operands) n += GetArgsCount(memref);
+  return n;
+}
+
 // Unpack `memref` argument into pointers to the data to be compatible with
 // compiled MLIR function ABI.
 static void AddMemrefArgument(const MemrefDesc& memref,
@@ -303,9 +326,7 @@ static void AddMemrefArgument(const MemrefDesc& memref,
   assert(memref.sizes.size() == memref.strides.size());
 
   size_t size = args->size();
-  size_t rank = memref.sizes.size();
-  // Memref layout: 2 pointers + offset + rank * (size + stride)
-  args->resize_for_overwrite(size + (3 + 2 * rank));
+  args->set_size(size + GetArgsCount(memref));
 
   auto* storage = &(*args)[size];
   auto add_arg = [&](const void* p) {
@@ -344,6 +365,7 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   }
 
   // Pack all Memref operands as pointers to the call frame arguments.
+  call_frame->args.reserve(GetArgsCount(operands));
   for (const MemrefDesc& desc : operands)
     AddMemrefArgument(desc, &call_frame->args);
 
@@ -1136,8 +1158,6 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
 // when it is not needed.
 Expected<const Executable*> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands) {
-  llvm::hash_code hash = HashOperands(operands, constraints_);
-
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.disable_specializations) {
     if (!HasDefaultExecutable())
@@ -1147,6 +1167,8 @@ Expected<const Executable*> JitExecutable::GetExecutable(
 
     return &*default_executable_;
   }
+
+  llvm::hash_code hash = HashOperands(operands, constraints_);
 
   // Convert ExecutableOrError to the function result.
   auto convert = [](ExecutableOrError& value) -> Expected<const Executable*> {

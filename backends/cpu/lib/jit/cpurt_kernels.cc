@@ -103,7 +103,7 @@ static Error ConvertTensorOperandsToMemrefDesc(
   for (unsigned i = 0; i < operands.size(); ++i) {
     Expected<MemrefDesc> memref = ConvertTensorToMemrefDesc(operands[i]);
     if (auto err = memref.takeError()) return err;
-    memrefs->push_back(*memref);
+    memrefs->push_back(std::move(*memref));
   }
 
   return Error::success();

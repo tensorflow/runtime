@@ -110,7 +110,7 @@ static Error ConvertTensorHandleOperandsToMemrefDesc(
     const Tensor& tensor = operands[i].GetAsyncTensor()->get<Tensor>();
     Expected<MemrefDesc> memref = ConvertTensorToMemrefDesc(tensor);
     if (auto err = memref.takeError()) return err;
-    memrefs->push_back(*memref);
+    memrefs->push_back(std::move(*memref));
   }
 
   return Error::success();

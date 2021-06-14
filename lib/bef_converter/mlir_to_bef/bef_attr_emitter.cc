@@ -374,7 +374,7 @@ size_t BefAttrEmitter::EmitArrayAttribute(BEFAttributeType attribute_type,
     return EncodeEmptyAttr();
   }
   auto offset = EncodeArrayAttrHeader(
-      element_count, GetAttributeDataTypeByteSize(attribute_type));
+      element_count, GetAttributeDataTypeAlignment(attribute_type));
   for (auto element : attr) {
     EmitAttribute(element);
   }

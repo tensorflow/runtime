@@ -22,6 +22,7 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
@@ -39,6 +40,7 @@ class DType {
     FirstDType = 1,
 #define DTYPE(ENUM, VALUE) ENUM = VALUE,
 #include "tfrt/dtype/dtype.def"
+#undef DTYPE
     LastDType,
     // Valid types that are not natively supported by TFRT.
     Unsupported = LastDType,
@@ -102,9 +104,23 @@ constexpr DType GetDType() = delete;
 // Provide a way to get the C++ type for a specified DType Kind at compile
 // time.
 template <DType::Kind K>
-struct TypeForDTypeKindInternal {};
+struct DTypeData;
 template <DType::Kind K>
-using TypeForDTypeKind = typename TypeForDTypeKindInternal<K>::Type;
+using TypeForDTypeKind = typename DTypeData<K>::Type;
+
+namespace detail {
+
+template <DType::Kind dtype>
+struct UnsupportedDataType {};
+
+template <typename T>
+struct IsDTypeTriviallyCopyable : std::is_trivially_copyable<T> {};
+
+template <DType::Kind dtype>
+struct IsDTypeTriviallyCopyable<UnsupportedDataType<dtype>> : std::false_type {
+};
+
+}  // namespace detail
 
 // TFRT_REGISTER_DTYPE is a macro to register a non-trivial C++ type to a DType.
 #define TFRT_REGISTER_DTYPE(CPP_TYPE, ENUM)     \
@@ -113,41 +129,84 @@ using TypeForDTypeKind = typename TypeForDTypeKindInternal<K>::Type;
     return DType{DType::ENUM};                  \
   }
 
-#define TFRT_DEFINE_DTYPE_INTERNAL(ENUM, CPP_TYPE) \
-  TFRT_REGISTER_DTYPE(CPP_TYPE, ENUM)              \
-  template <>                                      \
-  struct TypeForDTypeKindInternal<DType::ENUM> {   \
-    using Type = CPP_TYPE;                         \
+// TODO(jingdong): Remove kEnumName and use kName instead in the DTypeData
+// struct.
+#define TFRT_DEFINE_DTYPE_INTERNAL(ENUM, CPP_TYPE, NAME) \
+  TFRT_REGISTER_DTYPE(CPP_TYPE, ENUM)                    \
+  template <>                                            \
+  struct DTypeData<DType::ENUM> {                        \
+    static constexpr DType kDType{DType::ENUM};          \
+    using Type = CPP_TYPE;                               \
+    static constexpr const char *kName = NAME;           \
+    static constexpr const char *kEnumName = #ENUM;      \
+    static constexpr bool kIsTriviallyCopyable =         \
+        detail::IsDTypeTriviallyCopyable<CPP_TYPE>();    \
+    static constexpr size_t kByteSize =                  \
+        kIsTriviallyCopyable ? sizeof(CPP_TYPE) : -1;    \
+    static constexpr size_t kAlignment =                 \
+        kIsTriviallyCopyable ? alignof(CPP_TYPE) : -1;   \
   };
 
 // LINT.IfChange
-TFRT_DEFINE_DTYPE_INTERNAL(UI8, uint8_t)
-TFRT_DEFINE_DTYPE_INTERNAL(UI16, uint16_t)
-TFRT_DEFINE_DTYPE_INTERNAL(UI32, uint32_t)
-TFRT_DEFINE_DTYPE_INTERNAL(UI64, uint64_t)
-TFRT_DEFINE_DTYPE_INTERNAL(I1, bool)
-TFRT_DEFINE_DTYPE_INTERNAL(I8, int8_t)
-TFRT_DEFINE_DTYPE_INTERNAL(I16, int16_t)
-TFRT_DEFINE_DTYPE_INTERNAL(I32, int32_t)
-TFRT_DEFINE_DTYPE_INTERNAL(I64, int64_t)
-TFRT_DEFINE_DTYPE_INTERNAL(BF16, bf16)
-TFRT_DEFINE_DTYPE_INTERNAL(F16, fp16)
-TFRT_DEFINE_DTYPE_INTERNAL(F32, float)
-TFRT_DEFINE_DTYPE_INTERNAL(F64, double)
+TFRT_DEFINE_DTYPE_INTERNAL(UI8, uint8_t, "u8")
+TFRT_DEFINE_DTYPE_INTERNAL(UI16, uint16_t, "u16")
+TFRT_DEFINE_DTYPE_INTERNAL(UI32, uint32_t, "u32")
+TFRT_DEFINE_DTYPE_INTERNAL(UI64, uint64_t, "u64")
+TFRT_DEFINE_DTYPE_INTERNAL(I1, bool, "i1")
+TFRT_DEFINE_DTYPE_INTERNAL(I8, int8_t, "i8")
+TFRT_DEFINE_DTYPE_INTERNAL(I16, int16_t, "i16")
+TFRT_DEFINE_DTYPE_INTERNAL(I32, int32_t, "i32")
+TFRT_DEFINE_DTYPE_INTERNAL(I64, int64_t, "i64")
+TFRT_DEFINE_DTYPE_INTERNAL(BF16, bf16, "bf16")
+TFRT_DEFINE_DTYPE_INTERNAL(F16, fp16, "f16")
+TFRT_DEFINE_DTYPE_INTERNAL(F32, float, "f32")
+TFRT_DEFINE_DTYPE_INTERNAL(F64, double, "f64")
 // TODO(tfrt-devs): Consider creating a special CPP string type for TFRT.
-TFRT_DEFINE_DTYPE_INTERNAL(String, std::string)
-TFRT_DEFINE_DTYPE_INTERNAL(Complex64,
-                           std::complex<float>)  // Single precision complex.
-TFRT_DEFINE_DTYPE_INTERNAL(Complex128,
-                           std::complex<double>)  // Double precision complex.
-TFRT_DEFINE_DTYPE_INTERNAL(QUI8, quint8)
-TFRT_DEFINE_DTYPE_INTERNAL(QUI16, quint16)
-TFRT_DEFINE_DTYPE_INTERNAL(QI8, qint8)
-TFRT_DEFINE_DTYPE_INTERNAL(QI16, qint16)
-TFRT_DEFINE_DTYPE_INTERNAL(QI32, qint32)
+TFRT_DEFINE_DTYPE_INTERNAL(String, std::string, "str")
+TFRT_DEFINE_DTYPE_INTERNAL(Complex64, std::complex<float>,
+                           "complex64")  // Single precision complex.
+TFRT_DEFINE_DTYPE_INTERNAL(Complex128, std::complex<double>,
+                           "complex128")  // Double precision complex.
+TFRT_DEFINE_DTYPE_INTERNAL(QUI8, quint8, "qu8")
+TFRT_DEFINE_DTYPE_INTERNAL(QUI16, quint16, "qu16")
+TFRT_DEFINE_DTYPE_INTERNAL(QI8, qint8, "qi8")
+TFRT_DEFINE_DTYPE_INTERNAL(QI16, qint16, "qi16")
+TFRT_DEFINE_DTYPE_INTERNAL(QI32, qint32, "qi32")
+
+TFRT_DEFINE_DTYPE_INTERNAL(Resource,
+                           detail::UnsupportedDataType<DType::Resource>,
+                           "resource")
+TFRT_DEFINE_DTYPE_INTERNAL(Variant, detail::UnsupportedDataType<DType::Variant>,
+                           "variant")
+
 // LINT.ThenChange(//depot/tf_runtime/include/tfrt/dtype/dtype.def)
 
 #undef TFRT_DEFINE_DTYPE_INTERNAL
+
+// Dispatch to an overload of function f based on the given dtype.
+//
+// Example usage:
+//
+// // Prints the given data assuming it contains a value of the given dtype.
+// void Print(DType dtype, void* data) {
+//   dispatchByDType(dtype, [data](auto type_tag) {
+//     using T = typename decltype(type_tag)::type;
+//     llvm::outs() << *static_cast<const T*>(data);
+//   });
+// }
+template <typename F>
+decltype(auto) DispatchByDType(DType dtype, F &&f) {
+  switch (dtype.kind()) {
+#define DTYPE(ENUM, VALUE) \
+  case DType::ENUM:        \
+    return f(DTypeData<DType::ENUM>());
+#include "tfrt/dtype/dtype.def"
+#undef DTYPE
+    case DType::Invalid:
+    case DType::LastDType:
+      llvm_unreachable("Invalid dtype encountered in DispatchByDType");
+  }
+}
 
 }  // namespace tfrt
 

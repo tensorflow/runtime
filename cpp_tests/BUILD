@@ -84,6 +84,15 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "dtype/dtype_test",
+    srcs = ["dtype/dtype_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:dtype",
+    ],
+)
+
+tfrt_cc_test(
     name = "support/tensor_type_registration_test",
     srcs = ["support/tensor_type_registration_test.cc"],
     deps = [

@@ -23,6 +23,7 @@
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_utils.h"
+#include "tfrt/dtype/dtype_formatter.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
 #include "tfrt/gpu/device/conversion_function.h"
@@ -155,7 +156,8 @@ static void PrintDhtFullPrecision(const DenseHostTensor& dht) {
   for (ssize_t i = 0, e = std::min(kThreshold, dht.NumElements()); i != e;
        ++i) {
     if (i != 0) tfrt::outs() << ", ";
-    dht.dtype().PrintFullPrecision(data_ptr + i * element_size, tfrt::outs());
+    tfrt::outs() << FormatDType(dht.dtype(), data_ptr + i * element_size,
+                                /*full_precision=*/true);
   }
 
   if (dht.NumElements() > kThreshold) {

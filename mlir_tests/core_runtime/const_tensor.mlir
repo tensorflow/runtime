@@ -95,7 +95,7 @@ func @create_dense_tensor_bf16() {
 
   %a = corert.create_dense_tensor.bf16 {shape = [1], value = [2.5 : bf16]}
 
-  // CHECK: shape = [1], values = [Does not support printing bf16.]
+  // CHECK: DenseHostTensor dtype = BF16, shape = [1], values = [bf16(16416)]
   %ch1 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return

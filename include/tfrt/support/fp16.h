@@ -19,6 +19,7 @@
 #ifndef TFRT_SUPPORT_FP16_H_
 #define TFRT_SUPPORT_FP16_H_
 
+#include "llvm/Support/raw_ostream.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
@@ -31,6 +32,10 @@ struct fp16 {
   explicit fp16(uint16_t v) : value(v) {}
   uint16_t value;
 };
+
+inline raw_ostream &operator<<(raw_ostream &os, fp16 v) {
+  return os << "fp16(" << v.value << ')';
+}
 }  // namespace tfrt
 
 #endif  // TFRT_SUPPORT_FP16_H_

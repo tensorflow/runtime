@@ -18,6 +18,8 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "tfrt/dtype/dtype_formatter.h"
+#include "tfrt/support/string_util.h"
 
 namespace tfrt {
 namespace {
@@ -28,7 +30,7 @@ size_t GetHostAlignment(DType::Kind kind) {
   return DType(kind).GetHostAlignment();
 }
 
-TEST(DType, QueryTraits) {
+TEST(DType, Traits) {
   EXPECT_STREQ(GetName(DType::F16), "f16");
   EXPECT_STREQ(GetName(DType::Resource), "resource");
   EXPECT_STREQ(GetName(DType::Variant), "variant");
@@ -50,6 +52,31 @@ TEST(DType, QueryTraits) {
   EXPECT_EQ(GetHostAlignment(DType::String), -1);
   EXPECT_EQ(GetHostAlignment(DType::Resource), -1);
   EXPECT_EQ(GetHostAlignment(DType::Variant), -1);
+}
+
+TEST(DType, DTypeFormatter) {
+  auto as_str = [](auto v, bool full_precision = false) {
+    return StrCat(FormatDType(v, full_precision));
+  };
+
+  EXPECT_EQ(as_str(true), "1");
+  EXPECT_EQ(as_str(false), "0");
+  EXPECT_EQ(as_str(2), "2");
+  EXPECT_EQ(as_str(uint8_t(2)), "2");
+  EXPECT_EQ(as_str(int8_t(-2)), "-2");
+
+  EXPECT_EQ(as_str(float(3.1)), "3.100000e+00");
+  EXPECT_EQ(as_str(float(3.1), true), "3.0999999");
+  EXPECT_EQ(as_str(double(3.1)), "3.100000e+00");
+  EXPECT_EQ(as_str(double(3.1), true), "3.1000000000000001");
+
+  EXPECT_EQ(as_str(std::string("hello")), "hello");
+
+  EXPECT_EQ(as_str(fp16(3), true), "fp16(3)");
+  EXPECT_EQ(as_str(bf16(3), true), "bf16(3)");
+
+  EXPECT_EQ(as_str(std::complex<float>(3.1, 1)), "(3.100000e+00,1.000000e+00)");
+  EXPECT_EQ(as_str(std::complex<float>(3.1, 1), true), "(3.0999999,1)");
 }
 
 }  // namespace

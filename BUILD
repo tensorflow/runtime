@@ -185,6 +185,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/dtype/dtype.def",
         "include/tfrt/dtype/dtype.h",
+        "include/tfrt/dtype/dtype_formatter.h",
         "include/tfrt/dtype/quantized_types.h",
         "include/tfrt/support/bf16.h",
         "include/tfrt/support/forward_decls.h",

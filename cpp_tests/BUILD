@@ -89,6 +89,7 @@ tfrt_cc_test(
     deps = [
         "@com_google_googletest//:gtest_main",
         "@tf_runtime//:dtype",
+        "@tf_runtime//:support",
     ],
 )
 

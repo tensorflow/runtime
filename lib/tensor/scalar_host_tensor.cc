@@ -17,6 +17,7 @@
 #include "tfrt/tensor/scalar_host_tensor.h"
 
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/dtype/dtype_formatter.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
@@ -48,8 +49,7 @@ static AsyncValueRef<AnyScalarHostTensor> CopyScalar(
 
 void AnyScalarHostTensor::Print(raw_ostream& os) const {
   os << "ScalarHostTensor dtype = " << dtype() << ", shape = " << shape()
-     << ", value = ";
-  dtype().Print(data(), os);
+     << ", value = " << FormatDType(dtype(), data());
 }
 static AsyncValueRef<AnyScalarHostTensor>
 ConvertScalarHostTensorToScalarHostTensor(const AnyScalarHostTensor& tensor,

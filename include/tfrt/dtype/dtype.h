@@ -24,7 +24,6 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "llvm/Support/Format.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/dtype/quantized_types.h"
 #include "tfrt/support/bf16.h"
@@ -65,15 +64,6 @@ class DType {
   // Get the name for the dtype, e.g. i32, f32.
   const char *GetName() const;
 
-  // Print out a blob of memory as this dtype.
-  void Print(const void *data, raw_ostream &os) const;
-
-  // Print out a blob of memory as this dtype with full precision.
-  // Full precision is defined by std::numeric_limits<T>::max_digits10.
-  // These many digits are enough to make sure number->text->number is
-  // guaranteed to get the same number back.
-  void PrintFullPrecision(const void *data, raw_ostream &os) const;
-
   // Return the size of one value of this dtype when represented on the host.
   size_t GetHostSize() const;
 
@@ -111,7 +101,11 @@ using TypeForDTypeKind = typename DTypeData<K>::Type;
 namespace detail {
 
 template <DType::Kind dtype>
-struct UnsupportedDataType {};
+struct UnsupportedDataType {
+  friend raw_ostream &operator<<(raw_ostream &os, UnsupportedDataType data) {
+    return os << "UnsupportedDataType<" << DType(dtype) << '>';
+  }
+};
 
 template <typename T>
 struct IsDTypeTriviallyCopyable : std::is_trivially_copyable<T> {};

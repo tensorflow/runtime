@@ -35,9 +35,11 @@ struct QuantizedInteger {
   UnderlyingT value;
 };
 
+// Print QuantizedInteger in format as type(value), e.g. qu8(2).
 template <typename UnderlyingT>
 raw_ostream& operator<<(raw_ostream& os, QuantizedInteger<UnderlyingT> in) {
-  return os << +in.value;
+  return os << 'q' << (std::is_signed<UnderlyingT>() ? 'i' : 'u')
+            << (sizeof(UnderlyingT) * 8) << '(' << +in.value << ')';
 }
 
 using quint8 = QuantizedInteger<uint8_t>;

@@ -77,6 +77,12 @@ TEST(DType, DTypeFormatter) {
 
   EXPECT_EQ(as_str(std::complex<float>(3.1, 1)), "(3.100000e+00,1.000000e+00)");
   EXPECT_EQ(as_str(std::complex<float>(3.1, 1), true), "(3.0999999,1)");
+
+  EXPECT_EQ(as_str(quint8(3)), "qu8(3)");
+  EXPECT_EQ(as_str(qint8(3)), "qi8(3)");
+
+  EXPECT_EQ(as_str(quint16(3)), "qu16(3)");
+  EXPECT_EQ(as_str(qint16(3)), "qi16(3)");
 }
 
 }  // namespace

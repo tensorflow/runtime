@@ -38,7 +38,7 @@ func @test_logger() -> !tfrt.chain {
   // CHECK: [1] dispatch 'tfrt_test.odd_collector' 1 argument, 1 result, no attributes
   %b_handle = corert.executeop(%log) "tfrt_test.odd_collector"(%a_handle) : 1
 
-  // CHECK: DenseHostTensor dtype = I32, shape = [3], values = [1, 3, 5]
+  // CHECK: DenseHostTensor dtype = i32, shape = [3], values = [1, 3, 5]
   %ch3 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch3 : !tfrt.chain

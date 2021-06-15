@@ -33,7 +33,7 @@ func @tanh_f32() -> !tfrt.chain {
   %gpu_handle_result = corert.executeop(%gpu) "tf.Tanh"(%gpu_handle_input) : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 5], values = [-0.7615{{[0-9]*}}, -0.4621{{[0-9]*}}, 0, 0.4621{{[0-9]*}}, 0.7615{{[0-9]*}}]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 5], values = [-0.7615{{[0-9]*}}, -0.4621{{[0-9]*}}, 0, 0.4621{{[0-9]*}}, 0.7615{{[0-9]*}}]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

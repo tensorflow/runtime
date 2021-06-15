@@ -31,7 +31,7 @@ func @mul_dense_dense_f32() attributes {tfrt.sync} {
   %result = tfrt_dht_sync.create_uninitialized_tensor.f32.1 [2: i64, 3: i64]
   "tf_sync.Mul.f32"(%operand_0, %operand_1, %result) : (!t.tensor, !t.tensor, !t.tensor)->()
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 3]
   // CHECK-SAME: values = [-0.000000e+00, -5.000000e-01, 0.000000e+00, 1.500000e+00, 4.000000e+00, 7.500000e+00]
   tfrt_dht_sync.print_tensor %result
 

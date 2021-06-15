@@ -81,9 +81,9 @@ func @create_dense_tensor() {
   %a = corert.create_dense_tensor.ui64 {shape = [1], value = [2 : ui64]}
   %b = corert.create_dense_tensor.i1 {shape = [1], value = [false]}
 
-  // CHECK: dtype = UI64, shape = [1], values = [2]
+  // CHECK: dtype = u64, shape = [1], values = [2]
   %ch1 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
-  // CHECK: dtype = I1, shape = [1], values = [0]
+  // CHECK: dtype = i1, shape = [1], values = [0]
   %ch2 = "corert.print_tensorhandle"(%b, %ch1) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return
@@ -95,7 +95,7 @@ func @create_dense_tensor_bf16() {
 
   %a = corert.create_dense_tensor.bf16 {shape = [1], value = [2.5 : bf16]}
 
-  // CHECK: DenseHostTensor dtype = BF16, shape = [1], values = [bf16(16416)]
+  // CHECK: DenseHostTensor dtype = bf16, shape = [1], values = [bf16(16416)]
   %ch1 = "corert.print_tensorhandle"(%a, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return

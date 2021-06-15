@@ -33,7 +33,7 @@ func @bias_add_f32() -> !tfrt.chain {
     "tfrt_test.create_dense_tensor"() { shape = [3], values = [-5.0 : f32, -4.0 : f32, -3.0 : f32] } : 1
   %gpu_handle_result = corert.executeop(%gpu) "tf.BiasAdd"(%operand_0, %operand_1) : 1
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3], values = [-4, -2, 0, -1, 1, 3]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 3], values = [-4, -2, 0, -1, 1, 3]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain
@@ -52,7 +52,7 @@ func @bias_add_with_attrs() -> !tfrt.chain {
   %bias_add_th = corert.executeop(%gpu) "tf.BiasAdd"(%bias_th1, %bias_th2)
     { data_format = "NHWC"} : 1
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%bias_add_th) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2], values = [2, 2, 2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2], values = [2, 2, 2, 2]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

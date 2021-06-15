@@ -30,7 +30,7 @@ func @test_softmax_f32() attributes {tfrt.sync} {
   %result = tfrt_dht_sync.create_uninitialized_tensor.f32.1 [2: i64, 2: i64]
   "tf_sync.Softmax.f32"(%operand_0, %result) : (!t.tensor, !t.tensor)->()
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: [2.689414e-01, 7.310586e-01, 2.689414e-01, 7.310586e-01]
   tfrt_dht_sync.print_tensor %result
 
@@ -46,7 +46,7 @@ func @test_log_softmax_f32() attributes {tfrt.sync} {
   %result = tfrt_dht_sync.create_uninitialized_tensor.f32.1 [2: i64, 2: i64]
   "tf_sync.LogSoftmax.f32"(%operand_0, %result) : (!t.tensor, !t.tensor)->()
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: [-1.313262e+00, -3.132617e-01, -1.313262e+00, -3.132617e-01]
   tfrt_dht_sync.print_tensor %result
 

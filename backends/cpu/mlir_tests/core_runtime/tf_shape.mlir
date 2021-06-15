@@ -31,7 +31,7 @@ func @shape_i32() -> !tfrt.chain{
 
   %cpu_handle_result = corert.executeop(%cpu) "tf.Shape"(%operand_0) { out_type = i32 } : 1
 
-  // CHECK: DenseHostTensor dtype = I32, shape = [2]
+  // CHECK: DenseHostTensor dtype = i32, shape = [2]
   // CHECK-SAME: values = [2, 3]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
@@ -48,7 +48,7 @@ func @shape_i64() -> !tfrt.chain{
 
   %cpu_handle_result = corert.executeop(%cpu) "tf.Shape"(%operand_0) { out_type = i64 } : 1
 
-  // CHECK: DenseHostTensor dtype = I64, shape = [2]
+  // CHECK: DenseHostTensor dtype = i64, shape = [2]
   // CHECK-SAME: values = [2, 3]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
@@ -64,7 +64,7 @@ func @shape_string_input() -> !tfrt.chain{
 
   %cpu_handle_result = corert.executeop(%cpu) "tf.Shape"(%operand_0) { out_type = i32 } : 1
 
-  // CHECK: DenseHostTensor dtype = I32, shape = [0]
+  // CHECK: DenseHostTensor dtype = i32, shape = [0]
   // CHECK-SAME: values = []
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 

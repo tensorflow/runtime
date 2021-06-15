@@ -33,7 +33,7 @@ func @mean() -> !tfrt.chain {
   %output = corert.executeop(%cpu) "tf.Mean"(%input_1, %input_2)
     { T = f32, Tidx = i32 } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1], values = [2.500000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1], values = [2.500000e+00]
   %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
   tfrt.return %ch_2 : !tfrt.chain
 }
@@ -48,7 +48,7 @@ func @mean_keep_dims() -> !tfrt.chain {
   %output = corert.executeop(%cpu) "tf.Mean"(%input_1, %input_2)
     { T = f32, Tidx = i32, keep_dims = true } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 1, 1], values = [2.500000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 1, 1], values = [2.500000e+00]
   %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
   tfrt.return %ch_2 : !tfrt.chain
 }
@@ -65,7 +65,7 @@ func @mean_i32() -> !tfrt.chain {
   %output = corert.executeop(%cpu) "tf.Mean"(%input_1, %input_2)
     { T = i32, Tidx = i32 } : 1
 
-  // CHECK: DenseHostTensor dtype = I32, shape = [1, 1], values = [2]
+  // CHECK: DenseHostTensor dtype = i32, shape = [1, 1], values = [2]
   %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
   tfrt.return %ch_2 : !tfrt.chain
 }

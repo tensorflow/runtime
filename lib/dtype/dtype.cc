@@ -39,8 +39,7 @@ size_t DType::GetHostAlignment() const {
 
 // Support printing of dtype enums.
 raw_ostream &operator<<(raw_ostream &os, DType dtype) {
-  return os << DispatchByDType(
-             dtype, [](auto dtype_data) { return dtype_data.kEnumName; });
+  return os << dtype.GetName();
 }
 
 }  // namespace tfrt

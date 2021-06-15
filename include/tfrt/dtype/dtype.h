@@ -123,8 +123,6 @@ struct IsDTypeTriviallyCopyable<UnsupportedDataType<dtype>> : std::false_type {
     return DType{DType::ENUM};                  \
   }
 
-// TODO(jingdong): Remove kEnumName and use kName instead in the DTypeData
-// struct.
 #define TFRT_DEFINE_DTYPE(ENUM, CPP_TYPE, NAME)        \
   TFRT_REGISTER_DTYPE(CPP_TYPE, ENUM)                  \
   template <>                                          \
@@ -132,7 +130,6 @@ struct IsDTypeTriviallyCopyable<UnsupportedDataType<dtype>> : std::false_type {
     static constexpr DType kDType{DType::ENUM};        \
     using Type = CPP_TYPE;                             \
     static constexpr const char *kName = NAME;         \
-    static constexpr const char *kEnumName = #ENUM;    \
     static constexpr bool kIsTriviallyCopyable =       \
         detail::IsDTypeTriviallyCopyable<CPP_TYPE>();  \
     static constexpr size_t kByteSize =                \

@@ -35,7 +35,7 @@ func @fusedMatMul_bias_f32() attributes {tfrt.sync} {
       { fused_ops = ["BiasAdd"], transpose_a = false, transpose_b = false }
       : (!t.tensor, !t.tensor, !t.tensor, !t.tensor)->()
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [0.000000e+00, -5.000000e-01, 9.000000e+00, 1.300000e+01]
   tfrt_dht_sync.print_tensor %result
 
@@ -56,7 +56,7 @@ func @fusedMatMul_bias_relu_f32() attributes {tfrt.sync} {
       { fused_ops = ["BiasAdd", "Relu"], transpose_a = false, transpose_b = false }
       : (!t.tensor, !t.tensor, !t.tensor, !t.tensor)->()
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [0.000000e+00, 0.000000e+00, 9.000000e+00, 1.300000e+01]
   tfrt_dht_sync.print_tensor %result
 

@@ -34,7 +34,7 @@ func @tile_f32() -> !tfrt.chain{
 
   %cpu_handle_result = corert.executeop(%cpu) "tf.Tile"(%operand_0, %operand_1) : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 6]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 6]
   // CHECK-SAME: values = [1.000000e+00, 2.000000e+00, 3.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
@@ -71,7 +71,7 @@ func @tile_i1() -> !tfrt.chain{
 
   %cpu_handle_result = corert.executeop(%cpu) "tf.Tile"(%operand_0, %operand_1) : 1
 
-  // CHECK: DenseHostTensor dtype = I1, shape = [4, 6]
+  // CHECK: DenseHostTensor dtype = i1, shape = [4, 6]
   // CHECK-SAME: values = [1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 0, 1, 0]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 

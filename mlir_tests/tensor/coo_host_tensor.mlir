@@ -23,14 +23,14 @@ func @basic_tensor() {
   %c1 = tfrt_dht.fill_tensor_with_constant.i32 %a, %c0 4 : i32
   %s1, %c2 = coo.convert_dht_to_coo.i32.2 %a, %c1
 
-  // CHECK: dtype = I32, shape = [3, 2], indices = [0, 0, 0, 1, 0, 2, 1, 0, 1, 1, 1, 2], values = [4, 4, 4, 4, 4, 4]
+  // CHECK: dtype = i32, shape = [3, 2], indices = [0, 0, 0, 1, 0, 2, 1, 0, 1, 1, 1, 2], values = [4, 4, 4, 4, 4, 4]
   %c3 = tfrt_dht.print_tensor %s1, %c2
 
   %z = tfrt_dht.create_uninitialized_tensor.i32.2 [2 : i64, 3 : i64]
   %c4 = tfrt_dht.fill_tensor_with_constant.i32 %z, %c3 0 : i32
   %s2, %c5 = coo.convert_dht_to_coo.i32.2 %z, %c4
 
-  // CHECK: CooHostTensor dtype = I32, shape = [2, 3], indices = [], values = []
+  // CHECK: CooHostTensor dtype = i32, shape = [2, 3], indices = [], values = []
   %c6 = tfrt_dht.print_tensor %s2, %c5
 
   tfrt.return
@@ -93,7 +93,7 @@ func @basic_f32_tensor() {
   %c1 = tfrt_dht.fill_tensor_with_constant.f32 %a, %c0 1.0 : f32
   %s1, %c2 = coo.convert_dht_to_coo.f32.2 %a, %c1
 
-  // CHECK: CooHostTensor dtype = F32, shape = [2, 2], indices = [0, 0, 0, 1, 1, 0, 1, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
+  // CHECK: CooHostTensor dtype = f32, shape = [2, 2], indices = [0, 0, 0, 1, 1, 0, 1, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %c3 = tfrt_dht.print_tensor %s1, %c2
 
   tfrt.return

@@ -33,7 +33,7 @@ func @maxpool_f32() -> !tfrt.chain {
   %gpu_handle_result = corert.executeop(%gpu) "tf.MaxPool"(%gpu_handle_input) {ksize = [1, 1, 3, 3], padding = "VALID", strides = [1, 1, 2, 2], data_format="NCHW"} : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 1, 1], values = [8]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 1, 1], values = [8]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -48,7 +48,7 @@ func @maxpool() -> !tfrt.chain {
   %maxpool_th = corert.executeop(%gpu) "tf.MaxPool"(%maxpool_in_th) { T = f32, data_format = "NCHW",  ksize = [1, 1, 3, 3], padding = "SAME", strides = [1, 1, 2, 2]} : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%maxpool_th) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [1, 1, 1, 1]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 2], values = [1, 1, 1, 1]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

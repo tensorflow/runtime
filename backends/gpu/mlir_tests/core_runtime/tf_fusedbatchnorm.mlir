@@ -42,7 +42,7 @@ func @fused_batch_norm_v3() -> !tfrt.chain {
       { T = f32, U = f32, epsilon = 0.0 : f32, data_format = "NCHW", is_training = false } : 6
 
   %cpu_res = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%res#0) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [1, -1, -1, 1]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 2], values = [1, -1, -1, 1]
   %ch_print = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_res) : 0
   tfrt.return %ch_print : !tfrt.chain
 }
@@ -69,13 +69,13 @@ func @_FusedBatchNormEx() -> !tfrt.chain {
       { T = f32, U = f32, epsilon = 0.0 : f32, data_format = "NCHW", activation_mode = "Identity" } : 6
 
   %cpu_res_no_side_input_identity = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%res_no_side_input_identity#0) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [1, -1, -1, 1]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 2], values = [1, -1, -1, 1]
   %ch_print_0 = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_res_no_side_input_identity) : 0
 
   %res_no_side_input_relu: 6 = corert.executeop(%gpu) "tf._FusedBatchNormEx"(%input, %scale, %bias, %mean, %variance)
       { T = f32, U = f32, epsilon = 0.0 : f32, data_format = "NCHW", activation_mode = "Relu" } : 6
   %cpu_res_no_side_input_relu = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%res_no_side_input_relu#0) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [1, 0, 0, 1]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 2], values = [1, 0, 0, 1]
   %ch_print_1 = corert.executeop.seq(%gpu, %ch_print_0) "tfrt_test.print"(%cpu_res_no_side_input_relu) : 0
 
   // With side input.
@@ -85,14 +85,14 @@ func @_FusedBatchNormEx() -> !tfrt.chain {
   %res_add_side_input_identity: 6 = corert.executeop(%gpu) "tf._FusedBatchNormEx"(%input, %scale, %bias, %mean, %variance, %side_input)
       { T = f32, U = f32, epsilon = 0.0 : f32, data_format = "NCHW", activation_mode = "Identity" } : 6
   %cpu_res_add_side_input_identity = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%res_add_side_input_identity#0) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [2, 0, 0, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 2], values = [2, 0, 0, 2]
   %ch_print_2 = corert.executeop.seq(%gpu, %ch_print_1) "tfrt_test.print"(%cpu_res_add_side_input_identity) : 0
 
   // Note that res = Relu(BN(x) + side_input)
   %res_add_side_input_relu: 6 = corert.executeop(%gpu) "tf._FusedBatchNormEx"(%input, %scale, %bias, %mean, %variance, %side_input)
       { T = f32, U = f32, epsilon = 0.0 : f32, data_format = "NCHW", activation_mode = "Relu" } : 6
   %cpu_res_add_side_input_relu = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%res_add_side_input_relu#0) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [2, 0, 0, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 2], values = [2, 0, 0, 2]
   %ch_print_3 = corert.executeop.seq(%gpu, %ch_print_2) "tfrt_test.print"(%cpu_res_add_side_input_relu) : 0
 
   tfrt.return %ch_print_3 : !tfrt.chain

@@ -73,7 +73,7 @@ func @compiled_add_f32_corert() -> !tfrt.chain {
   %result = cpurt.corert.execute %executable (%operand)
               : (!corert.tensorhandle) -> !corert.tensorhandle
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 3]
   // CHECK-SAME: values =
   // CHECK-SAME: -2.0{{.*}}, -1.0{{.*}}, 0.0{{.*}}, 1.0{{.*}}, 2.0{{.*}}, 3.0{{.*}}
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%result) : 0

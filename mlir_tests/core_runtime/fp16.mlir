@@ -36,7 +36,7 @@ func @cast_f16() -> !tfrt.chain {
   %half_result = corert.executeop(%cpu)
     "tfrt_test.relu"(%half_handle) : 1
 
-  // CHECK: DenseHostTensor dtype = F16, shape = [1, 1], values = [fp16(0)]
+  // CHECK: DenseHostTensor dtype = f16, shape = [1, 1], values = [fp16(0)]
   %ch1 = "corert.print_tensorhandle"(%half_result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   %float_result = corert.executeop(%cpu)

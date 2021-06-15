@@ -34,11 +34,11 @@ func @basic_test_create_dense_gpu_tensor() -> !tfrt.chain {
   %gpu_handle = corert.executeop(%gpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 5], values = [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32] } : 1
 
-  // CHECK: DenseGpuTensor<dtype=F32, shape=[1, 5], pointer=0x{{[0-9a-f]+}} (CUDA)>
+  // CHECK: DenseGpuTensor<dtype=f32, shape=[1, 5], pointer=0x{{[0-9a-f]+}} (CUDA)>
   %ch_print_gpu = "corert.print_tensorhandle"(%gpu_handle, %ch_epoch) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   %cpu_handle = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 5], values = [1, 2, 3, 4, 5]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 5], values = [1, 2, 3, 4, 5]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -57,7 +57,7 @@ func @basic_add_dense_gpu_tensors_f32() -> !tfrt.chain {
   %gpu_handle_result = corert.executeop(%gpu) "tfrt_test.add"(%gpu_handle_lhs, %gpu_handle_rhs) : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 5], values = [11, 22, 33, 44, 55]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 5], values = [11, 22, 33, 44, 55]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -76,7 +76,7 @@ func @basic_add_dense_gpu_tensors_int32() -> !tfrt.chain {
   %gpu_handle_result = corert.executeop(%gpu) "tfrt_test.add"(%gpu_handle_lhs, %gpu_handle_rhs) : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = I32, shape = [1, 5], values = [11, 22, 33, 44, 55]
+  // CHECK: DenseHostTensor dtype = i32, shape = [1, 5], values = [11, 22, 33, 44, 55]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -97,7 +97,7 @@ func @basic_move_gpu_tensors_int32() -> !tfrt.chain {
   %gpu_handle_result = corert.executeop(%gpu) "tfrt_test.add"(%gpu_handle_lhs, %gpu_handle_rhs) : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = I32, shape = [1, 5], values = [2, 4, 6, 8, 10]
+  // CHECK: DenseHostTensor dtype = i32, shape = [1, 5], values = [2, 4, 6, 8, 10]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -123,7 +123,7 @@ func @basic_add_dense_gpu_tensors_f16() -> !tfrt.chain {
   %cpu_handle_result_f32 = corert.executeop(%cpu)
     "tfrt_test.cast"(%cpu_handle_result_f16) { type = "f32" } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 5], values = [2.000000e+00, 4.000000e+00, 6.000000e+00, 8.000000e+00, 1.000000e+01]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 5], values = [2.000000e+00, 4.000000e+00, 6.000000e+00, 8.000000e+00, 1.000000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result_f32) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -162,12 +162,12 @@ func @test_optional_args() -> !tfrt.chain {
 
   %gpu_handle3 = corert.executeop(%gpu) "tfrt_test.test_optional_arg"(%gpu_handle1) : 1
   %cpu_handle3 = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle3) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1], values = [1]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1], values = [1]
   %ch_print_cpu1 = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle3) : 0
 
   %gpu_handle4 = corert.executeop(%gpu) "tfrt_test.test_optional_arg"(%gpu_handle1, %gpu_handle2) : 1
   %cpu_handle4 = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle4) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1], values = [2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1], values = [2]
   %ch_print_cpu2 = corert.executeop.seq(%gpu, %ch_print_cpu1) "tfrt_test.print"(%cpu_handle4) : 0
 
   tfrt.return %ch_print_cpu2 : !tfrt.chain
@@ -186,12 +186,12 @@ func @test_variadic_args() -> !tfrt.chain {
 
   %gpu_handle3 = corert.executeop(%gpu) "tfrt_test.test_variadic_arg"(%gpu_handle1) : 1
   %cpu_handle3 = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle3) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1], values = [1]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1], values = [1]
   %ch_print_cpu1 = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle3) : 0
 
   %gpu_handle4 = corert.executeop(%gpu) "tfrt_test.test_variadic_arg"(%gpu_handle1, %gpu_handle2) : 1
   %cpu_handle4 = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle4) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1], values = [2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1], values = [2]
   %ch_print_cpu2 = corert.executeop.seq(%gpu, %ch_print_cpu1) "tfrt_test.print"(%cpu_handle4) : 0
 
   tfrt.return %ch_print_cpu2 : !tfrt.chain

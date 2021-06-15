@@ -37,7 +37,7 @@ func @fusedMatMul_bias_f32() -> !tfrt.chain{
       "tf._FusedMatMul"(%operand_0, %operand_1, %operand_2)
       { fused_ops = ["BiasAdd"], transpose_a = false, transpose_b = false } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [0.000000e+00, -5.000000e-01, 9.000000e+00, 1.300000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
@@ -60,7 +60,7 @@ func @fusedMatMul_bias_relu_f32() -> !tfrt.chain{
       "tf._FusedMatMul"(%operand_0, %operand_1, %operand_2)
       { fused_ops = ["BiasAdd", "Relu"], transpose_a = false, transpose_b = false } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [0.000000e+00, 0.000000e+00, 9.000000e+00, 1.300000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
@@ -83,7 +83,7 @@ func @fusedMatMul_bias_relu6_f32() -> !tfrt.chain{
       "tf._FusedMatMul"(%operand_0, %operand_1, %operand_2)
       { fused_ops = ["BiasAdd", "Relu6"], transpose_a = false, transpose_b = false } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [0.000000e+00, 0.000000e+00, 6.000000e+00, 6.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
@@ -106,7 +106,7 @@ func @fusedMatMul_bias_elu_f32() -> !tfrt.chain{
       "tf._FusedMatMul"(%operand_0, %operand_1, %operand_2)
       { fused_ops = ["BiasAdd", "Elu"], transpose_a = false, transpose_b = false } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [0.000000e+00, -3.934693e-01, 9.000000e+00, 1.300000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 

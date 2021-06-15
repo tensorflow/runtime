@@ -117,7 +117,7 @@ func @corert.composite_op_async_output() -> !tfrt.chain {
 
   %result = "corert.execute_crt_op" (%fn_op, %true_handle) {op_attrs =[], op_func_attrs = []} : (!corert.op, !corert.tensorhandle) -> (!corert.tensorhandle)
 
-  // CHECK: DenseHostTensor dtype = I32, shape = [2, 2], values = [1, 1, 1, 1]
+  // CHECK: DenseHostTensor dtype = i32, shape = [2, 2], values = [1, 1, 1, 1]
   %ch1 = "corert.print_tensorhandle"(%result, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch1 : !tfrt.chain

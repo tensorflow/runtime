@@ -33,7 +33,7 @@ func @conv2d_valid() -> !tfrt.chain {
   %conv2d_th = corert.executeop(%cpu) "tf.Conv2D"(%conv2d_in_th1, %conv2d_in_th2)
       {T = f32, data_format = "NHWC",  dilations = [1, 1, 1, 1], explicit_paddings = [], padding = "VALID", strides = [1, 1, 1, 1], use_cudnn_on_gpu = false}  : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 2, 2, 4], md5sum = 1215977510, values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, ... ]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 2, 2, 4], md5sum = 1215977510, values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, ... ]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%conv2d_th) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -50,7 +50,7 @@ func @conv2d_valid_strides() -> !tfrt.chain {
   %conv2d_th = corert.executeop(%cpu) "tf.Conv2D"(%conv2d_in_th1, %conv2d_in_th2)
       {T = f32, data_format = "NHWC",  dilations = [1, 1, 1, 1], explicit_paddings = [], padding = "VALID", strides = [1, 2, 2, 1], use_cudnn_on_gpu = false}  : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 1, 1, 4], values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 1, 1, 4], values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%conv2d_th) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -67,7 +67,7 @@ func @conv2d_same() -> !tfrt.chain {
   %conv2d_th = corert.executeop(%cpu) "tf.Conv2D"(%conv2d_in_th1, %conv2d_in_th2)
     { T = f32, data_format = "NHWC",  dilations = [1, 1, 1, 1], explicit_paddings = [], padding = "SAME", strides = [1, 1, 1, 1], use_cudnn_on_gpu = false }  : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 4, 4, 4], md5sum = 1579683316, values = [1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, ... ]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 4, 4, 4], md5sum = 1579683316, values = [1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, ... ]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%conv2d_th) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -84,7 +84,7 @@ func @conv2d_same_strides() -> !tfrt.chain {
   %conv2d_th = corert.executeop(%cpu) "tf.Conv2D"(%conv2d_in_th1, %conv2d_in_th2)
     { T = f32, data_format = "NHWC",  dilations = [1, 1, 1, 1], explicit_paddings = [], padding = "SAME", strides = [1, 2, 2, 1], use_cudnn_on_gpu = false }  : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 2, 2, 4], md5sum = 3242887444, values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, ... ]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 2, 2, 4], md5sum = 3242887444, values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 2.400000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, 1.600000e+01, ... ]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%conv2d_th) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

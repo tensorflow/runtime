@@ -31,7 +31,7 @@ func @const_f32() -> !tfrt.chain {
     "tf.Const"() {value = dense<[-1.0, -0.5, 0.0, 0.5, 1.0]> : tensor<5xf32>, dtype = f32} : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [5], values = [-1, -0.5, 0, 0.5, 1]
+  // CHECK: DenseHostTensor dtype = f32, shape = [5], values = [-1, -0.5, 0, 0.5, 1]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

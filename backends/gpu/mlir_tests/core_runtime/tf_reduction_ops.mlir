@@ -35,7 +35,7 @@ func @mean_full_reduce_f32() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [], values = [3]
+  // CHECK: DenseHostTensor dtype = f32, shape = [], values = [3]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain
@@ -61,7 +61,7 @@ func @mean_outer_reduce_f32() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [3, 2], values = [26, 27, 28, 29, 30, 31]
+  // CHECK: DenseHostTensor dtype = f32, shape = [3, 2], values = [26, 27, 28, 29, 30, 31]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain
@@ -87,7 +87,7 @@ func @mean_inner_reduce_f32() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2], values = [13.5, 23.5, 33.5, 43.5]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2], values = [13.5, 23.5, 33.5, 43.5]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

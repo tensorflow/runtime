@@ -41,7 +41,7 @@ func @round_trip_transfer() -> !tfrt.chain {
   %th0_tensor_type = corert.get_dst_tensor_type %th0_cpu, %gpu_device
   %th0_gpu = corert.transfer %th0_cpu, %gpu_device, %th0_tensor_type
 
-  // CHECK: DenseGpuTensor<dtype=F32, shape=[1, 1, 2, 2], pointer={{0x[[:xdigit:]]*}} (CUDA)>
+  // CHECK: DenseGpuTensor<dtype=f32, shape=[1, 1, 2, 2], pointer={{0x[[:xdigit:]]*}} (CUDA)>
   %ch1 = "corert.print_tensorhandle"(%th0_gpu, %ch0)
     : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
@@ -49,7 +49,7 @@ func @round_trip_transfer() -> !tfrt.chain {
   %th1_tensor_type = corert.get_dst_tensor_type %th0_cpu, %cpu_device
   %th1_cpu = corert.transfer %th0_cpu, %cpu_device, %th1_tensor_type
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 2], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %ch2 = "corert.print_tensorhandle"(%th1_cpu, %ch1)
     : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 

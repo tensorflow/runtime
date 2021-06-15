@@ -33,7 +33,7 @@ func @softmax_f32() -> !tfrt.chain {
   %gpu_handle_result = corert.executeop(%gpu) "tf.Softmax"(%gpu_handle_input) : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [3, 3], values = [0.0072{{.*}}, 0.0120{{.*}}, 0.0198{{.*}}, 0.0326{{.*}}, 0.0538{{.*}}, 0.0887{{.*}}, 0.1463{{.*}}, 0.2413{{.*}}, 0.3978{{.*}}]
+  // CHECK: DenseHostTensor dtype = f32, shape = [3, 3], values = [0.0072{{.*}}, 0.0120{{.*}}, 0.0198{{.*}}, 0.0326{{.*}}, 0.0538{{.*}}, 0.0887{{.*}}, 0.1463{{.*}}, 0.2413{{.*}}, 0.3978{{.*}}]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -48,7 +48,7 @@ func @softmax() -> !tfrt.chain {
   %softmax_th = corert.executeop(%gpu) "tf.Softmax"(%softmax_in_th) { T = f32 } : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%softmax_th) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 1, 1], values = [1]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 1, 1], values = [1]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

@@ -26,7 +26,7 @@ namespace tfrt {
 
 // This is just a placeholder type telling core TFRT that fp16 has the same
 // size as uint16_t. The client should get its real C++ type via
-// tfrt::TypeForDTypeKind<DType::Kind::F16>::Type.
+// tfrt::TypeForDTypeKind<DType::F16>::Type.
 struct fp16 {
   fp16() : value(0) {}
   explicit fp16(uint16_t v) : value(v) {}

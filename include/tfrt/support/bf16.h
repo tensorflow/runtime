@@ -26,7 +26,7 @@ namespace tfrt {
 
 // This is just a placeholder type telling core TFRT that bf16 has the same
 // size as uint16_t. The client should get its real C++ type via
-// tfrt::TypeForDTypeKind<DType::Kind::BF16>::Type.
+// tfrt::TypeForDTypeKind<DType::BF16>::Type.
 // TODO(tfrt-devs): Port TensorFlow's bfloat16 implementation to TFRT.
 struct bf16 {
   bf16() : value(0) {}

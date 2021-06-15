@@ -27,7 +27,7 @@ namespace tfrt {
 
 // Templated type mapping quantized types to corresponding integer type. The
 // client should get the real C++ type via
-// tfrt::TypeForDTypeKind<DType::Kind::QUI8>::Type, etc.
+// tfrt::TypeForDTypeKind<DType::QUI8>::Type, etc.
 template <typename UnderlyingT>
 struct QuantizedInteger {
   QuantizedInteger() : value(0) {}

@@ -82,7 +82,7 @@ TEST_F(TensorSerializeUtilsTest, SerializeDeserialzeTensorMetadata) {
   auto expected = DeserializeTensorMetadata(serialized);
 
   auto md = expected.get();
-  EXPECT_EQ(md.dtype.kind(), DType::Kind::F32);
+  EXPECT_EQ(md.dtype.kind(), DType::F32);
   EXPECT_EQ(md.shape.GetRank(), 2);
   EXPECT_EQ(md.shape.GetDimensionSize(0), 2);
   EXPECT_EQ(md.shape.GetDimensionSize(1), 2);

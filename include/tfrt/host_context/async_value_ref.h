@@ -228,12 +228,17 @@ AsyncValueRef<T> MakeUnconstructedAsyncValueRef(HostContext* host) {
 // consumption. The AsyncValueRef should be made available later by invoking
 // AsyncValueRef::SetStateConcrete or AsyncValueRef::SetError.
 template <typename T, typename... Args>
-AsyncValueRef<T> MakeConstructedAsyncValueRef(HostContext* host,
-                                              Args&&... args) {
+AsyncValueRef<T> MakeConstructedAsyncValueRef(Args&&... args) {
   return AsyncValueRef<T>(
       TakeRef(internal::SimpleConstruct<internal::ConcreteAsyncValue<T>>(
           typename internal::ConcreteAsyncValue<T>::ConstructedPayload{},
           std::forward<Args>(args)...)));
+}
+
+template <typename T, typename... Args>
+AsyncValueRef<T> MakeConstructedAsyncValueRef(HostContext* host,
+                                              Args&&... args) {
+  return MakeConstructedAsyncValueRef<T>(std::forward<Args>(args)...);
 }
 
 // Allocate and construct an available AsyncValueRef.

@@ -66,9 +66,9 @@ class AsyncValue : public AsyncRuntimeObject {
                       unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
         storage_(Storage::CanStoreInline(size, alignment)
-                     ? MakeConstructedAsyncValueRef<Storage>(host)
-                     : MakeConstructedAsyncValueRef<Storage>(host, host, size,
-                                                             alignment)) {}
+                     ? MakeConstructedAsyncValueRef<Storage>()
+                     : MakeConstructedAsyncValueRef<Storage>(
+                           host->allocator(), size, alignment)) {}
 
   void* GetStorage() const {
     assert(!GetAsyncValue()->IsError() && "unexpected error state");
@@ -86,11 +86,11 @@ class AsyncValue : public AsyncRuntimeObject {
     static const int kAlign = alignof(std::max_align_t);
 
     Storage() : is_inline(true) {}
-    Storage(HostContext* host, size_t size, size_t alignment)
+    Storage(tfrt::HostAllocator* allocator, size_t size, size_t alignment)
         : is_inline(false),
-          host_buffer(HostBuffer::CreateUninitialized(size, alignment,
-                                                      host->allocator())
-                          .release()) {}
+          host_buffer(
+              HostBuffer::CreateUninitialized(size, alignment, allocator)
+                  .release()) {}
 
     ~Storage() {
       if (!is_inline) host_buffer->DropRef();

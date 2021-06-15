@@ -692,11 +692,13 @@ Expected<OperandConstraint> ResolveOperandConstraint(
 // constraints.
 class JitExecutable {
  public:
+  struct Listener;
+
   static constexpr const char* const kConstraint = "cpurt.constraint";
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
-      const CompilationOptions& compilation_opts);
+      const CompilationOptions& compilation_opts, Listener* listener = nullptr);
 
   // Returns entrypoint operands constraints after resolving them using the
   // statically known information in the entrypoint function signature.
@@ -726,11 +728,27 @@ class JitExecutable {
   JitExecutable(const JitExecutable&) = delete;
   JitExecutable(JitExecutable&&) = default;
 
+  // Listener class to control notifications during specialization.
+  struct Listener {
+    virtual ~Listener(){};
+
+    // Called at the end of module specialization.
+    // 'inputs' is a reference to the specialized input types.
+    virtual void notifyModuleSpecialized(ArrayRef<mlir::Type> inputs) {}
+
+    // Called once for every value-specialized argument.
+    virtual void notifyValueSpecialized(unsigned index, mlir::Type type,
+                                        mlir::Attribute attr) {}
+  };
+  void setListener(Listener* listener) { listener_ = listener; }
+  Listener* getListener() const { return listener_; }
+
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,
                 CompilationOptions compilation_opts,
                 ArrayRef<OperandConstraint> constraints,
-                Optional<Executable> default_executable = {});
+                Optional<Executable> default_executable = {},
+                Listener* listener = nullptr);
 
   // We do not use Expected<Executable> here because we need a mechanism to
   // copy an error, and this is not possible using the Expected API.
@@ -772,6 +790,8 @@ class JitExecutable {
 
   // Executables specialized for the arguments shapes or/and values.
   std::unique_ptr<Specializations> specializations_;
+
+  Listener* listener_;
 };
 
 //----------------------------------------------------------------------------//

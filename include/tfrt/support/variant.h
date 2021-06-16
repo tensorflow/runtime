@@ -49,9 +49,14 @@ class Variant {
   static constexpr bool IsVariant =
       std::is_same<std::decay_t<T>, Variant>::value;
 
+  using Types = std::tuple<Ts...>;
+
+  // Convenient constant to check if T is part of the Variant.
+  template <typename T>
+  static constexpr bool HasType = TupleHasType<T, Types>::value;
+
  public:
   using IndexT = int8_t;
-  using Types = std::tuple<Ts...>;
   template <int N>
   using TypeOf = typename std::tuple_element<N, Types>::type;
   static constexpr size_t kNTypes = sizeof...(Ts);
@@ -64,7 +69,8 @@ class Variant {
   }
 
   // Support implicit conversion from T to Variant.
-  template <typename T, std::enable_if_t<!IsVariant<T>, int> = 0>
+  template <typename T, std::enable_if_t<
+                            !IsVariant<T> && HasType<std::decay_t<T>>, int> = 0>
   Variant(T&& t) {
     fillValue(std::forward<T>(t));
   }
@@ -148,8 +154,7 @@ class Variant {
 
   template <typename T>
   static constexpr void AssertHasType() {
-    constexpr bool has_type = TupleHasType<T, Types>::value;
-    static_assert(has_type, "Invalid Type used for Variant");
+    static_assert(HasType<T>, "Invalid Type used for Variant");
   }
 
   void destroy() {

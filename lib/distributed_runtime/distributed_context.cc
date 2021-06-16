@@ -204,15 +204,14 @@ void DistributedContext::CreateRemoteContexts(
       auto* request_dist_config = request->mutable_dist_config();
       request_dist_config->set_job_name(job_config.name());
       request_dist_config->set_task_id(task.first);
-      request_dist_config->unsafe_arena_set_allocated_cluster_config(
-          base_request->mutable_dist_config()->mutable_cluster_config());
-      for (auto& cg :
+      *request_dist_config->mutable_cluster_config() =
+          base_request->mutable_dist_config()->cluster_config();
+      for (auto cg :
            *base_request->mutable_dist_config()->mutable_collective_groups()) {
-        request_dist_config->mutable_collective_groups()
-            ->UnsafeArenaAddAllocated(&cg);
+        request_dist_config->mutable_collective_groups()->Add(std::move(cg));
       }
-      for (auto& device : *base_request->mutable_devices()) {
-        request->mutable_devices()->UnsafeArenaAddAllocated(&device);
+      for (auto device : *base_request->mutable_devices()) {
+        request->mutable_devices()->Add(std::move(device));
       }
       request->set_is_multi_client(mode == RemoteInitMode::MULTI_CLIENT);
 
@@ -229,20 +228,6 @@ void DistributedContext::CreateRemoteContexts(
             } else {
               rc_done->UpdateState(
                   AddReadyChain(task_handle, response->ready_chain()));
-            }
-            // NOTE: `base_request` is the owner of `cluster_config` and
-            // `collective_groups`. Release these fields from `request` so that
-            // these fields are not destructed multiple times.
-            auto request_dist_config = request->mutable_dist_config();
-            request_dist_config->unsafe_arena_release_cluster_config();
-            const int n_groups = request_dist_config->collective_groups_size();
-            for (int i = 0; i < n_groups; i++) {
-              request_dist_config->mutable_collective_groups()
-                  ->UnsafeArenaReleaseLast();
-            }
-            const int n_devices = request->devices_size();
-            for (int i = 0; i < n_devices; i++) {
-              request->mutable_devices()->UnsafeArenaReleaseLast();
             }
           });
     }

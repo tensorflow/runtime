@@ -21,7 +21,7 @@
 // TODO(fishx): use gpu native type instead of eigen for fp16.
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/dtype/dtype.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
 
@@ -276,7 +276,7 @@ struct TransformFilter {
   llvm::Error operator()(wrapper::CurrentContext current,
                          const wrapper::Stream& stream,
                          ChannelOrder channel_order, const DenseGpuTensor& in,
-                         GpuCrtBuffer* out) {
+                         const GpuBuffer& out) {
     Dimension<3> combined_dims;
     combined_dims[0] = in.shape().GetDimensionSize(0);  // spatial dimensions
     for (int i = 1; i < 2; i++) {
@@ -292,13 +292,13 @@ struct TransformFilter {
           <<<config.block_count, config.thread_per_block, 0,
              static_cast<cudaStream_t>(stream)>>>(
               config.virtual_thread_count, GetRawPointer<T>(in), combined_dims,
-              GetRawPointer<T>(*out));
+              GetRawPointer<T>(out));
     } else if (channel_order == ChannelOrder::ChannelLast) {
       ShuffleInTensor3Simple<T, 1, 2, 0>
           <<<config.block_count, config.thread_per_block, 0,
              static_cast<cudaStream_t>(stream)>>>(
               config.virtual_thread_count, GetRawPointer<T>(in), combined_dims,
-              GetRawPointer<T>(*out));
+              GetRawPointer<T>(out));
     } else {
       return MakeStringError("Unsupported channel order: ", channel_order);
     }
@@ -508,7 +508,7 @@ struct FusedBatchNormInferenceFunctor {
                          const DenseGpuTensor& variance,
                          const DenseGpuTensor* side_input, float epsilon,
                          FusedBatchNormActivationMode activation_mode,
-                         GpuCrtBuffer* output_buffer) {
+                         const GpuBuffer& output_buffer) {
     int32_t count = input.NumElements();
     if (count == 0) return llvm::Error::success();
 
@@ -531,7 +531,7 @@ struct FusedBatchNormInferenceFunctor {
           stream, count, channel_size, inner_dim_size, GetRawPointer<T>(input),
           GetRawPointer<U>(scale), GetRawPointer<U>(bias),
           GetRawPointer<U>(mean), GetRawPointer<U>(variance), side_input_ptr,
-          epsilon, GetRawPointer<T>(*output_buffer));
+          epsilon, GetRawPointer<T>(output_buffer));
     };
 
     auto input_shape = GetDimensions(input.shape());
@@ -602,7 +602,7 @@ llvm::Error TransformFilterTensor(wrapper::CurrentContext current,
                                   const wrapper::Stream& stream,
                                   ChannelOrder channel_order,
                                   const DenseGpuTensor& input_filter,
-                                  GpuCrtBuffer* output_filter) {
+                                  const GpuBuffer& output_filter) {
   switch (input_filter.dtype().kind()) {
 #define DTYPE_NUMERIC(ENUM)                                                 \
   case DType::ENUM: {                                                       \
@@ -622,7 +622,8 @@ llvm::Error FusedBatchNormEx(
     const DenseGpuTensor& scale, const DenseGpuTensor& bias,
     const DenseGpuTensor& mean, const DenseGpuTensor& variance,
     const DenseGpuTensor* side_input, float epsilon,
-    FusedBatchNormActivationMode activation_mode, GpuCrtBuffer* output_buffer) {
+    FusedBatchNormActivationMode activation_mode,
+    const GpuBuffer& output_buffer) {
   switch (input.dtype().kind()) {
     case DType::F16: {
       auto functor = FusedBatchNormInferenceFunctor<Eigen::half, float>();

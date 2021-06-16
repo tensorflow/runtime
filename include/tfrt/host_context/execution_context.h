@@ -19,7 +19,6 @@
 #ifndef TFRT_HOST_CONTEXT_EXECUTION_CONTEXT_H_
 #define TFRT_HOST_CONTEXT_EXECUTION_CONTEXT_H_
 
-#include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/resource_context.h"
 #include "tfrt/support/map_by_type.h"
@@ -172,30 +171,25 @@ class ExecutionContext {
   ExecutionContext(const ExecutionContext& exec_ctx)
       : request_ctx_{exec_ctx.request_ctx_.CopyRef()},
         work_queue_(&exec_ctx.work_queue()),
-        location_{exec_ctx.location()},
-        debug_info_({exec_ctx.debug_info()}) {}
+        location_{exec_ctx.location()} {}
   ExecutionContext(ExecutionContext&& exec_ctx)
       : request_ctx_{std::move(exec_ctx.request_ctx_)},
         work_queue_(&exec_ctx.work_queue()),
-        location_{exec_ctx.location()},
-        debug_info_({exec_ctx.debug_info()}) {}
+        location_{exec_ctx.location()} {}
   ExecutionContext& operator=(const ExecutionContext& exec_ctx) {
     request_ctx_ = exec_ctx.request_ctx_.CopyRef();
     work_queue_ = &exec_ctx.work_queue();
     location_ = exec_ctx.location();
-    debug_info_ = exec_ctx.debug_info();
     return *this;
   }
   ExecutionContext& operator=(ExecutionContext&& exec_ctx) {
     request_ctx_ = std::move(exec_ctx.request_ctx_);
     work_queue_ = &exec_ctx.work_queue();
     location_ = exec_ctx.location();
-    debug_info_ = exec_ctx.debug_info();
     return *this;
   }
 
   Location location() const { return location_; }
-  DebugInfo debug_info() const { return debug_info_; }
   HostContext* host() const { return request_ctx_->host(); }
   bool IsCancelled() const { return request_ctx_->IsCancelled(); }
   ErrorAsyncValue* GetCancelAsyncValue() const {
@@ -203,7 +197,6 @@ class ExecutionContext {
   }
 
   void set_location(Location location) { location_ = location; }
-  void set_debug_info(DebugInfo debug_info) { debug_info_ = debug_info; }
 
   // Set the work queue to use for dispatching async tasks.
   void set_work_queue(ConcurrentWorkQueue* work_queue) {
@@ -226,7 +219,6 @@ class ExecutionContext {
   // execution. Otherwise, the work queue in HostContext is used.
   ConcurrentWorkQueue* work_queue_ = nullptr;
   Location location_;
-  DebugInfo debug_info_;
 };
 
 }  // namespace tfrt

@@ -23,6 +23,7 @@
 #include "llvm/Support/MD5.h"
 #include "llvm/Support/raw_os_ostream.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/dtype/dtype_formatter.h"
 #include "tfrt/host_context/device.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
@@ -82,7 +83,7 @@ void DenseHostTensor::Print(raw_ostream& os) const {
   os << ", values = [";
   for (ssize_t i = 0, e = std::min(kThreshold, NumElements()); i != e; ++i) {
     if (i != 0) os << ", ";
-    dtype().Print(data_ptr + i * element_size, os);
+    os << FormatDType(dtype(), data_ptr + i * element_size);
   }
   if (NumElements() > kThreshold) {
     os << ", ... ";

@@ -31,7 +31,7 @@ func @less_dense_dense_f32() -> !tfrt.chain{
   %operand_1 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
     { shape = [2, 3], values = [4.0 : f32, 1.0 : f32, 2.0 : f32, 3.0 : f32, 3.0 : f32, 5.0 : f32] } : 1
   %cpu_handle_result = corert.executeop(%cpu) "tf.Less"(%operand_0, %operand_1) : 1
-  // CHECK: DenseHostTensor dtype = I1, shape = [2, 3], values = [1, 1, 1, 1, 0, 0]
+  // CHECK: DenseHostTensor dtype = i1, shape = [2, 3], values = [1, 1, 1, 1, 0, 0]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

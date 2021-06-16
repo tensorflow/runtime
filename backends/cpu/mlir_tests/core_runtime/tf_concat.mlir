@@ -37,7 +37,7 @@ func @concat_f32_axis_1() -> !tfrt.chain {
   %cpu_handle_result = corert.executeop(%cpu) "tf.ConcatV2"(%operand_0, %operand_1, %axis)
     { N = 2 : i64 }: 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 6]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 6]
   // CHECK-SAME: values = [1.000000e+00, 2.000000e+00, 3.000000e+00, 7.000000e+00, 8.000000e+00, 9.000000e+00,
   // CHECK-SAME:           4.000000e+00, 5.000000e+00, 6.000000e+00, 1.000000e+01, 1.100000e+01, 1.200000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
@@ -61,7 +61,7 @@ func @concat_f32_axis_neg_1() -> !tfrt.chain {
   %cpu_handle_result = corert.executeop(%cpu) "tf.ConcatV2"(%operand_0, %operand_1, %axis)
     { N = 2 : i64 }: 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 6]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 6]
   // CHECK-SAME: values = [1.000000e+00, 2.000000e+00, 3.000000e+00, 7.000000e+00, 8.000000e+00, 9.000000e+00,
   // CHECK-SAME:           4.000000e+00, 5.000000e+00, 6.000000e+00, 1.000000e+01, 1.100000e+01, 1.200000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
@@ -81,7 +81,7 @@ func @concat_f32_scalars() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%cpu) "tf.ConcatV2"(%s0, %s1, %axis) { N = 2 : i64 }: 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2]
   // CHECK-SAME: values = [1.250000e-01, 2.500000e-01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
@@ -100,7 +100,7 @@ func @concat_i1() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%cpu) "tf.ConcatV2"(%s0, %s1, %axis) { N = 2 : i64 }: 1
 
-  // CHECK: DenseHostTensor dtype = I1, shape = [2]
+  // CHECK: DenseHostTensor dtype = i1, shape = [2]
   // CHECK-SAME: values = [1, 0]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 

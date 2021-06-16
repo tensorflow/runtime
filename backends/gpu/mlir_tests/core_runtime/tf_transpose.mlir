@@ -39,7 +39,7 @@ func @transpose_1x0() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%transpose_th) : 1
 
-  // CHECK: DenseHostTensor dtype = I64, shape = [3, 2], values = [1, 4, 2, 5, 3, 6]
+  // CHECK: DenseHostTensor dtype = i64, shape = [3, 2], values = [1, 4, 2, 5, 3, 6]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain
@@ -61,7 +61,7 @@ func @transpose_0x3x1x2() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%transpose_th) : 1
 
-  // CHECK: DenseHostTensor dtype = I64, shape = [1, 4, 2, 2], values = [1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16]
+  // CHECK: DenseHostTensor dtype = i64, shape = [1, 4, 2, 2], values = [1, 5, 9, 13, 2, 6, 10, 14, 3, 7, 11, 15, 4, 8, 12, 16]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain
@@ -85,7 +85,7 @@ func @transpose_1x0_f16() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%transpose_th_f32) : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [3, 2], values = [1.000000e+00, 4.000000e+00, 2.000000e+00, 5.000000e+00, 3.000000e+00, 6.000000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [3, 2], values = [1.000000e+00, 4.000000e+00, 2.000000e+00, 5.000000e+00, 3.000000e+00, 6.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

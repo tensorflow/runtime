@@ -63,14 +63,14 @@ func @current_context_lifetime() -> !tfrt.chain {
   %test0_gpu_handle_result = corert.executeop(%gpu) "tf.Tanh"(%test0_operand) : 1
   %test0_cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%test0_gpu_handle_result) : 1
   %test0_ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%test0_cpu_handle_result) : 0
-  // CHECK: DenseHostTensor dtype = F32, shape = [5], values = [-0.7615{{[0-9]*}}, -0.4621{{[0-9]*}}, 0, 0.4621{{[0-9]*}}, 0.7615{{[0-9]*}}]
+  // CHECK: DenseHostTensor dtype = f32, shape = [5], values = [-0.7615{{[0-9]*}}, -0.4621{{[0-9]*}}, 0, 0.4621{{[0-9]*}}, 0.7615{{[0-9]*}}]
 
   %test1_operand = corert.executeop(%gpu)
     "tfrt_test.create_dense_tensor"() { shape = [5], values = [-1.0 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32] } : 1
   %test1_gpu_handle_result = corert.executeop(%gpu) "tf.Tanh"(%test1_operand) : 1
   %test1_cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%test1_gpu_handle_result) : 1
   %test1_ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%test0_cpu_handle_result) : 0
-  // CHECK: DenseHostTensor dtype = F32, shape = [5], values = [-0.7615{{[0-9]*}}, -0.4621{{[0-9]*}}, 0, 0.4621{{[0-9]*}}, 0.7615{{[0-9]*}}]
+  // CHECK: DenseHostTensor dtype = f32, shape = [5], values = [-0.7615{{[0-9]*}}, -0.4621{{[0-9]*}}, 0, 0.4621{{[0-9]*}}, 0.7615{{[0-9]*}}]
 
   tfrt.return %test1_ch_print_cpu : !tfrt.chain
 }

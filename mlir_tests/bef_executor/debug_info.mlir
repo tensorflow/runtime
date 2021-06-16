@@ -24,21 +24,21 @@ func @debug_info() -> !tfrt.chain {
   // CHECK: Kernel has no debug info
   %ch2 = "tfrt_test.print_debug_info"(%ch1) : (!tfrt.chain) -> (!tfrt.chain)
 
-  // CHECK: myNameScope1/MySimpleKernel1
+  // CHECK: {{^myNameScope1/MySimpleKernel1$}}
   %ch3 = "tfrt_test.print_debug_info"(%ch2) : (!tfrt.chain) -> (!tfrt.chain)
                                    loc("myNameScope1/MySimpleKernel1")
 
-  // CHECK: foo
+  // CHECK: {{^foo$}}
   %ch4 = "tfrt_test.print_debug_info"(%ch3) : (!tfrt.chain) -> (!tfrt.chain) loc(fused["foo", "bar"])
 
-  // CHECK: bar
+  // CHECK: {{^bar$}}
   %ch5 = "tfrt_test.print_debug_info"(%ch4) : (!tfrt.chain) -> (!tfrt.chain)
                                          loc(fused["foo.py":42:314, "bar"])
-  // CHECK: foo/bar
+  // CHECK: {{^foo/bar$}}
   %ch6 = "tfrt_test.print_debug_info"(%ch5) : (!tfrt.chain) -> (!tfrt.chain)
                                       loc("foo/bar")
 
-  // CHECK: foo
+  // CHECK: {{^foo$}}
   %ch7 = "tfrt_test.print_debug_info"(%ch6) : (!tfrt.chain) -> (!tfrt.chain)
                                    loc(callsite("foo" at "bar.py":42:314))
 

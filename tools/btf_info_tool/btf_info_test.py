@@ -23,10 +23,10 @@ import numpy as np
 
 from utils import btf_writer  # from @tf_runtime
 
-EXPECTED = ('[0] DenseHostTensor dtype = I8,'
+EXPECTED = ('[0] DenseHostTensor dtype = i8,'
             ' shape = [3, 5],'
             ' values = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]\n'
-            '[1] CooHostTensor dtype = I64,'
+            '[1] CooHostTensor dtype = i64,'
             ' shape = [2, 4],'
             ' indices = [0, 1, 0, 2, 0, 3, 1, 1, 1, 2, 1, 3],'
             ' values = [1, 2, 3, 5, 6, 7]\n')

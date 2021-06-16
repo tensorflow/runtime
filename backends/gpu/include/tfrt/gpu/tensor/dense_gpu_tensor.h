@@ -21,7 +21,7 @@
 #define TFRT_GPU_TENSOR_DENSE_GPU_TENSOR_H_
 
 #include "llvm/ADT/Optional.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/tensor/tensor.h"
 
@@ -38,9 +38,9 @@ class DenseGpuTensor final : public Tensor,
                              public TensorTraits<DenseGpuTensor> {
  public:
   DenseGpuTensor(const TensorMetadata& metadata,
-                 RCReference<GpuCrtBuffer> buffer);
+                 AsyncValueRef<GpuBuffer> buffer);
   DenseGpuTensor(const TensorShape& shape, DType dtype,
-                 RCReference<GpuCrtBuffer> buffer);
+                 AsyncValueRef<GpuBuffer> buffer);
 
   DenseGpuTensor(const DenseGpuTensor& b) = delete;
   DenseGpuTensor& operator=(const DenseGpuTensor& b) = delete;
@@ -69,12 +69,12 @@ class DenseGpuTensor final : public Tensor,
 
   void Print(llvm::raw_ostream& os) const override;
 
-  GpuCrtBuffer& buffer() const { return *buffer_; }
+  GpuBuffer& buffer() const { return *buffer_; }
 
-  RCReference<GpuCrtBuffer> CopyBufferRef() const { return buffer_.CopyRef(); }
+  AsyncValueRef<GpuBuffer> CopyBufferRef() const { return buffer_.CopyRef(); }
 
  private:
-  RCReference<GpuCrtBuffer> buffer_;
+  AsyncValueRef<GpuBuffer> buffer_;
 };
 
 template <typename T>

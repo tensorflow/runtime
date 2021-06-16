@@ -163,7 +163,7 @@ std::pair<size_t, size_t> GetHostSizeAndAlignment(const void *data,
     case OpAttrType::F16:
       return {sizeof(fp16), alignof(fp16)};
     case OpAttrType::I1:
-      return {sizeof(i1), alignof(i1)};
+      return {sizeof(bool), alignof(bool)};
     case OpAttrType::COMPLEX64:
       return {sizeof(std::complex<float>), alignof(std::complex<float>)};
     case OpAttrType::COMPLEX128:
@@ -227,7 +227,7 @@ size_t GetAlignmentPaddingSize(const void *data, OpAttrType type,
       break;
 
     case OpAttrType::I1:
-      peak_alignment = alignof(i1);
+      peak_alignment = alignof(bool);
       break;
 
     case OpAttrType::COMPLEX64:

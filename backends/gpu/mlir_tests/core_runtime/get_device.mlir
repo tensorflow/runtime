@@ -48,7 +48,7 @@ func @get_gpu_device() -> !tfrt.chain {
   %handle = corert.executeop(%gpu)
     "tfrt_test.create_dense_tensor"() { shape = [1, 1], values = [2.0 : f32] } : 1
 
-  // CHECK: DenseGpuTensor<dtype=F32, shape=[1, 1], pointer=0x{{[0-9a-f]+}} (CUDA)>
+  // CHECK: DenseGpuTensor<dtype=f32, shape=[1, 1], pointer=0x{{[0-9a-f]+}} (CUDA)>
   %ch1 = "corert.print_tensorhandle"(%handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch1 : !tfrt.chain

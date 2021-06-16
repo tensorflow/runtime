@@ -45,7 +45,7 @@ func @test_cpu_op_handler_chain_kernels()  -> !tfrt.chain {
   %ch0 = tfrt.new.chain
   %ch1 = tfrt.call @failed_cpu_get_op_handler(%ch0) : (!tfrt.chain) -> !tfrt.chain
   %ch2 = tfrt.call @register_cpu_op_handler_chain(%ch1) : (!tfrt.chain) -> !tfrt.chain
-  // CHECK: DenseHostTensor dtype = I32, shape = [2], values = [42, 314]
+  // CHECK: DenseHostTensor dtype = i32, shape = [2], values = [42, 314]
   %ch3 = tfrt.call @get_cpu_op_handler(%ch2) : (!tfrt.chain) -> !tfrt.chain
   tfrt.return %ch3 : !tfrt.chain
 }

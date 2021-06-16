@@ -29,14 +29,13 @@ namespace {
 
 template <typename FunctorT>
 void RegisterUnaryKernel(KernelRegistry* registry, string_view kernel_name) {
-#define DTYPE_FLOAT(ENUM)                                                 \
-  {                                                                       \
-    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                  \
-    using UnaryFunctor = typename FunctorT::template Functor<CPP_TYPE>;   \
-    registry->AddSyncKernel(                                              \
-        ("tf_sync." + kernel_name + "." + GetDType<CPP_TYPE>().GetName()) \
-            .str(),                                                       \
-        TFRT_SYNC_KERNEL(cpu::SyncUnaryKernel<UnaryFunctor>));            \
+#define DTYPE_FLOAT(ENUM)                                               \
+  {                                                                     \
+    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                \
+    using UnaryFunctor = typename FunctorT::template Functor<CPP_TYPE>; \
+    registry->AddSyncKernel(                                            \
+        StrCat("tf_sync.", kernel_name, ".", GetDType<CPP_TYPE>()),     \
+        TFRT_SYNC_KERNEL(cpu::SyncUnaryKernel<UnaryFunctor>));          \
   }
 #include "tfrt/dtype/dtype.def"
 }

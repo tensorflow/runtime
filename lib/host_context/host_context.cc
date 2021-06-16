@@ -29,8 +29,6 @@
 
 namespace tfrt {
 
-LocationHandler::~LocationHandler() {}
-
 std::atomic<int> HostContext::num_shared_context_types_{0};
 const char* const HostContext::kDefaultHostDeviceName = "CPU:0";
 

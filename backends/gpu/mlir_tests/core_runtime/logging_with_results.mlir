@@ -41,20 +41,20 @@ func @test_logger_cpu_log_results() -> !tfrt.chain {
   // CHECK:  'values' type=I32 value=[1, 2, 3, 4, 5]
   // CHECK: Inputs for [0]: 'tfrt_test.create_dense_tensor':
   // CHECK: Outputs for [0]: 'tfrt_test.create_dense_tensor':
-  // CHECK:   Output for [0] tensor 0: DenseHostTensor dtype = I32, shape = [5], values = [1, 2, 3, 4, 5]
+  // CHECK:   Output for [0] tensor 0: DenseHostTensor dtype = i32, shape = [5], values = [1, 2, 3, 4, 5]
 
   %a_handle = corert.executeop(%cpu)
       "tfrt_test.create_dense_tensor"() { shape = [5], values = [1 : i32, 2 : i32, 3 : i32, 4 : i32, 5 : i32] } : 1
 
   // CHECK: [1] dispatch 'tfrt_test.odd_collector' 1 argument, 1 result, no attributes
   // CHECK: Inputs for [1]: 'tfrt_test.odd_collector':
-  // CHECK:   Input for [1] tensor 0: DenseHostTensor dtype = I32, shape = [5], values = [1, 2, 3, 4, 5]
+  // CHECK:   Input for [1] tensor 0: DenseHostTensor dtype = i32, shape = [5], values = [1, 2, 3, 4, 5]
   // CHECK: Outputs for [1]: 'tfrt_test.odd_collector':
-  // CHECK:   Output for [1] tensor 0: DenseHostTensor dtype = I32, shape = [3], values = [1, 3, 5]
+  // CHECK:   Output for [1] tensor 0: DenseHostTensor dtype = i32, shape = [3], values = [1, 3, 5]
 
   %b_handle = corert.executeop(%cpu) "tfrt_test.odd_collector"(%a_handle) : 1
 
-   // CHECK: DenseHostTensor dtype = I32, shape = [3], values = [1, 3, 5]
+   // CHECK: DenseHostTensor dtype = i32, shape = [3], values = [1, 3, 5]
   %ch3 = "corert.print_tensorhandle"(%b_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch3 : !tfrt.chain
@@ -70,11 +70,11 @@ func @test_logger_gpu_log_results() -> !tfrt.chain {
   // CHECK:  'values' type=I32 value=[1, 2, 3, 4, 5]
   // CHECK: Inputs for [0]: 'tfrt_test.create_dense_tensor':
   // CHECK: Outputs for [0]: 'tfrt_test.create_dense_tensor':
-  // CHECK:   Output for [0] tensor 0: DenseHostTensor dtype = I32, shape = [5], values = [1, 2, 3, 4, 5]
+  // CHECK:   Output for [0] tensor 0: DenseHostTensor dtype = i32, shape = [5], values = [1, 2, 3, 4, 5]
   %a_handle = corert.executeop(%gpu)
       "tfrt_test.create_dense_tensor"() { shape = [5], values = [1 : i32, 2 : i32, 3 : i32, 4 : i32, 5 : i32] } : 1
 
-  // CHECK: DenseGpuTensor<dtype=I32, shape=[5], pointer=0x{{[0-9a-f]+}} (CUDA)
+  // CHECK: DenseGpuTensor<dtype=i32, shape=[5], pointer=0x{{[0-9a-f]+}} (CUDA)
   %ch1 = "corert.print_tensorhandle"(%a_handle, %ch0) : (!corert.tensorhandle, !tfrt.chain) -> !tfrt.chain
 
   tfrt.return %ch1 : !tfrt.chain

@@ -141,6 +141,7 @@ tfrt_cc_library(
         "lib/host_context/host_context_ptr.cc",
         "lib/host_context/kernel_frame.cc",
         "lib/host_context/kernel_registry.cc",
+        "lib/host_context/location.cc",
         "lib/host_context/native_function.cc",
         "lib/host_context/parallel_for.cc",
         "lib/host_context/shared_context.cc",
@@ -157,7 +158,6 @@ tfrt_cc_library(
         "include/tfrt/host_context/attribute_utils.h",
         "include/tfrt/host_context/chain.h",
         "include/tfrt/host_context/concurrent_work_queue.h",
-        "include/tfrt/host_context/debug_info.h",
         "include/tfrt/host_context/device.h",
         "include/tfrt/host_context/diagnostic.h",
         "include/tfrt/host_context/execution_context.h",
@@ -200,7 +200,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/dtype/dtype.def",
         "include/tfrt/dtype/dtype.h",
-        "include/tfrt/dtype/i1.h",
+        "include/tfrt/dtype/dtype_formatter.h",
         "include/tfrt/dtype/quantized_types.h",
         "include/tfrt/support/bf16.h",
         "include/tfrt/support/forward_decls.h",
@@ -370,6 +370,7 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
+        ":bef_location",
         ":dtype",
         ":hostcontext",
         ":support",
@@ -498,14 +499,14 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "mlirtobef",
     srcs = [
-        "include/tfrt/host_context/debug_info.h",
         "lib/bef_converter/mlir_to_bef/bef_attr_emitter.h",
         "lib/bef_converter/mlir_to_bef/bef_compilation_units.h",
+        "lib/bef_converter/mlir_to_bef/bef_location_emitter.h",
+        "lib/bef_converter/mlir_to_bef/bef_string_emitter.h",
         "lib/bef_converter/mlir_to_bef/mlir_to_bef.cc",
     ],
     hdrs = [
         "include/tfrt/bef_converter/mlir_to_bef.h",
-        "include/tfrt/host_context/debug_info.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
@@ -513,6 +514,7 @@ tfrt_cc_library(
         ":bef_attr_emitter",
         ":bef_attr_encoder",
         ":bef_emitter",
+        ":bef_location_emitter",
         ":core_runtime_opdefs",
         ":dtype",
         ":stream_analysis",
@@ -547,6 +549,7 @@ tfrt_cc_library(
     name = "beftomlir",
     srcs = [
         "lib/bef_converter/bef_to_mlir/bef_attr_reader.h",
+        "lib/bef_converter/bef_to_mlir/bef_location_reader.h",
         "lib/bef_converter/bef_to_mlir/bef_to_mlir.cc",
     ],
     hdrs = [
@@ -556,6 +559,8 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":bef_attr_reader",
+        ":bef_location",
+        ":bef_location_reader",
         ":core_runtime_opdefs",
         ":support",
         "@llvm-project//llvm:Support",
@@ -658,12 +663,10 @@ tfrt_cc_library(
     srcs = [
         "lib/basic_kernels/opdefs/basic_kernels.cc",
         "lib/basic_kernels/opdefs/tfrt_base.cc",
-        "lib/basic_kernels/opdefs/tfrt_traits.cc",
     ],
     hdrs = [
         "include/tfrt/basic_kernels/opdefs/basic_kernels.h",
         "include/tfrt/basic_kernels/opdefs/tfrt_base.h",
-        "include/tfrt/basic_kernels/opdefs/tfrt_traits.h",
         "include/tfrt/basic_kernels/opdefs/types.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
@@ -1095,6 +1098,7 @@ gentbl_cc_library(
     td_file = "include/tfrt/test_kernels/opdefs/test_kernels.td",
     td_srcs = [
         ":OpBaseTdFiles",
+        ":compiler_td_files",
         "include/tfrt/core_runtime/opdefs/corert_traits.td",
         "@llvm-project//mlir:SideEffectTdFiles",
     ],
@@ -1112,6 +1116,8 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
+        ":compiler_tfrt_op_interfaces",
+        ":compiler_tfrt_traits",
         ":core_runtime_opdefs",
         ":tensor_opdefs",
         ":test_kernels_opdefs_inc_gen",
@@ -1444,6 +1450,77 @@ tfrt_cc_library(
     ],
 )
 
+filegroup(
+    name = "compiler_td_files",
+    srcs = [
+        "include/tfrt/compiler/opdefs/tfrt_op_interfaces.td",
+        "include/tfrt/compiler/opdefs/tfrt_traits.td",
+        "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+)
+
+gentbl_cc_library(
+    name = "compiler_tfrt_op_interfaces_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            ["-gen-op-interface-decls"],
+            "include/tfrt/compiler/opdefs/tfrt_op_interfaces.h.inc",
+        ),
+        (
+            ["-gen-op-interface-defs"],
+            "include/tfrt/compiler/opdefs/tfrt_op_interfaces.cc.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/compiler/opdefs/tfrt_op_interfaces.td",
+    td_srcs = [":compiler_td_files"],
+)
+
+tfrt_cc_library(
+    name = "compiler_tfrt_op_interfaces",
+    srcs = [
+        "include/tfrt/compiler/opdefs/tfrt_op_interfaces.cc.inc",
+        "include/tfrt/compiler/opdefs/tfrt_op_interfaces.h.inc",
+        "lib/compiler/opdefs/tfrt_op_interfaces.cc",
+    ],
+    hdrs = ["include/tfrt/compiler/opdefs/tfrt_op_interfaces.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+    deps = [
+        ":compiler_tfrt_op_interfaces_inc_gen",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+gentbl_cc_library(
+    name = "compiler_tfrt_traits_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            ["-gen-op-decls"],
+            "include/tfrt/compiler/opdefs/tf_traits.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/compiler/opdefs/tfrt_traits.td",
+    td_srcs = [":compiler_td_files"],
+)
+
+tfrt_cc_library(
+    name = "compiler_tfrt_traits",
+    srcs = ["lib/compiler/opdefs/tfrt_traits.cc"],
+    hdrs = ["include/tfrt/compiler/opdefs/tfrt_traits.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+    deps = [
+        ":compiler_tfrt_traits_inc_gen",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
 tfrt_cc_library(
     name = "compiler_pass",
     srcs = [
@@ -1468,6 +1545,7 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":basic_kernels_opdefs",
+        ":compiler_tfrt_op_interfaces",
         "@llvm-project//mlir:IR",
     ],
 )
@@ -1571,6 +1649,73 @@ tfrt_cc_library(
         ":core_runtime_opdefs",
         ":dtype",
         ":hostcontext",
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+tfrt_cc_library(
+    name = "bef_location_emitter",
+    srcs = [
+        "lib/bef_converter/mlir_to_bef/bef_location_emitter.cc",
+        "lib/bef_converter/mlir_to_bef/bef_location_emitter.h",
+        "lib/bef_converter/mlir_to_bef/bef_string_emitter.cc",
+        "lib/bef_converter/mlir_to_bef/bef_string_emitter.h",
+    ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+    deps = [
+        ":bef_emitter",
+        ":bef_location",
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+tfrt_cc_library(
+    name = "bef_string_emitter",
+    srcs = [
+        "lib/bef_converter/mlir_to_bef/bef_string_emitter.cc",
+        "lib/bef_converter/mlir_to_bef/bef_string_emitter.h",
+    ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+    deps = [
+        ":bef_emitter",
+        ":support",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+    ],
+)
+
+tfrt_cc_library(
+    name = "bef_location",
+    srcs = [
+        "lib/bef/bef_location.cc",
+    ],
+    hdrs = [
+        "include/tfrt/bef/bef_location.h",
+    ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = [":friends"],
+    deps = [
+        ":hostcontext",
+        ":support",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "bef_location_reader",
+    srcs = [
+        "lib/bef_converter/bef_to_mlir/bef_location_reader.cc",
+        "lib/bef_converter/bef_to_mlir/bef_location_reader.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":bef_location",
         ":support",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",

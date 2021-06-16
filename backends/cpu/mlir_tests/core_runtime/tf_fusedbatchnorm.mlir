@@ -40,7 +40,7 @@ func @fused_batch_norm_v3() -> !tfrt.chain {
   %res: 6 = corert.executeop(%cpu) "tf.FusedBatchNormV3"(%input, %scale, %bias, %mean, %variance)
       { T = f32, U = f32, epsilon = 0.0 : f32, data_format = "NHWC", is_training = false } : 6
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 2, 2, 1], values = [1.000000e+00, -1.000000e+00, -1.000000e+00, 1.000000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 2, 2, 1], values = [1.000000e+00, -1.000000e+00, -1.000000e+00, 1.000000e+00]
   %ch_print = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%res#0) : 0
   tfrt.return %ch_print : !tfrt.chain
 }

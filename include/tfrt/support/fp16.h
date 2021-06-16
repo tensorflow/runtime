@@ -19,18 +19,23 @@
 #ifndef TFRT_SUPPORT_FP16_H_
 #define TFRT_SUPPORT_FP16_H_
 
+#include "llvm/Support/raw_ostream.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 
 // This is just a placeholder type telling core TFRT that fp16 has the same
 // size as uint16_t. The client should get its real C++ type via
-// tfrt::TypeForDTypeKind<DType::Kind::F16>::Type.
+// tfrt::TypeForDTypeKind<DType::F16>::Type.
 struct fp16 {
   fp16() : value(0) {}
   explicit fp16(uint16_t v) : value(v) {}
   uint16_t value;
 };
+
+inline raw_ostream &operator<<(raw_ostream &os, fp16 v) {
+  return os << "fp16(" << v.value << ')';
+}
 }  // namespace tfrt
 
 #endif  // TFRT_SUPPORT_FP16_H_

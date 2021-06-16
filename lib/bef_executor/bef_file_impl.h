@@ -27,7 +27,6 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/bef_executor/bef_file.h"
-#include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/host_context/location.h"
@@ -37,7 +36,6 @@
 namespace tfrt {
 
 class BEFFileImpl;
-class DecodedLocation;
 class Value;
 
 // Inlined array to keep registers and kernels info together with a BEF executor
@@ -213,6 +211,7 @@ class BEFLocationHandler final : public LocationHandler {
   explicit BEFLocationHandler(BEFFileImpl* bef_file) : bef_file_(bef_file) {}
 
   DecodedLocation DecodeLocation(Location loc) const override;
+  Optional<DebugInfo> GetDebugInfo(Location loc) const override;
 
  private:
   BEFFileImpl* bef_file_;
@@ -221,7 +220,7 @@ class BEFLocationHandler final : public LocationHandler {
 // This class is the implementation details behind the BEFFile::Open method,
 // which maintains all the state necessary for the BEFExecutor.  It is fully
 // public because it is a private implementation detail within this library.
-class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
+class BEFFileImpl : public BEFFile {
  public:
   ~BEFFileImpl() override;
 
@@ -302,8 +301,7 @@ class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
   // Given an offset into the LocationPositions section, decode it and return
   // a DecodedDiagnostic.
   DecodedLocation DecodeLocation(size_t location_position_offset);
-
-  llvm::Optional<DebugInfoEntry> DecodeDebugInfo(BEFKernel*) const override;
+  Optional<DebugInfo> GetDebugInfo(size_t location_position_offset);
 
 #if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
   // Only used for debugging and tracing.
@@ -328,10 +326,7 @@ class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
 
   ErrorHandler error_handler_;
 
-  ArrayRef<uint8_t> location_filenames_section_;
-  ArrayRef<uint8_t> location_positions_section_;
   ArrayRef<uint8_t> string_section_;
-  ArrayRef<uint8_t> debug_info_section_;
   ArrayRef<uint8_t> attribute_section_;
   ArrayRef<uint8_t> kernels_section_;
   ArrayRef<uint8_t> types_section_;
@@ -341,6 +336,8 @@ class BEFFileImpl : public BEFFile, public DebugInfoDecoder {
   SmallVector<TypeName, 8> type_names_;
   llvm::StringMap<size_t> function_symbol_table_;
   SmallVector<std::unique_ptr<Function>, 8> functions_;
+  ArrayRef<uint8_t> location_strings_section_;
+  ArrayRef<uint8_t> locations_section_;
 
 #if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
   // Maps from kernel_id to the name of the kernel.

@@ -148,6 +148,19 @@ class GpuAllocator {
 
   virtual ~GpuAllocator() = default;
 
+ protected:
+  static Expected<GpuPointer> Allocate(GpuAllocator* allocator, size_t size,
+                                       wrapper::Stream stream) {
+    assert(allocator != nullptr);
+    return allocator->Allocate(size, stream);
+  }
+
+  static Error Deallocate(GpuAllocator* allocator, GpuPointer pointer,
+                          wrapper::Stream stream) {
+    assert(allocator != nullptr);
+    return allocator->Deallocate(pointer, stream);
+  }
+
  private:
   // Allocates memory of at least `size` bytes. If `stream` is the default, the
   // memory is accessible on any stream. Otherwise, accessing the memory on
@@ -307,6 +320,11 @@ class GpuSolverHandle {
   AsyncValueRef<GpuStream> stream_;
   wrapper::OwningSolverHandle handle_;
 };
+
+template <typename T>
+T* GetRawPointer(const GpuBuffer& buffer) {
+  return static_cast<T*>(buffer.pointer().raw());
+}
 
 }  // namespace gpu
 }  // namespace tfrt

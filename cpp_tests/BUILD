@@ -84,6 +84,16 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "dtype/dtype_test",
+    srcs = ["dtype/dtype_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:dtype",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
     name = "support/tensor_type_registration_test",
     srcs = ["support/tensor_type_registration_test.cc"],
     deps = [
@@ -210,6 +220,21 @@ tfrt_cc_test(
     deps = [
         ":common",
         "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_test(
+    name = "tensor/tensor_serialize_utils_test",
+    srcs = [
+        "tensor/tensor_serialize_utils_test.cc",
+    ],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:bef_attr_encoder",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:tensor",
     ],
@@ -588,5 +613,49 @@ tfrt_cc_test(
         "@tf_runtime//:init_tfrt_dialects",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_test(
+    name = "bef_converter/bef_location_emitter_test",
+    srcs = [
+        "bef_converter/bef_location_emitter_test.cc",
+    ],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@tf_runtime//:bef_location",
+        "@tf_runtime//:bef_location_emitter",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_test(
+    name = "bef_converter/bef_location_reader_test",
+    srcs = ["bef_converter/bef_location_reader_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+        "@tf_runtime//:bef_location_emitter",
+        "@tf_runtime//:bef_location_reader",
+    ],
+)
+
+tfrt_cc_test(
+    name = "bef_converter/bef_string_emitter_test",
+    srcs = [
+        "bef_converter/bef_string_emitter_test.cc",
+    ],
+    deps = [
+        ":common",
+        "@com_google_googletest//:gtest_main",
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:bef_string_emitter",
+        "@tf_runtime//:support",
     ],
 )

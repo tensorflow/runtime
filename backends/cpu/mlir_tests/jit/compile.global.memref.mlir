@@ -32,7 +32,7 @@ func @global_memref_to_tensor() -> !tfrt.chain {
 
   %executable = cpurt.compile { kernel = @kernels::@main }
   %0 = cpurt.execute %executable[%ch0]() : () -> !t.tensor
-  // CHECK:      DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK:      DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [0.0{{.*}}, 1.0{{.*}}, 2.0{{.*}}, 3.0{{.*}}]
   %printed = tfrt_dht.print_tensor %0, %ch0
 

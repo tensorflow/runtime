@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The TensorFlow Runtime Authors
+ * Copyright 2021 The TensorFlow Runtime Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,10 @@
  * limitations under the License.
  */
 
-// GPU memory allocator
-//
-// This file defines kAlignment constant for the abstract GPU memory allocator
-
-#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/compiler/opdefs/tfrt_op_interfaces.h"
 
 namespace tfrt {
-namespace gpu {
-
-const size_t GpuCrtAllocator::kAlignment;
-
-}  // namespace gpu
+namespace compiler {
+#include "tfrt/compiler/opdefs/tfrt_op_interfaces.cc.inc"
+}  // namespace compiler
 }  // namespace tfrt

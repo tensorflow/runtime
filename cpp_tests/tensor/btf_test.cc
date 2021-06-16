@@ -16,13 +16,71 @@
 
 // Unit test for BTF utils.
 
-#include "gmock/gmock.h"
+#include "tfrt/tensor/btf.h"
+
 #include "gtest/gtest.h"
+#include "llvm/Support/raw_ostream.h"
 #include "tfrt/cpp_tests/test_util.h"
 #include "tfrt/tensor/btf_util.h"
 
 namespace tfrt {
+namespace btf {
 namespace {
+
+TEST(BTFTest, ToDTypeKind) {
+  EXPECT_EQ(ToDTypeKind(TensorDType::kInt8), DType::I8);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kInt16), DType::I16);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kInt32), DType::I32);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kInt64), DType::I64);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kFloat32), DType::F32);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kFloat64), DType::F64);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kUInt8), DType::UI8);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kUInt16), DType::UI16);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kUInt32), DType::UI32);
+  EXPECT_EQ(ToDTypeKind(TensorDType::kUInt64), DType::UI64);
+}
+
+TEST(BTFTest, ToTensorDType) {
+  EXPECT_EQ(ToTensorDType(DType::I8).get(), TensorDType::kInt8);
+  EXPECT_EQ(ToTensorDType(DType::I16).get(), TensorDType::kInt16);
+  EXPECT_EQ(ToTensorDType(DType::I32).get(), TensorDType::kInt32);
+  EXPECT_EQ(ToTensorDType(DType::I64).get(), TensorDType::kInt64);
+  EXPECT_EQ(ToTensorDType(DType::F32).get(), TensorDType::kFloat32);
+  EXPECT_EQ(ToTensorDType(DType::F64).get(), TensorDType::kFloat64);
+  EXPECT_EQ(ToTensorDType(DType::UI8).get(), TensorDType::kUInt8);
+  EXPECT_EQ(ToTensorDType(DType::UI16).get(), TensorDType::kUInt16);
+  EXPECT_EQ(ToTensorDType(DType::UI32).get(), TensorDType::kUInt32);
+  EXPECT_EQ(ToTensorDType(DType::UI64).get(), TensorDType::kUInt64);
+}
+
+TEST(BTFTest, ToTensorDTypeUnsupported) {
+  auto error = ToTensorDType(DType::Complex128).takeError();
+  EXPECT_FALSE(error.success());
+}
+
+template <typename EnumT>
+void CheckEnumStr(EnumT e, const char* str) {
+  EXPECT_EQ(StrCat(e), str);
+}
+
+TEST(BTFTest, TensorDTypeToRawStream) {
+  CheckEnumStr(TensorDType::kInt8, "i8");
+  CheckEnumStr(TensorDType::kInt16, "i16");
+  CheckEnumStr(TensorDType::kInt32, "i32");
+  CheckEnumStr(TensorDType::kInt64, "i64");
+  CheckEnumStr(TensorDType::kFloat32, "f32");
+  CheckEnumStr(TensorDType::kFloat64, "f64");
+  CheckEnumStr(TensorDType::kUInt8, "ui8");
+  CheckEnumStr(TensorDType::kUInt16, "ui16");
+  CheckEnumStr(TensorDType::kUInt32, "ui32");
+  CheckEnumStr(TensorDType::kUInt64, "ui64");
+}
+
+TEST(BTFTest, TensorLayoutToRawStream) {
+  CheckEnumStr(TensorLayout::kRMD, "Row-Major Dense tensor");
+  CheckEnumStr(TensorLayout::kCOO_EXPERIMENTAL,
+               "COOrdinate list sparse tensor");
+}
 
 TEST(BTFTest, BTFWriteAndRead) {
   auto context = CreateHostContext();
@@ -46,4 +104,5 @@ TEST(BTFTest, BTFWriteAndRead) {
 }
 
 }  // namespace
+}  // namespace btf
 }  // namespace tfrt

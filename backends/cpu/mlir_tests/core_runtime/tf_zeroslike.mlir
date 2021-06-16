@@ -31,7 +31,7 @@ func @zeroslike_f32() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%cpu) "tf.ZerosLike"(%operand) { T = f32 } : 1
 
-  // CHECK: ScalarHostTensor dtype = F32, shape = [2, 3], value = 0.000000e+00
+  // CHECK: ScalarHostTensor dtype = f32, shape = [2, 3], value = 0.000000e+00
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch0) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

@@ -66,7 +66,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
 
   ResourceContext* res_ctx = exec_ctx.resource_context();
   auto* jit_executable_cache =
-      res_ctx->GetOrCreateResource<JitExecutableCache>("cpurt.cache", host);
+      res_ctx->GetOrCreateResource<JitExecutableCache>("cpurt.cache");
 
   // TODO(ezhulenev): Compute cache key based on the content of MLIR module, or
   // better keep module fingerprint in the BEF file.
@@ -110,7 +110,7 @@ static Error ConvertTensorHandleOperandsToMemrefDesc(
     const Tensor& tensor = operands[i].GetAsyncTensor()->get<Tensor>();
     Expected<MemrefDesc> memref = ConvertTensorToMemrefDesc(tensor);
     if (auto err = memref.takeError()) return err;
-    memrefs->push_back(*memref);
+    memrefs->push_back(std::move(*memref));
   }
 
   return Error::success();

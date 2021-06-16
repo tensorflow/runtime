@@ -31,7 +31,7 @@ func @realdiv_dense_dense_f32() -> !tfrt.chain{
   %operand_1 = corert.executeop(%cpu) "tfrt_test.create_dense_tensor"()
     { shape = [2, 3], values = [4.0 : f32, 1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32] } : 1
   %cpu_handle_result = corert.executeop(%cpu) "tf.RealDiv"(%operand_0, %operand_1) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 3]
   // CHECK-SAME: values = [-2.500000e-01, -5.000000e-01, 0.000000e+00, 1.666667e-01, 2.500000e-01, 3.000000e-01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 

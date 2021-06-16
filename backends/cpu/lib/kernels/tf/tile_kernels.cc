@@ -41,12 +41,11 @@ Error TileKernel(const DenseHostTensor& input,
 namespace tf {
 
 void RegisterTileCpuKernels(KernelRegistry* registry) {
-#define DTYPE_NUMERIC(ENUM)                                      \
-  {                                                              \
-    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;         \
-    registry->AddSyncKernel(                                     \
-        StrCat("tf_sync.Tile.", GetDType<CPP_TYPE>().GetName()), \
-        TFRT_SYNC_KERNEL(TileKernel<CPP_TYPE>));                 \
+#define DTYPE_NUMERIC(ENUM)                                                \
+  {                                                                        \
+    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                   \
+    registry->AddSyncKernel(StrCat("tf_sync.Tile.", GetDType<CPP_TYPE>()), \
+                            TFRT_SYNC_KERNEL(TileKernel<CPP_TYPE>));       \
   }
 #include "tfrt/dtype/dtype.def"
 

@@ -12,24 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// This file implements MLIR traits for the `tfrt` dialect.
+// BefStringEmitter class to emit strings.
 
-#include "tfrt/basic_kernels/opdefs/tfrt_traits.h"
+#include "bef_string_emitter.h"
 
 namespace tfrt {
-namespace compiler_internal {
 
-mlir::LogicalResult VerifyCostAttr(mlir::Operation* op,
-                                   llvm::StringRef attr_name) {
-  auto cost_attr = op->getAttrOfType<mlir::IntegerAttr>(attr_name);
+size_t BefStringEmitter::EmitString(string_view str) {
+  auto it = offset_map_.find(str);
+  if (it != offset_map_.end()) {
+    return it->second;
+  }
 
-  if (!cost_attr) return op->emitOpError("failed to find cost attribute");
+  size_t offset = size();
+  EmitBytes({reinterpret_cast<const uint8_t*>(str.data()), str.size()});
+  EmitByte(0);
 
-  if (cost_attr.getInt() <= 0)
-    return op->emitOpError("requires the cost attribute larger than 0");
+  auto r = offset_map_.try_emplace(str, offset);
+  assert(r.second);
+  (void)r;
 
-  return mlir::success();
+  return offset;
 }
 
-}  // namespace compiler_internal
 }  // namespace tfrt

@@ -32,7 +32,7 @@ func @tile_f32() attributes {tfrt.sync} {
   %result = tfrt_dht_sync.create_uninitialized_tensor.f32.1 [4: i64, 6: i64]
   "tf_sync.Tile.f32"(%operand_0, %operand_1, %result) : (!t.tensor, !t.tensor, !t.tensor) -> ()
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 6]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 6]
   // CHECK-SAME: values = [1.000000e+00, 2.000000e+00, 3.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00]
   tfrt_dht_sync.print_tensor %result
 

@@ -24,26 +24,37 @@
 #include <cstdint>
 
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/raw_ostream.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/variant.h"
 
 namespace tfrt {
 
 class LocationHandler;
 
-// This is a simple representation of a source location. The
-// filename/line/column are all optional.
-struct DecodedLocation {
+struct FileLineColLocation {
   std::string filename;
   int line = -1;
   int column = -1;
 };
+
+struct OpaqueLocation {
+  std::string loc;
+};
+
+struct DebugInfo {
+  std::string info;
+};
+
+// This is a simple representation of a source location.
+using DecodedLocation = Variant<FileLineColLocation, OpaqueLocation>;
 
 // This is an opaque location token that is passed to kernel implementations,
 // and is used to report errors. It should remain a simple POD type.
 class Location {
  public:
   Location() = default;
-  Location(const LocationHandler *handler, intptr_t data)
+  Location(const LocationHandler* handler, intptr_t data)
       : data(data), handler_(handler) {}
 
   // Location has an optional semantic. A default constructed evaluates to
@@ -52,7 +63,9 @@ class Location {
 
   DecodedLocation Decode() const;
 
-  const LocationHandler *GetHandler() const { return handler_; }
+  Optional<DebugInfo> GetDebugInfo() const;
+
+  const LocationHandler* GetHandler() const { return handler_; }
 
   // Opaque implementation details of this location, only interpretable by the
   // location handler.
@@ -60,13 +73,16 @@ class Location {
 
  private:
   friend class LocationHandler;
-  const LocationHandler *handler_ = nullptr;
+  const LocationHandler* handler_ = nullptr;
 };
 
 // This is a virtual base class used by things that create locations.
 class LocationHandler {
  public:
   virtual DecodedLocation DecodeLocation(Location loc) const = 0;
+  virtual Optional<DebugInfo> GetDebugInfo(Location loc) const {
+    return llvm::None;
+  }
 
   // ~LocationHandler() is defined in lib/host_context/host_context.cc as the
   // key method.
@@ -77,6 +93,13 @@ inline DecodedLocation Location::Decode() const {
   if (!handler_) return DecodedLocation();
   return handler_->DecodeLocation(*this);
 }
+
+inline Optional<DebugInfo> Location::GetDebugInfo() const {
+  if (!handler_) return llvm::None;
+  return handler_->GetDebugInfo(*this);
+}
+
+raw_ostream& operator<<(raw_ostream& os, const DecodedLocation& loc);
 
 }  // namespace tfrt
 

@@ -361,7 +361,7 @@ static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
     default:
       llvm_unreachable("dtype not supported");
       break;
-    case DType::BOOL: {
+    case DType::I1: {
       auto dht_view = DHTArrayView<bool>(&dht);
       assert(dht_view.NumElements() == 1);
       return dht_view[0];
@@ -901,11 +901,6 @@ void RegisterCreateDenseTensor(KernelRegistry *registry) {
   REGISTER_CREATE_DENSE_TENSOR(uint16_t, ui16);
   REGISTER_CREATE_DENSE_TENSOR(uint32_t, ui32);
   REGISTER_CREATE_DENSE_TENSOR(uint64_t, ui64);
-  // TODO(b/170482990): Unify bool and i1. We should only use tfrt::i1 for i1
-  // dtype data.
-  static_assert(
-      sizeof(bool) == 1,
-      "bool should contain exactly 1 byte for CreateDenseTensor to work.");
   REGISTER_CREATE_DENSE_TENSOR(bool, i1);
   REGISTER_CREATE_DENSE_TENSOR(int8_t, i8);
   REGISTER_CREATE_DENSE_TENSOR(int16_t, i16);

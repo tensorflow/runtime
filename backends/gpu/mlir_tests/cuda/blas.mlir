@@ -45,7 +45,7 @@ func @blas_axpy() {
     CUDA_R_32F, %ch6
 
   %ch8 = tfrt_gpu.mem.copy_device_to_host %host_buffer, %gpu_buffer_1, %buffer_size_bytes, %stream, %ch7
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [3.000000e+00, 5.000000e+00, 7.000000e+00, 9.000000e+00]
   %ch9 = tfrt_dht.print_tensor %host_tensor, %ch8
 
@@ -92,7 +92,7 @@ func @blas_gemm() {
     CUDA_R_32F, %algo, %ch8
 
   %ch10 = tfrt_gpu.mem.copy_device_to_host %host_buffer, %gpu_buffer_2, %buffer_size_bytes, %stream, %ch9
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
   %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
 
@@ -142,7 +142,7 @@ func @blas_gemm_batched() {
     CUDA_R_32F, %algo, %ch8
 
   %ch10 = tfrt_gpu.mem.copy_device_to_host %host_buffer, %gpu_buffer_2, %buffer_size_bytes, %stream, %ch9
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 2]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
   %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
 

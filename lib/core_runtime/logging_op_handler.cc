@@ -42,6 +42,7 @@
 #include "tfrt/core_runtime/op_handler.h"
 #include "tfrt/core_runtime/op_invocation.h"
 #include "tfrt/core_runtime/tensor_handle.h"
+#include "tfrt/dtype/dtype_formatter.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/error_util.h"
@@ -68,9 +69,7 @@ void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
   // t = t.reshape(original_shape)
   for (ssize_t i = 0, e = dht.NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";
-    // TODO(tfrt-devs): llvm::raw_stream only prints to 6 decimal
-    // places. Need to print full-precision.
-    dht.dtype().Print(data_ptr + i * element_size, os);
+    os << FormatDType(dht.dtype(), data_ptr + i * element_size);
   }
 }
 

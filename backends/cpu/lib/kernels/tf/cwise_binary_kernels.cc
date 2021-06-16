@@ -26,14 +26,13 @@ namespace {
 
 template <typename FunctorT>
 void RegisterBinaryKernel(KernelRegistry* registry, string_view kernel_name) {
-#define DTYPE_NUMERIC(ENUM)                                               \
-  {                                                                       \
-    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                  \
-    using BinaryFunctor = typename FunctorT::template Functor<CPP_TYPE>;  \
-    registry->AddSyncKernel(                                              \
-        ("tf_sync." + kernel_name + "." + GetDType<CPP_TYPE>().GetName()) \
-            .str(),                                                       \
-        TFRT_SYNC_KERNEL(cpu::SyncBinaryKernel<BinaryFunctor>));          \
+#define DTYPE_NUMERIC(ENUM)                                              \
+  {                                                                      \
+    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                 \
+    using BinaryFunctor = typename FunctorT::template Functor<CPP_TYPE>; \
+    registry->AddSyncKernel(                                             \
+        StrCat("tf_sync.", kernel_name, ".", GetDType<CPP_TYPE>()),      \
+        TFRT_SYNC_KERNEL(cpu::SyncBinaryKernel<BinaryFunctor>));         \
   }
 #include "tfrt/dtype/dtype.def"
 }

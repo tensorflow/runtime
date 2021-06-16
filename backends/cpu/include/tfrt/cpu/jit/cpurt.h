@@ -180,6 +180,12 @@ struct CompilationOptions {
 //----------------------------------------------------------------------------//
 
 struct MemrefDesc {
+  MemrefDesc() = default;
+
+  // Ensure that MemrefDesc is always moved around instead of copying.
+  MemrefDesc(const MemrefDesc&) = delete;
+  MemrefDesc(MemrefDesc&&) = default;
+
   DType dtype;
   void* data;
   ssize_t offset;
@@ -192,9 +198,11 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
 // Verifies that the runtime buffer is compatible with the memref type (same
 // rank and statically known dimensions are matched with the runtime
 // dimensions).
-Error VerifyMemrefOperand(mlir::MemRefType type, MemrefDesc memref);
-Error VerifyMemrefOperand(mlir::UnrankedTensorType type, MemrefDesc memref);
-Error VerifyMemrefOperand(mlir::RankedTensorType type, MemrefDesc memref);
+Error VerifyMemrefOperand(mlir::MemRefType type, const MemrefDesc& memref);
+Error VerifyMemrefOperand(mlir::UnrankedTensorType type,
+                          const MemrefDesc& memref);
+Error VerifyMemrefOperand(mlir::RankedTensorType type,
+                          const MemrefDesc& memref);
 
 // Converts tfrt Tensor to the Memref descriptor if concrete Tensor type is
 // supported (currently only DenseHostTensor can be converted). Returns error
@@ -604,7 +612,7 @@ class Executable {
   // and storage for returned values.
   struct CallFrame {
     // Pointers to compiled kernel arguments.
-    llvm::SmallVector<void*> args;
+    llvm::SmallVector<void*, 32> args;
 
     // We use single block of memory to store compiled kernel results. We need
     // to be able to store pointers to async values and tokens, and strided
@@ -684,11 +692,13 @@ Expected<OperandConstraint> ResolveOperandConstraint(
 // constraints.
 class JitExecutable {
  public:
+  struct Listener;
+
   static constexpr const char* const kConstraint = "cpurt.constraint";
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
-      const CompilationOptions& compilation_opts);
+      const CompilationOptions& compilation_opts, Listener* listener = nullptr);
 
   // Returns entrypoint operands constraints after resolving them using the
   // statically known information in the entrypoint function signature.
@@ -718,11 +728,27 @@ class JitExecutable {
   JitExecutable(const JitExecutable&) = delete;
   JitExecutable(JitExecutable&&) = default;
 
+  // Listener class to control notifications during specialization.
+  struct Listener {
+    virtual ~Listener(){};
+
+    // Called at the end of module specialization.
+    // 'inputs' is a reference to the specialized input types.
+    virtual void notifyModuleSpecialized(ArrayRef<mlir::Type> inputs) {}
+
+    // Called once for every value-specialized argument.
+    virtual void notifyValueSpecialized(unsigned index, mlir::Type type,
+                                        mlir::Attribute attr) {}
+  };
+  void setListener(Listener* listener) { listener_ = listener; }
+  Listener* getListener() const { return listener_; }
+
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,
                 CompilationOptions compilation_opts,
                 ArrayRef<OperandConstraint> constraints,
-                Optional<Executable> default_executable = {});
+                Optional<Executable> default_executable = {},
+                Listener* listener = nullptr);
 
   // We do not use Expected<Executable> here because we need a mechanism to
   // copy an error, and this is not possible using the Expected API.
@@ -764,6 +790,8 @@ class JitExecutable {
 
   // Executables specialized for the arguments shapes or/and values.
   std::unique_ptr<Specializations> specializations_;
+
+  Listener* listener_;
 };
 
 //----------------------------------------------------------------------------//
@@ -772,15 +800,25 @@ class JitExecutable {
 
 class JitExecutableCache {
  public:
-  explicit JitExecutableCache(HostContext* host) : host_(host) {}
+  JitExecutableCache() = default;
   AsyncValueRef<JitExecutable> Find(intptr_t key) const;
   AsyncValueRef<JitExecutable> Insert(intptr_t key,
                                       JitExecutable jit_executable);
 
  private:
-  HostContext* host_;
+  // Lifetime of the cached JitExecutables is managed by the cache, this means
+  // that the instance of the cache must outlive all pending computation, which
+  // is guaranteed by the fact that the cache is stored in the resource context.
+  using CachedExecutable = UnRefCountedAsyncValue<JitExecutable>;
+
+  static AsyncValueRef<JitExecutable> MakeRef(
+      const std::unique_ptr<CachedExecutable>& exec) {
+    return AsyncValueRef<JitExecutable>(TakeRef(exec.get()));
+  }
+
   mutable tfrt::mutex mu_;
-  llvm::DenseMap<intptr_t, AsyncValueRef<JitExecutable>> cache_
+
+  llvm::DenseMap<intptr_t, std::unique_ptr<CachedExecutable>> cache_
       TFRT_GUARDED_BY(mu_);
 };
 

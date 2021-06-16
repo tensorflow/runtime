@@ -18,7 +18,7 @@
 #include "tfrt/gpu/device/conversion_function.h"
 
 #include "tfrt/gpu/device/device.h"
-#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -97,24 +97,26 @@ DenseGpuTensorToDenseHostTensorConversionFn(const DenseGpuTensor& tensor,
                                             const GpuDevice& src,
                                             const CpuDevice& dst,
                                             const ExecutionContext& exec_ctx) {
+  Expected<wrapper::CurrentContext> current_context = src.SetCurrentContext();
+  if (!current_context) {
+    return MakeErrorAsyncValueRef(StrCat(current_context.takeError()));
+  }
   return ConvertDenseGpuTensorToDenseHostTensor(
-      src.CreateContext(), src.stream(), tensor, exec_ctx.host());
+      std::move(current_context.get()), src.stream(), tensor, exec_ctx.host());
 }
 
 Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
     wrapper::CurrentContext current_context, wrapper::Stream stream,
-    GpuCrtAllocator* allocator, const DenseHostTensor& tensor,
+    AsyncValueRef<GpuAllocator> allocator, const DenseHostTensor& tensor,
     HostContext* host) {
   size_t size_in_bytes = tensor.metadata().GetHostSizeInBytes();
 
-  llvm::Expected<RCReference<gpu::GpuCrtBuffer>> buffer_or_error =
-      allocator->AllocateBuffer(
-          /*size=*/size_in_bytes, stream);
-  if (!buffer_or_error) return buffer_or_error.takeError();
-  RCReference<gpu::GpuCrtBuffer> buffer = std::move(*buffer_or_error);
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer buffer,
+      GpuBuffer::Allocate(std::move(allocator), size_in_bytes, stream));
 
   Pointer<const void> memcpy_src(tensor.data(), current_context.platform());
-  if (auto error = MemcpyAsync(current_context, /*dst=*/buffer->pointer(),
+  if (auto error = MemcpyAsync(current_context, /*dst=*/buffer.pointer(),
                                /*src=*/memcpy_src, size_in_bytes, stream))
     return std::move(error);
 
@@ -138,15 +140,20 @@ Expected<DenseGpuTensor> ConvertDenseHostTensorToDenseGpuTensor(
         "could not enqueue work to synchronize after issuing host to device "
         "memcpy in CreateDenseTensorOp");
   }
-  return gpu::DenseGpuTensor(tensor.metadata(), std::move(buffer));
+  return gpu::DenseGpuTensor(
+      tensor.metadata(),
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
 }
 
 static Expected<DenseGpuTensor> DenseHostTensorToDenseGpuTensorConversionFn(
     const DenseHostTensor& tensor, const CpuDevice& src, const GpuDevice& dst,
     const ExecutionContext& exec_ctx) {
-  return ConvertDenseHostTensorToDenseGpuTensor(dst.CreateContext(),
-                                                dst.stream(), dst.allocator(),
-                                                tensor, exec_ctx.host());
+  Expected<wrapper::CurrentContext> current_context = dst.SetCurrentContext();
+  if (!current_context) return current_context.takeError();
+
+  return ConvertDenseHostTensorToDenseGpuTensor(
+      std::move(current_context.get()), dst.stream(), dst.allocator(), tensor,
+      exec_ctx.host());
 }
 
 void RegisterGpuTensorConversionFn(TensorConversionFnRegistry* registry) {

@@ -21,7 +21,6 @@
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/gpu/gpu_types.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -165,13 +164,7 @@ static Expected<DenseGpuTensor> GpuTensorMake(Argument<GpuBuffer> buffer,
         ") is not equal to the number of elements in shape (", shape,
         ") times element size (", GetDType<T>().GetHostSize(), ")");
   }
-  GpuCrtBuffer::Deallocator deallocator(
-      [buffer = buffer.ValueRef()](GpuCrtBuffer*) {
-        if (auto error = buffer->Deallocate()) TFRT_LOG(ERROR) << error;
-      });
-  auto crt_buffer = TakeRef(new GpuCrtBuffer(buffer->pointer(), buffer->size(),
-                                             std::move(deallocator)));
-  return DenseGpuTensor(shape, GetDType<T>(), std::move(crt_buffer));
+  return DenseGpuTensor(shape, GetDType<T>(), std::move(buffer.ValueRef()));
 }
 
 // tfrt_gpu.tensor.print_metadata prints `tensor`'s metadata.

@@ -33,7 +33,7 @@
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/host_context.h"
@@ -133,15 +133,20 @@ llvm::Expected<DenseGpuTensor> EnqueueGpuPadOp(
     GpuDispatchContext* dctx, const DenseGpuTensor& input,
     const DenseView& paddings, const TensorMetadata& result_md) {
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
-  TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> buffer,
-                        dctx->allocator()->AllocateBuffer(
-                            /*size=*/size_in_bytes, dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/size_in_bytes, dctx->stream()));
 
   if (size_in_bytes == 0) {
-    return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
+    return DenseGpuTensor(
+        result_md.shape, result_md.dtype,
+        MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
   }
 
-  DenseGpuTensor result(result_md.shape, result_md.dtype, std::move(buffer));
+  DenseGpuTensor result(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
 
   CallOperate(dctx, input, paddings, &result);
   return std::move(result);

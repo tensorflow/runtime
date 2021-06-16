@@ -37,4 +37,5 @@ func @if_mismatch(%cond: i1, %v1: i32, %v2: i32) -> i32 {
     // expected-error @+1 {{'tfrt.return' op operand types don't match 'tfrt.if' result}}
     tfrt.return %v1 : i32
   }
+  tfrt.return %v1 : i32
 }

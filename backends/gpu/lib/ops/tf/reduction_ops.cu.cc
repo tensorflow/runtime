@@ -28,6 +28,7 @@
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
 #include "tfrt/support/error_util.h"
@@ -215,12 +216,13 @@ static llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input,
   // Get required amount of temp storage.
   if (auto err = launch(nullptr)) return std::move(err);
 
-  TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> tmp_buffer,
-                        dctx->allocator()->AllocateBuffer(
-                            /*size=*/temp_storage_bytes, dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer tmp_buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/temp_storage_bytes, dctx->stream()));
 
   // Do reduction.
-  return launch(GetRawPointer<void>(*tmp_buffer));
+  return launch(GetRawPointer<void>(tmp_buffer));
 }
 
 static ssize_t NumBlocks(ssize_t num_elements, ssize_t elements_per_block) {
@@ -285,13 +287,13 @@ static llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input,
   // Get required amount of temp storage.
   if (auto err = launch(nullptr)) return std::move(err);
 
-  llvm::Expected<RCReference<GpuCrtBuffer>> tmp_buffer_or_error =
-      dctx->allocator()->AllocateBuffer(
-          /*size=*/sizeof(uint8_t), dctx->stream());
-  if (!tmp_buffer_or_error) return tmp_buffer_or_error.takeError();
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer tmp_buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/sizeof(uint8_t), dctx->stream()));
 
   // Do reduction.
-  return launch(GetRawPointer<void>(*tmp_buffer_or_error.get()));
+  return launch(GetRawPointer<void>(tmp_buffer));
 }
 
 template <typename T, typename ReduceOp, typename TransformOp>
@@ -384,8 +386,7 @@ static llvm::Optional<ReductionDims3> IsMiddleReduction(
 
 template <typename T, typename ReduceOp, typename TransformOp>
 static llvm::Error Reduce(GpuDispatchContext* dctx, const DenseGpuTensor& input,
-                          const GpuCrtBuffer& output,
-                          const TensorMetadata& out_md,
+                          const GpuBuffer& output, const TensorMetadata& out_md,
                           ArrayRef<int32_t> reduction_indices, T init,
                           ReduceOp reduce, TransformOp transform) {
   auto input_ptr = GetRawPointer<const T>(input);
@@ -422,7 +423,7 @@ static llvm::Error Reduce(GpuDispatchContext* dctx, const DenseGpuTensor& input,
 template <typename T>
 static llvm::Error ReduceMean(GpuDispatchContext* dctx,
                               const DenseGpuTensor& input,
-                              const GpuCrtBuffer& output,
+                              const GpuBuffer& output,
                               const TensorMetadata& out_md,
                               ArrayRef<int32_t> reduction_indices) {
   // Number of input elements per output element.
@@ -437,29 +438,31 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpImpl(
   size_t num_result_elements = result_md.shape.GetNumElements();
   size_t size_in_bytes = result_md.dtype.GetHostSize() * num_result_elements;
 
-  TFRT_ASSIGN_OR_RETURN(auto output_buffer,
-                        dctx->allocator()->AllocateBuffer(
-                            /*size=*/size_in_bytes, dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer output_buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/size_in_bytes, dctx->stream()));
 
   switch (input.dtype().kind()) {
     default:
       return MakeStringError("Unsupported data type: ", input.dtype());
 
     case DType::F16:
-      if (auto err = ReduceMean<Eigen::half>(dctx, input, *output_buffer,
+      if (auto err = ReduceMean<Eigen::half>(dctx, input, output_buffer,
                                              result_md, reduction_indices))
         return std::move(err);
       break;
 
     case DType::F32:
-      if (auto err = ReduceMean<float>(dctx, input, *output_buffer, result_md,
+      if (auto err = ReduceMean<float>(dctx, input, output_buffer, result_md,
                                        reduction_indices))
         return std::move(err);
       break;
   }
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype,
-                        std::move(output_buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer)));
 }
 
 static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpFolded(

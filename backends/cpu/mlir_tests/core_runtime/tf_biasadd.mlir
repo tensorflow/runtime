@@ -32,7 +32,7 @@ func @biasadd_2d() -> !tfrt.chain {
     { dtype = f32, value = dense<[1.5, 2.5]> : tensor<2xf32> } : 1
   %output = corert.executeop(%cpu) "tf.BiasAdd"(%input_1, %input_2) { T = f32, data_format = "NHWC" } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [3, 2], values = [2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [3, 2], values = [2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00]
   %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
   tfrt.return %ch_2 : !tfrt.chain
 }
@@ -48,7 +48,7 @@ func @biasadd_3d() -> !tfrt.chain {
     { dtype = f32, value = dense<[1.5, 2.5]> : tensor<2xf32> } : 1
   %output = corert.executeop(%cpu) "tf.BiasAdd"(%input_1, %input_2) { T = f32, data_format = "NHWC" } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3, 2], values = [2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00, 2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 3, 2], values = [2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00, 2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00]
   %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
   tfrt.return %ch_2 : !tfrt.chain
 }
@@ -64,7 +64,7 @@ func @biasadd_4d() -> !tfrt.chain {
     { dtype = f32, value = dense<[1.5, 2.5]> : tensor<2xf32> } : 1
   %output = corert.executeop(%cpu) "tf.BiasAdd"(%input_1, %input_2) { T = f32, data_format = "NHWC" } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 2, 3, 2], values = [2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00, 2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 2, 3, 2], values = [2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00, 2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00]
   %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
   tfrt.return %ch_2 : !tfrt.chain
 }
@@ -96,7 +96,7 @@ func @biasadd_5d() -> !tfrt.chain {
     { dtype = f32, value = dense<[1.5, 2.5]> : tensor<2xf32> } : 1
   %output = corert.executeop(%cpu) "tf.BiasAdd"(%input_1, %input_2) { T = f32, data_format = "NHWC" } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 3, 2], values = [2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00, 2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 3, 2], values = [2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00, 2.500000e+00, 4.500000e+00, 4.500000e+00, 6.500000e+00, 6.500000e+00, 8.500000e+00]
   %ch_2 = corert.executeop.seq(%cpu, %ch_1) "tfrt_test.print"(%output) : 0
   tfrt.return %ch_2 : !tfrt.chain
 }

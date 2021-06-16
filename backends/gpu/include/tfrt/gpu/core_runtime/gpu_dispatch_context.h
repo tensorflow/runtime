@@ -21,7 +21,7 @@
 #define TFRT_GPU_CORE_RUNTIME_GPU_DISPATCH_CONTEXT_H_
 
 #include "tfrt/gpu/device/device.h"
-#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
@@ -34,14 +34,17 @@ namespace tfrt {
 namespace gpu {
 class GpuDispatchContext {
  public:
-  explicit GpuDispatchContext(const GpuDevice* device)
-      : device_(device),
-        stream_(device->stream()),
-        allocator_(device->allocator()),
-        eigen_gpu_device_(device->eigen_gpu_device()),
-        blas_handle_(device->blas_handle()),
-        dnn_handle_(device->dnn_handle()),
-        current_context_(std::move(device->CreateContext())) {}
+  static Expected<GpuDispatchContext> Create(const GpuDevice* device) {
+    if (device == nullptr) {
+      return MakeStringError("The device is null.");
+    }
+    Expected<wrapper::CurrentContext> current_context =
+        device->SetCurrentContext();
+    if (!current_context) {
+      return current_context.takeError();
+    }
+    return GpuDispatchContext(device, std::move(current_context.get()));
+  }
 
   // The inputs to the GPU dispatch function are available for reading on this
   // stream.  The outputs from the dispatch must also be ready for reading on
@@ -49,7 +52,9 @@ class GpuDispatchContext {
   wrapper::Stream stream() const { return stream_; }
 
   // Allocator for allocating GPU device memory.
-  gpu::GpuCrtAllocator* allocator() const { return allocator_; }
+  AsyncValueRef<gpu::GpuAllocator> allocator() const {
+    return device_->allocator();
+  }
 
   // Eigen GPU device. Used to launch Eigen kernels.
   Eigen::GpuDevice* eigen_gpu_device() const { return eigen_gpu_device_; }
@@ -68,9 +73,17 @@ class GpuDispatchContext {
   const GpuDevice& device() const { return *device_; }
 
  private:
+  GpuDispatchContext(const GpuDevice* device,
+                     wrapper::CurrentContext current_context)
+      : device_(device),
+        stream_(device->stream()),
+        eigen_gpu_device_(device->eigen_gpu_device()),
+        blas_handle_(device->blas_handle()),
+        dnn_handle_(device->dnn_handle()),
+        current_context_(std::move(current_context)) {}
+
   const GpuDevice* device_;
   wrapper::Stream stream_;
-  GpuCrtAllocator* allocator_;
   Eigen::GpuDevice* eigen_gpu_device_;
   wrapper::BlasHandle blas_handle_;
   wrapper::DnnHandle dnn_handle_;

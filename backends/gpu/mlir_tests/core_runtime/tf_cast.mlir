@@ -33,7 +33,7 @@ func @cast_f64_to_f32_no_truncate() -> !tfrt.chain{
     "tfrt_test.create_dense_tensor"() { shape = [2, 3], values = [-340282356779733661637539395458142568448.000000 : f64, -0.5 : f64, 0.0 : f64, 0.5 : f64, 1.0 : f64, 340282356779733661637539395458142568448.000000 : f64] } : 1
   %gpu_handle_result = corert.executeop(%gpu) "tf.Cast"(%input) {DstT = f32, SrcT = f64, Truncate = false} : 1
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3], values = [-inf, -0.5, 0, 0.5, 1, inf]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 3], values = [-inf, -0.5, 0, 0.5, 1, inf]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain
@@ -48,7 +48,7 @@ func @cast_f64_to_f32_with_truncate() -> !tfrt.chain{
     "tfrt_test.create_dense_tensor"() { shape = [2, 3], values = [-340282356779733661637539395458142568448.000000 : f64, -0.5 : f64, 0.0 : f64, 0.5 : f64, 1.0 : f64, 340282356779733661637539395458142568448.000000 : f64] } : 1
   %gpu_handle_result = corert.executeop(%gpu) "tf.Cast"(%input) {DstT = f32, SrcT = f64, Truncate = true} : 1
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [2, 3], values = [-3.40282347e+38, -0.5, 0, 0.5, 1, 3.40282347e+38]
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 3], values = [-3.40282347e+38, -0.5, 0, 0.5, 1, 3.40282347e+38]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain
@@ -63,7 +63,7 @@ func @cast_f32_to_f64_no_truncate() -> !tfrt.chain{
     "tfrt_test.create_dense_tensor"() { shape = [2, 3], values = [-3.4028234663852886e+38 : f32, -0.5 : f32, 0.0 : f32, 0.5 : f32, 1.0 : f32, 3.4028234663852886e+38 : f32] } : 1
   %gpu_handle_result = corert.executeop(%gpu) "tf.Cast"(%input) {DstT = f64, SrcT = f64, Truncate = false} : 1
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F64, shape = [2, 3], values = [-3.4028234663852886e+38, -0.5, 0, 0.5, 1, 3.4028234663852886e+38]
+  // CHECK: DenseHostTensor dtype = f64, shape = [2, 3], values = [-3.4028234663852886e+38, -0.5, 0, 0.5, 1, 3.4028234663852886e+38]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
 
   tfrt.return %ch_print_cpu : !tfrt.chain

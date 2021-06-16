@@ -19,19 +19,24 @@
 #ifndef TFRT_SUPPORT_BF16_H_
 #define TFRT_SUPPORT_BF16_H_
 
+#include "llvm/Support/raw_ostream.h"
 #include "tfrt/support/forward_decls.h"
 
 namespace tfrt {
 
 // This is just a placeholder type telling core TFRT that bf16 has the same
 // size as uint16_t. The client should get its real C++ type via
-// tfrt::TypeForDTypeKind<DType::Kind::BF16>::Type.
+// tfrt::TypeForDTypeKind<DType::BF16>::Type.
 // TODO(tfrt-devs): Port TensorFlow's bfloat16 implementation to TFRT.
 struct bf16 {
   bf16() : value(0) {}
   explicit bf16(uint16_t v) : value(v) {}
   uint16_t value;
 };
+
+inline raw_ostream &operator<<(raw_ostream &os, bf16 v) {
+  return os << "bf16(" << v.value << ')';
+}
 
 }  // namespace tfrt
 

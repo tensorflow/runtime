@@ -41,7 +41,7 @@ func @conv2d_f32() -> !tfrt.chain {
     "tf.Conv2D"(%gpu_handle_input, %gpu_handle_filter) { data_format = "NCHW", padding = "SAME" } : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%gpu_handle_result) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 2, 2], values = [18, 7, -5, -6]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 2, 2], values = [18, 7, -5, -6]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -69,7 +69,7 @@ func @conv2d_f16() -> !tfrt.chain {
     "tf.Cast"(%conv2d_th_f16) {DstT = f32, SrcT = f16, Truncate = true} : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%conv2d_th_f32) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 4, 1, 1],
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 4, 1, 1],
   // CHECK-SAME: values = [3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01, 3.600000e+01]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
@@ -88,7 +88,7 @@ func @conv2d_valid() -> !tfrt.chain {
       {T = f32, data_format = "NCHW",  dilations = [1, 1, 1, 1], explicit_paddings = [], padding = "VALID", strides = [1, 1, 1, 1], use_cudnn_on_gpu = true}  : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%conv2d_th) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 4, 2, 2], values = [{{(36, ){32}... }}]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 4, 2, 2], values = [{{(36, ){32}... }}]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -106,7 +106,7 @@ func @conv2d_valid_strides() -> !tfrt.chain {
       {T = f32, data_format = "NCHW",  dilations = [1, 1, 1, 1], explicit_paddings = [], padding = "VALID", strides = [1, 1, 2, 2], use_cudnn_on_gpu = true}  : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%conv2d_th) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 4, 1, 1], values = [{{(36, ){15}36}}]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 4, 1, 1], values = [{{(36, ){15}36}}]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -124,7 +124,7 @@ func @conv2d_same() -> !tfrt.chain {
       {T = f32, data_format = "NCHW",  dilations = [1, 1, 1, 1], explicit_paddings = [], padding = "SAME", strides = [1, 1, 1, 1], use_cudnn_on_gpu = true}  : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%conv2d_th) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 4, 4, 4], values = [{{(16, 24, 24, 16, 24, 36, 36, 24, 24, 36, 36, 24, 16, 24, 24, 16, ){2}... }}]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 4, 4, 4], values = [{{(16, 24, 24, 16, 24, 36, 36, 24, 24, 36, 36, 24, 16, 24, 24, 16, ){2}... }}]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -143,7 +143,7 @@ func @conv2d_same_strides() -> !tfrt.chain {
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%conv2d_th) : 1
   // Before changing to match TF behavior, answer is (16, 24, 24, 36, ){8}.
-  // CHECK: DenseHostTensor dtype = F32, shape = [4, 4, 2, 2], values = [{{(36, 24, 24, 16, ){8}... }}]
+  // CHECK: DenseHostTensor dtype = f32, shape = [4, 4, 2, 2], values = [{{(36, 24, 24, 16, ){8}... }}]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

@@ -32,7 +32,7 @@ func @maxpool_valid_padding() -> !tfrt.chain {
   %cpu_handle_result = corert.executeop(%cpu) "tf.MaxPool"(%cpu_handle_input)
     { ksize = [1, 3, 3, 1], padding = "VALID", strides = [1, 2, 2, 1], data_format="NHWC" } : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1, 1, 1], values = [8.000000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1, 1, 1], values = [8.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -47,7 +47,7 @@ func @maxpool_same_padding() -> !tfrt.chain {
   %cpu_handle_result = corert.executeop(%cpu) "tf.MaxPool"(%maxpool_in_th)
     { T = f32, data_format = "NHWC",  ksize = [1, 3, 3, 1], padding = "SAME", strides = [1, 2, 2, 1]} : 1
 
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 2, 2, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 2, 2, 1], values = [1.000000e+00, 1.000000e+00, 1.000000e+00, 1.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

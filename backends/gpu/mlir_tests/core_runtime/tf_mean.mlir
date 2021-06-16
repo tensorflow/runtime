@@ -35,7 +35,7 @@ func @mean() -> !tfrt.chain {
   %mean_th = corert.executeop(%gpu) "tf.Mean"(%mean_in_th1, %mean_in_th2) { T = f32, Tidx = i32, keep_dims = false } : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "tfrt_test.gpu_tensor_to_host_tensor"(%mean_th) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1], values = [1.000000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1], values = [1.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }
@@ -51,7 +51,7 @@ func @mean_folded() -> !tfrt.chain {
     { T = f32, Tidx = i32, keep_dims = false, reduction_indices = dense<[2, 3]> : tensor<2xi32> } : 1
 
   %cpu_handle_result = corert.executeop(%gpu) "test.gpu_tensor_to_host_tensor"(%mean_th) : 1
-  // CHECK: DenseHostTensor dtype = F32, shape = [1, 1], values = [1.000000e+00]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 1], values = [1.000000e+00]
   %ch_print_cpu = corert.executeop.seq(%gpu, %ch_epoch) "test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain
 }

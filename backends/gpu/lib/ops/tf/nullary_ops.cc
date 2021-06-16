@@ -18,7 +18,7 @@
 #include "tfrt/gpu/core_runtime/gpu_dispatch_context.h"
 #include "tfrt/gpu/core_runtime/gpu_op_registry.h"
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
-#include "tfrt/gpu/memory/gpu_buffer.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
@@ -33,12 +33,15 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
     const TensorMetadata& result_md, const ExecutionContext& exec_ctx) {
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
 
-  TFRT_ASSIGN_OR_RETURN(RCReference<GpuCrtBuffer> buffer,
-                        dctx->allocator()->AllocateBuffer(
-                            /*size=*/size_in_bytes, dctx->stream()));
+  TFRT_ASSIGN_OR_RETURN(
+      GpuBuffer buffer,
+      GpuBuffer::Allocate(dctx->allocator(),
+                          /*size=*/size_in_bytes, dctx->stream()));
 
   if (size_in_bytes == 0) {
-    return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
+    return DenseGpuTensor(
+        result_md.shape, result_md.dtype,
+        MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
   }
 
   // Make a copy of attrs on the heap.
@@ -50,7 +53,7 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
   wrapper::Pointer<const void> memcpy_src(dense_view.data(),
                                           dctx->current_context().platform());
   if (auto error = wrapper::MemcpyAsync(dctx->current_context(),
-                                        /*dst=*/buffer->pointer(),
+                                        /*dst=*/buffer.pointer(),
                                         /*src=*/memcpy_src, size_in_bytes,
                                         dctx->stream())) {
     return std::move(error);
@@ -74,7 +77,9 @@ static llvm::Expected<DenseGpuTensor> GpuConstOp(
   if (!work_enqueued)
     return MakeStringError("enqueue to blocking work queue failed");
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype, std::move(buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(buffer)));
 }
 
 void RegisterNullaryGpuTfOps(GpuOpRegistry* registry) {

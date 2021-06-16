@@ -53,6 +53,4 @@ def TFRT_DeviceType :
     Type<CPred<"$_self.isa<tfrt::DeviceType>()">, "!tfrt.device type">,
     BuildableType<"$_builder.getType<tfrt::DeviceType>()">;
 
-def TFRT_CostTrait : NativeOpTrait<"tfrt::CostTrait">;
-
 #endif  // TFRT_BASE

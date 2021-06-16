@@ -30,7 +30,6 @@
 #include "llvm/ADT/StringRef.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/attribute_utils.h"
-#include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
@@ -81,8 +80,6 @@ class AsyncKernelFrame {
 
   // Get the location.
   Location GetLocation() const { return exec_ctx_.location(); }
-
-  DebugInfo GetDebugInfo() const { return exec_ctx_.debug_info(); }
 
   ArrayRef<uint8_t> GetAttributeSection() const { return attribute_section_; }
 
@@ -359,10 +356,6 @@ class KernelFrameBuilder : public AsyncKernelFrame {
   // Set the location.
   void SetLocation(const Location& location) {
     exec_ctx_.set_location(location);
-  }
-
-  void SetDebugInfo(const DebugInfo& debug_info) {
-    exec_ctx_.set_debug_info(debug_info);
   }
 };
 

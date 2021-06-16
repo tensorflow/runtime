@@ -19,8 +19,8 @@
 #include "tfrt/compiler/stream_analysis.h"
 
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
-#include "tfrt/basic_kernels/opdefs/tfrt_traits.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
+#include "tfrt/compiler/opdefs/tfrt_op_interfaces.h"
 
 namespace tfrt {
 namespace compiler {
@@ -89,11 +89,10 @@ int64_t StreamAnalysis::GetOperationCost(mlir::Operation* op) const {
   // A few TFRT kernels are guaranteed to be cheap.
   if (llvm::isa<tfrt::ReturnOp, tfrt::MergeChainsOp>(op)) return 1;
 
-  if (op->hasTrait<mlir::OpTrait::tfrt::CostTrait>()) {
-    int64_t cost = op->getAttrOfType<mlir::IntegerAttr>("_tfrt_cost").getInt();
-    // Operation costs should be verified by the verifier in the CostTrait to
-    // have positive values.
-    assert(cost > 0);
+  // Check if operations defines a cost function.
+  if (auto cost_function = mlir::dyn_cast<CostFunctionInterface>(op)) {
+    int64_t cost = cost_function.cost();
+    assert(cost > 0 && "cost must be a positive value");
     return cost;
   }
 

@@ -31,7 +31,7 @@ func @stream_create_test() {
 
   %shape = ts.build_shape [2 : i64, 4 : i64]
   %tensor = tfrt_gpu.tensor.make.f64 %buffer, %shape, %ch8
-  // CHECK: DenseGpuTensor<dtype=F64, shape=[2, 4], pointer={{0x[[:xdigit:]]*}} (CUDA)>
+  // CHECK: DenseGpuTensor<dtype=f64, shape=[2, 4], pointer={{0x[[:xdigit:]]*}} (CUDA)>
   %ch10 = tfrt_gpu.tensor.print_metadata %tensor, %ch8
 
   tfrt.return

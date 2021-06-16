@@ -134,7 +134,7 @@ func @test_broadcast() {
   %tensor_2 = "tfrt_test.broadcast.f32.3"(%tensor_1, %target_shape, %ch1)
     : (!t.tensor, !ts.shape, !tfrt.chain) -> !t.tensor
 
-  // CHECK-NEXT: DenseHostTensor dtype = F32, shape = [3, 1, 2], values = [1.000000e+00, 2.000000e+00, 1.000000e+00, 2.000000e+00, 1.000000e+00, 2.000000e+00]
+  // CHECK-NEXT: DenseHostTensor dtype = f32, shape = [3, 1, 2], values = [1.000000e+00, 2.000000e+00, 1.000000e+00, 2.000000e+00, 1.000000e+00, 2.000000e+00]
   %ch2 = tfrt_dht.print_tensor %tensor_2, %ch0
 
   tfrt.return

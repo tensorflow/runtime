@@ -25,7 +25,7 @@
 #include <unordered_map>
 
 #include "llvm/Support/Error.h"
-#include "tfrt/gpu/memory/gpu_allocator.h"
+#include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/mutex.h"
@@ -42,20 +42,18 @@ namespace gpu {
 // coalescing.  One assumption we make is that the process using this
 // allocator owns pretty much all of the GPU memory, and that nearly
 // all requests to allocate GPU memory go through this interface.
-class BfcGpuAllocator : public gpu::GpuCrtAllocator {
+class BfcGpuAllocator : public gpu::GpuAllocator {
  public:
   explicit BfcGpuAllocator(const wrapper::CurrentContext& current);
 
   // BfcGpuAllocator does not support streams. If it is asked to allocate
   // something on a stream different from the stream of any previous
   // allocations, the allocation request will fail.
-  llvm::Expected<RCReference<GpuCrtBuffer>> AllocateBuffer(
-      size_t num_bytes, wrapper::Stream stream) override;
+  llvm::Expected<gpu::GpuPointer> Allocate(size_t num_bytes,
+                                           wrapper::Stream stream) override;
 
-  void Deallocate(const gpu::GpuCrtBuffer& buffer) override;
-
-  llvm::Error RecordUsage(const gpu::GpuCrtBuffer& buffer,
-                          wrapper::Stream stream) override;
+  llvm::Error Deallocate(gpu::GpuPointer pointer,
+                         wrapper::Stream stream) override;
 
  private:
   struct Bin;

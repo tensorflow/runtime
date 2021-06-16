@@ -149,8 +149,9 @@ static auto ToIntVec(const llvm::ArrayRef<ssize_t> array) {
 
 static auto AllocateBuffer(GpuDispatchContext* dctx, const DType& dtype,
                            const TensorShape& shape) {
-  return dctx->allocator()->AllocateBuffer(
-      shape.GetNumElements() * dtype.GetHostSize(), dctx->stream());
+  return GpuBuffer::Allocate(dctx->allocator(),
+                             shape.GetNumElements() * dtype.GetHostSize(),
+                             dctx->stream());
 }
 
 namespace {
@@ -362,14 +363,15 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
             .WithShape(TensorShape({batch_count * pixel_count, channel_count}));
     auto reshaped_filter = filter.WithShape(
         TensorShape(llvm::makeArrayRef(filter_dims_hwio).take_back(2)));
-    if (auto error =
-            RunCublasGemm(dctx->current_context(), dctx->blas_handle(),
-                          /*transpose_a=*/false, /*transpose_b=*/false,
-                          reshaped_input.getValue(), reshaped_filter.getValue(),
-                          output_buffer.get()))
+    if (auto error = RunCublasGemm(dctx->current_context(), dctx->blas_handle(),
+                                   /*transpose_a=*/false, /*transpose_b=*/false,
+                                   reshaped_input.getValue(),
+                                   reshaped_filter.getValue(), output_buffer)) {
       return std::move(error);
-    return DenseGpuTensor(result_md.shape, result_md.dtype,
-                          std::move(output_buffer));
+    }
+    return DenseGpuTensor(
+        result_md.shape, result_md.dtype,
+        MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer)));
   }
 
   TFRT_ASSIGN_OR_RETURN(
@@ -395,7 +397,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
   // TODO(iga): Make this function take channel_order instead of FORMAT_IOHW.
   if (auto error =
           TransformFilterTensor(dctx->current_context(), dctx->stream(),
-                                channel_order, filter, temp_buffer.get()))
+                                channel_order, filter, temp_buffer))
     return std::move(error);
 
   auto conv_dtype = input_data.dtype;
@@ -418,7 +420,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
 
   cudnnConvolutionFwdAlgo_t algo;
   size_t workspace_size_bytes = 0;
-  RCReference<GpuCrtBuffer> workspace_buffer;
+  GpuBuffer workspace_buffer;
 
   // TODO(tfrt-devs): Instead of reading default algorithms from an
   // environment variable, we need to pass these options explicitly through op
@@ -438,8 +440,8 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
       for (size_t mega_bytes : {1024, 128, 16, 0}) {
         workspace_size_bytes = mega_bytes * 1024 * 1024;
         if (workspace_size_bytes == 0) break;
-        if (auto workspace_buffer_or_error = dctx->allocator()->AllocateBuffer(
-                workspace_size_bytes, dctx->stream())) {
+        if (auto workspace_buffer_or_error = GpuBuffer::Allocate(
+                dctx->allocator(), workspace_size_bytes, dctx->stream())) {
           workspace_buffer = std::move(*workspace_buffer_or_error);
           break;
         }
@@ -448,9 +450,9 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
           auto algo_perfs,
           wrapper::CudnnFindConvolutionForwardAlgorithm(
               dctx->current_context(), dctx->dnn_handle(), input_desc.get(),
-              input_ptr, filter_desc.get(), temp_buffer->pointer(),
-              conv_desc.get(), output_desc.get(), output_buffer->pointer(), 1,
-              workspace_buffer->pointer(), workspace_size_bytes));
+              input_ptr, filter_desc.get(), temp_buffer.pointer(),
+              conv_desc.get(), output_desc.get(), output_buffer.pointer(), 1,
+              workspace_buffer.pointer(), workspace_size_bytes));
       const auto& algo_perf = algo_perfs.front();
       it = map.emplace_hint(it, key,
                             std::make_tuple(algo_perf.algo, algo_perf.memory,
@@ -465,27 +467,30 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
 
   TFRT_ASSIGN_OR_RETURN(
       auto workspace_ptr, [&]() -> llvm::Expected<wrapper::Pointer<void>> {
-        if (workspace_size_bytes == 0)
+        if (workspace_size_bytes == 0) {
           return wrapper::Pointer<void>(nullptr, platform);
-        if (!workspace_buffer ||
-            workspace_buffer->size() < workspace_size_bytes) {
-          TFRT_ASSIGN_OR_RETURN(workspace_buffer,
-                                dctx->allocator()->AllocateBuffer(
-                                    workspace_size_bytes, dctx->stream()));
         }
-        return workspace_buffer->pointer();
+        if (!workspace_buffer ||
+            workspace_buffer.size() < workspace_size_bytes) {
+          TFRT_ASSIGN_OR_RETURN(
+              workspace_buffer,
+              GpuBuffer::Allocate(dctx->allocator(), workspace_size_bytes,
+                                  dctx->stream()));
+        }
+        return workspace_buffer.pointer();
       }());
 
   if (auto error = wrapper::CudnnConvolutionForward(
           dctx->current_context(), dctx->dnn_handle(), alpha.pointer(platform),
-          input_desc.get(), input_ptr, filter_desc.get(),
-          temp_buffer->pointer(), conv_desc.get(), algo, workspace_ptr,
-          workspace_size_bytes, beta.pointer(platform), output_desc.get(),
-          output_buffer->pointer()))
+          input_desc.get(), input_ptr, filter_desc.get(), temp_buffer.pointer(),
+          conv_desc.get(), algo, workspace_ptr, workspace_size_bytes,
+          beta.pointer(platform), output_desc.get(), output_buffer.pointer())) {
     return std::move(error);
+  }
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype,
-                        std::move(output_buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer)));
 }
 
 static llvm::Expected<DenseGpuTensor> ComputeMaxPoolGpuOp(
@@ -553,11 +558,12 @@ static llvm::Expected<DenseGpuTensor> ComputeMaxPoolGpuOp(
   if (auto error = wrapper::CudnnPoolingForward(
           dctx->current_context(), dctx->dnn_handle(), pooling_desc.get(),
           alpha.pointer(platform), input_desc.get(), input.buffer().pointer(),
-          beta.pointer(platform), output_desc.get(), output_buffer->pointer()))
+          beta.pointer(platform), output_desc.get(), output_buffer.pointer()))
     return std::move(error);
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype,
-                        std::move(output_buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer)));
 }
 
 static llvm::Expected<DenseGpuTensor> ComputeSoftMaxGpuOp(
@@ -601,11 +607,12 @@ static llvm::Expected<DenseGpuTensor> ComputeSoftMaxGpuOp(
           dctx->current_context(), dctx->dnn_handle(), CUDNN_SOFTMAX_FAST,
           CUDNN_SOFTMAX_MODE_INSTANCE, alpha.pointer(platform),
           input_desc.get(), input.buffer().pointer(), beta.pointer(platform),
-          output_desc.get(), output_buffer->pointer()))
+          output_desc.get(), output_buffer.pointer()))
     return std::move(error);
 
-  return DenseGpuTensor(result_md.shape, result_md.dtype,
-                        std::move(output_buffer));
+  return DenseGpuTensor(
+      result_md.shape, result_md.dtype,
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer)));
 }
 
 static llvm::Expected<
@@ -681,7 +688,7 @@ ComputeBatchNormGpuOp(GpuDispatchContext* dctx, const DenseGpuTensor& input,
   if (auto error = wrapper::CudnnBatchNormalizationForwardInference(
           dctx->current_context(), dctx->dnn_handle(), CUDNN_BATCHNORM_SPATIAL,
           alpha.pointer(platform), beta.pointer(platform), input_desc.get(),
-          input.buffer().pointer(), output_desc.get(), output_buffer->pointer(),
+          input.buffer().pointer(), output_desc.get(), output_buffer.pointer(),
           scale_bias_mean_var_desc.get(), scale.buffer().pointer(),
           bias.buffer().pointer(), mean.buffer().pointer(),
           variance.buffer().pointer(), epsilon))
@@ -689,11 +696,15 @@ ComputeBatchNormGpuOp(GpuDispatchContext* dctx, const DenseGpuTensor& input,
 
   // TODO(tfrt-devs): Return correct results for the last 5 outputs.
   // Use a dummy buffer for last 5 outputs.
-  TFRT_ASSIGN_OR_RETURN(auto dummy_buffer,
+  TFRT_ASSIGN_OR_RETURN(auto dummy_buffer_allocated,
                         AllocateBuffer(dctx, result_md.dtype, result_md.shape));
+  auto dummy_buffer =
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(dummy_buffer_allocated));
+
   return std::make_tuple(
-      DenseGpuTensor(result_md.shape, result_md.dtype,
-                     std::move(output_buffer)),
+      DenseGpuTensor(
+          result_md.shape, result_md.dtype,
+          MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer))),
       DenseGpuTensor(result_md.shape, result_md.dtype, dummy_buffer.CopyRef()),
       DenseGpuTensor(result_md.shape, result_md.dtype, dummy_buffer.CopyRef()),
       DenseGpuTensor(result_md.shape, result_md.dtype, dummy_buffer.CopyRef()),
@@ -731,16 +742,20 @@ FusedBatchNormExOp(GpuDispatchContext* dctx, const DenseGpuTensor& input,
   if (auto error = FusedBatchNormEx(dctx->current_context(), dctx->stream(),
                                     channel_order, input, scale, bias, mean,
                                     variance, side_input.get(), epsilon,
-                                    activation_mode, output_buffer.get()))
+                                    activation_mode, output_buffer))
     return std::move(error);
 
   // TODO(tfrt-devs): Return correct results for the last 5 outputs.
   // Use a dummy buffer for last 5 outputs.
-  TFRT_ASSIGN_OR_RETURN(auto dummy_buffer,
+  TFRT_ASSIGN_OR_RETURN(auto dummy_buffer_allocated,
                         AllocateBuffer(dctx, result_md.dtype, result_md.shape));
+  auto dummy_buffer =
+      MakeAvailableAsyncValueRef<GpuBuffer>(std::move(dummy_buffer_allocated));
+
   return std::make_tuple(
-      DenseGpuTensor(result_md.shape, result_md.dtype,
-                     std::move(output_buffer)),
+      DenseGpuTensor(
+          result_md.shape, result_md.dtype,
+          MakeAvailableAsyncValueRef<GpuBuffer>(std::move(output_buffer))),
       DenseGpuTensor(result_md.shape, result_md.dtype, dummy_buffer.CopyRef()),
       DenseGpuTensor(result_md.shape, result_md.dtype, dummy_buffer.CopyRef()),
       DenseGpuTensor(result_md.shape, result_md.dtype, dummy_buffer.CopyRef()),

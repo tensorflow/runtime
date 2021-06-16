@@ -19,11 +19,11 @@
 #ifndef TFRT_GPU_DEVICE_DEVICE_H_
 #define TFRT_GPU_DEVICE_DEVICE_H_
 
-#include "tfrt/gpu/memory/gpu_allocator.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/host_context/device.h"
+#include "tfrt/support/forward_decls.h"
 
 namespace Eigen {
 class GpuDevice;
@@ -31,7 +31,7 @@ class GpuDevice;
 
 namespace tfrt {
 namespace gpu {
-class GpuCrtAllocator;
+class GpuAllocator;
 
 class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
  public:
@@ -50,7 +50,7 @@ class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
   wrapper::Stream stream() const;
 
   // Allocator for allocating GPU device memory.
-  gpu::GpuCrtAllocator* allocator() const;
+  AsyncValueRef<gpu::GpuAllocator> allocator() const;
 
   // Eigen GPU device. Used to launch Eigen kernels.
   Eigen::GpuDevice* eigen_gpu_device() const;
@@ -60,13 +60,6 @@ class GpuDevice : public Device, public DeviceTraits<GpuDevice> {
 
   // GPU DNN library handle. Used to launch convolutions etc.
   wrapper::DnnHandle dnn_handle() const;
-
-  // Create a current context. It is usually called inside the dispatch
-  // function. See the documentation for wrapper::CurrentContext for more
-  // details.
-  // TODO(b/184700486): Clean up this method and use SetCurrentContext()
-  // instead.
-  wrapper::CurrentContext CreateContext() const;
 
   // Set the context of current thread and return it. See the documentation
   // for wrapper::CurrentContext for more details.

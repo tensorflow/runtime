@@ -69,7 +69,7 @@ static Expected<TensorMetadata> TfBinaryOpMd(const TensorMetadata& lhs,
 
 static Expected<TensorMetadata> TfBinaryComparisonOpMd(
     const TensorMetadata& lhs, const TensorMetadata& rhs) {
-  return CwiseBinaryOpMd(lhs, rhs, DType::BOOL);
+  return CwiseBinaryOpMd(lhs, rhs, DType::I1);
 }
 
 static Expected<TensorMetadata> ConstOpMd(const OpAttrsRef& attrs) {

@@ -18,6 +18,7 @@
 #include "tfrt/core_runtime/dispatch_utils.h"
 
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/host_context/location.h"
 
 namespace tfrt {
 namespace internal {
@@ -218,9 +219,9 @@ std::string GetOpDebugString(string_view op_name,
   trace_message << "op_name=" << op_name << ",";
 
   // Long Name
-  const auto& info = execution_context.debug_info().GetDebugInfo();
+  const auto& info = execution_context.location().GetDebugInfo();
   if (info.hasValue()) {
-    trace_message << "long_name=" << info.getValue() << ",";
+    trace_message << "long_name=" << info.getValue().info << ",";
   }
 
   // Input

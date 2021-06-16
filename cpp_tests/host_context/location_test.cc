@@ -32,9 +32,8 @@ class MockLocationHandler : public LocationHandler {
   DecodedLocation DecodeLocation(Location loc) const override {
     DecodedLocation decoded_location;
     if (loc.data == kMockData) {
-      decoded_location.filename = kTestFileName;
-      decoded_location.line = kTestLine;
-      decoded_location.column = kTestColumn;
+      decoded_location =
+          FileLineColLocation{kTestFileName, kTestLine, kTestColumn};
     }
     return decoded_location;
   }
@@ -48,9 +47,10 @@ TEST(LocationTest, EmptyLocation) {
   EXPECT_FALSE(static_cast<bool>(empty_location));
 
   DecodedLocation decoded_location = empty_location.Decode();
-  EXPECT_TRUE(decoded_location.filename.empty());
-  EXPECT_EQ(-1, decoded_location.line);
-  EXPECT_EQ(-1, decoded_location.column);
+  FileLineColLocation loc = decoded_location.get<FileLineColLocation>();
+  EXPECT_TRUE(loc.filename.empty());
+  EXPECT_EQ(loc.line, -1);
+  EXPECT_EQ(loc.column, -1);
 
   EXPECT_EQ(0, empty_location.data);
 }
@@ -68,10 +68,10 @@ TEST(LocationTest, DecodeForKnownLocation) {
   Location location(&location_handler, kMockData);
 
   DecodedLocation decoded_location = location.Decode();
-
-  EXPECT_EQ(kTestFileName, decoded_location.filename);
-  EXPECT_EQ(kTestLine, decoded_location.line);
-  EXPECT_EQ(kTestColumn, decoded_location.column);
+  FileLineColLocation loc = decoded_location.get<FileLineColLocation>();
+  EXPECT_EQ(loc.filename, kTestFileName);
+  EXPECT_EQ(loc.line, kTestLine);
+  EXPECT_EQ(loc.column, kTestColumn);
 }
 
 TEST(LocationTest, DecodeForUnknownLocation) {
@@ -79,10 +79,10 @@ TEST(LocationTest, DecodeForUnknownLocation) {
   Location location(&location_handler, 0);
 
   DecodedLocation decoded_location = location.Decode();
-
-  EXPECT_TRUE(decoded_location.filename.empty());
-  EXPECT_EQ(-1, decoded_location.line);
-  EXPECT_EQ(-1, decoded_location.column);
+  FileLineColLocation loc = decoded_location.get<FileLineColLocation>();
+  EXPECT_TRUE(loc.filename.empty());
+  EXPECT_EQ(loc.line, -1);
+  EXPECT_EQ(loc.column, -1);
 }
 
 }  // namespace

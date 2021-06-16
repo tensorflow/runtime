@@ -22,6 +22,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/host_context/location.h"
 
 namespace tfrt {
 
@@ -30,8 +31,7 @@ DecodedDiagnostic::DecodedDiagnostic(const Error& error)
 
 raw_ostream& operator<<(raw_ostream& os, const DecodedDiagnostic& diag) {
   if (diag.location) {
-    os << diag.location->filename << ":" << diag.location->line << ":"
-       << diag.location->column << ": ";
+    os << diag.location.getValue() << ": ";
   } else {
     os << "UnknownLocation: ";
   }

@@ -29,6 +29,7 @@
 
 #include "bef_attr_emitter.h"
 #include "bef_compilation_units.h"
+#include "bef_location_emitter.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/StringRef.h"
@@ -49,7 +50,6 @@
 #include "tfrt/core_runtime/opdefs/attributes.h"
 #include "tfrt/core_runtime/opdefs/traits.h"
 #include "tfrt/core_runtime/opdefs/types.h"
-#include "tfrt/host_context/debug_info.h"
 #include "tfrt/support/aligned_buffer.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/forward_decls.h"
@@ -171,9 +171,6 @@ struct EntityTable {
              column >= 1;
     }
   };
-  llvm::DenseMap<mlir::Operation*, LocationTuple> location_positions;
-
-  llvm::DenseMap<mlir::Operation*, DebugInfoEntry> debug_info;
 
  public:
   LogicalResult Collect(mlir::ModuleOp module,
@@ -191,10 +188,6 @@ struct EntityTable {
 
   void AddKernel(mlir::Operation* kernel);
   unsigned GetKernelID(mlir::Operation* kernel) const;
-
-  void AddLocation(mlir::Operation* op);
-
-  void AddDebugInfo(mlir::Operation* op);
 
   void AddAttributeType(mlir::Attribute attr);
 };
@@ -288,72 +281,6 @@ unsigned EntityTable::GetKernelID(mlir::Operation* kernel) const {
   return it->second;
 }
 
-void EntityTable::AddDebugInfo(mlir::Operation* op) {
-  auto debug_info_location = op->getLoc();
-
-  // If the location is a FusedLoc, look for a NameLoc among its children.
-  // TODO(b/180438663): Handle cases where there are multiple NameLoc.
-  if (auto fused_loc = debug_info_location.dyn_cast<mlir::FusedLoc>()) {
-    for (auto& location : fused_loc.getLocations()) {
-      if (auto named_loc = location.dyn_cast<mlir::NameLoc>()) {
-        debug_info_location = location;
-        break;
-      }
-    }
-  }
-
-  // If the location is a CallSiteLoc, look whether the callee is a NameLoc.
-  if (auto call_site = debug_info_location.dyn_cast<mlir::CallSiteLoc>()) {
-    const auto& location = call_site.getCallee();
-    if (auto named_loc = location.dyn_cast<mlir::NameLoc>()) {
-      debug_info_location = location;
-    }
-  }
-
-  if (auto named_loc = debug_info_location.dyn_cast<mlir::NameLoc>()) {
-    DebugInfoEntry debug_info_entry = named_loc.getName().c_str();
-    auto r = debug_info.try_emplace(op, debug_info_entry);
-    assert(r.second);
-    (void)r;
-  }
-}
-
-void EntityTable::AddLocation(mlir::Operation* op) {
-  auto file_line_col_location = op->getLoc();
-
-  // If the location is a FusedLoc, look for a FileLineColLoc among its
-  // children.
-  // TODO(b/180438663): Handle cases where there are multiple FileLineColLoc.
-  if (auto fused_loc = file_line_col_location.dyn_cast<mlir::FusedLoc>()) {
-    for (auto& location : fused_loc.getLocations()) {
-      if (auto loc = location.dyn_cast<mlir::FileLineColLoc>()) {
-        file_line_col_location = loc;
-        break;
-      }
-    }
-  }
-
-  if (auto loc = file_line_col_location.dyn_cast<mlir::FileLineColLoc>()) {
-    string_view filename = loc.getFilename();
-    auto next_filename_index = location_filenames.size();
-    auto it =
-        location_filenames_index.insert({filename, next_filename_index}).first;
-    if (it->second == next_filename_index)
-      location_filenames.push_back(filename);
-
-    auto r = location_positions.try_emplace(
-        op, LocationTuple{it->second, loc.getLine(), loc.getColumn()});
-    assert(r.second);
-    (void)r;
-  } else {
-    // Handle a case that there is no FileLineColLoc found.
-    auto r = location_positions.try_emplace(
-        op, LocationTuple{LocationTuple::kInvalidFilenameIndex, 0, 0});
-    assert(r.second);
-    (void)r;
-  }
-}
-
 void EntityTable::AddAttributeType(mlir::Attribute attr) {
   if (auto int_type = attr.getType().dyn_cast<mlir::IntegerType>()) {
     AddType(int_type);
@@ -396,9 +323,6 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
           // Ignore it, return gets special handling.
           return;
         }
-
-        AddLocation(op);
-        AddDebugInfo(op);
 
         auto* cur_region = op->getParentRegion();
 
@@ -606,36 +530,6 @@ class EntityIndex {
     return function_index_;
   }
 
-  typedef EntityTable::LocationTuple LocationTuple;
-
-  void AddLocationPosition(mlir::Operation* op, size_t offset) {
-    location_position_offsets_[op] = offset;
-  }
-
-  bool HasLocationPositionOffset(mlir::Operation* op) const {
-    return (location_position_offsets_.find(op) !=
-            location_position_offsets_.end());
-  }
-
-  size_t GetLocationPositionOffset(mlir::Operation* op) const {
-    auto loc_it = location_position_offsets_.find(op);
-    assert(loc_it != location_position_offsets_.end() && "unknown location");
-    return loc_it->second;
-  }
-
-  void AddDebugInfoOffset(mlir::Operation* op, size_t offset) {
-    debug_info_offset_[op] = offset;
-  }
-
-  llvm::Optional<size_t> GetDebugInfoOffset(mlir::Operation* op) const {
-    auto loc_it = debug_info_offset_.find(op);
-    if (loc_it != debug_info_offset_.end()) {
-      return loc_it->second;
-    } else {
-      return llvm::None;
-    }
-  }
-
  private:
   llvm::StringMap<unsigned> strings_;
   llvm::DenseMap<mlir::Attribute, unsigned> attribute_offsets_;
@@ -647,10 +541,6 @@ class EntityIndex {
 
   // This is the location of the offsets into the section.
   llvm::DenseMap<mlir::Operation*, size_t> location_position_offsets_;
-
-  // This is the offset of associated entry in the debug info section (if any)
-  // kNoDebugInfoEntryOffset represents no entry.
-  llvm::DenseMap<mlir::Operation*, DebugInfoOffset> debug_info_offset_;
 };
 
 }  // namespace
@@ -730,7 +620,8 @@ class BEFModuleEmitter : public BEFFileEmitter {
   void EmitAttributes(BEFFileEmitter* attribute_types);
   void EmitKernels();
   void EmitTypes();
-  void EmitFunctions(BEFFileEmitter* attribute_names,
+  void EmitFunctions(BefLocationEmitter* locations,
+                     BEFFileEmitter* attribute_names,
                      BEFFileEmitter* register_types);
 
  private:
@@ -738,65 +629,6 @@ class BEFModuleEmitter : public BEFFileEmitter {
   EntityTable entities_;
   EntityIndex entity_index_;
 };
-
-void BEFModuleEmitter::EmitLocationInfo() {
-  BEFFileEmitter filenames_section;
-  for (auto filename : entities_.location_filenames) {
-    filenames_section.EmitBytes(
-        {reinterpret_cast<const uint8_t*>(filename.data()), filename.size()});
-    // Emit a NUL terminator for the filename.
-    filenames_section.EmitByte(0);
-  }
-
-  EmitSection(BEFSectionID::kLocationFilenames, filenames_section);
-
-  // Emit each of the positions and remember the offsets within the section.
-  BEFFileEmitter positions_section;
-
-  // First pass: handle Ops having location information.
-  for (auto iter : entities_.location_positions) {
-    mlir::Operation* op = iter.first;
-    auto position = iter.second;
-
-    if (position.IsValid()) {
-      entity_index_.AddLocationPosition(op, positions_section.size());
-      positions_section.EmitVbrInt(position.filename_index);
-      positions_section.EmitVbrInt(position.line);
-      positions_section.EmitVbrInt(position.column);
-    }
-  }
-
-  // Second pass: put virtual (unique) location offset for the Ops,
-  //              which do not have location information.
-  unsigned virtual_location = positions_section.size();
-  for (auto iter : entities_.location_positions) {
-    mlir::Operation* op = iter.first;
-    if (!entity_index_.HasLocationPositionOffset(op)) {
-      // TODO(b/174243587): Use simpler location position.
-      entity_index_.AddLocationPosition(op, virtual_location);
-      ++virtual_location;
-    }
-  }
-
-  EmitSection(BEFSectionID::kLocationPositions, positions_section);
-}
-
-void BEFModuleEmitter::EmitDebugInfo() {
-  BEFFileEmitter debug_info_section;
-
-  for (const auto& entry : entities_.debug_info) {
-    auto& op = entry.getFirst();
-    auto& debug_info = entry.getSecond();
-
-    entity_index_.AddDebugInfoOffset(op, debug_info_section.size());
-    debug_info_section.EmitBytes(
-        {reinterpret_cast<const uint8_t*>(debug_info.data()),
-         debug_info.size()});
-    debug_info_section.EmitByte(0);
-  }
-
-  EmitSection(BEFSectionID::kDebugInfo, debug_info_section);
-}
 
 void BEFModuleEmitter::EmitStrings() {
   // We have an ordered collection of strings: sort them alphabetically to make
@@ -901,7 +733,8 @@ class BEFFunctionEmitter : public BEFFileEmitter {
                      const EntityIndex& entity_index)
       : entities_(entities), entity_index_(entity_index) {}
 
-  void EmitFunction(mlir::Region* region, BEFFileEmitter* attribute_names,
+  void EmitFunction(mlir::Region* region, BefLocationEmitter* locations,
+                    BEFFileEmitter* attribute_names,
                     BEFFileEmitter* register_types);
 
  private:
@@ -912,6 +745,7 @@ class BEFFunctionEmitter : public BEFFileEmitter {
   void EmitArgumentsPseudoKernel(mlir::Block* block,
                                  BEFFileEmitter* kernel_list) const;
   void EmitKernel(mlir::Operation* op, BEFFileEmitter* kernel_list,
+                  BefLocationEmitter* locations,
                   BEFFileEmitter* attribute_names) const;
 
   unsigned GetRegisterNumber(mlir::Value reg) const {
@@ -937,6 +771,7 @@ class BEFFunctionEmitter : public BEFFileEmitter {
 };
 
 void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
+                                      BefLocationEmitter* locations,
                                       BEFFileEmitter* attribute_names,
                                       BEFFileEmitter* register_types) {
   Reset();
@@ -944,8 +779,7 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
   assert(llvm::hasSingleElement(*region) && "should have a single block");
   auto& block = region->front();
 
-  auto location_offset =
-      entity_index_.GetLocationPositionOffset(region->getParentOp());
+  auto location_offset = locations->EmitOpLocation(region->getParentOp());
   EmitVbrInt(location_offset);
 
   // Emit the register table.
@@ -1010,7 +844,7 @@ void BEFFunctionEmitter::EmitFunction(mlir::Region* region,
     const auto& stream = stream_analysis.GetStream(&op);
     EmitVbrInt(stream.id());
 
-    EmitKernel(&op, &kernel_list, attribute_names);
+    EmitKernel(&op, &kernel_list, locations, attribute_names);
   }
 
   // Emit the result registers list at the end of the KERNEL_TABLE if present.
@@ -1095,8 +929,6 @@ void BEFFunctionEmitter::EmitArgumentsPseudoKernel(
   kernel_list->Emit<uint32_t>(0);
   // results, including the special result for ops with no operands.
   kernel_list->Emit<uint32_t>(block->getNumArguments() + 1);
-  // special_metadata
-  kernel_list->Emit<uint32_t>(0);
 
   BEFFileEmitter kernel_body;
   // The first result is the pseudo result used to trigger execution of kernels
@@ -1123,12 +955,13 @@ void BEFFunctionEmitter::EmitArgumentsPseudoKernel(
 
 void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
                                     BEFFileEmitter* kernel_list,
+                                    BefLocationEmitter* locations,
                                     BEFFileEmitter* attribute_names) const {
   // Each kernel starts out with an opcode record.
   kernel_list->Emit<uint32_t>(entities_.GetKernelID(op));
 
   // Include a location.
-  auto location_offset = entity_index_.GetLocationPositionOffset(op);
+  auto location_offset = locations->EmitOpLocation(op);
   kernel_list->Emit<uint32_t>(location_offset);
 
   // Because the numbers of each types of entries are emitted first, we use
@@ -1145,7 +978,6 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   int num_input_attributes = 0;
   BEFFileEmitter input_function_emitter;
   BEFFileEmitter input_attribute_emitter;
-  uint32_t special_attribute = 0;
   for (auto attr_name_pair : op->getAttrs()) {
     // Skip cost attribute which is not used in runtime execution.
     //
@@ -1199,21 +1031,9 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   for (auto result : op->getResults())
     kernel_body.Emit<uint32_t>(GetRegisterNumber(result));
 
-  auto debug_info_offset = entity_index_.GetDebugInfoOffset(op);
-  if (debug_info_offset.hasValue()) {
-    special_attribute |= static_cast<uint32_t>(SpecialAttribute::kHasDebugInfo);
-  }
-
-  // Emit the special_metadata field of kernel header.
-  kernel_list->Emit<uint32_t>(special_attribute);
-
   // Then results with the kernels that use them.
   for (auto result : op->getResults())
     EmitKernelResultUsers(result.getUsers(), kernel_list, &kernel_body);
-
-  if (debug_info_offset.hasValue()) {
-    kernel_body.Emit<uint32_t>(debug_info_offset.getValue());
-  }
 
   assert(kernel_list->size() % kKernelEntryAlignment == 0);
   assert(kernel_body.size() == 0 ||
@@ -1222,7 +1042,8 @@ void BEFFunctionEmitter::EmitKernel(mlir::Operation* op,
   kernel_list->EmitEmitter(kernel_body);
 }
 
-void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
+void BEFModuleEmitter::EmitFunctions(BefLocationEmitter* locations,
+                                     BEFFileEmitter* attribute_names,
                                      BEFFileEmitter* register_types) {
   BEFFunctionEmitter functions_section(entities_, entity_index_);
 
@@ -1235,8 +1056,8 @@ void BEFModuleEmitter::EmitFunctions(BEFFileEmitter* attribute_names,
     entity_index_.AddFunction(function_entry.name, functions_section.size(),
                               function_entry.type, function_entry.kind);
     if (!function_entry.IsNative()) {
-      functions_section.EmitFunction(function_entry.region, attribute_names,
-                                     register_types);
+      functions_section.EmitFunction(function_entry.region, locations,
+                                     attribute_names, register_types);
     }
   }
 
@@ -1296,20 +1117,32 @@ BefBuffer ConvertMLIRToBEF(mlir::ModuleOp module,
   BEFFileEmitter register_types;
 
   // Emit each section of the file.
-  emitter.EmitLocationInfo();
-  emitter.EmitDebugInfo();
+  // emitter.EmitLocationInfo();
+  // emitter.EmitDebugInfo();
   emitter.EmitStrings();
   emitter.EmitAttributes(disable_optional_sections ? nullptr
                                                    : &attribute_types);
   emitter.EmitKernels();
   emitter.EmitTypes();
 
+  BefLocationEmitter locations;
+
   if (disable_optional_sections) {
-    emitter.EmitFunctions(/*attribute_names=*/nullptr,
+    emitter.EmitFunctions(&locations,
+                          /*attribute_names=*/nullptr,
                           /*register_types=*/nullptr);
   } else {
-    emitter.EmitFunctions(&attribute_names, &register_types);
+    emitter.EmitFunctions(&locations, &attribute_names, &register_types);
+  }
 
+  if (locations.GetConcreteLocationCount() > 0) {
+    emitter.EmitSection(BEFSectionID::kLocationStrings,
+                        locations.GetStringsSectionEmitter());
+
+    emitter.EmitSection(BEFSectionID::kLocations, locations);
+  }
+
+  if (!disable_optional_sections) {
     emitter.EmitSection(BEFSectionID::kAttributeTypes, attribute_types);
     emitter.EmitSection(BEFSectionID::kAttributeNames, attribute_names);
     emitter.EmitSection(BEFSectionID::kRegisterTypes, register_types);

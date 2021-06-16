@@ -409,11 +409,11 @@ static void TestMultiArgResult(RemainingArguments args,
   }
 }
 
-template <typename T>
-static Chain TestPrintDebugInfo(T* frame) {
-  auto debug_info = frame->GetDebugInfo();
-  if (auto debug_info_entry = debug_info.GetDebugInfo()) {
-    tfrt::outs() << debug_info_entry.getValue() << "\n";
+static Chain TestPrintDebugInfo(const ExecutionContext& exec_ctx) {
+  auto debug_info = exec_ctx.location().GetDebugInfo();
+
+  if (debug_info.hasValue()) {
+    tfrt::outs() << debug_info.getValue().info << "\n";
   } else {
     tfrt::outs() << "Kernel has no debug info\n";
   }
@@ -473,10 +473,7 @@ void RegisterSimpleTestKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.multi_arg_result",
                       TFRT_KERNEL(TestMultiArgResult));
   registry->AddKernel("tfrt_test.print_debug_info",
-                      TFRT_KERNEL(TestPrintDebugInfo<AsyncKernelFrame>));
-  registry->AddSyncKernel(
-      "tfrt_test.sync_print_debug_info",
-      TFRT_SYNC_KERNEL(TestPrintDebugInfo<SyncKernelFrame>));
+                      TFRT_KERNEL(TestPrintDebugInfo));
   registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32",
                       TFRT_KERNEL(TestInvokeSyncFunction));
   registry->AddKernel("tfrt_test.invoke_sync_function.i32_i32.i32_i32",

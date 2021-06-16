@@ -27,6 +27,7 @@
 #include "llvm/Support/SourceMgr.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/IR/Identifier.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Support/FileUtilities.h"
 #include "tfrt/bef/bef_buffer.h"
@@ -96,14 +97,15 @@ int RunBefExecutor(
   auto decoded_diagnostic_handler = [&](const DecodedDiagnostic& diag) {
     std::string message = "runtime error: " + diag.message;
 
-    auto decoded_loc = diag.location;
-    if (decoded_loc) {
-      auto loc =
-          mlir::FileLineColLoc::get(&context, decoded_loc->filename,
-                                    decoded_loc->line, decoded_loc->column);
+    if (diag.location->is<FileLineColLocation>()) {
+      auto decoded_loc = diag.location->get<FileLineColLocation>();
+      auto loc = mlir::FileLineColLoc::get(
+          &context, decoded_loc.filename, decoded_loc.line, decoded_loc.column);
       emitError(loc) << message;
     } else {
-      auto loc = mlir::FileLineColLoc::get(&context, "", 0, 0);
+      auto identifier = mlir::Identifier::get(
+          diag.location->get<OpaqueLocation>().loc, &context);
+      auto loc = mlir::NameLoc::get(identifier);
       emitError(loc) << message;
     }
   };

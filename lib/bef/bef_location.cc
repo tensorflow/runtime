@@ -16,6 +16,9 @@
 
 #include "tfrt/bef/bef_location.h"
 
+#include "llvm/Support/raw_ostream.h"
+#include "tfrt/host_context/location.h"
+
 namespace tfrt {
 
 string_view BefLocation::OffsetToString(
@@ -102,7 +105,8 @@ BefFusedLocation::BefFusedLocation(const void* base) : BefLocation(base) {
 
 static std::string BefLocationToStr(ArrayRef<uint8_t> location_strings_section,
                                     const BefLocation& loc) {
-  std::ostringstream decoded;
+  std::string out;
+  llvm::raw_string_ostream decoded(out);
   if (auto filelinecol = loc.dyn_cast<BefUnknownLocation>()) {
     decoded << "(unknown)";
   } else if (auto filelinecol = loc.dyn_cast<BefFileLineColLocation>()) {
@@ -129,7 +133,49 @@ static std::string BefLocationToStr(ArrayRef<uint8_t> location_strings_section,
   } else {
     llvm_unreachable("Unexpected location found.");
   }
-  return decoded.str();
+  return out;
+}
+
+DecodedLocation DecodeBefLocation(ArrayRef<uint8_t> location_strings_section,
+                                  const BefLocation& loc) {
+  DecodedLocation result;
+  if (auto filelinecol = loc.dyn_cast<BefFileLineColLocation>()) {
+    result = FileLineColLocation{
+        filelinecol.filename(location_strings_section).str(),
+        static_cast<int>(filelinecol.line()),
+        static_cast<int>(filelinecol.column())};
+  } else {
+    result = OpaqueLocation{BefLocationToStr(location_strings_section, loc)};
+  }
+  return result;
+}
+
+Optional<DebugInfo> GetDebugInfoFromBefLocation(
+    ArrayRef<uint8_t> location_strings_section, const BefLocation& loc) {
+  // Treats BefNameLocation as DebugInfo.
+  if (auto name = loc.dyn_cast<BefNameLocation>()) {
+    return DebugInfo{name.name(location_strings_section).str()};
+  }
+
+  // Search a BefNameLocation.
+  if (auto fused = loc.dyn_cast<BefFusedLocation>()) {
+    for (int idx = 0; idx < fused.size(); ++idx) {
+      auto child = fused.GetLocation(idx);
+      if (auto name = child.dyn_cast<BefNameLocation>()) {
+        return DebugInfo{name.name(location_strings_section).str()};
+      }
+    }
+  }
+
+  // Check if callee is a BefNameLocation.
+  if (auto callsite = loc.dyn_cast<BefCallSiteLocation>()) {
+    auto callee = callsite.callee();
+    if (auto name = callee.dyn_cast<BefNameLocation>()) {
+      return DebugInfo{name.name(location_strings_section).str()};
+    }
+  }
+
+  return llvm::None;
 }
 
 }  // namespace tfrt

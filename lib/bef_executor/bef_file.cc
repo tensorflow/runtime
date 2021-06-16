@@ -21,9 +21,9 @@
 
 #include "bef_file_impl.h"
 #include "tfrt/bef/bef_encoding.h"
+#include "tfrt/bef/bef_location.h"
 #include "tfrt/bef/bef_reader.h"
 #include "tfrt/host_context/async_value.h"
-#include "tfrt/host_context/debug_info.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/host_context/native_function.h"
@@ -92,18 +92,6 @@ bool BEFFileReader::ReadNextSection() {
       SkipPast(section_data);
       break;
 
-    case tfrt::BEFSectionID::kLocationFilenames:
-      bef_file_->location_filenames_section_ = section_data;
-      SkipPast(section_data);
-      break;
-
-    // We just remember the locations of the LocationPositions section - it is
-    // directly indexed with a byte offset.
-    case tfrt::BEFSectionID::kLocationPositions:
-      bef_file_->location_positions_section_ = section_data;
-      SkipPast(section_data);
-      break;
-
     // We just remember the locations of the Strings section - it is directly
     // indexed with a byte offset.
     case BEFSectionID::kStrings:
@@ -140,8 +128,13 @@ bool BEFFileReader::ReadNextSection() {
       SkipPast(section_data);
       break;
 
-    case BEFSectionID::kDebugInfo:
-      bef_file_->debug_info_section_ = section_data;
+    case tfrt::BEFSectionID::kLocationStrings:
+      bef_file_->location_strings_section_ = section_data;
+      SkipPast(section_data);
+      break;
+
+    case tfrt::BEFSectionID::kLocations:
+      bef_file_->locations_section_ = section_data;
       SkipPast(section_data);
       break;
   }
@@ -478,6 +471,10 @@ DecodedLocation BEFLocationHandler::DecodeLocation(Location loc) const {
   return bef_file_->DecodeLocation(loc.data);
 }
 
+Optional<DebugInfo> BEFLocationHandler::GetDebugInfo(Location loc) const {
+  return bef_file_->GetDebugInfo(loc.data);
+}
+
 BEFFileImpl::BEFFileImpl(std::function<void(DecodedDiagnostic)> error_handler)
     : BEFFile(std::make_unique<BEFLocationHandler>(this)),
       error_handler_(error_handler) {}
@@ -558,50 +555,20 @@ bool BEFFileImpl::ReadFunction(size_t function_offset,
   return true;
 }
 
-// Given an offset into location_positions_section_, decode it and return
+// Given an offset into locations_section_, decode it and return
 // a DecodedDiagnostic.
 DecodedLocation BEFFileImpl::DecodeLocation(size_t location_position_offset) {
-  DecodedLocation result;
+  if (location_position_offset >= locations_section_.size()) return {};
 
-  // Read from location_positions_section_, from the specified offset.
-  BEFReader reader(location_positions_section_);
+  BefLocation loc(locations_section_.data() + location_position_offset);
+  return DecodeBefLocation(location_strings_section_, loc);
+}
 
-  // A location offset could be larger than the LocationPositionsSection size.
-  // It could happen when there was no available FileLineColLoc.
-  // Returns a default empty location.
-  if (location_position_offset >= location_positions_section_.size())
-    return result;
+Optional<DebugInfo> BEFFileImpl::GetDebugInfo(size_t location_position_offset) {
+  if (location_position_offset >= locations_section_.size()) return llvm::None;
 
-  reader.SkipOffset(location_position_offset);
-
-  size_t file_idx, line, column;
-  if (!reader.ReadVbrInt(&file_idx) || !reader.ReadVbrInt(&line) ||
-      !reader.ReadVbrInt(&column))
-    return result;
-
-  result.line = line;
-  result.column = column;
-
-  // The file is an index into location_filenames_section_.  We expect
-  // lookups in this section to be rare (only on errors) and the number of
-  // entries to be small, so we just scan through the section.
-  string_view filenames(
-      reinterpret_cast<const char*>(location_filenames_section_.data()),
-      location_filenames_section_.size());
-  // Skip over file_idx number of entries.
-  while (file_idx && !filenames.empty()) {
-    auto next_end = filenames.find('\0');
-    if (next_end == string_view::npos)
-      filenames = "";
-    else
-      filenames = filenames.drop_front(next_end + 1);
-  }
-
-  // The filename is everything up to the next \0.
-  auto end_pos = filenames.find('\0');
-  if (end_pos != string_view::npos)
-    result.filename = filenames.substr(0, end_pos).str();
-  return result;
+  BefLocation loc(locations_section_.data() + location_position_offset);
+  return GetDebugInfoFromBefLocation(location_strings_section_, loc);
 }
 
 #if !defined(TFRT_DISABLE_TRACING) || defined(DEBUG_BEF_EXECUTOR)
@@ -610,28 +577,6 @@ const char* BEFFileImpl::GetKernelName(size_t kernel_id) const {
                                              : kernel_names_[kernel_id];
 }
 #endif
-
-llvm::Optional<DebugInfoEntry> BEFFileImpl::DecodeDebugInfo(
-    BEFKernel* kernel) const {
-  auto* impl = static_cast<const BEFFileImpl*>(this);
-
-  // Check whether the offset is valid.
-  if (!kernel || !kernel->HasDebugInfo()) {
-    return llvm::None;
-  }
-  auto debug_info_offset = kernel->GetDebugInfoOffset();
-  if (debug_info_offset >= impl->debug_info_section_.size()) {
-    return llvm::None;
-  }
-
-  BEFReader reader(impl->debug_info_section_);
-  reader.SkipOffset(debug_info_offset);
-
-  DebugInfoEntry debug_info = reinterpret_cast<const char*>(
-      &impl->debug_info_section_[debug_info_offset]);
-
-  return debug_info;
-}
 
 // Read a list of function names out of the BEF file function index.
 void BEFFile::GetFunctionList(SmallVectorImpl<const Function*>* results) const {

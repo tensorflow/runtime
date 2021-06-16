@@ -154,6 +154,13 @@ class BefFusedLocation : public BefLocation {
   SmallVector<const uint8_t *, 4> bases_;
 };
 
+// Decode a BefLocation to DecodedLocation.
+DecodedLocation DecodeBefLocation(ArrayRef<uint8_t> location_strings_section,
+                                  const BefLocation &loc);
+
+// Get a DebugInfo string from a BefLocation.
+Optional<DebugInfo> GetDebugInfoFromBefLocation(
+    ArrayRef<uint8_t> location_strings_section, const BefLocation &loc);
 }  // namespace tfrt
 
 #endif  // TFRT_BEF_BEF_LOCATION_H_

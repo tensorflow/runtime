@@ -126,6 +126,7 @@ tfrt_cc_library(
         "lib/host_context/host_context_ptr.cc",
         "lib/host_context/kernel_frame.cc",
         "lib/host_context/kernel_registry.cc",
+        "lib/host_context/location.cc",
         "lib/host_context/native_function.cc",
         "lib/host_context/parallel_for.cc",
         "lib/host_context/shared_context.cc",
@@ -142,7 +143,6 @@ tfrt_cc_library(
         "include/tfrt/host_context/attribute_utils.h",
         "include/tfrt/host_context/chain.h",
         "include/tfrt/host_context/concurrent_work_queue.h",
-        "include/tfrt/host_context/debug_info.h",
         "include/tfrt/host_context/device.h",
         "include/tfrt/host_context/diagnostic.h",
         "include/tfrt/host_context/execution_context.h",
@@ -355,6 +355,7 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
+        ":bef_location",
         ":dtype",
         ":hostcontext",
         ":support",
@@ -483,14 +484,14 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "mlirtobef",
     srcs = [
-        "include/tfrt/host_context/debug_info.h",
         "lib/bef_converter/mlir_to_bef/bef_attr_emitter.h",
         "lib/bef_converter/mlir_to_bef/bef_compilation_units.h",
+        "lib/bef_converter/mlir_to_bef/bef_location_emitter.h",
+        "lib/bef_converter/mlir_to_bef/bef_string_emitter.h",
         "lib/bef_converter/mlir_to_bef/mlir_to_bef.cc",
     ],
     hdrs = [
         "include/tfrt/bef_converter/mlir_to_bef.h",
-        "include/tfrt/host_context/debug_info.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
@@ -498,6 +499,7 @@ tfrt_cc_library(
         ":bef_attr_emitter",
         ":bef_attr_encoder",
         ":bef_emitter",
+        ":bef_location_emitter",
         ":core_runtime_opdefs",
         ":dtype",
         ":stream_analysis",
@@ -532,6 +534,7 @@ tfrt_cc_library(
     name = "beftomlir",
     srcs = [
         "lib/bef_converter/bef_to_mlir/bef_attr_reader.h",
+        "lib/bef_converter/bef_to_mlir/bef_location_reader.h",
         "lib/bef_converter/bef_to_mlir/bef_to_mlir.cc",
     ],
     hdrs = [
@@ -541,6 +544,8 @@ tfrt_cc_library(
     visibility = [":friends"],
     deps = [
         ":bef_attr_reader",
+        ":bef_location",
+        ":bef_location_reader",
         ":core_runtime_opdefs",
         ":support",
         "@llvm-project//llvm:Support",

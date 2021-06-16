@@ -146,8 +146,9 @@ TEST_F(CpuDriverTest, MatmulWithError) {
   // Print the error of a previous op.
   ASSERT_TRUE(a3.GetAsyncTensor()->IsError());
   auto error = a3.GetAsyncTensor()->GetError();
-  ASSERT_EQ(error.location->filename, "cpp_tests/core_runtime/driver_test.cc");
-  ASSERT_EQ(error.location->line, failed_line_num);
+  auto loc = error.location->get<FileLineColLocation>();
+  ASSERT_EQ(loc.filename, "cpp_tests/core_runtime/driver_test.cc");
+  ASSERT_EQ(loc.line, failed_line_num);
 
   tfrt::outs() << error << "\n";
   tfrt::outs().flush();
@@ -193,8 +194,9 @@ TEST_F(CpuDriverTest, NoLocation) {
   // Print the error of a previous op.
   ASSERT_TRUE(a3.GetAsyncTensor()->IsError());
   auto error = a3.GetAsyncTensor()->GetError();
-  ASSERT_EQ(error.location->filename, "");
-  ASSERT_EQ(error.location->line, -1);
+  auto loc = error.location->get<FileLineColLocation>();
+  ASSERT_EQ(loc.filename, "");
+  ASSERT_EQ(loc.line, -1);
 
   tfrt::outs() << error << "\n";
   tfrt::outs().flush();

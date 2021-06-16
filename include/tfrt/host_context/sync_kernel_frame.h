@@ -51,7 +51,6 @@ class SyncKernelFrame {
   // Get the location.
   Location GetLocation() const { return exec_ctx_.location(); }
 
-  DebugInfo GetDebugInfo() const { return exec_ctx_.debug_info(); }
   ArrayRef<Value*> GetRegisters() const { return registers_; }
 
   // Get the number of arguments.
@@ -148,7 +147,6 @@ class SyncKernelFrame {
   const ArrayRef<Value*> registers_;
 
   const ExecutionContext& exec_ctx_;
-  DebugInfo debug_info_;
   Error error_ = Error::success();
 };
 

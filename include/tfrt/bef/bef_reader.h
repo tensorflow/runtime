@@ -126,9 +126,8 @@ class BEFReader {
 class BEFKernel {
   // BEFKernelHeader has the same data layout for the kernel header (excluding
   // num_used_bys as the number of results is not fixed.) in BEF. kernel_code,
-  // kernel_location, num_arguments, num_attributes, num_functions, num_results
-  // and special_metadata in BEF can be directly mapped using this struct.
-  // Currently special_metadata stores the info if the kernel is non-strict.
+  // kernel_location, num_arguments, num_attributes, num_functions, and
+  // num_results in BEF can be directly mapped using this struct.
   struct __attribute__((packed)) BEFKernelHeader {
     uint32_t kernel_code;
     uint32_t kernel_location;
@@ -136,12 +135,8 @@ class BEFKernel {
     uint32_t num_attributes;
     uint32_t num_functions;
     uint32_t num_results;
-    // 1 << SpecialAttribute::kNonStrict for non-strict kernel.
-    // TODO(tfrt-devs): Pack the special_metadata to other fields in
-    // kernel header.
-    uint32_t special_metadata = 0x0;
   };
-  static_assert(sizeof(BEFKernelHeader) == 28,
+  static_assert(sizeof(BEFKernelHeader) == 24,
                 "Unexpected size of BEFKernelHeader.");
 
  public:
@@ -160,7 +155,6 @@ class BEFKernel {
   uint32_t num_attributes() const { return header_->num_attributes; }
   uint32_t num_functions() const { return header_->num_functions; }
   uint32_t num_results() const { return header_->num_results; }
-  uint32_t special_metadata() const { return header_->special_metadata; }
 
   uint32_t num_used_bys(int result_number) const {
     assert(result_number < header_->num_results);
@@ -189,24 +183,6 @@ class BEFKernel {
     return llvm::makeArrayRef(
         body_start_ + num_arguments() + num_attributes() + num_functions(),
         num_results());
-  }
-
-  bool HasDebugInfo() const {
-    return static_cast<bool>(
-        special_metadata() &
-        static_cast<uint32_t>(SpecialAttribute::kHasDebugInfo));
-  }
-
-  uint32_t GetDebugInfoOffset() const {
-    assert(HasDebugInfo() && "Try to access a nonexistent debug info.");
-    auto kernel_body_offset = body_start_ + num_arguments() + num_attributes() +
-                              num_functions() + num_results();
-    for (size_t i = 0; i < num_results(); i++) {
-      kernel_body_offset += num_used_bys(i);
-    }
-    auto debug_info_offset =
-        *reinterpret_cast<const uint32_t*>(kernel_body_offset);
-    return debug_info_offset;
   }
 
  private:

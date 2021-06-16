@@ -23,6 +23,7 @@
 #include "tfrt/bef_converter/bef_to_mlir.h"
 
 #include "bef_attr_reader.h"
+#include "bef_location_reader.h"
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/Optional.h"
 #include "llvm/ADT/SetVector.h"
@@ -96,10 +97,6 @@ struct BEFFile {
 
   mlir::Location location;
 
-  SmallVector<string_view, 4> location_filenames;
-
-  llvm::DenseMap<size_t, mlir::Location> location_positions;
-
   llvm::DenseMap<size_t, string_view> strings;
 
   llvm::DenseMap<size_t, mlir::Attribute> attributes;
@@ -109,19 +106,6 @@ struct BEFFile {
   std::vector<mlir::Type> types;
 
   std::vector<BEFFunction> function_index;
-
-  // Returns the filename at `index` into LocationFilename section.
-  llvm::Optional<string_view> GetLocationFilename(int index) const {
-    if (index < location_filenames.size()) return location_filenames[index];
-    return llvm::None;
-  }
-
-  // Returns the location at `offset` into LocationPosition section.
-  llvm::Optional<mlir::Location> GetLocationPosition(size_t offset) const {
-    auto iter = location_positions.find(offset);
-    if (iter != location_positions.end()) return iter->second;
-    return llvm::None;
-  }
 
   // Returns the string at `offset` into Strings section.
   llvm::Optional<string_view> GetString(size_t offset) const {
@@ -198,10 +182,6 @@ class BEFToMLIRConverter {
   // properties in `bef_file_`.
   mlir::LogicalResult ReadHeader();
   mlir::LogicalResult ReadSections(BEFSections* sections);
-  mlir::LogicalResult ReadLocationFilenames(
-      ArrayRef<uint8_t> location_filenames);
-  mlir::LogicalResult ReadLocationPositions(
-      ArrayRef<uint8_t> location_positions);
   mlir::LogicalResult ReadStrings(ArrayRef<uint8_t> strings);
   mlir::LogicalResult ReadAttributes(ArrayRef<uint8_t> attributes,
                                      ArrayRef<uint8_t> attribute_types);
@@ -211,6 +191,8 @@ class BEFToMLIRConverter {
   mlir::LogicalResult ReadFunctions(ArrayRef<uint8_t> functions,
                                     ArrayRef<uint8_t> attribute_names,
                                     ArrayRef<uint8_t> register_types,
+                                    ArrayRef<uint8_t> location_strings,
+                                    ArrayRef<uint8_t> locations,
                                     BEFFunctionContext* function_context);
 
   // Resolves regions in `function_context` as either top level MLIR functions
@@ -273,7 +255,8 @@ class BEFFunctionReader {
   // Reads a function and returns the location and region body. Returns None on
   // errors. Nested regions are not resolved yet.
   llvm::Optional<std::pair<mlir::Location, std::unique_ptr<mlir::Region>>>
-  ReadFunction(BEFReader* attribute_names, BEFReader* register_types);
+  ReadFunction(BefLocationReader* location_reader, BEFReader* attribute_names,
+               BEFReader* register_types);
 
  private:
   // RegisterInfo keeps properties of a register used in this function (eg.
@@ -303,7 +286,8 @@ class BEFFunctionReader {
   // Reads kernels from `kernels` which contains kernel entries of all kernels
   // in this function, and inserts them as MLIR operations into `block`.
   // Attribute names are read from `attribute_names`.
-  mlir::LogicalResult ReadKernels(ArrayRef<uint32_t> kernels,
+  mlir::LogicalResult ReadKernels(BefLocationReader* location_reader,
+                                  ArrayRef<uint32_t> kernels,
                                   BEFReader* attribute_names,
                                   mlir::Block* block);
 
@@ -316,7 +300,8 @@ class BEFFunctionReader {
   // Reads a kernel at `offset` from `kernels` and returns the corresponding
   // MLIR operation. Attribute names are read from `attribute_names`. Returns
   // nullptr on errors.
-  mlir::Operation* ReadKernel(ArrayRef<uint32_t> kernels, size_t offset,
+  mlir::Operation* ReadKernel(BefLocationReader* location_reader,
+                              ArrayRef<uint32_t> kernels, size_t offset,
                               BEFReader* attribute_names);
 
   // Add a register definition.
@@ -387,42 +372,6 @@ mlir::LogicalResult BEFToMLIRConverter::ReadNullTerminatedStrings(
     action(offset, str);
     // Skip the string and the null terminator.
     section_data = section_data.drop_front(str.size() + 1);
-  }
-  return mlir::success();
-}
-
-mlir::LogicalResult BEFToMLIRConverter::ReadLocationFilenames(
-    ArrayRef<uint8_t> location_filenames) {
-  return ReadNullTerminatedStrings(
-      location_filenames, [this](size_t offset, string_view str) {
-        bef_file_.location_filenames.push_back(str);
-      });
-}
-
-mlir::LogicalResult BEFToMLIRConverter::ReadLocationPositions(
-    ArrayRef<uint8_t> location_positions) {
-  BEFReader location_positions_reader(location_positions);
-  unsigned original_size = location_positions_reader.file().size();
-  while (!location_positions_reader.Empty()) {
-    size_t location_filename_index;
-    size_t line_number;
-    size_t column_number;
-    size_t offset = original_size - location_positions_reader.file().size();
-
-    // Read the filename index, line number and column number.
-    if (!location_positions_reader.ReadVbrInt(&location_filename_index) ||
-        !location_positions_reader.ReadVbrInt(&line_number) ||
-        !location_positions_reader.ReadVbrInt(&column_number))
-      return mlir::failure();
-
-    // Find the filename string in LocationFilenames section.
-    auto filename = bef_file_.GetLocationFilename(location_filename_index);
-    if (!filename) return mlir::failure();
-
-    // Populates `bef_file_` with locations.
-    bef_file_.location_positions.insert(
-        {offset, mlir::FileLineColLoc::get(&context_, *filename, line_number,
-                                           column_number)});
   }
   return mlir::success();
 }
@@ -541,7 +490,8 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctionIndex(
 
 mlir::LogicalResult BEFToMLIRConverter::ReadFunctions(
     ArrayRef<uint8_t> functions, ArrayRef<uint8_t> attribute_names,
-    ArrayRef<uint8_t> register_types, BEFFunctionContext* function_context) {
+    ArrayRef<uint8_t> register_types, ArrayRef<uint8_t> location_strings,
+    ArrayRef<uint8_t> locations, BEFFunctionContext* function_context) {
   // Set up the readers for attribute names and register types. Attribute names
   // and register types will be read if they exist.
   BEFReader attribute_names_reader(attribute_names);
@@ -554,6 +504,8 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctions(
     size_t num_reg_type_tables;
     register_types_reader.ReadVbrInt(&num_reg_type_tables);
   }
+
+  BefLocationReader location_reader(location_strings, locations, &context_);
 
   // Process all functions.
   for (const auto& bef_function : bef_file_.function_index) {
@@ -569,7 +521,7 @@ mlir::LogicalResult BEFToMLIRConverter::ReadFunctions(
                                         &function_context->region_references,
                                         &context_);
       auto loc_and_region = function_reader.ReadFunction(
-          &attribute_names_reader, &register_types_reader);
+          &location_reader, &attribute_names_reader, &register_types_reader);
       if (!loc_and_region) return mlir::failure();
       function_context->regions.push_back(std::move(loc_and_region).getValue());
     }
@@ -680,7 +632,8 @@ mlir::LogicalResult BEFToMLIRConverter::AddCompilationUnits(
 }
 
 llvm::Optional<std::pair<mlir::Location, std::unique_ptr<mlir::Region>>>
-BEFFunctionReader::ReadFunction(BEFReader* attribute_names,
+BEFFunctionReader::ReadFunction(BefLocationReader* location_reader,
+                                BEFReader* attribute_names,
                                 BEFReader* register_types) {
   auto emit_error = [this](string_view message) {
     EmitError(bef_file_.location, message);
@@ -691,9 +644,7 @@ BEFFunctionReader::ReadFunction(BEFReader* attribute_names,
   size_t location_position_offset;
   if (!function_reader_.ReadVbrInt(&location_position_offset))
     return emit_error("Failed to read function location");
-  auto location = bef_file_.GetLocationPosition(location_position_offset);
-  if (!location) return emit_error("Failed to read function location");
-  location_ = *location;
+  location_ = location_reader->ReadLocation(location_position_offset);
 
   if (mlir::failed(ReadRegisterTable(register_types)))
     return emit_error("Failed to read register table.");
@@ -711,6 +662,7 @@ BEFFunctionReader::ReadFunction(BEFReader* attribute_names,
   // Kernels are 4-byte aligned.
   if (!function_reader_.ReadAlignment(kKernelEntryAlignment) ||
       mlir::failed(ReadKernels(
+          location_reader,
           llvm::makeArrayRef(
               reinterpret_cast<const uint32_t*>(
                   function_reader_.file().begin()),
@@ -777,9 +729,9 @@ mlir::LogicalResult BEFFunctionReader::ReadResultRegs() {
   return mlir::success();
 }
 
-mlir::LogicalResult BEFFunctionReader::ReadKernels(ArrayRef<uint32_t> kernels,
-                                                   BEFReader* attribute_names,
-                                                   mlir::Block* block) {
+mlir::LogicalResult BEFFunctionReader::ReadKernels(
+    BefLocationReader* location_reader, ArrayRef<uint32_t> kernels,
+    BEFReader* attribute_names, mlir::Block* block) {
   size_t num_kernels;
   if (attribute_names->ReadVbrInt(&num_kernels))
     assert(num_kernels == kernel_table_.size());
@@ -795,7 +747,7 @@ mlir::LogicalResult BEFFunctionReader::ReadKernels(ArrayRef<uint32_t> kernels,
 
   for (int i = kernel_start; i < kernel_table_.size(); ++i) {
     auto offset = kernel_table_[i].offset;
-    auto* op = ReadKernel(kernels, offset, attribute_names);
+    auto* op = ReadKernel(location_reader, kernels, offset, attribute_names);
     if (op == nullptr) return mlir::failure();
     block->push_back(op);
   }
@@ -862,9 +814,9 @@ mlir::LogicalResult BEFFunctionReader::ReadArgumentsPseudoKernel(
   return mlir::success();
 }
 
-mlir::Operation* BEFFunctionReader::ReadKernel(ArrayRef<uint32_t> kernels,
-                                               size_t offset,
-                                               BEFReader* attribute_names) {
+mlir::Operation* BEFFunctionReader::ReadKernel(
+    BefLocationReader* location_reader, ArrayRef<uint32_t> kernels,
+    size_t offset, BEFReader* attribute_names) {
   auto emit_error = [this](string_view message) {
     EmitError(bef_file_.location, message);
     return nullptr;
@@ -877,8 +829,7 @@ mlir::Operation* BEFFunctionReader::ReadKernel(ArrayRef<uint32_t> kernels,
   // The first two entry must be kernel_code and kernel_location.
   auto name = bef_file_.kernels.at(kernel.kernel_code());
 
-  auto location =
-      bef_file_.GetLocationPosition(kernel.kernel_location()).getValue();
+  auto location = location_reader->ReadLocation(kernel.kernel_location());
 
   mlir::OperationState state(location, name);
 
@@ -1007,12 +958,6 @@ mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
 
   // The first phase processes all sections and saves types, names and
   // attributes.
-  if (mlir::failed(converter.ReadLocationFilenames(
-          sections.Get(BEFSectionID::kLocationFilenames))))
-    return emit_error("Invalid LocationFilenames section.");
-  if (mlir::failed(converter.ReadLocationPositions(
-          sections.Get(BEFSectionID::kLocationPositions))))
-    return emit_error("Invalid LocationPositions section.");
   if (mlir::failed(converter.ReadStrings(sections.Get(BEFSectionID::kStrings))))
     return emit_error("Invalid Strings section.");
   if (mlir::failed(converter.ReadTypes(sections.Get(BEFSectionID::kTypes))))
@@ -1033,7 +978,9 @@ mlir::OwningModuleRef ConvertBEFToMLIR(mlir::Location location,
   if (mlir::failed(converter.ReadFunctions(
           sections.Get(BEFSectionID::kFunctions),
           sections.Get(BEFSectionID::kAttributeNames),
-          sections.Get(BEFSectionID::kRegisterTypes), &function_context)))
+          sections.Get(BEFSectionID::kRegisterTypes),
+          sections.Get(BEFSectionID::kLocationStrings),
+          sections.Get(BEFSectionID::kLocations), &function_context)))
     return emit_error("Invalid Functions section.");
 
   // The third phase resolves all functions as either top level MLIR functions

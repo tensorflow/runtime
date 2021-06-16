@@ -49,38 +49,36 @@ enum : uint8_t {
 // <BEFSectionID> <length> <... data ...>
 //
 enum class BEFSectionID : uint8_t {
-  // This is a list of filenames used for location information.  This is kept
-  // in a separate section from other strings because we don't expect it to be
-  // frequently accessed.
-  kLocationFilenames = 0,
-
-  // This is a list of positions referred to by location information.  Each
-  // position is a triple of FilenameIndex, line, column, and offsets into this
-  // section are used by location references.
-  kLocationPositions = 1,
-
   // The strings section contains NUL terminated strings, indexed by the offset
   // into the table. This is used for type references and function names.
-  kStrings = 2,
+  kStrings = 0,
 
   // The attributes section contains the attributes referenced by the program.
-  kAttributes = 3,
+  kAttributes = 1,
 
   // The kernels section defines a dense numbering for kernels.  It is a
   // count of the number of kernels present, followed by a list of indices
   // into the string table.
-  kKernels = 4,
+  kKernels = 2,
 
   // The types section defines a dense numbering for types.  It is the count of
   // types present, followed by a list of indices into the string table.
-  kTypes = 5,
+  kTypes = 3,
 
   // The function index section provides a symbol table and metadata about the
   // functions in this BEFFile.
-  kFunctionIndex = 6,
+  kFunctionIndex = 4,
 
   // The functions section contains the bodies of executable code fragments.
-  kFunctions = 7,
+  kFunctions = 5,
+
+  // This is a list of strings used for location information. This is kept
+  // in a separate section from other strings because we don't expect it to be
+  // frequently accessed.
+  kLocationStrings = 6,
+
+  // This is a list of locations.
+  kLocations = 7,
 
   // The attribute types section provides type information for each attribute in
   // attributes section. It is an optional section and will be ignored by

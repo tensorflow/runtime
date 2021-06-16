@@ -26,6 +26,7 @@
 #include "tfrt/host_context/device.h"
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/host_context/location.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/ref_count.h"
 #include "tfrt/support/string_util.h"
@@ -130,8 +131,9 @@ ExecutionContext CoreRuntimeCpuDriver::CreateExecutionContext(
 
 DecodedLocation CoreRuntimeCpuDriver::DecodeLocation(Location loc) const {
   // TODO(b/147635252): Need a mutex to protect locations_.
-  return DecodedLocation{locations_[loc.data].first,
-                         locations_[loc.data].second};
+  DecodedLocation decoded = FileLineColLocation{locations_[loc.data].first,
+                                                locations_[loc.data].second};
+  return decoded;
 }
 }  // namespace example
 }  // namespace tfrt

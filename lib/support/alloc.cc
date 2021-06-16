@@ -22,18 +22,17 @@
 namespace tfrt {
 
 void* AlignedAlloc(size_t alignment, size_t size) {
-  if (alignment <= alignof(void*)) return std::malloc(size);
   size = (size + alignment - 1) / alignment * alignment;
-
-#if defined(__ANDROID__) || defined(OS_ANDROID)
-  return memalign(alignment, size);
-#elif defined(_WIN32)
+#ifdef _WIN32
   return _aligned_malloc(size, alignment);
+#elif defined(__ANDROID__) || defined(OS_ANDROID)
+  return memalign(alignment, size);
 #else
-  void* ptr = nullptr;
   // posix_memalign requires that the requested alignment be at least
   // alignof(void*). In this case, fall back on malloc which should return
   // memory aligned to at least the size of a pointer.
+  if (alignment <= alignof(void*)) return std::malloc(size);
+  void* ptr = nullptr;
   if (posix_memalign(&ptr, alignment, size) != 0)
     return nullptr;
   else

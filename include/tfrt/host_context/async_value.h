@@ -934,7 +934,7 @@ inline void AsyncValue::Destroy() {
   }
 
   GetTypeInfo().destructor(this, /*destroys_object=*/true);
-  std::free(this);
+  AlignedFree(this);
 }
 
 inline raw_ostream& operator<<(raw_ostream& os,

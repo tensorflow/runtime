@@ -34,12 +34,11 @@ Error ConcatKernel(int axis, RepeatedSyncArguments<DenseHostTensor> args) {
 namespace tf {
 
 void RegisterConcatCpuKernels(KernelRegistry* registry) {
-#define DTYPE_FLOAT(ENUM)                                            \
-  {                                                                  \
-    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;             \
-    registry->AddSyncKernel(                                         \
-        StrCat("tf_sync.ConcatV2.", GetDType<CPP_TYPE>().GetName()), \
-        TFRT_SYNC_KERNEL(ConcatKernel<CPP_TYPE>));                   \
+#define DTYPE_FLOAT(ENUM)                                                      \
+  {                                                                            \
+    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                       \
+    registry->AddSyncKernel(StrCat("tf_sync.ConcatV2.", GetDType<CPP_TYPE>()), \
+                            TFRT_SYNC_KERNEL(ConcatKernel<CPP_TYPE>));         \
   }
 #include "tfrt/dtype/dtype.def"
 }

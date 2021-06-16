@@ -24,16 +24,15 @@
 namespace tfrt {
 namespace {
 
-const char* GetName(DType::Kind kind) { return DType(kind).GetName(); }
 size_t GetHostSize(DType::Kind kind) { return DType(kind).GetHostSize(); }
 size_t GetHostAlignment(DType::Kind kind) {
   return DType(kind).GetHostAlignment();
 }
 
 TEST(DType, Traits) {
-  EXPECT_STREQ(GetName(DType::F16), "f16");
-  EXPECT_STREQ(GetName(DType::Resource), "resource");
-  EXPECT_STREQ(GetName(DType::Variant), "variant");
+  EXPECT_EQ(StrCat(DType::F16), "f16");
+  EXPECT_EQ(StrCat(DType::Resource), "resource");
+  EXPECT_EQ(StrCat(DType::Variant), "variant");
 
   EXPECT_EQ(GetHostSize(DType::I8), 1);
   EXPECT_EQ(GetHostSize(DType::F16), 2);

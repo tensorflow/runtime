@@ -22,6 +22,7 @@
 #include <complex>
 #include <cstddef>
 #include <cstdint>
+#include <iosfwd>
 #include <type_traits>
 
 #include "llvm/Support/raw_ostream.h"
@@ -61,9 +62,6 @@ class DType {
     return kind_ == Unsupported || kind_ == Resource || kind_ == Variant;
   }
 
-  // Get the name for the dtype, e.g. i32, f32.
-  const char *GetName() const;
-
   // Return the size of one value of this dtype when represented on the host.
   size_t GetHostSize() const;
 
@@ -74,8 +72,20 @@ class DType {
   Kind kind_;
 };
 
-// Support printing of dtype enums.
+// Support printing of dtype enums, e.g. i32, f32.
 raw_ostream &operator<<(raw_ostream &os, DType dtype);
+// Add support for std::ostream to make DType friendly to std::ostream based
+// tools, e.g. Google test.
+std::ostream &operator<<(std::ostream &os, DType dtype);
+
+// TODO(jingdong): Remove the DType::Kind stream operator variants.
+inline raw_ostream &operator<<(raw_ostream &os, DType::Kind dtype) {
+  return os << DType(dtype);
+}
+
+inline std::ostream &operator<<(std::ostream &os, DType::Kind dtype) {
+  return os << DType(dtype);
+}
 
 // Provides interconversions between C++ type and DTypes at compile time.
 //

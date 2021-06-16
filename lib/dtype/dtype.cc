@@ -20,11 +20,6 @@
 
 namespace tfrt {
 
-const char *DType::GetName() const {
-  return DispatchByDType(*this,
-                         [](auto dtype_data) { return dtype_data.kName; });
-}
-
 // Return the size of one value of this dtype when represented on the host.
 size_t DType::GetHostSize() const {
   return DispatchByDType(*this,
@@ -39,7 +34,13 @@ size_t DType::GetHostAlignment() const {
 
 // Support printing of dtype enums.
 raw_ostream &operator<<(raw_ostream &os, DType dtype) {
-  return os << dtype.GetName();
+  return os << DispatchByDType(
+             dtype, [](auto dtype_data) { return dtype_data.kName; });
+}
+
+std::ostream &operator<<(std::ostream &os, DType dtype) {
+  return os << DispatchByDType(
+             dtype, [](auto dtype_data) { return dtype_data.kName; });
 }
 
 }  // namespace tfrt

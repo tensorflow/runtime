@@ -29,11 +29,11 @@ void RegisterSoftmaxCpuKernels(KernelRegistry* registry) {
   {                                                                      \
     using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                 \
     registry->AddSyncKernel(                                             \
-        StrCat("tf_sync.Softmax.", GetDType<CPP_TYPE>().GetName()),      \
+        StrCat("tf_sync.Softmax.", GetDType<CPP_TYPE>()),                \
         TFRT_SYNC_KERNEL(                                                \
             cpu::Softmax<CPP_TYPE, false, compat::SyncEigenEvaluator>)); \
     registry->AddSyncKernel(                                             \
-        StrCat("tf_sync.LogSoftmax.", GetDType<CPP_TYPE>().GetName()),   \
+        StrCat("tf_sync.LogSoftmax.", GetDType<CPP_TYPE>()),             \
         TFRT_SYNC_KERNEL(                                                \
             cpu::Softmax<CPP_TYPE, true, compat::SyncEigenEvaluator>));  \
   }

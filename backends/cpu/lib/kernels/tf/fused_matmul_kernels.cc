@@ -39,12 +39,12 @@ Error FusedMatMul(const DenseHostTensor& a, const DenseHostTensor& b,
 namespace tf {
 
 void RegisterFusedMatmulKernels(KernelRegistry* registry) {
-#define DTYPE_FLOAT(ENUM)                                                \
-  {                                                                      \
-    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;                 \
-    registry->AddSyncKernel(                                             \
-        StrCat("tf_sync._FusedMatMul.", GetDType<CPP_TYPE>().GetName()), \
-        TFRT_SYNC_KERNEL(FusedMatMul<CPP_TYPE>));                        \
+#define DTYPE_FLOAT(ENUM)                                      \
+  {                                                            \
+    using CPP_TYPE = EigenTypeForDTypeKind<DType::ENUM>;       \
+    registry->AddSyncKernel(                                   \
+        StrCat("tf_sync._FusedMatMul.", GetDType<CPP_TYPE>()), \
+        TFRT_SYNC_KERNEL(FusedMatMul<CPP_TYPE>));              \
   }
 #include "tfrt/dtype/dtype.def"
 }

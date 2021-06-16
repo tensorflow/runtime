@@ -36,13 +36,65 @@ def if_google(google_value, oss_value = []):
     return oss_value  # copybara:comment_replace return google_value
 
 TFRT_COPTS = select({
-    "//conditions:default": [],
+    "@tf_runtime//:windows": [
+        "-Zc:inline",
+        "-Zc:strictStrings",
+        "-Zc:rvalueCast",
+        "-Oi",
+        "-wd4141",
+        "-wd4146",
+        "-wd4180",
+        "-wd4244",
+        "-wd4258",
+        "-wd4267",
+        "-wd4291",
+        "-wd4345",
+        "-wd4351",
+        "-wd4355",
+        "-wd4456",
+        "-wd4457",
+        "-wd4458",
+        "-wd4459",
+        "-wd4503",
+        "-wd4624",
+        "-wd4722",
+        "-wd4800",
+        "-wd4100",
+        "-wd4127",
+        "-wd4512",
+        "-wd4505",
+        "-wd4610",
+        "-wd4510",
+        "-wd4702",
+        "-wd4245",
+        "-wd4706",
+        "-wd4310",
+        "-wd4701",
+        "-wd4703",
+        "-wd4389",
+        "-wd4611",
+        "-wd4805",
+        "-wd4204",
+        "-wd4577",
+        "-wd4091",
+        "-wd4592",
+        "-wd4319",
+        "-wd4324",
+        "-w14062",
+        "-we4238",
+    ],
+    "//conditions:default": ["-std=c++14", "-Wno-unused-local-typedef"],
     "@tf_runtime//:disable_rtti_and_exceptions": [
         # Disable RTTI.
         "-fno-rtti",
         # Disable exceptions.
         "-fno-exceptions",
     ],
+})
+
+TFRT_LINKOPTS = select({
+    "@tf_runtime//:windows": [],
+    "//conditions:default": ["-ldl", "-lm", "-lpthread"],
 })
 
 TFRT_FEATURES = select({
@@ -63,6 +115,7 @@ def tfrt_cc_library(
         deps = [],
         includes = [],
         copts = [],
+        linkopts = [],
         features = [],
         alwayslink_static_registration_src = "",
         alwayslink_static_registration_deps = [],
@@ -82,6 +135,7 @@ def tfrt_cc_library(
         deps = deps,
         includes = TFRT_INCLUDES + includes,
         copts = TFRT_COPTS + copts,
+        linkopts = TFRT_LINKOPTS + linkopts,
         features = TFRT_FEATURES + features,
         **kwargs
     )
@@ -96,6 +150,7 @@ def tfrt_cc_library(
             deps = deps + alwayslink_static_registration_deps + [":" + name],
             includes = TFRT_INCLUDES + includes,
             copts = TFRT_COPTS + copts,
+            linkopts = TFRT_LINKOPTS + linkopts,
             features = TFRT_FEATURES + features,
             alwayslink = 1,
             **kwargs
@@ -104,12 +159,14 @@ def tfrt_cc_library(
 def tfrt_cc_binary(
         includes = [],
         copts = [],
+        linkopts = [],
         features = [],
         **kwargs):
     """A cc_binary with tfrt-specific options."""
     native.cc_binary(
         copts = TFRT_COPTS + copts,
         includes = TFRT_INCLUDES + includes,
+        linkopts = TFRT_LINKOPTS + linkopts,
         features = TFRT_FEATURES,
         **kwargs
     )
@@ -117,12 +174,14 @@ def tfrt_cc_binary(
 def tfrt_cc_test(
         includes = [],
         copts = ["-Wno-private-header"],
+        linkopts = [],
         features = [],
         **kwargs):
     """A cc_test with tfrt-specific options."""
     native.cc_test(
         includes = TFRT_INCLUDES + includes,
         copts = TFRT_COPTS + copts,
+        linkopts = TFRT_LINKOPTS + linkopts,
         features = TFRT_FEATURES + features,
         **kwargs
     )

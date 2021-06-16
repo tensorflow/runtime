@@ -217,10 +217,10 @@ class TypedErrorInfo
       : TypedErrorInfo<ErrorTrait>(ErrorTrait::name, message, task_name) {}
 };
 
-#define ERROR_TYPE(ENUM)                 \
-  struct ENUM##ErrorTrait {              \
-    static constexpr char* name = #ENUM; \
-  };                                     \
+#define ERROR_TYPE(ENUM)                       \
+  struct ENUM##ErrorTrait {                    \
+    static constexpr const char* name = #ENUM; \
+  };                                           \
   using ENUM##ErrorInfo = TypedErrorInfo<ENUM##ErrorTrait>;
 #include "tfrt/support/error_type.def"  // NOLINT
 

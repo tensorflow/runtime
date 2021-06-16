@@ -19,35 +19,24 @@
 
 #include <sys/stat.h>
 
-// <fcntl.h> may provide O_BINARY.
-#if defined(HAVE_FCNTL_H)
-# include <fcntl.h>
-#endif
-
-#if defined(HAVE_UNISTD_H)
-# include <unistd.h>
-#endif
-
-#if defined(__CYGWIN__)
-#include <io.h>
-#endif
-
 #if defined(_MSC_VER)
 #include <io.h>
 #ifndef STDIN_FILENO
-# define STDIN_FILENO 0
+#define STDIN_FILENO 0
 #endif
 #ifndef STDOUT_FILENO
-# define STDOUT_FILENO 1
+#define STDOUT_FILENO 1
 #endif
 #ifndef STDERR_FILENO
-# define STDERR_FILENO 2
+#define STDERR_FILENO 2
 #endif
 #endif
 
 #ifdef _WIN32
 #include "llvm/Support/ConvertUTF.h"
 #include "llvm/Support/Windows/WindowsSupport.h"
+#else
+#include <unistd.h>
 #endif
 
 #include <algorithm>

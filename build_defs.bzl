@@ -83,7 +83,7 @@ TFRT_COPTS = select({
         "-w14062",
         "-we4238",
     ],
-    "//conditions:default": ["-std=c++14", "-Wno-unused-local-typedef"],
+    "//conditions:default": ["-Wno-unused-local-typedef"],
     "@tf_runtime//:disable_rtti_and_exceptions": [
         # Disable RTTI.
         "-fno-rtti",

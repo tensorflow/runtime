@@ -394,7 +394,7 @@ llvm_copts = select({
         "-w14062",
         "-we4238",
     ],
-    "//conditions:default": [],
+    "//conditions:default": ["-Wno-unused-local-typedef"],
 })
 
 # Platform specific sources for libSupport.

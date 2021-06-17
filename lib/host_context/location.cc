@@ -24,13 +24,16 @@ namespace tfrt {
 
 LocationHandler::~LocationHandler() {}
 
+raw_ostream& operator<<(raw_ostream& os, const FileLineColLocation& loc) {
+  return os << loc.filename << ":" << loc.line << ":" << loc.column;
+}
+
+raw_ostream& operator<<(raw_ostream& os, const OpaqueLocation& loc) {
+  return os << loc.loc;
+}
+
 raw_ostream& operator<<(raw_ostream& os, const DecodedLocation& loc) {
-  if (loc.is<FileLineColLocation>()) {
-    auto decoded = loc.get<FileLineColLocation>();
-    os << decoded.filename << ":" << decoded.line << ":" << decoded.column;
-  } else {
-    os << loc.get<OpaqueLocation>().loc;
-  }
+  visit([&](auto& loc) { os << loc; }, loc);
   return os;
 }
 

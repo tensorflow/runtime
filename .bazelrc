@@ -12,9 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-build --config=clang  # By default, build with clang on Linux.
+build --enable_platform_specific_config
 
-build --repo_env=BAZEL_CXXOPTS=-std=c++14
+build:linux --config=clang  # On Linux, build with clang by default.
+build:windows --config=msvc # On Windows, build with MSVC by default.
+
+# Build with MSVC and nvcc (on Windows)
+build:msvc --config=nvcc
 
 # Build with clang.
 build:clang --repo_env=CC=clang
@@ -25,14 +29,22 @@ build:clang --@rules_cuda//cuda:copts=-Wno-unknown-cuda-version
 build:gcc --repo_env=CC=gcc
 build:gcc --config=nvcc
 
-# Build with MSVC and nvcc (on Windows)
-build:msvc --config=nvcc
-build:msvc --repo_env=BAZEL_CXXOPTS=
-
 # Build with CUDA device code with nvcc.
 build:nvcc --@rules_cuda//cuda:compiler=nvcc
 build:nvcc --repo_env=BAZEL_CXXOPTS=  # Prevent warning: 'std' redefinition.
 build:nvcc --@rules_cuda//cuda:copts=--expt-relaxed-constexpr
+
+# C++14 standard version is required.
+build:android --cxxopt=-std=c++14
+build:android --host_cxxopt=-std=c++14
+build:ios --cxxopt=-std=c++14
+build:ios --host_cxxopt=-std=c++14
+build:linux --cxxopt=-std=c++14
+build:linux --host_cxxopt=-std=c++14
+build:macos --cxxopt=-std=c++14
+build:macos --host_cxxopt=-std=c++14
+build:windows --cxxopt=/std:c++14
+build:windows --host_cxxopt=/std:c++14
 
 # Default to an optimized build.
 # Override via: "-c dbg" or --compilation_mode=dbg

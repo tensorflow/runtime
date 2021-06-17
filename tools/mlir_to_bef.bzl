@@ -45,6 +45,7 @@ def glob_tfrt_lit_tests(
         # Do not run "tfrt_translate -mlir-to-bef" on these files.
         no_bef_translation = [],
         tfrt_translate = "",
+        tags_override = {},
         **kwargs):
     """Run mlir_to_bef on all .mlir files and invoke glob_lit_tests."""
 
@@ -77,5 +78,6 @@ def glob_tfrt_lit_tests(
         # copybara:uncomment driver = driver,
         test_file_exts = ["mlir"],
         exclude = exclude,
+        tags_override = tags_override,
         **kwargs
     )

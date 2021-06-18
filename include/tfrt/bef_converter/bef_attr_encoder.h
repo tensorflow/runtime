@@ -72,11 +72,11 @@ class BefAttrEncoder : public BefEmitter {
   size_t EncodeUnrankedShapeAttr() { return EncodeEmptyAttr(); }
 
   // Encode a dense attribute header.
-  size_t EncodeDenseAttrHeader(DType::Kind element_type,
-                               ArrayRef<AttrShapeT> dims, size_t rawdata_size);
+  size_t EncodeDenseAttrHeader(DType element_type, ArrayRef<AttrShapeT> dims,
+                               size_t rawdata_size);
 
   // Encode a dense attribute.
-  size_t EncodeDenseAttr(DType::Kind element_type, ArrayRef<AttrShapeT> dims,
+  size_t EncodeDenseAttr(DType element_type, ArrayRef<AttrShapeT> dims,
                          ArrayRef<uint8_t> element_payload);
 
   // Encode an aggregate attribute header.
@@ -111,9 +111,9 @@ class BefAttrEncoder : public BefEmitter {
 
  private:
   // Fill and encode BefAttrBase struct content.
-  size_t EncodeHeader(BefAttrBase* base, uint8_t alignment,
-                      DType::Kind element_type, uint16_t prefix_size,
-                      AttrSizeT byte_size, AttrSizeT emit_size);
+  size_t EncodeHeader(BefAttrBase* base, uint8_t alignment, DType element_type,
+                      uint16_t prefix_size, AttrSizeT byte_size,
+                      AttrSizeT emit_size);
 };
 
 template <typename T>

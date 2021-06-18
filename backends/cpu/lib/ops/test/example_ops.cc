@@ -43,7 +43,7 @@ static Expected<DenseHostTensor> OddCollectorOp(
     const DenseHostTensor& input, const ExecutionContext& exec_ctx) {
   if (input.shape().GetRank() != 1)
     return MakeStringError("expected a 1D tensor input");
-  if (input.dtype().kind() != DType::I32)
+  if (input.dtype() != DType::I32)
     return MakeStringError("expected a i32 element type");
 
   // Figure out how big the result tensor will be.
@@ -152,7 +152,7 @@ AsyncValueRef<HostTensor> TestAddOpImpl(const HostTensor& lhs_ref,
 static AsyncValueRef<HostTensor> TestAddOp(const HostTensor& lhs,
                                            const HostTensor& rhs,
                                            const ExecutionContext& exec_ctx) {
-  switch (lhs.dtype().kind()) {
+  switch (lhs.dtype()) {
     default:
       assert(0 && "shape function failure");
       return {};
@@ -190,7 +190,7 @@ static Expected<DenseHostTensor> TestAddDenseOnlyOp(
   }
 
   auto* dest_ptr = dest.getPointer();
-  switch (lhs.dtype().kind()) {
+  switch (lhs.dtype()) {
     default:
       assert(0 && "shape function failure");
       break;
@@ -219,7 +219,7 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly2Op(
                                   "out of memory allocating result");
   }
 
-  switch (lhs.dtype().kind()) {
+  switch (lhs.dtype()) {
     default:
       assert(0 && "shape function failure");
       break;
@@ -253,7 +253,7 @@ static AsyncValueRef<DenseHostTensor> TestAddDenseOnly3Op(
   // dht in the ParallelFor call.
   auto add_impl = [dht = &dht.get(), lhs = lhs.CopyRef(), rhs = rhs.CopyRef()](
                       size_t begin_elt, size_t end_elt) mutable {
-    switch (lhs.dtype().kind()) {
+    switch (lhs.dtype()) {
       default:
         assert(0 && "shape function failure");
         break;

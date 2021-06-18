@@ -31,7 +31,7 @@
 namespace tfrt {
 
 static mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
-                                      DType::Kind attribute_type) {
+                                      DType attribute_type) {
   switch (attribute_type) {
     case DType::I1:
       return builder->getIntegerType(1);
@@ -184,7 +184,7 @@ mlir::Attribute BefAttrReader::ReadAttribute(BEFAttributeType attribute_type,
 
   if (attribute_type == BEFAttributeType::kType) {
     return mlir::TypeAttr::get(DecodeTypeAttribute(
-        &builder_, static_cast<DType::Kind>(Attribute<uint8_t>(ptr).get())));
+        &builder_, static_cast<DType>(Attribute<uint8_t>(ptr).get())));
   }
 
   if (attribute_type == BEFAttributeType::kShape) {

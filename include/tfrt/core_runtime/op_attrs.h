@@ -639,7 +639,7 @@ class OpAttrsRef {
 };
 
 // Return the OpAttrType converted from DType.
-OpAttrType GetOpAttrTypeFromDType(DType::Kind kind);
+OpAttrType GetOpAttrTypeFromDType(DType kind);
 
 // Return the OpAttrType converted from BEFAttributeType in BEF.
 OpAttrType GetOpAttrTypeFromBEFAttributeType(BEFAttributeType kind);

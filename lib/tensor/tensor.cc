@@ -27,7 +27,7 @@ namespace tfrt {
 Tensor::~Tensor() {}
 
 raw_ostream& operator<<(raw_ostream& os, const TensorMetadata& metadata) {
-  if (metadata.dtype.kind() == DType::Invalid) {
+  if (metadata.dtype == DType::Invalid) {
     os << "<invalid tensor metadata>";
     // Don't print the shape.
     return os;

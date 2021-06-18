@@ -35,9 +35,8 @@ namespace tfrt {
 size_t BefAttrEncoder::EncodeEmptyAttr() { return EncodeAttr<AttrSizeT>(0); }
 
 size_t BefAttrEncoder::EncodeHeader(BefAttrBase* base, uint8_t alignment,
-                                    DType::Kind element_type,
-                                    uint16_t prefix_size, AttrSizeT byte_size,
-                                    AttrSizeT emit_size) {
+                                    DType element_type, uint16_t prefix_size,
+                                    AttrSizeT byte_size, AttrSizeT emit_size) {
   base->alignment = alignment;
   base->element_type = element_type;
   base->prefix_size = prefix_size;
@@ -77,7 +76,7 @@ size_t BefAttrEncoder::EncodeRankedShapeAttr(ArrayRef<int64_t> dims) {
   return offset;
 }
 
-size_t BefAttrEncoder::EncodeDenseAttrHeader(DType::Kind element_type,
+size_t BefAttrEncoder::EncodeDenseAttrHeader(DType element_type,
                                              ArrayRef<int64_t> dims,
                                              size_t rawdata_size) {
   BefDenseAttr header;
@@ -102,7 +101,7 @@ size_t BefAttrEncoder::EncodeDenseAttrHeader(DType::Kind element_type,
   return offset;
 }
 
-size_t BefAttrEncoder::EncodeDenseAttr(DType::Kind element_type,
+size_t BefAttrEncoder::EncodeDenseAttr(DType element_type,
                                        ArrayRef<int64_t> dims,
                                        ArrayRef<uint8_t> element_payload) {
   auto offset =

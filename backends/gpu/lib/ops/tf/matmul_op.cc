@@ -103,7 +103,7 @@ llvm::Error RunCublasGemm(wrapper::CurrentContext current,
   const uint64_t m = a.shape().GetDimensionSize(a_remaining_dim);
   const uint64_t k = a.shape().GetDimensionSize(a_matching_dim);
   const uint64_t n = b.shape().GetDimensionSize(b_remaining_dim);
-  switch (a.dtype().kind()) {
+  switch (a.dtype()) {
     case DType::F16:
       return CallCublasGemm<__half>(current, handle, transpose_a, transpose_b,
                                     m, k, n, a, b, result);

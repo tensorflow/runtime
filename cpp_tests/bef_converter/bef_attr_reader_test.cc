@@ -53,7 +53,7 @@ class BefAttrReaderTest : public ::testing::Test {
     }
   }
 
-  template <typename T, DType::Kind dtype>
+  template <typename T, DType dtype>
   void TestIntegerAttribute(T value) {
     BefAttrEncoder encoder;
     const auto offset = encoder.EncodeAttr(value);
@@ -261,7 +261,7 @@ TEST_F(BefAttrReaderTest, ReadDenseAttribute) {
 
   BefAttrEncoder encoder;
   auto offset = encoder.EncodeDenseAttr(
-      md.dtype.kind(), shape,
+      md.dtype, shape,
       llvm::makeArrayRef(static_cast<const uint8_t*>(dht.data()),
                          dht.DataSizeInBytes()));
 

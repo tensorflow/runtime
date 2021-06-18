@@ -29,12 +29,12 @@ Expected<SmallVector<ssize_t, 5>> TileMultiples(
     return MakeStringError("Tile multiples must be a vector");
   }
 
-  if (multiples_arg.dtype().kind() == DType::I32) {
+  if (multiples_arg.dtype() == DType::I32) {
     DHTArrayView<int32_t> view(&multiples_arg);
     auto els = view.Elements();
     for (int i = 0; i < view.NumElements(); ++i) multiples.push_back(els[i]);
 
-  } else if (multiples_arg.dtype().kind() == DType::I64) {
+  } else if (multiples_arg.dtype() == DType::I64) {
     DHTArrayView<int64_t> view(&multiples_arg);
     auto els = view.Elements();
     for (int i = 0; i < view.NumElements(); ++i) multiples.push_back(els[i]);

@@ -43,7 +43,7 @@ static Expected<DenseHostTensor> TfConcatOpDense(
   }
 
   // Call concat kernel.
-  switch (args[0].dtype().kind()) {
+  switch (args[0].dtype()) {
     default:
       return MakeStringError("Unsupported dtype: ", args[0].dtype());
       break;

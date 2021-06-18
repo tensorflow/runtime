@@ -443,7 +443,7 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpImpl(
       GpuBuffer::Allocate(dctx->allocator(),
                           /*size=*/size_in_bytes, dctx->stream()));
 
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     default:
       return MakeStringError("Unsupported data type: ", input.dtype());
 
@@ -475,7 +475,7 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpFolded(
   }
 
   DenseView dense_view = CreateDenseView(dense_attr);
-  switch (dense_view.dtype().kind()) {
+  switch (dense_view.dtype()) {
     case DType::I32:
       return ComputeMeanGpuOpImpl(dctx, input, dense_view.GetFlat<int32_t>(),
                                   result_md);

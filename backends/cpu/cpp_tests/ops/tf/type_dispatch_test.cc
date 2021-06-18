@@ -23,15 +23,13 @@ namespace tfrt {
 namespace {
 
 TEST(TypeDispatchTest, Simple) {
-  using ResultType = std::pair<bool, DType::Kind>;
+  using ResultType = std::pair<bool, DType>;
 
-  auto unsupported = [](DType dtype) -> ResultType {
-    return {false, dtype.kind()};
-  };
+  auto unsupported = [](DType dtype) -> ResultType { return {false, dtype}; };
 
   auto supported = [](auto type_tag) -> ResultType {
     using T = decltype(type_tag);
-    return {true, GetDType<T>().kind()};
+    return {true, GetDType<T>()};
   };
 
   {  // F32 dispatched to supported lambda.

@@ -100,7 +100,7 @@ static llvm::Expected<DenseGpuTensor> CreateDenseTensorOp(
 
   auto values = attrs.GetRawAsserting("values");
   if (!values.IsArray() || values.element_count == 1) {
-    switch (result_md.dtype.kind()) {
+    switch (result_md.dtype) {
       default:
         assert(0 && "invalid result_md dtype");
 #define DTYPE_NUMERIC(ENUM)                                                 \

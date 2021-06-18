@@ -114,7 +114,7 @@ static Chain OpAttrsSet(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static Chain OpAttrsSetDType(Argument<OpAttrs> attrs, StringAttribute key,
-                             Attribute<DType::Kind> value) {
+                             Attribute<DType> value) {
   attrs->Set(key, GetOpAttrTypeFromDType(*value));
   return Chain();
 }
@@ -357,7 +357,7 @@ void CreateLoggingOpHandlerKernel(Argument<OpHandler *> fallback,
 }
 
 static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
-  switch (dht.dtype().kind()) {
+  switch (dht.dtype()) {
     default:
       llvm_unreachable("dtype not supported");
       break;

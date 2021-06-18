@@ -164,7 +164,7 @@ static llvm::Expected<DenseGpuTensor> ComputeBiasAddGpuOp(
 
   TFRT_ASSIGN_OR_RETURN(
       auto function, [&]() -> llvm::Expected<wrapper::Function> {
-        switch (input.dtype().kind()) {
+        switch (input.dtype()) {
           case DType::F16: {
             static ModuleLoader module_loader(kBiasAddF16Kernel);
             return module_loader.GetFunction(dctx, "bias_add_kernel");
@@ -224,7 +224,7 @@ static llvm::Expected<DenseGpuTensor> ComputeReluGpuOp(
 
   TFRT_ASSIGN_OR_RETURN(
       auto function, [&]() -> llvm::Expected<wrapper::Function> {
-        switch (input.dtype().kind()) {
+        switch (input.dtype()) {
           case DType::F16: {
             static ModuleLoader module_loader(kReluF16Kernel);
             return module_loader.GetFunction(dctx, "relu_kernel");

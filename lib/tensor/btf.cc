@@ -22,7 +22,7 @@
 namespace tfrt {
 namespace btf {
 
-DType::Kind ToDTypeKind(TensorDType type) {
+DType ToDTypeKind(TensorDType type) {
   switch (type) {
     case TensorDType::kInt8:
       return DType::I8;
@@ -47,7 +47,7 @@ DType::Kind ToDTypeKind(TensorDType type) {
   }
 }
 
-Expected<TensorDType> ToTensorDType(DType::Kind type) {
+Expected<TensorDType> ToTensorDType(DType type) {
   switch (type) {
     case DType::I8:
       return TensorDType::kInt8;

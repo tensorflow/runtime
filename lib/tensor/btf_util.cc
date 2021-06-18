@@ -121,7 +121,7 @@ Error WriteTensorsToBTF(std::ostream* stream, ArrayRef<const Tensor*> tensors) {
     return MakeStringError("failed to write offsets");
   }
   for (const Tensor* tensor : tensors) {
-    auto dtype_or = btf::ToTensorDType(tensor->dtype().kind());
+    auto dtype_or = btf::ToTensorDType(tensor->dtype());
     if (!dtype_or) return dtype_or.takeError();
     btf::TensorHeader header;
     header.rank = static_cast<uint64_t>(tensor->shape().GetRank());

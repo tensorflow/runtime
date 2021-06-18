@@ -79,7 +79,7 @@ ConvertCooHostTensorToScalarHostTensor(const CooHostTensor &coo,
   auto *host = exec_ctx.host();
   // Allows conversion to ScalarHostTensor if at most one element or if it is an
   // arbitrary-shaped COO tensor but all elements are zero.
-  switch (coo.dtype().kind()) {
+  switch (coo.dtype()) {
     default:
       llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                                 \
@@ -118,7 +118,7 @@ static AsyncValueRef<DenseHostTensor> ConvertCooHostTensorToDenseHostTensor(
   }
   auto &result_tensor = result_alloc.getValue();
 
-  switch (tensor.dtype().kind()) {
+  switch (tensor.dtype()) {
     default:
       llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                   \

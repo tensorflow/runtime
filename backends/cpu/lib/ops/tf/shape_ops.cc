@@ -49,12 +49,12 @@ static AsyncValueRef<DenseHostTensor> TfShapeOp(
   SmallVector<ssize_t, 4> dims(input.shape().GetRank());
   input.shape().GetDimensions(dims);
 
-  if (output_md.dtype.kind() == DType::I32) {
+  if (output_md.dtype == DType::I32) {
     MutableDHTArrayView<int32_t> view(&dest.get());
     std::transform(dims.begin(), dims.end(), view.data(),
                    [](ssize_t dim) { return static_cast<int32_t>(dim); });
 
-  } else if (output_md.dtype.kind() == DType::I64) {
+  } else if (output_md.dtype == DType::I64) {
     MutableDHTArrayView<int64_t> view(&dest.get());
     std::transform(dims.begin(), dims.end(), view.data(),
                    [](ssize_t dim) { return static_cast<int64_t>(dim); });
@@ -76,10 +76,10 @@ static Expected<int64_t> GetExpandAxisValue(const DenseHostTensor& axis) {
   if (axis.NumElements() != 1)
     return MakeStringError("Axis must be a scalar tensor");
 
-  if (axis.dtype().kind() == DType::I32) {
+  if (axis.dtype() == DType::I32) {
     DHTArrayView<int32_t> view(&axis);
     axis_value = *view.begin();
-  } else if (axis.dtype().kind() == DType::I64) {
+  } else if (axis.dtype() == DType::I64) {
     DHTArrayView<int64_t> view(&axis);
     axis_value = *view.begin();
   } else {

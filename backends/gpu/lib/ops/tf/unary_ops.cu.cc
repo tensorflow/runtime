@@ -91,12 +91,12 @@ Expected<gpu::DenseGpuTensor> ComputeUnaryElementwiseOpViaEigen(
   return MakeStringError("unexpected type for operation");
 }
 
-template <template <typename> class Functor, DType::Kind CurrentKind,
-          DType::Kind... TrailingKinds>
+template <template <typename> class Functor, DType CurrentKind,
+          DType... TrailingKinds>
 Expected<gpu::DenseGpuTensor> ComputeUnaryElementwiseOpViaEigen(
     GpuDispatchContext* dctx, const gpu::DenseGpuTensor& input,
     const TensorMetadata& result_md) {
-  if (CurrentKind == result_md.dtype.kind()) {
+  if (CurrentKind == result_md.dtype) {
     using T = EigenTypeForDTypeKind<CurrentKind>;
     using SpecializedFunctor = Functor<T>;
     return gpu::ComputeOpViaEigen<gpu::FunctorSignature<T, T>,

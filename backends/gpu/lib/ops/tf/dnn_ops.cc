@@ -43,7 +43,7 @@
 namespace tfrt {
 namespace gpu {
 
-static llvm::Expected<cudnnDataType_t> ToCudnnDataType(DType::Kind kind) {
+static llvm::Expected<cudnnDataType_t> ToCudnnDataType(DType kind) {
   switch (kind) {
     case DType::F16:
       return CUDNN_DATA_HALF;
@@ -80,7 +80,7 @@ static llvm::Expected<TensorDescriptorData> GetTensorDescriptorData(
     DType dtype, llvm::ArrayRef<ssize_t> dimensions,
     ChannelOrder channel_order) {
   TensorDescriptorData result;
-  TFRT_ASSIGN_OR_RETURN(result.dtype, ToCudnnDataType(dtype.kind()));
+  TFRT_ASSIGN_OR_RETURN(result.dtype, ToCudnnDataType(dtype));
 
   // Expand to at least rank 4.
   auto rank = std::max<int>(4, dimensions.size());

@@ -195,10 +195,10 @@ Expected<ResultsMemoryLayout> Executable::VerifyEntrypointSignature(
 // -------------------------------------------------------------------------- //
 
 static Error VerifyDType(mlir::Type input_type, DType operand_type) {
-  assert(operand_type.kind() != DType::Invalid && "invalid operand type");
+  assert(operand_type != DType::Invalid && "invalid operand type");
 
-  auto verify = [&](DType::Kind expected_input_type) -> Error {
-    if (operand_type.kind() != expected_input_type)
+  auto verify = [&](DType expected_input_type) -> Error {
+    if (operand_type != expected_input_type)
       return MakeStringError("operand type does not match input type: ",
                              operand_type, " vs ", DType(expected_input_type));
     return Error::success();
@@ -281,7 +281,7 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
 
   llvm::SmallVector<mlir::Attribute> attributes;
   size_t num_values = rank == 0 ? 1 : desc.sizes[0];
-  switch (desc.dtype.kind()) {
+  switch (desc.dtype) {
     case DType::I32: {
       const auto* data = static_cast<TypeForDTypeKind<DType::I32>*>(desc.data);
       for (int i = 0; i < num_values; ++i) {

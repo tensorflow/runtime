@@ -94,7 +94,7 @@ static void CallOperate(GpuDispatchContext* dctx, const DenseGpuTensor& input,
   }
 
 #define SWITCH_ON_TPADDING(T)                                                \
-  switch (paddings.dtype().kind()) {                                         \
+  switch (paddings.dtype()) {                                                \
     case DType::I32:                                                         \
       SWITCH_ON_RANK(T, int32_t);                                            \
     case DType::I64:                                                         \
@@ -108,7 +108,7 @@ static void CallOperate(GpuDispatchContext* dctx, const DenseGpuTensor& input,
   // TODO(iga): Support I16, and *I8
 #define DTYPE_TRIVIAL(ENUM) SWITCH_ON_TPADDING(TypeForDTypeKind<DType::ENUM>)
 
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     case DType::I32:
       DTYPE_TRIVIAL(I32);
     case DType::I64:

@@ -32,8 +32,8 @@ namespace {
 TEST(DenseHostTensorTest, DefaultConstructible) {
   tfrt::DenseHostTensor dht;
   tfrt::DenseHostTensor other = dht.CopyRef();
-  EXPECT_EQ(dht.dtype().kind(), DType::Invalid);
-  EXPECT_EQ(other.dtype().kind(), DType::Invalid);
+  EXPECT_EQ(dht.dtype(), DType::Invalid);
+  EXPECT_EQ(other.dtype(), DType::Invalid);
 }
 
 TEST(DenseHostTensorTest, FillWithComplex64Type) {

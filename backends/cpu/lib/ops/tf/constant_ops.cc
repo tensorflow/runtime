@@ -39,7 +39,7 @@ static AsyncValueRef<HostTensor> TfZerosLike(const HostTensor& input,
                                              const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
 
-  switch (output_md.dtype.kind()) {
+  switch (output_md.dtype) {
     default:
       return EmitErrorAsync(exec_ctx, "unsupported dtype");
       break;

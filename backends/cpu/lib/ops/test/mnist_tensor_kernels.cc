@@ -65,7 +65,7 @@ static void MatMulOp(const DenseHostTensor& lhs, const DenseHostTensor& rhs,
   bool transpose_b = attrs.GetAsserting<bool>("transpose_b");
 
   // Computes C = A @ B.
-  switch (lhs.dtype().kind()) {
+  switch (lhs.dtype()) {
     default:
       *dest = EmitErrorAsync(exec_ctx, "unsupported dtype for matmul");
       return;
@@ -105,7 +105,7 @@ static AsyncValueRef<T> WaitForChain(T&& t, AsyncValueRef<Chain> chain,
 static AsyncValueRef<Chain> ReluHelper(const DenseHostTensor& A,
                                        DenseHostTensor* dest,
                                        const ExecutionContext& exec_ctx) {
-  switch (A.dtype().kind()) {
+  switch (A.dtype()) {
     default:
       return EmitErrorAsync(exec_ctx, "unsupported dtype for relu");
 #define DTYPE_NUMERIC(ENUM) \
@@ -125,7 +125,7 @@ static AsyncValueRef<Chain> ReluInPlace(DenseHostTensor* A,
 
 static AsyncValueRef<Chain> ReluInPlaceHelper(
     DenseHostTensor* A, const ExecutionContext& exec_ctx) {
-  switch (A->dtype().kind()) {
+  switch (A->dtype()) {
     default:
       return EmitErrorAsync(exec_ctx, "unsupported dtype for relu");
 #define DTYPE_NUMERIC(ENUM) \
@@ -227,7 +227,7 @@ static void ElementwiseEqualOp(const DenseHostTensor& lhs,
 
   AsyncValueRef<Chain> chain;
   auto* dest_dht = dest.getPointer();
-  switch (lhs.dtype().kind()) {
+  switch (lhs.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for equal");
       break;
@@ -266,7 +266,7 @@ template <typename Tout>
 static AsyncValueRef<Chain> CastForOutType(const DenseHostTensor& A,
                                            DenseHostTensor* B,
                                            const ExecutionContext& exec_ctx) {
-  switch (A.dtype().kind()) {
+  switch (A.dtype()) {
     default:
       return EmitErrorAsync(exec_ctx, "unsupported dtype for cast");
 #define DTYPE_NUMERIC(ENUM) \
@@ -291,7 +291,7 @@ static void CastOp(const DenseHostTensor& A, const TensorMetadata& B_md,
       MakeUnconstructedAsyncValueRef<DenseHostTensor>(host).ReleaseRCRef();
 
   AsyncValueRef<Chain> chain;
-  switch (B_md.dtype.kind()) {
+  switch (B_md.dtype) {
     default:
       *B_tensor = EmitErrorAsync(exec_ctx, "unsupported dtype for cast");
       return;
@@ -395,7 +395,7 @@ static void Broadcast1DOp(const DenseHostTensor& src,
 
   auto& dest_tensor = dest_alloc.getValue();
 
-  switch (src.dtype().kind()) {
+  switch (src.dtype()) {
     default:
       *dest = EmitErrorAsync(exec_ctx, "unsupported dtype for broadcast");
       return;
@@ -454,7 +454,7 @@ static Expected<DenseHostTensor> Argmax(const DenseHostTensor& A,
 
 template <size_t Rank, size_t Axis>
 static void ArgmaxForAxisRank(const DenseHostTensor& A, DenseHostTensor* B) {
-  switch (A.dtype().kind()) {
+  switch (A.dtype()) {
     default:
       assert(0 && "shape function mismatch");
 #define DTYPE_NUMERIC(ENUM)                                             \
@@ -547,7 +547,7 @@ static Expected<DenseHostTensor> ReduceMean(const DenseHostTensor& A,
 template <size_t Rank, size_t Axis>
 static void ReduceMeanForAxisRank(const DenseHostTensor& A,
                                   DenseHostTensor* B) {
-  switch (A.dtype().kind()) {
+  switch (A.dtype()) {
     default:
       assert(0 && "shape function mismatch");
 #define DTYPE_NUMERIC(ENUM)                                                  \
@@ -627,7 +627,7 @@ static void CreateDenseTensorOp(const OpAttrsRef& attrs,
   }
 
   auto& dest_tensor = dest_alloc.getValue();
-  switch (dest_md.dtype.kind()) {
+  switch (dest_md.dtype) {
 #define DTYPE_TRIVIAL(ENUM)                                       \
   case DType::ENUM:                                               \
     CreateDenseTensorForType<EigenTypeForDTypeKind<DType::ENUM>>( \

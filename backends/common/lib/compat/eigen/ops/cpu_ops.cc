@@ -43,7 +43,7 @@ static AsyncValueRef<DenseHostTensor> TfPadOp(
   }
 
   AsyncValueRef<Chain> chain;
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfPadOp");
       break;
@@ -89,7 +89,7 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
   std::array<ssize_t, 2> ksize_t{ksize[1], ksize[2]};
 
   AsyncValueRef<Chain> chain;
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfMaxPoolOp");
       break;
@@ -134,7 +134,7 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
     return Eigen::NoOpOutputKernel();
   };
 
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfConv2DOp");
       break;
@@ -191,7 +191,7 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
   }
 
   AsyncValueRef<Chain> chain;
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx,
                              "unsupported dtype for TfFusedBatchNormV3Op");

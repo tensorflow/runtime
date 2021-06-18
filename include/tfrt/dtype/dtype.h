@@ -33,51 +33,28 @@
 
 namespace tfrt {
 
-class DType {
- public:
-  enum Kind : uint8_t {
-    Invalid = 0,
-    FirstDType = 1,
+enum class DType : uint8_t {
+  Invalid = 0,
+  FirstDType = 1,
 #define DTYPE(ENUM, VALUE) ENUM = VALUE,
 #include "tfrt/dtype/dtype.def"
 #undef DTYPE
-    LastDType,
-    // Valid types that are not natively supported by TFRT.
-    Unsupported = LastDType,
-  };
-
-  explicit DType() : kind_(Invalid) {}
-
-  explicit constexpr DType(Kind kind) : kind_(kind) {}
-  DType(const DType &) = default;
-  DType &operator=(const DType &) = default;
-  bool operator==(DType other) const { return kind_ == other.kind_; }
-  bool operator!=(DType other) const { return kind_ != other.kind_; }
-
-  constexpr Kind kind() const { return kind_; }
-
- private:
-  Kind kind_;
+  LastDType,
+  // Valid types that are not natively supported by TFRT.
+  Unsupported = LastDType,
 };
 
 // Return the size of one value of this dtype when represented on the host.
 size_t GetHostSize(DType dtype);
 
-inline size_t GetHostSize(DType::Kind dtype) {
-  return GetHostSize(DType(dtype));
-}
-
 // Return the alignment of this dtype when represented on the host.
 size_t GetHostAlignment(DType dtype);
-inline size_t GetHostAlignment(DType::Kind dtype) {
-  return GetHostAlignment(DType(dtype));
-}
 
-inline bool IsValid(DType dtype) { return dtype.kind() != DType::Invalid; }
-inline bool IsInvalid(DType dtype) { return dtype.kind() == DType::Invalid; }
+inline bool IsValid(DType dtype) { return dtype != DType::Invalid; }
+inline bool IsInvalid(DType dtype) { return dtype == DType::Invalid; }
 inline bool IsUnsupported(DType dtype) {
-  return dtype.kind() == DType::Unsupported ||
-         dtype.kind() == DType::Resource || dtype.kind() == DType::Variant;
+  return dtype == DType::Unsupported || dtype == DType::Resource ||
+         dtype == DType::Variant;
 }
 
 // Support printing of dtype enums, e.g. i32, f32.
@@ -85,15 +62,6 @@ raw_ostream &operator<<(raw_ostream &os, DType dtype);
 // Add support for std::ostream to make DType friendly to std::ostream based
 // tools, e.g. Google test.
 std::ostream &operator<<(std::ostream &os, DType dtype);
-
-// TODO(jingdong): Remove the DType::Kind stream operator variants.
-inline raw_ostream &operator<<(raw_ostream &os, DType::Kind dtype) {
-  return os << DType(dtype);
-}
-
-inline std::ostream &operator<<(std::ostream &os, DType::Kind dtype) {
-  return os << DType(dtype);
-}
 
 // Provides interconversions between C++ type and DTypes at compile time.
 //
@@ -111,14 +79,14 @@ constexpr DType GetDType() = delete;
 
 // Provide a way to get the C++ type for a specified DType Kind at compile
 // time.
-template <DType::Kind K>
+template <DType K>
 struct DTypeData;
-template <DType::Kind K>
+template <DType K>
 using TypeForDTypeKind = typename DTypeData<K>::Type;
 
 namespace detail {
 
-template <DType::Kind dtype>
+template <DType dtype>
 struct UnsupportedDataType {
   friend raw_ostream &operator<<(raw_ostream &os, UnsupportedDataType data) {
     return os << "UnsupportedDataType<" << DType(dtype) << '>';
@@ -128,7 +96,7 @@ struct UnsupportedDataType {
 template <typename T>
 struct IsDTypeTriviallyCopyable : std::is_trivially_copyable<T> {};
 
-template <DType::Kind dtype>
+template <DType dtype>
 struct IsDTypeTriviallyCopyable<UnsupportedDataType<dtype>> : std::false_type {
 };
 
@@ -204,7 +172,7 @@ TFRT_DEFINE_DTYPE(Variant, detail::UnsupportedDataType<DType::Variant>,
 // }
 template <typename F>
 decltype(auto) DispatchByDType(DType dtype, F &&f) {
-  switch (dtype.kind()) {
+  switch (dtype) {
 #define DTYPE(ENUM, VALUE) \
   case DType::ENUM:        \
     return f(DTypeData<DType::ENUM>());

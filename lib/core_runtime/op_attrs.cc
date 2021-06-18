@@ -30,7 +30,7 @@
 
 namespace tfrt {
 
-OpAttrType GetOpAttrTypeFromDType(DType::Kind kind) {
+OpAttrType GetOpAttrTypeFromDType(DType kind) {
   // TODO(tfrt-devs): Unify BEFAttributeType, OpAttrType and tfrt::DType.
   switch (kind) {
     case DType::I1:

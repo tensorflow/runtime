@@ -56,12 +56,6 @@ class DType {
 
   constexpr Kind kind() const { return kind_; }
 
-  bool IsValid() const { return kind_ != Invalid; }
-  bool IsInvalid() const { return kind_ == Invalid; }
-  bool IsUnsupported() const {
-    return kind_ == Unsupported || kind_ == Resource || kind_ == Variant;
-  }
-
  private:
   Kind kind_;
 };
@@ -77,6 +71,13 @@ inline size_t GetHostSize(DType::Kind dtype) {
 size_t GetHostAlignment(DType dtype);
 inline size_t GetHostAlignment(DType::Kind dtype) {
   return GetHostAlignment(DType(dtype));
+}
+
+inline bool IsValid(DType dtype) { return dtype.kind() != DType::Invalid; }
+inline bool IsInvalid(DType dtype) { return dtype.kind() == DType::Invalid; }
+inline bool IsUnsupported(DType dtype) {
+  return dtype.kind() == DType::Unsupported ||
+         dtype.kind() == DType::Resource || dtype.kind() == DType::Variant;
 }
 
 // Support printing of dtype enums, e.g. i32, f32.

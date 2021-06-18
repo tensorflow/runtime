@@ -789,7 +789,7 @@ static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
     TensorType dst_tensor_type = TensorType::kUnknownTensorType;
     TensorType src_tensor_type = tensor->tensor_type();
     const DeviceType &dst_device_type = dst_device->type();
-    if (tensor->dtype().IsUnsupported()) {
+    if (IsUnsupported(tensor->dtype())) {
       // Note: we will use fallback tensor type for tensor with unsupported
       // data type.
       dst_tensor_type = src_tensor_type;

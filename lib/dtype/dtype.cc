@@ -16,6 +16,8 @@
 
 #include "tfrt/dtype/dtype.h"
 
+#include <ostream>
+
 #include "llvm/Support/raw_ostream.h"
 
 namespace tfrt {

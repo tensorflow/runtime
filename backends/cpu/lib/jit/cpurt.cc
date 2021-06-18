@@ -1130,7 +1130,7 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
     size_t rank = operand.sizes.size();
     assert(rank == 0 || rank == 1);
     size_t num_values = rank == 0 ? 1 : operand.sizes[0];
-    ssize_t len = num_values * operand.dtype.GetHostSize();
+    ssize_t len = num_values * GetHostSize(operand.dtype);
     hash = llvm::hash_combine(hash, llvm::hash_combine_range(data, data + len));
   }
   return hash;

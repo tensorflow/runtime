@@ -150,7 +150,7 @@ static auto ToIntVec(const llvm::ArrayRef<ssize_t> array) {
 static auto AllocateBuffer(GpuDispatchContext* dctx, const DType& dtype,
                            const TensorShape& shape) {
   return GpuBuffer::Allocate(dctx->allocator(),
-                             shape.GetNumElements() * dtype.GetHostSize(),
+                             shape.GetNumElements() * GetHostSize(dtype),
                              dctx->stream());
 }
 

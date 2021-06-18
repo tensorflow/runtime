@@ -249,7 +249,7 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpImpl(
     GpuDispatchContext* dctx, const DenseGpuTensor& input,
     ArrayRef<ssize_t> perm, const TensorMetadata& result_md) {
   size_t num_result_elements = result_md.shape.GetNumElements();
-  size_t size_in_bytes = result_md.dtype.GetHostSize() * num_result_elements;
+  size_t size_in_bytes = GetHostSize(result_md.dtype) * num_result_elements;
 
   using Perm = SmallVector<ssize_t, 8>;
   auto transpose = CoalesceTranspose(input.shape(), perm);

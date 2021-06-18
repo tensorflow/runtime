@@ -85,8 +85,7 @@ size_t BefAttrEncoder::EncodeDenseAttrHeader(DType::Kind element_type,
   header.element_count =
       std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<>());
 
-  assert(header.element_count * DType(element_type).GetHostSize() ==
-         rawdata_size);
+  assert(header.element_count * GetHostSize(element_type) == rawdata_size);
 
   header.element_offset =
       BefAttrOffsetOf(BefDenseAttr, dims) + sizeof(AttrShapeT) * header.rank;

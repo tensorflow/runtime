@@ -80,7 +80,7 @@ llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
   auto& result_tensor = result_alloc.getValue();
 
   auto num_elements = result_tensor.NumElements();
-  auto element_size = tensor.dtype().GetHostSize();
+  auto element_size = GetHostSize(tensor.dtype());
   auto* dest_data = result_tensor.data();
   auto* src_data = tensor.data();
 

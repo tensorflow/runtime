@@ -24,11 +24,6 @@
 namespace tfrt {
 namespace {
 
-size_t GetHostSize(DType::Kind kind) { return DType(kind).GetHostSize(); }
-size_t GetHostAlignment(DType::Kind kind) {
-  return DType(kind).GetHostAlignment();
-}
-
 TEST(DType, Traits) {
   EXPECT_EQ(StrCat(DType::F16), "f16");
   EXPECT_EQ(StrCat(DType::Resource), "resource");

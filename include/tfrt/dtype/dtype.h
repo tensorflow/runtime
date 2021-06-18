@@ -62,15 +62,22 @@ class DType {
     return kind_ == Unsupported || kind_ == Resource || kind_ == Variant;
   }
 
-  // Return the size of one value of this dtype when represented on the host.
-  size_t GetHostSize() const;
-
-  // Return the alignment of this dtype when represented on the host.
-  size_t GetHostAlignment() const;
-
  private:
   Kind kind_;
 };
+
+// Return the size of one value of this dtype when represented on the host.
+size_t GetHostSize(DType dtype);
+
+inline size_t GetHostSize(DType::Kind dtype) {
+  return GetHostSize(DType(dtype));
+}
+
+// Return the alignment of this dtype when represented on the host.
+size_t GetHostAlignment(DType dtype);
+inline size_t GetHostAlignment(DType::Kind dtype) {
+  return GetHostAlignment(DType(dtype));
+}
 
 // Support printing of dtype enums, e.g. i32, f32.
 raw_ostream &operator<<(raw_ostream &os, DType dtype);

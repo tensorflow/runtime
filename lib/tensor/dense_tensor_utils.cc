@@ -57,7 +57,7 @@ DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<ssize_t> dims) {
   }
   const TensorMetadata new_meta(meta.dtype, new_shape);
   auto data = HostBuffer::CreateFromExternal(tensor.buffer().CopyRef(),
-                                             offset * meta.dtype.GetHostSize(),
+                                             offset * GetHostSize(meta.dtype),
                                              new_meta.GetHostSizeInBytes());
   return DenseHostTensor(new_meta, std::move(data));
 }

@@ -212,7 +212,7 @@ inline size_t GetAttributeDataTypeByteSize(BEFAttributeType type) {
   auto data_type = GetElementAttributeType(type);
   if (data_type == BEFAttributeType::kType) return 1;
   assert(IsDataTypeAttribute(data_type));
-  return DType(static_cast<DType::Kind>(data_type)).GetHostSize();
+  return GetHostSize(static_cast<DType::Kind>(data_type));
 }
 
 inline size_t GetAttributeDataTypeAlignment(BEFAttributeType type) {
@@ -220,7 +220,7 @@ inline size_t GetAttributeDataTypeAlignment(BEFAttributeType type) {
   auto data_type = GetElementAttributeType(type);
   if (data_type == BEFAttributeType::kType) return 1;
   assert(IsDataTypeAttribute(data_type));
-  return DType(static_cast<DType::Kind>(data_type)).GetHostAlignment();
+  return GetHostAlignment(DType(static_cast<DType::Kind>(data_type)));
 }
 
 inline bool IsFixedAttribute(BEFAttributeType type) {

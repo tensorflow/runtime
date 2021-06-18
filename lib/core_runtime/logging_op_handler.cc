@@ -44,7 +44,7 @@ namespace {
 
 void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
                                    llvm::raw_ostream &os) {
-  auto element_size = dht.dtype().GetHostSize();
+  auto element_size = GetHostSize(dht.dtype());
   auto *data_ptr = static_cast<const char *>(dht.data());
 
   // TODO(tfrt-devs): Dump to BTF format once we have BTF reader/writer

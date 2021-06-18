@@ -39,7 +39,7 @@ namespace gpu {
 static auto AllocateBuffer(GpuDispatchContext* dctx, const DType& dtype,
                            const TensorShape& shape) {
   return GpuBuffer::Allocate(dctx->allocator(),
-                             shape.GetNumElements() * dtype.GetHostSize(),
+                             shape.GetNumElements() * GetHostSize(dtype),
                              dctx->stream());
 }
 

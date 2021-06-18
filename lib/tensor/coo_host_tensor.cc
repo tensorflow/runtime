@@ -62,7 +62,7 @@ void CooHostTensor::Print(raw_ostream &os) const {
   llvm::interleaveComma(DHTIndexableView<int64_t, 2>(Indices()).Elements(), os);
   os << "], values = [";
 
-  auto element_size = dtype().GetHostSize();
+  auto element_size = GetHostSize(dtype());
   auto *data_ptr = static_cast<const char *>(Values()->data());
   for (ssize_t i = 0, e = Values()->NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";

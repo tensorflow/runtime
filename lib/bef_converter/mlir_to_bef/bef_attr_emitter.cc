@@ -392,7 +392,7 @@ size_t BefAttrEmitter::EmitDenseAttribute(BEFAttributeType attribute_type,
 
   const size_t offset =
       EncodeDenseAttrHeader(element_type, shaped_type.getShape(),
-                            DType(element_type).GetHostSize() * element_count);
+                            GetHostSize(element_type) * element_count);
 
   if (element_type == DType::I1) {
     for (bool bool_attr : attr.getBoolValues()) {

@@ -349,9 +349,6 @@ class AsyncValue {
   // When is_refcounted_ is false, AddRef and DropRef have no effect.
   const bool is_refcounted_ : 1;
 
-  // Unused padding bits.
-  // unsigned unused_ : 4;
-
   // This is a 16-bit value that identifies the type.
   uint16_t type_id_ = 0;
 

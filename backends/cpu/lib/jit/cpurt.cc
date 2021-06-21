@@ -374,6 +374,10 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   for (auto offset : results_memory_layout_.offsets)
     call_frame->args.push_back(&call_frame->results[offset]);
 
+  // Mark results memory initialized to supress potential msan errors.
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(call_frame->results.data(),
+                                  call_frame->results.size());
+
   return Error::success();
 }
 

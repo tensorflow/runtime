@@ -29,10 +29,10 @@ namespace tfrt {
 namespace cpu {
 
 inline Expected<int64_t> ConcatAxis(const DenseHostTensor& axis_arg) {
-  if (axis_arg.dtype().kind() == DType::I32) {
+  if (axis_arg.dtype() == DType::I32) {
     DHTArrayView<int32_t> view(&axis_arg);
     return *view.begin();
-  } else if (axis_arg.dtype().kind() == DType::I64) {
+  } else if (axis_arg.dtype() == DType::I64) {
     DHTArrayView<int64_t> view(&axis_arg);
     return *view.begin();
   } else {

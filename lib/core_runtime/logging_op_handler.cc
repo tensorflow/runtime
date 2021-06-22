@@ -59,7 +59,7 @@ namespace {
 
 void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
                                    llvm::raw_ostream &os) {
-  auto element_size = dht.dtype().GetHostSize();
+  auto element_size = GetHostSize(dht.dtype());
   auto *data_ptr = static_cast<const char *>(dht.data());
 
   // TODO(tfrt-devs): Dump to BTF format once we have BTF reader/writer
@@ -152,7 +152,7 @@ class LoggingOpHandler : public OpHandler {
     for (auto &th : tensor_handles) {
       auto host_tensor_handle =
           th.TransferTo(exec_ctx, host->GetHostDeviceRef(),
-                        th.GetAvailableMetadata().dtype.kind() == DType::String
+                        th.GetAvailableMetadata().dtype == DType::String
                             ? StringHostTensor::kTensorType
                             : DenseHostTensor::kTensorType);
       async_hts.emplace_back(host_tensor_handle.ReleaseTensorRef());

@@ -75,7 +75,7 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
       switch (attribute_type) {
         case BEFAttributeType::kType: {
           auto type_attr = attr.cast<TypeAttr>();
-          DType::Kind type = type_attr.GetValue();
+          DType type = type_attr.GetValue();
           op_attrs->Set(key, GetOpAttrTypeFromDType(type));
           break;
         }

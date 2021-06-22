@@ -41,10 +41,10 @@ static constexpr size_t kTensorBufferAlignment = 16;
 llvm::Optional<DenseHostTensor> DenseHostTensor::CreateUninitialized(
     const TensorMetadata& metadata, HostAllocator* allocator) {
   size_t alignment =
-      std::max(metadata.dtype.GetHostAlignment(), kTensorBufferAlignment);
+      std::max(GetHostAlignment(metadata.dtype), kTensorBufferAlignment);
   auto& shape = metadata.shape;
   auto data = HostBuffer::CreateUninitialized(
-      metadata.dtype.GetHostSize() * shape.GetNumElements(), alignment,
+      GetHostSize(metadata.dtype) * shape.GetNumElements(), alignment,
       allocator);
   if (!data) return llvm::None;
   return DenseHostTensor(metadata, std::move(data));
@@ -67,7 +67,7 @@ AsyncValueRef<DenseHostTensor> DenseHostTensor::MakeConstructedAsyncValueRef(
 void DenseHostTensor::Print(raw_ostream& os) const {
   os << "DenseHostTensor dtype = " << dtype() << ", shape = " << shape();
 
-  auto element_size = dtype().GetHostSize();
+  auto element_size = GetHostSize(dtype());
   auto* data_ptr = static_cast<const char*>(data());
 
   static const ssize_t kThreshold = 32;

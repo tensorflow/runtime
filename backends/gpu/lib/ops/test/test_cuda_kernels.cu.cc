@@ -72,7 +72,7 @@ static void AddTensors(Eigen::GpuDevice& device,
                        const DenseGpuTensor& lhs_tensor,
                        const DenseGpuTensor& rhs_tensor,
                        DenseGpuTensor* result_tensor) {
-  switch (lhs_tensor.dtype().kind()) {
+  switch (lhs_tensor.dtype()) {
     default:
       assert(0 && "shape function failure");
 #define DTYPE_NUMERIC(ENUM)                                \

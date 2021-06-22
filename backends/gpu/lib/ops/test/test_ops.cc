@@ -92,7 +92,7 @@ static llvm::Expected<DenseGpuTensor> CreateDenseTensorOp(
   size_t size_in_bytes = result_md.GetHostSizeInBytes();
   auto host_buffer = HostBuffer::CreateUninitialized(
       /*size=*/size_in_bytes,
-      /*alignment=*/result_md.dtype.GetHostAlignment(),
+      /*alignment=*/GetHostAlignment(result_md.dtype),
       exec_ctx.host()->allocator());
   if (!host_buffer) {
     return MakeStringError("Failed to allocate host buffer");
@@ -100,7 +100,7 @@ static llvm::Expected<DenseGpuTensor> CreateDenseTensorOp(
 
   auto values = attrs.GetRawAsserting("values");
   if (!values.IsArray() || values.element_count == 1) {
-    switch (result_md.dtype.kind()) {
+    switch (result_md.dtype) {
       default:
         assert(0 && "invalid result_md dtype");
 #define DTYPE_NUMERIC(ENUM)                                                 \
@@ -147,7 +147,7 @@ static void PrintDhtFullPrecision(const DenseHostTensor& dht) {
   tfrt::outs() << "DenseHostTensor dtype = " << dht.dtype()
                << ", shape = " << shape << ", values = ";
 
-  auto element_size = dht.dtype().GetHostSize();
+  auto element_size = GetHostSize(dht.dtype());
   auto* data_ptr = static_cast<const char*>(dht.data());
 
   tfrt::outs() << '[';

@@ -47,11 +47,11 @@ class TensorMetadata {
         std::array<ssize_t, sizeof...(Dims)>{static_cast<ssize_t>(dims)...});
   }
 
-  bool IsValid() const { return dtype.IsValid(); }
-  bool IsInvalid() const { return dtype.IsInvalid(); }
+  bool IsValid() const { return tfrt::IsValid(dtype); }
+  bool IsInvalid() const { return tfrt::IsInvalid(dtype); }
 
   size_t GetHostSizeInBytes() const {
-    return dtype.GetHostSize() * shape.GetNumElements();
+    return GetHostSize(dtype) * shape.GetNumElements();
   }
 
   TensorShape shape;

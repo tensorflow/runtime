@@ -62,7 +62,7 @@ void CooHostTensor::Print(raw_ostream &os) const {
   llvm::interleaveComma(DHTIndexableView<int64_t, 2>(Indices()).Elements(), os);
   os << "], values = [";
 
-  auto element_size = dtype().GetHostSize();
+  auto element_size = GetHostSize(dtype());
   auto *data_ptr = static_cast<const char *>(Values()->data());
   for (ssize_t i = 0, e = Values()->NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";
@@ -79,7 +79,7 @@ ConvertCooHostTensorToScalarHostTensor(const CooHostTensor &coo,
   auto *host = exec_ctx.host();
   // Allows conversion to ScalarHostTensor if at most one element or if it is an
   // arbitrary-shaped COO tensor but all elements are zero.
-  switch (coo.dtype().kind()) {
+  switch (coo.dtype()) {
     default:
       llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                                 \
@@ -118,7 +118,7 @@ static AsyncValueRef<DenseHostTensor> ConvertCooHostTensorToDenseHostTensor(
   }
   auto &result_tensor = result_alloc.getValue();
 
-  switch (tensor.dtype().kind()) {
+  switch (tensor.dtype()) {
     default:
       llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                   \

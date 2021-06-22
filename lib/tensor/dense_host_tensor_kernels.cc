@@ -51,12 +51,12 @@ static void MakeTensor(Argument<RCReference<HostBuffer>> buffer,
                        Result<DenseHostTensor> tensor, Result<Chain> out_chain,
                        KernelErrorHandler handler) {
   if (buffer.get()->size() !=
-      shape->GetNumElements() * GetDType<T>().GetHostSize()) {
+      shape->GetNumElements() * GetHostSize(GetDType<T>())) {
     std::string error_msg;
     llvm::raw_string_ostream ss(error_msg);
     ss << "dht.make_tensor failed: buffer_size (" << buffer.get()->size()
        << ") is not equal to the number of elements in shape (" << *shape
-       << ") times element size (" << GetDType<T>().GetHostSize() << ")";
+       << ") times element size (" << GetHostSize(GetDType<T>()) << ")";
     handler.ReportError(ss.str());
     return;
   }
@@ -68,12 +68,12 @@ static void MakeTensor(Argument<RCReference<HostBuffer>> buffer,
 template <typename T>
 static Expected<DenseHostTensor> SyncMakeTensor(
     const RCReference<HostBuffer>& buffer, TensorShape shape) {
-  if (buffer->size() != shape.GetNumElements() * GetDType<T>().GetHostSize()) {
+  if (buffer->size() != shape.GetNumElements() * GetHostSize(GetDType<T>())) {
     std::string error_msg;
     llvm::raw_string_ostream ss(error_msg);
     ss << "tfrt_dht_sync.make_tensor failed: buffer_size (" << buffer->size()
        << ") is not equal to the number of elements in shape (" << shape
-       << ") times element size (" << GetDType<T>().GetHostSize() << ")";
+       << ") times element size (" << GetHostSize(GetDType<T>()) << ")";
     return MakeStringError(ss.str());
   }
   return DenseHostTensor(TensorMetadata(GetDType<T>(), shape),

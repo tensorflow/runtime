@@ -32,7 +32,7 @@
 
 namespace tfrt {
 
-DType::Kind BefAttrEmitter::EncodeIntegerTypeAttribute(
+DType BefAttrEmitter::EncodeIntegerTypeAttribute(
     mlir::IntegerType integer_type) {
   if (integer_type.isUnsigned()) {
     switch (integer_type.getWidth()) {
@@ -63,8 +63,7 @@ DType::Kind BefAttrEmitter::EncodeIntegerTypeAttribute(
   llvm_unreachable("unknown integer type width.");
 }
 
-DType::Kind BefAttrEmitter::EncodeFloatTypeAttribute(
-    mlir::FloatType float_type) {
+DType BefAttrEmitter::EncodeFloatTypeAttribute(mlir::FloatType float_type) {
   if (float_type.isBF16()) return DType::BF16;
   if (float_type.isF16()) return DType::F16;
   if (float_type.isF32()) return DType::F32;
@@ -73,7 +72,7 @@ DType::Kind BefAttrEmitter::EncodeFloatTypeAttribute(
   llvm_unreachable("unknown float type width.");
 }
 
-DType::Kind BefAttrEmitter::EncodeComplexTypeAttribute(
+DType BefAttrEmitter::EncodeComplexTypeAttribute(
     mlir::ComplexType complex_type) {
   auto element_type = complex_type.getElementType();
 
@@ -83,7 +82,7 @@ DType::Kind BefAttrEmitter::EncodeComplexTypeAttribute(
   llvm_unreachable("unknown complex type width.");
 }
 
-DType::Kind BefAttrEmitter::ConvertMlirTypeToDType(mlir::Type type) {
+DType BefAttrEmitter::ConvertMlirTypeToDType(mlir::Type type) {
   if (auto integer_type = type.dyn_cast<mlir::IntegerType>()) {
     return EncodeIntegerTypeAttribute(integer_type);
   }
@@ -267,8 +266,7 @@ BEFAttributeType BefAttrEmitter::GetBefAttributeType(mlir::Attribute attr) {
   return BEFAttributeType::kUnsupported;
 }
 
-static bool IsMatchedWithDType(BEFAttributeType attribute_type,
-                               DType::Kind dtype) {
+static bool IsMatchedWithDType(BEFAttributeType attribute_type, DType dtype) {
   return (attribute_type == static_cast<BEFAttributeType>(dtype));
 }
 
@@ -392,7 +390,7 @@ size_t BefAttrEmitter::EmitDenseAttribute(BEFAttributeType attribute_type,
 
   const size_t offset =
       EncodeDenseAttrHeader(element_type, shaped_type.getShape(),
-                            DType(element_type).GetHostSize() * element_count);
+                            GetHostSize(element_type) * element_count);
 
   if (element_type == DType::I1) {
     for (bool bool_attr : attr.getBoolValues()) {

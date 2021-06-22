@@ -212,7 +212,7 @@ Expected<DenseGpuTensor> ComputeOpViaEigen(
     GpuDispatchContext* dctx, const TensorMetadata& result_md,
     ArrayRef<const DenseGpuTensor*> args) {
   size_t size_in_bytes =
-      result_md.dtype.GetHostSize() * result_md.shape.GetNumElements();
+      GetHostSize(result_md.dtype) * result_md.shape.GetNumElements();
 
   TFRT_ASSIGN_OR_RETURN(
       GpuBuffer result_buffer,

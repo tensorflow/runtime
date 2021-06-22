@@ -74,7 +74,7 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
     // Call tile kernel.
     AsyncValueRef<Chain> chain;
 
-    switch (input.dtype().kind()) {
+    switch (input.dtype()) {
       default:
         chain = EmitErrorAsync(exec_ctx,
                                StrCat("Unsupported dtype: ", input.dtype()));

@@ -60,14 +60,13 @@ TensorType ArgumentTensorType(const Tensor& t, const CpuOpFlags& flags) {
   if (flags & CpuOpFlags::AllowsString) {
     auto type = StringHostTensor::kTensorType;
     if (t.IsTensorType(type)) return type;
-    if (t.dtype().kind() == DType::String &&
-        result == DenseHostTensor::kTensorType)
+    if (t.dtype() == DType::String && result == DenseHostTensor::kTensorType)
       result = type;
   }
 
   // Note: TFLite tensors are deprecated and this path will be removed.
   if (flags & CpuOpFlags::AllowsTfLite) {
-    auto type = t.dtype().kind() == DType::String
+    auto type = t.dtype() == DType::String
                     ? GetStaticTensorType("TFLiteStringHost")
                     : GetStaticTensorType("TFLiteHost");
     if (t.IsTensorType(type)) return type;

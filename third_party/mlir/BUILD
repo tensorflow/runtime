@@ -855,6 +855,73 @@ gentbl_cc_library(
 )
 
 ##---------------------------------------------------------------------------##
+# EmitC dialect.
+##---------------------------------------------------------------------------##
+
+td_library(
+    name = "EmitCTdFiles",
+    srcs = [
+        "include/mlir/Dialect/EmitC/IR/EmitC.td",
+        "include/mlir/Dialect/EmitC/IR/EmitCAttributes.td",
+        "include/mlir/Dialect/EmitC/IR/EmitCBase.td",
+        "include/mlir/Dialect/EmitC/IR/EmitCTypes.td",
+    ],
+    includes = ["include"],
+    deps = [
+        ":OpBaseTdFiles",
+        ":SideEffectInterfacesTdFiles",
+    ],
+)
+
+gentbl_cc_library(
+    name = "EmitCAttributesIncGen",
+    strip_include_prefix = "include",
+    tbl_outs = [
+        (
+            ["--gen-attrdef-decls"],
+            "include/mlir/Dialect/EmitC/IR/EmitCAttributes.h.inc",
+        ),
+        (
+            ["--gen-attrdef-defs"],
+            "include/mlir/Dialect/EmitC/IR/EmitCAttributes.cpp.inc",
+        ),
+    ],
+    tblgen = ":mlir-tblgen",
+    td_file = "include/mlir/Dialect/EmitC/IR/EmitCAttributes.td",
+    deps = [":EmitCTdFiles"],
+)
+
+gentbl_cc_library(
+    name = "EmitCOpsIncGen",
+    strip_include_prefix = "include",
+    tbl_outs = [
+        (
+            ["-gen-dialect-decls"],
+            "include/mlir/Dialect/EmitC/IR/EmitCDialect.h.inc",
+        ),
+        (
+            ["-gen-op-decls"],
+            "include/mlir/Dialect/EmitC/IR/EmitC.h.inc",
+        ),
+        (
+            ["-gen-op-defs"],
+            "include/mlir/Dialect/EmitC/IR/EmitC.cpp.inc",
+        ),
+        (
+            ["-gen-typedef-decls"],
+            "include/mlir/Dialect/EmitC/IR/EmitCTypes.h.inc",
+        ),
+        (
+            ["-gen-typedef-defs"],
+            "include/mlir/Dialect/EmitC/IR/EmitCTypes.cpp.inc",
+        ),
+    ],
+    tblgen = ":mlir-tblgen",
+    td_file = "include/mlir/Dialect/EmitC/IR/EmitC.td",
+    deps = [":EmitCTdFiles"],
+)
+
+##---------------------------------------------------------------------------##
 # Async dialect.
 ##---------------------------------------------------------------------------##
 
@@ -1626,6 +1693,25 @@ cc_library(
 )
 
 cc_library(
+    name = "EmitC",
+    srcs = glob([
+        "lib/Dialect/EmitC/IR/*.cpp",
+    ]),
+    hdrs = glob([
+        "include/mlir/Dialect/EmitC/IR/*.h",
+    ]),
+    includes = ["include"],
+    deps = [
+        ":Dialect",
+        ":EmitCAttributesIncGen",
+        ":EmitCOpsIncGen",
+        ":IR",
+        ":SideEffectInterfaces",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+cc_library(
     name = "Async",
     srcs = glob([
         "lib/Dialect/Async/IR/*.cpp",
@@ -2133,11 +2219,7 @@ cc_library(
             "lib/Dialect/StandardOps/IR/*.h",
             "lib/Dialect/StandardOps/Utils/*.cpp",
         ],
-    ) +
-    # TODO: Stop depending on MemRefOps.
-    [
-        "include/mlir/Dialect/MemRef/IR/MemRef.h",
-    ],
+    ),
     hdrs = glob([
         "include/mlir/Dialect/StandardOps/IR/*.h",
         "include/mlir/Dialect/StandardOps/Utils/*.h",
@@ -2148,10 +2230,7 @@ cc_library(
         ":CastOpInterfaces",
         ":CommonFolders",
         ":ControlFlowInterfaces",
-        ":CopyOpInterface",  # TODO: Stop depending on MemRefOps.
         ":IR",
-        ":MemRefBaseIncGen",  # TODO: Stop depending on MemRefOps.
-        ":MemRefOpsIncGen",  # TODO: Stop depending on MemRefOps.
         ":SideEffectInterfaces",
         ":StandardOpsIncGen",
         ":Support",
@@ -2188,7 +2267,7 @@ cc_library(
     deps = [
         ":Affine",
         ":IR",
-        ":MemRefDialect",
+        ":MemRefDialect",  # TODO: Remove dependency on MemRef dialect
         ":Pass",
         ":SCFDialect",
         ":StandardOps",
@@ -2676,6 +2755,7 @@ cc_library(
         ":IR",
         ":LLVMDialect",
         ":MathDialect",
+        ":MemRefDialect",
         ":NVVMDialect",
         ":Pass",
         ":StandardToLLVM",
@@ -4665,6 +4745,7 @@ cc_library(
         ":ComplexToLLVM",
         ":ConversionPasses",
         ":DLTIDialect",
+        ":EmitC",
         ":GPUDialect",
         ":GPUPassIncGen",
         ":GPUToGPURuntimeTransforms",
@@ -6449,11 +6530,13 @@ cc_library(
     deps = [
         ":Affine",
         ":IR",
+        ":InferTypeOpInterface",
         ":MemRefDialect",
         ":MemRefPassIncGen",
         ":Pass",
         ":StandardOps",
         ":Support",
+        ":TensorDialect",
         ":Transforms",
         ":VectorOps",
         "@llvm-project//llvm:Support",

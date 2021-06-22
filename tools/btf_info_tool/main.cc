@@ -144,7 +144,7 @@ class BtfFile {
 
     TensorMetadata metadata(type, llvm::ArrayRef<ssize_t>(dims, rank));
 
-    size_t data_size = type.GetHostSize() * metadata.shape.GetNumElements();
+    size_t data_size = GetHostSize(type) * metadata.shape.GetNumElements();
     const void* data = Read<char>(pos, data_size);
     if (!data) return llvm::None;
 

@@ -182,7 +182,7 @@ static llvm::Error DispatchTrivialTranspose(
         GetRawPointer<T>(input), width, height);
   };
 
-  switch (dtype.kind()) {
+  switch (dtype) {
     default:
       return MakeStringError("Unsupported data type: ", dtype);
 
@@ -225,7 +225,7 @@ static llvm::Error DispatchSwapDims1And2In3(
         GetRawPointer<T>(input), planes, width, height);
   };
 
-  switch (dtype.kind()) {
+  switch (dtype) {
     default:
       return MakeStringError("Unsupported data type: ", dtype);
 
@@ -249,7 +249,7 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpImpl(
     GpuDispatchContext* dctx, const DenseGpuTensor& input,
     ArrayRef<ssize_t> perm, const TensorMetadata& result_md) {
   size_t num_result_elements = result_md.shape.GetNumElements();
-  size_t size_in_bytes = result_md.dtype.GetHostSize() * num_result_elements;
+  size_t size_in_bytes = GetHostSize(result_md.dtype) * num_result_elements;
 
   using Perm = SmallVector<ssize_t, 8>;
   auto transpose = CoalesceTranspose(input.shape(), perm);
@@ -314,7 +314,7 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpFolded(
 
   SmallVector<ssize_t, 4> perm;
 
-  switch (perm_view.dtype().kind()) {
+  switch (perm_view.dtype()) {
     case DType::I32: {
       auto value = perm_view.GetFlat<int32_t>();
       perm.assign(value.begin(), value.end());

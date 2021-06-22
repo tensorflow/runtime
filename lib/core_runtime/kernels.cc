@@ -114,7 +114,7 @@ static Chain OpAttrsSet(Argument<OpAttrs> attrs, StringAttribute key,
 }
 
 static Chain OpAttrsSetDType(Argument<OpAttrs> attrs, StringAttribute key,
-                             Attribute<DType::Kind> value) {
+                             Attribute<DType> value) {
   attrs->Set(key, GetOpAttrTypeFromDType(*value));
   return Chain();
 }
@@ -357,7 +357,7 @@ void CreateLoggingOpHandlerKernel(Argument<OpHandler *> fallback,
 }
 
 static bool GetDHTPredicateValue(const DenseHostTensor &dht) {
-  switch (dht.dtype().kind()) {
+  switch (dht.dtype()) {
     default:
       llvm_unreachable("dtype not supported");
       break;
@@ -789,7 +789,7 @@ static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
     TensorType dst_tensor_type = TensorType::kUnknownTensorType;
     TensorType src_tensor_type = tensor->tensor_type();
     const DeviceType &dst_device_type = dst_device->type();
-    if (tensor->dtype().IsUnsupported()) {
+    if (IsUnsupported(tensor->dtype())) {
       // Note: we will use fallback tensor type for tensor with unsupported
       // data type.
       dst_tensor_type = src_tensor_type;

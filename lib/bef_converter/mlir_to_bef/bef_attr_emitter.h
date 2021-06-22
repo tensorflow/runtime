@@ -30,8 +30,8 @@ namespace tfrt {
 // Emit BEF attributes to a byte stream.
 class BefAttrEmitter : public BefAttrEncoder {
  public:
-  // Get DType::Kind from a mlir::Type instance.
-  static DType::Kind ConvertMlirTypeToDType(mlir::Type type);
+  // Get DType from a mlir::Type instance.
+  static DType ConvertMlirTypeToDType(mlir::Type type);
 
   // Get BEFAttributeType from a mlir::Attribute instance.
   static BEFAttributeType GetBefAttributeType(mlir::Attribute attr);
@@ -56,9 +56,9 @@ class BefAttrEmitter : public BefAttrEncoder {
   template <typename T>
   size_t EmitIntegerAttribute(mlir::Attribute mlir_attr);
 
-  static DType::Kind EncodeIntegerTypeAttribute(mlir::IntegerType integer_type);
-  static DType::Kind EncodeFloatTypeAttribute(mlir::FloatType float_type);
-  static DType::Kind EncodeComplexTypeAttribute(mlir::ComplexType complex_type);
+  static DType EncodeIntegerTypeAttribute(mlir::IntegerType integer_type);
+  static DType EncodeFloatTypeAttribute(mlir::FloatType float_type);
+  static DType EncodeComplexTypeAttribute(mlir::ComplexType complex_type);
 
   size_t EmitDenseAttribute(BEFAttributeType attribute_type,
                             mlir::DenseElementsAttr attr);

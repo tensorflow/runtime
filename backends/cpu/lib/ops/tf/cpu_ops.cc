@@ -79,7 +79,7 @@ static AsyncValueRef<DenseHostTensor> TfReluOp(
   }
 
   AsyncValueRef<Chain> chain;
-  switch (A.dtype().kind()) {
+  switch (A.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for relu");
       break;
@@ -175,7 +175,7 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
   }
 
   AsyncValueRef<Chain> chain;
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfMeanOp");
       break;
@@ -211,7 +211,7 @@ static AsyncValueRef<DenseHostTensor> TfBiasAddOp(
 
   AsyncValueRef<Chain> chain;
   size_t input_rank = input.shape().GetRank();
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype for TfBiasAddOp");
       break;

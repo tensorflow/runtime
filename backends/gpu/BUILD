@@ -10,9 +10,7 @@ load(
 )
 load("@local_cuda//:defs.bzl", "if_local_cuda")  # copybara:comment
 
-package(
-    default_visibility = [":__subpackages__"],
-)
+package(default_visibility = [":__subpackages__"])
 
 licenses(["notice"])
 
@@ -181,8 +179,8 @@ tfrt_cc_library(
         "include/tfrt/gpu/wrapper/wrapper.h",
     ],
     visibility = [
-        ":tests_and_tools",
-        ":xla_friends",
+        # copybara:uncomment ":tests_and_tools",
+        "//visibility:public",  # copybara:comment_replace ":xla_friends",
     ],
     deps = [
         ":rocm_stubs",
@@ -339,7 +337,9 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/gpu/system/system.h",
     ],
-    visibility = [":xla_friends"],
+    visibility = [
+        "//visibility:public",  # copybara:comment_replace ":xla_friends",
+    ],
     deps = [
         ":gpu_device",
         ":gpu_types",
@@ -773,7 +773,9 @@ tfrt_cc_library(
     name = "gpu_opdefs",
     srcs = ["lib/kernels/gpu_ops.cc"],
     hdrs = ["include/tfrt/gpu/kernels/gpu_ops.h"],
-    visibility = ["@tf_runtime//:friends"],
+    visibility = [
+        "//visibility:public",  # copybara:comment_replace "@tf_runtime//:friends",
+    ],
     deps = [
         ":gpu_conversion_helper_opdefs_inc_gen",
         ":gpu_opdefs_inc_gen",

@@ -53,7 +53,7 @@ static AsyncValueRef<DenseHostTensor> TfUnaryOp(
     err ? output.SetError(err) : output.SetStateConcrete();
   };
 
-  switch (input->dtype().kind()) {
+  switch (input->dtype()) {
     default:
       return EmitErrorAsync(exec_ctx, "unsupported dtype");
       break;

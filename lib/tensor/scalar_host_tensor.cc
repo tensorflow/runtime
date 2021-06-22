@@ -29,7 +29,7 @@ namespace tfrt {
 // Return a pointer to the data.
 void* AnyScalarHostTensor::data() {
   // This should all constant fold away into something very simple.
-  switch (dtype().kind()) {
+  switch (dtype()) {
     default:
       llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                             \
@@ -57,7 +57,7 @@ ConvertScalarHostTensorToScalarHostTensor(const AnyScalarHostTensor& tensor,
                                           const CpuDevice& dst,
                                           const ExecutionContext& exec_ctx) {
   auto* host = exec_ctx.host();
-  switch (tensor.dtype().kind()) {
+  switch (tensor.dtype()) {
     default:
       llvm_unreachable("can't happen");
 #define DTYPE_NUMERIC(ENUM)                                              \
@@ -80,7 +80,7 @@ llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
   auto& result_tensor = result_alloc.getValue();
 
   auto num_elements = result_tensor.NumElements();
-  auto element_size = tensor.dtype().GetHostSize();
+  auto element_size = GetHostSize(tensor.dtype());
   auto* dest_data = result_tensor.data();
   auto* src_data = tensor.data();
 

@@ -31,12 +31,12 @@ Expected<gpu::DenseGpuTensor> ComputeBinaryElementwiseOpViaEigen(
   return MakeStringError("unexpected type for operation");
 }
 
-template <template <typename, typename> class Functor, DType::Kind CurrentKind,
-          DType::Kind... TrailingKinds>
+template <template <typename, typename> class Functor, DType CurrentKind,
+          DType... TrailingKinds>
 Expected<gpu::DenseGpuTensor> ComputeBinaryElementwiseOpViaEigen(
     GpuDispatchContext* dctx, const gpu::DenseGpuTensor& lhs,
     const gpu::DenseGpuTensor& rhs, const TensorMetadata& result_md) {
-  if (CurrentKind == result_md.dtype.kind()) {
+  if (CurrentKind == result_md.dtype) {
     using T = EigenTypeForDTypeKind<CurrentKind>;
     using SpecializedFunctor = Functor<T, T>;
     return gpu::ComputeOpViaEigen<gpu::FunctorSignature<T, T, T>,

@@ -95,10 +95,6 @@ enum class BEFSectionID : uint8_t {
   // It will be used for converting BEF back to mlir.
   kRegisterTypes = 10,
 
-  // The debug info section contains extra metadata for tracing and debugging
-  // purposes only.
-  kDebugInfo = 11,
-
   // kNumSectionIDs is the number of section ids in a BEF file including
   // optional sections.
   kNumSectionIDs,
@@ -113,19 +109,6 @@ enum : size_t {
 
   // Maximum attribute alignment.
   kAttributeMaxAlignment = 8,
-};
-
-// SpecialAttribute describes the special BEF attributes of a kernel. It is a
-// bitfield, each bit of which represent one kind of such attribute.
-enum class SpecialAttribute : uint8_t {
-  kUnknown = 0,
-
-  // This is the bef.nonstrict attribute, which indicates a kernel is runnable
-  // when one of its operands becomes available.
-  kNonStrict = 1,
-
-  // This attribute indicates whether a kernel has a debug info available.
-  kHasDebugInfo = 2,
 };
 
 // This enum defined the function kind.
@@ -218,10 +201,10 @@ inline BEFAttributeType GetElementAttributeType(BEFAttributeType type) {
                                        kScalarAttributeTypeMask);
 }
 
-inline DType::Kind GetDataType(BEFAttributeType type) {
+inline DType GetDataType(BEFAttributeType type) {
   auto r = GetElementAttributeType(type);
   assert(IsDataTypeAttribute(r));
-  return static_cast<DType::Kind>(r);
+  return static_cast<DType>(r);
 }
 
 inline size_t GetAttributeDataTypeByteSize(BEFAttributeType type) {
@@ -229,7 +212,7 @@ inline size_t GetAttributeDataTypeByteSize(BEFAttributeType type) {
   auto data_type = GetElementAttributeType(type);
   if (data_type == BEFAttributeType::kType) return 1;
   assert(IsDataTypeAttribute(data_type));
-  return DType(static_cast<DType::Kind>(data_type)).GetHostSize();
+  return GetHostSize(static_cast<DType>(data_type));
 }
 
 inline size_t GetAttributeDataTypeAlignment(BEFAttributeType type) {
@@ -237,7 +220,7 @@ inline size_t GetAttributeDataTypeAlignment(BEFAttributeType type) {
   auto data_type = GetElementAttributeType(type);
   if (data_type == BEFAttributeType::kType) return 1;
   assert(IsDataTypeAttribute(data_type));
-  return DType(static_cast<DType::Kind>(data_type)).GetHostAlignment();
+  return GetHostAlignment(DType(static_cast<DType>(data_type)));
 }
 
 inline bool IsFixedAttribute(BEFAttributeType type) {
@@ -254,10 +237,10 @@ inline BEFAttributeType GetArrayAttributeType(BEFAttributeType element_type) {
 // Belows are helper functions for retrieving BEFAttributeType for scalar types.
 template <typename T>
 BEFAttributeType GetBEFAttributeType() {
-  return static_cast<BEFAttributeType>(GetDType<T>().kind());
+  return static_cast<BEFAttributeType>(GetDType<T>());
 }
 template <>
-inline BEFAttributeType GetBEFAttributeType<DType::Kind>() {
+inline BEFAttributeType GetBEFAttributeType<DType>() {
   return BEFAttributeType::kType;
 }
 
@@ -297,7 +280,7 @@ inline string_view DecodeLengthPrefixedString(const void* ptr) {
 // Common attribute header for ShapeAttr, DenseAttr, AggregateAttr
 struct BefAttrBase {
   uint8_t alignment;
-  DType::Kind element_type;
+  DType element_type;
   uint16_t prefix_size;
   AttrSizeT byte_size;
 };

@@ -158,11 +158,11 @@ static Expected<DenseGpuTensor> GpuTensorMake(Argument<GpuBuffer> buffer,
     return MakeStringError(
         "Cannot make tensor from invalid (moved from?) buffer");
   }
-  if (buffer->size() != shape.GetNumElements() * GetDType<T>().GetHostSize()) {
+  if (buffer->size() != shape.GetNumElements() * GetHostSize(GetDType<T>())) {
     return MakeStringError(
         "tfrt_gpu.tensor.make failed: buffer_size (", buffer->size(),
         ") is not equal to the number of elements in shape (", shape,
-        ") times element size (", GetDType<T>().GetHostSize(), ")");
+        ") times element size (", GetHostSize(GetDType<T>()), ")");
   }
   return DenseGpuTensor(shape, GetDType<T>(), std::move(buffer.ValueRef()));
 }

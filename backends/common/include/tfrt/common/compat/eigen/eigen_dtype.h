@@ -26,7 +26,7 @@
 
 namespace tfrt {
 
-template <DType::Kind K>
+template <DType K>
 using EigenTypeForDTypeKind =
     std::conditional_t<std::is_same<fp16, TypeForDTypeKind<K>>::value,
                        Eigen::half, TypeForDTypeKind<K>>;

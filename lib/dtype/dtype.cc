@@ -16,19 +16,19 @@
 
 #include "tfrt/dtype/dtype.h"
 
+#include <ostream>
+
 #include "llvm/Support/raw_ostream.h"
 
 namespace tfrt {
 
-// Return the size of one value of this dtype when represented on the host.
-size_t DType::GetHostSize() const {
-  return DispatchByDType(*this,
+size_t GetHostSize(DType dtype) {
+  return DispatchByDType(dtype,
                          [](auto dtype_data) { return dtype_data.kByteSize; });
 }
 
-// Return the alignment of this dtype when represented on the host.
-size_t DType::GetHostAlignment() const {
-  return DispatchByDType(*this,
+size_t GetHostAlignment(DType dtype) {
+  return DispatchByDType(dtype,
                          [](auto dtype_data) { return dtype_data.kAlignment; });
 }
 

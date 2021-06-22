@@ -195,10 +195,10 @@ Expected<ResultsMemoryLayout> Executable::VerifyEntrypointSignature(
 // -------------------------------------------------------------------------- //
 
 static Error VerifyDType(mlir::Type input_type, DType operand_type) {
-  assert(operand_type.kind() != DType::Invalid && "invalid operand type");
+  assert(operand_type != DType::Invalid && "invalid operand type");
 
-  auto verify = [&](DType::Kind expected_input_type) -> Error {
-    if (operand_type.kind() != expected_input_type)
+  auto verify = [&](DType expected_input_type) -> Error {
+    if (operand_type != expected_input_type)
       return MakeStringError("operand type does not match input type: ",
                              operand_type, " vs ", DType(expected_input_type));
     return Error::success();
@@ -281,7 +281,7 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
 
   llvm::SmallVector<mlir::Attribute> attributes;
   size_t num_values = rank == 0 ? 1 : desc.sizes[0];
-  switch (desc.dtype.kind()) {
+  switch (desc.dtype) {
     case DType::I32: {
       const auto* data = static_cast<TypeForDTypeKind<DType::I32>*>(desc.data);
       for (int i = 0; i < num_values; ++i) {
@@ -373,6 +373,10 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   call_frame->results.resize_for_overwrite(results_memory_layout_.size);
   for (auto offset : results_memory_layout_.offsets)
     call_frame->args.push_back(&call_frame->results[offset]);
+
+  // Mark results memory initialized to supress potential msan errors.
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(call_frame->results.data(),
+                                  call_frame->results.size());
 
   return Error::success();
 }
@@ -1130,7 +1134,7 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
     size_t rank = operand.sizes.size();
     assert(rank == 0 || rank == 1);
     size_t num_values = rank == 0 ? 1 : operand.sizes[0];
-    ssize_t len = num_values * operand.dtype.GetHostSize();
+    ssize_t len = num_values * GetHostSize(operand.dtype);
     hash = llvm::hash_combine(hash, llvm::hash_combine_range(data, data + len));
   }
   return hash;

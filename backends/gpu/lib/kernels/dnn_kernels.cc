@@ -57,21 +57,21 @@ static Expected<wrapper::OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
   auto current = wrapper::CtxSetCurrent(context.get());
   auto descriptor = wrapper::DnnCreatePoolingDescriptor(context->platform());
   if (!descriptor) return descriptor.takeError();
-  if (window_dimensions.dtype().kind() != tfrt::DType::I32)
+  if (window_dimensions.dtype() != tfrt::DType::I32)
     return MakeStringError(
         "DnnCreatePoolingDescriptor: window_dimensions is not an I32 tensor.");
   auto window_dimensions_data = GetTensorData<int>(window_dimensions);
   if (!window_dimensions_data)
     return MakeStringError(
         "DnnCreatePoolingDescriptor: window_dimensions is not a 1D tensor.");
-  if (paddings.dtype().kind() != tfrt::DType::I32)
+  if (paddings.dtype() != tfrt::DType::I32)
     return MakeStringError(
         "DnnSetPoolingDescriptor: paddings is not an I32 tensor.");
   auto paddings_data = GetTensorData<int>(paddings);
   if (!paddings_data)
     return MakeStringError(
         "DnnSetPoolingDescriptor: paddings is not a 1D tensor.");
-  if (strides.dtype().kind() != tfrt::DType::I32)
+  if (strides.dtype() != tfrt::DType::I32)
     return MakeStringError(
         "DnnCreatePoolingDescriptor: strides is not an I32 tensor.");
   auto strides_data = GetTensorData<int>(strides);
@@ -95,14 +95,14 @@ static Expected<GpuDnnTensorDesc> DnnCreateTensorDescriptor(
   auto data_type = wrapper::DnnDataType::FromOpaqueValue(*data_type_attr);
   auto descriptor = wrapper::DnnCreateTensorDescriptor(data_type.platform());
   if (!descriptor) return descriptor.takeError();
-  if (dimensions.dtype().kind() != tfrt::DType::I32)
+  if (dimensions.dtype() != tfrt::DType::I32)
     return MakeStringError(
         "DnnCreateTensorDescriptor: dimensions is not an I32 tensor.");
   auto dimensions_data = GetTensorData<int>(dimensions);
   if (!dimensions_data)
     return MakeStringError(
         "DnnCreateTensorDescriptor: dimensions is not a 1D tensor.");
-  if (strides.dtype().kind() != tfrt::DType::I32)
+  if (strides.dtype() != tfrt::DType::I32)
     return MakeStringError(
         "DnnCreateTensorDescriptor: strides is not an I32 tensor.");
   auto strides_data = GetTensorData<int>(strides);

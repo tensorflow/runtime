@@ -44,7 +44,7 @@ static AsyncValueRef<DenseHostTensor> TfSoftmaxOp(
   }
 
   AsyncValueRef<Chain> chain;
-  switch (logits.dtype().kind()) {
+  switch (logits.dtype()) {
     default:
       chain = EmitErrorAsync(exec_ctx, "unsupported dtype");
       break;

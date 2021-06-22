@@ -22,9 +22,8 @@
 #define TFRT_HOST_CONTEXT_LOCATION_H_
 
 #include <cstdint>
+#include <string>
 
-#include "llvm/ADT/StringRef.h"
-#include "llvm/Support/raw_ostream.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/variant.h"
 
@@ -46,7 +45,6 @@ struct DebugInfo {
   std::string info;
 };
 
-// This is a simple representation of a source location.
 using DecodedLocation = Variant<FileLineColLocation, OpaqueLocation>;
 
 // This is an opaque location token that is passed to kernel implementations,
@@ -79,14 +77,12 @@ class Location {
 // This is a virtual base class used by things that create locations.
 class LocationHandler {
  public:
+  virtual ~LocationHandler();
+
   virtual DecodedLocation DecodeLocation(Location loc) const = 0;
   virtual Optional<DebugInfo> GetDebugInfo(Location loc) const {
     return llvm::None;
   }
-
-  // ~LocationHandler() is defined in lib/host_context/host_context.cc as the
-  // key method.
-  virtual ~LocationHandler();
 };
 
 inline DecodedLocation Location::Decode() const {
@@ -99,6 +95,8 @@ inline Optional<DebugInfo> Location::GetDebugInfo() const {
   return handler_->GetDebugInfo(*this);
 }
 
+raw_ostream& operator<<(raw_ostream& os, const FileLineColLocation& loc);
+raw_ostream& operator<<(raw_ostream& os, const OpaqueLocation& loc);
 raw_ostream& operator<<(raw_ostream& os, const DecodedLocation& loc);
 
 }  // namespace tfrt

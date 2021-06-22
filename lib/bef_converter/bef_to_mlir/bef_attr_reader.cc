@@ -31,7 +31,7 @@
 namespace tfrt {
 
 static mlir::Type DecodeTypeAttribute(mlir::Builder* builder,
-                                      DType::Kind attribute_type) {
+                                      DType attribute_type) {
   switch (attribute_type) {
     case DType::I1:
       return builder->getIntegerType(1);
@@ -184,7 +184,7 @@ mlir::Attribute BefAttrReader::ReadAttribute(BEFAttributeType attribute_type,
 
   if (attribute_type == BEFAttributeType::kType) {
     return mlir::TypeAttr::get(DecodeTypeAttribute(
-        &builder_, static_cast<DType::Kind>(Attribute<uint8_t>(ptr).get())));
+        &builder_, static_cast<DType>(Attribute<uint8_t>(ptr).get())));
   }
 
   if (attribute_type == BEFAttributeType::kShape) {
@@ -222,7 +222,7 @@ mlir::Attribute BefAttrReader::ReadDenseAttribute(size_t offset) {
 
   const size_t element_count = attr.GetNumElements();
   const auto element_type = attr.dtype();
-  const auto element_size = DType(element_type).GetHostSize();
+  const auto element_size = GetHostSize(element_type);
   auto type = mlir::RankedTensorType::get(
       attr.shape(), DecodeTypeAttribute(&builder_, element_type));
 

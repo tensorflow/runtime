@@ -45,9 +45,9 @@ static DType OpAttrTypeToDType(OpAttrType type) {
 
 namespace {
 
-static Expected<TensorMetadata> CwiseBinaryOpMd(
-    const TensorMetadata& lhs, const TensorMetadata& rhs,
-    Optional<DType::Kind> kind = {}) {
+static Expected<TensorMetadata> CwiseBinaryOpMd(const TensorMetadata& lhs,
+                                                const TensorMetadata& rhs,
+                                                Optional<DType> kind = {}) {
   if (lhs.dtype != rhs.dtype)
     return MakeStringError("incompatible dtypes for binary operation");
 
@@ -56,7 +56,7 @@ static Expected<TensorMetadata> CwiseBinaryOpMd(
   TFRT_ASSIGN_OR_RETURN(auto broadcasted_shape,
                         GetBroadcastedShape(lhs.shape, rhs.shape));
 
-  DType out_dtype(kind.getValueOr(lhs.dtype.kind()));
+  DType out_dtype(kind.getValueOr(lhs.dtype));
   return TensorMetadata(out_dtype, broadcasted_shape);
 }
 
@@ -178,7 +178,7 @@ static Expected<TensorMetadata> TfShapeOpMd(const TensorMetadata& input,
   auto out_type = attrs.GetAsserting<OpAttrType>("out_type");
   auto dtype = OpAttrTypeToDType(out_type);
 
-  if (dtype.kind() != DType::I32 && dtype.kind() != DType::I64)
+  if (dtype != DType::I32 && dtype != DType::I64)
     return MakeStringError("Unsupported `out_type` value: ", dtype);
 
   return TensorMetadata(dtype, ArrayRef<ssize_t>{input.shape.GetRank()});
@@ -299,7 +299,7 @@ TfFusedBatchNormExOpMd(const TensorMetadata& input, const TensorMetadata& mean,
 Expected<TensorMetadata> CallTfPadOutputShape(const TensorMetadata& input,
                                               const DenseView& paddings) {
   // TODO(iga): Add a non-templated DHTIndexableView class to avoid these cases.
-  switch (paddings.dtype().kind()) {
+  switch (paddings.dtype()) {
     case DType::I32:
       return TfPadOutputShape(input, paddings.GetTensor<int32_t, 2>());
     case DType::I64:
@@ -404,7 +404,7 @@ static Expected<TensorMetadata> TfTransposeOpFoldedMd(
   assert(perm_view.shape().GetRank() == 1);
 
   SmallVector<ssize_t, 4> perm;
-  switch (perm_view.dtype().kind()) {
+  switch (perm_view.dtype()) {
     case DType::I32: {
       auto value = perm_view.GetFlat<int32_t>();
       perm.assign(value.begin(), value.end());
@@ -472,7 +472,7 @@ static Expected<TensorMetadata> TfMeanOpFoldedMd(const TensorMetadata& input,
   DenseView reduction_indices = CreateDenseView(dense_attr);
   assert(reduction_indices.shape().GetRank() == 1);
 
-  switch (reduction_indices.dtype().kind()) {
+  switch (reduction_indices.dtype()) {
     case DType::I32:
       return TfMeanOpMdImpl(input, reduction_indices.GetFlat<int32_t>(), attrs);
     case DType::I64:

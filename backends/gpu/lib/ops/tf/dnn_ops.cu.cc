@@ -603,7 +603,7 @@ llvm::Error TransformFilterTensor(wrapper::CurrentContext current,
                                   ChannelOrder channel_order,
                                   const DenseGpuTensor& input_filter,
                                   const GpuBuffer& output_filter) {
-  switch (input_filter.dtype().kind()) {
+  switch (input_filter.dtype()) {
 #define DTYPE_NUMERIC(ENUM)                                                 \
   case DType::ENUM: {                                                       \
     TransformFilter<tfrt::EigenTypeForDTypeKind<DType::ENUM>> tx;           \
@@ -624,7 +624,7 @@ llvm::Error FusedBatchNormEx(
     const DenseGpuTensor* side_input, float epsilon,
     FusedBatchNormActivationMode activation_mode,
     const GpuBuffer& output_buffer) {
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     case DType::F16: {
       auto functor = FusedBatchNormInferenceFunctor<Eigen::half, float>();
       if (auto error = functor(current, stream, channel_order, input, scale,

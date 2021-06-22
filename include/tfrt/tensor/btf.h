@@ -44,9 +44,9 @@ enum class TensorDType : uint8_t {
   kUInt64 = 9,
 };
 
-DType::Kind ToDTypeKind(TensorDType type);
+DType ToDTypeKind(TensorDType type);
 
-Expected<TensorDType> ToTensorDType(DType::Kind type);
+Expected<TensorDType> ToTensorDType(DType type);
 
 raw_ostream& operator<<(raw_ostream& os, const TensorDType& dtype);
 

@@ -436,14 +436,14 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpImpl(
     GpuDispatchContext* dctx, const DenseGpuTensor& input,
     ArrayRef<int32_t> reduction_indices, const TensorMetadata& result_md) {
   size_t num_result_elements = result_md.shape.GetNumElements();
-  size_t size_in_bytes = result_md.dtype.GetHostSize() * num_result_elements;
+  size_t size_in_bytes = GetHostSize(result_md.dtype) * num_result_elements;
 
   TFRT_ASSIGN_OR_RETURN(
       GpuBuffer output_buffer,
       GpuBuffer::Allocate(dctx->allocator(),
                           /*size=*/size_in_bytes, dctx->stream()));
 
-  switch (input.dtype().kind()) {
+  switch (input.dtype()) {
     default:
       return MakeStringError("Unsupported data type: ", input.dtype());
 
@@ -475,7 +475,7 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOpFolded(
   }
 
   DenseView dense_view = CreateDenseView(dense_attr);
-  switch (dense_view.dtype().kind()) {
+  switch (dense_view.dtype()) {
     case DType::I32:
       return ComputeMeanGpuOpImpl(dctx, input, dense_view.GetFlat<int32_t>(),
                                   result_md);

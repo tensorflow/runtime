@@ -74,7 +74,7 @@ class TypeDispatch {
             typename... Rest>
   auto Impl(Dispatch&& dispatch, Unsupported&& unsupported) {
     if (dtype_ == GetDType<T>()) {
-      return dispatch(EigenTypeForDTypeKind<GetDType<T>().kind()>{});
+      return dispatch(EigenTypeForDTypeKind<GetDType<T>()>{});
     }
 
     return Impl<Dispatch, Unsupported, Rest...>(
@@ -92,7 +92,7 @@ class TypeDispatch {
   const DType dtype_;
 };
 
-template <DType::Kind... kind>
+template <DType... kind>
 struct GetTypeDispatch {
   using Type = internal::TypeDispatch<TypeForDTypeKind<kind>...>;
 };

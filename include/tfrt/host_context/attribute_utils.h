@@ -209,7 +209,7 @@ namespace internal {
 
 // An intermediate class template for all fixed-width attributes. It provides
 // the common GetValue() method for all fixed-width attributes.
-template <DType::Kind DataTypeEnum, typename DataType>
+template <DType DataTypeEnum, typename DataType>
 class DataTypeAttrBase : public TypedAttrBase {
  public:
   using TypedAttrBase::TypedAttrBase;
@@ -259,9 +259,9 @@ class TypeAttr : public TypedAttrBase {
  public:
   using TypedAttrBase::TypedAttrBase;
 
-  DType::Kind GetValue() const {
-    DType::Kind dtype;
-    std::memcpy(&dtype, data(), sizeof(DType::Kind));
+  DType GetValue() const {
+    DType dtype;
+    std::memcpy(&dtype, data(), sizeof(DType));
     return dtype;
   }
 
@@ -420,7 +420,7 @@ class DenseAttr
  public:
   using StructAttrBase::StructAttrBase;
 
-  DType::Kind dtype() const { return header_->base.element_type; }
+  DType dtype() const { return header_->base.element_type; }
 
   llvm::ArrayRef<int64_t> shape() const {
     return llvm::makeArrayRef(header_->dims, header_->rank);
@@ -437,7 +437,7 @@ class DenseAttr
 
   template <typename T>
   const T& GetElement(size_t index) const {
-    assert(GetDType<T>().kind() == dtype());
+    assert(GetDType<T>() == dtype());
     return *(reinterpret_cast<const T*>(data() + header_->element_offset) +
              index);
   }

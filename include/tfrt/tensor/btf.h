@@ -73,13 +73,15 @@ raw_ostream& operator<<(raw_ostream& os, const TensorLayout& layout);
 
 // Tensor header in the Binary Tensor Format. This struct has to directly map to
 // the on-disk structure of BTF files.
-PACKED_STRUCT(TensorHeader {
+#pragma pack(push, 1)
+struct TensorHeader {
   uint64_t rank;
   // dtype, layout and the padding together occupy 64 bits.
   TensorDType dtype;
   TensorLayout layout;
   uint8_t padding[6];
-});
+};
+#pragma pack(pop)
 
 // Assure that the TenshorHead structure has the correct size and structures for
 // wire compatibility.

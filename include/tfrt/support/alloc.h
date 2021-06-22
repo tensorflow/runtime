@@ -25,6 +25,13 @@ namespace tfrt {
 
 void* AlignedAlloc(size_t alignment, size_t size);
 
+// On some platforms (ex. Windows), aligned allocation must be paired
+// with a specialized aligned free counterpart, which means we also
+// need to pair AlignedAlloc() with AlignedFree(). 
+//
+// NOTE: Attempting to use free() with a pointer returned by
+//  AlignedAlloc() may result in hard to debug issues at runtime.
+//
 void AlignedFree(void* ptr);
 
 }  // namespace tfrt

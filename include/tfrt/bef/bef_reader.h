@@ -124,18 +124,20 @@ class BEFReader {
 // This class contains helper methods for reading a kernel from kernel entries
 // in a BEF function.
 class BEFKernel {
+#pragma pack(push, 1)
   // BEFKernelHeader has the same data layout for the kernel header (excluding
   // num_used_bys as the number of results is not fixed.) in BEF. kernel_code,
   // kernel_location, num_arguments, num_attributes, num_functions, and
   // num_results in BEF can be directly mapped using this struct.
-  PACKED_STRUCT(BEFKernelHeader {
+  struct BEFKernelHeader {
     uint32_t kernel_code;
     uint32_t kernel_location;
     uint32_t num_arguments;
     uint32_t num_attributes;
     uint32_t num_functions;
     uint32_t num_results;
-  });
+  };
+#pragma pack(pop)
   static_assert(sizeof(BEFKernelHeader) == 24,
                 "Unexpected size of BEFKernelHeader.");
 

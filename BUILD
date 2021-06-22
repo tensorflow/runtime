@@ -50,15 +50,9 @@ config_setting(
 config_setting(
     name = "windows",
     # Internal builds query the target OS.
-    flag_values = if_google(
-        {"//tools/cpp:cc_target_os": "windows"},
-        {},
-    ),
+    flag_values = if_google({"//tools/cpp:cc_target_os": "windows"}, {}),
     # OSS builds query the CPU type.
-    values = if_oss(
-        {"cpu": "x64_windows"},
-        {},
-    ),
+    values = if_oss({"cpu": "x64_windows"}, {}),
     visibility = ["//visibility:public"],
 )
 
@@ -1175,7 +1169,7 @@ tfrt_cc_library(
         "lib/io/file_input_stream.cc",
         "lib/io/file_system.cc",
     ] + select({
-        "@tf_runtime//:windows": [
+        ":windows": [
             "lib/io/windows_file_system.cc",
             "lib/io/windows_file_system.h",
         ],

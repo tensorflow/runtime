@@ -40,19 +40,6 @@ constexpr bool kLittleEndian = __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__;
   static_assert(false, "big-endian not yet supported here");
 #endif
 
-// Support for portable packed structure declarations:
-//
-// PACKED_STRUCT(Foo {
-//  ... fields ...
-// });
-//
-#ifdef _WIN32
-#define PACKED_STRUCT(struct_def) \
-  __pragma(pack(push, 1)) struct struct_def __pragma(pack(pop))
-#else
-#define PACKED_STRUCT(struct_def) struct struct_def __attribute__((packed))
-#endif  // _WIN32
-
 }  // namespace tfrt
 
 #endif  // TFRT_SUPPORT_BYTE_ORDER_H_

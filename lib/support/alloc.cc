@@ -24,6 +24,8 @@ namespace tfrt {
 void* AlignedAlloc(size_t alignment, size_t size) {
   size = (size + alignment - 1) / alignment * alignment;
 #ifdef _WIN32
+  // MSVC runtime doesn't support aligned_alloc()
+  // (https://developercommunity.visualstudio.com/t/c17-stdaligned-alloc%E7%BC%BA%E5%A4%B1/468021#T-N473365)
   return _aligned_malloc(size, alignment);
 #elif defined(__ANDROID__) || defined(OS_ANDROID)
   return memalign(alignment, size);

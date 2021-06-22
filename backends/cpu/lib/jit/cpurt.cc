@@ -206,6 +206,7 @@ static Error VerifyDType(mlir::Type input_type, DType operand_type) {
 
   // TODO(ezhulenev): Implement type dispatching to connect MLIR with TFRT.
   if (input_type.isF32()) return verify(DType::F32);
+  if (input_type.isInteger(1)) return verify(DType::I1);
   if (input_type.isInteger(32)) return verify(DType::I32);
   if (input_type.isInteger(64)) return verify(DType::I64);
 

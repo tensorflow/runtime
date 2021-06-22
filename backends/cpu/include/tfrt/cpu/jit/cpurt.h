@@ -431,6 +431,8 @@ mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
   // TODO(ezhulenev): Implement type dispatching to connect MLIR with TFRT.
   if (element_type.isF32()) {
     rank_dispatch(float{});
+  } else if (element_type.isInteger(1)) {
+    rank_dispatch(bool{});
   } else if (element_type.isInteger(32)) {
     rank_dispatch(int32_t{});
   } else if (element_type.isInteger(64)) {

@@ -1184,6 +1184,7 @@ tfrt_cc_library(
         "include/tfrt/io/file_system.h",
         "include/tfrt/io/input_stream.h",
     ],
+    alwayslink_static_registration_src = "lib/io/static_registration.cc",
     visibility = [":friends"],
     deps = [
         ":hostcontext",

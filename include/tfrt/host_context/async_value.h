@@ -663,7 +663,7 @@ class ConcreteAsyncValue : public AsyncValue {
 
    private:
     friend class ConcreteAsyncValue;
-    using StorageT = std::aligned_storage<sizeof(T), alignof(T)>;
+    using StorageT = typename std::aligned_storage<sizeof(T), alignof(T)>::type;
     using ErrorPtrAndBool = llvm::PointerIntPair<DecodedDiagnostic*, 1, bool>;
 
     StorageT data_;

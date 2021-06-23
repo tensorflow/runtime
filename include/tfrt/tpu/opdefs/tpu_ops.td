@@ -281,6 +281,19 @@ def ExecuteAndUpdateVariablesOp : TPU_Op<"execute_and_update_variables"> {
   }];
 }
 
+def TensorHandleToDenseTpuTensorOp : TPU_Op<"tensorhandle_to_dense_tpu_tensor"> {
+  let summary = "Obtain DenseTpuTensor from tensor handle.";
+  let description = [{
+    Obtain DenseTpuTensor from tensor handle.
+
+    Example:
+      %dtt = tpurt.tensorhandle_to_dense_tpu_tensor %tensor_handle
+  }];
+  let arguments = (ins CoreRT_TensorHandleType);
+  let results = (outs DenseTensorType);
+  let assemblyFormat = "operands attr-dict";
+}
+
 def TransferFromTpuOp : TPU_Op<"transfer_from_tpu"> {
   let summary = "transfer tpu tensor to cpu tensor handle";
   let description = [{

@@ -15,12 +15,14 @@
 // This file declares some helpers that tfrt::gpu::GpuDevice uses to interact
 // with Eigen.
 
+// Enable use of gpu* macros, must be defined before including Eigen headers.
+#define EIGEN_PERMANENTLY_ENABLE_GPU_HIP_CUDA_DEFINES
+
 #include "eigen_support.h"
 
 #define EIGEN_USE_GPU
 
 #include "unsupported/Eigen/CXX11/Tensor"  // from @eigen_archive
-#include "unsupported/Eigen/CXX11/src/Tensor/TensorGpuHipCudaDefines.h"  // from @eigen_archive
 
 namespace tfrt {
 namespace gpu {

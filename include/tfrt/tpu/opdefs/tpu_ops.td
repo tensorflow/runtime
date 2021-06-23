@@ -127,6 +127,26 @@ def ConfigureAndInitializeGlobalTpuOp : TPU_Op<"system.configure_and_initialize_
   let assemblyFormat = "operands attr-dict";
 }
 
+def ShutdownTpuSystemOp : TPU_Op<"system.shutdown_tpu_system"> {
+  let summary = "Shuts down the TPU system";
+
+  let description = [{
+    Shuts down the TPU system and clear the TPU states. Returns a TensorHandle that contains
+    a boolean tensor to indicate if the shutdown process is successful.
+
+    Example:
+      %success = tpurt.system.shutdown_tpu_system
+  }];
+
+  let arguments = (ins
+    TFRT_ChainType:$in_ch
+  );
+  let results = (outs
+    CoreRT_TensorHandleType:$success
+  );
+  let assemblyFormat = "operands attr-dict";
+}
+
 def ConfigureDistributedTpuOp : TPU_Op<"system.configure_distributed_tpu"> {
   let summary = "Initialize the TPU system";
   let description = [{
@@ -140,19 +160,6 @@ def ConfigureDistributedTpuOp : TPU_Op<"system.configure_distributed_tpu"> {
   }];
   let arguments = (ins TFRT_ChainType);
   let results = (outs CoreRT_TensorHandleType);
-  let assemblyFormat = "operands attr-dict";
-}
-
-def ShutdownDistributedTpuOp : TPU_Op<"system.shutdown_distributed_tpu"> {
-  let summary = "Shutdown the TPU system";
-  let description = [{
-    tpurt.system.shutdown_distributed_tpu shuts down the TPU system.
-
-    Example:
-      %chain1 = tpurt.system.shutdown_distributed_tpu %chain0
-  }];
-  let arguments = (ins TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
   let assemblyFormat = "operands attr-dict";
 }
 

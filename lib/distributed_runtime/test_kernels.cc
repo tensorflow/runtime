@@ -46,7 +46,7 @@ namespace {
 // - provide functionality to trigger request processing one by one by
 //   process_next_request kernel.
 // - delegate execution to RequestHandler
-class TestRequestHandler : public RequestHandlerInterface {
+class TestRequestHandler final : public RequestHandlerInterface {
  public:
   explicit TestRequestHandler(ServerContext* server_context)
       : handler_(NewRequestHandler(server_context)) {}

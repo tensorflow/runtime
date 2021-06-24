@@ -44,14 +44,6 @@ TpuRuntimeDialect::TpuRuntimeDialect(MLIRContext *context)
       >();
 }
 
-static Type GetStringType(Builder *builder) {
-  return OpaqueType::get(builder->getIdentifier("hex"), "string");
-}
-
-static Type GetChainType(Builder *builder) {
-  return builder->getType<ChainType>();
-}
-
 static Type GetTensorHandleType(Builder *builder) {
   return OpaqueType::get(builder->getIdentifier("corert"), "tensor_handle");
 }
@@ -158,47 +150,6 @@ static void print(OpAsmPrinter &p, CompileV2Op op) {
     << op.dynamic_shapes() << ") "
     << "metadata = " << op->getAttr("metadata") << " "
     << "mlir_module = " << op->getAttr("mlir_module");
-}
-
-// tpurt.execute
-static ParseResult parseExecuteOp(OpAsmParser &parser, OperationState &result) {
-  auto &builder = parser.getBuilder();
-  auto core_location_type = GetCoreLocationType(&builder);
-  auto dense_tensor_type = GetDenseTensorType(&builder);
-  auto loaded_program_type = GetLoadedProgramType(&builder);
-
-  OpAsmParser::OperandType loaded_program;
-  OpAsmParser::OperandType core_location;
-  SmallVector<OpAsmParser::OperandType, 4> operands;
-  if (parser.parseOperand(loaded_program) || parser.parseComma() ||
-      parser.parseOperand(core_location) ||
-      parser.parseOperandList(operands, OpAsmParser::Delimiter::Paren))
-    return failure();
-
-  int64_t num_results = 0;
-  if (succeeded(parser.parseOptionalColon())) {
-    IntegerAttr attr;
-    mlir::NamedAttrList attrs;
-    if (failed(parser.parseAttribute(attr, "num_results", attrs)))
-      return failure();
-    num_results = attr.getValue().getSExtValue();
-  }
-
-  if (parser.resolveOperand(loaded_program, loaded_program_type,
-                            result.operands) ||
-      parser.resolveOperand(core_location, core_location_type,
-                            result.operands) ||
-      parser.resolveOperands(operands, dense_tensor_type, result.operands))
-    return failure();
-
-  result.types.append(num_results, dense_tensor_type);
-
-  return success();
-}
-
-static void print(OpAsmPrinter &p, ExecuteOp op) {
-  p << "tpurt.execute " << op.loaded_program() << ", " << op.core_location()
-    << " (" << op.operands() << ") : " << op.getNumResults();
 }
 
 // tpurt.execute_v2

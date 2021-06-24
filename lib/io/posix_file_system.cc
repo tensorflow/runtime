@@ -95,7 +95,7 @@ llvm::Error PosixFileSystem::NewRandomAccessFile(
   return llvm::Error::success();
 }
 
-void RegisterPosixFileSystem(FileSystemRegistry* registry) {
+void RegisterFileSystem(FileSystemRegistry* registry) {
   auto file_system = std::make_unique<PosixFileSystem>();
   // The scheme is an empty string to be backward-compatible with TF.
   registry->Register("", std::move(file_system));

@@ -31,6 +31,10 @@ void LogIfErrorImpl(Error error, Severity severity) {
 }
 }  // namespace
 
+namespace internal {
+void UseCharPointer(char const volatile*) {}
+}  // namespace internal
+
 void LogIfError(Error&& error) {
   LogIfErrorImpl(std::move(error), Severity::ERROR);
 }
@@ -94,5 +98,8 @@ void ErrorCollection::log(raw_ostream& OS) const {
   }
   OS << Join(msg.begin(), msg.end(), "\n");
 }
+
+#define ERROR_TYPE(ENUM) const char* ENUM##ErrorTrait::name = #ENUM;
+#include "tfrt/support/error_type.def"  // NOLINT
 
 }  // namespace tfrt

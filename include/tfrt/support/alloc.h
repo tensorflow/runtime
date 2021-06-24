@@ -23,7 +23,12 @@
 
 namespace tfrt {
 
+// Note: The returned pointer *must* be deallocated with AlignedFree().
+// Deallocating with e.g. free() instead causes runtime issues on Windows that
+// are hard to debug.
 void* AlignedAlloc(size_t alignment, size_t size);
+
+void AlignedFree(void* ptr);
 
 }  // namespace tfrt
 

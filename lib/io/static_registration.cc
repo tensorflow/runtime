@@ -21,10 +21,10 @@
 namespace tfrt {
 namespace io {
 
-void RegisterPosixFileSystem(FileSystemRegistry* registry);
+void RegisterFileSystem(FileSystemRegistry* registry);
 
 static bool kRegisterFileSystem = [] {
-  RegisterPosixFileSystem(FileSystemRegistry::Default());
+  RegisterFileSystem(FileSystemRegistry::Default());
   return true;
 }();
 

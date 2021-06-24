@@ -12,35 +12,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-build --config=clang  # By default, build with clang.
+build --enable_platform_specific_config
+
+build:linux   --config=clang  # On Linux, build with clang by default.
+build:windows --config=msvc   # On Windows, build with MSVC by default.
+
+# Build with MSVC (and nvcc if --config=cuda)
+build:msvc --config=nvcc
+build:msvc --cxxopt=/std:c++14 --host_cxxopt=/std:c++14
 
 # Build with clang.
 build:clang --repo_env=CC=clang
-build:clang --@rules_cuda//cuda:compiler=clang
+# This should be 'build:clang' as well, but then could no longer be overriden by
+# --config=nvcc. See https://github.com/bazelbuild/bazel/issues/13603.
+build       --@rules_cuda//cuda:compiler=clang
 build:clang --@rules_cuda//cuda:copts=-Wno-unknown-cuda-version
+build:clang --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
 
-# Build with gcc (and nvcc).
+# Build with gcc (and nvcc if --config=cuda).
 build:gcc --repo_env=CC=gcc
 build:gcc --config=nvcc
+build:gcc --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
 
 # Build with CUDA device code with nvcc.
 build:nvcc --@rules_cuda//cuda:compiler=nvcc
 build:nvcc --repo_env=BAZEL_CXXOPTS=  # Prevent warning: 'std' redefinition.
 build:nvcc --@rules_cuda//cuda:copts=--expt-relaxed-constexpr
-
-# Disable warnings we don't care about.
-build --copt=-Wno-unused-local-typedef
-
-# C++14 standard version is required.
-build --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
-
-# Necessary linker options.
-build --linkopt=-pthread
-build --linkopt=-ldl
-build --linkopt=-lm
-build --host_linkopt=-pthread
-build --host_linkopt=-ldl
-build --host_linkopt=-lm
 
 # Default to an optimized build.
 # Override via: "-c dbg" or --compilation_mode=dbg

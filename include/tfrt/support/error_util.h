@@ -53,6 +53,7 @@ enum class ErrorCode {
 };
 
 namespace internal {
+void UseCharPointer(char const volatile*);
 // Pimpl class holding a stack trace, see CreateStackTrace() below.
 struct StackTraceImpl;
 struct StackTraceDeleter {
@@ -73,7 +74,12 @@ using StackTrace =
 // messes up the expected stack sizes of the CreateStackTrace() function.
 template <class T>
 void DoNotOptimize(const T& var) {
+#if defined(_MSC_VER)
+  internal::UseCharPointer(reinterpret_cast<char const volatile*>(&var));
+  _ReadWriteBarrier();
+#else
   asm volatile("" : "+m"(const_cast<T&>(var)));
+#endif
 }
 
 // Capture the current stack trace, without the first 'skip_count' frames. The
@@ -211,10 +217,10 @@ class TypedErrorInfo
       : TypedErrorInfo<ErrorTrait>(ErrorTrait::name, message, task_name) {}
 };
 
-#define ERROR_TYPE(ENUM)                 \
-  struct ENUM##ErrorTrait {              \
-    static constexpr char* name = #ENUM; \
-  };                                     \
+#define ERROR_TYPE(ENUM)     \
+  struct ENUM##ErrorTrait {  \
+    static const char* name; \
+  };                         \
   using ENUM##ErrorInfo = TypedErrorInfo<ENUM##ErrorTrait>;
 #include "tfrt/support/error_type.def"  // NOLINT
 

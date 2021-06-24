@@ -78,7 +78,7 @@ struct TensorHeader {
   TensorDType dtype;
   TensorLayout layout;
   uint8_t padding[6];
-} __attribute__((packed));
+};
 
 // Assure that the TenshorHead structure has the correct size and structures for
 // wire compatibility.

@@ -34,6 +34,7 @@
 #include "llvm/ADT/PointerIntPair.h"
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/location.h"
+#include "tfrt/support/alloc.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/logging.h"
 #include "tfrt/support/ref_count.h"
@@ -347,9 +348,6 @@ class AsyncValue {
 
   // When is_refcounted_ is false, AddRef and DropRef have no effect.
   const bool is_refcounted_ : 1;
-
-  // Unused padding bits.
-  unsigned unused_ : 4;
 
   // This is a 16-bit value that identifies the type.
   uint16_t type_id_ = 0;
@@ -928,12 +926,12 @@ inline void AsyncValue::Destroy() {
     // explicit check and instead make ~IndirectAsyncValue go through the
     // GetTypeInfo().destructor case below.
     static_cast<IndirectAsyncValue*>(this)->~IndirectAsyncValue();
-    std::free(this);
+    AlignedFree(this);
     return;
   }
 
   GetTypeInfo().destructor(this, /*destroys_object=*/true);
-  std::free(this);
+  AlignedFree(this);
 }
 
 inline raw_ostream& operator<<(raw_ostream& os,

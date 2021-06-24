@@ -128,7 +128,7 @@ class BEFKernel {
   // num_used_bys as the number of results is not fixed.) in BEF. kernel_code,
   // kernel_location, num_arguments, num_attributes, num_functions, and
   // num_results in BEF can be directly mapped using this struct.
-  struct __attribute__((packed)) BEFKernelHeader {
+  struct BEFKernelHeader {
     uint32_t kernel_code;
     uint32_t kernel_location;
     uint32_t num_arguments;

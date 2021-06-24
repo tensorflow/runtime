@@ -22,6 +22,7 @@
 #include "mlir/IR/Types.h"
 
 namespace tfrt {
+namespace compiler {
 
 class ChainType
     : public mlir::Type::TypeBase<ChainType, mlir::Type, mlir::TypeStorage> {
@@ -47,6 +48,7 @@ class DeviceType
   using Base::Base;
 };
 
+}  // namespace compiler
 }  // namespace tfrt
 
 #endif  // TFRT_BASIC_KERNELS_OPDEFS_TYPES_H_

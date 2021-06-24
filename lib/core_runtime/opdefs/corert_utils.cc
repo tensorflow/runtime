@@ -28,7 +28,7 @@ static Type GetOpHandlerType(Builder *builder) {
 }
 
 static Type GetChainType(Builder *builder) {
-  return builder->getType<ChainType>();
+  return builder->getType<compiler::ChainType>();
 }
 
 static Type GetTensorHandleType(Builder *builder) {

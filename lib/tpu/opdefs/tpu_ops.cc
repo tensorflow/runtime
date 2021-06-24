@@ -96,7 +96,7 @@ static ParseResult parseCompileOp(OpAsmParser &parser, OperationState &result) {
     return failure();
 
   SmallVector<mlir::Type, 4> operand_types;
-  operand_types.push_back(builder.getType<tfrt::ChainType>());
+  operand_types.push_back(builder.getType<tfrt::compiler::ChainType>());
   for (int i = 1; i < operands.size(); ++i) {
     operand_types.push_back(builder.getType<tfrt::corert::TensorHandleType>());
   }

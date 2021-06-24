@@ -391,7 +391,7 @@ static ParseResult parseParallelForI32Op(OpAsmParser &parser,
   parser.resolveOperands(operands, types, type_loc, result.operands);
 
   // Parallel for returns chain when all parallel blocks are completed.
-  auto chain_type = ChainType::get(result.getContext());
+  auto chain_type = compiler::ChainType::get(result.getContext());
   parser.addTypesToList(chain_type, result.types);
 
   // Parallel for body operands and types.
@@ -494,7 +494,7 @@ static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
   parser.resolveOperands(operands, types, type_loc, result.operands);
 
   // Parallel for returns chain when all parallel blocks are completed.
-  auto chain_type = ChainType::get(result.getContext());
+  auto chain_type = compiler::ChainType::get(result.getContext());
   parser.addTypesToList(chain_type, result.types);
 
   return success();
@@ -556,7 +556,7 @@ static LogicalResult verify(ParallelCallI32Op op) {
     return op.emitOpError("invalid callee result type");
 
   if (fnType.getNumResults() == 1) {
-    auto chain_type = ChainType::get(op.getContext());
+    auto chain_type = compiler::ChainType::get(op.getContext());
 
     if (fnType.getResult(0) != chain_type)
       return op.emitOpError("async callee must return a chain");

@@ -148,7 +148,7 @@ void StreamAnalysis::ScheduleOpForwardPass(mlir::Block& block) {
         // merge parallel streams. Parallel streams with data dependencies will
         // be preferred to be merged. Note that control dependencies are skipped
         // as we prefer to merge for data dependencies.
-        if (!operand.getType().isa<tfrt::ChainType>()) {
+        if (!operand.getType().isa<ChainType>()) {
           current_op_info.side_defs.insert(def);
         }
 

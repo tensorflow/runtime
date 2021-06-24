@@ -224,7 +224,7 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
 static conversion::CastOp GetDefiningCastOp(Value value) {
   auto cast_op = value.getDefiningOp<conversion::CastOp>();
   if (cast_op && cast_op->getNumOperands() == 2 && [](auto types) {
-        return types[0].template isa<ChainType>() &&
+        return types[0].template isa<compiler::ChainType>() &&
                types[1].template isa<StreamType>();
       }(cast_op.getOperandTypes()))
     return cast_op;
@@ -257,7 +257,7 @@ LogicalResult SignatureRewritePattern::matchAndRewrite(
     return rewriter.notifyMatchFailure(op, "Expected no result");
 
   // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
-  Type chain_type = rewriter.getType<ChainType>();
+  Type chain_type = rewriter.getType<compiler::ChainType>();
   SmallVector<Type, 8> input_types;
   input_types.reserve(op.getNumArguments() + 2);
   input_types.push_back(chain_type);
@@ -288,7 +288,7 @@ LogicalResult WaitOpRewritePattern::matchAndRewrite(
   // Check that parent function has chain and stream arguments.
   FuncOp func_op = op->getParentOfType<FuncOp>();
   if (!func_op || func_op.getNumArguments() < 2 || ![](auto types) {
-        return types[0].template isa<ChainType>() &&
+        return types[0].template isa<compiler::ChainType>() &&
                types[1].template isa<StreamType>();
       }(func_op.getArgumentTypes())) {
     return rewriter.notifyMatchFailure(
@@ -298,7 +298,7 @@ LogicalResult WaitOpRewritePattern::matchAndRewrite(
   // Check that parent function returns chain.
   Operation *terminator = func_op.getBody().back().getTerminator();
   if (!terminator || terminator->getNumOperands() < 1 ||
-      !terminator->getOperand(0).getType().isa<ChainType>()) {
+      !terminator->getOperand(0).getType().isa<compiler::ChainType>()) {
     return rewriter.notifyMatchFailure(terminator,
                                        "not in func returning chain");
   }
@@ -428,8 +428,10 @@ void populateTfrtConversionPatterns(RewritePatternSet &patterns,
   // Signature needs to be `(!tfrt.chain, !tfrt.stream, ...) -> (!tfrt.chain)`.
   target.addDynamicallyLegalOp<FuncOp>([](FuncOp op) {
     auto type = op.getType();
-    return type.getNumResults() == 1 && type.getResult(0).isa<ChainType>() &&
-           type.getNumInputs() >= 2 && type.getInput(0).isa<ChainType>() &&
+    return type.getNumResults() == 1 &&
+           type.getResult(0).isa<compiler::ChainType>() &&
+           type.getNumInputs() >= 2 &&
+           type.getInput(0).isa<compiler::ChainType>() &&
            type.getInput(1).isa<StreamType>();
   });
 }

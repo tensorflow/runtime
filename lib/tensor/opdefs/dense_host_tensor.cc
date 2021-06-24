@@ -49,7 +49,7 @@ DenseHostTensorDialect::DenseHostTensorDialect(MLIRContext *context)
 }
 
 static Type getChainType(mlir::MLIRContext *context) {
-  return ChainType::get(context);
+  return compiler::ChainType::get(context);
 }
 
 static Type getTensorType(mlir::MLIRContext *context) {

@@ -158,7 +158,7 @@ static ParseResult parseBenchmarkOp(OpAsmParser &parser,
   if (parser.resolveOperands(operands, types, type_loc, result.operands))
     return failure();
 
-  auto chainType = ChainType::get(result.getContext());
+  auto chainType = compiler::ChainType::get(result.getContext());
   if (parser.addTypeToList(chainType, result.types)) return failure();
 
   auto parseIntegerKeywordAttr = [&]() -> ParseResult {

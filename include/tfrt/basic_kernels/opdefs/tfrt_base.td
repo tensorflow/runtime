@@ -38,19 +38,19 @@ def TFRT_Dialect : Dialect {
 }
 
 def TFRT_ChainType :
-    Type<CPred<"$_self.isa<tfrt::ChainType>()">, "!tfrt.chain type">,
-    BuildableType<"$_builder.getType<tfrt::ChainType>()">;
+    Type<CPred<"$_self.isa<tfrt::compiler::ChainType>()">, "!tfrt.chain type">,
+    BuildableType<"$_builder.getType<tfrt::compiler::ChainType>()">;
 
 def TFRT_StringType :
-    Type<CPred<"$_self.isa<tfrt::StringType>()">, "!tfrt.string type">,
-    BuildableType<"$_builder.getType<tfrt::StringType>()">;
+    Type<CPred<"$_self.isa<tfrt::compiler::StringType>()">, "!tfrt.string type">,
+    BuildableType<"$_builder.getType<tfrt::compiler::StringType>()">;
 
 def TFRT_TensorTypeType :
-    Type<CPred<"$_self.isa<tfrt::TensorTypeType>()">, "!tfrt.tensor_type type">,
-    BuildableType<"$_builder.getType<tfrt::TensorTypeType>()">;
+    Type<CPred<"$_self.isa<tfrt::compiler::TensorTypeType>()">, "!tfrt.tensor_type type">,
+    BuildableType<"$_builder.getType<tfrt::compiler::TensorTypeType>()">;
 
 def TFRT_DeviceType :
-    Type<CPred<"$_self.isa<tfrt::DeviceType>()">, "!tfrt.device type">,
-    BuildableType<"$_builder.getType<tfrt::DeviceType>()">;
+    Type<CPred<"$_self.isa<tfrt::compiler::DeviceType>()">, "!tfrt.device type">,
+    BuildableType<"$_builder.getType<tfrt::compiler::DeviceType>()">;
 
 #endif  // TFRT_BASE

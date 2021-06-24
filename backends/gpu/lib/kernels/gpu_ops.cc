@@ -279,7 +279,7 @@ void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
     region->emplaceBlock();
     return region->begin();
   }();
-  auto chain = block->addArgument(builder.getType<ChainType>());
+  auto chain = block->addArgument(builder.getType<compiler::ChainType>());
   block->addArgument(builder.getType<StreamType>());
 
   // Return chain block argument.

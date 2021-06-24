@@ -68,7 +68,8 @@ TFRTDialect::TFRTDialect(mlir::MLIRContext *context)
   // TODO(b/160693129): Eventually specify all of the operations.
   allowUnknownOperations();
 
-  addTypes<ChainType, StringType, TensorTypeType, DeviceType>();
+  addTypes<compiler::ChainType, compiler::StringType, compiler::TensorTypeType,
+           compiler::DeviceType>();
 
   addInterfaces<TFRTInlinerInterface>();
 
@@ -81,10 +82,10 @@ TFRTDialect::TFRTDialect(mlir::MLIRContext *context)
 mlir::Type TFRTDialect::parseType(mlir::DialectAsmParser &parser) const {
   llvm::StringRef spec = parser.getFullSymbolSpec();
 
-  if (spec == "chain") return ChainType::get(getContext());
-  if (spec == "string") return StringType::get(getContext());
-  if (spec == "tensor_type") return TensorTypeType::get(getContext());
-  if (spec == "device") return DeviceType::get(getContext());
+  if (spec == "chain") return compiler::ChainType::get(getContext());
+  if (spec == "string") return compiler::StringType::get(getContext());
+  if (spec == "tensor_type") return compiler::TensorTypeType::get(getContext());
+  if (spec == "device") return compiler::DeviceType::get(getContext());
   if (auto type = mlir::Dialect::parseType(parser)) return type;
 
   mlir::Location loc = parser.getEncodedSourceLoc(parser.getNameLoc());
@@ -94,13 +95,13 @@ mlir::Type TFRTDialect::parseType(mlir::DialectAsmParser &parser) const {
 
 void TFRTDialect::printType(mlir::Type type,
                             mlir::DialectAsmPrinter &printer) const {
-  if (type.isa<ChainType>()) {
+  if (type.isa<compiler::ChainType>()) {
     printer << "chain";
-  } else if (type.isa<StringType>()) {
+  } else if (type.isa<compiler::StringType>()) {
     printer << "string";
-  } else if (type.isa<TensorTypeType>()) {
+  } else if (type.isa<compiler::TensorTypeType>()) {
     printer << "tensor_type";
-  } else if (type.isa<DeviceType>()) {
+  } else if (type.isa<compiler::DeviceType>()) {
     printer << "device";
   } else {
     llvm_unreachable("unknown tfrt type");

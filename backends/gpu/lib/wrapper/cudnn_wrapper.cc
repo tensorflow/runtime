@@ -87,13 +87,10 @@ llvm::Expected<OwningDnnHandle> CudnnCreate(CurrentContext current) {
       return env && !std::strcmp(env, value);
     };
 
-    // Do not register a callback unless 'CUDNN_LOGDEST_DBG=tfrt' to avoid
-    // interfering with logging to other destinations.
-    if (!env_contains("CUDNN_LOGDEST_DBG", "tfrt")) return CUDNN_STATUS_SUCCESS;
-
-    // Do not register the callback unless 'CUDNN_LOGINFO_DBG=1' to avoid the
-    // performance penalty.
-    if (!env_contains("CUDNN_LOGINFO_DBG", "1")) return CUDNN_STATUS_SUCCESS;
+    // Do not register the callback unless 'TFRT_CUDNN_LOGINFO_DBG=1' to avoid
+    // the performance penalty.
+    if (!env_contains("TFRT_CUDNN_LOGINFO_DBG", "1"))
+      return CUDNN_STATUS_SUCCESS;
 
     return cudnnSetCallback(/*mask=*/~0, nullptr, CudnnCallback);
   }();

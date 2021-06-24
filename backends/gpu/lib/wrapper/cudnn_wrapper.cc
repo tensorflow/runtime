@@ -19,6 +19,7 @@
 #include <cstring>
 
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
+#include "tfrt/support/logging.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -87,11 +88,21 @@ llvm::Expected<OwningDnnHandle> CudnnCreate(CurrentContext current) {
       return env && !std::strcmp(env, value);
     };
 
-    // Do not register the callback unless 'TFRT_CUDNN_LOGINFO_DBG=1' to avoid
-    // the performance penalty.
-    if (!env_contains("TFRT_CUDNN_LOGINFO_DBG", "1"))
-      return CUDNN_STATUS_SUCCESS;
+    // Do not register a callback unless 'CUDNN_LOGDEST_DBG=tfrt' to avoid the
+    // performance penalty pre cuDNN 8.1 which ignored CUDNN_LOGDEST_DBG.
+    if (!env_contains("CUDNN_LOGDEST_DBG", "tfrt")) return CUDNN_STATUS_SUCCESS;
 
+    // Warn when 'CUDNN_LOGINFO_DBG=1' because the user likely does not want to
+    // to write the log to the 'tfrt' file, which is the bevior starting with
+    // cuDNN 8.2.1.
+    if (env_contains("CUDNN_LOGINFO_DBG", "1")) {
+      TFRT_LOG(WARNING)
+          << "CUDNN_LOGDEST_DBG=tfrt should not be combined with "
+             "CUDNN_LOGINFO_DBG=1, cuDNN logs will be written to 'tfrt' file.";
+    }
+
+    // Note: For the callback to get triggered, CUDNN_LOGDEST_DBG must be set
+    // and CUDNN_LOGINFO_DBG must not be 1.
     return cudnnSetCallback(/*mask=*/~0, nullptr, CudnnCallback);
   }();
   cudnnHandle_t handle = nullptr;

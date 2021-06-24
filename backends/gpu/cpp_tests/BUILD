@@ -23,7 +23,6 @@ tfrt_cc_library(
         srcs = ["wrapper/%s_wrapper_test.cc" % name],
         env = {
             "CUDNN_LOGDEST_DBG": "tfrt",
-            "TFRT_CUDNN_LOGINFO_DBG": "1",
         } if name == "dnn" else {},
         tags = [
             "noasan",

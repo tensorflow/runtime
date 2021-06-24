@@ -45,10 +45,6 @@ def main():
   index = clang.cindex.Index.create()
   translation_unit = index.parse(config['header'], args=config['extra_args'])
 
-  for diag in translation_unit.diagnostics:
-    if diag.severity in [diag.Warning, diag.Fatal]:
-      sys.stderr.write(str(diag) + '\n')
-
   def HandleFunction(cursor):
     if cursor.kind != clang.cindex.CursorKind.FUNCTION_DECL:
       return

@@ -1,5 +1,6 @@
 load(
     "@tf_runtime//:build_defs.bzl",
+    "if_google",
     "tfrt_cc_library",
     "tfrt_cc_test",
 )
@@ -33,12 +34,7 @@ tfrt_cc_library(
             ":common",
             "@tf_runtime//backends/gpu:gpu_wrapper",
             "@com_google_googletest//:gtest_main",
-        ] + select({
-            "@tf_runtime//:is_build_env_google": [
-                "//third_party/absl/debugging:leak_check",
-            ],
-            "//conditions:default": [],
-        }),
+        ] + if_google(["//third_party/absl/debugging:leak_check"]),
     )
     for name in [
         "blas",

@@ -2,7 +2,7 @@ load(":build_defs.bzl", "if_google", "if_oss", "tfrt_cc_library")
 
 # copybara:uncomment load("//configlang/ncl/build_defs:ncl.bzl", "ncl_test")
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_setting")
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag")
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
@@ -22,30 +22,6 @@ package_group(
 exports_files([
     "LICENSE",
 ])
-
-# Setting to distinguish google-internal builds from open-source builds.
-string_setting(
-    name = "build_env",
-    # copybara:uncomment_begin
-    # build_setting_default = "google",
-    # copybara:uncomment_end_and_comment_begin
-    build_setting_default = "oss",
-    # copybara:comment_end
-    values = [
-        "google",
-        "oss",
-    ],
-    visibility = ["//visibility:private"],
-)
-
-# Setting whether to build in google environment. Use this in `select()`
-# statements to conditionally provide different attributes for google and
-# open-source builds.
-config_setting(
-    name = "is_build_env_google",
-    flag_values = {":build_env": "google"},
-    visibility = ["//visibility:public"],
-)
 
 config_setting(
     name = "windows",

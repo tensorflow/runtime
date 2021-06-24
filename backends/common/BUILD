@@ -1,4 +1,9 @@
-load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
+load(
+    "@tf_runtime//:build_defs.bzl",
+    "if_google",
+    "if_oss",
+    "tfrt_cc_library",
+)
 
 package(
     # copybara:uncomment default_compatible_with = ["//buildenv/target:non_prod"],
@@ -96,14 +101,11 @@ tfrt_cc_library(
         "@eigen_archive//:eigen3",
         "@tf_runtime//:dtype",
         "@tf_runtime//:support",
-    ] + select({
-        "@tf_runtime//:is_build_env_google": [
-            # TODO(b/161569340): Short-term fix. Remove.
-            "//third_party/tensorflow/core/platform:types",
-            "//third_party/tensorflow/core/platform:mutex",
-        ],
-        "//conditions:default": [],
-    }),
+    ] + if_google([
+        # TODO(b/161569340): Short-term fix. Remove.
+        "//third_party/tensorflow/core/platform:types",
+        "//third_party/tensorflow/core/platform:mutex",
+    ]),
 )
 
 # Depending on a build configuration Eigen kernels library might use different
@@ -137,16 +139,13 @@ tfrt_cc_library(
         "include/tfrt/common/compat/eigen/tensor_types.h",
         "include/tfrt/common/compat/eigen/thread_pool_device.h",
     ],
-    defines = select({
-        "@tf_runtime//:is_build_env_google": [],
-        "//conditions:default": [
-            # TODO(b/161569340): Short-term fix. Remove.
-            "EIGEN_MUTEX=std::mutex",
-            "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
-            "EIGEN_CONDVAR=std::condition_variable",
-            "EIGEN_AVOID_STL_ARRAY",
-        ],
-    }) + select({
+    defines = if_oss([
+        # TODO(b/161569340): Short-term fix. Remove.
+        "EIGEN_MUTEX=std::mutex",
+        "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
+        "EIGEN_CONDVAR=std::condition_variable",
+        "EIGEN_AVOID_STL_ARRAY",
+    ]) + select({
         ":disable_eigen_mkldnn_contraction_kernel": [],
         "//conditions:default": [
             # Custom contraction kernel defines.
@@ -162,14 +161,11 @@ tfrt_cc_library(
         "@tf_runtime//:tensor",
         "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
-    ] + select({
-        "@tf_runtime//:is_build_env_google": [
-            # TODO(b/161569340): Short-term fix. Remove.
-            "//third_party/tensorflow/core/platform:types",
-            "//third_party/tensorflow/core/platform:mutex",
-        ],
-        "//conditions:default": [],
-    }) + select({
+    ] + if_google([
+        # TODO(b/161569340): Short-term fix. Remove.
+        "//third_party/tensorflow/core/platform:types",
+        "//third_party/tensorflow/core/platform:mutex",
+    ]) + select({
         ":disable_eigen_mkldnn_contraction_kernel": [],
         "//conditions:default": [
             # Custom contraction kernel dependencies.

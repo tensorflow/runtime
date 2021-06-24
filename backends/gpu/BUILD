@@ -1,5 +1,11 @@
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl_cc_library")
-load("@tf_runtime//:build_defs.bzl", "tfrt_cc_binary", "tfrt_cc_library")
+load(
+    "@tf_runtime//:build_defs.bzl",
+    "if_google",
+    "if_oss",
+    "tfrt_cc_binary",
+    "tfrt_cc_library",
+)
 load(
     # copybara:uncomment_begin
     # "@cuda_headers//:build_defs.bzl",
@@ -186,8 +192,8 @@ tfrt_cc_library(
         ":rocm_stubs",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
-    ] + select({
-        "@tf_runtime//:is_build_env_google": [
+    ] + if_google(
+        [
             # CUDA libraries are statically linked.
             ":cublas_compat",
             "//platforms/gpus/cuda/dynamic_libcuda",
@@ -198,8 +204,8 @@ tfrt_cc_library(
             "@cuda_headers//:cusolver_static",
             "@cudnn_headers//:cudnn",
         ],
-        "//conditions:default": [":cuda_stubs"],
-    }),
+        [":cuda_stubs"],
+    ),
 )
 
 tfrt_cc_library(
@@ -663,16 +669,13 @@ cuda_library(
         "lib/ops/tf/pad_op.cu.cc",
     ],
     hdrs = ["lib/ops/tf/pad_op.h"],
-    defines = select({
-        "@tf_runtime//:is_build_env_google": [],
-        "//conditions:default": [
-            # TODO(b/161569340): Short-term fix. Remove
-            "EIGEN_MUTEX=std::mutex",
-            "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
-            "EIGEN_CONDVAR=std::condition_variable",
-            "EIGEN_AVOID_STL_ARRAY",
-        ],
-    }),
+    defines = if_oss([
+        # TODO(b/161569340): Short-term fix. Remove
+        "EIGEN_MUTEX=std::mutex",
+        "EIGEN_MUTEX_LOCK=std::unique_lock<std::mutex>",
+        "EIGEN_CONDVAR=std::condition_variable",
+        "EIGEN_AVOID_STL_ARRAY",
+    ]),
     deps = [
         ":gpu_device_eigen_support",
         ":gpu_memory",

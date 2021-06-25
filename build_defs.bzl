@@ -94,7 +94,7 @@ TFRT_COPTS = select({
 
 TFRT_LINKOPTS = select({
     "@tf_runtime//:windows": [],
-    "//conditions:default": ["-ldl", "-lm", "-lpthread"],
+    "//conditions:default": ["-ldl", "-lm", "-lpthread"],  # copybara:comment_replace "//conditions:default": ["-ldl", "-lm"],
 })
 
 TFRT_FEATURES = select({

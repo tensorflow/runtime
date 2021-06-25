@@ -196,9 +196,9 @@ AsyncValue *mlirAsyncRuntimeCreateValue(int32_t size) {
 }
 
 // Create a new `async.group` in empty state.
-AsyncGroup *mlirAsyncRuntimeCreateGroup() {
+AsyncGroup *mlirAsyncRuntimeCreateGroup(int64_t size) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntimeContext();
-  return runtime.CreateGroup();
+  return runtime.CreateGroup(size);
 }
 
 int64_t mlirAsyncRuntimeAddTokenToGroup(AsyncToken *token, AsyncGroup *group) {

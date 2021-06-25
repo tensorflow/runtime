@@ -17,6 +17,7 @@
 
 #include "tfrt/cpu/jit/async_runtime.h"
 
+#include <atomic>
 #include <cstddef>
 #include <memory>
 #include <type_traits>
@@ -115,10 +116,18 @@ class AsyncGroup : public AsyncRuntimeObject {
   using AsyncTokens = tfrt::ConcurrentVector<AsyncToken*>;
 
  public:
-  explicit AsyncGroup(AsyncRuntime* runtime, unsigned ref_count = 1)
+  explicit AsyncGroup(AsyncRuntime* runtime, int64_t size,
+                      unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
         runtime_(runtime),
-        async_tokens_(std::make_unique<AsyncTokens>(/*initial_capacity=*/16)) {}
+        pending_tokens_(size),
+        num_errors_(0),
+        async_tokens_(std::make_unique<AsyncTokens>(/*initial_capacity=*/16)),
+        completed_(tfrt::MakeConstructedAsyncValueRef<tfrt::Chain>()) {
+    // If group size is zero, mark completion async value ready.
+    assert(size >= 0 && "size can't be negative");
+    if (size == 0) completed_.SetStateConcrete();
+  }
 
   ~AsyncGroup() override {
     for (auto* obj : async_tokens_->ToArrayRef()) runtime_->DropRef(obj);
@@ -126,25 +135,44 @@ class AsyncGroup : public AsyncRuntimeObject {
 
   size_t AddToken(AsyncToken* token) {
     AsyncRuntime::AddRef(token);  // keep token alive while *this is alive
-    return async_tokens_->emplace_back(token);
+    size_t rank = async_tokens_->emplace_back(token);
+
+    // When token becomes available drop the number of pending tokens and maybe
+    // make the group completion async value available.
+    token->GetAsyncValue()->AndThen([group = this, token]() {
+      // Increment the number of errors in the group.
+      if (token->GetAsyncValue()->IsError()) group->num_errors_.fetch_add(1);
+
+      // Pending tokens can't drop below zero.
+      assert(group->pending_tokens_ > 0 && "wrong group size");
+
+      // We do track group error state with the number of errors, and never
+      // set completion async value state to error.
+      if (group->pending_tokens_.fetch_sub(1) == 1)
+        group->completed_.SetStateConcrete();
+    });
+
+    return rank;
   }
 
-  size_t size() const { return async_tokens_->size(); }
-
-  llvm::SmallVector<tfrt::AsyncValue*, 4> GetAsyncValues() const {
-    auto tokens = llvm::map_range(
-        async_tokens_->ToArrayRef(),
-        [](AsyncToken* token) { return token->GetAsyncValue(); });
-    return {tokens.begin(), tokens.end()};
+  tfrt::AsyncValue* GetCompletionAsyncValue() const {
+    return completed_.GetAsyncValue();
   }
 
-  llvm::ArrayRef<AsyncToken*> GetAsyncTokens() const {
-    return async_tokens_->ToArrayRef();
-  }
+  bool IsError() const { return num_errors_.load() != 0; }
 
  private:
   AsyncRuntime* runtime_;
+
+  std::atomic<int64_t> pending_tokens_;
+  std::atomic<int64_t> num_errors_;
+
+  // Keep tokens added to the group alive while *this is alive.
   std::unique_ptr<AsyncTokens> async_tokens_;
+
+  // Async value that keeps track the group completion, it will become available
+  // when the number of pending tokens will drop to zero.
+  AsyncValueRef<tfrt::Chain> completed_;
 };
 
 }  // namespace runtime
@@ -168,9 +196,8 @@ namespace jit {
   return token->GetAsyncValue();
 }
 
-/*static*/ SmallVector<AsyncValue*, 4> AsyncRuntime::GetAsyncValues(
-    AsyncRuntime::Group* group) {
-  return group->GetAsyncValues();
+/*static*/ AsyncValue* AsyncRuntime::GetAsyncValue(AsyncRuntime::Group* group) {
+  return group->GetCompletionAsyncValue();
 }
 
 /*static*/ void AsyncRuntime::AddRef(AsyncRuntimeObject* obj, unsigned count) {
@@ -267,8 +294,8 @@ void AsyncRuntime::AwaitValue(AsyncRuntime::Value* value) {
   host_context_->Await(ref);
 }
 
-AsyncRuntime::Group* AsyncRuntime::CreateGroup() {
-  return new AsyncRuntime::Group(this);
+AsyncRuntime::Group* AsyncRuntime::CreateGroup(int64_t size) {
+  return new AsyncRuntime::Group(this, size);
 }
 
 size_t AsyncRuntime::AddTokenToGroup(AsyncRuntime::Group* group,
@@ -277,18 +304,11 @@ size_t AsyncRuntime::AddTokenToGroup(AsyncRuntime::Group* group,
 }
 
 bool AsyncRuntime::IsError(AsyncRuntime::Group* group) {
-  return llvm::any_of(group->GetAsyncValues(),
-                      [](AsyncValue* value) { return value->IsError(); });
+  return group->IsError();
 }
 
 void AsyncRuntime::AwaitGroup(AsyncRuntime::Group* group) {
-  SmallVector<RCReference<AsyncValue>, 4> refs;
-  refs.reserve(group->size());
-
-  for (AsyncRuntime::Token* token : group->GetAsyncTokens())
-    refs.emplace_back(FormRef(token->GetAsyncValue()));
-
-  host_context_->Await(refs);
+  host_context_->Await(FormRef(group->GetCompletionAsyncValue()));
 }
 
 }  // namespace jit

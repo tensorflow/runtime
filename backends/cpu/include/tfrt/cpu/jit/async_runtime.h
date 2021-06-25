@@ -89,7 +89,7 @@ class AsyncRuntime {
   // ------------------------------------------------------------------------ //
 
   // Creates a new empty group.
-  Group* CreateGroup();
+  Group* CreateGroup(int64_t size);
 
   // Adds `token` to the `group`.
   size_t AddTokenToGroup(Group* group, Token* token);
@@ -130,8 +130,8 @@ class AsyncRuntime {
   // Extracts async value that is owned by the token.
   static AsyncValue* GetAsyncValue(Token* token);
 
-  // Extracts async values that are owned by the tokens added to the group.
-  static SmallVector<AsyncValue*, 4> GetAsyncValues(Group* group);
+  // Extracts async value that signals group completion.
+  static AsyncValue* GetAsyncValue(Group* group);
 
   // Reference counting operations for the runtime objects.
   static void AddRef(AsyncRuntimeObject* obj, unsigned count = 1);
@@ -172,7 +172,7 @@ void AsyncRuntime::AwaitValue(Value* value, F&& f) {
 
 template <typename F>
 void AsyncRuntime::AwaitGroup(Group* group, F&& f) {
-  RunWhenReady(AsyncRuntime::GetAsyncValues(group), std::forward<F>(f));
+  AsyncRuntime::GetAsyncValue(group)->AndThen(std::forward<F>(f));
 }
 
 }  // namespace jit

@@ -45,7 +45,7 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
 }
 
 ChannelOrder GetTfChannelOrder(Optional<string_view> data_format) {
-  if (!data_format.hasValue() || !data_format->startswith_lower("nc"))
+  if (!data_format.hasValue() || !data_format->startswith_insensitive("nc"))
     return ChannelOrder::ChannelLast;
   return ChannelOrder::ChannelFirst;
 }

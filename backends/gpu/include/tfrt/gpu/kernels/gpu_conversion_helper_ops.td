@@ -49,7 +49,7 @@ def GPU_CastOp : Op<GPU_ConversionDialect, "cast", [NoSideEffect]> {
 }
 
 def GPU_AsyncExecuteOp : Op<GPU_ConversionDialect, "async.execute",
-    [GPU_AsyncOpInterface, SingleBlockImplicitTerminator<"ReturnOp">]> {
+    [GPU_AsyncOpInterface, SingleBlockImplicitTerminator<"compiler::ReturnOp">]> {
   let summary = "tfrt_gpu_conversion.async.execute operation";
   let description = [{
     tfrt_gpu_conversion.async.execute wraps a block to take and produce

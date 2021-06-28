@@ -277,7 +277,8 @@ LogicalResult SignatureRewritePattern::matchAndRewrite(
 
   // Return input chain.
   Operation *terminator = op.body().back().getTerminator();
-  rewriter.replaceOpWithNewOp<tfrt::ReturnOp>(terminator, block_args.front());
+  rewriter.replaceOpWithNewOp<compiler::ReturnOp>(terminator,
+                                                  block_args.front());
 
   return success();
 }
@@ -331,7 +332,7 @@ LogicalResult WaitOpRewritePattern::matchAndRewrite(
 
   if (op.asyncToken() && op->getParentOfType<async::ExecuteOp>()) {
     // 'gpu.wait async' inside 'async.execute', create a new chain and stream.
-    chain = rewriter.create<NewChainOp>(loc).getResult();
+    chain = rewriter.create<compiler::NewChainOp>(loc).getResult();
     Value context =
         rewriter.create<StreamGetContextOp>(loc, stream).getResult();
     // If there are no event operands from dependent async.execute ops,

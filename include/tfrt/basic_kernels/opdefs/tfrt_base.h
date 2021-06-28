@@ -24,6 +24,7 @@
 #include "mlir/IR/DialectImplementation.h"
 
 namespace tfrt {
+namespace compiler {
 
 // Dialect for basic operations.
 class TFRTDialect : public mlir::Dialect {
@@ -36,6 +37,7 @@ class TFRTDialect : public mlir::Dialect {
                  mlir::DialectAsmPrinter &printer) const override;
 };
 
+}  // namespace compiler
 }  // namespace tfrt
 
 #endif  // TFRT_BASIC_KERNELS_OPDEFS_TFRT_BASE_H_

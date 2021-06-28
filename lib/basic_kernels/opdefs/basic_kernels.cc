@@ -28,6 +28,7 @@
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
+namespace compiler {
 
 //===----------------------------------------------------------------------===//
 // CallOp
@@ -612,6 +613,7 @@ static LogicalResult verify(ReturnOp op) {
   return success();
 }
 
+}  // namespace compiler
 }  // namespace tfrt
 
 //===----------------------------------------------------------------------===//

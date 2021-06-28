@@ -21,6 +21,7 @@
 #include "tfrt/basic_kernels/opdefs/types.h"
 
 namespace tfrt {
+namespace compiler {
 
 namespace {
 
@@ -108,4 +109,5 @@ void TFRTDialect::printType(mlir::Type type,
   }
 }
 
+}  // namespace compiler
 }  // namespace tfrt

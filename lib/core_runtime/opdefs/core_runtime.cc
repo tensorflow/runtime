@@ -56,7 +56,7 @@ struct CoreRTInlinerInterface : public mlir::DialectInlinerInterface {
 
 CoreRTDialect::CoreRTDialect(MLIRContext *context)
     : Dialect(/*name=*/"corert", context, TypeID::get<CoreRTDialect>()) {
-  context->getOrLoadDialect<TFRTDialect>();
+  context->getOrLoadDialect<compiler::TFRTDialect>();
 
   allowUnknownTypes();
   allowUnknownOperations();

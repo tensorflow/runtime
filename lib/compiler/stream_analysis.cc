@@ -87,7 +87,7 @@ int64_t StreamAnalysis::GetOperationCost(mlir::Operation* op) const {
   if (op == kRootOperation) return 1;
 
   // A few TFRT kernels are guaranteed to be cheap.
-  if (llvm::isa<tfrt::ReturnOp, tfrt::MergeChainsOp>(op)) return 1;
+  if (llvm::isa<ReturnOp, MergeChainsOp>(op)) return 1;
 
   // Check if operations defines a cost function.
   if (auto cost_function = mlir::dyn_cast<CostFunctionInterface>(op)) {

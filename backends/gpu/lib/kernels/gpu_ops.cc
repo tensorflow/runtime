@@ -285,7 +285,7 @@ void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
   // Return chain block argument.
   OpBuilder::InsertionGuard guard(builder);
   builder.setInsertionPointToStart(&*block);
-  builder.create<ReturnOp>(result.location, chain);
+  builder.create<compiler::ReturnOp>(result.location, chain);
 }
 
 }  // namespace conversion

@@ -33,7 +33,7 @@ namespace test {
 
 TestDialect::TestDialect(MLIRContext *context)
     : Dialect(/*name=*/"tfrt_test", context, TypeID::get<TestDialect>()) {
-  context->getOrLoadDialect<TFRTDialect>();
+  context->getOrLoadDialect<compiler::TFRTDialect>();
 
   allowUnknownTypes();
   allowUnknownOperations();

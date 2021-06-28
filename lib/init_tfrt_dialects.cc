@@ -41,7 +41,7 @@
 namespace tfrt {
 
 void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
-  registry.insert<TFRTDialect>();
+  registry.insert<compiler::TFRTDialect>();
   registry.insert<corert::CoreRTDialect>();
   registry.insert<corert_sync::CoreRTSyncDialect>();
   registry.insert<cpu::jit::CpuRuntimeDialect>();

@@ -34,7 +34,7 @@ def TFRT_Dialect : Dialect {
     This dialect contains common host operations.
   }];
 
-  let cppNamespace = "::tfrt";
+  let cppNamespace = "::tfrt::compiler";
 }
 
 def TFRT_ChainType :

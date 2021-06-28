@@ -37,7 +37,7 @@ of `Chain`. `Chain` is an empty struct defined in
 as follows:
 
 ```c++
-struct Chain {};
+class Chain {};
 ```
 
 The sole purpose of `Chain` is to add dependencies between kernels that

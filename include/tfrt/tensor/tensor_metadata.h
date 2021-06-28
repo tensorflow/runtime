@@ -26,7 +26,8 @@ namespace tfrt {
 
 // The metadata of a rectangular tensor that can be computed by a metadata
 // function.
-struct TensorMetadata {
+class TensorMetadata {
+ public:
   TensorMetadata() : shape({}), dtype() {}
 
   TensorMetadata(DType dtype, const TensorShape& shape)

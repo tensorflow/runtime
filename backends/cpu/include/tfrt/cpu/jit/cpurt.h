@@ -23,7 +23,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <type_traits>
+#include <utility>
 
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -37,6 +39,11 @@
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/msan.h"
+
+// Forward declare Eigen types.
+namespace Eigen {
+class ThreadPoolInterface;
+}  // namespace Eigen
 
 namespace tfrt {
 
@@ -570,6 +577,7 @@ class Executable {
   // Forward declare struct defined below.
   struct ResultsMemoryLayout;
   struct CallFrame;
+  struct ExecuteOpts;
 
   Executable(std::unique_ptr<mlir::MLIRContext> context,
              std::unique_ptr<mlir::ExecutionEngine> engine,
@@ -601,10 +609,12 @@ class Executable {
   // error async values for each returned value.
   Error Execute(ArrayRef<MemrefDesc> operands,
                 const ReturnValueConverterBase& results,
-                const ExecutionContext& exec_ctx) const;
+                const ExecutionContext& exec_ctx,
+                const ExecuteOpts& opts = {}) const;
 
   // Executes compiled function using user provided call frame.
-  void Execute(const ExecutionContext& exec_ctx, CallFrame* call_frame) const;
+  void Execute(CallFrame& call_frame, const ExecutionContext& exec_ctx,
+               const ExecuteOpts& opts = {}) const;
 
   mlir::FunctionType signature() const;
 
@@ -638,6 +648,19 @@ class Executable {
     bool has_async_results;             // true iff returns async results
     size_t size;                        // number of bytes required
     llvm::SmallVector<size_t> offsets;  // ofssets in the block of memory
+  };
+
+  // Options for configuring compiled kernel execution.
+  struct ExecuteOpts {
+    ExecuteOpts() : async_runtime_worker_threads(nullptr) {}
+
+    // Use Eigen thread pool to launch all async tasks managed by the runtime.
+    // By default all async tasks are launched into the HostContext concurrent
+    // work queue (non blocking work queue).
+    //
+    // This option is used in the fallback execution mode, to share the intra-op
+    // thread pool for all compute intensive tasks.
+    Eigen::ThreadPoolInterface* async_runtime_worker_threads;
   };
 
   // Verifies that all types in the entrypoint function signature are supported

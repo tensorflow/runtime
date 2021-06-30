@@ -1,5 +1,5 @@
 load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl_cc_library")
-load("@tf_runtime//:build_defs.bzl", "tfrt_cc_library")
+load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
@@ -78,11 +78,16 @@ tfrt_cc_library(
     ],
     visibility = ["@tf_runtime//:friends"],
     deps = [
+        "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:mlir_async_runtime_api",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
-    ],
+    ] + if_google([
+        # TODO(b/161569340): Short-term fix. Remove.
+        "//third_party/tensorflow/core/platform:types",
+        "//third_party/tensorflow/core/platform:mutex",
+    ]),
 )
 
 tfrt_cc_library(

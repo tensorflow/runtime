@@ -31,12 +31,11 @@ class Chain;
 namespace cpu {
 namespace jit {
 
-// Set the AsyncRuntime host context that will be implicitly propagated to all
-// async tasks.
+// Set the AsyncRuntime that will be implicitly propagated to all async tasks.
 //
-// On every launch of an async task, current context will be captured, and
+// On every launch of an async task, current async runtime will be captured, and
 // restored when the task will start its execution on a different thread.
-void SetAsyncRuntimeHostContext(HostContext* host_context);
+void SetAsyncRuntime(AsyncRuntime runtime);
 
 // Converts MLIR Async Runtime token into the TFRT async chain, and drops the
 // reference count on the token.

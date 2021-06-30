@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 #include "llvm/Support/MathExtras.h"
 #include "tfrt/host_context/async_value.h"
@@ -31,6 +32,7 @@
 #include "tfrt/host_context/host_allocator.h"
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/concurrent_vector.h"
+#include "tfrt/support/latch.h"
 #include "tfrt/support/ref_count.h"
 
 // -------------------------------------------------------------------------- //
@@ -45,7 +47,6 @@ using tfrt::AsyncValueRef;
 using tfrt::HostBuffer;
 using tfrt::HostContext;
 using tfrt::MakeConstructedAsyncValueRef;
-using tfrt::RCReference;
 using tfrt::cpu::jit::AsyncRuntime;
 using tfrt::cpu::jit::AsyncRuntimeObject;
 
@@ -113,29 +114,22 @@ class AsyncValue : public AsyncRuntimeObject {
 };
 
 class AsyncGroup : public AsyncRuntimeObject {
-  using AsyncTokens = tfrt::ConcurrentVector<AsyncToken*>;
-
  public:
   explicit AsyncGroup(AsyncRuntime* runtime, int64_t size,
                       unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
         runtime_(runtime),
+        rank_(0),
         pending_tokens_(size),
         num_errors_(0),
-        async_tokens_(std::make_unique<AsyncTokens>(/*initial_capacity=*/16)),
         completed_(tfrt::MakeConstructedAsyncValueRef<tfrt::Chain>()) {
     // If group size is zero, mark completion async value ready.
     assert(size >= 0 && "size can't be negative");
     if (size == 0) completed_.SetStateConcrete();
   }
 
-  ~AsyncGroup() override {
-    for (auto* obj : async_tokens_->ToArrayRef()) runtime_->DropRef(obj);
-  }
-
   size_t AddToken(AsyncToken* token) {
-    AsyncRuntime::AddRef(token);  // keep token alive while *this is alive
-    size_t rank = async_tokens_->emplace_back(token);
+    size_t rank = rank_.fetch_add(1, std::memory_order_relaxed);
 
     // When token becomes available drop the number of pending tokens and maybe
     // make the group completion async value available.
@@ -164,11 +158,9 @@ class AsyncGroup : public AsyncRuntimeObject {
  private:
   AsyncRuntime* runtime_;
 
+  std::atomic<int64_t> rank_;
   std::atomic<int64_t> pending_tokens_;
   std::atomic<int64_t> num_errors_;
-
-  // Keep tokens added to the group alive while *this is alive.
-  std::unique_ptr<AsyncTokens> async_tokens_;
 
   // Async value that keeps track the group completion, it will become available
   // when the number of pending tokens will drop to zero.
@@ -198,6 +190,22 @@ namespace jit {
 
 /*static*/ AsyncValue* AsyncRuntime::GetAsyncValue(AsyncRuntime::Group* group) {
   return group->GetCompletionAsyncValue();
+}
+
+void AsyncRuntime::Await(AsyncValue* awaitable) {
+  // Blocking wait can't lead to a deadlock if runtime uses external thread
+  // pool for launching async tasks.
+  if (worker_threads_) {
+    tfrt::latch latch(1);
+    awaitable->AndThen([&]() { latch.count_down(); });
+    latch.wait();
+    return;
+  }
+
+  // If we use host context work queue to launch async tasks, then blocking
+  // await can lead to a deadlock. Host context will check at runtime that
+  // we are not in a thread managed by the host context itself.
+  host_context_->Await(FormRef(awaitable));
 }
 
 /*static*/ void AsyncRuntime::AddRef(AsyncRuntimeObject* obj, unsigned count) {
@@ -255,8 +263,7 @@ bool AsyncRuntime::IsError(AsyncRuntime::Token* token) {
 }
 
 void AsyncRuntime::AwaitToken(AsyncRuntime::Token* token) {
-  std::array<RCReference<AsyncValue>, 1> ref{FormRef(token->GetAsyncValue())};
-  host_context_->Await(ref);
+  Await(token->GetAsyncValue());
 }
 
 AsyncRuntime::Value* AsyncRuntime::CreateValue(size_t size, size_t alignment) {
@@ -290,8 +297,7 @@ bool AsyncRuntime::IsError(AsyncRuntime::Value* value) {
 }
 
 void AsyncRuntime::AwaitValue(AsyncRuntime::Value* value) {
-  std::array<RCReference<AsyncValue>, 1> ref{FormRef(value->GetAsyncValue())};
-  host_context_->Await(ref);
+  Await(value->GetAsyncValue());
 }
 
 AsyncRuntime::Group* AsyncRuntime::CreateGroup(int64_t size) {
@@ -308,7 +314,7 @@ bool AsyncRuntime::IsError(AsyncRuntime::Group* group) {
 }
 
 void AsyncRuntime::AwaitGroup(AsyncRuntime::Group* group) {
-  host_context_->Await(FormRef(group->GetCompletionAsyncValue()));
+  Await(group->GetCompletionAsyncValue());
 }
 
 }  // namespace jit

@@ -20,6 +20,8 @@
 #ifndef TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_H_
 #define TFRT_BACKENDS_CPU_JIT_ASYNC_RUNTIME_H_
 
+#define EIGEN_USE_THREADS
+
 #include <cstddef>
 
 #include "llvm/ADT/STLExtras.h"
@@ -28,6 +30,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/support/forward_decls.h"
+#include "unsupported/Eigen/CXX11/ThreadPool"  // from @eigen_archive
 
 namespace tfrt {
 namespace cpu {
@@ -42,9 +45,11 @@ class AsyncRuntime {
   using Value = ::mlir::runtime::AsyncValue;
   using Group = ::mlir::runtime::AsyncGroup;
 
-  AsyncRuntime() : host_context_(nullptr) {}
-  explicit AsyncRuntime(HostContext* host_context)
-      : host_context_(host_context) {}
+  AsyncRuntime() : host_context_(nullptr), worker_threads_(nullptr) {}
+
+  AsyncRuntime(HostContext* host_context,
+               Eigen::ThreadPoolInterface* worker_threads)
+      : host_context_(host_context), worker_threads_(worker_threads) {}
 
   // ------------------------------------------------------------------------ //
   // Async Token API.
@@ -143,9 +148,17 @@ class AsyncRuntime {
   static AsyncRuntimeObject* ToAsyncRuntimeObject(Group* group);
 
   HostContext* host_context() const { return host_context_; }
+  Eigen::ThreadPoolInterface* worker_threads() const { return worker_threads_; }
 
  private:
+  // Blocks the caller thread until awaitable async value becomes available.
+  void Await(AsyncValue* awaitable);
+
   HostContext* host_context_;  // must outlive *this
+
+  // This is an escape hatch for integrating with Tensorflow classic runtime,
+  // and launching all async operations in the intra-op thread pool.
+  Eigen::ThreadPoolInterface* worker_threads_;  // must outlive *this
 };
 
 // A base class for all Async dialect types reference counted at runtime.
@@ -157,7 +170,10 @@ class AsyncRuntimeObject : public ::tfrt::ReferenceCounted<AsyncRuntimeObject> {
 
 template <typename F>
 void AsyncRuntime::Execute(F&& f) {
-  EnqueueWork(host_context_, std::forward<F>(f));
+  if (worker_threads_)
+    worker_threads_->Schedule(std::forward<F>(f));
+  else
+    EnqueueWork(host_context_, std::forward<F>(f));
 }
 
 template <typename F>

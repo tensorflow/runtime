@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <memory>
 #include <numeric>
+#include <utility>
 
 #include "llvm/ExecutionEngine/Orc/Core.h"
 #include "llvm/ExecutionEngine/Orc/Mangling.h"
@@ -505,7 +506,8 @@ Error EmitErrors(const ReturnValueConverterBase& results, Error error,
 
 Error Executable::Execute(ArrayRef<MemrefDesc> operands,
                           const ReturnValueConverterBase& results,
-                          const ExecutionContext& exec_ctx) const {
+                          const ExecutionContext& exec_ctx,
+                          const ExecuteOpts& opts) const {
   // CallFrame can be allocated on the stack because compiled function will
   // unpack all the arguments it needs, and async regions will not access
   // the data after the initial function will return the result.
@@ -516,7 +518,7 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
   if (auto err = InitializeCallFrame(operands, &call_frame))
     return EmitErrors(results, std::move(err), exec_ctx);
 
-  Execute(exec_ctx, &call_frame);
+  Execute(call_frame, exec_ctx, opts);
 
   // Convert compiled function return values into results.
   if (auto err = ReturnResults(results, &call_frame)) return err;
@@ -524,14 +526,15 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
   return Error::success();
 }
 
-void Executable::Execute(const ExecutionContext& exec_ctx,
-                         CallFrame* call_frame) const {
-  // Set the AsyncRuntime host context to be used by all async tasks spawned
-  // by the compiled kernel function.
-  SetAsyncRuntimeHostContext(exec_ctx.host());
+void Executable::Execute(CallFrame& call_frame,
+                         const ExecutionContext& exec_ctx,
+                         const ExecuteOpts& opts) const {
+  // Set the AsyncRuntime to be used by all async tasks spawned by the compiled
+  // kernel function.
+  SetAsyncRuntime({exec_ctx.host(), opts.async_runtime_worker_threads});
 
   // Call the compiled function.
-  (*fptr_)(call_frame->args.data());
+  (*fptr_)(call_frame.args.data());
 }
 
 Error Executable::ReturnResults(const ReturnValueConverterBase& results,
@@ -650,33 +653,39 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
 
-  // TODO(ezhulenev): Move this to a pipeline exposed upstream when it will
-  // stabilize, e.g. `LinalgToAsyncRuntime`.
+  // Convert all linalg operations to parallel loops.
+  pm.addNestedPass<mlir::FuncOp>(
+      mlir::createConvertLinalgToParallelLoopsPass());
 
-  {
-    // Convert all linalg operations to parallel loops, and then add async
-    // operations to actually execute them in parallel using the async runtime.
-    mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
-    fpm.addPass(mlir::createConvertLinalgToParallelLoopsPass());
-    // TODO(ezhulenev): Currently async.execute region can call a function with
-    // an async.await inside, and this leads to blocking await inside a thread
-    // managed by the concurrent work queue.
-    // fpm.addPass(mlir::createAsyncParallelForPass(opts.num_worker_threads));
-    fpm.addPass(mlir::createStdExpandOpsPass());
-    fpm.addPass(CreateMathApproximationPass());
+  // Convert scf.parallel operations into async work sharding loops.
+  if (opts.num_worker_threads > 1) {
+    pm.addPass(mlir::createAsyncParallelForPass(
+        /*asyncDispatch=*/true, /*numWorkerThreads=*/opts.num_worker_threads,
+        /*targetBlockSize=*/1000));
 
-    // Add alignment attribute to all memref allocations.
-    fpm.addPass(CreateAlignedAllocationsPass(opts.alignment));
+    // Run canonicalization after async-parallel-for pass to remove async
+    // operations that are not needed for executing small and cheap loops.
+    pm.addPass(mlir::createCanonicalizerPass());
   }
 
   // Lower from high level async operations to async runtime.
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());
 
   {
-    // Add async.runtime reference counting operations.
     mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
+
+    // Add async.runtime reference counting operations.
     fpm.addPass(mlir::createAsyncRuntimeRefCountingPass());
-    fpm.addPass(mlir::createAsyncRuntimeRefCountingOptPass());
+    // TODO(ezhulenev): There is a bug in reference counting optimization that
+    // illegally removes a pair of addRef/dropRef operations.
+    // fpm.addPass(mlir::createAsyncRuntimeRefCountingOptPass());
+
+    // Optimize math operations.
+    fpm.addPass(mlir::createStdExpandOpsPass());
+    fpm.addPass(CreateMathApproximationPass());
+
+    // Add alignment attribute to all memref allocations.
+    fpm.addPass(CreateAlignedAllocationsPass(opts.alignment));
   }
 
   // Lower everything down to LLVM dialect.

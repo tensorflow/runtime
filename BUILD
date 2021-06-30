@@ -679,6 +679,13 @@ gentbl_cc_library(
             ],
             "include/tfrt/tensor/opdefs/tensor_shape_dialect.h.inc",
         ),
+        (
+            [
+                "-gen-dialect-defs",
+                "-dialect=ts",
+            ],
+            "include/tfrt/tensor/opdefs/tensor_shape_dialect.cpp.inc",
+        ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/tensor/opdefs/tensor_shape.td",

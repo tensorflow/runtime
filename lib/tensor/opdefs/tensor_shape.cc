@@ -23,6 +23,9 @@
 #include "mlir/IR/TypeUtilities.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 
+// Generated dialect definitions.
+#include "tfrt/tensor/opdefs/tensor_shape_dialect.cpp.inc"
+
 namespace tfrt {
 namespace ts {
 

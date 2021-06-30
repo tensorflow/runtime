@@ -671,14 +671,12 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // Lower from high level async operations to async runtime.
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());
 
+  // Add async.runtime reference counting operations.
+  pm.addPass(mlir::createAsyncRuntimeRefCountingPass());
+  pm.addPass(mlir::createAsyncRuntimeRefCountingOptPass());
+
   {
     mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
-
-    // Add async.runtime reference counting operations.
-    fpm.addPass(mlir::createAsyncRuntimeRefCountingPass());
-    // TODO(ezhulenev): There is a bug in reference counting optimization that
-    // illegally removes a pair of addRef/dropRef operations.
-    // fpm.addPass(mlir::createAsyncRuntimeRefCountingOptPass());
 
     // Optimize math operations.
     fpm.addPass(mlir::createStdExpandOpsPass());

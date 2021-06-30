@@ -43,6 +43,22 @@ func @noop_kernel() {
   tfrt.return
 }
 
+// CHECK-LABEL: --- Running 'no_gpu_module_map'
+func @no_gpu_module_map() {
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  %context = tfrt_gpu.context.create %device
+  %stream = tfrt_gpu.stream.create %context
+
+  // expected-error @+1 {{No GpuModuleMap resource found in the request context}}
+  %module = tfrt_gpu.module.load %context {
+    data = "",
+    key = 0 : ui64
+  }
+  tfrt.return
+}
+
+
 // CHECK-LABEL: --- Running 'vector_add_kernel'
 func @vector_add_kernel() {
   %ordinal = tfrt.constant.i32 0

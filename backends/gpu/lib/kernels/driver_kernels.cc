@@ -212,11 +212,24 @@ static Error GpuMemcpyDtoH(const RCReference<HostBuffer>& dst,
                               src.pointer(), bytes_count, stream.get());
 }
 
+// Loads a GPU module from `data`, or `exec_ctx` if `data` is empty.
+// `key` is used to uniquely identify the modules within `context`.
 static Expected<GpuModule> GpuModuleLoad(
     Argument<GpuContext> context,
     // Note: Attributes must be in alphabetical order (see b/140896071).
-    StringAttribute data, Attribute<uint64_t> key) {
-  auto module = context->LoadModule(key.get(), data.get());
+    StringAttribute data, Attribute<uint64_t> key,
+    const ExecutionContext& exec_ctx) {
+  string_view data_str = data.get();
+  if (data_str.empty()) {
+    const GpuModuleMap* gpu_module_map =
+        exec_ctx.request_ctx()->GetDataIfExists<GpuModuleMap>();
+    if (gpu_module_map == nullptr) {
+      return MakeStringError(
+          "No GpuModuleMap resource found in the request context.");
+    }
+    TFRT_ASSIGN_OR_RETURN(data_str, gpu_module_map->GetModule(key.get()));
+  }
+  auto module = context->LoadModule(key.get(), data_str);
   if (!module) return module.takeError();
   return GpuModule(context.ValueRef(), *module);
 }

@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <unordered_map>
 
 #include "llvm/ADT/DenseMap.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
@@ -31,6 +32,7 @@
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/support/forward_decls.h"
+#include "tfrt/support/mutex.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
@@ -325,6 +327,26 @@ template <typename T>
 T* GetRawPointer(const GpuBuffer& buffer) {
   return static_cast<T*>(buffer.pointer().raw());
 }
+
+// A class holding a map from keys to module references. The referenced modules
+// should outlive this class.
+// This class is thread safe.
+class GpuModuleMap {
+ public:
+  GpuModuleMap();
+  ~GpuModuleMap();
+
+  // Gets the module data associated with the given `key`.
+  Expected<string_view> GetModule(uint64_t key) const;
+
+  // Inserts the given <`key`, `module`> to the map if the key does not exist in
+  // the map.
+  Error InsertModule(uint64_t key, string_view module);
+
+ private:
+  mutable mutex mu_;
+  std::unordered_map<uint64_t, string_view> modules_ TFRT_GUARDED_BY(mu_);
+};
 
 }  // namespace gpu
 }  // namespace tfrt

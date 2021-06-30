@@ -225,5 +225,35 @@ GpuSolverHandle::GpuSolverHandle(AsyncValueRef<GpuStream> stream,
 
 GpuSolverHandle::~GpuSolverHandle() = default;
 
+GpuModuleMap::GpuModuleMap() = default;
+
+GpuModuleMap::~GpuModuleMap() = default;
+
+Expected<string_view> GpuModuleMap::GetModule(uint64_t key) const {
+  mutex_lock l(mu_);
+
+  auto it = modules_.find(key);
+  if (it == modules_.end()) {
+    return MakeStringError("No module found for the requested key: ", key);
+  }
+  return it->second;
+}
+
+Error GpuModuleMap::InsertModule(uint64_t key, string_view module) {
+  mutex_lock l(mu_);
+
+  auto it = modules_.find(key);
+  if (it != modules_.end()) {
+    if (it->second != module) {
+      return MakeStringError("the key (", key,
+                             ") with a different module exists");
+    }
+    return Error::success();
+  }
+
+  modules_.emplace_hint(it, key, module);
+  return Error::success();
+}
+
 }  // namespace gpu
 }  // namespace tfrt

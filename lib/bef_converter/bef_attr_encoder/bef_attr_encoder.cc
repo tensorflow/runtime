@@ -54,14 +54,6 @@ size_t BefAttrEncoder::EncodeRankedShapeAttr(ArrayRef<int64_t> dims) {
   BefShapeAttr header;
 
   header.rank = dims.size();
-  if (header.rank == 0) {
-    return EncodeHeader(reinterpret_cast<BefAttrBase*>(&header.base),
-                        /*alignment=*/alignof(BefAttrBase),
-                        /*element_type=*/DType::Invalid,
-                        /*prefix_size=*/0,
-                        /*byte_size=*/sizeof(BefAttrBase) + sizeof(AttrSizeT),
-                        /*emit_size=*/sizeof(AttrSizeT));
-  }
   const size_t offset =
       EncodeHeader(reinterpret_cast<BefAttrBase*>(&header.base),
                    /*alignment=*/alignof(AttrShapeT),

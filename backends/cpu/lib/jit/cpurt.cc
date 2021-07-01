@@ -514,6 +514,25 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
   // the data after the initial function will return the result.
   CallFrame call_frame;
 
+  // Touch every byte of the memref arguments, to trigger memory sanitizer error
+  // if some of the memrefs are already deallocated. Unfortunatelly sanitizers
+  // do not work inside the JIT compiled code, and compiled kernels still can do
+  // out of bounds memory access, however this sanity check allows to catch
+  // obvious errors earlier.
+#if defined(MEMORY_SANITIZER)
+  auto do_not_optimize = [&](const auto& value) -> void {
+    asm volatile("" : : "r,m"(value) : "memory");
+  };
+
+  for (const MemrefDesc& memref : operands) {
+    ssize_t size_in_bytes = GetHostSize(memref.dtype);
+    for (ssize_t size : memref.sizes) size_in_bytes *= size;
+
+    uint8_t* data = static_cast<uint8_t*>(memref.data);
+    for (ssize_t i = 0; i < size_in_bytes; ++i) do_not_optimize(data[i]);
+  }
+#endif
+
   // Compiled function takes arguments and results as `void**` type erased
   // pointer. See mlir::ExecutionEngine `packFunctionArguments` for the details.
   if (auto err = InitializeCallFrame(operands, &call_frame))

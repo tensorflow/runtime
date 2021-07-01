@@ -25,6 +25,7 @@
 #include <cstdint>
 #include <memory>
 #include <numeric>
+#include <string>
 #include <utility>
 
 #include "llvm/ExecutionEngine/Orc/Core.h"
@@ -661,7 +662,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   if (opts.num_worker_threads > 1) {
     pm.addPass(mlir::createAsyncParallelForPass(
         /*asyncDispatch=*/true, /*numWorkerThreads=*/opts.num_worker_threads,
-        /*targetBlockSize=*/1000));
+        /*targetBlockSize=*/15000));
 
     // Run canonicalization after async-parallel-for pass to remove async
     // operations that are not needed for executing small and cheap loops.
@@ -810,6 +811,11 @@ JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
       llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
       llvm::SMLoc());
   module_ = mlir::parseSourceFile(source_mgr_, context_.get());
+
+  // TODO(ezhulenev): Every instance of MLIRContext owns its own thread pool,
+  // and it leads to OOM errors when there are many JIT compiled kernels. Remove
+  // this when MLIR will switch to a central thread pool ownership.
+  context_->disableMultithreading();
 }
 
 /*static*/ Expected<std::unique_ptr<JitCompilationContext>>

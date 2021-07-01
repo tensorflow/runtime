@@ -672,8 +672,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   pm.addPass(mlir::createAsyncToAsyncRuntimePass());
 
   // Add async.runtime reference counting operations.
-  pm.addPass(mlir::createAsyncRuntimeRefCountingPass());
-  pm.addPass(mlir::createAsyncRuntimeRefCountingOptPass());
+  pm.addPass(mlir::createAsyncRuntimePolicyBasedRefCountingPass());
 
   {
     mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();

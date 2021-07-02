@@ -33,6 +33,7 @@
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/concurrent_vector.h"
 #include "tfrt/support/latch.h"
+#include "tfrt/support/msan.h"
 #include "tfrt/support/ref_count.h"
 
 // -------------------------------------------------------------------------- //
@@ -69,8 +70,11 @@ class AsyncValue : public AsyncRuntimeObject {
       : AsyncRuntimeObject(ref_count),
         storage_(Storage::CanStoreInline(size, alignment)
                      ? MakeConstructedAsyncValueRef<Storage>()
-                     : MakeConstructedAsyncValueRef<Storage>(
-                           host->allocator(), size, alignment)) {}
+                     : MakeConstructedAsyncValueRef<Storage>(host->allocator(),
+                                                             size, alignment)) {
+    // Storage memory will be initialized by the compiled kernel.
+    TFRT_MSAN_MEMORY_IS_INITIALIZED(GetStorage(), size);
+  }
 
   void* GetStorage() const {
     assert(!GetAsyncValue()->IsError() && "unexpected error state");

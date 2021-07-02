@@ -529,7 +529,10 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
     for (ssize_t size : memref.sizes) size_in_bytes *= size;
 
     uint8_t* data = static_cast<uint8_t*>(memref.data);
-    for (ssize_t i = 0; i < size_in_bytes; ++i) do_not_optimize(data[i]);
+    for (ssize_t i = 0; i < size_in_bytes; ++i) {
+      uint8_t value = data[i];
+      do_not_optimize(value);
+    }
   }
 #endif
 

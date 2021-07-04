@@ -26,6 +26,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/support/msan.h"
 
 namespace tfrt {
 namespace cpu {
@@ -172,6 +173,11 @@ llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(
 // Async runtime API.
 //===----------------------------------------------------------------------===//
 
+// TODO(b/192775419): All pointers passed from the JIT compiled code to the
+// runtime API must be marked initialized when running with msan enabled,
+// because currently we do not have a way to enable sanitizer in the compiled
+// code, and msan does not have any visibility into that code at runtime.
+
 namespace mlir {
 namespace runtime {
 
@@ -180,12 +186,14 @@ using AsyncRuntimeObject = ::tfrt::cpu::jit::AsyncRuntimeObject;
 
 // Adds references to reference counted runtime object.
 void mlirAsyncRuntimeAddRef(RefCountedObjPtr ptr, int32_t count) {
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&ptr, sizeof(RefCountedObjPtr));
   AsyncRuntimeObject *obj = static_cast<AsyncRuntimeObject *>(ptr);
   AsyncRuntime::AddRef(obj, count);
 }
 
 // Drops references from reference counted runtime object.
 void mlirAsyncRuntimeDropRef(RefCountedObjPtr ptr, int32_t count) {
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&ptr, sizeof(RefCountedObjPtr));
   AsyncRuntimeObject *obj = static_cast<AsyncRuntimeObject *>(ptr);
   AsyncRuntime::DropRef(obj, count);
 }
@@ -210,61 +218,74 @@ AsyncGroup *mlirAsyncRuntimeCreateGroup(int64_t size) {
 
 int64_t mlirAsyncRuntimeAddTokenToGroup(AsyncToken *token, AsyncGroup *group) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&token, sizeof(void *));
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&group, sizeof(void *));
   return runtime.AddTokenToGroup(group, token);
 }
 
 bool mlirAsyncRuntimeIsGroupError(AsyncGroup *group) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&group, sizeof(void *));
   return runtime.IsError(group);
 }
 
 void mlirAsyncRuntimeEmplaceToken(AsyncToken *token) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&token, sizeof(void *));
   runtime.SetAvailable(token);
 }
 
 void mlirAsyncRuntimeSetTokenError(AsyncToken *token) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&token, sizeof(void *));
   runtime.SetError(token);
 }
 
 bool mlirAsyncRuntimeIsTokenError(AsyncToken *token) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&token, sizeof(void *));
   return runtime.IsError(token);
 }
 
 void mlirAsyncRuntimeAwaitToken(AsyncToken *token) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&token, sizeof(void *));
   runtime.AwaitToken(token);
 }
 
 void mlirAsyncRuntimeAwaitAllInGroup(AsyncGroup *group) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&group, sizeof(void *));
   runtime.AwaitGroup(group);
 }
 
 ValueStorage mlirAsyncRuntimeGetValueStorage(AsyncValue *value) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&value, sizeof(void *));
   return runtime.GetStorage(value);
 }
 
 void mlirAsyncRuntimeEmplaceValue(AsyncValue *value) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&value, sizeof(void *));
   runtime.SetAvailable(value);
 }
 
 void mlirAsyncRuntimeSetValueError(AsyncValue *value) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&value, sizeof(void *));
   runtime.SetError(value);
 }
 
 bool mlirAsyncRuntimeIsValueError(AsyncValue *value) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&value, sizeof(void *));
   return runtime.IsError(value);
 }
 
 void mlirAsyncRuntimeAwaitValue(AsyncValue *value) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&value, sizeof(void *));
   runtime.AwaitValue(value);
 }
 
@@ -279,6 +300,7 @@ void mlirAsyncRuntimeExecute(CoroHandle handle, CoroResume resume) {
 void mlirAsyncRuntimeAwaitTokenAndExecute(AsyncToken *token, CoroHandle handle,
                                           CoroResume resume) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&token, sizeof(void *));
   runtime.AwaitToken(token, [handle, resume, runtime]() {
     ::tfrt::cpu::jit::SetAsyncRuntime(runtime);
     (*resume)(handle);
@@ -288,6 +310,7 @@ void mlirAsyncRuntimeAwaitTokenAndExecute(AsyncToken *token, CoroHandle handle,
 void mlirAsyncRuntimeAwaitValueAndExecute(AsyncValue *value, CoroHandle handle,
                                           CoroResume resume) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&value, sizeof(void *));
   runtime.AwaitValue(value, [handle, resume, runtime]() {
     ::tfrt::cpu::jit::SetAsyncRuntime(runtime);
 
@@ -299,6 +322,7 @@ void mlirAsyncRuntimeAwaitAllInGroupAndExecute(AsyncGroup *group,
                                                CoroHandle handle,
                                                CoroResume resume) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
+  TFRT_MSAN_MEMORY_IS_INITIALIZED(&group, sizeof(void *));
   runtime.AwaitGroup(group, [handle, resume, runtime]() {
     ::tfrt::cpu::jit::SetAsyncRuntime(runtime);
     (*resume)(handle);

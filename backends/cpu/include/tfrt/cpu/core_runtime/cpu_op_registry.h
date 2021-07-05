@@ -37,7 +37,7 @@ class ExecutionContext;
 class OpAttrsRef;
 class OpHandler;
 class TensorHandle;
-class TensorMetadata;
+struct TensorMetadata;
 
 // This is the signature implemented by all CPU ops.  They take Tensor buffers
 // inputs and allocate and return tensors for their results.  If the op has a

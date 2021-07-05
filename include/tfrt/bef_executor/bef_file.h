@@ -29,7 +29,7 @@
 namespace tfrt {
 
 class AsyncValue;
-class DecodedDiagnostic;
+struct DecodedDiagnostic;
 class Function;
 class HostAllocator;
 class KernelRegistry;

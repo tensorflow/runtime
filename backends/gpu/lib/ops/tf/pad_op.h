@@ -27,7 +27,7 @@
 namespace tfrt {
 
 class DenseView;
-class TensorMetadata;
+struct TensorMetadata;
 class OpAttrsRef;
 
 namespace gpu {

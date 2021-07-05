@@ -27,7 +27,7 @@ namespace tfrt {
 class AsyncValue;
 class ExecutionContext;
 class OpAttrsRef;
-class TensorMetadata;
+struct TensorMetadata;
 
 // Computes the metadata (e.g. shape) of the result values of an op, and emits
 // any errors about invalid shapes or attributes.  A metadata function should

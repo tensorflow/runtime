@@ -29,7 +29,7 @@ template <typename T>
 class AsyncValueRef;
 class Chain;
 class ConcurrentWorkQueue;
-class DecodedDiagnostic;
+struct DecodedDiagnostic;
 class ExecutionContext;
 class Function;
 class HostAllocator;

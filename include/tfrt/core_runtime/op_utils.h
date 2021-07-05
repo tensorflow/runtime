@@ -42,7 +42,7 @@
 
 namespace tfrt {
 class Tensor;
-class TensorMetadata;
+struct TensorMetadata;
 
 //===----------------------------------------------------------------------===//
 // Registration helpers used to make metadata function easier to define.

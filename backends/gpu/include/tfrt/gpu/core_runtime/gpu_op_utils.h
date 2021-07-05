@@ -36,7 +36,7 @@ namespace tfrt {
 
 class OpAttrsRef;
 class Tensor;
-class TensorMetadata;
+struct TensorMetadata;
 
 //===----------------------------------------------------------------------===//
 // Registration helpers used to make GPU dispatch function easier to define.

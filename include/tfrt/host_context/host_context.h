@@ -32,7 +32,7 @@
 
 namespace tfrt {
 
-class DecodedDiagnostic;
+struct DecodedDiagnostic;
 
 class ConcurrentWorkQueue;
 class HostAllocator;

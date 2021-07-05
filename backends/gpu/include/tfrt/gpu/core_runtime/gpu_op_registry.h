@@ -33,7 +33,7 @@ class ExecutionContext;
 class OpAttrsRef;
 class OpHandler;
 class TensorHandle;
-class TensorMetadata;
+struct TensorMetadata;
 
 namespace gpu {
 class GpuDispatchContext;

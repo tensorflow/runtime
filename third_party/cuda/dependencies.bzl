@@ -14,6 +14,14 @@ def _download_nvidia_headers(repository_ctx, output, url, sha256, strip_prefix):
     )
 
 def _cuda_headers_impl(repository_ctx):
+    build_file = Label("//third_party/cuda:cuda_headers.BUILD")
+
+    print("\n\033[22;33mNOTICE:\033[0m The following command will download " +
+          "NVIDIA proprietary software. By using the software you agree to " +
+          "comply with the terms of the license agreement that accompanies " +
+          "the software. If you do not agree to the terms of the license " +
+          "agreement, do not use the software.")
+
     tag = "cuda-10-2"
     for name, sha256 in [
         ("cublas", "9537c3e89a85ea0082217e326cd8e03420f7723e05c98d730d80bda8b230c81b"),
@@ -26,16 +34,18 @@ def _cuda_headers_impl(repository_ctx):
         strip_prefix = "{name}-{tag}".format(name = name, tag = tag)
         _download_nvidia_headers(repository_ctx, "cuda", url, sha256, strip_prefix)
 
-    repository_ctx.symlink(Label("//third_party/cuda:cuda_headers.BUILD"), "BUILD")
+    repository_ctx.symlink(build_file, "BUILD")
 
 def _cudnn_headers_impl(repository_ctx):
+    build_file = Label("//third_party/cuda:cudnn_headers.BUILD")
+
     tag = "v7.6.5"
     url = "cudnn/-/archive/{tag}/cudnn-{tag}.tar.gz".format(tag = tag)
     strip_prefix = "cudnn-{tag}".format(tag = tag)
     sha256 = "ef45f4649328da678285b8ce589a8296cedcc93819ffdbb5eea5346a0619a766"
     _download_nvidia_headers(repository_ctx, "cudnn", url, sha256, strip_prefix)
 
-    repository_ctx.symlink(Label("//third_party/cuda:cudnn_headers.BUILD"), "BUILD")
+    repository_ctx.symlink(build_file, "BUILD")
 
 _cuda_headers = repository_rule(
     implementation = _cuda_headers_impl,
@@ -48,11 +58,5 @@ _cudnn_headers = repository_rule(
 )
 
 def cuda_dependencies():
-    print("The following command will download NVIDIA proprietary " +
-          "software. By using the software you agree to comply with the " +
-          "terms of the license agreement that accompanies the software. " +
-          "If you do not agree to the terms of the license agreement, do " +
-          "not use the software.")
-
     _cuda_headers(name = "cuda_headers")
     _cudnn_headers(name = "cudnn_headers")

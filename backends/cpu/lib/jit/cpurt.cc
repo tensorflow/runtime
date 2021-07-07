@@ -803,26 +803,6 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
   return std::make_unique<mlir::MLIRContext>(registry);
 }
 
-// TODO(b/182944250): `cpurt.corert.entrypoint` indirection must go away with a
-// support of async function.
-static Expected<mlir::FuncOp> ResolveEntrypointFunction(
-    mlir::ModuleOp module, string_view entrypoint) {
-  // Find the original entryupoint function.
-  auto entry_func = module.lookupSymbol<mlir::FuncOp>(entrypoint);
-  if (!entry_func) return MakeStringError("entrypoint function not found");
-
-  // Maybe resolve the corert entrypoint function referenced by the original
-  // entrypoint function.
-  if (auto ref = entry_func->getAttrOfType<mlir::SymbolRefAttr>(
-          "cpurt.corert.entrypoint")) {
-    auto corert_func = module.lookupSymbol<mlir::FuncOp>(ref);
-    if (!corert_func) return MakeStringError("entrypoint function not found");
-    return corert_func;
-  }
-
-  return entry_func;
-}
-
 JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
                                              string_view mlir_module)
     : opts_(opts),
@@ -857,11 +837,12 @@ JitCompilationContext::Instantiate(const CompilationOptions& opts,
     return ctx->Error("failed to lower module to CPURT dialects");
 
   // Verify entrypoint function signature.
-  auto entry_func = ResolveEntrypointFunction(ctx->module(), entrypoint);
-  if (auto err = entry_func.takeError()) return std::move(err);
+  auto entry_func = ctx->module().lookupSymbol<mlir::FuncOp>(entrypoint);
+  if (!entry_func)
+    return MakeStringError("entrypoint function not found: ", entrypoint);
 
-  std::string entry_name = entry_func->getName().str();
-  mlir::FunctionType entry_signature = entry_func->getType();
+  std::string entry_name = entry_func.getName().str();
+  mlir::FunctionType entry_signature = entry_func.getType();
   auto results_memory_layout =
       Executable::VerifyEntrypointSignature(entry_signature);
   if (auto err = results_memory_layout.takeError()) return std::move(err);
@@ -1053,8 +1034,9 @@ static Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
     mlir::ModuleOp module, string_view entrypoint) {
   llvm::SmallVector<OperandConstraint> constraints;
 
-  auto func = ResolveEntrypointFunction(module, entrypoint);
-  if (auto err = func.takeError()) return std::move(err);
+  auto func = module.lookupSymbol<mlir::FuncOp>(entrypoint);
+  if (!func)
+    return MakeStringError("entrypoint function not found: ", entrypoint);
 
   auto parse = [](mlir::Attribute attr) -> Expected<OperandConstraint> {
     // If attribute is not defined it means that there is no operand constraint.
@@ -1068,10 +1050,10 @@ static Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
     return ParseOperandConstraints(str.getValue());
   };
 
-  for (int i = 0; i < func->getNumArguments(); ++i) {
-    auto operand_type = func->getType().getInput(i);
+  for (int i = 0; i < func.getNumArguments(); ++i) {
+    auto operand_type = func.getType().getInput(i);
 
-    auto constraint = parse(func->getArgAttr(i, JitExecutable::kConstraint));
+    auto constraint = parse(func.getArgAttr(i, JitExecutable::kConstraint));
     if (auto err = constraint.takeError()) return std::move(err);
 
     auto resolved = ResolveOperandConstraint(*constraint, operand_type);

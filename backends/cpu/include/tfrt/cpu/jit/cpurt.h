@@ -55,7 +55,7 @@ namespace jit {
 
 // Compiled module example:
 //
-//   module @kernel attributes { tfrt.compiled, cpurt.entrypoint = @main } {
+//   module @kernel attributes { tfrt.compiled } {
 //     func @main(
 //       %input0: memref<*xf32>   { cpurt.constraint = "rank"  },
 //       %input1: memref<?x?xf32> { cpurt.constraint = "shape" },

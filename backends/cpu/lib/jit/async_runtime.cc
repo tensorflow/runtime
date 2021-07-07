@@ -119,10 +119,8 @@ class AsyncValue : public AsyncRuntimeObject {
 
 class AsyncGroup : public AsyncRuntimeObject {
  public:
-  explicit AsyncGroup(AsyncRuntime* runtime, int64_t size,
-                      unsigned ref_count = 1)
+  explicit AsyncGroup(int64_t size, unsigned ref_count = 1)
       : AsyncRuntimeObject(ref_count),
-        runtime_(runtime),
         rank_(0),
         pending_tokens_(size),
         num_errors_(0),
@@ -160,8 +158,6 @@ class AsyncGroup : public AsyncRuntimeObject {
   bool IsError() const { return num_errors_.load() != 0; }
 
  private:
-  AsyncRuntime* runtime_;
-
   std::atomic<int64_t> rank_;
   std::atomic<int64_t> pending_tokens_;
   std::atomic<int64_t> num_errors_;
@@ -305,7 +301,7 @@ void AsyncRuntime::AwaitValue(AsyncRuntime::Value* value) {
 }
 
 AsyncRuntime::Group* AsyncRuntime::CreateGroup(int64_t size) {
-  return new AsyncRuntime::Group(this, size);
+  return new AsyncRuntime::Group(size);
 }
 
 size_t AsyncRuntime::AddTokenToGroup(AsyncRuntime::Group* group,

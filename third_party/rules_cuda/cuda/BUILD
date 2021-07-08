@@ -112,6 +112,7 @@ report_error(
         "The @local_cuda repository is empty because the CUDA_PATH " +
         "environment variable does not point to a CUDA toolkit directory."
     ),
+    tags = ["manual"],
 )
 
 # This target fails to execute and reports an error message that the toolchain
@@ -121,6 +122,7 @@ report_error(
     name = "unsupported_cuda_toolchain_error",
     out = "unsupported_cuda_toolchain_error.h",
     message = "The current cc_toolchain does not support feature cuda.",
+    tags = ["manual"],
 )
 
 # Target to pass through a cc_toolchain_config rule and use as first argument

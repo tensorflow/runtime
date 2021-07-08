@@ -21,6 +21,8 @@
 #ifndef TFRT_BACKENDS_CPU_JIT_CPURT_H_
 #define TFRT_BACKENDS_CPU_JIT_CPURT_H_
 
+#include <sys/types.h>
+
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -183,6 +185,105 @@ struct CompilationOptions {
 };
 
 //----------------------------------------------------------------------------//
+// Types supported by the compiled function signature. We do rely on the LLVM
+// style RTTI (https://llvm.org/docs/HowToSetUpLLVMStyleRTTI.html) to avoid
+// dependency on the MLIR types at runtime, because for that we need to carry
+// a separate MLIRContext with every instance of Executable which might require
+// a lot of memory to hold all the uniqued attributes (large constants).
+//----------------------------------------------------------------------------//
+
+class Type {
+ public:
+  enum class TypeKind { kAsyncToken, kAsyncValue, kMemref };
+
+  virtual ~Type() = default;
+
+  TypeKind kind() const { return kind_; }
+
+ protected:
+  explicit Type(TypeKind kind) : kind_(kind) {}
+
+  // Unlike the mlir::Type which itself is a "smart pointer like" type, with the
+  // underlying object owned by the MLIR context, the runtime type must be
+  // wrapped in a smart pointer explicitly (e.g. in std::unique_ptr) and can't
+  // be moved or copied (see the `FunctionType` below for example).
+  Type(Type&&) = delete;
+  Type(const Type&) = delete;
+  Type& operator=(Type&&) = delete;
+  Type& operator=(const Type&) = delete;
+
+ private:
+  const TypeKind kind_;
+};
+
+raw_ostream& operator<<(raw_ostream& os, const Type& type);
+
+// Async Token type corresponding to the mlir::async::TokenType
+class AsyncTokenType : public Type {
+ public:
+  AsyncTokenType();
+
+  static bool classof(const Type* type) {
+    return type->kind() == TypeKind::kAsyncToken;
+  }
+};
+
+// Async Value type corresponding to the mlir::async::ValueType.
+class AsyncValueType : public Type {
+ public:
+  explicit AsyncValueType(std::unique_ptr<Type> value_type);
+
+  Type& value_type() const { return *value_type_; }
+
+  static bool classof(const Type* type) {
+    return type->kind() == TypeKind::kAsyncValue;
+  }
+
+ private:
+  std::unique_ptr<Type> value_type_;
+};
+
+// Ranked Memref type corresponding to the mlir::MemrefType.
+class MemrefType : public Type {
+ public:
+  static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
+  explicit MemrefType(ArrayRef<ssize_t> sizes, DType element_type);
+
+  ArrayRef<ssize_t> sizes() const;
+  unsigned rank() const;
+  DType element_type() const;
+
+  static bool classof(const Type* type) {
+    return type->kind() == TypeKind::kMemref;
+  }
+
+ private:
+  llvm::SmallVector<ssize_t> sizes_;
+  DType element_type_;
+};
+
+// Compiled function signature type corresponding to the mlir::FunctionType.
+class FunctionType {
+ public:
+  const Type* operand(unsigned index) const;
+  const Type* result(unsigned index) const;
+
+  unsigned num_operands() const;
+  unsigned num_results() const;
+
+  // Converts MLIR function type to the runtime function type. Returns error if
+  // function has unsupported operands or results types.
+  static Expected<FunctionType> Convert(mlir::FunctionType type);
+
+ private:
+  FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
+               llvm::SmallVector<std::unique_ptr<Type>> results);
+
+  llvm::SmallVector<std::unique_ptr<Type>> operands_;
+  llvm::SmallVector<std::unique_ptr<Type>> results_;
+};
+
+//----------------------------------------------------------------------------//
 // Types for passing compiled kernel arguments and passing back results.
 //----------------------------------------------------------------------------//
 
@@ -233,7 +334,8 @@ class ReturnValueConverterBase {
   // emplaces the result async value. If the conversion failed returns a failure
   // and sets the result async value to error.
   virtual mlir::LogicalResult ReturnValue(unsigned result_index,
-                                          mlir::Type type, void* ret) const = 0;
+                                          const Type* type,
+                                          void* ret) const = 0;
 
   // Forward error to all remaining results.
   virtual void EmitErrors(RCReference<ErrorAsyncValue>& error) const;
@@ -264,7 +366,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
 
   ~ReturnValueConverter() override = default;
 
-  mlir::LogicalResult ReturnValue(unsigned result_index, mlir::Type type,
+  mlir::LogicalResult ReturnValue(unsigned result_index, const Type* type,
                                   void* ret) const final {
     for (auto& convert : llvm::reverse(conversion_callbacks_)) {
       auto converted = convert(*context_, results(), result_index, type, ret);
@@ -277,7 +379,7 @@ class ReturnValueConverter : public ReturnValueConverterBase {
   // convertible to the `ConversionCallbackFn` function type:
   //
   //   mlir::LogicalResult(const ConversionContext&, RemainingResults, unsigned,
-  //                       mlir::Type, void*)
+  //                       const Type* type, void*)
   //
   // Conversion function must return `success` if it successfully handled the
   // return type and set the result async value. If conversion function returns
@@ -306,14 +408,15 @@ class ReturnValueConverter : public ReturnValueConverterBase {
 
  private:
   using ConversionCallbackFn = llvm::function_ref<mlir::LogicalResult(
-      const ConversionContext&, RemainingResults, unsigned, mlir::Type, void*)>;
+      const ConversionContext&, RemainingResults, unsigned, const Type*,
+      void*)>;
 
   // If result type was not matched by any of the user defined conversion
   // functions we return an error to the caller.
   static mlir::LogicalResult UnsupportedReturnType(const ConversionContext& ctx,
                                                    RemainingResults results,
                                                    unsigned result_index,
-                                                   mlir::Type t, const void*) {
+                                                   const Type* t, const void*) {
     results.EmitErrorAt(result_index, StrCat("unsupported return type: ", t));
     return mlir::failure();
   }
@@ -330,7 +433,7 @@ namespace internal {
 
 // Converts returned values of `async::TokenType` type to the async chains.
 mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
-                                     unsigned result_index, mlir::Type type,
+                                     unsigned result_index, const Type* type,
                                      void* result_ptr);
 
 // Following functions always construct a new tensor for the returned memref.
@@ -343,14 +446,14 @@ mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
 // of newly constructed DenseHostTensors.
 mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
                                                        unsigned result_index,
-                                                       mlir::Type type,
+                                                       const Type* type,
                                                        void* result_ptr);
 
 // Converts returned values of `memref<...>` type to the async values of newly
 // constructed DenseHostTensors.
 mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
                                                   unsigned result_index,
-                                                  mlir::Type type,
+                                                  const Type* type,
                                                   void* result_ptr);
 
 }  // namespace internal
@@ -359,7 +462,7 @@ mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
   template <typename ConversionContext>                             \
   static mlir::LogicalResult NAME(                                  \
       const ConversionContext&, RemainingResults results,           \
-      unsigned result_index, mlir::Type type, void* result_ptr) {   \
+      unsigned result_index, const Type* type, void* result_ptr) {  \
     return internal::NAME(results, result_index, type, result_ptr); \
   }
 
@@ -390,7 +493,7 @@ template <typename Converter,
           typename ConversionContext = typename Converter::ConversionContext>
 mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
                                         RemainingResults results,
-                                        unsigned result_index, mlir::Type type,
+                                        unsigned result_index, const Type* type,
                                         void* result_ptr) {
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
@@ -398,13 +501,13 @@ mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
                 "Conversion context type must be move constructible");
 
   // Check if the type is a valid memref.
-  auto memref = type.dyn_cast<mlir::MemRefType>();
+  auto* memref = dyn_cast<MemrefType>(type);
   if (!memref) return mlir::failure();
 
   // Dispatch to the correct extract function based on rank.
   auto rank_dispatch = [&](auto type_tag) {
     using T = decltype(type_tag);
-    int64_t rank = memref.getRank();
+    int64_t rank = memref->rank();
 
     auto convert_and_emplace = [&](auto rank_tag) {
       constexpr int rank = decltype(rank_tag)::value;
@@ -433,21 +536,24 @@ mlir::LogicalResult ReturnStridedMemref(const ConversionContext& ctx,
   };
 
   // Dispatch based on the memref element type.
-  auto element_type = memref.getElementType();
-
-  // TODO(ezhulenev): Implement type dispatching to connect MLIR with TFRT.
-  if (element_type.isF32()) {
-    rank_dispatch(float{});
-  } else if (element_type.isInteger(1)) {
-    rank_dispatch(bool{});
-  } else if (element_type.isInteger(32)) {
-    rank_dispatch(int32_t{});
-  } else if (element_type.isInteger(64)) {
-    rank_dispatch(int64_t{});
-  } else {
-    results.EmitErrorAt(
-        result_index,
-        StrCat("unsupported returned memref element type: ", element_type));
+  DType element_type = memref->element_type();
+  switch (element_type) {
+    case DType::F32:
+      rank_dispatch(float{});
+      break;
+    case DType::I1:
+      rank_dispatch(bool{});
+      break;
+    case DType::I32:
+      rank_dispatch(int32_t{});
+      break;
+    case DType::I64:
+      rank_dispatch(int64_t{});
+      break;
+    default:
+      results.EmitErrorAt(
+          result_index,
+          StrCat("unsupported returned memref element type: ", element_type));
   }
 
   return mlir::success();
@@ -476,14 +582,14 @@ template <typename Converter,
 mlir::LogicalResult ReturnAsyncStridedMemref(const ConversionContext& ctx,
                                              RemainingResults results,
                                              unsigned result_index,
-                                             mlir::Type type,
+                                             const Type* type,
                                              void* result_ptr) {
   static_assert(std::is_move_constructible<ResultType>::value,
                 "Conversion result type must be move constructible");
   static_assert(std::is_move_constructible<ConversionContext>::value,
                 "Conversion context type must be move constructible");
 
-  auto value_type = type.dyn_cast<mlir::async::ValueType>();
+  auto* value_type = dyn_cast<AsyncValueType>(type);
   if (!value_type) return mlir::failure();
 
   // Load the pointer to the async value from a pointer to result storage.
@@ -492,7 +598,8 @@ mlir::LogicalResult ReturnAsyncStridedMemref(const ConversionContext& ctx,
   auto* value = static_cast<mlir::runtime::AsyncValue*>(ret);
 
   // We already verified that return value is an async value of memref.
-  auto memref = value_type.getValueType().cast<mlir::MemRefType>();
+  auto* memref = dyn_cast<MemrefType>(&value_type->value_type());
+  assert(memref && "we only support async values of memrefs");
 
   // Allocate constructed async value to be returned to the caller.
   auto dst = [&]() -> AsyncValue* {
@@ -502,7 +609,7 @@ mlir::LogicalResult ReturnAsyncStridedMemref(const ConversionContext& ctx,
   // Dispatch to the correct extract function based on rank.
   auto rank_dispatch = [&](auto type_tag) {
     using T = decltype(type_tag);
-    int64_t rank = memref.getRank();
+    int64_t rank = memref->rank();
 
     // Pass an opaque pointer to the operands context to the emplace function.
     void* ptr = const_cast<void*>(reinterpret_cast<const void*>(&ctx));
@@ -536,13 +643,25 @@ mlir::LogicalResult ReturnAsyncStridedMemref(const ConversionContext& ctx,
   };
 
   // Dispatch based on the memref element type.
-  auto element_type = memref.getElementType();
-  if (element_type.isF32())
-    rank_dispatch(float{});
-  else
-    results.EmitErrorAt(
-        result_index,
-        StrCat("unsupported returned memref element type: ", element_type));
+  DType element_type = memref->element_type();
+  switch (element_type) {
+    case DType::F32:
+      rank_dispatch(float{});
+      break;
+    case DType::I1:
+      rank_dispatch(bool{});
+      break;
+    case DType::I32:
+      rank_dispatch(int32_t{});
+      break;
+    case DType::I64:
+      rank_dispatch(int64_t{});
+      break;
+    default:
+      results.EmitErrorAt(
+          result_index,
+          StrCat("unsupported returned memref element type: ", element_type));
+  }
 
   return mlir::success();
 }
@@ -579,13 +698,11 @@ class Executable {
   struct CallFrame;
   struct ExecuteOpts;
 
-  Executable(std::unique_ptr<mlir::MLIRContext> context,
-             std::unique_ptr<mlir::ExecutionEngine> engine,
-             mlir::FunctionType signature, string_view entrypoint,
+  Executable(std::unique_ptr<mlir::ExecutionEngine> engine,
+             FunctionType signature, string_view entrypoint,
              ResultsMemoryLayout results_memory_layout)
-      : context_(std::move(context)),
-        engine_(std::move(engine)),
-        signature_(signature),
+      : engine_(std::move(engine)),
+        signature_(std::move(signature)),
         fptr_(*engine_->lookup(entrypoint)),
         results_memory_layout_(std::move(results_memory_layout)) {
     assert(fptr_ != nullptr && "entrypoint was not found");
@@ -616,7 +733,7 @@ class Executable {
   void Execute(CallFrame& call_frame, const ExecutionContext& exec_ctx,
                const ExecuteOpts& opts = {}) const;
 
-  mlir::FunctionType signature() const;
+  const FunctionType& signature() const;
 
   bool IsAsync() const { return results_memory_layout_.has_async_results; }
 
@@ -667,16 +784,15 @@ class Executable {
   // at runtime and we know how to pass arguments and fetch results. Returns
   // a pre-computed layout for the function results. If some of the operands
   // or results are not supported returns an error.
-  static Expected<ResultsMemoryLayout> VerifyEntrypointSignature(
-      mlir::FunctionType signature);
+  static Expected<ResultsMemoryLayout> GetResultsMemoryLayout(
+      const FunctionType& signature);
 
  private:
   // Pointer to a compiled kernel function.
   using KernelFunctionPtr = void (*)(void**);
 
-  std::unique_ptr<mlir::MLIRContext> context_;
   std::unique_ptr<mlir::ExecutionEngine> engine_;
-  mlir::FunctionType signature_;
+  FunctionType signature_;
   KernelFunctionPtr fptr_;
   ResultsMemoryLayout results_memory_layout_;
 };

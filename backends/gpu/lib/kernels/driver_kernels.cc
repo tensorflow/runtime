@@ -199,7 +199,7 @@ static Error GpuMemcpyHtoD(const GpuBuffer& dst,
       bytes_count, stream.get());
 }
 
-// tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
+// tfrt_gpu.mem.copy_device_to_host copies memory from device to host.
 static Error GpuMemcpyDtoH(const RCReference<HostBuffer>& dst,
                            const GpuBuffer& src, int64_t bytes_count,
                            const GpuStream& stream) {

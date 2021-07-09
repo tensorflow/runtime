@@ -491,7 +491,6 @@ GetAllTFMetadataFunctions() {
     result->emplace_back("tf.Tanh", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.MatMul", TFRT_METADATA(MatMulMd));
     result->emplace_back("tf._FusedMatMul", TFRT_METADATA(MatMulMd));
-    result->emplace_back("tf._JitFusedMatMul", TFRT_METADATA(MatMulMd));
     result->emplace_back("tf.Less", TFRT_METADATA(TfBinaryComparisonOpMd));
     result->emplace_back("tf.Log", TFRT_METADATA(UnaryIdentityMd));
     result->emplace_back("tf.Log1p", TFRT_METADATA(UnaryIdentityMd));

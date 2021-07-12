@@ -1,0 +1,182 @@
+diff --git cudnn/cudnn.h cudnn/cudnn.h
+index 033bf4b..e3e621c 100644
+--- cudnn/cudnn.h
++++ cudnn/cudnn.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_H_)
+ #define CUDNN_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_adv_infer.h cudnn/cudnn_adv_infer.h
+index 048cb8a..e15ac93 100644
+--- cudnn/cudnn_adv_infer.h
++++ cudnn/cudnn_adv_infer.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_ADV_INFER_H_)
+ #define CUDNN_ADV_INFER_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_adv_infer_v8.h cudnn/cudnn_adv_infer_v8.h
+index 048cb8a..e15ac93 100644
+--- cudnn/cudnn_adv_infer_v8.h
++++ cudnn/cudnn_adv_infer_v8.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_ADV_INFER_H_)
+ #define CUDNN_ADV_INFER_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_adv_train.h cudnn/cudnn_adv_train.h
+index dc73bf7..9315f6c 100644
+--- cudnn/cudnn_adv_train.h
++++ cudnn/cudnn_adv_train.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_ADV_TRAIN_H_)
+ #define CUDNN_ADV_TRAIN_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_adv_train_v8.h cudnn/cudnn_adv_train_v8.h
+index dc73bf7..9315f6c 100644
+--- cudnn/cudnn_adv_train_v8.h
++++ cudnn/cudnn_adv_train_v8.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_ADV_TRAIN_H_)
+ #define CUDNN_ADV_TRAIN_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_cnn_infer.h cudnn/cudnn_cnn_infer.h
+index 2e3452c..b66f092 100644
+--- cudnn/cudnn_cnn_infer.h
++++ cudnn/cudnn_cnn_infer.h
+@@ -55,7 +55,7 @@
+ #define CUDNN_CNN_INFER_H_
+ 
+ #pragma once
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_cnn_infer_v8.h cudnn/cudnn_cnn_infer_v8.h
+index 2e3452c..b66f092 100644
+--- cudnn/cudnn_cnn_infer_v8.h
++++ cudnn/cudnn_cnn_infer_v8.h
+@@ -55,7 +55,7 @@
+ #define CUDNN_CNN_INFER_H_
+ 
+ #pragma once
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_cnn_train.h cudnn/cudnn_cnn_train.h
+index 561d687..8265faa 100644
+--- cudnn/cudnn_cnn_train.h
++++ cudnn/cudnn_cnn_train.h
+@@ -52,7 +52,7 @@
+  */
+ 
+ #pragma once
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_cnn_train_v8.h cudnn/cudnn_cnn_train_v8.h
+index 561d687..8265faa 100644
+--- cudnn/cudnn_cnn_train_v8.h
++++ cudnn/cudnn_cnn_train_v8.h
+@@ -52,7 +52,7 @@
+  */
+ 
+ #pragma once
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_ops_infer.h cudnn/cudnn_ops_infer.h
+index 5538d5d..2630ac8 100644
+--- cudnn/cudnn_ops_infer.h
++++ cudnn/cudnn_ops_infer.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_OPS_INFER_H_)
+ #define CUDNN_OPS_INFER_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_ops_infer_v8.h cudnn/cudnn_ops_infer_v8.h
+index 5538d5d..2630ac8 100644
+--- cudnn/cudnn_ops_infer_v8.h
++++ cudnn/cudnn_ops_infer_v8.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_OPS_INFER_H_)
+ #define CUDNN_OPS_INFER_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_ops_train.h cudnn/cudnn_ops_train.h
+index 93be39b..11a9f46 100644
+--- cudnn/cudnn_ops_train.h
++++ cudnn/cudnn_ops_train.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_OPS_TRAIN_H_)
+ #define CUDNN_OPS_TRAIN_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_ops_train_v8.h cudnn/cudnn_ops_train_v8.h
+index 93be39b..11a9f46 100644
+--- cudnn/cudnn_ops_train_v8.h
++++ cudnn/cudnn_ops_train_v8.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_OPS_TRAIN_H_)
+ #define CUDNN_OPS_TRAIN_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"
+diff --git cudnn/cudnn_v8.h cudnn/cudnn_v8.h
+index 033bf4b..e3e621c 100644
+--- cudnn/cudnn_v8.h
++++ cudnn/cudnn_v8.h
+@@ -54,7 +54,7 @@
+ #if !defined(CUDNN_H_)
+ #define CUDNN_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <stdint.h>
+ 
+ #include "cudnn_version.h"

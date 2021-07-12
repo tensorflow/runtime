@@ -18,6 +18,12 @@
 // Enable use of gpu* macros, must be defined before including Eigen headers.
 #define EIGEN_PERMANENTLY_ENABLE_GPU_HIP_CUDA_DEFINES
 
+// Prevent Eigen from including cuda_runtime.h and include cuda_runtime_api.h
+// instead. The former requires a CUDA compatible compiler and header files
+// from cuda/include/crt that are not part of the @cuda_headers repository.
+#include "cuda_runtime_api.h"  // from @cuda_headers
+#define __CUDA_RUNTIME_H__
+
 #include "eigen_support.h"
 
 #define EIGEN_USE_GPU

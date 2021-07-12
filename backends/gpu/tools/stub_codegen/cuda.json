@@ -1,6 +1,6 @@
 {
    "header":"external/cuda_headers/cuda/cuda.h",
-   "extra_args":["-Iexternal/local_cuda/cuda/include"],
+   "extra_args":["-Iexternal/cuda_headers/cuda/include"],
    "functions":[
       "cuInit",
       "cuGetErrorName",

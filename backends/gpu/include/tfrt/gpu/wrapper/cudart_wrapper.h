@@ -22,7 +22,7 @@
 #include <cstddef>
 #include <memory>
 
-#include "cuda_runtime.h"  // from @cuda_headers
+#include "cuda_runtime_api.h"  // from @cuda_headers
 #include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace tfrt {

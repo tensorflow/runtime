@@ -1,6 +1,6 @@
 {
    "header":"external/cuda_headers/cuda/cublas_api.h",
-   "extra_args":["-DCUBLASAPI=", "-Iexternal/local_cuda/cuda/include"],
+   "extra_args":["-DCUBLASAPI=", "-Iexternal/cuda_headers/cuda/include"],
    "functions":[
       "cublasCreate_v2",
       "cublasDestroy_v2",

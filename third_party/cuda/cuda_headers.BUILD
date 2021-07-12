@@ -4,7 +4,7 @@ licenses(["notice"])
 
 filegroup(
     name = "header_files",
-    srcs = glob(["cuda/*.h"]),
+    srcs = glob(["cuda/**"]),
 )
 
 cc_library(

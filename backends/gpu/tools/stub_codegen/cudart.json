@@ -1,6 +1,6 @@
 {
    "header":"external/cuda_headers/cuda/cuda_runtime_api.h",
-   "extra_args":["-Iexternal/local_cuda/cuda/include"],
+   "extra_args":["-Iexternal/cuda_headers/cuda/include"],
    "functions":[
       "cudaFree",
       "cudaGetDevice",

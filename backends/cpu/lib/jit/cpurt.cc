@@ -37,7 +37,9 @@
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
+#include "mlir/Conversion/LLVMCommon/LoweringOptions.h"
 #include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
+#include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
@@ -798,6 +800,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
   pm.addPass(mlir::createConvertVectorToLLVMPass());
+  pm.addPass(mlir::createMemRefToLLVMPass());
 
   mlir::LowerToLLVMOptions lower_to_llvm_opts(module.getContext());
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));

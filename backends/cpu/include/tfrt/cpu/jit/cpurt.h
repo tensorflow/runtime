@@ -683,14 +683,6 @@ Error EmitErrors(const ReturnValueConverterBase& results, Error error,
 // Result of compiling MLIR module to executable kernel function.
 //----------------------------------------------------------------------------//
 
-// TODO(ezhulenev): Executable does not need to keep MLIRContext alive, it only
-// needs the entrypoint FunctionType. Implement a function to "clone"
-// signature type into the new MLIRContext, because original context potentially
-// can have large constant attribute that will waste the memory.
-//
-// Another option is to write custom type class to store signature type, because
-// the number of supported types is relatively small.
-
 class Executable {
  public:
   // Forward declare struct defined below.

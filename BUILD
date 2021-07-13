@@ -66,18 +66,31 @@ bool_flag(
 
 config_setting(
     name = "disable_rtti_and_exceptions",
-    flag_values = {"rtti_and_exceptions": "False"},
+    flag_values = {":rtti_and_exceptions": "False"},
     visibility = ["//visibility:public"],
+)
+
+# To build tf_runtime with GPU backend, use:
+# bazel build --@tf_runtime//:enable_gpu
+bool_flag(
+    name = "enable_gpu",
+    build_setting_default = False,
+    visibility = ["//visibility:private"],
+)
+
+config_setting(
+    name = "gpu_enabled_oss",
+    flag_values = {":enable_gpu": "True"},
+    visibility = ["//visibility:private"],
 )
 
 # Config setting to conditionally link GPU targets.
 alias(
     name = "gpu_enabled",
-    # copybara:uncomment_begin
-    # actual = "//tools/cc_target_os:linux-google",
-    # copybara:uncomment_end_and_comment_begin
-    actual = "@rules_cuda//cuda:is_cuda_enabled",
-    # copybara:comment_end
+    actual = if_google(
+        "//tools/cc_target_os:linux-google",
+        ":gpu_enabled_oss",
+    ),
 )
 
 # copybara:uncomment_begin

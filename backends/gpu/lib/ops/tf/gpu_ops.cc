@@ -47,15 +47,17 @@ void RegisterTfGpuOps(GpuOpRegistry* registry) {
        GetAllTFMetadataFunctions()) {
     registry->AddMetadataFn(md_function.first, md_function.second);
   }
-  RegisterBinaryGpuTfOps(registry);
-  RegisterDnnGpuTfOps(registry);
   RegisterMatmulGpuTfOps(registry);
   RegisterMlirGpuTfOps(registry);
   RegisterNullaryGpuTfOps(registry);
+#ifdef TFRT_GPU_CUDA_ENABLED
+  RegisterBinaryGpuTfOps(registry);
+  RegisterDnnGpuTfOps(registry);
   RegisterPadGpuTfOps(registry);
   RegisterReductionGpuTfOps(registry);
   RegisterTransposeGpuTfOps(registry);
   RegisterUnaryGpuTfOps(registry);
+#endif
 }
 }  // namespace gpu
 }  // namespace tfrt

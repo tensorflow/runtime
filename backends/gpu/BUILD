@@ -59,6 +59,17 @@ package_group(
     ),
 )
 
+# Config setting to conditionally build CUDA device code. That is, cuda_library
+# targets should only be depended on if this setting is true. This setting does
+# not affect CUDA host-only code.
+alias(
+    name = "cuda_enabled",
+    actual = if_google(
+        "//tools/cc_target_os:linux-google",
+        "@rules_cuda//cuda:is_cuda_enabled",
+    ),
+)
+
 tfrt_cc_library(
     name = "symbol_loader",
     hdrs = ["lib/wrapper/symbol_loader.h"],
@@ -387,7 +398,6 @@ tfrt_cc_library(
 cuda_library(
     name = "test_cuda_kernels",
     srcs = ["lib/ops/test/test_cuda_kernels.cu.cc"],
-    hdrs = ["lib/ops/test/test_cuda_kernels.h"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
@@ -411,6 +421,10 @@ tfrt_cc_library(
         "include/tfrt/gpu/ops/test/gpu_ops_and_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/ops/test/static_registration.cc",
+    local_defines = select({
+        ":cuda_enabled": ["TFRT_GPU_CUDA_ENABLED"],
+        "//conditions:default": [],
+    }),
     visibility = [
         "@tf_runtime//:friends",
     ],
@@ -420,7 +434,6 @@ tfrt_cc_library(
         ":gpu_op_handler",
         ":gpu_tensor",
         ":gpu_types",
-        ":test_cuda_kernels",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -430,7 +443,10 @@ tfrt_cc_library(
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:test_metadata_functions",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
-    ],
+    ] + select({
+        ":cuda_enabled": [":test_cuda_kernels"],
+        "//conditions:default": [],
+    }),
 )
 
 tfrt_cc_library(
@@ -442,21 +458,19 @@ tfrt_cc_library(
         "include/tfrt/gpu/ops/tf/gpu_ops.h",
     ],
     alwayslink_static_registration_src = "lib/ops/tf/static_registration.cc",
+    local_defines = select({
+        ":cuda_enabled": ["TFRT_GPU_CUDA_ENABLED"],
+        "//conditions:default": [],
+    }),
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
         ":gpu_tensor",
         ":gpu_wrapper",
-        ":tf_gpu_binary_ops",
-        ":tf_gpu_dnn_ops",
         ":tf_gpu_matmul_op",
         ":tf_gpu_mlir_ops",
         ":tf_gpu_nullary_ops",
-        ":tf_gpu_pad_op",
-        ":tf_gpu_reduction_ops",
-        ":tf_gpu_transpose_op",
-        ":tf_gpu_unary_ops",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -466,7 +480,17 @@ tfrt_cc_library(
         "@tf_runtime//backends/common:eigen_kernels",
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:tf_metadata_functions",
-    ],
+    ] + select({
+        ":cuda_enabled": [
+            ":tf_gpu_binary_ops",
+            ":tf_gpu_dnn_ops",
+            ":tf_gpu_pad_op",
+            ":tf_gpu_reduction_ops",
+            ":tf_gpu_transpose_op",
+            ":tf_gpu_unary_ops",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 tfrt_cc_library(
@@ -663,7 +687,6 @@ tfrt_cc_library(
         ":gpu_tensor",
         ":gpu_types",
         ":gpu_wrapper",
-        "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",

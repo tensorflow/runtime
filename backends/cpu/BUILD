@@ -291,6 +291,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:LinalgToLLVM",
         "@llvm-project//mlir:LinalgTransforms",
         "@llvm-project//mlir:MathDialect",
+        "@llvm-project//mlir:MathToLLVM",
         "@llvm-project//mlir:MathTransforms",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:MemRefToLLVM",

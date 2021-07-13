@@ -80,6 +80,7 @@
 #include "tfrt/cpu/jit/cpurt_support.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/mutex.h"
@@ -1384,22 +1385,30 @@ Expected<const Executable*> JitExecutable::GetExecutable(
 // JitExecutableCache implementation.
 //----------------------------------------------------------------------------//
 
-AsyncValueRef<JitExecutable> JitExecutableCache::Find(intptr_t key) const {
+AsyncValueRef<JitExecutable> JitExecutableCache::FindRef(intptr_t key) const {
   tfrt::mutex_lock lock(mu_);
   auto it = cache_.find(key);
-  if (it != cache_.end()) return JitExecutableCache::MakeRef(it->getSecond());
-  return AsyncValueRef<JitExecutable>();
+  return it != cache_.end() ? it->getSecond().CopyRef()
+                            : AsyncValueRef<JitExecutable>();
 }
 
-AsyncValueRef<JitExecutable> JitExecutableCache::Insert(
-    intptr_t key, JitExecutable jit_executable) {
+JitExecutable* JitExecutableCache::Find(intptr_t key) const {
   tfrt::mutex_lock lock(mu_);
   auto it = cache_.find(key);
-  if (it != cache_.end()) return JitExecutableCache::MakeRef(it->getSecond());
+  return it != cache_.end() ? &it->getSecond().get() : nullptr;
+}
 
-  auto emplaced = cache_.try_emplace(
-      key, std::make_unique<CachedExecutable>(std::move(jit_executable)));
-  return JitExecutableCache::MakeRef(emplaced.first->getSecond());
+JitExecutableCache::Entry JitExecutableCache::Allocate(intptr_t key) {
+  tfrt::mutex_lock lock(mu_);
+  auto it = cache_.find(key);
+  if (it != cache_.end()) return {it->getSecond().CopyRef(), false};
+
+  AsyncValueRef<JitExecutable> allocated =
+      MakeUnconstructedAsyncValueRef<JitExecutable>();
+
+  auto emplaced = cache_.try_emplace(key, std::move(allocated));
+  assert(emplaced.second && "emplace must be successful");
+  return {emplaced.first->getSecond().CopyRef(), true};
 }
 
 }  // namespace jit

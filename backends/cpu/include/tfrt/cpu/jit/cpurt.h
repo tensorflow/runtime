@@ -933,25 +933,36 @@ class JitExecutable {
 
 class JitExecutableCache {
  public:
+  struct Entry;
+
   JitExecutableCache() = default;
-  AsyncValueRef<JitExecutable> Find(intptr_t key) const;
-  AsyncValueRef<JitExecutable> Insert(intptr_t key,
-                                      JitExecutable jit_executable);
+
+  // Returns a +1 reference to the cached executable if it exists, otherwise
+  // returns default constructed reference (empty).
+  AsyncValueRef<JitExecutable> FindRef(intptr_t key) const;
+
+  // Returns a pointer to the cached executable if it exists, otherwise returns
+  // nullptr. It is the caller's responsibility to form an async reference and
+  // extend its lifetime if it will pass the pointer to an async task.
+  JitExecutable* Find(intptr_t key) const;
+
+  // Allocates an async value in the unconstructed state to store the cached
+  // executable with the given key.
+  //
+  // The `entry.allocated` value is `true` if the new async value was allocated,
+  // and the caller is responsible for eventually setting the error or emplacing
+  // the value. If it is false, then it means that the storage was already
+  // allocated, and someone else will eventually update it.
+  Entry Allocate(intptr_t key);
+
+  struct Entry {
+    AsyncValueRef<JitExecutable> ref;
+    bool allocated;
+  };
 
  private:
-  // Lifetime of the cached JitExecutables is managed by the cache, this means
-  // that the instance of the cache must outlive all pending computation, which
-  // is guaranteed by the fact that the cache is stored in the resource context.
-  using CachedExecutable = UnRefCountedAsyncValue<JitExecutable>;
-
-  static AsyncValueRef<JitExecutable> MakeRef(
-      const std::unique_ptr<CachedExecutable>& exec) {
-    return AsyncValueRef<JitExecutable>(TakeRef(exec.get()));
-  }
-
   mutable tfrt::mutex mu_;
-
-  llvm::DenseMap<intptr_t, std::unique_ptr<CachedExecutable>> cache_
+  llvm::DenseMap<intptr_t, AsyncValueRef<JitExecutable>> cache_
       TFRT_GUARDED_BY(mu_);
 };
 

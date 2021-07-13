@@ -74,22 +74,34 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
   intptr_t key = exec_ctx.location().data;
 
   // Maybe return JitExecutable from the cache.
-  if (auto cached = jit_executable_cache->Find(key)) return cached;
+  if (auto cached = jit_executable_cache->FindRef(key)) return cached;
 
-  CompilationOptions opts;
-  opts.num_worker_threads = host->GetNumWorkerThreads();
+  // Allocate a placeholder for the compiled JitExecutable.
+  JitExecutableCache::Entry entry = jit_executable_cache->Allocate(key);
 
-  string_view entrypoint = kernel.nested_symbols()[0];
-  string_view module = kernel.serialized_operation();
+  // We lost the race; some other invocation will do the compilation.
+  if (!entry.allocated) return std::move(entry.ref);
 
-  // Instantiate new JitExecutable from the MLIR source.
-  Expected<JitExecutable> jit_executable =
-      JitExecutable::Instantiate(module, entrypoint, opts);
-  if (auto err = jit_executable.takeError())
-    return EmitErrorAsync(exec_ctx, std::move(err));
+  // Compile kernel asynchronously in the host context thread pool.
+  EnqueueWork(exec_ctx, [kernel, host, ref = entry.ref.CopyRef()]() {
+    CompilationOptions opts;
+    opts.num_worker_threads = host->GetNumWorkerThreads();
 
-  // Update the JitExecutable cache and return the result.
-  return jit_executable_cache->Insert(key, std::move(*jit_executable));
+    string_view entrypoint = kernel.nested_symbols()[0];
+    string_view module = kernel.serialized_operation();
+
+    // Instantiate new JitExecutable from the MLIR source.
+    Expected<JitExecutable> jit_executable =
+        JitExecutable::Instantiate(module, entrypoint, opts);
+
+    // Set the allocated async value state to error or concrete.
+    if (auto err = jit_executable.takeError())
+      ref.SetError(std::move(err));
+    else
+      ref.emplace(std::move(*jit_executable));
+  });
+
+  return std::move(entry.ref);
 }
 
 // -------------------------------------------------------------------------- //

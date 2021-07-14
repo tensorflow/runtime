@@ -292,7 +292,9 @@ struct MemrefDesc {
 
   // Ensure that MemrefDesc is always moved around instead of copying.
   MemrefDesc(const MemrefDesc&) = delete;
+  MemrefDesc& operator=(const MemrefDesc&) = delete;
   MemrefDesc(MemrefDesc&&) = default;
+  MemrefDesc& operator=(MemrefDesc&&) = default;
 
   DType dtype;
   void* data;
@@ -674,10 +676,73 @@ mlir::LogicalResult ReturnAsyncStridedMemref(const ConversionContext& ctx,
 void EmitErrors(RemainingResults results, Error error,
                 const ExecutionContext& exec_ctx);
 
+void EmitErrors(RemainingResults results, DecodedDiagnostic error,
+                const ExecutionContext& exec_ctx);
+
 // Constructs error async value from the `error` and returns it for all results.
 // Returns the original error to the caller.
 Error EmitErrors(const ReturnValueConverterBase& results, Error error,
                  const ExecutionContext& exec_ctx);
+
+//----------------------------------------------------------------------------//
+// Cache for async values (values that become available asynchronously).
+//----------------------------------------------------------------------------//
+
+template <typename Key, typename Value>
+class AsyncValuesCache {
+ public:
+  struct Entry;
+
+  AsyncValuesCache() = default;
+
+  // Returns a +1 reference to the cached value if it exists, otherwise
+  // returns default constructed reference (empty).
+  AsyncValueRef<Value> FindRef(Key key) const;
+
+  // Returns a pointer to the cached value if it exists, otherwise returns
+  // nullptr. It is the caller's responsibility to form an async reference and
+  // extend its lifetime if it will pass the pointer to an async task.
+  Value* Find(Key key) const;
+
+  // Allocates an async value in the unconstructed state to store the cached
+  // value with the given key.
+  //
+  // The `entry.allocated` value is `true` if the new async value was allocated,
+  // and the caller is responsible for eventually setting the error or emplacing
+  // the value. If it is false, then it means that the storage was already
+  // allocated, and someone else will eventually update it.
+  Entry Allocate(Key key);
+
+  struct Entry {
+    AsyncValueRef<Value> ref;
+    bool allocated;
+  };
+
+ private:
+  mutable tfrt::mutex mu_;
+  llvm::DenseMap<Key, AsyncValueRef<Value>> cache_ TFRT_GUARDED_BY(mu_);
+};
+
+template <typename Key, typename Value>
+AsyncValueRef<Value> AsyncValuesCache<Key, Value>::FindRef(Key key) const {
+  tfrt::mutex_lock lock(mu_);
+  auto it = cache_.find(key);
+  return it != cache_.end() ? it->getSecond().CopyRef()
+                            : AsyncValueRef<Value>();
+}
+
+template <typename Key, typename Value>
+auto AsyncValuesCache<Key, Value>::Allocate(Key key) -> Entry {
+  tfrt::mutex_lock lock(mu_);
+  auto it = cache_.find(key);
+  if (it != cache_.end()) return {it->getSecond().CopyRef(), false};
+
+  AsyncValueRef<Value> allocated = MakeUnconstructedAsyncValueRef<Value>();
+
+  auto emplaced = cache_.try_emplace(key, std::move(allocated));
+  assert(emplaced.second && "emplace must be successful");
+  return {emplaced.first->getSecond().CopyRef(), true};
+}
 
 //----------------------------------------------------------------------------//
 // Result of compiling MLIR module to executable kernel function.
@@ -685,7 +750,7 @@ Error EmitErrors(const ReturnValueConverterBase& results, Error error,
 
 class Executable {
  public:
-  // Forward declare struct defined below.
+  // Forward declare types defined below.
   struct ResultsMemoryLayout;
   struct CallFrame;
   struct ExecuteOpts;
@@ -839,23 +904,20 @@ class JitExecutable {
 
   // Returns default executable that accepts all compatible operands
   // (operands rank and all static dimensions should match the operands).
-  const Executable* DefaultExecutable() const;
+  AsyncValueRef<Executable> DefaultExecutable() const;
 
   // Returns true if default executable is available.
   bool HasDefaultExecutable() const;
 
   // Returns an executable that may be specialized for the operands shape or
   // values. Can return default executable if no specialization is required, or
-  // specialized executable is not available.
+  // if the specialized executable is not yet available.
   //
-  // Returns an error if compilation of the specialized executable failed, and
-  // does not fallback on the default executable, because it must mean that the
-  // default executable will fail at runtime.
-  //
-  // TODO(ezhulenev): This function should return AsyncValueRef<Executable*>
-  // because if default executable is not available, re-compilation should not
-  // block the caller thread.
-  Expected<const Executable*> GetExecutable(ArrayRef<MemrefDesc> operands);
+  // Returns an error async value if compilation of the specialized executable
+  // failed. Note: This function never falls back on the default executable if
+  // specialization compilation fails.
+  AsyncValueRef<Executable> GetExecutable(ArrayRef<MemrefDesc> operands,
+                                          const ExecutionContext& exec_ctx);
 
   // JitExecutable is move-only type.
   JitExecutable(const JitExecutable&) = delete;
@@ -883,29 +945,6 @@ class JitExecutable {
                 Optional<Executable> default_executable = {},
                 Listener* listener = nullptr);
 
-  // We do not use Expected<Executable> here because we need a mechanism to
-  // copy an error, and this is not possible using the Expected API.
-  struct ExecutableOrError {
-    explicit ExecutableOrError(Error error)
-        : error(std::move(error)), executable(llvm::None) {}
-    explicit ExecutableOrError(Executable executable)
-        : error(Error::success()), executable(std::move(executable)) {}
-
-    Error error;
-    Optional<Executable> executable;
-  };
-
-  // Because mutex is not copyable or movable keep specialized executables map
-  // guarded by a mutex on the heap in a dedicated struct.
-  struct Specializations {
-    tfrt::mutex mu;
-    // TODO(ezhulenev): Select a different type of key, that would completely
-    // eliminate the possibility of a hash collision (currently it is zero for
-    // all practical purposes, but in theory it is still possible).
-    llvm::DenseMap<llvm::hash_code, ExecutableOrError> executables
-        TFRT_GUARDED_BY(mu);
-  };
-
   std::string mlir_module_;
   std::string entrypoint_;
   CompilationOptions compilation_opts_;
@@ -919,52 +958,17 @@ class JitExecutable {
   llvm::SmallVector<OperandConstraint> constraints_;
 
   // Default executable that was not specialized to any of the arguments.
-  Optional<Executable> default_executable_;
+  AsyncValueRef<Executable> default_executable_;
 
   // Executables specialized for the arguments shapes or/and values.
+  using Specializations = AsyncValuesCache<llvm::hash_code, Executable>;
   std::unique_ptr<Specializations> specializations_;
 
   Listener* listener_;
 };
 
-//----------------------------------------------------------------------------//
-// Cache all JitExecutables in the resource context owned by the host.
-//----------------------------------------------------------------------------//
-
-class JitExecutableCache {
- public:
-  struct Entry;
-
-  JitExecutableCache() = default;
-
-  // Returns a +1 reference to the cached executable if it exists, otherwise
-  // returns default constructed reference (empty).
-  AsyncValueRef<JitExecutable> FindRef(intptr_t key) const;
-
-  // Returns a pointer to the cached executable if it exists, otherwise returns
-  // nullptr. It is the caller's responsibility to form an async reference and
-  // extend its lifetime if it will pass the pointer to an async task.
-  JitExecutable* Find(intptr_t key) const;
-
-  // Allocates an async value in the unconstructed state to store the cached
-  // executable with the given key.
-  //
-  // The `entry.allocated` value is `true` if the new async value was allocated,
-  // and the caller is responsible for eventually setting the error or emplacing
-  // the value. If it is false, then it means that the storage was already
-  // allocated, and someone else will eventually update it.
-  Entry Allocate(intptr_t key);
-
-  struct Entry {
-    AsyncValueRef<JitExecutable> ref;
-    bool allocated;
-  };
-
- private:
-  mutable tfrt::mutex mu_;
-  llvm::DenseMap<intptr_t, AsyncValueRef<JitExecutable>> cache_
-      TFRT_GUARDED_BY(mu_);
-};
+// Resource context caches all JitExecutables in the async value cache.
+using JitExecutableCache = AsyncValuesCache<intptr_t, JitExecutable>;
 
 }  // namespace jit
 }  // namespace cpu

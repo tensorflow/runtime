@@ -129,27 +129,16 @@ static Error ConvertTensorHandleOperandsToMemrefDesc(
   return Error::success();
 }
 
-static void CoreRtExecute(Argument<JitExecutable> jit_executable,
-                          RepeatedArguments<TensorHandle> operands,
-                          RemainingResults results,
-                          const ExecutionContext& exec_ctx) {
+static void ExecuteImpl(const Executable& executable,
+                        const SmallVectorImpl<MemrefDesc>& memrefs,
+                        RepeatedArguments<TensorHandle> operands,
+                        RemainingResults results,
+                        const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-
-  // Extract tensors from tensor handle operands to pass them as the compiled
-  // kernel arguments.
-  SmallVector<MemrefDesc, 4> memrefs;
-  if (auto err = ConvertTensorHandleOperandsToMemrefDesc(operands, &memrefs))
-    return EmitErrors(results, std::move(err), exec_ctx);
-
-  // Get an executable that might be specialized to the operands.
-  Expected<const Executable*> executable =
-      jit_executable->GetExecutable(memrefs);
-  if (auto err = executable.takeError())
-    return EmitErrors(results, std::move(err), exec_ctx);
 
   // Allocate storage for compiled kernel results.
   SmallVector<RCReference<AsyncValue>, 4> kernel_ret;
-  kernel_ret.resize((*executable)->signature().num_results());
+  kernel_ret.resize(executable.signature().num_results());
 
   // Execute compiled kernel and get back raw return values that we'll need to
   // wrap into TensorHandles later on.
@@ -158,7 +147,7 @@ static void CoreRtExecute(Argument<JitExecutable> jit_executable,
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
   // We skip error handling at this point and rely on error forwarding to the
   // kernel results below.
-  auto err = (*executable)->Execute(memrefs, converter, exec_ctx);
+  auto err = executable.Execute(memrefs, converter, exec_ctx);
   (void)err;
 
   // Compiled kernel should populate all expected results.
@@ -205,9 +194,68 @@ static void CoreRtExecute(Argument<JitExecutable> jit_executable,
     RunWhenReady(kernel_ret, [o = RCArray<AsyncValue>(operands.values())] {});
 }
 
+static void Execute(Argument<JitExecutable> jit_executable,
+                    RepeatedArguments<TensorHandle> operands,
+                    RemainingResults results,
+                    const ExecutionContext& exec_ctx) {
+  // Extract tensors from tensor handle operands to pass them as the compiled
+  // kernel arguments.
+  SmallVector<MemrefDesc, 4> memrefs;
+  if (auto err = ConvertTensorHandleOperandsToMemrefDesc(operands, &memrefs))
+    return EmitErrors(results, std::move(err), exec_ctx);
+
+  // Get an executable that might be specialized to the operands.
+  AsyncValueRef<Executable> executable =
+      jit_executable->GetExecutable(memrefs, exec_ctx);
+
+  // If executable is available execute it inline.
+  if (executable.IsAvailable()) {
+    if (executable.IsError()) {
+      EmitErrors(results, executable.GetError(), exec_ctx);
+    } else {
+      ExecuteImpl(executable.get(), memrefs, operands, results, exec_ctx);
+    }
+    return;
+  }
+
+  // Otherwise execute it when the executable will become available. This
+  // requires careful lifetime extension of all async values passed as operands
+  // to the kernel (and also results that will become available asynchronously).
+
+  // Allocate indirect async values for all results, we'll forward them to the
+  // actual async values computed by the executable later.
+  for (unsigned i = 0; i < results.size(); ++i)
+    results.AllocateIndirectResultAt(i);
+
+  // Call executable when it's ready with the original operands.
+  executable.AndThen([exec_ctx, memrefs = std::move(memrefs),
+                      executable = executable.CopyRef(),
+                      r = RCArray<AsyncValue>(results.values()),
+                      o = RCArray<AsyncValue>(operands.values())] {
+    // Allocate storage for the executable results.
+    llvm::SmallVector<RCReference<AsyncValue>> results_storage;
+    results_storage.resize(r.size());
+
+    // Reconstruct arguments and results from captured async values.
+    RepeatedArguments<TensorHandle> operands(o.values());
+    RemainingResults results(exec_ctx.host(), results_storage);
+
+    if (executable.IsError()) {
+      EmitErrors(results, executable.GetError(), exec_ctx);
+    } else {
+      ExecuteImpl(*executable, memrefs, operands, results, exec_ctx);
+    }
+
+    // Forward previously allocated indirect results to the actual results.
+    for (unsigned i = 0; i < r.size(); ++i)
+      llvm::cast<IndirectAsyncValue>(*r[i]).ForwardTo(
+          std::move(results_storage[i]));
+  });
+}
+
 void RegisterCpuRuntimeCoreRtKernels(KernelRegistry* registry) {
   registry->AddKernel("cpurt.corert.compile", TFRT_KERNEL(Compile));
-  registry->AddKernel("cpurt.corert.execute", TFRT_KERNEL(CoreRtExecute));
+  registry->AddKernel("cpurt.corert.execute", TFRT_KERNEL(Execute));
 }
 
 }  // namespace jit

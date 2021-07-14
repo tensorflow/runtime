@@ -122,6 +122,24 @@ static Error ConvertTensorOperandsToMemrefDesc(
   return Error::success();
 }
 
+static void ExecuteImpl(const Executable& executable,
+                        const SmallVectorImpl<MemrefDesc>& memrefs,
+                        RepeatedArguments<Tensor> operands,
+                        RemainingResults results,
+                        const ExecutionContext& exec_ctx) {
+  // If execution failed errors will be automatically allocated for all results.
+  ReturnValueConverter<ConversionCtx> converter(results);
+  converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
+  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
+  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
+
+  if (auto err = executable.Execute(memrefs, converter, exec_ctx)) return;
+
+  // Keep operands alive if we have unavailable results.
+  RunWhenReady(results.values(),
+               [operands = RCArray<AsyncValue>(operands.values())] {});
+}
+
 static void Execute(Argument<JitExecutable> jit_executable,
                     Argument<Chain> in_chain,
                     RepeatedArguments<Tensor> operands,
@@ -133,22 +151,52 @@ static void Execute(Argument<JitExecutable> jit_executable,
     return EmitErrors(results, std::move(err), exec_ctx);
 
   // Get an executable that might be specialized to the operands.
-  Expected<const Executable*> executable =
-      jit_executable->GetExecutable(memrefs);
-  if (auto err = executable.takeError())
-    return EmitErrors(results, std::move(err), exec_ctx);
+  AsyncValueRef<Executable> executable =
+      jit_executable->GetExecutable(memrefs, exec_ctx);
 
-  // If execution failed errors will be automatically allocated for all results.
-  ReturnValueConverter<ConversionCtx> converter(results);
-  converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
-  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
-  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
+  // If specialization is available execute it inline.
+  if (executable.IsAvailable()) {
+    if (executable.IsError()) {
+      EmitErrors(results, executable.GetError(), exec_ctx);
+    } else {
+      ExecuteImpl(executable.get(), memrefs, operands, results, exec_ctx);
+    }
+    return;
+  }
 
-  if (auto err = (*executable)->Execute(memrefs, converter, exec_ctx)) return;
+  // Otherwise execute it when the executable will become available. This
+  // requires careful lifetime extension of all async values passed as operands
+  // to the kernel (and also results that will become available asynchronously).
 
-  // Keep operands alive if we have unavailable results.
-  RunWhenReady(results.values(),
-               [operands = RCArray<AsyncValue>(operands.values())] {});
+  // Allocate indirect async values for all results, we'll forward them to the
+  // actual async values computed by the executable later.
+  for (unsigned i = 0; i < results.size(); ++i)
+    results.AllocateIndirectResultAt(i);
+
+  // Call executable when it's ready with the original operands.
+  executable.AndThen([exec_ctx, memrefs = std::move(memrefs),
+                      executable = executable.CopyRef(),
+                      r = RCArray<AsyncValue>(results.values()),
+                      o = RCArray<AsyncValue>(operands.values())] {
+    // Allocate storage for the executable results.
+    llvm::SmallVector<RCReference<AsyncValue>> results_storage;
+    results_storage.resize(r.size());
+
+    // Reconstruct arguments and results from captured async values.
+    RepeatedArguments<Tensor> operands(o.values());
+    RemainingResults results(exec_ctx.host(), results_storage);
+
+    if (executable.IsError()) {
+      EmitErrors(results, executable.GetError(), exec_ctx);
+    } else {
+      ExecuteImpl(*executable, memrefs, operands, results, exec_ctx);
+    }
+
+    // Forward previously allocated indirect results to the actual results.
+    for (unsigned i = 0; i < r.size(); ++i)
+      llvm::cast<IndirectAsyncValue>(*r[i]).ForwardTo(
+          std::move(results_storage[i]));
+  });
 }
 
 void RegisterCpuRuntimeKernels(KernelRegistry* registry) {

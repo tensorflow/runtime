@@ -580,6 +580,11 @@ void EmitErrors(RemainingResults results, Error error,
   for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
 }
 
+void EmitErrors(RemainingResults results, DecodedDiagnostic error,
+                const ExecutionContext& exec_ctx) {
+  return EmitErrors(results, MakeStringError(error), exec_ctx);
+}
+
 Error EmitErrors(const ReturnValueConverterBase& results, Error error,
                  const ExecutionContext& exec_ctx) {
   auto async_error = EmitErrorAsync(exec_ctx, StrCat(error));
@@ -1243,16 +1248,20 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
       entrypoint_(entrypoint.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
-      default_executable_(std::move(default_executable)),
       specializations_(std::make_unique<Specializations>()),
-      listener_(listener) {}
+      listener_(listener) {
+  // Initialize default executable if it is available.
+  if (default_executable.hasValue())
+    default_executable_ =
+        MakeAvailableAsyncValueRef<Executable>(std::move(*default_executable));
+}
 
-const Executable* JitExecutable::DefaultExecutable() const {
-  return default_executable_.hasValue() ? &*default_executable_ : nullptr;
+AsyncValueRef<Executable> JitExecutable::DefaultExecutable() const {
+  return default_executable_.CopyRef();
 }
 
 bool JitExecutable::HasDefaultExecutable() const {
-  return default_executable_.hasValue();
+  return static_cast<bool>(default_executable_);
 }
 
 ArrayRef<OperandConstraint> JitExecutable::constraints() const {
@@ -1289,12 +1298,12 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
       llvm::hash_combine_range(memref.sizes.begin(), memref.sizes.end()));
 }
 
-// TODO(ezhulenev): Current implementation unnecessarily blocks if the
-// specialization is not available, however it can fallback on default
-// executable if it is available. Also the fast path should be free of mutex to
-// find the pre-compiled specialization. Maybe use atomic pointers (multiple
-// atomic pointers?) to keep the most commonly used specialization available
-// without grabbing a mutex and doing lookup in the DenseMap.
+// TODO(ezhulenev): Current implementation unnecessarily waits for compilation
+// completion if the specialization is not available, however it can fall back
+// on default executable if it is available. Also the fast path should be free
+// of mutex to find the pre-compiled specialization. Maybe use atomic pointers
+// (multiple atomic pointers?) to keep the most commonly used specialization
+// available without grabbing a mutex and doing lookup in the DenseMap.
 //
 // TODO(ezhulenev): The number of specializations should be bounded, ideally we
 // should only keep N most common specializations, and for everything else
@@ -1305,110 +1314,63 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
 // if operand constraint only requires rank specialization. Although it might be
 // beneficial to know the shape to do broadcasts fusion, consider not doing that
 // when it is not needed.
-Expected<const Executable*> JitExecutable::GetExecutable(
-    ArrayRef<MemrefDesc> operands) {
+AsyncValueRef<Executable> JitExecutable::GetExecutable(
+    ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.disable_specializations) {
     if (!HasDefaultExecutable())
-      return MakeStringError(
+      return MakeErrorAsyncValueRef(
           "jit executable specialization is disabled, but the default "
           "executable is not available");
 
-    return &*default_executable_;
+    return DefaultExecutable();
   }
 
   llvm::hash_code hash = HashOperands(operands, constraints_);
 
-  // Convert ExecutableOrError to the function result.
-  auto convert = [](ExecutableOrError& value) -> Expected<const Executable*> {
-    // Only error or executable must be available.
-    bool is_error = static_cast<bool>(value.error);
-    assert(is_error != value.executable.hasValue());
+  // Maybe return Executable from the cache.
+  if (auto cached = specializations_->FindRef(hash)) return cached;
 
-    if (is_error)
-      return MakeStringError("Compilation of specialized function failed: ",
-                             StrCat(value.error));
+  // Allocate a placeholder for the compiled specialization.
+  Specializations::Entry entry = specializations_->Allocate(hash);
 
-    return value.executable.getPointer();
-  };
+  // We lost the race; some other invocation will do the compilation.
+  if (!entry.allocated) return std::move(entry.ref);
 
-  // Reduce the scope of the lock to ensure that compilation happens without
-  // holding the lock.
-  {
-    tfrt::mutex_lock lock(specializations_->mu);
-    auto it = specializations_->executables.find(hash);
-    if (it != specializations_->executables.end())
-      return convert(it->getSecond());
-  }
+  // Instantiation from the source and specialization are cheap, so we do it in
+  // the caller thread. We only schedule expensive compilation as an async task.
 
   // Try to instantiate compilation context from the mlir source.
   Expected<std::unique_ptr<JitCompilationContext>> ctx =
       JitCompilationContext::Instantiate(compilation_opts_, mlir_module_);
+
   if (auto err = ctx.takeError()) {
     assert(false && "parsing mlir module must always succeed at this point");
-    return std::move(err);
+    entry.ref.SetError(std::move(err));
+    return std::move(entry.ref);
   }
 
   // Specialize executable to the concrete operands.
   if (auto err =
-          (*ctx)->Specialize(operands, constraints_, entrypoint_, listener_))
-    return MakeStringError("Failed to specialize executable: ", err);
-
-  // Compile the specialized executable.
-  Expected<Executable> executable =
-      JitCompilationContext::Compile(std::move(*ctx), entrypoint_);
-
-  // Update the specialized executables cache with an error or the value.
-  tfrt::mutex_lock lock(specializations_->mu);
-
-  // Concurrent thread updated the cache before us.
-  auto it = specializations_->executables.find(hash);
-  if (it != specializations_->executables.end())
-    return convert(it->getSecond());
-
-  // Update the cache with a compilation error.
-  if (auto err = executable.takeError()) {
-    auto emplaced =
-        specializations_->executables.try_emplace(hash, std::move(err));
-    assert(emplaced.second && "error must be successfully emplaced");
-    return convert(emplaced.first->getSecond());
+          (*ctx)->Specialize(operands, constraints_, entrypoint_, listener_)) {
+    entry.ref.SetError(StrCat("failed to specialize executable: ", err));
+    return std::move(entry.ref);
   }
 
-  // Or update the cache with a compiled executable.
-  auto emplaced =
-      specializations_->executables.try_emplace(hash, std::move(*executable));
-  assert(emplaced.second && "executable must be successfully emplaced");
-  return convert(emplaced.first->getSecond());
-}
+  // Compile specialization asynchronously in the host context thread pool.
+  EnqueueWork(exec_ctx, [ctx = std::move(*ctx), ref = entry.ref.CopyRef(),
+                         entrypoint = entrypoint_]() mutable {
+    Expected<Executable> executable =
+        JitCompilationContext::Compile(std::move(ctx), entrypoint);
 
-//----------------------------------------------------------------------------//
-// JitExecutableCache implementation.
-//----------------------------------------------------------------------------//
+    // Set the allocated entry async value state to error or concrete.
+    if (auto err = executable.takeError())
+      ref.SetError(std::move(err));
+    else
+      ref.emplace(std::move(*executable));
+  });
 
-AsyncValueRef<JitExecutable> JitExecutableCache::FindRef(intptr_t key) const {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  return it != cache_.end() ? it->getSecond().CopyRef()
-                            : AsyncValueRef<JitExecutable>();
-}
-
-JitExecutable* JitExecutableCache::Find(intptr_t key) const {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  return it != cache_.end() ? &it->getSecond().get() : nullptr;
-}
-
-JitExecutableCache::Entry JitExecutableCache::Allocate(intptr_t key) {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  if (it != cache_.end()) return {it->getSecond().CopyRef(), false};
-
-  AsyncValueRef<JitExecutable> allocated =
-      MakeUnconstructedAsyncValueRef<JitExecutable>();
-
-  auto emplaced = cache_.try_emplace(key, std::move(allocated));
-  assert(emplaced.second && "emplace must be successful");
-  return {emplaced.first->getSecond().CopyRef(), true};
+  return std::move(entry.ref);
 }
 
 }  // namespace jit

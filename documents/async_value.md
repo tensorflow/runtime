@@ -118,6 +118,32 @@ AsyncValueRef<int32_t> typed_value = ...;
 RCReference<AsyncValue> generic_value = std::move(typed_value);
 ```
 
+#### `AsyncValuePtr`
+
+`AsyncValuePtr` improves type safety of the raw `AsyncValue` pointer when type
+erasure is not needed, without any reference counting overheads of the
+`AsyncValueRef`. Because `AsyncValuePtr` is not reference counted, it is the
+user responsibility to guarantee that the underlying async value will stay
+alive.
+
+In general it is a bad idea to capture a pointer to an `AsyncValue` without
+reference counting, because the underlying refence count number will be
+"incorrect", however it is really cheap to pass around when the lifetime of the
+underlying value is clear from the context, and reference counting only adds
+overheads.
+
+```c++
+// Prefer this version when the lifetime of the async value reference is clear.
+AsyncValueRef<int32_t> ref = ...;
+AsyncValuePtr<int32_t> ptr(ref);  // or ref.AsPtr() as in the example below
+
+// Capturing async value as a pointer is cheap compared to the reference counted
+// AsyncValueRef which requires two atomic operations (AddRef and DropRef).
+some_other_async_value.AndThen([ptr = ref.AsPtr()]() {
+  ...
+});
+```
+
 ## Calling convention
 
 The same calling convention is used for both:

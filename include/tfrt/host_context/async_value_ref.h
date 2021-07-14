@@ -49,6 +49,10 @@ T* SimpleConstruct(Args&&... args) {
 
 }  // namespace internal
 
+// Forward declare non-owning typed async value pointer.
+template <typename T>
+class AsyncValuePtr;
+
 template <typename T>
 class AsyncValueRef {
  public:
@@ -149,6 +153,9 @@ class AsyncValueRef {
   // Return a raw pointer to the AsyncValue.
   AsyncValue* GetAsyncValue() const { return value_.get(); }
 
+  // Returns a non-owning pointer to the underlying async value.
+  AsyncValuePtr<T> AsPtr() const { return AsyncValuePtr<T>(GetAsyncValue()); }
+
   // Return true if this is the only ref to the AsyncValue.
   // This function requires the internal AsyncValue to be set (value_ !=
   // nullptr).
@@ -173,6 +180,65 @@ class AsyncValueRef {
 
  private:
   RCReference<AsyncValue> value_;
+};
+
+// Non owning typed pointer for the AsyncValue. Can be cheaply passed around
+// when the lifetime of the underlying async value is clear from the context.
+// It is the user responsibility to construct an owning AsyncValueRef to extend
+// the lifetime of the underlying value if needed.
+template <typename T>
+class AsyncValuePtr {
+ public:
+  AsyncValuePtr() : value_(nullptr) {}
+
+  explicit AsyncValuePtr(AsyncValue* value) : value_(value) {}
+  explicit AsyncValuePtr(const AsyncValueRef<T>& ref)
+      : value_(ref.GetAsyncValue()) {}
+
+  AsyncValue* value() const { return value_; }
+
+  AsyncValueRef<T> FormRef() const { return AsyncValueRef<T>(FormRef(value_)); }
+
+  T& get() const { return value_->template get<T>(); }
+  T* operator->() const { return &get(); }
+  T& operator*() const { return get(); }
+
+  explicit operator bool() const { return value_ != nullptr; }
+
+  bool IsAvailable() const { return value_->IsAvailable(); }
+  bool IsUnavailable() const { return value_->IsUnavailable(); }
+
+  bool IsConcrete() const { return value_->IsConcrete(); }
+  void SetStateConcrete() const { value_->SetStateConcrete(); }
+
+  template <typename... Args>
+  void emplace(Args&&... args) const {
+    value_->emplace<T>(std::forward<Args>(args)...);
+  }
+
+  bool IsError() const { return value_->IsError(); }
+
+  const DecodedDiagnostic& GetError() const { return value_->GetError(); }
+
+  void SetError(string_view message) const {
+    return SetError(DecodedDiagnostic{message});
+  }
+
+  void SetError(DecodedDiagnostic diag) const {
+    value_->SetError(std::move(diag));
+  }
+
+  void SetError(const Error& error) const {
+    value_->SetError(DecodedDiagnostic(error));
+  }
+
+  template <typename WaiterT>
+  void AndThen(WaiterT&& waiter) const {
+    value_->AndThen(std::forward<WaiterT>(waiter));
+  }
+
+ private:
+  AsyncValue* value_;  // doesn't own the async value
 };
 
 // For consistency, the error message should start with a lower case letter

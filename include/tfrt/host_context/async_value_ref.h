@@ -197,7 +197,7 @@ class AsyncValuePtr {
 
   AsyncValue* value() const { return value_; }
 
-  AsyncValueRef<T> FormRef() const { return AsyncValueRef<T>(FormRef(value_)); }
+  AsyncValueRef<T> CopyRef() const { return AsyncValueRef<T>(FormRef(value_)); }
 
   T& get() const { return value_->template get<T>(); }
   T* operator->() const { return &get(); }

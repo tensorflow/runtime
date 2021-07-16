@@ -1,4 +1,4 @@
-load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library")
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
 load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
@@ -211,16 +211,19 @@ tfrt_cc_library(
     ],
 )
 
-filegroup(
+td_library(
     name = "cpurt_ops_td_files",
     srcs = [
         "include/tfrt/cpu/jit/opdefs/cpurt_base.td",
         "include/tfrt/cpu/jit/opdefs/cpurt_ops.td",
-        "@tf_runtime//:OpBaseTdFiles",
-        "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@tf_runtime//:CoreRTTdFiles",
+        "@tf_runtime//:OpBaseTdFiles",
+    ],
 )
 
 gentbl_cc_library(

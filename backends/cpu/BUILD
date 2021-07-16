@@ -232,6 +232,20 @@ gentbl_cc_library(
     ],
     tbl_outs = [
         (
+            [
+                "-gen-dialect-decls",
+                "-dialect=cpurt",
+            ],
+            "include/tfrt/cpu/jit/opdefs/cpurt_ops_dialect.h.inc",
+        ),
+        (
+            [
+                "-gen-dialect-defs",
+                "-dialect=cpurt",
+            ],
+            "include/tfrt/cpu/jit/opdefs/cpurt_ops_dialect.cpp.inc",
+        ),
+        (
             ["-gen-op-decls"],
             "include/tfrt/cpu/jit/opdefs/cpurt_ops.h.inc",
         ),

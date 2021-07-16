@@ -23,20 +23,8 @@
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/OpDefinition.h"
 
-namespace tfrt {
-namespace cpu {
-namespace jit {
-
 // Dialect for CPU runtime operations.
-class CpuRuntimeDialect : public mlir::Dialect {
- public:
-  explicit CpuRuntimeDialect(mlir::MLIRContext* context);
-  static llvm::StringRef getDialectNamespace() { return "cpurt"; }
-};
-
-}  // namespace jit
-}  // namespace cpu
-}  // namespace tfrt
+#include "tfrt/cpu/jit/opdefs/cpurt_ops_dialect.h.inc"
 
 #define GET_OP_CLASSES
 #include "tfrt/cpu/jit/opdefs/cpurt_ops.h.inc"

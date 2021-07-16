@@ -32,7 +32,7 @@ include "tfrt/cpu/jit/opdefs/cpurt_base.td"
 //===----------------------------------------------------------------------===//
 
 class CPURT_Op<string mnemonic, list<OpTrait> traits = []> :
-      Op<TFRT_CPURT_Dialect, mnemonic, traits> {
+      Op<CpuRuntimeDialect, mnemonic, traits> {
 }
 
 //===----------------------------------------------------------------------===//

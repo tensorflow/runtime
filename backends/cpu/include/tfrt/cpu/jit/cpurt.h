@@ -695,14 +695,11 @@ class AsyncValuesCache {
 
   AsyncValuesCache() = default;
 
-  // Returns a +1 reference to the cached value if it exists, otherwise
-  // returns default constructed reference (empty).
-  AsyncValueRef<Value> FindRef(Key key) const;
-
   // Returns a pointer to the cached value if it exists, otherwise returns
   // nullptr. It is the caller's responsibility to form an async reference and
-  // extend its lifetime if it will pass the pointer to an async task.
-  Value* Find(Key key) const;
+  // extend its lifetime if the lifetime of the cached async value can be
+  // larger than the lifetime of the cache.
+  AsyncValuePtr<Value> Find(Key key) const;
 
   // Allocates an async value in the unconstructed state to store the cached
   // value with the given key.
@@ -714,7 +711,7 @@ class AsyncValuesCache {
   Entry Allocate(Key key);
 
   struct Entry {
-    AsyncValueRef<Value> ref;
+    AsyncValuePtr<Value> ptr;
     bool allocated;
   };
 
@@ -724,24 +721,23 @@ class AsyncValuesCache {
 };
 
 template <typename Key, typename Value>
-AsyncValueRef<Value> AsyncValuesCache<Key, Value>::FindRef(Key key) const {
+AsyncValuePtr<Value> AsyncValuesCache<Key, Value>::Find(Key key) const {
   tfrt::mutex_lock lock(mu_);
   auto it = cache_.find(key);
-  return it != cache_.end() ? it->getSecond().CopyRef()
-                            : AsyncValueRef<Value>();
+  return it != cache_.end() ? it->getSecond().AsPtr() : AsyncValuePtr<Value>();
 }
 
 template <typename Key, typename Value>
 auto AsyncValuesCache<Key, Value>::Allocate(Key key) -> Entry {
   tfrt::mutex_lock lock(mu_);
   auto it = cache_.find(key);
-  if (it != cache_.end()) return {it->getSecond().CopyRef(), false};
+  if (it != cache_.end()) return {it->getSecond().AsPtr(), false};
 
   AsyncValueRef<Value> allocated = MakeUnconstructedAsyncValueRef<Value>();
 
   auto emplaced = cache_.try_emplace(key, std::move(allocated));
   assert(emplaced.second && "emplace must be successful");
-  return {emplaced.first->getSecond().CopyRef(), true};
+  return {emplaced.first->getSecond().AsPtr(), true};
 }
 
 //----------------------------------------------------------------------------//
@@ -904,10 +900,7 @@ class JitExecutable {
 
   // Returns default executable that accepts all compatible operands
   // (operands rank and all static dimensions should match the operands).
-  AsyncValueRef<Executable> DefaultExecutable() const;
-
-  // Returns true if default executable is available.
-  bool HasDefaultExecutable() const;
+  AsyncValuePtr<Executable> DefaultExecutable() const;
 
   // Returns an executable that may be specialized for the operands shape or
   // values. Can return default executable if no specialization is required, or
@@ -916,7 +909,7 @@ class JitExecutable {
   // Returns an error async value if compilation of the specialized executable
   // failed. Note: This function never falls back on the default executable if
   // specialization compilation fails.
-  AsyncValueRef<Executable> GetExecutable(ArrayRef<MemrefDesc> operands,
+  AsyncValuePtr<Executable> GetExecutable(ArrayRef<MemrefDesc> operands,
                                           const ExecutionContext& exec_ctx);
 
   // JitExecutable is move-only type.

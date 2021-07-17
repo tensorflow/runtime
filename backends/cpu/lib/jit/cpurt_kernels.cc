@@ -69,16 +69,16 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
   intptr_t key = exec_ctx.location().data;
 
   // Maybe return JitExecutable from the cache.
-  if (auto cached = jit_executable_cache->FindRef(key)) return cached;
+  if (auto cached = jit_executable_cache->Find(key)) return cached.CopyRef();
 
   // Allocate a placeholder for the compiled JitExecutable.
   JitExecutableCache::Entry entry = jit_executable_cache->Allocate(key);
 
   // We lost the race; some other invocation will do the compilation.
-  if (!entry.allocated) return std::move(entry.ref);
+  if (!entry.allocated) return entry.ptr.CopyRef();
 
   // Compile kernel asynchronously in the host context thread pool.
-  EnqueueWork(exec_ctx, [kernel, host, ref = entry.ref.CopyRef()]() {
+  EnqueueWork(exec_ctx, [kernel, host, ref = entry.ptr.CopyRef()]() {
     CompilationOptions opts;
     opts.num_worker_threads = host->GetNumWorkerThreads();
 
@@ -96,7 +96,7 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
       ref.emplace(std::move(*jit_executable));
   });
 
-  return std::move(entry.ref);
+  return entry.ptr.CopyRef();
 }
 
 // -------------------------------------------------------------------------- //
@@ -151,7 +151,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
     return EmitErrors(results, std::move(err), exec_ctx);
 
   // Get an executable that might be specialized to the operands.
-  AsyncValueRef<Executable> executable =
+  AsyncValuePtr<Executable> executable =
       jit_executable->GetExecutable(memrefs, exec_ctx);
 
   // If specialization is available execute it inline.
@@ -174,8 +174,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
     results.AllocateIndirectResultAt(i);
 
   // Call executable when it's ready with the original operands.
-  executable.AndThen([exec_ctx, memrefs = std::move(memrefs),
-                      executable = executable.CopyRef(),
+  executable.AndThen([exec_ctx, executable, memrefs = std::move(memrefs),
                       r = RCArray<AsyncValue>(results.values()),
                       o = RCArray<AsyncValue>(operands.values())] {
     // Allocate storage for the executable results.

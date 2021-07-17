@@ -1251,17 +1251,17 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
       specializations_(std::make_unique<Specializations>()),
       listener_(listener) {
   // Initialize default executable if it is available.
-  if (default_executable.hasValue())
+  if (default_executable.hasValue()) {
     default_executable_ =
         MakeAvailableAsyncValueRef<Executable>(std::move(*default_executable));
+  } else {
+    default_executable_ =
+        MakeErrorAsyncValueRef("default executable is not available");
+  }
 }
 
-AsyncValueRef<Executable> JitExecutable::DefaultExecutable() const {
-  return default_executable_.CopyRef();
-}
-
-bool JitExecutable::HasDefaultExecutable() const {
-  return static_cast<bool>(default_executable_);
+AsyncValuePtr<Executable> JitExecutable::DefaultExecutable() const {
+  return default_executable_.AsPtr();
 }
 
 ArrayRef<OperandConstraint> JitExecutable::constraints() const {
@@ -1314,28 +1314,21 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
 // if operand constraint only requires rank specialization. Although it might be
 // beneficial to know the shape to do broadcasts fusion, consider not doing that
 // when it is not needed.
-AsyncValueRef<Executable> JitExecutable::GetExecutable(
+AsyncValuePtr<Executable> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx) {
   // Do not try to compile specialized executable if it is explicitly disabled.
-  if (compilation_opts_.disable_specializations) {
-    if (!HasDefaultExecutable())
-      return MakeErrorAsyncValueRef(
-          "jit executable specialization is disabled, but the default "
-          "executable is not available");
-
-    return DefaultExecutable();
-  }
+  if (compilation_opts_.disable_specializations) return DefaultExecutable();
 
   llvm::hash_code hash = HashOperands(operands, constraints_);
 
   // Maybe return Executable from the cache.
-  if (auto cached = specializations_->FindRef(hash)) return cached;
+  if (auto cached = specializations_->Find(hash)) return cached;
 
   // Allocate a placeholder for the compiled specialization.
   Specializations::Entry entry = specializations_->Allocate(hash);
 
   // We lost the race; some other invocation will do the compilation.
-  if (!entry.allocated) return std::move(entry.ref);
+  if (!entry.allocated) return entry.ptr;
 
   // Instantiation from the source and specialization are cheap, so we do it in
   // the caller thread. We only schedule expensive compilation as an async task.
@@ -1346,31 +1339,31 @@ AsyncValueRef<Executable> JitExecutable::GetExecutable(
 
   if (auto err = ctx.takeError()) {
     assert(false && "parsing mlir module must always succeed at this point");
-    entry.ref.SetError(std::move(err));
-    return std::move(entry.ref);
+    entry.ptr.SetError(std::move(err));
+    return entry.ptr;
   }
 
   // Specialize executable to the concrete operands.
   if (auto err =
           (*ctx)->Specialize(operands, constraints_, entrypoint_, listener_)) {
-    entry.ref.SetError(StrCat("failed to specialize executable: ", err));
-    return std::move(entry.ref);
+    entry.ptr.SetError(StrCat("failed to specialize executable: ", err));
+    return entry.ptr;
   }
 
   // Compile specialization asynchronously in the host context thread pool.
-  EnqueueWork(exec_ctx, [ctx = std::move(*ctx), ref = entry.ref.CopyRef(),
+  EnqueueWork(exec_ctx, [ctx = std::move(*ctx), ptr = entry.ptr,
                          entrypoint = entrypoint_]() mutable {
     Expected<Executable> executable =
         JitCompilationContext::Compile(std::move(ctx), entrypoint);
 
     // Set the allocated entry async value state to error or concrete.
     if (auto err = executable.takeError())
-      ref.SetError(std::move(err));
+      ptr.SetError(std::move(err));
     else
-      ref.emplace(std::move(*executable));
+      ptr.emplace(std::move(*executable));
   });
 
-  return std::move(entry.ref);
+  return entry.ptr;
 }
 
 }  // namespace jit

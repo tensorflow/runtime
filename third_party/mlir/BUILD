@@ -16,7 +16,7 @@ package(
 
 package_group(
     name = "subpackages",
-    packages = ["//third_party/llvm/llvm-project/mlir/..."],
+    packages = ["//..."],
 )
 
 package_group(
@@ -2734,8 +2734,8 @@ cc_library(
         # -DMLIR_GPU_TO_CUBIN_PASS_ENABLE
         ":NVVMToLLVMIRTranslation",
         "@llvm-project//llvm:NVPTXCodeGen",
-        "//third_party/gpus/cuda:cuda_headers",
-        "//third_party/gpus/cuda:libcuda",
+        "@cuda_headers",
+        "@cuda_headers//:libcuda",
     ]),
 )
 
@@ -5142,8 +5142,8 @@ cc_library(
     deps = [
         ":LLVMSupportHeaders",
         ":mlir_c_runner_utils",
-        "//third_party/gpus/cuda:cuda_headers",
-        "//third_party/gpus/cuda:libcuda",
+        "@cuda_headers",
+        "@cuda_headers//:libcuda",
     ],
 )
 

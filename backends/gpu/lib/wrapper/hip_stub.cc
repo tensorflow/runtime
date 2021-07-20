@@ -40,6 +40,8 @@ static hipError_t DynamicCall(const char *symbol_name, Args &&...args) {
 
 #define __dparm(x)
 #define DEPRECATED(x) [[deprecated]]
+#define dim3 hipDim3_t
+
 
 extern "C" {
 #include "hip_stub.cc.inc"

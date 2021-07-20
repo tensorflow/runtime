@@ -17,6 +17,7 @@
 #include "common.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
+#include "tfrt/gpu/wrapper/hip_wrapper.h"
 
 namespace tfrt {
 namespace gpu {
@@ -30,8 +31,19 @@ TEST_F(Test, RuntimeInitCUDA) {
   EXPECT_THAT(CudaFree(nullptr), IsSuccess());
 }
 
+TEST_F(Test, RuntimeInitROCm) {
+  EXPECT_THAT(HipInit(), IsSuccess());
+  EXPECT_THAT(HipCtxSetCurrent(nullptr).takeError(), IsSuccess());
+  EXPECT_THAT(HipMemFree(nullptr), IsSuccess());
+}
+
 TEST_F(Test, RuntimeVersionCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto version, CudaRuntimeGetVersion());
+  EXPECT_GT(version, 0);
+}
+
+TEST_F(Test, RuntimeVersionROCm) {
+  TFRT_ASSERT_AND_ASSIGN(auto version, HipRuntimeGetVersion());
   EXPECT_GT(version, 0);
 }
 
@@ -44,6 +56,19 @@ TEST_F(Test, DevicePropertiesCUDA) {
   TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
   TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
   TFRT_ASSERT_AND_ASSIGN(auto dev_props, CudaGetDeviceProperties(current));
+  ASSERT_GT(dev_props.major, 0);
+}
+
+TEST_F(Test, DevicePropertiesROCm) {
+  auto platform = Platform::ROCm;
+  ASSERT_THAT(Init(platform), IsSuccess());
+  TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
+  ASSERT_GT(count, 0);
+  TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
+  TFRT_ASSERT_AND_ASSIGN(auto context,
+			 CtxCreate(CtxFlags::SCHED_AUTO, device));
+  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
+  TFRT_ASSERT_AND_ASSIGN(auto dev_props, HipGetDeviceProperties(current));
   ASSERT_GT(dev_props.major, 0);
 }
 

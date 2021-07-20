@@ -7,6 +7,11 @@ hipError_t hipDriverGetVersion(int* driverVersion) {
       "hipDriverGetVersion", driverVersion);
 }
 
+hipError_t hipRuntimeGetVersion(int* runtimeVersion) {
+  return DynamicCall<decltype(hipRuntimeGetVersion), &hipRuntimeGetVersion>(
+      "hipRuntimeGetVersion", runtimeVersion);
+}
+
 hipError_t hipDeviceGet(hipDevice_t* device, int ordinal) {
   return DynamicCall<decltype(hipDeviceGet), &hipDeviceGet>("hipDeviceGet",
                                                             device, ordinal);
@@ -32,6 +37,11 @@ hipError_t hipDeviceSynchronize(void) {
       "hipDeviceSynchronize");
 }
 
+hipError_t hipGetDevice(int* deviceId) {
+  return DynamicCall<decltype(hipGetDevice), &hipGetDevice>("hipGetDevice",
+                                                            deviceId);
+}
+
 hipError_t hipGetDeviceCount(int* count) {
   return DynamicCall<decltype(hipGetDeviceCount), &hipGetDeviceCount>(
       "hipGetDeviceCount", count);
@@ -41,6 +51,11 @@ hipError_t hipDeviceGetAttribute(int* pi, hipDeviceAttribute_t attr,
                                  int deviceId) {
   return DynamicCall<decltype(hipDeviceGetAttribute), &hipDeviceGetAttribute>(
       "hipDeviceGetAttribute", pi, attr, deviceId);
+}
+
+hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int deviceId) {
+  return DynamicCall<decltype(hipGetDeviceProperties), &hipGetDeviceProperties>(
+      "hipGetDeviceProperties", prop, deviceId);
 }
 
 hipError_t hipDeviceGetLimit(size_t* pValue, enum hipLimit_t limit) {

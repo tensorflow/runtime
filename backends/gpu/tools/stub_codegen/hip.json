@@ -22,7 +22,10 @@
    "functions":[
       "hipInit",
       "hipDriverGetVersion",
+      "hipRuntimeGetVersion",
+      "hipGetDevice",
       "hipGetDeviceCount",
+      "hipGetDeviceProperties",
       "hipDeviceGet",
       "hipDeviceGetName",
       "hipDeviceTotalMem",

@@ -44,9 +44,24 @@ static hipDevice_t ToRocm(Device device) { return device.id(Platform::ROCm); }
 llvm::Error HipInit() { return TO_ERROR(hipInit(/*flags=*/0)); }
 
 llvm::Expected<int> HipDriverGetVersion() {
-  int version;
+  int version = -1;
   RETURN_IF_ERROR(hipDriverGetVersion(&version));
   return version;
+}
+
+llvm::Expected<int> HipRuntimeGetVersion() {
+  int version = -1;
+  RETURN_IF_ERROR(hipRuntimeGetVersion(&version));
+  return version;
+}
+
+llvm::Expected<hipDeviceProp_t> HipGetDeviceProperties(CurrentContext current) {
+  CheckHipContext(current);
+  int deviceId;
+  RETURN_IF_ERROR(hipGetDevice(&deviceId));
+  hipDeviceProp_t properties;
+  RETURN_IF_ERROR(hipGetDeviceProperties(&properties, deviceId));
+  return properties;
 }
 
 llvm::Expected<int> HipDeviceGetCount() {
@@ -569,8 +584,8 @@ llvm::Error HipLaunchCooperativeKernel(
     unsigned shared_memory_size_bytes, hipStream_t stream,
     llvm::ArrayRef<void*> arguments) {
   CheckHipContext(current);
-  dim3 grid_dim = {{grid_dim_x, grid_dim_y, grid_dim_z}};
-  dim3 block_dim = {{block_dim_x, block_dim_y, block_dim_z}};
+  hipDim3_t grid_dim(grid_dim_x, grid_dim_y, grid_dim_z);
+  hipDim3_t block_dim(block_dim_x, block_dim_y, block_dim_z);
   return TO_ERROR(hipLaunchCooperativeKernel(
       function, grid_dim, block_dim, const_cast<void**>(arguments.data()),
       shared_memory_size_bytes, stream));

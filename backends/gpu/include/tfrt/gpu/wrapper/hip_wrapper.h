@@ -37,6 +37,9 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error);
 
 llvm::Error HipInit();
 llvm::Expected<int> HipDriverGetVersion();
+llvm::Expected<int> HipRuntimeGetVersion();
+
+llvm::Expected<hipDeviceProp_t> HipGetDeviceProperties(CurrentContext current);
 
 llvm::Expected<int> HipDeviceGetCount();
 llvm::Expected<Device> HipDeviceGet(int ordinal);

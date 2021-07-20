@@ -194,6 +194,8 @@ hipError_t hipInit(unsigned int flags);
 
 hipError_t hipDriverGetVersion(int* driverVersion);
 
+hipError_t hipRuntimeGetVersion(int* runtimeVersion);
+
 hipError_t hipDeviceGet(hipDevice_t* device, int ordinal);
 
 hipError_t hipDeviceGetName(char* name, int len, hipDevice_t device);
@@ -204,10 +206,14 @@ hipError_t hipDeviceTotalMem(size_t* bytes, hipDevice_t device);
 
 hipError_t hipDeviceSynchronize(void);
 
+hipError_t hipGetDevice(int* deviceId);
+
 hipError_t hipGetDeviceCount(int* count);
 
 hipError_t hipDeviceGetAttribute(int* pi, hipDeviceAttribute_t attr,
                                  int deviceId);
+
+hipError_t hipGetDeviceProperties(hipDeviceProp_t* prop, int deviceId);
 
 hipError_t hipDeviceGetLimit(size_t* pValue, enum hipLimit_t limit);
 

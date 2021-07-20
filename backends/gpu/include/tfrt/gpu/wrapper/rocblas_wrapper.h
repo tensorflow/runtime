@@ -41,13 +41,13 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_gemm_algo value);
 
 template <>
 struct PlatformTypeTraits<BlasDataTypeTag, rocblas_datatype>
-    : public CudaPlatformType {};
+    : public RocmPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasOperationTag, rocblas_operation>
-    : public CudaPlatformType {};
+    : public RocmPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasGemmAlgoTag, rocblas_gemm_algo>
-    : public CudaPlatformType {};
+    : public RocmPlatformType {};
 
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current);
 llvm::Error RocblasDestroy(rocblas_handle handle);

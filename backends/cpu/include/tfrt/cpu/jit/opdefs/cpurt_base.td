@@ -26,7 +26,7 @@
 // TFRT CPU Runtime dialect definitions
 //===----------------------------------------------------------------------===//
 
-def TFRT_CPURT_Dialect : Dialect {
+def CpuRuntimeDialect : Dialect {
   let name = "cpurt";
 
   let description = [{

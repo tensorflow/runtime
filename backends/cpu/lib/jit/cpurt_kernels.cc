@@ -22,6 +22,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 
 #include "tfrt/cpu/jit/cpurt.h"
 #include "tfrt/dtype/dtype.h"
@@ -68,22 +69,34 @@ static AsyncValueRef<JitExecutable> Compile(CompilationUnitAttribute kernel,
   intptr_t key = exec_ctx.location().data;
 
   // Maybe return JitExecutable from the cache.
-  if (auto cached = jit_executable_cache->Find(key)) return cached;
+  if (auto cached = jit_executable_cache->Find(key)) return cached.CopyRef();
 
-  CompilationOptions opts;
-  opts.num_worker_threads = host->GetNumWorkerThreads();
+  // Allocate a placeholder for the compiled JitExecutable.
+  JitExecutableCache::Entry entry = jit_executable_cache->Allocate(key);
 
-  string_view entrypoint = kernel.nested_symbols()[0];
-  string_view module = kernel.serialized_operation();
+  // We lost the race; some other invocation will do the compilation.
+  if (!entry.allocated) return entry.ptr.CopyRef();
 
-  // Instantiate new JitExecutable from the MLIR source.
-  Expected<JitExecutable> jit_executable =
-      JitExecutable::Instantiate(module, entrypoint, opts);
-  if (auto err = jit_executable.takeError())
-    return EmitErrorAsync(exec_ctx, std::move(err));
+  // Compile kernel asynchronously in the host context thread pool.
+  EnqueueWork(exec_ctx, [kernel, host, ref = entry.ptr.CopyRef()]() {
+    CompilationOptions opts;
+    opts.num_worker_threads = host->GetNumWorkerThreads();
 
-  // Update the JitExecutable cache and return the result.
-  return jit_executable_cache->Insert(key, std::move(*jit_executable));
+    string_view entrypoint = kernel.nested_symbols()[0];
+    string_view module = kernel.serialized_operation();
+
+    // Instantiate new JitExecutable from the MLIR source.
+    Expected<JitExecutable> jit_executable =
+        JitExecutable::Instantiate(module, entrypoint, opts);
+
+    // Set the allocated async value state to error or concrete.
+    if (auto err = jit_executable.takeError())
+      ref.SetError(std::move(err));
+    else
+      ref.emplace(std::move(*jit_executable));
+  });
+
+  return entry.ptr.CopyRef();
 }
 
 // -------------------------------------------------------------------------- //
@@ -109,6 +122,24 @@ static Error ConvertTensorOperandsToMemrefDesc(
   return Error::success();
 }
 
+static void ExecuteImpl(const Executable& executable,
+                        const SmallVectorImpl<MemrefDesc>& memrefs,
+                        RepeatedArguments<Tensor> operands,
+                        RemainingResults results,
+                        const ExecutionContext& exec_ctx) {
+  // If execution failed errors will be automatically allocated for all results.
+  ReturnValueConverter<ConversionCtx> converter(results);
+  converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
+  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
+  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
+
+  if (auto err = executable.Execute(memrefs, converter, exec_ctx)) return;
+
+  // Keep operands alive if we have unavailable results.
+  RunWhenReady(results.values(),
+               [operands = RCArray<AsyncValue>(operands.values())] {});
+}
+
 static void Execute(Argument<JitExecutable> jit_executable,
                     Argument<Chain> in_chain,
                     RepeatedArguments<Tensor> operands,
@@ -120,22 +151,51 @@ static void Execute(Argument<JitExecutable> jit_executable,
     return EmitErrors(results, std::move(err), exec_ctx);
 
   // Get an executable that might be specialized to the operands.
-  Expected<const Executable*> executable =
-      jit_executable->GetExecutable(memrefs);
-  if (auto err = executable.takeError())
-    return EmitErrors(results, std::move(err), exec_ctx);
+  AsyncValuePtr<Executable> executable =
+      jit_executable->GetExecutable(memrefs, exec_ctx);
 
-  // If execution failed errors will be automatically allocated for all results.
-  ReturnValueConverter<ConversionCtx> converter(results);
-  converter.AddConversion(ReturnAsyncToken<ConversionCtx>);
-  converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
-  converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
+  // If specialization is available execute it inline.
+  if (executable.IsAvailable()) {
+    if (executable.IsError()) {
+      EmitErrors(results, executable.GetError(), exec_ctx);
+    } else {
+      ExecuteImpl(executable.get(), memrefs, operands, results, exec_ctx);
+    }
+    return;
+  }
 
-  if (auto err = (*executable)->Execute(memrefs, converter, exec_ctx)) return;
+  // Otherwise execute it when the executable will become available. This
+  // requires careful lifetime extension of all async values passed as operands
+  // to the kernel (and also results that will become available asynchronously).
 
-  // Keep operands alive if we have unavailable results.
-  RunWhenReady(results.values(),
-               [operands = RCArray<AsyncValue>(operands.values())] {});
+  // Allocate indirect async values for all results, we'll forward them to the
+  // actual async values computed by the executable later.
+  for (unsigned i = 0; i < results.size(); ++i)
+    results.AllocateIndirectResultAt(i);
+
+  // Call executable when it's ready with the original operands.
+  executable.AndThen([exec_ctx, executable, memrefs = std::move(memrefs),
+                      r = RCArray<AsyncValue>(results.values()),
+                      o = RCArray<AsyncValue>(operands.values())] {
+    // Allocate storage for the executable results.
+    llvm::SmallVector<RCReference<AsyncValue>> results_storage;
+    results_storage.resize(r.size());
+
+    // Reconstruct arguments and results from captured async values.
+    RepeatedArguments<Tensor> operands(o.values());
+    RemainingResults results(exec_ctx.host(), results_storage);
+
+    if (executable.IsError()) {
+      EmitErrors(results, executable.GetError(), exec_ctx);
+    } else {
+      ExecuteImpl(*executable, memrefs, operands, results, exec_ctx);
+    }
+
+    // Forward previously allocated indirect results to the actual results.
+    for (unsigned i = 0; i < r.size(); ++i)
+      llvm::cast<IndirectAsyncValue>(*r[i]).ForwardTo(
+          std::move(results_storage[i]));
+  });
 }
 
 void RegisterCpuRuntimeKernels(KernelRegistry* registry) {

@@ -9,8 +9,6 @@ licenses(["notice"])
             "//backends/gpu/tools/stub_codegen:%s.json" % api,
             "@cuda_headers//:header_files",
             "@cudnn_headers//:header_files",
-            # TODO(csigg): remove once crt is in cuda_headers, also in JSONs.
-            "@local_cuda//:header_files",
         ],
         outs = ["include/%s_stub.cc.inc" % api],
         cmd = "$(location //backends/gpu/tools/stub_codegen:impl_codegen) " +

@@ -1,4 +1,4 @@
-load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl_cc_library")
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
 load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
@@ -211,16 +211,19 @@ tfrt_cc_library(
     ],
 )
 
-filegroup(
+td_library(
     name = "cpurt_ops_td_files",
     srcs = [
         "include/tfrt/cpu/jit/opdefs/cpurt_base.td",
         "include/tfrt/cpu/jit/opdefs/cpurt_ops.td",
-        "@tf_runtime//:OpBaseTdFiles",
-        "@tf_runtime//:include/tfrt/core_runtime/opdefs/corert_base.td",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
     visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@tf_runtime//:CoreRTTdFiles",
+        "@tf_runtime//:OpBaseTdFiles",
+    ],
 )
 
 gentbl_cc_library(
@@ -231,6 +234,20 @@ gentbl_cc_library(
         "include",
     ],
     tbl_outs = [
+        (
+            [
+                "-gen-dialect-decls",
+                "-dialect=cpurt",
+            ],
+            "include/tfrt/cpu/jit/opdefs/cpurt_ops_dialect.h.inc",
+        ),
+        (
+            [
+                "-gen-dialect-defs",
+                "-dialect=cpurt",
+            ],
+            "include/tfrt/cpu/jit/opdefs/cpurt_ops_dialect.cpp.inc",
+        ),
         (
             ["-gen-op-decls"],
             "include/tfrt/cpu/jit/opdefs/cpurt_ops.h.inc",
@@ -283,6 +300,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:ExecutionEngine",
         "@llvm-project//mlir:ExecutionEngineUtils",
         "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:LLVMCommonConversion",
         "@llvm-project//mlir:LLVMDialect",
         "@llvm-project//mlir:LLVMToLLVMIRTranslation",
         "@llvm-project//mlir:LLVMTransforms",
@@ -290,8 +308,10 @@ tfrt_cc_library(
         "@llvm-project//mlir:LinalgToLLVM",
         "@llvm-project//mlir:LinalgTransforms",
         "@llvm-project//mlir:MathDialect",
+        "@llvm-project//mlir:MathToLLVM",
         "@llvm-project//mlir:MathTransforms",
         "@llvm-project//mlir:MemRefDialect",
+        "@llvm-project//mlir:MemRefToLLVM",
         "@llvm-project//mlir:MlirJitRunner",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",

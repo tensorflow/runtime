@@ -19,7 +19,6 @@
 #include <tuple>
 
 #include "llvm_derived/Support/raw_ostream.h"
-#include "test_cuda_kernels.h"
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_utils.h"
@@ -202,6 +201,8 @@ static DenseGpuTensor TestVariadicArgOp(
   }
 }
 
+void RegisterTestCudaKernelsGpuOps(class GpuOpRegistry* registry);
+
 void RegisterTestGPUOps(GpuOpRegistry* registry) {
   registry->AddOp("tfrt_test.synchronize", TFRT_GPU_OP(GpuStreamSynchronize));
   registry->AddMetadataFn("tfrt_test.synchronize",
@@ -241,7 +242,9 @@ void RegisterTestGPUOps(GpuOpRegistry* registry) {
                   TFRT_GPU_OP(ReturnMultipleResultsWithError));
   registry->AddMetadataFn("tfrt_test.return_multiple_results_with_error",
                           TFRT_METADATA(ReturnMultipleResultsMD));
+#ifdef TFRT_GPU_CUDA_ENABLED
   RegisterTestCudaKernelsGpuOps(registry);
+#endif
 }
 }  // namespace gpu
 }  // namespace tfrt

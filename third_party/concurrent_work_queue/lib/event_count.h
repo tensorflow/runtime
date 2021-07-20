@@ -54,6 +54,7 @@
 #include <cassert>
 #include <vector>
 
+#include "tfrt/support/alloc.h"
 #include "tfrt/support/mutex.h"
 
 namespace tfrt {
@@ -67,8 +68,12 @@ class EventCount {
   struct Waiter;
 
   explicit EventCount(unsigned num_waiters)
-      : state_(kStackMask), waiters_(num_waiters) {
+      : state_(kStackMask),
+        waiters_(static_cast<Waiter*>(
+            AlignedAlloc(alignof(Waiter), sizeof(Waiter) * num_waiters))) {
     assert(num_waiters < (1u << kCounterBits) - 1);
+    // Initialize waiters state in the allocated memory buffer.
+    for (unsigned i = 0; i < num_waiters; ++i) new (waiter(i)) Waiter;
   }
 
   EventCount(const EventCount&) = delete;
@@ -77,6 +82,7 @@ class EventCount {
   ~EventCount() {
     // Ensure there are no waiters.
     assert(state_.load() == kStackMask);
+    AlignedFree(waiters_);
   }
 
   Waiter* waiter(unsigned index) { return &waiters_[index]; }
@@ -100,7 +106,7 @@ class EventCount {
   void CommitWait(Waiter* w) {
     assert((w->epoch & ~kEpochMask) == 0);
     w->state = Waiter::kNotSignaled;
-    const uint64_t me = (w - &waiters_[0]) | w->epoch;
+    const uint64_t me = (w - waiter(0)) | w->epoch;
     uint64_t state = state_.load(std::memory_order_seq_cst);
     for (;;) {
       CheckState(state, true);
@@ -167,7 +173,7 @@ class EventCount {
         newstate = state + kSignalInc;
       } else {
         // Pop a waiter from list and unpark it.
-        Waiter* w = &waiters_[state & kStackMask];
+        Waiter* w = waiter(state & kStackMask);
         uint64_t next = w->next.load(std::memory_order_relaxed);
         newstate = (state & (kWaiterMask | kSignalMask)) | next;
       }
@@ -177,7 +183,7 @@ class EventCount {
         if (!notify_all && (signals < waiters))
           return;  // unblocked pre-wait thread
         if ((state & kStackMask) == kStackMask) return;
-        Waiter* w = &waiters_[state & kStackMask];
+        Waiter* w = waiter(state & kStackMask);
         if (!notify_all) w->next.store(kStackMask, std::memory_order_relaxed);
         Unpark(w);
         return;
@@ -188,7 +194,7 @@ class EventCount {
   struct Waiter {
     friend class EventCount;
     // Align to 128 byte boundary to prevent false sharing with other Waiter
-    // objects in the same vector.
+    // objects in the same waiters array.
     alignas(128) std::atomic<uint64_t> next;
     mutex mu;
     condition_variable cv;
@@ -231,7 +237,11 @@ class EventCount {
   static constexpr uint64_t kEpochInc = 1ull << kEpochShift;
 
   std::atomic<uint64_t> state_;
-  std::vector<Waiter> waiters_;
+
+  // A pointer to contiguous array of `num_waiters` waiters. We do not use
+  // `std::vector` as a storage because before C++17 it is not guaranteed that
+  // the vector storage will be properly aligned to hold Waiter objects.
+  Waiter* waiters_;
 
   void Park(Waiter* w) {
     mutex_lock lock(w->mu);
@@ -244,7 +254,7 @@ class EventCount {
   void Unpark(Waiter* w) {
     for (Waiter* next; w; w = next) {
       uint64_t wnext = w->next.load(std::memory_order_relaxed) & kStackMask;
-      next = wnext == kStackMask ? nullptr : &waiters_[wnext];
+      next = wnext == kStackMask ? nullptr : waiter(wnext);
       unsigned state;
       {
         mutex_lock lock(w->mu);

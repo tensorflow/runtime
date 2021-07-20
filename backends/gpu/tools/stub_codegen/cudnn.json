@@ -2,7 +2,7 @@
    "header":"external/cudnn_headers/cudnn/cudnn.h",
    "extra_args":[
      "-Iexternal/cuda_headers/cuda",
-     "-Iexternal/local_cuda/cuda/include"
+     "-Iexternal/cuda_headers/cuda/include"
    ],
    "functions":[
       "cudnnQueryRuntimeError",

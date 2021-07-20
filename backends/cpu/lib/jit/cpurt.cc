@@ -21,6 +21,8 @@
 
 #include "tfrt/cpu/jit/cpurt.h"
 
+#include <sys/types.h>
+
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -35,7 +37,10 @@
 #include "llvm/Support/TargetSelect.h"
 #include "mlir/Conversion/AffineToStandard/AffineToStandard.h"
 #include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
+#include "mlir/Conversion/LLVMCommon/LoweringOptions.h"
 #include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
+#include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
+#include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
@@ -73,7 +78,9 @@
 #include "tfrt/cpu/jit/async_runtime.h"
 #include "tfrt/cpu/jit/async_runtime_api.h"
 #include "tfrt/cpu/jit/cpurt_support.h"
+#include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
+#include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/mutex.h"
@@ -114,36 +121,147 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
   return os;
 }
 
-//----------------------------------------------------------------------------//
-// Verify compiled function signature and pre-compute memory layout for results.
-//----------------------------------------------------------------------------//
+raw_ostream& operator<<(raw_ostream& os, const Type& type) {
+  auto print_arr = [&](ArrayRef<ssize_t> arr) {
+    if (!arr.empty()) {
+      os << arr[0];
+      for (int i = 1; i < arr.size(); ++i) os << "x" << arr[i];
+    }
+  };
 
-// TODO(ezhulenev): Add support UnrankedMemrefType arguments and results.
-static bool IsValidMemref(mlir::Type type) {
-  auto memref = type.dyn_cast<mlir::MemRefType>();
-  return static_cast<bool>(memref);
+  if (isa<AsyncTokenType>(&type)) {
+    os << "!async.token";
+
+  } else if (auto* value = dyn_cast<AsyncValueType>(&type)) {
+    os << "!async.value<";
+    os << value->value_type();
+    os << ">";
+
+  } else if (auto* memref = dyn_cast<MemrefType>(&type)) {
+    os << "memref<";
+    print_arr(memref->sizes());
+    os << "x" << memref->element_type();
+    os << ">";
+
+  } else {
+    assert(false && "pretty printing is not implemented");
+    os << "<unknown type>";
+  }
+
+  return os;
 }
 
-// Verifies that all function operands are supported at runtime.
-static Error VerifyEntrypointOperands(mlir::FunctionType signature) {
-  for (unsigned i = 0; i < signature.getNumInputs(); ++i)
-    if (!IsValidMemref(signature.getInput(i)))
-      return MakeStringError("input #", i, " must be a ranked memref type");
+//----------------------------------------------------------------------------//
+// Compiled function signature types conversion from the MLIR types.
+//----------------------------------------------------------------------------//
 
-  return Error::success();
+AsyncTokenType::AsyncTokenType() : Type(TypeKind::kAsyncToken) {}
+
+AsyncValueType::AsyncValueType(std::unique_ptr<Type> value_type)
+    : Type(TypeKind::kAsyncValue), value_type_(std::move(value_type)) {}
+
+MemrefType::MemrefType(ArrayRef<ssize_t> sizes, DType element_type)
+    : Type(TypeKind::kMemref),
+      sizes_(sizes.begin(), sizes.end()),
+      element_type_(element_type) {}
+
+ArrayRef<ssize_t> MemrefType::sizes() const { return sizes_; }
+
+unsigned MemrefType::rank() const { return sizes_.size(); }
+
+DType MemrefType::element_type() const { return element_type_; }
+
+FunctionType::FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
+                           llvm::SmallVector<std::unique_ptr<Type>> results)
+    : operands_(std::move(operands)), results_(std::move(results)) {}
+
+const Type* FunctionType::operand(unsigned index) const {
+  return operands_[index].get();
+}
+const Type* FunctionType::result(unsigned index) const {
+  return results_[index].get();
 }
 
-Expected<ResultsMemoryLayout> Executable::VerifyEntrypointSignature(
-    mlir::FunctionType signature) {
-  // Check if function operands are compatible with code generation.
-  if (auto err = VerifyEntrypointOperands(signature)) return std::move(err);
+unsigned FunctionType::num_operands() const { return operands_.size(); }
+unsigned FunctionType::num_results() const { return results_.size(); }
 
+static Expected<DType> ConvertElementType(mlir::Type type) {
+  if (type.isF32()) return DType::F32;
+  if (type.isInteger(1)) return DType::I1;
+  if (type.isInteger(32)) return DType::I32;
+  if (type.isInteger(64)) return DType::I64;
+
+  return MakeStringError("unsupported element type: ", type);
+}
+
+static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
+  // mlir::async::TokenType -> tfrt::cpu::jit::AsyncTokenType
+  if (type.isa<mlir::async::TokenType>())
+    return std::make_unique<AsyncTokenType>();
+
+  // mlir::async::ValueType -> tfrt::cpu::jit::AsyncValueType
+  if (auto value = type.dyn_cast<mlir::async::ValueType>()) {
+    if (!value.getValueType().isa<mlir::MemRefType>())
+      return MakeStringError("async value can only hold memref type");
+
+    auto value_type = ConvertType(value.getValueType());
+    if (auto err = value_type.takeError()) return std::move(err);
+
+    return std::make_unique<AsyncValueType>(std::move(*value_type));
+  }
+
+  // mlir::MemrefType -> tfrt::cpu::jit::MemrefType
+  if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
+    auto element_type = ConvertElementType(memref.getElementType());
+    if (auto err = element_type.takeError()) return std::move(err);
+    return std::make_unique<MemrefType>(memref.getShape(), *element_type);
+  }
+
+  return MakeStringError("unsupported type: ", type);
+}
+
+/*static*/ Expected<FunctionType> FunctionType::Convert(
+    mlir::FunctionType type) {
+  llvm::SmallVector<std::unique_ptr<Type>> operands;
+  llvm::SmallVector<std::unique_ptr<Type>> results;
+
+  operands.reserve(type.getNumInputs());
+  results.reserve(type.getNumResults());
+
+  auto error = [](string_view kind, unsigned i, mlir::Type type, Error err) {
+    return MakeStringError("can't convert ", kind, " #", i, " type ", type,
+                           " to the runtime type: ", err);
+  };
+
+  for (unsigned i = 0; i < type.getNumInputs(); ++i) {
+    Expected<std::unique_ptr<Type>> converted = ConvertType(type.getInput(i));
+    if (auto err = converted.takeError())
+      return error("input", i, type.getInput(i), std::move(err));
+    operands.push_back(std::move(*converted));
+  }
+
+  for (unsigned i = 0; i < type.getNumResults(); ++i) {
+    Expected<std::unique_ptr<Type>> converted = ConvertType(type.getResult(i));
+    if (auto err = converted.takeError())
+      return error("result", i, type.getResult(i), std::move(err));
+    results.push_back(std::move(*converted));
+  }
+
+  return FunctionType(std::move(operands), std::move(results));
+}
+
+//----------------------------------------------------------------------------//
+// Get compiled function results memory layout.
+//----------------------------------------------------------------------------//
+
+Expected<ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
+    const FunctionType& signature) {
   // Size of the memory block required for storing results, and offsets for
   // each function result.
   bool has_async_results = false;
   size_t results_size_bytes = 0;
   llvm::SmallVector<size_t> results_offsets_bytes;
-  results_offsets_bytes.reserve(signature.getNumResults());
+  results_offsets_bytes.reserve(signature.num_results());
 
   // Allocate `size_bytes` block of memory to store the function result.
   auto allocate_result = [&](size_t size_bytes) {
@@ -152,22 +270,18 @@ Expected<ResultsMemoryLayout> Executable::VerifyEntrypointSignature(
   };
 
   // Verify all result types and record memory requirements.
-  for (unsigned i = 0; i < signature.getNumResults(); ++i) {
-    mlir::Type type = signature.getResult(i);
+  for (unsigned i = 0; i < signature.num_results(); ++i) {
+    auto* type = signature.result(i);
 
     // Async tokens stored as void* pointers.
-    if (type.isa<mlir::async::TokenType>()) {
+    if (llvm::isa<AsyncTokenType>(type)) {
       allocate_result(sizeof(void*));
       has_async_results = true;
       continue;
     }
 
     // Async values stored as void* pointers.
-    if (auto value = type.dyn_cast<mlir::async::ValueType>()) {
-      if (!IsValidMemref(value.getValueType()))
-        return MakeStringError(
-            "result #", i, " async value payload type must be a valid memref");
-
+    if (llvm::isa<AsyncValueType>(type)) {
       allocate_result(sizeof(void*));
       has_async_results = true;
       continue;
@@ -175,17 +289,15 @@ Expected<ResultsMemoryLayout> Executable::VerifyEntrypointSignature(
 
     // Memrefs are stored as StridedMemref<T, rank> type:
     //   basePtr, data, offset, sizes[rank], strides[rank]
-    if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
-      if (!IsValidMemref(type))
-        return MakeStringError("result #", i, " is not a valid memref");
-
+    if (auto* memref = llvm::dyn_cast<MemrefType>(type)) {
       allocate_result(/*pointers*/ 2 * sizeof(void*) +
                       /*offset*/ sizeof(int64_t) +
-                      /*sizes/strides*/ sizeof(int64_t) * 2 * memref.getRank());
+                      /*sizes/strides*/ sizeof(int64_t) * 2 * memref->rank());
       continue;
     }
 
-    return MakeStringError("unsupported result type: ", type);
+    return MakeStringError("unknown result #", i,
+                           " type memory layout: ", *type);
   }
 
   return ResultsMemoryLayout{has_async_results, results_size_bytes,
@@ -193,45 +305,29 @@ Expected<ResultsMemoryLayout> Executable::VerifyEntrypointSignature(
 }
 
 // -------------------------------------------------------------------------- //
-// Converting from runtime buffers (aka Tensors) to Memref descriptors.
+// Verify that signature operands types are matching runtime operands types.
 // -------------------------------------------------------------------------- //
 
-static Error VerifyDType(mlir::Type input_type, DType operand_type) {
-  assert(operand_type != DType::Invalid && "invalid operand type");
-
-  auto verify = [&](DType expected_input_type) -> Error {
-    if (operand_type != expected_input_type)
-      return MakeStringError("operand type does not match input type: ",
-                             operand_type, " vs ", DType(expected_input_type));
-    return Error::success();
-  };
-
-  // TODO(ezhulenev): Implement type dispatching to connect MLIR with TFRT.
-  if (input_type.isF32()) return verify(DType::F32);
-  if (input_type.isInteger(1)) return verify(DType::I1);
-  if (input_type.isInteger(32)) return verify(DType::I32);
-  if (input_type.isInteger(64)) return verify(DType::I64);
-
-  return MakeStringError("unexpected input type: ", input_type);
-}
-
-static Error VerifyMemrefOperand(mlir::ShapedType type,
-                                 const MemrefDesc& memref) {
+static Error VerifyMemrefOperand(const MemrefType& type,
+                                 const MemrefDesc& memref,
+                                 bool check_sizes = true) {
   // Check that memref data type matches operand element type.
-  if (auto err = VerifyDType(type.getElementType(), memref.dtype)) return err;
+  if (type.element_type() != memref.dtype)
+    return MakeStringError(
+        "operand type doesn't match the expected element type: ", memref.dtype,
+        " vs ", type.element_type());
 
-  // For unranked operands we only verify the element type.
-  if (!type.hasRank()) return Error::success();
-
-  ArrayRef<int64_t> expected_shape = type.getShape();
+  // Unranked memrefs are not representable with MemrefType, we explicitly pass
+  // a flag do disable sizes check in this case .
+  if (!check_sizes) return Error::success();
 
   // Check that memref rank is the same as operand rank.
-  if (memref.sizes.size() != expected_shape.size())
+  if (memref.sizes.size() != type.rank())
     return MakeStringError("operand rank does not match expected input rank: ",
-                           memref.sizes.size(), " vs ", expected_shape.size());
+                           memref.sizes.size(), " vs ", type.rank());
 
   // Check that all statically known dimensions matches the memref dimensions.
-  for (auto pair : llvm::enumerate(llvm::zip(memref.sizes, expected_shape))) {
+  for (auto pair : llvm::enumerate(llvm::zip(memref.sizes, type.sizes()))) {
     ssize_t operand_dim = std::get<0>(pair.value());
     ssize_t expected_dim = std::get<1>(pair.value());
 
@@ -244,6 +340,21 @@ static Error VerifyMemrefOperand(mlir::ShapedType type,
   }
 
   return Error::success();
+}
+
+static Error VerifyMemrefOperand(mlir::ShapedType type,
+                                 const MemrefDesc& memref) {
+  auto element_type = ConvertElementType(type.getElementType());
+  if (auto err = element_type.takeError()) return err;
+
+  // We do not support unranked memrefs at runtime, and do not have a special
+  // runtime type to represent it, however we need to verify operand types when
+  // we do compiled kernel specialization to shape.
+  MemrefType memref_type(type.hasRank() ? type.getShape() : ArrayRef<ssize_t>(),
+                         *element_type);
+
+  return VerifyMemrefOperand(memref_type, memref,
+                             /*check_sizes=*/type.hasRank());
 }
 
 Error VerifyMemrefOperand(mlir::MemRefType type, const MemrefDesc& memref) {
@@ -260,6 +371,10 @@ Error VerifyMemrefOperand(mlir::UnrankedTensorType type,
   return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
 }
 
+// -------------------------------------------------------------------------- //
+// Converting from runtime buffers (aka Tensors) to Memref descriptors.
+// -------------------------------------------------------------------------- //
+
 Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
   if (auto* dht = dyn_cast<DenseHostTensor>(&tensor)) {
     MemrefDesc memref;
@@ -272,35 +387,6 @@ Expected<MemrefDesc> ConvertTensorToMemrefDesc(const Tensor& tensor) {
   }
 
   return MakeStringError("unsupported tensor type: ", tensor.tensor_type());
-}
-
-// Gets (copies) the values from `desc`, returning them in a DenseElementsAttr.
-// If it cannot extract the values, returns an empty attribute.
-static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
-                                               mlir::ShapedType shaped_type,
-                                               const MemrefDesc& desc) {
-  size_t rank = desc.sizes.size();
-  if (rank != 0 && rank != 1) return {};
-
-  llvm::SmallVector<mlir::Attribute> attributes;
-  size_t num_values = rank == 0 ? 1 : desc.sizes[0];
-  switch (desc.dtype) {
-    case DType::I32: {
-      const auto* data = static_cast<TypeForDTypeKind<DType::I32>*>(desc.data);
-      for (int i = 0; i < num_values; ++i) {
-        attributes.push_back(builder->getI32IntegerAttr(data[i]));
-      }
-    } break;
-    case DType::I64: {
-      const auto* data = static_cast<TypeForDTypeKind<DType::I64>*>(desc.data);
-      for (int i = 0; i < num_values; ++i) {
-        attributes.push_back(builder->getI64IntegerAttr(data[i]));
-      }
-    } break;
-    default:
-      return {};
-  }
-  return mlir::DenseElementsAttr::get(shaped_type, attributes);
 }
 
 // -------------------------------------------------------------------------- //
@@ -351,19 +437,19 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   // on a hash code to look up specializations, and this can lead to collisions.
 
   // Make sure that we call the kernel with the correct number of operands.
-  if (operands.size() != signature_.getNumInputs())
+  if (operands.size() != signature_.num_operands())
     return MakeStringError(
-        "number of operands must match the number of inputs: ", operands.size(),
-        " vs ", signature_.getNumInputs());
+        "number of operands doesn't match the function signature: ",
+        operands.size(), " vs ", signature_.num_operands());
 
   // Verify that all operands passed at runtime are compatible with compiled
   // function signature.
   for (int i = 0; i < operands.size(); ++i) {
-    if (auto memref_ty = signature_.getInput(i).dyn_cast<mlir::MemRefType>()) {
-      if (auto err = VerifyMemrefOperand(memref_ty, operands[i])) return err;
+    if (auto* memref = dyn_cast<MemrefType>(signature_.operand(i))) {
+      if (auto err = VerifyMemrefOperand(*memref, operands[i])) return err;
     } else {
       return MakeStringError("expected memref operand at #", i,
-                             ", got: ", signature_.getInput(i));
+                             ", got: ", signature_.operand(i));
     }
   }
 
@@ -454,9 +540,9 @@ struct ConvertDenseHostTensor {
 namespace internal {
 
 mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
-                                     unsigned result_index, mlir::Type type,
+                                     unsigned result_index, const Type* type,
                                      void* result_ptr) {
-  if (!type.isa<mlir::async::TokenType>()) return mlir::failure();
+  if (!isa<AsyncTokenType>(type)) return mlir::failure();
 
   // Load the pointer to the async token from a pointer to result storage.
   TFRT_MSAN_MEMORY_IS_INITIALIZED(result_ptr, sizeof(void*));
@@ -468,7 +554,7 @@ mlir::LogicalResult ReturnAsyncToken(RemainingResults results,
 
 mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
                                                        unsigned result_index,
-                                                       mlir::Type type,
+                                                       const Type* type,
                                                        void* result_ptr) {
   return ReturnAsyncStridedMemref<ConvertDenseHostTensor>(
       {}, results, result_index, type, result_ptr);
@@ -476,7 +562,7 @@ mlir::LogicalResult ReturnAsyncMemrefAsDenseHostTensor(RemainingResults results,
 
 mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
                                                   unsigned result_index,
-                                                  mlir::Type type,
+                                                  const Type* type,
                                                   void* result_ptr) {
   return ReturnStridedMemref<ConvertDenseHostTensor>({}, results, result_index,
                                                      type, result_ptr);
@@ -492,6 +578,11 @@ void EmitErrors(RemainingResults results, Error error,
                 const ExecutionContext& exec_ctx) {
   auto async_error = EmitErrorAsync(exec_ctx, std::move(error));
   for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
+}
+
+void EmitErrors(RemainingResults results, DecodedDiagnostic error,
+                const ExecutionContext& exec_ctx) {
+  return EmitErrors(results, MakeStringError(error), exec_ctx);
 }
 
 Error EmitErrors(const ReturnValueConverterBase& results, Error error,
@@ -562,14 +653,14 @@ void Executable::Execute(CallFrame& call_frame,
 
 Error Executable::ReturnResults(const ReturnValueConverterBase& results,
                                 CallFrame* call_frame) const {
-  auto ret_types = signature_.getResults();
+  bool converted = true;
 
-  bool converted = llvm::all_of(llvm::enumerate(ret_types), [&](auto tuple) {
-    unsigned i = tuple.index();
-    mlir::Type type = tuple.value();
+  for (unsigned i = 0; i < signature_.num_results(); ++i) {
+    const Type* type = signature_.result(i);
     void* ret = &call_frame->results[results_memory_layout_.offsets[i]];
-    return mlir::succeeded(results.ReturnValue(i, type, ret));
-  });
+    bool res = mlir::succeeded(results.ReturnValue(i, type, ret));
+    converted = converted && res;
+  }
 
   if (!converted)
     return MakeStringError("failed to convert all returned values");
@@ -577,7 +668,7 @@ Error Executable::ReturnResults(const ReturnValueConverterBase& results,
     return Error::success();
 }
 
-mlir::FunctionType Executable::signature() const { return signature_; }
+const FunctionType& Executable::signature() const { return signature_; }
 
 //----------------------------------------------------------------------------//
 // Setup MLIR pass pipeline to lower to LLVM dialect, and use ORC JIT to codegen
@@ -716,6 +807,12 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
   pm.addPass(mlir::createConvertVectorToLLVMPass());
+  pm.addPass(mlir::createMemRefToLLVMPass());
+
+  {
+    mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
+    fpm.addPass(mlir::createConvertMathToLLVMPass());
+  }
 
   mlir::LowerToLLVMOptions lower_to_llvm_opts(module.getContext());
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));
@@ -803,26 +900,6 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
   return std::make_unique<mlir::MLIRContext>(registry);
 }
 
-// TODO(b/182944250): `cpurt.corert.entrypoint` indirection must go away with a
-// support of async function.
-static Expected<mlir::FuncOp> ResolveEntrypointFunction(
-    mlir::ModuleOp module, string_view entrypoint) {
-  // Find the original entryupoint function.
-  auto entry_func = module.lookupSymbol<mlir::FuncOp>(entrypoint);
-  if (!entry_func) return MakeStringError("entrypoint function not found");
-
-  // Maybe resolve the corert entrypoint function referenced by the original
-  // entrypoint function.
-  if (auto ref = entry_func->getAttrOfType<mlir::SymbolRefAttr>(
-          "cpurt.corert.entrypoint")) {
-    auto corert_func = module.lookupSymbol<mlir::FuncOp>(ref);
-    if (!corert_func) return MakeStringError("entrypoint function not found");
-    return corert_func;
-  }
-
-  return entry_func;
-}
-
 JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
                                              string_view mlir_module)
     : opts_(opts),
@@ -857,13 +934,17 @@ JitCompilationContext::Instantiate(const CompilationOptions& opts,
     return ctx->Error("failed to lower module to CPURT dialects");
 
   // Verify entrypoint function signature.
-  auto entry_func = ResolveEntrypointFunction(ctx->module(), entrypoint);
-  if (auto err = entry_func.takeError()) return std::move(err);
+  auto entry_func = ctx->module().lookupSymbol<mlir::FuncOp>(entrypoint);
+  if (!entry_func)
+    return MakeStringError("entrypoint function not found: ", entrypoint);
 
-  std::string entry_name = entry_func->getName().str();
-  mlir::FunctionType entry_signature = entry_func->getType();
+  // Convert entrypoint function type to the runtime function type.
+  auto entry_signature = FunctionType::Convert(entry_func.getType());
+  if (auto err = entry_signature.takeError()) return std::move(err);
+
+  // Get the memory layout for returning function results.
   auto results_memory_layout =
-      Executable::VerifyEntrypointSignature(entry_signature);
+      Executable::GetResultsMemoryLayout(*entry_signature);
   if (auto err = results_memory_layout.takeError()) return std::move(err);
 
   // Lower kernel IR from high level dialects to the MLIR LLVM Dialect.
@@ -894,8 +975,7 @@ JitCompilationContext::Instantiate(const CompilationOptions& opts,
   // Register Async Runtime API intrinsics.
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);
 
-  return Executable(std::move(ctx->context_), std::move(*engine),
-                    entry_signature, entry_name,
+  return Executable(std::move(*engine), std::move(*entry_signature), entrypoint,
                     std::move(*results_memory_layout));
 }
 
@@ -918,6 +998,35 @@ static llvm::Expected<mlir::Type> SpecializeType(mlir::Type type,
   }
 
   return MakeStringError("Unsupported input type: ", type);
+}
+
+// Gets (copies) the values from `desc`, returning them in a DenseElementsAttr.
+// If it cannot extract the values, returns an empty attribute.
+static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
+                                               mlir::ShapedType shaped_type,
+                                               const MemrefDesc& desc) {
+  size_t rank = desc.sizes.size();
+  if (rank != 0 && rank != 1) return {};
+
+  llvm::SmallVector<mlir::Attribute> attributes;
+  size_t num_values = rank == 0 ? 1 : desc.sizes[0];
+  switch (desc.dtype) {
+    case DType::I32: {
+      const auto* data = static_cast<TypeForDTypeKind<DType::I32>*>(desc.data);
+      for (int i = 0; i < num_values; ++i) {
+        attributes.push_back(builder->getI32IntegerAttr(data[i]));
+      }
+    } break;
+    case DType::I64: {
+      const auto* data = static_cast<TypeForDTypeKind<DType::I64>*>(desc.data);
+      for (int i = 0; i < num_values; ++i) {
+        attributes.push_back(builder->getI64IntegerAttr(data[i]));
+      }
+    } break;
+    default:
+      return {};
+  }
+  return mlir::DenseElementsAttr::get(shaped_type, attributes);
 }
 
 llvm::Error JitCompilationContext::Specialize(
@@ -1053,8 +1162,9 @@ static Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
     mlir::ModuleOp module, string_view entrypoint) {
   llvm::SmallVector<OperandConstraint> constraints;
 
-  auto func = ResolveEntrypointFunction(module, entrypoint);
-  if (auto err = func.takeError()) return std::move(err);
+  auto func = module.lookupSymbol<mlir::FuncOp>(entrypoint);
+  if (!func)
+    return MakeStringError("entrypoint function not found: ", entrypoint);
 
   auto parse = [](mlir::Attribute attr) -> Expected<OperandConstraint> {
     // If attribute is not defined it means that there is no operand constraint.
@@ -1068,10 +1178,10 @@ static Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
     return ParseOperandConstraints(str.getValue());
   };
 
-  for (int i = 0; i < func->getNumArguments(); ++i) {
-    auto operand_type = func->getType().getInput(i);
+  for (int i = 0; i < func.getNumArguments(); ++i) {
+    auto operand_type = func.getType().getInput(i);
 
-    auto constraint = parse(func->getArgAttr(i, JitExecutable::kConstraint));
+    auto constraint = parse(func.getArgAttr(i, JitExecutable::kConstraint));
     if (auto err = constraint.takeError()) return std::move(err);
 
     auto resolved = ResolveOperandConstraint(*constraint, operand_type);
@@ -1138,16 +1248,20 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
       entrypoint_(entrypoint.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
-      default_executable_(std::move(default_executable)),
       specializations_(std::make_unique<Specializations>()),
-      listener_(listener) {}
-
-const Executable* JitExecutable::DefaultExecutable() const {
-  return default_executable_.hasValue() ? &*default_executable_ : nullptr;
+      listener_(listener) {
+  // Initialize default executable if it is available.
+  if (default_executable.hasValue()) {
+    default_executable_ =
+        MakeAvailableAsyncValueRef<Executable>(std::move(*default_executable));
+  } else {
+    default_executable_ =
+        MakeErrorAsyncValueRef("default executable is not available");
+  }
 }
 
-bool JitExecutable::HasDefaultExecutable() const {
-  return default_executable_.hasValue();
+AsyncValuePtr<Executable> JitExecutable::DefaultExecutable() const {
+  return default_executable_.AsPtr();
 }
 
 ArrayRef<OperandConstraint> JitExecutable::constraints() const {
@@ -1184,12 +1298,12 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
       llvm::hash_combine_range(memref.sizes.begin(), memref.sizes.end()));
 }
 
-// TODO(ezhulenev): Current implementation unnecessarily blocks if the
-// specialization is not available, however it can fallback on default
-// executable if it is available. Also the fast path should be free of mutex to
-// find the pre-compiled specialization. Maybe use atomic pointers (multiple
-// atomic pointers?) to keep the most commonly used specialization available
-// without grabbing a mutex and doing lookup in the DenseMap.
+// TODO(ezhulenev): Current implementation unnecessarily waits for compilation
+// completion if the specialization is not available, however it can fall back
+// on default executable if it is available. Also the fast path should be free
+// of mutex to find the pre-compiled specialization. Maybe use atomic pointers
+// (multiple atomic pointers?) to keep the most commonly used specialization
+// available without grabbing a mutex and doing lookup in the DenseMap.
 //
 // TODO(ezhulenev): The number of specializations should be bounded, ideally we
 // should only keep N most common specializations, and for everything else
@@ -1200,102 +1314,56 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
 // if operand constraint only requires rank specialization. Although it might be
 // beneficial to know the shape to do broadcasts fusion, consider not doing that
 // when it is not needed.
-Expected<const Executable*> JitExecutable::GetExecutable(
-    ArrayRef<MemrefDesc> operands) {
+AsyncValuePtr<Executable> JitExecutable::GetExecutable(
+    ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx) {
   // Do not try to compile specialized executable if it is explicitly disabled.
-  if (compilation_opts_.disable_specializations) {
-    if (!HasDefaultExecutable())
-      return MakeStringError(
-          "jit executable specialization is disabled, but the default "
-          "executable is not available");
-
-    return &*default_executable_;
-  }
+  if (compilation_opts_.disable_specializations) return DefaultExecutable();
 
   llvm::hash_code hash = HashOperands(operands, constraints_);
 
-  // Convert ExecutableOrError to the function result.
-  auto convert = [](ExecutableOrError& value) -> Expected<const Executable*> {
-    // Only error or executable must be available.
-    bool is_error = static_cast<bool>(value.error);
-    assert(is_error != value.executable.hasValue());
+  // Maybe return Executable from the cache.
+  if (auto cached = specializations_->Find(hash)) return cached;
 
-    if (is_error)
-      return MakeStringError("Compilation of specialized function failed: ",
-                             StrCat(value.error));
+  // Allocate a placeholder for the compiled specialization.
+  Specializations::Entry entry = specializations_->Allocate(hash);
 
-    return value.executable.getPointer();
-  };
+  // We lost the race; some other invocation will do the compilation.
+  if (!entry.allocated) return entry.ptr;
 
-  // Reduce the scope of the lock to ensure that compilation happens without
-  // holding the lock.
-  {
-    tfrt::mutex_lock lock(specializations_->mu);
-    auto it = specializations_->executables.find(hash);
-    if (it != specializations_->executables.end())
-      return convert(it->getSecond());
-  }
+  // Instantiation from the source and specialization are cheap, so we do it in
+  // the caller thread. We only schedule expensive compilation as an async task.
 
   // Try to instantiate compilation context from the mlir source.
   Expected<std::unique_ptr<JitCompilationContext>> ctx =
       JitCompilationContext::Instantiate(compilation_opts_, mlir_module_);
+
   if (auto err = ctx.takeError()) {
     assert(false && "parsing mlir module must always succeed at this point");
-    return std::move(err);
+    entry.ptr.SetError(std::move(err));
+    return entry.ptr;
   }
 
   // Specialize executable to the concrete operands.
   if (auto err =
-          (*ctx)->Specialize(operands, constraints_, entrypoint_, listener_))
-    return MakeStringError("Failed to specialize executable: ", err);
-
-  // Compile the specialized executable.
-  Expected<Executable> executable =
-      JitCompilationContext::Compile(std::move(*ctx), entrypoint_);
-
-  // Update the specialized executables cache with an error or the value.
-  tfrt::mutex_lock lock(specializations_->mu);
-
-  // Concurrent thread updated the cache before us.
-  auto it = specializations_->executables.find(hash);
-  if (it != specializations_->executables.end())
-    return convert(it->getSecond());
-
-  // Update the cache with a compilation error.
-  if (auto err = executable.takeError()) {
-    auto emplaced =
-        specializations_->executables.try_emplace(hash, std::move(err));
-    assert(emplaced.second && "error must be successfully emplaced");
-    return convert(emplaced.first->getSecond());
+          (*ctx)->Specialize(operands, constraints_, entrypoint_, listener_)) {
+    entry.ptr.SetError(StrCat("failed to specialize executable: ", err));
+    return entry.ptr;
   }
 
-  // Or update the cache with a compiled executable.
-  auto emplaced =
-      specializations_->executables.try_emplace(hash, std::move(*executable));
-  assert(emplaced.second && "executable must be successfully emplaced");
-  return convert(emplaced.first->getSecond());
-}
+  // Compile specialization asynchronously in the host context thread pool.
+  EnqueueWork(exec_ctx, [ctx = std::move(*ctx), ptr = entry.ptr,
+                         entrypoint = entrypoint_]() mutable {
+    Expected<Executable> executable =
+        JitCompilationContext::Compile(std::move(ctx), entrypoint);
 
-//----------------------------------------------------------------------------//
-// JitExecutableCache implementation.
-//----------------------------------------------------------------------------//
+    // Set the allocated entry async value state to error or concrete.
+    if (auto err = executable.takeError())
+      ptr.SetError(std::move(err));
+    else
+      ptr.emplace(std::move(*executable));
+  });
 
-AsyncValueRef<JitExecutable> JitExecutableCache::Find(intptr_t key) const {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  if (it != cache_.end()) return JitExecutableCache::MakeRef(it->getSecond());
-  return AsyncValueRef<JitExecutable>();
-}
-
-AsyncValueRef<JitExecutable> JitExecutableCache::Insert(
-    intptr_t key, JitExecutable jit_executable) {
-  tfrt::mutex_lock lock(mu_);
-  auto it = cache_.find(key);
-  if (it != cache_.end()) return JitExecutableCache::MakeRef(it->getSecond());
-
-  auto emplaced = cache_.try_emplace(
-      key, std::make_unique<CachedExecutable>(std::move(jit_executable)));
-  return JitExecutableCache::MakeRef(emplaced.first->getSecond());
+  return entry.ptr;
 }
 
 }  // namespace jit

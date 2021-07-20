@@ -29,16 +29,17 @@
 #include "tfrt/tensor/opdefs/tensor.h"
 #include "tfrt/tensor/opdefs/tensor_shape.h"
 
-namespace tfrt {
-namespace cpu {
-namespace jit {
-
 //===----------------------------------------------------------------------===//
 // CpuRuntimeDialect Dialect
 //===----------------------------------------------------------------------===//
 
-CpuRuntimeDialect::CpuRuntimeDialect(MLIRContext *context)
-    : Dialect(/*name*/ "cpurt", context, TypeID::get<CpuRuntimeDialect>()) {
+#include "tfrt/cpu/jit/opdefs/cpurt_ops_dialect.cpp.inc"
+
+namespace tfrt {
+namespace cpu {
+namespace jit {
+
+void CpuRuntimeDialect::initialize() {
   allowUnknownTypes();
 
   addOperations<

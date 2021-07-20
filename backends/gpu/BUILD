@@ -1,4 +1,4 @@
-load("@tf_runtime//third_party/mlir:tblgen.bzl", "gentbl_cc_library")
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library")
 load(
     "@tf_runtime//:build_defs.bzl",
     "if_google",
@@ -22,39 +22,52 @@ licenses(["notice"])
 
 package_group(
     name = "tests_and_tools",
-    packages = [
-        # copybara:uncomment_begin
-        # "@tf_runtime//backends/gpu/...",
-        # # Authorized users go here.
-        # "//platforms/xla/tests/gpu/...",
-        # "@tf_runtime//tools/...",
-        # "@tf_runtime//cpp_tests/...",
-        # copybara:uncomment_end_and_comment_begin
-        "//backends/gpu/...",
-        # Authorized users go here.
-        "//tools/...",
-        "//cpp_tests/...",
-        # copybara:comment_end
-    ],
+    packages = if_google(
+        [
+            "//learning/brain/experimental/tfrt/cpp_tests/...",
+            "//platforms/xla/tests/gpu/...",
+            "@tf_runtime//backends/gpu/...",
+            "@tf_runtime//tools/...",
+            "@tf_runtime//cpp_tests/...",
+        ],
+        [
+            # Note: packages may not contain repos (e.g. @tf_runtime//...)
+            "//backends/gpu/...",
+            "//tools/...",
+            "//cpp_tests/...",
+        ],
+    ),
 )
 
 package_group(
     name = "xla_friends",
     packages = [
-        # copybara:uncomment_begin
-        # "@tf_runtime//backends/gpu/...",
-        # # Authorized users go here.
-        # "//platforms/xla/tests/gpu/...",
-        # "//third_party/tensorflow/compiler/xla/service/gpu/...",
-        # "//third_party/tensorflow/compiler/mlir/tfrt/...",
-        # "@tf_runtime//cpp_tests/...",
-        # "//learning/brain/experimental/tfrt/cpp_tests/...",
-        # copybara:uncomment_end_and_comment_begin
-        "//backends/gpu/...",
-        # Authorized users go here.
-        "//cpp_tests/...",
-        # copybara:comment_end
-    ],
+    ] + if_google(
+        [
+            "//platforms/xla/tests/gpu/...",
+            "//third_party/tensorflow/compiler/xla/service/gpu/...",
+            "//third_party/tensorflow/compiler/mlir/tfrt/...",
+            "@tf_runtime//backends/gpu/...",
+            "@tf_runtime//cpp_tests/...",
+            "//learning/brain/experimental/tfrt/cpp_tests/...",
+        ],
+        [
+            # Note: packages may not contain repos (e.g. @tf_runtime//...)
+            "//backends/gpu/...",
+            "//cpp_tests/...",
+        ],
+    ),
+)
+
+# Config setting to conditionally build CUDA device code. That is, cuda_library
+# targets should only be depended on if this setting is true. This setting does
+# not affect CUDA host-only code.
+alias(
+    name = "cuda_enabled",
+    actual = if_google(
+        "//tools/cc_target_os:linux-google",
+        "@rules_cuda//cuda:is_cuda_enabled",
+    ),
 )
 
 tfrt_cc_library(
@@ -91,14 +104,8 @@ tfrt_cc_library(
     ],
 )
 
-# Generated API implementations for CUDA libraries.
-#
-# No target (with the exception of :cuda_wrapper) should explicitly depend on
-# this. It should rather be used (through .bazelrc) as
-# '--@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs'
-# which makes all cuda_library() targets implicitly depend on it.
-#
-# Not used internally, but we want to include it in CI builds.
+# Generated API implementations for CUDA libraries. Only :cuda_wrapper should
+# depend on this. Not used internally, but we want to include it in CI builds.
 tfrt_cc_library(
     name = "cuda_stubs",
     srcs = [
@@ -110,20 +117,33 @@ tfrt_cc_library(
         "lib/wrapper/cusolver_stub.cc",
     ],
     visibility = ["//visibility:private"],
+    # No CUDA shared object dependencies, they are dynamically loaded.
     deps = [
-        # No CUDA shared object dependencies, they are dynamically loaded.
         ":symbol_loader",
-        # copybara:uncomment_begin
-        # "@cuda_headers",
-        # "@cudnn_headers//:cudnn_header",
-        # copybara:uncomment_end_and_comment_begin
-    ] + if_local_cuda([
-        "@local_cuda//:cuda_headers",
-        "@cudnn_headers",
-        # copybara:comment_end
+        "@cuda_headers",
         "@tf_runtime//third_party/cuda:stub_inc",
-    ]),  # copybara:comment_replace ],
+        if_google(
+            "@cudnn_headers//:cudnn_header",
+            "@cudnn_headers",
+        ),
+    ],
 )
+
+# This target provides the CUDA toolkit headers required to compile CUDA device
+# code and the CUDA runtime library. No target should depend on it explicitly.
+# It should rather be used (through .bazelrc) as
+# '--@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_runtime'
+# which makes all cuda_library() targets implicitly depend on it.
+# copybara:comment_begin
+tfrt_cc_library(
+    name = "cuda_runtime",
+    visibility = ["//visibility:private"],
+    deps = if_local_cuda([
+        ":cuda_stubs",
+        "@local_cuda//:cuda_headers",
+    ]),
+)
+# copybara:comment_end
 
 # This is a backward compatible wrapper for cublasGemmEx to support
 # cuBLAS v10 and v11 builds.
@@ -184,10 +204,13 @@ tfrt_cc_library(
         "include/tfrt/gpu/wrapper/solver_wrapper.h",
         "include/tfrt/gpu/wrapper/wrapper.h",
     ],
-    visibility = [
-        # copybara:uncomment ":tests_and_tools",
-        "//visibility:public",  # copybara:comment_replace ":xla_friends",
-    ],
+    visibility = if_google(
+        [
+            ":tests_and_tools",
+            ":xla_friends",
+        ],
+        ["//visibility:public"],
+    ),
     deps = [
         ":rocm_stubs",
         "@llvm-project//llvm:Support",
@@ -343,9 +366,10 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/gpu/system/system.h",
     ],
-    visibility = [
-        "//visibility:public",  # copybara:comment_replace ":xla_friends",
-    ],
+    visibility = if_google(
+        [":xla_friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         ":gpu_device",
         ":gpu_types",
@@ -374,7 +398,6 @@ tfrt_cc_library(
 cuda_library(
     name = "test_cuda_kernels",
     srcs = ["lib/ops/test/test_cuda_kernels.cu.cc"],
-    hdrs = ["lib/ops/test/test_cuda_kernels.h"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
@@ -398,6 +421,10 @@ tfrt_cc_library(
         "include/tfrt/gpu/ops/test/gpu_ops_and_kernels.h",
     ],
     alwayslink_static_registration_src = "lib/ops/test/static_registration.cc",
+    local_defines = select({
+        ":cuda_enabled": ["TFRT_GPU_CUDA_ENABLED"],
+        "//conditions:default": [],
+    }),
     visibility = [
         "@tf_runtime//:friends",
     ],
@@ -407,7 +434,6 @@ tfrt_cc_library(
         ":gpu_op_handler",
         ":gpu_tensor",
         ":gpu_types",
-        ":test_cuda_kernels",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -417,7 +443,10 @@ tfrt_cc_library(
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:test_metadata_functions",
         "@tf_runtime//third_party/llvm_derived:raw_ostream",
-    ],
+    ] + select({
+        ":cuda_enabled": [":test_cuda_kernels"],
+        "//conditions:default": [],
+    }),
 )
 
 tfrt_cc_library(
@@ -429,21 +458,19 @@ tfrt_cc_library(
         "include/tfrt/gpu/ops/tf/gpu_ops.h",
     ],
     alwayslink_static_registration_src = "lib/ops/tf/static_registration.cc",
+    local_defines = select({
+        ":cuda_enabled": ["TFRT_GPU_CUDA_ENABLED"],
+        "//conditions:default": [],
+    }),
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":gpu_memory",
         ":gpu_op_handler",
         ":gpu_tensor",
         ":gpu_wrapper",
-        ":tf_gpu_binary_ops",
-        ":tf_gpu_dnn_ops",
         ":tf_gpu_matmul_op",
         ":tf_gpu_mlir_ops",
         ":tf_gpu_nullary_ops",
-        ":tf_gpu_pad_op",
-        ":tf_gpu_reduction_ops",
-        ":tf_gpu_transpose_op",
-        ":tf_gpu_unary_ops",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",
@@ -453,7 +480,17 @@ tfrt_cc_library(
         "@tf_runtime//backends/common:eigen_kernels",
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:tf_metadata_functions",
-    ],
+    ] + select({
+        ":cuda_enabled": [
+            ":tf_gpu_binary_ops",
+            ":tf_gpu_dnn_ops",
+            ":tf_gpu_pad_op",
+            ":tf_gpu_reduction_ops",
+            ":tf_gpu_transpose_op",
+            ":tf_gpu_unary_ops",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
 tfrt_cc_library(
@@ -650,7 +687,6 @@ tfrt_cc_library(
         ":gpu_tensor",
         ":gpu_types",
         ":gpu_wrapper",
-        "@eigen_archive//:eigen3",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:core_runtime",
         "@tf_runtime//:dtype",

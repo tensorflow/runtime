@@ -41,6 +41,7 @@ static cudaError_t DynamicCall(const char *symbol_name, Args &&...args) {
 }
 
 #define __dv(x)
+#define __CUDA_DEPRECATED
 
 extern "C" {
 #include "cudart_stub.cc.inc"

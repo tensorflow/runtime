@@ -48,11 +48,12 @@ build --compilation_mode=opt
 
 # Build settings for //backends/gpu/...
 build --@rules_cuda//cuda:cuda_targets=sm_60
-build --@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs
+build --@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_runtime
 build --copt=-U_FORTIFY_SOURCE  # TODO(csigg): fix and remove
 
 # CUDA support
-build:cuda --@rules_cuda//cuda:enable_cuda  # Link //backends/gpu to //tools targets.
+build:cuda --//:enable_gpu  # Link //backends/gpu to //tools targets.
+build:cuda --@rules_cuda//cuda:enable_cuda  # Build CUDA device code.
 test:cuda  --test_env=CUDA_CACHE_DISABLE=1  # Do not cache CUDA JIT
 test:cuda  --test_strategy=exclusive  # Run tests serially to avoid GPU OOM.
 

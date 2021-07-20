@@ -30,14 +30,16 @@ namespace tfrt {
 
 namespace {
 
-// TODO(b/179863362): Support inferring more tensor types for different device
-// types.
 // Infer the destination tensor type for TransferTo. Input device is the
 // destination device, and input tensor is the source tensor.
 inline TensorType InferDstTensorTypeFromDevice(const Device& device,
                                                const Tensor& tensor) {
   TensorType dst_tensor_type = tensor.tensor_type();
-  if (device.type() == GetStaticDeviceType("gpu")) {
+  // If the source tensor is not on host, and the destination device is host,
+  // it must be a dense tensor to be transferred from device.
+  if (device.type() == GetStaticDeviceType("cpu") && !tensor.IsHostTensor()) {
+    dst_tensor_type = tfrt::GetStaticTensorType("DenseHost");
+  } else if (device.type() == GetStaticDeviceType("gpu")) {
     dst_tensor_type = tfrt::GetStaticTensorType("DenseGpu");
   } else if (device.type() == GetStaticDeviceType("tpu")) {
     dst_tensor_type = tfrt::GetStaticTensorType("DenseTpu");

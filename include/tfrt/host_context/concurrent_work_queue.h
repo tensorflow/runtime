@@ -134,7 +134,6 @@ class ConcurrentWorkQueue {
   // Kernels can use this as a hint indicating the maximum useful number of
   // work items they should break themselves into - e.g. zero means it is best
   // to run on the currently active thread and enqueue no work items.
-  // TODO(clattner): this is a terrible name.
   virtual int GetParallelismLevel() const = 0;
 
   // Returns true if the caller thread is one of the worker threads managed by

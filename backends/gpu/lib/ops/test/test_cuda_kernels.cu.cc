@@ -14,8 +14,6 @@
 
 // This file contains CUDA kernels for some test.* ops.
 
-#include "test_cuda_kernels.h"
-
 #include <string>
 
 #define EIGEN_USE_GPU

@@ -76,6 +76,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/cpu/jit/async_runtime.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         "@eigen_archive//:eigen3",
@@ -98,6 +99,7 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/cpu/jit/async_runtime_api.h",
     ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":async_runtime",
@@ -282,6 +284,7 @@ tfrt_cc_library(
     name = "cpurt",
     srcs = ["lib/jit/cpurt.cc"],
     hdrs = ["include/tfrt/cpu/jit/cpurt.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":async_runtime",
@@ -336,6 +339,7 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "cpurt_support",
     hdrs = ["include/tfrt/cpu/jit/cpurt_support.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         "@llvm-project//mlir:IR",

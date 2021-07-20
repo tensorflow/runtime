@@ -24,5 +24,7 @@
       "rocblas_axpy_ex",
       "rocblas_gemm_ex",
       "rocblas_gemm_strided_batched_ex"
+   ],
+   "macros":[
    ]
 }

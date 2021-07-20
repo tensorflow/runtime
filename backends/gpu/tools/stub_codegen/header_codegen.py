@@ -43,7 +43,8 @@ def main():
   config = json.load(args.input)
 
   index = clang.cindex.Index.create()
-  translation_unit = index.parse(config['header'], args=config['extra_args'])
+  translation_unit = index.parse(config['header'], args=config['extra_args'],
+      options=clang.cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD)
 
   def HandleFunction(cursor):
     if cursor.kind != clang.cindex.CursorKind.FUNCTION_DECL:
@@ -81,10 +82,21 @@ def main():
     HandleEnum(cursor.underlying_typedef_type.get_canonical().get_declaration(),
                cursor.spelling)
 
+  def HandleMacro(cursor):
+    if cursor.kind != clang.cindex.CursorKind.MACRO_DEFINITION:
+      return
+
+    macro_name = cursor.spelling
+    if macro_name not in config['macros']:
+      return
+
+    args.output.write('#define %s\n\n' % getSource(cursor))
+
   for cursor in translation_unit.cursor.get_children():
     HandleFunction(cursor)
     HandleEnum(cursor)
     HandleTypedef(cursor)
+    HandleMacro(cursor)
 
 
 if __name__ == '__main__':

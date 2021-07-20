@@ -27,5 +27,7 @@
       "rocfft_plan_get_print",
       "rocfft_plan_get_work_buffer_size",
       "rocfft_setup"
+   ],
+   "macros":[
    ]
 }

@@ -234,5 +234,7 @@
       "cudnnFusedOpsExecute",
       "cudnnSetRNNDescriptor_v6",
       "cudnnSetRNNDescriptor_v5"
+   ],
+   "macros":[
    ]
 }

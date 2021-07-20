@@ -188,5 +188,7 @@
       "miopenSetDropoutDescriptor",
       "miopenDropoutForward",
       "miopenDropoutBackward"
+   ],
+   "macros":[
    ]
 }

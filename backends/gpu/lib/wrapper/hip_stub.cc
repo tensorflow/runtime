@@ -20,7 +20,7 @@
 
 // Memoizes load of the .so for this ROCm library.
 static void *LoadSymbol(const char *symbol_name) {
-  static SymbolLoader loader("libcuda.so");
+  static SymbolLoader loader("libamdhip64.so");
   return loader.GetAddressOfSymbol(symbol_name);
 }
 

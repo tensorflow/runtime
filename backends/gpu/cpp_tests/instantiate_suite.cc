@@ -27,7 +27,7 @@ static std::string ToString(const ::testing::TestParamInfo<Platform>& info) {
 }
 
 // Note: ROCm platform is not fully supported yet.
-static auto kParams = testing::Values(Platform::CUDA);
+  static auto kParams = testing::Values(Platform::CUDA, Platform::ROCm);
 
 INSTANTIATE_TEST_SUITE_P(Suite, Test, kParams, ToString);
 

@@ -1,8 +1,9 @@
 {
-   "header":"third_party/amdgpu/rocFFT/include/rocfft.h",
+   "header":"/opt/rocm-4.2.0/include/rocfft.h",
    "extra_args":[
-      "-I."
-   ],
+      "-I.",
+      "-I/opt/rocm-4.2.0/include/"
+  ],
    "enums":[
       "rocfft_array_type",
       "rocfft_execution_mode",

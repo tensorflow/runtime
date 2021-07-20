@@ -1,6 +1,9 @@
 {
-   "header":"third_party/amdgpu/MIOpen/include/miopen/miopen.h",
-   "extra_args":["-I."],
+   "header":"/opt/rocm-4.2.0/include/miopen/miopen.h",
+   "extra_args":[
+      "-I.",
+      "-I/opt/rocm-4.2.0/include/"
+   ],
    "enums":[
       "miopenStatus_t",
       "miopenDataType_t",
@@ -190,5 +193,6 @@
       "miopenDropoutBackward"
    ],
    "macros":[
+      "MIOPEN_EXPORT"
    ]
 }

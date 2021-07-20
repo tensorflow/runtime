@@ -1,7 +1,8 @@
 {
-   "header":"third_party/amdgpu/rocBLAS/library/include/rocblas.h",
+   "header":"/opt/rocm-4.2.0/include/rocblas.h",
    "extra_args":[
-      "-I."
+      "-I.",
+      "-I/opt/rocm-4.2.0/include/"
    ],
    "enums":[
       "rocblas_operation",
@@ -26,5 +27,6 @@
       "rocblas_gemm_strided_batched_ex"
    ],
    "macros":[
+      "ROCBLAS_EXPORT"
    ]
 }

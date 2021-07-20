@@ -173,7 +173,12 @@ def tfrt_cc_binary(
 
 def tfrt_cc_test(
         includes = [],
-        copts = ["-Wno-private-header"],
+        copts = select({
+            "@tf_runtime//:windows": [],
+            "//conditions:default": [
+                "-Wno-private-header",
+            ],
+        }),
         linkopts = [],
         features = [],
         **kwargs):

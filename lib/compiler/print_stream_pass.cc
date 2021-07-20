@@ -27,6 +27,12 @@ class PrintStreamPass
     : public mlir::PassWrapper<PrintStreamPass,
                                mlir::OperationPass<mlir::FuncOp>> {
  public:
+  llvm::StringRef getArgument() const final { return "tfrt-print-stream"; }
+
+  llvm::StringRef getDescription() const final {
+    return "A test pass for StreamAnalysis";
+  }
+
   void runOnOperation() override {
     auto func_op = getOperation();
 
@@ -49,8 +55,7 @@ class PrintStreamPass
 
 // TODO(chky): Consider not using static initializers and register this pass
 // explicitly in the relevant binaries.
-static mlir::PassRegistration<PrintStreamPass> print_stream(
-    "tfrt-print-stream", "A test pass for StreamAnalysis");
+static mlir::PassRegistration<PrintStreamPass> print_stream;
 
 }  // namespace
 }  // namespace compiler

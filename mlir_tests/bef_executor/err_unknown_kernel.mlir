@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite $(bef_name %s)
+// RUN: bef_executor_lite %s.bef
 
 func @unsupported_kernel_function() {
   // expected-error @+1 {{unknown kernel name 'unsupported_kernel'}}

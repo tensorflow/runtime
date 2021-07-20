@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite $(bef_name %s) --work_queue_type=mstd 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite %s.bef --work_queue_type=mstd 2>&1 | FileCheck %s --dump-input=fail
 
 module attributes {tfrt.cost_threshold = 10 : i64} {
 

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s)
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef
 
 func @register_op_handlers_cpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler

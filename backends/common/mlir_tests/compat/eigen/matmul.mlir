@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=always
+// RUN: bef_executor %s.bef | FileCheck %s --dump-input=always
 
 // CHECK-LABEL: --- Running 'test_matmul_i32'
 func @test_matmul_i32() {

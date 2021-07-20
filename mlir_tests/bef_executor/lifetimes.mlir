@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite $(bef_name %s) | FileCheck %s --dump-input=fail --dump-input-filter=all
+// RUN: bef_executor_lite %s.bef | FileCheck %s --dump-input=fail --dump-input-filter=all
 
 // CHECK-LABEL: --- Running 'test_linear'
 func @test_linear() {

@@ -26,8 +26,8 @@ def mlir_to_bef(name, tfrt_translate):
     Returns:
       the name of generated bef file.
     """
-    bef_file = name[:-5] + ".bef"
-    rule_name = name + ".bef"
+    bef_file = name + ".bef"
+    rule_name = "bef_" + name
     native.genrule(
         name = rule_name,
         srcs = [name],

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s)                          | FileCheck %s
-// RUN: bef_executor $(bef_name %s) --work_queue_type=mstd:8 | FileCheck %s
+// RUN: bef_executor %s.bef                          | FileCheck %s
+// RUN: bef_executor %s.bef --work_queue_type=mstd:8 | FileCheck %s
 
 module @kernels attributes { tfrt.compiled } {
   // Kernel computes result into the allocated memref with dynamic shape.

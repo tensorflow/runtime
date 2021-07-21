@@ -307,6 +307,13 @@ def TransferFromTpuOp : TPU_Op<"transfer_from_tpu"> {
   let assemblyFormat = "operands attr-dict";
 }
 
+def DenseTpuTensorToTensorHandleOp : TPU_Op<"dense_tpu_tensor_to_tensorhandle"> {
+  let summary = "Pack DenseTpuTensor to tensor handle.";
+  let arguments = (ins DenseTensorType:$tpu_tensor, StrAttr:$device);
+  let results = (outs CoreRT_TensorHandleType);
+  let assemblyFormat = "operands attr-dict";
+}
+
 def TransferToTpuOp : TPU_Op<"transfer_to_tpu"> {
   let summary = "transfer cpu tensor handle to specified tpu core";
   let description = [{

@@ -21,6 +21,9 @@ build:windows --config=msvc   # On Windows, build with MSVC by default.
 build:msvc --config=nvcc
 build:msvc --cxxopt=/std:c++14 --host_cxxopt=/std:c++14
 
+# Workaround for https://github.com/tensorflow/runtime/issues/65
+build:msvc --cxxopt=/d2ReducedOptimizeHugeFunctions
+
 # Build with clang.
 build:clang --repo_env=CC=clang
 # This should be 'build:clang' as well, but then could no longer be overriden by

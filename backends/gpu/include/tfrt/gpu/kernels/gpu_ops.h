@@ -22,6 +22,8 @@
 #ifndef TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_
 #define TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_
 
+#include <type_traits>
+
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Dialect.h"
@@ -70,20 +72,26 @@ class EnumAttr : public Attribute {
   }
 
  private:
-  static int ToOpaqueValue(T value) { return value.ToOpaqueValue(); }
-  static T FromOpaqueValue(int opaque) { return T::FromOpaqueValue(opaque); }
-};
+  template <typename X = T>
+  static decltype(&X::ToOpaqueValue, int()) ToOpaqueValue(T value) {
+    return value.ToOpaqueValue();
+  }
+  template <typename X = T>
+  static decltype(&X::FromOpaqueValue, T()) FromOpaqueValue(int opaque) {
+    return T::FromOpaqueValue(opaque);
+  }
 
-// wrapper::Platform specialization. If there are more, SFINAE on std::is_enum.
-template <>
-inline int EnumAttr<wrapper::Platform>::ToOpaqueValue(wrapper::Platform value) {
-  return static_cast<int>(value);
-}
-template <>
-inline wrapper::Platform EnumAttr<wrapper::Platform>::FromOpaqueValue(
-    int opaque) {
-  return static_cast<wrapper::Platform>(opaque);
-}
+  template <typename X = T>
+  static typename std::enable_if<std::is_enum<X>::value, int>::type
+  ToOpaqueValue(T value) {
+    return static_cast<int>(value);
+  }
+  template <typename X = T>
+  static typename std::enable_if<std::is_enum<X>::value, T>::type
+  FromOpaqueValue(int opaque) {
+    return static_cast<T>(opaque);
+  }
+};
 
 using PlatformAttr = EnumAttr<wrapper::Platform>;
 using DnnDataTypeAttr = EnumAttr<wrapper::DnnDataType>;

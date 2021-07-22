@@ -121,7 +121,8 @@ class StringAttribute {
 // target symbol (function name).
 class CompilationUnitAttribute {
  public:
-  explicit CompilationUnitAttribute(const void* value) {
+  explicit CompilationUnitAttribute(const void* value)
+      : id_(reinterpret_cast<intptr_t>(value)) {
     ASSERT_LITTLE_ENDIAN();
     const auto* ptr = static_cast<const uint8_t*>(value);
 
@@ -153,11 +154,13 @@ class CompilationUnitAttribute {
     serialized_operation_ = {base + offset, serialized_operation_len};
   }
 
+  intptr_t id() const { return id_; }
   string_view root_symbol() const { return root_symbol_; }
   ArrayRef<string_view> nested_symbols() const { return nested_symbols_; }
   string_view serialized_operation() const { return serialized_operation_; }
 
  private:
+  intptr_t id_;
   string_view root_symbol_;
   llvm::SmallVector<string_view, 4> nested_symbols_;
   string_view serialized_operation_;

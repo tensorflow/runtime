@@ -31,6 +31,7 @@
 #include "mlir/Interfaces/InferTypeOpInterface.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/ccl_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/tensor/opdefs/host_tensor.h"
@@ -98,6 +99,8 @@ using DnnDataTypeAttr = EnumAttr<wrapper::DnnDataType>;
 using BlasDataTypeAttr = EnumAttr<wrapper::BlasDataType>;
 using BlasOperationAttr = EnumAttr<wrapper::BlasOperation>;
 using BlasGemmAlgoAttr = EnumAttr<wrapper::BlasGemmAlgo>;
+using CclDataTypeAttr = EnumAttr<ncclDataType_t>;
+using CclReductionOpAttr = EnumAttr<ncclRedOp_t>;
 
 namespace conversion {
 

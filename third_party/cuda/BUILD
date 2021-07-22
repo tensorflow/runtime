@@ -9,6 +9,7 @@ licenses(["notice"])
             "//backends/gpu/tools/stub_codegen:%s.json" % api,
             "@cuda_headers//:header_files",
             "@cudnn_headers//:header_files",
+            "@nccl_headers//:header_files",
         ],
         outs = ["include/%s_stub.cc.inc" % api],
         cmd = "$(location //backends/gpu/tools/stub_codegen:impl_codegen) " +
@@ -24,6 +25,7 @@ licenses(["notice"])
         "cufft",
         "cufftxt",
         "cusolverdn",
+        "nccl",
     ]
 ]
 
@@ -37,6 +39,7 @@ tfrt_cc_library(
         ":cufft_stub_inc",
         ":cufftxt_stub_inc",
         ":cusolverdn_stub_inc",
+        ":nccl_stub_inc",
     ],
     visibility = ["//visibility:public"],
 )

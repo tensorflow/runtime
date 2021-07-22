@@ -56,6 +56,28 @@ def _cudnn_headers_impl(repository_ctx):
     repository_ctx.symlink(build_file, "BUILD")
     repository_ctx.patch(patch_file)
 
+def _nccl_headers_impl(repository_ctx):
+    build_file = Label("//third_party/cuda:nccl_headers.BUILD")
+    patch_file = Label("//third_party/cuda:nccl_headers.patch")
+
+    tag = "2.8.3-1"
+    url = "nccl/archive/v{tag}.tar.gz".format(tag = tag)
+    strip_prefix = "nccl-{tag}".format(tag = tag)
+    sha256 = "3ae89ddb2956fff081e406a94ff54ae5e52359f5d645ce977c7eba09b3b782e6"
+    repository_ctx.download_and_extract(
+        url = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/nvidia/" + url,
+            "https://github.com/nvidia/" + url,
+        ],
+        output = "nccl",
+        sha256 = sha256,
+        stripPrefix = strip_prefix,
+    )
+
+    repository_ctx.symlink(build_file, "BUILD")
+    repository_ctx.patch(patch_file)
+    repository_ctx.symlink("nccl/src/nccl.h.in", "nccl/src/nccl.h")
+
 _cuda_headers = repository_rule(
     implementation = _cuda_headers_impl,
     # remotable = True,
@@ -66,6 +88,12 @@ _cudnn_headers = repository_rule(
     # remotable = True,
 )
 
+_nccl_headers = repository_rule(
+    implementation = _nccl_headers_impl,
+    # remotable = True,
+)
+
 def cuda_dependencies():
     _cuda_headers(name = "cuda_headers")
     _cudnn_headers(name = "cudnn_headers")
+    _nccl_headers(name = "nccl_headers")

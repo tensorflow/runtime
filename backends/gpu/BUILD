@@ -122,11 +122,16 @@ tfrt_cc_library(
         ":symbol_loader",
         "@cuda_headers",
         "@tf_runtime//third_party/cuda:stub_inc",
-        if_google(
+    ] + if_google(
+        [
             "@cudnn_headers//:cudnn_header",
+            "@nccl_headers//:src_hdrs",
+        ],
+        [
             "@cudnn_headers",
-        ),
-    ],
+            "@nccl_headers",
+        ],
+    ),
 )
 
 # This target provides the CUDA toolkit headers required to compile CUDA device
@@ -163,6 +168,7 @@ tfrt_cc_library(
     srcs = [
         "include/tfrt/gpu/wrapper/cuda_forwards.h",
         "lib/wrapper/blas_wrapper.cc",
+        "lib/wrapper/ccl_enums.cc",
         "lib/wrapper/cublas_enums.cc",
         "lib/wrapper/cublas_wrapper.cc",
         "lib/wrapper/cuda_wrapper.cc",
@@ -186,6 +192,7 @@ tfrt_cc_library(
     ],
     hdrs = [
         "include/tfrt/gpu/wrapper/blas_wrapper.h",
+        "include/tfrt/gpu/wrapper/ccl_wrapper.h",
         "include/tfrt/gpu/wrapper/cublas_wrapper.h",
         "include/tfrt/gpu/wrapper/cuda_wrapper.h",
         "include/tfrt/gpu/wrapper/cudart_wrapper.h",
@@ -226,6 +233,7 @@ tfrt_cc_library(
             "@cuda_headers//:cufft_static",
             "@cuda_headers//:cusolver_static",
             "@cudnn_headers//:cudnn",
+            "@nccl_headers//:nccl",
         ],
         [":cuda_stubs"],
     ),
@@ -777,6 +785,7 @@ gentbl_cc_library(
         "@llvm-project//mlir:SideEffectTdFiles",
         "@tf_runtime//:OpBaseTdFiles",
         "include/tfrt/gpu/kernels/gpu_blas_ops.td",
+        "include/tfrt/gpu/kernels/gpu_ccl_ops.td",
         "include/tfrt/gpu/kernels/gpu_dnn_ops.td",
         "include/tfrt/gpu/kernels/gpu_driver_ops.td",
         "include/tfrt/gpu/kernels/gpu_ops_base.td",

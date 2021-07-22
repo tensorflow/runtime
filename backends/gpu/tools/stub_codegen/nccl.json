@@ -1,0 +1,30 @@
+{
+   "header":"external/nccl_headers/nccl/src/nccl.h",
+   "extra_args":[
+     "-Iexternal/cuda_headers/cuda",
+     "-Iexternal/cuda_headers/cuda/include"
+   ],
+   "functions":[
+     "ncclGetVersion",
+     "ncclGetUniqueId",
+     "ncclCommInitRank",
+     "ncclCommInitAll",
+     "ncclCommDestroy",
+     "ncclCommAbort",
+     "ncclGetErrorString",
+     "ncclCommGetAsyncError",
+     "ncclCommCount",
+     "ncclCommCuDevice",
+     "ncclCommUserRank",
+     "ncclReduce",
+     "ncclBcast",
+     "ncclBroadcast",
+     "ncclAllReduce",
+     "ncclReduceScatter",
+     "ncclAllGather",
+     "ncclSend",
+     "ncclRecv",
+     "ncclGroupStart",
+     "ncclGroupEnd"
+   ]
+}

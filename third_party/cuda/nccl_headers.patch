@@ -1,0 +1,13 @@
+diff --git nccl/src/nccl.h.in nccl/src/nccl.h.in
+index 11d8e1b..cd9ebac 100644
+--- nccl/src/nccl.h.in
++++ nccl/src/nccl.h.in
+@@ -7,7 +7,7 @@
+ #ifndef NCCL_H_
+ #define NCCL_H_
+ 
+-#include <cuda_runtime.h>
++#include <cuda_runtime_api.h>
+ #include <cuda_fp16.h>
+ 
+ #define NCCL_MAJOR ${nccl:Major}

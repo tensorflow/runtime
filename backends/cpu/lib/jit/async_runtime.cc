@@ -193,6 +193,9 @@ namespace jit {
 }
 
 void AsyncRuntime::Await(AsyncValue* awaitable) {
+  // Short circuit the trivial case.
+  if (awaitable->IsAvailable()) return;
+
   // Blocking wait can't lead to a deadlock if runtime uses external thread
   // pool for launching async tasks.
   if (worker_threads_) {

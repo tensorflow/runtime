@@ -160,6 +160,18 @@ class JitExecutable;
 class Executable;
 
 struct CompilationOptions {
+  // Compiled kernel can be specialized and recompiled at runtime to the
+  // concrete input shapes and sometimes values (e.g. reduciton dimension).
+  enum class Specialization {
+    // Recompile specialized kernels when needed.
+    kEnabled,
+    // Completely disable specialized kernels (always call default executable).
+    kDisabled,
+    // Always use specialized kernels, and never call default executable (only
+    // required for getting reproducible results in benchmarks).
+    kAlways,
+  };
+
   // Byte alignment for allocated memrefs. Depending on the compiler flags
   // Tensorflow requires tensors to be aligned on 16, 32 or 64 bytes.
   int alignment = 0;
@@ -171,8 +183,8 @@ struct CompilationOptions {
   // LLVM optimization level when JIT compiling a kernel.
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
 
-  // Disable recompilation for concrete input shapes or values.
-  bool disable_specializations = false;
+  // What level of specialization is enabled at runtime.
+  Specialization specialization = Specialization::kEnabled;
 
   // Register dialects that are allowed in the serialized module.
   llvm::function_ref<void(mlir::DialectRegistry&)> register_dialects;
@@ -952,6 +964,7 @@ class JitExecutable {
 
   // Default executable that was not specialized to any of the arguments.
   AsyncValueRef<Executable> default_executable_;
+  bool has_default_executable_;
 
   // Executables specialized for the arguments shapes or/and values.
   using Specializations = AsyncValuesCache<llvm::hash_code, Executable>;

@@ -1091,6 +1091,8 @@ llvm::Error JitCompilationContext::Specialize(
 // JitExecutable implementation.
 //----------------------------------------------------------------------------//
 
+using Specialization = CompilationOptions::Specialization;
+
 constexpr const char* const JitExecutable::kConstraint;
 
 static raw_ostream& operator<<(raw_ostream& os,
@@ -1220,7 +1222,7 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   if (IsSpecializationOnly(*constraints)) {
     // If specialization is explicitly disabled return an error, because we will
     // never be able to compile an executable.
-    if (compilation_opts.disable_specializations)
+    if (compilation_opts.specialization == Specialization::kDisabled)
       return MakeStringError(
           "compilation options disabled specialization, however operands have "
           "unresolved constraints: ",
@@ -1248,10 +1250,11 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
       entrypoint_(entrypoint.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
+      has_default_executable_(default_executable.hasValue()),
       specializations_(std::make_unique<Specializations>()),
       listener_(listener) {
   // Initialize default executable if it is available.
-  if (default_executable.hasValue()) {
+  if (has_default_executable_) {
     default_executable_ =
         MakeAvailableAsyncValueRef<Executable>(std::move(*default_executable));
   } else {
@@ -1298,12 +1301,10 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
       llvm::hash_combine_range(memref.sizes.begin(), memref.sizes.end()));
 }
 
-// TODO(ezhulenev): Current implementation unnecessarily waits for compilation
-// completion if the specialization is not available, however it can fall back
-// on default executable if it is available. Also the fast path should be free
-// of mutex to find the pre-compiled specialization. Maybe use atomic pointers
-// (multiple atomic pointers?) to keep the most commonly used specialization
-// available without grabbing a mutex and doing lookup in the DenseMap.
+// TODO(ezhulenev): The fast path should be free of mutex to find the
+// pre-compiled specialization. Maybe use atomic pointers (multiple atomic
+// pointers?) to keep the most commonly used specialization available without
+// doing a lookup in the AsyncValuesCache.
 //
 // TODO(ezhulenev): The number of specializations should be bounded, ideally we
 // should only keep N most common specializations, and for everything else
@@ -1317,12 +1318,24 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
 AsyncValuePtr<Executable> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx) {
   // Do not try to compile specialized executable if it is explicitly disabled.
-  if (compilation_opts_.disable_specializations) return DefaultExecutable();
+  if (compilation_opts_.specialization == Specialization::kDisabled)
+    return DefaultExecutable();
 
   llvm::hash_code hash = HashOperands(operands, constraints_);
 
   // Maybe return Executable from the cache.
-  if (auto cached = specializations_->Find(hash)) return cached;
+  if (auto cached = specializations_->Find(hash)) {
+    // Always use specialized kernel if required by the compilation options.
+    if (compilation_opts_.specialization == Specialization::kAlways)
+      return cached;
+
+    // Fall back on default executable if the specialization is not yet
+    // available.
+    if (has_default_executable_ && !cached.IsAvailable())
+      return DefaultExecutable();
+
+    return cached;
+  }
 
   // Allocate a placeholder for the compiled specialization.
   Specializations::Entry entry = specializations_->Allocate(hash);
@@ -1351,19 +1364,24 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
   }
 
   // Compile specialization asynchronously in the host context thread pool.
-  EnqueueWork(exec_ctx, [ctx = std::move(*ctx), ptr = entry.ptr,
+  EnqueueWork(exec_ctx, [ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
                          entrypoint = entrypoint_]() mutable {
     Expected<Executable> executable =
         JitCompilationContext::Compile(std::move(ctx), entrypoint);
 
     // Set the allocated entry async value state to error or concrete.
     if (auto err = executable.takeError())
-      ptr.SetError(std::move(err));
+      ref.SetError(std::move(err));
     else
-      ptr.emplace(std::move(*executable));
+      ref.emplace(std::move(*executable));
   });
 
-  return entry.ptr;
+  // Use the default executable while we are compiling a specialized version if
+  // this is not explicitly disabled by the compilation options.
+  if (compilation_opts_.specialization == Specialization::kAlways)
+    return entry.ptr;
+  else
+    return has_default_executable_ ? DefaultExecutable() : entry.ptr;
 }
 
 }  // namespace jit

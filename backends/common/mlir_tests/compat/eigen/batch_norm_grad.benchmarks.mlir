@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) | FileCheck %s
+// RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_BatchNormGrad_8x32x32x128'
 func @BM_BatchNormGrad_8x32x32x128() {

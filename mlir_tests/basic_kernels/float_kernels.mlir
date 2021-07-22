@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef 2>&1 | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'basic_f64'
 func @basic_f64() {

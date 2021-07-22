@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) --work_queue_type=mstd:8 | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef --work_queue_type=mstd:8 | FileCheck %s --dump-input=fail
 
 // Layer (type)                 Output Shape              Param #
 // =================================================================

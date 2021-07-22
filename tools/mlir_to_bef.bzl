@@ -26,10 +26,10 @@ def mlir_to_bef(name, tfrt_translate):
     Returns:
       the name of generated bef file.
     """
-    bef_file = name[:-5] + ".bef"
-    rule_name = name + ".bef"
+    bef_file = name + ".bef"
+    target_name = name + "_bef"
     native.genrule(
-        name = rule_name,
+        name = target_name,
         srcs = [name],
         outs = [bef_file],
         cmd = "$(location " + tfrt_translate + ") -mlir-to-bef $(location " + name + ") > $@",

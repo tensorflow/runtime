@@ -17,6 +17,9 @@ build --enable_platform_specific_config
 build:linux   --config=clang  # On Linux, build with clang by default.
 build:windows --config=msvc   # On Windows, build with MSVC by default.
 
+# LLVM's LIT test runner needs %PATHEXT% on Windows
+test:windows --test_env=PATHEXT
+
 # Build with MSVC (and nvcc if --config=cuda)
 build:msvc --config=nvcc
 build:msvc --cxxopt=/std:c++14 --host_cxxopt=/std:c++14

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cat $(bef_name %s) > /dev/null
+// RUN: cat %s.bef > /dev/null
 
 module @kernel attributes { tfrt.compiled } {
   func @main(%input: memref<?x?xf32>, %output: memref<?x?xf32>) {

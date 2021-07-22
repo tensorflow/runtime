@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_debug_tracing --enable_tracing --tracing_level=debug --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor_debug_tracing --enable_tracing --tracing_level=debug --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s --dump-input=fail
 
 // CHECK: Scope:Function: register_op_handlers_cpu
 func @register_op_handlers_cpu() {

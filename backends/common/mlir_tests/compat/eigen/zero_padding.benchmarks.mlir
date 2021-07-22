@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef | FileCheck %s --dump-input=fail
 
 // CHECK-LABEL: --- Running 'BM_ZeroPadding_in_1x224x224x3_p_3x3'
 func @BM_ZeroPadding_in_1x224x224x3_p_3x3() {

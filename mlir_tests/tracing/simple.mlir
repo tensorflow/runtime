@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_debug_tracing --enable_tracing --tracing_level=debug $(bef_name %s) 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor_debug_tracing --enable_tracing --tracing_level=debug %s.bef 2>&1 | FileCheck %s --dump-input=fail
 
 // CHECK: --- Running 'print_test'
 func @print_test() {

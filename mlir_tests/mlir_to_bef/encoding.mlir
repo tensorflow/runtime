@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: od -t x1 $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: od -t x1 %s.bef | FileCheck %s --dump-input=fail
 
 // Empty file.  Check to make sure the magic number is right.
 

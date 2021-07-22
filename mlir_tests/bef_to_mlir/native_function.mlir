@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate --bef-to-mlir $(bef_name %s) \
+// RUN: tfrt_translate --bef-to-mlir %s.bef \
 // RUN: | tfrt_opt -allow-unregistered-dialect \
 // RUN: | FileCheck %s --dump-input=fail
 

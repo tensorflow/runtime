@@ -13,11 +13,11 @@
 // limitations under the License.
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu  \
-// RUN:   $(bef_name %s) | FileCheck %s
+// RUN:   %s.bef | FileCheck %s
 
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu \
 // RUN:              --work_queue_type=mstd:8                      \
-// RUN:   $(bef_name %s) | FileCheck %s
+// RUN:   %s.bef | FileCheck %s
 
 module @kernels attributes { tfrt.compiled } {
   func @main(%input: memref<?x?xf32>) -> memref<?x?xf32> {

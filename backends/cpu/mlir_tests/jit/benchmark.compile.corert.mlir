@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor --test_init_function=register_op_handlers_cpu $(bef_name %s) | FileCheck %s --dump-input=always
+// RUN: bef_executor --test_init_function=register_op_handlers_cpu %s.bef | FileCheck %s --dump-input=always
 
 module @kernels attributes { tfrt.compiled } {
   func @main(%input: memref<?x?xf32>) -> !async.value<memref<?x?xf32>> {

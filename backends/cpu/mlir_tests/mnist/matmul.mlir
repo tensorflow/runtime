@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor $(bef_name %s) | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef | FileCheck %s --dump-input=fail
 
 // TODO: Initialize test matrices inline when b/140124913 is complete.
 // TODO(doak): Generate benchmark matrices with a random kernel when it is

@@ -780,6 +780,9 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
     // Run canonicalization after async-parallel-for pass to remove async
     // operations that are not needed for executing small and cheap loops.
     pm.addPass(mlir::createCanonicalizerPass());
+
+    // Cleanup unused async work dispatch functions after canonicalization.
+    pm.addPass(mlir::createSymbolDCEPass());
   }
 
   // Lower from high level async operations to async runtime.

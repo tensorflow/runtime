@@ -42,7 +42,7 @@ module @kernels attributes { tfrt.compiled } {
 }
 
 // CHECK: --- Running 'compiled_add_f32_tensors'
-func @compiled_add_f32_tensors() {
+func @compiled_add_f32_tensors() -> !tfrt.chain {
   %ch0 = tfrt.new.chain
 
   // Allocate and initialize input tensor.
@@ -65,7 +65,7 @@ func @compiled_add_f32_tensors() {
     : (!t.tensor, !t.tensor, !tfrt.chain) -> (i1, !tfrt.chain)
 
   // CHECK: int1 = 1
-  tfrt.print.i1 %cmp, %cmp_ch
+  %printed = tfrt.print.i1 %cmp, %cmp_ch
 
-  tfrt.return
+  tfrt.return %printed : !tfrt.chain
 }

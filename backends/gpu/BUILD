@@ -102,13 +102,8 @@ tfrt_cc_library(
     deps = [
         # No HIP shared object dependencies, they are dynamically loaded.
         ":symbol_loader",
-    ] + select({
-        # TODO(hanbinyoon): This deserves its own 'rocm_enabled'.
-        ":cuda_enabled": [
-            "@tf_runtime//third_party/hip:stub_inc",
-        ],
-        "//conditions:default": [],
-    }),
+        "@tf_runtime//third_party/hip:stub_inc",
+    ],
 )
 
 # Generated API implementations for CUDA libraries. Only :cuda_wrapper should

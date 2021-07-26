@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// XFAIL: *
 // RUN: bef_executor --test_init_function=register_op_handlers_cpu  \
 // RUN:   %s.bef | FileCheck %s
 

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// XFAIL: *
 // RUN: bef_executor %s.bef                          | FileCheck %s
 // RUN: bef_executor %s.bef --work_queue_type=mstd:8 | FileCheck %s
 

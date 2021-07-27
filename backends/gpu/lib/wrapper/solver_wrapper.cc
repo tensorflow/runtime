@@ -20,6 +20,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cusolver_wrapper.h"
+#include "tfrt/gpu/wrapper/rocsolver_wrapper.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -35,7 +36,7 @@ llvm::Expected<OwningSolverHandle> SolverCreate(Platform platform) {
     case Platform::CUDA:
       return CusolverDnCreate();
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocsolverCreate();
     default:
       return InvalidPlatform(platform);
   }
@@ -47,7 +48,7 @@ llvm::Error SolverDestroy(SolverHandle handle) {
     case Platform::CUDA:
       return CusolverDnDestroy(handle);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocsolverDestroy(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -59,7 +60,7 @@ llvm::Error SolverSetStream(SolverHandle handle, Stream stream) {
     case Platform::CUDA:
       return CusolverDnSetStream(handle, stream);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocsolverSetStream(handle, stream);
     default:
       return InvalidPlatform(platform);
   }
@@ -71,7 +72,7 @@ llvm::Expected<Stream> SolverGetStream(SolverHandle handle) {
     case Platform::CUDA:
       return CusolverDnGetStream(handle);
     case Platform::ROCm:
-      return UnsupportedPlatform(platform);
+      return RocsolverGetStream(handle);
     default:
       return InvalidPlatform(platform);
   }

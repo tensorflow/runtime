@@ -604,12 +604,14 @@ td_library(
         "include/tfrt/tensor/opdefs/tensor.td",
         "include/tfrt/tensor/opdefs/tensor_shape_base.td",
         "include/tfrt/tfrt_op_base.td",
-        "@llvm-project//mlir:SideEffectTdFiles",
-        "@llvm-project//mlir:include/mlir/IR/OpBase.td",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     includes = ["include"],
     visibility = [":friends"],
+    deps = [
+        "@llvm-project//mlir:OpBaseTdFiles",
+        "@llvm-project//mlir:SideEffectTdFiles",
+    ],
 )
 
 td_library(
@@ -1450,10 +1452,12 @@ td_library(
     srcs = [
         "include/tfrt/compiler/opdefs/tfrt_op_interfaces.td",
         "include/tfrt/compiler/opdefs/tfrt_traits.td",
-        "@llvm-project//mlir:OpBaseTdFiles",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
+    deps = [
+        "@llvm-project//mlir:OpBaseTdFiles",
+    ],
 )
 
 gentbl_cc_library(

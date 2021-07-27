@@ -790,15 +790,17 @@ gentbl_cc_library(
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/gpu/kernels/gpu_ops.td",
     td_srcs = [
-        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
-        "@llvm-project//mlir:SideEffectTdFiles",
-        "@tf_runtime//:OpBaseTdFiles",
         "include/tfrt/gpu/kernels/gpu_blas_ops.td",
         "include/tfrt/gpu/kernels/gpu_ccl_ops.td",
         "include/tfrt/gpu/kernels/gpu_dnn_ops.td",
         "include/tfrt/gpu/kernels/gpu_driver_ops.td",
         "include/tfrt/gpu/kernels/gpu_ops_base.td",
         "include/tfrt/gpu/kernels/gpu_solver_ops.td",
+    ],
+    deps = [
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@llvm-project//mlir:SideEffectTdFiles",
+        "@tf_runtime//:OpBaseTdFiles",
     ],
 )
 
@@ -821,7 +823,7 @@ gentbl_cc_library(
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/gpu/kernels/gpu_conversion_helper_ops.td",
-    td_srcs = [
+    deps = [
         "@llvm-project//mlir:GPUOpsTdFiles",
         "@tf_runtime//:OpBaseTdFiles",
     ],

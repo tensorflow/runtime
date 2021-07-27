@@ -765,11 +765,12 @@ class Executable {
 
   Executable(std::unique_ptr<mlir::ExecutionEngine> engine,
              FunctionType signature, string_view entrypoint,
-             ResultsMemoryLayout results_memory_layout)
+             ResultsMemoryLayout results_memory_layout, llvm::StringRef name)
       : engine_(std::move(engine)),
         signature_(std::move(signature)),
         fptr_(*engine_->lookup(entrypoint)),
-        results_memory_layout_(std::move(results_memory_layout)) {
+        results_memory_layout_(std::move(results_memory_layout)),
+        name_(name.str()) {
     assert(fptr_ != nullptr && "entrypoint was not found");
   }
 
@@ -801,6 +802,8 @@ class Executable {
   const FunctionType& signature() const;
 
   bool IsAsync() const { return results_memory_layout_.has_async_results; }
+
+  llvm::StringRef name() const { return name_; }
 
   // CallFrame provides a pointer-stable storage for packed function arguments
   // and storage for returned values.
@@ -860,6 +863,7 @@ class Executable {
   FunctionType signature_;
   KernelFunctionPtr fptr_;
   ResultsMemoryLayout results_memory_layout_;
+  std::string name_;
 };
 
 //----------------------------------------------------------------------------//

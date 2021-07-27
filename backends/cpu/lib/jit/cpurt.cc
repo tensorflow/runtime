@@ -87,6 +87,7 @@
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
+#include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
 namespace cpu {
@@ -848,6 +849,10 @@ class JitCompilationContext {
     return MakeStringError(original_error, ":\n", diagnostic_);
   }
 
+  llvm::StringRef name() const {
+    return module().getName().getValueOr("<unknown>");
+  }
+
   mlir::ModuleOp module() const {
     assert(module_ && "failed to parse the mlir module");
     return *module_;
@@ -979,7 +984,7 @@ JitCompilationContext::Instantiate(const CompilationOptions& opts,
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);
 
   return Executable(std::move(*engine), std::move(*entry_signature), entrypoint,
-                    std::move(*results_memory_layout));
+                    std::move(*results_memory_layout), ctx->name().str());
 }
 
 // Return input `type` specialized to memref descriptor operand.
@@ -1216,6 +1221,8 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
       JitCompilationContext::Instantiate(compilation_opts, mlir_module);
   if (auto err = ctx.takeError()) return std::move(err);
 
+  TFRT_TRACE_SCOPE(Default, StrCat("cpurt: Compile [@", (*ctx)->name(), "]"));
+
   // Get resolved operands constraints for the entrypoint function.
   auto constraints = GetOperandsConstraints((*ctx)->module(), entrypoint);
   if (auto err = constraints.takeError()) return std::move(err);
@@ -1369,6 +1376,8 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
   // Compile specialization asynchronously in the host context thread pool.
   EnqueueWork(exec_ctx, [ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
                          entrypoint = entrypoint_]() mutable {
+    TFRT_TRACE_SCOPE(Default, StrCat("cpurt: Specialize [@", ctx->name(), "]"));
+
     Expected<Executable> executable =
         JitCompilationContext::Compile(std::move(ctx), entrypoint);
 

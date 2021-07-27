@@ -161,7 +161,7 @@ class TracingScope {
 // is long enough (~100ns) and `*_EVENT` otherwise.
 
 #ifndef TFRT_DISABLE_TRACING
-#define __TFRT_TRACE_GET_LEVEL(level) tfrt::tracing::TracingLevel::level
+#define __TFRT_TRACE_GET_LEVEL(level) ::tfrt::tracing::TracingLevel::level
 #define TFRT_TRACE_SCOPE(level, message)                                     \
   ::tfrt::tracing::TracingScope tracing_scope(__TFRT_TRACE_GET_LEVEL(level), \
                                               [&] { return message; })

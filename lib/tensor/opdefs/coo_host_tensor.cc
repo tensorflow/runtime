@@ -40,12 +40,12 @@ CooHostTensorDialect::CooHostTensorDialect(MLIRContext *context)
       >();
 }
 
+}  // namespace coo
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/tensor/opdefs/coo_host_tensor.cpp.inc"
-
-}  // namespace coo
-}  // namespace tfrt

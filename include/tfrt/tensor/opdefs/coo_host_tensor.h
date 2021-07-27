@@ -35,10 +35,10 @@ class CooHostTensorDialect : public Dialect {
   explicit CooHostTensorDialect(MLIRContext *context);
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/tensor/opdefs/coo_host_tensor.h.inc"
-
 }  // namespace coo
 }  // namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/tensor/opdefs/coo_host_tensor.h.inc"
 
 #endif  // TFRT_TENSOR_OPDEFS_COO_HOST_TENSOR_H_

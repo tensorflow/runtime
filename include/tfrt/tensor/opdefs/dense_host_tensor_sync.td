@@ -36,7 +36,7 @@ def DHT_Sync_Dialect : Dialect {
     This dialect contains synchronous operations for working with dense host tensors.
   }];
 
-  let cppNamespace = "dht";
+  let cppNamespace = "tfrt::dht";
 }
 
 // Base class for the operation in this dialect

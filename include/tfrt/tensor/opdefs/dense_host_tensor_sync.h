@@ -40,10 +40,10 @@ class DenseHostTensorSyncDialect : public Dialect {
   explicit DenseHostTensorSyncDialect(MLIRContext *context);
 };
 
-#define GET_OP_CLASSES
-#include "tfrt/tensor/opdefs/dense_host_tensor_sync.h.inc"
-
 }  // namespace dht
 }  // namespace tfrt
+
+#define GET_OP_CLASSES
+#include "tfrt/tensor/opdefs/dense_host_tensor_sync.h.inc"
 
 #endif  // TFRT_TENSOR_OPDEFS_DENSE_HOST_TENSOR_SYNC_H_

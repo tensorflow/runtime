@@ -34,7 +34,7 @@ def COO_Dialect : Dialect {
     This dialect contains operations for working with sparse tensors.
   }];
 
-  let cppNamespace = "coo";
+  let cppNamespace = "tfrt::coo";
 }
 
 // Base class for the operation in this dialect.

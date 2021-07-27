@@ -43,12 +43,12 @@ DenseHostTensorSyncDialect::DenseHostTensorSyncDialect(MLIRContext *context)
       >();
 }
 
+}  // namespace dht
+}  // namespace tfrt
+
 //===----------------------------------------------------------------------===//
 // TableGen'd op method definitions
 //===----------------------------------------------------------------------===//
 
 #define GET_OP_CLASSES
 #include "tfrt/tensor/opdefs/dense_host_tensor_sync.cpp.inc"
-
-}  // namespace dht
-}  // namespace tfrt

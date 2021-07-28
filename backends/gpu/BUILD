@@ -834,9 +834,10 @@ tfrt_cc_library(
     srcs = ["lib/kernels/gpu_ops.cc"],
     hdrs = ["include/tfrt/gpu/kernels/gpu_ops.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [
-        "//visibility:public",  # copybara:comment_replace "@tf_runtime//:friends",
-    ],
+    visibility = if_google(
+        ["@tf_runtime//:friends"],
+        ["//visibility:public"],
+    ),
     deps = [
         ":gpu_conversion_helper_opdefs_inc_gen",
         ":gpu_opdefs_inc_gen",
@@ -885,10 +886,13 @@ tfrt_cc_library(
     ],
     alwayslink_static_registration_src = "lib/kernels/static_registration.cc",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = [
-        ":tests_and_tools",
-        ":xla_friends",
-    ],
+    visibility = if_google(
+        [
+            ":tests_and_tools",
+            ":xla_friends",
+        ],
+        ["//visibility:public"],
+    ),
     deps = [
         ":gpu_memory",
         ":gpu_tensor",

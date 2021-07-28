@@ -20,7 +20,6 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cufft_wrapper.h"
-#include "tfrt/gpu/wrapper/rocfft_wrapper.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -36,9 +35,6 @@ llvm::Error FftDestroy(FftHandle handle) {
   switch (platform) {
     case Platform::CUDA:
       return CufftDestroy(handle);
-    case Platform::ROCm:
-      if (auto error = RocfftExecutionInfoDestroy(handle)) return error;
-      return RocfftPlanDestroy(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -49,8 +45,6 @@ llvm::Error FftSetStream(FftHandle handle, Stream stream) {
   switch (platform) {
     case Platform::CUDA:
       return CufftSetStream(handle, stream);
-    case Platform::ROCm:
-      return RocfftExecutionInfoSetStream(handle, stream);
     default:
       return InvalidPlatform(platform);
   }
@@ -61,8 +55,6 @@ llvm::Expected<size_t> FftGetWorkspaceSize(FftHandle handle) {
   switch (platform) {
     case Platform::CUDA:
       return CufftGetSize(handle);
-    case Platform::ROCm:
-      return RocfftPlanGetWorkBufferSize(handle);
     default:
       return InvalidPlatform(platform);
   }
@@ -74,8 +66,6 @@ llvm::Error FftSetWorkspace(FftHandle handle, Pointer<void> workspace,
   switch (platform) {
     case Platform::CUDA:
       return CufftSetWorkArea(handle, workspace);
-    case Platform::ROCm:
-      return RocfftExecutionInfoSetWorkBuffer(handle, workspace, size_bytes);
     default:
       return InvalidPlatform(platform);
   }

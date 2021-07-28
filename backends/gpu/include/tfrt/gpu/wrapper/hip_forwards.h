@@ -48,30 +48,11 @@ using miopenDeallocatorFunction = void *(*)(void *context, void *memory);
 struct miopenConvAlgoPerf_t;
 struct miopenConvSolution_t;
 
-// Forward declaration of rocFFT types.
-using rocfft_plan = struct rocfft_plan_t *;
-using rocfft_plan_description = struct rocfft_plan_description_t *;
-using rocfft_execution_info = struct rocfft_execution_info_t *;
-
 // Forward declaration of rocBLAS types.
 using rocblas_handle = struct _rocblas_handle *;
 
 // Forward declaration of rocSOLVER types.
 using rocsolver_handle = rocblas_handle;
 
-namespace llvm {
-// Define pointer traits for incomplete types.
-template <typename>
-struct PointerLikeTypeTraits;
-template <>
-struct PointerLikeTypeTraits<rocfft_execution_info> {
-  static void *getAsVoidPointer(rocfft_execution_info ptr) { return ptr; }
-  static rocfft_execution_info getFromVoidPointer(void *ptr) {
-    return static_cast<rocfft_execution_info>(ptr);
-  }
-  // NOLINTNEXTLINE(readability-identifier-naming)
-  static constexpr int NumLowBitsAvailable = 2;
-};
-}  // namespace llvm
 
 #endif  // TFRT_GPU_WRAPPER_HIP_FORWARDS_H_

@@ -677,9 +677,9 @@ const FunctionType& Executable::signature() const { return signature_; }
 //----------------------------------------------------------------------------//
 
 namespace {
-// Expand math operations to fast polynomial approximations.
-struct MathApproximationPass
-    : public mlir::PassWrapper<MathApproximationPass, mlir::FunctionPass> {
+// Optimize operations from the `math` dialect.
+struct MathOptimizationPass
+    : public mlir::PassWrapper<MathOptimizationPass, mlir::FunctionPass> {
   void runOnFunction() override;
 };
 
@@ -692,16 +692,17 @@ struct AlignedAllocationsPass
 };
 }  // namespace
 
-void MathApproximationPass::runOnFunction() {
+void MathOptimizationPass::runOnFunction() {
   mlir::OwningRewritePatternList patterns(&getContext());
+  mlir::populateMathAlgebraicSimplificationPatterns(patterns);
   mlir::populateMathPolynomialApproximationPatterns(patterns);
   if (failed(mlir::applyPatternsAndFoldGreedily(getOperation(),
                                                 std::move(patterns))))
     signalPassFailure();
 }
 
-std::unique_ptr<MathApproximationPass> CreateMathApproximationPass() {
-  return std::make_unique<MathApproximationPass>();
+std::unique_ptr<MathOptimizationPass> CreateMathOptimizationPass() {
+  return std::make_unique<MathOptimizationPass>();
 }
 
 void AlignedAllocationsPass::runOnFunction() {
@@ -768,6 +769,10 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   pm.addPass(mlir::createCanonicalizerPass());
   pm.addPass(mlir::createCSEPass());
 
+  // Optimize operations from the math dialect before outlining compute regions
+  // into functions to see all constant operands.
+  pm.addNestedPass<mlir::FuncOp>(CreateMathOptimizationPass());
+
   // Convert all linalg operations to parallel loops.
   pm.addNestedPass<mlir::FuncOp>(
       mlir::createConvertLinalgToParallelLoopsPass());
@@ -792,16 +797,11 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // Add async.runtime reference counting operations.
   pm.addPass(mlir::createAsyncRuntimePolicyBasedRefCountingPass());
 
-  {
-    mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
+  // Expand math operations into std dialect operations.
+  pm.addNestedPass<mlir::FuncOp>(mlir::createStdExpandOpsPass());
 
-    // Optimize math operations.
-    fpm.addPass(mlir::createStdExpandOpsPass());
-    fpm.addPass(CreateMathApproximationPass());
-
-    // Add alignment attribute to all memref allocations.
-    fpm.addPass(CreateAlignedAllocationsPass(opts.alignment));
-  }
+  // Add alignment attribute to all memref allocations.
+  pm.addNestedPass<mlir::FuncOp>(CreateAlignedAllocationsPass(opts.alignment));
 
   // Lower everything down to LLVM dialect.
   pm.addPass(mlir::createConvertLinalgToLLVMPass());

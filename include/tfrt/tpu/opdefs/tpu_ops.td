@@ -353,33 +353,6 @@ def TransferTensorToTpuOp : TPU_Op<"transfer_tensor_to_tpu"> {
   let assemblyFormat = "operands attr-dict";
 }
 
-def BundledTransferToTpuOp : TPU_Op<"bundled_transfer_to_tpu", [SameVariadicOperandSize]> {
-  let summary = "Bundle CPU variables and input tensors, and transfer them to specified TPU core in one single transfer dispatch routine";
-  let description = [{
-    Bundle CPU variables and input tensors, and transfer them to specified TPU core in one single transfer dispatch routine.
-    var_indices are the indices of the inputs that are variables, the rest of the inputs are input tensors.
-    var_indices is sorted in ascending order.
-
-    Example:
-      %result = tpurt.bundled_transfer %core_location, (%operands) (%preferred_layouts) { var_indices = [1, 3] }
-  }];
-
-  let arguments = (ins
-    CoreLocationType:$core_location,
-    Variadic<CoreRT_TensorHandleType>:$operands,
-    Variadic<XlaShapeType>:$preferred_layouts,
-    I64ArrayAttr:$var_indices
-  );
-
-  let results = (outs
-    Variadic<DenseTensorType>:$results
-  );
-
-  let assemblyFormat = [{
-    $core_location` ` `(` $operands `,` $preferred_layouts `)` attr-dict `:` type($results)
-  }];
-}
-
 def MaybeTransferVariableOp : TPU_Op<"maybe_transfer_variable"> {
   let summary = "transfer cpu variable tensor handle to specified tpu core";
   let description = [{

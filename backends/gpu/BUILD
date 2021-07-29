@@ -73,7 +73,6 @@ alias(
 tfrt_cc_library(
     name = "symbol_loader",
     hdrs = ["lib/wrapper/symbol_loader.h"],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
@@ -97,7 +96,6 @@ tfrt_cc_library(
         "include/tfrt/gpu/wrapper/rocblas_stub.h",
         "include/tfrt/gpu/wrapper/rocfft_stub.h",
     ],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["//visibility:private"],
     deps = [
         # No HIP shared object dependencies, they are dynamically loaded.
@@ -213,7 +211,6 @@ tfrt_cc_library(
         "include/tfrt/gpu/wrapper/solver_wrapper.h",
         "include/tfrt/gpu/wrapper/wrapper.h",
     ],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = if_google(
         [
             ":tests_and_tools",
@@ -226,21 +223,18 @@ tfrt_cc_library(
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
     ] + if_google(
-        select({
-            ":cuda_enabled": [
-                # CUDA libraries are statically linked.
-                ":cublas_compat",
-                "//platforms/gpus/cuda/dynamic_libcuda",
-                "@cuda_headers//:cublas_static",
-                "@cuda_headers",
-                "@cuda_headers//:cudart_static",
-                "@cuda_headers//:cufft_static",
-                "@cuda_headers//:cusolver_static",
-                "@cudnn_headers//:cudnn",
-                "@nccl_headers//:nccl",
-            ],
-            "//conditions:default": [],
-        }),
+        [
+            # CUDA libraries are statically linked.
+            ":cublas_compat",
+            "//platforms/gpus/cuda/dynamic_libcuda",
+            "@cuda_headers//:cublas_static",
+            "@cuda_headers",
+            "@cuda_headers//:cudart_static",
+            "@cuda_headers//:cufft_static",
+            "@cuda_headers//:cusolver_static",
+            "@cudnn_headers//:cudnn",
+            "@nccl_headers//:nccl",
+        ],
         [":cuda_stubs"],
     ),
 )
@@ -253,7 +247,6 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/gpu/memory/bfc_gpu_allocator.h",
     ],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":tests_and_tools"],
     deps = [
         ":gpu_types",
@@ -293,7 +286,6 @@ tfrt_cc_library(
     hdrs = [
         "include/tfrt/gpu/tensor/dense_gpu_tensor.h",
     ],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":gpu_memory",
@@ -764,7 +756,6 @@ tfrt_cc_library(
 
 gentbl_cc_library(
     name = "gpu_opdefs_inc_gen",
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     includes = [
         "../../include",
         "include",
@@ -806,7 +797,6 @@ gentbl_cc_library(
 
 gentbl_cc_library(
     name = "gpu_conversion_helper_opdefs_inc_gen",
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     includes = [
         "../../include",
         "include",
@@ -833,7 +823,6 @@ tfrt_cc_library(
     name = "gpu_opdefs",
     srcs = ["lib/kernels/gpu_ops.cc"],
     hdrs = ["include/tfrt/gpu/kernels/gpu_ops.h"],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = if_google(
         ["@tf_runtime//:friends"],
         ["//visibility:public"],
@@ -856,7 +845,6 @@ tfrt_cc_library(
     name = "gpu_passes",
     srcs = ["lib/pass/pass.cc"],
     hdrs = ["include/tfrt/gpu/pass/pass.h"],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":gpu_opdefs",
@@ -885,7 +873,6 @@ tfrt_cc_library(
         "lib/kernels/solver_kernels.cc",
     ],
     alwayslink_static_registration_src = "lib/kernels/static_registration.cc",
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = if_google(
         [
             ":tests_and_tools",
@@ -938,7 +925,6 @@ tfrt_cc_library(
     name = "gpu_types",
     srcs = ["lib/gpu_types.cc"],
     hdrs = ["include/tfrt/gpu/gpu_types.h"],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = if_google(
         [":xla_friends"],
         ["//visibility:public"],

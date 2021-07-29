@@ -19,6 +19,7 @@
 #define TFRT_GPU_WRAPPER_CUSOLVER_WRAPPER_H_
 
 #include "cusolverDn.h"  // from @cuda_headers
+#include "tfrt/gpu/wrapper/cuda_type_traits.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 
 namespace tfrt {

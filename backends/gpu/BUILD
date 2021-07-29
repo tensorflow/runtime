@@ -167,6 +167,7 @@ tfrt_cc_library(
     name = "gpu_wrapper",
     srcs = [
         "include/tfrt/gpu/wrapper/cuda_forwards.h",
+        "include/tfrt/gpu/wrapper/cuda_type_traits.h",
         "lib/wrapper/blas_wrapper.cc",
         "lib/wrapper/ccl_enums.cc",
         "lib/wrapper/cublas_enums.cc",

@@ -20,6 +20,7 @@
 
 #include "cublas.h"  // from @cuda_headers
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/cuda_type_traits.h"
 
 namespace tfrt {
 namespace gpu {

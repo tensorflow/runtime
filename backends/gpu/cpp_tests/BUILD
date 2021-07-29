@@ -43,7 +43,7 @@ tfrt_cc_library(
         "fft",
         "runtime",
         "solver",
-    ]
+    ] + if_google(["ccl"])  # Kokoro machines don't have NCCL installed.
 ]
 
 tfrt_cc_test(

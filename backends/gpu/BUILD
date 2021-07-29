@@ -86,6 +86,7 @@ tfrt_cc_library(
     srcs = [
         "lib/wrapper/hip_stub.cc",
         "lib/wrapper/miopen_stub.cc",
+        "lib/wrapper/rccl_stub.cc",
         "lib/wrapper/rocblas_stub.cc",
         "lib/wrapper/rocfft_stub.cc",
     ],
@@ -93,6 +94,7 @@ tfrt_cc_library(
         "include/tfrt/gpu/wrapper/hip_forwards.h",
         "include/tfrt/gpu/wrapper/hip_stub.h",
         "include/tfrt/gpu/wrapper/miopen_stub.h",
+        "include/tfrt/gpu/wrapper/rccl_stub.h",
         "include/tfrt/gpu/wrapper/rocblas_stub.h",
         "include/tfrt/gpu/wrapper/rocfft_stub.h",
     ],
@@ -100,8 +102,13 @@ tfrt_cc_library(
     deps = [
         # No HIP shared object dependencies, they are dynamically loaded.
         ":symbol_loader",
+        "@cuda_headers",
         "@tf_runtime//third_party/hip:stub_inc",
-    ],
+    ] + if_google(
+        # rccl_stub.h includes NCCL headers for its enums and types.
+        ["@nccl_headers//:src_hdrs"],
+        ["@nccl_headers"],
+    ),
 )
 
 # Generated API implementations for CUDA libraries. Only :cuda_wrapper should
@@ -115,6 +122,7 @@ tfrt_cc_library(
         "lib/wrapper/cudnn_stub.cc",
         "lib/wrapper/cufft_stub.cc",
         "lib/wrapper/cusolver_stub.cc",
+        "lib/wrapper/nccl_stub.cc",
     ],
     visibility = ["//visibility:private"],
     # No CUDA shared object dependencies, they are dynamically loaded.
@@ -123,14 +131,11 @@ tfrt_cc_library(
         "@cuda_headers",
         "@tf_runtime//third_party/cuda:stub_inc",
     ] + if_google(
-        [
-            "@cudnn_headers//:cudnn_header",
-            "@nccl_headers//:src_hdrs",
-        ],
-        [
-            "@cudnn_headers",
-            "@nccl_headers",
-        ],
+        ["@cudnn_headers//:cudnn_header"],
+        ["@cudnn_headers"],
+    ) + if_google(
+        ["@nccl_headers//:src_hdrs"],
+        ["@nccl_headers"],
     ),
 )
 
@@ -170,6 +175,7 @@ tfrt_cc_library(
         "include/tfrt/gpu/wrapper/cuda_type_traits.h",
         "lib/wrapper/blas_wrapper.cc",
         "lib/wrapper/ccl_enums.cc",
+        "lib/wrapper/ccl_wrapper.cc",
         "lib/wrapper/cublas_enums.cc",
         "lib/wrapper/cublas_wrapper.cc",
         "lib/wrapper/cuda_wrapper.cc",
@@ -185,6 +191,8 @@ tfrt_cc_library(
         "lib/wrapper/hip_wrapper.cc",
         "lib/wrapper/miopen_enums.cc",
         "lib/wrapper/miopen_wrapper.cc",
+        "lib/wrapper/nccl_wrapper.cc",
+        "lib/wrapper/rccl_wrapper.cc",
         "lib/wrapper/rocblas_enums.cc",
         "lib/wrapper/rocblas_wrapper.cc",
         "lib/wrapper/rocfft_wrapper.cc",
@@ -207,6 +215,8 @@ tfrt_cc_library(
         "include/tfrt/gpu/wrapper/hash_utils.h",
         "include/tfrt/gpu/wrapper/hip_wrapper.h",
         "include/tfrt/gpu/wrapper/miopen_wrapper.h",
+        "include/tfrt/gpu/wrapper/nccl_wrapper.h",
+        "include/tfrt/gpu/wrapper/rccl_wrapper.h",
         "include/tfrt/gpu/wrapper/rocblas_wrapper.h",
         "include/tfrt/gpu/wrapper/rocfft_wrapper.h",
         "include/tfrt/gpu/wrapper/solver_wrapper.h",

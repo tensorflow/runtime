@@ -22,6 +22,25 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclResult_t result) {
+  switch (result) {
+    case ncclSuccess:
+      return os << "ncclSuccess";
+    case ncclUnhandledCudaError:
+      return os << "ncclUnhandledCudaError";
+    case ncclSystemError:
+      return os << "ncclSystemError";
+    case ncclInternalError:
+      return os << "ncclInternalError";
+    case ncclInvalidArgument:
+      return os << "ncclInvalidArgument";
+    case ncclInvalidUsage:
+      return os << "ncclInvalidUsage";
+    default:
+      return os << llvm::formatv("ncclResult_t({0})", static_cast<int>(result));
+  }
+}
+
 template <>
 Expected<ncclDataType_t> Parse<ncclDataType_t>(llvm::StringRef name) {
   if (name == "ncclInt8") return ncclInt8;

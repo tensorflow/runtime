@@ -781,7 +781,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   if (opts.num_worker_threads > 1) {
     pm.addPass(mlir::createAsyncParallelForPass(
         /*asyncDispatch=*/true, /*numWorkerThreads=*/opts.num_worker_threads,
-        /*targetBlockSize=*/15000));
+        /*targetBlockSize=*/16 * 1024));
 
     // Run canonicalization after async-parallel-for pass to remove async
     // operations that are not needed for executing small and cheap loops.

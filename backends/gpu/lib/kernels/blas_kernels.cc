@@ -37,7 +37,7 @@ static Expected<GpuBlasHandle> BlasCreate(Argument<GpuStream> stream) {
   return GpuBlasHandle(stream.ValueRef(), std::move(*handle));
 }
 
-template <typename T, cublasDataType_t cuda_type, rocblas_datatype rocm_type>
+template <typename T, cudaDataType cuda_type, rocblas_datatype rocm_type>
 static llvm::Expected<wrapper::Pointer<T>> GetScalePointer(
     AsyncValue* value, wrapper::BlasDataType data_type) {
   if (data_type != cuda_type && data_type != rocm_type)

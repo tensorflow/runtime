@@ -70,7 +70,7 @@ struct EnumTraits<wrapper::DnnDataTypeTag> {
 
 template <>
 struct EnumTraits<wrapper::BlasDataTypeTag> {
-  using cuda_type = cublasDataType_t;
+  using cuda_type = cudaDataType;
   using rocm_type = rocblas_datatype;
 };
 
@@ -147,7 +147,7 @@ static void printEnum(OpAsmPrinter &printer, Operation *,
   }
 }
 
-static Type GetBlasDataType(MLIRContext *context, cublasDataType_t data_type) {
+static Type GetBlasDataType(MLIRContext *context, cudaDataType data_type) {
   switch (data_type) {
     case CUDA_R_32F:
       return Float32Type::get(context);
@@ -174,7 +174,7 @@ static Type GetBlasDataType(BlasDataTypeAttr attribute) {
   wrapper::BlasDataType value = attribute.getValue();
   switch (value.platform()) {
     case wrapper::Platform::CUDA:
-      return GetBlasDataType(context, static_cast<cublasDataType_t>(value));
+      return GetBlasDataType(context, static_cast<cudaDataType>(value));
     case wrapper::Platform::ROCm:
       return GetBlasDataType(context, static_cast<rocblas_datatype>(value));
     default:
@@ -187,13 +187,12 @@ static ParseResult parseBlasDataType(OpAsmParser &parser,
                                      BlasDataTypeAttr &attribute,
                                      Ts &...types) {
   if (failed(parseEnum(parser, attribute))) {
-    return parser.emitError(
-        parser.getCurrentLocation(),
-        "unknown cublasDataType_t or rocblas_datatype enum");
+    return parser.emitError(parser.getCurrentLocation(),
+                            "unknown cudaDataType or rocblas_datatype enum");
   }
 
-  if (auto scale_type = GetBlasDataType(attribute)) {
-    Type dummy[]{(types = scale_type)...};
+  if (auto type = GetBlasDataType(attribute)) {
+    Type dummy[]{(types = type)...};
     (void)dummy;
     return success();
   }

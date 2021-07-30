@@ -56,6 +56,11 @@ class FftHandle {
   } union_;
 };
 
+enum class FftDirection : int {
+  kForward,
+  kInverse
+};
+
 namespace internal {
 // Helper to wrap resources and memory into RAII types.
 struct FftHandleDeleter {

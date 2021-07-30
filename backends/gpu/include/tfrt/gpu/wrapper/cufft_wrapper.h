@@ -201,11 +201,6 @@ llvm::Error CufftSetWorkArea(cufftHandle plan, Pointer<void> work_area);
 llvm::Error CufftXtSetWorkAreaPolicy(cufftHandle plan,
                                      cufftXtWorkAreaPolicy policy);
 
-enum class FftDirection : int {
-  kForward = CUFFT_FORWARD,
-  kInverse = CUFFT_INVERSE
-};
-
 llvm::Error CufftExecC2C(cufftHandle plan, cufftComplex* input_data,
                          cufftComplex* output_data, FftDirection direction);
 llvm::Error CufftExecZ2Z(cufftHandle plan, cufftDoubleComplex* input_data,

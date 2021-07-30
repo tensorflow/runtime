@@ -43,17 +43,6 @@ static cublasStatus_t DynamicCall(const char *symbol_name, Args &&...args) {
 extern "C" {
 #include "cublas_stub.cc.inc"
 
-cublasStatus_t CUBLASWINAPI cublasHgemm(
-    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
-    int m, int n, int k, const __half *alpha, /* host or device pointer */
-    const __half *A, int lda, const __half *B, int ldb,
-    const __half *beta, /* host or device pointer */
-    __half *C, int ldc) {
-  return DynamicCall<decltype(cublasHgemm), cublasHgemm>(
-      "cublasHgemm", handle, transa, transb, m, n, k, alpha, A, lda, B, ldb,
-      beta, C, ldc);
-}
-
 static cublasStatus_t CublasGetVersion(cublasHandle_t handle, int *version) {
   static auto pair = [&] {
     int version = 0;

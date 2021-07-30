@@ -19,7 +19,6 @@
 
 #include <iostream>  // some eigen header use std::cerr without including it.
 
-#include "blas_support.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/core_runtime/op_attrs.h"

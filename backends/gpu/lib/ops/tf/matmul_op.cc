@@ -17,7 +17,6 @@
 
 #include <immintrin.h>
 
-#include "blas_support.h"
 #include "tfrt/core_runtime/op_attr_type.h"
 #include "tfrt/core_runtime/op_attrs.h"
 #include "tfrt/core_runtime/op_utils.h"
@@ -27,7 +26,7 @@
 #include "tfrt/gpu/core_runtime/gpu_op_utils.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
-#include "tfrt/gpu/wrapper/wrapper.h"
+#include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/error_util.h"
 #include "tfrt/support/fp16.h"
@@ -74,21 +73,19 @@ static llvm::Error CallCublasGemm(wrapper::CurrentContext current,
                                   bool transpose_b, uint64_t m, uint64_t k,
                                   uint64_t n, const gpu::DenseGpuTensor& a,
                                   const gpu::DenseGpuTensor& b,
-                                  const GpuBuffer& result) {
+                                  const GpuBuffer& result,
+                                  cudaDataType data_type) {
   TFRT_TRACE_SCOPE(Default, "CublasGemm");
   // Blas expects matrices in column major.
   // Use C' = B' x A' (' stands for transpose)
-  // clang-format off
-  return CublasGemm(current, handle,
-                    transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
-                    transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N,
-                    n, m, k,
-                    ConstValue<T>(1.0).pointer(handle.platform()),
-                    static_cast<wrapper::Pointer<const T>>(b.buffer().pointer()), transpose_b ? k : n,
-                    static_cast<wrapper::Pointer<const T>>(a.buffer().pointer()), transpose_a ? m : k,
-                    ConstValue<T>(0.0).pointer(handle.platform()),
-                    static_cast<wrapper::Pointer<T>>(result.pointer()), n);
-  // clang-format on
+
+  return wrapper::CublasGemmEx(
+      current, handle, transpose_b ? CUBLAS_OP_T : CUBLAS_OP_N,
+      transpose_a ? CUBLAS_OP_T : CUBLAS_OP_N, n, m, k,
+      ConstValue<T>(1.0).pointer(handle.platform()), b.buffer().pointer(),
+      data_type, transpose_b ? k : n, a.buffer().pointer(), data_type,
+      transpose_a ? m : k, ConstValue<T>(0.0).pointer(handle.platform()),
+      result.pointer(), data_type, n, data_type, CUBLAS_GEMM_DEFAULT);
 }
 
 llvm::Error RunCublasGemm(wrapper::CurrentContext current,
@@ -106,13 +103,13 @@ llvm::Error RunCublasGemm(wrapper::CurrentContext current,
   switch (a.dtype()) {
     case DType::F16:
       return CallCublasGemm<__half>(current, handle, transpose_a, transpose_b,
-                                    m, k, n, a, b, result);
+                                    m, k, n, a, b, result, CUDA_R_16F);
     case DType::F32:
       return CallCublasGemm<float>(current, handle, transpose_a, transpose_b, m,
-                                   k, n, a, b, result);
+                                   k, n, a, b, result, CUDA_R_32F);
     case DType::F64:
       return CallCublasGemm<double>(current, handle, transpose_a, transpose_b,
-                                    m, k, n, a, b, result);
+                                    m, k, n, a, b, result, CUDA_R_64F);
     // TODO(iga): Handle complex numbers.
     default:
       return llvm::createStringError(

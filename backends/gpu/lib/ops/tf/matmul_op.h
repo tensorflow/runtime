@@ -20,7 +20,7 @@
 #ifndef TFRT_BACKENDS_GPU_LIB_OPS_TF_MATMUL_OP_H_
 #define TFRT_BACKENDS_GPU_LIB_OPS_TF_MATMUL_OP_H_
 
-#include "blas_support.h"
+#include "tfrt/gpu/wrapper/blas_wrapper.h"
 
 namespace tfrt {
 namespace gpu {

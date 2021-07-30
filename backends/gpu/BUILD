@@ -694,10 +694,7 @@ cuda_library(
 
 tfrt_cc_library(
     name = "tf_gpu_matmul_op",
-    srcs = [
-        "lib/ops/tf/blas_support.h",
-        "lib/ops/tf/matmul_op.cc",
-    ],
+    srcs = ["lib/ops/tf/matmul_op.cc"],
     hdrs = ["lib/ops/tf/matmul_op.h"],
     copts = ["-mf16c"],
     deps = [
@@ -719,7 +716,6 @@ tfrt_cc_library(
 cuda_library(
     name = "tf_gpu_pad_op",
     srcs = [
-        "lib/ops/tf/blas_support.h",
         "lib/ops/tf/pad_op.cc",
         "lib/ops/tf/pad_op.cu.cc",
     ],

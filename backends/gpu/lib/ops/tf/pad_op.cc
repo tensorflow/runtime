@@ -22,7 +22,6 @@
 #include <iostream>  // some eigen header use std::cerr without including it.
 
 #include "../../device/eigen_support.h"
-#include "blas_support.h"
 #include "tfrt/common/compat/eigen/eigen_dtype.h"
 #include "tfrt/common/compat/eigen/tensor_types.h"
 #include "tfrt/common/ops/tf/dnn_ops_util.h"

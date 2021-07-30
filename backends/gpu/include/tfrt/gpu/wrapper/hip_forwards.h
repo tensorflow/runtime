@@ -51,6 +51,9 @@ struct miopenConvSolution_t;
 // Forward declaration of rocBLAS types.
 using rocblas_handle = struct _rocblas_handle *;
 
+// Forward declaration of hipfft types.
+using hipfftHandle = struct hipfftHandle_t *;
+
 // Forward declaration of rocSOLVER types.
 using rocsolver_handle = rocblas_handle;
 

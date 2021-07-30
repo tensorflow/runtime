@@ -29,9 +29,13 @@ namespace wrapper {
 
 class FftHandle {
  public:
+  FftHandle() = default;
   FftHandle(std::nullptr_t) {}
   FftHandle(cufftHandle handle) : platform_(Platform::CUDA) {
-    union_.handle = handle;
+    union_.cuda_handle = handle;
+  }
+  FftHandle(hipfftHandle handle) : platform_(Platform::ROCm) {
+    union_.hip_handle = handle;
   }
   // Required for std::unique_ptr<Resource>.
   FftHandle& operator=(std::nullptr_t) {
@@ -44,7 +48,11 @@ class FftHandle {
   Platform platform() const { return platform_; }
   operator cufftHandle() const {
     assert(platform() == Platform::CUDA);
-    return union_.handle;
+    return union_.cuda_handle;
+  }
+  operator hipfftHandle() const {
+    assert(platform() == Platform::ROCm);
+    return union_.hip_handle;
   }
   // For member access from std::unique_ptr.
   const FftHandle* operator->() const { return this; }
@@ -52,7 +60,8 @@ class FftHandle {
  private:
   Platform platform_;
   union {
-    cufftHandle handle;
+    cufftHandle cuda_handle;
+    hipfftHandle hip_handle;
   } union_;
 };
 

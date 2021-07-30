@@ -21,7 +21,6 @@
 #include <memory>
 
 #include "src/nccl.h"  // from @nccl_headers
-#include "tfrt/gpu/wrapper/cuda_forwards.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace llvm {

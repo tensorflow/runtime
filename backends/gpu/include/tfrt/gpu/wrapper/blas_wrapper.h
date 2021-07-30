@@ -21,7 +21,6 @@
 #include <cstddef>
 #include <memory>
 
-#include "tfrt/gpu/wrapper/cuda_forwards.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace tfrt {

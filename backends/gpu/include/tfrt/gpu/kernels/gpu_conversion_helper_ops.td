@@ -41,7 +41,7 @@ def GPU_ConversionDialect : Dialect {
 }
 
 def GPU_CastOp : Op<GPU_ConversionDialect, "cast", [NoSideEffect]> {
-  let summary = "tfrt_gpu_convertion.cast operation";
+  let summary = "tfrt_gpu_conversion.cast operation";
   let description = "Transient op to cast multiple inputs to one output.";
   let arguments = (ins Variadic<AnyType>);
   let results = (outs AnyType);

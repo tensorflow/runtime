@@ -40,6 +40,10 @@ Expected<rocblas_gemm_algo> Parse<rocblas_gemm_algo>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_gemm_algo value);
 
 template <>
+Expected<rocblas_fill> Parse<rocblas_fill>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value);
+
+template <>
 struct PlatformTypeTraits<BlasDataTypeTag, rocblas_datatype>
     : public RocmPlatformType {};
 template <>
@@ -47,6 +51,9 @@ struct PlatformTypeTraits<BlasOperationTag, rocblas_operation>
     : public RocmPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasGemmAlgoTag, rocblas_gemm_algo>
+    : public RocmPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasFillModeTag, rocblas_fill>
     : public RocmPlatformType {};
 
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current);

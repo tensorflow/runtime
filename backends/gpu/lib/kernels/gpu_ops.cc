@@ -85,11 +85,55 @@ struct EnumTraits<wrapper::BlasGemmAlgoTag> {
   using cuda_type = cublasGemmAlgo_t;
   using rocm_type = rocblas_gemm_algo;
 };
+
+template <>
+struct EnumTraits<wrapper::BlasFillModeTag> {
+  using cuda_type = cublasFillMode_t;
+  using rocm_type = rocblas_fill;
+};
 }  // namespace
 
-template <typename T, typename F>
+static Type GetType(MLIRContext *context, cudaDataType data_type) {
+  switch (data_type) {
+    case CUDA_R_32F:
+      return Float32Type::get(context);
+    case CUDA_R_64F:
+      return Float64Type::get(context);
+    default:
+      return {};
+  }
+}
+
+static Type GetType(MLIRContext *context, rocblas_datatype data_type) {
+  switch (data_type) {
+    case rocblas_datatype_f32_r:
+      return Float32Type::get(context);
+    case rocblas_datatype_f64_r:
+      return Float64Type::get(context);
+    default:
+      return {};
+  }
+}
+
+template <typename Tag>
+static Type GetType(EnumAttr<wrapper::Enum<Tag>> attribute) {
+  MLIRContext *context = attribute.getContext();
+  wrapper::BlasDataType value = attribute.getValue();
+  switch (value.platform()) {
+    case wrapper::Platform::CUDA:
+      return GetType(context,
+                     static_cast<typename EnumTraits<Tag>::cuda_type>(value));
+    case wrapper::Platform::ROCm:
+      return GetType(context,
+                     static_cast<typename EnumTraits<Tag>::rocm_type>(value));
+    default:
+      return {};
+  }
+}
+
+template <typename T>
 static ParseResult parseEnum(OpAsmParser &parser, EnumAttr<T> &attribute,
-                             F &&parse_func) {
+                             Expected<T> (*parse_func)(StringRef)) {
   StringRef name;
   if (failed(parser.parseKeyword(&name))) return failure();
   auto value = parse_func(name);
@@ -103,8 +147,8 @@ static ParseResult parseEnum(OpAsmParser &parser, EnumAttr<T> &attribute,
 
 template <typename T>
 static ParseResult parseEnum(OpAsmParser &parser, EnumAttr<T> &attribute) {
-  return parseEnum(parser, attribute,
-                   [](StringRef name) { return wrapper::Parse<T>(name); });
+  auto parse_func = [](StringRef name) { return wrapper::Parse<T>(name); };
+  return parseEnum(parser, attribute, +parse_func);
 }
 
 template <typename Tag>
@@ -117,7 +161,28 @@ static ParseResult parseEnum(OpAsmParser &parser,
     if (rocm_value) return {*rocm_value};
     return joinErrors(cuda_value.takeError(), rocm_value.takeError());
   };
-  return parseEnum(parser, attribute, parse_func);
+  return parseEnum(parser, attribute, +parse_func);
+}
+
+// parseEnum overload also assigning the underlying type to one or more 'types'.
+template <typename Tag, typename... Ts>
+static ParseResult parseEnum(OpAsmParser &parser,
+                             EnumAttr<wrapper::Enum<Tag>> &attribute,
+                             Ts &...types) {
+  if (failed(parseEnum(parser, attribute))) {
+    return parser.emitError(parser.getCurrentLocation(),
+                            "unknown cudaDataType or rocblas_datatype enum");
+  }
+
+  if (auto type = GetType(attribute)) {
+    Type dummy[]{(types = type)...};
+    (void)dummy;
+    return success();
+  }
+
+  return parser.emitError(
+      parser.getCurrentLocation(),
+      StrCat("could not infer type from ", attribute.getValue()));
 }
 
 template <typename T>
@@ -147,64 +212,10 @@ static void printEnum(OpAsmPrinter &printer, Operation *,
   }
 }
 
-static Type GetBlasDataType(MLIRContext *context, cudaDataType data_type) {
-  switch (data_type) {
-    case CUDA_R_32F:
-      return Float32Type::get(context);
-    case CUDA_R_64F:
-      return Float64Type::get(context);
-    default:
-      return {};
-  }
-}
-
-static Type GetBlasDataType(MLIRContext *context, rocblas_datatype data_type) {
-  switch (data_type) {
-    case rocblas_datatype_f32_r:
-      return Float32Type::get(context);
-    case rocblas_datatype_f64_r:
-      return Float64Type::get(context);
-    default:
-      return {};
-  }
-}
-
-static Type GetBlasDataType(BlasDataTypeAttr attribute) {
-  MLIRContext *context = attribute.getContext();
-  wrapper::BlasDataType value = attribute.getValue();
-  switch (value.platform()) {
-    case wrapper::Platform::CUDA:
-      return GetBlasDataType(context, static_cast<cudaDataType>(value));
-    case wrapper::Platform::ROCm:
-      return GetBlasDataType(context, static_cast<rocblas_datatype>(value));
-    default:
-      return {};
-  }
-}
-
-template <typename... Ts>
-static ParseResult parseBlasDataType(OpAsmParser &parser,
-                                     BlasDataTypeAttr &attribute,
-                                     Ts &...types) {
-  if (failed(parseEnum(parser, attribute))) {
-    return parser.emitError(parser.getCurrentLocation(),
-                            "unknown cudaDataType or rocblas_datatype enum");
-  }
-
-  if (auto type = GetBlasDataType(attribute)) {
-    Type dummy[]{(types = type)...};
-    (void)dummy;
-    return success();
-  }
-
-  return parser.emitError(
-      parser.getCurrentLocation(),
-      StrCat("could not infer type from ", attribute.getValue()));
-}
-
-template <typename... Ts>
-static void printBlasDataType(OpAsmPrinter &printer, Operation *op,
-                              BlasDataTypeAttr attribute, const Ts &...) {
+// printEnum overload ignoring one or more 'types'.
+template <typename Tag, typename... Ts>
+static void printEnum(OpAsmPrinter &printer, Operation *op,
+                      EnumAttr<wrapper::Enum<Tag>> attribute, const Ts &...) {
   printEnum(printer, op, attribute);
 }
 
@@ -220,7 +231,7 @@ static LogicalResult VerifyBlasSaxpyOp(BlasSaxpyOp op) {
     return op.emitOpError(
         "typeAlpha, typeX, typeY and executionType need to match");
   }
-  Type type_alpha = GetBlasDataType(op.typeAlphaAttr());
+  Type type_alpha = GetType(op.typeAlphaAttr());
   if (op.alpha().getType() != type_alpha) {
     return op.emitOpError("alpha's type doesn't match typeAlpha");
   }
@@ -235,7 +246,7 @@ static LogicalResult VerifyBlasGemmOp(OpTy op) {
     // Relax this check when we add support for e.g. mixed precision.
     return op.emitOpError("typeA, typeB, typeC and computeType need to match");
   }
-  Type compute_type = GetBlasDataType(op.computeTypeAttr());
+  Type compute_type = GetType(op.computeTypeAttr());
   if (op.alpha().getType() != compute_type ||
       op.beta().getType() != compute_type) {
     return op.emitOpError("alpha's or beta's type don't match computeType");

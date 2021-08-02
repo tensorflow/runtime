@@ -41,6 +41,10 @@ Expected<cublasGemmAlgo_t> Parse<cublasGemmAlgo_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasGemmAlgo_t value);
 
 template <>
+Expected<cublasFillMode_t> Parse<cublasFillMode_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value);
+
+template <>
 struct PlatformTypeTraits<BlasDataTypeTag, cudaDataType>
     : public CudaPlatformType {};
 template <>
@@ -48,6 +52,9 @@ struct PlatformTypeTraits<BlasOperationTag, cublasOperation_t>
     : public CudaPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasGemmAlgoTag, cublasGemmAlgo_t>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasFillModeTag, cublasFillMode_t>
     : public CudaPlatformType {};
 
 llvm::Expected<OwningBlasHandle> CublasCreate(CurrentContext current);

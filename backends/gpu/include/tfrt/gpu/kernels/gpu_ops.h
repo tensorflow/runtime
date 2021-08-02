@@ -99,6 +99,7 @@ using DnnDataTypeAttr = EnumAttr<wrapper::DnnDataType>;
 using BlasDataTypeAttr = EnumAttr<wrapper::BlasDataType>;
 using BlasOperationAttr = EnumAttr<wrapper::BlasOperation>;
 using BlasGemmAlgoAttr = EnumAttr<wrapper::BlasGemmAlgo>;
+using BlasFillModeAttr = EnumAttr<wrapper::BlasFillMode>;
 using CclDataTypeAttr = EnumAttr<ncclDataType_t>;
 using CclReductionOpAttr = EnumAttr<ncclRedOp_t>;
 

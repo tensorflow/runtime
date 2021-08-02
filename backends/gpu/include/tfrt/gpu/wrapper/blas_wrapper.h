@@ -34,6 +34,8 @@ struct BlasOperationTag;
 using BlasOperation = Enum<BlasOperationTag>;
 struct BlasGemmAlgoTag;
 using BlasGemmAlgo = Enum<BlasGemmAlgoTag>;
+struct BlasFillModeTag;
+using BlasFillMode = Enum<BlasFillModeTag>;
 
 // Non-owning handles of GPU resources.
 using BlasHandle = Resource<cublasHandle_t, rocblas_handle>;

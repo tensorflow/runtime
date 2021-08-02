@@ -158,6 +158,27 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_gemm_algo value) {
   }
 }
 
+template <>
+Expected<rocblas_fill> Parse<rocblas_fill>(llvm::StringRef name) {
+  if (name == "rocblas_fill_upper") return rocblas_fill_upper;
+  if (name == "rocblas_fill_lower") return rocblas_fill_lower;
+  if (name == "rocblas_fill_full") return rocblas_fill_full;
+  return MakeStringError("Unknown rocblas_fill: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value) {
+  switch (value) {
+    case rocblas_fill_upper:
+      return os << "rocblas_fill_upper";
+    case rocblas_fill_lower:
+      return os << "rocblas_fill_lower";
+    case rocblas_fill_full:
+      return os << "rocblas_fill_full";
+    default:
+      return os << llvm::formatv("rocblas_fill({0})", static_cast<int>(value));
+  }
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

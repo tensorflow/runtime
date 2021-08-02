@@ -30,10 +30,8 @@ include "tfrt/gpu/kernels/gpu_ops_base.td"
 def GPU_SolverHandleType : GPU_Type<"SolverHandle"> {
   let mnemonic = "solver.handle";
 }
-def GPU_AnySolverDataType : AnyTypeOf<[AnyFloat, AnyComplex, AnySignedInteger,
-                                   AnyUnsignedInteger]>;
 
-def SolverDnCreateOp : GPU_Op<"solver.create"> {
+def SolverCreateOp : GPU_Op<"solver.create"> {
   let description = [{
     tfrt_gpu.solver.create creates a handle to the SOLVER library context
 
@@ -43,137 +41,35 @@ def SolverDnCreateOp : GPU_Op<"solver.create"> {
   let results = (outs GPU_SolverHandleType);
 }
 
-def SolverDnSpotrfBufferSizeOp : GPU_Op<"solver.dn.s.portf.buffer_size"> {
+def SolverPotrfBufferSizeOp : GPU_Op<"solver.potrf.buffer_size"> {
   let description = [{
-    tfrt_gpu.solver.dn.s.portf.buffer_size These helper kernels calculate the
-                                            necessary size of work buffers for
-                                            solver.dn.s.portf.
-                                            "s" stands for the float type.
+    Calculates the work buffer size for tfrt_gpu.solver.portf.
   }];
   let arguments = (ins GPU_SolverHandleType:$handle,
-                   I32:$uplo,
-                   I32:$n,
-                   GPU_BufferType:$A,
-                   I32:$lda, TFRT_ChainType);
-  let results = (outs I32:$Lwork);
+                   GPU_BlasFillModeAttr:$fillMode, I32:$n,
+                   GPU_BlasDataTypeAttr:$dataType, I32:$stride,
+                   TFRT_ChainType:$chain);
+  let results = (outs I64:$workspaceSize);
+  let assemblyFormat = [{
+    $handle`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
+    $stride`,` $chain attr-dict
+  }];
 }
 
-def SolverDnDpotrfBufferSizeOp : GPU_Op<"solver.dn.d.portf.buffer_size"> {
+def SolverPotrfOp : GPU_Op<"solver.potrf"> {
   let description = [{
-    tfrt_gpu.solver.dn.d.portf.buffer_size These helper kernels calculate the
-                                            necessary size of work buffers for
-                                            solver.dn.d.portf.
-                                            "d" stands for the double type.
+    Computes the Cholesky factorization of a Hermitian positive-definite matrix.
   }];
   let arguments = (ins GPU_SolverHandleType:$handle,
-                   I32:$uplo,
-                   I32:$n,
-                   GPU_BufferType:$A,
-                   I32:$lda, TFRT_ChainType);
-  let results = (outs I32:$Lwork);
-}
-
-def SolverDnCpotrfBufferSizeOp : GPU_Op<"solver.dn.c.portf.buffer_size"> {
-  let description = [{
-    tfrt_gpu.solver.dn.c.portf.buffer_size These helper kernels calculate the
-                                            necessary size of work buffers for
-                                            solver.dn.c.portf.
-                                            "c" stands for the Complex type.
-  }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
-                   I32:$uplo,
-                   I32:$n,
-                   GPU_BufferType:$A,
-                   I32:$lda, TFRT_ChainType);
-  let results = (outs I32:$Lwork);
-}
-
-def SolverDnZpotrfBufferSizeOp : GPU_Op<"solver.dn.z.portf.buffer_size"> {
-  let description = [{
-    tfrt_gpu.solver.dn.z.portf.buffer_size These helper kernels calculate the
-                                            necessary size of work buffers for
-                                            solver.dn.z.portf.
-                                            "z" stands for the DoubleComplex
-                                            type.
-  }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
-                   I32:$uplo,
-                   I32:$n,
-                   GPU_BufferType:$A,
-                   I32:$lda, TFRT_ChainType);
-  let results = (outs I32:$Lwork);
-}
-
-def SolverDnSpotrfOp : GPU_Op<"solver.dn.s.portf"> {
-  let description = [{
-    tfrt_gpu.solver.dn.s.portf This kernel computes the Cholesky factorization
-                                of a Hermitian positive-definite matrix. Data
-                                types are real valued single precision.
-  }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
-                   I32:$uplo,
-                   I32:$n,
-                   GPU_BufferType:$A,
-                   I32:$lda,
-                   GPU_BufferType:$Workspace,
-                   I32:$Lwork,
-                   GPU_BufferType:$devInfo,
-                   TFRT_ChainType);
+                   GPU_BlasFillModeAttr:$fillMode, I32:$n,
+                   GPU_BlasDataTypeAttr:$dataType, GPU_BufferType:$buffer,
+                   I32:$stride, GPU_BufferType:$workspace, GPU_BufferType:$devInfo,
+                   TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
-}
-
-def SolverDnDpotrfOp : GPU_Op<"solver.dn.d.portf"> {
-  let description = [{
-    tfrt_gpu.solver.dn.d.portf This kernel computes the Cholesky factorization
-                                of a Hermitian positive-definite matrix. Data
-                                types are real valued double precision.
+  let assemblyFormat = [{
+    $handle`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
+    $buffer`,` $stride`,` $workspace`,` $devInfo`,` $chain attr-dict
   }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
-                   I32:$uplo,
-                   I32:$n,
-                   GPU_BufferType:$A,
-                   I32:$lda,
-                   GPU_BufferType:$Workspace,
-                   I32:$Lwork,
-                   GPU_BufferType:$devInfo,
-                   TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
-def SolverDnCpotrfOp : GPU_Op<"solver.dn.c.portf"> {
-  let description = [{
-    tfrt_gpu.solver.dn.c.portf This kernel computes the Cholesky factorization
-                                of a Hermitian positive-definite matrix. Data
-                                types are complex valued single precision.
-  }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
-                   I32:$uplo,
-                   I32:$n,
-                   GPU_BufferType:$A,
-                   I32:$lda,
-                   GPU_BufferType:$Workspace,
-                   I32:$Lwork,
-                   GPU_BufferType:$devInfo,
-                   TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
-def SolverDnZpotrfOp : GPU_Op<"solver.dn.z.portf"> {
-  let description = [{
-    tfrt_gpu.solver.dn.z.portf This kernel computes the Cholesky factorization
-                                of a Hermitian positive-definite matrix. Data
-                                types are complex valued double precision.
-  }];
-  let arguments = (ins GPU_SolverHandleType:$handle,
-                   I32:$uplo,
-                   I32:$n,
-                   GPU_BufferType:$A,
-                   I32:$lda,
-                   GPU_BufferType:$Workspace,
-                   I32:$Lwork,
-                   GPU_BufferType:$devInfo,
-                   TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
 }
 
 #endif  // GPU_SOLVER_OPS

@@ -38,6 +38,7 @@ def GPU_BlasGemmAlgoType : GPU_Type<"BlasGemmAlgo"> {
 def GPU_BlasDataTypeAttr : GPU_WrapperAttr<"BlasDataType">;
 def GPU_BlasOperationAttr : GPU_WrapperAttr<"BlasOperation">;
 def GPU_BlasGemmAlgoAttr : GPU_WrapperAttr<"BlasGemmAlgo">;
+def GPU_BlasFillModeAttr : GPU_WrapperAttr<"BlasFillMode">;
 
 def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
   let description = [{
@@ -60,7 +61,7 @@ def GPU_BlasSaxpyOp : GPU_Op<"blas.axpy"> {
                    GPU_BlasDataTypeAttr:$executionType, TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` $n`,` $alpha`,` custom<BlasDataType>($typeAlpha, type($alpha))`,`
+    $handle`,` $n`,` $alpha`,` custom<Enum>($typeAlpha, type($alpha))`,`
     $x`,` custom<Enum>($typeX)`,` $strideX`,` $y`,` custom<Enum>($typeY)`,`
     $strideY`,` custom<Enum>($executionType)`,` $chain attr-dict
   }];
@@ -92,7 +93,7 @@ def GPU_BlasGemmOp : GPU_Op<"blas.gemm"> {
     $handle`,` custom<Enum>($transA)`,` custom<Enum>($transB)`,`
     $m`,` $n`,` $k`,` $alpha`,` $A`,` custom<Enum>($typeA)`,` $heightA`,` $B`,`
     custom<Enum>($typeB)`,` $heightB`,` $beta`,` $C`,` custom<Enum>($typeC)`,`
-    $heightC`,` custom<BlasDataType>($computeType, type($alpha), type($beta))`,`
+    $heightC`,` custom<Enum>($computeType, type($alpha), type($beta))`,`
     $algo`,` $chain attr-dict
   }];
   let verifier = [{ return tfrt::gpu::VerifyBlasGemmOp(*this); }];
@@ -118,7 +119,7 @@ def GPU_BlasGemmBatchExOp : GPU_Op<"blas.gemm.batch"> {
     $m`,` $n`,` $k`,` $alpha`,` $A`,` custom<Enum>($typeA)`,` $heightA
     `,` $strideA`,` $B`,` custom<Enum>($typeB)`,` $heightB`,` $strideB`,` $beta`,`
     $C`,` custom<Enum>($typeC)`,` $heightC`,` $strideC`,` $batchCount`,`
-    custom<BlasDataType>($computeType, type($alpha), type($beta))`,`
+    custom<Enum>($computeType, type($alpha), type($beta))`,`
     $algo`,` $chain attr-dict
   }];
   let verifier = [{ return tfrt::gpu::VerifyBlasGemmOp(*this); }];

@@ -278,6 +278,28 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasGemmAlgo_t value) {
   }
 }
 
+template <>
+Expected<cublasFillMode_t> Parse<cublasFillMode_t>(llvm::StringRef name) {
+  if (name == "CUBLAS_FILL_MODE_LOWER") return CUBLAS_FILL_MODE_LOWER;
+  if (name == "CUBLAS_FILL_MODE_UPPER") return CUBLAS_FILL_MODE_UPPER;
+  if (name == "CUBLAS_FILL_MODE_FULL") return CUBLAS_FILL_MODE_FULL;
+  return MakeStringError("Unknown cublasFillMode_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value) {
+  switch (value) {
+    case CUBLAS_FILL_MODE_LOWER:
+      return os << "CUBLAS_FILL_MODE_LOWER";
+    case CUBLAS_FILL_MODE_UPPER:
+      return os << "CUBLAS_FILL_MODE_UPPER";
+    case CUBLAS_FILL_MODE_FULL:
+      return os << "CUBLAS_FILL_MODE_FULL";
+    default:
+      return os << llvm::formatv("cublasFillMode_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

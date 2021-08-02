@@ -21,6 +21,7 @@
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/gpu/wrapper/cusolver_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
 #include "tfrt/host_context/async_value_ref.h"
@@ -28,18 +29,6 @@
 
 namespace tfrt {
 namespace gpu {
-
-static llvm::Expected<cublasFillMode_t> SafeIntToCublasFillMode(
-    int32_t operation) {
-  auto cublas_fill_mode = static_cast<cublasFillMode_t>(operation);
-  if ((cublas_fill_mode > cublasFillMode_t::CUBLAS_FILL_MODE_FULL) ||
-      (cublas_fill_mode < cublasFillMode_t::CUBLAS_FILL_MODE_LOWER)) {
-    return llvm::createStringError(llvm::errc::invalid_argument,
-                                   "Invalid cublasFillMode_t value: %d",
-                                   operation);
-  }
-  return cublas_fill_mode;
-}
 
 static llvm::Expected<GpuSolverHandle> SolverCreate(
     Argument<GpuStream> stream) {
@@ -52,68 +41,89 @@ static llvm::Expected<GpuSolverHandle> SolverCreate(
   return GpuSolverHandle(stream.ValueRef(), std::move(*handle));
 }
 
-template <typename T>
-llvm::Expected<int32_t> SolverPotrfBufferSize(const GpuSolverHandle& handle,
-                                              int32_t fillMode, int32_t n,
-                                              const GpuBuffer& A,
-                                              int32_t heightA) {
+static llvm::Expected<int64_t> SolverPotrfBufferSize(
+    const GpuSolverHandle& handle, int32_t n, int32_t stride,
+    Attribute<int32_t> dataType, Attribute<int32_t> fillMode) {
+  auto platform = handle->platform();
+  if (platform != wrapper::Platform::CUDA)
+    return MakeStringError("Unsupported platform ", platform);
+
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
-  auto cublas_uplo = SafeIntToCublasFillMode(fillMode);
-  if (!cublas_uplo) return cublas_uplo.takeError();
+  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  auto fill_mode = wrapper::BlasFillMode::FromOpaqueValue(*fillMode);
 
-  return wrapper::CusolverDnPotrfBufferSize(
-      current.get(), handle.get(), *cublas_uplo, n,
-      wrapper::Pointer<T>(A.pointer()), heightA);
+  auto call = [&](auto dummy) {
+    using Pointer = wrapper::Pointer<decltype(dummy)>;
+    return wrapper::CusolverDnPotrfBufferSize(
+        current.get(), handle.get(), fill_mode, n, Pointer(nullptr, platform),
+        stride);
+  };
+
+  switch (data_type) {
+    case CUDA_R_32F:
+      return call(float{});
+    case CUDA_R_64F:
+      return call(double{});
+    case CUDA_C_32F:
+      return call(cuComplex{});
+    case CUDA_C_64F:
+      return call(cuDoubleComplex{});
+    default:
+      return MakeStringError("Unsupported data type ", data_type);
+  }
 }
 
-// These functions eventually need to make two separate calls to
-// CusolverDn<t>potrf and corresponding ROCm function, as wrappers
-// SolverPotrf for CUDA/ROCm is not feasible due to mismatch in APIs
-// (Cusolver requires use of CusolverDn<t>potrf_bufferSize). Right now only
-// CusolverDnPotrf calls are supported.
-template <typename T>
-Error SolverPotrf(const GpuSolverHandle& handle, int32_t fillMode, int32_t n,
-                  const GpuBuffer& A, int32_t heightA,
-                  const GpuBuffer& workspace, int32_t workspaceSize,
-                  const GpuBuffer& devInfo) {
+static Error SolverPotrf(const GpuSolverHandle& handle, int32_t n,
+                         const GpuBuffer& buffer, int32_t stride,
+                         const GpuBuffer& workspace, const GpuBuffer& devInfo,
+                         Attribute<int32_t> dataType,
+                         Attribute<int32_t> fillMode) {
+  // These functions eventually need to make two separate calls to
+  // CusolverDn<t>potrf and corresponding ROCm function, as wrappers
+  // SolverPotrf for CUDA/ROCm is not feasible due to mismatch in APIs
+  // (Cusolver requires use of CusolverDn<t>potrf_bufferSize). Right now only
+  // CusolverDnPotrf calls are supported.
+  auto platform = handle->platform();
+  if (platform != wrapper::Platform::CUDA)
+    return MakeStringError("Unsupported platform ", platform);
+
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
-  auto cublas_uplo = SafeIntToCublasFillMode(fillMode);
-  if (!cublas_uplo) return cublas_uplo.takeError();
+  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  auto fill_mode = wrapper::BlasFillMode::FromOpaqueValue(*fillMode);
 
-  return wrapper::CusolverDnPotrf(current.get(), handle.get(), *cublas_uplo, n,
-                                  wrapper::Pointer<T>(A.pointer()), heightA,
-                                  wrapper::Pointer<T>(workspace.pointer()),
-                                  workspaceSize,
-                                  wrapper::Pointer<int>(devInfo.pointer()));
+  auto call = [&](auto dummy) {
+    using Pointer = wrapper::Pointer<decltype(dummy)>;
+    return wrapper::CusolverDnPotrf(
+        current.get(), handle.get(), fill_mode, n,
+        static_cast<Pointer>(buffer.pointer()), stride,
+        static_cast<Pointer>(workspace.pointer()), workspace.size(),
+        static_cast<wrapper::Pointer<int>>(devInfo.pointer()));
+  };
+
+  switch (data_type) {
+    case CUDA_R_32F:
+      return call(float{});
+    case CUDA_R_64F:
+      return call(double{});
+    case CUDA_C_32F:
+      return call(cuComplex{});
+    case CUDA_C_64F:
+      return call(cuDoubleComplex{});
+    default:
+      return MakeStringError("Unsupported data type ", data_type);
+  }
 }
 
 void RegisterGpuSolverKernels(KernelRegistry* kernel_reg) {
-  kernel_reg->AddKernel("tfrt_cuda.solver.create", TFRT_KERNEL(SolverCreate));
-  kernel_reg->AddKernel(
-      "tfrt_cuda.solver.dn.s.portf.buffer_size",
-      TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrfBufferSize<float>));
-  kernel_reg->AddKernel(
-      "tfrt_cuda.solver.dn.d.portf.buffer_size",
-      TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrfBufferSize<double>));
-  kernel_reg->AddKernel(
-      "tfrt_cuda.solver.dn.c.portf.buffer_size",
-      TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrfBufferSize<cuComplex>));
-  kernel_reg->AddKernel(
-      "tfrt_cuda.solver.dn.z.portf.buffer_size",
-      TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrfBufferSize<cuDoubleComplex>));
-  kernel_reg->AddKernel("tfrt_cuda.solver.dn.s.portf",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrf<float>));
-  kernel_reg->AddKernel("tfrt_cuda.solver.dn.d.portf",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrf<double>));
-  kernel_reg->AddKernel("tfrt_cuda.solver.dn.c.portf",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrf<cuComplex>));
-  kernel_reg->AddKernel(
-      "tfrt_cuda.solver.dn.z.portf",
-      TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrf<cuDoubleComplex>));
+  kernel_reg->AddKernel("tfrt_gpu.solver.create", TFRT_KERNEL(SolverCreate));
+  kernel_reg->AddKernel("tfrt_gpu.solver.potrf.buffer_size",
+                        TFRT_KERNEL(SolverPotrfBufferSize));
+  kernel_reg->AddKernel("tfrt_gpu.solver.potrf",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrf));
 }
 
 }  // namespace gpu

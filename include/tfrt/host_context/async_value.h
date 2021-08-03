@@ -860,6 +860,7 @@ const T& AsyncValue::get() const {
       assert(iv_value && "Indirect value not resolved");
       return iv_value->get<T>();
   }
+  llvm_unreachable("unexpected AsyncValue kind");
 }
 
 template <typename T>

@@ -178,8 +178,7 @@ decltype(auto) DispatchByDType(DType dtype, F &&f) {
     return f(DTypeData<DType::ENUM>());
 #include "tfrt/dtype/dtype.def"
 #undef DTYPE
-    case DType::Invalid:
-    case DType::LastDType:
+    default:
       llvm_unreachable("Invalid dtype encountered in DispatchByDType");
   }
 }

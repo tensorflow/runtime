@@ -42,7 +42,7 @@ struct AlignedAllocator {
 
   template <class Other>
   // NOLINTNEXTLINE(google-explicit-constructor)
-  constexpr AlignedAllocator(const AlignedAllocator<Other>&) noexcept {}
+  constexpr AlignedAllocator(const AlignedAllocator<Other, Align>&) noexcept {}
 
   T* allocate(size_t n) {
     auto* ptr = AlignedAlloc(Align, n * sizeof(T));

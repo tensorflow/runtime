@@ -865,7 +865,7 @@ class JitCompilationContext {
   llvm::Error Specialize(ArrayRef<MemrefDesc> operands,
                          ArrayRef<OperandConstraint> constraints,
                          string_view entrypoint,
-                         JitExecutable::Listener* listener);
+                         const JitExecutable::Listener* listener);
 
   const CompilationOptions& options() const { return opts_; }
 
@@ -1039,7 +1039,7 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
 
 llvm::Error JitCompilationContext::Specialize(
     ArrayRef<MemrefDesc> operands, ArrayRef<OperandConstraint> constraints,
-    string_view entrypoint, JitExecutable::Listener* listener) {
+    string_view entrypoint, const JitExecutable::Listener* listener) {
   mlir::FuncOp func = module_->lookupSymbol<mlir::FuncOp>(entrypoint);
   if (!func) return MakeStringError("Entrypoint not found: ", entrypoint);
 
@@ -1212,7 +1212,7 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
 
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
     string_view mlir_module, string_view entrypoint,
-    const CompilationOptions& compilation_opts, Listener* listener) {
+    const CompilationOptions& compilation_opts) {
   // Set up LLVM target for code generation.
   InitializeCompiler();
 
@@ -1239,7 +1239,7 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
           *constraints);
 
     return JitExecutable(mlir_module, entrypoint, compilation_opts,
-                         *constraints, {}, listener);
+                         *constraints, {});
   }
 
   // Otherwise try to compile the default executable.
@@ -1248,21 +1248,19 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   if (auto err = executable.takeError()) return std::move(err);
 
   return JitExecutable(mlir_module, entrypoint, compilation_opts, *constraints,
-                       std::move(*executable), listener);
+                       std::move(*executable));
 }
 
 JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
                              CompilationOptions compilation_opts,
                              ArrayRef<OperandConstraint> constraints,
-                             Optional<Executable> default_executable,
-                             Listener* listener)
+                             Optional<Executable> default_executable)
     : mlir_module_(mlir_module.str()),
       entrypoint_(entrypoint.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
       has_default_executable_(default_executable.hasValue()),
-      specializations_(std::make_unique<Specializations>()),
-      listener_(listener) {
+      specializations_(std::make_unique<Specializations>()) {
   // Initialize default executable if it is available.
   if (has_default_executable_) {
     default_executable_ =
@@ -1326,7 +1324,8 @@ static llvm::hash_code hash_value(const MemrefDesc& memref) {
 // beneficial to know the shape to do broadcasts fusion, consider not doing that
 // when it is not needed.
 AsyncValuePtr<Executable> JitExecutable::GetExecutable(
-    ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx) {
+    ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
+    const Listener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();
@@ -1368,7 +1367,7 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
 
   // Specialize executable to the concrete operands.
   if (auto err =
-          (*ctx)->Specialize(operands, constraints_, entrypoint_, listener_)) {
+          (*ctx)->Specialize(operands, constraints_, entrypoint_, listener)) {
     entry.ptr.SetError(StrCat("failed to specialize executable: ", err));
     return entry.ptr;
   }

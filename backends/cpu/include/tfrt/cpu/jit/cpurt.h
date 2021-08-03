@@ -908,7 +908,7 @@ class JitExecutable {
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
-      const CompilationOptions& compilation_opts, Listener* listener = nullptr);
+      const CompilationOptions& compilation_opts);
 
   // Returns entrypoint operands constraints after resolving them using the
   // statically known information in the entrypoint function signature.
@@ -926,7 +926,8 @@ class JitExecutable {
   // failed. Note: This function never falls back on the default executable if
   // specialization compilation fails.
   AsyncValuePtr<Executable> GetExecutable(ArrayRef<MemrefDesc> operands,
-                                          const ExecutionContext& exec_ctx);
+                                          const ExecutionContext& exec_ctx,
+                                          const Listener* listener = nullptr);
 
   // JitExecutable is move-only type.
   JitExecutable(const JitExecutable&) = delete;
@@ -938,21 +939,18 @@ class JitExecutable {
 
     // Called at the end of module specialization.
     // 'inputs' is a reference to the specialized input types.
-    virtual void notifyModuleSpecialized(ArrayRef<mlir::Type> inputs) {}
+    virtual void notifyModuleSpecialized(ArrayRef<mlir::Type> inputs) const {}
 
     // Called once for every value-specialized argument.
     virtual void notifyValueSpecialized(unsigned index, mlir::Type type,
-                                        mlir::Attribute attr) {}
+                                        mlir::Attribute attr) const {}
   };
-  void setListener(Listener* listener) { listener_ = listener; }
-  Listener* getListener() const { return listener_; }
 
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,
                 CompilationOptions compilation_opts,
                 ArrayRef<OperandConstraint> constraints,
-                Optional<Executable> default_executable = {},
-                Listener* listener = nullptr);
+                Optional<Executable> default_executable = {});
 
   std::string mlir_module_;
   std::string entrypoint_;
@@ -973,8 +971,6 @@ class JitExecutable {
   // Executables specialized for the arguments shapes or/and values.
   using Specializations = AsyncValuesCache<llvm::hash_code, Executable>;
   std::unique_ptr<Specializations> specializations_;
-
-  Listener* listener_;
 };
 
 // Resource context caches all JitExecutables in the async value cache.

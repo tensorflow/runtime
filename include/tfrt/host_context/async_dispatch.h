@@ -218,6 +218,20 @@ void RunWhenReady(ArrayRef<AsyncValue*> values,
 void RunWhenReady(ArrayRef<RCReference<AsyncValue>> values,
                   llvm::unique_function<void()> callee);
 
+void Await(HostContext* host, ArrayRef<RCReference<AsyncValue>> values);
+
+template <typename T>
+void Await(HostContext* host, const AsyncValueRef<T>& av_ref) {
+  // It is unfornate that we need to do a CopyRef() here. The root cause of this
+  // is that ConcurrentWorkQueue::Await() takes
+  // ArrayRef<RCReference<AsyncValue>> which requires the client to put
+  // RCReference<AsyncValue> in contiguous memory space.
+  //
+  // TODO(jingdong): Fix this by providing an overload of
+  // ConcurrentWorkQueue::Await() that takes ArrayRef<AsyncValue*>.
+  Await(host, {av_ref.CopyRef()});
+}
+
 }  // namespace tfrt
 
 #endif  // TFRT_HOST_CONTEXT_ASYNC_DISPATCH_H_

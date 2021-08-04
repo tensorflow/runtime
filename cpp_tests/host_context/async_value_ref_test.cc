@@ -18,6 +18,8 @@
 
 #include "gtest/gtest.h"
 #include "tfrt/cpp_tests/test_util.h"
+#include "tfrt/host_context/diagnostic.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
@@ -123,6 +125,71 @@ TEST_F(AsyncValueRefTest, CopyRef) {
   EXPECT_FALSE(value.IsUnique());
 
   EXPECT_EQ(value.GetAsyncValue(), copied_value.GetAsyncValue());
+}
+
+TEST_F(AsyncValueRefTest, AndThenError) {
+  auto value =
+      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+
+  DecodedDiagnostic diag{"test_error"};
+  value.AndThen([&](Error error) { EXPECT_EQ(StrCat(error), StrCat(diag)); });
+
+  value.SetError(diag);
+}
+
+TEST_F(AsyncValueRefTest, AndThenNoError) {
+  auto value =
+      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+
+  value.AndThen([](Error error) { EXPECT_FALSE(!!error); });
+
+  value.SetStateConcrete();
+}
+
+TEST_F(AsyncValueRefTest, AndThenExpectedError) {
+  auto value =
+      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+
+  DecodedDiagnostic diag{"test_error"};
+  value.AndThen([&](Expected<int32_t*> v) {
+    EXPECT_FALSE(!!v);
+    EXPECT_EQ(StrCat(v.takeError()), StrCat(diag));
+  });
+
+  value.SetError(diag);
+}
+
+TEST_F(AsyncValueRefTest, AndThenExpectedNoError) {
+  auto value =
+      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+
+  value.AndThen([](Expected<int32_t*> v) {
+    EXPECT_TRUE(!!v);
+    EXPECT_EQ(**v, kTestValue);
+  });
+
+  value.SetStateConcrete();
+}
+
+TEST_F(AsyncValueRefTest, AsExpectedError) {
+  auto value =
+      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+
+  DecodedDiagnostic diag{"test_error"};
+  value.SetError(diag);
+  Expected<int32_t*> expected = value.AsExpected();
+  EXPECT_FALSE(!!expected);
+  EXPECT_EQ(StrCat(expected.takeError()), StrCat(diag));
+}
+
+TEST_F(AsyncValueRefTest, AsExpectedNoError) {
+  auto value =
+      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+  value.SetStateConcrete();
+
+  Expected<int32_t*> expected = value.AsExpected();
+  EXPECT_TRUE(!!expected);
+  EXPECT_EQ(**expected, kTestValue);
 }
 
 }  // namespace

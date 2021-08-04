@@ -27,11 +27,14 @@
 #ifndef TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_
 #define TFRT_HOST_CONTEXT_ASYNC_VALUE_REF_H_
 
+#include <type_traits>
+
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/location.h"
 #include "tfrt/support/alloc.h"
+#include "tfrt/support/error_util.h"
 
 namespace tfrt {
 
@@ -86,6 +89,9 @@ class AsyncValueRef {
   // Return true if the AsyncValue contains a concrete value.
   bool IsConcrete() const { return value_->IsConcrete(); }
 
+  // Return true if state is kUnconstructed.
+  bool IsUnconstructed() const { return value_->IsUnconstructed(); }
+
   // Return the stored value. The AsyncValueRef must be available.
   T& get() const { return value_->get<T>(); }
 
@@ -100,6 +106,10 @@ class AsyncValueRef {
   T* operator->() const { return &get(); }
 
   T& operator*() const { return get(); }
+
+  // Convert an available AsyncValue to Expected.
+  // Precondition: The AsyncValue must be available.
+  Expected<T*> AsExpected() const { return AsPtr().AsExpected(); }
 
   // Make the AsyncValueRef available.
   void SetStateConcrete() const { value_->SetStateConcrete(); }
@@ -121,9 +131,74 @@ class AsyncValueRef {
 
   // If the AsyncValueRef is available, run the waiter immediately. Otherwise,
   // run the waiter when the AsyncValueRef becomes available.
-  template <typename WaiterT>
+  //
+  // Sample usage:
+  //
+  // async_value_ref.AndThen([] {
+  //   // async_value_ref is now ready.
+  // });
+  template <typename WaiterT,
+            std::enable_if_t<is_invocable_v<WaiterT>, bool> = true>
   void AndThen(WaiterT&& waiter) const {
     value_->AndThen(std::forward<WaiterT>(waiter));
+  }
+
+  // This AndThen() function takes a functor that takes Expected<T*> as
+  // argument. This makes it easy for the callback function to use the value of
+  // the AsyncValue when it becomes available.
+  //
+  // Sample usage:
+  //
+  // async_value_ref.AndThen([] (Expected<T*> expected) {
+  //   // async_value_ref is now ready and its value/error is in the provided
+  //   `expected` argument.
+  //   if (!expected) {
+  //      // handle the error in expected.takeError().
+  //   } else {
+  //      // handle the value in *expected.
+  //   }
+  // });
+  template <
+      typename WaiterT,
+      std::enable_if_t<is_invocable_v<WaiterT, Expected<T*>>, bool> = true>
+  void AndThen(WaiterT&& waiter) const {
+    AndThen(
+        [waiter = std::forward<WaiterT>(waiter), av_ptr = AsPtr()]() mutable {
+          return std::forward<WaiterT>(waiter)(av_ptr.AsExpected());
+        });
+  }
+
+  // This AndThen() function takes a functor that takes an Error as
+  // argument. This makes it easy for the callback function to use the error of
+  // the AsyncValue when it becomes available. This is useful when the callback
+  // function only cares about the error value of the AsyncValue, e.g. for
+  // AsyncValueRef<Chain>.
+  //
+  // Sample usage:
+  //
+  // async_value_ref.AndThen([] (Error error) {
+  //   // async_value_ref is now ready and its error is in the provided
+  //   `error` argument.
+  //   if (error) {
+  //     // Handle the error.
+  //   } else {
+  //     // No error occurred.
+  //   }
+  // });
+  template <typename WaiterT,
+            std::enable_if_t<(is_invocable_v<WaiterT, Error> &&
+                              !is_invocable_v<WaiterT, Expected<T*>>),
+                             bool> = true>
+  void AndThen(WaiterT&& waiter) const {
+    AndThen(
+        [waiter = std::forward<WaiterT>(waiter), av_ptr = AsPtr()]() mutable {
+          if (av_ptr.IsError()) {
+            return std::forward<WaiterT>(waiter)(
+                MakeStringError(av_ptr.GetError()));
+          } else {
+            return std::forward<WaiterT>(waiter)(Error::success());
+          }
+        });
   }
 
   // Return true if this AsyncValueRef represents an error.
@@ -202,6 +277,16 @@ class AsyncValuePtr {
   T& get() const { return value_->template get<T>(); }
   T* operator->() const { return &get(); }
   T& operator*() const { return get(); }
+
+  // Convert an available AsyncValue to Expected.
+  // Precondition: The AsyncValue must be available.
+  Expected<T*> AsExpected() const {
+    assert(IsAvailable());
+    if (IsError())
+      return MakeStringError(GetError());
+    else
+      return &get();
+  }
 
   explicit operator bool() const { return value_ != nullptr; }
 

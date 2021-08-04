@@ -28,6 +28,10 @@ void Await(const ExecutionContext& exec_ctx,
   exec_ctx.work_queue().Await(values);
 }
 
+void Await(HostContext* host, ArrayRef<RCReference<AsyncValue>> values) {
+  host->work_queue().Await(values);
+}
+
 void EnqueueWork(const ExecutionContext& exec_ctx,
                  llvm::unique_function<void()> work) {
   auto& work_queue = exec_ctx.work_queue();

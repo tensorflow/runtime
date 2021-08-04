@@ -53,6 +53,23 @@ template <typename T>
 using MaybeBase =
     llvm::conjunction<std::is_class<T>, llvm::negation<std::is_final<T>>>;
 
+// An implementation of std::is_invocable in C++14. We can remove this code and
+// use std::is_invocable once we upgrade to C++17.
+namespace detail {
+template <typename F, typename Enable = void>
+struct is_invocable_impl : std::false_type {};
+
+template <typename F, typename... Args>
+struct is_invocable_impl<F(Args...), std::result_of_t<F(Args...)>>
+    : std::true_type {};
+}  // namespace detail
+
+template <typename F, typename... Args>
+using is_invocable = detail::is_invocable_impl<F(Args...)>;
+
+template <typename F, typename... Args>
+constexpr bool is_invocable_v = is_invocable<F, Args...>::value;
+
 // Find the index of a type in a tuple.
 //
 // Example:

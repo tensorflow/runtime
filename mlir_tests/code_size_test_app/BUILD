@@ -12,7 +12,6 @@ filegroup(
     testonly = True,
     srcs = [
         "@llvm-project//llvm:FileCheck",
-        "@tf_runtime//tools:bef_name",
         "@tf_runtime//tools:code_size_test_driver",
     ],
 )

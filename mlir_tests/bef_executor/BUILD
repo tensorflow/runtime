@@ -12,7 +12,6 @@ filegroup(
         "@llvm-project//llvm:FileCheck",
         "@llvm-project//llvm:not",
         "@tf_runtime//tools:bef_executor_lite",
-        "@tf_runtime//tools:bef_name",
         "@tf_runtime//tools:tfrt_opt",
     ],
 )

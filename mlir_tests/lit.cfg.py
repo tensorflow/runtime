@@ -46,7 +46,7 @@ llvm_config.config.substitutions.append(
 tool_dirs = config.tfrt_tools_dirs + [config.llvm_tools_dir]
 
 tool_names = [
-    'bef_executor', 'bef_executor_lite', 'bef_name', 'tfrt_translate',
+    'bef_executor', 'bef_executor_lite', 'tfrt_translate',
     'tfrt_opt', 'tfrt_gpu_translate', 'tfrt_gpu_opt', 'code_size_test_driver',
     'bef_executor_debug_tracing'
 ]

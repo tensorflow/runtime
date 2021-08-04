@@ -19,7 +19,9 @@
 #ifndef TFRT_SUPPORT_STRING_UTIL_H_
 #define TFRT_SUPPORT_STRING_UTIL_H_
 
+#include <sstream>
 #include <string>
+#include <utility>
 
 #include "llvm/Support/raw_ostream.h"
 
@@ -27,16 +29,19 @@ namespace tfrt {
 
 namespace internal {
 
-inline void ToStreamHelper(llvm::raw_ostream& os) {}
+template <typename StreamT>
+inline void ToStreamHelper(StreamT& os) {}
 
-template <typename T, typename... Args>
-void ToStreamHelper(llvm::raw_ostream& os, T&& v, Args&&... args) {
+template <typename StreamT, typename T, typename... Args>
+void ToStreamHelper(StreamT& os, T&& v, Args&&... args) {
   os << std::forward<T>(v);
   ToStreamHelper(os, std::forward<Args>(args)...);
 }
+
 }  // namespace internal
 
 // Utility function to stream arguments into a std::string.
+
 template <typename... Args>
 std::string StrCat(Args&&... args) {
   std::string str;
@@ -44,6 +49,13 @@ std::string StrCat(Args&&... args) {
   internal::ToStreamHelper(sstr, std::forward<Args>(args)...);
   sstr.flush();
   return str;
+}
+
+template <typename... Args>
+std::string OstreamStrCat(Args&&... args) {
+  std::ostringstream sstr;
+  internal::ToStreamHelper(sstr, std::forward<Args>(args)...);
+  return sstr.str();
 }
 
 // Utility function to append arguments after `str` to `str`.

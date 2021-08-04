@@ -14,6 +14,8 @@
 
 #include "tfrt/support/string_util.h"
 
+#include <ostream>
+
 #include "gtest/gtest.h"
 
 namespace tfrt {
@@ -80,6 +82,17 @@ TEST(StringUtilTest, NegativeHumanReadableElapsedTime) {
   EXPECT_EQ(HumanReadableElapsedTime(-12345), "-3.43 h");
   EXPECT_EQ(HumanReadableElapsedTime(-12345678), "-4.69 months");
   EXPECT_EQ(HumanReadableElapsedTime(-1234567890), "-39.1 years");
+}
+
+struct Foo {
+  friend std::ostream& operator<<(std::ostream& os, const Foo&) {
+    return os << "foo";
+  }
+};
+
+TEST(StringUtilTest, OStreamStrCat) {
+  Foo foo;
+  EXPECT_EQ(OstreamStrCat(foo, foo), "foofoo");
 }
 
 }  // namespace

@@ -905,7 +905,10 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
   // Register additional dialects provided via compilation options.
   if (opts.register_dialects) opts.register_dialects(registry);
 
-  return std::make_unique<mlir::MLIRContext>(registry);
+  // TODO(ezhulenev): Wrap host context work queue into the llvm ThreadPool API
+  // and pass it to all MLIR contexts.
+  return std::make_unique<mlir::MLIRContext>(
+      registry, mlir::MLIRContext::Threading::DISABLED);
 }
 
 JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
@@ -918,11 +921,6 @@ JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
       llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
       llvm::SMLoc());
   module_ = mlir::parseSourceFile(source_mgr_, context_.get());
-
-  // TODO(ezhulenev): Every instance of MLIRContext owns its own thread pool,
-  // and it leads to OOM errors when there are many JIT compiled kernels. Remove
-  // this when MLIR will switch to a central thread pool ownership.
-  context_->disableMultithreading();
 }
 
 /*static*/ Expected<std::unique_ptr<JitCompilationContext>>

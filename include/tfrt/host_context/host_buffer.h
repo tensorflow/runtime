@@ -21,9 +21,12 @@
 #ifndef TFRT_HOST_CONTEXT_HOST_BUFFER_H_
 #define TFRT_HOST_CONTEXT_HOST_BUFFER_H_
 
+#include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/FunctionExtras.h"
 #include "llvm/Support/raw_ostream.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/support/ref_count.h"
+#include "tfrt/support/type_traits.h"
 
 namespace tfrt {
 class HostAllocator;
@@ -64,6 +67,21 @@ class HostBuffer : public ReferenceCounted<HostBuffer> {
   const void *data() const { return data_; }
 
   size_t size() const { return size_; }
+
+  template <typename T>
+  ArrayRef<T> CastAs() const {
+    assert((size() % sizeof(T) == 0) &&
+           "Invalid size for HostBuffer::CastAs<T>");
+    assert(IsAlignedPtr<T>(data()) &&
+           "HostBuffer is not aligned for the target type");
+    return {static_cast<const T *>(data()), size() / sizeof(T)};
+  }
+
+  template <typename T>
+  MutableArrayRef<T> CastAs() {
+    auto array_ref = static_cast<const HostBuffer *>(this)->CastAs<T>();
+    return {const_cast<T *>(array_ref.data()), array_ref.size()};
+  }
 
   // Returns `true` iff `*this` is an exclusive owner of the underlying data.
   bool IsExclusiveDataOwner() {

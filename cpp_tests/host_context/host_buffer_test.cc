@@ -103,5 +103,20 @@ TEST_F(HostBufferTest, CreateFromExternal) {
   EXPECT_TRUE(child_buffer->IsExclusiveDataOwner());
 }
 
+TEST_F(HostBufferTest, CastAs) {
+  std::array<int, 3> data{1, 2, 3};
+  RCReference<HostBuffer> host_buffer = HostBuffer::CreateFromExternal(
+      data.data(), data.size() * sizeof(int), [](void*, size_t) {});
+
+  MutableArrayRef<int> mutable_array_ref = host_buffer->CastAs<int>();
+  EXPECT_EQ(mutable_array_ref.size(), 3);
+  EXPECT_EQ(mutable_array_ref[0], 1);
+
+  const HostBuffer& const_hb = *host_buffer;
+  ArrayRef<int> array_ref = const_hb.CastAs<int>();
+  EXPECT_EQ(array_ref.size(), 3);
+  EXPECT_EQ(array_ref[0], 1);
+}
+
 }  // namespace
 }  // namespace tfrt

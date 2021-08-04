@@ -70,6 +70,12 @@ using is_invocable = detail::is_invocable_impl<F(Args...)>;
 template <typename F, typename... Args>
 constexpr bool is_invocable_v = is_invocable<F, Args...>::value;
 
+// Check if the given `ptr` is aligned for type T.
+template <typename T>
+constexpr bool IsAlignedPtr(const void* ptr) {
+  return reinterpret_cast<uintptr_t>(ptr) % alignof(T) == 0;
+}
+
 // Find the index of a type in a tuple.
 //
 // Example:

@@ -33,7 +33,7 @@ func @pad_with_hardcoded_attr_f32() -> !tfrt.chain {
   %cpu_handle_result = corert.executeop(%cpu) "tf.Pad"(%a, %padding)
       : 1
 
-  // CHECK: DenseHostTensor dtype = f32, shape = [1, 8, 8, 1], md5sum = 1170624143, values = [0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00, 5.000000e-01, 5.000000e-01, 0.000000e+00, 0.000000e+00, 0.000000e+00, ... ]
+  // CHECK: DenseHostTensor dtype = f32, shape = [1, 8, 8, 1], values = [0.000000e+00, 0.000000e+00, 0.000000e+00, 0.000000e+00
   %ch_print_cpu = corert.executeop.seq(%cpu, %ch_epoch)
     "tfrt_test.print"(%cpu_handle_result) : 0
   tfrt.return %ch_print_cpu : !tfrt.chain

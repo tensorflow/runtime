@@ -70,14 +70,7 @@ void DenseHostTensor::Print(raw_ostream& os) const {
   auto element_size = GetHostSize(dtype());
   auto* data_ptr = static_cast<const char*>(data());
 
-  static const ssize_t kThreshold = 32;
-  if (NumElements() > kThreshold) {
-    // Print a MD5 sum of the tensor contents.
-    os << ", md5sum = ";
-    uint32_t md5sum =
-        llvm::MD5Hash(llvm::StringRef(data_ptr, DataSizeInBytes()));
-    os << md5sum;
-  }
+  static const ssize_t kThreshold = 16;
 
   // Print at most 32 elements for a tensor.
   os << ", values = [";
@@ -89,6 +82,13 @@ void DenseHostTensor::Print(raw_ostream& os) const {
     os << ", ... ";
   }
   os << ']';
+}
+
+void DenseHostTensor::PrintMd5(raw_ostream& os) const {
+  os << "DenseHostTensor md5sum = ";
+  auto* data_ptr = static_cast<const char*>(data());
+  uint32_t md5sum = llvm::MD5Hash(llvm::StringRef(data_ptr, DataSizeInBytes()));
+  os << md5sum;
 }
 
 std::ostream& operator<<(std::ostream& o, const DenseHostTensor& dht) {

@@ -112,6 +112,10 @@ class DenseHostTensor final : public HostTensor,
 
   void Print(raw_ostream& os) const override;
 
+  // Print the MD5 sum of the tensor contents. Calculating MD5 is expensive
+  // so this should be used for testing only.
+  void PrintMd5(raw_ostream& os) const;
+
   // Tensor type for DenseHostTensor.
   static const char* name() { return "DenseHost"; }
 

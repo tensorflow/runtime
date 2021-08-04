@@ -68,6 +68,10 @@ class StringHostTensor final : public HostTensor,
 
   void Print(raw_ostream& os) const override;
 
+  // Print the MD5 sum of the tensor contents. Calculating MD5 is expensive
+  // so this should be used for testing only.
+  void PrintMd5(raw_ostream& os) const;
+
   HostArray<std::string> CopyBuffer(HostContext* host) const;
 
   // Tensor type for StringHostTensor.

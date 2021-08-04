@@ -86,16 +86,7 @@ void StringHostTensor::Print(raw_ostream& os) const {
 
   auto strings = this->strings();
 
-  static constexpr size_t kThreshold = 32;
-  if (NumElements() > kThreshold) {
-    llvm::MD5 hash;
-    for (auto& str : strings) {
-      hash.update(str);
-    }
-    llvm::MD5::MD5Result result;
-    hash.final(result);
-    os << ", md5sum = " << result.low();
-  }
+  static constexpr size_t kThreshold = 16;
 
   os << ", values = [";
   // Print at most 32 elements for a tensor.
@@ -109,6 +100,17 @@ void StringHostTensor::Print(raw_ostream& os) const {
   }
 
   os << ']';
+}
+
+void StringHostTensor::PrintMd5(raw_ostream& os) const {
+  auto strings = this->strings();
+  llvm::MD5 hash;
+  for (auto& str : strings) {
+    hash.update(str);
+  }
+  llvm::MD5::MD5Result result;
+  hash.final(result);
+  os << ", md5sum = " << result.low();
 }
 
 HostArray<std::string> StringHostTensor::CopyBuffer(HostContext* host) const {

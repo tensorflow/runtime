@@ -33,7 +33,7 @@ func @tile_f32() attributes {tfrt.sync} {
   "tf_sync.Tile.f32"(%operand_0, %operand_1, %result) : (!t.tensor, !t.tensor, !t.tensor) -> ()
 
   // CHECK: DenseHostTensor dtype = f32, shape = [4, 6]
-  // CHECK-SAME: values = [1.000000e+00, 2.000000e+00, 3.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00]
+  // CHECK-SAME: values = [1.000000e+00, 2.000000e+00, 3.000000e+00, 1.000000e+00, 2.000000e+00, 3.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 4.000000e+00, 5.000000e+00, 6.000000e+00, 1.000000e+00, 2.000000e+00
   tfrt_dht_sync.print_tensor %result
 
   tfrt.return
@@ -49,7 +49,7 @@ func @tile_string() attributes {tfrt.sync} {
   "tf_sync.Tile.string"(%operand_0, %result) : (!t.tensor, !t.tensor) -> ()
 
   // CHECK: StringHostTensor shape = [4, 6]
-  // CHECK-SAME: values = ["a", "b", "c", "a", "b", "c", "d", "e", "f", "d", "e", "f", "a", "b", "c", "a", "b", "c", "d", "e", "f", "d", "e", "f"]
+  // CHECK-SAME: values = ["a", "b", "c", "a", "b", "c", "d", "e", "f", "d", "e", "f", "a", "b", "c", "a"
   tfrt_dht_sync.print_tensor %result
 
   tfrt.return

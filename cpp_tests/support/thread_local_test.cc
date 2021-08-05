@@ -30,19 +30,10 @@ namespace {
 // TheadLocal storage can properly handle such types.
 struct WorkerId {
   explicit WorkerId(int id) : id(id) {}
-
-  // Workaround for an apparent MSVC bug which results in a build failure
-  // if WorkerId is move-only
-#ifdef _MSC_VER
   WorkerId(const WorkerId&) = default;
   WorkerId& operator=(const WorkerId&) = default;
-#else
-  WorkerId(const WorkerId&) = delete;
-  WorkerId& operator=(const WorkerId&) = delete;
-#endif // _MSC_VER
-  
-  WorkerId(WorkerId&&) = default;
-  WorkerId& operator=(WorkerId&&) = default;
+  WorkerId(WorkerId&&) noexcept = default;
+  WorkerId& operator=(WorkerId&&) noexcept = default;
   int id;
 };
 

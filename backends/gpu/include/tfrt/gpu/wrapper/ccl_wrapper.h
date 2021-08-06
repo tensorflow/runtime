@@ -39,6 +39,9 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+using CclDataType = ncclDataType_t;
+using CclReductionOp = ncclRedOp_t;
+
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclResult_t result);
 
 template <>

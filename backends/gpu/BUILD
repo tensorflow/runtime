@@ -1,4 +1,4 @@
-load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library")
+load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
 load(
     "@tf_runtime//:build_defs.bzl",
     "if_google",
@@ -761,6 +761,21 @@ tfrt_cc_library(
     ],
 )
 
+td_library(
+    name = "GpuOpBaseTdFile",
+    srcs = [
+        "include/tfrt/gpu/kernels/gpu_ops_base.td",
+    ],
+    visibility = if_google(
+        [":xla_friends"],
+        ["//visibility:public"],
+    ),
+    deps = [
+        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        "@tf_runtime//:OpBaseTdFiles",
+    ],
+)
+
 gentbl_cc_library(
     name = "gpu_opdefs_inc_gen",
     includes = [
@@ -792,11 +807,10 @@ gentbl_cc_library(
         "include/tfrt/gpu/kernels/gpu_ccl_ops.td",
         "include/tfrt/gpu/kernels/gpu_dnn_ops.td",
         "include/tfrt/gpu/kernels/gpu_driver_ops.td",
-        "include/tfrt/gpu/kernels/gpu_ops_base.td",
         "include/tfrt/gpu/kernels/gpu_solver_ops.td",
     ],
     deps = [
-        "@llvm-project//mlir:InferTypeOpInterfaceTdFiles",
+        ":GpuOpBaseTdFile",
         "@llvm-project//mlir:SideEffectTdFiles",
         "@tf_runtime//:OpBaseTdFiles",
     ],

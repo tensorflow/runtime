@@ -56,6 +56,8 @@ def GPU_AllocatorType : GPU_Type<"Allocator"> { let mnemonic = "allocator"; }
 def GPU_BufferType : GPU_Type<"Buffer"> { let mnemonic = "buffer"; }
 def GPU_ContextType : GPU_Type<"Context"> { let mnemonic = "context"; }
 def GPU_StreamType : GPU_Type<"Stream"> { let mnemonic = "stream"; }
+// Specific to CCL, but included here for export.
+def GPU_CclHandleType : GPU_Type<"CclHandle"> { let mnemonic = "ccl.handle"; }
 
 // Attribute definitions.
 

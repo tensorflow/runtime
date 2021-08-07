@@ -4,12 +4,6 @@ The `@rules_cuda` repository primarily provides a `cuda_library()` macro which
 allows compiling a C++ bazel target containing CUDA device code using nvcc or
 clang.
 
-The CUDA example program in this repository can be run with:
-
-```
-bazel run --cuda //examples:hello_cuda
-```
-
 For this, [rules_cc](https://github.com/bazelbuild/rules_cc)'s auto-configured
 toolchain is patched to support a `cuda` feature which is then enabled for
 `cuda_library()` targets.
@@ -29,13 +23,20 @@ Add the following snippet to your `WORKSPACE` file:
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 http_archive(
     name = "rules_cuda",
-    urls = ["https://github.com/bazelbuild/rules_cuda/archive/????.zip"],
-    sha256 = "????",
+    sha256 = "f80438bee9906e9ecb1a8a4ae2365374ac1e8a283897281a2db2fb7fcf746333",
+    strip_prefix = "runtime-b1c7cce21ba4661c17ac72421c6a0e2015e7bef3/third_party/rules_cuda",
+    urls = ["https://github.com/tensorflow/runtime/archive/b1c7cce21ba4661c17ac72421c6a0e2015e7bef3.tar.gz"],
 )
 load("//cuda:dependencies.bzl", "rules_cuda_dependencies")
 rules_cuda_dependencies()
 load("@rules_cc//cc:repositories.bzl", "rules_cc_toolchains")
 rules_cc_toolchains()
+```
+
+You can test your setup by running the example :
+
+```
+bazel run --@rules_cuda//cuda:enable_cuda @rules_cuda//examples:hello_cuda
 ```
 
 ## Using `cuda_library`

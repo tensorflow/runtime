@@ -195,12 +195,6 @@ tfrt_cc_binary(
     ],
 )
 
-cc_binary(
-    name = "bef_name",
-    srcs = ["bef_name.cc"],
-    visibility = [":friends"],
-)
-
 bzl_library(
     name = "mlir_to_bef_bzl",
     srcs = ["mlir_to_bef.bzl"],

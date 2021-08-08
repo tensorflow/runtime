@@ -13,7 +13,6 @@ filegroup(
     testonly = True,
     srcs = [
         "@llvm-project//llvm:FileCheck",
-        "@tf_runtime//tools:bef_name",
         "@tf_runtime//tools:tfrt_opt",
         "@tf_runtime//tools:tfrt_translate",
     ],

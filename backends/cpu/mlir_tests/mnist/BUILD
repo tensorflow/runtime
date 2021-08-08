@@ -27,6 +27,5 @@ filegroup(
     srcs = [
         "@llvm-project//llvm:FileCheck",
         "@tf_runtime//tools:bef_executor",
-        "@tf_runtime//tools:bef_name",
     ],
 )

@@ -184,7 +184,10 @@ struct CompilationOptions {
   Optional<llvm::CodeGenOpt::Level> jit_code_opt_level;
 
   // What level of specialization is enabled at runtime.
-  Specialization specialization = Specialization::kEnabled;
+  // TODO(ezhulenev): Async compilation tasks can outlive the request that
+  // triggered the compilation, and this doesn't work well with run handlers.
+  // Change the default value to `kEnabled` once the problem is fixed.
+  Specialization specialization = Specialization::kAlways;
 
   // Register dialects that are allowed in the serialized module.
   llvm::function_ref<void(mlir::DialectRegistry&)> register_dialects;

@@ -766,6 +766,7 @@ td_library(
     srcs = [
         "include/tfrt/gpu/kernels/gpu_ops_base.td",
     ],
+    includes = ["include"],
     visibility = if_google(
         [":xla_friends"],
         ["//visibility:public"],

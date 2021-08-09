@@ -690,6 +690,16 @@ struct AlignedAllocationsPass
   void runOnFunction() override;
   int64_t alignment;
 };
+
+// Convert `vector.multi_reduction` into a sequence of `vector.reduction` ops.
+struct RewriteVectorMultiReductionPass
+    : public mlir::PassWrapper<RewriteVectorMultiReductionPass,
+                               mlir::FunctionPass> {
+  void getDependentDialects(mlir::DialectRegistry& registry) const override {
+    registry.insert<mlir::memref::MemRefDialect>();
+  }
+  void runOnFunction() override;
+};
 }  // namespace
 
 void MathOptimizationPass::runOnFunction() {
@@ -701,7 +711,7 @@ void MathOptimizationPass::runOnFunction() {
     signalPassFailure();
 }
 
-std::unique_ptr<MathOptimizationPass> CreateMathOptimizationPass() {
+static std::unique_ptr<MathOptimizationPass> CreateMathOptimizationPass() {
   return std::make_unique<MathOptimizationPass>();
 }
 
@@ -720,9 +730,20 @@ void AlignedAllocationsPass::runOnFunction() {
   });
 }
 
-std::unique_ptr<AlignedAllocationsPass> CreateAlignedAllocationsPass(
+static std::unique_ptr<AlignedAllocationsPass> CreateAlignedAllocationsPass(
     int64_t alignment) {
   return std::make_unique<AlignedAllocationsPass>(alignment);
+}
+
+void RewriteVectorMultiReductionPass::runOnFunction() {
+  mlir::RewritePatternSet patterns(&getContext());
+  mlir::vector::populateVectorMultiReductionLoweringPatterns(patterns);
+  (void)applyPatternsAndFoldGreedily(getFunction(), std::move(patterns));
+}
+
+static std::unique_ptr<RewriteVectorMultiReductionPass>
+CreateRewriteVectorMultiReductionPass() {
+  return std::make_unique<RewriteVectorMultiReductionPass>();
 }
 
 static void InitializeCompiler() {
@@ -772,6 +793,9 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // Optimize operations from the math dialect before outlining compute regions
   // into functions to see all constant operands.
   pm.addNestedPass<mlir::FuncOp>(CreateMathOptimizationPass());
+
+  // Rewrite `vector.multi_reduction` into a sequence of `vector.reduction` ops.
+  pm.addNestedPass<mlir::FuncOp>(CreateRewriteVectorMultiReductionPass());
 
   // Convert all linalg operations to parallel loops.
   pm.addNestedPass<mlir::FuncOp>(

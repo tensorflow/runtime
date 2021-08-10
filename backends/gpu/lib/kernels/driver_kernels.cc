@@ -71,22 +71,16 @@ static Error GpuStreamWait(const GpuStream& stream, const GpuEvent& event) {
   return wrapper::StreamWaitEvent(stream.get(), event.get());
 }
 
-// tfrt_gpu.stream.synchronize waits until all stream's tasks are completed.
-//
-// Result: Sets the output chain when all tasks submitted on a stream are
-// completed. This kernel will block the caller thread.
-static void GpuStreamSynchronize(Argument<GpuStream> stream, Chain in_chain,
-                                 Result<Chain> out_chain,
-                                 const ExecutionContext& exec_ctx) {
-  auto result = out_chain.Allocate();
-  bool enqueued = EnqueueBlockingWork(
-      exec_ctx, [result = result.CopyRef(), stream = stream.ValueRef(),
-                 in_chain = in_chain]() mutable {
+// tfrt_gpu.stream.synchronize sets the output chain ready when all work
+// previously enqueued on the stream are completed.
+static AsyncValueRef<Chain> GpuStreamSynchronize(
+    Argument<GpuStream> stream, const ExecutionContext& exec_ctx) {
+  return EnqueueBlockingWork(
+      exec_ctx, [stream = stream.ValueRef()]() -> Expected<Chain> {
         if (auto error = wrapper::StreamSynchronize(stream->get()))
-          return result.SetError(StrCat(error));
-        result.emplace(in_chain);
+          return std::move(error);
+        return Chain();
       });
-  if (!enqueued) return result.SetError("Failed to enqueue blocking work.");
 }
 
 // tfrt_gpu.event.create creates a new cuda event.

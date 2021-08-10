@@ -188,7 +188,7 @@ static ParseResult parseEnum(OpAsmParser &parser,
 template <typename T>
 static void printEnum(OpAsmPrinter &printer, Operation *,
                       EnumAttr<T> attribute) {
-  printer << attribute.getValue();
+  wrapper::operator<<(printer.getStream(), attribute.getValue());
 }
 
 template <typename Tag>

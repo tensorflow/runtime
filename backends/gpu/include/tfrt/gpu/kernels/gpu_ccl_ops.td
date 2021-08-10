@@ -26,8 +26,12 @@
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
-def GPU_CclDataTypeAttr : GPU_WrapperAttr<"CclDataType">;
-def GPU_CclReductionOpAttr : GPU_WrapperAttr<"CclReductionOp">;
+def GPU_CclDataTypeAttr : GPU_WrapperAttr<"CclDataType"> {
+  let returnType = "::ncclDataType_t";
+}
+def GPU_CclReductionOpAttr : GPU_WrapperAttr<"CclReductionOp"> {
+  let returnType = "::ncclRedOp_t";
+}
 
 def GPU_CclAllReduceOp : GPU_Op<"ccl.all_reduce"> {
   let description = [{

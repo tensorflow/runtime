@@ -39,6 +39,7 @@
 #include "tfrt/cpu/jit/async_runtime_api.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/host_context/task_function.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/msan.h"
 
@@ -909,9 +910,25 @@ class JitExecutable {
 
   static constexpr const char* const kConstraint = "cpurt.constraint";
 
+  // Compilation task runner called at runtime when specialization compilation
+  // is required with the `TaskFunction` that does the compilation, and updates
+  // the internal state of the `JitExecutable`. This runner can be used by the
+  // caller to offload compilation task to the specialized thread pool and
+  // add tracing events (e.g. add Tensorflow profiler tracing). Task runner must
+  // call the `TaskFunction`, otherwise it will lead to the deadlock.
+  using CompilationTaskRunner = llvm::unique_function<void(
+      ArrayRef<MemrefDesc> operands, TaskFunction, const ExecutionContext&)>;
+
+  // Default compilation task runner enqueues compilation task into the host
+  // context concurrent work queue.
+  static void DefaultCompilationTaskRunner(ArrayRef<MemrefDesc> operands,
+                                           TaskFunction task,
+                                           const ExecutionContext& exec_ctx);
+
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
-      const CompilationOptions& compilation_opts);
+      const CompilationOptions& compilation_opts,
+      CompilationTaskRunner runner = DefaultCompilationTaskRunner);
 
   // Returns entrypoint operands constraints after resolving them using the
   // statically known information in the entrypoint function signature.
@@ -953,7 +970,8 @@ class JitExecutable {
   JitExecutable(string_view mlir_module, string_view entrypoint,
                 CompilationOptions compilation_opts,
                 ArrayRef<OperandConstraint> constraints,
-                Optional<Executable> default_executable = {});
+                Optional<Executable> default_executable,
+                CompilationTaskRunner runner);
 
   std::string mlir_module_;
   std::string entrypoint_;
@@ -970,6 +988,9 @@ class JitExecutable {
   // Default executable that was not specialized to any of the arguments.
   AsyncValueRef<Executable> default_executable_;
   bool has_default_executable_;
+
+  // A custom runner for compiling specializations.
+  CompilationTaskRunner runner_;
 
   // Executables specialized for the arguments shapes or/and values.
   using Specializations = AsyncValuesCache<llvm::hash_code, Executable>;

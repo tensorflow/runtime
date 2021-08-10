@@ -87,7 +87,6 @@
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
-#include "tfrt/tracing/tracing.h"
 
 namespace tfrt {
 namespace cpu {
@@ -115,7 +114,7 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
     os << "]";
   };
 
-  os << "MemrefDesc: offset: " << desc.offset;
+  os << "MemrefDesc: dtype: " << desc.dtype << " offset: " << desc.offset;
   print_arr("sizes", desc.sizes);
   print_arr("strides", desc.strides);
 
@@ -1232,9 +1231,14 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   });
 }
 
+/*static*/ void JitExecutable::DefaultCompilationTaskRunner(
+    ArrayRef<MemrefDesc>, TaskFunction task, const ExecutionContext& exec_ctx) {
+  EnqueueWork(exec_ctx, std::move(task));
+}
+
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
     string_view mlir_module, string_view entrypoint,
-    const CompilationOptions& compilation_opts) {
+    const CompilationOptions& compilation_opts, CompilationTaskRunner runner) {
   // Set up LLVM target for code generation.
   InitializeCompiler();
 
@@ -1242,8 +1246,6 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   Expected<std::unique_ptr<JitCompilationContext>> ctx =
       JitCompilationContext::Instantiate(compilation_opts, mlir_module);
   if (auto err = ctx.takeError()) return std::move(err);
-
-  TFRT_TRACE_SCOPE(Default, StrCat("cpurt: Compile [@", (*ctx)->name(), "]"));
 
   // Get resolved operands constraints for the entrypoint function.
   auto constraints = GetOperandsConstraints((*ctx)->module(), entrypoint);
@@ -1261,7 +1263,7 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
           *constraints);
 
     return JitExecutable(mlir_module, entrypoint, compilation_opts,
-                         *constraints, {});
+                         *constraints, llvm::None, std::move(runner));
   }
 
   // Otherwise try to compile the default executable.
@@ -1270,18 +1272,20 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   if (auto err = executable.takeError()) return std::move(err);
 
   return JitExecutable(mlir_module, entrypoint, compilation_opts, *constraints,
-                       std::move(*executable));
+                       std::move(*executable), std::move(runner));
 }
 
 JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
                              CompilationOptions compilation_opts,
                              ArrayRef<OperandConstraint> constraints,
-                             Optional<Executable> default_executable)
+                             Optional<Executable> default_executable,
+                             CompilationTaskRunner runner)
     : mlir_module_(mlir_module.str()),
       entrypoint_(entrypoint.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
       has_default_executable_(default_executable.hasValue()),
+      runner_(std::move(runner)),
       specializations_(std::make_unique<Specializations>()) {
   // Initialize default executable if it is available.
   if (has_default_executable_) {
@@ -1375,7 +1379,7 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
   if (!entry.allocated) return entry.ptr;
 
   // Instantiation from the source and specialization are cheap, so we do it in
-  // the caller thread. We only schedule expensive compilation as an async task.
+  // the caller thread. We only use compilation runner for expensive part.
 
   // Try to instantiate compilation context from the mlir source.
   Expected<std::unique_ptr<JitCompilationContext>> ctx =
@@ -1394,11 +1398,9 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
     return entry.ptr;
   }
 
-  // Compile specialization asynchronously in the host context thread pool.
-  EnqueueWork(exec_ctx, [ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
-                         entrypoint = entrypoint_]() mutable {
-    TFRT_TRACE_SCOPE(Default, StrCat("cpurt: Specialize [@", ctx->name(), "]"));
-
+  // Construct the task that will do the specialized executable compilation.
+  auto compilation_task = [ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
+                           entrypoint = entrypoint_]() mutable {
     Expected<Executable> executable =
         JitCompilationContext::Compile(std::move(ctx), entrypoint);
 
@@ -1407,7 +1409,10 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
       ref.SetError(std::move(err));
     else
       ref.emplace(std::move(*executable));
-  });
+  };
+
+  // Offload specialization compilation to the user provided runner.
+  runner_(operands, TaskFunction(std::move(compilation_task)), exec_ctx);
 
   // Use the default executable while we are compiling a specialized version if
   // this is not explicitly disabled by the compilation options.

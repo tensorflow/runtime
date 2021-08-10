@@ -34,5 +34,7 @@
     "cufftDestroy",
     "cufftGetVersion",
     "cufftGetProperty"
+   ],
+   "macros":[
   ]
 }

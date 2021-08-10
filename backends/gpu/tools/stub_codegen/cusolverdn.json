@@ -256,5 +256,7 @@
       "cusolverDnDgesvdaStridedBatched",
       "cusolverDnCgesvdaStridedBatched",
       "cusolverDnZgesvdaStridedBatched"
+   ],
+   "macros":[
    ]
 }

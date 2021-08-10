@@ -29,46 +29,43 @@ namespace wrapper {
 
 class FftHandle {
  public:
+  FftHandle() = default;
   FftHandle(std::nullptr_t) {}
-  FftHandle(cufftHandle handle) : pair_(nullptr, Platform::CUDA) {
-    union_.handle = handle;
+  FftHandle(cufftHandle handle) : platform_(Platform::CUDA) {
+    union_.cuda_handle = handle;
   }
-  FftHandle(rocfft_plan plan, rocfft_execution_info exec_info)
-      : pair_(exec_info, Platform::ROCm) {
-    union_.plan = plan;
+  FftHandle(hipfftHandle handle) : platform_(Platform::ROCm) {
+    union_.hip_handle = handle;
   }
   // Required for std::unique_ptr<Resource>.
   FftHandle& operator=(std::nullptr_t) {
-    pair_.setInt(Platform::NONE);
+    platform_ = Platform::NONE;
     return *this;
   }
   // Required for std::unique_ptr<Resource>.
   operator bool() const { return platform() != Platform::NONE; }
 
-  Platform platform() const { return pair_.getInt(); }
+  Platform platform() const { return platform_; }
   operator cufftHandle() const {
     assert(platform() == Platform::CUDA);
-    return union_.handle;
+    return union_.cuda_handle;
   }
-  operator rocfft_plan() const {
+  operator hipfftHandle() const {
     assert(platform() == Platform::ROCm);
-    return union_.plan;
+    return union_.hip_handle;
   }
-  operator rocfft_execution_info() const {
-    assert(platform() == Platform::ROCm);
-    return pair_.getPointer();
-  }
-
   // For member access from std::unique_ptr.
   const FftHandle* operator->() const { return this; }
 
  private:
-  llvm::PointerIntPair<rocfft_execution_info, 2, Platform> pair_;
+  Platform platform_;
   union {
-    cufftHandle handle;
-    rocfft_plan plan;
+    cufftHandle cuda_handle;
+    hipfftHandle hip_handle;
   } union_;
 };
+
+enum class FftDirection : int { kForward, kInverse };
 
 namespace internal {
 // Helper to wrap resources and memory into RAII types.

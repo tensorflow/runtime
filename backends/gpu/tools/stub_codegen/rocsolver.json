@@ -1,0 +1,18 @@
+{
+   "header":"/opt/rocm-4.2.0/include/rocsolver.h",
+   "extra_args":[
+      "-I.",
+      "-I/opt/rocm-4.2.0/include/"
+   ],
+   "enums":[
+   ],
+   "functions":[
+      "rocsolver_spotrf",
+      "rocsolver_dpotrf",
+      "rocsolver_cpotrf",
+      "rocsolver_zpotrf"
+   ],
+   "macros":[
+      "ROCSOLVER_EXPORT"
+   ]
+}

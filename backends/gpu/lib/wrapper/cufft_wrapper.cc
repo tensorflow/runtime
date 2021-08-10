@@ -521,17 +521,28 @@ llvm::Error CufftXtSetWorkAreaPolicy(cufftHandle plan,
   return TO_ERROR(cufftXtSetWorkAreaPolicy(plan, policy, nullptr));
 }
 
+static int ToCuda(FftDirection direction) {
+  switch (direction) {
+    case FftDirection::kForward:
+      return CUFFT_FORWARD;
+    case FftDirection::kInverse:
+      return CUFFT_INVERSE;
+    default:
+      return 0;  // 0 is an invalid value.
+  }
+}
+
 llvm::Error CufftExecC2C(cufftHandle plan, cufftComplex* input_data,
                          cufftComplex* output_data, FftDirection direction) {
   return TO_ERROR(
-      cufftExecC2C(plan, input_data, output_data, static_cast<int>(direction)));
+      cufftExecC2C(plan, input_data, output_data, ToCuda(direction)));
 }
 
 llvm::Error CufftExecZ2Z(cufftHandle plan, cufftDoubleComplex* input_data,
                          cufftDoubleComplex* output_data,
                          FftDirection direction) {
   return TO_ERROR(
-      cufftExecZ2Z(plan, input_data, output_data, static_cast<int>(direction)));
+      cufftExecZ2Z(plan, input_data, output_data, ToCuda(direction)));
 }
 
 llvm::Error CufftExecR2C(cufftHandle plan, cufftReal* input_data,
@@ -556,8 +567,7 @@ llvm::Error CufftExecZ2D(cufftHandle plan, cufftDoubleComplex* input_data,
 
 llvm::Error CufftXtExec(cufftHandle plan, void* input, void* output,
                         FftDirection direction) {
-  return TO_ERROR(
-      cufftXtExec(plan, input, output, static_cast<int>(direction)));
+  return TO_ERROR(cufftXtExec(plan, input, output, ToCuda(direction)));
 }
 
 llvm::Error CufftXtMemcpy(cufftHandle plan, void* dst, void* src,

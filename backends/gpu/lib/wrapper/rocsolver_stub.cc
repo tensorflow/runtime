@@ -1,4 +1,4 @@
-// Copyright 2020 The TensorFlow Runtime Authors
+// Copyright 2021 The TensorFlow Runtime Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Implementation of the rocFFT API forwarding calls to symbols dynamically
+// Implementation of the rocsolver API forwarding calls to symbols dynamically
 // loaded from the real library.
-#include "tfrt/gpu/wrapper/rocfft_stub.h"
+#include "tfrt/gpu/wrapper/rocsolver_stub.h"
 
 #include "symbol_loader.h"
 
 // Memoizes load of the .so for this ROCm library.
 static void *LoadSymbol(const char *symbol_name) {
-  static SymbolLoader loader("librocfft.so");
+  static SymbolLoader loader("librocsolver.so");
   return loader.GetAddressOfSymbol(symbol_name);
 }
 
@@ -32,12 +32,12 @@ static Func *GetFunctionPointer(const char *symbol_name, Func *func = nullptr) {
 // Calls function 'symbol_name' in shared library with 'args'.
 // TODO(gkg): Change to 'auto Func' when C++17 is allowed.
 template <typename Func, Func *, typename... Args>
-static rocfft_status DynamicCall(const char *symbol_name, Args &&...args) {
+static rocblas_status DynamicCall(const char *symbol_name, Args &&...args) {
   static auto func_ptr = GetFunctionPointer<Func>(symbol_name);
-  if (!func_ptr) return rocfft_status_failure;
+  if (!func_ptr) return rocblas_status_invalid_handle;
   return func_ptr(std::forward<Args>(args)...);
 }
 
 extern "C" {
-#include "rocfft_stub.cc.inc"
+#include "rocsolver_stub.cc.inc"
 }

@@ -1,4 +1,4 @@
-// Copyright 2020 The TensorFlow Runtime Authors
+// Copyright 2021 The TensorFlow Runtime Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Implementation of the HIP API forwarding calls to symbols dynamically loaded
-// from the real library.
-#include "tfrt/gpu/wrapper/hip_stub.h"
+// Implementation of the hipfft API forwarding calls to symbols dynamically
+// loaded from the real library.
+#include "tfrt/gpu/wrapper/hipfft_stub.h"
 
 #include "symbol_loader.h"
 
 // Memoizes load of the .so for this ROCm library.
 static void *LoadSymbol(const char *symbol_name) {
-  static SymbolLoader loader("libamdhip64.so");
+  static SymbolLoader loader("libhipfft.so");
   return loader.GetAddressOfSymbol(symbol_name);
 }
 
@@ -30,34 +30,14 @@ static Func *GetFunctionPointer(const char *symbol_name, Func *func = nullptr) {
 }
 
 // Calls function 'symbol_name' in shared library with 'args'.
-// TODO(csigg): Change to 'auto Func' when C++17 is allowed.
+// TODO(gkg): Change to 'auto Func' when C++17 is allowed.
 template <typename Func, Func *, typename... Args>
-static hipError_t DynamicCall(const char *symbol_name, Args &&...args) {
+static hipfftResult DynamicCall(const char *symbol_name, Args &&...args) {
   static auto func_ptr = GetFunctionPointer<Func>(symbol_name);
-  if (!func_ptr) return hipErrorSharedObjectInitFailed;
+  if (!func_ptr) return HIPFFT_INTERNAL_ERROR;
   return func_ptr(std::forward<Args>(args)...);
 }
 
-#define __dparm(x)
-#define DEPRECATED(x) [[deprecated]]
-#define dim3 hipDim3_t
-
 extern "C" {
-#include "hip_stub.cc.inc"
-}
-
-// The functions below have a different return type and therefore don't fit
-// the code generator patterns.
-
-const char *hipGetErrorName(hipError_t hip_error) {
-  static auto func_ptr = GetFunctionPointer("hipGetErrorName", hipGetErrorName);
-  if (!func_ptr) return "FAILED_TO_LOAD_FUNCTION_SYMBOL";
-  return func_ptr(hip_error);
-}
-
-const char *hipGetErrorString(hipError_t hip_error) {
-  static auto func_ptr =
-      GetFunctionPointer("hipGetErrorString", hipGetErrorString);
-  if (!func_ptr) return "FAILED_TO_LOAD_FUNCTION_SYMBOL";
-  return func_ptr(hip_error);
+#include "hipfft_stub.cc.inc"
 }

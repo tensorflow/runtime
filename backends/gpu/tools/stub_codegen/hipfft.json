@@ -1,0 +1,34 @@
+{
+   "header":"/opt/rocm-4.2.0/hipfft/include/hipfft.h",
+   "extra_args":[
+      "-I.",
+      "-I/opt/rocm-4.2.0/include/"
+   ],
+   "enums":[
+      "hipfftLibraryPropertyType",
+      "hipfftResult",
+      "hipfftType"
+   ],
+   "functions":[
+      "hipfftDestroy",
+      "hipfftExecC2C",
+      "hipfftExecC2R",
+      "hipfftExecD2Z",
+      "hipfftExecR2C",
+      "hipfftExecZ2D",
+      "hipfftExecZ2Z",
+      "hipfftGetProperty",
+      "hipfftGetSize",
+      "hipfftPlan1d",
+      "hipfftPlan2d",
+      "hipfftPlan3d",
+      "hipfftPlanMany",
+      "hipfftSetStream",
+      "hipfftSetWorkArea"
+   ],
+   "macros":[
+      "HIPFFT_BACKWARD",
+      "HIPFFT_EXPORT",
+      "HIPFFT_FORWARD"
+   ]
+}

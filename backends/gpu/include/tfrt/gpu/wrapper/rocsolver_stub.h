@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 The TensorFlow Runtime Authors
+ * Copyright 2021 The TensorFlow Runtime Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-// Mostly auto-generated rocFFT API header.
-#ifndef TFRT_GPU_WRAPPER_ROCFFT_STUB_H_
-#define TFRT_GPU_WRAPPER_ROCFFT_STUB_H_
+// Mostly auto-generated rocsolver API header.
+#ifndef TFRT_GPU_WRAPPER_ROCSOLVER_STUB_H_
+#define TFRT_GPU_WRAPPER_ROCSOLVER_STUB_H_
 
-#include <cstddef>
+#include <array>
+#include <cstdint>
+#include <cstdlib>
 
-using rocfft_plan = struct rocfft_plan_t*;
-using rocfft_plan_description = struct rocfft_plan_description_t*;
-using rocfft_execution_info = struct rocfft_execution_info_t*;
+#include "tfrt/gpu/wrapper/hip_forwards.h"
+#include "tfrt/gpu/wrapper/rocblas_stub.h"
 
 extern "C" {
-#include "rocfft_stub.h.inc"
+#include "rocsolver_stub.h.inc"
 }
 
-#endif  // TFRT_GPU_WRAPPER_ROCFFT_STUB_H_
+#endif  // TFRT_GPU_WRAPPER_ROCBLAS_STUB_H_

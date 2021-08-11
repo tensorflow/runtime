@@ -221,6 +221,10 @@ static TensorType TestGetStaticTensorType(StringAttribute tensor_type) {
   return GetStaticTensorType(tensor_type.get());
 }
 
+static int TestGetRequestContextData(const ExecutionContext& exec_ctx) {
+  return exec_ctx.request_ctx()->GetData<int>();
+}
+
 }  // namespace
 
 void RegisterSimpleKernels(KernelRegistry* registry) {
@@ -241,6 +245,8 @@ void RegisterSimpleKernels(KernelRegistry* registry) {
                       TFRT_KERNEL(TestPrintTensorType));
   registry->AddKernel("tfrt_test.get_static_tensor_type",
                       TFRT_KERNEL(TestGetStaticTensorType));
+  registry->AddKernel("tfrt_test.get_request_context_data.i32",
+                      TFRT_KERNEL(TestGetRequestContextData));
 
   SetupStringRegistry(registry);
   SetupValueTrackingRegistry(registry);

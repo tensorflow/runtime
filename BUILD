@@ -295,6 +295,22 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "kernel_runner",
+    srcs = [
+        "lib/utils/kernel_runner.cc",
+    ],
+    hdrs = [
+        "include/tfrt/utils/kernel_runner.h",
+    ],
+    visibility = [":friends"],
+    deps = [
+        ":hostcontext",
+        ":support",
+        "@llvm-project//llvm:Support",
+    ],
+)
+
+tfrt_cc_library(
     name = "tracing",
     srcs = [
         "lib/tracing/tracing.cc",

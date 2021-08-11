@@ -543,6 +543,16 @@ tfrt_cc_test(
 )
 
 tfrt_cc_test(
+    name = "utils/kernel_runner_test",
+    srcs = ["utils/kernel_runner_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:kernel_runner",
+        "@tf_runtime//:test_kernels_alwayslink",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_runtime/concurrent_work_queue_test",
     srcs = ["host_runtime/concurrent_work_queue_test.cc"],
     deps = [

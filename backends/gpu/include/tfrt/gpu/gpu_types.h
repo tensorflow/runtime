@@ -22,11 +22,13 @@
 #define TFRT_GPU_GPU_TYPES_H_
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <unordered_map>
 
 #include "llvm/ADT/DenseMap.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
+#include "tfrt/gpu/wrapper/ccl_wrapper.h"
 #include "tfrt/gpu/wrapper/dnn_wrapper.h"
 #include "tfrt/gpu/wrapper/driver_wrapper.h"
 #include "tfrt/gpu/wrapper/solver_wrapper.h"
@@ -283,6 +285,39 @@ class GpuBlasHandle {
  private:
   AsyncValueRef<GpuStream> stream_;
   wrapper::OwningBlasHandle handle_;
+};
+
+// Handle for storing collective ops to be fused into a single group call. Owns
+// the NCCL communicator.
+class GpuCclHandle {
+ public:
+  using Callback =
+      std::function<llvm::Error(wrapper::CurrentContext current,
+                                wrapper::Stream stream, wrapper::CclComm comm)>;
+
+  explicit GpuCclHandle(AsyncValueRef<GpuContext> context,
+                        wrapper::OwningCclComm comm);
+  ~GpuCclHandle();
+
+  GpuCclHandle(GpuCclHandle&&) = default;
+  GpuCclHandle& operator=(GpuCclHandle&&) = default;
+
+  void AddCallback(Callback callback);
+
+  // Executes and clears all accumulated callbacks.
+  llvm::Error ExecuteCallbacks(wrapper::CurrentContext current,
+                               wrapper::Stream stream);
+
+  const wrapper::OwningCclComm& operator->() const { return comm_; }
+  wrapper::CclComm get() const { return comm_.get(); }
+  wrapper::CclComm release();
+
+  wrapper::Context context() const { return context_->get(); }
+
+ private:
+  AsyncValueRef<GpuContext> context_;
+  wrapper::OwningCclComm comm_;
+  std::vector<Callback> callbacks_;
 };
 
 class GpuDnnHandle {

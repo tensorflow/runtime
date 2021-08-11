@@ -213,6 +213,29 @@ GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuStream> stream,
 
 GpuBlasHandle::~GpuBlasHandle() = default;
 
+GpuCclHandle::GpuCclHandle(AsyncValueRef<GpuContext> context,
+                           wrapper::OwningCclComm comm)
+    : context_(std::move(context)), comm_(std::move(comm)) {}
+
+GpuCclHandle::~GpuCclHandle() = default;
+
+void GpuCclHandle::AddCallback(Callback callback) {
+  callbacks_.push_back(callback);
+}
+
+llvm::Error GpuCclHandle::ExecuteCallbacks(wrapper::CurrentContext current,
+                                           wrapper::Stream stream) {
+  for (const auto& callback : callbacks_) {
+    if (auto error = callback(current, stream, comm_.get())) return error;
+  }
+  callbacks_.clear();
+  return llvm::Error::success();
+}
+
+wrapper::CclComm GpuCclHandle::release() {
+  return comm_.release();  // Release OwningCclComm.
+}
+
 GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuStream> stream,
                            wrapper::OwningDnnHandle handle)
     : stream_(std::move(stream)), handle_(std::move(handle)) {}

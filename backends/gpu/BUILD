@@ -893,6 +893,7 @@ tfrt_cc_library(
     name = "gpu_kernels",
     srcs = [
         "lib/kernels/blas_kernels.cc",
+        "lib/kernels/ccl_kernels.cc",
         "lib/kernels/dnn_kernels.cc",
         "lib/kernels/driver_kernels.cc",
         "lib/kernels/kernels_detail.h",

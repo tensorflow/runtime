@@ -34,8 +34,7 @@ func @solver_potrf() {
 
   %host_buffer, %ch3 = tfrt_dht.get_buffer %host_tensor, %ch1
   %gpu_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size, %ch1
-  %ch4 = tfrt_gpu.mem.copy_host_to_device
-    %gpu_buffer, %host_buffer,%buffer_size, %stream, %ch2
+  %ch4 = tfrt_gpu.mem.copy %gpu_buffer, %host_buffer, %stream, %ch2 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %workspace_size = tfrt_gpu.solver.potrf.buffer_size %solver,
     CUBLAS_FILL_MODE_LOWER, %dim, CUDA_R_32F, %dim, %ch1
@@ -47,8 +46,7 @@ func @solver_potrf() {
   %ch5 = tfrt_gpu.solver.potrf %solver, CUBLAS_FILL_MODE_LOWER, %dim,
     CUDA_R_32F, %gpu_buffer, %dim, %workspace, %devinfo, %ch4
 
-  %ch6 = tfrt_gpu.mem.copy_device_to_host
-    %host_buffer, %gpu_buffer, %buffer_size, %stream, %ch5
+  %ch6 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer, %stream, %ch5 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2], values =
   // CHECK-SAME: [3.000000e+00, 2.000000e+00, 6.000000e+00, 1.000000e+00]
   %ch7 = tfrt_dht.print_tensor %host_tensor, %ch6

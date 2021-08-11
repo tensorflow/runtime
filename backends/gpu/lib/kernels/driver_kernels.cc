@@ -135,6 +135,39 @@ static Expected<GpuBuffer> GpuMemAllocate(Argument<GpuAllocator> allocator,
   return GpuBuffer::Allocate(allocator.ValueRef(), size, stream.get());
 }
 
+// tfrt_gpu.mem.copy copies memory between host or device.
+static Error GpuMemCopy(RemainingArguments args) {
+  if (args.size() != 4)
+    return MakeStringError("Expected 4 arguments, got ", args.size());
+
+  const GpuStream& stream = args[2]->get<GpuStream>();
+  auto current = wrapper::CtxSetCurrent(stream.context());
+  if (!current) return current.takeError();
+
+  auto get_size = [](AsyncValue* arg) {
+    if (arg->IsType<GpuBuffer>()) return arg->get<GpuBuffer>().size();
+    assert(arg->IsType<RCReference<HostBuffer>>());
+    return arg->get<RCReference<HostBuffer>>()->size();
+  };
+
+  size_t dst_size = get_size(args[0]);
+  size_t src_size = get_size(args[1]);
+
+  if (dst_size != src_size)
+    return MakeStringError("Buffer sizes don't match: ", dst_size,
+                           " (dst size) vs ", src_size, " (src size)");
+
+  auto get_ptr = [&](AsyncValue* arg) {
+    if (arg->IsType<GpuBuffer>()) return arg->get<GpuBuffer>().pointer();
+    assert(arg->IsType<RCReference<HostBuffer>>());
+    auto* ptr = arg->get<RCReference<HostBuffer>>()->data();
+    return GpuPointer(ptr, current->platform());
+  };
+
+  return wrapper::MemcpyAsync(*current, get_ptr(args[0]), get_ptr(args[1]),
+                              dst_size, stream.get());
+}
+
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.
 static void GpuMemPrintMetadata(const GpuBuffer& buffer) {
   // The check for buffer validity is not done intentionally. Printing invalid
@@ -164,46 +197,6 @@ static Expected<DenseGpuTensor> GpuTensorMake(Argument<GpuBuffer> buffer,
 // tfrt_gpu.tensor.print_metadata prints `tensor`'s metadata.
 static void GpuTensorPrintMetadata(const DenseGpuTensor& tensor) {
   (tfrt::outs() << tensor << "\n").flush();
-}
-
-static Error CheckMemcpySizes(size_t dst_size, size_t src_size,
-                              int64_t copy_size) {
-  if (src_size < copy_size) {
-    return MakeStringError("source buffer is smaller (", src_size,
-                           ") than number of bytes to copy (", copy_size, ")");
-  }
-  if (dst_size < copy_size) {
-    return MakeStringError("destination buffer is smaller (", dst_size,
-                           ") than number of bytes to copy (", copy_size, ")");
-  }
-  return Error::success();
-}
-
-// tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
-static Error GpuMemcpyHtoD(const GpuBuffer& dst,
-                           const RCReference<HostBuffer>& src,
-                           int64_t bytes_count, const GpuStream& stream) {
-  if (auto error = CheckMemcpySizes(dst.size(), src->size(), bytes_count))
-    return error;
-  auto current = wrapper::CtxSetCurrent(stream.context());
-  if (!current) return current.takeError();
-  return wrapper::MemcpyAsync(
-      *current, dst.pointer(),
-      wrapper::Pointer<const void>(src->data(), current->platform()),
-      bytes_count, stream.get());
-}
-
-// tfrt_gpu.mem.copy_device_to_host copies memory from device to host.
-static Error GpuMemcpyDtoH(const RCReference<HostBuffer>& dst,
-                           const GpuBuffer& src, int64_t bytes_count,
-                           const GpuStream& stream) {
-  if (auto error = CheckMemcpySizes(dst->size(), src.size(), bytes_count))
-    return error;
-  auto current = wrapper::CtxSetCurrent(stream.context());
-  if (!current) return current.takeError();
-  return wrapper::MemcpyAsync(*current,
-                              GpuPointer(dst->data(), current->platform()),
-                              src.pointer(), bytes_count, stream.get());
 }
 
 // Loads a GPU module from `data`, or `exec_ctx` if `data` is empty.
@@ -292,6 +285,8 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL(GpuAllocatorCreate));
 
   kernel_reg->AddKernel("tfrt_gpu.mem.allocate", TFRT_KERNEL(GpuMemAllocate));
+  kernel_reg->AddKernel("tfrt_gpu.mem.copy",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemCopy));
   kernel_reg->AddKernel("tfrt_gpu.mem.print_metadata",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemPrintMetadata));
 
@@ -308,10 +303,6 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
 
   kernel_reg->AddKernel("tfrt_gpu.tensor.print_metadata",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuTensorPrintMetadata));
-  kernel_reg->AddKernel("tfrt_gpu.mem.copy_host_to_device",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemcpyHtoD));
-  kernel_reg->AddKernel("tfrt_gpu.mem.copy_device_to_host",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemcpyDtoH));
 
   kernel_reg->AddKernel("tfrt_gpu.module.load", TFRT_KERNEL(GpuModuleLoad));
   kernel_reg->AddKernel("tfrt_gpu.function.get", TFRT_KERNEL(GpuFunctionGet));

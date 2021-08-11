@@ -32,11 +32,11 @@ func @blas_axpy() {
 
   %ch3 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch2 [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32]
   %gpu_buffer_0 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch3
-  %ch4 = tfrt_gpu.mem.copy_host_to_device %gpu_buffer_0, %host_buffer, %buffer_size_bytes, %stream, %ch3
+  %ch4 = tfrt_gpu.mem.copy %gpu_buffer_0, %host_buffer, %stream, %ch3 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %ch5 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch4 [2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32]
   %gpu_buffer_1 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch5
-  %ch6 = tfrt_gpu.mem.copy_host_to_device %gpu_buffer_1, %host_buffer, %buffer_size_bytes, %stream, %ch5
+  %ch6 = tfrt_gpu.mem.copy %gpu_buffer_1, %host_buffer, %stream, %ch5 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %stride = tfrt.constant.i32 1
   %alpha = tfrt.constant.f32 1.0
@@ -44,7 +44,7 @@ func @blas_axpy() {
     %gpu_buffer_0, CUDA_R_32F, %stride, %gpu_buffer_1, CUDA_R_32F, %stride,
     CUDA_R_32F, %ch6
 
-  %ch8 = tfrt_gpu.mem.copy_device_to_host %host_buffer, %gpu_buffer_1, %buffer_size_bytes, %stream, %ch7
+  %ch8 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_1, %stream, %ch7 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [3.000000e+00, 5.000000e+00, 7.000000e+00, 9.000000e+00]
   %ch9 = tfrt_dht.print_tensor %host_tensor, %ch8
@@ -70,15 +70,15 @@ func @blas_gemm() {
 
   %ch3 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch2 [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32]
   %gpu_buffer_0 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch3
-  %ch4 = tfrt_gpu.mem.copy_host_to_device %gpu_buffer_0, %host_buffer, %buffer_size_bytes, %stream, %ch3
+  %ch4 = tfrt_gpu.mem.copy %gpu_buffer_0, %host_buffer, %stream, %ch3 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %ch5 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch4 [2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32]
   %gpu_buffer_1 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch5
-  %ch6 = tfrt_gpu.mem.copy_host_to_device %gpu_buffer_1, %host_buffer, %buffer_size_bytes, %stream, %ch5
+  %ch6 = tfrt_gpu.mem.copy %gpu_buffer_1, %host_buffer, %stream, %ch5 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %ch7 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch6 [0.0 : f32, 0.0 : f32, 0.0 : f32, 0.0 : f32]
   %gpu_buffer_2 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch7
-  %ch8 = tfrt_gpu.mem.copy_host_to_device %gpu_buffer_2, %host_buffer, %buffer_size_bytes, %stream, %ch7
+  %ch8 = tfrt_gpu.mem.copy %gpu_buffer_2, %host_buffer, %stream, %ch7 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %dim = tfrt.constant.i32 2
   %alpha = tfrt.constant.f32 1.0
@@ -91,7 +91,7 @@ func @blas_gemm() {
     %gpu_buffer_2, CUDA_R_32F, %dim,
     CUDA_R_32F, %algo, %ch8
 
-  %ch10 = tfrt_gpu.mem.copy_device_to_host %host_buffer, %gpu_buffer_2, %buffer_size_bytes, %stream, %ch9
+  %ch10 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_2, %stream, %ch9 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
   %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
@@ -117,15 +117,15 @@ func @blas_gemm_batched() {
 
   %ch3 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch2 [1.0 : f32, 2.0 : f32, 3.0 : f32, 4.0 : f32]
   %gpu_buffer_0 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch3
-  %ch4 = tfrt_gpu.mem.copy_host_to_device %gpu_buffer_0, %host_buffer, %buffer_size_bytes, %stream, %ch3
+  %ch4 = tfrt_gpu.mem.copy %gpu_buffer_0, %host_buffer, %stream, %ch3 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %ch5 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch4 [2.0 : f32, 3.0 : f32, 4.0 : f32, 5.0 : f32]
   %gpu_buffer_1 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch5
-  %ch6 = tfrt_gpu.mem.copy_host_to_device %gpu_buffer_1, %host_buffer, %buffer_size_bytes, %stream, %ch5
+  %ch6 = tfrt_gpu.mem.copy %gpu_buffer_1, %host_buffer, %stream, %ch5 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %ch7 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch6 [0.0 : f32, 0.0 : f32, 0.0 : f32, 0.0 : f32]
   %gpu_buffer_2 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch7
-  %ch8 = tfrt_gpu.mem.copy_host_to_device %gpu_buffer_2, %host_buffer, %buffer_size_bytes, %stream, %ch7
+  %ch8 = tfrt_gpu.mem.copy %gpu_buffer_2, %host_buffer, %stream, %ch7 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %dim = tfrt.constant.i32 2
   %type = tfrt.constant.i32 0
@@ -141,7 +141,7 @@ func @blas_gemm_batched() {
     %gpu_buffer_2, CUDA_R_32F, %dim, %stride, %batch_count,
     CUDA_R_32F, %algo, %ch8
 
-  %ch10 = tfrt_gpu.mem.copy_device_to_host %host_buffer, %gpu_buffer_2, %buffer_size_bytes, %stream, %ch9
+  %ch10 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_2, %stream, %ch9 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
   %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10

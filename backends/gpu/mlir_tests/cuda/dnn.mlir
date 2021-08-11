@@ -176,7 +176,7 @@ func @dnn_pooling_test() {
   %output_device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %koutsize, %ch24
 
   %host_input_buffer, %ch28 = tfrt_dht.get_buffer %input, %ch24
-  %ch29 = tfrt_gpu.mem.copy_host_to_device %input_device_buffer, %host_input_buffer, %kinsize, %stream, %ch28
+  %ch29 = tfrt_gpu.mem.copy %input_device_buffer, %host_input_buffer, %stream, %ch28 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %output_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [2 : i64, 2 : i64, 1 : i64, 1 : i64]
   %ch29_1 = tfrt_dht.fill_tensor_with_constant.f32 %output_tensor, %ch29 0.0 : f32
@@ -184,11 +184,11 @@ func @dnn_pooling_test() {
   %ch30 = tfrt_dht.print_tensor %output_tensor, %ch29_1
 
   %output_host_buffer, %ch31 = tfrt_dht.get_buffer %output_tensor, %ch30
-  %ch32 = tfrt_gpu.mem.copy_host_to_device %output_device_buffer, %output_host_buffer, %koutsize, %stream, %ch31
+  %ch32 = tfrt_gpu.mem.copy %output_device_buffer, %output_host_buffer, %stream, %ch31 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %ch33 = tfrt_gpu.dnn.pooling_forward %dnn, %pooling_desc, %alpha, %in_desc, %input_device_buffer, %beta, %out_desc, %output_device_buffer, %ch32
 
-  %ch34 = tfrt_gpu.mem.copy_device_to_host %output_host_buffer, %output_device_buffer, %koutsize, %stream, %ch33
+  %ch34 = tfrt_gpu.mem.copy %output_host_buffer, %output_device_buffer, %stream, %ch33 : !ht.host_buffer, !tfrt_gpu.buffer
 
   // Need to make sure that for pooling forward
   // expected result matches computed result:
@@ -202,11 +202,11 @@ func @dnn_pooling_test() {
   %ch38 = tfrt_dht.fill_tensor_with_constant.f32 %in_grad_tensor, %ch36 0.0 : f32
   %ch39 = tfrt_dht.print_tensor %in_grad_tensor, %ch38
   %in_grad_host_buffer, %ch40 = tfrt_dht.get_buffer %in_grad_tensor, %ch39
-  %ch41 = tfrt_gpu.mem.copy_host_to_device %in_grad_device_buffer, %in_grad_host_buffer, %kinsize, %stream, %ch40
+  %ch41 = tfrt_gpu.mem.copy %in_grad_device_buffer, %in_grad_host_buffer, %stream, %ch40 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %ch42 = tfrt_gpu.dnn.pooling_backward %dnn, %pooling_desc, %alpha, %out_desc, %output_device_buffer, %out_desc, %output_device_buffer, %in_desc, %input_device_buffer, %beta, %in_desc, %in_grad_device_buffer, %ch41
 
-  %ch43 = tfrt_gpu.mem.copy_device_to_host %in_grad_host_buffer, %in_grad_device_buffer, %kinsize, %stream, %ch42
+  %ch43 = tfrt_gpu.mem.copy %in_grad_host_buffer, %in_grad_device_buffer, %stream, %ch42 : !ht.host_buffer, !tfrt_gpu.buffer
 
   // Need to make sure that for pooling backward
   // expected result matches computed result:

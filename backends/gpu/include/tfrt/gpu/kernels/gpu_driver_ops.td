@@ -196,6 +196,28 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
   let results = (outs GPU_BufferType);
 }
 
+def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
+  let description = [{
+    tfrt_gpu.mem.copy copies memory between host or device.
+
+    Execution is asynchronous. Argument buffers on the host must not be deleted
+    and are not guaranteed to be valid before the stream is synchronized with
+    the host.
+
+    Example:
+      %ch1 = tfrt_gpu.mem.copy %dst, %src, %size_bytes, %stream, %ch0
+  }];
+  let arguments = (ins AnyTypeOf<[GPU_BufferType, HostBufferType]>:$dst,
+                   AnyTypeOf<[GPU_BufferType, HostBufferType]>:$src,
+                   GPU_StreamType:$stream, TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+
+  let assemblyFormat = [{
+    $dst`,` $src`,` $stream`,` $chain attr-dict `:` type($dst)`,` type($src)
+  }];
+
+}
+
 def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {
   let description = [{
     tfrt_gpu.mem.print_metadata prints a gpu buffer metadata
@@ -239,39 +261,6 @@ def GPU_TensorPrintOp : GPU_Op<"tensor.print_metadata"> {
       %ch2 = tfrt_gpu.tensor.print_metadata %tensor, %ch1
   }];
   let arguments = (ins TensorType, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
-def GPU_MemcpyHtoDOp : GPU_Op<"mem.copy_host_to_device"> {
-  let description = [{
-    tfrt_gpu.mem.copy_host_to_device copies memory from host to device.
-
-    At this time, the user must make sure that host buffer is not deleted
-    until the copy completes.
-    TODO(iga): Extend the life automatically
-
-    Example:
-      %ch1 = tfrt_gpu.mem.copy_host_to_device %ctx, %dst_buf, %src_buf, %count_bytes, %stream, %ch0
-  }];
-  let arguments = (ins GPU_BufferType:$dst, HostBufferType:$src,
-                   I64:$size_bytes, GPU_StreamType:$stream, TFRT_ChainType);
-  let results = (outs TFRT_ChainType);
-}
-
-def GPU_MemcpyDtoHOp : GPU_Op<"mem.copy_device_to_host"> {
-  let description = [{
-    tfrt_gpu.mem.copy_device_to_host copies memory from device to host.
-
-    At this time, the user must make sure that host buffer is not deleted
-    until the copy completes. This should happen naturally since the user
-    generally does something with the destination host buffer after the copy.
-    TODO(iga): Add extend the life automatically
-
-    Example:
-      %ch1 = tfrt_gpu.mem.copy_device_to_host %ctx, %dst_buf, %src_buf, %count_bytes, %stream, %ch0
-  }];
-  let arguments = (ins HostBufferType:$dst, GPU_BufferType:$src,
-                   I64:$size_bytes, GPU_StreamType:$stream, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
 }
 

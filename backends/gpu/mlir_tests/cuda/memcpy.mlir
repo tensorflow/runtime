@@ -37,12 +37,12 @@ func @memcpy_host_to_device_and_back_test() {
   %ch13 = tfrt_dht.print_buffer %host_buffer, %ch11
 
   // Copy host to device.
-  %ch20 = tfrt_gpu.mem.copy_host_to_device %device_buffer, %host_buffer, %size, %stream, %ch13
+  %ch20 = tfrt_gpu.mem.copy %device_buffer, %host_buffer, %stream, %ch13 : !tfrt_gpu.buffer, !ht.host_buffer
 
   // Create resulting dense host tensor, get its buffer, and copy back to host.
   %result_host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64, 4 : i64]
   %result_host_buffer, %ch30 = tfrt_dht.get_buffer %result_host_tensor, %ch2
-  %ch31 = tfrt_gpu.mem.copy_device_to_host %result_host_buffer, %device_buffer, %size, %stream, %ch20
+  %ch31 = tfrt_gpu.mem.copy %result_host_buffer, %device_buffer, %stream, %ch20 : !ht.host_buffer, !tfrt_gpu.buffer
 
   // Create, record, and poll an event to make sure copy back to host completed.
   %event = tfrt_gpu.event.create %context

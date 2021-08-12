@@ -21,6 +21,7 @@
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/host_allocator.h"
+#include "tfrt/host_context/host_buffer.h"
 #include "tfrt/host_context/host_context.h"
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -28,6 +29,9 @@
 #include "tfrt/tensor/tensor_metadata.h"
 
 namespace tfrt {
+
+// TODO(jingdong): Move the test functions to the ::tfrt::test namespace to
+// avoid name collision.
 
 inline std::unique_ptr<HostContext> CreateHostContext() {
   auto decoded_diagnostic_handler = [&](const DecodedDiagnostic& diag) {
@@ -51,6 +55,33 @@ DenseHostTensor CreateDummyTensor(ArrayRef<ssize_t> dims,
   for (int i = 0, s = dht.NumElements(); i < s; i++) {
     view[i] = i;
   }
+  return dht;
+}
+
+inline RCReference<HostBuffer> CreateHostBufferOnHeap(size_t byte_size) {
+  std::unique_ptr<char[]> buf{new char[byte_size]};
+  auto ptr = buf.get();
+  return HostBuffer::CreateFromExternal(
+      ptr, byte_size, [buf = std::move(buf)](void*, size_t) {});
+}
+
+template <typename T>
+DenseHostTensor CreateTensorFromValues(ArrayRef<ssize_t> dims,
+                                       llvm::ArrayRef<T> values,
+                                       HostContext* host_ctx = nullptr) {
+  const TensorMetadata metadata(GetDType<T>(), dims);
+  DenseHostTensor dht;
+  if (host_ctx) {
+    dht = DenseHostTensor::CreateUninitialized(metadata, host_ctx).getValue();
+  } else {
+    auto host_buf = CreateHostBufferOnHeap(metadata.GetHostSizeInBytes());
+    dht = DenseHostTensor(metadata, std::move(host_buf));
+  }
+
+  MutableDHTArrayView<T> view(&dht);
+  CHECK(view.NumElements() == values.size());
+
+  std::copy(values.begin(), values.end(), view.begin());
   return dht;
 }
 

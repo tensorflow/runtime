@@ -224,6 +224,8 @@ class AsyncValueRef {
   }
 
   explicit operator bool() const { return value_.get() != nullptr; }
+  bool operator==(const AsyncValueRef& r) const { return value_ == r.value_; }
+  bool operator!=(const AsyncValueRef& r) const { return value_ != r.value_; }
 
   // Return a raw pointer to the AsyncValue.
   AsyncValue* GetAsyncValue() const { return value_.get(); }

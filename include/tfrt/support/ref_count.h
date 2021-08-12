@@ -181,6 +181,13 @@ class RCReference {
     swap(pointer_, other.pointer_);
   }
 
+  bool operator==(const RCReference& ref) const {
+    return pointer_ == ref.pointer_;
+  }
+  bool operator!=(const RCReference& ref) const {
+    return pointer_ != ref.pointer_;
+  }
+
   friend bool operator==(const RCReference& ref, std::nullptr_t) {
     return ref.pointer_ == nullptr;
   }

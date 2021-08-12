@@ -148,14 +148,7 @@ Building and running the GPU backend requires installing additional components.
 Install clang Python bindings using pip with
 
 ```shell
-$ pip3 install clang
-```
-
-Alternatively, you can use apt and add the install location to sys.path with
-
-```shell
-$ apt-get install -y python3-clang-11
-$ echo '/usr/lib/python3/dist-packages' > "$(python3 -m site --user-site)/dist-packages.pth"
+$ pip install libclang
 ```
 
 Install NVIDIA's CUDA Toolkit v11.2 (see

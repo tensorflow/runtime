@@ -83,7 +83,6 @@
 #include "tfrt/host_context/diagnostic.h"
 #include "tfrt/host_context/host_buffer.h"
 #include "tfrt/support/error_util.h"
-#include "tfrt/support/mutex.h"
 #include "tfrt/support/string_util.h"
 #include "tfrt/tensor/dense_host_tensor.h"
 #include "tfrt/tensor/tensor.h"
@@ -1232,7 +1231,8 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
 }
 
 /*static*/ void JitExecutable::DefaultCompilationTaskRunner(
-    ArrayRef<MemrefDesc>, TaskFunction task, const ExecutionContext& exec_ctx) {
+    size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>,
+    TaskFunction task, const ExecutionContext& exec_ctx) {
   EnqueueWork(exec_ctx, std::move(task));
 }
 
@@ -1399,8 +1399,8 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
   }
 
   // Construct the task that will do the specialized executable compilation.
-  auto compilation_task = [ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
-                           entrypoint = entrypoint_]() mutable {
+  auto compile = TaskFunction([ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
+                               entrypoint = entrypoint_]() mutable {
     Expected<Executable> executable =
         JitCompilationContext::Compile(std::move(ctx), entrypoint);
 
@@ -1409,10 +1409,10 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
       ref.SetError(std::move(err));
     else
       ref.emplace(std::move(*executable));
-  };
+  });
 
   // Offload specialization compilation to the user provided runner.
-  runner_(operands, TaskFunction(std::move(compilation_task)), exec_ctx);
+  runner_(entry.size, constraints_, operands, std::move(compile), exec_ctx);
 
   // Use the default executable while we are compiling a specialized version if
   // this is not explicitly disabled by the compilation options.

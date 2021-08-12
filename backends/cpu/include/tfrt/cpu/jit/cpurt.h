@@ -724,11 +724,15 @@ class AsyncValuesCache {
   // and the caller is responsible for eventually setting the error or emplacing
   // the value. If it is false, then it means that the storage was already
   // allocated, and someone else will eventually update it.
+  //
+  // The returned `entry.size` value is equal to the size of the cache. If the
+  // new async value was allocated, it will be reflected in the size.
   Entry Allocate(Key key);
 
   struct Entry {
     AsyncValuePtr<Value> ptr;
     bool allocated;
+    size_t size;
   };
 
  private:
@@ -747,13 +751,14 @@ template <typename Key, typename Value>
 auto AsyncValuesCache<Key, Value>::Allocate(Key key) -> Entry {
   tfrt::mutex_lock lock(mu_);
   auto it = cache_.find(key);
-  if (it != cache_.end()) return {it->getSecond().AsPtr(), false};
+  if (it != cache_.end())
+    return {it->getSecond().AsPtr(), false, cache_.size()};
 
   AsyncValueRef<Value> allocated = MakeUnconstructedAsyncValueRef<Value>();
 
   auto emplaced = cache_.try_emplace(key, std::move(allocated));
   assert(emplaced.second && "emplace must be successful");
-  return {emplaced.first->getSecond().AsPtr(), true};
+  return {emplaced.first->getSecond().AsPtr(), true, cache_.size()};
 }
 
 //----------------------------------------------------------------------------//
@@ -917,13 +922,15 @@ class JitExecutable {
   // add tracing events (e.g. add Tensorflow profiler tracing). Task runner must
   // call the `TaskFunction`, otherwise it will lead to the deadlock.
   using CompilationTaskRunner = llvm::unique_function<void(
-      ArrayRef<MemrefDesc> operands, TaskFunction, const ExecutionContext&)>;
+      size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>, TaskFunction,
+      const ExecutionContext&)>;
 
   // Default compilation task runner enqueues compilation task into the host
   // context concurrent work queue.
-  static void DefaultCompilationTaskRunner(ArrayRef<MemrefDesc> operands,
-                                           TaskFunction task,
-                                           const ExecutionContext& exec_ctx);
+  static void DefaultCompilationTaskRunner(
+      size_t num_specializations, ArrayRef<OperandConstraint> constraints,
+      ArrayRef<MemrefDesc> operands, TaskFunction task,
+      const ExecutionContext& exec_ctx);
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,

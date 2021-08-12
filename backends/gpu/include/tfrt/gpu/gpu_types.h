@@ -291,9 +291,9 @@ class GpuBlasHandle {
 // the NCCL communicator.
 class GpuCclHandle {
  public:
-  using Callback =
-      std::function<llvm::Error(wrapper::CurrentContext current,
-                                wrapper::Stream stream, wrapper::CclComm comm)>;
+  using Callback = llvm::unique_function<llvm::Error(
+      wrapper::CurrentContext current, wrapper::Stream stream,
+      wrapper::CclComm comm)>;
 
   explicit GpuCclHandle(AsyncValueRef<GpuContext> context,
                         wrapper::OwningCclComm comm);

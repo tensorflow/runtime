@@ -220,12 +220,12 @@ GpuCclHandle::GpuCclHandle(AsyncValueRef<GpuContext> context,
 GpuCclHandle::~GpuCclHandle() = default;
 
 void GpuCclHandle::AddCallback(Callback callback) {
-  callbacks_.push_back(callback);
+  callbacks_.push_back(std::move(callback));
 }
 
 llvm::Error GpuCclHandle::ExecuteCallbacks(wrapper::CurrentContext current,
                                            wrapper::Stream stream) {
-  for (const auto& callback : callbacks_) {
+  for (auto& callback : callbacks_) {
     if (auto error = callback(current, stream, comm_.get())) return error;
   }
   callbacks_.clear();

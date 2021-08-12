@@ -33,6 +33,21 @@ def GPU_CclReductionOpAttr : GPU_WrapperAttr<"CclReductionOp"> {
   let returnType = "::ncclRedOp_t";
 }
 
+def GPU_CclAllGatherOp : GPU_Op<"ccl.all_gather"> {
+  let description = [{
+    tfrt_gpu.ccl.all_gather inserts an all-gather operation (gathering other
+    GPUs' values at the input buffer to the output buffer) into the ccl.handle.
+  }];
+  let arguments = (ins GPU_CclHandleType:$handle, GPU_BufferType:$input,
+                   GPU_BufferType:$output, GPU_CclDataTypeAttr:$data_type,
+                   TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` $input`,` $output`,` custom<Enum>($data_type)`,` $chain`,`
+    attr-dict
+  }];
+}
+
 def GPU_CclAllReduceOp : GPU_Op<"ccl.all_reduce"> {
   let description = [{
     tfrt_gpu.ccl.all_reduce inserts an all-reduce operation (reducing the data

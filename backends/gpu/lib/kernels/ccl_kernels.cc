@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "kernels_detail.h"
 #include "tfrt/gpu/gpu_types.h"
 #include "tfrt/gpu/wrapper/ccl_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
@@ -50,6 +51,28 @@ Expected<int> ToWidthInBytes(ncclDataType_t data_type) {
 }
 
 }  // namespace
+
+static Error CclAllGather(
+    Argument<GpuCclHandle> handle, Argument<GpuBuffer> input,
+    Argument<GpuBuffer> output,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> data_type) {
+  auto type = static_cast<ncclDataType_t>(*data_type);
+  auto width = ToWidthInBytes(type);
+  if (!width) return width.takeError();
+  assert(*width != 0);
+
+  handle->AddCallback([input = input.ValueRef(), output = output.ValueRef(),
+                       count = input->size() / *width,
+                       type](wrapper::CurrentContext current,
+                             wrapper::Stream stream,
+                             wrapper::CclComm comm) -> llvm::Error {
+    return wrapper::CclAllGather(current, input->pointer(), output->pointer(),
+                                 count, type, comm, stream);
+  });
+
+  return Error::success();
+}
 
 static void CclAllReduce(Argument<GpuCclHandle> handle,
                          Argument<GpuBuffer> input, Argument<GpuBuffer> output,
@@ -102,6 +125,8 @@ static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
 }
 
 void RegisterGpuCclKernels(KernelRegistry* kernel_reg) {
+  kernel_reg->AddKernel("tfrt_gpu.ccl.all_gather",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CclAllGather));
   kernel_reg->AddKernel("tfrt_gpu.ccl.all_reduce", TFRT_KERNEL(CclAllReduce));
   kernel_reg->AddKernel("tfrt_gpu.ccl.execute", TFRT_KERNEL(CclExecute));
 }

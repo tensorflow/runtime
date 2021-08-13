@@ -46,6 +46,16 @@ TEST(DType, Traits) {
   EXPECT_EQ(GetHostAlignment(DType::String), -1);
   EXPECT_EQ(GetHostAlignment(DType::Resource), -1);
   EXPECT_EQ(GetHostAlignment(DType::Variant), -1);
+
+  EXPECT_TRUE(IsTriviallyCopyable(DType::QUI8));
+  EXPECT_TRUE(IsTriviallyCopyable(DType::I8));
+  EXPECT_TRUE(IsTriviallyCopyable(DType::F16));
+  EXPECT_TRUE(IsTriviallyCopyable(DType::BF16));
+  EXPECT_TRUE(IsTriviallyCopyable(DType::Complex64));
+  EXPECT_TRUE(IsTriviallyCopyable(DType::Complex128));
+  EXPECT_FALSE(IsTriviallyCopyable(DType::String));
+  EXPECT_FALSE(IsTriviallyCopyable(DType::Resource));
+  EXPECT_FALSE(IsTriviallyCopyable(DType::Variant));
 }
 
 TEST(DType, DTypeFormatter) {

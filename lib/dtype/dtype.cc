@@ -32,6 +32,11 @@ size_t GetHostAlignment(DType dtype) {
                          [](auto dtype_data) { return dtype_data.kAlignment; });
 }
 
+bool IsTriviallyCopyable(DType dtype) {
+  return DispatchByDType(
+      dtype, [](auto dtype_data) { return dtype_data.kIsTriviallyCopyable; });
+}
+
 // Support printing of dtype enums.
 raw_ostream &operator<<(raw_ostream &os, DType dtype) {
   return os << DispatchByDType(

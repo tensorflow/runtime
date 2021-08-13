@@ -57,6 +57,8 @@ inline bool IsUnsupported(DType dtype) {
          dtype == DType::Variant;
 }
 
+bool IsTriviallyCopyable(DType dtype);
+
 // Support printing of dtype enums, e.g. i32, f32.
 raw_ostream &operator<<(raw_ostream &os, DType dtype);
 // Add support for std::ostream to make DType friendly to std::ostream based

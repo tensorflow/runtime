@@ -193,7 +193,7 @@ using SyncKernelDeathTest = SyncKernelTest;
 // Assert death only in the debug mode, as the validity of kernel call is only
 // validated in the debug mode.
 #ifndef NDEBUG
-#define ASSERT_DEATH_IN_DEBUG(...) ASSERT_DEBUG_DEATH(__VA_ARGS__)
+#define ASSERT_DEATH_IN_DEBUG ASSERT_DEBUG_DEATH
 #else
 #define ASSERT_DEATH_IN_DEBUG(...)
 #endif

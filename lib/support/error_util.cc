@@ -49,6 +49,8 @@ string_view ErrorName(ErrorCode code) {
   case ErrorCode::k##ENUM: \
     return #ENUM;
 #include "tfrt/support/error_type.def"  // NOLINT
+    default:
+      llvm_unreachable("Invalid error code encountered in ErrorName");
   }
 }
 

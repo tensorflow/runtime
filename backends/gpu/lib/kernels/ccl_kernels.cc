@@ -74,35 +74,27 @@ static Error CclAllGather(
   return Error::success();
 }
 
-static void CclAllReduce(Argument<GpuCclHandle> handle,
-                         Argument<GpuBuffer> input, Argument<GpuBuffer> output,
-                         Argument<Chain> in_chain, Result<Chain> out_chain,
-                         // Needs to be sorted alphabetically by attribute name!
-                         Attribute<int32_t> nccl_data_type,
-                         Attribute<int32_t> reduction_op) {
-  auto result = out_chain.Allocate();
+static Error CclAllReduce(
+    Argument<GpuCclHandle> handle, Argument<GpuBuffer> input,
+    Argument<GpuBuffer> output,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> data_type, Attribute<int32_t> reduction_op) {
+  auto type = static_cast<ncclDataType_t>(*data_type);
+  auto width = ToWidthInBytes(type);
+  if (!width) return width.takeError();
+  assert(*width != 0);
 
-  const auto data_type = static_cast<ncclDataType_t>(*nccl_data_type);
-  auto expected_data_width = ToWidthInBytes(data_type);
-  if (!expected_data_width) {
-    result.SetError(expected_data_width.takeError());
-    return;
-  }
-  assert(*expected_data_width != 0);
-  const size_t element_count = input->size() / *expected_data_width;
-
-  const auto op = static_cast<ncclRedOp_t>(*reduction_op);
-  handle->AddCallback([input = input.value()->AddRef(),
-                       output = output.value()->AddRef(), element_count,
-                       data_type, op](const wrapper::CurrentContext current,
-                                      wrapper::Stream stream,
-                                      wrapper::CclComm comm) -> llvm::Error {
-    return wrapper::CclAllReduce(current, input->get<GpuBuffer>().pointer(),
-                                 output->get<GpuBuffer>().pointer(),
-                                 element_count, data_type, op, comm, stream);
+  handle->AddCallback([input = input.ValueRef(), output = output.ValueRef(),
+                       count = input->size() / *width, type,
+                       op = static_cast<ncclRedOp_t>(*reduction_op)](
+                          wrapper::CurrentContext current,
+                          wrapper::Stream stream,
+                          wrapper::CclComm comm) -> llvm::Error {
+    return wrapper::CclAllReduce(current, input->pointer(), output->pointer(),
+                                 count, type, op, comm, stream);
   });
 
-  result.emplace();
+  return Error::success();
 }
 
 static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
@@ -127,7 +119,8 @@ static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
 void RegisterGpuCclKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.ccl.all_gather",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclAllGather));
-  kernel_reg->AddKernel("tfrt_gpu.ccl.all_reduce", TFRT_KERNEL(CclAllReduce));
+  kernel_reg->AddKernel("tfrt_gpu.ccl.all_reduce",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CclAllReduce));
   kernel_reg->AddKernel("tfrt_gpu.ccl.execute", TFRT_KERNEL(CclExecute));
 }
 }  // namespace gpu

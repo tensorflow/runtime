@@ -55,11 +55,11 @@ def GPU_CclAllReduceOp : GPU_Op<"ccl.all_reduce"> {
     output buffer) into the ccl.handle.
   }];
   let arguments = (ins GPU_CclHandleType:$handle, GPU_BufferType:$input,
-                   GPU_BufferType:$output, GPU_CclDataTypeAttr:$nccl_data_type,
+                   GPU_BufferType:$output, GPU_CclDataTypeAttr:$data_type,
                    GPU_CclReductionOpAttr:$reduction_op, TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` $input`,` $output`,` custom<Enum>($nccl_data_type)`,`
+    $handle`,` $input`,` $output`,` custom<Enum>($data_type)`,`
     custom<Enum>($reduction_op)`,` $chain`,` attr-dict
   }];
 }

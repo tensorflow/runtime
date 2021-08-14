@@ -12,6 +12,16 @@ hipError_t hipRuntimeGetVersion(int* runtimeVersion) {
       "hipRuntimeGetVersion", runtimeVersion);
 }
 
+hipError_t hipGetLastError(void) {
+  return DynamicCall<decltype(hipGetLastError), &hipGetLastError>(
+      "hipGetLastError");
+}
+
+hipError_t hipPeekAtLastError(void) {
+  return DynamicCall<decltype(hipPeekAtLastError), &hipPeekAtLastError>(
+      "hipPeekAtLastError");
+}
+
 hipError_t hipDeviceGet(hipDevice_t* device, int ordinal) {
   return DynamicCall<decltype(hipDeviceGet), &hipDeviceGet>("hipDeviceGet",
                                                             device, ordinal);

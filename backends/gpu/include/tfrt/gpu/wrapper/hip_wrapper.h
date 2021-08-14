@@ -36,9 +36,12 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, hipError_t error);
 // http://github.com/ROCm-Developer-Tools/HIP
 
 llvm::Error HipInit();
+llvm::Error HipFree(std::nullptr_t);
 llvm::Expected<int> HipDriverGetVersion();
 llvm::Expected<int> HipRuntimeGetVersion();
 
+llvm::Error HipGetLastError(CurrentContext current);
+llvm::Error HipPeekAtLastError(CurrentContext current);
 llvm::Expected<hipDeviceProp_t> HipGetDeviceProperties(CurrentContext current);
 
 llvm::Expected<int> HipDeviceGetCount();

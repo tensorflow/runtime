@@ -196,6 +196,10 @@ hipError_t hipDriverGetVersion(int* driverVersion);
 
 hipError_t hipRuntimeGetVersion(int* runtimeVersion);
 
+hipError_t hipGetLastError(void);
+
+hipError_t hipPeekAtLastError(void);
+
 hipError_t hipDeviceGet(hipDevice_t* device, int ordinal);
 
 hipError_t hipDeviceGetName(char* name, int len, hipDevice_t device);

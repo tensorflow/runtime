@@ -23,6 +23,8 @@
       "hipInit",
       "hipDriverGetVersion",
       "hipRuntimeGetVersion",
+      "hipGetLastError",
+      "hipPeekAtLastError",
       "hipGetDevice",
       "hipGetDeviceCount",
       "hipGetDeviceProperties",

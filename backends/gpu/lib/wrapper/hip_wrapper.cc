@@ -15,6 +15,8 @@
 // Thin wrapper around the HIP API adding llvm::Error and explicit context.
 #include "tfrt/gpu/wrapper/hip_wrapper.h"
 
+#include <cstddef>
+
 #include "llvm/Support/FormatVariadic.h"
 #include "tfrt/gpu/wrapper/hip_stub.h"
 #include "wrapper_detail.h"
@@ -43,6 +45,8 @@ static hipDevice_t ToRocm(Device device) { return device.id(Platform::ROCm); }
 
 llvm::Error HipInit() { return TO_ERROR(hipInit(/*flags=*/0)); }
 
+llvm::Error HipFree(std::nullptr_t) { return TO_ERROR(hipFree(nullptr)); }
+
 llvm::Expected<int> HipDriverGetVersion() {
   int version = -1;
   RETURN_IF_ERROR(hipDriverGetVersion(&version));
@@ -53,6 +57,16 @@ llvm::Expected<int> HipRuntimeGetVersion() {
   int version = -1;
   RETURN_IF_ERROR(hipRuntimeGetVersion(&version));
   return version;
+}
+
+llvm::Error HipGetLastError(CurrentContext current) {
+  CheckHipContext(current);
+  return TO_ERROR(hipGetLastError());
+}
+
+llvm::Error HipPeekAtLastError(CurrentContext current) {
+  CheckHipContext(current);
+  return TO_ERROR(hipPeekAtLastError());
 }
 
 llvm::Expected<hipDeviceProp_t> HipGetDeviceProperties(CurrentContext current) {

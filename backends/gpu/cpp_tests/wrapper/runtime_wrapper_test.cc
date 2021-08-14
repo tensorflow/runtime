@@ -14,8 +14,9 @@
 
 // Unit test for runtime API (abstraction layer for CUDA and HIP runtime).
 
+#include "tfrt/gpu/wrapper/runtime_wrapper.h"
+
 #include "common.h"
-#include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/gpu/wrapper/cudart_wrapper.h"
 #include "tfrt/gpu/wrapper/hip_wrapper.h"
 
@@ -23,27 +24,16 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
-TEST_P(Test, Dummy) {}  // Make INSTANTIATE_TEST_SUITE_P happy.
-
-TEST_F(Test, RuntimeInitCUDA) {
-  EXPECT_THAT(CuInit(), IsSuccess());
-  EXPECT_THAT(CuCtxSetCurrent(nullptr).takeError(), IsSuccess());
-  EXPECT_THAT(CudaFree(nullptr), IsSuccess());
+TEST_P(Test, RuntimeInit) {
+  auto platform = GetParam();
+  EXPECT_THAT(Init(platform), IsSuccess());
+  EXPECT_THAT(CtxSetCurrent({nullptr, platform}).takeError(), IsSuccess());
+  EXPECT_THAT(Free(nullptr, platform), IsSuccess());
 }
 
-TEST_F(Test, RuntimeInitROCm) {
-  EXPECT_THAT(HipInit(), IsSuccess());
-  EXPECT_THAT(HipCtxSetCurrent(nullptr).takeError(), IsSuccess());
-  EXPECT_THAT(HipMemFree(nullptr), IsSuccess());
-}
-
-TEST_F(Test, RuntimeVersionCUDA) {
-  TFRT_ASSERT_AND_ASSIGN(auto version, CudaRuntimeGetVersion());
-  EXPECT_GT(version, 0);
-}
-
-TEST_F(Test, RuntimeVersionROCm) {
-  TFRT_ASSERT_AND_ASSIGN(auto version, HipRuntimeGetVersion());
+TEST_P(Test, RuntimeVersion) {
+  auto platform = GetParam();
+  TFRT_ASSERT_AND_ASSIGN(auto version, RuntimeGetVersion(platform));
   EXPECT_GT(version, 0);
 }
 

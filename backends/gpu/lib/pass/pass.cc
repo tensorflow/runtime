@@ -253,32 +253,38 @@ LogicalResult UnwrapAsyncExecPattern::matchAndRewrite(
 
 LogicalResult SignatureRewritePattern::matchAndRewrite(
     FuncOp op, PatternRewriter &rewriter) const {
-  if (op.getNumResults() > 0)
-    return rewriter.notifyMatchFailure(op, "Expected no result");
+  auto merge_ranges = [&](auto first, auto second) {
+    SmallVector<decltype(first.front()), 8> result;
+    result.reserve(first.size() + second.size());
+    copy(first, std::back_inserter(result));
+    copy(second, std::back_inserter(result));
+    return result;
+  };
 
   // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
   Type chain_type = rewriter.getType<compiler::ChainType>();
-  SmallVector<Type, 8> input_types;
-  input_types.reserve(op.getNumArguments() + 2);
-  input_types.push_back(chain_type);
-  input_types.push_back(rewriter.getType<StreamType>());
-  copy(op.getArgumentTypes(), std::back_inserter(input_types));
+  auto argument_types =
+      merge_ranges(TypeRange{chain_type, rewriter.getType<StreamType>()},
+                   op.getArgumentTypes());
+  auto result_types =
+      merge_ranges(TypeRange(chain_type), op.getCallableResults());
   rewriter.updateRootInPlace(op, [&] {
-    op.setType(rewriter.getType<mlir::FunctionType>(input_types,
-                                                    TypeRange(chain_type)));
+    op.setType(
+        rewriter.getType<mlir::FunctionType>(argument_types, result_types));
   });
 
   // Add new function arguments to entry block. This is a bit of a dance
   // so that it could be rolled back in case of conversion failure.
   Block *block = &op.body().front();
-  Block *entry = rewriter.createBlock(block, input_types);
+  Block *entry = rewriter.createBlock(block, argument_types);
   auto block_args = entry->getArguments();
   rewriter.mergeBlocks(block, entry, block_args.drop_front(2));
 
-  // Return input chain.
+  // Prepend input chain to results.
   Operation *terminator = op.body().back().getTerminator();
-  rewriter.replaceOpWithNewOp<compiler::ReturnOp>(terminator,
-                                                  block_args.front());
+  auto results =
+      merge_ranges(ValueRange(block_args.front()), terminator->getOperands());
+  rewriter.replaceOpWithNewOp<compiler::ReturnOp>(terminator, results);
 
   return success();
 }
@@ -426,10 +432,10 @@ void populateTfrtConversionPatterns(RewritePatternSet &patterns,
   // legal in the interim.
   target.addLegalOp<conversion::CastOp>();
 
-  // Signature needs to be `(!tfrt.chain, !tfrt.stream, ...) -> (!tfrt.chain)`.
+  // Require `(!tfrt.chain, !tfrt.stream, ...) -> (!tfrt.chain, ...)`.
   target.addDynamicallyLegalOp<FuncOp>([](FuncOp op) {
     auto type = op.getType();
-    return type.getNumResults() == 1 &&
+    return type.getNumResults() >= 1 &&
            type.getResult(0).isa<compiler::ChainType>() &&
            type.getNumInputs() >= 2 &&
            type.getInput(0).isa<compiler::ChainType>() &&

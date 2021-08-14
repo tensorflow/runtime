@@ -218,6 +218,21 @@ def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
 
 }
 
+def GPU_MemRegisterOp : GPU_Op<"mem.register"> {
+  let description = [{
+    tfrt_gpu.mem.register page-locks a host buffer for device access.
+
+    The lifetime of %buffer is extended by the lifetime of %result.
+
+    Example:
+      %result = tfrt_gpu.mem.register %ctx, %buffer
+  }];
+  let arguments = (ins GPU_ContextType:$ctx, HostBufferType:$buffer);
+  let results = (outs GPU_BufferType);
+
+  let assemblyFormat = "$ctx`,` $buffer attr-dict";
+}
+
 def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {
   let description = [{
     tfrt_gpu.mem.print_metadata prints a gpu buffer metadata

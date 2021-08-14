@@ -168,6 +168,28 @@ static Error GpuMemCopy(RemainingArguments args) {
                               dst_size, stream.get());
 }
 
+static Expected<GpuBuffer> GpuMemRegister(
+    const GpuContext& context, Argument<RCReference<HostBuffer>> buffer) {
+  auto current = wrapper::CtxSetCurrent(context.get());
+  if (!current) return current.takeError();
+
+  auto size = (*buffer)->size();
+  auto flags = wrapper::MemHostRegisterFlags::PORTABLE |
+               wrapper::MemHostRegisterFlags::DEVICEMAP;
+  auto memory =
+      wrapper::MemHostRegister(*current, (*buffer)->data(), size, flags);
+  if (!memory) return memory.takeError();
+  auto pointer = memory->get();
+
+  // The allocator holds a reference to the host buffer and unregisters the
+  // pointer on destruction.
+  using Allocator = GpuOneShotAllocator<
+      std::pair<wrapper::RegisteredMemory<void>, RCReference<HostBuffer>>>;
+  auto allocator = MakeAvailableAsyncValueRef<Allocator>(
+      pointer, std::make_pair(std::move(*memory), buffer->CopyRef()));
+  return GpuBuffer::Allocate(std::move(allocator), size);
+}
+
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.
 static void GpuMemPrintMetadata(const GpuBuffer& buffer) {
   // The check for buffer validity is not done intentionally. Printing invalid
@@ -287,6 +309,7 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.mem.allocate", TFRT_KERNEL(GpuMemAllocate));
   kernel_reg->AddKernel("tfrt_gpu.mem.copy",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemCopy));
+  kernel_reg->AddKernel("tfrt_gpu.mem.register", TFRT_KERNEL(GpuMemRegister));
   kernel_reg->AddKernel("tfrt_gpu.mem.print_metadata",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemPrintMetadata));
 

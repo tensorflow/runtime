@@ -64,6 +64,22 @@ def GPU_CclAllReduceOp : GPU_Op<"ccl.all_reduce"> {
   }];
 }
 
+def GPU_CclReduceScatterOp : GPU_Op<"ccl.reduce_scatter"> {
+  let description = [{
+    tfrt_gpu.ccl.reduce_scatter inserts a reduce_scatter operation (reducing the
+    data array in the input buffer using reduction_op, and writing the reduced
+    result scattered over the GPUs' output buffer) into the ccl.handle.
+  }];
+  let arguments = (ins GPU_CclHandleType:$handle, GPU_BufferType:$input,
+                   GPU_BufferType:$output, GPU_CclDataTypeAttr:$data_type,
+                   GPU_CclReductionOpAttr:$reduction_op, TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` $input`,` $output`,` custom<Enum>($data_type)`,`
+    custom<Enum>($reduction_op)`,` $chain`,` attr-dict
+  }];
+}
+
 def GPU_CclExecuteOp : GPU_Op<"ccl.execute"> {
   let description = [{
     tfrt_gpu.ccl.execute runs the collective ops in the ccl.handle in a

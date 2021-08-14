@@ -296,6 +296,9 @@ class GpuCclHandle {
       wrapper::CclComm comm)>;
 
   explicit GpuCclHandle(AsyncValueRef<GpuContext> context,
+                        wrapper::OwningCclComm comm, int num_ranks);
+  // TODO(hanbinyoon): Remove after transitioning to the above constructor.
+  explicit GpuCclHandle(AsyncValueRef<GpuContext> context,
                         wrapper::OwningCclComm comm);
   ~GpuCclHandle();
 
@@ -308,6 +311,8 @@ class GpuCclHandle {
   llvm::Error ExecuteCallbacks(wrapper::CurrentContext current,
                                wrapper::Stream stream);
 
+  int num_ranks() const { return num_ranks_; }
+
   const wrapper::OwningCclComm& operator->() const { return comm_; }
   wrapper::CclComm get() const { return comm_.get(); }
   wrapper::CclComm release();
@@ -317,6 +322,7 @@ class GpuCclHandle {
  private:
   AsyncValueRef<GpuContext> context_;
   wrapper::OwningCclComm comm_;
+  int num_ranks_;
   std::vector<Callback> callbacks_;
 };
 

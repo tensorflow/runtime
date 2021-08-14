@@ -19,6 +19,7 @@ limitations under the License.
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/kernel_utils.h"
+#include "tfrt/support/error_util.h"
 #include "tfrt/support/string_util.h"
 
 namespace tfrt {
@@ -97,6 +98,32 @@ static Error CclAllReduce(
   return Error::success();
 }
 
+static Error CclReduceScatter(
+    Argument<GpuCclHandle> handle, Argument<GpuBuffer> input,
+    Argument<GpuBuffer> output,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> data_type, Attribute<int32_t> reduction_op) {
+  auto type = static_cast<ncclDataType_t>(*data_type);
+  auto width = ToWidthInBytes(type);
+  if (!width) return width.takeError();
+  assert(*width != 0);
+  if (input->size() != output->size() * handle->num_ranks())
+    return MakeStringError("Input size must be output size times ranks.");
+
+  handle->AddCallback([input = input.ValueRef(), output = output.ValueRef(),
+                       recvcount = output->size() / *width, type,
+                       op = static_cast<ncclRedOp_t>(*reduction_op)](
+                          wrapper::CurrentContext current,
+                          wrapper::Stream stream,
+                          wrapper::CclComm comm) -> llvm::Error {
+    return wrapper::CclReduceScatter(current, input->pointer(),
+                                     output->pointer(), recvcount, type, op,
+                                     comm, stream);
+  });
+
+  return Error::success();
+}
+
 static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
                                        Argument<GpuCclHandle> handle,
                                        const ExecutionContext& exec_ctx) {
@@ -121,6 +148,8 @@ void RegisterGpuCclKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclAllGather));
   kernel_reg->AddKernel("tfrt_gpu.ccl.all_reduce",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclAllReduce));
+  kernel_reg->AddKernel("tfrt_gpu.ccl.reduce_scatter",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CclReduceScatter));
   kernel_reg->AddKernel("tfrt_gpu.ccl.execute", TFRT_KERNEL(CclExecute));
 }
 }  // namespace gpu

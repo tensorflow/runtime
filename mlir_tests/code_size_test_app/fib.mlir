@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cat %s.bef | code_size_test_driver | FileCheck %s --dump-input=fail
+// RUN: cat %s.bef | code_size_test_driver | FileCheck %s
 
 // CHECK-LABEL: --- Not running 'fib' because it has arguments
 func @fib(%arg: i32) -> i32 {

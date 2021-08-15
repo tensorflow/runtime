@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate -mlir-to-bef --disable-optional-sections=true %s | tfrt_translate --bef-to-mlir --mlir-print-op-generic 2>&1 | FileCheck %s --dump-input=fail
+// RUN: tfrt_translate -mlir-to-bef --disable-optional-sections=true %s | tfrt_translate --bef-to-mlir --mlir-print-op-generic 2>&1 | FileCheck %s
 
 // CHECK: warning: Missing AttributeTypes, AttributeNames or RegisterTypes sections.
 

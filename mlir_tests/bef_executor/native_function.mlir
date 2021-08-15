@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s
 
 func private @native_add(%a: i32, %b: i32) -> i32 attributes {tfrt.native}
 func private @native_async_add(%a: i32, %b: i32) -> i32 attributes {tfrt.native}

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef 2>&1 | FileCheck %s
 
 // CHECK-LABEL: --- Not running 'register_op_handlers' because it has arguments.
 func @register_op_handlers(%ch0: !tfrt.chain) -> !tfrt.chain {

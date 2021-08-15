@@ -19,7 +19,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-// RUN: bef_executor --work_queue_type=mstd:8 %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor --work_queue_type=mstd:8 %s.bef | FileCheck %s
 
 func private @native_sink(%a: i32, %b: i32) -> () attributes {tfrt.native}
 func private @native_async_sink(%a: i32, %b: i32) -> !tfrt.chain attributes {tfrt.native}

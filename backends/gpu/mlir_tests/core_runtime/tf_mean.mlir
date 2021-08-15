@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO(ezhulenev): Replace with: bef_executor --test_init_function=register_op_handlers_gpu %s.bef | FileCheck %s --dump-input=fail.
+// TODO(ezhulenev): Replace with: bef_executor --test_init_function=register_op_handlers_gpu %s.bef | FileCheck %s.
 // RUN: true
 
 func @register_op_handlers_gpu() {

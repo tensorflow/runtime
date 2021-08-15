@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef | FileCheck %s
 
 // Note: the program has a specific implementation, meant to match exactly the
 // operations made in similar benchmarks. So the divisions and equality tests

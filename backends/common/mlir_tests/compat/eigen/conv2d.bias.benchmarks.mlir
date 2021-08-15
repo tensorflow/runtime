@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_Conv2D_in_8x32x32x128_f_1x1x128'
 func @BM_Conv2D_in_8x32x32x128_f_1x1x128() {

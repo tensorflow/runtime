@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_translate --bef-to-mlir %s.bef | tfrt_opt | FileCheck %s --dump-input=fail
+// RUN: tfrt_translate --bef-to-mlir %s.bef | tfrt_opt | FileCheck %s
 
 // CHECK-LABEL: func @basic.argument
 func @basic.argument(%a : i32) -> i32 {

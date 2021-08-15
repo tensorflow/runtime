@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor --test_init_function=register_op_handlers_gpu %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor --test_init_function=register_op_handlers_gpu %s.bef | FileCheck %s
 
 // Test case for b/148703930.
 //

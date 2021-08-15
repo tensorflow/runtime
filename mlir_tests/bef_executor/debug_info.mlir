@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s --dump-input=fail --dump-input-filter=all
+// RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s --dump-input-filter=all
 
 // CHECK: --- Running 'debug_info':
 func @debug_info() -> !tfrt.chain {

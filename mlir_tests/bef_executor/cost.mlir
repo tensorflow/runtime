@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite %s.bef 2>&1 | FileCheck %s
 // RUN: tfrt_opt %s | tfrt_opt
 
 // This test checks that _tfrt_cost attribute, which is omitted in BEF, does

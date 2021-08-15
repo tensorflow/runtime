@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite --print_error_code %s.bef 2>&1 | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite --print_error_code %s.bef 2>&1 | FileCheck %s
 
 // CHECK-LABEL: --- Running 'test_error_result'
 func @test_error_result() -> i32 {

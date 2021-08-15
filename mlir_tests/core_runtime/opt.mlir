@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_opt %s | tfrt_opt | FileCheck %s --dump-input=fail
+// RUN: tfrt_opt %s | tfrt_opt | FileCheck %s
 
 // CHECK-LABEL: func @basic
 // CHECK-SAME: ([[arg:%.*]]: !corert.tensorhandle) -> !corert.tensorhandle

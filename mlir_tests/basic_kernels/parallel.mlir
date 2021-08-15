@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef | FileCheck %s --dump-input=fail
-// RUN: bef_executor -work_queue_type=mstd %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef | FileCheck %s
+// RUN: bef_executor -work_queue_type=mstd %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'parallel_for.fixed_block_size.async'
 func @parallel_for.fixed_block_size.async() -> !tfrt.chain {

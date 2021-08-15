@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: env CUDNN_LOGINFO_DBG=1 TFRT_DEBUG_DEFAULT_CONV_FWD_ALGO=CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM bef_executor --test_init_function=register_op_handlers_cpu_gpu %s.bef | FileCheck %s --dump-input=fail
+// RUN: env CUDNN_LOGINFO_DBG=1 TFRT_DEBUG_DEFAULT_CONV_FWD_ALGO=CUDNN_CONVOLUTION_FWD_ALGO_IMPLICIT_GEMM bef_executor --test_init_function=register_op_handlers_cpu_gpu %s.bef | FileCheck %s
 
 func @register_op_handlers_cpu_gpu() {
   %null = "corert.create_null_op_handler"() : () -> !corert.ophandler

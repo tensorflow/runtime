@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite %s.bef | FileCheck %s
 // RUN: tfrt_opt %s | tfrt_opt
 
 // A function to demonstrate the use of benchmark kernels.

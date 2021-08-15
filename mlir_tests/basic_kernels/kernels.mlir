@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_opt -allow-unregistered-dialect %s | tfrt_opt -allow-unregistered-dialect | tfrt_opt -allow-unregistered-dialect | FileCheck %s --dump-input=fail
+// RUN: tfrt_opt -allow-unregistered-dialect %s | tfrt_opt -allow-unregistered-dialect | tfrt_opt -allow-unregistered-dialect | FileCheck %s
 
 func @if(%cond: i1, %v1: i32, %v2: i32) -> i32 {
   // CHECK: [[RES:%[0-9]+]] = tfrt.if %arg0, %arg1, %arg2 : (i32, i32) -> (i32) {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2'
 func @BM_MaxPool2D_in_8x32x32x128_p_3x3_s_2x2() {

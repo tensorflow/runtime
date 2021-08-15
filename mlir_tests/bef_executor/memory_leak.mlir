@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cat %s.bef | not bef_executor_lite | FileCheck %s --dump-input=fail
+// RUN: cat %s.bef | not bef_executor_lite | FileCheck %s
 
 // CHECK: --- Running 'test_leak_one_int32'
 func @test_leak_one_int32() -> () {

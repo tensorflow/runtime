@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite %s.bef | FileCheck %s --dump-input=fail
-// RUN: bef_executor_lite -work_queue_type=mstd %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite %s.bef | FileCheck %s
+// RUN: bef_executor_lite -work_queue_type=mstd %s.bef | FileCheck %s
 
 func @callee(%ch: !tfrt.chain, %a: i32, %b: i32) -> (!tfrt.chain, i32, i32) attributes {tfrt.cost_threshold = 1 : i64} {
   %ua = "tfrt_test.get_uniqueness"(%a) : (i32) -> (i1)

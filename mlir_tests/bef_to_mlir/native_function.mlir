@@ -14,7 +14,7 @@
 
 // RUN: tfrt_translate --bef-to-mlir %s.bef \
 // RUN: | tfrt_opt -allow-unregistered-dialect \
-// RUN: | FileCheck %s --dump-input=fail
+// RUN: | FileCheck %s
 
 // CHECK-LABEL: func private @some_func
 // CHECK-SAME: tfrt.native

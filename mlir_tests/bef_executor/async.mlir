@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor_lite -work_queue_type=s %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor_lite -work_queue_type=s %s.bef | FileCheck %s
 
 // NOTE: This test is intentionally not using chains to sequence side effecting
 // kernels according to common sense.  This is to make sure the executor is

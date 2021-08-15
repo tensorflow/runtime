@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef | FileCheck %s --dump-input=fail
+// RUN: bef_executor %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'test_tensor_kernels'
 func @test_tensor_kernels() {

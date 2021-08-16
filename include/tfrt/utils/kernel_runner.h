@@ -23,6 +23,7 @@
 
 #include "tfrt/bef/bef_buffer.h"
 #include "tfrt/bef/bef_encoding.h"
+#include "tfrt/bef_converter/bef_attr_encoder.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/execution_context.h"
@@ -32,39 +33,6 @@
 #include "tfrt/support/ref_count.h"
 
 namespace tfrt {
-namespace detail {
-
-// An allocator that allocates data in a BefBuffer.
-class BefBufferAllocator {
- public:
-  template <typename T, typename... Args>
-  T* construct(Args&&... args) {
-    static_assert(std::is_trivially_copyable<T>::value,
-                  "BefBufferAllocator only supports trivially copyable types");
-    return new (allocate<T>()) T(std::forward<Args>(args)...);
-  }
-
-  template <typename T>
-  void* allocate() {
-    static_assert(std::is_trivially_copyable<T>::value,
-                  "BefBufferAllocator only supports trivially copyable types");
-    return allocate(sizeof(T), alignof(T));
-  }
-
-  void* allocate(size_t size, size_t align);
-
-  ArrayRef<uint8_t> data() const {
-    return {reinterpret_cast<const uint8_t*>(data_.data()), data_.size()};
-  }
-  ArrayRef<uint32_t> offsets() const { return offsets_; }
-
- private:
-  BefBuffer data_;
-  std::vector<uint32_t> offsets_;
-};
-
-}  // namespace detail
-
 /**
  * KernelRunner allows user to run individual TFRT kernels in isolation in C++.
  * This is particularly useful for testing kernels that do not have a
@@ -98,10 +66,18 @@ class KernelRunner {
   }
 
   template <typename T>
+  T& GetArgAt(int index) {
+    return arguments_[index]->get<T>();
+  }
+
+  template <typename T>
   KernelRunner& AddAttribute(T value) {
-    allocator_.construct<T>(value);
+    attr_offsets_.emplace_back(bef_attr_encoder_.EncodeAttr(value));
     return *this;
   }
+
+  template <typename T>
+  KernelRunner& AddArrayAttribute(llvm::ArrayRef<T> value);
 
   KernelRunner& AddStringAttribute(string_view str);
 
@@ -119,9 +95,11 @@ class KernelRunner {
   }
 
   template <typename T, typename... Args>
-  T& AddRequestContextData(Args&&... args) {
-    return req_ctx_builder_.context_data().emplace<T>(
-        std::forward<Args>(args)...);
+  KernelRunner& AddRequestContextData(Args&&... args) {
+    assert(!req_ctx_ &&
+           "Cannot add new request context data once req_ctx_ is materialized");
+    req_ctx_builder_.context_data().emplace<T>(std::forward<Args>(args)...);
+    return *this;
   }
 
  private:
@@ -144,12 +122,22 @@ class KernelRunner {
   HostContext* host_;
   AsyncKernelImplementation kernel_fn_;
 
-  ResourceContext resource_ctx_;
-  RequestContextBuilder req_ctx_builder_;
-  detail::BefBufferAllocator allocator_;
+  BefAttrEncoder bef_attr_encoder_;
+  std::vector<uint32_t> attr_offsets_;
+
   SmallVector<RCReference<AsyncValue>, 8> arguments_;
   SmallVector<RCReference<AsyncValue>, 8> results_;
+
+  ResourceContext resource_ctx_;
+  RequestContextBuilder req_ctx_builder_;
+  RCReference<RequestContext> req_ctx_;
 };
+
+template <typename T>
+KernelRunner& KernelRunner::AddArrayAttribute(llvm::ArrayRef<T> values) {
+  attr_offsets_.emplace_back(bef_attr_encoder_.EncodeArrayAttr(values));
+  return *this;
+}
 
 }  // namespace tfrt
 

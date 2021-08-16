@@ -28,23 +28,6 @@
 #include "tfrt/host_context/resource_context.h"
 
 namespace tfrt {
-namespace detail {
-
-void* BefBufferAllocator::allocate(size_t size, size_t align) {
-  assert(align <= GetRequiredBefAlignment());
-
-  // Find the next index with the required alignment.
-  uintptr_t aligned_start = llvm::alignTo(data_.size(), align);
-
-  size_t new_size = aligned_start + size;
-  data_.resize(new_size);
-
-  offsets_.emplace_back(aligned_start);
-  return data_.data() + aligned_start;
-}
-
-}  // namespace detail
-
 namespace {
 
 std::unique_ptr<HostContext> CreateDefaultHostContext() {
@@ -58,12 +41,6 @@ std::unique_ptr<HostContext> CreateDefaultHostContext() {
 
   return host;
 }
-
-// Binary format of string attributes in BEF.
-struct BEFStringAttribute {
-  AttrSizeT size;
-  char str[1];
-};
 
 }  // namespace
 
@@ -83,27 +60,29 @@ KernelRunner::KernelRunner(string_view name, HostContext* host)
       req_ctx_builder_{host_, &resource_ctx_} {}
 
 KernelRunner& KernelRunner::AddStringAttribute(string_view str) {
-  void* attr_addr = allocator_.allocate(sizeof(BEFStringAttribute) + str.size(),
-                                        alignof(BEFStringAttribute));
-  auto* attr = new (attr_addr) BEFStringAttribute();
-  attr->size = str.size();
-  memcpy(attr->str, str.data(), str.size());
+  attr_offsets_.emplace_back(bef_attr_encoder_.EncodeStringAttr(str));
   return *this;
 }
 
 void KernelRunner::Run(size_t num_results) {
-  Expected<RCReference<RequestContext>> req_ctx =
-      std::move(req_ctx_builder_).build();
-  assert(req_ctx);
+  // First clear the previous results if any.
+  results_.clear();
 
-  KernelFrameBuilder frame{ExecutionContext{std::move(*req_ctx)}};
-
-  for (auto& arg : arguments_) {
-    frame.AddArg(std::move(arg));
+  if (!req_ctx_) {
+    Expected<RCReference<RequestContext>> req_ctx =
+        std::move(req_ctx_builder_).build();
+    assert(req_ctx);
+    req_ctx_ = std::move(*req_ctx);
   }
 
-  frame.SetAttributeSection(allocator_.data());
-  frame.SetAttributes(allocator_.offsets());
+  KernelFrameBuilder frame{ExecutionContext{req_ctx_.CopyRef()}};
+
+  for (auto& arg : arguments_) {
+    frame.AddArg(arg.CopyRef());
+  }
+
+  frame.SetAttributeSection(bef_attr_encoder_.result());
+  frame.SetAttributes(attr_offsets_);
   frame.SetNumResults(num_results);
   kernel_fn_(&frame);
 

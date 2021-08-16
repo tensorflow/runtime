@@ -173,6 +173,25 @@ static void TestSum(RepeatedArguments<int32_t> args, Result<int32_t> result) {
   result.Emplace(sum);
 }
 
+template <typename T>
+static Expected<T> TestSumArrayAttribute(StringAttribute init_value_str,
+                                         ArrayAttribute<T> array_attr,
+                                         const ExecutionContext& exec_ctx) {
+  T sum = 0;
+  if (init_value_str.get().getAsInteger(0, sum)) {
+    return MakeStringError("Cannot convert ", init_value_str.get(),
+                           " to target int");
+  }
+
+  for (auto i : array_attr.data()) {
+    sum += i;
+  }
+
+  sum += exec_ctx.request_ctx()->GetData<T>();
+
+  return sum;
+}
+
 // Share input args with results without copying
 static void TestShareToTwo(Argument<VTValue> in, Result<VTValue> out_0,
                            Result<VTValue> out_1) {
@@ -232,6 +251,10 @@ void RegisterSimpleKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt_test.print_hello", TFRT_KERNEL(TestPrintHello));
   registry->AddKernel("tfrt_test.get_thread_id", TFRT_KERNEL(TestGetThreadId));
   registry->AddKernel("tfrt_test.sum", TFRT_KERNEL(TestSum));
+  registry->AddKernel("tfrt_test.sum_array_attr.i32",
+                      TFRT_KERNEL(TestSumArrayAttribute<int32_t>));
+  registry->AddKernel("tfrt_test.sum_array_attr.i64",
+                      TFRT_KERNEL(TestSumArrayAttribute<int64_t>));
   registry->AddKernel("tfrt_test.share_to_two", TFRT_KERNEL(TestShareToTwo));
   registry->AddKernel("tfrt_test.memory_leak_one_int32",
                       TFRT_KERNEL(TestMemoryLeakOneInt32));

@@ -27,6 +27,46 @@ TEST(KernelRunnerTest, Basic) {
   EXPECT_EQ(sum, 6);
 }
 
+TEST(KernelRunnerTest, ArrayAttribute) {
+  auto sum_i32 = KernelRunner("tfrt_test.sum_array_attr.i32")
+                     .AddStringAttribute("11")
+                     .AddArrayAttribute<int>({1, 2, 3})
+                     .AddRequestContextData<int>(2)
+                     .RunAndGetResult<int>();
+
+  EXPECT_EQ(sum_i32, 19);
+
+  auto sum_i64 = KernelRunner("tfrt_test.sum_array_attr.i64")
+                     .AddStringAttribute("10")
+                     .AddArrayAttribute<int64_t>({1, 2, 3})
+                     .AddRequestContextData<int64_t>(2)
+                     .RunAndGetResult<int64_t>();
+
+  EXPECT_EQ(sum_i64, 18);
+}
+
+TEST(KernelRunnerTest, RepeatedRuns) {
+  {
+    KernelRunner runner1("tfrt_test.sum");
+    runner1.SetArgs(1, 2, 3);
+    EXPECT_EQ(runner1.RunAndGetResult<int>(), 6);
+    EXPECT_EQ(runner1.RunAndGetResult<int>(), 6);
+    EXPECT_EQ(runner1.RunAndGetResult<int>(), 6);
+  }
+
+  {
+    KernelRunner runner2{"tfrt_test.sum_array_attr.i64"};
+
+    runner2.AddStringAttribute("10")
+        .AddArrayAttribute<int64_t>({1, 2, 3})
+        .AddRequestContextData<int64_t>(2);
+
+    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 18);
+    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 18);
+    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 18);
+  }
+}
+
 TEST(KernelRunnerTest, StringAttribute) {
   auto str = KernelRunner("tfrt_test.get_string")
                  .AddStringAttribute("hello")

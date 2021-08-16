@@ -12,8 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor --functions=main %s.bef | FileCheck %s
+// RUN: bef_executor %s.bef | FileCheck %s
+// RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
+// CHECK-LABEL: --- Not running 'cond' because it has arguments
 func @cond(
   %ch0    : !tfrt.chain,
   %stream : !tfrt_gpu.stream,
@@ -53,6 +55,7 @@ func @cond(
 
 // Runs a kernel updating %value and %cond. Returns all arguments plus the value
 // of %cond on the host.
+// CHECK-LABEL: --- Not running 'body' because it has arguments
 func @body(
   %ch0    : !tfrt.chain,
   %stream : !tfrt_gpu.stream,
@@ -85,6 +88,7 @@ func @body(
 // Runs a kernel while %cond is true.
 //
 // It's a potential lowering of an lmhlo.while running on GPU.
+// CHECK-LABEL: --- Not running 'while' because it has arguments
 func @while(
   %ch0    : !tfrt.chain,
   %stream : !tfrt_gpu.stream,
@@ -102,6 +106,7 @@ func @while(
   tfrt.return %result#0 : !tfrt.chain
 }
 
+// CHECK-LABEL: --- Running 'main'
 func @main() {
   %ch0 = tfrt.new.chain
 
@@ -134,5 +139,3 @@ func @main() {
 
   tfrt.return
 }
-
-

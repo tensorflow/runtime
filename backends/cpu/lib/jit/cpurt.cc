@@ -142,6 +142,11 @@ raw_ostream& operator<<(raw_ostream& os, const Type& type) {
     os << "x" << memref->element_type();
     os << ">";
 
+  } else if (auto* unranked = dyn_cast<UnrankedMemrefType>(&type)) {
+    os << "memref<";
+    os << "*x" << memref->element_type();
+    os << ">";
+
   } else {
     assert(false && "pretty printing is not implemented");
     os << "<unknown type>";
@@ -163,6 +168,9 @@ MemrefType::MemrefType(ArrayRef<ssize_t> sizes, DType element_type)
     : Type(TypeKind::kMemref),
       sizes_(sizes.begin(), sizes.end()),
       element_type_(element_type) {}
+
+UnrankedMemrefType::UnrankedMemrefType(DType element_type)
+    : Type(TypeKind::kUnrankedMemref), element_type_(element_type) {}
 
 ArrayRef<ssize_t> MemrefType::sizes() const { return sizes_; }
 
@@ -193,7 +201,11 @@ static Expected<DType> ConvertElementType(mlir::Type type) {
   return MakeStringError("unsupported element type: ", type);
 }
 
-static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
+static Expected<std::unique_ptr<Type>> ConvertType(
+    mlir::Type type, mlir::TypeConverter& type_converter) {
+  // Try to apply user provided type conversion first.
+  if (auto converted = type_converter.convertType(type)) type = converted;
+
   // mlir::async::TokenType -> tfrt::cpu::jit::AsyncTokenType
   if (type.isa<mlir::async::TokenType>())
     return std::make_unique<AsyncTokenType>();
@@ -203,7 +215,7 @@ static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
     if (!value.getValueType().isa<mlir::MemRefType>())
       return MakeStringError("async value can only hold memref type");
 
-    auto value_type = ConvertType(value.getValueType());
+    auto value_type = ConvertType(value.getValueType(), type_converter);
     if (auto err = value_type.takeError()) return std::move(err);
 
     return std::make_unique<AsyncValueType>(std::move(*value_type));
@@ -216,11 +228,24 @@ static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
     return std::make_unique<MemrefType>(memref.getShape(), *element_type);
   }
 
+  // mlir::UnrankedMemrefType -> tfrt::cpu::jit::UnrankedMemrefType
+  if (auto unranked = type.dyn_cast<mlir::UnrankedMemRefType>()) {
+    auto element_type = ConvertElementType(unranked.getElementType());
+    if (auto err = element_type.takeError()) return std::move(err);
+    return std::make_unique<UnrankedMemrefType>(*element_type);
+  }
+
   return MakeStringError("unsupported type: ", type);
 }
 
 /*static*/ Expected<FunctionType> FunctionType::Convert(
     mlir::FunctionType type) {
+  mlir::TypeConverter converter;
+  return FunctionType::Convert(type, converter);
+}
+
+/*static*/ Expected<FunctionType> FunctionType::Convert(
+    mlir::FunctionType type, mlir::TypeConverter& type_converter) {
   llvm::SmallVector<std::unique_ptr<Type>> operands;
   llvm::SmallVector<std::unique_ptr<Type>> results;
 
@@ -233,14 +258,16 @@ static Expected<std::unique_ptr<Type>> ConvertType(mlir::Type type) {
   };
 
   for (unsigned i = 0; i < type.getNumInputs(); ++i) {
-    Expected<std::unique_ptr<Type>> converted = ConvertType(type.getInput(i));
+    Expected<std::unique_ptr<Type>> converted =
+        ConvertType(type.getInput(i), type_converter);
     if (auto err = converted.takeError())
       return error("input", i, type.getInput(i), std::move(err));
     operands.push_back(std::move(*converted));
   }
 
   for (unsigned i = 0; i < type.getNumResults(); ++i) {
-    Expected<std::unique_ptr<Type>> converted = ConvertType(type.getResult(i));
+    Expected<std::unique_ptr<Type>> converted =
+        ConvertType(type.getResult(i), type_converter);
     if (auto err = converted.takeError())
       return error("result", i, type.getResult(i), std::move(err));
     results.push_back(std::move(*converted));
@@ -858,13 +885,13 @@ class JitCompilationContext {
  public:
   // Instantiates JIT compilation context from the serialized mlir source.
   static Expected<std::unique_ptr<JitCompilationContext>> Instantiate(
-      const CompilationOptions& opts, string_view mlir_module);
+      CompilationOptions opts, string_view mlir_module, string_view entrypoint);
 
   // Makes an executable from the JIT compilation context. This is the end of
   // life for the compilation context, it effectively converts the MLIR module
   // to the executable (function pointer) using LLVM JIT code generation.
   static Expected<Executable> Compile(
-      std::unique_ptr<JitCompilationContext> ctx, string_view entrypoint);
+      std::unique_ptr<JitCompilationContext> ctx);
 
   template <typename OriginalError>
   llvm::Error Error(OriginalError original_error) {
@@ -880,20 +907,24 @@ class JitCompilationContext {
     return *module_;
   }
 
+  mlir::FuncOp entrypoint() const {
+    assert(entrypoint_ && "failed to resolve entrypoint function");
+    return entrypoint_;
+  }
+
   // Specialize compiled module to the operands: update all unknown dimensions
   // with concrete values and sink small constants into the function body.
   // Returns error if operands are not compatible with compiled module
   // entrypoint signature.
   llvm::Error Specialize(ArrayRef<MemrefDesc> operands,
                          ArrayRef<OperandConstraint> constraints,
-                         string_view entrypoint,
                          const JitExecutable::Listener* listener);
 
   const CompilationOptions& options() const { return opts_; }
 
  private:
-  JitCompilationContext(const CompilationOptions& opts,
-                        string_view mlir_module);
+  JitCompilationContext(CompilationOptions opts, string_view mlir_module,
+                        string_view entrypoint);
 
   CompilationOptions opts_;
   std::unique_ptr<mlir::MLIRContext> context_;
@@ -902,6 +933,7 @@ class JitCompilationContext {
   llvm::SourceMgr source_mgr_;
   mlir::SourceMgrDiagnosticHandler handler_;
   mlir::OwningModuleRef module_;  // can be null if failed to parse the module
+  mlir::FuncOp entrypoint_;       // can be null if failed to parse the module
 };
 }  // namespace
 
@@ -933,9 +965,10 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
       registry, mlir::MLIRContext::Threading::DISABLED);
 }
 
-JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
-                                             string_view mlir_module)
-    : opts_(opts),
+JitCompilationContext::JitCompilationContext(CompilationOptions opts,
+                                             string_view mlir_module,
+                                             string_view entrypoint)
+    : opts_(std::move(opts)),
       context_(CreateMlirContext(opts_)),
       diagnostic_os_(diagnostic_),
       handler_(source_mgr_, context_.get(), diagnostic_os_) {
@@ -943,30 +976,35 @@ JitCompilationContext::JitCompilationContext(const CompilationOptions& opts,
       llvm::MemoryBuffer::getMemBuffer(mlir_module, "cpurt.kernel"),
       llvm::SMLoc());
   module_ = mlir::parseSourceFile(source_mgr_, context_.get());
+  if (module_) entrypoint_ = module_->lookupSymbol<mlir::FuncOp>(entrypoint);
 }
 
 /*static*/ Expected<std::unique_ptr<JitCompilationContext>>
-JitCompilationContext::Instantiate(const CompilationOptions& opts,
-                                   string_view mlir_module) {
+JitCompilationContext::Instantiate(CompilationOptions opts,
+                                   string_view mlir_module,
+                                   string_view entrypoint) {
   std::unique_ptr<JitCompilationContext> context(
-      new JitCompilationContext(opts, mlir_module));
+      new JitCompilationContext(std::move(opts), mlir_module, entrypoint));
   if (!context->module_)
     return context->Error("failed to parse the mlir source");
+  if (!context->entrypoint_)
+    return context->Error("failed to resolve entrypoint function");
   return {std::move(context)};
 }
 
 /*static*/ Expected<Executable> JitCompilationContext::Compile(
-    std::unique_ptr<JitCompilationContext> ctx, string_view entrypoint) {
+    std::unique_ptr<JitCompilationContext> ctx) {
   // Lower loaded module to dialects supported by the CPURT to LLVM pipeline.
   if (failed(LowerToCpurt(ctx->module(), ctx->options())))
     return ctx->Error("failed to lower module to CPURT dialects");
 
   // Verify entrypoint function signature.
-  auto entry_func = ctx->module().lookupSymbol<mlir::FuncOp>(entrypoint);
-  if (!entry_func)
-    return MakeStringError("entrypoint function not found: ", entrypoint);
+  mlir::FuncOp entry_func = ctx->entrypoint();
+  std::string entrypoint = entry_func.getName().str();
 
-  // Convert entrypoint function type to the runtime function type.
+  // Convert entrypoint function type to the runtime function type. We do not
+  // pass user provided type converter at this point, because all high level
+  // dialects should be already lowered to the CPURT dialects.
   auto entry_signature = FunctionType::Convert(entry_func.getType());
   if (auto err = entry_signature.takeError()) return std::move(err);
 
@@ -1059,10 +1097,8 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
 
 llvm::Error JitCompilationContext::Specialize(
     ArrayRef<MemrefDesc> operands, ArrayRef<OperandConstraint> constraints,
-    string_view entrypoint, const JitExecutable::Listener* listener) {
-  mlir::FuncOp func = module_->lookupSymbol<mlir::FuncOp>(entrypoint);
-  if (!func) return MakeStringError("Entrypoint not found: ", entrypoint);
-
+    const JitExecutable::Listener* listener) {
+  mlir::FuncOp func = entrypoint();
   unsigned num_inputs = func.getNumArguments();
 
   // Specialize all function inputs to the given operands.
@@ -1189,12 +1225,8 @@ static Expected<OperandConstraint> ParseOperandConstraints(string_view str) {
 
 // Returns operands constraints inferred from the entrypoint signature.
 static Expected<llvm::SmallVector<OperandConstraint>> GetOperandsConstraints(
-    mlir::ModuleOp module, string_view entrypoint) {
+    mlir::FuncOp func) {
   llvm::SmallVector<OperandConstraint> constraints;
-
-  auto func = module.lookupSymbol<mlir::FuncOp>(entrypoint);
-  if (!func)
-    return MakeStringError("entrypoint function not found: ", entrypoint);
 
   auto parse = [](mlir::Attribute attr) -> Expected<OperandConstraint> {
     // If attribute is not defined it means that there is no operand constraint.
@@ -1238,18 +1270,33 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
 
 /*static*/ Expected<JitExecutable> JitExecutable::Instantiate(
     string_view mlir_module, string_view entrypoint,
-    const CompilationOptions& compilation_opts, CompilationTaskRunner runner) {
+    CompilationOptions compilation_opts, CompilationTaskRunner runner) {
   // Set up LLVM target for code generation.
   InitializeCompiler();
 
   // Try to instantiate compilation context from the mlir source.
   Expected<std::unique_ptr<JitCompilationContext>> ctx =
-      JitCompilationContext::Instantiate(compilation_opts, mlir_module);
+      JitCompilationContext::Instantiate(compilation_opts, mlir_module,
+                                         entrypoint);
   if (auto err = ctx.takeError()) return std::move(err);
 
   // Get resolved operands constraints for the entrypoint function.
-  auto constraints = GetOperandsConstraints((*ctx)->module(), entrypoint);
+  auto constraints = GetOperandsConstraints((*ctx)->entrypoint());
   if (auto err = constraints.takeError()) return std::move(err);
+
+  // Get the entrypoint function signature, it will be later required to
+  // compute the specialized function signature from the operands at runtime.
+  auto signature = FunctionType::Convert((*ctx)->entrypoint().getType(),
+                                         compilation_opts.type_converter);
+
+  // TODO(ezhulenev): This is a temporary workaround until Tensorflow is not
+  // updated to depend on the latest version of the TFRT.
+  FunctionType tmp_signature({}, {});
+  if (auto err = signature.takeError()) {
+    // TODO(ezhulenev): Return error to the caller.
+  } else {
+    tmp_signature = std::move(*signature);
+  }
 
   // If the module must be specialized, return JitExecutable without a default
   // compiled executable.
@@ -1262,28 +1309,32 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
           "unresolved constraints: ",
           *constraints);
 
-    return JitExecutable(mlir_module, entrypoint, compilation_opts,
-                         *constraints, llvm::None, std::move(runner));
+    return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
+                         std::move(*constraints), std::move(tmp_signature),
+                         llvm::None, std::move(runner));
   }
 
   // Otherwise try to compile the default executable.
   Expected<Executable> executable =
-      JitCompilationContext::Compile(std::move(*ctx), entrypoint);
+      JitCompilationContext::Compile(std::move(*ctx));
   if (auto err = executable.takeError()) return std::move(err);
 
-  return JitExecutable(mlir_module, entrypoint, compilation_opts, *constraints,
+  return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
+                       std::move(*constraints), std::move(tmp_signature),
                        std::move(*executable), std::move(runner));
 }
 
 JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
                              CompilationOptions compilation_opts,
                              ArrayRef<OperandConstraint> constraints,
+                             FunctionType signature,
                              Optional<Executable> default_executable,
                              CompilationTaskRunner runner)
     : mlir_module_(mlir_module.str()),
       entrypoint_(entrypoint.str()),
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
+      signature_(std::move(signature)),
       has_default_executable_(default_executable.hasValue()),
       runner_(std::move(runner)),
       specializations_(std::make_unique<Specializations>()) {
@@ -1383,7 +1434,8 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
 
   // Try to instantiate compilation context from the mlir source.
   Expected<std::unique_ptr<JitCompilationContext>> ctx =
-      JitCompilationContext::Instantiate(compilation_opts_, mlir_module_);
+      JitCompilationContext::Instantiate(compilation_opts_, mlir_module_,
+                                         entrypoint_);
 
   if (auto err = ctx.takeError()) {
     assert(false && "parsing mlir module must always succeed at this point");
@@ -1392,24 +1444,23 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
   }
 
   // Specialize executable to the concrete operands.
-  if (auto err =
-          (*ctx)->Specialize(operands, constraints_, entrypoint_, listener)) {
+  if (auto err = (*ctx)->Specialize(operands, constraints_, listener)) {
     entry.ptr.SetError(StrCat("failed to specialize executable: ", err));
     return entry.ptr;
   }
 
   // Construct the task that will do the specialized executable compilation.
-  auto compile = TaskFunction([ctx = std::move(*ctx), ref = entry.ptr.CopyRef(),
-                               entrypoint = entrypoint_]() mutable {
-    Expected<Executable> executable =
-        JitCompilationContext::Compile(std::move(ctx), entrypoint);
+  auto compile = TaskFunction(
+      [ctx = std::move(*ctx), ref = entry.ptr.CopyRef()]() mutable {
+        Expected<Executable> executable =
+            JitCompilationContext::Compile(std::move(ctx));
 
-    // Set the allocated entry async value state to error or concrete.
-    if (auto err = executable.takeError())
-      ref.SetError(std::move(err));
-    else
-      ref.emplace(std::move(*executable));
-  });
+        // Set the allocated entry async value state to error or concrete.
+        if (auto err = executable.takeError())
+          ref.SetError(std::move(err));
+        else
+          ref.emplace(std::move(*executable));
+      });
 
   // Offload specialization compilation to the user provided runner.
   runner_(entry.size, constraints_, operands, std::move(compile), exec_ctx);

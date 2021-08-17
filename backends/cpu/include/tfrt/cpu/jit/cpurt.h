@@ -35,6 +35,7 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Support/LogicalResult.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/cpu/jit/async_runtime.h"
 #include "tfrt/cpu/jit/async_runtime_api.h"
 #include "tfrt/dtype/dtype.h"
@@ -198,6 +199,12 @@ struct CompilationOptions {
   // Tensorflow use case this pipeline lowers from Tensorflow dialect down to
   // the Linalg on buffers via the MHLO->Linalg lowering.
   llvm::function_ref<void(mlir::OpPassManager&)> register_pass_pipeline;
+
+  // Type converter that lowers compiled module entrypoint function types to the
+  // types supported by the CPURT at runtime (e.g. converts tensors to
+  // memrefs). This type converter must do an identical type conversion to
+  // the custom lowering pass pipeline configured by `register_pass_pipeline`.
+  mlir::TypeConverter type_converter;
 };
 
 //----------------------------------------------------------------------------//
@@ -210,7 +217,7 @@ struct CompilationOptions {
 
 class Type {
  public:
-  enum class TypeKind { kAsyncToken, kAsyncValue, kMemref };
+  enum class TypeKind { kAsyncToken, kAsyncValue, kMemref, kUnrankedMemref };
 
   virtual ~Type() = default;
 
@@ -263,7 +270,7 @@ class AsyncValueType : public Type {
 class MemrefType : public Type {
  public:
   static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
-  explicit MemrefType(ArrayRef<ssize_t> sizes, DType element_type);
+  MemrefType(ArrayRef<ssize_t> sizes, DType element_type);
 
   ArrayRef<ssize_t> sizes() const;
   unsigned rank() const;
@@ -278,6 +285,20 @@ class MemrefType : public Type {
   DType element_type_;
 };
 
+// Unranked Memref type corresponding to the mlir::UnrankedMemrefType.
+class UnrankedMemrefType : public Type {
+ public:
+  explicit UnrankedMemrefType(DType element_type);
+  DType element_type() const;
+
+  static bool classof(const Type* type) {
+    return type->kind() == TypeKind::kUnrankedMemref;
+  }
+
+ private:
+  DType element_type_;
+};
+
 // Compiled function signature type corresponding to the mlir::FunctionType.
 class FunctionType {
  public:
@@ -288,13 +309,17 @@ class FunctionType {
   unsigned num_results() const;
 
   // Converts MLIR function type to the runtime function type. Returns error if
-  // function has unsupported operands or results types.
+  // function has unsupported operands or results types. Optionally applies user
+  // defined type conversion to each operand and result type before trying to
+  // convert it to the runtime type.
   static Expected<FunctionType> Convert(mlir::FunctionType type);
+  static Expected<FunctionType> Convert(mlir::FunctionType type,
+                                        mlir::TypeConverter& type_converter);
 
- private:
   FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
                llvm::SmallVector<std::unique_ptr<Type>> results);
 
+ private:
   llvm::SmallVector<std::unique_ptr<Type>> operands_;
   llvm::SmallVector<std::unique_ptr<Type>> results_;
 };
@@ -934,7 +959,7 @@ class JitExecutable {
 
   static Expected<JitExecutable> Instantiate(
       string_view mlir_module, string_view entrypoint,
-      const CompilationOptions& compilation_opts,
+      CompilationOptions compilation_opts,
       CompilationTaskRunner runner = DefaultCompilationTaskRunner);
 
   // Returns entrypoint operands constraints after resolving them using the
@@ -962,7 +987,7 @@ class JitExecutable {
 
   // Listener class to control notifications during specialization.
   struct Listener {
-    virtual ~Listener(){};
+    virtual ~Listener() {}
 
     // Called at the end of module specialization.
     // 'inputs' is a reference to the specialized input types.
@@ -976,7 +1001,7 @@ class JitExecutable {
  private:
   JitExecutable(string_view mlir_module, string_view entrypoint,
                 CompilationOptions compilation_opts,
-                ArrayRef<OperandConstraint> constraints,
+                ArrayRef<OperandConstraint> constraints, FunctionType signature,
                 Optional<Executable> default_executable,
                 CompilationTaskRunner runner);
 
@@ -991,6 +1016,11 @@ class JitExecutable {
   // rank), then the constraint value for that operand will be updated to
   // `kResolved`.
   llvm::SmallVector<OperandConstraint> constraints_;
+
+  // Signature of the compiled module entrypoint function (operands and results
+  // types converted to the types supported by the runtime using compilation
+  // options type converter).
+  FunctionType signature_;
 
   // Default executable that was not specialized to any of the arguments.
   AsyncValueRef<Executable> default_executable_;

@@ -13,13 +13,12 @@
 // limitations under the License.
 
 // RUN: bef_executor %s.bef | FileCheck %s
-// RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'mem_register'
 func @mem_register() {
   %ch0 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %stream = tfrt_gpu.stream.create %context
 

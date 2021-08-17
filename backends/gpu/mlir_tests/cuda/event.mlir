@@ -13,13 +13,12 @@
 // limitations under the License.
 
 // RUN: bef_executor %s.bef | FileCheck %s
-// RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'event_create_test'
 func @event_create_test() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %event = tfrt_gpu.event.create %context
 
@@ -29,8 +28,8 @@ func @event_create_test() {
 // CHECK-LABEL: --- Running 'event_record_and_poll_test'
 func @event_record_and_poll_test() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %stream = tfrt_gpu.stream.create %context
 

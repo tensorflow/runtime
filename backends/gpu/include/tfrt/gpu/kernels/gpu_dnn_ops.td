@@ -56,7 +56,7 @@ def GPU_DnnCreateOp : GPU_Op<"dnn.create"> {
     The DNN library handle is tied to the provided CUDA device (context).
 
     Example:
-    %cudnn, %ch5 = tfrt_gpu.dnn.create %context, %ch1
+    %cudnn = tfrt_gpu.dnn.create %stream
 
   }];
   let arguments = (ins GPU_StreamType);

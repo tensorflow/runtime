@@ -13,13 +13,12 @@
 // limitations under the License.
 
 // RUN: bef_executor %s.bef | FileCheck %s
-// RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'stream_create_test'
 func @stream_create_test() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
@@ -40,8 +39,8 @@ func @stream_create_test() {
 // CHECK-LABEL: --- Running 'stream_create_synchronize'
 func @stream_create_synchronize() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
 
   %stream = tfrt_gpu.stream.create %context
@@ -53,8 +52,8 @@ func @stream_create_synchronize() {
 // CHECK-LABEL: --- Running 'stream_wait_event'
 func @stream_wait_event() {
   %ch0 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
 
   %stream = tfrt_gpu.stream.create %context
@@ -69,8 +68,8 @@ func @stream_wait_event() {
 // CHECK-LABEL: --- Running 'make_tensor_from_smaller_buffer_should_fail'
 func @make_tensor_from_smaller_buffer_should_fail() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context

@@ -13,13 +13,12 @@
 // limitations under the License.
 
 // RUN: bef_executor %s.bef | FileCheck %s
-// RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'blas_axpy'
 func @blas_axpy() {
   %ch1 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
@@ -56,8 +55,8 @@ func @blas_axpy() {
 // CHECK-LABEL: --- Running 'blas_gemm'
 func @blas_gemm() {
   %ch1 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context
@@ -103,8 +102,8 @@ func @blas_gemm() {
 // CHECK-LABEL: --- Running 'blas_gemm_batched'
 func @blas_gemm_batched() {
   %ch1 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context

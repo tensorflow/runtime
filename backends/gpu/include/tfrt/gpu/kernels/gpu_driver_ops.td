@@ -130,7 +130,7 @@ def GPU_EventRecordOp : GPU_Op<"event.record"> {
   let results = (outs TFRT_ChainType);
 }
 
-def GPU_EventPollOp : GPU_Op<"event.synchronize"> {
+def GPU_EventSynchronizeOp : GPU_Op<"event.synchronize"> {
   let description = [{
     tfrt_gpu.event.synchronize waits for the completion of work captured by the
     event.
@@ -139,7 +139,7 @@ def GPU_EventPollOp : GPU_Op<"event.synchronize"> {
 
     Example:
       %ch1 = tfrt.new.chain
-      %ch2 = tfrt_gpu.event.synchronize %event %ch1
+      %ch2 = tfrt_gpu.event.synchronize %event, %ch1
   }];
   let arguments = (ins GPU_EventType, TFRT_ChainType);
   let results = (outs TFRT_ChainType);
@@ -181,7 +181,7 @@ def GPU_MemAllocateOp : GPU_Op<"mem.allocate"> {
     Users must add synchronization to make sure use on stream2 happens after
     everything that was on stream1, at the time of allocation, has finished, e.g.
 
-      %buf = tfrt_gpu.mem.allocate %stream1, %size, %ch0
+      %buf = tfrt_gpu.mem.allocate %allocator, %stream1, %size, %ch0
       %event = tfrt_gpu.event.create %ch0
       %ch2 = tfrt_gpu.event.record %stream1, %event, %ch1
       tfrt_gpu.launch %stream1, %kernel_reading_buf, %buf, %ch0
@@ -205,7 +205,8 @@ def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
     the host.
 
     Example:
-      %ch1 = tfrt_gpu.mem.copy %dst, %src, %size_bytes, %stream, %ch0
+      %ch1 = tfrt_gpu.mem.copy %dst, %src, %stream, %ch0
+                 : !tfrt_gpu.buffer, !tfrt_gpu.buffer
   }];
   let arguments = (ins AnyTypeOf<[GPU_BufferType, HostBufferType]>:$dst,
                    AnyTypeOf<[GPU_BufferType, HostBufferType]>:$src,
@@ -289,7 +290,7 @@ def GPU_ModuleLoadOp : GPU_Op<"module.load"> {
     The data attribute must be explicitly null-terminated.
 
     Example:
-      %function = tfrt_gpu.function.load %ctx {
+      %function = tfrt_gpu.module.load %ctx {
         data = "null-terminated device function blob, e.g. PTX",
         key = 1234
       }
@@ -303,7 +304,7 @@ def GPU_FunctionGetOp : GPU_Op<"function.get"> {
     tfrt_gpu.function.get retrieves a GPU device function from a module.
 
     Example:
-      %function = tfrt_gpu.function.load %module { name = "kernel" }
+      %function = tfrt_gpu.function.get %module { name = "kernel" }
   }];
   let arguments = (ins GPU_ModuleType:$module, StrAttr:$name);
   let results = (outs GPU_FunctionType);
@@ -315,8 +316,8 @@ def GPU_LaunchOp : GPU_Op<"function.launch"> {
 
     Example:
       %ch1 = tfrt_gpu.function.launch %stream, %function,
-                 blocks in (%grid_dim_x %grid_dim_y %grid_dim_z),
-                 threads in (%block_dim_x %block_dim_y %block_dim_z),
+                 blocks in (%grid_dim_x, %grid_dim_y, %grid_dim_z),
+                 threads in (%block_dim_x, %block_dim_y, %block_dim_z),
                  %shared_memory_size_bytes, %chain,
                  args(%arg0, %arg1, ..., %argN) : (<type0>, <type1>, ... <typeN>)
   }];

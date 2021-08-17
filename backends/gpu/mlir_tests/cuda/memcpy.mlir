@@ -13,13 +13,12 @@
 // limitations under the License.
 
 // RUN: bef_executor %s.bef | FileCheck %s
-// RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'memcpy_host_to_device_and_back_test'
 func @memcpy_host_to_device_and_back_test() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
   %allocator = tfrt_gpu.allocator.create %context
   %stream = tfrt_gpu.stream.create %context

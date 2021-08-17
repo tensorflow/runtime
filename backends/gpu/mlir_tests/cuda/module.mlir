@@ -13,13 +13,12 @@
 // limitations under the License.
 
 // RUN: bef_executor %s.bef | FileCheck %s
-// RUN: tfrt_gpu_opt %s | tfrt_gpu_opt
 
 // CHECK-LABEL: --- Running 'function_test'
 func @function_test() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
 
   // PTX for empty kernel.
@@ -37,8 +36,8 @@ func @function_test() {
 // CHECK-LABEL: --- Running 'module_bad_data_test'
 func @module_bad_data_test() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
 
   // expected-error @+1 {{CUDA_ERROR_INVALID_IMAGE}}
@@ -53,8 +52,8 @@ func @module_bad_data_test() {
 // CHECK-LABEL: --- Running 'function_bad_name_test'
 func @function_bad_name_test() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
 
   %module = tfrt_gpu.module.load %context {
@@ -71,8 +70,8 @@ func @function_bad_name_test() {
 // CHECK-LABEL: --- Running 'module_not_null_terminated_test'
 func @module_not_null_terminated_test() {
   %ch2 = tfrt.new.chain
-  %index = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %index
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
 
   // expected-error @+1 {{data attribute must be null-terminated}}

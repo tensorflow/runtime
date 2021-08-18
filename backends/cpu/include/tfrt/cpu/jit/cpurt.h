@@ -930,6 +930,51 @@ enum class OperandConstraint {
 Expected<OperandConstraint> ResolveOperandConstraint(
     OperandConstraint operand_constraint, mlir::Type operand_type);
 
+// Symbolic shapes resolver computes the symbolic shapes of the operands based
+// on the function signature, and concrete shapes of the operands at runtime.
+//
+// Example: dimensions that have the same symbolic shape at runtime.
+//
+//   signature: func @compute(%arg0: tensor<?xf32>, %arg1: tensor<?xf32)
+//                            ^                     ^
+//   operands:                memref<123xf32>       memref<123xf32>
+//                            ^                     ^
+//   symbolic shapes:         [-2xf32]              [-2xf32]
+//
+// Each unknown dimension in the function signature will be assigned a symbolic
+// dimension. If multiple operands have unknown dimensions that are the same
+// at runtime, they will be assigned the same symbolic dimensions value
+// (e.g. `-2` in the example above).
+//
+// If an unknown dimension at runtime is equal to some statically known
+// dimension in the function signature (of any operand), it will be resolved to
+// that statically known constant value:
+//
+// Example: in this example unknown dimension of `arg0` replaced with a `32`.
+//
+//  signature:  func @compute(%arg0: tensor<?xf32>, %arg1: tensor<32xf32>)
+//                            ^                     ^
+//  operands:                 memref<32xf32>        memref<32xf32>
+//                            ^                     ^
+//  symbolic shapes:          [32xf32]              [32xf32]
+//
+// Unknown dimensions that are `1` at runtime are always materialized as a
+// statically known `1` in the symbolic shape.
+class SymbolicShapesResolver {
+ public:
+  using SymbolicShape = llvm::SmallVector<int64_t>;
+  explicit SymbolicShapesResolver(const FunctionType& signature);
+
+  llvm::SmallVector<SymbolicShape> Resolve(ArrayRef<MemrefDesc> operands);
+
+ private:
+  // Statically known sizes of operands from the function signature.
+  llvm::SmallVector<Optional<llvm::SmallVector<ssize_t>>> operands_sizes_;
+
+  // Values of statically known dimensions sizes in the function signature.
+  llvm::SmallDenseSet<int64_t, 16> seen_static_sizes_;
+};
+
 // JitExecutable owns a default executable compiled from the MLIR module (if
 // operands constraints allow that), and orchestrates on-demand re-compilation
 // for specific argument ranks, shapes or values depending on the operands

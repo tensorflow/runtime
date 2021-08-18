@@ -91,6 +91,9 @@ namespace tfrt {
 namespace cpu {
 namespace jit {
 
+// PRE-C++17: Static constexpr class members are required to have a definition.
+constexpr int64_t MemrefType::kDynamicSize;
+
 // Enable IR printing during the kernel compilation pipeline execution.
 static bool DebugCpurtCompile() {
 #if defined(DEBUG_CPURT)
@@ -1152,7 +1155,7 @@ llvm::Error JitCompilationContext::Specialize(
 }
 
 //----------------------------------------------------------------------------//
-// JitExecutable implementation.
+// Resolving JitExecutable OperandConstraint.
 //----------------------------------------------------------------------------//
 
 using Specialization = CompilationOptions::Specialization;
@@ -1261,6 +1264,98 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
     return constraint != OperandConstraint::kResolved;
   });
 }
+
+//----------------------------------------------------------------------------//
+// SymbolicShapesResolver implementation.
+//----------------------------------------------------------------------------//
+
+using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
+
+SymbolicShapesResolver::SymbolicShapesResolver(const FunctionType& signature) {
+  for (unsigned i = 0; i < signature.num_operands(); ++i) {
+    if (auto* memref = dyn_cast<MemrefType>(signature.operand(i))) {
+      // Copy memref dimensions sizes from the signature type.
+      operands_sizes_.emplace_back(llvm::SmallVector<ssize_t>(
+          memref->sizes().begin(), memref->sizes().end()));
+
+      // Keep track of all statically known dimension sizes.
+      for (ssize_t size : memref->sizes()) {
+        if (size != MemrefType::kDynamicSize) seen_static_sizes_.insert(size);
+      }
+
+      continue;
+    }
+
+    if (auto* unranked = dyn_cast<UnrankedMemrefType>(signature.operand(i))) {
+      // No shape information known statically.
+      operands_sizes_.emplace_back();
+      continue;
+    }
+
+    assert(false && "unsupported operand type");
+  }
+}
+
+llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
+    ArrayRef<MemrefDesc> operands) {
+  // The number of operands must match the function signature.
+  assert(operands.size() == operands_sizes_.size());
+
+  // Mapping from the runtime dimension size to the symbolic dimension.
+  llvm::SmallDenseMap<ssize_t, int64_t, 16> size_to_symbolic_dim;
+
+  // Resolved symbolic shapes.
+  llvm::SmallVector<SymbolicShape> symbolic_shapes;
+  symbolic_shapes.reserve(operands.size());
+
+  int64_t sym_dim = -2;  // the next symbolic dimension id
+
+  for (unsigned i = 0; i < operands_sizes_.size(); ++i) {
+    ArrayRef<ssize_t> runtime_sizes = operands[i].sizes;
+
+    // Initialize symbolic shape with a statically known shape of the operand if
+    // it is available, otherwise initialize it with a fully dynamic shape with
+    // rank matching the runtime rank.
+    if (operands_sizes_[i].hasValue()) {
+      ArrayRef<ssize_t> static_sizes = *operands_sizes_[i];
+      assert(runtime_sizes.size() == static_sizes.size());
+      symbolic_shapes.emplace_back(static_sizes.begin(), static_sizes.end());
+    } else {
+      size_t rank = runtime_sizes.size();
+      symbolic_shapes.emplace_back(rank, MemrefType::kDynamicSize);
+    }
+
+    MutableArrayRef<ssize_t> symbolic_sizes = symbolic_shapes.back();
+
+    for (unsigned d = 0; d < runtime_sizes.size(); ++d) {
+      ssize_t symbolic_dim = symbolic_sizes[d];
+      ssize_t runtime_dim = runtime_sizes[d];
+
+      // Skip statically known dimensions.
+      if (symbolic_dim >= 0) continue;
+
+      // Update unknown dimension to a static dimension.
+      if (runtime_dim == 1 || seen_static_sizes_.contains(runtime_dim)) {
+        symbolic_sizes[d] = runtime_dim;
+        continue;
+      }
+
+      // Try to assign a symbolic dimension to the runtime dimension.
+      auto emplaced = size_to_symbolic_dim.try_emplace(runtime_dim, sym_dim);
+      symbolic_sizes[d] = emplaced.first->second;
+
+      // Update the symbolic dimension if we assigned the previous value to the
+      // runtime dimension size.
+      if (emplaced.second) --sym_dim;
+    }
+  }
+
+  return symbolic_shapes;
+}
+
+//----------------------------------------------------------------------------//
+// JitExecutable implementation.
+//----------------------------------------------------------------------------//
 
 /*static*/ void JitExecutable::DefaultCompilationTaskRunner(
     size_t, ArrayRef<OperandConstraint>, ArrayRef<MemrefDesc>,

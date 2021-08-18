@@ -281,6 +281,34 @@ def ExecuteAndUpdateVariablesOp : TPU_Op<"execute_and_update_variables"> {
   }];
 }
 
+def ComputeAndExecuteOp : TPU_Op<"compile_and_execute"> {
+  let summary = "tpu compile and execute operation";
+  let description = [{
+    tpurt.compile_and_execute compiles a mlir tpu program and executes the compiled tpu program.
+    mlir_module is a serialized MLIR module with a `main` function that contains target computation.
+    metadata is a serialized TPUCompileMetadataProto describing the shapes and types of the inputs to the computation, as well as a mapping onto the TPU pod topology.
+    constant_operand_indices are the indices of the inputs that are constant to the TPU program (e.g. weights in inference), the rest of the inputs are input tensors.
+    constant_operand_indices is sorted in ascending order.
+
+    Example:
+      %result = tpurt.compile_and_execute (%operands) constant_operand_indices = [1, 3] metadata = "metadata..." mlir_module = "mlir_module..."
+  }];
+  let arguments = (ins
+    Variadic<CoreRT_TensorHandleType>:$operands,
+    I64ArrayAttr:$constant_operand_indices,
+    StrAttr:$metadata,
+    StrAttr:$mlir_module
+  );
+
+  let results = (outs
+    Variadic<DenseTensorType>:$results
+  );
+
+  let assemblyFormat = [{
+    `(` $operands `)` attr-dict `:` functional-type($operands, results)
+  }];
+}
+
 def TensorHandleToDenseTpuTensorOp : TPU_Op<"tensorhandle_to_dense_tpu_tensor"> {
   let summary = "Obtain DenseTpuTensor from tensor handle.";
   let description = [{

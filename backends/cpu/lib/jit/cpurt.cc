@@ -1288,15 +1288,7 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   // compute the specialized function signature from the operands at runtime.
   auto signature = FunctionType::Convert((*ctx)->entrypoint().getType(),
                                          compilation_opts.type_converter);
-
-  // TODO(ezhulenev): This is a temporary workaround until Tensorflow is not
-  // updated to depend on the latest version of the TFRT.
-  FunctionType tmp_signature({}, {});
-  if (auto err = signature.takeError()) {
-    // TODO(ezhulenev): Return error to the caller.
-  } else {
-    tmp_signature = std::move(*signature);
-  }
+  if (auto err = signature.takeError()) return std::move(err);
 
   // If the module must be specialized, return JitExecutable without a default
   // compiled executable.
@@ -1310,7 +1302,7 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
           *constraints);
 
     return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
-                         std::move(*constraints), std::move(tmp_signature),
+                         std::move(*constraints), std::move(*signature),
                          llvm::None, std::move(runner));
   }
 
@@ -1320,7 +1312,7 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
   if (auto err = executable.takeError()) return std::move(err);
 
   return JitExecutable(mlir_module, entrypoint, std::move(compilation_opts),
-                       std::move(*constraints), std::move(tmp_signature),
+                       std::move(*constraints), std::move(*signature),
                        std::move(*executable), std::move(runner));
 }
 

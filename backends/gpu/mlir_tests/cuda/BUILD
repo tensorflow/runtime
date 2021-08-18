@@ -16,6 +16,6 @@ filegroup(
     srcs = [
         "@llvm-project//llvm:FileCheck",
         "@tf_runtime//backends/gpu:tfrt_gpu_opt",
-        "@tf_runtime//tools:bef_executor",
+        "@tf_runtime//tools:bef_executor_lite",
     ],
 )

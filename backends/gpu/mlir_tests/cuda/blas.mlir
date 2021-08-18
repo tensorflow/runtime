@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef | FileCheck %s
+// RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Running 'blas_axpy'
 func @blas_axpy() {

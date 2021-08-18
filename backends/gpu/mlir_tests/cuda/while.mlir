@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: bef_executor %s.bef | FileCheck %s
+// RUN: bef_executor_lite %s.bef | FileCheck %s
 
 // CHECK-LABEL: --- Not running 'cond' because it has arguments
 func @cond(

@@ -1150,7 +1150,12 @@ llvm::Error JitCompilationContext::Specialize(
     if (listener) listener->notifyValueSpecialized(i, operand_type, shape_attr);
   }
 
-  if (listener) listener->notifyModuleSpecialized(specialized_inputs);
+  if (listener) {
+    llvm::SmallVector<mlir::DictionaryAttr> specialized_attrs;
+    func.getAllArgAttrs(specialized_attrs);
+    listener->notifyModuleSpecialized(specialized_inputs, specialized_attrs);
+  }
+
   return Error::success();
 }
 

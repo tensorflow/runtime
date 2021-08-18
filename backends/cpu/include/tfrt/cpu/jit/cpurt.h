@@ -1035,12 +1035,15 @@ class JitExecutable {
     virtual ~Listener() {}
 
     // Called at the end of module specialization.
-    // 'inputs' is a reference to the specialized input types.
-    virtual void notifyModuleSpecialized(ArrayRef<mlir::Type> inputs) const {}
+    // - 'operands' is a reference to the specialized operands' types.
+    // - `attrs` is a list of attributes attached to operands.
+    virtual void notifyModuleSpecialized(
+        ArrayRef<mlir::Type> operands,
+        ArrayRef<mlir::DictionaryAttr> attrs) const {}
 
     // Called once for every value-specialized argument.
     virtual void notifyValueSpecialized(unsigned index, mlir::Type type,
-                                        mlir::Attribute attr) const {}
+                                        mlir::Attribute value) const {}
   };
 
  private:

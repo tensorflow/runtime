@@ -26,6 +26,19 @@
 
 namespace tfrt {
 
+namespace detail {
+template <typename VectorT, typename RangeT>
+VectorT CopyRefToVector(const RangeT& range) {
+  VectorT copy;
+  copy.reserve(range.size());
+  for (auto& v : range) {
+    copy.emplace_back(v.CopyRef());
+  }
+
+  return copy;
+}
+}  // namespace detail
+
 // Copy the values in the range into a SmallVector.
 template <size_t n, typename RangeT>
 llvm::SmallVector<typename RangeT::value_type, n> AsSmallVector(
@@ -33,10 +46,24 @@ llvm::SmallVector<typename RangeT::value_type, n> AsSmallVector(
   return {range.begin(), range.end()};
 }
 
+template <size_t n, typename RangeT>
+llvm::SmallVector<typename RangeT::value_type, n> CopyRefToSmallVector(
+    const RangeT& range) {
+  return detail::CopyRefToVector<
+      llvm::SmallVector<typename RangeT::value_type, n>>(range);
+}
+
 // Copy the values in the range into a std::vector.
 template <typename RangeT>
 std::vector<typename RangeT::value_type> AsVector(const RangeT& range) {
   return {range.begin(), range.end()};
+}
+
+// Copy the values in the range into a std::vector.
+template <typename RangeT>
+std::vector<typename RangeT::value_type> CopyRefToVector(const RangeT& range) {
+  return detail::CopyRefToVector<std::vector<typename RangeT::value_type>>(
+      range);
 }
 
 }  // namespace tfrt

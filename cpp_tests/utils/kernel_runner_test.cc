@@ -32,17 +32,19 @@ TEST(KernelRunnerTest, ArrayAttribute) {
                      .AddStringAttribute("11")
                      .AddArrayAttribute<int>({1, 2, 3})
                      .AddRequestContextData<int>(2)
+                     .AddResource<int>("val", 4)
                      .RunAndGetResult<int>();
 
-  EXPECT_EQ(sum_i32, 19);
+  EXPECT_EQ(sum_i32, 23);
 
   auto sum_i64 = KernelRunner("tfrt_test.sum_array_attr.i64")
                      .AddStringAttribute("10")
                      .AddArrayAttribute<int64_t>({1, 2, 3})
                      .AddRequestContextData<int64_t>(2)
+                     .AddResource<int64_t>("val", 4)
                      .RunAndGetResult<int64_t>();
 
-  EXPECT_EQ(sum_i64, 18);
+  EXPECT_EQ(sum_i64, 22);
 }
 
 TEST(KernelRunnerTest, RepeatedRuns) {
@@ -59,11 +61,12 @@ TEST(KernelRunnerTest, RepeatedRuns) {
 
     runner2.AddStringAttribute("10")
         .AddArrayAttribute<int64_t>({1, 2, 3})
+        .AddResource<int64_t>("val", 4)
         .AddRequestContextData<int64_t>(2);
 
-    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 18);
-    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 18);
-    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 18);
+    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 22);
+    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 22);
+    EXPECT_EQ(runner2.RunAndGetResult<int64_t>(), 22);
   }
 }
 

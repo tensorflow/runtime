@@ -97,8 +97,15 @@ class KernelRunner {
   template <typename T, typename... Args>
   KernelRunner& AddRequestContextData(Args&&... args) {
     assert(!req_ctx_ &&
-           "Cannot add new request context data once req_ctx_ is materialized");
+           "Cannot add request context data after req_ctx_ is materialized");
     req_ctx_builder_.context_data().emplace<T>(std::forward<Args>(args)...);
+    return *this;
+  }
+
+  template <typename T, typename... Args>
+  KernelRunner& AddResource(llvm::StringRef name, Args&&... args) {
+    assert(!req_ctx_ && "Cannot add resource after req_ctx_ is materialized");
+    resource_ctx_.CreateResource<T>(name, std::forward<Args>(args)...);
     return *this;
   }
 

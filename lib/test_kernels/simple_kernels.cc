@@ -188,6 +188,8 @@ static Expected<T> TestSumArrayAttribute(StringAttribute init_value_str,
   }
 
   sum += exec_ctx.request_ctx()->GetData<T>();
+  Optional<T*> resource = exec_ctx.resource_context()->GetResource<T>("val");
+  sum += **resource;
 
   return sum;
 }

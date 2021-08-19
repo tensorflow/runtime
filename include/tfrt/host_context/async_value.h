@@ -851,7 +851,8 @@ const T& AsyncValue::get() const {
       TFRT_DLOG_IF(FATAL, !GetTypeInfo().has_data(this))
           << "Cannot call get() when ConcreteAsyncValue isn't "
              "constructed; state: "
-          << s;
+          << s
+          << ", error message: " << (IsError() ? StrCat(GetError()) : "None");
       return GetConcreteValue<T>();
     case Kind::kIndirect:
       TFRT_DLOG_IF(FATAL, s != State::kConcrete)

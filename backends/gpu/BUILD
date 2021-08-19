@@ -929,7 +929,12 @@ tfrt_cc_binary(
     visibility = [":tests_and_tools"],
     deps = [
         ":gpu_opdefs",
+        ":gpu_passes",
+        "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:MlirOptLib",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:StandardOps",
+        "@llvm-project//mlir:Transforms",
         "@tf_runtime//:init_tfrt_dialects",
     ],
 )

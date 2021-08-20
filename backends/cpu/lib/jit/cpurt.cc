@@ -880,6 +880,8 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 // JitCompilationContext to manage specialization and compilation.
 //----------------------------------------------------------------------------//
 
+using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
+
 namespace {
 // JitCompilationContext manages parsing, specialization and compilation of a
 // single compiled module. It owns the MLIR context where the module is created,
@@ -915,11 +917,16 @@ class JitCompilationContext {
     return entrypoint_;
   }
 
-  // Specialize compiled module to the operands: update all unknown dimensions
-  // with concrete values and sink small constants into the function body.
+  // Specialize compiled module to the operands:
+  //
+  // - update all unknown dimensions according to the resolved symbolic shapes
+  // - attach symbolic shape attribute to the operands
+  // - sink small constants into the function body
+  //
   // Returns error if operands are not compatible with compiled module
   // entrypoint signature.
   llvm::Error Specialize(ArrayRef<MemrefDesc> operands,
+                         ArrayRef<SymbolicShape> symbolic_shapes,
                          ArrayRef<OperandConstraint> constraints,
                          const JitExecutable::Listener* listener);
 
@@ -1048,22 +1055,26 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
                     std::move(*results_memory_layout), ctx->name().str());
 }
 
-// Return input `type` specialized to memref descriptor operand.
-static llvm::Expected<mlir::Type> SpecializeType(mlir::Type type,
-                                                 const MemrefDesc& operand) {
+// Return input `type` specialized to memref operand and its symbolic shape.
+static llvm::Expected<mlir::Type> SpecializeType(
+    mlir::Type type, const MemrefDesc& operand,
+    const SymbolicShape& symbolic_shape) {
+  // Replace all symbolic dimensions with dynamic dimension.
+  auto shape = SymbolicShapesResolver::Normalize(symbolic_shape);
+
   if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
     if (auto err = VerifyMemrefOperand(memref, operand)) return std::move(err);
-    return mlir::MemRefType::get(operand.sizes, memref.getElementType());
+    return mlir::MemRefType::get(shape, memref.getElementType());
   }
 
   if (auto tensor = type.dyn_cast<mlir::RankedTensorType>()) {
     if (auto err = VerifyMemrefOperand(tensor, operand)) return std::move(err);
-    return mlir::RankedTensorType::get(operand.sizes, tensor.getElementType());
+    return mlir::RankedTensorType::get(shape, tensor.getElementType());
   }
 
   if (auto tensor = type.dyn_cast<mlir::UnrankedTensorType>()) {
     if (auto err = VerifyMemrefOperand(tensor, operand)) return std::move(err);
-    return mlir::RankedTensorType::get(operand.sizes, tensor.getElementType());
+    return mlir::RankedTensorType::get(shape, tensor.getElementType());
   }
 
   return MakeStringError("Unsupported input type: ", type);
@@ -1071,8 +1082,8 @@ static llvm::Expected<mlir::Type> SpecializeType(mlir::Type type,
 
 // Gets (copies) the values from `desc`, returning them in a DenseElementsAttr.
 // If it cannot extract the values, returns an empty attribute.
-static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
-                                               mlir::ShapedType shaped_type,
+static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder& builder,
+                                               mlir::TensorType operand_type,
                                                const MemrefDesc& desc) {
   size_t rank = desc.sizes.size();
   if (rank != 0 && rank != 1) return {};
@@ -1083,38 +1094,47 @@ static mlir::DenseElementsAttr GetMemrefValues(mlir::Builder* builder,
     case DType::I32: {
       const auto* data = static_cast<TypeForDTypeKind<DType::I32>*>(desc.data);
       for (int i = 0; i < num_values; ++i) {
-        attributes.push_back(builder->getI32IntegerAttr(data[i]));
+        attributes.push_back(builder.getI32IntegerAttr(data[i]));
       }
     } break;
     case DType::I64: {
       const auto* data = static_cast<TypeForDTypeKind<DType::I64>*>(desc.data);
       for (int i = 0; i < num_values; ++i) {
-        attributes.push_back(builder->getI64IntegerAttr(data[i]));
+        attributes.push_back(builder.getI64IntegerAttr(data[i]));
       }
     } break;
     default:
       return {};
   }
-  return mlir::DenseElementsAttr::get(shaped_type, attributes);
+
+  // Update operand type to a ranked tensor type with statically known shape.
+  auto element_type = operand_type.getElementType();
+  auto ranked_tensor = mlir::RankedTensorType::get(desc.sizes, element_type);
+
+  return mlir::DenseElementsAttr::get(ranked_tensor, attributes);
 }
 
 llvm::Error JitCompilationContext::Specialize(
-    ArrayRef<MemrefDesc> operands, ArrayRef<OperandConstraint> constraints,
+    ArrayRef<MemrefDesc> operands, ArrayRef<SymbolicShape> symbolic_shapes,
+    ArrayRef<OperandConstraint> constraints,
     const JitExecutable::Listener* listener) {
   mlir::FuncOp func = entrypoint();
   unsigned num_inputs = func.getNumArguments();
 
+  mlir::MLIRContext* ctx = func.getContext();
+
   // Specialize all function inputs to the given operands.
   llvm::SmallVector<mlir::Type> specialized_inputs(num_inputs);
   for (unsigned i = 0; i < num_inputs; ++i) {
-    auto specialized = SpecializeType(func.getType().getInput(i), operands[i]);
+    auto specialized = SpecializeType(func.getType().getInput(i), operands[i],
+                                      symbolic_shapes[i]);
     if (auto err = specialized.takeError()) return err;
     specialized_inputs[i] = *specialized;
   }
 
   // Update function type to a new specialized one.
-  auto specialized = mlir::FunctionType::get(
-      func.getContext(), specialized_inputs, func.getType().getResults());
+  auto specialized = mlir::FunctionType::get(ctx, specialized_inputs,
+                                             func.getType().getResults());
   func.setType(specialized);
 
   // Update function entry block arguments.
@@ -1131,23 +1151,53 @@ llvm::Error JitCompilationContext::Specialize(
   std::iota(erase_block_args.begin(), erase_block_args.end(), 0);
   entry_block.eraseArguments(erase_block_args);
 
+  // Add symbolic shapes as arguments attributes.
+  for (unsigned i = 0; i < num_inputs; ++i) {
+    const SymbolicShape& shape = symbolic_shapes[i];
+    int64_t rank = shape.size();
+
+    // Skip statically known shapes.
+    if (llvm::all_of(shape, [](int64_t dim) { return dim >= 0; })) continue;
+
+    // Symbolic shape attribute stored as 1d tensor attribute.
+    auto i64 = mlir::IntegerType::get(ctx, 64);
+    auto tensor = mlir::RankedTensorType::get({rank}, i64);
+
+    // Create i64 attributes from the symbolic shape values.
+    llvm::SmallVector<mlir::Attribute> values(rank);
+    for (unsigned d = 0; d < rank; ++d)
+      values[d] = mlir::IntegerAttr::get(i64, shape[d]);
+
+    func.setArgAttr(i, "cpurt.symbolic_shape",
+                    mlir::DenseElementsAttr::get(tensor, values));
+  }
+
   // Sink small constants into the function body.
   mlir::OpBuilder builder = mlir::OpBuilder::atBlockBegin(&func.front());
   mlir::Location loc = func.getLoc();
+
   for (int i = 0; i < constraints.size(); ++i) {
     if (constraints[i] != OperandConstraint::kValue) continue;
-    mlir::Type operand_type = func.getType().getInput(i);
-    mlir::ShapedType shaped = operand_type.dyn_cast<mlir::ShapedType>();
-    assert(SupportsValueSpecialization(shaped) &&
-           "Non-sinkable operand was marked for sinking");
-    mlir::DenseElementsAttr shape_attr =
-        GetMemrefValues(&builder, shaped, operands[i]);
-    if (!shape_attr)
-      return MakeStringError("Cannot get values from operand type: ",
-                             operand_type);
-    mlir::Value cst = builder.create<mlir::ConstantOp>(loc, shaped, shape_attr);
+
+    // We only support sinking of Tensor operands into the function body.
+    mlir::Type input_ty = func.getType().getInput(i);
+    mlir::TensorType tensor_ty = input_ty.dyn_cast<mlir::TensorType>();
+    if (!tensor_ty || !SupportsValueSpecialization(tensor_ty)) {
+      return MakeStringError("non-sinkable operand was marked for sinking: ",
+                             input_ty);
+    }
+
+    // Get the operand value from the runtime memref operand.
+    mlir::DenseElementsAttr value =
+        GetMemrefValues(builder, tensor_ty, operands[i]);
+    if (!value) {
+      return MakeStringError("cannot get value from operand type: ", input_ty);
+    }
+
+    auto cst = builder.create<mlir::ConstantOp>(loc, value.getType(), value);
     entry_block.getArgument(i).replaceAllUsesWith(cst);
-    if (listener) listener->notifyValueSpecialized(i, operand_type, shape_attr);
+
+    if (listener) listener->notifyValueSpecialized(i, value.getType(), value);
   }
 
   if (listener) {
@@ -1274,9 +1324,9 @@ static bool IsSpecializationOnly(ArrayRef<OperandConstraint> constraints) {
 // SymbolicShapesResolver implementation.
 //----------------------------------------------------------------------------//
 
-using SymbolicShape = SymbolicShapesResolver::SymbolicShape;
-
-SymbolicShapesResolver::SymbolicShapesResolver(const FunctionType& signature) {
+SymbolicShapesResolver::SymbolicShapesResolver(
+    const FunctionType& signature, ArrayRef<OperandConstraint> constraints)
+    : constraints_(constraints.begin(), constraints.end()) {
   for (unsigned i = 0; i < signature.num_operands(); ++i) {
     if (auto* memref = dyn_cast<MemrefType>(signature.operand(i))) {
       // Copy memref dimensions sizes from the signature type.
@@ -1318,6 +1368,12 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
   for (unsigned i = 0; i < operands_sizes_.size(); ++i) {
     ArrayRef<ssize_t> runtime_sizes = operands[i].sizes;
 
+    // For shape constrained operands use runtime shape.
+    if (constraints_[i] == OperandConstraint::kShape) {
+      symbolic_shapes.emplace_back(runtime_sizes.begin(), runtime_sizes.end());
+      continue;
+    }
+
     // Initialize symbolic shape with a statically known shape of the operand if
     // it is available, otherwise initialize it with a fully dynamic shape with
     // rank matching the runtime rank.
@@ -1356,6 +1412,14 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
   }
 
   return symbolic_shapes;
+}
+
+/*static*/ llvm::SmallVector<int64_t> SymbolicShapesResolver::Normalize(
+    const SymbolicShape& shape) {
+  auto normalize = llvm::map_range(shape, [](int64_t dim) {
+    return std::max(dim, mlir::ShapedType::kDynamicSize);
+  });
+  return {normalize.begin(), normalize.end()};
 }
 
 //----------------------------------------------------------------------------//
@@ -1427,6 +1491,7 @@ JitExecutable::JitExecutable(string_view mlir_module, string_view entrypoint,
       compilation_opts_(std::move(compilation_opts)),
       constraints_(constraints.begin(), constraints.end()),
       signature_(std::move(signature)),
+      symbolic_shapes_resolver_(signature_, constraints_),
       has_default_executable_(default_executable.hasValue()),
       runner_(std::move(runner)),
       specializations_(std::make_unique<Specializations>()) {
@@ -1452,8 +1517,16 @@ ArrayRef<OperandConstraint> JitExecutable::constraints() const {
 // Note: due to value specialization, the resulting hash might depend on the
 // values (and not only on the types) of the operands.
 static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
+                                    ArrayRef<SymbolicShape> symbolic_shapes,
                                     ArrayRef<OperandConstraint> constraints) {
-  llvm::hash_code hash = llvm::hash_value(operands);
+  llvm::hash_code hash(0);
+
+  // Compute hash based on the symbolic shapes of the operands.
+  for (const SymbolicShape& shape : symbolic_shapes) {
+    hash = llvm::hash_combine(
+        hash, shape.size(),
+        llvm::hash_combine_range(shape.begin(), shape.end()));
+  }
 
   // Mix values of arguments to be sunk into the hash.
   for (int i = 0; i < constraints.size(); ++i) {
@@ -1467,15 +1540,6 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
     hash = llvm::hash_combine(hash, llvm::hash_combine_range(data, data + len));
   }
   return hash;
-}
-
-// Implement `hash_value` to rely on the ADL lookup for the MemrefDesc type.
-static llvm::hash_code hash_value(const MemrefDesc& memref) {
-  // We currently do not support non-contiguous memrefs as operands, so we do
-  // not need to hash memref strides.
-  return llvm::hash_combine(
-      memref.sizes.size(),
-      llvm::hash_combine_range(memref.sizes.begin(), memref.sizes.end()));
 }
 
 // TODO(ezhulenev): The fast path should be free of mutex to find the
@@ -1499,7 +1563,10 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();
 
-  llvm::hash_code hash = HashOperands(operands, constraints_);
+  // Compute the cache lookup key from the symbolic shapes and operands.
+  llvm::SmallVector<SymbolicShape> symbolic_shapes =
+      symbolic_shapes_resolver_.Resolve(operands);
+  llvm::hash_code hash = HashOperands(operands, symbolic_shapes, constraints_);
 
   // Maybe return Executable from the cache.
   if (auto cached = specializations_->Find(hash)) {
@@ -1536,7 +1603,8 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
   }
 
   // Specialize executable to the concrete operands.
-  if (auto err = (*ctx)->Specialize(operands, constraints_, listener)) {
+  if (auto err = (*ctx)->Specialize(operands, symbolic_shapes, constraints_,
+                                    listener)) {
     entry.ptr.SetError(StrCat("failed to specialize executable: ", err));
     return entry.ptr;
   }

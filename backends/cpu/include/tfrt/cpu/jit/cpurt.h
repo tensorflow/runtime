@@ -963,11 +963,18 @@ Expected<OperandConstraint> ResolveOperandConstraint(
 class SymbolicShapesResolver {
  public:
   using SymbolicShape = llvm::SmallVector<int64_t>;
-  explicit SymbolicShapesResolver(const FunctionType& signature);
+  explicit SymbolicShapesResolver(const FunctionType& signature,
+                                  ArrayRef<OperandConstraint> constraints);
 
   llvm::SmallVector<SymbolicShape> Resolve(ArrayRef<MemrefDesc> operands);
 
+  // Replaces all symbolic dimensions with dynamic dimension.
+  static llvm::SmallVector<int64_t> Normalize(const SymbolicShape& shape);
+
  private:
+  // Constraints on the function operands.
+  llvm::SmallVector<OperandConstraint> constraints_;
+
   // Statically known sizes of operands from the function signature.
   llvm::SmallVector<Optional<llvm::SmallVector<ssize_t>>> operands_sizes_;
 
@@ -1069,6 +1076,10 @@ class JitExecutable {
   // types converted to the types supported by the runtime using compilation
   // options type converter).
   FunctionType signature_;
+
+  // Symbolic shape resolver assigns symbolic dimensions to runtime operands
+  // based on the entrypoint function signature.
+  SymbolicShapesResolver symbolic_shapes_resolver_;
 
   // Default executable that was not specialized to any of the arguments.
   AsyncValueRef<Executable> default_executable_;

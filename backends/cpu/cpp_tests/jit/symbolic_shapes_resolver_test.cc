@@ -27,6 +27,7 @@ namespace tfrt {
 using ::tfrt::cpu::jit::FunctionType;
 using ::tfrt::cpu::jit::MemrefDesc;
 using ::tfrt::cpu::jit::MemrefType;
+using ::tfrt::cpu::jit::OperandConstraint;
 using ::tfrt::cpu::jit::SymbolicShapesResolver;
 using ::tfrt::cpu::jit::Type;
 using ::tfrt::cpu::jit::UnrankedMemrefType;
@@ -77,10 +78,16 @@ static llvm::SmallVector<SymbolicShape> SymbolicShapes(
 TEST(SymbolicShapeResolverTest, UnrankedInputs) {
   // Operands: tensor<*xf32>, tensor<?xi32>, tensor<?x4xi1>
   auto dtypes = {DType::F32, DType::I32, DType::I1};
+
   auto type = GetFunctionType(dtypes, {llvm::None,
                                        {{MemrefType::kDynamicSize}},
                                        {{MemrefType::kDynamicSize, 4}}});
-  SymbolicShapesResolver resolver(type);
+
+  auto constraints = {OperandConstraint::kResolved,
+                      OperandConstraint::kResolved,
+                      OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
 
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100, 100}, {100}, {100, 4}});
@@ -121,7 +128,12 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
   auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize}},
                                        {{MemrefType::kDynamicSize}},
                                        {{MemrefType::kDynamicSize}}});
-  SymbolicShapesResolver resolver(type);
+
+  auto constraints = {OperandConstraint::kResolved,
+                      OperandConstraint::kResolved,
+                      OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
 
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100}, {100}, {100}});
@@ -162,7 +174,12 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
   auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
                                        {{MemrefType::kDynamicSize, 8}},
                                        {{MemrefType::kDynamicSize}}});
-  SymbolicShapesResolver resolver(type);
+
+  auto constraints = {OperandConstraint::kResolved,
+                      OperandConstraint::kResolved,
+                      OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
 
   {  // All unknown dimensions are the same at runtime.
     auto operands = GetFakeMemrefs({{100, 4}, {100, 8}, {100}});
@@ -205,19 +222,44 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
   }
 }
 
+TEST(SymbolicShapeResolverTest, ShapeConstrainedInput) {
+  // Operands: tensor<*xf32>, tensor<?x4xi32>
+  auto dtypes = {DType::F32, DType::I32};
+
+  auto type =
+      GetFunctionType(dtypes, {llvm::None, {{MemrefType::kDynamicSize, 4}}});
+
+  auto constraints = {OperandConstraint::kShape, OperandConstraint::kShape};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  {  // All unknown materialized as static shapes.
+    auto operands = GetFakeMemrefs({{100, 100}, {100, 4}});
+    auto symbolic = resolver.Resolve(operands);
+
+    EXPECT_EQ(symbolic.size(), 2);
+    EXPECT_EQ(symbolic, SymbolicShapes({{100, 100}, {100, 4}}));
+  }
+}
+
 // -------------------------------------------------------------------------- //
 // Performance benchmarks are below.
 // -------------------------------------------------------------------------- //
 
 static void BM_ResolveFullyDynamic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
   auto type = GetFunctionType(
       dtypes, {{{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
                {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
                {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}},
                {{MemrefType::kDynamicSize, MemrefType::kDynamicSize}}});
 
-  SymbolicShapesResolver resolver(type);
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
 
   auto operands = GetFakeMemrefs({{1, 2}, {3, 4}, {5, 6}, {7, 8}});
 
@@ -229,12 +271,17 @@ static void BM_ResolveFullyDynamic(benchmark::State& state) {
 
 static void BM_ResolveAsStatic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
   auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
                                        {{MemrefType::kDynamicSize, 8}},
                                        {{MemrefType::kDynamicSize, 16}},
                                        {{MemrefType::kDynamicSize, 32}}});
 
-  SymbolicShapesResolver resolver(type);
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
 
   auto operands = GetFakeMemrefs({{32, 4}, {16, 8}, {8, 8}, {4, 32}});
 
@@ -246,12 +293,17 @@ static void BM_ResolveAsStatic(benchmark::State& state) {
 
 static void BM_ResolveAsSymbolic(benchmark::State& state) {
   auto dtypes = {DType::F32, DType::I32, DType::I1, DType::F32};
+
   auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}},
                                        {{MemrefType::kDynamicSize, 8}},
                                        {{MemrefType::kDynamicSize, 16}},
                                        {{MemrefType::kDynamicSize, 32}}});
 
-  SymbolicShapesResolver resolver(type);
+  auto constraints = {
+      OperandConstraint::kResolved, OperandConstraint::kResolved,
+      OperandConstraint::kResolved, OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
 
   auto operands = GetFakeMemrefs({{1, 4}, {2, 8}, {3, 8}, {4, 32}});
 

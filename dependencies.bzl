@@ -35,7 +35,7 @@ def tfrt_dependencies():
 
     cuda_dependencies()
 
-    llvm(name = "llvm-project")
+    llvm(name = "llvm-raw")
 
     tfrt_http_archive(
         name = "bazel_skylib",

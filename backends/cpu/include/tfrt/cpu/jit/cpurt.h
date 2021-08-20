@@ -979,7 +979,7 @@ class SymbolicShapesResolver {
   llvm::SmallVector<Optional<llvm::SmallVector<ssize_t>>> operands_sizes_;
 
   // Values of statically known dimensions sizes in the function signature.
-  llvm::SmallDenseSet<int64_t, 16> seen_static_sizes_;
+  llvm::DenseSet<int64_t> seen_static_sizes_;
 };
 
 // JitExecutable owns a default executable compiled from the MLIR module (if

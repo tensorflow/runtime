@@ -1357,7 +1357,7 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
   assert(operands.size() == operands_sizes_.size());
 
   // Mapping from the runtime dimension size to the symbolic dimension.
-  llvm::SmallDenseMap<ssize_t, int64_t, 16> size_to_symbolic_dim;
+  llvm::SmallDenseMap<int64_t, int64_t, 16> size_to_symbolic_dim;
 
   // Resolved symbolic shapes.
   llvm::SmallVector<SymbolicShape> symbolic_shapes;
@@ -1366,7 +1366,7 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
   int64_t sym_dim = -2;  // the next symbolic dimension id
 
   for (unsigned i = 0; i < operands_sizes_.size(); ++i) {
-    ArrayRef<ssize_t> runtime_sizes = operands[i].sizes;
+    ArrayRef<int64_t> runtime_sizes = operands[i].sizes;
 
     // For shape constrained operands use runtime shape.
     if (constraints_[i] == OperandConstraint::kShape) {
@@ -1378,7 +1378,7 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
     // it is available, otherwise initialize it with a fully dynamic shape with
     // rank matching the runtime rank.
     if (operands_sizes_[i].hasValue()) {
-      ArrayRef<ssize_t> static_sizes = *operands_sizes_[i];
+      ArrayRef<int64_t> static_sizes = *operands_sizes_[i];
       assert(runtime_sizes.size() == static_sizes.size());
       symbolic_shapes.emplace_back(static_sizes.begin(), static_sizes.end());
     } else {
@@ -1386,11 +1386,11 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
       symbolic_shapes.emplace_back(rank, MemrefType::kDynamicSize);
     }
 
-    MutableArrayRef<ssize_t> symbolic_sizes = symbolic_shapes.back();
+    MutableArrayRef<int64_t> symbolic_sizes = symbolic_shapes.back();
 
     for (unsigned d = 0; d < runtime_sizes.size(); ++d) {
-      ssize_t symbolic_dim = symbolic_sizes[d];
-      ssize_t runtime_dim = runtime_sizes[d];
+      int64_t symbolic_dim = symbolic_sizes[d];
+      int64_t runtime_dim = runtime_sizes[d];
 
       // Skip statically known dimensions.
       if (symbolic_dim >= 0) continue;

@@ -164,10 +164,10 @@ tfrt_cc_library(
     name = "cublas_compat",
     srcs = ["lib/wrapper/cublas_compat.cc"],
     tags = ["manual"],
-    deps = [
-        "@cuda_headers",
+    deps = if_google([
         "@cuda_headers//:cublas_static",
-    ],
+        "@cuda_headers",
+    ]),
 )
 
 tfrt_cc_library(

@@ -30,8 +30,8 @@ GpuContext::GpuContext(wrapper::OwningContext context)
 GpuContext::~GpuContext() = default;
 
 wrapper::Context GpuContext::release() {
-  modules_.clear();           // Clear modules map.
-  return context_.release();  // Release OwningContext.
+  modules_.clear();
+  return context_.release();
 }
 
 // Wrapper for module loading that prints logs when in debug mode.
@@ -85,7 +85,8 @@ GpuStream::GpuStream(AsyncValueRef<GpuContext> context,
 GpuStream::~GpuStream() = default;
 
 wrapper::Stream GpuStream::release() {
-  return stream_.release();  // Release OwningStream.
+  context_.reset();
+  return stream_.release();
 }
 
 BorrowedGpuStream::BorrowedGpuStream(wrapper::Context context,
@@ -96,8 +97,8 @@ BorrowedGpuStream::BorrowedGpuStream(wrapper::Context context,
           context_.CopyRef(), wrapper::OwningStream(stream))) {}
 
 BorrowedGpuStream::~BorrowedGpuStream() {
-  stream_->release();   // Release GpuStream's OwningStream.
-  context_->release();  // Release GpuContext's OwningContext.
+  stream_->release();
+  context_->release();
 }
 
 GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
@@ -240,7 +241,8 @@ llvm::Error GpuCclHandle::ExecuteCallbacks(wrapper::CurrentContext current,
 }
 
 wrapper::CclComm GpuCclHandle::release() {
-  return comm_.release();  // Release OwningCclComm.
+  context_.reset();
+  return comm_.release();
 }
 
 GpuDnnHandle::GpuDnnHandle(AsyncValueRef<GpuStream> stream,

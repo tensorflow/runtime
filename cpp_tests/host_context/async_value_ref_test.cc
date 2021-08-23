@@ -159,11 +159,36 @@ TEST_F(AsyncValueRefTest, AndThenExpectedError) {
   value.SetError(diag);
 }
 
+TEST_F(AsyncValueRefTest, PtrAndThenExpectedError) {
+  auto value =
+      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+
+  DecodedDiagnostic diag{"test_error"};
+  value.AsPtr().AndThen([&](Expected<int32_t*> v) {
+    EXPECT_FALSE(!!v);
+    EXPECT_EQ(StrCat(v.takeError()), StrCat(diag));
+  });
+
+  value.SetError(diag);
+}
+
 TEST_F(AsyncValueRefTest, AndThenExpectedNoError) {
   auto value =
       MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
 
   value.AndThen([](Expected<int32_t*> v) {
+    EXPECT_TRUE(!!v);
+    EXPECT_EQ(**v, kTestValue);
+  });
+
+  value.SetStateConcrete();
+}
+
+TEST_F(AsyncValueRefTest, PtrAndThenExpectedNoError) {
+  auto value =
+      MakeConstructedAsyncValueRef<int32_t>(host_context_.get(), kTestValue);
+
+  value.AsPtr().AndThen([](Expected<int32_t*> v) {
     EXPECT_TRUE(!!v);
     EXPECT_EQ(**v, kTestValue);
   });

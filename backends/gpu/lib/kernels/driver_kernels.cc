@@ -169,8 +169,8 @@ static Error GpuMemCopy(RemainingArguments args) {
 }
 
 static Expected<GpuBuffer> GpuMemRegister(
-    const GpuContext& context, Argument<RCReference<HostBuffer>> buffer) {
-  auto current = wrapper::CtxSetCurrent(context.get());
+    Argument<GpuContext> context, Argument<RCReference<HostBuffer>> buffer) {
+  auto current = wrapper::CtxSetCurrent(context->get());
   if (!current) return current.takeError();
 
   auto size = (*buffer)->size();
@@ -181,12 +181,14 @@ static Expected<GpuBuffer> GpuMemRegister(
   if (!memory) return memory.takeError();
   auto pointer = memory->get();
 
-  // The allocator holds a reference to the host buffer and unregisters the
-  // pointer on destruction.
+  // The allocator unregisters the pointer on destruction and then releases
+  // the references to the context and the host buffer.
   using Allocator = GpuOneShotAllocator<
-      std::pair<wrapper::RegisteredMemory<void>, RCReference<HostBuffer>>>;
+      std::tuple<RCReference<HostBuffer>, AsyncValueRef<GpuContext>,
+                 wrapper::RegisteredMemory<void>>>;
   auto allocator = MakeAvailableAsyncValueRef<Allocator>(
-      pointer, std::make_pair(std::move(*memory), buffer->CopyRef()));
+      pointer, std::make_tuple(buffer->CopyRef(), context.ValueRef(),
+                               std::move(*memory)));
   return GpuBuffer::Allocate(std::move(allocator), size);
 }
 

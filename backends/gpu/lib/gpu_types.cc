@@ -215,15 +215,8 @@ GpuBlasHandle::GpuBlasHandle(AsyncValueRef<GpuStream> stream,
 GpuBlasHandle::~GpuBlasHandle() = default;
 
 GpuCclHandle::GpuCclHandle(AsyncValueRef<GpuContext> context,
-                           wrapper::OwningCclComm comm, int num_ranks)
-    : context_(std::move(context)),
-      comm_(std::move(comm)),
-      num_ranks_(num_ranks) {}
-
-// TODO(hanbinyoon): Remove after transitioning to the above constructor.
-GpuCclHandle::GpuCclHandle(AsyncValueRef<GpuContext> context,
                            wrapper::OwningCclComm comm)
-    : context_(std::move(context)), comm_(std::move(comm)), num_ranks_(0) {}
+    : context_(std::move(context)), comm_(std::move(comm)) {}
 
 GpuCclHandle::~GpuCclHandle() = default;
 

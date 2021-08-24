@@ -107,8 +107,6 @@ static Error CclReduceScatter(
   auto width = ToWidthInBytes(type);
   if (!width) return width.takeError();
   assert(*width != 0);
-  if (input->size() != output->size() * handle->num_ranks())
-    return MakeStringError("Input size must be output size times ranks.");
 
   handle->AddCallback([input = input.ValueRef(), output = output.ValueRef(),
                        recvcount = output->size() / *width, type,
@@ -116,6 +114,10 @@ static Error CclReduceScatter(
                           wrapper::CurrentContext current,
                           wrapper::Stream stream,
                           wrapper::CclComm comm) -> llvm::Error {
+    auto count = wrapper::CclCommCount(comm);
+    if (!count) return count.takeError();
+    if (input->size() != output->size() * *count)
+      return MakeStringError("Input size must be output size times ranks.");
     return wrapper::CclReduceScatter(current, input->pointer(),
                                      output->pointer(), recvcount, type, op,
                                      comm, stream);

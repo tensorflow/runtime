@@ -84,7 +84,7 @@ struct FoldMemrefViewPattern : public OpConversionPattern<memref::ViewOp> {
 // Moves the body of a tfrt_gpu_conversion.async.execute op into the parent
 // block and removes the op.
 //
-//     %t0 = tfrt_gpu.cast %ch0, %stream : !gpu.async.token
+//     %t0 = tfrt_gpu_conversion.cast %ch0, %stream : !gpu.async.token
 //     %t1 = tfrt_gpu_conversion.async.execute [%t0] {
 //       ^bb(%0 : !tfrt.chain, %1 : !tfrt_gpu.stream)
 //       ... ops using %0 and %1 ...
@@ -93,9 +93,9 @@ struct FoldMemrefViewPattern : public OpConversionPattern<memref::ViewOp> {
 //
 // will be rewritten to
 //
-//     %t0 = tfrt_gpu.cast %ch0, %stream : !gpu.async.token
+//     %t0 = tfrt_gpu_conversion.cast %ch0, %stream : !gpu.async.token
 //     ... ops using %ch0 and %stream ...
-//     %t1 = tfrt_gpu.cast %n, %stream : !gpu.async.token
+//     %t1 = tfrt_gpu_conversion.cast %n, %stream : !gpu.async.token
 //
 struct UnwrapAsyncExecPattern
     : public OpConversionPattern<conversion::AsyncExecuteOp> {

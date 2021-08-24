@@ -930,11 +930,14 @@ tfrt_cc_binary(
     deps = [
         ":gpu_opdefs",
         ":gpu_passes",
+        "@llvm-project//mlir:Async",
+        "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:MemRefDialect",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:Pass",
         "@llvm-project//mlir:StandardOps",
         "@llvm-project//mlir:Transforms",
+        "@tf_runtime//:basic_kernels_opdefs",
         "@tf_runtime//:init_tfrt_dialects",
     ],
 )

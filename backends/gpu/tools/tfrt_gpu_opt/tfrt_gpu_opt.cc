@@ -16,11 +16,14 @@
 //
 // Load MLIR and apply required passes on it.
 
+#include "mlir/Dialect/Async/IR/Async.h"
+#include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Support/MlirOptMain.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"
 #include "tfrt/gpu/pass/pass.h"
 #include "tfrt/init_tfrt_dialects.h"
@@ -32,10 +35,6 @@ namespace gpu {
 struct TestGpuAsyncConversionPass
     : public mlir::PassWrapper<TestGpuAsyncConversionPass, FunctionPass> {
   StringRef getArgument() const final { return "test-gpu-async-conversion"; }
-
-  void getDependentDialects(DialectRegistry &registry) const override {
-    registry.insert<tfrt::gpu::conversion::GpuConversionDialect>();
-  }
 
   void runOnFunction() override {
     TypeConverter converter;
@@ -66,15 +65,34 @@ struct TestGpuAsyncConversionPass
   }
 };
 
+struct TestTfrtConversionPass
+    : public mlir::PassWrapper<TestTfrtConversionPass, OperationPass<>> {
+  StringRef getArgument() const final { return "test-tfrt-conversion"; }
+
+  void runOnOperation() override {
+    RewritePatternSet patterns(&getContext());
+    ConversionTarget target(getContext());
+    target.addLegalDialect<compiler::TFRTDialect, GpuDialect>();
+    populateTfrtConversionPatterns(patterns, target);
+
+    if (failed(applyPartialConversion(getOperation(), target,
+                                      std::move(patterns))))
+      return signalPassFailure();
+  }
+};
+
 }  // namespace gpu
 }  // namespace tfrt
 
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
-  registry.insert<tfrt::gpu::GpuDialect, mlir::StandardOpsDialect,
-                  mlir::memref::MemRefDialect>();
+  registry.insert<mlir::StandardOpsDialect, mlir::async::AsyncDialect,
+                  mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
+                  tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
+                  tfrt::gpu::conversion::GpuConversionDialect>();
   PassRegistration<tfrt::gpu::TestGpuAsyncConversionPass>();
+  PassRegistration<tfrt::gpu::TestTfrtConversionPass>();
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry, true));
 }

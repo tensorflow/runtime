@@ -6,7 +6,10 @@ glob_tfrt_lit_tests(
     data = [":test_utilities"],
     default_tags = ["requires-gpu-nvidia"],
     # copybara:uncomment driver = "@tf_runtime//backends/gpu/mlir_tests:run_lit.sh",
-    no_bef_translation = ["async_conversion.mlir"],
+    no_bef_translation = [
+        "async_conversion.mlir",
+        "tfrt_conversion.mlir",
+    ],
     tfrt_translate = "@tf_runtime//backends/gpu:tfrt_gpu_translate",
 )
 

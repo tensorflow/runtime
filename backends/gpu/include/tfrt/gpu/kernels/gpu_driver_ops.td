@@ -303,7 +303,7 @@ def GPU_ModuleLoadOp : GPU_Op<"module.load"> {
     The data attribute must be explicitly null-terminated.
 
     Example:
-      %function = tfrt_gpu.module.load %ctx {
+      %module = tfrt_gpu.module.load %ctx {
         data = "null-terminated device function blob, e.g. PTX",
         key = 1234
       }

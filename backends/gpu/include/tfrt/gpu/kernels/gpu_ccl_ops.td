@@ -103,6 +103,34 @@ def GPU_CclReduceScatterOp : GPU_Op<"ccl.reduce_scatter"> {
   }];
 }
 
+def GPU_CclSendOp : GPU_Op<"ccl.send"> {
+  let description = [{
+    tfrt_gpu.ccl.send inserts into the ccl.handle an operation that sends data
+    at the input buffer to the peer device.
+  }];
+  let arguments = (ins GPU_CclHandleType:$handle, GPU_BufferType:$input,
+                   I32:$peer, GPU_CclDataTypeAttr:$data_type,
+                   TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` $input`,` $peer`,` custom<Enum>($data_type)`,` $chain attr-dict
+  }];
+}
+
+def GPU_CclRecvOp : GPU_Op<"ccl.recv"> {
+  let description = [{
+    tfrt_gpu.ccl.recv inserts into the ccl.handle an operation that receives
+    data from the peer device into the output buffer.
+  }];
+  let arguments = (ins GPU_CclHandleType:$handle, GPU_BufferType:$output,
+                   I32:$peer, GPU_CclDataTypeAttr:$data_type,
+                   TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` $output`,` $peer`,` custom<Enum>($data_type)`,` $chain attr-dict
+  }];
+}
+
 def GPU_CclExecuteOp : GPU_Op<"ccl.execute"> {
   let description = [{
     tfrt_gpu.ccl.execute runs the collective ops in the ccl.handle in a

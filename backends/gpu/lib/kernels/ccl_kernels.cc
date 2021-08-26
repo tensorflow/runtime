@@ -145,6 +145,46 @@ static Error CclReduceScatter(
   return Error::success();
 }
 
+static Error CclSend(Argument<GpuCclHandle> handle, Argument<GpuBuffer> input,
+                     int32_t peer,
+                     // Needs to be sorted alphabetically by attribute name!
+                     Attribute<int32_t> data_type) {
+  auto type = static_cast<ncclDataType_t>(*data_type);
+  auto width = ToWidthInBytes(type);
+  if (!width) return width.takeError();
+  assert(*width != 0);
+
+  handle->AddCallback([input = input.ValueRef(), count = input->size() / *width,
+                       type, peer](wrapper::CurrentContext current,
+                                   wrapper::Stream stream,
+                                   wrapper::CclComm comm) -> llvm::Error {
+    return wrapper::CclSend(current, input->pointer(), count, type, peer, comm,
+                            stream);
+  });
+
+  return Error::success();
+}
+
+static Error CclRecv(Argument<GpuCclHandle> handle, Argument<GpuBuffer> output,
+                     int32_t peer,
+                     // Needs to be sorted alphabetically by attribute name!
+                     Attribute<int32_t> data_type) {
+  auto type = static_cast<ncclDataType_t>(*data_type);
+  auto width = ToWidthInBytes(type);
+  if (!width) return width.takeError();
+  assert(*width != 0);
+
+  handle->AddCallback(
+      [output = output.ValueRef(), count = output->size() / *width, type, peer](
+          wrapper::CurrentContext current, wrapper::Stream stream,
+          wrapper::CclComm comm) -> llvm::Error {
+        return wrapper::CclRecv(current, output->pointer(), count, type, peer,
+                                comm, stream);
+      });
+
+  return Error::success();
+}
+
 static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
                                        Argument<GpuCclHandle> handle,
                                        const ExecutionContext& exec_ctx) {
@@ -171,6 +211,10 @@ void RegisterGpuCclKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclAllReduce));
   kernel_reg->AddKernel("tfrt_gpu.ccl.reduce_scatter",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclReduceScatter));
+  kernel_reg->AddKernel("tfrt_gpu.ccl.send",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CclSend));
+  kernel_reg->AddKernel("tfrt_gpu.ccl.recv",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CclRecv));
   kernel_reg->AddKernel("tfrt_gpu.ccl.execute", TFRT_KERNEL(CclExecute));
 }
 }  // namespace gpu

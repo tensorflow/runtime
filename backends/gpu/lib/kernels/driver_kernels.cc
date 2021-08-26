@@ -269,17 +269,29 @@ static Error GpuFunctionLaunch(const GpuStream& stream, GpuFunction function,
 
   // Kernel params are a vector of pointers to the kernel args, so we must first
   // materialize the kernel arg values.
-  llvm::SmallVector<uintptr_t, 16> arg_values;
+  union KernelArg {
+    void* ptr;
+    int32_t i;
+    float f;
+    double d;
+  };
+  llvm::SmallVector<KernelArg, 16> arg_values;
   arg_values.reserve(args.size());
   for (const auto& arg : args.values()) {
+    KernelArg kernel_arg;
     if (arg->IsType<GpuBuffer>()) {
       auto pointer = arg->get<GpuBuffer>().pointer();
-      arg_values.push_back(reinterpret_cast<uintptr_t>(pointer.raw()));
+      kernel_arg.ptr = pointer.raw();
     } else if (arg->IsType<int32_t>()) {
-      arg_values.push_back(arg->get<int32_t>());
+      kernel_arg.i = arg->get<int32_t>();
+    } else if (arg->IsType<float>()) {
+      kernel_arg.f = arg->get<float>();
+    } else if (arg->IsType<double>()) {
+      kernel_arg.d = arg->get<double>();
     } else {
       return MakeStringError("Unsupported argument type");
     }
+    arg_values.push_back(kernel_arg);
   }
 
   // Add required layer of indirection for kernel params.

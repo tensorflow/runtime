@@ -123,3 +123,44 @@ func @vector_add_kernel() {
 
   tfrt.return
 }
+
+// CHECK-LABEL: --- Running 'float_arg_kernel'
+func @float_arg_kernel() {
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  %context = tfrt_gpu.context.create %device
+  %stream = tfrt_gpu.stream.create %context
+  %allocator = tfrt_gpu.allocator.create %context
+
+  %module = tfrt_gpu.module.load %context {
+    // PTX for __global__ void add(float* ptr, float val) { *ptr = val + 1.0; }
+    data = ".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry add(\n.param .u64 add_param_0,\n.param .f32 add_param_1\n)\n{\n.reg .f32 	%f<3>;\n.reg .b64 	%rd<2>;\nld.param.u64 	%rd0, [add_param_0];\nld.param.f32 	%f0, [add_param_1];\ncvta.to.global.u64 	%rd1, %rd0;\nmov.f32         %f1, 1.0;\nadd.f32 	%f2, %f0, %f1;\nst.global.f32 	[%rd1], %f2;\nret;\n}\n\00",
+    key = 1 : ui64
+  }
+  %func = tfrt_gpu.function.get %module { name = "add" }
+
+  // Create source dense host tensors.
+  %ch0 = tfrt.new.chain
+  %host_tensor = tfrt_dht.create_uninitialized_tensor.f32.0 []
+
+  // Setup output buffer.
+  %host_buffer, %ch1 = tfrt_dht.get_buffer %host_tensor, %ch0
+  %device_buffer = tfrt_gpu.mem.register %context, %host_buffer
+
+  %one = tfrt.constant.ui32 1
+  %shared_mem_size = tfrt.constant.ui32 0
+  %val_to_add = tfrt.constant.f32 2.0
+
+  %ch2 = tfrt_gpu.function.launch %stream, %func,
+                   blocks in (%one, %one, %one),
+                   threads in (%one, %one, %one),
+                   %shared_mem_size, %ch1,
+                   args(%device_buffer, %val_to_add) : (!tfrt_gpu.buffer, f32)
+
+  %ch3 = tfrt_gpu.stream.synchronize %stream, %ch2
+
+  // CHECK: shape = [], values = [3.000000e+00]
+  %ch4 = tfrt_dht.print_tensor %host_tensor, %ch3
+
+  tfrt.return
+}

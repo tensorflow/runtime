@@ -26,11 +26,34 @@
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 include "mlir/Interfaces/SideEffectInterfaces.td"
 
+def GPU_CclIdType : GPU_Type<"CclId"> { let mnemonic = "ccl.id"; }
+
 def GPU_CclDataTypeAttr : GPU_WrapperAttr<"CclDataType"> {
   let returnType = "::ncclDataType_t";
 }
 def GPU_CclReductionOpAttr : GPU_WrapperAttr<"CclReductionOp"> {
   let returnType = "::ncclRedOp_t";
+}
+
+def GPU_CclUniqueIdOp : GPU_Op<"ccl.unique_id"> {
+  let description = [{
+    tfrt_gpu.ccl.unique_id returns a !tfrt_gpu.ccl.id to be passed to
+    tfrt_gpu.ccl.create. It encodes the machine's network address.
+  }];
+  let arguments = (ins GPU_PlatformAttr:$platform);
+  let results = (outs GPU_CclIdType);
+  let assemblyFormat = "custom<Enum>($platform) attr-dict";
+}
+
+def GPU_CclCreateOp : GPU_Op<"ccl.create"> {
+  let description = [{
+    tfrt_gpu.ccl.create returns a !tfrt_gpu.ccl.handle, which can be populated
+    with individual collective ops (e.g., using tfrt_gpu.ccl.all_reduce) to be
+    executed as a single fused operation.
+  }];
+  let arguments = (ins GPU_ContextType:$ctx, I32:$rank, I32:$count,
+                   GPU_CclIdType:$id);
+  let results = (outs GPU_CclHandleType);
 }
 
 def GPU_CclAllGatherOp : GPU_Op<"ccl.all_gather"> {
@@ -43,7 +66,7 @@ def GPU_CclAllGatherOp : GPU_Op<"ccl.all_gather"> {
                    TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
-    $handle`,` $input`,` $output`,` custom<Enum>($data_type)`,` $chain`,`
+    $handle`,` $input`,` $output`,` custom<Enum>($data_type)`,` $chain
     attr-dict
   }];
 }
@@ -60,7 +83,7 @@ def GPU_CclAllReduceOp : GPU_Op<"ccl.all_reduce"> {
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
     $handle`,` $input`,` $output`,` custom<Enum>($data_type)`,`
-    custom<Enum>($reduction_op)`,` $chain`,` attr-dict
+    custom<Enum>($reduction_op)`,` $chain attr-dict
   }];
 }
 
@@ -76,7 +99,7 @@ def GPU_CclReduceScatterOp : GPU_Op<"ccl.reduce_scatter"> {
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{
     $handle`,` $input`,` $output`,` custom<Enum>($data_type)`,`
-    custom<Enum>($reduction_op)`,` $chain`,` attr-dict
+    custom<Enum>($reduction_op)`,` $chain attr-dict
   }];
 }
 

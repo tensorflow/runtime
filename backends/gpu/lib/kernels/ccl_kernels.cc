@@ -46,12 +46,31 @@ Expected<int> ToWidthInBytes(ncclDataType_t data_type) {
     case ncclFloat64:
       return 8;
     default:
-      return MakeStringError(
-          tfrt::StrCat("Unexpected ncclDataType_t: ", data_type));
+      return MakeStringError("Unknown ncclDataType_t: ", data_type);
   }
 }
 
 }  // namespace
+
+static Expected<GpuCclId> CclUniqueId(Attribute<int32_t> platform) {
+  return wrapper::CclGetUniqueId(static_cast<wrapper::Platform>(*platform));
+}
+
+static AsyncValueRef<GpuCclHandle> CclCreate(Argument<GpuContext> context,
+                                             int32_t rank, int32_t count,
+                                             const GpuCclId& id,
+                                             const ExecutionContext& exec_ctx) {
+  // CclCommInitRank() blocks to wait for all participants and therefore needs
+  // to run inside a blocking task.
+  return RunBlockingWork(
+      exec_ctx, [=, context = context.ValueRef()]() -> Expected<GpuCclHandle> {
+        auto current = wrapper::CtxSetCurrent(context->get());
+        if (!current) return current.takeError();
+        auto comm = wrapper::CclCommInitRank(*current, count, id, rank);
+        if (!comm) return comm.takeError();
+        return GpuCclHandle(context.CopyRef(), std::move(*comm));
+      });
+}
 
 static Error CclAllGather(
     Argument<GpuCclHandle> handle, Argument<GpuBuffer> input,
@@ -129,23 +148,23 @@ static Error CclReduceScatter(
 static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
                                        Argument<GpuCclHandle> handle,
                                        const ExecutionContext& exec_ctx) {
+  // CclGroupEnd() blocks to wait for all participants and therefore needs to
+  // run inside a blocking task.
   return RunBlockingWork(
       exec_ctx,
       [stream = stream.ValueRef(),
        handle = handle.ValueRef()]() -> Expected<Chain> {
         auto current = wrapper::CtxSetCurrent(stream->context());
         if (!current) return current.takeError();
-        if (auto error = wrapper::CclGroupStart(current->platform()))
-          return std::move(error);
         if (auto error = handle->ExecuteCallbacks(*current, stream->get()))
-          return std::move(error);
-        if (auto error = wrapper::CclGroupEnd(current->platform()))
           return std::move(error);
         return Chain();
       });
 }
 
 void RegisterGpuCclKernels(KernelRegistry* kernel_reg) {
+  kernel_reg->AddKernel("tfrt_gpu.ccl.unique_id", TFRT_KERNEL(CclUniqueId));
+  kernel_reg->AddKernel("tfrt_gpu.ccl.create", TFRT_KERNEL(CclCreate));
   kernel_reg->AddKernel("tfrt_gpu.ccl.all_gather",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclAllGather));
   kernel_reg->AddKernel("tfrt_gpu.ccl.all_reduce",

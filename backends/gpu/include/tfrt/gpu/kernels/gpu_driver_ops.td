@@ -43,6 +43,19 @@ def GPU_DeviceGetOp : GPU_Op<"device.get"> {
   let assemblyFormat = "custom<Enum>($platform)`,` operands attr-dict";
 }
 
+def GPU_ContextPrimaryOp : GPU_Op<"context.primary"> {
+  let description = [{
+    tfrt_gpu.context.primary returns the primary gpu context of the device.
+
+    Example:
+      %ordinal = tfrt.constant.i32 0
+      %device = tfrt_gpu.device.get CUDA, %ordinal
+      %ctx = tfrt_gpu.context.primary %device
+  }];
+  let arguments = (ins GPU_DeviceType);
+  let results = (outs GPU_ContextType);
+}
+
 def GPU_ContextCreateOp : GPU_Op<"context.create"> {
   let description = [{
     tfrt_gpu.context.create returns a gpu context for the given device.

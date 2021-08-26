@@ -42,8 +42,15 @@ static Expected<wrapper::Device> GpuDeviceGet(int32_t ordinal,
   return wrapper::DeviceGet(wrapper_platform, ordinal);
 }
 
-// tfrt_gpu.context.create creates a gpu context for the given
+// tfrt_gpu.context.primary returns the primary gpu context for the given
 // device.
+static Expected<GpuContext> GpuContextPrimary(wrapper::Device device) {
+  auto context = wrapper::DevicePrimaryCtxRetain(device);
+  if (!context) return context.takeError();
+  return GpuContext(std::move(*context));
+}
+
+// tfrt_gpu.context.create creates a gpu context for the given device.
 static Expected<GpuContext> GpuContextCreate(wrapper::Device device) {
   auto context = wrapper::CtxCreate(wrapper::CtxFlags::SCHED_AUTO, device);
   if (!context) return context.takeError();
@@ -289,6 +296,8 @@ static Error GpuFunctionLaunch(const GpuStream& stream, GpuFunction function,
 
 void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.device.get", TFRT_KERNEL(GpuDeviceGet));
+  kernel_reg->AddKernel("tfrt_gpu.context.primary",
+                        TFRT_KERNEL(GpuContextPrimary));
   kernel_reg->AddKernel("tfrt_gpu.context.create",
                         TFRT_KERNEL(GpuContextCreate));
 

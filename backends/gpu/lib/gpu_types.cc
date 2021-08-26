@@ -226,9 +226,10 @@ void GpuCclHandle::AddCallback(Callback callback) {
 
 llvm::Error GpuCclHandle::ExecuteCallbacks(wrapper::CurrentContext current,
                                            wrapper::Stream stream) {
-  for (auto& callback : callbacks_) {
+  if (auto error = wrapper::CclGroupStart(current.platform())) return error;
+  for (auto& callback : callbacks_)
     if (auto error = callback(current, stream, comm_.get())) return error;
-  }
+  if (auto error = wrapper::CclGroupEnd(current.platform())) return error;
   callbacks_.clear();
   return llvm::Error::success();
 }

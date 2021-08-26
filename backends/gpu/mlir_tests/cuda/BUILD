@@ -1,15 +1,34 @@
+load("@tf_runtime//:build_defs.bzl", "if_oss")
 load("@tf_runtime//tools:mlir_to_bef.bzl", "glob_tfrt_lit_tests")
 
 licenses(["notice"])
 
 glob_tfrt_lit_tests(
     data = [":test_utilities"],
-    default_tags = ["requires-gpu-nvidia"],
     # copybara:uncomment driver = "@tf_runtime//backends/gpu/mlir_tests:run_lit.sh",
     no_bef_translation = [
         "async_conversion.mlir",
+        "ops.mlir",
         "tfrt_conversion.mlir",
     ],
+    tags_override = dict({
+        file: ["requires-gpu-nvidia"]
+        for file in [
+            "blas.mlir",
+            "dnn.mlir",
+            "event.mlir",
+            "launch.mlir",
+            "memcpy.mlir",
+            "module.mlir",
+            "register.mlir",
+            "solver.mlir",
+            "stream.mlir",
+            "while.mlir",
+        ]
+    }.items() + {
+        # Note: NCCL in the sandbox produces the wrong result in OSS.
+        "ccl.mlir": ["requires-gpu-nvidia:2"] + if_oss(["no-sandbox"]),
+    }.items()),
     tfrt_translate = "@tf_runtime//backends/gpu:tfrt_gpu_translate",
 )
 

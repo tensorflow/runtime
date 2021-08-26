@@ -107,6 +107,8 @@ using OwningCclComm = internal::OwningResource<internal::CclCommDeleter>;
 
 llvm::Expected<int> CclGetVersion(Platform platform);
 llvm::Expected<ncclUniqueId> CclGetUniqueId(Platform platform);
+// Note: 'current' needs to be a primary context, or the call needs to be
+// surrounded by CclGroupStart/End(). Same for the functions below.
 llvm::Expected<OwningCclComm> CclCommInitRank(CurrentContext current,
                                               int nranks, ncclUniqueId commId,
                                               int rank);

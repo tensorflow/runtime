@@ -19,6 +19,8 @@ func @ops() {
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
   %device = tfrt_gpu.device.get CUDA, %ordinal
+  // CHECK: %[[primary:.*]] = tfrt_gpu.context.primary %[[device]]
+  %primary = tfrt_gpu.context.primary %device
   // CHECK: %[[context:.*]] = tfrt_gpu.context.create %[[device]]
   %context = tfrt_gpu.context.create %device
   // CHECK: %[[allocator:.*]] = tfrt_gpu.allocator.create %[[context]]
@@ -126,7 +128,22 @@ func @ops() {
   %cha = tfrt_gpu.solver.potrf %solver, CUBLAS_FILL_MODE_LOWER, %width,
     CUDA_R_32F, %buffer, %width, %buffer, %buffer, %ch9
 
-  // TODO(hanbinyoon): cover ccl ops.
+  // CHECK: %[[rank:.*]] = tfrt.constant.i32 0
+  %rank = tfrt.constant.i32 0
+  // CHECK: %[[count:.*]] = tfrt.constant.i32 1
+  %count = tfrt.constant.i32 1
+  // CHECK: %[[id:.*]] = tfrt_gpu.ccl.unique_id CUDA
+  %id = tfrt_gpu.ccl.unique_id CUDA
+  // CHECK: %[[ccl:.*]] = tfrt_gpu.ccl.create %[[context]], %[[rank]], %[[count]], %[[id]]
+  %ccl = tfrt_gpu.ccl.create %context, %rank, %count, %id
+  // CHECK: tfrt_gpu.ccl.all_gather %[[ccl]], %[[buffer]], %[[buffer]], ncclFloat32, %{{.*}}
+  %chb = tfrt_gpu.ccl.all_gather %ccl, %buffer, %buffer, ncclFloat32, %cha
+  // CHECK: tfrt_gpu.ccl.all_reduce %[[ccl]], %[[buffer]], %[[buffer]], ncclFloat32, ncclSum, %{{.*}}
+  %chc = tfrt_gpu.ccl.all_reduce %ccl, %buffer, %buffer, ncclFloat32, ncclSum, %chb
+  // CHECK: tfrt_gpu.ccl.reduce_scatter %[[ccl]], %[[buffer]], %[[buffer]], ncclFloat32, ncclSum, %{{.*}}
+  %chd = tfrt_gpu.ccl.reduce_scatter %ccl, %buffer, %buffer, ncclFloat32, ncclSum, %chc
+  // CHECK: tfrt_gpu.ccl.execute %[[stream]], %[[ccl]], %{{.*}}
+  %che = tfrt_gpu.ccl.execute %stream, %ccl, %chd
 
   tfrt.return
 }

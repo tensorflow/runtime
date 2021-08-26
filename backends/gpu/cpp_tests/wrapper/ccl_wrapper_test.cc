@@ -34,8 +34,8 @@ TEST_P(Test, CclCommInitRank) {
   TFRT_ASSERT_AND_ASSIGN(auto count, DeviceGetCount(platform));
   ASSERT_GT(count, 0);
   TFRT_ASSERT_AND_ASSIGN(auto device, DeviceGet(platform, 0));
-  TFRT_ASSERT_AND_ASSIGN(auto context, CtxCreate(CtxFlags::SCHED_AUTO, device));
-  TFRT_ASSERT_AND_ASSIGN(auto current, CtxGetCurrent());
+  TFRT_ASSERT_AND_ASSIGN(auto context, DevicePrimaryCtxRetain(device));
+  TFRT_ASSERT_AND_ASSIGN(auto current, CtxSetCurrent(context.get()));
 
   TFRT_ASSERT_AND_ASSIGN(auto id, CclGetUniqueId(platform));
   TFRT_ASSERT_AND_ASSIGN(auto comm, CclCommInitRank(current,

@@ -44,6 +44,7 @@ namespace gpu {
 using GpuFunction = wrapper::Function;
 using GpuPointer = wrapper::Pointer<void>;
 using GpuDnnTensorDesc = wrapper::OwningDnnTensorDescriptor;
+using GpuCclId = ncclUniqueId;
 
 class GpuContext {
  public:

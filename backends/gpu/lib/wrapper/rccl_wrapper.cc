@@ -42,6 +42,7 @@ llvm::Expected<OwningCclComm> RcclCommInitRank(CurrentContext current,
   CheckHipContext(current);
   ncclComm_t comm;
   RETURN_IF_ERROR(rcclCommInitRank(&comm, nranks, commId, rank));
+  CheckHipContext(current);  // See NcclCommInitRank() comment.
   return OwningCclComm({comm, Platform::ROCm});
 }
 
@@ -76,17 +77,21 @@ llvm::Error RcclReduce(CurrentContext current, Pointer<const void> sendbuff,
                        ncclDataType_t datatype, ncclRedOp_t op, int root,
                        ncclComm_t comm, hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(rcclReduce(sendbuff.raw(Platform::ROCm),
+  RETURN_IF_ERROR(rcclReduce(sendbuff.raw(Platform::ROCm),
                              recvbuff.raw(Platform::ROCm), count, datatype, op,
                              root, comm, stream));
+  CheckHipContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error RcclBcast(CurrentContext current, Pointer<void> buffer,
                       size_t count, ncclDataType_t datatype, int root,
                       ncclComm_t comm, hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(rcclBcast(buffer.raw(Platform::ROCm), count, datatype, root,
+  RETURN_IF_ERROR(rcclBcast(buffer.raw(Platform::ROCm), count, datatype, root,
                             comm, stream));
+  CheckHipContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error RcclBroadcast(CurrentContext current, Pointer<const void> sendbuff,
@@ -94,9 +99,11 @@ llvm::Error RcclBroadcast(CurrentContext current, Pointer<const void> sendbuff,
                           ncclDataType_t datatype, int root, ncclComm_t comm,
                           hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(rcclBroadcast(sendbuff.raw(Platform::ROCm),
+  RETURN_IF_ERROR(rcclBroadcast(sendbuff.raw(Platform::ROCm),
                                 recvbuff.raw(Platform::ROCm), count, datatype,
                                 root, comm, stream));
+  CheckHipContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error RcclAllReduce(CurrentContext current, Pointer<const void> sendbuff,
@@ -104,9 +111,11 @@ llvm::Error RcclAllReduce(CurrentContext current, Pointer<const void> sendbuff,
                           ncclDataType_t datatype, ncclRedOp_t op,
                           ncclComm_t comm, hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(rcclAllReduce(sendbuff.raw(Platform::ROCm),
+  RETURN_IF_ERROR(rcclAllReduce(sendbuff.raw(Platform::ROCm),
                                 recvbuff.raw(Platform::ROCm), count, datatype,
                                 op, comm, stream));
+  CheckHipContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error RcclReduceScatter(CurrentContext current,
@@ -115,9 +124,11 @@ llvm::Error RcclReduceScatter(CurrentContext current,
                               ncclDataType_t datatype, ncclRedOp_t op,
                               ncclComm_t comm, hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(rcclReduceScatter(sendbuff.raw(Platform::ROCm),
+  RETURN_IF_ERROR(rcclReduceScatter(sendbuff.raw(Platform::ROCm),
                                     recvbuff.raw(Platform::ROCm), recvcount,
                                     datatype, op, comm, stream));
+  CheckHipContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error RcclAllGather(CurrentContext current, Pointer<const void> sendbuff,
@@ -125,25 +136,31 @@ llvm::Error RcclAllGather(CurrentContext current, Pointer<const void> sendbuff,
                           ncclDataType_t datatype, ncclComm_t comm,
                           hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(rcclAllGather(sendbuff.raw(Platform::ROCm),
+  RETURN_IF_ERROR(rcclAllGather(sendbuff.raw(Platform::ROCm),
                                 recvbuff.raw(Platform::ROCm), sendcount,
                                 datatype, comm, stream));
+  CheckHipContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error RcclSend(CurrentContext current, Pointer<const void> sendbuff,
                      size_t count, ncclDataType_t datatype, int peer,
                      ncclComm_t comm, hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(rcclSend(sendbuff.raw(Platform::ROCm), count, datatype, peer,
+  RETURN_IF_ERROR(rcclSend(sendbuff.raw(Platform::ROCm), count, datatype, peer,
                            comm, stream));
+  CheckHipContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error RcclRecv(CurrentContext current, Pointer<void> recvbuff,
                      size_t count, ncclDataType_t datatype, int peer,
                      ncclComm_t comm, hipStream_t stream) {
   CheckHipContext(current);
-  return TO_ERROR(rcclRecv(recvbuff.raw(Platform::ROCm), count, datatype, peer,
+  RETURN_IF_ERROR(rcclRecv(recvbuff.raw(Platform::ROCm), count, datatype, peer,
                            comm, stream));
+  CheckHipContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error RcclGroupStart() { return TO_ERROR(rcclGroupStart()); }

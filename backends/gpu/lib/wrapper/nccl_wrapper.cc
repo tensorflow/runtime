@@ -31,6 +31,14 @@ llvm::Expected<int> NcclGetVersion() {
 
 llvm::Expected<ncclUniqueId> NcclGetUniqueId() {
   ncclUniqueId id;
+  // Note: calls ncclInit() on the first call, which calls cudaGetDevice() and
+  // therefore acquires the primary context if none is current.
+  //
+  // This is acceptable because ncclCommInitRank() acquires the primary context
+  // in all cases. It is also safe because there cannot be a CurrentContext
+  // instance when the kContextTls.cuda_ctx is null.
+  //
+  // TODO(csigg): expose ncclInit() and call during context creation.
   RETURN_IF_ERROR(ncclGetUniqueId(&id));
   return id;
 }
@@ -40,7 +48,10 @@ llvm::Expected<OwningCclComm> NcclCommInitRank(CurrentContext current,
                                                int rank) {
   CheckCudaContext(current);
   ncclComm_t comm;
+  // Note: unless the call is surrounded by NcclGroupStart/End(), calls
+  // cudaSetDevice() in the calling thread, making the primary context current.
   RETURN_IF_ERROR(ncclCommInitRank(&comm, nranks, commId, rank));
+  CheckCudaContext(current);  // Check that kContextTls is still correct.
   return OwningCclComm({comm, Platform::CUDA});
 }
 
@@ -75,17 +86,21 @@ llvm::Error NcclReduce(CurrentContext current, Pointer<const void> sendbuff,
                        ncclDataType_t datatype, ncclRedOp_t op, int root,
                        ncclComm_t comm, cudaStream_t stream) {
   CheckCudaContext(current);
-  return TO_ERROR(ncclReduce(sendbuff.raw(Platform::CUDA),
+  RETURN_IF_ERROR(ncclReduce(sendbuff.raw(Platform::CUDA),
                              recvbuff.raw(Platform::CUDA), count, datatype, op,
                              root, comm, stream));
+  CheckCudaContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error NcclBcast(CurrentContext current, Pointer<void> buffer,
                       size_t count, ncclDataType_t datatype, int root,
                       ncclComm_t comm, cudaStream_t stream) {
   CheckCudaContext(current);
-  return TO_ERROR(ncclBcast(buffer.raw(Platform::CUDA), count, datatype, root,
+  RETURN_IF_ERROR(ncclBcast(buffer.raw(Platform::CUDA), count, datatype, root,
                             comm, stream));
+  CheckCudaContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error NcclBroadcast(CurrentContext current, Pointer<const void> sendbuff,
@@ -93,9 +108,11 @@ llvm::Error NcclBroadcast(CurrentContext current, Pointer<const void> sendbuff,
                           ncclDataType_t datatype, int root, ncclComm_t comm,
                           cudaStream_t stream) {
   CheckCudaContext(current);
-  return TO_ERROR(ncclBroadcast(sendbuff.raw(Platform::CUDA),
+  RETURN_IF_ERROR(ncclBroadcast(sendbuff.raw(Platform::CUDA),
                                 recvbuff.raw(Platform::CUDA), count, datatype,
                                 root, comm, stream));
+  CheckCudaContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error NcclAllReduce(CurrentContext current, Pointer<const void> sendbuff,
@@ -103,9 +120,11 @@ llvm::Error NcclAllReduce(CurrentContext current, Pointer<const void> sendbuff,
                           ncclDataType_t datatype, ncclRedOp_t op,
                           ncclComm_t comm, cudaStream_t stream) {
   CheckCudaContext(current);
-  return TO_ERROR(ncclAllReduce(sendbuff.raw(Platform::CUDA),
+  RETURN_IF_ERROR(ncclAllReduce(sendbuff.raw(Platform::CUDA),
                                 recvbuff.raw(Platform::CUDA), count, datatype,
                                 op, comm, stream));
+  CheckCudaContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error NcclReduceScatter(CurrentContext current,
@@ -114,9 +133,11 @@ llvm::Error NcclReduceScatter(CurrentContext current,
                               ncclDataType_t datatype, ncclRedOp_t op,
                               ncclComm_t comm, cudaStream_t stream) {
   CheckCudaContext(current);
-  return TO_ERROR(ncclReduceScatter(sendbuff.raw(Platform::CUDA),
+  RETURN_IF_ERROR(ncclReduceScatter(sendbuff.raw(Platform::CUDA),
                                     recvbuff.raw(Platform::CUDA), recvcount,
                                     datatype, op, comm, stream));
+  CheckCudaContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error NcclAllGather(CurrentContext current, Pointer<const void> sendbuff,
@@ -124,25 +145,31 @@ llvm::Error NcclAllGather(CurrentContext current, Pointer<const void> sendbuff,
                           ncclDataType_t datatype, ncclComm_t comm,
                           cudaStream_t stream) {
   CheckCudaContext(current);
-  return TO_ERROR(ncclAllGather(sendbuff.raw(Platform::CUDA),
+  RETURN_IF_ERROR(ncclAllGather(sendbuff.raw(Platform::CUDA),
                                 recvbuff.raw(Platform::CUDA), sendcount,
                                 datatype, comm, stream));
+  CheckCudaContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error NcclSend(CurrentContext current, Pointer<const void> sendbuff,
                      size_t count, ncclDataType_t datatype, int peer,
                      ncclComm_t comm, cudaStream_t stream) {
   CheckCudaContext(current);
-  return TO_ERROR(ncclSend(sendbuff.raw(Platform::CUDA), count, datatype, peer,
+  RETURN_IF_ERROR(ncclSend(sendbuff.raw(Platform::CUDA), count, datatype, peer,
                            comm, stream));
+  CheckCudaContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error NcclRecv(CurrentContext current, Pointer<void> recvbuff,
                      size_t count, ncclDataType_t datatype, int peer,
                      ncclComm_t comm, cudaStream_t stream) {
   CheckCudaContext(current);
-  return TO_ERROR(ncclRecv(recvbuff.raw(Platform::CUDA), count, datatype, peer,
+  RETURN_IF_ERROR(ncclRecv(recvbuff.raw(Platform::CUDA), count, datatype, peer,
                            comm, stream));
+  CheckCudaContext(current);
+  return llvm::Error::success();
 }
 
 llvm::Error NcclGroupStart() { return TO_ERROR(ncclGroupStart()); }

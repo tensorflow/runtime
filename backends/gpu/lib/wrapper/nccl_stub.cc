@@ -20,7 +20,7 @@
 
 // Memoizes load of the .so for this NCCL library.
 static void *LoadSymbol(const char *symbol_name) {
-  static SymbolLoader loader("libnccl.so");
+  static SymbolLoader loader("libnccl.so.2");
   return loader.GetAddressOfSymbol(symbol_name);
 }
 

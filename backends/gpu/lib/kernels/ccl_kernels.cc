@@ -185,6 +185,51 @@ static Error CclRecv(Argument<GpuCclHandle> handle, Argument<GpuBuffer> output,
   return Error::success();
 }
 
+static Error CclSplitSendRecv(
+    Argument<GpuCclHandle> handle, Argument<GpuBuffer> input,
+    Argument<GpuBuffer> output,
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> data_type) {
+  if (input->size() != output->size())
+    return MakeStringError("Input size must equal output size.");
+
+  auto type = static_cast<ncclDataType_t>(*data_type);
+  auto width = ToWidthInBytes(type);
+  if (!width) return width.takeError();
+  assert(*width != 0);
+
+  auto comm_count = wrapper::CclCommCount(handle->get());
+  if (!comm_count) return comm_count.takeError();
+  assert(*comm_count > 0);
+
+  // Number of elements per send/recv.
+  auto count = input->size() / (*width * *comm_count);
+  if (input->size() != count * *width * *comm_count)
+    return MakeStringError(
+        "Total element count must be exact multiple of comm count.");
+
+  for (int peer = 0; peer < *comm_count; peer++) {
+    handle->AddCallback([input = input.ValueRef(), output = output.ValueRef(),
+                         chunk_size = count * *width, count, type,
+                         peer](wrapper::CurrentContext current,
+                               wrapper::Stream stream,
+                               wrapper::CclComm comm) -> llvm::Error {
+      auto platform = input->pointer().platform();
+      auto input_ptr = wrapper::Pointer<char>(
+          static_cast<char*>(input->pointer().raw(platform)), platform);
+      auto output_ptr = wrapper::Pointer<char>(
+          static_cast<char*>(output->pointer().raw(platform)), platform);
+      if (auto error = wrapper::CclSend(current, input_ptr + peer * chunk_size,
+                                        count, type, peer, comm, stream))
+        return error;
+      return wrapper::CclRecv(current, output_ptr + peer * chunk_size, count,
+                              type, peer, comm, stream);
+    });
+  }
+
+  return Error::success();
+}
+
 static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
                                        Argument<GpuCclHandle> handle,
                                        const ExecutionContext& exec_ctx) {
@@ -215,6 +260,8 @@ void RegisterGpuCclKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclSend));
   kernel_reg->AddKernel("tfrt_gpu.ccl.recv",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclRecv));
+  kernel_reg->AddKernel("tfrt_gpu.ccl.split_send_recv",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CclSplitSendRecv));
   kernel_reg->AddKernel("tfrt_gpu.ccl.execute", TFRT_KERNEL(CclExecute));
 }
 }  // namespace gpu

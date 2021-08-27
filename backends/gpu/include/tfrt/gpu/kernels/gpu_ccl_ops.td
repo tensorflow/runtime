@@ -133,9 +133,9 @@ def GPU_CclRecvOp : GPU_Op<"ccl.recv"> {
 
 // In a similar buffer-splitting situation, a potential tfrt_gpu.mem.view op
 // could be used to split buffers into sub-blocks.
-def GPU_CclSplitSendRecvOp : GPU_Op<"ccl.split_send_recv"> {
+def GPU_CclAllToAllOp : GPU_Op<"ccl.all_to_all"> {
   let description = [{
-    tfrt_gpu.ccl.split_send_recv inserts into the ccl.handle a series of
+    tfrt_gpu.ccl.all_to_all inserts into the ccl.handle a series of
     operations that send data at the input buffer and receive data into the
     output buffer in a manner that is evenly split across all peers: Device (i)
     sends (j)th block of data to device (j) to be placed as (i)th block.

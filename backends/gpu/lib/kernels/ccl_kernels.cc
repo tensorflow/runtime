@@ -185,11 +185,10 @@ static Error CclRecv(Argument<GpuCclHandle> handle, Argument<GpuBuffer> output,
   return Error::success();
 }
 
-static Error CclSplitSendRecv(
-    Argument<GpuCclHandle> handle, Argument<GpuBuffer> input,
-    Argument<GpuBuffer> output,
-    // Needs to be sorted alphabetically by attribute name!
-    Attribute<int32_t> data_type) {
+static Error CclAllToAll(Argument<GpuCclHandle> handle,
+                         Argument<GpuBuffer> input, Argument<GpuBuffer> output,
+                         // Needs to be sorted alphabetically by attribute name!
+                         Attribute<int32_t> data_type) {
   if (input->size() != output->size())
     return MakeStringError("Input size must equal output size.");
 
@@ -260,8 +259,8 @@ void RegisterGpuCclKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclSend));
   kernel_reg->AddKernel("tfrt_gpu.ccl.recv",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(CclRecv));
-  kernel_reg->AddKernel("tfrt_gpu.ccl.split_send_recv",
-                        TFRT_KERNEL_WITH_CHAIN_RESULT(CclSplitSendRecv));
+  kernel_reg->AddKernel("tfrt_gpu.ccl.all_to_all",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(CclAllToAll));
   kernel_reg->AddKernel("tfrt_gpu.ccl.execute", TFRT_KERNEL(CclExecute));
 }
 }  // namespace gpu

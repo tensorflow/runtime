@@ -74,6 +74,9 @@ void populateGpuAsyncConversionPatterns(mlir::RewritePatternSet& patterns,
 // to functions.
 void populateTfrtConversionPatterns(mlir::RewritePatternSet& patterns,
                                     mlir::ConversionTarget& target);
+void populateTfrtConversionPatterns(mlir::RewritePatternSet& patterns,
+                                    mlir::TypeConverter& converter,
+                                    mlir::ConversionTarget& target);
 
 }  // namespace gpu
 }  // namespace tfrt

@@ -443,5 +443,11 @@ void populateTfrtConversionPatterns(RewritePatternSet &patterns,
   });
 }
 
+void populateTfrtConversionPatterns(RewritePatternSet &patterns,
+                                    TypeConverter & /*converter*/,
+                                    ConversionTarget &target) {
+  populateTfrtConversionPatterns(patterns, target);
+}
+
 }  // namespace gpu
 }  // namespace tfrt

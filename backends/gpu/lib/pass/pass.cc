@@ -148,16 +148,12 @@ struct WaitOpRewritePattern : public OpConversionPattern<mlir::gpu::WaitOp> {
 // A rewrite pattern to convert async.yield operations. Replaces a token operand
 // with a newly created event that is recorded on the async.execute's stream.
 struct YieldOpRewritePattern : public OpConversionPattern<async::YieldOp> {
-  YieldOpRewritePattern(MLIRContext *context,
-                        std::unique_ptr<TypeConverter> converter)
-      : OpConversionPattern(context), type_converter(std::move(converter)) {}
+  using OpConversionPattern::OpConversionPattern;
 
  private:
   LogicalResult matchAndRewrite(
       async::YieldOp op, ArrayRef<Value> operands,
       ConversionPatternRewriter &rewriter) const override;
-
-  std::unique_ptr<TypeConverter> type_converter;
 };
 
 }  // namespace
@@ -415,18 +411,18 @@ void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
 }
 
 void populateTfrtConversionPatterns(RewritePatternSet &patterns,
+                                    TypeConverter &converter,
                                     ConversionTarget &target) {
-  auto converter = std::make_unique<TypeConverter>();
-  converter->addConversion([](Type type) { return type; });
-  converter->addConversion([](mlir::gpu::AsyncTokenType type) {
+  converter.addConversion([](Type type) { return type; });
+  converter.addConversion([](mlir::gpu::AsyncTokenType type) {
     return EventType::get(type.getContext());
   });
-  populateAsyncStructuralTypeConversionsAndLegality(*converter, patterns,
+  populateAsyncStructuralTypeConversionsAndLegality(converter, patterns,
                                                     target);
+
   patterns.add<UnwrapAsyncExecPattern, SignatureRewritePattern,
-               WaitOpRewritePattern>(patterns.getContext());
-  patterns.add(std::make_unique<YieldOpRewritePattern>(patterns.getContext(),
-                                                       std::move(converter)));
+               WaitOpRewritePattern, YieldOpRewritePattern>(
+      patterns.getContext());
 
   // Casts are erased by the time conversion completes, but they need to be
   // legal in the interim.
@@ -441,12 +437,6 @@ void populateTfrtConversionPatterns(RewritePatternSet &patterns,
            type.getInput(0).isa<compiler::ChainType>() &&
            type.getInput(1).isa<StreamType>();
   });
-}
-
-void populateTfrtConversionPatterns(RewritePatternSet &patterns,
-                                    TypeConverter & /*converter*/,
-                                    ConversionTarget &target) {
-  populateTfrtConversionPatterns(patterns, target);
 }
 
 }  // namespace gpu

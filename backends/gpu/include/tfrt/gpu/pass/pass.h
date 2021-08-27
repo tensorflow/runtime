@@ -73,8 +73,6 @@ void populateGpuAsyncConversionPatterns(mlir::RewritePatternSet& patterns,
 // again and adds !tfrt.chain result and !tfrt.chain, !tfrt_gpu.stream arguments
 // to functions.
 void populateTfrtConversionPatterns(mlir::RewritePatternSet& patterns,
-                                    mlir::ConversionTarget& target);
-void populateTfrtConversionPatterns(mlir::RewritePatternSet& patterns,
                                     mlir::TypeConverter& converter,
                                     mlir::ConversionTarget& target);
 

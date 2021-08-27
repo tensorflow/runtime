@@ -73,7 +73,8 @@ struct TestTfrtConversionPass
     RewritePatternSet patterns(&getContext());
     ConversionTarget target(getContext());
     target.addLegalDialect<compiler::TFRTDialect, GpuDialect>();
-    populateTfrtConversionPatterns(patterns, target);
+    TypeConverter converter;
+    populateTfrtConversionPatterns(patterns, converter, target);
 
     if (failed(applyPartialConversion(getOperation(), target,
                                       std::move(patterns))))

@@ -18,6 +18,8 @@
 
 #include "tfrt/cpu/jit/async_runtime_api.h"
 
+#include <stdlib.h>
+
 #include <cstddef>
 #include <iostream>
 #include <type_traits>
@@ -161,6 +163,34 @@ llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(
        &mlir::runtime::mlirAsyncRuntimeAwaitAllInGroupAndExecute);
   bind("mlirAsyncRuntimePrintCurrentThreadId",
        &mlir::runtime::mlirAsyncRuntimePrintCurrentThreadId);
+
+  return symbol_map;
+}
+
+namespace {
+
+void *RuntimeMalloc(size_t size) { return malloc(size); }
+
+void RuntimeFree(void *ptr) { return free(ptr); }
+
+void *RuntimeAlignedAlloc(size_t alignment, size_t size) {
+  return aligned_alloc(alignment, size);
+}
+
+}  // namespace
+
+llvm::orc::SymbolMap AsyncRuntimeMemoryAllocationSymbolMap(
+    llvm::orc::MangleAndInterner mangle) {
+  llvm::orc::SymbolMap symbol_map;
+
+  auto bind = [&](llvm::StringRef name, auto symbol_ptr) {
+    symbol_map[mangle(name)] = llvm::JITEvaluatedSymbol(
+        llvm::pointerToJITTargetAddress(symbol_ptr), llvm::JITSymbolFlags());
+  };
+
+  bind("malloc", &RuntimeMalloc);
+  bind("free", &RuntimeFree);
+  bind("aligned_alloc", &RuntimeAlignedAlloc);
 
   return symbol_map;
 }

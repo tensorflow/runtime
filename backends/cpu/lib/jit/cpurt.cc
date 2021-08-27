@@ -1054,6 +1054,9 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // Register Async Runtime API intrinsics.
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);
 
+  // Register Async Runtime memory allocation functions.
+  (*engine)->registerSymbols(AsyncRuntimeMemoryAllocationSymbolMap);
+
   return Executable(std::move(*engine), std::move(*entry_signature), entrypoint,
                     std::move(*results_memory_layout), ctx->name().str());
 }

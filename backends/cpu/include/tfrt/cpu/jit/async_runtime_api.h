@@ -56,8 +56,19 @@ void ExtractAsyncValue(
     AsyncRuntime::Value* value, AsyncValue* dst, void* context,
     llvm::function_ref<void(void* storage, AsyncValue* dst, void*)> emplace_fn);
 
-// Builds a symbol map from the Async Runtime API functions/
+// Builds a symbol map from the Async Runtime API functions.
 llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(
+    llvm::orc::MangleAndInterner mangle);
+
+// Builds a symbol map to override malloc/alligned_alloc/free function with a
+// calls to the host runtime.
+// TODO(ezhulenev): Currently we just directly forward to stdlib functions,
+// because HostContext can only do sized deallocation.
+// TODO(ezhulenev): Strictly speaking memory allocation is not a part of async
+// runtime, however currently the only way to get to the implicitly propagated
+// host context from the JIT compiled functions is async runtime. Restructure
+// codegen<->TFRT interaction API to separate different aspects.
+llvm::orc::SymbolMap AsyncRuntimeMemoryAllocationSymbolMap(
     llvm::orc::MangleAndInterner mangle);
 
 }  // namespace jit

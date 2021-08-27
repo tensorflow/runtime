@@ -40,6 +40,7 @@
 #include "mlir/Conversion/LLVMCommon/LoweringOptions.h"
 #include "mlir/Conversion/LinalgToLLVM/LinalgToLLVM.h"
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
+#include "mlir/Conversion/MathToLibm/MathToLibm.h"
 #include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
 #include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
@@ -869,6 +870,8 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
     mlir::OpPassManager& fpm = pm.nest<mlir::FuncOp>();
     fpm.addPass(mlir::createConvertMathToLLVMPass());
   }
+
+  pm.addPass(mlir::createConvertMathToLibmPass());
 
   mlir::LowerToLLVMOptions lower_to_llvm_opts(module.getContext());
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));

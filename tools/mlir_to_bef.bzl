@@ -15,6 +15,7 @@
 """BUILD rules for translating .mlir to .bef and running TFRT .mlir tests."""
 
 load("@tf_runtime//mlir_tests:lit.bzl", "glob_lit_tests")
+load("@tf_runtime//:build_defs.bzl", "if_google")
 
 def mlir_to_bef(name, tfrt_translate):
     """Runs "tfrt_translate -mlir-to-bef $test.mlir" to create $test.bef.
@@ -58,10 +59,9 @@ def glob_tfrt_lit_tests(
         exclude_directories = 1,
     )
 
-    # copybara:uncomment_begin
-    # # TODO(csigg): Change to `select()` once lit_test supports it.
-    # data = data + ["@llvm-project//mlir:run_lit.sh"]
-    # copybara:uncomment_end
+    data = data + if_google([
+        "@llvm-project//mlir:run_lit.sh",
+    ])
 
     # Pass generated .bef files to glob_lit_tests as per_test_extra_data.
     per_test_extra_data = {}

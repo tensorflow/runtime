@@ -29,7 +29,7 @@ namespace compat {
 // shapes. Returns error if input shapes does not match expectations.
 llvm::Expected<Conv2DParams> ComputeConv2DParams(
     const FixedRankShape<4>& input_shape, const FixedRankShape<4>& kernel_shape,
-    string_view padding, std::array<ssize_t, 2> strides) {
+    string_view padding, std::array<Index, 2> strides) {
   // Padding must be a valid string.
   auto padding_type = ParsePaddingType(padding);
   if (!padding_type) return padding_type.takeError();
@@ -40,7 +40,7 @@ llvm::Expected<Conv2DParams> ComputeConv2DParams(
   if (channels_error) return std::move(channels_error);
 
   // TODO(ezhulenev): Add support for dilations.
-  std::array<ssize_t, 2> dilations = {1, 1};
+  std::array<Index, 2> dilations = {1, 1};
 
   auto output_height = ComputeWindowedOutputDimension(
       input_shape[1], kernel_shape[0], strides[0], dilations[0], *padding_type,
@@ -59,7 +59,7 @@ llvm::Expected<Conv2DParams> ComputeConv2DParams(
                                         kernel_shape[3]});           // channels
 
   // Computed input paddings.
-  const std::array<ssize_t, 4> paddings = {
+  const std::array<Index, 4> paddings = {
       output_height->padding.padding_before,  // padding top
       output_height->padding.padding_after,   // padding bottom
       output_width->padding.padding_before,   // padding left

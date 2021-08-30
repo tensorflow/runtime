@@ -86,7 +86,7 @@ char* WriteUint64(uint64_t value, char* location) {
 
 void SerializeTensorMetadataInternal(const TensorMetadata& md, char* pos) {
   pos = WriteUint64(static_cast<uint64_t>(md.dtype), pos);
-  SmallVector<ssize_t, 4> dimensions;
+  SmallVector<Index, 4> dimensions;
   md.shape.GetDimensions(&dimensions);
   for (int i = 0; i < dimensions.size(); ++i) {
     pos = WriteUint64(dimensions[i], pos);
@@ -106,7 +106,7 @@ llvm::Expected<TensorMetadata> DeserializeTensorMetadataInternal(
   DType kind = static_cast<DType>(*reinterpret_cast<const uint64_t*>(pos));
   pos += sizeof(uint64_t);
   const int num_dimensions = size / 8 - 1;
-  SmallVector<ssize_t, 4> dimensions;
+  SmallVector<Index, 4> dimensions;
   dimensions.reserve(num_dimensions);
   for (int i = 0; i < num_dimensions; ++i) {
     dimensions.push_back(*reinterpret_cast<const uint64_t*>(pos));

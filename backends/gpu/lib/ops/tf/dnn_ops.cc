@@ -77,8 +77,7 @@ static llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
 }
 
 static llvm::Expected<TensorDescriptorData> GetTensorDescriptorData(
-    DType dtype, llvm::ArrayRef<ssize_t> dimensions,
-    ChannelOrder channel_order) {
+    DType dtype, llvm::ArrayRef<Index> dimensions, ChannelOrder channel_order) {
   TensorDescriptorData result;
   TFRT_ASSIGN_OR_RETURN(result.dtype, ToCudnnDataType(dtype));
 
@@ -89,11 +88,11 @@ static llvm::Expected<TensorDescriptorData> GetTensorDescriptorData(
   for (auto dim : dimensions)
     result.dimensions.push_back(static_cast<int>(dim));
 
-  llvm::SmallVector<ssize_t, 4> transpose;
+  llvm::SmallVector<Index, 4> transpose;
   transpose.reserve(rank);
   for (int i = rank - 1; i >= 0; --i) transpose.push_back(i);
   if (channel_order == ChannelOrder::ChannelLast)
-    RotateRight(llvm::MutableArrayRef<ssize_t>(transpose).drop_back());
+    RotateRight(llvm::MutableArrayRef<Index>(transpose).drop_back());
 
   result.strides.resize(rank);
   int stride = 1;
@@ -143,7 +142,7 @@ static llvm::Error CheckPadding(const WindowedOutputData& data) {
   return llvm::Error::success();
 }
 
-static auto ToIntVec(const llvm::ArrayRef<ssize_t> array) {
+static auto ToIntVec(const llvm::ArrayRef<Index> array) {
   return llvm::SmallVector<int, 2>(array.begin(), array.end());
 }
 
@@ -269,14 +268,14 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
   auto padding = attrs.GetStringAsserting("padding");
   auto explicit_paddings = attrs.GetArrayOptional<int>("explicit_paddings");
   auto data_format = attrs.GetStringOptional("data_format");
-  auto strides = attrs.GetArrayOptional<ssize_t>("strides");
-  auto dilations = attrs.GetArrayOptional<ssize_t>("dilations");
+  auto strides = attrs.GetArrayOptional<Index>("strides");
+  auto dilations = attrs.GetArrayOptional<Index>("dilations");
 
   auto rank = input.shape().GetRank();
   auto channel_order = GetTfChannelOrder(data_format);
 
   // Determine how to transpose from HWIO to the desired filter layout.
-  llvm::SmallVector<ssize_t, 4> transpose;
+  llvm::SmallVector<Index, 4> transpose;
   transpose.reserve(rank);
   for (int i = 0; i < rank; ++i) transpose.push_back(i);
   switch (channel_order) {
@@ -290,7 +289,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
   }
 
   auto filter_dims_hwio = GetDimensions(filter.shape());
-  llvm::SmallVector<ssize_t, 4> filter_dims;  // OIHW or OHWI
+  llvm::SmallVector<Index, 4> filter_dims;  // OIHW or OHWI
   filter_dims.reserve(rank);
   for (auto i : transpose) filter_dims.push_back(filter_dims_hwio[i]);
 
@@ -299,9 +298,9 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
   auto output_dims_nchw = GetDimensions(result_md.shape);
   if (channel_order == ChannelOrder::ChannelLast) {
     // If layout is NHWC, convert to NCHW.
-    RotateRight(llvm::MutableArrayRef<ssize_t>(input_dims_nchw).drop_front());
-    RotateRight(llvm::MutableArrayRef<ssize_t>(output_dims_nchw).drop_front());
-    RotateRight(llvm::MutableArrayRef<ssize_t>(filter_dims_oihw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(input_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(output_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(filter_dims_oihw).drop_front());
   }
   TFRT_ASSIGN_OR_RETURN(
       auto windowed_output_data,
@@ -321,8 +320,8 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
       auto pad_before = windowed_output_data.paddings_before[i];
       auto pad_after = windowed_output_data.paddings_after[i];
       auto difference = pad_before - pad_after;
-      pads_manual.push_back(std::max<ssize_t>(0, +difference));
-      pads_manual.push_back(std::max<ssize_t>(0, -difference));
+      pads_manual.push_back(std::max<Index>(0, +difference));
+      pads_manual.push_back(std::max<Index>(0, -difference));
       paddings[i] = std::min(pad_before, pad_after);
       // Update input dimensions.
       input_dims_nchw[2 + i] += std::abs(difference);
@@ -345,7 +344,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
 
   // If image is channels last and filter is 1x1, we may not need to transpose
   // the filter and evaluate a gemm instead of a convolution.
-  auto all_equal_to = [](llvm::ArrayRef<ssize_t> array, ssize_t value) {
+  auto all_equal_to = [](llvm::ArrayRef<Index> array, Index value) {
     return is_splat(array) && array.front() == value;
   };
   if (channel_order == ChannelOrder::ChannelLast &&
@@ -357,7 +356,7 @@ static llvm::Expected<DenseGpuTensor> ComputeConvGpuOp(
     auto channel_count = input_dims_nchw[1];
     auto pixel_count =
         std::accumulate(input_dims_nchw.begin() + 2, input_dims_nchw.end(), 1,
-                        std::multiplies<ssize_t>());
+                        std::multiplies<Index>());
     auto reshaped_input =
         (padded_input ? *padded_input : input)
             .WithShape(TensorShape({batch_count * pixel_count, channel_count}));
@@ -502,9 +501,9 @@ static llvm::Expected<DenseGpuTensor> ComputeMaxPoolGpuOp(
   auto padding = attrs.GetStringAsserting("padding");
   auto explicit_paddings = attrs.GetArrayOptional<int>("explicit_paddings");
   auto data_format = attrs.GetStringOptional("data_format");
-  auto strides = attrs.GetArrayOptional<ssize_t>("strides");
-  auto dilations = attrs.GetArrayOptional<ssize_t>("dilations");
-  auto ksize = attrs.GetArrayOptional<ssize_t>("ksize");
+  auto strides = attrs.GetArrayOptional<Index>("strides");
+  auto dilations = attrs.GetArrayOptional<Index>("dilations");
+  auto ksize = attrs.GetArrayOptional<Index>("ksize");
 
   auto rank = input.shape().GetRank();
   auto channel_order = GetTfChannelOrder(data_format);
@@ -513,8 +512,8 @@ static llvm::Expected<DenseGpuTensor> ComputeMaxPoolGpuOp(
   auto output_dims_nchw = GetDimensions(result_md.shape);
   // If layout is NHWC, convert to NCHW.
   if (channel_order == ChannelOrder::ChannelLast) {
-    RotateRight(llvm::MutableArrayRef<ssize_t>(input_dims_nchw).drop_front());
-    RotateRight(llvm::MutableArrayRef<ssize_t>(output_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(input_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(output_dims_nchw).drop_front());
   }
 
   TFRT_ASSIGN_OR_RETURN(
@@ -585,8 +584,8 @@ static llvm::Expected<DenseGpuTensor> ComputeSoftMaxGpuOp(
   auto output_dims_nchw = GetDimensions(result_md.shape);
   // If layout is NHWC, convert to NCHW.
   if (channel_order == ChannelOrder::ChannelLast) {
-    RotateRight(llvm::MutableArrayRef<ssize_t>(input_dims_nchw).drop_front());
-    RotateRight(llvm::MutableArrayRef<ssize_t>(output_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(input_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(output_dims_nchw).drop_front());
   }
 
   TFRT_ASSIGN_OR_RETURN(
@@ -652,8 +651,8 @@ ComputeBatchNormGpuOp(GpuDispatchContext* dctx, const DenseGpuTensor& input,
   auto output_dims_nchw = GetDimensions(result_md.shape);
   // If layout is NHWC, convert to NCHW.
   if (channel_order == ChannelOrder::ChannelLast) {
-    RotateRight(llvm::MutableArrayRef<ssize_t>(input_dims_nchw).drop_front());
-    RotateRight(llvm::MutableArrayRef<ssize_t>(output_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(input_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(output_dims_nchw).drop_front());
   }
 
   auto mean_dims = GetDimensions(mean.shape());
@@ -663,7 +662,7 @@ ComputeBatchNormGpuOp(GpuDispatchContext* dctx, const DenseGpuTensor& input,
     std::swap(mean_dims[0], mean_dims[1]);
   } else if (channel_order == ChannelOrder::ChannelLast) {
     // If layout is NHWC, convert to NCHW.
-    RotateRight(llvm::MutableArrayRef<ssize_t>(mean_dims).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(mean_dims).drop_front());
   }
 
   TFRT_ASSIGN_OR_RETURN(

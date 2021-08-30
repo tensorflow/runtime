@@ -70,11 +70,11 @@ void DenseHostTensor::Print(raw_ostream& os) const {
   auto element_size = GetHostSize(dtype());
   auto* data_ptr = static_cast<const char*>(data());
 
-  static const ssize_t kThreshold = 16;
+  static const Index kThreshold = 16;
 
   // Print at most 32 elements for a tensor.
   os << ", values = [";
-  for (ssize_t i = 0, e = std::min(kThreshold, NumElements()); i != e; ++i) {
+  for (Index i = 0, e = std::min(kThreshold, NumElements()); i != e; ++i) {
     if (i != 0) os << ", ";
     os << FormatDType(dtype(), data_ptr + i * element_size);
   }

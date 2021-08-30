@@ -25,7 +25,7 @@ namespace tfrt {
 namespace {
 
 llvm::Expected<StringHostTensor> CreateStringTensor(
-    ArrayAttribute<ssize_t> shape, AggregateAttr values,
+    ArrayAttribute<Index> shape, AggregateAttr values,
     const ExecutionContext& exec_ctx) {
   auto result = StringHostTensor::CreateUninitialized(
       TensorMetadata(DType(DType::String), shape.data()), exec_ctx.host());
@@ -45,7 +45,7 @@ llvm::Expected<StringHostTensor> CreateStringTensor(
 }
 
 static Expected<StringHostTensor> CreateUninitializedStringTensor(
-    ArrayAttribute<ssize_t> shape_in, const ExecutionContext& exec_ctx) {
+    ArrayAttribute<Index> shape_in, const ExecutionContext& exec_ctx) {
   auto result = StringHostTensor::CreateUninitialized(
       TensorShape(shape_in.data()), exec_ctx.host());
   if (!result.hasValue()) {

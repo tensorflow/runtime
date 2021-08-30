@@ -94,7 +94,7 @@ static void BatchNormGrad(
                                "beta_grad shape", beta_grad->shape()));
 
   // Flatten all outer dimensions of input{grad}/output_grad.
-  const ssize_t rest_size = output_grad->NumElements() / depth;
+  const Index rest_size = output_grad->NumElements() / depth;
   Eigen::DSizes<Eigen::Index, 2> rest_by_depth(rest_size, depth);
 
   // Resize all vectors into 2d Tensors.

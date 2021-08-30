@@ -134,8 +134,8 @@ static Expected<MeanHelper> TfMeanOutputMd(
     helper.positive_reduction_indices.push_back(reduction_index);
   }
 
-  llvm::SmallVector<ssize_t, 4> output_dims;
-  llvm::SmallVector<ssize_t, 4> final_output_dims;
+  llvm::SmallVector<Index, 4> output_dims;
+  llvm::SmallVector<Index, 4> final_output_dims;
   output_dims.reserve(input.shape().GetRank());
   final_output_dims.reserve(input.shape().GetRank());
   for (int i = 0; i < input.shape().GetRank(); ++i) {

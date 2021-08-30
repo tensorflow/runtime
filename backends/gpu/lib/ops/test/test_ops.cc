@@ -151,9 +151,8 @@ static void PrintDhtFullPrecision(const DenseHostTensor& dht) {
 
   tfrt::outs() << '[';
   // Print at most 32 elements for a tensor
-  static const ssize_t kThreshold = 32;
-  for (ssize_t i = 0, e = std::min(kThreshold, dht.NumElements()); i != e;
-       ++i) {
+  static const Index kThreshold = 32;
+  for (Index i = 0, e = std::min(kThreshold, dht.NumElements()); i != e; ++i) {
     if (i != 0) tfrt::outs() << ", ";
     tfrt::outs() << FormatDType(dht.dtype(), data_ptr + i * element_size,
                                 /*full_precision=*/true);

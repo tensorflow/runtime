@@ -225,17 +225,17 @@ static llvm::Error FullReduction(GpuDispatchContext* dctx, const T* input,
   return launch(GetRawPointer<void>(tmp_buffer));
 }
 
-static ssize_t NumBlocks(ssize_t num_elements, ssize_t elements_per_block) {
+static Index NumBlocks(Index num_elements, Index elements_per_block) {
   return (num_elements + elements_per_block - 1) / elements_per_block;
 }
 
 template <typename T, typename ReduceOp, typename TransformOp>
 static llvm::Error OuterReduction(GpuDispatchContext* dctx, const T* input,
-                                  T* output, ssize_t outer_dim_size,
-                                  ssize_t inner_dim_size, T init,
-                                  ReduceOp reduce, TransformOp transform) {
-  ssize_t threads_per_block = 128;
-  ssize_t num_blocks = NumBlocks(inner_dim_size, threads_per_block);
+                                  T* output, Index outer_dim_size,
+                                  Index inner_dim_size, T init, ReduceOp reduce,
+                                  TransformOp transform) {
+  Index threads_per_block = 128;
+  Index num_blocks = NumBlocks(inner_dim_size, threads_per_block);
 
   return wrapper::CudaLaunchKernel(
       dctx->current_context(), &OuterReductionKernel<T, ReduceOp, TransformOp>,
@@ -245,9 +245,9 @@ static llvm::Error OuterReduction(GpuDispatchContext* dctx, const T* input,
 
 template <typename T, typename ReduceOp, typename TransformOp>
 static llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input,
-                                  T* output, ssize_t outer_dim_size,
-                                  ssize_t inner_dim_size, T init,
-                                  ReduceOp reduce, TransformOp transform) {
+                                  T* output, Index outer_dim_size,
+                                  Index inner_dim_size, T init, ReduceOp reduce,
+                                  TransformOp transform) {
   // For small inner dimension it's more efficient to compute reduction with a
   // custom CUDA kernel that does row-per-warp reduction.
   // TODO(ezhulenev): Benchmark if it's still true with latest CUB and GPUs.
@@ -298,9 +298,9 @@ static llvm::Error InnerReduction(GpuDispatchContext* dctx, const T* input,
 
 template <typename T, typename ReduceOp, typename TransformOp>
 static llvm::Error MiddleDimReduction(GpuDispatchContext* dctx, const T* input,
-                                      T* output, ssize_t outer_dim_size,
-                                      ssize_t middle_dim_size,
-                                      ssize_t inner_dim_size, T init,
+                                      T* output, Index outer_dim_size,
+                                      Index middle_dim_size,
+                                      Index inner_dim_size, T init,
                                       ReduceOp reduce, TransformOp transform) {
   auto grid_width = static_cast<unsigned>(NumBlocks(inner_dim_size, 32));
   dim3 grid_dim = {grid_width, static_cast<unsigned>(outer_dim_size), 1};
@@ -318,16 +318,16 @@ static llvm::Error MiddleDimReduction(GpuDispatchContext* dctx, const T* input,
 // reduction indices.
 //===----------------------------------------------------------------------===//
 
-using ReductionDims2 = struct { ssize_t outer_dim_size, inner_dim_size; };
+using ReductionDims2 = struct { Index outer_dim_size, inner_dim_size; };
 using ReductionDims3 = struct {
-  ssize_t outer_dim_size, middle_dim_size, inner_dim_size;
+  Index outer_dim_size, middle_dim_size, inner_dim_size;
 };
 
 static llvm::Optional<ReductionDims2> IsOuterReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
   // View input tensor as a 2d tensor: [outer_dims_size, inner_dims_size].
-  ssize_t outer_dims_size = 1;
-  ssize_t inner_dims_size = 1;
+  Index outer_dims_size = 1;
+  Index inner_dims_size = 1;
 
   // Check that reduction indices are indeed outer reduction.
   for (int i = 0; i < reduction_indices.size(); ++i) {
@@ -348,8 +348,8 @@ static llvm::Optional<ReductionDims2> IsOuterReduction(
 static llvm::Optional<ReductionDims2> IsInnerReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
   // View input tensor as a 2d tensor: [outer_dims_size, inner_dims_size].
-  ssize_t outer_dims_size = 1;
-  ssize_t inner_dims_size = 1;
+  Index outer_dims_size = 1;
+  Index inner_dims_size = 1;
 
   // Check that reduction indices are indeed inner reduction.
   const int offset = shape.GetRank() - reduction_indices.size();
@@ -370,15 +370,15 @@ static llvm::Optional<ReductionDims2> IsInnerReduction(
 
 static llvm::Optional<ReductionDims3> IsMiddleReduction(
     const TensorShape& shape, ArrayRef<int32_t> reduction_indices) {
-  ssize_t outer_dim_size = 1;
+  Index outer_dim_size = 1;
   for (int i = 0; i < reduction_indices.front(); ++i)
     outer_dim_size *= shape.GetDimensionSize(i);
-  ssize_t middle_dim_size = shape.GetDimensionSize(reduction_indices.front());
+  Index middle_dim_size = shape.GetDimensionSize(reduction_indices.front());
   for (int i = 1; i < reduction_indices.size(); ++i) {
     if (reduction_indices[i] != reduction_indices[i - 1] + 1) return llvm::None;
     middle_dim_size *= shape.GetDimensionSize(reduction_indices[i]);
   }
-  ssize_t inner_dim_size = 1;
+  Index inner_dim_size = 1;
   for (int i = reduction_indices.back() + 1; i < shape.GetRank(); ++i)
     inner_dim_size *= shape.GetDimensionSize(i);
   return {{outer_dim_size, middle_dim_size, inner_dim_size}};
@@ -427,7 +427,7 @@ static llvm::Error ReduceMean(GpuDispatchContext* dctx,
                               const TensorMetadata& out_md,
                               ArrayRef<int32_t> reduction_indices) {
   // Number of input elements per output element.
-  ssize_t num_reduced = input.NumElements() / out_md.shape.GetNumElements();
+  Index num_reduced = input.NumElements() / out_md.shape.GetNumElements();
   return Reduce(dctx, input, output, out_md, reduction_indices, T{0},
                 cub::Sum(), Multiplies<T>(T{1} / num_reduced));
 }
@@ -500,7 +500,7 @@ static llvm::Expected<DenseGpuTensor> ComputeMeanGpuOp(
   llvm::SmallVector<int32_t, 2> reduction_indices = {spatial_offset,
                                                      spatial_offset + 1};
 
-  SmallVector<ssize_t, 2> result_dims;
+  SmallVector<Index, 2> result_dims;
   if (*channel_order == ChannelOrder::ChannelLast) {
     result_dims = {input.shape().GetDimensionSize(0),
                    input.shape().GetDimensionSize(3)};

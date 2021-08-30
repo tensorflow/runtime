@@ -93,6 +93,10 @@ using llvm::dyn_cast_or_null;
 using llvm::isa;
 using llvm::isa_and_nonnull;
 
+// TensorShape dimension type alias. It is currently fixed at 64 bits,
+//  but might change to machine word in the future.
+using Index = int64_t;
+
 }  // namespace tfrt
 
 #endif  // TFRT_SUPPORT_FORWARD_DECLS_H_

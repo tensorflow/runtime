@@ -46,8 +46,7 @@ inline std::unique_ptr<HostContext> CreateHostContext() {
 }
 
 template <typename T>
-DenseHostTensor CreateDummyTensor(ArrayRef<ssize_t> dims,
-                                  HostContext* host_ctx) {
+DenseHostTensor CreateDummyTensor(ArrayRef<Index> dims, HostContext* host_ctx) {
   const TensorMetadata metadata(GetDType<T>(), dims);
   auto dht =
       DenseHostTensor::CreateUninitialized(metadata, host_ctx).getValue();
@@ -66,7 +65,7 @@ inline RCReference<HostBuffer> CreateHostBufferOnHeap(size_t byte_size) {
 }
 
 template <typename T>
-DenseHostTensor CreateTensorFromValues(ArrayRef<ssize_t> dims,
+DenseHostTensor CreateTensorFromValues(ArrayRef<Index> dims,
                                        llvm::ArrayRef<T> values,
                                        HostContext* host_ctx = nullptr) {
   const TensorMetadata metadata(GetDType<T>(), dims);

@@ -41,19 +41,19 @@ namespace tfrt {
 //
 class ArgumentBCast {
  public:
-  ArgumentBCast(ArrayRef<ssize_t> reshape, ArrayRef<ssize_t> broadcast)
+  ArgumentBCast(ArrayRef<Index> reshape, ArrayRef<Index> broadcast)
       : reshape_(reshape.begin(), reshape.end()),
         broadcast_(broadcast.begin(), broadcast.end()) {
     assert(reshape.size() == broadcast.size());
   }
 
   size_t rank() const { return reshape_.size(); }
-  ArrayRef<ssize_t> reshape() const { return reshape_; }
-  ArrayRef<ssize_t> broadcast() const { return broadcast_; }
+  ArrayRef<Index> reshape() const { return reshape_; }
+  ArrayRef<Index> broadcast() const { return broadcast_; }
 
  private:
-  SmallVector<ssize_t, 8> reshape_;
-  SmallVector<ssize_t, 8> broadcast_;
+  SmallVector<Index, 8> reshape_;
+  SmallVector<Index, 8> broadcast_;
 };
 
 // Returns a broadcasted result shape if arguments are broadcastible.

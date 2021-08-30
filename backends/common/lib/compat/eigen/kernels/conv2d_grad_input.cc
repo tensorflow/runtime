@@ -35,28 +35,28 @@ namespace {
 
 // Spatial convolution parameters for filter gradient computation.
 struct Conv2DGradInputParams {
-  std::array<ssize_t, 4> paddings;
-  std::array<ssize_t, 2> strides;
-  std::array<ssize_t, 2> dilations;
-  std::array<ssize_t, 2> inflations;
+  std::array<Index, 4> paddings;
+  std::array<Index, 2> strides;
+  std::array<Index, 2> dilations;
+  std::array<Index, 2> inflations;
 };
 
 Conv2DGradInputParams ComputeConv2DGradInputParams(const Conv2DParams& params) {
   // Compute effective filter size taking into account dilation rate.
-  const std::array<ssize_t, 2> eff_filter_size = {
+  const std::array<Index, 2> eff_filter_size = {
       (params.kernel_shape[0] - 1) * params.dilations[0] + 1,
       (params.kernel_shape[1] - 1) * params.dilations[1] + 1};
 
   // Compute paddings for the output gradient tensor.
-  const ssize_t pad_top = eff_filter_size[0] - 1 - params.paddings[0];
-  const ssize_t pad_bottom = params.input_shape[1] -
-                             (params.output_shape[1] - 1) * params.strides[0] -
-                             2 - pad_top + eff_filter_size[0];
+  const Index pad_top = eff_filter_size[0] - 1 - params.paddings[0];
+  const Index pad_bottom = params.input_shape[1] -
+                           (params.output_shape[1] - 1) * params.strides[0] -
+                           2 - pad_top + eff_filter_size[0];
 
-  const ssize_t pad_left = eff_filter_size[1] - 1 - params.paddings[2];
-  const ssize_t pad_right = params.input_shape[2] -
-                            (params.output_shape[2] - 1) * params.strides[1] -
-                            2 - pad_left + eff_filter_size[1];
+  const Index pad_left = eff_filter_size[1] - 1 - params.paddings[2];
+  const Index pad_right = params.input_shape[2] -
+                          (params.output_shape[2] - 1) * params.strides[1] - 2 -
+                          pad_left + eff_filter_size[1];
 
   assert(pad_top >= 0 && pad_bottom >= 0);
   assert(pad_left >= 0 && pad_right >= 0);
@@ -75,7 +75,7 @@ static void Conv2DGradInput(ArgumentView<DHTIndexableView<T, 4>> output_grad,
                             ArgumentView<DHTIndexableView<T, 4>> input_grad,
                             Argument<Chain> chain_in, Result<Chain> chain_out,
                             StringAttribute padding,
-                            ArrayAttribute<ssize_t> strides,
+                            ArrayAttribute<Index> strides,
                             KernelErrorHandler handler,
                             const ExecutionContext& exec_ctx,
                             AsyncKernelFrame* frame) {
@@ -110,7 +110,7 @@ static void Conv2DGradInput(ArgumentView<DHTIndexableView<T, 4>> output_grad,
 
   // Filter reversed and shuffled: [FH^, FW^, OC, IC].
   std::array<bool, 4> filter_reverse = {true, true, false, false};
-  std::array<ssize_t, 4> filter_shuffle = {0, 1, 3, 2};
+  std::array<Index, 4> filter_shuffle = {0, 1, 3, 2};
   auto filter_shuffled =
       filter_t.reverse(filter_reverse).shuffle(filter_shuffle);
 

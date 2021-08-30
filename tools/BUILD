@@ -63,6 +63,7 @@ tfrt_cc_binary(
     deps = [
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext_alwayslink",
+        "@tf_runtime//:support",
         "@tf_runtime//:tensor",
     ],
 )

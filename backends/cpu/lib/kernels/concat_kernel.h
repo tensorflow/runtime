@@ -52,7 +52,7 @@ Expected<TensorMetadata> ConcatMetadataKernel(const TensorRange& args,
   axis = axis < 0 ? axis + rank : axis;
 
   // The size of a result along the concatenation dimension.
-  ssize_t concat_axis_dim_size = 0;
+  Index concat_axis_dim_size = 0;
 
   for (size_t i = 0; i < args.size(); ++i) {
     const Tensor& arg = args[i];
@@ -90,7 +90,7 @@ Expected<TensorMetadata> ConcatMetadataKernel(const TensorRange& args,
   }
 
   // Build output tensor dimensions.
-  SmallVector<ssize_t, 4> output_dims;
+  SmallVector<Index, 4> output_dims;
   for (int d = 0; d < axis; ++d)
     output_dims.push_back(arg0_shape.GetDimensionSize(d));
   output_dims.push_back(concat_axis_dim_size);
@@ -129,19 +129,19 @@ Error ConcatKernel(const DHTRange& args, int axis, DenseHostTensor* output) {
     auto output_t = compat::AsEigenTensor(output_view);
 
     // Offset for writing to the output along the axis dimension.
-    ssize_t offset = 0;
+    Index offset = 0;
 
     for (auto& dht : args) {
       auto arg_view = DHTIndexableView<T, rank>(&dht);
       auto arg_t = compat::AsEigenConstTensor(arg_view);
 
       // Offsets for the output slice.
-      Eigen::DSizes<ssize_t, rank> offsets;
+      Eigen::DSizes<Index, rank> offsets;
       for (int d = 0; d < rank; d++) offsets[d] = 0;
       offsets[axis] = offset;
 
       // Size of the output slice.
-      Eigen::DSizes<ssize_t, rank> sizes;
+      Eigen::DSizes<Index, rank> sizes;
       for (int d = 0; d < rank; d++) sizes[d] = dht.shape().GetDimensionSize(d);
 
       // It's possible for this input tensor to have zero dimension along the

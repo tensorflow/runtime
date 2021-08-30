@@ -23,7 +23,7 @@
 namespace tfrt {
 
 namespace {
-std::string ToString(ArrayRef<ssize_t> dims) {
+std::string ToString(ArrayRef<Index> dims) {
   std::string str;
   llvm::raw_string_ostream os(str);
   os << "[";
@@ -44,7 +44,7 @@ std::string BroadcastOf(Expected<ArgumentBCast>& bcast) {
 
 std::string ShapeOf(Expected<TensorShape>& shape) {
   if (static_cast<bool>(shape)) {
-    SmallVector<ssize_t, 4> dims;
+    SmallVector<Index, 4> dims;
     shape->GetDimensions(&dims);
     return ToString(dims);
   }
@@ -73,22 +73,22 @@ TEST(BCastTest, GetArgumentBCast) {
   }
 
   {
-    auto bcast = GetArgumentBCast(TensorShape(ArrayRef<ssize_t>{3}),
-                                  TensorShape({2, 3}));
+    auto bcast =
+        GetArgumentBCast(TensorShape(ArrayRef<Index>{3}), TensorShape({2, 3}));
     ASSERT_EQ(ReshapeOf(bcast), "[1, 3]");
     ASSERT_EQ(BroadcastOf(bcast), "[2, 1]");
   }
 
   {
-    auto bcast = GetArgumentBCast(TensorShape(ArrayRef<ssize_t>{1}),
-                                  TensorShape({2, 3}));
+    auto bcast =
+        GetArgumentBCast(TensorShape(ArrayRef<Index>{1}), TensorShape({2, 3}));
     ASSERT_EQ(ReshapeOf(bcast), "[1, 1]");
     ASSERT_EQ(BroadcastOf(bcast), "[2, 3]");
   }
 
   {
-    auto bcast = GetArgumentBCast(TensorShape({3, 3}),
-                                  TensorShape(ArrayRef<ssize_t>{3}));
+    auto bcast =
+        GetArgumentBCast(TensorShape({3, 3}), TensorShape(ArrayRef<Index>{3}));
     ASSERT_FALSE(static_cast<bool>(bcast));
   }
 

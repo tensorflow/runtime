@@ -33,8 +33,8 @@ template <typename T>
 static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
                                         DenseHostTensor* output,
                                         string_view padding,
-                                        ArrayRef<ssize_t> strides,
-                                        ArrayRef<ssize_t> ksize,
+                                        ArrayRef<Index> strides,
+                                        ArrayRef<Index> ksize,
                                         const ExecutionContext& exec_ctx) {
   // TODO(ezhulenev): Move shape computation into support library and share with
   // shape computations in convolution.
@@ -90,7 +90,7 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
   // In the following code we treat every channels vector (innermost dimension)
   // as a single unit for the purpose of computing a maximum value, and pretend
   // that we are working with a tensor of size: [batch, height, width].
-  using ChannelVector = Eigen::Tensor<T, 1, Eigen::RowMajor, ssize_t>;
+  using ChannelVector = Eigen::Tensor<T, 1, Eigen::RowMajor, Index>;
   using InputChannels = Eigen::TensorMap<const ChannelVector, Eigen::Unaligned>;
   using OutputChannels = Eigen::TensorMap<ChannelVector, Eigen::Unaligned>;
 
@@ -98,7 +98,7 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
   const size_t num_channels = shape_output[3];
 
   // Coordinates: [batch, row, col].
-  using Coords = std::array<ssize_t, 3>;
+  using Coords = std::array<Index, 3>;
 
   // Returns OutputChannels for 3 dimensional coordinates.
   auto output_channels = [output = output->CopyRef(),
@@ -124,27 +124,26 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
   };
 
   // Number of output channel-vectors.
-  const ssize_t num_outputs =
-      shape_output[0] * shape_output[1] * shape_output[2];
+  const Index num_outputs = shape_output[0] * shape_output[1] * shape_output[2];
 
   // Computes [batch, row, col] coordinates of an output channels from one
   // dimensional index in [0, num_outputs) range.
-  const auto output_coords = [output_strides](ssize_t index) -> Coords {
-    const ssize_t i0 = index / output_strides[0];
+  const auto output_coords = [output_strides](Index index) -> Coords {
+    const Index i0 = index / output_strides[0];
     index -= i0 * output_strides[0];
 
-    const ssize_t i1 = index / output_strides[1];
+    const Index i1 = index / output_strides[1];
     index -= i1 * output_strides[1];
 
-    const ssize_t i2 = index;
+    const Index i2 = index;
 
     return {i0, i1, i2};
   };
 
   // Computes MaxPool outputs in the [start, end) range. All the state captured
   // by value explicitly, because this function will be executed asynchonously.
-  std::array<ssize_t, 2> strides_t{strides[0], strides[1]};
-  std::array<ssize_t, 2> ksize_t{ksize[0], ksize[1]};
+  std::array<Index, 2> strides_t{strides[0], strides[1]};
+  std::array<Index, 2> ksize_t{ksize[0], ksize[1]};
   auto compute = [strides = strides_t, ksize = ksize_t, padding_numbers,
                   shape_input, input_channels = std::move(input_channels),
                   output_channels = std::move(output_channels),
@@ -154,13 +153,13 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
     input_channels_pool.reserve(ksize[0] * ksize[1]);
 
     // Iterate over all outputs in the [start, end) range.
-    for (ssize_t index = start; index < end; ++index) {
+    for (Index index = start; index < end; ++index) {
       const Coords coords = output_coords(index);
       input_channels_pool.clear();
 
       // Iterate over the spatial pooling patch.
-      for (ssize_t x = 0; x < ksize[0]; ++x) {
-        for (ssize_t y = 0; y < ksize[1]; ++y) {
+      for (Index x = 0; x < ksize[0]; ++x) {
+        for (Index y = 0; y < ksize[1]; ++y) {
           // Coordinates in the input tensor.
           const Coords input_coords = {
               coords[0],                                        // batch
@@ -179,7 +178,7 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
       }
 
       assert(!input_channels_pool.empty());
-      ssize_t i = 0;
+      Index i = 0;
 
       // Initialize output channels.
       auto out = output_channels(coords);
@@ -187,8 +186,8 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
 
       // Process 3 input channels in a single Eigen expression to minimize
       // memory traffic and keep temporary data in the registers.
-      const ssize_t vectorized_pooling =
-          static_cast<ssize_t>(input_channels_pool.size()) - 3;
+      const Index vectorized_pooling =
+          static_cast<Index>(input_channels_pool.size()) - 3;
       for (; i < vectorized_pooling; i += 3) {
         auto in0 = input_channels_pool[i + 0];
         auto in1 = input_channels_pool[i + 1];
@@ -197,7 +196,7 @@ static AsyncValueRef<Chain> MaxPoolImpl(const DenseHostTensor& input,
       }
 
       // Process remaining channels one by one.
-      for (; i < static_cast<ssize_t>(input_channels_pool.size()); ++i) {
+      for (; i < static_cast<Index>(input_channels_pool.size()); ++i) {
         auto in0 = input_channels_pool[i];
         out = out.cwiseMax(in0);
       }

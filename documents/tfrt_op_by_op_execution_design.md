@@ -427,7 +427,7 @@ A metadata function can also use attributes set by the client:
 ```c++
 // Metadata function for CreateDenseHostTensor
 static Expected<TensorMetadata> CreateDHTMd(const OpAttrsRef& op_attrs) {
-  ArrayRef<ssize_t> shape;
+  ArrayRef<tfrt::Index> shape;
   if (!attrs.GetArray("shape", &shape))
     return MakeStringError("missing 'shape' attribute");
   …

@@ -30,13 +30,13 @@ namespace compat {
 enum class PaddingType { kSame, kValid, kExplicit };
 
 struct Padding {
-  ssize_t padding_before;
-  ssize_t padding_after;
+  Index padding_before;
+  Index padding_after;
 };
 
 struct WindowedOutputDimension {
-  ssize_t output_size;  // Computed output dimension.
-  Padding padding;      // Computed padding for corresponding input dimension.
+  Index output_size;  // Computed output dimension.
+  Padding padding;    // Computed padding for corresponding input dimension.
 };
 
 // Parses padding type from a string view: [same, valid, explicit].
@@ -49,7 +49,7 @@ llvm::Expected<PaddingType> ParsePaddingType(string_view padding_type);
 // If padding type is explicit, `explicit_padding` must have a value, otherwise
 // it must be empty.
 llvm::Expected<WindowedOutputDimension> ComputeWindowedOutputDimension(
-    ssize_t input_size, ssize_t filter_size, ssize_t stride, ssize_t dilation,
+    Index input_size, Index filter_size, Index stride, Index dilation,
     PaddingType padding_type, llvm::Optional<Padding> explicit_padding);
 
 // Returns Error::success() if `lhs_shape` matches `rhs_shape` and error
@@ -67,8 +67,8 @@ llvm::Error CheckShapeMatch(string_view lhs_name,
 }
 
 // Returns Error::success() if `lhs_dim` matches `rhs_dim` and error otherwise.
-llvm::Error CheckDimensionMatch(string_view lhs_dim_name, ssize_t lhs_dim,
-                                string_view rhs_dim_name, ssize_t rhs_dim);
+llvm::Error CheckDimensionMatch(string_view lhs_dim_name, Index lhs_dim,
+                                string_view rhs_dim_name, Index rhs_dim);
 
 }  // namespace compat
 }  // namespace tfrt

@@ -31,7 +31,7 @@
 namespace tfrt {
 namespace cpu {
 
-Expected<SmallVector<ssize_t, 5>> TileMultiples(
+Expected<SmallVector<Index, 5>> TileMultiples(
     const DenseHostTensor& multiples_arg);
 
 template <int rank>
@@ -39,7 +39,7 @@ using TileRankTag = std::integral_constant<int, rank>;
 
 template <typename T, typename EigenEvaluator>
 static typename EigenEvaluator::DependencyToken Tile(
-    const DenseHostTensor& input, const SmallVector<ssize_t, 5>& multiples,
+    const DenseHostTensor& input, const SmallVector<Index, 5>& multiples,
     DenseHostTensor* output, const ExecutionContext& exec_ctx) {
   EigenEvaluator eigen{exec_ctx.host()};
 

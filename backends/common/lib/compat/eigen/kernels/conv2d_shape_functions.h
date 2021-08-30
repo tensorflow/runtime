@@ -32,9 +32,9 @@ namespace compat {
 struct Conv2DParams {
   PaddingType padding_type;
 
-  std::array<ssize_t, 4> paddings;   // input paddings
-  std::array<ssize_t, 2> strides;    // input strides
-  std::array<ssize_t, 2> dilations;  // kernel dilation rates
+  std::array<Index, 4> paddings;   // input paddings
+  std::array<Index, 2> strides;    // input strides
+  std::array<Index, 2> dilations;  // kernel dilation rates
 
   FixedRankShape<4> input_shape;
   FixedRankShape<4> kernel_shape;
@@ -45,7 +45,7 @@ struct Conv2DParams {
 // shapes. Returns error if input shapes does not match expectations.
 llvm::Expected<Conv2DParams> ComputeConv2DParams(
     const FixedRankShape<4>& input_shape, const FixedRankShape<4>& kernel_shape,
-    string_view padding, std::array<ssize_t, 2> strides);
+    string_view padding, std::array<Index, 2> strides);
 
 }  // namespace compat
 }  // namespace tfrt

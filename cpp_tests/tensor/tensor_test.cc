@@ -35,7 +35,7 @@ using testing::ElementsAre;
 TEST(TensorTest, ScalarDenseHostTensorView) {
   auto host_buffer = HostBuffer::CreateFromExternal(
       /*ptr=*/nullptr, /*size=*/0, [](void*, size_t) {});
-  std::array<ssize_t, 1> dims{0};
+  std::array<Index, 1> dims{0};
   DenseHostTensor tensor(TensorMetadata(DType(DType::I32), TensorShape(dims)),
                          std::move(host_buffer));
   DHTArrayView<int32_t> view(&tensor);

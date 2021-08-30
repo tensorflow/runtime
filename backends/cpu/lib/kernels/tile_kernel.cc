@@ -21,9 +21,9 @@
 namespace tfrt {
 namespace cpu {
 
-Expected<SmallVector<ssize_t, 5>> TileMultiples(
+Expected<SmallVector<Index, 5>> TileMultiples(
     const DenseHostTensor& multiples_arg) {
-  SmallVector<ssize_t, 5> multiples;
+  SmallVector<Index, 5> multiples;
 
   if (multiples_arg.shape().GetRank() != 1) {
     return MakeStringError("Tile multiples must be a vector");
@@ -48,9 +48,9 @@ Expected<SmallVector<ssize_t, 5>> TileMultiples(
 
 void TileStringTensor(const StringHostTensor& input, StringHostTensor* output) {
   // Compute strides from the shape.
-  auto strides = [](const TensorShape& shape) -> SmallVector<ssize_t, 5> {
-    SmallVector<ssize_t, 5> strides(shape.GetRank());
-    ssize_t stride = 1;
+  auto strides = [](const TensorShape& shape) -> SmallVector<Index, 5> {
+    SmallVector<Index, 5> strides(shape.GetRank());
+    Index stride = 1;
     for (int i = shape.GetRank() - 1; i >= 0; --i) {
       strides[i] = stride;
       stride *= shape.GetDimensionSize(i);
@@ -59,7 +59,7 @@ void TileStringTensor(const StringHostTensor& input, StringHostTensor* output) {
   };
 
   const int ndims = output->shape().GetRank();
-  const ssize_t nelem = output->NumElements();
+  const Index nelem = output->NumElements();
 
   auto in_strides = strides(input.shape());
   auto out_strides = strides(output->shape());
@@ -67,11 +67,11 @@ void TileStringTensor(const StringHostTensor& input, StringHostTensor* output) {
   ArrayRef<std::string> inp = input.strings();
   MutableArrayRef<std::string> out = output->strings();
 
-  for (ssize_t o_idx = 0; o_idx < nelem; ++o_idx) {
-    ssize_t i_idx = 0;
-    ssize_t t = o_idx;
+  for (Index o_idx = 0; o_idx < nelem; ++o_idx) {
+    Index i_idx = 0;
+    Index t = o_idx;
     for (int i = 0; i < ndims; ++i) {
-      ssize_t i_dim = input.shape().GetDimensionSize(i);
+      Index i_dim = input.shape().GetDimensionSize(i);
       i_idx += t / out_strides[i] % i_dim * in_strides[i];
       t %= out_strides[i];
     }

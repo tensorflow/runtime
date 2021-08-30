@@ -76,7 +76,7 @@ Expected<DenseHostTensor> ReadDHTFromBTF(std::istream* stream, uint64_t offset,
   if (header.layout != btf::TensorLayout::kRMD) {
     return MakeStringError("unexpected tensor layout ", header.layout);
   }
-  SmallVector<ssize_t, 4> dims;
+  SmallVector<Index, 4> dims;
   dims.resize(header.rank);
   if (!ReadStream(stream, dims.data(), header.rank)) {
     return MakeStringError("failed to read tensor dims at offset", offset);

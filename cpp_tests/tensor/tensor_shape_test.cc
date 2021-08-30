@@ -26,13 +26,13 @@ namespace tfrt {
 namespace {
 
 TEST(TensorShapeTest, Strides) {
-  std::array<ssize_t, 3> dims = {16, 15, 14};
+  std::array<Index, 3> dims = {16, 15, 14};
   TensorShape shape(dims);
 
-  std::array<ssize_t, 3> strides;
+  std::array<Index, 3> strides;
   shape.GetStrides(&strides);
 
-  std::array<ssize_t, 3> expected = {15 * 14, 14, 1};
+  std::array<Index, 3> expected = {15 * 14, 14, 1};
   EXPECT_EQ(strides, expected);
 }
 

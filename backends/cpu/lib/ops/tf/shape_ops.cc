@@ -46,18 +46,18 @@ static AsyncValueRef<DenseHostTensor> TfShapeOp(
     return EmitErrorAsync(exec_ctx, "out of memory allocating result");
   }
 
-  SmallVector<ssize_t, 4> dims(input.shape().GetRank());
+  SmallVector<Index, 4> dims(input.shape().GetRank());
   input.shape().GetDimensions(dims);
 
   if (output_md.dtype == DType::I32) {
     MutableDHTArrayView<int32_t> view(&dest.get());
     std::transform(dims.begin(), dims.end(), view.data(),
-                   [](ssize_t dim) { return static_cast<int32_t>(dim); });
+                   [](Index dim) { return static_cast<int32_t>(dim); });
 
   } else if (output_md.dtype == DType::I64) {
     MutableDHTArrayView<int64_t> view(&dest.get());
     std::transform(dims.begin(), dims.end(), view.data(),
-                   [](ssize_t dim) { return static_cast<int64_t>(dim); });
+                   [](Index dim) { return static_cast<int64_t>(dim); });
   } else {
     return EmitErrorAsync(exec_ctx, "Unsupported output data type");
   }
@@ -116,7 +116,7 @@ static AsyncValueRef<Tensor> TfExpandDimsOp(const Tensor& input,
       *expected_axis < 0 ? *expected_axis + input_rank + 1 : *expected_axis;
 
   // Compute the new tensor shape after expansion.
-  SmallVector<ssize_t, 4> output_dims(input_rank + 1);
+  SmallVector<Index, 4> output_dims(input_rank + 1);
   for (int d = 0; d < expand_axis; ++d) {
     output_dims[d] = input_shape.GetDimensionSize(d);
   }

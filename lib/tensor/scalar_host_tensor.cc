@@ -91,7 +91,7 @@ llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
   switch (element_size) {
     default:
       // Fully generic size.
-      for (ssize_t i = 0; i != num_elements; ++i)
+      for (Index i = 0; i != num_elements; ++i)
         memcpy(static_cast<int8_t*>(dest_data) + i * element_size, src_data,
                element_size);
       break;
@@ -100,17 +100,17 @@ llvm::Optional<DenseHostTensor> CopyScalarHostTensorToDenseHostTensor(
              num_elements);
       break;
     case sizeof(int16_t):
-      for (ssize_t i = 0; i != num_elements; ++i)
+      for (Index i = 0; i != num_elements; ++i)
         *(static_cast<int16_t*>(dest_data) + i) =
             *static_cast<const int16_t*>(src_data);
       break;
     case sizeof(int32_t):
-      for (ssize_t i = 0; i != num_elements; ++i)
+      for (Index i = 0; i != num_elements; ++i)
         *(static_cast<int32_t*>(dest_data) + i) =
             *static_cast<const int32_t*>(src_data);
       break;
     case sizeof(int64_t):
-      for (ssize_t i = 0; i != num_elements; ++i)
+      for (Index i = 0; i != num_elements; ++i)
         *(static_cast<int64_t*>(dest_data) + i) =
             *static_cast<const int64_t*>(src_data);
       break;

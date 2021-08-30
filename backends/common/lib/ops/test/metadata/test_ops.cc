@@ -23,7 +23,7 @@ namespace tfrt {
 
 // result = test.create_from_scalar(value=V, shape=Shape)
 static Expected<TensorMetadata> CreateFromScalarMD(const OpAttrsRef& attrs) {
-  ArrayRef<ssize_t> shape;
+  ArrayRef<Index> shape;
   if (!attrs.GetArray("shape", &shape))
     return MakeStringError(
         "tfrt_test.create_from_scalar must have 'shape' attribute");
@@ -85,7 +85,7 @@ static Expected<TensorMetadata> ElementwiseOpMD(const TensorMetadata& lhs,
 
 static Expected<TensorMetadata> BroadcastMD(const TensorMetadata& arg,
                                             const OpAttrsRef& attrs) {
-  ArrayRef<ssize_t> shape;
+  ArrayRef<Index> shape;
   if (!attrs.GetArray("shape", &shape))
     return MakeStringError("missing 'shape' attribute");
 
@@ -122,7 +122,7 @@ static Expected<TensorMetadata> ReduceOpShape(const TensorMetadata& arg,
   auto rank = arg.shape.GetRank();
   if (axis >= rank) return MakeStringError("axis must less than input rank");
 
-  SmallVector<ssize_t, 4> result_dims;
+  SmallVector<Index, 4> result_dims;
   result_dims.resize(rank - 1);
   size_t out_axis = 0;
   for (size_t in_axis = 0; in_axis < rank; ++in_axis) {
@@ -152,7 +152,7 @@ static Expected<TensorMetadata> ReduceMeanMD(const TensorMetadata& arg,
 }
 
 static Expected<TensorMetadata> CreateDenseTensorMD(const OpAttrsRef& attrs) {
-  ArrayRef<ssize_t> shape;
+  ArrayRef<Index> shape;
   if (!attrs.GetArray("shape", &shape))
     return MakeStringError("missing 'shape' attribute");
 
@@ -225,7 +225,7 @@ static Expected<TensorMetadata> CreateCooTensorMD(
   if (values_md.shape.GetRank() != 1)
     return MakeStringError(
         "tfrt_test.create_coo_tensor values input must be rank 1");
-  ArrayRef<ssize_t> shape;
+  ArrayRef<Index> shape;
   if (!attrs.GetArray("shape", &shape))
     return MakeStringError(
         "tfrt_test.create_coo_tensor must have 'shape' attribute");

@@ -31,17 +31,17 @@ Expected<TensorShape> GetBroadcastedShape(const TensorShape& arg0_shape,
                                           const TensorShape& arg1_shape) {
   const int rank = std::max(arg0_shape.GetRank(), arg1_shape.GetRank());
 
-  SmallVector<ssize_t, 8> ret;
+  SmallVector<Index, 8> ret;
   ret.reserve(rank);
 
-  auto dim = [](const TensorShape& shape, int i) -> ssize_t {
+  auto dim = [](const TensorShape& shape, int i) -> Index {
     if (i >= shape.GetRank()) return 1;
     return shape.GetDimensionSize(shape.GetRank() - i - 1);
   };
 
   for (int i = 0; i < rank; i++) {
-    const ssize_t arg0_dim = dim(arg0_shape, i);
-    const ssize_t arg1_dim = dim(arg1_shape, i);
+    const Index arg0_dim = dim(arg0_shape, i);
+    const Index arg1_dim = dim(arg1_shape, i);
 
     if (arg0_dim == arg1_dim) {
       ret.push_back(arg0_dim);
@@ -68,19 +68,19 @@ Expected<ArgumentBCast> GetArgumentBCast(const TensorShape& argument_shape,
 
   size_t rank = std::max(argument_shape.GetRank(), result_shape.GetRank());
 
-  SmallVector<ssize_t, 8> arg_dims(rank, 1);
-  SmallVector<ssize_t, 8> res_dims(rank, 1);
+  SmallVector<Index, 8> arg_dims(rank, 1);
+  SmallVector<Index, 8> res_dims(rank, 1);
 
   // Get dimensions skipping additional dimensions of size 1.
   size_t arg_extra_dims = rank - argument_shape.GetRank();
-  argument_shape.GetDimensions(MutableArrayRef<ssize_t>(
+  argument_shape.GetDimensions(MutableArrayRef<Index>(
       arg_dims.data() + arg_extra_dims, argument_shape.GetRank()));
 
   // Result can't have extra dimensions.
   result_shape.GetDimensions(&res_dims);
 
   // Compute a broadcast specification for the argument shape.
-  SmallVector<ssize_t, 8> broadcast;
+  SmallVector<Index, 8> broadcast;
   for (size_t i = 0; i < rank; ++i) {
     if (arg_dims[i] == res_dims[i]) {
       broadcast.push_back(1);

@@ -40,7 +40,7 @@ Expected<CooHostTensor> ParseCooTensorFromStream(std::ifstream* stream,
     return MakeStringError("unexpected tensor layout ", layout);
   }
 
-  std::array<ssize_t, Rank> dims;
+  std::array<Index, Rank> dims;
   if (!ReadStream(stream, dims.data(), Rank)) {
     return MakeStringError("failed to read tensor dims at offset ", offset);
   }

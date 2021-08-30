@@ -359,7 +359,7 @@ static Expected<DenseHostTensor> Broadcast1D(const DenseHostTensor& A,
   // TODO(fishx): Try to reuse Metadata fn.
   // This broadcast specializes for MNIST bias.
   DHTIndexableView<T, 1> A_view(&A);
-  ssize_t target_dims[N];
+  Index target_dims[N];
   target_shape.GetDimensions(target_dims);
   const auto& shape_A = A_view.FixedShape();
   if (target_dims[N - 1] != shape_A[0]) {
@@ -433,7 +433,7 @@ static Expected<DenseHostTensor> Argmax(const DenseHostTensor& A,
   static_assert(Axis < Rank, "Axis < Rank");
   DHTIndexableView<T, Rank> A_view(&A);
   const auto& shape_A = A_view.FixedShape();
-  std::array<ssize_t, Rank - 1> result_dims;
+  std::array<Index, Rank - 1> result_dims;
   size_t out_axis = 0;
   for (size_t in_axis = 0; in_axis < Rank; ++in_axis) {
     if (in_axis != Axis) {
@@ -526,7 +526,7 @@ static Expected<DenseHostTensor> ReduceMean(const DenseHostTensor& A,
   static_assert(Axis < Rank, "Axis < Rank");
   DHTIndexableView<T, Rank> A_view(&A);
   const auto& shape_A = A_view.FixedShape();
-  std::array<ssize_t, Rank - 1> result_dims;
+  std::array<Index, Rank - 1> result_dims;
   size_t out_axis = 0;
   for (size_t in_axis = 0; in_axis < Rank; ++in_axis) {
     if (in_axis != Axis) {

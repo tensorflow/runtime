@@ -37,7 +37,7 @@ llvm::Expected<PaddingType> ParsePaddingType(string_view padding_type) {
 }
 
 llvm::Expected<WindowedOutputDimension> ComputeWindowedOutputDimension(
-    ssize_t input_size, ssize_t filter_size, ssize_t stride, ssize_t dilation,
+    Index input_size, Index filter_size, Index stride, Index dilation,
     PaddingType padding_type, llvm::Optional<Padding> explicit_padding) {
   if (stride <= 0) {
     return llvm::createStringError(llvm::errc::invalid_argument,
@@ -61,7 +61,7 @@ llvm::Expected<WindowedOutputDimension> ComputeWindowedOutputDimension(
   }
 
   // Compute effective filter size taking into account dilation rate.
-  const ssize_t effective_filter_size = (filter_size - 1) * dilation + 1;
+  const Index effective_filter_size = (filter_size - 1) * dilation + 1;
 
   WindowedOutputDimension output_dimensions{0, {0, 0}};
 
@@ -83,9 +83,9 @@ llvm::Expected<WindowedOutputDimension> ComputeWindowedOutputDimension(
     case PaddingType::kSame:
       output_dimensions.output_size = (input_size + stride - 1) / stride;
 
-      const ssize_t padding_needed =
-          std::max(ssize_t{0}, (output_dimensions.output_size - 1) * stride +
-                                   effective_filter_size - input_size);
+      const Index padding_needed =
+          std::max(Index{0}, (output_dimensions.output_size - 1) * stride +
+                                 effective_filter_size - input_size);
 
       // For odd values of total padding, add more padding at the 'right'
       // side of the given dimension.
@@ -121,8 +121,8 @@ llvm::Error CheckShapeMatch(string_view lhs_name, const TensorShape& lhs_shape,
   return llvm::Error::success();
 }
 
-llvm::Error CheckDimensionMatch(string_view lhs_dim_name, ssize_t lhs_dim,
-                                string_view rhs_dim_name, ssize_t rhs_dim) {
+llvm::Error CheckDimensionMatch(string_view lhs_dim_name, Index lhs_dim,
+                                string_view rhs_dim_name, Index rhs_dim) {
   assert(lhs_dim >= 0 && rhs_dim >= 0);
 
   if (lhs_dim != rhs_dim) {

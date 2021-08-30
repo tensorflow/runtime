@@ -81,7 +81,7 @@ typename EigenEvaluator::DependencyToken FusedMatMul(
     if (bias.shape().GetRank() != 1)
       return eigen.MakeError("Bias tensor must a vector");
 
-    const ssize_t inner_dim = output->shape().GetDimensionSize(1);
+    const Index inner_dim = output->shape().GetDimensionSize(1);
     if (bias.NumElements() != inner_dim)
       return eigen.MakeError("The number of bias elements ", bias.NumElements(),
                              " doesn't match output inner dimension ",

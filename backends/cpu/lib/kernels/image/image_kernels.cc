@@ -73,7 +73,7 @@ static AsyncValueRef<DenseHostTensor> DecodeJpeg(
 // IDEA(donglin): allocate tensor buffer outside this kernel
 // Returns tf.compat.v1.image.resize(input, [height, width])
 static AsyncValueRef<DenseHostTensor> ResizeBilinear(
-    Argument<DenseHostTensor> input, int64_t height, int64_t width,
+    Argument<DenseHostTensor> input, Index height, Index width,
     const ExecutionContext& exec_ctx) {
   using ReturnTy = Expected<DenseHostTensor>;
   return EnqueueWork(
@@ -86,10 +86,10 @@ static AsyncValueRef<DenseHostTensor> ResizeBilinear(
           return MakeStringError(diag.message);
         }
 
-        ssize_t batch_size = 1;
-        ssize_t input_height = shape.GetDimensionSize(0);
-        ssize_t input_width = shape.GetDimensionSize(1);
-        ssize_t channels = shape.GetDimensionSize(2);
+        Index batch_size = 1;
+        Index input_height = shape.GetDimensionSize(0);
+        Index input_width = shape.GetDimensionSize(1);
+        Index channels = shape.GetDimensionSize(2);
         float height_scale = input_height / static_cast<float>(height);
         float width_scale = input_width / static_cast<float>(width);
 

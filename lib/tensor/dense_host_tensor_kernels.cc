@@ -36,7 +36,7 @@ namespace tfrt {
 
 template <typename T, size_t Rank>
 static Expected<DenseHostTensor> CreateUninitializedDenseTensor(
-    ArrayAttribute<ssize_t> shape_in, const ExecutionContext& exec_ctx) {
+    ArrayAttribute<Index> shape_in, const ExecutionContext& exec_ctx) {
   auto result = DenseHostTensor::CreateUninitialized<T>(
       TensorShape(shape_in.data()), exec_ctx.host());
   if (!result.hasValue()) {
@@ -82,7 +82,7 @@ static Expected<DenseHostTensor> SyncMakeTensor(
 
 template <typename T>
 static Expected<DenseHostTensor> CreateDenseTensor(
-    ArrayAttribute<ssize_t> shape, ArrayAttribute<T> values,
+    ArrayAttribute<Index> shape, ArrayAttribute<T> values,
     const ExecutionContext& exec_ctx) {
   auto result = DenseHostTensor::CreateUninitialized<T>(
       TensorShape(shape.data()), exec_ctx.host());
@@ -103,7 +103,7 @@ static Expected<DenseHostTensor> CreateDenseTensor(
 }
 
 template <typename T>
-static ScalarHostTensor<T> CreateFromScalar(ArrayAttribute<ssize_t> shape,
+static ScalarHostTensor<T> CreateFromScalar(ArrayAttribute<Index> shape,
                                             Attribute<T> value) {
   return ScalarHostTensor<T>{TensorShape{shape.data()}, *value};
 }

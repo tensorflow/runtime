@@ -70,8 +70,8 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
   }
 
   auto padding = attrs.GetStringAsserting("padding");
-  auto strides = attrs.GetArrayOptional<ssize_t>("strides");
-  auto ksize = attrs.GetArrayOptional<ssize_t>("ksize");
+  auto strides = attrs.GetArrayOptional<Index>("strides");
+  auto ksize = attrs.GetArrayOptional<Index>("ksize");
   auto data_format = attrs.GetStringOptional("data_format");
 
   if (strides.size() != 4) {
@@ -85,8 +85,8 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
     return EmitErrorAsync(exec_ctx, "only channel last order is supported");
   }
 
-  std::array<ssize_t, 2> strides_t{strides[1], strides[2]};
-  std::array<ssize_t, 2> ksize_t{ksize[1], ksize[2]};
+  std::array<Index, 2> strides_t{strides[1], strides[2]};
+  std::array<Index, 2> ksize_t{ksize[1], ksize[2]};
 
   AsyncValueRef<Chain> chain;
   switch (input.dtype()) {
@@ -116,7 +116,7 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
   }
 
   auto padding = attrs.GetStringAsserting("padding");
-  auto strides = attrs.GetArrayOptional<ssize_t>("strides");
+  auto strides = attrs.GetArrayOptional<Index>("strides");
   auto data_format = attrs.GetStringOptional("data_format");
 
   if (data_format.hasValue() && data_format.getValue().str() != "NHWC") {
@@ -126,7 +126,7 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
   if (strides.size() != 4) {
     return EmitErrorAsync(exec_ctx, "strides should have 4 elements");
   }
-  std::array<ssize_t, 2> strides_t{strides[1], strides[2]};
+  std::array<Index, 2> strides_t{strides[1], strides[2]};
 
   AsyncValueRef<Chain> chain;
   using OutputKernel = llvm::Expected<Eigen::NoOpOutputKernel>;

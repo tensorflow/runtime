@@ -99,14 +99,14 @@ __global__ void SwapDims1And2In3(T* out, T* in, int planes, int width,
   }
 }
 
-unsigned NumBlocks(ssize_t size, unsigned threads_per_block) {
+unsigned NumBlocks(Index size, unsigned threads_per_block) {
   return static_cast<unsigned>((size + threads_per_block - 1) /
                                threads_per_block);
 }
 
 struct CoalescedDimsAndPerm {
-  SmallVector<ssize_t, 8> dims;
-  SmallVector<ssize_t, 8> perm;
+  SmallVector<Index, 8> dims;
+  SmallVector<Index, 8> perm;
 };
 
 }  // namespace
@@ -117,13 +117,13 @@ struct CoalescedDimsAndPerm {
 // Example: Tensor shape {2, 3, 4, 5, 120} and permutation {0, 4, 1, 2, 3} will
 // produce new shape {2, 60, 120} and new permutation {0, 2, 1}.
 static CoalescedDimsAndPerm CoalesceTranspose(const TensorShape& shape,
-                                              ArrayRef<ssize_t> perm) {
+                                              ArrayRef<Index> perm) {
   assert(shape.GetRank() == perm.size());
 
   if (shape.GetRank() == 1) return {{shape.GetDimensionSize(0)}, {perm[0]}};
 
-  SmallVector<ssize_t, 8> new_dim_position(shape.GetRank(), -1);
-  SmallVector<ssize_t, 8> combined_dims(shape.GetRank(), 0);
+  SmallVector<Index, 8> new_dim_position(shape.GetRank(), -1);
+  SmallVector<Index, 8> combined_dims(shape.GetRank(), 0);
 
   int cur_head = perm[0];
   new_dim_position[cur_head] = 0;
@@ -167,8 +167,8 @@ static llvm::Error DispatchTrivialTranspose(
     const GpuBuffer& output, const CoalescedDimsAndPerm& transpose) {
   assert(transpose.dims.size() == 2 && transpose.perm.size() == 2);
 
-  ssize_t height = transpose.dims[0];
-  ssize_t width = transpose.dims[1];
+  Index height = transpose.dims[0];
+  Index width = transpose.dims[1];
 
   dim3 grid(NumBlocks(width, kTileSize), NumBlocks(height, kTileSize), 1);
   dim3 threads(kTileSize, kTileSize, 1);
@@ -209,9 +209,9 @@ static llvm::Error DispatchSwapDims1And2In3(
     const CoalescedDimsAndPerm& transpose) {
   assert(transpose.dims.size() == 3 && transpose.perm.size() == 3);
 
-  ssize_t planes = transpose.dims[0];
-  ssize_t height = transpose.dims[1];
-  ssize_t width = transpose.dims[2];
+  Index planes = transpose.dims[0];
+  Index height = transpose.dims[1];
+  Index width = transpose.dims[2];
 
   dim3 grid(NumBlocks(width, kTileSize), NumBlocks(height, kTileSize), 1);
   dim3 threads(kTileSize, kTileSize, 1);
@@ -246,12 +246,12 @@ static llvm::Error DispatchSwapDims1And2In3(
 }
 
 static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpImpl(
-    GpuDispatchContext* dctx, const DenseGpuTensor& input,
-    ArrayRef<ssize_t> perm, const TensorMetadata& result_md) {
+    GpuDispatchContext* dctx, const DenseGpuTensor& input, ArrayRef<Index> perm,
+    const TensorMetadata& result_md) {
   size_t num_result_elements = result_md.shape.GetNumElements();
   size_t size_in_bytes = GetHostSize(result_md.dtype) * num_result_elements;
 
-  using Perm = SmallVector<ssize_t, 8>;
+  using Perm = SmallVector<Index, 8>;
   auto transpose = CoalesceTranspose(input.shape(), perm);
 
   // Transpose: [x, y] -> [y, x]
@@ -296,7 +296,7 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOp(
     GpuDispatchContext* dctx, const DenseGpuTensor& input,
     const DenseGpuTensor& /*perm*/, const TensorMetadata& result_md) {
   // TODO(tfrt-devs): Read perm from the dense host tensor.
-  static constexpr ssize_t default_perm[] = {0, 3, 1, 2};
+  static constexpr Index default_perm[] = {0, 3, 1, 2};
 
   return ComputeTransposeGpuOpImpl(dctx, input, default_perm, result_md);
 }
@@ -312,7 +312,7 @@ static llvm::Expected<DenseGpuTensor> ComputeTransposeGpuOpFolded(
   DenseView perm_view = CreateDenseView(perm_attr);
   assert(perm_view.shape().GetRank() == 1);
 
-  SmallVector<ssize_t, 4> perm;
+  SmallVector<Index, 4> perm;
 
   switch (perm_view.dtype()) {
     case DType::I32: {

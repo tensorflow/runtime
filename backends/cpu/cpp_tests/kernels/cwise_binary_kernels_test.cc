@@ -73,7 +73,7 @@ void BinaryKernel(benchmark::State& state, int num_threads,
 }
 
 void AddTensorScalar(benchmark::State& state, int num_threads,
-                     ArrayRef<ssize_t> tensor_dims) {
+                     ArrayRef<Index> tensor_dims) {
   TensorShape lhs_shape(tensor_dims);
   TensorShape rhs_shape({});
   BinaryKernel(state, num_threads, lhs_shape, rhs_shape);

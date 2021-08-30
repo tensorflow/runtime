@@ -44,7 +44,7 @@ class CpuDriverTest : public testing::Test {
 
 TEST_F(CpuDriverTest, MatmulTest) {
   tfrt::OpAttrs attrs;
-  attrs.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 2});
+  attrs.SetArray("shape", tfrt::ArrayRef<Index>{2, 2});
   attrs.SetArray("values", tfrt::ArrayRef<float>{2.0});
   tfrt::TensorHandle a1;
   driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
@@ -82,7 +82,7 @@ TEST_F(CpuDriverTest, MatmulTest) {
 
 TEST_F(CpuDriverTest, ReluTest_InputForward) {
   tfrt::OpAttrs attrs;
-  attrs.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 2});
+  attrs.SetArray("shape", tfrt::ArrayRef<Index>{2, 2});
   attrs.SetArray("values", tfrt::ArrayRef<float>{2.0});
   tfrt::TensorHandle a1;
   driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
@@ -102,14 +102,14 @@ TEST_F(CpuDriverTest, ReluTest_InputForward) {
 TEST_F(CpuDriverTest, MatmulWithError) {
   tfrt::OpAttrs attrs1;
   tfrt::TensorHandle a1;
-  attrs1.SetArray("shape", tfrt::ArrayRef<ssize_t>{1, 1});
+  attrs1.SetArray("shape", tfrt::ArrayRef<Index>{1, 1});
   attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0});
   driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
                   "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
 
   tfrt::OpAttrs attrs2;
   tfrt::TensorHandle a2;
-  attrs2.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 1});
+  attrs2.SetArray("shape", tfrt::ArrayRef<Index>{2, 1});
   attrs2.SetArray("values", tfrt::ArrayRef<float>{2.0});
   driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
                   "tfrt_test.create_dense_tensor", {}, attrs2.freeze(), a2);
@@ -157,13 +157,13 @@ TEST_F(CpuDriverTest, MatmulWithError) {
 TEST_F(CpuDriverTest, NoLocation) {
   tfrt::OpAttrs attrs1;
   tfrt::TensorHandle a1;
-  attrs1.SetArray("shape", tfrt::ArrayRef<ssize_t>{1, 1});
+  attrs1.SetArray("shape", tfrt::ArrayRef<Index>{1, 1});
   attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0});
   driver_.Execute("tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
 
   tfrt::OpAttrs attrs2;
   tfrt::TensorHandle a2;
-  attrs2.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 1});
+  attrs2.SetArray("shape", tfrt::ArrayRef<Index>{2, 1});
   attrs2.SetArray("values", tfrt::ArrayRef<float>{2.0});
   driver_.Execute("tfrt_test.create_dense_tensor", {}, attrs2.freeze(), a2);
 
@@ -204,7 +204,7 @@ TEST_F(CpuDriverTest, NoLocation) {
 
 TEST_F(CpuDriverTest, CompositeOpTest) {
   tfrt::OpAttrs attrs;
-  attrs.SetArray("shape", tfrt::ArrayRef<ssize_t>{1});
+  attrs.SetArray("shape", tfrt::ArrayRef<Index>{1});
   attrs.SetArray("values", tfrt::ArrayRef<int32_t>{1});
   tfrt::TensorHandle a1;
   driver_.Execute(driver_.CreateExecutionContext(__FILE__, __LINE__),
@@ -311,7 +311,7 @@ void BM_CpuDriverTest(benchmark::State& state) {
 
   tfrt::OpAttrs attrs1;
   tfrt::TensorHandle a1;
-  attrs1.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 2});
+  attrs1.SetArray("shape", tfrt::ArrayRef<Index>{2, 2});
   attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0, 2.0, 2.0, 2.0});
   driver.Execute(driver.CreateExecutionContext(__FILE__, __LINE__),
                  "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);
@@ -335,7 +335,7 @@ void BM_CpuMakeOpDriverTest(benchmark::State& state) {
 
   tfrt::OpAttrs attrs1;
   tfrt::TensorHandle a1;
-  attrs1.SetArray("shape", tfrt::ArrayRef<ssize_t>{2, 2});
+  attrs1.SetArray("shape", tfrt::ArrayRef<Index>{2, 2});
   attrs1.SetArray("values", tfrt::ArrayRef<float>{2.0, 2.0, 2.0, 2.0});
   driver.Execute(driver.CreateExecutionContext(__FILE__, __LINE__),
                  "tfrt_test.create_dense_tensor", {}, attrs1.freeze(), a1);

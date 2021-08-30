@@ -30,12 +30,12 @@ namespace tfrt {
 static void TsBuildShape(AsyncKernelFrame* frame) {
   frame->AssertArity(/*nargs*/ 0, /*nattributes*/ 1, /*nresults*/ 1);
 
-  ArrayRef<ssize_t> elements = frame->GetArrayAttributeAt<ssize_t>(0).data();
+  ArrayRef<Index> elements = frame->GetArrayAttributeAt<Index>(0).data();
   frame->EmplaceResult<TensorShape>(elements);
 }
 
 // Builds a `TensorShape` from an array attribute.
-static TensorShape TsSyncBuildShape(ArrayAttribute<ssize_t> shape) {
+static TensorShape TsSyncBuildShape(ArrayAttribute<Index> shape) {
   return TensorShape(shape.data());
 }
 
@@ -49,11 +49,11 @@ static bool TsEqualShape(Argument<TensorShape> lhs, Argument<TensorShape> rhs) {
   return *lhs == *rhs;
 }
 
-static ssize_t TsGetDimension(const TensorShape& shape, int idx) {
+static Index TsGetDimension(const TensorShape& shape, int idx) {
   return shape.GetDimensionSize(idx);
 }
 
-static ssize_t TsGetNumElements(const TensorShape& shape) {
+static Index TsGetNumElements(const TensorShape& shape) {
   return shape.GetNumElements();
 }
 
@@ -69,7 +69,7 @@ static Chain TsPrintFixedRankShape(Argument<FixedRankShape<Rank>> arg) {
   return Chain();
 }
 
-static PartialTensorShape TsBuildPartialShape(ArrayAttribute<ssize_t> shape) {
+static PartialTensorShape TsBuildPartialShape(ArrayAttribute<Index> shape) {
   return PartialTensorShape(shape.data());
 }
 
@@ -91,7 +91,7 @@ static PartialTensorShape TsToPartialShape(const TensorShape& arg) {
   // TODO(haoliang): Ideally we should be able to build a PartialTensorShape
   // directly from a TensorShape via a constructor method, so that we can avoid
   // allocating the temporary dimensions array.
-  llvm::SmallVector<ssize_t, 4> dims;
+  llvm::SmallVector<Index, 4> dims;
   dims.reserve(arg.GetRank());
   arg.GetDimensions(&dims);
   return PartialTensorShape(llvm::makeArrayRef(dims));

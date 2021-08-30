@@ -125,7 +125,7 @@ struct MemRefArgument {
 
 template <size_t N>
 MemRefArgument<N> MakeMemRefArgument(wrapper::Pointer<const void> ptr,
-                                     const std::array<ssize_t, N>& dimensions) {
+                                     const std::array<Index, N>& dimensions) {
   assert(dimensions.size() == N);
   MemRefArgument<N> result = {nullptr, ptr.raw(), 0};
   int64_t stride = 1;
@@ -147,7 +147,7 @@ void CopyMemRefArgumentPtrs(const MemRefArgument<N>& memref_arg, It out) {
   for (const auto& stride : memref_arg.strides) *out++ = &stride;
 }
 
-auto GetGridDim(llvm::ArrayRef<ssize_t> shape,
+auto GetGridDim(llvm::ArrayRef<Index> shape,
                 llvm::ArrayRef<unsigned> block_dim) {
   std::array<unsigned, 3> grid_dim;
   for (int i = 0; i < shape.size(); ++i)
@@ -182,13 +182,13 @@ static llvm::Expected<DenseGpuTensor> ComputeBiasAddGpuOp(
         }
       }());
 
-  llvm::SmallVector<ssize_t, 4> dimensions;
+  llvm::SmallVector<Index, 4> dimensions;
   input.shape().GetDimensions(&dimensions);
-  std::array<ssize_t, 2> shape = {
+  std::array<Index, 2> shape = {
       {std::accumulate(dimensions.begin(), dimensions.end() - 1, 1,
-                       std::multiplies<ssize_t>()),
+                       std::multiplies<Index>()),
        dimensions.back()}};
-  std::array<ssize_t, 1> bias_shape = {{shape[1]}};
+  std::array<Index, 1> bias_shape = {{shape[1]}};
 
   auto output_arg = MakeMemRefArgument(output_buffer.pointer(), shape);
   auto input_arg = MakeMemRefArgument(input.buffer().pointer(), shape);
@@ -242,7 +242,7 @@ static llvm::Expected<DenseGpuTensor> ComputeReluGpuOp(
         }
       }());
 
-  std::array<ssize_t, 1> shape = {{input.shape().GetNumElements()}};
+  std::array<Index, 1> shape = {{input.shape().GetNumElements()}};
 
   auto input_arg = MakeMemRefArgument(input.buffer().pointer(), shape);
   auto output_arg = MakeMemRefArgument(output_buffer.pointer(), shape);

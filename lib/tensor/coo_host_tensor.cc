@@ -64,7 +64,7 @@ void CooHostTensor::Print(raw_ostream &os) const {
 
   auto element_size = GetHostSize(dtype());
   auto *data_ptr = static_cast<const char *>(Values()->data());
-  for (ssize_t i = 0, e = Values()->NumElements(); i != e; ++i) {
+  for (Index i = 0, e = Values()->NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";
     os << FormatDType(dtype(), data_ptr + i * element_size);
   }

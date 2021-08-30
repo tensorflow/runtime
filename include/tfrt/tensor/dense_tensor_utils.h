@@ -85,7 +85,7 @@ bool TensorEqual(const DenseHostTensor& lhs, const DenseHostTensor& rhs) {
 // coordinate prefix and returns a view onto the remaining dimensions.
 // It is similar to indexing into a numpy array, e.g. for a 5D ndarray A, the
 // slice A[1, 3] would return a 3D view.
-DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<ssize_t> dims);
+DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<Index> dims);
 
 // Flattens a DHT into a Rank-1 DHT that will share the underlying HostBuffer.
 DenseHostTensor Flatten(const DenseHostTensor& tensor);

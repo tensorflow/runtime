@@ -25,9 +25,9 @@
 namespace tfrt {
 namespace {
 
-llvm::SmallVector<int64_t, 4> ComputeInnerDims(
-    const llvm::SmallVector<ssize_t, 4>& orig_dims, int64_t num_out_dims) {
-  llvm::SmallVector<int64_t, 4> out_dims(num_out_dims, 0);
+llvm::SmallVector<Index, 4> ComputeInnerDims(
+    const llvm::SmallVector<Index, 4>& orig_dims, int64_t num_out_dims) {
+  llvm::SmallVector<Index, 4> out_dims(num_out_dims, 0);
   int64_t offset = orig_dims.size() - num_out_dims;
   for (int64_t out_dim = num_out_dims - 1; out_dim >= 0; --out_dim) {
     const int64_t in_dim = out_dim + offset;
@@ -44,7 +44,7 @@ llvm::SmallVector<int64_t, 4> ComputeInnerDims(
 
 raw_ostream& operator<<(raw_ostream& os, const TensorShape& value) {
   os << '[';
-  SmallVector<ssize_t, 8> dims;
+  SmallVector<Index, 8> dims;
   value.GetDimensions(&dims);
   if (!dims.empty()) {
     os << dims[0];
@@ -75,8 +75,8 @@ bool TensorShape::operator!=(const TensorShape& other) const {
 
 // Return the total number of elements in this TensorShape.  This is all of
 // the dimensions multiplied together.
-ssize_t TensorShape::GetNumElements() const {
-  ssize_t result = 1;
+Index TensorShape::GetNumElements() const {
+  Index result = 1;
   switch (GetRepresentationKind()) {
     case RepKind::kRep16:
       for (size_t i = 0, e = GetRank(); i != e; ++i)
@@ -109,7 +109,7 @@ ssize_t TensorShape::GetNumElements() const {
   }
 }
 
-void TensorShape::GetDimensions(MutableArrayRef<ssize_t> result) const {
+void TensorShape::GetDimensions(MutableArrayRef<Index> result) const {
   auto rank = GetRank();
   assert(rank == result.size() && "Incorrect rank");
   switch (GetRepresentationKind()) {
@@ -144,11 +144,11 @@ void TensorShape::GetDimensions(MutableArrayRef<ssize_t> result) const {
   }
 }
 
-void TensorShape::GetStrides(MutableArrayRef<ssize_t> result) const {
+void TensorShape::GetStrides(MutableArrayRef<Index> result) const {
   GetDimensions(result);
-  ssize_t multiplier = 1;
+  Index multiplier = 1;
   for (int i = GetRank() - 1; i >= 0; --i) {
-    ssize_t dim_size = result[i];
+    Index dim_size = result[i];
     result[i] = multiplier;
     multiplier *= dim_size;
   }
@@ -156,18 +156,18 @@ void TensorShape::GetStrides(MutableArrayRef<ssize_t> result) const {
 
 // Return all of the dimensions in this TensorShape in a way that is easy to
 // process.
-void TensorShape::GetDimensions(SmallVectorImpl<ssize_t>* result) const {
+void TensorShape::GetDimensions(SmallVectorImpl<Index>* result) const {
   result->resize(GetRank());
   GetDimensions(*result);
 }
 
 // Return strides of this TensorShape in a way that is easy to process.
-void TensorShape::GetStrides(SmallVectorImpl<ssize_t>* result) const {
+void TensorShape::GetStrides(SmallVectorImpl<Index>* result) const {
   result->resize(GetRank());
   GetStrides(*result);
 }
 
-ssize_t TensorShape::GetDimensionSize(int dim_idx) const {
+Index TensorShape::GetDimensionSize(int dim_idx) const {
   assert(dim_idx < GetRank());
   switch (GetRepresentationKind()) {
     case RepKind::kRep16:
@@ -205,10 +205,10 @@ raw_ostream& operator<<(raw_ostream& os, const PartialTensorShape& value) {
   return os << ']';
 }
 
-PartialTensorShape::PartialTensorShape(Optional<ArrayRef<int64_t>> dims) {
+PartialTensorShape::PartialTensorShape(Optional<ArrayRef<Index>> dims) {
   if (dims.hasValue()) {
-    SmallVector<int64_t, 4> dims_vec{dims.getValue().begin(),
-                                     dims.getValue().end()};
+    SmallVector<Index, 4> dims_vec{dims.getValue().begin(),
+                                   dims.getValue().end()};
     dims_ = std::move(dims_vec);
   }
 }
@@ -220,7 +220,7 @@ bool PartialTensorShape::IsUnranked() const {
   return true;
 }
 
-Optional<ArrayRef<int64_t>> PartialTensorShape::GetShape() const {
+Optional<ArrayRef<Index>> PartialTensorShape::GetShape() const {
   if (IsUnranked()) {
     return llvm::None;
   }
@@ -260,7 +260,7 @@ Expected<TensorShape> PartialTensorShape::ToTensorShape() const {
     return MakeStringError("Unknown rank");
   }
 
-  SmallVector<ssize_t, 4> unknown_dims;
+  SmallVector<Index, 4> unknown_dims;
   for (int i = 0; i < dims_->size(); i++) {
     if (IsUnknownDim(dims_.getValue()[i])) {
       unknown_dims.push_back(i);
@@ -300,7 +300,7 @@ template raw_ostream& operator<<(raw_ostream& os,
 
 TensorShape GetFlattenedInnerDimsShape(const TensorShape& shape,
                                        int64_t num_out_dims) {
-  llvm::SmallVector<ssize_t, 4> orig_dims(shape.GetRank());
+  llvm::SmallVector<Index, 4> orig_dims(shape.GetRank());
   shape.GetDimensions(&orig_dims);
   return TensorShape(ComputeInnerDims(orig_dims, num_out_dims));
 }

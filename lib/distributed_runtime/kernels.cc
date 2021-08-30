@@ -628,9 +628,9 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
     // For worker_1's tensor, it is split into 2 chunks of 3 elements each.
     //   each chunk should be copied into out_tensor at position 3 and 9.
     // result = [[0,1,2,60,70,80],[3,4,5,90,100,110]] dimension = 2x6
-    llvm::SmallVector<ssize_t, 4> in_dimension;
+    llvm::SmallVector<Index, 4> in_dimension;
     in_tensor->shape().GetDimensions(&in_dimension);
-    llvm::SmallVector<ssize_t, 4> out_dimension;
+    llvm::SmallVector<Index, 4> out_dimension;
     out_tensor->shape().GetDimensions(&out_dimension);
     // step_size refers to # of elements of input tensor to be copied into the
     // output tensor for each offset. step_size is determined by the axis.
@@ -711,13 +711,13 @@ void DoAllGatherAnyShape(const ExecutionContext& exec_ctx,
                          const int my_index, const DenseHostTensor& in_tensor,
                          AsyncValueRef<DenseHostTensor> out_tensor,
                          DenseHostTensor& shapes_tensor,
-                         MutableDHTArrayView<ssize_t> shape_tensor_view,
+                         MutableDHTArrayView<Index> shape_tensor_view,
                          AsyncValueRef<Chain> out_chain, size_t axis,
                          size_t kGroupSize, size_t kRank) {
   llvm::SmallVector<llvm::SmallVector<size_t, 4>, 4> offsets;
   llvm::SmallVector<size_t, 4> step_sizes;
-  llvm::SmallVector<ssize_t, 4> dimensions;
-  llvm::SmallVector<ssize_t, 4> tensor_sizes;
+  llvm::SmallVector<Index, 4> dimensions;
+  llvm::SmallVector<Index, 4> tensor_sizes;
   size_t gathered_dimension = 0;
   DHTArrayView<size_t> shapes_array(&shapes_tensor);
   // This is to check that all tensors have the same rank.
@@ -858,10 +858,10 @@ void AllGatherAnyShape(Argument<DistributedContext> dist_ctx,
   // Make a tensor consisting of my own shape.
   // GetRank() gives the number of dimensions
   const auto kRank = in_tensor->metadata().shape.GetRank();
-  TensorMetadata shape_md(GetDType<ssize_t>(), {1, kRank});
+  TensorMetadata shape_md(GetDType<Index>(), {1, kRank});
   auto shape_tensor = tfrt::DenseHostTensor::MakeConstructedAsyncValueRef(
       shape_md, exec_ctx.host());
-  MutableDHTArrayView<ssize_t> shape_tensor_view(&shape_tensor.get());
+  MutableDHTArrayView<Index> shape_tensor_view(&shape_tensor.get());
   in_tensor->shape().GetDimensions(shape_tensor_view.Elements());
 
   // Make a tensor to store all tensors' shapes.

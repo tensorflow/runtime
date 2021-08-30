@@ -270,9 +270,9 @@ class AsyncValueType : public Type {
 class MemrefType : public Type {
  public:
   static constexpr int64_t kDynamicSize = mlir::ShapedType::kDynamicSize;
-  MemrefType(ArrayRef<ssize_t> sizes, DType element_type);
+  MemrefType(ArrayRef<Index> sizes, DType element_type);
 
-  ArrayRef<ssize_t> sizes() const;
+  ArrayRef<Index> sizes() const;
   unsigned rank() const;
   DType element_type() const;
 
@@ -281,7 +281,7 @@ class MemrefType : public Type {
   }
 
  private:
-  llvm::SmallVector<ssize_t> sizes_;
+  llvm::SmallVector<Index> sizes_;
   DType element_type_;
 };
 
@@ -339,9 +339,9 @@ struct MemrefDesc {
 
   DType dtype;
   void* data;
-  ssize_t offset;
-  SmallVector<ssize_t, 4> sizes;
-  SmallVector<ssize_t, 4> strides;
+  Index offset;
+  SmallVector<Index, 4> sizes;
+  SmallVector<Index, 4> strides;
 };
 
 raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
@@ -976,7 +976,7 @@ class SymbolicShapesResolver {
   llvm::SmallVector<OperandConstraint> constraints_;
 
   // Statically known sizes of operands from the function signature.
-  llvm::SmallVector<Optional<llvm::SmallVector<ssize_t>>> operands_sizes_;
+  llvm::SmallVector<Optional<llvm::SmallVector<Index>>> operands_sizes_;
 
   // Values of statically known dimensions sizes in the function signature.
   llvm::DenseSet<int64_t> seen_static_sizes_;

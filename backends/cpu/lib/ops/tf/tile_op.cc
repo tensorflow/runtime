@@ -40,7 +40,7 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
   HostContext* host = exec_ctx.host();
 
   // Parse multiples tensor.
-  Expected<SmallVector<ssize_t, 5>> expected_multiples =
+  Expected<SmallVector<Index, 5>> expected_multiples =
       cpu::TileMultiples(multiples_arg);
   if (auto err = expected_multiples.takeError())
     return EmitErrorAsync(exec_ctx, std::move(err));
@@ -53,7 +53,7 @@ static AsyncValueRef<HostTensor> TfTileOp(const HostTensor& input_arg,
   }
 
   // Compute the output shape from the input shape and multiples.
-  SmallVector<ssize_t, 5> output_dims;
+  SmallVector<Index, 5> output_dims;
   for (int d = 0; d < expected_multiples->size(); ++d) {
     output_dims.push_back(input_shape.GetDimensionSize(d) *
                           (*expected_multiples)[d]);

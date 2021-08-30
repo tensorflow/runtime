@@ -124,10 +124,10 @@ struct CounterAndError {
 // corresponds the outermost `batch_size` rows will be copied to the output
 // tensor.
 static llvm::Expected<DenseHostTensor> TruncateTensor(
-    const DenseHostTensor& input_tensor, ssize_t batch_size,
+    const DenseHostTensor& input_tensor, Index batch_size,
     const ExecutionContext& exec_ctx) {
   auto& input_metadata = input_tensor.metadata();
-  SmallVector<ssize_t, 4> output_dims;
+  SmallVector<Index, 4> output_dims;
   input_metadata.shape.GetDimensions(&output_dims);
   output_dims[0] = batch_size;
 
@@ -325,7 +325,7 @@ static SmallVector<AsyncValueRef<DenseHostTensor>, 4> AllocateOutputTensors(
         result.SetError(metadata.GetError());
         return;
       }
-      SmallVector<ssize_t, 4> output_dims;
+      SmallVector<Index, 4> output_dims;
       output_dims.resize(metadata->shape.GetRank() + 1);
       output_dims[0] = batch_size;
       for (size_t i = 0; i < output_dims.size() - 1; ++i) {

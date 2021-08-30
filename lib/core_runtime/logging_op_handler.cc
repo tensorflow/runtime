@@ -67,7 +67,7 @@ void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
   // This tensor dump can be loaded into numpy and reshaped.
   // t = np.genfromtxt(tensor_filename, delimiter=",")
   // t = t.reshape(original_shape)
-  for (ssize_t i = 0, e = dht.NumElements(); i != e; ++i) {
+  for (Index i = 0, e = dht.NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";
     os << FormatDType(dht.dtype(), data_ptr + i * element_size);
   }
@@ -76,7 +76,7 @@ void FlattenTensorAndDumpToOStream(const DenseHostTensor &dht,
 void FlattenTensorAndDumpToOStream(const StringHostTensor &sht,
                                    llvm::raw_ostream &os) {
   auto strings = sht.strings();
-  for (ssize_t i = 0, e = sht.NumElements(); i != e; ++i) {
+  for (Index i = 0, e = sht.NumElements(); i != e; ++i) {
     if (i != 0) os << ", ";
     os << strings[i];
   }

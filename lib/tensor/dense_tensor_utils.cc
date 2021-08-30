@@ -30,7 +30,7 @@ namespace {
 // Returns the offset of the given coordinate in the underlying storage. If the
 // coordinates are of smaller rank than the shape, the coordinates are used as a
 // prefix and the missing trailing dimensions are filled with zeros.
-size_t OffsetOf(const TensorShape& shape, ArrayRef<ssize_t> dims) {
+size_t OffsetOf(const TensorShape& shape, ArrayRef<Index> dims) {
   size_t offset = 0;
   size_t stride = 1;
   for (int i = shape.GetRank() - 1; i >= 0; --i) {
@@ -45,12 +45,12 @@ size_t OffsetOf(const TensorShape& shape, ArrayRef<ssize_t> dims) {
 
 }  // namespace
 
-DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<ssize_t> dims) {
+DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<Index> dims) {
   assert(!dims.empty());
   const TensorMetadata& meta = tensor.metadata();
   assert(dims.size() <= meta.shape.GetRank());
   const size_t offset = OffsetOf(meta.shape, dims);
-  SmallVector<ssize_t, 4> new_shape;
+  SmallVector<Index, 4> new_shape;
   new_shape.reserve(meta.shape.GetRank() - 1);
   for (int i = dims.size(); i < meta.shape.GetRank(); i++) {
     new_shape.push_back(meta.shape.GetDimensionSize(i));
@@ -63,7 +63,7 @@ DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<ssize_t> dims) {
 }
 
 DenseHostTensor Flatten(const DenseHostTensor& tensor) {
-  std::array<ssize_t, 1> dims{tensor.metadata().shape.GetNumElements()};
+  std::array<Index, 1> dims{tensor.metadata().shape.GetNumElements()};
   return DenseHostTensor(
       TensorMetadata(tensor.metadata().dtype, TensorShape(dims)),
       tensor.buffer().CopyRef());

@@ -126,10 +126,10 @@ class MutableDHTArrayView : public DHTArrayView<DType> {
 };
 
 template <size_t Rank, typename... Dims>
-std::array<ssize_t, Rank> CoordFromDims(Dims... dims) {
+std::array<Index, Rank> CoordFromDims(Dims... dims) {
   static_assert(sizeof...(Dims) == Rank,
                 "invalid number of values in coordinate.");
-  return std::array<ssize_t, Rank>{static_cast<ssize_t>(dims)...};
+  return std::array<Index, Rank>{static_cast<Index>(dims)...};
 }
 
 // Returns the offset of the given coordinate in the underlying storage. If the
@@ -137,7 +137,7 @@ std::array<ssize_t, Rank> CoordFromDims(Dims... dims) {
 // prefix and the missing trailing dimensions are filled with zeros.
 template <size_t ShapeRank, size_t CoordRank>
 size_t OffsetOf(const FixedRankShape<ShapeRank>& fixed_shape,
-                const std::array<ssize_t, CoordRank>& coord) {
+                const std::array<Index, CoordRank>& coord) {
   static_assert(CoordRank <= ShapeRank,
                 "coordinates must be within shape rank");
   size_t offset = 0;
@@ -172,7 +172,7 @@ class DHTIndexableView {
   using value_type = DType;
 
   using FixedShapeType = FixedRankShape<Rank>;
-  using CoordType = std::array<ssize_t, Rank>;
+  using CoordType = std::array<Index, Rank>;
 
   DHTIndexableView() = default;
 
@@ -255,7 +255,7 @@ template <typename DType, size_t Rank>
 class MutableDHTIndexableView : public DHTIndexableView<DType, Rank> {
  public:
   using FixedShapeType = FixedRankShape<Rank>;
-  using CoordType = std::array<ssize_t, Rank>;
+  using CoordType = std::array<Index, Rank>;
 
   MutableDHTIndexableView() = default;
 

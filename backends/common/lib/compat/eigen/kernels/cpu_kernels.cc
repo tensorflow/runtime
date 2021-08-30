@@ -26,7 +26,7 @@ template <typename T>
 static AsyncValueRef<Chain> ZeroPadding(const DenseHostTensor& input,
                                         DenseHostTensor* output,
                                         const Chain& chain_in,
-                                        ArrayAttribute<ssize_t> padding,
+                                        ArrayAttribute<Index> padding,
                                         const ExecutionContext& exec_ctx) {
   if (padding.size() != 2) {
     return EmitErrorAsync(exec_ctx, "ZeroPadding expects padding of length 2");
@@ -41,8 +41,8 @@ template <typename T>
 static AsyncValueRef<Chain> MaxPool2D(const DenseHostTensor& input,
                                       DenseHostTensor* output, Chain chain_in,
                                       StringAttribute padding,
-                                      ArrayAttribute<ssize_t> ksize,
-                                      ArrayAttribute<ssize_t> strides,
+                                      ArrayAttribute<Index> ksize,
+                                      ArrayAttribute<Index> strides,
                                       const ExecutionContext& exec_ctx) {
   return MaxPoolImpl<T>(input, output, padding.get(), strides.data(),
                         ksize.data(), exec_ctx);
@@ -53,7 +53,7 @@ static AsyncValueRef<Chain> Conv2D(const DenseHostTensor& input,
                                    const DenseHostTensor& filter,
                                    DenseHostTensor* output, Chain chain_in,
                                    StringAttribute padding,
-                                   ArrayAttribute<ssize_t> strides,
+                                   ArrayAttribute<Index> strides,
                                    const ExecutionContext& exec_ctx) {
   using OutputKernel = llvm::Expected<Eigen::NoOpOutputKernel>;
   auto output_kernel = [](Conv2DParams) -> OutputKernel {

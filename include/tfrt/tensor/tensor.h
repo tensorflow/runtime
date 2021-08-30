@@ -59,7 +59,7 @@ class Tensor {
   // classes get added.
   TensorType tensor_type() const { return tensor_type_; }
 
-  ssize_t NumElements() const { return shape().GetNumElements(); }
+  Index NumElements() const { return shape().GetNumElements(); }
 
   virtual void Print(raw_ostream& os) const = 0;
 

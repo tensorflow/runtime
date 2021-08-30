@@ -29,6 +29,7 @@
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/host_context/host_buffer.h"
+#include "tfrt/support/forward_decls.h"
 #include "tfrt/tensor/btf.h"
 #include "tfrt/tensor/coo_host_tensor.h"
 #include "tfrt/tensor/dense_host_tensor.h"
@@ -142,7 +143,7 @@ class BtfFile {
     const int64_t* dims = Read<int64_t>(pos, rank);
     if (!dims) return llvm::None;
 
-    TensorMetadata metadata(type, llvm::ArrayRef<ssize_t>(dims, rank));
+    TensorMetadata metadata(type, llvm::ArrayRef<tfrt::Index>(dims, rank));
 
     size_t data_size = GetHostSize(type) * metadata.shape.GetNumElements();
     const void* data = Read<char>(pos, data_size);
@@ -165,7 +166,7 @@ class BtfFile {
     const int64_t* dims = Read<int64_t>(pos, rank);
     if (!dims) return llvm::None;
 
-    TensorShape shape(llvm::ArrayRef<ssize_t>(dims, rank));
+    TensorShape shape(llvm::ArrayRef<tfrt::Index>(dims, rank));
 
     llvm::Optional<DenseHostTensor> indices =
         ReadDenseHostTensorPayload(pos, DType(DType::I64), 2);
@@ -202,7 +203,7 @@ int main(int argc, char* argv[]) {
     return 1;
   }
 
-  std::vector<ssize_t> dims_vec;
+  std::vector<tfrt::Index> dims_vec;
   for (int i = 0; i < file.NumTensors(); i++) {
     size_t payload_pos;
     const TensorHeader* header = file.ReadTensorHeader(i, &payload_pos);

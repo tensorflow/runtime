@@ -46,7 +46,7 @@ void RegisterTensorShapeKernels(KernelRegistry* registry);
 class TensorShape {
  public:
   /// Create a TensorShape with the specified dimensions.
-  template <typename T = ssize_t>
+  template <typename T = Index>
   explicit TensorShape(ArrayRef<T> dims);
 
   template <typename Container>
@@ -67,46 +67,46 @@ class TensorShape {
 
   // Return the total number of elements in this TensorShape.  This is all of
   // the dimensions multiplied together.
-  ssize_t GetNumElements() const;
+  Index GetNumElements() const;
 
   // Return all of the dimensions in this TensorShape in a way that is easy to
   // process.
-  void GetDimensions(SmallVectorImpl<ssize_t>* result) const;
+  void GetDimensions(SmallVectorImpl<Index>* result) const;
 
   // A more optimized version than the above.
   template <size_t N>
-  void GetDimensions(ssize_t (&result)[N]) const {
-    GetDimensions(MutableArrayRef<ssize_t>(result, N));
+  void GetDimensions(Index (&result)[N]) const {
+    GetDimensions(MutableArrayRef<Index>(result, N));
   }
 
   template <size_t N>
-  void GetDimensions(std::array<ssize_t, N>* result) const {
-    GetDimensions(MutableArrayRef<ssize_t>(result->data(), N));
+  void GetDimensions(std::array<Index, N>* result) const {
+    GetDimensions(MutableArrayRef<Index>(result->data(), N));
   }
 
-  void GetDimensions(MutableArrayRef<ssize_t> result) const;
+  void GetDimensions(MutableArrayRef<Index> result) const;
 
   // Return strides of this TensorShape assuming that the data is in row major
   // layout (the last dimension is contiguous in memory).
   //
   // See address calculation section for details:
   // https://en.wikipedia.org/wiki/Row-_and_column-major_order
-  void GetStrides(SmallVectorImpl<ssize_t>* result) const;
+  void GetStrides(SmallVectorImpl<Index>* result) const;
 
   template <size_t N>
-  void GetStrides(ssize_t (&result)[N]) const {
-    GetStrides(MutableArrayRef<ssize_t>(result, N));
+  void GetStrides(Index (&result)[N]) const {
+    GetStrides(MutableArrayRef<Index>(result, N));
   }
 
   template <size_t N>
-  void GetStrides(std::array<ssize_t, N>* result) const {
-    GetStrides(MutableArrayRef<ssize_t>(result->data(), N));
+  void GetStrides(std::array<Index, N>* result) const {
+    GetStrides(MutableArrayRef<Index>(result->data(), N));
   }
 
-  void GetStrides(MutableArrayRef<ssize_t> result) const;
+  void GetStrides(MutableArrayRef<Index> result) const;
 
   // `dim_idx` must be less than GetRank().
-  ssize_t GetDimensionSize(int dim_idx) const;
+  Index GetDimensionSize(int dim_idx) const;
 
  private:
   // The storage of TensorShape is carefully laid out to always be 16-bytes in
@@ -163,7 +163,7 @@ template <size_t Rank>
 class FixedRankShape {
  public:
   static constexpr size_t kRank = Rank;
-  using value_type = ssize_t;
+  using value_type = Index;
   using Dims = std::array<value_type, Rank>;
   using const_iterator = typename Dims::const_iterator;
   using iterator = typename Dims::iterator;
@@ -182,8 +182,8 @@ class FixedRankShape {
 
   size_t GetNumElements() const;
 
-  const ssize_t& operator[](size_t i) const { return dims_[i]; }
-  ssize_t& operator[](size_t i) { return dims_[i]; }
+  const Index& operator[](size_t i) const { return dims_[i]; }
+  Index& operator[](size_t i) { return dims_[i]; }
 
   const_iterator begin() const { return dims_.begin(); }
   const_iterator end() const { return dims_.end(); }
@@ -193,7 +193,7 @@ class FixedRankShape {
   TensorShape ToTensorShape() const { return TensorShape(dims_); }
 
  private:
-  std::array<ssize_t, Rank> dims_;
+  std::array<Index, Rank> dims_;
 };
 
 // Represents the shape of a tensor whose rank can either be unknown or known
@@ -210,12 +210,12 @@ class PartialTensorShape {
   // Create a PartialTensorShape with the dimensions. If rank itself is unknown,
   // (dims is llvm::None), this is an unranked. Else, it is ranked where each
   // dimensions could still be unknown (indicated by kUnknownDimSize) as well.
-  explicit PartialTensorShape(Optional<ArrayRef<int64_t>> dims);
+  explicit PartialTensorShape(Optional<ArrayRef<Index>> dims);
 
   // Returns the shape of the tensor.
   // If unranked, return llvm::None
   // If ranked, return dimensions (including kUnknownDimSize for unknown dim).
-  Optional<ArrayRef<int64_t>> GetShape() const;
+  Optional<ArrayRef<Index>> GetShape() const;
 
   // Returns true if the rank is unknown. Else, returns false.
   bool IsUnranked() const;
@@ -244,7 +244,7 @@ class PartialTensorShape {
   // We store dims in SmallVector here since PartialTensorShape is designed
   // for use in shape computations where we could alter the shape by adding/
   // removing dimensions.
-  Optional<SmallVector<int64_t, 4>> dims_;
+  Optional<SmallVector<Index, 4>> dims_;
 };
 
 //

@@ -152,12 +152,12 @@ static Expected<TensorMetadata> TfConvOpMd(const TensorMetadata& input,
   auto input_dims_nchw = GetDimensions(input.shape);
   // If input is NHWC, convert to NCHW.
   if (channel_order == ChannelOrder::ChannelLast)
-    RotateRight(llvm::MutableArrayRef<ssize_t>(input_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(input_dims_nchw).drop_front());
 
   auto padding = attrs.GetStringAsserting("padding");
   auto explicit_paddings = attrs.GetArrayOptional<int>("explicit_paddings");
-  auto strides = attrs.GetArrayOptional<ssize_t>("strides");
-  auto dilations = attrs.GetArrayOptional<ssize_t>("dilations");
+  auto strides = attrs.GetArrayOptional<Index>("strides");
+  auto dilations = attrs.GetArrayOptional<Index>("dilations");
   TFRT_ASSIGN_OR_RETURN(
       auto windowed_output_data,
       GetTfWindowedOutputData(input_dims_nchw, filter_dims, channel_order,
@@ -166,7 +166,7 @@ static Expected<TensorMetadata> TfConvOpMd(const TensorMetadata& input,
   auto output_dims_nchw = windowed_output_data.output_dims;
   // If input is NHWC, convert output to NHWC as well.
   if (channel_order == ChannelOrder::ChannelLast) {
-    RotateRight(llvm::MutableArrayRef<ssize_t>(output_dims_nchw).drop_front(),
+    RotateRight(llvm::MutableArrayRef<Index>(output_dims_nchw).drop_front(),
                 output_dims_nchw.size() - 2);
   }
 
@@ -181,7 +181,7 @@ static Expected<TensorMetadata> TfShapeOpMd(const TensorMetadata& input,
   if (dtype != DType::I32 && dtype != DType::I64)
     return MakeStringError("Unsupported `out_type` value: ", dtype);
 
-  return TensorMetadata(dtype, ArrayRef<ssize_t>{input.shape.GetRank()});
+  return TensorMetadata(dtype, ArrayRef<Index>{input.shape.GetRank()});
 }
 
 static Expected<TensorMetadata> TfZerosLikeOpMd(const TensorMetadata& input,
@@ -197,15 +197,15 @@ static Expected<TensorMetadata> TfMaxPoolOpMd(const TensorMetadata& input,
   auto padding = attrs.GetStringAsserting("padding");
   auto explicit_paddings = attrs.GetArrayOptional<int>("explicit_paddings");
   auto data_format = attrs.GetStringOptional("data_format");
-  auto strides = attrs.GetArrayOptional<ssize_t>("strides");
-  auto dilations = attrs.GetArrayOptional<ssize_t>("dilations");
-  auto ksize = attrs.GetArrayOptional<ssize_t>("ksize");
+  auto strides = attrs.GetArrayOptional<Index>("strides");
+  auto dilations = attrs.GetArrayOptional<Index>("dilations");
+  auto ksize = attrs.GetArrayOptional<Index>("ksize");
   auto channel_order = GetTfChannelOrder(data_format);
 
   auto input_dims_nchw = GetDimensions(input.shape);
   // If input is NHWC, convert to NCHW.
   if (channel_order == ChannelOrder::ChannelLast)
-    RotateRight(llvm::MutableArrayRef<ssize_t>(input_dims_nchw).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(input_dims_nchw).drop_front());
 
   auto filter_dims =
       MaybeExpandFilterSizes(ksize, input.shape.GetRank(), channel_order);
@@ -224,7 +224,7 @@ static Expected<TensorMetadata> TfMaxPoolOpMd(const TensorMetadata& input,
   auto output_dims_nchw = windowed_output_data.output_dims;
   // If input is NHWC, convert output to NHWC as well.
   if (channel_order == ChannelOrder::ChannelLast) {
-    RotateRight(llvm::MutableArrayRef<ssize_t>(output_dims_nchw).drop_front(),
+    RotateRight(llvm::MutableArrayRef<Index>(output_dims_nchw).drop_front(),
                 output_dims_nchw.size() - 2);
   }
 
@@ -371,14 +371,14 @@ static Expected<TensorMetadata> TfPadOpFoldedMd(const TensorMetadata& input,
 }
 
 static Expected<TensorMetadata> TfTransposeOpMdImpl(const TensorMetadata& input,
-                                                    ArrayRef<ssize_t> perm,
+                                                    ArrayRef<Index> perm,
                                                     const OpAttrsRef& attrs) {
   if (perm.size() != input.shape.GetRank()) {
     return MakeStringError(
         "tf.Transpose `perm` must size must match input rank");
   }
 
-  llvm::SmallVector<ssize_t, 4> output_dims;
+  llvm::SmallVector<Index, 4> output_dims;
   for (int i = 0; i < input.shape.GetRank(); ++i) {
     output_dims.push_back(input.shape.GetDimensionSize(perm[i]));
   }
@@ -389,7 +389,7 @@ static Expected<TensorMetadata> TfTransposeOpMdImpl(const TensorMetadata& input,
 static Expected<TensorMetadata> TfTransposeOpMd(const TensorMetadata& input,
                                                 const TensorMetadata& /*perm*/,
                                                 const OpAttrsRef& attrs) {
-  static constexpr ssize_t default_perm[] = {0, 3, 1, 2};
+  static constexpr Index default_perm[] = {0, 3, 1, 2};
   return TfTransposeOpMdImpl(input, default_perm, attrs);
 }
 
@@ -403,7 +403,7 @@ static Expected<TensorMetadata> TfTransposeOpFoldedMd(
   DenseView perm_view = CreateDenseView(perm_attr);
   assert(perm_view.shape().GetRank() == 1);
 
-  SmallVector<ssize_t, 4> perm;
+  SmallVector<Index, 4> perm;
   switch (perm_view.dtype()) {
     case DType::I32: {
       auto value = perm_view.GetFlat<int32_t>();
@@ -453,7 +453,7 @@ static Expected<TensorMetadata> TfMeanOpMdImpl(
     reduced_dim[reduction_index] = true;
   }
 
-  llvm::SmallVector<ssize_t, 4> output_dims;
+  llvm::SmallVector<Index, 4> output_dims;
   for (int i = 0; i < input.shape.GetRank(); ++i) {
     if (!reduced_dim[i]) output_dims.push_back(input.shape.GetDimensionSize(i));
   }

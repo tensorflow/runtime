@@ -53,7 +53,7 @@ static void ConvertFromDHT(ArgumentView<MutableDHTIndexableView<T, Rank>> in,
                            Argument<Chain> in_chain, Result<CooHostTensor> out,
                            Result<Chain> out_chain, KernelErrorHandler handler,
                            AsyncKernelFrame* frame) {
-  ssize_t num_non_zero_values = 0;
+  Index num_non_zero_values = 0;
   for (const auto& element : in->Elements()) {
     if (element != 0) {
       num_non_zero_values++;

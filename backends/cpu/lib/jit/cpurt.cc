@@ -108,7 +108,7 @@ using CallFrame = Executable::CallFrame;
 using ResultsMemoryLayout = Executable::ResultsMemoryLayout;
 
 raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
-  auto print_arr = [&](string_view name, ArrayRef<ssize_t> arr) {
+  auto print_arr = [&](string_view name, ArrayRef<Index> arr) {
     os << " " << name << ": [";
     if (!arr.empty()) {
       os << arr[0];
@@ -125,7 +125,7 @@ raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
 }
 
 raw_ostream& operator<<(raw_ostream& os, const Type& type) {
-  auto print_arr = [&](ArrayRef<ssize_t> arr) {
+  auto print_arr = [&](ArrayRef<Index> arr) {
     if (!arr.empty()) {
       os << arr[0];
       for (int i = 1; i < arr.size(); ++i) os << "x" << arr[i];
@@ -168,7 +168,7 @@ AsyncTokenType::AsyncTokenType() : Type(TypeKind::kAsyncToken) {}
 AsyncValueType::AsyncValueType(std::unique_ptr<Type> value_type)
     : Type(TypeKind::kAsyncValue), value_type_(std::move(value_type)) {}
 
-MemrefType::MemrefType(ArrayRef<ssize_t> sizes, DType element_type)
+MemrefType::MemrefType(ArrayRef<Index> sizes, DType element_type)
     : Type(TypeKind::kMemref),
       sizes_(sizes.begin(), sizes.end()),
       element_type_(element_type) {}
@@ -176,7 +176,7 @@ MemrefType::MemrefType(ArrayRef<ssize_t> sizes, DType element_type)
 UnrankedMemrefType::UnrankedMemrefType(DType element_type)
     : Type(TypeKind::kUnrankedMemref), element_type_(element_type) {}
 
-ArrayRef<ssize_t> MemrefType::sizes() const { return sizes_; }
+ArrayRef<Index> MemrefType::sizes() const { return sizes_; }
 
 unsigned MemrefType::rank() const { return sizes_.size(); }
 
@@ -358,8 +358,8 @@ static Error VerifyMemrefOperand(const MemrefType& type,
 
   // Check that all statically known dimensions matches the memref dimensions.
   for (auto pair : llvm::enumerate(llvm::zip(memref.sizes, type.sizes()))) {
-    ssize_t operand_dim = std::get<0>(pair.value());
-    ssize_t expected_dim = std::get<1>(pair.value());
+    Index operand_dim = std::get<0>(pair.value());
+    Index expected_dim = std::get<1>(pair.value());
 
     bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
 
@@ -380,7 +380,7 @@ static Error VerifyMemrefOperand(mlir::ShapedType type,
   // We do not support unranked memrefs at runtime, and do not have a special
   // runtime type to represent it, however we need to verify operand types when
   // we do compiled kernel specialization to shape.
-  MemrefType memref_type(type.hasRank() ? type.getShape() : ArrayRef<ssize_t>(),
+  MemrefType memref_type(type.hasRank() ? type.getShape() : ArrayRef<Index>(),
                          *element_type);
 
   return VerifyMemrefOperand(memref_type, memref,
@@ -456,8 +456,8 @@ static void AddMemrefArgument(const MemrefDesc& memref,
   add_arg(&memref.data);  // memref.basePtr
   add_arg(&memref.data);  // memref.data
   add_arg(&memref.offset);
-  for (const ssize_t& size : memref.sizes) add_arg(&size);
-  for (const ssize_t& stride : memref.strides) add_arg(&stride);
+  for (const Index& size : memref.sizes) add_arg(&size);
+  for (const Index& stride : memref.strides) add_arg(&stride);
 }
 
 Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
@@ -646,11 +646,11 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
   };
 
   for (const MemrefDesc& memref : operands) {
-    ssize_t size_in_bytes = GetHostSize(memref.dtype);
-    for (ssize_t size : memref.sizes) size_in_bytes *= size;
+    Index size_in_bytes = GetHostSize(memref.dtype);
+    for (Index size : memref.sizes) size_in_bytes *= size;
 
     uint8_t* data = static_cast<uint8_t*>(memref.data);
-    for (ssize_t i = 0; i < size_in_bytes; ++i) {
+    for (Index i = 0; i < size_in_bytes; ++i) {
       uint8_t value = data[i];
       do_not_optimize(value);
     }
@@ -1336,11 +1336,11 @@ SymbolicShapesResolver::SymbolicShapesResolver(
   for (unsigned i = 0; i < signature.num_operands(); ++i) {
     if (auto* memref = dyn_cast<MemrefType>(signature.operand(i))) {
       // Copy memref dimensions sizes from the signature type.
-      operands_sizes_.emplace_back(llvm::SmallVector<ssize_t>(
+      operands_sizes_.emplace_back(llvm::SmallVector<Index>(
           memref->sizes().begin(), memref->sizes().end()));
 
       // Keep track of all statically known dimension sizes.
-      for (ssize_t size : memref->sizes()) {
+      for (Index size : memref->sizes()) {
         if (size != MemrefType::kDynamicSize) seen_static_sizes_.insert(size);
       }
 
@@ -1542,7 +1542,7 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
     size_t rank = operand.sizes.size();
     assert(rank == 0 || rank == 1);
     size_t num_values = rank == 0 ? 1 : operand.sizes[0];
-    ssize_t len = num_values * GetHostSize(operand.dtype);
+    Index len = num_values * GetHostSize(operand.dtype);
     hash = llvm::hash_combine(hash, llvm::hash_combine_range(data, data + len));
   }
   return hash;

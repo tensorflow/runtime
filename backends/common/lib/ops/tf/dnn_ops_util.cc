@@ -22,13 +22,13 @@
 
 namespace tfrt {
 
-llvm::SmallVector<ssize_t, 4> GetDimensions(const TensorShape& shape) {
-  llvm::SmallVector<ssize_t, 4> dimensions(shape.GetRank());
+llvm::SmallVector<Index, 4> GetDimensions(const TensorShape& shape) {
+  llvm::SmallVector<Index, 4> dimensions(shape.GetRank());
   shape.GetDimensions(&dimensions);
   return dimensions;
 }
 
-void RotateRight(llvm::MutableArrayRef<ssize_t> array, size_t k) {
+void RotateRight(llvm::MutableArrayRef<Index> array, size_t k) {
   std::rotate(array.rbegin(), array.rbegin() + k, array.rend());
 }
 
@@ -51,11 +51,11 @@ ChannelOrder GetTfChannelOrder(Optional<string_view> data_format) {
 }
 
 llvm::Expected<WindowedOutputData> GetTfWindowedOutputData(
-    llvm::ArrayRef<ssize_t> input_dims,   // NCHW
-    llvm::ArrayRef<ssize_t> filter_dims,  // OIHW
+    llvm::ArrayRef<Index> input_dims,   // NCHW
+    llvm::ArrayRef<Index> filter_dims,  // OIHW
     ChannelOrder channel_order, string_view padding_string,
-    ArrayRef<int> explicit_paddings, ArrayRef<ssize_t> strides,
-    ArrayRef<ssize_t> dilations) {
+    ArrayRef<int> explicit_paddings, ArrayRef<Index> strides,
+    ArrayRef<Index> dilations) {
   auto rank = input_dims.size();
   if (filter_dims.size() != rank)
     return MakeStringError("Input and filter must have same rank.");
@@ -99,9 +99,10 @@ llvm::Expected<WindowedOutputData> GetTfWindowedOutputData(
   return result;
 }
 
-llvm::SmallVector<ssize_t, 4> MaybeExpandFilterSizes(
-    llvm::ArrayRef<ssize_t> sizes, int rank, ChannelOrder channel_order) {
-  llvm::SmallVector<ssize_t, 4> result(sizes.begin(), sizes.end());
+llvm::SmallVector<Index, 4> MaybeExpandFilterSizes(llvm::ArrayRef<Index> sizes,
+                                                   int rank,
+                                                   ChannelOrder channel_order) {
+  llvm::SmallVector<Index, 4> result(sizes.begin(), sizes.end());
 
   if (result.empty()) result.push_back(1);
 
@@ -112,7 +113,7 @@ llvm::SmallVector<ssize_t, 4> MaybeExpandFilterSizes(
     RotateRight(result, 2);  // HWNC to NCHW.
   } else if (channel_order == ChannelOrder::ChannelLast) {
     // NHWC to NCHW.
-    RotateRight(llvm::MutableArrayRef<ssize_t>(result).drop_front());
+    RotateRight(llvm::MutableArrayRef<Index>(result).drop_front());
   }
   return result;
 }

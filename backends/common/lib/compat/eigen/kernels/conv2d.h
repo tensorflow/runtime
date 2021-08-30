@@ -71,7 +71,7 @@ inline llvm::Error CheckBatchNormArgs(const Conv2DParams& params,
 template <typename T, typename OutputKernelBuilder>
 inline AsyncValueRef<Chain> Conv2DImpl(
     const DenseHostTensor& input, const DenseHostTensor& filter,
-    DenseHostTensor* output, string_view padding, ArrayRef<ssize_t> strides,
+    DenseHostTensor* output, string_view padding, ArrayRef<Index> strides,
     OutputKernelBuilder output_kernel_builder,
     const ExecutionContext& exec_ctx) {
   DHTIndexableView<T, 4> input_view(&input);
@@ -107,9 +107,9 @@ inline AsyncValueRef<Chain> Conv2DImpl(
   if (kernel_shape[0] == 1 && kernel_shape[1] == 1 &&  // 1x1 kernel
       strides[0] == 1 && strides[1] == 1 &&            // 1x1 stride
       params->padding_type != PaddingType::kExplicit) {
-    const ssize_t rest_size = params->output_shape[0] *  // batch
-                              params->output_shape[1] *  // output height
-                              params->output_shape[2];   // output width
+    const Index rest_size = params->output_shape[0] *  // batch
+                            params->output_shape[1] *  // output height
+                            params->output_shape[2];   // output width
 
     auto reshaped_in = FixedRankShape<2>({rest_size, kernel_shape[2]});
     auto reshaped_kern = FixedRankShape<2>({kernel_shape[2], kernel_shape[3]});
@@ -154,7 +154,7 @@ AsyncValueRef<Chain> Conv2DBatchNorm(
     const DenseHostTensor& offset,  // aka beta
     const DenseHostTensor& mean, const DenseHostTensor& variance,
     DenseHostTensor* output, Chain chain_in, Attribute<float> epsilon,
-    StringAttribute padding, ArrayAttribute<ssize_t> strides,
+    StringAttribute padding, ArrayAttribute<Index> strides,
     const ExecutionContext& exec_ctx) {
   using OutputKernel = llvm::Expected<BatchNormOutputKernel<T, Activation>>;
 
@@ -190,7 +190,7 @@ AsyncValueRef<Chain> Conv2DBias(const DenseHostTensor& input,
                                 const DenseHostTensor& bias,
                                 DenseHostTensor* output, Chain chain_in,
                                 StringAttribute padding,
-                                ArrayAttribute<ssize_t> strides,
+                                ArrayAttribute<Index> strides,
                                 const ExecutionContext& exec_ctx) {
   using OutputKernel = llvm::Expected<BiasAddOutputKernel<T, Activation>>;
 

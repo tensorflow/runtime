@@ -79,7 +79,7 @@ static Expected<StringHostTensor> TfConcatOpString(
         "TfConcatOp: failed to allocate StringHostTensor result");
   }
 
-  auto compute_flat_dim = [](llvm::ArrayRef<ssize_t> dims, int begin, int end) {
+  auto compute_flat_dim = [](llvm::ArrayRef<Index> dims, int begin, int end) {
     assert(begin >= 0);
     assert(end <= dims.size());
     assert(begin <= end);
@@ -91,7 +91,7 @@ static Expected<StringHostTensor> TfConcatOpString(
     return result;
   };
 
-  llvm::SmallVector<ssize_t, 4> output_dims;
+  llvm::SmallVector<Index, 4> output_dims;
   output_md.shape.GetDimensions(&output_dims);
 
   // The following logic basically reshape the output and args to rank-2 tensors
@@ -103,7 +103,7 @@ static Expected<StringHostTensor> TfConcatOpString(
 
   int64_t inner_offset = 0;
   for (const auto& arg : args) {
-    llvm::SmallVector<ssize_t, 4> arg_dims;
+    llvm::SmallVector<Index, 4> arg_dims;
     arg.shape().GetDimensions(&arg_dims);
     int64_t arg_inner_dim = compute_flat_dim(arg_dims, axis, arg_dims.size());
     assert(inner_offset + arg_inner_dim <= inner_dim);

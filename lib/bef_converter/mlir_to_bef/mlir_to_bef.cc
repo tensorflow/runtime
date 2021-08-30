@@ -473,7 +473,8 @@ LogicalResult EntityTable::Collect(mlir::ModuleOp module,
   // translated to BEF can be resolved.
   if (result == LogicalResult::Success) {
     for (auto attr_and_loc : fn_attrs) {
-      if (GetFunctionNamed(attr_and_loc.first.getRootReference()) == -1) {
+      if (GetFunctionNamed(attr_and_loc.first.getRootReference().getValue()) ==
+          -1) {
         mlir::emitError(attr_and_loc.second)
             << "function " << attr_and_loc.first << " not defined";
         return LogicalResult::Failure;

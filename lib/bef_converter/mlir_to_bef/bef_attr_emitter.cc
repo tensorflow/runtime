@@ -435,7 +435,7 @@ size_t BefAttrEmitter::EmitSymbolRefAttribute(
   auto symbol = attr.cast<mlir::SymbolRefAttr>();
 
   // Length of the root symbol name.
-  EmitVbrInt(symbol.getRootReference().size());
+  EmitVbrInt(symbol.getRootReference().getValue().size());
 
   // Lengths of the nested symbols names.
   size_t num_nested_refs = symbol.getNestedReferences().size();

@@ -274,7 +274,8 @@ mlir::Attribute BefAttrReader::ReadSymbolRefAttribute(
     nested.push_back(mlir::FlatSymbolRefAttr::get(&context_, nested_symbol));
   }
   compilation_units.insert({loc, attr.serialized_operation()});
-  return mlir::SymbolRefAttr::get(&context_, attr.root_symbol(), nested);
+  return mlir::SymbolRefAttr::get(
+      mlir::StringAttr::get(&context_, attr.root_symbol()), nested);
 }
 
 }  // namespace tfrt

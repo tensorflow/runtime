@@ -82,7 +82,7 @@ const BefCompilationUnits::Serialized& BefCompilationUnits::Serialize(
   llvm::raw_string_ostream os(str);
 
   // Print symbol names.
-  os << symbol.getRootReference();
+  os << symbol.getRootReference().getValue();
   for (auto nested_ref : symbol.getNestedReferences())
     os << nested_ref.getValue();
 

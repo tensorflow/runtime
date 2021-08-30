@@ -77,7 +77,7 @@ tfrt_cc_library(
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigen_kernels",  # TODO(csigg): Only for shape_functions.h, fix.
+        "@tf_runtime//backends/common:shape_functions",
     ],
 )
 
@@ -175,6 +175,18 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "shape_functions",
+    srcs = ["lib/compat/eigen/kernels/shape_functions.cc"],
+    hdrs = ["include/tfrt/common/compat/eigen/kernels/shape_functions.h"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@tf_runtime//:support",
+        "@tf_runtime//:tensor",
+    ],
+)
+
+tfrt_cc_library(
     name = "eigen_kernels",
     srcs = [
         "lib/compat/eigen/kernels/batch_norm_grad.cc",
@@ -183,11 +195,9 @@ tfrt_cc_library(
         "lib/compat/eigen/kernels/conv2d_shape_functions.cc",
         "lib/compat/eigen/kernels/cpu_kernels.cc",
         "lib/compat/eigen/kernels/matmul.cc",
-        "lib/compat/eigen/kernels/shape_functions.cc",
         "lib/compat/eigen/kernels/zero_padding.h",
     ],
     hdrs = [
-        "include/tfrt/common/compat/eigen/kernels/shape_functions.h",
         # These headers are needed by the `eigen_ops` bazel target. Move them
         # to include/ if they are needed by other bazel targets.
         "lib/compat/eigen/kernels/conv2d_shape_functions.h",
@@ -200,6 +210,7 @@ tfrt_cc_library(
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":eigencompat",
+        ":shape_functions",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

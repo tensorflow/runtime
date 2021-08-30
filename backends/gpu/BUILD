@@ -502,7 +502,6 @@ tfrt_cc_library(
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigen_kernels",
         "@tf_runtime//backends/common:eigencompat",
         "@tf_runtime//backends/common:tf_metadata_functions",
     ] + select({
@@ -652,8 +651,8 @@ tfrt_cc_library(
         "@tf_runtime//:dtype",
         "@tf_runtime//:support",
         "@tf_runtime//:tensor",
-        "@tf_runtime//backends/common:eigen_kernels",  # TODO(csigg): Only for shape_functions.h, fix.
         "@tf_runtime//backends/common:eigencompat",
+        "@tf_runtime//backends/common:shape_functions",
         "@tf_runtime//backends/common:tf_dnn_ops_util",
     ],
 )

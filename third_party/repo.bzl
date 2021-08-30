@@ -36,7 +36,7 @@ def _get_link_dict(ctx, link_files, build_file):
 def _tfrt_http_archive_impl(ctx):
     # Construct all labels early on to prevent rule restart. We want the
     # attributes to be strings instead of labels because they refer to files
-    # in the TensorFlow repository, not files in repos depending on TensorFlow.
+    # in the TFRT repository, not files in repos depending on TFRT.
     # See also https://github.com/bazelbuild/bazel/issues/10515.
     link_dict = _get_link_dict(ctx, ctx.attr.link_files, ctx.attr.build_file)
 
@@ -81,11 +81,10 @@ _tfrt_http_archive = repository_rule(
 def tfrt_http_archive(name, sha256, urls, **kwargs):
     """Downloads and creates Bazel repos for dependencies.
 
-    This is a swappable replacement for both http_archive() and
-    new_http_archive() that offers some additional features. It also helps
-    ensure best practices are followed.
+    This is a swappable replacement for http_archive() that offers some
+    additional features. It also helps ensure best practices are followed.
 
-    File arguments are relative to the TensorFlow repository by default. Dependent
+    File arguments are relative to the TFRT repository by default. Dependent
     repositories that use this rule should refer to files either with absolute
     labels (e.g. '@foo//:bar') or from a label created in their repository (e.g.
     'str(Label("//:bar"))').

@@ -50,7 +50,8 @@ def tfrt_dependencies():
 
     tfrt_http_archive(
         name = "dnnl",
-        build_file = "@tf_runtime//third_party/dnnl:BUILD",
+        build_file = "//third_party/dnnl:BUILD",
+        link_files = {"//third_party/dnnl:expand_template.bzl": "expand_template.bzl"},
         sha256 = "5369f7b2f0b52b40890da50c0632c3a5d1082d98325d0f2bff125d19d0dcaa1d",
         strip_prefix = "oneDNN-1.6.4",
         urls = [

@@ -1,7 +1,4 @@
-load(
-    "@tf_runtime//third_party:common.bzl",
-    "template_rule",
-)
+load(":expand_template.bzl", "expand_template")
 
 exports_files(["LICENSE"])
 
@@ -11,7 +8,7 @@ _DNNL_RUNTIME_SEQ = {
     "#cmakedefine DNNL_GPU_RUNTIME DNNL_RUNTIME_${DNNL_GPU_RUNTIME}": "#define DNNL_GPU_RUNTIME DNNL_RUNTIME_NONE",
 }
 
-template_rule(
+expand_template(
     name = "dnnl_config_h",
     src = "include/dnnl_config.h.in",
     out = "include/dnnl_config.h",
@@ -26,7 +23,7 @@ template_rule(
 # be set to NA.
 # TODO(agramesh1) Automatically get the version numbers from CMakeLists.txt.
 
-template_rule(
+expand_template(
     name = "dnnl_version_h",
     src = "include/dnnl_version.h.in",
     out = "include/dnnl_version.h",

@@ -28,6 +28,7 @@
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/support/alloc.h"
 #include "tfrt/support/msan.h"
 
 namespace tfrt {
@@ -169,13 +170,18 @@ llvm::orc::SymbolMap AsyncRuntimeApiSymbolMap(
 
 namespace {
 
-void *RuntimeMalloc(size_t size) { return malloc(size); }
-
-void RuntimeFree(void *ptr) { return free(ptr); }
-
 void *RuntimeAlignedAlloc(size_t alignment, size_t size) {
-  return aligned_alloc(alignment, size);
+  return AlignedAlloc(alignment, size);
 }
+
+void *RuntimeMalloc(size_t size) {
+  // AlignedAlloc() requires results to be deallocated with AlignedFree().
+  // Make all allocations aligned because there is only one RuntimeFree().
+  // Align to the size of a pointer by default.
+  return RuntimeAlignedAlloc(sizeof(void *), size);
+}
+
+void RuntimeFree(void *ptr) { return AlignedFree(ptr); }
 
 }  // namespace
 

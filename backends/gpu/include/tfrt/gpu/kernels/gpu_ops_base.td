@@ -69,5 +69,9 @@ class GPU_WrapperAttr<string name> : DialectAttr<
 }
 
 def GPU_PlatformAttr : GPU_WrapperAttr<"Platform">;
+// Specific to CCL, but included here for export.
+def GPU_CclDataTypeAttr : GPU_WrapperAttr<"CclDataType"> {
+  let returnType = "::ncclDataType_t";
+}
 
 #endif  // GPU_OPS_BASE

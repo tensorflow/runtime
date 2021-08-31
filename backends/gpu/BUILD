@@ -399,6 +399,7 @@ tfrt_cc_library(
         ":gpu_device",
         ":gpu_types",
         ":gpu_wrapper",
+        "@tf_runtime//:bef",
         "@tf_runtime//:befexecutor",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

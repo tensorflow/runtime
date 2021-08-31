@@ -539,6 +539,7 @@ tfrt_cc_test(
         ":common",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//:bef",
         "@tf_runtime//:support",
     ],
 )
@@ -550,6 +551,7 @@ tfrt_cc_test(
         ":common",
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//:bef",
         "@tf_runtime//:support",
     ],
 )
@@ -600,6 +602,7 @@ tfrt_cc_test(
     deps = [
         "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
+        "@tf_runtime//:bef",
         "@tf_runtime//:bef_attr_encoder",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -617,6 +620,7 @@ tfrt_cc_test(
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Translation",
+        "@tf_runtime//:bef",
         "@tf_runtime//:bef_attr_emitter",
         "@tf_runtime//:bef_attr_encoder",
         "@tf_runtime//:dtype",
@@ -638,6 +642,7 @@ tfrt_cc_test(
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Translation",
+        "@tf_runtime//:bef",
         "@tf_runtime//:bef_attr_emitter",
         "@tf_runtime//:bef_attr_encoder",
         "@tf_runtime//:bef_attr_reader",
@@ -660,6 +665,7 @@ tfrt_cc_test(
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
         "@llvm-project//mlir:Support",
+        "@tf_runtime//:bef",
         "@tf_runtime//:bef_location",
         "@tf_runtime//:bef_location_emitter",
         "@tf_runtime//:support",

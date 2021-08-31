@@ -190,6 +190,7 @@ tfrt_cc_binary(
     ],
     deps = [
         "@tf_runtime//:basic_kernels",
+        "@tf_runtime//:bef",
         "@tf_runtime//:befexecutor",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

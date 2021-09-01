@@ -92,7 +92,7 @@ static ParseResult parseDoAsyncOp(OpAsmParser &parser, OperationState &result) {
 }
 
 static void print(OpAsmPrinter &p, DoAsyncOp op) {
-  p << "tfrt_test.do.async ";
+  p << " ";
   p.printOperands(op.getOperands());
   if (!op->getAttrs().empty()) {
     p << " attributes ";
@@ -201,7 +201,7 @@ static ParseResult parseBenchmarkOp(OpAsmParser &parser,
 // ...
 // }
 static void print(OpAsmPrinter &p, BenchmarkOp op) {
-  p << "tfrt_test.benchmark ";
+  p << " ";
 
   // Print the name attribute, e.g "add.i32"
   auto name_attr = op->getAttr("name");
@@ -339,7 +339,7 @@ static ParseResult parseSyncBenchmarkOp(OpAsmParser &parser,
 // tfrt_test.sync_benchmark @fibonacci.i32()
 //       max_count = 100, duration_secs = 1
 static void print(OpAsmPrinter &p, SyncBenchmarkOp op) {
-  p << "tfrt_test.sync_benchmark ";
+  p << " ";
 
   // Print the target benchmark function
   p << op->getAttr("target_fn");

@@ -52,7 +52,7 @@ static ParseResult parseCallOp(OpAsmParser &parser, OperationState &result) {
 }
 
 static void print(OpAsmPrinter &p, CallOp op) {
-  p << "tfrt.call " << op->getAttr("callee") << '(';
+  p << " " << op->getAttr("callee") << '(';
   p.printOperands(op.getOperands());
   p << ')';
   p.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"callee"});
@@ -197,7 +197,7 @@ ParseResult parseIfOp(OpAsmParser &parser, OperationState &result) {
 }
 
 void print(OpAsmPrinter &p, IfOp op) {
-  p << "tfrt.if ";
+  p << " ";
   p.printOperands(op.getOperands());
   if (!op->getAttrs().empty()) {
     p.printOptionalAttrDict(op->getAttrs());
@@ -314,7 +314,7 @@ static ParseResult parseRepeatI32Op(OpAsmParser &parser,
 }
 
 static void print(OpAsmPrinter &p, RepeatI32Op op) {
-  p << "tfrt.repeat.i32 ";
+  p << " ";
   p.printOperands(op.getOperands());
   if (!op->getAttrs().empty()) {
     p.printOptionalAttrDict(op->getAttrs());
@@ -407,7 +407,7 @@ static ParseResult parseParallelForI32Op(OpAsmParser &parser,
 }
 
 static void print(OpAsmPrinter &p, ParallelForI32Op op) {
-  p << "tfrt.parallel_for.i32 ";
+  p << " ";
 
   p.printOperand(op.getOperand(0));
   p << " to ";
@@ -502,7 +502,7 @@ static ParseResult parseParallelCallI32Op(OpAsmParser &parser,
 }
 
 static void print(OpAsmPrinter &p, ParallelCallI32Op op) {
-  p << "tfrt.parallel_call.i32 ";
+  p << " ";
 
   p.printOperand(op.getOperand(0));
   p << " to ";
@@ -580,7 +580,6 @@ static ParseResult parseReturnOp(OpAsmParser &parser, OperationState &result) {
 }
 
 static void print(OpAsmPrinter &p, ReturnOp op) {
-  p << "tfrt.return";
   if (op.getNumOperands() > 0) {
     p << ' ';
     p.printOperands(op.getOperands());

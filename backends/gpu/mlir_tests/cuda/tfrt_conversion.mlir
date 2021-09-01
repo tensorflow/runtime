@@ -21,15 +21,15 @@
 "test_unwrap_async"() ( {  // Not a function to avoid signature conversion.
   // CHECK: %[[p:.*]]:2 = "chain_and_stream"() : () -> (!tfrt.chain, !tfrt_gpu.stream)
   %p:2 = "chain_and_stream"() : () -> (!tfrt.chain, !tfrt_gpu.stream)
-  %t0 = "tfrt_gpu_conversion.cast"(%p#0, %p#1)
-          : (!tfrt.chain, !tfrt_gpu.stream) -> (!gpu.async.token)
+  %t0 = builtin.unrealized_conversion_cast %p#0, %p#1
+          : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
   %t1 = "tfrt_gpu_conversion.async.execute"(%t0) ( {
   ^bb0(%ch0: !tfrt.chain, %stream: !tfrt_gpu.stream):
     // CHECK-NEXT: %[[ch1:.*]] = tfrt.merge.chains %[[p]]#0, %[[p]]#1 : !tfrt.chain, !tfrt_gpu.stream
     %ch1 = tfrt.merge.chains %ch0, %stream : !tfrt.chain, !tfrt_gpu.stream
     tfrt.return %ch1 : !tfrt.chain
   }) : (!gpu.async.token) -> (!gpu.async.token)
-  // CHECK-NEXT: "tfrt_gpu_conversion.cast"(%[[ch1]], %[[p]]#1) : (!tfrt.chain, !tfrt_gpu.stream) -> !gpu.async.token
+  // CHECK-NEXT: builtin.unrealized_conversion_cast %[[ch1]], %[[p]]#1 : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
 }) : () -> ()
 
 // CHECK-LABEL: @test_signature_rewrite

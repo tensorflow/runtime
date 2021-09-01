@@ -217,8 +217,8 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
 }
 
 // Return the defining op of 'value' if it casts a chain and a stream.
-static conversion::CastOp GetDefiningCastOp(Value value) {
-  auto cast_op = value.getDefiningOp<conversion::CastOp>();
+static mlir::UnrealizedConversionCastOp GetDefiningCastOp(Value value) {
+  auto cast_op = value.getDefiningOp<mlir::UnrealizedConversionCastOp>();
   if (cast_op && cast_op->getNumOperands() == 2 && [](auto types) {
         return types[0].template isa<compiler::ChainType>() &&
                types[1].template isa<StreamType>();
@@ -239,7 +239,7 @@ LogicalResult UnwrapAsyncExecPattern::matchAndRewrite(
   // Merge !tfrt_gpu_conversion.async.execute body into parent block.
   Operation *terminator = op.getBody()->getTerminator();
   rewriter.mergeBlockBefore(op.getBody(), op, cast_op->getOperands());
-  rewriter.replaceOpWithNewOp<conversion::CastOp>(
+  rewriter.replaceOpWithNewOp<mlir::UnrealizedConversionCastOp>(
       op, rewriter.getType<mlir::gpu::AsyncTokenType>(),
       ValueRange{terminator->getOperand(0), cast_op->getOperand(1)});
   rewriter.eraseOp(terminator);
@@ -356,7 +356,7 @@ LogicalResult WaitOpRewritePattern::matchAndRewrite(
 
   if (op.asyncToken()) {
     // Replace 'gpu.wait async' with cast to token.
-    rewriter.replaceOpWithNewOp<conversion::CastOp>(
+    rewriter.replaceOpWithNewOp<mlir::UnrealizedConversionCastOp>(
         op, rewriter.getType<mlir::gpu::AsyncTokenType>(),
         ValueRange({chain, stream}));
   } else {
@@ -426,7 +426,7 @@ void populateTfrtConversionPatterns(RewritePatternSet &patterns,
 
   // Casts are erased by the time conversion completes, but they need to be
   // legal in the interim.
-  target.addLegalOp<conversion::CastOp>();
+  target.addLegalOp<mlir::UnrealizedConversionCastOp>();
 
   // Require `(!tfrt.chain, !tfrt.stream, ...) -> (!tfrt.chain, ...)`.
   target.addDynamicallyLegalOp<FuncOp>([](FuncOp op) {

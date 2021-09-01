@@ -44,7 +44,8 @@ struct TestGpuAsyncConversionPass
     converter.addTargetMaterialization([](OpBuilder &builder, Type type,
                                           ValueRange inputs,
                                           Location loc) -> Value {
-      return builder.create<conversion::CastOp>(loc, type, inputs[0]);
+      return builder.create<mlir::UnrealizedConversionCastOp>(loc, type, inputs)
+          .getResult(0);
     });
 
     ConversionTarget wrap(getContext());
@@ -55,6 +56,7 @@ struct TestGpuAsyncConversionPass
 
     ConversionTarget target(getContext());
     target.addLegalDialect("other", "tfrt", "tfrt_gpu_conversion");
+    target.addLegalOp<mlir::UnrealizedConversionCastOp>();
     target.addDynamicallyLegalOp<FuncOp>([&](FuncOp op) {
       return none_of(op.body().getOps(),
                      [&](Operation &op) { return wrap.isLegal(&op); });

@@ -40,14 +40,6 @@ def GPU_ConversionDialect : Dialect {
   let cppNamespace = "tfrt::gpu::conversion";
 }
 
-def GPU_CastOp : Op<GPU_ConversionDialect, "cast", [NoSideEffect]> {
-  let summary = "tfrt_gpu_conversion.cast operation";
-  let description = "Transient op to cast multiple inputs to one output.";
-  let arguments = (ins Variadic<AnyType>);
-  let results = (outs AnyType);
-  let hasFolder = 1;
-}
-
 def GPU_AsyncExecuteOp : Op<GPU_ConversionDialect, "async.execute",
     [GPU_AsyncOpInterface, SingleBlockImplicitTerminator<"compiler::ReturnOp">]> {
   let summary = "tfrt_gpu_conversion.async.execute operation";

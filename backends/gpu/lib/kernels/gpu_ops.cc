@@ -268,20 +268,6 @@ GpuConversionDialect::GpuConversionDialect(MLIRContext *context)
       >();
 }
 
-mlir::OpFoldResult CastOp::fold(llvm::ArrayRef<mlir::Attribute>) {
-  // Recursively search all defining cast ops for an operand of the result type.
-  Type result_type = getResult().getType();
-  SmallVector<Value, 2> operands = getOperands();
-  while (!operands.empty()) {
-    auto operand = operands.back();
-    if (operand.getType() == result_type) return operand;
-    operands.pop_back();
-    if (auto cast_op = operand.getDefiningOp<conversion::CastOp>())
-      copy(cast_op.getOperands(), std::back_inserter(operands));
-  }
-  return nullptr;
-}
-
 void AsyncExecuteOp::build(OpBuilder &builder, OperationState &result) {
   // Add a region with stream and chain block arguments.
   auto block = [&] {

@@ -74,9 +74,13 @@ class ConstantOp<string suffix, Type baseType, Attr attr>
   let verifier = ?;
 }
 
+// MLIR's OpBase.td defines F32Attr and F64Attr, but no F16Attr
+def F16Attr : FloatAttrBase<F16, "16-bit float attribute">;
+
 def ConstantI1Op  : ConstantOp<"i1", I1, I1Attr>;
 def ConstantI32Op : ConstantOp<"i32", I32, I32Attr>;
 def ConstantI64Op : ConstantOp<"i64", I64, I64Attr>;
+def ConstantF16Op : ConstantOp<"f16", F16, F16Attr>;
 def ConstantF32Op : ConstantOp<"f32", F32, F32Attr>;
 def ConstantF64Op : ConstantOp<"f64", F64, F64Attr>;
 def ConstantUI32Op : ConstantOp<"ui32", UI32, UI32Attr>;
@@ -109,6 +113,7 @@ class SyncConstantOp<string suffix, Type baseType, Attr attr>
 }
 
 def SyncConstantI64Op : SyncConstantOp<"i64", I64, I64Attr>;
+def SyncConstantF16Op : SyncConstantOp<"f16", F16, F16Attr>;
 def SyncConstantF32Op : SyncConstantOp<"f32", F32, F32Attr>;
 def SyncConstantF64Op : SyncConstantOp<"f64", F64, F64Attr>;
 

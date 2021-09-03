@@ -47,6 +47,9 @@ static llvm::Expected<wrapper::Pointer<T>> GetScalePointer(
 
 static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
     AsyncValue* value, wrapper::BlasDataType data_type) {
+  if (value->IsType<fp16>())
+    return GetScalePointer<fp16, CUDA_R_16F, rocblas_datatype_f16_r>(
+        value, data_type);
   if (value->IsType<float>())
     return GetScalePointer<float, CUDA_R_32F, rocblas_datatype_f32_r>(
         value, data_type);

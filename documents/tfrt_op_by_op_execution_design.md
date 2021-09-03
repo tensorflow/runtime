@@ -573,7 +573,7 @@ GPU dispatch function more straightforward.
 
 Details of GPU support is out of scope for this doc.
 
-_TODO: Add link to GPU doc_
+*TODO: Add link to GPU doc*
 
 #### Type Conversion in dispatch function
 

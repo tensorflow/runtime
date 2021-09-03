@@ -201,30 +201,30 @@ static Error CclAllToAll(Argument<GpuCclHandle> handle,
   if (!comm_count) return comm_count.takeError();
   assert(*comm_count > 0);
 
-  // Number of elements per send/recv.
-  auto count = input->size() / (*width * *comm_count);
-  if (input->size() != count * *width * *comm_count)
+  size_t count = input->size() / (*width * *comm_count);  // Elements per chunk.
+  size_t size = count * *width;                           // Bytes per chunk.
+  if (input->size() != size * *comm_count)
     return MakeStringError(
         "Total element count must be exact multiple of comm count.");
 
-  for (int peer = 0; peer < *comm_count; peer++) {
-    handle->AddCallback([input = input.ValueRef(), output = output.ValueRef(),
-                         chunk_size = count * *width, count, type,
-                         peer](wrapper::CurrentContext current,
-                               wrapper::Stream stream,
-                               wrapper::CclComm comm) -> llvm::Error {
-      auto platform = input->pointer().platform();
-      auto input_ptr = wrapper::Pointer<char>(
-          static_cast<char*>(input->pointer().raw(platform)), platform);
-      auto output_ptr = wrapper::Pointer<char>(
-          static_cast<char*>(output->pointer().raw(platform)), platform);
-      if (auto error = wrapper::CclSend(current, input_ptr + peer * chunk_size,
-                                        count, type, peer, comm, stream))
-        return error;
-      return wrapper::CclRecv(current, output_ptr + peer * chunk_size, count,
-                              type, peer, comm, stream);
+  auto send_ptr = static_cast<wrapper::Pointer<char>>(input->pointer());
+  auto recv_ptr = static_cast<wrapper::Pointer<char>>(output->pointer());
+
+  for (int peer = 0; peer < *comm_count; ++peer) {
+    handle->AddCallback([=](wrapper::CurrentContext current,
+                            wrapper::Stream stream,
+                            wrapper::CclComm comm) -> llvm::Error {
+      return llvm::joinErrors(
+          wrapper::CclSend(current, send_ptr, count, type, peer, comm, stream),
+          wrapper::CclRecv(current, recv_ptr, count, type, peer, comm, stream));
     });
+    send_ptr += size;
+    recv_ptr += size;
   }
+
+  // Add callback that simply holds on to a ref-count of input and output.
+  handle->AddCallback([input = input.ValueRef(), output = output.ValueRef()](
+                          auto...) { return Error::success(); });
 
   return Error::success();
 }

@@ -193,12 +193,12 @@ tfrt_cc_library(
         "include/tfrt/dtype/dtype_formatter.h",
         "include/tfrt/dtype/quantized_types.h",
         "include/tfrt/support/bf16.h",
-        "include/tfrt/support/forward_decls.h",
         "include/tfrt/support/fp16.h",
     ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
+        ":support",
         "@llvm-project//llvm:Support",
     ],
 )
@@ -255,9 +255,6 @@ tfrt_cc_library(
         "lib/support/string_util.cc",
     ],
     hdrs = [
-        "include/tfrt/bef/bef_buffer.h",
-        "include/tfrt/bef/bef_encoding.h",
-        "include/tfrt/bef/bef_reader.h",
         "include/tfrt/support/aligned_buffer.h",
         "include/tfrt/support/alloc.h",
         "include/tfrt/support/bf16.h",
@@ -296,7 +293,6 @@ tfrt_cc_library(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = [":friends"],
     deps = [
-        ":dtype",
         "@llvm-project//llvm:Support",
         "@tf_runtime//third_party/llvm_derived:unique_any",
     ] + select({

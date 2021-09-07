@@ -42,8 +42,12 @@ using AsyncResultTypeT = typename UnwrapExpected<std::result_of_t<F()>>::type;
 
 // Block until the specified values are available (either with a value or an
 // error result).
-//
-// This should not be called by a thread managed by the work queue.
+void Await(ArrayRef<RCReference<AsyncValue>> values);
+
+// Block until the specified values are available (either with a value or an
+// error result). It uses the work queue inside `exec_ctx`, so, depending on the
+// queue implementation, this should not be called by a thread managed by the
+// work queue.
 void Await(const ExecutionContext& exec_ctx,
            ArrayRef<RCReference<AsyncValue>> values);
 

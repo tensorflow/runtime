@@ -39,6 +39,15 @@ tfrt_cc_library(
 )
 
 tfrt_cc_test(
+    name = "host_context/async_dispatch_test",
+    srcs = ["host_context/async_dispatch_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:hostcontext",
+    ],
+)
+
+tfrt_cc_test(
     name = "host_context/async_value_ref_test",
     srcs = ["host_context/async_value_ref_test.cc"],
     deps = [

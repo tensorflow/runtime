@@ -81,6 +81,17 @@ struct FoldMemrefViewPattern : public OpConversionPattern<memref::ViewOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
+// Folds a memref.reinterpret_cast of !tfrt_gpu.buffer with zero static offsets.
+struct FoldMemrefReinterpretCastPattern
+    : public OpConversionPattern<memref::ReinterpretCastOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      memref::ReinterpretCastOp op, ArrayRef<Value> operands,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
 // Moves the body of a tfrt_gpu_conversion.async.execute op into the parent
 // block and removes the op.
 //
@@ -212,6 +223,22 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
     return rewriter.notifyMatchFailure(op, "expected const zero byte_shift");
   if (!adaptor.sizes().empty())
     return rewriter.notifyMatchFailure(op, "expected no sizes");
+  rewriter.replaceOp(op, {adaptor.source()});
+  return success();
+}
+
+LogicalResult FoldMemrefReinterpretCastPattern::matchAndRewrite(
+    memref::ReinterpretCastOp op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  memref::ReinterpretCastOpAdaptor adaptor(operands, op->getAttrDictionary());
+  if (!adaptor.source().getType().isa<BufferType>())
+    return rewriter.notifyMatchFailure(op, "expected gpu::BufferType source");
+  const bool all_static_offsets_zero =
+      llvm::all_of(adaptor.static_offsets(), [](Attribute offset) {
+        return offset.cast<IntegerAttr>().getInt() == 0;
+      });
+  if (!all_static_offsets_zero)
+    return rewriter.notifyMatchFailure(op, "expected zero static offsets");
   rewriter.replaceOp(op, {adaptor.source()});
   return success();
 }
@@ -407,7 +434,8 @@ void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
                                         TypeConverter &converter,
                                         ConversionTarget &target) {
   patterns.add<WrapInAsyncExecPattern>(patterns.getContext(), target);
-  patterns.add<FoldMemrefViewPattern>(converter, patterns.getContext());
+  patterns.add<FoldMemrefViewPattern, FoldMemrefReinterpretCastPattern>(
+      converter, patterns.getContext());
 }
 
 void populateTfrtConversionPatterns(RewritePatternSet &patterns,

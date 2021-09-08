@@ -571,9 +571,8 @@ The `GpuDispatchContext` contains GPU unique properties, e.g. GPU stream, GPU
 allocator, etc. Core runtime also provides macro `TFRT_GPU_OP`to make defining
 GPU dispatch function more straightforward.
 
-Details of GPU support is out of scope for this doc.
-
-*TODO: Add link to GPU doc*
+Details of GPU support is out of scope for this doc. See this
+[separate doc](cuda-proposal.md) for more details.
 
 #### Type Conversion in dispatch function
 

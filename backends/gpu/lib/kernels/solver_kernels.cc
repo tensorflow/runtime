@@ -16,10 +16,10 @@
 // only. Support for ROCm still needs to be implemented.
 #include <cstdint>
 
-#include "kernels_detail.h"
 #include "llvm/Support/Errc.h"
 #include "llvm/Support/Error.h"
 #include "tfrt/gpu/gpu_types.h"
+#include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/gpu/wrapper/cusolver_wrapper.h"

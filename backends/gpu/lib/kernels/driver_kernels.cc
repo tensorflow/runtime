@@ -16,11 +16,11 @@
 #include <memory>
 #include <tuple>
 
-#include "kernels_detail.h"
 #include "llvm/Support/Error.h"
 #include "llvm_derived/Support/raw_ostream.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/gpu/gpu_types.h"
+#include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"

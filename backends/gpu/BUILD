@@ -894,13 +894,28 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
+    name = "gpu_kernels_detail",
+    hdrs = ["include/tfrt/gpu/kernels/kernels_detail.h"],
+    visibility = if_google(
+        [
+            ":tests_and_tools",
+            ":xla_friends",
+        ],
+        ["//visibility:public"],
+    ),
+    deps = [
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:support",
+    ],
+)
+
+tfrt_cc_library(
     name = "gpu_kernels",
     srcs = [
         "lib/kernels/blas_kernels.cc",
         "lib/kernels/ccl_kernels.cc",
         "lib/kernels/dnn_kernels.cc",
         "lib/kernels/driver_kernels.cc",
-        "lib/kernels/kernels_detail.h",
         "lib/kernels/solver_kernels.cc",
     ],
     alwayslink_static_registration_src = "lib/kernels/static_registration.cc",
@@ -912,6 +927,7 @@ tfrt_cc_library(
         ["//visibility:public"],
     ),
     deps = [
+        ":gpu_kernels_detail",
         ":gpu_memory",
         ":gpu_tensor",
         ":gpu_types",

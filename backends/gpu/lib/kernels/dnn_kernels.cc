@@ -17,8 +17,8 @@
 #include <memory>
 #include <string>
 
-#include "kernels_detail.h"
 #include "tfrt/gpu/gpu_types.h"
+#include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/wrapper/cudnn_wrapper.h"
 #include "tfrt/gpu/wrapper/miopen_wrapper.h"
 #include "tfrt/tensor/dense_host_tensor.h"

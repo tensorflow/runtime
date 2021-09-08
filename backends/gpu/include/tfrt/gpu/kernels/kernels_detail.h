@@ -15,8 +15,8 @@
  */
 
 // Helpers for tfrt_gpu kernel implementations.
-#ifndef TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_KERNELS_H_
-#define TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_KERNELS_H_
+#ifndef TFRT_GPU_KERNELS_KERNELS_DETAIL_H_
+#define TFRT_GPU_KERNELS_KERNELS_DETAIL_H_
 
 #include "tfrt/host_context/chain.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -24,9 +24,9 @@
 
 // TFRT_KERNEL_WITH_CHAIN_RESULT wraps the TFRT_KERNEL macro to add a return
 // chain to the kernel implementation.
-#define TFRT_KERNEL_WITH_CHAIN_RESULT(sync_func) \
-  TFRT_KERNEL(                                   \
-      internal::WithChainResult<decltype(&sync_func), &sync_func>::Invoke)
+#define TFRT_KERNEL_WITH_CHAIN_RESULT(sync_func)                         \
+  TFRT_KERNEL(tfrt::gpu::internal::WithChainResult<decltype(&sync_func), \
+                                                   &sync_func>::Invoke)
 
 namespace tfrt {
 namespace gpu {
@@ -82,4 +82,4 @@ struct WithChainResult<Expected<std::tuple<Results...>> (*)(Args...),
 }  // namespace gpu
 }  // namespace tfrt
 
-#endif  // TFRT_BACKENDS_GPU_LIB_KERNELS_CUDA_KERNELS_H_
+#endif  // TFRT_GPU_KERNELS_KERNELS_DETAIL_H_

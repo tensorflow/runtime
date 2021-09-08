@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "kernels_detail.h"
 #include "tfrt/gpu/gpu_types.h"
+#include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/wrapper/ccl_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"

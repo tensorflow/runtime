@@ -15,9 +15,9 @@
 // This file implements the tfrt_gpu.blas kernels.
 #include <cstdint>
 
-#include "kernels_detail.h"
 #include "llvm/Support/Errc.h"
 #include "tfrt/gpu/gpu_types.h"
+#include "tfrt/gpu/kernels/kernels_detail.h"
 #include "tfrt/gpu/wrapper/blas_wrapper.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
 #include "tfrt/gpu/wrapper/rocblas_wrapper.h"

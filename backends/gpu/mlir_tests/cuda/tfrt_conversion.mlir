@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // RUN: tfrt_gpu_opt %s \
-// RUN:   -test-tfrt-conversion \
+// RUN:   -gpu-to-tfrt-gpu \
 // RUN:   -allow-unregistered-dialect \
 // RUN: | FileCheck %s
 

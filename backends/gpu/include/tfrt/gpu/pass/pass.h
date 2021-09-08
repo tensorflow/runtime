@@ -22,6 +22,7 @@
 #include <memory>
 
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace tfrt {
@@ -75,6 +76,13 @@ void populateGpuAsyncConversionPatterns(mlir::RewritePatternSet& patterns,
 void populateTfrtConversionPatterns(mlir::RewritePatternSet& patterns,
                                     mlir::TypeConverter& converter,
                                     mlir::ConversionTarget& target);
+
+// Adds passes to convert from MLIR's gpu and async dialects to TFRT. Adds
+// !tfrt.chain result and !tfrt.chain, !tfrt_gpu.stream arguments to functions.
+void populateGpuToTfrtGpuPasses(mlir::OpPassManager& pm);
+
+// Registers all tfrt gpu passes.
+void registerPasses();
 
 }  // namespace gpu
 }  // namespace tfrt

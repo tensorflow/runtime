@@ -21,6 +21,7 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Pass/Pass.h"
+#include "mlir/Pass/PassRegistry.h"
 #include "mlir/Support/MlirOptMain.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
@@ -67,23 +68,6 @@ struct TestGpuAsyncConversionPass
   }
 };
 
-struct TestTfrtConversionPass
-    : public mlir::PassWrapper<TestTfrtConversionPass, OperationPass<>> {
-  StringRef getArgument() const final { return "test-tfrt-conversion"; }
-
-  void runOnOperation() override {
-    RewritePatternSet patterns(&getContext());
-    ConversionTarget target(getContext());
-    target.addLegalDialect<compiler::TFRTDialect, GpuDialect>();
-    TypeConverter converter;
-    populateTfrtConversionPatterns(patterns, converter, target);
-
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
-      return signalPassFailure();
-  }
-};
-
 }  // namespace gpu
 }  // namespace tfrt
 
@@ -95,7 +79,8 @@ int main(int argc, char **argv) {
                   tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
                   tfrt::gpu::conversion::GpuConversionDialect>();
   PassRegistration<tfrt::gpu::TestGpuAsyncConversionPass>();
-  PassRegistration<tfrt::gpu::TestTfrtConversionPass>();
+  tfrt::gpu::registerPasses();
+
   return mlir::asMainReturnCode(
       mlir::MlirOptMain(argc, argv, "TFRT pass driver\n", registry, true));
 }

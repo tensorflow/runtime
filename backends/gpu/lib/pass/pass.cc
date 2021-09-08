@@ -28,6 +28,8 @@
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
+#include "mlir/Pass/PassManager.h"
+#include "mlir/Pass/PassRegistry.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -466,6 +468,34 @@ void populateTfrtConversionPatterns(RewritePatternSet &patterns,
            type.getInput(1).isa<StreamType>();
   });
 }
+
+namespace {
+struct GpuToTfrtGpuPass
+    : public PassWrapper<GpuToTfrtGpuPass, OperationPass<>> {
+ private:
+  void runOnOperation() override {
+    auto *context = &getContext();
+
+    ConversionTarget target(*context);
+    target.addLegalDialect("tfrt", "tfrt_gpu", "xlir");
+
+    RewritePatternSet patterns(context);
+    TypeConverter converter;
+    populateTfrtConversionPatterns(patterns, converter, target);
+
+    if (failed(applyPartialConversion(getOperation(), target,
+                                      std::move(patterns))))
+      return signalPassFailure();
+  }
+  StringRef getArgument() const override { return "gpu-to-tfrt-gpu"; }
+};
+}  // namespace
+
+void populateGpuToTfrtGpuPasses(mlir::OpPassManager &pm) {
+  pm.addPass(std::make_unique<GpuToTfrtGpuPass>());
+}
+
+void registerPasses() { PassRegistration<GpuToTfrtGpuPass>(); }
 
 }  // namespace gpu
 }  // namespace tfrt

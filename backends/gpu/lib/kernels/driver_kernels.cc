@@ -252,8 +252,8 @@ static Expected<GpuModule> GpuModuleLoad(
   return GpuModule(context.ValueRef(), *module);
 }
 
-static Expected<GpuFunction> GpuFunctionGet(const GpuModule& module,
-                                            StringAttribute name) {
+static Expected<GpuFunction> GpuModuleFunction(const GpuModule& module,
+                                               StringAttribute name) {
   auto result = wrapper::ModuleGetFunction(module.get(), name.str().c_str());
   return result;
 }
@@ -351,7 +351,8 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuTensorPrintMetadata));
 
   kernel_reg->AddKernel("tfrt_gpu.module.load", TFRT_KERNEL(GpuModuleLoad));
-  kernel_reg->AddKernel("tfrt_gpu.function.get", TFRT_KERNEL(GpuFunctionGet));
+  kernel_reg->AddKernel("tfrt_gpu.module.function",
+                        TFRT_KERNEL(GpuModuleFunction));
   kernel_reg->AddKernel("tfrt_gpu.function.launch",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuFunctionLaunch));
 }

@@ -31,7 +31,7 @@ func @mem_register() {
     data = ".version 6.0\n.target sm_60\n.address_size 64\n.visible .entry Kernel(.param .u64 ptr) {\n.reg .b32 %r<2>;\n.reg .b64 %rd<3>;\nld.param.u64 %rd1, [ptr];\ncvta.to.global.u64 %rd2, %rd1;\nmov.u32 %r1, 42;\nst.global.u32 [%rd2], %r1;\nret;\n}\00",
     key = 0 : ui64
   }
-  %func = tfrt_gpu.function.get %module { name = "Kernel" }
+  %func = tfrt_gpu.module.function %module { name = "Kernel" }
 
   %zero = tfrt.constant.ui32 0
   %one = tfrt.constant.ui32 1

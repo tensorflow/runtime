@@ -125,4 +125,14 @@ class GpuConversionDialect : public Dialect {
 #define GET_OP_CLASSES
 #include "tfrt/gpu/kernels/gpu_conversion_helper_opdefs.h.inc"
 
+namespace tfrt {
+namespace gpu {
+
+// TODO(changhuilin): Remove this alias after XLIR is updated to use
+// ModuleFunctionOp.
+using FunctionGetOp = ModuleFunctionOp;
+
+}  // namespace gpu
+}  // namespace tfrt
+
 #endif  // TFRT_GPU_KERNELS_CUDA_OPDEFS_GPU_OPS_H_

@@ -27,7 +27,7 @@ func @noop_kernel() {
     key = 0 : ui64
   }
 
-  %func = tfrt_gpu.function.get %module { name = "empty_kernel" }
+  %func = tfrt_gpu.module.function %module { name = "empty_kernel" }
 
   %blk_dim = tfrt.constant.ui32 1
   %grid_dim = tfrt.constant.ui32 1
@@ -72,7 +72,7 @@ func @vector_add_kernel() {
     key = 1 : ui64
   }
 
-  %func = tfrt_gpu.function.get %module { name = "vector_add" }
+  %func = tfrt_gpu.module.function %module { name = "vector_add" }
 
   // Create source dense host tensors.
   %ch2 = tfrt.new.chain
@@ -137,7 +137,7 @@ func @float_arg_kernel() {
     data = ".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry add(\n.param .u64 add_param_0,\n.param .f32 add_param_1\n)\n{\n.reg .f32 	%f<3>;\n.reg .b64 	%rd<2>;\nld.param.u64 	%rd0, [add_param_0];\nld.param.f32 	%f0, [add_param_1];\ncvta.to.global.u64 	%rd1, %rd0;\nmov.f32         %f1, 1.0;\nadd.f32 	%f2, %f0, %f1;\nst.global.f32 	[%rd1], %f2;\nret;\n}\n\00",
     key = 1 : ui64
   }
-  %func = tfrt_gpu.function.get %module { name = "add" }
+  %func = tfrt_gpu.module.function %module { name = "add" }
 
   // Create source dense host tensors.
   %ch0 = tfrt.new.chain

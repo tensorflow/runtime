@@ -28,7 +28,7 @@ func @function_test() {
     key = 0 : ui64
   }
 
-  %func = tfrt_gpu.function.get %module { name = "Kernel" }
+  %func = tfrt_gpu.module.function %module { name = "Kernel" }
 
   tfrt.return
 }
@@ -62,7 +62,7 @@ func @function_bad_name_test() {
   }
 
   // expected-error @+1 {{CUDA_ERROR_NOT_FOUND}}
-  %func = tfrt_gpu.function.get %module { name = "Foo\00" }
+  %func = tfrt_gpu.module.function %module { name = "Foo\00" }
 
   tfrt.return
 }

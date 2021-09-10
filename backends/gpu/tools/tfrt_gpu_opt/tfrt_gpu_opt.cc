@@ -28,6 +28,7 @@
 #include "tfrt/gpu/kernels/gpu_ops.h"
 #include "tfrt/gpu/pass/pass.h"
 #include "tfrt/init_tfrt_dialects.h"
+#include "tfrt/test_kernels/opdefs/test_kernels.h"
 
 namespace tfrt {
 namespace gpu {
@@ -77,7 +78,8 @@ int main(int argc, char **argv) {
   registry.insert<mlir::StandardOpsDialect, mlir::async::AsyncDialect,
                   mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
                   tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
-                  tfrt::gpu::conversion::GpuConversionDialect>();
+                  tfrt::gpu::conversion::GpuConversionDialect,
+                  tfrt::test::TestDialect>();
   PassRegistration<tfrt::gpu::TestGpuAsyncConversionPass>();
   tfrt::gpu::registerPasses();
 

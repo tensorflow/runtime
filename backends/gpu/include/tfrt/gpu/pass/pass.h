@@ -70,13 +70,6 @@ void populateGpuAsyncConversionPatterns(mlir::RewritePatternSet& patterns,
                                         mlir::TypeConverter& converter,
                                         mlir::ConversionTarget& target);
 
-// Adds rewrite patterns that unwrap tfrt_gpu_conversion.async.execute ops
-// again and adds !tfrt.chain result and !tfrt.chain, !tfrt_gpu.stream arguments
-// to functions.
-void populateTfrtConversionPatterns(mlir::RewritePatternSet& patterns,
-                                    mlir::TypeConverter& converter,
-                                    mlir::ConversionTarget& target);
-
 // Adds passes to convert from MLIR's gpu and async dialects to TFRT. Adds
 // !tfrt.chain result and !tfrt.chain, !tfrt_gpu.stream arguments to functions.
 void populateGpuToTfrtGpuPasses(mlir::OpPassManager& pm);

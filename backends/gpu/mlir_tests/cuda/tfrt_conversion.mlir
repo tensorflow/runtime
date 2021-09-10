@@ -12,85 +12,81 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: tfrt_gpu_opt %s \
-// RUN:   -gpu-to-tfrt-gpu \
-// RUN:   -allow-unregistered-dialect \
-// RUN: | FileCheck %s
+// RUN: tfrt_gpu_opt %s -gpu-to-tfrt-gpu | FileCheck %s
 
-// CHECK-LABEL: test_unwrap_async
-"test_unwrap_async"() ( {  // Not a function to avoid signature conversion.
-  // CHECK: %[[p:.*]]:2 = "chain_and_stream"() : () -> (!tfrt.chain, !tfrt_gpu.stream)
-  %p:2 = "chain_and_stream"() : () -> (!tfrt.chain, !tfrt_gpu.stream)
-  %t0 = builtin.unrealized_conversion_cast %p#0, %p#1
-          : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
+// CHECK-LABEL: test_unwrap_async(
+// CHECK-SAME:    %arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream
+// CHECK-SAME:  ) -> !tfrt.chain {
+func @test_unwrap_async() {
+  %t0 = gpu.wait async
   %t1 = "tfrt_gpu_conversion.async.execute"(%t0) ( {
   ^bb0(%ch0: !tfrt.chain, %stream: !tfrt_gpu.stream):
-    // CHECK-NEXT: %[[ch1:.*]] = tfrt.merge.chains %[[p]]#0, %[[p]]#1 : !tfrt.chain, !tfrt_gpu.stream
+    // CHECK-NEXT: %[[ch:.*]] = tfrt.merge.chains %arg0, %arg1 : !tfrt.chain, !tfrt_gpu.stream
     %ch1 = tfrt.merge.chains %ch0, %stream : !tfrt.chain, !tfrt_gpu.stream
     tfrt.return %ch1 : !tfrt.chain
   }) : (!gpu.async.token) -> (!gpu.async.token)
-  // CHECK-NEXT: builtin.unrealized_conversion_cast %[[ch1]], %[[p]]#1 : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
-}) : () -> ()
-
-// CHECK-LABEL: @test_signature_rewrite
-// CHECK-SAME: (%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream) -> !tfrt.chain
-func @test_signature_rewrite() {
-  // CHECK: tfrt.return %arg0 : !tfrt.chain
+  gpu.wait [%t1]
+  // CHECK-NEXT: tfrt.return %[[ch:.*]] : !tfrt.chain
   tfrt.return
 }
 
-// CHECK-LABEL: @test_erase_gpu_wait
-func @test_erase_gpu_wait(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream) -> !tfrt.chain {
-  // CHECK-NOT: gpu.wait
+// CHECK-LABEL: @test_skip_signature_rewrite() {
+func @test_skip_signature_rewrite() {
+  tfrt.return
+}
+
+// CHECK-LABEL: @test_erase_gpu_wait(
+// CHECK-SAME:    %arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream
+// CHECK-SAME:  ) -> !tfrt.chain {
+func @test_erase_gpu_wait() {
   // These two ops are folded away completely.
   %t0 = gpu.wait async
   gpu.wait [%t0]
-  // CHECK: tfrt.return %arg0 : !tfrt.chain
-  tfrt.return %arg0 : !tfrt.chain
+  // CHECK-NEXT: tfrt.return %arg0 : !tfrt.chain
+  tfrt.return
 }
 
-// CHECK-LABEL: @test_async_execute
-func @test_async_execute(%arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream) -> !tfrt.chain {
-  // CHECK: %[[a0:.*]], %[[f0:.*]] = async.execute
-  // CHECK-SAME: -> !async.value<!tfrt_gpu.event> {
+// CHECK-LABEL: @test_async_execute(
+// CHECK-SAME:    %arg0: !tfrt.chain, %arg1: !tfrt_gpu.stream
+// CHECK-SAME:  ) -> !tfrt.chain {
+func @test_async_execute() {
+  // CHECK:      %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
+  // CHECK:      %[[e0:.*]] = tfrt_gpu.event.create %[[ctx]]
+  // CHECK:      %[[ch1:.*]] = tfrt_gpu.event.record %[[e0]], %arg1, %arg0
+  // CHECK:      %[[t0:.*]]:2 = tfrt_test.do.async %[[ctx]], %[[e0]], %[[ch1]]
+  // CHECK-SAME:    : (!tfrt_gpu.context, !tfrt_gpu.event, !tfrt.chain) ->
+  // CHECK-SAME:      (!tfrt.chain, !tfrt_gpu.event)  {
   // %a0 has type !async.token, used as dependency in the second async.execute.
   %a0, %f0 = async.execute -> !async.value<!gpu.async.token> {
-    // CHECK: %[[ch0:.*]] = tfrt.new.chain
-    // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
-    // CHECK: %[[e0:.*]] = tfrt_gpu.event.create %[[ctx]]
-    // CHECK: %[[ch1:.*]] = tfrt_gpu.event.record %[[e0]], %arg1, %[[ch0]]
     // CHECK: %[[str0:.*]] = tfrt_gpu.stream.create %[[ctx]]
     // CHECK: %[[ch2:.*]] = tfrt_gpu.stream.wait %[[str0]], %[[e0]], %[[ch1]]
-    // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %[[str0]]
     // CHECK: %[[e1:.*]] = tfrt_gpu.event.create %[[ctx]]
     // CHECK: %[[ch3:.*]] = tfrt_gpu.event.record %[[e1]], %[[str0]], %[[ch2]]
     %t0 = gpu.wait async
-    // CHECK: async.yield %[[e1]] : !tfrt_gpu.event
+    // CHECK: tfrt.return %[[ch3]], %[[e1]] : !tfrt.chain, !tfrt_gpu.event
     async.yield %t0 : !gpu.async.token
   }
-  // CHECK: %[[a1:.*]], %[[f1:.*]] = async.execute [%[[a0]]] (
+  // CHECK:      %[[t1:.*]]:2 = tfrt_test.do.async %[[t0]]#0, %[[t0]]#1, %[[ctx]]
+  // CHECK-SAME:    : (!tfrt.chain, !tfrt_gpu.event, !tfrt_gpu.context) ->
+  // CHECK-SAME:      (!tfrt.chain, !tfrt_gpu.event)  {
   // %a1 has type !async.token, unused.
   %a1, %f1 = async.execute [%a0] (
-    // CHECK-SAME: %[[f0]] as %[[e1:.*]]: !async.value<!tfrt_gpu.event>
     %f0 as %t0 : !async.value<!gpu.async.token>
-  // CHECK-SAME: ) -> !async.value<!tfrt_gpu.event> {
   ) -> !async.value<!gpu.async.token> {
-    // CHECK: %[[ch4:.*]] = tfrt.new.chain
-    // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
     // CHECK: %[[str1:.*]] = tfrt_gpu.stream.create %[[ctx]]
-    // CHECK: %[[ch5:.*]] = tfrt_gpu.stream.wait %[[str1]], %[[e1]], %[[ch4]]
-    // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %[[str1]]
+    // CHECK: %[[ch4:.*]] = tfrt_gpu.stream.wait %[[str1]], %[[t0]]#1, %[[t0]]#0
     // CHECK: %[[e2:.*]] = tfrt_gpu.event.create %[[ctx]]
-    // CHECK: %[[ch6:.*]] = tfrt_gpu.event.record %[[e2]], %[[str1]], %[[ch5]]
+    // CHECK: %[[ch5:.*]] = tfrt_gpu.event.record %[[e2]], %[[str1]], %[[ch4]]
     %t1 = gpu.wait async [%t0]
-    // CHECK: async.yield %[[e2]] : !tfrt_gpu.event
+    // CHECK: tfrt.return %[[ch5]], %[[e2]] : !tfrt.chain, !tfrt_gpu.event
     async.yield %t1 : !gpu.async.token
   }
-  // CHECK: %[[e2:.*]] = async.await %[[f1]] : !async.value<!tfrt_gpu.event>
+  // CHECK: %[[ch6:.*]] = tfrt.merge.chains %[[ch1]], %[[t1]]#0
+  %t2 = gpu.wait async
   %t1 = async.await %f1 : !async.value<!gpu.async.token>
-  // CHECK: %[[chx:.*]] = tfrt_gpu.stream.wait %arg1, %[[e2]], %arg0
-  gpu.wait [%t1]
-  // CHECK: tfrt.return %[[chx]] : !tfrt.chain
-  tfrt.return %arg0 : !tfrt.chain
+  // CHECK: %[[ch7:.*]] = tfrt_gpu.stream.wait %arg1, %[[t1]]#1, %[[ch6]]
+  gpu.wait [%t1, %t2]
+  // CHECK: tfrt.return %[[ch7]] : !tfrt.chain
+  tfrt.return
 }
 

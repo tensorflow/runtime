@@ -878,7 +878,6 @@ tfrt_cc_library(
         ":gpu_opdefs",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:Async",
-        "@llvm-project//mlir:AsyncToLLVM",
         "@llvm-project//mlir:AsyncTransforms",
         "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:IR",
@@ -957,6 +956,7 @@ tfrt_cc_binary(
         "@llvm-project//mlir:Transforms",
         "@tf_runtime//:basic_kernels_opdefs",
         "@tf_runtime//:init_tfrt_dialects",
+        "@tf_runtime//:test_kernels_opdefs",
     ],
 )
 

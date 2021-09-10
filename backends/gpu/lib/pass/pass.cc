@@ -14,41 +14,52 @@
 
 #include "tfrt/gpu/pass/pass.h"
 
+#include <algorithm>
+#include <initializer_list>
+#include <iterator>
 #include <memory>
+#include <utility>
 
 #include "llvm/ADT/STLExtras.h"
-#include "mlir/Conversion/AsyncToLLVM/AsyncToLLVM.h"
 #include "mlir/Dialect/Async/IR/Async.h"
+#include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OperationSupport.h"
 #include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/Types.h"
 #include "mlir/IR/Value.h"
+#include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
-#include "mlir/Pass/PassRegistry.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/Transforms/RegionUtils.h"
 #include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"
+#include "tfrt/test_kernels/opdefs/test_kernels.h"
 
 namespace tfrt {
 namespace gpu {
 
+using CastOp = mlir::UnrealizedConversionCastOp;
+
 Value internal::GpuAsyncOpConversionGetStream(Operation *parent) {
   if (auto exec_op = dyn_cast_or_null<conversion::AsyncExecuteOp>(parent))
-    return exec_op.body().getArgument(1);
+    return exec_op.getRegion().getArgument(1);
   return Value();
 }
 Value internal::GpuAsyncOpConversionGetChain(Operation *parent) {
   if (auto exec_op = dyn_cast_or_null<conversion::AsyncExecuteOp>(parent))
-    return exec_op.body().back().getTerminator()->getOperand(0);
+    return exec_op.getRegion().back().getTerminator()->getOperand(0);
   return Value();
 }
 void internal::GpuAsyncOpConversionSetChain(Value chain,
@@ -59,14 +70,45 @@ void internal::GpuAsyncOpConversionSetChain(Value chain,
 }
 
 namespace {
+
+// Helper for 1-N conversion, similar to materializeSource/TargetConversion().
+// Creates CastOps from illegal source types to legal target types and back.
+class OneToAnyConversion {
+ public:
+  static FailureOr<OneToAnyConversion> Get(TypeConverter *converter,
+                                           TypeRange source_types);
+
+  ArrayRef<Type> GetTargetTypes() const {
+    return conversion_.getConvertedTypes();
+  }
+
+  // Inserts casts of legal-typed target_values back to source_types.
+  SmallVector<Value, 4> CastToSourceTypes(OpBuilder &builder, Location loc,
+                                          ValueRange target_values);
+
+  // Inserts casts of illegal-typed source_values to converted types.
+  SmallVector<Value, 4> CastToTargetTypes(OpBuilder &builder, Location loc,
+                                          ValueRange source_values);
+
+ private:
+  OneToAnyConversion(TypeRange source_types,
+                     TypeConverter::SignatureConversion conversion)
+      : source_types_(source_types), conversion_(conversion) {}
+
+  TypeRange source_types_;
+  TypeConverter::SignatureConversion conversion_;
+};
+
 // Wraps consecutive legal ops within a block into a
 // tfrt_gpu_conversion.async.execute op.
-struct WrapInAsyncExecPattern : public OpRewritePattern<FuncOp> {
-  WrapInAsyncExecPattern(MLIRContext *context, ConversionTarget &target)
+struct NestLegalOpsInConversionAsyncExecPattern
+    : public OpRewritePattern<FuncOp> {
+  NestLegalOpsInConversionAsyncExecPattern(MLIRContext *context,
+                                           ConversionTarget &target)
       : OpRewritePattern(context), target(target) {}
 
  private:
-  LogicalResult matchAndRewrite(FuncOp op,
+  LogicalResult matchAndRewrite(FuncOp func_op,
                                 PatternRewriter &rewriter) const override;
   LogicalResult matchAndRewriteBlock(Block *block,
                                      PatternRewriter &rewriter) const;
@@ -79,7 +121,7 @@ struct FoldMemrefViewPattern : public OpConversionPattern<memref::ViewOp> {
 
  private:
   LogicalResult matchAndRewrite(
-      memref::ViewOp op, ArrayRef<Value> operands,
+      memref::ViewOp view_op, ArrayRef<Value> operands,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -90,14 +132,118 @@ struct FoldMemrefReinterpretCastPattern
 
  private:
   LogicalResult matchAndRewrite(
-      memref::ReinterpretCastOp op, ArrayRef<Value> operands,
+      memref::ReinterpretCastOp cast_op, ArrayRef<Value> operands,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Rewrites a function to take extra !tfrt.chain and !tfrt_gpu.stream arguments
+// and return a !tfrt.chain. Adds gpu.wait dependencies where there aren't any.
+//
+//     func @main(...) {
+//       ...
+//       %ti = gpu.wait async [/*no deps*/]  // At least one, may be nested.
+//       ...
+//       gpu.wait /*not async*/ [...]        // Exactly one.
+//       return
+//     }
+//
+// will be rewritten to
+//
+//     func @main(
+//       %arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream, ...
+//     ) -> !tfrt.chain {
+//       %t0 = unrealized_conversion_cast %arg0, %arg1
+//               : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
+//       %t1 = gpu.wait async [%t0]
+//       ...
+//       %ti = gpu.wait async [%t1]
+//       ...
+//       %tn = gpu.wait async [...]
+//       %ch, %stream = unrealized_conversion_cast %tn
+//               : !gpu.async.token to !tfrt.chain, !tfrt_gpu.stream
+//       return %ch
+//     }
+//
+struct AddChainAndStreamToFuncPattern : public OpRewritePattern<FuncOp> {
+  using OpRewritePattern::OpRewritePattern;
+
+ private:
+  LogicalResult matchAndRewrite(FuncOp func_op,
+                                PatternRewriter &rewriter) const override;
+};
+
+// Two type conversion patterns for async.execute. It inserts casts to/from the
+// converted types before/after as well as at the end/beginning of the region.
+//
+// With type X being converted to Y, applying
+// ConvertAsyncExec/YieldToChainAndEventPattern to
+//
+//     %a1, %f1 = async.execute [%a0] (
+//       %f0 as %x0: !async.value<X>
+//     ) -> !async.value<X> {
+//       ...
+//       async.yield %x1 : X
+//     }
+//
+// will be rewritten to
+//
+//     %f2 = unrealized_conversion_cast %f0 : !async.value<X> to !async.value<Y>
+//     %a1, %f3 = async.execute [%a0] (
+//       %f2 as %y0: !async.value<Y>
+//     ) -> (!async.value<Y>) {
+//       %x0 = unrealized_conversion_cast %y0 : Y to X
+//       ...
+//       %y1 = unrealized_conversion_cast %x1 : X to Y
+//       async.yield %y1 : Y
+//     }
+//     %f1 = unrealized_conversion_cast %f3 : !async.value<Y> to !async.value<X>
+//
+struct ConvertAsyncExecToChainAndEventPattern
+    : public OpConversionPattern<async::ExecuteOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      async::ExecuteOp exec_op, ArrayRef<Value> operands,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// A type conversion pattern for async.yield.
+// See documentation of above pattern.
+struct ConvertAsyncYieldToChainAndEventPattern
+    : public OpConversionPattern<async::YieldOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      async::YieldOp yield_op, ArrayRef<Value> operands,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Swaps the async.await and the operand-defining cast.
+//
+//     %fx = unrealized_conversion_cast %fy : !async.value<Y> to !async.value<X>
+//     %x  = async.await %fx : X
+//
+// will be rewritten to
+//
+//     %y  = async.await %fy : Y
+//     %x  = unrealized_conversion_cast %y : Y to X
+//
+struct SwapAsyncAwaitOfCastPattern
+    : public OpConversionPattern<async::AwaitOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      async::AwaitOp await_op, ArrayRef<Value> operands,
       ConversionPatternRewriter &rewriter) const override;
 };
 
 // Moves the body of a tfrt_gpu_conversion.async.execute op into the parent
 // block and removes the op.
 //
-//     %t0 = tfrt_gpu_conversion.cast %ch0, %stream : !gpu.async.token
+//     %t0 = unrealized_conversion_cast %ch0, %stream : !gpu.async.token
 //     %t1 = tfrt_gpu_conversion.async.execute [%t0] {
 //       ^bb(%0 : !tfrt.chain, %1 : !tfrt_gpu.stream)
 //       ... ops using %0 and %1 ...
@@ -106,90 +252,297 @@ struct FoldMemrefReinterpretCastPattern
 //
 // will be rewritten to
 //
-//     %t0 = tfrt_gpu_conversion.cast %ch0, %stream : !gpu.async.token
+//     %t0 = unrealized_conversion_cast %ch0, %stream : !gpu.async.token
 //     ... ops using %ch0 and %stream ...
-//     %t1 = tfrt_gpu_conversion.cast %n, %stream : !gpu.async.token
+//     %t1 = unrealized_conversion_cast %n, %stream : !gpu.async.token
 //
-struct UnwrapAsyncExecPattern
+struct InlineConversionAsyncExecPattern
     : public OpConversionPattern<conversion::AsyncExecuteOp> {
   using OpConversionPattern::OpConversionPattern;
 
  private:
   LogicalResult matchAndRewrite(
-      conversion::AsyncExecuteOp op, ArrayRef<Value> operands,
+      conversion::AsyncExecuteOp exec_op, ArrayRef<Value> operands,
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// Rewrites a function to take extra !tfrt.chain and !tfrt_gpu.stream arguments
-// and return a !tfrt.chain.
+// A rewrite pattern to convert gpu.wait operations to streams and events.
 //
-//     func @main(...) {
-//       ...
-//       return
+//     %t0 = unrealized_conversion_cast %ch0, %stream0
+//     %t1 = unrealized_converstion_cast %ch1, %event0
+//
+//     %t2 = gpu.wait async [%t0]
+//     %t3 = gpu.wait async [%t1]
+//     %t4 = gpu.wait async [%t0, %t1]
+//
+// will be rewritten to
+//
+//     %t0 = unrealized_conversion_cast %ch0, %stream0
+//     %t1 = unrealized_converstion_cast %ch1, %event0
+//
+//     // %t2 is replaced with %t0
+//     %t2      = %t0
+//     // %t3 is casted from a new stream synchronized with %event0
+//     %ctx     = tfrt_gpu.stream.get_context %stream0
+//     %stream1 = tfrt_gpu.stream.create %ctx
+//     %ch2     = tfrt_gpu.stream.wait %stream1, %event0, %ch1
+//     %t3      = unrealized_conversion_cast %ch2, %stream1
+//     // %t4 is casted from %stream0 synchronized with %event0
+//     %ch3     = tfrt_gpu.merge_chains %ch0, %ch1
+//     %ch4     = tfrt_gpu.stream.wait %stream0, %event0, %ch3
+//     %t4      = unrealized_conversion_cast %ch4, %stream0
+//
+struct ConvertGpuWaitToChainAndStreamPattern
+    : public OpConversionPattern<mlir::gpu::WaitOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::gpu::WaitOp wait_op, ArrayRef<Value> operands,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// A rewriter pattern to convert a nested cast from stream to event into a
+// recorded event.
+//
+//     %t           = unrealized_conversion_cast %ch0, %stream
+//     %ch1, %event = unrealized_conversion_cast %t
+//
+// will be rewritten to
+//
+//     %ctx   = tfrt_gpu.stream.get_context %stream
+//     %event = tfrt_gpu.event.create
+//     %ch1   = tfrt_gpu.event.record %event, %stream, %ch0
+//     %t     = unlrealized_conversion_cast %ch1, %stream
+//
+struct ConvertCastToEventRecordPattern
+    : public OpConversionPattern<mlir::UnrealizedConversionCastOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::UnrealizedConversionCastOp cast_op, ArrayRef<Value> operands,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// A rewrite pattern to convert async.execute operations to tfrt_test.do.async.
+// The !async.token values have no meaning with non-strict execution and we
+// simply drop them. This means that side-effecting ops need to by synchronized
+// through one of the !async.value<> arguments.
+//
+//     y0 = ... : Y
+//     %a1, %f1 = async.execute [%a0] (
+//       %f0 as %x0: !async.value<X>
+//     ) -> !async.value<X> {
+//       ... %y0
+//       async.yield %x0 : X
 //     }
 //
 // will be rewritten to
 //
-//     func @main(!tfrt.chain, !tfrt_gpu.stream, ...) -> !tfrt.chain {
-//       ^bb0(%chain : !tfrt.chain, %stream : !tfrt_gpu.stream):
-//         ...
-//         tfrt.return %chain
+//     y0 = ... : Y
+//     %x1 = tfrt_test.do.async %x0, %y0 : (X, Y) -> (X) {
+//       ... %c0
+//       tfrt.return %x0 : X
 //     }
 //
-struct SignatureRewritePattern : public OpRewritePattern<FuncOp> {
-  using OpRewritePattern::OpRewritePattern;
-
- private:
-  LogicalResult matchAndRewrite(FuncOp op,
-                                PatternRewriter &rewriter) const override;
-};
-
-// A rewrite pattern to convert gpu.wait operations. If the op is in an
-// async.execute region, it creates a new stream that is synchronized with the
-// parent function's main stream (potentially recursively through
-// synchronization with a stream from another dependent async.execute region).
-// Otherwise it synchronizes event operands with the function's main stream.
-struct WaitOpRewritePattern : public OpConversionPattern<mlir::gpu::WaitOp> {
+struct ConvertAsyncExecToDoAsyncPattern
+    : public OpConversionPattern<async::ExecuteOp> {
   using OpConversionPattern::OpConversionPattern;
 
  private:
   LogicalResult matchAndRewrite(
-      mlir::gpu::WaitOp op, ArrayRef<Value> operands,
+      async::ExecuteOp exec_op, ArrayRef<Value> operands,
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// A rewrite pattern to convert async.yield operations. Replaces a token operand
-// with a newly created event that is recorded on the async.execute's stream.
-struct YieldOpRewritePattern : public OpConversionPattern<async::YieldOp> {
+// A rewrite pattern to remove async.await operations.
+struct FoldAsyncAwaitPattern : public OpConversionPattern<async::AwaitOp> {
   using OpConversionPattern::OpConversionPattern;
 
  private:
   LogicalResult matchAndRewrite(
-      async::YieldOp op, ArrayRef<Value> operands,
+      async::AwaitOp await_op, ArrayRef<Value> operands,
       ConversionPatternRewriter &rewriter) const override;
+};
+
+// A rewrite pattern to remove illegal unrealized_conversion_cast ops.
+struct EraseIllegalCastPattern : public OpConversionPattern<CastOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      CastOp cast_op, ArrayRef<Value> operands,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// A pass which rewrites a function to take extra !tfrt.chain and
+// !tfrt_gpu.stream arguments and return a !tfrt.chain.
+struct AddChainAndStreamToFuncPass
+    : public mlir::PassWrapper<AddChainAndStreamToFuncPass, FunctionPass> {
+ private:
+  void runOnFunction() override;
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<GpuDialect, compiler::TFRTDialect>();
+  }
+  StringRef getArgument() const override { return "func-tfrt-streamify"; }
+};
+
+// A pass which rewrites !async.execute and related ops to use !tfrt.chain and
+// !tfrt_gpu.stream instead of !gpu.async.token.
+struct ConvertAsyncToChainAndEventPass
+    : public mlir::PassWrapper<ConvertAsyncToChainAndEventPass, FunctionPass> {
+ private:
+  void runOnFunction() override;
+  StringRef getArgument() const override { return "async-tfrt-streamify"; }
+};
+
+// A pass which converts from gpu dialect to tfrt_gpu dialect.
+struct ConvertGpuToTfrtGpuPass
+    : public mlir::PassWrapper<ConvertGpuToTfrtGpuPass, FunctionPass> {
+ private:
+  void runOnFunction() override;
+  StringRef getArgument() const override { return "gpu-tfrt-streamify"; }
+};
+
+// A pass which converts from async dialect to tfrt dialect.
+struct ConvertAsyncToTfrtPass
+    : public mlir::PassWrapper<ConvertAsyncToTfrtPass, FunctionPass> {
+ private:
+  void runOnFunction() override;
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<test::TestDialect>();
+  }
+  StringRef getArgument() const override { return "async-to-tfrt"; }
 };
 
 }  // namespace
 
-LogicalResult WrapInAsyncExecPattern::matchAndRewrite(
-    FuncOp op, PatternRewriter &rewriter) const {
-  rewriter.startRootUpdate(op);
+// Helper functions to unrealized_conversion_cast to statically known types.
+template <typename T>
+static Value CastTo(OpBuilder &builder, Location loc, ValueRange values) {
+  return builder.create<CastOp>(loc, builder.getType<T>(), values).getResult(0);
+}
+template <typename T>
+static ValueRange CastToChainAnd(OpBuilder &builder, Location loc,
+                                 Value value) {
+  Type types[] = {builder.getType<compiler::ChainType>(), builder.getType<T>()};
+  return builder.create<CastOp>(loc, types, value).getResults();
+}
+const auto CastToToken = CastTo<mlir::gpu::AsyncTokenType>;
+const auto CastToChainAndStream = CastToChainAnd<StreamType>;
+const auto CastToChainAndEvent = CastToChainAnd<EventType>;
+
+// Helper functions test TypeRange against a list of statically known types.
+template <typename... Ts, std::size_t... Is>
+static bool IsTypesImpl(TypeRange types, std::index_sequence<Is...>) {
+  // TODO(csigg): Replace with fold expression once we can use C++17.
+  return llvm::all_of(std::initializer_list<bool>{types[Is].isa<Ts>()...},
+                      [](bool result) { return result; });
+}
+template <typename... Ts>
+static bool IsTypes(TypeRange types) {
+  if (types.size() != sizeof...(Ts)) return false;
+  return IsTypesImpl<Ts...>(types, std::make_index_sequence<sizeof...(Ts)>());
+}
+const auto IsTokenType = IsTypes<mlir::gpu::AsyncTokenType>;
+const auto IsChainAndEventType = IsTypes<compiler::ChainType, EventType>;
+
+// Helper function to test whether cast is between !gpu.async.token and
+// !tfrt.chain plus !tfrt_gpu.stream/event.
+template <typename T>
+static bool IsCastToChainAnd(CastOp cast_op) {
+  return cast_op && IsTokenType(cast_op.getResultTypes()) &&
+         IsTypes<compiler::ChainType, T>(cast_op.getOperandTypes());
+}
+const auto IsCastToChainAndStream = IsCastToChainAnd<StreamType>;
+const auto IsCastToChainAndEvent = IsCastToChainAnd<EventType>;
+template <typename T>
+static bool IsCastFromChainAnd(CastOp cast_op) {
+  return cast_op && IsTokenType(cast_op.getOperandTypes()) &&
+         IsTypes<compiler::ChainType, T>(cast_op.getResultTypes());
+}
+const auto IsCastFromChainAndEvent = IsCastFromChainAnd<EventType>;
+
+// Helper function to merge two ranges into a SmallVector.
+template <typename R1, typename R2>
+auto MergeRanges(R1 first, R2 second) {
+  using T = typename std::iterator_traits<typename R1::iterator>::value_type;
+  SmallVector<T, 8> result;
+  result.reserve(first.size() + second.size());
+  llvm::copy(first, std::back_inserter(result));
+  llvm::copy(second, std::back_inserter(result));
+  return result;
+};
+
+FailureOr<OneToAnyConversion> OneToAnyConversion::Get(TypeConverter *converter,
+                                                      TypeRange source_types) {
+  TypeConverter::SignatureConversion conversion(source_types.size());
+  if (failed(converter->convertSignatureArgs(source_types, conversion)))
+    return failure();
+  return OneToAnyConversion(source_types, conversion);
+}
+
+// Inserts casts of legal-typed target_values back to source_types.
+SmallVector<Value, 4> OneToAnyConversion::CastToSourceTypes(
+    OpBuilder &builder, Location loc, ValueRange target_values) {
+  SmallVector<Value, 4> results;
+  llvm::transform(
+      llvm::enumerate(source_types_), std::back_inserter(results),
+      [&](const auto &pair) {
+        auto mapping =
+            conversion_.getInputMapping(pair.index())
+                .getValueOr(TypeConverter::SignatureConversion::InputMapping{});
+        if (mapping.replacementValue) return mapping.replacementValue;
+        auto operands = target_values.take_front(mapping.size);
+        target_values = target_values.drop_front(mapping.size);
+        if (mapping.size == 1 && operands.front().getType() == pair.value())
+          return operands.front();
+        auto cast_op = builder.create<CastOp>(loc, pair.value(), operands);
+        return cast_op.getResult(0);
+      });
+  return results;
+}
+
+// Inserts casts of illegal-typed source_values to converted types.
+SmallVector<Value, 4> OneToAnyConversion::CastToTargetTypes(
+    OpBuilder &builder, Location loc, ValueRange source_values) {
+  SmallVector<Value, 4> results;
+  for (auto pair : llvm::enumerate(source_values)) {
+    auto mapping = conversion_.getInputMapping(pair.index());
+    if (!mapping) continue;  // Argument was dropped.
+    if (mapping->replacementValue) results.push_back(mapping->replacementValue);
+    assert(mapping->size != 0);
+    auto types = GetTargetTypes().slice(mapping->inputNo, mapping->size);
+    if (types.size() == 1 && types.front() == pair.value().getType()) {
+      results.push_back(pair.value());
+    } else {
+      auto cast_op = builder.create<CastOp>(loc, types, pair.value());
+      llvm::copy(cast_op->getResults(), std::back_inserter(results));
+    }
+  }
+  return results;
+}
+
+LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewrite(
+    FuncOp func_op, PatternRewriter &rewriter) const {
+  rewriter.startRootUpdate(func_op);
   LogicalResult result = failure();
-  op.walk([&](Block *block) {
+  func_op.walk([&](Block *block) {
     if (dyn_cast<conversion::AsyncExecuteOp>(block->getParentOp()))
       return WalkResult::skip();
     if (succeeded(matchAndRewriteBlock(block, rewriter)))
       result = success();  //
     return WalkResult::advance();
   });
-  succeeded(result) ? rewriter.finalizeRootUpdate(op)
-                    : rewriter.cancelRootUpdate(op);
+  succeeded(result) ? rewriter.finalizeRootUpdate(func_op)
+                    : rewriter.cancelRootUpdate(func_op);
   return result;
 }
 
 // Iterate over ops in block, and whenever we transition from a legal to an
 // illegal op, wrap preceding legal ops in !tfrt_gpu_conversion.async.execute.
-LogicalResult WrapInAsyncExecPattern::matchAndRewriteBlock(
+LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewriteBlock(
     Block *block, PatternRewriter &rewriter) const {
   LogicalResult result = failure();
   Operation *legal_begin = nullptr;
@@ -205,7 +558,8 @@ LogicalResult WrapInAsyncExecPattern::matchAndRewriteBlock(
     rewriter.setInsertionPoint(legal_begin);
     auto loc = legal_begin->getLoc();
     auto *body = rewriter.create<conversion::AsyncExecuteOp>(loc).getBody();
-    // Move sequence of legal ops into !tfrt_gpu_conversion.async.execute body.
+    // Move sequence of legal ops into !tfrt_gpu_conversion.async.execute
+    // body.
     body->getOperations().splice(body->begin(), op->getBlock()->getOperations(),
                                  legal_begin->getIterator(), op->getIterator());
     legal_begin = nullptr;  // Start of illegal op sequence.
@@ -215,287 +569,501 @@ LogicalResult WrapInAsyncExecPattern::matchAndRewriteBlock(
 }
 
 LogicalResult FoldMemrefViewPattern::matchAndRewrite(
-    memref::ViewOp op, ArrayRef<Value> operands,
+    memref::ViewOp view_op, ArrayRef<Value> operands,
     ConversionPatternRewriter &rewriter) const {
   memref::ViewOpAdaptor adaptor(operands);
   if (!adaptor.source().getType().isa<BufferType>())
-    return rewriter.notifyMatchFailure(op, "expected gpu::BufferType source");
+    return rewriter.notifyMatchFailure(view_op, "expected BufferType source");
   auto byte_shift = adaptor.byte_shift().getDefiningOp<ConstantIndexOp>();
   if (!byte_shift || byte_shift.getValue() != 0)
-    return rewriter.notifyMatchFailure(op, "expected const zero byte_shift");
+    return rewriter.notifyMatchFailure(view_op, "expected zero byte_shift");
   if (!adaptor.sizes().empty())
-    return rewriter.notifyMatchFailure(op, "expected no sizes");
-  rewriter.replaceOp(op, {adaptor.source()});
+    return rewriter.notifyMatchFailure(view_op, "expected no sizes");
+  rewriter.replaceOp(view_op, {adaptor.source()});
   return success();
 }
 
 LogicalResult FoldMemrefReinterpretCastPattern::matchAndRewrite(
-    memref::ReinterpretCastOp op, ArrayRef<Value> operands,
+    memref::ReinterpretCastOp cast_op, ArrayRef<Value> operands,
     ConversionPatternRewriter &rewriter) const {
-  memref::ReinterpretCastOpAdaptor adaptor(operands, op->getAttrDictionary());
+  memref::ReinterpretCastOpAdaptor adaptor(operands,
+                                           cast_op->getAttrDictionary());
   if (!adaptor.source().getType().isa<BufferType>())
-    return rewriter.notifyMatchFailure(op, "expected gpu::BufferType source");
-  const bool all_static_offsets_zero =
-      llvm::all_of(adaptor.static_offsets(), [](Attribute offset) {
-        return offset.cast<IntegerAttr>().getInt() == 0;
-      });
-  if (!all_static_offsets_zero)
-    return rewriter.notifyMatchFailure(op, "expected zero static offsets");
-  rewriter.replaceOp(op, {adaptor.source()});
+    return rewriter.notifyMatchFailure(cast_op, "expected BufferType source");
+  if (!adaptor.offsets().empty() ||
+      llvm::any_of(adaptor.static_offsets(), [](Attribute attribute) {
+        return attribute.cast<IntegerAttr>().getInt() != 0;
+      }))
+    return rewriter.notifyMatchFailure(cast_op, "expected static zero offsets");
+  rewriter.replaceOp(cast_op, {adaptor.source()});
   return success();
 }
 
-// Return the defining op of 'value' if it casts a chain and a stream.
-static mlir::UnrealizedConversionCastOp GetDefiningCastOp(Value value) {
-  auto cast_op = value.getDefiningOp<mlir::UnrealizedConversionCastOp>();
-  if (cast_op && cast_op->getNumOperands() == 2 && [](auto types) {
-        return types[0].template isa<compiler::ChainType>() &&
-               types[1].template isa<StreamType>();
-      }(cast_op.getOperandTypes()))
-    return cast_op;
-  return nullptr;
-}
+LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
+    FuncOp func_op, PatternRewriter &rewriter) const {
+  // Collect `gpu.wait [...]` and `gpu.wait async []` ops.
+  SmallVector<mlir::gpu::WaitOp, 4> wait_ops;
+  func_op.walk([&](mlir::gpu::WaitOp op) {
+    if (!op.asyncToken() || op.asyncDependencies().empty())
+      wait_ops.push_back(op);
+  });
 
-LogicalResult UnwrapAsyncExecPattern::matchAndRewrite(
-    conversion::AsyncExecuteOp op, ArrayRef<Value> operands,
-    ConversionPatternRewriter &rewriter) const {
-  if (operands.empty() || !op.getAsyncToken())
-    return rewriter.notifyMatchFailure(op, "no operands or no result");
-  auto cast_op = GetDefiningCastOp(operands.front());
-  if (!cast_op)
-    return rewriter.notifyMatchFailure(op, "expected cast to token");
+  if (wait_ops.size() < 2)
+    return rewriter.notifyMatchFailure(func_op, "expected at least 2 gpu.wait");
+  if (llvm::find_if(wait_ops, [](mlir::gpu::WaitOp op) {
+        return !op.asyncToken();
+      }) != wait_ops.end() - 1) {
+    return rewriter.notifyMatchFailure(
+        func_op, "expected all but the last gpu.wait to be async");
+  }
 
-  // Merge !tfrt_gpu_conversion.async.execute body into parent block.
-  Operation *terminator = op.getBody()->getTerminator();
-  rewriter.mergeBlockBefore(op.getBody(), op, cast_op->getOperands());
-  rewriter.replaceOpWithNewOp<mlir::UnrealizedConversionCastOp>(
-      op, rewriter.getType<mlir::gpu::AsyncTokenType>(),
-      ValueRange{terminator->getOperand(0), cast_op->getOperand(1)});
-  rewriter.eraseOp(terminator);
-  rewriter.eraseOp(cast_op);
-  return success();
-}
-
-LogicalResult SignatureRewritePattern::matchAndRewrite(
-    FuncOp op, PatternRewriter &rewriter) const {
-  auto merge_ranges = [&](auto first, auto second) {
-    SmallVector<decltype(first.front()), 8> result;
-    result.reserve(first.size() + second.size());
-    copy(first, std::back_inserter(result));
-    copy(second, std::back_inserter(result));
-    return result;
-  };
+  Type chain_type = rewriter.getType<compiler::ChainType>();
+  Type stream_type = rewriter.getType<StreamType>();
 
   // Add !tfrt.chain, !tfrt_gpu.stream arguments and !tfrt.chain result.
-  Type chain_type = rewriter.getType<compiler::ChainType>();
-  auto argument_types =
-      merge_ranges(TypeRange{chain_type, rewriter.getType<StreamType>()},
-                   op.getArgumentTypes());
+  auto argument_types = MergeRanges(TypeRange{chain_type, stream_type},
+                                    func_op.getArgumentTypes());
   auto result_types =
-      merge_ranges(TypeRange(chain_type), op.getCallableResults());
-  rewriter.updateRootInPlace(op, [&] {
-    op.setType(
+      MergeRanges(TypeRange(chain_type), func_op.getCallableResults());
+  rewriter.updateRootInPlace(func_op, [&] {
+    func_op.setType(
         rewriter.getType<mlir::FunctionType>(argument_types, result_types));
   });
 
   // Add new function arguments to entry block. This is a bit of a dance
   // so that it could be rolled back in case of conversion failure.
-  Block *block = &op.body().front();
+  Block *block = &func_op.body().front();
   Block *entry = rewriter.createBlock(block, argument_types);
-  auto block_args = entry->getArguments();
-  rewriter.mergeBlocks(block, entry, block_args.drop_front(2));
+  auto entry_args = entry->getArguments();
 
-  // Prepend input chain to results.
-  Operation *terminator = op.body().back().getTerminator();
+  // Cast new arguments to token and insert wait async op.
+  // %t0 = unrealized_conversion_cast %arg0, %arg1 -> !gpu.async.token
+  // %t1 = gpu.wait async [%t0]
+  Location loc = func_op.getLoc();
+  Value token = CastToToken(rewriter, loc, entry_args.take_front(2));
+  auto first_wait_op =
+      rewriter.create<mlir::gpu::WaitOp>(loc, token.getType(), token);
+  rewriter.mergeBlocks(block, entry, entry_args.drop_front(2));
+
+  // Add %t1 from above to all `gpu.wait async []` ops.
+  for (auto op : makeArrayRef(wait_ops).drop_back())
+    op.addAsyncDependency(first_wait_op.asyncToken());
+
+  // Make `gpu.wait [...]` async, cast result and add chain to returned
+  // values.
+  Operation *terminator = func_op.body().back().getTerminator();
+  rewriter.setInsertionPoint(terminator);
+  auto last_wait_op = rewriter.create<mlir::gpu::WaitOp>(
+      wait_ops.back().getLoc(), token.getType(),
+      wait_ops.back().asyncDependencies());
+  rewriter.eraseOp(wait_ops.back());
+  auto chain_and_stream = CastToChainAndStream(rewriter, last_wait_op.getLoc(),
+                                               last_wait_op.asyncToken());
   auto results =
-      merge_ranges(ValueRange(block_args.front()), terminator->getOperands());
+      MergeRanges(chain_and_stream.take_front(), terminator->getOperands());
   rewriter.replaceOpWithNewOp<compiler::ReturnOp>(terminator, results);
 
   return success();
 }
 
-LogicalResult WaitOpRewritePattern::matchAndRewrite(
-    mlir::gpu::WaitOp op, ArrayRef<Value> operands,
+LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
+    async::ExecuteOp exec_op, ArrayRef<Value> operands,
     ConversionPatternRewriter &rewriter) const {
-  // Check that parent function has chain and stream arguments.
-  FuncOp func_op = op->getParentOfType<FuncOp>();
-  if (!func_op || func_op.getNumArguments() < 2 || ![](auto types) {
-        return types[0].template isa<compiler::ChainType>() &&
-               types[1].template isa<StreamType>();
-      }(func_op.getArgumentTypes())) {
-    return rewriter.notifyMatchFailure(
-        op, "not in func with chain and stream argument");
-  }
+  Location loc = exec_op->getLoc();
+  auto num_dependencies = exec_op.dependencies().size();
+  auto dependencies = operands.take_front(num_dependencies);
+  operands = operands.drop_front(num_dependencies);
 
-  // Check that parent function returns chain.
-  Operation *terminator = func_op.getBody().back().getTerminator();
-  if (!terminator || terminator->getNumOperands() < 1 ||
-      !terminator->getOperand(0).getType().isa<compiler::ChainType>()) {
-    return rewriter.notifyMatchFailure(terminator,
-                                       "not in func returning chain");
-  }
+  auto operand_conversion =
+      OneToAnyConversion::Get(typeConverter, TypeRange(operands));
+  auto result_conversion =
+      OneToAnyConversion::Get(typeConverter, exec_op.getResultTypes());
+  auto argument_conversion = OneToAnyConversion::Get(
+      typeConverter, exec_op.getRegion().getArgumentTypes());
+  auto terminator_conversion = OneToAnyConversion::Get(
+      typeConverter,
+      exec_op.getRegion().back().getTerminator()->getOperandTypes());
 
-  // If the op has no cast to token operands, use the function's chain and
-  // stream argument.
-  Value chain = func_op.getArgument(0);
-  Value stream = func_op.getArgument(1);
+  if (failed(operand_conversion) || failed(result_conversion) ||
+      failed(argument_conversion) || failed(terminator_conversion))
+    return rewriter.notifyMatchFailure(exec_op, "failed to convert types");
 
-  // Check that operands are events or at most one token casted from chain and
-  // stream.
-  SmallVector<Value, 1> events;
-  for (auto operand : operands) {
-    if (operand.getType().isa<EventType>()) {
-      events.push_back(operand);
-      continue;
-    }
-    if (auto cast_op = GetDefiningCastOp(operand)) {
-      chain = cast_op.getOperand(0);
-      stream = cast_op.getOperand(1);
-      rewriter.eraseOp(cast_op);
-      continue;
-    }
-    return rewriter.notifyMatchFailure(op, "expected event or cast to token");
-  }
-  if (events.size() + 1 < op->getNumOperands())
-    return rewriter.notifyMatchFailure(op, "more than one token operand");
+  // Create new async.execute op with converted operands.
+  auto new_op = rewriter.create<mlir::async::ExecuteOp>(
+      loc, terminator_conversion->GetTargetTypes(), dependencies,
+      operand_conversion->CastToTargetTypes(rewriter, loc, operands));
 
-  Location loc = op->getLoc();
+  // Convert new results back to invalid types.
+  rewriter.replaceOp(exec_op, result_conversion->CastToSourceTypes(
+                                  rewriter, loc, new_op.getResults()));
 
-  if (op.asyncToken() && op->getParentOfType<async::ExecuteOp>()) {
-    // 'gpu.wait async' inside 'async.execute', create a new chain and stream.
-    chain = rewriter.create<compiler::NewChainOp>(loc).getResult();
-    Value context =
-        rewriter.create<StreamGetContextOp>(loc, stream).getResult();
-    // If there are no event operands from dependent async.execute ops,
-    // synchronize new stream with function's stream argument.
-    if (events.empty()) {
-      Value event = rewriter.create<EventCreateOp>(loc, context).getResult();
-      chain =
-          rewriter.create<EventRecordOp>(loc, event, stream, chain).getResult();
-      events.push_back(event);
-    }
-    stream = rewriter.create<StreamCreateOp>(loc, context).getResult();
-  }
+  OpBuilder::InsertionGuard guard(rewriter);
 
-  // Synchronize the stream with the event operands.
-  for (Value event : events) {
-    chain =
-        rewriter.create<StreamWaitOp>(loc, stream, event, chain).getResult();
-  }
+  // Convert region arguments back to invalid types.
+  Region *region = &new_op.getRegion();
+  rewriter.setInsertionPointToEnd(&region->front());
+  auto arguments = argument_conversion->CastToSourceTypes(
+      rewriter, loc, region->getArguments());
 
-  if (op.asyncToken()) {
-    // Replace 'gpu.wait async' with cast to token.
-    rewriter.replaceOpWithNewOp<mlir::UnrealizedConversionCastOp>(
-        op, rewriter.getType<mlir::gpu::AsyncTokenType>(),
-        ValueRange({chain, stream}));
-  } else {
-    // Update returned 'chain' and erase 'gpu.wait'.
-    //
-    // The 'gpu.wait' op inserted by 'gpu-async-region' is meant to synchronize
-    // its operands with the host. In our case we only synchronize the operands
-    // with the function's stream argument, which has happened above.
-    // Host-synchronization of the function's stream argument is left up to the
-    // caller. We just return the chain that depends on the synchronization with
-    // the stream.
-    rewriter.updateRootInPlace(terminator,
-                               [&] { terminator->setOperand(0, chain); });
-    rewriter.eraseOp(op);
-  }
+  // Clone original body into the new region.
+  mlir::BlockAndValueMapping mapping;
+  rewriter.cloneRegionBefore(exec_op.getRegion(), *region, region->end(),
+                             mapping);
+  rewriter.mergeBlocks(&region->back(), &region->front(), arguments);
 
   return success();
 }
 
-LogicalResult YieldOpRewritePattern::matchAndRewrite(
-    async::YieldOp op, ArrayRef<Value> operands,
+LogicalResult ConvertAsyncYieldToChainAndEventPattern::matchAndRewrite(
+    async::YieldOp yield_op, ArrayRef<Value> operands,
     ConversionPatternRewriter &rewriter) const {
-  if (!any_of(enumerate(operands), [&](auto operand) {
-        auto cast_op = GetDefiningCastOp(operand.value());
-        if (!cast_op) return false;
-
-        Value chain = cast_op->getOperand(0);
-        Value stream = cast_op->getOperand(1);
-        Location loc = op->getLoc();
-
-        Value context =
-            rewriter.create<StreamGetContextOp>(loc, stream).getResult();
-        Value event = rewriter.create<EventCreateOp>(loc, context).getResult();
-        rewriter.create<EventRecordOp>(loc, event, stream, chain).getResult();
-
-        rewriter.updateRootInPlace(
-            op, [&] { op->setOperand(operand.index(), event); });
-        rewriter.eraseOp(cast_op);
-
-        return true;
-      })) {
-    return rewriter.notifyMatchFailure(op, "no cast to token operand");
-  }
+  auto conversion = OneToAnyConversion::Get(typeConverter, TypeRange(operands));
+  if (failed(conversion))
+    return rewriter.notifyMatchFailure(yield_op, "failed to convert types");
+  rewriter.replaceOpWithNewOp<mlir::async::YieldOp>(
+      yield_op,
+      conversion->CastToTargetTypes(rewriter, yield_op->getLoc(), operands));
   return success();
+}
+
+LogicalResult SwapAsyncAwaitOfCastPattern::matchAndRewrite(
+    async::AwaitOp await_op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  Value value = operands.front();
+  auto cast_op = value.getDefiningOp<CastOp>();
+  if (!cast_op || !llvm::all_of(cast_op->getOperandTypes(), [](Type type) {
+        return type.isa<async::ValueType>();
+      }))
+    return rewriter.notifyMatchFailure(await_op, "operand not def by cast");
+
+  Location loc = await_op->getLoc();
+  SmallVector<Value, 4> results;
+  for (auto operand : cast_op->getOperands()) {
+    results.push_back(
+        rewriter.create<async::AwaitOp>(loc, operand).getResult(0));
+  }
+  // Assumes single use. TODO(csigg): should be eliminated automatically.
+  rewriter.eraseOp(cast_op);
+  rewriter.replaceOp(await_op, CastToToken(rewriter, loc, results));
+  return success();
+}
+
+LogicalResult InlineConversionAsyncExecPattern::matchAndRewrite(
+    conversion::AsyncExecuteOp exec_op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  if (operands.empty() || !exec_op.getAsyncToken())
+    return rewriter.notifyMatchFailure(exec_op, "no operands or no result");
+  auto cast_op = operands.front().getDefiningOp<CastOp>();
+  if (!IsCastToChainAndStream(cast_op))
+    return rewriter.notifyMatchFailure(exec_op, "operand not def by cast");
+
+  // Merge !tfrt_gpu_conversion.async.execute body into parent block.
+  Operation *terminator = exec_op.getBody()->getTerminator();
+  rewriter.mergeBlockBefore(exec_op.getBody(), exec_op, cast_op.getOperands());
+  auto chain_and_stream = {terminator->getOperand(0), cast_op.getOperand(1)};
+  auto token = CastToToken(rewriter, exec_op->getLoc(), chain_and_stream);
+  rewriter.replaceOp(exec_op, token);
+  rewriter.eraseOp(terminator);
+  rewriter.eraseOp(cast_op);
+  return success();
+}
+
+Value GetContextFromParentFunc(Operation *op) {
+  auto func_op = op->getParentOfType<FuncOp>();
+  auto get_ctx_ops = func_op.getOps<StreamGetContextOp>();
+  if (get_ctx_ops.empty()) return nullptr;
+  return (*get_ctx_ops.begin()).getResult();
+}
+
+LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
+    mlir::gpu::WaitOp wait_op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  if (operands.empty() || !wait_op.asyncToken())
+    return rewriter.notifyMatchFailure(wait_op, "no operands or not async");
+  CastOp cast_from_stream_op;
+  SmallVector<CastOp, 2> cast_from_event_ops;
+  for (auto operand : operands) {
+    CastOp cast_op = operand.getDefiningOp<CastOp>();
+    if (IsCastToChainAndEvent(cast_op)) {
+      cast_from_event_ops.push_back(cast_op);
+      continue;
+    }
+    if (IsCastToChainAndStream(cast_op)) {
+      if (cast_from_stream_op)
+        return rewriter.notifyMatchFailure(wait_op, "more than one stream");
+      cast_from_stream_op = cast_op;
+      continue;
+    }
+    return rewriter.notifyMatchFailure(wait_op, "operand not def by cast");
+  }
+
+  // Merge operand chains if there is more than one.
+  Location loc = wait_op.getLoc();
+  Value chain = [&] {
+    SmallVector<Value, 4> chains;
+    if (cast_from_stream_op)
+      chains.push_back(cast_from_stream_op.getOperand(0));
+    llvm::transform(cast_from_event_ops, std::back_inserter(chains),
+                    [](auto cast_op) { return cast_op.getOperand(0); });
+    if (chains.size() == 1) return chains.front();
+    Type chain_type = rewriter.getType<compiler::ChainType>();
+    return rewriter.create<compiler::MergeChainsOp>(loc, chain_type, chains)
+        .getResult();
+  }();
+
+  // Create stream if no operand is cast from stream.
+  Value stream = [&]() -> Value {
+    if (cast_from_stream_op) return cast_from_stream_op.getOperand(1);
+    // Use stream block argument if it exists.
+    for (auto argument : wait_op->getBlock()->getArguments())
+      if (argument.getType().isa<StreamType>()) return argument;
+    Value context = GetContextFromParentFunc(wait_op);
+    return rewriter.create<StreamCreateOp>(loc, context);
+  }();
+
+  // Synchronize stream with all event operands.
+  for (auto cast_op : cast_from_event_ops) {
+    auto stream_wait_op = rewriter.create<StreamWaitOp>(
+        loc, stream, cast_op.getOperand(1), chain);
+    chain = stream_wait_op.getResult();
+  }
+
+  // Cast back to token if stream was synchronized.
+  Value token = [&]() -> Value {
+    if (cast_from_event_ops.empty()) return cast_from_stream_op.getResult(0);
+    return CastToToken(rewriter, wait_op.getLoc(), {chain, stream});
+  }();
+
+  // Collect uses in other blocks and terminator uses.
+  auto event_uses = llvm::make_filter_range(
+      wait_op.asyncToken().getUses(), [&](const OpOperand &operand) {
+        Operation *owner = operand.getOwner();
+        if (owner->getBlock() != wait_op->getBlock()) return true;
+        return owner->mightHaveTrait<OpTrait::IsTerminator>();
+      });
+
+  // Replace event uses with cast roundtrip to chain and event.
+  if (!event_uses.empty()) {
+    auto chain_and_event = CastToChainAndEvent(rewriter, loc, token);
+    auto cast_from_event = CastToToken(rewriter, loc, chain_and_event);
+    for (auto &use : event_uses) use.set(cast_from_event);
+  }
+
+  rewriter.replaceOp(wait_op, token);
+
+  return success();
+}
+
+LogicalResult ConvertCastToEventRecordPattern::matchAndRewrite(
+    mlir::UnrealizedConversionCastOp cast_op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  if (!IsTokenType(TypeRange(operands)))
+    return rewriter.notifyMatchFailure(cast_op, "not cast from token");
+
+  if (!IsChainAndEventType(cast_op->getResultTypes()))
+    return rewriter.notifyMatchFailure(cast_op, "not cast to chain and event");
+
+  auto cast_to_token_op = operands.front().getDefiningOp<CastOp>();
+  if (!IsCastToChainAndStream(cast_to_token_op))
+    return rewriter.notifyMatchFailure(cast_op, "operand not def by cast");
+
+  Location loc = cast_op->getLoc();
+  Value chain = cast_to_token_op.getOperand(0);
+  Value stream = cast_to_token_op.getOperand(1);
+  Value context = GetContextFromParentFunc(cast_op);
+  if (!context) context = rewriter.create<StreamGetContextOp>(loc, stream);
+
+  Value event = rewriter.create<EventCreateOp>(loc, context).getResult();
+  chain = rewriter.create<EventRecordOp>(loc, event, stream, chain).getResult();
+
+  rewriter.replaceOp(cast_op, {chain, event});
+  Value token = CastToToken(rewriter, loc, {chain, stream});
+  rewriter.replaceOp(cast_to_token_op, token);
+
+  return success();
+}
+
+LogicalResult ConvertAsyncExecToDoAsyncPattern::matchAndRewrite(
+    async::ExecuteOp exec_op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  // Drop !async.token operands, they are not region arguments.
+  operands = operands.drop_front(exec_op.dependencies().size());
+  SmallVector<Value, 4> arguments(operands.begin(), operands.end());
+  // Make all captures explicit arguments.
+  SetVector<Value> captures;
+  getUsedValuesDefinedAbove(exec_op->getRegions(), captures);
+  llvm::transform(captures, std::back_inserter(arguments), [&](Value value) {
+    return rewriter.getRemappedValue(value);
+  });
+
+  SmallVector<Type, 4> arg_types, result_types;
+  if (failed(typeConverter->convertTypes(TypeRange(ValueRange(arguments)),
+                                         arg_types)) ||
+      failed(typeConverter->convertTypes(
+          TypeRange(exec_op.getResultTypes()).drop_front(), result_types))) {
+    return rewriter.notifyMatchFailure(exec_op, "failed to convert types");
+  }
+
+  Location loc = exec_op->getLoc();
+  auto do_op = rewriter.create<test::DoAsyncOp>(loc, result_types, arguments);
+  Region *region = &do_op.getRegion();
+  Block *block = rewriter.createBlock(region, region->end(), arg_types);
+  mlir::BlockAndValueMapping mapping;
+  mapping.map(arguments, block->getArguments());
+  rewriter.cloneRegionBefore(exec_op.getRegion(), *region, region->end(),
+                             mapping);
+  rewriter.mergeBlocks(block->getNextNode(), block,
+                       block->getArguments().take_front(operands.size()));
+
+  rewriter.setInsertionPoint(exec_op);  // Restore from createBlock() above.
+  SmallVector<Value, 4> results = {
+      CastTo<mlir::async::TokenType>(rewriter, loc, {})};
+  llvm::copy(do_op.getResults(), std::back_inserter(results));
+  rewriter.replaceOp(exec_op, results);
+
+  Operation *terminator = region->back().getTerminator();
+  rewriter.setInsertionPoint(terminator);
+  rewriter.replaceOpWithNewOp<compiler::ReturnOp>(terminator,
+                                                  terminator->getOperands());
+
+  return success();
+}
+
+LogicalResult FoldAsyncAwaitPattern::matchAndRewrite(
+    async::AwaitOp await_op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  if (await_op->getNumResults() == 0)
+    return rewriter.eraseOp(await_op), success();
+  rewriter.replaceOp(await_op, operands);
+  return success();
+}
+
+LogicalResult EraseIllegalCastPattern::matchAndRewrite(
+    CastOp cast_op, ArrayRef<Value> operands,
+    ConversionPatternRewriter &rewriter) const {
+  if (typeConverter->isLegal(cast_op))
+    return rewriter.notifyMatchFailure(cast_op, "is valid");
+  rewriter.eraseOp(cast_op);
+  return success();
+}
+
+void AddChainAndStreamToFuncPass::runOnFunction() {
+  RewritePatternSet patterns(&getContext());
+  patterns.insert<AddChainAndStreamToFuncPattern>(&getContext());
+  if (failed(applyOpPatternsAndFold(getOperation(), std::move(patterns))))
+    return signalPassFailure();
+}
+
+void ConvertAsyncToChainAndEventPass::runOnFunction() {
+  TypeConverter converter;
+  // T -> T
+  converter.addConversion([](Type type) { return type; });
+  // !async.value<T> -> !async.value<convert(T)>...
+  converter.addConversion(
+      [&](mlir::async::ValueType type, SmallVectorImpl<Type> &results) {
+        if (failed(converter.convertType(type.getValueType(), results)))
+          return failure();
+        llvm::transform(results, results.begin(), [](Type type) {
+          return mlir::async::ValueType::get(type);
+        });
+        return success();
+      });
+  // !gpu.async.token -> !tfrt.chain, !tfrt_gpu.event
+  converter.addConversion(
+      [](mlir::gpu::AsyncTokenType type, SmallVectorImpl<Type> &results) {
+        results.push_back(compiler::ChainType::get(type.getContext()));
+        results.push_back(EventType::get(type.getContext()));
+        return success();
+      });
+
+  RewritePatternSet patterns(&getContext());
+  patterns.add<ConvertAsyncExecToChainAndEventPattern,
+               ConvertAsyncYieldToChainAndEventPattern,
+               SwapAsyncAwaitOfCastPattern>(converter, &getContext());
+
+  ConversionTarget target(getContext());
+  target.addDynamicallyLegalOp<mlir::async::AwaitOp, mlir::async::ExecuteOp,
+                               mlir::async::YieldOp>(
+      [&](Operation *op) { return converter.isLegal(op); });
+  target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
+
+  if (failed(
+          applyPartialConversion(getOperation(), target, std::move(patterns))))
+    return signalPassFailure();
+}
+
+void ConvertGpuToTfrtGpuPass::runOnFunction() {
+  RewritePatternSet patterns(&getContext());
+  patterns.add<InlineConversionAsyncExecPattern,
+               ConvertGpuWaitToChainAndStreamPattern,
+               ConvertCastToEventRecordPattern>(&getContext());
+  ConversionTarget target(getContext());
+  target.addIllegalOp<conversion::AsyncExecuteOp, mlir::gpu::WaitOp>();
+  target.addDynamicallyLegalOp<CastOp>(
+      [](CastOp cast_op) { return !IsCastFromChainAndEvent(cast_op); });
+  target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
+
+  if (failed(
+          applyPartialConversion(getOperation(), target, std::move(patterns))))
+    return signalPassFailure();
+}
+
+void ConvertAsyncToTfrtPass::runOnFunction() {
+  TypeConverter converter;
+  // T -> T
+  converter.addConversion([](Type type) { return type; });
+  // !async.token -> null
+  converter.addConversion([](mlir::async::TokenType type,
+                             SmallVectorImpl<Type> &) { return success(); });
+  // !async.value<T> -> T
+  converter.addConversion([&](mlir::async::ValueType type) {
+    return converter.convertType(type.getValueType());
+  });
+
+  RewritePatternSet patterns(&getContext());
+  patterns.add<ConvertAsyncExecToDoAsyncPattern, FoldAsyncAwaitPattern,
+               EraseIllegalCastPattern>(converter, &getContext());
+
+  ConversionTarget target(getContext());
+  target.addIllegalOp<async::AwaitOp, async::ExecuteOp, async::YieldOp>();
+  target.addDynamicallyLegalOp<CastOp>(
+      [&](Operation *op) { return converter.isLegal(op); });
+  target.markUnknownOpDynamicallyLegal([&](Operation *) { return true; });
+
+  if (failed(
+          applyPartialConversion(getOperation(), target, std::move(patterns))))
+    return signalPassFailure();
+
+  // Remove unused casts.
+  if (failed(applyPatternsAndFoldGreedily(getOperation(),
+                                          RewritePatternSet(&getContext()))))
+    return signalPassFailure();
 }
 
 void populateGpuAsyncConversionPatterns(RewritePatternSet &patterns,
                                         TypeConverter &converter,
                                         ConversionTarget &target) {
-  patterns.add<WrapInAsyncExecPattern>(patterns.getContext(), target);
+  patterns.add<NestLegalOpsInConversionAsyncExecPattern>(patterns.getContext(),
+                                                         target);
   patterns.add<FoldMemrefViewPattern, FoldMemrefReinterpretCastPattern>(
       converter, patterns.getContext());
 }
 
-void populateTfrtConversionPatterns(RewritePatternSet &patterns,
-                                    TypeConverter &converter,
-                                    ConversionTarget &target) {
-  converter.addConversion([](Type type) { return type; });
-  converter.addConversion([](mlir::gpu::AsyncTokenType type) {
-    return EventType::get(type.getContext());
-  });
-  populateAsyncStructuralTypeConversionsAndLegality(converter, patterns,
-                                                    target);
-
-  patterns.add<UnwrapAsyncExecPattern, SignatureRewritePattern,
-               WaitOpRewritePattern, YieldOpRewritePattern>(
-      patterns.getContext());
-
-  // Casts are erased by the time conversion completes, but they need to be
-  // legal in the interim.
-  target.addLegalOp<mlir::UnrealizedConversionCastOp>();
-
-  // Require `(!tfrt.chain, !tfrt.stream, ...) -> (!tfrt.chain, ...)`.
-  target.addDynamicallyLegalOp<FuncOp>([](FuncOp op) {
-    auto type = op.getType();
-    return type.getNumResults() >= 1 &&
-           type.getResult(0).isa<compiler::ChainType>() &&
-           type.getNumInputs() >= 2 &&
-           type.getInput(0).isa<compiler::ChainType>() &&
-           type.getInput(1).isa<StreamType>();
-  });
+void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
+  pm.addPass(std::make_unique<AddChainAndStreamToFuncPass>());
+  pm.addPass(std::make_unique<ConvertAsyncToChainAndEventPass>());
+  pm.addPass(std::make_unique<ConvertGpuToTfrtGpuPass>());
+  pm.addPass(std::make_unique<ConvertAsyncToTfrtPass>());
 }
 
-namespace {
-struct GpuToTfrtGpuPass
-    : public PassWrapper<GpuToTfrtGpuPass, OperationPass<>> {
- private:
-  void runOnOperation() override {
-    auto *context = &getContext();
-
-    ConversionTarget target(*context);
-    target.addLegalDialect("tfrt", "tfrt_gpu", "xlir");
-
-    RewritePatternSet patterns(context);
-    TypeConverter converter;
-    populateTfrtConversionPatterns(patterns, converter, target);
-
-    if (failed(applyPartialConversion(getOperation(), target,
-                                      std::move(patterns))))
-      return signalPassFailure();
-  }
-  StringRef getArgument() const override { return "gpu-to-tfrt-gpu"; }
-};
-}  // namespace
-
-void populateGpuToTfrtGpuPasses(mlir::OpPassManager &pm) {
-  pm.addPass(std::make_unique<GpuToTfrtGpuPass>());
+void registerPasses() {
+  // Only register the pipeline, not the individual passes.
+  // TODO(csigg): test passes individually, split and move test inputs.
+  PassPipelineRegistration<>(
+      "gpu-to-tfrt-gpu",
+      "Pass pipeline to convert from MLIR's gpu and async dialects to TFRT.",
+      [](OpPassManager &pm) { tfrt::gpu::populateGpuToTfrtGpuPasses(pm); });
 }
-
-void registerPasses() { PassRegistration<GpuToTfrtGpuPass>(); }
 
 }  // namespace gpu
 }  // namespace tfrt

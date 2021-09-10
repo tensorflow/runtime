@@ -42,6 +42,7 @@
 #include "mlir/Conversion/MathToLLVM/MathToLLVM.h"
 #include "mlir/Conversion/MathToLibm/MathToLibm.h"
 #include "mlir/Conversion/MemRefToLLVM/MemRefToLLVM.h"
+#include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
 #include "mlir/Conversion/SCFToStandard/SCFToStandard.h"
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
@@ -875,6 +876,8 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 
   mlir::LowerToLLVMOptions lower_to_llvm_opts(module.getContext());
   pm.addPass(mlir::createLowerToLLVMPass(lower_to_llvm_opts));
+
+  pm.addPass(mlir::createReconcileUnrealizedCastsPass());
 
   return pm.run(module);
 }

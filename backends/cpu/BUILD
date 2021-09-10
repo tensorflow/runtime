@@ -315,6 +315,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:MlirJitRunner",
         "@llvm-project//mlir:Parser",
         "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:ReconcileUnrealizedCasts",
         "@llvm-project//mlir:SCFDialect",
         "@llvm-project//mlir:SCFToStandard",
         "@llvm-project//mlir:StandardOps",

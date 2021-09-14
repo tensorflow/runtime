@@ -168,27 +168,6 @@ class ExecutionContext {
   explicit ExecutionContext(RCReference<RequestContext> req_ctx,
                             Location location = {});
 
-  ExecutionContext(const ExecutionContext& exec_ctx)
-      : request_ctx_{exec_ctx.request_ctx_.CopyRef()},
-        work_queue_(&exec_ctx.work_queue()),
-        location_{exec_ctx.location()} {}
-  ExecutionContext(ExecutionContext&& exec_ctx)
-      : request_ctx_{std::move(exec_ctx.request_ctx_)},
-        work_queue_(&exec_ctx.work_queue()),
-        location_{exec_ctx.location()} {}
-  ExecutionContext& operator=(const ExecutionContext& exec_ctx) {
-    request_ctx_ = exec_ctx.request_ctx_.CopyRef();
-    work_queue_ = &exec_ctx.work_queue();
-    location_ = exec_ctx.location();
-    return *this;
-  }
-  ExecutionContext& operator=(ExecutionContext&& exec_ctx) {
-    request_ctx_ = std::move(exec_ctx.request_ctx_);
-    work_queue_ = &exec_ctx.work_queue();
-    location_ = exec_ctx.location();
-    return *this;
-  }
-
   Location location() const { return location_; }
   HostContext* host() const { return request_ctx_->host(); }
   bool IsCancelled() const { return request_ctx_->IsCancelled(); }

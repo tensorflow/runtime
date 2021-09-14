@@ -75,6 +75,26 @@ TEST(RefCountTest, RCReferenceMove) {
 
 TEST(RefCountTest, RCReferenceCopy) {
   RCReference<WrappedInt32> rwi = MakeRef<WrappedInt32>(123);
+  RCReference<WrappedInt32> rwi_copied = rwi;
+
+  EXPECT_FALSE(rwi->IsUnique());
+  EXPECT_FALSE(rwi_copied->IsUnique());
+
+  EXPECT_EQ(123, rwi->value());
+  EXPECT_EQ(123, rwi_copied->value());
+
+  RCReference<WrappedInt32> rwi_other = MakeRef<WrappedInt32>(456);
+  rwi = rwi_other;
+
+  EXPECT_FALSE(rwi->IsUnique());
+  EXPECT_TRUE(rwi_copied->IsUnique());
+
+  EXPECT_EQ(456, rwi->value());
+  EXPECT_EQ(123, rwi_copied->value());
+}
+
+TEST(RefCountTest, RCReferenceCopyRef) {
+  RCReference<WrappedInt32> rwi = MakeRef<WrappedInt32>(123);
   RCReference<WrappedInt32> rwi_copied = rwi.CopyRef();
 
   EXPECT_FALSE(rwi->IsUnique());

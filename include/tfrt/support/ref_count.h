@@ -124,18 +124,32 @@ class RCReference {
     other.pointer_ = nullptr;
   }
 
+  RCReference(const RCReference& other) : pointer_(other.pointer_) {
+    if (pointer_) pointer_->AddRef();
+  }
+
+  RCReference& operator=(RCReference&& other) {
+    reset(other.pointer_);
+    other.pointer_ = nullptr;
+    return *this;
+  }
+
+  RCReference& operator=(const RCReference& other) {
+    reset(other.pointer_);
+    if (pointer_) pointer_->AddRef();
+    return *this;
+  }
+
   // Support implicit conversion from RCReference<Derived> to RCReference<Base>.
   template <typename U,
             typename = std::enable_if_t<std::is_base_of<T, U>::value>>
   RCReference(RCReference<U>&& u) : pointer_(u.pointer_) {  // NOLINT
     u.pointer_ = nullptr;
   }
-
-  RCReference& operator=(RCReference&& other) {
-    if (pointer_) pointer_->DropRef();
-    pointer_ = other.pointer_;
-    other.pointer_ = nullptr;
-    return *this;
+  template <typename U,
+            typename = std::enable_if_t<std::is_base_of<T, U>::value>>
+  RCReference(const RCReference<U>& u) : pointer_(u.pointer_) {  // NOLINT
+    if (pointer_) pointer_->AddRef();
   }
 
   ~RCReference() {
@@ -152,11 +166,6 @@ class RCReference {
     pointer_ = nullptr;
     return tmp;
   }
-
-  // Not implicity copyable, use the CopyRef() method for an explicit copy of
-  // this reference.
-  RCReference(const RCReference&) = delete;
-  RCReference& operator=(const RCReference&) = delete;
 
   T& operator*() const {
     assert(pointer_ && "null RCReference");

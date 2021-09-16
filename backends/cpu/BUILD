@@ -277,13 +277,6 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "tf_cpurt_options",
-    hdrs = ["include/tfrt/cpu/jit/tf_cpurt_options.h"],
-    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
-    visibility = ["@tf_runtime//:friends"],
-)
-
-tfrt_cc_library(
     name = "cpurt",
     srcs = ["lib/jit/cpurt.cc"],
     hdrs = ["include/tfrt/cpu/jit/cpurt.h"],
@@ -293,7 +286,6 @@ tfrt_cc_library(
         ":async_runtime",
         ":async_runtime_api",
         ":cpurt_support",
-        ":tf_cpurt_options",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AMXToLLVMIRTranslation",

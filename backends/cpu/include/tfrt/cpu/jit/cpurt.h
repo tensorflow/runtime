@@ -192,13 +192,13 @@ struct CompilationOptions {
   Specialization specialization = Specialization::kAlways;
 
   // Register dialects that are allowed in the serialized module.
-  llvm::function_ref<void(mlir::DialectRegistry&)> register_dialects;
+  std::function<void(mlir::DialectRegistry&)> register_dialects;
 
   // Register a pass pipeline that lowers compiled module from high level
   // dialects to the dialects supported by the CPURT lowering to LLVM. In the
   // Tensorflow use case this pipeline lowers from Tensorflow dialect down to
   // the Linalg on buffers via the MHLO->Linalg lowering.
-  llvm::function_ref<void(mlir::OpPassManager&)> register_pass_pipeline;
+  std::function<void(mlir::OpPassManager&)> register_pass_pipeline;
 
   // Type converter that lowers compiled module entrypoint function types to the
   // types supported by the CPURT at runtime (e.g. converts tensors to

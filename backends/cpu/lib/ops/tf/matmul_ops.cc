@@ -66,8 +66,7 @@ static AsyncValueRef<DenseHostTensor> TfMatMulOp(
   internal::TypeDispatch<float, double, int32_t, int64_t, uint32_t, uint64_t,
                          std::complex<float>, std::complex<double>>
       type_dispatch(a.dtype());
-  return ForwardValue(output.getValue(), type_dispatch(dispatch, unsupported),
-                      host);
+  return ForwardValue(output.getValue(), type_dispatch(dispatch, unsupported));
 }
 
 }  // namespace

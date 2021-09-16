@@ -91,7 +91,7 @@ static AsyncValueRef<DenseHostTensor> TfReluOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(dest.getValue(), std::move(chain), host);
+  return ForwardValue(dest.getValue(), std::move(chain));
 }
 
 //===----------------------------------------------------------------------===//
@@ -193,7 +193,7 @@ static AsyncValueRef<DenseHostTensor> TfMeanOp(
 
   // TODO(tfrt-devs): ForwardValue() should be able to take an rvalue to
   // indicate the variable cannot be used by caller after this call.
-  return ForwardValue(final_output, std::move(chain), host);
+  return ForwardValue(final_output, std::move(chain));
 }
 
 //===----------------------------------------------------------------------===//
@@ -239,7 +239,7 @@ static AsyncValueRef<DenseHostTensor> TfBiasAddOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain), host);
+  return ForwardValue(output.getValue(), std::move(chain));
 }
 
 }  // namespace

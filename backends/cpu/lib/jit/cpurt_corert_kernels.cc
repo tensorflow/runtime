@@ -142,7 +142,7 @@ static void ExecuteImpl(const Executable& executable,
 
   // Execute compiled kernel and get back raw return values that we'll need to
   // wrap into TensorHandles later on.
-  ReturnValueConverter<ConversionCtx> converter({host, kernel_ret});
+  ReturnValueConverter<ConversionCtx> converter{RemainingResults(kernel_ret)};
   converter.AddConversion(ReturnMemrefAsDenseHostTensor<ConversionCtx>);
   converter.AddConversion(ReturnAsyncMemrefAsDenseHostTensor<ConversionCtx>);
   // We skip error handling at this point and rely on error forwarding to the
@@ -237,7 +237,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
 
     // Reconstruct arguments and results from captured async values.
     RepeatedArguments<TensorHandle> operands(o.values());
-    RemainingResults results(exec_ctx.host(), results_storage);
+    RemainingResults results(results_storage);
 
     if (executable.IsError()) {
       EmitErrors(results, executable.GetError(), exec_ctx);

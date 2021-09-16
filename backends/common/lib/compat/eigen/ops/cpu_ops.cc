@@ -57,7 +57,7 @@ static AsyncValueRef<DenseHostTensor> TfPadOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain), host);
+  return ForwardValue(output.getValue(), std::move(chain));
 }
 
 static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
@@ -101,7 +101,7 @@ static AsyncValueRef<DenseHostTensor> TfMaxPoolOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain), host);
+  return ForwardValue(output.getValue(), std::move(chain));
 }
 
 static AsyncValueRef<DenseHostTensor> TfConv2DOp(
@@ -147,7 +147,7 @@ static AsyncValueRef<DenseHostTensor> TfConv2DOp(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  return ForwardValue(output.getValue(), std::move(chain), host);
+  return ForwardValue(output.getValue(), std::move(chain));
 }
 
 static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
@@ -205,7 +205,7 @@ static std::array<AsyncValueRef<DenseHostTensor>, 6> TfFusedBatchNormV3Op(
 #include "tfrt/dtype/dtype.def"  // NOLINT
   }
 
-  result = ForwardValue(output.getValue(), std::move(chain), host);
+  result = ForwardValue(output.getValue(), std::move(chain));
   for (int i = 0; i < 6; ++i) {
     results[i] = result.CopyRef();
   }

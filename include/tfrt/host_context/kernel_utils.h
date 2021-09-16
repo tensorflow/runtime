@@ -43,9 +43,8 @@ namespace tfrt {
 class Function;
 
 template <typename T>
-AsyncValueRef<T> ForwardValue(T& value, AsyncValueRef<Chain> chain,
-                              HostContext* host) {
-  auto result = MakeUnconstructedAsyncValueRef<T>(host);
+AsyncValueRef<T> ForwardValue(T& value, AsyncValueRef<Chain> chain) {
+  auto result = MakeUnconstructedAsyncValueRef<T>();
   auto* chain_av = chain.GetAsyncValue();
   chain_av->AndThen([result = result.CopyRef(), value = std::move(value),
                      chain = std::move(chain)]() mutable {
@@ -283,13 +282,12 @@ class RepeatedArguments {
 template <typename T>
 class Result {
  public:
-  explicit Result(HostContext* host, RCReference<AsyncValue>* result)
-      : host_(host), result_(*result) {}
+  explicit Result(RCReference<AsyncValue>* result) : result_(*result) {}
 
   // Construct the result in place.
   template <typename... Args>
   void Emplace(Args&&... args) {
-    Set(MakeAvailableAsyncValueRef<T>(host_, std::forward<Args>(args)...));
+    Set(MakeAvailableAsyncValueRef<T>(std::forward<Args>(args)...));
   }
 
   // Use this argument as a result without a deep copy.
@@ -300,21 +298,20 @@ class Result {
   void Set(AsyncValueRef<T> value) { result_ = std::move(value); }
 
   AsyncValueRef<T> Allocate() {
-    auto result = MakeUnconstructedAsyncValueRef<T>(host_);
+    auto result = MakeUnconstructedAsyncValueRef<T>();
     // result_ is stored in AsyncKernelFrame and needs a +1 ref count.
     result_ = result.CopyRef();
     return result;
   }
 
   RCReference<IndirectAsyncValue> AllocateIndirect() {
-    auto result = MakeIndirectAsyncValue(host_);
+    auto result = MakeIndirectAsyncValue();
     // result_ is stored in AsyncKernelFrame and needs a +1 ref count.
     result_ = result.CopyRef();
     return result;
   }
 
  private:
-  HostContext* host_;
   RCReference<AsyncValue>& result_;
 };
 
@@ -325,9 +322,13 @@ class Result {
 // This should only be used when result types are unknown, for example TFRTCall.
 class RemainingResults {
  public:
-  RemainingResults(HostContext* host,
-                   MutableArrayRef<RCReference<AsyncValue>> remaining_results)
-      : host_(host), remaining_results_(remaining_results) {}
+  explicit RemainingResults(
+      MutableArrayRef<RCReference<AsyncValue>> remaining_results)
+      : remaining_results_(remaining_results) {}
+
+  [[deprecated]] RemainingResults(  // TODO(csigg): Remove.
+      HostContext*, MutableArrayRef<RCReference<AsyncValue>> remaining_results)
+      : RemainingResults(remaining_results) {}
 
   MutableArrayRef<RCReference<AsyncValue>> values() const {
     return remaining_results_;
@@ -340,7 +341,7 @@ class RemainingResults {
   template <typename T>
   const RCReference<AsyncValue>& AllocateAt(int index) {
     assert(!remaining_results_[index]);
-    auto result = MakeUnconstructedAsyncValueRef<T>(host_).ReleaseRCRef();
+    auto result = MakeUnconstructedAsyncValueRef<T>().ReleaseRCRef();
     remaining_results_[index] = std::move(result);
     return remaining_results_[index];
   }
@@ -348,7 +349,7 @@ class RemainingResults {
   // This sets the specified result to a newly created IndirectAsyncResult and
   // returns an unowned pointer to it.
   RCReference<IndirectAsyncValue> AllocateIndirectResultAt(int index) {
-    auto indirect = MakeIndirectAsyncValue(host_);
+    auto indirect = MakeIndirectAsyncValue();
     remaining_results_[index] = indirect.CopyRef();
     return indirect;
   }
@@ -357,15 +358,14 @@ class RemainingResults {
   const void EmplaceAt(int index, Args&&... args) {
     assert(!remaining_results_[index]);
     remaining_results_[index] =
-        MakeAvailableAsyncValueRef<T>(host_, std::forward<Args>(args)...);
+        MakeAvailableAsyncValueRef<T>(std::forward<Args>(args)...);
   }
 
   void EmitErrorAt(int index, string_view message) {
-    remaining_results_[index] = MakeErrorAsyncValueRef(host_, message);
+    remaining_results_[index] = MakeErrorAsyncValueRef(message);
   }
 
  private:
-  HostContext* host_;
   MutableArrayRef<RCReference<AsyncValue>> remaining_results_;
 };
 
@@ -737,8 +737,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
                     "Arguments and results should appear before attributes.");
       static_assert(func_idx == 0,
                     "Arguments and results should appear before funtions.");
-      Result<Head> arg(frame->GetHostContext(),
-                       &frame->GetResults()[result_idx]);
+      Result<Head> arg(&frame->GetResults()[result_idx]);
       SyncKernelCallHelper<Tail...>::template Invoke<
           arg_idx, result_idx + 1, attr_idx, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., arg);
@@ -763,7 +762,7 @@ struct TfrtKernelImpl<Return (*)(Args...), impl_fn> {
       MutableArrayRef<RCReference<AsyncValue>> results =
           frame->GetResults().drop_front(result_idx);
 
-      RemainingResults remaining_results(frame->GetHostContext(), results);
+      RemainingResults remaining_results(results);
       SyncKernelCallHelper<Tail...>::template Invoke<
           arg_idx, -1, attr_idx, func_idx, has_kernel_error_handler,
           has_in_chain>(frame, pargs..., remaining_results);

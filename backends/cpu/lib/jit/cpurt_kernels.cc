@@ -183,7 +183,7 @@ static void Execute(Argument<JitExecutable> jit_executable,
 
     // Reconstruct arguments and results from captured async values.
     RepeatedArguments<Tensor> operands(o.values());
-    RemainingResults results(exec_ctx.host(), results_storage);
+    RemainingResults results(results_storage);
 
     if (executable.IsError()) {
       EmitErrors(results, executable.GetError(), exec_ctx);

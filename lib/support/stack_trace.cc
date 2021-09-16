@@ -74,6 +74,10 @@ StackTrace CreateStackTrace(int skip_count) {
   StackTraceOstream os(skip_count + 3);
   llvm::sys::PrintStackTrace(os);
 
+  // Return no stack trace if it's empty, e.g. because the build specified
+  // -fno-asynchronous-unwind-tables.
+  if (os.str().empty()) return nullptr;
+
   auto ret = StackTrace(new internal::StackTraceImpl{std::move(os.str())});
   DoNotOptimize(ret.get());
   return ret;

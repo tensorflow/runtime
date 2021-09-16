@@ -802,11 +802,16 @@ static void SetupPassDebugging(mlir::MLIRContext* context,
 // the CPURT (Linalg on buffers).
 static mlir::LogicalResult LowerToCpurt(mlir::ModuleOp module,
                                         const CompilationOptions& opts) {
-  if (!opts.register_pass_pipeline) return mlir::success();
+  if (!opts.register_pass_pipeline && !opts.register_pass_pipeline_with_options)
+    return mlir::success();
 
   mlir::PassManager pm(module.getContext());
   SetupPassDebugging(module.getContext(), pm);
-  opts.register_pass_pipeline(pm);
+  if (opts.register_pass_pipeline) {
+    opts.register_pass_pipeline(pm);
+  } else {
+    opts.register_pass_pipeline_with_options(pm, opts.tf_cpurt_opts);
+  }
   return pm.run(module);
 }
 

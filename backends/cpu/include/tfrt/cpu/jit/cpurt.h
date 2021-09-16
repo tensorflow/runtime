@@ -38,6 +38,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/cpu/jit/async_runtime.h"
 #include "tfrt/cpu/jit/async_runtime_api.h"
+#include "tfrt/cpu/jit/tf_cpurt_options.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/kernel_utils.h"
 #include "tfrt/host_context/task_function.h"
@@ -174,6 +175,9 @@ struct CompilationOptions {
     kAlways,
   };
 
+  // Options for TF CPU RT pipeline.
+  TfCpuRtOptions tf_cpurt_opts;
+
   // Byte alignment for allocated memrefs. Depending on the compiler flags
   // Tensorflow requires tensors to be aligned on 16, 32 or 64 bytes.
   int alignment = 0;
@@ -199,6 +203,8 @@ struct CompilationOptions {
   // Tensorflow use case this pipeline lowers from Tensorflow dialect down to
   // the Linalg on buffers via the MHLO->Linalg lowering.
   llvm::function_ref<void(mlir::OpPassManager&)> register_pass_pipeline;
+  llvm::function_ref<void(mlir::OpPassManager&, const TfCpuRtOptions&)>
+      register_pass_pipeline_with_options;
 
   // Type converter that lowers compiled module entrypoint function types to the
   // types supported by the CPURT at runtime (e.g. converts tensors to

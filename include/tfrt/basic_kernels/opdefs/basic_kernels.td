@@ -252,6 +252,35 @@ def WhileOp : TFRT_Op<"while"> {
   let verifier = ?;
 }
 
+def OnceOp : TFRT_Op<"once"> {
+  let summary = "once operation";
+  let description = [{
+    Calls 'function' exactly once and stores the result in the resource context.
+    Subsequent calls return the same result without calling the function again.
+
+    Example:
+
+    func @once(%arg0 : int32) -> i32 {
+      tfrt.return %arg0 : i32
+    }
+
+    // %1 always has the same value as %0 of the first execution.
+    %1 = tfrt.once @once(%0)
+  }];
+
+  let arguments = (ins Variadic<AnyType>:$operands,
+                       FlatSymbolRefAttr:$function);
+
+  let results = (outs Variadic<AnyType>:$results);
+
+  let assemblyFormat = [{
+    $function `(` $operands `)` attr-dict
+    `:` `(` type($operands) `)` `->` `(` type($results) `)`
+  }];
+
+  let verifier = ?;
+}
+
 def NewChainOp : TFRT_Op<"new.chain", [NoSideEffect]> {
   let summary = "host executor chain constructor";
   let description = [{

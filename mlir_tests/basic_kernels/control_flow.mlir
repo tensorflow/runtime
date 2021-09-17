@@ -312,6 +312,27 @@ func @tfrt_while_error_test() -> (!tfrt.chain, i32, i32) {
   tfrt.return %ch1, %final_iteration, %final_arg : !tfrt.chain, i32, i32
 }
 
+func @tfrt_once_function(%arg : i32) -> i32 {
+  %one = tfrt.constant.i32 1
+  %result = tfrt.add.i32 %arg, %one
+  tfrt.return %result : i32
+}
+
+// CHECK-LABEL: --- Running 'tfrt_once_test'
+func @tfrt_once_test() {
+  %0 = tfrt.constant.i32 0
+  %1 = tfrt.once @tfrt_once_function(%0) : (i32) -> (i32)
+  %2 = tfrt.once @tfrt_once_function(%1) : (i32) -> (i32)
+
+  %ch0 = tfrt.new.chain
+  // CHECK-NEXT: int32 = 1
+  %ch1 = tfrt.print.i32 %1, %ch0
+  // CHECK-NEXT: int32 = 1
+  %ch2 = tfrt.print.i32 %2, %ch1
+
+  tfrt.return
+}
+
 // CHECK-LABEL: --- Running 'tfrt_merge_chain_test'
 func @tfrt_merge_chain_test() -> !tfrt.chain {
   %v = tfrt.constant.i32 0

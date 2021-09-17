@@ -14,6 +14,8 @@
 
 // This file implements core control flow related kernels.
 
+#include <iterator>
+
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/function.h"
@@ -34,10 +36,8 @@ static Chain TFRTMergeChains(RemainingArguments arguments) {
 
 static void TFRTCall(RemainingArguments args, RemainingResults results,
                      Attribute<Function> fn, const ExecutionContext& exec_ctx) {
-  assert(fn->argument_types().size() == args.size() &&
-         "argument count mismatch");
-  assert(fn->result_types().size() == results.size() &&
-         "result count mismatch");
+  assert(fn->num_arguments() == args.size() && "argument count mismatch");
+  assert(fn->num_results() == results.size() && "result count mismatch");
 
   fn->Execute(exec_ctx, args.values(), results.values());
 }
@@ -152,10 +152,9 @@ static void TFRTIf(RemainingArguments args, RemainingResults results,
   const Function* true_fn = &(*true_fn_const);
   const Function* false_fn = &(*false_fn_const);
 
-  assert(true_fn->argument_types().size() == args.size() - 1 &&
+  assert(true_fn->num_arguments() == args.size() - 1 &&
          "argument count mismatch");
-  assert(true_fn->result_types().size() == results.size() &&
-         "result count mismatch");
+  assert(true_fn->num_results() == results.size() && "result count mismatch");
   assert(true_fn->argument_types() == false_fn->argument_types() &&
          true_fn->result_types() == false_fn->result_types() &&
          "true and false function types need to line up");
@@ -335,8 +334,8 @@ static void TFRTWhile(RemainingArguments args, RemainingResults results,
   const Function* body_fn = &(*body_fn_const);
 
   assert(args.size() == results.size() + 1);
-  assert(body_fn->argument_types().size() + 1 == args.size());
-  assert(body_fn->result_types().size() == results.size() + 1);
+  assert(body_fn->num_arguments() + 1 == args.size());
+  assert(body_fn->num_results() == results.size() + 1);
 
   // The first arg is the condition.
   AsyncValue* condition_av = args[0];
@@ -345,7 +344,7 @@ static void TFRTWhile(RemainingArguments args, RemainingResults results,
 
   // The rest args are the arguments to the body function.
   SmallVector<RCReference<AsyncValue>, 4> body_args;
-  body_args.reserve(results.size());
+  body_args.reserve(args.size());
   for (auto* arg : args.values().drop_front()) {
     body_args.push_back(FormRef(arg));
   }
@@ -362,6 +361,33 @@ static void TFRTWhile(RemainingArguments args, RemainingResults results,
   // Invoke execution of the iterations.
   TFRTWhileImpl(exec_ctx, body_fn, FormRef(condition_av), std::move(body_args),
                 std::move(while_results));
+}
+
+// TFRTOnce() implements the tfrt.once kernel, eg.
+//  %result = tfrt.once @body(%arg) : (i32) -> (i32)
+static void TFRTOnce(RemainingArguments args, RemainingResults results,
+                     Attribute<Function> function,
+                     const ExecutionContext& exec_ctx) {
+  assert(function->num_arguments() == args.size());
+  assert(function->num_results() == results.size());
+
+  struct TFRTOnceResource {
+    TFRTOnceResource(const RemainingArguments& args,
+                     const Attribute<Function>& function,
+                     const ExecutionContext& exec_ctx)
+        : results(function->num_results()) {
+      function->Execute(exec_ctx, args.values(), results);
+    }
+
+    SmallVector<RCReference<AsyncValue>, 4> results;
+  };
+
+  auto resource =
+      exec_ctx.resource_context()->GetOrCreateResource<TFRTOnceResource>(
+          ("tfrt.once @" + function->name()).str(), args, function, exec_ctx);
+  llvm::transform(
+      resource->results, results.values().begin(),
+      [](const RCReference<AsyncValue>& result) { return result.CopyRef(); });
 }
 
 // This is a helper function that runs a block of iterations and sets up a
@@ -548,6 +574,7 @@ void RegisterControlFlowKernels(KernelRegistry* registry) {
   registry->AddKernel("tfrt.cond", TFRT_KERNEL(TFRTIf));
   registry->AddKernel("tfrt.case", TFRT_KERNEL(TFRTCase));
   registry->AddKernel("tfrt.while", TFRT_KERNEL(TFRTWhile));
+  registry->AddKernel("tfrt.once", TFRT_KERNEL(TFRTOnce));
 }
 
 }  // namespace tfrt

@@ -59,6 +59,9 @@ void SetUpOpAttrs(AggregateAttr op_attr_array, OpAttrs *op_attrs) {
         case DType::I64:
           op_attrs->Set(key, attr.cast<I64Attr>().GetValue());
           break;
+        case DType::F16:
+          op_attrs->Set(key, attr.cast<F16Attr>().GetValue());
+          break;
         case DType::F32:
           op_attrs->Set(key, attr.cast<F32Attr>().GetValue());
           break;

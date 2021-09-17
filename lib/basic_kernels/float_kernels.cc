@@ -25,6 +25,12 @@ namespace tfrt {
 // float kernels
 //===----------------------------------------------------------------------===//
 
+static Chain TFRTPrintF16(Argument<fp16> arg, AsyncKernelFrame* frame) {
+  printf("f16 = %u\n", arg->value);
+  fflush(stdout);
+  return Chain();
+}
+
 static Chain TFRTPrintF32(Argument<float> arg, AsyncKernelFrame* frame) {
   printf("f32 = %f\n", *arg);
   fflush(stdout);
@@ -82,8 +88,14 @@ void RegisterFloatKernelsForType(KernelRegistry* registry,
 }
 
 void RegisterFloatKernels(KernelRegistry* registry) {
+  registry->AddKernel("tfrt.print.f16", TFRT_KERNEL(TFRTPrintF16));
   registry->AddKernel("tfrt.print.f32", TFRT_KERNEL(TFRTPrintF32));
   registry->AddKernel("tfrt.print.f64", TFRT_KERNEL(TFRTPrintF64));
+
+  // Partial support for fp16
+  registry->AddKernel("tfrt.constant.f16", TFRT_KERNEL(TFRTConstant<fp16>));
+  registry->AddSyncKernel("tfrt.constant_s.f16",
+                          TFRT_SYNC_KERNEL(TFRTConstant<fp16>));
 
   RegisterFloatKernelsForType<float>(registry, "f32");
   RegisterFloatKernelsForType<double>(registry, "f64");

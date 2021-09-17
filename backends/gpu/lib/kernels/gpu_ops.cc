@@ -95,12 +95,14 @@ struct EnumTraits<wrapper::BlasFillModeTag> {
 
 static Type GetType(MLIRContext *context, cudaDataType data_type) {
   switch (data_type) {
+    case CUDA_R_16F:
+      return Float16Type::get(context);
     case CUDA_R_32F:
       return Float32Type::get(context);
     case CUDA_R_64F:
       return Float64Type::get(context);
     default:
-      return {};
+      llvm_unreachable("unexpected data type");
   }
 }
 
@@ -111,7 +113,7 @@ static Type GetType(MLIRContext *context, rocblas_datatype data_type) {
     case rocblas_datatype_f64_r:
       return Float64Type::get(context);
     default:
-      return {};
+      llvm_unreachable("unexpected data type");
   }
 }
 
@@ -127,7 +129,7 @@ static Type GetType(EnumAttr<wrapper::Enum<Tag>> attribute) {
       return GetType(context,
                      static_cast<typename EnumTraits<Tag>::rocm_type>(value));
     default:
-      return {};
+      llvm_unreachable("unexpected platform");
   }
 }
 
@@ -240,11 +242,8 @@ static LogicalResult VerifyBlasSaxpyOp(BlasSaxpyOp op) {
 
 template <class OpTy>
 static LogicalResult VerifyBlasGemmOp(OpTy op) {
-  if (!AllEqual({op.typeA(), op.typeB(), op.typeC(), op.computeType()})) {
-    // The actual requirements of typeA/typeB/typeC and computeType are less
-    // strict than this, but at the moment we only use all float or all double.
-    // Relax this check when we add support for e.g. mixed precision.
-    return op.emitOpError("typeA, typeB, typeC and computeType need to match");
+  if (!AllEqual({op.typeA(), op.typeB(), op.typeC()})) {
+    return op.emitOpError("typeA, typeB and typeC need to match");
   }
   Type compute_type = GetType(op.computeTypeAttr());
   if (op.alpha().getType() != compute_type ||

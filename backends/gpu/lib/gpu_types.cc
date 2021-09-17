@@ -29,54 +29,7 @@ GpuContext::GpuContext(wrapper::OwningContext context)
 
 GpuContext::~GpuContext() = default;
 
-wrapper::Context GpuContext::release() {
-  modules_.clear();
-  return context_.release();
-}
-
-// Wrapper for module loading that prints logs when in debug mode.
-static llvm::Expected<wrapper::OwningModule> LoadModule(
-    wrapper::CurrentContext current, string_view data) {
-#ifdef NDEBUG
-  return wrapper::ModuleLoadData(current, data.data());
-#else
-  std::string info_log;
-  std::string error_log;
-
-  wrapper::ModuleLoadOptions options{&info_log, &error_log, 1};
-  auto maybe_module = wrapper::ModuleLoadDataEx(current, data.data(), options);
-  if (!info_log.empty()) {
-    TFRT_LOG_INFO << "GPU JIT info log: " << info_log;
-  }
-  if (!maybe_module) {
-    TFRT_LOG_ERROR << "GPU JIT error log: " << error_log;
-  }
-  return maybe_module;
-#endif
-}
-
-Expected<wrapper::Module> GpuContext::LoadModule(uint64_t key,
-                                                 string_view data) {
-  auto it = modules_.find(key);
-  if (it != modules_.end()) {
-    // Returned cached module.
-    return it->second.get();
-  }
-
-  if (data.empty() || data.back() != 0)
-    return MakeStringError("data attribute must be null-terminated");
-
-  auto current = wrapper::CtxSetCurrent(context_.get());
-  if (!current) return current.takeError();
-
-  auto module = gpu::LoadModule(*current, data);
-  if (!module) return module.takeError();
-
-  auto pair = modules_.try_emplace(key, std::move(*module));
-  assert(pair.second && "failed to insert into map");
-
-  return pair.first->second.get();
-}
+wrapper::Context GpuContext::release() { return context_.release(); }
 
 GpuStream::GpuStream(AsyncValueRef<GpuContext> context,
                      wrapper::OwningStream stream)
@@ -107,10 +60,17 @@ GpuEvent::GpuEvent(AsyncValueRef<GpuContext> context,
 
 GpuEvent::~GpuEvent() = default;
 
-GpuModule::GpuModule(AsyncValueRef<GpuContext> context, wrapper::Module module)
+GpuModule::GpuModule(AsyncValueRef<GpuContext> context,
+                     wrapper::OwningModule module)
     : context_(std::move(context)), module_(std::move(module)) {}
 
 GpuModule::~GpuModule() = default;
+
+GpuFunction::GpuFunction(AsyncValueRef<GpuModule> module,
+                         wrapper::Function function)
+    : module_(std::move(module)), function_(function) {}
+
+GpuFunction::~GpuFunction() = default;
 
 GpuDefaultAllocator::GpuDefaultAllocator(AsyncValueRef<GpuContext> context)
     : context_(std::move(context)) {}

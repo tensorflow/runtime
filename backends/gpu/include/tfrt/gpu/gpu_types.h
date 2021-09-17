@@ -41,7 +41,6 @@ namespace tfrt {
 namespace gpu {
 
 // Types that do not need a wrapper class go here.
-using GpuFunction = wrapper::Function;
 using GpuPointer = wrapper::Pointer<void>;
 using GpuDnnTensorDesc = wrapper::OwningDnnTensorDescriptor;
 using GpuCclId = ncclUniqueId;
@@ -58,13 +57,8 @@ class GpuContext {
   wrapper::Context get() const { return context_.get(); }
   wrapper::Context release();
 
-  // Load module from binary 'data' blob and return a (non-owning) reference to
-  // the module. The 'key' needs to be uniquely identify the `data` payload.
-  Expected<wrapper::Module> LoadModule(uint64_t key, string_view data);
-
  private:
   wrapper::OwningContext context_;
-  llvm::DenseMap<uint64_t, wrapper::OwningModule> modules_;
 };
 
 class GpuStream {
@@ -126,18 +120,35 @@ class GpuEvent {
 
 class GpuModule {
  public:
-  explicit GpuModule(AsyncValueRef<GpuContext> context, wrapper::Module module);
+  explicit GpuModule(AsyncValueRef<GpuContext> context,
+                     wrapper::OwningModule module);
   ~GpuModule();
 
   GpuModule(GpuModule&&) = default;
   GpuModule& operator=(GpuModule&&) = default;
 
-  const wrapper::Module* operator->() const { return &module_; }
-  wrapper::Module get() const { return module_; }
+  const wrapper::OwningModule* operator->() const { return &module_; }
+  wrapper::Module get() const { return module_.get(); }
 
  private:
   AsyncValueRef<GpuContext> context_;
-  wrapper::Module module_;
+  wrapper::OwningModule module_;
+};
+
+class GpuFunction {
+ public:
+  explicit GpuFunction(AsyncValueRef<GpuModule> module,
+                       wrapper::Function function);
+  ~GpuFunction();
+
+  GpuFunction(GpuFunction&&) = default;
+  GpuFunction& operator=(GpuFunction&&) = default;
+
+  wrapper::Function get() const { return function_; }
+
+ private:
+  AsyncValueRef<GpuModule> module_;
+  wrapper::Function function_;
 };
 
 // GpuAllocator base class.

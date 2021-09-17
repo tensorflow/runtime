@@ -297,8 +297,8 @@ def GPU_ModuleLoadOp : GPU_Op<"module.load"> {
   let description = [{
     tfrt_gpu.module.load loads GPU device module from a binary blob.
 
-    The module is cached in the context for better performance. The key needs
-    to be unique across all modules loaded into a context.
+    The key is a leftover from when the module was cached in the context. It is
+    currently still used by xlir, but will be removed soon.
 
     The data attribute must be explicitly null-terminated.
 

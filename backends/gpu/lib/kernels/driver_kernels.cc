@@ -231,25 +231,48 @@ static void GpuTensorPrintMetadata(const DenseGpuTensor& tensor) {
 }
 
 // Loads a GPU module from `data`, or `exec_ctx` if `data` is empty.
-// `key` is used to uniquely identify the modules within `context`.
 static Expected<GpuModule> GpuModuleLoad(
     Argument<GpuContext> context,
     // Note: Attributes must be in alphabetical order (see b/140896071).
     StringAttribute data, Attribute<uint64_t> key,
     const ExecutionContext& exec_ctx) {
-  string_view data_str = data.get();
-  if (data_str.empty()) {
+  string_view blob = data.get();
+
+  // TODO(csigg): add xlir.module.load op, remove GpuModuleMap and key.
+  if (blob.empty()) {
     const GpuModuleMap* gpu_module_map =
         exec_ctx.request_ctx()->GetDataIfExists<GpuModuleMap>();
     if (gpu_module_map == nullptr) {
       return MakeStringError(
           "No GpuModuleMap resource found in the request context.");
     }
-    TFRT_ASSIGN_OR_RETURN(data_str, gpu_module_map->GetModule(key.get()));
+    TFRT_ASSIGN_OR_RETURN(blob, gpu_module_map->GetModule(key.get()));
   }
-  auto module = context->LoadModule(key.get(), data_str);
+
+  if (blob.empty() || blob.back() != 0)
+    return MakeStringError("data attribute must be null-terminated");
+
+  auto current = wrapper::CtxSetCurrent(context->get());
+  if (!current) return current.takeError();
+
+#ifdef NDEBUG
+  auto module = wrapper::ModuleLoadData(*current, blob.data());
   if (!module) return module.takeError();
-  return GpuModule(context.ValueRef(), *module);
+#else
+  std::string info_log;
+  std::string error_log;
+
+  wrapper::ModuleLoadOptions options{&info_log, &error_log, 1};
+  auto module = wrapper::ModuleLoadDataEx(*current, blob.data(), options);
+  if (!info_log.empty()) TFRT_LOG_INFO << "GPU JIT info log: " << info_log;
+
+  if (!module) {
+    return llvm::joinErrors(module.takeError(),
+                            MakeStringError("GPU JIT error log: ", error_log));
+  }
+#endif
+
+  return GpuModule(context.ValueRef(), std::move(*module));
 }
 
 static Expected<GpuBuffer> GpuModuleGetGlobal(Argument<GpuModule> module,
@@ -262,16 +285,18 @@ static Expected<GpuBuffer> GpuModuleGetGlobal(Argument<GpuModule> module,
   return GpuBuffer::Allocate(std::move(allocator), global->size_bytes);
 }
 
-static Expected<GpuFunction> GpuModuleFunction(const GpuModule& module,
+static Expected<GpuFunction> GpuModuleFunction(Argument<GpuModule> module,
                                                StringAttribute name) {
-  auto result = wrapper::ModuleGetFunction(module.get(), name.str().c_str());
-  return result;
+  auto function = wrapper::ModuleGetFunction(module->get(), name.str().c_str());
+  if (!function) return function.takeError();
+  return GpuFunction(module.ValueRef(), function.get());
 }
 
-static Error GpuFunctionLaunch(const GpuStream& stream, GpuFunction function,
-                               uint32_t grid_dim_x, uint32_t grid_dim_y,
-                               uint32_t grid_dim_z, uint32_t block_dim_x,
-                               uint32_t block_dim_y, uint32_t block_dim_z,
+static Error GpuFunctionLaunch(const GpuStream& stream,
+                               const GpuFunction& function, uint32_t grid_dim_x,
+                               uint32_t grid_dim_y, uint32_t grid_dim_z,
+                               uint32_t block_dim_x, uint32_t block_dim_y,
+                               uint32_t block_dim_z,
                                uint32_t shared_memory_size_bytes, Chain,
                                RemainingArguments args) {
   auto current = wrapper::CtxSetCurrent(stream.context());
@@ -310,7 +335,7 @@ static Error GpuFunctionLaunch(const GpuStream& stream, GpuFunction function,
   arg_pointers.reserve(args.size());
   for (auto& arg_value : arg_values) arg_pointers.push_back(&arg_value);
 
-  return wrapper::LaunchKernel(*current, function, grid_dim_x, grid_dim_y,
+  return wrapper::LaunchKernel(*current, function.get(), grid_dim_x, grid_dim_y,
                                grid_dim_z, block_dim_x, block_dim_y,
                                block_dim_z, shared_memory_size_bytes,
                                stream.get(), arg_pointers, {});

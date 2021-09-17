@@ -285,8 +285,8 @@ static Expected<GpuBuffer> GpuModuleGetGlobal(Argument<GpuModule> module,
   return GpuBuffer::Allocate(std::move(allocator), global->size_bytes);
 }
 
-static Expected<GpuFunction> GpuModuleFunction(Argument<GpuModule> module,
-                                               StringAttribute name) {
+static Expected<GpuFunction> GpuModuleGetFunction(Argument<GpuModule> module,
+                                                  StringAttribute name) {
   auto function = wrapper::ModuleGetFunction(module->get(), name.str().c_str());
   if (!function) return function.takeError();
   return GpuFunction(module.ValueRef(), function.get());
@@ -388,8 +388,8 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.module.load", TFRT_KERNEL(GpuModuleLoad));
   kernel_reg->AddKernel("tfrt_gpu.module.get_global",
                         TFRT_KERNEL(GpuModuleGetGlobal));
-  kernel_reg->AddKernel("tfrt_gpu.module.function",
-                        TFRT_KERNEL(GpuModuleFunction));
+  kernel_reg->AddKernel("tfrt_gpu.module.get_function",
+                        TFRT_KERNEL(GpuModuleGetFunction));
   kernel_reg->AddKernel("tfrt_gpu.function.launch",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuFunctionLaunch));
 }

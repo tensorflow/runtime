@@ -59,8 +59,8 @@ func @ops() {
   %module = tfrt_gpu.module.load %context {data = "foobar\00", key = 42 : ui64}
   // CHECK: %[[global:.*]] = tfrt_gpu.module.get_global %[[module]] {name = "symbol"}
   %global = tfrt_gpu.module.get_global %module {name = "symbol"}
-  // CHECK: %[[function:.*]] = tfrt_gpu.module.function %[[module]] {name = "kernel"}
-  %function = tfrt_gpu.module.function %module {name = "kernel"}
+  // CHECK: %[[function:.*]] = tfrt_gpu.module.get_function %[[module]] {name = "kernel"}
+  %function = tfrt_gpu.module.get_function %module {name = "kernel"}
 
   // CHECK: %[[dim:.*]] = tfrt.constant.ui32 1
   %dim = tfrt.constant.ui32 1

@@ -353,6 +353,9 @@ hipError_t hipModuleUnload(hipModule_t module);
 hipError_t hipModuleGetFunction(hipFunction_t* function, hipModule_t module,
                                 const char* kname);
 
+hipError_t hipModuleGetGlobal(void** ptr, size_t* bytes, hipModule_t module,
+                                const char* kname);
+
 hipError_t hipFuncGetAttributes(struct hipFuncAttributes* attr,
                                 const void* func);
 

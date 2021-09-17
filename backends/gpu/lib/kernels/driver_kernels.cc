@@ -252,6 +252,16 @@ static Expected<GpuModule> GpuModuleLoad(
   return GpuModule(context.ValueRef(), *module);
 }
 
+static Expected<GpuBuffer> GpuModuleGetGlobal(Argument<GpuModule> module,
+                                              StringAttribute name) {
+  auto global = wrapper::ModuleGetGlobal(module->get(), name.str().c_str());
+  if (!global) return global.takeError();
+  using Allocator = GpuOneShotAllocator<AsyncValueRef<GpuModule>>;
+  auto allocator =
+      MakeAvailableAsyncValueRef<Allocator>(global->base, module.ValueRef());
+  return GpuBuffer::Allocate(std::move(allocator), global->size_bytes);
+}
+
 static Expected<GpuFunction> GpuModuleFunction(const GpuModule& module,
                                                StringAttribute name) {
   auto result = wrapper::ModuleGetFunction(module.get(), name.str().c_str());
@@ -351,6 +361,8 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuTensorPrintMetadata));
 
   kernel_reg->AddKernel("tfrt_gpu.module.load", TFRT_KERNEL(GpuModuleLoad));
+  kernel_reg->AddKernel("tfrt_gpu.module.get_global",
+                        TFRT_KERNEL(GpuModuleGetGlobal));
   kernel_reg->AddKernel("tfrt_gpu.module.function",
                         TFRT_KERNEL(GpuModuleFunction));
   kernel_reg->AddKernel("tfrt_gpu.function.launch",

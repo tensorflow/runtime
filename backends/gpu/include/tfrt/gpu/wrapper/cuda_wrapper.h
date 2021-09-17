@@ -166,6 +166,8 @@ llvm::Expected<OwningModule> CuModuleLoadDataEx(
     llvm::ArrayRef<void*> jit_option_values);
 llvm::Error CuModuleUnload(CUmodule module);
 llvm::Expected<Function> CuModuleGetFunction(CUmodule module, const char* name);
+llvm::Expected<MemoryRange<void>> CuModuleGetGlobal(CUmodule module,
+                                                    const char* name);
 
 llvm::Expected<int> CuFuncGetAttribute(CurrentContext current,
                                        CUfunction_attribute attribute,

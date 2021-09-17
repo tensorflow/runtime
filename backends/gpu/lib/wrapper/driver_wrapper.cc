@@ -1081,6 +1081,19 @@ llvm::Expected<Function> ModuleGetFunction(Module module, const char* name) {
   }
 }
 
+llvm::Expected<MemoryRange<void>> ModuleGetGlobal(Module module,
+                                                  const char* name) {
+  auto platform = module.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return CuModuleGetGlobal(module, name);
+    case Platform::ROCm:
+      return HipModuleGetGlobal(module, name);
+    default:
+      return InvalidPlatform(platform);
+  }
+}
+
 llvm::Error LaunchKernel(CurrentContext current, Function function,
                          unsigned grid_dim_x, unsigned grid_dim_y,
                          unsigned grid_dim_z, unsigned block_dim_x,

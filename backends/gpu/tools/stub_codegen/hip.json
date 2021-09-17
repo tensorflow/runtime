@@ -90,6 +90,7 @@
       "hipModuleLoadDataEx",
       "hipModuleUnload",
       "hipModuleGetFunction",
+      "hipModuleGetGlobal",
       "hipFuncGetAttributes",
       "hipModuleLaunchKernel",
       "hipLaunchCooperativeKernel",

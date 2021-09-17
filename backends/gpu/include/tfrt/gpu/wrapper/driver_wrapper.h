@@ -297,6 +297,8 @@ llvm::Expected<OwningModule> ModuleLoadDataEx(CurrentContext current,
 
 llvm::Error ModuleUnload(Module module);
 llvm::Expected<Function> ModuleGetFunction(Module module, const char* name);
+llvm::Expected<MemoryRange<void>> ModuleGetGlobal(Module module,
+                                                  const char* name);
 
 llvm::Error LaunchKernel(CurrentContext current, Function function,
                          unsigned grid_dim_x, unsigned grid_dim_y,

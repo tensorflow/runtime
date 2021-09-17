@@ -84,6 +84,7 @@
       "cuModuleLoadDataEx",
       "cuModuleUnload",
       "cuModuleGetFunction",
+      "cuModuleGetGlobal_v2",
       "cuFuncGetAttribute",
       "cuFuncSetAttribute",
       "cuFuncSetCacheConfig",

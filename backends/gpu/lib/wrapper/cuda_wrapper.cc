@@ -638,6 +638,15 @@ llvm::Expected<Function> CuModuleGetFunction(CUmodule module,
   return function;
 }
 
+llvm::Expected<MemoryRange<void>> CuModuleGetGlobal(CUmodule module,
+                                                    const char* name) {
+  CUdeviceptr devptr;
+  size_t size;
+  RETURN_IF_ERROR(cuModuleGetGlobal(&devptr, &size, module, name));
+  Pointer<void> ptr(reinterpret_cast<void*>(devptr), Platform::CUDA);
+  return MemoryRange<void>{ptr, size};
+}
+
 llvm::Expected<int> CuFuncGetAttribute(CurrentContext current,
                                        CUfunction_attribute attribute,
                                        CUfunction function) {

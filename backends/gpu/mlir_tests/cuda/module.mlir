@@ -16,7 +16,6 @@
 
 // CHECK-LABEL: --- Running 'function_test'
 func @function_test() {
-  %ch2 = tfrt.new.chain
   %ordinal = tfrt.constant.i32 0
   %device = tfrt_gpu.device.get CUDA, %ordinal
   %context = tfrt_gpu.context.create %device
@@ -29,6 +28,22 @@ func @function_test() {
   }
 
   %func = tfrt_gpu.module.function %module { name = "Kernel" }
+
+  tfrt.return
+}
+
+func @global_test() {
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  %context = tfrt_gpu.context.create %device
+
+  // PTX for a module with a global symbol.
+  %module = tfrt_gpu.module.load %context {
+    data = ".version 6.0\n.target sm_35\n.address_size 64\n.const .align 4 .b8 Global[128];\00",
+    key = 0 : ui64
+  }
+
+  %global = tfrt_gpu.module.get_global %module { name = "Global" }
 
   tfrt.return
 }

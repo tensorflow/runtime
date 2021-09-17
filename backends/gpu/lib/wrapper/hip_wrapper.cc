@@ -569,6 +569,14 @@ llvm::Expected<Function> HipModuleGetFunction(hipModule_t module,
   return function;
 }
 
+llvm::Expected<MemoryRange<void>> HipModuleGetGlobal(hipModule_t module,
+                                                     const char* name) {
+  void* ptr;
+  size_t size;
+  RETURN_IF_ERROR(hipModuleGetGlobal(&ptr, &size, module, name));
+  return MemoryRange<void>{{ptr, Platform::ROCm}, size};
+}
+
 llvm::Expected<hipFuncAttributes> HipFuncGetAttributes(CurrentContext current,
                                                        hipFunction_t function) {
   CheckHipContext(current);

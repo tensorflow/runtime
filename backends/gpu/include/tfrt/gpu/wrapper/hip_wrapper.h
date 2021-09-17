@@ -152,6 +152,8 @@ llvm::Expected<OwningModule> HipModuleLoadDataEx(
 llvm::Error HipModuleUnload(hipModule_t module);
 llvm::Expected<Function> HipModuleGetFunction(hipModule_t module,
                                               const char* name);
+llvm::Expected<MemoryRange<void>> HipModuleGetGlobal(hipModule_t module,
+                                                     const char* name);
 
 llvm::Expected<hipFuncAttributes> HipFuncGetAttributes(CurrentContext current,
                                                        hipFunction_t function);

@@ -312,6 +312,17 @@ def GPU_ModuleLoadOp : GPU_Op<"module.load"> {
   let results = (outs GPU_ModuleType);
 }
 
+def GPU_ModuleGetGlobalOp : GPU_Op<"module.get_global"> {
+  let description = [{
+    tfrt_gpu.module.get_global retrieves a GPU device global from a module.
+
+    Example:
+      %global = tfrt_gpu.module.get_global %module { name = "symbol" }
+  }];
+  let arguments = (ins GPU_ModuleType:$module, StrAttr:$name);
+  let results = (outs GPU_BufferType);
+}
+
 def GPU_ModuleFunctionOp : GPU_Op<"module.function"> {
   let description = [{
     tfrt_gpu.module.function retrieves a GPU device function from a module.

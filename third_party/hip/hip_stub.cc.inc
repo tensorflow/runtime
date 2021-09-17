@@ -376,6 +376,13 @@ hipError_t hipModuleGetFunction(hipFunction_t* function, hipModule_t module,
       "hipModuleGetFunction", function, module, kname);
 }
 
+hipError_t hipModuleGetGlobal(void** ptr, size_t* bytes, hipModule_t module,
+                              const char* kname) {
+  return DynamicCall<decltype(hipModuleGetGlobal), &hipModuleGetGlobal>(
+      "hipModuleGetGlobal", ptr, bytes, module, kname);
+}
+
+
 hipError_t hipFuncGetAttributes(struct hipFuncAttributes* attr,
                                 const void* func) {
   return DynamicCall<decltype(hipFuncGetAttributes), &hipFuncGetAttributes>(

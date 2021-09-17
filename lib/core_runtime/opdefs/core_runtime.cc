@@ -16,7 +16,6 @@
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 
 #include "llvm/ADT/STLExtras.h"
-#include "llvm/Support/FormatVariadic.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -25,7 +24,9 @@
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
 #include "mlir/IR/OperationSupport.h"
+#include "mlir/IR/TypeRange.h"
 #include "mlir/IR/TypeUtilities.h"
+#include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/InliningUtils.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
@@ -342,60 +343,41 @@ OpFoldResult ConstDenseTensorOp::fold(ArrayRef<Attribute> operands) {
 // CoreRt_CondOp
 //===----------------------------------------------------------------------===//
 
-static LogicalResult verify(CondOp op) {
-  // Check that the true/false function attributes are specified.
-  auto trueFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("a_true_fn");
-  if (!trueFnAttr)
-    return op.emitOpError("requires a 'a_true_fn' symbol reference attribute");
-
-  auto falseFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("b_false_fn");
-  if (!falseFnAttr)
-    return op.emitOpError("requires a 'a_false_fn' symbol reference attribute");
-
-  auto trueFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
-      trueFnAttr.getValue());
-  if (!trueFn)
-    return op.emitOpError() << "'" << trueFnAttr.getValue()
-                            << "' does not reference a valid function";
-
-  auto falseFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
-      falseFnAttr.getValue());
-  if (!falseFn)
-    return op.emitOpError() << "'" << falseFnAttr.getValue()
-                            << "' does not reference a valid function";
-
-  // Verify that the operand and result types match the true/false function.
-  auto trueFnType = trueFn.getType();
-  if (trueFnType.getNumInputs() != op.getNumOperands() - 1)
-    return op.emitOpError("incorrect number of operands for true function");
-
-  auto falseFnType = falseFn.getType();
-  if (falseFnType.getNumInputs() != op.getNumOperands() - 1)
-    return op.emitOpError("incorrect number of operands for false function");
-
-  for (unsigned i = 0, e = trueFnType.getNumInputs(); i != e; ++i) {
-    if (op.getOperand(i + 1).getType() != trueFnType.getInput(i))
-      return op.emitOpError("operand type mismatch for true function");
-
-    if (op.getOperand(i + 1).getType() != falseFnType.getInput(i))
-      return op.emitOpError("operand type mismatch for false function");
+static LogicalResult VerifyFunctionAttribute(Operation *op, StringRef name,
+                                             TypeRange inputTypes,
+                                             TypeRange resultTypes) {
+  auto attribute = op->getAttrOfType<FlatSymbolRefAttr>(name);
+  if (!attribute) {
+    return op->emitOpError()
+           << "requires a '" << name << "' symbol reference attribute";
   }
 
-  if (trueFnType.getNumResults() != op.getNumResults())
-    return op.emitOpError("incorrect number of results for true function");
+  auto function = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
+      attribute.getValue());
+  if (!function) {
+    return op->emitOpError() << "'" << attribute.getValue()
+                             << "' does not reference a valid function";
+  }
 
-  if (falseFnType.getNumResults() != op.getNumResults())
-    return op.emitOpError("incorrect number of results for false function");
-
-  for (unsigned i = 0, e = trueFnType.getNumResults(); i != e; ++i) {
-    if (op.getResult(i).getType() != trueFnType.getResult(i))
-      return op.emitOpError("result type mismatch for true function");
-
-    if (op.getResult(i).getType() != falseFnType.getResult(i))
-      return op.emitOpError("result type mismatch for false function");
+  auto type = function.getType();
+  if (inputTypes != type.getInputs()) {
+    return op->emitOpError()
+           << "'" << attribute.getValue() << "' has mismatching operand types";
+  }
+  if (resultTypes != type.getResults()) {
+    return op->emitOpError()
+           << "'" << attribute.getValue() << "' has mismatching result types";
   }
 
   return success();
+}
+
+static LogicalResult verify(CondOp op) {
+  auto operand_types = TypeRange(op.getOperandTypes()).drop_front();
+  return success(succeeded(VerifyFunctionAttribute(
+                     op, "a_true_fn", operand_types, op.getResultTypes())) &&
+                 succeeded(VerifyFunctionAttribute(
+                     op, "b_false_fn", operand_types, op.getResultTypes())));
 }
 
 //===----------------------------------------------------------------------===//
@@ -403,62 +385,11 @@ static LogicalResult verify(CondOp op) {
 //===----------------------------------------------------------------------===//
 
 static LogicalResult verify(WhileOp op) {
-  // Check that the cond and body function attributes are specified.
-  auto condFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("a_cond_fn");
-  if (!condFnAttr)
-    return op.emitOpError("requires a 'a_cond_fn' symbol reference attribute");
-
-  auto bodyFnAttr = op->getAttrOfType<FlatSymbolRefAttr>("b_body_fn");
-  if (!bodyFnAttr)
-    return op.emitOpError("requires a 'b_body_fn' symbol reference attribute");
-
-  auto condFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
-      condFnAttr.getValue());
-  if (!condFn)
-    return op.emitOpError() << "'" << condFnAttr.getValue()
-                            << "' does not reference a valid function";
-
-  auto bodyFn = op->getParentOfType<ModuleOp>().lookupSymbol<FuncOp>(
-      bodyFnAttr.getValue());
-  if (!bodyFn)
-    return op.emitOpError() << "'" << bodyFnAttr.getValue()
-                            << "' does not reference a valid function";
-
-  // Verify the operand and result types of the cond and body functions.
-  auto condFnType = condFn.getType();
-  if (condFnType.getNumInputs() != op.getNumOperands())
-    return op.emitOpError(
-        llvm::formatv("incorrect number of operands for cond function: WhileOp "
-                      "has {0} operands but cond function has {1} operands",
-                      op.getNumOperands(), condFnType.getNumInputs()));
-
-  auto bodyFnType = bodyFn.getType();
-  if (bodyFnType.getNumInputs() != op.getNumOperands())
-    return op.emitOpError(
-        llvm::formatv("incorrect number of operands for body function: WhileOp "
-                      "has {0} operands but body function has {1} operands",
-                      op.getNumOperands(), bodyFnType.getNumInputs()));
-
-  for (unsigned i = 0, e = condFnType.getNumInputs(); i != e; ++i) {
-    if (op.getOperand(i).getType() != condFnType.getInput(i))
-      return op.emitOpError("operand type mismatch for cond function");
-
-    if (op.getOperand(i).getType() != bodyFnType.getInput(i))
-      return op.emitOpError("operand type mismatch for body function");
-  }
-
-  if (bodyFnType.getNumResults() != op.getNumResults())
-    return op.emitOpError(
-        llvm::formatv("incorrect number of results for body function: WhileOp "
-                      "has {0} results but body function has {1} results",
-                      op.getNumResults(), bodyFnType.getNumResults()));
-
-  for (unsigned i = 0, e = bodyFnType.getNumResults(); i != e; ++i) {
-    if (op.getResult(i).getType() != bodyFnType.getResult(i))
-      return op.emitOpError("result type mismatch for body function");
-  }
-
-  return success();
+  return success(
+      succeeded(VerifyFunctionAttribute(op, "a_cond_fn", op.getOperandTypes(),
+                                        op.getResultTypes())) &&
+      succeeded(VerifyFunctionAttribute(op, "b_body_fn", op.getOperandTypes(),
+                                        op.getResultTypes())));
 }
 
 }  // namespace corert

@@ -326,10 +326,6 @@ class RemainingResults {
       MutableArrayRef<RCReference<AsyncValue>> remaining_results)
       : remaining_results_(remaining_results) {}
 
-  [[deprecated]] RemainingResults(  // TODO(csigg): Remove.
-      HostContext*, MutableArrayRef<RCReference<AsyncValue>> remaining_results)
-      : RemainingResults(remaining_results) {}
-
   MutableArrayRef<RCReference<AsyncValue>> values() const {
     return remaining_results_;
   }

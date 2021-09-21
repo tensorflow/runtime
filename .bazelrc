@@ -51,7 +51,7 @@ build --compilation_mode=opt
 
 # Build settings for //backends/gpu/...
 build --@rules_cuda//cuda:cuda_targets=sm_60
-build --@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_runtime
+build --@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs
 build --copt=-U_FORTIFY_SOURCE  # TODO(csigg): fix and remove
 
 # CUDA support

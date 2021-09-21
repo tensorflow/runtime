@@ -113,8 +113,14 @@ tfrt_cc_library(
     ),
 )
 
-# Generated API implementations for CUDA libraries. Only :cuda_wrapper should
-# depend on this. Not used internally, but we want to include it in CI builds.
+# Headers and generated API implementations for CUDA libraries.
+#
+# No target should depend on this explicitly.
+# It should rather be used (through .bazelrc) as
+# '--@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_stubs'
+# which makes all cuda_library() targets implicitly depend on it.
+#
+# Not used internally, but we want to include it in CI builds.
 tfrt_cc_library(
     name = "cuda_stubs",
     srcs = [
@@ -130,9 +136,19 @@ tfrt_cc_library(
     # No CUDA shared object dependencies, they are dynamically loaded.
     deps = [
         ":symbol_loader",
-        "@cuda_headers",
         "@tf_runtime//third_party/cuda:stub_inc",
     ] + if_google(
+        ["@cuda_headers"],
+        # Compiling CUDA device code requires crt headers that are not provided
+        # by the NVIDIA headers repository. Use the headers from the local CUDA
+        # toolkit instead (which needs to be present for compiling device code
+        # anyway). Conversely, do not require a local CUDA toolkit and use only
+        # the NVIDIA headers repository if not compiling device code.
+        select({
+            ":cuda_enabled": ["@local_cuda//:cuda_headers"],
+            "//conditions:default": ["@cuda_headers"],
+        }),
+    ) + if_google(
         ["@cudnn_headers//:cudnn_header"],
         ["@cudnn_headers"],
     ) + if_google(
@@ -141,22 +157,6 @@ tfrt_cc_library(
     ),
 )
 
-# This target provides the CUDA toolkit headers required to compile CUDA device
-# code and the CUDA runtime library. No target should depend on it explicitly.
-# It should rather be used (through .bazelrc) as
-# '--@rules_cuda//cuda:cuda_runtime=@tf_runtime//backends/gpu:cuda_runtime'
-# which makes all cuda_library() targets implicitly depend on it.
-# copybara:comment_begin
-tfrt_cc_library(
-    name = "cuda_runtime",
-    visibility = ["//visibility:private"],
-    deps = if_local_cuda([
-        ":cuda_stubs",
-        "@local_cuda//:cuda_headers",
-    ]),
-)
-# copybara:comment_end
-
 # This is a backward compatible wrapper for cublasGemmEx to support
 # cuBLAS v10 and v11 builds.
 # This target is used in internal build only.
@@ -164,9 +164,10 @@ tfrt_cc_library(
     name = "cublas_compat",
     srcs = ["lib/wrapper/cublas_compat.cc"],
     tags = ["manual"],
-    deps = if_google([
-        "@cuda_headers//:cublas_static",
+    deps = [
         "@cuda_headers",
+    ] + if_google([
+        "@cuda_headers//:cublas_static",
     ]),
 )
 
@@ -237,6 +238,7 @@ tfrt_cc_library(
     ),
     deps = [
         ":rocm_stubs",
+        "@cuda_headers",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:support",
     ] + if_google(
@@ -245,14 +247,19 @@ tfrt_cc_library(
             ":cublas_compat",
             "//platforms/gpus/cuda/dynamic_libcuda",
             "@cuda_headers//:cublas_static",
-            "@cuda_headers",
             "@cuda_headers//:cudart_static",
             "@cuda_headers//:cufft_static",
             "@cuda_headers//:cusolver_static",
             "@cudnn_headers//:cudnn",
             "@nccl_headers//:nccl",
         ],
-        [":cuda_stubs"],
+        [
+            "@cudnn_headers",
+            "@nccl_headers",
+            # This target is set to :cuda_stubs in TFRT's .bazelrc file.
+            # For XLIR we use a different target based on stream_executor.
+            "@rules_cuda//cuda:cuda_runtime",
+        ],
     ),
 )
 

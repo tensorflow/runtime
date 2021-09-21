@@ -20,6 +20,7 @@
 #include <thread>
 
 #include "gtest/gtest.h"
+#include "tfrt/support/ref_count.h"
 
 namespace tfrt {
 namespace {
@@ -34,6 +35,44 @@ TEST(AsyncDispatchTest, Await) {
 
   Await(av.CopyRCRef());
   EXPECT_TRUE(av.IsAvailable());
+  thread.join();
+}
+
+TEST(AsyncDispatchTest, AwaitRangeAvRefs) {
+  std::vector<AsyncValueRef<int>> av_refs;
+  av_refs.emplace_back(MakeConstructedAsyncValueRef<int>(42));
+  av_refs.emplace_back(MakeConstructedAsyncValueRef<int>(32));
+
+  std::thread thread{[&] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    for (auto& av : av_refs) {
+      av.SetStateConcrete();
+    }
+  }};
+
+  AwaitRange(av_refs);
+  for (auto& av : av_refs) {
+    EXPECT_TRUE(av.IsAvailable());
+  }
+  thread.join();
+}
+
+TEST(AsyncDispatchTest, AwaitRangeRCRefs) {
+  std::vector<RCReference<AsyncValue>> av_refs;
+  av_refs.emplace_back(MakeConstructedAsyncValueRef<int>(42).CopyRCRef());
+  av_refs.emplace_back(MakeConstructedAsyncValueRef<int>(32).CopyRCRef());
+
+  std::thread thread{[&] {
+    std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    for (auto& av : av_refs) {
+      av->SetStateConcrete();
+    }
+  }};
+
+  AwaitRange(av_refs);
+  for (auto& av : av_refs) {
+    EXPECT_TRUE(av->IsAvailable());
+  }
   thread.join();
 }
 

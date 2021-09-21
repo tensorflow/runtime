@@ -21,6 +21,7 @@
 
 #include "tfrt/host_context/execution_context.h"
 #include "tfrt/host_context/host_context.h"
+#include "tfrt/support/latch.h"
 
 namespace tfrt {
 
@@ -40,9 +41,53 @@ using AsyncResultTypeT = typename UnwrapExpected<std::result_of_t<F()>>::type;
 
 }  // namespace internal
 
+// AndThen functions more friendly for generic programming.
+template <typename F>
+void AndThen(AsyncValue* value, F&& f) {
+  value->AndThen(std::forward<F>(f));
+}
+
+template <typename F>
+void AndThen(const RCReference<AsyncValue>& value, F&& f) {
+  value->AndThen(std::forward<F>(f));
+}
+
+template <typename T, typename F>
+void AndThen(const AsyncValueRef<T>& value, F&& f) {
+  value.AndThen(std::forward<F>(f));
+}
+
 // Block until the specified values are available (either with a value or an
 // error result).
-void Await(ArrayRef<RCReference<AsyncValue>> values);
+// `values` can be any range of AsyncValues.
+// Example usages:
+//
+// std::vector<AsycnValueRef<int>> av_refs;
+// ...
+// AwaitRange(av_refs);
+//
+// // Foo is a struct contains an AsyncValue.
+// std::vector<Foo> foos;
+// AwaitRange(llvm::map_range(foos, [](auto& foo) { return foo.async_value; }));
+template <typename RangeT>
+void AwaitRange(const RangeT& values) {
+  // We are done when values_remaining drops to zero.
+  tfrt::latch values_remaining(std::distance(values.begin(), values.end()));
+
+  // As each value becomes available, we decrement the count.
+  for (const auto& value : values) {
+    AndThen(value, [&values_remaining] { values_remaining.count_down(); });
+  }
+
+  // Wait until all values are resolved.
+  values_remaining.wait();
+}
+
+inline void Await(ArrayRef<AsyncValue*> values) { AwaitRange(values); }
+
+inline void Await(ArrayRef<RCReference<AsyncValue>> rc_refs) {
+  AwaitRange(rc_refs);
+}
 
 // Block until the specified values are available (either with a value or an
 // error result). It uses the work queue inside `exec_ctx`, so, depending on the

@@ -20,22 +20,8 @@
 
 #include "tfrt/host_context/concurrent_work_queue.h"
 #include "tfrt/host_context/task_function.h"
-#include "tfrt/support/latch.h"
 
 namespace tfrt {
-
-void Await(ArrayRef<RCReference<AsyncValue>> values) {
-  // We are done when values_remaining drops to zero.
-  tfrt::latch values_remaining(values.size());
-
-  // As each value becomes available, we decrement the count.
-  for (auto& value : values) {
-    value->AndThen([&values_remaining]() { values_remaining.count_down(); });
-  }
-
-  // Wait until all values are resolved.
-  values_remaining.wait();
-}
 
 void Await(const ExecutionContext& exec_ctx,
            ArrayRef<RCReference<AsyncValue>> values) {

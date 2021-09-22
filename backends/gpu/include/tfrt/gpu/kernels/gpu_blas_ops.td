@@ -36,6 +36,7 @@ def GPU_BlasGemmAlgoType : GPU_Type<"BlasGemmAlgo"> {
 }
 
 def GPU_BlasDataTypeAttr : GPU_WrapperAttr<"BlasDataType">;
+def GPU_BlasComputeTypeAttr : GPU_WrapperAttr<"BlasComputeType">;
 def GPU_BlasOperationAttr : GPU_WrapperAttr<"BlasOperation">;
 def GPU_BlasGemmAlgoAttr : GPU_WrapperAttr<"BlasGemmAlgo">;
 def GPU_BlasFillModeAttr : GPU_WrapperAttr<"BlasFillMode">;
@@ -85,7 +86,7 @@ def GPU_BlasGemmOp : GPU_Op<"blas.gemm"> {
     GPU_BlasOperationAttr:$transB, I32:$m, I32:$n, I32:$k, AnyType:$alpha,
     GPU_BufferType:$A, GPU_BlasDataTypeAttr:$typeA, I32:$heightA, GPU_BufferType:$B,
     GPU_BlasDataTypeAttr:$typeB, I32:$heightB, AnyType:$beta, GPU_BufferType:$C,
-    GPU_BlasDataTypeAttr:$typeC, I32:$heightC, GPU_BlasDataTypeAttr:$computeType,
+    GPU_BlasDataTypeAttr:$typeC, I32:$heightC, GPU_BlasComputeTypeAttr:$computeType,
     GPU_BlasGemmAlgoType:$algo, TFRT_ChainType:$chain);
 
   let results = (outs TFRT_ChainType);
@@ -111,7 +112,7 @@ def GPU_BlasGemmBatchExOp : GPU_Op<"blas.gemm.batch"> {
     GPU_BufferType:$A, GPU_BlasDataTypeAttr:$typeA, I32:$heightA, I64:$strideA,
     GPU_BufferType:$B, GPU_BlasDataTypeAttr:$typeB, I32:$heightB, I64:$strideB,
     AnyType:$beta,  GPU_BufferType:$C, GPU_BlasDataTypeAttr:$typeC, I32:$heightC,
-    I64:$strideC, I32:$batchCount, GPU_BlasDataTypeAttr:$computeType,
+    I64:$strideC, I32:$batchCount, GPU_BlasComputeTypeAttr:$computeType,
     GPU_BlasGemmAlgoType:$algo, TFRT_ChainType:$chain);
   let results = (outs TFRT_ChainType);
   let assemblyFormat = [{

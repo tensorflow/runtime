@@ -15,6 +15,8 @@
 // Implementation of the cuBLAS API forwarding calls to symbols dynamically
 // loaded from the real library.
 
+#include <type_traits>
+
 #include "cublas.h"  // from @cuda_headers
 #include "symbol_loader.h"
 
@@ -43,125 +45,70 @@ static cublasStatus_t DynamicCall(const char *symbol_name, Args &&...args) {
 extern "C" {
 #include "cublas_stub.cc.inc"
 
-static cublasStatus_t CublasGetVersion(cublasHandle_t handle, int *version) {
-  static auto pair = [&] {
-    int version = 0;
-    auto status = cublasGetVersion_v2(handle, &version);
-    return std::make_pair(status, version);
-  }();
-  *version = std::get<int>(pair);
-  return std::get<cublasStatus_t>(pair);
-}
+// The functions below are overloaded (for backwards compatibility) and
+// therefore need to explicitly specify the function type.
 
-// cuBLAS broke backwards compatibility from v10 to v11 by changing the
-// computeType argument from cudaDataType to cublasComputeType_t. This function
-// implements the v10 interface in a forward-compatible way if the stub is
-// compiled with v11 headers.
-CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmEx_v10(
+CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmEx(
     cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
     int m, int n, int k, const void *alpha, /* host or device pointer */
     const void *A, cudaDataType Atype, int lda, const void *B,
     cudaDataType Btype, int ldb, const void *beta, /* host or device pointer */
-    void *C, cudaDataType Ctype, int ldc, cudaDataType computeType,
+    void *C, cudaDataType Ctype, int ldc, cublasComputeType_t computeType,
     cublasGemmAlgo_t algo) {
-  static auto func_ptr = LoadSymbol("cublasGemmEx");
-  if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
-  int version;
-  if (auto status = CublasGetVersion(handle, &version)) return status;
-  if (version >= 11000) {
-#if CUBLAS_VER_MAJOR >= 11
-    cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
-    if (auto status =
-            cublasMigrateComputeType(handle, computeType, &migratedComputeType))
-      return status;
-    using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
-        cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
-        const void *, const void *, cudaDataType, int, const void *,
-        cudaDataType, int, const void *, void *, cudaDataType, int,
-        cublasComputeType_t, cublasGemmAlgo_t);
-    return reinterpret_cast<FuncPtr>(func_ptr)(
-        handle, transa, transb, m, n, k, alpha, A, Atype, lda, B, Btype, ldb,
-        beta, C, Ctype, ldc, migratedComputeType, algo);
-#else
-    return CUBLAS_STATUS_NOT_SUPPORTED;
-#endif
-  }
-  return reinterpret_cast<decltype(cublasGemmEx_v10) *>(func_ptr)(
-      handle, transa, transb, m, n, k, alpha, A, Atype, lda, B, Btype, ldb,
-      beta, C, Ctype, ldc, computeType, algo);
+  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+      cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
+      const void *, const void *, cudaDataType, int, const void *, cudaDataType,
+      int, const void *, void *, cudaDataType, int, cublasComputeType_t,
+      cublasGemmAlgo_t);
+  return DynamicCall<std::remove_pointer_t<FuncPtr>, &cublasGemmEx>(
+      "cublasGemmEx", handle, transa, transb, m, n, k, alpha, A, Atype, lda, B,
+      Btype, ldb, beta, C, Ctype, ldc, computeType, algo);
 }
 
-CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmBatchedEx_v10(
+CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmBatchedEx(
     cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
     int m, int n, int k, const void *alpha, /* host or device pointer */
-    const void *Aarray[], cudaDataType Atype, int lda, const void *Barray[],
-    cudaDataType Btype, int ldb, const void *beta, /* host or device pointer */
-    void *Carray[], cudaDataType Ctype, int ldc, int batchCount,
-    cudaDataType computeType, cublasGemmAlgo_t algo) {
-  static auto func_ptr = LoadSymbol("cublasGemmBatchedEx");
-  if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
-  int version;
-  if (auto status = CublasGetVersion(handle, &version)) return status;
-  if (version >= 11000) {
-#if CUBLAS_VER_MAJOR >= 11
-    cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
-    if (auto status =
-            cublasMigrateComputeType(handle, computeType, &migratedComputeType))
-      return status;
-    using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
-        cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
-        const void *, const void *[], cudaDataType, int, const void *[],
-        cudaDataType, int, const void *, void *[], cudaDataType, int, int,
-        cublasComputeType_t, cublasGemmAlgo_t);
-    return reinterpret_cast<FuncPtr>(func_ptr)(
-        handle, transa, transb, m, n, k, alpha, Aarray, Atype, lda, Barray,
-        Btype, ldb, beta, Carray, Ctype, ldc, batchCount, migratedComputeType,
-        algo);
-#else
-    return CUBLAS_STATUS_NOT_SUPPORTED;
-#endif
-  }
-  return reinterpret_cast<decltype(cublasGemmBatchedEx_v10) *>(func_ptr)(
-      handle, transa, transb, m, n, k, alpha, Aarray, Atype, lda, Barray, Btype,
-      ldb, beta, Carray, Ctype, ldc, batchCount, computeType, algo);
-}
-
-CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmStridedBatchedEx_v10(
-    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
-    int m, int n, int k, const void *alpha, /* host or device pointer */
-    const void *A, cudaDataType Atype, int lda, int64_t strideA, const void *B,
-    cudaDataType Btype, int ldb, int64_t strideB,
+    const void *const Aarray[], cudaDataType Atype, int lda,
+    const void *const Barray[], cudaDataType Btype, int ldb,
     const void *beta, /* host or device pointer */
-    void *C, cudaDataType Ctype, int ldc, int64_t strideC, int batchCount,
-    cudaDataType computeType, cublasGemmAlgo_t algo) {
-  static auto func_ptr = LoadSymbol("cublasGemmStridedBatchedEx");
-  if (!func_ptr) return CUBLAS_STATUS_NOT_INITIALIZED;
-  int version;
-  if (auto status = CublasGetVersion(handle, &version)) return status;
-  if (version >= 11000) {
-#if CUBLAS_VER_MAJOR >= 11
-    cublasComputeType_t migratedComputeType = CUBLAS_COMPUTE_32F;
-    if (auto status =
-            cublasMigrateComputeType(handle, computeType, &migratedComputeType))
-      return status;
-    using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
-        cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
-        const void *, const void *, cudaDataType, int, long long int,
-        const void *, cudaDataType, int, long long int, const void *, void *,
-        cudaDataType, int, long long int, int, cublasComputeType_t,
-        cublasGemmAlgo_t);
-    return reinterpret_cast<FuncPtr>(func_ptr)(
-        handle, transa, transb, m, n, k, alpha, A, Atype, lda, strideA, B,
-        Btype, ldb, strideB, beta, C, Ctype, ldc, strideC, batchCount,
-        migratedComputeType, algo);
-#else
-    return CUBLAS_STATUS_NOT_SUPPORTED;
-#endif
-  }
-  return reinterpret_cast<decltype(cublasGemmStridedBatchedEx_v10) *>(func_ptr)(
-      handle, transa, transb, m, n, k, alpha, A, Atype, lda, strideA, B, Btype,
-      ldb, strideB, beta, C, Ctype, ldc, strideC, batchCount, computeType,
-      algo);
+    void *const Carray[], cudaDataType Ctype, int ldc, int batchCount,
+    cublasComputeType_t computeType, cublasGemmAlgo_t algo) {
+  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+      cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
+      const void *, const void *const[], cudaDataType, int, const void *const[],
+      cudaDataType, int, const void *, void *const[], cudaDataType, int, int,
+      cublasComputeType_t, cublasGemmAlgo_t);
+  return DynamicCall<std::remove_pointer_t<FuncPtr>, &cublasGemmBatchedEx>(
+      "cublasGemmBatchedEx", handle, transa, transb, m, n, k, alpha, Aarray,
+      Atype, lda, Barray, Btype, ldb, beta, Carray, Ctype, ldc, batchCount,
+      computeType, algo);
+}
+
+CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmStridedBatchedEx(
+    cublasHandle_t handle, cublasOperation_t transa, cublasOperation_t transb,
+    int m, int n, int k, const void *alpha, /* host or device pointer */
+    const void *A, cudaDataType Atype, int lda,
+    long long int strideA,  // NOLINT: google-runtime-int and runtime/int
+    const void *B, cudaDataType Btype, int ldb,
+    long long int strideB,  // NOLINT
+    const void *beta,       /* host or device pointer */
+    void *C, cudaDataType Ctype, int ldc,
+    long long int strideC,  // NOLINT
+    int batchCount, cublasComputeType_t computeType, cublasGemmAlgo_t algo) {
+  using FuncPtr = cublasStatus_t(CUBLASWINAPI *)(
+      cublasHandle_t, cublasOperation_t, cublasOperation_t, int, int, int,
+      const void *, const void *, cudaDataType, int,
+      long long int,  // NOLINT
+      const void *, cudaDataType, int,
+      long long int,  // NOLINT
+      const void *, void *, cudaDataType, int,
+      long long int,  // NOLINT
+      int, cublasComputeType_t, cublasGemmAlgo_t);
+  return DynamicCall<std::remove_pointer_t<FuncPtr>,
+                     &cublasGemmStridedBatchedEx>(
+      "cublasGemmStridedBatchedEx", handle, transa, transb, m, n, k, alpha, A,
+      Atype, lda, strideA, B, Btype, ldb, strideB, beta, C, Ctype, ldc, strideC,
+      batchCount, computeType, algo);
 }
 
 }  // extern "C"

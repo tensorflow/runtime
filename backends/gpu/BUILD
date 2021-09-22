@@ -157,20 +157,6 @@ tfrt_cc_library(
     ),
 )
 
-# This is a backward compatible wrapper for cublasGemmEx to support
-# cuBLAS v10 and v11 builds.
-# This target is used in internal build only.
-tfrt_cc_library(
-    name = "cublas_compat",
-    srcs = ["lib/wrapper/cublas_compat.cc"],
-    tags = ["manual"],
-    deps = [
-        "@cuda_headers",
-    ] + if_google([
-        "@cuda_headers//:cublas_static",
-    ]),
-)
-
 tfrt_cc_library(
     name = "gpu_wrapper",
     srcs = [
@@ -244,7 +230,6 @@ tfrt_cc_library(
     ] + if_google(
         [
             # CUDA libraries are statically linked.
-            ":cublas_compat",
             "//platforms/gpus/cuda/dynamic_libcuda",
             "@cuda_headers//:cublas_static",
             "@cuda_headers//:cudart_static",

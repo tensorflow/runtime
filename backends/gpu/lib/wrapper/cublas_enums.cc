@@ -105,6 +105,55 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value) {
 }
 
 template <>
+Expected<cublasComputeType_t> Parse<cublasComputeType_t>(llvm::StringRef name) {
+  if (name == "CUBLAS_COMPUTE_16F") return CUBLAS_COMPUTE_16F;
+  if (name == "CUBLAS_COMPUTE_16F_PEDANTIC") return CUBLAS_COMPUTE_16F_PEDANTIC;
+  if (name == "CUBLAS_COMPUTE_32F") return CUBLAS_COMPUTE_32F;
+  if (name == "CUBLAS_COMPUTE_32F_PEDANTIC") return CUBLAS_COMPUTE_32F_PEDANTIC;
+  if (name == "CUBLAS_COMPUTE_32F_FAST_16F") return CUBLAS_COMPUTE_32F_FAST_16F;
+  if (name == "CUBLAS_COMPUTE_32F_FAST_16BF")
+    return CUBLAS_COMPUTE_32F_FAST_16BF;
+  if (name == "CUBLAS_COMPUTE_32F_FAST_TF32")
+    return CUBLAS_COMPUTE_32F_FAST_TF32;
+  if (name == "CUBLAS_COMPUTE_64F") return CUBLAS_COMPUTE_64F;
+  if (name == "CUBLAS_COMPUTE_64F_PEDANTIC") return CUBLAS_COMPUTE_64F_PEDANTIC;
+  if (name == "CUBLAS_COMPUTE_32I") return CUBLAS_COMPUTE_32I;
+  if (name == "CUBLAS_COMPUTE_32I_PEDANTIC") return CUBLAS_COMPUTE_32I_PEDANTIC;
+  return MakeStringError("Unknown cublasComputeType_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os,
+                              cublasComputeType_t value) {
+  switch (value) {
+    case CUBLAS_COMPUTE_16F:
+      return os << "CUBLAS_COMPUTE_16F";
+    case CUBLAS_COMPUTE_16F_PEDANTIC:
+      return os << "CUBLAS_COMPUTE_16F_PEDANTIC";
+    case CUBLAS_COMPUTE_32F:
+      return os << "CUBLAS_COMPUTE_32F";
+    case CUBLAS_COMPUTE_32F_PEDANTIC:
+      return os << "CUBLAS_COMPUTE_32F_PEDANTIC";
+    case CUBLAS_COMPUTE_32F_FAST_16F:
+      return os << "CUBLAS_COMPUTE_32F_FAST_16F";
+    case CUBLAS_COMPUTE_32F_FAST_16BF:
+      return os << "CUBLAS_COMPUTE_32F_FAST_16BF";
+    case CUBLAS_COMPUTE_32F_FAST_TF32:
+      return os << "CUBLAS_COMPUTE_32F_FAST_TF32";
+    case CUBLAS_COMPUTE_64F:
+      return os << "CUBLAS_COMPUTE_64F";
+    case CUBLAS_COMPUTE_64F_PEDANTIC:
+      return os << "CUBLAS_COMPUTE_64F_PEDANTIC";
+    case CUBLAS_COMPUTE_32I:
+      return os << "CUBLAS_COMPUTE_32I";
+    case CUBLAS_COMPUTE_32I_PEDANTIC:
+      return os << "CUBLAS_COMPUTE_32I_PEDANTIC";
+    default:
+      return os << llvm::formatv("cublasComputeType_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+template <>
 Expected<cublasOperation_t> Parse<cublasOperation_t>(llvm::StringRef name) {
   if (name == "CUBLAS_OP_N") return CUBLAS_OP_N;
   if (name == "CUBLAS_OP_T") return CUBLAS_OP_T;

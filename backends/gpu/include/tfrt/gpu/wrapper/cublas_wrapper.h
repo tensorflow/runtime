@@ -33,6 +33,10 @@ Expected<cudaDataType> Parse<cudaDataType>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value);
 
 template <>
+Expected<cublasComputeType_t> Parse<cublasComputeType_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasComputeType_t value);
+
+template <>
 Expected<cublasOperation_t> Parse<cublasOperation_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasOperation_t value);
 
@@ -46,6 +50,9 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value);
 
 template <>
 struct PlatformTypeTraits<BlasDataTypeTag, cudaDataType>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasComputeTypeTag, cublasComputeType_t>
     : public CudaPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasOperationTag, cublasOperation_t>
@@ -82,22 +89,23 @@ llvm::Error CublasGemmEx(CurrentContext current, cublasHandle_t handle,
                          Pointer<const void> B, cudaDataType typeB, int heightB,
                          Pointer<const void> beta, Pointer<void> C,
                          cudaDataType typeC, int heightC,
-                         cudaDataType computeType, cublasGemmAlgo_t algo);
+                         cublasComputeType_t computeType,
+                         cublasGemmAlgo_t algo);
 llvm::Error CublasGemmBatchedEx(
     CurrentContext current, cublasHandle_t handle, cublasOperation_t transA,
     cublasOperation_t transB, int m, int n, int k, Pointer<const void> alpha,
     llvm::ArrayRef<Pointer<const void>> Aarray, cudaDataType typeA, int heightA,
     llvm::ArrayRef<Pointer<const void>> Barray, cudaDataType typeB, int heightB,
     Pointer<const void> beta, llvm::ArrayRef<Pointer<void>> Carray,
-    cudaDataType typeC, int heightC, int batchCount, cudaDataType computeType,
-    cublasGemmAlgo_t algo);
+    cudaDataType typeC, int heightC, int batchCount,
+    cublasComputeType_t computeType, cublasGemmAlgo_t algo);
 llvm::Error CublasGemmStridedBatchedEx(
     CurrentContext current, cublasHandle_t handle, cublasOperation_t transA,
     cublasOperation_t transB, int m, int n, int k, Pointer<const void> alpha,
     Pointer<const void> A, cudaDataType typeA, int heightA, int64_t strideA,
     Pointer<const void> B, cudaDataType typeB, int heightB, int64_t strideB,
     Pointer<const void> beta, Pointer<void> C, cudaDataType typeC, int heightC,
-    int64_t strideC, int batchCount, cudaDataType computeType,
+    int64_t strideC, int batchCount, cublasComputeType_t computeType,
     cublasGemmAlgo_t algo);
 
 }  // namespace wrapper

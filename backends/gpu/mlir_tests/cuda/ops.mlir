@@ -97,23 +97,23 @@ func @ops() {
   // CHECK: tfrt_gpu.blas.gemm %[[blas]], CUBLAS_OP_N, CUBLAS_OP_N,
   // CHECK-SAME: %[[stride]], %[[stride]], %[[stride]], %[[alpha]], %[[buffer]],
   // CHECK-SAME: CUDA_R_32F, %[[stride]], %[[buffer]], CUDA_R_32F, %[[stride]],
-  // CHECK-SAME: %[[alpha]], %[[buffer]], CUDA_R_32F, %[[stride]], CUDA_R_32F,
-  // CHECK-SAME: %[[algo]], %{{.*}}
+  // CHECK-SAME: %[[alpha]], %[[buffer]], CUDA_R_32F, %[[stride]],
+  // CHECK-SAME: CUBLAS_COMPUTE_32F, %[[algo]], %{{.*}}
   %ch8 = tfrt_gpu.blas.gemm %blas, CUBLAS_OP_N, CUBLAS_OP_N,
     %stride, %stride, %stride, %alpha, %buffer,
     CUDA_R_32F, %stride, %buffer, CUDA_R_32F, %stride,
-    %alpha, %buffer, CUDA_R_32F, %stride, CUDA_R_32F,
+    %alpha, %buffer, CUDA_R_32F, %stride, CUBLAS_COMPUTE_32F,
     %algo, %ch7
   // CHECK: tfrt_gpu.blas.gemm.batch %[[blas]], CUBLAS_OP_N, CUBLAS_OP_N,
   // CHECK-SAME: %[[stride]], %[[stride]], %[[stride]], %[[alpha]], %[[buffer]],
   // CHECK-SAME: CUDA_R_32F, %[[stride]], %[[size]], %[[buffer]], CUDA_R_32F, %[[stride]],
   // CHECK-SAME: %[[size]], %[[alpha]], %[[buffer]], CUDA_R_32F, %[[stride]], %[[size]], %[[stride]],
-  // CHECK-SAME: CUDA_R_32F, %[[algo]], %{{.*}}
+  // CHECK-SAME: CUBLAS_COMPUTE_32F, %[[algo]], %{{.*}}
   %ch9 = tfrt_gpu.blas.gemm.batch %blas, CUBLAS_OP_N, CUBLAS_OP_N,
     %stride, %stride, %stride, %alpha, %buffer,
     CUDA_R_32F, %stride, %size, %buffer, CUDA_R_32F, %stride,
     %size, %alpha, %buffer, CUDA_R_32F, %stride, %size, %stride,
-    CUDA_R_32F, %algo, %ch8
+    CUBLAS_COMPUTE_32F, %algo, %ch8
 
   // CHECK: %[[cudnn:.*]] = tfrt_gpu.dnn.create %[[stream]]
   %cudnn = tfrt_gpu.dnn.create %stream

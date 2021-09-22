@@ -106,7 +106,7 @@ llvm::Error BlasGemmEx(CurrentContext current, BlasHandle handle,
                        BlasDataType typeB, int heightB,
                        Pointer<const void> beta, Pointer<void> C,
                        BlasDataType typeC, int heightC,
-                       BlasDataType computeType, BlasGemmAlgo algo) {
+                       BlasComputeType computeType, BlasGemmAlgo algo) {
   auto platform = handle.platform();
   switch (platform) {
     case Platform::CUDA:
@@ -130,7 +130,7 @@ llvm::Error BlasGemmStridedBatchedEx(
     Pointer<const void> A, BlasDataType typeA, int heightA, int64_t strideA,
     Pointer<const void> B, BlasDataType typeB, int heightB, int64_t strideB,
     Pointer<const void> beta, Pointer<void> C, BlasDataType typeC, int heightC,
-    int64_t strideC, int batchCount, BlasDataType computeType,
+    int64_t strideC, int batchCount, BlasComputeType computeType,
     BlasGemmAlgo algo) {
   auto platform = handle.platform();
   switch (platform) {

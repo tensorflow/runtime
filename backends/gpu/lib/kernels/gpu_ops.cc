@@ -75,6 +75,12 @@ struct EnumTraits<wrapper::BlasDataTypeTag> {
 };
 
 template <>
+struct EnumTraits<wrapper::BlasComputeTypeTag> {
+  using cuda_type = cublasComputeType_t;
+  using rocm_type = rocblas_datatype;
+};
+
+template <>
 struct EnumTraits<wrapper::BlasOperationTag> {
   using cuda_type = cublasOperation_t;
   using rocm_type = rocblas_operation;
@@ -106,8 +112,32 @@ static Type GetType(MLIRContext *context, cudaDataType data_type) {
   }
 }
 
+static Type GetType(MLIRContext *context, cublasComputeType_t compute_type) {
+  switch (compute_type) {
+    case CUBLAS_COMPUTE_16F:
+    case CUBLAS_COMPUTE_16F_PEDANTIC:
+      return Float16Type::get(context);
+    case CUBLAS_COMPUTE_32F:
+    case CUBLAS_COMPUTE_32F_PEDANTIC:
+    case CUBLAS_COMPUTE_32F_FAST_16F:
+    case CUBLAS_COMPUTE_32F_FAST_16BF:
+    case CUBLAS_COMPUTE_32F_FAST_TF32:
+      return Float32Type::get(context);
+    case CUBLAS_COMPUTE_64F:
+    case CUBLAS_COMPUTE_64F_PEDANTIC:
+      return Float64Type::get(context);
+    case CUBLAS_COMPUTE_32I:
+    case CUBLAS_COMPUTE_32I_PEDANTIC:
+      return IntegerType::get(context, 32, IntegerType::Signed);
+    default:
+      llvm_unreachable("unexpected compute type");
+  }
+}
+
 static Type GetType(MLIRContext *context, rocblas_datatype data_type) {
   switch (data_type) {
+    case rocblas_datatype_f16_r:
+      return Float16Type::get(context);
     case rocblas_datatype_f32_r:
       return Float32Type::get(context);
     case rocblas_datatype_f64_r:
@@ -120,7 +150,7 @@ static Type GetType(MLIRContext *context, rocblas_datatype data_type) {
 template <typename Tag>
 static Type GetType(EnumAttr<wrapper::Enum<Tag>> attribute) {
   MLIRContext *context = attribute.getContext();
-  wrapper::BlasDataType value = attribute.getValue();
+  wrapper::Enum<Tag> value = attribute.getValue();
   switch (value.platform()) {
     case wrapper::Platform::CUDA:
       return GetType(context,
@@ -248,7 +278,8 @@ static LogicalResult VerifyBlasGemmOp(OpTy op) {
   Type compute_type = GetType(op.computeTypeAttr());
   if (op.alpha().getType() != compute_type ||
       op.beta().getType() != compute_type) {
-    return op.emitOpError("alpha's or beta's type don't match computeType");
+    return op.emitOpError(
+        "alpha's or beta's type is incompatible with computeType");
   }
   return mlir::success();
 }

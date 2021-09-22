@@ -47,6 +47,9 @@ template <>
 struct PlatformTypeTraits<BlasDataTypeTag, rocblas_datatype>
     : public RocmPlatformType {};
 template <>
+struct PlatformTypeTraits<BlasComputeTypeTag, rocblas_datatype>
+    : public RocmPlatformType {};
+template <>
 struct PlatformTypeTraits<BlasOperationTag, rocblas_operation>
     : public RocmPlatformType {};
 template <>

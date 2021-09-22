@@ -85,18 +85,6 @@ llvm::Error CublasAxpyEx(CurrentContext current, cublasHandle_t handle, int n,
                                executionType));
 }
 
-// This function is defined in cublas_stub.cc (or cublas_compat.cc for google-
-// internal builds). It is a backward compartible wrapper for the cublasGemmEx
-// to accomodate for the API change between cuBLAS v10 and v11.
-extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmEx_v10(
-    cublasHandle_t handle, cublasOperation_t transA, cublasOperation_t transB,
-    int m, int n, int k, const void* alpha, /* host or device pointer */
-    const void* A, cudaDataType typeA, int heightA, const void* B,
-    cudaDataType typeB, int heightB,
-    const void* beta, /* host or device pointer */
-    void* C, cudaDataType typeC, int heightC, cudaDataType computeType,
-    cublasGemmAlgo_t algo);
-
 llvm::Error CublasGemmEx(CurrentContext current, cublasHandle_t handle,
                          cublasOperation_t transA, cublasOperation_t transB,
                          int m, int n, int k, Pointer<const void> alpha,
@@ -104,22 +92,14 @@ llvm::Error CublasGemmEx(CurrentContext current, cublasHandle_t handle,
                          Pointer<const void> B, cudaDataType typeB, int heightB,
                          Pointer<const void> beta, Pointer<void> C,
                          cudaDataType typeC, int heightC,
-                         cudaDataType computeType, cublasGemmAlgo_t algo) {
+                         cublasComputeType_t computeType,
+                         cublasGemmAlgo_t algo) {
   CheckCudaContext(current);
-  return TO_ERROR(cublasGemmEx_v10(
-      handle, transA, transB, m, n, k, ToCuda(alpha), ToCuda(A), typeA, heightA,
-      ToCuda(B), typeB, heightB, ToCuda(beta), ToCuda(C), typeC, heightC,
-      computeType, algo));
+  return TO_ERROR(cublasGemmEx(handle, transA, transB, m, n, k, ToCuda(alpha),
+                               ToCuda(A), typeA, heightA, ToCuda(B), typeB,
+                               heightB, ToCuda(beta), ToCuda(C), typeC, heightC,
+                               computeType, algo));
 }
-
-extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmBatchedEx_v10(
-    cublasHandle_t handle, cublasOperation_t transA, cublasOperation_t transB,
-    int m, int n, int k, const void* alpha, /* host or device pointer */
-    const void* Aarray[], cudaDataType typeA, int heightA, const void* Barray[],
-    cudaDataType typeB, int heightB,
-    const void* beta, /* host or device pointer */
-    void* Carray[], cudaDataType typeC, int heightC, int batchCount,
-    cudaDataType computeType, cublasGemmAlgo_t algo);
 
 llvm::Error CublasGemmBatchedEx(
     CurrentContext current, cublasHandle_t handle, cublasOperation_t transA,
@@ -127,23 +107,14 @@ llvm::Error CublasGemmBatchedEx(
     llvm::ArrayRef<Pointer<const void>> Aarray, cudaDataType typeA, int heightA,
     llvm::ArrayRef<Pointer<const void>> Barray, cudaDataType typeB, int heightB,
     Pointer<const void> beta, llvm::ArrayRef<Pointer<void>> Carray,
-    cudaDataType typeC, int heightC, int batchCount, cudaDataType computeType,
-    cublasGemmAlgo_t algo) {
+    cudaDataType typeC, int heightC, int batchCount,
+    cublasComputeType_t computeType, cublasGemmAlgo_t algo) {
   CheckCudaContext(current);
-  return TO_ERROR(cublasGemmBatchedEx_v10(
+  return TO_ERROR(cublasGemmBatchedEx(
       handle, transA, transB, m, n, k, ToCuda(alpha), ToCuda(Aarray).data(),
       typeA, heightA, ToCuda(Barray).data(), typeB, heightB, ToCuda(beta),
       ToCuda(Carray).data(), typeC, heightC, batchCount, computeType, algo));
 }
-
-extern "C" CUBLASAPI cublasStatus_t CUBLASWINAPI cublasGemmStridedBatchedEx_v10(
-    cublasHandle_t handle, cublasOperation_t transA, cublasOperation_t transB,
-    int m, int n, int k, const void* alpha, /* host or device pointer */
-    const void* A, cudaDataType typeA, int heightA, int64_t strideA,
-    const void* B, cudaDataType typeB, int heightB, int64_t strideB,
-    const void* beta, /* host or device pointer */
-    void* C, cudaDataType typeC, int heightC, int64_t strideC, int batchCount,
-    cudaDataType computeType, cublasGemmAlgo_t algo);
 
 llvm::Error CublasGemmStridedBatchedEx(
     CurrentContext current, cublasHandle_t handle, cublasOperation_t transA,
@@ -151,10 +122,10 @@ llvm::Error CublasGemmStridedBatchedEx(
     Pointer<const void> A, cudaDataType typeA, int heightA, int64_t strideA,
     Pointer<const void> B, cudaDataType typeB, int heightB, int64_t strideB,
     Pointer<const void> beta, Pointer<void> C, cudaDataType typeC, int heightC,
-    int64_t strideC, int batchCount, cudaDataType computeType,
+    int64_t strideC, int batchCount, cublasComputeType_t computeType,
     cublasGemmAlgo_t algo) {
   CheckCudaContext(current);
-  return TO_ERROR(cublasGemmStridedBatchedEx_v10(
+  return TO_ERROR(cublasGemmStridedBatchedEx(
       handle, transA, transB, m, n, k, ToCuda(alpha), ToCuda(A), typeA, heightA,
       strideA, ToCuda(B), typeB, heightB, strideB, ToCuda(beta), ToCuda(C),
       typeC, heightC, strideC, batchCount, computeType, algo));

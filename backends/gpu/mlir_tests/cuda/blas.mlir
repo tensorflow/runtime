@@ -89,7 +89,7 @@ func @blas_gemm() {
     %alpha, %gpu_buffer_0, CUDA_R_32F, %dim,
     %gpu_buffer_1, CUDA_R_32F, %dim, %beta,
     %gpu_buffer_2, CUDA_R_32F, %dim,
-    CUDA_R_32F, %algo, %ch8
+    CUBLAS_COMPUTE_32F, %algo, %ch8
 
   %ch10 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_2, %stream, %ch9 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
@@ -139,7 +139,7 @@ func @blas_gemm_batched() {
     %alpha, %gpu_buffer_0, CUDA_R_32F, %dim, %stride,
     %gpu_buffer_1, CUDA_R_32F, %dim, %stride, %beta,
     %gpu_buffer_2, CUDA_R_32F, %dim, %stride, %batch_count,
-    CUDA_R_32F, %algo, %ch8
+    CUBLAS_COMPUTE_32F, %algo, %ch8
 
   %ch10 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_2, %stream, %ch9 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]

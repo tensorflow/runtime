@@ -95,19 +95,20 @@ static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
-  auto compute_type = wrapper::BlasDataType::FromOpaqueValue(*computeType);
-  auto alpha_ptr = GetScalePointer(alpha, compute_type);
+  auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
+  auto a_type = wrapper::BlasDataType::FromOpaqueValue(*typeA);
+  auto alpha_ptr = GetScalePointer(alpha, a_type);
   if (!alpha_ptr) return alpha_ptr.takeError();
-  auto beta_ptr = GetScalePointer(beta, compute_type);
+  auto b_type = wrapper::BlasDataType::FromOpaqueValue(*typeB);
+  auto beta_ptr = GetScalePointer(beta, b_type);
   if (!beta_ptr) return beta_ptr.takeError();
 
   return wrapper::BlasGemmEx(
       *current, handle.get(), wrapper::BlasOperation::FromOpaqueValue(*transA),
       wrapper::BlasOperation::FromOpaqueValue(*transB), m, n, k, *alpha_ptr,
-      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeA), heightA,
-      B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeB), heightB,
-      *beta_ptr, C.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeC),
-      heightC, compute_type, algo);
+      A.pointer(), a_type, heightA, B.pointer(), b_type, heightB, *beta_ptr,
+      C.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeC), heightC,
+      compute_type, algo);
 }
 
 static Error BlasGemmBatch(
@@ -123,18 +124,19 @@ static Error BlasGemmBatch(
   auto current = wrapper::CtxSetCurrent(handle.context());
   if (!current) return current.takeError();
 
-  auto compute_type = wrapper::BlasDataType::FromOpaqueValue(*computeType);
-  auto alpha_ptr = GetScalePointer(alpha, compute_type);
+  auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
+  auto a_type = wrapper::BlasDataType::FromOpaqueValue(*typeA);
+  auto alpha_ptr = GetScalePointer(alpha, a_type);
   if (!alpha_ptr) return alpha_ptr.takeError();
-  auto beta_ptr = GetScalePointer(beta, compute_type);
+  auto b_type = wrapper::BlasDataType::FromOpaqueValue(*typeB);
+  auto beta_ptr = GetScalePointer(beta, b_type);
   if (!beta_ptr) return beta_ptr.takeError();
 
   return wrapper::BlasGemmStridedBatchedEx(
       *current, handle.get(), wrapper::BlasOperation::FromOpaqueValue(*transA),
       wrapper::BlasOperation::FromOpaqueValue(*transB), m, n, k, *alpha_ptr,
-      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeA), heightA,
-      strideA, B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeB),
-      heightB, strideB, *beta_ptr, C.pointer(),
+      A.pointer(), a_type, heightA, strideA, B.pointer(), b_type, heightB,
+      strideB, *beta_ptr, C.pointer(),
       wrapper::BlasDataType::FromOpaqueValue(*typeC), heightC, strideC,
       batchCount, compute_type, algo);
 }

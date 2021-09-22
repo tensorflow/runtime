@@ -74,7 +74,8 @@ static llvm::Error CallCublasGemm(wrapper::CurrentContext current,
                                   uint64_t n, const gpu::DenseGpuTensor& a,
                                   const gpu::DenseGpuTensor& b,
                                   const GpuBuffer& result,
-                                  cudaDataType data_type) {
+                                  cudaDataType data_type,
+                                  cublasComputeType_t compute_type) {
   TFRT_TRACE_SCOPE(Default, "CublasGemm");
   // Blas expects matrices in column major.
   // Use C' = B' x A' (' stands for transpose)
@@ -85,7 +86,7 @@ static llvm::Error CallCublasGemm(wrapper::CurrentContext current,
       ConstValue<T>(1.0).pointer(handle.platform()), b.buffer().pointer(),
       data_type, transpose_b ? k : n, a.buffer().pointer(), data_type,
       transpose_a ? m : k, ConstValue<T>(0.0).pointer(handle.platform()),
-      result.pointer(), data_type, n, data_type, CUBLAS_GEMM_DEFAULT);
+      result.pointer(), data_type, n, compute_type, CUBLAS_GEMM_DEFAULT);
 }
 
 llvm::Error RunCublasGemm(wrapper::CurrentContext current,
@@ -103,13 +104,16 @@ llvm::Error RunCublasGemm(wrapper::CurrentContext current,
   switch (a.dtype()) {
     case DType::F16:
       return CallCublasGemm<__half>(current, handle, transpose_a, transpose_b,
-                                    m, k, n, a, b, result, CUDA_R_16F);
+                                    m, k, n, a, b, result, CUDA_R_16F,
+                                    CUBLAS_COMPUTE_16F);
     case DType::F32:
       return CallCublasGemm<float>(current, handle, transpose_a, transpose_b, m,
-                                   k, n, a, b, result, CUDA_R_32F);
+                                   k, n, a, b, result, CUDA_R_32F,
+                                   CUBLAS_COMPUTE_32F);
     case DType::F64:
       return CallCublasGemm<double>(current, handle, transpose_a, transpose_b,
-                                    m, k, n, a, b, result, CUDA_R_64F);
+                                    m, k, n, a, b, result, CUDA_R_64F,
+                                    CUBLAS_COMPUTE_64F);
     // TODO(iga): Handle complex numbers.
     default:
       return llvm::createStringError(

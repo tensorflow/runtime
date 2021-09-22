@@ -30,6 +30,8 @@ namespace wrapper {
 // Platform-discriminated enums.
 struct BlasDataTypeTag;
 using BlasDataType = Enum<BlasDataTypeTag>;
+struct BlasComputeTypeTag;
+using BlasComputeType = Enum<BlasComputeTypeTag>;
 struct BlasOperationTag;
 using BlasOperation = Enum<BlasOperationTag>;
 struct BlasGemmAlgoTag;
@@ -74,14 +76,14 @@ llvm::Error BlasGemmEx(CurrentContext current, BlasHandle handle,
                        BlasDataType typeB, int heightB,
                        Pointer<const void> beta, Pointer<void> C,
                        BlasDataType typeC, int heightC,
-                       BlasDataType computeType, BlasGemmAlgo algo);
+                       BlasComputeType computeType, BlasGemmAlgo algo);
 llvm::Error BlasGemmStridedBatchedEx(
     CurrentContext current, BlasHandle handle, BlasOperation transA,
     BlasOperation transB, int m, int n, int k, Pointer<const void> alpha,
     Pointer<const void> A, BlasDataType typeA, int heightA, int64_t strideA,
     Pointer<const void> B, BlasDataType typeB, int heightB, int64_t strideB,
     Pointer<const void> beta, Pointer<void> C, BlasDataType typeC, int heightC,
-    int64_t strideC, int batchCount, BlasDataType computeType,
+    int64_t strideC, int batchCount, BlasComputeType computeType,
     BlasGemmAlgo algo);
 
 }  // namespace wrapper

@@ -95,7 +95,5 @@
       "cuOccupancyMaxActiveBlocksPerMultiprocessorWithFlags",
       "cuOccupancyMaxPotentialBlockSize",
       "cuOccupancyMaxPotentialBlockSizeWithFlags"
-   ],
-   "macros":[
    ]
 }

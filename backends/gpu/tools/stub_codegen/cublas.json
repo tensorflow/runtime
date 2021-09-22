@@ -12,7 +12,5 @@
       "cublasGetMathMode",
       "cublasSetMathMode",
       "cublasAxpyEx"
-   ],
-   "macros":[
    ]
 }

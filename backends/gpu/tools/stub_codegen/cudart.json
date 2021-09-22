@@ -21,7 +21,5 @@
       "cudaSetDevice",
       "cudaStreamSynchronize",
       "cudaOccupancyMaxActiveBlocksPerMultiprocessorWithFlags"
-   ],
-   "macros":[
    ]
 }

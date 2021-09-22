@@ -96,7 +96,5 @@
       "hipLaunchCooperativeKernel",
       "hipOccupancyMaxPotentialBlockSize",
       "hipOccupancyMaxActiveBlocksPerMultiprocessor"
-   ],
-   "macros":[
    ]
 }

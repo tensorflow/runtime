@@ -65,7 +65,7 @@ def main():
     if enum == typedef:
       return  # Pure enum has already been visited.
 
-    if not any(x in config['enums'] for x in [enum, typedef]):
+    if not any(x in config.get('enums', []) for x in [enum, typedef]):
       return
 
     if typedef:
@@ -89,7 +89,7 @@ def main():
       return
 
     macro_name = cursor.spelling
-    if macro_name not in config['macros']:
+    if macro_name not in config.get('macros', []):
       return
 
     args.output.write('#define %s\n\n' % getSource(cursor))

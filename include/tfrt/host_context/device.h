@@ -101,7 +101,7 @@ class DeviceManager {
             std::enable_if_t<std::is_base_of<Device, T>::value, int> = 0>
   RCReference<T> MaybeAddDevice(RCReference<T> device) {
     mutex_lock l(mu_);
-    auto it = device_map_.try_emplace(device->name(), device.CopyRef());
+    auto it = device_map_.try_emplace(device->name(), device);
     // TODO(fishx): Change the static_cast to dyn_cast to check the type after
     // introducing classof method into Device.
     return FormRef(static_cast<T*>(it.first->second.get()));
@@ -143,7 +143,7 @@ class DeviceManager {
     devices.reserve(device_map_.size());
     mutex_lock l(mu_);
     for (auto& it : device_map_) {
-      devices.push_back(it.second.CopyRef());
+      devices.push_back(it.second);
     }
     return devices;
   }

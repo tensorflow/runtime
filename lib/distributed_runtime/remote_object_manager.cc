@@ -31,14 +31,14 @@ RemoteObjectManager::~RemoteObjectManager() {}
 RemoteObjectId RemoteObjectManager::AllocateRemoteObject(
     RCReference<Device> output_device) {
   const uint64_t local_id = next_unique_id_.fetch_add(1);
-  return RemoteObjectId(prefix_id_, local_id, output_device.CopyRef());
+  return RemoteObjectId(prefix_id_, local_id, output_device);
 }
 
 void RemoteObjectManager::SetRemoteObject(const RemoteObjectId& id,
                                           RCReference<AsyncValue> value) {
   RCReference<AsyncValue> val = GetRemoteObject(id);
   assert(val->IsUnresolvedIndirect());
-  cast<IndirectAsyncValue>(val.get())->ForwardTo(value.CopyRef());
+  cast<IndirectAsyncValue>(val.get())->ForwardTo(value);
 }
 
 RCReference<AsyncValue> RemoteObjectManager::GetRemoteObject(
@@ -46,11 +46,11 @@ RCReference<AsyncValue> RemoteObjectManager::GetRemoteObject(
   tfrt::mutex_lock lock(mutex_);
   auto iter = object_maps_.find(id);
   if (iter != object_maps_.end()) {
-    return iter->second.CopyRef();
+    return iter->second;
   }
   RCReference<AsyncValue> value = MakeIndirectAsyncValue(host_context_);
-  object_maps_[id] = value.CopyRef();
-  return value.CopyRef();
+  object_maps_[id] = value;
+  return value;
 }
 
 // Delete the given remote object ids.

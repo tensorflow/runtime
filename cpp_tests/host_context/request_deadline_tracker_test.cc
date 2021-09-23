@@ -46,7 +46,7 @@ TEST(RequestDeadlineTrackerTest, CancelRequest) {
 
   std::chrono::system_clock::time_point deadline =
       std::chrono::system_clock::now() + 1s;
-  req_deadline_tracker.CancelRequestOnDeadline(deadline, req_ctx->CopyRef());
+  req_deadline_tracker.CancelRequestOnDeadline(deadline, *req_ctx);
 
   std::this_thread::sleep_for(2s);
 

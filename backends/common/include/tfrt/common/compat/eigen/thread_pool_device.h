@@ -129,8 +129,7 @@ struct KeepBuffers {
     constexpr size_t size = sizeof...(DenseHostTensors);
     std::array<const DenseHostTensor*, size> tensors_arr{tensors...};
     std::array<RCReference<HostBuffer>, size> buffers_arr;
-    for (size_t i = 0; i < size; ++i)
-      buffers_arr[i] = tensors_arr[i]->buffer().CopyRef();
+    for (size_t i = 0; i < size; ++i) buffers_arr[i] = tensors_arr[i]->buffer();
     return buffers_arr;
   }
 };

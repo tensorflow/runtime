@@ -472,7 +472,7 @@ struct DispatchFnImpl<DeviceContext, Return (*)(Args...), impl_fn> {
     } else {
       results[0] = EmitErrorAsync(exec_ctx, t.takeError());
       for (size_t i = 1, e = results.size(); i != e; ++i) {
-        results[i] = results[0].CopyRef();
+        results[i] = results[0];
       }
     }
   }

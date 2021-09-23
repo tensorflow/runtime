@@ -149,9 +149,7 @@ SharedContext& HostContext::GetOrCreateSharedContext(
 //===----------------------------------------------------------------------===//
 // Device Manager
 //===----------------------------------------------------------------------===//
-RCReference<Device> HostContext::GetHostDeviceRef() {
-  return host_device_.CopyRef();
-}
+RCReference<Device> HostContext::GetHostDeviceRef() { return host_device_; }
 
 const Device& HostContext::GetHostDevice() { return *host_device_; }
 

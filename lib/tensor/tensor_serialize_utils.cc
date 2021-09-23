@@ -140,8 +140,8 @@ SerializeDenseHostTensor(const DenseHostTensor& dht, HostContext* host) {
     return MakeStringError("error serializing DenseHostTensor");
   }
   SerializeTensorMetadataInternal(md, static_cast<char*>(md_buffer->data()));
-  buffers.push_back(md_buffer.CopyRef());
-  buffers.push_back(dht.buffer().CopyRef());
+  buffers.push_back(md_buffer);
+  buffers.push_back(dht.buffer());
   return std::move(buffers);
 }
 
@@ -152,7 +152,7 @@ llvm::Expected<DenseHostTensor> DeserializeDenseHostTensor(
       DeserializeTensorMetadataInternal(
           static_cast<char*>(serialized[0]->data()), serialized[0]->size())
           .get();
-  auto dht = DenseHostTensor(md, serialized[1].CopyRef());
+  auto dht = DenseHostTensor(md, serialized[1]);
   return std::move(dht);
 }
 }  // namespace tfrt

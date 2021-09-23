@@ -512,7 +512,7 @@ ReturnValueConverterBase::~ReturnValueConverterBase() {}
 
 void ReturnValueConverterBase::EmitErrors(
     RCReference<ErrorAsyncValue>& error) const {
-  for (size_t i = 0; i < results_.size(); ++i) results_[i] = error.CopyRef();
+  for (size_t i = 0; i < results_.size(); ++i) results_[i] = error;
 }
 
 namespace {
@@ -608,7 +608,7 @@ mlir::LogicalResult ReturnMemrefAsDenseHostTensor(RemainingResults results,
 void EmitErrors(RemainingResults results, Error error,
                 const ExecutionContext& exec_ctx) {
   auto async_error = EmitErrorAsync(exec_ctx, std::move(error));
-  for (int i = 0; i < results.size(); ++i) results[i] = async_error.CopyRef();
+  for (int i = 0; i < results.size(); ++i) results[i] = async_error;
 }
 
 void EmitErrors(RemainingResults results, DecodedDiagnostic error,

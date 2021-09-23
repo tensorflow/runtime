@@ -382,9 +382,9 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
         return;
       }
       RCReference<AsyncValue> remote_object_id =
-          MakeAvailableAsyncValueRef<RemoteObjectId>(
-              host_ctx(), id.prefix_id(), id.local_id(), device.CopyRef());
-      arguments_ref.push_back(remote_object_id.CopyRef());
+          MakeAvailableAsyncValueRef<RemoteObjectId>(host_ctx(), id.prefix_id(),
+                                                     id.local_id(), device);
+      arguments_ref.push_back(remote_object_id);
       arguments.push_back(remote_object_id.get());
     }
   }
@@ -405,9 +405,9 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
           StrCat("Can't find device: ", id.device())));
       return;
     }
-    RemoteObjectId input_id(id.prefix_id(), id.local_id(), device.CopyRef());
+    RemoteObjectId input_id(id.prefix_id(), id.local_id(), device);
     RCReference<AsyncValue> val = manager->GetRemoteObject(input_id);
-    arguments_ref.push_back(val.CopyRef());
+    arguments_ref.push_back(val);
     arguments.push_back(val.get());
   }
   auto results = std::make_unique<SmallVector<RCReference<AsyncValue>, 4>>();
@@ -426,8 +426,8 @@ void RequestHandler::HandleRemoteExecute(const RemoteExecuteRequest* request,
     }
     // TODO(bramandia): Do not store the output in the map if the device is not
     // a local device.
-    RemoteObjectId output_id(id.prefix_id(), id.local_id(), device.CopyRef());
-    manager->SetRemoteObject(output_id, (*results)[i].CopyRef());
+    RemoteObjectId output_id(id.prefix_id(), id.local_id(), device);
+    manager->SetRemoteObject(output_id, (*results)[i]);
   }
 
   // get the pointer of results before being moved on the lambda capture.
@@ -561,8 +561,8 @@ void RequestHandler::HandleRemoteExecuteOp(
     llvm::SmallVector<TensorHandle, 4> args;
     args.reserve(request->input_size());
     for (auto i = 1; i < async_args->size(); ++i) {
-      AsyncValueRef<Tensor> tensor((*async_args)[i].CopyRef());
-      args.emplace_back(device.CopyRef(), tensor->metadata(), tensor.CopyRef());
+      AsyncValueRef<Tensor> tensor((*async_args)[i]);
+      args.emplace_back(device, tensor->metadata(), tensor.CopyRef());
     }
     llvm::SmallVector<TensorHandle, 4> results;
     results.resize(request->output_size());
@@ -586,8 +586,7 @@ void RequestHandler::HandleRemoteExecuteOp(
 
     // Set the output chain mapping in the remote object manager.
     RemoteObjectId out_chain_id(request->out_chain().prefix_id(),
-                                request->out_chain().local_id(),
-                                device.CopyRef());
+                                request->out_chain().local_id(), device);
     dist_ctx->GetRemoteObjectManager()->SetRemoteObject(out_chain_id,
                                                         chain.CopyRCRef());
     TFRT_DLOG(INFO) << "HandleRemoteExecuteOp " << request->op_name()
@@ -613,8 +612,8 @@ void RequestHandler::HandleRemoteExecuteOp(
       }
       RemoteObjectId object_id(output_id.prefix_id(), output_id.local_id(),
                                std::move(output_device));
-      dist_ctx->GetRemoteObjectManager()->SetRemoteObject(
-          object_id, async_results.back().CopyRef());
+      dist_ctx->GetRemoteObjectManager()->SetRemoteObject(object_id,
+                                                          async_results.back());
       TFRT_DLOG(INFO) << "HandleRemoteExecuteOp " << request->op_name()
                       << " output " << output_id.DebugString() << " av "
                       << async_results.back().get();
@@ -661,7 +660,7 @@ void RequestHandler::HandleDeleteRemoteObjects(
           StrCat("Can't find device: ", id.device())));
       return;
     }
-    ids.emplace_back(id.prefix_id(), id.local_id(), device.CopyRef());
+    ids.emplace_back(id.prefix_id(), id.local_id(), device);
   }
   RemoteObjectManager* manager = dist_context->GetRemoteObjectManager();
   done(manager->DeleteRemoteObjects(ids));

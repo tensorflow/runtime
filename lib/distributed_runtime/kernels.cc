@@ -244,7 +244,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
       neighbor_client->SendDataAsync(
           RemoteCallContext::GetDefault(), request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
-           refcounted_done = refcounted_done.CopyRef()](Error e) {
+           refcounted_done = refcounted_done](Error e) {
             refcounted_done->UpdateState(std::move(e));
           });
     } else if (step <= kLastScatterStep) {
@@ -255,10 +255,10 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
           [step, in_split = split_data, out_split = split_data,
            request = std::move(request), response = std::move(response),
            neighbor_client, reduction_fn, final_fn, kLastScatterStep,
-           kGroupSize, refcounted_done = refcounted_done.CopyRef()](
+           kGroupSize, refcounted_done = refcounted_done](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
-            RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
+            RCReference<HostBuffer> data = callback_value.buffers[0];
             // Scatter aggregates the results with the local buffer.
             reduction_fn(static_cast<char*>(data->data()),
                          const_cast<char*>(in_split.data()), in_split.size());
@@ -275,7 +275,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
                 RemoteCallContext::GetDefault(), request.get(), response.get(),
                 [request = std::move(request), response = std::move(response),
                  callback_value = std::move(callback_value),
-                 refcounted_done = refcounted_done.CopyRef()](Error e) mutable {
+                 refcounted_done = refcounted_done](Error e) mutable {
                   refcounted_done->UpdateState(std::move(e));
                 });
           });
@@ -286,10 +286,10 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
           step_key,
           [step, out_split = split_data, kLastGatherStep,
            request = std::move(request), response = std::move(response),
-           neighbor_client, refcounted_done = refcounted_done.CopyRef()](
+           neighbor_client, refcounted_done = refcounted_done](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
-            RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
+            RCReference<HostBuffer> data = callback_value.buffers[0];
             // Gather assigns the incoming data to the local buffer
             std::copy(static_cast<char*>(data->data()),
                       static_cast<char*>(data->data()) + data->size(),
@@ -301,8 +301,7 @@ void DoAllReduce(const ExecutionContext& exec_ctx,
                   response.get(),
                   [request = std::move(request), response = std::move(response),
                    callback_value = std::move(callback_value),
-                   refcounted_done =
-                       refcounted_done.CopyRef()](Error e) mutable {
+                   refcounted_done = refcounted_done](Error e) mutable {
                     refcounted_done->UpdateState(std::move(e));
                   });
             }
@@ -401,7 +400,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
       neighbor_client->SendDataAsync(
           RemoteCallContext::GetDefault(), request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
-           refcounted_done = refcounted_done.CopyRef()](Error e) {
+           refcounted_done = refcounted_done](Error e) {
             refcounted_done->UpdateState(std::move(e));
           });
     } else {
@@ -409,11 +408,10 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
           StepKey(kPrefix, chunk_key, my_index),
           [sender, i, in_tensor, kGroupSize, neighbor_task, num_elements,
            neighbor_client, request = std::move(request),
-           response = std::move(response),
-           refcounted_done = refcounted_done.CopyRef()](
+           response = std::move(response), refcounted_done = refcounted_done](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
-            RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
+            RCReference<HostBuffer> data = callback_value.buffers[0];
             // A neighbor receives data and forwards it to its neighbor.
             std::copy(static_cast<char*>(data->data()),
                       static_cast<char*>(data->data()) + data->size(),
@@ -427,7 +425,7 @@ void DoBroadcast(AsyncValueRef<DistributedContext> dist_ctx,
                   response.get(),
                   [request = std::move(request), response = std::move(response),
                    callback_value = std::move(callback_value),
-                   refcounted_done = refcounted_done.CopyRef()](Error e) {
+                   refcounted_done = refcounted_done](Error e) {
                     refcounted_done->UpdateState(std::move(e));
                   });
             }
@@ -519,7 +517,7 @@ void DoAllGather(
       neighbor_client->SendDataAsync(
           RemoteCallContext::GetDefault(), request.get(), response.get(),
           [request = std::move(request), response = std::move(response),
-           refcounted_done = refcounted_done.CopyRef()](Error e) {
+           refcounted_done = refcounted_done](Error e) {
             refcounted_done->UpdateState(std::move(e));
           });
 
@@ -528,11 +526,10 @@ void DoAllGather(
           StepKey(kPrefix, chunk_key, my_index),
           [ring_order, offsets, step_sizes, out_tensor_ref, kNeighborIndex,
            neighbor_client, request = std::move(request),
-           response = std::move(response),
-           refcounted_done = refcounted_done.CopyRef()](
+           response = std::move(response), refcounted_done = refcounted_done](
               const InstanceKey&,
               CallbackRegistry::CallbackValue callback_value) mutable {
-            RCReference<HostBuffer> data = callback_value.buffers[0].CopyRef();
+            RCReference<HostBuffer> data = callback_value.buffers[0];
             // A neighbor receives data and forwards it to its neighbor.
             const char* src_pos = static_cast<char*>(data->data());
             for (size_t i = 0; i < offsets[ring_order].size(); ++i) {
@@ -547,7 +544,7 @@ void DoAllGather(
                   response.get(),
                   [request = std::move(request), response = std::move(response),
                    callback_value = std::move(callback_value),
-                   refcounted_done = refcounted_done.CopyRef()](Error e) {
+                   refcounted_done = refcounted_done](Error e) {
                     refcounted_done->UpdateState(std::move(e));
                   });
             }
@@ -689,18 +686,18 @@ void AllGatherFixedShape(Argument<DistributedContext> dist_ctx,
     }
   }
 
-  EnqueueWork(exec_ctx, [exec_ctx, my_index, instance_key = *instance_key,
-                         axis = *axis, collective_group,
-                         dist_ctx = dist_ctx.ValueRef(),
-                         in_tensor_ref = in_tensor.ValueRef(),
-                         out_tensor_ref = out_tensor.ValueRef(),
-                         refcounted_done = refcounted_done.CopyRef(),
-                         offsets = std::move(offsets),
-                         step_sizes = std::move(step_sizes)] {
-    DoAllGather<T>(exec_ctx, dist_ctx.CopyRef(), instance_key, collective_group,
-                   my_index, in_tensor_ref.get(), out_tensor_ref.get(),
-                   refcounted_done.CopyRef(), axis, offsets, step_sizes);
-  });
+  EnqueueWork(exec_ctx,
+              [exec_ctx, my_index, instance_key = *instance_key, axis = *axis,
+               collective_group, dist_ctx = dist_ctx.ValueRef(),
+               in_tensor_ref = in_tensor.ValueRef(),
+               out_tensor_ref = out_tensor.ValueRef(),
+               refcounted_done = refcounted_done, offsets = std::move(offsets),
+               step_sizes = std::move(step_sizes)] {
+                DoAllGather<T>(exec_ctx, dist_ctx.CopyRef(), instance_key,
+                               collective_group, my_index, in_tensor_ref.get(),
+                               out_tensor_ref.get(), refcounted_done, axis,
+                               offsets, step_sizes);
+              });
 }
 
 template <typename T>
@@ -823,12 +820,12 @@ void DoAllGatherAnyShape(const ExecutionContext& exec_ctx,
                          collective_group, dist_ctx = dist_ctx.CopyRef(),
                          in_tensor_ref = in_tensor.CopyRef(),
                          output_tensor = output_tensor.CopyRef(),
-                         refcounted_done = refcounted_done.CopyRef(),
+                         refcounted_done = refcounted_done,
                          offsets = std::move(offsets),
                          step_sizes = std::move(step_sizes)] {
     DoAllGather<T>(exec_ctx, dist_ctx.CopyRef(), instance_key, collective_group,
                    my_index, in_tensor_ref.CopyRef(), output_tensor.get(),
-                   refcounted_done.CopyRef(), axis, offsets, step_sizes);
+                   refcounted_done, axis, offsets, step_sizes);
   });
 }
 
@@ -913,14 +910,14 @@ void AllGatherAnyShape(Argument<DistributedContext> dist_ctx,
       [exec_ctx, my_index, gather_shapes_key, collective_group,
        shape_tensor = shape_tensor.CopyRef(),
        shapes_tensor = shapes_tensor.CopyRef(), dist_ctx = dist_ctx.ValueRef(),
-       refcounted_done_gather_sizes = refcounted_done_gather_sizes.CopyRef(),
+       refcounted_done_gather_sizes = refcounted_done_gather_sizes,
        gather_size_offsets = std::move(gather_size_offsets),
        gather_size_step_sizes = std::move(gather_size_step_sizes)] {
         DoAllGather<size_t>(exec_ctx, dist_ctx.CopyRef(), gather_shapes_key,
                             collective_group, my_index, shape_tensor.get(),
-                            shapes_tensor.get(),
-                            refcounted_done_gather_sizes.CopyRef(), /*axis=*/0,
-                            gather_size_offsets, gather_size_step_sizes);
+                            shapes_tensor.get(), refcounted_done_gather_sizes,
+                            /*axis=*/0, gather_size_offsets,
+                            gather_size_step_sizes);
       });
 }
 
@@ -946,16 +943,15 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
   } else {
     out = MakeUnconstructedAsyncValueRef<Chain>(exec_ctx.host());
   }
-  results[0] = out.CopyRef();
+  results[0] = out;
 
   EnqueueWork(exec_ctx, [remote_client, request = std::move(request),
-                         dist_context, need_compilation,
-                         out = out.CopyRef()]() mutable {
+                         dist_context, need_compilation, out = out]() mutable {
     auto response = std::make_unique<RegisterFunctionResponse>();
     remote_client->RegisterFunctionAsync(
         RemoteCallContext::GetDefault(), request.get(), response.get(),
         [request = std::move(request), response = std::move(response),
-         need_compilation, dist_context, out = out.CopyRef()](Error e) mutable {
+         need_compilation, dist_context, out = out](Error e) mutable {
           if (e) {
             out->SetError(DecodedDiagnostic(std::move(e)));
           } else {
@@ -966,7 +962,7 @@ void RemoteRegisterKernelHelper(Chain ch, DistributedContext* dist_context,
               for (int i = 0; i < response->output_device_size(); i++) {
                 RCReference<Device> device =
                     manager->GetDeviceRef<Device>(response->output_device(i));
-                output_devices.push_back(device.CopyRef());
+                output_devices.push_back(device);
               }
               out->emplace<RemoteExecuteSpec>(std::move(output_devices));
             } else {
@@ -1012,7 +1008,7 @@ AsyncValueRef<RemoteExecuteSpec> CreateRemoteExecuteSpec(
       return MakeErrorAsyncValueRef(exec_ctx.host(),
                                     StrCat("Can't find device: ", device_str));
     }
-    output_devices.push_back(device.CopyRef());
+    output_devices.push_back(device);
   }
   return MakeAvailableAsyncValueRef<RemoteExecuteSpec>(
       exec_ctx.host(), std::move(output_devices));
@@ -1078,7 +1074,7 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
   };
   llvm::SmallVector<RemoteObjectAndMetadata, 4> remote_objs;
   for (int i = 1; i <= num_fn_output; ++i) {
-    RCReference<Device> output_device = spec->output_devices[i - 1].CopyRef();
+    RCReference<Device> output_device = spec->output_devices[i - 1];
     AsyncValueRef<RemoteObjectId> out_id;
     if (output_id_allocated) {
       // Reuse output id
@@ -1102,7 +1098,7 @@ void RemoteExecute(Chain ch, DistributedContext* dist_context,
       auto metadata =
           MakeUnconstructedAsyncValueRef<TensorMetadata>(exec_ctx.host());
       AsyncValueRef<TensorHandle> th = MakeAvailableAsyncValueRef<TensorHandle>(
-          exec_ctx.host(), out_id->device.CopyRef(), metadata.CopyRef(),
+          exec_ctx.host(), out_id->device, metadata.CopyRef(),
           tensor.CopyRef());
       remote_objs.emplace_back(RemoteObjectAndMetadata{
           out_id.CopyRef(), std::move(tensor), std::move(metadata)});

@@ -118,46 +118,45 @@ TensorHandle MaybeConvertArgument(const ExecutionContext& exec_ctx,
     if (!arg.IsDeviceAvailable()) {
       async_values.push_back(arg.GetAsyncDevice().GetAsyncValue());
     }
-    RunWhenReady(
-        async_values,
-        [exec_ctx, arg = arg.CopyRef(), result_ind_av = result_ind_av.CopyRef(),
-         device = device.CopyRef(), op_handler, flags]() mutable {
-          if (arg.IsDeviceError()) {
-            result_ind_av->ForwardTo(arg.GetAsyncDevice().CopyRCRef());
-            return;
-          }
-          // We does not support implicit tensor conversion across device.
-          if (device.get() != arg.GetAvailableDevice().get()) {
-            // TODO(b/172847467): Return error tensor here instead of a slient
-            // warning. This cannot be done currently as it will break existing
-            // GPU tests.
-            TFRT_LOG(WARNING)
-                << "Cannot implict convert from device "
-                << arg.GetAvailableDevice()->name() << " to " << device->name();
-            result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
-            return;
-          }
-          if (arg.GetAsyncTensor()->IsError()) {
-            result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
-            return;
-          }
-          auto& arg_tensor = arg.GetAsyncTensor()->get<Tensor>();
-          auto target_type = ArgumentTensorType(arg_tensor, flags);
-          if (target_type == arg_tensor.tensor_type()) {
-            result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
-            return;
-          }
-          if (!op_handler->AllowImplicitConversion(arg_tensor.tensor_type(),
-                                                   target_type)) {
-            result_ind_av->ForwardTo(EmitErrorAsync(
-                exec_ctx, tfrt::StrCat("Cannot implictly convert ",
-                                       arg_tensor.tensor_type().name(), " to ",
-                                       target_type.name())));
-            return;
-          }
-          result_ind_av->ForwardTo(ConvertTensor(exec_ctx, arg_tensor, *device,
-                                                 *device, target_type));
-        });
+    RunWhenReady(async_values, [exec_ctx, arg = arg.CopyRef(), result_ind_av,
+                                device, op_handler, flags]() mutable {
+      if (arg.IsDeviceError()) {
+        result_ind_av->ForwardTo(arg.GetAsyncDevice().CopyRCRef());
+        return;
+      }
+      // We does not support implicit tensor conversion across
+      // device.
+      if (device.get() != arg.GetAvailableDevice().get()) {
+        // TODO(b/172847467): Return error tensor here instead of a
+        // slient warning. This cannot be done currently as it will
+        // break existing GPU tests.
+        TFRT_LOG(WARNING) << "Cannot implict convert from device "
+                          << arg.GetAvailableDevice()->name() << " to "
+                          << device->name();
+        result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
+        return;
+      }
+      if (arg.GetAsyncTensor()->IsError()) {
+        result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
+        return;
+      }
+      auto& arg_tensor = arg.GetAsyncTensor()->get<Tensor>();
+      auto target_type = ArgumentTensorType(arg_tensor, flags);
+      if (target_type == arg_tensor.tensor_type()) {
+        result_ind_av->ForwardTo(FormRef(arg.GetAsyncTensor()));
+        return;
+      }
+      if (!op_handler->AllowImplicitConversion(arg_tensor.tensor_type(),
+                                               target_type)) {
+        result_ind_av->ForwardTo(EmitErrorAsync(
+            exec_ctx, tfrt::StrCat("Cannot implictly convert ",
+                                   arg_tensor.tensor_type().name(), " to ",
+                                   target_type.name())));
+        return;
+      }
+      result_ind_av->ForwardTo(
+          ConvertTensor(exec_ctx, arg_tensor, *device, *device, target_type));
+    });
 
     if (arg.IsMetadataAvailable()) {
       return TensorHandle(std::move(device), arg.GetAvailableMetadata(),
@@ -252,7 +251,7 @@ Expected<CoreRuntimeOp> CpuOpHandler::MakeOp(string_view op_name) {
         ExecuteOnOpHandler<CpuOpHandlerTraits>(update_chain, invocation,
                                                *op_entry, this);
       },
-      /*is_fallback=*/false, /*device=*/device_.CopyRef(),
+      /*is_fallback=*/false, /*device=*/device_,
       /*arg_tensor_type=*/DenseHostTensor::kTensorType);
 }
 

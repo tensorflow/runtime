@@ -76,8 +76,7 @@ static Expected<DenseHostTensor> SyncMakeTensor(
        << ") times element size (" << GetHostSize(GetDType<T>()) << ")";
     return MakeStringError(ss.str());
   }
-  return DenseHostTensor(TensorMetadata(GetDType<T>(), shape),
-                         buffer.CopyRef());
+  return DenseHostTensor(TensorMetadata(GetDType<T>(), shape), buffer);
 }
 
 template <typename T>
@@ -223,16 +222,15 @@ static void DenseTensorAllClose(Argument<DenseHostTensor> t1,
 static void GetBuffer(Argument<DenseHostTensor> t, Argument<Chain> chain_in,
                       Result<RCReference<HostBuffer>> buffer,
                       Result<Chain> chain_out) {
-  buffer.Emplace(t->buffer().CopyRef());
+  buffer.Emplace(t->buffer());
   chain_out.Set(chain_in);
 }
 
 static llvm::Expected<RCReference<HostBuffer>> GetBufferSlice(
     const RCReference<HostBuffer>& parent_buffer, int64_t offset,
     int64_t size) {
-  auto data = tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
-                                                   static_cast<size_t>(offset),
-                                                   static_cast<size_t>(size));
+  auto data = tfrt::HostBuffer::CreateFromExternal(
+      parent_buffer, static_cast<size_t>(offset), static_cast<size_t>(size));
   if (!data) return MakeStringError("Cannot allocate host buffer.");
   return std::move(data);
 }

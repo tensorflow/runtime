@@ -212,7 +212,7 @@ class AsyncKernelFrame {
   // given index and return the allocated AsyncValue.
   RCReference<IndirectAsyncValue> AllocateIndirectResultAt(int index) {
     auto result = MakeIndirectAsyncValue(GetHostContext());
-    SetResultAt(index, result.CopyRef());
+    SetResultAt(index, result);
     return result;
   }
 
@@ -283,7 +283,7 @@ inline void AsyncKernelFrame::AssignFields(const AsyncKernelFrame& other) {
 
   assert(results_.empty());
   results_.reserve(other.results_.size());
-  for (auto& result : other.results_) results_.push_back(result.CopyRef());
+  for (auto& result : other.results_) results_.push_back(result);
 
   attribute_section_ = other.attribute_section_;
   attribute_offsets_ = other.attribute_offsets_;

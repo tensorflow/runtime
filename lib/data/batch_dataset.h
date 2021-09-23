@@ -64,14 +64,14 @@ static void GetInputMetadataHelper(
     const SmallVector<AsyncValueRef<TensorMetadata>, 4>& results) {
   auto index = N - (sizeof...(RemainingT) + 1);
   // Emplace index-th metadata
-  input[index]->AndThen([component = input[index].CopyRef(),
-                         result = results[index].CopyRef()]() {
-    if (component->IsError()) {
-      result.SetError(component->GetError());
-      return;
-    }
-    result.emplace(GetMetadataFromValue(component->get<T>()));
-  });
+  input[index]->AndThen(
+      [component = input[index], result = results[index].CopyRef()]() {
+        if (component->IsError()) {
+          result.SetError(component->GetError());
+          return;
+        }
+        result.emplace(GetMetadataFromValue(component->get<T>()));
+      });
   GetInputMetadataHelper<N, RemainingT...>(input, results);
 }
 
@@ -254,9 +254,8 @@ void CopyComponent(SmallVector<RCReference<AsyncValue>, 4> input_values,
     // inputs are copied, move `result_buffer` to `result`.
     for (size_t i = 0, e = input_values.size(); i < e; ++i) {
       CopySlice<T>(std::move(input_values[i]), std::move(input_eofs[i]),
-                   expected_metadata.CopyRef(), result_buffer.CopyRef(),
-                   result.CopyRef(), counter_and_error, /*slice_index=*/i,
-                   exec_ctx);
+                   expected_metadata.CopyRef(), result_buffer.CopyRef(), result,
+                   counter_and_error, /*slice_index=*/i, exec_ctx);
     }
   });
 }
@@ -289,8 +288,8 @@ void CopyToBatchHelper(
 
   CopyComponent<T>(std::move(input_values), std::move(input_eofs),
                    std::move(expected_metadata[index]),
-                   std::move(temp_batched_values[index]),
-                   result.values[index].CopyRef(), exec_ctx);
+                   std::move(temp_batched_values[index]), result.values[index],
+                   exec_ctx);
 
   CopyToBatchHelper<N, RemainingT...>(
       std::move(inputs), std::move(expected_metadata),

@@ -56,7 +56,7 @@ DenseHostTensor Chip(const DenseHostTensor& tensor, ArrayRef<Index> dims) {
     new_shape.push_back(meta.shape.GetDimensionSize(i));
   }
   const TensorMetadata new_meta(meta.dtype, new_shape);
-  auto data = HostBuffer::CreateFromExternal(tensor.buffer().CopyRef(),
+  auto data = HostBuffer::CreateFromExternal(tensor.buffer(),
                                              offset * GetHostSize(meta.dtype),
                                              new_meta.GetHostSizeInBytes());
   return DenseHostTensor(new_meta, std::move(data));
@@ -66,7 +66,7 @@ DenseHostTensor Flatten(const DenseHostTensor& tensor) {
   std::array<Index, 1> dims{tensor.metadata().shape.GetNumElements()};
   return DenseHostTensor(
       TensorMetadata(tensor.metadata().dtype, TensorShape(dims)),
-      tensor.buffer().CopyRef());
+      tensor.buffer());
 }
 
 bool CopyTo(const DenseHostTensor& src, DenseHostTensor* dst) {

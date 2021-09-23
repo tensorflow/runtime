@@ -37,12 +37,12 @@ static typename EigenEvaluator::DependencyToken Softmax(
   DenseHostTensor reshaped_logits(
       TensorMetadata(logits.dtype(), GetFlattenedInnerDimsShape(
                                          logits.shape(), /*num_out_dims=*/2)),
-      logits.buffer().CopyRef());
+      logits.buffer());
   DenseHostTensor reshaped_softmax(
       TensorMetadata(
           softmax->dtype(),
           GetFlattenedInnerDimsShape(softmax->shape(), /*num_out_dims=*/2)),
-      softmax->buffer().CopyRef());
+      softmax->buffer());
   DHTIndexableView<T, 2> logits_view(&reshaped_logits);
   MutableDHTIndexableView<T, 2> softmax_view(&reshaped_softmax);
 

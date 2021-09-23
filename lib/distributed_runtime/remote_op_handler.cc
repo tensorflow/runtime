@@ -122,7 +122,7 @@ Expected<CoreRuntimeOp> RemoteOpHandler::MakeOp(string_view op_name) {
       [op_name = op_name.str(), this](const OpInvocation& invocation) {
         Execute(op_name, invocation);
       },
-      /*is_fallback=*/false, remote_device_.CopyRef());
+      /*is_fallback=*/false, remote_device_);
 }
 
 void RemoteOpHandler::Execute(const std::string& op_name,
@@ -161,13 +161,13 @@ void RemoteOpHandler::Execute(const std::string& op_name,
         dist_ctx_->GetHostContext());
     auto metadata = MakeUnconstructedAsyncValueRef<TensorMetadata>(
         dist_ctx_->GetHostContext());
-    invocation.results[i] = TensorHandle(remote_device_.CopyRef(),
-                                         metadata.CopyRef(), tensor.CopyRef());
+    invocation.results[i] =
+        TensorHandle(remote_device_, metadata.CopyRef(), tensor.CopyRef());
     (*results)[i].tensor = tensor.ReleaseRCRef();
     (*results)[i].metadata = std::move(metadata);
     (*results)[i].remote_object_id = std::make_unique<RemoteObjectId>(
         dist_ctx_->GetRemoteObjectManager()->AllocateRemoteObject(
-            remote_device_.CopyRef()));
+            remote_device_));
 
     PopulateRemoteExecuteOutputProto(request->add_output(),
                                      *(*results)[i].remote_object_id);
@@ -180,8 +180,8 @@ void RemoteOpHandler::Execute(const std::string& op_name,
   PopulateRemoteObjectIdProto(
       request->mutable_in_chain(),
       remote_chain_manager_->GetRemoteChain(remote_task));
-  auto out_chain_id = dist_ctx_->GetRemoteObjectManager()->AllocateRemoteObject(
-      remote_device_.CopyRef());
+  auto out_chain_id =
+      dist_ctx_->GetRemoteObjectManager()->AllocateRemoteObject(remote_device_);
   PopulateRemoteObjectIdProto(request->mutable_out_chain(), out_chain_id);
   remote_chain_manager_->SetRemoteChain(remote_task, out_chain_id);
 

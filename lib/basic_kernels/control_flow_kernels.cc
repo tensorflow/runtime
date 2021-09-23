@@ -68,7 +68,7 @@ static void TFRTCase(RemainingArguments args, RemainingResults results,
           tfrt::StrCat("branch_index invalid. branch index: ", branch_index,
                        " # branches: ", branches.size()),
           tfrt::ErrorCode::kInvalidArgument);
-      for (auto& result : results) result = error.CopyRef();
+      for (auto& result : results) result = error;
     }
     branches[branch_index]->Execute(exec_ctx, args.drop_front(), results);
   };
@@ -301,7 +301,7 @@ static void TFRTWhileImpl(
     RunWhenReady(body_args, [while_results = std::move(while_results),
                              error = std::move(condition)]() {
       for (auto& result : while_results) {
-        result->ForwardTo(error.CopyRef());
+        result->ForwardTo(error);
       }
     });
   }

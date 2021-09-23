@@ -54,7 +54,7 @@ struct IterationResult {
     values.resize(num_values);
     auto error = MakeErrorAsyncValueRef(host, "iterator reached end");
     for (size_t i = 0; i < num_values; ++i) {
-      values[i] = error.CopyRef();
+      values[i] = error;
     }
     return IterationResult(std::move(values),
                            MakeAvailableAsyncValueRef<bool>(host, true));
@@ -66,10 +66,9 @@ struct IterationResult {
     SmallVector<RCReference<AsyncValue>, 4> values;
     values.resize(num_values);
     for (size_t i = 0; i < num_values; ++i) {
-      values[i] = error.CopyRef();
+      values[i] = error;
     }
-    return IterationResult(std::move(values),
-                           AsyncValueRef<bool>(error.CopyRef()));
+    return IterationResult(std::move(values), AsyncValueRef<bool>(error));
   }
 
   // Construct IterationResult with the given `values` and `eof`. This is useful
@@ -91,7 +90,7 @@ struct IterationResult {
   IterationResult& operator=(const IterationResult&) = delete;
 
   IterationResult CopyRef() const {
-    auto copy = llvm::map_range(values, [](auto& v) { return v.CopyRef(); });
+    auto copy = llvm::map_range(values, [](auto& v) { return v; });
     return {{copy.begin(), copy.end()}, eof.CopyRef()};
   }
 

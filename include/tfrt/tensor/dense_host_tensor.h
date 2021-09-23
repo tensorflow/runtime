@@ -106,9 +106,7 @@ class DenseHostTensor final : public HostTensor,
 
   RCReference<HostBuffer> ReleaseBuffer() { return std::move(data_); }
 
-  DenseHostTensor CopyRef() const {
-    return DenseHostTensor(metadata(), data_.CopyRef());
-  }
+  DenseHostTensor CopyRef() const { return DenseHostTensor(metadata(), data_); }
 
   void Print(raw_ostream& os) const override;
 

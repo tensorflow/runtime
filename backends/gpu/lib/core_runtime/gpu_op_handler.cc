@@ -59,7 +59,7 @@ class GpuOpHandler : public OpHandler {
 
   Expected<GpuDispatchContext> MakeGpuDispatchContext();
 
-  RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
+  RCReference<Device> GetDeviceRef() { return device_; }
 
  private:
   const GpuOpRegistry op_registry_;
@@ -142,7 +142,7 @@ Expected<CoreRuntimeOp> GpuOpHandler::MakeOp(string_view op_name) {
         return (void)ExecuteOnOpHandler<GpuOpHandlerTraits>(
             /*update_chain=*/false, invocation, *op_entry, this);
       },
-      /*is_fallback=*/false, /*device=*/device_.CopyRef(),
+      /*is_fallback=*/false, /*device=*/device_,
       /*arg_tensor_type=*/GetStaticTensorType("DenseGpu"));
 }
 

@@ -82,7 +82,7 @@ class CoreRuntimeOp {
 
   string_view DeviceName() { return device_->name(); }
 
-  RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
+  RCReference<Device> GetDeviceRef() { return device_; }
 
   const TensorType& GetTensorType() { return arg_tensor_type_; }
 

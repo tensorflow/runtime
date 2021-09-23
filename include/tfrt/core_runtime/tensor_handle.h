@@ -330,13 +330,12 @@ inline const AsyncValueRef<TensorMetadata>& TensorHandle::GetAsyncMetadata()
 inline TensorHandle TensorHandle::CopyRef() const {
   auto tensor = AsyncValueRef<Tensor>(FormRef(GetAsyncTensor()));
   if (IsDeviceInline() && IsMetadataInline()) {
-    return TensorHandle(inlined_device_.CopyRef(), inlined_metadata_,
-                        std::move(tensor));
+    return TensorHandle(inlined_device_, inlined_metadata_, std::move(tensor));
   } else if (!IsDeviceInline() && IsMetadataInline()) {
     return TensorHandle(async_device_.CopyRef(), inlined_metadata_,
                         std::move(tensor));
   } else if (IsDeviceInline() && !IsMetadataInline()) {
-    return TensorHandle(inlined_device_.CopyRef(), async_metadata_.CopyRef(),
+    return TensorHandle(inlined_device_, async_metadata_.CopyRef(),
                         std::move(tensor));
   } else {
     return TensorHandle(async_device_.CopyRef(), async_metadata_.CopyRef(),

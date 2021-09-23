@@ -38,7 +38,7 @@ class CpuOpHandler : public OpHandler {
 
   Expected<CoreRuntimeOp> MakeOp(string_view op_name) override;
 
-  RCReference<Device> GetDeviceRef() { return device_.CopyRef(); }
+  RCReference<Device> GetDeviceRef() { return device_; }
 
   void AddImplicitConversion(TensorType src, TensorType dst);
 

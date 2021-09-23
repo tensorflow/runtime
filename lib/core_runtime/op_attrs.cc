@@ -580,7 +580,7 @@ OpAttrsRef OpAttrs::freeze() const {
   if (!frozen_representation_)
     frozen_representation_ = ImmutableOpAttrs::create(*this);
 
-  return OpAttrsRef(frozen_representation_.CopyRef());
+  return OpAttrsRef(frozen_representation_);
 }
 
 RCReference<ImmutableOpAttrs> ImmutableOpAttrs::create(const OpAttrs &attrs) {

@@ -450,7 +450,7 @@ void ExecuteWithResultMetadataResolved(
   op_dispatcher.result_ind_avs_ref().reserve(num_results);
   for (size_t i = 0; i != num_results; ++i) {
     auto tensor = MakeIndirectAsyncValue(exec_ctx.host());
-    op_dispatcher.result_ind_avs_ref().push_back(tensor.CopyRef());
+    op_dispatcher.result_ind_avs_ref().push_back(tensor);
     result_tensor_avs->push_back(AsyncValueRef<Tensor>(std::move(tensor)));
     if (result_md_avs) {
       op_dispatcher.result_missing_md_avs_ref().push_back(

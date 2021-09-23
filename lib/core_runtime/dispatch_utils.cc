@@ -27,7 +27,7 @@ MDFunctionExecResult ExecuteMetadataFunction(
     SmallVectorImpl<TensorMetadata>& result_mds) {
   auto propagate_error = [&](RCReference<AsyncValue> error) {
     for (auto& result : invocation.results)
-      result = TensorHandle::CreateError(error.CopyRef());
+      result = TensorHandle::CreateError(error);
     if (invocation.chain)
       *invocation.chain = AsyncValueRef<Chain>(std::move(error));
   };
@@ -123,8 +123,8 @@ void ExecuteWhenMetadataIsReady(const OpInvocation& invocation,
     // IndirectAsyncValue.
     auto tensor = MakeIndirectAsyncValue(host);
     result_th_avs.push_back(md.CopyRCRef());
-    result_th_avs.push_back(tensor.CopyRef());
-    result = TensorHandle(retval_device.CopyRef(), std::move(md),
+    result_th_avs.push_back(tensor);
+    result = TensorHandle(retval_device, std::move(md),
                           AsyncValueRef<Tensor>(std::move(tensor)));
   }
 

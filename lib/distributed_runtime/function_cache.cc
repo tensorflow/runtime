@@ -66,7 +66,7 @@ Error FunctionCache::Register(const std::string& program_name,
   }
   auto& cached = cached_bef_[program_name];
   cached.first = std::move(bef_buffer);
-  cached.second.bef_file = bef_file.CopyRef();
+  cached.second.bef_file = bef_file;
   cached.second.require_distributed_context = require_distributed_context;
   cached.second.require_preallocated_outputs = require_preallocated_outputs;
   return Error::success();

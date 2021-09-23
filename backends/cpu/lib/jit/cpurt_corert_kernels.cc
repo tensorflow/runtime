@@ -173,16 +173,14 @@ static void ExecuteImpl(const Executable& executable,
     // Fast path when Tensor (and tensor metadata) is available synchronously.
     if (ret->IsAvailable()) {
       Tensor& tensor = ret->get<Tensor>();
-      handle->emplace<TensorHandle>(
-          host->GetHostDeviceRef(), tensor.metadata(),
-          AsyncValueRef<Tensor>(kernel_ret[i].CopyRef()));
+      handle->emplace<TensorHandle>(host->GetHostDeviceRef(), tensor.metadata(),
+                                    AsyncValueRef<Tensor>(kernel_ret[i]));
       continue;
     }
 
     // Slow path when result Tensor is not available synchronously.
     unavailable_kernel_ret = true;
-    ret->AndThen([host, handle = handle.CopyRef(),
-                  ref = kernel_ret[i].CopyRef()]() mutable {
+    ret->AndThen([host, handle = handle, ref = kernel_ret[i]]() mutable {
       Tensor& tensor = ref->get<Tensor>();
       handle->emplace<TensorHandle>(host->GetHostDeviceRef(), tensor.metadata(),
                                     AsyncValueRef<Tensor>(std::move(ref)));

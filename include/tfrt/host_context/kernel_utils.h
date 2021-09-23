@@ -307,7 +307,7 @@ class Result {
   RCReference<IndirectAsyncValue> AllocateIndirect() {
     auto result = MakeIndirectAsyncValue();
     // result_ is stored in AsyncKernelFrame and needs a +1 ref count.
-    result_ = result.CopyRef();
+    result_ = result;
     return result;
   }
 
@@ -346,7 +346,7 @@ class RemainingResults {
   // returns an unowned pointer to it.
   RCReference<IndirectAsyncValue> AllocateIndirectResultAt(int index) {
     auto indirect = MakeIndirectAsyncValue();
-    remaining_results_[index] = indirect.CopyRef();
+    remaining_results_[index] = indirect;
     return indirect;
   }
 

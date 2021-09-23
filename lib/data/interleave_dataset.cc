@@ -92,7 +92,7 @@ void InterleaveDatasetIterator::PreInitializeIntermediateIterators(
     entry.iterator =
         MakeUnconstructedAsyncValueRef<RCReference<Iterator>>(host);
     // Instantiate the intermediate iterator once the dataset is available.
-    entry.dataset->AndThen([dataset = entry.dataset.CopyRef(),
+    entry.dataset->AndThen([dataset = entry.dataset,
                             prefetched_value = entry.prefetched_value.CopyRef(),
                             iterator = entry.iterator.CopyRef(),
                             context = context_, exec_ctx]() mutable {

@@ -132,7 +132,7 @@ void AsyncWaitForResultsFromTensorHandles(
     } else if (state.IsAvailable()) {
       results[i]->emplace<TensorHandle>(std::move(th_ref));
     } else {
-      tensor_av->AndThen([tensor_av, result = results[i].CopyRef(),
+      tensor_av->AndThen([tensor_av, result = results[i],
                           th_ref = std::move(th_ref)]() mutable {
         if (tensor_av->IsError()) {
           result->SetError(tensor_av->GetError());

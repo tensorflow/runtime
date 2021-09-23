@@ -68,7 +68,7 @@ TensorHandle::TensorHandle(AsyncValueRef<RCReference<Device>> async_device,
 
   if (error) {
     tensor_and_flags_.setPointerAndInt(error.CopyRef().release(), flags);
-    new (&async_device_) AsyncValueRef<RCReference<Device>>(error.CopyRef());
+    new (&async_device_) AsyncValueRef<RCReference<Device>>(error);
     new (&async_metadata_) AsyncValueRef<TensorMetadata>(std::move(error));
   } else {
     tensor_and_flags_.setPointerAndInt(tensor.release(), flags);
@@ -184,33 +184,32 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
   } else {
     RCReference<IndirectAsyncValue> result_ind_av =
         MakeIndirectAsyncValue(host);
-    result_tensor = AsyncValueRef<Tensor>(result_ind_av.CopyRef());
+    result_tensor = AsyncValueRef<Tensor>(result_ind_av);
     SmallVector<AsyncValue*, 2> async_values;
     async_values.push_back(GetAsyncTensor());
     if (!IsDeviceAvailable()) {
       async_values.push_back(GetAsyncDevice().GetAsyncValue());
     }
-    RunWhenReady(
-        async_values, [th = CopyRef(), result_ind_av = std::move(result_ind_av),
-                       dst = dst.CopyRef(), dst_tensor_type, exec_ctx]() {
-          if (th.IsDeviceError()) {
-            result_ind_av->ForwardTo(th.GetAsyncDevice().CopyRCRef());
-            return;
-          }
-          if (th.GetAsyncTensor()->IsError()) {
-            result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
-            return;
-          }
-          auto& tensor = th.GetAsyncTensor()->get<Tensor>();
-          if (dst.get() == th.GetAvailableDevice().get() &&
-              tensor.IsTensorType(dst_tensor_type)) {
-            result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
-          } else {
-            result_ind_av->ForwardTo(ConvertTensor(exec_ctx, tensor,
-                                                   *th.GetAvailableDevice(),
-                                                   *dst, dst_tensor_type));
-          }
-        });
+    RunWhenReady(async_values, [th = CopyRef(),
+                                result_ind_av = std::move(result_ind_av), dst,
+                                dst_tensor_type, exec_ctx]() {
+      if (th.IsDeviceError()) {
+        result_ind_av->ForwardTo(th.GetAsyncDevice().CopyRCRef());
+        return;
+      }
+      if (th.GetAsyncTensor()->IsError()) {
+        result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+        return;
+      }
+      auto& tensor = th.GetAsyncTensor()->get<Tensor>();
+      if (dst.get() == th.GetAvailableDevice().get() &&
+          tensor.IsTensorType(dst_tensor_type)) {
+        result_ind_av->ForwardTo(FormRef(th.GetAsyncTensor()));
+      } else {
+        result_ind_av->ForwardTo(ConvertTensor(
+            exec_ctx, tensor, *th.GetAvailableDevice(), *dst, dst_tensor_type));
+      }
+    });
   }
 
   if (IsMetadataAvailable()) {
@@ -225,13 +224,11 @@ TensorHandle TensorHandle::TransferTo(const ExecutionContext& exec_ctx,
 TensorHandle TensorHandle::TransferToSameDevice(
     const ExecutionContext& exec_ctx, TensorType dst_tensor_type) const {
   if (IsDeviceAvailable()) {
-    return TransferTo(exec_ctx, GetAvailableDevice().CopyRef(),
-                      dst_tensor_type);
+    return TransferTo(exec_ctx, GetAvailableDevice(), dst_tensor_type);
   }
   RCReference<IndirectAsyncValue> result_ind_av =
       MakeIndirectAsyncValue(exec_ctx.host());
-  AsyncValueRef<Tensor> result_tensor =
-      AsyncValueRef<Tensor>(result_ind_av.CopyRef());
+  AsyncValueRef<Tensor> result_tensor = AsyncValueRef<Tensor>(result_ind_av);
   SmallVector<AsyncValue*, 2> async_values;
   async_values.push_back(GetAsyncTensor());
   async_values.push_back(GetAsyncDevice().GetAsyncValue());
@@ -281,15 +278,15 @@ TensorHandle TensorHandle::TransferToInferredType(
   } else {
     RCReference<IndirectAsyncValue> result_ind_av =
         MakeIndirectAsyncValue(host);
-    result_tensor = AsyncValueRef<Tensor>(result_ind_av.CopyRef());
+    result_tensor = AsyncValueRef<Tensor>(result_ind_av);
     SmallVector<AsyncValue*, 2> async_values;
     async_values.push_back(GetAsyncTensor());
     if (!IsDeviceAvailable()) {
       async_values.push_back(GetAsyncDevice().GetAsyncValue());
     }
     RunWhenReady(async_values, [th = CopyRef(),
-                                result_ind_av = std::move(result_ind_av),
-                                dst = dst.CopyRef(), exec_ctx]() {
+                                result_ind_av = std::move(result_ind_av), dst,
+                                exec_ctx]() {
       if (th.IsDeviceError()) {
         result_ind_av->ForwardTo(th.GetAsyncDevice().CopyRCRef());
         return;

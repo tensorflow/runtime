@@ -28,17 +28,17 @@ namespace tfrt {
 struct RemoteObjectId {
   RemoteObjectId(uint64_t prefix_id, int64_t local_id,
                  RCReference<Device> device)
-      : prefix_id(prefix_id), local_id(local_id), device(device.CopyRef()) {}
+      : prefix_id(prefix_id), local_id(local_id), device(device) {}
 
   RemoteObjectId(const RemoteObjectId& other)
       : prefix_id(other.prefix_id),
         local_id(other.local_id),
-        device(other.device.CopyRef()) {}
+        device(other.device) {}
 
   RemoteObjectId& operator=(const RemoteObjectId& other) {
     prefix_id = other.prefix_id;
     local_id = other.local_id;
-    device = other.device.CopyRef();
+    device = other.device;
     return *this;
   }
 

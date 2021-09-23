@@ -76,7 +76,7 @@ DistributedContext::DistributedContext(
   assert(cpu_device);
   if (cpu_device.get() != nullptr) {
     local_ready_chain_ = std::make_unique<RemoteObjectId>(
-        remote_manager_->AllocateRemoteObject(cpu_device.CopyRef()));
+        remote_manager_->AllocateRemoteObject(cpu_device));
     remote_manager_->SetRemoteObject(
         *local_ready_chain_, GetReadyChain(GetHostContext()).CopyRCRef());
   }
@@ -137,8 +137,8 @@ void DistributedContext::GetRemoteDevices(
       auto response = std::make_unique<GetDevicesResponse>();
       client->GetDevicesAsync(
           &call_ctx, request.get(), response.get(),
-          [request, response = std::move(response), rc_done = rc_done.CopyRef(),
-           this, job_name = job_config.name(), task_id = task.first,
+          [request, response = std::move(response), rc_done = rc_done, this,
+           job_name = job_config.name(), task_id = task.first,
            task_handle](Error e) mutable {
             if (e) {
               rc_done->UpdateState(std::move(e));
@@ -221,8 +221,7 @@ void DistributedContext::CreateRemoteContexts(
       client->CreateContextAsync(
           RemoteCallContext::GetDefault(), request.get(), response.get(),
           [this, task_handle, base_request, request = std::move(request),
-           response = std::move(response),
-           rc_done = rc_done.CopyRef()](Error e) mutable {
+           response = std::move(response), rc_done = rc_done](Error e) mutable {
             if (e) {
               rc_done->UpdateState(std::move(e));
             } else {
@@ -242,8 +241,7 @@ Error DistributedContext::AddReadyChain(TaskHandle task_handle,
     return llvm::make_error<DeviceNotFoundErrorInfo>(
         StrCat("Can't find device: ", chain.device()));
   }
-  RemoteObjectId ready_chain(chain.prefix_id(), chain.local_id(),
-                             device.CopyRef());
+  RemoteObjectId ready_chain(chain.prefix_id(), chain.local_id(), device);
   mutex_lock l(ready_chains_mu_);
   ready_chains_.insert({task_handle, ready_chain});
   return Error::success();
@@ -297,7 +295,7 @@ void DistributedContext::BroadcastRemoteReadyChains(
       auto response = std::make_shared<SendReadyChainsResponse>();
       client->SendReadyChainsAsync(
           RemoteCallContext::GetDefault(), request.get(), response.get(),
-          [request, response, rc_done = rc_done.CopyRef()](Error e) mutable {
+          [request, response, rc_done = rc_done](Error e) mutable {
             rc_done->UpdateState(std::move(e));
           });
     }
@@ -328,7 +326,7 @@ void DistributedContext::CloseRemoteContexts(
       auto response = std::make_shared<CloseContextResponse>();
       client->CloseContextAsync(
           RemoteCallContext::GetDefault(), request.get(), response.get(),
-          [request, response, rc_done = rc_done.CopyRef()](Error e) mutable {
+          [request, response, rc_done = rc_done](Error e) mutable {
             rc_done->UpdateState(std::move(e));
           });
     }
@@ -356,11 +354,11 @@ void DistributedContext::SendKeepAlive(int delay_secs) {
 
     mutex_lock l(remote_clients_mu_);
     for (const auto& pair : remote_clients_) {
-      pair.second->KeepAliveAsync(
-          RemoteCallContext::GetDefault(), request.get(), response.get(),
-          [request, response, done = done.CopyRef()](Error e) {
-            done->UpdateState(std::move(e));
-          });
+      pair.second->KeepAliveAsync(RemoteCallContext::GetDefault(),
+                                  request.get(), response.get(),
+                                  [request, response, done = done](Error e) {
+                                    done->UpdateState(std::move(e));
+                                  });
     }
   };
   mutex_lock l(keep_alive_mu_);

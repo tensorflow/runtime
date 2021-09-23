@@ -51,7 +51,7 @@ void TimerQueue::TimerThreadRun() {
       cv_.wait_until(lock, top_entry->deadline_);
     }
     while (!timers_.empty() && timers_.top()->deadline_ <= Clock::now()) {
-      const auto top_entry = timers_.top().CopyRef();
+      const auto top_entry = timers_.top();
       timers_.pop();
       mu_.unlock();
       // If timer is not cancelled, run the callback.
@@ -85,7 +85,7 @@ TimerQueue::TimerHandle TimerQueue::ScheduleTimerAt(TimePoint deadline,
     // Only notify timer thread when the queue is empty, or when the newly added
     // timer's deadline is shorter.
     notify = timers_.empty() || timers_.top()->deadline_ > deadline;
-    timers_.push(th.CopyRef());
+    timers_.push(th);
   }
   // Notify the timer thread that a new timer is added.
   if (notify) cv_.notify_one();

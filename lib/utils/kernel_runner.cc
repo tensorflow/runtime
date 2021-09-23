@@ -75,10 +75,10 @@ void KernelRunner::Run(size_t num_results) {
     req_ctx_ = std::move(*req_ctx);
   }
 
-  KernelFrameBuilder frame{ExecutionContext{req_ctx_.CopyRef()}};
+  KernelFrameBuilder frame{ExecutionContext{req_ctx_}};
 
   for (auto& arg : arguments_) {
-    frame.AddArg(arg.CopyRef());
+    frame.AddArg(arg);
   }
 
   frame.SetAttributeSection(bef_attr_encoder_.result());

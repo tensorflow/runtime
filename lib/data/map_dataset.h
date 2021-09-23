@@ -107,7 +107,7 @@ inline llvm::SmallVector<RCReference<AsyncValue>, 4> RunFunctionWhenReady(
   results_copy.resize(num_results);
   for (size_t i = 0; i < num_results; ++i) {
     results[i] = MakeIndirectAsyncValue(host);
-    results_copy[i] = results[i].CopyRef();
+    results_copy[i] = results[i];
   }
 
   RunWhenReady(argument_ptrs, [function, arguments = std::move(arguments),

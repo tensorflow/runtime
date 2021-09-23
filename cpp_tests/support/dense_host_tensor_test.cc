@@ -110,10 +110,9 @@ TEST(DenseHostTensorSharedTest, FillWithComplex64Type) {
       /*alignment=*/sizeof(std::complex<float>), host->allocator());
 
   // Create dht_a from 0 bytes to 7 bytes in the buffer.
-  auto host_buffer_a =
-      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
-                                           /*offset=*/0,
-                                           /*size=*/8);
+  auto host_buffer_a = tfrt::HostBuffer::CreateFromExternal(parent_buffer,
+                                                            /*offset=*/0,
+                                                            /*size=*/8);
   auto dht_a = tfrt::DenseHostTensor(
       TensorMetadata(GetDType<std::complex<float>>(), TensorShape({1, 1})),
       std::move(host_buffer_a));
@@ -121,10 +120,9 @@ TEST(DenseHostTensorSharedTest, FillWithComplex64Type) {
   tensor_view_a.Fill({1.0, -2.0});
 
   // Create dht_b from 8 bytes to 15 bytes in the buffer.
-  auto host_buffer_b =
-      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
-                                           /*offset=*/8,
-                                           /*size=*/8);
+  auto host_buffer_b = tfrt::HostBuffer::CreateFromExternal(parent_buffer,
+                                                            /*offset=*/8,
+                                                            /*size=*/8);
   auto dht_b = tfrt::DenseHostTensor(
       TensorMetadata(GetDType<std::complex<float>>(), TensorShape({1, 1})),
       std::move(host_buffer_b));
@@ -152,10 +150,9 @@ TEST(DenseHostTensorSharedTest, FillWithInt32Type) {
       /*alignment=*/sizeof(int), host->allocator());
 
   // Create dht_a from 0 bytes to 7 bytes in the buffer.
-  auto host_buffer_a =
-      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
-                                           /*offset=*/0,
-                                           /*size=*/8);
+  auto host_buffer_a = tfrt::HostBuffer::CreateFromExternal(parent_buffer,
+                                                            /*offset=*/0,
+                                                            /*size=*/8);
   auto dht_a = tfrt::DenseHostTensor(
       TensorMetadata(GetDType<int>(), TensorShape({1, 2})),
       std::move(host_buffer_a));
@@ -167,10 +164,9 @@ TEST(DenseHostTensorSharedTest, FillWithInt32Type) {
   ASSERT_EQ(dht_a_data[1], 1.0);
 
   // Create dht_b from 8 bytes to 15 bytes in the buffer.
-  auto host_buffer_b =
-      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
-                                           /*offset=*/8,
-                                           /*size=*/8);
+  auto host_buffer_b = tfrt::HostBuffer::CreateFromExternal(parent_buffer,
+                                                            /*offset=*/8,
+                                                            /*size=*/8);
   auto dht_b = tfrt::DenseHostTensor(
       TensorMetadata(GetDType<int>(), TensorShape({1, 2})),
       std::move(host_buffer_b));
@@ -182,10 +178,9 @@ TEST(DenseHostTensorSharedTest, FillWithInt32Type) {
   ASSERT_EQ(dht_b_data[1], 3.0);
 
   // Create dht_c from 8 bytes to 11 bytes.
-  auto host_buffer_c =
-      tfrt::HostBuffer::CreateFromExternal(parent_buffer.CopyRef(),
-                                           /*offset=*/8,
-                                           /*size=*/4);
+  auto host_buffer_c = tfrt::HostBuffer::CreateFromExternal(parent_buffer,
+                                                            /*offset=*/8,
+                                                            /*size=*/4);
   auto dht_c = tfrt::DenseHostTensor(
       TensorMetadata(GetDType<int>(), TensorShape({1, 1})),
       std::move(host_buffer_c));

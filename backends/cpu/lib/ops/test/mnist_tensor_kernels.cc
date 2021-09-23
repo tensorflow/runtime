@@ -141,7 +141,7 @@ static AsyncValueRef<DenseHostTensor> ReluOp(Argument<DenseHostTensor> A,
   HostContext* host = exec_ctx.host();
 
   if (A.value()->IsUnique() && A->buffer()->IsUnique()) {
-    DenseHostTensor dest(B_md, A->buffer().CopyRef());
+    DenseHostTensor dest(B_md, A->buffer());
     AsyncValueRef<Chain> chain = ReluInPlaceHelper(&dest, exec_ctx);
     return WaitForChain(std::move(dest), std::move(chain), exec_ctx);
   } else {
@@ -242,7 +242,7 @@ static void ElementwiseEqualOp(const DenseHostTensor& lhs,
   auto* chain_av = chain.GetAsyncValue();
   chain_av->AndThen([dest = std::move(dest).getValue(),
                      chain = std::move(chain),
-                     dest_tensor = dest_tensor->CopyRef()]() mutable {
+                     dest_tensor = *dest_tensor]() mutable {
     if (chain.IsError()) {
       dest_tensor->SetError(chain.GetError());
     } else {
@@ -305,8 +305,7 @@ static void CastOp(const DenseHostTensor& A, const TensorMetadata& B_md,
 
   auto* chain_av = chain.GetAsyncValue();
   chain_av->AndThen([dest = std::move(dest).getValue(),
-                     chain = std::move(chain),
-                     B_tensor = B_tensor->CopyRef()]() mutable {
+                     chain = std::move(chain), B_tensor = *B_tensor]() mutable {
     if (chain.IsError()) {
       B_tensor->SetError(chain.GetError());
     } else {

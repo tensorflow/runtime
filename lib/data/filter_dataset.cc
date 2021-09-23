@@ -95,13 +95,12 @@ void FilterDatasetIterator::MaybeScheduleBackgroundTask(
         RunFunctionWhenReady(filter_fn, input.CopyRef().values, exec_ctx);
     assert(predicate_values.size() == 1);
 
-    predicate_values[0]->AndThen(
-        [predicate_values = predicate_values[0].CopyRef(),
-         iterator = FormRef(this)]() mutable {
-          if (!predicate_values->IsError() && !predicate_values->get<bool>()) {
-            iterator->num_false_predicate_.fetch_add(1);
-          }
-        });
+    predicate_values[0]->AndThen([predicate_values = predicate_values[0],
+                                  iterator = FormRef(this)]() mutable {
+      if (!predicate_values->IsError() && !predicate_values->get<bool>()) {
+        iterator->num_false_predicate_.fetch_add(1);
+      }
+    });
     auto predicate = IterationResult::Pending(std::move(predicate_values),
                                               input.eof.CopyRef());
     input_and_predicate_buffer_.push(

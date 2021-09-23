@@ -401,7 +401,7 @@ static bool ReturnAfterHandlingError(
 
   // For the first result, we wait for all the arguments to be ready, so that
   // all outstanding execution will finish.
-  RunWhenReady(args, [error, result = results[0].CopyRef()]() mutable {
+  RunWhenReady(args, [error, result = results[0]]() mutable {
     result->SetError(error);
   });
 
@@ -573,13 +573,13 @@ static void CoreRtConditional(RemainingArguments args, RemainingResults results,
 static Expected<TensorHandle> TransferToDevice(
     const TensorHandle &src, const RCReference<Device> &device,
     const TensorType &dst_tensor_type_name, const ExecutionContext &exec_ctx) {
-  return src.TransferTo(exec_ctx, device.CopyRef(), dst_tensor_type_name);
+  return src.TransferTo(exec_ctx, device, dst_tensor_type_name);
 }
 
 static Expected<TensorHandle> TransferToDeviceInferredType(
     const TensorHandle &src, const RCReference<Device> &device,
     const ExecutionContext &exec_ctx) {
-  return src.TransferToInferredType(exec_ctx, device.CopyRef());
+  return src.TransferToInferredType(exec_ctx, device);
 }
 
 // Forward declaration for use in CoreRtWhileLoopIterationImpl.
@@ -650,8 +650,8 @@ static void CoreRtWhileLoopIteration(
   cond_fn_ref->Execute(exec_ctx, args, condition);
 
   // Dispatch when the condition becomes available.
-  RunWhenReady(condition, [condition_chain_ref = condition[0].CopyRef(),
-                           condition_tensorhandle_ref = condition[1].CopyRef(),
+  RunWhenReady(condition, [condition_chain_ref = condition[0],
+                           condition_tensorhandle_ref = condition[1],
                            exec_ctx = std::move(exec_ctx),
                            cond_fn_ref = std::move(cond_fn_ref),
                            body_fn_ref = std::move(body_fn_ref),
@@ -785,7 +785,7 @@ static AsyncValueRef<TensorType> CoreRtGetDstTensorType(
 
   AsyncValue *tensor_ptr = tensor.GetAsyncValue();
   tensor_ptr->AndThen([result = result.CopyRef(), tensor = std::move(tensor),
-                       dst_device = dst_device.CopyRef(), exec_ctx]() {
+                       dst_device = dst_device, exec_ctx]() {
     TensorType dst_tensor_type = TensorType::kUnknownTensorType;
     TensorType src_tensor_type = tensor->tensor_type();
     const DeviceType &dst_device_type = dst_device->type();
@@ -874,10 +874,9 @@ static AsyncValueRef<int32_t> CoreRtTensorHandleToInt32(
   } else {
     RCReference<IndirectAsyncValue> result_ind_av =
         MakeIndirectAsyncValue(exec_ctx.host());
-    auto result = AsyncValueRef<int32_t>(result_ind_av.CopyRef());
-    src_av->AndThen([src_av = FormRef(src_av), device = device.CopyRef(),
-                     get_index, result_ind_av = std::move(result_ind_av),
-                     exec_ctx] {
+    auto result = AsyncValueRef<int32_t>(result_ind_av);
+    src_av->AndThen([src_av = FormRef(src_av), device = device, get_index,
+                     result_ind_av = std::move(result_ind_av), exec_ctx] {
       auto result_value =
           MakeUnconstructedAsyncValueRef<int32_t>(exec_ctx.host());
       get_index(src_av.get(), *device, result_value.CopyRef());

@@ -96,8 +96,8 @@ RCReference<MapDataset> MakeMapDataset(RCReference<Dataset>* dataset,
                                        Attribute<Function> fn,
                                        const ExecutionContext& exec_ctx) {
   return TakeRef(exec_ctx.host()->Construct<MapDataset>(
-      dataset->CopyRef(), RCArray<AsyncValue>(args.values()),
-      FormRef(&fn.get()), exec_ctx.host()));
+      *dataset, RCArray<AsyncValue>(args.values()), FormRef(&fn.get()),
+      exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -108,8 +108,8 @@ RCReference<FilterDataset> MakeFilterDataset(RCReference<Dataset>* dataset,
                                              Attribute<Function> fn,
                                              const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(host->Construct<FilterDataset>((*dataset).CopyRef(),
-                                                FormRef(&fn.get()), host));
+  return TakeRef(
+      host->Construct<FilterDataset>((*dataset), FormRef(&fn.get()), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -125,8 +125,8 @@ RCReference<InterleaveDataset> MakeInterleaveDataset(
       "Interleave expects only one function output, which must be a dataset.");
 
   return TakeRef(exec_ctx.host()->Construct<InterleaveDataset>(
-      dataset->CopyRef(), cycle_length, block_length, FormRef(&fn.get()),
-      arity.get(), exec_ctx.host()));
+      *dataset, cycle_length, block_length, FormRef(&fn.get()), arity.get(),
+      exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -152,7 +152,7 @@ RCReference<ShuffleDataset> MakeShuffleDataset(
     RCReference<Dataset>* dataset, int64_t buffer_size, int64_t seed,
     int64_t seed2, const ExecutionContext& exec_ctx) {
   return TakeRef(exec_ctx.host()->Construct<ShuffleDataset>(
-      dataset->CopyRef(), buffer_size, seed, seed2, exec_ctx.host()));
+      *dataset, buffer_size, seed, seed2, exec_ctx.host()));
 }
 
 //===----------------------------------------------------------------------===//
@@ -163,8 +163,7 @@ RCReference<RepeatDataset> MakeRepeatDataset(RCReference<Dataset>* dataset,
                                              int64_t count,
                                              const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(
-      host->Construct<RepeatDataset>(dataset->CopyRef(), count, host));
+  return TakeRef(host->Construct<RepeatDataset>(*dataset, count, host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -175,7 +174,7 @@ RCReference<SkipDataset> MakeSkipDataset(RCReference<Dataset>* dataset,
                                          int64_t count,
                                          const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(host->Construct<SkipDataset>(dataset->CopyRef(), count, host));
+  return TakeRef(host->Construct<SkipDataset>(*dataset, count, host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -186,8 +185,7 @@ template <typename... T>
 RCReference<MemoryDataset<T...>> MakeMemoryDataset(
     RCReference<Dataset>* dataset, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(
-      host->Construct<MemoryDataset<T...>>(dataset->CopyRef(), host));
+  return TakeRef(host->Construct<MemoryDataset<T...>>(*dataset, host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -200,7 +198,7 @@ RCReference<BatchDataset<T...>> MakeBatchDataset(
     Attribute<bool> same_input_metadata, const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
   return TakeRef(host->Construct<BatchDataset<T...>>(
-      dataset->CopyRef(), batch_size, same_input_metadata.get(), host));
+      *dataset, batch_size, same_input_metadata.get(), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -215,7 +213,7 @@ RCReference<PrefetchDataset> MakePrefetchDataset(
     prefetch_num = host->GetNumWorkerThreads();
   }
   return TakeRef(host->Construct<PrefetchDataset>(
-      dataset->CopyRef(), prefetch_num, is_deterministic.get(), host));
+      *dataset, prefetch_num, is_deterministic.get(), host));
 }
 
 //===----------------------------------------------------------------------===//
@@ -375,7 +373,7 @@ struct EnumerateContext {
     for (int i = 0; i < num_results; i++) {
       if (fn_results[i]->IsError()) {
         for (int j = 0; j < num_results; j++) {
-          enumerate_results[j]->ForwardTo(fn_results[i].CopyRef());
+          enumerate_results[j]->ForwardTo(fn_results[i]);
         }
         return true;
       }
@@ -430,7 +428,7 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
 
   auto& iterator = args[0]->get<RCReference<Iterator>>();
   auto ctx = std::make_unique<EnumerateContext>(
-      exec_ctx, FormRef(&body_fn.get()), iterator.CopyRef(), &args, &results);
+      exec_ctx, FormRef(&body_fn.get()), iterator, &args, &results);
 
   // Request the first input from the iterator.
   auto next = iterator->GetNext(exec_ctx);
@@ -448,7 +446,7 @@ static void EnumerateIterator(RemainingArguments args, RemainingResults results,
 RCReference<LogDataset> MakeLogDataset(RCReference<Dataset>* dataset,
                                        const ExecutionContext& exec_ctx) {
   HostContext* host = exec_ctx.host();
-  return TakeRef(host->Construct<LogDataset>(dataset->CopyRef(), host));
+  return TakeRef(host->Construct<LogDataset>(*dataset, host));
 }
 
 //===----------------------------------------------------------------------===//

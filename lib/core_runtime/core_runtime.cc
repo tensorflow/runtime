@@ -130,7 +130,7 @@ void CoreRuntime::Impl::Execute(const ExecutionContext& exec_ctx,
   // Otherwise, we fail with an 'unknown op' error.
   auto err =
       EmitErrorAsync(exec_ctx, "op '" + op_name.str() + "' is not supported");
-  for (auto& result : results) result = TensorHandle(err.CopyRef());
+  for (auto& result : results) result = TensorHandle(err);
 
   if (chain) *chain = std::move(err);
 }
@@ -314,10 +314,10 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
         auto metadata_av = MakeUnconstructedAsyncValueRef<TensorMetadata>(host);
         auto tensor_ind_av = MakeIndirectAsyncValue(host);
 
-        result_av->AndThen([result_av = result_av.CopyRef(),
+        result_av->AndThen([result_av = result_av,
                             device_av = device_av.CopyRef(),
                             metadata_av = metadata_av.CopyRef(),
-                            tensor_ind_av = tensor_ind_av.CopyRef()]() mutable {
+                            tensor_ind_av = tensor_ind_av]() mutable {
           if (result_av->IsError()) {
             device_av.SetError(result_av->GetError());
             metadata_av.SetError(result_av->GetError());
@@ -327,7 +327,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
           auto& th = result_av->get<TensorHandle>();
 
           if (th.IsDeviceAvailable()) {
-            device_av.emplace(th.GetAvailableDevice().CopyRef());
+            device_av.emplace(th.GetAvailableDevice());
           } else {
             th.GetAsyncDevice().AndThen(
                 [th_device = th.GetAsyncDevice().CopyRef(),
@@ -335,7 +335,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeCompositeOp(const Function* fn) {
                   if (th_device.IsError()) {
                     device_av.SetError(th_device.GetError());
                   } else {
-                    device_av.emplace(th_device.get().CopyRef());
+                    device_av.emplace(th_device.get());
                   }
                 });
           }
@@ -396,7 +396,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
     }
 
     for (size_t i = 0, e = invocation.arguments.size(); i != e; ++i) {
-      arguments_ref.push_back(invocation.arguments[i].CopyRef());
+      arguments_ref.push_back(invocation.arguments[i]);
       arguments.push_back(arguments_ref.back().get());
     }
 
@@ -418,7 +418,7 @@ Expected<CoreRuntimeOp> CoreRuntime::MakeNativeCompositeOp(const Function* fn) {
       size_t i = iter.index();
       auto& result_av = iter.value();
 
-      invocation.results[i] = result_av.CopyRef();
+      invocation.results[i] = result_av;
     }
   };
   return CoreRuntimeOp(std::move(execute_fn));

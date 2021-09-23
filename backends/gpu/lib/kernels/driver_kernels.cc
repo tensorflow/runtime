@@ -194,8 +194,8 @@ static Expected<GpuBuffer> GpuMemRegister(
       std::tuple<RCReference<HostBuffer>, AsyncValueRef<GpuContext>,
                  wrapper::RegisteredMemory<void>>>;
   auto allocator = MakeAvailableAsyncValueRef<Allocator>(
-      pointer, std::make_tuple(buffer->CopyRef(), context.ValueRef(),
-                               std::move(*memory)));
+      pointer,
+      std::make_tuple(*buffer, context.ValueRef(), std::move(*memory)));
   return GpuBuffer::Allocate(std::move(allocator), size);
 }
 

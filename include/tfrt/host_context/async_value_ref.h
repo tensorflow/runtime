@@ -176,7 +176,7 @@ class AsyncValueRef {
   AsyncValueRef<T> CopyRef() const { return AsyncValueRef(CopyRCRef()); }
 
   // Make a copy of value_, increasing value_'s refcount by one.
-  RCReference<AsyncValue> CopyRCRef() const { return value_.CopyRef(); }
+  RCReference<AsyncValue> CopyRCRef() const { return value_; }
 
   // Release ownership of one reference on the AsyncValue and return a raw
   // pointer to it.

@@ -55,8 +55,8 @@ func @ops() {
   // CHECK: tfrt_gpu.mem.copy %[[host_buffer]]#0, %[[buffer]], %[[stream]], %{{.*}} : !ht.host_buffer, !tfrt_gpu.buffer
   %ch5 = tfrt_gpu.mem.copy %host_buffer#0, %buffer, %stream, %ch4 : !ht.host_buffer, !tfrt_gpu.buffer
 
-  // CHECK: %[[module:.*]] = tfrt_gpu.module.load %[[context]] {data = "foobar\00", key = 42 : ui64}
-  %module = tfrt_gpu.module.load %context {data = "foobar\00", key = 42 : ui64}
+  // CHECK: %[[module:.*]] = tfrt_gpu.module.load %[[context]] {data = "foobar\00"}
+  %module = tfrt_gpu.module.load %context {data = "foobar\00"}
   // CHECK: %[[global:.*]] = tfrt_gpu.module.get_global %[[module]] {name = "symbol"}
   %global = tfrt_gpu.module.get_global %module {name = "symbol"}
   // CHECK: %[[function:.*]] = tfrt_gpu.module.get_function %[[module]] {name = "kernel"}

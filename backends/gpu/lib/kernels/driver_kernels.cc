@@ -231,23 +231,9 @@ static void GpuTensorPrintMetadata(const DenseGpuTensor& tensor) {
 }
 
 // Loads a GPU module from `data`, or `exec_ctx` if `data` is empty.
-static Expected<GpuModule> GpuModuleLoad(
-    Argument<GpuContext> context,
-    // Note: Attributes must be in alphabetical order (see b/140896071).
-    StringAttribute data, Attribute<uint64_t> key,
-    const ExecutionContext& exec_ctx) {
+static Expected<GpuModule> GpuModuleLoad(Argument<GpuContext> context,
+                                         StringAttribute data) {
   string_view blob = data.get();
-
-  // TODO(csigg): add xlir.module.load op, remove GpuModuleMap and key.
-  if (blob.empty()) {
-    const GpuModuleMap* gpu_module_map =
-        exec_ctx.request_ctx()->GetDataIfExists<GpuModuleMap>();
-    if (gpu_module_map == nullptr) {
-      return MakeStringError(
-          "No GpuModuleMap resource found in the request context.");
-    }
-    TFRT_ASSIGN_OR_RETURN(blob, gpu_module_map->GetModule(key.get()));
-  }
 
   if (blob.empty() || blob.back() != 0)
     return MakeStringError("data attribute must be null-terminated");

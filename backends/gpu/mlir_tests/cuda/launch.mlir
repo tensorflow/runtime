@@ -23,8 +23,7 @@ func @noop_kernel() {
 
   %module = tfrt_gpu.module.load %context {
     // PTX for empty_kernel.
-    data = ".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry empty_kernel() { ret; }\00",
-    key = 0 : ui64
+    data = ".version 6.0\n.target sm_35\n.address_size 64\n.visible .entry empty_kernel() { ret; }\00"
   }
 
   %func = tfrt_gpu.module.get_function %module { name = "empty_kernel" }
@@ -42,22 +41,6 @@ func @noop_kernel() {
   tfrt.return
 }
 
-// CHECK-LABEL: --- Running 'no_gpu_module_map'
-func @no_gpu_module_map() {
-  %ordinal = tfrt.constant.i32 0
-  %device = tfrt_gpu.device.get CUDA, %ordinal
-  %context = tfrt_gpu.context.create %device
-  %stream = tfrt_gpu.stream.create %context
-
-  // expected-error @+1 {{No GpuModuleMap resource found in the request context}}
-  %module = tfrt_gpu.module.load %context {
-    data = "",
-    key = 0 : ui64
-  }
-  tfrt.return
-}
-
-
 // CHECK-LABEL: --- Running 'vector_add_kernel'
 func @vector_add_kernel() {
   %ordinal = tfrt.constant.i32 0
@@ -68,8 +51,7 @@ func @vector_add_kernel() {
 
   %module = tfrt_gpu.module.load %context {
     // PTX for vector_add.
-    data = ".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry vector_add(\n.param .u32 vector_add_param_0,\n.param .u64 vector_add_param_1,\n.param .u64 vector_add_param_2\n)\n{\n.reg .pred 	%p<2>;\n.reg .f32 	%f<4>;\n.reg .b32 	%r<6>;\n.reg .b64 	%rd<8>;\nld.param.u32 	%r2, [vector_add_param_0];\nld.param.u64 	%rd1, [vector_add_param_1];\nld.param.u64 	%rd2, [vector_add_param_2];\nmov.u32 	%r3, %ctaid.x;\nmov.u32 	%r4, %ntid.x;\nmov.u32 	%r5, %tid.x;\nmad.lo.s32 	%r1, %r4, %r3, %r5;\nsetp.ge.s32	%p1, %r1, %r2;\n@%p1 bra 	BB0_2;\n\ncvta.to.global.u64 	%rd3, %rd2;\ncvta.to.global.u64 	%rd4, %rd1;\nmul.wide.s32 	%rd5, %r1, 4;\nadd.s64 	%rd6, %rd4, %rd5;\nadd.s64 	%rd7, %rd3, %rd5;\nld.global.f32 	%f1, [%rd7];\nld.global.f32 	%f2, [%rd6];\nadd.f32 	%f3, %f2, %f1;\nst.global.f32 	[%rd7], %f3;\nBB0_2:\nret;\n}\n\00",
-    key = 1 : ui64
+    data = ".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry vector_add(\n.param .u32 vector_add_param_0,\n.param .u64 vector_add_param_1,\n.param .u64 vector_add_param_2\n)\n{\n.reg .pred 	%p<2>;\n.reg .f32 	%f<4>;\n.reg .b32 	%r<6>;\n.reg .b64 	%rd<8>;\nld.param.u32 	%r2, [vector_add_param_0];\nld.param.u64 	%rd1, [vector_add_param_1];\nld.param.u64 	%rd2, [vector_add_param_2];\nmov.u32 	%r3, %ctaid.x;\nmov.u32 	%r4, %ntid.x;\nmov.u32 	%r5, %tid.x;\nmad.lo.s32 	%r1, %r4, %r3, %r5;\nsetp.ge.s32	%p1, %r1, %r2;\n@%p1 bra 	BB0_2;\n\ncvta.to.global.u64 	%rd3, %rd2;\ncvta.to.global.u64 	%rd4, %rd1;\nmul.wide.s32 	%rd5, %r1, 4;\nadd.s64 	%rd6, %rd4, %rd5;\nadd.s64 	%rd7, %rd3, %rd5;\nld.global.f32 	%f1, [%rd7];\nld.global.f32 	%f2, [%rd6];\nadd.f32 	%f3, %f2, %f1;\nst.global.f32 	[%rd7], %f3;\nBB0_2:\nret;\n}\n\00"
   }
 
   %func = tfrt_gpu.module.get_function %module { name = "vector_add" }
@@ -134,8 +116,7 @@ func @float_arg_kernel() {
 
   %module = tfrt_gpu.module.load %context {
     // PTX for __global__ void add(float* ptr, float val) { *ptr = val + 1.0; }
-    data = ".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry add(\n.param .u64 add_param_0,\n.param .f32 add_param_1\n)\n{\n.reg .f32 	%f<3>;\n.reg .b64 	%rd<2>;\nld.param.u64 	%rd0, [add_param_0];\nld.param.f32 	%f0, [add_param_1];\ncvta.to.global.u64 	%rd1, %rd0;\nmov.f32         %f1, 1.0;\nadd.f32 	%f2, %f0, %f1;\nst.global.f32 	[%rd1], %f2;\nret;\n}\n\00",
-    key = 1 : ui64
+    data = ".version 6.4\n.target sm_30\n.address_size 64\n.visible .entry add(\n.param .u64 add_param_0,\n.param .f32 add_param_1\n)\n{\n.reg .f32 	%f<3>;\n.reg .b64 	%rd<2>;\nld.param.u64 	%rd0, [add_param_0];\nld.param.f32 	%f0, [add_param_1];\ncvta.to.global.u64 	%rd1, %rd0;\nmov.f32         %f1, 1.0;\nadd.f32 	%f2, %f0, %f1;\nst.global.f32 	[%rd1], %f2;\nret;\n}\n\00"
   }
   %func = tfrt_gpu.module.get_function %module { name = "add" }
 

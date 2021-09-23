@@ -28,7 +28,6 @@ include "tfrt/tensor/opdefs/tensor_shape_base.td"
 def GPU_DeviceType : GPU_Type<"Device"> { let mnemonic = "device"; }
 def GPU_EventType : GPU_Type<"Event"> { let mnemonic = "event"; }
 def GPU_FunctionType : GPU_Type<"Function"> { let mnemonic = "function"; }
-def GPU_ModuleType : GPU_Type<"Module"> { let mnemonic = "module"; }
 
 def GPU_DeviceGetOp : GPU_Op<"device.get"> {
   let description = [{
@@ -297,18 +296,14 @@ def GPU_ModuleLoadOp : GPU_Op<"module.load"> {
   let description = [{
     tfrt_gpu.module.load loads GPU device module from a binary blob.
 
-    The key is a leftover from when the module was cached in the context. It is
-    currently still used by xlir, but will be removed soon.
-
     The data attribute must be explicitly null-terminated.
 
     Example:
       %module = tfrt_gpu.module.load %ctx {
-        data = "null-terminated device function blob, e.g. PTX",
-        key = 1234
+        data = "null-terminated device function blob, e.g. PTX"
       }
   }];
-  let arguments = (ins GPU_ContextType:$ctx, StrAttr:$data, UI64Attr:$key);
+  let arguments = (ins GPU_ContextType:$ctx, StrAttr:$data);
   let results = (outs GPU_ModuleType);
 }
 

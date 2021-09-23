@@ -25,8 +25,7 @@ func @cond(
   %context = tfrt_gpu.stream.get_context %stream
   %module = tfrt_gpu.module.load %context {
     // __global__ void Kernel(int* value, bool* cond) { *cond = *value < 8; }
-    data = ".version 6.0\n.target sm_60\n.address_size 64\n\n.visible .entry Kernel(.param .u64 value, .param .u64 cond) {\n  .reg .pred %p<2>;\n  .reg .b16 %rs<2>;\n  .reg .b32 %r<2>;\n  .reg .b64 %rd<5>;\n  ld.param.u64 %rd1, [value];\n  ld.param.u64 %rd2, [cond];\n  cvta.to.global.u64 %rd3, %rd2;\n  cvta.to.global.u64 %rd4, %rd1;\n  ld.global.u32 %r1, [%rd4];\n  setp.lt.s32 %p1, %r1, 8;\n  selp.u16 %rs1, 1, 0, %p1;\n  st.global.u8 [%rd3], %rs1;\n  ret;\n}\00",
-    key = 0 : ui64
+    data = ".version 6.0\n.target sm_60\n.address_size 64\n\n.visible .entry Kernel(.param .u64 value, .param .u64 cond) {\n  .reg .pred %p<2>;\n  .reg .b16 %rs<2>;\n  .reg .b32 %r<2>;\n  .reg .b64 %rd<5>;\n  ld.param.u64 %rd1, [value];\n  ld.param.u64 %rd2, [cond];\n  cvta.to.global.u64 %rd3, %rd2;\n  cvta.to.global.u64 %rd4, %rd1;\n  ld.global.u32 %r1, [%rd4];\n  setp.lt.s32 %p1, %r1, 8;\n  selp.u16 %rs1, 1, 0, %p1;\n  st.global.u8 [%rd3], %rs1;\n  ret;\n}\00"
   }
   %func = tfrt_gpu.module.get_function %module { name = "Kernel" }
 
@@ -64,8 +63,7 @@ func @body(
   %context = tfrt_gpu.stream.get_context %stream
   %module = tfrt_gpu.module.load %context {
     // __global__ void Kernel(int* value) { *value *= 2; }
-    data = ".version 6.0\n.target sm_60\n.address_size 64\n\n.visible .entry Kernel(.param .u64 value) {\n  .reg .b32 %r<3>;\n  .reg .b64 %rd<3>;\n  ld.param.u64 %rd1, [value];\n  cvta.to.global.u64 %rd2, %rd1;\n  ld.global.u32 %r1, [%rd2];\n  shl.b32 %r2, %r1, 1;\n  st.global.u32 [%rd2], %r2;\n  ret;\n}\00",
-    key = 1 : ui64
+    data = ".version 6.0\n.target sm_60\n.address_size 64\n\n.visible .entry Kernel(.param .u64 value) {\n  .reg .b32 %r<3>;\n  .reg .b64 %rd<3>;\n  ld.param.u64 %rd1, [value];\n  cvta.to.global.u64 %rd2, %rd1;\n  ld.global.u32 %r1, [%rd2];\n  shl.b32 %r2, %r1, 1;\n  st.global.u32 [%rd2], %r2;\n  ret;\n}\00"
   }
   %func = tfrt_gpu.module.get_function %module { name = "Kernel" }
 

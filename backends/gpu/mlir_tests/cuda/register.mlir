@@ -28,8 +28,7 @@ func @mem_register() {
 
   %module = tfrt_gpu.module.load %context {
     // __global__ void Kernel(int* ptr) { *ptr = 42; }
-    data = ".version 6.0\n.target sm_60\n.address_size 64\n.visible .entry Kernel(.param .u64 ptr) {\n.reg .b32 %r<2>;\n.reg .b64 %rd<3>;\nld.param.u64 %rd1, [ptr];\ncvta.to.global.u64 %rd2, %rd1;\nmov.u32 %r1, 42;\nst.global.u32 [%rd2], %r1;\nret;\n}\00",
-    key = 0 : ui64
+    data = ".version 6.0\n.target sm_60\n.address_size 64\n.visible .entry Kernel(.param .u64 ptr) {\n.reg .b32 %r<2>;\n.reg .b64 %rd<3>;\nld.param.u64 %rd1, [ptr];\ncvta.to.global.u64 %rd2, %rd1;\nmov.u32 %r1, 42;\nst.global.u32 [%rd2], %r1;\nret;\n}\00"
   }
   %func = tfrt_gpu.module.get_function %module { name = "Kernel" }
 

@@ -37,6 +37,26 @@ static Expected<GpuBlasHandle> BlasCreate(Argument<GpuStream> stream) {
   return GpuBlasHandle(stream.ValueRef(), std::move(*handle));
 }
 
+template <typename T, cublasComputeType_t cuda_type, rocblas_datatype rocm_type>
+static llvm::Expected<wrapper::Pointer<T>> GetScalePointer(
+    AsyncValue* value, wrapper::BlasComputeType compute_type) {
+  if (compute_type != cuda_type && compute_type != rocm_type)
+    return MakeStringError("unexpected argument type for ", compute_type);
+  return wrapper::Pointer<T>(&value->get<T>(), compute_type.platform());
+}
+
+static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
+    AsyncValue* value, wrapper::BlasComputeType compute_type) {
+  if (value->IsType<float>())
+    return GetScalePointer<float, CUBLAS_COMPUTE_32F, rocblas_datatype_f32_r>(
+        value, compute_type);
+  if (value->IsType<double>()) {
+    return GetScalePointer<double, CUBLAS_COMPUTE_64F, rocblas_datatype_f64_r>(
+        value, compute_type);
+  }
+  return MakeStringError("pointer type not supported");
+}
+
 template <typename T, cudaDataType cuda_type, rocblas_datatype rocm_type>
 static llvm::Expected<wrapper::Pointer<T>> GetScalePointer(
     AsyncValue* value, wrapper::BlasDataType data_type) {
@@ -96,19 +116,18 @@ static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
   if (!current) return current.takeError();
 
   auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
-  auto a_type = wrapper::BlasDataType::FromOpaqueValue(*typeA);
-  auto alpha_ptr = GetScalePointer(alpha, a_type);
+  auto alpha_ptr = GetScalePointer(alpha, compute_type);
   if (!alpha_ptr) return alpha_ptr.takeError();
-  auto b_type = wrapper::BlasDataType::FromOpaqueValue(*typeB);
-  auto beta_ptr = GetScalePointer(beta, b_type);
+  auto beta_ptr = GetScalePointer(beta, compute_type);
   if (!beta_ptr) return beta_ptr.takeError();
 
   return wrapper::BlasGemmEx(
       *current, handle.get(), wrapper::BlasOperation::FromOpaqueValue(*transA),
       wrapper::BlasOperation::FromOpaqueValue(*transB), m, n, k, *alpha_ptr,
-      A.pointer(), a_type, heightA, B.pointer(), b_type, heightB, *beta_ptr,
-      C.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeC), heightC,
-      compute_type, algo);
+      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeA), heightA,
+      B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeB), heightB,
+      *beta_ptr, C.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeC),
+      heightC, compute_type, algo);
 }
 
 static Error BlasGemmBatch(
@@ -125,18 +144,17 @@ static Error BlasGemmBatch(
   if (!current) return current.takeError();
 
   auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
-  auto a_type = wrapper::BlasDataType::FromOpaqueValue(*typeA);
-  auto alpha_ptr = GetScalePointer(alpha, a_type);
+  auto alpha_ptr = GetScalePointer(alpha, compute_type);
   if (!alpha_ptr) return alpha_ptr.takeError();
-  auto b_type = wrapper::BlasDataType::FromOpaqueValue(*typeB);
-  auto beta_ptr = GetScalePointer(beta, b_type);
+  auto beta_ptr = GetScalePointer(beta, compute_type);
   if (!beta_ptr) return beta_ptr.takeError();
 
   return wrapper::BlasGemmStridedBatchedEx(
       *current, handle.get(), wrapper::BlasOperation::FromOpaqueValue(*transA),
       wrapper::BlasOperation::FromOpaqueValue(*transB), m, n, k, *alpha_ptr,
-      A.pointer(), a_type, heightA, strideA, B.pointer(), b_type, heightB,
-      strideB, *beta_ptr, C.pointer(),
+      A.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeA), heightA,
+      strideA, B.pointer(), wrapper::BlasDataType::FromOpaqueValue(*typeB),
+      heightB, strideB, *beta_ptr, C.pointer(),
       wrapper::BlasDataType::FromOpaqueValue(*typeC), heightC, strideC,
       batchCount, compute_type, algo);
 }

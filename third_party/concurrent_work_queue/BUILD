@@ -46,7 +46,7 @@ tfrt_cc_test(
     ],
     includes = ["lib"],
     deps = [
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -61,7 +61,7 @@ tfrt_cc_test(
     ],
     includes = ["lib"],
     deps = [
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -76,7 +76,7 @@ tfrt_cc_test(
     ],
     includes = ["lib"],
     deps = [
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -91,7 +91,7 @@ tfrt_cc_test(
     ],
     includes = ["lib"],
     deps = [
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -106,7 +106,7 @@ tfrt_cc_test(
     ],
     includes = ["lib"],
     deps = [
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",
@@ -121,7 +121,7 @@ tfrt_cc_test(
     ],
     includes = ["lib"],
     deps = [
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main",
         "@llvm-project//llvm:Support",
         "@tf_runtime//:hostcontext",
         "@tf_runtime//:support",

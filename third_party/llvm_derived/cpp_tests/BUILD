@@ -8,7 +8,7 @@ tfrt_cc_test(
         "Support/unique_any_test.cc",
     ],
     deps = [
-        "//testing/base/public:gunit_main",
+        "@com_google_googletest//:gtest_main",
         "@tf_runtime//third_party/llvm_derived:unique_any",
     ],
 )

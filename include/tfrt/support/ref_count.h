@@ -181,7 +181,7 @@ class RCReference {
   T* get() const { return pointer_; }
 
   // Make an explicit copy of this RCReference, increasing the refcount by one.
-  RCReference CopyRef() const;
+  [[deprecated("Use copy constructor instead.")]] RCReference CopyRef() const;
 
   explicit operator bool() const { return pointer_ != nullptr; }
 

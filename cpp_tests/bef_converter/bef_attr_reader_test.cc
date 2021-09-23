@@ -282,7 +282,7 @@ TEST_F(BefAttrReaderTest, ReadDenseAttribute) {
   EXPECT_EQ(shaped_type.getShape()[0], 1);
   EXPECT_EQ(shaped_type.getShape()[1], 2);
 
-  for (auto element : dense_attr.getAttributeValues()) {
+  for (auto element : dense_attr.getValues<mlir::Attribute>()) {
     EXPECT_EQ(element.cast<mlir::FloatAttr>().getValue().convertToFloat(),
               1.5f);
   }

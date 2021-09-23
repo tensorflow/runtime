@@ -393,7 +393,7 @@ size_t BefAttrEmitter::EmitDenseAttribute(BEFAttributeType attribute_type,
                             GetHostSize(element_type) * element_count);
 
   if (element_type == DType::I1) {
-    for (bool bool_attr : attr.getBoolValues()) {
+    for (bool bool_attr : attr.getValues<bool>()) {
       EmitByte(bool_attr ? 1 : 0);
     }
   } else {

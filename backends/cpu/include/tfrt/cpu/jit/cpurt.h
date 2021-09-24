@@ -23,6 +23,7 @@
 
 #include <sys/types.h>
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -217,7 +218,13 @@ struct CompilationOptions {
 
 class Type {
  public:
-  enum class TypeKind { kAsyncToken, kAsyncValue, kMemref, kUnrankedMemref };
+  enum class TypeKind {
+    kAsyncToken,
+    kAsyncValue,
+    kMemref,
+    kUnrankedMemref,
+    kKernelContext
+  };
 
   virtual ~Type() = default;
 
@@ -297,6 +304,16 @@ class UnrankedMemrefType : public Type {
 
  private:
   DType element_type_;
+};
+
+// Corresponds to the RT dialect's KernelContextType.
+class KernelContextType : public Type {
+ public:
+  KernelContextType();
+
+  static bool classof(const Type* type) {
+    return type->kind() == TypeKind::kKernelContext;
+  }
 };
 
 // Compiled function signature type corresponding to the mlir::FunctionType.
@@ -796,6 +813,7 @@ class Executable {
   struct ResultsMemoryLayout;
   struct CallFrame;
   struct ExecuteOpts;
+  struct KernelContext;
 
   Executable(std::unique_ptr<mlir::ExecutionEngine> engine,
              FunctionType signature, string_view entrypoint,
@@ -814,7 +832,8 @@ class Executable {
   //
   // See mlir::ExecutionEngine `packFunctionArguments` for the details.
   Error InitializeCallFrame(ArrayRef<MemrefDesc> operands,
-                            CallFrame* call_frame) const;
+                            CallFrame* call_frame,
+                            KernelContext* kernel_context) const;
 
   // Converts returned values owned by the callframe using provided value
   // converter. If result conversion fails emits error async value.
@@ -869,9 +888,29 @@ class Executable {
     llvm::SmallVector<size_t> offsets;  // ofssets in the block of memory
   };
 
+  // Struct to enable interaction between compiled code and the TFRT run-time.
+  // For now this struct is a placeholder, but future use cases include buffer
+  // allocation and reuse and improved error reporting from compiled code.
+  // A pointer to this struct is passed as an argument in compiled code through
+  // the rt.kernel_context MLIR type.
+  // See go/mlir-rt for details.
+  struct KernelContext {
+    virtual ~KernelContext() = default;
+
+    // Propagate runtime error to all results.
+    virtual void error(const char* message) = 0;
+
+    // If the allocation of the given size and alignment can be satisfied by one
+    // of the inputs, then forward function should return a pointer to the
+    // forwarded input memref buffer.
+    virtual void* forward(size_t size, size_t alignment,
+                          ArrayRef<unsigned> candidates) = 0;
+  };
+
   // Options for configuring compiled kernel execution.
   struct ExecuteOpts {
-    ExecuteOpts() : async_runtime_worker_threads(nullptr) {}
+    ExecuteOpts()
+        : async_runtime_worker_threads(nullptr), kernel_context(nullptr) {}
 
     // Use Eigen thread pool to launch all async tasks managed by the runtime.
     // By default all async tasks are launched into the HostContext concurrent
@@ -880,6 +919,10 @@ class Executable {
     // This option is used in the fallback execution mode, to share the intra-op
     // thread pool for all compute intensive tasks.
     Eigen::ThreadPoolInterface* async_runtime_worker_threads;
+
+    // User-provided kernel context corresponding to the JIT executable.
+    // Must outlive all async tasks launched by this executable.
+    KernelContext* kernel_context;
   };
 
   // Verifies that all types in the entrypoint function signature are supported

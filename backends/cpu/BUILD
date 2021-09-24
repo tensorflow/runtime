@@ -286,6 +286,8 @@ tfrt_cc_library(
         ":async_runtime",
         ":async_runtime_api",
         ":cpurt_support",
+        ":rt_opdefs",
+        ":rt_to_llvm",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AMXToLLVMIRTranslation",

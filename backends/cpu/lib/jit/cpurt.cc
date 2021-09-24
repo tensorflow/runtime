@@ -79,7 +79,9 @@
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/cpu/jit/async_runtime.h"
 #include "tfrt/cpu/jit/async_runtime_api.h"
+#include "tfrt/cpu/jit/conversion/rt_to_llvm.h"
 #include "tfrt/cpu/jit/cpurt_support.h"
+#include "tfrt/cpu/jit/opdefs/rt_ops.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/diagnostic.h"
@@ -183,6 +185,8 @@ unsigned MemrefType::rank() const { return sizes_.size(); }
 
 DType MemrefType::element_type() const { return element_type_; }
 
+KernelContextType::KernelContextType() : Type(TypeKind::kKernelContext) {}
+
 FunctionType::FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
                            llvm::SmallVector<std::unique_ptr<Type>> results)
     : operands_(std::move(operands)), results_(std::move(results)) {}
@@ -240,6 +244,10 @@ static Expected<std::unique_ptr<Type>> ConvertType(
     return std::make_unique<UnrankedMemrefType>(*element_type);
   }
 
+  // RuntimeKernelContextType -> KernelContextType (both in tfrt::cpu::jit).
+  if (auto ctx = type.dyn_cast<RuntimeKernelContextType>())
+    return std::make_unique<KernelContextType>();
+
   return MakeStringError("unsupported type: ", type);
 }
 
@@ -279,6 +287,14 @@ static Expected<std::unique_ptr<Type>> ConvertType(
   }
 
   return FunctionType(std::move(operands), std::move(results));
+}
+
+// Prepends a KernelContextType to `func`'s arguments.
+// TODO(ecg): notify the listener, just like we do in Specialize().
+static void PrependKernelContextType(mlir::FuncOp func) {
+  mlir::Type new_type = RuntimeKernelContextType::get(func.getContext());
+  mlir::DictionaryAttr attr = mlir::DictionaryAttr::get(func.getContext());
+  func.insertArguments({0}, {new_type}, {attr}, {});
 }
 
 //----------------------------------------------------------------------------//
@@ -462,21 +478,31 @@ static void AddMemrefArgument(const MemrefDesc& memref,
 }
 
 Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
-                                      CallFrame* call_frame) const {
+                                      CallFrame* call_frame,
+                                      KernelContext* kernel_context) const {
   // TODO(ezhulenev): If executable is specialized for operands shapes then
   // there is no need to verify them once more here. However currently we rely
   // on a hash code to look up specializations, and this can lead to collisions.
 
   // Make sure that we call the kernel with the correct number of operands.
-  if (operands.size() != signature_.num_operands())
+  // We subtract one operand from the signature because it corresponds to the
+  // context that we prepend to the given operands.
+  if (operands.size() != signature_.num_operands() - 1)
     return MakeStringError(
         "number of operands doesn't match the function signature: ",
-        operands.size(), " vs ", signature_.num_operands());
+        operands.size(), " vs ", signature_.num_operands() - 1);
 
   // Verify that all operands passed at runtime are compatible with compiled
   // function signature.
+  auto kctx = dyn_cast<KernelContextType>(signature_.operand(0));
+  if (!kctx) {
+    return MakeStringError(
+        "expected KernelContext in first argument of "
+        "signature, got: ",
+        signature_.operand(0));
+  }
   for (int i = 0; i < operands.size(); ++i) {
-    if (auto* memref = dyn_cast<MemrefType>(signature_.operand(i))) {
+    if (auto* memref = dyn_cast<MemrefType>(signature_.operand(1 + i))) {
       if (auto err = VerifyMemrefOperand(*memref, operands[i])) return err;
     } else {
       return MakeStringError("expected memref operand at #", i,
@@ -484,8 +510,12 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
     }
   }
 
+  call_frame->args.reserve(1 + GetArgsCount(operands));
+
+  // Add pointer to the kernel context as the first argument.
+  call_frame->args.push_back(kernel_context);
+
   // Pack all Memref operands as pointers to the call frame arguments.
-  call_frame->args.reserve(GetArgsCount(operands));
   for (const MemrefDesc& desc : operands)
     AddMemrefArgument(desc, &call_frame->args);
 
@@ -660,7 +690,8 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
 
   // Compiled function takes arguments and results as `void**` type erased
   // pointer. See mlir::ExecutionEngine `packFunctionArguments` for the details.
-  if (auto err = InitializeCallFrame(operands, &call_frame))
+  if (auto err =
+          InitializeCallFrame(operands, &call_frame, opts.kernel_context))
     return EmitErrors(results, std::move(err), exec_ctx);
 
   Execute(call_frame, exec_ctx, opts);
@@ -860,6 +891,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // Lower everything down to LLVM dialect.
   pm.addPass(mlir::createConvertLinalgToLLVMPass());
   pm.addPass(mlir::createConvertAsyncToLLVMPass());
+  pm.addPass(CreateConvertRuntimeToLLVMPass());
   pm.addPass(mlir::createLowerAffinePass());
   pm.addPass(mlir::createLowerToCFGPass());
 
@@ -963,7 +995,8 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
   registry.insert<mlir::AffineDialect, mlir::async::AsyncDialect,
                   mlir::linalg::LinalgDialect, mlir::memref::MemRefDialect,
                   mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-                  mlir::math::MathDialect, mlir::vector::VectorDialect>();
+                  mlir::math::MathDialect, mlir::vector::VectorDialect,
+                  RuntimeDialect>();
 
   // Register MLIR dialects that can be translated to LLVM IR.
   mlir::registerArmNeonDialectTranslation(registry);
@@ -977,8 +1010,10 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
 
   // TODO(ezhulenev): Wrap host context work queue into the llvm ThreadPool API
   // and pass it to all MLIR contexts.
-  return std::make_unique<mlir::MLIRContext>(
+  auto ctx = std::make_unique<mlir::MLIRContext>(
       registry, mlir::MLIRContext::Threading::DISABLED);
+  ctx->loadAllAvailableDialects();
+  return ctx;
 }
 
 JitCompilationContext::JitCompilationContext(CompilationOptions opts,
@@ -1013,6 +1048,9 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
   // Lower loaded module to dialects supported by the CPURT to LLVM pipeline.
   if (failed(LowerToCpurt(ctx->module(), ctx->options())))
     return ctx->Error("failed to lower module to CPURT dialects");
+
+  // Prepend KernelContext to the arguments of the entrypoint function.
+  PrependKernelContextType(ctx->entrypoint());
 
   // Verify entrypoint function signature.
   mlir::FuncOp entry_func = ctx->entrypoint();

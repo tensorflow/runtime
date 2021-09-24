@@ -374,6 +374,112 @@ tfrt_cc_library(
     ],
 )
 
+td_library(
+    name = "rt_ops_td_files",
+    srcs = [
+        "include/tfrt/cpu/jit/opdefs/rt_base.td",
+        "include/tfrt/cpu/jit/opdefs/rt_ops.td",
+    ],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    includes = ["include"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        "@llvm-project//mlir:OpBaseTdFiles",
+    ],
+)
+
+gentbl_cc_library(
+    name = "rt_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            [
+                "-gen-dialect-decls",
+                "-dialect=rt",
+            ],
+            "include/tfrt/cpu/jit/opdefs/rt_dialect.h.inc",
+        ),
+        (
+            [
+                "-gen-dialect-defs",
+                "-dialect=rt",
+            ],
+            "include/tfrt/cpu/jit/opdefs/rt_dialect.cpp.inc",
+        ),
+        (
+            ["-gen-op-decls"],
+            "include/tfrt/cpu/jit/opdefs/rt_ops.h.inc",
+        ),
+        (
+            ["-gen-op-defs"],
+            "include/tfrt/cpu/jit/opdefs/rt_ops.cpp.inc",
+        ),
+        (
+            ["-gen-typedef-decls"],
+            "include/tfrt/cpu/jit/opdefs/rt_types.h.inc",
+        ),
+        (
+            ["-gen-typedef-defs"],
+            "include/tfrt/cpu/jit/opdefs/rt_types.cpp.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/cpu/jit/opdefs/rt_ops.td",
+    deps = [":rt_ops_td_files"],
+)
+
+gentbl_cc_library(
+    name = "rt_gen_passes_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            [
+                "-gen-pass-decls",
+                "-name=rt",
+            ],
+            "include/tfrt/cpu/jit/conversion/rt_gen_passes.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/cpu/jit/conversion/rt_passes.td",
+    deps = ["@llvm-project//mlir:PassBaseTdFiles"],
+)
+
+tfrt_cc_library(
+    name = "rt_opdefs",
+    srcs = ["lib/jit/opdefs/rt_ops.cc"],
+    hdrs = ["include/tfrt/cpu/jit/opdefs/rt_ops.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":rt_inc_gen",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Support",
+    ],
+)
+
+tfrt_cc_library(
+    name = "rt_to_llvm",
+    srcs = ["lib/jit/conversion/rt_to_llvm.cc"],
+    hdrs = ["include/tfrt/cpu/jit/conversion/rt_to_llvm.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    deps = [
+        ":rt_gen_passes_inc_gen",
+        ":rt_opdefs",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:LLVMCommonConversion",
+        "@llvm-project//mlir:LLVMDialect",
+        "@llvm-project//mlir:LLVMTransforms",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:StandardOps",
+        "@llvm-project//mlir:StandardOpsTransforms",
+        "@llvm-project//mlir:Support",
+        "@llvm-project//mlir:Transforms",
+    ],
+)
+
 # copybara:uncomment_begin
 # # temporarily remove. TODO(donglin): enable proto and image to OSS.
 # tfrt_cc_library(

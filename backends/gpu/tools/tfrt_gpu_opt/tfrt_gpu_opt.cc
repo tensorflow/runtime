@@ -26,7 +26,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 #include "tfrt/basic_kernels/opdefs/tfrt_base.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"
-#include "tfrt/gpu/pass/pass.h"
+#include "tfrt/gpu/passes/passes.h"
 #include "tfrt/init_tfrt_dialects.h"
 #include "tfrt/test_kernels/opdefs/test_kernels.h"
 

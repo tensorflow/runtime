@@ -16,8 +16,8 @@
 
 // MLIR pass definitions for gpu_ops library
 
-#ifndef TFRT_GPU_PASS_PASS_H_
-#define TFRT_GPU_PASS_PASS_H_
+#ifndef TFRT_GPU_PASSES_PASSES_H_
+#define TFRT_GPU_PASSES_PASSES_H_
 
 #include <memory>
 
@@ -80,4 +80,4 @@ void registerPasses();
 }  // namespace gpu
 }  // namespace tfrt
 
-#endif  // TFRT_GPU_PASS_PASS_H_
+#endif  // TFRT_GPU_PASSES_PASSES_H_

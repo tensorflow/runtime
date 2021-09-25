@@ -863,8 +863,11 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "gpu_passes",
-    srcs = ["lib/pass/pass.cc"],
-    hdrs = ["include/tfrt/gpu/pass/pass.h"],
+    srcs = [
+        "lib/passes/gpu_async_patterns.cc",
+        "lib/passes/gpu_to_tfrt_passes.cc",
+    ],
+    hdrs = ["include/tfrt/gpu/passes/passes.h"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
         ":gpu_opdefs",

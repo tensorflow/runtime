@@ -226,6 +226,7 @@ tfrt_cc_library(
         ":rocm_stubs",
         "@cuda_headers",
         "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:Support",
         "@tf_runtime//:support",
     ] + if_google(
         [

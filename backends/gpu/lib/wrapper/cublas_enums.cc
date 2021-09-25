@@ -16,6 +16,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/cublas_wrapper.h"
+#include "tfrt/support/fp16.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -346,6 +347,41 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value) {
     default:
       return os << llvm::formatv("cublasFillMode_t({0})",
                                  static_cast<int>(value));
+  }
+}
+
+mlir::TypeID GetCudaDataTypeId(cudaDataType data_type) {
+  switch (data_type) {
+    case CUDA_R_16F:
+      return mlir::TypeID::get<fp16>();
+    case CUDA_R_32F:
+      return mlir::TypeID::get<float>();
+    case CUDA_R_64F:
+      return mlir::TypeID::get<double>();
+    default:
+      return {};
+  }
+}
+
+mlir::TypeID GetCublasComputeTypeId(cublasComputeType_t compute_type) {
+  switch (compute_type) {
+    case CUBLAS_COMPUTE_16F:
+    case CUBLAS_COMPUTE_16F_PEDANTIC:
+      return mlir::TypeID::get<fp16>();
+    case CUBLAS_COMPUTE_32F:
+    case CUBLAS_COMPUTE_32F_PEDANTIC:
+    case CUBLAS_COMPUTE_32F_FAST_16F:
+    case CUBLAS_COMPUTE_32F_FAST_16BF:
+    case CUBLAS_COMPUTE_32F_FAST_TF32:
+      return mlir::TypeID::get<float>();
+    case CUBLAS_COMPUTE_64F:
+    case CUBLAS_COMPUTE_64F_PEDANTIC:
+      return mlir::TypeID::get<double>();
+    case CUBLAS_COMPUTE_32I:
+    case CUBLAS_COMPUTE_32I_PEDANTIC:
+      return mlir::TypeID::get<int32_t>();
+    default:
+      return {};
   }
 }
 

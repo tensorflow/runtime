@@ -64,6 +64,9 @@ template <>
 struct PlatformTypeTraits<BlasFillModeTag, cublasFillMode_t>
     : public CudaPlatformType {};
 
+mlir::TypeID GetCudaDataTypeId(cudaDataType data_type);
+mlir::TypeID GetCublasComputeTypeId(cublasComputeType_t compute_type);
+
 llvm::Expected<OwningBlasHandle> CublasCreate(CurrentContext current);
 llvm::Error CublasDestroy(cublasHandle_t handle);
 llvm::Expected<int> CublasGetVersion(cublasHandle_t handle);

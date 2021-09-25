@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <memory>
 
+#include "mlir/Support/TypeID.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 
 namespace tfrt {
@@ -38,6 +39,10 @@ struct BlasGemmAlgoTag;
 using BlasGemmAlgo = Enum<BlasGemmAlgoTag>;
 struct BlasFillModeTag;
 using BlasFillMode = Enum<BlasFillModeTag>;
+
+// Returns the id of the type that the enumerator refers to.
+mlir::TypeID GetBlasDataTypeId(BlasDataType data_type);
+mlir::TypeID GetBlasComputeTypeId(BlasComputeType compute_type);
 
 // Non-owning handles of GPU resources.
 using BlasHandle = Resource<cublasHandle_t, rocblas_handle>;

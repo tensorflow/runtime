@@ -23,6 +23,7 @@
 #include "tfrt/gpu/wrapper/rocblas_wrapper.h"
 #include "tfrt/gpu/wrapper/wrapper.h"
 #include "tfrt/host_context/kernel_registry.h"
+#include "tfrt/support/fp16.h"
 
 namespace tfrt {
 namespace gpu {
@@ -37,47 +38,36 @@ static Expected<GpuBlasHandle> BlasCreate(Argument<GpuStream> stream) {
   return GpuBlasHandle(stream.ValueRef(), std::move(*handle));
 }
 
-template <typename T, cublasComputeType_t cuda_type, rocblas_datatype rocm_type>
-static llvm::Expected<wrapper::Pointer<T>> GetScalePointer(
-    AsyncValue* value, wrapper::BlasComputeType compute_type) {
-  if (compute_type != cuda_type && compute_type != rocm_type)
-    return MakeStringError("unexpected argument type for ", compute_type);
-  return wrapper::Pointer<T>(&value->get<T>(), compute_type.platform());
+template <typename T>
+static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
+    AsyncValue* value, mlir::TypeID typeId, wrapper::Platform platform) {
+  if (mlir::TypeID::get<T>() != typeId)
+    return MakeStringError("unexpected argument type");
+  return wrapper::Pointer<void>(&value->get<T>(), platform);
 }
 
 static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
-    AsyncValue* value, wrapper::BlasComputeType compute_type) {
-  if (value->IsType<float>())
-    return GetScalePointer<float, CUBLAS_COMPUTE_32F, rocblas_datatype_f32_r>(
-        value, compute_type);
-  if (value->IsType<double>()) {
-    return GetScalePointer<double, CUBLAS_COMPUTE_64F, rocblas_datatype_f64_r>(
-        value, compute_type);
-  }
-  return MakeStringError("pointer type not supported");
-}
-
-template <typename T, cudaDataType cuda_type, rocblas_datatype rocm_type>
-static llvm::Expected<wrapper::Pointer<T>> GetScalePointer(
-    AsyncValue* value, wrapper::BlasDataType data_type) {
-  if (data_type != cuda_type && data_type != rocm_type)
-    return MakeStringError("unexpected argument type for ", data_type);
-  return wrapper::Pointer<T>(&value->get<T>(), data_type.platform());
-}
-
-static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
-    AsyncValue* value, wrapper::BlasDataType data_type) {
+    AsyncValue* value, mlir::TypeID typeId, wrapper::Platform platform) {
   if (value->IsType<fp16>())
-    return GetScalePointer<fp16, CUDA_R_16F, rocblas_datatype_f16_r>(value,
-                                                                     data_type);
+    return GetScalePointer<fp16>(value, typeId, platform);
   if (value->IsType<float>())
-    return GetScalePointer<float, CUDA_R_32F, rocblas_datatype_f32_r>(
-        value, data_type);
+    return GetScalePointer<float>(value, typeId, platform);
   if (value->IsType<double>()) {
-    return GetScalePointer<double, CUDA_R_64F, rocblas_datatype_f64_r>(
-        value, data_type);
+    return GetScalePointer<double>(value, typeId, platform);
   }
   return MakeStringError("pointer type not supported");
+}
+
+static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
+    AsyncValue* value, wrapper::BlasDataType data_type) {
+  auto type_id = wrapper::GetBlasDataTypeId(data_type);
+  return GetScalePointer(value, type_id, data_type.platform());
+}
+
+static llvm::Expected<wrapper::Pointer<void>> GetScalePointer(
+    AsyncValue* value, wrapper::BlasComputeType compute_type) {
+  auto type_id = wrapper::GetBlasComputeTypeId(compute_type);
+  return GetScalePointer(value, type_id, compute_type.platform());
 }
 
 static Error BlasAxpy(const GpuBlasHandle& handle, int32_t n, AsyncValue* alpha,

@@ -16,6 +16,7 @@
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/raw_ostream.h"
 #include "tfrt/gpu/wrapper/rocblas_wrapper.h"
+#include "tfrt/support/fp16.h"
 #include "wrapper_detail.h"
 
 namespace tfrt {
@@ -176,6 +177,19 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value) {
       return os << "rocblas_fill_full";
     default:
       return os << llvm::formatv("rocblas_fill({0})", static_cast<int>(value));
+  }
+}
+
+mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type) {
+  switch (data_type) {
+    case rocblas_datatype_f16_r:
+      return mlir::TypeID::get<fp16>();
+    case rocblas_datatype_f32_r:
+      return mlir::TypeID::get<float>();
+    case rocblas_datatype_f64_r:
+      return mlir::TypeID::get<double>();
+    default:
+      return {};
   }
 }
 

@@ -29,6 +29,30 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+mlir::TypeID GetBlasDataTypeId(BlasDataType data_type) {
+  auto platform = data_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetCudaDataTypeId(data_type);
+    case Platform::ROCm:
+      return GetRocblasDatatypeId(data_type);
+    default:
+      return {};
+  }
+}
+
+mlir::TypeID GetBlasComputeTypeId(BlasComputeType compute_type) {
+  auto platform = compute_type.platform();
+  switch (platform) {
+    case Platform::CUDA:
+      return GetCublasComputeTypeId(compute_type);
+    case Platform::ROCm:
+      return GetRocblasDatatypeId(compute_type);
+    default:
+      return {};
+  }
+}
+
 void internal::BlasHandleDeleter::operator()(BlasHandle handle) const {
   LogIfError(BlasDestroy(handle));
 }

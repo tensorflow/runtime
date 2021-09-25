@@ -59,6 +59,8 @@ template <>
 struct PlatformTypeTraits<BlasFillModeTag, rocblas_fill>
     : public RocmPlatformType {};
 
+mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type);
+
 llvm::Expected<OwningBlasHandle> RocblasCreate(CurrentContext current);
 llvm::Error RocblasDestroy(rocblas_handle handle);
 llvm::Error RocblasSetStream(rocblas_handle handle, hipStream_t stream);

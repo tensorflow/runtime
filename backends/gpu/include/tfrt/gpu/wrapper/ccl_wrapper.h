@@ -49,6 +49,8 @@ template <>
 Expected<ncclRedOp_t> Parse<ncclRedOp_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, ncclRedOp_t value);
 
+llvm::Expected<int> GetCclDataTypeSizeBytes(ncclDataType_t data_type);
+
 // Non-owning NCCL communicator for a specific platform.
 class CclComm {
  public:

@@ -25,33 +25,6 @@ limitations under the License.
 namespace tfrt {
 namespace gpu {
 
-namespace {
-
-Expected<int> ToWidthInBytes(ncclDataType_t data_type) {
-  switch (data_type) {
-    case ncclInt8:
-    case ncclUint8:
-      return 1;
-    case ncclFloat16:
-#if defined(__CUDA_BF16_TYPES_EXIST__)
-    case ncclBfloat16:
-#endif
-      return 2;
-    case ncclInt32:
-    case ncclUint32:
-    case ncclFloat32:
-      return 4;
-    case ncclInt64:
-    case ncclUint64:
-    case ncclFloat64:
-      return 8;
-    default:
-      return MakeStringError("Unknown ncclDataType_t: ", data_type);
-  }
-}
-
-}  // namespace
-
 static Expected<GpuCclId> CclUniqueId(Attribute<int32_t> platform) {
   return wrapper::CclGetUniqueId(static_cast<wrapper::Platform>(*platform));
 }
@@ -78,7 +51,7 @@ static Error CclAllGather(
     // Needs to be sorted alphabetically by attribute name!
     Attribute<int32_t> data_type) {
   auto type = static_cast<ncclDataType_t>(*data_type);
-  auto width = ToWidthInBytes(type);
+  auto width = wrapper::GetCclDataTypeSizeBytes(type);
   if (!width) return width.takeError();
   assert(*width != 0);
 
@@ -100,7 +73,7 @@ static Error CclAllReduce(
     // Needs to be sorted alphabetically by attribute name!
     Attribute<int32_t> data_type, Attribute<int32_t> reduction_op) {
   auto type = static_cast<ncclDataType_t>(*data_type);
-  auto width = ToWidthInBytes(type);
+  auto width = wrapper::GetCclDataTypeSizeBytes(type);
   if (!width) return width.takeError();
   assert(*width != 0);
 
@@ -123,7 +96,7 @@ static Error CclReduceScatter(
     // Needs to be sorted alphabetically by attribute name!
     Attribute<int32_t> data_type, Attribute<int32_t> reduction_op) {
   auto type = static_cast<ncclDataType_t>(*data_type);
-  auto width = ToWidthInBytes(type);
+  auto width = wrapper::GetCclDataTypeSizeBytes(type);
   if (!width) return width.takeError();
   assert(*width != 0);
 
@@ -150,7 +123,7 @@ static Error CclSend(Argument<GpuCclHandle> handle, Argument<GpuBuffer> input,
                      // Needs to be sorted alphabetically by attribute name!
                      Attribute<int32_t> data_type) {
   auto type = static_cast<ncclDataType_t>(*data_type);
-  auto width = ToWidthInBytes(type);
+  auto width = wrapper::GetCclDataTypeSizeBytes(type);
   if (!width) return width.takeError();
   assert(*width != 0);
 
@@ -170,7 +143,7 @@ static Error CclRecv(Argument<GpuCclHandle> handle, Argument<GpuBuffer> output,
                      // Needs to be sorted alphabetically by attribute name!
                      Attribute<int32_t> data_type) {
   auto type = static_cast<ncclDataType_t>(*data_type);
-  auto width = ToWidthInBytes(type);
+  auto width = wrapper::GetCclDataTypeSizeBytes(type);
   if (!width) return width.takeError();
   assert(*width != 0);
 
@@ -193,7 +166,7 @@ static Error CclAllToAll(Argument<GpuCclHandle> handle,
     return MakeStringError("Input size must equal output size.");
 
   auto type = static_cast<ncclDataType_t>(*data_type);
-  auto width = ToWidthInBytes(type);
+  auto width = wrapper::GetCclDataTypeSizeBytes(type);
   if (!width) return width.takeError();
   assert(*width != 0);
 

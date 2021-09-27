@@ -25,6 +25,29 @@ namespace tfrt {
 namespace gpu {
 namespace wrapper {
 
+llvm::Expected<int> GetCclDataTypeSizeBytes(ncclDataType_t data_type) {
+  switch (data_type) {
+    case ncclInt8:
+    case ncclUint8:
+      return 1;
+    case ncclFloat16:
+#if defined(__CUDA_BF16_TYPES_EXIST__)
+    case ncclBfloat16:
+#endif
+      return 2;
+    case ncclInt32:
+    case ncclUint32:
+    case ncclFloat32:
+      return 4;
+    case ncclInt64:
+    case ncclUint64:
+    case ncclFloat64:
+      return 8;
+    default:
+      return MakeStringError("Unknown ncclDataType_t: ", data_type);
+  }
+}
+
 void internal::CclCommDeleter::operator()(CclComm comm) const {
   LogIfError(CclCommDestroy(comm));
 }

@@ -510,7 +510,9 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
     }
   }
 
-  call_frame->args.reserve(1 + GetArgsCount(operands));
+  size_t n_args_elems =
+      1 + GetArgsCount(operands) + results_memory_layout_.offsets.size();
+  call_frame->args.reserve(n_args_elems);
 
   // Add pointer to the kernel context as the first argument.
   call_frame->args.push_back(kernel_context);
@@ -523,6 +525,9 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
   call_frame->results.resize_for_overwrite(results_memory_layout_.size);
   for (auto offset : results_memory_layout_.offsets)
     call_frame->args.push_back(&call_frame->results[offset]);
+
+  assert(call_frame->args.size() == n_args_elems &&
+         "reserved number of args must match the actual number");
 
   // Mark results memory initialized to supress potential msan errors.
   TFRT_MSAN_MEMORY_IS_INITIALIZED(call_frame->results.data(),

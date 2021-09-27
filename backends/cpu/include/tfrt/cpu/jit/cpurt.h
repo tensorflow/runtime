@@ -885,7 +885,7 @@ class Executable {
   struct ResultsMemoryLayout {
     bool has_async_results;             // true iff returns async results
     size_t size;                        // number of bytes required
-    llvm::SmallVector<size_t> offsets;  // ofssets in the block of memory
+    llvm::SmallVector<size_t> offsets;  // offsets in the block of memory
   };
 
   // Struct to enable interaction between compiled code and the TFRT run-time.

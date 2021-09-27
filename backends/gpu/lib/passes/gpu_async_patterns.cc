@@ -66,7 +66,7 @@ struct FoldMemrefViewPattern : public OpConversionPattern<memref::ViewOp> {
 
  private:
   LogicalResult matchAndRewrite(
-      memref::ViewOp view_op, ArrayRef<Value> operands,
+      memref::ViewOp view_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -77,7 +77,7 @@ struct FoldMemrefReinterpretCastPattern
 
  private:
   LogicalResult matchAndRewrite(
-      memref::ReinterpretCastOp cast_op, ArrayRef<Value> operands,
+      memref::ReinterpretCastOp cast_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -128,9 +128,8 @@ LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewriteBlock(
 }
 
 LogicalResult FoldMemrefViewPattern::matchAndRewrite(
-    memref::ViewOp view_op, ArrayRef<Value> operands,
+    memref::ViewOp view_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  memref::ViewOpAdaptor adaptor(operands);
   if (!adaptor.source().getType().isa<BufferType>())
     return rewriter.notifyMatchFailure(view_op, "expected BufferType source");
   auto byte_shift = adaptor.byte_shift().getDefiningOp<ConstantIndexOp>();
@@ -143,10 +142,8 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
 }
 
 LogicalResult FoldMemrefReinterpretCastPattern::matchAndRewrite(
-    memref::ReinterpretCastOp cast_op, ArrayRef<Value> operands,
+    memref::ReinterpretCastOp cast_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  memref::ReinterpretCastOpAdaptor adaptor(operands,
-                                           cast_op->getAttrDictionary());
   if (!adaptor.source().getType().isa<BufferType>())
     return rewriter.notifyMatchFailure(cast_op, "expected BufferType source");
   if (!adaptor.offsets().empty() ||

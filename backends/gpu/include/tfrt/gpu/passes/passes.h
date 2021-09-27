@@ -38,19 +38,19 @@ void GpuAsyncOpConversionSetChain(mlir::Value chain,
 // Base class for lowering ops inside a tfrt_gpu_conversion.async.execute op.
 template <typename OpTy>
 struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
+  using typename mlir::OpConversionPattern<OpTy>::OpAdaptor;
   using mlir::OpConversionPattern<OpTy>::OpConversionPattern;
 
  private:
   mlir::LogicalResult matchAndRewrite(
-      OpTy op, mlir::ArrayRef<mlir::Value> operands,
+      OpTy op, OpAdaptor adaptor,
       mlir::ConversionPatternRewriter& rewriter) const final {
     auto* parent = op->getParentOp();
     auto in_chain = internal::GpuAsyncOpConversionGetChain(parent);
     auto stream = internal::GpuAsyncOpConversionGetStream(parent);
     if (!in_chain || !stream)
       return rewriter.notifyMatchFailure(op, "Failed to get chain and stream.");
-    auto out_chain =
-        matchAndRewriteOp(op, in_chain, stream, operands, rewriter);
+    auto out_chain = matchAndRewriteOp(op, adaptor, in_chain, stream, rewriter);
     if (failed(out_chain)) return mlir::failure();
     internal::GpuAsyncOpConversionSetChain(*out_chain, rewriter);
     return mlir::success();
@@ -59,8 +59,7 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
   // Lowers 'op' to schedule work on 'stream' and returns chain, or none in case
   // the rewrite failed.
   virtual mlir::FailureOr<mlir::Value> matchAndRewriteOp(
-      OpTy op, mlir::Value in_chain, mlir::Value stream,
-      mlir::ArrayRef<mlir::Value> operands,
+      OpTy op, OpAdaptor adaptor, mlir::Value in_chain, mlir::Value stream,
       mlir::ConversionPatternRewriter& rewriter) const = 0;
 };
 

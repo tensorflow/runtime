@@ -221,14 +221,14 @@ using AsyncRuntime = ::tfrt::cpu::jit::AsyncRuntime;
 using AsyncRuntimeObject = ::tfrt::cpu::jit::AsyncRuntimeObject;
 
 // Adds references to reference counted runtime object.
-void mlirAsyncRuntimeAddRef(RefCountedObjPtr ptr, int32_t count) {
+void mlirAsyncRuntimeAddRef(RefCountedObjPtr ptr, int64_t count) {
   TFRT_MSAN_MEMORY_IS_INITIALIZED(&ptr, sizeof(RefCountedObjPtr));
   AsyncRuntimeObject *obj = static_cast<AsyncRuntimeObject *>(ptr);
   AsyncRuntime::AddRef(obj, count);
 }
 
 // Drops references from reference counted runtime object.
-void mlirAsyncRuntimeDropRef(RefCountedObjPtr ptr, int32_t count) {
+void mlirAsyncRuntimeDropRef(RefCountedObjPtr ptr, int64_t count) {
   TFRT_MSAN_MEMORY_IS_INITIALIZED(&ptr, sizeof(RefCountedObjPtr));
   AsyncRuntimeObject *obj = static_cast<AsyncRuntimeObject *>(ptr);
   AsyncRuntime::DropRef(obj, count);
@@ -241,7 +241,7 @@ AsyncToken *mlirAsyncRuntimeCreateToken() {
 }
 
 // Creates a new `async.value` in not-ready state.
-AsyncValue *mlirAsyncRuntimeCreateValue(int32_t size) {
+AsyncValue *mlirAsyncRuntimeCreateValue(int64_t size) {
   AsyncRuntime &runtime = ::tfrt::cpu::jit::GetAsyncRuntime();
   return runtime.CreateValue(size, /*alignment=*/alignof(std::max_align_t));
 }

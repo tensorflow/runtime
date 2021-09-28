@@ -231,6 +231,27 @@ def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
 
 }
 
+def GPU_MemsetOp : GPU_Op<"mem.set"> {
+  let description = [{
+    tfrt_gpu.mem.set fills dst memory with a scalar value.
+
+    Execution is asynchronous.
+
+    Example:
+      %ch1 = tfrt_gpu.mem.set %dst, %value, %stream, %ch0
+                 : !tfrt_gpu.buffer, f32
+  }];
+  let arguments = (ins GPU_BufferType:$dst,
+                   AnyType:$value,
+                   GPU_StreamType:$stream, TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+
+  let assemblyFormat = [{
+    $dst`,` $value`,` $stream`,` $chain attr-dict `:` type($dst)`,` type($value)
+  }];
+
+}
+
 def GPU_MemRegisterOp : GPU_Op<"mem.register"> {
   let description = [{
     tfrt_gpu.mem.register page-locks a host buffer for device access.

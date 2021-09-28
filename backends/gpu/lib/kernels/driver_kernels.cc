@@ -13,6 +13,7 @@
 // limitations under the License.
 
 // This file implements the tfrt_gpu kernels that talk to the driver API.
+#include <cstdint>
 #include <memory>
 #include <tuple>
 
@@ -24,6 +25,7 @@
 #include "tfrt/gpu/tensor/dense_gpu_tensor.h"
 #include "tfrt/gpu/wrapper/cuda_wrapper.h"
 #include "tfrt/host_context/async_dispatch.h"
+#include "tfrt/host_context/async_value.h"
 #include "tfrt/host_context/attribute_utils.h"
 #include "tfrt/host_context/kernel_registry.h"
 #include "tfrt/support/error_util.h"
@@ -140,6 +142,40 @@ static Expected<GpuBuffer> GpuMemAllocate(Argument<GpuAllocator> allocator,
                                           const GpuStream& stream,
                                           int64_t size) {
   return GpuBuffer::Allocate(allocator.ValueRef(), size, stream.get());
+}
+
+// tfrt_gpu.mem.set fills memory with a 32bit scalar value.
+static Error GpuMemset(RemainingArguments args) {
+  if (args.size() != 4)
+    return MakeStringError("Expected 4 arguments, got ", args.size());
+  if (!(args[1]->IsType<uint32_t>() || args[1]->IsType<int32_t>() ||
+        args[1]->IsType<float>())) {
+    return MakeStringError("Expected 32 bit value.");
+  }
+  if (!args[0]->IsType<GpuBuffer>()) {
+    return MakeStringError("Expected dst to be a GpuBuffer.");
+  }
+
+  const GpuStream& stream = args[2]->get<GpuStream>();
+  auto current = wrapper::CtxSetCurrent(stream.context());
+  if (!current) return current.takeError();
+
+  const GpuBuffer& dst = args[0]->get<GpuBuffer>();
+  union {
+    uint32_t u;
+    int32_t i;
+    float f;
+  } value;
+  if (args[1]->IsType<uint32_t>())
+    value.u = args[1]->get<uint32_t>();
+  else if (args[1]->IsType<int32_t>())
+    value.i = args[1]->get<int32_t>();
+  else if (args[1]->IsType<float>())
+    value.f = args[1]->get<float>();
+  size_t count = dst.size() / sizeof(uint32_t);
+
+  return wrapper::MemsetD32Async(*current, dst.pointer(), value.u, count,
+                                 stream.get());
 }
 
 // tfrt_gpu.mem.copy copies memory between host or device.
@@ -353,6 +389,8 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.mem.allocate", TFRT_KERNEL(GpuMemAllocate));
   kernel_reg->AddKernel("tfrt_gpu.mem.copy",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemCopy));
+  kernel_reg->AddKernel("tfrt_gpu.mem.set",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemset));
   kernel_reg->AddKernel("tfrt_gpu.mem.register", TFRT_KERNEL(GpuMemRegister));
   kernel_reg->AddKernel("tfrt_gpu.mem.print_metadata",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemPrintMetadata));

@@ -147,5 +147,10 @@ func @ops() {
   // CHECK: tfrt_gpu.ccl.execute %[[stream]], %[[ccl]], %{{.*}}
   %che = tfrt_gpu.ccl.execute %stream, %ccl, %chd
 
+  // CHECK: %[[value:.*]] = tfrt.constant.i32 13
+  %value = tfrt.constant.i32 13
+  // CHECK: tfrt_gpu.mem.set %[[buffer]], %[[value]], %[[stream]], %{{.*}}
+  %chf = tfrt_gpu.mem.set %buffer, %value, %stream, %che : !tfrt_gpu.buffer, i32
+
   tfrt.return
 }

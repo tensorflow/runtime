@@ -19,6 +19,7 @@ glob_tfrt_lit_tests(
             "event.mlir",
             "launch.mlir",
             "memcpy.mlir",
+            "memset.mlir",
             "module.mlir",
             "register.mlir",
             "solver.mlir",

@@ -286,8 +286,8 @@ tfrt_cc_library(
         ":async_runtime",
         ":async_runtime_api",
         ":cpurt_support",
+        ":rt_conversion",
         ":rt_opdefs",
-        ":rt_passes",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AMXToLLVMIRTranslation",
@@ -382,7 +382,8 @@ tfrt_cc_binary(
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [
-        ":rt_passes",
+        ":rt_conversion",
+        ":rt_transforms",
         "@llvm-project//mlir:MlirOptLib",
         "@llvm-project//mlir:Transforms",
         "@tf_runtime//:init_tfrt_dialects",
@@ -447,19 +448,36 @@ gentbl_cc_library(
 )
 
 gentbl_cc_library(
-    name = "rt_gen_passes_inc_gen",
+    name = "rt_conversion_passes_inc_gen",
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     tbl_outs = [
         (
             [
                 "-gen-pass-decls",
-                "-name=Runtime",
+                "-name=RuntimeConversion",
             ],
             "include/tfrt/cpu/jit/conversion/rt_gen_passes.h.inc",
         ),
     ],
     tblgen = "@llvm-project//mlir:mlir-tblgen",
     td_file = "include/tfrt/cpu/jit/conversion/rt_passes.td",
+    deps = ["@llvm-project//mlir:PassBaseTdFiles"],
+)
+
+gentbl_cc_library(
+    name = "rt_transforms_passes_inc_gen",
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    tbl_outs = [
+        (
+            [
+                "-gen-pass-decls",
+                "-name=RuntimeTransforms",
+            ],
+            "include/tfrt/cpu/jit/transforms/rt_gen_passes.h.inc",
+        ),
+    ],
+    tblgen = "@llvm-project//mlir:mlir-tblgen",
+    td_file = "include/tfrt/cpu/jit/transforms/rt_passes.td",
     deps = ["@llvm-project//mlir:PassBaseTdFiles"],
 )
 
@@ -478,12 +496,12 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "rt_passes",
+    name = "rt_conversion",
     srcs = ["lib/jit/conversion/rt_to_llvm.cc"],
     hdrs = ["include/tfrt/cpu/jit/conversion/rt_passes.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     deps = [
-        ":rt_gen_passes_inc_gen",
+        ":rt_conversion_passes_inc_gen",
         ":rt_opdefs",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:IR",
@@ -495,6 +513,22 @@ tfrt_cc_library(
         "@llvm-project//mlir:StandardOpsTransforms",
         "@llvm-project//mlir:Support",
         "@llvm-project//mlir:Transforms",
+    ],
+)
+
+tfrt_cc_library(
+    name = "rt_transforms",
+    srcs = ["lib/jit/transforms/convert_to_kernel_function.cc"],
+    hdrs = ["include/tfrt/cpu/jit/transforms/rt_passes.h"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    deps = [
+        ":rt_opdefs",
+        ":rt_transforms_passes_inc_gen",
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Pass",
+        "@llvm-project//mlir:StandardOps",
+        "@llvm-project//mlir:Support",
     ],
 )
 

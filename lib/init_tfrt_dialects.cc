@@ -28,6 +28,7 @@
 #include "tfrt/core_runtime/opdefs/core_runtime.h"
 #include "tfrt/core_runtime/opdefs/sync/core_runtime.h"
 #include "tfrt/cpu/jit/opdefs/cpurt_ops.h"
+#include "tfrt/cpu/jit/opdefs/rt_ops.h"
 #include "tfrt/data/opdefs/data_ops.h"
 #include "tfrt/distributed_runtime/opdefs/kernels.h"
 #include "tfrt/tensor/opdefs/coo_host_tensor.h"
@@ -57,6 +58,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
 }
 
 void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
+  registry.insert<cpu::jit::RuntimeDialect>();
   registry.insert<mlir::StandardOpsDialect>();
   registry.insert<mlir::async::AsyncDialect>();
   registry.insert<mlir::linalg::LinalgDialect>();

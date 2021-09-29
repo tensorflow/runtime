@@ -1,5 +1,5 @@
 load("@llvm-project//mlir:tblgen.bzl", "gentbl_cc_library", "td_library")
-load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_library")
+load("@tf_runtime//:build_defs.bzl", "if_google", "tfrt_cc_binary", "tfrt_cc_library")
 # copybara:uncomment load("//tools/build_defs/proto/cpp:cc_proto_library.bzl", "cc_proto_library")
 
 package(
@@ -287,7 +287,7 @@ tfrt_cc_library(
         ":async_runtime_api",
         ":cpurt_support",
         ":rt_opdefs",
-        ":rt_to_llvm",
+        ":rt_passes",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AMXToLLVMIRTranslation",
@@ -376,6 +376,22 @@ tfrt_cc_library(
     ],
 )
 
+tfrt_cc_binary(
+    name = "cpurt_opt",
+    srcs = ["tools/cpurt_opt.cc"],
+    # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
+    visibility = ["@tf_runtime//:friends"],
+    deps = [
+        ":rt_passes",
+        "@llvm-project//mlir:MlirOptLib",
+        "@llvm-project//mlir:Transforms",
+        "@tf_runtime//:init_tfrt_dialects",
+    ],
+)
+
+# Note: run_lit.sh does not exist in open-source environment.
+exports_files(["tools/run_lit.sh"])
+
 td_library(
     name = "rt_ops_td_files",
     srcs = [
@@ -437,7 +453,7 @@ gentbl_cc_library(
         (
             [
                 "-gen-pass-decls",
-                "-name=rt",
+                "-name=Runtime",
             ],
             "include/tfrt/cpu/jit/conversion/rt_gen_passes.h.inc",
         ),
@@ -462,9 +478,9 @@ tfrt_cc_library(
 )
 
 tfrt_cc_library(
-    name = "rt_to_llvm",
+    name = "rt_passes",
     srcs = ["lib/jit/conversion/rt_to_llvm.cc"],
-    hdrs = ["include/tfrt/cpu/jit/conversion/rt_to_llvm.h"],
+    hdrs = ["include/tfrt/cpu/jit/conversion/rt_passes.h"],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     deps = [
         ":rt_gen_passes_inc_gen",

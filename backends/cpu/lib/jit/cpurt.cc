@@ -79,7 +79,7 @@
 #include "mlir/Transforms/Passes.h"
 #include "tfrt/cpu/jit/async_runtime.h"
 #include "tfrt/cpu/jit/async_runtime_api.h"
-#include "tfrt/cpu/jit/conversion/rt_to_llvm.h"
+#include "tfrt/cpu/jit/conversion/rt_passes.h"
 #include "tfrt/cpu/jit/cpurt_support.h"
 #include "tfrt/cpu/jit/opdefs/rt_ops.h"
 #include "tfrt/dtype/dtype.h"

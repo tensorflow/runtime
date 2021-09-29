@@ -13,8 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "tfrt/cpu/jit/conversion/rt_to_llvm.h"
-
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -22,6 +20,7 @@ limitations under the License.
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/Dialect/StandardOps/Transforms/FuncConversions.h"
 #include "mlir/Transforms/DialectConversion.h"
+#include "tfrt/cpu/jit/conversion/rt_passes.h"
 #include "tfrt/cpu/jit/opdefs/rt_ops.h"
 
 namespace tfrt {

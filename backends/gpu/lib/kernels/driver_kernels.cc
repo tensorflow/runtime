@@ -145,37 +145,32 @@ static Expected<GpuBuffer> GpuMemAllocate(Argument<GpuAllocator> allocator,
 }
 
 // tfrt_gpu.mem.set fills memory with a 32bit scalar value.
-static Error GpuMemset(RemainingArguments args) {
-  if (args.size() != 4)
-    return MakeStringError("Expected 4 arguments, got ", args.size());
-  if (!(args[1]->IsType<uint32_t>() || args[1]->IsType<int32_t>() ||
-        args[1]->IsType<float>())) {
+static Error GpuMemset(const GpuBuffer& buffer, AsyncValue* untyped_value,
+                       const GpuStream& stream) {
+  if (!(untyped_value->IsType<uint32_t>() || untyped_value->IsType<int32_t>() ||
+        untyped_value->IsType<float>())) {
     return MakeStringError("Expected 32 bit value.");
   }
-  if (!args[0]->IsType<GpuBuffer>()) {
-    return MakeStringError("Expected dst to be a GpuBuffer.");
-  }
 
-  const GpuStream& stream = args[2]->get<GpuStream>();
   auto current = wrapper::CtxSetCurrent(stream.context());
   if (!current) return current.takeError();
 
-  const GpuBuffer& dst = args[0]->get<GpuBuffer>();
   union {
     uint32_t u;
     int32_t i;
     float f;
-  } value;
-  if (args[1]->IsType<uint32_t>())
-    value.u = args[1]->get<uint32_t>();
-  else if (args[1]->IsType<int32_t>())
-    value.i = args[1]->get<int32_t>();
-  else if (args[1]->IsType<float>())
-    value.f = args[1]->get<float>();
-  size_t count = dst.size() / sizeof(uint32_t);
+  } typed_value;
 
-  return wrapper::MemsetD32Async(*current, dst.pointer(), value.u, count,
-                                 stream.get());
+  if (untyped_value->IsType<uint32_t>())
+    typed_value.u = untyped_value->get<uint32_t>();
+  else if (untyped_value->IsType<int32_t>())
+    typed_value.i = untyped_value->get<int32_t>();
+  else if (untyped_value->IsType<float>())
+    typed_value.f = untyped_value->get<float>();
+  size_t count = buffer.size() / sizeof(uint32_t);
+
+  return wrapper::MemsetD32Async(*current, buffer.pointer(), typed_value.u,
+                                 count, stream.get());
 }
 
 // tfrt_gpu.mem.copy copies memory between host or device.

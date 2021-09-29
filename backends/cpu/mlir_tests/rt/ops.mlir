@@ -14,7 +14,19 @@
 
 // RUN: cpurt_opt %s | FileCheck %s
 
-// CHECK: func @pass_context(%arg0: !rt.kernel_context)
+// CHECK-LABEL: func @pass_context(
+// CHECK:  %[[CTX:.*]]: !rt.kernel_context
 func @pass_context(%arg0: !rt.kernel_context) {
   return
 }
+
+// CHECK-LABEL: func @set_output(
+// CHECK:  %[[CTX:.*]]: !rt.kernel_context
+func @set_output(%arg0: !rt.kernel_context) {
+  // CHECK: %[[MEMREF:.*]] = memref.alloc
+  %0 = memref.alloc() : memref<f32>
+  // CHECK: rt.set_output %[[CTX]], 0, %[[MEMREF]]
+  rt.set_output %arg0, 0, %0 : memref<f32>
+  return
+}
+

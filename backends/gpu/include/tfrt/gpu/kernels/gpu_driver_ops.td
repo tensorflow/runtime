@@ -231,7 +231,7 @@ def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
 
 }
 
-def GPU_MemsetOp : GPU_Op<"mem.set"> {
+def GPU_MemSetOp : GPU_Op<"mem.set"> {
   let description = [{
     tfrt_gpu.mem.set fills dst memory with a scalar value.
 

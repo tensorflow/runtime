@@ -88,7 +88,7 @@ LogicalResult NestLegalOpsInConversionAsyncExecPattern::matchAndRewrite(
   rewriter.startRootUpdate(func_op);
   LogicalResult result = failure();
   func_op.walk([&](Block *block) {
-    if (dyn_cast<conversion::AsyncExecuteOp>(block->getParentOp()))
+    if (isa<conversion::AsyncExecuteOp>(block->getParentOp()))
       return WalkResult::skip();
     if (succeeded(matchAndRewriteBlock(block, rewriter)))
       result = success();  //

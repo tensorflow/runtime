@@ -45,8 +45,7 @@ class ConvertToKernelFunctionPass
 static void ConvertToKernelFunction(FuncOp func) {
   // We only convert functions with kernel context as the first argument.
   Value kernel_ctx = func.getNumArguments() ? func.getArgument(0) : Value();
-  if (!kernel_ctx || !kernel_ctx.getType().isa<RuntimeKernelContextType>())
-    return;
+  if (!kernel_ctx || !kernel_ctx.getType().isa<KernelContextType>()) return;
 
   // Rewrite all returns to the Runtime API calls.
   func.walk([&](ReturnOp ret) {

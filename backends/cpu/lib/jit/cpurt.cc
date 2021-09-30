@@ -185,7 +185,8 @@ unsigned MemrefType::rank() const { return sizes_.size(); }
 
 DType MemrefType::element_type() const { return element_type_; }
 
-KernelContextType::KernelContextType() : Type(TypeKind::kKernelContext) {}
+KernelContextOperandType::KernelContextOperandType()
+    : Type(TypeKind::kKernelContext) {}
 
 FunctionType::FunctionType(llvm::SmallVector<std::unique_ptr<Type>> operands,
                            llvm::SmallVector<std::unique_ptr<Type>> results)
@@ -244,9 +245,9 @@ static Expected<std::unique_ptr<Type>> ConvertType(
     return std::make_unique<UnrankedMemrefType>(*element_type);
   }
 
-  // RuntimeKernelContextType -> KernelContextType (both in tfrt::cpu::jit).
-  if (auto ctx = type.dyn_cast<RuntimeKernelContextType>())
-    return std::make_unique<KernelContextType>();
+  // KernelContextType -> KernelContextOperandType (both in tfrt::cpu::jit).
+  if (auto ctx = type.dyn_cast<KernelContextType>())
+    return std::make_unique<KernelContextOperandType>();
 
   return MakeStringError("unsupported type: ", type);
 }
@@ -292,7 +293,7 @@ static Expected<std::unique_ptr<Type>> ConvertType(
 // Prepends a KernelContextType to `func`'s arguments.
 // TODO(ecg): notify the listener, just like we do in Specialize().
 static void PrependKernelContextType(mlir::FuncOp func) {
-  mlir::Type new_type = RuntimeKernelContextType::get(func.getContext());
+  mlir::Type new_type = KernelContextType::get(func.getContext());
   mlir::DictionaryAttr attr = mlir::DictionaryAttr::get(func.getContext());
   func.insertArguments({0}, {new_type}, {attr}, {});
 }
@@ -494,7 +495,7 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
 
   // Verify that all operands passed at runtime are compatible with compiled
   // function signature.
-  auto kctx = dyn_cast<KernelContextType>(signature_.operand(0));
+  auto kctx = dyn_cast<KernelContextOperandType>(signature_.operand(0));
   if (!kctx) {
     return MakeStringError(
         "expected KernelContext in first argument of "

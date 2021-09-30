@@ -42,8 +42,7 @@ class RT_Type<string name, string typeMnemonic> : TypeDef<RuntimeDialect,
 }
 
 // This is an opaque handle to tfrt::cpu::jit::KernelContextType.
-def KernelContextType : RT_Type<"RuntimeKernelContext",
-                                "kernel_context"> {
+def KernelContextType : RT_Type<"KernelContext", "kernel_context"> {
   let summary = "Kernel Context type";
   let description = [{
     Opaque handle used for interacting with the TFRT run-time.

@@ -307,9 +307,9 @@ class UnrankedMemrefType : public Type {
 };
 
 // Corresponds to the RT dialect's KernelContextType.
-class KernelContextType : public Type {
+class KernelContextOperandType : public Type {
  public:
-  KernelContextType();
+  KernelContextOperandType();
 
   static bool classof(const Type* type) {
     return type->kind() == TypeKind::kKernelContext;

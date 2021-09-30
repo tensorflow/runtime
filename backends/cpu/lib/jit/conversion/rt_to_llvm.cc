@@ -40,10 +40,10 @@ class RuntimeTypeConverter : public mlir::TypeConverter {
  public:
   RuntimeTypeConverter() {
     addConversion([](mlir::Type type) { return type; });
-    addConversion(convertRuntimeKernelContextType);
+    addConversion(convertKernelContextType);
   }
-  static llvm::Optional<mlir::Type> convertRuntimeKernelContextType(
-      RuntimeKernelContextType type) {
+  static llvm::Optional<mlir::Type> convertKernelContextType(
+      KernelContextType type) {
     return LLVM::LLVMPointerType::get(
         mlir::IntegerType::get(type.getContext(), 8));
   }

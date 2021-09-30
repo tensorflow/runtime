@@ -883,13 +883,13 @@ void ConvertAsyncToTfrtPass::runOnFunction() {
       [&](Operation *op) { return converter.isLegal(op); });
   target.markUnknownOpDynamicallyLegal([&](Operation *) { return true; });
 
-  if (failed(
-          applyPartialConversion(getOperation(), target, std::move(patterns))))
-    return signalPassFailure();
-
-  // Remove unused casts.
+  // Fold pairs of A-B-A casts before outlining async.execute regions.
   if (failed(applyPatternsAndFoldGreedily(getOperation(),
                                           RewritePatternSet(&getContext()))))
+    return signalPassFailure();
+
+  if (failed(
+          applyPartialConversion(getOperation(), target, std::move(patterns))))
     return signalPassFailure();
 }
 

@@ -168,6 +168,26 @@ struct SwapAsyncAwaitOfCastPattern
       ConversionPatternRewriter &rewriter) const override;
 };
 
+// Converts mlir::gpu::MemsetOp to tfrt::gpu::MemSetOp.
+struct ConvertMemsetPattern : OpConversionPattern<mlir::gpu::MemsetOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::gpu::MemsetOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Converts mlir::gpu::MemcpyOp to tfrt::gpu::MemCopyOp.
+struct ConvertMemcpyPattern : OpConversionPattern<mlir::gpu::MemcpyOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::gpu::MemcpyOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
 // Moves the body of a tfrt_gpu_conversion.async.execute op into the parent
 // block and removes the op.
 //
@@ -190,7 +210,7 @@ struct InlineConversionAsyncExecPattern
 
  private:
   LogicalResult matchAndRewrite(
-      conversion::AsyncExecuteOp exec_op, ArrayRef<Value> operands,
+      conversion::AsyncExecuteOp exec_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -601,12 +621,57 @@ LogicalResult SwapAsyncAwaitOfCastPattern::matchAndRewrite(
   return success();
 }
 
-LogicalResult InlineConversionAsyncExecPattern::matchAndRewrite(
-    conversion::AsyncExecuteOp exec_op, ArrayRef<Value> operands,
+LogicalResult ConvertMemsetPattern::matchAndRewrite(
+    mlir::gpu::MemsetOp memset_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  if (operands.empty() || !exec_op.getAsyncToken())
-    return rewriter.notifyMatchFailure(exec_op, "no operands or no result");
-  auto cast_op = operands.front().getDefiningOp<CastOp>();
+  if (adaptor.value().getType().getIntOrFloatBitWidth() != 32)
+    return rewriter.notifyMatchFailure(memset_op, "expected 32bit value");
+  if (!adaptor.dst().getType().isa<tfrt::gpu::BufferType>())
+    return rewriter.notifyMatchFailure(memset_op, "expected buffer dst");
+  if (adaptor.asyncDependencies().empty() || !memset_op.asyncToken())
+    return rewriter.notifyMatchFailure(memset_op, "no async deps or no result");
+  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  if (!IsCastToChainAndStream(cast_op))
+    return rewriter.notifyMatchFailure(memset_op, "operand not def by cast");
+
+  auto loc = memset_op->getLoc();
+  auto stream = cast_op.getOperand(1);
+  auto new_op = rewriter.create<tfrt::gpu::MemSetOp>(
+      loc, adaptor.dst(), adaptor.value(), stream, cast_op.getOperand(0));
+  auto token = CastToToken(rewriter, loc, {new_op.getResult(), stream});
+  rewriter.replaceOp(memset_op, token);
+  rewriter.eraseOp(cast_op);
+  return success();
+}
+
+LogicalResult ConvertMemcpyPattern::matchAndRewrite(
+    mlir::gpu::MemcpyOp memcpy_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  if (!adaptor.src().getType().isa<tfrt::gpu::BufferType>() ||
+      !adaptor.dst().getType().isa<tfrt::gpu::BufferType>())
+    return rewriter.notifyMatchFailure(memcpy_op, "expected buffer operands");
+  if (adaptor.asyncDependencies().empty() || !memcpy_op.asyncToken())
+    return rewriter.notifyMatchFailure(memcpy_op, "no async deps or no result");
+  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  if (!IsCastToChainAndStream(cast_op))
+    return rewriter.notifyMatchFailure(memcpy_op, "operand not def by cast");
+
+  auto loc = memcpy_op->getLoc();
+  auto stream = cast_op.getOperand(1);
+  auto new_op = rewriter.create<tfrt::gpu::MemCopyOp>(
+      loc, adaptor.dst(), adaptor.src(), stream, cast_op.getOperand(0));
+  auto token = CastToToken(rewriter, loc, {new_op.getResult(), stream});
+  rewriter.replaceOp(memcpy_op, token);
+  rewriter.eraseOp(cast_op);
+  return success();
+}
+
+LogicalResult InlineConversionAsyncExecPattern::matchAndRewrite(
+    conversion::AsyncExecuteOp exec_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  if (adaptor.asyncDependencies().empty() || !exec_op.getAsyncToken())
+    return rewriter.notifyMatchFailure(exec_op, "no async deps or no result");
+  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
   if (!IsCastToChainAndStream(cast_op))
     return rewriter.notifyMatchFailure(exec_op, "operand not def by cast");
 
@@ -847,11 +912,15 @@ void ConvertAsyncToChainAndEventPass::runOnFunction() {
 
 void ConvertGpuToTfrtGpuPass::runOnFunction() {
   RewritePatternSet patterns(&getContext());
+  auto converter = createMemrefToTfrtGpuConverter();
+  patterns.add<ConvertMemsetPattern, ConvertMemcpyPattern>(converter,
+                                                           &getContext());
   patterns.add<InlineConversionAsyncExecPattern,
                ConvertGpuWaitToChainAndStreamPattern,
                ConvertCastToEventRecordPattern>(&getContext());
   ConversionTarget target(getContext());
-  target.addIllegalOp<conversion::AsyncExecuteOp, mlir::gpu::WaitOp>();
+  target.addIllegalDialect<mlir::gpu::GPUDialect>();
+  target.addIllegalOp<conversion::AsyncExecuteOp>();
   target.addDynamicallyLegalOp<CastOp>(
       [](CastOp cast_op) { return !IsCastFromChainAndEvent(cast_op); });
   target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
@@ -891,6 +960,23 @@ void ConvertAsyncToTfrtPass::runOnFunction() {
   if (failed(
           applyPartialConversion(getOperation(), target, std::move(patterns))))
     return signalPassFailure();
+}
+
+static Value MaterializeCast(OpBuilder &builder, Type type, ValueRange values,
+                             Location loc) {
+  return builder.create<CastOp>(loc, type, values).getResult(0);
+}
+
+TypeConverter createMemrefToTfrtGpuConverter() {
+  TypeConverter converter;
+  converter.addConversion([](Type type) { return type; });
+  converter.addConversion([&](BaseMemRefType type) {
+    return tfrt::gpu::BufferType::get(type.getContext());
+  });
+  converter.addArgumentMaterialization(MaterializeCast);
+  converter.addSourceMaterialization(MaterializeCast);
+  converter.addTargetMaterialization(MaterializeCast);
+  return converter;
 }
 
 void populateGpuToTfrtGpuPasses(OpPassManager &pm) {

@@ -26,7 +26,7 @@ func @test_unwrap_async() {
     tfrt.return %ch1 : !tfrt.chain
   }) : (!gpu.async.token) -> (!gpu.async.token)
   gpu.wait [%t1]
-  // CHECK-NEXT: tfrt.return %[[ch:.*]] : !tfrt.chain
+  // CHECK-NEXT: tfrt.return %[[ch]] : !tfrt.chain
   tfrt.return
 }
 
@@ -90,3 +90,36 @@ func @test_async_execute() {
   tfrt.return
 }
 
+// CHECK-LABEL: @test_mem_cpy(
+// CHECK-SAME:    %arg0: !tfrt.chain,
+// CHECK-SAME:    %arg1: !tfrt_gpu.stream,
+// CHECK-SAME:    %arg2: !tfrt_gpu.buffer
+// CHECK-SAME:    %arg3: !tfrt_gpu.buffer
+// CHECK-SAME:  ) -> !tfrt.chain {
+func @test_mem_cpy(%arg0 : !tfrt_gpu.buffer, %arg1 : !tfrt_gpu.buffer) {
+  %t0 = gpu.wait async
+  %0 = builtin.unrealized_conversion_cast %arg0 : !tfrt_gpu.buffer to memref<32xi32>
+  %1 = builtin.unrealized_conversion_cast %arg1 : !tfrt_gpu.buffer to memref<32xi32>
+  // CHECK-NEXT: %[[ch:.*]] = tfrt_gpu.mem.copy %arg2, %arg3, %arg1, %arg0 : !tfrt_gpu.buffer, !tfrt_gpu.buffer
+  %t1 = gpu.memcpy async [%t0] %0, %1 : memref<32xi32>, memref<32xi32>
+  gpu.wait [%t1]
+  // CHECK-NEXT: tfrt.return %[[ch]] : !tfrt.chain
+  tfrt.return
+}
+
+// CHECK-LABEL: @test_mem_set(
+// CHECK-SAME:    %arg0: !tfrt.chain,
+// CHECK-SAME:    %arg1: !tfrt_gpu.stream,
+// CHECK-SAME:    %arg2: !tfrt_gpu.buffer
+// CHECK-SAME:  ) -> !tfrt.chain {
+func @test_mem_set(%arg0 : !tfrt_gpu.buffer) {
+  %t0 = gpu.wait async
+  // CHECK-NEXT: %[[c0:.*]] = tfrt.constant.i32 0
+  %c0 = tfrt.constant.i32 0
+  %0 = builtin.unrealized_conversion_cast %arg0 : !tfrt_gpu.buffer to memref<32xi32>
+  // CHECK-NEXT: %[[ch:.*]] = tfrt_gpu.mem.set %arg2, %[[c0]], %arg1, %arg0 : !tfrt_gpu.buffer, i32
+  %t1 = gpu.memset async [%t0] %0, %c0 : memref<32xi32>, i32
+  gpu.wait [%t1]
+  // CHECK-NEXT: tfrt.return %[[ch]] : !tfrt.chain
+  tfrt.return
+}

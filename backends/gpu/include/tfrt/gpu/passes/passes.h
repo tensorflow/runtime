@@ -63,6 +63,10 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
       mlir::ConversionPatternRewriter& rewriter) const = 0;
 };
 
+// Returns a type converter which maps memref to !tfrt_gpu.buffer and provides
+// the corresponding unrealized_conversion_cast materializers.
+mlir::TypeConverter createMemrefToTfrtGpuConverter();
+
 // Adds rewrite patterns that wraps consecutive legal ops as defined by
 // `target` into a tfrt_gpu_conversion.async.execute op.
 void populateGpuAsyncConversionPatterns(mlir::RewritePatternSet& patterns,

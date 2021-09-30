@@ -202,8 +202,15 @@ static Error GpuMemCopy(RemainingArguments args) {
     return GpuPointer(ptr, current->platform());
   };
 
-  return wrapper::MemcpyAsync(*current, get_ptr(args[0]), get_ptr(args[1]),
-                              dst_size, stream.get());
+  auto dst_ptr = get_ptr(args[0]);
+  auto src_ptr = get_ptr(args[1]);
+  if (dst_ptr == src_ptr) {
+    // Source and destination are the same; skip copy.
+    return Error::success();
+  }
+
+  return wrapper::MemcpyAsync(*current, dst_ptr, src_ptr, dst_size,
+                              stream.get());
 }
 
 static Expected<GpuBuffer> GpuMemRegister(

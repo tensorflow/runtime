@@ -214,7 +214,7 @@ def GPU_MemCopyOp : GPU_Op<"mem.copy"> {
 
     Execution is asynchronous. Argument buffers on the host must not be deleted
     and are not guaranteed to be valid before the stream is synchronized with
-    the host.
+    the host. If the source and destination are the same, the copy is skipped.
 
     Example:
       %ch1 = tfrt_gpu.mem.copy %dst, %src, %stream, %ch0

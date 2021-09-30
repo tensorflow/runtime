@@ -331,7 +331,7 @@ Type tfrt::gpu::GpuDialect::parseType(DialectAsmParser &parser) const {
   StringRef typeTag;
   Type genType;
   if (succeeded(parser.parseKeyword(&typeTag)))
-    generatedTypeParser(getContext(), parser, typeTag, genType);
+    generatedTypeParser(parser, typeTag, genType);
   return genType;
 }
 

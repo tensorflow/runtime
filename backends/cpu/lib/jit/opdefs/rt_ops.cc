@@ -76,8 +76,7 @@ mlir::Type RuntimeDialect::parseType(mlir::DialectAsmParser &parser) const {
   llvm::StringRef typeTag;
   if (parser.parseKeyword(&typeTag)) return mlir::Type();
   mlir::Type genType;
-  auto parseResult = generatedTypeParser(parser.getBuilder().getContext(),
-                                         parser, typeTag, genType);
+  auto parseResult = generatedTypeParser(parser, typeTag, genType);
   if (parseResult.hasValue()) return genType;
   parser.emitError(parser.getNameLoc(), "unknown rt type: ") << typeTag;
   return {};

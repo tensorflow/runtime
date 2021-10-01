@@ -118,12 +118,71 @@ static Error SolverPotrf(const GpuSolverHandle& handle, int32_t n,
   }
 }
 
+static Error SolverPotrfBatch(const GpuSolverHandle& handle, int32_t n,
+                              const GpuBuffer& buffer, int32_t stride,
+                              const GpuBuffer& devInfo, int32_t batch_size,
+                              Attribute<int32_t> dataType,
+                              Attribute<int32_t> fillMode) {
+  // These functions eventually need to make two separate calls to
+  // CusolverDn<t>potrfBatched and corresponding ROCm function, as wrappers
+  // SolverPotrf for CUDA/ROCm is not feasible due to mismatch in APIs.
+  auto platform = handle->platform();
+  if (platform != wrapper::Platform::CUDA)
+    return MakeStringError("Unsupported platform ", platform);
+
+  auto current = wrapper::CtxSetCurrent(handle.context());
+  if (!current) return current.takeError();
+
+  cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
+  auto fill_mode = wrapper::BlasFillMode::FromOpaqueValue(*fillMode);
+
+  auto call = [&](auto dummy) {
+    std::vector<void*> buffers;
+    buffers.reserve(batch_size);
+    char* buffer_ptr = static_cast<char*>(buffer.pointer().raw(platform));
+    ptrdiff_t batch_stride_bytes = n * n * sizeof(dummy);
+    for (int i = 0; i < batch_size; ++i) {
+      buffers.push_back(buffer_ptr);
+      buffer_ptr += batch_stride_bytes;
+    }
+
+    // TODO(hanbinyoon): For performance, consider using scratch space that is
+    // already pinned (as part of GpuContext).
+    auto pinned = wrapper::MemHostRegister(
+        *current, buffers.data(), buffers.size() * sizeof(void*),
+        wrapper::MemHostRegisterFlags::DEVICEMAP);
+    if (!pinned) return pinned.takeError();
+
+    auto buffer_array_ptr =
+        static_cast<wrapper::Pointer<decltype(dummy)*>>(pinned->get());
+    auto devInfo_ptr = static_cast<wrapper::Pointer<int>>(devInfo.pointer());
+    return wrapper::CusolverDnPotrfBatched(*current, handle.get(), fill_mode, n,
+                                           buffer_array_ptr, stride,
+                                           devInfo_ptr, batch_size);
+  };
+
+  switch (data_type) {
+    case CUDA_R_32F:
+      return call(float{});
+    case CUDA_R_64F:
+      return call(double{});
+    case CUDA_C_32F:
+      return call(cuComplex{});
+    case CUDA_C_64F:
+      return call(cuDoubleComplex{});
+    default:
+      return MakeStringError("Unsupported data type ", data_type);
+  }
+}
+
 void RegisterGpuSolverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.solver.create", TFRT_KERNEL(SolverCreate));
   kernel_reg->AddKernel("tfrt_gpu.solver.potrf.buffer_size",
                         TFRT_KERNEL(SolverPotrfBufferSize));
   kernel_reg->AddKernel("tfrt_gpu.solver.potrf",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrf));
+  kernel_reg->AddKernel("tfrt_gpu.solver.potrf.batch",
+                        TFRT_KERNEL_WITH_CHAIN_RESULT(SolverPotrfBatch));
 }
 
 }  // namespace gpu

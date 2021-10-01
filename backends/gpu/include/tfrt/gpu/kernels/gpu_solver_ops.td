@@ -72,4 +72,21 @@ def SolverPotrfOp : GPU_Op<"solver.potrf"> {
   }];
 }
 
+def SolverPotrfBatchOp : GPU_Op<"solver.potrf.batch"> {
+  let description = [{
+    Computes the Cholesky factorization of a Hermitian positive-definite matrix
+    using the specified batch size.
+  }];
+  let arguments = (ins GPU_SolverHandleType:$handle,
+                   GPU_BlasFillModeAttr:$fillMode, I32:$n,
+                   GPU_BlasDataTypeAttr:$dataType, GPU_BufferType:$buffer,
+                   I32:$stride, GPU_BufferType:$devInfo, I32:$batch_size,
+                   TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` custom<Enum>($fillMode)`,` $n`,` custom<Enum>($dataType)`,`
+    $buffer`,` $stride`,` $devInfo`,` $batch_size`,` $chain attr-dict
+  }];
+}
+
 #endif  // GPU_SOLVER_OPS

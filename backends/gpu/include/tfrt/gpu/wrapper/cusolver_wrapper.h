@@ -50,6 +50,27 @@ llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
                             Pointer<cuDoubleComplex> A, int heightA,
                             Pointer<cuDoubleComplex> workspace,
                             int workspaceSize, Pointer<int> devInfo);
+llvm::Error CusolverDnPotrfBatched(CurrentContext current,
+                                   cusolverDnHandle_t handle,
+                                   cublasFillMode_t fillMode, int n,
+                                   Pointer<float *> Aarray, int heightA,
+                                   Pointer<int> devInfoArray, int batchSize);
+llvm::Error CusolverDnPotrfBatched(CurrentContext current,
+                                   cusolverDnHandle_t handle,
+                                   cublasFillMode_t fillMode, int n,
+                                   Pointer<double *> Aarray, int heightA,
+                                   Pointer<int> devInfoArray, int batchSize);
+llvm::Error CusolverDnPotrfBatched(CurrentContext current,
+                                   cusolverDnHandle_t handle,
+                                   cublasFillMode_t fillMode, int n,
+                                   Pointer<cuComplex *> Aarray, int heightA,
+                                   Pointer<int> devInfoArray, int batchSize);
+llvm::Error CusolverDnPotrfBatched(CurrentContext current,
+                                   cusolverDnHandle_t handle,
+                                   cublasFillMode_t fillMode, int n,
+                                   Pointer<cuDoubleComplex *> Aarray,
+                                   int heightA, Pointer<int> devInfoArray,
+                                   int batchSize);
 llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
                                               cusolverDnHandle_t handle,
                                               cublasFillMode_t fillMode, int n,

@@ -120,6 +120,51 @@ llvm::Error CusolverDnPotrf(CurrentContext current, cusolverDnHandle_t handle,
                                    ToCuda(devInfo)));
 }
 
+llvm::Error CusolverDnPotrfBatched(CurrentContext current,
+                                   cusolverDnHandle_t handle,
+                                   cublasFillMode_t fillMode, int n,
+                                   Pointer<float *> Aarray, int heightA,
+                                   Pointer<int> devInfoArray, int batchSize) {
+  CheckCudaContext(current);
+  return TO_ERROR(cusolverDnSpotrfBatched(handle, fillMode, n, ToCuda(Aarray),
+                                          heightA, ToCuda(devInfoArray),
+                                          batchSize));
+}
+
+llvm::Error CusolverDnPotrfBatched(CurrentContext current,
+                                   cusolverDnHandle_t handle,
+                                   cublasFillMode_t fillMode, int n,
+                                   Pointer<double *> Aarray, int heightA,
+                                   Pointer<int> devInfoArray, int batchSize) {
+  CheckCudaContext(current);
+  return TO_ERROR(cusolverDnDpotrfBatched(handle, fillMode, n, ToCuda(Aarray),
+                                          heightA, ToCuda(devInfoArray),
+                                          batchSize));
+}
+
+llvm::Error CusolverDnPotrfBatched(CurrentContext current,
+                                   cusolverDnHandle_t handle,
+                                   cublasFillMode_t fillMode, int n,
+                                   Pointer<cuComplex *> Aarray, int heightA,
+                                   Pointer<int> devInfoArray, int batchSize) {
+  CheckCudaContext(current);
+  return TO_ERROR(cusolverDnCpotrfBatched(handle, fillMode, n, ToCuda(Aarray),
+                                          heightA, ToCuda(devInfoArray),
+                                          batchSize));
+}
+
+llvm::Error CusolverDnPotrfBatched(CurrentContext current,
+                                   cusolverDnHandle_t handle,
+                                   cublasFillMode_t fillMode, int n,
+                                   Pointer<cuDoubleComplex *> Aarray,
+                                   int heightA, Pointer<int> devInfoArray,
+                                   int batchSize) {
+  CheckCudaContext(current);
+  return TO_ERROR(cusolverDnZpotrfBatched(handle, fillMode, n, ToCuda(Aarray),
+                                          heightA, ToCuda(devInfoArray),
+                                          batchSize));
+}
+
 llvm::Expected<int> CusolverDnPotrfBufferSize(CurrentContext current,
                                               cusolverDnHandle_t handle,
                                               cublasFillMode_t fillMode, int n,

@@ -132,7 +132,7 @@ struct ConvertAsyncExecToChainAndEventPattern
 
  private:
   LogicalResult matchAndRewrite(
-      async::ExecuteOp exec_op, ArrayRef<Value> operands,
+      async::ExecuteOp exec_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -144,7 +144,7 @@ struct ConvertAsyncYieldToChainAndEventPattern
 
  private:
   LogicalResult matchAndRewrite(
-      async::YieldOp yield_op, ArrayRef<Value> operands,
+      async::YieldOp yield_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -164,7 +164,7 @@ struct SwapAsyncAwaitOfCastPattern
 
  private:
   LogicalResult matchAndRewrite(
-      async::AwaitOp await_op, ArrayRef<Value> operands,
+      async::AwaitOp await_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -246,7 +246,7 @@ struct ConvertGpuWaitToChainAndStreamPattern
 
  private:
   LogicalResult matchAndRewrite(
-      mlir::gpu::WaitOp wait_op, ArrayRef<Value> operands,
+      mlir::gpu::WaitOp wait_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -269,7 +269,7 @@ struct ConvertCastToEventRecordPattern
 
  private:
   LogicalResult matchAndRewrite(
-      mlir::UnrealizedConversionCastOp cast_op, ArrayRef<Value> operands,
+      mlir::UnrealizedConversionCastOp cast_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -300,7 +300,7 @@ struct ConvertAsyncExecToDoAsyncPattern
 
  private:
   LogicalResult matchAndRewrite(
-      async::ExecuteOp exec_op, ArrayRef<Value> operands,
+      async::ExecuteOp exec_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -310,7 +310,7 @@ struct FoldAsyncAwaitPattern : public OpConversionPattern<async::AwaitOp> {
 
  private:
   LogicalResult matchAndRewrite(
-      async::AwaitOp await_op, ArrayRef<Value> operands,
+      async::AwaitOp await_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -320,7 +320,7 @@ struct EraseIllegalCastPattern : public OpConversionPattern<CastOp> {
 
  private:
   LogicalResult matchAndRewrite(
-      CastOp cast_op, ArrayRef<Value> operands,
+      CastOp cast_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -540,15 +540,12 @@ LogicalResult AddChainAndStreamToFuncPattern::matchAndRewrite(
 }
 
 LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
-    async::ExecuteOp exec_op, ArrayRef<Value> operands,
+    async::ExecuteOp exec_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
   Location loc = exec_op->getLoc();
-  auto num_dependencies = exec_op.dependencies().size();
-  auto dependencies = operands.take_front(num_dependencies);
-  operands = operands.drop_front(num_dependencies);
 
   auto operand_conversion =
-      OneToAnyConversion::Get(typeConverter, TypeRange(operands));
+      OneToAnyConversion::Get(typeConverter, TypeRange(adaptor.operands()));
   auto result_conversion =
       OneToAnyConversion::Get(typeConverter, exec_op.getResultTypes());
   auto argument_conversion = OneToAnyConversion::Get(
@@ -563,8 +560,8 @@ LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
 
   // Create new async.execute op with converted operands.
   auto new_op = rewriter.create<mlir::async::ExecuteOp>(
-      loc, terminator_conversion->GetTargetTypes(), dependencies,
-      operand_conversion->CastToTargetTypes(rewriter, loc, operands));
+      loc, terminator_conversion->GetTargetTypes(), adaptor.dependencies(),
+      operand_conversion->CastToTargetTypes(rewriter, loc, adaptor.operands()));
 
   // Convert new results back to invalid types.
   rewriter.replaceOp(exec_op, result_conversion->CastToSourceTypes(
@@ -588,8 +585,9 @@ LogicalResult ConvertAsyncExecToChainAndEventPattern::matchAndRewrite(
 }
 
 LogicalResult ConvertAsyncYieldToChainAndEventPattern::matchAndRewrite(
-    async::YieldOp yield_op, ArrayRef<Value> operands,
+    async::YieldOp yield_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
+  auto operands = adaptor.getOperands();
   auto conversion = OneToAnyConversion::Get(typeConverter, TypeRange(operands));
   if (failed(conversion))
     return rewriter.notifyMatchFailure(yield_op, "failed to convert types");
@@ -600,10 +598,9 @@ LogicalResult ConvertAsyncYieldToChainAndEventPattern::matchAndRewrite(
 }
 
 LogicalResult SwapAsyncAwaitOfCastPattern::matchAndRewrite(
-    async::AwaitOp await_op, ArrayRef<Value> operands,
+    async::AwaitOp await_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  Value value = operands.front();
-  auto cast_op = value.getDefiningOp<CastOp>();
+  auto cast_op = adaptor.operand().getDefiningOp<CastOp>();
   if (!cast_op || !llvm::all_of(cast_op->getOperandTypes(), [](Type type) {
         return type.isa<async::ValueType>();
       }))
@@ -694,8 +691,9 @@ Value GetContextFromParentFunc(Operation *op) {
 }
 
 LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
-    mlir::gpu::WaitOp wait_op, ArrayRef<Value> operands,
+    mlir::gpu::WaitOp wait_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
+  auto operands = adaptor.getOperands();
   if (operands.empty() || !wait_op.asyncToken())
     return rewriter.notifyMatchFailure(wait_op, "no operands or not async");
   CastOp cast_from_stream_op;
@@ -773,8 +771,9 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
 }
 
 LogicalResult ConvertCastToEventRecordPattern::matchAndRewrite(
-    mlir::UnrealizedConversionCastOp cast_op, ArrayRef<Value> operands,
+    mlir::UnrealizedConversionCastOp cast_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
+  auto operands = adaptor.getOperands();
   if (!IsTokenType(TypeRange(operands)))
     return rewriter.notifyMatchFailure(cast_op, "not cast from token");
 
@@ -802,10 +801,10 @@ LogicalResult ConvertCastToEventRecordPattern::matchAndRewrite(
 }
 
 LogicalResult ConvertAsyncExecToDoAsyncPattern::matchAndRewrite(
-    async::ExecuteOp exec_op, ArrayRef<Value> operands,
+    async::ExecuteOp exec_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
   // Drop !async.token operands, they are not region arguments.
-  operands = operands.drop_front(exec_op.dependencies().size());
+  auto operands = adaptor.operands();
   SmallVector<Value, 4> arguments(operands.begin(), operands.end());
   // Make all captures explicit arguments.
   SetVector<Value> captures;
@@ -848,16 +847,16 @@ LogicalResult ConvertAsyncExecToDoAsyncPattern::matchAndRewrite(
 }
 
 LogicalResult FoldAsyncAwaitPattern::matchAndRewrite(
-    async::AwaitOp await_op, ArrayRef<Value> operands,
+    async::AwaitOp await_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
   if (await_op->getNumResults() == 0)
     return rewriter.eraseOp(await_op), success();
-  rewriter.replaceOp(await_op, operands);
+  rewriter.replaceOp(await_op, adaptor.getOperands());
   return success();
 }
 
 LogicalResult EraseIllegalCastPattern::matchAndRewrite(
-    CastOp cast_op, ArrayRef<Value> operands,
+    CastOp cast_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
   if (typeConverter->isLegal(cast_op))
     return rewriter.notifyMatchFailure(cast_op, "is valid");

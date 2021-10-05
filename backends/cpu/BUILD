@@ -279,7 +279,10 @@ tfrt_cc_library(
 tfrt_cc_library(
     name = "cpurt",
     srcs = ["lib/jit/cpurt.cc"],
-    hdrs = ["include/tfrt/cpu/jit/cpurt.h"],
+    hdrs = [
+        "include/tfrt/cpu/jit/cpurt.h",
+        "include/tfrt/cpu/jit/runtime.h",
+    ],
     # copybara:uncomment compatible_with = ["//buildenv/target:non_prod"],
     visibility = ["@tf_runtime//:friends"],
     deps = [

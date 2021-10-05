@@ -65,8 +65,8 @@ def SetOutput : RT_Op<"set_output"> {
 
   let arguments = (ins
     KernelContextType:$ctx,
-    Confined<I32Attr, [IntNonNegative]>:$index,
-    Variadic<AnyType>:$value
+    Confined<I64Attr, [IntNonNegative]>:$index,
+    AnyType:$value
   );
 
   let assemblyFormat = [{

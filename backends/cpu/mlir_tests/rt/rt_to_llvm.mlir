@@ -14,7 +14,24 @@
 
 // RUN: cpurt_opt %s --rt-to-llvm | FileCheck %s
 
-// CHECK: func @pass_context(%arg0: !llvm.ptr<i8>)
+// CHECK: func @pass_context(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
 func @pass_context(%arg0: !rt.kernel_context) {
+  return
+}
+
+// CHECK: func @set_output(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func @set_output(%arg0: !rt.kernel_context) {
+  // CHECK: %[[MEMREF:.*]] = memref.alloc
+  // CHECK: %[[LLVM_MEMREF:.*]] = builtin.unrealized_conversion_cast %[[MEMREF]]
+  %0 = memref.alloc() : memref<f32>
+  // CHECK: %[[C0:.*]] = constant 0 : i64
+  // CHECK: %[[RES_PTR:.*]] = call @runtimeGetResultStorage(%[[CTX]], %[[C0]])
+  // CHECK: %[[LLVM_PTR:.*]] = llvm.bitcast %[[RES_PTR]]
+  // CHECK: llvm.store %[[LLVM_MEMREF]], %[[LLVM_PTR]]
+  rt.set_output %arg0, 0, %0 : memref<f32>
   return
 }

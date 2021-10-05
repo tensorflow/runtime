@@ -82,6 +82,7 @@
 #include "tfrt/cpu/jit/conversion/rt_passes.h"
 #include "tfrt/cpu/jit/cpurt_support.h"
 #include "tfrt/cpu/jit/opdefs/rt_ops.h"
+#include "tfrt/cpu/jit/runtime.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/diagnostic.h"
@@ -1685,6 +1686,30 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
   else
     return has_default_executable_ ? DefaultExecutable() : entry.ptr;
 }
+
+//----------------------------------------------------------------------------//
+// Implement API for codegen <-> runtime integration defined in runtime header.
+//----------------------------------------------------------------------------//
+
+namespace runtime {
+
+struct KernelContext {
+  // Results memory layout is owned by the executable, and stays alive after
+  // the kernel function execution completes.
+  Executable::ResultsMemoryLayout* results_memory_layout;
+
+  // CallFrame life time bound to the kernel function execution and destroyed
+  // immediately when the function returns. Only the kernel function itself
+  // reads the arguments and writes to the function results storage.
+  Executable::CallFrame* call_frame;
+};
+
+extern "C" void* runtimeGetResultStorage(KernelContext* ctx, int64_t index) {
+  size_t offset = ctx->results_memory_layout->offsets[index];
+  return &ctx->call_frame->results[offset];
+};
+
+}  // namespace runtime
 
 }  // namespace jit
 }  // namespace cpu

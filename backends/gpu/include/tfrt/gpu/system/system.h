@@ -122,6 +122,12 @@ class System {
                                ArrayRef<AsyncValueRef<GpuBuffer>> inputs,
                                ArrayRef<AsyncValueRef<GpuBuffer>> outputs,
                                AsyncValueRef<Chain> chain);
+  AsyncValueRef<Chain> Execute(ExecutionContext& exec_ctx,
+                               const Function* function,
+                               AsyncValueRef<GpuStream> stream,
+                               ArrayRef<AsyncValueRef<GpuBuffer>> inputs,
+                               ArrayRef<AsyncValueRef<GpuBuffer>> outputs,
+                               AsyncValueRef<Chain> chain);
 };
 
 }  // namespace gpu

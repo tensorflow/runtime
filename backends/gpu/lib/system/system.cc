@@ -208,13 +208,22 @@ AsyncValueRef<Chain> System::Execute(ExecutionContext& exec_ctx,
                                      ArrayRef<AsyncValueRef<GpuBuffer>> inputs,
                                      ArrayRef<AsyncValueRef<GpuBuffer>> outputs,
                                      AsyncValueRef<Chain> chain) {
-  const Function* fn = program.GetFunction();
-  if (fn->num_results() != 1) {
+  return Execute(exec_ctx, program.GetFunction(), stream, inputs, outputs,
+                 chain);
+}
+
+AsyncValueRef<Chain> System::Execute(ExecutionContext& exec_ctx,
+                                     const Function* function,
+                                     AsyncValueRef<GpuStream> stream,
+                                     ArrayRef<AsyncValueRef<GpuBuffer>> inputs,
+                                     ArrayRef<AsyncValueRef<GpuBuffer>> outputs,
+                                     AsyncValueRef<Chain> chain) {
+  if (function->num_results() != 1) {
     return MakeErrorAsyncValueRef(
         "Failed to execute lowered function: expected one result");
   }
 
-  auto num_args = fn->num_arguments();
+  auto num_args = function->num_arguments();
 
   // Lowering pass for HLO will generate BEF Function with the following
   // signature: {chain, stream, ...inputs, ...outputs} -> chain
@@ -239,7 +248,7 @@ AsyncValueRef<Chain> System::Execute(ExecutionContext& exec_ctx,
   }
 
   tfrt::RCReference<tfrt::AsyncValue> result;
-  fn->Execute(exec_ctx, args, {result});
+  function->Execute(exec_ctx, args, {result});
 
   return AsyncValueRef<Chain>(std::move(result));
 }

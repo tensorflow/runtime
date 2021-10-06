@@ -350,7 +350,7 @@ def GPU_ModuleGetFunctionOp : GPU_Op<"module.get_function"> {
   let results = (outs GPU_FunctionType);
 }
 
-def GPU_LaunchOp : GPU_Op<"function.launch"> {
+def GPU_FunctionLaunchOp : GPU_Op<"function.launch"> {
   let description = [{
     tfrt_gpu.function.launch invokes the provided device function on a stream.
 

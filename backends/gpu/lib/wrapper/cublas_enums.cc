@@ -106,6 +106,25 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value) {
 }
 
 template <>
+Expected<cublasDiagType_t> Parse<cublasDiagType_t>(llvm::StringRef name) {
+  if (name == "CUBLAS_DIAG_NON_UNIT") return CUBLAS_DIAG_NON_UNIT;
+  if (name == "CUBLAS_DIAG_UNIT") return CUBLAS_DIAG_UNIT;
+  return MakeStringError("Unknown cublasDiagType_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasDiagType_t value) {
+  switch (value) {
+    case CUBLAS_DIAG_NON_UNIT:
+      return os << "CUBLAS_DIAG_NON_UNIT";
+    case CUBLAS_DIAG_UNIT:
+      return os << "CUBLAS_DIAG_UNIT";
+    default:
+      return os << llvm::formatv("cublasDiagType_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+template <>
 Expected<cublasComputeType_t> Parse<cublasComputeType_t>(llvm::StringRef name) {
   if (name == "CUBLAS_COMPUTE_16F") return CUBLAS_COMPUTE_16F;
   if (name == "CUBLAS_COMPUTE_16F_PEDANTIC") return CUBLAS_COMPUTE_16F_PEDANTIC;
@@ -346,6 +365,25 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value) {
       return os << "CUBLAS_FILL_MODE_FULL";
     default:
       return os << llvm::formatv("cublasFillMode_t({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+template <>
+Expected<cublasSideMode_t> Parse<cublasSideMode_t>(llvm::StringRef name) {
+  if (name == "CUBLAS_SIDE_LEFT") return CUBLAS_SIDE_LEFT;
+  if (name == "CUBLAS_SIDE_RIGHT") return CUBLAS_SIDE_RIGHT;
+  return MakeStringError("Unknown cublasSideMode_t: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasSideMode_t value) {
+  switch (value) {
+    case CUBLAS_SIDE_LEFT:
+      return os << "CUBLAS_SIDE_LEFT";
+    case CUBLAS_SIDE_RIGHT:
+      return os << "CUBLAS_SIDE_RIGHT";
+    default:
+      return os << llvm::formatv("cublasSideMode_t({0})",
                                  static_cast<int>(value));
   }
 }

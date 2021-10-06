@@ -75,6 +75,12 @@ struct EnumTraits<wrapper::BlasDataTypeTag> {
 };
 
 template <>
+struct EnumTraits<wrapper::BlasDiagTypeTag> {
+  using cuda_type = cublasDiagType_t;
+  using rocm_type = rocblas_diagonal;
+};
+
+template <>
 struct EnumTraits<wrapper::BlasComputeTypeTag> {
   using cuda_type = cublasComputeType_t;
   using rocm_type = rocblas_datatype;
@@ -96,6 +102,12 @@ template <>
 struct EnumTraits<wrapper::BlasFillModeTag> {
   using cuda_type = cublasFillMode_t;
   using rocm_type = rocblas_fill;
+};
+
+template <>
+struct EnumTraits<wrapper::BlasSideModeTag> {
+  using cuda_type = cublasSideMode_t;
+  using rocm_type = rocblas_side;
 };
 }  // namespace
 

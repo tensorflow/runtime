@@ -148,3 +148,5 @@ func @blas_gemm_batched() {
 
   tfrt.return
 }
+
+// TODO(hanbinyoon): Add a test for tfrt_gpu.blas.trsm.batch

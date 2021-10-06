@@ -36,10 +36,12 @@ def GPU_BlasGemmAlgoType : GPU_Type<"BlasGemmAlgo"> {
 }
 
 def GPU_BlasDataTypeAttr : GPU_WrapperAttr<"BlasDataType">;
+def GPU_BlasDiagTypeAttr : GPU_WrapperAttr<"BlasDiagType">;
 def GPU_BlasComputeTypeAttr : GPU_WrapperAttr<"BlasComputeType">;
 def GPU_BlasOperationAttr : GPU_WrapperAttr<"BlasOperation">;
 def GPU_BlasGemmAlgoAttr : GPU_WrapperAttr<"BlasGemmAlgo">;
 def GPU_BlasFillModeAttr : GPU_WrapperAttr<"BlasFillMode">;
+def GPU_BlasSideModeAttr : GPU_WrapperAttr<"BlasSideMode">;
 
 def GPU_BlasCreateOp : GPU_Op<"blas.create"> {
   let description = [{
@@ -124,6 +126,26 @@ def GPU_BlasGemmBatchExOp : GPU_Op<"blas.gemm.batch"> {
     $algo`,` $chain attr-dict
   }];
   let verifier = [{ return tfrt::gpu::VerifyBlasGemmOp(*this); }];
+}
+
+def GPU_BlasTrsmBatchOp : GPU_Op<"blas.trsm.batch"> {
+  let description = [{
+    tfrt_gpu.blas.trsm.batch solves an array of triangular linear systems with
+    multiple right-hand-sides using the specified batch size.
+  }];
+  let arguments = (ins GPU_BlasHandleType:$handle, GPU_BlasSideModeAttr:$sideMode,
+                   GPU_BlasFillModeAttr:$fillMode, GPU_BlasOperationAttr:$trans,
+                   GPU_BlasDiagTypeAttr:$diagType, I32:$m, I32:$n,
+                   GPU_BlasDataTypeAttr:$dataType, AnyType:$alpha,
+                   GPU_BufferType:$A, I32:$heightA, GPU_BufferType:$B,
+                   I32:$heightB, I32:$batchCount, TFRT_ChainType:$chain);
+  let results = (outs TFRT_ChainType);
+  let assemblyFormat = [{
+    $handle`,` custom<Enum>($sideMode)`,` custom<Enum>($fillMode)`,`
+    custom<Enum>($trans)`,` custom<Enum>($diagType)`,` $m`,` $n`,`
+    custom<Enum>($dataType, type($alpha))`,` $alpha`,` $A`,` $heightA`,` $B`,`
+    $heightB`,` $batchCount`,` $chain attr-dict
+  }];
 }
 
 #endif  // GPU_OPS

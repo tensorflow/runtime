@@ -32,6 +32,10 @@ Expected<rocblas_datatype> Parse<rocblas_datatype>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_datatype value);
 
 template <>
+Expected<rocblas_diagonal> Parse<rocblas_diagonal>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_diagonal value);
+
+template <>
 Expected<rocblas_operation> Parse<rocblas_operation>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_operation value);
 
@@ -44,7 +48,14 @@ Expected<rocblas_fill> Parse<rocblas_fill>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value);
 
 template <>
+Expected<rocblas_side> Parse<rocblas_side>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_side value);
+
+template <>
 struct PlatformTypeTraits<BlasDataTypeTag, rocblas_datatype>
+    : public RocmPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasDiagTypeTag, rocblas_diagonal>
     : public RocmPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasComputeTypeTag, rocblas_datatype>
@@ -57,6 +68,9 @@ struct PlatformTypeTraits<BlasGemmAlgoTag, rocblas_gemm_algo>
     : public RocmPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasFillModeTag, rocblas_fill>
+    : public RocmPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasSideModeTag, rocblas_side>
     : public RocmPlatformType {};
 
 mlir::TypeID GetRocblasDatatypeId(rocblas_datatype data_type);
@@ -96,6 +110,7 @@ llvm::Error RocblasGemmStridedBatchedEx(
     int heightC, int64_t strideC, Pointer<void> D, rocblas_datatype typeD,
     int heightD, int64_t strideD, int batchCount, rocblas_datatype computeType,
     rocblas_gemm_algo algo);
+// TODO(hanbinyoon): Add TrsmBatched functions.
 
 }  // namespace wrapper
 }  // namespace gpu

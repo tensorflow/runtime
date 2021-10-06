@@ -144,6 +144,25 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_datatype value) {
 }
 
 template <>
+Expected<rocblas_diagonal> Parse<rocblas_diagonal>(llvm::StringRef name) {
+  if (name == "rocblas_diagonal_non_unit") return rocblas_diagonal_non_unit;
+  if (name == "rocblas_diagonal_unit") return rocblas_diagonal_unit;
+  return MakeStringError("Unknown rocblas_diagonal: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_diagonal value) {
+  switch (value) {
+    case rocblas_diagonal_non_unit:
+      return os << "rocblas_diagonal_non_unit";
+    case rocblas_diagonal_unit:
+      return os << "rocblas_diagonal_unit";
+    default:
+      return os << llvm::formatv("rocblas_diagonal({0})",
+                                 static_cast<int>(value));
+  }
+}
+
+template <>
 Expected<rocblas_gemm_algo> Parse<rocblas_gemm_algo>(llvm::StringRef name) {
   if (name == "rocblas_gemm_algo_standard") return rocblas_gemm_algo_standard;
   return MakeStringError("Unknown rocblas_gemm_algo: ", name);
@@ -177,6 +196,27 @@ llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_fill value) {
       return os << "rocblas_fill_full";
     default:
       return os << llvm::formatv("rocblas_fill({0})", static_cast<int>(value));
+  }
+}
+
+template <>
+Expected<rocblas_side> Parse<rocblas_side>(llvm::StringRef name) {
+  if (name == "rocblas_side_left") return rocblas_side_left;
+  if (name == "rocblas_side_right") return rocblas_side_right;
+  if (name == "rocblas_side_both") return rocblas_side_both;
+  return MakeStringError("Unknown rocblas_side: ", name);
+}
+
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, rocblas_side value) {
+  switch (value) {
+    case rocblas_side_left:
+      return os << "rocblas_side_left";
+    case rocblas_side_right:
+      return os << "rocblas_side_right";
+    case rocblas_side_both:
+      return os << "rocblas_side_both";
+    default:
+      return os << llvm::formatv("rocblas_side({0})", static_cast<int>(value));
   }
 }
 

@@ -31,6 +31,8 @@ namespace wrapper {
 // Platform-discriminated enums.
 struct BlasDataTypeTag;
 using BlasDataType = Enum<BlasDataTypeTag>;
+struct BlasDiagTypeTag;
+using BlasDiagType = Enum<BlasDiagTypeTag>;
 struct BlasComputeTypeTag;
 using BlasComputeType = Enum<BlasComputeTypeTag>;
 struct BlasOperationTag;
@@ -39,6 +41,8 @@ struct BlasGemmAlgoTag;
 using BlasGemmAlgo = Enum<BlasGemmAlgoTag>;
 struct BlasFillModeTag;
 using BlasFillMode = Enum<BlasFillModeTag>;
+struct BlasSideModeTag;
+using BlasSideMode = Enum<BlasSideModeTag>;
 
 // Returns the id of the type that the enumerator refers to.
 mlir::TypeID GetBlasDataTypeId(BlasDataType data_type);

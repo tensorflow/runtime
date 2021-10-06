@@ -97,10 +97,12 @@ class EnumAttr : public Attribute {
 using PlatformAttr = EnumAttr<wrapper::Platform>;
 using DnnDataTypeAttr = EnumAttr<wrapper::DnnDataType>;
 using BlasDataTypeAttr = EnumAttr<wrapper::BlasDataType>;
+using BlasDiagTypeAttr = EnumAttr<wrapper::BlasDiagType>;
 using BlasComputeTypeAttr = EnumAttr<wrapper::BlasComputeType>;
 using BlasOperationAttr = EnumAttr<wrapper::BlasOperation>;
 using BlasGemmAlgoAttr = EnumAttr<wrapper::BlasGemmAlgo>;
 using BlasFillModeAttr = EnumAttr<wrapper::BlasFillMode>;
+using BlasSideModeAttr = EnumAttr<wrapper::BlasSideMode>;
 using CclDataTypeAttr = EnumAttr<ncclDataType_t>;
 using CclReductionOpAttr = EnumAttr<ncclRedOp_t>;
 

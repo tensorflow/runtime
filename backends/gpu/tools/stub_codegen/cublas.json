@@ -11,6 +11,10 @@
       "cublasSetPointerMode_v2",
       "cublasGetMathMode",
       "cublasSetMathMode",
-      "cublasAxpyEx"
+      "cublasAxpyEx",
+      "cublasStrsmBatched",
+      "cublasDtrsmBatched",
+      "cublasCtrsmBatched",
+      "cublasZtrsmBatched"
    ]
 }

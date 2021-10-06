@@ -131,6 +131,57 @@ llvm::Error CublasGemmStridedBatchedEx(
       typeC, heightC, strideC, batchCount, computeType, algo));
 }
 
+llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
+                              cublasSideMode_t sideMode,
+                              cublasFillMode_t fillMode,
+                              cublasOperation_t trans, cublasDiagType_t diag,
+                              int m, int n, Pointer<const float> alpha,
+                              Pointer<const float*> A, int lda,
+                              Pointer<float*> B, int ldb, int batchCount) {
+  CheckCudaContext(current);
+  return TO_ERROR(cublasStrsmBatched(handle, sideMode, fillMode, trans, diag, m,
+                                     n, ToCuda(alpha), ToCuda(A), lda,
+                                     ToCuda(B), ldb, batchCount));
+}
+
+llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
+                              cublasSideMode_t sideMode,
+                              cublasFillMode_t fillMode,
+                              cublasOperation_t trans, cublasDiagType_t diag,
+                              int m, int n, Pointer<const double> alpha,
+                              Pointer<const double*> A, int lda,
+                              Pointer<double*> B, int ldb, int batchCount) {
+  CheckCudaContext(current);
+  return TO_ERROR(cublasDtrsmBatched(handle, sideMode, fillMode, trans, diag, m,
+                                     n, ToCuda(alpha), ToCuda(A), lda,
+                                     ToCuda(B), ldb, batchCount));
+}
+
+llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
+                              cublasSideMode_t sideMode,
+                              cublasFillMode_t fillMode,
+                              cublasOperation_t trans, cublasDiagType_t diag,
+                              int m, int n, Pointer<const cuComplex> alpha,
+                              Pointer<const cuComplex*> A, int lda,
+                              Pointer<cuComplex*> B, int ldb, int batchCount) {
+  CheckCudaContext(current);
+  return TO_ERROR(cublasCtrsmBatched(handle, sideMode, fillMode, trans, diag, m,
+                                     n, ToCuda(alpha), ToCuda(A), lda,
+                                     ToCuda(B), ldb, batchCount));
+}
+
+llvm::Error CublasTrsmBatched(
+    CurrentContext current, cublasHandle_t handle, cublasSideMode_t sideMode,
+    cublasFillMode_t fillMode, cublasOperation_t trans, cublasDiagType_t diag,
+    int m, int n, Pointer<const cuDoubleComplex> alpha,
+    Pointer<const cuDoubleComplex*> A, int lda, Pointer<cuDoubleComplex*> B,
+    int ldb, int batchCount) {
+  CheckCudaContext(current);
+  return TO_ERROR(cublasZtrsmBatched(handle, sideMode, fillMode, trans, diag, m,
+                                     n, ToCuda(alpha), ToCuda(A), lda,
+                                     ToCuda(B), ldb, batchCount));
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

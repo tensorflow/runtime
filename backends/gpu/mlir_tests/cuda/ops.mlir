@@ -114,6 +114,13 @@ func @ops() {
     CUDA_R_32F, %stride, %size, %buffer, CUDA_R_32F, %stride,
     %size, %alpha, %buffer, CUDA_R_32F, %stride, %size, %stride,
     CUBLAS_COMPUTE_32F, %algo, %ch8
+  // CHECK: tfrt_gpu.blas.trsm.batch %[[blas]], CUBLAS_SIDE_LEFT,
+  // CHECK-SAME: CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT,
+  // CHECK-SAME: %[[stride]], %[[stride]], CUDA_R_32F, %[[alpha]], %[[buffer]],
+  // CHECK-SAME: %[[stride]], %[[buffer]], %[[stride]], %[[stride]], %{{.*}}
+  %ch10 = tfrt_gpu.blas.trsm.batch %blas, CUBLAS_SIDE_LEFT,
+    CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT, %stride, %stride,
+    CUDA_R_32F, %alpha, %buffer, %stride, %buffer, %stride, %stride, %ch9
 
   // CHECK: %[[cudnn:.*]] = tfrt_gpu.dnn.create %[[stream]]
   %cudnn = tfrt_gpu.dnn.create %stream
@@ -124,11 +131,11 @@ func @ops() {
   // CHECK: %[[workspace_size:.*]] = tfrt_gpu.solver.potrf.buffer_size %[[solver]],
   // CHECK-SAME: CUBLAS_FILL_MODE_LOWER, %[[width]], CUDA_R_32F, %[[width]], %{{.*}}
   %workspace_size = tfrt_gpu.solver.potrf.buffer_size %solver,
-    CUBLAS_FILL_MODE_LOWER, %width, CUDA_R_32F, %width, %ch9
+    CUBLAS_FILL_MODE_LOWER, %width, CUDA_R_32F, %width, %ch10
   // CHECK: tfrt_gpu.solver.potrf %[[solver]], CUBLAS_FILL_MODE_LOWER, %[[width]],
   // CHECK-SAME: CUDA_R_32F, %[[buffer]], %[[width]], %[[buffer]], %[[buffer]], %{{.*}}
   %cha = tfrt_gpu.solver.potrf %solver, CUBLAS_FILL_MODE_LOWER, %width,
-    CUDA_R_32F, %buffer, %width, %buffer, %buffer, %ch9
+    CUDA_R_32F, %buffer, %width, %buffer, %buffer, %ch10
 
   // CHECK: %[[rank:.*]] = tfrt.constant.i32 0
   %rank = tfrt.constant.i32 0

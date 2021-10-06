@@ -33,6 +33,10 @@ Expected<cudaDataType> Parse<cudaDataType>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cudaDataType value);
 
 template <>
+Expected<cublasDiagType_t> Parse<cublasDiagType_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasDiagType_t value);
+
+template <>
 Expected<cublasComputeType_t> Parse<cublasComputeType_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasComputeType_t value);
 
@@ -49,7 +53,14 @@ Expected<cublasFillMode_t> Parse<cublasFillMode_t>(llvm::StringRef name);
 llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasFillMode_t value);
 
 template <>
+Expected<cublasSideMode_t> Parse<cublasSideMode_t>(llvm::StringRef name);
+llvm::raw_ostream& operator<<(llvm::raw_ostream& os, cublasSideMode_t value);
+
+template <>
 struct PlatformTypeTraits<BlasDataTypeTag, cudaDataType>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasDiagTypeTag, cublasDiagType_t>
     : public CudaPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasComputeTypeTag, cublasComputeType_t>
@@ -62,6 +73,9 @@ struct PlatformTypeTraits<BlasGemmAlgoTag, cublasGemmAlgo_t>
     : public CudaPlatformType {};
 template <>
 struct PlatformTypeTraits<BlasFillModeTag, cublasFillMode_t>
+    : public CudaPlatformType {};
+template <>
+struct PlatformTypeTraits<BlasSideModeTag, cublasSideMode_t>
     : public CudaPlatformType {};
 
 mlir::TypeID GetCudaDataTypeId(cudaDataType data_type);
@@ -110,6 +124,35 @@ llvm::Error CublasGemmStridedBatchedEx(
     Pointer<const void> beta, Pointer<void> C, cudaDataType typeC, int heightC,
     int64_t strideC, int batchCount, cublasComputeType_t computeType,
     cublasGemmAlgo_t algo);
+// TODO(hanbinyoon): Consider providing a datatype-agnostic CublasTrsmBatched
+// (and CusolverDnPotrf, etc.).
+llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
+                              cublasSideMode_t sideMode,
+                              cublasFillMode_t fillMode,
+                              cublasOperation_t trans, cublasDiagType_t diag,
+                              int m, int n, Pointer<const float> alpha,
+                              Pointer<const float*> A, int lda,
+                              Pointer<float*> B, int ldb, int batchCount);
+llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
+                              cublasSideMode_t sideMode,
+                              cublasFillMode_t fillMode,
+                              cublasOperation_t trans, cublasDiagType_t diag,
+                              int m, int n, Pointer<const double> alpha,
+                              Pointer<const double*> A, int lda,
+                              Pointer<double*> B, int ldb, int batchCount);
+llvm::Error CublasTrsmBatched(CurrentContext current, cublasHandle_t handle,
+                              cublasSideMode_t sideMode,
+                              cublasFillMode_t fillMode,
+                              cublasOperation_t trans, cublasDiagType_t diag,
+                              int m, int n, Pointer<const cuComplex> alpha,
+                              Pointer<const cuComplex*> A, int lda,
+                              Pointer<cuComplex*> B, int ldb, int batchCount);
+llvm::Error CublasTrsmBatched(
+    CurrentContext current, cublasHandle_t handle, cublasSideMode_t sideMode,
+    cublasFillMode_t fillMode, cublasOperation_t trans, cublasDiagType_t diag,
+    int m, int n, Pointer<const cuDoubleComplex> alpha,
+    Pointer<const cuDoubleComplex*> A, int lda, Pointer<cuDoubleComplex*> B,
+    int ldb, int batchCount);
 
 }  // namespace wrapper
 }  // namespace gpu

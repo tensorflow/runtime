@@ -18,6 +18,7 @@
 
 #include "tfrt/host_context/async_dispatch.h"
 #include "tfrt/host_context/async_value.h"
+#include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/function.h"
 #include "tfrt/host_context/kernel_frame.h"
 #include "tfrt/host_context/kernel_utils.h"
@@ -370,6 +371,12 @@ static void TFRTOnce(RemainingArguments args, RemainingResults results,
                      const ExecutionContext& exec_ctx) {
   assert(function->num_arguments() == args.size());
   assert(function->num_results() == results.size());
+
+  if (!exec_ctx.resource_context()) {
+    auto error = MakeErrorAsyncValueRef("tfrt.once requires resource context");
+    for (auto& result : results.values()) result = error.CopyRef();
+    return;
+  }
 
   struct TFRTOnceResource {
     TFRTOnceResource(const RemainingArguments& args,

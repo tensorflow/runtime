@@ -833,7 +833,7 @@ class Executable {
   // See mlir::ExecutionEngine `packFunctionArguments` for the details.
   Error InitializeCallFrame(ArrayRef<MemrefDesc> operands,
                             CallFrame* call_frame,
-                            KernelContext* kernel_context) const;
+                            KernelContext* kernel_context = nullptr) const;
 
   // Converts returned values owned by the callframe using provided value
   // converter. If result conversion fails emits error async value.

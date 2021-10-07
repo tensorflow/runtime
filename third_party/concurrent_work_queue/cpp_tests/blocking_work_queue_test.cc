@@ -148,13 +148,13 @@ void NoOp(WorkQueue& producer, WorkQueue& worker, benchmark::State& state) {
 #define BM_Run(FN, producer_threads, worker_threads)                 \
   static void BM_##FN##_tpool_##producer_threads##x##worker_threads( \
       benchmark::State& state) {                                     \
-    BenchmarkUseRealTime();                                          \
     auto qstate = std::make_unique<internal::QuiescingState>();      \
     WorkQueue producer(qstate.get(), producer_threads);              \
     WorkQueue worker(qstate.get(), worker_threads);                  \
     FN(producer, worker, state);                                     \
   }                                                                  \
-  BENCHMARK(BM_##FN##_tpool_##producer_threads##x##worker_threads)
+  BENCHMARK(BM_##FN##_tpool_##producer_threads##x##worker_threads)   \
+      ->UseRealTime()
 
 #define BM_NoOp(producer_threads, worker_threads) \
   BM_Run(NoOp, producer_threads, worker_threads)  \

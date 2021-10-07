@@ -826,14 +826,17 @@ class Executable {
     assert(fptr_ != nullptr && "entrypoint was not found");
   }
 
-  // Initializes call frame by adding all operands as pointers to arguments
-  // vector. Also allocates storage for returned values, which are passed to the
-  // compiled kernel as return value arguments.
+  // Initializes call frame by adding all operands as pointers to the arguments
+  // vector. Also allocates storage for the returned values. Return values
+  // storage requirements inferred from the kernel function signature.
+  //
+  // This function leaves the kernel context argument (the first argument of a
+  // kernel function) uninitialized. It will be initialized in the `Execute`
+  // function right before the actual execution.
   //
   // See mlir::ExecutionEngine `packFunctionArguments` for the details.
   Error InitializeCallFrame(ArrayRef<MemrefDesc> operands,
-                            CallFrame* call_frame,
-                            KernelContext* kernel_context = nullptr) const;
+                            CallFrame* call_frame) const;
 
   // Converts returned values owned by the callframe using provided value
   // converter. If result conversion fails emits error async value.
@@ -888,17 +891,19 @@ class Executable {
     llvm::SmallVector<size_t> offsets;  // offsets in the block of memory
   };
 
-  // Struct to enable interaction between compiled code and the TFRT run-time.
-  // For now this struct is a placeholder, but future use cases include buffer
-  // allocation and reuse and improved error reporting from compiled code.
-  // A pointer to this struct is passed as an argument in compiled code through
-  // the rt.kernel_context MLIR type.
+  // Extension point to enable framework-specific integration between the
+  // compiled code and the framework on top of the TFRT runtime (e.g. Tensorflow
+  // running on top of TFRT). For example only at Tensorflow level it is
+  // possible to decide if an input tensor can be forwarded to one of the
+  // outputs.
+  //
+  // Note that runtime integration is generic with respect to the framework
+  // used. That is, `runtime::KernelContext` is unaware of the actual framework
+  // (e.g. Tensorflow, JAX) that uses code generation at run-time.
+  //
   // See go/mlir-rt for details.
   struct KernelContext {
     virtual ~KernelContext() = default;
-
-    // Propagate runtime error to all results.
-    virtual void error(const char* message) = 0;
 
     // If the allocation of the given size and alignment can be satisfied by one
     // of the inputs, then forward function should return a pointer to the

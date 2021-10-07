@@ -291,6 +291,7 @@ tfrt_cc_library(
         ":cpurt_support",
         ":rt_conversion",
         ":rt_opdefs",
+        ":rt_transforms",
         "@llvm-project//llvm:OrcJIT",
         "@llvm-project//llvm:Support",
         "@llvm-project//mlir:AMXToLLVMIRTranslation",

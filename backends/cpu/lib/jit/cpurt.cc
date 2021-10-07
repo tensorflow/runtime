@@ -83,6 +83,7 @@
 #include "tfrt/cpu/jit/cpurt_support.h"
 #include "tfrt/cpu/jit/opdefs/rt_ops.h"
 #include "tfrt/cpu/jit/runtime.h"
+#include "tfrt/cpu/jit/transforms/rt_passes.h"
 #include "tfrt/dtype/dtype.h"
 #include "tfrt/host_context/async_value_ref.h"
 #include "tfrt/host_context/diagnostic.h"
@@ -108,8 +109,28 @@ static bool DebugCpurtCompile() {
 #endif
 }
 
-using CallFrame = Executable::CallFrame;
-using ResultsMemoryLayout = Executable::ResultsMemoryLayout;
+//----------------------------------------------------------------------------//
+// Types for the codegen<->runtime integration, see API implementation below.
+//----------------------------------------------------------------------------//
+namespace runtime {
+
+// Runtime KernelContext encapsulates all the CPURT data that is required to
+// implement codegen<->runtime API.
+struct KernelContext {
+  // Results memory layout is owned by the executable, and stays alive after
+  // the kernel function execution completes.
+  const Executable::ResultsMemoryLayout* results_memory_layout;
+
+  // CallFrame life time bound to the kernel function execution and destroyed
+  // immediately when the function returns. Only the kernel function itself
+  // reads the arguments and writes to the function results storage.
+  Executable::CallFrame* call_frame;
+};
+
+llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle);
+
+}  // namespace runtime
+//----------------------------------------------------------------------------//
 
 raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc) {
   auto print_arr = [&](string_view name, ArrayRef<Index> arr) {
@@ -303,7 +324,7 @@ static void PrependKernelContextType(mlir::FuncOp func) {
 // Get compiled function results memory layout.
 //----------------------------------------------------------------------------//
 
-Expected<ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
+Expected<Executable::ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
     const FunctionType& signature) {
   // Size of the memory block required for storing results, and offsets for
   // each function result.
@@ -480,8 +501,7 @@ static void AddMemrefArgument(const MemrefDesc& memref,
 }
 
 Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
-                                      CallFrame* call_frame,
-                                      KernelContext* kernel_context) const {
+                                      CallFrame* call_frame) const {
   // TODO(ezhulenev): If executable is specialized for operands shapes then
   // there is no need to verify them once more here. However currently we rely
   // on a hash code to look up specializations, and this can lead to collisions.
@@ -512,21 +532,18 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
     }
   }
 
-  size_t n_args_elems =
-      1 + GetArgsCount(operands) + results_memory_layout_.offsets.size();
+  size_t n_args_elems = 1 + GetArgsCount(operands);
   call_frame->args.reserve(n_args_elems);
 
-  // Add pointer to the kernel context as the first argument.
-  call_frame->args.push_back(kernel_context);
+  // Add a placeholder for the kernel context as the first argument.
+  call_frame->args.push_back(nullptr);
 
   // Pack all Memref operands as pointers to the call frame arguments.
   for (const MemrefDesc& desc : operands)
     AddMemrefArgument(desc, &call_frame->args);
 
-  // Allocate storage for results and add pointers to results into the `args`.
+  // Allocate storage for results.
   call_frame->results.resize_for_overwrite(results_memory_layout_.size);
-  for (auto offset : results_memory_layout_.offsets)
-    call_frame->args.push_back(&call_frame->results[offset]);
 
   assert(call_frame->args.size() == n_args_elems &&
          "reserved number of args must match the actual number");
@@ -697,8 +714,7 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
 
   // Compiled function takes arguments and results as `void**` type erased
   // pointer. See mlir::ExecutionEngine `packFunctionArguments` for the details.
-  if (auto err =
-          InitializeCallFrame(operands, &call_frame, opts.kernel_context))
+  if (auto err = InitializeCallFrame(operands, &call_frame))
     return EmitErrors(results, std::move(err), exec_ctx);
 
   Execute(call_frame, exec_ctx, opts);
@@ -715,6 +731,18 @@ void Executable::Execute(CallFrame& call_frame,
   // Set the AsyncRuntime to be used by all async tasks spawned by the compiled
   // kernel function.
   SetAsyncRuntime({exec_ctx.host(), opts.async_runtime_worker_threads});
+
+  // Runtime kernel context can be used only by the entrypoint function (kernel
+  // function) and can be safely allocated on the stack.
+  runtime::KernelContext kernel_context;
+  kernel_context.results_memory_layout = &results_memory_layout_;
+  kernel_context.call_frame = &call_frame;
+
+  // Override the kernel context argument.
+  runtime::KernelContext* kernel_context_ptr = &kernel_context;
+  assert(!call_frame.args.empty() && "call frame arguments must be non-empty");
+  assert(call_frame.args[0] == nullptr && "expected to see a placeholder");
+  call_frame.args[0] = &kernel_context_ptr;
 
   // Call the compiled function.
   (*fptr_)(call_frame.args.data());
@@ -898,9 +926,13 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   // Lower everything down to LLVM dialect.
   pm.addPass(mlir::createConvertLinalgToLLVMPass());
   pm.addPass(mlir::createConvertAsyncToLLVMPass());
-  pm.addPass(CreateConvertRuntimeToLLVMPass());
   pm.addPass(mlir::createLowerAffinePass());
   pm.addPass(mlir::createLowerToCFGPass());
+
+  // Convert the entrypoint function to a kernel function (all results and
+  // errors returned via the runtime API calls).
+  pm.addPass(CreateConvertToKernelFunction());
+  pm.addPass(CreateConvertRuntimeToLLVMPass());
 
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
   pm.addPass(mlir::createConvertVectorToLLVMPass());
@@ -1101,8 +1133,9 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 
   // Register Async Runtime API intrinsics.
   (*engine)->registerSymbols(AsyncRuntimeApiSymbolMap);
-
-  // Register Async Runtime memory allocation functions.
+  // Register Runtime API intrinsics (host runtime integration).
+  (*engine)->registerSymbols(runtime::RuntimeApiSymbolMap);
+  // Register memory allocation functions (malloc, free, ...).
   (*engine)->registerSymbols(AsyncRuntimeMemoryAllocationSymbolMap);
 
   return Executable(std::move(*engine), std::move(*entry_signature), entrypoint,
@@ -1693,21 +1726,25 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
 
 namespace runtime {
 
-struct KernelContext {
-  // Results memory layout is owned by the executable, and stays alive after
-  // the kernel function execution completes.
-  Executable::ResultsMemoryLayout* results_memory_layout;
-
-  // CallFrame life time bound to the kernel function execution and destroyed
-  // immediately when the function returns. Only the kernel function itself
-  // reads the arguments and writes to the function results storage.
-  Executable::CallFrame* call_frame;
-};
-
 extern "C" void* runtimeGetResultStorage(KernelContext* ctx, int64_t index) {
+  assert(ctx != nullptr && "kernel context must be not null");
   size_t offset = ctx->results_memory_layout->offsets[index];
+  assert(offset < ctx->call_frame->results.size() && "offset is out of bounds");
   return &ctx->call_frame->results[offset];
 };
+
+llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {
+  llvm::orc::SymbolMap symbol_map;
+
+  auto bind = [&](llvm::StringRef name, auto symbol_ptr) {
+    symbol_map[mangle(name)] = llvm::JITEvaluatedSymbol(
+        llvm::pointerToJITTargetAddress(symbol_ptr), llvm::JITSymbolFlags());
+  };
+
+  bind("runtimeGetResultStorage", &runtimeGetResultStorage);
+
+  return symbol_map;
+}
 
 }  // namespace runtime
 

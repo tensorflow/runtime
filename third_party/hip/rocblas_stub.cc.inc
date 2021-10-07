@@ -75,3 +75,48 @@ ROCBLAS_EXPORT rocblas_status rocblas_axpy_ex(
       "rocblas_axpy_ex", handle, n, alpha, alpha_type, x, x_type, incx, y,
       y_type, incy, execution_type);
 }
+
+ROCBLAS_EXPORT rocblas_status rocblas_strsm_batched(
+    rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
+    rocblas_operation transA, rocblas_diagonal diag, rocblas_int m,
+    rocblas_int n, const float* alpha, const float* const A[], rocblas_int lda,
+    float* const B[], rocblas_int ldb, rocblas_int batch_count) {
+  return DynamicCall<decltype(rocblas_strsm_batched), &rocblas_strsm_batched>(
+      "rocblas_strsm_batched", handle, side, uplo, transA, diag, m, n, alpha, A,
+      lda, B, ldb, batch_count);
+}
+
+ROCBLAS_EXPORT rocblas_status rocblas_dtrsm_batched(
+    rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
+    rocblas_operation transA, rocblas_diagonal diag, rocblas_int m,
+    rocblas_int n, const double* alpha, const double* const A[],
+    rocblas_int lda, double* const B[], rocblas_int ldb,
+    rocblas_int batch_count) {
+  return DynamicCall<decltype(rocblas_dtrsm_batched), &rocblas_dtrsm_batched>(
+      "rocblas_dtrsm_batched", handle, side, uplo, transA, diag, m, n, alpha, A,
+      lda, B, ldb, batch_count);
+}
+
+ROCBLAS_EXPORT rocblas_status rocblas_ctrsm_batched(
+    rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
+    rocblas_operation transA, rocblas_diagonal diag, rocblas_int m,
+    rocblas_int n, const rocblas_float_complex* alpha,
+    const rocblas_float_complex* const A[], rocblas_int lda,
+    rocblas_float_complex* const B[], rocblas_int ldb,
+    rocblas_int batch_count) {
+  return DynamicCall<decltype(rocblas_ctrsm_batched), &rocblas_ctrsm_batched>(
+      "rocblas_ctrsm_batched", handle, side, uplo, transA, diag, m, n, alpha, A,
+      lda, B, ldb, batch_count);
+}
+
+ROCBLAS_EXPORT rocblas_status rocblas_ztrsm_batched(
+    rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
+    rocblas_operation transA, rocblas_diagonal diag, rocblas_int m,
+    rocblas_int n, const rocblas_double_complex* alpha,
+    const rocblas_double_complex* const A[], rocblas_int lda,
+    rocblas_double_complex* const B[], rocblas_int ldb,
+    rocblas_int batch_count) {
+  return DynamicCall<decltype(rocblas_ztrsm_batched), &rocblas_ztrsm_batched>(
+      "rocblas_ztrsm_batched", handle, side, uplo, transA, diag, m, n, alpha, A,
+      lda, B, ldb, batch_count);
+}

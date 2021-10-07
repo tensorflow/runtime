@@ -114,3 +114,31 @@ ROCBLAS_EXPORT rocblas_status rocblas_axpy_ex(
     rocblas_datatype alpha_type, const void* x, rocblas_datatype x_type,
     rocblas_int incx, void* y, rocblas_datatype y_type, rocblas_int incy,
     rocblas_datatype execution_type);
+
+ROCBLAS_EXPORT rocblas_status rocblas_strsm_batched(
+    rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
+    rocblas_operation transA, rocblas_diagonal diag, rocblas_int m,
+    rocblas_int n, const float* alpha, const float* const A[], rocblas_int lda,
+    float* const B[], rocblas_int ldb, rocblas_int batch_count);
+
+ROCBLAS_EXPORT rocblas_status rocblas_dtrsm_batched(
+    rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
+    rocblas_operation transA, rocblas_diagonal diag, rocblas_int m,
+    rocblas_int n, const double* alpha, const double* const A[],
+    rocblas_int lda, double* const B[], rocblas_int ldb,
+    rocblas_int batch_count);
+
+ROCBLAS_EXPORT rocblas_status rocblas_ctrsm_batched(
+    rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
+    rocblas_operation transA, rocblas_diagonal diag, rocblas_int m,
+    rocblas_int n, const rocblas_float_complex* alpha,
+    const rocblas_float_complex* const A[], rocblas_int lda,
+    rocblas_float_complex* const B[], rocblas_int ldb, rocblas_int batch_count);
+
+ROCBLAS_EXPORT rocblas_status rocblas_ztrsm_batched(
+    rocblas_handle handle, rocblas_side side, rocblas_fill uplo,
+    rocblas_operation transA, rocblas_diagonal diag, rocblas_int m,
+    rocblas_int n, const rocblas_double_complex* alpha,
+    const rocblas_double_complex* const A[], rocblas_int lda,
+    rocblas_double_complex* const B[], rocblas_int ldb,
+    rocblas_int batch_count);

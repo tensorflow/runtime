@@ -110,7 +110,34 @@ llvm::Error RocblasGemmStridedBatchedEx(
     int heightC, int64_t strideC, Pointer<void> D, rocblas_datatype typeD,
     int heightD, int64_t strideD, int batchCount, rocblas_datatype computeType,
     rocblas_gemm_algo algo);
-// TODO(hanbinyoon): Add TrsmBatched functions.
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
+                               rocblas_side side, rocblas_fill uplo,
+                               rocblas_operation transA, rocblas_diagonal diag,
+                               int m, int n, Pointer<const float> alpha,
+                               Pointer<const float*> A, int lda,
+                               Pointer<float*> B, int ldb, int batch_count);
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
+                               rocblas_side side, rocblas_fill uplo,
+                               rocblas_operation transA, rocblas_diagonal diag,
+                               int m, int n, Pointer<const double> alpha,
+                               Pointer<const double*> A, int lda,
+                               Pointer<double*> B, int ldb, int batch_count);
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
+                               rocblas_side side, rocblas_fill uplo,
+                               rocblas_operation transA, rocblas_diagonal diag,
+                               int m, int n,
+                               Pointer<const rocblas_float_complex> alpha,
+                               Pointer<const rocblas_float_complex*> A, int lda,
+                               Pointer<rocblas_float_complex*> B, int ldb,
+                               int batch_count);
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
+                               rocblas_side side, rocblas_fill uplo,
+                               rocblas_operation transA, rocblas_diagonal diag,
+                               int m, int n,
+                               Pointer<const rocblas_double_complex> alpha,
+                               Pointer<const rocblas_double_complex*> A,
+                               int lda, Pointer<rocblas_double_complex*> B,
+                               int ldb, int batch_count);
 
 }  // namespace wrapper
 }  // namespace gpu

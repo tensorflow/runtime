@@ -102,6 +102,58 @@ llvm::Error RocblasGemmStridedBatchedEx(
       computeType, algo, /*solution_index=*/0, /*flags=*/0));
 }
 
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
+                               rocblas_side side, rocblas_fill uplo,
+                               rocblas_operation transA, rocblas_diagonal diag,
+                               int m, int n, Pointer<const float> alpha,
+                               Pointer<const float*> A, int lda,
+                               Pointer<float*> B, int ldb, int batch_count) {
+  CheckHipContext(current);
+  return TO_ERROR(rocblas_strsm_batched(handle, side, uplo, transA, diag, m, n,
+                                        ToRocm(alpha), ToRocm(A), lda,
+                                        ToRocm(B), ldb, batch_count));
+}
+
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
+                               rocblas_side side, rocblas_fill uplo,
+                               rocblas_operation transA, rocblas_diagonal diag,
+                               int m, int n, Pointer<const double> alpha,
+                               Pointer<const double*> A, int lda,
+                               Pointer<double*> B, int ldb, int batch_count) {
+  CheckHipContext(current);
+  return TO_ERROR(rocblas_dtrsm_batched(handle, side, uplo, transA, diag, m, n,
+                                        ToRocm(alpha), ToRocm(A), lda,
+                                        ToRocm(B), ldb, batch_count));
+}
+
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
+                               rocblas_side side, rocblas_fill uplo,
+                               rocblas_operation transA, rocblas_diagonal diag,
+                               int m, int n,
+                               Pointer<const rocblas_float_complex> alpha,
+                               Pointer<const rocblas_float_complex*> A, int lda,
+                               Pointer<rocblas_float_complex*> B, int ldb,
+                               int batch_count) {
+  CheckHipContext(current);
+  return TO_ERROR(rocblas_ctrsm_batched(handle, side, uplo, transA, diag, m, n,
+                                        ToRocm(alpha), ToRocm(A), lda,
+                                        ToRocm(B), ldb, batch_count));
+}
+
+llvm::Error RocblasTrsmBatched(CurrentContext current, rocblas_handle handle,
+                               rocblas_side side, rocblas_fill uplo,
+                               rocblas_operation transA, rocblas_diagonal diag,
+                               int m, int n,
+                               Pointer<const rocblas_double_complex> alpha,
+                               Pointer<const rocblas_double_complex*> A,
+                               int lda, Pointer<rocblas_double_complex*> B,
+                               int ldb, int batch_count) {
+  CheckHipContext(current);
+  return TO_ERROR(rocblas_ztrsm_batched(handle, side, uplo, transA, diag, m, n,
+                                        ToRocm(alpha), ToRocm(A), lda,
+                                        ToRocm(B), ldb, batch_count));
+}
+
 }  // namespace wrapper
 }  // namespace gpu
 }  // namespace tfrt

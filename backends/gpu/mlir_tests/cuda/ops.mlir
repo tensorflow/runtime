@@ -14,7 +14,7 @@
 
 // RUN: tfrt_gpu_opt %s | FileCheck %s
 
-func @ops() {
+func @driver_ops() {
   // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
   %ordinal = tfrt.constant.i32 0
   // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
@@ -54,6 +54,10 @@ func @ops() {
   %pinned_buffer = tfrt_gpu.mem.register %context, %host_buffer
   // CHECK: tfrt_gpu.mem.copy %[[host_buffer]]#0, %[[buffer]], %[[stream]], %{{.*}} : !ht.host_buffer, !tfrt_gpu.buffer
   %ch5 = tfrt_gpu.mem.copy %host_buffer#0, %buffer, %stream, %ch4 : !ht.host_buffer, !tfrt_gpu.buffer
+  // CHECK: %[[value:.*]] = tfrt.constant.i32 13
+  %value = tfrt.constant.i32 13
+  // CHECK: tfrt_gpu.mem.set %[[buffer]], %[[value]], %[[stream]], %{{.*}}
+  %ch6 = tfrt_gpu.mem.set %buffer, %value, %stream, %ch5 : !tfrt_gpu.buffer, i32
 
   // CHECK: %[[module:.*]] = tfrt_gpu.module.load %[[context]] {data = "foobar\00"}
   %module = tfrt_gpu.module.load %context {data = "foobar\00"}
@@ -71,11 +75,32 @@ func @ops() {
   // CHECK-SAME: threads in (%[[dim]], %[[dim]], %[[dim]]),
   // CHECK-SAME: %[[shmem]], %{{.*}},
   // CHECK-SAME: args(%[[buffer]]) : (!tfrt_gpu.buffer)
-  %ch6 = tfrt_gpu.function.launch %stream, %function,
+  %ch7 = tfrt_gpu.function.launch %stream, %function,
              blocks in (%dim, %dim, %dim),
              threads in (%dim, %dim, %dim),
-             %shmem, %ch5,
+             %shmem, %ch6,
              args(%buffer) : (!tfrt_gpu.buffer)
+
+  tfrt.return
+}
+
+func @blas_ops() {
+  // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
+  %ordinal = tfrt.constant.i32 0
+  // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  // CHECK: %[[context:.*]] = tfrt_gpu.context.create %[[device]]
+  %context = tfrt_gpu.context.create %device
+  // CHECK: %[[allocator:.*]] = tfrt_gpu.allocator.create %[[context]]
+  %allocator = tfrt_gpu.allocator.create %context
+  // CHECK: %[[stream:.*]] = tfrt_gpu.stream.create %[[context]]
+  %stream = tfrt_gpu.stream.create %context
+
+  %ch0 = tfrt.new.chain
+  // CHECK: %[[size:.*]] = tfrt.constant.i64 1024
+  %size = tfrt.constant.i64 1024
+  // CHECK: %[[buffer:.*]] = tfrt_gpu.mem.allocate %[[allocator]], %[[stream]], %[[size]], %{{.*}}
+  %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch0
 
   // CHECK: %[[blas:.*]] = tfrt_gpu.blas.create %[[stream]]
   %blas = tfrt_gpu.blas.create %stream
@@ -88,9 +113,9 @@ func @ops() {
   // CHECK: tfrt_gpu.blas.axpy %[[blas]], %[[width]], %[[alpha]], CUDA_R_32F,
   // CHECK-SAME: %[[buffer]], CUDA_R_32F, %[[stride]], %[[buffer]], CUDA_R_32F,
   // CHECK-SAME: %[[stride]], CUDA_R_32F, %{{.*}}
-  %ch7 = tfrt_gpu.blas.axpy %blas, %width, %alpha, CUDA_R_32F,
+  %ch1 = tfrt_gpu.blas.axpy %blas, %width, %alpha, CUDA_R_32F,
     %buffer, CUDA_R_32F, %stride, %buffer, CUDA_R_32F, %stride,
-    CUDA_R_32F, %ch6
+    CUDA_R_32F, %ch0
 
   // CHECK: %[[algo:.*]] = tfrt_gpu.blas.gemm.algo CUBLAS_GEMM_ALGO0
   %algo = tfrt_gpu.blas.gemm.algo CUBLAS_GEMM_ALGO0
@@ -99,43 +124,106 @@ func @ops() {
   // CHECK-SAME: CUDA_R_32F, %[[stride]], %[[buffer]], CUDA_R_32F, %[[stride]],
   // CHECK-SAME: %[[alpha]], %[[buffer]], CUDA_R_32F, %[[stride]],
   // CHECK-SAME: CUBLAS_COMPUTE_32F, %[[algo]], %{{.*}}
-  %ch8 = tfrt_gpu.blas.gemm %blas, CUBLAS_OP_N, CUBLAS_OP_N,
+  %ch2 = tfrt_gpu.blas.gemm %blas, CUBLAS_OP_N, CUBLAS_OP_N,
     %stride, %stride, %stride, %alpha, %buffer,
     CUDA_R_32F, %stride, %buffer, CUDA_R_32F, %stride,
     %alpha, %buffer, CUDA_R_32F, %stride, CUBLAS_COMPUTE_32F,
-    %algo, %ch7
+    %algo, %ch1
   // CHECK: tfrt_gpu.blas.gemm.batch %[[blas]], CUBLAS_OP_N, CUBLAS_OP_N,
   // CHECK-SAME: %[[stride]], %[[stride]], %[[stride]], %[[alpha]], %[[buffer]],
   // CHECK-SAME: CUDA_R_32F, %[[stride]], %[[size]], %[[buffer]], CUDA_R_32F, %[[stride]],
   // CHECK-SAME: %[[size]], %[[alpha]], %[[buffer]], CUDA_R_32F, %[[stride]], %[[size]], %[[stride]],
   // CHECK-SAME: CUBLAS_COMPUTE_32F, %[[algo]], %{{.*}}
-  %ch9 = tfrt_gpu.blas.gemm.batch %blas, CUBLAS_OP_N, CUBLAS_OP_N,
+  %ch3 = tfrt_gpu.blas.gemm.batch %blas, CUBLAS_OP_N, CUBLAS_OP_N,
     %stride, %stride, %stride, %alpha, %buffer,
     CUDA_R_32F, %stride, %size, %buffer, CUDA_R_32F, %stride,
     %size, %alpha, %buffer, CUDA_R_32F, %stride, %size, %stride,
-    CUBLAS_COMPUTE_32F, %algo, %ch8
+    CUBLAS_COMPUTE_32F, %algo, %ch2
   // CHECK: tfrt_gpu.blas.trsm.batch %[[blas]], CUBLAS_SIDE_LEFT,
   // CHECK-SAME: CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT,
   // CHECK-SAME: %[[stride]], %[[stride]], CUDA_R_32F, %[[alpha]], %[[buffer]],
   // CHECK-SAME: %[[stride]], %[[buffer]], %[[stride]], %[[stride]], %{{.*}}
-  %ch10 = tfrt_gpu.blas.trsm.batch %blas, CUBLAS_SIDE_LEFT,
+  %ch4 = tfrt_gpu.blas.trsm.batch %blas, CUBLAS_SIDE_LEFT,
     CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT, %stride, %stride,
-    CUDA_R_32F, %alpha, %buffer, %stride, %buffer, %stride, %stride, %ch9
+    CUDA_R_32F, %alpha, %buffer, %stride, %buffer, %stride, %stride, %ch3
+
+  tfrt.return
+}
+
+func @dnn_ops() {
+  // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
+  %ordinal = tfrt.constant.i32 0
+  // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  // CHECK: %[[context:.*]] = tfrt_gpu.context.create %[[device]]
+  %context = tfrt_gpu.context.create %device
+  // CHECK: %[[stream:.*]] = tfrt_gpu.stream.create %[[context]]
+  %stream = tfrt_gpu.stream.create %context
 
   // CHECK: %[[cudnn:.*]] = tfrt_gpu.dnn.create %[[stream]]
   %cudnn = tfrt_gpu.dnn.create %stream
   // TODO(csigg): cover other dnn ops.
 
+  tfrt.return
+}
+
+func @solver_ops() {
+  // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
+  %ordinal = tfrt.constant.i32 0
+  // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  // CHECK: %[[context:.*]] = tfrt_gpu.context.create %[[device]]
+  %context = tfrt_gpu.context.create %device
+  // CHECK: %[[allocator:.*]] = tfrt_gpu.allocator.create %[[context]]
+  %allocator = tfrt_gpu.allocator.create %context
+  // CHECK: %[[stream:.*]] = tfrt_gpu.stream.create %[[context]]
+  %stream = tfrt_gpu.stream.create %context
+
+  %ch0 = tfrt.new.chain
+  // CHECK: %[[size:.*]] = tfrt.constant.i64 1024
+  %size = tfrt.constant.i64 1024
+  // CHECK: %[[buffer:.*]] = tfrt_gpu.mem.allocate %[[allocator]], %[[stream]], %[[size]], %{{.*}}
+  %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch0
+
+  // CHECK: %[[n:.*]] = tfrt.constant.i32 1
+  %n = tfrt.constant.i32 1
+
   // CHECK: %[[solver:.*]] = tfrt_gpu.solver.create %[[stream]]
   %solver = tfrt_gpu.solver.create %stream
   // CHECK: %[[workspace_size:.*]] = tfrt_gpu.solver.potrf.buffer_size %[[solver]],
-  // CHECK-SAME: CUBLAS_FILL_MODE_LOWER, %[[width]], CUDA_R_32F, %[[width]], %{{.*}}
+  // CHECK-SAME: CUBLAS_FILL_MODE_LOWER, %[[n]], CUDA_R_32F, %[[n]], %{{.*}}
   %workspace_size = tfrt_gpu.solver.potrf.buffer_size %solver,
-    CUBLAS_FILL_MODE_LOWER, %width, CUDA_R_32F, %width, %ch10
-  // CHECK: tfrt_gpu.solver.potrf %[[solver]], CUBLAS_FILL_MODE_LOWER, %[[width]],
-  // CHECK-SAME: CUDA_R_32F, %[[buffer]], %[[width]], %[[buffer]], %[[buffer]], %{{.*}}
-  %cha = tfrt_gpu.solver.potrf %solver, CUBLAS_FILL_MODE_LOWER, %width,
-    CUDA_R_32F, %buffer, %width, %buffer, %buffer, %ch10
+    CUBLAS_FILL_MODE_LOWER, %n, CUDA_R_32F, %n, %ch0
+  // CHECK: tfrt_gpu.solver.potrf %[[solver]], CUBLAS_FILL_MODE_LOWER, %[[n]],
+  // CHECK-SAME: CUDA_R_32F, %[[buffer]], %[[n]], %[[buffer]], %[[buffer]], %{{.*}}
+  %ch1 = tfrt_gpu.solver.potrf %solver, CUBLAS_FILL_MODE_LOWER, %n, CUDA_R_32F,
+    %buffer, %n, %buffer, %buffer, %ch0
+  // CHECK: tfrt_gpu.solver.potrf.batch %[[solver]], CUBLAS_FILL_MODE_LOWER,
+  // CHECK-SAME: %[[n]], CUDA_R_32F, %[[buffer]], %[[n]], %[[buffer]], %[[n]],
+  // CHECK-SAME: %{{.*}}
+  %ch2 = tfrt_gpu.solver.potrf.batch %solver, CUBLAS_FILL_MODE_LOWER, %n,
+    CUDA_R_32F, %buffer, %n, %buffer, %n, %ch1
+
+  tfrt.return
+}
+
+func @ccl_ops() {
+  // CHECK: %[[ordinal:.*]] = tfrt.constant.i32 0
+  %ordinal = tfrt.constant.i32 0
+  // CHECK: %[[device:.*]] = tfrt_gpu.device.get CUDA, %[[ordinal]]
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  // CHECK: %[[context:.*]] = tfrt_gpu.context.create %[[device]]
+  %context = tfrt_gpu.context.create %device
+  // CHECK: %[[allocator:.*]] = tfrt_gpu.allocator.create %[[context]]
+  %allocator = tfrt_gpu.allocator.create %context
+  // CHECK: %[[stream:.*]] = tfrt_gpu.stream.create %[[context]]
+  %stream = tfrt_gpu.stream.create %context
+
+  %ch0 = tfrt.new.chain
+  // CHECK: %[[size:.*]] = tfrt.constant.i64 1024
+  %size = tfrt.constant.i64 1024
+  // CHECK: %[[buffer:.*]] = tfrt_gpu.mem.allocate %[[allocator]], %[[stream]], %[[size]], %{{.*}}
+  %buffer = tfrt_gpu.mem.allocate %allocator, %stream, %size, %ch0
 
   // CHECK: %[[rank:.*]] = tfrt.constant.i32 0
   %rank = tfrt.constant.i32 0
@@ -146,18 +234,13 @@ func @ops() {
   // CHECK: %[[ccl:.*]] = tfrt_gpu.ccl.create %[[context]], %[[rank]], %[[count]], %[[id]]
   %ccl = tfrt_gpu.ccl.create %context, %rank, %count, %id
   // CHECK: tfrt_gpu.ccl.all_gather %[[ccl]], %[[buffer]], %[[buffer]], ncclFloat32, %{{.*}}
-  %chb = tfrt_gpu.ccl.all_gather %ccl, %buffer, %buffer, ncclFloat32, %cha
+  %ch1 = tfrt_gpu.ccl.all_gather %ccl, %buffer, %buffer, ncclFloat32, %ch0
   // CHECK: tfrt_gpu.ccl.all_reduce %[[ccl]], %[[buffer]], %[[buffer]], ncclFloat32, ncclSum, %{{.*}}
-  %chc = tfrt_gpu.ccl.all_reduce %ccl, %buffer, %buffer, ncclFloat32, ncclSum, %chb
+  %ch2 = tfrt_gpu.ccl.all_reduce %ccl, %buffer, %buffer, ncclFloat32, ncclSum, %ch1
   // CHECK: tfrt_gpu.ccl.reduce_scatter %[[ccl]], %[[buffer]], %[[buffer]], ncclFloat32, ncclSum, %{{.*}}
-  %chd = tfrt_gpu.ccl.reduce_scatter %ccl, %buffer, %buffer, ncclFloat32, ncclSum, %chc
+  %ch3 = tfrt_gpu.ccl.reduce_scatter %ccl, %buffer, %buffer, ncclFloat32, ncclSum, %ch2
   // CHECK: tfrt_gpu.ccl.execute %[[stream]], %[[ccl]], %{{.*}}
-  %che = tfrt_gpu.ccl.execute %stream, %ccl, %chd
-
-  // CHECK: %[[value:.*]] = tfrt.constant.i32 13
-  %value = tfrt.constant.i32 13
-  // CHECK: tfrt_gpu.mem.set %[[buffer]], %[[value]], %[[stream]], %{{.*}}
-  %chf = tfrt_gpu.mem.set %buffer, %value, %stream, %che : !tfrt_gpu.buffer, i32
+  %ch4 = tfrt_gpu.ccl.execute %stream, %ccl, %ch3
 
   tfrt.return
 }

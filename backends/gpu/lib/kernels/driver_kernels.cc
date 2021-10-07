@@ -237,6 +237,15 @@ static Expected<GpuBuffer> GpuMemRegister(
   return GpuBuffer::Allocate(std::move(allocator), size);
 }
 
+static Expected<GpuBuffer> GpuMemView(Argument<GpuBuffer> buffer,
+                                      uint32_t offset) {
+  // The allocator releases the buffer reference on destruction.
+  using Allocator = GpuOneShotAllocator<AsyncValueRef<GpuBuffer>>;
+  auto allocator = MakeAvailableAsyncValueRef<Allocator>(
+      wrapper::Pointer<char>(buffer->pointer()) + offset, buffer.ValueRef());
+  return GpuBuffer::Allocate(std::move(allocator), buffer->size() - offset);
+}
+
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.
 static void GpuMemPrintMetadata(const GpuBuffer& buffer) {
   // The check for buffer validity is not done intentionally. Printing invalid
@@ -394,6 +403,7 @@ void RegisterGpuDriverKernels(KernelRegistry* kernel_reg) {
   kernel_reg->AddKernel("tfrt_gpu.mem.set",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemset));
   kernel_reg->AddKernel("tfrt_gpu.mem.register", TFRT_KERNEL(GpuMemRegister));
+  kernel_reg->AddKernel("tfrt_gpu.mem.view", TFRT_KERNEL(GpuMemView));
   kernel_reg->AddKernel("tfrt_gpu.mem.print_metadata",
                         TFRT_KERNEL_WITH_CHAIN_RESULT(GpuMemPrintMetadata));
 

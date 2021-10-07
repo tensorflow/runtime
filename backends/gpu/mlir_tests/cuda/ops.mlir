@@ -52,6 +52,10 @@ func @driver_ops() {
   %host_buffer:2 = tfrt_dht.get_buffer %host_tensor, %ch4
   // CHECK: %[[pinned_buffer:.*]] = tfrt_gpu.mem.register %[[context]], %[[host_buffer]]
   %pinned_buffer = tfrt_gpu.mem.register %context, %host_buffer
+  // CHECK: %[[offset:.*]] = tfrt.constant.ui32 42
+  %offset = tfrt.constant.ui32 42
+  // CHECK: tfrt_gpu.mem.view %[[buffer]], %[[offset]]
+  %view = tfrt_gpu.mem.view %buffer, %offset
   // CHECK: tfrt_gpu.mem.copy %[[host_buffer]]#0, %[[buffer]], %[[stream]], %{{.*}} : !ht.host_buffer, !tfrt_gpu.buffer
   %ch5 = tfrt_gpu.mem.copy %host_buffer#0, %buffer, %stream, %ch4 : !ht.host_buffer, !tfrt_gpu.buffer
   // CHECK: %[[value:.*]] = tfrt.constant.i32 13

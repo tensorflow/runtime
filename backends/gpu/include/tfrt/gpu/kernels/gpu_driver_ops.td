@@ -24,6 +24,7 @@
 
 include "tfrt/gpu/kernels/gpu_ops_base.td"
 include "tfrt/tensor/opdefs/tensor_shape_base.td"
+include "mlir/Interfaces/SideEffectInterfaces.td"
 
 def GPU_DeviceType : GPU_Type<"Device"> { let mnemonic = "device"; }
 def GPU_EventType : GPU_Type<"Event"> { let mnemonic = "event"; }
@@ -265,6 +266,22 @@ def GPU_MemRegisterOp : GPU_Op<"mem.register"> {
   let results = (outs GPU_BufferType);
 
   let assemblyFormat = "$ctx`,` $buffer attr-dict";
+}
+
+def GPU_MemViewOp : GPU_Op<"mem.view", [NoSideEffect]> {
+  let description = [{
+    tfrt_gpu.mem.view returns a buffer view at the given byte offset.
+
+    The lifetime of %buffer is extended by the lifetime of %result.
+
+    Example:
+      %offset = tfrt.constant.ui32 42
+      %result = tfrt_gpu.mem.register %buffer, %offset
+  }];
+  let arguments = (ins GPU_BufferType:$buffer, UI32:$offset);
+  let results = (outs GPU_BufferType);
+
+  let assemblyFormat = "$buffer`,` $offset attr-dict";
 }
 
 def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {

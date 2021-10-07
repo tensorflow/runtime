@@ -19,6 +19,7 @@
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/PatternMatch.h"
+#include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"
 #include "tfrt/gpu/passes/passes.h"
 
@@ -133,11 +134,17 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
   if (!adaptor.source().getType().isa<BufferType>())
     return rewriter.notifyMatchFailure(view_op, "expected BufferType source");
   auto byte_shift = adaptor.byte_shift().getDefiningOp<ConstantIndexOp>();
-  if (!byte_shift || byte_shift.getValue() != 0)
-    return rewriter.notifyMatchFailure(view_op, "expected zero byte_shift");
+  if (!byte_shift)
+    return rewriter.notifyMatchFailure(view_op, "expected constant byte_shift");
   if (!adaptor.sizes().empty())
     return rewriter.notifyMatchFailure(view_op, "expected no sizes");
-  rewriter.replaceOp(view_op, {adaptor.source()});
+  if (byte_shift.getValue() == 0) {
+    rewriter.replaceOp(view_op, {adaptor.source()});
+  } else {
+    auto offset = rewriter.create<compiler::ConstantUI32Op>(
+        view_op.getLoc(), byte_shift.getValue());
+    rewriter.replaceOpWithNewOp<MemViewOp>(view_op, adaptor.source(), offset);
+  }
   return success();
 }
 

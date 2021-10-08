@@ -16,17 +16,25 @@
 #include <utility>
 
 #include "llvm/ADT/STLExtras.h"
+#include "mlir/Conversion/ReconcileUnrealizedCasts/ReconcileUnrealizedCasts.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
+#include "mlir/Dialect/StandardOps/IR/Ops.h"
+#include "mlir/IR/Attributes.h"
 #include "mlir/IR/BlockAndValueMapping.h"
+#include "mlir/IR/BuiltinAttributes.h"
+#include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/BuiltinTypes.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/RegionUtils.h"
+#include "tfrt/basic_kernels/opdefs/basic_kernels.h"
 #include "tfrt/basic_kernels/opdefs/types.h"
 #include "tfrt/gpu/kernels/gpu_ops.h"
 #include "tfrt/gpu/passes/passes.h"
+#include "tfrt/tensor/opdefs/dense_host_tensor.h"
 #include "tfrt/test_kernels/opdefs/test_kernels.h"
 
 namespace tfrt {
@@ -174,7 +182,7 @@ struct ConvertMemsetPattern : OpConversionPattern<mlir::gpu::MemsetOp> {
 
  private:
   LogicalResult matchAndRewrite(
-      mlir::gpu::MemsetOp op, OpAdaptor adaptor,
+      mlir::gpu::MemsetOp memset_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -184,7 +192,49 @@ struct ConvertMemcpyPattern : OpConversionPattern<mlir::gpu::MemcpyOp> {
 
  private:
   LogicalResult matchAndRewrite(
-      mlir::gpu::MemcpyOp op, OpAdaptor adaptor,
+      mlir::gpu::MemcpyOp memcpy_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Converts `gpu.module` op to a function that loads the module.
+//
+//     gpu.module @gpu_module attributes { nvvm.cubin = "<cubin>" }
+//
+// will be rewritten to
+//
+//     func @gpu_module(%arg0: !tfrt_gpu.context) -> !tfrt_gpu.module {
+//       %0 = tfrt_gpu.module.load %arg0 {data = "<cubin>\00"}
+//       tfrt.return %0 : !tfrt_gpu.module
+//     }
+//
+// If the `gpu.module` also has a `constants` attribute, the generated function
+// initializes the given globals with the provided values and returns a chain.
+struct ConvertGpuModulePattern : OpConversionPattern<mlir::gpu::GPUModuleOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::gpu::GPUModuleOp module_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Converts mlir::gpu::LaunchFuncOp to tfrt::gpu::FunctionLaunchOp.
+struct ConvertLaunchFuncPattern : OpConversionPattern<mlir::gpu::LaunchFuncOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      mlir::gpu::LaunchFuncOp launch_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
+// Folds `unrealized_conversion_cast(constant ? : index) : index to ui32`.
+struct FoldConstCastPattern : OpConversionPattern<CastOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      CastOp cast_op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override;
 };
 
@@ -314,16 +364,6 @@ struct FoldAsyncAwaitPattern : public OpConversionPattern<async::AwaitOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
-// A rewrite pattern to remove illegal unrealized_conversion_cast ops.
-struct EraseIllegalCastPattern : public OpConversionPattern<CastOp> {
-  using OpConversionPattern::OpConversionPattern;
-
- private:
-  LogicalResult matchAndRewrite(
-      CastOp cast_op, OpAdaptor adaptor,
-      ConversionPatternRewriter &rewriter) const override;
-};
-
 // A pass which rewrites a function to take extra !tfrt.chain and
 // !tfrt_gpu.stream arguments and return a !tfrt.chain.
 struct AddChainAndStreamToFuncPass
@@ -347,9 +387,10 @@ struct ConvertAsyncToChainAndEventPass
 
 // A pass which converts from gpu dialect to tfrt_gpu dialect.
 struct ConvertGpuToTfrtGpuPass
-    : public mlir::PassWrapper<ConvertGpuToTfrtGpuPass, FunctionPass> {
+    : public mlir::PassWrapper<ConvertGpuToTfrtGpuPass,
+                               OperationPass<ModuleOp>> {
  private:
-  void runOnFunction() override;
+  void runOnOperation() override;
   StringRef getArgument() const override { return "gpu-tfrt-streamify"; }
 };
 
@@ -612,8 +653,6 @@ LogicalResult SwapAsyncAwaitOfCastPattern::matchAndRewrite(
     results.push_back(
         rewriter.create<async::AwaitOp>(loc, operand).getResult(0));
   }
-  // Assumes single use. TODO(csigg): should be eliminated automatically.
-  rewriter.eraseOp(cast_op);
   rewriter.replaceOp(await_op, CastToToken(rewriter, loc, results));
   return success();
 }
@@ -637,7 +676,6 @@ LogicalResult ConvertMemsetPattern::matchAndRewrite(
       loc, adaptor.dst(), adaptor.value(), stream, cast_op.getOperand(0));
   auto token = CastToToken(rewriter, loc, {new_op.getResult(), stream});
   rewriter.replaceOp(memset_op, token);
-  rewriter.eraseOp(cast_op);
   return success();
 }
 
@@ -659,7 +697,123 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
       loc, adaptor.dst(), adaptor.src(), stream, cast_op.getOperand(0));
   auto token = CastToToken(rewriter, loc, {new_op.getResult(), stream});
   rewriter.replaceOp(memcpy_op, token);
-  rewriter.eraseOp(cast_op);
+  return success();
+}
+
+// Initializes the global symbols in 'module' with values in 'constants'.
+static Value CreateGlobalInitialization(ConversionPatternRewriter &rewriter,
+                                        Location loc, Value context,
+                                        Value module,
+                                        DictionaryAttr constants) {
+  Value chain = rewriter.create<compiler::NewChainOp>(loc).getResult();
+  Value stream = rewriter.create<StreamCreateOp>(loc, context).getResult();
+  for (auto pair : constants) {
+    auto name = pair.first.strref();
+    auto global_op = rewriter.create<ModuleGetGlobalOp>(loc, module, name);
+    auto tensor_op = rewriter.create<dht::CreateUninitializedTensorOp_ui8_1>(
+        loc, rewriter.getType<t::TensorType>());
+    auto attr = pair.second.cast<DenseIntElementsAttr>();
+    std::vector<Attribute> values;
+    values.reserve(attr.getNumElements());
+    llvm::transform(attr, std::back_inserter(values), [&](APInt value) {
+      return rewriter.getI8IntegerAttr(value.getZExtValue());
+    });
+    tensor_op->setAttr("shape", rewriter.getI64ArrayAttr(values.size()));
+    Type buffer_type = rewriter.getType<ht::HostBufferType>();
+    auto buffer_op = rewriter.create<dht::GetBufferOp>(
+        loc, buffer_type, chain.getType(), tensor_op.getResult(), chain);
+    auto set_op = rewriter.create<dht::SetTensorOp_ui8>(
+        loc, chain.getType(), tensor_op.getResult(), chain);
+    set_op->setAttr("values", rewriter.getArrayAttr(values));
+    chain = rewriter.create<MemCopyOp>(loc, global_op.getResult(),
+                                       buffer_op.getResult(0), stream, set_op);
+  }
+  return rewriter.create<StreamSynchronizeOp>(loc, stream, chain).getResult();
+}
+
+LogicalResult ConvertGpuModulePattern::matchAndRewrite(
+    mlir::gpu::GPUModuleOp module_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  auto data = module_op->getAttrOfType<StringAttr>("nvvm.cubin");
+  if (!data)
+    return rewriter.notifyMatchFailure(module_op, "no nvvm.cubin attribute");
+  Location loc = module_op->getLoc();
+  auto constants = module_op->getAttrOfType<DictionaryAttr>("constants");
+  SmallVector<Type, 2> return_types = {rewriter.getType<ModuleType>()};
+  if (constants)
+    return_types.push_back(rewriter.getType<compiler::ChainType>());
+  mlir::FunctionType func_type =
+      rewriter.getFunctionType(rewriter.getType<ContextType>(), return_types);
+  FuncOp func_op = rewriter.replaceOpWithNewOp<FuncOp>(
+      module_op, module_op.getName(), func_type);
+  rewriter.setInsertionPointToEnd(func_op.addEntryBlock());
+  Value context = func_op.getArgument(0);
+  std::string binary = data.getValue().str();  // Add trailing zero.
+  Value load_op = rewriter.create<ModuleLoadOp>(
+      loc, context, mlir::StringRef(binary.data(), binary.size() + 1));
+  SmallVector<Value, 2> return_values = {load_op};
+  if (constants) {
+    return_values.push_back(
+        CreateGlobalInitialization(rewriter, loc, context, load_op, constants));
+  }
+  rewriter.create<compiler::ReturnOp>(loc, return_values);
+  return success();
+}
+
+LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
+    mlir::gpu::LaunchFuncOp launch_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  if (adaptor.asyncDependencies().empty() || !launch_op.asyncToken())
+    return rewriter.notifyMatchFailure(launch_op, "no async deps or no result");
+  auto cast_op = adaptor.asyncDependencies().front().getDefiningOp<CastOp>();
+  if (!IsCastToChainAndStream(cast_op))
+    return rewriter.notifyMatchFailure(launch_op, "operand not def by cast");
+
+  Location loc = launch_op->getLoc();
+  Value chain = cast_op.getOperand(0);
+  Value stream = cast_op.getOperand(1);
+  Value context = rewriter.create<StreamGetContextOp>(loc, stream).getResult();
+  auto func_op = SymbolTable::lookupNearestSymbolFrom<FuncOp>(
+      launch_op, adaptor.kernel().getRootReference());
+  auto once_op = rewriter.create<compiler::OnceOp>(
+      loc, func_op.getType().getResults(), context, func_op.getName());
+  auto kernel_name = adaptor.kernel().getLeafReference().getValue();
+  auto get_func_op = rewriter.create<ModuleGetFunctionOp>(
+      loc, once_op->getResult(0), kernel_name);
+  if (once_op.getNumResults() > 1) {
+    chain = rewriter.create<compiler::MergeChainsOp>(
+        loc, chain.getType(), ValueRange({chain, once_op->getResult(1)}));
+  }
+  Value shared_mem_size = adaptor.dynamicSharedMemorySize();
+  if (!shared_mem_size) {
+    shared_mem_size =
+        rewriter.create<compiler::ConstantUI32Op>(loc, 0).getResult();
+  }
+  auto new_op = rewriter.create<FunctionLaunchOp>(
+      loc, chain.getType(), stream, get_func_op.getResult(),
+      adaptor.gridSizeX(), adaptor.gridSizeY(), adaptor.gridSizeZ(),
+      adaptor.blockSizeX(), adaptor.blockSizeY(), adaptor.blockSizeZ(),
+      shared_mem_size, chain, adaptor.operands());
+  auto token = CastToToken(rewriter, loc, {new_op.getResult(), stream});
+  rewriter.replaceOp(launch_op, token);
+  return success();
+}
+
+LogicalResult FoldConstCastPattern::matchAndRewrite(
+    CastOp cast_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  if (!IsTypes<IndexType>(cast_op.getOperandTypes()) ||
+      !IsTypes<IntegerType>(cast_op.getResultTypes()))
+    return rewriter.notifyMatchFailure(cast_op, "not cast from index to int");
+  auto type = cast_op.getType(0).cast<IntegerType>();
+  if (!type.isUnsigned() || type.getWidth() != 32)
+    return rewriter.notifyMatchFailure(cast_op, "not cast to ui32");
+  auto const_op = cast_op.getOperand(0).getDefiningOp<ConstantOp>();
+  if (!const_op)
+    return rewriter.notifyMatchFailure(cast_op, "operand not def by constant");
+  auto value = const_op.getValue().cast<IntegerAttr>().getValue();
+  auto attr = rewriter.getIntegerAttr(type, value.zextOrTrunc(type.getWidth()));
+  rewriter.replaceOpWithNewOp<compiler::ConstantUI32Op>(cast_op, type, attr);
   return success();
 }
 
@@ -679,7 +833,6 @@ LogicalResult InlineConversionAsyncExecPattern::matchAndRewrite(
   auto token = CastToToken(rewriter, exec_op->getLoc(), chain_and_stream);
   rewriter.replaceOp(exec_op, token);
   rewriter.eraseOp(terminator);
-  rewriter.eraseOp(cast_op);
   return success();
 }
 
@@ -855,15 +1008,6 @@ LogicalResult FoldAsyncAwaitPattern::matchAndRewrite(
   return success();
 }
 
-LogicalResult EraseIllegalCastPattern::matchAndRewrite(
-    CastOp cast_op, OpAdaptor adaptor,
-    ConversionPatternRewriter &rewriter) const {
-  if (typeConverter->isLegal(cast_op))
-    return rewriter.notifyMatchFailure(cast_op, "is valid");
-  rewriter.eraseOp(cast_op);
-  return success();
-}
-
 void AddChainAndStreamToFuncPass::runOnFunction() {
   RewritePatternSet patterns(&getContext());
   patterns.insert<AddChainAndStreamToFuncPattern>(&getContext());
@@ -909,19 +1053,26 @@ void ConvertAsyncToChainAndEventPass::runOnFunction() {
     return signalPassFailure();
 }
 
-void ConvertGpuToTfrtGpuPass::runOnFunction() {
+void ConvertGpuToTfrtGpuPass::runOnOperation() {
   RewritePatternSet patterns(&getContext());
   auto converter = createMemrefToTfrtGpuConverter();
-  patterns.add<ConvertMemsetPattern, ConvertMemcpyPattern>(converter,
-                                                           &getContext());
-  patterns.add<InlineConversionAsyncExecPattern,
+  converter.addConversion([](IndexType type) {
+    return IntegerType::get(type.getContext(), 32, IntegerType::Unsigned);
+  });
+  patterns.add<ConvertMemsetPattern, ConvertMemcpyPattern,
+               ConvertLaunchFuncPattern>(converter, &getContext());
+  patterns.add<ConvertGpuModulePattern, InlineConversionAsyncExecPattern,
                ConvertGpuWaitToChainAndStreamPattern,
-               ConvertCastToEventRecordPattern>(&getContext());
+               ConvertCastToEventRecordPattern, FoldConstCastPattern>(
+      &getContext());
   ConversionTarget target(getContext());
   target.addIllegalDialect<mlir::gpu::GPUDialect>();
   target.addIllegalOp<conversion::AsyncExecuteOp>();
-  target.addDynamicallyLegalOp<CastOp>(
-      [](CastOp cast_op) { return !IsCastFromChainAndEvent(cast_op); });
+  target.addDynamicallyLegalOp<CastOp>([&](CastOp cast_op) {
+    // Trigger ConvertCastToEventRecordPattern and FoldConstCastPattern.
+    return !IsCastFromChainAndEvent(cast_op) &&
+           converter.isLegal(cast_op->getOperandTypes());
+  });
   target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
   if (failed(
@@ -942,19 +1093,14 @@ void ConvertAsyncToTfrtPass::runOnFunction() {
   });
 
   RewritePatternSet patterns(&getContext());
-  patterns.add<ConvertAsyncExecToDoAsyncPattern, FoldAsyncAwaitPattern,
-               EraseIllegalCastPattern>(converter, &getContext());
+  // Folds pairs of A-B-A casts before outlining async.execute regions.
+  populateReconcileUnrealizedCastsPatterns(patterns);
+  patterns.add<ConvertAsyncExecToDoAsyncPattern, FoldAsyncAwaitPattern>(
+      converter, &getContext());
 
   ConversionTarget target(getContext());
   target.addIllegalOp<async::AwaitOp, async::ExecuteOp, async::YieldOp>();
-  target.addDynamicallyLegalOp<CastOp>(
-      [&](Operation *op) { return converter.isLegal(op); });
   target.markUnknownOpDynamicallyLegal([&](Operation *) { return true; });
-
-  // Fold pairs of A-B-A casts before outlining async.execute regions.
-  if (failed(applyPatternsAndFoldGreedily(getOperation(),
-                                          RewritePatternSet(&getContext()))))
-    return signalPassFailure();
 
   if (failed(
           applyPartialConversion(getOperation(), target, std::move(patterns))))
@@ -982,6 +1128,7 @@ void populateGpuToTfrtGpuPasses(OpPassManager &pm) {
   pm.addPass(std::make_unique<AddChainAndStreamToFuncPass>());
   pm.addPass(std::make_unique<ConvertAsyncToChainAndEventPass>());
   pm.addPass(std::make_unique<ConvertGpuToTfrtGpuPass>());
+  pm.addPass(createReconcileUnrealizedCastsPass());
   pm.addPass(std::make_unique<ConvertAsyncToTfrtPass>());
 }
 

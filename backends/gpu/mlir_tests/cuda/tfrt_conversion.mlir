@@ -123,3 +123,47 @@ func @test_mem_set(%arg0 : !tfrt_gpu.buffer) {
   // CHECK-NEXT: tfrt.return %[[ch]] : !tfrt.chain
   tfrt.return
 }
+
+// CHECK-LABEL: @test_launch_kernel
+module @test_launch_kernel attributes {gpu.container_module} {
+
+  // CHECK: func @gpu_module(%arg0: !tfrt_gpu.context)
+  // CHECK-SAME: -> (!tfrt_gpu.module, !tfrt.chain) {
+  // CHECK:   %[[module:.*]] = tfrt_gpu.module.load %arg0 {data = "<cubin>\00"}
+  // CHECK:   %[[ch0:.*]] = tfrt.new.chain
+  // CHECK:   %[[stream:.*]] = tfrt_gpu.stream.create %arg0
+  // CHECK:   %[[global:.*]] = tfrt_gpu.module.get_global %[[module]] {name = "one"}
+  // CHECK:   %[[tensor:.*]] = tfrt_dht.create_uninitialized_tensor.ui8.1 [4]
+  // CHECK:   %[[buffer:.*]]:2 = tfrt_dht.get_buffer %[[tensor]], %[[ch0]]
+  // CHECK:   %[[ch1:.*]] = tfrt_dht.set_tensor_with_constant_values.ui8
+  // CHECK-SAME: %[[tensor]], %[[ch0]] [0 : i8, 0 : i8, -128 : i8, 63 : i8]
+  // CHECK:   %[[ch2:.*]] = tfrt_gpu.mem.copy %[[global]], %[[buffer]]#0,
+  // CHECK-SAME: %[[stream]], %[[ch1]] : !tfrt_gpu.buffer, !ht.host_buffer
+  // CHECK:   %[[ch3:.*]] = tfrt_gpu.stream.synchronize %[[stream]], %[[ch2]]
+  // CHECK:   tfrt.return %[[module]], %[[ch3]] : !tfrt_gpu.module, !tfrt.chain
+  // CHECK: }
+  gpu.module @gpu_module attributes {
+    nvvm.cubin = "<cubin>",
+    constants = { one = dense<[0, 0, 128, 63]> : tensor<4xi8> }
+  } {
+    gpu.func @kernel() kernel { gpu.return }
+  }
+
+  func @func(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) -> () {
+    %one = constant 1 : index
+    %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
+        : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
+    // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
+    // CHECK: %[[once:.*]]:2 = tfrt.once @gpu_module(%6)
+    // CHECK-SAME: (!tfrt_gpu.context) -> (!tfrt_gpu.module, !tfrt.chain)
+    // CHECK: %[[kernel:.*]] = tfrt_gpu.module.get_function %[[once]]#0 {name = "kernel"}
+    // CHECK: %[[ch0:.*]] = tfrt.merge.chains %arg0, %[[once]]#1 : !tfrt.chain, !tfrt.chain
+    // CHECK: %[[zero:.*]] = tfrt.constant.ui32 0
+    // CHECK: %[[ch1:.*]] = tfrt_gpu.function.launch %arg1, %[[kernel]],
+    // CHECK-SAME: blocks in ({{.*}}), threads in ({{.*}}), %[[zero]], %[[ch0]]
+    %t1 = gpu.launch_func async [%t0] @gpu_module::@kernel
+        blocks in (%one, %one, %one) threads in (%one, %one, %one)
+    tfrt.return
+  }
+}
+

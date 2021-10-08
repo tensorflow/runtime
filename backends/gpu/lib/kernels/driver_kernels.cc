@@ -238,12 +238,17 @@ static Expected<GpuBuffer> GpuMemRegister(
 }
 
 static Expected<GpuBuffer> GpuMemView(Argument<GpuBuffer> buffer,
-                                      uint32_t offset) {
+                                      uint64_t offset, uint64_t size) {
+  if (buffer->size() < offset + size) {
+    return MakeStringError("buffer size (", buffer->size(),
+                           ") is smaller than offset (", offset,
+                           ") plus size (", size, ")");
+  }
   // The allocator releases the buffer reference on destruction.
   using Allocator = GpuOneShotAllocator<AsyncValueRef<GpuBuffer>>;
   auto allocator = MakeAvailableAsyncValueRef<Allocator>(
       wrapper::Pointer<char>(buffer->pointer()) + offset, buffer.ValueRef());
-  return GpuBuffer::Allocate(std::move(allocator), buffer->size() - offset);
+  return GpuBuffer::Allocate(std::move(allocator), size);
 }
 
 // tfrt_gpu.mem.print_metadata prints `buffer`'s metadata.

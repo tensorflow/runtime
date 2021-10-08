@@ -805,16 +805,25 @@ LogicalResult FoldConstCastPattern::matchAndRewrite(
   if (!IsTypes<IndexType>(cast_op.getOperandTypes()) ||
       !IsTypes<IntegerType>(cast_op.getResultTypes()))
     return rewriter.notifyMatchFailure(cast_op, "not cast from index to int");
-  auto type = cast_op.getType(0).cast<IntegerType>();
-  if (!type.isUnsigned() || type.getWidth() != 32)
-    return rewriter.notifyMatchFailure(cast_op, "not cast to ui32");
   auto const_op = cast_op.getOperand(0).getDefiningOp<ConstantOp>();
   if (!const_op)
     return rewriter.notifyMatchFailure(cast_op, "operand not def by constant");
-  auto value = const_op.getValue().cast<IntegerAttr>().getValue();
-  auto attr = rewriter.getIntegerAttr(type, value.zextOrTrunc(type.getWidth()));
-  rewriter.replaceOpWithNewOp<compiler::ConstantUI32Op>(cast_op, type, attr);
-  return success();
+  auto type = cast_op.getType(0).cast<IntegerType>();
+  auto rewrite = [&](auto dummy) {
+    APInt value = const_op.getValue().cast<IntegerAttr>().getValue();
+    if (type.isUnsigned())
+      value = value.zextOrTrunc(type.getWidth());
+    else
+      value = value.sextOrTrunc(type.getWidth());
+    auto attr = rewriter.getIntegerAttr(type, value);
+    rewriter.replaceOpWithNewOp<decltype(dummy)>(cast_op, type, attr);
+    return success();
+  };
+  if (type.isUnsignedInteger(32)) return rewrite(compiler::ConstantUI32Op());
+  if (type.isUnsignedInteger(64)) return rewrite(compiler::ConstantUI64Op());
+  if (type.isInteger(32)) return rewrite(compiler::ConstantI32Op());
+  if (type.isInteger(64)) return rewrite(compiler::ConstantI64Op());
+  return rewriter.notifyMatchFailure(cast_op, "Unsupported type");
 }
 
 LogicalResult InlineConversionAsyncExecPattern::matchAndRewrite(

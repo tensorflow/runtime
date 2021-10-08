@@ -270,18 +270,19 @@ def GPU_MemRegisterOp : GPU_Op<"mem.register"> {
 
 def GPU_MemViewOp : GPU_Op<"mem.view", [NoSideEffect]> {
   let description = [{
-    tfrt_gpu.mem.view returns a buffer view at the given byte offset.
+    tfrt_gpu.mem.view returns a buffer view of the given byte size and offset.
 
     The lifetime of %buffer is extended by the lifetime of %result.
 
     Example:
-      %offset = tfrt.constant.ui32 42
-      %result = tfrt_gpu.mem.register %buffer, %offset
+      %offset = tfrt.constant.ui64 42
+      %size   = tfrt.constant.ui64 64
+      %result = tfrt_gpu.mem.register %buffer, %offset, %size
   }];
-  let arguments = (ins GPU_BufferType:$buffer, UI32:$offset);
+  let arguments = (ins GPU_BufferType:$buffer, UI64:$offset, UI64:$size);
   let results = (outs GPU_BufferType);
 
-  let assemblyFormat = "$buffer`,` $offset attr-dict";
+  let assemblyFormat = "$buffer`,` $offset`,` $size attr-dict";
 }
 
 def GPU_MemPrintOp : GPU_Op<"mem.print_metadata"> {

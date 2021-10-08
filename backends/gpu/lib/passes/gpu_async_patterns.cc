@@ -133,18 +133,23 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
     ConversionPatternRewriter &rewriter) const {
   if (!adaptor.source().getType().isa<BufferType>())
     return rewriter.notifyMatchFailure(view_op, "expected BufferType source");
-  auto byte_shift = adaptor.byte_shift().getDefiningOp<ConstantIndexOp>();
-  if (!byte_shift)
-    return rewriter.notifyMatchFailure(view_op, "expected constant byte_shift");
   if (!adaptor.sizes().empty())
     return rewriter.notifyMatchFailure(view_op, "expected no sizes");
-  if (byte_shift.getValue() == 0) {
+  auto const_offset = adaptor.byte_shift().getDefiningOp<ConstantIndexOp>();
+  auto size_bits = view_op.getType().getSizeInBits();
+  auto source_type = view_op.source().getType().cast<MemRefType>();
+  if (const_offset && const_offset.getValue() == 0 &&
+      source_type.getSizeInBits() == size_bits) {
     rewriter.replaceOp(view_op, {adaptor.source()});
-  } else {
-    auto offset = rewriter.create<compiler::ConstantUI32Op>(
-        view_op.getLoc(), byte_shift.getValue());
-    rewriter.replaceOpWithNewOp<MemViewOp>(view_op, adaptor.source(), offset);
+    return success();
   }
+  assert(size_bits % 8 == 0);
+  auto loc = view_op->getLoc();
+  auto offset = rewriter.create<UnrealizedConversionCastOp>(
+      loc, rewriter.getIntegerType(64, false), adaptor.byte_shift());
+  auto size = rewriter.create<compiler::ConstantUI64Op>(loc, size_bits / 8);
+  rewriter.replaceOpWithNewOp<MemViewOp>(view_op, adaptor.source(),
+                                         offset.getResult(0), size);
   return success();
 }
 

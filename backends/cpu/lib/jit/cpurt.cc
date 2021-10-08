@@ -931,7 +931,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 
   // Convert the entrypoint function to a kernel function (all results and
   // errors returned via the runtime API calls).
-  pm.addPass(CreateConvertToKernelFunction());
+  pm.addPass(CreateConvertToKernelFunction(/*convert_assert=*/false));
   pm.addPass(CreateConvertRuntimeToLLVMPass());
 
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;

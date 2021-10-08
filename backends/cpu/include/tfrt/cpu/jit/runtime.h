@@ -39,9 +39,12 @@ namespace runtime {
 // CPURT compilation pipeline sets up passes to convert the regular functions
 // to the so called "kernels" integrated with the runtime using the API defined
 // below, e.g. instead of conventional returns all results are returned via the
-// runtimeGetResultStorage/runtimeSetResultAvailable API. At MLIR level these
-// operations correspond to the `rt` dialect, and converted to LLVM using the
-// `rt-to-llvm` conversion pass.
+// runtimeGetResultStorage API. At MLIR level these operations correspond to the
+// `rt` dialect, and converted to LLVM using the `rt-to-llvm` conversion pass.
+//
+// Runtime errors are reported back to the runtime via the runtimeSetError API.
+// The compilation pipeline will automatically convert assertions in the kernel
+// function into run time errors.
 
 // Opaque runtime kernel context passed as the first operand to compiled kernels
 // and passed back to all runtime API methods.
@@ -49,6 +52,10 @@ typedef struct KernelContext KernelContext;
 
 // Returns a pointer to the memory location of the result with the given index.
 extern "C" void *runtimeGetResultStorage(KernelContext *, int64_t);
+
+// Sets kernel context to an error state.
+// TODO(ezhulenev): Accept error message and maybe error location.
+extern "C" void runtimeSetError(KernelContext *);
 
 }  // namespace runtime
 }  // namespace jit

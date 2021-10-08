@@ -113,12 +113,12 @@ class RuntimeTypeConverter : public TypeConverter {
 // Convert rt.set_output to the corresponding runtime API call.
 //===----------------------------------------------------------------------===//
 
-class SetOutputOpLowering : public OpConversionPattern<SetOutput> {
+class SetOutputOpLowering : public OpConversionPattern<SetOutputOp> {
  public:
   using OpConversionPattern::OpConversionPattern;
 
   LogicalResult matchAndRewrite(
-      SetOutput op, OpAdaptor adaptor,
+      SetOutputOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
     Location loc = op->getLoc();
 

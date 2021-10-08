@@ -30,3 +30,10 @@ func @set_output(%arg0: !rt.kernel_context) {
   return
 }
 
+// CHECK-LABEL: func @set_error(
+// CHECK:  %[[CTX:.*]]: !rt.kernel_context
+func @set_error(%arg0: !rt.kernel_context) {
+  // CHECK: rt.set_error %[[CTX]], "Failed precondition"
+  rt.set_error %arg0, "Failed precondition"
+  return
+}

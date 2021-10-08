@@ -26,14 +26,12 @@ def ConvertToKernelFunction : Pass<"rt-to-kernel-function", "ModuleOp"> {
      - all results returned via the `rt.set_result` operation
      - failed asserts set the kernel error via the `rt.set_error` operation
 
-    // TODO(ezhulenev): Only `rt.set_result` is implemented for now.
-
     Example:
 
       ```mlir
       func @compute(%ctx: !rt.kernel_context, ...) -> memref<?xf32> {
         %0 = ... : i1
-        assert %1, "Oops"
+        assert %0, "Oops"
         %1 = ... : memref<?xf32>
         return %0
       }

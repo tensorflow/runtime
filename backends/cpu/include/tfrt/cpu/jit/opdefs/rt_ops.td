@@ -32,7 +32,11 @@ class RT_Op<string mnemonic, list<OpTrait> traits = []> :
       Op<RuntimeDialect, mnemonic, traits> {
 }
 
-def SetOutput : RT_Op<"set_output"> {
+//===----------------------------------------------------------------------===//
+// SetOutputOp
+//===----------------------------------------------------------------------===//
+
+def SetOutputOp : RT_Op<"set_output"> {
   let summary = "set the kernel output to a result value";
 
   let description = [{
@@ -73,5 +77,45 @@ def SetOutput : RT_Op<"set_output"> {
     $ctx `,` $index `,` $value `:` type($value) attr-dict
   }];
 }
+
+//===----------------------------------------------------------------------===//
+// SetErrorOp
+//===----------------------------------------------------------------------===//
+
+def SetErrorOp : RT_Op<"set_error"> {
+  let summary = "set all kernel outputs to the error state";
+
+  let description = [{
+    This operation sets all kernel outputs to the error state. A kernel function
+    can call set_error only once, and must not set any of the outputs in this
+    case. The provided error message may be used by a runtime to propagate the
+    error to the user.
+
+    Example:
+
+      ```mlir
+      func @compute(%ctx: !rt.kernel_context) {
+        %precondition = cmpi ...
+        cond_br %precondition, ^ok, ^err
+
+      ^ok:
+        %result = "compute_result"(): () -> memref<?xf32>
+        rt.set_output %ctx, 0, %result : memref<?xf32>
+        return
+
+      ^err:
+        rt.set_error %ctx, "Failed precondition"
+        return
+      }
+      ```
+  }];
+
+  let arguments = (ins
+    KernelContextType:$ctx,
+    StrAttr:$error);
+
+  let assemblyFormat = "$ctx `,` $error attr-dict";
+}
+
 
 #endif // RT_OPS

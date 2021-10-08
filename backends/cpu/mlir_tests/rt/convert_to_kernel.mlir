@@ -47,3 +47,18 @@ func @invalid_position(%arg0: memref<?xf32>, %arg1: !rt.kernel_context)
   // CHECK: return %[[RET]]
   return %arg0 : memref<?xf32>
 }
+
+// CHECK: func @assert_to_error(
+// CHECK:   %[[CTX:.*]]: !rt.kernel_context,
+// CHECK:   %[[ASSERT:.*]]: i1
+// CHECK: ) {
+func @assert_to_error(%arg0: !rt.kernel_context, %arg1: i1) {
+  // CHECK: cond_br %[[ASSERT]], ^[[OK:.*]], ^[[ERR:.*]]
+  // CHECK: ^[[OK]]:
+  // CHECK:   return
+  // CHECK: ^[[ERR]]:
+  // CHECK:   rt.set_error %[[CTX]], "Failed precondition"
+  // CHECK:   return
+  assert %arg1, "Failed precondition"
+  return
+}

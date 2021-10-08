@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/ImplicitLocOpBuilder.h"
@@ -25,6 +26,9 @@ namespace cpu {
 namespace jit {
 namespace {
 
+using mlir::AssertOp;
+using mlir::Block;
+using mlir::CondBranchOp;
 using mlir::FuncOp;
 using mlir::FunctionType;
 using mlir::ImplicitLocOpBuilder;
@@ -37,28 +41,29 @@ using mlir::Value;
 
 class ConvertToKernelFunctionPass
     : public ConvertToKernelFunctionBase<ConvertToKernelFunctionPass> {
+ public:
+  explicit ConvertToKernelFunctionPass(bool convert_assert)
+      : convert_assert_(convert_assert) {}
   void runOnOperation() override;
+
+ private:
+  bool convert_assert_;
 };
 
 }  // namespace
 
-static void ConvertToKernelFunction(FuncOp func) {
-  // We only convert functions with kernel context as the first argument.
-  bool is_candidate = !func.isDeclaration() && func.getNumArguments();
-  Value kernel_ctx = is_candidate ? func.getArgument(0) : Value();
-  if (!kernel_ctx || !kernel_ctx.getType().isa<KernelContextType>()) return;
-
-  // Rewrite all returns to the Runtime API calls.
+static void ConvertReturnOperations(FuncOp func, Value kernel_ctx) {
+  // Convert all returns to the Runtime API calls.
   func.walk([&](ReturnOp ret) {
-    ImplicitLocOpBuilder builder(ret.getLoc(), ret);
+    ImplicitLocOpBuilder b(ret.getLoc(), ret);
 
     // Return all outputs via the `rt.set_output` operation.
     for (auto pair : llvm::enumerate(ret.operands())) {
-      builder.create<SetOutput>(kernel_ctx, pair.index(), pair.value());
+      b.create<SetOutputOp>(kernel_ctx, pair.index(), pair.value());
     }
 
     // Replace original return with an empty one.
-    builder.create<ReturnOp>();
+    b.create<ReturnOp>();
     ret.erase();
   });
 
@@ -67,13 +72,53 @@ static void ConvertToKernelFunction(FuncOp func) {
   func.setType(type);
 }
 
-void ConvertToKernelFunctionPass::runOnOperation() {
-  ModuleOp module = getOperation();
-  module.walk(ConvertToKernelFunction);
+static void ConvertAssertOperations(FuncOp func, Value kernel_ctx) {
+  // Collect all assert operations in the function body.
+  llvm::SmallVector<AssertOp> asserts;
+  func.walk([&](AssertOp op) { asserts.push_back(op); });
+
+  // Rewrite all asserts to the Runtime API calls.
+  for (AssertOp assert : asserts) {
+    ImplicitLocOpBuilder b(assert.getLoc(), assert);
+
+    // Split the block at the assert operation.
+    Block* block = assert->getBlock();
+    Block* ok = block->splitBlock(assert);
+
+    // Set up block for returning error.
+    Block* err = func.addBlock();
+    b.setInsertionPointToStart(err);
+    b.create<SetErrorOp>(kernel_ctx, assert.msg());
+    b.create<ReturnOp>();
+
+    // Branch into the error block if assertion failed.
+    b.setInsertionPointToEnd(block);
+    b.create<CondBranchOp>(assert.arg(), ok, err);
+
+    // Erase the original assert operation.
+    assert.erase();
+  }
 }
 
-std::unique_ptr<mlir::OperationPass<ModuleOp>> CreateConvertToKernelFunction() {
-  return std::make_unique<ConvertToKernelFunctionPass>();
+static void ConvertToKernelFunction(FuncOp func, bool convert_assert) {
+  // We only convert functions with kernel context as the first argument.
+  bool is_candidate = !func.isDeclaration() && func.getNumArguments();
+  Value kernel_ctx = is_candidate ? func.getArgument(0) : Value();
+  if (!kernel_ctx || !kernel_ctx.getType().isa<KernelContextType>()) return;
+
+  ConvertReturnOperations(func, kernel_ctx);
+  if (convert_assert) ConvertAssertOperations(func, kernel_ctx);
+}
+
+void ConvertToKernelFunctionPass::runOnOperation() {
+  ModuleOp module = getOperation();
+  module.walk(
+      [&](FuncOp func) { ConvertToKernelFunction(func, convert_assert_); });
+}
+
+std::unique_ptr<mlir::OperationPass<ModuleOp>> CreateConvertToKernelFunction(
+    bool convert_assert) {
+  return std::make_unique<ConvertToKernelFunctionPass>(convert_assert);
 }
 
 }  // namespace jit

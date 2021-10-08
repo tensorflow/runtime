@@ -26,10 +26,8 @@ namespace tfrt {
 namespace cpu {
 namespace jit {
 
-// TODO(ezhulenev): Remove `convert_assert` when the runtime integration is
-// fully implemented.
 std::unique_ptr<mlir::OperationPass<mlir::ModuleOp>>
-CreateConvertToKernelFunction(bool convert_assert = true);
+CreateConvertToKernelFunction();
 
 #define GEN_PASS_REGISTRATION
 #include "tfrt/cpu/jit/transforms/rt_gen_passes.h.inc"

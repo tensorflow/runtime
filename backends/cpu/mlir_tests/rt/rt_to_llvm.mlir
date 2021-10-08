@@ -35,3 +35,12 @@ func @set_output(%arg0: !rt.kernel_context) {
   rt.set_output %arg0, 0, %0 : memref<f32>
   return
 }
+
+// CHECK: func @set_error(
+// CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
+// CHECK: )
+func @set_error(%arg0: !rt.kernel_context) {
+  // CHECK: call @runtimeSetError(%[[CTX]])
+  rt.set_error %arg0, "Failed precondition"
+  return
+}

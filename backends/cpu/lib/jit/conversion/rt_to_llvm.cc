@@ -69,17 +69,23 @@ namespace LLVM = mlir::LLVM;
 //===----------------------------------------------------------------------===//
 
 static constexpr const char *kGetResultStorage = "runtimeGetResultStorage";
+static constexpr const char *kSetError = "runtimeSetError";
 
 struct RuntimeAPI {
   static LLVM::LLVMPointerType OpaquePointerType(MLIRContext *ctx) {
     return LLVM::LLVMPointerType::get(IntegerType::get(ctx, 8));
   }
 
-  static FunctionType ResultStorageFunctionType(MLIRContext *ctx) {
+  static FunctionType GetResultStorageFunctionType(MLIRContext *ctx) {
     auto kernel_context = OpaquePointerType(ctx);
     auto i64 = IntegerType::get(ctx, 64);
     auto storage = OpaquePointerType(ctx);
     return FunctionType::get(ctx, {kernel_context, i64}, {storage});
+  }
+
+  static FunctionType SetErrorFunctionType(MLIRContext *ctx) {
+    auto kernel_context = OpaquePointerType(ctx);
+    return FunctionType::get(ctx, {kernel_context}, {});
   }
 };
 
@@ -93,7 +99,8 @@ static void AddRuntimeApiDeclarations(ModuleOp module) {
   };
 
   MLIRContext *ctx = module.getContext();
-  addDecl(kGetResultStorage, RuntimeAPI::ResultStorageFunctionType(ctx));
+  addDecl(kGetResultStorage, RuntimeAPI::GetResultStorageFunctionType(ctx));
+  addDecl(kSetError, RuntimeAPI::SetErrorFunctionType(ctx));
 }
 
 // -------------------------------------------------------------------------- //
@@ -151,6 +158,24 @@ class SetOutputOpLowering : public OpConversionPattern<SetOutputOp> {
   }
 };
 
+//===----------------------------------------------------------------------===//
+// Convert rt.set_error to the corresponding runtime API call.
+//===----------------------------------------------------------------------===//
+
+class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
+ public:
+  using OpConversionPattern::OpConversionPattern;
+
+  LogicalResult matchAndRewrite(
+      SetErrorOp op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override {
+    auto kernel_context = adaptor.ctx();
+    rewriter.replaceOpWithNewOp<CallOp>(op, kSetError, TypeRange(),
+                                        ValueRange({kernel_context}));
+    return success();
+  }
+};
+
 // -------------------------------------------------------------------------- //
 
 class ConvertRuntimeToLLVMPass
@@ -174,7 +199,7 @@ void ConvertRuntimeToLLVMPass::runOnOperation() {
   llvmConverter.addConversion(RuntimeTypeConverter::convertKernelContextType);
 
   // Lower from the runtime operations to the runtime API function calls.
-  patterns.insert<SetOutputOpLowering>(llvmConverter, ctx);
+  patterns.insert<SetOutputOpLowering, SetErrorOpLowering>(llvmConverter, ctx);
 
   // Convert function signatures and call sites.
   populateFuncOpTypeConversionPattern(patterns, converter);

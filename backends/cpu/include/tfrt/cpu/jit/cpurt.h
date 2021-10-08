@@ -398,7 +398,7 @@ class ReturnValueConverterBase {
                                           void* ret) const = 0;
 
   // Forward error to all remaining results.
-  virtual void EmitErrors(RCReference<ErrorAsyncValue>& error) const;
+  virtual void EmitErrors(RCReference<ErrorAsyncValue> error) const;
 
  protected:
   RemainingResults results() const { return results_; }
@@ -838,20 +838,32 @@ class Executable {
   Error InitializeCallFrame(ArrayRef<MemrefDesc> operands,
                             CallFrame* call_frame) const;
 
-  // Converts returned values owned by the callframe using provided value
-  // converter. If result conversion fails emits error async value.
+  // Converts returned values owned by the call frame using provided value
+  // converter. If result conversion fails (e.g. result type is not supported)
+  // emits error async value for that result.
+  //
+  // If compiled function execution finished with an error (error flag is `true`
+  // in the call frame) emits error async value for all results.
   Error ReturnResults(const ReturnValueConverterBase& results,
+                      const ExecutionContext& exec_ctx,
                       CallFrame* call_frame) const;
 
   // Executes compiled function with given operands. If operands passed at
   // runtime are not compatible with the compiled function signature, allocates
-  // error async values for each returned value.
+  // error async values for all results.
+  //
+  // Returns compiled function results via the user-provided results converter.
+  // If compiled function execution completed in the error state, emits error
+  // async value for all results.
   Error Execute(ArrayRef<MemrefDesc> operands,
                 const ReturnValueConverterBase& results,
                 const ExecutionContext& exec_ctx,
                 const ExecuteOpts& opts = {}) const;
 
   // Executes compiled function using user provided call frame.
+  //
+  // It is the caller responsibility to handle the compiled function results
+  // stored in the call frame.
   void Execute(CallFrame& call_frame, const ExecutionContext& exec_ctx,
                const ExecuteOpts& opts = {}) const;
 
@@ -879,6 +891,9 @@ class Executable {
 
     // Memory where the compiled kernel will write its results.
     llvm::SmallVector<uint8_t, 128> results;
+
+    // Indicates whether the kernel function execution finished with an error.
+    bool is_error = false;
   };
 
   // Requirements for the contiguous block of memory to store compiled function

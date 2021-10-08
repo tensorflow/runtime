@@ -41,13 +41,7 @@ using mlir::Value;
 
 class ConvertToKernelFunctionPass
     : public ConvertToKernelFunctionBase<ConvertToKernelFunctionPass> {
- public:
-  explicit ConvertToKernelFunctionPass(bool convert_assert)
-      : convert_assert_(convert_assert) {}
   void runOnOperation() override;
-
- private:
-  bool convert_assert_;
 };
 
 }  // namespace
@@ -100,25 +94,23 @@ static void ConvertAssertOperations(FuncOp func, Value kernel_ctx) {
   }
 }
 
-static void ConvertToKernelFunction(FuncOp func, bool convert_assert) {
+static void ConvertToKernelFunction(FuncOp func) {
   // We only convert functions with kernel context as the first argument.
   bool is_candidate = !func.isDeclaration() && func.getNumArguments();
   Value kernel_ctx = is_candidate ? func.getArgument(0) : Value();
   if (!kernel_ctx || !kernel_ctx.getType().isa<KernelContextType>()) return;
 
   ConvertReturnOperations(func, kernel_ctx);
-  if (convert_assert) ConvertAssertOperations(func, kernel_ctx);
+  ConvertAssertOperations(func, kernel_ctx);
 }
 
 void ConvertToKernelFunctionPass::runOnOperation() {
   ModuleOp module = getOperation();
-  module.walk(
-      [&](FuncOp func) { ConvertToKernelFunction(func, convert_assert_); });
+  module.walk(ConvertToKernelFunction);
 }
 
-std::unique_ptr<mlir::OperationPass<ModuleOp>> CreateConvertToKernelFunction(
-    bool convert_assert) {
-  return std::make_unique<ConvertToKernelFunctionPass>(convert_assert);
+std::unique_ptr<mlir::OperationPass<ModuleOp>> CreateConvertToKernelFunction() {
+  return std::make_unique<ConvertToKernelFunctionPass>();
 }
 
 }  // namespace jit

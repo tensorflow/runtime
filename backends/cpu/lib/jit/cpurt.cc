@@ -125,6 +125,9 @@ struct KernelContext {
   // immediately when the function returns. Only the kernel function itself
   // reads the arguments and writes to the function results storage.
   Executable::CallFrame* call_frame;
+
+  // Tracks whether any of the outputs were set.
+  bool has_set_outputs = false;
 };
 
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle);
@@ -565,8 +568,9 @@ ReturnValueConverterBase::ReturnValueConverterBase(RemainingResults results)
 ReturnValueConverterBase::~ReturnValueConverterBase() {}
 
 void ReturnValueConverterBase::EmitErrors(
-    RCReference<ErrorAsyncValue>& error) const {
-  for (size_t i = 0; i < results_.size(); ++i) results_[i] = error;
+    RCReference<ErrorAsyncValue> error) const {
+  results_[0] = std::move(error);
+  for (size_t i = 1; i < results_.size(); ++i) results_[i] = results_[0];
 }
 
 namespace {
@@ -720,7 +724,7 @@ Error Executable::Execute(ArrayRef<MemrefDesc> operands,
   Execute(call_frame, exec_ctx, opts);
 
   // Convert compiled function return values into results.
-  if (auto err = ReturnResults(results, &call_frame)) return err;
+  if (auto err = ReturnResults(results, exec_ctx, &call_frame)) return err;
 
   return Error::success();
 }
@@ -749,7 +753,18 @@ void Executable::Execute(CallFrame& call_frame,
 }
 
 Error Executable::ReturnResults(const ReturnValueConverterBase& results,
+                                const ExecutionContext& exec_ctx,
                                 CallFrame* call_frame) const {
+  // Forward error to all results.
+  // TODO(ezhulenev): Forward the underlying error to all results once it will
+  // be supported by the runtime API.
+  if (call_frame->is_error) {
+    results.EmitErrors(EmitErrorAsync(
+        exec_ctx, "Failed to execute the compiled kernel function"));
+    return Error::success();
+  }
+
+  // Try to convert results using registered conversion functions.
   bool converted = true;
 
   for (unsigned i = 0; i < signature_.num_results(); ++i) {
@@ -931,7 +946,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 
   // Convert the entrypoint function to a kernel function (all results and
   // errors returned via the runtime API calls).
-  pm.addPass(CreateConvertToKernelFunction(/*convert_assert=*/false));
+  pm.addPass(CreateConvertToKernelFunction());
   pm.addPass(CreateConvertRuntimeToLLVMPass());
 
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
@@ -1727,11 +1742,20 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
 namespace runtime {
 
 extern "C" void* runtimeGetResultStorage(KernelContext* ctx, int64_t index) {
-  assert(ctx != nullptr && "kernel context must be not null");
+  assert(ctx && "kernel context must be not null");
+  assert(!ctx->call_frame->is_error && "error must not be set");
   size_t offset = ctx->results_memory_layout->offsets[index];
   assert(offset < ctx->call_frame->results.size() && "offset is out of bounds");
+  ctx->has_set_outputs = true;
   return &ctx->call_frame->results[offset];
-};
+}
+
+extern "C" void runtimeSetError(KernelContext* ctx) {
+  assert(ctx && "kernel context must be not null");
+  assert(!ctx->call_frame->is_error && "error must be set only once");
+  assert(!ctx->has_set_outputs && "outputs must be undefined");
+  ctx->call_frame->is_error = true;
+}
 
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {
   llvm::orc::SymbolMap symbol_map;
@@ -1742,6 +1766,7 @@ llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {
   };
 
   bind("runtimeGetResultStorage", &runtimeGetResultStorage);
+  bind("runtimeSetError", &runtimeSetError);
 
   return symbol_map;
 }

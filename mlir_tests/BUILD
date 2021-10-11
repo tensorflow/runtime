@@ -12,3 +12,16 @@ filegroup(
     name = "litcfgs",
     srcs = glob(["lit*py"]),
 )
+
+cc_test(
+    name = "mlir_runner_util_test",
+    testonly = 1,
+    srcs = ["mlir_runner_util_test.cc"],
+    deps = [
+        "@com_google_googletest//:gtest_main",
+        "@tf_runtime//:basic_kernels_alwayslink",
+        "@tf_runtime//:basic_kernels_opdefs",
+        "@tf_runtime//:mlir_runner_util",
+        "@tf_runtime//cpp_tests:common",
+    ],
+)

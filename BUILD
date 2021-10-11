@@ -1771,3 +1771,20 @@ tfrt_cc_library(
         "@llvm-project//mlir:IR",
     ],
 )
+
+cc_library(
+    name = "mlir_runner_util",
+    testonly = 1,
+    srcs = ["lib/utils/mlir_runner_util.cc"],
+    hdrs = ["include/tfrt/utils/mlir_runner_util.h"],
+    deps = [
+        "@llvm-project//llvm:Support",
+        "@llvm-project//mlir:IR",
+        "@llvm-project//mlir:Parser",
+        "@tf_runtime//:bef",
+        "@tf_runtime//:befexecutor",
+        "@tf_runtime//:hostcontext",
+        "@tf_runtime//:mlirtobef",
+        "@tf_runtime//:support",
+    ],
+)

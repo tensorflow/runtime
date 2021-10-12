@@ -894,6 +894,11 @@ class Executable {
 
     // Indicates whether the kernel function execution finished with an error.
     bool is_error = false;
+
+    // The error message which is available only if `is_error` is true. The
+    // assumption is that the error message string is owned by the compiled
+    // binary and the call frame can safely keep a non-owning pointer.
+    llvm::StringRef error;
   };
 
   // Requirements for the contiguous block of memory to store compiled function

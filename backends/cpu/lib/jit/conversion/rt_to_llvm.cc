@@ -13,6 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include "llvm/Support/FormatVariadic.h"
 #include "mlir/Conversion/LLVMCommon/Pattern.h"
 #include "mlir/Conversion/LLVMCommon/TypeConverter.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -24,6 +25,7 @@ limitations under the License.
 #include "mlir/IR/ImplicitLocOpBuilder.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Support/LLVM.h"
 #include "mlir/Support/LogicalResult.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -51,6 +53,7 @@ using mlir::ModuleOp;
 using mlir::OpConversionPattern;
 using mlir::OperationPass;
 using mlir::RewritePatternSet;
+using mlir::StringAttr;
 using mlir::StringRef;
 using mlir::success;
 using mlir::Type;
@@ -85,7 +88,8 @@ struct RuntimeAPI {
 
   static FunctionType SetErrorFunctionType(MLIRContext *ctx) {
     auto kernel_context = OpaquePointerType(ctx);
-    return FunctionType::get(ctx, {kernel_context}, {});
+    auto error_msg = OpaquePointerType(ctx);
+    return FunctionType::get(ctx, {kernel_context, error_msg}, {});
   }
 };
 
@@ -169,9 +173,46 @@ class SetErrorOpLowering : public OpConversionPattern<SetErrorOp> {
   LogicalResult matchAndRewrite(
       SetErrorOp op, OpAdaptor adaptor,
       ConversionPatternRewriter &rewriter) const override {
+    MLIRContext *ctx = op.getContext();
+    Location loc = op.getLoc();
+
+    // Create a global null-terminated string with an error message.
+    ModuleOp module = op->getParentOfType<ModuleOp>();
+
+    // Helper to create unique names for error message globals.
+    int unique_counter = 0;
+    llvm::StringRef prefix = "__assert_failed";
+
+    mlir::SymbolTable sym_table(module);
+    auto sym_name = [&]() -> std::string {
+      std::string str = prefix.str();
+      while (sym_table.lookup(str))
+        str = llvm::formatv("{0}_{1}", prefix, unique_counter++);
+      return str;
+    };
+
+    // Create a null-terminated StringRef from the error attribute.
+    std::string str = adaptor.error().getValue().str();
+    StringRef err(str.data(), str.size() + 1);
+
+    rewriter.setInsertionPointToStart(module.getBody());
+    auto err_ty = LLVM::LLVMArrayType::get(rewriter.getI8Type(), err.size());
+    auto err_constant = rewriter.create<LLVM::GlobalOp>(
+        loc, err_ty, /*isConstant=*/true, LLVM::Linkage::Internal, sym_name(),
+        StringAttr::get(ctx, err));
+    rewriter.setInsertionPoint(op);
+
+    // Get the pointer to the error message that we'll pass to the runtime.
+    auto err_addr = rewriter.create<LLVM::AddressOfOp>(
+        loc, LLVM::LLVMPointerType::get(err_ty), err_constant.sym_name());
+    auto err_ptr = rewriter.create<LLVM::BitcastOp>(
+        loc, LLVM::LLVMPointerType::get(rewriter.getI8Type()), err_addr);
+
+    // Call runtime API to report the error.
     auto kernel_context = adaptor.ctx();
     rewriter.replaceOpWithNewOp<CallOp>(op, kSetError, TypeRange(),
-                                        ValueRange({kernel_context}));
+                                        ValueRange({kernel_context, err_ptr}));
+
     return success();
   }
 };

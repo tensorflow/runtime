@@ -760,7 +760,8 @@ Error Executable::ReturnResults(const ReturnValueConverterBase& results,
   // be supported by the runtime API.
   if (call_frame->is_error) {
     results.EmitErrors(EmitErrorAsync(
-        exec_ctx, "Failed to execute the compiled kernel function"));
+        exec_ctx,
+        StrCat("compiled kernel run time error: ", call_frame->error)));
     return Error::success();
   }
 
@@ -1750,11 +1751,13 @@ extern "C" void* runtimeGetResultStorage(KernelContext* ctx, int64_t index) {
   return &ctx->call_frame->results[offset];
 }
 
-extern "C" void runtimeSetError(KernelContext* ctx) {
+extern "C" void runtimeSetError(KernelContext* ctx, const char* error) {
   assert(ctx && "kernel context must be not null");
+  assert(error && "runtime error must be not null");
   assert(!ctx->call_frame->is_error && "error must be set only once");
   assert(!ctx->has_set_outputs && "outputs must be undefined");
   ctx->call_frame->is_error = true;
+  ctx->call_frame->error = {error};
 }
 
 llvm::orc::SymbolMap RuntimeApiSymbolMap(llvm::orc::MangleAndInterner mangle) {

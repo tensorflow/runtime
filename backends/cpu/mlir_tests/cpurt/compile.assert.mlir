@@ -40,7 +40,7 @@ func @runtime_error() -> !tfrt.chain {
 
   %executable = cpurt.compile { kernel = @kernels::@main }
 
-  // expected-error @+1 {{Failed to execute the compiled kernel function}}
+  // expected-error @+1 {{Dimension 0 must have size 0}}
   %output = cpurt.execute %executable[%input_ready](%input)
               : (!t.tensor) -> (!t.tensor)
 

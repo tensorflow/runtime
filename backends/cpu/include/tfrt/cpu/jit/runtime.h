@@ -54,8 +54,7 @@ typedef struct KernelContext KernelContext;
 extern "C" void *runtimeGetResultStorage(KernelContext *, int64_t);
 
 // Sets kernel context to an error state.
-// TODO(ezhulenev): Accept error message and maybe error location.
-extern "C" void runtimeSetError(KernelContext *);
+extern "C" void runtimeSetError(KernelContext *, const char *);
 
 }  // namespace runtime
 }  // namespace jit

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// RUN: cpurt_opt %s --rt-to-llvm | FileCheck %s
+// RUN: cpurt_opt %s --split-input-file --rt-to-llvm | FileCheck %s --dump-input=always
 
 // CHECK: func @pass_context(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
@@ -20,6 +20,8 @@
 func @pass_context(%arg0: !rt.kernel_context) {
   return
 }
+
+// -----
 
 // CHECK: func @set_output(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
@@ -36,11 +38,22 @@ func @set_output(%arg0: !rt.kernel_context) {
   return
 }
 
+// -----
+
+// CHECK-DAG: llvm.mlir.global {{.*}} @[[ERR0:.*]]("Failed precondition #0\00")
+// CHECK-DAG: llvm.mlir.global {{.*}} @[[ERR1:.*]]("Failed precondition #1\00")
+
 // CHECK: func @set_error(
 // CHECK:   %[[CTX:.*]]: !llvm.ptr<i8>
 // CHECK: )
 func @set_error(%arg0: !rt.kernel_context) {
-  // CHECK: call @runtimeSetError(%[[CTX]])
-  rt.set_error %arg0, "Failed precondition"
+  // CHECK: %[[ADDR0:.*]] = llvm.mlir.addressof @[[ERR0]]
+  // CHECK: %[[PTR0:.*]] = llvm.bitcast %[[ADDR0]] {{.*}} to !llvm.ptr<i8>
+  // CHECK: call @runtimeSetError(%[[CTX]], %[[PTR0]])
+  rt.set_error %arg0, "Failed precondition #0"
+  // CHECK: %[[ADDR1:.*]] = llvm.mlir.addressof @[[ERR1]]
+  // CHECK: %[[PTR1:.*]] = llvm.bitcast %[[ADDR1]] {{.*}} to !llvm.ptr<i8>
+  // CHECK: call @runtimeSetError(%[[CTX]], %[[PTR1]])
+  rt.set_error %arg0, "Failed precondition #1"
   return
 }

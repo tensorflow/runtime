@@ -16,6 +16,7 @@
 //
 // Load MLIR and apply required passes on it.
 
+#include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
@@ -75,9 +76,10 @@ struct TestGpuAsyncConversionPass
 int main(int argc, char **argv) {
   mlir::DialectRegistry registry;
   tfrt::RegisterTFRTDialects(registry);
-  registry.insert<mlir::StandardOpsDialect, mlir::async::AsyncDialect,
-                  mlir::gpu::GPUDialect, mlir::memref::MemRefDialect,
-                  tfrt::compiler::TFRTDialect, tfrt::gpu::GpuDialect,
+  registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect,
+                  mlir::async::AsyncDialect, mlir::gpu::GPUDialect,
+                  mlir::memref::MemRefDialect, tfrt::compiler::TFRTDialect,
+                  tfrt::gpu::GpuDialect,
                   tfrt::gpu::conversion::GpuConversionDialect,
                   tfrt::test::TestDialect>();
   PassRegistration<tfrt::gpu::TestGpuAsyncConversionPass>();

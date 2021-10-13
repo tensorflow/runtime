@@ -47,6 +47,7 @@
 #include "mlir/Conversion/StandardToLLVM/ConvertStandardToLLVMPass.h"
 #include "mlir/Conversion/VectorToLLVM/ConvertVectorToLLVM.h"
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/Passes.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
@@ -1050,8 +1051,8 @@ static std::unique_ptr<mlir::MLIRContext> CreateMlirContext(
   registry.insert<mlir::AffineDialect, mlir::async::AsyncDialect,
                   mlir::linalg::LinalgDialect, mlir::memref::MemRefDialect,
                   mlir::scf::SCFDialect, mlir::StandardOpsDialect,
-                  mlir::math::MathDialect, mlir::vector::VectorDialect,
-                  RuntimeDialect>();
+                  mlir::arith::ArithmeticDialect, mlir::math::MathDialect,
+                  mlir::vector::VectorDialect, RuntimeDialect>();
 
   // Register MLIR dialects that can be translated to LLVM IR.
   mlir::registerArmNeonDialectTranslation(registry);
@@ -1297,7 +1298,8 @@ llvm::Error JitCompilationContext::Specialize(
       return MakeStringError("cannot get value from operand type: ", input_ty);
     }
 
-    auto cst = builder.create<mlir::ConstantOp>(loc, value.getType(), value);
+    auto cst =
+        builder.create<mlir::arith::ConstantOp>(loc, value.getType(), value);
     entry_block.getArgument(i).replaceAllUsesWith(cst);
 
     if (listener) listener->notifyValueSpecialized(i, value.getType(), value);

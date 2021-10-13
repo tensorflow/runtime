@@ -23,7 +23,7 @@ module @kernels attributes { tfrt.compiled } {
                        iterator_types = ["parallel", "parallel"] }
       ins(%input: memref<?x?xf32>) outs(%output : memref<?x?xf32>) {
         ^bb0(%in: f32, %out: f32):
-          %0 = addf %in, %in : f32
+          %0 = arith.addf %in, %in : f32
           linalg.yield %0 : f32
       }
       async.yield

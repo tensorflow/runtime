@@ -945,6 +945,7 @@ tfrt_cc_binary(
     deps = [
         ":gpu_opdefs",
         ":gpu_passes",
+        "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:Async",
         "@llvm-project//mlir:GPUDialect",
         "@llvm-project//mlir:MemRefDialect",

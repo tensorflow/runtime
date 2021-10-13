@@ -19,8 +19,8 @@ module @kernels attributes { tfrt.compiled } {
   // Kernel computes result into the allocated memref with dynamic shape.
   func @main(%input: memref<?x?xf32>)
              -> (!async.token, !async.value<memref<?x?xf32>>) {
-    %c0 = constant 0 : index
-    %c1 = constant 1 : index
+    %c0 = arith.constant 0 : index
+    %c1 = arith.constant 1 : index
     %0 = memref.dim %input, %c0 : memref<?x?xf32>
     %1 = memref.dim %input, %c1 : memref<?x?xf32>
     %output = memref.alloc(%0, %1) : memref<?x?xf32>
@@ -31,7 +31,7 @@ module @kernels attributes { tfrt.compiled } {
                        iterator_types = ["parallel", "parallel"] }
       ins(%input: memref<?x?xf32>) outs(%output : memref<?x?xf32>) {
         ^bb0(%in: f32, %out: f32):
-          %2 = addf %in, %in : f32
+          %2 = arith.addf %in, %in : f32
           linalg.yield %2 : f32
       }
       async.yield %output : memref<?x?xf32>

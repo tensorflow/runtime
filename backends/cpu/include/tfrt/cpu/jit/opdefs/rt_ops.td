@@ -95,7 +95,7 @@ def SetErrorOp : RT_Op<"set_error"> {
 
       ```mlir
       func @compute(%ctx: !rt.kernel_context) {
-        %precondition = cmpi ...
+        %precondition = arith.cmpi ...
         cond_br %precondition, ^ok, ^err
 
       ^ok:

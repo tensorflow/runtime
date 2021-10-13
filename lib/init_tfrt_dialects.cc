@@ -19,6 +19,7 @@
 #include "tfrt/init_tfrt_dialects.h"
 
 #include "mlir/Dialect/Affine/IR/AffineOps.h"
+#include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Linalg/IR/LinalgTypes.h"
 #include "mlir/Dialect/Math/IR/Math.h"
@@ -59,7 +60,7 @@ void RegisterTFRTDialects(mlir::DialectRegistry &registry) {
 
 void RegisterTFRTCompiledDialects(mlir::DialectRegistry &registry) {
   registry.insert<cpu::jit::RuntimeDialect>();
-  registry.insert<mlir::StandardOpsDialect>();
+  registry.insert<mlir::StandardOpsDialect, mlir::arith::ArithmeticDialect>();
   registry.insert<mlir::async::AsyncDialect>();
   registry.insert<mlir::linalg::LinalgDialect>();
   registry.insert<mlir::math::MathDialect>();

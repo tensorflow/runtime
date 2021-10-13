@@ -30,7 +30,7 @@ func @set_output(%arg0: !rt.kernel_context) {
   // CHECK: %[[MEMREF:.*]] = memref.alloc
   // CHECK: %[[LLVM_MEMREF:.*]] = builtin.unrealized_conversion_cast %[[MEMREF]]
   %0 = memref.alloc() : memref<f32>
-  // CHECK: %[[C0:.*]] = constant 0 : i64
+  // CHECK: %[[C0:.*]] = arith.constant 0 : i64
   // CHECK: %[[RES_PTR:.*]] = call @runtimeGetResultStorage(%[[CTX]], %[[C0]])
   // CHECK: %[[LLVM_PTR:.*]] = llvm.bitcast %[[RES_PTR]]
   // CHECK: llvm.store %[[LLVM_MEMREF]], %[[LLVM_PTR]]

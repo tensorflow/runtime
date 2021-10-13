@@ -135,10 +135,11 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
     return rewriter.notifyMatchFailure(view_op, "expected BufferType source");
   if (!adaptor.sizes().empty())
     return rewriter.notifyMatchFailure(view_op, "expected no sizes");
-  auto const_offset = adaptor.byte_shift().getDefiningOp<ConstantIndexOp>();
+  auto const_offset =
+      adaptor.byte_shift().getDefiningOp<arith::ConstantIndexOp>();
   auto size_bits = view_op.getType().getSizeInBits();
   auto source_type = view_op.source().getType().cast<MemRefType>();
-  if (const_offset && const_offset.getValue() == 0 &&
+  if (const_offset && const_offset.value() == 0 &&
       source_type.getSizeInBits() == size_bits) {
     rewriter.replaceOp(view_op, {adaptor.source()});
     return success();

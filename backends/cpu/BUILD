@@ -297,6 +297,7 @@ tfrt_cc_library(
         "@llvm-project//mlir:AMXToLLVMIRTranslation",
         "@llvm-project//mlir:Affine",
         "@llvm-project//mlir:AffineToStandard",
+        "@llvm-project//mlir:ArithmeticDialect",
         "@llvm-project//mlir:ArmNeonToLLVMIRTranslation",
         "@llvm-project//mlir:ArmSVEToLLVMIRTranslation",
         "@llvm-project//mlir:Async",

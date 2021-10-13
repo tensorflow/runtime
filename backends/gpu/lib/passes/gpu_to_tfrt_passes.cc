@@ -805,12 +805,12 @@ LogicalResult FoldConstCastPattern::matchAndRewrite(
   if (!IsTypes<IndexType>(cast_op.getOperandTypes()) ||
       !IsTypes<IntegerType>(cast_op.getResultTypes()))
     return rewriter.notifyMatchFailure(cast_op, "not cast from index to int");
-  auto const_op = cast_op.getOperand(0).getDefiningOp<ConstantOp>();
+  auto const_op = cast_op.getOperand(0).getDefiningOp<arith::ConstantOp>();
   if (!const_op)
     return rewriter.notifyMatchFailure(cast_op, "operand not def by constant");
   auto type = cast_op.getType(0).cast<IntegerType>();
   auto rewrite = [&](auto dummy) {
-    APInt value = const_op.getValue().cast<IntegerAttr>().getValue();
+    APInt value = const_op.value().cast<IntegerAttr>().getValue();
     if (type.isUnsigned())
       value = value.zextOrTrunc(type.getWidth());
     else

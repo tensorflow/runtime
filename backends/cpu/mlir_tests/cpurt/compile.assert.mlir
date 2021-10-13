@@ -17,11 +17,11 @@
 
 module @kernels attributes { tfrt.compiled } {
   func @main(%input: memref<?xf32>) -> memref<?xf32> {
-    %c0 = constant 0 : index
+    %c0 = arith.constant 0 : index
     %0 = memref.dim %input, %c0 : memref<?xf32>
 
     // This precondition is always false at run time.
-    %check = cmpi eq, %0, %c0 : index
+    %check = arith.cmpi eq, %0, %c0 : index
     assert %check, "Dimension 0 must have size 0"
 
     // We should never reach the memory allocation at run time.

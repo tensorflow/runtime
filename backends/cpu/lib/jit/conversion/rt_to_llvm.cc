@@ -38,7 +38,6 @@ namespace jit {
 namespace {
 
 using mlir::CallOp;
-using mlir::ConstantOp;
 using mlir::ConversionPatternRewriter;
 using mlir::ConversionTarget;
 using mlir::FuncOp;
@@ -61,6 +60,7 @@ using mlir::TypeConverter;
 using mlir::TypeRange;
 using mlir::UnrealizedConversionCastOp;
 using mlir::ValueRange;
+using mlir::arith::ConstantOp;
 
 namespace LLVM = mlir::LLVM;
 

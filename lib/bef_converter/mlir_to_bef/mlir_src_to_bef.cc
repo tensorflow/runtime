@@ -18,6 +18,7 @@
 
 #include "tfrt/bef_converter/mlir_src_to_bef.h"
 
+#include "mlir/Dialect/Arithmetic/IR/Arithmetic.h"
 #include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -30,7 +31,8 @@ namespace tfrt {
 
 static void registerMlirDialects(mlir::DialectRegistry& registry) {
   RegisterTFRTDialects(registry);
-  registry.insert<mlir::memref::MemRefDialect, mlir::StandardOpsDialect>();
+  registry.insert<mlir::memref::MemRefDialect, mlir::StandardOpsDialect,
+                  mlir::arith::ArithmeticDialect>();
 }
 
 static BefBuffer ConvertMLIRSrcToBEFImpl(string_view mlir_src,

@@ -150,7 +150,7 @@ module @test_launch_kernel attributes {gpu.container_module} {
   }
 
   func @func(%arg0 : !tfrt.chain, %arg1 : !tfrt_gpu.stream) -> () {
-    %one = constant 1 : index
+    %one = arith.constant 1 : index
     %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
         : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
     // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1

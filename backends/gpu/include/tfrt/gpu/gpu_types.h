@@ -23,6 +23,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <unordered_map>
 
@@ -36,6 +37,7 @@
 #include "tfrt/support/forward_decls.h"
 #include "tfrt/support/mutex.h"
 #include "tfrt/support/ref_count.h"
+#include "tfrt/support/thread_annotations.h"
 
 namespace tfrt {
 namespace gpu {
@@ -46,7 +48,32 @@ using GpuDnnTensorDesc = wrapper::OwningDnnTensorDescriptor;
 using GpuCclId = ncclUniqueId;
 
 class GpuContext {
+  class HostMemoryPool {
+   public:
+    Expected<wrapper::HostMemory<void>> Allocate(
+        wrapper::CurrentContext current, size_t size_bytes);
+    void Deallocate(GpuPointer pointer, size_t size_bytes);
+
+   private:
+    std::multimap<size_t, wrapper::HostMemory<void>> pool_
+        TFRT_GUARDED_BY(mutex_);
+    mutex mutex_;
+  };
+
+  template <typename T>
+  struct HostPoolMemoryDeleter {
+    using pointer = wrapper::Pointer<T>;
+    void operator()(GpuPointer pointer) const {
+      pool->Deallocate(pointer, size_bytes);
+    }
+    HostMemoryPool* pool;
+    size_t size_bytes;
+  };
+
  public:
+  template <typename T>
+  using HostPoolMemory = std::unique_ptr<T, HostPoolMemoryDeleter<T>>;
+
   explicit GpuContext(wrapper::OwningContext context);
   ~GpuContext();
 
@@ -57,8 +84,24 @@ class GpuContext {
   wrapper::Context get() const { return context_.get(); }
   wrapper::Context release();
 
+  // Allocates write-combined page-locked array of `count` elements.
+  // The user is responsible to destroy the result before the context.
+  //
+  // The memory is not deallocated until the context is. The indended use is to
+  // repeatedly allocate small amounts for device access or async memcopy.
+  template <typename T>
+  Expected<HostPoolMemory<T>> AllocateHostPoolMemory(
+      wrapper::CurrentContext current, size_t count) const {
+    size_t size_bytes = count * sizeof(T);
+    auto memory = host_memory_pool_->Allocate(current, size_bytes);
+    if (!memory) return memory.takeError();
+    auto pointer = static_cast<wrapper::Pointer<T>>(memory->release());
+    return HostPoolMemory<T>(pointer, {host_memory_pool_.get(), size_bytes});
+  }
+
  private:
   wrapper::OwningContext context_;
+  std::unique_ptr<HostMemoryPool> host_memory_pool_;
 };
 
 class GpuStream {

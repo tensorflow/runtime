@@ -24,12 +24,39 @@
 
 namespace tfrt {
 namespace gpu {
+
+Expected<wrapper::HostMemory<void>> GpuContext::HostMemoryPool::Allocate(
+    wrapper::CurrentContext current, size_t size_bytes) {
+  mutex_lock lock(mutex_);
+  auto it = pool_.lower_bound(size_bytes);
+  if (it != pool_.end()) {
+    auto result = std::move(it->second);
+    pool_.erase(it);
+    return std::move(result);
+  }
+  // Write-combined results in faster transfers from/to GPU, but the pages are
+  // not cached on CPU and should therefore be read/written at once.
+  wrapper::MemHostAllocFlags flags = wrapper::MemHostAllocFlags::DEVICEMAP |
+                                     wrapper::MemHostAllocFlags::WRITECOMBINED;
+  return wrapper::MemHostAlloc(current, size_bytes, flags);
+}
+
+void GpuContext::HostMemoryPool::Deallocate(GpuPointer pointer,
+                                            size_t size_bytes) {
+  mutex_lock lock(mutex_);
+  pool_.emplace(size_bytes, pointer);
+}
+
 GpuContext::GpuContext(wrapper::OwningContext context)
-    : context_(std::move(context)) {}
+    : context_(std::move(context)), host_memory_pool_(new HostMemoryPool) {}
 
 GpuContext::~GpuContext() = default;
 
-wrapper::Context GpuContext::release() { return context_.release(); }
+wrapper::Context GpuContext::release() {
+  auto result = context_.release();
+  host_memory_pool_.reset();
+  return result;
+}
 
 GpuStream::GpuStream(AsyncValueRef<GpuContext> context,
                      wrapper::OwningStream stream)

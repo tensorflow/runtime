@@ -170,48 +170,37 @@ static Error BlasTrsmBatch(
   auto alpha_ptr = GetScalePointer(alpha, data_type);
   if (!alpha_ptr) return alpha_ptr.takeError();
 
-  auto pin_memory = [&](std::vector<void*>& buffers,
-                        wrapper::Pointer<void> pointer,
-                        ptrdiff_t batch_stride_bytes) {
-    buffers.reserve(batchCount);
-    char* buffer_ptr = static_cast<char*>(pointer.raw(platform));
-    for (int i = 0; i < batchCount; ++i) {
-      buffers.push_back(buffer_ptr);
-      buffer_ptr += batch_stride_bytes;
+  auto call = [&](auto dummy) {
+    using T = decltype(dummy);
+    auto pointer_array =
+        handle.context()->AllocateHostPoolMemory<T*>(*current, 2 * batchCount);
+    if (!pointer_array) return pointer_array.takeError();
+    T** b_array = pointer_array->get().raw(platform);
+    const T** a_array = const_cast<const T**>(b_array + batchCount);
+
+    auto side_mode = wrapper::BlasSideMode::FromOpaqueValue(*sideMode);
+    ptrdiff_t a_batch_stride = side_mode == CUBLAS_SIDE_LEFT ? m * m : n * n;
+    ptrdiff_t b_batch_stride = m * n;
+    const T* a_ptr = static_cast<const T*>(A.pointer().raw(platform));
+    T* b_ptr = static_cast<T*>(A.pointer().raw(platform));
+    for (int32_t i = 0; i < batchCount; ++i) {
+      a_array[i] = a_ptr + i * a_batch_stride;
+      b_array[i] = b_ptr + i * b_batch_stride;
     }
 
-    // TODO(hanbinyoon): For performance, consider using scratch space that is
-    // already pinned (as part of GpuContext).
-    return wrapper::MemHostRegister(*current, buffers.data(),
-                                    buffers.size() * sizeof(void*),
-                                    wrapper::MemHostRegisterFlags::DEVICEMAP);
-  };
+    wrapper::Pointer<const T*> a_array_ptr(a_array, platform);
+    wrapper::Pointer<T*> b_array_ptr(b_array, platform);
+    auto cast_alpha_ptr = static_cast<wrapper::Pointer<const T>>(*alpha_ptr);
 
-  auto call = [&](auto dummy) {
-    std::vector<void*> a_buffers, b_buffers;
-    auto side_mode = wrapper::BlasSideMode::FromOpaqueValue(*sideMode);
-    ptrdiff_t a_batch_stride_bytes = side_mode == CUBLAS_SIDE_LEFT
-                                         ? m * m * sizeof(dummy)
-                                         : n * n * sizeof(dummy);
-    ptrdiff_t b_batch_stride_bytes = m * n * sizeof(dummy);
+    auto current = wrapper::CtxSetCurrent(handle.context()->get());
+    if (!current) return current.takeError();
 
-    auto a_pinned = pin_memory(a_buffers, A.pointer(), a_batch_stride_bytes);
-    if (!a_pinned) return a_pinned.takeError();
-    auto b_pinned = pin_memory(b_buffers, B.pointer(), b_batch_stride_bytes);
-    if (!b_pinned) return b_pinned.takeError();
-
-    auto a_buffer_array_ptr =
-        static_cast<wrapper::Pointer<const decltype(dummy)*>>(a_pinned->get());
-    auto b_buffer_array_ptr =
-        static_cast<wrapper::Pointer<decltype(dummy)*>>(b_pinned->get());
-    auto cast_alpha_ptr =
-        static_cast<wrapper::Pointer<const decltype(dummy)>>(*alpha_ptr);
     return wrapper::CublasTrsmBatched(
         *current, handle.get(), side_mode,
         wrapper::BlasFillMode::FromOpaqueValue(*fillMode),
         wrapper::BlasOperation::FromOpaqueValue(*trans),
         wrapper::BlasDiagType::FromOpaqueValue(*diagType), m, n, cast_alpha_ptr,
-        a_buffer_array_ptr, heightA, b_buffer_array_ptr, heightB, batchCount);
+        a_array_ptr, heightA, b_array_ptr, heightB, batchCount);
   };
 
   switch (data_type) {

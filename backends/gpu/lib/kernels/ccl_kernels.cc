@@ -211,7 +211,7 @@ static AsyncValueRef<Chain> CclExecute(Argument<GpuStream> stream,
       exec_ctx,
       [stream = stream.ValueRef(),
        handle = handle.ValueRef()]() -> Expected<Chain> {
-        auto current = wrapper::CtxSetCurrent(stream->context());
+        auto current = wrapper::CtxSetCurrent(stream->context()->get());
         if (!current) return current.takeError();
         if (auto error = handle->ExecuteCallbacks(*current, stream->get()))
           return std::move(error);

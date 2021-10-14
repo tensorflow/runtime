@@ -29,7 +29,7 @@ namespace tfrt {
 namespace gpu {
 
 static Expected<GpuBlasHandle> BlasCreate(Argument<GpuStream> stream) {
-  auto current = wrapper::CtxSetCurrent(stream->context());
+  auto current = wrapper::CtxSetCurrent(stream->context()->get());
   if (!current) return current.takeError();
   auto handle = wrapper::BlasCreate(*current);
   if (!handle) return handle.takeError();
@@ -75,7 +75,7 @@ static Error BlasAxpy(const GpuBlasHandle& handle, int32_t n, AsyncValue* alpha,
                       int32_t strideY, Attribute<int32_t> executionType,
                       Attribute<int32_t> typeAlpha, Attribute<int32_t> typeX,
                       Attribute<int32_t> typeY) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   auto type_alpha = wrapper::BlasDataType::FromOpaqueValue(*typeAlpha);
@@ -102,7 +102,7 @@ static Error BlasGemm(const GpuBlasHandle& handle, int32_t m, int32_t n,
                       Attribute<int32_t> computeType, Attribute<int32_t> transA,
                       Attribute<int32_t> transB, Attribute<int32_t> typeA,
                       Attribute<int32_t> typeB, Attribute<int32_t> typeC) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
@@ -130,7 +130,7 @@ static Error BlasGemmBatch(
     Attribute<int32_t> computeType, Attribute<int32_t> transA,
     Attribute<int32_t> transB, Attribute<int32_t> typeA,
     Attribute<int32_t> typeB, Attribute<int32_t> typeC) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   auto compute_type = wrapper::BlasComputeType::FromOpaqueValue(*computeType);
@@ -163,7 +163,7 @@ static Error BlasTrsmBatch(
   if (platform != wrapper::Platform::CUDA)
     return MakeStringError("Unsupported platform ", platform);
 
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);

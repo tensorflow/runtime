@@ -89,7 +89,7 @@ AsyncValueRef<GpuStream> System::CreateStream(ExecutionContext& exec_ctx,
 AsyncValueRef<GpuAllocator> System::CreateAllocator(
     ExecutionContext& exec_ctx, AsyncValueRef<GpuStream> stream) {
   return MakeAvailableAsyncValueRef<GpuDefaultAllocator>(exec_ctx.host(),
-                                                         stream->gpu_context());
+                                                         stream->context());
 }
 
 AsyncValueRef<GpuBuffer> System::Allocate(ExecutionContext& exec_ctx,
@@ -127,7 +127,8 @@ AsyncValueRef<Chain> System::TransferToDevice(ExecutionContext& exec_ctx,
                        src.size(), ")"));
                  }
 
-                 auto current = wrapper::CtxSetCurrent(stream->context());
+                 auto current =
+                     wrapper::CtxSetCurrent(stream->context()->get());
                  if (!current) return out_chain.SetError(current.takeError());
 
                  if (auto error = wrapper::MemcpyAsync(
@@ -164,7 +165,7 @@ AsyncValueRef<Chain> System::TransferFromDevice(ExecutionContext& exec_ctx,
               src->size(), ")"));
         }
 
-        auto current = wrapper::CtxSetCurrent(stream->context());
+        auto current = wrapper::CtxSetCurrent(stream->context()->get());
         if (!current) return out_chain.SetError(current.takeError());
 
         if (auto error = wrapper::MemcpyAsync(

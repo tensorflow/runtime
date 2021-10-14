@@ -41,7 +41,7 @@ static llvm::Expected<ArrayRef<T>> GetTensorData(const DenseHostTensor& t) {
 }
 
 static Expected<GpuDnnHandle> DnnCreate(Argument<GpuStream> stream) {
-  auto current = wrapper::CtxSetCurrent(stream->context());
+  auto current = wrapper::CtxSetCurrent(stream->context()->get());
   if (!current) return current.takeError();
   auto handle = wrapper::DnnCreate(*current);
   if (!handle) return handle.takeError();
@@ -121,7 +121,7 @@ static Error DnnPoolingForward(
     const wrapper::OwningDnnPoolingDescriptor& pooling_desc, float alpha,
     const GpuDnnTensorDesc& x_desc, const GpuBuffer& x, float beta,
     const GpuDnnTensorDesc& y_desc, const GpuBuffer& y) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
   wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
   wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
@@ -138,7 +138,7 @@ static Error DnnPoolingBackward(
     const GpuDnnTensorDesc& dy_desc, const GpuBuffer& dy,
     const GpuDnnTensorDesc& x_desc, const GpuBuffer& x, float beta,
     const GpuDnnTensorDesc& dx_desc, const GpuBuffer& dx) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
   wrapper::Pointer<const void> alpha_ptr(&alpha, handle->platform());
   wrapper::Pointer<const void> beta_ptr(&beta, handle->platform());
@@ -156,7 +156,7 @@ Error DnnConvolutionForward(
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space, const GpuDnnTensorDesc& y_desc,
     const GpuBuffer& y) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
   auto algo_dnn = wrapper::DnnConvFwdAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionForward(
@@ -172,7 +172,7 @@ Error DnnConvolutionBackwardData(
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space, const GpuDnnTensorDesc& dx_desc,
     const GpuBuffer& dx) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
   auto algo_dnn = wrapper::DnnConvBwdDataAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionBackwardData(
@@ -187,7 +187,7 @@ Error DnnConvolutionBackwardFilter(
     const wrapper::OwningDnnConvolutionDescriptor& conv_desc, uint64_t algo,
     const GpuBuffer& work_space,
     const wrapper::OwningDnnFilterDescriptor& dw_desc, const GpuBuffer& dw) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
   auto algo_dnn = wrapper::DnnConvBwdWeightsAlgo(algo, handle->platform());
   return wrapper::DnnConvolutionBackwardFilter(
@@ -207,7 +207,7 @@ Error CudnnConvolutionBiasActivationForward(
     const GpuDnnTensorDesc& bias_desc, const GpuBuffer& bias,
     const wrapper::OwningDnnActivationDescriptor& activation_desc,
     const GpuDnnTensorDesc& y_desc, const GpuBuffer& y) {
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
   auto algo_dnn = static_cast<cudnnConvolutionFwdAlgo_t>(algo);
   return wrapper::CudnnConvolutionBiasActivationForward(

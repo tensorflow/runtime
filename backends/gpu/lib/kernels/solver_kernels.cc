@@ -32,7 +32,7 @@ namespace gpu {
 
 static llvm::Expected<GpuSolverHandle> SolverCreate(
     Argument<GpuStream> stream) {
-  auto current = wrapper::CtxSetCurrent(stream->context());
+  auto current = wrapper::CtxSetCurrent(stream->context()->get());
   if (!current) return current.takeError();
   auto handle = wrapper::SolverCreate(current->platform());
   if (!handle) return handle.takeError();
@@ -48,7 +48,7 @@ static llvm::Expected<int64_t> SolverPotrfBufferSize(
   if (platform != wrapper::Platform::CUDA)
     return MakeStringError("Unsupported platform ", platform);
 
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
@@ -89,7 +89,7 @@ static Error SolverPotrf(const GpuSolverHandle& handle, int32_t n,
   if (platform != wrapper::Platform::CUDA)
     return MakeStringError("Unsupported platform ", platform);
 
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
@@ -130,7 +130,7 @@ static Error SolverPotrfBatch(const GpuSolverHandle& handle, int32_t n,
   if (platform != wrapper::Platform::CUDA)
     return MakeStringError("Unsupported platform ", platform);
 
-  auto current = wrapper::CtxSetCurrent(handle.context());
+  auto current = wrapper::CtxSetCurrent(handle.context()->get());
   if (!current) return current.takeError();
 
   cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);

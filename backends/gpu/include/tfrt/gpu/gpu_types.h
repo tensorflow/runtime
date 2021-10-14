@@ -74,8 +74,7 @@ class GpuStream {
   wrapper::Stream get() const { return stream_.get(); }
   wrapper::Stream release();
 
-  wrapper::Context context() const { return context_->get(); }
-  AsyncValueRef<GpuContext> gpu_context() const { return context_.CopyRef(); }
+  const AsyncValueRef<GpuContext>& context() const { return context_; }
 
  private:
   AsyncValueRef<GpuContext> context_;
@@ -127,7 +126,7 @@ class GpuModule {
   GpuModule(GpuModule&&) = default;
   GpuModule& operator=(GpuModule&&) = default;
 
-  const wrapper::OwningModule* operator->() const { return &module_; }
+  const wrapper::OwningModule& operator->() const { return module_; }
   wrapper::Module get() const { return module_.get(); }
 
  private:
@@ -198,7 +197,7 @@ class GpuDefaultAllocator : public GpuAllocator {
   GpuDefaultAllocator(GpuDefaultAllocator&&) = default;
   GpuDefaultAllocator& operator=(GpuDefaultAllocator&&) = default;
 
-  wrapper::Context context() const { return context_->get(); }
+  const AsyncValueRef<GpuContext>& context() const { return context_; }
 
  private:
   Expected<GpuPointer> Allocate(size_t size, wrapper::Stream stream) override;
@@ -292,7 +291,9 @@ class GpuBlasHandle {
   const wrapper::OwningBlasHandle& operator->() const { return handle_; }
   wrapper::BlasHandle get() const { return handle_.get(); }
 
-  wrapper::Context context() const { return stream_->context(); }
+  const AsyncValueRef<GpuContext>& context() const {
+    return stream_->context();
+  }
 
  private:
   AsyncValueRef<GpuStream> stream_;
@@ -323,7 +324,7 @@ class GpuCclHandle {
   wrapper::CclComm get() const { return comm_.get(); }
   wrapper::CclComm release();
 
-  wrapper::Context context() const { return context_->get(); }
+  const AsyncValueRef<GpuContext>& context() const { return context_; }
 
  private:
   AsyncValueRef<GpuContext> context_;
@@ -343,7 +344,9 @@ class GpuDnnHandle {
   const wrapper::OwningDnnHandle& operator->() const { return handle_; }
   wrapper::DnnHandle get() const { return handle_.get(); }
 
-  wrapper::Context context() const { return stream_->context(); }
+  const AsyncValueRef<GpuContext>& context() const {
+    return stream_->context();
+  }
 
  private:
   AsyncValueRef<GpuStream> stream_;
@@ -362,7 +365,9 @@ class GpuSolverHandle {
   const wrapper::OwningSolverHandle& operator->() const { return handle_; }
   wrapper::SolverHandle get() const { return handle_.get(); }
 
-  wrapper::Context context() const { return stream_->context(); }
+  const AsyncValueRef<GpuContext>& context() const {
+    return stream_->context();
+  }
 
  private:
   AsyncValueRef<GpuStream> stream_;

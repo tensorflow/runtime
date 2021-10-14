@@ -72,7 +72,7 @@ static Expected<GpuStream> GpuStreamCreate(Argument<GpuContext> context) {
 
 // tfrt_gpu.stream.get_context returns the context the stream was created with.
 static AsyncValueRef<GpuContext> GpuStreamGetContext(const GpuStream& stream) {
-  return stream.gpu_context();
+  return stream.context().CopyRef();
 }
 
 // tfrt_gpu.stream.wait makes a stream wait on an event.
@@ -152,7 +152,7 @@ static Error GpuMemset(const GpuBuffer& buffer, AsyncValue* untyped_value,
     return MakeStringError("Expected 32 bit value.");
   }
 
-  auto current = wrapper::CtxSetCurrent(stream.context());
+  auto current = wrapper::CtxSetCurrent(stream.context()->get());
   if (!current) return current.takeError();
 
   union {
@@ -179,7 +179,7 @@ static Error GpuMemCopy(RemainingArguments args) {
     return MakeStringError("Expected 4 arguments, got ", args.size());
 
   const GpuStream& stream = args[2]->get<GpuStream>();
-  auto current = wrapper::CtxSetCurrent(stream.context());
+  auto current = wrapper::CtxSetCurrent(stream.context()->get());
   if (!current) return current.takeError();
 
   auto get_size = [](AsyncValue* arg) {
@@ -337,7 +337,7 @@ static Error GpuFunctionLaunch(const GpuStream& stream,
                                uint32_t block_dim_z,
                                uint32_t shared_memory_size_bytes, Chain,
                                RemainingArguments args) {
-  auto current = wrapper::CtxSetCurrent(stream.context());
+  auto current = wrapper::CtxSetCurrent(stream.context()->get());
   if (!current) return current.takeError();
 
   // Kernel params are a vector of pointers to the kernel args, so we must first

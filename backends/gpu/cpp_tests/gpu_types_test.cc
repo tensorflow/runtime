@@ -69,7 +69,7 @@ TEST_P(Test, BorrowedGpuStream) {
 
   BorrowedGpuStream borrowed_stream(context.get(), stream.get());
   auto stream_ref = static_cast<AsyncValueRef<GpuStream>>(borrowed_stream);
-  EXPECT_EQ(stream_ref->context(), context.get());
+  EXPECT_EQ(stream_ref->context()->get(), context.get());
   EXPECT_EQ(stream_ref->get(), stream.get());
 }
 

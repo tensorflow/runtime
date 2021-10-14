@@ -182,9 +182,17 @@ struct CpuOpHandlerTraits {
     op_entry.dispatch_fn(exec_ctx, inputs, attrs, result_mds, results, chain);
   }
 
+  // TODO(fishx): Remove this method.
   static Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
   GetResultDevice(CpuOpHandler* cpu_op_handler,
                   const AsyncValueRef<Tensor>& result_tensor_av,
+                  const ExecutionContext& exec_ctx) {
+    return cpu_op_handler->GetDeviceRef();
+  }
+
+  static Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
+  GetResultDevice(const CpuOpEntry& op_entry, CpuOpHandler* cpu_op_handler,
+                  const AsyncValueRef<Tensor>& result_tensor_av, int index,
                   const ExecutionContext& exec_ctx) {
     return cpu_op_handler->GetDeviceRef();
   }

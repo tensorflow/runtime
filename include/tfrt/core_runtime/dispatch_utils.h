@@ -72,6 +72,7 @@ namespace tfrt {
 //   GetResultDevice(
 //       [const OpHandlerInfoTy& op_handler_info,]
 //       const AsyncValueRef<Tensor>& result_tensor_av,
+//       int index,
 //       const ExecutionContext& exec_ctx);
 // };
 //
@@ -539,13 +540,13 @@ bool ExecuteOnOpHandlerImpl(
   internal::ExecuteWithResultMetadataResolved<OpHandlerTraits>(
       invocation.exec_ctx, invocation.arguments, invocation.attrs,
       results.size(), result_mds, result_md_avs_ptr, &result_tensor_avs,
-      invocation.chain, update_chain, std::move(op_entry),
-      std::move(op_handler_info));
+      invocation.chain, update_chain, op_entry, std::move(op_handler_info));
 
   for (size_t i = 0, e = results.size(); i != e; ++i) {
     Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
         result_device = OpHandlerTraits::GetResultDevice(
-            op_handler_info, result_tensor_avs[i], invocation.exec_ctx);
+            op_entry, op_handler_info, result_tensor_avs[i], i,
+            invocation.exec_ctx);
     if (result_device.is<AsyncValueRef<RCReference<Device>>>() &&
         result_device.get<AsyncValueRef<RCReference<Device>>>().IsError()) {
       results[i] = tfrt::TensorHandle::CreateError(

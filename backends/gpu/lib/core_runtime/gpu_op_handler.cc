@@ -93,10 +93,18 @@ struct GpuOpHandlerTraits {
                          results, chain);
   }
 
-  // TODO(b/168609399): design a proper way to obtain device for result tensors.
+  // TODO(fishx): Remove this method.
   static Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
   GetResultDevice(GpuOpHandler* gpu_op_handler,
                   const AsyncValueRef<Tensor>& result_tensor_av,
+                  const ExecutionContext& exec_ctx) {
+    return gpu_op_handler->GetDeviceRef();
+  }
+
+  // TODO(b/168609399): design a proper way to obtain device for result tensors.
+  static Variant<RCReference<Device>, AsyncValueRef<RCReference<Device>>>
+  GetResultDevice(const GpuOpEntry& op_entry, GpuOpHandler* gpu_op_handler,
+                  const AsyncValueRef<Tensor>& result_tensor_av, int index,
                   const ExecutionContext& exec_ctx) {
     return gpu_op_handler->GetDeviceRef();
   }

@@ -28,18 +28,6 @@
 namespace tfrt {
 namespace gpu {
 
-template <typename T>
-static llvm::Expected<ArrayRef<T>> GetTensorData(const DenseHostTensor& t) {
-  if (t.shape().GetRank() != 1) {
-    return MakeStringError(
-        "GetTensorData: input tensor is not a rank 1 tensor");
-  }
-  if (t.dtype() != GetDType<T>())
-    return tfrt::MakeStringError(
-        "GetTensorData: input tensor type mismatch with desired vector type.");
-  return ArrayRef<T>(static_cast<const T*>(t.data()), t.NumElements());
-}
-
 static Expected<GpuDnnHandle> DnnCreate(Argument<GpuStream> stream) {
   auto current = wrapper::CtxSetCurrent(stream->context()->get());
   if (!current) return current.takeError();
@@ -52,66 +40,32 @@ static Expected<GpuDnnHandle> DnnCreate(Argument<GpuStream> stream) {
 
 static Expected<wrapper::OwningDnnPoolingDescriptor> DnnCreatePoolingDescriptor(
     const GpuContext& context, uint32_t mode, uint32_t nan_propagation,
-    const DenseHostTensor& window_dimensions, const DenseHostTensor& paddings,
-    const DenseHostTensor& strides) {
+    // Needs to be sorted alphabetically by attribute name!
+    ArrayAttr paddings, ArrayAttr strides, ArrayAttr window_dimensions) {
   auto current = wrapper::CtxSetCurrent(context.get());
   auto descriptor = wrapper::DnnCreatePoolingDescriptor(context->platform());
   if (!descriptor) return descriptor.takeError();
-  if (window_dimensions.dtype() != tfrt::DType::I32)
-    return MakeStringError(
-        "DnnCreatePoolingDescriptor: window_dimensions is not an I32 tensor.");
-  auto window_dimensions_data = GetTensorData<int>(window_dimensions);
-  if (!window_dimensions_data)
-    return MakeStringError(
-        "DnnCreatePoolingDescriptor: window_dimensions is not a 1D tensor.");
-  if (paddings.dtype() != tfrt::DType::I32)
-    return MakeStringError(
-        "DnnSetPoolingDescriptor: paddings is not an I32 tensor.");
-  auto paddings_data = GetTensorData<int>(paddings);
-  if (!paddings_data)
-    return MakeStringError(
-        "DnnSetPoolingDescriptor: paddings is not a 1D tensor.");
-  if (strides.dtype() != tfrt::DType::I32)
-    return MakeStringError(
-        "DnnCreatePoolingDescriptor: strides is not an I32 tensor.");
-  auto strides_data = GetTensorData<int>(strides);
-  if (!strides_data)
-    return MakeStringError(
-        "DnnCreatePoolingDescriptor: strides is not a 1D tensor.");
   wrapper::DnnNanPropagation cuda_nan_propagation;
   if (current->platform() == wrapper::Platform::CUDA)
     cuda_nan_propagation = static_cast<cudnnNanPropagation_t>(nan_propagation);
   if (auto error = wrapper::DnnSetPoolingDescriptor(
           descriptor->get(), static_cast<wrapper::DnnPoolingMode>(mode),
-          cuda_nan_propagation, window_dimensions_data.get(),
-          paddings_data.get(), strides_data.get()))
+          cuda_nan_propagation, window_dimensions.GetValue<int32_t>(),
+          paddings.GetValue<int32_t>(), strides.GetValue<int32_t>()))
     return std::move(error);
   return std::move(*descriptor);
 }
 
 static Expected<GpuDnnTensorDesc> DnnCreateTensorDescriptor(
-    const DenseHostTensor& dimensions, const DenseHostTensor& strides,
-    Attribute<int32_t> data_type_attr) {
+    // Needs to be sorted alphabetically by attribute name!
+    Attribute<int32_t> data_type_attr, ArrayAttr dimensions,
+    ArrayAttr strides) {
   auto data_type = wrapper::DnnDataType::FromOpaqueValue(*data_type_attr);
   auto descriptor = wrapper::DnnCreateTensorDescriptor(data_type.platform());
   if (!descriptor) return descriptor.takeError();
-  if (dimensions.dtype() != tfrt::DType::I32)
-    return MakeStringError(
-        "DnnCreateTensorDescriptor: dimensions is not an I32 tensor.");
-  auto dimensions_data = GetTensorData<int>(dimensions);
-  if (!dimensions_data)
-    return MakeStringError(
-        "DnnCreateTensorDescriptor: dimensions is not a 1D tensor.");
-  if (strides.dtype() != tfrt::DType::I32)
-    return MakeStringError(
-        "DnnCreateTensorDescriptor: strides is not an I32 tensor.");
-  auto strides_data = GetTensorData<int>(strides);
-  if (!strides_data)
-    return MakeStringError(
-        "DnnCreateTensorDescriptor: strides is not a 1D tensor.");
-  if (auto error = wrapper::DnnSetTensorDescriptor(descriptor->get(), data_type,
-                                                   dimensions_data.get(),
-                                                   strides_data.get()))
+  if (auto error = wrapper::DnnSetTensorDescriptor(
+          descriptor->get(), data_type, dimensions.GetValue<int32_t>(),
+          strides.GetValue<int32_t>()))
     return std::move(error);
   return std::move(*descriptor);
 }

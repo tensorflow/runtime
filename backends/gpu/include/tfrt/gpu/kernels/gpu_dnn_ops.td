@@ -82,26 +82,21 @@ def GPU_DnnCreatePoolingDescriptorOp : GPU_Op<"dnn.create_pooling_descriptor"> {
     any other value -> Error
 
     Example:
-    %dim0 = tfrt.constant.i32 3
-    %dim1 = tfrt.constant.i32 3
-    %window_dimensions = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
-    %ch15 = "tfrt_dht.set_tensor_with_values.i32"(%window_dimensions, %ch14, %dim0, %dim1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
-    %p0 = tfrt.constant.i32 0
-    %p1 = tfrt.constant.i32 0
-    %paddings = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
-    %ch16 = "tfrt_dht.set_tensor_with_values.i32"(%paddings, %ch15, %p0, %p1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
-    %s0 = tfrt.constant.i32 1
-    %s1 = tfrt.constant.i32 1
-    %strides = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
-    %ch17 = "tfrt_dht.set_tensor_with_values.i32"(%strides, %ch16, %s0, %s1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
     %mode = tfrt.constant.ui32 0
     %nan_propagation = tfrt.constant.ui32 0
-    %pooling_desc, %ch18 = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
-
+    %pooling_desc = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode,
+      %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32],
+      [1 : i32, 1 : i32], %ch0
   }];
-  let arguments = (ins GPU_ContextType, UI32, UI32, TensorType, TensorType,
-                   TensorType, TFRT_ChainType);
+  let arguments = (ins GPU_ContextType:$context, UI32:$mode,
+                   UI32:$nan_propagation, I32ArrayAttr:$window_dimensions,
+                   I32ArrayAttr:$paddings, I32ArrayAttr:$strides,
+                   TFRT_ChainType:$chain);
   let results = (outs GPU_DnnPoolingDescriptorType);
+  let assemblyFormat = [{
+    $context`,` $mode`,` $nan_propagation`,` $window_dimensions`,` $paddings`,`
+    $strides`,` $chain attr-dict
+  }];
 }
 
 def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
@@ -111,14 +106,15 @@ def GPU_DnnCreateTensorDescriptorOp : GPU_Op<"dnn.create_tensor_descriptor"> {
     structure. The data is initialized to provided values.
 
     Example:
-    %dimensions = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
-    %strides = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
-    %desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT, %dimensions, %strides, %ch0
+    %desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
+      [3 : i32, 3 : i32], [1 : i32, 1 : i32], %ch0
   }];
-  let arguments = (ins GPU_DnnDataTypeAttr:$data_type, TensorType:$dimensions,
-                   TensorType:$strides, TFRT_ChainType);
+  let arguments = (ins GPU_DnnDataTypeAttr:$data_type, I32ArrayAttr:$dimensions,
+                   I32ArrayAttr:$strides, TFRT_ChainType:$chain);
   let results = (outs GPU_DnnTensorDescriptorType);
-  let assemblyFormat = "custom<Enum>($data_type)`,` operands attr-dict";
+  let assemblyFormat = [{
+    custom<Enum>($data_type)`,` $dimensions`,` $strides`,` $chain attr-dict
+  }];
 }
 
 def GPU_DnnPoolingForwardOp : GPU_Op<"dnn.pooling_forward"> {

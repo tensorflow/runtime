@@ -119,49 +119,19 @@ func @dnn_pooling_test() {
 
   %dnn = tfrt_gpu.dnn.create %stream
 
-  %dim0 = tfrt.constant.i32 3
-  %dim1 = tfrt.constant.i32 3
-  %window_dimensions = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
-  %ch15 = "tfrt_dht.set_tensor_with_values.i32"(%window_dimensions, %ch12, %dim0, %dim1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
-  %p0 = tfrt.constant.i32 0
-  %p1 = tfrt.constant.i32 0
-  %paddings = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
-  %ch16 = "tfrt_dht.set_tensor_with_values.i32"(%paddings, %ch15, %p0, %p1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
-  %s0 = tfrt.constant.i32 1
-  %s1 = tfrt.constant.i32 1
-  %strides = tfrt_dht.create_uninitialized_tensor.i32.1 [2 : i64]
-  %ch17 = "tfrt_dht.set_tensor_with_values.i32"(%strides, %ch16, %s0, %s1):(!t.tensor, !tfrt.chain, i32, i32) -> !tfrt.chain
   %mode = tfrt.constant.ui32 0
   %nan_propagation = tfrt.constant.ui32 0
-  %pooling_desc = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode, %nan_propagation, %window_dimensions, %paddings, %strides, %ch17
+  %pooling_desc = tfrt_gpu.dnn.create_pooling_descriptor %context, %mode,
+    %nan_propagation, [3 : i32, 3 : i32], [0 : i32, 0 : i32],
+    [1 : i32, 1 : i32], %ch12
 
-  %din0 = tfrt.constant.i32 2
-  %din1 = tfrt.constant.i32 2
-  %din2 = tfrt.constant.i32 10
-  %din3 = tfrt.constant.i32 10
-  %dim_in = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
-  %ch19 = "tfrt_dht.set_tensor_with_values.i32"(%dim_in, %ch17, %din0, %din1, %din2, %din3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
-  %sin0 = tfrt.constant.i32 200
-  %sin1 = tfrt.constant.i32 100
-  %sin2 = tfrt.constant.i32 10
-  %sin3 = tfrt.constant.i32 1
-  %stride_in = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
-  %ch20 = "tfrt_dht.set_tensor_with_values.i32"(%stride_in, %ch19, %sin0, %sin1, %sin2, %sin3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
-  %in_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT, %dim_in, %stride_in, %ch20
+  %in_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
+    [2 : i32, 2 : i32, 10 : i32, 10 : i32],
+    [200 : i32, 100 : i32, 10 : i32, 1 : i32], %ch12
 
-  %dout0 = tfrt.constant.i32 2
-  %dout1 = tfrt.constant.i32 2
-  %dout2 = tfrt.constant.i32 8
-  %dout3 = tfrt.constant.i32 8
-  %dim_out = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
-  %ch23 = "tfrt_dht.set_tensor_with_values.i32"(%dim_out, %ch20, %dout0, %dout1, %dout2, %dout3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
-  %sout0 = tfrt.constant.i32 128
-  %sout1 = tfrt.constant.i32 64
-  %sout2 = tfrt.constant.i32 8
-  %sout3 = tfrt.constant.i32 1
-  %stride_out = tfrt_dht.create_uninitialized_tensor.i32.1 [4 : i64]
-  %ch24 = "tfrt_dht.set_tensor_with_values.i32"(%stride_out, %ch23, %sout0, %sout1, %sout2, %sout3):(!t.tensor, !tfrt.chain, i32, i32, i32, i32) -> !tfrt.chain
-  %out_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT, %dim_out, %stride_out, %ch24
+  %out_desc = tfrt_gpu.dnn.create_tensor_descriptor CUDNN_DATA_FLOAT,
+    [2 : i32, 2 : i32, 8 : i32, 8 : i32],
+    [128 : i32, 64 : i32, 8 : i32, 1 : i32], %ch12
 
   %alpha = tfrt.constant.f32 1.0
   %beta = tfrt.constant.f32 0.0
@@ -169,10 +139,10 @@ func @dnn_pooling_test() {
   %kinsize = tfrt.constant.i64 144  //  (2 * 2 * 3 * 3) * (size of f32 = 4);
   %koutsize = tfrt.constant.i64 16  //  (2 * 2 * 1 * 1) * (size of f32 = 4);
 
-  %input_device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %kinsize, %ch24
-  %output_device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %koutsize, %ch24
+  %input_device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %kinsize, %ch12
+  %output_device_buffer = tfrt_gpu.mem.allocate %allocator, %stream, %koutsize, %ch12
 
-  %host_input_buffer, %ch28 = tfrt_dht.get_buffer %input, %ch24
+  %host_input_buffer, %ch28 = tfrt_dht.get_buffer %input, %ch12
   %ch29 = tfrt_gpu.mem.copy %input_device_buffer, %host_input_buffer, %stream, %ch28 : !tfrt_gpu.buffer, !ht.host_buffer
 
   %output_tensor = tfrt_dht.create_uninitialized_tensor.f32.4 [2 : i64, 2 : i64, 1 : i64, 1 : i64]

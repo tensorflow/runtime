@@ -391,6 +391,9 @@ struct ConvertGpuToTfrtGpuPass
                                OperationPass<ModuleOp>> {
  private:
   void runOnOperation() override;
+  void getDependentDialects(DialectRegistry &registry) const override {
+    registry.insert<tfrt::dht::DenseHostTensorDialect>();
+  }
   StringRef getArgument() const override { return "gpu-tfrt-streamify"; }
 };
 

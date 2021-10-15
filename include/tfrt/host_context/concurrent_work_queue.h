@@ -82,8 +82,6 @@ class ConcurrentWorkQueue {
   // Return a human-readable description of the work queue.
   virtual std::string name() const = 0;
 
-  virtual Error InitRequest(RequestContextBuilder* ctx_builder);
-
   // Enqueue a block of work. Thread-safe.
   //
   // If the work queue implementation has a fixed-size internal queue of pending

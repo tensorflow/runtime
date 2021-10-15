@@ -46,9 +46,6 @@ void RequestContext::Cancel() {
 }
 
 Expected<RCReference<RequestContext>> RequestContextBuilder::build() && {
-  auto& cwq = host_->work_queue();
-  if (auto error = cwq.InitRequest(this)) return std::move(error);
-
   return TakeRef(new RequestContext(host_, resource_context_,
                                     std::move(context_data_), id_));
 };

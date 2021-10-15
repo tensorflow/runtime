@@ -41,10 +41,6 @@ WorkQueueFactoryMap* GetWorkQueueFactories() {
 
 ConcurrentWorkQueue::~ConcurrentWorkQueue() = default;
 
-Error ConcurrentWorkQueue::InitRequest(RequestContextBuilder* ctx_builder) {
-  return Error::success();
-}
-
 void RegisterWorkQueueFactory(string_view name, WorkQueueFactory factory) {
   auto p = GetWorkQueueFactories()->try_emplace(name, std::move(factory));
   (void)p;

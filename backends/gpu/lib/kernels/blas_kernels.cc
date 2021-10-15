@@ -163,14 +163,14 @@ static Error BlasTrsmBatch(
   if (platform != wrapper::Platform::CUDA)
     return MakeStringError("Unsupported platform ", platform);
 
-  auto current = wrapper::CtxSetCurrent(handle.context()->get());
-  if (!current) return current.takeError();
-
   cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
   auto alpha_ptr = GetScalePointer(alpha, data_type);
   if (!alpha_ptr) return alpha_ptr.takeError();
 
   auto call = [&](auto dummy) {
+    auto current = wrapper::CtxSetCurrent(handle.context()->get());
+    if (!current) return current.takeError();
+
     using T = decltype(dummy);
     auto pointer_array =
         handle.context()->AllocateHostPoolMemory<T*>(*current, 2 * batchCount);
@@ -182,7 +182,7 @@ static Error BlasTrsmBatch(
     ptrdiff_t a_batch_stride = side_mode == CUBLAS_SIDE_LEFT ? m * m : n * n;
     ptrdiff_t b_batch_stride = m * n;
     const T* a_ptr = static_cast<const T*>(A.pointer().raw(platform));
-    T* b_ptr = static_cast<T*>(A.pointer().raw(platform));
+    T* b_ptr = static_cast<T*>(B.pointer().raw(platform));
     for (int32_t i = 0; i < batchCount; ++i) {
       a_array[i] = a_ptr + i * a_batch_stride;
       b_array[i] = b_ptr + i * b_batch_stride;
@@ -191,9 +191,6 @@ static Error BlasTrsmBatch(
     wrapper::Pointer<const T*> a_array_ptr(a_array, platform);
     wrapper::Pointer<T*> b_array_ptr(b_array, platform);
     auto cast_alpha_ptr = static_cast<wrapper::Pointer<const T>>(*alpha_ptr);
-
-    auto current = wrapper::CtxSetCurrent(handle.context()->get());
-    if (!current) return current.takeError();
 
     return wrapper::CublasTrsmBatched(
         *current, handle.get(), side_mode,

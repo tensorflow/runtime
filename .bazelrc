@@ -39,6 +39,8 @@ build:clang --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
 build:gcc --repo_env=CC=gcc
 build:gcc --config=nvcc
 build:gcc --cxxopt=-std=c++14 --host_cxxopt=-std=c++14
+build:gcc --cxxopt=-Wno-maybe-uninitialized
+build:gcc --cxxopt=-Wno-sign-compare
 
 # Build with CUDA device code with nvcc.
 build:nvcc --@rules_cuda//cuda:compiler=nvcc

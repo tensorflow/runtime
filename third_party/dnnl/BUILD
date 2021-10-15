@@ -46,7 +46,10 @@ cc_library(
         ":dnnl_config_h",
         ":dnnl_version_h",
     ],
-    copts = ["-fexceptions"],
+    copts = [
+        "-fexceptions",
+        "-Wno-unknown-pragmas",
+    ],
     includes = [
         "include",
         "src",

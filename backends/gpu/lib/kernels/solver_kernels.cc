@@ -130,31 +130,26 @@ static Error SolverPotrfBatch(const GpuSolverHandle& handle, int32_t n,
   if (platform != wrapper::Platform::CUDA)
     return MakeStringError("Unsupported platform ", platform);
 
-  auto current = wrapper::CtxSetCurrent(handle.context()->get());
-  if (!current) return current.takeError();
-
   cudaDataType data_type = wrapper::BlasDataType::FromOpaqueValue(*dataType);
   auto fill_mode = wrapper::BlasFillMode::FromOpaqueValue(*fillMode);
 
   auto call = [&](auto dummy) {
-    std::vector<void*> buffers;
-    buffers.reserve(batch_size);
-    char* buffer_ptr = static_cast<char*>(buffer.pointer().raw(platform));
-    ptrdiff_t batch_stride_bytes = n * n * sizeof(dummy);
-    for (int i = 0; i < batch_size; ++i) {
-      buffers.push_back(buffer_ptr);
-      buffer_ptr += batch_stride_bytes;
+    auto current = wrapper::CtxSetCurrent(handle.context()->get());
+    if (!current) return current.takeError();
+
+    using T = decltype(dummy);
+    auto pointer_array =
+        handle.context()->AllocateHostPoolMemory<T*>(*current, batch_size);
+    if (!pointer_array) return pointer_array.takeError();
+    T** buffer_array = pointer_array->get().raw(platform);
+
+    T* buffer_ptr = static_cast<T*>(buffer.pointer().raw(platform));
+    ptrdiff_t batch_stride = n * n;
+    for (int32_t i = 0; i < batch_size; ++i) {
+      buffer_array[i] = buffer_ptr + i * batch_stride;
     }
 
-    // TODO(hanbinyoon): For performance, consider using scratch space that is
-    // already pinned (as part of GpuContext).
-    auto pinned = wrapper::MemHostRegister(
-        *current, buffers.data(), buffers.size() * sizeof(void*),
-        wrapper::MemHostRegisterFlags::DEVICEMAP);
-    if (!pinned) return pinned.takeError();
-
-    auto buffer_array_ptr =
-        static_cast<wrapper::Pointer<decltype(dummy)*>>(pinned->get());
+    wrapper::Pointer<T*> buffer_array_ptr(buffer_array, platform);
     auto devInfo_ptr = static_cast<wrapper::Pointer<int>>(devInfo.pointer());
     return wrapper::CusolverDnPotrfBatched(*current, handle.get(), fill_mode, n,
                                            buffer_array_ptr, stride,

@@ -149,4 +149,41 @@ func @blas_gemm_batched() {
   tfrt.return
 }
 
-// TODO(hanbinyoon): Add a test for tfrt_gpu.blas.trsm.batch
+// CHECK-LABEL: --- Running 'blas_trsm_batched'
+func @blas_trsm_batched() {
+  %ch0 = tfrt.new.chain
+  %ordinal = tfrt.constant.i32 0
+  %device = tfrt_gpu.device.get CUDA, %ordinal
+  %context = tfrt_gpu.context.create %device
+  %allocator = tfrt_gpu.allocator.create %context
+  %stream = tfrt_gpu.stream.create %context
+  %blas = tfrt_gpu.blas.create %stream
+
+  %buffer_size_bytes = tfrt.constant.i64 16 // [2, 2] * 4 bytes floats = 16 bytes
+
+  %host_tensor = tfrt_dht.create_uninitialized_tensor.f32.2 [2 : i64, 2 : i64]
+  %host_buffer, %ch1 = tfrt_dht.get_buffer %host_tensor, %ch0
+
+  %ch2 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch1 [1.0 : f32, 2.0 : f32, 0.0 : f32, 1.0 : f32]
+  %gpu_buffer_0 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch2
+  %ch3 = tfrt_gpu.mem.copy %gpu_buffer_0, %host_buffer, %stream, %ch2 : !tfrt_gpu.buffer, !ht.host_buffer
+
+  %ch4 = tfrt_dht.set_tensor_with_constant_values.f32 %host_tensor, %ch3 [1.0 : f32, 4.0 : f32, 0.0 : f32, 0.0 : f32]
+  %gpu_buffer_1 = tfrt_gpu.mem.allocate %allocator, %stream, %buffer_size_bytes, %ch4
+  %ch5 = tfrt_gpu.mem.copy %gpu_buffer_1, %host_buffer, %stream, %ch4 : !tfrt_gpu.buffer, !ht.host_buffer
+
+  %dim = tfrt.constant.i32 2
+  %alpha = tfrt.constant.f32 1.0
+  %batch_count = tfrt.constant.i32 1
+  %ch6 = tfrt_gpu.blas.trsm.batch %blas, CUBLAS_SIDE_LEFT,
+    CUBLAS_FILL_MODE_LOWER, CUBLAS_OP_N, CUBLAS_DIAG_UNIT, %dim, %dim,
+    CUDA_R_32F, %alpha, %gpu_buffer_0, %dim, %gpu_buffer_1, %dim, %batch_count,
+    %ch5
+
+  %ch7 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_1, %stream, %ch6 : !ht.host_buffer, !tfrt_gpu.buffer
+  // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
+  // CHECK-SAME: values = [1.000000e+00, 2.000000e+00, 0.000000e+00, 0.000000e+00]
+  %ch8 = tfrt_dht.print_tensor %host_tensor, %ch7
+
+  tfrt.return
+}

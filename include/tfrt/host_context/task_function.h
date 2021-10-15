@@ -25,24 +25,7 @@
 
 namespace tfrt {
 
-class TaskFunction {
- public:
-  TaskFunction() = default;
-  explicit TaskFunction(llvm::unique_function<void()> work)
-      : work_(std::move(work)) {}
-
-  TaskFunction(TaskFunction&&) = default;
-  TaskFunction& operator=(TaskFunction&&) = default;
-  TaskFunction(const TaskFunction&) = delete;
-  TaskFunction& operator=(const TaskFunction&) = delete;
-
-  void operator()() { work_(); }
-  explicit operator bool() const { return static_cast<bool>(work_); }
-  void reset() { work_ = nullptr; }
-
- private:
-  llvm::unique_function<void()> work_;
-};
+using TaskFunction = llvm::unique_function<void()>;
 
 }  // namespace tfrt
 

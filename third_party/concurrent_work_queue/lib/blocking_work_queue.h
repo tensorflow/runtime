@@ -237,7 +237,7 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
       // because it might be expensive. Also we want to call it before
       // notifying quiescing thread, because destructor potentially could
       // drop the last references on captured async values.
-      task.reset();
+      task = nullptr;
 
       mutex_lock lock(mutex_);
 
@@ -248,7 +248,7 @@ Optional<TaskFunction> BlockingWorkQueue<ThreadingEnvironment>::RunBlockingTask(
         mutex_.unlock();
         // Do not hold the lock while executing and destructing the task.
         (*task)();
-        task.reset();
+        task = nullptr;
         mutex_.lock();
       }
 

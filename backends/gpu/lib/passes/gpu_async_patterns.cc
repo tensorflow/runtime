@@ -144,11 +144,11 @@ LogicalResult FoldMemrefViewPattern::matchAndRewrite(
     rewriter.replaceOp(view_op, {adaptor.source()});
     return success();
   }
-  assert(size_bits % 8 == 0);
   auto loc = view_op->getLoc();
   auto offset = rewriter.create<UnrealizedConversionCastOp>(
       loc, rewriter.getIntegerType(64, false), adaptor.byte_shift());
-  auto size = rewriter.create<compiler::ConstantUI64Op>(loc, size_bits / 8);
+  auto size_bytes = (size_bits + 7) / 8;
+  auto size = rewriter.create<compiler::ConstantUI64Op>(loc, size_bytes);
   rewriter.replaceOpWithNewOp<MemViewOp>(view_op, adaptor.source(),
                                          offset.getResult(0), size);
   return success();

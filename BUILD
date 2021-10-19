@@ -1012,7 +1012,6 @@ tfrt_cc_library(
 
 tfrt_cc_library(
     name = "bef_executor_driver",
-    testonly = True,
     srcs = [
         "lib/bef_executor_driver/bef_executor_driver.cc",
     ],

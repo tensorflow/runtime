@@ -82,7 +82,6 @@ tfrt_cc_binary(
 
 tfrt_cc_library(
     name = "bef_executor_lib",
-    testonly = True,
     srcs = [
         "bef_executor/main.cc",
     ],

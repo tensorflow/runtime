@@ -166,8 +166,6 @@ def GPU_DnnPoolingBackwardOp : GPU_Op<"dnn.pooling_backward"> {
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
-// async to sync Ops.
 def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
   let description = [{
     tfrt_gpu.dnn.convolution_forward executes convolutions or
@@ -190,8 +188,6 @@ def GPU_DnnConvolutionForwardOp : GPU_Op<"dnn.convolution_forward"> {
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
-// async to sync Ops.
 def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
   let description = [{
     tfrt_gpu.dnn.convolution_backward_data computes the convolution data
@@ -216,8 +212,6 @@ def GPU_DnnConvolutionBackwardDataOp : GPU_Op<"dnn.convolution_backward_data"> {
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
-// async to sync Ops.
 def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter"> {
   let description = [{
     tfrt_gpu.dnn.convolution_backward_filter computes the convolution weight
@@ -242,8 +236,6 @@ def GPU_DnnConvolutionBackwardFilterOp : GPU_Op<"dnn.convolution_backward_filter
   let results = (outs TFRT_ChainType);
 }
 
-// TODO(b/184675727): Remove this Op once the tfrt_gpu dialect moves from
-// async to sync Ops.
 def GPU_DnnConvolutionBiasActivationForwardOp :
              GPU_Op<"dnn.convolution_bias_activation_forward"> {
   let description = [{

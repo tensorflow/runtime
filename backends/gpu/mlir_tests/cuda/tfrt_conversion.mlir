@@ -143,7 +143,7 @@ module @test_launch_kernel attributes {gpu.container_module} {
   // CHECK:   tfrt.return %[[module]], %[[ch3]] : !tfrt_gpu.module, !tfrt.chain
   // CHECK: }
   gpu.module @gpu_module attributes {
-    nvvm.cubin = "<cubin>",
+    binary = "<cubin>",
     constants = { one = dense<[0, 0, 128, 63]> : tensor<4xi8> }
   } {
     gpu.func @kernel() kernel { gpu.return }

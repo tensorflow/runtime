@@ -20,12 +20,14 @@
 #include "mlir/Dialect/Async/IR/Async.h"
 #include "mlir/Dialect/Async/IR/AsyncTypes.h"
 #include "mlir/Dialect/GPU/GPUDialect.h"
+#include "mlir/Dialect/MemRef/IR/MemRef.h"
 #include "mlir/Dialect/StandardOps/IR/Ops.h"
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BlockAndValueMapping.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/BuiltinTypes.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
@@ -196,9 +198,19 @@ struct ConvertMemcpyPattern : OpConversionPattern<mlir::gpu::MemcpyOp> {
       ConversionPatternRewriter &rewriter) const override;
 };
 
+// Converts mlir::memref::GetGlobalOp to tfrt::gpu::ModuleGetGlobalOp.
+struct ConvertGetGlobalPattern : OpConversionPattern<memref::GetGlobalOp> {
+  using OpConversionPattern::OpConversionPattern;
+
+ private:
+  LogicalResult matchAndRewrite(
+      memref::GetGlobalOp get_global_op, OpAdaptor adaptor,
+      ConversionPatternRewriter &rewriter) const override;
+};
+
 // Converts `gpu.module` op to a function that loads the module.
 //
-//     gpu.module @gpu_module attributes { nvvm.cubin = "<cubin>" }
+//     gpu.module @gpu_module attributes { binary = "<cubin>" }
 //
 // will be rewritten to
 //
@@ -703,6 +715,25 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
   return success();
 }
 
+LogicalResult ConvertGetGlobalPattern::matchAndRewrite(
+    memref::GetGlobalOp get_global_op, OpAdaptor adaptor,
+    ConversionPatternRewriter &rewriter) const {
+  auto module_attr =
+      get_global_op->getAttrOfType<SymbolRefAttr>(getGpuModuleAttrName());
+  if (!module_attr)
+    return rewriter.notifyMatchFailure(get_global_op, "no gpu_module attr");
+  Location loc = get_global_op->getLoc();
+  Value stream = get_global_op->getParentOfType<FuncOp>().getArgument(1);
+  Value context = rewriter.create<StreamGetContextOp>(loc, stream).getResult();
+  auto func_op =
+      SymbolTable::lookupNearestSymbolFrom<FuncOp>(get_global_op, module_attr);
+  auto once_op = rewriter.create<compiler::OnceOp>(
+      loc, func_op.getType().getResults(), context, func_op.getName());
+  rewriter.replaceOpWithNewOp<ModuleGetGlobalOp>(
+      get_global_op, once_op.getResult(0), get_global_op.nameAttr().getAttr());
+  return success();
+}
+
 // Initializes the global symbols in 'module' with values in 'constants'.
 static Value CreateGlobalInitialization(ConversionPatternRewriter &rewriter,
                                         Location loc, Value context,
@@ -737,11 +768,12 @@ static Value CreateGlobalInitialization(ConversionPatternRewriter &rewriter,
 LogicalResult ConvertGpuModulePattern::matchAndRewrite(
     mlir::gpu::GPUModuleOp module_op, OpAdaptor adaptor,
     ConversionPatternRewriter &rewriter) const {
-  auto data = module_op->getAttrOfType<StringAttr>("nvvm.cubin");
+  auto data = module_op->getAttrOfType<StringAttr>(getGpuBinaryAttrName());
   if (!data)
-    return rewriter.notifyMatchFailure(module_op, "no nvvm.cubin attribute");
+    return rewriter.notifyMatchFailure(module_op, "no device code attribute");
   Location loc = module_op->getLoc();
-  auto constants = module_op->getAttrOfType<DictionaryAttr>("constants");
+  auto constants =
+      module_op->getAttrOfType<DictionaryAttr>(getGpuConstantsAttrName());
   SmallVector<Type, 2> return_types = {rewriter.getType<ModuleType>()};
   if (constants)
     return_types.push_back(rewriter.getType<compiler::ChainType>());
@@ -1073,7 +1105,8 @@ void ConvertGpuToTfrtGpuPass::runOnOperation() {
   });
   patterns.add<ConvertMemsetPattern, ConvertMemcpyPattern,
                ConvertLaunchFuncPattern>(converter, &getContext());
-  patterns.add<ConvertGpuModulePattern, InlineConversionAsyncExecPattern,
+  patterns.add<ConvertGetGlobalPattern, ConvertGpuModulePattern,
+               InlineConversionAsyncExecPattern,
                ConvertGpuWaitToChainAndStreamPattern,
                ConvertCastToEventRecordPattern, FoldConstCastPattern>(
       &getContext());
@@ -1084,6 +1117,11 @@ void ConvertGpuToTfrtGpuPass::runOnOperation() {
     // Trigger ConvertCastToEventRecordPattern and FoldConstCastPattern.
     return !IsCastFromChainAndEvent(cast_op) &&
            converter.isLegal(cast_op->getOperandTypes());
+  });
+  target.addDynamicallyLegalOp<memref::GetGlobalOp>([&](Operation *op) {
+    // Some ops (e.g. lmhlo.fusion) leave the get_global result unused, except
+    // for a cast which will only be removed later. Leave those untouched.
+    return !op->getAttrOfType<SymbolRefAttr>(getGpuModuleAttrName());
   });
   target.markUnknownOpDynamicallyLegal([](Operation *) { return true; });
 
@@ -1123,6 +1161,10 @@ static Value MaterializeCast(OpBuilder &builder, Type type, ValueRange values,
                              Location loc) {
   return builder.create<CastOp>(loc, type, values).getResult(0);
 }
+
+mlir::StringRef getGpuBinaryAttrName() { return "binary"; }
+mlir::StringRef getGpuConstantsAttrName() { return "constants"; }
+mlir::StringRef getGpuModuleAttrName() { return "gpu_module"; }
 
 TypeConverter createMemrefToTfrtGpuConverter() {
   TypeConverter converter;

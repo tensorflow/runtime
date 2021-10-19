@@ -63,6 +63,13 @@ struct GpuAsyncOpConversionPattern : mlir::OpConversionPattern<OpTy> {
       mlir::ConversionPatternRewriter& rewriter) const = 0;
 };
 
+// Returns the name of the device code attribute of gpu.module ops.
+mlir::StringRef getGpuBinaryAttrName();
+// Returns the name of the device constants attribute of gpu.module ops.
+mlir::StringRef getGpuConstantsAttrName();
+// Returns the name of the gpu.module symbol attribute of memref.get_global ops.
+mlir::StringRef getGpuModuleAttrName();
+
 // Returns a type converter which maps memref to !tfrt_gpu.buffer and provides
 // the corresponding unrealized_conversion_cast materializers.
 mlir::TypeConverter createMemrefToTfrtGpuConverter();

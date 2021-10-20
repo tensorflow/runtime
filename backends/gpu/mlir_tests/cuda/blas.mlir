@@ -45,9 +45,10 @@ func @blas_axpy() {
     CUDA_R_32F, %ch6
 
   %ch8 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_1, %stream, %ch7 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch9 = tfrt_gpu.stream.synchronize %stream, %ch8
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [3.000000e+00, 5.000000e+00, 7.000000e+00, 9.000000e+00]
-  %ch9 = tfrt_dht.print_tensor %host_tensor, %ch8
+  %ch10 = tfrt_dht.print_tensor %host_tensor, %ch9
 
   tfrt.return
 }
@@ -92,9 +93,10 @@ func @blas_gemm() {
     CUBLAS_COMPUTE_32F, %algo, %ch8
 
   %ch10 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_2, %stream, %ch9 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch11 = tfrt_gpu.stream.synchronize %stream, %ch10
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
-  %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
+  %ch12 = tfrt_dht.print_tensor %host_tensor, %ch11
 
   tfrt.return
 }
@@ -142,9 +144,10 @@ func @blas_gemm_batched() {
     CUBLAS_COMPUTE_32F, %algo, %ch8
 
   %ch10 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_2, %stream, %ch9 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch11 = tfrt_gpu.stream.synchronize %stream, %ch10
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [1.100000e+01, 1.600000e+01, 1.900000e+01, 2.800000e+01]
-  %ch11 = tfrt_dht.print_tensor %host_tensor, %ch10
+  %ch12 = tfrt_dht.print_tensor %host_tensor, %ch11
 
   tfrt.return
 }
@@ -181,9 +184,10 @@ func @blas_trsm_batched() {
     %ch5
 
   %ch7 = tfrt_gpu.mem.copy %host_buffer, %gpu_buffer_1, %stream, %ch6 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch8 = tfrt_gpu.stream.synchronize %stream, %ch7
   // CHECK: DenseHostTensor dtype = f32, shape = [2, 2]
   // CHECK-SAME: values = [1.000000e+00, 2.000000e+00, 0.000000e+00, 0.000000e+00]
-  %ch8 = tfrt_dht.print_tensor %host_tensor, %ch7
+  %ch9 = tfrt_dht.print_tensor %host_tensor, %ch8
 
   tfrt.return
 }

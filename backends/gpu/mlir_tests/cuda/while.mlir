@@ -131,8 +131,9 @@ func @main() {
     :  (!tfrt.chain, !tfrt_gpu.stream, !tfrt_gpu.buffer, !tfrt_gpu.buffer) -> !tfrt.chain
 
   %ch6 = tfrt_gpu.mem.copy %value_hb#0, %value, %stream, %ch5 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch7 = tfrt_gpu.stream.synchronize %stream, %ch6
   // CHECK: DenseHostTensor dtype = i32, shape = [], values = [8]
-  %ch7 = tfrt_dht.print_tensor %value_ht, %ch6
+  %ch8 = tfrt_dht.print_tensor %value_ht, %ch7
 
   tfrt.return
 }

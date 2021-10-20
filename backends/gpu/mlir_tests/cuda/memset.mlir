@@ -35,8 +35,8 @@ func @memset_test() {
   %host_tensor = tfrt_dht.create_uninitialized_tensor.i32.1 [8 : i64]
   %host_buffer, %ch3 = tfrt_dht.get_buffer %host_tensor, %ch2
   %ch4 = tfrt_gpu.mem.copy %host_buffer, %device_buffer, %stream, %ch3 : !ht.host_buffer, !tfrt_gpu.buffer
-
+  %ch5 = tfrt_gpu.stream.synchronize %stream, %ch4
   // CHECK: shape = [8], values = [13, 13, 13, 13, 13, 13, 13, 13]
-  %ch5 = tfrt_dht.print_tensor %host_tensor, %ch4
+  %ch6 = tfrt_dht.print_tensor %host_tensor, %ch5
   tfrt.return
 }

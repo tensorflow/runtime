@@ -155,12 +155,13 @@ func @dnn_pooling_test() {
 
   %ch33 = tfrt_gpu.dnn.pooling_forward %dnn, %pooling_desc, %alpha, %in_desc, %input_device_buffer, %beta, %out_desc, %output_device_buffer, %ch32
 
-  %ch34 = tfrt_gpu.mem.copy %output_host_buffer, %output_device_buffer, %stream, %ch33 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch34a = tfrt_gpu.mem.copy %output_host_buffer, %output_device_buffer, %stream, %ch33 : !ht.host_buffer, !tfrt_gpu.buffer
+  %ch34b = tfrt_gpu.stream.synchronize %stream, %ch34a
 
   // Need to make sure that for pooling forward
   // expected result matches computed result:
   // CHECK: shape = [2, 2, 1, 1], values = [5.493110e-01, 7.370000e-02, 2.388026e+00, 2.402000e+00]
-  %ch35 = tfrt_dht.print_tensor %output, %ch34
+  %ch35 = tfrt_dht.print_tensor %output, %ch34b
   // CHECK: shape = [2, 2, 1, 1], values = [5.493110e-01, 7.370000e-02, 2.388026e+00, 2.402000e+00]
   %ch36 = tfrt_dht.print_tensor %output_tensor, %ch35
 

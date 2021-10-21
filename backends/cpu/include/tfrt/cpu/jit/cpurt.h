@@ -363,15 +363,6 @@ struct MemrefDesc {
 
 raw_ostream& operator<<(raw_ostream& os, const MemrefDesc& desc);
 
-// Verifies that the runtime buffer is compatible with the memref type (same
-// rank and statically known dimensions are matched with the runtime
-// dimensions).
-Error VerifyMemrefOperand(mlir::MemRefType type, const MemrefDesc& memref);
-Error VerifyMemrefOperand(mlir::UnrankedTensorType type,
-                          const MemrefDesc& memref);
-Error VerifyMemrefOperand(mlir::RankedTensorType type,
-                          const MemrefDesc& memref);
-
 // Converts tfrt Tensor to the Memref descriptor if concrete Tensor type is
 // supported (currently only DenseHostTensor can be converted). Returns error
 // otherwise.

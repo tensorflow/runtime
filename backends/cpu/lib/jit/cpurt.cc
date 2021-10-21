@@ -382,14 +382,14 @@ Expected<Executable::ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
 // Verify that signature operands types are matching runtime operands types.
 // -------------------------------------------------------------------------- //
 
-static Error VerifyMemrefOperand(const MemrefType& type,
+static Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
                                  const MemrefDesc& memref,
                                  bool check_sizes = true) {
   // Check that memref data type matches operand element type.
   if (type.element_type() != memref.dtype)
-    return MakeStringError(
-        "operand type doesn't match the expected element type: ", memref.dtype,
-        " vs ", type.element_type());
+    return MakeStringError("operand #", index,
+                           " type doesn't match the expected element type: ",
+                           memref.dtype, " vs ", type.element_type());
 
   // Unranked memrefs are not representable with MemrefType, we explicitly pass
   // a flag do disable sizes check in this case .
@@ -397,7 +397,8 @@ static Error VerifyMemrefOperand(const MemrefType& type,
 
   // Check that memref rank is the same as operand rank.
   if (memref.sizes.size() != type.rank())
-    return MakeStringError("operand rank does not match expected input rank: ",
+    return MakeStringError("operand #", index,
+                           " rank does not match expected input rank: ",
                            memref.sizes.size(), " vs ", type.rank());
 
   // Check that all statically known dimensions matches the memref dimensions.
@@ -408,7 +409,7 @@ static Error VerifyMemrefOperand(const MemrefType& type,
     bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
 
     if (operand_dim != expected_dim && !is_dynamic_dim)
-      return MakeStringError("operand dimension #", pair.index(),
+      return MakeStringError("operand #", index, " dimension #", pair.index(),
                              " does not match expected input dimension: ",
                              operand_dim, " vs ", expected_dim);
   }
@@ -416,7 +417,7 @@ static Error VerifyMemrefOperand(const MemrefType& type,
   return Error::success();
 }
 
-static Error VerifyMemrefOperand(mlir::ShapedType type,
+static Error VerifyMemrefOperand(unsigned index, mlir::ShapedType type,
                                  const MemrefDesc& memref) {
   auto element_type = ConvertElementType(type.getElementType());
   if (auto err = element_type.takeError()) return err;
@@ -427,22 +428,23 @@ static Error VerifyMemrefOperand(mlir::ShapedType type,
   MemrefType memref_type(type.hasRank() ? type.getShape() : ArrayRef<Index>(),
                          *element_type);
 
-  return VerifyMemrefOperand(memref_type, memref,
+  return VerifyMemrefOperand(index, memref_type, memref,
                              /*check_sizes=*/type.hasRank());
 }
 
-Error VerifyMemrefOperand(mlir::MemRefType type, const MemrefDesc& memref) {
-  return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
+static Error VerifyMemrefOperand(unsigned index, mlir::MemRefType type,
+                                 const MemrefDesc& memref) {
+  return VerifyMemrefOperand(index, type.cast<mlir::ShapedType>(), memref);
 }
 
-Error VerifyMemrefOperand(mlir::RankedTensorType type,
-                          const MemrefDesc& memref) {
-  return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
+static Error VerifyMemrefOperand(unsigned index, mlir::RankedTensorType type,
+                                 const MemrefDesc& memref) {
+  return VerifyMemrefOperand(index, type.cast<mlir::ShapedType>(), memref);
 }
 
-Error VerifyMemrefOperand(mlir::UnrankedTensorType type,
-                          const MemrefDesc& memref) {
-  return VerifyMemrefOperand(type.cast<mlir::ShapedType>(), memref);
+static Error VerifyMemrefOperand(unsigned index, mlir::UnrankedTensorType type,
+                                 const MemrefDesc& memref) {
+  return VerifyMemrefOperand(index, type.cast<mlir::ShapedType>(), memref);
 }
 
 // -------------------------------------------------------------------------- //
@@ -527,9 +529,13 @@ Error Executable::InitializeCallFrame(ArrayRef<MemrefDesc> operands,
         "signature, got: ",
         signature_.operand(0));
   }
-  for (int i = 0; i < operands.size(); ++i) {
+
+  // We use 0-based index for operands, because the kernel context operand is an
+  // internal implementation detail, and in case of an error users should get
+  // back operand index corresponding to the user provided signature.
+  for (unsigned i = 0; i < operands.size(); ++i) {
     if (auto* memref = dyn_cast<MemrefType>(signature_.operand(1 + i))) {
-      if (auto err = VerifyMemrefOperand(*memref, operands[i])) return err;
+      if (auto err = VerifyMemrefOperand(i, *memref, operands[i])) return err;
     } else {
       return MakeStringError("expected memref operand at #", i,
                              ", got: ", signature_.operand(i));
@@ -1160,24 +1166,27 @@ JitCompilationContext::Instantiate(CompilationOptions opts,
 }
 
 // Return input `type` specialized to memref operand and its symbolic shape.
-static llvm::Expected<mlir::Type> SpecializeType(
-    mlir::Type type, const MemrefDesc& operand,
+static llvm::Expected<mlir::Type> SpecializeOperandType(
+    unsigned index, mlir::Type type, const MemrefDesc& operand,
     const SymbolicShape& symbolic_shape) {
   // Replace all symbolic dimensions with dynamic dimension.
   auto shape = SymbolicShapesResolver::Normalize(symbolic_shape);
 
   if (auto memref = type.dyn_cast<mlir::MemRefType>()) {
-    if (auto err = VerifyMemrefOperand(memref, operand)) return std::move(err);
+    if (auto err = VerifyMemrefOperand(index, memref, operand))
+      return std::move(err);
     return mlir::MemRefType::get(shape, memref.getElementType());
   }
 
   if (auto tensor = type.dyn_cast<mlir::RankedTensorType>()) {
-    if (auto err = VerifyMemrefOperand(tensor, operand)) return std::move(err);
+    if (auto err = VerifyMemrefOperand(index, tensor, operand))
+      return std::move(err);
     return mlir::RankedTensorType::get(shape, tensor.getElementType());
   }
 
   if (auto tensor = type.dyn_cast<mlir::UnrankedTensorType>()) {
-    if (auto err = VerifyMemrefOperand(tensor, operand)) return std::move(err);
+    if (auto err = VerifyMemrefOperand(index, tensor, operand))
+      return std::move(err);
     return mlir::RankedTensorType::get(shape, tensor.getElementType());
   }
 
@@ -1230,8 +1239,8 @@ llvm::Error JitCompilationContext::Specialize(
   // Specialize all function inputs to the given operands.
   llvm::SmallVector<mlir::Type> specialized_inputs(num_inputs);
   for (unsigned i = 0; i < num_inputs; ++i) {
-    auto specialized = SpecializeType(func.getType().getInput(i), operands[i],
-                                      symbolic_shapes[i]);
+    auto specialized = SpecializeOperandType(i, func.getType().getInput(i),
+                                             operands[i], symbolic_shapes[i]);
     if (auto err = specialized.takeError()) return err;
     specialized_inputs[i] = *specialized;
   }

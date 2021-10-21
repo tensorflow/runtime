@@ -275,7 +275,7 @@ class AsyncValue {
         is_refcounted_(is_refcounted),
         type_id_(GetTypeId<T>()),
         waiters_and_state_(WaitersAndState(nullptr, state)) {
-    if (AsyncValueAllocationTrackingEnabled())
+    if (AsyncValueAllocationTrackingEnabled() && is_refcounted)
       total_allocated_async_values_.fetch_add(1, std::memory_order_relaxed);
   }
 
@@ -286,7 +286,7 @@ class AsyncValue {
         is_refcounted_(is_refcounted),
         type_id_(0),
         waiters_and_state_(WaitersAndState(nullptr, state)) {
-    if (AsyncValueAllocationTrackingEnabled())
+    if (AsyncValueAllocationTrackingEnabled() && is_refcounted)
       total_allocated_async_values_.fetch_add(1, std::memory_order_relaxed);
   }
 
@@ -763,7 +763,7 @@ class UnRefCountedAsyncValue : public internal::ConcreteAsyncValue<T> {
 inline AsyncValue::~AsyncValue() {
   assert(waiters_and_state_.load().getPointer() == nullptr &&
          "An async value with waiters should never have refcount of zero");
-  if (AsyncValueAllocationTrackingEnabled())
+  if (AsyncValueAllocationTrackingEnabled() && is_refcounted_)
     total_allocated_async_values_.fetch_sub(1, std::memory_order_relaxed);
 
   // Catch use-after-free errors more eagerly, by triggering the size assertion

@@ -49,6 +49,12 @@ class ReadyChain {
         FormRef(all_ready_chains_[HostContextPtr(host).index()].get()));
   }
 
+  AsyncValueRef<Chain> GetReadyChain() {
+    static auto* chain = new internal::ConcreteAsyncValue<Chain>(
+        internal::ConcreteAsyncValue<Chain>::UnRefCountedConcretePayload{});
+    return AsyncValueRef<Chain>(FormRef(chain));
+  }
+
  private:
   friend class HostContext;
 
@@ -70,11 +76,20 @@ class ReadyChain {
       all_ready_chains_[HostContextPool::kCompacity];
 };
 
+AsyncValueRef<Chain> GetReadyChain();
 AsyncValueRef<Chain> GetReadyChain(HostContext* host);
 
 // Specialization of MakeAvailableAsyncValueRef<Chain> that calls GetReadyChain.
 template <>
-AsyncValueRef<Chain> MakeAvailableAsyncValueRef<Chain>(HostContext* host);
+inline AsyncValueRef<Chain> MakeAvailableAsyncValueRef<Chain>() {
+  return GetReadyChain();
+}
+
+template <>
+inline AsyncValueRef<Chain> MakeAvailableAsyncValueRef<Chain>(
+    HostContext* host) {
+  return GetReadyChain(host);
+}
 
 }  // namespace tfrt
 

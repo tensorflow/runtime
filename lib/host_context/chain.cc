@@ -29,9 +29,8 @@ AsyncValueRef<Chain> GetReadyChain(HostContext* host) {
   return ReadyChain::Get().GetReadyChain(host);
 }
 
-template <>
-AsyncValueRef<Chain> MakeAvailableAsyncValueRef<Chain>(HostContext* host) {
-  return GetReadyChain(host);
+AsyncValueRef<Chain> GetReadyChain() {
+  return ReadyChain::Get().GetReadyChain();
 }
 
 }  // namespace tfrt

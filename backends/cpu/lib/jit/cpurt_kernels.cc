@@ -151,15 +151,17 @@ static void Execute(Argument<JitExecutable> jit_executable,
     return EmitErrors(results, std::move(err), exec_ctx);
 
   // Get an executable that might be specialized to the operands.
-  AsyncValuePtr<Executable> executable =
+  Expected<AsyncValuePtr<Executable>> executable =
       jit_executable->GetExecutable(memrefs, exec_ctx);
+  if (auto err = executable.takeError())
+    return EmitErrors(results, std::move(err), exec_ctx);
 
   // If specialization is available execute it inline.
-  if (executable.IsAvailable()) {
-    if (executable.IsError()) {
-      EmitErrors(results, executable.GetError(), exec_ctx);
+  if (executable->IsAvailable()) {
+    if (executable->IsError()) {
+      EmitErrors(results, executable->GetError(), exec_ctx);
     } else {
-      ExecuteImpl(executable.get(), memrefs, operands, results, exec_ctx);
+      ExecuteImpl(executable->get(), memrefs, operands, results, exec_ctx);
     }
     return;
   }
@@ -174,9 +176,10 @@ static void Execute(Argument<JitExecutable> jit_executable,
     results.AllocateIndirectResultAt(i);
 
   // Call executable when it's ready with the original operands.
-  executable.AndThen([exec_ctx, executable, memrefs = std::move(memrefs),
-                      r = RCArray<AsyncValue>(results.values()),
-                      o = RCArray<AsyncValue>(operands.values())] {
+  executable->AndThen([exec_ctx, executable = *executable,
+                       memrefs = std::move(memrefs),
+                       r = RCArray<AsyncValue>(results.values()),
+                       o = RCArray<AsyncValue>(operands.values())] {
     // Allocate storage for the executable results.
     llvm::SmallVector<RCReference<AsyncValue>> results_storage;
     results_storage.resize(r.size());

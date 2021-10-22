@@ -385,21 +385,51 @@ Expected<Executable::ResultsMemoryLayout> Executable::GetResultsMemoryLayout(
 static Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
                                  const MemrefDesc& memref,
                                  bool check_sizes = true) {
+  // Format memref operand and expected type for user-friendly error messages.
+  auto format_operands = [&]() -> std::string {
+    std::string err;
+    llvm::raw_string_ostream os(err);
+
+    auto dim = [](Index d) -> std::string {
+      return d == MemrefType::kDynamicSize ? "?" : std::to_string(d);
+    };
+
+    auto print_shaped = [&](ArrayRef<Index> dims, DType dtype) {
+      if (dims.empty()) {
+        os << "[" << dtype << "]";
+        return;
+      }
+
+      os << "[" << dim(dims[0]);
+      for (int i = 1; i < dims.size(); ++i) os << "x" << dim(dims[i]);
+      os << "x" << dtype << "]";
+    };
+
+    os << "got ";
+    print_shaped(memref.sizes, memref.dtype);
+    os << " vs expected ";
+    print_shaped(type.sizes(), type.element_type());
+
+    return err;
+  };
+
   // Check that memref data type matches operand element type.
   if (type.element_type() != memref.dtype)
-    return MakeStringError("operand #", index,
-                           " type doesn't match the expected element type: ",
-                           memref.dtype, " vs ", type.element_type());
+    return MakeStringError(
+        "operand #", index,
+        " type doesn't match the expected element type: ", memref.dtype, " vs ",
+        type.element_type(), " (", format_operands(), ")");
 
   // Unranked memrefs are not representable with MemrefType, we explicitly pass
-  // a flag do disable sizes check in this case .
+  // a flag to disable sizes check in this case .
   if (!check_sizes) return Error::success();
 
   // Check that memref rank is the same as operand rank.
   if (memref.sizes.size() != type.rank())
-    return MakeStringError("operand #", index,
-                           " rank does not match expected input rank: ",
-                           memref.sizes.size(), " vs ", type.rank());
+    return MakeStringError(
+        "operand #", index,
+        " rank does not match expected input rank: ", memref.sizes.size(),
+        " vs ", type.rank(), " (", format_operands(), ")");
 
   // Check that all statically known dimensions matches the memref dimensions.
   for (auto pair : llvm::enumerate(llvm::zip(memref.sizes, type.sizes()))) {
@@ -409,9 +439,10 @@ static Error VerifyMemrefOperand(unsigned index, const MemrefType& type,
     bool is_dynamic_dim = mlir::ShapedType::isDynamic(expected_dim);
 
     if (operand_dim != expected_dim && !is_dynamic_dim)
-      return MakeStringError("operand #", index, " dimension #", pair.index(),
-                             " does not match expected input dimension: ",
-                             operand_dim, " vs ", expected_dim);
+      return MakeStringError(
+          "operand #", index, " dimension #", pair.index(),
+          " does not match expected input dimension: ", operand_dim, " vs ",
+          expected_dim, " (", format_operands(), ")");
   }
 
   return Error::success();
@@ -1465,8 +1496,8 @@ SymbolicShapesResolver::SymbolicShapesResolver(
   }
 }
 
-llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
-    ArrayRef<MemrefDesc> operands) {
+mlir::FailureOr<llvm::SmallVector<SymbolicShape>>
+SymbolicShapesResolver::Resolve(ArrayRef<MemrefDesc> operands) {
   // The number of operands must match the function signature.
   assert(operands.size() == operands_sizes_.size());
 
@@ -1480,7 +1511,12 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
   int64_t sym_dim = -2;  // the next symbolic dimension id
 
   for (unsigned i = 0; i < operands_sizes_.size(); ++i) {
+    bool has_static_sizes = operands_sizes_[i].hasValue();
     ArrayRef<int64_t> runtime_sizes = operands[i].sizes;
+
+    // Check that statically known rank matches the runtime rank.
+    if (has_static_sizes && operands_sizes_[i]->size() != runtime_sizes.size())
+      return mlir::failure();
 
     // For shape constrained operands use runtime shape.
     if (constraints_[i] == OperandConstraint::kShape) {
@@ -1491,7 +1527,7 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
     // Initialize symbolic shape with a statically known shape of the operand if
     // it is available, otherwise initialize it with a fully dynamic shape with
     // rank matching the runtime rank.
-    if (operands_sizes_[i].hasValue()) {
+    if (has_static_sizes) {
       ArrayRef<int64_t> static_sizes = *operands_sizes_[i];
       assert(runtime_sizes.size() == static_sizes.size());
       symbolic_shapes.emplace_back(static_sizes.begin(), static_sizes.end());
@@ -1507,7 +1543,11 @@ llvm::SmallVector<SymbolicShape> SymbolicShapesResolver::Resolve(
       int64_t runtime_dim = runtime_sizes[d];
 
       // Skip statically known dimensions.
-      if (symbolic_dim >= 0) continue;
+      if (symbolic_dim >= 0) {
+        // Check that statically known dimension agrees with runtime dimension.
+        if (symbolic_dim != runtime_dim) return mlir::failure();
+        continue;
+      }
 
       // Update unknown dimension to a static dimension.
       if (runtime_dim == 1 || seen_static_sizes_.contains(runtime_dim)) {
@@ -1665,22 +1705,38 @@ static llvm::hash_code HashOperands(ArrayRef<MemrefDesc> operands,
 // should only keep N most common specializations, and for everything else
 // fall back on the default executable. However what to do if default executable
 // is not available, and the number of specializations is above N?
-//
-// TODO(ezhulenev): Currently we always specialize operands to the shape, even
-// if operand constraint only requires rank specialization. Although it might be
-// beneficial to know the shape to do broadcasts fusion, consider not doing that
-// when it is not needed.
-AsyncValuePtr<Executable> JitExecutable::GetExecutable(
+Expected<AsyncValuePtr<Executable>> JitExecutable::GetExecutable(
     ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
     const Listener* listener) {
   // Do not try to compile specialized executable if it is explicitly disabled.
   if (compilation_opts_.specialization == Specialization::kDisabled)
     return DefaultExecutable();
 
-  // Compute the cache lookup key from the symbolic shapes and operands.
-  llvm::SmallVector<SymbolicShape> symbolic_shapes =
+  // Resolve symbolic shapes based on the static and runtime information.
+  mlir::FailureOr<llvm::SmallVector<SymbolicShape>> symbolic_shapes =
       symbolic_shapes_resolver_.Resolve(operands);
-  llvm::hash_code hash = HashOperands(operands, symbolic_shapes, constraints_);
+
+  // If we failed to resolve the symbolic shapes, then we need to verify all the
+  // operands to find the mismatch and report it to the user.
+  if (mlir::failed(symbolic_shapes)) {
+    for (unsigned i = 0; i < operands.size(); ++i) {
+      if (auto* memref = dyn_cast<MemrefType>(signature_.operand(i))) {
+        if (auto err = VerifyMemrefOperand(i, *memref, operands[i]))
+          return std::move(err);
+      } else {
+        return MakeStringError("expected memref operand at #", i,
+                               ", got: ", signature_.operand(i));
+      }
+    }
+
+    assert(false && "failed to detect incorrect operand");
+    return MakeStringError("failed to resolve symbolic shapes");
+  }
+
+  // We rely on the hash code to find the specialized executable. In case of
+  // a collision (practically impossible) incompatible operands will be rejected
+  // by the executable operands verification.
+  llvm::hash_code hash = HashOperands(operands, *symbolic_shapes, constraints_);
 
   // Maybe return Executable from the cache.
   if (auto cached = specializations_->Find(hash)) {
@@ -1696,12 +1752,6 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
     return cached;
   }
 
-  // Allocate a placeholder for the compiled specialization.
-  Specializations::Entry entry = specializations_->Allocate(hash);
-
-  // We lost the race; some other invocation will do the compilation.
-  if (!entry.allocated) return entry.ptr;
-
   // Instantiation from the source and specialization are cheap, so we do it in
   // the caller thread. We only use compilation runner for expensive part.
 
@@ -1712,16 +1762,21 @@ AsyncValuePtr<Executable> JitExecutable::GetExecutable(
 
   if (auto err = ctx.takeError()) {
     assert(false && "parsing mlir module must always succeed at this point");
-    entry.ptr.SetError(std::move(err));
-    return entry.ptr;
+    return std::move(err);
   }
 
   // Specialize executable to the concrete operands.
-  if (auto err = (*ctx)->Specialize(operands, symbolic_shapes, constraints_,
+  if (auto err = (*ctx)->Specialize(operands, *symbolic_shapes, constraints_,
                                     listener)) {
-    entry.ptr.SetError(StrCat("failed to specialize executable: ", err));
-    return entry.ptr;
+    return MakeStringError("failed to specialize executable: ", err);
   }
+
+  // Allocate a placeholder for the compiled specialization only after we are
+  // ready to dispatch the compilation task.
+  Specializations::Entry entry = specializations_->Allocate(hash);
+
+  // We lost the race; some other invocation will do the compilation.
+  if (!entry.allocated) return entry.ptr;
 
   // Construct the task that will do the specialized executable compilation.
   auto compile = TaskFunction(

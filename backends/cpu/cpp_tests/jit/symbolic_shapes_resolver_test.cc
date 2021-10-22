@@ -93,7 +93,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     auto operands = GetFakeMemrefs({{100, 100}, {100}, {100, 4}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2, -2}, {-2}, {-2, 4}}));
   }
 
@@ -101,7 +101,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     auto operands = GetFakeMemrefs({{100, 101}, {102}, {103, 4}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2, -3}, {-4}, {-5, 4}}));
   }
 
@@ -109,7 +109,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     auto operands = GetFakeMemrefs({{1, 1, 1}, {1}, {1, 4}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{1, 1, 1}, {1}, {1, 4}}));
   }
 
@@ -117,7 +117,7 @@ TEST(SymbolicShapeResolverTest, UnrankedInputs) {
     auto operands = GetFakeMemrefs({{100, 4}, {4}, {1, 4}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {4}, {1, 4}}));
   }
 }
@@ -139,7 +139,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     auto operands = GetFakeMemrefs({{100}, {100}, {100}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2}, {-2}, {-2}}));
   }
 
@@ -147,7 +147,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     auto operands = GetFakeMemrefs({{100}, {101}, {102}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2}, {-3}, {-4}}));
   }
 
@@ -155,7 +155,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     auto operands = GetFakeMemrefs({{100}, {101}, {100}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2}, {-3}, {-2}}));
   }
 
@@ -163,7 +163,7 @@ TEST(SymbolicShapeResolverTest, DynamicInputShapes) {
     auto operands = GetFakeMemrefs({{1}, {1}, {100}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{1}, {1}, {-2}}));
   }
 }
@@ -185,7 +185,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto operands = GetFakeMemrefs({{100, 4}, {100, 8}, {100}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {-2, 8}, {-2}}));
   }
 
@@ -193,7 +193,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto operands = GetFakeMemrefs({{100, 4}, {101, 8}, {102}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-4}}));
   }
 
@@ -201,7 +201,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto operands = GetFakeMemrefs({{100, 4}, {101, 8}, {100}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {-3, 8}, {-2}}));
   }
 
@@ -209,7 +209,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto operands = GetFakeMemrefs({{1, 4}, {100, 8}, {1}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{1, 4}, {-2, 8}, {1}}));
   }
 
@@ -217,7 +217,7 @@ TEST(SymbolicShapeResolverTest, PartialInputShapes) {
     auto operands = GetFakeMemrefs({{100, 4}, {8, 8}, {8}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 3);
+    EXPECT_EQ(symbolic->size(), 3);
     EXPECT_EQ(symbolic, SymbolicShapes({{-2, 4}, {8, 8}, {8}}));
   }
 }
@@ -237,8 +237,31 @@ TEST(SymbolicShapeResolverTest, ShapeConstrainedInput) {
     auto operands = GetFakeMemrefs({{100, 100}, {100, 4}});
     auto symbolic = resolver.Resolve(operands);
 
-    EXPECT_EQ(symbolic.size(), 2);
+    EXPECT_EQ(symbolic->size(), 2);
     EXPECT_EQ(symbolic, SymbolicShapes({{100, 100}, {100, 4}}));
+  }
+}
+
+TEST(SymbolicShapeResolverTest, IncompatibleInput) {
+  // Operands: tensor<?x4xi32>
+  auto dtypes = {DType::F32};
+  auto type = GetFunctionType(dtypes, {{{MemrefType::kDynamicSize, 4}}});
+  auto constraints = {OperandConstraint::kResolved};
+
+  SymbolicShapesResolver resolver(type, constraints);
+
+  {  // Operand of a different rank;
+    auto operands = GetFakeMemrefs({{100, 100, 100}});
+    auto symbolic = resolver.Resolve(operands);
+
+    EXPECT_TRUE(mlir::failed(symbolic));
+  }
+
+  {  // Operand with mismatched static shape.
+    auto operands = GetFakeMemrefs({{100, 100}});
+    auto symbolic = resolver.Resolve(operands);
+
+    EXPECT_TRUE(mlir::failed(symbolic));
   }
 }
 

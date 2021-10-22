@@ -953,7 +953,13 @@ class Executable {
   using KernelFunctionPtr = void (*)(void**);
 
   std::unique_ptr<mlir::ExecutionEngine> engine_;
+
+  // Signature of the compiled module entrypoint function prepared for the
+  // execution. First argument is always a kernel context added to the function
+  // by the lowering pipeline. Operands and results types are converted to the
+  // types supported by the runtime using compilation options type converter.
   FunctionType signature_;
+
   KernelFunctionPtr fptr_;
   ResultsMemoryLayout results_memory_layout_;
   std::string name_;
@@ -1025,7 +1031,10 @@ class SymbolicShapesResolver {
   explicit SymbolicShapesResolver(const FunctionType& signature,
                                   ArrayRef<OperandConstraint> constraints);
 
-  llvm::SmallVector<SymbolicShape> Resolve(ArrayRef<MemrefDesc> operands);
+  // Resolves symbolic shapes from the runtime operands. Returns failure if
+  // runtime dimensions do not match the statically known dimensions.
+  mlir::FailureOr<llvm::SmallVector<SymbolicShape>> Resolve(
+      ArrayRef<MemrefDesc> operands);
 
   // Replaces all symbolic dimensions with dynamic dimension.
   static llvm::SmallVector<int64_t> Normalize(const SymbolicShape& shape);
@@ -1085,12 +1094,23 @@ class JitExecutable {
   // values. Can return default executable if no specialization is required, or
   // if the specialized executable is not yet available.
   //
-  // Returns an error async value if compilation of the specialized executable
-  // failed. Note: This function never falls back on the default executable if
+  // Returns an error if the operands do not match the expected function
+  // signature and specialization is not possible (without trying to compile).
+  // If specialization is disabled, returns the default executable without
+  // checking the operands (the default executable itself will check operands
+  // when called).
+  //
+  // Async values holding compilation results (executables) cached in the
+  // JitExecutable, and successive calls with operands of the same shape
+  // (symbolic shape) are cheap. If compilation fails, then the returned async
+  // value will hold a compilation error message. Compilation errors are never
+  // retried.
+  //
+  // Note: This function never falls back on the default executable if
   // specialization compilation fails.
-  AsyncValuePtr<Executable> GetExecutable(ArrayRef<MemrefDesc> operands,
-                                          const ExecutionContext& exec_ctx,
-                                          const Listener* listener = nullptr);
+  Expected<AsyncValuePtr<Executable>> GetExecutable(
+      ArrayRef<MemrefDesc> operands, const ExecutionContext& exec_ctx,
+      const Listener* listener = nullptr);
 
   // JitExecutable is move-only type.
   JitExecutable(const JitExecutable&) = delete;
@@ -1134,6 +1154,10 @@ class JitExecutable {
   // Signature of the compiled module entrypoint function (operands and results
   // types converted to the types supported by the runtime using compilation
   // options type converter).
+  //
+  // This function signature is constructed from the user provided function, and
+  // does not contain kernel context operand, which is added by the runtime
+  // when the function is lowered to LLVM.
   FunctionType signature_;
 
   // Symbolic shape resolver assigns symbolic dimensions to runtime operands

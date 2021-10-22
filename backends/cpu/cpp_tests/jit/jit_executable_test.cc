@@ -88,12 +88,12 @@ void BenchmarkGetExecutable(benchmark::State& state,
   if (auto err = jit_executable.takeError()) TFRT_LOG(FATAL) << err;
 
   // Initialize specialization cache.
-  AsyncValuePtr<Executable> initialize =
+  Expected<AsyncValuePtr<Executable>> initialize =
       jit_executable->GetExecutable(operands, exec_ctx);
   benchmark::DoNotOptimize(initialize);
 
   for (auto _ : state) {
-    AsyncValuePtr<Executable> specialize =
+    Expected<AsyncValuePtr<Executable>> specialize =
         jit_executable->GetExecutable(operands, exec_ctx);
     benchmark::DoNotOptimize(specialize);
   }

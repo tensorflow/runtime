@@ -52,7 +52,7 @@ static void ConvertReturnOperations(FuncOp func, Value kernel_ctx) {
     ImplicitLocOpBuilder b(ret.getLoc(), ret);
 
     // Return all outputs via the `rt.set_output` operation.
-    for (auto pair : llvm::enumerate(ret.operands())) {
+    for (auto pair : llvm::enumerate(ret.getOperands())) {
       b.create<SetOutputOp>(kernel_ctx, pair.index(), pair.value());
     }
 

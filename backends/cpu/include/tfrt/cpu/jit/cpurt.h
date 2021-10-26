@@ -206,6 +206,13 @@ struct CompilationOptions {
   // memrefs). This type converter must do an identical type conversion to
   // the custom lowering pass pipeline configured by `register_pass_pipeline`.
   mlir::TypeConverter type_converter;
+
+  // Enables math approximations that emit AVX2 intrinsics.
+#ifdef __AVX2__
+  bool math_avx2 = true;
+#else
+  bool math_avx2 = false;
+#endif
 };
 
 //----------------------------------------------------------------------------//

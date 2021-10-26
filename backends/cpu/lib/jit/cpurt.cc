@@ -830,7 +830,16 @@ namespace {
 // Optimize operations from the `math` dialect.
 struct MathOptimizationPass
     : public mlir::PassWrapper<MathOptimizationPass, mlir::FunctionPass> {
+  MathOptimizationPass() = default;
+  MathOptimizationPass(const MathOptimizationPass& pass) {}
+  explicit MathOptimizationPass(bool avx2) { enable_avx2 = avx2; }
   void runOnFunction() override;
+
+ private:
+  Option<bool> enable_avx2{
+      *this, "enable-avx2",
+      llvm::cl::desc("Enable math approximations that emit AVX2 intrinsics."),
+      llvm::cl::init(false)};
 };
 
 // Add alignment attribute to all `alloc` operations.
@@ -855,14 +864,17 @@ struct RewriteVectorMultiReductionPass
 void MathOptimizationPass::runOnFunction() {
   mlir::OwningRewritePatternList patterns(&getContext());
   mlir::populateMathAlgebraicSimplificationPatterns(patterns);
-  mlir::populateMathPolynomialApproximationPatterns(patterns);
+  mlir::MathPolynomialApproximationOptions approx_options;
+  approx_options.enableAvx2 = enable_avx2;
+  mlir::populateMathPolynomialApproximationPatterns(patterns, approx_options);
   if (failed(mlir::applyPatternsAndFoldGreedily(getOperation(),
                                                 std::move(patterns))))
     signalPassFailure();
 }
 
-static std::unique_ptr<MathOptimizationPass> CreateMathOptimizationPass() {
-  return std::make_unique<MathOptimizationPass>();
+static std::unique_ptr<MathOptimizationPass> CreateMathOptimizationPass(
+    bool enable_avx2) {
+  return std::make_unique<MathOptimizationPass>(enable_avx2);
 }
 
 void AlignedAllocationsPass::runOnFunction() {
@@ -942,7 +954,7 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
 
   // Optimize operations from the math dialect before outlining compute regions
   // into functions to see all constant operands.
-  pm.addNestedPass<mlir::FuncOp>(CreateMathOptimizationPass());
+  pm.addNestedPass<mlir::FuncOp>(CreateMathOptimizationPass(opts.math_avx2));
 
   // Rewrite `vector.multi_reduction` into a sequence of `vector.reduction` ops.
   pm.addNestedPass<mlir::FuncOp>(CreateRewriteVectorMultiReductionPass());
@@ -989,7 +1001,8 @@ static mlir::LogicalResult LowerToLlvm(mlir::ModuleOp module,
   pm.addPass(CreateConvertRuntimeToLLVMPass());
 
   mlir::LowerVectorToLLVMOptions vector_to_llvm_opts;
-  pm.addPass(mlir::createConvertVectorToLLVMPass());
+  if (opts.math_avx2) vector_to_llvm_opts.setEnableX86Vector(true);
+  pm.addPass(mlir::createConvertVectorToLLVMPass(vector_to_llvm_opts));
   pm.addPass(mlir::createMemRefToLLVMPass());
 
   {

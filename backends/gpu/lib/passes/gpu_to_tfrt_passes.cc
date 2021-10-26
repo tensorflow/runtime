@@ -666,8 +666,7 @@ LogicalResult SwapAsyncAwaitOfCastPattern::matchAndRewrite(
   Location loc = await_op->getLoc();
   SmallVector<Value, 4> results;
   for (auto operand : cast_op->getOperands()) {
-    results.push_back(
-        rewriter.create<async::AwaitOp>(loc, operand).getResult(0));
+    results.push_back(rewriter.create<async::AwaitOp>(loc, operand).result());
   }
   rewriter.replaceOp(await_op, CastToToken(rewriter, loc, results));
   return success();
@@ -690,7 +689,7 @@ LogicalResult ConvertMemsetPattern::matchAndRewrite(
   auto stream = cast_op.getOperand(1);
   auto new_op = rewriter.create<tfrt::gpu::MemSetOp>(
       loc, adaptor.dst(), adaptor.value(), stream, cast_op.getOperand(0));
-  auto token = CastToToken(rewriter, loc, {new_op.getResult(), stream});
+  auto token = CastToToken(rewriter, loc, {new_op, stream});
   rewriter.replaceOp(memset_op, token);
   return success();
 }
@@ -711,7 +710,7 @@ LogicalResult ConvertMemcpyPattern::matchAndRewrite(
   auto stream = cast_op.getOperand(1);
   auto new_op = rewriter.create<tfrt::gpu::MemCopyOp>(
       loc, adaptor.dst(), adaptor.src(), stream, cast_op.getOperand(0));
-  auto token = CastToToken(rewriter, loc, {new_op.getResult(), stream});
+  auto token = CastToToken(rewriter, loc, {new_op, stream});
   rewriter.replaceOp(memcpy_op, token);
   return success();
 }
@@ -727,7 +726,7 @@ LogicalResult ConvertGetGlobalPattern::matchAndRewrite(
     return rewriter.notifyMatchFailure(get_global_op, "no gpu_module attr");
   Location loc = get_global_op->getLoc();
   Value stream = get_global_op->getParentOfType<FuncOp>().getArgument(1);
-  Value context = rewriter.create<StreamGetContextOp>(loc, stream).getResult();
+  Value context = rewriter.create<StreamGetContextOp>(loc, stream);
   auto func_op =
       SymbolTable::lookupNearestSymbolFrom<FuncOp>(get_global_op, module_attr);
   auto once_op = rewriter.create<compiler::OnceOp>(
@@ -850,7 +849,7 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
   Location loc = launch_op->getLoc();
   Value chain = cast_op.getOperand(0);
   Value stream = cast_op.getOperand(1);
-  Value context = rewriter.create<StreamGetContextOp>(loc, stream).getResult();
+  Value context = rewriter.create<StreamGetContextOp>(loc, stream);
   auto func_op = SymbolTable::lookupNearestSymbolFrom<FuncOp>(
       launch_op, adaptor.kernel().getRootReference());
   auto once_op = rewriter.create<compiler::OnceOp>(
@@ -863,17 +862,14 @@ LogicalResult ConvertLaunchFuncPattern::matchAndRewrite(
         loc, chain.getType(), ValueRange({chain, once_op->getResult(1)}));
   }
   Value shared_mem_size = adaptor.dynamicSharedMemorySize();
-  if (!shared_mem_size) {
-    shared_mem_size =
-        rewriter.create<compiler::ConstantUI32Op>(loc, 0).getResult();
-  }
+  if (!shared_mem_size)
+    shared_mem_size = rewriter.create<compiler::ConstantUI32Op>(loc, 0);
   auto new_op = rewriter.create<FunctionLaunchOp>(
       loc, chain.getType(), stream, get_func_op.getResult(),
       adaptor.gridSizeX(), adaptor.gridSizeY(), adaptor.gridSizeZ(),
       adaptor.blockSizeX(), adaptor.blockSizeY(), adaptor.blockSizeZ(),
       shared_mem_size, chain, adaptor.operands());
-  auto token = CastToToken(rewriter, loc, {new_op.getResult(), stream});
-  rewriter.replaceOp(launch_op, token);
+  rewriter.replaceOp(launch_op, CastToToken(rewriter, loc, {new_op, stream}));
   return success();
 }
 
@@ -927,7 +923,7 @@ Value GetContextFromParentFunc(Operation *op) {
   auto func_op = op->getParentOfType<FuncOp>();
   auto get_ctx_ops = func_op.getOps<StreamGetContextOp>();
   if (get_ctx_ops.empty()) return nullptr;
-  return (*get_ctx_ops.begin()).getResult();
+  return *get_ctx_ops.begin();
 }
 
 LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
@@ -955,7 +951,7 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
 
   // Merge operand chains if there is more than one.
   Location loc = wait_op.getLoc();
-  Value chain = [&] {
+  Value chain = [&]() -> Value {
     SmallVector<Value, 4> chains;
     if (cast_from_stream_op)
       chains.push_back(cast_from_stream_op.getOperand(0));
@@ -963,8 +959,7 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
                     [](auto cast_op) { return cast_op.getOperand(0); });
     if (chains.size() == 1) return chains.front();
     Type chain_type = rewriter.getType<compiler::ChainType>();
-    return rewriter.create<compiler::MergeChainsOp>(loc, chain_type, chains)
-        .getResult();
+    return rewriter.create<compiler::MergeChainsOp>(loc, chain_type, chains);
   }();
 
   // Create stream if no operand is cast from stream.
@@ -979,9 +974,8 @@ LogicalResult ConvertGpuWaitToChainAndStreamPattern::matchAndRewrite(
 
   // Synchronize stream with all event operands.
   for (auto cast_op : cast_from_event_ops) {
-    auto stream_wait_op = rewriter.create<StreamWaitOp>(
-        loc, stream, cast_op.getOperand(1), chain);
-    chain = stream_wait_op.getResult();
+    chain = rewriter.create<StreamWaitOp>(loc, stream, cast_op.getOperand(1),
+                                          chain);
   }
 
   // Cast back to token if stream was synchronized.
@@ -1030,8 +1024,8 @@ LogicalResult ConvertCastToEventRecordPattern::matchAndRewrite(
   Value context = GetContextFromParentFunc(cast_op);
   if (!context) context = rewriter.create<StreamGetContextOp>(loc, stream);
 
-  Value event = rewriter.create<EventCreateOp>(loc, context).getResult();
-  chain = rewriter.create<EventRecordOp>(loc, event, stream, chain).getResult();
+  Value event = rewriter.create<EventCreateOp>(loc, context);
+  chain = rewriter.create<EventRecordOp>(loc, event, stream, chain);
 
   rewriter.replaceOp(cast_op, {chain, event});
   Value token = CastToToken(rewriter, loc, {chain, stream});

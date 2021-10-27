@@ -156,7 +156,7 @@ module @test_launch_kernel attributes {gpu.container_module} {
     %t0 = builtin.unrealized_conversion_cast %arg0, %arg1
         : !tfrt.chain, !tfrt_gpu.stream to !gpu.async.token
     // CHECK: %[[ctx:.*]] = tfrt_gpu.stream.get_context %arg1
-    // CHECK: %[[once:.*]]:2 = tfrt.once @gpu_module(%6)
+    // CHECK: %[[once:.*]]:2 = tfrt.once @gpu_module(%[[ctx]])
     // CHECK-SAME: (!tfrt_gpu.context) -> (!tfrt_gpu.module, !tfrt.chain)
     // CHECK: %[[kernel:.*]] = tfrt_gpu.module.get_function %[[once]]#0 {name = "kernel"}
     // CHECK: %[[ch0:.*]] = tfrt.merge.chains %arg0, %[[once]]#1 : !tfrt.chain, !tfrt.chain
